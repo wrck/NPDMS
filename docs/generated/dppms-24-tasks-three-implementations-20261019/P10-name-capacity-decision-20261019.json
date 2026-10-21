@@ -1,0 +1,25 @@
+{
+  "recordedAt": "2026-10-19T21:42:04.436934+08:00",
+  "P10_1": "RESOLVED_BY_SOURCE_CORRECTION_VERIFIED",
+  "P10_2": "RESOLVED_BY_SOURCE_FILTER_VERIFIED",
+  "P10_3": "APPROVED_RULE_PENDING_IMPLEMENTATION_AND_SCHEMA",
+  "userDecision": "完整保留原名，上限调整为255（建议）",
+  "approvedNameCapacity": 255,
+  "sourceRowsAtLastRead": 59544,
+  "duplicateCodeGroupsAtLastRead": 0,
+  "missingNameRowsAtLastRead": 0,
+  "longNameRowsAtLastRead": 4,
+  "formalNameCapacityAtLastRead": 128,
+  "independentP10SourceAndJavaLimitsAtReview": 128,
+  "approvedScope": "Complete original names; 255 formal customer-name capacity and matching new BASE_P10 source/Java length validation. Original tasks isolated.",
+  "notAuthorizedByThisRuleDecision": [
+    "DDL execution",
+    "Flyway or migration",
+    "true synchronization",
+    "original-task modifications",
+    "59191 operation"
+  ],
+  "implementationPerformed": false,
+  "schemaWritePerformed": false,
+  "realPreviewRerun": false
+}

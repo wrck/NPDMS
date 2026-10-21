@@ -72,7 +72,7 @@ WHERE p.tenant_id=#{query.tenantId} AND p.deleted=FALSE
  JOIN com_sales_order o ON o.tenant_id=l.tenant_id AND o.id=l.order_id AND o.deleted=FALSE AND o.status='ENABLED'
   AND CAST(o.source_system AS BINARY)=CAST(l.source_system AS BINARY) AND CAST(o.company_code AS BINARY)=CAST(l.company_code AS BINARY) AND CAST(o.order_type AS BINARY)=CAST(l.order_type AS BINARY) AND CAST(o.order_no AS BINARY)=CAST(l.order_no AS BINARY)
  JOIN int_base_sync_binding ob ON ob.tenant_id=l.tenant_id AND ob.target_id=l.id AND ob.object_key='SALES_LINE' AND ob.deleted=FALSE
-  AND CAST(ob.source_key AS BINARY)=CAST(SHA2(CAST(JSON_ARRAY(l.source_system,l.company_code,l.order_type,l.order_no,l.line_no) AS CHAR),256) AS BINARY)
+  AND CAST(ob.source_key AS BINARY)=CAST(SHA2(CAST(JSON_ARRAY(l.source_system,l.company_code,l.line_type,l.order_no,l.line_no) AS CHAR),256) AS BINARY)
  JOIN int_base_sync_task ot ON ot.tenant_id=ob.tenant_id AND ot.id=ob.task_id AND ot.task_code='BASE_P14' AND ot.connection_id=#{query.connectionId} AND ot.deleted=FALSE
  JOIN int_base_sync_run rr ON rr.tenant_id=ot.tenant_id AND rr.task_id=ot.id AND rr.connection_id=ot.connection_id AND rr.id=ob.last_run_id AND rr.task_code='BASE_P14' AND rr.status='COMPLETED' AND rr.preview=FALSE AND rr.deleted=FALSE
  WHERE l.tenant_id=#{query.tenantId} AND l.deleted=FALSE AND l.status='ENABLED' AND l.source_system IN ('SAP','D365','SMS')

@@ -24,6 +24,11 @@ public class P10CrmCustomerSyncTask extends AbstractSyncTask<P10CrmCustomerSyncT
     @Override protected void syncDataBefore(SyncContext<Void> context){
         super.syncDataBefore(context);
         if(customers.erpColumnReady()!=1)throw new IllegalStateException("P10目标缺少已审核列cus_customer_master.erp_customer_code；不执行迁移");
+        int nameCapacity=customers.nameColumnCapacity();
+        if(nameCapacity<255){
+            if(!context.preview())throw new IllegalStateException("P10_TARGET_NAME_CAPACITY_REQUIRED:cus_customer_master.name:"+nameCapacity+"->255");
+            context.runState().warning("P10_EXECUTION_SCHEMA_REQUIRED:cus_customer_master.name:"+nameCapacity+"->255");
+        }
     }
     @Override protected void syncDataInsertBefore(SyncBatch<CustomerSource,Void> batch){
         var context=batch.context();
@@ -94,7 +99,7 @@ public class P10CrmCustomerSyncTask extends AbstractSyncTask<P10CrmCustomerSyncT
                 || source.getName()==null || source.getName().isBlank() || source.getSourceVersion()==null || source.getDataAsOf()==null)
             throw new IllegalArgumentException("CRM客户来源身份、名称、编码或版本缺失");
         if(!Set.of("ENABLED","DISABLED").contains(Objects.toString(source.getLifecycleStatus(),"")))throw new IllegalArgumentException("CRM客户来源状态未定义");
-        checkTextLength(source.getSourceKey(),128);checkTextLength(source.getCode(),64);checkTextLength(source.getName(),128);
+        checkTextLength(source.getSourceKey(),128);checkTextLength(source.getCode(),64);checkTextLength(source.getName(),255);
         checkTextLength(source.getErpCustomerCode(),50);checkTextLength(source.getContactPhone(),64);checkTextLength(source.getContactEmail(),128);checkTextLength(source.getAddress(),255);
         for(var value:Arrays.asList(source.getDepartmentCode(),source.getMarketCode(),source.getSystemCode(),source.getExpendCode(),source.getIndustryCode()))checkTextLength(value,64);
         for(var value:Arrays.asList(source.getDepartmentName(),source.getMarketName(),source.getSystemName(),source.getExpendName(),source.getIndustryName()))checkTextLength(value,128);
@@ -188,6 +193,8 @@ public class P10CrmCustomerSyncTask extends AbstractSyncTask<P10CrmCustomerSyncT
     @Mapper public interface TargetMapper {
         @InterceptorIgnore(tenantLine="true",dataPermission="true")
         int erpColumnReady();
+        @InterceptorIgnore(tenantLine="true",dataPermission="true")
+        int nameColumnCapacity();
         record SourceKeysQuery(long tenantId,List<String> keys,boolean preview){}
         record CustomersQuery(long tenantId,List<Long> ids,List<String> codes,boolean preview){}
         List<CustomerMapping> selectMappings(@Param("query") SourceKeysQuery query);

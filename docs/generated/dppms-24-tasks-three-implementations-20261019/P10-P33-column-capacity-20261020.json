@@ -1,0 +1,292 @@
+{
+  "status": "PROPOSED_NOT_EXECUTED",
+  "observedAt": "2026-10-20T08:16:27.431620+08:00",
+  "database": "127.0.0.1:24306/npdms_reverify_20261014",
+  "P10": {
+    "source": "SQL Server DPtech_v_account.Name",
+    "sourceDefinition": "NVARCHAR(160), nullable, Chinese_PRC_90_CI_AI",
+    "sourceFacts": {
+      "source_rows": 59544,
+      "max_raw_name_characters": 143,
+      "max_mapped_name_characters": 143,
+      "max_raw_sqlserver_bytes": 286,
+      "over_128_raw": 4,
+      "over_128_mapped": 4,
+      "over_255_raw": 0,
+      "empty_name": 0,
+      "source_columns_json": [
+        {
+          "columnName": "Name",
+          "dataType": "nvarchar",
+          "maxBytes": 320,
+          "isNullable": true,
+          "collationName": "Chinese_PRC_90_CI_AI"
+        }
+      ],
+      "overlength_rows_json": [
+        {
+          "sourceId": "01E1A142-B5D5-4615-BDC7-2CEAAC7756E0",
+          "customerCode": "162014000109",
+          "rawCharacters": 131,
+          "mappedCharacters": 131
+        },
+        {
+          "sourceId": "0B119939-681D-45CF-911E-B55DF06EC6C5",
+          "customerCode": "162025001801",
+          "rawCharacters": 130,
+          "mappedCharacters": 130
+        },
+        {
+          "sourceId": "166465CA-9D54-4891-8D27-E79168F688FA",
+          "customerCode": "162014000948",
+          "rawCharacters": 131,
+          "mappedCharacters": 131
+        },
+        {
+          "sourceId": "AAF3F494-254D-4B4C-B73C-F8884D6430CE",
+          "customerCode": "162016001782",
+          "rawCharacters": 143,
+          "mappedCharacters": 143
+        }
+      ]
+    },
+    "unicodeProof": {
+      "checkedAt": "2026-10-20T08:13:23.724282+08:00",
+      "rawNamesPersisted": false,
+      "rows": [
+        {
+          "sourceId": "01E1A142-B5D5-4615-BDC7-2CEAAC7756E0",
+          "customerCode": "162014000109",
+          "rawCodepoints": 131,
+          "mappedCodepoints": 131,
+          "rawUtf16CodeUnits": 131,
+          "rawUtf8Bytes": 393
+        },
+        {
+          "sourceId": "0B119939-681D-45CF-911E-B55DF06EC6C5",
+          "customerCode": "162025001801",
+          "rawCodepoints": 130,
+          "mappedCodepoints": 130,
+          "rawUtf16CodeUnits": 130,
+          "rawUtf8Bytes": 390
+        },
+        {
+          "sourceId": "166465CA-9D54-4891-8D27-E79168F688FA",
+          "customerCode": "162014000948",
+          "rawCodepoints": 131,
+          "mappedCodepoints": 131,
+          "rawUtf16CodeUnits": 131,
+          "rawUtf8Bytes": 393
+        },
+        {
+          "sourceId": "AAF3F494-254D-4B4C-B73C-F8884D6430CE",
+          "customerCode": "162016001782",
+          "rawCodepoints": 143,
+          "mappedCodepoints": 143,
+          "rawUtf16CodeUnits": 143,
+          "rawUtf8Bytes": 429
+        }
+      ],
+      "maxSourceCodepoints": 143,
+      "reason": "All remaining names have SQL Server UTF-16 length at most 128; their Unicode codepoint length cannot exceed 128.",
+      "initialReadIssue": "Initial native-console Chinese decoding failed; corrected by requesting ASCII UTF-16 hexadecimal projection. Source values were never modified."
+    },
+    "targetColumn": {
+      "TABLE_NAME": "cus_customer_master",
+      "COLUMN_NAME": "name",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "CHARACTER_SET_NAME": "utf8mb4",
+      "COLLATION_NAME": "utf8mb4_unicode_ci",
+      "CHARACTER_MAXIMUM_LENGTH": 128,
+      "CHARACTER_OCTET_LENGTH": 512,
+      "COLUMN_COMMENT": "客户名称",
+      "EXTRA": "",
+      "GENERATION_EXPRESSION": ""
+    },
+    "proposedCapacity": 255,
+    "proposalBasis": "Existing approved capacity. All current originals <=143 codepoints; source declares up to 160 UTF-16 units.",
+    "targetExistingData": {
+      "rowsInTable": 7,
+      "maxExistingChars": 16,
+      "maxExistingBytes": 36
+    }
+  },
+  "P33": {
+    "source": "dppms.pm_project_shipment.installAddress",
+    "sourceFacts": {
+      "observedAt": "2026-10-20T08:16:27.431620+08:00",
+      "sourceScope": "Same active original aliases and active maximum-ID canonical project rules as new BASE_P16/P33, projectType=10. No old publication/task/binding source.",
+      "sourceSnapshot": "REPEATABLE READ, WITH CONSISTENT SNAPSHOT, READ ONLY",
+      "projectRows": 83550,
+      "approvedSourceProjectKeys": 79442,
+      "scoped": {
+        "sourceRows": 1063717,
+        "maxCharacters": 571,
+        "maxBytes": 1505,
+        "over255": 6111,
+        "over1024": 0,
+        "blankOver255": 0
+      },
+      "rawTable": {
+        "sourceRows": 1064774,
+        "maxCharacters": 571,
+        "maxBytes": 1505,
+        "over255": 6111,
+        "over1024": 0,
+        "blankOver255": 0
+      },
+      "sourceColumn": [
+        {
+          "TABLE_NAME": "pm_project_shipment",
+          "COLUMN_NAME": "installAddress",
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "CHARACTER_SET_NAME": "utf8",
+          "COLLATION_NAME": "utf8_general_ci",
+          "CHARACTER_MAXIMUM_LENGTH": 65535,
+          "CHARACTER_OCTET_LENGTH": 65535
+        }
+      ],
+      "maxLengthExamples": [
+        {
+          "sourceId": 463407,
+          "originalProjectId": 29196,
+          "characters": 571,
+          "bytes": 1505
+        },
+        {
+          "sourceId": 463408,
+          "originalProjectId": 29196,
+          "characters": 571,
+          "bytes": 1505
+        },
+        {
+          "sourceId": 463409,
+          "originalProjectId": 29196,
+          "characters": 571,
+          "bytes": 1505
+        },
+        {
+          "sourceId": 463410,
+          "originalProjectId": 29196,
+          "characters": 571,
+          "bytes": 1505
+        },
+        {
+          "sourceId": 463411,
+          "originalProjectId": 29196,
+          "characters": 571,
+          "bytes": 1505
+        }
+      ],
+      "scopeAlgorithm": "Exact case/whitespace-sensitive (projectType, projectCode) groups, maximum original projectId; both alias and current master disabled=0/effectiveTo=NULL, current type=10. NULL code groups do not join.",
+      "boundary": "Two flat reads then scope matching in memory; no record text persisted and no business/authorization/DDL/service operations."
+    },
+    "targetColumn": {
+      "TABLE_NAME": "imp_eng_installation",
+      "COLUMN_NAME": "install_location",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "CHARACTER_SET_NAME": "utf8mb4",
+      "COLLATION_NAME": "utf8mb4_unicode_ci",
+      "CHARACTER_MAXIMUM_LENGTH": 255,
+      "CHARACTER_OCTET_LENGTH": 1020,
+      "COLUMN_COMMENT": "安装位置",
+      "EXTRA": "",
+      "GENERATION_EXPRESSION": ""
+    },
+    "snapshotColumn": {
+      "TABLE_NAME": "imp_eng_installation",
+      "COLUMN_NAME": "location_snapshot",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "CHARACTER_SET_NAME": "utf8mb4",
+      "COLLATION_NAME": "utf8mb4_unicode_ci",
+      "CHARACTER_MAXIMUM_LENGTH": 65535,
+      "CHARACTER_OCTET_LENGTH": 65535,
+      "COLUMN_COMMENT": "",
+      "EXTRA": "",
+      "GENERATION_EXPRESSION": ""
+    },
+    "proposedCapacity": 1024,
+    "proposalBasis": "Engineering proposal for the reviewed current source: longest 571 characters, 6111 over255, zero over1024. Source TEXT can hold longer future data; existing capacity validation must continue to reject overflow without truncation. No broader full-TEXT capacity promise.",
+    "targetExistingData": {
+      "rowsInTable": 34,
+      "maxExistingChars": 13,
+      "maxExistingBytes": 33
+    }
+  },
+  "minimalDdl": "-- REVIEW ONLY: not executed; no structural-write authorization in this turn.\n-- Target: dedicated npdms_reverify_20261014 only. Never npdms_domain_test.\n-- No Flyway, migration runner, synchronization task, trigger/index changes or service restart.\n-- Preserve existing charset/collation, nullability, default and comments; change length only.\n\nALTER TABLE `npdms_reverify_20261014`.`cus_customer_master`\n  MODIFY COLUMN `name` VARCHAR(255)\n  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci\n  NOT NULL COMMENT '客户名称';\n\nALTER TABLE `npdms_reverify_20261014`.`imp_eng_installation`\n  MODIFY COLUMN `install_location` VARCHAR(1024)\n  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci\n  NULL DEFAULT NULL COMMENT '安装位置';\n",
+  "targetIndexContext": {
+    "serverVersion": "8.4.10",
+    "tables": [
+      {
+        "TABLE_NAME": "cus_customer_master",
+        "ENGINE": "InnoDB",
+        "ROW_FORMAT": "Dynamic",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci"
+      },
+      {
+        "TABLE_NAME": "imp_eng_installation",
+        "ENGINE": "InnoDB",
+        "ROW_FORMAT": "Dynamic",
+        "TABLE_COLLATION": "utf8mb4_unicode_ci"
+      }
+    ],
+    "indexColumns": [
+      {
+        "INDEX_NAME": "idx_cus_customer_master_tenant_name",
+        "SEQ_IN_INDEX": 1,
+        "COLUMN_NAME": "tenant_id",
+        "COLUMN_TYPE": "bigint",
+        "CHARACTER_OCTET_LENGTH": null
+      },
+      {
+        "INDEX_NAME": "idx_cus_customer_master_tenant_name",
+        "SEQ_IN_INDEX": 2,
+        "COLUMN_NAME": "name",
+        "COLUMN_TYPE": "varchar(128)",
+        "CHARACTER_OCTET_LENGTH": 512
+      }
+    ],
+    "innodbPageSize": 16384
+  },
+  "readOnlyProof": {
+    "observedAt": "2026-10-20T08:16:27.431620+08:00",
+    "environment": {
+      "pid59284": 25036,
+      "flags": {
+        "--server.port=59284": true,
+        "--spring.profiles.active=local,dac": true,
+        "--spring.flyway.enabled=false": true,
+        "--flowable.database-schema-update=false": true,
+        "--spring.quartz.auto-startup=false": true,
+        "--spring.batch.job.enabled=false": true,
+        "--pms.bindings.backends.event-driven.enabled=false": true
+      },
+      "migrationContainers": [
+        {
+          "name": "npdms-domain-test-migrate-1",
+          "state": "exited"
+        }
+      ],
+      "verifiedAt": "2026-10-20T08:16:30.774456+08:00"
+    },
+    "sameTargetDefinitions": true,
+    "sameTargetDataCountsAndLengths": true,
+    "sameFlywayHistory": true,
+    "boundary": "Read-only data/metadata and connection-local transaction settings. Cancelled only the first own slow SELECT query after exact SQL identification; no original-task operation, DDL, migration, real synchronization or 59191 operation."
+  },
+  "artifacts": "D:\\CodexTaskArtifacts\\project-detail-followup\\p10-p33-column-capacity-audit-20261020",
+  "existingDecisions": [
+    "P10 full original customer names; approved 255 ceiling",
+    "P33 omit blank-address records",
+    "P33 UNRESOLVED; full original text in install_location and location_snapshot.fallbackLocation",
+    "No managed address records or parsing; original tasks isolated"
+  ],
+  "boundary": "Proposal files only. No product/runtime/config/original-task changes, DDL, migration, real synchronization, source writes or 59191 operations. Automatic migrations and jobs stay disabled."
+}

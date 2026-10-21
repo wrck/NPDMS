@@ -60,6 +60,7 @@
 ### Q-LEGACY-ORDER-FULL-SOURCE-CONFLICTS-20261013-023 — 整表订单来源冲突及公司映射碰撞
 
 - Status: OPEN / BLOCKED_BY_SPEC
+- Latest independent-suite decision（2026-10-19）: 仅新BASE_P14已批准同来源、公司、类型、订单号取`MAX(orderExecNumber)`；169组执行单选值不再待决。只读核清及剩余明细问题见[当前两表核查](../generated/dppms-24-tasks-three-implementations-20261019/P14-split-unique-review-20261019.md)。本轮尚未修改产品代码或重跑真实预览；原A/B任务、其目标碰撞处置与历史回执均不扩围、不操作。
 - Preview verification（2026-10-15，新验证库）: P14 v5 / Run 2110507977953607682完整预览467,190条，PREVIEW_READY，ISSUE 2,138。ORDER 90,466条来源中410条重复业务内容冲突；LINE 376,724条来源中1,728条父订单预检不通过，来源预检合计与ISSUE数量相等。运行保留的2,000条问题明细仅含410条重复冲突及1,590条父订单缺失，不能当作全部Owner明细。误带旧库恢复证明的配置已修正，Q023/Q025及原恢复/归属保护保持，未任选执行单或正式写入。见[修复预览报告](../generated/2026-10-13-dppms-migration-mapping/production-tasks/preview-repair-20261015.md)。
 - Evidence: 完整91572条原订单只读核对发现169个同ERP／公司／类型／订单号业务键下的410条原记录内容不同；既有正式模板已将它们标为DUPLICATE_BUSINESS_KEY_CONFLICT。此外原11536（D365／01／0／SO078894）对应两个均未删除的正式订单2101599583586234873和2104958251101687810，公司原01与已转换001在正式映射后碰撞；已有整表裁决明确要求这种碰撞阻断并另列裁决。全部411条完整16原字段及相应正式行见[来源和目标证据](../generated/2026-10-13-dppms-order-conflicting-originals.json)。只读核对无正式写入，没有选择技术ID最大记录或重定向旧来源绑定。
 - Latest field audit（2026-10-14）: 410条归并为169组后，原模板参与冲突判断的10项业务属性中，全部组仅orderExecNumber不同，其余九项一致。现有订单头execution_no是单值，订单行real_execution_no是实际执行单号，不能未经原关联核实互相替代；须继续核对来源视图与正式订单行。目标MySQL因宿主M盘空间耗尽中断，未因此修改字段映射、任选主执行单或覆盖现值。逐组差异见私有证据full-preview-repair-order-difference-groups-20261014.json。
@@ -2582,3 +2583,113 @@ RESOLVED（2026-10-11）：用户批准仅应用既有V398的version BIGINT NOT 
 - P33: 完整1063717条中，24142条NULL地址、1849条一个空格、11条两个空格；6111条地址超过安装列255字符，最长571。需空地址安装含义/状态及超长完整承载新裁决；AST地址1024字符容量不能自动授权改变安装字段映射。29条串货仍按已决暂缓，不重复询问或扩写；当前36个正式设备SN与原来源匹配0，仅列未来写入前置。
 - Real preview: P10 Run 2112165966710439937 / DUPLICATE_CUSTOMER_CODE；P14 Run 2112166044439281665 / P14_DUPLICATE_BUSINESS_KEY_CONFLICT；P18 Run 2112166146755133442 / P18_PROJECT_COMPANY_NOT_AUTHORIZED；P33 Run 2112166199544643585 / P33_SOURCE_BASELINE_INVALID。全部为新BASE预览，未执行原任务。
 - Boundary and evidence: 仅恢复未运行的59284既有冻结包，自动迁移及作业关闭；无DDL、源/环境数据修正、授权写入、双线对照、迁移、真实同步或59191操作。180项保护和原46任务/209运行/211绑定逐字段保持，独立绑定及非预览Run为0。完整逐项来源身份、SQL、历史依据和新回执见[四项复核报告](../generated/dppms-24-tasks-three-implementations-20261019/base-sync-four-blockers-audit-20261019.md)。
+
+### 2026-10-19 P10来源修正复核：同码问题已消除
+
+- Status: P10-1 RESOLVED_BY_SOURCE_CORRECTION_VERIFIED；P10-2/P10-3仍待裁决。
+- User update: 用户告知“已处理来源异常数据”，未将其解释为同码合并、自动选客户或预览放宽获批。
+- Live source: 2026-10-19T21:28:49.049991+08:00同一SQL Server DPtech_v_account当前59579条、同码组0；原22组44个AccountId每组1个仍可见、1个不在当前视图。35个NULL名称（9启用/26停用）及4个130/131/131/143字符名称仍在，需继续逐项确认，不重复问同码事项。
+- Boundary: 仅3份来源SELECT及目标列读取；未修改实现、原任务、任务配置、源/目标数据或权限，未执行DDL、迁移、真实同步、真实预览或59191操作；自动迁移配置未变。最近真实失败回执保持，不写成预览通过。
+- Evidence: [P10来源修正后的原始数据与待决项](../generated/dppms-24-tasks-three-implementations-20261019/P10-source-correction-recheck-20261019.md)。
+
+### 2026-10-19 P10来源过滤NULL复核：仅剩4条超长名称
+
+- Status: P10-1/P10-2 RESOLVED_BY_SOURCE_CHANGE_VERIFIED；仅P10-3仍待裁决。
+- User update: 用户明确“已过滤null值”。本次不将其解释为NULL预览例外获批，不新增任务过滤或占位逻辑。
+- Live source: 2026-10-19T21:33:10.415099+08:00同一配置SQL Server DPtech_v_account当前59544条，同码组0、缺名0，原35个NULL AccountId在视图中可见数0；4个名称仍为130/131/131/143字符，正式列及新P10两处长度判定仍为128。
+- Pending: 先确认P10-3完整原名的正式承接上限；建议255及对应新P10校验，尚未获批。本次不执行DDL、迁移、真实同步或真实预览，不修改原任务、数据或权限，自动迁移配置未变，不动59191。
+- Evidence: [来源NULL过滤后的实查及4条超长名称全文](../generated/dppms-24-tasks-three-implementations-20261019/P10-null-filter-recheck-20261019.md)。
+
+### 2026-10-19 P10名称容量裁决及P14执行单正式承接待决
+
+- P10 decision: 用户选择“完整保留原名，上限调整为255（建议）”，批准255名称承接及相应新BASE_P10两处长度校验。P10-1/2来源问题均已消除，P10业务裁决闭合；本轮只记录规则，正式列及新P10仍128、尚未实施，不执行DDL、Flyway、迁移或真实同步，不记为预览通过。
+- P14 fresh evidence: 2026-10-19T21:38:48.422020+08:00仅SELECT再次逐14字段复现169键410条原展开头（165原ERP头/69借货来源），缺失0/额外0；归并361个不同订单/执行单关系，49个原行共享已有关系。37组D365原ERP主号在展开集合内；132组SMS原ERP执行单号均不在借货展开集合，不能统一套用原ERP主号。
+- P14 pending proposal: 一个订单头；D365取原主号，SMS无主次依据时主号先NULL；全部执行单用明确正式关联模型承接。最小表级设计与替代方案已列出，尚未获批，不自动新增关系、创建CRM执行单或任选主号。P15选客户规则保持，不扩成执行单主次规则。P14-2缺订单号40条后续单独确认。
+- Boundary: 本轮未修改产品实现、任务配置、权限、业务数据、结构或原任务，未运行新真实预览，不动59191，自动迁移配置未变。
+- Evidence: [P10裁决](../generated/dppms-24-tasks-three-implementations-20261019/P10-name-capacity-decision-20261019.md)；[P14原值、正式限制和最小关联设计](../generated/dppms-24-tasks-three-implementations-20261019/P14-execution-pending-decision-20261019.md)。
+
+### 2026-10-19 P14决策信息补充：版本键、真实SQL及现有读取影响
+
+- User feedback: 用户要求“给出相关查询sql，表名，以及业务说明，决策信息不足”。此前新增正式关联表及SMS主号NULL的选项未获批准，不据此实施。
+- Live SQL evidence: 2026-10-19T21:57:41.495266+08:00在源dppms和npdms_reverify_20261014只读执行9+4条SELECT。确认pm_order_data_from_sap_source是视图，直接读物理表pm_order_data_from_erp_source；按合同JOIN借货来源并依据short差异生成-L/SMS，保持旧过程原条件。169键410原头/361完整关系中103组只有一个忽略版本短号、66组SMS有两个短号，须分别核版本承接及跨短号关系，不能全部套新增表方案。
+- Formal constraints: 正式订单业务键不含执行单，execution_no为单值；现有ProjectCommerceMapper.selectExecutionOrders有精确关联头execution_no的分支，头NULL会影响该路径，新建表不会自动改变读取。明细不能完整还原头集合。历史merge_batch/member设计对应表当前专用库不存在，不能当作现成功能。
+- Boundary: 本轮仅补决策依据，未改代码、任务、数据、权限、结构或服务，未调用旧过程、迁移、真实同步或新预览，自动迁移配置未变，不动59191。P10规则保持，P14-2缺订单号另行审，不重复问已决事项。
+- Evidence: [真实表名、13条已核验SQL、逐例及全部169组、业务含义与读取影响](../generated/dppms-24-tasks-three-implementations-20261019/P14-decision-business-and-sql-20261019.md)。
+
+### 2026-10-19 P14来源边界裁决：直接承接旧系统已拆分订单
+
+- User decision: “数据同步来源不需要你回查总代借货来源，旧系统数据是已经拆分好的订单数据”。新P14业务来源仅pm_order_data_from_erp与pm_order_line_from_erp；不回查借货/未拆分ERP，不重做拆分或以其原主号覆盖已拆分值。
+- Correction: 此前上游与短号追溯是额外核查，不是任务原有来源；撤回基于它们的主号重选及外部前置要求，103/66历史分析不再作为同步输入或预览门槛。新增关系表与SMS头NULL方案未获批准，不自动实施。
+- Remaining: 仅按已拆分原行核清正式订单身份/唯一键与订单行关系承接；正式表不含执行单的业务唯一键保持，不能直接降低冲突保护，也不要求来源重新合并或消歧。P14-2缺订单号另按原行处理，不重复问P10已决规则。
+- Verification and boundary: 只读检查P14来源XML，两条select分别只引用pm_order_data_from_erp及pm_order_line_from_erp，均无借货/未拆分ERP引用；本次未查源数据或修改产品、原任务、配置、权限、数据及结构。未执行迁移、真实同步或新预览，自动迁移配置未变，59191未操作。
+- Evidence: [当前来源及已撤回的上游方案说明](../generated/dppms-24-tasks-three-implementations-20261019/P14-decision-business-and-sql-20261019.md)；[仅两张已拆分原表的查询](../generated/dppms-24-tasks-three-implementations-20261019/P14-current-split-source-20261019.sql)。
+
+### 2026-10-19 P14最大执行单字段裁决及两表核清
+
+- Status: MAX_EXECUTION_RULE_ADJUDICATED / SQL_VERIFIED / PRODUCT_IMPLEMENTATION_AND_REAL_PREVIEW_PENDING。
+- User decision: 用户确认“按 max(orderExecNumber) 取最大执行单号”。同ERP来源、映射后公司、订单类型、订单号内选择最大完整执行单号；明细实际执行单保留原值。只读核查169组410条多执行单头的其他承接字段全部相同；正式表头业务唯一键保持，不要求新增执行单关联表或回查借货来源。此前未批准的上游选主/新增关系表方案不再作为当前建议。
+- Read-only verification: 2026-10-19T22:38:15.765124+08:00完成来源8条、专用验证库5条SELECT；91,572条原头对应91,239个订单键，原始记录和逐组最大值见[两表核查材料](../generated/dppms-24-tasks-three-implementations-20261019/P14-split-unique-review-20261019.md)。原正式2头9行保持；无产品代码、任务配置、数据或结构写入，未重跑真实预览。
+- Remaining: 40条原明细缺订单号，10组同键异值全部集中于此；尚无本项预览放行或过滤裁决。另1579条按现行订单键缺父头，其中1243条无同号原头、336条同来源同公司同号但类型不一致，继续核清实现匹配与正式关系依据，不全部归为外部缺数据。原先1430条有精确执行单候选及298条无精确候选都可对应批准的一单一头订单键，不再作为多头承载阻断。
+- Boundary: 严格隔离原任务；不执行迁移、真实同步或DDL，不改变自动迁移开关，不操作59191。本条只关闭执行单选值裁决，不把SELECT核查写成任务预览通过，也不放宽缺订单号、跨类型或真实父头外键约束。
+
+### 2026-10-19 P14来源订单号修正复核：40条缺项关闭
+
+- Status: P14-2 RESOLVED_BY_SOURCE_CORRECTION_VERIFIED。
+- User update and verification: 用户说明“已修正来源异常数据”。2026-10-19T23:09:04.772696+08:00只读实查原40个ID均仍存在，orderNumber均由NULL补齐；本轮读取的其他原字段不变，明细总数380605。全表空订单号0、同键异值组0，不新增NULL过滤或预览例外，不重新询问已消除的问题。
+- Remaining parent evidence: 40条均为lineType=1，对应同来源/公司/订单号的头orderType=0；与前336条合计376条。另1243条在这两张原表内没有同来源/公司/订单号头。现行新套件和旧10项目解析均精确匹配类型；正式明细order_type又要求来自真实父头，尚无本批跨类型关系批准依据。数据库FK只限制真实同租户父头，不强制类型相同，不能误称为库结构缺陷。
+- Pending handling: 仅新P14预览保留原行并逐条登记父头问题、实际写入拒绝，是待确认建议；不修改类型、不造父头、不用-1冒充订单引用，不虚构目标ID或可写计数。批准MAX(orderExecNumber)与本项来源修正均不等于批准跨类型归父。
+- Boundary and evidence: [40条前后原值、当前父关系与查询SQL](../generated/dppms-24-tasks-three-implementations-20261019/P14-source-correction-recheck-20261019.md)。只读来源/结构和代码，无任务/数据/结构/权限/服务写入，未重跑真实预览，自动迁移配置未变，未动59191。
+
+### 2026-10-20 P14头行独立业务键及引用前置纠正
+
+- Status: USER_KEYS_CONFIRMED / IMPLEMENTATION_CORRECTED / REAL_PREVIEW_VERIFIED。
+- User correction: 用户明确“这不该是约束项，已经明确的业务关联键”，并再次给出订单头`tenant_id＋source_system＋company_code＋order_type＋order_no`、订单行`tenant_id＋source_system＋company_code＋line_type＋order_no`。头、行分别保留各自类型，明细行号继续区分同组内的原明细；不把行类型改成候选头类型，不折叠不同行号。
+- Correction: 前轮将376条类型不同记录要求新的预览放行裁决，属于把关联ID解析变成原表预览硬前置的实施误判；该问题撤回，不再作为BLOCKED_BY_SPEC或要求用户再次批准。新P14头查询仍用order_type，行目标查询改用line_type；缺精确父ID时只读预览保留原行、原类型和数量并逐条登记，不伪造目标ID或计划插入/未变数。实际写入仍校验真实父ID及既有绑定，不改正式外键或索引。
+- Existing decisions implemented: 表头执行单取MAX(orderExecNumber)，仅将获批准的执行单差异移出同值冲突判定；其他业务字段冲突仍拒绝。拓展属性暂不承接，已有目标拓展值不覆盖。新来源source_record_key使用BASE_P14独立前缀，原任务代码/查询/绑定不修改。
+- Verification so far: 原问题由失败测试真实复现为P14_MANDATORY_ORDER_MISSING；修复后30项相关检查通过（6项本轮MySQL临时表检查、7项原回归、15项隔离、2项Mapper装配）。临时表验证的正式计数/最大ID/原任务版本保持。候选包只含新P14类族及两个XML的12个差异条目。
+- Runtime boundary: 按已有授权只重载59284并开始新BASE_P14全量真实预览，自动Flyway/Flowable结构更新、Quartz、Batch及事件驱动保持关闭；不执行迁移或真实同步，不操作原任务，不动59191。终态另随本轮结果补记，不提前宣称预览成功。
+
+- Final P14 verification（2026-10-20）: 新BASE_P14 Run `2112220196368515074`于00:33:23自然完成PREVIEW_READY，读取92890头/387154行，共480044；规划插入478464，1580条仅登记后置引用，未伪造ID或可写计数。当前来源93223头/388207行，空订单号0；1580条原ID、类型、订单号、行号及数量逐条回查差异0。180项保护不变，正式绑定及非预览Run为0，24项最新21 PREVIEW_READY/3 FAILED（其余P10/P18/P33未重跑）。[完整本轮证据](../generated/dppms-24-tasks-three-implementations-20261019/P14-business-keys-preview-20261020.md)。
+
+
+### Q-BASE-P10-P18-P33-FOLLOWUP-20261020 — 原名容量与未解析安装快照
+
+- Status: P10/P33_SOURCE_PREVIEW_READY / P18_FORMAL_AUTHORIZATION_BLOCKED。
+- User decisions: P10完整原名上限255及新任务两处校验的既定裁决已落实，不重复提问。用户本轮明确P33空地址全部过滤、不需要承接；非空安装不创建地址管理业务记录，未解析快照只填既有回显键fallbackLocation；再次明确快照及install_location都承接完整原文，列容量另行处理。不得改为仅快照、短列NULL，不截断，不补占位或解析多行来源。
+- Implementation: 仅新BASE_P10/BASE_P33类与XML；P10增加未落实列容量的只读提示及真实执行拒绝。P33 SQL过滤NULL/普通空格，批内标准判空补齐2386条全角空格；保留UNRESOLVED、空地址ID/地址快照，不再调用地址maintain/getAddress。已批准安装时间、状态2、历史保护、当前选择授权和首次当前位置填空边界保持，本轮不执行任何业务写入。超容量及既定暂缓串货仅在预览逐条登记，实际仍拒绝。
+- Real verification: 新P10 Run2112228159594336257 PREVIEW_READY/read59544；新P33 Run2112230315961561090 PREVIEW_READY/read1035329，原1063717中按裁决排除28388空地址；6111条超长原ID/长度逐项一致，2条串货维持暂缓。P18 Run2112228249985781762 FAILED/P18_PROJECT_COMPANY_NOT_AUTHORIZED，read0；源审计82676身份/82381业务组不冒充成功回执。
+- External facts: 当前19用户、38有效范围仅DPTECH-DEMO，001/002/003共82373组关系缺合法执行上下文；8原项目48275～48282缺公司，正式合同0，既定多来源绑定目标索引容量仍为未来实际写入前置。P10正式name128未执行255单列DDL；P33正式安装位置255，6111原值最长571，容量依用户指示另行处理。正式设备未就绪仅登记缺项，不执行真实同步补输入。
+- Validation and boundary: 39项相关检查通过，全角空白修正后17项原生检查再次通过；P08两项无关旧断言失败另记，不扩围。原46任务/209运行/211绑定全部字段摘要及180项保护无差异；仅按已有授权重载59284，自动迁移及作业关闭，无迁移、正式DDL、真实同步、测试库写入、原任务操作或59191操作。[完整证据与逐项处理](../generated/dppms-24-tasks-three-implementations-20261019/base-sync-P10-P18-P33-followup-20261020.md)。
+
+### 2026-10-20 P18公司授权边界纠正与整表来源预览闭合
+
+- Status: IMPLEMENTATION_DEFECT_CORRECTED / P18_SOURCE_PREVIEW_READY。没有新增待裁决业务规则；此前将未覆盖原公司一并视作来源预览必须阻断是实施分析结论，不是用户已裁决的新门槛，现纠正并保留失败历史。
+- Formal basis: ADR-0038要求正式COM查询和关系维护使用SYSTEM当前公司范围，普通ContractRelationCommandService及原ProjectContractRelationMigrationService均实施此保护；并非十项目白名单。17列整表审核批准来源承接，同时保留当前授权、外键、日期和唯一键；不能据此生成001/002/003的当前公司权限。
+- Code correction: 仅新BASE_P18的createParameters及syncDataInsertBefore。已审核来源预览在公司范围为空或不覆盖已知原公司时登记待授权，不查询该公司的正式合同/关系，不生成目标、合同ID或写入计划；真实执行仍拒绝。所有原项目仍调用现有身份及当前MANAGE核验，既有独立绑定、未知非空源公司及来源/目标历史保护保持，原Owner与原任务未改动。
+- Exact gap: actor1两条范围均DPTECH-DEMO；全库19用户/38有效范围同样只覆盖DEMO。001/002/003分别80,374/1,804/195个业务关系待正式授权（合计82,373组、82,668原始身份）；原项目48275～48282共8组缺权威公司事实。com_contract有效行0，多来源独立绑定目标唯一索引仍限制实际执行。P10/P33物理列容量按用户指令另行处理，不运行DDL、不重复询问规则。
+- Real verification: 新BASE_P18 Run2112256535977709570于02:56:29自然完成PREVIEW_READY，read82676，inserted/updated/unchanged/deleted均0，登记82,381组正式引用待核验；24项任务最新Run均PREVIEW_READY，仅本项本轮重跑。通过表示来源预览完成，不能当成正式写入就绪。
+- Validation and boundary: 修复前失败测试复现P18_PROJECT_COMPANY_NOT_AUTHORIZED，修复后30项定向检查通过。按已有授权仅重载59284，候选仅10个P18类族条目不同，两个XML与其他包条目不变。原46任务/209运行/211绑定全字段摘要和180项数据保护无差异，新绑定/非预览Run为0，无在途任务；自动Flyway/Flowable结构更新和作业关闭。无迁移、DDL、真实同步、公司授权、测试库或59191操作。[代码、正式依据、缺失原记录和实际回执](../generated/dppms-24-tasks-three-implementations-20261019/P18-company-authorization-audit-preview-20261020.md)。
+
+### 2026-10-20 P10/P33单列容量例外已授权并完成
+
+- Status: EXPLICIT_TWO_COLUMN_EXCEPTION_APPLIED / BOTH_REAL_PREVIEWS_READY。用户明确允许仅在npdms_reverify_20261014执行此前两条审阅补丁：cus_customer_master.name扩至255、imp_eng_installation.install_location扩至1024，随后重跑两项真实预览。原文完整承接规则沿用，不新增裁决或同步代码。
+- Actual operations: 两条固定ALTER已执行；字符集utf8mb4、排序utf8mb4_unicode_ci、可空/默认/注释保持，完整表定义只有批准的两个列定义变化，索引/外键/CHECK/触发器不改。执行前两表7条客户/34条安装已加密备份并回读，执行后所有字段摘要一致；无其他DDL、Flyway或迁移运行器。
+- Real previews: 新BASE_P10 Run2112346849270747138 PREVIEW_READY/read59544，原名称容量告警消失；新BASE_P33 Run2112346937229496321 PREVIEW_READY/read1035329/写入计划0，原安装位置容量告警消失。P33继续登记1035329条正式设备引用待输入及2条既定暂缓串货，不据此推定实际写入就绪，不重复提问。
+- Isolation: 原46任务/209运行/211绑定逐字段摘要和180项保护无差异，既有BASE回执保持，仅新增两条preview=true回执；新绑定和非预览Run均0，无在途任务。59284 PID25036保持，未改代码、任务配置或重启服务；自动Flyway/Flowable结构更新及作业关闭，测试库与59191未操作。[两条执行收据、真实终态与保护证明](../generated/dppms-24-tasks-three-implementations-20261019/P10-P33-capacity-applied-preview-20261020.md)。
+
+### 2026-10-20 P33正式设备来源SN及比较边界只读核清
+
+- Status: READ_ONLY_AUDIT_COMPLETE / FORMAL_DEVICE_INPUTS_MISSING。用户要求列来源SN、正式匹配SQL及缺失范围，区分实现和正式输入；两条串货继续暂缓，不授权清洗、建档或真实同步。本条是事实核查，不新增已决规则的确认问题。
+- Exact range: 1,035,329条入选安装来源、1,018,498个不同原SN、14,135个原项目。实际P33租户1＋deleted=false＋SN IN原值分2037批查询，正式命中0；删除及跨租户诊断亦0。当前ast_device共39条，其中tenant1未删除36条。设备SN100字符，来源实际12～19，无SN容量问题或当前错过滤的设备。
+- Producer facts: 新P15原fb_shipment_barcode有4,283,326条；1,018,466个原SN／1,035,296条安装有原文主SN。目标正式DPPMS发货为0，新P30的PREVIEW_READY/read0带FORMAL_DPPMS_SHIPMENTS_MISSING，不能当成主档已生成。本轮不运行P15/P30或原任务填数。
+- Remaining identities: 26个SN带一个尾空格、影响27条，诊断去空格值均在上游主SN存在；另外原SN01100107D184000007仅在内部码出现，对应7个不同主SN；其余5个SN在本次barcode/barcode2/com_barcode均未见原文。完整32个SN与33个原ID见报告，未将“本次未见”推论为所有外部来源不存在。
+- Separate implementation boundary: 26对实际尾空格/干净候选，在当前utf8mb4_unicode_ci下SQL相等、原文String键不同。P33 SQL返回d.sn、HashMap按s.barcode查键，未来干净正式设备存在时可能将这27条误报为无设备；当前正式查询实际0条，所以它不是全量缺项的直接原因。应统一既有SN匹配与内存核对语义，保留来源原文及历史保护；本轮只读未改代码，没有自动TRIM、别名归并、替换内部码或选择7个主SN之一。
+- Deferred and boundary: sourceId1161000/SN020522970248000018、1161002/SN020522970248000016均在主发货可定位组，维持暂缓，不另加到总量。原46任务/209运行/211绑定及设备39/发货3/安装34的全部字段摘要、180项保护无变化；BASE运行回执无变化，无新预览或在途任务。自动迁移关闭，无DDL/DML、迁移、真实同步、来源修正、服务重启或59191操作。[完整SN、实际SQL、来源例外及只读证明](../generated/dppms-24-tasks-three-implementations-20261019/P33-formal-device-reference-audit-20261020.md)。
+
+### 2026-10-20 24项正式执行前置分类与P33/P22实现缺陷闭合
+
+- Status: IMPLEMENTATION_DEFECTS_CORRECTED / AFFECTED_REAL_PREVIEWS_READY。没有新增业务裁决问题；依已有审核纠正P33原请求SN与正式SN比较边界，以及P22用头类型计算明细绑定键。原SN、行类型、父头类型、来源指纹与当前授权保护保持；两条串货继续暂缓。
+- Code and tests: P33返回requested_sn及正式id/sn，Java按原请求键定位并以正式身份核对当前选择；批量VALUES SQL保持单层派生、参数绑定、空集合返回空及实际锁定。P22独立SALES_LINE哈希使用line_type，实际父头关系仍核对order_type。修复前失败已复现，修复后52项定向/原生检查通过；写入及回放只作用单连接TEMPORARY影子表，没有正式后置UPDATE。
+- Formal prerequisites: 13项有已识别结构、正式输入、授权或原日期有效性阻断；P30为空输入，其余10项未发现专属阻断。绑定目标唯一索引、P21两列非空及P22即时外键/非空快照属于正式结构兼容；P15/P31/P33/P35缺本套件正式完成输入；P18缺合法公司上下文及8个原公司事实。P14逐条回查1,580原ID，337条仅同号其他类型头、1,243条无同来源/公司/订单号头；原类型差异不阻断预览，真实父关联仍需权威依据。P37两个可空关联不列阻断，不回查旧试点Owner。详见逐项清单，不自动扩写迁移代码。
+- Real verification: 新P33 Run2112436849851088898 PREVIEW_READY/read1035329，190.174秒；新P22 Run2112437662510071809 PREVIEW_READY/read343858。P33首次修复UNION版真实回执亦保留；最终VALUES版减少约99秒，仍比此前143秒单次结果慢约47秒，性能差异如实记录。当前正式设备全缺，27条尾空格来源成功匹配由真实MySQL夹具证明，不能宣称实际关联已补齐。其余22项沿用当日全量复验，最新24项均PREVIEW_READY，不能等同正式同步就绪。
+- Isolation: 原46任务/209运行/211绑定全字段保护保持；169张业务/绑定/原任务表、473张表结构及180项保护无差异，既有143条BASE回执不变，新增3条均preview=true，任务配置不变，无在途任务。仅按已有授权重载59284两次，最终冻结包只有8个独立P33类族/P33与P22 XML条目不同。未执行永久业务DML、DDL、Flyway、迁移、真实同步、授权、来源修正、测试库或59191操作；自动迁移关闭。[24项逐项前置、代码、真实回执和完整保护证明](../generated/dppms-24-tasks-three-implementations-20261019/base-sync-execution-prerequisites-p33-sn-20261020.md)。

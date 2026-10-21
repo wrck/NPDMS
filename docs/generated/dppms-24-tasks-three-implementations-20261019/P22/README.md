@@ -1,6 +1,8 @@
 # P22 项目产品实施范围
 
-当前P22以[订单行延后及原部门编码报告](../base-sync-p22-order-line-preview-20261019.md)和[实际XML](../base-sync-p22-order-line-preview-20261019.sql)为准：p.column001原查询直接带入；department_id/order_line_id均先-1，后处理仅限当前独立绑定；正式订单缺失不阻断读源。当前真实预览缺原部门编码，正数量14293条；2976条零数量按已有裁决待处理。下方旧阶段流程按此修订解释。
+2026-10-20最新：[P22绑定键修复、结构前置及真实复验](../base-sync-execution-prerequisites-p33-sn-20261020.md)。独立P14明细绑定哈希改用已审line_type，真实父头仍按order_type核对；同租户/连接/新任务/正式完成运行及本次绑定范围保护保持。28项相关原生检查通过。新Run2112437662510071809 PREVIEW_READY/read343858，候选插入340882仅为预览。空部门保留原值、两个ID先-1及零数量处置沿用审核；正式物理约束差异仍登记，本轮未执行正式回填。
+
+2026-10-19阶段结果（历史）以[订单行延后及原部门编码报告](../base-sync-p22-order-line-preview-20261019.md)和[当时XML](../base-sync-p22-order-line-preview-20261019.sql)为据：p.column001原查询直接带入；department_id/order_line_id均先-1，后处理仅限当前独立绑定；正式订单缺失不阻断读源。当时真实预览缺原部门编码，正数量14293条；2976条零数量按已有裁决待处理。后续原空部门保留的已决处理及当前回执见上文。
 
 本轮最新：[base-sync-department-code-preview-20261019](../base-sync-department-code-preview-20261019.md)，本项真实回执[P22-preview.json](D:/CodexTaskArtifacts/project-detail-followup/base-sync-deferred-extensions-20261019/P22-preview.json)。此前阶段判断及回执保留。
 

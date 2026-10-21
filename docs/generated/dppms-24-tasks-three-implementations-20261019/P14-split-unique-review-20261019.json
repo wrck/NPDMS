@@ -1,0 +1,5472 @@
+{
+  "observedAt": "2026-10-19T22:38:15.765124+08:00",
+  "decision": {
+    "recordedAt": "2026-10-19T22:40:39.041504+08:00",
+    "status": "USER_RULE_ADJUDICATED_SQL_VERIFIED_PENDING_PRODUCT_IMPLEMENTATION",
+    "userDecision": "按 max(orderExecNumber) 取最大执行单号",
+    "grouping": [
+      "source_system",
+      "mapped_company_code",
+      "order_type",
+      "order_no"
+    ],
+    "approvedSources": [
+      "dppms.pm_order_data_from_erp",
+      "dppms.pm_order_line_from_erp"
+    ],
+    "formalHeaderKeyUnchanged": [
+      "tenant_id",
+      "source_system",
+      "company_code",
+      "order_type",
+      "order_no"
+    ],
+    "headerExecution": "MAX(orderExecNumber)",
+    "lineActualExecution": "Keep original realOrderExecNumber",
+    "multiExecutionGroups": 169,
+    "rawHeadsInMultiExecutionGroups": 410,
+    "remainingOtherHeaderPayloadConflicts": 0,
+    "newExecutionRelationTableRequired": false,
+    "headerBusinessKeyExpansionRequired": false,
+    "upstreamOrLendLookupRequired": false,
+    "sourceResplittingRequired": false,
+    "productCodeChanged": false,
+    "schemaChanged": false,
+    "realPreviewPerformed": false,
+    "report": "P14-split-unique-review-20261019.md",
+    "verifiedSql": "P14-split-unique-review-20261019.sql"
+  },
+  "stats": {
+    "rawHeaders": 91572,
+    "currentHeaderBusinessKeys": 91239,
+    "headerDuplicateBusinessKeyGroups": 261,
+    "rawHeadersInDuplicateKeys": 594,
+    "multiExecutionHeaderBusinessKeys": 169,
+    "rawHeadersInMultiExecutionKeys": 410,
+    "distinctHeaderKeysWithExecution": 91431,
+    "duplicateHeaderExecutionKeyGroups": 141,
+    "duplicateHeaderExecutionExtraRows": 141,
+    "headerExecutionKeysWithCoreDifferences": 0,
+    "rawLines": 380605,
+    "currentLineBusinessKeys": 379522,
+    "lineDuplicateBusinessKeyGroups": 913,
+    "rawLinesInDuplicateKeys": 1996,
+    "lineDuplicateExtraRows": 1083,
+    "lineDifferentCorePayloadKeyGroups": 10,
+    "rawLinesInDifferentCorePayloadKeys": 40,
+    "distinctLineKeysWithActualExecution": 379547,
+    "currentTenant1HeaderKeyOccupancies": 0,
+    "headerCaseFoldCollisionGroups": 0,
+    "nonAsciiKeyRows": 0,
+    "parentCandidateClassification": [
+      {
+        "classification": "ONE_DISTINCT_HEADER_EXECUTION_AT_ORDER_KEY",
+        "rawLineRows": 377258,
+        "lineBusinessKeys": 377000
+      },
+      {
+        "classification": "MISSING_ORDER_NUMBER",
+        "rawLineRows": 40,
+        "lineBusinessKeys": 10
+      },
+      {
+        "classification": "MULTIPLE_HEADER_EXECUTIONS_ONE_EXACT_LINE_EXECUTION_CANDIDATE",
+        "rawLineRows": 1430,
+        "lineBusinessKeys": 743
+      },
+      {
+        "classification": "MULTIPLE_HEADER_EXECUTIONS_NO_EXACT_LINE_EXECUTION_CANDIDATE",
+        "rawLineRows": 298,
+        "lineBusinessKeys": 190
+      },
+      {
+        "classification": "NO_HEADER_AT_ORDER_KEY",
+        "rawLineRows": 1579,
+        "lineBusinessKeys": 1579
+      }
+    ]
+  },
+  "formalUniqueKeys": [
+    {
+      "TABLE_NAME": "com_sales_order",
+      "INDEX_NAME": "PRIMARY",
+      "NON_UNIQUE": 0,
+      "index_columns": "id"
+    },
+    {
+      "TABLE_NAME": "com_sales_order",
+      "INDEX_NAME": "uk_sales_order_business",
+      "NON_UNIQUE": 0,
+      "index_columns": "tenant_id,source_system,company_code,order_type,order_no"
+    },
+    {
+      "TABLE_NAME": "com_sales_order",
+      "INDEX_NAME": "uk_sales_order_source",
+      "NON_UNIQUE": 0,
+      "index_columns": "tenant_id,source_system,source_record_key"
+    },
+    {
+      "TABLE_NAME": "com_sales_order",
+      "INDEX_NAME": "uk_sales_order_tenant_row",
+      "NON_UNIQUE": 0,
+      "index_columns": "tenant_id,id"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "INDEX_NAME": "PRIMARY",
+      "NON_UNIQUE": 0,
+      "index_columns": "id"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "INDEX_NAME": "uk_sales_order_line",
+      "NON_UNIQUE": 0,
+      "index_columns": "tenant_id,order_id,line_no"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "INDEX_NAME": "uk_sales_order_line_source",
+      "NON_UNIQUE": 0,
+      "index_columns": "tenant_id,source_system,source_record_key"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "INDEX_NAME": "uk_sales_order_line_tenant_row",
+      "NON_UNIQUE": 0,
+      "index_columns": "tenant_id,id"
+    }
+  ],
+  "formalColumns": [
+    {
+      "TABLE_NAME": "com_sales_order",
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": null,
+      "COLUMN_COMMENT": "销售订单编号"
+    },
+    {
+      "TABLE_NAME": "com_sales_order",
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": null,
+      "COLUMN_COMMENT": "租户ID"
+    },
+    {
+      "TABLE_NAME": "com_sales_order",
+      "COLUMN_NAME": "source_system",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+      "COLUMN_COMMENT": "来源系统"
+    },
+    {
+      "TABLE_NAME": "com_sales_order",
+      "COLUMN_NAME": "source_record_key",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLLATION_NAME": "utf8mb4_0900_bin",
+      "COLUMN_COMMENT": ""
+    },
+    {
+      "TABLE_NAME": "com_sales_order",
+      "COLUMN_NAME": "company_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+      "COLUMN_COMMENT": "公司编码"
+    },
+    {
+      "TABLE_NAME": "com_sales_order",
+      "COLUMN_NAME": "order_type",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+      "COLUMN_COMMENT": "订单类型编码"
+    },
+    {
+      "TABLE_NAME": "com_sales_order",
+      "COLUMN_NAME": "order_no",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+      "COLUMN_COMMENT": "订单编号"
+    },
+    {
+      "TABLE_NAME": "com_sales_order",
+      "COLUMN_NAME": "execution_no",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+      "COLUMN_COMMENT": "主执行单号(快照来源订单头orderExecNumber)"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": null,
+      "COLUMN_COMMENT": "主键ID"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": null,
+      "COLUMN_COMMENT": "租户ID"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "COLUMN_NAME": "order_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": null,
+      "COLUMN_COMMENT": "订单ID"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "COLUMN_NAME": "source_system",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+      "COLUMN_COMMENT": "父订单来源系统"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "COLUMN_NAME": "source_record_key",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": "utf8mb4_0900_bin",
+      "COLUMN_COMMENT": ""
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "COLUMN_NAME": "company_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+      "COLUMN_COMMENT": "公司编码"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "COLUMN_NAME": "order_type",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+      "COLUMN_COMMENT": "父订单类型编码"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "COLUMN_NAME": "order_no",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+      "COLUMN_COMMENT": "父订单编号"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "COLUMN_NAME": "line_no",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+      "COLUMN_COMMENT": "行编号"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "COLUMN_NAME": "real_execution_no",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+      "COLUMN_COMMENT": "实际执行单编号"
+    }
+  ],
+  "formalForeignKeys": [
+    {
+      "TABLE_NAME": "com_delivery_scope",
+      "CONSTRAINT_NAME": "fk_scope_order_line",
+      "COLUMN_NAME": "tenant_id",
+      "REFERENCED_TABLE_NAME": "com_sales_order_line",
+      "REFERENCED_COLUMN_NAME": "tenant_id"
+    },
+    {
+      "TABLE_NAME": "com_delivery_scope",
+      "CONSTRAINT_NAME": "fk_scope_order_line",
+      "COLUMN_NAME": "order_line_id",
+      "REFERENCED_TABLE_NAME": "com_sales_order_line",
+      "REFERENCED_COLUMN_NAME": "id"
+    },
+    {
+      "TABLE_NAME": "com_order_contract_relation",
+      "CONSTRAINT_NAME": "fk_order_contract_order",
+      "COLUMN_NAME": "tenant_id",
+      "REFERENCED_TABLE_NAME": "com_sales_order",
+      "REFERENCED_COLUMN_NAME": "tenant_id"
+    },
+    {
+      "TABLE_NAME": "com_order_contract_relation",
+      "CONSTRAINT_NAME": "fk_order_contract_order",
+      "COLUMN_NAME": "order_id",
+      "REFERENCED_TABLE_NAME": "com_sales_order",
+      "REFERENCED_COLUMN_NAME": "id"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "CONSTRAINT_NAME": "fk_sales_order_line_order",
+      "COLUMN_NAME": "tenant_id",
+      "REFERENCED_TABLE_NAME": "com_sales_order",
+      "REFERENCED_COLUMN_NAME": "tenant_id"
+    },
+    {
+      "TABLE_NAME": "com_sales_order_line",
+      "CONSTRAINT_NAME": "fk_sales_order_line_order",
+      "COLUMN_NAME": "order_id",
+      "REFERENCED_TABLE_NAME": "com_sales_order",
+      "REFERENCED_COLUMN_NAME": "id"
+    }
+  ],
+  "approvedMaximumExecutionByDuplicateGroup": [
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO074723-L"
+      ],
+      "sourceIds": [
+        9132,
+        9133
+      ],
+      "originalExecutionValues": [
+        "1620062311201X301"
+      ],
+      "selectedExecution": "1620062311201X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO074723"
+      ],
+      "sourceIds": [
+        9134,
+        9135
+      ],
+      "originalExecutionValues": [
+        "1620252311221X301",
+        "1620252311223X301"
+      ],
+      "selectedExecution": "1620252311223X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO074890-L"
+      ],
+      "sourceIds": [
+        9226,
+        9227
+      ],
+      "originalExecutionValues": [
+        "1620252311221J301"
+      ],
+      "selectedExecution": "1620252311221J301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO074890"
+      ],
+      "sourceIds": [
+        9228,
+        9229
+      ],
+      "originalExecutionValues": [
+        "1620272311281X301",
+        "1620272311283X301"
+      ],
+      "selectedExecution": "1620272311283X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO075102-L"
+      ],
+      "sourceIds": [
+        9345,
+        9346
+      ],
+      "originalExecutionValues": [
+        "1620062311201X301"
+      ],
+      "selectedExecution": "1620062311201X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO075102"
+      ],
+      "sourceIds": [
+        9347,
+        9348
+      ],
+      "originalExecutionValues": [
+        "1620252311221X301",
+        "1620252311223X301"
+      ],
+      "selectedExecution": "1620252311223X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075103-L"
+      ],
+      "sourceIds": [
+        9349,
+        9350
+      ],
+      "originalExecutionValues": [
+        "1620062311201X301"
+      ],
+      "selectedExecution": "1620062311201X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO075103"
+      ],
+      "sourceIds": [
+        9351,
+        9352
+      ],
+      "originalExecutionValues": [
+        "1620252311221X301",
+        "1620252311223X301"
+      ],
+      "selectedExecution": "1620252311223X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO075153"
+      ],
+      "sourceIds": [
+        9383,
+        9384,
+        9385
+      ],
+      "originalExecutionValues": [
+        "1620052311161X302",
+        "1620052311163X302"
+      ],
+      "selectedExecution": "1620052311163X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075153-L"
+      ],
+      "sourceIds": [
+        9386,
+        9387,
+        9388
+      ],
+      "originalExecutionValues": [
+        "1620252311201X303",
+        "1620252311203X303"
+      ],
+      "selectedExecution": "1620252311203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075413-L"
+      ],
+      "sourceIds": [
+        9541,
+        9542
+      ],
+      "originalExecutionValues": [
+        "1603002311291X301"
+      ],
+      "selectedExecution": "1603002311291X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO075413"
+      ],
+      "sourceIds": [
+        9543,
+        9544
+      ],
+      "originalExecutionValues": [
+        "1610002310271X301",
+        "1610002310273X301"
+      ],
+      "selectedExecution": "1610002310273X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075423-L"
+      ],
+      "sourceIds": [
+        9555,
+        9556,
+        9557,
+        9558
+      ],
+      "originalExecutionValues": [
+        "1610002312013J301",
+        "1620252312111X303",
+        "1620252312113X303"
+      ],
+      "selectedExecution": "1620252312113X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075439-L"
+      ],
+      "sourceIds": [
+        9576,
+        9577,
+        9578,
+        9579
+      ],
+      "originalExecutionValues": [
+        "1620082311221J301",
+        "1620082311223J301",
+        "1620202311301X302"
+      ],
+      "selectedExecution": "1620202311301X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075470-L"
+      ],
+      "sourceIds": [
+        9595,
+        9596
+      ],
+      "originalExecutionValues": [
+        "1610002312061J303",
+        "1621052312111X301"
+      ],
+      "selectedExecution": "1621052312111X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO075486"
+      ],
+      "sourceIds": [
+        9622,
+        9623
+      ],
+      "originalExecutionValues": [
+        "1620052312121X301"
+      ],
+      "selectedExecution": "1620052312121X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075486-L"
+      ],
+      "sourceIds": [
+        9624,
+        9625
+      ],
+      "originalExecutionValues": [
+        "1620182312121X303",
+        "1620182312123X303"
+      ],
+      "selectedExecution": "1620182312123X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075558-L"
+      ],
+      "sourceIds": [
+        9674,
+        9675
+      ],
+      "originalExecutionValues": [
+        "1603002303281X301"
+      ],
+      "selectedExecution": "1603002303281X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO075558"
+      ],
+      "sourceIds": [
+        9676,
+        9677
+      ],
+      "originalExecutionValues": [
+        "1620082312013X301",
+        "1620082312015X301"
+      ],
+      "selectedExecution": "1620082312015X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075681-L"
+      ],
+      "sourceIds": [
+        9752,
+        9753
+      ],
+      "originalExecutionValues": [
+        "1603002309253J301",
+        "1620072312141X301"
+      ],
+      "selectedExecution": "1620072312141X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO075729"
+      ],
+      "sourceIds": [
+        9785,
+        9786
+      ],
+      "originalExecutionValues": [
+        "1620272312141X303"
+      ],
+      "selectedExecution": "1620272312141X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075729-L"
+      ],
+      "sourceIds": [
+        9787,
+        9788
+      ],
+      "originalExecutionValues": [
+        "1621032312141X301",
+        "1621032312143X301"
+      ],
+      "selectedExecution": "1621032312143X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075730-L"
+      ],
+      "sourceIds": [
+        9789,
+        9790
+      ],
+      "originalExecutionValues": [
+        "1620252311221J301"
+      ],
+      "selectedExecution": "1620252311221J301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO075730"
+      ],
+      "sourceIds": [
+        9791,
+        9792
+      ],
+      "originalExecutionValues": [
+        "1620272311281X301",
+        "1620272311283X301"
+      ],
+      "selectedExecution": "1620272311283X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075781-L"
+      ],
+      "sourceIds": [
+        9819,
+        9820
+      ],
+      "originalExecutionValues": [
+        "1620052312131J301",
+        "1620082312141X301"
+      ],
+      "selectedExecution": "1620082312141X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO075852"
+      ],
+      "sourceIds": [
+        9883,
+        9884
+      ],
+      "originalExecutionValues": [
+        "1620042312181X301"
+      ],
+      "selectedExecution": "1620042312181X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075852-L"
+      ],
+      "sourceIds": [
+        9885,
+        9886
+      ],
+      "originalExecutionValues": [
+        "1620232312181X302",
+        "1620232312183X302"
+      ],
+      "selectedExecution": "1620232312183X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO075859"
+      ],
+      "sourceIds": [
+        9896,
+        9897
+      ],
+      "originalExecutionValues": [
+        "1620272312141X303"
+      ],
+      "selectedExecution": "1620272312141X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075859-L"
+      ],
+      "sourceIds": [
+        9898,
+        9899
+      ],
+      "originalExecutionValues": [
+        "1621032312141X301",
+        "1621032312143X301"
+      ],
+      "selectedExecution": "1621032312143X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO075949"
+      ],
+      "sourceIds": [
+        9936,
+        9937
+      ],
+      "originalExecutionValues": [
+        "1620162312151X302"
+      ],
+      "selectedExecution": "1620162312151X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075949-L"
+      ],
+      "sourceIds": [
+        9938,
+        9939
+      ],
+      "originalExecutionValues": [
+        "1620182312151X303",
+        "1620182312153X303"
+      ],
+      "selectedExecution": "1620182312153X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO075972-L"
+      ],
+      "sourceIds": [
+        9944,
+        9945
+      ],
+      "originalExecutionValues": [
+        "1610002312151X302",
+        "1610002312153X302"
+      ],
+      "selectedExecution": "1610002312153X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO075972"
+      ],
+      "sourceIds": [
+        9946,
+        9947
+      ],
+      "originalExecutionValues": [
+        "1620202312071X302"
+      ],
+      "selectedExecution": "1620202312071X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076026"
+      ],
+      "sourceIds": [
+        9996,
+        9997,
+        9998
+      ],
+      "originalExecutionValues": [
+        "1620052311161X302",
+        "1620052311163X302"
+      ],
+      "selectedExecution": "1620052311163X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076026-L"
+      ],
+      "sourceIds": [
+        9999,
+        10000,
+        10001
+      ],
+      "originalExecutionValues": [
+        "1620252311201X303",
+        "1620252311203X303"
+      ],
+      "selectedExecution": "1620252311203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076054-L"
+      ],
+      "sourceIds": [
+        10020,
+        10021
+      ],
+      "originalExecutionValues": [
+        "1620012312151J301",
+        "1620212312211X301"
+      ],
+      "selectedExecution": "1620212312211X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076097-L"
+      ],
+      "sourceIds": [
+        10047,
+        10048
+      ],
+      "originalExecutionValues": [
+        "1620092312211X301",
+        "1620092312213X301"
+      ],
+      "selectedExecution": "1620092312213X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO076097"
+      ],
+      "sourceIds": [
+        10049,
+        10050
+      ],
+      "originalExecutionValues": [
+        "1620112312191X302"
+      ],
+      "selectedExecution": "1620112312191X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO076114"
+      ],
+      "sourceIds": [
+        10068,
+        10069
+      ],
+      "originalExecutionValues": [
+        "1620042312181X301"
+      ],
+      "selectedExecution": "1620042312181X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076114-L"
+      ],
+      "sourceIds": [
+        10070,
+        10071
+      ],
+      "originalExecutionValues": [
+        "1620232312181X302",
+        "1620232312183X302"
+      ],
+      "selectedExecution": "1620232312183X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076115-L"
+      ],
+      "sourceIds": [
+        10072,
+        10073
+      ],
+      "originalExecutionValues": [
+        "1603002311291X301"
+      ],
+      "selectedExecution": "1603002311291X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO076115"
+      ],
+      "sourceIds": [
+        10074,
+        10075
+      ],
+      "originalExecutionValues": [
+        "1610002310271X301",
+        "1610002310273X301"
+      ],
+      "selectedExecution": "1610002310273X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076226-L"
+      ],
+      "sourceIds": [
+        10123,
+        10124
+      ],
+      "originalExecutionValues": [
+        "1603002303281X301"
+      ],
+      "selectedExecution": "1603002303281X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO076226"
+      ],
+      "sourceIds": [
+        10125,
+        10126
+      ],
+      "originalExecutionValues": [
+        "1620082312013X301",
+        "1620082312015X301"
+      ],
+      "selectedExecution": "1620082312015X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO076232"
+      ],
+      "sourceIds": [
+        10135,
+        10136
+      ],
+      "originalExecutionValues": [
+        "1620022312071X303"
+      ],
+      "selectedExecution": "1620022312071X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076232-L"
+      ],
+      "sourceIds": [
+        10137,
+        10138
+      ],
+      "originalExecutionValues": [
+        "1620122312061J301",
+        "1620122312063J301"
+      ],
+      "selectedExecution": "1620122312063J301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076234-L"
+      ],
+      "sourceIds": [
+        10139,
+        10140,
+        10141,
+        10142
+      ],
+      "originalExecutionValues": [
+        "1620082312015J301",
+        "1620212312201X303",
+        "1620212312203X303"
+      ],
+      "selectedExecution": "1620212312203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076337-L"
+      ],
+      "sourceIds": [
+        10207,
+        10208,
+        10209,
+        10210
+      ],
+      "originalExecutionValues": [
+        "1610002310273J301",
+        "1620062312251X301"
+      ],
+      "selectedExecution": "1620062312251X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO076338"
+      ],
+      "sourceIds": [
+        10211,
+        10212
+      ],
+      "originalExecutionValues": [
+        "1620052312121X301"
+      ],
+      "selectedExecution": "1620052312121X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076338-L"
+      ],
+      "sourceIds": [
+        10213,
+        10214
+      ],
+      "originalExecutionValues": [
+        "1620182312121X303",
+        "1620182312123X303"
+      ],
+      "selectedExecution": "1620182312123X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076352-L"
+      ],
+      "sourceIds": [
+        10223,
+        10224
+      ],
+      "originalExecutionValues": [
+        "1620092312211X301",
+        "1620092312213X301"
+      ],
+      "selectedExecution": "1620092312213X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO076352"
+      ],
+      "sourceIds": [
+        10225,
+        10226
+      ],
+      "originalExecutionValues": [
+        "1620112312191X302"
+      ],
+      "selectedExecution": "1620112312191X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076353-L"
+      ],
+      "sourceIds": [
+        10227,
+        10228
+      ],
+      "originalExecutionValues": [
+        "1620092312211X301",
+        "1620092312213X301"
+      ],
+      "selectedExecution": "1620092312213X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076353"
+      ],
+      "sourceIds": [
+        10229,
+        10230
+      ],
+      "originalExecutionValues": [
+        "1620112312191X302"
+      ],
+      "selectedExecution": "1620112312191X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076437-L"
+      ],
+      "sourceIds": [
+        10277,
+        10278,
+        10279,
+        10280
+      ],
+      "originalExecutionValues": [
+        "1610002312013J301",
+        "1620252312111X303",
+        "1620252312113X303"
+      ],
+      "selectedExecution": "1620252312113X303"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO076622"
+      ],
+      "sourceIds": [
+        10376,
+        10377
+      ],
+      "originalExecutionValues": [
+        "1620162312151X302"
+      ],
+      "selectedExecution": "1620162312151X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO076622-L"
+      ],
+      "sourceIds": [
+        10378,
+        10379
+      ],
+      "originalExecutionValues": [
+        "1620182312151X303",
+        "1620182312153X303"
+      ],
+      "selectedExecution": "1620182312153X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076634-L"
+      ],
+      "sourceIds": [
+        10393,
+        10394
+      ],
+      "originalExecutionValues": [
+        "1620062311201X301"
+      ],
+      "selectedExecution": "1620062311201X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076634"
+      ],
+      "sourceIds": [
+        10395,
+        10396
+      ],
+      "originalExecutionValues": [
+        "1620252311221X301",
+        "1620252311223X301"
+      ],
+      "selectedExecution": "1620252311223X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076635-L"
+      ],
+      "sourceIds": [
+        10397,
+        10398
+      ],
+      "originalExecutionValues": [
+        "1620062311201X301"
+      ],
+      "selectedExecution": "1620062311201X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076635"
+      ],
+      "sourceIds": [
+        10399,
+        10400
+      ],
+      "originalExecutionValues": [
+        "1620252311221X301",
+        "1620252311223X301"
+      ],
+      "selectedExecution": "1620252311223X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076636-L"
+      ],
+      "sourceIds": [
+        10401,
+        10402
+      ],
+      "originalExecutionValues": [
+        "1620062311201X301"
+      ],
+      "selectedExecution": "1620062311201X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076636"
+      ],
+      "sourceIds": [
+        10403,
+        10404
+      ],
+      "originalExecutionValues": [
+        "1620252311221X301",
+        "1620252311223X301"
+      ],
+      "selectedExecution": "1620252311223X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076659-L"
+      ],
+      "sourceIds": [
+        10444,
+        10445
+      ],
+      "originalExecutionValues": [
+        "1620062311201X301"
+      ],
+      "selectedExecution": "1620062311201X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076659"
+      ],
+      "sourceIds": [
+        10446,
+        10447
+      ],
+      "originalExecutionValues": [
+        "1620252311221X301",
+        "1620252311223X301"
+      ],
+      "selectedExecution": "1620252311223X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076660-L"
+      ],
+      "sourceIds": [
+        10448,
+        10449
+      ],
+      "originalExecutionValues": [
+        "1620062311201X301"
+      ],
+      "selectedExecution": "1620062311201X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076660"
+      ],
+      "sourceIds": [
+        10450,
+        10451
+      ],
+      "originalExecutionValues": [
+        "1620252311221X301",
+        "1620252311223X301"
+      ],
+      "selectedExecution": "1620252311223X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076662-L"
+      ],
+      "sourceIds": [
+        10452,
+        10453
+      ],
+      "originalExecutionValues": [
+        "1620062311201X301"
+      ],
+      "selectedExecution": "1620062311201X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076662"
+      ],
+      "sourceIds": [
+        10454,
+        10455
+      ],
+      "originalExecutionValues": [
+        "1620252311221X301",
+        "1620252311223X301"
+      ],
+      "selectedExecution": "1620252311223X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076663-L"
+      ],
+      "sourceIds": [
+        10456,
+        10457
+      ],
+      "originalExecutionValues": [
+        "1620062311201X301"
+      ],
+      "selectedExecution": "1620062311201X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076663"
+      ],
+      "sourceIds": [
+        10458,
+        10459
+      ],
+      "originalExecutionValues": [
+        "1620252311221X301",
+        "1620252311223X301"
+      ],
+      "selectedExecution": "1620252311223X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076664-L"
+      ],
+      "sourceIds": [
+        10460,
+        10461
+      ],
+      "originalExecutionValues": [
+        "1620062311201X301"
+      ],
+      "selectedExecution": "1620062311201X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076664"
+      ],
+      "sourceIds": [
+        10462,
+        10463
+      ],
+      "originalExecutionValues": [
+        "1620252311221X301",
+        "1620252311223X301"
+      ],
+      "selectedExecution": "1620252311223X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076665-L"
+      ],
+      "sourceIds": [
+        10464,
+        10465
+      ],
+      "originalExecutionValues": [
+        "1620252311221J301"
+      ],
+      "selectedExecution": "1620252311221J301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076665"
+      ],
+      "sourceIds": [
+        10466,
+        10467
+      ],
+      "originalExecutionValues": [
+        "1620272311281X301",
+        "1620272311283X301"
+      ],
+      "selectedExecution": "1620272311283X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076666-L"
+      ],
+      "sourceIds": [
+        10468,
+        10469
+      ],
+      "originalExecutionValues": [
+        "1620252311221J301"
+      ],
+      "selectedExecution": "1620252311221J301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076666"
+      ],
+      "sourceIds": [
+        10470,
+        10471
+      ],
+      "originalExecutionValues": [
+        "1620272311281X301",
+        "1620272311283X301"
+      ],
+      "selectedExecution": "1620272311283X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076667-L"
+      ],
+      "sourceIds": [
+        10472,
+        10473
+      ],
+      "originalExecutionValues": [
+        "1620252311221J301"
+      ],
+      "selectedExecution": "1620252311221J301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076667"
+      ],
+      "sourceIds": [
+        10474,
+        10475
+      ],
+      "originalExecutionValues": [
+        "1620272311281X301",
+        "1620272311283X301"
+      ],
+      "selectedExecution": "1620272311283X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO076807"
+      ],
+      "sourceIds": [
+        10511,
+        10512
+      ],
+      "originalExecutionValues": [
+        "1620162312151X302"
+      ],
+      "selectedExecution": "1620162312151X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO076807-L"
+      ],
+      "sourceIds": [
+        10513,
+        10514
+      ],
+      "originalExecutionValues": [
+        "1620182312151X303",
+        "1620182312153X303"
+      ],
+      "selectedExecution": "1620182312153X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO077323-L"
+      ],
+      "sourceIds": [
+        10790,
+        10791,
+        10792,
+        10793
+      ],
+      "originalExecutionValues": [
+        "1620082312015J301",
+        "1620212312201X303",
+        "1620212312203X303"
+      ],
+      "selectedExecution": "1620212312203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO077326-L"
+      ],
+      "sourceIds": [
+        10796,
+        10797,
+        10798,
+        10799
+      ],
+      "originalExecutionValues": [
+        "1620082312015J301",
+        "1620212312201X303",
+        "1620212312203X303"
+      ],
+      "selectedExecution": "1620212312203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO078075-L"
+      ],
+      "sourceIds": [
+        11146,
+        11147
+      ],
+      "originalExecutionValues": [
+        "1610002312151X302",
+        "1610002312153X302"
+      ],
+      "selectedExecution": "1610002312153X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO078075"
+      ],
+      "sourceIds": [
+        11148,
+        11149
+      ],
+      "originalExecutionValues": [
+        "1620202312071X302"
+      ],
+      "selectedExecution": "1620202312071X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO078077-L"
+      ],
+      "sourceIds": [
+        11151,
+        11152
+      ],
+      "originalExecutionValues": [
+        "1610002312151X302",
+        "1610002312153X302"
+      ],
+      "selectedExecution": "1610002312153X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO078077"
+      ],
+      "sourceIds": [
+        11153,
+        11154
+      ],
+      "originalExecutionValues": [
+        "1620202312071X302"
+      ],
+      "selectedExecution": "1620202312071X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO079171-L"
+      ],
+      "sourceIds": [
+        11680,
+        11681,
+        11682,
+        11683
+      ],
+      "originalExecutionValues": [
+        "1610002310273J301",
+        "1620062312251X301"
+      ],
+      "selectedExecution": "1620062312251X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO079172-L"
+      ],
+      "sourceIds": [
+        11684,
+        11685,
+        11686,
+        11687
+      ],
+      "originalExecutionValues": [
+        "1610002310273J301",
+        "1620062312251X301"
+      ],
+      "selectedExecution": "1620062312251X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO079173-L"
+      ],
+      "sourceIds": [
+        11688,
+        11689,
+        11690,
+        11691
+      ],
+      "originalExecutionValues": [
+        "1610002310273J301",
+        "1620062312251X301"
+      ],
+      "selectedExecution": "1620062312251X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO079370-L"
+      ],
+      "sourceIds": [
+        11809,
+        11810
+      ],
+      "originalExecutionValues": [
+        "1603002311291X301"
+      ],
+      "selectedExecution": "1603002311291X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO079370"
+      ],
+      "sourceIds": [
+        11811,
+        11812
+      ],
+      "originalExecutionValues": [
+        "1610002310271X301",
+        "1610002310273X301"
+      ],
+      "selectedExecution": "1610002310273X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO079371-L"
+      ],
+      "sourceIds": [
+        11813,
+        11814
+      ],
+      "originalExecutionValues": [
+        "1603002311291X301"
+      ],
+      "selectedExecution": "1603002311291X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO079371"
+      ],
+      "sourceIds": [
+        11815,
+        11816
+      ],
+      "originalExecutionValues": [
+        "1610002310271X301",
+        "1610002310273X301"
+      ],
+      "selectedExecution": "1610002310273X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO079372-L"
+      ],
+      "sourceIds": [
+        11817,
+        11818
+      ],
+      "originalExecutionValues": [
+        "1603002311291X301"
+      ],
+      "selectedExecution": "1603002311291X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO079372"
+      ],
+      "sourceIds": [
+        11819,
+        11820
+      ],
+      "originalExecutionValues": [
+        "1610002310271X301",
+        "1610002310273X301"
+      ],
+      "selectedExecution": "1610002310273X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO079375-L"
+      ],
+      "sourceIds": [
+        11825,
+        11826
+      ],
+      "originalExecutionValues": [
+        "1620012312151J301",
+        "1620212312211X301"
+      ],
+      "selectedExecution": "1620212312211X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO079376-L"
+      ],
+      "sourceIds": [
+        11827,
+        11828,
+        11829,
+        11830
+      ],
+      "originalExecutionValues": [
+        "1610002310273J301",
+        "1620062312251X301"
+      ],
+      "selectedExecution": "1620062312251X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO079573"
+      ],
+      "sourceIds": [
+        11942,
+        11943,
+        11944
+      ],
+      "originalExecutionValues": [
+        "1620052311161X302",
+        "1620052311163X302"
+      ],
+      "selectedExecution": "1620052311163X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO079573-L"
+      ],
+      "sourceIds": [
+        11945,
+        11946,
+        11947
+      ],
+      "originalExecutionValues": [
+        "1620252311201X303",
+        "1620252311203X303"
+      ],
+      "selectedExecution": "1620252311203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO079941-L"
+      ],
+      "sourceIds": [
+        12166,
+        12167,
+        12168,
+        12169
+      ],
+      "originalExecutionValues": [
+        "1620082311221J301",
+        "1620082311223J301",
+        "1620202311301X302"
+      ],
+      "selectedExecution": "1620202311301X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO079942-L"
+      ],
+      "sourceIds": [
+        12170,
+        12171,
+        12172,
+        12173
+      ],
+      "originalExecutionValues": [
+        "1620082311221J301",
+        "1620082311223J301",
+        "1620202311301X302"
+      ],
+      "selectedExecution": "1620202311301X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080153-L"
+      ],
+      "sourceIds": [
+        12306,
+        12307
+      ],
+      "originalExecutionValues": [
+        "1603002311291X301"
+      ],
+      "selectedExecution": "1603002311291X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080153"
+      ],
+      "sourceIds": [
+        12308,
+        12309
+      ],
+      "originalExecutionValues": [
+        "1610002310271X301",
+        "1610002310273X301"
+      ],
+      "selectedExecution": "1610002310273X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080154-L"
+      ],
+      "sourceIds": [
+        12310,
+        12311
+      ],
+      "originalExecutionValues": [
+        "1603002311291X301"
+      ],
+      "selectedExecution": "1603002311291X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080154"
+      ],
+      "sourceIds": [
+        12312,
+        12313
+      ],
+      "originalExecutionValues": [
+        "1610002310271X301",
+        "1610002310273X301"
+      ],
+      "selectedExecution": "1610002310273X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080157"
+      ],
+      "sourceIds": [
+        12318,
+        12319
+      ],
+      "originalExecutionValues": [
+        "1620022312071X303"
+      ],
+      "selectedExecution": "1620022312071X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080157-L"
+      ],
+      "sourceIds": [
+        12320,
+        12321
+      ],
+      "originalExecutionValues": [
+        "1620122312061J301",
+        "1620122312063J301"
+      ],
+      "selectedExecution": "1620122312063J301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080166-L"
+      ],
+      "sourceIds": [
+        12338,
+        12339,
+        12340,
+        12341
+      ],
+      "originalExecutionValues": [
+        "1620082311221J301",
+        "1620082311223J301",
+        "1620202311301X302"
+      ],
+      "selectedExecution": "1620202311301X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080168-L"
+      ],
+      "sourceIds": [
+        12342,
+        12343,
+        12344,
+        12345
+      ],
+      "originalExecutionValues": [
+        "1620082311221J301",
+        "1620082311223J301",
+        "1620202311301X302"
+      ],
+      "selectedExecution": "1620202311301X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080169-L"
+      ],
+      "sourceIds": [
+        12346,
+        12347,
+        12348,
+        12349
+      ],
+      "originalExecutionValues": [
+        "1620082311221J301",
+        "1620082311223J301",
+        "1620202311301X302"
+      ],
+      "selectedExecution": "1620202311301X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080175-L"
+      ],
+      "sourceIds": [
+        12358,
+        12359
+      ],
+      "originalExecutionValues": [
+        "1603002303281X301"
+      ],
+      "selectedExecution": "1603002303281X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080175"
+      ],
+      "sourceIds": [
+        12360,
+        12361
+      ],
+      "originalExecutionValues": [
+        "1620082312013X301",
+        "1620082312015X301"
+      ],
+      "selectedExecution": "1620082312015X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080176-L"
+      ],
+      "sourceIds": [
+        12362,
+        12363
+      ],
+      "originalExecutionValues": [
+        "1603002303281X301"
+      ],
+      "selectedExecution": "1603002303281X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080176"
+      ],
+      "sourceIds": [
+        12364,
+        12365
+      ],
+      "originalExecutionValues": [
+        "1620082312013X301",
+        "1620082312015X301"
+      ],
+      "selectedExecution": "1620082312015X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080177-L"
+      ],
+      "sourceIds": [
+        12366,
+        12367
+      ],
+      "originalExecutionValues": [
+        "1603002303281X301"
+      ],
+      "selectedExecution": "1603002303281X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080177"
+      ],
+      "sourceIds": [
+        12368,
+        12369
+      ],
+      "originalExecutionValues": [
+        "1620082312013X301",
+        "1620082312015X301"
+      ],
+      "selectedExecution": "1620082312015X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080178-L"
+      ],
+      "sourceIds": [
+        12370,
+        12371
+      ],
+      "originalExecutionValues": [
+        "1603002303281X301"
+      ],
+      "selectedExecution": "1603002303281X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080178"
+      ],
+      "sourceIds": [
+        12372,
+        12373
+      ],
+      "originalExecutionValues": [
+        "1620082312013X301",
+        "1620082312015X301"
+      ],
+      "selectedExecution": "1620082312015X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080179-L"
+      ],
+      "sourceIds": [
+        12374,
+        12375
+      ],
+      "originalExecutionValues": [
+        "1603002303281X301"
+      ],
+      "selectedExecution": "1603002303281X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080179"
+      ],
+      "sourceIds": [
+        12376,
+        12377
+      ],
+      "originalExecutionValues": [
+        "1620082312013X301",
+        "1620082312015X301"
+      ],
+      "selectedExecution": "1620082312015X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080183"
+      ],
+      "sourceIds": [
+        12384,
+        12385
+      ],
+      "originalExecutionValues": [
+        "1620272312141X303"
+      ],
+      "selectedExecution": "1620272312141X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080183-L"
+      ],
+      "sourceIds": [
+        12386,
+        12387
+      ],
+      "originalExecutionValues": [
+        "1621032312141X301",
+        "1621032312143X301"
+      ],
+      "selectedExecution": "1621032312143X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080184"
+      ],
+      "sourceIds": [
+        12388,
+        12389
+      ],
+      "originalExecutionValues": [
+        "1620272312141X303"
+      ],
+      "selectedExecution": "1620272312141X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080184-L"
+      ],
+      "sourceIds": [
+        12390,
+        12391
+      ],
+      "originalExecutionValues": [
+        "1621032312141X301",
+        "1621032312143X301"
+      ],
+      "selectedExecution": "1621032312143X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080185"
+      ],
+      "sourceIds": [
+        12392,
+        12393
+      ],
+      "originalExecutionValues": [
+        "1620272312141X303"
+      ],
+      "selectedExecution": "1620272312141X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080185-L"
+      ],
+      "sourceIds": [
+        12394,
+        12395
+      ],
+      "originalExecutionValues": [
+        "1621032312141X301",
+        "1621032312143X301"
+      ],
+      "selectedExecution": "1621032312143X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080186"
+      ],
+      "sourceIds": [
+        12396,
+        12397
+      ],
+      "originalExecutionValues": [
+        "1620272312141X303"
+      ],
+      "selectedExecution": "1620272312141X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080186-L"
+      ],
+      "sourceIds": [
+        12398,
+        12399
+      ],
+      "originalExecutionValues": [
+        "1621032312141X301",
+        "1621032312143X301"
+      ],
+      "selectedExecution": "1621032312143X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO080187"
+      ],
+      "sourceIds": [
+        12400,
+        12401
+      ],
+      "originalExecutionValues": [
+        "1620272312141X303"
+      ],
+      "selectedExecution": "1620272312141X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080187-L"
+      ],
+      "sourceIds": [
+        12402,
+        12403
+      ],
+      "originalExecutionValues": [
+        "1621032312141X301",
+        "1621032312143X301"
+      ],
+      "selectedExecution": "1621032312143X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080193-L"
+      ],
+      "sourceIds": [
+        12414,
+        12415,
+        12416,
+        12417
+      ],
+      "originalExecutionValues": [
+        "1620082312015J301",
+        "1620212312201X303",
+        "1620212312203X303"
+      ],
+      "selectedExecution": "1620212312203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO080194-L"
+      ],
+      "sourceIds": [
+        12418,
+        12419,
+        12420,
+        12421
+      ],
+      "originalExecutionValues": [
+        "1620082312015J301",
+        "1620212312201X303",
+        "1620212312203X303"
+      ],
+      "selectedExecution": "1620212312203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083271-L"
+      ],
+      "sourceIds": [
+        13929,
+        13930
+      ],
+      "originalExecutionValues": [
+        "1620092312211X301",
+        "1620092312213X301"
+      ],
+      "selectedExecution": "1620092312213X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO083271"
+      ],
+      "sourceIds": [
+        13931,
+        13932
+      ],
+      "originalExecutionValues": [
+        "1620112312191X302"
+      ],
+      "selectedExecution": "1620112312191X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083272-L"
+      ],
+      "sourceIds": [
+        13933,
+        13934
+      ],
+      "originalExecutionValues": [
+        "1620092312211X301",
+        "1620092312213X301"
+      ],
+      "selectedExecution": "1620092312213X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO083272"
+      ],
+      "sourceIds": [
+        13935,
+        13936
+      ],
+      "originalExecutionValues": [
+        "1620112312191X302"
+      ],
+      "selectedExecution": "1620112312191X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083275-L"
+      ],
+      "sourceIds": [
+        13937,
+        13938
+      ],
+      "originalExecutionValues": [
+        "1620092312211X301",
+        "1620092312213X301"
+      ],
+      "selectedExecution": "1620092312213X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO083275"
+      ],
+      "sourceIds": [
+        13939,
+        13940
+      ],
+      "originalExecutionValues": [
+        "1620112312191X302"
+      ],
+      "selectedExecution": "1620112312191X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083276-L"
+      ],
+      "sourceIds": [
+        13941,
+        13942
+      ],
+      "originalExecutionValues": [
+        "1620092312211X301",
+        "1620092312213X301"
+      ],
+      "selectedExecution": "1620092312213X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO083276"
+      ],
+      "sourceIds": [
+        13943,
+        13944
+      ],
+      "originalExecutionValues": [
+        "1620112312191X302"
+      ],
+      "selectedExecution": "1620112312191X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083277-L"
+      ],
+      "sourceIds": [
+        13945,
+        13946
+      ],
+      "originalExecutionValues": [
+        "1620092312211X301",
+        "1620092312213X301"
+      ],
+      "selectedExecution": "1620092312213X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO083277"
+      ],
+      "sourceIds": [
+        13947,
+        13948
+      ],
+      "originalExecutionValues": [
+        "1620112312191X302"
+      ],
+      "selectedExecution": "1620112312191X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083278-L"
+      ],
+      "sourceIds": [
+        13949,
+        13950
+      ],
+      "originalExecutionValues": [
+        "1620092312211X301",
+        "1620092312213X301"
+      ],
+      "selectedExecution": "1620092312213X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO083278"
+      ],
+      "sourceIds": [
+        13951,
+        13952
+      ],
+      "originalExecutionValues": [
+        "1620112312191X302"
+      ],
+      "selectedExecution": "1620112312191X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO083281"
+      ],
+      "sourceIds": [
+        13953,
+        13954
+      ],
+      "originalExecutionValues": [
+        "1620162312151X302"
+      ],
+      "selectedExecution": "1620162312151X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083281-L"
+      ],
+      "sourceIds": [
+        13955,
+        13956
+      ],
+      "originalExecutionValues": [
+        "1620182312151X303",
+        "1620182312153X303"
+      ],
+      "selectedExecution": "1620182312153X303"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO083282"
+      ],
+      "sourceIds": [
+        13957,
+        13958
+      ],
+      "originalExecutionValues": [
+        "1620162312151X302"
+      ],
+      "selectedExecution": "1620162312151X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083282-L"
+      ],
+      "sourceIds": [
+        13959,
+        13960
+      ],
+      "originalExecutionValues": [
+        "1620182312151X303",
+        "1620182312153X303"
+      ],
+      "selectedExecution": "1620182312153X303"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO083285"
+      ],
+      "sourceIds": [
+        13965,
+        13966
+      ],
+      "originalExecutionValues": [
+        "1620052312121X301"
+      ],
+      "selectedExecution": "1620052312121X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083285-L"
+      ],
+      "sourceIds": [
+        13967,
+        13968
+      ],
+      "originalExecutionValues": [
+        "1620182312121X303",
+        "1620182312123X303"
+      ],
+      "selectedExecution": "1620182312123X303"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO083286"
+      ],
+      "sourceIds": [
+        13969,
+        13970
+      ],
+      "originalExecutionValues": [
+        "1620052312121X301"
+      ],
+      "selectedExecution": "1620052312121X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083286-L"
+      ],
+      "sourceIds": [
+        13971,
+        13972
+      ],
+      "originalExecutionValues": [
+        "1620182312121X303",
+        "1620182312123X303"
+      ],
+      "selectedExecution": "1620182312123X303"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO083287"
+      ],
+      "sourceIds": [
+        13973,
+        13974
+      ],
+      "originalExecutionValues": [
+        "1620052312121X301"
+      ],
+      "selectedExecution": "1620052312121X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083287-L"
+      ],
+      "sourceIds": [
+        13975,
+        13976
+      ],
+      "originalExecutionValues": [
+        "1620182312121X303",
+        "1620182312123X303"
+      ],
+      "selectedExecution": "1620182312123X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083288-L"
+      ],
+      "sourceIds": [
+        13977,
+        13978,
+        13979,
+        13980
+      ],
+      "originalExecutionValues": [
+        "1610002310273J301",
+        "1620062312251X301"
+      ],
+      "selectedExecution": "1620062312251X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083289-L"
+      ],
+      "sourceIds": [
+        13981,
+        13982,
+        13983,
+        13984
+      ],
+      "originalExecutionValues": [
+        "1610002310273J301",
+        "1620062312251X301"
+      ],
+      "selectedExecution": "1620062312251X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083290-L"
+      ],
+      "sourceIds": [
+        13985,
+        13986,
+        13987,
+        13988
+      ],
+      "originalExecutionValues": [
+        "1610002310273J301",
+        "1620062312251X301"
+      ],
+      "selectedExecution": "1620062312251X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083291-L"
+      ],
+      "sourceIds": [
+        13989,
+        13990
+      ],
+      "originalExecutionValues": [
+        "1620012312151J301",
+        "1620212312211X301"
+      ],
+      "selectedExecution": "1620212312211X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083292-L"
+      ],
+      "sourceIds": [
+        13991,
+        13992,
+        13993,
+        13994
+      ],
+      "originalExecutionValues": [
+        "1620082312015J301",
+        "1620212312201X303",
+        "1620212312203X303"
+      ],
+      "selectedExecution": "1620212312203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083293-L"
+      ],
+      "sourceIds": [
+        13995,
+        13996,
+        13997,
+        13998
+      ],
+      "originalExecutionValues": [
+        "1620082312015J301",
+        "1620212312201X303",
+        "1620212312203X303"
+      ],
+      "selectedExecution": "1620212312203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083294-L"
+      ],
+      "sourceIds": [
+        13999,
+        14000,
+        14001,
+        14002
+      ],
+      "originalExecutionValues": [
+        "1620082312015J301",
+        "1620212312201X303",
+        "1620212312203X303"
+      ],
+      "selectedExecution": "1620212312203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083295-L"
+      ],
+      "sourceIds": [
+        14003,
+        14004,
+        14005,
+        14006
+      ],
+      "originalExecutionValues": [
+        "1620082312015J301",
+        "1620212312201X303",
+        "1620212312203X303"
+      ],
+      "selectedExecution": "1620212312203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083296-L"
+      ],
+      "sourceIds": [
+        14007,
+        14008,
+        14009,
+        14010
+      ],
+      "originalExecutionValues": [
+        "1620082312015J301",
+        "1620212312201X303",
+        "1620212312203X303"
+      ],
+      "selectedExecution": "1620212312203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO083297-L"
+      ],
+      "sourceIds": [
+        14011,
+        14012,
+        14013,
+        14014
+      ],
+      "originalExecutionValues": [
+        "1620082312015J301",
+        "1620212312201X303",
+        "1620212312203X303"
+      ],
+      "selectedExecution": "1620212312203X303"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO087506"
+      ],
+      "sourceIds": [
+        16276,
+        16277
+      ],
+      "originalExecutionValues": [
+        "1620022312071X303"
+      ],
+      "selectedExecution": "1620022312071X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO087506-L"
+      ],
+      "sourceIds": [
+        16278,
+        16279
+      ],
+      "originalExecutionValues": [
+        "1620122312061J301",
+        "1620122312063J301"
+      ],
+      "selectedExecution": "1620122312063J301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO087507"
+      ],
+      "sourceIds": [
+        16280,
+        16281
+      ],
+      "originalExecutionValues": [
+        "1620022312071X303"
+      ],
+      "selectedExecution": "1620022312071X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO087507-L"
+      ],
+      "sourceIds": [
+        16282,
+        16283
+      ],
+      "originalExecutionValues": [
+        "1620122312061J301",
+        "1620122312063J301"
+      ],
+      "selectedExecution": "1620122312063J301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO087514"
+      ],
+      "sourceIds": [
+        16294,
+        16295
+      ],
+      "originalExecutionValues": [
+        "1620052312121X301"
+      ],
+      "selectedExecution": "1620052312121X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO087514-L"
+      ],
+      "sourceIds": [
+        16296,
+        16297
+      ],
+      "originalExecutionValues": [
+        "1620182312121X303",
+        "1620182312123X303"
+      ],
+      "selectedExecution": "1620182312123X303"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO087515"
+      ],
+      "sourceIds": [
+        16298,
+        16299
+      ],
+      "originalExecutionValues": [
+        "1620052312121X301"
+      ],
+      "selectedExecution": "1620052312121X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO087515-L"
+      ],
+      "sourceIds": [
+        16300,
+        16301
+      ],
+      "originalExecutionValues": [
+        "1620182312121X303",
+        "1620182312123X303"
+      ],
+      "selectedExecution": "1620182312123X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO087531-L"
+      ],
+      "sourceIds": [
+        16332,
+        16333
+      ],
+      "originalExecutionValues": [
+        "1603002309253J301",
+        "1620072312141X301"
+      ],
+      "selectedExecution": "1620072312141X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO087532-L"
+      ],
+      "sourceIds": [
+        16334,
+        16335
+      ],
+      "originalExecutionValues": [
+        "1603002309253J301",
+        "1620072312141X301"
+      ],
+      "selectedExecution": "1620072312141X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO087533-L"
+      ],
+      "sourceIds": [
+        16336,
+        16337
+      ],
+      "originalExecutionValues": [
+        "1603002309253J301",
+        "1620072312141X301"
+      ],
+      "selectedExecution": "1620072312141X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO087550-L"
+      ],
+      "sourceIds": [
+        16370,
+        16371
+      ],
+      "originalExecutionValues": [
+        "1620092312211X301",
+        "1620092312213X301"
+      ],
+      "selectedExecution": "1620092312213X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO087550"
+      ],
+      "sourceIds": [
+        16372,
+        16373
+      ],
+      "originalExecutionValues": [
+        "1620112312191X302"
+      ],
+      "selectedExecution": "1620112312191X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO087551-L"
+      ],
+      "sourceIds": [
+        16374,
+        16375
+      ],
+      "originalExecutionValues": [
+        "1620092312211X301",
+        "1620092312213X301"
+      ],
+      "selectedExecution": "1620092312213X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO087551"
+      ],
+      "sourceIds": [
+        16376,
+        16377
+      ],
+      "originalExecutionValues": [
+        "1620112312191X302"
+      ],
+      "selectedExecution": "1620112312191X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO088002-L"
+      ],
+      "sourceIds": [
+        16663,
+        16664,
+        16665,
+        16666
+      ],
+      "originalExecutionValues": [
+        "1610002312013J301",
+        "1620252312111X303",
+        "1620252312113X303"
+      ],
+      "selectedExecution": "1620252312113X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO088003-L"
+      ],
+      "sourceIds": [
+        16667,
+        16668,
+        16669,
+        16670
+      ],
+      "originalExecutionValues": [
+        "1610002312013J301",
+        "1620252312111X303",
+        "1620252312113X303"
+      ],
+      "selectedExecution": "1620252312113X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO088004-L"
+      ],
+      "sourceIds": [
+        16671,
+        16672,
+        16673,
+        16674
+      ],
+      "originalExecutionValues": [
+        "1610002312013J301",
+        "1620252312111X303",
+        "1620252312113X303"
+      ],
+      "selectedExecution": "1620252312113X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO088005-L"
+      ],
+      "sourceIds": [
+        16675,
+        16676,
+        16677,
+        16678
+      ],
+      "originalExecutionValues": [
+        "1610002312013J301",
+        "1620252312111X303",
+        "1620252312113X303"
+      ],
+      "selectedExecution": "1620252312113X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO088036-L"
+      ],
+      "sourceIds": [
+        16731,
+        16732
+      ],
+      "originalExecutionValues": [
+        "1620052312131J301",
+        "1620082312141X301"
+      ],
+      "selectedExecution": "1620082312141X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO088037-L"
+      ],
+      "sourceIds": [
+        16733,
+        16734
+      ],
+      "originalExecutionValues": [
+        "1620052312131J301",
+        "1620082312141X301"
+      ],
+      "selectedExecution": "1620082312141X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO088038-L"
+      ],
+      "sourceIds": [
+        16735,
+        16736
+      ],
+      "originalExecutionValues": [
+        "1620052312131J301",
+        "1620082312141X301"
+      ],
+      "selectedExecution": "1620082312141X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO089407"
+      ],
+      "sourceIds": [
+        17652,
+        17653
+      ],
+      "originalExecutionValues": [
+        "1620272312141X303"
+      ],
+      "selectedExecution": "1620272312141X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089407-L"
+      ],
+      "sourceIds": [
+        17654,
+        17655
+      ],
+      "originalExecutionValues": [
+        "1621032312141X301",
+        "1621032312143X301"
+      ],
+      "selectedExecution": "1621032312143X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO089734"
+      ],
+      "sourceIds": [
+        17876,
+        17877,
+        17878
+      ],
+      "originalExecutionValues": [
+        "1620052311161X302",
+        "1620052311163X302"
+      ],
+      "selectedExecution": "1620052311163X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089734-L"
+      ],
+      "sourceIds": [
+        17879,
+        17880,
+        17881
+      ],
+      "originalExecutionValues": [
+        "1620252311201X303",
+        "1620252311203X303"
+      ],
+      "selectedExecution": "1620252311203X303"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089746-L"
+      ],
+      "sourceIds": [
+        17904,
+        17905
+      ],
+      "originalExecutionValues": [
+        "1610002312061J303",
+        "1621052312111X301"
+      ],
+      "selectedExecution": "1621052312111X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089747-L"
+      ],
+      "sourceIds": [
+        17906,
+        17907
+      ],
+      "originalExecutionValues": [
+        "1610002312061J303",
+        "1621052312111X301"
+      ],
+      "selectedExecution": "1621052312111X301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO089766"
+      ],
+      "sourceIds": [
+        17944,
+        17945
+      ],
+      "originalExecutionValues": [
+        "1620042312181X301"
+      ],
+      "selectedExecution": "1620042312181X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089766-L"
+      ],
+      "sourceIds": [
+        17946,
+        17947
+      ],
+      "originalExecutionValues": [
+        "1620232312181X302",
+        "1620232312183X302"
+      ],
+      "selectedExecution": "1620232312183X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO089767"
+      ],
+      "sourceIds": [
+        17948,
+        17949
+      ],
+      "originalExecutionValues": [
+        "1620042312181X301"
+      ],
+      "selectedExecution": "1620042312181X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089767-L"
+      ],
+      "sourceIds": [
+        17950,
+        17951
+      ],
+      "originalExecutionValues": [
+        "1620232312181X302",
+        "1620232312183X302"
+      ],
+      "selectedExecution": "1620232312183X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089769-L"
+      ],
+      "sourceIds": [
+        17954,
+        17955
+      ],
+      "originalExecutionValues": [
+        "1610002312151X302",
+        "1610002312153X302"
+      ],
+      "selectedExecution": "1610002312153X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO089769"
+      ],
+      "sourceIds": [
+        17956,
+        17957
+      ],
+      "originalExecutionValues": [
+        "1620202312071X302"
+      ],
+      "selectedExecution": "1620202312071X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089770-L"
+      ],
+      "sourceIds": [
+        17958,
+        17959
+      ],
+      "originalExecutionValues": [
+        "1610002312151X302",
+        "1610002312153X302"
+      ],
+      "selectedExecution": "1610002312153X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO089770"
+      ],
+      "sourceIds": [
+        17960,
+        17961
+      ],
+      "originalExecutionValues": [
+        "1620202312071X302"
+      ],
+      "selectedExecution": "1620202312071X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089771-L"
+      ],
+      "sourceIds": [
+        17962,
+        17963
+      ],
+      "originalExecutionValues": [
+        "1610002312151X302",
+        "1610002312153X302"
+      ],
+      "selectedExecution": "1610002312153X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO089771"
+      ],
+      "sourceIds": [
+        17964,
+        17965
+      ],
+      "originalExecutionValues": [
+        "1620202312071X302"
+      ],
+      "selectedExecution": "1620202312071X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089772-L"
+      ],
+      "sourceIds": [
+        17966,
+        17967
+      ],
+      "originalExecutionValues": [
+        "1610002312151X302",
+        "1610002312153X302"
+      ],
+      "selectedExecution": "1610002312153X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO089772"
+      ],
+      "sourceIds": [
+        17968,
+        17969
+      ],
+      "originalExecutionValues": [
+        "1620202312071X302"
+      ],
+      "selectedExecution": "1620202312071X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089773-L"
+      ],
+      "sourceIds": [
+        17970,
+        17971
+      ],
+      "originalExecutionValues": [
+        "1610002312151X302",
+        "1610002312153X302"
+      ],
+      "selectedExecution": "1610002312153X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO089773"
+      ],
+      "sourceIds": [
+        17972,
+        17973
+      ],
+      "originalExecutionValues": [
+        "1620202312071X302"
+      ],
+      "selectedExecution": "1620202312071X302"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO089775-L"
+      ],
+      "sourceIds": [
+        17974,
+        17975
+      ],
+      "originalExecutionValues": [
+        "1610002312151X302",
+        "1610002312153X302"
+      ],
+      "selectedExecution": "1610002312153X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO089775"
+      ],
+      "sourceIds": [
+        17976,
+        17977
+      ],
+      "originalExecutionValues": [
+        "1620202312071X302"
+      ],
+      "selectedExecution": "1620202312071X302"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO094097"
+      ],
+      "sourceIds": [
+        20463,
+        20464
+      ],
+      "originalExecutionValues": [
+        "1620082412181X001"
+      ],
+      "selectedExecution": "1620082412181X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO094097-L"
+      ],
+      "sourceIds": [
+        20465,
+        20466
+      ],
+      "originalExecutionValues": [
+        "1620092412181X001",
+        "1620092412183X001"
+      ],
+      "selectedExecution": "1620092412183X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO094162-L"
+      ],
+      "sourceIds": [
+        20506,
+        20507
+      ],
+      "originalExecutionValues": [
+        "1620012412241J001",
+        "1620242412231X001"
+      ],
+      "selectedExecution": "1620242412231X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO094174-L"
+      ],
+      "sourceIds": [
+        20518,
+        20519
+      ],
+      "originalExecutionValues": [
+        "1620012412241X001",
+        "1620242412231J001"
+      ],
+      "selectedExecution": "1620242412231J001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO094207-L"
+      ],
+      "sourceIds": [
+        20544,
+        20545
+      ],
+      "originalExecutionValues": [
+        "1620102412133X001",
+        "1620222409303J301"
+      ],
+      "selectedExecution": "1620222409303J301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO094339"
+      ],
+      "sourceIds": [
+        20607,
+        20608
+      ],
+      "originalExecutionValues": [
+        "1620082412181X001"
+      ],
+      "selectedExecution": "1620082412181X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO094339-L"
+      ],
+      "sourceIds": [
+        20609,
+        20610
+      ],
+      "originalExecutionValues": [
+        "1620092412181X001",
+        "1620092412183X001"
+      ],
+      "selectedExecution": "1620092412183X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "0",
+        "SO094388"
+      ],
+      "sourceIds": [
+        20644,
+        20645
+      ],
+      "originalExecutionValues": [
+        "1620092412191X001"
+      ],
+      "selectedExecution": "1620092412191X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "SO094388-L"
+      ],
+      "sourceIds": [
+        20646,
+        20647
+      ],
+      "originalExecutionValues": [
+        "1621022412193X001",
+        "1621022412195X001"
+      ],
+      "selectedExecution": "1621022412195X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO096837"
+      ],
+      "sourceIds": [
+        21850,
+        21851
+      ],
+      "originalExecutionValues": [
+        "1620082412181X001"
+      ],
+      "selectedExecution": "1620082412181X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO096837-L"
+      ],
+      "sourceIds": [
+        21852,
+        21853
+      ],
+      "originalExecutionValues": [
+        "1620092412181X001",
+        "1620092412183X001"
+      ],
+      "selectedExecution": "1620092412183X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO096838"
+      ],
+      "sourceIds": [
+        21854,
+        21855
+      ],
+      "originalExecutionValues": [
+        "1620082412181X001"
+      ],
+      "selectedExecution": "1620082412181X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO096838-L"
+      ],
+      "sourceIds": [
+        21856,
+        21857
+      ],
+      "originalExecutionValues": [
+        "1620092412181X001",
+        "1620092412183X001"
+      ],
+      "selectedExecution": "1620092412183X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO096839"
+      ],
+      "sourceIds": [
+        21858,
+        21859
+      ],
+      "originalExecutionValues": [
+        "1620092412191X001"
+      ],
+      "selectedExecution": "1620092412191X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO096839-L"
+      ],
+      "sourceIds": [
+        21860,
+        21861
+      ],
+      "originalExecutionValues": [
+        "1621022412193X001",
+        "1621022412195X001"
+      ],
+      "selectedExecution": "1621022412195X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO097580"
+      ],
+      "sourceIds": [
+        22248,
+        22249
+      ],
+      "originalExecutionValues": [
+        "1620082412181X001"
+      ],
+      "selectedExecution": "1620082412181X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097580-L"
+      ],
+      "sourceIds": [
+        22250,
+        22251
+      ],
+      "originalExecutionValues": [
+        "1620092412181X001",
+        "1620092412183X001"
+      ],
+      "selectedExecution": "1620092412183X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO097581"
+      ],
+      "sourceIds": [
+        22252,
+        22253
+      ],
+      "originalExecutionValues": [
+        "1620082412181X001"
+      ],
+      "selectedExecution": "1620082412181X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097581-L"
+      ],
+      "sourceIds": [
+        22254,
+        22255
+      ],
+      "originalExecutionValues": [
+        "1620092412181X001",
+        "1620092412183X001"
+      ],
+      "selectedExecution": "1620092412183X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO097582"
+      ],
+      "sourceIds": [
+        22256,
+        22257
+      ],
+      "originalExecutionValues": [
+        "1620082412181X001"
+      ],
+      "selectedExecution": "1620082412181X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097582-L"
+      ],
+      "sourceIds": [
+        22258,
+        22259
+      ],
+      "originalExecutionValues": [
+        "1620092412181X001",
+        "1620092412183X001"
+      ],
+      "selectedExecution": "1620092412183X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO097583"
+      ],
+      "sourceIds": [
+        22260,
+        22261
+      ],
+      "originalExecutionValues": [
+        "1620082412181X001"
+      ],
+      "selectedExecution": "1620082412181X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097583-L"
+      ],
+      "sourceIds": [
+        22262,
+        22263
+      ],
+      "originalExecutionValues": [
+        "1620092412181X001",
+        "1620092412183X001"
+      ],
+      "selectedExecution": "1620092412183X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097584-L"
+      ],
+      "sourceIds": [
+        22264,
+        22265
+      ],
+      "originalExecutionValues": [
+        "1620012412241J001",
+        "1620242412231X001"
+      ],
+      "selectedExecution": "1620242412231X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097585-L"
+      ],
+      "sourceIds": [
+        22266,
+        22267
+      ],
+      "originalExecutionValues": [
+        "1620012412241X001",
+        "1620242412231J001"
+      ],
+      "selectedExecution": "1620242412231J001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097586-L"
+      ],
+      "sourceIds": [
+        22268,
+        22269
+      ],
+      "originalExecutionValues": [
+        "1620012412241X001",
+        "1620242412231J001"
+      ],
+      "selectedExecution": "1620242412231J001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097587-L"
+      ],
+      "sourceIds": [
+        22270,
+        22271
+      ],
+      "originalExecutionValues": [
+        "1620012412241J001",
+        "1620242412231X001"
+      ],
+      "selectedExecution": "1620242412231X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097588-L"
+      ],
+      "sourceIds": [
+        22272,
+        22273
+      ],
+      "originalExecutionValues": [
+        "1620012412241J001",
+        "1620242412231X001"
+      ],
+      "selectedExecution": "1620242412231X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO097596"
+      ],
+      "sourceIds": [
+        22288,
+        22289
+      ],
+      "originalExecutionValues": [
+        "1620092412191X001"
+      ],
+      "selectedExecution": "1620092412191X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097596-L"
+      ],
+      "sourceIds": [
+        22290,
+        22291
+      ],
+      "originalExecutionValues": [
+        "1621022412193X001",
+        "1621022412195X001"
+      ],
+      "selectedExecution": "1621022412195X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO097597"
+      ],
+      "sourceIds": [
+        22292,
+        22293
+      ],
+      "originalExecutionValues": [
+        "1620092412191X001"
+      ],
+      "selectedExecution": "1620092412191X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097597-L"
+      ],
+      "sourceIds": [
+        22294,
+        22295
+      ],
+      "originalExecutionValues": [
+        "1621022412193X001",
+        "1621022412195X001"
+      ],
+      "selectedExecution": "1621022412195X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO097598"
+      ],
+      "sourceIds": [
+        22296,
+        22297
+      ],
+      "originalExecutionValues": [
+        "1620092412191X001"
+      ],
+      "selectedExecution": "1620092412191X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097598-L"
+      ],
+      "sourceIds": [
+        22298,
+        22299
+      ],
+      "originalExecutionValues": [
+        "1621022412193X001",
+        "1621022412195X001"
+      ],
+      "selectedExecution": "1621022412195X001"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "001",
+        "1",
+        "SO097599"
+      ],
+      "sourceIds": [
+        22300,
+        22301
+      ],
+      "originalExecutionValues": [
+        "1620092412191X001"
+      ],
+      "selectedExecution": "1620092412191X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO097599-L"
+      ],
+      "sourceIds": [
+        22302,
+        22303
+      ],
+      "originalExecutionValues": [
+        "1621022412193X001",
+        "1621022412195X001"
+      ],
+      "selectedExecution": "1621022412195X001"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO098493-L"
+      ],
+      "sourceIds": [
+        22818,
+        22819
+      ],
+      "originalExecutionValues": [
+        "1620102412133X001",
+        "1620222409303J301"
+      ],
+      "selectedExecution": "1620222409303J301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO098494-L"
+      ],
+      "sourceIds": [
+        22820,
+        22821
+      ],
+      "originalExecutionValues": [
+        "1620102412133X001",
+        "1620222409303J301"
+      ],
+      "selectedExecution": "1620222409303J301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO098502-L"
+      ],
+      "sourceIds": [
+        22825,
+        22826
+      ],
+      "originalExecutionValues": [
+        "1620102412133X001",
+        "1620222409303J301"
+      ],
+      "selectedExecution": "1620222409303J301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO098535-L"
+      ],
+      "sourceIds": [
+        22837,
+        22838
+      ],
+      "originalExecutionValues": [
+        "1620102412133X001",
+        "1620222409303J301"
+      ],
+      "selectedExecution": "1620222409303J301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO098536-L"
+      ],
+      "sourceIds": [
+        22839,
+        22840
+      ],
+      "originalExecutionValues": [
+        "1620102412133X001",
+        "1620222409303J301"
+      ],
+      "selectedExecution": "1620222409303J301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO098537-L"
+      ],
+      "sourceIds": [
+        22841,
+        22842
+      ],
+      "originalExecutionValues": [
+        "1620102412133X001",
+        "1620222409303J301"
+      ],
+      "selectedExecution": "1620222409303J301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO098538-L"
+      ],
+      "sourceIds": [
+        22843,
+        22844
+      ],
+      "originalExecutionValues": [
+        "1620102412133X001",
+        "1620222409303J301"
+      ],
+      "selectedExecution": "1620222409303J301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "SO098539-L"
+      ],
+      "sourceIds": [
+        22845,
+        22846
+      ],
+      "originalExecutionValues": [
+        "1620102412133X001",
+        "1620222409303J301"
+      ],
+      "selectedExecution": "1620222409303J301"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "002",
+        "0",
+        "SO002173"
+      ],
+      "sourceIds": [
+        35655,
+        35656
+      ],
+      "originalExecutionValues": [
+        "1620252412191X005",
+        "1620252412193X005"
+      ],
+      "selectedExecution": "1620252412193X005"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "002",
+        "1",
+        "SO002443"
+      ],
+      "sourceIds": [
+        35769,
+        35770
+      ],
+      "originalExecutionValues": [
+        "1620252412191X005",
+        "1620252412193X005"
+      ],
+      "selectedExecution": "1620252412193X005"
+    },
+    {
+      "businessKey": [
+        "D365",
+        "002",
+        "1",
+        "SO002444"
+      ],
+      "sourceIds": [
+        35771,
+        35772
+      ],
+      "originalExecutionValues": [
+        "1620252412191X005",
+        "1620252412193X005"
+      ],
+      "selectedExecution": "1620252412193X005"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "0",
+        "32905-L"
+      ],
+      "sourceIds": [
+        63938,
+        63939
+      ],
+      "originalExecutionValues": [
+        "1620101903221X302",
+        "1620111903251X301"
+      ],
+      "selectedExecution": "1620111903251X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "002",
+        "0",
+        "Z462-L"
+      ],
+      "sourceIds": [
+        85104,
+        85106,
+        85107
+      ],
+      "originalExecutionValues": [
+        "1610002011161J301",
+        "1620072011121X301"
+      ],
+      "selectedExecution": "1620072011121X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "10446-L"
+      ],
+      "sourceIds": [
+        87865,
+        87866
+      ],
+      "originalExecutionValues": [
+        "1620101903221X302",
+        "1620111903251X301"
+      ],
+      "selectedExecution": "1620111903251X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "001",
+        "1",
+        "10447-L"
+      ],
+      "sourceIds": [
+        87867,
+        87868
+      ],
+      "originalExecutionValues": [
+        "1620101903221X302",
+        "1620111903251X301"
+      ],
+      "selectedExecution": "1620111903251X301"
+    },
+    {
+      "businessKey": [
+        "SMS",
+        "002",
+        "1",
+        "Z108-L"
+      ],
+      "sourceIds": [
+        91396,
+        91398,
+        91399
+      ],
+      "originalExecutionValues": [
+        "1610002011161J301",
+        "1620072011121X301"
+      ],
+      "selectedExecution": "1620072011121X301"
+    }
+  ],
+  "allMissingOrderNumberOriginals": [
+    {
+      "id": 29102,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1620222308041X301",
+      "itemCode": "02052171",
+      "itemDesc": "DPtech FW1000-MS-EI双电源AC主机",
+      "orderQuantity": -2,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162022",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 29103,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "2",
+      "realOrderExecNumber": "1620222308041X301",
+      "itemCode": "02052171",
+      "itemDesc": "DPtech FW1000-MS-EI双电源AC主机",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162022",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 47615,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1610002312273X301",
+      "itemCode": "02010075",
+      "itemDesc": "DPtech SFP+万兆光模块,多模,(850nm,0.3km,LC)",
+      "orderQuantity": -2,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 61,
+      "profitCenter": "161000",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 92527,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1620212412091X011",
+      "itemCode": "01101384",
+      "itemDesc": "DPtech FW1000-TS-HG-TU双电源交流主机",
+      "orderQuantity": -2,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162021",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 100698,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1620082312211X303",
+      "itemCode": "02051227",
+      "itemDesc": "DPtech FW1000-MA-X 双电源AC主机",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162008",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 100699,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1620082312211X303",
+      "itemCode": "53011731",
+      "itemDesc": "DPtech UAG3000-MA-XI 病毒库1年",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "01100661",
+      "warrantyMonth": 36,
+      "profitCenter": "162008",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 100700,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "2",
+      "realOrderExecNumber": "1620082312211X303",
+      "itemCode": "53011725",
+      "itemDesc": "DPtech UAG3000-MA-XI 协议库1年",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "01100661",
+      "warrantyMonth": 36,
+      "profitCenter": "162008",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 100701,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "3",
+      "realOrderExecNumber": "1620082312211X303",
+      "itemCode": "02051436",
+      "itemDesc": "DPtech UAG3000-MA-XI 双电源AC主机",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "01100661",
+      "warrantyMonth": 36,
+      "profitCenter": "162008",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 101146,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1620072504283X002",
+      "itemCode": "02011424",
+      "itemDesc": "DPtech 8*10GE SFP+ + 4*40GE QSFP28以太网接口模块(G类)",
+      "orderQuantity": -2,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 60,
+      "profitCenter": "162007",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 106713,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1620112508051X002",
+      "itemCode": "53011550",
+      "itemDesc": "DPtech VPN1000-GA-X,URL、防病毒、IPS、APP协议综合防护特征库1年",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 12,
+      "profitCenter": "162011",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 109591,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1631202508201X001",
+      "itemCode": "02011767",
+      "itemDesc": "DPtech SFP千兆光模块,多模,(850nm,0.55km,LC)",
+      "orderQuantity": -4,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "163120",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 109592,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "2",
+      "realOrderExecNumber": "1631202508201X001",
+      "itemCode": "02051533",
+      "itemDesc": "DPtech LSW3600-24GT4GP-PWR AC主机",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "163120",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 109593,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "3",
+      "realOrderExecNumber": "1631202508201X001",
+      "itemCode": "02051535",
+      "itemDesc": "DPtech LSW3600-24GT4GP 主机",
+      "orderQuantity": -3,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "163120",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 109594,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "4",
+      "realOrderExecNumber": "1631202508201X001",
+      "itemCode": "02011767",
+      "itemDesc": "DPtech SFP千兆光模块,多模,(850nm,0.55km,LC)",
+      "orderQuantity": -12,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "163120",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 109595,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "5",
+      "realOrderExecNumber": "1631202508201X001",
+      "itemCode": "02011767",
+      "itemDesc": "DPtech SFP千兆光模块,多模,(850nm,0.55km,LC)",
+      "orderQuantity": -24,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "163120",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 109596,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "6",
+      "realOrderExecNumber": "1631202508201X001",
+      "itemCode": "02011931",
+      "itemDesc": "DPtech 100W AC电源模块",
+      "orderQuantity": -2,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "163120",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 109597,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "7",
+      "realOrderExecNumber": "1631202508201X001",
+      "itemCode": "02011767",
+      "itemDesc": "DPtech SFP千兆光模块,多模,(850nm,0.55km,LC)",
+      "orderQuantity": -48,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "163120",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 109598,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "8",
+      "realOrderExecNumber": "1631202508201X001",
+      "itemCode": "02011931",
+      "itemDesc": "DPtech 100W AC电源模块",
+      "orderQuantity": -2,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "163120",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 109599,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "9",
+      "realOrderExecNumber": "1631202508201X001",
+      "itemCode": "02011767",
+      "itemDesc": "DPtech SFP千兆光模块,多模,(850nm,0.55km,LC)",
+      "orderQuantity": -12,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "163120",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 109600,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "10",
+      "realOrderExecNumber": "1631202508201X001",
+      "itemCode": "02050346",
+      "itemDesc": "DPtech LSW3600-48GT4GP 主机",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "163120",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 109790,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1631202508201X001",
+      "itemCode": "02052561",
+      "itemDesc": "DPtech LSW5620-48GP4XGS主机",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "163120",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 111179,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "",
+      "itemCode": "01100590",
+      "itemDesc": "DPtech Probe3000-GE-X双电源AC含4端口千兆以太网光接口模块(SFP)",
+      "orderQuantity": -4,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 0,
+      "profitCenter": "",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 111180,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "2",
+      "realOrderExecNumber": "",
+      "itemCode": "01100593",
+      "itemDesc": "DPtech DPX29000-A10-S AC主机含主控E-A10MPU-S×2、交换板E-A10FU-S和3000W电源×2,配套UMC软件",
+      "orderQuantity": -4,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 0,
+      "profitCenter": "",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 111181,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "3",
+      "realOrderExecNumber": "",
+      "itemCode": "01100640",
+      "itemDesc": "DPtech Guard业务模块(17E类)含E-CON-S转换盒",
+      "orderQuantity": -8,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 0,
+      "profitCenter": "",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 111182,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "4",
+      "realOrderExecNumber": "",
+      "itemCode": "02010078",
+      "itemDesc": "DPtech SFP+万兆光模块,单模,(1310nm,10km,LC)",
+      "orderQuantity": -8,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 0,
+      "profitCenter": "",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 111183,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "6",
+      "realOrderExecNumber": "",
+      "itemCode": "02010431",
+      "itemDesc": "DPtech QSFP28 100G光模块,单模(1310nm,10km,LC)",
+      "orderQuantity": -8,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 0,
+      "profitCenter": "",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 114045,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "53012040",
+      "itemDesc": "DPtech ILA 100个审计对象授权",
+      "orderQuantity": -3,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 114046,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "2",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "53011998",
+      "itemDesc": "DPtech IVD通用漏洞库1年",
+      "orderQuantity": -2,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 114047,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "3",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "53012008",
+      "itemDesc": "DPtech IVD 256个地址扫描授权",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 114048,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "4",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "53011997",
+      "itemDesc": "DPtech IVD工控漏洞库1年",
+      "orderQuantity": -2,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 114049,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "5",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "02011002",
+      "itemDesc": "DPtech 自安全网络管理平台管理软件",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 114050,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "6",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "53011385",
+      "itemDesc": "DPtech 自安全网络管理平台管理授权函,10节点",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 114051,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "7",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "53012435",
+      "itemDesc": "DPtech IMA3000,工控特征库、病毒库1年",
+      "orderQuantity": -15,
+      "openQuantity": 0,
+      "bundleCode": "01101010",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 114052,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "8",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "53011420",
+      "itemDesc": "DPtech IMA3000-GS,工控特征库1年",
+      "orderQuantity": -30,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 114053,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "9",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "02051972",
+      "itemDesc": "DPtech IMA3000-GS-G 双电源AC主机",
+      "orderQuantity": -15,
+      "openQuantity": 0,
+      "bundleCode": "01101010",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 114054,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "10",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "53011421",
+      "itemDesc": "DPtech IMA3000-GS,病毒库1年",
+      "orderQuantity": -30,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 115283,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "02051253",
+      "itemDesc": "DPtech IVD1000-PX 便携式设备",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "01100993",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 115284,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "2",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "53011998",
+      "itemDesc": "DPtech IVD通用漏洞库1年",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "01100993",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 115285,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "3",
+      "realOrderExecNumber": "1620092412171X002",
+      "itemCode": "53011997",
+      "itemDesc": "DPtech IVD工控漏洞库1年",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "01100993",
+      "warrantyMonth": 36,
+      "profitCenter": "162009",
+      "syncTime": "2026-08-02 23:51:27"
+    },
+    {
+      "id": 129698,
+      "source": "D365",
+      "compCode": "01",
+      "lineType": 1,
+      "orderNumber": null,
+      "lineNum": "1",
+      "realOrderExecNumber": "1620172309227X302",
+      "itemCode": "53011952",
+      "itemDesc": "DPtech UAG3000-GC-G 协议库升级1年",
+      "orderQuantity": -1,
+      "openQuantity": 0,
+      "bundleCode": "",
+      "warrantyMonth": 36,
+      "profitCenter": "162017",
+      "syncTime": "2026-08-02 23:51:27"
+    }
+  ],
+  "missingParentBreakdown": {
+    "NO_SAME_ORDER_NUMBER_HEADER": 1243,
+    "SAME_SOURCE_COMPANY_DIFFERENT_TYPE": 336
+  },
+  "parentRuleAfterMaximumDecision": "Multiple original header executions no longer create multiple formal parents at the approved order key. Line actual execution does not have to equal the selected header snapshot.",
+  "rawEvidence": {
+    "all594DuplicateHeadersAnd1996DuplicateLinesAnd3347ParentCandidateLines": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p14-split-unique-review-20261019\\split-key-audit.json",
+    "verified13SelectResults": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p14-split-unique-review-20261019\\verified-simple-review-queries.json",
+    "parentBreakdown": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p14-split-unique-review-20261019\\broader-parent-candidate-explanation.json"
+  },
+  "verificationBoundary": {
+    "sourceReadOnly": true,
+    "formalOrderAndLineRowsPreserved": true,
+    "productCodeChanged": false,
+    "realPreviewPerformed": false,
+    "migrationOrTrueSyncPerformed": false,
+    "sourceOrTargetWritesPerformed": false,
+    "port59191Operated": false
+  }
+}

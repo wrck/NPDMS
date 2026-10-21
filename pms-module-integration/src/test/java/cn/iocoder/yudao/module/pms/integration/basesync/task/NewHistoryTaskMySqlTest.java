@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.SelectedProjectDevice;
 import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.*;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import org.apache.ibatis.executor.result.DefaultResultContext;
 import org.apache.ibatis.session.ResultHandler;
 import org.junit.jupiter.api.*;
@@ -103,15 +104,19 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
  P33InstallationSyncTask installation(List<P33InstallationSyncTask.Source> rows,AssetLocationApi locations){
   jdbc.update("INSERT INTO ast_device(id,tenant_id,sn,status,version,source_system,source_key) VALUES(9,1,'SN-1','IN_STOCK',0,'DPPMS','SN-1')");
   var devices=mock(ProjectDeviceSelectionApi.class);when(devices.validateSelection(any(ProjectDeviceSelectionApi.SelectionQuery.class))).thenReturn(List.of(new SelectedProjectDevice(9L,"SN-1",null,null,null,null)));
-  var task=spy(new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects,devices,locations));doReturn(new ArrayList<>(rows)).when(task).syncDataQuery(any());return task;
+  var mapper=mock(P33InstallationSyncTask.TargetMapper.class,org.mockito.AdditionalAnswers.delegatesTo(session.getMapper(P33InstallationSyncTask.TargetMapper.class)));
+  doReturn(255).when(mapper).installLocationCapacity(); // Temporary fixture capacity; information_schema describes the permanent table.
+  var task=spy(new P33InstallationSyncTask(mapper,publications,projects,devices,locations));doReturn(new ArrayList<>(rows)).when(task).syncDataQuery(any());return task;
  }
  P33InstallationSyncTask.Source installationSource(long id,LocalDateTime created){return new P33InstallationSyncTask.Source().setSourceId(id).setOriginalProjectId(1L).setBarcode("SN-1").setTransferFlag("-1").setInstallAddress("original address").setCreateTime(created);}
  @Test void installationChoosesOriginalLatestTimeAndPreviewNeverCreatesAnAddress(){
   var location=mock(AssetLocationApi.class);var task=installation(List.of(installationSource(20,at.minusDays(2)),installationSource(10,at)),location);
   assertEquals(2,run(task,true).inserted());verifyNoInteractions(location);assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));
-  when(location.maintain(any())).thenReturn(new LocationReferenceDTO("UNRESOLVED",90L,0L,null,null,null,null,"original address"));
-  when(location.getAddress(90L,0L)).thenReturn(new AddressRespDTO(90L,null,null,null,null,null,null,null,null,null,"original address",null,null,0,0L));
   assertEquals(2,run(task,false).inserted());assertEquals(at,jdbc.queryForObject("SELECT effective_from FROM imp_eng_installation WHERE current_equipment_id=9",LocalDateTime.class));assertEquals(at,jdbc.queryForObject("SELECT effective_to FROM imp_eng_installation WHERE current_equipment_id IS NULL",LocalDateTime.class));
+  verify(location,never()).maintain(any());verify(location,never()).getAddress(any(),any());
+  assertEquals(Map.of("fallbackLocation","original address"),JsonUtils.parseObject(jdbc.queryForObject("SELECT location_snapshot FROM imp_eng_installation WHERE current_equipment_id=9",String.class),Map.class));
+  assertNull(jdbc.queryForObject("SELECT address_id FROM imp_eng_installation WHERE current_equipment_id=9",Long.class));
+  assertNull(jdbc.queryForObject("SELECT address_snapshot FROM imp_eng_installation WHERE current_equipment_id=9",String.class));
   verify(location,times(1)).effectEquipmentLocationIfAbsent(any());assertEquals(2,run(task,true).unchanged());
  }
  @Test void equalInstallationTimesBlockBeforeAnyAddressOrTargetWrite(){
@@ -137,9 +142,61 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   when(projects.verifyPublished(any())).thenReturn(Map.of("1",new BaseSyncProjectReferences.Identity("1",1000L,1L,0L,"P-1","10",null,null,null,"ACTIVE",false)));
   assertThrows(IllegalArgumentException.class,()->run(task,true));verify(selected,times(2)).validateSelection(any());assertTrue(saved.isEmpty());
  }
- @Test void pendingDevicePreviewDoesNotRelaxOriginalInstallationFieldRules(){
+ @Test void pendingDevicePreviewPreservesLongAddressWhileActualExecutionStillRequiresCapacity(){
   var location=mock(AssetLocationApi.class);var source=installationSource(1,at).setBarcode("UNRESOLVED-SN").setInstallAddress(" ");var task=installation(List.of(source),location);
-  assertThrows(IllegalArgumentException.class,()->run(task,true));source.setInstallAddress("x".repeat(256));assertThrows(IllegalArgumentException.class,()->run(task,true));
+  assertThrows(IllegalArgumentException.class,()->run(task,true));source.setInstallAddress("x".repeat(571));var context=context(true);
+  assertEquals(new SyncCounts(1,0,0,0,0),transaction.execute(status->task.execute(context)));
+  assertEquals("x".repeat(571),source.getInstallAddress());assertNull(source.getTarget());
+  assertTrue(context.runState().warnings().contains("P33_INSTALL_LOCATION_CAPACITY_PENDING:1:255"));
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("INSTALL_LOCATION_CAPACITY_REQUIRED"));
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));assertTrue(saved.isEmpty());verifyNoInteractions(location);
+ }
+ @Test void installationSourceFiltersOnlyEmptyAddressesWithinTheSelectedOriginalProjects()throws Exception{
+  jdbc.execute("""
+   CREATE TEMPORARY TABLE pm_project_shipment(id BIGINT PRIMARY KEY,projectId BIGINT,barcode VARCHAR(64),
+   itemCode VARCHAR(64),itemModel VARCHAR(64),itemName VARCHAR(64),receiveName VARCHAR(64),emsNum VARCHAR(64),emsCompany VARCHAR(64),
+   packdate VARCHAR(64),contractNo VARCHAR(64),installAddress TEXT CHARACTER SET utf8 COLLATE utf8_general_ci,chProjectId VARCHAR(64),chContractNo VARCHAR(64),
+   transferProjectId VARCHAR(64),transferContractNo VARCHAR(64),transferFlag VARCHAR(8),createTime DATETIME,createBy VARCHAR(64),updateTime DATETIME,updateBy VARCHAR(64))
+   """);
+  var addresses=Arrays.asList(null,""," ","  ","original address","原".repeat(571),"\u3000","\t\r\n"," \u3000 ");
+  for(int i=0;i<addresses.size();i++)jdbc.update("INSERT INTO pm_project_shipment(id,projectId,barcode,installAddress,transferFlag,createTime) VALUES(?,1,?,?,'-1',?)",i+1,"SN-"+i,addresses.get(i),at);
+  jdbc.update("INSERT INTO pm_project_shipment(id,projectId,barcode,installAddress,transferFlag,createTime) VALUES(10,2,'OUTSIDE','outside address','-1',?)",at);
+  var resource="base-sync-source/P33SourceMapper.xml";try(var input=new org.springframework.core.io.ClassPathResource(resource).getInputStream()){new org.apache.ibatis.builder.xml.XMLMapperBuilder(input,session.getConfiguration(),resource,session.getConfiguration().getSqlFragments()).parse();}
+  var mapper=session.getMapper(P33InstallationSyncTask.SourceMapper.class);
+  var rows=new ArrayList<P33InstallationSyncTask.Source>();var locations=mock(AssetLocationApi.class);
+  var task=spy(new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects,mock(ProjectDeviceSelectionApi.class),locations));
+  doAnswer(call->{rows.addAll(call.<SyncBatch<P33InstallationSyncTask.Source,P33InstallationSyncTask.Parameters>>getArgument(0).rows());return call.callRealMethod();}).when(task).syncDataInsertBefore(any());
+  var context=context(true);assertEquals(new SyncCounts(2,0,0,0,0),transaction.execute(status->task.execute(context)));
+  assertEquals(List.of(5L,6L),rows.stream().map(P33InstallationSyncTask.Source::getSourceId).toList());
+  assertEquals(addresses.subList(4,6),rows.stream().map(P33InstallationSyncTask.Source::getInstallAddress).toList());
+  assertTrue(context.runState().warnings().contains("P33_BLANK_ADDRESS_FILTERED_AFTER_READ:3"));verifyNoInteractions(locations);
+  assertTrue(mapper.selectInstallation(new P33InstallationSyncTask.ReadQuery(100,List.of())).isEmpty());
+  assertEquals(10,jdbc.queryForObject("SELECT COUNT(*) FROM pm_project_shipment",Integer.class));
+ }
+ @Test void installationKeepsBothLongAddressCopiesWithoutCreatingAddressManagementRecords(){
+  jdbc.execute("ALTER TABLE imp_eng_installation MODIFY COLUMN install_location VARCHAR(1024)"); // Connection-local temporary fixture only.
+  jdbc.update("INSERT INTO ast_device(id,tenant_id,sn,status,version,source_system,source_key) VALUES(9,1,'SN-1','IN_STOCK',0,'DPPMS','SN-1')");
+  var mapper=mock(P33InstallationSyncTask.TargetMapper.class,org.mockito.AdditionalAnswers.delegatesTo(session.getMapper(P33InstallationSyncTask.TargetMapper.class)));doReturn(1024).when(mapper).installLocationCapacity();
+  var selected=mock(ProjectDeviceSelectionApi.class);when(selected.validateSelection(any())).thenReturn(List.of(new SelectedProjectDevice(9L,"SN-1",null,null,null,null)));
+  var location=mock(AssetLocationApi.class);var source=installationSource(1,at).setInstallAddress("原始机房\r\n".repeat(80));
+  var task=spy(new P33InstallationSyncTask(mapper,publications,projects,selected,location));doReturn(new ArrayList<>(List.of(source))).when(task).syncDataQuery(any());
+  assertEquals(1,run(task,true).inserted());verifyNoInteractions(location);
+  assertEquals(1,run(task,false).inserted());
+  assertEquals(source.getInstallAddress(),jdbc.queryForObject("SELECT install_location FROM imp_eng_installation",String.class));
+  var snapshot=jdbc.queryForObject("SELECT location_snapshot FROM imp_eng_installation",String.class);
+  assertEquals(Map.of("fallbackLocation",source.getInstallAddress()),JsonUtils.parseObject(snapshot,Map.class));
+  assertEquals("UNRESOLVED",jdbc.queryForObject("SELECT location_resolution_status FROM imp_eng_installation",String.class));
+  assertNull(jdbc.queryForObject("SELECT address_id FROM imp_eng_installation",Long.class));assertNull(jdbc.queryForObject("SELECT address_snapshot FROM imp_eng_installation",String.class));
+  verify(location,never()).maintain(any());verify(location,never()).getAddress(any(),any());
+  var effect=org.mockito.ArgumentCaptor.forClass(EquipmentLocationEffectiveCommand.class);verify(location).effectEquipmentLocationIfAbsent(effect.capture());
+  assertEquals(snapshot,effect.getValue().locationSnapshot());assertEquals(source.getInstallAddress(),effect.getValue().locationText());
+  assertEquals(1,run(task,true).unchanged());
+ }
+ @Test void installationPreviewRegistersAlreadyDeferredTransfersWithoutPlanningWrites(){
+  var location=mock(AssetLocationApi.class);var source=installationSource(1,at).setChProjectId("11");var task=installation(List.of(source),location);var context=context(true);
+  assertEquals(new SyncCounts(1,0,0,0,0),transaction.execute(status->task.execute(context)));
+  assertTrue(context.runState().warnings().contains("P33_TRANSFER_DEFERRED:1"));assertNull(source.getTarget());
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("TRANSFER_REQUIRES_ADJUDICATION"));
   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));assertTrue(saved.isEmpty());verifyNoInteractions(location);
  }
  P35SoftwareHistorySyncTask software(List<P35SoftwareHistorySyncTask.Source> batches,List<P35SoftwareHistorySyncTask.Source> observations){

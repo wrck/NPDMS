@@ -1,0 +1,128 @@
+{
+  "verifiedAt": "2026-10-20T00:34:40.619473+08:00",
+  "status": "IMPLEMENTED_REAL_PREVIEW_READY",
+  "headerBusinessGroupKey": [
+    "tenant_id",
+    "source_system",
+    "company_code",
+    "order_type",
+    "order_no"
+  ],
+  "lineBusinessGroupKey": [
+    "tenant_id",
+    "source_system",
+    "company_code",
+    "line_type",
+    "order_no"
+  ],
+  "detailIdentity": "Preserve each original line_no inside its business group; do not collapse different detail rows.",
+  "run": {
+    "id": 2112220196368515074,
+    "task_id": 2111504179094777858,
+    "task_code": "BASE_P14",
+    "status": "PREVIEW_READY",
+    "preview": "01",
+    "read_count": 480044,
+    "inserted_count": 478464,
+    "updated_count": 0,
+    "unchanged_count": 0,
+    "error_message": "P14_ORDER_REFERENCE_PENDING:1580",
+    "started_at": "2026-10-20 00:31:52.633000",
+    "finished_at": "2026-10-20 00:33:23.222000"
+  },
+  "seconds": 90.802,
+  "steps": [
+    {
+      "name": "Order",
+      "read": 92890
+    },
+    {
+      "name": "Line",
+      "read": 387154
+    }
+  ],
+  "sourcePhysicalHeaderRows": 93223,
+  "sourcePhysicalLineRows": 388207,
+  "missingSourceOrderNumbers": "0",
+  "pendingReferenceRows": 1580,
+  "pendingReferenceCategories": {
+    "SAME_NUMBER_DIFFERENT_TYPE": 337,
+    "NO_SOURCE_COMPANY_ORDER_HEADER": 1243
+  },
+  "pendingSourceLogsVerifiedWithoutDifferences": true,
+  "approvedMaximumExecutionRuleImplemented": true,
+  "extensionValuesImported": false,
+  "sourceRecordNamespace": "BASE_P14|ORDER| and BASE_P14|LINE|; original DPPMS prefix not reused.",
+  "testSummary": [
+    {
+      "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.P14BusinessKeysMySqlTest",
+      "tests": "6",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.RemainingTaskMySqlTest",
+      "tests": "7",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncIsolationTest",
+      "tests": "15",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    },
+    {
+      "name": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncMapperWiringTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0"
+    }
+  ],
+  "testTotal": 30,
+  "protectedItemCount": 180,
+  "protectedDifferences": {},
+  "newFormalBindings": 0,
+  "nonPreviewRuns": 0,
+  "latest24PreviewStates": {
+    "PREVIEW_READY": 21,
+    "FAILED": 3
+  },
+  "remainingFailedTaskCodes": [
+    "BASE_P10",
+    "BASE_P18",
+    "BASE_P33"
+  ],
+  "otherThreeTasksRepreviewed": false,
+  "candidateManifest": {
+    "base": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p15-order-type-customer-20261019\\runtime-candidate-order-type-customer\\yudao-server.jar",
+    "candidate": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p14-business-keys-20261020\\runtime-candidate-p14-keys\\yudao-server.jar",
+    "changedEntries": {
+      "BOOT-INF/lib/pms-module-integration-2026.06-jdk25-SNAPSHOT.jar": [
+        "base-sync-source/P14SourceMapper.xml",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P14SalesOrderSyncTask$LineKey.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P14SalesOrderSyncTask$LineRow.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P14SalesOrderSyncTask$LinesQuery.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P14SalesOrderSyncTask$OrderKey.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P14SalesOrderSyncTask$OrderRow.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P14SalesOrderSyncTask$OrdersQuery.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P14SalesOrderSyncTask$Parameters.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P14SalesOrderSyncTask$Protection.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P14SalesOrderSyncTask$Source.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P14SalesOrderSyncTask.class",
+        "mapper/basesync/P14TargetMapper.xml"
+      ]
+    },
+    "boundary": "Only independent P14 class family and P14 source/target XML. All other entries are unchanged, including original task implementations, APIs, configuration and migrations."
+  },
+  "automaticMigrationAndJobsDisabled": true,
+  "originalTasksModifiedOrExecuted": false,
+  "schemaMigrationOrRealSyncPerformed": false,
+  "port59191Operated": false,
+  "report": "P14-business-keys-preview-20261020.md",
+  "evidenceDirectory": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p14-business-keys-20261020"
+}

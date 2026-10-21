@@ -1,0 +1,1569 @@
+{
+  "verifiedAt": "2026-10-20T14:56:47.396413+08:00",
+  "worktree": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup",
+  "branch": "fix/dppms-migration-consolidation-20261012",
+  "suite": "C / independent BASE virtual-base-class tasks only",
+  "previewSummary": {
+    "latestReady": 24,
+    "latestFailed": 0,
+    "rerunThisTurn": [
+      "P33",
+      "P22"
+    ],
+    "priorSuccessfulPreviewsReused": 22,
+    "intermediateP33PreviewRetained": true,
+    "emptyInput": [
+      "P30"
+    ]
+  },
+  "executionPrerequisiteSummary": {
+    "withKnownBlockingPrerequisites": [
+      "P04",
+      "P13",
+      "P14",
+      "P15",
+      "P16",
+      "P18",
+      "P19",
+      "P20",
+      "P21",
+      "P22",
+      "P31",
+      "P33",
+      "P35"
+    ],
+    "knownBlockingCount": 13,
+    "emptyInputWithoutException": [
+      "P30"
+    ],
+    "noIdentifiedExclusiveBlocker": [
+      "P01",
+      "P08",
+      "P10",
+      "P11",
+      "P12",
+      "P23",
+      "P24",
+      "P25",
+      "P34",
+      "P37"
+    ],
+    "boundary": "Source PREVIEW_READY is not proof of formal write readiness or authorization. Common tenant, permission, ownership, transaction and immutable-history checks still apply to every task."
+  },
+  "tasks": [
+    {
+      "key": "P01",
+      "title": "公司、部门及主管",
+      "blocking": [],
+      "nonblocking": [
+        "8项主管待关联只登记，不阻断目录承接。"
+      ],
+      "actions": [
+        "保留可空主管引用；当前正式目录、父子关系和本套件指纹保护继续生效。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P01OrganizationSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 24,
+          "code": " @Override public Set<String> requiredPermissions(){return Set.of(\"system:dept:create\");}"
+        },
+        {
+          "line": 25,
+          "code": " @Override public void work(SyncContext<Parameters> c){c.parameters().warnings.forEach(c.runState()::warning);syncData(c.forData(\"Organization\",false,false));}"
+        },
+        {
+          "line": 58,
+          "code": "    if(d.director!=null)input.context.runState().warning(\"P01_DIRECTOR_ASSOCIATION_PENDING:\"+d.code);"
+        }
+      ],
+      "latestRun": {
+        "id": 2112425268933046274,
+        "task_id": 2111504172530692098,
+        "task_code": "BASE_P01",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 208,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 208,
+        "deleted_count": 0,
+        "error_message": "P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050",
+        "started_at": "2026-10-20 14:06:45.745000",
+        "finished_at": "2026-10-20 14:06:45.974000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P01-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P04",
+      "title": "账号、任职、角色、成员和范围",
+      "blocking": [
+        "结构：int_base_sync_binding仍有目标唯一索引，阻断多来源共用同一正式目标。"
+      ],
+      "nonblocking": [
+        "任职历史按既有custom_info.employmentAssignments裁决承接，不再列规格缺失。",
+        "isSysUser保留为系统预设用户，不代表管理员；26个排除账号、3个孤立档案是既有处置。"
+      ],
+      "actions": [
+        "仅列既有V484索引差异，未执行DDL；源唯一约束及目标/账号保护保持。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P04AccountSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 32,
+          "code": " @Override public void work(SyncContext<Parameters> c){"
+        },
+        {
+          "line": 34,
+          "code": "  if(mapper.oneSourcePerTargetIndex()>0){if(!c.preview())fail(\"METADATA_MULTI_SOURCE_INDEX_REQUIRED:uk_int_base_sync_binding_target\");c.runState().warning(\"P04_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target\");}syncData(c.forData(\"User\",false,false));planRoles(c);syncData(c.forData(\"Role\",false,false));planMemberships(c);syncData(c.forData(\"Membership\",false,false));planScopes(c);syncData(c.forData(\"Scope\",false,false));"
+        },
+        {
+          "line": 35,
+          "code": "  c.runState().warning(\"P04_ORIGINAL_READ:\"+p.rawCount+\";EXCLUDED_ACCOUNTS:\"+p.excludedAccounts+\";ORPHAN_PROFILES:\"+p.orphanProfiles);"
+        }
+      ],
+      "latestRun": {
+        "id": 2112425270786928641,
+        "task_id": 2111504175751917570,
+        "task_code": "BASE_P04",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 12632,
+        "inserted_count": 12605,
+        "updated_count": 0,
+        "unchanged_count": 27,
+        "deleted_count": 0,
+        "error_message": "P04_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P04_ORIGINAL_READ:3307;EXCLUDED_ACCOUNTS:26;ORPHAN_PROFILES:3",
+        "started_at": "2026-10-20 14:06:46.180000",
+        "finished_at": "2026-10-20 14:06:46.911000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P04-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P08",
+      "title": "系统字典类型及字典项",
+      "blocking": [],
+      "nonblocking": [
+        "两张来源各读取一次，缺失类型在本次运行内编排。"
+      ],
+      "actions": [
+        "当前未发现专属正式执行前置；保留类型和值域、来源及目标保护。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P08DictionarySyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 19,
+          "code": "    @Override public Set<String> requiredPermissions(){return Set.of(\"system:dict:create\");}"
+        },
+        {
+          "line": 20,
+          "code": "    @Override public void work(SyncContext<Parameters> context){"
+        }
+      ],
+      "latestRun": {
+        "id": 2112425274729574401,
+        "task_id": 2111470471713304577,
+        "task_code": "BASE_P08",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 612,
+        "inserted_count": 611,
+        "updated_count": 0,
+        "unchanged_count": 1,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:06:47.121000",
+        "finished_at": "2026-10-20 14:06:47.201000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P08-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P10",
+      "title": "CRM客户主档",
+      "blocking": [],
+      "nonblocking": [
+        "name已为VARCHAR(255)，erp_customer_code为VARCHAR(50) NULL；已决原名完整承接。"
+      ],
+      "actions": [
+        "当前预览59,544条无容量/来源告警，不再重复提出名称或ERP列裁决。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P10CrmCustomerSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 22,
+          "code": "    @Override public Set<String> requiredPermissions(){return Set.of(\"pms:customer:query\");}"
+        },
+        {
+          "line": 23,
+          "code": "    @Override public void work(SyncContext<Void> context){syncData(context.forData(\"Customer\",false,true));}"
+        },
+        {
+          "line": 24,
+          "code": "    @Override protected void syncDataBefore(SyncContext<Void> context){"
+        },
+        {
+          "line": 25,
+          "code": "        super.syncDataBefore(context);"
+        },
+        {
+          "line": 29,
+          "code": "            if(!context.preview())throw new IllegalStateException(\"P10_TARGET_NAME_CAPACITY_REQUIRED:cus_customer_master.name:\"+nameCapacity+\"->255\");"
+        },
+        {
+          "line": 30,
+          "code": "            context.runState().warning(\"P10_EXECUTION_SCHEMA_REQUIRED:cus_customer_master.name:\"+nameCapacity+\"->255\");"
+        }
+      ],
+      "latestRun": {
+        "id": 2112425275853647873,
+        "task_id": 2111470474389270529,
+        "task_code": "BASE_P10",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 59544,
+        "inserted_count": 59544,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:06:47.389000",
+        "finished_at": "2026-10-20 14:07:07.458000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P10-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P11",
+      "title": "CRM产品主档",
+      "blocking": [],
+      "nonblocking": [
+        "预览只报真实读数，upsert不伪造目标插入/更新数。"
+      ],
+      "actions": [
+        "当前未发现专属正式执行前置；保留来源、租户、删除与已审空值不覆盖规则。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P11CrmProductSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 18,
+          "code": "    @Override public void work(SyncContext<Void> context) { syncData(context.forData(\"CrmProduct\",false,true)); }"
+        }
+      ],
+      "latestRun": {
+        "id": 2112425360834441218,
+        "task_id": 2111407905813229570,
+        "task_code": "BASE_P11",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 8443,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:07:07.648000",
+        "finished_at": "2026-10-20 14:07:07.879000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P11-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P12",
+      "title": "DPPMS缺失产品补齐",
+      "blocking": [],
+      "nonblocking": [
+        "仅补缺失产品；不以回查非必要业务ID阻断原始承接。"
+      ],
+      "actions": [
+        "当前未发现专属正式执行前置，不扩大为覆盖既有产品。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P12SupplementProductSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 20,
+          "code": "    @Override public void work(SyncContext<Void> context) { syncData(context.forData(\"SupplementProduct\",false,false)); }"
+        }
+      ],
+      "latestRun": {
+        "id": 2112425362642186241,
+        "task_id": 2111435600580231169,
+        "task_code": "BASE_P12",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 34976,
+        "inserted_count": 34976,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:07:08.080000",
+        "finished_at": "2026-10-20 14:07:08.723000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P12-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P13",
+      "title": "执行单头",
+      "blocking": [
+        "结构：同P04的多来源目标唯一索引。"
+      ],
+      "nonblocking": [
+        "2,625条在已审项目范围外属于范围排除；原始读取99,895条，写入预测留待执行，不是数据丢失。"
+      ],
+      "actions": [
+        "结构差异单列；不重开已决来源范围或生成虚假表头数量。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P13ExecutionOrderSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 33,
+          "code": " @Override public void work(SyncContext<Parameters> context){syncData(context.forData(\"ExecutionOrder\",false,true));if(context.parameters().excluded>0)context.runState().warning(\"P13_OUTSIDE_REVIEWED_PROJECT_SCOPE:\"+context.parameters().excluded);if(context.preview())context.runState().warning(\"P13_PREVIEW_SOURCE_VALIDATED;WRITE_COUNTS_DEFERRED_UNTIL_EXECUTION\");}"
+        },
+        {
+          "line": 34,
+          "code": " @Override protected void syncDataBefore(SyncContext<Parameters> context){super.syncDataBefore(context);if(mapper.oneSourcePerTargetIndex()>0){if(!context.preview())fail(\"METADATA_MULTI_SOURCE_INDEX_REQUIRED:uk_int_base_sync_binding_target\");context.runState().warning(\"P13_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target\");}}"
+        }
+      ],
+      "latestRun": {
+        "id": 2112425366081515522,
+        "task_id": 2111504177542885378,
+        "task_code": "BASE_P13",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 99895,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P13_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P13_OUTSIDE_REVIEWED_PROJECT_SCOPE:2625;P13_PREVIEW_SOURCE_VALIDATED;WRITE_COUNTS_DEFERRED_UNTIL_EXECUTION",
+        "started_at": "2026-10-20 14:07:08.900000",
+        "finished_at": "2026-10-20 14:07:19.695000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P13-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P14",
+      "title": "销售订单及明细",
+      "blocking": [
+        "数据/关联：1,580条缺少可用真实父头ID；本次逐条回查337条仅有同号其他类型头、1,243条无同来源/公司/订单号头。"
+      ],
+      "nonblocking": [
+        "头、行各自业务键及原类型保留；执行单取MAX(orderExecNumber)已闭合。",
+        "这些引用不阻断预览；不同类型不能任意选父头，实际写入仍需真实父ID。"
+      ],
+      "actions": [
+        "不再要求类型差异重新批准预览；列原ID和两表原值依据，未回查借货来源或修改归父逻辑。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P14SalesOrderSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 22,
+          "code": " @Override public void work(SyncContext<Parameters> c){"
+        },
+        {
+          "line": 25,
+          "code": "  if(c.parameters().pendingOrderReferences>0)c.runState().warning(\"P14_ORDER_REFERENCE_PENDING:\"+c.parameters().pendingOrderReferences);"
+        },
+        {
+          "line": 62,
+          "code": "    if(!c.preview())fail(\"MANDATORY_ORDER_MISSING\");"
+        }
+      ],
+      "latestRun": {
+        "id": 2112425412210470914,
+        "task_id": 2111504179094777858,
+        "task_code": "BASE_P14",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 480044,
+        "inserted_count": 478464,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P14_ORDER_REFERENCE_PENDING:1580",
+        "started_at": "2026-10-20 14:07:19.899000",
+        "finished_at": "2026-10-20 14:08:30.167000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P14-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P15",
+      "title": "合同及全量发货历史",
+      "blocking": [
+        "正式输入：实际分支要求本套件P24非预览COMPLETED，当前为0。",
+        "合同归并消费本套件P14正式订单与P24正式回款；当前没有正式完成运行或独立绑定。"
+      ],
+      "nonblocking": [
+        "来源预览4,708,483条不等于正式输入就绪；选客按已审订单类型及最大订单号。"
+      ],
+      "actions": [
+        "列明正式输入链；不伪造完成回执，不调用真实同步填前置。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P15DeliverySyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 27,
+          "code": " @Override public void work(SyncContext<Parameters> c){"
+        },
+        {
+          "line": 30,
+          "code": "  if(!c.preview()){var prerequisite=mapper.latestP24Execution(new PrerequisiteQuery(c.tenantId(),c.connectionId()));if(prerequisite==null || !\"COMPLETED\".equals(prerequisite))fail(\"COMPLETE_FORMAL_BASE_P24_INPUT_REQUIRED\");}"
+        },
+        {
+          "line": 31,
+          "code": "  else c.runState().warning(\"P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED\");"
+        },
+        {
+          "line": 40,
+          "code": "  if(!c.preview()||!\"Contract\".equals(c.dataName()))return super.syncDataQuery(c);"
+        }
+      ],
+      "latestRun": {
+        "id": 2112425707665633281,
+        "task_id": 2111504249399701506,
+        "task_code": "BASE_P15",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 4708483,
+        "inserted_count": 4708483,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED",
+        "started_at": "2026-10-20 14:08:30.339000",
+        "finished_at": "2026-10-20 14:12:36.007000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P15-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P16",
+      "title": "项目主档及独立来源身份",
+      "blocking": [
+        "结构：同P04的多来源目标唯一索引，79,442个来源别名需独立保留。"
+      ],
+      "nonblocking": [
+        "原project_id原样承接、既有项目身份及当前管理权限保护保持；不因原ID规则再次编号。"
+      ],
+      "actions": [
+        "只列现有索引与已批准多来源承接的差异，不接管旧绑定。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P16ProjectSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 32,
+          "code": " @Override public Set<String> requiredPermissions(){return Set.of(\"pms:project:create\");}"
+        },
+        {
+          "line": 33,
+          "code": " @Override public void work(SyncContext<Parameters> c){"
+        },
+        {
+          "line": 34,
+          "code": "  if(mapper.oneSourcePerTargetIndex()>0){if(!c.preview())fail(\"METADATA_MULTI_SOURCE_INDEX_REQUIRED:uk_int_base_sync_binding_target\");c.runState().warning(\"P16_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target\");}"
+        },
+        {
+          "line": 43,
+          "code": "   if(p.pendingAliases>0)c.runState().warning(\"P16_ALIASES_REQUIRE_NEW_MASTERS:\"+p.pendingAliases);"
+        },
+        {
+          "line": 79,
+          "code": "   if(master==null){if(!c.preview()||!c.parameters().masterPreviewVerified||old!=null)fail(\"CANONICAL_MASTER_MISSING\");c.parameters().pendingAliases++;continue;}"
+        }
+      ],
+      "latestRun": {
+        "id": 2112426738885603329,
+        "task_id": 2111504250456666113,
+        "task_code": "BASE_P16",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 158871,
+        "inserted_count": 79429,
+        "updated_count": 0,
+        "unchanged_count": 79442,
+        "deleted_count": 0,
+        "error_message": "P16_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P16_ALIASES_REQUIRE_NEW_MASTERS:79442",
+        "started_at": "2026-10-20 14:12:36.202000",
+        "finished_at": "2026-10-20 14:14:47.271000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P16-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P18",
+      "title": "项目合同关系",
+      "blocking": [
+        "结构：同P04的多来源目标唯一索引。",
+        "授权：回执001=80,374、002=1,804、003=195待公司授权；另8条原公司码缺失，合同引用待补82,381条。",
+        "数据：真实父项目/合同与当前业务授权仍需存在。"
+      ],
+      "nonblocking": [
+        "上述数量重叠，不能相加为缺失总数；整表来源审核不是正式COM授权。"
+      ],
+      "actions": [
+        "沿ADR-0038及既有整表预览裁决；列缺公司码/正式合同范围，不自动授权或猜公司。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P18ProjectContractSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 18,
+          "code": " @Override protected Parameters createParameters(SyncContext<?> c){var scopes=organization.getActiveScopes(c.actorId());if(scopes==null || scopes.isEmpty()){if(!c.preview())fail(\"AUTHORIZED_COMPANIES_EMPTY\");return new Parameters(Set.of());}return new Parameters(scopes.stream().filter(s->s.getId()!=null&&s.getVersion()!=null).map(s->s.getCompanyCode()).filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet()));}"
+        },
+        {
+          "line": 21,
+          "code": " @Override public Set<String> requiredPermissions(){return Set.of(\"pms:commerce:contract:relate\");}"
+        },
+        {
+          "line": 22,
+          "code": " @Override public void work(SyncContext<Parameters> c){if(c.preview())c.runState().warning(\"SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED\");syncData(c.forData(\"ProjectContract\",false,false));}"
+        },
+        {
+          "line": 23,
+          "code": " @Override protected void syncDataBefore(SyncContext<Parameters> c){super.syncDataBefore(c);if(mapper.oneSourcePerTargetIndex()>0){if(!c.preview())fail(\"METADATA_MULTI_SOURCE_INDEX_REQUIRED:uk_int_base_sync_binding_target\");c.runState().warning(\"P18_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target\");}}"
+        },
+        {
+          "line": 72,
+          "code": "   if(s.companyCode==null){if(!c.preview())fail(\"PROJECT_COMPANY_NOT_AUTHORIZED\");missingCompanies++;}"
+        },
+        {
+          "line": 73,
+          "code": "   else if(!c.parameters().companies.contains(s.companyCode)){if(!c.preview())fail(\"PROJECT_COMPANY_NOT_AUTHORIZED\");s.previewReferencePending=true;pendingCompanies.merge(s.companyCode,1L,Long::sum);}"
+        },
+        {
+          "line": 82,
+          "code": "   if(contract==null){if(!c.preview())fail(\"FORMAL_CONTRACT_MISSING:\"+s.contractNo);if(bindings.containsKey(s.businessKey()))fail(\"BOUND_CONTRACT_INPUT_MISSING\");s.previewReferencePending=true;s.target=null;s.action=null;pendingContracts++;continue;}"
+        },
+        {
+          "line": 98,
+          "code": "  if(!pendingCompanies.isEmpty())c.runState().warning(\"P18_COMPANY_AUTHORIZATION_PENDING:\"+pendingCompanies.entrySet().stream().map(e->e.getKey()+\"=\"+e.getValue()).collect(java.util.stream.Collectors.joining(\",\")));"
+        },
+        {
+          "line": 99,
+          "code": "  if(missingCompanies>0)c.runState().warning(\"P18_COMPANY_SOURCE_PENDING:\"+missingCompanies);if(pendingContracts>0)c.runState().warning(\"P18_CONTRACT_REFERENCE_PENDING:\"+pendingContracts);"
+        }
+      ],
+      "latestRun": {
+        "id": 2112427289358643202,
+        "task_id": 2111504251568156674,
+        "task_code": "BASE_P18",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 82676,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P18_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P18_COMPANY_AUTHORIZATION_PENDING:001=80374,002=1804,003=195;P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_PENDING:82381",
+        "started_at": "2026-10-20 14:14:47.445000",
+        "finished_at": "2026-10-20 14:14:58.103000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P18-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P19",
+      "title": "项目相关方及历史状态属性",
+      "blocking": [
+        "正式数据：缺失的真实父项目必须到位，既存项目须通过当前MANAGE范围。"
+      ],
+      "nonblocking": [
+        "4个历史状态拓展属性已批准暂不承接，不是待创建属性定义。"
+      ],
+      "actions": [
+        "保留相关方原始资料；等待合法正式父项目，不要求旧发布或原任务绑定。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P19ProjectFactsSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 19,
+          "code": " @Override public void work(SyncContext<Void> c){if(c.preview())c.runState().warning(\"SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED\");c.runState().warning(\"P19_EXTENSION_ATTRIBUTES_DEFERRED:shipment_status,shipment_status_updated_at,execution_status,execution_status_updated_at\");syncData(c.forData(\"ProjectParty\",false,true));}"
+        }
+      ],
+      "latestRun": {
+        "id": 2112427334816509953,
+        "task_id": 2111504252700618753,
+        "task_code": "BASE_P19",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 186118,
+        "inserted_count": 186118,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P19_EXTENSION_ATTRIBUTES_DEFERRED:shipment_status,shipment_status_updated_at,execution_status,execution_status_updated_at",
+        "started_at": "2026-10-20 14:14:58.281000",
+        "finished_at": "2026-10-20 14:15:05.839000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P19-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P20",
+      "title": "项目真实产品历史清单",
+      "blocking": [
+        "正式数据：同P19的真实父项目及当前管理范围。"
+      ],
+      "nonblocking": [
+        "产品原始业务键承接，非必要业务ID不前置。"
+      ],
+      "actions": [
+        "不额外要求P30设备或旧10项目试点数据。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P20RealProductSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 19,
+          "code": " @Override public void work(SyncContext<Void> c){if(c.preview())c.runState().warning(\"SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED\");syncData(c.forData(\"RealProduct\",false,false));}"
+        }
+      ],
+      "latestRun": {
+        "id": 2112427367251062786,
+        "task_id": 2111504298947014658,
+        "task_code": "BASE_P20",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 7818,
+        "inserted_count": 7818,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "started_at": "2026-10-20 14:15:06.015000",
+        "finished_at": "2026-10-20 14:15:14.705000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P20-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P21",
+      "title": "租赁与配置展示缓存",
+      "blocking": [
+        "结构：proj_project_lease_product.project_id和proj_project_product_configuration.project_id仍为NOT NULL。"
+      ],
+      "nonblocking": [
+        "两列按既有规则应可空；不补造项目ID，不要求先创建项目主档。"
+      ],
+      "actions": [
+        "列既有V481的两列兼容差异，本轮未执行DDL；租户范围内缓存刷新逻辑保持。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P21ProjectCacheSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 20,
+          "code": "    @Override public void work(SyncContext<Void> context) { syncData(context.forData(\"ProjectCache\",true,false)); }"
+        },
+        {
+          "line": 21,
+          "code": "    @Override protected void syncDataBefore(SyncContext<Void> context) {"
+        },
+        {
+          "line": 22,
+          "code": "        super.syncDataBefore(context);"
+        },
+        {
+          "line": 24,
+          "code": "            if(!context.preview()) throw new IllegalStateException(\"P21：已审核可空列尚未就绪；禁止补造关联ID或原时间\");"
+        },
+        {
+          "line": 25,
+          "code": "            context.runState().warning(\"P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable\");"
+        }
+      ],
+      "latestRun": {
+        "id": 2112427404450344962,
+        "task_id": 2111463419926470657,
+        "task_code": "BASE_P21",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1190,
+        "inserted_count": 1190,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable",
+        "started_at": "2026-10-20 14:15:14.884000",
+        "finished_at": "2026-10-20 14:15:14.925000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P21-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P22",
+      "title": "项目产品实施范围",
+      "blocking": [
+        "结构：order_line_id即时外键及3个订单快照列非空，不能直接承接-1/NULL；部门code/name/version三列非空，不能承接原空部门资料。",
+        "正式数据：真实父项目及当前管理范围。"
+      ],
+      "nonblocking": [
+        "部门ID和订单行ID先-1、后置统一回填；订单行缺失不是原表直写前置。",
+        "14,293条空部门资料保留原值；2,976条零数量按已决规则不落业务表，均不新建裁决。"
+      ],
+      "actions": [
+        "修复P22绑定键仍使用order_type的实现缺陷，改用已审P14的line_type。",
+        "后置仍只允许同租户/连接/新任务/本次运行及COMPLETED非预览绑定；没有执行正式UPDATE。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P22ProductScopeSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 23,
+          "code": " @Override public void work(SyncContext<Parameters> c){"
+        },
+        {
+          "line": 24,
+          "code": "  if(c.preview()){c.runState().warning(\"SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED\");c.runState().warning(\"P22_DEPARTMENT_ID_POSTFILL_PENDING:-1\");c.runState().warning(\"P22_ORDER_LINE_ID_POSTFILL_PENDING:-1\");}"
+        },
+        {
+          "line": 25,
+          "code": "  if(mapper.pendingOrderSchemaReady()!=1){if(!c.preview())fail(\"EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference\");c.runState().warning(\"P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference\");}"
+        },
+        {
+          "line": 33,
+          "code": "  if(c.parameters().zeroQuantityPending>0)c.runState().warning(\"P22_ZERO_QUANTITY_PENDING:\"+c.parameters().zeroQuantityPending);"
+        },
+        {
+          "line": 35,
+          "code": "   c.runState().warning(\"P22_DEPARTMENT_SOURCE_MISSING_PENDING:\"+c.parameters().missingDepartmentPending);"
+        },
+        {
+          "line": 36,
+          "code": "   if(!c.parameters().departmentSchemaReady)c.runState().warning(\"P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference\");"
+        },
+        {
+          "line": 38,
+          "code": "  if(!c.preview()){"
+        },
+        {
+          "line": 43,
+          "code": "   long pending=mapper.countPendingOrderLines(q);if(pending>0)c.runState().warning(\"P22_ORDER_LINE_POSTFILL_UNRESOLVED:\"+pending);"
+        },
+        {
+          "line": 88,
+          "code": "    if(!c.preview()&&!c.parameters().departmentSchemaReady)fail(\"EXECUTION_SCHEMA_REQUIRED:department_pending_reference\");"
+        }
+      ],
+      "latestRun": {
+        "id": 2112437662510071809,
+        "task_id": 2111504342123180033,
+        "task_code": "BASE_P22",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 343858,
+        "inserted_count": 340882,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P22_DEPARTMENT_ID_POSTFILL_PENDING:-1;P22_ORDER_LINE_ID_POSTFILL_PENDING:-1;P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference;P22_ZERO_QUANTITY_PENDING:2976;P22_DEPARTMENT_SOURCE_MISSING_PENDING:14293;P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference",
+        "started_at": "2026-10-20 14:56:00.599000",
+        "finished_at": "2026-10-20 14:56:22.780000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-execution-prerequisites-p33-sn-20261020\\P22-preview.json",
+      "rerunThisTurn": true
+    },
+    {
+      "key": "P23",
+      "title": "合同收款计划展示缓存",
+      "blocking": [],
+      "nonblocking": [
+        "非必要业务ID不回填；原时间可空按正式列及原值核验。"
+      ],
+      "actions": [
+        "当前未发现专属正式执行前置；保留租户范围缓存刷新边界。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P23CollectionPlanSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 20,
+          "code": "    @Override public void work(SyncContext<Parameters> context) { syncData(context.forData(\"CollectionPlan\",true,false)); }"
+        }
+      ],
+      "latestRun": {
+        "id": 2112427469931819010,
+        "task_id": 2111463421356728322,
+        "task_code": "BASE_P23",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 35501,
+        "inserted_count": 35501,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:15:30.496000",
+        "finished_at": "2026-10-20 14:15:31.293000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P23-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P24",
+      "title": "合同回款信息",
+      "blocking": [],
+      "nonblocking": [
+        "保留原dataSource及原用户名；不因CRM来源错误要求DPPMS标记或回查账号ID。"
+      ],
+      "actions": [
+        "当前未发现专属正式执行前置；必须保护原回款记录及本套件来源身份。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P24ReceivableSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 24,
+          "code": "    @Override public Set<String> requiredPermissions(){return Set.of(\"pms:commerce:contract:query\");}"
+        },
+        {
+          "line": 26,
+          "code": "    @Override public void work(SyncContext<Void> context) { syncData(context.forData(\"Receivable\",false,true)); }"
+        }
+      ],
+      "latestRun": {
+        "id": 2112427474067402754,
+        "task_id": 2111463422476607489,
+        "task_code": "BASE_P24",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 81547,
+        "inserted_count": 81540,
+        "updated_count": 0,
+        "unchanged_count": 7,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:15:31.482000",
+        "finished_at": "2026-10-20 14:15:37.039000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P24-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P25",
+      "title": "设备续保历史",
+      "blocking": [],
+      "nonblocking": [
+        "原表批量承接，设备ID可空，不要求先有P30设备。"
+      ],
+      "actions": [
+        "当前未发现专属正式执行前置；日期、精度、复合来源身份及历史保护继续生效。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P25WarrantySyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 22,
+          "code": "    @Override public Set<String> requiredPermissions() { return Set.of(\"pms:device:query\"); }"
+        },
+        {
+          "line": 23,
+          "code": "    @Override public void work(SyncContext<Void> context) { syncData(context.forData(\"Warranty\",false,true)); }"
+        }
+      ],
+      "latestRun": {
+        "id": 2112427498130124802,
+        "task_id": 2111463425983045633,
+        "task_code": "BASE_P25",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 462213,
+        "inserted_count": 462213,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:15:37.220000",
+        "finished_at": "2026-10-20 14:15:49.976000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P25-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P30",
+      "title": "正式发货设备基础承接",
+      "blocking": [],
+      "nonblocking": [
+        "当前有效DPPMS正式发货0，导致0行空作业；代码登记告警而非抛出阻断。",
+        "正式产品资料用于可选补充，缺失并非无条件前置；多义仍拒绝。"
+      ],
+      "actions": [
+        "要验证设备覆盖必须先有合法正式DPPMS发货事实；本轮不填数或调用P15真实同步。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P30DeviceBaseSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 20,
+          "code": "    @Override public void work(SyncContext<Parameters> context){"
+        },
+        {
+          "line": 22,
+          "code": "        if(context.runState().counts().read()==0)context.runState().warning(\"P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0\");"
+        }
+      ],
+      "latestRun": {
+        "id": 2112427552333115394,
+        "task_id": 2111480508636631041,
+        "task_code": "BASE_P30",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0",
+        "started_at": "2026-10-20 14:15:50.144000",
+        "finished_at": "2026-10-20 14:15:50.160000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P30-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P31",
+      "title": "项目成员及最终客户联系人",
+      "blocking": [
+        "正式输入：仅本套件完整BASE_P16非预览COMPLETED及绑定范围，当前为0。",
+        "来源有效性：152条日期倒置只获准原值预览；真实写入仍拒绝。"
+      ],
+      "nonblocking": [
+        "历史user_id可空，不产生当前授权；不要求先建客户主体来承接历史最终客户联系人。"
+      ],
+      "actions": [
+        "保留152条原日期及既有处理边界，不修改日期/CHECK，不重复问已决预览规则。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P31MemberContactSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 21,
+          "code": " @Override public void work(SyncContext<Parameters> c){if(c.preview())c.runState().warning(\"SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED\");c.parameters().publication=publications.load(new BaseSyncPublishedProjects.Query(c.tenantId(),c.connectionId(),c.maxRows(),c.source(),c.preview()));syncData(c.forData(\"MemberContact\",false,true));if(c.parameters().reversedIntervals>0)c.runState().warning(\"P31_SOURCE_INTERVAL_PENDING:\"+c.parameters().reversedIntervals);}"
+        },
+        {
+          "line": 38,
+          "code": "    if(!c.preview())fail(\"SOURCE_INTERVAL_OR_AUDIT_PRECISION_INVALID\");"
+        }
+      ],
+      "latestRun": {
+        "id": 2112427553113255938,
+        "task_id": 2111504367108648961,
+        "task_code": "BASE_P31",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 381195,
+        "inserted_count": 381195,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P31_SOURCE_INTERVAL_PENDING:152",
+        "started_at": "2026-10-20 14:15:50.329000",
+        "finished_at": "2026-10-20 14:16:10.878000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P31-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P33",
+      "title": "设备安装历史",
+      "blocking": [
+        "正式输入：同P31的完整独立P16范围；真实设备及当前项目设备选择。",
+        "设备缺项：1,035,329条安装行涉及1,018,498个原SN，当前正式设备未就绪。",
+        "已决暂缓：sourceId1161000、1161002两条串货保持暂缓，未获正式处理前不真实执行该范围。"
+      ],
+      "nonblocking": [
+        "26个尾空格SN涉及27行属于本次已修复匹配问题，不要求先清洗源SN。",
+        "地址非空原文保存到install_location和fallbackLocation快照，UNRESOLVED；不以地址管理记录创建为前置。"
+      ],
+      "actions": [
+        "修复SQL与Java匹配键，按设备ID/正式SN核对当前选择；保留原SN及指纹。",
+        "内部码1条对应7个主SN、另外5个缺当前已审核上游主SN依据，分别保留真实身份缺项。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P33InstallationSyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 26,
+          "code": " @Override public void work(SyncContext<Parameters> c){if(c.preview())c.runState().warning(\"SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED\");c.parameters().publication=publications.load(new BaseSyncPublishedProjects.Query(c.tenantId(),c.connectionId(),c.maxRows(),c.source(),c.preview()));syncData(c.forData(\"Installation\",false,false));if(c.parameters().filteredBlankAddresses>0)c.runState().warning(\"P33_BLANK_ADDRESS_FILTERED_AFTER_READ:\"+c.parameters().filteredBlankAddresses);}"
+        },
+        {
+          "line": 27,
+          "code": " @Override protected void syncDataBefore(SyncContext<Parameters> c){super.syncDataBefore(c);c.parameters().installLocationCapacity=mapper.installLocationCapacity();if(c.parameters().installLocationCapacity<1)fail(\"INSTALL_LOCATION_COLUMN_MISSING\");}"
+        },
+        {
+          "line": 43,
+          "code": "   if(characters>c.parameters().installLocationCapacity){if(!c.preview())fail(\"INSTALL_LOCATION_CAPACITY_REQUIRED:\"+characters+\">\"+c.parameters().installLocationCapacity);s.previewReferencePending=true;pendingLocations++;log.info(\"P33_INSTALL_LOCATION_CAPACITY_PENDING sourceId={}, originalProjectId={}, characters={}, capacity={}\",s.sourceId,s.originalProjectId,characters,c.parameters().installLocationCapacity);}"
+        },
+        {
+          "line": 44,
+          "code": "   if(!\"-1\".equals(s.transferFlag)||s.chProjectId!=null||s.chContractNo!=null||s.transferProjectId!=null||s.transferContractNo!=null){if(!c.preview())fail(\"TRANSFER_REQUIRES_ADJUDICATION\");s.previewReferencePending=true;pendingTransfers++;log.info(\"P33_TRANSFER_DEFERRED sourceId={}, originalProjectId={}\",s.sourceId,s.originalProjectId);}"
+        },
+        {
+          "line": 51,
+          "code": "   if(d==null){if(!c.preview())fail(\"FORMAL_DEVICE_MISSING:\"+s.barcode);s.previewReferencePending=true;s.equipmentId=null;s.target=null;s.action=null;pendingDevices++;continue;}"
+        },
+        {
+          "line": 68,
+          "code": "  if(pendingLocations>0)c.runState().warning(\"P33_INSTALL_LOCATION_CAPACITY_PENDING:\"+pendingLocations+\":\"+c.parameters().installLocationCapacity);if(pendingTransfers>0)c.runState().warning(\"P33_TRANSFER_DEFERRED:\"+pendingTransfers);"
+        },
+        {
+          "line": 69,
+          "code": "  if(pendingDevices>0)c.runState().warning(\"P33_FORMAL_DEVICE_PENDING:\"+pendingDevices);if(pendingSelections>0)c.runState().warning(\"P33_CURRENT_PROJECT_SELECTION_PENDING:\"+pendingSelections);"
+        }
+      ],
+      "latestRun": {
+        "id": 2112436849851088898,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1035329,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P33_TRANSFER_DEFERRED:2;P33_FORMAL_DEVICE_PENDING:1035329;P33_BLANK_ADDRESS_FILTERED_AFTER_READ:2386",
+        "started_at": "2026-10-20 14:52:46.853000",
+        "finished_at": "2026-10-20 14:55:56.819000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-execution-prerequisites-p33-sn-20261020\\P33-preview.json",
+      "rerunThisTurn": true
+    },
+    {
+      "key": "P34",
+      "title": "出厂版本历史",
+      "blocking": [],
+      "nonblocking": [
+        "可空设备ID及原SN按既有规则承接，不要求先有P30设备引用。"
+      ],
+      "actions": [
+        "当前未发现专属正式执行前置；保留不可变历史和来源绑定保护。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P34FactoryHistorySyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 22,
+          "code": "    @Override public void work(SyncContext<Parameters> context) { syncData(context.forData(\"FactoryHistory\",false,true)); }"
+        }
+      ],
+      "latestRun": {
+        "id": 2112428241000083457,
+        "task_id": 2111463678895382530,
+        "task_code": "BASE_P34",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 165801,
+        "inserted_count": 165801,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:18:34.336000",
+        "finished_at": "2026-10-20 14:18:38.263000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P34-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P35",
+      "title": "软件批次及版本历史",
+      "blocking": [
+        "正式输入：同P31的完整独立P16范围，当前为0。"
+      ],
+      "nonblocking": [
+        "8个备份/镜像等拓展属性已批准暂不承接；批次和版本在本次工作内关联，不要求外部预造历史批次。"
+      ],
+      "actions": [
+        "保留源批次/明细同项目一致性及历史保护，不把暂缓扩展列为正式数据缺项。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P35SoftwareHistorySyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 22,
+          "code": " @Override public void work(SyncContext<Parameters> c){if(c.preview())c.runState().warning(\"SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED\");"
+        },
+        {
+          "line": 24,
+          "code": "  c.runState().warning(\"P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change\");"
+        }
+      ],
+      "latestRun": {
+        "id": 2112428258494525442,
+        "task_id": 2111504369105137665,
+        "task_code": "BASE_P35",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1586578,
+        "inserted_count": 1586578,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change",
+        "started_at": "2026-10-20 14:18:38.506000",
+        "finished_at": "2026-10-20 14:19:40.793000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P35-preview.json",
+      "rerunThisTurn": false
+    },
+    {
+      "key": "P37",
+      "title": "整表许可历史",
+      "blocking": [],
+      "nonblocking": [
+        "device_id、contract_id正式列均允许NULL；各475,468条关联待补只是可选后续事项，不是执行阻断。",
+        "sourceId472122的空许可码已批准按原空字符串加密保留，不是异常过滤条件。"
+      ],
+      "actions": [
+        "密钥与475,468条批准事实清单为真实配置前置，当前冻结环境已加载并完成全量预览。",
+        "不回查旧试点Owner或项目，不创建占位码，不补造设备/合同ID。"
+      ],
+      "sourceFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P37LicenseHistorySyncTask.java",
+      "guardEvidence": [
+        {
+          "line": 44,
+          "code": "    @Override public void work(SyncContext<Parameters> context){"
+        },
+        {
+          "line": 48,
+          "code": "        if(context.parameters().devicePending>0)context.runState().warning(\"P37_DEVICE_ASSOCIATION_PENDING:\"+context.parameters().devicePending);"
+        },
+        {
+          "line": 49,
+          "code": "        if(context.parameters().contractPending>0)context.runState().warning(\"P37_CONTRACT_ASSOCIATION_PENDING:\"+context.parameters().contractPending);"
+        },
+        {
+          "line": 59,
+          "code": "                    if(row.getLicenseCode().isEmpty())context.runState().warning(\"P37_LICENSE_CODE_EMPTY:sourceId=\"+row.getSourceId());"
+        }
+      ],
+      "latestRun": {
+        "id": 2112428520672079874,
+        "task_id": 2111474184809000961,
+        "task_code": "BASE_P37",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 475468,
+        "inserted_count": 475468,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P37_LICENSE_CODE_EMPTY:sourceId=472122;P37_DEVICE_ASSOCIATION_PENDING:475468;P37_CONTRACT_ASSOCIATION_PENDING:475468",
+        "started_at": "2026-10-20 14:19:41.014000",
+        "finished_at": "2026-10-20 14:19:58.745000"
+      },
+      "latestReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\P37-preview.json",
+      "rerunThisTurn": false
+    }
+  ],
+  "formalPreconditions": {
+    "observedAt": "2026-10-20T14:37:51.342656+08:00",
+    "database": "npdms_reverify_20261014",
+    "bindingIndexes": [
+      {
+        "INDEX_NAME": "PRIMARY",
+        "NON_UNIQUE": 0,
+        "COLUMN_NAME": "id",
+        "SEQ_IN_INDEX": 1
+      },
+      {
+        "INDEX_NAME": "uk_int_base_sync_binding_source",
+        "NON_UNIQUE": 0,
+        "COLUMN_NAME": "tenant_id",
+        "SEQ_IN_INDEX": 1
+      },
+      {
+        "INDEX_NAME": "uk_int_base_sync_binding_source",
+        "NON_UNIQUE": 0,
+        "COLUMN_NAME": "task_id",
+        "SEQ_IN_INDEX": 2
+      },
+      {
+        "INDEX_NAME": "uk_int_base_sync_binding_source",
+        "NON_UNIQUE": 0,
+        "COLUMN_NAME": "object_key",
+        "SEQ_IN_INDEX": 3
+      },
+      {
+        "INDEX_NAME": "uk_int_base_sync_binding_source",
+        "NON_UNIQUE": 0,
+        "COLUMN_NAME": "source_key",
+        "SEQ_IN_INDEX": 4
+      },
+      {
+        "INDEX_NAME": "uk_int_base_sync_binding_target",
+        "NON_UNIQUE": 0,
+        "COLUMN_NAME": "tenant_id",
+        "SEQ_IN_INDEX": 1
+      },
+      {
+        "INDEX_NAME": "uk_int_base_sync_binding_target",
+        "NON_UNIQUE": 0,
+        "COLUMN_NAME": "task_id",
+        "SEQ_IN_INDEX": 2
+      },
+      {
+        "INDEX_NAME": "uk_int_base_sync_binding_target",
+        "NON_UNIQUE": 0,
+        "COLUMN_NAME": "object_key",
+        "SEQ_IN_INDEX": 3
+      },
+      {
+        "INDEX_NAME": "uk_int_base_sync_binding_target",
+        "NON_UNIQUE": 0,
+        "COLUMN_NAME": "target_id",
+        "SEQ_IN_INDEX": 4
+      }
+    ],
+    "columns": [
+      {
+        "TABLE_NAME": "ast_device",
+        "COLUMN_NAME": "sn",
+        "COLUMN_TYPE": "varchar(100)",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": "utf8mb4_unicode_ci"
+      },
+      {
+        "TABLE_NAME": "ast_device_license_record",
+        "COLUMN_NAME": "device_id",
+        "COLUMN_TYPE": "bigint",
+        "IS_NULLABLE": "YES",
+        "COLLATION_NAME": null
+      },
+      {
+        "TABLE_NAME": "ast_device_license_record",
+        "COLUMN_NAME": "contract_id",
+        "COLUMN_TYPE": "bigint",
+        "IS_NULLABLE": "YES",
+        "COLLATION_NAME": null
+      },
+      {
+        "TABLE_NAME": "com_delivery_scope",
+        "COLUMN_NAME": "order_line_id",
+        "COLUMN_TYPE": "bigint",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": null
+      },
+      {
+        "TABLE_NAME": "com_delivery_scope",
+        "COLUMN_NAME": "order_source_system",
+        "COLUMN_TYPE": "varchar(32)",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": "utf8mb4_0900_ai_ci"
+      },
+      {
+        "TABLE_NAME": "com_delivery_scope",
+        "COLUMN_NAME": "order_company_code",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": "utf8mb4_0900_ai_ci"
+      },
+      {
+        "TABLE_NAME": "com_delivery_scope",
+        "COLUMN_NAME": "order_type",
+        "COLUMN_TYPE": "varchar(32)",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": "utf8mb4_0900_ai_ci"
+      },
+      {
+        "TABLE_NAME": "com_delivery_scope",
+        "COLUMN_NAME": "department_id",
+        "COLUMN_TYPE": "bigint",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": null
+      },
+      {
+        "TABLE_NAME": "com_delivery_scope",
+        "COLUMN_NAME": "department_code",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": "utf8mb4_0900_ai_ci"
+      },
+      {
+        "TABLE_NAME": "com_delivery_scope",
+        "COLUMN_NAME": "department_name",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": "utf8mb4_0900_ai_ci"
+      },
+      {
+        "TABLE_NAME": "com_delivery_scope",
+        "COLUMN_NAME": "department_version",
+        "COLUMN_TYPE": "int unsigned",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": null
+      },
+      {
+        "TABLE_NAME": "cus_customer_master",
+        "COLUMN_NAME": "erp_customer_code",
+        "COLUMN_TYPE": "varchar(50)",
+        "IS_NULLABLE": "YES",
+        "COLLATION_NAME": "utf8mb4_unicode_ci"
+      },
+      {
+        "TABLE_NAME": "cus_customer_master",
+        "COLUMN_NAME": "name",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": "utf8mb4_unicode_ci"
+      },
+      {
+        "TABLE_NAME": "imp_eng_installation",
+        "COLUMN_NAME": "equipment_id",
+        "COLUMN_TYPE": "bigint",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": null
+      },
+      {
+        "TABLE_NAME": "imp_eng_installation",
+        "COLUMN_NAME": "install_location",
+        "COLUMN_TYPE": "varchar(1024)",
+        "IS_NULLABLE": "YES",
+        "COLLATION_NAME": "utf8mb4_unicode_ci"
+      },
+      {
+        "TABLE_NAME": "proj_project_lease_product",
+        "COLUMN_NAME": "project_id",
+        "COLUMN_TYPE": "bigint",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": null
+      },
+      {
+        "TABLE_NAME": "proj_project_product_configuration",
+        "COLUMN_NAME": "project_id",
+        "COLUMN_TYPE": "bigint",
+        "IS_NULLABLE": "NO",
+        "COLLATION_NAME": null
+      }
+    ],
+    "scopeForeignKeys": [
+      {
+        "TABLE_NAME": "com_delivery_scope",
+        "CONSTRAINT_NAME": "fk_scope_order_line",
+        "COLUMN_NAME": "tenant_id",
+        "REFERENCED_TABLE_NAME": "com_sales_order_line",
+        "REFERENCED_COLUMN_NAME": "tenant_id"
+      },
+      {
+        "TABLE_NAME": "com_delivery_scope",
+        "CONSTRAINT_NAME": "fk_scope_order_line",
+        "COLUMN_NAME": "order_line_id",
+        "REFERENCED_TABLE_NAME": "com_sales_order_line",
+        "REFERENCED_COLUMN_NAME": "id"
+      }
+    ],
+    "completeNonpreviewRuns": [],
+    "independentBindings": [],
+    "formalShipments": [
+      {
+        "source_system": "FAST001_TEST_MES",
+        "deleted": 0,
+        "n": 2
+      },
+      {
+        "source_system": "FAST001_TEST_MES",
+        "deleted": 1,
+        "n": 1
+      }
+    ],
+    "formalDevices": [
+      {
+        "tenant_id": 0,
+        "deleted": 0,
+        "n": 2
+      },
+      {
+        "tenant_id": 1,
+        "deleted": 0,
+        "n": 36
+      },
+      {
+        "tenant_id": 2,
+        "deleted": 0,
+        "n": 1
+      }
+    ],
+    "schemaHistory": [
+      {
+        "version": "473",
+        "success": 1
+      }
+    ],
+    "boundary": "Read-only existing metadata and formal input counts. No DDL, grants, data repair, migration or actual synchronization."
+  },
+  "p14RecheckSummary": {
+    "observedAt": "2026-10-20T14:37:52.074938+08:00",
+    "logicalPending": 1580,
+    "sourceHeaderPhysicalRows": 93223,
+    "sourceRowsCompared": 1580,
+    "differences": [],
+    "categories": {
+      "OTHER_HEADER_TYPE_ONLY": 337,
+      "NO_SAME_SOURCE_COMPANY_ORDER_HEADER": 1243
+    },
+    "boundary": "Only the two approved split order tables were read. Different types remain distinct; no guessed parent, type change, source update or actual sync."
+  },
+  "targetedTests": {
+    "counts": {
+      "P33SnMatchingMySqlTest": {
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "NewHistoryTaskMySqlTest": {
+        "tests": 17,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "P22DepartmentPostfillMySqlTest": {
+        "tests": 19,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "P22SnapshotCollationMySqlTest": {
+        "tests": 3,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "P14BusinessKeysMySqlTest": {
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    "total": 52,
+    "logs": [
+      "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-execution-prerequisites-p33-sn-20261020\\p33-sn-20261020T145009.log",
+      "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-execution-prerequisites-p33-sn-20261020\\p33-sn-20261020T143604.log"
+    ],
+    "boundary": "Native MySQL and real Mapper SQL on connection-local temporary tables only. No formal business or postfill DML."
+  },
+  "runtimePackage": {
+    "base": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p18-authorization-audit-20261020\\runtime-candidate-p18-auth\\yudao-server.jar",
+    "candidate": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-execution-prerequisites-p33-sn-20261020\\combined-runtime\\runtime-candidate-p33-p22-final\\yudao-server.jar",
+    "changedEntries": {
+      "BOOT-INF/lib/pms-module-integration-2026.06-jdk25-SNAPSHOT.jar": [
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P33InstallationSyncTask$Device.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P33InstallationSyncTask$DeviceQuery.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P33InstallationSyncTask$Row.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P33InstallationSyncTask$Source.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P33InstallationSyncTask$TargetQuery.class",
+        "cn/iocoder/yudao/module/pms/integration/basesync/task/P33InstallationSyncTask.class",
+        "mapper/basesync/P22TargetMapper.xml",
+        "mapper/basesync/P33TargetMapper.xml"
+      ]
+    },
+    "allOtherOriginalEntriesIdentical": true
+  },
+  "verification": {
+    "verifiedAt": "2026-10-20T14:56:47.396413+08:00",
+    "recordTablesCompared": 169,
+    "recordDifferences": [],
+    "schemasCompared": 473,
+    "schemaDifferences": [],
+    "authenticationAuditAutoIncrementChanges": {
+      "system_login_log": {
+        "before": [
+          "5515"
+        ],
+        "after": [
+          "5517"
+        ]
+      },
+      "system_oauth2_access_token": {
+        "before": [
+          "108761"
+        ],
+        "after": [
+          "108763"
+        ]
+      },
+      "system_oauth2_refresh_token": {
+        "before": [
+          "3530"
+        ],
+        "after": [
+          "3532"
+        ]
+      }
+    },
+    "unexpectedAutoIncrementChanges": [],
+    "protectedItems": 180,
+    "protectedDifferences": [],
+    "priorRunCount": 143,
+    "priorRunDifferences": [],
+    "priorMissingRuns": [],
+    "taskConfigurationsUnchanged": true,
+    "activeTasks": [],
+    "newRuns": [
+      {
+        "id": 2112432818269286402,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1035329,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P33_TRANSFER_DEFERRED:2;P33_FORMAL_DEVICE_PENDING:1035329;P33_BLANK_ADDRESS_FILTERED_AFTER_READ:2386",
+        "started_at": "2026-10-20 14:36:45.646000",
+        "finished_at": "2026-10-20 14:41:34.445000"
+      },
+      {
+        "id": 2112436849851088898,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1035329,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P33_TRANSFER_DEFERRED:2;P33_FORMAL_DEVICE_PENDING:1035329;P33_BLANK_ADDRESS_FILTERED_AFTER_READ:2386",
+        "started_at": "2026-10-20 14:52:46.853000",
+        "finished_at": "2026-10-20 14:55:56.819000"
+      },
+      {
+        "id": 2112437662510071809,
+        "task_id": 2111504342123180033,
+        "task_code": "BASE_P22",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 343858,
+        "inserted_count": 340882,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P22_DEPARTMENT_ID_POSTFILL_PENDING:-1;P22_ORDER_LINE_ID_POSTFILL_PENDING:-1;P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference;P22_ZERO_QUANTITY_PENDING:2976;P22_DEPARTMENT_SOURCE_MISSING_PENDING:14293;P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference",
+        "started_at": "2026-10-20 14:56:00.599000",
+        "finished_at": "2026-10-20 14:56:22.780000"
+      }
+    ],
+    "newPreviewCount": 3,
+    "newNonPreviewCount": 0,
+    "environment": {
+      "pid59284": 25744,
+      "flags": {
+        "--server.port=59284": true,
+        "--spring.profiles.active=local,dac": true,
+        "--spring.flyway.enabled=false": true,
+        "--flowable.database-schema-update=false": true,
+        "--spring.quartz.auto-startup=false": true,
+        "--spring.batch.job.enabled=false": true,
+        "--pms.bindings.backends.event-driven.enabled=false": true
+      },
+      "migrationContainers": [
+        {
+          "name": "npdms-domain-test-migrate-1",
+          "state": "exited"
+        }
+      ],
+      "verifiedAt": "2026-10-20T14:56:46.744503+08:00"
+    },
+    "sameFinalRuntime": true,
+    "boundary": "Only independent P33/P22 implementation changes, connection-local temporary native fixtures, authorized 59284 reloads, authenticated BASE previews and read-only verification. No permanent business DML, DDL, migrations, real synchronization, original task operations, test-database writes or 59191 operations."
+  },
+  "boundary": "Strict original-task isolation. No original-task run or comparison. No permanent business DML, DDL, Flyway/migration, real sync, test-database write, grants, source correction or 59191 operation. Automatic migrations/jobs remain disabled. P33 transfers 1161000/1161002 deferred."
+}

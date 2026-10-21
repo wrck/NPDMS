@@ -18,5 +18,5 @@ CONVERT(varchar(128),[new_industry_level3_id]) AS [expend_code],
 LTRIM(RTRIM([new_industry_level3_idName])) AS [expend_name],
 CONVERT(varchar(128),[new_industry_level4_id]) AS [industry_code],
 LTRIM(RTRIM([new_industry_level4_idName])) AS [industry_name],
-CASE StateCode WHEN 0 THEN 'ENABLED' WHEN 1 THEN 'DISABLED' ELSE NULL END AS lifecycle_status, CONVERT(varchar(33),ModifiedOn,126) AS source_version, ModifiedOn AS data_as_of, CASE WHEN Name IS NULL OR LTRIM(RTRIM(Name))='' THEN 'MISSING_CUSTOMER_NAME' WHEN LEN(Name)>128 THEN 'CUSTOMER_NAME_TOO_LONG' WHEN COUNT(*) OVER (PARTITION BY LTRIM(RTRIM(AccountNumber)))>1 THEN 'DUPLICATE_CUSTOMER_CODE' ELSE NULL END AS migration_issue FROM DPtech_v_account ORDER BY AccountId</select>
+CASE StateCode WHEN 0 THEN 'ENABLED' WHEN 1 THEN 'DISABLED' ELSE NULL END AS lifecycle_status, CONVERT(varchar(33),ModifiedOn,126) AS source_version, ModifiedOn AS data_as_of, CASE WHEN Name IS NULL OR LTRIM(RTRIM(Name))='' THEN 'MISSING_CUSTOMER_NAME' WHEN LEN(Name)>255 THEN 'CUSTOMER_NAME_TOO_LONG' WHEN COUNT(*) OVER (PARTITION BY LTRIM(RTRIM(AccountNumber)))>1 THEN 'DUPLICATE_CUSTOMER_CODE' ELSE NULL END AS migration_issue FROM DPtech_v_account ORDER BY AccountId</select>
 </mapper>

@@ -1,6 +1,10 @@
 # P10 CRM客户
 
-最新逐项核查与真实预览：[base-sync-four-blockers-audit-20261019](../base-sync-four-blockers-audit-20261019.md#p10)。当前新P10仍FAILED，完整具体缺项与Run见本轮报告；原任务及历史回执保持。
+2026-10-20当前结果：已按本轮明确授权，仅在npdms_reverify_20261014将name扩为VARCHAR(255)。新BASE_P10 Run2112346849270747138 PREVIEW_READY/read59544/规划插入59544，容量告警已消除，没有实际客户写入或新绑定；原任务及既有7条客户完整保持。执行收据、两表保护和真实预览见[容量补丁及最终结果](../P10-P33-capacity-applied-preview-20261020.md)。
+
+此前2026-10-20实现及回执见[三项续办历史结果](../base-sync-P10-P18-P33-followup-20261020.md)，以下2026-10-19内容按原时点保留。
+
+此前逐项核查与真实预览：[base-sync-four-blockers-audit-20261019](../base-sync-four-blockers-audit-20261019.md#p10)。当时新P10为FAILED，原任务及历史失败回执保持。
 
 本轮最新：[base-sync-department-code-preview-20261019](../base-sync-department-code-preview-20261019.md)，本项真实回执[P10-preview.json](D:/CodexTaskArtifacts/project-detail-followup/base-sync-deferred-extensions-20261019/P10-preview.json)。此前阶段判断及回执保留。
 

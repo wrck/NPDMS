@@ -1,5 +1,7 @@
 # P30 设备主档及项目归属
 
+2026-10-20随P33引用追溯只读复核：本项生产链是正式DPPMS发货→设备主档；当前目标DPPMS有效发货0，最新新BASE_P30为PREVIEW_READY/read0，并带P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0。它是空预览，不能解释为设备已经生成。本轮没有调用或修改任何P30任务。[P33原SN及完整依赖证据](../P33-formal-device-reference-audit-20261020.md)。
+
 [返回24项总表](../README.md)
 
 [历史十项目中本项任务/Owner入口及前后置逻辑](../pilot-ten-projects/tasks-and-processing.md#p30)（只读历史补充；不计入本页A/B/C当前验证）。

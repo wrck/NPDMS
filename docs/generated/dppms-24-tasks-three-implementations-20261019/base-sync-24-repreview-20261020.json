@@ -1,0 +1,1799 @@
+{
+  "status": "REAL_PREVIEW_REVERIFICATION_COMPLETE",
+  "observedAt": "2026-10-20T14:20:08.526239+08:00",
+  "branch": "fix/dppms-migration-consolidation-20261012",
+  "database": "127.0.0.1:24306/npdms_reverify_20261014",
+  "port": 59284,
+  "taskCount": 24,
+  "statusCounts": {
+    "PREVIEW_READY": 24
+  },
+  "failedOrApiErrors": [],
+  "emptyPreviews": [
+    "P30"
+  ],
+  "readCountChanges": [
+    {
+      "key": "P15",
+      "previousRead": 4706900,
+      "newRead": 4708483,
+      "delta": 1583
+    }
+  ],
+  "P15ReadDeltaProof": {
+    "verifiedAt": "2026-10-20T14:13:59.882304+08:00",
+    "runId": 2112425707665633281,
+    "completedSteps": {
+      "ShipmentContract": 120638,
+      "Package": 156368,
+      "ShipmentEvent": 4283326,
+      "DeviceRelationship": 65046,
+      "Contract": 83105
+    },
+    "contractSourceCounts": {
+      "orderRows": 93216,
+      "shipmentGroups": 109578,
+      "receivableGroups": 81540,
+      "contracts": 83105,
+      "sourceIssues": 0
+    },
+    "totalRead": 4708483,
+    "stepDelta": {
+      "ShipmentContract": 0,
+      "Package": 0,
+      "ShipmentEvent": 0,
+      "DeviceRelationship": 0,
+      "Contract": 1583
+    },
+    "sourceDelta": {
+      "orderRows": 1651,
+      "shipmentGroups": 0,
+      "receivableGroups": 0,
+      "contracts": 1583,
+      "sourceIssues": 0
+    },
+    "priorSuccessfulCandidate": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p15-order-type-customer-20261019\\runtime-candidate-order-type-customer\\yudao-server.jar",
+    "currentCandidate": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p18-authorization-audit-20261020\\runtime-candidate-p18-auth\\yudao-server.jar",
+    "P15ClassFamilyAndSourceXmlCompared": 17,
+    "packageEntryDifferences": [],
+    "boundary": "Existing read-only runtime logs and frozen-package entries only. No source re-read, source mutation, product-code change or actual sync."
+  },
+  "sumTaskReadCounts": 10409000,
+  "rows": [
+    {
+      "key": "P01",
+      "name": "公司与部门独立目录",
+      "receipt": {
+        "key": "P01",
+        "taskId": 2111504172530692098,
+        "apiCode": 0,
+        "counts": {
+          "read": 208,
+          "inserted": 0,
+          "updated": 0,
+          "unchanged": 208,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112425268933046274,
+          "task_id": 2111504172530692098,
+          "task_code": "BASE_P01",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 208,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 208,
+          "deleted_count": 0,
+          "error_message": "P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050",
+          "started_at": "2026-10-20 14:06:45.745000",
+          "finished_at": "2026-10-20 14:06:45.974000"
+        },
+        "seconds": 0.472,
+        "observedAt": "2026-10-20T14:06:46.075793+08:00"
+      },
+      "previousRun": {
+        "id": 2111504172950122498,
+        "task_id": 2111504172530692098,
+        "task_code": "BASE_P01",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 208,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 208,
+        "deleted_count": 0,
+        "error_message": "P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050",
+        "started_at": "2026-10-18 01:06:39.351000",
+        "finished_at": "2026-10-18 01:06:39.773000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "P01_DIRECTOR_ASSOCIATION_PENDING:162007003",
+        "P01_DIRECTOR_ASSOCIATION_PENDING:162012003",
+        "P01_DIRECTOR_ASSOCIATION_PENDING:162022003",
+        "P01_DIRECTOR_ASSOCIATION_PENDING:310409001",
+        "P01_DIRECTOR_ASSOCIATION_PENDING:310422001",
+        "P01_DIRECTOR_ASSOCIATION_PENDING:167010",
+        "P01_DIRECTOR_ASSOCIATION_PENDING:167020",
+        "P01_DIRECTOR_ASSOCIATION_PENDING:167050"
+      ]
+    },
+    {
+      "key": "P04",
+      "name": "账号基础（任职关系规格待闭合）",
+      "receipt": {
+        "key": "P04",
+        "taskId": 2111504175751917570,
+        "apiCode": 0,
+        "counts": {
+          "read": 12632,
+          "inserted": 12605,
+          "updated": 0,
+          "unchanged": 27,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112425270786928641,
+          "task_id": 2111504175751917570,
+          "task_code": "BASE_P04",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 12632,
+          "inserted_count": 12605,
+          "updated_count": 0,
+          "unchanged_count": 27,
+          "deleted_count": 0,
+          "error_message": "P04_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P04_ORIGINAL_READ:3307;EXCLUDED_ACCOUNTS:26;ORPHAN_PROFILES:3",
+          "started_at": "2026-10-20 14:06:46.180000",
+          "finished_at": "2026-10-20 14:06:46.911000"
+        },
+        "seconds": 0.861,
+        "observedAt": "2026-10-20T14:06:47.003181+08:00"
+      },
+      "previousRun": {
+        "id": 2111517837875126273,
+        "task_id": 2111504175751917570,
+        "task_code": "BASE_P04",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 12632,
+        "inserted_count": 12605,
+        "updated_count": 0,
+        "unchanged_count": 27,
+        "deleted_count": 0,
+        "error_message": "P04_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P04_ORIGINAL_READ:3307;EXCLUDED_ACCOUNTS:26;ORPHAN_PROFILES:3",
+        "started_at": "2026-10-18 02:00:57.327000",
+        "finished_at": "2026-10-18 02:00:58.290000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "P04_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target",
+        "P04_ORIGINAL_READ:3307",
+        "EXCLUDED_ACCOUNTS:26",
+        "ORPHAN_PROFILES:3"
+      ]
+    },
+    {
+      "key": "P08",
+      "name": "系统字典类型及字典项",
+      "receipt": {
+        "key": "P08",
+        "taskId": 2111470471713304577,
+        "apiCode": 0,
+        "counts": {
+          "read": 612,
+          "inserted": 611,
+          "updated": 0,
+          "unchanged": 1,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112425274729574401,
+          "task_id": 2111470471713304577,
+          "task_code": "BASE_P08",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 612,
+          "inserted_count": 611,
+          "updated_count": 0,
+          "unchanged_count": 1,
+          "deleted_count": 0,
+          "error_message": null,
+          "started_at": "2026-10-20 14:06:47.121000",
+          "finished_at": "2026-10-20 14:06:47.201000"
+        },
+        "seconds": 0.203,
+        "observedAt": "2026-10-20T14:06:47.272416+08:00"
+      },
+      "previousRun": {
+        "id": 2112057345712537601,
+        "task_id": 2111470471713304577,
+        "task_code": "BASE_P08",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 612,
+        "inserted_count": 611,
+        "updated_count": 0,
+        "unchanged_count": 1,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-19 13:44:46.012000",
+        "finished_at": "2026-10-19 13:44:46.238000"
+      },
+      "readDelta": 0,
+      "warnings": []
+    },
+    {
+      "key": "P10",
+      "name": "CRM客户主档",
+      "receipt": {
+        "key": "P10",
+        "taskId": 2111470474389270529,
+        "apiCode": 0,
+        "counts": {
+          "read": 59544,
+          "inserted": 59544,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112425275853647873,
+          "task_id": 2111470474389270529,
+          "task_code": "BASE_P10",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 59544,
+          "inserted_count": 59544,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": null,
+          "started_at": "2026-10-20 14:06:47.389000",
+          "finished_at": "2026-10-20 14:07:07.458000"
+        },
+        "seconds": 20.213,
+        "observedAt": "2026-10-20T14:07:07.550966+08:00"
+      },
+      "previousRun": {
+        "id": 2112346849270747138,
+        "task_id": 2111470474389270529,
+        "task_code": "BASE_P10",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 59544,
+        "inserted_count": 59544,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 08:55:09.035000",
+        "finished_at": "2026-10-20 08:55:29.800000"
+      },
+      "readDelta": 0,
+      "warnings": []
+    },
+    {
+      "key": "P11",
+      "name": "CRM产品主档",
+      "receipt": {
+        "key": "P11",
+        "taskId": 2111407905813229570,
+        "apiCode": 0,
+        "counts": {
+          "read": 8443,
+          "inserted": 0,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112425360834441218,
+          "task_id": 2111407905813229570,
+          "task_code": "BASE_P11",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 8443,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": null,
+          "started_at": "2026-10-20 14:07:07.648000",
+          "finished_at": "2026-10-20 14:07:07.879000"
+        },
+        "seconds": 0.354,
+        "observedAt": "2026-10-20T14:07:07.970010+08:00"
+      },
+      "previousRun": {
+        "id": 2111436809982627841,
+        "task_id": 2111407905813229570,
+        "task_code": "BASE_P11",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 8443,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 20:38:58.768000",
+        "finished_at": "2026-10-17 20:38:59.454000"
+      },
+      "readDelta": 0,
+      "warnings": []
+    },
+    {
+      "key": "P12",
+      "name": "DPPMS缺失产品补齐",
+      "receipt": {
+        "key": "P12",
+        "taskId": 2111435600580231169,
+        "apiCode": 0,
+        "counts": {
+          "read": 34976,
+          "inserted": 34976,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112425362642186241,
+          "task_id": 2111435600580231169,
+          "task_code": "BASE_P12",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 34976,
+          "inserted_count": 34976,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": null,
+          "started_at": "2026-10-20 14:07:08.080000",
+          "finished_at": "2026-10-20 14:07:08.723000"
+        },
+        "seconds": 0.753,
+        "observedAt": "2026-10-20T14:07:08.801934+08:00"
+      },
+      "previousRun": {
+        "id": 2111436813732335618,
+        "task_id": 2111435600580231169,
+        "task_code": "BASE_P12",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 34976,
+        "inserted_count": 34976,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 20:38:59.654000",
+        "finished_at": "2026-10-17 20:39:00.734000"
+      },
+      "readDelta": 0,
+      "warnings": []
+    },
+    {
+      "key": "P13",
+      "name": "项目执行单头",
+      "receipt": {
+        "key": "P13",
+        "taskId": 2111504177542885378,
+        "apiCode": 0,
+        "counts": {
+          "read": 99895,
+          "inserted": 0,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112425366081515522,
+          "task_id": 2111504177542885378,
+          "task_code": "BASE_P13",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 99895,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "P13_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P13_OUTSIDE_REVIEWED_PROJECT_SCOPE:2625;P13_PREVIEW_SOURCE_VALIDATED;WRITE_COUNTS_DEFERRED_UNTIL_EXECUTION",
+          "started_at": "2026-10-20 14:07:08.900000",
+          "finished_at": "2026-10-20 14:07:19.695000"
+        },
+        "seconds": 10.918,
+        "observedAt": "2026-10-20T14:07:19.785090+08:00"
+      },
+      "previousRun": {
+        "id": 2111515526163517442,
+        "task_id": 2111504177542885378,
+        "task_code": "BASE_P13",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 99895,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P13_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P13_OUTSIDE_REVIEWED_PROJECT_SCOPE:2625;P13_PREVIEW_SOURCE_VALIDATED;WRITE_COUNTS_DEFERRED_UNTIL_EXECUTION",
+        "started_at": "2026-10-18 01:51:46.160000",
+        "finished_at": "2026-10-18 01:51:58.973000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "P13_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target",
+        "P13_OUTSIDE_REVIEWED_PROJECT_SCOPE:2625",
+        "P13_PREVIEW_SOURCE_VALIDATED",
+        "WRITE_COUNTS_DEFERRED_UNTIL_EXECUTION"
+      ]
+    },
+    {
+      "key": "P14",
+      "name": "ERP销售订单与订单行",
+      "receipt": {
+        "key": "P14",
+        "taskId": 2111504179094777858,
+        "apiCode": 0,
+        "counts": {
+          "read": 480044,
+          "inserted": 478464,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112425412210470914,
+          "task_id": 2111504179094777858,
+          "task_code": "BASE_P14",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 480044,
+          "inserted_count": 478464,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "P14_ORDER_REFERENCE_PENDING:1580",
+          "started_at": "2026-10-20 14:07:19.899000",
+          "finished_at": "2026-10-20 14:08:30.167000"
+        },
+        "seconds": 70.386,
+        "observedAt": "2026-10-20T14:08:30.244160+08:00"
+      },
+      "previousRun": {
+        "id": 2112220196368515074,
+        "task_id": 2111504179094777858,
+        "task_code": "BASE_P14",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 480044,
+        "inserted_count": 478464,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P14_ORDER_REFERENCE_PENDING:1580",
+        "started_at": "2026-10-20 00:31:52.633000",
+        "finished_at": "2026-10-20 00:33:23.222000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "P14_ORDER_REFERENCE_PENDING:1580"
+      ]
+    },
+    {
+      "key": "P15",
+      "name": "合同及全量发货历史",
+      "receipt": {
+        "key": "P15",
+        "taskId": 2111504249399701506,
+        "apiCode": 0,
+        "counts": {
+          "read": 4708483,
+          "inserted": 4708483,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112425707665633281,
+          "task_id": 2111504249399701506,
+          "task_code": "BASE_P15",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 4708483,
+          "inserted_count": 4708483,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED",
+          "started_at": "2026-10-20 14:08:30.339000",
+          "finished_at": "2026-10-20 14:12:36.007000"
+        },
+        "seconds": 245.781,
+        "observedAt": "2026-10-20T14:12:36.090232+08:00"
+      },
+      "previousRun": {
+        "id": 2112161183148769281,
+        "task_id": 2111504249399701506,
+        "task_code": "BASE_P15",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 4706900,
+        "inserted_count": 4706900,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED",
+        "started_at": "2026-10-19 20:37:22.790000",
+        "finished_at": "2026-10-19 20:42:41.297000"
+      },
+      "readDelta": 1583,
+      "warnings": [
+        "P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED"
+      ]
+    },
+    {
+      "key": "P16",
+      "name": "项目主档及独立来源身份",
+      "receipt": {
+        "key": "P16",
+        "taskId": 2111504250456666113,
+        "apiCode": 0,
+        "counts": {
+          "read": 158871,
+          "inserted": 79429,
+          "updated": 0,
+          "unchanged": 79442,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112426738885603329,
+          "task_id": 2111504250456666113,
+          "task_code": "BASE_P16",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 158871,
+          "inserted_count": 79429,
+          "updated_count": 0,
+          "unchanged_count": 79442,
+          "deleted_count": 0,
+          "error_message": "P16_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P16_ALIASES_REQUIRE_NEW_MASTERS:79442",
+          "started_at": "2026-10-20 14:12:36.202000",
+          "finished_at": "2026-10-20 14:14:47.271000"
+        },
+        "seconds": 131.187,
+        "observedAt": "2026-10-20T14:14:47.342283+08:00"
+      },
+      "previousRun": {
+        "id": 2112103755224866818,
+        "task_id": 2111504250456666113,
+        "task_code": "BASE_P16",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 158871,
+        "inserted_count": 79429,
+        "updated_count": 0,
+        "unchanged_count": 79442,
+        "deleted_count": 0,
+        "error_message": "P16_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P16_ALIASES_REQUIRE_NEW_MASTERS:79442",
+        "started_at": "2026-10-19 16:49:10.905000",
+        "finished_at": "2026-10-19 16:52:12.280000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "P16_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target",
+        "P16_ALIASES_REQUIRE_NEW_MASTERS:79442"
+      ]
+    },
+    {
+      "key": "P18",
+      "name": "项目合同关系历史",
+      "receipt": {
+        "key": "P18",
+        "taskId": 2111504251568156674,
+        "apiCode": 0,
+        "counts": {
+          "read": 82676,
+          "inserted": 0,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112427289358643202,
+          "task_id": 2111504251568156674,
+          "task_code": "BASE_P18",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 82676,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P18_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P18_COMPANY_AUTHORIZATION_PENDING:001=80374,002=1804,003=195;P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_PENDING:82381",
+          "started_at": "2026-10-20 14:14:47.445000",
+          "finished_at": "2026-10-20 14:14:58.103000"
+        },
+        "seconds": 10.775,
+        "observedAt": "2026-10-20T14:14:58.182354+08:00"
+      },
+      "previousRun": {
+        "id": 2112256535977709570,
+        "task_id": 2111504251568156674,
+        "task_code": "BASE_P18",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 82676,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P18_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P18_COMPANY_AUTHORIZATION_PENDING:001=80374,002=1804,003=195;P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_PENDING:82381",
+        "started_at": "2026-10-20 02:56:16.673000",
+        "finished_at": "2026-10-20 02:56:29.325000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "P18_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target",
+        "P18_COMPANY_AUTHORIZATION_PENDING:001=80374,002=1804,003=195",
+        "P18_COMPANY_SOURCE_PENDING:8",
+        "P18_CONTRACT_REFERENCE_PENDING:82381"
+      ]
+    },
+    {
+      "key": "P19",
+      "name": "项目相关方及历史状态属性",
+      "receipt": {
+        "key": "P19",
+        "taskId": 2111504252700618753,
+        "apiCode": 0,
+        "counts": {
+          "read": 186118,
+          "inserted": 186118,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112427334816509953,
+          "task_id": 2111504252700618753,
+          "task_code": "BASE_P19",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 186118,
+          "inserted_count": 186118,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P19_EXTENSION_ATTRIBUTES_DEFERRED:shipment_status,shipment_status_updated_at,execution_status,execution_status_updated_at",
+          "started_at": "2026-10-20 14:14:58.281000",
+          "finished_at": "2026-10-20 14:15:05.839000"
+        },
+        "seconds": 7.679,
+        "observedAt": "2026-10-20T14:15:05.925708+08:00"
+      },
+      "previousRun": {
+        "id": 2112100784705585154,
+        "task_id": 2111504252700618753,
+        "task_code": "BASE_P19",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 186118,
+        "inserted_count": 186118,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P19_EXTENSION_ATTRIBUTES_DEFERRED:shipment_status,shipment_status_updated_at,execution_status,execution_status_updated_at",
+        "started_at": "2026-10-19 16:37:22.670000",
+        "finished_at": "2026-10-19 16:37:32.225000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "P19_EXTENSION_ATTRIBUTES_DEFERRED:shipment_status,shipment_status_updated_at,execution_status,execution_status_updated_at"
+      ]
+    },
+    {
+      "key": "P20",
+      "name": "项目真实产品历史清单",
+      "receipt": {
+        "key": "P20",
+        "taskId": 2111504298947014658,
+        "apiCode": 0,
+        "counts": {
+          "read": 7818,
+          "inserted": 7818,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112427367251062786,
+          "task_id": 2111504298947014658,
+          "task_code": "BASE_P20",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 7818,
+          "inserted_count": 7818,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+          "started_at": "2026-10-20 14:15:06.015000",
+          "finished_at": "2026-10-20 14:15:14.705000"
+        },
+        "seconds": 8.801,
+        "observedAt": "2026-10-20T14:15:14.791144+08:00"
+      },
+      "previousRun": {
+        "id": 2112059695747514370,
+        "task_id": 2111504298947014658,
+        "task_code": "BASE_P20",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 7818,
+        "inserted_count": 7818,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "started_at": "2026-10-19 13:54:06.300000",
+        "finished_at": "2026-10-19 13:54:18.478000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED"
+      ]
+    },
+    {
+      "key": "P21",
+      "name": "租赁与配置展示缓存",
+      "receipt": {
+        "key": "P21",
+        "taskId": 2111463419926470657,
+        "apiCode": 0,
+        "counts": {
+          "read": 1190,
+          "inserted": 1190,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112427404450344962,
+          "task_id": 2111463419926470657,
+          "task_code": "BASE_P21",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 1190,
+          "inserted_count": 1190,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable",
+          "started_at": "2026-10-20 14:15:14.884000",
+          "finished_at": "2026-10-20 14:15:14.925000"
+        },
+        "seconds": 0.15,
+        "observedAt": "2026-10-20T14:15:15.007819+08:00"
+      },
+      "previousRun": {
+        "id": 2112053188930744321,
+        "task_id": 2111463419926470657,
+        "task_code": "BASE_P21",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1190,
+        "inserted_count": 1190,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable",
+        "started_at": "2026-10-19 13:28:14.959000",
+        "finished_at": "2026-10-19 13:28:15.153000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable"
+      ]
+    },
+    {
+      "key": "P22",
+      "name": "项目产品实施范围历史",
+      "receipt": {
+        "key": "P22",
+        "taskId": 2111504342123180033,
+        "apiCode": 0,
+        "counts": {
+          "read": 343858,
+          "inserted": 340882,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112427405406646273,
+          "task_id": 2111504342123180033,
+          "task_code": "BASE_P22",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 343858,
+          "inserted_count": 340882,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P22_DEPARTMENT_ID_POSTFILL_PENDING:-1;P22_ORDER_LINE_ID_POSTFILL_PENDING:-1;P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference;P22_ZERO_QUANTITY_PENDING:2976;P22_DEPARTMENT_SOURCE_MISSING_PENDING:14293;P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference",
+          "started_at": "2026-10-20 14:15:15.113000",
+          "finished_at": "2026-10-20 14:15:30.327000"
+        },
+        "seconds": 15.309,
+        "observedAt": "2026-10-20T14:15:30.395788+08:00"
+      },
+      "previousRun": {
+        "id": 2112100511387959297,
+        "task_id": 2111504342123180033,
+        "task_code": "BASE_P22",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 343858,
+        "inserted_count": 340882,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P22_DEPARTMENT_ID_POSTFILL_PENDING:-1;P22_ORDER_LINE_ID_POSTFILL_PENDING:-1;P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference;P22_ZERO_QUANTITY_PENDING:2976;P22_DEPARTMENT_SOURCE_MISSING_PENDING:14293;P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference",
+        "started_at": "2026-10-19 16:36:17.507000",
+        "finished_at": "2026-10-19 16:36:34.343000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "P22_DEPARTMENT_ID_POSTFILL_PENDING:-1",
+        "P22_ORDER_LINE_ID_POSTFILL_PENDING:-1",
+        "P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference",
+        "P22_ZERO_QUANTITY_PENDING:2976",
+        "P22_DEPARTMENT_SOURCE_MISSING_PENDING:14293",
+        "P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference"
+      ]
+    },
+    {
+      "key": "P23",
+      "name": "合同收款计划展示缓存",
+      "receipt": {
+        "key": "P23",
+        "taskId": 2111463421356728322,
+        "apiCode": 0,
+        "counts": {
+          "read": 35501,
+          "inserted": 35501,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112427469931819010,
+          "task_id": 2111463421356728322,
+          "task_code": "BASE_P23",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 35501,
+          "inserted_count": 35501,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": null,
+          "started_at": "2026-10-20 14:15:30.496000",
+          "finished_at": "2026-10-20 14:15:31.293000"
+        },
+        "seconds": 0.894,
+        "observedAt": "2026-10-20T14:15:31.363504+08:00"
+      },
+      "previousRun": {
+        "id": 2111466972774600705,
+        "task_id": 2111463421356728322,
+        "task_code": "BASE_P23",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 35501,
+        "inserted_count": 35501,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 22:38:50.135000",
+        "finished_at": "2026-10-17 22:38:51.262000"
+      },
+      "readDelta": 0,
+      "warnings": []
+    },
+    {
+      "key": "P24",
+      "name": "合同回款信息",
+      "receipt": {
+        "key": "P24",
+        "taskId": 2111463422476607489,
+        "apiCode": 0,
+        "counts": {
+          "read": 81547,
+          "inserted": 81540,
+          "updated": 0,
+          "unchanged": 7,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112427474067402754,
+          "task_id": 2111463422476607489,
+          "task_code": "BASE_P24",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 81547,
+          "inserted_count": 81540,
+          "updated_count": 0,
+          "unchanged_count": 7,
+          "deleted_count": 0,
+          "error_message": null,
+          "started_at": "2026-10-20 14:15:31.482000",
+          "finished_at": "2026-10-20 14:15:37.039000"
+        },
+        "seconds": 5.662,
+        "observedAt": "2026-10-20T14:15:37.109667+08:00"
+      },
+      "previousRun": {
+        "id": 2112057587128287234,
+        "task_id": 2111463422476607489,
+        "task_code": "BASE_P24",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 81547,
+        "inserted_count": 81540,
+        "updated_count": 0,
+        "unchanged_count": 7,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-19 13:45:43.563000",
+        "finished_at": "2026-10-19 13:45:50.106000"
+      },
+      "readDelta": 0,
+      "warnings": []
+    },
+    {
+      "key": "P25",
+      "name": "设备续保历史",
+      "receipt": {
+        "key": "P25",
+        "taskId": 2111463425983045633,
+        "apiCode": 0,
+        "counts": {
+          "read": 462213,
+          "inserted": 462213,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112427498130124802,
+          "task_id": 2111463425983045633,
+          "task_code": "BASE_P25",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 462213,
+          "inserted_count": 462213,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": null,
+          "started_at": "2026-10-20 14:15:37.220000",
+          "finished_at": "2026-10-20 14:15:49.976000"
+        },
+        "seconds": 12.872,
+        "observedAt": "2026-10-20T14:15:50.053789+08:00"
+      },
+      "previousRun": {
+        "id": 2111480444740603906,
+        "task_id": 2111463425983045633,
+        "task_code": "BASE_P25",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 462213,
+        "inserted_count": 462213,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 23:32:22.096000",
+        "finished_at": "2026-10-17 23:32:37.135000"
+      },
+      "readDelta": 0,
+      "warnings": []
+    },
+    {
+      "key": "P30",
+      "name": "正式发货设备基础承接",
+      "receipt": {
+        "key": "P30",
+        "taskId": 2111480508636631041,
+        "apiCode": 0,
+        "counts": {
+          "read": 0,
+          "inserted": 0,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112427552333115394,
+          "task_id": 2111480508636631041,
+          "task_code": "BASE_P30",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0",
+          "started_at": "2026-10-20 14:15:50.144000",
+          "finished_at": "2026-10-20 14:15:50.160000"
+        },
+        "seconds": 0.121,
+        "observedAt": "2026-10-20T14:15:50.239561+08:00"
+      },
+      "previousRun": {
+        "id": 2111481771424153602,
+        "task_id": 2111480508636631041,
+        "task_code": "BASE_P30",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0",
+        "started_at": "2026-10-17 23:37:38.410000",
+        "finished_at": "2026-10-17 23:37:38.463000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0"
+      ]
+    },
+    {
+      "key": "P31",
+      "name": "项目成员及最终客户联系人历史",
+      "receipt": {
+        "key": "P31",
+        "taskId": 2111504367108648961,
+        "apiCode": 0,
+        "counts": {
+          "read": 381195,
+          "inserted": 381195,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112427553113255938,
+          "task_id": 2111504367108648961,
+          "task_code": "BASE_P31",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 381195,
+          "inserted_count": 381195,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P31_SOURCE_INTERVAL_PENDING:152",
+          "started_at": "2026-10-20 14:15:50.329000",
+          "finished_at": "2026-10-20 14:16:10.878000"
+        },
+        "seconds": 20.654,
+        "observedAt": "2026-10-20T14:16:10.958104+08:00"
+      },
+      "previousRun": {
+        "id": 2112123456126668802,
+        "task_id": 2111504367108648961,
+        "task_code": "BASE_P31",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 381195,
+        "inserted_count": 381195,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P31_SOURCE_INTERVAL_PENDING:152",
+        "started_at": "2026-10-19 18:07:27.965000",
+        "finished_at": "2026-10-19 18:08:05.072000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "P31_SOURCE_INTERVAL_PENDING:152"
+      ]
+    },
+    {
+      "key": "P33",
+      "name": "设备安装历史",
+      "receipt": {
+        "key": "P33",
+        "taskId": 2111504368203362306,
+        "apiCode": 0,
+        "counts": {
+          "read": 1035329,
+          "inserted": 0,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112427640023429121,
+          "task_id": 2111504368203362306,
+          "task_code": "BASE_P33",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 1035329,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P33_TRANSFER_DEFERRED:2;P33_FORMAL_DEVICE_PENDING:1035329;P33_BLANK_ADDRESS_FILTERED_AFTER_READ:2386",
+          "started_at": "2026-10-20 14:16:11.050000",
+          "finished_at": "2026-10-20 14:18:34.113000"
+        },
+        "seconds": 143.172,
+        "observedAt": "2026-10-20T14:18:34.195002+08:00"
+      },
+      "previousRun": {
+        "id": 2112346937229496321,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1035329,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P33_TRANSFER_DEFERRED:2;P33_FORMAL_DEVICE_PENDING:1035329;P33_BLANK_ADDRESS_FILTERED_AFTER_READ:2386",
+        "started_at": "2026-10-20 08:55:30.004000",
+        "finished_at": "2026-10-20 08:57:38.908000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "P33_TRANSFER_DEFERRED:2",
+        "P33_FORMAL_DEVICE_PENDING:1035329",
+        "P33_BLANK_ADDRESS_FILTERED_AFTER_READ:2386"
+      ]
+    },
+    {
+      "key": "P34",
+      "name": "出厂版本历史",
+      "receipt": {
+        "key": "P34",
+        "taskId": 2111463678895382530,
+        "apiCode": 0,
+        "counts": {
+          "read": 165801,
+          "inserted": 165801,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112428241000083457,
+          "task_id": 2111463678895382530,
+          "task_code": "BASE_P34",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 165801,
+          "inserted_count": 165801,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": null,
+          "started_at": "2026-10-20 14:18:34.336000",
+          "finished_at": "2026-10-20 14:18:38.263000"
+        },
+        "seconds": 4.08,
+        "observedAt": "2026-10-20T14:18:38.360222+08:00"
+      },
+      "previousRun": {
+        "id": 2111480509467103233,
+        "task_id": 2111463678895382530,
+        "task_code": "BASE_P34",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 165801,
+        "inserted_count": 165801,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 23:32:37.529000",
+        "finished_at": "2026-10-17 23:32:41.213000"
+      },
+      "readDelta": 0,
+      "warnings": []
+    },
+    {
+      "key": "P35",
+      "name": "软件批次及版本历史",
+      "receipt": {
+        "key": "P35",
+        "taskId": 2111504369105137665,
+        "apiCode": 0,
+        "counts": {
+          "read": 1586578,
+          "inserted": 1586578,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112428258494525442,
+          "task_id": 2111504369105137665,
+          "task_code": "BASE_P35",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 1586578,
+          "inserted_count": 1586578,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change",
+          "started_at": "2026-10-20 14:18:38.506000",
+          "finished_at": "2026-10-20 14:19:40.793000"
+        },
+        "seconds": 62.45,
+        "observedAt": "2026-10-20T14:19:40.901476+08:00"
+      },
+      "previousRun": {
+        "id": 2112116707562823682,
+        "task_id": 2111504369105137665,
+        "task_code": "BASE_P35",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1586578,
+        "inserted_count": 1586578,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change",
+        "started_at": "2026-10-19 17:40:38.976000",
+        "finished_at": "2026-10-19 17:41:43.928000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change"
+      ]
+    },
+    {
+      "key": "P37",
+      "name": "整表许可历史",
+      "receipt": {
+        "key": "P37",
+        "taskId": 2111474184809000961,
+        "apiCode": 0,
+        "counts": {
+          "read": 475468,
+          "inserted": 475468,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112428520672079874,
+          "task_id": 2111474184809000961,
+          "task_code": "BASE_P37",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 475468,
+          "inserted_count": 475468,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": "P37_LICENSE_CODE_EMPTY:sourceId=472122;P37_DEVICE_ASSOCIATION_PENDING:475468;P37_CONTRACT_ASSOCIATION_PENDING:475468",
+          "started_at": "2026-10-20 14:19:41.014000",
+          "finished_at": "2026-10-20 14:19:58.745000"
+        },
+        "seconds": 17.853,
+        "observedAt": "2026-10-20T14:19:58.824819+08:00"
+      },
+      "previousRun": {
+        "id": 2111480525451595777,
+        "task_id": 2111474184809000961,
+        "task_code": "BASE_P37",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 475468,
+        "inserted_count": 475468,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P37_LICENSE_CODE_EMPTY:sourceId=472122;P37_DEVICE_ASSOCIATION_PENDING:475468;P37_CONTRACT_ASSOCIATION_PENDING:475468",
+        "started_at": "2026-10-17 23:32:41.338000",
+        "finished_at": "2026-10-17 23:33:01.767000"
+      },
+      "readDelta": 0,
+      "warnings": [
+        "P37_LICENSE_CODE_EMPTY:sourceId=472122",
+        "P37_DEVICE_ASSOCIATION_PENDING:475468",
+        "P37_CONTRACT_ASSOCIATION_PENDING:475468"
+      ]
+    }
+  ],
+  "protection": {
+    "verifiedAt": "2026-10-20T14:20:08.526239+08:00",
+    "recordTablesCompared": 169,
+    "recordDifferences": {},
+    "schemasCompared": 473,
+    "schemaDifferences": [],
+    "rawShowCreateDifferences": [
+      "system_oauth2_refresh_token",
+      "system_login_log",
+      "system_oauth2_access_token"
+    ],
+    "authenticationAuditAutoIncrementChanges": {
+      "system_oauth2_refresh_token": {
+        "before": [
+          "3529"
+        ],
+        "after": [
+          "3530"
+        ]
+      },
+      "system_login_log": {
+        "before": [
+          "5514"
+        ],
+        "after": [
+          "5515"
+        ]
+      },
+      "system_oauth2_access_token": {
+        "before": [
+          "108760"
+        ],
+        "after": [
+          "108761"
+        ]
+      }
+    },
+    "unexpectedAutoIncrementChanges": [],
+    "protectedItems": 180,
+    "protectedDifferences": {},
+    "priorRunDifferences": [],
+    "priorMissingRuns": [],
+    "taskConfigurationsUnchanged": true,
+    "activeTasks": [],
+    "newRuns": [
+      {
+        "id": 2112425268933046274,
+        "task_id": 2111504172530692098,
+        "task_code": "BASE_P01",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 208,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 208,
+        "deleted_count": 0,
+        "error_message": "P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050",
+        "started_at": "2026-10-20 14:06:45.745000",
+        "finished_at": "2026-10-20 14:06:45.974000"
+      },
+      {
+        "id": 2112425270786928641,
+        "task_id": 2111504175751917570,
+        "task_code": "BASE_P04",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 12632,
+        "inserted_count": 12605,
+        "updated_count": 0,
+        "unchanged_count": 27,
+        "deleted_count": 0,
+        "error_message": "P04_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P04_ORIGINAL_READ:3307;EXCLUDED_ACCOUNTS:26;ORPHAN_PROFILES:3",
+        "started_at": "2026-10-20 14:06:46.180000",
+        "finished_at": "2026-10-20 14:06:46.911000"
+      },
+      {
+        "id": 2112425274729574401,
+        "task_id": 2111470471713304577,
+        "task_code": "BASE_P08",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 612,
+        "inserted_count": 611,
+        "updated_count": 0,
+        "unchanged_count": 1,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:06:47.121000",
+        "finished_at": "2026-10-20 14:06:47.201000"
+      },
+      {
+        "id": 2112425275853647873,
+        "task_id": 2111470474389270529,
+        "task_code": "BASE_P10",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 59544,
+        "inserted_count": 59544,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:06:47.389000",
+        "finished_at": "2026-10-20 14:07:07.458000"
+      },
+      {
+        "id": 2112425360834441218,
+        "task_id": 2111407905813229570,
+        "task_code": "BASE_P11",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 8443,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:07:07.648000",
+        "finished_at": "2026-10-20 14:07:07.879000"
+      },
+      {
+        "id": 2112425362642186241,
+        "task_id": 2111435600580231169,
+        "task_code": "BASE_P12",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 34976,
+        "inserted_count": 34976,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:07:08.080000",
+        "finished_at": "2026-10-20 14:07:08.723000"
+      },
+      {
+        "id": 2112425366081515522,
+        "task_id": 2111504177542885378,
+        "task_code": "BASE_P13",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 99895,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P13_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P13_OUTSIDE_REVIEWED_PROJECT_SCOPE:2625;P13_PREVIEW_SOURCE_VALIDATED;WRITE_COUNTS_DEFERRED_UNTIL_EXECUTION",
+        "started_at": "2026-10-20 14:07:08.900000",
+        "finished_at": "2026-10-20 14:07:19.695000"
+      },
+      {
+        "id": 2112425412210470914,
+        "task_id": 2111504179094777858,
+        "task_code": "BASE_P14",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 480044,
+        "inserted_count": 478464,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P14_ORDER_REFERENCE_PENDING:1580",
+        "started_at": "2026-10-20 14:07:19.899000",
+        "finished_at": "2026-10-20 14:08:30.167000"
+      },
+      {
+        "id": 2112425707665633281,
+        "task_id": 2111504249399701506,
+        "task_code": "BASE_P15",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 4708483,
+        "inserted_count": 4708483,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED",
+        "started_at": "2026-10-20 14:08:30.339000",
+        "finished_at": "2026-10-20 14:12:36.007000"
+      },
+      {
+        "id": 2112426738885603329,
+        "task_id": 2111504250456666113,
+        "task_code": "BASE_P16",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 158871,
+        "inserted_count": 79429,
+        "updated_count": 0,
+        "unchanged_count": 79442,
+        "deleted_count": 0,
+        "error_message": "P16_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P16_ALIASES_REQUIRE_NEW_MASTERS:79442",
+        "started_at": "2026-10-20 14:12:36.202000",
+        "finished_at": "2026-10-20 14:14:47.271000"
+      },
+      {
+        "id": 2112427289358643202,
+        "task_id": 2111504251568156674,
+        "task_code": "BASE_P18",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 82676,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P18_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P18_COMPANY_AUTHORIZATION_PENDING:001=80374,002=1804,003=195;P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_PENDING:82381",
+        "started_at": "2026-10-20 14:14:47.445000",
+        "finished_at": "2026-10-20 14:14:58.103000"
+      },
+      {
+        "id": 2112427334816509953,
+        "task_id": 2111504252700618753,
+        "task_code": "BASE_P19",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 186118,
+        "inserted_count": 186118,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P19_EXTENSION_ATTRIBUTES_DEFERRED:shipment_status,shipment_status_updated_at,execution_status,execution_status_updated_at",
+        "started_at": "2026-10-20 14:14:58.281000",
+        "finished_at": "2026-10-20 14:15:05.839000"
+      },
+      {
+        "id": 2112427367251062786,
+        "task_id": 2111504298947014658,
+        "task_code": "BASE_P20",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 7818,
+        "inserted_count": 7818,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "started_at": "2026-10-20 14:15:06.015000",
+        "finished_at": "2026-10-20 14:15:14.705000"
+      },
+      {
+        "id": 2112427404450344962,
+        "task_id": 2111463419926470657,
+        "task_code": "BASE_P21",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1190,
+        "inserted_count": 1190,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable",
+        "started_at": "2026-10-20 14:15:14.884000",
+        "finished_at": "2026-10-20 14:15:14.925000"
+      },
+      {
+        "id": 2112427405406646273,
+        "task_id": 2111504342123180033,
+        "task_code": "BASE_P22",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 343858,
+        "inserted_count": 340882,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P22_DEPARTMENT_ID_POSTFILL_PENDING:-1;P22_ORDER_LINE_ID_POSTFILL_PENDING:-1;P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference;P22_ZERO_QUANTITY_PENDING:2976;P22_DEPARTMENT_SOURCE_MISSING_PENDING:14293;P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference",
+        "started_at": "2026-10-20 14:15:15.113000",
+        "finished_at": "2026-10-20 14:15:30.327000"
+      },
+      {
+        "id": 2112427469931819010,
+        "task_id": 2111463421356728322,
+        "task_code": "BASE_P23",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 35501,
+        "inserted_count": 35501,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:15:30.496000",
+        "finished_at": "2026-10-20 14:15:31.293000"
+      },
+      {
+        "id": 2112427474067402754,
+        "task_id": 2111463422476607489,
+        "task_code": "BASE_P24",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 81547,
+        "inserted_count": 81540,
+        "updated_count": 0,
+        "unchanged_count": 7,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:15:31.482000",
+        "finished_at": "2026-10-20 14:15:37.039000"
+      },
+      {
+        "id": 2112427498130124802,
+        "task_id": 2111463425983045633,
+        "task_code": "BASE_P25",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 462213,
+        "inserted_count": 462213,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:15:37.220000",
+        "finished_at": "2026-10-20 14:15:49.976000"
+      },
+      {
+        "id": 2112427552333115394,
+        "task_id": 2111480508636631041,
+        "task_code": "BASE_P30",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0",
+        "started_at": "2026-10-20 14:15:50.144000",
+        "finished_at": "2026-10-20 14:15:50.160000"
+      },
+      {
+        "id": 2112427553113255938,
+        "task_id": 2111504367108648961,
+        "task_code": "BASE_P31",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 381195,
+        "inserted_count": 381195,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P31_SOURCE_INTERVAL_PENDING:152",
+        "started_at": "2026-10-20 14:15:50.329000",
+        "finished_at": "2026-10-20 14:16:10.878000"
+      },
+      {
+        "id": 2112427640023429121,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1035329,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P33_TRANSFER_DEFERRED:2;P33_FORMAL_DEVICE_PENDING:1035329;P33_BLANK_ADDRESS_FILTERED_AFTER_READ:2386",
+        "started_at": "2026-10-20 14:16:11.050000",
+        "finished_at": "2026-10-20 14:18:34.113000"
+      },
+      {
+        "id": 2112428241000083457,
+        "task_id": 2111463678895382530,
+        "task_code": "BASE_P34",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 165801,
+        "inserted_count": 165801,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-20 14:18:34.336000",
+        "finished_at": "2026-10-20 14:18:38.263000"
+      },
+      {
+        "id": 2112428258494525442,
+        "task_id": 2111504369105137665,
+        "task_code": "BASE_P35",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1586578,
+        "inserted_count": 1586578,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change",
+        "started_at": "2026-10-20 14:18:38.506000",
+        "finished_at": "2026-10-20 14:19:40.793000"
+      },
+      {
+        "id": 2112428520672079874,
+        "task_id": 2111474184809000961,
+        "task_code": "BASE_P37",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 475468,
+        "inserted_count": 475468,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "error_message": "P37_LICENSE_CODE_EMPTY:sourceId=472122;P37_DEVICE_ASSOCIATION_PENDING:475468;P37_CONTRACT_ASSOCIATION_PENDING:475468",
+        "started_at": "2026-10-20 14:19:41.014000",
+        "finished_at": "2026-10-20 14:19:58.745000"
+      }
+    ],
+    "newPreviewCount": 24,
+    "newNonPreviewCount": 0,
+    "environment": {
+      "pid59284": 10736,
+      "flags": {
+        "--server.port=59284": true,
+        "--spring.profiles.active=local,dac": true,
+        "--spring.flyway.enabled=false": true,
+        "--flowable.database-schema-update=false": true,
+        "--spring.quartz.auto-startup=false": true,
+        "--spring.batch.job.enabled=false": true,
+        "--pms.bindings.backends.event-driven.enabled=false": true
+      },
+      "migrationContainers": [
+        {
+          "name": "npdms-domain-test-migrate-1",
+          "state": "exited"
+        }
+      ],
+      "verifiedAt": "2026-10-20T14:20:08.526211+08:00"
+    },
+    "sameRestoredRuntime": true,
+    "boundary": "Only formal login and 24 independent BASE preview calls plus read-only verification. Preview receipts/occupancy and normal authentication/audit bookkeeping are the only intended runtime writes. AUTO_INCREMENT counters of authentication/audit tables are tracked separately from DDL; business-table counter changes are not allowed. No original tasks, business DML, DDL, Flyway, migration, actual sync, source correction, test-database write or 59191 operation."
+  },
+  "runtime": {
+    "pid": 10736,
+    "jar": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p18-authorization-audit-20261020\\runtime-candidate-p18-auth\\yudao-server.jar",
+    "port": 59284,
+    "database": "npdms_reverify_20261014",
+    "redisDatabase": 14,
+    "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\runtime-sanitized.log",
+    "startedAt": "2026-10-20T14:05:23.916036"
+  },
+  "restoration": {
+    "initiallyStopped": true,
+    "frozenCandidateReused": true,
+    "failedFirstStartup": "DAC_ENDPOINT_REQUIRES_HTTPS; current session lacked inherited DAC runtime environment. Existing protected credentials and existing HTTPS endpoints restored in the dedicated launcher; no package or business-code change.",
+    "failedStartupEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-24-repreview-20261020\\startup-attempt-1"
+  },
+  "boundary": "Only 24 new BASE preview runs; all results are fresh, not reused previous runs. No migration, actual sync, formal input generation, source correction, original-task operation, test-database write or 59191 operation. Two approved P33 transfer rows remain deferred.",
+  "warningChanges": []
+}

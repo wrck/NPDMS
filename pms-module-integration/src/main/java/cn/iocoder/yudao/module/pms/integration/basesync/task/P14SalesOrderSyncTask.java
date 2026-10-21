@@ -12,16 +12,17 @@ import org.apache.ibatis.session.ResultHandler;
 import org.springframework.stereotype.Component;
 
 /** Orders and lines preserve business keys; nullable customer/product/company IDs are deferred. */
-@Component @RequiredArgsConstructor
+@Component @RequiredArgsConstructor @lombok.extern.slf4j.Slf4j
 public class P14SalesOrderSyncTask extends AbstractSyncTask<P14SalesOrderSyncTask.Source,P14SalesOrderSyncTask.Parameters> {
  private final TargetMapper mapper;
- public static final class Parameters { private final Map<OrderKey,OrderRow> orders=new HashMap<>(); }
+ public static final class Parameters { private final Map<OrderKey,OrderRow> orders=new HashMap<>(); private long pendingOrderReferences; }
  @Override protected Parameters createParameters(SyncContext<?> c){return new Parameters();}
  @Override public String taskCode(){return "BASE_P14";}
  @Override public String taskName(){return "ERP销售订单与订单行";}
  @Override public void work(SyncContext<Parameters> c){
   // Explicit full header snapshot: planned parent identities must remain available to line preview.
   syncData(c.forData("Order",false,false));syncData(c.forData("Line",false,true));
+  if(c.parameters().pendingOrderReferences>0)c.runState().warning("P14_ORDER_REFERENCE_PENDING:"+c.parameters().pendingOrderReferences);
  }
  @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
   if("Order".equals(b.context().dataName()))prepareOrders(b);else prepareLines(b);
@@ -38,6 +39,7 @@ public class P14SalesOrderSyncTask extends AbstractSyncTask<P14SalesOrderSyncTas
    protect(new Protection(old,binding));
    s.previous=binding==null?null:binding.fingerprint();s.action=SyncWriteAction.UNCHANGED;
    if(old!=null){
+    row.customInfo=old.customInfo;
     if(old.sourceUpdatedAt==null)fail("BOUND_SOURCE_VERSION_MISSING");int revision=row.sourceUpdatedAt.compareTo(old.sourceUpdatedAt);
     if(revision<0){s.order=old;c.parameters().orders.put(key(old),old);continue;}
     if(revision==0){if(!orderBusiness(old).equals(orderBusiness(row)))fail("ORDER_SAME_VERSION_CONFLICT");s.order=old;c.parameters().orders.put(key(old),old);continue;}
@@ -54,12 +56,20 @@ public class P14SalesOrderSyncTask extends AbstractSyncTask<P14SalesOrderSyncTas
    if(old.getTenantId()!=c.tenantId() || oldByKey.putIfAbsent(key(old),old)!=null)fail("LINE_TARGET_AMBIGUOUS");
   }
   for(var s:b.rows()){
-   validate(s);var row=s.line;var parent=c.parameters().orders.get(new OrderKey(row.sourceSystem,row.companyCode,row.orderType,row.orderNo));
-   if(parent==null)fail("MANDATORY_ORDER_MISSING");
-   row.orderId=parent.id; // Preview of a new parent keeps NULL; execution receives its actual inserted ID.
-   var old=oldByKey.get(key(row));var binding=bindings.get(s.key);protect(new Protection(old,binding));
+   validate(s);var row=s.line;var old=oldByKey.get(key(row));var binding=bindings.get(s.key);protect(new Protection(old,binding));
+   var parent=c.parameters().orders.get(new OrderKey(row.sourceSystem,row.companyCode,row.lineType,row.orderNo));
+   if(parent==null){
+    if(!c.preview())fail("MANDATORY_ORDER_MISSING");
+    if(old!=null || binding!=null)fail("BOUND_ORDER_SOURCE_MISSING");
+    row.orderId=null;row.orderType=null;s.action=null;
+    c.parameters().pendingOrderReferences=Math.incrementExact(c.parameters().pendingOrderReferences);
+    log.warn("P14_PREVIEW_ORDER_REFERENCE_PENDING:tenantId={},connectionId={},startedAt={},sourceIds={},sourceKey={},sourceSystem={},companyCode={},lineType={},orderNo={},lineNo={},orderQty={},openQty={}",c.tenantId(),c.connectionId(),c.startedAt(),s.originalSourceIds,s.key,row.sourceSystem,row.companyCode,row.lineType,row.orderNo,row.lineNo,row.orderQty,row.openQty);
+    continue;
+   }
+   row.orderId=parent.id;row.orderType=parent.orderType; // New preview parents have no fabricated target ID.
    s.previous=binding==null?null:binding.fingerprint();s.action=SyncWriteAction.UNCHANGED;
    if(old!=null){
+    row.customInfo=old.customInfo;
     if(old.sourceUpdatedAt==null)fail("BOUND_SOURCE_VERSION_MISSING");int revision=row.sourceUpdatedAt.compareTo(old.sourceUpdatedAt);
     if(revision<0){s.line=old;continue;}
     if(revision==0){if(!lineBusiness(old).equals(lineBusiness(row)))fail("LINE_SAME_VERSION_CONFLICT");s.line=old;continue;}
@@ -80,7 +90,7 @@ public class P14SalesOrderSyncTask extends AbstractSyncTask<P14SalesOrderSyncTas
   if(s.issue!=null)fail(s.issue);if(s.key==null || s.key.isBlank())fail("SOURCE_KEY_MISSING");
   if(s.order!=null){var r=s.order;checkIdentity(new OrderKey(r.sourceSystem,r.companyCode,r.orderType,r.orderNo));if(r.sourceUpdatedAt==null)fail("SOURCE_VERSION_MISSING");
    validateTextOrder(r);checkMillis(r.orderCreateTime);checkMillis(r.customerRequiredTime);checkMillis(r.sourceUpdatedAt);validateJson(r.customInfo);
-  }else{var r=s.line;checkIdentity(new OrderKey(r.sourceSystem,r.companyCode,r.orderType,r.orderNo));if(r.sourceUpdatedAt==null || r.lineNo==null || r.lineNo.isBlank())fail("LINE_IDENTITY_MISSING");
+  }else{var r=s.line;checkIdentity(new OrderKey(r.sourceSystem,r.companyCode,r.lineType,r.orderNo));if(r.sourceUpdatedAt==null || r.lineNo==null || r.lineNo.isBlank())fail("LINE_IDENTITY_MISSING");
    validateTextLine(r);checkMillis(r.sourceUpdatedAt);validateJson(r.customInfo);
    exactDecimal(r.orderQty==null?null:r.orderQty.stripTrailingZeros(),18,6);exactDecimal(r.openQty==null?null:r.openQty.stripTrailingZeros(),18,6);exactDecimal(r.deliveredQty==null?null:r.deliveredQty.stripTrailingZeros(),18,6);
    if(r.warrantyMonth!=null && r.warrantyMonth<0 || "0".equals(r.lineType) && (negative(r.orderQty)||negative(r.openQty)||negative(r.deliveredQty)))fail("QUANTITY_INVALID");
@@ -90,19 +100,19 @@ public class P14SalesOrderSyncTask extends AbstractSyncTask<P14SalesOrderSyncTas
  static void checkIdentity(OrderKey q){var system=q.sourceSystem;var company=q.companyCode;var type=q.orderType;var number=q.orderNo;if(!Set.of("SAP","D365","SMS").contains(Objects.toString(system,"")) || !Set.of("001","002","003","004").contains(Objects.toString(company,"")) || !Set.of("0","1").contains(Objects.toString(type,"")) || number==null || number.isBlank())fail("BUSINESS_IDENTITY_INVALID");}
  static void checkMillis(LocalDateTime t){if(t!=null && t.getNano()%1_000_000!=0)fail("TIME_PRECISION_INVALID");}
  static void validateJson(String value){if(value!=null)try{JsonUtils.parseTree(value);}catch(RuntimeException e){fail("CUSTOM_INFO_INVALID");}}
- @Override protected SyncCounts syncDataCount(SyncBatch<Source,Parameters> b){return SyncCounts.fromActions(b.rows(),Source::getAction);}
+ @Override protected SyncCounts syncDataCount(SyncBatch<Source,Parameters> b){var known=SyncCounts.fromActions(b.rows().stream().filter(s->s.action!=null).toList(),Source::getAction);return new SyncCounts(b.rows().size(),known.inserted(),known.updated(),known.unchanged(),known.deleted());}
  @Override protected void syncDataInsert(SyncBatch<Source,Parameters> b){super.syncDataInsert(b.matching(s->s.action==SyncWriteAction.INSERT));super.syncDataUpdate(b.matching(s->s.action==SyncWriteAction.UPDATE));}
  @Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){var order="Order".equals(b.context().dataName());
-  b.context().identities().saveAll(b.rows().stream().filter(s->s.action!=SyncWriteAction.UNCHANGED).map(s->new SyncIdentityStore.Save(order?"SALES_ORDER":"SALES_LINE",s.key,order?s.order.id:s.line.id,order?fingerprint(s.order):fingerprint(s.line),s.previous)).toList());
+  b.context().identities().saveAll(b.rows().stream().filter(s->s.action==SyncWriteAction.INSERT || s.action==SyncWriteAction.UPDATE).map(s->new SyncIdentityStore.Save(order?"SALES_ORDER":"SALES_LINE",s.key,order?s.order.id:s.line.id,order?fingerprint(s.order):fingerprint(s.line),s.previous)).toList());
  }
  static OrderKey key(OrderRow r){return new OrderKey(r.sourceSystem,r.companyCode,r.orderType,r.orderNo);}
- static LineKey key(LineRow r){return new LineKey(r.sourceSystem,r.companyCode,r.orderType,r.orderNo,r.lineNo);}
+ static LineKey key(LineRow r){return new LineKey(r.sourceSystem,r.companyCode,r.lineType,r.orderNo,r.lineNo);}
  static String fingerprint(OrderRow r){return SyncFingerprint.of(Arrays.asList(r.getId(),r.getTenantId(),r.getSourceSystem(),r.getSourceRecordKey(),r.getSourceVersion(),r.getCompanyId(),r.getCompanyCode(),r.getCompanyName(),r.getOrderType(),r.getOrderNo(),r.getSalesType(),r.getContractNo(),r.getExecutionNo(),r.getCustomerId(),r.getCustomerCode(),r.getCustomerName(),r.getSourceProjectName(),r.getOrderComment(),r.getOrderAmount()==null?null:r.getOrderAmount().stripTrailingZeros(),r.getCurrencyCode(),r.getAuthorityStatus(),r.getSourceLifecycleStatus(),r.getOrderCreateTime(),r.getCustomerRequiredTime(),cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncJson.canonicalJson(r.getCustomInfo()),r.getSourceSyncTime(),r.getSourceUpdatedAt(),r.getStatus(),r.getVersion(),r.getCreator(),r.getCreateTime(),r.getUpdater(),r.getUpdateTime(),r.getDeleted()));}
  static String fingerprint(LineRow r){return SyncFingerprint.of(Arrays.asList(r.getId(),r.getTenantId(),r.getOrderId(),r.getSourceSystem(),r.getSourceRecordKey(),r.getSourceVersion(),r.getCompanyId(),r.getCompanyCode(),r.getCompanyName(),r.getOrderType(),r.getOrderNo(),r.getLineNo(),r.getLineType(),r.getProductCode(),r.getProductModel(),r.getProductDesc(),cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncJson.canonicalJson(r.getCustomInfo()),r.getProductId(),r.getBundleCode(),r.getProfitCenter(),r.getRealExecutionNo(),r.getWarrantyMonth(),r.getCustomerId(),r.getCustomerCode(),r.getCustomerName(),r.getOrderQty()==null?null:r.getOrderQty().stripTrailingZeros(),r.getOpenQty()==null?null:r.getOpenQty().stripTrailingZeros(),r.getDeliveredQty()==null?null:r.getDeliveredQty().stripTrailingZeros(),r.getUnitCode(),r.getUnitScale(),r.getQuantityStatus(),r.getSourceLifecycleStatus(),r.getSourceSyncTime(),r.getSourceUpdatedAt(),r.getStatus(),r.getVersion(),r.getCreator(),r.getCreateTime(),r.getUpdater(),r.getUpdateTime(),r.getDeleted()));}
  static void fail(String code){throw new IllegalArgumentException("P14_"+code);}
- @lombok.Data public static class Source {private String key,issue,previous;private Integer expectedVersion;private SyncWriteAction action;private OrderRow order;private LineRow line;}
+ @lombok.Data public static class Source {private String key,issue,previous,originalSourceIds;private Integer expectedVersion;private SyncWriteAction action;private OrderRow order;private LineRow line;}
  public record OrderKey(String sourceSystem,String companyCode,String orderType,String orderNo){}
- public record LineKey(String sourceSystem,String companyCode,String orderType,String orderNo,String lineNo){}
+ public record LineKey(String sourceSystem,String companyCode,String lineType,String orderNo,String lineNo){}
  public record OrdersQuery(long tenantId,List<OrderKey> keys,boolean preview){}
  public record LinesQuery(long tenantId,List<LineKey> keys,boolean preview){}
  public interface SourceMapper {List<Source> selectOrder(SourceQuery<Parameters> query);void selectLine(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);}

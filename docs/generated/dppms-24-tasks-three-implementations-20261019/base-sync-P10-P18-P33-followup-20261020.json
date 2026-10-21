@@ -1,0 +1,260 @@
+{
+  "verifiedAt": "2026-10-20T01:17:01.433200+08:00",
+  "suiteStatus": {
+    "previewReady": 23,
+    "authorizationBlocked": 1,
+    "tasks": 24
+  },
+  "runs": {
+    "P10": {
+      "key": "P10",
+      "taskId": 2111470474389270529,
+      "apiCode": 0,
+      "counts": {
+        "read": 59544,
+        "inserted": 59544,
+        "updated": 0,
+        "unchanged": 0,
+        "deleted": 0
+      },
+      "publicError": null,
+      "run": {
+        "id": 2112228159594336257,
+        "task_id": 2111470474389270529,
+        "task_code": "BASE_P10",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 59544,
+        "inserted_count": 59544,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P10_EXECUTION_SCHEMA_REQUIRED:cus_customer_master.name:128->255",
+        "started_at": "2026-10-20 01:03:31.216000",
+        "finished_at": "2026-10-20 01:03:52.518000"
+      },
+      "seconds": 21.533
+    },
+    "P18": {
+      "key": "P18",
+      "taskId": 2111504251568156674,
+      "apiCode": 500,
+      "counts": null,
+      "publicError": "系统异常",
+      "run": {
+        "id": 2112228249985781762,
+        "task_id": 2111504251568156674,
+        "task_code": "BASE_P18",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P18_PROJECT_COMPANY_NOT_AUTHORIZED",
+        "started_at": "2026-10-20 01:03:52.760000",
+        "finished_at": "2026-10-20 01:04:05.024000"
+      },
+      "seconds": 12.419
+    },
+    "P33": {
+      "key": "P33",
+      "taskId": 2111504368203362306,
+      "apiCode": 0,
+      "counts": {
+        "read": 1035329,
+        "inserted": 0,
+        "updated": 0,
+        "unchanged": 0,
+        "deleted": 0
+      },
+      "publicError": null,
+      "run": {
+        "id": 2112230315961561090,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1035329,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P33_INSTALL_LOCATION_CAPACITY_PENDING:6111:255;P33_TRANSFER_DEFERRED:2;P33_FORMAL_DEVICE_PENDING:1035329;P33_BLANK_ADDRESS_FILTERED_AFTER_READ:2386",
+        "started_at": "2026-10-20 01:12:05.339000",
+        "finished_at": "2026-10-20 01:14:56.850000"
+      },
+      "seconds": 171.726
+    }
+  },
+  "P33Decisions": {
+    "emptyAddressesExcluded": 28388,
+    "sqlNullAndOrdinarySpacesExcluded": 26002,
+    "unicodeBlankAddressesExcluded": 2386,
+    "sourceRecordsBeforeFilter": 1063717,
+    "remainingNonemptyAddresses": 1035329,
+    "locationSnapshot": {
+      "fallbackLocation": "complete original installAddress"
+    },
+    "installLocation": "complete original installAddress",
+    "resolutionStatus": "UNRESOLVED",
+    "addressIdsAndAddressSnapshot": null,
+    "addressManagementCreation": false,
+    "capacityIssues": 6111,
+    "maximumSourceCharacters": 571,
+    "currentFormalCapacity": 255,
+    "deferredTransferIds": [
+      1161000,
+      1161002
+    ]
+  },
+  "externalPrerequisites": [
+    {
+      "task": "P10",
+      "item": "cus_customer_master.name",
+      "fact": "VARCHAR(128) NOT NULL; complete original name up to 255 already approved.",
+      "action": "A separate structural-write exception is required to apply the prepared single-column 255 patch. No DDL has been executed."
+    },
+    {
+      "task": "P18",
+      "item": "Current company authorization",
+      "fact": "Company001:80374;002:1804;003:195 relations. All19 current users and38 active scopes cover only DPTECH-DEMO.",
+      "action": "Provide a legitimate current actor/scope covering001/002/003 with the required operation permission through the existing authorization process. Do not infer authorization from whole-table migration approval or company existence."
+    },
+    {
+      "task": "P18",
+      "item": "Missing source company",
+      "fact": "Eight original project IDs48275..48282 have NULL company.",
+      "action": "Authoritative company data is required before actual insertion. The existing read-only missing-company registration rule remains."
+    },
+    {
+      "task": "P18",
+      "item": "Actual-write parents and multi-source binding capacity",
+      "fact": "Formal com_contract rows0; uk_int_base_sync_binding_target currently enforces one source per target/object.",
+      "action": "Formal same-tenant project/contract inputs and the already reviewed multi-source binding capacity are future actual-write prerequisites. This run creates neither parents nor schema."
+    },
+    {
+      "task": "P33",
+      "item": "install_location capacity",
+      "fact": "6111 complete values exceed255; longest571. User chose full text in both snapshot and install_location, with column capacity handled separately.",
+      "action": "Capacity work remains deferred; preview preserves/logs original values, actual execution rejects insufficient capacity. No truncation or NULL substitution."
+    },
+    {
+      "task": "P33",
+      "item": "Formal equipment and references",
+      "fact": "All1035329 retained records lack a matching formal equipment input in the preview; no target IDs or write counts are invented.",
+      "action": "Formal equipment/project/selection inputs are required before actual synchronization. They are not created during preview."
+    },
+    {
+      "task": "P33",
+      "item": "Previously deferred transfers",
+      "fact": "Of29 deferred originals,27 are empty-address records now excluded; source IDs1161000/1161002 remain.",
+      "action": "Retain as pending in read-only preview; do not implement transfers or request the already decided deferral again."
+    }
+  ],
+  "tests": {
+    "suites": [
+      {
+        "suite": "IndependentFoundationTasksTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "suite": "BaseSyncIsolationTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "suite": "BaseSyncMapperWiringTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "suite": "NewHistoryTaskMySqlTest",
+        "tests": 17,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "totalPassed": 39,
+    "nativeMysqlTemporaryTests": 17,
+    "unrelatedPriorFailures": {
+      "suite": "IndependentFoundationTasksTest",
+      "tests": [
+        "dictionaryMissingActorAndSecondStepConflictRollBackTheNewType",
+        "dictionaryPreviewUsesPlannedTypesAndReplayPreservesImmutableAudit"
+      ],
+      "reason": "P08 assertions expect user-ID lookup/rejection rather than the already approved original-username carry rule. P08 production code and those assertions are outside this P10/P18/P33 change and were not modified.",
+      "log": "last-three-20261020T005247.log"
+    },
+    "validationBoundary": "H2 and native MySQL connection-local temporary tables; separate authenticated runtime preview is required. No formal records are synchronized.",
+    "unicodeBlankFollowup": {
+      "nativeMysqlTemporaryTests": 17,
+      "failures": 0,
+      "errors": 0,
+      "log": "last-three-20261020T010941.log",
+      "sourceCollation": "utf8_general_ci",
+      "reproducedFailure": "P33-whitespace-baseline-failing-test.json",
+      "rule": "Filter all blank addresses, including U+3000, without adding SQL nesting. Existing 22 unaffected P10/isolation/wiring results are reused."
+    }
+  },
+  "protection": {
+    "verifiedAt": "2026-10-20T01:16:36.209435+08:00",
+    "originalRowsCompared": {
+      "int_sync_task": 46,
+      "int_sync_run": 209,
+      "int_sync_binding": 211
+    },
+    "originalRecordDifferences": {},
+    "protectedItemCount": 180,
+    "protectedDifferences": {},
+    "activeTasks": [],
+    "formalColumnCapacities": [
+      {
+        "TABLE_NAME": "cus_customer_master",
+        "COLUMN_NAME": "name",
+        "COLUMN_TYPE": "varchar(128)"
+      },
+      {
+        "TABLE_NAME": "imp_eng_installation",
+        "COLUMN_NAME": "install_location",
+        "COLUMN_TYPE": "varchar(255)"
+      }
+    ],
+    "environment": {
+      "pid59284": 53576,
+      "flags": {
+        "--server.port=59284": true,
+        "--spring.profiles.active=local,dac": true,
+        "--spring.flyway.enabled=false": true,
+        "--flowable.database-schema-update=false": true,
+        "--spring.quartz.auto-startup=false": true,
+        "--spring.batch.job.enabled=false": true,
+        "--pms.bindings.backends.event-driven.enabled=false": true
+      },
+      "migrationContainers": [
+        {
+          "name": "npdms-domain-test-migrate-1",
+          "state": "exited"
+        }
+      ],
+      "verifiedAt": "2026-10-20T01:16:38.856456+08:00"
+    },
+    "boundary": "Read-only verification of all original-task record fields using server-side per-column digests, protected counts/max IDs/original versions, unchanged physical capacities and disabled migration flags. Only independent preview metadata may be added. No DDL, migration, real synchronization or 59191 operation."
+  },
+  "runtime": {
+    "pid": 53576,
+    "jar": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p33-whitespace-followup-20261020\\runtime-candidate-p33-whitespace\\yudao-server.jar",
+    "port": 59284,
+    "database": "npdms_reverify_20261014",
+    "redisDatabase": 14,
+    "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p33-whitespace-followup-20261020\\runtime-sanitized.log",
+    "startedAt": "2026-10-20T01:10:35.981885"
+  },
+  "boundary": "Only new BASE_P10/BASE_P33 implementation changed. New BASE_P10/P18/P33 preview metadata only. Original tasks and histories retained, no dual-track comparison, formal DDL, migration, real sync, automatic jobs or59191 operation."
+}

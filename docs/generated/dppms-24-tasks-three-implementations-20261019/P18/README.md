@@ -1,6 +1,10 @@
 # P18 项目合同关系
 
-最新逐项核查与真实预览：[base-sync-four-blockers-audit-20261019](../base-sync-four-blockers-audit-20261019.md#p18)。当前新P18仍FAILED，完整具体缺项与Run见本轮报告；原任务及历史回执保持。
+2026-10-20当前结果：**新P18来源预览已闭合**，Run2112256535977709570 PREVIEW_READY/read82676/写入计划0，24项最新Run均PREVIEW_READY。公司范围是正式COM保护，曾被误用为整表来源预览前置；现在未授权公司只登记待输入、不查询其正式合同/关系，实际同步与既存项目管理权继续校验。具体代码、ADR依据、逐公司及8条缺失原记录见[本轮授权审计与真实预览](../P18-company-authorization-audit-preview-20261020.md)。
+
+此前2026-10-20三项续办的23/24阶段回执见[历史结果](../base-sync-P10-P18-P33-followup-20261020.md)；下列2026-10-19阶段内容按原时点保留，不能代替上方当前结果。
+
+此前逐项核查与真实预览：[base-sync-four-blockers-audit-20261019](../base-sync-four-blockers-audit-20261019.md#p18)。当时新P18为FAILED，原任务及历史失败回执保持。
 
 本轮正式输入依赖、追加裁决与真实终态：[P18](../base-sync-five-input-dependencies-20261019.md#p18)；[当前24项JSON](../base-sync-five-input-dependencies-20261019.json)。下方旧阶段回执保留其历史范围，当前C以本轮记录为准。
 

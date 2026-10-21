@@ -1,6 +1,14 @@
 # P33 普通安装历史及获准当前位置
 
-最新逐项核查与真实预览：[base-sync-four-blockers-audit-20261019](../base-sync-four-blockers-audit-20261019.md#p33)。当前新P33仍FAILED，完整具体缺项与Run见本轮报告；原任务及历史回执保持。
+2026-10-20最新：[SQL/Java匹配修复、正式前置与真实复验](../base-sync-execution-prerequisites-p33-sn-20261020.md)。SQL保留原请求requested_sn并返回正式设备id/sn，Java按原请求键定位、按正式ID/SN核对当前选择；不TRIM或修改原SN/指纹。7项专项原生检查及17项历史回归通过。新Run2112436849851088898 PREVIEW_READY/read1035329，190.174秒；正式设备缺项继续登记，两条串货暂缓。正式数据尚未具备匹配条件，27条尾空格来源的成功匹配分支由真实MySQL临时夹具验证。下方只读审计及较早回执保留各自范围。
+
+2026-10-20后续SN核查：[完整来源SN、目标匹配SQL和缺失范围](../P33-formal-device-reference-audit-20261020.md)。1,035,329条安装涉及1,018,498个原SN、14,135个原项目，2037批正式查询均无设备命中；首要原因是新P15/P30正式DPPMS发货/设备尚未写入。另单列26个尾空格SN／27条来源的SQL与Java键比较边界、1个内部码对应7个主SN、5个在三个发货SN字段未见原文的身份。本轮只读，没有新任务运行或代码修改，两条串货继续暂缓。
+
+2026-10-20当前结果：已按本轮明确授权，仅在npdms_reverify_20261014将install_location扩为VARCHAR(1024)。新BASE_P33 Run2112346937229496321 PREVIEW_READY/read1035329/写入计划0，容量告警已消除；正式设备引用待就绪和2条暂缓串货继续按既有结论登记，空地址过滤、原文双份承接及UNRESOLVED规则保持。执行收据、原有34条安装全字段保护及真实预览见[容量补丁及最终结果](../P10-P33-capacity-applied-preview-20261020.md)。
+
+此前2026-10-20实现及回执见[三项续办历史结果](../base-sync-P10-P18-P33-followup-20261020.md)，以下2026-10-19内容按原时点保留。
+
+此前逐项核查与真实预览：[base-sync-four-blockers-audit-20261019](../base-sync-four-blockers-audit-20261019.md#p33)。当时新P33为FAILED，原任务及历史失败回执保持。
 
 本轮正式输入依赖、追加裁决与真实终态：[P33](../base-sync-five-input-dependencies-20261019.md#p33)；[当前24项JSON](../base-sync-five-input-dependencies-20261019.json)。下方旧阶段回执保留其历史范围，当前C以本轮记录为准。
 

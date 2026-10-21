@@ -1,0 +1,617 @@
+{
+  "status": "P18_SOURCE_PREVIEW_READY_FORMAL_EXECUTION_PREREQUISITES_REMAIN",
+  "generatedAt": "2026-10-20T02:58:30.355912+08:00",
+  "worktree": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup",
+  "branch": "fix/dppms-migration-consolidation-20261012",
+  "conclusion": "Current company authorization is general COM protection under ADR-0038, not a ten-project whitelist. Applying it unconditionally to independently approved raw-source preview was a BASE_P18 implementation defect. Source-only preview now defers unavailable company scopes without querying their formal COM records or inventing writes. Actual execution and existing project management guards remain.",
+  "codeOrigins": {
+    "initial": "6a56c3f2f20f46a095dcb1d09439e06688a1c4dc",
+    "earlierPreviewDeferral": "dabeb0df6a6b5c64090aa79b900c00b34b15fd51"
+  },
+  "formalReferences": [
+    "docs/decisions/0038-commerce-contract-administrator-company-scope.md",
+    "docs/generated/2026-10-12-dppms-project-contract-relation-table-proposal.md",
+    "docs/coding/independent-base-sync.md"
+  ],
+  "authorizationAudit": {
+    "observedAt": "2026-10-20T02:50:45.261290+08:00",
+    "actorId": "1",
+    "activeActorScopes": [
+      {
+        "id": 992002600004,
+        "user_id": 1,
+        "company_id": 930800,
+        "company_code": "DPTECH-DEMO",
+        "department_id": 930801,
+        "department_code": "OFFICE-HZ-DEMO",
+        "scope_role": "PROJECT_MANAGER",
+        "status": 0,
+        "version": 0,
+        "effective_from": "2026-08-01 00:00:00",
+        "effective_to": null
+      },
+      {
+        "id": 993109400001,
+        "user_id": 1,
+        "company_id": 930800,
+        "company_code": "DPTECH-DEMO",
+        "department_id": 930801,
+        "department_code": "OFFICE-HZ-DEMO",
+        "scope_role": "SERVICE_MANAGER",
+        "status": 0,
+        "version": 0,
+        "effective_from": "2026-10-14 17:27:08.121000",
+        "effective_to": null
+      }
+    ],
+    "allUsersActiveScopeCompanies": [
+      {
+        "company_code": "DPTECH-DEMO",
+        "scopeRows": 38,
+        "users": 19
+      }
+    ],
+    "formalCompanies": [
+      {
+        "id": 2110786353998196738,
+        "code": "001",
+        "status": 0,
+        "version": 0
+      },
+      {
+        "id": 2110786353998196740,
+        "code": "002",
+        "status": 0,
+        "version": 0
+      },
+      {
+        "id": 2110786353998196739,
+        "code": "003",
+        "status": 0,
+        "version": 0
+      },
+      {
+        "id": 930800,
+        "code": "DPTECH-DEMO",
+        "status": 0,
+        "version": 0
+      }
+    ],
+    "sourceQueryRows": {
+      "selectContracts": 86780,
+      "selectGroups": 82261,
+      "selectMembers": 85472,
+      "selectProjects": 79429
+    },
+    "joinedOriginalRelations": 82676,
+    "businessRelations": 82381,
+    "originalRelationsByCompany": [
+      {
+        "companyCode": "001",
+        "originalRelations": 80650
+      },
+      {
+        "companyCode": "002",
+        "originalRelations": 1823
+      },
+      {
+        "companyCode": "003",
+        "originalRelations": 195
+      },
+      {
+        "companyCode": null,
+        "originalRelations": 8
+      }
+    ],
+    "relationsByCompany": [
+      {
+        "companyCode": "001",
+        "relations": 80374,
+        "authorized": false
+      },
+      {
+        "companyCode": "002",
+        "relations": 1804,
+        "authorized": false
+      },
+      {
+        "companyCode": "003",
+        "relations": 195,
+        "authorized": false
+      },
+      {
+        "companyCode": null,
+        "relations": 8,
+        "authorized": false
+      }
+    ],
+    "missingCompanyOriginals": [
+      {
+        "originalProjectId": 48275,
+        "contractNo": "31020210107A14",
+        "contractSourceId": 50747,
+        "memberId": 49844
+      },
+      {
+        "originalProjectId": 48276,
+        "contractNo": "31020210622A30",
+        "contractSourceId": 50748,
+        "memberId": 49845
+      },
+      {
+        "originalProjectId": 48277,
+        "contractNo": "31020210803A12",
+        "contractSourceId": 50749,
+        "memberId": 49846
+      },
+      {
+        "originalProjectId": 48278,
+        "contractNo": "31020211021A04",
+        "contractSourceId": 50750,
+        "memberId": 49847
+      },
+      {
+        "originalProjectId": 48279,
+        "contractNo": "31020211027A12",
+        "contractSourceId": 50751,
+        "memberId": 49848
+      },
+      {
+        "originalProjectId": 48280,
+        "contractNo": "31020211112A11",
+        "contractSourceId": 50752,
+        "memberId": 49849
+      },
+      {
+        "originalProjectId": 48281,
+        "contractNo": "31020220311A16",
+        "contractSourceId": 50753,
+        "memberId": 49850
+      },
+      {
+        "originalProjectId": 48282,
+        "contractNo": "31020220314A13",
+        "contractSourceId": 50754,
+        "memberId": 49851
+      }
+    ],
+    "missingCompanyProjects": [
+      {
+        "projectId": 48275,
+        "projectType": "10",
+        "projectCode": "16202020093001N-1",
+        "compId": null,
+        "originalCompanyId": null,
+        "compCode": null
+      },
+      {
+        "projectId": 48276,
+        "projectType": "10",
+        "projectCode": "16202221060805N-1",
+        "compId": null,
+        "originalCompanyId": null,
+        "compCode": null
+      },
+      {
+        "projectId": 48277,
+        "projectType": "10",
+        "projectCode": "16202221032704N-2",
+        "compId": null,
+        "originalCompanyId": null,
+        "compCode": null
+      },
+      {
+        "projectId": 48278,
+        "projectType": "10",
+        "projectCode": "16202620070207N-1",
+        "compId": null,
+        "originalCompanyId": null,
+        "compCode": null
+      },
+      {
+        "projectId": 48279,
+        "projectType": "10",
+        "projectCode": "16200221082304N-1",
+        "compId": null,
+        "originalCompanyId": null,
+        "compCode": null
+      },
+      {
+        "projectId": 48280,
+        "projectType": "10",
+        "projectCode": "16202421110402N-1",
+        "compId": null,
+        "originalCompanyId": null,
+        "compCode": null
+      },
+      {
+        "projectId": 48281,
+        "projectType": "10",
+        "projectCode": "16202421070802N-1",
+        "compId": null,
+        "originalCompanyId": null,
+        "compCode": null
+      },
+      {
+        "projectId": 48282,
+        "projectType": "10",
+        "projectCode": "16202421120802N-1",
+        "compId": null,
+        "originalCompanyId": null,
+        "compCode": null
+      }
+    ],
+    "formalContractRows": 0,
+    "independentBindingIndexes": [
+      {
+        "INDEX_NAME": "PRIMARY",
+        "NON_UNIQUE": 0,
+        "columnsInIndex": "id"
+      },
+      {
+        "INDEX_NAME": "uk_int_base_sync_binding_source",
+        "NON_UNIQUE": 0,
+        "columnsInIndex": "tenant_id,task_id,object_key,source_key"
+      },
+      {
+        "INDEX_NAME": "uk_int_base_sync_binding_target",
+        "NON_UNIQUE": 0,
+        "columnsInIndex": "tenant_id,task_id,object_key,target_id"
+      }
+    ],
+    "boundary": "Read-only source and target inspection. Current actor and every existing active scope checked; no account impersonation, permission grant, source inference, formal parent creation, index update, original binding adoption or original-task operation."
+  },
+  "p18Preview": {
+    "key": "P18",
+    "taskId": 2111504251568156674,
+    "apiCode": 0,
+    "counts": {
+      "read": 82676,
+      "inserted": 0,
+      "updated": 0,
+      "unchanged": 0,
+      "deleted": 0
+    },
+    "publicError": null,
+    "run": {
+      "id": 2112256535977709570,
+      "task_id": 2111504251568156674,
+      "task_code": "BASE_P18",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 82676,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P18_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P18_COMPANY_AUTHORIZATION_PENDING:001=80374,002=1804,003=195;P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_PENDING:82381",
+      "started_at": "2026-10-20 02:56:16.673000",
+      "finished_at": "2026-10-20 02:56:29.325000"
+    },
+    "seconds": 13.014
+  },
+  "latest24Runs": [
+    {
+      "id": 2111504172950122498,
+      "task_id": 2111504172530692098,
+      "task_code": "BASE_P01",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 208,
+      "error_message": "P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050"
+    },
+    {
+      "id": 2111517837875126273,
+      "task_id": 2111504175751917570,
+      "task_code": "BASE_P04",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 12632,
+      "error_message": "P04_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P04_ORIGINAL_READ:3307;EXCLUDED_ACCOUNTS:26;ORPHAN_PROFILES:3"
+    },
+    {
+      "id": 2112057345712537601,
+      "task_id": 2111470471713304577,
+      "task_code": "BASE_P08",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 612,
+      "error_message": null
+    },
+    {
+      "id": 2112228159594336257,
+      "task_id": 2111470474389270529,
+      "task_code": "BASE_P10",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 59544,
+      "error_message": "P10_EXECUTION_SCHEMA_REQUIRED:cus_customer_master.name:128->255"
+    },
+    {
+      "id": 2111436809982627841,
+      "task_id": 2111407905813229570,
+      "task_code": "BASE_P11",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 8443,
+      "error_message": null
+    },
+    {
+      "id": 2111436813732335618,
+      "task_id": 2111435600580231169,
+      "task_code": "BASE_P12",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 34976,
+      "error_message": null
+    },
+    {
+      "id": 2111515526163517442,
+      "task_id": 2111504177542885378,
+      "task_code": "BASE_P13",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 99895,
+      "error_message": "P13_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P13_OUTSIDE_REVIEWED_PROJECT_SCOPE:2625;P13_PREVIEW_SOURCE_VALIDATED;WRITE_COUNTS_DEFERRED_UNTIL_EXECUTION"
+    },
+    {
+      "id": 2112220196368515074,
+      "task_id": 2111504179094777858,
+      "task_code": "BASE_P14",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 480044,
+      "error_message": "P14_ORDER_REFERENCE_PENDING:1580"
+    },
+    {
+      "id": 2112161183148769281,
+      "task_id": 2111504249399701506,
+      "task_code": "BASE_P15",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 4706900,
+      "error_message": "P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED"
+    },
+    {
+      "id": 2112103755224866818,
+      "task_id": 2111504250456666113,
+      "task_code": "BASE_P16",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 158871,
+      "error_message": "P16_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P16_ALIASES_REQUIRE_NEW_MASTERS:79442"
+    },
+    {
+      "id": 2112256535977709570,
+      "task_id": 2111504251568156674,
+      "task_code": "BASE_P18",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 82676,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P18_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P18_COMPANY_AUTHORIZATION_PENDING:001=80374,002=1804,003=195;P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_PENDING:82381"
+    },
+    {
+      "id": 2112100784705585154,
+      "task_id": 2111504252700618753,
+      "task_code": "BASE_P19",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 186118,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P19_EXTENSION_ATTRIBUTES_DEFERRED:shipment_status,shipment_status_updated_at,execution_status,execution_status_updated_at"
+    },
+    {
+      "id": 2112059695747514370,
+      "task_id": 2111504298947014658,
+      "task_code": "BASE_P20",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 7818,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED"
+    },
+    {
+      "id": 2112053188930744321,
+      "task_id": 2111463419926470657,
+      "task_code": "BASE_P21",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 1190,
+      "error_message": "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable"
+    },
+    {
+      "id": 2112100511387959297,
+      "task_id": 2111504342123180033,
+      "task_code": "BASE_P22",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 343858,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P22_DEPARTMENT_ID_POSTFILL_PENDING:-1;P22_ORDER_LINE_ID_POSTFILL_PENDING:-1;P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference;P22_ZERO_QUANTITY_PENDING:2976;P22_DEPARTMENT_SOURCE_MISSING_PENDING:14293;P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference"
+    },
+    {
+      "id": 2111466972774600705,
+      "task_id": 2111463421356728322,
+      "task_code": "BASE_P23",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 35501,
+      "error_message": null
+    },
+    {
+      "id": 2112057587128287234,
+      "task_id": 2111463422476607489,
+      "task_code": "BASE_P24",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 81547,
+      "error_message": null
+    },
+    {
+      "id": 2111480444740603906,
+      "task_id": 2111463425983045633,
+      "task_code": "BASE_P25",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 462213,
+      "error_message": null
+    },
+    {
+      "id": 2111481771424153602,
+      "task_id": 2111480508636631041,
+      "task_code": "BASE_P30",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 0,
+      "error_message": "P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0"
+    },
+    {
+      "id": 2112123456126668802,
+      "task_id": 2111504367108648961,
+      "task_code": "BASE_P31",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 381195,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P31_SOURCE_INTERVAL_PENDING:152"
+    },
+    {
+      "id": 2112230315961561090,
+      "task_id": 2111504368203362306,
+      "task_code": "BASE_P33",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 1035329,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P33_INSTALL_LOCATION_CAPACITY_PENDING:6111:255;P33_TRANSFER_DEFERRED:2;P33_FORMAL_DEVICE_PENDING:1035329;P33_BLANK_ADDRESS_FILTERED_AFTER_READ:2386"
+    },
+    {
+      "id": 2111480509467103233,
+      "task_id": 2111463678895382530,
+      "task_code": "BASE_P34",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 165801,
+      "error_message": null
+    },
+    {
+      "id": 2112116707562823682,
+      "task_id": 2111504369105137665,
+      "task_code": "BASE_P35",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 1586578,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change"
+    },
+    {
+      "id": 2111480525451595777,
+      "task_id": 2111474184809000961,
+      "task_code": "BASE_P37",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 475468,
+      "error_message": "P37_LICENSE_CODE_EMPTY:sourceId=472122;P37_DEVICE_ASSOCIATION_PENDING:475468;P37_CONTRACT_ASSOCIATION_PENDING:475468"
+    }
+  ],
+  "newRunsThisTurn": [
+    "BASE_P18 preview only"
+  ],
+  "tests": {
+    "reports": [
+      {
+        "class": "OriginalIdentityPolicyTest",
+        "tests": 13,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "BaseSyncIsolationTest",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "class": "BaseSyncMapperWiringTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "total": 30,
+    "boundary": "Independent task identity/company authorization regressions, tenant/permission/preview isolation, Mapper wiring. No actual synchronization."
+  },
+  "protection": {
+    "verifiedAt": "2026-10-20T02:56:57.018594+08:00",
+    "originalRowsCompared": {
+      "int_sync_task": 46,
+      "int_sync_run": 209,
+      "int_sync_binding": 211
+    },
+    "originalRecordDifferences": {},
+    "protectedItemCount": 180,
+    "protectedDifferences": {},
+    "activeTasks": [],
+    "formalColumnCapacities": [
+      {
+        "TABLE_NAME": "cus_customer_master",
+        "COLUMN_NAME": "name",
+        "COLUMN_TYPE": "varchar(128)"
+      },
+      {
+        "TABLE_NAME": "imp_eng_installation",
+        "COLUMN_NAME": "install_location",
+        "COLUMN_TYPE": "varchar(255)"
+      }
+    ],
+    "environment": {
+      "pid59284": 25036,
+      "flags": {
+        "--server.port=59284": true,
+        "--spring.profiles.active=local,dac": true,
+        "--spring.flyway.enabled=false": true,
+        "--flowable.database-schema-update=false": true,
+        "--spring.quartz.auto-startup=false": true,
+        "--spring.batch.job.enabled=false": true,
+        "--pms.bindings.backends.event-driven.enabled=false": true
+      },
+      "migrationContainers": [
+        {
+          "name": "npdms-domain-test-migrate-1",
+          "state": "exited"
+        }
+      ],
+      "verifiedAt": "2026-10-20T02:56:59.428087+08:00"
+    },
+    "boundary": "Read-only verification of all original-task record fields using server-side per-column digests, protected counts/max IDs/original versions, unchanged physical capacities and disabled migration flags. Only independent preview metadata may be added. No DDL, migration, real synchronization or 59191 operation."
+  },
+  "remainingFormalExecutionInputs": [
+    {
+      "input": "Current authorized actor scope for 001/002/003",
+      "businessRelations": 82373,
+      "originalRelations": 82668,
+      "handling": "Use an existing valid formal actor or normal authorized scope lifecycle; no automatic grant, impersonation, or fallback to a different company."
+    },
+    {
+      "input": "Authoritative company fact for original projects 48275..48282",
+      "businessRelations": 8,
+      "handling": "Authoritative source company or verified same-ID formal-project company; do not infer from contract number."
+    },
+    {
+      "input": "Same-tenant formal contracts matching company and exact contract number",
+      "currentFormalContractRows": 0,
+      "handling": "Formal source input must exist and be unique before actual relation writes; no true synchronization to populate it in this turn."
+    },
+    {
+      "input": "Actual same-ID formal parent projects and current MANAGE scope",
+      "handling": "Keep BaseSyncProjectReferences validation; source preview IDs are not real parent verification."
+    },
+    {
+      "input": "Independent binding multi-source target capacity",
+      "currentIndex": "uk_int_base_sync_binding_target(tenant_id,task_id,object_key,target_id) UNIQUE",
+      "handling": "Current schema allows only one source per object/target and is rejected before real writes; no index or migration change this turn."
+    }
+  ],
+  "deferredCapacities": {
+    "P10": "cus_customer_master.name VARCHAR(128); approved 255 rule, physical capacity deferred by user",
+    "P33": "imp_eng_installation.install_location VARCHAR(255); preserve full raw text and fallbackLocation snapshot, capacity deferred by user"
+  },
+  "artifacts": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p18-authorization-audit-20261020",
+  "boundary": "Only BASE_P18 product class family changed and reloaded on 59284 under existing authorization. P18 source and target XML unchanged. Original tasks and all records preserved. No DDL, migration, true synchronization, company grant, source write, test-database write or 59191 operation. Automatic migration and jobs disabled. Latest 24 source-preview receipts do not certify readiness for formal writes."
+}

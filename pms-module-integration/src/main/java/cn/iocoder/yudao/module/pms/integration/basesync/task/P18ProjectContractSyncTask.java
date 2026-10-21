@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 public class P18ProjectContractSyncTask extends AbstractSyncTask<P18ProjectContractSyncTask.Source,P18ProjectContractSyncTask.Parameters> {
  private final TargetMapper mapper;private final BaseSyncProjectReferences projects;private final OrganizationScopeApi organization;
  public record Parameters(Set<String> companies){}
- @Override protected Parameters createParameters(SyncContext<?> c){var scopes=organization.getActiveScopes(c.actorId());if(scopes==null || scopes.isEmpty())fail("AUTHORIZED_COMPANIES_EMPTY");return new Parameters(scopes.stream().filter(s->s.getId()!=null&&s.getVersion()!=null).map(s->s.getCompanyCode()).filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet()));}
+ @Override protected Parameters createParameters(SyncContext<?> c){var scopes=organization.getActiveScopes(c.actorId());if(scopes==null || scopes.isEmpty()){if(!c.preview())fail("AUTHORIZED_COMPANIES_EMPTY");return new Parameters(Set.of());}return new Parameters(scopes.stream().filter(s->s.getId()!=null&&s.getVersion()!=null).map(s->s.getCompanyCode()).filter(Objects::nonNull).collect(java.util.stream.Collectors.toSet()));}
  @Override public String taskCode(){return "BASE_P18";}
  @Override public String taskName(){return "项目合同关系历史";}
  @Override public Set<String> requiredPermissions(){return Set.of("pms:commerce:contract:relate");}
@@ -58,23 +58,27 @@ public class P18ProjectContractSyncTask extends AbstractSyncTask<P18ProjectContr
  }
  @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
   var c=b.context();var canonical=b.rows().stream().map(s->s.originalProjectId.toString()).distinct().toList();var refs=new HashMap<String,BaseSyncProjectReferences.Identity>();
-  for(var s:b.rows()){s.previewReferencePending=false;s.formalContractId=null;}
+  for(var s:b.rows()){s.previewReferencePending=false;s.formalProjectId=null;s.formalContractId=null;s.target=null;s.action=null;}
   for(int i=0;i<canonical.size();i+=1000)refs.putAll(projects.resolve(new BaseSyncProjectReferences.Query(c.tenantId(),c.actorId(),c.connectionId(),canonical.subList(i,Math.min(i+1000,canonical.size())),c.preview())));
   var business=new LinkedHashMap<String,Source>();for(var s:b.rows())business.putIfAbsent(s.businessKey(),s);
   var sourceKeys=b.rows().stream().map(Source::sourceKey).toList();var originals=new HashMap<String,SyncIdentityStore.Identity>();
   for(int i=0;i<sourceKeys.size();i+=500)originals.putAll(c.identities().findByKeys(new SyncIdentityStore.Query("RELATION_ORIGINAL",sourceKeys.subList(i,Math.min(i+500,sourceKeys.size())))));
   var businessKeys=new ArrayList<>(business.keySet());var bindings=new HashMap<String,SyncIdentityStore.Identity>();
   for(int i=0;i<businessKeys.size();i+=500)bindings.putAll(c.identities().findByKeys(new SyncIdentityStore.Query("RELATION_BUSINESS",businessKeys.subList(i,Math.min(i+500,businessKeys.size())))));
-  var contractKeys=new ArrayList<ContractKey>();long missingCompanies=0,pendingContracts=0;
+  var contractKeys=new ArrayList<ContractKey>();var pendingCompanies=new TreeMap<String,Long>();long missingCompanies=0,pendingContracts=0;
   for(var s:business.values()){var p=refs.get(s.originalProjectId.toString());s.companyCode=s.originalCompanyCode==null?p.companyCode():cn.iocoder.yudao.module.pms.platform.support.migration.DppmsCompanyCodeConverter.fromSource(s.originalCompanyCode);
    if(p.version()!=null&&!Objects.equals(p.projectCode(),s.originalProjectCode))fail("PROJECT_CODE_DIFFERS_FROM_SOURCE");
    if(p.companyCode()!=null&&!Objects.equals(p.companyCode(),s.companyCode))fail("PROJECT_COMPANY_DIFFERS_FROM_SOURCE");
    if(s.companyCode==null){if(!c.preview())fail("PROJECT_COMPANY_NOT_AUTHORIZED");missingCompanies++;}
-   else{if(!c.parameters().companies.contains(s.companyCode))fail("PROJECT_COMPANY_NOT_AUTHORIZED");contractKeys.add(new ContractKey(s.companyCode,s.contractNo));}}
+   else if(!c.parameters().companies.contains(s.companyCode)){if(!c.preview())fail("PROJECT_COMPANY_NOT_AUTHORIZED");s.previewReferencePending=true;pendingCompanies.merge(s.companyCode,1L,Long::sum);}
+   else contractKeys.add(new ContractKey(s.companyCode,s.contractNo));}
   var contracts=new HashMap<ContractKey,Contract>();
   for(int i=0;i<contractKeys.size();i+=60)for(var contract:mapper.selectContracts(new ContractsQuery(c.tenantId(),contractKeys.subList(i,Math.min(i+60,contractKeys.size())),c.preview()))){var key=new ContractKey(contract.companyCode,contract.contractNo);if(!contractKeys.contains(key) || contract.deleted!=0 || contracts.putIfAbsent(key,contract)!=null)fail("CONTRACT_NOT_EXACTLY_UNIQUE");}
   var targetKeys=new ArrayList<RelationKey>();
-  for(var s:business.values()){var p=refs.get(s.originalProjectId.toString());var contract=contracts.get(new ContractKey(s.companyCode,s.contractNo));s.formalProjectId=p.id();
+  for(var s:business.values()){
+   // Whole-table source preview does not grant access to a company's formal COM data.
+   if(s.previewReferencePending){if(bindings.containsKey(s.businessKey()))fail("BOUND_RELATION_COMPANY_AUTHORIZATION_REQUIRED");pendingContracts++;continue;}
+   var p=refs.get(s.originalProjectId.toString());var contract=contracts.get(new ContractKey(s.companyCode,s.contractNo));s.formalProjectId=p.id();
    if(contract==null){if(!c.preview())fail("FORMAL_CONTRACT_MISSING:"+s.contractNo);if(bindings.containsKey(s.businessKey()))fail("BOUND_CONTRACT_INPUT_MISSING");s.previewReferencePending=true;s.target=null;s.action=null;pendingContracts++;continue;}
    s.formalContractId=contract.id;targetKeys.add(new RelationKey(p.id(),contract.id));}
   var current=new HashMap<RelationKey,Row>();
@@ -91,6 +95,7 @@ public class P18ProjectContractSyncTask extends AbstractSyncTask<P18ProjectContr
    if(s!=chosen)s.action=SyncWriteAction.UNCHANGED;s.target=chosen.target;
    var previous=originals.get(s.sourceKey());if(previous!=null && (previous.targetId()!=s.target.id || !previous.fingerprint().equals(originalFingerprint(s))))fail("ORIGINAL_RELATION_CHANGED");s.newOriginal=previous==null;
   }
+  if(!pendingCompanies.isEmpty())c.runState().warning("P18_COMPANY_AUTHORIZATION_PENDING:"+pendingCompanies.entrySet().stream().map(e->e.getKey()+"="+e.getValue()).collect(java.util.stream.Collectors.joining(",")));
   if(missingCompanies>0)c.runState().warning("P18_COMPANY_SOURCE_PENDING:"+missingCompanies);if(pendingContracts>0)c.runState().warning("P18_CONTRACT_REFERENCE_PENDING:"+pendingContracts);
  }
  record Plan(Source source,SyncContext<Parameters> context){}

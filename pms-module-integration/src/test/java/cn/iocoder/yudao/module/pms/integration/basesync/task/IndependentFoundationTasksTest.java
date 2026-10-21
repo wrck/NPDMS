@@ -56,7 +56,7 @@ class IndependentFoundationTasksTest {
     P10CrmCustomerSyncTask.CustomerSource customer(){var row=new P10CrmCustomerSyncTask.CustomerSource();row.setSourceKey("account-1");row.setCode("CUS-1");row.setName("原客户");row.setErpCustomerCode("ERP-1");row.setSourceVersion(time.toString());row.setDataAsOf(time);row.setLifecycleStatus("ENABLED");return row;}
     P10CrmCustomerSyncTask customerTask(){
         var mapper=mock(P10CrmCustomerSyncTask.TargetMapper.class,org.mockito.AdditionalAnswers.delegatesTo(target.getMapper(P10CrmCustomerSyncTask.TargetMapper.class)));
-        doReturn(1).when(mapper).erpColumnReady();return new P10CrmCustomerSyncTask(mapper);
+        doReturn(1).when(mapper).erpColumnReady();doReturn(255).when(mapper).nameColumnCapacity();return new P10CrmCustomerSyncTask(mapper);
     }
     @Test void customerPreviewAndRealVersionedReplayUseOnlyNewBindings(){
         var task=customerTask();var row=customer();customerSource(List.of(row));
@@ -109,5 +109,31 @@ class IndependentFoundationTasksTest {
         var row=customer();row.setErpCustomerCode("E".repeat(51));assertThrows(IllegalArgumentException.class,()->P10CrmCustomerSyncTask.validate(row));
         row.setErpCustomerCode(null);row.setAddress("A".repeat(256));assertThrows(IllegalArgumentException.class,()->P10CrmCustomerSyncTask.validate(row));
         row.setAddress(null);row.setDataAsOf(time.plusNanos(1));assertThrows(IllegalArgumentException.class,()->P10CrmCustomerSyncTask.validate(row));
+    }
+    @Test void customerApprovedNameCapacityPreservesTheWholeNameAndRejectsBeyond255(){
+        var task=customerTask();var row=customer();row.setName("客".repeat(255));customerSource(List.of(row));
+        assertEquals(new SyncCounts(1,1,0,0,0),run(task,true));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM cus_customer_master",Integer.class));
+        assertEquals(row.getName(),row.getTarget().getName());
+        assertEquals(new SyncCounts(1,1,0,0,0),run(task,false));
+        assertEquals(row.getName(),jdbc.queryForObject("SELECT name FROM cus_customer_master",String.class));
+        assertEquals(new SyncCounts(1,0,0,1,0),run(task,false));
+        row.setName("客".repeat(256));
+        assertThrows(IllegalArgumentException.class,()->run(task,true));
+        assertEquals("客".repeat(255),jdbc.queryForObject("SELECT name FROM cus_customer_master",String.class));
+    }
+    @Test void customerPreviewReportsUnappliedCapacityWhileActualExecutionStillRefuses(){
+        var mapper=mock(P10CrmCustomerSyncTask.TargetMapper.class,org.mockito.AdditionalAnswers.delegatesTo(target.getMapper(P10CrmCustomerSyncTask.TargetMapper.class)));
+        doReturn(1).when(mapper).erpColumnReady();doReturn(128).when(mapper).nameColumnCapacity();
+        var task=new P10CrmCustomerSyncTask(mapper);var row=customer();row.setName("客".repeat(143));customerSource(List.of(row));
+        var context=context(true);
+        assertEquals(new SyncCounts(1,1,0,0,0),transaction.execute(status->task.execute(context)));
+        assertTrue(context.runState().warnings().contains("P10_EXECUTION_SCHEMA_REQUIRED:cus_customer_master.name:128->255"));
+        assertEquals(row.getName(),row.getTarget().getName());
+        assertTrue(assertThrows(IllegalStateException.class,()->run(task,false)).getMessage().startsWith("P10_TARGET_NAME_CAPACITY_REQUIRED:"));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM cus_customer_master",Integer.class));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM cus_customer_external_mapping",Integer.class));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM independent_binding",Integer.class));
+        verify(nativeSource,times(1)).select(anyString(),any(),any(ResultHandler.class));
     }
 }

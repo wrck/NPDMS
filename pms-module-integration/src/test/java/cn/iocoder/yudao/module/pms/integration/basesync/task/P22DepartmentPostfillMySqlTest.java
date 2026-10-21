@@ -159,7 +159,7 @@ class P22DepartmentPostfillMySqlTest extends RemainingTaskMySqlSupport {
             jdbc.update("INSERT INTO int_base_sync_run VALUES(20,1,5,3,'BASE_P14','COMPLETED',FALSE,FALSE)");
         }
         jdbc.update("INSERT INTO com_sales_order(id,tenant_id,source_system,company_code,order_type,order_no,status,creator,updater) VALUES(?,1,?,'001',?,'O','ENABLED','original','original')",50000+id,system,type);
-        jdbc.update("INSERT INTO com_sales_order_line(id,tenant_id,order_id,source_system,source_record_key,source_version,company_code,order_type,order_no,line_no,product_code,order_qty,unit_scale,quantity_status,status,creator,updater) VALUES(?,1,?,?,?,'v1','001',?,'O','1','ITEM',1,6,'PENDING_AUTHORITY','ENABLED','original','original')",id,50000+id,system,"DPPMS|"+system+"|001|"+type+"|O|1",type);
+        jdbc.update("INSERT INTO com_sales_order_line(id,tenant_id,order_id,source_system,source_record_key,source_version,company_code,order_type,line_type,order_no,line_no,product_code,order_qty,unit_scale,quantity_status,status,creator,updater) VALUES(?,1,?,?,?,'v1','001',?,?,'O','1','ITEM',1,6,'PENDING_AUTHORITY','ENABLED','original','original')",id,50000+id,system,"DPPMS|"+system+"|001|"+type+"|O|1",type,type);
         if(ownBinding)jdbc.update("INSERT INTO int_base_sync_binding(id,tenant_id,task_id,object_key,source_key,target_id,fingerprint,last_run_id) VALUES(?,1,5,'SALES_LINE',SHA2(CAST(JSON_ARRAY(?,'001',?,'O','1') AS CHAR),256),?,'a',20)",id,system,type,id);
         copyOrderMetadata();
     }
@@ -172,6 +172,27 @@ class P22DepartmentPostfillMySqlTest extends RemainingTaskMySqlSupport {
         assertEquals(2,run(task(rows,()->{}),true).unchanged());
         jdbc.update("UPDATE com_delivery_scope SET order_line_id=88,update_time=update_time");
         assertTrue(assertThrows(IllegalArgumentException.class,()->run(task(rows,()->{}),true)).getMessage().contains("ORDER_LINE_IDENTITY_CHANGED"));
+    }
+    @Test void orderPostfillUsesTheApprovedLineTypeBindingWhileKeepingTheActualParentType(){
+        orderLine(50,"SAP","0",true);
+        jdbc.update("UPDATE com_sales_order_line SET line_type='1' WHERE id=50");
+        jdbc.update("UPDATE int_base_sync_binding SET source_key=SHA2(CAST(JSON_ARRAY('SAP','001','1','O','1') AS CHAR),256) WHERE id=50");
+        copyOrderMetadata();
+        var rows=List.of(row(1,"OFFICE"));
+        assertEquals(1,run(task(rows,()->{}),false).inserted());
+        assertEquals(50L,jdbc.queryForObject("SELECT order_line_id FROM com_delivery_scope",Long.class));
+        assertEquals("0",jdbc.queryForObject("SELECT order_type FROM com_delivery_scope",String.class));
+        assertEquals(1,run(task(rows,()->{}),true).unchanged());
+        verify(mapper,times(1)).backfillOrderLineIds(any());
+    }
+    @Test void aParentTypeHashCannotStandInForTheIndependentLineTypeBinding(){
+        orderLine(50,"SAP","0",true);
+        jdbc.update("UPDATE com_sales_order_line SET line_type='1' WHERE id=50");
+        copyOrderMetadata();
+        assertTrue(mapper.selectOwnedOrderLines(new P22ProductScopeSyncTask.OwnedLinesQuery(1,3,List.of(new P22ProductScopeSyncTask.OrderKey("001","O","1","ITEM")),true)).isEmpty());
+        insertScope(201,1,1,10,-1,"OFFICE");
+        assertEquals(0,mapper.backfillOrderLineIds(new P22ProductScopeSyncTask.CurrentRunQuery(1,3)));
+        assertEquals(-1L,jdbc.queryForObject("SELECT order_line_id FROM com_delivery_scope",Long.class));
     }
     @Test void orderPostfillCannotTouchOtherTenantsTasksRunsConnectionsOrPositiveIds() throws Exception {
         orderLine(50,"SAP","0",true);
