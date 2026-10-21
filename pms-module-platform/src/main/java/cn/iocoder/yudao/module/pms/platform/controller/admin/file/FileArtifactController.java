@@ -63,6 +63,26 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE
 @RequiredArgsConstructor
 public class FileArtifactController {
 
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.platform.service.file.FilePreviewService previewService;
+
+    @PostMapping("/files/{artifactId}/preview-content")
+    @Operation(summary = "读取精确版本在线预览内容，Word保留分页转换为PDF")
+    @PreAuthorize("@ss.hasPermission('pms:file:preview')")
+    public org.springframework.http.ResponseEntity<byte[]> previewContent(@PathVariable Long artifactId,
+            @Valid @RequestBody FileAccessTicketReqVO request) {
+        return withTrustedTenant(() -> {
+            var result = previewService.preview(new FileAccessTicketService.AccessCommand(
+                    TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), artifactId,
+                    request.getVersionNo(), request.getOperationCode(), request.getOwnerContext(), request.getObjectType(),
+                    request.getObjectId(), request.getPurposeCode(), request.getReferenceKey()));
+            return org.springframework.http.ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.parseMediaType(result.mediaType()))
+                    .header("Cache-Control", "no-store").header("X-Content-Type-Options", "nosniff")
+                    .body(result.bytes());
+        });
+    }
+
     private final FileUploadApplicationService uploadService;
     private final FileQueryService queryService;
     private final FileAccessTicketService accessTicketService;

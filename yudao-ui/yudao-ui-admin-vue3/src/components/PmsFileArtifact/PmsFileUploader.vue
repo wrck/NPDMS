@@ -48,6 +48,7 @@ import type { FileBusinessKey } from '@/api/pms/platform/file'
 import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { FileSelection } from './types'
 import { resolveFileUploadMode } from './useFileSlotState'
+import { fileUploadMediaType } from './fileMediaType'
 
 const props = withDefaults(
   defineProps<
@@ -138,7 +139,7 @@ const submit = async () => {
           fileName: file.name,
           categoryCode: props.categoryCode,
           declaredSizeBytes: file.size,
-          declaredMediaType: file.type || 'application/octet-stream'
+          declaredMediaType: fileUploadMediaType(file)
         },
         attempt.value.initKey
       ))

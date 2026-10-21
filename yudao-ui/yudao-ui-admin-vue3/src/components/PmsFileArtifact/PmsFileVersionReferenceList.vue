@@ -50,11 +50,12 @@
     </div>
   </div>
   <PmsFileVersionReferenceHistory ref="historyRef" />
+  <PmsFilePreviewDialog ref="previewRef" />
 </template>
 
 <script setup lang="ts">
-import { useMessage } from '@/hooks/web/useMessage'
 import download from '@/utils/download'
+import PmsFilePreviewDialog from './PmsFilePreviewDialog.vue'
 import * as FileApi from '@/api/pms/platform/file/version-reference'
 import type { FileArtifactVO } from '@/api/pms/platform/file/version-reference'
 import type { FileAccessOperation, FileBusinessKey } from '@/api/pms/platform/file'
@@ -69,11 +70,11 @@ const props = defineProps<
 const emit = defineEmits<{
   loaded: [artifact: FileArtifactVO]
 }>()
-const message = useMessage()
 const loading = ref(false)
 const artifact = ref<FileArtifactVO>()
 const errorText = ref('')
 const downloading = ref(false)
+const previewRef = ref<InstanceType<typeof PmsFilePreviewDialog>>()
 const historyRef = ref<InstanceType<typeof PmsFileVersionReferenceHistory>>()
 const businessKey = computed<FileBusinessKey>(() => ({
   ownerContext: props.ownerContext,
@@ -111,11 +112,17 @@ const load = async () => {
 const openAccess = async (operation: FileAccessOperation) => {
   if (!artifact.value || downloading.value) return
   const selected = artifact.value
-  const target = operation === 'PREVIEW' ? window.open('about:blank', '_blank') : null
-  if (operation === 'PREVIEW' && !target) return message.warning('浏览器已阻止新窗口，请允许弹窗后重试')
-  if (target) target.opener = null
-  downloading.value = operation === 'DOWNLOAD'
+  const versionNo = props.versionNo || selected.reference.versionNo
+  const selectedKey = { ...businessKey.value }
   errorText.value = ''
+  if (operation === 'PREVIEW') {
+    await previewRef.value?.open({
+      title: `${selected.name} · V${versionNo}`,
+      loadContent: () => FileApi.getPreviewContent(selected.artifactId, versionNo, selectedKey)
+    })
+    return
+  }
+  downloading.value = true
   try {
     const ticket = await FileApi.createAccessTicket(
       selected.artifactId,
@@ -130,14 +137,9 @@ const openAccess = async (operation: FileAccessOperation) => {
       const response = await fetch(ticket.shortLivedUrl, { credentials: 'omit' })
       if (!response.ok) throw new Error('FILE_DOWNLOAD_FAILED')
       download.file(await response.blob(), selected.name)
-    } else {
-      target!.location.replace(ticket.shortLivedUrl)
     }
   } catch {
-    target?.close()
-    errorText.value = operation === 'DOWNLOAD'
-      ? '文件下载未完成，请检查权限、存储连接及跨域配置后重试。'
-      : '文件预览未完成，请刷新文件信息后重试。'
+    errorText.value = '文件下载未完成，请检查权限、存储连接及跨域配置后重试。'
   } finally {
     downloading.value = false
   }
@@ -146,8 +148,9 @@ const statusLabel = (status: string) =>
   ({ ACTIVE: '已绑定', DETACHED: '已解绑', ARCHIVED: '已归档' })[status] || status
 
 watch(
-  () => [props.artifactId, props.versionNo, props.objectId, props.referenceKey],
+  () => [props.artifactId, props.versionNo, businessKey.value],
   () => {
+    previewRef.value?.close()
     load()
   },
   { immediate: true }
@@ -219,7 +222,11 @@ defineExpose({ refresh: load })
 
   .file-actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .file-actions .el-button {
+    margin-left: 0;
   }
 }
 </style>

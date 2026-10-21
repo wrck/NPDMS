@@ -27,8 +27,8 @@ public class AuthenticatedFileContentService implements AuthenticatedFileContent
     public byte[] read(ReadCommand command) {
         Long actor = SecurityFrameworkUtils.getLoginUserId();
         if (command == null || command.file() == null || command.maxBytes() < 1 || command.maxBytes() > 52_428_800L
-                || !FileActionCodes.DOWNLOAD.equals(command.file().requiredAction()) || actor == null
-                || !permissions.hasAnyPermissions(actor, "pms:file:download"))
+                || !Set.of(FileActionCodes.DOWNLOAD, FileActionCodes.PREVIEW).contains(command.file().requiredAction()) || actor == null
+                || !permissions.hasAnyPermissions(actor, FileActionCodes.PREVIEW.equals(command.file().requiredAction()) ? "pms:file:preview" : "pms:file:download"))
             throw new IllegalArgumentException("授权文件读取参数或权限无效");
         var query = command.file();
         var fact = artifacts.inspect(query);

@@ -44,6 +44,54 @@ class FileContentValidationTest {
 
     private static final String DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"show version\n", "#!/bin/sh\necho script-format-acceptance\n"})
+    void acceptsShellScriptAsPlainTextWithoutAllowingBinaryContent(String script) {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        var policy = new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE", Set.of("IMPLEMENTATION_PLAN"),
+                Set.of("text/plain"), 1_048_576L, "INTERNAL");
+        byte[] content = script.getBytes(StandardCharsets.UTF_8);
+        var result = service.validate(command(content, "network.sh", "text/plain", null, policy));
+        assertArrayEquals(content, result.content());
+        assertEquals("text/plain", result.mediaType());
+        assertThrows(ServiceException.class, () -> service.validate(command(PDF, "network.sh", "text/plain", null, policy)));
+        assertThrows(ServiceException.class, () -> service.validate(command(content, "network.sh", "text/plain", null, policy(1024L))));
+        assertThrows(ServiceException.class, () -> service.validate(command(
+                "#!/bin/sh\n\u0000\u0001".getBytes(StandardCharsets.UTF_8), "network.sh", "text/plain", null, policy)));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"evidence.txt,text/plain", "evidence.log,text/plain", "device.cfg,text/plain", "device.conf,text/plain", "evidence.csv,text/csv"})
+    void acceptsTextAndCsvEvidenceButRejectsRenamedBinaryAndDisallowedOwnerMedia(String name, String media) {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        byte[] content = "device,status\nFW,OK\n".getBytes(StandardCharsets.UTF_8);
+        var policy = new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE", Set.of("CUTOVER_CHECKLIST_MANUAL_EVIDENCE"),
+                Set.of(media), 1_048_576L, "INTERNAL");
+        assertArrayEquals(content, service.validate(command(content, name, media, null, policy)).content());
+        assertThrows(ServiceException.class, () -> service.validate(command(
+                "%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF".getBytes(StandardCharsets.US_ASCII), name, media, null, policy)));
+        assertThrows(ServiceException.class, () -> service.validate(command(content, name, media, null, policy(1024L))));
+    }
+
+    @Test
+    void acceptsGenuineExcelWorkbooksAsEvidence() throws Exception {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        for (var extension : List.of("xls", "xlsx")) {
+            String media = "xls".equals(extension) ? "application/vnd.ms-excel"
+                    : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            byte[] bytes;
+            try (org.apache.poi.ss.usermodel.Workbook workbook = "xls".equals(extension)
+                    ? new org.apache.poi.hssf.usermodel.HSSFWorkbook() : new XSSFWorkbook();
+                 var output = new ByteArrayOutputStream()) {
+                workbook.createSheet("evidence").createRow(0).createCell(0).setCellValue("人工核验通过");
+                workbook.write(output); bytes = output.toByteArray();
+            }
+            var policy = new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE", Set.of("CUTOVER_CHECKLIST_MANUAL_EVIDENCE"),
+                    Set.of(media), 1_048_576L, "INTERNAL");
+            assertArrayEquals(bytes, service.validate(command(bytes, "evidence." + extension, media, null, policy)).content());
+        }
+    }
+
     @Test
     void acceptsGeneratedSanitizedInspectionJsonByContentAndScansIt() {
         byte[] content = sanitizedInspectionJson();

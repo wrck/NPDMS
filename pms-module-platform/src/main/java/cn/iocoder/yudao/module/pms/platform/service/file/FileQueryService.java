@@ -110,7 +110,7 @@ public class FileQueryService {
         }
         addAllowedAction(actions, key, actor, FileActionCodes.DOWNLOAD, "pms:file:download", true);
         addAllowedAction(actions, key, actor, FileActionCodes.PREVIEW, "pms:file:preview",
-                FileAccessTicketService.isPreviewable(version.getDetectedMediaType()));
+                FileAccessTicketService.isPreviewable(version.getDetectedMediaType()) || FileOfficePdfConverter.supports(version.getDetectedMediaType()));
         return List.copyOf(actions);
     }
 

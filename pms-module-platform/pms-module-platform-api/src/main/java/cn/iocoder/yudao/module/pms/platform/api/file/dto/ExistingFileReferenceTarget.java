@@ -37,7 +37,8 @@ public record ExistingFileReferenceTarget(
                 && purposeCode.startsWith("FORM_FIELD_ATTACHMENT/") && purposeCode.length() > "FORM_FIELD_ATTACHMENT/".length();
         boolean cutoverChecklistEvidence = "CUT".equals(ownerContext) && "CUTOVER_CHECKLIST_ITEM".equals(objectType)
                 && "MANUAL_EVIDENCE".equals(purposeCode);
-        if ((!requirementSection && !dynamicFormField && !acceptanceReportAttachment && !satisfactionResponseFile && !requirementRevision && !cutoverChecklistEvidence)
+        boolean cutoverPlan = "CUT".equals(ownerContext) && "CUTOVER_PLAN".equals(objectType) && "FULL_PLAN".equals(purposeCode);
+        if ((!requirementSection && !dynamicFormField && !acceptanceReportAttachment && !satisfactionResponseFile && !requirementRevision && !cutoverChecklistEvidence && !cutoverPlan)
                 || !objectId.matches("[1-9][0-9]*")) {
             throw new IllegalArgumentException("unsupported existing file attachment target");
         }

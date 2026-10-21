@@ -37,6 +37,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
@@ -84,6 +85,10 @@ class ExistingFileVersionAttachmentServiceTest {
         assertDoesNotThrow(() -> new ExistingFileReferenceTarget(
                 "SOL", "REQUIREMENT_ANALYSIS_SECTION", "200", "SECTION_ATTACHMENT",
                 TARGET_SLOT, 9L));
+        assertDoesNotThrow(() -> new ExistingFileReferenceTarget(
+                "CUT", "CUTOVER_PLAN", "200", "FULL_PLAN", TARGET_SLOT, 9L));
+        assertThrows(IllegalArgumentException.class, () -> new ExistingFileReferenceTarget(
+                "CUT", "CUTOVER_PLAN", "200", "MANUAL_EVIDENCE", TARGET_SLOT, 9L));
     }
 
     @Test

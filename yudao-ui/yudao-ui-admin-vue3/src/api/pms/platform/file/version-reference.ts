@@ -19,3 +19,7 @@ export const getVersions = (artifactId: FileWireId, params: FileBusinessKey & { 
   request.get<CursorPage<FileVersionVO>>({ url: `/api/v1/pms/files/${artifactId}/versions`, params })
 export const createAccessTicket = (artifactId: FileWireId, versionNo: number, operationCode: FileAccessOperation, key: FileBusinessKey) =>
   request.post<FileAccessTicketVO>({ url: `/api/v1/pms/files/${artifactId}/access-tickets`, data: { versionNo, operationCode, ...key } })
+
+export const getPreviewContent = (artifactId: string | number, versionNo: number, key: FileBusinessKey) =>
+  request.postOriginal({ url: `/api/v1/pms/files/${artifactId}/preview-content`, responseType: 'blob', timeout: 150000,
+    data: { versionNo, operationCode: 'PREVIEW', ...key } }) as unknown as Promise<Blob>

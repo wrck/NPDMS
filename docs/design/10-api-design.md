@@ -1140,6 +1140,11 @@ PROJ 复用 `actions/reopen` 命令与 `proj_project_stage_snapshot` 的 REOPEN 
 
 完整任务附件READ/PREVIEW/DOWNLOAD复用PLT业务引用校验及CUT逐次读取/锁定授权，保持精确工件、文件版本、引用和可用性校验；不授予文件写权限。历史审批及来源快照不回写。已实际办理人员的原审批FULL投影延续只读访问，不能因历史参与而重新办理已结束节点。
 
+### 2026-10-20 受控Word方案在线预览（需求方批准保留分页、图片和版式）
+
+公共文件查询为可用Word版本投影PREVIEW动作。新增POST `/api/v1/pms/files/{artifactId}/preview-content`，使用原文件访问请求体（versionNo/operationCode=PREVIEW/ownerContext/objectType/objectId/purposeCode/referenceKey），须具备pms:file:preview且通过Owner精确版本读取、锁定及当前可用性校验。服务器有界读取不超过原50MiB平台上限；Word由本机LibreOffice无界面转换为PDF，原生PDF/图片/文本原样返回受控内容，转换不登记新工件/版本、不修改原件，不调用公共Office在线服务。每次转换独立临时目录及用户配置，禁用宏和链接更新，超时/失败关闭并清理；返回前重新校验授权。响应Content-Type对应派生内容、Cache-Control:no-store、nosniff，成功/失败追加FILE_PREVIEW审计；不公开存储位置或凭据。已有下载及原生格式短时访问票据保持原契约。CUT只接入既有公共文件组件，不实现独立方案预览页。
+
+
 ### 本机 DAC 服务发现（2026-10-21）
 
 仅 desktop 运行配置提供 `GET http://127.0.0.1:48182/api/v1/desktop/status`，响应 `product=npdms-dac`、`protocolVersion=1`、`status=READY|STARTING`、`serverUrl`、`webOrigin`，不返回账户、凭据或任务数据；响应禁止缓存。该只读发现端点不要求登录，CORS 只允许客户端配置的精确网页来源；服务只监听回环地址并拒绝非回环 Host，所有业务接口继续认证。网页在产品、协议和服务器环境匹配后才可使用本机业务接口，探测失败不能区分未安装、服务停止或浏览器权限拒绝，不能伪报安装状态。

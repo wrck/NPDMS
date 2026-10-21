@@ -184,8 +184,15 @@ docker compose up -d mysql redis migrate
 不得依据数据对象猜造生产表结构；后续 BPM 表结构变更必须增加新的
 `V<版本>__<说明>.sql` 迁移，不得修改历史文件或手工改库。
 
+
 ## Windows 本机 DAC
 
 现场安装方式与配置见 [DAC 客户端说明](../device-ops-platform/packaging/windows/README.md)。客户端包自带 Java，使用独立 `desktop` 配置并监听 `127.0.0.1:48182`；NPDMS 服务器地址（含端口）和网页来源由安装向导或“DAC 设置”指定。服务端需包含本次接口并经 Compose/Flyway 应用 V511。1.0.2 同时支持 HTTP/HTTPS，新安装默认后端 `http://10.210.0.11:59191`、网页 `http://10.210.0.11:19191`；内网 HTTP 由安装器为该网页来源配置 Chrome/Edge 本地网络访问授权，并维护自己新增条目的清理。此客户端不替代既有59191宿主机后端或服务器DAC的受控启停入口。
 
 客户端编译与打包依次执行 `scripts/worktree-build.ps1 -Target dac`、`scripts/package-dac-desktop.ps1 -Manifest <冻结清单>`。后者只生成 MSI 和证据，不执行安装或服务操作。Windows 安装/升级会管理 NpdmsDac 服务，变更当前运行环境前仍须确认影响并取得本次授权。运行数据、主密钥和各服务器环境队列保存在 ProgramData，卸载不删除；不能用切换环境将旧任务改投新服务器。
+
+## Word方案在线预览运行依赖
+
+Windows本地环境执行 `./scripts/setup-office-preview.ps1`，将校验官方签名及固定校验值的LibreOffice 26.2.6解包至当前用户 `.cache/npdms/office-preview/26.2.6/runtime`，不安装全局Office或服务。工具缓存约需2GiB可用空间。后端默认从该目录调用program/soffice.com；其他运行环境通过 `pms.file.office-executable` 指向本机LibreOffice命令。无需对59191与48182改变既有启动方式；后端仍通过冻结发布脚本部署，转换工具不构成DAC就绪条件。
+
+Word由本机Writer导出PDF，使用独立临时配置，宏安全级别Very High，链接更新Never。字体由服务器提供，应安装文档使用的字体以减少重排；转换失败不替换原文件，调用方可重试。参考官方[CLI参数](https://help.libreoffice.org/latest/en-US/text/shared/guide/start_parameters.html)与[PDF导出](https://help.libreoffice.org/latest/en-US/text/shared/guide/pdf_params.html)。

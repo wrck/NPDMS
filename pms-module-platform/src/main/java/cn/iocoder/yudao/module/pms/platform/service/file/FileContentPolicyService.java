@@ -91,13 +91,20 @@ public class FileContentPolicyService {
             if (!isJsonDocument(content)) throw exception(FILE_MEDIA_TYPE_INVALID);
             detectedMediaType = "application/json";
         }
+        // A shell shebang is detected as x-sh even though the uploaded script is plain text.
+        if ("text/plain".equals(declaredMediaType) && "sh".equals(fileNameExtension(command.expectedFileName()))
+                && "application/x-sh".equals(detectedMediaType) && isUtf8Text(content)) {
+            detectedMediaType = "text/plain";
+        }
         String nameMediaType = normalizeMediaType(TIKA.detect(command.expectedFileName()));
         Set<String> allowedMediaTypes = command.policy().allowedMediaTypes().stream()
                 .map(FileContentPolicyService::normalizeMediaType)
                 .collect(Collectors.toUnmodifiableSet());
+        boolean plainTextName = "text/plain".equals(declaredMediaType) && "text/plain".equals(detectedMediaType)
+                && Set.of("log", "cfg", "conf", "sh").contains(fileNameExtension(command.expectedFileName()));
         if (!allowedMediaTypes.contains(declaredMediaType)
                 || !matchesDetectedMediaType(declaredMediaType, detectedMediaType)
-                || !declaredMediaType.equals(nameMediaType)) {
+                || (!declaredMediaType.equals(nameMediaType) && !plainTextName)) {
             throw exception(FILE_MEDIA_TYPE_INVALID);
         }
 
@@ -122,6 +129,24 @@ public class FileContentPolicyService {
     private static boolean matchesDetectedMediaType(String declaredMediaType, String detectedMediaType) {
         return declaredMediaType.equals(detectedMediaType)
                 || ("text/csv".equals(declaredMediaType) && "text/plain".equals(detectedMediaType));
+    }
+
+    private static String fileNameExtension(String name) {
+        int dot = name.lastIndexOf('.');
+        return dot < 0 ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean isUtf8Text(byte[] content) {
+        try {
+            var text = java.nio.charset.StandardCharsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(content));
+            while (text.hasRemaining()) {
+                char value = text.get();
+                if (Character.isISOControl(value) && value != '\n' && value != '\r' && value != '\t') return false;
+            }
+            return true;
+        } catch (java.nio.charset.CharacterCodingException invalid) {
+            return false;
+        }
     }
 
     private static String detectContent(byte[] content) {
