@@ -102,6 +102,7 @@ class CutoverTaskQueryServiceTest {
     @Test
     void approvalReaderSeesTheExactTaskButGetsNoTaskWriteActions() {
         var task = task(); task.setCurrentStage("P3"); task.setTaskStatus("SURVEYING");
+        org.mockito.Mockito.reset(snapshots); // This reader must not call the ordinary IMP-backed readiness stub.
         when(taskMapper.selectById(701L)).thenReturn(task);
         when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, false));
         when(frozenDevices.byTask(any())).thenReturn(List.of(deviceRow()));
@@ -114,6 +115,9 @@ class CutoverTaskQueryServiceTest {
         assertThat(result.task().id()).isEqualTo(701L);
         assertThat(result.devices()).containsExactly(device);
         assertThat(result.allowedActions()).isEmpty();
+        assertThat(result.approvalReadOnly()).isTrue();
+        org.mockito.Mockito.verify(snapshots, org.mockito.Mockito.never()).readiness(any());
+        org.mockito.Mockito.verify(snapshots).readinessReference(task);
         when(audience.inspectTask(any())).thenReturn(null);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.detail(context, 701L)).isInstanceOf(CutoverTaskApplicationException.class);
     }
@@ -165,6 +169,8 @@ class CutoverTaskQueryServiceTest {
 
         assertThat(detail.devices()).containsExactly(device);
         assertThat(detail.allowedActions()).containsExactly("SAVE_ASSESSMENT", "SUBMIT_ASSESSMENT");
+        assertThat(service.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(
+                new CutoverTaskContext(1L, 9L, "p2-equivalence", true, true, false, false, false), 701L))).isTrue();
         assertThat(detail.workbenchSteps()).extracting(CutoverTaskViews.WorkbenchStep::stage)
                 .containsExactly("P2", "P3", "P4", "P5", "P6");
         assertThat(detail.workbenchSteps().getFirst().isCurrent()).isTrue();
@@ -263,6 +269,50 @@ class CutoverTaskQueryServiceTest {
     private CutoverTaskSnapshotStore.Context frozenContext() {
         return CutoverTaskSnapshotStore.Context.builder().project(project).customer(customer).readiness(readiness)
                 .intakeSourceType("SELF_CREATED").build();
+    }
+
+    @Test
+    void p3WorkbenchMembershipMatchesFullDetailWithoutReadingDisplaySnapshots() {
+        var task = task(); task.setCurrentStage("P3"); task.setTaskStatus("SURVEYING"); task.setManualGrade("A");
+        when(taskMapper.selectById(701L)).thenReturn(task);
+        when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(frozenDevices.byTask(any())).thenReturn(List.of(deviceRow()));
+        for (String checklistStatus : List.of("NONE", "DRAFT", "SUBMITTED")) {
+            var checklist = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO();
+            checklist.setStatusCode(checklistStatus);
+            when(checklistMapper.selectCurrent(any())).thenReturn("NONE".equals(checklistStatus) ? null : checklist);
+            for (String assessmentStatus : List.of("DRAFT", "SUBMITTED")) {
+                var assessment = assessment(); assessment.setAssessmentStatus(assessmentStatus);
+                when(assessmentMapper.selectById(801L)).thenReturn(assessment);
+                for (int permissions = 0; permissions < 32; permissions++) {
+                    var context = new CutoverTaskContext(1L, 9L, "action-equivalence", (permissions & 1) != 0,
+                            (permissions & 2) != 0, (permissions & 4) != 0, (permissions & 8) != 0, (permissions & 16) != 0);
+                    boolean expected = !service.detail(context, 701L).allowedActions().isEmpty();
+                    org.mockito.Mockito.clearInvocations(snapshots, frozenDevices);
+                    assertThat(service.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(context, 701L)))
+                            .as("checklist=%s assessment=%s permissions=%s", checklistStatus, assessmentStatus, permissions).isEqualTo(expected);
+                    org.mockito.Mockito.verifyNoInteractions(snapshots, frozenDevices);
+                }
+            }
+        }
+    }
+
+    @Test
+    void p3WorkbenchRetainsFreshViewScopeAndNeverGrantsApprovalReadersWriteMembership() {
+        var task = task(); org.mockito.Mockito.reset(snapshots); task.setCurrentStage("P3"); task.setTaskStatus("SURVEYING"); task.setManualGrade("A");
+        when(taskMapper.selectById(701L)).thenReturn(task);
+        var audience = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "approvalAudience", audience);
+        var context = new CutoverTaskContext(1L, 9L, "scope", true, true, true, true, true);
+        when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        assertThat(service.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(context, 701L))).isTrue();
+        when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 8L, false));
+        when(audience.inspectTask(any())).thenReturn(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.Grant(20L, "{}"));
+        assertThat(service.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(context, 701L))).isFalse();
+        when(audience.inspectTask(any())).thenReturn(null);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(context, 701L)))
+                .isInstanceOf(CutoverTaskApplicationException.class);
     }
 
     private CutoverTaskDO task() {

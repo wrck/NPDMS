@@ -19,23 +19,29 @@
       <el-alert v-if="usersError" :title="usersError" type="error" :closable="false" class="users-error">
         <el-button link type="primary" data-testid="retry-reassignment-users" :loading="usersLoading" @click="$emit('retry-users')">重新加载人员</el-button>
       </el-alert>
+      <el-alert v-if="serviceManagerError" title="服务经理候选读取失败，请重试" type="error" :closable="false" class="users-error">
+        <el-button link type="primary" data-testid="retry-service-manager-candidate" :loading="serviceManagerLoading" @click="loadServiceManager">重试</el-button>
+      </el-alert>
       <el-form-item label="新审批人" required>
-        <el-select v-model="newApproverUserId" data-testid="new-approver-id" filterable clearable placeholder="搜索并选择新审批人" :loading="usersLoading" :disabled="busy || usersLoading || !!usersError || !selectedNode">
-          <el-option v-for="(name, id) in userNames" :key="id" :label="name" :value="String(id)" :disabled="String(id) === String(selectedNode?.currentApproverUserId)" />
+        <el-select v-model="newApproverUserId" data-testid="new-approver-id" filterable clearable :placeholder="selectedNode?.nodeCode === 'SERVICE_MANAGER' && !serviceManagerLoading && !Object.keys(eligibleUsers).length ? '当前无可改派的服务经理' : '搜索并选择新审批人'" :loading="usersLoading || serviceManagerLoading" :disabled="busy || usersLoading || !!usersError || serviceManagerLoading || serviceManagerError || !selectedNode">
+          <el-option v-for="(name, id) in eligibleUsers" :key="id" :data-testid="'reassignment-assignee-' + id" :label="name" :value="String(id)" :disabled="String(id) === String(selectedNode?.currentApproverUserId)" />
         </el-select>
       </el-form-item>
       <el-form-item label="改派原因" required>
         <el-input v-model="reason" data-testid="reassignment-reason" type="textarea" :rows="3" maxlength="1000" show-word-limit placeholder="请说明人员调整的原因" :disabled="busy" />
       </el-form-item>
+      <Teleport :to="actionsTarget || 'body'" :disabled="!actionsTarget">
       <div class="reassignment-actions">
         <el-button v-if="embedded" :disabled="busy" @click="$emit('cancel')">取消</el-button>
         <el-button type="primary" data-testid="submit-reassignment" :loading="busy" :disabled="!canSubmit" v-hasPermi="['pms:cutover-task:reassign-approval']" @click="submit">确认改派</el-button>
       </div>
+      </Teleport>
     </el-form>
   </section>
 </template>
 
 <script setup lang="ts">
+import { getCutoverServiceManagerReassignmentCandidate } from '@/api/pms/cutover'
 import type {
   CutoverApprovalNodeCode,
   CutoverApprovalReassignmentView,
@@ -46,6 +52,7 @@ const props = defineProps<{
     nodes: Omit<CutoverApprovalReassignmentView['nodes'][number], 'nodeVersion'>[]
   }
   busy: boolean
+  actionsTarget?: HTMLElement
   embedded?: boolean
   userNames?: Record<string, string>
   usersLoading?: boolean
@@ -61,6 +68,31 @@ const selectedNodeNo = ref(props.view.nodes[0]?.nodeNo || 1)
 const selectedNode = computed(() => props.view.nodes.find(node => node.nodeNo === selectedNodeNo.value))
 const newApproverUserId = ref('')
 const reason = ref('')
+const serviceManagerId = ref<WireLong | null>(null)
+const serviceManagerLoading = ref(false)
+const serviceManagerError = ref(false)
+let candidateSequence = 0
+const eligibleUsers = computed(() => selectedNode.value?.nodeCode === 'SERVICE_MANAGER'
+  ? Object.fromEntries(Object.entries(userNames.value).filter(([id]) => id === String(serviceManagerId.value)))
+  : userNames.value)
+const loadServiceManager = async () => {
+  const sequence = ++candidateSequence
+  serviceManagerId.value = null
+  serviceManagerError.value = false
+  serviceManagerLoading.value = false
+  if (selectedNode.value?.nodeCode !== 'SERVICE_MANAGER') return
+  serviceManagerLoading.value = true
+  try {
+    const userId = await getCutoverServiceManagerReassignmentCandidate(props.view.approvalInstanceId)
+    if (sequence === candidateSequence) serviceManagerId.value = userId
+  } catch {
+    if (sequence === candidateSequence) serviceManagerError.value = true
+  } finally {
+    if (sequence === candidateSequence) serviceManagerLoading.value = false
+  }
+}
+watch(() => [props.view.approvalInstanceId, props.view.approvalVersion, selectedNode.value?.nodeCode], loadServiceManager, { immediate: true })
+onBeforeUnmount(() => { candidateSequence++ })
 watch(selectedNodeNo, () => { newApproverUserId.value = ''; reason.value = '' })
 watch(
   () => `${props.view.approvalInstanceId}:${props.view.approvalVersion}`,
@@ -71,8 +103,8 @@ watch(
   }
 )
 const canSubmit = computed(
-  () => !props.busy && !props.usersLoading && !props.usersError && !!selectedNode.value
-    && !!userNames.value[newApproverUserId.value] && /^[1-9]\d*$/.test(newApproverUserId.value)
+  () => !props.busy && !props.usersLoading && !props.usersError && !serviceManagerLoading.value && !serviceManagerError.value && !!selectedNode.value
+    && !!eligibleUsers.value[newApproverUserId.value] && /^[1-9]\d*$/.test(newApproverUserId.value)
     && newApproverUserId.value !== String(selectedNode.value.currentApproverUserId)
     && Boolean(reason.value.trim()) && reason.value.trim().length <= 1000
 )

@@ -27,6 +27,7 @@ const api = vi.hoisted(() => ({
   rejectCutoverApproval: vi.fn(),
   reassignCutoverApproval: vi.fn(),
   getCutoverApprovalReassignmentCandidates: vi.fn(),
+  getCutoverServiceManagerReassignmentCandidate: vi.fn(),
   getCutoverApprovalTodos: vi.fn(),
   getCutoverDashboardKpis: vi.fn(),
   getCutoverTaskPage: vi.fn(),
@@ -92,6 +93,7 @@ describe('F-CUT-005 mounted approval workbench', () => {
     vi.mocked(checkPermi).mockReturnValue(true)
     router.push.mockReset()
     Object.values(api).forEach((mock) => mock.mockReset())
+    api.getCutoverServiceManagerReassignmentCandidate.mockResolvedValue(null)
     api.getCutoverChecklistMatchingOptions.mockResolvedValue({ cutoverTypes: [], networkModes: [], deviceTypes: [], matchingInput: { deviceTypeCodes: [] } })
     api.getCutoverChecklist.mockResolvedValue({ taskId: '9007199254740993', checklistId: '301', items: [] })
     api.getCutoverDashboardKpis.mockResolvedValue({
@@ -205,6 +207,34 @@ describe('F-CUT-005 mounted approval workbench', () => {
     await click(page.root, 'view-complete-cutover-task')
     expect(router.push).toHaveBeenCalledWith({ path: '/pms/cutover/tasks/9007199254740993', query: { readonly: '1' } })
     expect(api.approveCutoverApproval).not.toHaveBeenCalled()
+    page.app.unmount()
+  })
+
+  it.each([false, true])('shows authorized participant names when the user picker is restricted or unavailable (%s)', async (unavailable) => {
+    const detail = full('D')
+    detail.nodes[0].currentApproverUserId = '2108539871029019609'
+    detail.nodes[0].currentApproverName = '杨凯添'
+    if (unavailable) people.getSimpleUserList.mockRejectedValueOnce(new Error('unavailable'))
+    else people.getSimpleUserList.mockResolvedValueOnce([{ id: '2108539871029019646', nickname: '周文成' }])
+    api.getCutoverApprovalInstance.mockResolvedValue(detail)
+    const page = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    expect(textOf(page.root)).toContain('杨凯添')
+    expect(textOf(page.root)).not.toContain('用户 2108539871029019609')
+    page.app.unmount()
+  })
+
+  it('shows the authorized current approver name in the reassignment summary', async () => {
+    const view = reassignment()
+    view.nodes[0].currentApproverUserId = '2108539871029019609'
+    view.nodes[0].currentApproverName = '杨凯添'
+    people.getSimpleUserList.mockResolvedValueOnce([])
+    api.getCutoverApprovalInstance.mockResolvedValue(view)
+    const page = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    expect(textOf(page.root)).toContain('杨凯添')
+    expect(textOf(page.root)).not.toContain('用户 2108539871029019609')
+    expect(findByTestId(page.root, 'approve-approval')).toBeUndefined()
     page.app.unmount()
   })
 
@@ -442,6 +472,11 @@ describe('F-CUT-005 mounted approval workbench', () => {
     api.reassignCutoverApproval.mockResolvedValue(reassignment())
     const admin = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
     await flush()
+    expect(textOf(admin.root)).toContain('审批状态')
+    expect(textOf(admin.root)).toContain('核心割接')
+    expect(findByTestId(admin.root, 'reassignment-reason')).toBeUndefined()
+    expect(findByTestId(admin.root, 'approve-approval')).toBeUndefined()
+    await click(admin.root, 'open-cutover-reassignment')
     await update(admin.root, 'new-approver-id', '9007199254740995')
     await update(admin.root, 'reassignment-reason', '当前审批人请假')
     await click(admin.root, 'submit-reassignment')
@@ -584,7 +619,7 @@ describe('F-CUT-005 mounted approval workbench', () => {
     expect(api.getCutoverApproval).not.toHaveBeenCalled()
     expect(api.getCutoverTaskDetail).not.toHaveBeenCalled()
     expect(findByTestId(mounted.root, 'approve-approval')).toBeUndefined()
-    expect(textOf(mounted.root)).toContain(viewMode === 'FINAL_RESULT_ONLY' ? '审批已通过' : '审批改派')
+    expect(textOf(mounted.root)).toContain(viewMode === 'FINAL_RESULT_ONLY' ? '审批已通过' : '审批状态')
     mounted.app.unmount()
   })
 
@@ -664,10 +699,13 @@ describe('F-CUT-005 mounted approval workbench', () => {
     api.reassignCutoverApproval.mockResolvedValue(second)
     const mounted = mount(CutoverApprovalPanel, { approvalId: first.approvalInstanceId }, controls)
     await flush()
+    await click(mounted.root, 'open-cutover-reassignment')
     await update(mounted.root, 'new-approver-id', '9007199254740995')
     await update(mounted.root, 'reassignment-reason', '当前审批人请假')
     await click(mounted.root, 'submit-reassignment')
     await flush()
+    expect(findByTestId(mounted.root, 'reassignment-reason')).toBeUndefined()
+    await click(mounted.root, 'open-cutover-reassignment')
     expect(findByTestId(mounted.root, 'new-approver-id')?.props?.modelValue).toBe('')
     expect(findByTestId(mounted.root, 'reassignment-reason')?.props?.modelValue).toBe('')
     mounted.app.unmount()
@@ -709,6 +747,7 @@ describe('F-CUT-005 mounted approval workbench', () => {
     api.getCutoverApprovalInstance.mockResolvedValue(reassignment())
     const mounted = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
     await flush()
+    await click(mounted.root, 'open-cutover-reassignment')
     expect(textOf(mounted.root)).toContain('人员信息加载失败')
     expect(findByTestId(mounted.root, 'submit-reassignment')?.props?.disabled).toBe(true)
     await click(mounted.root, 'retry-reassignment-users')
@@ -716,6 +755,46 @@ describe('F-CUT-005 mounted approval workbench', () => {
     expect(people.getSimpleUserList).toHaveBeenCalledTimes(2)
     expect(textOf(mounted.root)).not.toContain('人员信息加载失败')
     expect(api.reassignCutoverApproval).not.toHaveBeenCalled()
+    mounted.app.unmount()
+  })
+
+  it('restricts service-manager reassignment to the current qualified person and rejects injected admin selection', async () => {
+    api.getCutoverServiceManagerReassignmentCandidate.mockResolvedValue('44')
+    const view = reassignment()
+    view.nodes[0].nodeCode = 'SERVICE_MANAGER'
+    const submitted = vi.fn()
+    const mounted = mount(CutoverApprovalReassignmentPanel, {
+      view, busy: false, userNames: { '1': '管理员', '8': '原审批人', '44': '当前服务经理' }, onReassign: submitted
+    }, controls)
+    await flush()
+    expect(api.getCutoverServiceManagerReassignmentCandidate).toHaveBeenCalledWith(view.approvalInstanceId)
+    expect(findByTestId(mounted.root, 'reassignment-assignee-1')).toBeUndefined()
+    expect(findByTestId(mounted.root, 'reassignment-assignee-44')?.props?.label).toBe('当前服务经理')
+    await update(mounted.root, 'new-approver-id', '1')
+    await update(mounted.root, 'reassignment-reason', '人员调整')
+    await click(mounted.root, 'submit-reassignment')
+    expect(submitted).not.toHaveBeenCalled()
+    await update(mounted.root, 'new-approver-id', '44')
+    await click(mounted.root, 'submit-reassignment')
+    expect(submitted).toHaveBeenCalledWith({ nodeNo: view.nodes[0].nodeNo, newApproverUserId: '44', reason: '人员调整' })
+    mounted.app.unmount()
+  })
+
+  it('fails closed on service-manager lookup failure, retries it and never falls back to all users', async () => {
+    api.getCutoverServiceManagerReassignmentCandidate.mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue(null)
+    const view = reassignment()
+    view.nodes[0].nodeCode = 'SERVICE_MANAGER'
+    const mounted = mount(CutoverApprovalReassignmentPanel, { view, busy: false, userNames: { '1': '管理员' } }, controls)
+    await flush()
+    expect(textOf(mounted.root)).toContain('服务经理候选读取失败')
+    expect(textOf(mounted.root)).not.toContain('管理员')
+    expect(findByTestId(mounted.root, 'submit-reassignment')?.props?.disabled).toBe(true)
+    await click(mounted.root, 'retry-service-manager-candidate')
+    await flush()
+    expect(api.getCutoverServiceManagerReassignmentCandidate).toHaveBeenCalledTimes(2)
+    expect(textOf(mounted.root)).not.toContain('服务经理候选读取失败')
+    expect(findByTestId(mounted.root, 'new-approver-id')?.props?.placeholder).toBe('当前无可改派的服务经理')
+    expect(findByTestId(mounted.root, 'submit-reassignment')?.props?.disabled).toBe(true)
     mounted.app.unmount()
   })
 

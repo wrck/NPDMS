@@ -64,6 +64,35 @@ class CutoverApprovalDecisionServiceTest {
     }
 
     @Test
+    void waitingServiceManagerCannotDecideBeforeInitiatorAndWritesNoBusinessFacts() {
+        Fixture f = new Fixture(22L);
+        f.givenRoot(1, "INITIATOR");
+        var initiator = node(101L, 1, "INITIATOR", "PENDING", 11L);
+        var manager = node(102L, 2, "SERVICE_MANAGER", "WAITING", 22L);
+        doReturn(initiator).when(f.nodes).selectByInstanceAndNodeForUpdate(
+                argThat(query -> query != null && query.nodeNo() == 1));
+        doReturn(manager).when(f.nodes).selectByInstanceAndNodeForUpdate(
+                argThat(query -> query != null && query.nodeNo() == 2));
+        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(
+                1L, 10L, 100L, 3L, 0L, yesItems(), null, "等待节点尝试通过", "waiting-approve", "corr-waiting")))
+                .isInstanceOfSatisfying(CutoverApprovalApplicationException.class,
+                        error -> assertThat(error.reasonCode()).isEqualTo("NOT_CURRENT_NODE"));
+        assertThatThrownBy(() -> f.service.reject(new RejectCutoverApprovalCommand(
+                1L, 10L, 100L, 3L, 0L, noItems(), null, "等待节点尝试驳回", "waiting-reject", "corr-waiting")))
+                .isInstanceOfSatisfying(CutoverApprovalApplicationException.class,
+                        error -> assertThat(error.reasonCode()).isEqualTo("NOT_CURRENT_NODE"));
+        assertThat(f.root.getCurrentNodeNo()).isEqualTo(1);
+        assertThat(initiator.getStatusCode()).isEqualTo("PENDING");
+        assertThat(manager.getStatusCode()).isEqualTo("WAITING");
+        verify(f.nodes, never()).updateStatusIfMatch(any());
+        verify(f.instances, never()).updateStateIfMatch(any());
+        verify(f.reviews, never()).insert(any(CutoverApprovalReviewItemDO.class));
+        verify(f.notifications, never()).insert(any(CutoverApprovalNotificationDO.class));
+        verify(f.history, never()).insert(any(CutoverTaskStageHistoryDO.class));
+        verifyNoInteractions(f.scopes, f.managers, f.candidates);
+    }
+
+    @Test
     void intermediateApproveActivatesNextNodeAndCreatesPendingNotification() {
         Fixture f = new Fixture(11L);
         f.givenRoot(1, "INITIATOR");

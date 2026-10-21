@@ -1150,6 +1150,12 @@ PROJ 复用 `actions/reopen` 命令与 `proj_project_stage_snapshot` 的 REOPEN 
 公共文件查询为可用Word版本投影PREVIEW动作。新增POST `/api/v1/pms/files/{artifactId}/preview-content`，使用原文件访问请求体（versionNo/operationCode=PREVIEW/ownerContext/objectType/objectId/purposeCode/referenceKey），须具备pms:file:preview且通过Owner精确版本读取、锁定及当前可用性校验。服务器有界读取不超过原50MiB平台上限；Word由本机LibreOffice无界面转换为PDF，原生PDF/图片/文本原样返回受控内容，转换不登记新工件/版本、不修改原件，不调用公共Office在线服务。每次转换独立临时目录及用户配置，禁用宏和链接更新，超时/失败关闭并清理；返回前重新校验授权。响应Content-Type对应派生内容、Cache-Control:no-store、nosniff，成功/失败追加FILE_PREVIEW审计；不公开存储位置或凭据。已有下载及原生格式短时访问票据保持原契约。CUT只接入既有公共文件组件，不实现独立方案预览页。
 
 
+完整任务GET新增 `approvalReadOnly`，仅通过审批资格而无普通项目范围时为true，allowedActions为空；project追加来源办事处departmentName。该视图读取CUT自己的原记录、冻结设备和已保存的前序就绪引用，不重新调用IMP、PROJ或CUS接口获取其权限范围外的当前资料；就绪引用仅包含已保存的decision/snapshotId/version/projectId/deviceIds，不将缺失的IMP明细伪造为空结果或重新评估。前端据此强制任务各步骤只读，并跳过普通项目/成员接口。普通项目查询及实施条件复核仍保留原Owner授权链。
+
+### 2026-10-20 服务经理改派候选选择
+
+需求方确认保留服务经理资格限制，不允许把服务经理节点改给不具备资格的管理员。新增 `GET /api/v1/pms/cutover-approvals/{approvalId}/reassignment-service-manager`，须具备 `pms:cutover-task:reassign-approval`，按受信租户和精确审批实例校验存在未处理服务经理节点后，复用PROJ当前唯一主责服务经理事实，返回 `CommonResult<WireLong|null>`。无唯一有效人选返回null，提供方失败返回原错误，不回退为全部用户或冻结旧审批人；不返回项目业务快照。读取只是选择依据，提交仍按原锁定重验、版本及状态规则判断资格。`REASSIGN_TARGET_NOT_OPEN`保留机器错误码和HTTP409，msg显示具体业务拒绝原因。
+
 ### 割接方案复用调研附件（2026-10-20）
 
 PLT既有内部`FileArtifactApi.attachExistingVersions`增加受支持目标`CUT/CUTOVER_PLAN/FULL_PLAN`，保持UUID引用键、精确源版本重验、源不可变/目标可变策略、类型/大小、范围权限与同事务审计。CUT方案文件策略允许既有清单证据类别作为方案引用来源；不增加上传权限或匿名访问。方案保存仅从其冻结清单ID/版本中的现网拓扑绑定到空的割接前拓扑，源引用不改写。方案文件消费必须按当前任务完整业务键查询，不能将同一工件的最早引用当作唯一归属；公开文件接口及响应结构不变。

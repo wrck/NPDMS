@@ -99,7 +99,7 @@ class CutoverApprovalReassignmentTest {
     }
 
     @Test
-    void reassigningLastFutureNodeClearsRouteCandidateHold() {
+    void rejectsUnqualifiedAdminAndReassigningLastFutureNodeClearsRouteCandidateHold() {
         CutoverApprovalInstanceMapper instances = mock(CutoverApprovalInstanceMapper.class);
         CutoverApprovalNodeMapper nodes = mock(CutoverApprovalNodeMapper.class);
         CutoverApprovalReassignmentMapper reassignments = mock(CutoverApprovalReassignmentMapper.class);
@@ -149,6 +149,14 @@ class CutoverApprovalReassignmentTest {
                 org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverWorkflowCoordinator.class),
                 org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
 
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.reassign(new ReassignCutoverApprovalCommand(
+                1L, 10L, 3L, 100L, 0L, 2, 1L, "管理员代办", "key-rejected-admin", "corr-rejected-admin")))
+                .isInstanceOfSatisfying(CutoverApprovalApplicationException.class,
+                        ex -> assertThat(ex.reasonCode()).isEqualTo("REASSIGN_TARGET_NOT_OPEN"));
+        assertThat(future.getCurrentApproverUserId()).isNull();
+        assertThat(root.getVersion()).isZero();
+        verify(reassignments, never()).insert(any(CutoverApprovalReassignmentDO.class));
+        verify(nodes, never()).updateStatusIfMatch(any());
         var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3L, 100L, 0L,
                 2, 44L, "补齐后续服务经理", "key-r2", "corr-r2"));
 

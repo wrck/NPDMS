@@ -121,3 +121,101 @@
 - 前端37项、后端34项通过，覆盖无普通项目范围的审批读取、定义版本不一致、跨租户/任务拒绝、失败降级及旧请求不能覆盖新审批；ESLint通过。证据：.run/cutover-approval-source-ui-tests.log、.run/cutover-approval-source-backend-tests.log、.run/cutover-approval-source-eslint.log。部署及浏览器闭环见下方本轮最终结果。
 
 - 用户批准本轮重启后，冻结清单63cf0dc8-98bc-4822-9f65-4b147727da0b部署59191成功，既有22项修复基线与就绪检查通过，local,dac配置；未操作48182。真实w04287从工作台办理、刷新、完整重开均无任务不存在或元数据读取提示，无普通清单请求。审批业务码0，55项原字段说明完整返回，DPX框式设备正常显示。进入及重开时审批版本5、任务版本12、节点与冻结来源一致；研发待办保持未分配，三步已通过及15条评审保留，本轮未提交决定。详见docs/generated/2026-10-20-cutover-approval-source-presentation.md及.run/cutover-approval-source-browser-result.json。
+
+
+### 2026-10-20 完整任务只读及上传方案在线预览（进行中）
+
+- 用户批准审批人查看完整割接任务，并确认实际办理过的人员继续只读查看；未领取的角色成员仅当前共享待办有效。复用现有任务P2~P6组件及五项评审；历史实际决定按decisionActorUserId/原办理人、明确决定时间及APPROVED/REJECTED事实授权，不因角色变化或驳回重提覆盖历史。普通写权限、项目范围和任务负责人不变。
+- 审批FULL页增加完整任务只读入口；任务、清单、方案、闭环读取逐次按租户和精确任务校验，附件复用PLT引用和版本授权。只读任务使用CUT保存的项目、设备及前序就绪引用，避免再次误调用普通Owner接口。后端approvalReadOnly与空写动作共同约束前端。
+- 用户确认Word须保留分页、图片和版式，公共文件预览增加本机LibreOffice转PDF，复用同一文件组件，不向公共Office服务传文档或建立CUT独立预览页。原件、引用和批准快照不改写。已完成DOC/DOCX各两页及图片的实际转换检查，待最终构建与浏览器复验。
+
+### 2026-10-20 审批页面提示精简
+
+按用户页面标注，移除审批入口的“请在下方完成五项评审…”及公共审批组件的固定版本评审说明两条静态提示，随组件删除原占位，不影响错误反馈、状态和五项评审。两文件 ESLint 通过；真实浏览器打开审批2112495949790027776，确认两条提示消失，来源内容及审批记录正常显示。本次仅前端热更新，未重启服务或提交审批决定。
+
+### 2026-10-20 服务经理改派候选与拒绝提示
+
+用户确认 admin 将服务经理节点改给 admin 报 REASSIGN_TARGET_NOT_OPEN，并选择保留服务经理资格限制。新增精确实例的当前服务经理候选读取，管理员选择框仅显示PROJ当前唯一合格人选；无候选、读取失败禁止提交，失败可重试，不使用冻结旧人选或全部用户兜底。命令原服务经理资格锁定、版本、状态和历史规则不变；错误响应保留409、reasonCode、recoveryAction并显示具体中文原因。23项后端、40项前端及ESLint通过；补充管理员不合格目标零写入、合格目标追加历史的定向2项测试通过。日志：.run/cutover-reassignment-qualified-candidate-tests.log、.run/cutover-reassignment-qualified-candidate-ui-tests.log、.run/cutover-reassignment-admin-rejection-tests.log。用户仍选择暂不重启，未部署后端、未实际改派，运行验收未完成。
+
+### 2026-10-20 割接详情统一底部操作栏
+
+按用户要求，返回、刷新、修订从顶部及步骤正文移至唯一的底部操作栏；各步骤既有保存、下载、提交、审批决定和改派按钮通过同一组件挂载到该栏，权限、禁用条件、保存后离开及确认对话框不变。单独复用子组件且未提供操作栏容器时仍原位显示；统一刷新同时刷新当前审批内容。修订影响说明保留在确认对话框，不再另占步骤上方空间。
+
+现有交互测试覆盖83项，其中首轮82项通过、受控全流程一项因测试宿主被响应式代理而残留旧按钮失败；操作栏宿主改用shallowRef后，受影响的完整P1~P6流程两项及详情14项通过，未降低断言。ESLint无错误（闭环组件既有4条属性换行警告）。真实浏览器926px及390px页面确认一条底栏，返回、刷新、修订、下载完整可见，顶部无操作按钮；闭环页面确认返回、刷新、保存、提交处于同一栏且保存按钮唯一，原提交禁用状态保留。本次只前端热更新，未操作后端或提交修订、审批、闭环结果。日志：.run/cutover-bottom-actions-ui-tests.log、.run/cutover-bottom-actions-integration-final.log、.run/cutover-bottom-actions-detail-final.log、.run/cutover-bottom-actions-final-eslint.log。
+
+用户后续指定返回、刷新放左侧：底栏导航按钮组使用自动右外边距，其余修订和步骤动作保持右侧。真实浏览器审批详情及可编辑方案草稿均确认左右分组；详情与方案聚焦47项、类型和ESLint检查通过，记录见F-CUT-004同日增量。
+
+### 2026-10-21 项目经理发起人节点缺少审批动作权限
+
+- 项目992203060197的割接任务2112790614812622848、审批2112791534678016000停留在INITIATOR/PENDING，SERVICE_MANAGER/WAITING。真实浏览器当前发起人杨凯添读取审批成功，但allowedActions为空；当前个人分配和账号有效性未失效。只读数据库核对其PROJECT_MANAGER角色具有submit-plan/query-approval，但缺少approve；服务经理周文成具有approve，但尚未轮到该节点，不能代替发起人直接办理。
+- 按既有F-CUT-005首节点五项评审合同，V510只为租户1有效PROJECT_MANAGER角色补齐现有pms:cutover-task:approve，不增加BPM通用办理、改派或项目数据范围，不修改个人固定分配、状态机和历史。真实数据库事务试验首遍新增1行、第二遍0行、回滚后0行残留。未执行Flyway迁移或实际授权写入。
+- 复用固定工具链及工作树独占锁，审批查询、个人决定、角色决定三组共40项通过；包含无approve权限不显示动作、有权限当前发起人显示两项动作、发起人通过激活服务经理、幂等、驳回、终态和停用账号保护。日志：.run/cutover-initiator-permission-tests.log、.run/cutover-initiator-permission-migration-check.log。
+- 当前浏览器为项目经理账号，无角色授权管理权限，已请求切换管理员以通过既有角色授权界面应用并复验；未提交该业务审批决定，未重启59191或48182。运行修复及浏览器闭环尚未完成。
+
+#### 发起人授权生效及BPM待办复验
+
+- 后续用户要求自行处理账号切换。确认有效会话仍为y06496，旧标签的管理员显示不能代表当前授权。通过项目既有Compose/Flyway入口只挂载V510，当前库从509迁移到510，实际新增1项授权，validate通过；不调用项目经理无权访问的角色管理写接口，不修改账号或项目范围，不清理登录会话缓存。
+- 正常退出后使用用户提供的发起人凭据登录，取消“记住我”。真实审批页及BPM待办的“办理”入口均返回FULL和APPROVE/REJECT，五项评审完整可见，反馈填写后通过按钮启用。复验输入已清空，未实际提交审批决定。对应流程bf59a172-cd17-11f1-ad83-00ff0b78abd7、待办bf5ab300-cd17-11f1-ad83-00ff0b78abd7。审批仍为PENDING/currentNodeNo=1/version=0，两节点版本均0、评审0条；无需重启服务。证据：.run/cutover-initiator-permission-flyway-*.log、.run/cutover-initiator-permission-history-after.txt。
+
+### 2026-10-21 管理员审批详情展示完整内容
+
+- 用户明确要求审批详情显示完整内容。审批查询在既有租户及精确实例校验后，为同时具备query-approval、reassign-approval及该项目ACTION_VIEW的管理员返回FULL，复用既有项目、调研风险、等级、方案、历史记录组件；管理员未被指派到当前节点时仍没有通过/驳回动作。项目范围不足或仅有改派权限时继续返回元数据，不扩大项目数据范围；改派命令上下文及响应保持REASSIGNMENT_ONLY。
+- 改派通过独立按钮及挂到body的弹窗进入，受限元数据页也先显示任务及节点状态，不再默认展示填写表单；沿用资格、版本、并发及历史保护。未修改BPM通用功能或另建审批页面版本。
+- 前端审批及任务详情45项通过、两文件ESLint通过；新增管理员完整查看与无项目范围仍受限的后端检查，后端发布及管理员真实浏览器验证待后续执行。
+
+- 后端共62项定向检查覆盖查询投影、控制器边界、附件授权、个人与角色决定。首轮新用例因既有Fixture模拟解码器默认返回null失败，补齐仅该用例的真实解码行为并显式声明重载参数类型后，查询14项最终通过，其余48项结果仍适用。没有降低来源字段断言或授权规则。证据：.run/cutover-administrator-full-read-tests.log、.run/cutover-administrator-full-read-query-final.log；前端证据：.run/cutover-initiator-admin-ui-tests.log。
+
+- 完整后端构建及22项既有修复基线通过，冻结发布53b57e53-b505-41cd-bdfa-5c7c2f7512a3；worktree-backend.ps1 -ValidateOnly通过，保持local,dac，尚未部署或重启。日志：.run/cutover-administrator-full-read-build.log、.run/cutover-administrator-full-read-preflight.log。管理员完整内容运行验收等待本轮明确重启批准；实际发起人权限生效和BPM待办表单验证不依赖此次后端部署。
+
+- 用户随后提供测试账号登录约定及管理员凭据，已通过正常登录页自动切换管理员，关闭“记住我”，未将凭据写入文件。真实管理员页面确认受限响应先显示任务和节点状态，点击“审批改派”才打开独立弹窗，取消后关闭，未执行改派。完整冻结内容仍等待上述后端包部署，不将账号切换指令视为重启批准。
+
+#### 获准部署及真实浏览器复验完成
+
+- 用户明确批准本轮重启后，worktree-backend.ps1部署冻结发布53b57e53-b505-41cd-bdfa-5c7c2f7512a3成功，59191健康，PID43828，保持local,dac；未操作DAC48182。证据：.run/cutover-administrator-full-read-deploy.log。
+- 真实管理员读取当前D级审批2112791534678016000，业务码0、FULL，项目、等级、上传方案与审批记录完整显示；allowedActions为空，未因管理员查看获得通过/驳回动作。审批改派按钮打开独立弹窗，取消关闭；项目992203060197内嵌割接详情也显示完整资料，无默认改派表单。
+- 真实管理员读取A级审批2112495949790027776，业务码0、FULL，47项风险考察、8项业务调研及在线方案全部章节可见，无来源读取错误、无决定按钮，原历史内容未重写。
+- 自动正常登录发起人y06496，从BPM待办列表进入流程bf59a172-cd17-11f1-ad83-00ff0b78abd7、待办bf5ab300-cd17-11f1-ad83-00ff0b78abd7。审批返回FULL及APPROVE/REJECT，五项评审可填写，反馈填写后通过按钮启用；测试内容已清空，当前登录保留发起人账号。
+- 全程未提交实际审批决定或改派。当前实例仍PENDING/currentNodeNo=1/version=0，发起人PENDING、服务经理WAITING，两节点版本0、决定时间空、评审0条。管理员完整读取和发起人可办理均已运行验证；实际业务决定由指定办理人完成。证据：.run/cutover-administrator-full-read-browser-result.json、.run/cutover-administrator-deployed-history-after.txt。
+
+### 2026-10-21 服务经理按项目权限查看割接审批
+
+- 真实周文成z01010在项目992203060197内打开割接2112790614812622848，任务读取成功但审批请求404/APPROVAL_NOT_VISIBLE，页面显示审批数据无法读取。当前实例2112791534678016000停留发起人，服务经理节点等待；此前完整读取限定当前审批人、发起人或管理员，误把项目查看与待办身份耦合。
+- 用户明确澄清：具有项目权限的服务经理理应从项目查看割接，不只从待办。最终规则为query-approval与该项目当前ACTION_VIEW共同授权FULL冻结内容，审批中及终态均适用，不依赖是否在审批人名单、节点顺序或待办关系；原当前办理人与实际办理历史的独立读取资格保留。仅改派权限者仍为元数据投影。没有新增角色授权、扩大项目范围、改BPM或迁移数据。
+- 决定动作继续按当前有效节点和固定办理人校验。新增未分配项目查看者在PENDING/APPROVED/REJECTED读取完整快照且无决定动作、等待中的服务经理只读、无query-approval、无项目范围及跨租户拒绝；补充服务经理提前通过/驳回均NOT_CURRENT_NODE，节点、评审、通知及阶段历史零写入。最终52项后端定向检查通过，含查询20、控制器9、决定12、附件策略11。日志：.run/cutover-project-view-approval-tests.log；真实修复前响应与记录：.run/cutover-project-view-approval-before.json、.run/cutover-waiting-reviewer-history-before.txt。
+- 按用户澄清取消仅限已分配等待节点的中间构建，未发布该中间产物；最终代码已重新完整构建中。服务经理真实修复后验收尚待本轮部署，不将前次管理员/发起人浏览器结果用于代替此场景验收。
+
+- 最终完整构建成功，22项既有修复基线通过，冻结发布86e9c07b-1cb6-43fa-af92-9ec8a2f0f50b；worktree-backend.ps1 -ValidateOnly通过，local,dac不变，未重启59191或操作48182。本轮部署需新的明确重启批准。日志：.run/cutover-project-view-approval-build.log、.run/cutover-project-view-approval-preflight.log。
+
+#### 获准部署及服务经理项目入口复验完成
+
+- 用户明确批准本轮重启后，部署冻结发布86e9c07b-1cb6-43fa-af92-9ec8a2f0f50b成功，59191健康，PID37620，保持local,dac；未操作48182。日志：.run/cutover-project-view-approval-deploy.log。
+- 真实服务经理周文成z01010直接从项目992203060197任务树打开割接2112790614812622848，未经过BPM待办。原审批404/APPROVAL_NOT_VISIBLE恢复为HTTP200/业务码0/FULL，项目、等级、上传方案及审批记录完整显示；当前D级按既有规则跳过调研，不伪造不存在的调研资料。
+- 项目内局部刷新再次HTTP200且无审批读取错误；在用户原855px窄屏项目标签页完整重载、通过“选择任务→S4→割接上线”重新打开，也返回FULL且正常显示方案及记录。原错误页面已恢复为正常项目内割接详情，当前服务经理会话保留。
+- 三条路径的allowedActions均为空或决定按钮不存在，服务经理仍等待、发起人仍审批中，未执行实际审批或改派。复验前后实例、节点状态/版本、决定时间及评审条数逐行一致。证据：.run/cutover-project-view-approval-browser-result.json、.run/cutover-project-view-history-preacceptance.txt、.run/cutover-project-view-history-postacceptance.txt。
+
+#### 发起人与服务经理实际审批闭环复验
+
+- 用户明确授权继续用发起人和服务经理提交本条审批。通过正常登录自动切换y06496、z01010，均取消“记住我”；从真实BPM待办的“办理”进入割接专用五项评审，未调用通用通过接口或直接改写业务状态。
+- 发起人杨凯添于2026-10-21 18:39:53提交成功（HTTP200/业务码0），INITIATOR变为APPROVED，SERVICE_MANAGER由WAITING进入PENDING；五项评审保存5条。发起人待办重开为空，BPM新建服务经理任务c04863be-cd3b-11f1-abb2-00ff0b78abd7，办理人固定为周文成。
+- 服务经理周文成从自己的待办进入，完整资料及发起人记录可见；五项评审与P2等级合理复核于18:40:58提交成功（HTTP200/业务码0）。审批2112791534678016000变为APPROVED，两节点均APPROVED，实际办理人、反馈、时间及10条评审明细保留；服务经理待办中本流程移除，另一条无关待办保留。
+- 只读核对Flowable：两项历史任务均正常结束，流程bf59a172-cd17-11f1-ad83-00ff0b78abd7于18:40:58结束，当前运行任务为0。割接2112790614812622848同步进入P6/CLOSURE_IN_PROGRESS/version4；未保存或提交闭环数据。
+- 重开独立审批页及用户原窄屏项目页，均可见已通过状态、两位办理人的反馈及五项明细，完整内容读取正常，下载方案按钮保留。当前登录保留服务经理；本轮无需修改功能代码、重启服务或改派。证据：.run/cutover-initiator-manager-flow-before.txt、.run/cutover-initiator-manager-flow-after-initiator.txt、.run/cutover-initiator-manager-flow-after-manager.txt、.run/cutover-initiator-manager-flow-result.json。
+
+### 2026-10-21 审批记录姓名不受用户下拉数据范围影响
+
+- 真实服务经理z01010读取审批2112791534678016000时，通用/system/user/simple-list成功但仅返回周文成本人，无法解析发起人杨凯添，页面回退为“用户2108539871029019609”。编号为正确字符串，并非精度丢失。
+- 审批Controller在既有授权投影成功后，复用SYSTEM AdminUserApi按该投影节点的currentApproverUserId去重批量读取昵称，FULL及改派元数据节点增加currentApproverName；仅返回授权节点关联姓名，不查询全量人员，不增加权限或更改通用用户列表范围。历史及冻结快照不写入；缺失或Owner读取失败保留原审批事实及编号回退。前端共享审批组件优先使用该展示字段，项目内嵌与独立审批入口共同生效。
+- 后端41项定向检查通过（Controller12、查询20、角色查询9），包含授权拒绝不读取人员、限定节点人员、姓名缺失/故障保留事实、未指派共享角色/仅结果视图不查询用户。前端43项通过，包括人员列表仅本人或加载失败时仍展示授权姓名、元数据展示不增加决定按钮；修改文件ESLint通过。证据：.run/cutover-approval-participant-name-before.json、.run/cutover-approval-participant-name-tests.log、.run/cutover-approval-participant-name-ui-tests.log、.run/cutover-approval-participant-name-eslint.log。
+- 后端冻结包构建、部署预检与部署后真实浏览器复验尚待完成；目前运行后端仍未包含此增量，本轮未重启59191或48182。
+- 首次完整编译成功，但构建期间另有设备采集相关源文件及前端依赖清单变更，worktree-build一致性保护拒绝冻结，未产生发布包。保留外部改动，正在基于最新完整工作树重新构建；不降低来源校验或使用该次未冻结产物。
+- 第二、三次完整编译仍成功，发布均因构建期间设备采集源文件持续变更而被来源一致性校验拒绝；期间另一次启动因共享构建锁占用直接退出。未使用其他会话产物，未降低校验或修改并行文件；三次均无可部署的冻结清单，未执行部署预检或重启。日志：.run/cutover-approval-participant-name-build.log、.run/cutover-approval-participant-name-build-retry.log、.run/cutover-approval-participant-name-build-final.log。当前代码及定向验证完成，实际页面修复待工作树稳定、重新冻结并按本次批准部署后复验；已请求确认并行设备采集开发是否结束。
+- 用户澄清DAC独立包不应影响平台打包。审计确认编译入口本已分离，错误来自源码指纹扫描整仓库。按Target改为各自Maven工程声明的模块POM/源码/资源，加共享工具链与配置；DAC另含实际复制进JAR的Web dist。平台内DAC适配代码仍属于平台指纹，构建锁、冻结包哈希、运行基线及既有修复校验不变。新增6项失败/隔离检查先在旧实现失败，修复后全部通过，覆盖两工程互不影响、前端依赖清单不影响Java包、共享工具仍影响两者、平台源码/资源变更仍拒绝、嵌套模块及缺失模块失败关闭。日志：.run/worktree-artifact-scope-before.log、.run/worktree-artifact-scope-tests.log。
+- 修正构建目标范围后，平台完整构建与22项已部署修复基线校验通过，成功冻结发布2c47d182-04cf-4eb4-95d1-4b89691db306，sourceScope=backend-maven-reactor-v1。worktree-backend.ps1 -ValidateOnly通过，local,dac不变；不再等待独立DAC源码稳定。平台自身源码变更、共享构建工具、产物及运行基线校验仍生效。本轮尚未重启59191或48182，审批姓名的真实修复后复验仍需本次部署批准。日志：.run/cutover-approval-participant-name-build-scoped.log、.run/cutover-approval-participant-name-preflight.log。
+
+#### 获准部署与姓名显示浏览器复验完成
+
+- 用户明确批准本次重启。首次部署在备份前因E盘空间不足退出，原服务未停止；在共享构建锁内核对target临时JAR与其已冻结副本b858dc87-7f95-4f9e-938a-6ee96fe45d70完全一致后，仅删除可再生成的target临时副本，保留全部冻结发布包、备份、源文件及业务数据，释放229359680字节。未使用该副本替代本轮产物。
+- 继续同一次已授权部署，worktree-backend.ps1部署本轮冻结发布2c47d182-04cf-4eb4-95d1-4b89691db306成功，59191健康，PID46496，保持local,dac；未操作48182。证据：.run/cutover-approval-participant-name-space-recovery.json、.run/cutover-approval-participant-name-deploy.log、.run/cutover-approval-participant-name-deploy-retry.log。
+- 真实服务经理z01010重开独立审批2112791534678016000，HTTP200/业务码0/FULL，发起人显示杨凯添、服务经理显示周文成；通用用户列表仍只返回周文成本人，证明未扩大用户列表范围，审批姓名已与下拉候选列表解耦。
+- 在用户原项目992203060197页面完整重载，从S4割接上线打开审批历史，两个姓名同样正确，用户编号回退及审批读取错误均消失；下载方案按钮保留。两个入口均APPROVED、allowedActions为空，未增加终态决定权限。
+- 浏览器复验前后只读核对审批根、两节点的状态/办理人/版本/决定时间、10条五项评审和本流程0条运行待办，逐行完全一致。本轮未提交审批、改派或闭环数据；保留原项目页及服务经理会话，关闭临时复验页。证据：.run/cutover-approval-participant-name-browser-result.json、.run/cutover-approval-participant-name-history-before.txt、.run/cutover-approval-participant-name-history-after.txt。

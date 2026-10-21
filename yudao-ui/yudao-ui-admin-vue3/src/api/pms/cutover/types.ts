@@ -558,6 +558,7 @@ export interface CutoverApprovalNode {
   status: CutoverApprovalNodeStatus
   originalApproverUserId: WireLong | null
   currentApproverUserId: WireLong | null
+  currentApproverName?: string | null
   candidateRoleCode?: 'probSupporter' | 'probRD' | null
   decisionAt: WireDateTime | null
   feedback: string | null
@@ -657,6 +658,7 @@ export interface CutoverApprovalReassignmentNode {
   nodeCode: CutoverApprovalNodeCode
   nodeStatus: 'WAITING' | 'PENDING'
   currentApproverUserId: WireLong | null
+  currentApproverName?: string | null
   nodeVersion: number
 }
 

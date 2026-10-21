@@ -50,6 +50,7 @@
       placeholder="请输入审批反馈"
       :disabled="busy"
     />
+    <Teleport :to="actionsTarget || 'body'" :disabled="!actionsTarget">
     <div class="decision-actions">
       <el-button
         v-if="allowedActions.includes('REJECT')"
@@ -70,6 +71,7 @@
         >审批通过</el-button
       >
     </div>
+    </Teleport>
   </section>
 </template>
 
@@ -86,6 +88,7 @@ const props = defineProps<{
   nodeCode: CutoverApprovalNodeCode
   allowedActions: CutoverApprovalAction[]
   busy: boolean
+  actionsTarget?: HTMLElement
 }>()
 const emit = defineEmits<{ decide: [value: CutoverApprovalDecisionRequest] }>()
 const reviewLabels: Record<CutoverApprovalReviewItem['itemCode'], string> = {

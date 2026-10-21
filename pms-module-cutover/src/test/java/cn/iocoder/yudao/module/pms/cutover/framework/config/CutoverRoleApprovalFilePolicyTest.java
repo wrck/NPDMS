@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureMappe
 import cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience;
 import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FrozenFileVersionAccessQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverFrozenPlanFileQuery;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
@@ -132,6 +133,64 @@ class CutoverRoleApprovalFilePolicyTest {
         when(f.audience.inspectTask(any())).thenReturn(new CutoverRoleApprovalAudience.Grant(20L, "{}"));
         assertTrue(f.policy("CUTOVER_CLOSURE").inspect(query("CUTOVER_CLOSURE", "40", "OTHER_EVIDENCE", "READ")).allowed());
         assertFalse(f.policy("CUTOVER_CLOSURE").inspect(query("CUTOVER_CLOSURE", "40", "OTHER_EVIDENCE", "UPLOAD")).allowed());
+    }
+    @Test void closureDraftOwnerKeepsUploadScopeEvenAfterApprovingTheTask() {
+        Fixture f = closureOwner();
+        for (String action : List.of("UPLOAD", "READ", "DOWNLOAD", "PREVIEW")) {
+            var fact = f.policy("CUTOVER_CLOSURE").inspect(query("CUTOVER_CLOSURE", "40", "OTHER_EVIDENCE", action));
+            assertTrue(fact.allowed());
+            assertEquals(9L, fact.scopeVersion());
+            assertEquals("MUTABLE", fact.referenceMutability());
+        }
+        verifyNoInteractions(f.audience);
+    }
+    @Test void closureDraftOwnerRevalidatesTheSameProjectScopeUnderLock() {
+        Fixture f = closureOwner();
+        when(f.scopes.lockAndRevalidate(any())).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(30L, 9L, true));
+        var task = f.tasks.selectById(10L);
+        var closure = f.closures.selectById(40L);
+        when(f.tasks.selectForUpdate(any())).thenReturn(task);
+        when(f.closures.selectByTaskForUpdate(any())).thenReturn(closure);
+        var query = new FileBusinessObjectPolicyRevalidationQuery(1L, 8L, "CUT", "CUTOVER_CLOSURE",
+                "40", "OTHER_EVIDENCE", "cutover-plan:50:2", "READ", 9L);
+        var fact = f.policy("CUTOVER_CLOSURE").lockAndRevalidate(query);
+        assertTrue(fact.allowed());
+        assertEquals(9L, fact.scopeVersion());
+        verify(f.scopes).lockAndRevalidate(argThat(value -> value.expectedProjectScopeVersion() == 9L));
+        verifyNoInteractions(f.audience);
+
+        when(f.scopes.lockAndRevalidate(any())).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(30L, 10L, false));
+        assertFalse(f.policy("CUTOVER_CLOSURE").lockAndRevalidate(query).allowed());
+        verifyNoInteractions(f.audience);
+    }
+    @Test void draftOwnerWithoutProjectAccessRetainsOnlyHistoricalApproverReadGrant() {
+        Fixture f = closureOwner();
+        when(f.scopes.inspect(any(), any(), any())).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(30L, 9L, false));
+        var fact = f.policy("CUTOVER_CLOSURE").inspect(query("CUTOVER_CLOSURE", "40", "OTHER_EVIDENCE", "READ"));
+        assertTrue(fact.allowed());
+        assertEquals(20L, fact.scopeVersion());
+        assertEquals("IMMUTABLE", fact.referenceMutability());
+        assertFalse(f.policy("CUTOVER_CLOSURE").inspect(query("CUTOVER_CLOSURE", "40", "OTHER_EVIDENCE", "UPLOAD")).allowed());
+    }
+    @Test void archivedClosureRetainsHistoricalApproverReadGrantWithoutProjectAccess() {
+        Fixture f = closureOwner();
+        f.tasks.selectById(10L).setTaskStatus("ARCHIVED");
+        when(f.scopes.inspect(any(), any(), any())).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(30L, 9L, false));
+        var fact = f.policy("CUTOVER_CLOSURE").inspect(query("CUTOVER_CLOSURE", "40", "OTHER_EVIDENCE", "READ"));
+        assertTrue(fact.allowed());
+        assertEquals(20L, fact.scopeVersion());
+        assertEquals("IMMUTABLE", fact.referenceMutability());
+        assertFalse(f.policy("CUTOVER_CLOSURE").inspect(query("CUTOVER_CLOSURE", "40", "OTHER_EVIDENCE", "UPLOAD")).allowed());
+    }
+    private static Fixture closureOwner() {
+        Fixture f = new Fixture();
+        var task = f.tasks.selectById(10L);
+        task.setOwnerUserId(8L);
+        task.setCurrentStage("P6");
+        when(f.audience.inspectTask(any())).thenReturn(new CutoverRoleApprovalAudience.Grant(20L, "{}"));
+        when(f.scopes.inspect(any(), any(), any())).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(30L, 9L, true));
+        when(f.permissions.hasAnyPermissions(eq(8L), any(String[].class))).thenReturn(true);
+        return f;
     }
     @Test void tenantOwnerAndPurposeChecksStillPrecedeRoleAudience() {
         Fixture f = new Fixture();

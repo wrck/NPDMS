@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverAppro
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 
 public final class CutoverApprovalResponses {
     private CutoverApprovalResponses() { }
@@ -19,7 +20,7 @@ public final class CutoverApprovalResponses {
     public record Node(Long nodeId, Integer nodeNo, String nodeCode, String status,
                        Long originalApproverUserId, Long currentApproverUserId, Long decisionAt,
                        String feedback, List<ReviewItem> reviewItems, AssessmentReview assessmentReview,
-                       String candidateRoleCode) { }
+                       String candidateRoleCode, String currentApproverName) { }
     public record Detail(String viewMode, Long approvalInstanceId, Long approvalVersion, Long taskId,
                          Long taskVersion, Long planRevisionId, Integer planRevisionNo, String grade,
                          String status, String holdReason, Integer currentNodeNo, List<Node> nodes,
@@ -39,7 +40,7 @@ public final class CutoverApprovalResponses {
                               String grade, String status, Long decisionAt, String rejectionReason,
                               List<String> allowedActions) implements View { }
     public record ReassignmentNode(Long nodeId, Integer nodeNo, String nodeCode, String nodeStatus,
-                                   Long currentApproverUserId, Integer nodeVersion) { }
+                                   Long currentApproverUserId, Integer nodeVersion, String currentApproverName) { }
     public record Reassignment(String viewMode, Long approvalInstanceId, Long approvalVersion, Long taskId,
                                Long projectId, String taskCode, String taskName, String grade, String status,
                                String holdReason, List<ReassignmentNode> nodes,
@@ -56,26 +57,29 @@ public final class CutoverApprovalResponses {
     public record ReassignmentCandidatePage(List<ReassignmentCandidate> list, Long total,
                                              Integer pageNo, Integer pageSize) { }
 
-    public static View view(CutoverApprovalViews.ApprovalView source, CutoverApprovalSourcePresentation presentation) {
+    public static View view(CutoverApprovalViews.ApprovalView source, CutoverApprovalSourcePresentation presentation,
+                            Map<Long, String> participantNames) {
         return switch (source) {
             case CutoverApprovalViews.ApprovalDetail value -> new Detail(value.viewMode(), value.approvalInstanceId(),
                     value.approvalVersion(), value.taskId(), value.taskVersion(), value.planRevisionId(),
                     value.planRevisionNo(), value.grade(), value.status(), value.holdReason(), value.currentNodeNo(),
-                    value.nodes().stream().map(CutoverApprovalResponses::node).toList(), value.sourceSnapshot(),
+                    value.nodes().stream().map(node -> node(node, participantNames)).toList(), value.sourceSnapshot(),
                     value.leadTimeCompliance(), epoch(value.decisionAt()), value.rejectionReason(),
                     spare(value.spareSupport()), presentation, value.allowedActions());
             case CutoverApprovalViews.ApprovalFinalResult value -> new FinalResult(value.viewMode(),
                     value.approvalInstanceId(), value.taskId(), value.planRevisionId(), value.grade(), value.status(),
                     epoch(value.decisionAt()), value.rejectionReason(), value.allowedActions());
-            case CutoverApprovalViews.ApprovalReassignmentView value -> reassignment(value);
+            case CutoverApprovalViews.ApprovalReassignmentView value -> reassignment(value, participantNames);
         };
     }
 
-    public static Reassignment reassignment(CutoverApprovalViews.ApprovalReassignmentView value) {
+    public static Reassignment reassignment(CutoverApprovalViews.ApprovalReassignmentView value,
+                                            Map<Long, String> participantNames) {
         return new Reassignment(value.viewMode(), value.approvalInstanceId(), value.approvalVersion(), value.taskId(),
                 value.projectId(), value.taskCode(), value.taskName(), value.grade(), value.status(), value.holdReason(),
                 value.nodes().stream().map(node -> new ReassignmentNode(node.nodeId(), node.nodeNo(), node.nodeCode(),
-                        node.nodeStatus(), node.currentApproverUserId(), node.nodeVersion())).toList(),
+                        node.nodeStatus(), node.currentApproverUserId(), node.nodeVersion(),
+                        node.currentApproverUserId() == null ? null : participantNames.get(node.currentApproverUserId()))).toList(),
                 value.allowedActions());
     }
 
@@ -94,13 +98,14 @@ public final class CutoverApprovalResponses {
                 epoch(item.createdAt()))).toList(), page.total(), page.pageNo(), page.pageSize());
     }
 
-    private static Node node(CutoverApprovalViews.Node value) {
+    private static Node node(CutoverApprovalViews.Node value, Map<Long, String> participantNames) {
         return new Node(value.nodeId(), value.nodeNo(), value.nodeCode(), value.status(),
                 value.originalApproverUserId(), value.currentApproverUserId(), epoch(value.decisionAt()),
                 value.feedback(), value.reviewItems().stream().map(item -> new ReviewItem(
                 item.itemCode(), item.decision(), item.unreasonableReason())).toList(),
                 value.assessmentReview() == null ? null : new AssessmentReview(
-                        value.assessmentReview().decision(), value.assessmentReview().reason()), value.candidateRoleCode());
+                        value.assessmentReview().decision(), value.assessmentReview().reason()), value.candidateRoleCode(),
+                value.currentApproverUserId() == null ? null : participantNames.get(value.currentApproverUserId()));
     }
 
     private static SpareSupportApprovalSummary spare(CutoverSpareViews.ApprovalSummary value) {

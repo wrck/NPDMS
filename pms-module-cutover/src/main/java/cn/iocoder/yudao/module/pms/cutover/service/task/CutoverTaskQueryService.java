@@ -243,7 +243,12 @@ public class CutoverTaskQueryService {
 
     private static String serialKey(String value) { return value.trim().toUpperCase(Locale.ROOT); }
 
-    public CutoverTaskViews.Detail detail(CutoverTaskContext context, Long taskId) {
+    public record ActionQuery(CutoverTaskContext context, Long taskId) { }
+    private record TaskAccess(CutoverTaskDO task, boolean projectRead) { }
+
+    private TaskAccess readAccess(ActionQuery query) {
+        CutoverTaskContext context = query.context();
+        Long taskId = query.taskId();
         Long tenantId = context.tenantId();
         Long actorId = context.actorId();
         CutoverTaskDO task = taskMapper.selectById(taskId);
@@ -253,6 +258,31 @@ public class CutoverTaskQueryService {
         require(projectRead || approvalAudience.inspectTask(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.Query(tenantId, actorId, taskId, null)) != null,
                 NOT_FOUND, "割接任务不可见");
 
+        return new TaskAccess(task, projectRead);
+    }
+
+    /** Same action rules as detail; P3 does not need the display-only device/readiness payload. */
+    public boolean hasWorkbenchAction(ActionQuery query) {
+        TaskAccess access = readAccess(query);
+        if (!access.projectRead()) return false;
+        if (!"P3".equals(access.task().getCurrentStage())) return !detail(query, access).allowedActions().isEmpty();
+        var task = access.task();
+        var assessment = task.getCurrentAssessmentId() == null ? null : assessmentMapper.selectById(task.getCurrentAssessmentId());
+        var checklist = checklistMapper.selectCurrent(new CutoverChecklistRowQuery(query.context().tenantId(), query.taskId(), null));
+        return !allowedActions(task, assessment, checklist, query.context(), P2ActionEligibility.NOT_APPLICABLE).isEmpty();
+    }
+
+    public CutoverTaskViews.Detail detail(CutoverTaskContext context, Long taskId) {
+        var query = new ActionQuery(context, taskId);
+        return detail(query, readAccess(query));
+    }
+
+    private CutoverTaskViews.Detail detail(ActionQuery query, TaskAccess access) {
+        CutoverTaskContext context = query.context();
+        Long taskId = query.taskId();
+        Long tenantId = context.tenantId();
+        CutoverTaskDO task = access.task();
+        boolean projectRead = access.projectRead();
         CutoverProjectContextPort.ProjectContextFact project = CutoverTaskSnapshotStore.project(task);
         CutoverCustomerLevelPort.CustomerLevelFact customer = CutoverTaskSnapshotStore.customer(task);
         CutoverReadinessPort.ReadinessFact readiness = projectRead ? taskSnapshots.readiness(task) : taskSnapshots.readinessReference(task);

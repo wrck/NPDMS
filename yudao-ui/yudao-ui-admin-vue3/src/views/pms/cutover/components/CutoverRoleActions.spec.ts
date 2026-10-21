@@ -5,8 +5,9 @@ import DecisionForm from './CutoverApprovalDecisionForm.vue'
 import FileReference from '@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue'
 import * as FileApi from '@/api/pms/platform/file/version-reference'
 
-vi.mock('@/api/pms/platform/file/version-reference', () => ({ getArtifact: vi.fn(), createAccessTicket: vi.fn() }))
+vi.mock('@/api/pms/platform/file/version-reference', () => ({ getArtifact: vi.fn(), createAccessTicket: vi.fn(), getPreviewContent: vi.fn() }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ warning: vi.fn() }) }))
+vi.mock('@/components/PmsFileArtifact/PmsPdfPreview.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/utils/download', () => ({ default: { file: vi.fn() } }))
 vi.mock('@/components/PmsFileArtifact/PmsFileVersionReferenceHistory.vue', () => ({ default: defineComponent({ render: () => null }) }))
 
@@ -15,7 +16,7 @@ const mountWithoutMenuPermissions = (component: Component, props: Record<string,
   const root: TestNode = { type: 'root', children: [] }
   const app = renderer.createApp(component, props)
   app.provide(Symbol.for('v-scx'), { modules: new Set<string>() })
-  for (const name of ['ElInput', 'ElRadio', 'ElRadioGroup', 'ElSkeleton', 'ElTag', 'ElEmpty', 'ElAlert']) app.component(name, passthrough)
+  for (const name of ['ElDialog', 'ElInput', 'ElRadio', 'ElRadioGroup', 'ElSkeleton', 'ElTag', 'ElEmpty', 'ElAlert']) app.component(name, passthrough)
   app.component('ElButton', button)
   // A role task does not add permissions to the frontend's global menu cache.
   app.directive('hasPermi', { mounted(node: TestNode) {
@@ -58,11 +59,9 @@ describe('当前角色待办使用服务端允许动作', () => {
     finally { page.app.unmount() }
   })
 
-  it('展示冻结文件的受控操作，但授权票据被拒绝时不会导航到文件', async () => {
+  it('展示冻结文件的受控操作，但预览授权被拒绝时不会导航到文件', async () => {
     vi.mocked(FileApi.getArtifact).mockResolvedValue({ artifactId: '201', name: 'sample.pdf', reference: { ...key, versionNo: 1, status: 'ACTIVE' }, allowedActions: ['READ', 'PREVIEW', 'DOWNLOAD'] } as any)
-    vi.mocked(FileApi.createAccessTicket).mockRejectedValue(new Error('role task completed'))
-    const popup = { opener: {}, location: { replace: vi.fn() }, close: vi.fn() }
-    vi.mocked(window.open).mockReturnValue(popup as any)
+    vi.mocked(FileApi.getPreviewContent).mockRejectedValue(new Error('role task completed'))
     const page = mountWithoutMenuPermissions(FileReference, { ...key, artifactId: '201', versionNo: 1 })
     try {
       await flush()
@@ -70,9 +69,8 @@ describe('当前角色待办使用服务端允许动作', () => {
       expect(findButton(page.root, '预览')).toBeDefined()
       await (findButton(page.root, '预览')!.props!.onClick as () => Promise<void>)()
       await flush()
-      expect(FileApi.createAccessTicket).toHaveBeenCalledWith('201', 1, 'PREVIEW', key)
-      expect(popup.location.replace).not.toHaveBeenCalled()
-      expect(popup.close).toHaveBeenCalledOnce()
+      expect(FileApi.getPreviewContent).toHaveBeenCalledWith('201', 1, key)
+      expect(window.open).not.toHaveBeenCalled()
       expect(textOf(page.root)).toContain('文件预览未完成')
     } finally { page.app.unmount() }
   })

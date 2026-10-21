@@ -1,23 +1,30 @@
 <template>
   <section v-loading="loading" class="approval-panel" aria-labelledby="approval-heading">
-    <el-alert title="审批页面引用方案提交时的固定版本。审批人根据项目、调研、风险、等级及方案进行五项合理性评审。" type="info" :closable="false" show-icon />
     <div v-if="errorText">
       <el-alert :title="errorText" type="error" show-icon :closable="false" />
       <el-button data-testid="retry-approval-refresh" :loading="loading" @click="retryRefresh">重新加载审批</el-button>
     </div>
     <template v-else-if="view?.viewMode === 'FULL'">
-      <div class="cut-actions"><el-button data-testid="view-complete-cutover-task" @click="openCompleteTask">查看完整割接任务</el-button></div>
-      <section class="cut-card">
-        <header class="cut-card__header"><h3 id="approval-heading"><Icon icon="ep:location" />项目信息</h3><small>引用割接等级确认时的项目信息</small></header>
+      <Teleport :to="actionsTarget || 'body'" :disabled="!actionsTarget">
+      <div class="cut-actions" :class="{ 'cut-actions--embedded': !!actionsTarget }">
+        <el-button data-testid="view-complete-cutover-task" @click="openCompleteTask">查看完整割接任务</el-button>
+        <el-button
+          v-if="writableContent" v-hasPermi="['pms:cutover-task:download-plan']" data-testid="download-submitted-plan"
+          :loading="downloadingPlan" :disabled="writing" @click="downloadPlan">下载方案</el-button>
+        <el-button v-if="actionsTarget && reassignmentForm" data-testid="open-cutover-reassignment" :disabled="writing" @click="reassignmentVisible = true">审批改派</el-button>
+      </div>
+      </Teleport>
+      <details open class="cut-card">
+        <summary class="cut-card__header"><h3 id="approval-heading"><Icon icon="ep:location" />项目信息</h3><small>引用割接等级确认时的项目信息</small></summary>
         <div class="cut-card__body cut-form-grid">
           <div class="cut-form-field"><label>项目名称</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.project.projectName }}</span></div>
           <div class="cut-form-field"><label>项目编号</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.project.projectCode }}</span></div>
           <div class="cut-form-field"><label>设备序列号</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.plan.sourceSnapshot.devices.map(device => device.serialNumber).join('、') }}</span></div>
           <div class="cut-form-field"><label>办事处</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.project.departmentName || '—' }}</span></div>
         </div>
-      </section>
-      <section class="cut-card">
-        <header class="cut-card__header"><h3><Icon icon="ep:data-analysis" />采集信息分析</h3><small>引用调研及风险考察</small></header>
+      </details>
+      <details open class="cut-card">
+        <summary class="cut-card__header"><h3><Icon icon="ep:data-analysis" />采集信息分析</h3><small>引用调研及风险考察</small></summary>
         <div class="cut-card__body">
           <div class="cut-form-grid">
             <div class="cut-form-field"><label>割接类型</label><span data-testid="approval-cutover-type" class="cut-form-value cut-form-value--plain">{{ cutoverTypeLabel }}</span></div>
@@ -38,9 +45,9 @@
             </el-table>
           </template>
         </div>
-      </section>
-      <section class="cut-card">
-        <header class="cut-card__header"><h3><Icon icon="ep:data-analysis" />割接等级</h3><small>引用割接等级确认</small></header>
+      </details>
+      <details open class="cut-card">
+        <summary class="cut-card__header"><h3><Icon icon="ep:data-analysis" />割接等级</h3><small>引用割接等级确认</small></summary>
         <div class="cut-card__body cut-form-grid grade-facts">
           <div class="cut-form-field"><label>业务重要等级</label><span class="cut-form-value cut-form-value--plain">{{ levelLabels[view.sourceSnapshot.assessment.businessImportanceLevel] || view.sourceSnapshot.assessment.businessImportanceLevel }}</span></div>
           <div class="cut-form-field"><label>操作复杂度等级</label><span class="cut-form-value cut-form-value--plain">{{ levelLabels[view.sourceSnapshot.assessment.operationComplexityLevel] || view.sourceSnapshot.assessment.operationComplexityLevel }}</span></div>
@@ -49,20 +56,20 @@
           <div class="cut-form-field"><label>客户服务等级</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.assessment.customerServiceLevelCode === 'NOT_CONFIGURED' ? '未配置' : view.sourceSnapshot.assessment.customerServiceLevelCode }}</span></div>
           <div class="cut-form-field"><label>人工确定割接等级</label><span class="grade-badge">{{ view.sourceSnapshot.assessment.manualGrade }}级</span></div>
         </div>
-      </section>
-      <section class="cut-card">
-        <header class="cut-card__header"><h3><Icon icon="ep:document" />割接方案</h3><small>第 {{ view.planRevisionNo }} 版</small></header>
+      </details>
+      <details open class="cut-card">
+        <summary class="cut-card__header"><h3><Icon icon="ep:document" />割接方案</h3><small>第 {{ view.planRevisionNo }} 版</small></summary>
         <div class="cut-card__body"><CutoverPlanEditor v-if="writableContent" :model-value="writableContent" :source-snapshot="view.sourceSnapshot.plan.sourceSnapshot" :task-id="view.taskId" :editable="false" /></div>
-      </section>
-      <section v-if="currentNode && hasDecisionAction" class="cut-card">
-        <header class="cut-card__header"><h3><Icon icon="ep:finished" />割接评审</h3><small>当前节点：{{ nodeLabels[currentNode.nodeCode] }}<template v-if="currentNode.candidateRoleCode"> · {{ roleLabels[currentNode.candidateRoleCode] }}角色审批</template></small></header>
+      </details>
+      <details open v-if="currentNode && hasDecisionAction" class="cut-card">
+        <summary class="cut-card__header"><h3><Icon icon="ep:finished" />割接评审</h3><small>当前节点：{{ nodeLabels[currentNode.nodeCode] }}<template v-if="currentNode.candidateRoleCode"> · {{ roleLabels[currentNode.candidateRoleCode] }}角色审批</template></small></summary>
         <div class="cut-card__body"><CutoverApprovalDecisionForm
 :key="String(view.approvalInstanceId) + ':' + currentNode.nodeNo"
           :identity="String(view.approvalInstanceId) + ':' + currentNode.nodeNo" :node-code="currentNode.nodeCode"
-          :allowed-actions="props.readonly ? [] : view.allowedActions" :busy="writing" @decide="decide" /></div>
-      </section>
-      <section class="cut-card">
-        <header class="cut-card__header"><h3><Icon icon="ep:clock" />审批记录</h3><div><el-tag size="small" :type="view.status === 'APPROVED' ? 'success' : view.status === 'REJECTED' ? 'danger' : 'warning'">{{ statusLabels[view.status] }}</el-tag><el-button v-if="reassignmentForm" link data-testid="open-cutover-reassignment" :disabled="writing" @click="reassignmentVisible = true">审批改派</el-button><el-button link data-testid="refresh-approval" @click="load">刷新</el-button></div></header>
+          :allowed-actions="props.readonly ? [] : view.allowedActions" :busy="writing" :actions-target="actionsTarget" @decide="decide" /></div>
+      </details>
+      <details open class="cut-card">
+        <summary class="cut-card__header"><h3><Icon icon="ep:clock" />审批记录</h3><div><el-tag size="small" :type="view.status === 'APPROVED' ? 'success' : view.status === 'REJECTED' ? 'danger' : 'warning'">{{ statusLabels[view.status] }}</el-tag><el-button v-if="!actionsTarget && reassignmentForm" link data-testid="open-cutover-reassignment" :disabled="writing" @click="reassignmentVisible = true">审批改派</el-button><el-button v-if="!actionsTarget" link data-testid="refresh-approval" @click="load">刷新</el-button></div></summary>
         <el-table :data="view.nodes" row-key="nodeId">
           <el-table-column label="审批节点" width="180"><template #default="{ row }">{{ row.nodeNo }}. {{ nodeLabels[row.nodeCode] }}</template></el-table-column>
           <el-table-column label="状态" width="105"><template #default="{ row }">{{ nodeStatusLabels[row.status] }}</template></el-table-column>
@@ -70,7 +77,7 @@
           <el-table-column label="五项评审及反馈" min-width="350"><template #default="{ row }"><span>{{ row.feedback || '—' }}</span><ul v-if="row.reviewItems.length" class="review-history"><li v-for="item in row.reviewItems" :key="item.itemCode">{{ reviewLabels[item.itemCode] }}：{{ item.decision === 'YES' ? '合理' : '不合理（' + item.unreasonableReason + '）' }}</li></ul><p v-if="row.assessmentReview?.reason" class="review-history">等级复核：{{ row.assessmentReview.reason }}</p></template></el-table-column>
           <el-table-column label="审批时间" min-width="165"><template #default="{ row }">{{ formatWireDateTime(row.decisionAt) }}</template></el-table-column>
         </el-table>
-      </section>
+      </details>
     </template>
     <template v-else-if="view?.viewMode === 'FINAL_RESULT_ONLY'">
       <el-result
@@ -79,17 +86,28 @@
         :sub-title="view.rejectionReason || `决定时间：${formatWireDateTime(view.decisionAt)}`"
       />
     </template>
-    <CutoverApprovalReassignmentPanel
-      v-else-if="view?.viewMode === 'REASSIGNMENT_ONLY'"
-      :key="`${view.approvalInstanceId}:${view.approvalVersion}`"
-      :view="view"
-      :busy="writing"
-      :user-names="userNames" :users-loading="usersLoading" :users-error="usersError"
-      @retry-users="loadUsers"
-      @reassign="reassign"
-    />
+    <template v-else-if="view?.viewMode === 'REASSIGNMENT_ONLY'">
+      <details open class="cut-card" data-testid="approval-administrator-summary">
+        <summary class="cut-card__header"><h3 id="approval-heading"><Icon icon="ep:clock" />审批状态</h3><el-tag type="warning">{{ statusLabels[view.status] }}</el-tag></summary>
+        <div class="cut-card__body cut-form-grid">
+          <div class="cut-form-field"><label>任务名称</label><span class="cut-form-value cut-form-value--plain">{{ view.taskName }}</span></div>
+          <div class="cut-form-field"><label>任务编号</label><span class="cut-form-value cut-form-value--plain">{{ view.taskCode }}</span></div>
+          <div class="cut-form-field"><label>割接等级</label><span class="cut-form-value cut-form-value--plain">{{ view.grade }}级</span></div>
+        </div>
+        <el-table :data="view.nodes" row-key="nodeId">
+          <el-table-column label="审批节点" min-width="160"><template #default="{ row }">{{ row.nodeNo }}. {{ nodeLabels[row.nodeCode] }}</template></el-table-column>
+          <el-table-column label="状态" width="105"><template #default="{ row }">{{ nodeStatusLabels[row.nodeStatus] }}</template></el-table-column>
+          <el-table-column label="当前审批人" min-width="165"><template #default="{ row }">{{ row.currentApproverUserId == null ? '待确认' : row.currentApproverName || userNames[String(row.currentApproverUserId)] || `用户 ${row.currentApproverUserId}` }}</template></el-table-column>
+        </el-table>
+      </details>
+      <Teleport :to="actionsTarget || 'body'" :disabled="!actionsTarget">
+        <div class="cut-actions" :class="{ 'cut-actions--embedded': !!actionsTarget }">
+          <el-button v-if="reassignmentForm" data-testid="open-cutover-reassignment" :disabled="writing" @click="reassignmentVisible = true">审批改派</el-button>
+        </div>
+      </Teleport>
+    </template>
     <el-empty v-else-if="!loading" description="暂无审批数据" />
-    <el-dialog v-if="reassignmentVisible && view?.viewMode === 'FULL' && reassignmentForm" v-model="reassignmentVisible" title="审批改派" width="min(640px, 94vw)" append-to-body :close-on-click-modal="!writing" :close-on-press-escape="!writing" :show-close="!writing">
+    <el-dialog v-if="reassignmentVisible && reassignmentForm" v-model="reassignmentVisible" title="审批改派" width="min(640px, 94vw)" append-to-body :close-on-click-modal="!writing" :close-on-press-escape="!writing" :show-close="!writing">
       <CutoverApprovalReassignmentPanel :key="`${reassignmentForm.approvalInstanceId}:${reassignmentForm.approvalVersion}`" :view="reassignmentForm" :busy="writing" :user-names="userNames" :users-loading="usersLoading" :users-error="usersError" embedded @retry-users="loadUsers" @cancel="reassignmentVisible = false" @reassign="reassign" />
     </el-dialog>
   </section>
@@ -118,6 +136,7 @@ import CutoverApprovalDecisionForm from './CutoverApprovalDecisionForm.vue'
 import CutoverLeadTimeComplianceCard from './CutoverLeadTimeComplianceCard.vue'
 import CutoverApprovalReassignmentPanel from './CutoverApprovalReassignmentPanel.vue'
 import CutoverPlanEditor from './CutoverPlanEditor.vue'
+import { downloadSubmittedPlanFile } from '../shared/cutoverSubmittedPlanDownload'
 import CutoverFrozenAnswer from './CutoverFrozenAnswer.vue'
 import type { FieldSchema } from './CutoverSchemaInput.vue'
 import PmsFileVersionReferenceList from '@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue'
@@ -126,11 +145,19 @@ const router = useRouter()
 const openCompleteTask = () => {
   if (view.value?.viewMode === 'FULL') void router.push({ path: `/pms/cutover/tasks/${view.value.taskId}`, query: { readonly: '1' } })
 }
-const props = defineProps<{ taskId?: CutoverApi.WireLong; approvalId?: CutoverApi.WireLong; readonly?: boolean; completeAfterDecision?: boolean }>()
+const props = defineProps<{ taskId?: CutoverApi.WireLong; approvalId?: CutoverApi.WireLong; readonly?: boolean; completeAfterDecision?: boolean; actionsTarget?: HTMLElement }>()
 const emit = defineEmits<{ changed: []; decided: [] }>()
 const message = useMessage()
 const loading = ref(false)
 const writing = ref(false)
+const downloadingPlan = ref(false)
+const downloadPlan = async () => {
+  if (downloadingPlan.value || writing.value || view.value?.viewMode !== 'FULL' || !writableContent.value) return
+  downloadingPlan.value = true
+  try { await downloadSubmittedPlanFile({ taskId: view.value.taskId, planRevisionId: view.value.planRevisionId, content: writableContent.value }) }
+  catch { message.warning('方案下载失败，请刷新方案后重试。') }
+  finally { downloadingPlan.value = false }
+}
 const reassignmentVisible = ref(false)
 const errorText = ref('')
 const view = ref<CutoverApprovalView | null>(null)
@@ -224,7 +251,7 @@ const roleLabels = { probSupporter: '技术支持人员', probRD: '研发人员'
 const approvalParticipant = (node: CutoverApprovalNode) => {
   const role = node.candidateRoleCode ? roleLabels[node.candidateRoleCode] : null
   if (node.currentApproverUserId != null) {
-    const person = userNames.value[String(node.currentApproverUserId)] || `用户 ${node.currentApproverUserId}`
+    const person = node.currentApproverName || userNames.value[String(node.currentApproverUserId)] || `用户 ${node.currentApproverUserId}`
     return role ? `${person}（${role}）` : person
   }
   return role ? `${role} · 角色共享待办` : '待确认'
@@ -362,6 +389,7 @@ watch(
     await load()
   }
 )
+defineExpose({ refresh: load })
 onBeforeUnmount(() => { loadSequence++ })
 const loadUsers = async () => {
   if (usersLoading.value || !view.value || !['FULL', 'REASSIGNMENT_ONLY'].includes(view.value.viewMode)) return

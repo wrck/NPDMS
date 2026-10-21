@@ -39,6 +39,7 @@ public class CutoverApprovalQueryService {
     private CutoverApprovalStorage storage;
 
     private final CutoverApprovalRoleCandidatePort roleCandidatePort;
+    private final ProjectCutoverServiceManagerPort serviceManagerPort;
     private final CutoverApprovalInstanceMapper instanceMapper;
     private final CutoverApprovalNodeMapper nodeMapper;
     private final CutoverApprovalReviewItemMapper reviewMapper;
@@ -68,6 +69,7 @@ public class CutoverApprovalQueryService {
         this.instanceMapper = instanceMapper; this.nodeMapper = nodeMapper; this.reviewMapper = reviewMapper;
         this.taskMapper = taskMapper; this.projectScopePort = projectScopePort;
         this.roleCandidatePort = roleCandidatePort;
+        this.serviceManagerPort = serviceManagerPort;
         this.snapshotCodec = snapshotCodec;
         this.spareQueryService = spareQueryService;
         this.eligibilityPolicy = new CutoverApprovalEligibilityPolicy(roleCandidatePort);
@@ -89,6 +91,21 @@ public class CutoverApprovalQueryService {
         return detail(root, context);
     }
 
+    public Long reassignmentServiceManager(CutoverApprovalContext context, long approvalId) {
+        if (!context.canReassign()) throw new org.springframework.security.access.AccessDeniedException("无审批改派权限");
+        var access = new CutoverApprovalContext(context.tenantId(), context.actorId(), context.correlationId(),
+                false, false, true);
+        var view = detailByInstance(access, approvalId);
+        require(view instanceof CutoverApprovalViews.ApprovalReassignmentView, STATE_CONFLICT, "审批实例不可改派");
+        var reassignment = (CutoverApprovalViews.ApprovalReassignmentView) view;
+        require(reassignment.nodes().stream().anyMatch(node -> "SERVICE_MANAGER".equals(node.nodeCode())),
+                STATE_CONFLICT, "服务经理节点不可改派");
+        var fact = serviceManagerPort.inspectCurrent(context.tenantId(), reassignment.projectId(), LocalDateTime.now());
+        require(fact.tenantId() == context.tenantId() && fact.projectId() == reassignment.projectId(),
+                OWNER_DATA_CORRUPTED, "服务经理事实身份不一致");
+        return fact.outcome() == ProjectCutoverServiceManagerPort.Outcome.FOUND ? fact.userId() : null;
+    }
+
     private CutoverApprovalViews.ApprovalView detail(CutoverApprovalInstanceDO root, CutoverApprovalContext context) {
         long actorId = context.actorId();
         long tenantId = root.getTenantId(); long taskId = root.getTaskId();
@@ -105,7 +122,7 @@ public class CutoverApprovalQueryService {
                 .subjectUserId(actorId)
                 .requiredAction("ACTION_VIEW")
                 .build()).allowed();
-        boolean full = roleView || projectView && Objects.equals(root.getInitiatorUserId(), actorId);
+        boolean full = roleView || projectView;
         boolean currentEligible = false;
         var currentRole = CutoverRoleApprovalSnapshot.from(current);
         boolean candidate = current != null && (currentRole != null && currentRole.byRole()
@@ -120,7 +137,6 @@ public class CutoverApprovalQueryService {
             full = true;
         }
         if (full) return full(root, task, nodes, current, currentEligible, context);
-        if (projectView && List.of("APPROVED", "REJECTED").contains(root.getStatusCode())) return finalResult(root);
         if (context.canReassign() && "PENDING".equals(root.getStatusCode())) return reassignment(root, task, nodes);
         throw failure(STATE_CONFLICT, "审批详情不可见");
     }
@@ -252,12 +268,6 @@ public class CutoverApprovalQueryService {
         return new CutoverApprovalViews.Node(row.getId(), row.getNodeNo(), row.getNodeCode(), row.getStatusCode(),
                 row.getOriginalApproverUserId(), row.getCurrentApproverUserId(), row.getDecisionAt(), row.getFeedback(), items, assessment,
                 CutoverRoleApprovalSnapshot.roleCode(row));
-    }
-
-    private CutoverApprovalViews.ApprovalFinalResult finalResult(CutoverApprovalInstanceDO root) {
-        return new CutoverApprovalViews.ApprovalFinalResult("FINAL_RESULT_ONLY", root.getId(), root.getTaskId(),
-                root.getPlanRevisionId(), root.getGradeCode(), root.getStatusCode(), root.getDecisionAt(),
-                root.getRejectionReason(), List.of());
     }
 
     private CutoverApprovalViews.ApprovalReassignmentView reassignment(CutoverApprovalInstanceDO root,

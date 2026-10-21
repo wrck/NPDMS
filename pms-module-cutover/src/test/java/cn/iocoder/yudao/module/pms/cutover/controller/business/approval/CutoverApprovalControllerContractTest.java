@@ -5,6 +5,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalAppli
 import cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
+import cn.iocoder.yudao.module.system.api.user.dto.AdminUserRespDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -37,6 +39,7 @@ class CutoverApprovalControllerContractTest {
     }
     private CutoverApprovalApplicationService application;
     private CutoverApprovalQueryService query;
+    private AdminUserApi users;
     private MockMvc mvc;
     private final cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService checklists = mock(cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService.class);
 
@@ -44,11 +47,12 @@ class CutoverApprovalControllerContractTest {
     void setUp() {
         application = mock(CutoverApprovalApplicationService.class);
         query = mock(CutoverApprovalQueryService.class);
+        users = mock(AdminUserApi.class);
         when(query.detailByInstance(any(), anyLong())).thenReturn(detail());
         CutoverApprovalRequestContext context = () -> new CutoverApprovalContext(
                 1L, 8L, "corr-approval-1", true, true, true);
         CutoverApprovalController controller = new TestController(application, query, context,
-                new CutoverApprovalRequestCodec(), checklists);
+                new CutoverApprovalRequestCodec(), checklists, users);
         mvc = standaloneSetup(controller).setControllerAdvice(controller).build();
     }
 
@@ -59,6 +63,15 @@ class CutoverApprovalControllerContractTest {
         assertPermission("myTodos", "pms:cutover-task:query-approval", Integer.class, Integer.class);
         assertPermission("approve", "pms:cutover-task:approve", Long.class, org.springframework.http.HttpHeaders.class, tools.jackson.databind.JsonNode.class);
         assertPermission("reassign", "pms:cutover-task:reassign-approval", Long.class, org.springframework.http.HttpHeaders.class, tools.jackson.databind.JsonNode.class);
+        assertPermission("reassignmentServiceManager", "pms:cutover-task:reassign-approval", Long.class);
+    }
+
+    @Test
+    void servesCurrentManagerCandidateThroughTrustedReassignmentContext() throws Exception {
+        when(query.reassignmentServiceManager(argThat(c -> c.tenantId() == 1L && c.actorId() == 8L && c.canReassign()), eq(100L)))
+                .thenReturn(44L);
+        mvc.perform(get("/api/v1/pms/cutover-approvals/100/reassignment-service-manager"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data").value(44));
     }
 
     @Test
@@ -158,10 +171,33 @@ class CutoverApprovalControllerContractTest {
                 .andExpect(jsonPath("$.data.currentTaskVersion").value(7));
     }
 
+    @Test
+    void explainsRejectedReassignmentWithoutLosingConflictOrRecoveryCode() throws Exception {
+        var view = reassignment();
+        when(query.detailByInstance(any(), eq(100L))).thenReturn(view);
+        when(query.reassignmentCommandContext(any(), eq(10L)))
+                .thenReturn(new CutoverApprovalQueryService.ReassignmentCommandContext(view, 4L));
+        when(application.reassign(any())).thenThrow(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException(
+                cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException.Code.STATE_CONFLICT,
+                "REASSIGN_TARGET_NOT_OPEN", null, null, null, "改派目标不是当前唯一服务经理"));
+        mvc.perform(post("/api/v1/pms/cutover-approvals/100/actions/reassign")
+                .header("If-Match", "0").header("Idempotency-Key", "reassign-ineligible-manager")
+                .contentType("application/json")
+                .content("{\"nodeNo\":2,\"newApproverUserId\":1,\"reason\":\"人员调整\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.msg").value("改派目标不是当前唯一服务经理"))
+                .andExpect(jsonPath("$.data.reasonCode").value("REASSIGN_TARGET_NOT_OPEN"))
+                .andExpect(jsonPath("$.data.recoveryAction").value("REFRESH_APPROVAL"));
+    }
+
     private static CutoverApprovalViews.ApprovalDetail detail() {
+        return detail(List.of(new CutoverApprovalViews.Node(101L, 1, "INITIATOR", "PENDING", 8L, 8L,
+                null, null, List.of(), null, null)));
+    }
+
+    private static CutoverApprovalViews.ApprovalDetail detail(List<CutoverApprovalViews.Node> nodes) {
         return new CutoverApprovalViews.ApprovalDetail("FULL", 100L, 0L, 10L, 4L, 70L, 1, "A", "PENDING",
-                null, 1, List.of(new CutoverApprovalViews.Node(101L, 1, "INITIATOR", "PENDING", 8L, 8L,
-                null, null, List.of(), null, null)), null, new CutoverLeadTimeCalculator().calculate("A", "VERSION_UPGRADE",
+                null, 1, nodes, null, new CutoverLeadTimeCalculator().calculate("A", "VERSION_UPGRADE",
                 LocalDateTime.of(2026, 9, 5, 8, 0), LocalDateTime.of(2026, 9, 3, 18, 0)),
                 null, null, null, List.of("APPROVE", "REJECT"));
     }
@@ -185,7 +221,58 @@ class CutoverApprovalControllerContractTest {
         when(query.detailByInstance(any(), anyLong())).thenThrow(new org.springframework.security.access.AccessDeniedException("denied"));
         mvc.perform(get("/api/v1/pms/cutover-approvals/100"))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.data.sourcePresentation").doesNotExist());
-        verifyNoInteractions(checklists);
+        verifyNoInteractions(checklists, users);
+    }
+
+    @Test
+    void resolvesOnlyAuthorizedParticipantsUsingTheUserOwnerApi() throws Exception {
+        var initiator = new AdminUserRespDTO();
+        initiator.setId(8L);
+        initiator.setNickname("杨凯添");
+        var unrelated = new AdminUserRespDTO();
+        unrelated.setId(99L);
+        unrelated.setNickname("无关人员");
+        when(users.getUserList(java.util.Set.of(8L))).thenReturn(List.of(initiator, unrelated));
+        mvc.perform(get("/api/v1/pms/cutover-approvals/100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nodes[0].currentApproverName").value("杨凯添"))
+                .andExpect(jsonPath("$.data.nodes.length()").value(1))
+                .andExpect(jsonPath("$.data.allowedActions[0]").value("APPROVE"));
+        verify(users).getUserList(java.util.Set.of(8L));
+        when(query.detailByInstance(any(), anyLong())).thenReturn(reassignment());
+        mvc.perform(get("/api/v1/pms/cutover-approvals/100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nodes[0].currentApproverName").value("杨凯添"))
+                .andExpect(jsonPath("$.data.sourceSnapshot").doesNotExist());
+    }
+
+    @Test
+    void missingOrUnavailableUserNamesDoNotHideAuthorizedApprovalFacts() throws Exception {
+        mvc.perform(get("/api/v1/pms/cutover-approvals/100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nodes[0].currentApproverUserId").value(8))
+                .andExpect(jsonPath("$.data.nodes[0].currentApproverName").doesNotExist());
+        when(users.getUserList(any())).thenThrow(new IllegalStateException("unavailable"));
+        mvc.perform(get("/api/v1/pms/cutover-approvals/100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nodes[0].currentApproverUserId").value(8))
+                .andExpect(jsonPath("$.data.nodes[0].currentApproverName").doesNotExist());
+    }
+
+    @Test
+    void unassignedSharedRoleAndResultOnlyViewsDoNotQueryUsers() throws Exception {
+        when(query.detailByInstance(any(), anyLong())).thenReturn(detail(List.of(
+                new CutoverApprovalViews.Node(102L, 2, "SECOND_LINE", "PENDING", null, null,
+                        null, null, List.of(), null, "probSupporter"))));
+        mvc.perform(get("/api/v1/pms/cutover-approvals/100"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nodes[0].currentApproverName").doesNotExist())
+                .andExpect(jsonPath("$.data.nodes[0].candidateRoleCode").value("probSupporter"));
+        when(query.detailByInstance(any(), anyLong())).thenReturn(new CutoverApprovalViews.ApprovalFinalResult(
+                "FINAL_RESULT_ONLY", 100L, 10L, 70L, "D", "APPROVED", LocalDateTime.now(), null, List.of()));
+        mvc.perform(get("/api/v1/pms/cutover-approvals/100"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.nodes").doesNotExist());
+        verifyNoInteractions(users);
     }
 
     private static CutoverApprovalViews.ApprovalReassignmentView reassignment() {
@@ -218,8 +305,9 @@ class CutoverApprovalControllerContractTest {
     private static final class TestController extends CutoverApprovalController {
         private TestController(CutoverApprovalApplicationService application, CutoverApprovalQueryService query,
                                CutoverApprovalRequestContext context, CutoverApprovalRequestCodec codec,
-                               cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService checklists) {
-            super(application, query, context, codec, checklists);
+                               cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService checklists,
+                               AdminUserApi users) {
+            super(application, query, context, codec, checklists, users);
         }
     }
 }

@@ -24,6 +24,58 @@ import static org.mockito.Mockito.*;
 
 class CutoverApprovalQueryServiceTest {
 
+    @Test
+    void reassignmentUsesCurrentUniqueManagerInsteadOfFrozenPersonOrAdministrator() {
+        Fixture f = new Fixture();
+        var root = root("PENDING");
+        var node = node(); node.setNodeCode("SERVICE_MANAGER");
+        when(f.instances.selectById(100L)).thenReturn(root);
+        when(f.tasks.selectById(10L)).thenReturn(task());
+        when(f.nodes.all(any())).thenReturn(List.of(node));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(
+                1L, 99L, "manager-candidate", true, true, true);
+        when(f.managers.inspectCurrent(eq(1L), eq(20L), any())).thenReturn(
+                new ProjectCutoverServiceManagerPort.ServiceManagerFact(ProjectCutoverServiceManagerPort.Outcome.FOUND,
+                        1L, 20L, 44L, "SERVICE_MANAGER_L1", 3, 4L, LocalDateTime.now()));
+        assertThat(f.service.reassignmentServiceManager(context, 100L)).isEqualTo(44L);
+        assertThat(node.getCurrentApproverUserId()).isEqualTo(11L);
+        when(f.managers.inspectCurrent(eq(1L), eq(20L), any())).thenReturn(
+                new ProjectCutoverServiceManagerPort.ServiceManagerFact(ProjectCutoverServiceManagerPort.Outcome.NOT_UNIQUE,
+                        1L, 20L, null, null, null, null, LocalDateTime.now()));
+        assertThat(f.service.reassignmentServiceManager(context, 100L)).isNull();
+        when(f.managers.inspectCurrent(eq(1L), eq(20L), any())).thenThrow(new IllegalStateException("provider unavailable"));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> f.service.reassignmentServiceManager(context, 100L))
+                .hasMessage("provider unavailable");
+        verifyNoInteractions(f.scopes, f.codec, f.reviews);
+        verify(f.nodes, never()).updateStatusIfMatch(any());
+    }
+
+    @Test
+    void managerCandidateReadRejectsMissingPermissionWrongTenantAndClosedNodeBeforeOwnerRead() {
+        Fixture f = new Fixture();
+        var denied = new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(
+                1L, 99L, "manager-candidate", true, false, false);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> f.service.reassignmentServiceManager(denied, 100L))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verifyNoInteractions(f.instances);
+        var allowed = new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(
+                1L, 99L, "manager-candidate", false, false, true);
+        var root = root("PENDING"); root.setTenantId(2L);
+        when(f.instances.selectById(100L)).thenReturn(root);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> f.service.reassignmentServiceManager(allowed, 100L))
+                .isInstanceOf(CutoverApprovalApplicationException.class);
+        root.setTenantId(1L);
+        when(f.tasks.selectById(10L)).thenReturn(task());
+        var node = node(); node.setNodeCode("SERVICE_MANAGER"); node.setStatusCode("APPROVED");
+        when(f.nodes.all(any())).thenReturn(List.of(node));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> f.service.reassignmentServiceManager(allowed, 100L))
+                .isInstanceOf(CutoverApprovalApplicationException.class);
+        root.setStatusCode("APPROVED"); node.setStatusCode("PENDING");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> f.service.reassignmentServiceManager(allowed, 100L))
+                .isInstanceOf(CutoverApprovalApplicationException.class);
+        verifyNoInteractions(f.managers);
+    }
+
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.CsvSource({"SECOND_LINE,probSupporter", "RND,probRD"})
     void currentRoleMemberCanOpenDecisionFormWithoutSeparateClaim(String code, String roleCode) {
@@ -79,13 +131,17 @@ class CutoverApprovalQueryServiceTest {
         assertThat(allowed.allowedActions()).containsExactly("APPROVE", "REJECT");
     }
 
-    @Test
-    void returnsTerminalFinalResultToCurrentProjectViewer() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"PENDING", "APPROVED", "REJECTED"})
+    void projectViewerReadsCompleteApprovalWithoutBeingAssignedOrReceivingDecisionActions(String status) {
         Fixture f = new Fixture();
-        CutoverApprovalInstanceDO root = root("APPROVED"); root.setDecisionAt(LocalDateTime.now());
+        when(f.codec.decode(any(tools.jackson.databind.JsonNode.class))).thenAnswer(invocation ->
+                new CutoverApprovalSourceSnapshotCodec().decode(
+                        invocation.getArgument(0, tools.jackson.databind.JsonNode.class)));
+        CutoverApprovalInstanceDO root = root(status);
         when(f.instances.selectCurrentByTask(any())).thenReturn(root);
         when(f.tasks.selectById(10L)).thenReturn(task());
-        when(f.nodes.all(any())).thenReturn(List.of());
+        when(f.nodes.all(any())).thenReturn(List.of(node()));
         when(f.scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
                 .tenantId(1L)
                 .projectId(20L)
@@ -95,8 +151,94 @@ class CutoverApprovalQueryServiceTest {
 
         var view = f.service.detail(new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(1L, 33L, "query-test", true, true, false), 10L);
 
-        assertThat(view).isInstanceOfSatisfying(CutoverApprovalViews.ApprovalFinalResult.class,
-                result -> assertThat(result.viewMode()).isEqualTo("FINAL_RESULT_ONLY"));
+        assertThat(view).isInstanceOfSatisfying(CutoverApprovalViews.ApprovalDetail.class, result -> {
+            assertThat(result.viewMode()).isEqualTo("FULL");
+            assertThat(result.sourceSnapshot()).isNotNull();
+            assertThat(result.allowedActions()).isEmpty();
+        });
+        verifyNoInteractions(f.candidates);
+    }
+
+    @Test
+    void assignedWaitingReviewerWithProjectViewReadsSourcesWithoutDecisionActions() {
+        Fixture f = new Fixture();
+        when(f.codec.decode(any(tools.jackson.databind.JsonNode.class))).thenAnswer(invocation ->
+                new CutoverApprovalSourceSnapshotCodec().decode(
+                        invocation.getArgument(0, tools.jackson.databind.JsonNode.class)));
+        when(f.instances.selectCurrentByTask(any())).thenReturn(root("PENDING"));
+        when(f.tasks.selectById(10L)).thenReturn(task());
+        var waiting = node(); waiting.setId(102L); waiting.setNodeNo(2);
+        waiting.setNodeCode("SERVICE_MANAGER"); waiting.setStatusCode("WAITING");
+        waiting.setOriginalApproverUserId(22L); waiting.setCurrentApproverUserId(22L);
+        when(f.nodes.all(any())).thenReturn(List.of(node(), waiting));
+        when(f.reviews.byInstance(any())).thenReturn(List.of());
+        when(f.scopes.inspect(any())).thenReturn(scope(22L, "ACTION_VIEW"));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(
+                1L, 22L, "waiting-reviewer-read", true, true, false);
+        var result = (CutoverApprovalViews.ApprovalDetail) f.service.detail(context, 10L);
+        assertThat(result.sourceSnapshot()).isNotNull();
+        assertThat(result.currentNodeNo()).isEqualTo(1);
+        assertThat(result.nodes()).hasSize(2);
+        assertThat(result.allowedActions()).isEmpty();
+        verifyNoInteractions(f.candidates);
+        verify(f.nodes, never()).updateStatusIfMatch(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "true,false,1", "false,true,1", "true,true,2"
+    })
+    void projectReadDoesNotBypassQueryPermissionProjectScopeOrTenant(
+            boolean canQuery, boolean projectView, long instanceTenant) {
+        Fixture f = new Fixture();
+        var root = root("PENDING"); root.setTenantId(instanceTenant);
+        when(f.instances.selectById(100L)).thenReturn(root);
+        when(f.tasks.selectById(10L)).thenReturn(task());
+        when(f.nodes.all(any())).thenReturn(List.of(node()));
+        when(f.scopes.inspect(any())).thenReturn(new CutoverApprovalProjectScopePort.ProjectScopeFact(
+                1L, 20L, 22L, "ACTION_VIEW", projectView, 7L));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(
+                1L, 22L, "project-view-denied", canQuery, true, false);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> f.service.detailByInstance(context, 100L))
+                .isInstanceOf(CutoverApprovalApplicationException.class);
+        verifyNoInteractions(f.reviews, f.codec);
+        verify(f.nodes, never()).updateStatusIfMatch(any());
+    }
+
+    @Test
+    void administratorWithProjectViewReadsCompleteApprovalWithoutBecomingNodeApprover() {
+        Fixture f = new Fixture();
+        when(f.codec.decode(any(tools.jackson.databind.JsonNode.class))).thenAnswer(invocation ->
+                new CutoverApprovalSourceSnapshotCodec().decode(
+                        invocation.getArgument(0, tools.jackson.databind.JsonNode.class)));
+        when(f.instances.selectCurrentByTask(any())).thenReturn(root("PENDING"));
+        when(f.tasks.selectById(10L)).thenReturn(task());
+        when(f.nodes.all(any())).thenReturn(List.of(node()));
+        when(f.reviews.byInstance(any())).thenReturn(List.of());
+        when(f.scopes.inspect(any())).thenReturn(scope(99L, "ACTION_VIEW"));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(
+                1L, 99L, "administrator-read", true, true, true);
+        var result = (CutoverApprovalViews.ApprovalDetail) f.service.detail(context, 10L);
+        assertThat(result.viewMode()).isEqualTo("FULL");
+        assertThat(result.sourceSnapshot()).isNotNull();
+        assertThat(result.nodes()).hasSize(1);
+        assertThat(result.allowedActions()).isEmpty();
+        verifyNoInteractions(f.candidates);
+        verify(f.nodes, never()).updateStatusIfMatch(any());
+    }
+
+    @Test
+    void administratorWithoutProjectViewKeepsMetadataOnlyAndCannotReadSources() {
+        Fixture f = new Fixture();
+        when(f.instances.selectCurrentByTask(any())).thenReturn(root("PENDING"));
+        when(f.tasks.selectById(10L)).thenReturn(task());
+        when(f.nodes.all(any())).thenReturn(List.of(node()));
+        when(f.scopes.inspect(any())).thenReturn(new CutoverApprovalProjectScopePort.ProjectScopeFact(
+                1L, 20L, 99L, "ACTION_VIEW", false, 7L));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(
+                1L, 99L, "administrator-no-project-view", true, true, true);
+        assertThat(f.service.detail(context, 10L)).isInstanceOf(CutoverApprovalViews.ApprovalReassignmentView.class);
+        verifyNoInteractions(f.reviews, f.candidates, f.codec);
     }
 
     @Test

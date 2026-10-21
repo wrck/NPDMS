@@ -20,6 +20,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.command.ReassignCuto
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.RejectCutoverApprovalCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
+import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import tools.jackson.databind.JsonNode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -30,6 +31,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.Objects;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 
@@ -42,16 +47,18 @@ public class CutoverApprovalController {
     private final CutoverApprovalRequestContext requestContext;
     private final CutoverApprovalRequestCodec codec;
     private final CutoverChecklistApplicationService checklists;
+    private final AdminUserApi users;
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(CutoverApprovalController.class);
 
     public CutoverApprovalController(CutoverApprovalApplicationService applicationService,
             CutoverApprovalQueryService queryService, CutoverApprovalRequestContext requestContext,
-            CutoverApprovalRequestCodec codec, CutoverChecklistApplicationService checklists) {
+            CutoverApprovalRequestCodec codec, CutoverChecklistApplicationService checklists, AdminUserApi users) {
         this.applicationService = Objects.requireNonNull(applicationService);
         this.queryService = Objects.requireNonNull(queryService);
         this.requestContext = Objects.requireNonNull(requestContext);
         this.codec = Objects.requireNonNull(codec);
         this.checklists = Objects.requireNonNull(checklists);
+        this.users = Objects.requireNonNull(users);
     }
 
     @GetMapping("/cutover-tasks/{taskId}/approval")
@@ -85,6 +92,12 @@ public class CutoverApprovalController {
         var trusted = requestContext.current();
         return success(CutoverApprovalResponses.candidates(queryService.reassignmentCandidates(trusted,
                 pagination(pageNo, pageSize))));
+    }
+
+    @GetMapping("/cutover-approvals/{approvalId}/reassignment-service-manager")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:reassign-approval')")
+    public CommonResult<Long> reassignmentServiceManager(@PathVariable Long approvalId) {
+        return success(queryService.reassignmentServiceManager(requestContext.current(), approvalId));
     }
 
     @PostMapping("/cutover-approvals/{approvalId}/actions/approve")
@@ -132,7 +145,7 @@ public class CutoverApprovalController {
                 context.taskVersion(), approvalId,
                 codec.version(approvalVersion, "If-Match"), request.nodeNo(), request.newApproverUserId(),
                 request.reason(), codec.header(idempotencyKey, "Idempotency-Key"), trusted.correlationId()));
-        return success(CutoverApprovalResponses.reassignment(result));
+        return success(CutoverApprovalResponses.reassignment(result, participantNames(result)));
     }
 
     @ExceptionHandler(CutoverApprovalContractException.class)
@@ -229,7 +242,28 @@ public class CutoverApprovalController {
                 presentation = CutoverApprovalSourcePresentation.unavailable();
             }
         }
-        return CutoverApprovalResponses.view(authorized, presentation);
+        return CutoverApprovalResponses.view(authorized, presentation, participantNames(authorized));
+    }
+
+    /** Only resolve people in an already authorized projection; the general user picker keeps its own scope. */
+    private Map<Long, String> participantNames(CutoverApprovalViews.ApprovalView authorized) {
+        Stream<Long> participants = switch (authorized) {
+            case CutoverApprovalViews.ApprovalDetail detail -> detail.nodes().stream()
+                    .map(CutoverApprovalViews.Node::currentApproverUserId);
+            case CutoverApprovalViews.ApprovalReassignmentView reassignment -> reassignment.nodes().stream()
+                    .map(CutoverApprovalViews.ReassignmentNode::currentApproverUserId);
+            case CutoverApprovalViews.ApprovalFinalResult ignored -> Stream.empty();
+        };
+        Set<Long> ids = participants.filter(Objects::nonNull).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        try {
+            return users.getUserList(ids).stream()
+                    .filter(user -> ids.contains(user.getId()) && user.getNickname() != null && !user.getNickname().isBlank())
+                    .collect(Collectors.toMap(user -> user.getId(), user -> user.getNickname()));
+        } catch (RuntimeException ex) {
+            LOG.warn("Approval participant names unavailable", ex);
+            return Map.of();
+        }
     }
 
     private CutoverApprovalViews.ApprovalView queryDetail(CutoverApprovalContext trusted,
@@ -294,7 +328,7 @@ public class CutoverApprovalController {
     }
 
     private static CutoverApprovalContractException contract(CutoverApprovalApplicationException ex) {
-        return switch (ex.code()) {
+        var result = switch (ex.code()) {
             case INVALID_REQUEST -> ce(400, CutoverApprovalContractException.ErrorData.builder()
                     .category("INVALID_REQUEST")
                     .reasonCode(ex.reasonCode())
@@ -368,6 +402,9 @@ public class CutoverApprovalController {
                     .currentTaskVersion(ex.currentTaskVersion())
                     .build());
         };
+        return "REASSIGN_TARGET_NOT_OPEN".equals(ex.reasonCode())
+                ? new CutoverApprovalContractException(result.httpStatus(), result.errorCode(), ex.getMessage(), result.errorData())
+                : result;
     }
 
     private static CutoverApprovalContractException ce(int status, CutoverApprovalContractException.ErrorData data) {

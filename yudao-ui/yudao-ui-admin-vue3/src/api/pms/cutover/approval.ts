@@ -46,3 +46,6 @@ export const reassignCutoverApproval = (command: {
 })
 
 export const getCutoverApprovalInstance = (approvalId: WireLong) => request.get<CutoverApprovalView>({ url: `/api/v1/pms/cutover-approvals/${approvalId}` })
+
+export const getCutoverServiceManagerReassignmentCandidate = (approvalId: WireLong) =>
+  request.get<WireLong | null>({ url: `/api/v1/pms/cutover-approvals/${approvalId}/reassignment-service-manager`, silentError: true })

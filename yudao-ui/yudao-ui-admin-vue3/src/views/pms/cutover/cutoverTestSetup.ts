@@ -16,7 +16,7 @@ vi.mock('@/api/pms/project/projects', () => ({
   getProject: vi.fn(async (id) => ({ id })),
   getProjectMembers: vi.fn(async () => [])
 }))
-vi.mock('@/api/pms/asset/device', () => ({ getDevice: vi.fn(async () => ({})) }))
+vi.mock('@/api/pms/asset/device', () => ({ getDevice: vi.fn(async () => ({})), getDevicePage: vi.fn(async () => ({ list: [], total: 0 })) }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getStrDictOptions: vi.fn(() => []), getDictLabel: vi.fn(() => '') }))
 vi.mock('@/config/axios', () => ({
   default: new Proxy({}, {
