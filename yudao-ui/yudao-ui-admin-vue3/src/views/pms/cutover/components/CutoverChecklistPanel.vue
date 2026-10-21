@@ -1,13 +1,15 @@
 <template>
   <section ref="panelRoot" v-loading="loading" class="checklist-panel" aria-label="调研及风险考察">
+    <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" show-icon><el-button data-testid="checklist-load-retry" link @click="load">重试加载</el-button></el-alert>
     <el-alert title="按任务的割接类型、组网模式、设备类型及等级匹配清单。同页填写调研、风险和双机检查结果，提交后带入割接方案。" type="info" :closable="false" show-icon />
     <el-alert v-if="gapMessage" :title="gapMessage" type="warning" :closable="false" show-icon />
     <el-alert v-if="historicalRevisionId" :title="`历史清单只读。${selectedRevision?.invalidatedReason ? `修订原因：${selectedRevision.invalidatedReason}` : ''}`" type="info" :closable="false" />
     <el-alert
       v-else-if="revisions.some(row => row.status === 'INVALIDATED') && checklist?.status === 'DRAFT'"
       title="历史填报和可复用材料已带入。设备采集、技术公告需按本次实施信息重新核验，原始结果可在历史清单查看。" type="info" :closable="false" />
-    <section class="cut-card">
-      <header class="cut-card__header checklist-heading">
+    <p v-if="deviceListError" class="cut-help" role="status">{{ deviceListError }}</p>
+    <details open class="cut-card">
+      <summary class="cut-card__header checklist-heading">
         <h3><Icon icon="ep:search" />割接信息采集</h3>
         <div class="checklist-version-info">
           <small v-if="checklist">第 {{ checklist.checklistVersion }} 版，{{ checklist.status === 'DRAFT' ? '填写中' : checklist.status === 'INVALIDATED' ? '历史版本' : '已提交' }}</small>
@@ -21,7 +23,7 @@
             </el-select>
           </div>
         </div>
-      </header>
+      </summary>
       <div class="cut-card__body">
         <div class="matching-grid">
           <div class="cut-form-field"><label for="checklist-cutover-type">割接类型<span class="cut-required"> *</span></label>
@@ -48,10 +50,10 @@
         </div>
         <el-alert v-if="checklist && selectionChanged && !historicalRevisionId" title="割接实施信息尚未生效，请重新匹配后再提交。" type="warning" :closable="false" show-icon />
       </div>
-    </section>
+    </details>
     <template v-if="checklist">
-      <section v-if="deviceVersions.length" class="cut-card">
-        <header class="cut-card__header"><h3>设备软件版本</h3><small>型号和当前版本取自设备序列号清单，技术公告按每台设备的版本查询</small></header>
+      <details open v-if="deviceVersions.length" class="cut-card">
+        <summary class="cut-card__header"><h3>设备软件版本</h3><small>型号和当前版本取自设备序列号清单，技术公告按每台设备的版本查询</small></summary>
         <div class="cut-card__body">
           <el-table :data="deviceVersions" border>
             <el-table-column label="设备序列号" prop="sn" min-width="160" />
@@ -62,10 +64,10 @@
           <p v-if="deviceVersionsDirty" class="cut-help">版本尚未保存。保存后，旧查询结果会保留，但须按新版本重新加载并核查。</p>
           <el-button v-if="!readonly && canSave && matchingOptions?.matchingInput.cutoverType === 'VERSION_UPGRADE'" class="mt-12px" :disabled="!deviceVersionsDirty || saving || submitting" :loading="externalBusy" @click="saveVersions">保存目标版本</el-button>
         </div>
-      </section>
+      </details>
       <div class="checklist-search"><span class="cut-muted">按类型分区填写</span><el-input v-model="search" clearable placeholder="查找采集项" class="!w-240px"><template #prefix><Icon icon="ep:search" /></template></el-input></div>
-      <section v-for="group in itemSections" :key="group.code" class="cut-card">
-        <header class="cut-card__header"><h3><Icon :icon="group.icon" />{{ group.label }}</h3><small>{{ group.items.length }} 项</small></header>
+      <details open v-for="group in itemSections" :key="group.code" class="cut-card">
+        <summary class="cut-card__header"><h3><Icon :icon="group.icon" />{{ group.label }}</h3><small>{{ group.items.length }} 项</small></summary>
         <div v-if="group.code === 'BACKGROUND'" class="cut-card__body background-form" aria-label="割接背景表单">
           <CutoverChecklistField
             v-for="row in group.items" :key="row.stableItemKey" :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" embedded
@@ -111,12 +113,14 @@
           </el-table>
         </div>
         <div v-if="!readonly && canSave && ['BUSINESS_SURVEY', 'RISK'].includes(group.code)" class="group-actions"><el-button @click="openCustom(group.code)"><Icon icon="ep:plus" />增加自定义{{ group.code === 'RISK' ? '考察' : '调研' }}项</el-button></div>
-      </section>
-      <footer class="cut-actions cut-actions--sticky">
+      </details>
+      <Teleport :to="actionsTarget || 'body'" :disabled="!actionsTarget">
+      <footer class="cut-actions" :class="actionsTarget ? 'cut-actions--embedded' : 'cut-actions--sticky'">
         <el-button v-if="canExport" data-testid="checklist-export" v-hasPermi="['pms:cutover-task:query']" :loading="exporting" @click="exportChecklist"><Icon icon="ep:download" />下载清单</el-button>
         <el-button v-if="!readonly && canSave" data-testid="checklist-save" v-hasPermi="['pms:cutover-task:save-checklist']" :loading="saving" :disabled="rematching || submitting || externalBusy" @click="save">保存</el-button>
         <el-button v-if="!readonly && canSubmit" data-testid="checklist-submit" type="primary" v-hasPermi="['pms:cutover-task:submit-checklist']" :loading="submitting" :disabled="selectionChanged || !frozenDeviceTypeCodes.length || rematching || saving || externalBusy" @click="submit">下一步：割接方案</el-button>
       </footer>
+      </Teleport>
     </template>
     <el-empty v-else-if="!loading" description="选择设备类型并生成调研及风险考察清单" />
     <el-dialog v-model="customVisible" :title="customItem.itemTypeCode === 'RISK' ? '新增自定义风险考察项' : '新增自定义调研项'" width="min(520px, 94vw)" append-to-body>
@@ -153,6 +157,9 @@ import {
 } from '../shared/cutoverTaskInteraction'
 import CutoverChecklistField from './CutoverChecklistField.vue'
 import { findChecklistValidationItem, focusChecklistValidationItem } from '../shared/cutoverChecklistValidation'
+import { needsDeviceListFields, rebuildTaskDeviceAnswer } from '../shared/cutoverDeviceSource'
+import { getDevicePage, type DeviceListVO } from '@/api/pms/asset/device'
+import { checkPermi } from '@/utils/permission'
 
 const isTableItem = (item: CutoverChecklistItem) => {
   try { return !!JSON.parse(item.interfaceSchemaSnapshot || '{}').columns?.length } catch { return false }
@@ -165,6 +172,7 @@ const props = defineProps<{
   refreshWorkspace?: () => Promise<void>
   refreshDraft?: () => Promise<void>
   readonly?: boolean
+  actionsTarget?: HTMLElement
 }>()
 const emit = defineEmits<{ navigate: [target: CutoverNavigationTarget] }>()
 const message = useMessage()
@@ -197,7 +205,11 @@ const frozenDeviceTypeCodes = ref<string[]>([])
 const rematching = ref(false)
 const savedAnswers = ref('')
 const answers = reactive<Record<string, string>>({})
+const deviceListRows = ref<Record<string, DeviceListVO>>({})
+const deviceListError = ref('')
+let deviceListRequest: Promise<void> = Promise.resolve()
 const loading = ref(false)
+const loadError = ref('')
 const generating = ref(false)
 const saving = ref(false)
 const submitting = ref(false)
@@ -215,7 +227,7 @@ const canRequestCollection = computed(() => hasAction('REQUEST_COLLECTION'))
 const canSubmit = computed(() => hasAction('SUBMIT_CHECKLIST'))
 const canExport = computed(() => checklist.value !== null
   && ['DRAFT', 'SUBMITTED'].includes(checklist.value.status))
-const readonly = computed(() => props.readonly || !!historicalRevisionId.value || props.detail.task.currentStage !== 'P3'
+const readonly = computed(() => props.readonly || !!loadError.value || !!historicalRevisionId.value || props.detail.task.currentStage !== 'P3'
   || props.detail.task.manualGrade === 'D' || checklist.value?.status !== 'DRAFT')
 const canRematch = computed(() => !readonly.value && canSave.value)
 const matchingDisabled = computed(() => (!(canGenerate.value && !checklist.value) && !canRematch.value)
@@ -251,26 +263,72 @@ const hydrateAnswers = () => {
       answers[item.stableItemKey] = decodeChecklistDirectAnswer(item.currentResult.answerSnapshot)
     }
   }
+  savedAnswers.value = JSON.stringify(answers)
+  fillDeviceAnswers()
+}
+const fillDeviceAnswers = () => {
+  if (!readonly.value && canSave.value) {
+    for (const item of checklist.value?.items || []) {
+      const value = rebuildTaskDeviceAnswer({ item, value: answers[item.stableItemKey], devices: props.detail.devices,
+        deviceList: deviceListRows.value })
+      if (value !== undefined) answers[item.stableItemKey] = value
+    }
+  }
 }
 let loadSequence = 0
+const loadDeviceList = async (sequence: number) => {
+  if (readonly.value || !canSave.value || !checkPermi(['pms:device:query'])
+    || !checklist.value?.items.some(item => needsDeviceListFields({ item, value: answers[item.stableItemKey] }))) return
+  const taskId = props.detail.task.id
+  const projectId = props.detail.task.projectId
+  const checklistId = checklist.value.checklistId
+  const devices = props.detail.devices
+  const results = await Promise.allSettled(devices.map(async device => {
+    const page = await getDevicePage({ sn: device.serialNumber, pageNo: 1, pageSize: 100 })
+    const row = page.list.find(row => String(row.deviceId) === String(device.deviceId) && row.sn === device.serialNumber
+      && (projectId == null || String(row.projectId) === String(projectId)))
+    if (!row) throw new Error('任务设备与设备清单不匹配')
+    return row
+  }))
+  if (sequence !== loadSequence || String(taskId) !== String(props.detail.task.id)
+    || String(checklistId) !== String(checklist.value?.checklistId) || readonly.value || !canSave.value) return
+  deviceListRows.value = Object.fromEntries(results.flatMap((result, index) => result.status === 'fulfilled'
+    ? [[String(devices[index].deviceId), result.value]] : []))
+  deviceListError.value = results.some(result => result.status === 'rejected') ? '部分设备资料暂时无法读取，已有填写已保留，可刷新重试。' : ''
+  fillDeviceAnswers()
+}
 const load = async () => {
   clearValidation()
   const sequence = ++loadSequence
   const taskId = props.detail.task.id
   loading.value = true
+  loadError.value = ''
+  deviceListRows.value = {}
+  deviceListError.value = ''
   try {
-    const [options, current, history] = await Promise.all([
-      CutoverApi.getCutoverChecklistMatchingOptions(taskId, historicalRevisionId.value),
-      CutoverApi.getCutoverChecklist(taskId, historicalRevisionId.value).catch(error => {
-        if (error?.response?.status === 404) return null
-        message.error('调研清单加载失败，请刷新重试')
-        throw error
-      }),
-      CutoverApi.getCutoverChecklistRevisions(taskId)
+    const revisionId = historicalRevisionId.value
+    const currentRequest = CutoverApi.getCutoverChecklist(taskId, revisionId).catch(error => {
+      if (error?.response?.status === 404) return null
+      message.error('调研清单加载失败，请刷新重试')
+      throw error
+    })
+    // Existing saved-checklist actions or an explicitly selected revision establish
+    // that a checklist exists. Every request still performs its own server authorization.
+    const knownChecklist = !!revisionId || props.detail.allowedActions.some(action =>
+      ['SAVE_CHECKLIST', 'REQUEST_COLLECTION', 'SUBMIT_CHECKLIST'].includes(action))
+      || props.detail.workbenchSteps.some(step => step.stage === 'P3' && step.state === 'COMPLETED')
+    const externalRequest = knownChecklist
+      ? CutoverApi.getCutoverExternalState(taskId, revisionId)
+      : currentRequest.then(current => current ? CutoverApi.getCutoverExternalState(taskId, revisionId) : null)
+    const [options, current, history, external] = await Promise.all([
+      CutoverApi.getCutoverChecklistMatchingOptions(taskId, revisionId),
+      currentRequest,
+      CutoverApi.getCutoverChecklistRevisions(taskId),
+      externalRequest
     ])
     if (sequence !== loadSequence) return
-    const external = current ? await CutoverApi.getCutoverExternalState(taskId, historicalRevisionId.value) : null
-    if (sequence !== loadSequence) return
+    if (external && current && String(external.checklistId) !== String(current.checklistId))
+      throw new Error('调研清单版本已变化，请刷新后重试')
     const changedChecklist = String(current?.checklistId) !== String(checklist.value?.checklistId)
     const nextFrozenDeviceTypeCodes = current ? [...options.matchingInput.deviceTypeCodes] : []
     const frozenTypesChanged = JSON.stringify([...nextFrozenDeviceTypeCodes].sort()) !== JSON.stringify([...frozenDeviceTypeCodes.value].sort())
@@ -285,7 +343,9 @@ const load = async () => {
       networkMode.value = options.matchingInput.networkMode || ''
     }
     hydrateAnswers()
-    savedAnswers.value = JSON.stringify(answers)
+    deviceListRequest = loadDeviceList(sequence)
+  } catch {
+    if (sequence === loadSequence) loadError.value = '调研清单加载失败或版本已变化，请重试加载。'
   } finally {
     if (sequence === loadSequence) loading.value = false
   }
@@ -299,7 +359,6 @@ const refreshResults = async () => {
   }
   checklist.value = current
   hydrateAnswers()
-  savedAnswers.value = JSON.stringify(answers)
 }
 const selectRevision = async (value: string) => {
   if (value === selectedRevisionId.value) return
@@ -338,9 +397,14 @@ const writeDraft = async <T, C extends object>(command: {
 }
 const hydrateExternal = (state: CutoverExternalState | null) => {
   const changedChecklist = String(state?.checklistId) !== String(externalState.value?.checklistId)
-  const serverVersions = JSON.stringify(state?.devices || [])
+  const scopedDevices = state ? props.detail.devices.map(device => {
+    const version = state.devices.find(row => String(row.deviceId) === String(device.deviceId) && row.sn === device.serialNumber)
+    return { deviceId: device.deviceId, sn: device.serialNumber, productModel: version?.productModel ?? null,
+      currentSoftwareVersion: version?.currentSoftwareVersion ?? null, targetSoftwareVersion: version?.targetSoftwareVersion ?? null }
+  }) : []
+  const serverVersions = JSON.stringify(scopedDevices)
   if (changedChecklist || serverVersions !== savedDeviceVersions.value) {
-    deviceVersions.value = (state?.devices || []).map(device => ({ ...device }))
+    deviceVersions.value = scopedDevices
     savedDeviceVersions.value = serverVersions
   }
   if (!state || changedChecklist) {
@@ -361,6 +425,7 @@ const refreshAfterSubmit = async () => {
   await props.refreshWorkspace()
 }
 const beforeWrite = async () => {
+  if (loading.value || loadError.value) return false
   const state = await submitBarrier.beforeWrite()
   if (state === 'PROCEED') return true
   if (state === 'REFRESHED') {
@@ -397,6 +462,12 @@ const setAnswer = (stableItemKey: string, value: string) => {
 const saveDirect = async () => {
   if (!checklist.value) return false
   if (!(await beforeWrite())) return false
+  const sequence = loadSequence
+  const taskId = props.detail.task.id
+  const checklistId = checklist.value.checklistId
+  await deviceListRequest
+  if (sequence !== loadSequence || String(taskId) !== String(props.detail.task.id)
+    || String(checklistId) !== String(checklist.value?.checklistId)) return false
   const changedAnswers = Object.entries(answers).map(([stableItemKey, value]) => ({
     stableItemKey,
     answerSnapshot: encodeChecklistDirectAnswer(value)

@@ -62,7 +62,7 @@
     "currentRule": "one open selection interval per checklist item",
     "switch": "close old selection and append the new result in one CUT transaction",
     "collectionMeaning": "technical result reference only; never means item passed",
-    "manualFallback": "retain failed automatic/external fact and select a MANUAL result with authorized evidence"
+    "manualFallback": "COLLECTION items may select authorized MANUAL file evidence directly without a failed request; retain any existing automatic failure fact. EXTERNAL items still require their exact failed external query; DIRECT items do not accept MANUAL replacements"
   },
   "filePolicy": {
     "ownerContext": "CUT",

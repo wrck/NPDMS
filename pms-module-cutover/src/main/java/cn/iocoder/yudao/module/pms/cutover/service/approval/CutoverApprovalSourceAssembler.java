@@ -126,8 +126,8 @@ public class CutoverApprovalSourceAssembler {
                 if (!Boolean.TRUE.equals(item.getApplicableFlag())) continue;
                 CutoverChecklistItemResultDO result = resultByItem.get(item.getId());
                 require(result != null, BUSINESS_INCOMPLETE, "清单存在未完成项");
-                require(!"MANUAL".equals(result.getResultSourceCode()) || CutoverChecklistEvidenceRules.allowsManual(item, result),
-                        BUSINESS_INCOMPLETE, "人工降级缺少自动失败来源，请修订清单：" + item.getItemName());
+                require(!"MANUAL".equals(result.getResultSourceCode()) || CutoverChecklistEvidenceRules.allowsManual(item),
+                        BUSINESS_INCOMPLETE, "当前清单项工作方式不支持人工证据，请修订清单：" + item.getItemName());
                 ChecklistResultSnapshot row = snapshot(item, result);
                 if ("BUSINESS_SURVEY".equals(item.getItemTypeCode())) surveyRows.add(row);
                 else if (List.of("RISK", "DUAL_MACHINE_CHECK").contains(item.getItemTypeCode())) riskRows.add(row);
@@ -217,8 +217,10 @@ public class CutoverApprovalSourceAssembler {
     }
 
     private ChecklistResultSnapshot snapshot(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result) {
-        item = fieldDefinitions.withSchema(item);
         var manualFile = "MANUAL".equals(result.getResultSourceCode()) ? customResults.manualFile(result) : null;
+        require(!"MANUAL".equals(result.getResultSourceCode()) || manualFile != null,
+                BUSINESS_INCOMPLETE, "人工证据缺少有效附件，请修订清单：" + item.getItemName());
+        item = fieldDefinitions.withSchema(item);
         return new ChecklistResultSnapshot(item.getId(), item.getStableItemKey(), item.getItemDefinitionId(),
                 item.getItemDefinitionVersion(), item.getItemTypeCode(), item.getItemName(),
                 Boolean.TRUE.equals(item.getRequiredFlag()), result.getResultVersion(), result.getResultSourceCode(),

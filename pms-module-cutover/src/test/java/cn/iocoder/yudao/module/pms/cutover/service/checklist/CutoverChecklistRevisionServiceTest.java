@@ -38,22 +38,23 @@ class CutoverChecklistRevisionServiceTest {
         assertNull(f.selected.getBaseChecklistResultId());
     }
 
-    @Test
-    void carriesManualEvidenceAndOriginalFailureThroughFormalFileOwner() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void carriesManualEvidenceWithOrWithoutOriginalFailureThroughFormalFileOwner(boolean failed) {
         var f = new Fixture("MANUAL"); f.sourceItem.setWorkModeCode("COLLECTION");
-        f.selected.setOriginalFailedCollectionTaskId(80L); f.selected.setOriginalFailureCode("DEVICE_UNREACHABLE");
+        if (failed) { f.selected.setOriginalFailedCollectionTaskId(80L); f.selected.setOriginalFailureCode("DEVICE_UNREACHABLE"); }
         when(f.custom.manualFile(f.selected)).thenReturn(f.file);
         f.service.copyItems(f.copy(false));
         var stored = ArgumentCaptor.forClass(CutoverCustomResultStore.Manual.class);
         verify(f.custom).insertManual(stored.capture());
         assertEquals("new-reference", stored.getValue().fact().referenceKey());
-        assertEquals(80L, stored.getValue().result().getOriginalFailedCollectionTaskId());
-        assertEquals("DEVICE_UNREACHABLE", stored.getValue().result().getOriginalFailureCode());
+        assertEquals(failed ? 80L : null, stored.getValue().result().getOriginalFailedCollectionTaskId());
+        assertEquals(failed ? "DEVICE_UNREACHABLE" : null, stored.getValue().result().getOriginalFailureCode());
         assertEquals(31L, stored.getValue().result().getBaseChecklistResultId());
     }
 
     @Test
-    void neverReactivatesLegacyManualFallbackWithoutAnAutomaticFailure() {
+    void neverReactivatesUnsupportedOrFilelessLegacyManualResults() {
         for (String mode : List.of("DIRECT", "COLLECTION")) {
             var f = new Fixture("MANUAL");
             f.sourceItem.setWorkModeCode(mode);

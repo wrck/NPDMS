@@ -28,10 +28,10 @@ class="checklist-field" :class="{ required: item.required, 'is-table-row': table
       <el-select v-model="selectedDeviceId" placeholder="选择任务设备" :disabled="readonly || !allowCollection">
         <el-option v-for="device in devices" :key="String(device.deviceId)" :label="device.serialNumber" :value="String(device.deviceId)" />
       </el-select>
-      <el-button :disabled="!selectedDeviceId" @click="collectionDialog?.open(item.itemId)">{{ readonly ? '查看采集日志' : '设备采集与日志' }}</el-button>
+      <el-button data-testid="open-item-collection" :disabled="!selectedDeviceId" :loading="openingCollection" @click="openCollection">{{ readonly ? '查看采集日志' : '设备采集与日志' }}</el-button>
       <el-button v-if="!readonly && allowCollection" @click="loadExecutions">选择已有采集记录</el-button>
       <Teleport to="body">
-        <BusinessCollectionDialog ref="collectionDialog" entry="cutover-checklist" :device-id="selectedDeviceId" align-center @accepted="acceptExecution" @closed="emit('refresh')" />
+        <component :is="collectionDialogComponent" v-if="collectionDialogComponent" ref="collectionDialog" entry="cutover-checklist" :device-id="selectedDeviceId" align-center @accepted="acceptExecution" @closed="emit('refresh')" />
       </Teleport>
       <el-dialog v-model="executionsVisible" title="选择本项采集记录" width="min(900px, 94vw)" append-to-body align-center>
         <el-table :data="executions" v-loading="executionsLoading">
@@ -48,16 +48,17 @@ class="checklist-field" :class="{ required: item.required, 'is-table-row': table
       v-if="item.workModeCode === 'EXTERNAL'" :state="externalState || null" :model-value="externalFeedback || []"
       :readonly="readonly || !allowSave" :busy="externalBusy" :version-dirty="versionDirty" :device-names="externalDeviceNames"
       @update:model-value="emit('externalFeedback', item.stableItemKey, $event)" @load="emit('externalLoad', item.stableItemKey)" @save="emit('externalSave', item.stableItemKey)" />
-    <CutoverSchemaInput v-if="item.workModeCode === 'DIRECT' || collectionReady" :schema="schema" :model-value="structuredValue" :disabled="readonly || !allowSave" :background-layout="embedded" @update:model-value="updateStructured" />
+    <CutoverSchemaInput v-if="item.workModeCode === 'DIRECT' || item.workModeCode === 'COLLECTION'" :schema="schema" :model-value="structuredValue" :devices="devices" :task-device-rows="hasTaskDeviceRows(item)" :disabled="readonly || !allowSave || (item.workModeCode === 'COLLECTION' && !collectionReady)" :background-layout="embedded" @update:model-value="updateStructured" />
     <p v-if="item.currentResult?.factDescription" class="fact-description">{{ item.currentResult.factDescription }}</p>
     <PmsFileVersionReferenceList v-if="manualFile" owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(item.itemId)" purpose-code="MANUAL_EVIDENCE" :reference-key="manualFile.referenceKey" :artifact-id="manualFile.artifactId" :version-no="manualFile.versionNo" @loaded="currentManualArtifact = $event" />
 
     <details v-if="!readonly && (allowSave || externalBusy) && canUseManual" class="manual-area" open>
-      <summary>{{ item.workModeCode === 'MANUAL' ? '上传本项材料' : '改用人工核验证据' }}</summary>
+      <summary>{{ item.workModeCode === 'COLLECTION' ? '上传人工校验证据' : item.workModeCode === 'MANUAL' ? '上传本项材料' : '改用人工核验证据' }}</summary>
       <el-input v-model="factDescription" placeholder="材料说明（选填）" />
       <PmsFileUploader
         data-testid="manual-uploader"
         auto-submit
+        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.csv,.txt,.log,.cfg,.conf"
         :artifact-id="currentManualArtifact?.artifactId ?? manualFile?.artifactId"
         :expected-reference-version="currentManualArtifact?.reference.referenceVersion ?? manualFile?.fileFactVersion?.referenceVersion"
         :disabled="!allowSave"
@@ -69,7 +70,7 @@ class="checklist-field" :class="{ required: item.required, 'is-table-row': table
         category-code="CUTOVER_CHECKLIST_MANUAL_EVIDENCE"
         @completed="completeUpload"
       />
-      <p class="cut-help">支持PDF及图片，单文件不超过50MB。</p>
+      <p class="cut-help">支持PDF、图片、Word、Excel、CSV及文本文件，单文件不超过50MB。</p>
     </details>
   </article>
 </template>
@@ -88,8 +89,9 @@ import PmsFileVersionReferenceList from '@/components/PmsFileArtifact/PmsFileVer
 import type { FileSelection } from '@/components/PmsFileArtifact'
 
 import CutoverSchemaInput from './CutoverSchemaInput.vue'
+import { hasTaskDeviceRows } from '../shared/cutoverDeviceSource'
 import CutoverExternalBulletinField from './CutoverExternalBulletinField.vue'
-import BusinessCollectionDialog from '@/components/DeviceCollection/BusinessCollectionDialog.vue'
+type CollectionDialog = typeof import('@/components/DeviceCollection/BusinessCollectionDialog.vue')['default']
 import * as CollectionApi from '@/api/pms/platform/deviceCollection'
 
 const props = withDefaults(defineProps<{
@@ -119,11 +121,7 @@ const emit = defineEmits<{
 }>()
 const canUseManual = computed(() => {
   if (props.item.workModeCode === 'MANUAL') return true
-  if (props.item.workModeCode === 'COLLECTION') {
-    const result = props.item.currentResult
-    return !!result && ((result.resultSourceCode === 'COLLECTION' && !!result.loadFailureCode)
-      || (result.resultSourceCode === 'MANUAL' && !!result.originalFailureCode))
-  }
+  if (props.item.workModeCode === 'COLLECTION') return true
   return props.item.workModeCode === 'EXTERNAL' && !props.versionDirty
     && props.externalState?.manualFallback && props.externalState.contextCurrent
     && props.externalState.queries.some(query => query.succeeded === false
@@ -132,7 +130,18 @@ const canUseManual = computed(() => {
 const externalDeviceNames = computed(() => Object.fromEntries(props.devices.map(device => [String(device.deviceId), device.serialNumber])))
 const factDescription = ref('')
 const selectedDeviceId = ref('')
-const collectionDialog = ref<InstanceType<typeof BusinessCollectionDialog>>()
+const collectionDialog = ref<InstanceType<CollectionDialog>>()
+const collectionDialogComponent = shallowRef<CollectionDialog>()
+const openingCollection = ref(false)
+const openCollection = async () => {
+  if (openingCollection.value) return
+  openingCollection.value = true
+  try {
+    collectionDialogComponent.value ||= (await import('@/components/DeviceCollection/BusinessCollectionDialog.vue')).default
+    await nextTick()
+    await collectionDialog.value?.open(props.item.itemId)
+  } finally { openingCollection.value = false }
+}
 const executionsVisible = ref(false)
 const executionsLoading = ref(false)
 const executions = ref<CollectionApi.Execution[]>([])

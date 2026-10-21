@@ -1,10 +1,11 @@
 <template>
   <span v-if="fileFact">已提交附件（第 {{ fileFact.versionNo }} 版）</span>
   <ol v-else-if="Array.isArray(answer)" class="answer-rows"><li v-for="(row, index) in answer" :key="index"><CutoverFrozenAnswer :value="row" :schema="rowSchema" /></li></ol>
-  <dl v-else-if="answer && typeof answer === 'object'" class="answer-fields"><div v-for="(field, key) in answer" :key="key"><dt>{{ fieldSchema(String(key))?.label || fieldSchema(String(key))?.name || labels[String(key)] || key }}</dt><dd><CutoverFrozenAnswer :value="field" :schema="fieldSchema(String(key))" /></dd></div></dl>
+  <dl v-else-if="answer && typeof answer === 'object'" class="answer-fields"><div v-for="(field, key) in answer" :key="key"><dt>{{ cutoverFieldLabel({ code: String(key), label: fieldSchema(String(key))?.label || fieldSchema(String(key))?.name || labels[String(key)] }) }}</dt><dd><CutoverFrozenAnswer :value="field" :schema="fieldSchema(String(key))" /></dd></div></dl>
   <span v-else class="answer-text">{{ scalarLabel }}</span>
 </template>
 <script setup lang="ts">
+import { cutoverFieldLabel } from '../shared/cutoverFieldLabels'
 import type { FieldSchema } from './CutoverSchemaInput.vue'
 const props = defineProps<{ snapshot?: string; value?: unknown; schema?: FieldSchema }>()
 const answer = computed<any>(() => {

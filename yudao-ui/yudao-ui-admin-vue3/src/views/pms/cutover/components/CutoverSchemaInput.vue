@@ -2,34 +2,38 @@
   <div v-if="schema.columns?.length" class="table-field">
     <div class="table-scroll">
       <el-table :data="rows" border scrollbar-always-on :max-height="480" empty-text="暂无记录，请添加一行">
-        <el-table-column v-for="column in schema.columns" :key="column.code" :label="column.label || column.name || column.code" min-width="180">
-          <template #header>{{ column.label || column.name || column.code }}<span v-if="column.required" class="required"> *</span></template>
+        <el-table-column v-for="column in schema.columns" :key="column.code" :label="cutoverFieldLabel(column)" min-width="180">
+          <template #header>{{ cutoverFieldLabel(column) }}<span v-if="column.required" class="required"> *</span></template>
           <template #default="{ row, $index }">
-            <CutoverSchemaInput v-if="visible(column, row)" :schema="column" :model-value="row[column.code]" :disabled="disabled" @update:model-value="updateRow($index, column.code, $event)" />
+            <CutoverSchemaInput v-if="visible(column, row)" :schema="column" :model-value="row[column.code]" :disabled="disabled" :devices="devices" :task-device-rows="taskDeviceRows" @update:model-value="updateRow($index, column.code, $event)" />
             <span v-else>—</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="76" fixed="right"><template #default="{ $index }"><el-button :disabled="disabled" link type="danger" @click="removeRow($index)">删除</el-button></template></el-table-column>
+        <el-table-column v-if="!taskDeviceRows" label="操作" width="76" fixed="right"><template #default="{ $index }"><el-button :disabled="disabled" link type="danger" @click="removeRow($index)">删除</el-button></template></el-table-column>
       </el-table>
     </div>
-    <el-button :disabled="disabled" class="mt-8px" @click="emit('update:modelValue', [...rows, {}])"><Icon icon="ep:plus" />添加一行</el-button>
+    <el-button v-if="!taskDeviceRows" :disabled="disabled" class="mt-8px" @click="emit('update:modelValue', [...rows, {}])"><Icon icon="ep:plus" />添加一行</el-button>
   </div>
   <div v-else-if="backgroundLayout && schema.fields?.length" class="background-groups">
     <div v-for="group in backgroundGroups" :key="group[0].code" class="background-group" :class="{ 'background-group--description': group[0].code === 'backgroundDescription' }" role="group" :aria-label="group[0].label || group[0].name || group[0].code">
       <div v-for="field in group" :key="field.code" class="schema-field">
-        <label>{{ field.label || field.name || field.code }}<span v-if="field.required" class="required"> *</span></label>
-        <CutoverSchemaInput :schema="field" :model-value="object[field.code]" :disabled="disabled" @update:model-value="emit('update:modelValue', { ...object, [field.code]: $event })" />
+        <label>{{ cutoverFieldLabel(field) }}<span v-if="field.required" class="required"> *</span></label>
+        <CutoverSchemaInput :schema="field" :model-value="object[field.code]" :disabled="disabled" :devices="devices" @update:model-value="emit('update:modelValue', { ...object, [field.code]: $event })" />
       </div>
     </div>
   </div>
   <div v-else-if="schema.fields?.length" class="schema-fields">
     <template v-for="field in schema.fields" :key="field.code">
       <div v-if="visible(field, object)" class="schema-field" :class="{ 'full-width': field.columns?.length }">
-        <label>{{ field.label || field.name || field.code }}<span v-if="field.required" class="required"> *</span></label>
-        <CutoverSchemaInput :schema="field" :model-value="object[field.code]" :disabled="disabled" @update:model-value="emit('update:modelValue', { ...object, [field.code]: $event })" />
+        <label>{{ cutoverFieldLabel(field) }}<span v-if="field.required" class="required"> *</span></label>
+        <CutoverSchemaInput :schema="field" :model-value="object[field.code]" :disabled="disabled" :devices="devices" @update:model-value="emit('update:modelValue', { ...object, [field.code]: $event })" />
       </div>
     </template>
   </div>
+  <el-input v-else-if="schema.code === 'serialNumber' && (disabled || taskDeviceRows)" :model-value="modelValue ?? ''" :readonly="true" :aria-label="cutoverFieldLabel(schema)" />
+  <el-select v-else-if="schema.code === 'serialNumber'" :model-value="modelValue" :disabled="disabled" :aria-label="cutoverFieldLabel(schema)" filterable clearable placeholder="选择割接设备" @update:model-value="emit('update:modelValue', $event)">
+    <el-option v-for="device in devices" :key="String(device.deviceId)" :label="device.serialNumber" :value="device.serialNumber" />
+  </el-select>
   <el-select v-else-if="schema.options?.length" :model-value="modelValue" :disabled="disabled" clearable placeholder="请选择" @update:model-value="emit('update:modelValue', $event)">
     <el-option v-for="option in options" :key="String(option.value)" :label="option.label" :value="option.value" />
   </el-select>
@@ -42,6 +46,8 @@
 </template>
 
 <script setup lang="ts">
+import { cutoverFieldLabel } from '../shared/cutoverFieldLabels'
+import type { DeviceScopeEntry } from '@/api/pms/cutover'
 export interface FieldSchema {
   code?: string
   name?: string
@@ -54,7 +60,7 @@ export interface FieldSchema {
   columns?: Array<FieldSchema & { code: string }>
   options?: Array<string | { label: string; value: string | number | boolean }>
 }
-const props = defineProps<{ schema: FieldSchema; modelValue: any; disabled?: boolean; backgroundLayout?: boolean }>()
+const props = withDefaults(defineProps<{ schema: FieldSchema; modelValue: any; disabled?: boolean; backgroundLayout?: boolean; devices?: DeviceScopeEntry[]; taskDeviceRows?: boolean }>(), { devices: () => [] })
 const emit = defineEmits<{ 'update:modelValue': [value: any] }>()
 const type = computed(() => props.schema.type?.toUpperCase())
 const object = computed<Record<string, any>>(() => props.modelValue && typeof props.modelValue === 'object' && !Array.isArray(props.modelValue) ? props.modelValue : {})

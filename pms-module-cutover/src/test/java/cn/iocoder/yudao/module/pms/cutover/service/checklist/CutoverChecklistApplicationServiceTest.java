@@ -54,6 +54,40 @@ import static org.mockito.Mockito.when;
 class CutoverChecklistApplicationServiceTest {
 
     @Test
+    void directSerialAnswersMustReferenceTheTasksFixedDeviceScopeBeforeAppendingResults() {
+        var fixture = fixture();
+        var generated = generate(fixture);
+        var custom = fixture.service.addCustomItem(new AddCustomItemCommand(1L, 8L, 1000L, 2L,
+                generated.checklistId(), generated.checklistFactVersion(), 7L, "TEXT", "设备核验", null, "TABLE",
+                "{\"columns\":[{\"code\":\"serialNumber\",\"required\":true}]}", false, null,
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
+        var fields = (cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore)
+                org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "fieldDefinitions");
+        org.mockito.Mockito.doAnswer(invocation -> {
+            CutoverChecklistItemDO row = invocation.getArgument(0);
+            if (custom.stableItemKey().equals(row.getStableItemKey()))
+                row.setInterfaceSchemaSnapshot("{\"columns\":[{\"code\":\"serialNumber\",\"required\":true}]}");
+            return row;
+        }).when(fields).withSchema(any());
+        int before = fixture.results.size();
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverChecklistException.class, () -> fixture.service.save(
+                new SaveChecklistCommand(1L, 8L, 1000L, 2L, generated.checklistId(), custom.checklistVersion(), 7L,
+                        List.of(new SaveChecklistCommand.DirectAnswer(custom.stableItemKey(),
+                                "{\"value\":[{\"serialNumber\":\"OTHER-TASK-SN\"}]}")),
+                        cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
+        assertEquals(CutoverChecklistException.Code.INVALID_REQUEST, failure.getCode());
+        assertEquals(before, fixture.results.size());
+        var saved = fixture.service.save(new SaveChecklistCommand(1L, 8L, 1000L, 2L,
+                generated.checklistId(), custom.checklistVersion(), 7L,
+                List.of(new SaveChecklistCommand.DirectAnswer(custom.stableItemKey(),
+                        "{\"value\":[{\"serialNumber\":\"SN-400\"}]}")),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
+        assertEquals(custom.checklistVersion() + 1, saved.checklistFactVersion());
+        assertEquals(before + 1, fixture.results.size());
+        assertEquals("P3", fixture.task.get().getCurrentStage());
+    }
+
+    @Test
     void approvalPresentationReadsOnlyReferencedDefinitionsWithoutOrdinaryProjectScopeOrCurrentResults() {
         var fixture = fixture();
         var service = fixture.service;
@@ -285,18 +319,25 @@ class CutoverChecklistApplicationServiceTest {
     }
 
     @Test
-    void rejectsManualReplacementOfDirectAndCollectionWithoutFailure() {
+    void rejectsManualReplacementOfDirectButAllowsCollectionEvidenceWithoutFailure() {
         var fixture = fixture(); var generated = generate(fixture);
-        for (var key : List.of("SYS-IP", "SYS-COLLECT")) {
-            var error = org.junit.jupiter.api.Assertions.assertThrows(CutoverChecklistException.class,
-                    () -> fixture.service.selectManual(manual(generated, 0L, key)));
-            assertEquals(CutoverChecklistException.Code.INVALID_REQUEST, error.getCode());
-        }
+        var error = org.junit.jupiter.api.Assertions.assertThrows(CutoverChecklistException.class,
+                () -> fixture.service.selectManual(manual(generated, 0L, "SYS-IP")));
+        assertEquals(CutoverChecklistException.Code.INVALID_REQUEST, error.getCode());
         assertTrue(fixture.results.isEmpty());
+        fixture.service.selectManual(manual(generated, 0L, "SYS-COLLECT"));
+        var selected = fixture.results.getFirst();
+        assertEquals("MANUAL", selected.getResultSourceCode());
+        org.junit.jupiter.api.Assertions.assertNull(selected.getOriginalFailedCollectionTaskId());
+        org.junit.jupiter.api.Assertions.assertNull(selected.getOriginalFailureCode());
+        fixture.service.selectManual(manual(generated, 1L, "SYS-COLLECT"));
+        assertEquals(2, fixture.results.size());
+        assertTrue(selected.getSelectionEndedAt() != null);
+        verify(fixture.collectionPort, org.mockito.Mockito.never()).request(any());
     }
 
     @Test
-    void refusesSubmissionOfLegacyManualFallbackWithoutFailureEvidence() {
+    void refusesSubmissionOfLegacyManualResultWithoutFileEvidence() {
         var fixture = fixture(); var generated = generate(fixture);
         var view = fixture.service.getView(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(
                 new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 8L, "read"), 1000L, null));
@@ -304,7 +345,7 @@ class CutoverChecklistApplicationServiceTest {
         var oldManual = new CutoverChecklistItemResultDO();
         oldManual.setId(81L); oldManual.setTenantId(1L); oldManual.setChecklistItemId(item.itemId());
         oldManual.setResultVersion(1); oldManual.setResultSourceCode("MANUAL");
-        oldManual.setFactDescription("旧入口录入但没有自动失败来源");
+        oldManual.setFactDescription("旧入口录入但没有附件");
         fixture.results.add(oldManual);
 
         var error = org.junit.jupiter.api.Assertions.assertThrows(CutoverChecklistException.class,
@@ -312,7 +353,7 @@ class CutoverChecklistApplicationServiceTest {
                         generated.checklistId(), generated.checklistFactVersion(), 7L, "legacy-manual", "legacy-manual")));
 
         assertEquals(CutoverChecklistException.Code.STATE_CONFLICT, error.getCode());
-        assertTrue(error.getMessage().contains("人工降级缺少自动失败来源"));
+        assertTrue(error.getMessage().contains("人工证据缺少有效附件"));
         assertEquals("P3", fixture.task.get().getCurrentStage());
         assertTrue(fixture.history.isEmpty());
     }

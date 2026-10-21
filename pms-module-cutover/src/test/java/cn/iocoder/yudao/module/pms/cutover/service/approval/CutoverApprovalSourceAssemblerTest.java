@@ -149,7 +149,8 @@ class CutoverApprovalSourceAssemblerTest {
     }
 
     @Test
-    void refusesNewApprovalFromLegacyManualCollectionWithoutFailureEvidence() {
+    void refusesNewApprovalFromLegacyManualCollectionWithoutFileEvidence() {
+        ReflectionTestUtils.setField(service, "customResults", mock(cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverCustomResultStore.class));
         assessment.setManualGrade("A"); plan.setGradeCode("A");
         var checklist = new CutoverChecklistDO();
         checklist.setId(2001L); checklist.setStatusCode("SUBMITTED"); checklist.setChecklistVersion(3L);
@@ -165,7 +166,7 @@ class CutoverApprovalSourceAssemblerTest {
                 () -> service.lockAndAssemble(command("A")));
 
         assertEquals(CutoverApprovalApplicationException.Code.BUSINESS_INCOMPLETE, failure.code());
-        assertTrue(failure.getMessage().contains("人工降级缺少自动失败来源"));
+        assertTrue(failure.getMessage().contains("人工证据缺少有效附件"));
         verify(plans, never()).selectByIdForUpdate(any());
         assertNull(result.getOriginalFailureCode());
         assertEquals("历史人工材料，无自动失败来源", result.getFactDescription());

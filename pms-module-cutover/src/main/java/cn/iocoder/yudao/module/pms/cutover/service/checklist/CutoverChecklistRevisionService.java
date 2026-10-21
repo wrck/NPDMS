@@ -86,14 +86,16 @@ public class CutoverChecklistRevisionService {
             }
             var selected = previousResults.get(previous.getId());
             if (selected == null || "EXTERNAL".equals(previous.getWorkModeCode()) || "COLLECTION".equals(selected.getResultSourceCode())) continue;
-            if ("MANUAL".equals(selected.getResultSourceCode()) && !CutoverChecklistEvidenceRules.allowsManual(item, selected)) continue;
+            var manualFile = "MANUAL".equals(selected.getResultSourceCode()) ? custom.manualFile(selected) : null;
+            if ("MANUAL".equals(selected.getResultSourceCode())
+                    && (!CutoverChecklistEvidenceRules.allowsManual(item) || manualFile == null)) continue;
             var result = new CutoverChecklistItemResultDO(); BeanUtils.copyProperties(selected, result);
             result.setId(IdUtil.getSnowflakeNextId()); result.setChecklistItemId(item.getId()); result.setResultVersion(1);
             result.setFieldDefinitionId(CutoverChecklistResultStore.root(fields.forItem(item)).getId()); result.setBaseChecklistResultId(selected.getId());
             result.setSelectionStartedAt(command.time()); result.setSelectionEndedAt(null); result.setCurrentMarker(null);
             result.setSelectedBy(command.actorId()); result.setSelectionReasonCode("REVISION_COPY"); result.setCreatedBy(command.actorId()); result.setCreatedAt(command.time());
             if ("MANUAL".equals(selected.getResultSourceCode())) {
-                var file = attachFile(new FileCopy(command, previous, item, custom.manualFile(selected)));
+                var file = attachFile(new FileCopy(command, previous, item, manualFile));
                 require(results.insert(result) == 1, "修订附件结果创建失败");
                 custom.insertManual(new CutoverCustomResultStore.Manual(result, result.getFieldDefinitionId(), file));
             } else if ("DIRECT".equals(selected.getResultSourceCode())) {

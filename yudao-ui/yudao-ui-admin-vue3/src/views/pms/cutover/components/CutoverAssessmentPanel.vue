@@ -1,9 +1,9 @@
 <template>
-  <section class="cut-card" aria-labelledby="assessment-heading">
-    <header class="cut-card__header">
+  <details open class="cut-card" aria-labelledby="assessment-heading">
+    <summary class="cut-card__header">
       <h3 id="assessment-heading"><Icon icon="ep:data-analysis" />割接等级评估问卷</h3>
       <small>人工确定割接等级</small>
-    </header>
+    </summary>
     <div class="cut-card__body">
       <el-form label-position="top" :disabled="!editable || saving || submitting">
         <div v-for="question in questions" :key="question.key" class="question-row">
@@ -42,11 +42,13 @@
       </el-form>
       <el-alert v-if="model.manualGrade === 'D'" title="D级使用简易流程，跳过调研及风险考察，进入割接方案。" type="warning" :closable="false" show-icon />
     </div>
-    <footer v-if="editable && !hideActions" class="cut-actions cut-actions--sticky">
+    <Teleport :to="actionsTarget || 'body'" :disabled="!actionsTarget">
+    <footer v-if="editable && !hideActions" class="cut-actions" :class="actionsTarget ? 'cut-actions--embedded' : 'cut-actions--sticky'">
       <el-button :loading="saving" :disabled="submitting" @click="$emit('save')"><Icon icon="ep:document-checked" />保存</el-button>
       <el-button v-if="submittable" type="primary" :loading="submitting" :disabled="saving" @click="$emit('submit')">下一步<Icon icon="ep:arrow-right" /></el-button>
     </footer>
-  </section>
+    </Teleport>
+  </details>
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
@@ -62,6 +64,7 @@ const props = defineProps<{
   saving: boolean
   submitting: boolean
   hideActions?: boolean
+  actionsTarget?: HTMLElement
 }>()
 defineEmits<{ save: []; submit: [] }>()
 const serviceLevelOptions = computed(() => getStrDictOptions('pms_service_level'))

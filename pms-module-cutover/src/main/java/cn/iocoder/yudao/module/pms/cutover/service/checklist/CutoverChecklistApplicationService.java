@@ -374,6 +374,9 @@ public class CutoverChecklistApplicationService {
     private ChecklistCommandResult saveNew(SaveChecklistCommand command) {
         LockedDraft locked = lockDraft(command);
         Map<String, CutoverChecklistItemDO> items = byStableKey(locked.items());
+        Set<String> taskSerialNumbers = command.answers().stream().map(answer -> answer == null ? null : items.get(answer.stableItemKey()))
+                .anyMatch(CutoverChecklistDeviceValidator::referencesTaskDevices)
+                ? taskSerialNumbers(new CutoverTaskDeviceListQuery(command.tenantId(), command.taskId())) : Set.of();
         Set<String> seen = new LinkedHashSet<>();
         for (SaveChecklistCommand.DirectAnswer answer : command.answers()) {
             require(answer != null && present(answer.stableItemKey()) && present(answer.answerSnapshot()),
@@ -382,6 +385,7 @@ public class CutoverChecklistApplicationService {
             CutoverChecklistItemDO item = items.get(answer.stableItemKey());
             require(item != null && Boolean.TRUE.equals(item.getApplicableFlag()), NOT_FOUND, "清单项不存在");
             CutoverChecklistAnswerValidator.validate(item, answer.answerSnapshot(), false);
+            CutoverChecklistDeviceValidator.validate(new CutoverChecklistDeviceValidator.Query(item, answer.answerSnapshot(), taskSerialNumbers));
             if ("COLLECTION".equals(item.getWorkModeCode())) {
                 CutoverChecklistItemResultDO prior = resultMapper.selectCurrentForUpdate(
                         new CutoverChecklistCurrentResultQuery(command.tenantId(), item.getId()));
@@ -448,6 +452,10 @@ public class CutoverChecklistApplicationService {
                 .schema(JsonUtils.parseObject(command.interfaceSchema(), Map.class)).build());
         Integer resultVersion = null;
         if (present(command.answerSnapshot())) {
+            CutoverChecklistAnswerValidator.validate(item, command.answerSnapshot(), false);
+            CutoverChecklistDeviceValidator.validate(new CutoverChecklistDeviceValidator.Query(item, command.answerSnapshot(),
+                    CutoverChecklistDeviceValidator.referencesTaskDevices(item)
+                            ? taskSerialNumbers(new CutoverTaskDeviceListQuery(command.tenantId(), command.taskId())) : Set.of()));
             appendResult(new ResultWrite(item, CutoverChecklistItemResultDO.builder()
                 .tenantId(command.tenantId())
                 .selectedBy(command.actorId())
@@ -541,8 +549,8 @@ public class CutoverChecklistApplicationService {
         CutoverChecklistItemDO item = byStableKey(locked.items()).get(command.stableItemKey());
         require(item != null && Boolean.TRUE.equals(item.getApplicableFlag()), NOT_FOUND, "清单项不存在");
         CutoverChecklistItemResultDO prior = resultMapper.selectCurrentForUpdate(new CutoverChecklistCurrentResultQuery(command.tenantId(), item.getId()));
-        require(CutoverChecklistEvidenceRules.allowsManual(item, prior),
-                INVALID_REQUEST, "只有材料上传项或已有自动采集失败事实的项目可使用人工证据");
+        require(CutoverChecklistEvidenceRules.allowsManual(item),
+                INVALID_REQUEST, "当前清单项工作方式不支持人工证据");
         CutoverChecklistFilePort.FileFact fact = filePort.lockAndRevalidate(CutoverChecklistFilePort.FileQuery.builder()
                 .tenantId(command.tenantId())
                 .actorId(command.actorId())
@@ -731,12 +739,17 @@ public class CutoverChecklistApplicationService {
                     STATE_CONFLICT, "配置缺口尚未通过自定义清单项补足");
         }
         Map<Long, CutoverChecklistItemDO> definitions = items.stream().collect(Collectors.toMap(CutoverChecklistItemDO::getId, Function.identity()));
+        Set<String> taskSerialNumbers = items.stream().filter(item -> Boolean.TRUE.equals(item.getApplicableFlag()))
+                .anyMatch(CutoverChecklistDeviceValidator::referencesTaskDevices)
+                ? taskSerialNumbers(new CutoverTaskDeviceListQuery(command.tenantId(), command.taskId())) : Set.of();
         for (CutoverChecklistItemResultDO answer : results) {
             CutoverChecklistItemDO definition = definitions.get(answer.getChecklistItemId());
             if (definition != null && Boolean.TRUE.equals(definition.getApplicableFlag())
                     && "MANUAL".equals(answer.getResultSourceCode())) {
-                require(CutoverChecklistEvidenceRules.allowsManual(definition, answer), STATE_CONFLICT,
-                        "人工降级缺少自动失败来源，请重新核验：" + definition.getItemName());
+                require(CutoverChecklistEvidenceRules.allowsManual(definition), STATE_CONFLICT,
+                        "当前清单项工作方式不支持人工证据：" + definition.getItemName());
+                require(present(manualReference(answer)), STATE_CONFLICT,
+                        "人工证据缺少有效附件，请重新上传：" + definition.getItemName());
             }
             if (definition != null && Boolean.TRUE.equals(definition.getApplicableFlag())
                     && "EXTERNAL".equals(definition.getWorkModeCode())) {
@@ -747,7 +760,9 @@ public class CutoverChecklistApplicationService {
                 }
             }
             if (definition != null && Boolean.TRUE.equals(definition.getApplicableFlag()) && "DIRECT".equals(answer.getResultSourceCode())) {
-                CutoverChecklistAnswerValidator.validate(definition, resultStorage.answer(new CutoverChecklistResultStore.Read(definition, answer)), true);
+                String directAnswer = resultStorage.answer(new CutoverChecklistResultStore.Read(definition, answer));
+                CutoverChecklistAnswerValidator.validate(definition, directAnswer, true);
+                CutoverChecklistDeviceValidator.validate(new CutoverChecklistDeviceValidator.Query(definition, directAnswer, taskSerialNumbers));
             } else if (definition != null && Boolean.TRUE.equals(definition.getApplicableFlag())
                     && "COLLECTION".equals(answer.getResultSourceCode()) && isCompletedResult(answer)) {
                 CutoverChecklistAnswerValidator.validate(definition,
@@ -891,6 +906,11 @@ public class CutoverChecklistApplicationService {
         List<CutoverChecklistItemDO> items = withSchemas(itemMapper.selectListForUpdate(
                 new CutoverChecklistItemsQuery(tenantId, checklistId)));
         return new LockedDraft(task, checklist, items);
+    }
+
+    private Set<String> taskSerialNumbers(CutoverTaskDeviceListQuery query) {
+        return deviceMapper.selectActiveByTask(query).stream().map(row -> row.getSerialNumberSnapshot())
+                .filter(Objects::nonNull).collect(Collectors.toSet());
     }
 
     private CutoverAssessmentDO requireAssessment(Long tenantId, CutoverTaskDO task, Long expectedVersion) {

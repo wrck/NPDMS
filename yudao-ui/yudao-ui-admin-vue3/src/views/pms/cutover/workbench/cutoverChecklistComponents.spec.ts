@@ -6,6 +6,9 @@ import type {
 } from '@/api/pms/cutover'
 import CutoverChecklistField from '../components/CutoverChecklistField.vue'
 import CutoverChecklistPanel from '../components/CutoverChecklistPanel.vue'
+import CutoverSchemaInput from '../components/CutoverSchemaInput.vue'
+import { getDevicePage } from '@/api/pms/asset/device'
+import { checkPermi } from '@/utils/permission'
 import {
   findByTestId,
   mount,
@@ -94,7 +97,153 @@ const item = {
 }
 
 describe('F-CUT-003 mounted checklist field', () => {
-  beforeEach(() => { vi.clearAllMocks(); acceptedTemplate.value = '9007199254740992' })
+  beforeEach(() => { vi.clearAllMocks(); acceptedTemplate.value = '9007199254740992'; vi.mocked(getDevicePage).mockReset().mockResolvedValue({ list: [], total: 0 }); vi.mocked(checkPermi).mockReturnValue(true) })
+  it('fills available device-list facts without blocking the survey or overwriting input entered while the source loads', async () => {
+    let resolveList!: (value: any) => void
+    vi.mocked(getDevicePage).mockImplementation(() => new Promise(resolve => { resolveList = resolve }))
+    const current = checklistView(null)
+    current.items[0] = { ...current.items[0], stableItemKey: 'SURVEY_DEVICE_LOCATION_PLAN', interfaceFormatCode: 'TABLE',
+      interfaceSchemaSnapshot: JSON.stringify({ columns: [{ code: 'serialNumber', label: '设备序列号' },
+        { code: 'deviceName', label: '设备名称' }, { code: 'location', label: '安装位置' }] }) }
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(current)
+    checklistApi.getCutoverExternalState.mockResolvedValue(null)
+    const page = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    await flush()
+    try {
+      expect(findByTestId(page.root, 'checklist-save')).toBeDefined()
+      expect(getDevicePage).toHaveBeenCalledWith({ sn: 'SN-001', pageNo: 1, pageSize: 100 })
+      findInput(page.root, '请填写核查事实').props['onUpdate:modelValue']('现场填写名称')
+      await flush()
+      resolveList({ list: [{ deviceId: taskDetail.devices[0].deviceId, sn: 'SN-001', name: '来源名称', locationSnapshot: '设备清单位置' }], total: 1 })
+      await flush()
+      checklistApi.saveCutoverChecklist.mockResolvedValue(undefined)
+      await (findByTestId(page.root, 'checklist-save')!.props!.onClick as Function)()
+      expect(JSON.parse(checklistApi.saveCutoverChecklist.mock.calls[0][0].data.answers[0].answerSnapshot).value)
+        .toEqual([{ serialNumber: 'SN-001', deviceName: '现场填写名称', location: '设备清单位置' }])
+    } finally { page.app.unmount() }
+  })
+
+  it('does not fetch mutable device-list facts for a readonly checklist or without device query permission', async () => {
+    const current = checklistView(null)
+    current.items[0] = { ...current.items[0], stableItemKey: 'SURVEY_DEVICE_LOCATION_PLAN', interfaceFormatCode: 'TABLE',
+      interfaceSchemaSnapshot: '{"columns":[{"code":"serialNumber"},{"code":"deviceName"}]}' }
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(current)
+    checklistApi.getCutoverExternalState.mockResolvedValue(null)
+    const historical = mount(CutoverChecklistPanel, { detail: taskDetail, readonly: true }, controls)
+    await flush(); historical.app.unmount()
+    expect(getDevicePage).not.toHaveBeenCalled()
+    vi.mocked(checkPermi).mockReturnValue(false)
+    const denied = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    await flush(); denied.app.unmount()
+    expect(getDevicePage).not.toHaveBeenCalled()
+  })
+
+  it('keeps existing facts when the device-list lookup fails or its current project no longer matches', async () => {
+    const current = checklistView('{"value":[{"serialNumber":"SN-001","deviceName":"原名称","location":""}]}')
+    current.items[0] = { ...current.items[0], stableItemKey: 'SURVEY_DEVICE_LOCATION_PLAN', interfaceFormatCode: 'TABLE',
+      interfaceSchemaSnapshot: '{"columns":[{"code":"serialNumber"},{"code":"deviceName"},{"code":"location"}]}' }
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(current)
+    checklistApi.getCutoverExternalState.mockResolvedValue(null)
+    const detail = { ...taskDetail, task: { ...taskDetail.task, projectId: '101' } }
+    for (const failed of [true, false]) {
+      if (failed) vi.mocked(getDevicePage).mockRejectedValueOnce(new Error('unavailable'))
+      else vi.mocked(getDevicePage).mockResolvedValueOnce({ list: [{ deviceId: taskDetail.devices[0].deviceId, sn: 'SN-001',
+        projectId: 'OTHER-PROJECT', name: '外部名称', locationSnapshot: '外部位置' } as any], total: 1 })
+      const page = mount(CutoverChecklistPanel, { detail }, controls)
+      await flush()
+      try {
+        await vi.waitFor(() => expect(textOf(page.root)).toContain('部分设备资料暂时无法读取'))
+        const values: unknown[] = []
+        const collect = (node: any) => { if (node.props?.placeholder === '请填写核查事实') values.push(node.props['model-value']); for (const child of node.children || []) collect(child) }
+        collect(page.root)
+        expect(values).toContain('原名称'); expect(values).toContain('')
+        expect(values).not.toContain('外部名称'); expect(values).not.toContain('外部位置')
+        expect(checklistApi.saveCutoverChecklist).not.toHaveBeenCalled()
+      } finally { page.app.unmount() }
+    }
+  })
+  it('uses task serial choices for nested schema fields without accepting free-text devices', async () => {
+    const updates: unknown[] = []
+    const mounted = mount(CutoverSchemaInput, { schema: { fields: [{ code: 'serialNumber', label: '设备序列号' }] },
+      modelValue: {}, devices: taskDetail.devices, 'onUpdate:modelValue': (value: unknown) => updates.push(value) }, controls)
+    try {
+      const selectors: any[] = []
+      const options: any[] = []
+      const collect = (node: any) => {
+        if (node.props?.placeholder === '选择割接设备') selectors.push(node.props)
+        if (node.props?.label && node.props?.value) options.push(node.props)
+        for (const child of node.children || []) collect(child)
+      }
+      collect(mounted.root)
+      expect(selectors).toHaveLength(1)
+      expect(selectors[0]['allow-create']).toBeUndefined()
+      expect(options).toEqual([expect.objectContaining({ label: 'SN-001', value: 'SN-001' })])
+      selectors[0]['onUpdate:modelValue']('SN-001')
+      expect(updates).toEqual([{ serialNumber: 'SN-001' }])
+    } finally { mounted.app.unmount() }
+  })
+
+  it('uses task identity for the software-version list and ignores foreign or mismatched device contexts', async () => {
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(checklistView(null))
+    checklistApi.getCutoverExternalState.mockResolvedValueOnce({ checklistId: '201', checklistFactVersion: 3, items: [], devices: [
+      { deviceId: taskDetail.devices[0].deviceId, sn: 'MISMATCH', productModel: 'WRONG-MODEL', currentSoftwareVersion: 'WRONG-VERSION' },
+      { deviceId: 'OTHER-DEVICE', sn: 'FOREIGN-SN', productModel: 'FOREIGN-MODEL' }
+    ] } as any)
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    await flush()
+    try {
+      expect(textOf(mounted.root)).toContain('SN-001')
+      expect(textOf(mounted.root)).not.toMatch(/MISMATCH|FOREIGN-SN|WRONG-MODEL|WRONG-VERSION|FOREIGN-MODEL/)
+    } finally { mounted.app.unmount() }
+  })
+  it('rebuilds deployment rows from task devices, saves the change and preserves matching installation facts on reopen', async () => {
+    let current = checklistView(JSON.stringify({ value: [{ serialNumber: 'OTHER-TASK', location: '旧设备机柜' },
+      { serialNumber: 'SN-001', deviceName: '保留名称', location: '保留机柜' }] }))
+    current.items[0] = { ...current.items[0], stableItemKey: 'SURVEY_DEVICE_LOCATION_PLAN', itemTypeCode: 'BUSINESS_SURVEY',
+      interfaceFormatCode: 'TABLE', interfaceSchemaSnapshot: JSON.stringify({ columns: [
+        { code: 'serialNumber', label: '设备序列号' }, { code: 'deviceName', label: '设备名称' }, { code: 'location', label: '设备安装位置' }
+      ] }) }
+    const detail = { ...taskDetail, devices: [...taskDetail.devices,
+      { deviceId: '9007199254740993', serialNumber: 'SN-002', projectAssignmentVersion: '8' }] }
+    checklistApi.getCutoverChecklist.mockReset().mockImplementation(async () => current)
+    checklistApi.getCutoverExternalState.mockResolvedValue(null)
+    checklistApi.saveCutoverChecklist.mockImplementation(async command => {
+      current = { ...current, checklistFactVersion: current.checklistFactVersion + 1, items: current.items.map(row => ({
+        ...row, currentResult: { ...row.currentResult!, answerSnapshot: command.data.answers[0].answerSnapshot }
+      })) }
+    })
+    const mounted = mount(CutoverChecklistPanel, { detail }, controls)
+    await flush()
+    expect(checklistApi.saveCutoverChecklist).not.toHaveBeenCalled()
+    await (findByTestId(mounted.root, 'checklist-save')!.props!.onClick as Function)()
+    expect(JSON.parse(checklistApi.saveCutoverChecklist.mock.calls[0][0].data.answers[0].answerSnapshot).value)
+      .toEqual([{ serialNumber: 'SN-001', deviceName: '保留名称', location: '保留机柜' }, { serialNumber: 'SN-002' }])
+    mounted.app.unmount()
+    checklistApi.saveCutoverChecklist.mockClear()
+    const reopened = mount(CutoverChecklistPanel, { detail }, controls)
+    await flush()
+    await (findByTestId(reopened.root, 'checklist-save')!.props!.onClick as Function)()
+    expect(checklistApi.saveCutoverChecklist).not.toHaveBeenCalled()
+    reopened.app.unmount()
+  })
+
+  it('leaves submitted historical device rows unchanged and never saves their old serials', async () => {
+    const current = checklistView(JSON.stringify({ value: [{ serialNumber: 'HISTORY-SN', location: '历史位置' }] }))
+    current.status = 'SUBMITTED'
+    current.items[0] = { ...current.items[0], stableItemKey: 'SURVEY_DEVICE_LOCATION_PLAN', interfaceFormatCode: 'TABLE',
+      interfaceSchemaSnapshot: JSON.stringify({ columns: [{ code: 'serialNumber', label: '设备序列号' }] }) }
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(current)
+    checklistApi.getCutoverExternalState.mockResolvedValue(null)
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail, readonly: true }, controls)
+    await flush()
+    const serials: any[] = []
+    const collect = (node: any) => { if (node.props?.['aria-label'] === '设备序列号') serials.push(node.props); for (const child of node.children || []) collect(child) }
+    collect(mounted.root)
+    expect(serials).toContainEqual(expect.objectContaining({ 'model-value': 'HISTORY-SN', readonly: true }))
+    expect(findByTestId(mounted.root, 'checklist-save')).toBeUndefined()
+    expect(checklistApi.saveCutoverChecklist).not.toHaveBeenCalled()
+    mounted.app.unmount()
+  })
   it('emits direct answer and freezes PLT public fact without converting Snowflake ids', async () => {
     fileApi.getArtifact.mockResolvedValue({
       allowedActions: ['READ'], artifactVersion: 2,
@@ -182,9 +331,43 @@ describe('F-CUT-003 mounted checklist field', () => {
       devices: [{ deviceId: '9007199254740991', serialNumber: 'SN-001', projectAssignmentVersion: '7' }],
       onCollection: (...args: unknown[]) => collection.push(args)
     }, controls)
+    expect(findByTestId(mounted.root, 'accept-platform-execution')).toBeUndefined()
+    await (findByTestId(mounted.root, 'open-item-collection')!.props!.onClick as () => Promise<void>)()
     await (findByTestId(mounted.root, 'accept-platform-execution')!.props?.onClick as () => void)()
     expect(collection).toEqual([['risk-check', '9007199254740991', '9007199254740992', '9007199254740994']])
     mounted.app.unmount()
+  })
+
+  it.each([
+    ['not collected', null],
+    ['pending', { resultSourceCode: 'COLLECTION', collectionResultReferenceId: null }],
+    ['failed', { resultSourceCode: 'COLLECTION', collectionResultReferenceId: '301', loadFailureCode: 'FAILED' }],
+    ['manual evidence', { resultSourceCode: 'MANUAL' }]
+  ])('shows an unanswered, disabled collection conclusion when %s', (_, currentResult) => {
+    const onDirect = vi.fn()
+    const mounted = mount(CutoverChecklistField, {
+      item: { ...item, workModeCode: 'COLLECTION', interfaceSchemaSnapshot: JSON.stringify({
+        fields: [{ code: 'normal', label: '检查是否正常', type: 'BOOLEAN', required: true }]
+      }), currentResult }, directValue: '', readonly: false, allowSave: true, onDirect
+    }, controls)
+    try {
+      expect(textOf(mounted.root)).toContain('检查是否正常')
+      expect(findConclusion(mounted.root)?.props).toMatchObject({ disabled: true })
+      expect(findConclusion(mounted.root)?.props?.['model-value']).toBeUndefined()
+      expect(onDirect).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it.each([false, true])('retains the collected conclusion with readonly=%s', readonly => {
+    const mounted = mount(CutoverChecklistField, {
+      item: { ...item, workModeCode: 'COLLECTION', interfaceSchemaSnapshot: JSON.stringify({
+        fields: [{ code: 'normal', label: '检查是否正常', type: 'BOOLEAN', required: true }]
+      }), currentResult: { resultSourceCode: 'COLLECTION', collectionResultReferenceId: '301' } },
+      directValue: '{"normal":false}', readonly, allowSave: true
+    }, controls)
+    try {
+      expect(findConclusion(mounted.root)?.props).toMatchObject({ disabled: readonly, 'model-value': false })
+    } finally { mounted.app.unmount() }
   })
 
   it('does not link an accepted platform execution from a readonly checklist', async () => {
@@ -193,6 +376,7 @@ describe('F-CUT-003 mounted checklist field', () => {
       item: { ...item, workModeCode: 'COLLECTION' }, directValue: '', readonly: true,
       allowCollection: false, onCollection
     }, controls)
+    await (findByTestId(mounted.root, 'open-item-collection')!.props!.onClick as () => Promise<void>)()
     await (findByTestId(mounted.root, 'accept-platform-execution')!.props?.onClick as () => void)()
     expect(onCollection).not.toHaveBeenCalled()
     mounted.app.unmount()
@@ -205,6 +389,7 @@ describe('F-CUT-003 mounted checklist field', () => {
       item: { ...item, workModeCode: 'COLLECTION' }, directValue: '', readonly: false,
       allowCollection: true, onCollection
     }, controls)
+    await (findByTestId(mounted.root, 'open-item-collection')!.props!.onClick as () => Promise<void>)()
     await (findByTestId(mounted.root, 'accept-platform-execution')!.props?.onClick as () => void)()
     expect(onCollection).toHaveBeenCalledWith('risk-check', '9007199254740991', null, '9007199254740994')
     mounted.app.unmount()
@@ -254,6 +439,7 @@ describe('F-CUT-003 mounted checklist field', () => {
     const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
     await flush()
     findInput(mounted.root, '请填写核查事实').props['onUpdate:modelValue']('关闭采集前的填写')
+    await (findByTestId(mounted.root, 'open-item-collection')!.props!.onClick as () => Promise<void>)()
     await (findByTestId(mounted.root, 'close-platform-execution')!.props!.onClick as Function)()
     await vi.waitFor(() => expect(checklistApi.saveCutoverChecklist).toHaveBeenCalledOnce())
     await vi.waitFor(() => expect(checklistApi.getCutoverChecklist).toHaveBeenCalledTimes(3))
@@ -324,6 +510,25 @@ describe('F-CUT-003 mounted checklist field', () => {
       itemName: '现场补充核查',
       interfaceSchema: '{"type":"string"}'
     }) })
+    mounted.app.unmount()
+  })
+
+  it('uploads collection manual verification evidence directly without creating a failed collection', async () => {
+    fileApi.getArtifact.mockResolvedValue({ artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
+    fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5 }] })
+    const manual = vi.fn()
+    const mounted = mount(CutoverChecklistField, {
+      item: { ...item, workModeCode: 'COLLECTION', currentResult: null }, directValue: '',
+      readonly: false, allowSave: true, allowCollection: true, onManual: manual
+    }, controls)
+    expect(textOf(mounted.root)).toContain('上传人工校验证据')
+    const uploader = findByTestId(mounted.root, 'manual-uploader')!
+    for (const extension of ['.xls', '.xlsx', '.csv', '.txt', '.log', '.cfg'])
+      expect(uploader.props?.accept).toContain(extension)
+    await (uploader.props?.onClick as () => Promise<void>)()
+    await flush()
+    expect(manual).toHaveBeenCalledWith('risk-check', expect.objectContaining({ artifactId: '9007199254740993' }), '')
+    expect(checklistApi.requestChecklistCollection).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
 
@@ -544,6 +749,53 @@ describe('F-CUT-003 mounted checklist field', () => {
     expect(navigated).toEqual([['TASK_OVERVIEW']])
     mounted.app.unmount()
   })
+  it('loads external state alongside a known checklist instead of waiting for its full result', async () => {
+    let resolveChecklist!: (value: CutoverChecklistView) => void
+    checklistApi.getCutoverChecklist.mockReset().mockImplementation(() => new Promise(resolve => { resolveChecklist = resolve }))
+    checklistApi.getCutoverExternalState.mockResolvedValue(null)
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    try {
+      await flush()
+      expect(checklistApi.getCutoverExternalState).toHaveBeenCalledExactlyOnceWith('101', undefined)
+      resolveChecklist(checklistView(null)); await flush()
+      expect(findByTestId(mounted.root, 'checklist-save')).toBeDefined()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('does not request external state when a checklist has not been generated', async () => {
+    checklistApi.getCutoverChecklist.mockReset().mockRejectedValue({ response: { status: 404 } })
+    const mounted = mount(CutoverChecklistPanel, { detail: { ...taskDetail, workbenchSteps: [], allowedActions: ['GENERATE_CHECKLIST'] } }, controls)
+    try { await flush(); expect(checklistApi.getCutoverExternalState).not.toHaveBeenCalled() }
+    finally { mounted.app.unmount() }
+  })
+
+  it('blocks editing after a failed parallel read and restores it only after a successful retry', async () => {
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(checklistView(null))
+    checklistApi.getCutoverExternalState.mockRejectedValueOnce(new Error('provider unavailable')).mockResolvedValue(null)
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    try {
+      await flush()
+      expect(textOf(mounted.root)).toContain('调研清单加载失败或版本已变化')
+      expect(findByTestId(mounted.root, 'checklist-save')).toBeUndefined()
+      await (findByTestId(mounted.root, 'checklist-load-retry')!.props!.onClick as () => Promise<void>)()
+      await flush()
+      expect(findByTestId(mounted.root, 'checklist-save')).toBeDefined()
+      expect(textOf(mounted.root)).not.toContain('调研清单加载失败或版本已变化')
+    } finally { mounted.app.unmount() }
+  })
+
+  it('rejects external state belonging to a different checklist revision', async () => {
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(checklistView(null))
+    checklistApi.getCutoverExternalState.mockResolvedValueOnce({ checklistId: '999' } as any)
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    try {
+      await flush()
+      expect(textOf(mounted.root)).toContain('调研清单加载失败或版本已变化')
+      expect(findByTestId(mounted.root, 'checklist-save')).toBeUndefined()
+      expect(checklistApi.saveCutoverChecklist).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
 })
 
 const taskDetail = {
@@ -596,4 +848,9 @@ const flush = async () => {
 const findInput = (node: any, placeholder: string): any => {
   if (node.props?.placeholder === placeholder) return node
   for (const child of node.children || []) { const found = findInput(child, placeholder); if (found) return found }
+}
+
+const findConclusion = (node: any): any => {
+  if (node.props?.['onUpdate:modelValue'] && node.children?.some((child: any) => textOf(child) === '是')) return node
+  for (const child of node.children || []) { const found = findConclusion(child); if (found) return found }
 }
