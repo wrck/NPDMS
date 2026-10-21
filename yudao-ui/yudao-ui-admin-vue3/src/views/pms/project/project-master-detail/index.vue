@@ -387,7 +387,16 @@
                   :instances="instances"
                   :task-deliverables="stageSelection?.kind === 'task' ? flowTaskDeliverables : undefined"
                   @changed="handleExternalWorkspaceChanged"
-                />
+                >
+                  <template #header="{ loading: gateLoading, disabled, refresh }">
+                    <div class="panel-header">
+                      <span class="panel-title"><Icon icon="ep:circle-check" /> 完成条件</span>
+                      <el-button link type="primary" :loading="gateLoading" :disabled="disabled" @click="refresh">
+                        刷新门禁结果
+                      </el-button>
+                    </div>
+                  </template>
+                </StageGateResultsPanel>
               </ContentWrap>
               <ContentWrap>
                 <div class="panel-header">
@@ -1213,6 +1222,10 @@ onMounted(() => {
 
 .stage-history {
   font-size: 12.5px;
+}
+
+.stage-ws-side :deep(.stage-gates) {
+  margin-top: 0;
 }
 
 .history-row {

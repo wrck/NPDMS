@@ -192,9 +192,11 @@ public class ProjectTaskPlanCompletionService {
         } else if (!nativeWork && !resultOnly) {
             var ownerResult = request.ownerReader().get();
             var ownerFacts = ownerResult == null ? null : ownerResult.facts();
-            if (ownerFacts==null || ownerFacts.factVersion() == null || ownerFacts.links().isEmpty())
+            if (ownerFacts==null || ownerFacts.factVersion() == null || ownerFacts.factVersion().isBlank())
                 return unknown(reference,"BUSINESS_FACT_VERSION_MISMATCH");
-            if (!ownerResult.hasCompletedHandling()) {
+            // A successfully locked empty group means no handling exists yet, not an Owner read failure.
+            // Keep it unsatisfied before evaluating ALL/NOT/CONSTANT rules, so an empty group cannot pass.
+            if (ownerFacts.links().isEmpty() || !ownerResult.hasCompletedHandling()) {
                 var waiting = new RuleEvaluation(reference, RuleEvaluation.Outcome.NOT_MATCHED,
                         "BUSINESS_HANDLING_PENDING", List.of(), List.of(), List.of());
                 return new Result(waiting, waiting, Map.of("completion", waiting, "exit", waiting));

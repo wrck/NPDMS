@@ -144,6 +144,7 @@ v-if="showStageGates && hasStageGates" ref="stageGatesRef" :project-id="projectI
            TASK_NATIVE 通用任务没有办理区，任务操作直接使用底部操作栏；
            所属阶段未进入（准入未满足）时界面照常渲染，仅业务办理与状态操作按钮由 readonly 隐藏。
            工作台未返回前渲染加载占位，不闪现「尚未取得业务绑定」兜底提示 -->
+      <el-alert v-if="taskStartBlock" :title="taskStartBlock" type="warning" :closable="false" class="mb-12px" />
       <template v-if="!workbench && !loadError">
         <div class="section-title task-business-heading">
           <span>任务业务办理</span>
@@ -159,6 +160,7 @@ v-if="showStageGates && hasStageGates" ref="stageGatesRef" :project-id="projectI
         ref="businessRef"
         :key="`flow-task-${workbench.task.taskId}`"
         :task-id="workbench.task.taskId"
+        :task-code="workbench.task.taskCode"
         :task-version="workbench.task.version"
         :initial-project="project"
         :readonly="taskPending || ['DONE', 'CLOSED', 'CANCELLED'].includes(workbench.task.status || '')"
@@ -221,7 +223,7 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
           <p v-else-if="workbench.trustedTargetRef === '/pms/project-management/project-master-detail'" class="page-embed-hint">维护最终用户外部人员后，将按当前任务规则同步完成状态。</p>
           <p v-else class="page-embed-hint">本任务业务在下方工作区直接办理，不跳离当前任务；办理完成后使用任务状态操作推进状态。</p>
           <component
-:is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :origin-task-id="workbench.task.taskId" :readonly="taskPending"
+:is="pageEmbed" ref="pageEmbedRef" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :origin-task-id="workbench.task.taskId" :readonly="taskPending"
             @changed="handleEmbeddedBusinessChanged" @updated="handleEmbeddedBusinessChanged" />
         </template>
         <el-alert
@@ -264,15 +266,15 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
     <div v-if="selection && showActionBar" class="flow-action-bar">
       <div v-if="businessBarVisible" ref="businessBarTarget" class="flow-bar-business">
         <template v-if="selection.kind === 'stage'">
-          <el-button :disabled="stageBusinessRef?.isBusy()" @click="stageBusinessRef?.refresh()">刷新业务结果</el-button>
+          <el-button :disabled="stageBusinessRef?.isBusy()" @click="stageBusinessRef?.refresh()">刷新</el-button>
         </template>
         <template v-else>
           <el-button
             v-if="businessBound && workbench?.task.version != null"
-            :loading="businessRef?.loading" :disabled="!businessRef" @click="businessRef?.refresh()">刷新业务结果</el-button>
-          <el-button v-else-if="workbench?.bindingType === 'APPROVAL'" :disabled="approvalRef?.isBusy()" @click="reload">刷新审批结果</el-button>
-          <el-button v-else-if="workbench?.bindingType === 'RESULT_SUBSCRIPTION'" @click="reload">刷新任务状态</el-button>
-          <el-button v-if="workbench?.bindingType === 'PAGE' && pageEmbed" @click="reload">刷新工作区</el-button>
+            :loading="businessRef?.loading" :disabled="!businessRef" @click="businessRef?.refresh()">刷新</el-button>
+          <el-button v-else-if="workbench?.bindingType === 'APPROVAL'" :disabled="approvalRef?.isBusy()" @click="reload">刷新</el-button>
+          <el-button v-else-if="workbench?.bindingType === 'RESULT_SUBSCRIPTION'" @click="reload">刷新</el-button>
+          <el-button v-if="workbench?.bindingType === 'PAGE' && pageEmbed" @click="reload">刷新</el-button>
           <el-button v-else-if="workbench?.bindingType === 'PAGE' && !taskPending" :disabled="!workbench?.trustedTargetRef" @click="openTaskPage">打开页面</el-button>
         </template>
       </div>
@@ -292,10 +294,10 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
       <template v-else-if="workbench && !taskPending && !loadError">
         <span v-if="pageSyncing" role="status">业务已保存，正在同步任务状态…</span>
         <TaskStateActions
-          v-else
-          ref="stateActionsRef" :workbench="workbench" :business-bound="businessBound"
+          v-else-if="taskActionWorkbench"
+          ref="stateActionsRef" :workbench="taskActionWorkbench" :business-bound="businessBound"
           :business-fact-version="businessFactVersion" :before-action="requestLeave" @changed="handleBusinessChanged">
-          <ProjectTaskDetailsEditor ref="detailsRef" :workbench="workbench" :before-action="requestLeave" @changed="handleBusinessChanged" />
+          <ProjectTaskDetailsEditor v-if="taskActionWorkbench.allowedActions.includes('UPDATE_PROGRESS')" ref="detailsRef" :workbench="taskActionWorkbench" :before-action="requestLeave" @changed="handleBusinessChanged" />
         </TaskStateActions>
       </template>
     </div>
@@ -398,6 +400,14 @@ const stageDeliverables = computed(() =>
 )
 const hasStageGates = computed(() => props.instances?.gates.some(gate => gate.stageCode === props.selection?.stageCode))
 const workbench = ref<TaskWorkbench>()
+const taskStartBlock = computed(() => {
+  const current = workbench.value
+  const admission = current?.startAdmission
+  if (current?.bindingType === 'APPROVAL' || !admission || admission.outcome === 'MATCHED') return ''
+  if (admission.outcome === 'UNKNOWN') return '任务开始条件暂不可用，请刷新后重试'
+  const missing = admission.conditions.filter(item => item.outcome !== 'MATCHED').map(item => item.label)
+  return missing.length ? `开始前请先完成：${missing.join('、')}` : '任务开始条件尚未满足，请查看完成条件'
+})
 const pageSyncing = ref(false)
 // 任务维度复用同一未进入判定：导航快照缺 stageCode 时以工作台任务补位
 const taskPending = computed(() => {
@@ -428,6 +438,7 @@ const taskOverdueDays = computed(() => {
 })
 const loadError = ref('')
 const businessRef = ref<InstanceType<typeof TaskBusinessPanel>>()
+const pageEmbedRef = ref<{ requestLeave?: () => Promise<boolean> }>()
 const stageBusinessRef = ref<InstanceType<typeof StageBusinessPanel>>()
 // 阶段业务绑定类型由 StageBusinessPanel 装载后上报；STAGE_NATIVE 阶段不渲染业务办理区
 const stageBindingType = ref<string>()
@@ -511,8 +522,16 @@ const showActionBar = computed(() => {
   if (!workbench.value) return false
   if (businessBarVisible.value) return true
   // 栏内只剩状态操作时：未进入阶段不渲染状态操作，整栏随之隐藏
-  return !taskPending.value
-    && (workbench.value.bindingType !== 'TASK_NATIVE' || !!workbench.value.allowedActions?.length)
+  return !taskPending.value && !!taskActionWorkbench.value
+})
+const taskActionWorkbench = computed(() => {
+  const current = workbench.value
+  if (!current) return undefined
+  const allowedActions = (current.allowedActions || []).filter(action =>
+    ['START', 'SUBMIT', 'COMPLETE', 'UPDATE_PROGRESS'].includes(action)
+    && !(current.bindingType === 'APPROVAL' && ['START', 'SUBMIT', 'COMPLETE'].includes(action))
+    && !(current.bindingType === 'RESULT_SUBSCRIPTION' && ['SUBMIT', 'COMPLETE'].includes(action)))
+  return allowedActions.length ? { ...current, allowedActions } : undefined
 })
 // 业务操作区显隐：与业务办理区的渲染条件一致（区在则操作在），且栏内确有按钮可渲染——
 // 未进入阶段的 PAGE 内嵌保留刷新工作区入口；无内嵌（仅跳转兜底）时不渲染操作区
@@ -538,6 +557,7 @@ const requestLeave = async () => !advancing.value && !stateActionsRef.value?.isB
   && (await stageBusinessRef.value?.requestLeave()) !== false
   && (await approvalRef.value?.requestLeave()) !== false
   && (await stageGatesRef.value?.requestLeave()) !== false
+  && (await pageEmbedRef.value?.requestLeave?.()) !== false
 // BusinessViewHost already guards route leave; only reused-route project changes need this guard.
 onBeforeRouteUpdate((to, from) => to.query.projectId === from.query.projectId || requestLeave())
 const businessFactVersion = ref<string>()

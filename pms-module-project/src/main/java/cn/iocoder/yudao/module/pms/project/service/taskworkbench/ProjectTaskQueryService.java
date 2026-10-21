@@ -33,6 +33,13 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAnc
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskByIdQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
+import cn.iocoder.yudao.module.pms.project.domain.rule.ProjectEndUserCompletionCondition;
+import cn.iocoder.yudao.module.pms.project.domain.rule.ProjectContactCompletionCondition;
+import cn.iocoder.yudao.module.pms.project.domain.rule.JointTestDeliverableCompletionCondition;
+import cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -57,6 +64,8 @@ public class ProjectTaskQueryService {
     private ProjectTaskApprovalService taskApprovals;
     @jakarta.annotation.Resource
     private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService stageAdmission;
+    @jakarta.annotation.Resource
+    private ProjectPlanVersionMapper plans;
 
     private static final List<String> OVERVIEW_TABS = List.of(
             "BASIC_INFO", "PROJECT_TREE", "TEAM_MEMBERS", "PROJECT_TASKS", "DEVICES", "IMPLEMENTATION_SCOPE");
@@ -171,7 +180,11 @@ public class ProjectTaskQueryService {
         response.setContractVersion(contract.getContractVersion());
         response.setBindingType(contract.getWorkBindingTypeCode());
         response.setTrustedTargetRef(trustedTargetRef(contract));
-        response.setAllowedActions(workbenchAllowedActions(value, inspection.allowedActions(), actor));
+        var actions = new HashSet<>(workbenchAllowedActions(value, inspection.allowedActions(), actor));
+        if (automaticallyCompleted(value, contract)) {
+            actions.removeAll(Set.of("SUBMIT", "COMPLETE", "UPDATE_PROGRESS"));
+        }
+        response.setAllowedActions(Set.copyOf(actions));
         response.setFactVersion(inspection.factVersion());
         response.setRecoverableError(inspection.recoverableError());
         if ("RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode())) {
@@ -182,18 +195,20 @@ public class ProjectTaskQueryService {
                 response.setRecoverableError("RESULT_SUBSCRIPTION_FACT_UNAVAILABLE");
             }
         }
-        if ("APPROVAL".equals(contract.getWorkBindingTypeCode())) {
-            if (response.getAllowedActions().contains("START")) {
-                var admission = stageAdmission.previewTaskAdmission(value.access().project(), value.task(), contract);
-                response.setStartAdmission(value.access().fullProjectAccess() ? admission
-                        : new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionView(
-                                admission.outcome(), List.of()));
-                if (admission.outcome() != cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.MATCHED) {
-                    var allowed = new HashSet<>(response.getAllowedActions());
-                    allowed.remove("START");
-                    response.setAllowedActions(Set.copyOf(allowed));
-                }
+        if (("APPROVAL".equals(contract.getWorkBindingTypeCode())
+                || TaskBusinessBindingHostProvider.TYPES.contains(contract.getWorkBindingTypeCode()))
+                && response.getAllowedActions().contains("START")) {
+            var admission = stageAdmission.previewTaskAdmission(value.access().project(), value.task(), contract);
+            response.setStartAdmission(value.access().fullProjectAccess() ? admission
+                    : new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionView(
+                            admission.outcome(), List.of()));
+            if (admission.outcome() != cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.MATCHED) {
+                var allowed = new HashSet<>(response.getAllowedActions());
+                allowed.remove("START");
+                response.setAllowedActions(Set.copyOf(allowed));
             }
+        }
+        if ("APPROVAL".equals(contract.getWorkBindingTypeCode())) {
             try { response.setApproval(taskApprovals.view(actor.tenantId(), value.task().getProjectId(), taskId, contract)); }
             catch (RuntimeException unavailable) { response.setRecoverableError("TASK_APPROVAL_FACT_UNAVAILABLE"); }
         }
@@ -366,6 +381,37 @@ public class ProjectTaskQueryService {
         if (!activeProjectManagerWithManageScope(access, actor)
                 || !hasPermission(actor.actorId(), "pms:project-task:create")) return Set.of();
         return Set.of("CREATE");
+    }
+
+    /** Only the effective plan's exact automatic conditions replace native submission. */
+    private boolean automaticallyCompleted(TaskAndAccess value, ProjectTaskExecutionContractDO contract) {
+        String type = String.valueOf(contract.getWorkBindingTypeCode());
+        if (Set.of("BUSINESS_OBJECT", "BUSINESS_COMPONENT", "APPROVAL", "RESULT_SUBSCRIPTION").contains(type)) {
+            return true;
+        }
+        var project = value.access().project();
+        if (!"PAGE".equals(type) || project.getActivePlanVersionId() == null) return false;
+        var plan = plans.selectEffective(
+                new ProjectPlanScopeQuery(
+                        project.getTenantId(), project.getId()));
+        if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())) return false;
+        var snapshot = TemplateExecutionSnapshotReader.read(
+                plan.getExecutionSnapshot());
+        var definitions = snapshot.getTasks().stream().filter(node ->
+                Objects.equals(node.getNodeKey(), contract.getSourceNodeKey())
+                && Objects.equals(node.getCode(), value.task().getCode())
+                && Objects.equals(node.getStageCode(), value.task().getStageCode())).toList();
+        if (definitions.size() != 1) return false;
+        var completion = snapshot.getRulePrograms().get(definitions.getFirst().getCompletionRuleKey());
+        String parameters = contract.getBindingParameterSnapshot();
+        return ProjectEndUserCompletionCondition.memberPage(type, parameters)
+                && ProjectEndUserCompletionCondition.automatic(completion)
+                || ProjectContactCompletionCondition.contactPage(type, parameters)
+                && ProjectContactCompletionCondition.automatic(completion)
+                || JointTestDeliverableCompletionCondition.jointTestPage(type, parameters)
+                && JointTestDeliverableCompletionCondition.automatic(completion)
+                || NormalClosureTaskCondition.ROUTE.equals(trustedTargetRef(contract))
+                && NormalClosureTaskCondition.approvedOnly(completion);
     }
 
     private Set<String> workbenchAllowedActions(TaskAndAccess value, Set<String> bindingActions,

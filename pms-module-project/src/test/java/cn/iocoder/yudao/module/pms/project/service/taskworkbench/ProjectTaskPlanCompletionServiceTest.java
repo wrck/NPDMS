@@ -342,6 +342,46 @@ class ProjectTaskPlanCompletionServiceTest {
         assertTrue(evaluate().matched()); assertTrue(JsonUtils.toJsonString(evaluate().evidence()).contains("owner-v2"));
     }
 
+    @Test void successfullyReadEmptyOwnerGroupIsWaitingAndNeverCompletesEvenUnderAllOrNot() {
+        binding.setWorkBindingTypeCode("BUSINESS_COMPONENT");
+        var context = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                9L, 1L, 21L, 1, 91L, 1, 52L, 61L, 1, 1, 62L, 1, true, LocalDateTime.of(2026,9,14,9,0));
+        when(executionApi.inspect(any())).thenReturn(context);
+        var empty = new TaskBusinessLinkedFacts("a".repeat(64), List.of());
+        when(business.lockCompletionFacts(any(),any(),any())).thenReturn(new TaskBusinessCompletionFacts(empty, false));
+        when(business.lockAndRevalidateLinkedFacts(any(),any(),any(),any(),any())).thenReturn(empty);
+        for (String expression : List.of(
+                "{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"factCode\":\"SIGNED_PASSED_ARCHIVED\",\"quantifier\":\"ANY\"}}",
+                "{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"factCode\":\"SIGNED_PASSED_ARCHIVED\",\"quantifier\":\"ALL\"}}",
+                "{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"factCode\":\"SIGNED_PASSED_ARCHIVED\",\"quantifier\":\"ANY\"}}]}",
+                "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}")) {
+            rule("done", expression);
+            for (var result : List.of(service.evaluateAutomatically(project, task, binding), evaluate())) {
+                assertFalse(result.matched());
+                assertEquals(RuleEvaluation.Outcome.NOT_MATCHED, result.completion().outcome());
+                assertEquals("BUSINESS_HANDLING_PENDING", result.completion().reasonCode());
+            }
+        }
+        assertEquals("obsolete-binding-rule-must-not-be-read", binding.getCompletionRuleSnapshot());
+    }
+
+    @Test void unavailableOwnerFactsAndReadFailuresRemainFailuresRatherThanNormalWaiting() {
+        binding.setWorkBindingTypeCode("BUSINESS_COMPONENT");
+        var context = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                9L, 1L, 21L, 1, 91L, 1, 52L, 61L, 1, 1, 62L, 1, true, LocalDateTime.of(2026,9,14,9,0));
+        when(executionApi.inspect(any())).thenReturn(context);
+        for (var unavailable : Arrays.asList(null, new TaskBusinessCompletionFacts(null, false),
+                new TaskBusinessCompletionFacts(new TaskBusinessLinkedFacts(null, List.of()), false),
+                new TaskBusinessCompletionFacts(new TaskBusinessLinkedFacts("", List.of()), false))) {
+            when(business.lockCompletionFacts(any(),any(),any())).thenReturn(unavailable);
+            var result = service.evaluateAutomatically(project, task, binding);
+            assertFalse(result.matched());
+            assertEquals(RuleEvaluation.Outcome.UNKNOWN, result.completion().outcome());
+        }
+        when(business.lockCompletionFacts(any(),any(),any())).thenThrow(new IllegalStateException("OWNER_UNAVAILABLE"));
+        assertThrows(IllegalStateException.class, () -> service.evaluateAutomatically(project, task, binding));
+    }
+
     @Test void automaticCompletionRequiresRealHandlingEvenWithConstantTrue() {
         binding.setWorkBindingTypeCode("BUSINESS_COMPONENT");
         var context = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(

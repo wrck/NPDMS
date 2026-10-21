@@ -26,6 +26,7 @@ v-if="operation.receipt.value"
         <el-table-column prop="reason" label="阻塞原因" min-width="180" />
       </el-table>
     </section>
+    <el-alert v-if="operationError" :title="operationError" type="error" :closable="false" show-icon />
     <el-alert v-if="loadError || resolved.error" :title="loadError || resolved.error" type="error" :closable="false" show-icon>
       <template #default><el-button link type="primary" @click="retry">重新装载</el-button></template>
     </el-alert>
@@ -37,10 +38,10 @@ v-if="operation.receipt.value"
   </section>
 </template>
 <script setup lang="ts">
-import { computed, onErrorCaptured, provide, ref, shallowRef, watch } from 'vue'
+import { computed, ErrorCodes, onErrorCaptured, provide, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { resolveBusinessView, type BusinessViewTarget } from './registry'
-import { editingTargetKey, operationClientKey, useOperationHost } from './operationHost'
+import { editingTargetKey, operationClientKey, operationCheckKey, useOperationHost } from './operationHost'
 import { useBusinessActionBar } from './businessActionBar'
 
 defineOptions({ name: 'BusinessViewHost' })
@@ -54,15 +55,17 @@ const capture = (): BusinessViewTarget => ({ registration: { ...props.registrati
 const active = shallowRef(capture())
 const operation = useOperationHost(active, () => emit('changed'))
 provide(operationClientKey, operation.client)
+provide(operationCheckKey, operation.waitForCheck)
 const activeKey = computed(() => editingTargetKey(active.value))
 const resolved = computed(() => resolveBusinessView({ ...active.value, presentation: operation.routingPresentation.value, resolvedContext: operation.decorated.value,
   allowedActions: operation.allowedActions.value, readonly: active.value.readonly || operation.requiresReopen.value || operation.presentationReadonly.value }))
 const contentRef = ref<{ refresh?: () => Promise<unknown>; requestLeave?: () => Promise<boolean>; discardChanges?: () => boolean; isDirty?: () => boolean }>()
 const dirty = ref(false)
 const loadError = ref('')
+const operationError = ref('')
 const retryNo = ref(0)
 const setDirty = (value: boolean) => { dirty.value = value; emit('dirty-change', value) }
-const ownerChanged = () => { emit('changed'); void operation.refresh(true) }
+const ownerChanged = () => { operationError.value = ''; emit('changed'); void operation.refresh(true) }
 // 业务内容一旦卸载（装载失败、上下文缺失或执行检查中），其未保存缓冲已不存在；
 // 脏标记必须随之复位，否则切换与重新装载会被永久阻断。
 const contentMounted = computed(() => !loadError.value && !resolved.value.error && operation.mode.value !== 'CHECKING')
@@ -98,7 +101,7 @@ watch(() => [editingTargetKey(props), props.registration, props.resolvedContext,
       message.warning('当前视图尚未保存且无法安全关闭，请先处理当前修改。')
       emit('switch-blocked'); return
     }
-    loadError.value = ''; setDirty(false)
+    loadError.value = ''; operationError.value = ''; setDirty(false)
   } else if (loadError.value) {
     // 同目标上下文重载：已崩溃的装载没有可保存缓冲，直接重建以恢复业务视图显示。
     loadError.value = ''; retryNo.value++
@@ -117,10 +120,22 @@ const retry = async () => {
     message.warning('当前视图尚未保存且无法安全关闭，请先处理当前修改。')
     return
   }
-  loadError.value = ''; retryNo.value++
+  loadError.value = ''; operationError.value = ''; retryNo.value++
   await operation.reopen()
 }
-onErrorCaptured(() => { loadError.value = '业务组件暂不可用；请先确认已提交操作的结果，再重试装载。'; return false })
+onErrorCaptured((_error, _instance, info) => {
+  // 保存等事件失败不代表组件无法渲染，不能卸载其未保存输入。
+  // Vue 生产构建使用错误参考 URL，开发构建使用描述。
+  const eventFailure = info === 'native event handler' || info === 'component event handler' ||
+    [ErrorCodes.NATIVE_EVENT_HANDLER, ErrorCodes.COMPONENT_EVENT_HANDLER]
+      .some((code) => info === `https://vuejs.org/error-reference/#runtime-${code}`)
+  if (eventFailure) {
+    operationError.value = '本次操作未确认成功，未保存内容已保留；请确认操作结果后重试。'
+  } else {
+    loadError.value = '业务组件暂不可用；请先确认已提交操作的结果，再重试装载。'
+  }
+  return false
+})
 onBeforeRouteLeave(requestLeave)
 defineExpose({ requestLeave, refresh, isDirty: () => dirty.value || !!operation.client.value?.isBusy() || !!operation.client.value?.hasUncertain(), viewSettled })
 </script>

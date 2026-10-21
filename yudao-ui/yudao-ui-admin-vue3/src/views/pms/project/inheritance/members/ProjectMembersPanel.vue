@@ -3,7 +3,7 @@
     <header class="panel-header">
       <span class="panel-title"><Icon icon="ep:user" /> 项目成员</span>
       <div class="actions">
-        <el-button :disabled="opening" @click="load"><Icon icon="ep:refresh" />刷新</el-button>
+        <el-button v-if="!hasActionBar" :disabled="opening" @click="load"><Icon icon="ep:refresh" />刷新</el-button>
         <el-button v-hasPermi="['pms:project-team:create', 'pms:project:assign']" type="primary" :disabled="!editable" @click="openMember()"><Icon icon="ep:plus" />新增成员</el-button>
       </div>
     </header>
@@ -79,6 +79,8 @@ import * as Members from '@/api/pms/project/unified-members'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
 import UnifiedMemberForm from './OrdinaryMemberForm.vue'
 import { checkPermi } from '@/utils/permission'
+import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
+const hasActionBar = !!useBusinessActionBar().barTarget
 
 const memberRoles = Members.MEMBER_ROLE
 const props = defineProps<{ project: Projects.ProjectMasterVO; initialRole?: Members.ProjectMemberRole; readonly?: boolean }>()
@@ -177,16 +179,18 @@ const remove = async () => {
   } catch { removeError.value = '移出未成功。网络异常可重试；版本冲突时取消并刷新成员。' }
   finally { removing.value = false }
 }
-watch(() => props.project.id, () => {
+watch(() => [props.project.id, props.initialRole], () => {
   memberVisible.value = removeVisible.value = false
   rows.value = []
   total.value = 0
+  query.role = props.initialRole || ''
   reload()
 }, { immediate: true })
 watch(() => props.readonly, value => {
   if (value) memberVisible.value = removeVisible.value = false
 })
 onBeforeUnmount(() => sequence++)
+defineExpose({ refresh: load, requestLeave: async () => !opening.value && !memberVisible.value && !removeVisible.value })
 </script>
 <style scoped>
 .panel-header, .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

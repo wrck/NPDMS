@@ -1,7 +1,8 @@
 <template>
   <el-alert v-if="error" :title="error" type="error" :closable="false" role="alert" />
   <el-button v-if="error" @click="load">重新加载</el-button>
-  <ProjectMembersPanel v-if="project" :key="String(project.id)" :project="project" :readonly="readonly"
+  <ProjectMembersPanel
+ref="membersRef" v-if="project" :key="String(project.id)" :project="project" :readonly="readonly"
     initial-role="END_USER" @updated="updated" />
 </template>
 <script setup lang="ts">
@@ -14,6 +15,7 @@ const props = defineProps<{ projectId: number | string; readonly?: boolean }>()
 const emit = defineEmits<{ changed: [] }>()
 const project = ref<Projects.ProjectMasterVO>()
 const error = ref('')
+const membersRef = ref<InstanceType<typeof ProjectMembersPanel>>()
 let generation = 0
 const load = async () => {
   const request = ++generation, id = props.projectId
@@ -35,4 +37,5 @@ const updated = async () => {
 }
 watch(() => props.projectId, () => { project.value = undefined; void load() }, { immediate: true, flush: 'sync' })
 onBeforeUnmount(() => ++generation)
+defineExpose({ requestLeave: () => membersRef.value?.requestLeave() ?? Promise.resolve(true) })
 </script>

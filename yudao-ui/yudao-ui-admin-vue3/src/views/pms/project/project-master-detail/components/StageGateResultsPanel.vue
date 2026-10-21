@@ -1,9 +1,11 @@
 <template>
   <section class="stage-gates" :aria-label="title" :aria-busy="loading">
-    <div class="gate-heading">
-      <span>{{ title }}</span>
-      <el-button :loading="loading" :disabled="loading || isBusy()" @click="refresh">刷新门禁结果</el-button>
-    </div>
+    <slot name="header" :loading="loading" :disabled="loading || isBusy()" :refresh="refresh">
+      <div class="gate-heading">
+        <span>{{ title }}</span>
+        <el-button :loading="loading" :disabled="loading || isBusy()" @click="refresh">刷新门禁结果</el-button>
+      </div>
+    </slot>
     <p v-if="loading" role="status">正在读取本轮门禁结果…</p>
     <el-alert v-else-if="error" :title="error" type="warning" :closable="false" show-icon />
     <template v-else-if="workbench">
@@ -73,7 +75,8 @@
            未进入阶段的准入审批发起照常放开（可用性由后端 canStart 决定） -->
       <template v-if="approvalRefs.length">
         <div class="section-title">审批</div>
-        <StageGateProcessPanel v-for="reference in approvalRefs" :key="reference.gateReferenceId" ref="processPanels"
+        <StageGateProcessPanel
+v-for="reference in approvalRefs" :key="reference.gateReferenceId" ref="processPanels"
           :workbench="workbench" :reference="reference" :editing="editingId === reference.gateReferenceId"
           :disabled="loading" @edit="openForm(reference.gateReferenceId)" @changed="handleSubmitted" />
       </template>

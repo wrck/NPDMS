@@ -18,6 +18,7 @@ vi.mock('@/components/UserTag/index.vue', () => ({ default: defineComponent({
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => ref(false) }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }), onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn(), error: vi.fn() }) }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {} }))
 // 用户store在node环境依赖浏览器storage，浅mock挡住加载链
 vi.mock('@/store/modules/user', () => ({ useUserStore: vi.fn(), useUserStoreWithOut: vi.fn() }))
@@ -101,6 +102,27 @@ const contactWorkbench = (version = 1, status = 'IN_PROGRESS') => ({
   task: { taskId: 10, name: '用户信息录入', version, status, progress: status === 'DONE' ? 100 : 0 },
   bindingType: 'PAGE', trustedTargetRef: '/customer-asset/customer-contact', allowedActions: status === 'DONE' ? [] : ['SUBMIT']
 })
+
+it.each(['终验', '现场培训'])('shows the unmet %s prerequisite while the server withholds START', async label => {
+  api.getTaskWorkbench.mockResolvedValue({
+    task: { taskId: 10, version: 1 }, bindingType: 'BUSINESS_COMPONENT', allowedActions: ['UPDATE', 'ASSIGN'],
+    startAdmission: { outcome: 'NOT_MATCHED', conditions: [{ label, outcome: 'NOT_MATCHED' }] }
+  })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(textOf(view.root)).toContain(`开始前请先完成：${label}`)
+  expect(findTaskActions(view.root)).toBeUndefined()
+})
+
+it('reports unavailable start prerequisites without claiming they are satisfied', async () => {
+  api.getTaskWorkbench.mockResolvedValue({
+    task: { taskId: 10, version: 1 }, bindingType: 'BUSINESS_COMPONENT', allowedActions: [],
+    startAdmission: { outcome: 'UNKNOWN', conditions: [] }
+  })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(textOf(view.root)).toContain('任务开始条件暂不可用，请刷新后重试')
+  expect(findTaskActions(view.root)).toBeUndefined()
+})
+
 
 it('omits the empty action section for automatic tasks and keeps manual submit and progress', async () => {
   api.getTaskWorkbench.mockResolvedValue({ ...contactWorkbench(), allowedActions: ['CANCEL', 'UPDATE'] })

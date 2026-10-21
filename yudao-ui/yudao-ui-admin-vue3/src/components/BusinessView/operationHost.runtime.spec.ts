@@ -35,6 +35,19 @@ const flushPromises = async () => {
 }
 beforeEach(() => vi.clearAllMocks())
 describe('retained Owner view and execution routing', () => {
+  it('settles a waiting Owner save as cancelled when its host is disposed during a capability read', async () => {
+    vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability() as never)
+    const view = harness(); await flushPromises()
+    let finish!: (value: any) => void
+    vi.mocked(inspectOperationCapabilities).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+    const refreshing = view.state.refresh()
+    const waiting = view.state.waitForCheck()
+    view.wrapper.app.unmount()
+    expect(await waiting).toBe(false)
+    finish(capability())
+    await refreshing
+    expect(request.post).not.toHaveBeenCalled()
+  })
   it('does not mount a usable client until inspection resolves; queries do not call commands', async () => {
     vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability() as never)
     const view = harness()
