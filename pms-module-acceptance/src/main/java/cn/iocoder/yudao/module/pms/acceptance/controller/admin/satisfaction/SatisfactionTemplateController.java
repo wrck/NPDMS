@@ -41,7 +41,7 @@ public class SatisfactionTemplateController {
     }
 
     @PostMapping
-    @PreAuthorize("@ss.hasPermission('pms:acceptance:satisfaction:manage')")
+    @PreAuthorize("@ss.hasRole('super_admin') && @ss.hasPermission('pms:acceptance:satisfaction:manage')")
     public CommonResult<SatisfactionTemplateManagementService.TemplateView> create(
             @Valid @RequestBody TemplateCreateReqVO request) {
         return withTenant(() -> success(service.create(tenantId(), actorId(),
@@ -49,7 +49,7 @@ public class SatisfactionTemplateController {
     }
 
     @PostMapping("/{id}/revisions")
-    @PreAuthorize("@ss.hasPermission('pms:acceptance:satisfaction:manage')")
+    @PreAuthorize("@ss.hasRole('super_admin') && @ss.hasPermission('pms:acceptance:satisfaction:manage')")
     public CommonResult<SatisfactionTemplateManagementService.RevisionView> createRevision(
             @PathVariable("id") Long templateId, @Valid @RequestBody RevisionCreateReqVO request) {
         return withTenant(() -> success(service.createRevision(tenantId(), actorId(), templateId,
@@ -59,7 +59,7 @@ public class SatisfactionTemplateController {
     }
 
     @PostMapping("/{id}/revisions/{revisionId}/actions/publish")
-    @PreAuthorize("@ss.hasPermission('pms:acceptance:satisfaction:manage')")
+    @PreAuthorize("@ss.hasRole('super_admin') && @ss.hasPermission('pms:acceptance:satisfaction:manage')")
     public CommonResult<SatisfactionTemplateManagementService.PublishResult> publish(
             @PathVariable("id") Long templateId, @PathVariable Long revisionId,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String operationId,

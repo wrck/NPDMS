@@ -5,7 +5,7 @@
         <div><h2>满意度调查</h2><p>先完善完工证明，再发起调查，客户一次签字确认完工内容与服务评价。</p></div>
         <div class="heading-actions">
           <el-button v-if="!props.readonly" v-hasPermi="['pms:acc-completion-certificate:create']" type="primary" @click="openForm()"><Icon icon="ep:plus" />新增完工证明</el-button>
-          <el-dropdown v-if="!props.readonly && checkPermi(['pms:acceptance:satisfaction:manage', 'pms:dynamic-form-template:query'])" trigger="click">
+          <el-dropdown v-if="canConfigure" trigger="click">
             <el-button>配置<Icon icon="ep:arrow-down" /></el-button>
             <template #dropdown><el-dropdown-menu>
               <el-dropdown-item v-if="!props.readonly" v-hasPermi="['pms:acceptance:satisfaction:manage']" @click="questionnaireTemplatesVisible = true">问卷模板</el-dropdown-item>
@@ -47,8 +47,8 @@
   </div>
 
   <ConfirmationLinkDialog ref="issueDialog" />
-  <ConfirmationPrintTemplates ref="printTemplates" kind="COMPLETION" @changed="loadPrintOptions" />
-  <ConfirmationPrintTemplates ref="satisfactionTemplates" kind="SATISFACTION" @changed="loadPrintOptions" />
+  <ConfirmationPrintTemplates v-if="canConfigure" ref="printTemplates" kind="COMPLETION" @changed="loadPrintOptions" />
+  <ConfirmationPrintTemplates v-if="canConfigure" ref="satisfactionTemplates" kind="SATISFACTION" @changed="loadPrintOptions" />
   <ConfirmationPrintPreview ref="printPreview" kind="COMPLETION" :readonly="props.readonly" />
   <ConfirmationPrintPreview
     ref="satisfactionPreview"
@@ -99,7 +99,7 @@
     >
   </Dialog>
 
-  <Dialog v-model="questionnaireTemplatesVisible" title="满意度问卷模板" width="min(1100px, 96vw)"><TemplatePanel v-if="questionnaireTemplatesVisible" /></Dialog>
+  <Dialog v-if="canConfigure" v-model="questionnaireTemplatesVisible" title="满意度问卷模板" width="min(1100px, 96vw)"><TemplatePanel v-if="questionnaireTemplatesVisible" /></Dialog>
   <el-drawer v-model="detailVisible" title="完工证明与满意度调查" size="min(1000px, 96vw)">
     <el-skeleton v-if="detailLoading" :rows="10" animated aria-label="正在加载完工证明" />
     <el-result v-else-if="detailError" icon="error" title="记录加载失败"
@@ -225,7 +225,7 @@ import * as UserProfileApi from '@/api/system/user/profile'
 import { loadProjectEquipmentList, type ProjectEquipmentProduct } from '@/api/pms/commerce/projectEquipment'
 import * as FileApi from '@/api/infra/file'
 import * as DynamicFormApi from '@/api/pms/platform/dynamic-form'
-import { checkPermi } from '@/utils/permission'
+import { checkPermi, checkRole } from '@/utils/permission'
 import { signaturePngFile } from '@/components/FormCreate/src/customerConfirmation'
 import { formatDate } from '@/utils/formatTime'
 import type { CompletionCertificateVO } from '@/api/pms/acceptance/completion-certificate'
@@ -236,6 +236,8 @@ const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean] }>()
 const issueDialog = ref<InstanceType<typeof ConfirmationLinkDialog>>()
 const message = useMessage()
 const userStore = useUserStore()
+const canConfigure = computed(() => !props.readonly && checkRole(['super_admin'])
+  && checkPermi(['pms:acceptance:satisfaction:manage', 'pms:dynamic-form-template:query']))
 const loading = ref(false)
 const saving = ref(false)
 const pendingActions = reactive(new Set<number>())
@@ -380,7 +382,7 @@ const load = async () => {
   }
 }
 const loadPrintOptions = async () => {
-  if (!checkPermi(['pms:dynamic-form-template:query'])) return
+  if (!checkPermi(['pms:dynamic-form-instance:query'])) return
   const request = ++printOptionsRequest,
     current = context
   const all: DynamicFormApi.DynamicFormSelectionVO[] = []
@@ -454,8 +456,9 @@ const onProjectChange = async (projectId?: number) => {
   }
 }
 const onEngineerChange = (_nickname: string, selected?: any) => {
+  const sameEngineer = form.engineerUserId === selected?.id
   form.engineerUserId = selected?.id
-  form.engineerContact = selected?.mobile ?? ''
+  if (!sameEngineer) form.engineerContact = ''
 }
 // 手写控件值为 dataURL 时转文件上传；编辑回显的文件 URL 原样保留
 const uploadSignature = async (value: string): Promise<string> => {

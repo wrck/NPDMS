@@ -50,8 +50,9 @@ vi.mock('@/store/modules/user', () => ({
   useUserStore: () => ({ user: { id: 1, nickname: '当前用户' }, getUser: { id: 1, nickname: '当前用户' } })
 }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
-const auditPermission = vi.hoisted(() => ({ allowed: true, download: true }))
-vi.mock('@/utils/permission', () => ({ checkPermi: (codes: string[]) =>
+const auditPermission = vi.hoisted(() => ({ allowed: true, download: true, admin: false, denied: [] as string[] }))
+vi.mock('@/utils/permission', () => ({ checkRole: () => auditPermission.admin, checkPermi: (codes: string[]) =>
+  codes.some(code => auditPermission.denied.includes(code)) ? false :
   codes.some(code => code.endsWith(':download')) ? auditPermission.download
     : !codes.includes('pms:acc-completion-certificate:audit') || auditPermission.allowed }))
 vi.mock('@/utils/dict', () => ({
@@ -157,6 +158,8 @@ const renderPage = (initial: { projectId?: number; readonly?: boolean } = { proj
 beforeEach(() => {
   vi.clearAllMocks()
   auditPermission.download = true
+  auditPermission.admin = false
+  auditPermission.denied = []
   print.exporting = false
   guards.leave.length = 0
   api.getConfirmationPage.mockResolvedValue({ list: [], total: 0 })
@@ -184,6 +187,26 @@ afterEach(() => {
 })
 
 describe('completion workbench save and context protection', () => {
+  it('restricts configuration to administrators while retaining ordinary certificate creation', async () => {
+    const page = renderPage(); await flush()
+    expect(page.state().canConfigure).toBe(false)
+    await page.state().openForm()
+    expect(page.state().formVisible).toBe(true)
+    expect(page.state().formError).toBe(false)
+    page.state().closeForm()
+    auditPermission.admin = true
+    const admin = renderPage(); await flush()
+    expect(admin.state().canConfigure).toBe(true)
+    admin.props.readonly = true; await flush()
+    expect(admin.state().canConfigure).toBe(false)
+  })
+  it('does not call print selection with only configuration query permission', async () => {
+    const dynamic = await import('@/api/pms/platform/dynamic-form')
+    auditPermission.denied = ['pms:dynamic-form-instance:query']
+    const page = renderPage(); await flush(); await page.state().openForm()
+    expect(dynamic.getTemplateSelection).not.toHaveBeenCalled()
+    expect(page.state().formError).toBe(false)
+  })
   const openSignedDetail = async () => {
     const history = { taskId: 510, revisionNo: 1, submittedAt: '2026-10-19T23:00:00', signatureImageDataUrl: 'data:image/png;base64,fixture' }
     api.getConfirmation.mockResolvedValue({ certificate: draft(), history: [history], survey: history })

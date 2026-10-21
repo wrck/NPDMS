@@ -71,7 +71,7 @@
               ><el-form-item prop="engineerName"
                 ><PmsEntitySelect
                   v-model="model.engineerName"
-                  :api="UserApi.getUserPage"
+                  :api="findEngineers"
                   label-field="nickname"
                   value-field="nickname"
                   query-field="nickname"
@@ -211,6 +211,11 @@ import * as UserApi from '@/api/system/user'
 import type { CompletionCertificateVO } from '@/api/pms/acceptance/completion-certificate'
 import type { DynamicFormSelectionVO } from '@/api/pms/platform/dynamic-form'
 import { SignaturePad } from '@/components/FormCreate'
+
+// Picking an engineer uses the enabled-user directory, not the administration user page.
+const findEngineers = async (query: { nickname?: string }) => ({
+  list: (await UserApi.getSimpleUserList()).filter(user => !query.nickname || user.nickname?.includes(query.nickname))
+})
 
 const props = defineProps<{
   form: CompletionCertificateVO

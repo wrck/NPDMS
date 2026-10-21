@@ -82,6 +82,7 @@ public class DynamicFormCommandService {
         String code = required(command.templateCode(), 64);
         String name = required(command.templateName(), 128);
         String category = required(command.categoryCode(), 64);
+        actionProjection.requireConfiguration(command.actor().userId(), category);
         String description = optional(command.description(), 512);
         actionProjection.require(command.actor().userId(), DynamicFormActionProjection.TEMPLATE_MANAGE);
         Map<String, Object> digest = linked("templateCode", code, "templateName", name,
@@ -108,6 +109,7 @@ public class DynamicFormCommandService {
                         ? required(command.templateName().value(), 128) : row.getTemplateName();
                 String category = command.categoryCode().present()
                         ? required(command.categoryCode().value(), 64) : row.getCategoryCode();
+                actionProjection.requireConfiguration(command.actor().userId(), category);
                 String description = command.description().present()
                         ? optional(command.description().value(), 512) : row.getDescription();
                 if (templateMapper.updateIfMatch(new DynamicFormTemplateVersionUpdate(command.actor().tenantId(),
@@ -262,6 +264,7 @@ public class DynamicFormCommandService {
     private DynamicFormViews.Template createTemplateTx(DynamicFormCommands.Actor actor, String code,
                                                         String name, String category, String description) {
         actionProjection.require(actor.userId(), DynamicFormActionProjection.TEMPLATE_MANAGE);
+        actionProjection.requireConfiguration(actor.userId(), category);
         LocalDateTime now = LocalDateTime.now();
         DynamicFormTemplateDO template = new DynamicFormTemplateDO();
         template.setId(IdWorker.getId());
@@ -456,6 +459,7 @@ public class DynamicFormCommandService {
         DynamicFormTemplateDO row = templateMapper.selectForUpdate(
                 new DynamicFormTemplateLockQuery(actor.tenantId(), templateId));
         if (row == null) throw exception(DYNAMIC_FORM_TEMPLATE_NOT_FOUND);
+        actionProjection.requireConfiguration(actor.userId(), row.getCategoryCode());
         actionProjection.require(actor.userId(), permission);
         return row;
     }
