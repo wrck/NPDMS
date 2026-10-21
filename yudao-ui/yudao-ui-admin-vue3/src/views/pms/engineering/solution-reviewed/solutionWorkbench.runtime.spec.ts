@@ -146,6 +146,23 @@ beforeEach(() => {
 })
 
 describe('实施方案页面结构', () => {
+  it('操作栏刷新回读当前方案正文及并发版本', async () => {
+    getSolutionPage.mockResolvedValue({ list: [draftRow()], total: 1 })
+    getSolution.mockResolvedValue(draftRow())
+    const mounted = mount(Workbench, { projectId: 123 }, {
+      PmsEntitySelect: passthrough, DictTag: passthrough, ElSelect: passthrough,
+      ElOption: passthrough, ElDescriptions: passthrough, ElDescriptionsItem: passthrough, Dialog: dialogShell
+    })
+    try {
+      const state = (mounted.vm as any).$.setupState
+      await vi.waitFor(() => expect(state.form.version).toBe(1))
+      getSolution.mockResolvedValue(draftRow({ version: 5, background: '其他成员保存的正文' }))
+      await (mounted.vm as any).$.exposed.refresh()
+      expect(state.form.version).toBe(5)
+      expect(state.form.background).toBe('其他成员保存的正文')
+      expect(state.form.id).toBe(11)
+    } finally { mounted.app.unmount() }
+  })
   it('长项目ID保持精度，自动命名查询使用原始ID', async () => {
     const projectId = '2110018733130579973'
     getSolutionPage.mockResolvedValue({ list: [], total: 0 })

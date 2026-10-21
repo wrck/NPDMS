@@ -542,6 +542,8 @@ const remove = async (row: SolutionVO) => {
   }
 }
 onMounted(load)
+// BusinessViewHost 的操作栏刷新必须回读正文和 version，而非仅刷新操作投影。
+defineExpose({ refresh: load })
 </script>
 
 <style scoped>

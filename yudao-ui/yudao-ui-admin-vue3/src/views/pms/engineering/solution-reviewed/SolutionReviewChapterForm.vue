@@ -6,7 +6,10 @@
     <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="emit('save')">保存草稿</el-button>
       <el-button v-if="!readOnly && !customerDocUrl" @click="generateFromSources">生成方案（引用前序数据）</el-button>
-      <el-button v-if="!customerDocUrl" @click="downloadSolution">下载方案</el-button>
+      <!-- 原生按钮不继承 ElForm 的编辑禁用状态；下载仍经过服务端文件与Owner授权。 -->
+      <button v-if="!customerDocUrl" type="button" class="el-button" :disabled="solutionDownloadBusy || !form.id" :aria-busy="solutionDownloadBusy" @click="downloadSolution">
+        <span>{{ solutionDownloadBusy ? '正在生成…' : '下载方案' }}</span>
+      </button>
       <el-button v-if="!readOnly" type="warning" :loading="saving" @click="emit('submitReview')">提交审核</el-button>
     </Teleport>
 
@@ -30,19 +33,22 @@
     </section>
 
     <template v-if="!customerDocUrl">
-    <el-alert v-if="!readOnly" title="提交前请填写项目背景、项目目标、网络拓扑、部署方案，并上传至少一份配置脚本文件。" type="info" :closable="false" class="mb-12px" />
+    <el-alert v-if="solutionDownloadError" :title="solutionDownloadError" type="error" :closable="false" class="mb-12px" />
     <el-alert v-if="requirementError" :title="requirementError" type="error" :closable="false" class="mb-12px">
       <el-button link type="primary" :disabled="readOnly || requirementLoading" @click="loadRequirement()">重新加载需求分析</el-button>
     </el-alert>
     <div v-else-if="requirementLoading" role="status" class="mb-12px">正在加载需求分析引用内容…</div>
-    <div v-if="requirementInput.revisionId" class="mb-12px">
-      需求来源：PRE-04 第 {{ requirementInput.revisionNo }} 版
+    <div v-if="requirementInput.revisionId && inputChanged" class="mb-12px">
       <el-alert v-if="inputChanged" title="需求输入已变化，请确认处理方式后再提交" type="warning" :closable="false">
         <el-button :disabled="readOnly" @click="refreshRequirementInput">刷新需求引用（保留人工修改）</el-button>
         <el-input v-model="differenceReason" :disabled="readOnly" placeholder="保留原需求版本时，请说明差异及处理理由" aria-label="需求输入差异说明" />
         <el-button :disabled="readOnly || !differenceReason.trim()" @click="keepRequirementInput">保留原版本并确认差异</el-button>
       </el-alert>
     </div>
+    <header class="solution-document-heading">
+      <h1>{{ form.name || '实施方案' }}</h1>
+      <p v-if="form.versionLabel">版本：{{ form.versionLabel }}</p>
+    </header>
     <!-- 第1章 项目概述 -->
     <section class="chapter">
       <div class="chapter-title">1. 项目概述</div>
@@ -118,7 +124,7 @@
     <section class="chapter">
       <div class="chapter-title">2. 现网现状分析</div>
       <el-form-item label="2.1 现网拓扑图" label-width="140px">
-        <UploadFile v-model="topology.asIsUrl" :disabled="readOnly" :file-type="['ppt', 'pptx', 'vsd', 'vsdx', 'png']" />
+        <UploadFile v-model="topology.asIsUrl" :disabled="readOnly" :file-type="topologyFileTypes" />
       </el-form-item>
       <el-form-item label="2.2 现网资源确认" label-width="140px">
         <ResourceConfirmationEditor v-model="topology.resourceConfirmation" :project-id="form.projectId" :read-only="readOnly" :requirement-values="reqValues" />
@@ -138,7 +144,7 @@
         <div class="ref-body standalone">直接调用需求分析中的网络拓扑：{{ stripHtml(reqTopology) || '需求分析暂无网络拓扑' }}</div>
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'yes'" label="上传最新拓扑" label-width="140px">
-        <UploadFile v-model="topology.toBeUrl" :disabled="readOnly" :file-type="['ppt', 'pptx', 'vsd', 'vsdx', 'png']" />
+        <UploadFile v-model="topology.toBeUrl" :disabled="readOnly" :file-type="topologyFileTypes" />
       </el-form-item>
 
       <el-form-item label="3.2 部署位置规划" label-width="140px">
@@ -200,22 +206,21 @@
             :rows="5"
             :disabled="readOnly"
             class="script-input"
-            readonly
             :placeholder="item.placeholder"
           />
           <el-upload
             :show-file-list="false"
             :disabled="readOnly"
-            accept=".txt"
+            accept=".txt,.cfg,.conf,.sh,.log"
             :auto-upload="false"
             class="script-upload"
             @change="(uploadFile: any) => readScript(item.key, uploadFile)"
           >
             <el-button size="small" :disabled="readOnly">上传脚本</el-button>
           </el-upload>
-          <div class="form-tip">上传 TXT 脚本，保存草稿后登记文件版本。预览不可编辑，修改请替换文件。</div>
+          <div class="form-tip">可手动录入，或上传 TXT、CFG、CONF、SH、LOG 文件解析后继续编辑；上传文件保留原件，非必填。</div>
           <div v-if="scriptFileName(item.key)" class="form-tip">{{ scriptFileName(item.key) }}</div>
-          <el-link v-if="storedScript(item.key) && !pendingScripts.some(pending => pending.section === item.key)" type="primary" @click="downloadScript(item.key)">下载脚本文件</el-link>
+          <el-link v-if="storedScript(item.key) && !pendingScripts.some(pending => pending.section === item.key)" type="primary" @click="downloadScript(item.key)">下载原始脚本文件</el-link>
         </div>
       </el-form-item>
     </section>
@@ -348,7 +353,7 @@ import { resolveCustomerSolutionDocument,downloadCustomerSolutionDocument,custom
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import { ElMessage } from 'element-plus'
 import { uploadDeliveryFile } from '@/components/DeliveryArtifact/uploadDeliveryFile'
-import { prepareGeneratedSolutionHtml } from '@/views/pms/engineering/solution/saveGeneratedSolutionHtml'
+import { prepareGeneratedSolutionWord } from '@/views/pms/engineering/solution/prepareGeneratedSolutionWord'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { loadProjectEquipmentList, type ProjectEquipmentProduct } from '@/api/pms/commerce/projectEquipment'
 import ResourceConfirmationEditor from '@/views/pms/engineering/solution/ResourceConfirmationEditor.vue'
@@ -491,6 +496,7 @@ const tables = reactive({
   software: [] as Row[],
   business: [] as Row[]
 })
+const topologyFileTypes = ['ppt', 'pptx', 'vsd', 'vsdx', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp']
 const scripts = reactive({ network: '', businessModule: '', ha: '', full: '' })
 const topology = reactive({ asIsUrl: '', toBeChanged: '', toBeUrl: '', resourceConfirmation: '' })
 // hasCustomerPlan/customerPlanUrl 两键归方案信息组件（SolutionDocMetaForm）读写；
@@ -758,8 +764,8 @@ const readScript = (key: ScriptKey, uploadFile: { raw?: File }) => {
   const raw = uploadFile?.raw
   if (!raw) return
   scriptUploadError.value = ''
-  if (!/\.txt$/i.test(raw.name) || !raw.size) {
-    scriptUploadError.value = '请上传非空 TXT 脚本文件'
+  if (!/\.(txt|cfg|conf|sh|log)$/i.test(raw.name) || !raw.size) {
+    scriptUploadError.value = '请上传非空 TXT、CFG、CONF、SH、LOG 脚本文件'
     return
   }
   const targetForm = form.value
@@ -863,18 +869,21 @@ const buildSolutionHtml = () => {
   return html
 }
 const solutionDownloadBusy = ref(false)
+const solutionDownloadError = ref('')
 let solutionDownloadAttempt: import('@/components/DeliveryArtifact/uploadDeliveryFile').DeliveryUploadAttempt | undefined
 let solutionDownloadContent = ''
 const downloadSolution = async () => {
   if (solutionDownloadBusy.value) return
   solutionDownloadBusy.value = true
+  solutionDownloadError.value = ''
   try {
     const html = buildSolutionHtml()
-    const fileName = `${(form.value.name || '实施方案').replace(/[\\/:*?"<>|]/g, '_')}${form.value.versionLabel ? `-${form.value.versionLabel}` : ''}.html`
-    if (solutionDownloadContent !== html || solutionDownloadAttempt?.owner.entityId !== form.value.id)
+    const fileName = `${(form.value.name || '实施方案').replace(/[\\/:*?"<>|]/g, '_')}${form.value.versionLabel ? `-${form.value.versionLabel}` : ''}.docx`
+    const contentKey = html
+    if (solutionDownloadContent !== contentKey || solutionDownloadAttempt?.owner.entityId !== form.value.id)
       solutionDownloadAttempt = undefined
-    solutionDownloadContent = html
-    solutionDownloadAttempt = await prepareGeneratedSolutionHtml(form.value.id!, html, fileName, solutionDownloadAttempt)
+    solutionDownloadContent = contentKey
+    solutionDownloadAttempt = await prepareGeneratedSolutionWord(form.value.id!, html, fileName, solutionDownloadAttempt)
     await uploadDeliveryFile(solutionDownloadAttempt)
     const anchor = document.createElement('a')
     anchor.href = URL.createObjectURL(solutionDownloadAttempt.file)
@@ -882,7 +891,8 @@ const downloadSolution = async () => {
     anchor.click()
     URL.revokeObjectURL(anchor.href)
   } catch (failure: any) {
-    ElMessage.error(failure?.response?.data?.msg || failure?.message || '实施方案交付件保存失败')
+    solutionDownloadError.value = failure?.response?.data?.msg || failure?.message || (typeof failure === 'string' && failure !== 'error' ? failure : '实施方案交付件保存失败')
+    ElMessage.error(solutionDownloadError.value)
   } finally {
     solutionDownloadBusy.value = false
   }
@@ -905,6 +915,29 @@ const appendTemplate = (field: 'quality' | 'risk' | 'oAndM' | 'archive', templat
 </script>
 
 <style lang="scss" scoped>
+/* 文档层级：标题、章节、子章节和正文纵向排列，沿用平台主题。 */
+.solution-document-heading {
+  margin: 4px 0 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--el-border-color);
+  h1 { margin: 0; font-size: 22px; line-height: 1.6; font-weight: 600; overflow-wrap: anywhere; }
+  p { margin: 8px 0 0; color: var(--el-text-color-secondary); font-size: 13px; }
+}
+.solution-chapter-form :deep(.el-form-item) { display: block; }
+.solution-chapter-form :deep(.el-form-item__label) {
+  display: block;
+  float: none;
+  width: 100% !important;
+  height: auto;
+  margin-bottom: 8px;
+  padding: 0;
+  text-align: left;
+  font-weight: 600;
+  line-height: 1.7;
+}
+.solution-chapter-form :deep(.el-form-item__content) { min-width: 0; margin-left: 0 !important; }
+.solution-chapter-form .doc-content,
+.solution-chapter-form .ref-block { margin-left: 0; }
 /* 正文不设最大高度、不建内嵌滚动容器，随工作区页面自然伸展，仅保留页面级滚动 */
 .chapter {
   padding: 12px 0 4px;

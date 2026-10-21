@@ -268,7 +268,36 @@ watch([editable, () => props.execution], () => {
 }, { deep: true })
 watch(dirty, (value) => emit('dirty-change', value), { immediate: true })
 
-defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value, switchPresentation })
+const validateCompletion = async () => {
+  const missing: { field: string; message: string }[] = []
+  const visit = (rules: JsonObject[]) => rules.forEach(rule => {
+    const field = String(rule.field || '')
+    const code = renderedDetail.value.form?.binding.fieldBindings[field] || field
+    const required = props.detail.fieldCatalog.some(item => item.code === code && item.required)
+      || (Array.isArray(rule.validate) && rule.validate.some((item: any) => item.required))
+    const value = values.value[field]
+    const empty = value == null || (Array.isArray(value) ? !value.length
+      : typeof value === 'string' && !value.replace(/<[^>]*>/g, '').replace(/&nbsp;|&#160;/g, ' ').trim())
+    const title = String(rule.title || field).replace(/^\d+、\s*/, '')
+    if (field && required && empty) missing.push({ field, message: `请填写${title}` })
+    if (field === 'NETWORK_TOPOLOGY__ATTACHMENTS' && !props.detail.attachments.some(set =>
+      set.key.purposeCode === 'FORM_FIELD_ATTACHMENT/NETWORK_TOPOLOGY__ATTACHMENTS'
+      && set.activeFacts.some(file => file.availabilityStatus === 'AVAILABLE' && file.referenceStatus === 'ACTIVE'))) {
+      missing.push({ field, message: '请上传网络拓扑附件（至少一个有效文件）' })
+    }
+    if (Array.isArray(rule.children)) visit(rule.children.filter(item => typeof item === 'object' && item !== null) as JsonObject[])
+  })
+  visit(render.rule)
+  if (!missing.length) return true
+  message.warning(missing.map(item => item.message).join('；'))
+  await nextTick()
+  const wrapper = formApi.value?.wrapEl(missing[0].field) as any
+  const element = (wrapper?.$el || wrapper) as HTMLElement | undefined
+  element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  element?.querySelector<HTMLElement>('input:not([disabled]), textarea:not([disabled]), [contenteditable="true"], button:not([disabled])')?.focus({ preventScroll: true })
+  return false
+}
+defineExpose({ save, validateCompletion, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value, switchPresentation })
 </script>
 
 <style scoped lang="scss">

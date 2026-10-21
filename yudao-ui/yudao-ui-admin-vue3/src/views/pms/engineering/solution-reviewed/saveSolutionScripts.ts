@@ -21,8 +21,8 @@ export const saveSolutionScripts = async (input: { solutionId: number; pending: 
   if (!type) throw new Error('实施方案文件类型不可用')
   const references: ScriptReference[] = []
   for (const item of input.pending) {
-    if (!/\.txt$/i.test(item.file.name) || !item.file.size || item.file.size > type.maxSizeBytes)
-      throw new Error('请上传大小符合限制的非空 TXT 脚本文件')
+    if (!/\.(txt|cfg|conf|sh|log)$/i.test(item.file.name) || !item.file.size || item.file.size > type.maxSizeBytes)
+      throw new Error('请上传大小符合限制的非空 TXT、CFG、CONF、SH、LOG 脚本文件')
     if (!item.attempt || item.attempt.owner.entityId !== input.solutionId) {
       item.attempt = createDeliveryUploadAttempt({ ownerModule: 'SOL', entityType: 'solution', entityId: input.solutionId }, type, item.file)
       item.attempt.referenceKey = `solution-script-${item.section}-${item.attempt.referenceKey}`

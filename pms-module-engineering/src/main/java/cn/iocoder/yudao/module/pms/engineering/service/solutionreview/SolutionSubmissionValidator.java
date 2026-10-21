@@ -45,7 +45,8 @@ public class SolutionSubmissionValidator {
         }
         if (!deployed) missing.add("部署方案（设备及部署位置）");
         var references = json(solution.getScript()).path("references");
-        if (!references.isArray() || references.isEmpty()) missing.add("配置脚本文件");
+        if (!references.isMissingNode() && !references.isNull() && !references.isArray())
+            throw new IllegalArgumentException("配置脚本文件引用格式无效");
         if (!missing.isEmpty()) throw new IllegalArgumentException("实施方案缺少必填项：" + String.join("、", missing));
 
         Long tenant = TenantContextHolder.getRequiredTenantId();

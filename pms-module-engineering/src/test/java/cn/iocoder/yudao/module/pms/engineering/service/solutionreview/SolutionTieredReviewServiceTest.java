@@ -77,6 +77,16 @@ class SolutionTieredReviewServiceTest {
         verify(solutions, never()).updateById(any(SolutionDO.class));
         verify(reviews, never()).insert(any(SolutionReviewDO.class));
     }
+    @Test void projectManagerReadsRunningApprovalWithoutBpmQueryPermission() {
+        stored = new SolutionReviewDO();
+        stored.setStatus("RUNNING");
+        when(permissions.hasAnyPermissions(eq(7L), any(String[].class))).thenAnswer(call ->
+                java.util.Arrays.equals((String[]) call.getRawArguments()[1], new String[]{"pms:sol-solution:query"}));
+        assertSame(stored, service.read(selection));
+        verifyNoInteractions(bpm);
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        assertThrows(RuntimeException.class, () -> service.read(selection));
+    }
     private void result(String status) {
         when(bpm.result(1L,"instance-1")).thenReturn(new SolutionReviewBpmApi.Result("instance-1","definition-1",
                 "SOL_REVIEW:1:42",status,List.of(new SolutionReviewBpmApi.Review("manager",8L,"APPROVE","初审",LocalDateTime.now().minusMinutes(1)),

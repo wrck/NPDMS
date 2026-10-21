@@ -7,7 +7,7 @@
       <el-alert v-if="error" :title="error" type="error" :closable="false" />
       <template v-else-if="record">
         <p>审批状态：{{ statusLabel }}</p>
-        <el-button type="primary" plain @click="openProcess">查看审批记录</el-button>
+        <el-button v-hasPermi="['bpm:process-instance:query']" type="primary" plain @click="openProcess">查看流程详情</el-button>
         <el-table :data="history">
           <el-table-column prop="nodeKey" label="审批节点" :formatter="row => reviewNodeLabel(row.nodeKey)" />
           <el-table-column prop="decision" label="结果" :formatter="row => reviewDecisionLabel(row.decision)" />
@@ -40,6 +40,7 @@ import * as ReviewApi from '@/api/pms/engineering/solution-review'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 import { useMessage } from '@/hooks/web/useMessage'
 import { formatDate } from '@/utils/formatTime'
+import { checkPermi } from '@/utils/permission'
 const emit = defineEmits<{ changed: [] }>()
 const projectApproval = inject(projectApprovalDetailKey, null)
 const approvalContainer = projectApproval ? ElDrawer : Dialog
@@ -72,7 +73,7 @@ const submit = async () => {
     record.value = await ReviewApi.start({ projectId: solution.value.projectId, solutionId: solution.value.id!,
       expectedVersion: solution.value.version!, processDefinitionId: definition.value.id })
     message.success('已提交审批'); emit('changed')
-    await openProcess()
+    if (checkPermi(['bpm:process-instance:query'])) await openProcess()
   } catch {
     // 拦截器已弹后端错误提示；此处吞掉 rejection，防止逃逸到业务视图错误边界导致整块工作区被替换
   } finally { saving.value = false }

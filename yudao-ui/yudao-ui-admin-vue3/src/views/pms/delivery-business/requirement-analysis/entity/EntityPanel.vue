@@ -105,6 +105,7 @@ const historyRef = ref<InstanceType<typeof RevisionDrawer>>()
 const compareRef = ref<InstanceType<typeof CompareDrawer>>()
 const dynamicFormRef = ref<{
   save: () => Promise<boolean>
+  validateCompletion: () => Promise<boolean>
   discardChanges: () => void
   isSaving: () => boolean
 }>()
@@ -309,6 +310,7 @@ const complete = async () => {
   if (!detail.value) return
   const payload = { revision: detail.value.revision, execution: loadedExecution.value }
   if (!(await guardCurrentForm('完成草稿'))) return
+  if (dynamicFormRef.value && !(await dynamicFormRef.value.validateCompletion())) return
   await message.confirm('完成后正文与附件将永久冻结，是否继续？')
   const intent = stableCommandIntent('requirement-complete', payload)
   commandLoading.value = true

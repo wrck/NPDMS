@@ -51,13 +51,35 @@ class SolutionSubmissionValidatorTest {
     @Test void rejectsBlankRichTextAndEmptyJsonBeforeAnySourceOrFileWrite() {
         solution.setBackground("<p>&nbsp;<br></p>"); solution.setTarget(" "); solution.setTopology("{}"); solution.setScript("{}");
         var error = assertThrows(IllegalArgumentException.class, () -> validator.validateAndFreezeSources(solution));
-        for (String field : new String[]{"项目背景","项目目标","网络拓扑","部署方案","配置脚本文件"}) assertTrue(error.getMessage().contains(field));
+        for (String field : new String[]{"项目背景","项目目标","网络拓扑","部署方案"}) assertTrue(error.getMessage().contains(field));
+        assertFalse(error.getMessage().contains("配置脚本文件"));
         verifyNoInteractions(files,requirements,sources);
     }
-    @Test void textWithoutUploadedFileDoesNotMeetScriptRequirement() {
-        solution.setScript("{\"full\":\"show version\"}");
+    @ParameterizedTest @NullAndEmptySource
+    @ValueSource(strings = {"{}", "{\"references\":[]}", "{\"references\":null}", "{\"full\":\"show version\"}"})
+    void noUploadedScriptDoesNotBlockOtherwiseCompleteSolution(String script) {
+        solution.setScript(script);
+        validator.validateAndFreezeSources(solution);
+        verifyNoInteractions(files);
+        verify(sources).insert(any(SolutionSourceDO.class));
+    }
+    @ParameterizedTest @ValueSource(strings = {"{\"references\":{}}", "{\"references\":\"invalid\"}"})
+    void optionalUploadStillRejectsMalformedFileReferences(String script) {
+        solution.setScript(script);
+        assertThrows(IllegalArgumentException.class, () -> validator.validateAndFreezeSources(solution));
+        verifyNoInteractions(files, requirements, sources);
+    }
+    @Test void noScriptStillRequiresCurrentProjectRequirementAndPreservesFrozenSource() {
+        solution.setScript("{}");
+        revision.setProjectId(10L);
         assertThrows(IllegalArgumentException.class, () -> validator.validateAndFreezeSources(solution));
         verifyNoInteractions(sources);
+        revision.setProjectId(9L);
+        var saved = new SolutionSourceDO(); saved.setSolutionId(42L); saved.setSourceId(7L); saved.setSourceSnapshot("原冻结来源");
+        when(sources.selectBySolutionAndSource(42L,"REQUIREMENT",7L)).thenReturn(saved);
+        validator.validateAndFreezeSources(solution);
+        verify(sources, never()).insert(any(SolutionSourceDO.class));
+        assertEquals("原冻结来源", saved.getSourceSnapshot());
     }
     @Test void customerFlagWithoutNativeDocumentCannotBypassOnlineRequiredFields() {
         solution.setRemark("{\"hasCustomerPlan\":\"yes\",\"customerPlanUrl\":\"https://unverified/file.txt\"}");

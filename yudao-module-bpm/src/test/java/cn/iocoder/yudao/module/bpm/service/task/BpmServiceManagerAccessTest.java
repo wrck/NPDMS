@@ -19,7 +19,8 @@ class BpmServiceManagerAccessTest {
     final org.flowable.task.api.history.HistoricTaskInstanceQuery taskHistory=mock(org.flowable.task.api.history.HistoricTaskInstanceQuery.class,RETURNS_SELF);
     final org.flowable.task.api.TaskQuery taskQuery=mock(org.flowable.task.api.TaskQuery.class,RETURNS_SELF);
     final TaskService tasks=mock(TaskService.class);
-    final BpmServiceManagerAccess access=new BpmServiceManagerAccess(permissions,history,tasks);
+    final cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi projectScope=mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.class);
+    final BpmServiceManagerAccess access=new BpmServiceManagerAccess(permissions,history,tasks,projectScope);
     final Task task=mock(Task.class);
     final HistoricProcessInstance process=mock(HistoricProcessInstance.class);
     @BeforeEach void setup(){
@@ -48,4 +49,15 @@ class BpmServiceManagerAccessTest {
     @Test void approvalGrantDoesNotGrantAdvancedActions(){assertThrows(ServiceException.class,access::requireAdvancedAction);}
     @Test void existingBpmManagerRetainsAdvancedActions(){when(permissions.hasAnyPermissions(10L,"bpm:task:manager-query")).thenReturn(true);assertDoesNotThrow(access::requireAdvancedAction);verifyNoInteractions(history);}
     @Test void otherRolesAreUnchanged(){when(permissions.hasAnyRoles(10L,"SERVICE_MANAGER")).thenReturn(false);assertDoesNotThrow(access::requireAdvancedAction);}
+    @Test void projectManagerReadsOnlyVisibleSolutionProcesses(){
+        when(permissions.hasAnyRoles(10L,"SERVICE_MANAGER")).thenReturn(false);
+        when(permissions.hasAnyRoles(10L,"PROJECT_MANAGER")).thenReturn(true);
+        when(process.getBusinessKey()).thenReturn("SOL_REVIEW:1:42");
+        when(process.getProcessVariables()).thenReturn(java.util.Map.of("projectId",9L));
+        when(projectScope.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(9L,1L,java.util.Set.of(9L),java.util.Set.of()));
+        assertDoesNotThrow(()->access.requireProcess("p1"));
+        when(projectScope.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(9L,1L,java.util.Set.of(),java.util.Set.of()));
+        assertThrows(ServiceException.class,()->access.requireProcess("p1"));
+        assertThrows(ServiceException.class,access::requireAdvancedAction);
+    }
 }

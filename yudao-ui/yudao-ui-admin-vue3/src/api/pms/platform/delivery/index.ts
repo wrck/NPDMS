@@ -124,7 +124,7 @@ export const listMaterials = (
 
 export const registerMaterial = (
   data: EntityOwnerParam & { typeCode: string; fileReferenceId: number; title?: string; sourceKind?: string }
-) => request.post<DeliveryMaterialVO>({ url: `${baseUrl}/materials`, data, silentError: true })
+) => request.post<DeliveryMaterialVO>({ url: `${baseUrl}/materials`, data, silentError: true, preserveBusinessError: true })
 
 export const withdrawMaterial = (materialId: number) =>
   request.post<DeliveryMaterialVO>({ url: `${baseUrl}/materials/${materialId}/withdraw`, silentError: true })

@@ -17,6 +17,17 @@ it('stores the actual completed artifact version and digest under the saved solu
   expect(initializeUpload).toHaveBeenCalledWith(expect.objectContaining({ objectId: 'SOL:solution:42', purposeCode: 'IMPLEMENTATION_PLAN', referenceKey: expect.stringMatching(/^solution-script-full-/) }), expect.any(String))
   expect(result[0]).toMatchObject({ referenceId: 41, artifactId: 31, versionNo: 1, sha256: 'digest', section: 'full', name: 'script.txt' })
 })
+it.each(['txt', 'cfg', 'conf', 'sh', 'log', 'SH'])('retains the original %s script file through versioned upload', async extension => {
+  const file = { name: `network.${extension}`, size: 15 } as File
+  const result = await saveSolutionScripts({ solutionId: 42, pending: [{ section: 'network', file }] })
+  expect(initializeUpload).toHaveBeenCalledWith(expect.objectContaining({ fileName: file.name, declaredMediaType: 'text/plain', objectId: 'SOL:solution:42' }), expect.any(String))
+  expect(completeUpload).toHaveBeenCalledWith(31, 'session', file, expect.any(String))
+  expect(result[0].name).toBe(file.name)
+})
+it('rejects unsupported extensions before upload initialization', async () => {
+  await expect(saveSolutionScripts({ solutionId: 42, pending: [{ section: 'network', file: { name: 'network.txt.exe', size: 15 } as File }] })).rejects.toThrow()
+  expect(initializeUpload).not.toHaveBeenCalled()
+})
 it('retains session and idempotency key after interrupted byte upload', async () => {
   const items = pending()
   vi.mocked(completeUpload).mockRejectedValueOnce(new Error('interrupted'))

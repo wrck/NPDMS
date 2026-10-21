@@ -18,10 +18,12 @@ public class BpmServiceManagerAccess {
     private final PermissionApi permissions;
     private final HistoryService history;
     private final TaskService tasks;
+    private final cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi projectScope;
 
     private boolean restricted() {
         Long actor = SecurityFrameworkUtils.getLoginUserId();
-        return actor != null && permissions.hasAnyRoles(actor, "SERVICE_MANAGER")
+        return actor != null && (permissions.hasAnyRoles(actor, "SERVICE_MANAGER")
+                || permissions.hasAnyRoles(actor, "PROJECT_MANAGER"))
                 && !permissions.hasAnyPermissions(actor, "bpm:task:manager-query");
     }
 
@@ -29,9 +31,23 @@ public class BpmServiceManagerAccess {
         if (!restricted()) return;
         String actor = String.valueOf(SecurityFrameworkUtils.getLoginUserId());
         String tenant = String.valueOf(TenantContextHolder.getRequiredTenantId());
-        var process = history.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId)
+        var process = history.createHistoricProcessInstanceQuery().includeProcessVariables().processInstanceId(processInstanceId)
                 .processInstanceTenantId(tenant).singleResult();
         if (process == null) throw exception(FORBIDDEN);
+        if (permissions.hasAnyRoles(SecurityFrameworkUtils.getLoginUserId(), "PROJECT_MANAGER")
+                && process.getBusinessKey() != null && process.getBusinessKey().startsWith("SOL_REVIEW:" + tenant + ":")) {
+            var variables = process.getProcessVariables();
+            Object project = variables == null ? null : variables.get("projectId");
+            if (project == null) throw exception(FORBIDDEN);
+            Long projectId;
+            try { projectId = Long.valueOf(project.toString()); }
+            catch (NumberFormatException invalid) { throw exception(FORBIDDEN); }
+            var visible = projectScope.resolveCurrent(cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery.builder()
+                    .tenantId(TenantContextHolder.getRequiredTenantId()).subjectUserId(SecurityFrameworkUtils.getLoginUserId())
+                    .anchorProjectId(projectId).actionCode(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW).build());
+            if (visible == null || !visible.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
+            return;
+        }
         if (actor.equals(process.getStartUserId())) return;
         if (history.createHistoricTaskInstanceQuery().processInstanceId(processInstanceId)
                 .taskTenantId(tenant).taskAssignee(actor).count() > 0) return;
