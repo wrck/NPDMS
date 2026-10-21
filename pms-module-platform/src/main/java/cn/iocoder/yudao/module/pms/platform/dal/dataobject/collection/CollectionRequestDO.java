@@ -18,4 +18,8 @@ public class CollectionRequestDO extends TenantBaseDO {
     private Long retryOfId;
     private Long consumedResultVersion;
     @TableField(updateStrategy = FieldStrategy.NEVER) private String executionPurpose;
+    @TableField(updateStrategy = FieldStrategy.NEVER) private String dispatchMode;
+    @TableField(updateStrategy = FieldStrategy.NEVER) private String localConnectionId;
+    @TableField(updateStrategy = FieldStrategy.NEVER) private Long localConnectionVersion;
+    @TableField(updateStrategy = FieldStrategy.NEVER) private Long desktopSourceVersion;
 }

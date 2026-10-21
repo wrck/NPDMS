@@ -13,6 +13,13 @@
       :closable="false"
       class="mb-16px"
     />
+    <div v-if="canDispatch" class="mb-12px">
+      <el-radio-group v-model="executionLocation" :disabled="busy || submissionUncertain || connectionSaveFrozen || connectionSaving">
+        <el-radio value="desktop">本机 DAC</el-radio>
+        <el-radio value="server">服务器 DAC</el-radio>
+      </el-radio-group>
+    </div>
+    <LocalDacStatus v-if="visible && executionLocation === 'desktop'" :server-url="npdmsServerUrl" @ready="localReady = $event" />
     <el-form
       v-if="canDispatch"
       ref="formRef"
@@ -67,7 +74,7 @@
       <el-form-item v-if="credentialMode === 'saved'" label="保存连接" prop="credentialId">
         <el-select
           v-model="form.credentialId"
-          placeholder="仅显示当前设备、协议和命令范围内的有效授权"
+          :placeholder="executionLocation === 'desktop' ? '选择本人保存在这台电脑上的连接' : '仅显示当前设备、协议和命令范围内的有效授权'"
           class="!w-full"
         >
           <el-option
@@ -105,7 +112,7 @@
         ></el-col>
       </el-row>
       <el-form-item v-if="credentialMode === 'temporary' && checkPermi(['pms:device-credential:create'])">
-        <el-button :disabled="!form.deviceId || choicesLoading" @click="openConnectionSave">保存为连接</el-button>
+        <el-button :disabled="!form.deviceId || choicesLoading || (executionLocation === 'desktop' && !localReady)" @click="openConnectionSave">保存为连接</el-button>
       </el-form-item>
       <el-form-item label="执行命令" prop="commands">
         <el-input
@@ -133,7 +140,7 @@
         class="mb-12px"
       />
       <el-form-item
-        ><el-button type="primary" :loading="busy" :disabled="submissionUncertain" @click="submit"
+        ><el-button type="primary" :loading="busy" :disabled="submissionUncertain || (executionLocation === 'desktop' && !localReady)" @click="submit"
           >确认下发命令</el-button
         ></el-form-item
       >
@@ -154,6 +161,7 @@
       :closable="false"
       class="mb-12px"
     />
+    <el-button v-if="submissionUncertain && pendingDesktop" class="mb-12px" :disabled="!localReady || busy" @click="continueDesktop()">继续原本机任务</el-button>
     <p v-if="hasPendingTask" class="text-[var(--el-text-color-secondary)]">
       {{
         autoRefresh
@@ -166,7 +174,7 @@
         ><template #default="{ row }"
           >{{ row.task.deviceName }}<br /><span class="text-[var(--el-text-color-secondary)]"
             >{{ row.task.protocol }} {{ row.task.host }}:{{ row.task.port }}</span
-          ></template
+          ><div class="text-xs">{{ row.dispatchMode === 'DESKTOP' ? '本机 DAC' : '服务器 DAC' }}</div></template
         ></el-table-column
       >
       <el-table-column label="状态" min-width="130"
@@ -197,6 +205,8 @@
       >
       <el-table-column label="操作" width="365"
         ><template #default="{ row }">
+          <el-button v-if="row.dispatchMode === 'DESKTOP' && !row.task.fileVersionId" link type="primary" @click="viewLocalLog(row)">本机输出</el-button>
+          <el-button v-if="row.dispatchMode === 'DESKTOP' && row.task.technicalStage === 'PENDING_DISPATCH' && isRunning(row) && canDispatch" link type="primary" :disabled="busy || !localReady" @click="continueDesktop(row)">继续下发</el-button>
           <el-button
             v-if="row.task.fileVersionId"
             link
@@ -337,13 +347,13 @@
     <template #footer><el-button @click="visible = false">关闭</el-button></template>
   </Dialog>
   <Dialog v-model="connectionSaveVisible" title="验证并保存设备连接" width="min(620px, 95vw)" @closed="clearConnectionSecret">
-    <el-alert title="连接密码由 DAC 加密保存，仅为本人建立当前项目、设备、协议及有效期内的使用授权。保存连接不会下发采集命令。" type="info" :closable="false" class="mb-16px" />
+    <el-alert :title="executionLocation === 'desktop' ? '连接密码加密保存在这台电脑，仅供当前登录用户使用。保存前会验证设备连接。' : '连接密码由 DAC 加密保存，仅为本人建立当前项目、设备、协议及有效期内的使用授权。保存连接不会下发采集命令。'" type="info" :closable="false" class="mb-16px" />
     <el-alert v-if="connectionSaveFrozen" title="保存结果尚未确认，请重新输入密码继续原请求；连接目标和授权范围保持原值。" type="warning" :closable="false" class="mb-12px" />
     <el-form ref="connectionSaveRef" :model="connectionSaveForm" :rules="connectionSaveRules" label-width="100px" :disabled="connectionSaving" autocomplete="off">
       <el-form-item label="连接目标"><span>{{ connectionSaveForm.protocol }} {{ connectionSaveForm.host }}:{{ connectionSaveForm.port }} · {{ connectionSaveForm.username }}</span></el-form-item>
       <el-form-item label="连接名称" prop="name"><el-input v-model="connectionSaveForm.name" maxlength="64" :disabled="connectionSaveFrozen" /></el-form-item>
       <el-form-item label="密码" prop="secret"><el-input v-model="connectionSaveForm.secret" type="password" autocomplete="new-password" /></el-form-item>
-      <el-form-item label="授权到期" prop="expiresAt"><el-date-picker v-model="connectionSaveForm.expiresAt" type="datetime" value-format="x" class="!w-full" :disabled="connectionSaveFrozen" /></el-form-item>
+      <el-form-item v-if="executionLocation === 'server'" label="授权到期" prop="expiresAt"><el-date-picker v-model="connectionSaveForm.expiresAt" type="datetime" value-format="x" class="!w-full" :disabled="connectionSaveFrozen" /></el-form-item>
     </el-form>
     <template #footer><el-button type="primary" :loading="connectionSaving" @click="saveCurrentConnection">验证并保存</el-button><el-button :disabled="connectionSaving" @click="connectionSaveVisible = false">关闭</el-button></template>
   </Dialog>
@@ -362,6 +372,9 @@
 </template>
 <script setup lang="ts">
 import LogParsingDialog from './LogParsingDialog.vue'
+import LocalDacStatus from './LocalDacStatus.vue'
+import { LocalDacError, localDacRequest } from './localDac'
+import type { LocalSavedConnection, LocalCollection } from './localDac'
 import { computed, reactive, ref, watch, onBeforeUnmount, nextTick } from 'vue'
 import { isAxiosError } from 'axios'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -380,7 +393,14 @@ const loading = ref(false)
 const source = ref<Api.Source>()
 const objectId = ref<Api.Id>(0)
 const templates = ref<Api.Template[]>([])
-const connections = ref<Api.Connection[]>([])
+type ConnectionChoice = Pick<Api.Connection, 'id' | 'name' | 'host' | 'port' | 'username' | 'protocol' | 'version'>
+const connections = ref<ConnectionChoice[]>([])
+const executionLocation = ref<'desktop' | 'server'>('desktop')
+const localReady = ref(false)
+const npdmsServerUrl = new URL(import.meta.env.VITE_BASE_URL || '/', window.location.origin).href.replace(/\/+$/, '')
+const pendingDesktop = ref<Api.DesktopCommand>()
+const pendingDesktopExecution = ref<Api.Execution>()
+const locallyAccepted = new Set<string>()
 const choicesLoading = ref(false)
 const commandMode = ref('template')
 const credentialMode = ref('temporary')
@@ -405,8 +425,8 @@ const connectionSaveForm = reactive<Api.SaveConnection>({
   requestKey: '', name: '', projectId: 0, deviceId: 0,
   protocol: 'SSH', host: '', port: 22, username: '', secret: '', expiresAt: ''
 })
-const connectionSaveRules = Object.fromEntries(['name', 'secret', 'expiresAt'].map(key =>
-  [key, [{ required: true, message: '请填写此项', trigger: 'change' }]]))
+const connectionSaveRules = computed(() => Object.fromEntries(['name', 'secret', ...(executionLocation.value === 'server' ? ['expiresAt'] : [])].map(key =>
+  [key, [{ required: true, message: '请填写此项', trigger: 'change' }]])))
 const clearConnectionSecret = () => { connectionSaveForm.secret = '' }
 const openConnectionSave = async () => {
   if (!source.value || !form.deviceId || !canDispatch.value || connectionSaving.value) return
@@ -427,11 +447,27 @@ const saveCurrentConnection = async () => {
   connectionSaving.value = true
   connectionSaveFrozen.value = true
   try {
-    const saved = await Api.saveConnection({ ...connectionSaveForm })
+    let saved: { id: Api.Id }
+    if (executionLocation.value === 'desktop') {
+      const ticket = await Api.desktopAccess(props.entry, objectId.value, { operation: 'CONNECTION_SAVE' })
+      const result = await localDacRequest<{ saved: boolean; connection?: LocalSavedConnection }>({
+        path: '/saved-connections', ticket, method: 'POST', timeout: 60000,
+        body: { requestKey: connectionSaveForm.requestKey, displayName: connectionSaveForm.name,
+          connection: { protocol: connectionSaveForm.protocol === 'SSH' ? 'SSH2' : 'TELNET',
+            host: connectionSaveForm.host, port: connectionSaveForm.port, username: connectionSaveForm.username,
+            password: connectionSaveForm.secret, authenticationType: 'PASSWORD', executionMode: 'SHELL', connectTimeoutSeconds: 10,
+            ...(connectionSaveForm.protocol === 'TELNET' ? { telnetPrompts: { login: '(?i)(login|username)\\s*:\\s*$', password: '(?i)password\\s*:\\s*$', command: '[>#\\$]\\s*$', lineEnding: 'AUTO' } } : {}) }
+        }
+      })
+      if (!result.saved || !result.connection) { message.warning('设备连接验证未通过，请核对地址、端口和密码'); connectionSaveFrozen.value = false; return }
+      saved = result.connection
+    } else {
+      saved = await Api.saveConnection({ ...connectionSaveForm })
+    }
     connectionSaveFrozen.value = false
     connectionSaveVisible.value = false
     form.password = ''
-    message.success('连接已验证并加密保存，已建立本人使用授权')
+    message.success(executionLocation.value === 'desktop' ? '连接已验证并加密保存在本机' : '连接已验证并加密保存，已建立本人使用授权')
     await loadConnections().catch(() => {
       message.warning('连接已保存，当前可用连接列表加载失败，请重试刷新')
     })
@@ -443,7 +479,14 @@ const saveCurrentConnection = async () => {
   } catch {
     // The request may contain a secret: handle the failure without exposing it to Vue's error logger.
     message.warning('保存未完成，请查看提示并继续原请求')
-    if (checkPermi(['pms:device-credential:query'])) {
+    if (executionLocation.value === 'desktop') {
+      // Repeating this save keeps its original local connection id and never overwrites a saved password.
+      try {
+        await loadConnections()
+        const restored = connections.value.find(row => String(row.id) === connectionSaveForm.requestKey)
+        if (restored) { connectionSaveFrozen.value = false; connectionSaveVisible.value = false }
+      } catch { /* Preserve the request identity while its outcome is unknown. */ }
+    } else if (checkPermi(['pms:device-credential:query'])) {
       try {
         const owned = await Api.connections(connectionSaveForm.projectId)
         connectionSaveFrozen.value = owned.some(row => row.registrationKey === connectionSaveForm.requestKey)
@@ -470,6 +513,7 @@ const total = ref(0)
 const pageNo = ref(1)
 const semanticRows = ref<Api.SemanticResult[]>([])
 const semanticExecutionId = ref<Api.Id>()
+const semanticExecution = ref<Api.Execution>()
 const semanticLoading = ref(false)
 const semanticError = ref(false)
 const semanticCommandLines = ref<string[]>([])
@@ -498,6 +542,7 @@ const stopSemantic = () => {
   semanticGeneration++
   semanticRows.value = []
   semanticExecutionId.value = undefined
+  semanticExecution.value = undefined
   semanticError.value = false
   semanticCommandLines.value = []
 }
@@ -506,7 +551,13 @@ const loadSemantic = async (executionId: Api.Id, attempts = 0) => {
   semanticLoading.value = attempts === 0
   semanticError.value = false
   try {
-    const data = await Api.semanticResults(props.entry, objectId.value, executionId)
+    const execution = semanticExecution.value
+    const data = execution?.dispatchMode === 'DESKTOP'
+      ? await localDacRequest<Api.SemanticResult[]>({
+          path: `/tasks/${execution.task.platformTaskId}/semantic-results`,
+          ticket: await Api.desktopAccess(props.entry, objectId.value, { operation: 'TASK_READ', executionId })
+        })
+      : await Api.semanticResults(props.entry, objectId.value, executionId)
     if (generation !== semanticGeneration || !visible.value) return
     semanticRows.value = data
     // 采集终态时解析任务可能尚未挂接；空结果短暂重试后再判定为无解析记录。
@@ -592,15 +643,26 @@ let connectionGeneration = 0
 const loadConnections = async () => {
   const generation = ++connectionGeneration
   if (!source.value || !visible.value) return
-  const list =
-    checkPermi(['pms:device-credential:use']) && form.deviceId
-      ? await Api.usableConnections(
+  let list: ConnectionChoice[] = []
+  if (checkPermi(['pms:device-credential:use']) && form.deviceId) {
+    if (executionLocation.value === 'desktop') {
+      if (localReady.value) {
+        const ticket = await Api.desktopAccess(props.entry, objectId.value, { operation: 'CONNECTIONS_READ' })
+        const local = await localDacRequest<{ items: LocalSavedConnection[] }>({ path: '/saved-connections', ticket })
+        list = local.items.filter(row => row.connection.protocol === (form.protocol === 'SSH' ? 'SSH2' : 'TELNET')
+          && row.connection.authenticationType === 'PASSWORD' && row.connection.executionMode === 'SHELL')
+          .map(row => ({ id: row.id, name: row.displayName, version: row.version, protocol: form.protocol,
+            host: row.connection.host, port: row.connection.port, username: row.connection.username }))
+      }
+    } else {
+      list = await Api.usableConnections(
           source.value.projectId,
           form.deviceId,
           form.protocol,
           commandMode.value === 'template' ? form.templateId : undefined
         )
-      : []
+    }
+  }
   if (generation !== connectionGeneration) return
   connections.value = list
   if (!list.some((r) => r.id === form.credentialId)) form.credentialId = undefined
@@ -618,6 +680,13 @@ watch(
   }
 )
 watch(() => form.deviceId, () => { void loadChoices().catch(() => {}) })
+watch(executionLocation, () => {
+  form.credentialId = undefined
+  form.password = ''
+  connections.value = []
+  void loadConnections().catch(() => {})
+})
+watch(localReady, () => { if (executionLocation.value === 'desktop') void loadConnections().catch(() => {}) })
 watch(credentialMode, () => {
   // 切换认证方式只重置保存连接选择；本次密码在当前窗口内保留，避免重复输入。
   form.credentialId = undefined
@@ -643,7 +712,8 @@ watch(
     form.deviceId,
     commandMode.value,
     credentialMode.value,
-    form.retryOfId
+    form.retryOfId,
+    executionLocation.value
   ],
   () => {
     requestKey.value = ''
@@ -689,6 +759,10 @@ const open = async (id: Api.Id) => {
   })
   requestKey.value = ''
   trackedRequestKey.value = ''
+  pendingDesktop.value = undefined
+  pendingDesktopExecution.value = undefined
+  locallyAccepted.clear()
+  localReady.value = false
   submissionUncertain.value = false
   stopSemantic()
   autoRefresh.value = true
@@ -715,9 +789,23 @@ const refresh = async (silent = false) => {
     emit('observed', data.list)
     total.value = data.total
     if (tracked) {
-      reportAccepted(tracked, trackedRequestKey.value)
-      submissionUncertain.value = false
-      requestKey.value = ''
+      let accepted = tracked.dispatchMode !== 'DESKTOP' || !isRunning(tracked)
+        || ['DISPATCHED', 'EXECUTING', 'CALLBACK_PROCESSING'].includes(tracked.task.status) || locallyAccepted.has(String(tracked.id))
+      if (!accepted && submissionUncertain.value && localReady.value) {
+        try {
+          const local = await readLocalTask(tracked)
+          accepted = local.externalRequestId === tracked.task.platformTaskId && !!local.collectionId
+          if (accepted) locallyAccepted.add(String(tracked.id))
+        } catch { /* A missing or unreachable local task does not authorize a new execution. */ }
+      }
+      if (generation !== refreshGeneration || !visible.value) return
+      if (accepted) {
+        reportAccepted(tracked, trackedRequestKey.value)
+        submissionUncertain.value = false
+        requestKey.value = ''
+        pendingDesktop.value = undefined
+        pendingDesktopExecution.value = undefined
+      }
       if (pageNo.value === 1) {
         rows.value = [tracked, ...data.list.filter((row) => row.id !== tracked.id)].slice(0, 10)
         total.value = Math.max(data.total, rows.value.length)
@@ -726,6 +814,7 @@ const refresh = async (silent = false) => {
         trackedRequestKey.value = ''
         // 任务到达终态后立即同步拉取本次下发的结构化解析结果与报错。
         semanticExecutionId.value = tracked.id
+        semanticExecution.value = tracked
         semanticCommandLines.value = (tracked.commandText || '').split('\n').filter(Boolean)
         void loadSemantic(tracked.id)
       }
@@ -754,7 +843,7 @@ const toggleAutoRefresh = () => {
   }
 }
 const submit = async () => {
-  if (submissionUncertain.value) return
+  if (submissionUncertain.value || busy.value || (executionLocation.value === 'desktop' && !localReady.value)) return
   await formRef.value.validate()
   const target = credentialMode.value === 'saved' ? selectedConnection.value : form
   await message.confirm(`确认向 ${target?.host}:${target?.port} 执行当前命令？`)
@@ -763,21 +852,33 @@ const submit = async () => {
   try {
     requestKey.value ||= generateUUID()
     trackedRequestKey.value = requestKey.value
-    const result = await Api.submit(props.entry, objectId.value, {
+    const common = {
       protocol: form.protocol,
       deviceId: form.deviceId,
       templateId: commandMode.value === 'template' ? form.templateId : undefined,
       commands: commandMode.value === 'manual' ? form.commands : undefined,
-      ...(credentialMode.value === 'saved'
-        ? { credentialId: form.credentialId }
-        : { host: form.host, port: form.port, username: form.username, password: form.password }),
       requestKey: requestKey.value,
       expectedVersion: source.value!.version,
       retryOfId: form.retryOfId
-    })
+    }
+    let result: Api.Execution
+    if (executionLocation.value === 'desktop') {
+      pendingDesktop.value = { ...common, host: target?.host, port: target?.port, username: target?.username,
+        ...(credentialMode.value === 'saved' ? { localConnectionId: String(selectedConnection.value!.id), localConnectionVersion: selectedConnection.value!.version } : {}) }
+      const prepared = await Api.prepareDesktop(props.entry, objectId.value, pendingDesktop.value)
+      pendingDesktopExecution.value = prepared.execution
+      result = await executePreparedDesktop(prepared)
+      pendingDesktop.value = undefined
+      pendingDesktopExecution.value = undefined
+    } else {
+      result = await Api.submit(props.entry, objectId.value, { ...common,
+        ...(credentialMode.value === 'saved'
+          ? { credentialId: form.credentialId }
+          : { host: form.host, port: form.port, username: form.username, password: form.password }) })
+    }
     reportAccepted(result, requestKey.value)
     emit('observed', [result])
-    message.success(`执行记录已保存：${statusText(result)}`)
+    message.success(result.dispatchMode === 'DESKTOP' ? '本机 DAC 已接受任务，执行结果将自动回传' : `执行记录已保存：${statusText(result)}`)
     requestKey.value = ''
     pageNo.value = 1
     await refresh().catch(() => {
@@ -785,7 +886,8 @@ const submit = async () => {
     })
   } catch (error) {
     // The shared client displays the error; never let an Axios request containing credentials reach Vue's error logger.
-    const outcomeUnknown = isAxiosError(error) && (!error.response || error.response.status >= 500)
+    const outcomeUnknown = !!pendingDesktopExecution.value || error instanceof LocalDacError
+      || isAxiosError(error) && (!error.response || error.response.status >= 500)
     if (outcomeUnknown) {
       submissionUncertain.value = true
       message.warning('同步响应未取得，已转为异步查询；不会重复执行命令')
@@ -795,12 +897,70 @@ const submit = async () => {
       })
     } else {
       trackedRequestKey.value = ''
+      pendingDesktop.value = undefined
+      pendingDesktopExecution.value = undefined
       message.error('下发未完成，请查看提示及执行历史；请核对后重新下发')
     }
   } finally {
     // 本次密码保留在当前窗口，便于连续下发；关闭对话框时才随 clearSecret 清空。
     busy.value = false
   }
+}
+const executePreparedDesktop = async (prepared: { execution: Api.Execution; ticket: Api.DesktopTicket }) => {
+  const temporary = prepared.execution.task.credentialMode === 'LOCAL_TEMPORARY'
+  const response = await localDacRequest<{ collectionId: string; existing: boolean }>({
+    path: `/tasks/${prepared.execution.task.platformTaskId}/executions`, ticket: prepared.ticket, method: 'POST',
+    body: temporary ? { password: form.password } : {}
+  })
+  if (!response.collectionId) throw new LocalDacError(true)
+  locallyAccepted.add(String(prepared.execution.id))
+  return prepared.execution
+}
+const continueDesktop = async (row?: Api.Execution) => {
+  if (busy.value || !localReady.value) return
+  const execution = row ?? pendingDesktopExecution.value
+  if ((execution?.task.credentialMode === 'LOCAL_TEMPORARY' || !execution && !pendingDesktop.value?.localConnectionId) && !form.password) {
+    message.warning('请在上方填写本次密码，再继续原任务')
+    return
+  }
+  await message.confirm('继续原本机任务？沿用原设备和命令；已接受的任务只查询原执行，不重复下发。')
+  busy.value = true
+  autoRefresh.value = true
+  try {
+    const prepared = execution
+      ? await Api.resumeDesktop(props.entry, objectId.value, execution.id)
+      : await Api.prepareDesktop(props.entry, objectId.value, pendingDesktop.value!)
+    pendingDesktopExecution.value = prepared.execution
+    await executePreparedDesktop(prepared)
+    submissionUncertain.value = false
+    pendingDesktop.value = undefined
+    pendingDesktopExecution.value = undefined
+    requestKey.value = ''
+    message.success('已连接到原本机任务')
+    await refresh().catch(() => {})
+  } catch {
+    message.warning('原任务尚未确认，请刷新查看状态或请求取消')
+  } finally { busy.value = false }
+}
+const readLocalTask = async (row: Api.Execution) => localDacRequest<LocalCollection>({
+  path: `/tasks/${row.task.platformTaskId}`,
+  ticket: await Api.desktopAccess(props.entry, objectId.value, { operation: 'TASK_READ', executionId: row.id })
+})
+const viewLocalLog = async (row: Api.Execution) => {
+  const generation = ++logGeneration
+  logVisible.value = true
+  logLoading.value = true
+  logText.value = ''
+  logRejected.value = false
+  try {
+    const result = await readLocalTask(row)
+    if (generation !== logGeneration || !logVisible.value) return
+    logText.value = [`本机执行状态：${result.status}`, row.commandText ? `下发命令：\n${row.commandText}` : '',
+      ...result.targets.flatMap(target => [target.stdout || '', target.stderr || ''])].join('\n')
+    logRejected.value = result.targets.some(target => target.outcome === 'COMMAND_REJECTED')
+  } catch {
+    if (generation === logGeneration) { message.warning('请在执行该任务的电脑上启动 DAC 后重试'); logVisible.value = false }
+  } finally { if (generation === logGeneration) logLoading.value = false }
 }
 const consume = async (row: Api.Execution) => {
   busy.value = true
@@ -898,7 +1058,9 @@ const isRunning = (row: Api.Execution) =>
     row.task.status
   )
 const statusText = (row: Api.Execution) =>
-  ['RECONCILING', 'DISPATCHING'].includes(row.task.technicalStage)
+  row.dispatchMode === 'DESKTOP' && row.task.technicalStage === 'PENDING_DISPATCH'
+    ? locallyAccepted.has(String(row.id)) ? '本机已接受，待同步' : '等待本机下发'
+    : ['RECONCILING', 'DISPATCHING'].includes(row.task.technicalStage)
     ? '结果确认中'
     : ({
         CREATED: '已创建',

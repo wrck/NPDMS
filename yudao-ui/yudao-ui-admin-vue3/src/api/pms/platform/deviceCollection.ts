@@ -35,6 +35,7 @@ export interface Execution {
   commandText?: string
   templateName?: string
   retryOfId?: Id
+  dispatchMode?: 'SERVER' | 'DESKTOP'
   task: {
     platformTaskId: string
     deviceId: string
@@ -111,6 +112,27 @@ const source = (entry: Entry, id: Id) => `${root}/sources/${entry}/${id}`
 export const context = (entry: Entry, id: Id) => request.get<Source>({ url: source(entry, id) })
 export const submit = (entry: Entry, id: Id, data: Command) =>
   request.post<Execution>({ url: `${source(entry, id)}/executions`, data })
+export interface DesktopTicket { value: string; tenantId: Id }
+export type DesktopCommand = Omit<Command, 'password' | 'credentialId'> & {
+  localConnectionId?: string
+  localConnectionVersion?: number
+}
+export const prepareDesktop = (entry: Entry, id: Id, data: DesktopCommand) =>
+  request.post<{ execution: Execution; ticket: DesktopTicket }>({
+    url: `${source(entry, id)}/desktop-executions`,
+    // Explicit allowlist keeps device secrets out of the NPDMS HTTP client even if a caller passes extra fields.
+    data: {
+      requestKey: data.requestKey, expectedVersion: data.expectedVersion, deviceId: data.deviceId,
+      host: data.host, port: data.port, protocol: data.protocol, username: data.username,
+      commands: data.commands, templateId: data.templateId, retryOfId: data.retryOfId,
+      localConnectionId: data.localConnectionId, localConnectionVersion: data.localConnectionVersion
+    }
+  })
+export const desktopAccess = (entry: Entry, id: Id,
+  data: { operation: 'CONNECTIONS_READ' | 'CONNECTION_SAVE' | 'TASK_READ'; executionId?: Id }) =>
+  request.post<DesktopTicket>({ url: `${source(entry, id)}/desktop-access`, data })
+export const resumeDesktop = (entry: Entry, id: Id, executionId: Id) =>
+  request.post<{ execution: Execution; ticket: DesktopTicket }>({ url: `${source(entry, id)}/desktop-executions/${executionId}/resume` })
 export const page = (entry: Entry, id: Id, pageNo: number) =>
   request.get<{ list: Execution[]; total: number }>({
     url: `${source(entry, id)}/executions`,

@@ -1,12 +1,16 @@
 import { defineComponent, h, nextTick } from 'vue'
 import { beforeEach, expect, it, vi } from 'vitest'
+import { LocalDacError } from './localDac'
 import Dialog from './BusinessCollectionDialog.vue'
 import CollectionDialog from './CollectionDialog.vue'
 import CollectionWithDeviceLogsDialog from './CollectionWithDeviceLogsDialog.vue'
 import { mount, passthrough, textOf } from '@/views/pms/cutover/cutoverTestHarness'
 
-const api = vi.hoisted(() => ({ context: vi.fn(), templates: vi.fn(), page: vi.fn(), usableConnections: vi.fn(), saveConnection: vi.fn(), connections: vi.fn(), submit: vi.fn() }))
-const messages = vi.hoisted(() => ({ success: vi.fn(), warning: vi.fn(), confirm: vi.fn(async () => {}) }))
+const api = vi.hoisted(() => ({ context: vi.fn(), templates: vi.fn(), page: vi.fn(), usableConnections: vi.fn(), saveConnection: vi.fn(), connections: vi.fn(), submit: vi.fn(), prepareDesktop: vi.fn(), resumeDesktop: vi.fn(), desktopAccess: vi.fn(), findByRequestKey: vi.fn() }))
+const local = vi.hoisted(() => ({ request: vi.fn() }))
+const messages = vi.hoisted(() => ({ success: vi.fn(), warning: vi.fn(), error: vi.fn(), confirm: vi.fn(async () => {}) }))
+vi.mock('./localDac', async (original) => ({ ...await original<object>(), localDacRequest: local.request }))
+vi.mock('./LocalDacStatus.vue', () => ({ default: {} }))
 vi.mock('@/api/pms/platform/deviceCollection', () => api)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => messages }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
@@ -19,17 +23,64 @@ const dialog = defineComponent({ props: { modelValue: Boolean }, setup(props, { 
 const form = defineComponent({ setup(_, { slots, expose }) { expose({ validate: async () => true, validateField: async () => true }); return () => h('form', slots.default?.()) } })
 const controls = Object.fromEntries(['ElAlert', 'ElFormItem', 'ElRadioGroup', 'ElRadio', 'ElSelect', 'ElOption', 'ElRow', 'ElCol', 'ElInput', 'ElInputNumber', 'ElButton', 'ElTable', 'ElTableColumn', 'ElDatePicker', 'ElTag', 'Pagination'].map(key => [key, passthrough]))
 const flush = async () => { for (let i = 0; i < 12; i++) await nextTick() }
-const render = () => {
+const render = (location = 'server') => {
   const mounted = mount(Dialog, { entry: 'cutover-checklist', deviceId: '9007199254740993' }, { ...controls, Dialog: dialog, ElForm: form })
-  return { ...mounted, state: (mounted.vm as any).$.setupState }
+  const state = (mounted.vm as any).$.setupState
+  state.executionLocation = location
+  return { ...mounted, state }
 }
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.stubGlobal('window', Object.assign(new EventTarget(), { location: { origin: 'https://web.example' } }))
   api.context.mockResolvedValue({ entry: 'cutover-checklist', objectId: '30', projectId: '21', deviceId: '9007199254740993', version: 3, manualAllowed: true, canExecute: true, title: '调研采集' })
   api.templates.mockResolvedValue([])
   api.page.mockResolvedValue({ list: [], total: 0 })
   api.usableConnections.mockResolvedValue([])
   api.connections.mockResolvedValue([])
+  api.findByRequestKey.mockResolvedValue(null)
+  api.desktopAccess.mockResolvedValue({ value: 'task-ticket', tenantId: '1' })
+  local.request.mockResolvedValue({ items: [] })
+})
+
+const desktopExecution = { id: '41', actorId: '7', dispatchMode: 'DESKTOP', commandText: 'show version',
+  task: { platformTaskId: 'task-1', status: 'CREATED', technicalStage: 'PENDING_DISPATCH', credentialMode: 'LOCAL_TEMPORARY' } }
+it('sends only metadata to NPDMS and the temporary password only to the local DAC', async () => {
+  const m = render('desktop')
+  try {
+    await m.state.open('30')
+    m.state.localReady = true
+    await flush()
+    Object.assign(m.state.form, { host: 'test.example', username: 'test-user', password: 'local-secret', commands: 'show version' })
+    api.prepareDesktop.mockResolvedValue({ execution: desktopExecution, ticket: { value: 'execute-ticket', tenantId: '1' } })
+    local.request.mockImplementation(async input => input.path === '/saved-connections' ? { items: [] } : { collectionId: 'collection-1', existing: false })
+    await m.state.submit()
+    expect(api.prepareDesktop).toHaveBeenCalledWith('cutover-checklist', '30', expect.objectContaining({ host: 'test.example', username: 'test-user' }))
+    expect(JSON.stringify(api.prepareDesktop.mock.calls)).not.toContain('local-secret')
+    expect(api.submit).not.toHaveBeenCalled()
+    expect(local.request).toHaveBeenCalledWith(expect.objectContaining({ path: '/tasks/task-1/executions', body: { password: 'local-secret' } }))
+  } finally { m.app.unmount() }
+})
+
+it('does not treat a prepared server record as proof of local acceptance after a lost response', async () => {
+  const m = render('desktop')
+  try {
+    await m.state.open('30')
+    m.state.localReady = true
+    await flush()
+    Object.assign(m.state.form, { host: 'test.example', username: 'test-user', password: 'local-secret', commands: 'show version' })
+    api.prepareDesktop.mockResolvedValue({ execution: desktopExecution, ticket: { value: 'execute-ticket', tenantId: '1' } })
+    api.findByRequestKey.mockResolvedValue(desktopExecution)
+    api.page.mockResolvedValue({ list: [desktopExecution], total: 1 })
+    local.request.mockRejectedValue(new LocalDacError(true))
+    await m.state.submit()
+    await flush()
+    expect(m.state.submissionUncertain).toBe(true)
+    expect(api.prepareDesktop).toHaveBeenCalledTimes(1)
+    await m.state.refresh()
+    expect(m.state.submissionUncertain).toBe(true)
+    expect(api.prepareDesktop).toHaveBeenCalledTimes(1)
+    expect(api.submit).not.toHaveBeenCalled()
+  } finally { m.app.unmount() }
 })
 it('queries templates for the exact project and device and exposes authorized manual commands', async () => {
   const m = render()

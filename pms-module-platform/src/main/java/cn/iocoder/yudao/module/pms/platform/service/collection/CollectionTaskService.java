@@ -28,7 +28,7 @@ public class CollectionTaskService implements CollectionTaskApi {
 
     private static final Set<String> COMPLETION_MODES = Set.of("BUSINESS_CONSUMPTION", "CALLBACK_TERMINAL");
     private static final Set<String> PROTOCOLS = Set.of("SSH", "TELNET");
-    private static final Set<String> CREDENTIAL_MODES = Set.of("SAVED_CREDENTIAL", "TEMPORARY_SECRET");
+    private static final Set<String> CREDENTIAL_MODES = Set.of("SAVED_CREDENTIAL", "TEMPORARY_SECRET", "LOCAL_TEMPORARY", "LOCAL_SAVED");
 
     private final CollectionBatchMapper batchMapper;
     private final CollectionTaskMapper taskMapper;
@@ -166,7 +166,7 @@ public class CollectionTaskService implements CollectionTaskApi {
                 && (task.credentialId() == null || task.grantSnapshotId() == null)) {
             throw new IllegalArgumentException("已保存凭证任务缺少凭证授权快照");
         }
-        if ("TEMPORARY_SECRET".equals(task.credentialMode())
+        if (("TEMPORARY_SECRET".equals(task.credentialMode()) || task.credentialMode().startsWith("LOCAL_"))
                 && (task.credentialId() != null || task.grantSnapshotId() != null)) {
             throw new IllegalArgumentException("临时凭证任务不得引用已保存凭证");
         }

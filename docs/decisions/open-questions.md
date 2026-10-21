@@ -1559,3 +1559,15 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Recommendation: 保留需求分析按需。在线编制实施方案时先完成需求分析并引用有效版本；已有完整客户方案时沿用原件校验及既有提交审批路径。明确提示条件依赖，不自动补造需求分析、不降低在线提交校验。
 - Current action: 需求方要求先建议再确认，尚未裁决；模板该项与业务校验均保持原状，未修改PRD。
 - Decision owner: 需求方。
+
+## Q-DAC-DESKTOP-AUTH-20261021 — 本机 DAC 复用的浏览器认证入口
+
+- Status: RESOLVED
+- Area: F-INT-012 浏览器直连本机 DAC 的认证适配；不阻断已授权的 Windows 安装、自启动、环境配置及服务发现。
+- Confirmed: 需求方要求客户端不绑定、不注册、不设独立账号，沿用现有浏览器认证和通信方式。
+- Evidence: NPDMS 统一采集当前由服务端 Gateway 携带服务 JWT 与任务 HMAC 访问 DAC；DAC 独立网页另有 OIDC Authorization Code + PKCE 登录。两者并非同一浏览器登录态。
+- Question: 复用 NPDMS 网页当前登录态，还是 DAC 独立页面现有 OIDC 登录？
+- Recommendation: 复用 NPDMS 当前登录态，并保留服务端业务权限、项目范围和任务授权；服务级 JWT、HMAC 密钥不下发浏览器或安装包。
+- Resolution: 需求方2026-10-21选择复用 NPDMS 网页当前登录态，随后补充现有 OIDC 也可使用。本次网页接入采用 NPDMS 当前登录态，既有独立 DAC 的 OIDC 能力保留；不增加客户端绑定或独立身份。
+- Current action: NPDMS 在现有来源、权限和项目范围校验后签发任务/操作限定的短期票据；本机 DAC 向配置的 NPDMS 解析票据。完整登录 Token 与服务级共享密钥不交给本机浏览器端点，业务状态仍经原状态机和结果接收处理。
+- Decision owner: 需求方。

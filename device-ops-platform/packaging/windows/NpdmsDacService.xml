@@ -1,0 +1,17 @@
+<service>
+  <id>NpdmsDac</id>
+  <name>NPDMS DAC</name>
+  <description>NPDMS 本机设备连接与采集服务</description>
+  <executable>%BASE%\NpdmsDacHost.exe</executable>
+  <startmode>Automatic</startmode>
+  <delayedAutoStart>true</delayedAutoStart>
+  <stoptimeout>60 sec</stoptimeout>
+  <stopparentprocessfirst>false</stopparentprocessfirst>
+  <onfailure action="restart" delay="15 sec" />
+  <resetfailure>1 hour</resetfailure>
+  <logpath>%ProgramData%\NPDMS\DAC\logs</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>4</keepFiles>
+  </log>
+</service>

@@ -22,7 +22,12 @@ public interface CollectionApplicationApi {
     @Builder
     record SourceQuery(String entry, Long objectId, Long actorId) { }
     record Execution(Long id, Long actorId, LocalDateTime createdAt, Long consumedResultVersion,
-                     CollectionTaskDTO task, String commandText, String templateName, Long retryOfId, CollectionExecutionProfile executionProfile) {
+                     CollectionTaskDTO task, String commandText, String templateName, Long retryOfId, CollectionExecutionProfile executionProfile,
+                     String dispatchMode) {
+        public Execution(Long id, Long actorId, LocalDateTime createdAt, Long consumedResultVersion,
+                         CollectionTaskDTO task, String commandText, String templateName, Long retryOfId, CollectionExecutionProfile executionProfile) {
+            this(id, actorId, createdAt, consumedResultVersion, task, commandText, templateName, retryOfId, executionProfile, "SERVER");
+        }
         public Execution(Long id, Long actorId, LocalDateTime createdAt, Long consumedResultVersion,
                          CollectionTaskDTO task, String commandText, String templateName, Long retryOfId) {
             this(id, actorId, createdAt, consumedResultVersion, task, commandText, templateName, retryOfId, null);

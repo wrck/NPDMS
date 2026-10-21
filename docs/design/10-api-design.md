@@ -1139,3 +1139,17 @@ PROJ 复用 `actions/reopen` 命令与 `proj_project_stage_snapshot` 的 REOPEN 
 审批人员可从FULL审批页进入完整任务只读视图。原任务详情、清单/修订/匹配选项/外部状态、方案及闭环GET接受普通查询权限或query-approval，但服务端逐次校验同租户同任务：普通项目范围，或者本人当前有效审批待办，或者有明确决定时间和已通过/驳回状态的本人实际办理记录。未领取角色成员仅当前共享待办期间可看；实际办理过的启用人员在审批结束、角色变化或驳回重提后仍可只读查看这项任务；其他任务和整个项目不因此可见。无项目范围的任务、方案和闭环查询不返回写操作，所有写接口继续原权限、项目范围、负责人、版本及状态校验。审批原页继续展示原冻结版本，完整任务页面明确为只读当前任务。
 
 完整任务附件READ/PREVIEW/DOWNLOAD复用PLT业务引用校验及CUT逐次读取/锁定授权，保持精确工件、文件版本、引用和可用性校验；不授予文件写权限。历史审批及来源快照不回写。已实际办理人员的原审批FULL投影延续只读访问，不能因历史参与而重新办理已结束节点。
+
+### 本机 DAC 服务发现（2026-10-21）
+
+仅 desktop 运行配置提供 `GET http://127.0.0.1:48182/api/v1/desktop/status`，响应 `product=npdms-dac`、`protocolVersion=1`、`status=READY|STARTING`、`serverUrl`、`webOrigin`，不返回账户、凭据或任务数据；响应禁止缓存。该只读发现端点不要求登录，CORS 只允许客户端配置的精确网页来源；服务只监听回环地址并拒绝非回环 Host，所有业务接口继续认证。网页在产品、协议和服务器环境匹配后才可使用本机业务接口，探测失败不能区分未安装、服务停止或浏览器权限拒绝，不能伪报安装状态。
+
+客户端注册 `npdms-dac://start/`，仅允许启动固定的 NpdmsDac Windows 服务，不接受任意命令、地址、文件路径或凭据。页面须由用户点击触发协议，随后有界轮询发现端点；不得自动循环唤起外部应用，不以服务进程存在代替业务就绪。
+
+NPDMS 增加 `POST /api/v1/pms/device-collection/sources/{entry}/{objectId}/desktop-executions`，沿用网页登录、来源执行权限、项目范围、期望版本及请求幂等键，仅接受连接元数据及本机保存连接引用/版本，不接受秘密。返回原执行记录与短期操作票据。`POST .../desktop-access` 在当前来源范围内签发本机任务读取或个人连接读取/保存的操作票据；连接保存/使用同时要求原设备凭据权限。原服务器执行 API 保持原契约。
+
+DAC 的 desktop 业务路由通过 `X-NPDMS-DAC-Ticket` 向已配置 NPDMS 的 `POST /api/v1/pms/integration/device-ops/desktop/tickets/resolve` 解析授权，保留租户、使用人、项目、任务、命令、连接版本及操作绑定；60秒窗口外拒绝。浏览器不向回环端点发送完整登录 Token。解析后的主体进入原 DAC 授权和执行引擎，本机任务使用原任务号幂等提交。
+
+本机通过任务限定回传凭证主动报告接受状态并轮询取消，终态通过原 multipart 结果协议送达 `POST /api/v1/pms/integration/device-ops/desktop/callbacks`。接收仍验证固定任务/collection、结果序号/版本、日志大小/摘要和不可变 Receipt，并复用原 PLT 文件接收、状态机及业务消费。平台只读本地上报投影，不尝试连接现场回环地址；离线不推断失败，也不重发命令。
+
+响应不明时可通过 `POST .../desktop-executions/{executionId}/resume` 重新核验原使用人及当前来源授权，继续原任务；不创建新幂等键。DAC 在提交前调用 `POST .../desktop/tasks/{taskId}/claim`，以本机持久化的 executionId 独占认领；另一客户端、已取消任务或缺少明确 `accepted=true` 的业务回执均不得下发。后续 `/observations`、`/control`、`/cancelled-before-submission` 仅接受该任务限定凭证，不能授予新执行；取消证明仍由原状态机收敛。

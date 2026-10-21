@@ -55,6 +55,33 @@ class CollectionApplicationServiceTest {
         when(requests.insert(any(CollectionRequestDO.class))).thenAnswer(call->{call.<CollectionRequestDO>getArgument(0).setId(41L);return 1;});
     }
     @AfterEach void clear(){TenantContextHolder.clear();}
+    @Test void desktopPreparationStoresOnlyMetadataAndNeverCallsTheServerDispatcher(){
+        var r=request();r.setPassword(null);
+        var result=service.prepareDesktop(new CollectionApplicationService.DesktopPreparation(sourceQuery(),r,
+                new CollectionApplicationService.LocalConnection("local-connection",0L)));
+        assertEquals("DESKTOP",result.dispatchMode());
+        assertEquals(0L,saved().getLocalConnectionVersion());
+        assertEquals(0L,saved().getDesktopSourceVersion());
+        var command=ArgumentCaptor.forClass(CollectionBatchCreateCommand.class);verify(tasks).createBatch(command.capture());
+        assertEquals("LOCAL_SAVED",command.getValue().tasks().getFirst().credentialMode());
+        verifyNoInteractions(dispatch);
+    }
+    @Test void desktopRejectsPasswordsAndServerPathStillRequiresItsCredential(){
+        assertThrows(CollectionOperationException.class,()->service.prepareDesktop(new CollectionApplicationService.DesktopPreparation(
+                sourceQuery(),request(),new CollectionApplicationService.LocalConnection(null,null))));
+        var missing=request();missing.setPassword(null);
+        assertThrows(CollectionOperationException.class,()->service.submit(sourceQuery(),missing));
+        verifyNoInteractions(dispatch);
+        verify(tasks,never()).createBatch(any());
+    }
+    @Test void usesAuthoritativeSerialWhenSelectedDeviceHasNoName(){
+        when(devices.validateSelection(21L,List.of(31L))).thenReturn(List.of(new SelectedProjectDevice(31L,"sn",null,null,"model-a",null)));
+        service.submit(CollectionApplicationApi.SourceQuery.builder().entry("configuration").objectId(11L).actorId(7L).build(),request());
+        var command=ArgumentCaptor.forClass(CollectionBatchCreateCommand.class);
+        verify(tasks).createBatch(command.capture());
+        assertEquals("sn",command.getValue().tasks().getFirst().deviceName());
+        verify(dispatch).dispatchManual(any());
+    }
     @Test void freezesCommandsBeforeIoAndReplaysWithoutDispatch(){
         var r=request();r.setCommands("show version\r\n\nshow run");var result=service.submit(CollectionApplicationApi.SourceQuery.builder()
                 .entry("configuration")

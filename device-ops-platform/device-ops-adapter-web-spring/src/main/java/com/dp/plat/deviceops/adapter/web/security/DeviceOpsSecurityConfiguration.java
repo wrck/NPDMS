@@ -14,6 +14,7 @@ import org.springframework.http.HttpMethod;
 import jakarta.servlet.DispatcherType;
 
 @Configuration
+@org.springframework.context.annotation.Profile("!desktop")
 @EnableMethodSecurity
 public class DeviceOpsSecurityConfiguration {
     @Bean SecurityFilterChain deviceOpsApiSecurity(

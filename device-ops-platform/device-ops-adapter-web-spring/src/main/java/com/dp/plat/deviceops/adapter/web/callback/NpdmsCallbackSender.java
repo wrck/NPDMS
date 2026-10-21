@@ -15,8 +15,8 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 
 /** The immutable outbox payload is the log; delivery never re-reads mutable execution state. */
-final class NpdmsCallbackSender {
-    static boolean send(CallbackOutboxPort.Event event, CallbackProperties properties, RestClient http) throws Exception {
+public final class NpdmsCallbackSender {
+    public static boolean send(CallbackOutboxPort.Event event, CallbackProperties properties, RestClient http) throws Exception {
         var json = new ObjectMapper();
         var payload = json.readTree(event.payload());
         String namespace = payload.path("namespace").asText();

@@ -137,7 +137,7 @@ class ParserHaMySqlIntegrationTest {
                 "device_ops_parser_log_type", "device_ops_parser_release", "device_ops_parser_active_release",
                 "device_ops_parser_payload", "device_ops_parse_task", "device_ops_parse_attempt",
                 "device_ops_parse_result", "device_ops_parser_worker", "device_ops_parser_worker_capability",
-                "device_ops_collection_parser_request", "device_ops_collection_submission_guard");
+                "device_ops_collection_parser_request", "device_ops_collection_submission_guard", "device_ops_desktop_task");
         Set<String> actual = Set.copyOf(jdbc.sql("select lower(table_name) from information_schema.tables "
                         + "where table_schema=database() and table_name like 'device_ops_%'")
                 .query(String.class).list());

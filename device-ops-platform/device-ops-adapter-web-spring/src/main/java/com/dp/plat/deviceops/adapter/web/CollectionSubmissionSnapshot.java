@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.*;
 
 /** Streaming allowlist: excluded scalar values (especially credentials) are never read as Strings. */
-final class CollectionSubmissionSnapshot {
+public final class CollectionSubmissionSnapshot {
     static final String ATTRIBUTE = CollectionSubmissionSnapshot.class.getName();
     static final String BUFFER_ATTRIBUTE = ATTRIBUTE + ".buffer";
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -83,4 +83,18 @@ final class CollectionSubmissionSnapshot {
         var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
         return attributes == null ? null : (String) attributes.getAttribute(ATTRIBUTE, 0);
     }
+
+    /** Capture trusted desktop metadata before the local credential is merged into the execution request. */
+    public static void installAuthorized(AuthorizedSubmission submission) {
+        byte[] bytes = null;
+        try {
+            bytes = JSON.writeValueAsBytes(submission.body());
+            String snapshot = capture(bytes, submission.path(), submission.idempotencyKey());
+            var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+            if (attributes != null) attributes.setAttribute(ATTRIBUTE, snapshot, 0);
+        } catch (IOException invalid) { throw new IllegalArgumentException("Invalid authorized collection metadata"); }
+        finally { if (bytes != null) Arrays.fill(bytes, (byte) 0); }
+    }
+
+    public record AuthorizedSubmission(Map<String, Object> body, String path, String idempotencyKey) { }
 }

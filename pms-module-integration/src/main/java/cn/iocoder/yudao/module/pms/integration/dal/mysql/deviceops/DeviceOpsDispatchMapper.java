@@ -8,6 +8,9 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface DeviceOpsDispatchMapper extends BaseMapperX<DeviceOpsDispatchDO> {
 
+    DeviceOpsDispatchDO lockByTenantAndPlatformTaskId(@org.apache.ibatis.annotations.Param("tenantId") Long tenantId,
+            @org.apache.ibatis.annotations.Param("platformTaskId") String platformTaskId);
+
     default DeviceOpsDispatchDO selectByTenantAndPlatformTaskId(Long tenantId, String platformTaskId) {
         return selectOne(new LambdaQueryWrapperX<DeviceOpsDispatchDO>()
                 .eq(DeviceOpsDispatchDO::getTenantId, tenantId)

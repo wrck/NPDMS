@@ -113,6 +113,22 @@ public class SavedConnectionController {
         }
     }
 
+    /** Desktop response recovery keeps a caller-selected connection identity and never replaces its credential on replay. */
+    @PreAuthorize("hasAuthority('SCOPE_device-ops:collections:execute')")
+    public SavedConnectionService.SaveResult verifyAndCreateIdentified(Jwt jwt, IdentifiedCreate input) {
+        var request = input.request();
+        try {
+            claims.requireNamespace(jwt, request.namespace());
+            requireAvailable();
+            try (var mapped = mapNewCredential(request.connection())) {
+                return savedConnections.verifyAndCreateIdentified(jwt.getSubject(), request.namespace(), input.id(),
+                        new SavedConnectionDraft(request.displayName(), request.description(), mapped.spec()), mapped.credential());
+            }
+        } finally { request.clear(); }
+    }
+
+    public record IdentifiedCreate(String id, CreateRequest request) { }
+
     @PatchMapping("/{id}")
     @PreAuthorize("hasAuthority('SCOPE_device-ops:collections:execute')")
     public SavedConnection rename(@AuthenticationPrincipal Jwt jwt, @PathVariable("id") @NotBlank String id,

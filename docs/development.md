@@ -183,3 +183,9 @@ docker compose up -d mysql redis migrate
 仅包含八张 `bpm_*` 业务表 DDL，已通过 Flyway 迁移纳入空库启动流程。
 不得依据数据对象猜造生产表结构；后续 BPM 表结构变更必须增加新的
 `V<版本>__<说明>.sql` 迁移，不得修改历史文件或手工改库。
+
+## Windows 本机 DAC
+
+现场安装方式与配置见 [DAC 客户端说明](../device-ops-platform/packaging/windows/README.md)。客户端包自带 Java，使用独立 `desktop` 配置并监听 `127.0.0.1:48182`；NPDMS 服务器地址（含端口）和网页来源由安装向导或“DAC 设置”指定。服务端需包含本次接口并经 Compose/Flyway 应用 V511。1.0.2 同时支持 HTTP/HTTPS，新安装默认后端 `http://10.210.0.11:59191`、网页 `http://10.210.0.11:19191`；内网 HTTP 由安装器为该网页来源配置 Chrome/Edge 本地网络访问授权，并维护自己新增条目的清理。此客户端不替代既有59191宿主机后端或服务器DAC的受控启停入口。
+
+客户端编译与打包依次执行 `scripts/worktree-build.ps1 -Target dac`、`scripts/package-dac-desktop.ps1 -Manifest <冻结清单>`。后者只生成 MSI 和证据，不执行安装或服务操作。Windows 安装/升级会管理 NpdmsDac 服务，变更当前运行环境前仍须确认影响并取得本次授权。运行数据、主密钥和各服务器环境队列保存在 ProgramData，卸载不删除；不能用切换环境将旧任务改投新服务器。

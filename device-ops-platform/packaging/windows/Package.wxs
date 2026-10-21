@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <Product Id="*" Name="NPDMS DAC" Language="2052" Codepage="65001" Version="$(var.Version)" Manufacturer="NPDMS" UpgradeCode="5066BB68-507D-4CBB-85E8-769C0BE81E10">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
+    <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 NPDMS DAC。" Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="NPDMS_DEFAULT_SERVER_URL" Value="$(var.DefaultServerUrl)" />
+    <Property Id="NPDMS_DEFAULT_WEB_ORIGIN" Value="$(var.DefaultWebOrigin)" />
+    <Property Id="NPDMS_SERVER_URL" Secure="yes" Hidden="yes">
+      <RegistrySearch Id="SavedServer" Root="HKLM" Key="Software\NPDMS\DAC" Name="ServerUrl" Type="raw" Win64="yes" />
+    </Property>
+    <Property Id="NPDMS_WEB_ORIGIN" Secure="yes" Hidden="yes">
+      <RegistrySearch Id="SavedOrigin" Root="HKLM" Key="Software\NPDMS\DAC" Name="WebOrigin" Type="raw" Win64="yes" />
+    </Property>
+    <PropertyRef Id="WIX_ACCOUNT_USERS" />
+    <Property Id="DOTNET_RELEASE">
+      <RegistrySearch Id="DotNetRelease" Root="HKLM" Key="SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" Name="Release" Type="raw" Win64="yes" />
+    </Property>
+    <Condition Message="需要 64 位 Windows。">Installed OR VersionNT64</Condition>
+    <Condition Message="需要 .NET Framework 4.6.1 或更新版本。">Installed OR DOTNET_RELEASE &gt;= "#394254"</Condition>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="CompanyDirectory" Name="NPDMS">
+          <Directory Id="INSTALLFOLDER" Name="DAC">
+            <Component Id="ServiceComponent" Guid="FA934874-55EB-42F4-B355-964E22A1F4D3" Win64="yes">
+              <File Id="ServiceExecutable" Source="$(var.Payload)\NpdmsDacService.exe" KeyPath="yes" />
+              <File Id="ServiceXml" Source="$(var.Payload)\NpdmsDacService.xml" />
+              <util:EventSource Name="NpdmsDac" Log="Application" EventMessageFile="[WindowsFolder]Microsoft.NET\Framework64\v4.0.30319\EventLogMessages.dll" SupportsErrors="yes" SupportsWarnings="yes" SupportsInformationals="yes" />
+              <ServiceInstall Id="InstallDacService" Name="NpdmsDac" DisplayName="NPDMS DAC" Description="NPDMS 本机设备连接与采集服务" Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT AUTHORITY\LocalService" Vital="yes">
+                <util:PermissionEx User="[WIX_ACCOUNT_USERS]" ServiceStart="yes" ServiceQueryStatus="yes" ServiceQueryConfig="yes" />
+                <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" RestartServiceDelayInSeconds="15" ResetPeriodInDays="1" />
+              </ServiceInstall>
+              <ServiceControl Id="ControlDacService" Name="NpdmsDac" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
+            </Component>
+            <Component Id="LauncherComponent" Guid="1780117D-4CCB-40A7-98AA-31376A55E8EA" Win64="yes">
+              <File Id="LauncherExecutable" Source="$(var.Payload)\NpdmsDac.exe" KeyPath="yes">
+                <Shortcut Id="SettingsShortcut" Directory="StartMenuDirectory" Name="DAC 设置" Advertise="yes" Arguments="--configure" WorkingDirectory="INSTALLFOLDER" />
+              </File>
+              <RemoveFolder Id="RemoveMenuDirectory" Directory="StartMenuDirectory" On="uninstall" />
+              <RegistryValue Root="HKLM" Key="Software\Classes\npdms-dac" Type="string" Value="URL:NPDMS DAC" />
+              <RegistryValue Root="HKLM" Key="Software\Classes\npdms-dac" Name="URL Protocol" Type="string" Value="" />
+              <RegistryValue Root="HKLM" Key="Software\Classes\npdms-dac\shell\open\command" Type="string" Value="&quot;[#LauncherExecutable]&quot; --uri &quot;%1&quot;" />
+              <RegistryValue Root="HKLM" Key="Software\NPDMS\DAC" Name="ServerUrl" Type="string" Value="[NPDMS_SERVER_URL]" />
+              <RegistryValue Root="HKLM" Key="Software\NPDMS\DAC" Name="WebOrigin" Type="string" Value="[NPDMS_WEB_ORIGIN]" />
+            </Component>
+          </Directory>
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="StartMenuDirectory" Name="NPDMS" />
+      </Directory>
+    </Directory>
+    <Feature Id="Complete" Title="NPDMS DAC" Level="1">
+      <ComponentRef Id="ServiceComponent" />
+      <ComponentRef Id="LauncherComponent" />
+      <ComponentGroupRef Id="RuntimePayload" />
+    </Feature>
+    <!-- The native helper validates URLs and writes no plaintext secrets. No shell is involved. -->
+    <Binary Id="DesktopInstallerActions" SourceFile="$(var.InstallerActions)" />
+    <CustomAction Id="ValidateClientSettings" BinaryKey="DesktopInstallerActions" DllEntry="ValidateClientSettings" Execute="immediate" Return="check" />
+    <CustomAction Id="ValidateClientSettingsForInstall" BinaryKey="DesktopInstallerActions" DllEntry="ValidateClientSettingsForInstall" Execute="immediate" Return="check" />
+    <SetProperty Id="NPDMS_SERVER_URL" Action="SetDefaultServerUrl" Value="[NPDMS_DEFAULT_SERVER_URL]" After="AppSearch" Sequence="both">NOT NPDMS_SERVER_URL</SetProperty>
+    <SetProperty Id="NPDMS_WEB_ORIGIN" Action="SetDefaultWebOrigin" Value="[NPDMS_DEFAULT_WEB_ORIGIN]" After="SetDefaultServerUrl" Sequence="both">NOT NPDMS_WEB_ORIGIN AND NPDMS_SERVER_URL = NPDMS_DEFAULT_SERVER_URL</SetProperty>
+    <CustomAction Id="InitializeClient" FileKey="LauncherExecutable" ExeCommand="--initialize &quot;[NPDMS_SERVER_URL]&quot; &quot;[NPDMS_WEB_ORIGIN]&quot;" Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="RollbackBrowserPolicy" FileKey="LauncherExecutable" ExeCommand="--remove-browser-policy" Execute="rollback" Impersonate="no" Return="check" />
+    <CustomAction Id="RemoveBrowserPolicy" FileKey="LauncherExecutable" ExeCommand="--remove-browser-policy" Execute="deferred" Impersonate="no" Return="check" />
+    <InstallExecuteSequence>
+      <Custom Action="ValidateClientSettingsForInstall" Before="InstallInitialize">NOT REMOVE~="ALL"</Custom>
+      <Custom Action="RollbackBrowserPolicy" Before="InitializeClient">NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT REMOVE~="ALL"</Custom>
+      <Custom Action="InitializeClient" After="InstallFiles">NOT REMOVE~="ALL"</Custom>
+      <Custom Action="RemoveBrowserPolicy" Before="RemoveFiles">REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+    </InstallExecuteSequence>
+    <UI>
+      <UIRef Id="WixUI_Common" />
+      <TextStyle Id="WixUI_Font_Normal" FaceName="Microsoft YaHei" Size="9" />
+      <TextStyle Id="WixUI_Font_Bigger" FaceName="Microsoft YaHei" Size="12" />
+      <TextStyle Id="WixUI_Font_Title" FaceName="Microsoft YaHei" Size="11" Bold="yes" />
+      <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+      <DialogRef Id="ErrorDlg" />
+      <DialogRef Id="FilesInUse" />
+      <DialogRef Id="MsiRMFilesInUse" />
+      <DialogRef Id="ProgressDlg" />
+      <DialogRef Id="PrepareDlg" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999">1</Publish>
+      <Dialog Id="ClientSettingsDlg" Width="370" Height="270" Title="NPDMS DAC 安装">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="24" Text="{\WixUI_Font_Title}设置 NPDMS 环境" />
+        <Control Id="Description" Type="Text" X="20" Y="45" Width="330" Height="28" Text="安装自带 Java 的本机 DAC 服务，安装后自动启动。" />
+        <Control Id="ServerLabel" Type="Text" X="20" Y="85" Width="330" Height="18" Text="NPDMS 后端 API 地址（HTTP/HTTPS，包含端口）" />
+        <Control Id="Server" Type="Edit" X="20" Y="105" Width="330" Height="18" Property="NPDMS_SERVER_URL" />
+        <Control Id="OriginLabel" Type="Text" X="20" Y="139" Width="330" Height="18" Text="浏览器访问 NPDMS 的地址（不含路径；相同时可留空）" />
+        <Control Id="Origin" Type="Edit" X="20" Y="159" Width="330" Height="18" Property="NPDMS_WEB_ORIGIN" />
+        <Control Id="Example" Type="Text" X="20" Y="190" Width="330" Height="40" Text="HTTP 网页会为所填网页地址配置 Chrome/Edge 本地网络访问权限。安装后刷新网页；修改环境或卸载时清理本客户端添加的旧授权。" />
+        <Control Id="Install" Type="PushButton" X="205" Y="240" Width="70" Height="20" Default="yes" Text="安装">
+          <Publish Event="DoAction" Value="ValidateClientSettings" Order="1">1</Publish>
+          <Publish Event="SpawnDialog" Value="ClientSettingsErrorDlg" Order="2">NOT NPDMS_CONFIG_VALID</Publish>
+          <Publish Event="EndDialog" Value="Return" Order="3">NPDMS_CONFIG_VALID = "1"</Publish>
+          <Condition Action="disable">NOT NPDMS_SERVER_URL</Condition>
+          <Condition Action="enable">NPDMS_SERVER_URL</Condition>
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="285" Y="240" Width="65" Height="20" Cancel="yes" Text="取消">
+          <Publish Event="EndDialog" Value="Exit">1</Publish>
+        </Control>
+      </Dialog>
+      <Dialog Id="ClientSettingsErrorDlg" Width="340" Height="140" Title="请检查 NPDMS 地址">
+        <Control Id="Message" Type="Text" X="20" Y="20" Width="300" Height="75" Text="[NPDMS_CONFIG_ERROR]" />
+        <Control Id="OK" Type="PushButton" X="135" Y="110" Width="70" Height="20" Default="yes" Cancel="yes" Text="返回修改">
+          <Publish Event="EndDialog" Value="Return">1</Publish>
+        </Control>
+      </Dialog>
+      <InstallUISequence>
+        <Show Dialog="ClientSettingsDlg" Before="ProgressDlg">NOT Installed</Show>
+        <Show Dialog="FatalError" OnExit="error" />
+        <Show Dialog="UserExit" OnExit="cancel" />
+        <Show Dialog="ExitDialog" OnExit="success" />
+      </InstallUISequence>
+    </UI>
+  </Product>
+</Wix>
