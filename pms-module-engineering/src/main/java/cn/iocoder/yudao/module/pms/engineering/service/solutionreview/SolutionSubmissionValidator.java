@@ -68,6 +68,10 @@ public class SolutionSubmissionValidator {
         }
 
         var input = json(solution.getSectionData()).path("requirementInput");
+        // 需求分析按需引入；未引用时独立编制，已有引用仍执行完整版本校验。
+        if (input.isMissingNode() || input.isNull()) return;
+        if (!input.isObject()) throw new IllegalArgumentException("需求分析引用格式无效");
+        if (!input.hasNonNull("revisionId")) return;
         Long revisionId = input.path("revisionId").asLong();
         var revision = requirements.selectRevision(new RequirementRevisionQuery(tenant, revisionId));
         if (revision == null || !Objects.equals(revision.getProjectId(), solution.getProjectId()))

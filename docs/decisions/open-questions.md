@@ -1552,13 +1552,16 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 ## Q-SUPERVISION-REQUIREMENT-SOLUTION-20261019 — 督导模板按需需求分析与必做实施方案
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED
 - Area: 未发布督导模板993009900036的需求分析与实施方案依赖；不阻断已授权的割接入口及到货、初验、终验实体页面配置。
 - Question: 需求分析按需、实施方案必做时，是否按方案办理方式决定需求分析的前置要求？
 - Evidence: 当前草稿PRE_REQUIREMENT为按需，PLAN_SOLUTION为必做。SolutionSubmissionValidator的在线编制分支要求本项目有效FROZEN需求分析；完整客户方案分支先由SolutionCustomerDocumentService核验原件引用，再按既有上传路径办理。
 - Recommendation: 保留需求分析按需。在线编制实施方案时先完成需求分析并引用有效版本；已有完整客户方案时沿用原件校验及既有提交审批路径。明确提示条件依赖，不自动补造需求分析、不降低在线提交校验。
-- Current action: 需求方要求先建议再确认，尚未裁决；模板该项与业务校验均保持原状，未修改PRD。
+- Current action: 已按2026-10-22裁决调整实施方案可选引用逻辑，保留需求分析任务按需属性；不改写已发布模板与既有项目历史。
 - Decision owner: 需求方。
+
+- Decision (2026-10-22): 需求方确认需求分析保持按需；有有效已完成需求分析时实施方案自动引入，没有时独立编制并允许正常提交。此裁决替代上述前置要求建议。已有引用保留项目归属、有效完成版本、版本变化及差异说明校验；其他提交校验和不可变来源历史不变。
+- Validation (2026-10-22): 后端SolutionSubmissionValidatorTest、SolutionTieredReviewServiceTest共38项通过；前端solutionRequirementSources.runtime.spec.ts共16项通过。覆盖无引用独立提交、有有效版自动引入、草稿不引入、已有引用归属/有效性/版本差异及不可变来源保护。通过worktree-build.ps1构建并冻结7abffcbc-6f8d-408d-88e3-93b7caee46db，经批准使用worktree-backend.ps1部署59191（local,dac，PID 30916），保留22项既有部署修复基线。真实浏览器以杨凯添提交项目992203060196的隔离方案30057并重开审批详情，显示审批中；只读回查确认该项目需求版本数为0、方案无需求引用、审批记录RUNNING。另以正式草稿API准备项目992203060198的隔离方案30058，真实浏览器显示需求版本变化提示，提交时拒绝“PRE-04 尚未形成有效的已完成需求分析版本”，重开仍为草稿且无审批记录；原方案30055及既有需求版本保持不变。证据见.run/optional-requirement-browser/，本次仅验证提交，不代行审批通过。
 
 ## Q-DAC-DESKTOP-AUTH-20261021 — 本机 DAC 复用的浏览器认证入口
 

@@ -38,6 +38,21 @@ const render = (projectId?: number, readOnly = false) => {
 }
 
 describe('solution requirement analysis references', () => {
+  it('allows independent authoring without an effective requirement and never imports a draft', async () => {
+    vi.mocked(RequirementApi.workspace).mockResolvedValue({ currentEffective: null, draft: { values: { projectBackground: '未完成草稿' } } } as any)
+    const mounted = render(1)
+    try {
+      await flush()
+      mounted.form.value.background = '独立编制背景'
+      mounted.state.generateFromSources()
+      await flush()
+      expect(mounted.state.requirementError).toBe('')
+      expect(mounted.form.value.background).toBe('独立编制背景')
+      expect(JSON.parse(mounted.form.value.sectionData || '{}').requirementInput).toBeUndefined()
+      expect(RequirementApi.read).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
   beforeEach(() => { vi.clearAllMocks(); vi.mocked(RequirementApi.workspace).mockResolvedValue(overview({})) })
 
   it('imports current business fields and structured rows, preferring the effective revision over the draft', async () => {
@@ -122,7 +137,7 @@ describe('solution requirement analysis references', () => {
       expect(mounted.state.reqBackground).toBe('')
       vi.mocked(RequirementApi.workspace).mockResolvedValueOnce({ currentEffective: null, draft: { values: { projectBackground: '草稿背景' } } } as any)
       await mounted.state.loadRequirement(); await flush()
-      expect(mounted.state.requirementError).toBe('PRE-04 尚未形成有效的已完成需求分析版本')
+      expect(mounted.state.requirementError).toBe('')
       expect(mounted.state.reqBackground).toBe('')
     } finally { mounted.app.unmount() }
   })

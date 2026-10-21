@@ -8,6 +8,9 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionSource
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -78,6 +81,31 @@ class SolutionSubmissionValidatorTest {
         when(files.lockAndRevalidate(any())).thenReturn(new FileEvidenceApi.Fact(false,"deleted",1,2,1));
         assertThrows(IllegalArgumentException.class, () -> validator.validateAndFreezeSources(solution));
         verifyNoInteractions(sources);
+    }
+    @ParameterizedTest @NullAndEmptySource
+    @ValueSource(strings = {"{}", "{\"requirementInput\":null}", "{\"requirementInput\":{}}"})
+    void allowsIndependentSolutionWithoutRequirementReference(String sections) {
+        solution.setSectionData(sections);
+        validator.validateAndFreezeSources(solution);
+        verifyNoInteractions(requirements, sources);
+        verify(files).lockAndRevalidate(any());
+    }
+    @ParameterizedTest
+    @ValueSource(strings = {"{\"requirementInput\":\"invalid\"}", "{\"requirementInput\":{\"revisionId\":0}}"})
+    void malformedOrInvalidReferenceDoesNotBecomeOptional(String sections) {
+        solution.setSectionData(sections);
+        when(requirements.selectRevision(any())).thenReturn(null);
+        assertThrows(IllegalArgumentException.class, () -> validator.validateAndFreezeSources(solution));
+        verifyNoInteractions(sources);
+    }
+    @Test void independentSolutionStillRequiresOwnContentAndValidFiles() {
+        solution.setSectionData("{}");
+        solution.setBackground("");
+        assertThrows(IllegalArgumentException.class, () -> validator.validateAndFreezeSources(solution));
+        solution.setBackground("背景");
+        when(files.lockAndRevalidate(any())).thenReturn(new FileEvidenceApi.Fact(false,"deleted",1,2,1));
+        assertThrows(IllegalArgumentException.class, () -> validator.validateAndFreezeSources(solution));
+        verifyNoInteractions(requirements, sources);
     }
     @Test void rejectsRequirementFromOtherProject() {
         revision.setProjectId(10L);

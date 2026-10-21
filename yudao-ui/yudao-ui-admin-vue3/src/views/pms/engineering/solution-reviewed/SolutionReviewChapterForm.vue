@@ -677,6 +677,7 @@ const loadRequirement = async () => {
   const requestId = ++requirementRequest
   const projectId = form.value.projectId
   reqValues.value = {}
+  latestRequirement.value = null
   requirementError.value = ''
   requirementLoading.value = false
   if (!projectId) return
@@ -691,8 +692,6 @@ const loadRequirement = async () => {
       reqValues.value = source.values
     } else if (!props.readOnly && overview.currentEffective) {
       refreshRequirementInput()
-    } else if (!props.readOnly) {
-      requirementError.value = 'PRE-04 尚未形成有效的已完成需求分析版本'
     }
   } catch {
     if (requestId === requirementRequest) requirementError.value = '需求分析引用内容加载失败，请重新加载'
