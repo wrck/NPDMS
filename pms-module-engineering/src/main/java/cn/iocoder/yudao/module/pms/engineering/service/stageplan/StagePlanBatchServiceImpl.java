@@ -116,6 +116,9 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         try { calculation = stagePlanApi.calculateSchedule(tenantId, projectId, baseline.getStartDate(), baseline.getEndDate()); }
         catch (IllegalArgumentException failure) { throw exception(STAGE_PLAN_DATE_INVALID, failure.getMessage()); }
         if (calculation == null) throw exception(STAGE_PLAN_DATE_INVALID, "项目计划推算输入不可用");
+        var completed = stagePlanApi.readCompletedDates(new ProjectStagePlanApi.CompletedDatesQuery(tenantId, projectId));
+        var completedStages = completed.stages().stream().collect(java.util.stream.Collectors.toMap(ProjectStagePlanApi.NodeActualDates::nodeId, node -> node));
+        var completedTasks = completed.tasks().stream().collect(java.util.stream.Collectors.toMap(ProjectStagePlanApi.NodeActualDates::nodeId, node -> node));
         var calculated = calculation.stages().stream().collect(java.util.stream.Collectors.toMap(ProjectStagePlanApi.StagePlanDate::stageId, value -> value));
         var factsById = stages.stream().collect(java.util.stream.Collectors.toMap(ProjectStagePlanApi.StagePlanFact::stageId, stage -> stage));
         stages = calculation.stages().stream().map(date -> factsById.get(date.stageId())).toList();
@@ -128,7 +131,8 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         batch.setInputSnapshot(calculation.inputSnapshot());
         var participatingCodes = stages.stream().map(ProjectStagePlanApi.StagePlanFact::code).collect(java.util.stream.Collectors.toSet());
         batch.setTaskPlansJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(stagePlanApi.listTaskPlans(tenantId, projectId).stream()
-                .filter(task -> participatingCodes.contains(task.stageCode())).toList()));
+                .filter(task -> participatingCodes.contains(task.stageCode()))
+                .map(task -> defaultCompletedTaskDates(task, completedTasks.get(task.taskId()))).toList()));
         batchMapper.insert(batch);
         int pathOrder = 0;
         for (ProjectStagePlanApi.StagePlanFact stage : stages) {
@@ -142,6 +146,8 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
             item.setSuggestedStart(dates.planStartTime());
             item.setSuggestedEnd(dates.planEndTime());
             item.setPlanStart(dates.planStartTime()); item.setPlanEnd(dates.planEndTime());
+            var actual = completedStages.get(stage.stageId());
+            if (actual != null) { item.setPlanStart(actual.actualStart()); item.setPlanEnd(actual.actualEnd()); }
             itemMapper.insert(item);
         }
         return getBatch(batch.getId());
@@ -162,6 +168,9 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
             throw exception(STAGE_PLAN_DATE_INVALID, failure.getMessage());
         }
         if (calculation == null) throw exception(STAGE_PLAN_DATE_INVALID, "项目计划推算输入不可用");
+        var completed = stagePlanApi.readCompletedDates(new ProjectStagePlanApi.CompletedDatesQuery(tenantId, batch.getProjectId()));
+        var completedStages = completed.stages().stream().collect(java.util.stream.Collectors.toMap(ProjectStagePlanApi.NodeActualDates::nodeId, node -> node));
+        var completedTasks = completed.tasks().stream().collect(java.util.stream.Collectors.toMap(ProjectStagePlanApi.NodeActualDates::nodeId, node -> node));
         var byStage = calculation.stages().stream().collect(java.util.stream.Collectors.toMap(ProjectStagePlanApi.StagePlanDate::stageId, value -> value));
         if (!byStage.keySet().equals(items.stream().map(StagePlanItemDO::getPhaseId).collect(java.util.stream.Collectors.toSet()))) {
             var facts = stagePlanApi.listStages(tenantId, batch.getProjectId()).stream()
@@ -185,6 +194,8 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         for (int i = 0; i < calculation.stages().size(); i++) pathOrder.put(calculation.stages().get(i).stageId(), i);
         for (var item : items) {
             var dates = byStage.get(item.getPhaseId()); item.setPlanStart(dates.planStartTime()); item.setPlanEnd(dates.planEndTime());
+            var actual = completedStages.get(item.getPhaseId());
+            if (actual != null) { item.setPlanStart(actual.actualStart()); item.setPlanEnd(actual.actualEnd()); }
             item.setSuggestedStart(dates.planStartTime()); item.setSuggestedEnd(dates.planEndTime());
             item.setSort(pathOrder.get(item.getPhaseId()));
         }
@@ -208,7 +219,8 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         var previousTasks = readTasks(batch).stream().collect(java.util.stream.Collectors.toMap(ProjectStagePlanApi.TaskPlan::taskId, task -> task));
         var refreshedTasks = stagePlanApi.listTaskPlans(tenantId, batch.getProjectId()).stream().filter(task -> participating.contains(task.stageCode()))
                 .map(task -> { var prior = previousTasks.get(task.taskId()); return prior == null ? task : new ProjectStagePlanApi.TaskPlan(
-                        task.taskId(), task.parentTaskId(), task.stageCode(), task.name(), task.version(), prior.planStart(), prior.planEnd(), task.acceptanceTime()); }).toList();
+                        task.taskId(), task.parentTaskId(), task.stageCode(), task.name(), task.version(), prior.planStart(), prior.planEnd(), task.acceptanceTime()); })
+                .map(task -> defaultCompletedTaskDates(task, completedTasks.get(task.taskId()))).toList();
         batchUpdate.setTaskPlansJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(refreshedTasks));
         batchUpdate.setVersion(batch.getVersion());
         if (batchMapper.updateById(batchUpdate) != 1) throw exception(STAGE_PLAN_VERSION_NOT_MATCH);
@@ -388,9 +400,22 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
             respVO.setBaselineEnd(batch.getCalculatedEnd() == null ? baseline.getEndDate() : batch.getCalculatedEnd());
         }
         respVO.setTasks(readTasks(batch));
+        if (Objects.equals(batch.getStatus(), StagePlanBatchDO.STATUS_DRAFT)
+                || Objects.equals(batch.getStatus(), StagePlanBatchDO.STATUS_REJECTED)) {
+            respVO.setCompletedDates(stagePlanApi.readCompletedDates(
+                    new ProjectStagePlanApi.CompletedDatesQuery(tenantId, batch.getProjectId())));
+        }
         respVO.setItems(itemMapper.selectListByBatchId(batchId).stream()
                 .map(item -> BeanUtils.toBean(item, StagePlanItemRespVO.class)).toList());
         return respVO;
+    }
+
+    private static ProjectStagePlanApi.TaskPlan defaultCompletedTaskDates(ProjectStagePlanApi.TaskPlan task,
+                                                                          ProjectStagePlanApi.NodeActualDates actual) {
+        if (actual == null) return task;
+        return new ProjectStagePlanApi.TaskPlan(task.taskId(), task.parentTaskId(), task.stageCode(), task.name(),
+                task.version(), task.planStart() == null ? actual.actualStart() : task.planStart(),
+                task.planEnd() == null ? actual.actualEnd() : task.planEnd(), task.acceptanceTime());
     }
 
     private boolean requiresAdjustmentReason(Long projectId) {

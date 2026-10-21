@@ -7,7 +7,7 @@
       <div class="schedule-actions">
         <!-- 视图级操作收口到工作区底部吸附操作栏（businessActionBar 协议）；独立页签（计划进度）原地渲染 -->
         <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
-          <el-button :disabled="dirty || acting" @click="load()">刷新</el-button>
+          <el-button v-if="!hasActionBar" data-testid="refresh-schedule" :disabled="dirty || acting || loading" @click="refresh">刷新</el-button>
           <el-button :disabled="acting" @click="durationVisible = true">{{
             durationPlan ? '管理工期' : '录入工期'
           }}</el-button>
@@ -236,7 +236,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { shortPlan, deadlineHint, taskPlanIssue, stageItemBlockingIssue, fitTaskPlanIntoStage, compareSchedules } from './schedulePresentation'
+import { shortPlan, deadlineHint, taskPlanIssue, stageItemBlockingIssue, fitTaskPlanIntoStage, compareSchedules, fillCompletedPlanDates } from './schedulePresentation'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -254,6 +254,7 @@ import { initialDurationHint } from './durationEntry'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 const { barTarget } = useBusinessActionBar()
+const hasActionBar = !!barTarget
 const emit = defineEmits<{
   'open-task': [task: TaskApi.TaskNode, stageCode: string]
   changed: []
@@ -265,8 +266,8 @@ const loading = ref(false),
   errorText = ref('')
 const durationVisible = ref(false),
   submitVisible = ref(false),
-  approverId = ref<number>()
-type ServiceManagerApprover = MemberApi.MemberRecord & { userId: number }
+  approverId = ref<number | string>()
+type ServiceManagerApprover = { userId: number | string; memberName?: string }
 const approvers = ref<ServiceManagerApprover[]>([]),
   approversLoading = ref(false),
   approverError = ref('')
@@ -365,6 +366,7 @@ const apply = (value: PlanApi.StagePlanBatchVO) => {
   batch.value = value
   selectedId.value = value.id
   saved.value = JSON.stringify(value)
+  if (editable.value) fillCompletedPlanDates(value)
 }
 // 任务计划日期为空时默认沿用所属阶段日期，避免逐项重复填写；阶段计划时间更新时，
 // 不满足阶段区间的任务自动调整进区间（尽量平移保持天数，超长收紧为整个区间）。
@@ -381,7 +383,9 @@ watch(
     if (!value || (value.status !== 0 && value.status !== 3) || !editable.value) return
     const wasDirty = JSON.stringify(value) !== saved.value
     let changed = false
+    const completedTasks = new Set(value.completedDates?.tasks.map(node => String(node.nodeId)) || [])
     for (const task of value.tasks || []) {
+      if (completedTasks.has(String(task.taskId))) continue
       const stage = value.items.find((item) => item.phaseCode === task.stageCode)
       if (!stage?.planStart || !stage.planEnd) continue
       if (!task.planStart || !task.planEnd) {
@@ -538,10 +542,15 @@ const openSubmit = async () => {
     approvers.value = [
       ...new Map(
         members
-          .filter((person): person is ServiceManagerApprover =>
-            MemberApi.logicalMemberRole(person.memberRole) === 'SERVICE_MANAGER'
-            && typeof person.userId === 'number' && Number.isInteger(person.userId) && person.userId > 0)
-          .map((person) => [person.userId, person])
+          .flatMap((person): ServiceManagerApprover[] => {
+            if (MemberApi.logicalMemberRole(person.memberRole) !== 'SERVICE_MANAGER') return []
+            // 长整数账号由服务端序列化为字符串，原样传递，避免 Number 转换丢失精度。
+            const userId: unknown = person.userId
+            if (!(typeof userId === 'number' && Number.isSafeInteger(userId) && userId > 0)
+              && !(typeof userId === 'string' && /^[1-9]\d*$/.test(userId))) return []
+            return [{ userId, memberName: person.memberName }]
+          })
+          .map((person) => [String(person.userId), person])
       ).values()
     ]
     if (approvers.value.length === 1) approverId.value = approvers.value[0].userId
@@ -654,7 +663,13 @@ onBeforeUnmount(() => {
 })
 onBeforeRouteLeave(guard)
 onBeforeRouteUpdate((to, from) => to.query.projectId === from.query.projectId || guard())
+// 工作区统一刷新已由宿主执行离页保护；再次检查，避免等待期间的新编辑被覆盖。
+const refresh = async () => {
+  if (dirty.value || acting.value || loading.value || durationRef.value?.isDirty()) return
+  await load(selectedId.value)
+}
 defineExpose({
+  refresh,
   requestLeave: guard,
   isDirty: () => dirty.value || acting.value || !!durationRef.value?.isDirty()
 })

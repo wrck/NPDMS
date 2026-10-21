@@ -103,6 +103,7 @@ class StagePlanBatchServiceTest {
                 7L, 99L, java.util.Set.of("SERVICE_MANAGER"), "DIRECT", "ACTIVE", "S2", 1L, 1L));
         when(projectScopeApi.resolveAllCurrent(any())).thenReturn(java.util.Set.of(7L));
         TenantContextHolder.setTenantId(1L);
+        when(stagePlanApi.readCompletedDates(any())).thenReturn(new ProjectStagePlanApi.CompletedDates(List.of(), List.of()));
         when(environment.getProperty("yudao.tenant.enable", Boolean.class, true)).thenReturn(true);
         batch = new StagePlanBatchDO();
         batch.setId(100L);
@@ -154,6 +155,69 @@ class StagePlanBatchServiceTest {
     void projectOutsideScopeCannotReadBatch() {
         when(projectScopeApi.resolveAllCurrent(any())).thenReturn(java.util.Set.of());
         assertThrows(ServiceException.class, () -> service.getBatch(100L));
+        verify(stagePlanApi, never()).readCompletedDates(any());
+    }
+
+    @Test void completedDateMetadataIsReadOnlyAndOnlyIncludedForEditableDrafts() {
+        var dates = new ProjectStagePlanApi.CompletedDates(List.of(new ProjectStagePlanApi.NodeActualDates(1L,
+                LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 2))), List.of());
+        when(stagePlanApi.readCompletedDates(any())).thenReturn(dates);
+        assertEquals(dates, service.getBatch(100L).getCompletedDates());
+        verify(stagePlanApi).readCompletedDates(new ProjectStagePlanApi.CompletedDatesQuery(1L, 7L));
+        verify(batchMapper, never()).updateById(any(StagePlanBatchDO.class));
+        verify(itemMapper, never()).updateById(any(StagePlanItemDO.class));
+        clearInvocations(stagePlanApi);
+        for (int status : List.of(StagePlanBatchDO.STATUS_PENDING_APPROVAL, StagePlanBatchDO.STATUS_EFFECTIVE)) {
+            batch.setStatus(status);
+            assertNull(service.getBatch(100L).getCompletedDates());
+        }
+        verify(stagePlanApi, never()).readCompletedDates(any());
+    }
+
+    @Test void recalculationPrefillsCompletedStageAndTaskDatesWithoutOverwritingPlannedTasks() {
+        frozenInputs();
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(nonOverlappingItems());
+        var start = LocalDate.of(2026, 1, 2); var end = start.plusDays(1);
+        when(stagePlanApi.readCompletedDates(any())).thenReturn(new ProjectStagePlanApi.CompletedDates(
+                List.of(new ProjectStagePlanApi.NodeActualDates(1L, start, end)),
+                List.of(new ProjectStagePlanApi.NodeActualDates(20L, start, end))));
+        when(stagePlanApi.listTaskPlans(1L, 7L)).thenReturn(List.of(new ProjectStagePlanApi.TaskPlan(20L, null,
+                "S1", "已完成安装", 1, null, null, null)));
+        service.autoEstimate(100L);
+        var items = ArgumentCaptor.forClass(StagePlanItemDO.class);
+        verify(itemMapper, atLeastOnce()).updateById(items.capture());
+        var completed = items.getAllValues().stream().filter(item -> item.getId().equals(1L)).findFirst().orElseThrow();
+        assertEquals(start, completed.getPlanStart()); assertEquals(end, completed.getPlanEnd());
+        var root = ArgumentCaptor.forClass(StagePlanBatchDO.class);
+        verify(batchMapper).updateById(root.capture());
+        assertTrue(root.getValue().getTaskPlansJson().contains("2026-01-02"));
+        assertTrue(root.getValue().getTaskPlansJson().contains("2026-01-03"));
+        batch.setTaskPlansJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(List.of(
+                new ProjectStagePlanApi.TaskPlan(20L, null, "S1", "已完成安装", 1, start.minusDays(1), end.plusDays(1), null))));
+        clearInvocations(batchMapper);
+        service.autoEstimate(100L);
+        verify(batchMapper).updateById(root.capture());
+        assertTrue(root.getValue().getTaskPlansJson().contains("2026-01-01"));
+        assertTrue(root.getValue().getTaskPlansJson().contains("2026-01-04"));
+    }
+
+    @Test void newDraftUsesCompletedStageActualDatesInsteadOfSuggestedDates() {
+        frozenInputs();
+        var plan = constructionPlanMapper.selectByProjectId(1L, 7L);
+        when(constructionPlanMapper.selectForUpdate(any())).thenReturn(plan);
+        when(stagePlanApi.listStages(1L, 7L)).thenReturn(List.of(
+                new ProjectStagePlanApi.StagePlanFact(1L, "S1", "已完成", 1, null, null, null, null, "2", 1),
+                new ProjectStagePlanApi.StagePlanFact(2L, "S2", "进行中", 2, null, null, null, null, "1", 1)));
+        var actualStart = LocalDate.of(2026, 1, 2); var actualEnd = actualStart.plusDays(1);
+        when(stagePlanApi.readCompletedDates(any())).thenReturn(new ProjectStagePlanApi.CompletedDates(
+                List.of(new ProjectStagePlanApi.NodeActualDates(1L, actualStart, actualEnd)), List.of()));
+        doAnswer(call -> { ((StagePlanBatchDO) call.getArgument(0)).setId(100L); return 1; }).when(batchMapper).insert(any(StagePlanBatchDO.class));
+        service.createDraft(7L);
+        var inserted = ArgumentCaptor.forClass(StagePlanItemDO.class);
+        verify(itemMapper, times(2)).insert(inserted.capture());
+        var done = inserted.getAllValues().getFirst();
+        assertEquals(actualStart, done.getPlanStart()); assertEquals(actualEnd, done.getPlanEnd());
+        verify(stagePlanApi, never()).applyPlanDates(any(), any(), any());
     }
 
     @AfterEach

@@ -5,6 +5,21 @@ import type {
   StagePlanTaskVO
 } from '@/api/pms/engineering/stage-plan'
 
+/** 实际日期补齐空值、替换阶段系统建议默认；保留不同于建议的手工值及历史批次。 */
+export const fillCompletedPlanDates = (plan: StagePlanBatchVO) => {
+  if (![0, 3].includes(plan.status!) || !plan.completedDates) return false
+  let changed = false
+  const fill = (target: { planStart?: string; planEnd?: string; suggestedStart?: string; suggestedEnd?: string }, actual?: { actualStart?: string | null; actualEnd?: string | null }) => {
+    if (actual?.actualStart && target.planStart !== actual.actualStart && (!target.planStart || target.planStart === target.suggestedStart)) { target.planStart = actual.actualStart; changed = true }
+    if (actual?.actualEnd && target.planEnd !== actual.actualEnd && (!target.planEnd || target.planEnd === target.suggestedEnd)) { target.planEnd = actual.actualEnd; changed = true }
+  }
+  const stages = new Map(plan.completedDates.stages.map(node => [String(node.nodeId), node]))
+  const tasks = new Map(plan.completedDates.tasks.map(node => [String(node.nodeId), node]))
+  plan.items.forEach(item => fill(item, stages.get(String(item.phaseId))))
+  plan.tasks?.forEach(task => fill(task, tasks.get(String(task.taskId))))
+  return changed
+}
+
 export const shortPlan = (plan?: StagePlanBatchVO) =>
   !!plan?.baselineStart &&
   !!plan.baselineEnd &&

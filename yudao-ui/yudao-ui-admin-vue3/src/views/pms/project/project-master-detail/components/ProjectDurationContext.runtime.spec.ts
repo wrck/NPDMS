@@ -354,6 +354,30 @@ describe('PRE-01 existing duration components in project views', () => {
     expect(api.createInitial).not.toHaveBeenCalled()
   })
 
+  it('keeps initial-duration input after a version rejection and uses the refreshed project on retry', async () => {
+    const view = render(Drawer)
+    view.child.value.openInitial()
+    view.state().formRef = { validate: async () => true }
+    Object.assign(view.state().form, { startDate: '2026-09-01', endDate: '2026-09-10' })
+    api.createInitial.mockRejectedValueOnce(new Error('Project版本冲突，请重新加载后重试'))
+    await expect(view.state().save()).rejects.toThrow('Project版本冲突')
+    expect(view.state().visible).toBe(true)
+    expect(view.state().saving).toBe(false)
+    expect(view.child.value.isDirty()).toBe(true)
+    view.props.project = { ...view.props.project, version: 8 }
+    await flush()
+    expect(view.state().form.startDate).toBe('2026-09-01')
+    expect(view.state().form.endDate).toBe('2026-09-10')
+    expect(api.createInitial).toHaveBeenCalledTimes(1)
+    view.state().formRef = { validate: async () => true }
+    await view.state().save()
+    expect(api.createInitial).toHaveBeenLastCalledWith(
+      expect.objectContaining({ expectedProjectVersion: 8, startDate: '2026-09-01', endDate: '2026-09-10' }),
+      expect.any(String)
+    )
+    expect(view.state().visible).toBe(false)
+  })
+
   it('rejects readonly form/file handlers and mismatched project plans', async () => {
     const view = render(Drawer, true)
     view.child.value.openInitial()

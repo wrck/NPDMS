@@ -6,6 +6,7 @@ import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import * as MemberApi from '@/api/pms/project/unified-members'
 import {
   mount,
+  findByTestId,
   textOf,
   passthrough,
   tableColumn
@@ -23,8 +24,13 @@ vi.mock('vue-router', () => ({
   onBeforeRouteLeave: vi.fn(),
   onBeforeRouteUpdate: vi.fn()
 }))
-const permission = vi.hoisted(() => ({ bpm: true, task: true }))
-vi.mock('@/utils/permission', () => ({ checkPermi: (codes: string[]) => codes.includes('bpm:process-instance:query') ? permission.bpm : codes.includes('bpm:task:query') ? permission.task : true }))
+const permission = vi.hoisted(() => ({ bpm: true, task: true, schedule: true }))
+const businessBar = vi.hoisted(() => ({ embedded: false }))
+vi.mock('@/components/BusinessView/businessActionBar', async () => {
+  const { ref } = await import('vue')
+  return { useBusinessActionBar: () => ({ barTarget: businessBar.embedded ? ref(null) : undefined }) }
+})
+vi.mock('@/utils/permission', () => ({ checkPermi: (codes: string[]) => codes.includes('bpm:process-instance:query') ? permission.bpm : codes.includes('bpm:task:query') ? permission.task : codes.includes('pms:imp-stage-plan:update') ? permission.schedule : true }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getDictLabel: () => '直签' }))
 vi.mock('@/api/pms/engineering/stage-plan', () => ({
   getStagePlanBatchPage: vi.fn(),
@@ -105,8 +111,10 @@ const render = () => {
   return { ...mounted, state: (mounted.vm as any).$.setupState }
 }
 beforeEach(() => {
+  businessBar.embedded = false
   permission.bpm = true
   permission.task = true
+  permission.schedule = true
   vi.clearAllMocks()
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
   vi.mocked(DurationApi.getByProjectId).mockResolvedValue({
@@ -123,6 +131,33 @@ beforeEach(() => {
     id === 7 ? structuredClone(effective) : draft()
   )
   vi.mocked(PlanApi.getOverdueStages).mockResolvedValue([])
+})
+
+it.each([false, true])('only exposes its own refresh outside the unified action bar (embedded=%s)', async embedded => {
+  businessBar.embedded = embedded
+  const app = render()
+  try {
+    await flush()
+    expect(Boolean(findByTestId(app.root, 'refresh-schedule'))).toBe(!embedded)
+  } finally { app.app.unmount() }
+})
+
+it('reloads the selected plan from the unified refresh and refuses to overwrite unsaved dates', async () => {
+  businessBar.embedded = true
+  const app = render()
+  try {
+    await flush()
+    vi.mocked(PlanApi.getStagePlanBatch).mockClear()
+    vi.mocked(PlanApi.getStagePlanBatch).mockImplementation(async id => id === 7 ? structuredClone(effective) : { ...draft(), remark: '刷新后的数据' })
+    await (app.vm as any).refresh()
+    expect(PlanApi.getStagePlanBatch).toHaveBeenCalledWith(8)
+    expect(app.state.batch.remark).toBe('刷新后的数据')
+    app.state.batch.tasks[0].planEnd = '2026-10-19'
+    vi.mocked(PlanApi.getStagePlanBatch).mockClear()
+    await (app.vm as any).refresh()
+    expect(PlanApi.getStagePlanBatch).not.toHaveBeenCalled()
+    expect(app.state.batch.tasks[0].planEnd).toBe('2026-10-19')
+  } finally { app.app.unmount() }
 })
 
 it.each(['bpm', 'task'] as const)('hides the BPM progress entry when the existing account lacks %s query permission', async missing => {
@@ -148,6 +183,51 @@ it('loads effective plan dates for warnings even when the page response has no d
   } finally {
     app.app.unmount()
   }
+})
+
+it('marks completed-date defaults for saving and keeps completed tasks out of stage auto fitting', async () => {
+  const value = draft() as any
+  value.tasks[0].planStart = undefined
+  value.tasks[0].planEnd = undefined
+  value.completedDates = { stages: [], tasks: [{ nodeId: 20, actualStart: '2026-09-28', actualEnd: '2026-09-30' }] }
+  vi.mocked(PlanApi.getStagePlanBatch).mockImplementation(async id => id === 7 ? structuredClone(effective) : structuredClone(value))
+  const app = render()
+  try {
+    await flush()
+    expect(app.state.batch.tasks[0]).toMatchObject({ planStart: '2026-09-28', planEnd: '2026-09-30' })
+    expect(app.state.dirty).toBe(true)
+    app.state.batch.items[0].planStart = '2026-10-03'
+    await flush()
+    expect(app.state.batch.tasks[0].planStart).toBe('2026-09-28')
+    vi.mocked(PlanApi.updateStagePlanItems).mockImplementation(async request => {
+      value.tasks = JSON.parse(JSON.stringify(request.tasks))
+      const items = JSON.parse(JSON.stringify(request.items))
+      value.items = value.items.map((item: any) => ({ ...item, ...items.find((changed: any) => changed.id === item.id) }))
+      return structuredClone(value)
+    })
+    await app.state.save()
+    expect(PlanApi.updateStagePlanItems).toHaveBeenCalledWith(expect.objectContaining({ tasks: [expect.objectContaining({ planStart: '2026-09-28', planEnd: '2026-09-30' })] }))
+    expect(JSON.parse(JSON.stringify(app.state.batch))).toEqual(JSON.parse(app.state.saved))
+    expect(app.state.dirty).toBe(false)
+  } finally { app.app.unmount() }
+})
+
+it('does not modify a view-only draft even when completion metadata is present', async () => {
+  permission.schedule = false
+  const value = draft() as any
+  value.tasks[0].planStart = undefined
+  value.tasks[0].planEnd = undefined
+  value.completedDates = { stages: [], tasks: [{ nodeId: 20, actualStart: '2026-10-10', actualEnd: '2026-10-11' }] }
+  vi.mocked(PlanApi.getStagePlanBatch).mockResolvedValue(value)
+  const app = render()
+  try {
+    await flush()
+    expect(app.state.batch.tasks[0].planStart).toBeUndefined()
+    expect(app.state.batch.tasks[0].planEnd).toBeUndefined()
+    expect(app.state.dirty).toBe(false)
+    await app.state.save()
+    expect(PlanApi.updateStagePlanItems).not.toHaveBeenCalled()
+  } finally { app.app.unmount() }
 })
 
 it.each([1, 2])(
@@ -245,6 +325,42 @@ it('collects all current service-manager pages and deduplicates multiple respons
   } finally {
     app.app.unmount()
   }
+})
+
+it('preserves a service manager long account ID when selecting and submitting approval', async () => {
+  const userId = '2108539871029019646'
+  vi.mocked(MemberApi.getMemberPage).mockResolvedValueOnce({ list: [
+    { userId, memberName: '本项目服务经理', memberRole: 'SERVICE_MANAGER' }
+  ], total: 1 } as any)
+  const app = render()
+  try {
+    await flush()
+    await app.state.openSubmit()
+    expect(app.state.approvers.map((person: { userId: string }) => person.userId)).toEqual([userId])
+    expect(app.state.approverId).toBe(userId)
+    expect(app.state.approverError).toBe('')
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).toHaveBeenCalledWith(8, userId, undefined)
+  } finally { app.app.unmount() }
+})
+
+it('deduplicates equivalent account IDs without rounding distinct long IDs or accepting invalid candidates', async () => {
+  vi.mocked(MemberApi.getMemberPage).mockResolvedValueOnce({ list: [
+    { userId: 9, memberRole: 'SERVICE_MANAGER' },
+    { userId: '9', memberRole: 'SERVICE_MANAGER_L1' },
+    { userId: '2108539871029019646', memberRole: 'SERVICE_MANAGER' },
+    { userId: '2108539871029019647', memberRole: 'SERVICE_MANAGER_L2' },
+    { userId: '10', memberRole: 'PROJECT_MANAGER' },
+    ...[null, '', '0', '-1', '1.5', 'abc', 1.5, Number.MAX_SAFE_INTEGER + 1].map(userId => ({ userId, memberRole: 'SERVICE_MANAGER' }))
+  ], total: 13 } as any)
+  const app = render()
+  try {
+    await flush()
+    await app.state.openSubmit()
+    expect(app.state.approvers.map((person: { userId: number | string }) => person.userId))
+      .toEqual(['9', '2108539871029019646', '2108539871029019647'])
+    expect(app.state.approverId).toBeUndefined()
+  } finally { app.app.unmount() }
 })
 
 it('prevents approval when a task remains outside its stage and keeps approved versions read-only', async () => {

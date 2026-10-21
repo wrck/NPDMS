@@ -39,6 +39,27 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
     private cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateReferenceInstanceMapper referenceMapper;
 
     @Override
+    public CompletedDates readCompletedDates(CompletedDatesQuery query) {
+        requireProject(query.tenantId(), query.projectId());
+        return new CompletedDates(
+                stageInstanceMapper.selectListByProjectId(query.projectId()).stream()
+                        .filter(node -> Objects.equals(node.getTenantId(), query.tenantId())
+                                && Objects.equals(node.getProjectId(), query.projectId()) && "DONE".equals(node.getStatus()))
+                        .map(ProjectStagePlanApiImpl::actualDates).toList(),
+                taskInstanceMapper.selectListByProjectId(query.projectId()).stream()
+                        .filter(node -> Objects.equals(node.getTenantId(), query.tenantId())
+                                && Objects.equals(node.getProjectId(), query.projectId()) && "DONE".equals(node.getStatus()))
+                        .map(ProjectStagePlanApiImpl::actualDates).toList());
+    }
+
+    private static NodeActualDates actualDates(
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectExecutionNodeDO<?> node) {
+        return new NodeActualDates(node.getId(),
+                node.getActualStartTime() == null ? null : node.getActualStartTime().toLocalDate(),
+                node.getActualEndTime() == null ? null : node.getActualEndTime().toLocalDate());
+    }
+
+    @Override
     public ScheduleCalculation calculateSchedule(Long tenantId, Long projectId, java.time.LocalDate start, java.time.LocalDate end) {
         requireProject(tenantId, projectId);
         var project = projectMasterMapper.selectById(projectId);

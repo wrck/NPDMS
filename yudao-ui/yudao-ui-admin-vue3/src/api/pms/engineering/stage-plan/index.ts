@@ -13,6 +13,7 @@ export interface StagePlanTaskVO {
 }
 export interface StagePlanBatchVO {
   tasks?: StagePlanTaskVO[]
+  completedDates?: { stages: CompletedNodeDates[]; tasks: CompletedNodeDates[] }
   inputSnapshot?: string
 
   id?: number
@@ -30,6 +31,12 @@ export interface StagePlanBatchVO {
   version?: number
   createTime?: string
   items: StagePlanItemVO[]
+}
+
+export interface CompletedNodeDates {
+  nodeId: number | string
+  actualStart?: string | null
+  actualEnd?: string | null
 }
 
 /** 阶段计划明细行 */
@@ -78,7 +85,7 @@ export const updateStagePlanItems = (data: {
 }
 
 // 提交审批（发起 BPM 流程，审批通过后生效并回写阶段计划日期）
-export const submitStagePlanBatch = (id: number, approverUserId: number, adjustmentReason?: string) => {
+export const submitStagePlanBatch = (id: number, approverUserId: number | string, adjustmentReason?: string) => {
   return request.put({ url: `/pms/imp-stage-plan/${id}/submit`, params: { approverUserId, adjustmentReason } })
 }
 
