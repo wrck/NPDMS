@@ -1,17 +1,56 @@
 import hashlib, json, os, re, subprocess, sys, uuid
 from pathlib import Path
+import xml.etree.ElementTree as ET
 
-def source(root):
-    digest=hashlib.sha256()
-    for directory, dirs, files in os.walk(root):
-        dirs[:]=sorted(d for d in dirs if d not in {'.git','.run','target','node_modules','dist','.idea'})
-        for name in sorted(files):
-            path=Path(directory)/name
-            # Reports are classified as generated evidence in docs/README.md; flattened POMs are Maven outputs.
-            if path.relative_to(root).parts[:2] == ('docs','generated') or name == '.flattened-pom.xml': continue
-            if path.suffix not in {'.java','.xml','.yaml','.yml','.properties','.json','.ps1','.py','.config'}: continue
-            digest.update(path.relative_to(root).as_posix().encode())
-            digest.update(path.read_bytes())
+def source(root, target):
+    if target not in {'backend', 'dac'}:
+        raise ValueError('Unsupported build target')
+    root = Path(root).resolve()
+    reactor = root if target == 'backend' else root / 'device-ops-platform'
+    inputs = set()
+    visited = set()
+
+    def include(path):
+        if path.is_file():
+            inputs.add(path)
+        elif path.is_dir():
+            for directory, dirs, files in os.walk(path):
+                dirs[:] = sorted(d for d in dirs if d not in {'.git', '.run', 'target', 'node_modules', '.idea'})
+                inputs.update(Path(directory) / name for name in files)
+
+    def module(directory):
+        directory = directory.resolve()
+        if not directory.is_relative_to(reactor):
+            raise ValueError('Maven module is outside the target reactor')
+        if directory in visited:
+            return
+        visited.add(directory)
+        pom = directory / 'pom.xml'
+        model = ET.parse(pom).getroot()  # A missing or invalid declared module must fail closed.
+        include(pom)
+        include(directory / 'src')
+        include(directory / '.mvn')
+        include(directory / 'lombok.config')
+        for modules in model.iter():
+            if modules.tag.rsplit('}', 1)[-1] == 'modules':
+                for child in modules:
+                    if child.tag.rsplit('}', 1)[-1] == 'module' and child.text:
+                        module(directory / child.text.strip())
+
+    module(reactor)
+    include(root / '.mvn')
+    include(root / 'lombok.config')
+    for name in ('worktree-build.ps1', 'worktree-toolchain.ps1', 'worktree-artifact.py'):
+        include(root / 'scripts' / name)
+    if target == 'dac':
+        # device-ops-server/pom.xml copies these assets into the executable JAR.
+        include(reactor / 'device-ops-web' / 'dist')
+    digest = hashlib.sha256(f'{target}-maven-reactor-v1\0'.encode())
+    for path in sorted(inputs, key=lambda value: value.relative_to(root).as_posix()):
+        digest.update(path.relative_to(root).as_posix().encode())
+        digest.update(b'\0')
+        digest.update(path.read_bytes())
+        digest.update(b'\0')
     return digest.hexdigest()
 
 def freeze(root, target, jar, revision, allow_offline=False):
@@ -23,7 +62,8 @@ def freeze(root, target, jar, revision, allow_offline=False):
     artifact.write_bytes(data)
     artifact.chmod(0o444)
     manifest={'workspace':str(root),'target':target,'artifact':'application.jar','sha256':hashlib.sha256(data).hexdigest(),
-              'source':revision,'jdk':'25.0.1+8','maven':'3.8.6','profiles':'local,dac' if target=='backend' else 'npdms'}
+              'source':revision,'sourceScope':f'{target}-maven-reactor-v1',
+              'jdk':'25.0.1+8','maven':'3.8.6','profiles':'local,dac' if target=='backend' else 'npdms'}
     if target=='backend':
         pid=(root/'.run/backend-domain-test.pid').read_text().strip()
         if not pid.isdigit(): raise ValueError('Invalid running PID')
@@ -44,7 +84,7 @@ def freeze(root, target, jar, revision, allow_offline=False):
 
 if __name__=='__main__':
     mode=sys.argv[1];root=Path(sys.argv[2]).resolve()
-    if mode=='source': print(source(root))
+    if mode=='source': print(source(root, sys.argv[3]))
     elif mode=='freeze':
         if sys.argv[6:] not in ([],['--allow-offline-runtime']): raise SystemExit('Unsupported freeze option')
         freeze(root,sys.argv[3],Path(sys.argv[4]),sys.argv[5],allow_offline=bool(sys.argv[6:]))

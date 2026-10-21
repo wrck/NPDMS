@@ -18,11 +18,12 @@ try {
         }
         $taskModule = if ($Target -eq 'backend') { 'yudao-server' } else { 'device-ops-server' }
         $taskReactor = if ($Target -eq 'backend') { $taskWorkspace } else { Join-Path $taskWorkspace 'device-ops-platform' }
-        $taskBefore = & $taskPython (Join-Path $PSScriptRoot 'worktree-artifact.py') source $taskWorkspace
+        $taskBefore = & $taskPython (Join-Path $PSScriptRoot 'worktree-artifact.py') source $taskWorkspace $Target
         if ($LASTEXITCODE -ne 0) { throw 'Source inventory failed' }
         & $taskMaven -f "$taskReactor/pom.xml" -pl $taskModule -am clean package "-Dmaven.repo.local=$taskRepository" @MavenArguments
         if ($LASTEXITCODE -ne 0) { throw 'Build failed; no release produced' }
-        $taskAfter = & $taskPython (Join-Path $PSScriptRoot 'worktree-artifact.py') source $taskWorkspace
+        $taskAfter = & $taskPython (Join-Path $PSScriptRoot 'worktree-artifact.py') source $taskWorkspace $Target
+        if ($LASTEXITCODE -ne 0) { throw 'Source inventory failed; no release produced' }
         if ($taskBefore -ne $taskAfter) { throw 'Source changed during build; artifact cannot be published' }
         $taskJar = Join-Path $taskReactor "$taskModule/target/$taskModule.jar"
         $taskFreezeArguments=@('freeze',$taskWorkspace,$Target,$taskJar,$taskAfter)

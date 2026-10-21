@@ -91,6 +91,8 @@ java -jar yudao-server/target/yudao-server.jar --server.port=58080
 
 当前工作树59191验收环境采用 `scripts/worktree-backend.ps1 -Manifest <发布清单> -ValidateOnly` 检查发布产物、当前运行基线及 `local,dac` 配置；取得本次明确重启批准后，改用 `-ApprovedRestart` 部署。构建入口输出 `.run/build/releases/<ID>/manifest.json`，不自动部署，也不自动选择其他会话的“最新target”。同一工作树各会话使用同一工具链、`.run/build/m2` 及独占锁；编译期间源码变动、产物改动或准备后运行包被其他部署替换均阻止继续部署。新的已授权功能可通过新发布清单及时部署；若修改受保护的已验证类，应先复核差异并更新批准基线，不能删减校验绕过。
 
+源码一致性按构建目标的Maven工程分别检查：`backend`覆盖根POM声明的模块及共享框架，`dac`覆盖`device-ops-platform`声明的模块及其实际打入JAR的`device-ops-web/dist`。各模块POM、源码、资源、Maven配置及共享构建工具均纳入对应指纹；独立DAC工程、平台前端依赖清单的变更不阻止平台后端冻结，平台适配代码的变更仍阻止平台后端冻结。共享工具链、独占锁、冻结产物及已验证修复校验保持不变。
+
 后端已退出时，修复包可通过构建入口显式传入`-AllowOfflineRuntime`冻结；仅当原PID已不存在且59191没有其他监听者时生成离线清单，仍执行全部已验证修复校验。该清单只用于已批准的`worktree-backend.ps1 -StartIfOffline -ApprovedRestart`启动；若已有新进程运行，必须重新核对运行基线，不能用离线清单覆盖。
 
 - 后端健康检查：<http://10.210.0.11:58080/actuator/health>
