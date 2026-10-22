@@ -94,4 +94,16 @@ class StagePlanApprovalCompletionProviderTest {
         assertNotNull(provider.lockAndRevalidate(context,"42",fact.factVersion()));
         assertThrows(IllegalArgumentException.class, () -> provider.lockAndRevalidate(context,"42","obsolete"));
     }
+    @Test void historicalTimeRequiresOwnerPermissionAndExactFrozenVersion() {
+        var request = new TaskBusinessObjectProvider.HandlingTimeQuery(context,"42","obsolete",Set.of(StagePlanApprovalCompletionProvider.FACT));
+        var deniedRequest = request;
+        assertThrows(RuntimeException.class, () -> provider.historicalHandlingTime(deniedRequest));
+        SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(7L).setTenantId(1L), new MockHttpServletRequest());
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
+        when(permissions.hasAnyPermissions(eq(7L),any(String[].class))).thenReturn(true);
+        String version=provider.inspect(context,"42").factVersion();
+        request = new TaskBusinessObjectProvider.HandlingTimeQuery(context,"42",version,Set.of(StagePlanApprovalCompletionProvider.FACT));
+        assertEquals(row.getEffectiveAt(),provider.historicalHandlingTime(request).at());
+        row.setVersion(4L); assertNull(provider.historicalHandlingTime(request));
+    }
 }

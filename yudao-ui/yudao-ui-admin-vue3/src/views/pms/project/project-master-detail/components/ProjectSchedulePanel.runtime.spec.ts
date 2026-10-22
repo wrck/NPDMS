@@ -461,3 +461,21 @@ it('auto-fits violating task dates into the stage window when stage dates change
     app.app.unmount()
   }
 })
+
+it.each([false, true])('has one duration entry when no duration exists (embedded=%s)', async embedded => {
+  businessBar.embedded = embedded
+  vi.mocked(DurationApi.getByProjectId).mockResolvedValue(undefined as any)
+  vi.mocked(PlanApi.getStagePlanBatchPage).mockResolvedValue({ list: [], total: 0 })
+  const app = render()
+  try {
+    await flush()
+    const buttons = (node: any): any[] => [
+      ...(node.type === 'button' && /录入.*工期/.test(textOf(node)) ? [node] : []),
+      ...node.children.flatMap(buttons)
+    ]
+    const entries = buttons(app.root)
+    expect(entries).toHaveLength(1)
+    entries[0].props.onClick()
+    expect(app.state.durationVisible).toBe(true)
+  } finally { app.app.unmount() }
+})

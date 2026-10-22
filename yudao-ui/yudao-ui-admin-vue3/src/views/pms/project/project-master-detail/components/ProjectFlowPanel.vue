@@ -163,7 +163,8 @@ v-if="showStageGates && hasStageGates" ref="stageGatesRef" :project-id="projectI
         :task-code="workbench.task.taskCode"
         :task-version="workbench.task.version"
         :initial-project="project"
-        :readonly="taskPending || ['DONE', 'CLOSED', 'CANCELLED'].includes(workbench.task.status || '')"
+        :completed="workbench.task.status === 'DONE'"
+        :readonly="taskPending || ['CLOSED', 'CANCELLED'].includes(workbench.task.status || '')"
         @changed="handleBusinessChanged"
         @fact-version="handleBusinessFactChanged"
       />
@@ -266,12 +267,12 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
     <div v-if="selection && showActionBar" class="flow-action-bar">
       <div v-if="businessBarVisible" ref="businessBarTarget" class="flow-bar-business">
         <template v-if="selection.kind === 'stage'">
-          <el-button :disabled="stageBusinessRef?.isBusy()" @click="stageBusinessRef?.refresh()">刷新</el-button>
+          <el-button :disabled="stageBusinessRef?.isBusy()" @click="refreshBusiness">刷新</el-button>
         </template>
         <template v-else>
           <el-button
             v-if="businessBound && workbench?.task.version != null"
-            :loading="businessRef?.loading" :disabled="!businessRef" @click="businessRef?.refresh()">刷新</el-button>
+            :loading="businessRef?.loading" :disabled="!businessRef" @click="refreshBusiness">刷新</el-button>
           <el-button v-else-if="workbench?.bindingType === 'APPROVAL'" :disabled="approvalRef?.isBusy()" @click="reload">刷新</el-button>
           <el-button v-else-if="workbench?.bindingType === 'RESULT_SUBSCRIPTION'" @click="reload">刷新</el-button>
           <el-button v-if="workbench?.bindingType === 'PAGE' && pageEmbed" @click="reload">刷新</el-button>
@@ -548,7 +549,7 @@ const businessBarVisible = computed(() => {
 const businessBarTarget = ref<HTMLElement>()
 provide(BUSINESS_ACTION_BAR_TARGET, businessBarTarget)
 const handleDeliverableChanged = async () => { await refreshSummary(); emit('changed') }
-const emit = defineEmits<{ changed: [] }>()
+const emit = defineEmits<{ changed: []; refreshed: [] }>()
 // Await the existing Owner leave contract before the parent changes selection/unmounts content.
 // https://vuejs.org/guide/essentials/template-refs.html#ref-on-component
 const requestLeave = async () => !advancing.value && !stateActionsRef.value?.isBusy()
@@ -656,11 +657,21 @@ const load = async () => {
       workspace.value = nextWorkspace
       workbench.value = nextWorkbench
     }
+    if (current(token)) emit('refreshed')
   } catch {
     if (current(token)) loadError.value = '内容加载失败，请重新加载。'
   }
 }
 const reload = async () => { if (await requestLeave()) await load() }
+const refreshBusiness = async () => {
+  const token = sequence
+  if (!await requestLeave() || !current(token)) return
+  if (props.selection?.kind === 'stage') await stageBusinessRef.value?.refresh()
+  else await businessRef.value?.refresh()
+  if (!current(token)) return
+  const refreshed = await refreshSummary()
+  if (current(token) && refreshed) emit('refreshed')
+}
 const handleBusinessChanged = async () => {
   if (props.selection?.taskId == null) return
   const token = sequence
@@ -712,8 +723,12 @@ const refreshSummary = async () => {
     // 交付件状态同时出现在任务工作台与父页面实例摘要中，保存后两者都需回源。
     await Promise.all([loadWorkspace(token), taskId == null ? undefined : loadTaskWorkbench(taskId, token)])
     if (current(token) && props.selection?.kind === 'stage') await tasks.reload()
+    if (!current(token)) return false
+    loadError.value = ''
+    return true
   } catch {
     if (current(token)) loadError.value = '概要刷新失败，已加载内容保留，请重新加载。'
+    return false
   }
 }
 defineExpose({ requestLeave, reload, refreshSummary })

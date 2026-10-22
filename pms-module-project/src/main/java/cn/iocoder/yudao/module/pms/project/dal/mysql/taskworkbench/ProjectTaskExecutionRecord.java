@@ -6,4 +6,4 @@ public record ProjectTaskExecutionRecord(
         Long executionContractId, Integer contractVersion, Long planVersionId,
         Long executionId, Integer executionVersion, Integer roundNo, String executionStatus,
         Long stageExecutionId, Integer stageExecutionVersion, String stageExecutionStatus, String stageStatus,
-        java.time.LocalDateTime startedAt) { }
+        java.time.LocalDateTime startedAt, Boolean requiredTask) { }

@@ -3,14 +3,14 @@
     <slot name="header" :loading="loading" :disabled="loading || isBusy()" :refresh="refresh">
       <div class="gate-heading">
         <span>{{ title }}</span>
-        <el-button :loading="loading" :disabled="loading || isBusy()" @click="refresh">刷新门禁结果</el-button>
+        <el-button :loading="loading" :disabled="loading || isBusy()" @click="refresh">检查阶段条件</el-button>
       </div>
     </slot>
     <p v-if="loading" role="status">正在读取本轮门禁结果…</p>
     <el-alert v-else-if="error" :title="error" type="warning" :closable="false" show-icon />
     <template v-else-if="workbench">
       <p class="hint">第 {{ workbench.executionRound }} 轮 · 当前规则结果；刷新不会推进阶段或发起审批。</p>
-      <p v-if="!workbench.gates.length" role="status">当前阶段未配置门禁。</p>
+      <p v-if="!workbench.gates.length" role="status">当前阶段无准入条件限制。</p>
 
       <!-- 准入/准出条件：与交付件清单同款分节行格式；每条引用的满足结果来自按下标对齐的规则条件诊断 -->
       <template v-for="group in gateGroups" :key="group.type">
@@ -59,7 +59,7 @@
         </div>
         <template v-if="taskDeliverables">
           <div class="sub-title">当前任务交付件</div>
-          <p v-if="!taskDeliverables.length" class="hint">当前任务未绑定交付件；任务完成按状态机与冻结规则判定。</p>
+          <p v-if="!taskDeliverables.length" class="hint">当前阶段无交付件要求。</p>
           <div v-else class="deliverable-lines">
             <div v-for="item in taskDeliverables" :key="item.id ?? item.deliverableCode" class="deliverable-line">
               <el-tag size="small" :type="item.required ? 'danger' : 'info'">{{ item.required ? '必选' : '可选' }}</el-tag>

@@ -78,14 +78,6 @@
           >
           <el-button
             link
-            type="warning"
-            v-if="row.status === 0 && can('REJECT')"
-            @click="handleAction(row, 'reject')"
-            v-hasPermi="['pms:sol-site-survey:update']"
-            >驳回</el-button
-          >
-          <el-button
-            link
             type="danger"
             v-if="row.status === 0 && can('DELETE')"
             @click="remove(row)"

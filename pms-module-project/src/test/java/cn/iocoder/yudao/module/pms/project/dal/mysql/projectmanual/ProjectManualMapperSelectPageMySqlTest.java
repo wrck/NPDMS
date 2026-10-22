@@ -95,6 +95,42 @@ class ProjectManualMapperSelectPageMySqlTest {
     }
 
     @Test
+    void statisticsMatchPageTotalsAndRespectTenantDeletionAndEmptyScope() throws Exception {
+        for (int i = 0; i <= 6; i++) insertProject("S" + i, "ACTIVE", "STAT-S" + i);
+        long normal = insertProject("S1", "NORMAL_CLOSED", "STAT-NORMAL");
+        insertProject("S2", "NO_TRACKING_CLOSED", "STAT-NO-TRACKING");
+        insertProject("S3", "EXCEPTION_CLOSED", "STAT-EXCEPTION");
+        long hidden = insertProject("S1", "ACTIVE", "STAT-HIDDEN");
+        long deleted = insertProject("S1", "ACTIVE", "STAT-DELETED");
+        jdbcTemplate.update("UPDATE proj_project SET deleted=b'1' WHERE id=?", deleted);
+        var visible = new HashSet<>(fixtureProjectIds); visible.remove(hidden);
+        long overdueProject = selectPageIds(builder().status("S1").visibleProjectIds(visible).build()).getFirst();
+        insertStage(overdueProject, EFFECTIVE_AT.minusDays(1), null);
+        insertTask(overdueProject, null, EFFECTIVE_AT.minusDays(1));
+        insertStage(normal, EFFECTIVE_AT.minusDays(1), null);
+        sqlSession.clearCache();
+        var q = new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatisticsQuery(TENANT, visible, EFFECTIVE_AT);
+        var statement = sqlSession.getConfiguration().getMappedStatement(ProjectMasterMapper.class.getName() + ".selectStatistics");
+        com.baomidou.mybatisplus.extension.parser.JsqlParserGlobal.parse(statement.getBoundSql(Map.of("query", q)).getSql());
+        var result = projectMasterMapper.selectStatistics(q);
+        assertEquals(10, result.getTotal());
+        assertEquals(projectMasterMapper.selectPage(builder().visibleProjectIds(visible).build()).getTotal(), result.getTotal());
+        assertEquals(projectMasterMapper.selectPage(builder().visibleProjectIds(visible).overdueOnly(true).build()).getTotal(), result.getOverdue());
+        assertEquals(1, result.getOverdue()); // Two overdue nodes still count as one project; closed rows do not count.
+        long[] counts = { result.getS0(), result.getS1(), result.getS2(), result.getS3(), result.getS4(), result.getS5(), result.getS6(),
+                result.getNormalClosed(), result.getNoTrackingClosed(), result.getExceptionClosed() };
+        String[] statuses = { "S0", "S1", "S2", "S3", "S4", "S5", "S6", "NORMAL_CLOSED", "NO_TRACKING_CLOSED", "EXCEPTION_CLOSED" };
+        for (int i = 0; i < statuses.length; i++) {
+            assertEquals(1, counts[i], statuses[i]);
+            assertEquals(projectMasterMapper.selectPage(builder().visibleProjectIds(visible).status(statuses[i]).build()).getTotal(), counts[i], statuses[i]);
+        }
+        assertEquals(0, projectMasterMapper.selectStatistics(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatisticsQuery(TENANT + 1, visible, EFFECTIVE_AT)).getTotal());
+        assertEquals(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.projection.ProjectStatistics(),
+                projectMasterMapper.selectStatistics(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatisticsQuery(TENANT, Set.of(), EFFECTIVE_AT)));
+        assertEquals(0, projectMasterMapper.selectStatistics(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatisticsQuery(TENANT, null, EFFECTIVE_AT)).getTotal());
+    }
+
+    @Test
     void stageStatusFiltersCurrentStageWithActiveLifecycle() {
         long stageProject = insertProject("S1", "ACTIVE", "S1-ACTIVE");
         long closedAtS1 = insertProject("S1", "NORMAL_CLOSED", "CLOSED-AT-S1");

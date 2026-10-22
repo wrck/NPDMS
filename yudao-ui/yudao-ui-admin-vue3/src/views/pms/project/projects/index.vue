@@ -43,7 +43,8 @@
           />
         </el-form-item>
         <el-form-item label="客户" prop="customerCode">
-          <PmsEntitySelect v-model="query.customerCode" :api="getCustomerPage"
+          <PmsEntitySelect
+v-model="query.customerCode" :api="getCustomerPage"
             :label-field="['code', 'name']" value-field="code" query-field="name"
             placeholder="按客户名称选择" class="!w-200px" />
         </el-form-item>
@@ -405,7 +406,8 @@
             >
               编辑
             </el-button>
-            <el-button link type="primary" v-hasPermi="['pms:project:update']"
+            <el-button
+link type="primary" v-hasPermi="['pms:project:update']"
               @click="customerCorrectionRef?.open(row)">更正客户</el-button>
             <el-button
               link
@@ -451,7 +453,8 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="客户主档" prop="customerCode">
-                <PmsEntitySelect v-model="createForm.customerCode" :api="getSelectableCustomers"
+                <PmsEntitySelect
+v-model="createForm.customerCode" :api="getSelectableCustomers"
                   :label-field="['code', 'name']" value-field="code" query-field="keyword"
                   placeholder="按客户名称或编码选择" @change="selectCustomer" />
               </el-form-item>
@@ -465,7 +468,8 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="合同主档" prop="contractNo">
-                <PmsEntitySelect v-model="createForm.contractNo" :api="getSelectableContracts"
+                <PmsEntitySelect
+v-model="createForm.contractNo" :api="getSelectableContracts"
                   :label-field="['contractNo', 'customerName', 'companyName']" value-field="contractNo"
                   query-field="keyword" placeholder="按合同号选择" @change="selectContract" />
               </el-form-item>
@@ -1331,23 +1335,17 @@ const statusCards = computed(() => [
   }))
 ])
 
-/** 状态卡计数：总数 pageSize=1 取 total，各阶段按 status 精确筛选取 total */
+/** 状态卡计数独立于列表筛选，一次读取全部可见项目的聚合结果。 */
 const loadStats = async () => {
   try {
-    const [totalRes, overdueRes] = await Promise.all([
-      ProjectsApi.getProjectPage({ pageNo: 1, pageSize: 1 }),
-      ProjectsApi.getProjectPage({ pageNo: 1, pageSize: 1, overdueOnly: true })
-    ])
-    stats.total = totalRes.total
-    stats.overdue = overdueRes.total
-    const stageRes = await Promise.all(
-      LIFECYCLE_STAGES.map((stage) => {
-        const params = { pageNo: 1, pageSize: 1, status: stage.value }
-        return ProjectsApi.getProjectPage(params)
-      })
-    )
-    LIFECYCLE_STAGES.forEach((stage, index) => {
-      stats[stage.value] = stageRes[index].total
+    const data = await ProjectsApi.getProjectStatistics()
+    Object.assign(stats, {
+      total: data.total, overdue: data.overdue,
+      S0: data.s0, S1: data.s1, S2: data.s2, S3: data.s3,
+      S4: data.s4, S5: data.s5, S6: data.s6,
+      NORMAL_CLOSED: data.normalClosed,
+      NO_TRACKING_CLOSED: data.noTrackingClosed,
+      EXCEPTION_CLOSED: data.exceptionClosed
     })
   } catch {
     // 统计失败不阻断列表

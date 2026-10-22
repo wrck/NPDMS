@@ -13,6 +13,16 @@ import {
 const controls = vi.hoisted(() => ({
   confirm: vi.fn(), leave: vi.fn(), discard: vi.fn(), ownerProps: vi.fn(), warning: vi.fn()
 }))
+vi.mock('@/components/BusinessView/ProjectMembersBusinessView.vue', async () => {
+  const { defineComponent, h } = await import('vue')
+  return { default: defineComponent({
+    props: { project: Object, readonly: Boolean },
+    setup(props, { expose }) {
+      expose({ requestLeave: () => controls.leave(), refresh: vi.fn() })
+      return () => h('article', `member-maintenance;readonly:${props.readonly}`)
+    }
+  }) }
+})
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => controls }))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn() }))
 vi.mock('@/api/pms/project/task-business', () => ({
@@ -430,5 +440,33 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     const page = await setup()
     expect(page.facts).toHaveBeenLastCalledWith(undefined)
     expect(button(page.root, '关联记录')).toBeUndefined()
+  })
+})
+
+describe('completed assignment member maintenance', () => {
+  const assignment = () => context('11', {
+    ownerContext: 'PROJ', objectType: 'PROJECT_ASSIGNMENT',
+    componentKey: 'PROJ_PROJECT_ASSIGNMENT', executionAllowed: false,
+    ownerActions: ['QUERY'], allowedActions: ['REFRESH_RESULTS'],
+    businessView: { id: '31', componentKey: 'PROJ_PROJECT_ASSIGNMENT' } as any
+  })
+  it('maintains members without rerunning completed task commands and respects leave guard', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(assignment())
+    const page = await setup({ completed: true })
+    expect(textOf(page.root)).toContain('member-maintenance;readonly:false')
+    await page.panel.value.refresh()
+    expect(BusinessApi.refreshTaskBusinessResults).not.toHaveBeenCalled()
+    controls.leave.mockResolvedValue(false)
+    expect(await page.panel.value.requestLeave()).toBe(false)
+  })
+  it.each([{ readonly: true }, { recoverableError: 'unavailable' }])('retains restrictions %j', async (restriction) => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue({ ...assignment(), ...restriction })
+    const page = await setup({ completed: true, readonly: restriction.readonly })
+    expect(textOf(page.root)).toContain('member-maintenance;readonly:true')
+  })
+  it('keeps other completed business readonly', async () => {
+    const page = await setup({ completed: true })
+    expect(textOf(page.root)).not.toContain('member-maintenance')
+    expect(textOf(page.root)).toContain('readonly:true')
   })
 })

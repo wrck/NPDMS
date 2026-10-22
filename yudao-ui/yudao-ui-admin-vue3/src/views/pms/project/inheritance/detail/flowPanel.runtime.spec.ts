@@ -75,14 +75,15 @@ const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(
 const render = (selection: Record<string, unknown>, stageGates: { stageCode: string }[] = [], instancesExtra: Record<string, unknown> = {}, lifecycleStatus = ref('ACTIVE')) => {
   const child = ref<any>()
   const changed = vi.fn()
+  const refreshed = vi.fn()
   const wrapper = defineComponent({ setup: () => () => h(FlowPanel, {
-    ref: child, projectId: 9, project: { id: 9, lifecycleStatus: lifecycleStatus.value }, selection, onChanged: changed,
+    ref: child, projectId: 9, project: { id: 9, lifecycleStatus: lifecycleStatus.value }, selection, onChanged: changed, onRefreshed: refreshed,
     instances: { stages: [{ stageCode: 'S2', entryCriteria: '真实准入', exitCriteria: '真实准出' }], gates: stageGates, ...instancesExtra }
   } as any) })
   const view = mount(wrapper, {}, { ElDescriptions: passthrough, ElDescriptionsItem: passthrough,
     ElTable: passthrough, ElTableColumn: tableColumn, DictTag: passthrough })
   apps.push(view.app)
-  return { ...view, changed, state: () => child.value.$.setupState, exposed: () => child.value }
+  return { ...view, changed, refreshed, state: () => child.value.$.setupState, exposed: () => child.value }
 }
 beforeEach(() => {
   vi.clearAllMocks()
@@ -254,6 +255,9 @@ it('reports a failed task checklist refresh instead of treating the retained sna
   await view.exposed().refreshSummary(); await flush()
   expect(view.state().loadError).toContain('概要刷新失败')
   expect(view.state().workbench.deliverables[0].status).toBe('PENDING')
+  api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, version: 2 }, bindingType: 'TASK_NATIVE' })
+  expect(await view.exposed().refreshSummary()).toBe(true)
+  expect(view.state().loadError).toBe('')
 })
 
 it('starts independent task reads together and waits for both before exposing Owner actions', async () => {
@@ -290,6 +294,7 @@ it('ignores a completed parallel load from the previously selected task', async 
   await flush()
   expect(textOf(view.root)).toContain('任务B')
   expect(textOf(view.root)).not.toContain('旧任务A')
+  expect(view.refreshed).toHaveBeenCalledTimes(1)
 })
 
 it('propagates the Owner leave refusal and does not clear its content during a refused reload', async () => {
@@ -315,7 +320,9 @@ it('does not equate S2 with duration or call a task workbench with a stage ident
 })
 
 it('places one refresh action in the bottom business bar and delegates to the guarded Owner refresh', async () => {
+  leave.mockResolvedValue(true)
   const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  view.refreshed.mockClear()
   const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode | undefined =>
     predicate(node) ? node : node.children.map(child => find(child, predicate)).find(Boolean)
   const heading = find(view.root, node => String(node.props?.class || '').includes('task-business-heading'))
@@ -329,7 +336,30 @@ it('places one refresh action in the bottom business bar and delegates to the gu
   expect(refresh).toBeTruthy()
   await (refresh!.props!.onClick as () => unknown)()
   expect(businessRefresh).toHaveBeenCalledTimes(1)
-  expect(api.getTaskWorkbench).toHaveBeenCalledTimes(1)
+  expect(api.getTaskWorkbench).toHaveBeenCalledTimes(2)
+  expect(view.refreshed).toHaveBeenCalledTimes(1)
+})
+
+it('refreshes the outer navigation after task or stage selection without replaying business changes', async () => {
+  const selection = reactive({ kind: 'task', stageCode: 'S2', taskId: 10 })
+  const view = render(selection); await flush()
+  view.refreshed.mockClear()
+  selection.taskId = 11; await flush()
+  expect(view.refreshed).toHaveBeenCalledTimes(1)
+  selection.kind = 'stage'; selection.stageCode = 'S3'; await flush()
+  expect(view.refreshed).toHaveBeenCalledTimes(2)
+  expect(view.changed).not.toHaveBeenCalled()
+})
+
+it('does not announce a rejected or failed refresh as current navigation', async () => {
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  view.refreshed.mockClear()
+  await view.exposed().reload(); await flush()
+  expect(view.refreshed).not.toHaveBeenCalled()
+  leave.mockResolvedValue(true)
+  api.getProjectWorkspace.mockRejectedValue(new Error('unavailable'))
+  await view.exposed().reload(); await flush()
+  expect(view.refreshed).not.toHaveBeenCalled()
 })
 
 it('omits the task breadcrumb, description block and unavailable editing action group', async () => {

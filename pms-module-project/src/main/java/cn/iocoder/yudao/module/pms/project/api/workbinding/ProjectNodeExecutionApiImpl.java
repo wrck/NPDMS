@@ -111,8 +111,11 @@ public class ProjectNodeExecutionApiImpl implements ProjectNodeExecutionApi {
 
     private ProjectTaskExecutionContext context(ProjectTaskExecutionRecord row) {
         if (row == null) throw exception(PROJECT_TASK_QUERY_INVALID);
-        boolean writable = "ACTIVE".equals(row.projectStatus()) && "ACTIVE".equals(row.stageStatus())
-                && "ACTIVE".equals(row.stageExecutionStatus()) && "ACTIVE".equals(row.executionStatus())
+        // Optional work may outlive stage completion; neither the stage nor its completed round is reopened.
+        boolean stageAllowsWork = ("ACTIVE".equals(row.stageStatus()) && "ACTIVE".equals(row.stageExecutionStatus()))
+                || (Boolean.FALSE.equals(row.requiredTask()) && "DONE".equals(row.stageStatus())
+                    && "DONE".equals(row.stageExecutionStatus()));
+        boolean writable = "ACTIVE".equals(row.projectStatus()) && stageAllowsWork && "ACTIVE".equals(row.executionStatus())
                 && ("IN_PROGRESS".equals(row.taskStatus()) || "PENDING_ACCEPT".equals(row.taskStatus()));
         return new ProjectTaskExecutionContext(row.projectId(), row.projectVersion(), row.taskId(), row.taskVersion(),
                 row.executionContractId(), row.contractVersion(), row.planVersionId(), row.executionId(),

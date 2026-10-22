@@ -35,9 +35,9 @@ type State = Record<string, any>
 const apps: { unmount: () => void }[] = []
 const flush = async () => { for (let i = 0; i < 20; i++) { await nextTick(); await Promise.resolve() } }
 const components = Object.fromEntries(['ElSkeleton', 'ElRow', 'ElCol', 'ElInput', 'ElSelect', 'ElOption', 'ElDatePicker', 'ElDescriptions', 'ElDescriptionsItem', 'ElTimeline', 'ElTimelineItem', 'PmsEntitySelect'].map(name => [name, passthrough]))
-const render = (component: Component = Page, props: State = {}) => {
+const render = (component: Component = Page, props: State = {}, overrides: Record<string, Component> = {}) => {
   const input = reactive(props), instance = ref<State>()
-  const mounted = mount(defineComponent({ setup: () => () => h(component, { ...input, ref: instance }) }), {}, { ...components, ElTable: passthrough, ElTableColumn: tableColumn })
+  const mounted = mount(defineComponent({ setup: () => () => h(component, { ...input, ref: instance }) }), {}, { ...components, ElTable: passthrough, ElTableColumn: tableColumn, ...overrides })
   apps.push(mounted.app)
   return { input, exposed: instance.value!, state: instance.value!.$.setupState as State, root: mounted.root }
 }
@@ -59,6 +59,29 @@ beforeEach(() => {
 afterEach(() => { apps.splice(0).forEach(app => app.unmount()); vi.unstubAllGlobals() })
 
 describe('ACC-03 / PM-03 existing report embedding', () => {
+  it.each(['PRELIMINARY', 'FINAL'] as const)('opens completed %s from its list without creating the next draft, while retaining explicit revision editing', async acceptanceType => {
+    const target = { ...activity(), acceptanceType, originKind: 'DIRECT' as const, activityStatus: 'COMPLETED', currentReportVersionId: 31 }
+    api.getActivities.mockResolvedValue([target])
+    api.getActivity.mockResolvedValue(target)
+    api.getReportVersions.mockResolvedValue([{ ...draft(), reportStatus: 'EFFECTIVE', attachments: [] }])
+    const column = defineComponent({ setup(_, { attrs, slots }) {
+      return () => attrs.label === '操作' ? slots.default?.({ row: target }) : h('span')
+    } })
+    const view = render(Page, { projectId: 7 }, { ElTableColumn: column })
+    await flush()
+    const findView = (node: TestNode): TestNode | undefined => node.type === 'button' && textOf(node) === '查看'
+      ? node : node.children.map(findView).find(Boolean)
+    const query = findView(view.root)
+    expect(query).toBeDefined()
+    await (query!.props!.onClick as () => Promise<void>)(); await flush()
+    expect(detailState(view.state).visible).toBe(true)
+    expect(findByTestId(view.root, 'acceptance-report-form')?.props?.['data-readonly']).toBe(true)
+    expect(api.createDraft).not.toHaveBeenCalled()
+    expect(editorState(view.state).visible).toBe(false)
+    await detailState(view.state).openEditor(); await flush()
+    expect(editorState(view.state).visible).toBe(true)
+    expect(api.createDraft).toHaveBeenCalledOnce()
+  })
   it.each(['PRELIMINARY', 'FINAL'] as const)('uses the same fields for %s upload and readonly query without preparing a draft while viewing', async acceptanceType => {
     const target = { ...activity(), acceptanceType, originKind: 'DIRECT' as const, activityStatus: 'COMPLETED', currentReportVersionId: 31 }
     const report = { ...draft(), reportStatus: 'EFFECTIVE', acceptorName: '原验收人', acceptanceTime: '2026-10-21T22:15:42',

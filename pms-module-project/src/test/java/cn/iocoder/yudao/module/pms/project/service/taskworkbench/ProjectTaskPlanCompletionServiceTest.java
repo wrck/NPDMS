@@ -228,6 +228,24 @@ class ProjectTaskPlanCompletionServiceTest {
     TaskActionCommand command() { return new TaskActionCommand(21L,1,"complete",null,91L,1,null,null,null,null,"a".repeat(64),"intent","b".repeat(64)); }
     ProjectTaskPlanCompletionService.Result evaluate() { return service.evaluate(command(),project,task,binding,new TaskWorkbenchActor(7L,1L,"test")); }
 
+    @Test void optionalTaskCanCompleteAfterStageWithoutBypassingSubmissionExitOrCurrentRound() {
+        stage.setStatus("DONE"); snapshot.getTasks().getFirst().setRequired(false);
+        assertTrue(evaluate().matched());
+        assertEquals("DONE", stage.getStatus());
+        snapshot.getTasks().getFirst().setRequired(true); assertFalse(evaluate().matched());
+        snapshot.getTasks().getFirst().setRequired(null); assertFalse(evaluate().matched());
+        snapshot.getTasks().getFirst().setRequired(false);
+        round.setSubmittedAt(null); assertEquals("CURRENT_ROUND_SUBMISSION_REQUIRED", evaluate().completion().reasonCode());
+        round.setSubmittedAt(LocalDateTime.now());
+        snapshot.getTasks().getFirst().setExitRuleKey("exit");
+        rule("exit","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(evaluate().matched()); snapshot.getTasks().getFirst().setExitRuleKey(null);
+        for (String status : List.of("PENDING", "SKIPPED", "TERMINATED")) {
+            stage.setStatus(status); assertEquals("TASK_STAGE_NOT_ACTIVE", evaluate().completion().reasonCode());
+        }
+        stage.setStatus("DONE"); round.setPlanVersionId(99L); assertFalse(evaluate().matched());
+    }
+
     @Test void readsPlanRulesWithoutChangingTheBindingIdentityOrSnapshot() {
         assertTrue(evaluate().matched());
         rule("done","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");

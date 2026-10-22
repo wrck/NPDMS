@@ -191,7 +191,6 @@ public class ProjectStageAdmissionService {
         var query = new ProjectRuntimeGraphQuery(project.getTenantId(), project.getId());
         var parents = graph.selectStagesForUpdate(query).stream().filter(stage -> Objects.equals(stage.getCode(), task.getStageCode())).toList();
         if (parents.size() != 1) return TaskAdmissionView.unavailable();
-        if (!"ACTIVE".equals(parents.getFirst().getStatus())) return new TaskAdmissionView(RuleEvaluation.Outcome.NOT_MATCHED, List.of(new TaskAdmissionCondition("所属阶段尚未进入", RuleEvaluation.Outcome.NOT_MATCHED)));
         var parent = parents.getFirst();
         var matching = graph.selectContracts(query).stream().filter(contract -> Objects.equals(contract.getStageId(), parent.getId())).toList();
         if (matching.size() != 1 || taskContract.getSourceNodeKey() == null) return TaskAdmissionView.unavailable();
@@ -204,6 +203,10 @@ public class ProjectStageAdmissionService {
             var definitions = snapshot.getTasks().stream().filter(node -> taskContract.getSourceNodeKey().equals(node.getNodeKey())
                     && task.getCode().equals(node.getCode()) && task.getStageCode().equals(node.getStageCode())).toList();
             if (definitions.size() != 1) return TaskAdmissionView.unavailable();
+            boolean stageAllowsWork = "ACTIVE".equals(parent.getStatus())
+                    || ("DONE".equals(parent.getStatus()) && Boolean.FALSE.equals(definitions.getFirst().getRequired()));
+            if (!stageAllowsWork) return new TaskAdmissionView(RuleEvaluation.Outcome.NOT_MATCHED,
+                    List.of(new TaskAdmissionCondition("所属阶段不允许办理此任务", RuleEvaluation.Outcome.NOT_MATCHED)));
             String key = definitions.getFirst().getAdmissionRuleKey();
             if (key == null || key.isBlank()) return new TaskAdmissionView(RuleEvaluation.Outcome.MATCHED, List.of());
             var program = snapshot.getRulePrograms().get(key);

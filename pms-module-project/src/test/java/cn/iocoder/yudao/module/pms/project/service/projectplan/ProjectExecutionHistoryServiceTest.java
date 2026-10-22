@@ -20,7 +20,7 @@ class ProjectExecutionHistoryServiceTest {
     final PermissionApi permissions = mock(PermissionApi.class);
     final ProjectPlanVersionMapper plans = mock(ProjectPlanVersionMapper.class);
     final ProjectNodeExecutionMapper executions = mock(ProjectNodeExecutionMapper.class);
-    final ProjectExecutionHistoryService service = new ProjectExecutionHistoryService(scopes, permissions, plans, executions);
+    final ProjectExecutionHistoryService service = new ProjectExecutionHistoryService(scopes, permissions, plans, executions, org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectExecutionTimeProjection.class));
     final RuleEvaluation matched = new RuleEvaluation("plan:51:rule:complete:execution:31", RuleEvaluation.Outcome.MATCHED, null,
             List.of(new RuleEvaluation.Condition("leaf0", "$.children[0]", "pmsRuleFact", RuleEvaluation.Outcome.MATCHED, null)),
             List.of("pmsRuleFact"), List.of());

@@ -30,6 +30,15 @@ public class ArrivalTaskBusinessObjectProvider implements TaskBusinessObjectProv
     private final PermissionApi permissions;
     private final ProjectNodeExecutionApi executions;
 
+    @Override public HandlingTime historicalHandlingTime(HandlingTimeQuery request) {
+        if (request.context().taskId() == null) return null;
+        inspectContext(request.context());
+        if (!request.satisfiedFacts().contains(FACT)) return null;
+        var query = new ArrivalTaskFactQuery(request.context().tenantId(), request.context().projectId(), parse(request.objectId()));
+        var row = require(records.selectTaskFact(query), query);
+        return Objects.equals(version(row), request.factVersion()) ? new HandlingTime(row.getArrivalTime(), "BUSINESS_START", "到货签收时间") : null;
+    }
+
     @Override public String ownerContext() { return "IMP"; }
     @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
         if (context == null) throw denied();

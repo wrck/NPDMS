@@ -95,6 +95,16 @@ public class SolutionApprovalCompletionProvider implements TaskBusinessObjectPro
                 .stream().map(row -> new AssociationCandidate(row.id().toString(), version(row))).toList();
     }
 
+    @Override public HandlingTime historicalHandlingTime(HandlingTimeQuery request) {
+        authorize(request.context().tenantId(),request.context().actorId(),request.context().projectId());
+        if (!request.satisfiedFacts().contains(FACT)) return null;
+        var row = mapper.one(new SolutionCompletionQuery(request.context().tenantId(),request.context().projectId(),parse(request.objectId()),null,1,false));
+        if (row == null || !Objects.equals(row.getTenantId(),request.context().tenantId()) || !Objects.equals(row.getProjectId(),request.context().projectId())
+                || Boolean.TRUE.equals(row.getDeleted()) || !"IMPLEMENTATION".equals(row.getSolutionType())) return null;
+        return Objects.equals(version(load(request.context().tenantId(),request.context().projectId(),parse(request.objectId()),false)),request.factVersion())
+                ? new HandlingTime(row.getApprovedTime(),"BUSINESS_END","实施方案审批通过时间") : null;
+    }
+
     private record Snapshot(Long id, String name, String version, boolean completed) { }
     @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
         if (context == null) throw unavailable();

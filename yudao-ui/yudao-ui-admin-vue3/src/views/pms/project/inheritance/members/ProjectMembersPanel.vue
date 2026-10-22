@@ -4,7 +4,9 @@
       <span class="panel-title"><Icon icon="ep:user" /> 项目成员</span>
       <div class="actions">
         <el-button v-if="!hasActionBar" :disabled="opening" @click="load"><Icon icon="ep:refresh" />刷新</el-button>
+        <Teleport :to="barTarget || 'body'" :disabled="!hasActionBar">
         <el-button v-hasPermi="['pms:project-team:create', 'pms:project:assign']" type="primary" :disabled="!editable" @click="openMember()"><Icon icon="ep:plus" />新增成员</el-button>
+        </Teleport>
       </div>
     </header>
     <el-alert v-if="error" :title="error" type="error" :closable="false" role="alert" />
@@ -80,7 +82,8 @@ import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/s
 import UnifiedMemberForm from './OrdinaryMemberForm.vue'
 import { checkPermi } from '@/utils/permission'
 import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
-const hasActionBar = !!useBusinessActionBar().barTarget
+const { barTarget } = useBusinessActionBar()
+const hasActionBar = !!barTarget
 
 const memberRoles = Members.MEMBER_ROLE
 const props = defineProps<{ project: Projects.ProjectMasterVO; initialRole?: Members.ProjectMemberRole; readonly?: boolean }>()

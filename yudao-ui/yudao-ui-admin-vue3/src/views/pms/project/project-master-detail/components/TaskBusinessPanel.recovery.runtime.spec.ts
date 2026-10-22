@@ -1,3 +1,4 @@
+vi.mock('@/components/BusinessView/ProjectMembersBusinessView.vue', () => ({ default: { render: () => null } }))
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TaskBusinessPanel from '@/views/pms/project/project-master-detail/components/TaskBusinessPanel.vue'
@@ -107,7 +108,7 @@ const click = async (root: TestNode, label: string) => {
 }
 const apps: { unmount: () => void }[] = []
 const setup = async (initial: Record<string, unknown> = {}) => {
-  const state = reactive({ taskId: '11', taskVersion: 4, readonly: false, ...initial })
+  const state = reactive({ taskId: '11', taskVersion: 4, readonly: false, initialProject: undefined as { id: number; version: number } | undefined, ...initial })
   const panel = ref<any>()
   const facts = vi.fn(), changed = vi.fn(), dirtyChanged = vi.fn()
   const mounted = mount(defineComponent({ setup: () => () => h(TaskBusinessPanel, {

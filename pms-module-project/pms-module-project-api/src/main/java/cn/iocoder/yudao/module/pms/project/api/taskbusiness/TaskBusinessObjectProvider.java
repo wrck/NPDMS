@@ -82,6 +82,13 @@ public interface TaskBusinessObjectProvider {
      * Never return update time or approval time of an old record. Owner must check tenant/project. */
     default java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) { return null; }
 
+    /** Read-only time of the exact frozen handling fact. Missing/version mismatch returns null; never use update time. */
+    default HandlingTime historicalHandlingTime(HandlingTimeQuery query) { return null; }
+    record HandlingTimeQuery(Context context, String objectId, String factVersion, Set<String> satisfiedFacts) {
+        public HandlingTimeQuery { satisfiedFacts = Set.copyOf(satisfiedFacts); }
+    }
+    record HandlingTime(java.time.LocalDateTime at, String source, String label) { }
+
     record CompletionContext(Long tenantId,
             cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution) { }
 

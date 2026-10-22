@@ -210,7 +210,10 @@ public class ProjectTaskPlanCompletionService {
         }
         var query = new ProjectRuntimeGraphQuery(tenantId,project.getId());
         var parents = graph.selectStagesForUpdate(query).stream().filter(stage -> task.getStageCode().equals(stage.getCode())).toList();
-        if (parents.size()!=1 || !"ACTIVE".equals(parents.getFirst().getStatus())) return unknown(reference,"TASK_STAGE_NOT_ACTIVE");
+        if (parents.size()!=1) return unknown(reference,"TASK_STAGE_NOT_ACTIVE");
+        boolean stageAllowsWork = "ACTIVE".equals(parents.getFirst().getStatus())
+                || ("DONE".equals(parents.getFirst().getStatus()) && Boolean.FALSE.equals(node.getRequired()));
+        if (!stageAllowsWork) return unknown(reference,"TASK_STAGE_NOT_ACTIVE");
         var gates = graph.selectGatesForUpdate(query);
         var refs = gates.isEmpty() ? List.<ProjectGateReferenceInstanceDO>of()
                 : references.selectOrderedForUpdate(new ProjectGateReferenceForUpdateQuery(tenantId,gates.stream().map(ProjectGateInstanceDO::getId).toList()));

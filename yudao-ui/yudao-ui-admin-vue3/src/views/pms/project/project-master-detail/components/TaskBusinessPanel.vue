@@ -8,8 +8,15 @@
         type="warning"
         :closable="false"
       />
+      <ProjectMembersBusinessView
+        v-if="completedAssignment && project"
+        ref="membersRef"
+        :project="{ ...project, id: project.id == null ? undefined : legacyOwnerId(project.id) }"
+        :readonly="maintenanceReadonly"
+        @changed="ownerChanged"
+      />
       <BusinessViewHost
-        v-if="registration && project"
+        v-else-if="registration && project"
         ref="hostRef"
         :registration="registration"
         :resolved-context="{ project, taskId: context.taskId, taskCode, taskExecution: context.execution, businessObjectId: selectedObject }"
@@ -44,6 +51,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
 import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'
+import ProjectMembersBusinessView from '@/components/BusinessView/ProjectMembersBusinessView.vue'
 import * as BusinessApi from '@/api/pms/project/task-business'
 import type { TaskBusinessContext, TaskBusinessObject } from '@/api/pms/project/task-business'
 import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
@@ -63,6 +71,7 @@ const props = defineProps<{
   taskCode?: string
   taskVersion: number
   readonly?: boolean
+  completed?: boolean
   initialProject?: ProjectMasterVO
 }>()
 const emit = defineEmits<{
@@ -74,6 +83,7 @@ const context = ref<TaskBusinessContext>()
 const project = ref<Omit<ProjectMasterVO, 'id'> & { id?: BusinessViewId }>()
 const registration = ref<BusinessViewRegistrationVO>()
 const hostRef = ref<InstanceType<typeof BusinessViewHost>>()
+const membersRef = ref<InstanceType<typeof ProjectMembersBusinessView>>()
 // 业务视图宿主的首判定完成状态（expose 的 viewSettled）：宿主未挂载或执行检查中视为未就绪
 const hostSettled = computed(() => hostRef.value?.viewSettled === true)
 const loading = ref(false), dirty = ref(false)
@@ -94,10 +104,18 @@ const sameTask = (a: BusinessViewId | undefined, b: BusinessViewId) => String(a)
 const currentTask = (epoch: number, taskId: BusinessViewId) =>
   !disposed && epoch === generation && sameTask(taskId, props.taskId)
 const viewReadonly = computed(() =>
-  Boolean(props.readonly || loading.value || error.value || context.value?.recoverableError ||
+  Boolean(props.completed || props.readonly || loading.value || error.value || context.value?.recoverableError ||
     context.value?.executionAllowed === false ||
     !sameTask(context.value?.taskId, props.taskId))
 )
+// 已完成指派任务展示项目成员的持续维护入口；不恢复任务执行上下文。
+const completedAssignment = computed(() => props.completed &&
+  sameTask(context.value?.taskId, props.taskId) &&
+  context.value?.ownerContext === 'PROJ' && context.value?.objectType === 'PROJECT_ASSIGNMENT' &&
+  registration.value?.componentKey === 'PROJ_PROJECT_ASSIGNMENT' &&
+  context.value?.ownerActions.includes('QUERY'))
+const maintenanceReadonly = computed(() => Boolean(props.readonly || loading.value || error.value ||
+  context.value?.recoverableError || !sameTask(context.value?.taskId, props.taskId)))
 // Owner pages enforce each row's state. Automatic links can lag behind a saved draft.
 // 只读（未进入阶段/已完成/执行不允许）只保留 QUERY：视图照常渲染，写操作由 Owner 页面隐藏
 const ownerActions = computed(() => {
@@ -201,7 +219,7 @@ const load = async (useInitialProject = false) => {
 }
 const requestLeave = async () => {
   try {
-    const host = hostRef.value
+    const host = membersRef.value || hostRef.value
     if (!host) return !dirty.value
     return (await host.requestLeave()) !== false
   } catch {
@@ -213,7 +231,7 @@ const refresh = async () => {
   const epoch = generation, taskId = props.taskId
   if (!await requestLeave() || !currentTask(epoch, taskId)) return
   const current = context.value
-  if (!props.readonly && current?.allowedActions.includes('REFRESH_RESULTS')) {
+  if (!props.completed && !props.readonly && current?.allowedActions.includes('REFRESH_RESULTS')) {
     loading.value = true
     error.value = ''
     clearFactVersion()
@@ -224,7 +242,7 @@ const refresh = async () => {
       if (!currentTask(epoch, taskId)) return
       await load()
       if (!currentTask(epoch, taskId)) return
-      await hostRef.value?.refresh?.()
+      await (membersRef.value || hostRef.value)?.refresh?.()
       if (!currentTask(epoch, taskId)) return
       emit('changed')
       if (result.unknown) {
@@ -242,7 +260,7 @@ const refresh = async () => {
     return
   }
   await load()
-  if (currentTask(epoch, taskId)) await hostRef.value?.refresh?.()
+  if (currentTask(epoch, taskId)) await (membersRef.value || hostRef.value)?.refresh?.()
 }
 const ownerChanged = () => {
   // A retained old Host may finish an Owner request after the parent selected another task.
@@ -263,7 +281,7 @@ watch(
   },
   { immediate: true, flush: 'sync' }
 )
-watch(() => [props.readonly, props.taskVersion, props.taskCode], () => {
+watch(() => [props.readonly, props.completed, props.taskVersion, props.taskCode], () => {
   if (props.readonly) uploadIntent.value = undefined
   clearFactVersion()
   if (sameTask(context.value?.taskId, props.taskId)) void load()

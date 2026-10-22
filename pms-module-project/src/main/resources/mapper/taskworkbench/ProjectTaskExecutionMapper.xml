@@ -8,7 +8,8 @@
                v.id AS planVersionId, e.id AS executionId, e.version AS executionVersion,
                e.round_no AS roundNo, e.status AS executionStatus,
                se.id AS stageExecutionId, se.version AS stageExecutionVersion,
-               se.status AS stageExecutionStatus, s.status AS stageStatus, e.started_at AS startedAt
+               se.status AS stageExecutionStatus, s.status AS stageStatus, e.started_at AS startedAt,
+               t.required_task AS requiredTask
         FROM proj_project p
         JOIN proj_project_plan_version v ON v.tenant_id=p.tenant_id AND v.project_id=p.id
             AND v.id=p.active_plan_version_id AND v.status='EFFECTIVE' AND v.deleted=b'0'

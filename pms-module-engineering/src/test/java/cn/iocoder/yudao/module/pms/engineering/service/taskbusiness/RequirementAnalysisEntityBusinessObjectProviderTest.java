@@ -89,4 +89,12 @@ class RequirementAnalysisEntityBusinessObjectProviderTest {
         row.setProjectId(10L);
         assertThrows(RuntimeException.class, () -> provider.lockAndRevalidate(context,"42",version));
     }
+    @Test void historicalTimeUsesExactFrozenRevisionAndNeverLastUpdateTime() {
+        row.setRevisionState("FROZEN"); row.setFrozenBy(7L); row.setFrozenAt(LocalDateTime.of(2026,10,22,10,0));
+        when(mapper.selectRevision(any())).thenReturn(row);
+        var request = new TaskBusinessObjectProvider.HandlingTimeQuery(context,"42","SOL_REQUIREMENT_RESULT:42:2:1:FROZEN",Set.of("REQUIREMENT_ANALYSIS_COMPLETED"));
+        assertEquals(row.getFrozenAt(),provider.historicalHandlingTime(request).at());
+        row.setVersion(3L); assertNull(provider.historicalHandlingTime(request));
+        row.setVersion(2L); row.setProjectId(10L); assertNull(provider.historicalHandlingTime(request));
+    }
 }

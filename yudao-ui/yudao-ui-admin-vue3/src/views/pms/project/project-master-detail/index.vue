@@ -373,6 +373,7 @@
                 :show-stage-gates="false"
                 show-responsibilities
                 @changed="handleFlowChanged"
+                @refreshed="handleFlowChanged"
               />
             </div>
             <aside class="stage-ws-side" aria-label="完成条件与阶段历史">
@@ -392,7 +393,7 @@
                     <div class="panel-header">
                       <span class="panel-title"><Icon icon="ep:circle-check" /> 完成条件</span>
                       <el-button link type="primary" :loading="gateLoading" :disabled="disabled" @click="refresh">
-                        刷新门禁结果
+                        检查阶段条件
                       </el-button>
                     </div>
                   </template>
@@ -402,7 +403,7 @@
                 <div class="panel-header">
                   <span class="panel-title"><Icon icon="ep:clock" /> 阶段历史</span>
                   <el-button link type="primary" @click="historyVisible = true"
-                    >执行历史与规则结果</el-button
+                    >阶段状态查看</el-button
                   >
                 </div>
                 <div v-if="stageHistory.length" class="stage-history">
@@ -864,7 +865,6 @@ const onMobileTaskSelect = async (task: TaskNode) => {
 }
 
 const handleFlowChanged = async () => {
-  stageTreeToken.value++
   await loadAll()
 }
 
@@ -917,7 +917,7 @@ const loadRiskCount = async () => {
   }
 }
 const loadAll = async () => {
-  loading.value = true
+  loading.value = !detail.value || String(detail.value.id) !== String(projectId())
   try {
     await Promise.all([loadDetail(), loadInstances(), loadPrimaryContact(), loadRiskCount()])
     stageTreeToken.value++

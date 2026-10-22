@@ -2,6 +2,33 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper">
+    <select id="selectStatistics" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.projection.ProjectStatistics">
+        SELECT COUNT(*) AS total,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND (
+            <include refid="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectOverdueMapper.stageCurrentlyOverdue"/>
+            OR <include refid="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectOverdueMapper.taskCurrentlyOverdue"/>
+          ) THEN 1 END) AS overdue,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S0' THEN 1 END) AS s0,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S1' THEN 1 END) AS s1,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S2' THEN 1 END) AS s2,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S3' THEN 1 END) AS s3,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S4' THEN 1 END) AS s4,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S5' THEN 1 END) AS s5,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S6' THEN 1 END) AS s6,
+          COUNT(CASE WHEN p.lifecycle_status = 'NORMAL_CLOSED' THEN 1 END) AS normal_closed,
+          COUNT(CASE WHEN p.lifecycle_status = 'NO_TRACKING_CLOSED' THEN 1 END) AS no_tracking_closed,
+          COUNT(CASE WHEN p.lifecycle_status = 'EXCEPTION_CLOSED' THEN 1 END) AS exception_closed
+        FROM proj_project p
+        WHERE p.tenant_id = #{query.tenantId} AND p.deleted = b'0'
+        <choose>
+            <when test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+                AND p.id IN
+                <foreach collection="query.visibleProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+
     <select id="selectBusinessOptions" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
         SELECT p.id, p.project_code, p.project_name, p.customer_name
         FROM proj_project p

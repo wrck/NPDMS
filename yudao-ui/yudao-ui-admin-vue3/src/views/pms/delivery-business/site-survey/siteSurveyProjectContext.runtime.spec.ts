@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
-import { mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, passthrough, tableColumn, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 import SurveyPage from './index.vue'
 import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'
 import PublicEntityHost from '@/components/BusinessEntity/BusinessEntityHost.vue'
@@ -50,12 +50,12 @@ const components = Object.fromEntries(['ElLink', 'ElTable', 'ElRow', 'ElCol', 'E
 // Repeated refusals rerender the form ref; keep the real ElForm validation interface on its test double.
 const testForm = defineComponent({ setup: (_, { slots, expose }) => { expose({ validate: async () => true }); return () => h('div', slots.default?.()) } })
 const options = { ...components, ElTableColumn: tableColumn, ElForm: testForm }
-const render = (props: Record<string, any> = {}) => {
+const render = (props: Record<string, any> = {}, overrides: Record<string, any> = {}) => {
   const input = reactive(props)
   const page = ref<any>()
-  const mounted = mount(defineComponent({ setup: () => () => h(SurveyPage, { ...input, ref: page }) }), {}, options)
+  const mounted = mount(defineComponent({ setup: () => () => h(SurveyPage, { ...input, ref: page }) }), {}, { ...options, ...overrides })
   apps.push(mounted.app)
-  return { state: page.value.$.setupState, input, exposed: page.value }
+  return { root: mounted.root, state: page.value.$.setupState, input, exposed: page.value }
 }
 const record = (projectId: number | string = 7, id: number | string = 12) => ({ id, projectId, code: 'SS', name: 'old', status: 0, version: 0, location: 'onsite' })
 const records = new Map<string, any>()
@@ -549,4 +549,19 @@ describe('public standalone Host with the actual SiteSurvey professional page',(
     expect(await state.selectProfessionalProject(id)).toBe(false)
     expect(projects.getProject).toHaveBeenCalledTimes(count)
   })
+})
+
+it.each([false, true])('never renders rejection even when REJECT is allowed (task=%s)', async taskContext => {
+  api.getSiteSurveyPage.mockResolvedValue({ list: [record()], total: 1 })
+  const view = render({ projectId: 7, ...(taskContext ? { taskId: 4 } : {}),
+    allowedActions: ['QUERY', 'UPDATE', 'CONFIRM', 'REJECT', 'DELETE'] },
+    { ElTableColumn: defineComponent({ setup: (_, { attrs, slots }) => () =>
+      attrs.label === '操作' ? h('section', slots.default?.({ row: record() })) : null }) })
+  await flush()
+  const labels = (node: any): string[] => [
+    ...(node.type === 'button' ? [textOf(node)] : []), ...node.children.flatMap(labels)
+  ]
+  expect(labels(view.root)).toContain('确认')
+  expect(labels(view.root)).not.toContain('驳回')
+  expect(api.siteSurveyActionReceipt).not.toHaveBeenCalled()
 })

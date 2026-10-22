@@ -90,9 +90,10 @@
         </div>
         <div class="rail-stage">
           <div class="rail-stage-title">交付准备</div>
-          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'customer-contacts' }"
+          <button
+class="rail-item" :class="{ 'rail-item--active': activeTab === 'customer-contacts' }"
             @click="switchTab('customer-contacts')" v-hasPermi="['pms:customer-contact:query']">
-            <Icon icon="ep:phone" class="rail-icon"/><span class="rail-label">用户联系人</span>
+            <Icon icon="ep:phone" class="rail-icon" /><span class="rail-label">用户联系人</span>
           </button>
           <!-- Demo 2.2.1 物料选择/换货协同（换货单分页，通过后推送CRM） -->
           <button
@@ -134,12 +135,14 @@
         </div>
         <div class="rail-stage">
           <div class="rail-stage-title">验收交维</div>
-          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'satisfaction' }"
+          <button
+class="rail-item" :class="{ 'rail-item--active': activeTab === 'satisfaction' }"
             @click="switchTab('satisfaction')" v-hasPermi="['pms:acceptance:satisfaction:query']">
             <Icon icon="ep:chat-dot-round" class="rail-icon" />
             <span class="rail-label">满意度</span>
           </button>
-          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-reports' }"
+          <button
+class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-reports' }"
             @click="switchTab('acceptance-reports')" v-hasPermi="['pms:acceptance:report:query']">
             <Icon icon="ep:document-checked" class="rail-icon" />
             <span class="rail-label">验收报告</span>
@@ -512,7 +515,7 @@
           <ProjectDeliveryScopePanel :key="`scope-${detail.id}`" :project-context="scopeContext" />
         </div>
         <div v-if="detail?.id && visitedTabs.has('flow')" v-show="activeTab === 'flow'" class="min-w-0" data-testid="project-pane-flow">
-          <ProjectFlowPanel ref="flowPanelRef" :project-id="detail.id" :project="detail" :instances="instances" :selection="flowSelection" @changed="handleStageChanged" />
+          <ProjectFlowPanel ref="flowPanelRef" :project-id="detail.id" :project="detail" :instances="instances" :selection="flowSelection" @changed="handleStageChanged" @refreshed="handleStageChanged" />
         </div>
         <div v-if="detail?.id && visitedTabs.has('progress')" v-show="activeTab === 'progress'" class="min-w-0" data-testid="project-pane-progress">
           <ProjectProgressPanel

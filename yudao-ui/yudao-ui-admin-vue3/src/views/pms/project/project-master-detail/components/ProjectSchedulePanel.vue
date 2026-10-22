@@ -170,11 +170,8 @@
       "
     >
       <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
-        <el-button v-if="!durationPlan" type="primary" :disabled="!!initialDurationHint(project)" @click="durationVisible = true"
-          >录入项目工期</el-button
-        >
         <el-button
-          v-else
+          v-if="durationPlan"
           v-hasPermi="['pms:imp-stage-plan:create']"
           type="primary"
           :disabled="acting"

@@ -254,9 +254,10 @@ const queryDebuggerUsers = async (params: PageParam & { nickname?: string }) => 
     const users = await UserApi.getSimpleUserList()
     const keyword = params.nickname?.trim().toLocaleLowerCase() || ''
     const matches = users.filter((user) => user.nickname?.toLocaleLowerCase().includes(keyword))
-    const start = (params.pageNo - 1) * params.pageSize
+    const pageSize = params.pageSize ?? 10
+    const start = ((params.pageNo ?? 1) - 1) * pageSize
     debuggerUsersError.value = ''
-    return { list: matches.slice(start, start + params.pageSize), total: matches.length }
+    return { list: matches.slice(start, start + pageSize), total: matches.length }
   } catch {
     debuggerUsersError.value = '其他人员暂时无法查询，可选择本人或保留已选人员；查询其他人员请重试或确认权限。'
     const self = userStore.getUser

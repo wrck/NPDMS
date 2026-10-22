@@ -179,6 +179,32 @@ class ProjectStageAdmissionServiceTest {
         verifyNoInteractions(stages, audit);
     }
 
+    @Test void optionalTaskMayStartAfterStageCompletionWithoutChangingStageOrFrozenRules() {
+        add("DISCOVERY", null);
+        rows.getFirst().setStatus("DONE");
+        var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO()
+                .setId(21L).setProjectId(9L).setCode("WORK").setStageCode("DISCOVERY");
+        var contract = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO();
+        contract.setSourceNodeKey("task:work");
+        var definition = new TemplateExecutionSnapshot.TaskContract(); definition.setNodeKey("task:work");
+        definition.setCode("WORK"); definition.setStageCode("DISCOVERY"); definition.setRequired(false);
+        definition.setAdmissionRuleKey("admit"); effective.setTasks(List.of(definition));
+        effective.getRulePrograms().put("admit", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}")));
+        assertTrue(service.taskMayStart(project, task, contract));
+        assertEquals("DONE", rows.getFirst().getStatus());
+        definition.setRequired(true); assertFalse(service.taskMayStart(project, task, contract));
+        definition.setRequired(null); assertFalse(service.taskMayStart(project, task, contract));
+        definition.setRequired(false);
+        for (String status : List.of("PENDING", "SKIPPED", "TERMINATED")) {
+            rows.getFirst().setStatus(status); assertFalse(service.taskMayStart(project, task, contract));
+        }
+        rows.getFirst().setStatus("DONE");
+        effective.getRulePrograms().put("admit", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}")));
+        assertFalse(service.taskMayStart(project, task, contract));
+        effective.getRulePrograms().clear(); assertFalse(service.taskMayStart(project, task, contract));
+        verifyNoInteractions(stages, audit);
+    }
+
     @Test void elapsedTimeWaitsForStageThenOrdinaryReevaluationAdmitsThroughNativeLiteFlow() {
         add("PREP", null);
         var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO()

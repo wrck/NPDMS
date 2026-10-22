@@ -38,6 +38,16 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     private final PermissionApi permissionApi;
     private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions;
 
+    @Override public HandlingTime historicalHandlingTime(HandlingTimeQuery request) {
+        requireProjectQuery(request.context().tenantId(),request.context().actorId(),request.context().projectId());
+        var query = objectQuery(request.context(),request.objectId());
+        var row = requireObject(mapper.selectTaskObject(query),query);
+        if (!Objects.equals(row.getTenantId(),request.context().tenantId()) || !Objects.equals(row.getProjectId(),request.context().projectId())
+                || Boolean.TRUE.equals(row.getDeleted()) || !Objects.equals("SOL_SITE_SURVEY_RESULT:" + row.getVersion() + ":" + row.getStatus(),request.factVersion())) return null;
+        if (request.satisfiedFacts().contains("SURVEY_ARCHIVED")) return new HandlingTime(row.getArchivedAt(),"BUSINESS_END","工勘归档时间");
+        return request.satisfiedFacts().contains("SURVEY_CONFIRMED") ? new HandlingTime(row.getConfirmedAt(),"BUSINESS_END","工勘确认时间") : null;
+    }
+
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public CompletionFact lockCompletionFact(CompletionContext context, String objectId) {

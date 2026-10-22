@@ -28,7 +28,7 @@
       <el-table-column label="验收类型" width="110"><template #default="{ row }">{{ typeLabel(row.acceptanceType) }}</template></el-table-column>
       <el-table-column label="状态" width="110"><template #default="{ row }"><el-tag :type="row.activityStatus === 'COMPLETED' ? 'success' : 'warning'">{{ activityStatusLabel(row.activityStatus) }}</el-tag></template></el-table-column>
       <el-table-column label="当前报告" width="110"><template #default="{ row }">{{ row.currentReportVersionId ? '已生效' : '未生效' }}</template></el-table-column>
-      <el-table-column label="操作" width="100" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openDetail(row.id, canUploadActivity(row))">{{ canUploadActivity(row) ? '编辑' : '查看' }}</el-button></template></el-table-column>
+      <el-table-column label="操作" width="100" fixed="right"><template #default="{ row }"><el-button link type="primary" @click="openDetail(row.id, opensEditorFromList(row))">{{ opensEditorFromList(row) ? '编辑' : '查看' }}</el-button></template></el-table-column>
     </el-table>
   </ContentWrap>
   <AcceptanceReportDetail ref="detailRef" :readonly="detailReadonly" :allowed-actions="allowedActions" @changed="changed" @dirty-change="emit('dirty-change', $event)" />
@@ -77,6 +77,7 @@ const canUploadActivity = (row?: AcceptanceActivityVO) => !!row && !props.readon
   && activityAllowsReportWrite(row) && checkPermi(['pms:acceptance:report:write'])
   && (!embedded.value || (props.objectId !== undefined && sameBusinessViewId(row.id, props.objectId)))
   && (props.allowedActions === undefined || props.allowedActions.includes('UPDATE'))
+const opensEditorFromList = (row: AcceptanceActivityVO) => row.activityStatus === 'PENDING' && canUploadActivity(row)
 const requestLeave = async () => !creating.value && (await detailRef.value?.requestLeave() ?? true)
 const discardChanges = () => {
   if (detailRef.value?.discardChanges() === false) return false

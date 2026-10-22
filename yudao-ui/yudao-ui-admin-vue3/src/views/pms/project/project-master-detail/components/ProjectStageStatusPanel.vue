@@ -10,7 +10,7 @@
         <el-button v-hasPermi="['pms:project-plan:manage']" @click="planVisible = true"
           >项目计划</el-button
         >
-        <el-button @click="historyVisible = true">执行历史与规则结果</el-button>
+        <el-button @click="historyVisible = true">阶段状态查看</el-button>
         <el-button v-hasPermi="['pms:project-plan:rework']" @click="reworkVisible = true">选择性返工</el-button>
         <el-button :loading="loading" @click="refresh">刷新阶段状态</el-button>
       </div>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectTemplateInitializationMapper">
+    <select id="hasRuntime" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM proj_project_plan_version WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+            OR EXISTS(SELECT 1 FROM proj_project_stage WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+            OR EXISTS(SELECT 1 FROM proj_project_task WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+            OR EXISTS(SELECT 1 FROM proj_project_gate WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+            OR EXISTS(SELECT 1 FROM proj_project_milestone WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+            OR EXISTS(SELECT 1 FROM proj_project_deliverable WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+    </select>
+    <update id="bindIfUninitialized">
+        UPDATE proj_project
+        SET lifecycle_template_id=#{query.templateId},lifecycle_template_revision_id=#{query.revisionId},
+            lifecycle_template_revision_no=#{query.revisionNo},template_load_method='AUTO_DEFAULT',
+            process_definition_key=#{query.processDefinitionKey},process_definition_version=#{query.processDefinitionVersion},
+            closure_policy_snapshot=#{query.closurePolicySnapshot},version=version+1,
+            updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND version=#{query.expectedVersion}
+            AND lifecycle_status='ACTIVE' AND deleted=0 AND active_plan_version_id IS NULL
+            AND lifecycle_template_id IS NULL AND lifecycle_template_revision_id IS NULL
+            AND lifecycle_template_revision_no IS NULL
+    </update>
+</mapper>

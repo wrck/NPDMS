@@ -625,6 +625,25 @@ export type ProjectPageParams = PageParam & {
 export const getProjectPage = (params: ProjectPageParams) =>
   request.get<{ list: ProjectMasterVO[]; total: number }>({ url: `${baseUrl}/page`, params })
 
+export interface ProjectStatistics {
+  total: number
+  overdue: number
+  s0: number
+  s1: number
+  s2: number
+  s3: number
+  s4: number
+  s5: number
+  s6: number
+  normalClosed: number
+  noTrackingClosed: number
+  exceptionClosed: number
+}
+
+/** 全部可见项目的状态卡计数，与列表筛选条件独立。 */
+export const getProjectStatistics = () =>
+  request.get<ProjectStatistics>({ url: `${baseUrl}/statistics` })
+
 /** 项目详情（基本信息+四维+模板绑定） */
 export const getProject = (id: number | string) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
 

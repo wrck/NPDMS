@@ -106,3 +106,13 @@ F-PROJ-004 浏览器验收暴露出 F-PROJ-001 与后续统一 ProjectTreeScope 
 FB-02 日期/节点规则已确认；客户精确筛选与超期查询、双标识、节点完成历史及阶段日期展示已实现。后端定向19项、前端定向18项通过；V422在指定 `npdms_domain_test` 完成 migrate、validate、重复 migrate，既有646阶段和819任务的状态、计划日期、完成日期及版本未变。
 
 项目模块超期/客户增量包已按用户“继续”指令部署；用户随后明确“确认部署并重启59191”，已部署顶部卡片和“是/否/留空全部”的补充筛选修复，后端PID20364，数据库、Redis、DAC及回调网关未重启。新增14项真实MySQL检查通过；应用内浏览器“是”返回1条、“否”返回94条。节点双标识、合法计划更新及完成后历史保留等业务浏览器环节仍待补验。FB-03独立实施/流程/发货等条件仍未完整实现，本记录不改变原Feature总体状态。证据见工作树 `.run/test-feedback-20261009/regression/repair-r4/repair-regression-report.md`。
+
+## 2026-10-22 项目列表查询性能优化（需求方已批准）
+
+本次仅优化读取链路：顶部12张卡片从12次完整分页改为一次 `GET /admin-api/pms/projects/statistics` 聚合，加上原列表分页共2次项目数据请求；原项目列表筛选、分页和展示链路保留。统计复用 `ProjectTreeScopeService.resolveAllFullProjectIds(..., PROJECT_VIEW)` 及既有当前超期SQL片段，不缓存权限或统计，不改生命周期、历史和业务数据；独立于列表筛选的原统计口径保持。S0～S6仅ACTIVE，三种闭环仍按生命周期精确计数，同项目多个超期节点只计一次。
+
+验证：固定JDK25、工作树依赖仓库及独占锁下，37项后端定向检查通过（ProjectStatisticsServiceTest 3、ProjectTreeScopeServiceTest 18、ProjectManualMapperSelectPageMySqlTest 16）；真实MySQL用例事务回滚，验证全部状态与原分页total一致、空/缺失范围、跨租户、逻辑删除及重复超期节点，且验证生产SQL解析器可解析。前端8项运行测试通过，覆盖首次仅1次统计+1次分页、统计失败仍可读列表及筛选参数保留；定向ESLint零错误，4条原有格式警告。全量类型检查被本次未修改的需求分析、设备日志、实施方案测试和任务详情测试错误阻断，未宣称通过。
+
+真实浏览器旧版基线（19191/59191，admin）：6698条项目、13次项目分页请求，网络空闲完成约2.942秒，无pageerror；截图 `.run/project-list-baseline.png`，请求证据 `.run/project-list-baseline.json`。只读MySQL EXPLAIN ANALYZE及3次新SQL执行87～106毫秒，12项计数与基线截图一致，阶段/任务命中现有租户+项目索引，未新增索引或迁移。证据 `.run/project-statistics-explain.json`。这些SQL结果不代表优化后页面耗时；当前后端尚未部署本增量，真实新接口与逐卡浏览器验收待用户明确批准重启59191后执行，脚本 `.run/project-statistics-browser.py` 已备好。
+
+本增量最终受控打包成功，冻结清单 `.run/build/releases/3947e645-b785-46b3-94bd-5c3f4bacab09/manifest.json`；`scripts/worktree-backend.ps1 -ValidateOnly`通过，22项运行修复基线与local,dac配置保持。该包来自当前整个工作树，包含其他已有未提交改动；尚未部署、重启、提交或推送。部署需按AGENTS.md取得本次明确重启批准，之后执行已准备的真实浏览器逐卡一致性/请求数/耗时验收。最初测试编译遗漏JSQLParserException声明已在范围内修复，修复后37项通过；保留首次失败与最终结果日志，不将首次构建失败说成通过。
