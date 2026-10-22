@@ -1185,3 +1185,52 @@ DAC 的 desktop 业务路由通过 `X-NPDMS-DAC-Ticket` 向已配置 NPDMS 的 `
 本机通过任务限定回传凭证主动报告接受状态并轮询取消，终态通过原 multipart 结果协议送达 `POST /api/v1/pms/integration/device-ops/desktop/callbacks`。接收仍验证固定任务/collection、结果序号/版本、日志大小/摘要和不可变 Receipt，并复用原 PLT 文件接收、状态机及业务消费。平台只读本地上报投影，不尝试连接现场回环地址；离线不推断失败，也不重发命令。
 
 响应不明时可通过 `POST .../desktop-executions/{executionId}/resume` 重新核验原使用人及当前来源授权，继续原任务；不创建新幂等键。DAC 在提交前调用 `POST .../desktop/tasks/{taskId}/claim`，以本机持久化的 executionId 独占认领；另一客户端、已取消任务或缺少明确 `accepted=true` 的业务回执均不得下发。后续 `/observations`、`/control`、`/cancelled-before-submission` 仅接受该任务限定凭证，不能授予新执行；取消证明仍由原状态机收敛。
+
+
+### 2026-10-22 既有未绑定项目首次模板分配
+
+`POST /api/v1/pms/projects/{projectId}/plan/initialize` 补充已有项目首次绑定模板并实例化计划的入口。沿用 `pms:project-plan:manage`、服务端租户及当前项目编辑范围；请求体为 `expectedProjectVersion`、`expectedTemplateRevisionId`，请求头为非空且不超过128字符的 `Idempotency-Key`。不接收模板ID、项目属性覆盖、人员指派或生命周期状态。
+
+锁定项目后重验授权、版本和ACTIVE状态，要求所有原模板引用和当前计划为空，且无任何计划、阶段、任务、里程碑、交付件或门禁实例（包括已删除历史）。目标为同租户启用模板的当前已发布V2修订，提交时按项目真实属性重新求值，只允许唯一命中且与请求修订一致；无匹配、多匹配、过期发布或停用模板拒绝，不兜底、不覆盖旧绑定。候选范围由启用状态与冻结规则决定，不硬编码模板ID、名称、数量或项目白名单。
+
+同事务首次冻结模板来源与闭环策略，按完整发布快照生成阶段、任务、状态机引用、执行契约、WBS闭包、里程碑、交付件及门禁引用，再生成有效计划和执行轮次、结果订阅与定时规则。阶段仅由原准入服务正常激活，不直接改写项目生命周期、指派、编码、树、来源或业务事实。命令幂等、审计及初始化整体提交或回滚；相同请求重放返回原结果，不重复生成计划；不同键再次初始化拒绝。响应为 `projectId/planVersionId/templateId/templateRevisionId`。此入口不更换已有计划，不绕过历史保护，不承接旧功能新Feature。
+
+### 培训打印模板只读选用（2026-10-22）
+
+`GET /api/v1/pms/dynamic-form-templates/training-print-selection`：沿用`pms:imp-training:query`，服务端可信租户/用户上下文，标准分页上限。PLT仅返回当前租户`TRAINING_PRINT_FORM`分类中已启用且具有当前发布修订的模板名称、模板/修订ID、发布时间及表单配置/规则；不返回草稿、其他分类或管理动作，不授予通用模板查询/管理权限。前端按发布时间默认选择最新项；空列表使用服务端现场培训标准表单PDF，查询失败明确报错。既有通用模板接口权限和发布/启停契约保持不变。
+
+### 交付件关联业务数据类型范围（2026-10-22）
+
+需求方要求界面“关联业务成果”改为“关联业务数据”，仅显示当前业务需要关联的类型。既有交付件`result-types`接口只返回当前项目有效冻结计划为该交付件声明的来源类型：复用既有显式来源及原生任务来源匹配，不按显示名称、阶段编号或固定业务类型臆测。未允许BUSINESS_RESULT或无匹配来源时返回空列表，不降级为全类型。`result-candidates`及新提交同样验证所选类型属于该范围；既有提交重放、授权、项目范围、成果精确版本复核和不可变提交历史保持原语义。
+
+
+2026-10-22 阶段状态查看时间口径（用户确认）：`GET /api/v1/pms/projects/{projectId}/node-executions/history` 增加轮次 `stageCode` 和只读 `submissionTime {at, source, label}`。原 `submittedAt/submittedBy/submissionNote` 仍只代表真实手工提交；有手工提交时优先显示。自动完成按冻结完成依据读取业务开始/生效或结束/确认时间，标明来源；`endedAt` 继续代表正式状态转换时间，不替换为业务日期。结果订阅读取原完成收据所指不可变扫描的形成时间，不能改用最新扫描；业务绑定仅通过 Owner 公共 `historicalHandlingTime(HandlingTimeQuery)` 或精确版本重验后的结果契约读取。人员与最终用户引用原冻结成员区间；原生阶段按本计划必需任务的业务依据汇总。缺失、外项目、版本不匹配或无法证明的历史业务时间不猜测、不落库回填，不改写轮次、历史快照、状态机或权限规则。
+
+
+2026-10-22 完工证明到货日期：IMP新增内部只读 `SignedArrivalDateApi.latest(Query{tenantId,projectId})`，仅查询原 `imp_eng_arrival` 当前项目、同租户、未删除、状态“已签收”且实际到货时间非空的记录，返回最大实际到货日期或null。ACC通过公开API消费，授权后提供 `GET /api/v1/pms/completion-confirmations/project-arrival-date?projectId=...`，允许既有完工证明查询/创建/编辑权限并保留项目可见范围；不授予到货维护权限。完工证明详情增加有效arrivalDate，草稿优先从IMP读取（缺失时按下述补充采用手填值），外发/确认后仅从原成套不可变CertificateSnapshot读取；外发新增快照冻结arrivalDate，缺字段的旧快照按空值读取。不更新既有快照；手填列按下述补充裁决新增。
+
+### 2026-10-22 项目状态卡聚合查询
+
+经需求方确认，新增只读 `GET /admin-api/pms/projects/statistics`，与既有 `/admin-api/pms/projects/page` 使用同一 Controller 前缀及 `pms:project:query` 权限，租户和主体均来自服务端。只在 `ProjectTreeScopeService` 当前 `PROJECT_VIEW` 完整可见集合内聚合，空范围返回全零，不接受客户端权限集合或列表筛选条件。返回 `total/overdue/s0/s1/s2/s3/s4/s5/s6/normalClosed/noTrackingClosed/exceptionClosed` 数字字段：total含全部可见未删除项目，s0～s6限定ACTIVE及current_stage，三种闭环按原生命周期值精确计数；overdue复用原分页当前超期判定，同项目多个超期节点仅计一次，已完成历史不参与。顶部卡片维持独立于列表筛选的现有口径，用一次聚合替代逐卡分页；原分页、状态展示、授权与超期历史保持不变。
+
+### 2026-10-22 完工证明无签收日期时的手填补充
+
+完工证明保存请求允许可空 `arrivalDate`。ACC只在当前项目无可用签收日期且 `itemArrival=是` 时将其保存为 `acc_completion_certificate.manual_arrival_date DATE NULL`；不得覆盖已签收来源。草稿详情返回有效 `arrivalDate` 与 `arrivalDateManualAllowed`；自动来源优先，缺失时采用手填值。外发快照仍冻结有效日期，历史快照和文件不更新。
+
+### 2026-10-22 设备管理名称筛选与首屏加载
+
+需求方确认项目、客户、办事处同时作为常用筛选和列表名称展示，隐藏页面“新增设备”按钮。既有 `GET /admin-api/pms/asset/devices/page` 增补可选 `projectName/customerName/departmentName`（最长128字符）：按名称包含匹配；空白忽略，与原SN、设备名称、状态、产品编码、projectId/customerId及服务端三路可见范围取交集，先筛选再分页、排序不变。办事处仅来自设备现有固化组织 `department_name`，不按设备所属项目重猜历史归属。合同候选解析使用同一名称限制；有名称过滤时不强制无筛选覆盖索引，允许优化器选择原精确归属索引。
+
+列表响应增补可空 `projectName/customerName`，ID字段继续供已有消费者使用，设备管理界面不显示ID。AST只为已经授权的当前设备页批量读取名称，PROJ复用 `ProjectDeviceOrganizationApi.getOrganizations` 增补projectName，CUS复用 `CustomerQueryApi.getCustomers`，不逐设备读取详情、不直接联表跨模块。两Owner既有公开接口分别增加 `findProjectIdsByName(NameQuery)`、`findCustomerIdsByName(NameQuery)`，仅返回当前租户、未删除主档的筛选候选ID；候选不授予业务读取权限，AST仍重验原设备组织/项目/合同范围，空候选必须空结果，不得退化为忽略条件。名称缺失显示“-”，不显示ID或从其他关系臆造名称。详情与编辑、状态变更、关系历史及现有写权限保留，详情组件仅在用户打开时加载；设备创建API和其他调用方不因本页隐藏按钮而改变。
+
+### 本机DAC任务复核的显式发起人（2026-10-22）
+
+AST `ProjectDeviceSelectionApi.validateSelection(AuthorizedSelection{tenantId,actorId,projectId,deviceIds})` 供已校验任务的内部调用方复核设备，PROJ `ProjectDeviceSelectionContextApi.getContractNumbers(Authorization{tenantId,actorId,projectId})` 按显式主体重验当前项目范围和租户。原网页登录入口保持原校验。PLT采集中心从冻结任务的AuthorizationQuery传递发起人，不要求客户端提交网页登录Token，不设置模拟登录态，不弱化项目/设备/凭据/版本/票据校验。原任务继续使用原platformTaskId和本机幂等键；已接受的请求不能重复执行。前端本机失败提示区分授权、参数和网络未知结果，不输出请求或凭据。
+
+### 2026-10-23 设备列表项目两行与详情链接
+
+需求方要求项目列分两行展示项目名称和项目编码，并提供现有项目详情链接。设备分页只读响应增补可空 `projectCode`，复用PROJ既有 `ProjectDeviceOrganizationApi.getOrganizations` 同次批量查询的project_code，不从ID/名称推算，不增加逐行HTTP请求。名称/编码缺失显示“-”；仅有关联项目且至少一项真实展示事实时生成 `/pms/project-management/project-master-detail?projectId={projectId}` 链接，Long项目ID原样传递，目标详情继续执行原项目权限校验。该字段只读，不改项目关系、历史快照或设备查询权限。
+
+### 2026-10-23 设备列表移除维保月数
+
+按需求方批准，`GET /admin-api/pms/asset/devices/page` 列表响应移除 `warrantyMonths`；列表SQL取消关联 `ast_device_warranty`。`warrantyStartDate/warrantyEndDate/warrantyStatus` 继续直接读取 `ast_device`。分页、总数、筛选、排序、租户与组织/项目/合同可见范围、延保次数及详情维保查询保持原语义。

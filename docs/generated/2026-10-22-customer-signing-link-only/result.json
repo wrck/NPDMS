@@ -1,0 +1,22 @@
+{
+  "completionDraftId": 30070,
+  "internalCustomerSignatureRejected": true,
+  "signatureUnchanged": true,
+  "versionUnchangedAfterRejectedSave": true,
+  "completionDraftEditSavedByProjectManager": true,
+  "completionDraftDeletedByProjectManager": true,
+  "trainingDraftId": 44,
+  "trainingDraftEditSavedByProjectManager": true,
+  "trainingDraftDeletedByProjectManager": true,
+  "customerSigningControlRemovedFromCompletionForm": true,
+  "trainingCreationAndEditingHaveNoCustomerSigningControl": true,
+  "migration": "513",
+  "projectManagerDeletePermissionsRestored": [
+    "pms:acc-completion-certificate:delete",
+    "pms:imp-training:delete"
+  ],
+  "legacySignedAndRejectedDeletionDenied": true,
+  "protectedRecordsUnchanged": true,
+  "dacReadiness": "UP",
+  "release": "3888d111-adf2-4b85-a28b-d12b403ec994"
+}
