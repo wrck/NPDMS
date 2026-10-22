@@ -424,6 +424,22 @@ class FileArtifactApiImplTest {
     }
 
     @Test
+    void reportsConcurrentAttachmentAsConflictWhenRepeatableReadSnapshotPredatesUpload() {
+        when(policyRegistry.lockAndRevalidateReferenceSet(any())).thenReturn(policy());
+        // The upload committed after this transaction established its consistent read view.
+        when(referenceMapper.selectActiveSet(any())).thenReturn(List.of());
+        when(referenceMapper.selectSetForUpdate(any())).thenReturn(List.of(reference()));
+
+        ServiceException failure = assertThrows(ServiceException.class,
+                () -> api.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(
+                        List.of(new FileReferenceSetExpectation(setKey(), 8L, List.of())), FileActionCodes.READ)));
+
+        assertEquals(FILE_FACT_VERSION_CONFLICT.getCode(), failure.getCode());
+        verify(artifactMapper, never()).selectForUpdate(any());
+        verify(versionMapper, never()).selectForUpdate(any());
+    }
+
+    @Test
     void lockAndRevalidateReferenceSetsStillRejectsAnInvalidatedVersion() {
         FileReferenceSetKey key = setKey();
         FileVersionDO invalidated = version();

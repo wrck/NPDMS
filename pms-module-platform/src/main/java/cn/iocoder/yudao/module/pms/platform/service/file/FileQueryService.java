@@ -14,6 +14,8 @@ import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileUploadSessionMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.CompletedFileVersionNamesQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.ExactFileReferenceQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileArtifactLockQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileVersionCursorQuery;
@@ -24,6 +26,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_ARTIFACT_NOT_FOUND;
@@ -44,6 +48,7 @@ public class FileQueryService {
     private final FileVersionMapper versionMapper;
     private final FileReferenceMapper referenceMapper;
     private final SecurityFrameworkService securityFrameworkService;
+    private final FileUploadSessionMapper uploadSessionMapper;
 
     public FileArtifactRespVO getArtifact(ArtifactQuery query, Actor actor) {
         ValidatedKey key = validate(query, actor, FileActionCodes.READ);
@@ -57,6 +62,8 @@ public class FileQueryService {
         FileArtifactRespVO response = new FileArtifactRespVO();
         response.setArtifactId(artifact.getId());
         response.setName(artifact.getName());
+        response.setCurrentVersionFileName(versionNames(new CompletedFileVersionNamesQuery(
+                actor.tenantId(), key.artifactId(), List.of(version.getVersionNo()))).get(version.getVersionNo()));
         response.setCategoryCode(artifact.getCategoryCode());
         response.setOwnerContext(artifact.getOwnerContext());
         response.setLifecycleStatus(artifact.getLifecycleStatusCode());
@@ -80,7 +87,13 @@ public class FileQueryService {
                 actor.tenantId(), key.artifactId(), parsed.versionNo(), parsed.id(), pageSize + 1));
         boolean hasMore = fetched.size() > pageSize;
         List<FileVersionDO> page = hasMore ? fetched.subList(0, pageSize) : fetched;
-        List<FileVersionRespVO> items = page.stream().map(this::toVersion).toList();
+        var names = versionNames(new CompletedFileVersionNamesQuery(actor.tenantId(), key.artifactId(),
+                page.stream().map(FileVersionDO::getVersionNo).toList()));
+        List<FileVersionRespVO> items = page.stream().map(row -> {
+            var response = toVersion(row);
+            response.setFileName(names.get(row.getVersionNo()));
+            return response;
+        }).toList();
         String nextCursor = hasMore ? page.getLast().getVersionNo() + ":" + page.getLast().getId() : null;
         return new FileCursorPageRespVO<>(items, nextCursor, hasMore);
     }
@@ -89,6 +102,12 @@ public class FileQueryService {
         ValidatedKey key = validate(query, actor, FileActionCodes.READ);
         if (!canRead(key)) return null;
         return toReference(requireReference(referenceMapper.selectExact(key.referenceQuery()), key.artifactId()));
+    }
+
+    private Map<Integer, String> versionNames(CompletedFileVersionNamesQuery query) {
+        if (query.versionNos().isEmpty()) return Map.of();
+        return uploadSessionMapper.selectCompletedVersionNames(query).stream().collect(Collectors.toMap(
+                row -> row.getCompletedFileVersionNo(), row -> row.getFileName()));
     }
 
     private boolean canRead(ValidatedKey key) {

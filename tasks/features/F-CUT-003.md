@@ -96,3 +96,33 @@ Task 2增量状态：`23dff6cd`的CUSTOM移出、同一CollectionTask异步收�
 - 设备资料后台读取，不阻塞调研核心内容，不增加全局加载切换；保存会等待本轮资料读取完成，重新核对任务/清单请求序号，避免跨任务迟到响应触发写入。读取期间填写的非空值保留；来源失败或归属/身份不符只保留当前填写并允许刷新重试，不采用错误资料。目标字段已有值时不再请求设备列表，无跨请求授权缓存。本次仅前端修改，无新API、SQL、DDL或后端/DAC启停。
 - 六组前端检查131项通过，覆盖目标列映射、位置格式、空值/已填值/0保护、名称表初始化、源身份与项目不符、读取失败、并发输入、历史/权限保护及原创建/方案流程；ESLint和diff检查通过。首轮新失败测试未等后台读取结束，改为等待实际错误状态后通过，未放宽业务断言。定向vue-tsc仍报告需求分析EntityForm.vue:285的availabilityStatus/referenceStatus两项外部字段类型错误，本次修改文件无类型报错，未将该类型检查标记通过或扩大修复范围。证据：.run/cutover-device-autofill-validation.log、.run/cutover-device-autofill-eslint-validation.log、.run/cutover-device-autofill-type-validation.log。
 - 真实浏览器任务2112435383465652224的设备列表返回name=DPtech FW1000-GA-X 双电源AC主机、位置=白城联通14楼机房；部署规划自动填入一致值。正常保存及重开GET均200/code0，事实版本11、仍为DRAFT；原接口互联及IP/VLAN手填值22等保持不变，性能值未臆造。重开时目标字段已填，设备列表请求0次。归档任务2111084153208291328原FW/02050003d521/fw/wd仍原样只读，无保存操作、无设备列表请求。本次验收标签页已关闭，保留用户原页。证据：.run/cutover-device-autofill-browser.json。
+
+### 2026-10-22 系统日志告警人工证据上传版本冲突
+
+- 真实浏览器复现任务2113184905149976576的RISK_SYSTEM_LOG上传返回1010001019“文件业务引用版本已变化”。当前核查结果是COLLECTION/CONNECT_TIMEOUT，独立MANUAL_EVIDENCE槽位却已绑定工件2113187483379068929的V1；前端只根据MANUAL结果或已显示文件取工件/引用版本，遗漏该场景，重试继续完成原CREATE会话而发生冲突。
+- 仅修复共享CutoverChecklistField：可编辑人工证据槽位独立读取PLT当前引用，ADD_VERSION使用实际工件及引用水位（含0）；读取期间或失败禁止上传，提供局部重试；显示已绑定但尚未进入核查结果的材料。引用异步响应按清单项身份与请求代数隔离，上传后推进游标，相同身份的结果刷新不重复清空引用，初始不可编辑后恢复也会读取。只读历史不查询当前槽位，不改服务端授权、乐观锁、采集失败事实或状态转换。
+- 组件及受控全流程43项通过，覆盖采集失败后发现已有V1、读失败重试、清单版本切换迟到响应隔离、只读历史保护、编辑恢复及上传后引用推进；ESLint及diff检查通过。新增测试发现一次重复读取，已改为逐项watch来源后重跑通过；测试文件不完整的文件事实替身已补齐allowedActions，未放宽生产校验。
+- 用户在热更新后的原页面重新选择“插槽show tech.txt”，真实初始化为ADD_VERSION/expectedReferenceVersion=0；complete-upload为200/code0并生成V2，manual-results为200/code0、清单版本31、结果版本7。重开页面显示人工证据V2，真实版本历史列出V1和V2均可用，旧V1保留。本次仅前端热更新，无后端/DAC启停，未填写正常结论或提交调研清单。证据：.run/cutover-alarm-reference-tests.log、.run/cutover-alarm-reference-browser.json。
+
+### 2026-10-22 人工证据后的设备核查结论可填写
+
+- 用户指出设备采集项“检查是否正常”仍不可选择；真实页面RISK_SYSTEM_LOG已是人工证据V2，两项radio仍disabled。根因为前端只认可成功COLLECTION，后端saveNew同样拒绝MANUAL来源的采集项结论，不能仅放开前端。
+- 当前修复：已保存的人工附件使既有结论字段可编辑；未取得有效结果、只读或无保存权限继续禁止编辑，不自动选正常。保存通过既有清单PATCH式answers追加MANUAL结果、复用具名答案明细，锁定重验原PLT文件事实，复制附件和原采集失败引用；读接口保留file并提供analysis，修订清单复制时也带入已存结论。前端回填MANUAL分析，只发送变动答案，避免无关填写反复生成结果版本或提交附件为DIRECT。没有新API、DDL、状态、角色或固定字段JSON存储，既有历史不自动补值。
+- 后端22项通过，覆盖人工结论追加后附件/原失败/历史保留、真实读取组装file+analysis、无证据拒绝、文件权限撤销前不写入、修订保留结论；前端46项通过，覆盖可选择/只读、结论回填与只提交变更值。ESLint及diff检查通过。首次编译变量重名和既有mock未提供answer的失败已修复后重跑。定向vue-tsc本次文件无错误，需求分析EntityForm.vue仍有3处外部类型错误（159、292行），不宣称类型检查全通过。
+- 真实页面已确认两项radio启用且仍未勾选，原V2附件保留。用户明确实际结论自行填写，本会话不代填或保存。完整后端构建和22项已部署修复保护通过，冻结发布`.run/build/releases/64d94c73-95c0-4f1a-9b90-8993a69ced1a/manifest.json`，ValidateOnly预检通过；用户随后明确批准本次重启59191并复验，部署结果另行记录，不将自动化保存检查写作实际结论已提交。证据：.run/cutover-manual-analysis-tests.log、.run/cutover-manual-analysis-ui-tests.log、.run/cutover-manual-analysis-types.log、.run/cutover-manual-analysis-build.log、.run/cutover-manual-analysis-preflight.log。
+- 本次批准后通过worktree-backend.ps1部署上述冻结包，59191健康、PID 37060、local,dac配置保留；DAC 48182独立健康检查通过，未启停。部署后在自建浏览器标签页重新加载任务2113184905149976576，RISK_SYSTEM_LOG“是/否”均可编辑且仍未选中，V2人工附件保留，真实版本历史显示V1/V2均可用，无页面错误提示。按用户自填实际结论的要求未勾选、保存或提交，本次真实浏览器仅确认可编辑和附件读取，保存/修订的结果保留由上述自动化检查覆盖，不宣称实际结论已完成保存重开。保留该待填写标签页，用户原页未导航。证据：.run/cutover-manual-analysis-deploy.log、.run/cutover-manual-analysis-deployed-browser.json。
+
+### 2026-10-22 选择核查结论后人工证据上传中断
+
+- 用户反馈选中“检查是否正常”后人工证据无法绑定，提示文件引用不存在。只读核对同一任务RISK_SYSTEM_LOG：PLT当前槽位已上传V6、引用水位5，业务当前MANUAL结果仍为V5、水位4。根因为saveManual在PLT上传推进引用后先调用saveDirect，待填结论仍按旧V5校验，严格文件校验正确拒绝；不是文件丢失。
+- 仅调整共享前端：先通过原授权接口绑定新文件，再保存保留的变动答案；局部刷新后按相同任务及清单恢复待填输入，结论校验使用新MANUAL结果。已上传但未成为当前业务证据的槽位提供“重新绑定已上传材料”，读取实际工件/版本/水位后重试原绑定，不重复上传文件。只读、无保存权限、引用读取失败及并发版本校验保持生效，没有后端、数据库结构、状态机或文件授权放宽；工件ID保留字符串精度。
+- 两个新增失败用例先复现旧顺序及缺失重绑入口，再修复后组件与受控流程48项通过；原未保存DIRECT输入用例按新顺序更新，仍断言填写保留、版本递进及局部刷新。ESLint无错误或警告，diff检查通过。定向vue-tsc本次文件无错误，仍有需求分析EntityForm.vue:159、292三处既有外部类型错误，不标记全量类型检查通过。证据：.run/cutover-manual-binding-failure-tests.log、.run/cutover-manual-binding-tests.log、.run/cutover-manual-binding-eslint.log、.run/cutover-manual-binding-types.log。
+- 真实浏览器首次观察到用户已勾选“是”。热更新后在自建验收页恢复该原选择，再重新绑定已上传V6，页面显示V6及“是”，无需再次上传；只读数据库确认结果9为V6/MANUAL_EVIDENCE_SELECTED，结果10为V6/MANUAL_ANALYSIS_SAVED、check_normal_flag=1，旧结果8/V5及文件V1~V6均保留。没有另行判定日志正常，也未提交调研清单。
+- 重开时遇到环境连接中断：MySQL和Redis容器均在23:52重新启动，容器内部健康且数据可读，后台对宿主机24306/24379连接失败、页面详情加载报错，健康请求超时。本会话未启停任何服务，不把重开回填记作通过；已完成真实绑定/保存，重开验收待运行环境连接恢复。证据：.run/cutover-manual-binding-browser.json、.run/cutover-manual-binding-db.txt。
+
+### 2026-10-23 连接恢复及人工证据重开复验
+
+- 用户授权继续检查并恢复MySQL/Redis，开始检查时两者宿主机链路已经恢复：后端健康UP、MySQL查询及Redis PING通过，不额外启停容器、59191或DAC。真实浏览器重新打开2113184905149976576，系统日志人工附件V8及用户原勾选“是”均正确回填；只读记录确认当前MANUAL_ANALYSIS_SAVED结果13对应文件V8、check_normal_flag=1，旧结果及V1~V8上传会话仍保留。上一轮受连接中断阻塞的重开核对已完成，未提交清单。
+- 用户补充版本增加而名称不更新；只读来源确认V1=2.png，V2~V8=插槽show tech.txt。这是文件卡片读取工件初始名称导致，名称修复复用F-PLT-001公共文件能力；用户已上传原文件，本轮不再要求重复上传或代判结论。修复后部署和浏览器文件名验证另行记录。
+- 证据：.run/file-version-name-restored-browser.json；名称实现和自动化检查见tasks/features/F-PLT-001.md同日记录。
+- 用户批准后完成文件名修复部署。浏览器重开确认系统日志人工证据V8正确显示插槽show tech.txt，原“是”结论回填、上传区域可用，无文件引用错误；只读当前结果仍为MANUAL结果13/文件V8/check_normal_flag=1，文件版本总数仍为8。版本历史保留V1原名2.png及V2~V8原名插槽show tech.txt。完整关闭上一轮环境异常造成的重开验收缺口，没有重复上传、代改实际结论或提交清单。部署及证据见同日F-PLT-001记录。

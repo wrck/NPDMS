@@ -258,9 +258,10 @@ const gapMessage = computed(() => {
 const hydrateAnswers = () => {
   for (const key of Object.keys(answers)) delete answers[key]
   for (const item of checklist.value?.items || []) {
-    if (item.currentResult?.resultSourceCode === 'DIRECT' || (item.currentResult?.resultSourceCode === 'COLLECTION'
-      && item.currentResult.answerSnapshot && JSON.parse(item.currentResult.answerSnapshot)?.analysis)) {
-      answers[item.stableItemKey] = decodeChecklistDirectAnswer(item.currentResult.answerSnapshot)
+    const result = item.currentResult
+    if (result && (result.resultSourceCode === 'DIRECT' || (['COLLECTION', 'MANUAL'].includes(result.resultSourceCode)
+      && result.answerSnapshot && JSON.parse(result.answerSnapshot)?.analysis))) {
+      answers[item.stableItemKey] = decodeChecklistDirectAnswer(result.answerSnapshot)
     }
   }
   savedAnswers.value = JSON.stringify(answers)
@@ -468,7 +469,8 @@ const saveDirect = async () => {
   await deviceListRequest
   if (sequence !== loadSequence || String(taskId) !== String(props.detail.task.id)
     || String(checklistId) !== String(checklist.value?.checklistId)) return false
-  const changedAnswers = Object.entries(answers).map(([stableItemKey, value]) => ({
+  const previousAnswers = JSON.parse(savedAnswers.value) as Record<string, string>
+  const changedAnswers = Object.entries(answers).filter(([key, value]) => previousAnswers[key] !== value).map(([stableItemKey, value]) => ({
     stableItemKey,
     answerSnapshot: encodeChecklistDirectAnswer(value)
   }))
@@ -600,9 +602,13 @@ const rematch = async () => {
 const saveManual = async (stableItemKey: string, file: ChecklistFileHandle, factDescription: string) => {
   if (!checklist.value || !canSave.value || readonly.value) return
   if (!(await beforeWrite())) return
+  const checklistId = String(checklist.value.checklistId)
+  const taskId = String(props.detail.task.id)
+  const previousAnswers = JSON.parse(savedAnswers.value) as Record<string, string>
+  const pendingAnswers = Object.fromEntries(Object.entries(answers).filter(([key, value]) => previousAnswers[key] !== value))
   externalBusy.value = true
   try {
-    if (!(await saveDirect())) return
+    // PLT上传已推进引用版本，先选用新附件，待填结论才能校验该版本。
     const outcome = await writeDraft({ action: 'saveManualChecklistResult', request: { taskId: props.detail.task.id, stableItemKey, data: {
       expectedTaskVersion: checklist.value.taskVersion,
       expectedProjectScopeVersion: checklist.value.projectScopeVersion,
@@ -612,11 +618,15 @@ const saveManual = async (stableItemKey: string, file: ChecklistFileHandle, fact
       factDescription
     } }, send: CutoverApi.saveManualChecklistResult, refresh: async () => {
       await refreshResults()
+      if (String(props.detail.task.id) === taskId && String(checklist.value?.checklistId) === checklistId) {
+        Object.assign(answers, pendingAnswers)
+      }
       if (checklist.value?.items.find(item => item.stableItemKey === stableItemKey)?.workModeCode === 'EXTERNAL') {
         hydrateExternal(await CutoverApi.getCutoverExternalState(props.detail.task.id, historicalRevisionId.value))
       }
     } })
     if (!outcome.writeCalled || !outcome.refreshSucceeded) return
+    if (!(await saveDirect())) return
     message.success('人工证据已选为当前结果')
   } finally { externalBusy.value = false }
 }

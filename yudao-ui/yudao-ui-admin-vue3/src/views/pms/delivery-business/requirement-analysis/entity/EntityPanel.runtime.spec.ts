@@ -10,12 +10,18 @@ vi.mock('@vueuse/core', () => ({ useWindowSize: () => ({ width: { value: 1280 } 
 vi.mock('./RevisionDrawer.vue', () => ({ default: { render: () => null } }))
 vi.mock('./CompareDrawer.vue', () => ({ default: { render: () => null } }))
 vi.mock('./RequirementBriefingSection.vue', () => ({ default: { render: () => null } }))
-vi.mock('./EntityForm.vue', () => ({ default: defineComponent({ props: ['detail'], setup(props, { expose }) { expose({ isSaving: () => false, discardChanges: () => true }); return () => h('div', `revision:${props.detail.revision.ref.revisionId}`) } }) }))
+vi.mock('./EntityForm.vue', () => ({ default: defineComponent({ props: { detail: { type: Object, required: true } }, setup(props, { expose }) { expose({ validateCompletion: async () => true, isSaving: () => false, discardChanges: () => true }); return () => h('div', `revision:${props.detail.revision.ref.revisionId}`) } }) }))
+const businessBar = vi.hoisted(() => ({ embedded: false }))
+vi.mock('@/components/BusinessView/businessActionBar', async () => {
+  const { ref } = await import('vue')
+  return { useBusinessActionBar: () => ({ barTarget: businessBar.embedded ? ref(null) : undefined }) }
+})
 const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
 const findButton = (root: TestNode, text: string): TestNode | undefined => root.type === 'button' && textOf(root).includes(text) ? root : root.children.map(child => findButton(child,text)).find(Boolean)
 const render = (props: any = { project: { id: 7 } }) => mount(defineComponent({ setup: () => () => h(Panel,props) }), {}, { ElSkeleton: passthrough, ElTable: passthrough, ElTableColumn: tableColumn, ElDescriptions: passthrough, ElDescriptionsItem: passthrough, ElInput: passthrough })
 const view = () => ({ projectId: '7', revision: { ref: { entity: { entityId: '20' }, revisionId: '31' }, revisionNo: 2, state: 'DRAFT', version: 6, effective: false }, extensionValueVersion: 0, allowedActions: ['PATCH_FORM','COMPLETE'], values: {}, fieldCatalog: [], attachments: [] }) as any
 beforeEach(() => {
+  businessBar.embedded = false
   vi.clearAllMocks()
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
   const values = new Map<string,string>()
@@ -92,5 +98,13 @@ it('rejects a reopened native revision belonging to a different logical entity',
   await (findButton(mounted.root,'完成并冻结')!.props!.onClick as Function)(); await flush()
   expect(textOf(mounted.root)).toContain('回执实体与重开修订不匹配')
   expect(textOf(mounted.root)).not.toContain('revision:31')
+  mounted.app.unmount()
+})
+
+it.each([false, true])('keeps its refresh only outside the unified workspace (embedded=%s)', async embedded => {
+  businessBar.embedded = embedded
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: view(), currentEffective: null, allowedActions: [] })
+  const mounted = render(); await flush()
+  expect(Boolean(findButton(mounted.root, '刷新'))).toBe(!embedded)
   mounted.app.unmount()
 })

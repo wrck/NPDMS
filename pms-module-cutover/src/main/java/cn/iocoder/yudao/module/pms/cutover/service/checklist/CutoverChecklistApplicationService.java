@@ -389,6 +389,10 @@ public class CutoverChecklistApplicationService {
             if ("COLLECTION".equals(item.getWorkModeCode())) {
                 CutoverChecklistItemResultDO prior = resultMapper.selectCurrentForUpdate(
                         new CutoverChecklistCurrentResultQuery(command.tenantId(), item.getId()));
+                if (prior != null && "MANUAL".equals(prior.getResultSourceCode())) {
+                    appendManualAnalysis(new ManualAnalysisWrite(command, locked.task(), item, prior, answer));
+                    continue;
+                }
                 require(prior != null && "COLLECTION".equals(prior.getResultSourceCode())
                                 && positive(prior.getCollectionResultReferenceId()) && !present(prior.getLoadFailureCode()),
                         STATE_CONFLICT, "须取得本项采集结果后填写核查结论，失败时可使用人工证据");
@@ -750,6 +754,10 @@ public class CutoverChecklistApplicationService {
                         "当前清单项工作方式不支持人工证据：" + definition.getItemName());
                 require(present(manualReference(answer)), STATE_CONFLICT,
                         "人工证据缺少有效附件，请重新上传：" + definition.getItemName());
+                if ("COLLECTION".equals(definition.getWorkModeCode())) {
+                    var manualSnapshot = JsonUtils.parseTree(resultStorage.answer(new CutoverChecklistResultStore.Read(definition, answer)));
+                    if (manualSnapshot.has("analysis")) CutoverChecklistAnswerValidator.validate(definition, manualSnapshot.get("analysis").toString(), true);
+                }
             }
             if (definition != null && Boolean.TRUE.equals(definition.getApplicableFlag())
                     && "EXTERNAL".equals(definition.getWorkModeCode())) {
@@ -1232,6 +1240,30 @@ public class CutoverChecklistApplicationService {
                 || (positive(result.getCollectionResultReferenceId())
                 && positive(result.getCollectionResultVersion()) && !present(result.getLoadFailureCode())
                 && result.getBaseChecklistResultId() != null);
+    }
+
+    private record ManualAnalysisWrite(SaveChecklistCommand command, CutoverTaskDO task,
+                                       CutoverChecklistItemDO item, CutoverChecklistItemResultDO prior,
+                                       SaveChecklistCommand.DirectAnswer answer) { }
+
+    private void appendManualAnalysis(ManualAnalysisWrite write) {
+        var command = write.command(); var prior = write.prior();
+        var stored = customResultStorage.manualFile(prior);
+        require(stored != null, STATE_CONFLICT, "人工证据缺少有效附件，请重新上传：" + write.item().getItemName());
+        var handle = new CutoverChecklistFilePort.FileHandle(stored.artifactId(), stored.versionNo(),
+                stored.referenceKey(), stored.fileFactVersion(), stored.scopeVersion());
+        var fact = filePort.lockAndRevalidate(CutoverChecklistFilePort.FileQuery.builder()
+                .tenantId(command.tenantId()).actorId(command.actorId()).projectId(write.task().getProjectId())
+                .checklistItemId(write.item().getId()).expectedScopeVersion(command.expectedProjectScopeVersion())
+                .handle(handle).build());
+        requireFileFact(handle, fact);
+        appendResult(new ResultWrite(write.item(), CutoverChecklistItemResultDO.builder()
+                .tenantId(command.tenantId()).selectedBy(command.actorId()).createdBy(command.actorId())
+                .checklistItemId(write.item().getId()).resultSourceCode("MANUAL").baseChecklistResultId(prior.getId())
+                .originalFailedCollectionTaskId(prior.getOriginalFailedCollectionTaskId())
+                .originalFailedResultVersion(prior.getOriginalFailedResultVersion()).originalFailureCode(prior.getOriginalFailureCode())
+                .factDescription(prior.getFactDescription()).selectionReasonCode("MANUAL_ANALYSIS_SAVED")
+                .build(), write.answer().answerSnapshot(), fact));
     }
 
     private void appendCollectionAnalysis(SaveChecklistCommand command, CutoverChecklistItemDO item,

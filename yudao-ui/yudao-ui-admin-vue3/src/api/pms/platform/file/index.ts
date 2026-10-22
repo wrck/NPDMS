@@ -52,6 +52,7 @@ export interface FileReferenceVO extends FileBusinessKey {
 export interface FileArtifactVO {
   artifactId: number
   name: string
+  currentVersionFileName?: string
   categoryCode: string
   ownerContext: string
   lifecycleStatus: string
@@ -64,6 +65,7 @@ export interface FileArtifactVO {
 export interface FileVersionVO {
   id: number
   versionNo: number
+  fileName?: string
   sha256: string
   sizeBytes: number
   mediaType: string

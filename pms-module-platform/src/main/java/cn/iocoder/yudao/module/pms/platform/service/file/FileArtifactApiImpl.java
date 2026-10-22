@@ -203,6 +203,13 @@ public class FileArtifactApiImpl implements FileArtifactApi {
             FileReferenceSetKey key = expectation.key();
             List<FileReferenceDO> locked = referenceMapper.selectSetForUpdate(setQuery(actor.tenantId(), key))
                     .stream().filter(row -> "ACTIVE".equals(row.getStatusCode())).toList();
+            // A current read can see an upload committed after the transaction's snapshot.
+            // Its artifact/version was never locked above: reject the stale expectation,
+            // rather than reporting a real, newly committed file as missing.
+            if (locked.stream().anyMatch(row -> !artifacts.containsKey(row.getArtifactId())
+                    || !versions.containsKey(new VersionKey(row.getArtifactId(), row.getFileVersionNo())))) {
+                throw exception(FILE_FACT_VERSION_CONFLICT);
+            }
             List<FileArtifactVersionFact> actual = facts(actor.tenantId(), key, policies.get(key), locked,
                     true, artifacts, versions);
             if (!expectation.expectedActiveFacts().equals(actual)) {

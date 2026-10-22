@@ -5,7 +5,7 @@ import References from './PmsFileVersionReferenceList.vue'
 import { mount, passthrough, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const api = vi.hoisted(() => ({ initializeUpload: vi.fn(), completeUpload: vi.fn() }))
-const facts = vi.hoisted(() => ({ getArtifact: vi.fn() }))
+const facts = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn() }))
 vi.mock('@/api/pms/platform/file', () => api)
 vi.mock('@/api/pms/platform/file/version-reference', () => facts)
 vi.mock('@/utils/download', () => ({ default: {} }))
@@ -115,5 +115,31 @@ it('ignores stale reference responses after switching material and retains the c
     expect(textOf(view.root)).toContain('file-2')
     expect(find(view.root, node => node.props?.inert === true)).toBeDefined()
     pending.get(2)!(artifact(2)); await refreshing
+  } finally { view.app.unmount() }
+})
+
+it('uses the uploaded version filename instead of the original artifact name', async () => {
+  facts.getArtifact.mockResolvedValue({ ...artifact(1), name: 'original.png', currentVersionFileName: 'new-log.txt',
+    reference: { ...artifact(1).reference, versionNo: 8 } })
+  const view = mount(References, { ...key, artifactId: 1, versionNo: 8 })
+  try {
+    await flush()
+    expect(textOf(view.root)).toContain('new-log.txt')
+    expect(textOf(view.root)).not.toContain('original.png')
+    expect(facts.getVersions).not.toHaveBeenCalled()
+  } finally { view.app.unmount() }
+})
+
+it('resolves the exact historical filename through version pages without using the current name', async () => {
+  facts.getArtifact.mockResolvedValue({ ...artifact(1), name: 'artifact.pdf', currentVersionFileName: 'current.txt',
+    reference: { ...artifact(1).reference, versionNo: 30 } })
+  facts.getVersions.mockResolvedValueOnce({ items: [{ versionNo: 30, fileName: 'current.txt' }], nextCursor: '20:99', hasMore: true })
+    .mockResolvedValueOnce({ items: [{ versionNo: 1, fileName: 'historic.png' }], hasMore: false })
+  const view = mount(References, { ...key, artifactId: 1, versionNo: 1 })
+  try {
+    await flush()
+    expect(textOf(view.root)).toContain('historic.png')
+    expect(textOf(view.root)).not.toContain('current.txt')
+    expect(facts.getVersions).toHaveBeenLastCalledWith(1, { ...key, cursor: '20:99', pageSize: 100 })
   } finally { view.app.unmount() }
 })

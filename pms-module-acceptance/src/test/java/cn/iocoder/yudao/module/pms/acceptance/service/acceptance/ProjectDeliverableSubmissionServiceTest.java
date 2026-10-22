@@ -641,4 +641,28 @@ class ProjectDeliverableSubmissionServiceTest {
         assertEquals(evaluated.getFirst().eventId(), payload.path("eventId").asText());
         assertEquals("SATISFIED", payload.path("status").asText());
     }
+
+    @Test void resultTypesOnlyContainSourcesRequiredByTheFrozenBusiness() {
+        var unrelated = new BusinessResultSource.Type("IMP", "INSTALLATION", "INSTALLATION_COMPLETED");
+        var required = new BusinessResultSource.Descriptor(resultType(), true, true, true);
+        when(results.types()).thenReturn(List.of(required, new BusinessResultSource.Descriptor(unrelated, true, true, true)));
+        assertEquals(List.of(required), service.resultTypes(9L,31L));
+        assertThrows(RuntimeException.class, () -> service.candidates(9L,31L,unrelated,null));
+        assertThrows(RuntimeException.class, () -> service.submit(9L,31L,"unrelated-type",
+                new ProjectDeliverableSubmissionService.Submission(15L,0L,"BUSINESS_RESULT",List.of(),
+                        new BusinessResultSource.Query(7L,9L,unrelated,"55","56"))));
+        verify(results,never()).candidates(any());
+        verify(results,never()).lockAndInspect(any());
+        verify(platform,never()).registerTemplateFrozenBusinessResult(any(),any(),any(),any(),any());
+    }
+
+    @Test void resultTypesUseExistingNativeTaskSourceMappingAndNeverFallBackToAllTypes() {
+        var type = new BusinessResultSource.Type("PLN","STAGE_PLAN","CONSTRUCTION_PLAN_APPROVED");
+        var descriptor = new BusinessResultSource.Descriptor(type,true,true,true);
+        when(results.types()).thenReturn(List.of(descriptor));
+        assertTrue(service.resultTypes(9L,31L).isEmpty());
+        when(rules.documentTargets(new ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"PLN.STAGE_PLAN.CONSTRUCTION_PLAN_APPROVED")))
+                .thenReturn(java.util.Set.of("D1"));
+        assertEquals(List.of(descriptor), service.resultTypes(9L,31L));
+    }
 }

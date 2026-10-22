@@ -54,6 +54,20 @@ class CutoverChecklistRevisionServiceTest {
     }
 
     @Test
+    void revisionRetainsManualCollectionConclusionTogetherWithTheAttachedFile() {
+        var f = new Fixture("MANUAL");
+        f.sourceItem.setWorkModeCode("COLLECTION");
+        when(f.custom.manualFile(f.selected)).thenReturn(f.file);
+        when(f.answers.answer(any())).thenReturn("{\"analysis\":{\"value\":{\"normal\":false,\"remark\":\"需核查\"}}}");
+        f.service.copyItems(f.copy(false));
+        var stored = ArgumentCaptor.forClass(CutoverChecklistResultStore.Write.class);
+        verify(f.answers).insertAnswer(stored.capture());
+        assertEquals("{\"value\":{\"normal\":false,\"remark\":\"需核查\"}}", stored.getValue().answer());
+        verify(f.custom).insertManual(any());
+        assertEquals("MANUAL", stored.getValue().result().getResultSourceCode());
+    }
+
+    @Test
     void neverReactivatesUnsupportedOrFilelessLegacyManualResults() {
         for (String mode : List.of("DIRECT", "COLLECTION")) {
             var f = new Fixture("MANUAL");
@@ -110,6 +124,7 @@ class CutoverChecklistRevisionServiceTest {
                 .fileFactVersion(new CutoverChecklistFilePort.FileFactVersion(2, 3, 4)).build();
 
         Fixture(String resultSource) {
+            when(answers.answer(any())).thenReturn("{}");
             source.setId(1L); source.setTenantId(1L); source.setCutoverTaskId(10L);
             target.setId(2L); target.setTenantId(1L); target.setCutoverTaskId(10L); target.setStatusCode("DRAFT"); target.setProjectScopeVersion(7L);
             sourceItem.setId(11L); sourceItem.setTenantId(1L); sourceItem.setChecklistId(1L); sourceItem.setStableItemKey("SYS-MATERIAL");

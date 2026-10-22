@@ -10,6 +10,7 @@ public class FileArtifactRespVO {
 
     private Long artifactId;
     private String name;
+    private String currentVersionFileName;
     private String categoryCode;
     private String ownerContext;
     private String lifecycleStatus;

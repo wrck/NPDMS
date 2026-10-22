@@ -68,7 +68,7 @@
               <el-radio-button
                 v-if="detail.configuration.allowedSources?.includes('BUSINESS_RESULT')"
                 value="BUSINESS_RESULT"
-                >关联业务成果</el-radio-button
+                >关联业务数据</el-radio-button
               >
             </el-radio-group>
           </el-form-item>
@@ -95,11 +95,11 @@
             </div>
           </template>
           <template v-else-if="sourceType === 'BUSINESS_RESULT'">
-            <el-form-item label="业务成果类型">
+            <el-form-item label="业务类型">
               <el-select
                 v-model="typeIndex"
                 :disabled="busy"
-                aria-label="业务成果类型"
+                aria-label="业务类型"
                 @change="loadCandidates(false)"
               >
                 <el-option
@@ -110,13 +110,13 @@
                 />
               </el-select>
             </el-form-item>
-            <el-form-item label="有效成果">
+            <el-form-item label="业务数据">
               <el-select
                 v-model="resultIndex"
                 :disabled="busy"
                 :loading="candidatesLoading"
-                aria-label="有效成果"
-                placeholder="选择当前项目的有效成果"
+                aria-label="业务数据"
+                placeholder="选择当前项目的业务数据"
               >
                 <el-option
                   v-for="(item, index) in candidates"
@@ -133,7 +133,7 @@
                 >加载更多</el-button
               >
               <p v-if="!candidatesLoading && !candidates.length" class="hint"
-                >当前项目暂无此类有效成果，请先在业务入口完成办理。</p
+                >当前项目暂无此类业务数据，请先在业务入口完成办理。</p
               >
             </el-form-item>
           </template>
@@ -247,7 +247,7 @@ const clearAttempt = () => { attempt = undefined }
 const typeLabel = (type: { resultType: string }) => ({ SURVEY_CONFIRMED: '工勘确认成果', REQUIREMENT_ANALYSIS_COMPLETED: '需求分析成果', IMPLEMENTATION_PLAN_APPROVED: '批准方案成果', REPORT_EFFECTIVE: '生效验收报告', REPORT_VERSION_PUBLISHED: '已发布验收报告', SATISFACTION_PASSED: '满意度达标成果', INSTALLATION_COMPLETED: '硬件安装完成成果', CONSTRUCTION_PLAN_APPROVED: '已批准施工计划' }[type.resultType] || '业务成果')
 const statusLabel = (status: string) => ({ ACCEPTED: '已满足', CONFIRMED: '已确认' }[status] || '待满足')
 const sourceLabel = (sourceType: string) =>
-  ({ UPLOAD: '文件提交', BUSINESS_DOCUMENT: '业务文档自动归集', BUSINESS_RESULT: '业务成果关联', AUTO_PROJECTION: '业务单据投影' }[sourceType] || '历史提交')
+  ({ UPLOAD: '文件提交', BUSINESS_DOCUMENT: '业务文档自动归集', BUSINESS_RESULT: '业务数据关联', AUTO_PROJECTION: '业务单据投影' }[sourceType] || '历史提交')
 const candidateLabel = (item: Api.BusinessResult) =>
   `${typeLabel(item.type)} · ${formatDate(item.formedAt)}${item.businessRevision ? ' · V' + item.businessRevision : ''}`
 const documentSourceLabel = (code: string) => documentSources.value.find(item => item.code === code)?.name || '业务文档'
@@ -259,12 +259,12 @@ const uploaded = (selection: UploadedSelection) => { selectedFiles.value.push(se
 const removeSelection = (key: string) => { selectedFiles.value = selectedFiles.value.filter(file => file.referenceKey !== key); clearAttempt() }
 const canSubmit = computed(() => manualSubmission.value
   && (sourceType.value === 'UPLOAD' ? selectedFiles.value.length > 0 : resultIndex.value !== undefined))
-const reasonLabel = (reason: string) => ({ DELIVERABLE_RULE_NOT_SATISFIED: '材料已保存，模板配置的业务条件尚未满足', DELIVERABLE_RULE_SATISFIED: '文件或业务成果有效，模板条件已满足', DELIVERABLE_SOURCE_MISSING: '尚未提交材料', FILE_EVIDENCE_UNAVAILABLE: '提交的文件已失效或引用已变化', DELIVERABLE_BUSINESS_RESULT_INVALID: '关联成果已失效或被替换', DELIVERABLE_QUANTITY_NOT_MET: '有效材料数量未达到模板要求', DELIVERABLE_SOURCE_REQUIRES_SUBMISSION: '请按模板规则关联业务成果或提交文件' }[reason] || '暂未满足，请检查材料有效性和模板条件')
+const reasonLabel = (reason: string) => ({ DELIVERABLE_RULE_NOT_SATISFIED: '材料已保存，模板配置的业务条件尚未满足', DELIVERABLE_RULE_SATISFIED: '文件或业务成果有效，模板条件已满足', DELIVERABLE_SOURCE_MISSING: '尚未提交材料', FILE_EVIDENCE_UNAVAILABLE: '提交的文件已失效或引用已变化', DELIVERABLE_BUSINESS_RESULT_INVALID: '关联成果已失效或被替换', DELIVERABLE_QUANTITY_NOT_MET: '有效材料数量未达到模板要求', DELIVERABLE_SOURCE_REQUIRES_SUBMISSION: '请按模板规则关联业务数据或提交文件' }[reason] || '暂未满足，请检查材料有效性和模板条件')
 const showOutcome = (result: { satisfied: boolean; reason: string }) => { satisfied.value = result.satisfied; outcome.value = reasonLabel(result.reason) }
 const reload = async () => { if (detail.value) detail.value = await Api.getDetail(props.projectId, detail.value.id) }
 const open = async (id: number) => {
   visible.value = true; loading.value = true; error.value = ''; outcome.value = ''; detail.value = undefined
-  selectedFiles.value = []; candidates.value = []; resultIndex.value = undefined; typeIndex.value = undefined; clearAttempt()
+  selectedFiles.value = []; types.value = []; after.value = undefined; candidates.value = []; resultIndex.value = undefined; typeIndex.value = undefined; clearAttempt()
   slotKey.value = generateUUID()
   try {
     detail.value = await Api.getDetail(props.projectId, id)

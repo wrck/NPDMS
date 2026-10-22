@@ -15,6 +15,9 @@ import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileArtifactMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileReferenceMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileVersionMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.FileUploadSessionMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.CompletedFileVersionNamesQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileUploadSessionDO;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileAccessTicketService;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileArtifactApiImpl;
@@ -79,6 +82,7 @@ class FileQueryAndAccessMySqlIntegrationTest {
     @Resource SecurityFrameworkService securityFrameworkService;
     @Resource FileArtifactMapper artifactMapper;
     @Resource FileVersionMapper versionMapper;
+    @Resource FileUploadSessionMapper uploadSessions;
     @Resource FileReferenceMapper referenceMapper;
     @Resource JdbcTemplate jdbcTemplate;
 
@@ -124,6 +128,7 @@ class FileQueryAndAccessMySqlIntegrationTest {
     @AfterEach
     void tearDown() {
         if (artifactId != null) {
+            jdbcTemplate.update("DELETE FROM plt_file_upload_session WHERE tenant_id=0 AND artifact_id=?", artifactId);
             jdbcTemplate.update("DELETE FROM plt_file_access_grant WHERE tenant_id=0 AND artifact_id=?", artifactId);
             jdbcTemplate.update("DELETE FROM plt_operation_audit WHERE tenant_id=0 AND aggregate_key=?",
                     String.valueOf(artifactId));
@@ -133,6 +138,38 @@ class FileQueryAndAccessMySqlIntegrationTest {
         }
         TenantContextHolder.clear();
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void readsExactCompletedUploadNamesWithoutRenamingArtifactOrHistory() {
+        record UploadName(int versionNo, String name, long infraFileId, String status) { }
+        var fixtures = List.of(new UploadName(1, "old-evidence.pdf", 8_900_101L, "COMPLETED"),
+                new UploadName(2, "new-evidence.pdf", 8_900_102L, "COMPLETED"),
+                new UploadName(2, "incomplete.pdf", 8_900_102L, "INITIALIZED"),
+                new UploadName(2, "wrong-receipt.pdf", 8_900_999L, "COMPLETED"));
+        for (var fixture : fixtures) {
+            var row = new FileUploadSessionDO();
+            row.setId(cn.hutool.core.util.IdUtil.getSnowflakeNextId()); row.setTenantId(0L);
+            row.setArtifactId(artifactId); row.setModeCode("ADD_VERSION"); row.setOwnerContext("SOL");
+            row.setObjectType("CONSTRUCTION_PLAN_CHANGE"); row.setObjectId("99001");
+            row.setPurposeCode("CUSTOMER_DELAY_EVIDENCE"); row.setReferenceKey("slot-a");
+            row.setFileName(fixture.name()); row.setCategoryCode("CUSTOMER_EVIDENCE");
+            row.setDeclaredSizeBytes(128L); row.setDeclaredMediaType("application/pdf");
+            row.setStorageOperationId(row.getId().toString()); row.setStatusCode(fixture.status());
+            row.setScopeVersion(8L); row.setExpiresAt(LocalDateTime.now().plusHours(1)); row.setVersion(1);
+            row.setCompletedFileVersionNo(fixture.versionNo()); row.setRegisteredInfraFileId(fixture.infraFileId());
+            row.setCreator("9"); row.setUpdater("9");
+            assertEquals(1, uploadSessions.insert(row));
+        }
+        var actor = new FileQueryService.Actor(0L, 9L);
+        var artifact = queryService.getArtifact(query("slot-a"), actor);
+        assertEquals("evidence.pdf", artifact.getName());
+        assertEquals("new-evidence.pdf", artifact.getCurrentVersionFileName());
+        var versions = queryService.getVersions(query("slot-a"), null, 20, actor).getItems();
+        assertEquals(List.of("new-evidence.pdf", "old-evidence.pdf"),
+                versions.stream().map(row -> row.getFileName()).toList());
+        assertTrue(uploadSessions.selectCompletedVersionNames(new CompletedFileVersionNamesQuery(1L, artifactId, List.of(1, 2))).isEmpty());
+        assertTrue(uploadSessions.selectCompletedVersionNames(new CompletedFileVersionNamesQuery(0L, artifactId, List.of())).isEmpty());
     }
 
     @Test
@@ -378,5 +415,14 @@ class FileQueryAndAccessMySqlIntegrationTest {
         @Bean FileStorageReceiptApi storageReceiptApi() { return mock(FileStorageReceiptApi.class); }
         @Bean SecurityFrameworkService securityFrameworkService() { return mock(SecurityFrameworkService.class); }
         @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
+        @Bean cn.iocoder.yudao.module.pms.platform.service.file.GeneratedBusinessFileService generatedFiles() {
+            return mock(cn.iocoder.yudao.module.pms.platform.service.file.GeneratedBusinessFileService.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadService businessGrantUploads() {
+            return mock(cn.iocoder.yudao.module.pms.platform.service.file.BusinessGrantFileUploadService.class);
+        }
+        @Bean cn.iocoder.yudao.module.pms.platform.service.file.AuthenticatedAssistedFileUploadService assistedUploads() {
+            return mock(cn.iocoder.yudao.module.pms.platform.service.file.AuthenticatedAssistedFileUploadService.class);
+        }
     }
 }

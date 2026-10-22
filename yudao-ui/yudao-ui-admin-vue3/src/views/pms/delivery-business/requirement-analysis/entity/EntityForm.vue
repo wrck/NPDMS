@@ -11,7 +11,7 @@
       />
     </div>
     <div class="form-actions mt-15px">
-      <el-button v-if="editable" data-testid="save-requirement-form" :loading="saving" type="primary" @click="save">保存需求分析</el-button>
+      <el-button v-if="editable" data-testid="save-requirement-form" :loading="saving" :disabled="uploading" type="primary" @click="save">保存需求分析</el-button>
       <span v-else>{{ detail.revision.state === 'FROZEN' ? '该完成版本正文和附件已冻结，只能查看或对比。' : '当前上下文只读，草稿尚未完成。' }}</span>
     </div>
   </section>
@@ -64,7 +64,7 @@ const withPresentation = (detail: View): View => ({ ...detail, form:
 const allEdits = computed(() => mergePresentationEdits(renderedDetail.value, retainedEdits.value,
   changedOrdinaryValues(values.value, baseline.value, ordinaryFields.value)))
 const switchPresentation = (selected: string) => {
-  if (saving.value) return
+  if (saving.value || uploading.value) return
   const edits = cloneValues(allEdits.value)
   selectedPresentation.value = selected
   apply(props.detail, edits)
@@ -99,6 +99,8 @@ const editorReadonlyDefaults = new Map<string, boolean>()
 const render = reactive<{ option: JsonObject; rule: JsonObject[] }>({ option: {}, rule: [] })
 const formApi = ref<FormCreateApi>()
 const saving = ref(false)
+const uploadingFields = reactive(new Set<string>())
+const uploading = computed(() => uploadingFields.size > 0)
 const editable = computed(
   () => props.detail.revision.state === 'DRAFT' && props.detail.allowedActions.includes('PATCH_FORM') &&
     (props.allowedActions === undefined || props.allowedActions.includes('PATCH_FORM'))
@@ -153,6 +155,11 @@ const apply = (source: View, preserve?: JsonObject) => {
       rule.props = { ...((rule.props as JsonObject) || {}), revisionId: detail.revision.ref.revisionId,
         fieldKey: rule.field, currentFacts: set?.activeFacts || [], allowedActions: editable.value ? ['PATCH_FORM'] : [],
         ownerExecutionContext: props.execution ? structuredClone(toRaw(props.execution)) : undefined }
+      const field = rule.field
+      rule.props = { ...(rule.props as JsonObject), onUploadBusyChange: (busy: boolean) => {
+        if (busy) uploadingFields.add(field)
+        else uploadingFields.delete(field)
+      } }
     }
     if (Array.isArray(rule.children)) visit(rule.children as JsonObject[])
   })
@@ -177,7 +184,7 @@ const save = async () => {
     message.warning('实体回读接口未配置，不能将本地表单标记为已保存。')
     return false
   }
-  if (!editable.value || saving.value) return false
+  if (!editable.value || saving.value || uploading.value) return false
   if (!editable.value || saving.value || entityId !== props.detail.revision.ref.revisionId || !props.reload) return false
   const patch = { values: cloneValues(allEdits.value) }
   if (!Object.keys(patch.values).length) {
@@ -297,7 +304,7 @@ const validateCompletion = async () => {
   element?.querySelector<HTMLElement>('input:not([disabled]), textarea:not([disabled]), [contenteditable="true"], button:not([disabled])')?.focus({ preventScroll: true })
   return false
 }
-defineExpose({ save, validateCompletion, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value, switchPresentation })
+defineExpose({ save, validateCompletion, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value || uploading.value, switchPresentation })
 </script>
 
 <style scoped lang="scss">

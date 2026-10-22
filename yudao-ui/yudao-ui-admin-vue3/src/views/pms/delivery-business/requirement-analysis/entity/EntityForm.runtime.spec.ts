@@ -31,6 +31,47 @@ beforeEach(() => {
   vi.stubGlobal('sessionStorage', { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key,value), removeItem: (key: string) => values.delete(key) })
 })
 describe('independent requirement entity form', () => {
+  it('blocks save and completion guards until every attachment field finishes uploading', async () => {
+    const view = detail(), form = ref<any>()
+    const rules = JSON.parse(view.form!.formRulesJson)
+    rules.push({ type: 'PmsFileArtifact', field: 'NETWORK_TOPOLOGY__ATTACHMENTS' })
+    view.form!.formRulesJson = JSON.stringify(rules)
+    let rendered: any
+    const uploadRenderer = defineComponent({
+      props: { modelValue: Object, rule: Array }, emits: ['update:modelValue'],
+      setup(props, { emit }) {
+        rendered = props
+        return () => h('button', { 'data-testid': 'edit', onClick: () => emit('update:modelValue',
+          { ...props.modelValue, PROJECT_BACKGROUND: 'changed', count: 0, enabled: false }) }, 'edit')
+      }
+    })
+    vi.mocked(api.save).mockResolvedValue(view.revision)
+    const reload = vi.fn(async () => ({ ...view, revision: { ...view.revision, version: 7 },
+      values: { projectBackground: 'changed', count: 0, enabled: false } }))
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: view, reload, ref: form }) }),
+      {}, { 'form-create': uploadRenderer })
+    try {
+      await nextTick()
+      ;(findByTestId(mounted.root, 'edit')!.props!.onClick as () => void)()
+      await nextTick()
+      const uploads = rendered.rule.filter((rule: any) => rule.type === 'RequirementRevisionFiles')
+      uploads.forEach((rule: any) => rule.props.onUploadBusyChange(true))
+      await nextTick()
+      expect(findByTestId(mounted.root, 'save-requirement-form')!.props!.disabled).toBe(true)
+      expect(form.value.isSaving()).toBe(true)
+      expect(await form.value.save()).toBe(false)
+      expect(api.save).not.toHaveBeenCalled()
+      uploads[0].props.onUploadBusyChange(false)
+      expect(await form.value.save()).toBe(false)
+      uploads[1].props.onUploadBusyChange(false)
+      await nextTick()
+      expect(form.value.isSaving()).toBe(false)
+      expect(await form.value.save()).toBe(true)
+      expect(api.save).toHaveBeenCalledOnce()
+      expect(reload).toHaveBeenCalledOnce()
+    } finally { mounted.app.unmount() }
+  })
+
   it('uses the latest compatible revision of the configured template for a clean draft', async () => {
     const view = detail()
     const layout = (revisionNo: number, id: string) => ({ ...view.form!, revisionNo,

@@ -102,15 +102,21 @@ public class ProjectDeliverableSubmissionService {
 
     @Transactional(rollbackFor = Exception.class)
     public List<BusinessResultSource.Descriptor> resultTypes(Long projectId, Long id) {
-        detail(projectId, id);
-        return results.types();
+        var detail = detail(projectId, id);
+        if (!allowed(detail.configuration(), "BUSINESS_RESULT")) return List.of();
+        var context = rules.read(projectId, detail.code());
+        return results.types().stream().filter(descriptor -> matchesBusinessSource(
+                context, detail.code(), resultSourceCode(descriptor.type()))).toList();
     }
 
     @Transactional(rollbackFor = Exception.class)
     public BusinessResultInventorySource.InventoryPage candidates(Long projectId, Long id,
                                                                   BusinessResultSource.Type type, String after) {
         var detail = detail(projectId, id);
-        if (!allowed(detail.configuration(), "BUSINESS_RESULT")) throw failure("模板未允许关联业务成果");
+        if (!allowed(detail.configuration(), "BUSINESS_RESULT")) throw failure("模板未允许关联业务数据");
+        var context = rules.read(projectId, detail.code());
+        if (type == null || !matchesBusinessSource(context, detail.code(), resultSourceCode(type)))
+            throw failure("当前交付件不需要关联此业务类型");
         var page = results.candidates(new BusinessResultInventorySource.InventoryQuery(
                 TenantContextHolder.getRequiredTenantId(), projectId, type, false, null, after, 30));
         if (reopens.findTemplateReopen(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Query(
@@ -158,7 +164,7 @@ public class ProjectDeliverableSubmissionService {
         List<Long> materialIds;
         TemplateFrozenSubmitOutcome outcome;
         try {
-            materialIds = capture(locked, projectId, request);
+            materialIds = capture(locked, context, request);
             if (materialIds.size() < locked.minimumQuantity()) {
                 throw failure("有效材料数量不足，至少需要 " + locked.minimumQuantity() + " 项");
             }
@@ -329,6 +335,10 @@ public class ProjectDeliverableSubmissionService {
                 context.projectId(), scope.sourceCode(), scope.originTaskId())).contains(code);
     }
 
+    private static String resultSourceCode(BusinessResultSource.Type type) {
+        return type.ownerContext() + "." + type.entityType() + "." + type.resultType();
+    }
+
     private boolean matchesBusinessSource(ProjectDeliverableRuleApi.Context context, String code, String sourceCode) {
         return ProjectDocumentSourceRegistry.matches(context.configuration(), sourceCode)
                 || rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(context.projectId(), sourceCode)).contains(code);
@@ -336,7 +346,8 @@ public class ProjectDeliverableSubmissionService {
 
     // ———— 内部 ————
 
-    private List<Long> capture(TemplateFrozenView locked, Long projectId, Submission request) {
+    private List<Long> capture(TemplateFrozenView locked, ProjectDeliverableRuleApi.Context context, Submission request) {
+        Long projectId = context.projectId();
         if (PlatformDeliveryRequirementApi.SOURCE_BUSINESS_RESULT.equals(request.sourceType())) {
             var query = request.businessResult();
             Long tenantId = TenantContextHolder.getRequiredTenantId();
@@ -345,6 +356,8 @@ public class ProjectDeliverableSubmissionService {
                     || query.objectId() == null || query.resultId() == null) {
                 throw failure("请选择当前项目的完整业务成果");
             }
+            if (!matchesBusinessSource(context, locked.deliverableCode(), resultSourceCode(query.type())))
+                throw failure("当前交付件不需要关联此业务类型");
             var descriptor = results.types().stream().filter(value -> value.type().equals(query.type())).findFirst()
                     .orElseThrow(() -> failure("不支持的业务成果类型"));
             var observation = results.lockAndInspect(new BusinessResultSource.Query(tenantId, projectId, query.type(),

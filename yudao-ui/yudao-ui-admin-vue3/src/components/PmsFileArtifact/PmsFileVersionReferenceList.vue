@@ -99,8 +99,20 @@ const load = async () => {
   try {
     const current = await FileApi.getArtifact(props.artifactId, businessKey.value)
     if (generation !== loadGeneration) return
+    let name = current.currentVersionFileName || current.name
+    if (props.versionNo && props.versionNo !== current.reference.versionNo) {
+      let cursor: string | undefined
+      while (true) {
+        const page = await FileApi.getVersions(props.artifactId, { ...businessKey.value, cursor, pageSize: 100 })
+        if (generation !== loadGeneration) return
+        const selected = page.items.find(version => version.versionNo === props.versionNo)
+        if (selected) { name = selected.fileName || current.name; break }
+        if (!page.hasMore || !page.nextCursor) throw new Error('FILE_VERSION_NOT_FOUND')
+        cursor = page.nextCursor
+      }
+    }
     loadedIdentity = identity
-    artifact.value = current
+    artifact.value = { ...current, name }
     emit('loaded', artifact.value)
   } catch {
     if (generation !== loadGeneration) return

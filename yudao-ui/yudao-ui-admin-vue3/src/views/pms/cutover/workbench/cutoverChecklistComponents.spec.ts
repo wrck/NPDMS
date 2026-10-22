@@ -16,7 +16,7 @@ import {
 } from '../cutoverTestHarness'
 import { textOf } from '../cutoverTestHarness'
 
-const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn() }))
+const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn(), getCurrentReference: vi.fn() }))
 const acceptedTemplate = vi.hoisted(() => ({ value: '9007199254740992' }))
 const downloadFile = vi.hoisted(() => ({ excel: vi.fn() }))
 const validationFocus = vi.hoisted(() => vi.fn())
@@ -97,7 +97,79 @@ const item = {
 }
 
 describe('F-CUT-003 mounted checklist field', () => {
-  beforeEach(() => { vi.clearAllMocks(); acceptedTemplate.value = '9007199254740992'; vi.mocked(getDevicePage).mockReset().mockResolvedValue({ list: [], total: 0 }); vi.mocked(checkPermi).mockReturnValue(true) })
+  beforeEach(() => { vi.clearAllMocks(); fileApi.getCurrentReference.mockReset().mockResolvedValue(null); acceptedTemplate.value = '9007199254740992'; vi.mocked(getDevicePage).mockReset().mockResolvedValue({ list: [], total: 0 }); vi.mocked(checkPermi).mockReturnValue(true) })
+  it('reads the independent manual slot after collection replaces the saved manual result', async () => {
+    fileApi.getCurrentReference.mockResolvedValue({ artifactId: '9007199254740993', versionNo: 2,
+      referenceVersion: 0, referenceKey: 'cutover-checklist-risk-check' })
+    const mounted = mount(CutoverChecklistField, { item: { ...item, workModeCode: 'COLLECTION',
+      currentResult: { resultSourceCode: 'COLLECTION', answerSnapshot: '{"technicalStatus":"FAILED"}', loadFailureCode: 'CONNECT_TIMEOUT' } },
+      directValue: '', readonly: false, allowSave: true }, controls)
+    try {
+      expect(findByTestId(mounted.root, 'manual-uploader')!.props!.disabled).toBe(true)
+      await flush()
+      expect(fileApi.getCurrentReference).toHaveBeenCalledWith({ ownerContext: 'CUT', objectType: 'CUTOVER_CHECKLIST_ITEM',
+        objectId: item.itemId, purposeCode: 'MANUAL_EVIDENCE', referenceKey: 'cutover-checklist-risk-check' })
+      expect(findByTestId(mounted.root, 'manual-uploader')!.props).toMatchObject({
+        'artifact-id': '9007199254740993', 'expected-reference-version': 0, disabled: false })
+      expect(textOf(mounted.root)).toContain('采集失败：CONNECT_TIMEOUT')
+    } finally { mounted.app.unmount() }
+  })
+  it('blocks upload on slot read failure and retries without replacing the field', async () => {
+    fileApi.getCurrentReference.mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue({ artifactId: '9007199254740993', referenceVersion: 3 })
+    const mounted = mount(CutoverChecklistField, { item: { ...item, workModeCode: 'MANUAL' }, directValue: '', readonly: false, allowSave: true }, controls)
+    try {
+      await flush()
+      expect(findByTestId(mounted.root, 'manual-uploader')!.props!.disabled).toBe(true)
+      await (findByTestId(mounted.root, 'retry-manual-reference')!.props!.onClick as Function)()
+      await flush()
+      expect(findByTestId(mounted.root, 'manual-uploader')!.props).toMatchObject({
+        'artifact-id': '9007199254740993', 'expected-reference-version': 3, disabled: false })
+    } finally { mounted.app.unmount() }
+  })
+  it('starts slot loading when editing becomes available and advances the cursor after upload', async () => {
+    const allowed = ref(false)
+    fileApi.getCurrentReference.mockResolvedValue({ artifactId: '9007199254740993', versionNo: 3, referenceVersion: 0 })
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { referenceVersion: 1, scopeVersion: 17 } })
+    fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5 }] })
+    const mounted = mount(defineComponent({ setup: () => () => h(CutoverChecklistField,
+      { item: { ...item, workModeCode: 'MANUAL' }, directValue: '', readonly: false, allowSave: allowed.value }) }), {}, controls)
+    try {
+      await flush()
+      expect(fileApi.getCurrentReference).not.toHaveBeenCalled()
+      allowed.value = true
+      await flush()
+      expect(findByTestId(mounted.root, 'manual-uploader')!.props!['expected-reference-version']).toBe(0)
+      await (findByTestId(mounted.root, 'manual-uploader')!.props!.onClick as Function)()
+      await flush()
+      expect(findByTestId(mounted.root, 'manual-uploader')!.props!['expected-reference-version']).toBe(1)
+      allowed.value = false
+      await flush()
+      allowed.value = true
+      await flush()
+      expect(fileApi.getCurrentReference).toHaveBeenCalledOnce()
+    } finally { mounted.app.unmount() }
+  })
+  it('ignores an old slot read after switching checklist revisions and leaves readonly history untouched', async () => {
+    let resolveOld!: (value: any) => void
+    fileApi.getCurrentReference.mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve }))
+      .mockResolvedValueOnce({ artifactId: '9007199254740998', referenceVersion: 1 })
+    const selected = ref({ ...item, workModeCode: 'MANUAL' as const })
+    const mounted = mount(defineComponent({ setup: () => () => h(CutoverChecklistField,
+      { item: selected.value, directValue: '', readonly: false, allowSave: true }) }), {}, controls)
+    try {
+      selected.value = { ...selected.value, itemId: '9007199254740996' }
+      await flush()
+      resolveOld({ artifactId: '9007199254740993', referenceVersion: 9 })
+      await flush()
+      expect(findByTestId(mounted.root, 'manual-uploader')!.props!['artifact-id']).toBe('9007199254740998')
+      fileApi.getCurrentReference.mockClear()
+      const history = mount(CutoverChecklistField, { item: selected.value, readonly: true, allowSave: true }, controls)
+      await flush()
+      expect(fileApi.getCurrentReference).not.toHaveBeenCalled()
+      history.app.unmount()
+    } finally { mounted.app.unmount() }
+  })
   it('fills available device-list facts without blocking the survey or overwriting input entered while the source loads', async () => {
     let resolveList!: (value: any) => void
     vi.mocked(getDevicePage).mockImplementation(() => new Promise(resolve => { resolveList = resolve }))
@@ -266,7 +338,8 @@ describe('F-CUT-003 mounted checklist field', () => {
     const input = findInput(mounted.root, '请填写核查事实')!
     await (input.props?.['onUpdate:modelValue'] as (value: string) => void)('已核查')
     expect(findByTestId(mounted.root, 'manual-uploader')).toBeUndefined()
-    const material = mount(CutoverChecklistField, { item: { ...item, workModeCode: 'MANUAL' }, readonly: false, allowSave: true, onManual: (...args: unknown[]) => manual.push(args) }, controls)
+    const material = mount(CutoverChecklistField, { item: { ...item, workModeCode: 'MANUAL' }, directValue: '', readonly: false, allowSave: true, onManual: (...args: unknown[]) => manual.push(args) }, controls)
+    await flush()
     const uploader = findByTestId(material.root, 'manual-uploader')!
     expect(uploader.props?.disabled).not.toBe(true)
     await (uploader.props?.onClick as () => Promise<void>)()
@@ -286,7 +359,7 @@ describe('F-CUT-003 mounted checklist field', () => {
   })
 
   it('does not reuse the previous revision material when a checklist item is replaced', async () => {
-    fileApi.getArtifact.mockResolvedValue({ artifactId: '9007199254740993', artifactVersion: 2,
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactId: '9007199254740993', artifactVersion: 2,
       reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5 }] })
     const selected = ref({ ...item, workModeCode: 'MANUAL' as const })
@@ -314,7 +387,7 @@ describe('F-CUT-003 mounted checklist field', () => {
       await (findByTestId(mounted.root, 'manual-uploader')!.props!.onClick as Function)()
       selected.value = { ...selected.value, itemId: '9007199254740996' }
       await nextTick()
-      resolve({ artifactId: '9007199254740993', artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
+      resolve({ allowedActions: ['READ'], artifactId: '9007199254740993', artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
       for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() }
       expect(manual).not.toHaveBeenCalled()
       expect(findByTestId(mounted.root, 'manual-uploader')!.props!['artifact-id']).toBeUndefined()
@@ -368,6 +441,110 @@ describe('F-CUT-003 mounted checklist field', () => {
     try {
       expect(findConclusion(mounted.root)?.props).toMatchObject({ disabled: readonly, 'model-value': false })
     } finally { mounted.app.unmount() }
+  })
+
+  it.each([false, true])('allows a saved manual evidence conclusion and preserves readonly=%s', readonly => {
+    const onDirect = vi.fn()
+    const mounted = mount(CutoverChecklistField, { item: { ...item, workModeCode: 'COLLECTION',
+      interfaceSchemaSnapshot: JSON.stringify({ fields: [{ code: 'normal', label: '检查是否正常', type: 'BOOLEAN', required: true }] }),
+      currentResult: { resultSourceCode: 'MANUAL', answerSnapshot: JSON.stringify({ file: {
+        artifactId: '9007199254740993', versionNo: 2, referenceKey: 'manual-proof' } }) } },
+      directValue: '{"normal":false}', readonly, allowSave: true, onDirect }, controls)
+    try {
+      expect(findConclusion(mounted.root)?.props).toMatchObject({ disabled: readonly, 'model-value': false })
+      if (!readonly) findConclusion(mounted.root)!.props!['onUpdate:modelValue'](true)
+      expect(onDirect).toHaveBeenCalledTimes(readonly ? 0 : 1)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('hydrates manual analysis and saves only changed conclusions without resending its file as a direct result', async () => {
+    const current = checklistView(null)
+    current.items[0] = { ...current.items[0], workModeCode: 'COLLECTION', interfaceSchemaSnapshot: JSON.stringify({ fields: [
+      { code: 'normal', label: '检查是否正常', type: 'BOOLEAN' }, { code: 'remark', label: '备注', type: 'TEXT' }] }), currentResult: {
+      resultSourceCode: 'MANUAL', answerSnapshot: JSON.stringify({ file: { artifactId: '9007199254740993', versionNo: 2, referenceKey: 'manual-proof' },
+        analysis: { value: { normal: false, remark: '原核查备注' } } }) } } as any
+    current.items.push({ ...item, itemId: '302', stableItemKey: 'second-answer', workModeCode: 'DIRECT', currentResult: {
+      resultSourceCode: 'DIRECT', answerSnapshot: '{"value":"已保存原值"}' } } as any)
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(current)
+    checklistApi.saveCutoverChecklist.mockReset().mockResolvedValue(undefined)
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], reference: {} })
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    try {
+      await flush()
+      expect(findConclusion(mounted.root)!.props!['model-value']).toBe(false)
+      expect(findInput(mounted.root, '请填写核查事实')!.props!['model-value']).toBe('原核查备注')
+      findConclusion(mounted.root)!.props!['onUpdate:modelValue'](true)
+      await flush()
+      await (findByTestId(mounted.root, 'checklist-save')!.props!.onClick as Function)()
+      const answers = checklistApi.saveCutoverChecklist.mock.calls[0][0].data.answers
+      expect(answers).toHaveLength(1)
+      expect(answers[0].answerSnapshot).toContain('normal')
+      expect(answers[0].answerSnapshot).not.toContain('artifactId')
+    } finally { mounted.app.unmount() }
+  })
+
+  it('can bind a completed upload again without uploading another file version', async () => {
+    fileApi.getCurrentReference.mockResolvedValue({ artifactId: '9007199254740993', versionNo: 4,
+      referenceKey: 'manual-proof', referenceVersion: 3 })
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2,
+      reference: { scopeVersion: 17, referenceVersion: 3 } })
+    fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5 }] })
+    const onManual = vi.fn()
+    const mounted = mount(CutoverChecklistField, { item: { ...item, workModeCode: 'COLLECTION', currentResult: {
+      resultSourceCode: 'MANUAL', answerSnapshot: JSON.stringify({ file: {
+        artifactId: '9007199254740993', versionNo: 3, referenceKey: 'manual-proof' } }) } },
+      directValue: '{"normal":true}', readonly: false, allowSave: true, onManual }, controls)
+    try {
+      await flush()
+      const retry = findByTestId(mounted.root, 'retry-manual-binding')
+      expect(retry).toBeDefined()
+      await (retry!.props!.onClick as Function)()
+      await flush()
+      expect(onManual).toHaveBeenCalledWith('risk-check', expect.objectContaining({
+        artifactId: '9007199254740993', versionNo: 4,
+        fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 } }), '')
+    } finally { mounted.app.unmount() }
+  })
+
+  it('binds the new file before saving a pending conclusion against that file', async () => {
+    let selectedVersion = 3
+    let checklistVersion = 3
+    let analysis: unknown
+    const order: string[] = []
+    checklistApi.getCutoverChecklist.mockReset().mockImplementation(async () => {
+      const view = checklistView(null, checklistVersion)
+      view.items[0] = { ...view.items[0], workModeCode: 'COLLECTION', interfaceSchemaSnapshot: JSON.stringify({ fields: [
+        { code: 'normal', label: '检查是否正常', type: 'BOOLEAN' }] }), currentResult: {
+        resultSourceCode: 'MANUAL', answerSnapshot: JSON.stringify({ file: {
+          artifactId: '9007199254740993', versionNo: selectedVersion, referenceKey: 'manual-proof' },
+          ...(analysis ? { analysis: { value: analysis } } : {}) }) } } as any
+      return view
+    })
+    checklistApi.saveManualChecklistResult.mockReset().mockImplementation(async () => {
+      order.push('bind'); selectedVersion = 4; checklistVersion++
+    })
+    checklistApi.saveCutoverChecklist.mockReset().mockImplementation(async ({ data }) => {
+      if (selectedVersion !== 4) throw new Error('文件引用不存在：仍在校验旧版本')
+      order.push('answer'); analysis = JSON.parse(data.answers[0].answerSnapshot).value; checklistVersion++
+    })
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2,
+      reference: { scopeVersion: 17, referenceVersion: 3 } })
+    fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5 }] })
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    try {
+      await flush()
+      findConclusion(mounted.root)!.props!['onUpdate:modelValue'](true)
+      await flush()
+      await (findByTestId(mounted.root, 'manual-uploader')!.props!.onClick as Function)()
+      await vi.waitFor(() => expect(order).toEqual(['bind', 'answer']))
+      expect(analysis).toEqual({ normal: true })
+      expect(findConclusion(mounted.root)!.props!['model-value']).toBe(true)
+      expect(checklistApi.saveCutoverChecklist.mock.calls[0][0].data.expectedChecklistVersion).toBe(4)
+    } finally {
+      mounted.app.unmount()
+      checklistApi.saveCutoverChecklist.mockReset()
+      checklistApi.saveManualChecklistResult.mockReset()
+    }
   })
 
   it('does not link an accepted platform execution from a readonly checklist', async () => {
@@ -514,7 +691,7 @@ describe('F-CUT-003 mounted checklist field', () => {
   })
 
   it('uploads collection manual verification evidence directly without creating a failed collection', async () => {
-    fileApi.getArtifact.mockResolvedValue({ artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5 }] })
     const manual = vi.fn()
     const mounted = mount(CutoverChecklistField, {
@@ -558,13 +735,14 @@ describe('F-CUT-003 mounted checklist field', () => {
     await nextTick()
     await (findByTestId(mounted.root, 'manual-uploader')!.props?.onClick as () => void)()
     await vi.waitFor(() => expect(checklistApi.saveCutoverChecklist).toHaveBeenCalledOnce())
-    expect(checklistApi.saveManualChecklistResult).not.toHaveBeenCalled()
+    expect(checklistApi.saveManualChecklistResult).toHaveBeenCalledWith(expect.objectContaining({
+      stableItemKey: 'manual-check', data: expect.objectContaining({ expectedChecklistVersion: 3 })
+    }))
+    expect(checklistApi.saveCutoverChecklist.mock.calls[0][0].data.expectedChecklistVersion).toBe(4)
     expect(findInput(mounted.root, '请填写核查事实')?.props?.readonly).toBe(true)
 
     completeDirectSave()
-    await vi.waitFor(() => expect(checklistApi.saveManualChecklistResult).toHaveBeenCalledWith(expect.objectContaining({
-      stableItemKey: 'manual-check', data: expect.objectContaining({ expectedChecklistVersion: 4 })
-    })))
+    await vi.waitFor(() => expect(checklistApi.getCutoverChecklist).toHaveBeenCalledTimes(3))
     await vi.waitFor(() => expect(findInput(mounted.root, '请填写核查事实')?.props?.['model-value']).toBe('未手动保存的现场事实'))
     expect(savedAnswer).toBe('{"value":"未手动保存的现场事实"}')
     expect(checklistApi.getCutoverChecklistMatchingOptions).toHaveBeenCalledOnce()

@@ -15,6 +15,7 @@
         @detached="handleDetached(fact.referenceKey)"
       />
       <PmsFileUploader
+        ref="versionUploaders"
         v-if="canWrite"
         auto-submit
         hide-submit
@@ -34,6 +35,7 @@
       />
     </div>
     <PmsFileUploader
+      ref="newUploader"
       v-if="canWrite"
         auto-submit
         hide-submit
@@ -75,7 +77,16 @@ const props = withDefaults(
   }>(),
   { currentFacts: () => [], allowedActions: () => [], disabled: false }
 )
-const emit = defineEmits<{ 'update:modelValue': [value: string[]] }>()
+const emit = defineEmits<{
+  'update:modelValue': [value: string[]]
+  'upload-busy-change': [busy: boolean]
+}>()
+const versionUploaders = ref<InstanceType<typeof PmsFileUploader>[]>([])
+const newUploader = ref<InstanceType<typeof PmsFileUploader>>()
+const uploadBusy = computed(() => !!newUploader.value?.isBusy()
+  || versionUploaders.value.some(uploader => uploader.isBusy()))
+watch(uploadBusy, busy => emit('upload-busy-change', busy), { flush: 'sync' })
+onBeforeUnmount(() => emit('upload-busy-change', false))
 
 type VisibleFile = Pick<DynamicFormFileFactVO, 'artifactId' | 'versionNo' | 'referenceKey'> &
   Partial<Pick<DynamicFormFileFactVO, 'fileFactVersion'>> & { referenceVersion?: number }

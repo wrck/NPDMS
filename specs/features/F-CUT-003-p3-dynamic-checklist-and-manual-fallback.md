@@ -73,6 +73,7 @@
 - `src/test`可提供确定性`COMPLETED`受控替身完成正向闭环；替身不得进入生产装配、不得冒充INT-12 Provider或真实浏览器证据。生产Provider缺失继续只阻断生产激活、真实验收和Implementation Done。
 - 外部数据和设备采集不可用时保留请求摘要、失败码和时间；授权工程师可改用`MANUAL`结果，并冻结PLT公共文件事实作为人工证据。原自动失败事实不可覆盖或改写为成功。
 - 人工证据文件目标固定为`CUT/CUTOVER_CHECKLIST_ITEM/{checklistItemId}/MANUAL_EVIDENCE`。CUT文件策略Provider锁定任务、清单和项目范围，PLT继续拥有上传、扫描、存储、Artifact/Version/Reference和Access Ticket。
+- 2026-10-22 需求方确认：设备采集项选择并保存人工证据后，既有“检查是否正常”等核查字段可以填写。结论沿用`MANUAL`来源追加新结果，原附件公共事实和原采集失败引用保留，固定字段写入既有具名答案明细；读取及清单修订同时保留附件与结论。不得自动勾选正常或改写自动采集技术状态，既有历史缺失结论不自动补值。
 - 文件结果只保存PLT公共`artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256`，不得保存或读取PLT内部主键。完整公共Fact冻结在既有`answer_snapshot`中，`manual_evidence_file_reference`只保存同一Fact的稳定`referenceKey`，两者不形成第二文件真值。
 
 ### BR-FCUT003-004 自定义项与提交

@@ -6,7 +6,7 @@
         <div class="requirement-actions">
           <!-- 视图级操作收口到工作区底部吸附操作栏（businessActionBar 协议）；独立页签（需求分析）原地渲染 -->
           <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
-            <el-button :loading="loading" @click="refreshWorkspace"><Icon icon="ep:refresh" />刷新</el-button>
+            <el-button v-if="!hasActionBar" :loading="loading" @click="refreshWorkspace"><Icon icon="ep:refresh" />刷新</el-button>
             <el-button v-if="canCreateInitial" :loading="commandLoading" type="primary" @click="createInitial">创建需求分析草稿</el-button>
             <el-button v-if="canRevise" :loading="commandLoading" type="primary" @click="createRevision">从查看版本创建草稿</el-button>
             <el-button :disabled="!detail" @click="openHistory">修订记录</el-button>
@@ -80,6 +80,7 @@ import { useBusinessActionBar } from '@/components/BusinessView/businessActionBa
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
 const props = defineProps<{ project: ProjectMasterVO; revisionId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean }>()
 const { barTarget } = useBusinessActionBar()
+const hasActionBar = !!barTarget
 const selectedExecution = (): ProjectBusinessExecutionSelection | undefined =>
   props.taskExecution || props.stageExecution ? {
     ...(props.taskExecution ? { task: { ...props.taskExecution } } : {}),

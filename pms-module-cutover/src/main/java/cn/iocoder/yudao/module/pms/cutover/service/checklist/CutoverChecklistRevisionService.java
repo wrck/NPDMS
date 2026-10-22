@@ -98,6 +98,10 @@ public class CutoverChecklistRevisionService {
                 var file = attachFile(new FileCopy(command, previous, item, manualFile));
                 require(results.insert(result) == 1, "修订附件结果创建失败");
                 custom.insertManual(new CutoverCustomResultStore.Manual(result, result.getFieldDefinitionId(), file));
+                var snapshot = JsonUtils.parseTree(answers.answer(new CutoverChecklistResultStore.Read(previous, selected)));
+                if (snapshot != null && snapshot.has("analysis")) {
+                    answers.insertAnswer(new CutoverChecklistResultStore.Write(item, result, snapshot.get("analysis").toString()));
+                }
             } else if ("DIRECT".equals(selected.getResultSourceCode())) {
                 require(results.insert(result) == 1, "修订填报结果创建失败");
                 Object value = copyValue(new ValueCopy(command, previous, item,

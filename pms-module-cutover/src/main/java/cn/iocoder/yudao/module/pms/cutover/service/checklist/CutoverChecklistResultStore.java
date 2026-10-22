@@ -119,6 +119,10 @@ public class CutoverChecklistResultStore {
             }
         } else if ("MANUAL".equals(result.getResultSourceCode())) {
             answer.put("file", custom.manualFile(result));
+            if ("COLLECTION".equals(query.item().getWorkModeCode())
+                    && ("MANUAL_ANALYSIS_SAVED".equals(result.getSelectionReasonCode()) || feedback(result) != null)) {
+                answer.put("analysis", Collections.singletonMap("value", value(query)));
+            }
             if (result.getOriginalFailedCollectionTaskId() != null) {
                 answer.put("originalFailedCollectionTaskId", result.getOriginalFailedCollectionTaskId());
                 answer.put("originalFailedResultVersion", result.getOriginalFailedResultVersion());

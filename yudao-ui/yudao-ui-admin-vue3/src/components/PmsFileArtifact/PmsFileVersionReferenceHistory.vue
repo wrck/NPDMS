@@ -5,6 +5,7 @@
     <template v-else>
       <el-table v-if="!narrow" :data="items">
         <el-table-column label="版本" prop="versionNo" width="80" />
+        <el-table-column label="文件名" prop="fileName" min-width="180" />
         <el-table-column label="状态" min-width="150">
           <template #default="scope">
             <el-tag :type="scope.row.availabilityStatus === 'AVAILABLE' ? 'success' : 'warning'">
@@ -31,6 +32,7 @@
             ><el-tag size="small">{{ availabilityLabel(item.availabilityStatus) }}</el-tag></div
           >
           <span>{{ formatSize(item.sizeBytes) }} · {{ formatDate(item.createdAt) }}</span>
+          <span v-if="item.fileName">{{ item.fileName }}</span>
           <span class="scan-fact">{{ scanStatusLabel(item.scanStatus) }}</span>
         </article>
       </div>

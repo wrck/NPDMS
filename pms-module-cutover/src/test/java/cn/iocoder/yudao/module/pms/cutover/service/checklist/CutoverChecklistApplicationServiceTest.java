@@ -54,6 +54,67 @@ import static org.mockito.Mockito.when;
 class CutoverChecklistApplicationServiceTest {
 
     @Test
+    void manualCollectionConclusionAppendsHistoryAndKeepsItsFileAndOriginalFailure() {
+        var fixture = fixture(); var generated = generate(fixture);
+        fixture.service.selectManual(manual(generated, 0L, "SYS-COLLECT"));
+        var prior = fixture.results.getFirst();
+        prior.setOriginalFailedCollectionTaskId(99L); prior.setOriginalFailedResultVersion(3L);
+        prior.setOriginalFailureCode("CONNECT_TIMEOUT");
+        var custom = (CutoverCustomResultStore) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "customResultStorage");
+        var originalFile = custom.manualFile(prior);
+        var answer = "{\"value\":{\"normal\":false,\"remark\":\"需处理告警\"}}";
+        fixture.service.save(new SaveChecklistCommand(1L, 8L, 1000L, 2L, generated.checklistId(), 1L, 7L,
+                List.of(new SaveChecklistCommand.DirectAnswer("SYS-COLLECT", answer)),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
+        var current = fixture.results.getLast();
+        assertEquals("MANUAL", current.getResultSourceCode());
+        assertEquals("MANUAL_ANALYSIS_SAVED", current.getSelectionReasonCode());
+        assertEquals(prior.getId(), current.getBaseChecklistResultId());
+        assertEquals(originalFile, custom.manualFile(current));
+        assertEquals(99L, current.getOriginalFailedCollectionTaskId());
+        assertEquals(3L, current.getOriginalFailedResultVersion());
+        assertEquals("CONNECT_TIMEOUT", current.getOriginalFailureCode());
+        assertEquals(prior.getFactDescription(), current.getFactDescription());
+        assertTrue(prior.getSelectionEndedAt() != null);
+        assertEquals("MANUAL_EVIDENCE_SELECTED", prior.getSelectionReasonCode());
+        assertEquals(originalFile, custom.manualFile(prior));
+        var storage = (CutoverChecklistResultStore) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "resultStorage");
+        verify(storage).insertAnswer(new CutoverChecklistResultStore.Write(
+                ((CutoverChecklistItemMapper) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "itemMapper")).selectById(current.getChecklistItemId()),
+                current, answer));
+        org.springframework.test.util.ReflectionTestUtils.setField(storage, "custom", custom);
+        org.mockito.Mockito.doCallRealMethod().when(storage).answer(any());
+        var view = fixture.service.getView(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(
+                new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 8L, "read-analysis"), 1000L, null));
+        var snapshot = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(view.items().stream()
+                .filter(value -> "SYS-COLLECT".equals(value.stableItemKey())).findFirst().orElseThrow().currentResult().answerSnapshot());
+        assertEquals(originalFile.artifactId().longValue(), snapshot.get("file").get("artifactId").asLong());
+        assertFalse(snapshot.get("analysis").get("value").get("normal").asBoolean());
+        assertEquals("需处理告警", snapshot.get("analysis").get("value").get("remark").asText());
+        assertEquals("P3", fixture.task.get().getCurrentStage());
+        assertTrue(fixture.history.isEmpty());
+    }
+
+    @Test
+    void rejectsConclusionWithoutEvidenceAndRevalidatesManualFileBeforeAppending() {
+        var fixture = fixture(); var generated = generate(fixture);
+        var command = new SaveChecklistCommand(1L, 8L, 1000L, 2L, generated.checklistId(), 0L, 7L,
+                List.of(new SaveChecklistCommand.DirectAnswer("SYS-COLLECT", "{\"value\":{\"normal\":true}}")),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent());
+        org.junit.jupiter.api.Assertions.assertThrows(CutoverChecklistException.class, () -> fixture.service.save(command));
+        assertTrue(fixture.results.isEmpty());
+        fixture.service.selectManual(manual(generated, 0L, "SYS-COLLECT"));
+        var prior = fixture.results.getFirst();
+        var files = (CutoverChecklistFilePort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "filePort");
+        when(files.lockAndRevalidate(any())).thenThrow(new SecurityException("file permission revoked"));
+        var retry = new SaveChecklistCommand(1L, 8L, 1000L, 2L, generated.checklistId(), 1L, 7L,
+                command.answers(), cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent());
+        org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, () -> fixture.service.save(retry));
+        assertEquals(1, fixture.results.size());
+        org.junit.jupiter.api.Assertions.assertNull(prior.getSelectionEndedAt());
+    }
+
+    @Test
     void directSerialAnswersMustReferenceTheTasksFixedDeviceScopeBeforeAppendingResults() {
         var fixture = fixture();
         var generated = generate(fixture);

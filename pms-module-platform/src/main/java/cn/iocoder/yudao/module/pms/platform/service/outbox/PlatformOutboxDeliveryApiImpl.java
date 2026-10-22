@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.outbox.query.OutboxDeliver
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.outbox.query.OutboxRetryUpdateQuery;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -39,7 +40,9 @@ public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi 
     private PlatformOutboxDeliveryMapper mapper;
 
     @Override
-    @Transactional
+    // Release locks on scanned rows that do not match this consumer's event types.
+    // REPEATABLE_READ retains them and can starve other SKIP LOCKED consumers.
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public List<PlatformOutboxMessageDTO> claimDue(PlatformOutboxClaimQuery query) {
         if (query == null || query.dueAt() == null || query.limit() <= 0 || query.limit() > MAX_BATCH_SIZE
                 || query.eventTypes() == null || query.eventTypes().isEmpty()

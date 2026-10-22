@@ -31,7 +31,7 @@ it.each([false, true])('automatic collection hides submission for mixed sources 
     await child.value.open(12); await nextTick()
     expect(findButton(view.root, '提交材料')).toBeUndefined()
     expect(textOf(view.root)).not.toContain('上传文件')
-    expect(textOf(view.root)).not.toContain('关联业务成果')
+    expect(textOf(view.root)).not.toContain('关联业务数据')
     expect(api.getTypes).not.toHaveBeenCalled()
     if (hasHistory) {
       expect(textOf(view.root)).toContain('receipt.pdf')
@@ -55,7 +55,7 @@ it('keeps manual business result selection and its submit button', async () => {
   try {
     await child.value.open(12); await nextTick()
     expect(findButton(view.root, '提交材料')).toBeTruthy()
-    expect(textOf(view.root)).toContain('关联业务成果')
+    expect(textOf(view.root)).toContain('关联业务数据')
     expect(api.getTypes).toHaveBeenCalledWith(9, 12)
   } finally { view.app.unmount() }
 })

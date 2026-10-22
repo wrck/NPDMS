@@ -50,7 +50,7 @@ class="checklist-field" :class="{ required: item.required, 'is-table-row': table
       @update:model-value="emit('externalFeedback', item.stableItemKey, $event)" @load="emit('externalLoad', item.stableItemKey)" @save="emit('externalSave', item.stableItemKey)" />
     <CutoverSchemaInput v-if="item.workModeCode === 'DIRECT' || item.workModeCode === 'COLLECTION'" :schema="schema" :model-value="structuredValue" :devices="devices" :task-device-rows="hasTaskDeviceRows(item)" :disabled="readonly || !allowSave || (item.workModeCode === 'COLLECTION' && !collectionReady)" :background-layout="embedded" @update:model-value="updateStructured" />
     <p v-if="item.currentResult?.factDescription" class="fact-description">{{ item.currentResult.factDescription }}</p>
-    <PmsFileVersionReferenceList v-if="manualFile" owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(item.itemId)" purpose-code="MANUAL_EVIDENCE" :reference-key="manualFile.referenceKey" :artifact-id="manualFile.artifactId" :version-no="manualFile.versionNo" @loaded="currentManualArtifact = $event" />
+    <PmsFileVersionReferenceList v-if="displayManualFile" owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(item.itemId)" purpose-code="MANUAL_EVIDENCE" :reference-key="displayManualFile.referenceKey" :artifact-id="displayManualFile.artifactId" :version-no="displayManualFile.versionNo" />
 
     <details v-if="!readonly && (allowSave || externalBusy) && canUseManual" class="manual-area" open>
       <summary>{{ item.workModeCode === 'COLLECTION' ? '上传人工校验证据' : item.workModeCode === 'MANUAL' ? '上传本项材料' : '改用人工核验证据' }}</summary>
@@ -59,17 +59,22 @@ class="checklist-field" :class="{ required: item.required, 'is-table-row': table
         data-testid="manual-uploader"
         auto-submit
         accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.csv,.txt,.log,.cfg,.conf"
-        :artifact-id="currentManualArtifact?.artifactId ?? manualFile?.artifactId"
-        :expected-reference-version="currentManualArtifact?.reference.referenceVersion ?? manualFile?.fileFactVersion?.referenceVersion"
-        :disabled="!allowSave"
+        :artifact-id="currentManualReference?.artifactId ?? manualFile?.artifactId"
+        :expected-reference-version="currentManualReference?.referenceVersion ?? manualFile?.fileFactVersion?.referenceVersion"
+        :disabled="!allowSave || manualReferenceLoading || manualReferenceError"
         owner-context="CUT"
         object-type="CUTOVER_CHECKLIST_ITEM"
         :object-id="String(item.itemId)"
         purpose-code="MANUAL_EVIDENCE"
-        :reference-key="`cutover-checklist-${item.stableItemKey}`"
+        :reference-key="manualReferenceKey"
         category-code="CUTOVER_CHECKLIST_MANUAL_EVIDENCE"
         @completed="completeUpload"
       />
+      <p v-if="manualReferenceError" role="alert">材料引用读取失败，请重试后上传。<el-button data-testid="retry-manual-reference" link type="primary" @click="readManualReference">重试读取</el-button></p>
+      <el-button
+        v-if="unselectedManualReference" data-testid="retry-manual-binding" link type="primary"
+        :disabled="!allowSave || manualReferenceLoading || manualReferenceError" :loading="manualBinding"
+        @click="selectUploadedManualReference">重新绑定已上传的V{{ currentManualReference?.versionNo }}材料</el-button>
       <p class="cut-help">支持PDF、图片、Word、Excel、CSV及文本文件，单文件不超过50MB。</p>
     </details>
   </article>
@@ -164,15 +169,23 @@ const acceptExecution = (execution: CollectionApi.Execution) => selectExecution(
 const schema = computed(() => { try { return JSON.parse(props.item.interfaceSchemaSnapshot || '{}') } catch { return {} } })
 const structuredValue = computed(() => { if (!props.directValue) return null; try { return JSON.parse(props.directValue) } catch { return props.directValue } })
 const updateStructured = (value: unknown) => emit('direct', props.item.stableItemKey, JSON.stringify(value ?? null))
-const collectionReady = computed(() => props.item.currentResult?.resultSourceCode === 'COLLECTION' && !!props.item.currentResult.collectionResultReferenceId && !props.item.currentResult.loadFailureCode)
-const currentManualArtifact = ref<FileApi.FileArtifactVO>()
+const collectionReady = computed(() => (props.item.currentResult?.resultSourceCode === 'COLLECTION'
+  && !!props.item.currentResult.collectionResultReferenceId && !props.item.currentResult.loadFailureCode) || !!manualFile.value)
+const currentManualReference = ref<FileApi.FileCurrentReferenceVO>()
+const manualReferenceLoading = ref(false)
+const manualReferenceError = ref(false)
+const manualReferenceResolved = ref(false)
 const manualFile = computed(() => {
   if (props.item.currentResult?.resultSourceCode !== 'MANUAL') return null
   try { const snapshot = JSON.parse(props.item.currentResult.answerSnapshot); return snapshot.file || snapshot } catch { return null }
 })
-watch(() => [props.item.itemId, manualFile.value?.artifactId, manualFile.value?.referenceKey], () => {
-  currentManualArtifact.value = undefined
-})
+const manualReferenceKey = computed(() => manualFile.value?.referenceKey || `cutover-checklist-${props.item.stableItemKey}`)
+const displayManualFile = computed(() => manualFile.value || currentManualReference.value)
+const manualBinding = ref(false)
+const unselectedManualReference = computed(() => !!currentManualReference.value && (!manualFile.value
+  || String(currentManualReference.value.artifactId) !== String(manualFile.value.artifactId)
+  || currentManualReference.value.versionNo !== manualFile.value.versionNo
+  || currentManualReference.value.referenceKey !== manualFile.value.referenceKey))
 
 const storedCollection = computed(() => {
   if (props.item.currentResult?.resultSourceCode !== 'COLLECTION') return null
@@ -221,7 +234,36 @@ const fileKey = (referenceKey: string) => ({
   purposeCode: 'MANUAL_EVIDENCE',
   referenceKey
 })
-const completeUpload = async (selection: FileSelection) => {
+let manualReferenceGeneration = 0
+const readManualReference = async () => {
+  const generation = ++manualReferenceGeneration
+  manualReferenceError.value = false
+  if (props.readonly || !props.allowSave || !canUseManual.value) {
+    manualReferenceLoading.value = false
+    return
+  }
+  manualReferenceLoading.value = true
+  try {
+    const reference = await FileApi.getCurrentReference(fileKey(manualReferenceKey.value))
+    if (generation !== manualReferenceGeneration) return
+    currentManualReference.value = reference || undefined
+    manualReferenceResolved.value = true
+  } catch {
+    if (generation === manualReferenceGeneration) manualReferenceError.value = true
+  } finally {
+    if (generation === manualReferenceGeneration) manualReferenceLoading.value = false
+  }
+}
+watch([() => props.item.itemId, manualReferenceKey, () => props.readonly, canUseManual], () => {
+  currentManualReference.value = undefined
+  manualReferenceResolved.value = false
+  void readManualReference()
+}, { immediate: true })
+watch(() => props.allowSave, allowed => {
+  if (allowed && !manualReferenceResolved.value && !manualReferenceLoading.value && !manualReferenceError.value) void readManualReference()
+})
+onBeforeUnmount(() => { manualReferenceGeneration++ })
+const completeUpload = async (selection: Pick<FileSelection, 'versionNo' | 'referenceKey'> & { artifactId: FileApi.FileWireId }) => {
   const selectedItemId = String(props.item.itemId)
   const selectedStableItemKey = props.item.stableItemKey
   const selectedFileKey = fileKey(selection.referenceKey)
@@ -232,7 +274,11 @@ const completeUpload = async (selection: FileSelection) => {
   if (String(props.item.itemId) !== selectedItemId) return
   const version = versions.items.find((entry) => entry.versionNo === selection.versionNo)
   if (!version) throw new Error('PLT 未返回刚完成的文件版本')
-  currentManualArtifact.value = artifact
+  manualReferenceGeneration++
+  manualReferenceLoading.value = false
+  manualReferenceResolved.value = true
+  currentManualReference.value = { ...artifact.reference, artifactId: selection.artifactId,
+    referenceKey: selection.referenceKey, versionNo: selection.versionNo }
   emit('manual', selectedStableItemKey, {
     artifactId: selection.artifactId,
     versionNo: selection.versionNo,
@@ -244,6 +290,15 @@ const completeUpload = async (selection: FileSelection) => {
       availabilityVersion: version.availabilityVersion
     }
   }, factDescription.value)
+}
+const selectUploadedManualReference = async () => {
+  const reference = currentManualReference.value
+  if (!reference || props.readonly || !props.allowSave || manualBinding.value
+    || manualReferenceLoading.value || manualReferenceError.value) return
+  manualBinding.value = true
+  try {
+    await completeUpload({ artifactId: reference.artifactId, versionNo: reference.versionNo, referenceKey: reference.referenceKey })
+  } finally { manualBinding.value = false }
 }
 </script>
 
