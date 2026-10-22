@@ -70,3 +70,13 @@ it('keeps uncertain errors free of password-bearing request arguments', async ()
   expect(error.outcomeUnknown).toBe(true)
   expect(JSON.stringify(error)).not.toContain('local-only')
 })
+
+it.each([[401,'授权已过期或被拒绝'],[403,'授权与当前任务不匹配'],[404,'连接不存在'],[409,'连接已变化'],[400,'采集参数无效'],[503,'服务端授权校验']])('explains explicit local failures without retaining response or credential data: %s', async (status,reason) => {
+  vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:false,status,json:async()=>({password:'never-display'})}))
+  const failure=await localDacRequest({path:'/tasks/task-1/executions',ticket:{value:'scoped-ticket',tenantId:1},method:'POST',body:{password:'local-only'}}).catch(error=>error)
+  expect(failure).toBeInstanceOf(LocalDacError)
+  if (!(failure instanceof LocalDacError)) throw new Error('Expected a local DAC error')
+  expect(failure.message).toContain(reason)
+  expect(JSON.stringify(failure)).not.toContain('local-only')
+  expect(JSON.stringify(failure)).not.toContain('never-display')
+})

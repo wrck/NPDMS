@@ -3,7 +3,14 @@ export const LOCAL_DAC_START_URI = 'npdms-dac://start/'
 
 export class LocalDacError extends Error {
   constructor(readonly outcomeUnknown: boolean, readonly status?: number) {
-    super(status === 401 ? '本机操作授权已过期，请重试原任务' : status === 409 ? '本机任务或连接已变化，请刷新查看' : '本机 DAC 请求未完成')
+    super(status === 401 ? '本机操作授权已过期或被拒绝，请继续原任务刷新授权'
+      : status === 403 ? '本机操作授权与当前任务不匹配'
+      : status === 404 ? '本机任务或保存的连接不存在，请核对原任务和连接'
+      : status === 409 ? '本机任务或连接已变化，请刷新查看'
+      : status === 400 ? '本机采集参数无效，请检查设备连接信息'
+      : status === 503 ? '本机 DAC 无法完成服务端授权校验，请检查任务权限后继续原任务'
+      : status ? `本机 DAC 处理请求失败（HTTP ${status}），请保留原任务后重试`
+      : '未取得本机 DAC 响应，执行结果未知，请查询原任务状态')
     this.name = 'LocalDacError'
   }
 }

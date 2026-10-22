@@ -10,3 +10,6 @@ auto-*.d.ts
 .history
 output/
 .playwright-cli/
+
+# Published DAC installer payloads; deploy with scripts/publish-dac-download.ps1.
+/public/downloads/dac/*.msi

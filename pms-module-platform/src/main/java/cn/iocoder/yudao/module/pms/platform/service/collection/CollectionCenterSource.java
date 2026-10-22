@@ -20,7 +20,7 @@ public class CollectionCenterSource implements CollectionSourceAdapter {
         boolean edit=access!=Access.READ;
         auth.permission(actor,edit?"pms:device-collection:execute":"pms:device-collection:query");
         auth.project(actor,project,edit,access==Access.EXECUTE);
-        String name=device==null?"":devices.validateSelection(project,List.of(device)).getFirst().name();
+        String name=device==null?"":devices.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(tenant,actor,project,List.of(device))).getFirst().name();
         return Source.builder()
                 .entry(entry())
                 .objectId(project)

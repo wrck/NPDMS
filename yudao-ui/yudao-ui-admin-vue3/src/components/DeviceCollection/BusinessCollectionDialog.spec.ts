@@ -154,3 +154,38 @@ it.each([CollectionDialog, CollectionWithDeviceLogsDialog])('legacy entry delega
     expect(api.submit).not.toHaveBeenCalled()
   } finally { m.app.unmount() }
 })
+
+it('explains authorization failure while preserving the original execution and request', async () => {
+  const m=render('desktop')
+  try {
+    await m.state.open('30');m.state.localReady=true;await flush()
+    Object.assign(m.state.form,{host:'test.example',username:'test-user',password:'local-secret',commands:'show version'})
+    api.prepareDesktop.mockResolvedValue({execution:desktopExecution,ticket:{value:'execute-ticket',tenantId:'1'}})
+    local.request.mockRejectedValue(new LocalDacError(true,503))
+    await m.state.submit();await flush()
+    expect(messages.warning).toHaveBeenCalledWith(expect.stringContaining('服务端授权校验'))
+    expect(m.state.pendingDesktopExecution.id).toBe('41')
+    expect(m.state.submissionUncertain).toBe(true)
+    api.resumeDesktop.mockResolvedValue({execution:desktopExecution,ticket:{value:'refreshed-ticket',tenantId:'1'}})
+    await m.state.continueDesktop()
+    expect(api.resumeDesktop).toHaveBeenCalledExactlyOnceWith('cutover-checklist','30','41')
+    expect(api.prepareDesktop).toHaveBeenCalledTimes(1)
+    expect(messages.warning).toHaveBeenLastCalledWith(expect.stringContaining('服务端授权校验'))
+    expect(messages.warning).toHaveBeenLastCalledWith(expect.stringContaining('不会创建新任务'))
+  } finally {m.app.unmount()}
+})
+it('continues the original local task with the same id and accepts the idempotent existing response', async () => {
+  const m=render('desktop')
+  try {
+    await m.state.open('30');m.state.localReady=true;await flush()
+    Object.assign(m.state.form,{password:'local-secret'})
+    api.resumeDesktop.mockResolvedValue({execution:desktopExecution,ticket:{value:'refreshed-ticket',tenantId:'1'}})
+    local.request.mockResolvedValue({collectionId:'original-collection',existing:true})
+    await m.state.continueDesktop(desktopExecution)
+    expect(api.resumeDesktop).toHaveBeenCalledExactlyOnceWith('cutover-checklist','30','41')
+    expect(local.request).toHaveBeenCalledWith(expect.objectContaining({path:'/tasks/task-1/executions',ticket:{value:'refreshed-ticket',tenantId:'1'}}))
+    expect(api.prepareDesktop).not.toHaveBeenCalled()
+    expect(api.submit).not.toHaveBeenCalled()
+    expect(m.state.submissionUncertain).toBe(false)
+  } finally {m.app.unmount()}
+})

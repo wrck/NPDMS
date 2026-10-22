@@ -1,5 +1,7 @@
 # NPDMS DAC Windows 客户端
 
+网页采集窗口检测不到本机DAC时提供“下载并安装DAC”，协议版本不兼容时提供更新下载；保留启动和重新检测，不将探测失败认定为未安装。下载地址为网页同源的 `/downloads/dac/NPDMS-DAC-1.0.5-x64.msi`（支持前端BASE路径）。部署网页前运行 `scripts/publish-dac-download.ps1 -PackageDirectory <已校验的1.0.5产物目录>`，将安装包发布至前端public目录，再执行既有前端构建/部署；Vite开发服务无需重启。MSI作为发布载荷忽略，不提交到Git；正式部署须随前端dist一起发布，不能只部署源码链接。
+
 1.0.5 增加只读本机状态页 `http://127.0.0.1:48182/desktop-status`，显示本机服务就绪状态和所配置的服务/网页地址。交互式安装成功后自动等待页面可访问并使用默认浏览器打开；静默安装、取消、失败或卸载不打开浏览器。状态页不提供设备命令入口，原任务票据校验和本机 Host 限制继续生效。
 
 安装包包含 DAC、精简 Java 25 和 WinSW 2.12.0。适用 Windows 10/11 x64，需系统 .NET Framework 4.6.1 或更新版本；终端用户无需另装 Java、Node.js、Python 或数据库。

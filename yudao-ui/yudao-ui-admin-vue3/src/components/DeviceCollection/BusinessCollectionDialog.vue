@@ -890,7 +890,7 @@ const submit = async () => {
       || isAxiosError(error) && (!error.response || error.response.status >= 500)
     if (outcomeUnknown) {
       submissionUncertain.value = true
-      message.warning('同步响应未取得，已转为异步查询；不会重复执行命令')
+      message.warning(error instanceof LocalDacError ? `${error.message}；原任务已保留，请继续原任务或请求取消` : '同步响应未取得，已转为异步查询；不会重复执行命令')
       pageNo.value = 1
       void refresh().catch(() => {
         /* scheduled polling continues */
@@ -938,8 +938,8 @@ const continueDesktop = async (row?: Api.Execution) => {
     requestKey.value = ''
     message.success('已连接到原本机任务')
     await refresh().catch(() => {})
-  } catch {
-    message.warning('原任务尚未确认，请刷新查看状态或请求取消')
+  } catch (error) {
+    message.warning(error instanceof LocalDacError ? `${error.message}；原任务已保留，不会创建新任务` : '服务端未能重新授权原任务，请查看具体错误提示；原任务已保留')
   } finally { busy.value = false }
 }
 const readLocalTask = async (row: Api.Execution) => localDacRequest<LocalCollection>({

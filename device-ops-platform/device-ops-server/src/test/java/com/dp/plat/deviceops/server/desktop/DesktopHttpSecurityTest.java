@@ -139,6 +139,14 @@ class DesktopHttpSecurityTest {
         upstream.verify();
         assertEquals(1, jdbc.sql("SELECT COUNT(*) FROM device_ops_outbox WHERE event_id=:id AND delivered_at IS NOT NULL").param("id", eventId).query(Integer.class).single());
         assertEquals(payload, jdbc.sql("SELECT payload FROM device_ops_outbox WHERE event_id=:id").param("id", eventId).query(String.class).single());
+        // Continuing a completed original task must return its existing collection and never dispatch commands again.
+        String repeated = mvc.perform(post("/api/v1/desktop/tasks/" + taskId + "/executions").header("Origin", "http://10.210.0.11:19191")
+                .header("X-NPDMS-DAC-Ticket", "fixture-ticket").header("tenant-id", "1")
+                .contentType("application/json").content("{\"password\":\"local-only-fixture-secret\"}"))
+                .andExpect(status().isAccepted()).andReturn().getResponse().getContentAsString();
+        var repeatedResult = new ObjectMapper().readTree(repeated);
+        assertTrue(repeatedResult.path("existing").asBoolean());
+        assertEquals(collectionId, repeatedResult.path("collectionId").asText());
         verify(commands, times(1)).execute(any(), any(), any(), eq(commandText), any(), any());
     }
 

@@ -147,6 +147,13 @@
 - 运行边界：19191前端、59191后端及原`10.210.0.11:48182`服务器DAC保持运行；本机DAC与原DAC监听地址不同。本次未执行设备命令、修改业务记录或直接变更MySQL迁移状态；开机重启、卸载和本机采集业务全流程未在本增量验收，不晋级整体Feature完成状态。
 - 证据：最终产物目录内`acceptance-result.json`、`browser-http-dac-ready.png`、`logs/upgrade-actual-20261021.log`、`logs/stop-before-browser-launch-visible.json`及`logs/service-after-user-browser-launch.json`；管理员DPAPI/ACL证据保留在1.0.2产物目录的`installation-audit.json`。打包记录中的`installedOrStarted=false`仍表示打包步骤自身未执行安装，不覆盖后续实机记录。
 
+### 本机DAC探测失败的安装包下载入口（2026-10-22）
+
+- 需求方批准在探测失败时提供安装包下载、版本不兼容时提供更新；仍区分“未连接”与“未安装”，保留启动、重新检测和原票据约束。
+- `LocalDacStatus`复用现有探测结果；同源下载1.0.5 MSI，新增`publish-dac-download.ps1`发布入口，安装包载荷放前端public目录并忽略入Git。正式静态部署需先发布载荷再构建网页。
+- 9项定向测试通过；真实已登录业务窗口验证READY不显示下载，单独测试标签临时阻断发现请求后显示下载链接、提示与禁用下发；未停止任何DAC或执行设备命令，已清除测试阻断并关闭测试标签。
+- 下载地址HTTP 200，完整下载90822724字节且与原安装包SHA256一致，证据`.run/dac-download-result-20261022.json`、`.run/dac-download-unavailable-20261022.txt`。浏览器点击下载的事件采集超时，不声称浏览器文件保存验收通过。
+
 ### 安装后本机状态页（2026-10-22，1.0.5）
 
 - 需求方批准：交互式安装成功后自动打开本机只读状态页，静默安装不弹浏览器。
@@ -166,3 +173,19 @@
 - 失败测试先复现两个独立数据库的事件编号重合；修复后覆盖不同任务隔离、原编号ACK拒绝、重复补传编号稳定及原载荷不变。锁定工具链构建及22项相关测试通过（server14项、adapter8项），冻结清单`.run/build/releases/fc508758-b1b6-4b60-ad63-4d0967596cea/manifest.json`。证据在`.run/dac-desktop-dispatch-fix-20261021/`，实际升级及补传验收另据后续实机结果记录。
 - 需求方明确批准本次升级及原结果补传验收；1.0.4实际升级退出码0（2026-10-22 00:55:43），NpdmsDac恢复Running。00:56:34原结果自动取得新回调编号的有效Receipt，00:56:35追加至`configuration/30044`业务日志：原任务状态COMPLETED、technicalStage=RESULT_RECEIVED、resultVersion=1、fileVersionId=850、consumedResultVersion=1。真实HTTP网页重新打开原记录显示“日志已回传”“已回传业务”，查看日志读到原SUCCEEDED与show version设备输出。配置业务状态仍为0，旧冲突Receipt保留；升级验收未再次执行设备命令。
 - 最终包`C:\Users\user\Documents\Codex\Artifacts\NPDMS-DAC-20261022-v1.0.4\NPDMS-DAC-1.0.4-x64.msi`，90,822,660字节，未签名；真实MSI配置校验、WiX ICE及251文件核对通过。实机证据为产物目录`logs/upgrade-actual-20261022.log`、`dispatch-fix-result.json`、`browser-original-result-delivered.png`及仓库忽略目录`original-result-delivered.txt`。未重启59191或原服务器DAC，未提交或推送；本结果限定本次真实命令与补传链路，不晋级整体Feature完成状态。
+
+### 2026-10-22 本机DAC原任务恢复修复（需求方已批准）
+
+已复现同一EXECUTE票据在无网页登录身份时返回项目不存在，有网页登录身份时成功。修复边界：采集中心到AST/PROJ显式传递原任务发起人并保留范围复核，前端不再用原任务尚未确认掩盖明确失败原因；保留原任务和本机执行去重。验证无网页登录身份下的授权复核、越租户/越项目/设备范围失败及恢复请求的原标识。真实原任务恢复需要新后端包部署；每次59191重启仍依运行规则单独授权。
+
+本轮定向验证：平台/项目/资产/集成28项测试及DAC本机HTTP/任务持久化6项测试通过；前端21项测试通过。原任务继续请求不调用新建任务API，本机真实执行协调链测试再次POST原任务返回相同collectionId与existing=true、命令执行器调用仍为1次；未获取或持久化设备密码。首次完整打包被割接模块并行改动中的snapshot重复变量阻断，随后该并行修改已自行修正，本次未修改割接源文件，继续等待构建锁并重打包。原任务验收脚本`.run/verify-dac-original-resume.py`只沿用f7dee74b-f59b-46b8-b2b1-2c7cce83b73d，通过原resume及本机执行入口验真；尚未对实际设备执行，未重启本轮后端。
+
+### 2026-10-22 本机DAC原任务恢复实机验收完成
+
+需求方确认其他会话暂停，并明确批准本次59191重启。完整构建、源码一致性及22项已部署修复保护通过；冻结清单`.run/build/releases/211bce1d-a51e-45b8-b1ea-459c665992ba/manifest.json`。通过worktree-backend.ps1以local,dac部署，PID20924，后端健康及服务器DAC独立readiness正常；未更新或重启本机DAC。
+
+原EXECUTE票据不带网页登录Authorization已正常解析。真实浏览器沿“设备连接与采集→V2并行隔离验收-工程直签-20261022→执行历史→继续下发”恢复原任务`f7dee74b-f59b-46b8-b2b1-2c7cce83b73d`，原执行记录`2113284136744345601`保持不变。原show version执行成功并回传，平台COMPLETED/RESULT_RECEIVED、resultVersion=1、fileVersionId=990，浏览器历史仅1条且能打开原日志。
+
+随后通过原resume入口刷新授权，向同一本机任务入口发出两次重复请求，均返回existing=true及同一collectionId `3b78d35f-8e89-4ba4-8d40-a9f4a607cfd4`。原targetId=3、命令输出块1个，项目执行记录仍仅1条；没有调用新建任务或“重新执行”入口。结合本机HTTP去重测试中命令执行器调用保持1次，验证重复请求沿用原执行、不再派发设备命令。未改写历史、取消或替换原任务。
+
+验收证据：`.run/dac-original-resume-evidence.json`、`.run/verify-dac-original-resume.py`、本次构建日志及浏览器截图。此前“暂不打包/尚未部署”的时点限制由本次结果替代；34项后端/DAC及21项前端定向测试证据保持适用。
