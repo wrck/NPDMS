@@ -60,7 +60,9 @@ public interface TaskBusinessObjectProvider {
     /**
      * Unattended rule evaluation: no browser identity, body values or action grants.
      * Join the existing transaction, revalidate the exact PROJ execution, lock the Owner result,
-     * and require evidence from this execution round. Null means unavailable, never false.
+     * and return its actual completion facts. Object reuse follows the frozen binding;
+     * result freshness/pinning follows the frozen result subscription, not project reopen time.
+     * Null means unavailable, never false.
      */
     default CompletionFact lockCompletionFact(CompletionContext context, String objectId) { return null; }
 

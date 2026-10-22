@@ -98,8 +98,7 @@ class ProjectTaskBusinessServiceTest {
 
     ProjectTaskBusinessService service(List<TaskBusinessObjectProvider> providers) {
         return new ProjectTaskBusinessService(access, new TaskBusinessProviderRegistry(providers), links, tasks,
-                contracts, commands, audit, views, executionApi,
-                new ProjectReopenBusinessEvidence(query -> java.util.Optional.empty()));
+                contracts, commands, audit, views, executionApi);
     }
     cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution(boolean writable) {
         return new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
@@ -132,8 +131,7 @@ class ProjectTaskBusinessServiceTest {
         when(provider.ownerContext()).thenReturn("PROJ"); when(provider.objectType()).thenReturn("PROJECT_ASSIGNMENT");
         contract.setTargetContextCode("PROJ"); contract.setTargetObjectType("PROJECT_ASSIGNMENT");
         service = new ProjectTaskBusinessService(access, new TaskBusinessProviderRegistry(List.of(provider)), links, tasks,
-                contracts, commands, audit, views, executionApi, new ProjectReopenBusinessEvidence(query -> Optional.of(
-                        new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Round(90L, LocalDateTime.now().minusHours(1)))));
+                contracts, commands, audit, views, executionApi);
         var link = row(51L, "20"); link.setOwnerContext("PROJ"); link.setObjectType("PROJECT_ASSIGNMENT");
         link.setNodeExecutionId(61L); link.setLinkedBy(0L);
         when(links.selectActiveForUpdate(any())).thenReturn(List.of(link));
@@ -155,6 +153,33 @@ class ProjectTaskBusinessServiceTest {
         assertThrows(RuntimeException.class, () -> service.lockCompletionFacts(1L, execution(true), contract));
         verify(tasks, never()).incrementTaskVersionIfMatch(any());
         verify(links, never()).insertLink(any());
+    }
+
+    @Test void confirmedTrainingAfterReopenUsesOwnerFactsWithoutAnExtraCreationTimeGate() {
+        when(provider.ownerContext()).thenReturn("IMP"); when(provider.objectType()).thenReturn("TRAINING");
+        contract.setTargetContextCode("IMP"); contract.setTargetObjectType("TRAINING");
+        contract.setTargetObjectKey("PROJECT_TRAINING");
+        service = new ProjectTaskBusinessService(access, new TaskBusinessProviderRegistry(List.of(provider)), links, tasks,
+                contracts, commands, audit, views, executionApi);
+        var current = row(51L, "37"); current.setOwnerContext("IMP"); current.setObjectType("TRAINING");
+        current.setNodeExecutionId(61L);
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(current));
+        when(provider.lockCompletionFact(any(), eq("37"))).thenReturn(
+                new CompletionFact("37", "TRAINING:37:2:2", true, Map.of("TRAINING_CONFIRMED", true)));
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+
+        var result = service.lockCompletionFacts(1L, execution(true), contract);
+
+        assertTrue(result.hasCompletedHandling());
+        assertEquals(true, result.facts().links().getFirst().completionFacts().get("TRAINING_CONFIRMED"));
+        when(provider.lockCompletionFact(any(), eq("37"))).thenReturn(
+                new CompletionFact("37", "TRAINING:37:3:3", false, Map.of("TRAINING_CONFIRMED", false)));
+        assertFalse(service.lockCompletionFacts(1L, execution(true), contract).hasCompletedHandling());
+        current.setNodeExecutionId(60L);
+        assertThrows(RuntimeException.class, () -> service.lockCompletionFacts(1L, execution(true), contract));
+        verify(provider, never()).handlingCreatedAt(any(), any());
+        verify(links, never()).insertLink(any());
+        verify(tasks, never()).updateLifecycleIfMatch(any());
     }
 
     @Test void contextUsesOneOwnerInspectionAndRejectsMissingForeignOrDuplicateFacts() {

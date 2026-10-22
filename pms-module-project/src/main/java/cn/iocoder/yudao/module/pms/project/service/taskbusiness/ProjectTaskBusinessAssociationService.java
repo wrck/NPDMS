@@ -37,7 +37,6 @@ public class ProjectTaskBusinessAssociationService {
     private final OperationAuditApi audit;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper executions;
     private final ProjectRuntimeGraphMapper graph;
-    private final ProjectReopenBusinessEvidence reopenEvidence;
 
     @Transactional(rollbackFor = Exception.class)
     public void synchronize(Long projectId, Long taskId, String correlationId) {
@@ -55,7 +54,8 @@ public class ProjectTaskBusinessAssociationService {
                 || !Objects.equals(receiving.getFirst().getPlanVersionId(), project.getActivePlanVersionId()))
             throw new IllegalStateException("CURRENT_TASK_EXECUTION_STALE");
         reconcile(new Receiver(tenantId, projectId, taskId, null, receiving.getFirst(), contract.getId(), contract.getContractVersion(),
-                contract.getTargetContextCode(), contract.getTargetObjectType(), contract.getTargetObjectKey(), contract.getBindingParameterSnapshot()), correlationId);
+                contract.getTargetContextCode(), contract.getTargetObjectType(), contract.getTargetObjectKey(), contract.getBindingParameterSnapshot(),
+                TaskBusinessBinding.parse(contract).referencesExistingObjects()), correlationId);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -89,12 +89,12 @@ public class ProjectTaskBusinessAssociationService {
             throw new IllegalStateException("CURRENT_STAGE_EXECUTION_STALE");
         reconcile(new Receiver(tenantId,projectId,null,stageId,execution,contract.getId(),contract.getBindingVersion(),
                 binding.getTargetContextCode(),binding.getTargetObjectType(),binding.getTargetObjectKey(),
-                JsonUtils.toJsonString(binding.getParameters())),correlationId);
+                JsonUtils.toJsonString(binding.getParameters()), TaskBusinessBinding.referencesExistingObjects(binding.getParameters())),correlationId);
     }
 
     private record Receiver(Long tenantId, Long projectId, Long taskId, Long stageId, ProjectNodeExecutionDO execution,
                             Long contractId, Integer contractVersion, String ownerContext, String objectType,
-                            String targetObjectKey, String bindingParameters) { }
+                            String targetObjectKey, String bindingParameters, boolean referencesExistingObjects) { }
 
     private void reconcile(Receiver receiver, String correlationId) {
         Long tenantId = receiver.tenantId(), projectId = receiver.projectId(), taskId = receiver.taskId(), stageId = receiver.stageId();
@@ -117,10 +117,10 @@ public class ProjectTaskBusinessAssociationService {
             cursor = page.getLast().objectId();
         }
         var query = new TaskBusinessLinksQuery(tenantId, projectId, taskId, stageId);
-        candidates.entrySet().removeIf(entry -> !reopenEvidence.mayAssociate(provider, context, entry.getKey()));
         var current = links.selectActiveForUpdate(query);
-        // New records receive the latest execution. Old-round associations are history, not new handling evidence.
-        if (!candidates.isEmpty() && !reopenEvidence.mayReuseProjectObject(provider, context)) {
+        // Reopen and selective rework use the same frozen object-resolution strategy.
+        // A reusable object gets a new reference; its Owner facts and result policies still decide completion.
+        if (!candidates.isEmpty() && !receiver.referencesExistingObjects()) {
             var previous = links.selectPreviouslyAssociatedObjectIds(new PreviousBusinessAssociationsQuery(tenantId,
                     projectId, taskId, executionId, receiver.ownerContext(), receiver.objectType(), Set.copyOf(candidates.keySet()), stageId));
             Set<String> currentInitialReferences = new HashSet<>();

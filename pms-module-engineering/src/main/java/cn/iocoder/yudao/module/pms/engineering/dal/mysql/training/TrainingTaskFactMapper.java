@@ -16,7 +16,8 @@ public interface TrainingTaskFactMapper extends BaseMapperX<TrainingDO> {
     default TrainingDO selectTaskFact(TrainingTaskFactQuery query) {
         return selectOne(new LambdaQueryWrapperX<TrainingDO>()
                 .select(TrainingDO::getId, TrainingDO::getTenantId, TrainingDO::getProjectId,
-                        TrainingDO::getName, TrainingDO::getStatus, TrainingDO::getVersion, TrainingDO::getDeleted)
+                        TrainingDO::getName, TrainingDO::getStatus, TrainingDO::getVersion, TrainingDO::getDeleted,
+                        TrainingDO::getCreateTime)
                 .eq(TrainingDO::getTenantId, query.tenantId()).eq(TrainingDO::getProjectId, query.projectId())
                 .eq(TrainingDO::getId, query.trainingId()));
     }
@@ -24,7 +25,8 @@ public interface TrainingTaskFactMapper extends BaseMapperX<TrainingDO> {
     default List<TrainingDO> selectAssociationPage(TrainingTaskPageQuery query) {
         return selectPage(new Page<TrainingDO>(1, query.pageSize(), false), new LambdaQueryWrapperX<TrainingDO>()
                 .select(TrainingDO::getId, TrainingDO::getTenantId, TrainingDO::getProjectId,
-                        TrainingDO::getName, TrainingDO::getStatus, TrainingDO::getVersion, TrainingDO::getDeleted)
+                        TrainingDO::getName, TrainingDO::getStatus, TrainingDO::getVersion, TrainingDO::getDeleted,
+                        TrainingDO::getCreateTime)
                 .eq(TrainingDO::getTenantId, query.tenantId()).eq(TrainingDO::getProjectId, query.projectId())
                 .gt(query.afterId() != null, TrainingDO::getId, query.afterId()).orderByAsc(TrainingDO::getId)).getRecords();
     }

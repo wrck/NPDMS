@@ -46,7 +46,6 @@ public class ProjectTaskBusinessService {
     private final OperationAuditApi audit;
     private final BusinessViewQueryApi businessViews;
     private final ProjectNodeExecutionApi executionApi;
-    private final ProjectReopenBusinessEvidence reopenEvidence;
 
     /** Caller holds project/task/contract/round locks; this path never grants interactive Owner permissions. */
     public TaskBusinessCompletionFacts lockCompletionFacts(Long tenantId,
@@ -60,8 +59,7 @@ public class ProjectTaskBusinessService {
             throw failure("CONTRACT_IDENTITY_MISMATCH");
         var provider = registry.require(contract.getTargetContextCode(), contract.getTargetObjectType());
         return completionFacts(new CompletionReceiver(query(context),execution.executionId(),contract.getId(),contract.getContractVersion(),
-                contract.getTargetContextCode(),contract.getTargetObjectType(),
-                contract.getTargetObjectKey(),contract.getBindingParameterSnapshot()), objectId ->
+                contract.getTargetContextCode(),contract.getTargetObjectType()), objectId ->
                 provider.lockCompletionFact(new TaskBusinessObjectProvider.CompletionContext(tenantId, execution),objectId));
     }
 
@@ -72,14 +70,12 @@ public class ProjectTaskBusinessService {
         executionApi.lockAndRevalidateStage(execution);
         var provider = registry.require(binding.getTargetContextCode(),binding.getTargetObjectType());
         return completionFacts(new CompletionReceiver(TaskBusinessLinksQuery.stage(tenantId,execution.projectId(),execution.stageId()),
-                execution.executionId(),execution.executionContractId(),execution.contractVersion(),binding.getTargetContextCode(),binding.getTargetObjectType(),
-                binding.getTargetObjectKey(),JsonUtils.toJsonString(binding.getParameters())),
+                execution.executionId(),execution.executionContractId(),execution.contractVersion(),binding.getTargetContextCode(),binding.getTargetObjectType()),
                 objectId -> provider.lockStageCompletionFact(new TaskBusinessObjectProvider.StageCompletionContext(tenantId,execution),objectId));
     }
 
     private record CompletionReceiver(TaskBusinessLinksQuery scope, Long executionId, Long contractId,
-                                      Integer contractVersion, String ownerContext, String objectType,
-                                      String targetObjectKey, String bindingParameters) { }
+                                      Integer contractVersion, String ownerContext, String objectType) { }
 
     private TaskBusinessCompletionFacts completionFacts(CompletionReceiver receiver,
             java.util.function.Function<String,TaskBusinessObjectProvider.CompletionFact> reader) {
@@ -88,8 +84,6 @@ public class ProjectTaskBusinessService {
         var digest = new ArrayList<Object>();
         digest.add(List.of(receiver.contractId(),receiver.contractVersion()));
         boolean handled = false;
-        var provider = registry.require(receiver.ownerContext(), receiver.objectType());
-        var association = new AssociationContext(query.tenantId(), query.projectId(), receiver.targetObjectKey(), receiver.bindingParameters());
         for (var row : linkMapper.selectActiveForUpdate(query).stream().sorted(Comparator.comparing(ProjectTaskBusinessLinkDO::getId)).toList()) {
             if (!Objects.equals(row.getTenantId(),query.tenantId()) || !Objects.equals(row.getProjectId(),query.projectId())
                     || !Objects.equals(row.getTaskId(),query.taskId()) || !Objects.equals(row.getStageId(),query.stageId())
@@ -100,12 +94,13 @@ public class ProjectTaskBusinessService {
             if (!Objects.equals(row.getNodeExecutionId(),receiver.executionId())) throw failure("CURRENT_AUTOMATIC_ASSOCIATION_REQUIRED");
             var result = reader.apply(row.getObjectId());
             if (result==null) throw failure("OWNER_COMPLETION_FACT_UNAVAILABLE");
-            boolean eligible = reopenEvidence.mayComplete(provider, association, row);
+            // Owner facts keep their business meaning across rounds. The normal completion writer
+            // additionally enforces any frozen NEW_RESULT / PINNED_RESULT subscription and all gates.
             var fact = validateFact(new BusinessObjectFact(result.objectId(),"业务完成事实",result.factVersion(),
-                    Set.of(),eligible ? result.completionFacts() : unsatisfied(result.completionFacts()),List.of()),row.getObjectId());
+                    Set.of(),result.completionFacts(),List.of()),row.getObjectId());
             facts.add(new TaskBusinessLinkFact(row.getId(),fact.objectId(),fact.displayName(),fact.factVersion(),fact.completionFacts(),List.of(),Set.of()));
             digest.add(List.of(row.getId(),row.getVersion(),fact.objectId(),fact.factVersion()));
-            handled |= eligible && result.handlingCompleted();
+            handled |= result.handlingCompleted();
         }
         return new TaskBusinessCompletionFacts(new TaskBusinessLinkedFacts(sha256(JsonUtils.toJsonString(digest)),facts),handled);
     }
@@ -158,9 +153,7 @@ public class ProjectTaskBusinessService {
         requireBinding(value.binding());
         List<BusinessObjectFact> candidates = value.provider().candidates(value.context());
         if (candidates == null) throw failure("OWNER_FACT_INVALID");
-        var association = association(value.context(), value.contract());
-        return candidates.stream().map(f -> validateFact(f, null))
-                .filter(f -> reopenEvidence.mayAssociate(value.provider(), association, f.objectId())).toList();
+        return candidates.stream().map(f -> validateFact(f, null)).toList();
     }
 
     public List<TaskBusinessLinkFact> inspectLinkedFacts(Long taskId, Long tenantId, Long actorId, String correlationId) {
@@ -265,8 +258,6 @@ public class ProjectTaskBusinessService {
         BusinessObjectFact fact = validateFact(provider.lockAndRevalidate(ctx, target, inspected.factVersion()), target);
         if (!inspected.factVersion().equals(fact.factVersion())) throw failure("FACT_VERSION_CONFLICT");
         requireAction(fact, action);
-        if (linkId == null && !reopenEvidence.mayAssociate(provider, association(ctx, locked.contract()), target))
-            throw failure("PREVIOUS_PROJECT_ROUND_EVIDENCE");
         if (linkId == null && existing != null)
             return new LinkCommandResult(ctx.taskId(), existing.getId(), taskVersion, contractVersion, true);
         LocalDateTime now = LocalDateTime.now();
@@ -348,26 +339,11 @@ public class ProjectTaskBusinessService {
         for (var row : rows.stream().sorted(Comparator.comparing(ProjectTaskBusinessLinkDO::getId)).toList()) {
             requireLink(row, ctx, contract);
             var fact = validateFact(reader.apply(row), row.getObjectId());
-            var provider = registry.require(contract.getTargetContextCode(), contract.getTargetObjectType());
-            if (!reopenEvidence.mayComplete(provider, association(ctx, contract), row))
-                fact = new BusinessObjectFact(fact.objectId(), fact.displayName(), fact.factVersion(),
-                        fact.allowedActions(), unsatisfied(fact.completionFacts()), List.of());
             facts.add(new TaskBusinessLinkFact(row.getId(), fact.objectId(), fact.displayName(), fact.factVersion(),
                     fact.completionFacts(), fact.artifacts(), fact.allowedActions()));
             digest.add(List.of(row.getId(), row.getVersion(), fact.objectId(), fact.factVersion()));
         }
         return new TaskBusinessLinkedFacts(sha256(JsonUtils.toJsonString(digest)), facts);
-    }
-
-    private static AssociationContext association(Context context, ProjectTaskExecutionContractDO contract) {
-        return new AssociationContext(context.tenantId(), context.projectId(),
-                contract.getTargetObjectKey(), contract.getBindingParameterSnapshot());
-    }
-
-    private static Map<String, Boolean> unsatisfied(Map<String, Boolean> facts) {
-        var result = new LinkedHashMap<String, Boolean>();
-        facts.keySet().forEach(code -> result.put(code, false));
-        return result;
     }
 
     private void requireContract(ProjectTaskExecutionContractDO contract, Context ctx) {
