@@ -34,12 +34,15 @@ class CompletionSatisfactionBundleServiceTest {
     @Mock cn.iocoder.yudao.module.pms.platform.api.file.BusinessGrantGeneratedFileApi generatedDocuments;
     @Mock SatisfactionQuestionnaireMapper documentQuestionnaires;
     @Mock SatisfactionResponseMapper documentResponses;
+    @Mock cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi arrivalDates;
     @InjectMocks CompletionSatisfactionBundleService service;
 
     @Test void freezesExplicitCertificateWithoutPrivateContentOrUrls() {
         var certificate = certificate();
         certificate.setContent("private content"); certificate.setAttachmentUrl("private-url");
         certificate.setEngineerName("工程师");
+        certificate.setManualArrivalDate(java.time.LocalDate.of(2026,10,11));
+        when(arrivalDates.latest(any())).thenReturn(java.time.LocalDate.of(2026,10,20));
         when(certificates.selectDeliveryOwnerForUpdate(any())).thenReturn(certificate);
         when(devices.selectListByCertificateId(20L)).thenReturn(List.of());
         when(bundles.insert(any(CompletionSatisfactionBundleDO.class))).thenReturn(1);
@@ -50,6 +53,9 @@ class CompletionSatisfactionBundleServiceTest {
         assertEquals("SAT-10", captured.getValue().getCollectionKey());
         assertEquals(3L, captured.getValue().getCertificateVersion());
         assertFalse(captured.getValue().getCertificateSnapshot().contains("private"));
+        assertEquals(java.time.LocalDate.of(2026,10,20),JsonUtils.parseObject(captured.getValue().getCertificateSnapshot(),
+                CompletionSatisfactionBundleService.CertificateSnapshot.class).arrivalDate());
+        verify(arrivalDates).latest(new cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi.Query(7L,9L));
         assertEquals("工程师", JsonUtils.parseObject(captured.getValue().getCertificateSnapshot(),
                 CompletionSatisfactionBundleService.CertificateSnapshot.class).engineerName());
     }
@@ -121,7 +127,7 @@ class CompletionSatisfactionBundleServiceTest {
         when(bundles.selectById(40L)).thenReturn(other);
         assertThrows(IllegalStateException.class, () -> service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 50L, true, signature(), null, evaluation(true))));
         when(bundles.selectById(40L)).thenReturn(bundle());
-        when(access.requireCommand(eq(7L), eq(30L), anyString(), eq(9L), eq("audit")))
+        when(access.requireCommand(eq(7L), eq(30L), anyString(), eq(9L), eq("submit")))
                 .thenThrow(new IllegalStateException("permission revoked"));
         assertThrows(IllegalStateException.class, () -> service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 50L, true, signature(), null, evaluation(true))));
         verify(bundles, never()).confirmPendingCertificate(any());
@@ -258,5 +264,16 @@ class CompletionSatisfactionBundleServiceTest {
     private SatisfactionResponseSubmissionService.FileFact signature() {
         return new SatisfactionResponseSubmissionService.FileFact("SIGNATURE", "slot-1", 1, 100L, 1,
                 "signature-ref", 1, 1, 1, 3L, "a".repeat(64));
+    }
+    @Test void freezesManualFallbackWhenNoSignedArrivalExists() {
+        var certificate=certificate(); certificate.setManualArrivalDate(java.time.LocalDate.of(2026,10,11));
+        when(certificates.selectDeliveryOwnerForUpdate(any())).thenReturn(certificate);
+        when(devices.selectListByCertificateId(20L)).thenReturn(List.of());
+        when(bundles.insert(any(CompletionSatisfactionBundleDO.class))).thenReturn(1);
+        service.bind(7L,30L,task(),20L);
+        var captured=ArgumentCaptor.forClass(CompletionSatisfactionBundleDO.class);
+        verify(bundles).insert(captured.capture());
+        assertEquals(java.time.LocalDate.of(2026,10,11),JsonUtils.parseObject(captured.getValue().getCertificateSnapshot(),
+                CompletionSatisfactionBundleService.CertificateSnapshot.class).arrivalDate());
     }
 }

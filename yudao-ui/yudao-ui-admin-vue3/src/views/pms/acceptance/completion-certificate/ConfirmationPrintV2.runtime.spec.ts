@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mount, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 import CompletionPrint from './CompletionCertificatePrintV2.vue'
+import CompletionSheet from '../satisfaction/CompletionCertificateSheet.vue'
 import SatisfactionPrint from './SatisfactionPrintV2.vue'
 import { printValues } from './confirmationPrintForm'
 import { wordPrintDate } from './wordPrintFormat'
@@ -107,4 +108,28 @@ describe('Word V2.0 completion print data', () => {
     expect(recovered.signatureImageDataUrl).toBe('/legacy.png')
     expect(JSON.stringify(legacy)).toBe(before)
   })
+})
+
+it.each([
+  ['是', '2026-10-20', '于2026年10月20日完成到货验收'],
+  ['是', null, '于____年___月___日完成到货验收'],
+  ['否', '2026-10-20', '完成到货验收'],
+  ['不涉及', '2026-10-20', '完成到货验收'],
+  ['', '2026-10-20', '完成到货验收']
+])('keeps read-only sheet, standard print and template values consistent for arrival choice %s', (itemArrival,arrivalDate,expected) => {
+  const record=detail()
+  record.certificate.itemArrival=itemArrival
+  record.certificate.arrivalDate=arrivalDate
+  const values=printValues(record)
+  const printed=render(CompletionPrint,values.completionPrintData)
+  const sheet=mount(CompletionSheet,{certificate:record.certificate})
+  mounted.push(sheet.app)
+  expect(text(printed)).toContain(expected)
+  expect(text(sheet.root)).toContain(expected)
+  expect(values.serviceItemsText).toContain(expected)
+  if(itemArrival !== '是') {
+    expect(text(printed)).not.toContain('于____年')
+    expect(text(printed)).not.toContain('于2026年')
+    expect(text(sheet.root)).not.toContain('于2026年')
+  }
 })

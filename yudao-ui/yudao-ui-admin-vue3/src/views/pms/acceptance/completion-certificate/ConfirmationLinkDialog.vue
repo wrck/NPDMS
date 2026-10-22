@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model="visible" title="推送至客户" width="min(640px, 94vw)" @closed="result = undefined">
+  <Dialog v-model="visible" title="推送至客户" width="min(640px, 94vw)" @closed="onClosed">
     <el-alert title="完工证明与满意度调查表已一起外发，请将链接或二维码发送给客户。" type="success" :closable="false" />
     <div v-if="url" class="confirmation-qr">
       <Qrcode :text="url" :width="200" @done="value => qrImage = value" />
@@ -19,6 +19,8 @@ import type { CompletionIssueVO } from '@/api/pms/acceptance/completion-certific
 import { Qrcode } from '@/components/Qrcode'
 import { getTenantId } from '@/utils/auth'
 import { formatDate } from '@/utils/formatTime'
+const emit = defineEmits<{ closed: [] }>()
+const onClosed = () => { result.value = undefined; emit('closed') }
 const visible = ref(false), result = ref<CompletionIssueVO>(), qrImage = ref('')
 const baseUrl = ref(import.meta.env.VITE_CUSTOMER_CONFIRM_BASE_URL || window.location.origin)
 const message = useMessage()

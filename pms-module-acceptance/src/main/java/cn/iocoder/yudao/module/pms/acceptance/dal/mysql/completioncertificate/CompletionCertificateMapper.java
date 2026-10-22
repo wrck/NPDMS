@@ -12,6 +12,8 @@ import java.util.Objects;
 
 @Mapper
 public interface CompletionCertificateMapper extends ProjectScopedCodeMapper<CompletionCertificateDO> {
+    int updateManualArrivalDate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionManualArrivalUpdate query);
     int replacePrintBindings(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionPrintBindingUpdate query);
     java.util.List<CompletionCertificateDO> selectPairedWorkflowRows(@org.apache.ibatis.annotations.Param("query")

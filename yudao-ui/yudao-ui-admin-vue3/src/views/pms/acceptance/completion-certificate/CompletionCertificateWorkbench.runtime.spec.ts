@@ -12,6 +12,7 @@ import RecordActions from './ConfirmationRecordActions.vue'
 const api = vi.hoisted(() => ({
   getConfirmationPage: vi.fn(),
   getConfirmation: vi.fn(),
+  getProjectArrivalDate: vi.fn(async (): Promise<string | null> => null),
   saveConfirmation: vi.fn(),
   issueConfirmation: vi.fn(),
   deleteConfirmation: vi.fn(),
@@ -101,11 +102,11 @@ vi.mock('vue-router', () => ({
 }))
 
 const mounted: { unmount: () => void }[] = []
-it.each([0, 1])('does not offer issue or reissue without the existing audit permission at status %s', status => {
+it.each([0, 1])('offers issue or reissue without audit permission at status %s', status => {
   auditPermission.allowed = false
   const view = mount(RecordActions, { record: { id: 10, status } })
   try {
-    expect(textOf(view.root)).not.toContain(status === 1 ? '重新推送' : '发起调查')
+    expect(textOf(view.root)).toContain(status === 1 ? '重新推送' : '发起调查')
     expect(textOf(view.root)).toContain('查看')
   } finally { view.app.unmount(); auditPermission.allowed = true }
 })
@@ -132,9 +133,10 @@ const draft = (projectId = 41) => ({
   version: 2
 })
 const renderPage = (initial: { projectId?: number; readonly?: boolean } = { projectId: 41 }) => {
+  const changed = vi.fn()
   const props = reactive(initial),
     child = ref<any>()
-  const wrapper = defineComponent({ setup: () => () => h(Workbench, { ...props, ref: child }) })
+  const wrapper = defineComponent({ setup: () => () => h(Workbench, { ...props, ref: child, onChanged: changed }) })
   const stubs = Object.fromEntries(
     [
       'ElInput',
@@ -153,7 +155,7 @@ const renderPage = (initial: { projectId?: number; readonly?: boolean } = { proj
   )
   const { app } = mount(wrapper, {}, { ...stubs, ElTableColumn: tableColumn })
   mounted.push(app)
-  return { props, state: () => child.value.$.setupState, public: () => child.value }
+  return { props, changed, state: () => child.value.$.setupState, public: () => child.value }
 }
 beforeEach(() => {
   vi.clearAllMocks()
@@ -162,6 +164,7 @@ beforeEach(() => {
   auditPermission.denied = []
   print.exporting = false
   guards.leave.length = 0
+  api.getProjectArrivalDate.mockReset().mockResolvedValue(null)
   api.getConfirmationPage.mockResolvedValue({ list: [], total: 0 })
   api.getConfirmation.mockResolvedValue({ certificate: draft(), history: [] })
   api.saveConfirmation.mockResolvedValue(410)
@@ -273,6 +276,11 @@ describe('completion workbench save and context protection', () => {
     issued.resolve({ id: 410, taskId: 510, signPath: '/fixture-only', tokenExpiresAt: '2026-10-20' })
     expect(await pending).toBeUndefined()
     expect(page.state().pendingActions.size).toBe(0)
+    expect(page.changed).not.toHaveBeenCalled()
+    page.state().onIssueLinkClosed()
+    expect(page.changed).toHaveBeenCalledOnce()
+    page.state().onIssueLinkClosed()
+    expect(page.changed).toHaveBeenCalledOnce()
   })
   it('does not issue a linked survey when the project becomes readonly during confirmation', async () => {
     const confirm = deferred<void>()
@@ -459,6 +467,15 @@ describe('completion workbench save and context protection', () => {
     await first
     expect(page.public().isDirty()).toBe(false)
   })
+  it('does not upload or resubmit historical customer signing fields when editing', async () => {
+    const page=renderPage();await flush();await page.state().openForm(draft());await flush()
+    page.state().form.customerSignUrl='/historical.png';page.state().form.customerSignDate='2026-10-10'
+    await page.state().save()
+    const payload=api.saveConfirmation.mock.calls.at(-1)![0]
+    expect(payload).not.toHaveProperty('customerSignUrl')
+    expect(payload).not.toHaveProperty('customerSignDate')
+    expect(fileApi.updateFile).not.toHaveBeenCalled()
+  })
   it('does not save when the project becomes readonly during a signature upload', async () => {
     const pending = deferred<{ data: string }>()
     fileApi.updateFile.mockReturnValueOnce(pending.promise)
@@ -466,7 +483,7 @@ describe('completion workbench save and context protection', () => {
     await flush()
     await page.state().openForm(draft())
     await flush()
-    page.state().customerSignDataUrl = 'data:image/png;base64,cG5n'
+    page.state().vendorSignDataUrl = 'data:image/png;base64,cG5n'
     const saving = page.state().save()
     await flush()
     page.props.readonly = true
@@ -560,4 +577,17 @@ describe('completion workbench save and context protection', () => {
       { engine: 'FORM_CREATE_ELEMENT_PLUS', formRulesJson: [] }
     )
   })
+})
+
+it.each([null, '2026-10-21'])('preserves the saved manual date on reopen only when no signed source exists: %s', async (source) => {
+  api.getConfirmation.mockResolvedValue({certificate:{...draft(),itemArrival:'是',arrivalDate:'2026-10-11'},history:[]})
+  api.getProjectArrivalDate.mockResolvedValue(source)
+  const page=renderPage();await flush();await page.state().openForm(draft());await flush()
+  expect(page.state().form.arrivalDate).toBe(source ?? '2026-10-11')
+  expect(page.state().form.arrivalDateManualAllowed).toBe(source === null)
+  await page.state().save()
+  expect(api.saveConfirmation).toHaveBeenCalledOnce()
+  const payload=api.saveConfirmation.mock.calls[0][0]
+  expect(payload.arrivalDate).toBe(source === null ? '2026-10-11' : undefined)
+  expect(payload.arrivalDateManualAllowed).toBeUndefined()
 })

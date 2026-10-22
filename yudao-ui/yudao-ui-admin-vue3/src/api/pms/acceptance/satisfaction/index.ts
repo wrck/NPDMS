@@ -100,6 +100,7 @@ export interface CompletionCertificateSnapshot {
   itemCutover?: string
   itemTraining?: string
   itemDocs?: string
+  arrivalDate?: string | null
   completionDate?: string
   devices?: Array<{ deviceType?: string; deviceModel?: string; quantity: number }>
 }

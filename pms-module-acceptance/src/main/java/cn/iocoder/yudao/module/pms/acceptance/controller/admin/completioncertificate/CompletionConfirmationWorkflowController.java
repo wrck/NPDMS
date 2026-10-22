@@ -20,13 +20,19 @@ public class CompletionConfirmationWorkflowController {
     private Long actor(){return SecurityFrameworkUtils.getLoginUserId();}
     @GetMapping @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:query')")
     public CommonResult<PageResult<CompletionCertificateRespVO>> page(@Valid CompletionCertificatePageReqVO query,@RequestParam(value="survey",defaultValue="false") boolean survey){return success(service.page(tenant(),actor(),query,survey));}
+    @GetMapping("/project-arrival-date")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:acc-completion-certificate:query','pms:acc-completion-certificate:create','pms:acc-completion-certificate:update')")
+    public CommonResult<java.time.LocalDate> projectArrivalDate(@RequestParam("projectId") Long projectId){
+        return success(service.projectArrivalDate(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(
+                tenant(),actor(),projectId,cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW)));
+    }
     @GetMapping("/{id}") @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:query')")
     public CommonResult<CompletionConfirmationWorkflowService.Detail> detail(@PathVariable("id") Long id){return success(service.detail(tenant(),actor(),id));}
     @PostMapping @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:create')")
     public CommonResult<Long> create(@Valid @RequestBody CompletionCertificateSaveReqVO body){body.setId(null);return success(service.save(tenant(),actor(),body));}
     @PutMapping("/{id}") @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:update')")
     public CommonResult<Long> update(@PathVariable("id") Long id,@Valid @RequestBody CompletionCertificateSaveReqVO body){body.setId(id);return success(service.save(tenant(),actor(),body));}
-    @PostMapping("/{id}/actions/issue") @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:submit') && @ss.hasPermission('pms:acc-completion-certificate:audit')")
+    @PostMapping("/{id}/actions/issue") @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:submit')")
     public CommonResult<CompletionConfirmationWorkflowService.Issue> issue(@PathVariable("id") Long id){return success(service.issue(tenant(),actor(),id));}
     @PostMapping("/{id}/actions/void") @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:update')")
     public CommonResult<Boolean> voidRecord(@PathVariable("id") Long id){service.voidRecord(tenant(),actor(),id);return success(true);}

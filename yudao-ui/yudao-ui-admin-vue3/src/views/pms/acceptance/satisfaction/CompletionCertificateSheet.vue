@@ -21,10 +21,11 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { arrivalServiceLabel } from '../completion-certificate/arrivalServiceLabel'
 import type { CompletionCertificateSnapshot } from '@/api/pms/acceptance/satisfaction'
 const props = defineProps<{ certificate: Omit<CompletionCertificateSnapshot, 'id' | 'version'>; showHint?: boolean; showTitle?: boolean }>()
 const serviceItems = computed(() => [
-  { label: '完成到货验收', value: props.certificate.itemArrival },
+  { label: arrivalServiceLabel(props.certificate.itemArrival, props.certificate.arrivalDate), value: props.certificate.itemArrival },
   { label: '完成设备硬件安装和软件调测', value: props.certificate.itemInstall },
   { label: '完成业务上线/割接且业务测试正常', value: props.certificate.itemCutover },
   { label: '完成产品维护现场讲解和培训', value: props.certificate.itemTraining },

@@ -90,7 +90,12 @@
           </tr>
           <tr v-for="(item, index) in serviceItems" :key="item.field" class="cert-service-row">
             <th v-if="index === 0" scope="rowgroup" :rowspan="serviceItems.length">工程服务内容</th>
-            <th colspan="2" scope="row" class="service-label">{{ item.label }}</th>
+            <th colspan="2" scope="row" class="service-label">{{ item.field === 'itemArrival' ? arrivalServiceLabel(model.itemArrival, model.arrivalDate) : item.label }}
+              <el-date-picker
+v-if="item.field === 'itemArrival' && model.itemArrival === '是' && model.arrivalDateManualAllowed"
+                v-model="model.arrivalDate" type="date" value-format="YYYY-MM-DD" clearable
+                aria-label="到货日期" placeholder="填写到货日期（可留空）" />
+            </th>
             <td
               ><el-form-item :prop="item.field"
                 ><el-radio-group v-model="model[item.field]" :aria-label="item.label"
@@ -138,19 +143,12 @@
       </table>
     </div>
     <div class="completion-form-signatures">
-      <section
-        ><h3>甲方签章</h3
-        ><SignaturePad
-          v-model="customerSignature"
-          :form-create-inject="signatureInject"
-          :disabled="disabled" /><el-form-item prop="customerSignDate" label="签章日期"
-          ><el-date-picker
-            v-model="model.customerSignDate"
-            type="date"
-            value-format="YYYY-MM-DD"
-            class="!w-full"
-            aria-label="甲方签章日期" /></el-form-item
-      ></section>
+      <section>
+        <h3>客户签字</h3>
+        <p class="template-hint">客户签字及签字日期由客户通过推送链接提交，此处不可填写或修改。</p>
+        <img v-if="model.customerSignUrl" :src="model.customerSignUrl" alt="历史客户签字" style="max-width: 100%; max-height: 160px" />
+        <p v-if="model.customerSignDate">{{ model.customerSignDate }}</p>
+      </section>
       <section
         ><h3>服务方签章</h3
         ><SignaturePad
@@ -206,6 +204,7 @@
 </template>
 
 <script setup lang="ts">
+import { arrivalServiceLabel } from './arrivalServiceLabel'
 import * as ProjectApi from '@/api/pms/project/projects'
 import * as UserApi from '@/api/system/user'
 import type { CompletionCertificateVO } from '@/api/pms/acceptance/completion-certificate'
@@ -232,7 +231,6 @@ const emit = defineEmits<{
   'remove-device': [index: number]
 }>()
 const model = props.form
-const customerSignature = defineModel<string>('customerSignature', { required: true })
 const vendorSignature = defineModel<string>('vendorSignature', { required: true })
 const formRef = ref()
 const rules = {

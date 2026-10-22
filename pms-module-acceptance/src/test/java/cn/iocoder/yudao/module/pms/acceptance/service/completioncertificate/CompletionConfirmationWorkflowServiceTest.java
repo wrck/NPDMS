@@ -42,6 +42,7 @@ class CompletionConfirmationWorkflowServiceTest {
     @Mock cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi deliveryMaterials;
     @Mock cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi fileEvidence;
     @Mock SatisfactionQuestionnaireTemplateMapper templateMapper;
+    @Mock cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi arrivalDates;
     @InjectMocks CompletionConfirmationWorkflowService service;
     CompletionCertificateDO certificate;
     @BeforeEach void setup(){
@@ -54,8 +55,15 @@ class CompletionConfirmationWorkflowServiceTest {
         lenient().when(projects.inspect(any())).thenReturn(context);lenient().when(projects.lock(any(),any(),any())).thenReturn(context);
         lenient().when(permissions.hasAnyPermissions(eq(1L),any(String[].class))).thenReturn(true);
     }
-    @Test void issueWithoutAuditPermissionFailsBeforeCreatingSurveyOrGrant(){
-        when(permissions.hasAnyPermissions(1L,"pms:acc-completion-certificate:audit")).thenReturn(false);
+    @Test void issueWithSubmitPermissionDoesNotRequireAudit(){
+        lenient().when(permissions.hasAnyPermissions(1L,"pms:acc-completion-certificate:audit")).thenReturn(false);
+        published(true);
+        assertEquals(20L,service.issue(1L,1L,10L).taskId());
+        verify(access).requireCommand(1L,1L,"completionCertificate",9L,"submit");
+    }
+    @Test void issueWithoutSubmitPermissionFailsBeforeCreatingSurveyOrGrant(){
+        when(access.requireCommand(1L,1L,"completionCertificate",9L,"submit"))
+            .thenThrow(new org.springframework.security.access.AccessDeniedException("submit denied"));
         assertThrows(org.springframework.security.access.AccessDeniedException.class,()->service.issue(1L,1L,10L));
         verifyNoInteractions(independent,grants,bundles,legacy);
     }
@@ -238,4 +246,42 @@ class CompletionConfirmationWorkflowServiceTest {
         verifyNoInteractions(files,fileEvidence);
     }
 
+    @Test void arrivalDatePreviewRejectsForeignProjectBeforeReadingOwner() {
+        var query=new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(1L,1L,9L,ProjectScopeApi.ACTION_VIEW);
+        when(scopes.resolveCurrent(query)).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(9L,1L,java.util.Set.of(),java.util.Set.of()));
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,()->service.projectArrivalDate(query));
+        verifyNoInteractions(arrivalDates);
+    }
+    @Test void draftDateUsesCurrentOwnerButIssuedHistoryOnlyUsesFrozenDate() {
+        when(arrivalDates.latest(any())).thenReturn(java.time.LocalDate.of(2026,10,20));
+        assertEquals(java.time.LocalDate.of(2026,10,20),service.detail(1L,1L,10L).certificate().getArrivalDate());
+        clearInvocations(arrivalDates);
+        certificate.setStatus(1);
+        var bundle=new CompletionSatisfactionBundleDO();bundle.setId(30L);bundle.setCollectionKey("collection");
+        bundle.setCertificateSnapshot("{\"id\":10,\"projectId\":9,\"arrivalDate\":\"2026-10-01\"}");
+        when(bundles.selectByCertificate(any())).thenReturn(bundle);
+        assertEquals(java.time.LocalDate.of(2026,10,1),service.detail(1L,1L,10L).certificate().getArrivalDate());
+        bundle.setCertificateSnapshot("{\"id\":10,\"projectId\":9}");
+        assertNull(service.detail(1L,1L,10L).certificate().getArrivalDate());
+        verifyNoInteractions(arrivalDates);
+    }
+    @Test void authorizedArrivalDatePreviewKeepsTheProjectsTenantScopeAndEmptyResult() {
+        var query=new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(1L,1L,9L,ProjectScopeApi.ACTION_VIEW);
+        when(scopes.resolveCurrent(query)).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(9L,1L,java.util.Set.of(9L),java.util.Set.of()));
+        when(arrivalDates.latest(any())).thenReturn(java.time.LocalDate.of(2026,10,20));
+        assertEquals(java.time.LocalDate.of(2026,10,20),service.projectArrivalDate(query));
+        verify(arrivalDates).latest(new cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi.Query(1L,9L));
+        when(arrivalDates.latest(any())).thenReturn(null);
+        assertNull(service.projectArrivalDate(query));
+    }
+    @Test void draftFallbackIsEditableOnlyWithoutSignedArrival() {
+        certificate.setManualArrivalDate(java.time.LocalDate.of(2026,10,11));
+        var fallback=service.detail(1L,1L,10L).certificate();
+        assertEquals(java.time.LocalDate.of(2026,10,11),fallback.getArrivalDate());
+        assertEquals(true,fallback.getArrivalDateManualAllowed());
+        when(arrivalDates.latest(any())).thenReturn(java.time.LocalDate.of(2026,10,20));
+        var automatic=service.detail(1L,1L,10L).certificate();
+        assertEquals(java.time.LocalDate.of(2026,10,20),automatic.getArrivalDate());
+        assertEquals(false,automatic.getArrivalDateManualAllowed());
+    }
 }

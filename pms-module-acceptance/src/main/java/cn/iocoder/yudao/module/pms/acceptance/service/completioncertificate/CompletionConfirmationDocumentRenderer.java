@@ -12,7 +12,7 @@ public final class CompletionConfirmationDocumentRenderer {
         row(html,"证明名称",proof.name());row(html,"证明编号",proof.certificateNo()==null?proof.code():proof.certificateNo());row(html,"用户单位",proof.customerUnit());
         if("COMPLETION".equals(kind)){
             row(html,"合同号",proof.contractNo());row(html,"工程服务类型",proof.serviceType());row(html,"工程师",proof.engineerName());row(html,"联系方式",proof.engineerContact());
-            row(html,"完成到货验收",proof.itemArrival());row(html,"完成安装调试",proof.itemInstall());row(html,"完成业务上线/割接",proof.itemCutover());row(html,"完成现场培训",proof.itemTraining());row(html,"工程文档已移交",proof.itemDocs());row(html,"完工日期",proof.completionDate()==null?null:proof.completionDate().toString());
+            row(html,arrivalLabel(proof),proof.itemArrival());row(html,"完成安装调试",proof.itemInstall());row(html,"完成业务上线/割接",proof.itemCutover());row(html,"完成现场培训",proof.itemTraining());row(html,"工程文档已移交",proof.itemDocs());row(html,"完工日期",proof.completionDate()==null?null:proof.completionDate().toString());
             for(var device:proof.devices())row(html,"设备",device.deviceType()+" · "+device.deviceModel()+" × "+device.quantity());
         }else{
             var submitted=new HashMap<String,tools.jackson.databind.JsonNode>();
@@ -52,6 +52,11 @@ public final class CompletionConfirmationDocumentRenderer {
         html.append("</table><h2>客户手写签字（同时确认两份表单）</h2>");
         if(image!=null)html.append("<img alt=\"客户手写签字\" src=\"").append(HtmlUtils.htmlEscape(image)).append("\">");
         html.append("<p>确认时间：").append(signedAt).append("</p></body></html>");return html.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+    private static String arrivalLabel(CertificateSnapshot proof){
+        if(!"是".equals(proof.itemArrival()))return "完成到货验收";
+        var date=proof.arrivalDate();
+        return "于"+(date==null?"____年___月___日":date.getYear()+"年"+date.getMonthValue()+"月"+date.getDayOfMonth()+"日")+"完成到货验收";
     }
     private static void row(StringBuilder html,String label,String value){html.append("<tr><th>").append(HtmlUtils.htmlEscape(label)).append("</th><td>").append(HtmlUtils.htmlEscape(value==null?"":value)).append("</td></tr>");}
     private static String optionLabel(tools.jackson.databind.JsonNode option){

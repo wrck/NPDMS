@@ -8,6 +8,7 @@ import QuestionnairePrintField from './QuestionnairePrintField.vue'
 import CompletionCertificatePrintV2 from './CompletionCertificatePrintV2.vue'
 import SatisfactionPrintV2 from './SatisfactionPrintV2.vue'
 import { formatDate } from '@/utils/formatTime'
+import { arrivalServiceLabel } from './arrivalServiceLabel'
 export const registerConfirmationPrintComponents = () => {
   for (const renderer of [formCreate, FcDesigner.formCreate]) {
     renderer.component('CompletionSatisfactionQuestionnaire', QuestionnairePrintField)
@@ -68,7 +69,7 @@ export const printValues = (detail: CompletionConfirmationDetail) => {
   return { ...certificate, ...detail.survey, questionnaireData: { definition, answers },
     completionPrintData: wordData, satisfactionPrintData: wordData,
     signTime: detail.survey?.submittedAt ? formatDate(detail.survey.submittedAt) : certificate.customerSignDate || '',
-    serviceItemsText: [['完成到货验收', certificate.itemArrival], ['完成设备硬件安装和软件调测', certificate.itemInstall], ['完成业务上线/割接', certificate.itemCutover], ['完成现场讲解和培训', certificate.itemTraining], ['工程文档已移交', certificate.itemDocs]].map(([label, value]) => `${label}：${value || '—'}`).join('\n'),
+    serviceItemsText: [[arrivalServiceLabel(certificate.itemArrival, certificate.arrivalDate), certificate.itemArrival], ['完成设备硬件安装和软件调测', certificate.itemInstall], ['完成业务上线/割接', certificate.itemCutover], ['完成现场讲解和培训', certificate.itemTraining], ['工程文档已移交', certificate.itemDocs]].map(([label, value]) => `${label}：${value || '—'}`).join('\n'),
     devicesText: certificate.devices?.map(item => `${item.deviceType || '—'} · ${item.deviceModel || '—'} × ${item.quantity}`).join('\n') || '',
     answersText: definition.questions.map(question => {
       const values = Array.isArray(answers[question.code]) ? answers[question.code] as string[] : [answers[question.code]]

@@ -75,14 +75,17 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
     @Resource
     private NativeAcceptanceProjectAccess projectAccess;
     @Resource private cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.CompletionSatisfactionBundleMapper jointBundles;
+    @Resource private cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi arrivalDates;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createCompletionCertificate(CompletionCertificateSaveReqVO createReqVO) {
+        requireCustomerSignatureFromLink(createReqVO);
         projectAccess.requireWrite(createReqVO.getProjectId());
         // 插入；编码由系统按项目编码自动生成
         if(createReqVO.getStatus()!=null && createReqVO.getStatus()!=STATUS_DRAFT)throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         CompletionCertificateDO entity = BeanUtils.toBean(createReqVO, CompletionCertificateDO.class);
+        entity.setManualArrivalDate(manualArrivalDate(createReqVO));
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
                 AcceptanceRecordCodeGenerator.COMPLETION_CERTIFICATE, completionCertificateMapper));
         if (entity.getStatus() == null) {
@@ -101,6 +104,7 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         }
+        requireCustomerSignatureFromLink(updateReqVO);
         CompletionCertificateDO updateObj = BeanUtils.toBean(updateReqVO, CompletionCertificateDO.class);
         projectAccess.requireWrite(updateReqVO.getProjectId());
         // 保持状态不被前端覆盖
@@ -108,18 +112,36 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
         if (updateObj.getVersion() == null || completionCertificateMapper.updateById(updateObj) != 1) {
             throw exception(ACC_COMPLETION_CERTIFICATE_VERSION_CONFLICT);
         }
+        if (completionCertificateMapper.updateManualArrivalDate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionManualArrivalUpdate(
+                TenantContextHolder.getRequiredTenantId(), existing.getId(), updateObj.getVersion(),
+                manualArrivalDate(updateReqVO))) != 1) {
+            throw exception(ACC_COMPLETION_CERTIFICATE_VERSION_CONFLICT);
+        }
         // 设备明细整存整取：按新列表重建
         completionCertificateDeviceMapper.deleteByCertificateId(existing.getId());
         insertCertificateDevices(existing.getId(), updateReqVO.getDevices());
+    }
+
+    private java.time.LocalDate manualArrivalDate(CompletionCertificateSaveReqVO request) {
+        if (!"是".equals(request.getItemArrival())) return null;
+        var automatic = arrivalDates.latest(new cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi.Query(
+                TenantContextHolder.getRequiredTenantId(), request.getProjectId()));
+        return automatic == null ? request.getArrivalDate() : null;
+    }
+
+    private void requireCustomerSignatureFromLink(CompletionCertificateSaveReqVO request) {
+        if (request.getCustomerSignUrl() != null && !request.getCustomerSignUrl().isBlank()
+                || request.getCustomerSignDate() != null)
+            throw new IllegalArgumentException("客户签字及签字日期只能通过推送链接提交");
+        request.setCustomerSignUrl(null);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteCompletionCertificate(Long id) {
         CompletionCertificateDO existing = validateExists(id);
-        // 仅草稿或已驳回状态允许删除
-        if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)
-                && !Objects.equals(existing.getStatus(), STATUS_REJECTED)) {
+        // 仅草稿可删除，已外发及后续历史必须保留。
+        if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         }
         completionCertificateDeviceMapper.deleteByCertificateId(id);

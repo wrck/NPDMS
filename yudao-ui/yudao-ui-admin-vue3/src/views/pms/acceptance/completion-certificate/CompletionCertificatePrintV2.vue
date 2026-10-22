@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { arrivalServiceLabel } from './arrivalServiceLabel'
 import WordPrintFrameV2 from './WordPrintFrameV2.vue'
 import { wordPrintDate } from './wordPrintFormat'
 import type { ConfirmationWordPrintData } from './confirmationPrintForm'
@@ -54,13 +55,13 @@ const devices = computed(() => {
   const rows = [...(certificate.value?.devices ?? [])]
   return [...rows, ...Array.from({ length: Math.max(0, 5 - rows.length) }, () => undefined)]
 })
-const serviceItems = [
-  { field: 'itemArrival', label: '于____年___月___日完成到货验收' },
+const serviceItems = computed(() => [
+  { field: 'itemArrival', label: arrivalServiceLabel(certificate.value?.itemArrival, certificate.value?.arrivalDate) },
   { field: 'itemInstall', label: '完成设备硬件安装和软件调测' },
   { field: 'itemCutover', label: '完成业务上线/割接且业务测试正常' },
   { field: 'itemTraining', label: '完成产品维护现场讲解和培训' },
   { field: 'itemDocs', label: '工程文档、工程帐号和密码已移交客户，并协助客户修改帐号和密码' }
-] as const
+] as const)
 </script>
 
 <style scoped>

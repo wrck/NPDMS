@@ -46,7 +46,7 @@
     </ContentWrap>
   </div>
 
-  <ConfirmationLinkDialog ref="issueDialog" />
+  <ConfirmationLinkDialog ref="issueDialog" @closed="onIssueLinkClosed" />
   <ConfirmationPrintTemplates v-if="canConfigure" ref="printTemplates" kind="COMPLETION" @changed="loadPrintOptions" />
   <ConfirmationPrintTemplates v-if="canConfigure" ref="satisfactionTemplates" kind="SATISFACTION" @changed="loadPrintOptions" />
   <ConfirmationPrintPreview ref="printPreview" kind="COMPLETION" :readonly="props.readonly" />
@@ -78,7 +78,6 @@
       :project-name="projectNameCache"
       :disabled="!!props.readonly || saving"
       :print-templates="printOptions"
-      v-model:customer-signature="customerSignDataUrl"
       v-model:vendor-signature="vendorSignDataUrl"
       @project-change="onProjectChange"
       @engineer-change="onEngineerChange"
@@ -272,7 +271,6 @@ const satisfactionPreview = ref<InstanceType<typeof ConfirmationPrintPreview>>()
 const printOptions = ref<DynamicFormApi.DynamicFormSelectionVO[]>([])
 // 签章复用培训客户确认/满意度问卷的 form-create signaturePad 手写控件：
 // 控件值为 PNG dataURL，保存时经 signaturePngFile 转 File 走既有文件上传链路，实体列落文件 URL。
-const customerSignDataUrl = ref('')
 const vendorSignDataUrl = ref('')
 // 表单字段即实体列（V386 起完工证明附加字段实体化、设备明细子表），支持统计取数。
 // 历史记录的 remark/content JSON 信封仅在实体列全空时读取回显，编辑保存后落实体列。
@@ -356,7 +354,7 @@ const applyLegacyEnvelope = () => {
     quantity: Number(d?.qty ?? 1) || 1
   }))
   form.customerSignDate = envelope.customerSignDate ?? ''
-  customerSignDataUrl.value = envelope.customerSignUrl ?? ''
+  form.customerSignUrl = envelope.customerSignUrl ?? ''
   form.vendorSignDate = envelope.vendorSignDate ?? ''
   vendorSignDataUrl.value = envelope.vendorSignUrl ?? ''
 }
@@ -412,6 +410,10 @@ const resolveProject = async (request: number, projectId?: number) => {
   const project = await ProjectApi.getProject(projectId)
   if (!isCurrentForm(request, projectId)) return
   projectNameCache.value = project.projectName ?? ''
+  const arrivalDate = await CompletionCertificateApi.getProjectArrivalDate(projectId)
+  if (!isCurrentForm(request, projectId)) return
+  form.arrivalDateManualAllowed = arrivalDate == null
+  form.arrivalDate = arrivalDate ?? form.arrivalDate
   form.customerUnit = form.customerUnit || project.customerName || ''
   if (!form.contractNo) {
     form.contractNo = project.contractNo ?? ''
@@ -445,6 +447,8 @@ const onProjectChange = async (projectId?: number) => {
   projectNameCache.value = ''
   form.customerUnit = ''
   form.contractNo = ''
+  form.arrivalDate = undefined
+  form.arrivalDateManualAllowed = false
   deviceRows.value = []
   formLoading.value = true
   try {
@@ -485,6 +489,8 @@ const openForm = async (row?: CompletionCertificateVO) => {
       name: '',
       code: '',
       customerId: undefined,
+      arrivalDate: undefined,
+      arrivalDateManualAllowed: false,
       completionDate: row ? '' : formatDate(new Date(), 'YYYY-MM-DD'),
       serviceType: '',
       engineerUserId: undefined,
@@ -515,7 +521,6 @@ const openForm = async (row?: CompletionCertificateVO) => {
     },
     row || {}
   )
-  customerSignDataUrl.value = ''
   vendorSignDataUrl.value = ''
   projectNameCache.value = ''
   deviceRows.value = []
@@ -533,7 +538,7 @@ const openForm = async (row?: CompletionCertificateVO) => {
         quantity: d.quantity ?? 1
       }))
       // 签章控件值为 dataURL/文件 URL，编辑时从实体列回种，未重新签名则原样保留
-      customerSignDataUrl.value = joint.survey?.signatureImageDataUrl || form.customerSignUrl || ''
+      form.customerSignUrl = joint.survey?.signatureImageDataUrl || form.customerSignUrl || ''
       vendorSignDataUrl.value = form.vendorSignUrl ?? ''
       applyLegacyEnvelope()
       if (form.projectId) await resolveProject(request, form.projectId)
@@ -587,10 +592,14 @@ const save = async () => {
       form.name = projectNameCache.value
     }
     form.devices = deviceRows.value.map((device) => ({ ...device }))
-    form.customerSignUrl = await uploadSignature(customerSignDataUrl.value)
     form.vendorSignUrl = await uploadSignature(vendorSignDataUrl.value)
     if (props.readonly || current !== context || !isCurrentForm(request)) return
-    await CompletionCertificateApi.saveConfirmation({ ...form })
+    const payload = { ...form }
+    if (!form.arrivalDateManualAllowed || form.itemArrival !== '是') delete payload.arrivalDate
+    delete payload.arrivalDateManualAllowed
+    delete payload.customerSignUrl
+    delete payload.customerSignDate
+    await CompletionCertificateApi.saveConfirmation(payload)
     if (props.readonly || current !== context || !isCurrentForm(request)) return
     message.success('保存成功')
     formVisible.value = false
@@ -619,6 +628,12 @@ const remove = async (row: CompletionCertificateVO) => {
     pendingActions.delete(row.id!)
   }
 }
+let issueLinkContext: number | undefined
+const onIssueLinkClosed = () => {
+  const issuedContext = issueLinkContext
+  issueLinkContext = undefined
+  if (issuedContext === context) emit('changed')
+}
 const handleAction = async ({ row, action, actionText }: ConfirmationRecordAction) => {
   if (props.readonly || pendingActions.has(row.id!)) return
   const current = context
@@ -629,11 +644,12 @@ const handleAction = async ({ row, action, actionText }: ConfirmationRecordActio
     if (action === 'issueConfirmation') {
       const issued = await CompletionCertificateApi.issueConfirmation(row.id!)
       if (current !== context || props.readonly) return
+      issueLinkContext = current
       issueDialog.value?.open(issued)
     } else await CompletionCertificateApi[action](row.id!)
     if (current !== context || props.readonly) return
     message.success(`${actionText}成功`)
-    emit('changed')
+    if (action !== 'issueConfirmation') emit('changed')
     await load()
   } finally {
     pendingActions.delete(row.id!)

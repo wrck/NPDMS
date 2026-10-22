@@ -29,6 +29,7 @@ import java.util.*;
 /** ACC owns the complete customer confirmation workflow; PLT/PROJ are used only through public APIs. */
 @Service @RequiredArgsConstructor
 public class CompletionConfirmationWorkflowService {
+    private final cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi arrivalDates;
     private final CompletionCertificateService legacy;
     private final CompletionCertificateMapper certificates;
     private final CompletionSatisfactionBundleMapper bundles;
@@ -95,11 +96,28 @@ public class CompletionConfirmationWorkflowService {
         return BeanUtils.toBean(certificates.selectWorkflowPage(query),CompletionCertificateRespVO.class);
     }
 
+    public java.time.LocalDate projectArrivalDate(cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery query){
+        if(query.subjectUserId()==null || !permissions.hasAnyPermissions(query.subjectUserId(),
+                "pms:acc-completion-certificate:query","pms:acc-completion-certificate:create","pms:acc-completion-certificate:update"))
+            throw new IllegalStateException("完工证明操作未授权");
+        var scope=scopes.resolveCurrent(query);
+        if(scope==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(query.anchorProjectId()))
+            throw new org.springframework.security.access.AccessDeniedException("无权读取项目到货日期");
+        return arrivalDates.latest(new cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi.Query(query.tenantId(),query.anchorProjectId()));
+    }
+
     public Detail detail(Long tenant,Long actor,Long id){
         var row=requireCertificate(tenant,actor,id);
         var certificate=BeanUtils.toBean(row,CompletionCertificateRespVO.class);
         certificate.setDevices(BeanUtils.toBean(legacy.getCompletionCertificateDevices(id),CompletionCertificateDeviceRespVO.class));
         var bundle=bundles.selectByCertificate(new CompletionBundleCertificateQuery(tenant,id));
+        if(Integer.valueOf(0).equals(row.getStatus())) {
+            var automatic = arrivalDates.latest(new cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi.Query(tenant,row.getProjectId()));
+            certificate.setArrivalDateManualAllowed(automatic == null);
+            certificate.setArrivalDate(automatic != null ? automatic : row.getManualArrivalDate());
+        }
+        else if(bundle!=null) certificate.setArrivalDate(JsonUtils.parseObject(bundle.getCertificateSnapshot(),
+                CompletionSatisfactionBundleService.CertificateSnapshot.class).arrivalDate());
         if(bundle==null)return new Detail(certificate,null,List.of());
         var history=new ArrayList<Survey>();
         for(var task:tasks.selectByCollection(new CompletionSatisfactionBundleQuery(tenant,bundle.getCollectionKey()))){
@@ -117,8 +135,6 @@ public class CompletionConfirmationWorkflowService {
 
     @Transactional(rollbackFor=Exception.class)
     public Issue issue(Long tenant,Long actor,Long id){
-        if(actor==null || !permissions.hasAnyPermissions(actor,"pms:acc-completion-certificate:audit"))
-            throw new org.springframework.security.access.AccessDeniedException("发起调查需要完工证明审核权限");
         var observed=requireCertificate(tenant,actor,id);
         var project=lockProject(tenant,actor,observed.getProjectId());
         access.requireCommand(tenant,actor,"completionCertificate",observed.getProjectId(),"submit");

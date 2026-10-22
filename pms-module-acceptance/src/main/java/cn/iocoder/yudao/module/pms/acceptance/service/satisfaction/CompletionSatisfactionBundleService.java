@@ -34,6 +34,7 @@ public class CompletionSatisfactionBundleService {
     private final CompletionCertificateDeviceMapper devices;
     private final NativeAcceptanceDeliveryAccess access;
     private final PlatformDeliveryMaterialApi deliveryMaterials;
+    private final cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi arrivalDates;
 
     public void requireStandaloneAllowed(Long tenantId, String collectionKey) {
         if (collectionKey != null && bundles.selectByCollection(new CompletionSatisfactionBundleQuery(tenantId, collectionKey)) != null)
@@ -55,7 +56,7 @@ public class CompletionSatisfactionBundleService {
         if (certificateId == null || certificateId <= 0 || task == null
                 || !Objects.equals(tenantId, task.getTenantId()) || task.getCollectionKey() == null)
             throw new IllegalArgumentException("COMPLETION_SATISFACTION_CERTIFICATE_REQUIRED");
-        access.requireCommand(tenantId, actorId, "completionCertificate", task.getProjectId(), "audit");
+        access.requireCommand(tenantId, actorId, "completionCertificate", task.getProjectId(), "submit");
         access.require(tenantId, actorId, "completionCertificate", certificateId.toString(),
                 "COMPLETION_CERTIFICATE", false, false, null);
         var certificate = certificates.selectDeliveryOwnerForUpdate(new CompletionCertificateDeliveryLockQuery(tenantId, certificateId));
@@ -76,12 +77,14 @@ public class CompletionSatisfactionBundleService {
         row.setId(IdWorker.getId()); row.setTenantId(tenantId); row.setProjectId(task.getProjectId());
         row.setCertificateId(certificateId); row.setCertificateVersion(certificate.getVersion());
         row.setCollectionKey(task.getCollectionKey()); row.setVersion(0L);
+        var automaticArrival = arrivalDates.latest(new cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi.Query(tenantId,certificate.getProjectId()));
         row.setCertificateSnapshot(JsonUtils.toJsonString(new CertificateSnapshot(certificate.getId(), certificate.getVersion(),
                 certificate.getProjectId(), certificate.getCode(), certificate.getName(), certificate.getCertificateNo(),
                 certificate.getCustomerUnit(), certificate.getContractNo(), certificate.getServiceType(),
                 certificate.getEngineerName(), certificate.getEngineerContact(), certificate.getItemArrival(),
                 certificate.getItemInstall(), certificate.getItemCutover(), certificate.getItemTraining(),
-                certificate.getItemDocs(), certificate.getCompletionDate(), deviceSnapshot)));
+                certificate.getItemDocs(), certificate.getCompletionDate(), deviceSnapshot,
+                automaticArrival != null ? automaticArrival : certificate.getManualArrivalDate())));
         row.setCreator(actorId.toString()); row.setUpdater(actorId.toString());
         if (bundles.insert(row) != 1) throw new IllegalStateException("COMPLETION_SATISFACTION_BIND_FAILED");
         return row.getId();
@@ -132,7 +135,7 @@ public class CompletionSatisfactionBundleService {
                 || !Objects.equals(bundle.getCollectionKey(), task.getCollectionKey()))
             throw new IllegalStateException("COMPLETION_SATISFACTION_PAIRING_CONFLICT");
         Long actorId = issuer(grant);
-        access.requireCommand(tenantId, actorId, "completionCertificate", bundle.getProjectId(), "audit");
+        access.requireCommand(tenantId, actorId, "completionCertificate", bundle.getProjectId(), "submit");
         access.require(tenantId, actorId, "completionCertificate", bundle.getCertificateId().toString(),
                 "COMPLETION_CERTIFICATE", false, false, null);
         var certificate = certificates.selectDeliveryOwnerForUpdate(new CompletionCertificateDeliveryLockQuery(tenantId, bundle.getCertificateId()));
@@ -217,5 +220,13 @@ public class CompletionSatisfactionBundleService {
                                       String certificateNo, String customerUnit, String contractNo, String serviceType,
                                       String engineerName, String engineerContact, String itemArrival, String itemInstall,
                                       String itemCutover, String itemTraining, String itemDocs, LocalDate completionDate,
-                                      List<Device> devices) { }
+                                      List<Device> devices, LocalDate arrivalDate) {
+        public CertificateSnapshot(Long id, Long version, Long projectId, String code, String name,
+                String certificateNo, String customerUnit, String contractNo, String serviceType,
+                String engineerName, String engineerContact, String itemArrival, String itemInstall,
+                String itemCutover, String itemTraining, String itemDocs, LocalDate completionDate, List<Device> devices) {
+            this(id,version,projectId,code,name,certificateNo,customerUnit,contractNo,serviceType,engineerName,engineerContact,
+                    itemArrival,itemInstall,itemCutover,itemTraining,itemDocs,completionDate,devices,null);
+        }
+    }
 }

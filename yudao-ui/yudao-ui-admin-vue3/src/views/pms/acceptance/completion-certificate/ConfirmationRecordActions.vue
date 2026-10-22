@@ -2,7 +2,7 @@
   <div class="record-actions">
     <el-button link type="primary" :disabled="busy" @click="emit('view', record)">查看</el-button>
     <el-button v-if="!readonly && record.status === 0" v-hasPermi="['pms:acc-completion-certificate:update']" link type="primary" :disabled="busy" @click="emit('edit', record)">编辑</el-button>
-    <el-button v-if="!readonly && (record.status === 0 || record.status === 1) && checkPermi(['pms:acc-completion-certificate:audit'])" v-hasPermi="['pms:acc-completion-certificate:submit']" type="primary" size="small" :loading="busy" @click="emit('action', { row: record, action: 'issueConfirmation', actionText: record.status === 1 ? '重新推送' : '发起调查' })">{{ record.status === 1 ? '重新推送' : '发起调查' }}</el-button>
+    <el-button v-if="!readonly && (record.status === 0 || record.status === 1)" v-hasPermi="['pms:acc-completion-certificate:submit']" type="primary" size="small" :loading="busy" @click="emit('action', { row: record, action: 'issueConfirmation', actionText: record.status === 1 ? '重新推送' : '发起调查' })">{{ record.status === 1 ? '重新推送' : '发起调查' }}</el-button>
     <el-dropdown trigger="click" :disabled="busy">
       <el-button link :disabled="busy" aria-label="更多操作">更多<Icon icon="ep:arrow-down" /></el-button>
       <template #dropdown><el-dropdown-menu>
@@ -26,7 +26,6 @@ export interface ConfirmationRecordAction {
 export interface ConfirmationRecordPrint { row: CompletionCertificateVO; kind: ConfirmationDocumentKind }
 </script>
 <script setup lang="ts">
-import { checkPermi } from '@/utils/permission'
 defineProps<{ record: CompletionCertificateVO; readonly?: boolean; busy?: boolean }>()
 const emit = defineEmits<{ view: [record: CompletionCertificateVO]; edit: [record: CompletionCertificateVO]; action: [command: ConfirmationRecordAction]; print: [selection: ConfirmationRecordPrint]; remove: [record: CompletionCertificateVO] }>()
 </script>

@@ -14,6 +14,8 @@ export interface CompletionCertificateVO {
   name: string
   customerId?: number
   certificateNo?: string
+  arrivalDate?: string | null
+  arrivalDateManualAllowed?: boolean
   completionDate?: string
   serviceType?: string
   engineerUserId?: number
@@ -64,6 +66,7 @@ export interface CompletionConfirmationDetail {
 }
 export interface CompletionIssueVO { id: number; taskId: number; signPath: string; tokenExpiresAt: string }
 const workflowUrl = '/api/v1/pms/completion-confirmations'
+export const getProjectArrivalDate = (projectId: number) => request.get<string | null>({ url: `${workflowUrl}/project-arrival-date`, params: { projectId } })
 export const getConfirmationPage = (params: PmsProjectPageParam & { survey?: boolean }) => request.get({ url: workflowUrl, params })
 export const getConfirmation = (id: number) => request.get<CompletionConfirmationDetail>({ url: `${workflowUrl}/${id}` })
 export const saveConfirmation = (data: CompletionCertificateVO) => data.id

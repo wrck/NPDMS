@@ -45,6 +45,7 @@ class CompletionCertificateServiceTest {
 
     @Mock cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccess nativeAccess;
  @Mock cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceProjectAccess projectAccess;
+ @Mock cn.iocoder.yudao.module.pms.engineering.api.arrival.SignedArrivalDateApi arrivalDates;
  @InjectMocks
     private CompletionCertificateServiceImpl service;
 
@@ -68,6 +69,29 @@ class CompletionCertificateServiceTest {
         reqVO.setStatus(status);
         reqVO.setDevices(devices.length == 0 ? List.of() : List.of(devices));
         return reqVO;
+    }
+
+    @Test void nonDraftCompletionCannotBeDeletedThroughTheLegacyEntry() {
+        var existing=new CompletionCertificateDO();existing.setId(6L);existing.setProjectId(9L);
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(any())).thenReturn(existing);
+        for(int status: new int[]{1,2,3,4}) {
+            existing.setStatus(status);
+            assertThrows(RuntimeException.class,()->service.deleteCompletionCertificate(6L));
+        }
+        verify(completionCertificateMapper,never()).deleteById(6L);
+        verify(completionCertificateDeviceMapper,never()).deleteByCertificateId(6L);
+    }
+    @Test void createRejectsInternalCustomerSignature() {
+        var request=saveReqVO(null,0);request.setCustomerSignUrl("/internal-signature.png");
+        assertThrows(IllegalArgumentException.class,()->service.createCompletionCertificate(request));
+        verify(completionCertificateMapper,never()).insert(any(CompletionCertificateDO.class));
+    }
+    @Test void updateRejectsInternalCustomerSigningDate() {
+        var existing=new CompletionCertificateDO();existing.setId(6L);existing.setTenantId(7L);existing.setProjectId(9L);existing.setStatus(0);
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(any())).thenReturn(existing);
+        var request=saveReqVO(6L,0);request.setCustomerSignDate(java.time.LocalDate.now());
+        assertThrows(IllegalArgumentException.class,()->service.updateCompletionCertificate(request));
+        verify(completionCertificateMapper,never()).updateById(any(CompletionCertificateDO.class));
     }
 
     @Test
@@ -130,6 +154,7 @@ class CompletionCertificateServiceTest {
         when(completionCertificateMapper.updateById(any(CompletionCertificateDO.class))).thenReturn(1);
         when(completionCertificateMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery(7L,5L))).thenReturn(existing);
 
+        when(completionCertificateMapper.updateManualArrivalDate(any())).thenReturn(1);
         service.updateCompletionCertificate(reqVO);
 
         verify(completionCertificateDeviceMapper).deleteByCertificateId(5L);
@@ -237,5 +262,28 @@ class CompletionCertificateServiceTest {
         assertThrows(Exception.class,()->service.createCompletionCertificate(saveReqVO(null,2)));
         verify(completionCertificateMapper,never()).insert(any(CompletionCertificateDO.class));
         org.mockito.Mockito.verifyNoInteractions(deliveryMaterials);
+    }
+    @Test void storesManualDateOnlyWithoutSignedSourceAndOnlyForYes() {
+        var request=saveReqVO(null,0);request.setItemArrival("是");request.setArrivalDate(java.time.LocalDate.of(2026,10,11));
+        service.createCompletionCertificate(request);
+        when(arrivalDates.latest(any())).thenReturn(java.time.LocalDate.of(2026,10,20));
+        service.createCompletionCertificate(request);
+        request.setItemArrival("否");service.createCompletionCertificate(request);
+        var captured=ArgumentCaptor.forClass(CompletionCertificateDO.class);
+        org.mockito.Mockito.verify(completionCertificateMapper,org.mockito.Mockito.times(3)).insert(captured.capture());
+        assertEquals(java.time.LocalDate.of(2026,10,11),captured.getAllValues().get(0).getManualArrivalDate());
+        assertNull(captured.getAllValues().get(1).getManualArrivalDate());
+        assertNull(captured.getAllValues().get(2).getManualArrivalDate());
+    }
+    @Test void explicitlyClearsManualDateOnDraftUpdate() {
+        var existing=new CompletionCertificateDO();existing.setId(6L);existing.setProjectId(9L);existing.setTenantId(7L);existing.setStatus(0);
+        existing.setManualArrivalDate(java.time.LocalDate.of(2026,10,11));
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(any())).thenReturn(existing);
+        when(completionCertificateMapper.updateById(any(CompletionCertificateDO.class))).thenAnswer(invocation->{
+            ((CompletionCertificateDO)invocation.getArgument(0)).setVersion(1L);return 1;
+        });
+        when(completionCertificateMapper.updateManualArrivalDate(any())).thenReturn(1);
+        service.updateCompletionCertificate(saveReqVO(6L,0));
+        verify(completionCertificateMapper).updateManualArrivalDate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionManualArrivalUpdate(7L,6L,1L,null));
     }
 }

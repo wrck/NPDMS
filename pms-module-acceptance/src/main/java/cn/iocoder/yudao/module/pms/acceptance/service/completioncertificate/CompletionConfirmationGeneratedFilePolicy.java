@@ -136,7 +136,7 @@ public class CompletionConfirmationGeneratedFilePolicy implements FileBusinessOb
                 query.tenantId(),bundle.getId(),grant.getQuestionnaireId()));
         if(signing==null || !Objects.equals(signing.getGrantId(),grant.getId()))throw deniedGeneration();
         Long actor;try{actor=Long.valueOf(grant.getCreator());}catch(RuntimeException invalid){throw deniedGeneration();}
-        if(actor<=0 || !permissions.hasAnyPermissions(actor,"pms:acc-completion-certificate:audit"))throw deniedGeneration();
+        if(actor<=0 || !permissions.hasAnyPermissions(actor,"pms:acc-completion-certificate:submit"))throw deniedGeneration();
         var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
                 .tenantId(query.tenantId())
                 .subjectUserId(actor)
