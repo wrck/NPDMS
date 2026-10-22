@@ -14,6 +14,31 @@ namespace Npdms.Dac.Desktop
         {
             try
             {
+                if (args.Length == 1 && args[0] == "--open-status")
+                {
+                    // Run in the installing user's UI session, never in the service or elevated execute sequence.
+                    var deadline = DateTime.UtcNow.AddSeconds(60);
+                    var address = "http://127.0.0.1:" + ClientConfiguration.Port + "/desktop-status";
+                    while (true)
+                    {
+                        try
+                        {
+                            var request = System.Net.WebRequest.CreateHttp(address);
+                            request.Proxy = null;
+                            request.Timeout = 1500;
+                            using (var response = request.GetResponse()) { }
+                            break;
+                        }
+                        catch (System.Net.WebException)
+                        {
+                            if (DateTime.UtcNow >= deadline)
+                                throw new InvalidOperationException("DAC did not become available.");
+                            System.Threading.Thread.Sleep(500);
+                        }
+                    }
+                    Process.Start(new ProcessStartInfo(address) { UseShellExecute = true });
+                    return 0;
+                }
                 if (args.Length == 2 && args[0] == "--uri")
                 {
                     if (!ClientConfiguration.IsStartUri(args[1])) return 2;

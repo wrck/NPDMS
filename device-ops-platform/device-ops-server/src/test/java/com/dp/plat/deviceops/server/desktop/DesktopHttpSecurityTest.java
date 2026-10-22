@@ -45,6 +45,20 @@ class DesktopHttpSecurityTest {
         mvc = MockMvcBuilders.webAppContextSetup(context).addFilters(new DesktopDiscoverySecurity.LoopbackHostFilter(), security).build();
     }
 
+    @Test void localStatusPageIsReadOnlyAndRetainsHostAndTicketProtection() throws Exception {
+        mvc.perform(get("/desktop-status"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(header().string("Content-Security-Policy", org.hamcrest.Matchers.containsString("frame-ancestors 'none'")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("NPDMS DAC 本机状态")));
+        mvc.perform(get("/desktop-status").with(request -> { request.setServerName("attacker.example"); return request; }))
+                .andExpect(status().isForbidden());
+        mvc.perform(post("/desktop-status")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/v1/desktop/saved-connections")).andExpect(status().isForbidden());
+        mvc.perform(get("/")).andExpect(status().isForbidden());
+        verify(server, never()).resolve(any());
+    }
+
     @Test void exactOriginCanDiscoverAndPreflightWhileOtherSitesAndGenericRoutesAreDenied() throws Exception {
         mvc.perform(get("/api/v1/desktop/status").header("Origin", "http://10.210.0.11:19191"))
                 .andExpect(status().isOk()).andExpect(header().string("Access-Control-Allow-Origin", "http://10.210.0.11:19191"))

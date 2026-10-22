@@ -18,6 +18,24 @@ namespace Npdms.Dac.Desktop
                 // No install sequence, file copying, registry writes or service actions are run.
                 using (Session session = Installer.OpenPackage(args[0], false))
                 {
+                    using (var view = session.Database.OpenView("SELECT `Condition`, `Sequence` FROM `InstallUISequence` WHERE `Action` = 'OpenDesktopStatus'"))
+                    {
+                        view.Execute();
+                        using (var row = view.Fetch())
+                        {
+                            Require(row != null && row.GetString(1) == "UILevel >= 3 AND NOT REMOVE~=\"ALL\"", "status browser is limited to interactive non-removal UI");
+                            using (var execute = session.Database.OpenView("SELECT `Sequence` FROM `InstallUISequence` WHERE `Action` = 'ExecuteAction'"))
+                            {
+                                execute.Execute();
+                                using (var action = execute.Fetch()) Require(row.GetInteger(2) > action.GetInteger(1), "browser follows successful installation");
+                            }
+                        }
+                    }
+                    using (var view = session.Database.OpenView("SELECT `Action` FROM `InstallExecuteSequence` WHERE `Action` = 'OpenDesktopStatus'"))
+                    {
+                        view.Execute();
+                        using (var row = view.Fetch()) Require(row == null, "silent execute sequence never opens browser");
+                    }
                     session.DoAction("SetDefaultServerUrl");
                     session.DoAction("SetDefaultWebOrigin");
                     Require(session["NPDMS_SERVER_URL"] == session["NPDMS_DEFAULT_SERVER_URL"]

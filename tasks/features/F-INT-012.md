@@ -147,6 +147,17 @@
 - 运行边界：19191前端、59191后端及原`10.210.0.11:48182`服务器DAC保持运行；本机DAC与原DAC监听地址不同。本次未执行设备命令、修改业务记录或直接变更MySQL迁移状态；开机重启、卸载和本机采集业务全流程未在本增量验收，不晋级整体Feature完成状态。
 - 证据：最终产物目录内`acceptance-result.json`、`browser-http-dac-ready.png`、`logs/upgrade-actual-20261021.log`、`logs/stop-before-browser-launch-visible.json`及`logs/service-after-user-browser-launch.json`；管理员DPAPI/ACL证据保留在1.0.2产物目录的`installation-audit.json`。打包记录中的`installedOrStarted=false`仍表示打包步骤自身未执行安装，不覆盖后续实机记录。
 
+### 安装后本机状态页（2026-10-22，1.0.5）
+
+- 需求方批准：交互式安装成功后自动打开本机只读状态页，静默安装不弹浏览器。
+- 复用现有desktop状态接口；仅开放GET `/desktop-status`，显示就绪状态与已配置的环境地址，不开放通用旧页面或设备命令接口；回环Host限制和任务票据保持生效。
+- 安装器在成功返回后的交互界面序列调用启动器，等待页面可访问后使用默认浏览器打开；静默安装、卸载、失败与取消不执行打开动作。
+- 锁定工具链构建及5项HTTP安全测试通过，覆盖页面可读、非回环Host拒绝、POST拒绝、业务接口和旧页面继续拒绝匿名访问。首次测试JVM启动失败、无测试执行；重试通过，冻结清单`.run/build/releases/48c91cda-1e64-401e-ba1f-60dcbf1206d2/manifest.json`。
+- 浏览器以真实HTML和模拟状态响应验证启动中、已就绪、连接失败及重新检测恢复，证据`.run/dac-status-preview-20261022.txt`与对应PNG；这是页面预览验证，不冒充已安装服务验收。
+- 1.0.5安装包已生成，WiX校验、真实MSI会话验证和251项载荷比对通过；MSI表验证打开动作仅在交互UI序列且位于ExecuteAction之后，静默执行序列没有该动作。未升级或重启现有服务，实际安装后自动打开及静默安装不弹窗仍待授权实机验收。
+- 需求方随后明确批准升级本机DAC并重启验收。实际交互升级（UILevel=4）退出码0，注册版本1.0.5，本机服务恢复Running，回环状态接口READY，服务器及网页地址保留；原10.210.0.11:48182服务器DAC继续监听，未重启59191后端。安装日志确认OpenDesktopStatus在安装成功返回后执行；真实浏览器另行打开已安装页面，显示“本机DAC已就绪”和原环境地址。证据在`C:/Users/user/Documents/Codex/Artifacts/NPDMS-DAC-20261022-v1.0.5/`（upgrade-result.json、logs/upgrade-actual-20261022.log、status-installed-ready.txt及PNG）。默认浏览器实际自动弹出的用户确认仍待补齐，不将另行导航算作自动打开验收；未进行额外静默重装。
+- 需求方随后确认：“已自动打开，显示已就绪”。结合安装日志和已安装页面实机检查，交互式安装成功后自动打开本机状态页验收通过；静默安装仍以MSI执行序列检查为验证边界，未进行额外静默重装。
+
 ### 本机下发及原结果回传修复（2026-10-22，1.0.4）
 
 - 用户反馈下发报错，59191实际日志确认`plt_collection_request.dispatch_mode`缺失；运行库`npdms_domain_test`停在V510。通过原Compose项目`npdms-domain-test`执行定向Flyway，保留422个可解析已执行迁移及既有`*:missing`策略，仅新增V511，校验442项后成功迁至511。原110条采集请求、109条派发记录数量不变，原记录均保持SERVER运输语义；没有手工改表或改写历史迁移记录。

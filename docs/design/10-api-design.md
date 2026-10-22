@@ -1168,6 +1168,8 @@ PLT既有内部`FileArtifactApi.attachExistingVersions`增加受支持目标`CUT
 
 仅 desktop 运行配置提供 `GET http://127.0.0.1:48182/api/v1/desktop/status`，响应 `product=npdms-dac`、`protocolVersion=1`、`status=READY|STARTING`、`serverUrl`、`webOrigin`，不返回账户、凭据或任务数据；响应禁止缓存。该只读发现端点不要求登录，CORS 只允许客户端配置的精确网页来源；服务只监听回环地址并拒绝非回环 Host，所有业务接口继续认证。网页在产品、协议和服务器环境匹配后才可使用本机业务接口，探测失败不能区分未安装、服务停止或浏览器权限拒绝，不能伪报安装状态。
 
+desktop 的 `GET /desktop-status` 提供本机只读 HTML 状态页，无需登录，复用上述发现接口展示就绪状态和配置的环境地址；禁止缓存和被框架嵌入，沿用回环 Host 校验。只开放此页面的 GET，不开放其他通用页面或业务操作。交互式安装成功后等待页面可访问并用默认浏览器自动打开；静默安装不打开浏览器。
+
 客户端注册 `npdms-dac://start/`，仅允许启动固定的 NpdmsDac Windows 服务，不接受任意命令、地址、文件路径或凭据。页面须由用户点击触发协议，随后有界轮询发现端点；不得自动循环唤起外部应用，不以服务进程存在代替业务就绪。
 
 NPDMS 增加 `POST /api/v1/pms/device-collection/sources/{entry}/{objectId}/desktop-executions`，沿用网页登录、来源执行权限、项目范围、期望版本及请求幂等键，仅接受连接元数据及本机保存连接引用/版本，不接受秘密。返回原执行记录与短期操作票据。`POST .../desktop-access` 在当前来源范围内签发本机任务读取或个人连接读取/保存的操作票据；连接保存/使用同时要求原设备凭据权限。原服务器执行 API 保持原契约。

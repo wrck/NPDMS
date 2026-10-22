@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NPDMS DAC 本机状态</title>
+<style>
+body{margin:0;background:#f3f6fa;color:#172b4d;font:16px/1.7 "Microsoft YaHei",sans-serif}
+main{max-width:640px;margin:10vh auto;padding:32px;background:white;border-radius:12px;box-shadow:0 8px 32px #172b4d12}
+h1{font-size:26px;margin:0 0 20px}#state{font-size:20px;color:#236fa1}dt{color:#607086;margin-top:16px}dd{margin:0;overflow-wrap:anywhere}p{color:#607086}button{padding:8px 20px;cursor:pointer}
+@media(max-width:720px){main{margin:24px 16px;padding:24px}}
+</style>
+<main>
+  <h1>NPDMS DAC 本机状态</h1>
+  <div id="state" role="status" aria-live="polite">正在检测本机 DAC…</div>
+  <dl><dt>本机地址</dt><dd id="local"></dd><dt>NPDMS 服务地址</dt><dd id="server">等待检测</dd><dt>NPDMS 网页地址</dt><dd id="origin">等待检测</dd></dl>
+  <p>设备命令下发和日志查看请在 NPDMS 网页中操作。环境配置可通过开始菜单“DAC 设置”修改。</p>
+  <button id="retry" type="button">重新检测</button>
+</main>
+<script>
+const state = document.getElementById('state');
+document.getElementById('local').textContent = location.origin;
+let pending = false;
+async function refresh() {
+  if (pending) return;
+  pending = true;
+  try {
+    const response = await fetch('/api/v1/desktop/status', {cache: 'no-store', signal: AbortSignal.timeout(5000)});
+    if (!response.ok) throw new Error('status');
+    const status = await response.json();
+    if (status.product !== 'npdms-dac') throw new Error('product');
+    state.textContent = status.status === 'READY' ? '本机 DAC 已就绪' : '本机 DAC 正在启动…';
+    document.getElementById('server').textContent = status.serverUrl;
+    document.getElementById('origin').textContent = status.webOrigin;
+  } catch (_) {
+    state.textContent = '暂时无法连接本机 DAC，请检查服务是否运行。';
+  } finally { pending = false; }
+}
+document.getElementById('retry').addEventListener('click', refresh);
+refresh();
+setInterval(refresh, 5000);
+</script>
+</html>

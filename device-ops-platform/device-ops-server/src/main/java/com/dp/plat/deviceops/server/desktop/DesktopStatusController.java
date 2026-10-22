@@ -19,6 +19,13 @@ public class DesktopStatusController {
         this.availability = availability;
     }
 
+    @GetMapping(value = "/desktop-status", produces = "text/html;charset=UTF-8")
+    public ResponseEntity<org.springframework.core.io.Resource> page() {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .header("Content-Security-Policy", "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'")
+                .body(new org.springframework.core.io.ClassPathResource("desktop/status.html"));
+    }
+
     @GetMapping("/api/v1/desktop/status")
     public ResponseEntity<Status> status() {
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new Status("npdms-dac", 1,

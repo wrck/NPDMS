@@ -63,6 +63,7 @@
     <SetProperty Id="NPDMS_SERVER_URL" Action="SetDefaultServerUrl" Value="[NPDMS_DEFAULT_SERVER_URL]" After="AppSearch" Sequence="both">NOT NPDMS_SERVER_URL</SetProperty>
     <SetProperty Id="NPDMS_WEB_ORIGIN" Action="SetDefaultWebOrigin" Value="[NPDMS_DEFAULT_WEB_ORIGIN]" After="SetDefaultServerUrl" Sequence="both">NOT NPDMS_WEB_ORIGIN AND NPDMS_SERVER_URL = NPDMS_DEFAULT_SERVER_URL</SetProperty>
     <CustomAction Id="InitializeClient" FileKey="LauncherExecutable" ExeCommand="--initialize &quot;[NPDMS_SERVER_URL]&quot; &quot;[NPDMS_WEB_ORIGIN]&quot;" Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="OpenDesktopStatus" FileKey="LauncherExecutable" ExeCommand="--open-status" Execute="immediate" Return="asyncNoWait" />
     <CustomAction Id="RollbackBrowserPolicy" FileKey="LauncherExecutable" ExeCommand="--remove-browser-policy" Execute="rollback" Impersonate="no" Return="check" />
     <CustomAction Id="RemoveBrowserPolicy" FileKey="LauncherExecutable" ExeCommand="--remove-browser-policy" Execute="deferred" Impersonate="no" Return="check" />
     <InstallExecuteSequence>
@@ -109,6 +110,7 @@
         </Control>
       </Dialog>
       <InstallUISequence>
+        <Custom Action="OpenDesktopStatus" After="ExecuteAction">UILevel &gt;= 3 AND NOT REMOVE~="ALL"</Custom>
         <Show Dialog="ClientSettingsDlg" Before="ProgressDlg">NOT Installed</Show>
         <Show Dialog="FatalError" OnExit="error" />
         <Show Dialog="UserExit" OnExit="cancel" />
