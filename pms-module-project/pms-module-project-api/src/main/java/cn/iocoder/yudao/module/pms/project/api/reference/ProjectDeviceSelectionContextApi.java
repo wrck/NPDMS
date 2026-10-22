@@ -5,4 +5,9 @@ import java.util.Set;
 /** 校验当前登录人对项目的访问权，返回项目有效关联合同号。 */
 public interface ProjectDeviceSelectionContextApi {
     Set<String> getContractNumbers(Long projectId);
+
+    /** 内部受信调用方传入已验证任务的发起人，仍执行当前项目范围校验。 */
+    Set<String> getContractNumbers(Authorization query);
+    record Authorization(Long tenantId, Long actorId, Long projectId) { }
+
 }

@@ -14,4 +14,9 @@ public interface ProjectDeviceSelectionApi {
     }
 
     List<SelectedProjectDevice> validateSelection(Long projectId, List<Long> deviceIds);
+
+    /** 任务授权复核：发起人来自已验证的任务，不能来自终端任意输入。 */
+    List<SelectedProjectDevice> validateSelection(AuthorizedSelection query);
+    record AuthorizedSelection(Long tenantId, Long actorId, Long projectId, List<Long> deviceIds) { }
+
 }

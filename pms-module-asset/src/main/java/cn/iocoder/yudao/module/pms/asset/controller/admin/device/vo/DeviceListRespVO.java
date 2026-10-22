@@ -30,6 +30,8 @@ public record DeviceListRespVO(
         DeviceOrganizationRespVO organization,
         String bootVersion,
         String cpldVersion,
-        Integer warrantyMonths,
-        Long extendedCount) {
+        Long extendedCount,
+        String projectName,
+        String customerName,
+        String projectCode) {
 }

@@ -59,7 +59,7 @@ class DeviceOrganizationProjectionServiceTest {
         var contracts=mock(cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.class);
         var service=new DeviceOrganizationService(projects,contracts,mock(DeviceOrganizationMapper.class));
         when(projects.getOrganizations(1L,Set.of(10L))).thenReturn(List.of(
-                new cn.iocoder.yudao.module.pms.project.api.organization.ProjectDeviceOrganizationApi.Organization(10L,2L,"Company2",20L,"D20","Office20")));
+                new cn.iocoder.yudao.module.pms.project.api.organization.ProjectDeviceOrganizationApi.Organization(10L,2L,"Company2",20L,"D20","Office20","Project20","PJT020")));
         var devices=List.of(new DeviceOrganizationService.Device(8L,10L,"C-1"));
         assertEquals(2L,service.resolveSource(1L,devices).get(8L).companyId());
         verifyNoInteractions(contracts);

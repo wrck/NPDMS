@@ -18,21 +18,49 @@ public class DeviceQueryService {
 
     private final DeviceMapper deviceMapper;
     private final DeviceAccessScopeService accessScopeService;
+    private final cn.iocoder.yudao.module.pms.project.api.organization.ProjectDeviceOrganizationApi projects;
+    private final cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customers;
 
     public PageResult<DeviceListProjection> getPage(VisibleDevicePageQuery query) {
         Long tenantId = currentTenantId();
         if (tenantId == null || query.tenantId() != null && !tenantId.equals(query.tenantId())) {
             return PageResult.empty();
         }
+        var matchingProjects = query.projectName() == null || query.projectName().isBlank() ? null
+                : java.util.Objects.requireNonNull(projects.findProjectIdsByName(new cn.iocoder.yudao.module.pms.project.api.organization.ProjectDeviceOrganizationApi.NameQuery(tenantId, query.projectName())));
+        var matchingCustomers = query.customerName() == null || query.customerName().isBlank() ? null
+                : java.util.Objects.requireNonNull(customers.findCustomerIdsByName(new cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi.NameQuery(tenantId, query.customerName())));
+        if (matchingProjects != null && matchingProjects.isEmpty() || matchingCustomers != null && matchingCustomers.isEmpty()) return PageResult.empty();
         var grants = accessScopeService.organizationGrants(tenantId, SecurityFrameworkUtils.getLoginUserId());
         var contracts = accessScopeService.contractScope(tenantId, SecurityFrameworkUtils.getLoginUserId(),
-                new DeviceContractCandidateQuery(tenantId, null, query.sn(), query.productCode(),
-                        query.projectId(), query.customerId(), query.name(), query.status(), grants));
-        VisibleDevicePageQuery scopedQuery = new VisibleDevicePageQuery(
-                tenantId, accessScopeService.visibleProjectIds(tenantId, SecurityFrameworkUtils.getLoginUserId()),
-                query.sn(), query.productCode(), query.projectId(),
-                query.customerId(), query.pageNo(), query.pageSize(), query.name(), query.status(),
-                contracts, grants);
+                DeviceContractCandidateQuery.builder()
+                .tenantId(tenantId)
+                .sn(query.sn())
+                .productCode(query.productCode())
+                .projectId(query.projectId())
+                .customerId(query.customerId())
+                .name(query.name())
+                .status(query.status())
+                .organizationGrants(grants)
+                .matchingProjectIds(matchingProjects)
+                .matchingCustomerIds(matchingCustomers)
+                .departmentName(query.departmentName() == null ? null : query.departmentName().trim()).build());
+        VisibleDevicePageQuery scopedQuery = VisibleDevicePageQuery.builder()
+                .tenantId(tenantId)
+                .visibleProjectIds(accessScopeService.visibleProjectIds(tenantId, SecurityFrameworkUtils.getLoginUserId()))
+                .sn(query.sn())
+                .productCode(query.productCode())
+                .projectId(query.projectId())
+                .customerId(query.customerId())
+                .pageNo(query.pageNo())
+                .pageSize(query.pageSize())
+                .name(query.name())
+                .status(query.status())
+                .departmentName(query.departmentName() == null ? null : query.departmentName().trim())
+                .matchingProjectIds(matchingProjects)
+                .matchingCustomerIds(matchingCustomers)
+                .visibleContractNumbers(contracts)
+                .organizationGrants(grants).build();
         return deviceMapper.selectVisibleDevicePage(scopedQuery);
     }
 

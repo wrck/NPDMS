@@ -151,14 +151,26 @@ public class DeviceArchiveServiceImpl implements DeviceArchiveService {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         var grants = accessScopeService.organizationGrants(tenantId, SecurityFrameworkUtils.getLoginUserId());
         var contracts = accessScopeService.contractScope(tenantId, SecurityFrameworkUtils.getLoginUserId(),
-                new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery(
-                        tenantId, null, pageReqVO.getSn(), null, pageReqVO.getProjectId(), pageReqVO.getCustomerId(),
-                        pageReqVO.getName(), pageReqVO.getStatus(), grants));
-        return deviceMapper.selectArchivePage(new VisibleDevicePageQuery(
-                tenantId, accessScopeService.visibleProjectIds(tenantId, SecurityFrameworkUtils.getLoginUserId()),
-                pageReqVO.getSn(), null, pageReqVO.getProjectId(), pageReqVO.getCustomerId(),
-                pageReqVO.getPageNo(), pageReqVO.getPageSize(), pageReqVO.getName(), pageReqVO.getStatus(),
-                contracts, grants));
+                cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery.builder()
+                .tenantId(tenantId)
+                .sn(pageReqVO.getSn())
+                .projectId(pageReqVO.getProjectId())
+                .customerId(pageReqVO.getCustomerId())
+                .name(pageReqVO.getName())
+                .status(pageReqVO.getStatus())
+                .organizationGrants(grants).build());
+        return deviceMapper.selectArchivePage(VisibleDevicePageQuery.builder()
+                .tenantId(tenantId)
+                .visibleProjectIds(accessScopeService.visibleProjectIds(tenantId, SecurityFrameworkUtils.getLoginUserId()))
+                .sn(pageReqVO.getSn())
+                .projectId(pageReqVO.getProjectId())
+                .customerId(pageReqVO.getCustomerId())
+                .pageNo(pageReqVO.getPageNo())
+                .pageSize(pageReqVO.getPageSize())
+                .name(pageReqVO.getName())
+                .status(pageReqVO.getStatus())
+                .visibleContractNumbers(contracts)
+                .organizationGrants(grants).build());
     }
 
     @Override

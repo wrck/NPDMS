@@ -7,8 +7,11 @@ export interface DevicePageReqVO extends PageParam {
   name?: string
   status?: string
   productCode?: string
-  projectId?: number
+  projectId?: number | string
   customerId?: number
+  projectName?: string
+  customerName?: string
+  departmentName?: string
 }
 
 export interface DeviceOrganizationVO {
@@ -21,9 +24,12 @@ export interface DeviceOrganizationVO {
 }
 
 export interface DeviceListVO {
+  warrantyMonths?: number
+  projectCode?: string
+  projectName?: string
+  customerName?: string
   bootVersion?: string
   cpldVersion?: string
-  warrantyMonths?: number
   extendedCount?: number
   organization?: DeviceOrganizationVO
   name?: string

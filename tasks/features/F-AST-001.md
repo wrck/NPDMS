@@ -47,3 +47,23 @@
 
 - 按用户确认复用locationSnapshot.fallbackLocation，AST位置生效时统一补齐当前快照的完整文本；安装及位置历史保留原始来源，手工地址不臆造站点引用。移除独立installationAddress读写依赖；已执行V420以V421前向修正并撤除冗余列。
 - 后端13项、前端4项回归及真实浏览器通过，40台序列号只需一次分页业务请求；历史迁移仅补齐1台手工地址当前快照，24台当前安装投影一致，旧历史不改。页面保存新地址后返回序列号页立即更新；详见[快照投影验收](../../docs/generated/2026-10-09-installation-snapshot-projection-acceptance.md)。本增量不改变Feature总体状态。
+
+## 2026-10-22 设备管理页面加载与名称查询（需求方已批准）
+
+本次范围：项目、客户、办事处作为常用名称包含筛选并在列表显示名称，隐藏当前页新增按钮；收紧筛选布局，设备名称/产品编码放入更多筛选，保留所有原表格业务字段。项目和客户ID继续作为后台关系标识保留，界面不展示ID。办事处仍使用设备固化组织归属，不从当前项目重算；名称仅通过PROJ/CUS既有公开API批量读取已授权当前页，不跨模块联表、不逐行查详情；原三路设备可见范围、租户、逻辑删除、SN精确匹配和分页排序不变。名称匹配候选为空时直接空页，合同候选解析提前应用同一名称限制；有名称条件时允许优化器选择原索引。没有新增索引、迁移或字典/菜单。
+
+首屏只加载列表与筛选，原详情面板/弹窗移动至按需加载的DeviceWorkbenchDialogs，打开时再导入，原详情、编辑、状态与关系功能保留。设备SN单行展示，日期按可读日期格式展示，窄屏改为单列筛选、表格内部横向浏览。新增过期请求防护，防止旧查询覆盖新条件结果。内嵌项目范围支持真实Long字符串ID，避免Number安全整数校验将项目范围丢弃；重置保留该精确范围。
+
+验证：固定工具链、依赖仓库及工作树独占锁下，后端首批20项通过（DeviceQueryServiceTest 4、DeviceListNameServiceTest 2、DeviceNameFilterSqlTest 1、DeviceSerialPageSqlTest 1、DeviceVisibilitySqlTest 1、DeviceListQueryContractTest 3、DeviceArchiveVisibilityTest 4、DeviceOrganizationProjectionServiceTest 4）；新增Owner查询的ProjectDeviceNameQueryTest及CustomerNameQueryTest各1项通过，验证当前租户和空白查询不放大范围。SQL单测覆盖原合同/组织/项目可见性、新名称交集、逻辑删除、空匹配与分页记录的版本/维保事实。前端运行测试5项通过（首屏不装载详情/无新增按钮、三名称查询及重置、按需打开、Long项目范围、过期请求）；定向ESLint零错误。全量类型检查仍被本次未修改的验收、需求分析、配置日志及任务详情等文件错误阻断，设备相关文件没有错误，不宣称全量通过。
+
+真实MySQL仅使用现有npdms_domain_test数据及只读事务，源XML生成的名称组合查询返回6条，与明确条件的独立SQL计数一致；空匹配、无办事处及跨租户为0，分页6条、单次列表SQL约2.89毫秒，执行计划使用原项目/关联索引。证据 `.run/device-name-mysql.json`。此定向SQL不代表完整HTTP请求或全部权限闭环。
+
+真实浏览器旧版基线：19191/customer-asset/devices首屏4.888秒，列表API约3.325秒；当前租户约135万条未删除设备，主要成本为大范围计数及合同候选解析。只读performance_schema及EXPLAIN证据 `.run/device-candidates-explain.json` 显示合同候选约0.5秒，取消原覆盖索引未改善，因此未改变该索引策略或引入缓存。新版前端已验证隐藏新增、常用筛选/名称列头、首屏不请求详情组件、点击后装载并打开原设备详情抽屉，桌面和390px截图已检查，无浏览器错误。多次单次页面耗时约3.6～5.1秒，含后端旧版本及同时构建负载，不能据此宣布默认全量页面稳定提速。新后端名称补全/筛选的完整浏览器闭环仍待部署；脚本与截图在 `.run/device-page-ui.py`、`.run/device-page-after-desktop.png`、`.run/device-page-after-mobile.png`。
+
+受控完整打包成功；冻结清单 `.run/build/releases/e9df8ca7-9c3e-41da-8d5a-bb8e57cd7263/manifest.json`，部署前ValidateOnly通过，22项运行修复基线及local,dac保留。包包含当前整个工作树已有改动及此前项目列表优化，尚未部署/重启/提交/推送。依据AGENTS.md，取得本次明确重启59191批准后再完成新接口的真实浏览器端到端验收；不改变本Feature的总体Done状态。
+
+浏览器补验：精确Long项目ID 2109733095671988226 原样进入请求，返回4559条当前项目设备，当前页每条projectId一致；重置范围单测通过。最终桌面/窄屏及详情按需加载无浏览器错误，证据 `.run/device-page-ui.json`。
+
+### 2026-10-23 设备列表移除维保月数及关联
+
+按需求方明确授权，列表响应、内部投影和前端列表类型移除 warrantyMonths；分页SQL删除 ast_device_warranty 关联，维保开始/结束日期及状态仍直接读取 ast_device，其余权限、筛选、排序和延保次数不改。详情维保月数保留。DeviceSerialPageSqlTest 在不建维保当前表时执行分页，验证主表维保值、版本和延保次数，并覆盖其他租户、未授权项目及软删除设备排除；DeviceQueryServiceTest、DeviceAccessScopeServiceTest 均通过。真实浏览器现有运行环境列表、详情和项目范围回归通过，无控制台错误；后端新SQL仅完成定向测试，尚未部署或重启。

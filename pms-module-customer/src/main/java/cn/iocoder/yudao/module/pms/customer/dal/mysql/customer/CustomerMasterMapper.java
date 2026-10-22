@@ -13,6 +13,13 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface CustomerMasterMapper extends BaseMapperX<CustomerMasterDO> {
+    default java.util.Set<Long> selectIdsByName(cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.query.CustomerNameQuery query) {
+        return selectList(new LambdaQueryWrapperX<CustomerMasterDO>()
+                .select(CustomerMasterDO::getId).eq(CustomerMasterDO::getTenantId, query.tenantId())
+                .ne(CustomerMasterDO::getLifecycleStatus, "DELETED")
+                .like(CustomerMasterDO::getName, query.keyword())).stream()
+                .map(CustomerMasterDO::getId).collect(java.util.stream.Collectors.toSet());
+    }
     CustomerMasterDO selectIncludingDeletedForUpdate(@Param("tenantId") Long tenantId, @Param("id") Long id);
 
     default CustomerMasterDO selectByTenantIdAndCode(Long tenantId, String code) {

@@ -62,6 +62,25 @@ public class ProjectDeviceSelectionService implements ProjectDeviceSelectionApi 
         if (deviceIds == null || deviceIds.stream().anyMatch(id -> id == null || id <= 0)
                 || new HashSet<>(deviceIds).size() != deviceIds.size()) throw exception(AST_DEVICE_SELECTION_INVALID);
         var query = query(projectId);
+        return lockedSelection(query, deviceIds);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public List<SelectedProjectDevice> validateSelection(AuthorizedSelection request) {
+        if (request == null || !java.util.Objects.equals(TenantContextHolder.getRequiredTenantId(), request.tenantId())
+                || request.actorId() == null || request.actorId() <= 0 || request.deviceIds() == null
+                || request.deviceIds().stream().anyMatch(id -> id == null || id <= 0)
+                || new HashSet<>(request.deviceIds()).size() != request.deviceIds().size()) throw exception(AST_DEVICE_SELECTION_INVALID);
+        var query = new ProjectDeviceSelectionQuery();
+        query.setTenantId(request.tenantId());
+        query.setProjectId(request.projectId());
+        query.setContractNumbers(contextApi.getContractNumbers(new ProjectDeviceSelectionContextApi.Authorization(
+                request.tenantId(), request.actorId(), request.projectId())));
+        return lockedSelection(query, request.deviceIds());
+    }
+
+    private List<SelectedProjectDevice> lockedSelection(ProjectDeviceSelectionQuery query, List<Long> deviceIds) {
         if (deviceIds.isEmpty()) return List.of();
         query.setDeviceIds(deviceIds);
         var devices = mapper.selectSelectionForUpdate(query);

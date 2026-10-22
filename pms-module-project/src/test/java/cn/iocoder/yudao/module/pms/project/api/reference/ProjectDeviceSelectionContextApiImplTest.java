@@ -57,4 +57,20 @@ class ProjectDeviceSelectionContextApiImplTest {
         assertThrows(ServiceException.class, () -> api.getContractNumbers(10L));
         verifyNoInteractions(contracts);
     }
+    @Test void explicitTaskActorWorksWithoutBrowserLoginAndIsUsedForScope() {
+        security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(null);
+        assertEquals(Set.of("MANUAL"),api.getContractNumbers(new ProjectDeviceSelectionContextApi.Authorization(1L,42L,10L)));
+        verify(scope).resolveCurrent(argThat(query -> query.subjectUserId().equals(42L) && query.tenantId().equals(1L)));
+        security.verify(SecurityFrameworkUtils::getLoginUserId,never());
+    }
+    @Test void explicitTaskContextRejectsAnotherTenantAndMissingActor() {
+        assertThrows(ServiceException.class,()->api.getContractNumbers(new ProjectDeviceSelectionContextApi.Authorization(2L,42L,10L)));
+        assertThrows(ServiceException.class,()->api.getContractNumbers(new ProjectDeviceSelectionContextApi.Authorization(1L,null,10L)));
+        verifyNoInteractions(scope,mapper,contracts);
+    }
+    @Test void explicitActorCannotReadAProjectOutsideItsCurrentScope() {
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L,1L,Set.of(),Set.of()));
+        assertThrows(ServiceException.class,()->api.getContractNumbers(new ProjectDeviceSelectionContextApi.Authorization(1L,42L,10L)));
+        verifyNoInteractions(mapper,contracts);
+    }
 }

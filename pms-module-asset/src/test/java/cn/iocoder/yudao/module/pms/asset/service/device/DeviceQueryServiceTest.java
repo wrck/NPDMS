@@ -29,6 +29,8 @@ class DeviceQueryServiceTest {
 
     @Mock private DeviceMapper deviceMapper;
     @Mock private DeviceAccessScopeService accessScopeService;
+    @Mock private cn.iocoder.yudao.module.pms.project.api.organization.ProjectDeviceOrganizationApi projects;
+    @Mock private cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customers;
     private DeviceQueryService service;
 
     @BeforeEach
@@ -38,7 +40,7 @@ class DeviceQueryServiceTest {
         user.setTenantId(1L);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(user, null));
-        service = new DeviceQueryService(deviceMapper, accessScopeService);
+        service = new DeviceQueryService(deviceMapper, accessScopeService, projects, customers);
     }
 
     @AfterEach
@@ -49,13 +51,50 @@ class DeviceQueryServiceTest {
 
     @Test
     void shouldUseAuthenticatedTenantForPageWhenTenantContextIsDisabled() {
-        VisibleDevicePageQuery request = new VisibleDevicePageQuery(null, null, "SN-8", null, null, null, 1, 20, null, null, Set.of(), java.util.List.of());
-        VisibleDevicePageQuery query = new VisibleDevicePageQuery(1L, Set.of(10L), "SN-8", null, null, null, 1, 20, null, null, Set.of(), java.util.List.of());
+        VisibleDevicePageQuery request = VisibleDevicePageQuery.builder()
+                .sn("SN-8")
+                .pageNo(1)
+                .pageSize(20)
+                .visibleContractNumbers(Set.of())
+                .organizationGrants(java.util.List.of()).build();
+        VisibleDevicePageQuery query = VisibleDevicePageQuery.builder()
+                .tenantId(1L)
+                .visibleProjectIds(Set.of(10L))
+                .sn("SN-8")
+                .pageNo(1)
+                .pageSize(20)
+                .visibleContractNumbers(Set.of())
+                .organizationGrants(java.util.List.of()).build();
         PageResult<DeviceListProjection> expected = new PageResult<>(List.of(), 1L);
         when(accessScopeService.visibleProjectIds(1L, 7L)).thenReturn(Set.of(10L));
         when(deviceMapper.selectVisibleDevicePage(query)).thenReturn(expected);
 
         assertSame(expected, service.getPage(request));
+    }
+
+    @Test
+    void emptyNameMatchDoesNotBecomeAnUnfilteredDeviceQuery() {
+        when(projects.findProjectIdsByName(org.mockito.ArgumentMatchers.any())).thenReturn(Set.of());
+        var page = service.getPage(VisibleDevicePageQuery.builder().projectName("missing").pageNo(1).pageSize(10).build());
+        assertEquals(0L, page.getTotal());
+        org.mockito.Mockito.verifyNoInteractions(deviceMapper, accessScopeService);
+    }
+
+    @Test
+    void nameMatchesIntersectOriginalVisibilityAndReachContractCandidateQuery() {
+        when(projects.findProjectIdsByName(org.mockito.ArgumentMatchers.any())).thenReturn(Set.of(10L, 20L));
+        when(customers.findCustomerIdsByName(org.mockito.ArgumentMatchers.any())).thenReturn(Set.of(30L));
+        when(accessScopeService.visibleProjectIds(1L, 7L)).thenReturn(Set.of(10L));
+        when(deviceMapper.selectVisibleDevicePage(org.mockito.ArgumentMatchers.any())).thenReturn(PageResult.empty());
+        service.getPage(VisibleDevicePageQuery.builder().projectName("项目").customerName("客户")
+                .departmentName(" 杭州 ").projectId(10L).pageNo(1).pageSize(10).build());
+        org.mockito.Mockito.verify(deviceMapper).selectVisibleDevicePage(org.mockito.ArgumentMatchers.argThat(q ->
+                q.visibleProjectIds().equals(Set.of(10L)) && q.matchingProjectIds().equals(Set.of(10L, 20L))
+                        && q.matchingCustomerIds().equals(Set.of(30L)) && q.projectId().equals(10L)
+                        && "杭州".equals(q.departmentName())));
+        org.mockito.Mockito.verify(accessScopeService).contractScope(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.eq(7L),
+                org.mockito.ArgumentMatchers.argThat(q -> q.matchingProjectIds().equals(Set.of(10L, 20L))
+                        && q.matchingCustomerIds().equals(Set.of(30L)) && "杭州".equals(q.departmentName())));
     }
 
     @Test

@@ -29,6 +29,5 @@ public record DeviceListProjection(
         String locationResolutionStatus,
         String bootVersion,
         String cpldVersion,
-        Integer warrantyMonths,
         Long extendedCount) {
 }

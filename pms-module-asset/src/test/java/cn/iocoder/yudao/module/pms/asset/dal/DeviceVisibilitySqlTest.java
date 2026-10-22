@@ -32,29 +32,70 @@ class DeviceVisibilitySqlTest {
                 sql.execute("UPDATE ast_device SET company_id=10,department_id=1,department_code='D1',organization_source='CONTRACT' WHERE id IN(3,6,7)");
             }
             assertEquals(5, number(connection, configuration, "selectVisibleDeviceCount",
-                    new VisibleDevicePageQuery(1L,Set.of(10L),null,null,null,null,1,10,null,null,Set.of("C-1"), java.util.List.of())));
+                    VisibleDevicePageQuery.builder()
+                .tenantId(1L)
+                .visibleProjectIds(Set.of(10L))
+                .pageNo(1)
+                .pageSize(10)
+                .visibleContractNumbers(Set.of("C-1"))
+                .organizationGrants(java.util.List.of()).build()));
             assertEquals(1, number(connection, configuration, "selectVisibleDeviceCount",
-                    new VisibleDevicePageQuery(1L,Set.of(),null,null,null,null,1,10,null,null,Set.of(),java.util.List.of(new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant(20L,2L,"D2")))));
+                    VisibleDevicePageQuery.builder()
+                .tenantId(1L)
+                .visibleProjectIds(Set.of())
+                .pageNo(1)
+                .pageSize(10)
+                .visibleContractNumbers(Set.of())
+                .organizationGrants(java.util.List.of(new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant(20L,2L,"D2"))).build()));
             assertEquals(3, number(connection, configuration, "selectVisibleDeviceCount",
-                    new VisibleDevicePageQuery(1L,Set.of(),null,null,null,null,1,10,null,null,Set.of(),java.util.List.of(new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant(10L,null,null)))));
+                    VisibleDevicePageQuery.builder()
+                .tenantId(1L)
+                .visibleProjectIds(Set.of())
+                .pageNo(1)
+                .pageSize(10)
+                .visibleContractNumbers(Set.of())
+                .organizationGrants(java.util.List.of(new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant(10L,null,null))).build()));
             for (long id=1;id<=8;id++) {
                 assertEquals(Set.of(1L,2L,3L,6L,7L).contains(id) ? 1 : 0,
                         number(connection, configuration, "existsVisibleDevice", new DeviceVisibilityQuery(1L,id,Set.of(10L),Set.of("C-1"), java.util.List.of())), "device="+id);
             }
             assertEquals(4, number(connection, configuration, "selectVisibleDeviceCount",
-                    new VisibleDevicePageQuery(1L,Set.of(),null,null,null,null,1,10,null,null,Set.of("C-1"), java.util.List.of())));
+                    VisibleDevicePageQuery.builder()
+                .tenantId(1L)
+                .visibleProjectIds(Set.of())
+                .pageNo(1)
+                .pageSize(10)
+                .visibleContractNumbers(Set.of("C-1"))
+                .organizationGrants(java.util.List.of()).build()));
             assertEquals(0, number(connection, configuration, "selectVisibleDeviceCount",
-                    new VisibleDevicePageQuery(1L,Set.of(),null,null,null,null,1,10,null,null,Set.of(), java.util.List.of())));
+                    VisibleDevicePageQuery.builder()
+                .tenantId(1L)
+                .visibleProjectIds(Set.of())
+                .pageNo(1)
+                .pageSize(10)
+                .visibleContractNumbers(Set.of())
+                .organizationGrants(java.util.List.of()).build()));
             var grants=java.util.List.of(new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant(10L,null,null),
                     new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant(20L,2L,"D2"));
             assertEquals(1,number(connection,configuration,"selectContractCandidates",
-                    new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery(1L,null,null,null,null,null,null,null,grants)));
+                    cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery.builder()
+                .tenantId(1L)
+                .organizationGrants(grants).build()));
             assertEquals(0,number(connection,configuration,"selectContractCandidates",
-                    new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery(1L,2L,null,null,null,null,null,null,grants)));
+                    cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery.builder()
+                .tenantId(1L)
+                .deviceId(2L)
+                .organizationGrants(grants).build()));
             assertEquals(0,number(connection,configuration,"selectVisibleDeviceCount",
-                    new VisibleDevicePageQuery(1L,Set.of(),null,null,null,null,1,10,null,null,Set.of(),java.util.List.of(
+                    VisibleDevicePageQuery.builder()
+                .tenantId(1L)
+                .visibleProjectIds(Set.of())
+                .pageNo(1)
+                .pageSize(10)
+                .visibleContractNumbers(Set.of())
+                .organizationGrants(java.util.List.of(
                             new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant(20L,1L,"D1"),
-                            new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant(10L,2L,"D2")))));
+                            new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant(10L,2L,"D2"))).build()));
         }
     }
     private int number(Connection connection, Configuration config, String statement, Object query) throws Exception {

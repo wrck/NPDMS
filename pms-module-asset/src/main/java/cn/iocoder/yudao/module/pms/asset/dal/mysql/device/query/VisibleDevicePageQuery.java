@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query;
 
 import java.util.Set;
 
+@lombok.Builder(toBuilder = true)
 public record VisibleDevicePageQuery(
         Long tenantId,
         Set<Long> visibleProjectIds,
@@ -14,7 +15,12 @@ public record VisibleDevicePageQuery(
         String name,
         String status,
         Set<String> visibleContractNumbers,
-        java.util.List<DeviceOrganizationGrant> organizationGrants) {
+        java.util.List<DeviceOrganizationGrant> organizationGrants,
+        String projectName,
+        String customerName,
+        String departmentName,
+        Set<Long> matchingProjectIds,
+        Set<Long> matchingCustomerIds) {
 
     public long offset() {
         return (long) (pageNo - 1) * pageSize;

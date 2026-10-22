@@ -11,6 +11,11 @@ import java.util.Set;
 public class ProjectDeviceOrganizationApiImpl implements ProjectDeviceOrganizationApi {
     private final DeviceProjectOrganizationMapper mapper;
     private final OrganizationScopeApi scopes;
+    public Set<Long> findProjectIdsByName(NameQuery query) {
+        if (!java.util.Objects.equals(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(), query.tenantId())
+                || query.keyword() == null || query.keyword().isBlank()) return Set.of();
+        return Set.copyOf(mapper.selectIdsByName(new DeviceProjectNameQuery(query.tenantId(), query.keyword().trim())));
+    }
     public Set<Long> visibleProjectIds(Long tenantId, Long userId) {
         if (tenantId == null || userId == null) return Set.of();
         var grants=scopes.getActiveScopes(userId).stream()

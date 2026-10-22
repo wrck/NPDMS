@@ -96,4 +96,24 @@ class ProjectDeviceSelectionServiceTest {
         var row = new DeviceDO(); row.setId(id); row.setSn("SN-" + id); row.setContractNo("CONTRACT-10");
         return row;
     }
+    @Test void taskSelectionUsesExplicitActorAndTenantWithLockedEquipmentScope() {
+        var auth=new ProjectDeviceSelectionContextApi.Authorization(1L,42L,10L);
+        when(context.getContractNumbers(auth)).thenReturn(Set.of("CONTRACT-10"));
+        when(mapper.selectSelectionForUpdate(any())).thenReturn(List.of(device(1L)));
+        assertEquals(1,service.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(1L,42L,10L,List.of(1L))).size());
+        verify(context).getContractNumbers(auth);
+        verify(context,never()).getContractNumbers(10L);
+        verify(mapper).selectSelectionForUpdate(argThat(query -> query.getTenantId().equals(1L) && query.getProjectId().equals(10L)
+                && query.getContractNumbers().equals(Set.of("CONTRACT-10")) && query.getDeviceIds().equals(List.of(1L))));
+    }
+    @Test void taskSelectionCannotOverrideTenantOrUseMissingActor() {
+        assertThrows(ServiceException.class,()->service.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(2L,42L,10L,List.of(1L))));
+        assertThrows(ServiceException.class,()->service.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(1L,null,10L,List.of(1L))));
+        verifyNoInteractions(mapper);
+    }
+    @Test void taskSelectionRejectsDeviceOutsideAuthorizedProjectOrContract() {
+        when(context.getContractNumbers(new ProjectDeviceSelectionContextApi.Authorization(1L,42L,10L))).thenReturn(Set.of("CONTRACT-10"));
+        when(mapper.selectSelectionForUpdate(any())).thenReturn(List.of());
+        assertThrows(ServiceException.class,()->service.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(1L,42L,10L,List.of(1L))));
+    }
 }

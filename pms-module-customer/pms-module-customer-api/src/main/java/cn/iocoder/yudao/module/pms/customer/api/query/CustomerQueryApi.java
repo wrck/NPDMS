@@ -7,6 +7,9 @@ import java.util.Collection;
 import java.util.List;
 
 public interface CustomerQueryApi {
+    /** 内部筛选候选ID；不授予客户或设备读取权限。 */
+    record NameQuery(Long tenantId, String keyword) {}
+    java.util.Set<Long> findCustomerIdsByName(NameQuery query);
 
     CustomerSummaryDTO getCustomer(Long customerId);
 

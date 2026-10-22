@@ -15,8 +15,13 @@ class DeviceListQueryContractTest {
 
     @Test
     void shouldReturnEmptyPageForEmptyVisibilityScope() {
-        VisibleDevicePageQuery query = new VisibleDevicePageQuery(
-                1L, Set.of(), null, null, null, null, 1, 20, null, null, Set.of(), java.util.List.of());
+        VisibleDevicePageQuery query = VisibleDevicePageQuery.builder()
+                .tenantId(1L)
+                .visibleProjectIds(Set.of())
+                .pageNo(1)
+                .pageSize(20)
+                .visibleContractNumbers(Set.of())
+                .organizationGrants(java.util.List.of()).build();
         PageResult<?> result = DeviceMapper.emptyWhenInvisible(query);
         assertEquals(0L, result.getTotal());
         assertTrue(result.getList().isEmpty());
