@@ -68,8 +68,7 @@ public class SatisfactionTaskBusinessObjectProvider implements TaskBusinessObjec
 
     @Override public BusinessObjectFact inspect(Context context, String objectId) {
         var actions = inspectContext(context);
-        var visible = queries.get(context.tenantId(), context.actorId(), id(objectId));
-        if (!context.projectId().equals(visible.projectId())) throw unavailable();
+        // Embedded project views use project visibility; the assignee-only work queue is a separate boundary.
         return fact(new OwnerContext(context.tenantId(), context.projectId()), objectId, false, actions);
     }
 

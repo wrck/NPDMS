@@ -8,6 +8,58 @@ vi.mock('@/utils/permission', () => ({ checkPermi: api.canReadSources }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ confirm: vi.fn() }) }))
 vi.mock('@/components/PmsFileArtifact', () => ({ PmsFileUploader: { methods: { isBusy: () => false, hasPendingFile: () => false }, render: () => null }, PmsFileReferenceList: { render(this: { $attrs: Record<string, unknown> }) { return h('file-reference', this.$attrs) } } }))
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks() })
+
+const dialogWithFooter = defineComponent({
+  setup(_, { slots, attrs }) { return () => h('section', attrs, [slots.default?.(), slots.footer?.()]) }
+})
+const findButton = (node: TestNode, label: string): TestNode | undefined =>
+  node.type === 'button' && textOf(node) === label ? node : node.children.map(child => findButton(child, label)).find(Boolean)
+
+it.each([false, true])('automatic collection hides submission for mixed sources (has history: %s)', async hasHistory => {
+  const fileKey = { ownerContext: 'IMP', objectType: 'ARRIVAL', objectId: '18', purposeCode: 'ARRIVAL_SIGN_DOCUMENT', referenceKey: 'receipt' }
+  api.getDetail.mockResolvedValue({ id: 12, code: 'D1', name: '自动归集材料', status: 'PENDING', writable: true,
+    automaticCollection: true, planVersionId: 5, version: 2,
+    configuration: { allowedSources: ['UPLOAD', 'BUSINESS_RESULT'], automaticSources: [] },
+    history: hasHistory ? [{ id: 40, sourceType: 'BUSINESS_DOCUMENT', materials: [
+      { id: 1, materialKind: 'FILE', fileName: 'receipt.pdf', artifactId: 21, versionNo: 1, fileKey },
+      { id: 2, materialKind: 'BUSINESS_RESULT', businessObjectId: 'IMP.INSTALLATION.INSTALLATION_COMPLETED|18|1|' }
+    ] }] : [] })
+  const child = ref<any>()
+  const view = mount(defineComponent({ setup: () => () => h(Dialog, { projectId: 9, ref: child }) }), {},
+    { ElDialog: dialogWithFooter, ElCollapse: passthrough, ElCollapseItem: passthrough })
+  try {
+    await child.value.open(12); await nextTick()
+    expect(findButton(view.root, '提交材料')).toBeUndefined()
+    expect(textOf(view.root)).not.toContain('上传文件')
+    expect(textOf(view.root)).not.toContain('关联业务成果')
+    expect(api.getTypes).not.toHaveBeenCalled()
+    if (hasHistory) {
+      expect(textOf(view.root)).toContain('receipt.pdf')
+      expect(textOf(view.root)).toContain('硬件安装完成成果')
+    }
+    const state = child.value.$.setupState
+    state.uploaded({ artifactId: 21, versionNo: 1, referenceId: 33, referenceKey: 'file-1', sha256: 'ab' })
+    await state.submit()
+    expect(api.submit).not.toHaveBeenCalled()
+  } finally { view.app.unmount() }
+})
+
+it('keeps manual business result selection and its submit button', async () => {
+  api.getDetail.mockResolvedValue({ id: 12, code: 'D1', name: '手动关联成果', status: 'PENDING', writable: true,
+    automaticCollection: false, planVersionId: 5, version: 2, history: [],
+    configuration: { allowedSources: ['BUSINESS_RESULT'], automaticSources: [] } })
+  api.getTypes.mockResolvedValue([])
+  const child = ref<any>()
+  const view = mount(defineComponent({ setup: () => () => h(Dialog, { projectId: 9, ref: child }) }), {},
+    { ElDialog: dialogWithFooter, ElSelect: passthrough, ElOption: passthrough, ElRadioGroup: passthrough, ElRadioButton: passthrough })
+  try {
+    await child.value.open(12); await nextTick()
+    expect(findButton(view.root, '提交材料')).toBeTruthy()
+    expect(textOf(view.root)).toContain('关联业务成果')
+    expect(api.getTypes).toHaveBeenCalledWith(9, 12)
+  } finally { view.app.unmount() }
+})
+
 it('submits material without crypto.randomUUID and retains the idempotency key on retry', async () => {
   vi.stubGlobal('crypto', {})
   api.getDetail.mockResolvedValue({ id: 12, code: 'D1', name: 'Evidence', status: 'PENDING', writable: true,

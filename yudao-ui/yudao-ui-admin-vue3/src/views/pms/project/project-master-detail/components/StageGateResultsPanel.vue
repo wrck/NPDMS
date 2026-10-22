@@ -54,7 +54,7 @@
             <span class="deliverable-name">{{ row.name }}</span>
             <span class="deliverable-code">{{ row.code }}</span>
             <dict-tag v-if="row.status" :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="row.status" />
-            <el-button v-if="row.id && !stagePending" link type="primary" @click="openDeliverable(row.id!)">提交与查看</el-button>
+            <el-button v-if="row.id && !stagePending" link type="primary" @click="openDeliverable(row.id!)">{{ row.automaticCollection ? '查看' : '提交与查看' }}</el-button>
           </div>
         </div>
         <template v-if="taskDeliverables">
@@ -65,7 +65,7 @@
               <el-tag size="small" :type="item.required ? 'danger' : 'info'">{{ item.required ? '必选' : '可选' }}</el-tag>
               <span class="deliverable-name">{{ item.name }}</span>
               <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="item.status ?? ''" />
-              <el-button v-if="item.id && !stagePending" link type="primary" @click="openDeliverable(item.id)">提交与查看</el-button>
+              <el-button v-if="item.id && !stagePending" link type="primary" @click="openDeliverable(item.id)">{{ item.automaticCollection ? '查看' : '提交与查看' }}</el-button>
             </div>
           </div>
         </template>
@@ -180,6 +180,7 @@ const deliverableRows = computed(() => {
     code: string
     status?: string
     id?: number
+    automaticCollection?: boolean
     outcome?: string
   }[] = []
   for (const gate of workbench.value?.gates || []) {
@@ -192,6 +193,7 @@ const deliverableRows = computed(() => {
         code: reference.refCode,
         status: instance?.status,
         id: instance?.id,
+        automaticCollection: instance?.automaticCollection,
         outcome: referenceOutcome(gate, index)
       })
     })

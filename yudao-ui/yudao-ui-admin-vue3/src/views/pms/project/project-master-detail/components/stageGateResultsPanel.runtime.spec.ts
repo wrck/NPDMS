@@ -171,3 +171,12 @@ it('keeps submission and approval entries once the stage has been entered', asyn
   expect(text).toContain('审批')
   expect(findButton(view.root, '填写审批表单')).toBeTruthy()
 })
+
+it('shows only view for an automatic deliverable before its materials exist', async () => {
+  api.getStageGateWorkbench.mockResolvedValue(workbenchWithDeliverableRef())
+  const instances = instancesWithStage('ACTIVE')
+  instances.deliverables[0].automaticCollection = true
+  const view = render(instances); await flush()
+  expect(findButton(view.root, '查看')).toBeTruthy()
+  expect(findButton(view.root, '提交与查看')).toBeUndefined()
+})

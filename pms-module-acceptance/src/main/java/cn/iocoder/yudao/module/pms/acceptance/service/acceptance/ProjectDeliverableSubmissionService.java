@@ -77,7 +77,7 @@ public class ProjectDeliverableSubmissionService {
                           String creator, java.time.LocalDateTime submittedAt) { }
     public record Detail(Long id, Long projectId, String code, String name, String status, Long version,
                          Long planVersionId, JsonNode configuration, boolean writable, String automaticSource,
-                         List<History> history) { }
+                         boolean automaticCollection, List<History> history) { }
     public record Submitted(Long submissionId, Long sourceVersionId, String status, Long version, Evaluation evaluation) { }
 
     @Transactional(rollbackFor = Exception.class)
@@ -93,9 +93,11 @@ public class ProjectDeliverableSubmissionService {
                                 .sorted(java.util.Comparator.comparing(MaterialLine::id)).toList(),
                         null, submission.createTime()))
                 .toList();
+        String ownerType = ownerSources.ownerType(view);
+        boolean automaticCollection = ownerType != null || rules.automaticCollectionCodes(projectId).contains(view.deliverableCode());
         return new Detail(id, projectId, view.deliverableCode(), view.name(), accStatus(view.status()), asLong(view.version()),
                 context.planVersionId(), context.configuration(), access.writable(context),
-                ownerSources.ownerType(view), history);
+                ownerType, automaticCollection, history);
     }
 
     @Transactional(rollbackFor = Exception.class)

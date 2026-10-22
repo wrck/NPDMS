@@ -54,6 +54,7 @@ public interface ProjectDeliverableInitializationApplicationService {
             Boolean required,
             Long sourceDefinitionId,
             String status,
-            Long version) {
+            Long version,
+            Boolean automaticCollection) {
     }
 }

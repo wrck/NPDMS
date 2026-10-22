@@ -46,6 +46,8 @@ export interface DeliverableDetail {
   planVersionId: number
   writable: boolean
   automaticSource?: string
+  /** Display policy only; the server still checks permissions, scope and concurrency. */
+  automaticCollection?: boolean
   configuration: { minimumQuantity?: number; allowedSources?: string[]; outputType?: string; automaticSources?: string[] }
   history: HistoryLine[]
 }

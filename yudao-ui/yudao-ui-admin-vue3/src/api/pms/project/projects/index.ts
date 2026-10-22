@@ -290,6 +290,7 @@ export interface ProjectInstancesVO {
     taskCode?: string | null
     required?: boolean
     status: string
+    automaticCollection?: boolean
   }[]
   gates: {
     gateCode: string

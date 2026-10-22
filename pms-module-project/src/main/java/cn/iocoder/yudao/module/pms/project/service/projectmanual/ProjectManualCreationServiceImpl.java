@@ -557,6 +557,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                     legacyView.setSourceDefinitionId(deliverable.sourceDefinitionId());
                     legacyView.setStatus(deliverable.status());
                     legacyView.setVersion(deliverable.version() == null ? null : deliverable.version().intValue());
+                    legacyView.setAutomaticCollection(deliverable.automaticCollection());
                     return legacyView;
                 }).toList());
         view.setGates(gateInstanceMapper.selectListByProjectId(projectId));

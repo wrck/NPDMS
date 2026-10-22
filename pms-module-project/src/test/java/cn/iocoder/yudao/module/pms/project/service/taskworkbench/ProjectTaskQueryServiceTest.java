@@ -349,6 +349,7 @@ class ProjectTaskQueryServiceTest {
                 .map(ProjectTaskWorkbenchRespVO.TaskDeliverableItem::getDeliverableCode).toList());
         assertEquals("PENDING", response.getDeliverables().get(0).getStatus());
         assertTrue(response.getDeliverables().get(0).getRequired());
+        assertTrue(response.getDeliverables().get(0).getAutomaticCollection());
     }
 
     @Test
@@ -529,7 +530,7 @@ class ProjectTaskQueryServiceTest {
     private cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverableView deliverable(
             Long id, String code, String taskCode) {
         return new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverableView(
-                id, 100L, code, "交付件" + id, "S1", taskCode, true, 55L, "PENDING", 0L);
+                id, 100L, code, "交付件" + id, "S1", taskCode, true, 55L, "PENDING", 0L, true);
     }
 
     private TaskWorkbenchActor actor() {

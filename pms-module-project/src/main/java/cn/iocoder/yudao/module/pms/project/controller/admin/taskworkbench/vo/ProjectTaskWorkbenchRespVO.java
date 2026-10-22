@@ -29,5 +29,6 @@ public class ProjectTaskWorkbenchRespVO {
         private String name;
         private Boolean required;
         private String status;
+        private Boolean automaticCollection;
     }
 }

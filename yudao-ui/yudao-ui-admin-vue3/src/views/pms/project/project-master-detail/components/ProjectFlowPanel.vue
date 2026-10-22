@@ -106,7 +106,7 @@ v-if="showStageGates && hasStageGates" ref="stageGatesRef" :project-id="projectI
             <el-tag size="small" :type="item.required ? 'danger' : 'info'">{{ item.required ? '必选' : '可选' }}</el-tag>
             <span class="deliverable-name">{{ item.name }}</span>
             <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="item.status ?? ''" />
-            <el-button v-if="item.id && !stagePending" link type="primary" @click="deliverableRef?.open(item.id)">提交与查看</el-button>
+            <el-button v-if="item.id && !stagePending" link type="primary" @click="deliverableRef?.open(item.id)">{{ item.automaticCollection ? '查看' : '提交与查看' }}</el-button>
           </div>
         </div>
       </template>
@@ -252,7 +252,7 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
             <el-tag size="small" :type="item.required ? 'danger' : 'info'">{{ item.required ? '必选' : '可选' }}</el-tag>
             <span class="deliverable-name">{{ item.name }}</span>
             <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="item.status ?? ''" />
-            <el-button v-if="!taskPending" link type="primary" @click="deliverableRef?.open(item.id)">提交与查看</el-button>
+            <el-button v-if="!taskPending" link type="primary" @click="deliverableRef?.open(item.id)">{{ item.automaticCollection ? '查看' : '提交与查看' }}</el-button>
           </div>
           <p class="deliverable-hint">文件或业务成果有效且模板条件满足时，自动满足交付要求。</p>
         </div>

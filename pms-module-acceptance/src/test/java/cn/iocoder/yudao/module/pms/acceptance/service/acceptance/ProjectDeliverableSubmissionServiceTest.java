@@ -186,6 +186,20 @@ class ProjectDeliverableSubmissionServiceTest {
     // ———— 手工提交：幂等、并发、守卫 ————
 
     @Test
+    void detailReportsAutomaticCollectionBeforeAnySubmissionAndRetainsManualDistinction() {
+        when(rules.automaticCollectionCodes(9L)).thenReturn(java.util.Set.of("D1"));
+        assertTrue(service.detail(9L, 31L).automaticCollection());
+        assertTrue(service.detail(9L, 31L).history().isEmpty());
+
+        when(rules.automaticCollectionCodes(9L)).thenReturn(java.util.Set.of());
+        assertFalse(service.detail(9L, 31L).automaticCollection());
+        when(ownerSources.ownerType(view)).thenReturn("ACCEPTANCE_REPORT");
+        assertTrue(service.detail(9L, 31L).automaticCollection());
+        verify(platform, never()).submitTemplateFrozen(any());
+        verifyNoInteractions(outbox);
+    }
+
+    @Test
     void uploadSatisfiesReplaysByKeyAndFreezesConfirmationEvidence() {
         var submitted = service.submit(9L, 31L, "request1", upload(0L, 50L));
         assertEquals("ACCEPTED", submitted.status());

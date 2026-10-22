@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="交付件提交与判定"
+    :title="automaticCollection ? '交付件查看' : '交付件提交与判定'"
     width="min(780px, 94vw)"
     :before-close="beforeClose"
     destroy-on-close
@@ -17,7 +17,7 @@
           >状态：{{ statusLabel(detail.status) }} · 至少
           {{ detail.configuration.minimumQuantity ?? 1 }} 项有效材料</p
         >
-        <p class="hint"
+        <p v-if="!automaticCollection" class="hint"
           >提交后按模板条件自动判定。文件或成果有效且配置条件满足时，交付件满足门禁。</p
         >
         <el-alert
@@ -27,8 +27,8 @@
           :closable="false"
         />
         <el-alert
-          v-if="detail.configuration.automaticSources?.length"
-          title="业务页面上传的匹配文档会自动归集；归集完成后刷新查看，无需重复上传。"
+          v-if="automaticCollection && !detail.automaticSource"
+          title="材料和成果由业务办理自动归集，请在对应业务中补充或更新，在此查看归集结果。"
           type="info"
           :closable="false"
         />
@@ -50,7 +50,7 @@
           "
         />
         <el-form
-          v-if="detail.writable && !detail.automaticSource"
+          v-if="manualSubmission"
           label-position="top"
           class="submission-form"
         >
@@ -197,7 +197,7 @@
           >重新检测</el-button
         >
         <el-button
-          v-if="detail?.writable && !detail.automaticSource"
+          v-if="manualSubmission"
           v-hasPermi="['pms:project:update']"
           type="primary"
           :loading="busy"
@@ -224,6 +224,9 @@ const emit = defineEmits<{ changed: [] }>()
 const message = useMessage()
 const visible = ref(false), loading = ref(false), busy = ref(false), error = ref(''), outcome = ref(''), satisfied = ref(false)
 const detail = ref<Api.DeliverableDetail>()
+const automaticCollection = computed(() => !!(detail.value?.automaticCollection || detail.value?.automaticSource))
+const manualSubmission = computed(() => !!detail.value?.writable && !automaticCollection.value
+  && detail.value.configuration.allowedSources?.some(source => source === 'UPLOAD' || source === 'BUSINESS_RESULT'))
 const expandedHistory = ref<string[]>([])
 const documentSources = ref<{ code: string; name: string }[]>([])
 const sourceType = ref('UPLOAD'), slotKey = ref('')
@@ -254,7 +257,8 @@ const businessResultLine = (material: Api.MaterialLine) => {
 }
 const uploaded = (selection: UploadedSelection) => { selectedFiles.value.push(selection); slotKey.value = generateUUID(); clearAttempt() }
 const removeSelection = (key: string) => { selectedFiles.value = selectedFiles.value.filter(file => file.referenceKey !== key); clearAttempt() }
-const canSubmit = computed(() => sourceType.value === 'UPLOAD' ? selectedFiles.value.length > 0 : resultIndex.value !== undefined)
+const canSubmit = computed(() => manualSubmission.value
+  && (sourceType.value === 'UPLOAD' ? selectedFiles.value.length > 0 : resultIndex.value !== undefined))
 const reasonLabel = (reason: string) => ({ DELIVERABLE_RULE_NOT_SATISFIED: '材料已保存，模板配置的业务条件尚未满足', DELIVERABLE_RULE_SATISFIED: '文件或业务成果有效，模板条件已满足', DELIVERABLE_SOURCE_MISSING: '尚未提交材料', FILE_EVIDENCE_UNAVAILABLE: '提交的文件已失效或引用已变化', DELIVERABLE_BUSINESS_RESULT_INVALID: '关联成果已失效或被替换', DELIVERABLE_QUANTITY_NOT_MET: '有效材料数量未达到模板要求', DELIVERABLE_SOURCE_REQUIRES_SUBMISSION: '请按模板规则关联业务成果或提交文件' }[reason] || '暂未满足，请检查材料有效性和模板条件')
 const showOutcome = (result: { satisfied: boolean; reason: string }) => { satisfied.value = result.satisfied; outcome.value = reasonLabel(result.reason) }
 const reload = async () => { if (detail.value) detail.value = await Api.getDetail(props.projectId, detail.value.id) }
@@ -268,7 +272,7 @@ const open = async (id: number) => {
     documentSources.value = checkPermi(['pms:project-template:query'])
       ? await Api.getDocumentSources().catch(() => []) : []
     sourceType.value = detail.value.configuration.allowedSources?.includes('UPLOAD') ? 'UPLOAD' : 'BUSINESS_RESULT'
-    if (detail.value.configuration.allowedSources?.includes('BUSINESS_RESULT')) types.value = await Api.getTypes(props.projectId, id)
+    if (manualSubmission.value && detail.value.configuration.allowedSources?.includes('BUSINESS_RESULT')) types.value = await Api.getTypes(props.projectId, id)
   } catch { error.value = '交付件加载失败，请关闭后重试' } finally { loading.value = false }
 }
 const loadCandidates = async (append: boolean) => {

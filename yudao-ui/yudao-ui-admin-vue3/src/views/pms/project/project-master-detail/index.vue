@@ -318,7 +318,7 @@
                   }}</el-tag>
                   {{ d.name }}
                   <el-tag size="small" :type="d.status === 'ACCEPTED' ? 'success' : 'info'">{{ d.status === 'ACCEPTED' ? '已满足' : '待满足' }}</el-tag>
-                  <el-button v-if="d.id" link type="primary" @click="deliverableRef?.open(d.id)">提交与查看</el-button>
+                  <el-button v-if="d.id" link type="primary" @click="deliverableRef?.open(d.id)">{{ d.automaticCollection ? '查看' : '提交与查看' }}</el-button>
                 </div>
               </div>
               <div class="preview-block">

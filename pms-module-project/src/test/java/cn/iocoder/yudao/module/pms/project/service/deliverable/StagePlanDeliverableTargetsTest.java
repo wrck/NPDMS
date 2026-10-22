@@ -26,6 +26,7 @@ class StagePlanDeliverableTargetsTest {
  @Test void installationTargetsOnlyTheBoundPageCompletionReference(){
   String install=SNAPSHOT.replace("\"targetContextCode\":\"PLN\",\"targetObjectType\":\"STAGE_PLAN\"", "\"type\":\"PAGE\",\"parameters\":{\"routePath\":\"/pms/engineering/execution/imp-installation\"}");
   plan.setExecutionSnapshot(install);assertEquals(Set.of("D"),service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"IMP.INSTALLATION.INSTALLATION_COMPLETED")));
+  assertEquals(Set.of("D"), service.automaticCollectionCodes(9L));
   assertEquals(install,plan.getExecutionSnapshot());
   plan.setExecutionSnapshot(install.replace("imp-installation","imp-arrival"));assertTrue(service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"IMP.INSTALLATION.INSTALLATION_COMPLETED")).isEmpty());
   plan.setExecutionSnapshot(install.replace("BUSINESS_RESULT","UPLOAD"));assertTrue(service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"IMP.INSTALLATION.INSTALLATION_COMPLETED")).isEmpty());
@@ -33,6 +34,7 @@ class StagePlanDeliverableTargetsTest {
  @Test void configurationLogsOnlyMatchTheBoundPageCompletionReference(){
   String install=SNAPSHOT.replace("BUSINESS_RESULT","UPLOAD").replace("\"targetContextCode\":\"PLN\",\"targetObjectType\":\"STAGE_PLAN\"", "\"type\":\"PAGE\",\"parameters\":{\"routePath\":\"/pms/engineering/execution/imp-configuration\"}");
   plan.setExecutionSnapshot(install);assertEquals(Set.of("D"),service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"AST.DEVICE_CONFIGURATION_LOG")));
+  assertEquals(Set.of("D"), service.automaticCollectionCodes(9L));
   assertEquals(install,plan.getExecutionSnapshot());
   plan.setExecutionSnapshot(install.replace("imp-configuration","imp-arrival"));assertTrue(service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"AST.DEVICE_CONFIGURATION_LOG")).isEmpty());
   plan.setExecutionSnapshot(install.replace("UPLOAD","BUSINESS_RESULT"));assertTrue(service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"AST.DEVICE_CONFIGURATION_LOG")).isEmpty());
@@ -53,6 +55,7 @@ class StagePlanDeliverableTargetsTest {
     {"code":"J","taskCode":"JOINT","stageCode":"S4","configuration":{"allowedSources":["UPLOAD"]}}]}
    """;
   plan.setExecutionSnapshot(snapshot);
+  assertEquals(Set.of("C", "J"), service.automaticCollectionCodes(9L));
   var config = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO();
   config.setId(101L); config.setCode("CONFIG"); config.setStageCode("S4");
   var joint = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO();
@@ -63,5 +66,32 @@ class StagePlanDeliverableTargetsTest {
   assertThrows(IllegalArgumentException.class, () -> service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"AST.DEVICE_CONFIGURATION_LOG",999L)));
   plan.setExecutionSnapshot(snapshot.replace("imp-joint-test","imp-arrival"));
   assertThrows(IllegalArgumentException.class, () -> service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"AST.DEVICE_CONFIGURATION_LOG",102L)));
+ }
+
+ @Test void automaticCollectionUsesFrozenRoutingBeforeMaterialExistsAndKeepsManualItemsDistinct() {
+  assertEquals(Set.of("D"), service.automaticCollectionCodes(9L));
+  String explicit = SNAPSHOT.replace("\"code\":\"OTHER\",\"taskCode\":\"T\",\"stageCode\":\"S2\",\"configuration\":{",
+    "\"code\":\"OTHER\",\"taskCode\":\"T\",\"stageCode\":\"S2\",\"configuration\":{\"automaticSources\":[\"SOL.REQUIREMENT_DOCUMENT\"],");
+  plan.setExecutionSnapshot(explicit);
+  assertEquals(Set.of("D", "OTHER"), service.automaticCollectionCodes(9L));
+  project.setLifecycleStatus("NORMAL_CLOSED");
+  assertEquals(Set.of("D", "OTHER"), service.automaticCollectionCodes(9L));
+  assertEquals(explicit, plan.getExecutionSnapshot());
+  plan.setExecutionSnapshot(SNAPSHOT.replace("\"PLN\"", "\"SOL\""));
+  assertTrue(service.automaticCollectionCodes(9L).isEmpty());
+  verifyNoInteractions(graph);
+ }
+
+ @Test void automaticCollectionRejectsForeignOrUnavailableFrozenPlan() {
+  project.setTenantId(2L);
+  assertThrows(IllegalArgumentException.class, () -> service.automaticCollectionCodes(9L));
+  project.setTenantId(1L);
+  plan.setProjectId(10L);
+  assertThrows(IllegalStateException.class, () -> service.automaticCollectionCodes(9L));
+  plan.setProjectId(9L);
+  plan.setStatus("DRAFT");
+  assertThrows(IllegalStateException.class, () -> service.automaticCollectionCodes(9L));
+  project.setActivePlanVersionId(null);
+  assertTrue(service.automaticCollectionCodes(9L).isEmpty());
  }
 }

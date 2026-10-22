@@ -137,6 +137,8 @@ public class ProjectInstancesRespVO {
         private Boolean required;
         @Schema(description = "交付件状态")
         private String status;
+        @Schema(description = "自动归集只读标识")
+        private Boolean automaticCollection;
     }
 
     @Data

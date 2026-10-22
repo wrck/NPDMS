@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVers
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +34,21 @@ public class ProjectDeliverableRuleService implements ProjectDeliverableRuleApi 
 
     @Override public Context read(Long projectId, String code) {
         return context(require(projects.selectById(projectId)), code);
+    }
+
+    @Override public Set<String> automaticCollectionCodes(Long projectId) {
+        var project = require(projects.selectById(projectId));
+        if (project.getActivePlanVersionId() == null) return Set.of();
+        var plan = plans.selectById(project.getActivePlanVersionId());
+        if (plan == null || !Objects.equals(plan.getProjectId(), projectId)
+                || !Objects.equals(plan.getTenantId(), project.getTenantId()) || !"EFFECTIVE".equals(plan.getStatus()))
+            throw new IllegalStateException("DELIVERABLE_FROZEN_PLAN_UNAVAILABLE");
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
+        Set<String> codes = new HashSet<>();
+        for (var definition : snapshot.getDeliverables()) {
+            if (!collectionSources(snapshot, definition, true).isEmpty()) codes.add(definition.getCode());
+        }
+        return Set.copyOf(codes);
     }
 
     @Override public Set<String> documentTargets(DocumentTargetsQuery query) {
@@ -65,39 +81,50 @@ public class ProjectDeliverableRuleService implements ProjectDeliverableRuleApi 
             if (definition.getConfiguration() == null) continue;
             if (origin != null && (!Objects.equals(origin.getCode(), definition.getTaskCode())
                     || !Objects.equals(origin.getStageCode(), definition.getStageCode()))) continue;
-            if ("PLN.STAGE_PLAN.CONSTRUCTION_PLAN_APPROVED".equals(sourceCode)
-                    && definition.getConfiguration().path("allowedSources").isArray()
+            if (collectionSources(snapshot, definition, query.originTaskId() != null).contains(sourceCode))
+                codes.add(definition.getCode());
+        }
+        return Set.copyOf(codes);
+    }
+
+    /** Both collection and its UI affordance use the same frozen source and native-task rules. */
+    private Set<String> collectionSources(TemplateExecutionSnapshot snapshot,
+                                          TemplateExecutionSnapshot.DeliverableContract definition,
+                                          boolean taskOrigin) {
+        if (definition.getConfiguration() == null) return Set.of();
+        Set<String> sources = new HashSet<>();
+        if (definition.getConfiguration().path("allowedSources").isArray()
                     && java.util.stream.StreamSupport.stream(definition.getConfiguration().path("allowedSources").spliterator(), false)
                         .anyMatch(source -> "BUSINESS_RESULT".equals(source.asText()))
                     && snapshot.getTasks().stream().anyMatch(task -> Objects.equals(task.getCode(), definition.getTaskCode())
                         && Objects.equals(task.getStageCode(), definition.getStageCode()) && task.getBinding() != null
                         && "PLN".equals(task.getBinding().getTargetContextCode())
                         && "STAGE_PLAN".equals(task.getBinding().getTargetObjectType())
-                        && referencesDeliverable(task.getCompletionRule(), definition.getCode()))) codes.add(definition.getCode());
-            if ("IMP.INSTALLATION.INSTALLATION_COMPLETED".equals(sourceCode)
-                    && definition.getConfiguration().path("allowedSources").isArray()
+                        && referencesDeliverable(task.getCompletionRule(), definition.getCode())))
+            sources.add("PLN.STAGE_PLAN.CONSTRUCTION_PLAN_APPROVED");
+        if (definition.getConfiguration().path("allowedSources").isArray()
                     && java.util.stream.StreamSupport.stream(definition.getConfiguration().path("allowedSources").spliterator(), false)
                         .anyMatch(source -> "BUSINESS_RESULT".equals(source.asText()))
                     && snapshot.getTasks().stream().anyMatch(task -> Objects.equals(task.getCode(), definition.getTaskCode())
                         && Objects.equals(task.getStageCode(), definition.getStageCode()) && task.getBinding() != null
                         && "PAGE".equals(task.getBinding().getType()) && task.getBinding().getParameters() != null
                         && "/pms/engineering/execution/imp-installation".equals(task.getBinding().getParameters().path("routePath").asText())
-                        && referencesDeliverable(task.getCompletionRule(), definition.getCode()))) codes.add(definition.getCode());
-            if ("AST.DEVICE_CONFIGURATION_LOG".equals(sourceCode)
-                    && definition.getConfiguration().path("allowedSources").isArray()
+                        && referencesDeliverable(task.getCompletionRule(), definition.getCode())))
+            sources.add("IMP.INSTALLATION.INSTALLATION_COMPLETED");
+        if (definition.getConfiguration().path("allowedSources").isArray()
                     && java.util.stream.StreamSupport.stream(definition.getConfiguration().path("allowedSources").spliterator(), false)
                         .anyMatch(source -> "UPLOAD".equals(source.asText()))
                     && snapshot.getTasks().stream().anyMatch(task -> Objects.equals(task.getCode(), definition.getTaskCode())
                         && Objects.equals(task.getStageCode(), definition.getStageCode()) && task.getBinding() != null
                         && "PAGE".equals(task.getBinding().getType()) && task.getBinding().getParameters() != null
                         && ("/pms/engineering/execution/imp-configuration".equals(task.getBinding().getParameters().path("routePath").asText())
-                            || query.originTaskId() != null && "/pms/engineering/execution/imp-joint-test".equals(task.getBinding().getParameters().path("routePath").asText()))
-                        && referencesDeliverable(task.getCompletionRule(), definition.getCode()))) codes.add(definition.getCode());
-            for (var source : definition.getConfiguration().path("automaticSources")) {
-                if (sourceCode.equals(source.asText())) codes.add(definition.getCode());
-            }
+                            || taskOrigin && "/pms/engineering/execution/imp-joint-test".equals(task.getBinding().getParameters().path("routePath").asText()))
+                        && referencesDeliverable(task.getCompletionRule(), definition.getCode())))
+            sources.add("AST.DEVICE_CONFIGURATION_LOG");
+        for (var source : definition.getConfiguration().path("automaticSources")) {
+            if (source.isTextual() && !source.asText().isBlank()) sources.add(source.asText());
         }
-        return Set.copyOf(codes);
+        return Set.copyOf(sources);
     }
 
     private boolean referencesDeliverable(tools.jackson.databind.JsonNode rule, String code) {

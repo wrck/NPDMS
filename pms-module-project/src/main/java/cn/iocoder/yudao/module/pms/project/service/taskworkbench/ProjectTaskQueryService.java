@@ -227,6 +227,7 @@ public class ProjectTaskQueryService {
                     item.setName(row.name());
                     item.setRequired(row.required());
                     item.setStatus(row.status());
+                    item.setAutomaticCollection(row.automaticCollection());
                     return item;
                 }).toList();
     }

@@ -34,8 +34,29 @@ class ProjectDeliverableInitializationApplicationServiceImplTest {
     @Mock
     private PlatformDeliveryRequirementApi platform;
 
+    @Mock
+    private cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi rules;
+    @Mock
+    private cn.iocoder.yudao.module.pms.acceptance.service.acceptance.ProjectDeliverableOwnerSources ownerSources;
+
     @InjectMocks
     private ProjectDeliverableInitializationApplicationServiceImpl service;
+
+    @Test
+    void listDistinguishesFrozenAutomaticAndOwnerProjectionFromManualBeforeMaterialExists() {
+        when(platform.listByProject(9L)).thenReturn(List.of(view(10L, "AUTO"), view(11L, "OWNER"), view(12L, "MANUAL")));
+        when(rules.automaticCollectionCodes(9L)).thenReturn(java.util.Set.of("AUTO"));
+        when(ownerSources.ownerTypes(9L)).thenReturn(java.util.Map.of(11L, "ACCEPTANCE_REPORT"));
+
+        var rows = service.getByProjectId(9L);
+
+        assertEquals(List.of(true, true, false), rows.stream()
+                .map(ProjectDeliverableInitializationApplicationService.DeliverableView::automaticCollection).toList());
+        verify(platform).listByProject(9L);
+        verify(rules).automaticCollectionCodes(9L);
+        verify(ownerSources).ownerTypes(9L);
+        org.mockito.Mockito.verifyNoMoreInteractions(platform, rules, ownerSources);
+    }
 
     @Test
     void implementationRequiresExistingTransaction() throws Exception {

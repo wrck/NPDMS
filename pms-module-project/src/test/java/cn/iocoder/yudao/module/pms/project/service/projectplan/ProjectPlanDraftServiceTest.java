@@ -131,7 +131,7 @@ class ProjectPlanDraftServiceTest {
         var after = ProjectPlanImpactAnalyzerTest.copy(snapshot); after.setDeliverables(List.of());
         when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(after,null,List.of()));
         var row = new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverableView(
-                100L,9L,"CUSTOM-D","delivery","A",null,true,null,"PENDING",8L);
+                100L,9L,"CUSTOM-D","delivery","A",null,true,null,"PENDING",8L,false);
         when(deliverables.inspectPlanDefinitions(9L)).thenReturn(new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverablePlanState(List.of(row),Set.of()));
         var result = service.preview(9L,52L,0L,1L);
         assertTrue(result.issues().stream().anyMatch(issue -> "DELIVERABLE_HANDLING_HISTORY_PROTECTED".equals(issue.code())));

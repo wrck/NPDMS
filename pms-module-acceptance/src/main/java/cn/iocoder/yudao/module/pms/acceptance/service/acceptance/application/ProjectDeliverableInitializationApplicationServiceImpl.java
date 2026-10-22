@@ -21,6 +21,11 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
     @Resource
     private PlatformDeliveryRequirementApi platform;
 
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi rules;
+    @Resource
+    private cn.iocoder.yudao.module.pms.acceptance.service.acceptance.ProjectDeliverableOwnerSources ownerSources;
+
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public void archiveForProjectReopen(ProjectReopenArchive command) {
@@ -46,7 +51,12 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
         if (projectId == null) {
             throw new IllegalArgumentException("项目ID不能为空");
         }
-        return platform.listByProject(projectId).stream().map(this::view).toList();
+        var rows = platform.listByProject(projectId);
+        if (rows.isEmpty()) return List.of();
+        var automaticCodes = rules.automaticCollectionCodes(projectId);
+        var owners = ownerSources.ownerTypes(projectId);
+        return rows.stream().map(row -> view(row,
+                automaticCodes.contains(row.deliverableCode()) || owners.containsKey(row.id()))).toList();
     }
 
     @Override
@@ -54,7 +64,7 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
     public DeliverablePlanState inspectPlanDefinitions(Long projectId) {
         if (projectId == null || projectId <= 0) throw new IllegalArgumentException("项目ID不能为空");
         var rows = platform.lockByProject(projectId);
-        List<DeliverableView> definitions = rows.stream().map(this::view).toList();
+        List<DeliverableView> definitions = rows.stream().map(row -> view(row, false)).toList();
         // 退役资格与平台护栏同口径：有任何材料或提交历史（含已撤回）即不可退役。
         Set<Long> retirable = new HashSet<>();
         for (var row : rows) {
@@ -133,14 +143,14 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
         }
     }
 
-    private DeliverableView view(PlatformDeliveryRequirementApi.TemplateFrozenView row) {
+    private DeliverableView view(PlatformDeliveryRequirementApi.TemplateFrozenView row, boolean automaticCollection) {
         // 旧实例视图契约（pms_project_deliverable_status 字典：PENDING/SUBMITTED/ACCEPTED）；
         // 统一要求状态 OPEN/SATISFIED/CONFIRMED 在此适配为旧字典，实例视图与任务工作台共用本口径。
         String legacyStatus = PlatformDeliveryRequirementApi.STATUS_OPEN.equals(row.status())
                 ? "PENDING" : "ACCEPTED";
         return new DeliverableView(row.id(), row.projectId(), row.deliverableCode(), row.name(),
                 row.stageCode(), row.taskCode(), row.required(), row.sourceDefinitionId(), legacyStatus,
-                row.version() == null ? null : row.version().longValue());
+                row.version() == null ? null : row.version().longValue(), automaticCollection);
     }
 
     private PlatformDeliveryRequirementApi.TemplateFrozenDefinition definition(DeliverableDefinition definition) {

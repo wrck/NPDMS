@@ -108,6 +108,7 @@ export interface TaskWorkbenchDeliverable {
   name: string
   required?: boolean
   status?: string
+  automaticCollection?: boolean
 }
 
 export interface TaskWorkbench {
