@@ -56,6 +56,9 @@ public final class DynamicFormViews {
         }
     }
 
+    public record TrainingPrint(Long templateId, String templateName, Long revisionId,
+                                LocalDateTime publishedAt, JsonNode formConfJson, JsonNode formRulesJson) {}
+
     public record PublishResult(Long templateId, Integer templateVersion, String availability,
                                 Revision revision, Set<String> allowedActions) {
         public PublishResult {

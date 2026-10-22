@@ -339,3 +339,17 @@ export const patchInstance = (
     data,
     headers: { 'If-Match': String(expectedVersion) }
   })
+
+/** Training consumers only receive enabled published print layouts, without management access. */
+export interface TrainingPrintSelectionVO {
+  templateId: number
+  templateName: string
+  revisionId: number
+  publishedAt: string
+  formConfJson: JsonObject
+  formRulesJson: JsonObject[]
+}
+export const getTrainingPrintSelection = (params: PageParam) =>
+  request.get<DynamicFormPage<TrainingPrintSelectionVO>>({
+    url: `${baseUrl}/dynamic-form-templates/training-print-selection`, params
+  })

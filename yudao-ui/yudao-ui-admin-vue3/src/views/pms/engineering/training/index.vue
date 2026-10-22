@@ -203,6 +203,7 @@
         </el-col>
       </el-row>
     </el-form>
+    <p class="template-hint">客户评价和签字由客户通过推送链接提交，新建、编辑时不可代填客户签字。</p>
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="save">保存</el-button>
@@ -523,8 +524,13 @@ const save = async () => {
   saving.value = true
   try {
     // 后端 SaveReqVO.trainingTypes 为 List<String>，回显时再由逗号串拆分
-    const { trainingTypeList, ...rest } = form
-    const payload = { ...rest, trainingTypes: trainingTypeList || [] } as unknown as TrainingApi.TrainingVO
+    const payload = {
+      id: form.id, projectId: form.projectId, name: form.name, contactName: form.contactName,
+      contactPhone: form.contactPhone, trainingTypes: form.trainingTypeList || [],
+      trainingTime: form.trainingTime, trainerUserId: form.trainerUserId, traineeCount: form.traineeCount,
+      content: form.content, remark: form.remark, confirmationTemplateId: form.confirmationTemplateId,
+      printTemplateId: form.printTemplateId, version: form.version
+    } as unknown as TrainingApi.TrainingVO
     form.id ? await TrainingApi.updateTraining(payload) : await TrainingApi.createTraining(payload)
     message.success('保存成功')
     formVisible.value = false
@@ -579,11 +585,6 @@ const downloadRecord = async (row: TrainingVO) => {
       return
     }
     const snapshot = record.printLayoutSnapshot ? JSON.parse(record.printLayoutSnapshot) : undefined
-    if (!snapshot) {
-      const ticket = await TrainingApi.getTrainingPdfTicket(id)
-      window.open(ticket, '_blank', 'noopener')
-      return
-    }
     const project = record.projectId ? await ProjectApi.getProject(record.projectId) : undefined
     await printPreview.value?.open(record, project?.projectName || '', snapshot)
 

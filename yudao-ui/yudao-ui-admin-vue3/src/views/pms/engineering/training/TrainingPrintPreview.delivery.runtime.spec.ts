@@ -5,25 +5,25 @@ import * as files from '@/api/pms/platform/file'
 import * as delivery from '@/api/pms/platform/delivery'
 import { getTraining } from '@/api/pms/engineering/training'
 import { mount, textOf, passthrough, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
-const spies=vi.hoisted(() => ({ download:vi.fn(),outputPdf:vi.fn(),error:vi.fn(),warning:vi.fn(),canWrite:true }))
+const spies=vi.hoisted(() => ({ download:vi.fn(),outputPdf:vi.fn(),error:vi.fn(),warning:vi.fn(),canWrite:true,templates:vi.fn(),ticket:vi.fn(),openWindow:vi.fn() }))
 vi.mock('@/hooks/web/useMessage',()=>({ useMessage:()=>({error:spies.error,warning:spies.warning}) }))
 vi.mock('@/api/pms/platform/file',()=>({ initializeUpload:vi.fn(),completeUpload:vi.fn() }))
 vi.mock('@/api/pms/platform/delivery',()=>({ getDeliveryTypes:vi.fn(),registerMaterial:vi.fn() }))
-vi.mock('@/api/pms/engineering/training',()=>({getTraining:vi.fn()}))
-vi.mock('@/utils/permission',()=>({checkPermi:(permissions:string[])=>spies.canWrite && permissions.some(permission=>['pms:file:upload','pms:delivery:operate'].includes(permission))}))
+vi.mock('@/api/pms/engineering/training',()=>({getTraining:vi.fn(),getTrainingPdfTicket:spies.ticket}))
+vi.mock('@/utils/permission',()=>({checkPermi:(permissions:string[])=>permissions.includes('pms:dynamic-form-instance:query') || spies.canWrite && permissions.some(permission=>['pms:file:upload','pms:delivery:operate'].includes(permission))}))
 vi.mock('@/utils/dict',()=>({ DICT_TYPE:{PMS_TRAINING_TYPE:'types'},getStrDictOptions:()=>[] }))
 vi.mock('@/views/pms/platform/dynamic-form/components/registerDynamicFormComponents',()=>({registerDynamicFormComponents:()=>{}}))
-vi.mock('@/api/pms/platform/dynamic-form',()=>({}))
+vi.mock('@/api/pms/platform/dynamic-form',()=>({getTrainingPrintSelection:spies.templates}))
 vi.mock('@/views/pms/platform/dynamic-form/components/dynamicFormCodec',()=>({ decodeDynamicForm:()=>({rule:[],option:{form:{}}}) }))
 vi.mock('html2pdf.js',()=>({default:()=>{ const worker:any={set:()=>worker,from:()=>worker,outputPdf:spies.outputPdf};return worker }}))
 const find=(root:TestNode,predicate:(node:TestNode)=>boolean):TestNode|undefined=>predicate(root)?root:root.children.map(child=>find(child,predicate)).find(Boolean)
 const record={id:7,projectId:9,version:1,status:2,code:'TRAIN-7',name:'Training'}
 const flush=async()=>{for(let i=0;i<12;i++){await Promise.resolve();await nextTick()}}
-const open=async()=>{
+const open=async(snapshot?:any)=>{
  const view=mount(Preview,{}, { Dialog:defineComponent({setup:(_, {slots})=>()=>h('section',[slots.default?.(),slots.footer?.()])}),ElSelect:passthrough,ElOption:passthrough,FormCreate:passthrough })
- await (view.vm as any).open(record,'Project 9');await flush()
+ await (view.vm as any).open(record,'Project 9',snapshot);await flush()
  const paper=find(view.root,node=>node.type==='div'&&String(node.props?.class).includes('training-print-paper'))!
- ;(paper as any).querySelectorAll=()=>[]
+ if(paper) (paper as any).querySelectorAll=()=>[]
  return view
 }
 const exportPdf=async(view:ReturnType<typeof mount>,register=true)=>{
@@ -32,6 +32,9 @@ const exportPdf=async(view:ReturnType<typeof mount>,register=true)=>{
 beforeEach(()=>{
  vi.clearAllMocks()
  spies.canWrite=true
+ spies.templates.mockResolvedValue({list:[{templateId:77,templateName:'Enabled',revisionId:770,publishedAt:'2026-10-22 10:00:00',formConfJson:{},formRulesJson:[]}],total:1})
+ spies.ticket.mockResolvedValue('/download/ticket')
+ vi.stubGlobal('window',{open:spies.openWindow})
  vi.stubGlobal('document',{ fonts:{ready:Promise.resolve()},createElement:()=>({click:spies.download}) })
  vi.mocked(getTraining).mockResolvedValue(record)
  spies.outputPdf.mockResolvedValue(new Blob(['%PDF-1.4 test'],{type:'application/pdf'}))
@@ -80,4 +83,30 @@ it('a rejected write never falls back to unregistered PDF generation',async()=>{
  expect(delivery.registerMaterial).not.toHaveBeenCalled()
  expect(find(view.root,node=>node.type==='button'&&textOf(node).includes('只读下载'))).toBeUndefined()
  view.app.unmount()
+})
+
+it('uses latest publication across enabled templates instead of the approved frozen snapshot',async()=>{
+ spies.templates.mockResolvedValue({list:[
+  {templateId:1,revisionId:10,publishedAt:'2026-10-22 11:00:00',formConfJson:{},formRulesJson:[]},
+  {templateId:2,revisionId:20,publishedAt:'2026-10-21 10:00:00',formConfJson:{},formRulesJson:[]}
+ ],total:2})
+ const view=await open({engine:'FORM_CREATE_ELEMENT_PLUS',formConfJson:{trainingPrintStyle:'APPROVED_TABLE'},formRulesJson:[]})
+ expect((view.vm as any).$.setupState.selected).toBe('1')
+ expect(spies.ticket).not.toHaveBeenCalled();view.app.unmount()
+})
+it('defaults to server PDF without enabled templates even with a frozen form',async()=>{
+ spies.templates.mockResolvedValue({list:[],total:0})
+ const view=await open({engine:'FORM_CREATE_ELEMENT_PLUS',formConfJson:{trainingPrintStyle:'APPROVED_TABLE'},formRulesJson:[]})
+ expect((view.vm as any).$.setupState.selected).toBe('server')
+ await exportPdf(view)
+ expect(spies.ticket).toHaveBeenCalledWith(7)
+ expect(spies.openWindow).toHaveBeenCalledWith('/download/ticket','_blank','noopener')
+ expect(spies.outputPdf).not.toHaveBeenCalled();expect(files.initializeUpload).not.toHaveBeenCalled();view.app.unmount()
+})
+it('does not interpret a failed query as an empty enabled-template list',async()=>{
+ spies.templates.mockRejectedValue(new Error('query failed'))
+ const view=await open()
+ expect((view.vm as any).$.setupState.selected).toBe('')
+ expect(spies.error).toHaveBeenCalledWith('打印模板加载失败，请关闭后重试')
+ expect(spies.ticket).not.toHaveBeenCalled();view.app.unmount()
 })

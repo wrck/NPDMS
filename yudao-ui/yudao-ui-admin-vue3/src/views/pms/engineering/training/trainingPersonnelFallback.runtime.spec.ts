@@ -3,12 +3,12 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import Training from './index.vue'
 import { mount, textOf, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
-const api = vi.hoisted(() => ({ users: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn(), templates: vi.fn(), canQueryTemplates: false, admin: false, canManageTemplates: true }))
+const api = vi.hoisted(() => ({ users: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn(), templates: vi.fn(), canQueryTemplates: false, admin: false, canManageTemplates: true, getTraining: vi.fn(), preview: vi.fn() }))
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 3, nickname: 'Self' } }) }))
 vi.mock('@/utils/permission', () => ({ checkRole: () => api.admin, checkPermi: (permissions: string[]) => !permissions.includes('system:user:query') && (!permissions.includes('pms:dynamic-form-instance:query') || api.canQueryTemplates) && (!permissions.includes('pms:dynamic-form-template:query') || api.canManageTemplates) }))
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }), useRouter: () => ({ getRoutes: () => [] }) }))
 vi.mock('@/api/system/user', () => ({ getUserPage: api.users }))
-vi.mock('@/api/pms/engineering/training', () => ({ getTrainingPage: api.page, createTraining: api.create, updateTraining: api.update }))
+vi.mock('@/api/pms/engineering/training', () => ({ getTrainingPage: api.page, createTraining: api.create, updateTraining: api.update, getTraining: api.getTraining }))
 vi.mock('@/api/pms/project/projects', () => ({ getProject: vi.fn(async () => ({ projectName: 'Project' })), getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/customer/contacts', () => ({ getProjectPage: vi.fn(async () => ({ list: [], total: 0 })) }))
 vi.mock('@/api/pms/platform/dynamic-form', () => ({ getTemplateSelection: api.templates }))
@@ -18,7 +18,7 @@ vi.mock('@/utils/auth', () => ({ getTenantId: () => 1 }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn() }) }))
 vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('./TrainingPrintTemplates.vue', () => ({ default: { render: () => null } }))
-vi.mock('./TrainingPrintPreview.vue', () => ({ default: { render: () => null } }))
+vi.mock('./TrainingPrintPreview.vue', () => ({ default: { setup(_: unknown, { expose }: any) { expose({ open: api.preview }); return () => null } } }))
 vi.mock('@/components/Qrcode', () => ({ Qrcode: { render: () => null } }))
 const formStub = defineComponent({ setup(_, { slots, expose }) { expose({ validate: async () => true }); return () => h('form', slots.default?.()) } })
 const apps: { unmount: () => void }[] = []
@@ -113,4 +113,22 @@ it('does not expose template configuration to administrators without the existin
   const view = render(); await flush()
   expect(textOf(view.root)).not.toContain('客户确认模板配置')
   expect(textOf(view.root)).not.toContain('打印模板配置')
+})
+
+it('does not send customer signature or confirmation facts when editing a draft', async () => {
+  const view=render();view.state.openForm({id:8,status:0,projectId:1,trainingTypes:'TECHNICAL_PRINCIPLE',
+    signatureImageDataUrl:'data:image/png;base64,old',signConfirmerName:'历史客户',signConfirmTime:'2026-10-10',confirmationValues:'historical'})
+  await flush();await view.state.save()
+  const payload=api.update.mock.calls.at(-1)![0]
+  expect(payload).not.toHaveProperty('signatureImageDataUrl')
+  expect(payload).not.toHaveProperty('signConfirmerName')
+  expect(payload).not.toHaveProperty('signConfirmTime')
+  expect(payload).not.toHaveProperty('confirmationValues')
+})
+
+it('opens current template selection for a legacy record without a print snapshot', async () => {
+  api.getTraining.mockResolvedValue({ id: 8, projectId: 1, status: 2 })
+  const view = render(); await flush()
+  await view.state.downloadRecord({ id: 8 }); await flush()
+  expect(api.preview).toHaveBeenCalledWith({ id: 8, projectId: 1, status: 2 }, 'Project', undefined)
 })

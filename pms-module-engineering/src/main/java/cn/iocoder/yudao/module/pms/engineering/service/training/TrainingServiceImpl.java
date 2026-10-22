@@ -82,7 +82,9 @@ public class TrainingServiceImpl implements TrainingService {
     @Resource private cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi operationAudit;
     @Resource private cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi fileEvidence;
     @Resource private cn.iocoder.yudao.module.system.api.permission.PermissionApi permissions;
+    @Resource private cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi projectScopes;
     @Resource private cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi projectContexts;
+    @Resource private cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi projectPresentation;
 
 
     @Override
@@ -137,6 +139,12 @@ public class TrainingServiceImpl implements TrainingService {
         if (!Objects.equals(TrainingStatusEnum.DRAFT.getStatus(), existing.getStatus())) {
             throw exception(TRAINING_STATUS_INVALID);
         }
+        var scope = projectScopes.resolveCurrent(cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery.builder()
+                .tenantId(TenantContextHolder.getRequiredTenantId()).subjectUserId(SecurityFrameworkUtils.getLoginUserId())
+                .anchorProjectId(existing.getProjectId()).actionCode(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_EDIT).build());
+        if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(existing.getProjectId())
+                || scope.placeholderProjectIds() != null && scope.placeholderProjectIds().contains(existing.getProjectId()))
+            throw exception(TRAINING_ARGUMENT_INVALID, "无权删除该项目的培训草稿");
         trainingMapper.deleteById(id);
     }
 
@@ -469,6 +477,7 @@ public class TrainingServiceImpl implements TrainingService {
     @Override @Transactional(rollbackFor=Exception.class)
     public String requestPdfDownload(Long trainingId) throws java.io.IOException {
         TrainingDO record=validateTrainingExists(trainingId);
+        if (TrainingStatusEnum.VOID.getStatus().equals(record.getStatus())) throw exception(TRAINING_STATUS_INVALID);
         var candidates=deliveryMaterialApi.listByEntityAndType("IMP","training",trainingId,"TRAINING_RECORD").stream()
                 .filter(m->"FILE".equals(m.materialKind()) && m.fileName()!=null && m.fileName().toLowerCase(java.util.Locale.ROOT).endsWith(".pdf"))
                 .sorted(java.util.Comparator.comparing(cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.DeliveryMaterialView::id).reversed()).toList();
@@ -477,7 +486,8 @@ public class TrainingServiceImpl implements TrainingService {
             var document=fileEvidence.inspectDocumentByArtifact(TenantContextHolder.getRequiredTenantId(),candidate.fileArtifactId(),candidate.fileVersionNo());
             if(document==null || !document.available())continue;
             if(historical==null)historical=candidate.id();
-            if(("TRAINING_RECORD_PDF/"+record.getVersion()).equals(document.purposeCode()))
+            if(("TRAINING_RECORD_PDF/"+record.getVersion()).equals(document.purposeCode())
+                    && (record.getCode()+"-现场培训标准表单.pdf").equals(candidate.fileName()))
                 return requestGeneratedFileDownload(trainingId,candidate.id());
         }
         Long actor=SecurityFrameworkUtils.getLoginUserId();
@@ -493,9 +503,10 @@ public class TrainingServiceImpl implements TrainingService {
             if(historical!=null)return requestGeneratedFileDownload(trainingId,historical);
             throw exception(TRAINING_ARGUMENT_INVALID,"No registered PDF is available for read-only download");
         }
-        if(record.getPrintLayoutSnapshot()!=null && JsonUtils.parseTree(record.getPrintLayoutSnapshot()).has("engine"))
-            throw exception(TRAINING_ARGUMENT_INVALID,"Use the bound print preview to save this dynamic-form PDF");
-        var registered=saveNativeDocument(record,"PDF",record.getCode()+".pdf","application/pdf",TrainingPdfRenderer.render(record));
+        var presentation = projectPresentation.presentation(new cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi.Query(
+                TenantContextHolder.getRequiredTenantId(), actor, record.getProjectId(), null));
+        var printable = new TrainingStandardPdfRenderer.Document(record, presentation.projectName());
+        var registered=saveNativeDocument(record,"PDF",record.getCode()+"-现场培训标准表单.pdf","application/pdf",TrainingStandardPdfRenderer.render(printable));
         return requestGeneratedFileDownload(trainingId,registered.materialId());
     }
 

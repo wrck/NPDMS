@@ -86,6 +86,21 @@ class TrainingServiceTest {
         when(trainingMapper.updateById(any(TrainingDO.class))).thenReturn(1);
     }
 
+    @Test void draftDeletionRequiresEditableProjectScope() {
+        var scopes=mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.class);
+        ReflectionTestUtils.setField(service,"projectScopes",scopes);
+        when(scopes.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(7L,1L,java.util.Set.of(),java.util.Set.of()));
+        assertThrows(RuntimeException.class,()->service.deleteTraining(1L));
+        verify(trainingMapper,never()).deleteById(1L);
+        when(scopes.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(7L,1L,java.util.Set.of(7L),java.util.Set.of()));
+        service.deleteTraining(1L);verify(trainingMapper).deleteById(1L);
+    }
+    @Test void issuedOrSignedTrainingCannotBeDeleted() {
+        row.setStatus(1);assertThrows(RuntimeException.class,()->service.deleteTraining(1L));
+        row.setStatus(2);assertThrows(RuntimeException.class,()->service.deleteTraining(1L));
+        verify(trainingMapper,never()).deleteById(1L);
+    }
+
     @Test
     void issueGeneratesTokenDigestAndRealRecordFile() throws Exception {
         when(fileApi.createFile(any(), anyString(), anyString(), anyString()))
@@ -241,5 +256,32 @@ class TrainingServiceTest {
         var command=ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.platform.api.file.dto.BusinessGrantGeneratedFileCommand.class);verify(grantFiles).create(command.capture());
         assertEquals(71L,command.getValue().grantId());assertEquals(1L,command.getValue().objectId());assertEquals(3L,command.getValue().expectedOwnerVersion());
         verify(operationAudit).record(eq(1L),eq(33L),any(),eq("TRAINING_CUSTOMER_CONFIRMED"),eq("Training"),eq("1"),eq("CONFIRMED"),argThat(detail->"BUSINESS_GRANT".equals(detail.get("subjectType"))&&"PUBLIC_LINK".equals(detail.get("channel"))));
+    }
+
+    @Test void serverFallbackPrintsStandardFormForDynamicSnapshotWithoutMutatingIt() throws Exception {
+        var permissions=mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class);
+        var projects=mock(cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.class);
+        var presentation=mock(cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi.class);
+        ReflectionTestUtils.setField(service,"permissions",permissions);
+        ReflectionTestUtils.setField(service,"projectContexts",projects);
+        ReflectionTestUtils.setField(service,"projectPresentation",presentation);
+        when(permissions.hasAnyPermissions(eq(9L),any(String[].class))).thenReturn(true);
+        when(projects.inspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceContextApi.Context(7L,7L,1L,1L,"ACTIVE"));
+        when(presentation.presentation(any())).thenReturn(cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi.Presentation.builder().projectId(7L).projectName("标准表单工程").build());
+        when(deliveryMaterialApi.listByEntityAndType("IMP","training",1L,"TRAINING_RECORD")).thenReturn(java.util.List.of());
+        row.setPrintLayoutSnapshot("{\"engine\":\"FORM_CREATE_ELEMENT_PLUS\"}");
+        service.requestPdfDownload(1L);
+        var capture=ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFileCommand.class);
+        verify(generatedFiles).create(capture.capture());
+        assertEquals("TR-001-现场培训标准表单.pdf",capture.getValue().fileName());
+        try(var pdf=org.apache.pdfbox.Loader.loadPDF(capture.getValue().content())) {
+            assertTrue(new org.apache.pdfbox.text.PDFTextStripper().getText(pdf).contains("标准表单工程"));
+        }
+        assertEquals("{\"engine\":\"FORM_CREATE_ELEMENT_PLUS\"}",row.getPrintLayoutSnapshot());
+        verify(trainingMapper,never()).updateById(any(TrainingDO.class));
+        verify(generatedFiles).requestDownload("IMP","training",1L,210L);
+        row.setStatus(3);
+        assertThrows(RuntimeException.class,()->service.requestPdfDownload(1L));
+        verify(generatedFiles,times(1)).create(any());
     }
 }

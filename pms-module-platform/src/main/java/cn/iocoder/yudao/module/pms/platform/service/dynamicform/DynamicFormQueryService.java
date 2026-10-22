@@ -81,6 +81,27 @@ public class DynamicFormQueryService {
                 .map(row -> toSelection(actor.userId(), row)).toList(), total);
     }
 
+    public record TrainingPrintQuery(DynamicFormCommands.Actor actor, int pageNo, int pageSize) {}
+
+    /** Narrow published-layout read for training consumers; does not grant template management. */
+    public DynamicFormViews.Page<DynamicFormViews.TrainingPrint> pageTrainingPrints(TrainingPrintQuery request) {
+        var actor = request.actor();
+        requireActor(actor);
+        actionProjection.require(actor.userId(), "pms:imp-training:query");
+        var query = new DynamicFormTemplatePageQuery(actor.tenantId(), null,
+                "TRAINING_PRINT_FORM", "ENABLED", true, offset(request.pageNo(), request.pageSize()), request.pageSize());
+        long total = templateMapper.selectCountPage(query);
+        if (total == 0) return new DynamicFormViews.Page<>(List.of(), 0);
+        var list = templateMapper.selectPage(query).stream().map(template -> {
+            var revision = requireRevision(actor.tenantId(), template.getCurrentPublishedRevisionId());
+            if (!"PUBLISHED".equals(revision.getStatusCode()) || !Objects.equals(template.getId(), revision.getTemplateId()))
+                throw exception(DYNAMIC_FORM_TEMPLATE_NOT_FOUND);
+            return new DynamicFormViews.TrainingPrint(template.getId(), template.getTemplateName(), revision.getId(),
+                    revision.getPublishedAt(), JsonUtils.parseTree(revision.getFormConfJson()), JsonUtils.parseTree(revision.getFormRulesJson()));
+        }).toList();
+        return new DynamicFormViews.Page<>(list, total);
+    }
+
     public DynamicFormViews.Page<DynamicFormViews.InstanceSummary> pageInstances(
             DynamicFormCommands.Actor actor, int pageNo, int pageSize) {
         requireActor(actor);
