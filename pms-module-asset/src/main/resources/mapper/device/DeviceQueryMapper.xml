@@ -82,13 +82,32 @@
         </if>
     </sql>
 
+    <select id="selectProjectCandidates" resultType="java.lang.Long">
+        SELECT DISTINCT d.project_id
+        FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+          AND d.project_id IS NOT NULL
+        UNION
+        SELECT DISTINCT r.project_id
+        FROM ast_device_project_relationship r
+        WHERE r.tenant_id = #{query.tenantId} AND r.deleted = b'0'
+          AND r.project_id IS NOT NULL
+        <!-- 候选保留未来/过期关系，最终可见查询仍独立校验有效期，避免候选与分页时点差。 -->
+    </select>
+
     <select id="selectContractCandidates" resultType="java.lang.String">
         SELECT DISTINCT CAST(d.contract_no AS BINARY)
         FROM ast_device d
-        <if test="query.deviceId == null"><include refid="unfilteredVisibilityIndex"/></if>
+        <if test="query.deviceId == null and query.authorizedContractNumbers == null"><include refid="unfilteredVisibilityIndex"/></if>
         WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
           AND d.contract_no IS NOT NULL AND d.contract_no &lt;&gt; ''
           AND NOT COALESCE((<include refid="deviceOrganizationVisibility"/>), FALSE)
+        <if test="query.authorizedContractNumbers != null">
+            <choose><when test="!query.authorizedContractNumbers.isEmpty()">
+                AND d.contract_no IN
+                <foreach collection="query.authorizedContractNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
+            </when><otherwise>AND 1=0</otherwise></choose>
+        </if>
         <if test="query.deviceId != null">AND d.id = #{query.deviceId}</if>
         <include refid="deviceSearchFilters"/>
         <include refid="deviceListNameFilters"/>
@@ -194,9 +213,8 @@
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
 
-    <select id="selectVisibleDeviceList" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection">
-        WITH device_page AS (
-            SELECT d.id AS device_id,
+    <sql id="deviceListColumns">
+        d.id AS device_id,
                    d.sn,
                    d.name,
                    d.status,
@@ -227,6 +245,11 @@
                    d.organization_source,
                    nv.boot_version,
                    nv.cpld_version
+    </sql>
+
+    <select id="selectVisibleDeviceList" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection">
+        WITH device_page AS (
+            SELECT <include refid="deviceListColumns"/>
             FROM ast_device d
             LEFT JOIN ast_device_network_version nv ON nv.tenant_id = d.tenant_id
               AND nv.device_sn = d.sn AND nv.deleted = b'0' AND nv.source_system = 'DEVICE_LOG'
@@ -258,7 +281,7 @@
     <select id="selectVisibleDeviceCount" resultType="long">
         SELECT COUNT(*)
         FROM ast_device d
-        <include refid="unfilteredVisibilityIndex"/>
+        <!-- 计数允许优化器选择更窄的合同/项目索引，不强制扫描组织覆盖索引。 -->
         WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
         <include refid="deviceVisibility"/>
         <include refid="deviceSearchFilters"/>

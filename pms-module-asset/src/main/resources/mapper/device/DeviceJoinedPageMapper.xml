@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper">
+    <resultMap id="joinedPageDevice" type="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection" autoMapping="true"/>
+    <resultMap id="joinedPageRow" type="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DevicePageProjection">
+        <id property="deviceId" column="device_id"/>
+        <result property="total" column="total"/>
+        <association property="device" resultMap="joinedPageDevice" notNullColumn="device_id"/>
+    </resultMap>
+
+    <sql id="joinedDeviceVisibility">
+        AND (
+            <include refid="deviceOrganizationVisibility"/>
+            OR (EXISTS (SELECT 1 FROM visible_direct_projects)
+                AND d.project_id IN (SELECT project_id FROM visible_direct_projects))
+            OR (EXISTS (SELECT 1 FROM visible_related_devices)
+                AND d.sn IN (SELECT device_sn FROM visible_related_devices))
+            OR (EXISTS (SELECT 1 FROM visible_device_contracts)
+                AND CAST(d.contract_no AS BINARY) IN (SELECT contract_key FROM visible_device_contracts))
+        )
+    </sql>
+
+    <select id="selectJoinedDevicePageRows" resultMap="joinedPageRow">
+        WITH
+        <include refid="cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeSql.commonTables"/>,
+        device_filter_contract_keys AS (
+            <choose><when test="query.hasDeviceFilters()">
+                SELECT DISTINCT CAST(d.contract_no AS BINARY) AS contract_key
+                FROM ast_device d
+                WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+                  AND d.contract_no IS NOT NULL AND d.contract_no &lt;&gt; ''
+                <include refid="deviceSearchFilters"/>
+                <include refid="deviceListNameFilters"/>
+            </when><otherwise>SELECT NULL AS contract_key WHERE 1 = 0</otherwise></choose>
+        ),
+        <include refid="cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceReadScopeSql.commonTables"/>,
+        visible_direct_projects AS (
+            SELECT DISTINCT d.project_id
+            FROM ast_device d
+            JOIN visible_projects vp ON vp.project_id = d.project_id
+            WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0' AND d.project_id IS NOT NULL
+            <include refid="deviceSearchFilters"/>
+            <include refid="deviceListNameFilters"/>
+        ),
+        visible_related_devices AS (
+            SELECT DISTINCT r.device_sn
+            FROM ast_device_project_relationship r
+            JOIN visible_projects vp ON vp.project_id = r.project_id
+            WHERE r.tenant_id = #{query.tenantId} AND r.deleted = b'0'
+              AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
+              AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
+              <if test="query.sn != null and query.sn != ''">AND r.device_sn = #{query.sn}</if>
+        ),
+        device_totals AS (
+            SELECT COUNT(*) AS total
+            FROM ast_device d
+            WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+            <include refid="joinedDeviceVisibility"/>
+            <include refid="deviceSearchFilters"/>
+            <include refid="deviceListNameFilters"/>
+        ), device_page AS (
+            SELECT <include refid="deviceListColumns"/>
+            FROM ast_device d
+            LEFT JOIN ast_device_network_version nv ON nv.tenant_id = d.tenant_id
+              AND nv.device_sn = d.sn AND nv.deleted = b'0' AND nv.source_system = 'DEVICE_LOG'
+              AND (nv.sync_status IS NULL OR nv.sync_status &lt;&gt; 'NOT_AVAILABLE')
+            WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+            <include refid="joinedDeviceVisibility"/>
+            <include refid="deviceSearchFilters"/>
+            <include refid="deviceListNameFilters"/>
+            ORDER BY d.id DESC
+            LIMIT #{query.offset}, #{query.pageSize}
+        ), page_device_keys AS (
+            SELECT DISTINCT sn FROM device_page
+        ), renewal_counts AS (
+            SELECT wr.tenant_id, wr.device_sn, COUNT(*) AS extended_count
+            FROM page_device_keys k
+            JOIN ast_device_warranty_record wr ON wr.tenant_id = #{query.tenantId} AND wr.device_sn = k.sn
+            WHERE wr.deleted = b'0' AND wr.extended = b'1'
+            GROUP BY wr.tenant_id, wr.device_sn
+        )
+        SELECT p.*, COALESCE(rc.extended_count, 0) AS extended_count, totals.total
+        FROM device_totals totals
+        LEFT JOIN device_page p ON 1 = 1
+        LEFT JOIN renewal_counts rc ON rc.tenant_id = #{query.tenantId} AND rc.device_sn = p.sn
+        ORDER BY p.device_id DESC
+    </select>
+</mapper>

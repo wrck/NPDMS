@@ -7,7 +7,6 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDevicePageQuery;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery;
 import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,22 +32,12 @@ public class DeviceQueryService {
                     : java.util.Objects.requireNonNull(customers.findCustomerIdsByName(new cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi.NameQuery(tenantId, query.customerName())));
             if (matchingProjects != null && matchingProjects.isEmpty() || matchingCustomers != null && matchingCustomers.isEmpty()) return PageResult.empty();
             var grants = accessScopeService.organizationGrants(tenantId, SecurityFrameworkUtils.getLoginUserId());
-            var contracts = accessScopeService.contractScope(tenantId, SecurityFrameworkUtils.getLoginUserId(),
-                    DeviceContractCandidateQuery.builder()
-                    .tenantId(tenantId)
-                    .sn(query.sn())
-                    .productCode(query.productCode())
-                    .projectId(query.projectId())
-                    .customerId(query.customerId())
-                    .name(query.name())
-                    .status(query.status())
-                    .organizationGrants(grants)
-                    .matchingProjectIds(matchingProjects)
-                    .matchingCustomerIds(matchingCustomers)
-                    .departmentName(query.departmentName() == null ? null : query.departmentName().trim()).build());
+            var readScope = accessScopeService.pageReadScope(
+                    new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(
+                            tenantId, SecurityFrameworkUtils.getLoginUserId(),
+                            cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW));
             VisibleDevicePageQuery scopedQuery = VisibleDevicePageQuery.builder()
                     .tenantId(tenantId)
-                    .visibleProjectIds(accessScopeService.visibleProjectIds(tenantId, SecurityFrameworkUtils.getLoginUserId()))
                     .sn(query.sn())
                     .productCode(query.productCode())
                     .projectId(query.projectId())
@@ -60,9 +49,9 @@ public class DeviceQueryService {
                     .departmentName(query.departmentName() == null ? null : query.departmentName().trim())
                     .matchingProjectIds(matchingProjects)
                     .matchingCustomerIds(matchingCustomers)
-                    .visibleContractNumbers(contracts)
+                    .readScope(readScope)
                     .organizationGrants(grants).build();
-            return deviceMapper.selectVisibleDevicePage(scopedQuery);
+            return deviceMapper.selectJoinedDevicePage(scopedQuery);
         }
     }
 

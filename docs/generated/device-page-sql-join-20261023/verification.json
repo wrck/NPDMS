@@ -1,0 +1,140 @@
+{
+  "passed": true,
+  "readOnlyTarget": "172.17.90.178:13306/npdms",
+  "nativeDriver": "MySQL Connector/J",
+  "usesRealMyBatisParameterHandlerAndTenantInterceptor": true,
+  "nativeJobs": 24,
+  "liveScenarioLabels": [
+    "joined-full",
+    "joined-second-page",
+    "joined-no-result",
+    "joined-serial"
+  ],
+  "fixtureScenarios": 14,
+  "projectScopeIdsEqual": 79429,
+  "authorizedRawContractKeys": 79187,
+  "total": 3154458,
+  "firstPageFullProjectionAndOrderEqual": true,
+  "secondPageDisjointAndOrdered": true,
+  "defaultSerialSqlSeconds": 0.7755851,
+  "pipelineBeforeSeconds": 5.8626818,
+  "joinedFirstPageSeconds": 4.2922965,
+  "joinedSecondPageSeconds": 3.8276721,
+  "sqlImprovementPercent": 26.78612542130463,
+  "defaultBoundParameters": 12,
+  "defaultTenantSqlCharacters": 4564,
+  "defaultGenerationSeconds": 0.1507276,
+  "defaultTenantRewriteSeconds": 0.3693048,
+  "noSchemaOrBusinessWrites": true,
+  "noDeploymentOrPageAcceptance": true,
+  "sourceSqlSha256": "51471e483fdb15b961152ce05b13a71a608c133a5a63f513cf5ac41b7a048ad2",
+  "evidenceDirectory": "D:\\CodexTaskArtifacts\\project-detail-followup\\device-page-sql-followup-20261023",
+  "checks": {
+    "classes": 12,
+    "tests": 62,
+    "reports": [
+      {
+        "module": "pms-module-asset",
+        "name": "cn.iocoder.yudao.module.pms.asset.service.device.DefaultDevicePagePerformanceTest",
+        "tests": "8",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "module": "pms-module-asset",
+        "name": "cn.iocoder.yudao.module.pms.asset.dal.DeviceVisibilityCandidateSqlTest",
+        "tests": "3",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "module": "pms-module-asset",
+        "name": "cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeServiceTest",
+        "tests": "5",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "module": "pms-module-asset",
+        "name": "cn.iocoder.yudao.module.pms.asset.dal.DeviceVisibilitySqlTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "module": "pms-module-asset",
+        "name": "cn.iocoder.yudao.module.pms.asset.dal.DeviceSerialPageSqlTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "module": "pms-module-asset",
+        "name": "cn.iocoder.yudao.module.pms.asset.dal.DeviceNameFilterSqlTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "module": "pms-module-asset",
+        "name": "cn.iocoder.yudao.module.pms.asset.dal.DeviceJoinedPageSqlTest",
+        "tests": "8",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "module": "pms-module-commerce",
+        "name": "cn.iocoder.yudao.module.pms.commerce.dal.DeviceContractScopeSqlTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "module": "pms-module-project",
+        "name": "cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeServiceTest",
+        "tests": "21",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "module": "pms-module-project",
+        "name": "cn.iocoder.yudao.module.pms.project.dal.ProjectScopeBatchSqlTest",
+        "tests": "1",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "module": "pms-module-asset",
+        "name": "cn.iocoder.yudao.module.pms.asset.service.device.DeviceQueryServiceTest",
+        "tests": "8",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "module": "yudao-server",
+        "name": "cn.iocoder.yudao.DeviceListAuthorizationReuseTest",
+        "tests": "4",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      }
+    ],
+    "proofs": [
+      "D:\\CodexTaskArtifacts\\project-detail-followup\\domain-merge-20261023-092829\\backend-tests-20261023-180426\\proof.json",
+      "D:\\CodexTaskArtifacts\\project-detail-followup\\domain-merge-20261023-092829\\backend-tests-20261023-180959\\proof.json"
+    ],
+    "stableFinalProof": "D:\\CodexTaskArtifacts\\project-detail-followup\\domain-merge-20261023-092829\\backend-tests-20261023-180959\\proof.json",
+    "finalProofPassed": true
+  }
+}

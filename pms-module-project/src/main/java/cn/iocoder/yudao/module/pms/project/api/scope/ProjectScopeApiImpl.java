@@ -14,9 +14,14 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-public class ProjectScopeApiImpl implements ProjectScopeApi {
+public class ProjectScopeApiImpl implements ProjectScopeApi, ProjectViewReadScopeApi {
 
     private final ProjectTreeScopeService scopeService;
+
+    @Override
+    public ReadScope prepare(ProjectAllScopeQuery query) {
+        return scopeService.prepareViewReadScope(query);
+    }
 
     @Override
     public ProjectScopeResult resolve(ProjectScopeQuery query) {

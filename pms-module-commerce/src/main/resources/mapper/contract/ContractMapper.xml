@@ -51,13 +51,14 @@
 
     <select id="selectVisibleDeviceContractNumbers" resultType="java.lang.String">
         SELECT c.contract_no
-        FROM com_contract c
-        JOIN (SELECT contract_no FROM com_contract
+        <!-- COUNT=1时聚合字段即原行值，直接承接，省去按合同号回连主表。 -->
+        FROM (SELECT MAX(id) AS id, MAX(tenant_id) AS tenant_id,
+                     contract_no, MAX(company_code) AS company_code
+              FROM com_contract
               WHERE tenant_id = #{query.tenantId} AND deleted = 0
               <include refid="deviceContractCandidates"/>
-              GROUP BY contract_no HAVING COUNT(*) = 1) unique_number
-          ON unique_number.contract_no = c.contract_no
-        WHERE c.tenant_id = #{query.tenantId} AND c.deleted = 0
+              GROUP BY contract_no HAVING COUNT(*) = 1) c
+        WHERE c.tenant_id = #{query.tenantId}
           AND c.contract_no IS NOT NULL AND c.contract_no &lt;&gt; ''
           AND NOT EXISTS (SELECT 1 FROM com_shipment_contract_reference shipment
               WHERE shipment.tenant_id=c.tenant_id AND shipment.deleted=0 AND shipment.contract_no=c.contract_no

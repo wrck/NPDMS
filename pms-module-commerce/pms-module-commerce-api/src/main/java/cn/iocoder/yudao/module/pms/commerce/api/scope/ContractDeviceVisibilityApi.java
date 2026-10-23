@@ -3,6 +3,12 @@ import java.util.Set;
 import java.util.List;
 /** 设备授权使用的只读合同范围及组织事实；不按合同号猜测跨公司归属。 */
 public interface ContractDeviceVisibilityApi {
+    /** 关联查询的小范围输入；完整合同授权由配套ContractDeviceReadScopeSql维护，不展开合同号。 */
+    record ReadScopeQuery(Long tenantId, Long subjectUserId) {}
+    record ReadScope(java.util.List<String> companyCodes) {
+        public ReadScope { companyCodes = java.util.List.copyOf(companyCodes); }
+    }
+    ReadScope prepareReadScope(ReadScopeQuery query);
     record Organization(String contractNo, Long companyId, String companyName,
                         Long departmentId, String departmentCode, String departmentName) {}
     Set<String> getVisibleContractNumbers(Long tenantId, Long userId);

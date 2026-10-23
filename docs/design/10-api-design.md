@@ -140,6 +140,8 @@ PM-01创建请求可携带`serviceManagerUserId`作为人工确认的一级服�
 
 PLT公开`AuthorizationGrantApi`完成授权创建、撤销和按主体/资源/动作/有效时点查询，不读取项目树。PROJ公开`ProjectScopeApi`，合并当前成员关系、PLT有效授权和当前完整项目树版本；其他模块不得访问双方Service、Mapper、Repository或表。
 
+设备清单的SQL关联读取使用PROJ公开`ProjectViewReadScopeApi.prepare(ProjectAllScopeQuery)`及API资源中的固定`ProjectViewReadScopeSql.commonTables`，PLT有效授权条件由API固定`ProjectViewGrantReadSql.effectiveGrants`提供；消费者只组合Owner维护的片段，不自行查询对方表、不传入SQL文本或表名。上下文只含当前租户/主体、既有管理员身份、已复核根树版本与读取时点，不枚举全部项目ID。COM通过`ContractDeviceVisibilityApi.prepareReadScope`及固定`ContractDeviceReadScopeSql.commonTables`组合正式项目可见范围，仍要求原合同号唯一、公司冲突保护和既有有效项目合同关系；AST在SQL中按原文精确匹配合同，计数与分页复用同一授权CTE。该契约仅供关联只读，不替代修改操作的Owner授权和版本重校验。
+
 ### 5.3 PM-05 借货项目转销契约
 
 | 路径 | 操作 | 输入/输出 | 业务守卫 |
