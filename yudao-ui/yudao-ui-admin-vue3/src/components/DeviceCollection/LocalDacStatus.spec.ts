@@ -35,7 +35,7 @@ it('shows protocol startup on an HTTP page and discovers readiness while polling
     expect(textOf(m.root)).toContain('下载并安装 DAC')
     expect(textOf(m.root)).not.toContain('未安装 DAC')
     const link = findByTestId(m.root, 'dac-installer-download')
-    expect(link?.props?.href).toBe('/downloads/dac/NPDMS-DAC-1.0.5-x64.msi')
+    expect(link?.props?.href).toBe('/downloads/dac/NPDMS-DAC-1.0.6-x64.msi')
     await vi.advanceTimersByTimeAsync(1500)
     await flush()
     expect(textOf(m.root)).toContain('本机 DAC 已就绪')
@@ -51,6 +51,6 @@ it('offers an installer update for an incompatible DAC', async () => {
   try {
     await flush()
     expect(textOf(m.root)).toContain('下载更新 DAC')
-    expect(findByTestId(m.root, 'dac-installer-download')?.props?.href).toBe('/downloads/dac/NPDMS-DAC-1.0.5-x64.msi')
+    expect(findByTestId(m.root, 'dac-installer-download')?.props?.href).toBe('/downloads/dac/NPDMS-DAC-1.0.6-x64.msi')
   } finally { m.app.unmount() }
 })

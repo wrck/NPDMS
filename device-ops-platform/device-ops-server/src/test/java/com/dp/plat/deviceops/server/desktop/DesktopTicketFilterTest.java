@@ -21,7 +21,7 @@ class DesktopTicketFilterTest {
     }
 
     @Test void serverGrantIsBoundToOneProjectAndAuthenticationIsCleared() throws Exception {
-        when(server.resolve(any())).thenReturn(new DesktopServerClient.Grant(1, 42, "7", "npdms-1", "TASK_READ", "task-1", null, null, null));
+        when(server.resolve(any())).thenReturn(new DesktopServerClient.Grant(1, 42, "7", "npdms-1", "TASK_READ", "task-1", null, null, null, null));
         var request = request("https://web.example");
         var called = new AtomicBoolean();
         filter.doFilter(request, new MockHttpServletResponse(), (a,b) -> {

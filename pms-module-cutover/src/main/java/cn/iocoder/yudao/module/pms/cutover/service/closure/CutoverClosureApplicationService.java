@@ -254,7 +254,7 @@ public class CutoverClosureApplicationService {
                 .originalFailedCollectionTaskId(null)
                 .manualAttachmentId(null)
                 .occurredAt(now)
-                .recordedBy(result.actorId())
+                .recordedBy(0L)
                 .build());
         advanceClosure(result.tenantId(), closure, result.actorId());
     }

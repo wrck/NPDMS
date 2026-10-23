@@ -19,7 +19,7 @@ class CutoverPlanFileReferenceTest {
         var task = new CutoverTaskDO(); task.setId(50L); task.setTenantId(1L); task.setProjectId(70L);
         when(tasks.selectById(50L)).thenReturn(task);
         var port = new CutoverFileAdapters().cutoverPlanFilePort(api, evidence, mock(NativeGeneratedFileApi.class), tasks,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
         var handle = CutoverPlanFilePort.FileHandle.builder().artifactId(901L).versionNo(2).referenceKey("plan-slot")
                 .fileFactVersion(new CutoverPlanFilePort.FileFactVersion(1, 0, 3)).scopeVersion(30L).build();
         var exact = new FileArtifactVersionQuery(901L, 2, "CUT", "CUTOVER_PLAN", "50", "FULL_PLAN", "plan-slot", FileActionCodes.READ);

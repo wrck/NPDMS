@@ -72,7 +72,7 @@ public class DacDesktopDispatchService implements DeviceOpsDesktopApi {
         if (!isDesktop(row) || !Objects.equals(row.getActorId(), command.actorId())
                 || !Objects.equals(row.getProjectId(), command.projectId())) conflict();
         return issue(new Claims(command.tenantId(), command.actorId(), command.projectId(), "EXECUTE",
-                command.platformTaskId(), Instant.now().getEpochSecond()));
+                command.platformTaskId(), Instant.now().getEpochSecond(), null));
     }
 
     @Override public Ticket access(Access command) {
@@ -83,8 +83,11 @@ public class DacDesktopDispatchService implements DeviceOpsDesktopApi {
             var row = required(command.platformTaskId(), false);
             if (!Objects.equals(row.getProjectId(), command.projectId())) reject();
         } else if (command.platformTaskId() != null) reject();
+        if (!"TASK_READ".equals(command.operation()) && (command.connectionScope()==null
+                || !Set.of("SSH2","TELNET").contains(Objects.toString(command.connectionScope().protocol(),""))
+                || (command.connectionScope().deviceId()!=null && !command.connectionScope().deviceId().matches("[1-9][0-9]*")))) reject();
         return issue(new Claims(command.tenantId(), command.actorId(), command.projectId(), command.operation(),
-                command.platformTaskId(), Instant.now().getEpochSecond()));
+                command.platformTaskId(), Instant.now().getEpochSecond(), command.connectionScope()));
     }
 
     public Grant resolve(String ticket) {
@@ -94,6 +97,7 @@ public class DacDesktopDispatchService implements DeviceOpsDesktopApi {
         Map<String, Object> submission = null;
         ExpectedConnection connection = null;
         String taskToken = null;
+        var connectionScope = claims.connectionScope();
         if (Set.of("EXECUTE", "TASK_READ").contains(claims.operation())) {
             var row = required(claims.platformTaskId(), false);
             if (!Objects.equals(row.getProjectId(), claims.projectId()) || !namespace.equals(row.getNamespace())) reject();
@@ -112,10 +116,11 @@ public class DacDesktopDispatchService implements DeviceOpsDesktopApi {
                 connection = new ExpectedConnection(task.host(), task.port(), DacCollectionPayloadFactory.protocol(task.protocol()),
                         snapshot.username(), snapshot.localConnectionId(), snapshot.localConnectionVersion());
                 taskToken = taskToken(task.platformTaskId());
+                connectionScope = new DeviceOpsDesktopApi.ConnectionScope(task.deviceId(), DacCollectionPayloadFactory.protocol(task.protocol()));
             }
         }
         return new Grant(claims.tenantId(), claims.actorId(), claims.projectId(), namespace, claims.operation(),
-                claims.platformTaskId(), submission, connection, taskToken);
+                claims.platformTaskId(), submission, connection, taskToken, connectionScope);
     }
 
     @Transactional(rollbackFor=Exception.class)
@@ -239,9 +244,11 @@ public class DacDesktopDispatchService implements DeviceOpsDesktopApi {
     private static void reject() { throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "DAC_DESKTOP_AUTHORIZATION_REJECTED"); }
     private static void conflict() { throw new ResponseStatusException(HttpStatus.CONFLICT, "DAC_DESKTOP_TASK_BINDING_CONFLICT"); }
 
-    record Claims(Long tenantId, Long actorId, String projectId, String operation, String platformTaskId, long issuedAt) { }
+    record Claims(Long tenantId, Long actorId, String projectId, String operation, String platformTaskId, long issuedAt,
+                  DeviceOpsDesktopApi.ConnectionScope connectionScope) { }
     public record Grant(Long tenantId, Long actorId, String projectId, String namespace, String operation, String platformTaskId,
-                        Map<String, Object> submission, ExpectedConnection connection, String taskToken) {
+                        Map<String, Object> submission, ExpectedConnection connection, String taskToken,
+                        DeviceOpsDesktopApi.ConnectionScope connectionScope) {
         @Override public String toString() { return "DesktopGrant[redacted]"; }
     }
     public record ExpectedConnection(String host, Integer port, String protocol, String username, String savedConnectionId, Long savedConnectionVersion) { }

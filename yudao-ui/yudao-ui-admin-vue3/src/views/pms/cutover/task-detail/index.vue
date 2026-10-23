@@ -88,6 +88,7 @@ v-if="detail.task.currentStage === 'P2' && detail.assessmentSubmissionBlockReaso
         </el-button>
       </template>
     </el-dialog>
+    <DraftLeaveDialog v-if="leaveDialogVisible" @decision="resolveLeaveDecision" />
   </section>
 </template>
 
@@ -95,6 +96,8 @@ v-if="detail.task.currentStage === 'P2' && detail.assessmentSubmissionBlockReaso
 import '../shared/cutover.css'
 import { checkPermi } from '@/utils/permission'
 import { useMessage } from '@/hooks/web/useMessage'
+import DraftLeaveDialog from '@/components/DraftLeaveDialog/index.vue'
+import { useDraftLeaveGuard } from '@/hooks/web/useDraftLeaveGuard'
 import * as CutoverApi from '@/api/pms/cutover'
 import type { AssessmentAnswers, CutoverTaskDetail, ManualGrade, WireLong } from '@/api/pms/cutover'
 import { activeCutoverStagePanel, createCutoverWriteCoordinator } from '../shared/cutoverTaskInteraction'
@@ -297,27 +300,34 @@ const assessmentDirty = () => !!detail.value && activeStagePanel.value === 'ASSE
   && (JSON.stringify(detail.value.assessment?.answers || emptyAnswers()) !== JSON.stringify(assessmentModel.answers)
     || (detail.value.assessment?.manualGrade || null) !== assessmentModel.manualGrade
     || (detail.value.assessment?.manualCustomerServiceLevelCode || null) !== assessmentModel.manualCustomerServiceLevelCode)
-const saveBeforeLeave = async () => {
-  try {
-    if (activeStagePanel.value === 'PLAN') return await planPanel.value?.saveBeforeLeave?.() ?? true
-    if (activeStagePanel.value === 'CHECKLIST') return await checklistPanel.value?.saveBeforeLeave?.() ?? true
-    if (!assessmentDirty()) return true
-    if (saving.value || submitting.value) { message.warning('请等待评估保存完成后再离开。'); return false }
+const { requestLeave: leaveAssessment, hasPendingDraft: assessmentPending, leaveDialogVisible, resolveLeaveDecision } = useDraftLeaveGuard({
+  hasPending: assessmentDirty,
+  stateKey: () => JSON.stringify([props.taskId, assessmentModel]),
+  isBusy: () => saving.value || submitting.value,
+  warnBusy: () => message.warning('请等待评估保存完成后再离开。'),
+  save: async () => {
     if (readonly.value || !detail.value?.allowedActions.includes('SAVE_ASSESSMENT')) {
       message.warning('评估填写尚未保存，当前状态不能保存；填写已保留。'); return false
     }
     saving.value = true
     try { return await persistAssessment() } finally { saving.value = false }
-  } catch {
-    message.warning('草稿保存未完成，当前填写已保留，请保存成功后再离开。')
-    return false
+  },
+  discard: () => {
+    Object.assign(assessmentModel.answers, detail.value?.assessment?.answers || emptyAnswers())
+    assessmentModel.manualGrade = detail.value?.assessment?.manualGrade || null
+    assessmentModel.manualCustomerServiceLevelCode = detail.value?.assessment?.manualCustomerServiceLevelCode || null
   }
+})
+const saveBeforeLeave = async () => {
+  if (activeStagePanel.value === 'PLAN') return await planPanel.value?.saveBeforeLeave?.() ?? true
+  if (activeStagePanel.value === 'CHECKLIST') return await checklistPanel.value?.saveBeforeLeave?.() ?? true
+  return leaveAssessment()
 }
 const selectStage = async (stage: CutoverApi.CutoverStage) => {
   if (stage !== selectedStage.value && await saveBeforeLeave()) selectedStage.value = stage
 }
 const closeDetail = async () => { if (await saveBeforeLeave()) emit('close') }
-const hasPendingDraft = () => assessmentDirty() || !!planPanel.value?.hasPendingDraft?.()
+const hasPendingDraft = () => assessmentPending() || !!planPanel.value?.hasPendingDraft?.()
   || !!checklistPanel.value?.hasPendingDraft?.()
 const beforeUnload = (event: BeforeUnloadEvent) => {
   if (hasPendingDraft()) { event.preventDefault(); event.returnValue = '' }

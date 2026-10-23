@@ -74,8 +74,67 @@ class DesktopHttpSecurityTest {
         verify(server, never()).resolve(any());
     }
 
+    @Test void savedConnectionsUseDeviceFirstThenProjectAndNeverExposeSecretsOrUnboundHistory() throws Exception {
+        String first=saveScopedConnection(42,"npdms-1","7","9");
+        String otherDevice=saveScopedConnection(42,"npdms-1","7","10");
+        String otherProject=saveScopedConnection(42,"npdms-1","8","11");
+        String projectOnly=saveScopedConnection(42,"npdms-1","7",null);
+        saveScopedConnection(43,"npdms-1","7","9");
+        saveScopedConnection(42,"npdms-2","7","9");
+        String legacy=saveScopedConnection(42,"npdms-1","7","9");
+        jdbc.sql("DELETE FROM device_ops_desktop_connection_scope WHERE connection_id=:id").param("id",legacy).update();
+        String response=readScopedConnections("7","9","SSH2");
+        var items=new ObjectMapper().readTree(response).path("items");
+        assertEquals(1,items.size()); assertEquals(first,items.get(0).path("id").asText());
+        assertFalse(response.contains("scope-fixture-secret"));
+        assertFalse(response.contains("ciphertext"));
+        assertEquals(0,new ObjectMapper().readTree(readScopedConnections("7","99","SSH2")).path("items").size());
+        assertEquals(0,new ObjectMapper().readTree(readScopedConnections("7","9","TELNET")).path("items").size());
+        var projectItems=new ObjectMapper().readTree(readScopedConnections("7",null,"SSH2")).path("items");
+        assertEquals(3,projectItems.size());
+        var ids=new HashSet<String>(); projectItems.forEach(item -> ids.add(item.path("id").asText()));
+        assertEquals(Set.of(first,otherDevice,projectOnly),ids); assertFalse(ids.contains(otherProject));
+        // A device keeps priority if its project context changes; no unrelated project fallback.
+        assertEquals(first,new ObjectMapper().readTree(readScopedConnections("8","9","SSH2")).path("items").get(0).path("id").asText());
+        when(server.resolve(any())).thenReturn(new DesktopServerClient.Grant(1,42,"7","npdms-1","EXECUTE","wrong-device-task",
+                Map.of("connection",Map.of()),new DesktopServerClient.ExpectedConnection("192.0.2.20",22,"SSH2","fixture",first,0L),
+                "fixture-task-token",new DesktopServerClient.ConnectionScope("10","SSH2")));
+        mvc.perform(post("/api/v1/desktop/tasks/wrong-device-task/executions").header("Origin","http://10.210.0.11:19191")
+                .header("X-NPDMS-DAC-Ticket","scope-ticket").header("tenant-id","1").contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden());
+        verify(server,never()).claim(any());
+    }
+
+    @Test void scopeLessServerTicketsFailClosedForConnectionReads() throws Exception {
+        when(server.resolve(any())).thenReturn(new DesktopServerClient.Grant(1,42,"7","npdms-1","CONNECTIONS_READ",null,null,null,null,null));
+        mvc.perform(get("/api/v1/desktop/saved-connections").header("Origin","http://10.210.0.11:19191")
+                .header("X-NPDMS-DAC-Ticket","scope-ticket").header("tenant-id","1")).andExpect(status().isConflict());
+    }
+
+    private String saveScopedConnection(long owner,String namespace,String project,String device) throws Exception {
+        when(server.resolve(any())).thenReturn(new DesktopServerClient.Grant(1,owner,project,namespace,"CONNECTION_SAVE",null,null,null,null,
+                new DesktopServerClient.ConnectionScope(device,"SSH2")));
+        String id=UUID.randomUUID().toString();
+        String body=new ObjectMapper().writeValueAsString(Map.of("requestKey",id,"displayName","scope fixture "+id,
+                "connection",Map.of("protocol","SSH2","host","192.0.2.20","port",22,"username","fixture",
+                        "authenticationType","PASSWORD","executionMode","SHELL","connectTimeoutSeconds",5,"password","scope-fixture-secret")));
+        mvc.perform(post("/api/v1/desktop/saved-connections").header("Origin","http://10.210.0.11:19191")
+                .header("X-NPDMS-DAC-Ticket","scope-ticket").header("tenant-id","1").contentType("application/json").content(body))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.saved").value(true));
+        return id;
+    }
+
+    private String readScopedConnections(String project,String device,String protocol) throws Exception {
+        when(server.resolve(any())).thenReturn(new DesktopServerClient.Grant(1,42,project,"npdms-1","CONNECTIONS_READ",null,null,null,null,
+                new DesktopServerClient.ConnectionScope(device,protocol)));
+        return mvc.perform(get("/api/v1/desktop/saved-connections").header("Origin","http://10.210.0.11:19191")
+                .header("X-NPDMS-DAC-Ticket","scope-ticket").header("tenant-id","1"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+    }
+
     @Test void readCapabilityCannotExecuteAndValidConnectionReadUsesOwnerScopedStorage() throws Exception {
-        when(server.resolve(any())).thenReturn(new DesktopServerClient.Grant(1, 42, "7", "npdms-1", "CONNECTIONS_READ", null, null, null, null));
+        when(server.resolve(any())).thenReturn(new DesktopServerClient.Grant(1, 42, "7", "npdms-1", "CONNECTIONS_READ", null, null, null, null,
+                new DesktopServerClient.ConnectionScope("9", "SSH2")));
         mvc.perform(get("/api/v1/desktop/saved-connections").header("Origin", "http://10.210.0.11:19191")
                 .header("X-NPDMS-DAC-Ticket", "test-ticket").header("tenant-id", "1"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty());
@@ -99,7 +158,8 @@ class DesktopHttpSecurityTest {
                 "commandTimeoutSeconds", 30, "parseTimeoutSeconds", 30, "leaseGraceSeconds", 0);
         when(server.callbackUrl()).thenReturn(callback);
         when(server.resolve(any())).thenReturn(new DesktopServerClient.Grant(1, 42, "7", "npdms-1", "EXECUTE", taskId,
-                submission, new DesktopServerClient.ExpectedConnection("192.0.2.10", 22, "SSH2", "operator", null, null), "fixture-task-token-01234567890123456789"));
+                submission, new DesktopServerClient.ExpectedConnection("192.0.2.10", 22, "SSH2", "operator", null, null), "fixture-task-token-01234567890123456789",
+                new DesktopServerClient.ConnectionScope("9", "SSH2")));
         when(commands.execute(any(), any(), any(), eq(commandText), any(), any())).thenReturn(
                 new CommandExecutionPort.CommandResult(0, "version fixture", "", false, false, 1,
                         List.of(CommandOutputBlock.legacy("version fixture", "", 0, false, Map.of(), null))));

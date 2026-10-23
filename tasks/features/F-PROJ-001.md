@@ -116,3 +116,9 @@ FB-02 日期/节点规则已确认；客户精确筛选与超期查询、双标�
 真实浏览器旧版基线（19191/59191，admin）：6698条项目、13次项目分页请求，网络空闲完成约2.942秒，无pageerror；截图 `.run/project-list-baseline.png`，请求证据 `.run/project-list-baseline.json`。只读MySQL EXPLAIN ANALYZE及3次新SQL执行87～106毫秒，12项计数与基线截图一致，阶段/任务命中现有租户+项目索引，未新增索引或迁移。证据 `.run/project-statistics-explain.json`。这些SQL结果不代表优化后页面耗时；当前后端尚未部署本增量，真实新接口与逐卡浏览器验收待用户明确批准重启59191后执行，脚本 `.run/project-statistics-browser.py` 已备好。
 
 本增量最终受控打包成功，冻结清单 `.run/build/releases/3947e645-b785-46b3-94bd-5c3f4bacab09/manifest.json`；`scripts/worktree-backend.ps1 -ValidateOnly`通过，22项运行修复基线与local,dac配置保持。该包来自当前整个工作树，包含其他已有未提交改动；尚未部署、重启、提交或推送。部署需按AGENTS.md取得本次明确重启批准，之后执行已准备的真实浏览器逐卡一致性/请求数/耗时验收。最初测试编译遗漏JSQLParserException声明已在范围内修复，修复后37项通过；保留首次失败与最终结果日志，不将首次构建失败说成通过。
+
+### 2026-10-23 普通用户全部项目权限改为批量树事实读取
+
+按需求方授权，ProjectTreeScopeService.resolveAllFullProjectIds 保留候选发现（成员、创建人及Owner授权分页）和既有三种动作判定，普通用户不再逐树调用 resolve 查库。新增场景Query及Mapper XML：按租户/根集合以ROW_NUMBER选最新ACTIVE版本（tree_version、id倒序），按精确根/版本对批量取根路径，按每棵树自身的授权锚点集合批量取后代路径；空根/树/锚点集合失败关闭。候选版本发现后批量检查根项目，再批量复核版本，保留失配/缺失的失败行为。发现阶段不冻结最终授权：成员、创建人均在授权阶段再批量读取；权限动作、有效时点、VIEW附加MANAGE授权、EDIT映射MANAGE、仅显式后代授权扩展及租户边界保持。完整ID集合不计算无消费者的路径占位节点；单树resolve/resolveCurrent及写入lockAndRevalidate原路径不变。
+
+固定工具链与工作树构建锁下55项相关测试通过：18项原单树权限测试、5项批量权限测试、1项真实Mapper SQL测试及31项设备/合同/装配链回归。多树三动作与原单树结果逐棵对照一致；覆盖跨树锚点隔离、无活动版本、版本变化、缺失根、Owner失败、发现后成员/创建人撤销、角色复核和空集合。MySQL只读验证3棵实际树及35条根/后代路径，新旧查询结果一致，4种空集合返回空结果。首次测试等待其他构建释放锁，未绕过锁；最新源文件已编译并完成重跑。日志见 .run/project-scope-batch-tests.log、.run/project-scope-batch-retest.log，结果见 .run/project-scope-batch-results.json、.run/project-scope-batch-mysql.json。未修改业务数据，未部署、未重启服务；不以这些证据宣称运行接口已切换或整体时延已提升。

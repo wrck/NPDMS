@@ -163,6 +163,7 @@ owner-context="CUT" object-type="CUTOVER_PLAN" :object-id="String(taskId)"
         </div>
       </details>
     </template>
+    <DraftLeaveDialog v-if="leaveDialogVisible" @decision="resolveLeaveDecision" />
   </section>
 </template>
 
@@ -184,6 +185,9 @@ import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import PmsFileVersionReferenceList from '@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue'
 import type { FileSelection } from '@/components/PmsFileArtifact'
 import { useMessage } from '@/hooks/web/useMessage'
+import DraftLeaveDialog from '@/components/DraftLeaveDialog/index.vue'
+import { useDraftLeaveGuard } from '@/hooks/web/useDraftLeaveGuard'
+import { useDraftUploads } from '@/hooks/web/useDraftUploads'
 import { downloadSubmittedPlanFile } from '../shared/cutoverSubmittedPlanDownload'
 import {
   createCutoverPlanIntentStore,
@@ -199,6 +203,7 @@ import { surveyPlanDescription, surveyPlanFile } from '../shared/cutoverPlanSurv
 const props = defineProps<{ taskId: string | number; taskVersion: number; manualGrade: ManualGrade | null; readonly?: boolean; actionsTarget?: HTMLElement }>()
 const emit = defineEmits<{ changed: [] }>()
 const message = useMessage()
+const uploads = useDraftUploads()
 const loading = ref(false)
 const deviceFillError = ref('')
 const surveyItems = ref<import('@/api/pms/cutover').CutoverChecklistItem[]>([])
@@ -477,17 +482,28 @@ const hasUnsavedChanges = computed(() => !!draftContent.value && !!plan.value?.c
   && (JSON.stringify(contentForSave(draftContent.value)) !== JSON.stringify(contentForSave(plan.value.content))
     || draftContent.value.editMode === 'ONLINE_TEMPLATE_STANDARD' && !draftContent.value.overview.preTopologyFile
       && !!surveyPlanFile(surveyItems.value, 'SURVEY_CURRENT_TOPOLOGY')))
-const saveBeforeLeave = async () => {
-  if (editorFileStatePending.value) { message.warning('文件状态正在读取，请稍后再离开。'); return false }
-  if (loading.value || pendingUploads.value || writing.value) { message.warning('请等待当前读取、上传或保存完成后再离开。'); return false }
-  if (!hasUnsavedChanges.value) return true
-  if (!plan.value?.allowedActions.includes('SAVE_DRAFT') || props.readonly) {
-    message.warning('当前填写尚未保存，权限或方案状态已变化；填写已保留，暂不能离开。')
-    return false
+const { requestLeave: saveBeforeLeave, hasPendingDraft, leaveDialogVisible, resolveLeaveDecision } = useDraftLeaveGuard({
+  hasPending: () => hasUnsavedChanges.value || pendingUploads.value || uploads.pending.value,
+  stateKey: () => JSON.stringify([props.taskId, plan.value?.planVersion, draftContent.value, pendingUploads.value, uploads.pending.value]),
+  isBusy: () => loading.value || writing.value || planFileLoading.value || createFileReads.value > 0
+    || editorFileStatePending.value || uploads.busy.value || editorUploadPending.value && !uploads.pending.value,
+  warnBusy: () => message.warning('请等待当前读取、上传或保存完成后再离开。'),
+  save: async () => {
+    if (uploads.pending.value) { message.warning('存在未上传成功的文件，请重试上传或移除后再保存。'); return false }
+    if (!plan.value?.allowedActions.includes('SAVE_DRAFT') || props.readonly) {
+      message.warning('当前填写尚未保存，权限或方案状态已变化；填写已保留。')
+      return false
+    }
+    return save()
+  },
+  discard: () => {
+    uploads.discard()
+    draftContent.value = plan.value?.content ? JSON.parse(JSON.stringify(plan.value.content)) : null
+    onlineContent.value = draftContent.value?.editMode !== 'FULL_FILE_UPLOAD' ? draftContent.value : null
+    uploadedContent.value = draftContent.value?.editMode === 'FULL_FILE_UPLOAD' ? draftContent.value : null
   }
-  return save()
-}
-defineExpose({ saveBeforeLeave, hasPendingDraft: () => hasUnsavedChanges.value || loading.value || pendingUploads.value || writing.value })
+})
+defineExpose({ saveBeforeLeave, hasPendingDraft })
 const download = async () => {
   if (plan.value?.planVersion === null || plan.value?.planVersion === undefined) return
   if (plan.value.status === 'SUBMITTED') {

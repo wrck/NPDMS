@@ -16,10 +16,11 @@ vi.mock('@/api/pms/platform/file/version-reference', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn() }) }))
 vi.mock('@/components/DeviceCollection/BusinessCollectionDialog.vue', () => ({
   default: defineComponent({
+    props: { readonly: Boolean },
     emits: ['observed'],
-    setup(_, { emit, expose }) {
+    setup(props, { emit, expose }) {
       expose({ open: vi.fn() })
-      return () => h('button', { 'data-testid': 'observe-platform-execution', onClick: () => emit('observed', [{
+      return () => h('button', { 'data-testid': 'observe-platform-execution', 'data-readonly': props.readonly, onClick: () => emit('observed', [{
         id: '9007199254740993', task: { status: 'COMPLETED', resultVersion: '2', fileVersionId: '3' }
       }]) }, '读取平台采集执行')
     }
@@ -99,6 +100,14 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
     )
     expect(typeof api.saveCutoverClosure.mock.calls[1][0].data.attachments[0].artifactId).toBe('string')
     mounted.app.unmount()
+  })
+
+  it.each([false,true])('forwards readonly to the collection dialog when canRequest=%s', canRequest => {
+    const mounted=mount(CutoverClosureEvidencePanel,{
+      taskId:'101',closureId:'501',evidence:[],canRequest,canLinkManual:false,devices:[]
+    },controls)
+    try { expect(findByTestId(mounted.root,'observe-platform-execution')?.props?.['data-readonly']).toBe(!canRequest) }
+    finally { mounted.app.unmount() }
   })
 
   it('links formal platform execution ids and keeps the same intent after an uncertain response', async () => {

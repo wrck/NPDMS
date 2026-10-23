@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { discoverLocalDac, LOCAL_DAC_ORIGIN, localDacRequest, LocalDacError } from './localDac'
 
 const environment = { serverUrl: 'https://npdms.example:8443', webOrigin: 'https://web.example' }
-const ready = { product: 'npdms-dac', protocolVersion: 1, status: 'READY', ...environment }
+const ready = { product: 'npdms-dac', protocolVersion: 2, status: 'READY', ...environment }
 const respond = (body: unknown) => {
   const request = vi.fn().mockResolvedValue({ ok: true, json: async () => body })
   vi.stubGlobal('fetch', request)
@@ -34,7 +34,7 @@ it('distinguishes startup from readiness and rejects an unrelated or incompatibl
   const starting = { ...ready, status: 'STARTING' }
   respond(starting)
   expect(await discoverLocalDac(environment)).toEqual({ state: 'starting', status: starting })
-  for (const payload of [null, { status: 'UP' }, { ...ready, protocolVersion: 2 }]) {
+  for (const payload of [null, { status: 'UP' }, { ...ready, protocolVersion: 1 }]) {
     respond(payload)
     expect(await discoverLocalDac(environment)).toEqual({ state: 'incompatible' })
   }

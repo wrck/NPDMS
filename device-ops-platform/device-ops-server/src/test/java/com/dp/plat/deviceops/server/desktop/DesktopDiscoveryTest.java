@@ -32,7 +32,7 @@ class DesktopDiscoveryTest {
         when(availability.getReadinessState()).thenReturn(ReadinessState.ACCEPTING_TRAFFIC);
         var response = controller.status();
         assertEquals("no-store", response.getHeaders().getCacheControl());
-        assertEquals(new DesktopStatusController.Status("npdms-dac", 1, "READY", "https://npdms.example:8443", "https://web.example"), response.getBody());
+        assertEquals(new DesktopStatusController.Status("npdms-dac", 2, "READY", "https://npdms.example:8443", "https://web.example"), response.getBody());
     }
 
     @Test void loopbackHostGuardRejectsRebindingAndNonLoopbackPeers() throws Exception {

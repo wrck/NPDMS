@@ -26,7 +26,21 @@ public class CollectionDesktopApplicationService {
     }
 
     public DeviceOpsDesktopApi.Ticket access(Access input) {
-        var source=application.context(input.source());
+        if(input==null || input.source()==null || !java.util.Set.of("CONNECTIONS_READ","CONNECTION_SAVE","TASK_READ")
+                .contains(java.util.Objects.toString(input.operation(),""))) throw new CollectionOperationException("请选择有效的本机操作");
+        boolean connectionOperation=java.util.Set.of("CONNECTIONS_READ","CONNECTION_SAVE").contains(input.operation());
+        if(connectionOperation && !java.util.Set.of("SSH","TELNET").contains(java.util.Objects.toString(input.protocol(),"")))
+            throw new CollectionOperationException("请选择有效连接协议");
+        if(input.deviceId()!=null && input.deviceId()<=0) throw new CollectionOperationException("请选择有效设备");
+        if("TASK_READ".equals(input.operation()) && (input.executionId()==null || input.executionId()<=0))
+            throw new CollectionOperationException("请选择需要读取的执行记录");
+        var source=connectionOperation
+                ? application.desktopConnectionContext(new CollectionApplicationService.DesktopConnectionContext(input.source(),input.deviceId()))
+                : application.context(input.source());
+        if(source==null || source.projectId()==null || source.projectId()<=0)
+            throw new CollectionOperationException("当前采集来源缺少项目，请先完善来源记录");
+        if(connectionOperation && input.deviceId()!=null && !java.util.Objects.equals(input.deviceId(),source.deviceId()))
+            throw new CollectionOperationException("设备与当前来源不匹配");
         String taskId=null;
         switch(input.operation()) {
             case "CONNECTIONS_READ" -> authorization.permission(input.source().actorId(),"pms:device-credential:use");
@@ -42,7 +56,9 @@ public class CollectionDesktopApplicationService {
             default -> throw new CollectionOperationException("本机操作无效");
         }
         return desktop.access(new DeviceOpsDesktopApi.Access(CollectionAuthorization.tenant(),input.source().actorId(),
-                source.projectId().toString(),input.operation(),taskId));
+                source.projectId().toString(),input.operation(),taskId,connectionOperation
+                    ? new DeviceOpsDesktopApi.ConnectionScope(source.deviceId()==null?null:source.deviceId().toString(),
+                        "SSH".equals(input.protocol())?"SSH2":"TELNET") : null));
     }
 
     @Transactional(rollbackFor=Exception.class)
@@ -56,7 +72,7 @@ public class CollectionDesktopApplicationService {
 
     public record Preparation(CollectionApplicationApi.SourceQuery source,CollectionExecutionRequest request,
                               String localConnectionId,Long localConnectionVersion){}
-    public record Access(CollectionApplicationApi.SourceQuery source,String operation,Long executionId){}
+    public record Access(CollectionApplicationApi.SourceQuery source,String operation,Long executionId,Long deviceId,String protocol){}
     public record Resume(CollectionApplicationApi.SourceQuery source,Long executionId){}
     public record Prepared(CollectionApplicationApi.Execution execution,DeviceOpsDesktopApi.Ticket ticket){}
 }

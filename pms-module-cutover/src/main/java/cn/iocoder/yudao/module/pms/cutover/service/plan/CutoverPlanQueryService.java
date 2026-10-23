@@ -55,6 +55,8 @@ public class CutoverPlanQueryService {
     private CutoverPlanGeneratedFiles generatedFiles;
     @Resource
     private CutoverPlanDocumentAttachments documentAttachments;
+    @Resource
+    private CutoverPlanRiskPresentation riskPresentation;
 
     private final CutoverTaskMapper taskMapper;
     private final CutoverPlanRevisionMapper planMapper;
@@ -157,6 +159,7 @@ public class CutoverPlanQueryService {
                 .task(task).plan(plan).content(storage.content(plan)).steps(stepMapper.selectListByPlan(children))
                 // Approved-contact adjustments have their own append-only table; export the original submission rows.
                 .supports(supportMapper.selectListByPlan(children))
+                .riskDescription(fact -> riskPresentation.describe(new CutoverPlanRiskPresentation.Query(context.tenantId(), plan, fact)))
                 .attachment(file -> documentAttachments.resolve(new CutoverPlanDocumentAttachments.Query(context.tenantId(), task.getId(), file))).build());
         return new SubmittedDocument("割接方案-v" + plan.getRevisionNo() + ".docx", bytes);
     }

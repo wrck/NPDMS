@@ -83,6 +83,50 @@ describe('F-CUT-004 mounted plan workbench', () => {
     vi.stubGlobal('window', { open: vi.fn(() => accessTarget) })
   })
 
+  it('retains a failed plan draft, retries the original command and permits discard without deleting saved attachments', async () => {
+    const server = standardPlan(['SAVE_DRAFT'])
+    const original = structuredClone(server)
+    api.getCutoverPlan.mockResolvedValue(server)
+    api.saveCutoverPlanDraft.mockReset().mockRejectedValue(new Error('response lost'))
+    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    try {
+      await flush()
+      const state = (page.vm as any).$.setupState
+      state.draftContent.overview.projectDescription = '未保存的说明'
+      const leaving = (page.vm as any).saveBeforeLeave()
+      for (let i = 0; i < 8; i++) await flush()
+      expect(state.leaveDialogVisible).toBe(true)
+      const command = api.saveCutoverPlanDraft.mock.calls[0][0]
+      state.resolveLeaveDecision('retry')
+      for (let i = 0; i < 8; i++) await flush()
+      expect(state.leaveDialogVisible).toBe(true)
+      expect(api.saveCutoverPlanDraft.mock.calls[1][0]).toEqual(command)
+      expect(state.draftContent.overview.projectDescription).toBe('未保存的说明')
+      state.resolveLeaveDecision('discard')
+      expect(await leaving).toBe(true)
+      expect(state.draftContent.overview.projectDescription).toBe('原方案')
+      expect(await (page.vm as any).saveBeforeLeave()).toBe(true)
+      expect(api.saveCutoverPlanDraft).toHaveBeenCalledTimes(2)
+      expect(server).toEqual(original)
+      expect(api.submitCutoverPlan).not.toHaveBeenCalled()
+    } finally { page.app.unmount() }
+  })
+
+  it('offers discard after plan save permission changes while keeping the save authorization enforced', async () => {
+    api.getCutoverPlan.mockResolvedValue(standardPlan([]))
+    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    try {
+      await flush()
+      const state = (page.vm as any).$.setupState
+      state.draftContent.overview.projectDescription = '未保存的说明'
+      const leaving = (page.vm as any).saveBeforeLeave(); await flush()
+      expect(state.leaveDialogVisible).toBe(true)
+      state.resolveLeaveDecision('discard')
+      expect(await leaving).toBe(true)
+      expect(api.saveCutoverPlanDraft).not.toHaveBeenCalled()
+    } finally { page.app.unmount() }
+  })
+
   it('fills task device model and running version and saves them with the ordinary draft', async () => {
     let server = standardPlan(['SAVE_DRAFT'])
     const original = structuredClone(server)

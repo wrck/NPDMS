@@ -7,6 +7,7 @@ import type {
 import CutoverChecklistField from '../components/CutoverChecklistField.vue'
 import CutoverChecklistPanel from '../components/CutoverChecklistPanel.vue'
 import CutoverSchemaInput from '../components/CutoverSchemaInput.vue'
+import CutoverFrozenAnswer from '../components/CutoverFrozenAnswer.vue'
 import { getDevicePage } from '@/api/pms/asset/device'
 import { checkPermi } from '@/utils/permission'
 import {
@@ -46,10 +47,11 @@ vi.mock('@/hooks/web/useMessage', () => ({
 }))
 vi.mock('@/components/DeviceCollection/BusinessCollectionDialog.vue', () => ({
   default: defineComponent({
+    props: { readonly: Boolean },
     emits: ['accepted', 'closed'],
-    setup(_, { emit, expose }) {
+    setup(props, { emit, expose }) {
       expose({ open: vi.fn() })
-      return () => h('section', [h('button', { 'data-testid': 'accept-platform-execution', onClick: () => emit('accepted', {
+      return () => h('section', { 'data-testid': 'platform-collection-dialog', 'data-readonly': props.readonly }, [h('button', { 'data-testid': 'accept-platform-execution', onClick: () => emit('accepted', {
         id: '9007199254740994', task: { deviceId: '9007199254740991', templateId: acceptedTemplate.value }
       }) }, '确认平台采集执行'), h('button', { 'data-testid': 'close-platform-execution', onClick: () => emit('closed') }, '关闭采集')])
     }
@@ -98,6 +100,25 @@ const item = {
 
 describe('F-CUT-003 mounted checklist field', () => {
   beforeEach(() => { vi.clearAllMocks(); fileApi.getCurrentReference.mockReset().mockResolvedValue(null); acceptedTemplate.value = '9007199254740992'; vi.mocked(getDevicePage).mockReset().mockResolvedValue({ list: [], total: 0 }); vi.mocked(checkPermi).mockReturnValue(true) })
+  it('uses the same server field descriptions in survey and approval without rewriting the frozen answer', () => {
+    const schema = { fields: [{ code: 'executed', type: 'BOOLEAN', label: '服务端检查结论', required: true },
+      { code: 'remark', type: 'TEXT', label: '服务端事实说明' }] }
+    const snapshot = JSON.stringify({ value: { executed: false, remark: '保留原始说明' } })
+    for (const readonly of [false, true]) {
+      const survey = mount(CutoverChecklistField, { item: { ...item, itemTypeCode: 'DUAL_MACHINE_CHECK',
+        interfaceSchemaSnapshot: JSON.stringify(schema) }, directValue: JSON.stringify({ executed: false, remark: '保留原始说明' }),
+        readonly, allowSave: !readonly }, controls)
+      expect(textOf(survey.root)).toContain('服务端检查结论')
+      expect(textOf(survey.root)).not.toContain('是否已执行')
+      survey.app.unmount()
+    }
+    const approval = mount(CutoverFrozenAnswer, { snapshot, schema })
+    expect(textOf(approval.root)).toContain('服务端检查结论')
+    expect(textOf(approval.root)).toContain('否')
+    expect(textOf(approval.root)).toContain('保留原始说明')
+    expect(snapshot).toBe(JSON.stringify({ value: { executed: false, remark: '保留原始说明' } }))
+    approval.app.unmount()
+  })
   it('reads the independent manual slot after collection replaces the saved manual result', async () => {
     fileApi.getCurrentReference.mockResolvedValue({ artifactId: '9007199254740993', versionNo: 2,
       referenceVersion: 0, referenceKey: 'cutover-checklist-risk-check' })
@@ -570,6 +591,7 @@ describe('F-CUT-003 mounted checklist field', () => {
       allowCollection: false, onCollection
     }, controls)
     await (findByTestId(mounted.root, 'open-item-collection')!.props!.onClick as () => Promise<void>)()
+    expect(findByTestId(mounted.root, 'platform-collection-dialog')?.props?.['data-readonly']).toBe(true)
     await (findByTestId(mounted.root, 'accept-platform-execution')!.props?.onClick as () => void)()
     expect(onCollection).not.toHaveBeenCalled()
     mounted.app.unmount()
@@ -954,6 +976,53 @@ describe('F-CUT-003 mounted checklist field', () => {
       resolveChecklist(checklistView(null)); await flush()
       expect(findByTestId(mounted.root, 'checklist-save')).toBeDefined()
     } finally { mounted.app.unmount() }
+  })
+
+  it('offers stay or discard after a checklist save error and restores only the local draft', async () => {
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(checklistView(JSON.stringify('原核查事实')))
+    checklistApi.getCutoverExternalState.mockReset().mockResolvedValue(null)
+    checklistApi.saveCutoverChecklist.mockReset().mockRejectedValue(new Error('save unavailable'))
+    const page = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    try {
+      await flush()
+      const state = (page.vm as any).$.setupState
+      const saved = JSON.stringify(state.answers)
+      state.answers['risk-check'] = '未保存核查事实'
+      const leaving = (page.vm as any).saveBeforeLeave()
+      for (let i = 0; i < 8; i++) await flush()
+      expect(state.leaveDialogVisible).toBe(true)
+      state.resolveLeaveDecision('stay')
+      expect(await leaving).toBe(false)
+      expect(state.answers['risk-check']).toBe('未保存核查事实')
+      const discard = (page.vm as any).saveBeforeLeave()
+      for (let i = 0; i < 8; i++) await flush()
+      const writes = checklistApi.saveCutoverChecklist.mock.calls.length
+      expect(writes).toBeGreaterThan(0)
+      state.resolveLeaveDecision('discard')
+      expect(await discard).toBe(true)
+      expect(JSON.stringify(state.answers)).toBe(saved)
+      expect(await (page.vm as any).saveBeforeLeave()).toBe(true)
+      expect(checklistApi.saveCutoverChecklist).toHaveBeenCalledTimes(writes)
+      expect(checklistApi.submitCutoverChecklist).not.toHaveBeenCalled()
+    } finally { page.app.unmount() }
+  })
+
+  it('allows explicit discard of unapplied matching choices without rematching or saving', async () => {
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(checklistView(null))
+    checklistApi.getCutoverExternalState.mockReset().mockResolvedValue(null)
+    const page = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    try {
+      await flush()
+      const state = (page.vm as any).$.setupState
+      state.networkMode = 'UNAPPLIED'
+      const leaving = (page.vm as any).saveBeforeLeave(); await flush()
+      expect(state.leaveDialogVisible).toBe(true)
+      state.resolveLeaveDecision('discard')
+      expect(await leaving).toBe(true)
+      expect(state.networkMode).toBe('')
+      expect(checklistApi.generateCutoverChecklist).not.toHaveBeenCalled()
+      expect(checklistApi.saveCutoverChecklist).not.toHaveBeenCalled()
+    } finally { page.app.unmount() }
   })
 
   it('does not request external state when a checklist has not been generated', async () => {

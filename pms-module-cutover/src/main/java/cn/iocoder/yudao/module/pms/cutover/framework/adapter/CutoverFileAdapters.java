@@ -94,7 +94,8 @@ public class CutoverFileAdapters {
     @Bean
     CutoverPlanFilePort cutoverPlanFilePort(FileArtifactApi api, FileEvidenceApi evidence, NativeGeneratedFileApi generated,
             CutoverTaskMapper tasks, CutoverPlanRevisionMapper plans, CutoverPlanStepMapper steps, CutoverSupportArrangementMapper supports, CutoverPlanStorage planStorage,
-            cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanDocumentAttachments attachments) {
+            cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanDocumentAttachments attachments,
+            cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanRiskPresentation riskPresentation) {
         return new CutoverPlanFilePort() {
             public FileFact inspect(CutoverPlanFilePort.FileQuery query) {
                 return resolve(query, false);
@@ -144,6 +145,7 @@ public class CutoverFileAdapters {
                                 .task(task).plan(plan).content(planStorage.content(plan))
                                 .steps(steps.selectListByPlan(new CutoverPlanChildrenQuery(tenant, revisionId)))
                                 .supports(supports.selectListByPlan(new CutoverPlanChildrenQuery(tenant, revisionId)))
+                                .riskDescription(fact -> riskPresentation.describe(new cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanRiskPresentation.Query(tenant, plan, fact)))
                                 .attachment(file -> attachments.resolve(new cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanDocumentAttachments.Query(tenant, task.getId(), file))).build());
                 var registered = generated.create(new NativeGeneratedFileCommand(tenant, actor, "cutover-plan:" + revisionId + ":" + plan.getVersion() + ":" + cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanDocumentRenderer.FORMAT_VERSION,
                         "CUT", "CUTOVER_PLAN", task.getId(), task.getVersion(), "FULL_PLAN", "CUTOVER_PLAN", "割接方案-v" + plan.getRevisionNo() + ".docx",

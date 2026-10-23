@@ -131,10 +131,14 @@
       </el-form>
       <template #footer><el-button @click="customVisible = false">取消</el-button><el-button data-testid="add-custom-item" type="primary" :disabled="!customItem.itemName.trim()" @click="addCustom">添加</el-button></template>
     </el-dialog>
+    <DraftLeaveDialog v-if="leaveDialogVisible" @decision="resolveLeaveDecision" />
   </section>
 </template>
 <script setup lang="ts">
 import { useMessage } from '@/hooks/web/useMessage'
+import DraftLeaveDialog from '@/components/DraftLeaveDialog/index.vue'
+import { useDraftLeaveGuard } from '@/hooks/web/useDraftLeaveGuard'
+import { useDraftUploads } from '@/hooks/web/useDraftUploads'
 import download from '@/utils/download'
 import * as CutoverApi from '@/api/pms/cutover'
 import type {
@@ -176,6 +180,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ navigate: [target: CutoverNavigationTarget] }>()
 const message = useMessage()
+const uploads = useDraftUploads()
 const panelRoot = ref<HTMLElement>()
 const validationKey = ref('')
 const validationMessage = ref('')
@@ -555,18 +560,33 @@ const save = async () => {
     return true
   } finally { externalBusy.value = false }
 }
-const hasPendingDraft = () => JSON.stringify(answers) !== savedAnswers.value || deviceVersionsDirty.value
+const hasUnsavedDraft = () => JSON.stringify(answers) !== savedAnswers.value || deviceVersionsDirty.value
   || Object.keys(externalFeedbacks).some(key => JSON.stringify(externalFeedbacks[key]) !== savedExternalFeedbacks[key])
-  || selectionChanged.value
-const saveBeforeLeave = async () => {
-  if (externalBusy.value || saving.value || submitting.value || rematching.value) {
-    message.warning('请等待当前清单操作完成后再离开。'); return false
+  || selectionChanged.value || uploads.pending.value
+const { requestLeave: saveBeforeLeave, hasPendingDraft, leaveDialogVisible, resolveLeaveDecision } = useDraftLeaveGuard({
+  hasPending: hasUnsavedDraft,
+  stateKey: () => JSON.stringify([props.detail.task.id, checklist.value?.checklistId, answers, deviceVersions.value, externalFeedbacks,
+    cutoverType.value, networkMode.value, deviceTypeCodes.value, uploads.pending.value]),
+  isBusy: () => loading.value || generating.value || externalBusy.value || saving.value || submitting.value || rematching.value || uploads.busy.value,
+  warnBusy: () => message.warning('请等待当前清单操作或文件上传完成后再离开。'),
+  save: async () => {
+    if (uploads.pending.value) { message.warning('存在未上传成功的文件，请重试上传或移除后再保存。'); return false }
+    if (selectionChanged.value) { message.warning('匹配条件尚未应用，请先重新匹配或恢复原条件。'); return false }
+    if (readonly.value || !canSave.value) { message.warning('清单填写尚未保存，当前状态不能保存；填写已保留。'); return false }
+    return save()
+  },
+  discard: () => {
+    uploads.discard()
+    for (const key of Object.keys(answers)) delete answers[key]
+    Object.assign(answers, JSON.parse(savedAnswers.value || '{}'))
+    deviceVersions.value = JSON.parse(savedDeviceVersions.value || '[]')
+    for (const key of Object.keys(externalFeedbacks)) delete externalFeedbacks[key]
+    for (const key of Object.keys(savedExternalFeedbacks)) externalFeedbacks[key] = JSON.parse(savedExternalFeedbacks[key])
+    cutoverType.value = matchingOptions.value?.matchingInput.cutoverType ?? props.detail.task.cutoverType
+    networkMode.value = matchingOptions.value?.matchingInput.networkMode || ''
+    deviceTypeCodes.value = [...frozenDeviceTypeCodes.value]
   }
-  if (!hasPendingDraft()) return true
-  if (selectionChanged.value) { message.warning('匹配条件尚未应用，请先重新匹配或恢复原条件。'); return false }
-  if (readonly.value || !canSave.value) { message.warning('清单填写尚未保存，当前状态不能保存；填写已保留。'); return false }
-  return save()
-}
+})
 defineExpose({ saveBeforeLeave, hasPendingDraft })
 const refreshAfterCollection = async () => {
   if (!(await saveBeforeLeave())) return
