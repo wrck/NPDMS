@@ -7,7 +7,7 @@
       <foreach collection="query.ids" item="id" open="(" close=")" separator=",">#{id}</foreach>
     </when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview">FOR UPDATE</if>
   </select>
-  <insert id="insertFactoryHistory">INSERT INTO ast_device_factory_version_record (`id`, `tenant_id`, `project_id`, `device_sn`, `conp_version`, `boot_version`, `cpld_version`, `pcb_version`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+  <insert id="insertFactoryHistory">INSERT INTO ast_device_factory_version_record (`id`, tenant_id, `project_id`, `device_sn`, `conp_version`, `boot_version`, `cpld_version`, `pcb_version`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
     <foreach collection="rows" item="row" separator=",">(#{row.target.id}, #{row.target.tenantId}, #{row.target.projectId}, #{row.target.deviceSn}, #{row.target.conpVersion}, #{row.target.bootVersion}, #{row.target.cpldVersion}, #{row.target.pcbVersion}, #{row.target.creator}, #{row.target.createTime}, #{row.target.updater}, #{row.target.updateTime}, #{row.target.deleted})</foreach>
   </insert>
   <select id="nullableSerialColumn" resultType="java.lang.Integer">SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ast_device_factory_version_record' AND column_name='device_sn' AND is_nullable='YES'</select>

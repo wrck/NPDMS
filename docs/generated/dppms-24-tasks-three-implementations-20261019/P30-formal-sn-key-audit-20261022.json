@@ -1,0 +1,302 @@
+{
+  "at": "2026-10-22T00:34:08.457974+08:00",
+  "readOnly": true,
+  "sourceSql": "SELECT barcode,id FROM fb_shipment_barcode\n WHERE barcode NOT REGEXP '[^ -~]' ORDER BY barcode,id",
+  "sourceIndexPlan": [
+    {
+      "id": 1,
+      "select_type": "SIMPLE",
+      "table": "fb_shipment_barcode",
+      "partitions": null,
+      "type": "index",
+      "possible_keys": null,
+      "key": "barcode",
+      "key_len": "153",
+      "ref": null,
+      "rows": 3851587,
+      "filtered": 100.0,
+      "Extra": "Using where; Using index"
+    }
+  ],
+  "asciiPrintableRowsRead": 4283326,
+  "asciiBinaryKeys": 3499488,
+  "asciiNormalizedKeys": 3486084,
+  "conflictGroups": 13402,
+  "binaryKeyExcess": 13404,
+  "sourceRowsInGroups": 33154,
+  "classifications": {
+    "CASE_ONLY": 13402
+  },
+  "formalUniqueKeys": [
+    "UNIQUE KEY `uk_ast_device_tenant_sn` (`tenant_id`,`sn`),"
+  ],
+  "seconds": 27.063,
+  "allRawRowsArePrintableAscii": true,
+  "allBinaryAndFormalCountsReconciled": true,
+  "sourceOrTargetMutation": false,
+  "sourceSizing": {
+    "at": "2026-10-22T00:31:35.336304+08:00",
+    "readOnly": true,
+    "sourceSql": "SELECT COUNT(*) shipment_rows,SUM(barcode IS NULL) null_sn,\n SUM(TRIM(barcode)='') blank_sn,MAX(CHAR_LENGTH(barcode)) max_sn_length,\n COUNT(DISTINCT CAST(barcode AS BINARY)) binary_sns,\n COUNT(DISTINCT CONVERT(barcode USING utf8mb4) COLLATE utf8mb4_unicode_ci) formal_collation_sns\n FROM fb_shipment_barcode",
+    "sourceSizingOnlyNotAnExecutionReceipt": {
+      "shipment_rows": 4283326,
+      "null_sn": "0",
+      "blank_sn": "0",
+      "max_sn_length": 36,
+      "binary_sns": 3499488,
+      "formal_collation_sns": 3486084
+    },
+    "p30Configuration": {
+      "id": 2112881209449218050,
+      "task_code": "BASE_P30",
+      "batch_size": 500,
+      "max_rows": 1000000,
+      "active_run_id": null
+    },
+    "formalColumns": [
+      {
+        "TABLE_NAME": "ast_device",
+        "COLUMN_NAME": "sn",
+        "COLUMN_TYPE": "varchar(100)",
+        "COLLATION_NAME": "utf8mb4_unicode_ci"
+      },
+      {
+        "TABLE_NAME": "ast_device_shipment",
+        "COLUMN_NAME": "device_sn",
+        "COLUMN_TYPE": "varchar(100)",
+        "COLLATION_NAME": "utf8mb4_unicode_ci"
+      }
+    ],
+    "seconds": 26.289,
+    "doesNotConsumeUncommittedP15Rows": true
+  },
+  "sourceSamples": {
+    "sourceSql": "SELECT b.id,b.barcode,b.pack_id,p.packdate AS shipment_time,b.item,b.orderNumber,b.updateTime FROM fb_shipment_barcode b LEFT JOIN fb_shipment p ON p.packlist_id=b.pack_id WHERE b.id IN (1133812,1746260,2420835,4031981,1296169,3945903) ORDER BY b.id",
+    "records": [
+      {
+        "id": 1133812,
+        "barcode": "01100178D181000005",
+        "pack_id": "40082",
+        "shipment_time": "2018-01-31 00:00:00",
+        "item": "01100178        ",
+        "orderNumber": "24587",
+        "updateTime": "2018-01-31 00:00:00"
+      },
+      {
+        "id": 1296169,
+        "barcode": "02010001d249000070",
+        "pack_id": "edd27a80-9520-4d92-84d7-7a387520f6f7",
+        "shipment_time": "2024-10-08 00:00:00",
+        "item": "02010001",
+        "orderNumber": "SO088158",
+        "updateTime": "2025-12-16 17:14:23"
+      },
+      {
+        "id": 1746260,
+        "barcode": "01100178d181000005",
+        "pack_id": "60edf61e-4e24-4b11-b006-80eeb1aa2952",
+        "shipment_time": "2018-01-31 00:00:00",
+        "item": "01100178        ",
+        "orderNumber": "24587",
+        "updateTime": "2018-01-31 00:00:00"
+      },
+      {
+        "id": 2420835,
+        "barcode": "02010001d249000029",
+        "pack_id": "a43fe407-d373-48f7-8cea-e1c48e27f49a",
+        "shipment_time": "2024-09-30 00:00:00",
+        "item": "02010001",
+        "orderNumber": "SO088116",
+        "updateTime": "2025-12-29 15:30:55"
+      },
+      {
+        "id": 3945903,
+        "barcode": "02010001D249000070",
+        "pack_id": "e26229c8-4fea-4e2c-b85f-5ebef183c70b",
+        "shipment_time": "2025-12-16 00:00:00",
+        "item": "02010001",
+        "orderNumber": "SO088158",
+        "updateTime": "2025-12-16 21:34:14"
+      },
+      {
+        "id": 4031981,
+        "barcode": "02010001D249000029",
+        "pack_id": "87e41dbd-1ed3-4de7-872c-9f43aae8b9db",
+        "shipment_time": "2025-12-30 00:00:00",
+        "item": "02010001",
+        "orderNumber": "SO088158",
+        "updateTime": "2025-12-30 20:54:56"
+      }
+    ]
+  },
+  "status": "REAL_PREVIEW_EXECUTE_REPLAY_COMPLETED",
+  "productionCodeChanged": true,
+  "P30CapacityChanged": true,
+  "approvedRule": {
+    "at": "2026-10-22T01:06:04.198255+08:00",
+    "status": "USER_RULE_CONFIRMED",
+    "decision": "Group by the existing formal SN unique key; latest shipment time then maximum formal shipment ID supplies the original SN text and initialization snapshot. Preserve every shipment and existing device.",
+    "capacity": {
+      "at": "2026-10-22T01:06:04.197311+08:00",
+      "target": "172.17.90.178:13306/npdms",
+      "explicitUserApproval": true,
+      "taskCode": "BASE_P30",
+      "taskId": 2112881209449218050,
+      "connectionId": 2112881203220676609,
+      "beforeMaxRows": 1000000,
+      "afterMaxRows": 5000000,
+      "rowsChanged": 1,
+      "allOtherTaskColumnsUnchanged": true,
+      "businessRowsChanged": 0,
+      "sourceRowsChanged": 0,
+      "DDLExecuted": 0,
+      "capacityRepairInProductionTaskCode": false
+    },
+    "actualRequiresFixedFrozenPackage": true
+  },
+  "P30NativeTests": {
+    "at": "2026-10-22T01:07:02.792277+08:00",
+    "exitCode": 0,
+    "formalDatabaseUnchanged": true,
+    "sourceSha256": {
+      "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P30DeviceBaseSyncTask.java": "13940e8e870cff7fe57623db23886d7ff1129d499c07efdf6dafc13e885a3aca",
+      "pms-module-integration\\src\\main\\resources\\mapper\\basesync\\P30TargetMapper.xml": "0ae68fa6971c32ff5350f89ca97cd68335db473312a31753f04c373ddea5a734"
+    },
+    "reports": [
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.DeviceBaseMySqlTest",
+        "tests": "9",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncTenantSqlTest",
+        "tests": "3",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncIsolationTest",
+        "tests": "15",
+        "failures": "0",
+        "errors": "0",
+        "skipped": "0"
+      }
+    ],
+    "nativeDriverCursorEnabled": true,
+    "multiChunkFetchAndTransactionalInsertsTested": true
+  },
+  "frozenPackage": "composition-proof-v3.json",
+  "realNonemptyExecutionCompleted": true,
+  "candidateStageStatus": "USER_RULE_IMPLEMENTED_WAITING_RUNTIME",
+  "latestVerification": {
+    "target": "172.17.90.178:13306/npdms",
+    "runtimePort": 59284,
+    "status": "PREVIEW_EXECUTE_REPLAY_COMPLETED",
+    "phases": {
+      "preview": {
+        "receipt": {
+          "id": 2113015218036645889,
+          "task_id": 2112881209449218050,
+          "task_code": "BASE_P30",
+          "status": "PREVIEW_READY",
+          "preview": "b'\\x01'",
+          "read_count": 3486084,
+          "inserted_count": 3486084,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": null,
+          "started_at": "2026-10-22 05:11:01.108000",
+          "finished_at": "2026-10-22 05:33:18.935000"
+        },
+        "driverCursorFetches": {
+          "globalBefore": 0,
+          "globalAfter": 6973,
+          "observedDelta": 6973,
+          "minimumSourceChunks": 6973,
+          "onlyThisSuiteTaskRequestedByRunner": true
+        }
+      },
+      "execute": {
+        "receipt": {
+          "id": 2113020841616842754,
+          "task_id": 2112881209449218050,
+          "task_code": "BASE_P30",
+          "status": "COMPLETED",
+          "preview": "b'\\x00'",
+          "read_count": 3486084,
+          "inserted_count": 3486084,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "error_message": null,
+          "started_at": "2026-10-22 05:33:21.886000",
+          "finished_at": "2026-10-22 07:30:31.949000"
+        },
+        "driverCursorFetches": {
+          "globalBefore": 6973,
+          "globalAfter": 13946,
+          "observedDelta": 6973,
+          "minimumSourceChunks": 6973,
+          "onlyThisSuiteTaskRequestedByRunner": true
+        }
+      },
+      "replay": {
+        "receipt": {
+          "id": 2113050695838048258,
+          "task_id": 2112881209449218050,
+          "task_code": "BASE_P30",
+          "status": "COMPLETED",
+          "preview": "b'\\x00'",
+          "read_count": 3486084,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 3486084,
+          "deleted_count": 0,
+          "error_message": null,
+          "started_at": "2026-10-22 07:31:59.747000",
+          "finished_at": "2026-10-22 07:58:52.732000"
+        },
+        "driverCursorFetches": {
+          "globalBefore": 13946,
+          "globalAfter": 20919,
+          "observedDelta": 6973,
+          "minimumSourceChunks": 6973,
+          "onlyThisSuiteTaskRequestedByRunner": true
+        }
+      }
+    },
+    "caseSnapshotAudit": {
+      "at": "2026-10-22T08:24:35.170539+08:00",
+      "target": "172.17.90.178:13306/npdms",
+      "readOnly": true,
+      "runId": 2113020841616842754,
+      "scope": "All 13402 approved real case-only SN groups; native database collation matches the requests, Python lower() is used only to organize audited printable ASCII values and never writes data.",
+      "groupsChecked": 13402,
+      "formalShipmentRowsChecked": 33154,
+      "expectedOriginalSourceRowsInGroups": 33154,
+      "selection": "Latest shipment_time then largest formal shipment id; all formal sources considered.",
+      "snapshotFieldsChecked": [
+        "shipment_record_id",
+        "shipment_time",
+        "product_code",
+        "package_no",
+        "contract_no"
+      ],
+      "allGroupSnapshotsCorrect": true,
+      "mismatchCount": 0,
+      "mutation": false
+    },
+    "actualSourceShipmentsRetained": 4283326,
+    "actualDeviceCount": 3486084,
+    "replayUnchanged": 3486084,
+    "maxRows": 5000000,
+    "sourceSnRewritten": false,
+    "formalSnRewritten": false,
+    "originalTasksChanged": false
+  },
+  "auditScope": "Original readOnly/sourceOrTargetMutation fields describe the captured source-only audit. latestVerification describes the later authorized remote actual execution and replay."
+}

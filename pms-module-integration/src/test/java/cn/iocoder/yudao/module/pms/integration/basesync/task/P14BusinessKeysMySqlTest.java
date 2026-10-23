@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.integration.basesync.task;
 
 import cn.iocoder.yudao.module.pms.integration.api.basesync.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
@@ -9,30 +10,83 @@ import static org.mockito.Mockito.*;
 
 @EnabledIfEnvironmentVariable(named="BASE_PRODUCT_TEMP_MYSQL_TEST",matches="true")
 class P14BusinessKeysMySqlTest extends RemainingTaskMySqlSupport {
-    P14SalesOrderSyncTask task(){return new P14SalesOrderSyncTask(session.getMapper(P14SalesOrderSyncTask.TargetMapper.class));}
+    @BeforeEach void useTheCurrentApprovedNullableParentAndIndependentLineKey(){
+        // Align only this connection-local historical fixture with the approved remote A definition.
+        jdbc.execute("ALTER TABLE com_sales_order_line MODIFY COLUMN order_id BIGINT NULL, DROP INDEX uk_sales_order_line, ADD UNIQUE KEY uk_sales_order_line_business(tenant_id,source_system,company_code,line_type,order_no,line_no)");
+    }
+    P14SalesOrderSyncTask task(){return new P14SalesOrderSyncTask(session.getMapper(P14SalesOrderSyncTask.TargetMapper.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class));}
 
-    @Test void differentHeaderAndLineTypesAreReadWithoutInventingParentOrWriteCounts(){
+    @Test void uniqueOtherTypeHeaderCannotSupplyTheParentEvenWhenOrderNumberMatches(){
         order("A");line("A",-2);
         jdbc.update("UPDATE pm_order_line_from_erp SET lineType=1,openQuantity=0");
         var c=context(true);
-        assertEquals(new SyncCounts(2,1,0,0,0),transaction.execute(s->task().execute(c)));
+        assertEquals(new SyncCounts(2,2,0,0,0),transaction.execute(s->task().execute(c)));
         assertTrue(c.runState().warnings().contains("P14_ORDER_REFERENCE_PENDING:1"));
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order",Integer.class));
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order_line",Integer.class));
         verify(identities,never()).saveAll(any());
-        var failure=assertThrows(IllegalArgumentException.class,()->run(task(),false));
-        assertEquals("P14_MANDATORY_ORDER_MISSING",failure.getMessage());
-        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order",Integer.class));
+        assertEquals(new SyncCounts(2,2,0,0,0),run(task(),false));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order_line",Integer.class));
+        assertNull(jdbc.queryForObject("SELECT order_id FROM com_sales_order_line",Long.class));
+        assertEquals("1",jdbc.queryForObject("SELECT order_type FROM com_sales_order_line",String.class));
+        assertEquals("1",jdbc.queryForObject("SELECT line_type FROM com_sales_order_line",String.class));
+        assertEquals(-2,jdbc.queryForObject("SELECT order_qty FROM com_sales_order_line",Integer.class));
+        assertEquals(new SyncCounts(2,0,0,2,0),run(task(),false));
         assertEquals(-2,jdbc.queryForObject("SELECT orderQuantity FROM pm_order_line_from_erp",Integer.class));
     }
 
-    @Test void entirelyMissingParentIsAlsoOnlyAReadOnlyPreviewDependency(){
+    @Test void exactHeaderKeyWinsWhenBothOrderTypesExist(){
+        order("A");line("A",-2);jdbc.update("UPDATE pm_order_line_from_erp SET lineType=1,openQuantity=0");
+        jdbc.update("INSERT INTO pm_order_data_from_erp(id,orderNumber,compCode,orderType,source,syncTime,contractNo,customerCode) VALUES(3,'A','01',1,'SAP','2020-01-01','C','C000001')");
+        assertEquals(new SyncCounts(3,3,0,0,0),run(task(),false));
+        assertEquals("1",jdbc.queryForObject("SELECT order_type FROM com_sales_order_line",String.class));
+        assertEquals(jdbc.queryForObject("SELECT id FROM com_sales_order WHERE order_type='1'",Long.class),jdbc.queryForObject("SELECT order_id FROM com_sales_order_line",Long.class));
+    }
+
+    @Test void uniqueHeaderInAnotherCompanyOrSourceCannotSupplyTheParent(){
+        order("A");line("A",-2);jdbc.update("UPDATE pm_order_line_from_erp SET lineType=1,openQuantity=0");
+        jdbc.update("UPDATE pm_order_data_from_erp SET source='D365',compCode='02'");
+        assertEquals(new SyncCounts(2,2,0,0,0),run(task(),true));
+        assertEquals(new SyncCounts(2,2,0,0,0),run(task(),false));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order",Integer.class));
+        assertNull(jdbc.queryForObject("SELECT order_id FROM com_sales_order_line",Long.class));
+    }
+
+    @Test void entirelyMissingParentIsRegisteredAndTheOriginalLineIsWrittenWithNullReferences(){
         line("A",3);var c=context(true);
-        assertEquals(new SyncCounts(1,0,0,0,0),transaction.execute(s->task().execute(c)));
+        assertEquals(new SyncCounts(1,1,0,0,0),transaction.execute(s->task().execute(c)));
         assertTrue(c.runState().warnings().contains("P14_ORDER_REFERENCE_PENDING:1"));
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order_line",Integer.class));
         verify(identities,never()).saveAll(any());
-        assertThrows(IllegalArgumentException.class,()->run(task(),false));
+        assertEquals(new SyncCounts(1,1,0,0,0),run(task(),false));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order_line",Integer.class));
+        assertNull(jdbc.queryForObject("SELECT order_id FROM com_sales_order_line",Long.class));
+        assertNull(jdbc.queryForObject("SELECT customer_id FROM com_sales_order_line",Long.class));
+        assertEquals("0",jdbc.queryForObject("SELECT order_type FROM com_sales_order_line",String.class));
+        assertEquals(new SyncCounts(1,0,0,1,0),run(task(),false));
+    }
+
+    @Test void missingReferencesAreWrittenNullAlongsideNormalLinesAndReplayDoesNotDuplicateThem(){
+        order("A");line("A",3);
+        jdbc.update("INSERT INTO pm_order_line_from_erp(id,orderNumber,lineNum,compCode,lineType,source,syncTime,itemCode,orderQuantity,openQuantity,warrantyMonth) VALUES(2,'B','1','01','0','SAP','2020-01-01','ITEM-2',4,1,12)");
+        assertEquals(new SyncCounts(3,3,0,0,0),run(task(),false));
+        assertEquals(List.of("A","B"),jdbc.queryForList("SELECT order_no FROM com_sales_order_line ORDER BY order_no",String.class));
+        assertNull(jdbc.queryForObject("SELECT order_id FROM com_sales_order_line WHERE order_no='B'",Long.class));
+        assertEquals(3,saved.size());
+        order("B");
+        assertEquals(new SyncCounts(4,1,0,3,0),run(task(),false));
+        assertEquals(List.of("A","B"),jdbc.queryForList("SELECT order_no FROM com_sales_order_line ORDER BY order_no",String.class));
+        assertEquals(new SyncCounts(4,0,0,4,0),run(task(),false));
+    }
+
+    @Test void aPreviouslyBoundLineIsPreservedWhenItsSourceHeaderDisappears(){
+        order("A");line("A",3);run(task(),false);
+        var before=jdbc.queryForList("SELECT * FROM com_sales_order_line");var bindingBefore=new java.util.HashMap<>(saved);
+        jdbc.update("DELETE FROM pm_order_data_from_erp");
+        assertEquals(new SyncCounts(1,0,0,1,0),run(task(),false));
+        assertEquals(before,jdbc.queryForList("SELECT * FROM com_sales_order_line"));
+        assertEquals(bindingBefore,saved);
     }
 
     @Test void maximumExecutionIsApprovedButOtherHeaderConflictsRemainRejected(){

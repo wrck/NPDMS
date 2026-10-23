@@ -1,0 +1,1028 @@
+{
+  "target": "172.17.90.178:13306/npdms",
+  "observedAt": "2026-10-21T20:01:03.119448+08:00",
+  "ddlExecuted": false,
+  "migrationExecuted": false,
+  "sourcesUseCurrentWorktreeOnly": true,
+  "records": [
+    {
+      "group": "CREATE",
+      "table": "int_base_sync_task",
+      "sql": "CREATE TABLE `npdms`.`int_base_sync_task` (\n  `id` bigint NOT NULL,\n  `tenant_id` bigint NOT NULL,\n  `name` varchar(128) NOT NULL,\n  `task_code` varchar(16) NOT NULL,\n  `source_system` varchar(32) NOT NULL,\n  `connection_id` bigint NOT NULL,\n  `batch_size` int NOT NULL,\n  `max_rows` int NOT NULL,\n  `active_run_id` bigint NULL,\n  `creator` varchar(64) NOT NULL DEFAULT '',\n  `create_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n  `updater` varchar(64) NOT NULL DEFAULT '',\n  `update_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),\n  `deleted` bit(1) NOT NULL DEFAULT b'0',\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_int_base_sync_task` (`tenant_id`,`task_code`,`connection_id`),\n  CONSTRAINT `ck_int_base_sync_batch_size` CHECK (`batch_size` BETWEEN 1 AND 2000),\n  CONSTRAINT `ck_int_base_sync_max_rows` CHECK (`max_rows` BETWEEN 1 AND 5000000)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V483__independent_base_sync_metadata.sql",
+          "line": 3
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V484__base_sync_aliases_and_full_shipment_limit.sql",
+          "line": 9
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [
+        "max_rows CHECK上限直接为500万，不插入/调整任务配置"
+      ],
+      "number": 1
+    },
+    {
+      "group": "CREATE",
+      "table": "int_base_sync_run",
+      "sql": "CREATE TABLE `npdms`.`int_base_sync_run` (\n  `id` bigint NOT NULL,\n  `tenant_id` bigint NOT NULL,\n  `task_id` bigint NOT NULL,\n  `request_key` varchar(64) NOT NULL,\n  `status` varchar(32) NOT NULL,\n  `preview` bit(1) NOT NULL,\n  `task_code` varchar(16) NOT NULL,\n  `connection_id` bigint NOT NULL,\n  `batch_size` int NOT NULL,\n  `max_rows` int NOT NULL,\n  `read_count` bigint NOT NULL DEFAULT 0,\n  `inserted_count` bigint NOT NULL DEFAULT 0,\n  `updated_count` bigint NOT NULL DEFAULT 0,\n  `unchanged_count` bigint NOT NULL DEFAULT 0,\n  `deleted_count` bigint NOT NULL DEFAULT 0,\n  `error_message` varchar(1000) NULL,\n  `started_at` datetime(3) NOT NULL,\n  `finished_at` datetime(3) NULL,\n  `creator` varchar(64) NOT NULL DEFAULT '',\n  `create_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n  `updater` varchar(64) NOT NULL DEFAULT '',\n  `update_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),\n  `deleted` bit(1) NOT NULL DEFAULT b'0',\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_int_base_sync_run_request` (`tenant_id`,`task_id`,`request_key`),\n  KEY `idx_int_base_sync_run_task` (`tenant_id`,`task_id`,`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V483__independent_base_sync_metadata.sql",
+          "line": 24
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [],
+      "number": 2
+    },
+    {
+      "group": "CREATE",
+      "table": "int_base_sync_binding",
+      "sql": "CREATE TABLE `npdms`.`int_base_sync_binding` (\n  `id` bigint NOT NULL,\n  `tenant_id` bigint NOT NULL,\n  `task_id` bigint NOT NULL,\n  `object_key` varchar(64) NOT NULL,\n  `source_key` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,\n  `target_id` bigint NOT NULL,\n  `fingerprint` char(64) NOT NULL,\n  `last_run_id` bigint NOT NULL,\n  `creator` varchar(64) NOT NULL DEFAULT '',\n  `create_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n  `updater` varchar(64) NOT NULL DEFAULT '',\n  `update_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),\n  `deleted` bit(1) NOT NULL DEFAULT b'0',\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `uk_int_base_sync_binding_source` (`tenant_id`,`task_id`,`object_key`,`source_key`),\n  KEY `idx_int_base_sync_binding_target` (`tenant_id`,`task_id`,`object_key`,`target_id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V483__independent_base_sync_metadata.sql",
+          "line": 53
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V484__base_sync_aliases_and_full_shipment_limit.sql",
+          "line": 3
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [
+        "来源唯一保持，目标索引为普通索引，允许已审多来源归并"
+      ],
+      "number": 3
+    },
+    {
+      "group": "CREATE",
+      "table": "proj_legacy_detail_source",
+      "sql": "CREATE TABLE `npdms`.`proj_legacy_detail_source` (\n  id BIGINT NOT NULL PRIMARY KEY, tenant_id BIGINT NOT NULL, project_id BIGINT NOT NULL,\n  source_system VARCHAR(32) COLLATE utf8mb4_bin NOT NULL,\n  source_project_key VARCHAR(64) COLLATE utf8mb4_bin NOT NULL,\n  source_contract_no VARCHAR(128) COLLATE utf8mb4_bin NOT NULL,\n  current_snapshot_id BIGINT NULL, version BIGINT NOT NULL DEFAULT 0,\n  UNIQUE KEY uk_legacy_detail_identity(tenant_id,source_system,source_project_key),\n  KEY idx_legacy_detail_project(tenant_id,project_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V411__project_legacy_detail_evidence.sql",
+          "line": 3
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [],
+      "number": 4
+    },
+    {
+      "group": "CREATE",
+      "table": "proj_project_real_product",
+      "sql": "CREATE TABLE `npdms`.`proj_project_real_product` (\n  id BIGINT NOT NULL,\n  tenant_id BIGINT NOT NULL,\n  project_id BIGINT NOT NULL,\n  contract_no TEXT NULL,\n  project_code TEXT NULL,\n  execution_no TEXT NULL,\n  product_category_name TEXT NULL,\n  product_name TEXT NULL,\n  product_sub_code TEXT NULL,\n  product_sub_model TEXT NULL,\n  product_sub_name TEXT NULL,\n  quantity DECIMAL(24,6) NULL,\n  memo TEXT NULL,\n  data_source VARCHAR(25) NULL,\n  creator VARCHAR(64) NOT NULL DEFAULT '', create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n  updater VARCHAR(64) NOT NULL DEFAULT '', update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),\n  deleted BIT(1) NOT NULL DEFAULT b'0',\n  PRIMARY KEY (id),\n  KEY idx_project (tenant_id,project_id,deleted)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 36
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [],
+      "number": 5
+    },
+    {
+      "group": "CREATE",
+      "table": "proj_project_lease_product",
+      "sql": "CREATE TABLE `npdms`.`proj_project_lease_product` (\n  id BIGINT NOT NULL,\n  tenant_id BIGINT NOT NULL,\n  project_id BIGINT NULL,\n  project_code TEXT NULL,\n  execution_no TEXT NULL,\n  product_category TEXT NULL,\n  product_type TEXT NULL,\n  product_code TEXT NULL,\n  product_model TEXT NULL,\n  product_name TEXT NULL,\n  quantity DECIMAL(24,6) NULL,\n  memo TEXT NULL,\n  lease_duration DECIMAL(16,2) NULL,\n  data_source VARCHAR(25) NULL,\n  creator VARCHAR(64) NOT NULL DEFAULT '', create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n  updater VARCHAR(64) NOT NULL DEFAULT '', update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),\n  deleted BIT(1) NOT NULL DEFAULT b'0',\n  PRIMARY KEY (id),\n  KEY idx_project (tenant_id,project_id,deleted),\n  KEY idx_lease_cache_project (tenant_id,project_code(255),deleted)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 57
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 34
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [
+        "project_id可空及已有正式缓存查询索引"
+      ],
+      "number": 6
+    },
+    {
+      "group": "CREATE",
+      "table": "proj_project_product_configuration",
+      "sql": "CREATE TABLE `npdms`.`proj_project_product_configuration` (\n  id BIGINT NOT NULL,\n  tenant_id BIGINT NOT NULL,\n  project_id BIGINT NULL,\n  project_code TEXT NULL,\n  execution_no TEXT NULL,\n  item_group INT NULL,\n  product_code TEXT NULL,\n  parent_code TEXT NULL,\n  quantity DECIMAL(24,6) NULL,\n  bom_path TEXT NULL,\n  product_model TEXT NULL,\n  product_description TEXT NULL,\n  level INT NULL,\n  data_source VARCHAR(25) NULL,\n  creator VARCHAR(64) NOT NULL DEFAULT '', create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n  updater VARCHAR(64) NOT NULL DEFAULT '', update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),\n  deleted BIT(1) NOT NULL DEFAULT b'0',\n  PRIMARY KEY (id),\n  KEY idx_project (tenant_id,project_id,deleted),\n  KEY idx_configuration_cache_project (tenant_id,project_code(100),deleted)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 78
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 34
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [
+        "project_id可空及已有正式缓存查询索引"
+      ],
+      "number": 7
+    },
+    {
+      "group": "CREATE",
+      "table": "com_contract_collection_plan",
+      "sql": "CREATE TABLE `npdms`.`com_contract_collection_plan` (\n  id BIGINT NOT NULL, tenant_id BIGINT NOT NULL,\n  contract_id BIGINT NULL,\n  contract_no VARCHAR(64) NULL,\n  batch_code VARCHAR(32) NULL,\n  collection_item_name VARCHAR(64) NULL,\n  reference_event_name VARCHAR(64) NULL,\n  event_planned_at DATETIME(3) NULL,\n  after_days INT NULL,\n  event_actual_finished_at DATETIME(3) NULL,\n  marketing_feedback VARCHAR(2000) NULL,\n  data_source VARCHAR(25) NULL,\n  effective_from DATETIME(3) NULL,\n  effective_to DATETIME(3) NULL,\n  creator VARCHAR(64) NULL, create_time DATETIME(3) NULL,\n  updater VARCHAR(64) NULL, update_time DATETIME(3) NULL,\n  deleted BIT(1) NOT NULL DEFAULT b'0',\n  PRIMARY KEY (id), KEY idx_contract (tenant_id,contract_id,deleted),\n  KEY idx_collection_plan_cache_contract (tenant_id,contract_no,deleted)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='合同回款计划';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 107
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 37
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [
+        "原创建/更新时间可空及已有合同号查询索引"
+      ],
+      "number": 8
+    },
+    {
+      "group": "CREATE",
+      "table": "ast_device_software_change_batch",
+      "sql": "CREATE TABLE `npdms`.`ast_device_software_change_batch` (\n  id BIGINT NOT NULL,\n  tenant_id BIGINT NOT NULL,\n  project_id BIGINT NOT NULL,\n  change_version VARCHAR(10) NULL,\n  change_remark VARCHAR(255) NULL,\n  latest INT NULL,\n  creator VARCHAR(64) NULL,\n  create_time DATETIME(3) NOT NULL,\n  updater VARCHAR(64) NULL,\n  update_time DATETIME(3) NOT NULL,\n  deleted BIT(1) NOT NULL DEFAULT b'0',\n  PRIMARY KEY (id),\n  KEY idx_project (tenant_id,project_id,deleted,id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Project software registration batches';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V414__dppms_native_source_business_records.sql",
+          "line": 53
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [],
+      "number": 9
+    },
+    {
+      "group": "CREATE",
+      "table": "ast_device_software_version_record",
+      "sql": "CREATE TABLE `npdms`.`ast_device_software_version_record` (\n  id BIGINT NOT NULL,\n  tenant_id BIGINT NOT NULL,\n  device_id BIGINT NULL,\n  device_sn VARCHAR(100) NULL,\n  project_id BIGINT NULL,\n  previous_record_id BIGINT NULL,\n  conp_version VARCHAR(255) NULL,\n  conp_type VARCHAR(100) NULL,\n  conp_series VARCHAR(100) NULL,\n  conp_mark VARCHAR(255) NULL,\n  boot_version VARCHAR(255) NULL,\n  cpld_version VARCHAR(255) NULL,\n  pcb_version VARCHAR(255) NULL,\n  customized BIT NULL,\n  release_date DATE NULL,\n  version_desc VARCHAR(1000) NULL,\n  recorded_at DATETIME(3) NULL,\n  data_source VARCHAR(32) NOT NULL,\n  parsed_fact_id BIGINT NULL,\n  request_key VARCHAR(180) COLLATE utf8mb4_bin NULL,\n  change_batch_id BIGINT NULL,\n  contract_no VARCHAR(100) NULL,\n  product_code VARCHAR(25) NULL,\n  execute_time DATE NULL,\n  data_state INT NULL,\n  custom_info JSON NULL,\n  creator VARCHAR(64) NULL,\n  create_time DATETIME(3) NOT NULL,\n  updater VARCHAR(64) NULL,\n  update_time DATETIME(3) NOT NULL,\n  deleted BIT(1) NOT NULL DEFAULT b'0',\n  PRIMARY KEY (id),\n  UNIQUE KEY uk_software_request (tenant_id,request_key),\n  UNIQUE KEY uk_software_parsed_fact (tenant_id,parsed_fact_id),\n  KEY idx_software_device (tenant_id,device_id,recorded_at,id),\n  KEY idx_software_project (tenant_id,project_id,recorded_at,id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Device software version registrations';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V414__dppms_native_source_business_records.sql",
+          "line": 14
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [],
+      "number": 10
+    },
+    {
+      "group": "CREATE",
+      "table": "ast_device_factory_version_record",
+      "sql": "CREATE TABLE `npdms`.`ast_device_factory_version_record` (\n  id BIGINT NOT NULL,\n  tenant_id BIGINT NOT NULL,\n  project_id BIGINT NULL COMMENT 'Verified historical project association, not current device ownership',\n  device_sn VARCHAR(100) NULL,\n  conp_version VARCHAR(100) NULL,\n  boot_version VARCHAR(100) NULL,\n  cpld_version VARCHAR(100) NULL,\n  pcb_version VARCHAR(100) NULL,\n  creator VARCHAR(64) NOT NULL DEFAULT '',\n  create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),\n  updater VARCHAR(64) NOT NULL DEFAULT '',\n  update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),\n  deleted BIT(1) NOT NULL DEFAULT b'0',\n  PRIMARY KEY (id),\n  KEY idx_project (tenant_id,project_id,deleted,id),\n  KEY idx_device (tenant_id,device_sn,deleted,id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Device factory software version records';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V414__dppms_native_source_business_records.sql",
+          "line": 69
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 47
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [
+        "device_sn可空"
+      ],
+      "number": 11
+    },
+    {
+      "group": "CREATE",
+      "table": "ast_device_license_record",
+      "sql": "CREATE TABLE `npdms`.`ast_device_license_record` (\n    id BIGINT NOT NULL,\n    tenant_id BIGINT NOT NULL,\n    device_id BIGINT NULL,\n    device_sn VARCHAR(255) NULL,\n    contract_id BIGINT NULL,\n    contract_no VARCHAR(32) NULL,\n    contract_type VARCHAR(16) NULL,\n    product_code VARCHAR(255) NULL,\n    product_model VARCHAR(256) NULL,\n    license_status VARCHAR(255) NULL,\n    license_code_ciphertext TEXT CHARACTER SET ascii COLLATE ascii_bin NOT NULL,\n    creator VARCHAR(64) NOT NULL,\n    create_time DATETIME(3) NOT NULL,\n    updater VARCHAR(64) NOT NULL,\n    update_time DATETIME(3) NOT NULL,\n    deleted BIT NOT NULL DEFAULT b'0',\n    PRIMARY KEY (id),\n    KEY idx_license_device (tenant_id,device_id,deleted),\n    KEY idx_license_contract (tenant_id,contract_id,deleted)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='设备许可历史记录';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V433__approved_device_license_record.sql",
+          "line": 2
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [],
+      "number": 12
+    },
+    {
+      "group": "CREATE",
+      "table": "ast_device_warranty_renewal_record",
+      "sql": "CREATE TABLE `npdms`.`ast_device_warranty_renewal_record` (\n    id BIGINT NOT NULL,\n    tenant_id BIGINT NOT NULL,\n    device_sn VARCHAR(100) NULL COMMENT '设备序列号',\n    warranty_contract_no VARCHAR(64) NULL COMMENT '续保合同号',\n    warranty_grade VARCHAR(32) NULL COMMENT '维保等级编码',\n    warranty_start_date DATE NULL COMMENT '实际开始日期',\n    warranty_end_date DATE NULL COMMENT '实际结束日期',\n    warranty_months INT UNSIGNED NULL COMMENT '参考月数，不据此重算实际日期',\n    extended BIT NULL COMMENT '是否延保，NULL为未记录',\n    is_latest BIT NULL DEFAULT NULL COMMENT '原最新选择标记，不代表在保状态',\n    remark TEXT NULL COMMENT '续保备注',\n    version INT UNSIGNED NOT NULL DEFAULT 0,\n    creator VARCHAR(64) NOT NULL,\n    create_time DATETIME(3) NOT NULL,\n    updater VARCHAR(64) NOT NULL,\n    update_time DATETIME(3) NOT NULL,\n    deleted BIT NOT NULL DEFAULT b'0',\n    PRIMARY KEY (id),\n    KEY idx_renewal_device (tenant_id,device_sn,warranty_start_date,id),\n    KEY idx_renewal_contract (tenant_id,warranty_contract_no,device_sn),\n    CONSTRAINT ck_renewal_dates CHECK (warranty_start_date IS NULL OR warranty_end_date IS NULL\n        OR warranty_end_date >= warranty_start_date)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='设备续保记录';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V473__approved_device_warranty_renewal_record.sql",
+          "line": 2
+        }
+      ],
+      "reason": "目标表缺失；按当前工作树既有定义建空表",
+      "foldedDefinitions": [],
+      "number": 13
+    },
+    {
+      "group": "FK_SUPPORT",
+      "table": "com_sales_order_line",
+      "sql": "ALTER TABLE `npdms`.`com_sales_order_line`\n  ADD INDEX idx_sales_order_line_parent (tenant_id,order_id);",
+      "sources": [
+        {
+          "file": "D:\\CodexTaskArtifacts\\project-detail-followup\\remote-ddl-review-20261021\\target-current.json",
+          "line": null
+        },
+        {
+          "url": "https://dev.mysql.com/doc/refman/8.4/en/create-table-foreign-keys.html"
+        }
+      ],
+      "reason": "替换uk_sales_order_line前为现有父头外键保留必要索引；不删除父头外键",
+      "number": 14
+    },
+    {
+      "group": "ALTER",
+      "table": "system_users",
+      "sql": "ALTER TABLE `npdms`.`system_users`\n  ADD COLUMN employee_no VARCHAR(50) NULL COMMENT '真实员工工号',\n  ADD COLUMN custom_info JSON NULL COMMENT '账号扩展业务属性';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V419__approved_user_employee_no_and_custom_info.sql",
+          "line": 4
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V419__approved_user_employee_no_and_custom_info.sql",
+          "line": 5
+        }
+      ],
+      "reason": "仅补当前缺列、既有正式可空/约束定义及已决容量；保留其余列、索引和外键",
+      "number": 15
+    },
+    {
+      "group": "ALTER",
+      "table": "ast_product_official_info",
+      "sql": "ALTER TABLE `npdms`.`ast_product_official_info`\n  ADD COLUMN `product_category` varchar(100) DEFAULT NULL COMMENT 'CRM productCode',\n  ADD COLUMN `product_type` varchar(100) DEFAULT NULL COMMENT 'CRM productSubCode',\n  ADD UNIQUE INDEX uk_product_official_tenant_code (tenant_id,product_code);",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 9
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 10
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 26
+        }
+      ],
+      "reason": "仅补当前缺列、既有正式可空/约束定义及已决容量；保留其余列、索引和外键",
+      "number": 16
+    },
+    {
+      "group": "ALTER",
+      "table": "com_shipment_contract_reference",
+      "sql": "ALTER TABLE `npdms`.`com_shipment_contract_reference`\n  ADD COLUMN warranty_years INT NULL COMMENT '合同保修年数，原空白或NULL表示未知；不代表当前保修状态';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V258__project_party_and_contract_source_tables.sql",
+          "line": 152
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V294__migration_field_naming_and_comment_alignment.sql",
+          "line": 319
+        }
+      ],
+      "reason": "仅补当前缺列、既有正式可空/约束定义及已决容量；保留其余列、索引和外键",
+      "number": 17
+    },
+    {
+      "group": "ALTER",
+      "table": "com_shipment_package",
+      "sql": "ALTER TABLE `npdms`.`com_shipment_package`\n  ADD COLUMN carrier_code VARCHAR(256) NULL,\n  ADD COLUMN shipment_contract_source_key VARCHAR(128) NULL COMMENT '原fb_shipment.con_id，保留精确父来源身份';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 106
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 30
+        }
+      ],
+      "reason": "仅补当前缺列、既有正式可空/约束定义及已决容量；保留其余列、索引和外键",
+      "number": 18
+    },
+    {
+      "group": "ALTER",
+      "table": "proj_project",
+      "sql": "ALTER TABLE `npdms`.`proj_project`\n  ADD COLUMN custom_info JSON NULL,\n  ADD COLUMN order_create_time DATETIME(3) NULL,\n  ADD COLUMN disabled BIT(1) NULL,\n  ADD COLUMN effective_from DATETIME(3) NULL,\n  ADD COLUMN effective_to DATETIME(3) NULL;",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 101
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 102
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 103
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 104
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 105
+        }
+      ],
+      "reason": "仅补当前缺列、既有正式可空/约束定义及已决容量；保留其余列、索引和外键",
+      "number": 19
+    },
+    {
+      "group": "ALTER",
+      "table": "com_delivery_scope",
+      "sql": "ALTER TABLE `npdms`.`com_delivery_scope`\n  ADD COLUMN allocation_confirmed BIT(1) NOT NULL DEFAULT b'1' COMMENT '是否确认占用订单分配数量',\n  ADD COLUMN delivered_quantity DECIMAL(18,6) NULL COMMENT '项目范围原已发货数量',\n  ADD COLUMN open_quantity DECIMAL(18,6) NULL COMMENT '项目范围原订单未交数量',\n  MODIFY COLUMN current_order_line_id BIGINT GENERATED ALWAYS AS (CASE WHEN allocation_confirmed=b'1' AND deleted=0 AND effective_to IS NULL THEN order_line_id ELSE NULL END) STORED,\n  DROP INDEX uk_scope_version,\n  ADD UNIQUE KEY uk_scope_version (tenant_id,(CASE WHEN allocation_confirmed=b'1' THEN order_line_id ELSE NULL END),project_id,allocation_version);",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 4
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 5
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 6
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 7
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 10
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 11
+        }
+      ],
+      "reason": "仅补当前缺列、既有正式可空/约束定义及已决容量；保留其余列、索引和外键",
+      "number": 20
+    },
+    {
+      "group": "ALTER",
+      "table": "proj_project_member_assignment",
+      "sql": "ALTER TABLE `npdms`.`proj_project_member_assignment`\n  ADD COLUMN member_code VARCHAR(45) NULL COMMENT '成员区间人员编码',\n  ADD COLUMN phone_number VARCHAR(20) NULL COMMENT '成员区间联系电话',\n  ADD COLUMN email VARCHAR(45) NULL COMMENT '成员区间邮箱',\n  ADD COLUMN registration_source VARCHAR(2) NULL COMMENT '登记来源：1项目信息，2手工成员',\n  MODIFY COLUMN create_time DATETIME NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间，未确认历史可保留原NULL',\n  MODIFY COLUMN update_time DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间，未确认历史可保留原NULL',\n  ADD CONSTRAINT ck_proj_member_confirmed_identity_audit CHECK (authorization_confirmed=b'0' OR (user_id IS NOT NULL AND create_time IS NOT NULL AND update_time IS NOT NULL));",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 4
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 5
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 6
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 7
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 10
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 11
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 12
+        }
+      ],
+      "reason": "仅补当前缺列、既有正式可空/约束定义及已决容量；保留其余列、索引和外键",
+      "number": 21
+    },
+    {
+      "group": "ALTER",
+      "table": "proj_project_party",
+      "sql": "ALTER TABLE `npdms`.`proj_project_party`\n  MODIFY COLUMN creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '创建人',\n  MODIFY COLUMN updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '更新人';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V461__preserve_project_party_nullable_audit.sql",
+          "line": 3
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V461__preserve_project_party_nullable_audit.sql",
+          "line": 4
+        }
+      ],
+      "reason": "仅补当前缺列、既有正式可空/约束定义及已决容量；保留其余列、索引和外键",
+      "number": 22
+    },
+    {
+      "group": "ALTER",
+      "table": "com_sales_order_line",
+      "sql": "ALTER TABLE `npdms`.`com_sales_order_line`\n  MODIFY COLUMN order_id BIGINT NULL COMMENT '订单ID',\n  DROP INDEX uk_sales_order_line,\n  ADD UNIQUE INDEX uk_sales_order_line_business (tenant_id,source_system,company_code,line_type,order_no,line_no);",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 27
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 28
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\docs\\generated\\dppms-24-tasks-three-implementations-20261019\\P14-business-keys-preview-20261020.md",
+          "line": 5
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P14SalesOrderSyncTask.java",
+          "line": null
+        }
+      ],
+      "reason": "仅补当前缺列、既有正式可空/约束定义及已决容量；保留其余列、索引和外键",
+      "number": 23
+    },
+    {
+      "group": "ALTER",
+      "table": "cus_customer_master",
+      "sql": "ALTER TABLE `npdms`.`cus_customer_master`\n  MODIFY COLUMN `name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '客户名称';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\docs\\generated\\dppms-24-tasks-three-implementations-20261019\\P10-P33-column-capacity.review.sql",
+          "line": 6
+        },
+        {
+          "file": "D:\\CodexTaskArtifacts\\project-detail-followup\\remote-ddl-review-20261021\\target-current.json",
+          "line": null
+        }
+      ],
+      "reason": "仅补当前缺列、既有正式可空/约束定义及已决容量；保留其余列、索引和外键",
+      "number": 24
+    },
+    {
+      "group": "ALTER",
+      "table": "imp_eng_installation",
+      "sql": "ALTER TABLE `npdms`.`imp_eng_installation`\n  MODIFY COLUMN `install_location` VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '安装位置';",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\docs\\generated\\dppms-24-tasks-three-implementations-20261019\\P10-P33-column-capacity.review.sql",
+          "line": 11
+        },
+        {
+          "file": "D:\\CodexTaskArtifacts\\project-detail-followup\\remote-ddl-review-20261021\\target-current.json",
+          "line": null
+        }
+      ],
+      "reason": "仅补当前缺列、既有正式可空/约束定义及已决容量；保留其余列、索引和外键",
+      "number": 25
+    }
+  ],
+  "addColumns": [
+    {
+      "table": "system_users",
+      "column": "employee_no",
+      "definition": "employee_no VARCHAR(50) NULL COMMENT '真实员工工号'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V419__approved_user_employee_no_and_custom_info.sql",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "table": "system_users",
+      "column": "custom_info",
+      "definition": "custom_info JSON NULL COMMENT '账号扩展业务属性'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V419__approved_user_employee_no_and_custom_info.sql",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_category",
+      "definition": "`product_category` varchar(100) DEFAULT NULL COMMENT 'CRM productCode'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 9
+        }
+      ]
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_type",
+      "definition": "`product_type` varchar(100) DEFAULT NULL COMMENT 'CRM productSubCode'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "warranty_years",
+      "definition": "warranty_years INT NULL COMMENT '合同保修年数，原空白或NULL表示未知；不代表当前保修状态'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V258__project_party_and_contract_source_tables.sql",
+          "line": 152
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V294__migration_field_naming_and_comment_alignment.sql",
+          "line": 319
+        }
+      ]
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "carrier_code",
+      "definition": "carrier_code VARCHAR(256) NULL",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 106
+        }
+      ]
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "shipment_contract_source_key",
+      "definition": "shipment_contract_source_key VARCHAR(128) NULL COMMENT '原fb_shipment.con_id，保留精确父来源身份'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 30
+        }
+      ]
+    },
+    {
+      "table": "proj_project",
+      "column": "custom_info",
+      "definition": "custom_info JSON NULL",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 101
+        }
+      ]
+    },
+    {
+      "table": "proj_project",
+      "column": "order_create_time",
+      "definition": "order_create_time DATETIME(3) NULL",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 102
+        }
+      ]
+    },
+    {
+      "table": "proj_project",
+      "column": "disabled",
+      "definition": "disabled BIT(1) NULL",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 103
+        }
+      ]
+    },
+    {
+      "table": "proj_project",
+      "column": "effective_from",
+      "definition": "effective_from DATETIME(3) NULL",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 104
+        }
+      ]
+    },
+    {
+      "table": "proj_project",
+      "column": "effective_to",
+      "definition": "effective_to DATETIME(3) NULL",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V412__dppms_native_detail_field_completion.sql",
+          "line": 105
+        }
+      ]
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "allocation_confirmed",
+      "definition": "allocation_confirmed BIT(1) NOT NULL DEFAULT b'1' COMMENT '是否确认占用订单分配数量'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "delivered_quantity",
+      "definition": "delivered_quantity DECIMAL(18,6) NULL COMMENT '项目范围原已发货数量'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "open_quantity",
+      "definition": "open_quantity DECIMAL(18,6) NULL COMMENT '项目范围原订单未交数量'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "member_code",
+      "definition": "member_code VARCHAR(45) NULL COMMENT '成员区间人员编码'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "phone_number",
+      "definition": "phone_number VARCHAR(20) NULL COMMENT '成员区间联系电话'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "email",
+      "definition": "email VARCHAR(45) NULL COMMENT '成员区间邮箱'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "registration_source",
+      "definition": "registration_source VARCHAR(2) NULL COMMENT '登记来源：1项目信息，2手工成员'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 7
+        }
+      ]
+    }
+  ],
+  "modifiedColumns": [
+    {
+      "table": "com_delivery_scope",
+      "column": "current_order_line_id",
+      "definition": "current_order_line_id BIGINT GENERATED ALWAYS AS (CASE WHEN allocation_confirmed=b'1' AND deleted=0 AND effective_to IS NULL THEN order_line_id ELSE NULL END) STORED",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "create_time",
+      "definition": "create_time DATETIME NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间，未确认历史可保留原NULL'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "update_time",
+      "definition": "update_time DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间，未确认历史可保留原NULL'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 11
+        }
+      ]
+    },
+    {
+      "table": "proj_project_party",
+      "column": "creator",
+      "definition": "creator VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '创建人'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V461__preserve_project_party_nullable_audit.sql",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "table": "proj_project_party",
+      "column": "updater",
+      "definition": "updater VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '' COMMENT '更新人'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V461__preserve_project_party_nullable_audit.sql",
+          "line": 4
+        }
+      ]
+    },
+    {
+      "table": "com_sales_order_line",
+      "column": "order_id",
+      "definition": "order_id BIGINT NULL COMMENT '订单ID'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 27
+        }
+      ]
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "name",
+      "definition": "`name` VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '客户名称'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\docs\\generated\\dppms-24-tasks-three-implementations-20261019\\P10-P33-column-capacity.review.sql",
+          "line": 6
+        },
+        {
+          "file": "D:\\CodexTaskArtifacts\\project-detail-followup\\remote-ddl-review-20261021\\target-current.json",
+          "line": null
+        }
+      ]
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "install_location",
+      "definition": "`install_location` VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '安装位置'",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\docs\\generated\\dppms-24-tasks-three-implementations-20261019\\P10-P33-column-capacity.review.sql",
+          "line": 11
+        },
+        {
+          "file": "D:\\CodexTaskArtifacts\\project-detail-followup\\remote-ddl-review-20261021\\target-current.json",
+          "line": null
+        }
+      ]
+    }
+  ],
+  "indexChanges": [
+    {
+      "table": "ast_product_official_info",
+      "operation": "ADD UNIQUE INDEX uk_product_official_tenant_code (tenant_id,product_code)",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 26
+        }
+      ]
+    },
+    {
+      "table": "com_delivery_scope",
+      "operation": "DROP INDEX uk_scope_version",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "table": "com_delivery_scope",
+      "operation": "ADD UNIQUE KEY uk_scope_version (tenant_id,(CASE WHEN allocation_confirmed=b'1' THEN order_line_id ELSE NULL END),project_id,allocation_version)",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V421__approved_dppms_delivery_scope_attributes.sql",
+          "line": 11
+        }
+      ]
+    },
+    {
+      "table": "com_sales_order_line",
+      "operation": "DROP INDEX uk_sales_order_line",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V481__sync_decided_configuration_contracts.sql",
+          "line": 28
+        }
+      ]
+    },
+    {
+      "table": "com_sales_order_line",
+      "operation": "ADD UNIQUE INDEX uk_sales_order_line_business (tenant_id,source_system,company_code,line_type,order_no,line_no)",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\docs\\generated\\dppms-24-tasks-three-implementations-20261019\\P14-business-keys-preview-20261020.md",
+          "line": 5
+        },
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P14SalesOrderSyncTask.java",
+          "line": null
+        }
+      ]
+    }
+  ],
+  "addedChecks": [
+    {
+      "table": "proj_project_member_assignment",
+      "operation": "ADD CONSTRAINT ck_proj_member_confirmed_identity_audit CHECK (authorization_confirmed=b'0' OR (user_id IS NOT NULL AND create_time IS NOT NULL AND update_time IS NOT NULL))",
+      "sources": [
+        {
+          "file": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\sql\\migrations\\V434__approved_project_member_history_fields.sql",
+          "line": 12
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "createTables": 13,
+    "alterStatements": 12,
+    "statements": 25,
+    "missingColumns": 19,
+    "modifiedExistingColumns": 8,
+    "addedChecks": 1
+  },
+  "offlineParse": {
+    "dialect": "mysql",
+    "tool": "sqlglot",
+    "statements": 25,
+    "typedStatements": 21,
+    "unsupportedStatements": [
+      {
+        "number": 20,
+        "table": "com_delivery_scope",
+        "reason": "SQLGlot falls back to Command for MySQL-specific multi-action ALTER. Checked against the cited formal clauses; not engine-executed."
+      },
+      {
+        "number": 21,
+        "table": "proj_project_member_assignment",
+        "reason": "SQLGlot falls back to Command for MySQL-specific multi-action ALTER. Checked against the cited formal clauses; not engine-executed."
+      },
+      {
+        "number": 22,
+        "table": "proj_project_party",
+        "reason": "SQLGlot falls back to Command for MySQL-specific multi-action ALTER. Checked against the cited formal clauses; not engine-executed."
+      },
+      {
+        "number": 23,
+        "table": "com_sales_order_line",
+        "reason": "SQLGlot falls back to Command for MySQL-specific multi-action ALTER. Checked against the cited formal clauses; not engine-executed."
+      }
+    ],
+    "databaseExecution": false
+  },
+  "p22PendingForeignKeyAndRequiredColumnsExcluded": true,
+  "p14BusinessUniqueKey": "tenant_id,source_system,company_code,line_type,order_no,line_no",
+  "boundary": "DDL review artifact only. No source, Mapper, task, migration script, running configuration or database mutation.",
+  "p22StructuralException": {
+    "status": "NOT_FORMALLY_DEFINED_OR_APPROVED",
+    "sqlFile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\docs\\generated\\dppms-24-tasks-three-implementations-20261019\\remote-test-minimal-ddl-B-p22-exception-20261021.review.sql",
+    "executableStatements": 0,
+    "businessRuleAlreadyDecided": true,
+    "removedForeignKeyCandidate": "fk_scope_order_line",
+    "nullableColumnsCandidate": [
+      {
+        "column": "order_source_system",
+        "currentDefinition": "`order_source_system` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '订单来源系统编码'",
+        "suggestedDefinition": "`order_source_system` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '订单来源系统编码'"
+      },
+      {
+        "column": "order_company_code",
+        "currentDefinition": "`order_company_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '订单公司编码'",
+        "suggestedDefinition": "`order_company_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '订单公司编码'"
+      },
+      {
+        "column": "order_type",
+        "currentDefinition": "`order_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '订单类型编码'",
+        "suggestedDefinition": "`order_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '订单类型编码'"
+      },
+      {
+        "column": "department_code",
+        "currentDefinition": "`department_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '办事处编码'",
+        "suggestedDefinition": "`department_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '办事处编码'"
+      },
+      {
+        "column": "department_name",
+        "currentDefinition": "`department_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '办事处名称'",
+        "suggestedDefinition": "`department_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '办事处名称'"
+      },
+      {
+        "column": "department_version",
+        "currentDefinition": "`department_version` int unsigned NOT NULL COMMENT '办事处版本'",
+        "suggestedDefinition": "`department_version` int unsigned NULL DEFAULT NULL COMMENT '办事处版本'"
+      }
+    ],
+    "candidateSql": "ALTER TABLE `npdms`.`com_delivery_scope`\n  DROP FOREIGN KEY fk_scope_order_line,\n  MODIFY COLUMN `order_source_system` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '订单来源系统编码',\n  MODIFY COLUMN `order_company_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '订单公司编码',\n  MODIFY COLUMN `order_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '订单类型编码',\n  MODIFY COLUMN `department_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '办事处编码',\n  MODIFY COLUMN `department_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '办事处名称',\n  MODIFY COLUMN `department_version` int unsigned NULL DEFAULT NULL COMMENT '办事处版本';",
+    "impact": "Loses database-level scope-to-order-line reference enforcement for normal business writes as well. Not executed, not part of A."
+  },
+  "scopeNotes": [
+    "A follows the existing formal definitions plus the later user-adjudicated P14 line_type key and already-decided P10/P33 capacities.",
+    "A does not alone make all 24 tasks executable: B, formal inputs, current authorization and original source validity remain separate.",
+    "Do not run V481 wholesale: ERP and many CRM columns already exist, while its historical order_type key is superseded by the later line_type decision."
+  ],
+  "readOnlyVerification": {
+    "verifiedAt": "2026-10-21T20:06:28.088882+08:00",
+    "schemaTablesCompared": 34,
+    "schemasUnchanged": true,
+    "countsUnchanged": true,
+    "originalTaskCounts": {
+      "int_sync_task": 0,
+      "int_sync_run": 0,
+      "int_sync_binding": 0
+    },
+    "migrationHistoryUnchanged": true,
+    "confirmedMissingTables": [
+      "ast_device_factory_version_record",
+      "ast_device_license_record",
+      "ast_device_software_change_batch",
+      "ast_device_software_version_record",
+      "ast_device_warranty_renewal_record",
+      "com_contract_collection_plan",
+      "int_base_sync_binding",
+      "int_base_sync_run",
+      "int_base_sync_task",
+      "proj_legacy_detail_source",
+      "proj_project_lease_product",
+      "proj_project_product_configuration",
+      "proj_project_real_product"
+    ],
+    "createTableDefinitions": 13,
+    "missingInsertColumnsCovered": 19,
+    "AStatements": 25,
+    "BExecutableStatements": 0,
+    "parentForeignKeyPreservedInA": true,
+    "foreignKeySupportIndexBeforeUniqueReplacement": true,
+    "P14LineTypeKeyUsed": true,
+    "sourceMapperMigrationAndServiceFilesUnchanged": true,
+    "ddlExecuted": false,
+    "migrationExecuted": false,
+    "sourceDataRead": false,
+    "taskOperations": 0,
+    "serviceOperations": 0,
+    "59191Operations": 0,
+    "offlineParse": {
+      "dialect": "mysql",
+      "tool": "sqlglot",
+      "statements": 25,
+      "typedStatements": 21,
+      "unsupportedStatements": [
+        {
+          "number": 20,
+          "table": "com_delivery_scope",
+          "reason": "SQLGlot falls back to Command for MySQL-specific multi-action ALTER. Checked against the cited formal clauses; not engine-executed."
+        },
+        {
+          "number": 21,
+          "table": "proj_project_member_assignment",
+          "reason": "SQLGlot falls back to Command for MySQL-specific multi-action ALTER. Checked against the cited formal clauses; not engine-executed."
+        },
+        {
+          "number": 22,
+          "table": "proj_project_party",
+          "reason": "SQLGlot falls back to Command for MySQL-specific multi-action ALTER. Checked against the cited formal clauses; not engine-executed."
+        },
+        {
+          "number": 23,
+          "table": "com_sales_order_line",
+          "reason": "SQLGlot falls back to Command for MySQL-specific multi-action ALTER. Checked against the cited formal clauses; not engine-executed."
+        }
+      ],
+      "databaseExecution": false
+    },
+    "boundary": "Read-only target verification and static review files only. No DDL or temporary DDL was executed in any database. No original task, synchronization logic, migration file or runtime configuration changed."
+  }
+}

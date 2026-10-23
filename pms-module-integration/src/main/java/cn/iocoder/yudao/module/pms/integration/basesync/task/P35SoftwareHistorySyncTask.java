@@ -14,13 +14,14 @@ import org.springframework.stereotype.Component;
 @Component @RequiredArgsConstructor
 public class P35SoftwareHistorySyncTask extends AbstractSyncTask<P35SoftwareHistorySyncTask.Source,P35SoftwareHistorySyncTask.Parameters> {
  private final TargetMapper mapper;private final BaseSyncPublishedProjects publications;private final BaseSyncProjectReferences projects;
- public static final class Parameters {private BaseSyncPublishedProjects.Snapshot publication;private SyncSource.Session source;private final Map<Long,PlannedBatch> batches=new HashMap<>();}
+ public static final class Parameters {private BaseSyncPublishedProjects.Snapshot publication;private BaseSyncProjectReferences.CurrentManageScope manageScope;private SyncSource.Session source;private final Map<Long,PlannedBatch> batches=new HashMap<>();}
  public record PlannedBatch(Long id,Long projectId){}
  @Override protected Parameters createParameters(SyncContext<?> c){return new Parameters();}
  @Override public String taskCode(){return "BASE_P35";}
  @Override public String taskName(){return "软件批次及版本历史";}
  @Override public void work(SyncContext<Parameters> c){if(c.preview())c.runState().warning("SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED");
   c.parameters().publication=publications.load(new BaseSyncPublishedProjects.Query(c.tenantId(),c.connectionId(),c.maxRows(),c.source(),c.preview()));
+  c.parameters().manageScope=projects.currentManageScope(new BaseSyncProjectReferences.ManageScopeQuery(c.tenantId(),c.actorId()));
   c.runState().warning("P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change");
   try(var source=c.source().open(c.connectionId())){c.parameters().source=source;syncData(c.forData("SoftwareBatch",false,true));syncData(c.forData("SoftwareObservation",false,true));}finally{c.parameters().source=null;}
  }
@@ -29,7 +30,7 @@ public class P35SoftwareHistorySyncTask extends AbstractSyncTask<P35SoftwareHist
  @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
   var c=b.context();boolean batch=c.dataName().equals("SoftwareBatch");var selected=new LinkedHashMap<String,BaseSyncPublishedProjects.Member>();
   for(var s:b.rows()){if(s.sourceId==null||s.sourceId<=0||s.originalProjectId==null)fail("SOURCE_IDENTITY_INVALID");var member=c.parameters().publication.members().get(s.originalProjectId.toString());if(member==null)fail("SOURCE_OUTSIDE_PUBLISHED_SCOPE");selected.put(member.sourceKey(),member);}
-  var refs=projects.verifyPublished(new BaseSyncProjectReferences.PublishedQuery(c.tenantId(),c.actorId(),List.copyOf(selected.values()),c.preview()));var keys=b.rows().stream().map(s->s.sourceId.toString()).toList();var bindings=c.identities().findByKeys(new SyncIdentityStore.Query(batch?"SOFTWARE_BATCH":"SOFTWARE_OBSERVATION",keys));
+  var refs=projects.verifyPublished(new BaseSyncProjectReferences.PublishedQuery(c.tenantId(),c.actorId(),List.copyOf(selected.values()),c.preview(),c.parameters().manageScope));var keys=b.rows().stream().map(s->s.sourceId.toString()).toList();var bindings=c.identities().findByKeys(new SyncIdentityStore.Query(batch?"SOFTWARE_BATCH":"SOFTWARE_OBSERVATION",keys));
   var ids=bindings.values().stream().map(SyncIdentityStore.Identity::targetId).toList();var q=new TargetQuery(c.tenantId(),ids,c.preview());var batches=new HashMap<Long,BatchRow>();var observations=new HashMap<Long,ObservationRow>();if(!ids.isEmpty()){if(batch)mapper.selectBatches(q).forEach(r->batches.put(r.id,r));else mapper.selectObservations(q).forEach(r->observations.put(r.id,r));}
   for(var s:b.rows()){
    if(s.createTime==null||s.createTime.getNano()%1000000!=0||s.updateTime!=null&&s.updateTime.getNano()%1000000!=0)fail("ORIGINAL_AUDIT_REQUIRED_OR_PRECISION_INVALID");var p=refs.get(s.originalProjectId.toString());var binding=bindings.get(s.sourceId.toString());s.action=SyncWriteAction.INSERT;

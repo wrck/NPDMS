@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 class RemainingTaskMySqlTest extends RemainingTaskMySqlSupport {
  @Test void ordersAndLinesPreviewWithoutAnyWriteThenBatchInsertWithActualParentAndDeferredOptionalIds(){
   order("A");order("B");line("A",3);
-  var task=new P14SalesOrderSyncTask(session.getMapper(P14SalesOrderSyncTask.TargetMapper.class));
+  var task=new P14SalesOrderSyncTask(session.getMapper(P14SalesOrderSyncTask.TargetMapper.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class));
   assertEquals(new SyncCounts(3,3,0,0,0),run(task,true));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order",Integer.class));verify(identities,never()).saveAll(any());
   assertEquals(new SyncCounts(3,3,0,0,0),run(task,false));
   assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order",Integer.class));
@@ -34,7 +34,7 @@ class RemainingTaskMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(new SyncCounts(3,0,0,3,0),run(task,true));
  }
  @Test void laterInvalidLineRollsBackAllEarlierHeadersAndDoesNotAdoptManualOrders(){
-  order("A");line("A",-1);var task=new P14SalesOrderSyncTask(session.getMapper(P14SalesOrderSyncTask.TargetMapper.class));
+  order("A");line("A",-1);var task=new P14SalesOrderSyncTask(session.getMapper(P14SalesOrderSyncTask.TargetMapper.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class));
   assertThrows(IllegalArgumentException.class,()->run(task,false));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order",Integer.class));
   saved.clear();jdbc.update("UPDATE pm_order_line_from_erp SET orderQuantity=3");
   jdbc.update("INSERT INTO com_sales_order(id,tenant_id,source_system,company_code,order_type,order_no,status,creator,updater) VALUES(99,1,'SAP','001','0','A','ENABLED','manual','manual')");
@@ -42,7 +42,7 @@ class RemainingTaskMySqlTest extends RemainingTaskMySqlSupport {
  }
  @Test void duplicateOrderPayloadAndSameVersionChangesAreRejected(){
   order("A");jdbc.update("INSERT INTO pm_order_data_from_erp(id,orderNumber,compCode,orderType,source,syncTime,contractNo) VALUES(3,'A','01','0','SAP','2020-01-01','OTHER')");
-  var task=new P14SalesOrderSyncTask(session.getMapper(P14SalesOrderSyncTask.TargetMapper.class));
+  var task=new P14SalesOrderSyncTask(session.getMapper(P14SalesOrderSyncTask.TargetMapper.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class));
   assertThrows(IllegalArgumentException.class,()->run(task,true));
   jdbc.update("DELETE FROM pm_order_data_from_erp WHERE id=3");run(task,false);jdbc.update("UPDATE pm_order_data_from_erp SET contractNo='CHANGED'");
   assertThrows(IllegalArgumentException.class,()->run(task,true));

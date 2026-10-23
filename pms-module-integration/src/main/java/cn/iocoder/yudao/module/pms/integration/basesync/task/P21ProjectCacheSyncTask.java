@@ -110,7 +110,7 @@ public class P21ProjectCacheSyncTask extends AbstractSyncTask<P21ProjectCacheSyn
     }
     @Override protected long syncDataClearCount(SyncContext<Void> context) {
         var query=new TargetMapper.TenantCacheQuery(context.tenantId(),context.preview());
-        return mapper.selectLeaseIds(query).size() + mapper.selectConfigurationIds(query).size();
+        return mapper.countLease(query) + mapper.countConfiguration(query);
     }
     @Override protected long syncDataClear(SyncContext<Void> context) {
         var query=new TargetMapper.TenantCacheQuery(context.tenantId(),context.preview());
@@ -207,10 +207,10 @@ public class P21ProjectCacheSyncTask extends AbstractSyncTask<P21ProjectCacheSyn
         record TenantCacheQuery(long tenantId, boolean preview) {}
         @InterceptorIgnore(tenantLine="true",dataPermission="true")
         int nullableColumns();
-        List<Long> selectLeaseIds(@Param("query") TenantCacheQuery query);
+        long countLease(@Param("query") TenantCacheQuery query);
         int deleteLease(@Param("query") TenantCacheQuery query);
         int insertLease(@Param("rows") List<LeaseCacheRow> rows);
-        List<Long> selectConfigurationIds(@Param("query") TenantCacheQuery query);
+        long countConfiguration(@Param("query") TenantCacheQuery query);
         int deleteConfiguration(@Param("query") TenantCacheQuery query);
         int insertConfiguration(@Param("rows") List<ConfigurationCacheRow> rows);
     }

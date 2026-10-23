@@ -9,7 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Component;
 
-/** Complete approved organization snapshot; existing formal definitions remain authoritative. */
+/** Complete approved organization snapshot; existing formal definitions remain authoritative. Approved missing company 004 is supplied by fnd_company. */
 @Component @RequiredArgsConstructor
 public class P01OrganizationSyncTask extends AbstractSyncTask<P01OrganizationSyncTask.Source,P01OrganizationSyncTask.Parameters> {
  private final TargetMapper mapper;
@@ -25,23 +25,32 @@ public class P01OrganizationSyncTask extends AbstractSyncTask<P01OrganizationSyn
  @Override public void work(SyncContext<Parameters> c){c.parameters().warnings.forEach(c.runState()::warning);syncData(c.forData("Organization",false,false));}
  @Override protected Parameters createParameters(SyncContext<?> c){
   var query=new SourceQuery<Void>(Math.min(c.maxRows(),10000)+1,c.tenantId(),c.preview(),null);
-  List<Company> companies;List<Department> departments;List<Fnd> fnd;List<CompanyAlias> aliases;
+  List<Company> companies;List<Department> departments;List<Fnd> fnd;List<Fnd> companyCompletions;List<CompanyAlias> aliases;
   try(var source=c.source().open(c.connectionId())){
-   var m=source.mapper(SourceMapper.class);companies=m.selectCompanies(query);departments=m.selectDepartments(query);fnd=m.selectFnd(query);aliases=m.selectCompanyAliases(query);
+   var m=source.mapper(SourceMapper.class);companies=m.selectCompanies(query);departments=m.selectDepartments(query);fnd=m.selectFnd(query);companyCompletions=m.selectCompanyCompletions(query);
   }
-  if(companies.size()+departments.size()+fnd.size()+aliases.size()>10000)fail("RAW_DIRECTORY_CAPACITY");
+  aliases=companies.stream().filter(company->"t_company".equals(company.sourceTable)).map(company->new CompanyAlias().setId(company.id).setCode(company.originalCode)).toList();
+  if(companies.size()+departments.size()+fnd.size()+companyCompletions.size()>10000)fail("RAW_DIRECTORY_CAPACITY");
   var current=new HashMap<String,Row>();var targetQuery=new CatalogueQuery(c.tenantId(),c.preview());
   var formal=new ArrayList<>(mapper.selectCompanies(targetQuery));formal.addAll(mapper.selectDepartments(targetQuery));
   for(var row:formal)if(row.code!=null && current.putIfAbsent(row.kind+":"+row.code,row)!=null)fail("FORMAL_CODE_AMBIGUOUS");
-  var planned=plan(new Input(companies,departments,fnd,aliases,c));
+  var planned=plan(new Input(companies,departments,fnd,aliases,companyCompletions,c));
   return new Parameters(planned,current,c.runState().warnings());
  }
  @Override protected List<Source> syncDataQuery(SyncContext<Parameters> c){return new ArrayList<>(c.parameters().sources);}
- public record Input(List<Company> companies,List<Department> departments,List<Fnd> fnd,List<CompanyAlias> aliases,SyncContext<?> context){}
+ public record Input(List<Company> companies,List<Department> departments,List<Fnd> fnd,List<CompanyAlias> aliases,List<Fnd> companyCompletions,SyncContext<?> context){}
  static List<Source> plan(Input input){
   var companies=new HashMap<Long,Company>();var departments=new HashMap<Long,Department>();var fnd=new HashMap<String,Fnd>();
   var winners=new LinkedHashMap<String,Source>();var completion=new HashSet<String>();
-  for(var c:input.companies){if(c.id==null || companies.putIfAbsent(c.id,c)!=null)fail("COMPANY_SOURCE_DUPLICATE");var s=new Source();s.kind="COMPANY";s.code=trim(c.code);s.name=trim(c.name);s.status=status(c.disabled);s.rank=0;s.sourceId=c.id.toString();choose(winners,s);}
+  for(var c:input.companies){
+   boolean ehr="ehr_company".equals(c.sourceTable);
+   if(c.id==null||!ehr&&!"t_company".equals(c.sourceTable)||ehr&&companies.putIfAbsent(c.id,c)!=null)fail("COMPANY_SOURCE_DUPLICATE");
+   var s=new Source();s.kind="COMPANY";s.code=trim(c.code);s.name=trim(c.name);s.status=status(c.disabled);s.rank=ehr?0:1;s.sourceId=ehr?c.id.toString():"t_company:"+c.id;choose(winners,s);
+  }
+  // Keep the EHR compID map intact: fnd_company IDs belong to a separate source domain.
+  if(!winners.containsKey("COMPANY:004"))for(var f:input.companyCompletions)if("004".equals(f.code)){
+   var s=new Source();s.kind="COMPANY";s.code=f.code;s.name=f.name;s.status=fndStatus(f.status);s.rank=1;s.sourceId="fnd_company:"+f.id;choose(winners,s);
+  }
   for(var d:input.departments)if(d.id==null || departments.putIfAbsent(d.id,d)!=null)fail("DEPARTMENT_SOURCE_DUPLICATE");
   for(var f:input.fnd)if(FND.contains(f.code)||Set.of("167010","167020","167050").contains(f.code)){if(fnd.putIfAbsent(f.code,f)!=null)fail("FND_SOURCE_AMBIGUOUS");}
   for(var d:input.departments){
@@ -117,11 +126,11 @@ public class P01OrganizationSyncTask extends AbstractSyncTask<P01OrganizationSyn
  static void fail(String code){throw new IllegalArgumentException("P01_"+code);}
  @lombok.Data public static class Source {private String kind,code,name,companyCode,parentCode,sourceId;private int rank,status;private boolean historical;private LocalDateTime createTime,updateTime;private Row target;private SyncWriteAction action;}
  @lombok.Data public static class Row {private Long id,tenantId,parentId,leaderUserId;private String kind,code,name,phone,email,creator,updater;private Integer sort,status,version;private LocalDateTime createTime,updateTime;private Boolean deleted;}
- @lombok.Data public static class Company {private Long id;private String code,name;private Integer disabled;}
+ @lombok.Data public static class Company {private Long id;private String code,name,sourceTable,originalCode;private Integer disabled;}
  @lombok.Data public static class Department {private Long id,companyId,parentId,director;private String code,name,grade,property,number,sortOrder,remark,custom1,custom3,custom5;private Integer disabled;}
  @lombok.Data public static class Fnd {private Long id;private String code,name;private Integer status;private LocalDateTime createTime,updateTime,effectiveFrom,effectiveTo;}
  @lombok.Data public static class CompanyAlias {private Long id;private String code;}
  public record CatalogueQuery(long tenantId,boolean preview){}
- public interface SourceMapper {List<Company> selectCompanies(SourceQuery<Void> query);List<Department> selectDepartments(SourceQuery<Void> query);List<Fnd> selectFnd(SourceQuery<Void> query);List<CompanyAlias> selectCompanyAliases(SourceQuery<Void> query);}
+ public interface SourceMapper {List<Company> selectCompanies(SourceQuery<Void> query);List<Department> selectDepartments(SourceQuery<Void> query);List<Fnd> selectFnd(SourceQuery<Void> query);List<Fnd> selectCompanyCompletions(SourceQuery<Void> query);}
  @Mapper public interface TargetMapper {List<Row> selectCompanies(@Param("query") CatalogueQuery query);List<Row> selectDepartments(@Param("query") CatalogueQuery query);int insertCompanies(SyncBatch<Source,Parameters> batch);int insertDepartments(SyncBatch<Source,Parameters> batch);}
 }

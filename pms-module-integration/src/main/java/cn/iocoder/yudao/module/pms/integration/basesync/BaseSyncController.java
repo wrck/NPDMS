@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.integration.basesync;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.pms.integration.api.basesync.SyncCounts;
+import cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,9 @@ public class BaseSyncController {
     @GetMapping("/tasks")
     @PreAuthorize("@ss.hasPermission('pms:integration:view')")
     public CommonResult<List<BaseSyncService.Task>> tasks() { return success(service.tasks()); }
+    @GetMapping("/registrations")
+    @PreAuthorize("@ss.hasPermission('pms:integration:view')")
+    public CommonResult<List<BaseSyncMetadataMapper.TaskRow>> registrations() { return success(service.registrations()); }
     @PostMapping("/registrations")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<Long> register(@RequestBody BaseSyncConfiguration request) { return success(service.register(request)); }

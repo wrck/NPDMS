@@ -6,8 +6,12 @@ FROM proj_project p
 LEFT JOIN com_delivery_scope_project_version v ON v.tenant_id=p.tenant_id AND v.project_id=p.id AND v.deleted=FALSE
 WHERE p.tenant_id=#{query.tenantId} AND p.deleted=FALSE
 <choose><when test="query.ids != null and !query.ids.isEmpty()">AND p.id IN <foreach collection="query.ids" item="id" open="(" close=")" separator=",">#{id}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview"> FOR UPDATE</if></select>
+<select id="selectScopeIdentities" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$ScopeIdentity">
+ SELECT id,source_evidence FROM com_delivery_scope WHERE tenant_id=#{query.tenantId}
+ AND LEFT(source_evidence,30)='DPPMS:pm_project_product_line:'<if test="!query.preview"> FOR UPDATE</if>
+</select>
 <select id="selectScopes" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$ScopeRow">SELECT * FROM com_delivery_scope WHERE tenant_id=#{query.tenantId}
-<choose><when test="query.evidence != null and !query.evidence.isEmpty()">AND source_evidence IN <foreach collection="query.evidence" item="key" open="(" close=")" separator=",">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview"> FOR UPDATE</if></select>
+<choose><when test="query.ids != null and !query.ids.isEmpty()">AND id IN <foreach collection="query.ids" item="id" open="(" close=")" separator=",">#{id}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview"> FOR UPDATE</if></select>
 <select id="selectDetails" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$DetailRow">SELECT * FROM com_delivery_scope_detail WHERE tenant_id=#{query.tenantId}
 <choose><when test="query.ids != null and !query.ids.isEmpty()">AND delivery_scope_id IN <foreach collection="query.ids" item="key" open="(" close=")" separator=",">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview"> FOR UPDATE</if></select>
 <insert id="insertProductScope">
@@ -72,7 +76,8 @@ WHERE p.tenant_id=#{query.tenantId} AND p.deleted=FALSE
  JOIN com_sales_order o ON o.tenant_id=l.tenant_id AND o.id=l.order_id AND o.deleted=FALSE AND o.status='ENABLED'
   AND CAST(o.source_system AS BINARY)=CAST(l.source_system AS BINARY) AND CAST(o.company_code AS BINARY)=CAST(l.company_code AS BINARY) AND CAST(o.order_type AS BINARY)=CAST(l.order_type AS BINARY) AND CAST(o.order_no AS BINARY)=CAST(l.order_no AS BINARY)
  JOIN int_base_sync_binding ob ON ob.tenant_id=l.tenant_id AND ob.target_id=l.id AND ob.object_key='SALES_LINE' AND ob.deleted=FALSE
-  AND CAST(ob.source_key AS BINARY)=CAST(SHA2(CAST(JSON_ARRAY(l.source_system,l.company_code,l.line_type,l.order_no,l.line_no) AS CHAR),256) AS BINARY)
+  <!-- P14 hashes the source numeric lineType; the formal VARCHAR must retain that JSON number type. -->
+  AND CAST(ob.source_key AS BINARY)=CAST(SHA2(CAST(JSON_ARRAY(l.source_system,l.company_code,CAST(l.line_type AS UNSIGNED),l.order_no,l.line_no) AS CHAR),256) AS BINARY)
  JOIN int_base_sync_task ot ON ot.tenant_id=ob.tenant_id AND ot.id=ob.task_id AND ot.task_code='BASE_P14' AND ot.connection_id=#{query.connectionId} AND ot.deleted=FALSE
  JOIN int_base_sync_run rr ON rr.tenant_id=ot.tenant_id AND rr.task_id=ot.id AND rr.connection_id=ot.connection_id AND rr.id=ob.last_run_id AND rr.task_code='BASE_P14' AND rr.status='COMPLETED' AND rr.preview=FALSE AND rr.deleted=FALSE
  WHERE l.tenant_id=#{query.tenantId} AND l.deleted=FALSE AND l.status='ENABLED' AND l.source_system IN ('SAP','D365','SMS')
@@ -84,15 +89,16 @@ WHERE p.tenant_id=#{query.tenantId} AND p.deleted=FALSE
  GROUP BY CAST(l.company_code AS BINARY),CAST(l.order_no AS BINARY),CAST(l.line_no AS BINARY),CAST(l.product_code AS BINARY)
  HAVING COUNT(DISTINCT l.id)=1
 </sql>
-<select id="selectOwnedOrderLines" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$OrderLine">
+<select id="selectOwnedOrderCatalogue" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$OrderLine">
  SELECT <include refid="uniqueOrderColumns"/> <include refid="ownedOrderRows"/>
- <choose><when test="query.keys != null and !query.keys.isEmpty()">AND (<foreach collection="query.keys" item="k" separator=" OR ">(CAST(l.company_code AS BINARY)=CAST(#{k.companyCode} AS BINARY) AND CAST(l.order_no AS BINARY)=CAST(#{k.orderNo} AS BINARY) AND CAST(l.line_no AS BINARY)=CAST(#{k.lineNo} AS BINARY) AND CAST(l.product_code AS BINARY)=CAST(#{k.productCode} AS BINARY))</foreach>)</when><otherwise>AND 1=0</otherwise></choose>
  <include refid="uniqueOrderGrouping"/>
 </select>
 <update id="backfillOrderLineIds">
  UPDATE com_delivery_scope s <include refid="currentRunScopes"/>
- JOIN (SELECT <include refid="uniqueOrderColumns"/> <include refid="ownedOrderRows"/> <include refid="uniqueOrderGrouping"/>) matched
-  ON CAST(matched.company_code AS BINARY)=CAST(s.project_company_code AS BINARY) AND CAST(matched.order_no AS BINARY)=CAST(s.order_no AS BINARY)
+ <!-- Probe the materialized order catalogue by all four keys for each owned scope. -->
+ STRAIGHT_JOIN (SELECT <include refid="uniqueOrderColumns"/> <include refid="ownedOrderRows"/> <include refid="uniqueOrderGrouping"/>) matched
+  ON matched.company_code=s.project_company_code AND matched.order_no=s.order_no AND matched.line_no=s.line_no AND matched.product_code=s.product_code
+  AND CAST(matched.company_code AS BINARY)=CAST(s.project_company_code AS BINARY) AND CAST(matched.order_no AS BINARY)=CAST(s.order_no AS BINARY)
   AND CAST(matched.line_no AS BINARY)=CAST(s.line_no AS BINARY) AND CAST(matched.product_code AS BINARY)=CAST(s.product_code AS BINARY)
  SET s.order_line_id=matched.id,s.order_source_system=matched.source_system,s.order_company_code=matched.company_code,s.order_company_name=matched.company_name,s.order_type=matched.order_type,s.update_time=s.update_time
  WHERE s.tenant_id=#{query.tenantId} AND s.order_line_id=-1 AND s.deleted=FALSE AND s.allocation_source='DPPMS' AND s.allocation_confirmed=FALSE

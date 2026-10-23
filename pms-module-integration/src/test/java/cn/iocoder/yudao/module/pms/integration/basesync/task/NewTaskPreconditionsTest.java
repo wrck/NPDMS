@@ -25,6 +25,6 @@ class NewTaskPreconditionsTest {
  @Test void p15WholeTableCapacityIsBoundedWithoutChangingAnExistingTaskFuse(){
   assertDoesNotThrow(()->new BaseSyncConfiguration("BASE_P15",3,500,5000000));assertThrows(IllegalArgumentException.class,()->new BaseSyncConfiguration("BASE_P15",3,500,5000001));
   var mapper=mock(P15DeliverySyncTask.TargetMapper.class);when(mapper.packageSourceColumnReady()).thenReturn(1);var context=context();var session=mock(SyncSource.Session.class);var source=mock(P15DeliverySyncTask.SourceMapper.class);when(context.source().open(3)).thenReturn(session);when(session.mapper(P15DeliverySyncTask.SourceMapper.class)).thenReturn(source);when(source.countShipmentEvents(any())).thenReturn(4283326L);
-  assertTrue(assertThrows(IllegalArgumentException.class,()->new P15DeliverySyncTask(mapper).execute(context)).getMessage().contains("4283326:1000000"));verify(mapper,never()).latestP24Execution(any());verifyNoInteractions(context.target(),context.identities());
+  assertTrue(assertThrows(IllegalArgumentException.class,()->new P15DeliverySyncTask(mapper,mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class)).execute(context)).getMessage().contains("4283326:1000000"));verify(mapper,never()).latestP24Execution(any());verifyNoInteractions(context.target(),context.identities());
  }
 }

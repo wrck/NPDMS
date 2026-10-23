@@ -33,11 +33,12 @@ public class P10CrmCustomerSyncTask extends AbstractSyncTask<P10CrmCustomerSyncT
     @Override protected void syncDataInsertBefore(SyncBatch<CustomerSource,Void> batch){
         var context=batch.context();
         var keys=batch.rows().stream().map(CustomerSource::getSourceKey).toList();
+        var keySet=new HashSet<>(keys);
         var codes=batch.rows().stream().map(CustomerSource::getCode).toList();
         var bindings=context.identities().findByKeys(new SyncIdentityStore.Query("CUSTOMER",keys));
         var mappings=new HashMap<String,CustomerMapping>();
         for(var row:customers.selectMappings(new TargetMapper.SourceKeysQuery(context.tenantId(),keys,context.preview())))
-            if(!keys.contains(row.getSourceKey()) || mappings.putIfAbsent(row.getSourceKey(),row)!=null)
+            if(!keySet.contains(row.getSourceKey()) || mappings.putIfAbsent(row.getSourceKey(),row)!=null)
                 throw new IllegalStateException("CRM客户来源映射不唯一或原身份不同");
         var ids=mappings.values().stream().map(CustomerMapping::getCustomerId).toList();
         var targets=customers.selectCustomers(new TargetMapper.CustomersQuery(context.tenantId(),ids,codes,context.preview()));

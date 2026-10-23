@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.integration.basesync.task;
 import cn.iocoder.yudao.module.pms.integration.api.basesync.*;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,17 +16,49 @@ import org.springframework.stereotype.Component;
 @Component @RequiredArgsConstructor @lombok.extern.slf4j.Slf4j
 public class P14SalesOrderSyncTask extends AbstractSyncTask<P14SalesOrderSyncTask.Source,P14SalesOrderSyncTask.Parameters> {
  private final TargetMapper mapper;
- public static final class Parameters { private final Map<OrderKey,OrderRow> orders=new HashMap<>(); private long pendingOrderReferences; }
- @Override protected Parameters createParameters(SyncContext<?> c){return new Parameters();}
+ private final ManagedOrganizationApi organizations;
+ public static final class Parameters { private final Map<OrderKey,OrderRow> orders=new HashMap<>(); private long pendingOrderReferences; private final Map<String,ManagedOrganizationApi.Node> companies=new HashMap<>(); private final Map<String,Long> missingCompanies=new LinkedHashMap<>(); private long connectionId; public long getConnectionId(){return connectionId;} }
+ @Override protected Parameters createParameters(SyncContext<?> c){
+  var parameters=new Parameters();parameters.connectionId=c.connectionId();var grouped=new HashMap<String,List<ManagedOrganizationApi.Node>>();
+  for(var node:organizations.list()){
+   if(node==null||(node.company()==null)==(node.department()==null)||node.id()==null||node.id()<=0
+     ||!Objects.equals(c.tenantId(),node.company()!=null?node.company().getTenantId():node.department().getTenantId()))fail("ORGANIZATION_DIRECTORY_SCOPE_INVALID");
+   if("COMPANY".equals(node.type())&&node.code()!=null&&!node.code().isBlank())grouped.computeIfAbsent(node.code(),ignored->new ArrayList<>()).add(node);
+  }
+  grouped.forEach((code,nodes)->{if(nodes.getFirst().name()!=null&&!nodes.getFirst().name().isBlank()&&nodes.stream().map(ManagedOrganizationApi.Node::id).distinct().count()==1&&nodes.stream().map(ManagedOrganizationApi.Node::name).distinct().count()==1)parameters.companies.put(code,nodes.getFirst());});
+  return parameters;
+ }
  @Override public String taskCode(){return "BASE_P14";}
  @Override public String taskName(){return "ERP销售订单与订单行";}
  @Override public void work(SyncContext<Parameters> c){
   // Explicit full header snapshot: planned parent identities must remain available to line preview.
   syncData(c.forData("Order",false,false));syncData(c.forData("Line",false,true));
+  syncData(c.forLocalData("OrderCompany",false,true));
+  c.parameters().missingCompanies.forEach((code,count)->c.runState().warning("P14_ORDER_COMPANY_DIRECTORY_MISSING:"+code+":"+count));
   if(c.parameters().pendingOrderReferences>0)c.runState().warning("P14_ORDER_REFERENCE_PENDING:"+c.parameters().pendingOrderReferences);
  }
  @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
-  if("Order".equals(b.context().dataName()))prepareOrders(b);else prepareLines(b);
+  if("OrderCompany".equals(b.context().dataName()))completeOrderCompanies(b);else if("Order".equals(b.context().dataName()))prepareOrders(b);else prepareLines(b);
+ }
+ private void completeOrderCompanies(SyncBatch<Source,Parameters> b){
+  var c=b.context();var bindings=c.identities().findByKeys(new SyncIdentityStore.Query("SALES_ORDER",b.rows().stream().map(Source::getKey).toList()));
+  b.rows().forEach(s->s.action=SyncWriteAction.UNCHANGED);var owned=b.rows().stream().filter(s->bindings.containsKey(s.key)).toList();if(owned.isEmpty())return;
+  var current=new HashMap<OrderKey,OrderRow>();
+  for(int i=0;i<owned.size();i+=80)for(var old:mapper.selectOrders(new OrdersQuery(c.tenantId(),owned.subList(i,Math.min(i+80,owned.size())).stream().map(s->key(s.order)).toList(),c.preview()))){
+   if(!Objects.equals(old.tenantId,c.tenantId())||current.putIfAbsent(key(old),old)!=null)fail("ORDER_TARGET_AMBIGUOUS");
+  }
+  for(var source:owned){
+   var old=current.get(key(source.order));var binding=bindings.get(source.key);protect(new Protection(old,binding));
+   if(!Objects.equals(source.order.id,binding.targetId()))fail("EXISTING_TARGET_PROTECTED");
+   var next=new OrderRow();org.springframework.beans.BeanUtils.copyProperties(old,next);
+   if(next.companyId==null||next.companyName==null||next.companyName.isBlank()){
+    var company=c.parameters().companies.get(old.companyCode);
+    if(company==null)c.parameters().missingCompanies.merge(old.companyCode,1L,Long::sum);
+    else{if(next.companyId==null)next.companyId=company.id();if(next.companyName==null||next.companyName.isBlank())next.companyName=company.name();}
+   }
+   source.previous=binding.fingerprint();source.order=next;source.expectedVersion=old.version;
+   if(!Objects.equals(old.companyId,next.companyId)||!Objects.equals(old.companyName,next.companyName)){next.version=Math.addExact(old.version,1);source.action=SyncWriteAction.UPDATE;}
+  }
  }
  private void prepareOrders(SyncBatch<Source,Parameters> b){
   var c=b.context();var keys=b.rows().stream().map(s->s.key).toList();
@@ -58,15 +91,12 @@ public class P14SalesOrderSyncTask extends AbstractSyncTask<P14SalesOrderSyncTas
   for(var s:b.rows()){
    validate(s);var row=s.line;var old=oldByKey.get(key(row));var binding=bindings.get(s.key);protect(new Protection(old,binding));
    var parent=c.parameters().orders.get(new OrderKey(row.sourceSystem,row.companyCode,row.lineType,row.orderNo));
+   // The original line type supplies the required parent-key type; absent parent IDs stay NULL.
+   row.orderType=row.lineType;row.orderId=parent==null?null:parent.id;
    if(parent==null){
-    if(!c.preview())fail("MANDATORY_ORDER_MISSING");
-    if(old!=null || binding!=null)fail("BOUND_ORDER_SOURCE_MISSING");
-    row.orderId=null;row.orderType=null;s.action=null;
     c.parameters().pendingOrderReferences=Math.incrementExact(c.parameters().pendingOrderReferences);
-    log.warn("P14_PREVIEW_ORDER_REFERENCE_PENDING:tenantId={},connectionId={},startedAt={},sourceIds={},sourceKey={},sourceSystem={},companyCode={},lineType={},orderNo={},lineNo={},orderQty={},openQty={}",c.tenantId(),c.connectionId(),c.startedAt(),s.originalSourceIds,s.key,row.sourceSystem,row.companyCode,row.lineType,row.orderNo,row.lineNo,row.orderQty,row.openQty);
-    continue;
+    log.warn("P14_ORDER_REFERENCE_PENDING:tenantId={},connectionId={},startedAt={},preview={},sourceIds={},sourceKey={},sourceSystem={},companyCode={},lineType={},orderNo={},lineNo={},orderQty={},openQty={}",c.tenantId(),c.connectionId(),c.startedAt(),c.preview(),s.originalSourceIds,s.key,row.sourceSystem,row.companyCode,row.lineType,row.orderNo,row.lineNo,row.orderQty,row.openQty);
    }
-   row.orderId=parent.id;row.orderType=parent.orderType; // New preview parents have no fabricated target ID.
    s.previous=binding==null?null:binding.fingerprint();s.action=SyncWriteAction.UNCHANGED;
    if(old!=null){
     row.customInfo=old.customInfo;
@@ -101,8 +131,13 @@ public class P14SalesOrderSyncTask extends AbstractSyncTask<P14SalesOrderSyncTas
  static void checkMillis(LocalDateTime t){if(t!=null && t.getNano()%1_000_000!=0)fail("TIME_PRECISION_INVALID");}
  static void validateJson(String value){if(value!=null)try{JsonUtils.parseTree(value);}catch(RuntimeException e){fail("CUSTOM_INFO_INVALID");}}
  @Override protected SyncCounts syncDataCount(SyncBatch<Source,Parameters> b){var known=SyncCounts.fromActions(b.rows().stream().filter(s->s.action!=null).toList(),Source::getAction);return new SyncCounts(b.rows().size(),known.inserted(),known.updated(),known.unchanged(),known.deleted());}
- @Override protected void syncDataInsert(SyncBatch<Source,Parameters> b){super.syncDataInsert(b.matching(s->s.action==SyncWriteAction.INSERT));super.syncDataUpdate(b.matching(s->s.action==SyncWriteAction.UPDATE));}
- @Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){var order="Order".equals(b.context().dataName());
+ @Override protected void syncDataInsert(SyncBatch<Source,Parameters> b){
+  if("OrderCompany".equals(b.context().dataName())){
+   var changed=b.matching(s->s.action==SyncWriteAction.UPDATE);if(changed.rows().isEmpty()||b.context().preview())return;
+   if(mapper.updateOrderCompany(changed)!=changed.rows().size())fail("ORDER_COMPANY_TARGET_CHANGED");return;
+  }
+  super.syncDataInsert(b.matching(s->s.action==SyncWriteAction.INSERT));super.syncDataUpdate(b.matching(s->s.action==SyncWriteAction.UPDATE));}
+ @Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){var order="Order".equals(b.context().dataName())||"OrderCompany".equals(b.context().dataName());
   b.context().identities().saveAll(b.rows().stream().filter(s->s.action==SyncWriteAction.INSERT || s.action==SyncWriteAction.UPDATE).map(s->new SyncIdentityStore.Save(order?"SALES_ORDER":"SALES_LINE",s.key,order?s.order.id:s.line.id,order?fingerprint(s.order):fingerprint(s.line),s.previous)).toList());
  }
  static OrderKey key(OrderRow r){return new OrderKey(r.sourceSystem,r.companyCode,r.orderType,r.orderNo);}
@@ -116,7 +151,7 @@ public class P14SalesOrderSyncTask extends AbstractSyncTask<P14SalesOrderSyncTas
  public record OrdersQuery(long tenantId,List<OrderKey> keys,boolean preview){}
  public record LinesQuery(long tenantId,List<LineKey> keys,boolean preview){}
  public interface SourceMapper {List<Source> selectOrder(SourceQuery<Parameters> query);void selectLine(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);}
- @Mapper public interface TargetMapper {List<OrderRow> selectOrders(@Param("query") OrdersQuery query);List<LineRow> selectLines(@Param("query") LinesQuery query);int insertOrder(SyncBatch<Source,Parameters> batch);int insertLine(SyncBatch<Source,Parameters> batch);int updateOrder(RowParameter<Source,Parameters> row);int updateLine(RowParameter<Source,Parameters> row);}
+ @Mapper public interface TargetMapper {void selectOrderCompany(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);int updateOrderCompany(SyncBatch<Source,Parameters> batch);List<OrderRow> selectOrders(@Param("query") OrdersQuery query);List<LineRow> selectLines(@Param("query") LinesQuery query);int insertOrder(SyncBatch<Source,Parameters> batch);int insertLine(SyncBatch<Source,Parameters> batch);int updateOrder(RowParameter<Source,Parameters> row);int updateLine(RowParameter<Source,Parameters> row);}
 @lombok.Data public static class OrderRow {
  private Long id;
  private Long tenantId;

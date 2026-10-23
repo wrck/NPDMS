@@ -116,10 +116,7 @@ class ProductSyncArchitectureTest {
                 // Translate only unbounded casts, not predicates or business decisions.
                 String xml=new String(input.readAllBytes(),StandardCharsets.UTF_8)
                         .replace(" AS BINARY)"," AS VARBINARY)")
-                        .replace(" AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci"," AS VARCHAR)")
-                        // H2 supports VALUES(column), not MySQL 8 row aliases. Production XML uses native aliases.
-                        .replace("</foreach> AS incoming","</foreach>")
-                        .replaceAll("incoming\\.([a-z_]+)","VALUES($1)");
+                        .replace(" AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_unicode_ci"," AS VARCHAR)");
                 new XMLMapperBuilder(new java.io.StringReader(xml),config,resource,config.getSqlFragments()).parse();
             }
         }

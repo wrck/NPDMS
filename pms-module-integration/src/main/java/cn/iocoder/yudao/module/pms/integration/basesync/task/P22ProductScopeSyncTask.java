@@ -18,9 +18,10 @@ public class P22ProductScopeSyncTask extends AbstractSyncTask<P22ProductScopeSyn
  private final TargetMapper mapper;private final BaseSyncProjectReferences projects;
  @Override public String taskCode(){return "BASE_P22";}
  @Override public String taskName(){return "项目产品实施范围历史";}
- public static final class Parameters {private final Map<String,Department> departments=new HashMap<>();private final Map<Long,String> companies=new HashMap<>();private long zeroQuantityPending,missingDepartmentPending;private boolean departmentSchemaReady;}
+ public static final class Parameters {private BaseSyncProjectReferences.CurrentManageScope manageScope;private final Map<String,Department> departments=new HashMap<>();private final Map<Long,String> companies=new HashMap<>();private final Map<OrderKey,OrderLine> ownedLines=new HashMap<>();private final Map<String,List<Long>> scopeIds=new HashMap<>();private long zeroQuantityPending,missingDepartmentPending;private boolean departmentSchemaReady,ownedLinesLoaded,scopeIdentitiesLoaded;}
  @Override protected Parameters createParameters(SyncContext<?> c){return new Parameters();}
  @Override public void work(SyncContext<Parameters> c){
+  c.parameters().manageScope=projects.currentManageScope(new BaseSyncProjectReferences.ManageScopeQuery(c.tenantId(),c.actorId()));
   if(c.preview()){c.runState().warning("SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED");c.runState().warning("P22_DEPARTMENT_ID_POSTFILL_PENDING:-1");c.runState().warning("P22_ORDER_LINE_ID_POSTFILL_PENDING:-1");}
   if(mapper.pendingOrderSchemaReady()!=1){if(!c.preview())fail("EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference");c.runState().warning("P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference");}
   c.parameters().departmentSchemaReady=mapper.pendingDepartmentSchemaReady()==1;
@@ -53,7 +54,7 @@ public class P22ProductScopeSyncTask extends AbstractSyncTask<P22ProductScopeSyn
   if(b.rows().isEmpty())return;
   var c=b.context();var keys=b.rows().stream().map(s->s.sourceId.toString()).toList();
   var bindings=c.identities().findByKeys(new SyncIdentityStore.Query("PRODUCT_SCOPE",keys));
-  var references=projects.resolve(new BaseSyncProjectReferences.Query(c.tenantId(),c.actorId(),c.connectionId(),b.rows().stream().map(s->s.canonicalProjectId.toString()).distinct().toList(),c.preview()));
+  var references=projects.resolve(new BaseSyncProjectReferences.Query(c.tenantId(),c.actorId(),c.connectionId(),b.rows().stream().map(s->s.canonicalProjectId.toString()).distinct().toList(),c.preview(),c.parameters().manageScope));
   var projectIds=references.values().stream().map(BaseSyncProjectReferences.Identity::id).distinct().toList();var snapshots=new HashMap<Long,Snapshot>();
   for(var p:mapper.selectSnapshots(new ProjectsQuery(c.tenantId(),projectIds,c.preview())))if(snapshots.putIfAbsent(p.projectId,p)!=null)fail("PROJECT_SNAPSHOT_AMBIGUOUS");
   for(var s:b.rows()){
@@ -63,15 +64,23 @@ public class P22ProductScopeSyncTask extends AbstractSyncTask<P22ProductScopeSyn
    for(var v:Arrays.asList(s.orderNumber,s.lineNum,s.itemCode))if(v==null || v.isBlank())fail("ORDER_IDENTITY_MISSING");
    s.formalProjectId=p.id();
   }
-  var evidence=b.rows().stream().map(Source::evidence).toList();var existing=new HashMap<String,ScopeRow>();
-  for(var row:mapper.selectScopes(new EvidenceQuery(c.tenantId(),evidence,c.preview())))if(existing.putIfAbsent(row.sourceEvidence,row)!=null)fail("SCOPE_IDENTITY_AMBIGUOUS");
+  if(!c.parameters().scopeIdentitiesLoaded){
+   for(var identity:mapper.selectScopeIdentities(new ScopeIdentityQuery(c.tenantId(),c.preview())))
+    c.parameters().scopeIds.computeIfAbsent(identity.sourceEvidence,k->new ArrayList<>()).add(identity.id);
+   c.parameters().scopeIdentitiesLoaded=true;
+  }
+  var existingIds=b.rows().stream().flatMap(s->c.parameters().scopeIds.getOrDefault(s.evidence(),List.of()).stream()).distinct().toList();var existing=new HashMap<String,ScopeRow>();
+  for(var row:mapper.selectScopes(new ScopesQuery(c.tenantId(),existingIds,c.preview())))if(existing.putIfAbsent(row.sourceEvidence,row)!=null)fail("SCOPE_IDENTITY_AMBIGUOUS");
   var scopeIds=existing.values().stream().map(ScopeRow::getId).toList();var details=new HashMap<Long,List<DetailRow>>();
   if(!scopeIds.isEmpty())for(var d:mapper.selectDetails(new ScopesQuery(c.tenantId(),scopeIds,c.preview())))details.computeIfAbsent(d.deliveryScopeId,k->new ArrayList<>()).add(d);
-  // Only already-resolved references need a replay check. New raw rows never query formal order lines.
-  var oldOrderKeys=existing.values().stream().filter(r->r.orderLineId!=null&&r.orderLineId>0).map(r->new OrderKey(r.projectCompanyCode,r.orderNo,r.lineNo,r.productCode)).distinct().toList();
-  var ownedLines=new HashMap<OrderKey,OrderLine>();
-  for(int i=0;i<oldOrderKeys.size();i+=60)for(var line:mapper.selectOwnedOrderLines(new OwnedLinesQuery(c.tenantId(),c.connectionId(),oldOrderKeys.subList(i,Math.min(i+60,oldOrderKeys.size())),c.preview())))
-   if(ownedLines.putIfAbsent(new OrderKey(line.companyCode,line.orderNo,line.lineNo,line.productCode),line)!=null)fail("OWNED_ORDER_LINE_AMBIGUOUS");
+  // Load owned references once per run when an existing resolved row first needs checking.
+  // The existing exact OrderKey lookup remains unchanged; fresh raw rows need no catalogue.
+  if(!c.parameters().ownedLinesLoaded&&existing.values().stream().anyMatch(r->r.orderLineId!=null&&r.orderLineId>0)){
+   for(var line:mapper.selectOwnedOrderCatalogue(new OwnedOrderCatalogueQuery(c.tenantId(),c.connectionId())))
+    if(c.parameters().ownedLines.putIfAbsent(new OrderKey(line.companyCode,line.orderNo,line.lineNo,line.productCode),line)!=null)fail("OWNED_ORDER_LINE_AMBIGUOUS");
+   c.parameters().ownedLinesLoaded=true;
+  }
+  var ownedLines=c.parameters().ownedLines;
   for(var s:b.rows()){
    var p=snapshots.get(s.formalProjectId);var identity=references.get(s.canonicalProjectId.toString());
    if(p!=null&&!Objects.equals(p.projectVersion,identity.version()))fail("PROJECT_VERSION_CHANGED");
@@ -129,8 +138,12 @@ public class P22ProductScopeSyncTask extends AbstractSyncTask<P22ProductScopeSyn
  static void fail(String code){throw new IllegalArgumentException("P22_"+code);}
  @Override protected SyncCounts syncDataCount(SyncBatch<Source,Parameters> b){return SyncCounts.fromActions(b.rows(),Source::getAction);}
  @Override protected void syncDataInsert(SyncBatch<Source,Parameters> b){var fresh=b.matching(s->s.action==SyncWriteAction.INSERT);super.syncDataInsert(fresh);if(!fresh.rows().isEmpty()&&mapper.insertDetails(fresh)!=fresh.rows().size())fail("DETAIL_INSERT_CONFLICT");}
- @Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){b.context().identities().saveAll(b.rows().stream().map(s->new SyncIdentityStore.Save("PRODUCT_SCOPE",s.sourceId.toString(),s.target.id,fingerprint(s.target,s.detail),s.previous)).toList());}
- @lombok.Data public static class Source {private Long sourceId,originalProjectId,canonicalProjectId,formalProjectId,originalCompanyId;private String originalProjectCode,originalProjectName,originalDepartmentCode,previous,projectType,contractNo,itemCode,itemName,orderNumber,lineNum;private BigDecimal projectQuantity,orderQuantity,deliverQuantity,openQuantity;private ScopeRow target;private DetailRow detail;private SyncWriteAction action;String evidence(){return "DPPMS:pm_project_product_line:"+originalProjectId+":"+sourceId;}}
+ @Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){
+  b.context().identities().saveAll(b.rows().stream().map(s->new SyncIdentityStore.Save("PRODUCT_SCOPE",s.sourceId.toString(),s.target.id,fingerprint(s.target,s.detail),s.previous)).toList());
+  for(var s:b.matching(row->row.action==SyncWriteAction.INSERT).rows())
+   b.context().parameters().scopeIds.computeIfAbsent(s.evidence(),k->new ArrayList<>()).add(s.target.id);
+ }
+ @lombok.Data public static class Source {private Long sourceId,originalProjectId,canonicalProjectId,formalProjectId,originalCompanyId;private String originalProjectCode,originalProjectName,originalDepartmentCode,previous,projectType,itemCode,itemName,orderNumber,lineNum;private BigDecimal projectQuantity,orderQuantity,deliverQuantity,openQuantity;private ScopeRow target;private DetailRow detail;private SyncWriteAction action;String evidence(){return "DPPMS:pm_project_product_line:"+originalProjectId+":"+sourceId;}}
  @lombok.Data public static class Snapshot {private Long projectId,projectVersion,departmentId,scopeVersion;private String projectCode,projectName,companyCode,companyName,departmentCode,departmentName,customerCode,customerName,managerEmployeeNo,managerName;private Integer departmentVersion;}
  @lombok.Data public static class OrderLine {private Long id,projectId;private String contractNo,orderNo,lineNo,productCode,sourceSystem,companyCode,companyName,orderType;private BigDecimal orderQty;}
  @lombok.Data public static class Department {private Long id;private String code,name;private Integer version;}
@@ -138,12 +151,13 @@ public class P22ProductScopeSyncTask extends AbstractSyncTask<P22ProductScopeSyn
  public record CurrentRunQuery(long tenantId,long connectionId){}
  @lombok.Data public static class Company {private Long id;private String code;}
  public record OrderKey(String companyCode,String orderNo,String lineNo,String productCode){}
- public record OwnedLinesQuery(long tenantId,long connectionId,List<OrderKey> keys,boolean preview){}
+ public record OwnedOrderCatalogueQuery(long tenantId,long connectionId){}
  public record ProjectsQuery(long tenantId,List<Long> ids,boolean preview){}
- public record EvidenceQuery(long tenantId,List<String> evidence,boolean preview){}
+ @lombok.Data public static class ScopeIdentity {private Long id;private String sourceEvidence;}
+ public record ScopeIdentityQuery(long tenantId,boolean preview){}
  public record ScopesQuery(long tenantId,List<Long> ids,boolean preview){}
  public interface SourceMapper {List<Company> selectCompanies(SourceQuery<Parameters> query);void selectProductScope(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);}
- @Mapper public interface TargetMapper {int pendingOrderSchemaReady();int pendingDepartmentSchemaReady();int backfillOrderLineIds(@Param("query") CurrentRunQuery query);long countPendingOrderLines(@Param("query") CurrentRunQuery query);List<Department> selectDepartments(@Param("query") DepartmentCatalogueQuery query);int backfillDepartmentIds(@Param("query") CurrentRunQuery query);long countUnresolvedCodedDepartments(@Param("query") CurrentRunQuery query);List<Snapshot> selectSnapshots(@Param("query") ProjectsQuery query);List<OrderLine> selectOwnedOrderLines(@Param("query") OwnedLinesQuery query);List<ScopeRow> selectScopes(@Param("query") EvidenceQuery query);List<DetailRow> selectDetails(@Param("query") ScopesQuery query);int insertProductScope(SyncBatch<Source,Parameters> batch);int insertDetails(SyncBatch<Source,Parameters> batch);}
+ @Mapper public interface TargetMapper {int pendingOrderSchemaReady();int pendingDepartmentSchemaReady();int backfillOrderLineIds(@Param("query") CurrentRunQuery query);long countPendingOrderLines(@Param("query") CurrentRunQuery query);List<Department> selectDepartments(@Param("query") DepartmentCatalogueQuery query);int backfillDepartmentIds(@Param("query") CurrentRunQuery query);long countUnresolvedCodedDepartments(@Param("query") CurrentRunQuery query);List<Snapshot> selectSnapshots(@Param("query") ProjectsQuery query);List<OrderLine> selectOwnedOrderCatalogue(@Param("query") OwnedOrderCatalogueQuery query);List<ScopeIdentity> selectScopeIdentities(@Param("query") ScopeIdentityQuery query);List<ScopeRow> selectScopes(@Param("query") ScopesQuery query);List<DetailRow> selectDetails(@Param("query") ScopesQuery query);int insertProductScope(SyncBatch<Source,Parameters> batch);int insertDetails(SyncBatch<Source,Parameters> batch);}
 @lombok.Data public static class ScopeRow {private Long id,tenantId;private String creator,updater;private java.time.LocalDateTime createTime,updateTime;private Boolean deleted;private Long version;
     private Long projectId;
     private String projectCode;

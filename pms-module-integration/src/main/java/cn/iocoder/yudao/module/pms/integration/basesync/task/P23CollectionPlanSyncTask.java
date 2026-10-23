@@ -67,7 +67,7 @@ public class P23CollectionPlanSyncTask extends AbstractSyncTask<P23CollectionPla
     }
     @Override protected long syncDataClearCount(SyncContext<Parameters> context) {
         var query=new TargetMapper.TenantCacheQuery(context.tenantId(),context.preview());
-        return mapper.selectCollectionPlanIds(query).size();
+        return mapper.countCollectionPlan(query);
     }
     @Override protected long syncDataClear(SyncContext<Parameters> context) {
         var query=new TargetMapper.TenantCacheQuery(context.tenantId(),context.preview());
@@ -133,7 +133,7 @@ public class P23CollectionPlanSyncTask extends AbstractSyncTask<P23CollectionPla
         record TenantCacheQuery(long tenantId, boolean preview) {}
         @InterceptorIgnore(tenantLine="true",dataPermission="true")
         List<String> nullableColumns();
-        List<Long> selectCollectionPlanIds(@Param("query") TenantCacheQuery query);
+        long countCollectionPlan(@Param("query") TenantCacheQuery query);
         int deleteCollectionPlan(@Param("query") TenantCacheQuery query);
         int insertCollectionPlan(SyncBatch<CollectionPlanCacheSource,Parameters> batch);
     }

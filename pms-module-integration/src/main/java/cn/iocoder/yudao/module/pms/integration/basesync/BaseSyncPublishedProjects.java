@@ -14,8 +14,8 @@ public class BaseSyncPublishedProjects {
   public Query(long tenantId,long connectionId,int maxRows){this(tenantId,connectionId,maxRows,null,false);}
  }
  public record Member(String sourceKey,Long projectId,String projectType,String originalProjectCode,String projectCode,String fingerprint){}
- public record Completed(long runId,long readCount){}
- public record Page(long tenantId,long connectionId,long publicationId,String afterKey){}
+ public record Completed(long runId,long readCount,long taskId){}
+ public record Page(long tenantId,long connectionId,long publicationId,long taskId,String afterKey){}
  public record Snapshot(long publicationId,Map<String,Member> members,Map<Long,Member> canonical){public Snapshot{members=Map.copyOf(members);canonical=Map.copyOf(canonical);}}
  public Snapshot load(Query q){
   if(q.tenantId()<=0||q.connectionId()<=0||q.maxRows()<1)throw new IllegalArgumentException("PUBLISHED_PROJECT_SCOPE_QUERY_INVALID");
@@ -23,12 +23,12 @@ public class BaseSyncPublishedProjects {
   if(!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()
     || !Objects.equals(org.springframework.transaction.support.TransactionSynchronizationManager.getCurrentTransactionIsolationLevel(),java.sql.Connection.TRANSACTION_REPEATABLE_READ))throw new IllegalStateException("INDEPENDENT_SCOPE_REQUIRES_REPEATABLE_READ_TRANSACTION");
   var pin=mapper.selectCompleted(q);
-  if(pin==null||pin.runId()<=0)throw new IllegalStateException("COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED");
-  long masters=mapper.countMasters(new Page(q.tenantId(),q.connectionId(),pin.runId(),""));
+  if(pin==null||pin.runId()<=0||pin.taskId()<=0)throw new IllegalStateException("COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED");
+  long masters=mapper.countMasters(new Page(q.tenantId(),q.connectionId(),pin.runId(),pin.taskId(),""));
   long expected=pin.readCount()-masters;
   if(masters<0||expected<0||masters>0&&expected<masters||expected>q.maxRows())throw new IllegalStateException("INDEPENDENT_SCOPE_RECEIPT_INVALID");
   var members=new HashMap<String,Member>();var canonical=new HashMap<Long,Member>();String after="";
-  while(true){var page=mapper.selectPage(new Page(q.tenantId(),q.connectionId(),pin.runId(),after));if(page.isEmpty())break;
+  while(true){var page=mapper.selectPage(new Page(q.tenantId(),q.connectionId(),pin.runId(),pin.taskId(),after));if(page.isEmpty())break;
    for(var row:page){if(row.sourceKey()==null||!row.sourceKey().matches("[1-9][0-9]{0,18}")||row.projectId()==null||row.projectId()<=0||row.projectCode()==null||row.originalProjectCode()==null||!"10".equals(row.projectType())||members.putIfAbsent(row.sourceKey(),row)!=null||members.size()>q.maxRows())throw new IllegalStateException("PUBLISHED_SCOPE_IDENTITY_INVALID_OR_TOO_LARGE");
     var old=canonical.get(row.projectId());if(old!=null&&(!old.projectCode().equals(row.projectCode())||!old.projectType().equals(row.projectType())||!old.originalProjectCode().equals(row.originalProjectCode())))throw new IllegalStateException("PUBLISHED_SCOPE_PROJECT_IDENTITY_AMBIGUOUS");
     if(old==null||Long.parseLong(row.sourceKey())>Long.parseLong(old.sourceKey()))canonical.put(row.projectId(),row);

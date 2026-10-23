@@ -90,13 +90,24 @@ class IndependentFoundationTasksTest {
         verify(nativeSource,times(1)).selectList(endsWith("selectDictionaryType"),any());
         verify(nativeSource,times(1)).selectList(endsWith("selectDictionaryItem"),any());
         assertEquals(new SyncCounts(2,2,0,0,0),run(task,false));assertEquals(new SyncCounts(2,0,0,2,0),run(task,false));
-        assertEquals("99",jdbc.queryForObject("SELECT creator FROM system_dict_data",String.class));
+        assertEquals("author",jdbc.queryForObject("SELECT creator FROM system_dict_data",String.class));
         items.getFirst().setBasicDataAttri1("source changed");assertThrows(IllegalStateException.class,()->run(task,true));
     }
-    @Test void dictionaryMissingActorAndSecondStepConflictRollBackTheNewType(){
+    @Test void dictionaryUnknownActorIsCopiedWithoutDirectoryLookup(){
         var task=dictionaries();items.getFirst().setRawCreator("not-authorized");
-        assertThrows(IllegalStateException.class,()->run(task,false));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_dict_type",Integer.class));
+        assertEquals(new SyncCounts(2,2,0,0,0),run(task,false));
+        assertEquals("not-authorized",jdbc.queryForObject("SELECT creator FROM system_dict_data",String.class));
+        verifyNoInteractions(references);
+    }
+    @Test void dictionarySecondStepConflictRollsBackTheNewType(){
+        var task=dictionaries();items.getFirst().setRawCreator("not-authorized");
+        jdbc.update("INSERT INTO system_dict_data(id,label,`value`,dict_type,status,deleted) VALUES(999,'formal label','VALUE','CODE',0,FALSE)");
+        assertThrows(IllegalStateException.class,()->run(task,false));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_dict_type",Integer.class));
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM independent_binding",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM system_dict_data",Integer.class));
+        assertEquals("formal label",jdbc.queryForObject("SELECT label FROM system_dict_data",String.class));
+        verifyNoInteractions(references);
     }
     @Test void dictionaryApprovedEmpty114AndSystem542RemainNarrowExceptions(){
         var task=dictionaries();var empty=new P08DictionarySyncTask.DictionarySource().setRawId(114L).setDataTypeCode("23");

@@ -8,6 +8,7 @@ import java.util.List;
 @Mapper
 public interface BaseSyncMetadataMapper {
     record TaskQuery(long tenantId,long taskId,boolean lock) {}
+    record TenantTasksQuery(long tenantId) {}
     record RunQuery(long tenantId,long taskId,long runId) {}
     record RunState(long id,boolean preview,String status,java.time.LocalDateTime startedAt) {}
     record Registration(long id,long tenantId,String name,String sourceSystem,BaseSyncConfiguration config,String actor) {}
@@ -19,8 +20,10 @@ public interface BaseSyncMetadataMapper {
     record BindingQuery(long tenantId,long taskId,String object,List<String> sourceKeys,boolean preview) {}
     record BindingWrite(long id,long tenantId,long taskId,long runId,String object,String sourceKey,long targetId,
                         String fingerprint,String previousFingerprint,String actor) {}
+    record BindingBatch(List<BindingWrite> rows) {}
     int createTask(@Param("row") Registration row);
     TaskRow selectTask(@Param("query") TaskQuery query);
+    List<TaskRow> selectRegisteredTasks(@Param("query") TenantTasksQuery query);
     RunState selectRun(@Param("query") RunQuery query);
     int createRun(@Param("row") RunRow row);
     int claimTask(@Param("row") RunRow row);
@@ -28,5 +31,7 @@ public interface BaseSyncMetadataMapper {
     int releaseTask(@Param("command") FinishRun command);
     List<SyncIdentityStore.Identity> selectBindings(@Param("query") BindingQuery query);
     int insertBinding(@Param("row") BindingWrite row);
+    int insertBindings(@Param("command") BindingBatch command);
+    int updateBindings(@Param("command") BindingBatch command);
     int updateBinding(@Param("row") BindingWrite row);
 }

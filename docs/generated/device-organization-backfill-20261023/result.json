@@ -1,0 +1,117 @@
+{
+  "type": "Scoped organization backfill and protected read-only replay; no new complete task Runs",
+  "data": {
+    "at": "2026-10-23T15:04:29.348905+08:00",
+    "target": "172.17.90.178:13306/npdms",
+    "companyContract": {
+      "n": 83105,
+      "company_resolved": "83103"
+    },
+    "shipmentReference": {
+      "n": 120638,
+      "company_code_resolved": "77709",
+      "company_id_resolved": "77709",
+      "formal_contract_resolved": "77709",
+      "department_resolved": "91245"
+    },
+    "devices": {
+      "n": 3486084,
+      "company_resolved": "3232176",
+      "organization_contract": "3232176",
+      "resolved_missing_timestamp": "0",
+      "project_assigned": "0"
+    },
+    "zeroChangeReplay": {
+      "p15": {
+        "CONTRACT": {
+          "read": 83105,
+          "changed": 0,
+          "unchanged": 83105,
+          "missing": {
+            "company_directory:004": 2
+          },
+          "seconds": 5.5
+        },
+        "SHIPMENT_CONTRACT": {
+          "read": 120638,
+          "changed": 0,
+          "unchanged": 120638,
+          "missing": {
+            "unique_contract": 42929,
+            "department_directory": 29393
+          },
+          "seconds": 6.31
+        }
+      },
+      "p30": {
+        "DEVICE_BASE": {
+          "read": 3486084,
+          "changed": 0,
+          "unchanged": 3486084,
+          "missing": {
+            "exact_owner_contract": 253908
+          },
+          "seconds": 202.02
+        }
+      }
+    },
+    "protectionUnchanged": true,
+    "noNewBaseTaskRunsSubmitted": true
+  },
+  "browser": {
+    "at": "2026-10-23T15:07:03.867581+08:00",
+    "url": "http://172.17.90.178/customer-asset/devices",
+    "formalLoggedInAccountLabel": "系统管理员",
+    "defaultPageVisibleTotal": 3154458,
+    "rowsCheckedAgainstNativeDatabase": 10,
+    "companyDepartmentContractSourceVisible": true,
+    "currentProjectNotAssigned": true,
+    "screenshots": [
+      "D:\\CodexTaskArtifacts\\project-detail-followup\\device-owner-backfill-20261023\\device-default-page-completed.png",
+      "D:\\CodexTaskArtifacts\\project-detail-followup\\device-owner-backfill-20261023\\device-company-columns-completed.png"
+    ],
+    "visibleDom": "D:\\CodexTaskArtifacts\\project-detail-followup\\device-owner-backfill-20261023\\device-default-page-completed.dom.txt",
+    "remoteApiSeconds": {
+      "first": 51.527,
+      "second": 20.645
+    },
+    "timingBoundary": "Concurrent full fingerprint verification and browser/API reads; not an isolated performance benchmark. Remote query optimization code not deployed."
+  },
+  "sourceMissing": {
+    "exact_formal_contract_key_present": {
+      "groups": 75307,
+      "devices": 3232176
+    },
+    "case_only_formal_spelling_variant": {
+      "groups": 1,
+      "devices": 1
+    },
+    "formal_input_missing_no_exact_or_case_only_formal_key_and_no_eligible_erp_candidate": {
+      "groups": 21492,
+      "devices": 173991
+    },
+    "eligible_new_p15_erp_candidate_present_but_formal_contract_missing": {
+      "groups": 0,
+      "devices": 0
+    }
+  },
+  "countReconciliation": {
+    "plannedOrganizationChanges": 3232176,
+    "countFromLatestWriterLedger": 3231176,
+    "previouslyCommittedRowsSkippedOnResume": 1000,
+    "actualCompanyResolvedAfter": 3232176,
+    "fullReplayRead": 3486084,
+    "fullReplayChanges": 0,
+    "rawLedgersPreserved": true
+  },
+  "distinctTargetedTests": 32,
+  "maximumFrontendBatchSizeParsed": 2000,
+  "dedicatedRuntime": {
+    "port": 59284,
+    "candidateSha256": "6228c7166e7d5a11a63bbe27d946c268d3aa5bde743058aa663436935c6f48a0",
+    "scope": "New P15/P30 only; all other parent entries unchanged",
+    "autoMigrationDisabled": true
+  },
+  "noDdlMigrationOriginalTaskOr59191Operation": true,
+  "evidenceRoot": "D:\\CodexTaskArtifacts\\project-detail-followup\\device-owner-backfill-20261023"
+}

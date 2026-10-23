@@ -86,7 +86,7 @@ class ReceivableBaseSyncTest {
         when(external.sqlSession()).thenReturn(observed);
         assertEquals(new SyncCounts(2,2,0,0,0),run(false));
         assertTrue(finished[0]);verify(external).close();
-        verify(references,times(1)).findAuditUserCatalogue(any());
+        verifyNoInteractions(references);
     }
 
     @Test void streamingRowLimitRollsBackEarlierBusinessAndIdentityWrites(){
@@ -132,7 +132,7 @@ class ReceivableBaseSyncTest {
         assertEquals(new BigDecimal("9.10"),row.getOverdueAmount());assertEquals("市场",row.getMarketName());
         assertEquals("办事处",row.getDepartmentName());assertEquals("行业",row.getIndustryName());
         assertEquals("市场代表",row.getMarketingRepresentativeName());assertEquals("CNY",row.getCurrencyName());
-        assertEquals("99",row.getCreator());assertEquals("unmapped",row.getUpdater());
+        assertEquals("author",row.getCreator());assertEquals("unmapped",row.getUpdater());
         assertEquals(LocalDateTime.of(2020,1,2,3,4,5),row.getCreateTime());
         assertEquals(LocalDateTime.of(2021,2,3,4,5,6),row.getUpdateTime());assertEquals(row.getUpdateTime(),row.getSourceSyncTime());
         assertEquals(LocalDateTime.of(2019,1,1,0,0),row.getSourceEffectiveFrom());
@@ -154,11 +154,39 @@ class ReceivableBaseSyncTest {
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract_receivable",Integer.class));
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM test_binding",Integer.class));
     }
-    @Test void duplicateAuditReferencesFailBeforeAnyWrite(){
+    @Test void originalAuditUsernamesAreRetainedWithoutAccountDirectoryLookup(){
         jdbc.update("INSERT INTO system_users VALUES(200,1,'author',FALSE,0)");
-        assertThrows(IllegalStateException.class,()->run(false));
+        assertEquals(new SyncCounts(1,1,0,0,0),run(false));
+        var planned=new HashMap<String,ReceivableSyncRow>();
+        task=spy(task);
+        doAnswer(call->{
+            SyncBatch<ReceivableSyncSource,Void> batch=call.getArgument(0);call.callRealMethod();
+            batch.rows().forEach(source->planned.put(source.getSourceId().toString(),source.getTarget()));
+            return null;
+        }).when(task).syncDataInsertBefore(any());
+        var usernames=List.of("unknown-user"," 未开户User ","");
+        for(int index=0;index<usernames.size();index++){
+            long id=index+2;copySource(id,"CON-"+id);
+            jdbc.update("UPDATE sms_ofst_contract_head_sap SET create_by=?,update_by=? WHERE id=?",usernames.get(index),usernames.get(index),id);
+        }
+        assertEquals(new SyncCounts(4,3,0,1,0),run(true));
+        assertEquals("author",row().getCreator());assertEquals("unmapped",row().getUpdater());
+        for(int index=0;index<usernames.size();index++){
+            var saved=planned.get(Integer.toString(index+2));
+            assertEquals(usernames.get(index),saved.getCreator());assertEquals(usernames.get(index),saved.getUpdater());
+        }
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract_receivable",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM test_binding",Integer.class));
+        verifyNoInteractions(references);
+    }
+    @Test void nullAuditUsernamesRemainRejectedByReceivableRequiredFields(){
+        jdbc.update("UPDATE sms_ofst_contract_head_sap SET create_by=NULL");
+        assertEquals("回款必填字段缺失：creator",assertThrows(IllegalArgumentException.class,()->run(true)).getMessage());
+        jdbc.update("UPDATE sms_ofst_contract_head_sap SET create_by='author',update_by=NULL");
+        assertEquals("回款必填字段缺失：updater",assertThrows(IllegalArgumentException.class,()->run(true)).getMessage());
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract_receivable",Integer.class));
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM test_binding",Integer.class));
+        verifyNoInteractions(references);
     }
     @Test void commonAuditLookupRetainsDisabledUsersButExcludesOtherTenantsDeletedAndCaseVariants(){
         assertEquals(List.of(new SyncReferences.AuditUser(99,"author")),references.findAuditUsers(

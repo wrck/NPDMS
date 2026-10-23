@@ -1,0 +1,23 @@
+-- B: STRUCTURAL EXCEPTION FOR REVIEW ONLY. EVERY SQL LINE IS COMMENTED OUT.
+-- Not an existing formal DDL definition. Not included in A. Not approved or executed.
+-- Approved business rules already say: preserve missing raw department data,
+-- department_id/order_line_id=-1 first, then scoped postfill. Do not ask them again.
+-- Current MySQL immediate FK cannot accept -1 without a parent. Existing NOT NULL
+-- snapshot fields cannot accept the approved NULL values. No existing worktree DDL
+-- resolves this conflict. Do not create a fake -1 order or fill placeholder text.
+-- Candidate only: remove the one scope/order-line FK and relax exactly six columns.
+-- This loses database-level reference enforcement for ALL writes to this table,
+-- including normal business services; application validation is not equivalent.
+-- Keep primary/unique/query indexes, positive quantity/date checks and the P14 parent FK.
+-- Alternative formal carrying design is outside this review and is not invented here.
+-- Only a separate, explicit structural decision can select/authorize this exception.
+-- No task/source logic change or source-row correction is proposed.
+
+-- ALTER TABLE `npdms`.`com_delivery_scope`
+--   DROP FOREIGN KEY fk_scope_order_line,
+--   MODIFY COLUMN `order_source_system` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '订单来源系统编码',
+--   MODIFY COLUMN `order_company_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '订单公司编码',
+--   MODIFY COLUMN `order_type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '订单类型编码',
+--   MODIFY COLUMN `department_code` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '办事处编码',
+--   MODIFY COLUMN `department_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '办事处名称',
+--   MODIFY COLUMN `department_version` int unsigned NULL DEFAULT NULL COMMENT '办事处版本';

@@ -4,7 +4,7 @@ import cn.iocoder.yudao.module.pms.integration.api.basesync.SyncCounts;
 import cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncProjectReferences;
 import cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncPublishedProjects;
 import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
-import cn.iocoder.yudao.module.pms.asset.api.device.dto.SelectedProjectDevice;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,16 +28,15 @@ class P33SnMatchingMySqlTest extends RemainingTaskMySqlSupport {
   when(publications.load(any())).thenReturn(new BaseSyncPublishedProjects.Snapshot(10,Map.of("1",member),Map.of(1000L,member)));
   when(projects.verifyPublished(any())).thenReturn(Map.of("1",new BaseSyncProjectReferences.Identity("1",1000L,1L,0L,"P-1","10",null,null,null,"ACTIVE",false)));
   selection=mock(ProjectDeviceSelectionApi.class);
-  when(selection.validateSelection(any())).thenReturn(List.of(new SelectedProjectDevice(9L,FORMAL_SN,null,null,null,null)));
   locations=mock(AssetLocationApi.class);
  }
 
  private P33InstallationSyncTask.Source installation(long id,String sn,LocalDateTime created){
   return new P33InstallationSyncTask.Source().setSourceId(id).setOriginalProjectId(1L).setBarcode(sn)
-   .setTransferFlag("-1").setInstallAddress("original address").setCreateTime(created);
+   .setTransferFlag("-1").setTransferPending(false).setInstallAddress("original address").setLocationSnapshot(JsonUtils.toJsonString(Map.of("fallbackLocation","original address"))).setCreateTime(created);
  }
  private P33InstallationSyncTask task(List<P33InstallationSyncTask.Source> rows){
-  var task=spy(new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects,selection,locations));
+  var task=spy(new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects));
   doReturn(new ArrayList<>(rows)).when(task).syncDataQuery(any());
   return task;
  }
@@ -49,7 +48,7 @@ class P33SnMatchingMySqlTest extends RemainingTaskMySqlSupport {
    assertEquals(raw,source.getBarcode());assertEquals(9L,source.getEquipmentId());assertEquals(9L,source.getTarget().getEquipmentId());
    assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));
   }
-  verify(selection,times(3)).validateSelection(argThat(q->q.tenantId()==1&&q.actorId()==2&&q.projectId()==1000&&q.deviceIds().equals(List.of(9L))));
+  verifyNoInteractions(selection);
   verifyNoInteractions(locations);assertTrue(saved.isEmpty());
  }
 
@@ -59,7 +58,7 @@ class P33SnMatchingMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(9L,current.getEquipmentId());assertEquals(9L,historical.getEquipmentId());
   assertEquals(FORMAL_SN+" ",historical.getBarcode());assertEquals(9L,current.getTarget().getCurrentEquipmentId());
   assertNull(historical.getTarget().getCurrentEquipmentId());assertEquals(at,historical.getTarget().getEffectiveTo());
-  verify(selection).validateSelection(argThat(q->q.deviceIds().equals(List.of(9L))));verifyNoInteractions(locations);
+  verifyNoInteractions(selection,locations);
   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));
  }
 
@@ -74,11 +73,13 @@ class P33SnMatchingMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(1,matches.size());assertEquals(9L,matches.getFirst().getId());assertEquals(FORMAL_SN,matches.getFirst().getSn());
  }
 
- @Test void currentSelectionMustStillReturnTheSameFormalIdentity(){
-  when(selection.validateSelection(any())).thenReturn(List.of(new SelectedProjectDevice(9L,"DIFFERENT",null,null,null,null)));
-  var task=task(List.of(installation(1,FORMAL_SN+" ",at)));
-  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("DEVICE_NOT_IN_CURRENT_PROJECT_SELECTION"));
-  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));assertTrue(saved.isEmpty());verifyNoInteractions(locations);
+ @Test void historicalInstallationUsesFormalSnWithoutCurrentSelectionQualification(){
+  when(selection.validateSelection(any())).thenThrow(new IllegalArgumentException("current selection unavailable"));
+  var source=installation(1,FORMAL_SN+" ",at);
+  assertEquals(new SyncCounts(1,1,0,0,0),run(task(List.of(source)),false));
+  assertEquals(FORMAL_SN+" ",source.getBarcode());assertEquals(9L,source.getEquipmentId());
+  assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));
+  verifyNoInteractions(selection,locations);
  }
 
  @Test void aFullLookupBatchSupportsNativeSqlAndTheConfiguredSqlParser() throws Exception{

@@ -89,11 +89,11 @@ class BaseSyncIsolationTest {
         boolean failLast;
         boolean fatalLast;
         boolean warn;
-        int transientFailures,attempts,fullReads;
+        int transientFailures,attempts,fullReads,lastBatchSize;
         @Override public String taskCode(){return "BASE_P11";}
         @Override public String taskName(){return "Independent fixture";}
         @Override public Set<String> requiredPermissions(){return Set.of();}
-        @Override public void work(SyncContext<Void> context){attempts++;super.work(context);if(warn)context.runState().warning("SOURCE_WARNING:10");}
+        @Override public void work(SyncContext<Void> context){attempts++;lastBatchSize=context.batchSize();super.work(context);if(warn)context.runState().warning("SOURCE_WARNING:10");}
         @Override protected List<Long> syncDataQuery(SyncContext<Void> context){fullReads++;return List.of(10L,20L,30L);}
         @Override protected void syncDataQueryByRowHandler(SyncContext<Void> context,ResultHandler<Long> handler){AbstractSyncTaskLifecycleTest.emit(List.of(10L,20L,30L),handler);}
         @Override protected void syncDataInsert(SyncBatch<Long,Void> batch){
@@ -173,6 +173,30 @@ class BaseSyncIsolationTest {
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM example_business",Integer.class));
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM int_base_sync_binding",Integer.class));
         assertNull(mapper.selectTask(new BaseSyncMetadataMapper.TaskQuery(1,id,false)).activeRunId());
+        assertOriginalUnchanged();
+    }
+    @Test void frontendBatchSizeControlsPreviewAndExecuteWithoutChangingRegistrationDefaults() {
+        long id=service.register(config);
+        assertEquals(new SyncCounts(3,3,0,0,0),service.preview(new BaseSyncService.Run(id,1)));
+        assertEquals(1,task.lastBatchSize);
+        assertEquals(new SyncCounts(3,3,0,0,0),service.execute(new BaseSyncService.Run(id,3)));
+        assertEquals(3,task.lastBatchSize);
+        assertEquals(List.of(1,3),jdbc.queryForList("SELECT batch_size FROM int_base_sync_run ORDER BY id",Integer.class));
+        assertEquals(config,mapper.selectTask(new BaseSyncMetadataMapper.TaskQuery(1,id,false)).configuration());
+        assertOriginalUnchanged();
+    }
+    @Test void omittedBatchSizeUsesRegistrationAndExistingBoundsRejectBeforeRunCreation() {
+        long id=service.register(config);
+        for(int invalid:List.of(0,2001))assertThrows(IllegalArgumentException.class,()->service.preview(new BaseSyncService.Run(id,invalid)));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM int_base_sync_run",Integer.class));
+        service.preview(new BaseSyncService.Run(id));assertEquals(config.batchSize(),task.lastBatchSize);
+        assertEquals(config.batchSize(),jdbc.queryForObject("SELECT batch_size FROM int_base_sync_run",Integer.class));
+        assertOriginalUnchanged();
+    }
+    @Test void registrationListIsLimitedToTheNewNamespaceAndCurrentTenant() {
+        long id=service.register(config);
+        assertEquals(List.of(id),service.registrations().stream().map(BaseSyncMetadataMapper.TaskRow::id).toList());
+        TenantContextHolder.setTenantId(2L);assertTrue(service.registrations().isEmpty());
         assertOriginalUnchanged();
     }
 

@@ -20,7 +20,9 @@ import java.util.*;
 
 @Service
 public final class BaseSyncService {
-    public record Run(long taskId) {}
+    public record Run(long taskId,Integer batchSize) {
+        public Run(long taskId){this(taskId,null);}
+    }
     public record PreviewRecovery(long taskId,long runId) {}
     public record Task(String code, String name) {}
     private final LocalDateTime runtimeStartedAt=LocalDateTime.now();
@@ -52,6 +54,9 @@ public final class BaseSyncService {
     public List<Task> tasks() {
         return tasks.stream().map(task -> new Task(task.taskCode(), task.taskName()))
                 .sorted(Comparator.comparing(Task::code)).toList();
+    }
+    public List<BaseSyncMetadataMapper.TaskRow> registrations() {
+        return metadata.selectRegisteredTasks(new BaseSyncMetadataMapper.TenantTasksQuery(TenantContextHolder.getRequiredTenantId()));
     }
     public SyncCounts preview(Run request) { return run(request, true); }
     public SyncCounts execute(Run request) { return run(request, false); }
@@ -99,18 +104,20 @@ public final class BaseSyncService {
         var registration=metadata.selectTask(new BaseSyncMetadataMapper.TaskQuery(tenantId,request.taskId(),false));
         if(registration==null)
             throw new IllegalArgumentException("只能执行新注册的基类同步任务");
-        var config=registration.configuration();
+        var registeredConfig=registration.configuration();
+        var config=request.batchSize()==null?registeredConfig:new BaseSyncConfiguration(registeredConfig.taskCode(),registeredConfig.connectionId(),request.batchSize(),registeredConfig.maxRows());
         var task=requiredTask(config.taskCode());
         for (var permission : task.requiredPermissions())
             if (!permissions.hasAnyPermissions(actorId, permission)) throw new IllegalArgumentException("缺少任务业务权限：" + permission);
         connections.required(config.connectionId());
         var run=new BaseSyncMetadataMapper.RunRow(IdWorker.getId(),tenantId,registration.id(),UUID.randomUUID().toString(),
                 config,actorId.toString(),preview);
+        var claim=new BaseSyncMetadataMapper.RunRow(run.id(),run.tenantId(),run.taskId(),run.requestKey(),registeredConfig,run.actor(),run.preview());
         transaction().executeWithoutResult(status -> {
             var locked=metadata.selectTask(new BaseSyncMetadataMapper.TaskQuery(tenantId,registration.id(),true));
-            if(locked==null || locked.activeRunId()!=null || !Objects.equals(locked.configuration(),config))
+            if(locked==null || locked.activeRunId()!=null || !Objects.equals(locked.configuration(),registeredConfig))
                 throw new IllegalStateException("新任务已有运行或配置已变化");
-            if(metadata.createRun(run)!=1 || metadata.claimTask(run)!=1) throw new IllegalStateException("无法认领新任务运行");
+            if(metadata.createRun(run)!=1 || metadata.claimTask(claim)!=1) throw new IllegalStateException("无法认领新任务运行");
         });
         var context = new SyncContext<Void>(tenantId, actorId, config.connectionId(), preview, config.batchSize(),
                 config.maxRows(), LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS), sources,new RunSyncIdentityStore(metadata,run),references,config.taskCode(),target,false,task.defaultUseRowHandler());

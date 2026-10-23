@@ -50,6 +50,19 @@ class P15ContractInputMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(P15DeliverySyncTask.business(new P15DeliverySyncTask.Validation("Contract",expected.getTarget())),P15DeliverySyncTask.business(new P15DeliverySyncTask.Validation("Contract",raw.getFirst().getTarget())));
   assertEquals(new SyncCounts(1,1,0,0,0),run(task,true));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract",Integer.class));assertTrue(saved.isEmpty());
  }
+ @Test void actualContractGenerationDoesNotDependOnFormalOrderMaterialization(){
+  jdbc.update("DELETE FROM com_sales_order");var task=new ContractProbe(mapper);
+  assertEquals(1,task.queryLocal(context(false).forParameters(new P15DeliverySyncTask.Parameters(Map.of(),3))).size());
+  assertEquals(new SyncCounts(1,1,0,0,0),run(task,true));
+  assertEquals(new SyncCounts(1,1,0,0,0),run(task,false));
+  assertEquals("C00001",jdbc.queryForObject("SELECT customer_code FROM com_contract",String.class));
+  assertEquals("shipment project",jdbc.queryForObject("SELECT project_name FROM com_contract",String.class));
+  assertEquals("RP10",jdbc.queryForObject("SELECT project_code FROM com_contract",String.class));
+  assertEquals(new SyncCounts(1,0,0,1,0),run(task,false));
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_sales_order",Integer.class));
+  jdbc.update("UPDATE com_contract SET customer_name='manual change'");
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("EXISTING_FACT_PROTECTED"));
+ }
   void materializeOrderInputs(){
    jdbc.update("DELETE FROM com_sales_order");
    jdbc.update("INSERT INTO com_sales_order(id,tenant_id,source_system,company_code,order_type,order_no,contract_no,customer_code,customer_name,status,creator,updater) SELECT id,1,source,CASE compCode WHEN '01' THEN '001' WHEN '02' THEN '002' ELSE compCode END,CAST(orderType AS CHAR),orderNumber,contractNo,customerCode,customerName,'ENABLED','fixture','fixture' FROM pm_order_data_from_erp");
@@ -132,19 +145,21 @@ class P15ContractInputMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract",Integer.class));assertTrue(saved.isEmpty());
  }
  static final class ContractProbe extends P15DeliverySyncTask {
-  ContractProbe(TargetMapper mapper){super(mapper);}
+  ContractProbe(TargetMapper mapper){super(mapper,mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class));}
+  @Override protected String targetMapperNamespace(){return TargetMapper.class.getName();}
   List<Source> query(SyncContext<Parameters> context){return super.syncDataQuery(context.forData("Contract",false,false));}
+  List<Source> queryLocal(SyncContext<Parameters> context){return super.syncDataQuery(context.forLocalData("Contract",false,false));}
   List<Source> shipments(SyncContext<Parameters> context){var rows=new ArrayList<Source>();try(var session=context.source().open(context.connectionId())){session.mapper(SourceMapper.class).selectShipmentContract(new SourceQuery<>(context.maxRows(),context.tenantId(),true,context.parameters()),result->rows.add(result.getResultObject()));}return rows;}
   @Override public void work(SyncContext<Parameters> context){syncData(context.forData("Contract",false,false));}
  }
  static final class EventProbe extends P15DeliverySyncTask {
-  EventProbe(TargetMapper mapper){super(mapper);}
+  EventProbe(TargetMapper mapper){super(mapper,mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class));}
   @Override protected String sourceMapperNamespace(){return SourceMapper.class.getName();}
   @Override public void work(SyncContext<Parameters> context){syncData(context.forData("ShipmentEvent",false,true));}
   List<Source> queryEvents(SyncContext<Parameters> context){var rows=new ArrayList<Source>();super.syncDataQueryByRowHandler(context.forData("ShipmentEvent",false,true),result->rows.add(result.getResultObject()));return rows;}
  }
  static final class RelationshipProbe extends P15DeliverySyncTask {
-  final List<Source> planned=new ArrayList<>();RelationshipProbe(TargetMapper mapper){super(mapper);}
+  final List<Source> planned=new ArrayList<>();RelationshipProbe(TargetMapper mapper){super(mapper,mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class));}
   @Override protected String sourceMapperNamespace(){return SourceMapper.class.getName();}
   @Override public void work(SyncContext<Parameters> context){syncData(context.forData("DeviceRelationship",false,true));}
   @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> batch){super.syncDataInsertBefore(batch);planned.addAll(batch.rows());}

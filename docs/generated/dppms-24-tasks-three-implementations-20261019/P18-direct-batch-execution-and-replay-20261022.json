@@ -1,0 +1,193 @@
+{
+  "at": "2026-10-22T14:30:32.998296+08:00",
+  "status": "P18_DIRECT_BATCH_PREVIEW_EXECUTE_REPLAY_VERIFIED",
+  "target": "172.17.90.178:13306/npdms",
+  "taskId": 2112881208371281922,
+  "directRuns": {
+    "preview": {
+      "receipt": {
+        "id": 2113155203763126273,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 82676,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 82676,
+        "deleted_count": 0,
+        "error_message": "P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_POSTFILL_NOT_EXECUTED",
+        "started_at": "2026-10-22 14:27:16.597000",
+        "finished_at": "2026-10-22 14:27:42.664000"
+      },
+      "dbElapsedSeconds": 26.067,
+      "runnerElapsedSeconds": 36.958
+    },
+    "execute": {
+      "receipt": {
+        "id": 2113155401822355458,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 82676,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 82676,
+        "deleted_count": 0,
+        "error_message": "P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_PENDING:1847",
+        "started_at": "2026-10-22 14:28:03.808000",
+        "finished_at": "2026-10-22 14:28:34.069000"
+      },
+      "dbElapsedSeconds": 30.261,
+      "runnerElapsedSeconds": 40.88
+    },
+    "replay": {
+      "receipt": {
+        "id": 2113155611881488386,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 82676,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 82676,
+        "deleted_count": 0,
+        "error_message": "P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_PENDING:1847",
+        "started_at": "2026-10-22 14:28:53.892000",
+        "finished_at": "2026-10-22 14:29:19.269000"
+      },
+      "dbElapsedSeconds": 25.377,
+      "runnerElapsedSeconds": 35.464
+    }
+  },
+  "historicalFirstInsertionAndReplay": {
+    "execute": {
+      "receipt": {
+        "id": 2113149097510801410,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 82676,
+        "inserted_count": 82381,
+        "updated_count": 80534,
+        "unchanged_count": 295,
+        "deleted_count": 0,
+        "error_message": "P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_FILLED:80534;P18_CONTRACT_REFERENCE_PENDING:1847",
+        "started_at": "2026-10-22 14:03:00.742000",
+        "finished_at": "2026-10-22 14:13:20.655000"
+      },
+      "dbElapsedSeconds": 619.913,
+      "runnerElapsedSeconds": 630.675
+    },
+    "replay": {
+      "receipt": {
+        "id": 2113151777511673858,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 82676,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 82676,
+        "deleted_count": 0,
+        "error_message": "P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_PENDING:1847",
+        "started_at": "2026-10-22 14:13:39.699000",
+        "finished_at": "2026-10-22 14:23:52.127000"
+      },
+      "dbElapsedSeconds": 612.428,
+      "runnerElapsedSeconds": 622.008
+    }
+  },
+  "historicalEvidence": {
+    "statePath": "D:\\CodexTaskArtifacts\\project-detail-followup\\p18-missing-contract-followup-20261022\\raw-contract-carrying\\company-scope-adjudication\\replay-binding-protection\\history-execute-state.json",
+    "finalProofPath": "D:\\CodexTaskArtifacts\\project-detail-followup\\p18-missing-contract-followup-20261022\\raw-contract-carrying\\company-scope-adjudication\\replay-binding-protection\\final-history-proof.json"
+  },
+  "counts": {
+    "total": 82381,
+    "resolved": 80534,
+    "unresolved": 1847
+  },
+  "bindingCounts": {
+    "RELATION_BUSINESS": 82381,
+    "RELATION_ORIGINAL": 82676
+  },
+  "missingEvidence": {
+    "path": "D:\\CodexTaskArtifacts\\project-detail-followup\\p18-direct-batch-20261022\\actual-unresolved-relations.json",
+    "sha256": "01f80695e491e4d4fafaa217374ff324cfbc589009ce7b5ac63501f0bcb32835",
+    "at": "2026-10-22T14:30:32.181064+08:00",
+    "count": 1847,
+    "missingContract": 1839,
+    "sourceCompanyNull": 8
+  },
+  "keyDiagnosis": {
+    "relations": 82381,
+    "exactPositiveMatches": 80534,
+    "sourceCompanyNull": 8,
+    "missingContractWithKnownSourceCompany": 1839,
+    "sourceTargetProjectCodeDifferences": 0,
+    "existingNonNullReferences": 80534,
+    "existingReferenceExactKeyDifferences": 0
+  },
+  "keyDiagnosisProofPath": "D:\\CodexTaskArtifacts\\project-detail-followup\\p18-direct-batch-20261022\\source-company-match-proof.json",
+  "keyDiagnosisBoundary": "Read-only positive matching of80534 existing exact references, not80534 newly filled by the direct package.",
+  "testCount": 25,
+  "testProofPath": "D:\\CodexTaskArtifacts\\project-detail-followup\\p18-direct-batch-20261022\\green-test-proof.json",
+  "finalProtection": {
+    "path": "D:\\CodexTaskArtifacts\\project-detail-followup\\p18-direct-batch-20261022\\final-direct-proof.json",
+    "sha256": "b279b11babc18ec83027baf1f74186fdd6ef9aab2516928b03ed5fe40cb3ae80",
+    "checks": {
+      "sourceCompanyMatchProofPassed": true,
+      "twelveSourceHashes": true,
+      "candidateAndRuntime": true,
+      "test:OriginalIdentityPolicyTest": true,
+      "test:P18MissingContractTest": true,
+      "test:P18RawContractSqlTest": true,
+      "archived25": true,
+      "phase:preview": true,
+      "hashAndProtection:preview": true,
+      "phase:execute": true,
+      "hashAndProtection:execute": true,
+      "phase:replay": true,
+      "hashAndProtection:replay": true,
+      "currentFullRowHashes": true,
+      "currentProtectedSnapshot": true,
+      "activeZero": true,
+      "heldActualZero": true,
+      "exactThreeNewRuns": true,
+      "liveReceiptsMatch": true,
+      "unresolvedOriginalRowsRetained": true,
+      "ownedPid": true,
+      "ownedJavaCommand": true,
+      "healthUP": true,
+      "protected59191ListenerUnchanged": true
+    },
+    "protectedSnapshotSha256": "47de8e9ca2444d13c001127d8ddc40334ac92a5f0b488890e2abc46ab27b1065"
+  },
+  "directFullRowHashAlgorithm": "Sorted full row stream, newline-delimited canonical JSON, including audit and binding last_run_id. Only hashes/counts persisted; compared within this runner, not byte-equal to the older A10 digest algorithm.",
+  "directPhaseHashProof": {
+    "preview": {
+      "beforeRelation": "b984de4d25bf9af507d387709d877050c8656d55c40e252e8231c146a3c2a451",
+      "afterRelation": "b984de4d25bf9af507d387709d877050c8656d55c40e252e8231c146a3c2a451",
+      "beforeBinding": "679631dc2ef3b35126833f526efc81bbb576b03e578540345fac131d05156553",
+      "afterBinding": "679631dc2ef3b35126833f526efc81bbb576b03e578540345fac131d05156553",
+      "unchanged": true
+    },
+    "execute": {
+      "beforeRelation": "b984de4d25bf9af507d387709d877050c8656d55c40e252e8231c146a3c2a451",
+      "afterRelation": "b984de4d25bf9af507d387709d877050c8656d55c40e252e8231c146a3c2a451",
+      "beforeBinding": "679631dc2ef3b35126833f526efc81bbb576b03e578540345fac131d05156553",
+      "afterBinding": "679631dc2ef3b35126833f526efc81bbb576b03e578540345fac131d05156553",
+      "unchanged": true
+    },
+    "replay": {
+      "beforeRelation": "b984de4d25bf9af507d387709d877050c8656d55c40e252e8231c146a3c2a451",
+      "afterRelation": "b984de4d25bf9af507d387709d877050c8656d55c40e252e8231c146a3c2a451",
+      "beforeBinding": "679631dc2ef3b35126833f526efc81bbb576b03e578540345fac131d05156553",
+      "afterBinding": "679631dc2ef3b35126833f526efc81bbb576b03e578540345fac131d05156553",
+      "unchanged": true
+    }
+  },
+  "historyHashBoundary": "A10 old JSON-array hashes are preserved in its private state. N streaming newline-row hashes differ in algorithm; each stage is compared only within its own algorithm, not claimed equal across versions.",
+  "runtime": {
+    "pid": 47964,
+    "candidateSha256": "5093b434ae3ead19345f14476506af09cb9383b25d45b78450651b057203e8a7"
+  },
+  "implementation": "No per-project Owner/MANAGE/current-company precondition in new historical P18. Four original source projections each once per Run; original project IDs preserved, original SQL supplies company. One final UPDATE scoped by source-company groups, tenant, binary original contract number and verified target IDs; NULL company is not guessed. Execute/contract:relate and tenant, immutable target/identity/binding protections preserved. Source XML and binding fingerprint algorithm unchanged.",
+  "benchmarkBoundary": "N preview/execute/replay verify existing A10 committed data; not first-insert timing and no reset. Old functions unchanged.",
+  "publisherExecutesWriteSql": false,
+  "publisherUsesReadOnlySql": true
+}

@@ -1,0 +1,146 @@
+{
+  "verifiedAt": "2026-10-23T18:13:58.498121+08:00",
+  "target": "172.17.90.178:13306/npdms",
+  "taskCode": "BASE_P14",
+  "headerCompanyCompleted": 92886,
+  "remaining004": [
+    {
+      "id": 2113086178974598523,
+      "tenant_id": 1,
+      "order_no": "SO40000003",
+      "company_code": "004",
+      "company_id": null,
+      "company_name": null
+    },
+    {
+      "id": 2113086178974598524,
+      "tenant_id": 1,
+      "order_no": "SO40000005",
+      "company_code": "004",
+      "company_id": null,
+      "company_name": null
+    },
+    {
+      "id": 2113086178974598525,
+      "tenant_id": 1,
+      "order_no": "SO40000007",
+      "company_code": "004",
+      "company_id": null,
+      "company_name": null
+    },
+    {
+      "id": 2113086178974598526,
+      "tenant_id": 1,
+      "order_no": "SO40000004",
+      "company_code": "004",
+      "company_id": null,
+      "company_name": null
+    }
+  ],
+  "allCompanyCodesUseSameRule": true,
+  "runs": {
+    "preview": {
+      "id": 2113572434325413889,
+      "status": "PREVIEW_READY",
+      "preview": 1,
+      "read_count": 572934,
+      "inserted_count": 0,
+      "updated_count": 92886,
+      "unchanged_count": 480048,
+      "error_message": "P14_ORDER_COMPANY_DIRECTORY_MISSING:004:4;P14_ORDER_REFERENCE_PENDING:1580",
+      "started_at": "2026-10-23 18:05:12.126000",
+      "finished_at": "2026-10-23 18:07:23.846000"
+    },
+    "execute": {
+      "id": 2113573012149510146,
+      "status": "COMPLETED",
+      "preview": 0,
+      "read_count": 572934,
+      "inserted_count": 0,
+      "updated_count": 92886,
+      "unchanged_count": 480048,
+      "error_message": "P14_ORDER_COMPANY_DIRECTORY_MISSING:004:4;P14_ORDER_REFERENCE_PENDING:1580",
+      "started_at": "2026-10-23 18:07:29.881000",
+      "finished_at": "2026-10-23 18:10:15.284000"
+    },
+    "replay": {
+      "id": 2113573771234648065,
+      "status": "COMPLETED",
+      "preview": 0,
+      "read_count": 572934,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 572934,
+      "error_message": "P14_ORDER_COMPANY_DIRECTORY_MISSING:004:4;P14_ORDER_REFERENCE_PENDING:1580",
+      "started_at": "2026-10-23 18:10:30.865000",
+      "finished_at": "2026-10-23 18:12:37.650000"
+    }
+  },
+  "protection": {
+    "companies": true,
+    "p14Tasks": true,
+    "p14ActiveRuns": true,
+    "originalTaskCounts": true,
+    "migrationHistory": true,
+    "nonP14Runs": true,
+    "nonP14RunSummary": true,
+    "orderProtectedFields": true,
+    "orderLineAllFields": true,
+    "company004Orders": true
+  },
+  "formalCompanyMismatchCount": 0,
+  "protectedOrderCount": 92890,
+  "unchangedOrderLineCount": 387154,
+  "tests": {
+    "distinctTests": 22,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "reports": [
+      {
+        "class": "P14OrderCompanyCompletionTest",
+        "tests": 7,
+        "file": "D:\\CodexTaskArtifacts\\project-detail-followup\\p14-order-company-20261023\\test-P14OrderCompanyCompletionTest.xml",
+        "sha256": "2208262c72ec5e6e7012f20d6158998032e67010a5daf0ca096bd903b681e124"
+      },
+      {
+        "class": "OriginalIdentityPolicyTest",
+        "tests": 13,
+        "file": "D:\\CodexTaskArtifacts\\project-detail-followup\\p14-order-company-20261023\\test-OriginalIdentityPolicyTest.xml",
+        "sha256": "93530e767a39e94d3b3a4f36c21bcafc107ef99cbfd3410171204af3fcba08d7"
+      },
+      {
+        "class": "OrganizationBackfillSqlTest",
+        "tests": 2,
+        "file": "D:\\CodexTaskArtifacts\\project-detail-followup\\p14-order-company-20261023\\test-OrganizationBackfillSqlTest.xml",
+        "sha256": "0c536b4939047041142e41b956a944e516f9ead377aa40e432a8a3e56d6a92a2"
+      }
+    ]
+  },
+  "browser": {
+    "url": "http://172.17.90.178/pms/project-management/project-master-detail?projectId=84571",
+    "projectId": 84571,
+    "orderNo": "SO120184",
+    "field": "下单公司",
+    "before": "—",
+    "after": "杭州迪普科技股份有限公司",
+    "realBrowser": true,
+    "existingFormalAccount": true,
+    "uiCodeUnchanged": true,
+    "at": "2026-10-23T10:11:16.551Z"
+  },
+  "runtime": {
+    "pid": 12732,
+    "jar": "D:\\CodexTaskArtifacts\\project-detail-followup\\p14-order-company-20261023\\candidate\\yudao-server.jar",
+    "port": 59284,
+    "database": "npdms",
+    "databaseHost": "172.17.90.178",
+    "databasePort": 13306,
+    "databaseUser": "npdms_app",
+    "redisDatabase": 15,
+    "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\p14-order-company-20261023\\runtime\\runtime-sanitized.log",
+    "startedAt": "2026-10-23T18:03:52.444131"
+  },
+  "candidateSha256": "824c3721cd8782876961c3b3252a65199ba9a8b15efa19b3ee8de4d8b7625bab",
+  "scope": "Only independent new P14 header company completion. Source SQL, line mappings, parent business keys and P22 snapshots unchanged. No DDL, Flyway or other migrations; original tasks and 59191 untouched."
+}

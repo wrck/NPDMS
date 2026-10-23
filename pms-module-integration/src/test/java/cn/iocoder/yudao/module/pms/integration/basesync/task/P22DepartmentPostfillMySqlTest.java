@@ -51,7 +51,7 @@ class P22DepartmentPostfillMySqlTest extends RemainingTaskMySqlSupport {
             saved.put(v.object()+":"+v.sourceKey(),new SyncIdentityStore.Identity(v.sourceKey(),v.targetId(),v.fingerprint()));
         }return null;}).when(identities).saveAll(any());
     }
-    P22ProductScopeSyncTask.Source row(long id,String code){return new P22ProductScopeSyncTask.Source().setSourceId(id).setOriginalProjectId(1L).setCanonicalProjectId(1L).setOriginalCompanyId(1L).setOriginalProjectCode("P-1").setOriginalProjectName("original project").setOriginalDepartmentCode(code).setProjectType("10").setContractNo("C").setOrderNumber("O").setLineNum("1").setItemCode("ITEM").setItemName("item").setProjectQuantity(BigDecimal.ONE).setOrderQuantity(BigDecimal.ONE);}
+    P22ProductScopeSyncTask.Source row(long id,String code){return new P22ProductScopeSyncTask.Source().setSourceId(id).setOriginalProjectId(1L).setCanonicalProjectId(1L).setOriginalCompanyId(1L).setOriginalProjectCode("P-1").setOriginalProjectName("original project").setOriginalDepartmentCode(code).setProjectType("10").setOrderNumber("O").setLineNum("1").setItemCode("ITEM").setItemName("item").setProjectQuantity(BigDecimal.ONE).setOrderQuantity(BigDecimal.ONE);}
     P22ProductScopeSyncTask task(List<P22ProductScopeSyncTask.Source> rows,Runnable afterRead){return new P22ProductScopeSyncTask(mapper,projects){
         @Override protected String targetMapperNamespace(){return P22ProductScopeSyncTask.TargetMapper.class.getName();}
         @Override protected void syncDataQueryByRowHandler(SyncContext<Parameters> c,ResultHandler<Source> handler){for(var row:rows){var r=new DefaultResultContext<Source>();r.nextResultObject(row);handler.handleResult(r);}afterRead.run();}
@@ -70,11 +70,11 @@ class P22DepartmentPostfillMySqlTest extends RemainingTaskMySqlSupport {
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope",Integer.class));assertTrue(saved.isEmpty());
     }
     @Test void rawScopePreviewDoesNotRequireOrReadFormalOrderLines() {
-        var source=row(1,"OFFICE").setContractNo(null).setProjectQuantity(null).setOrderQuantity(new BigDecimal("3.25"));
+        var source=row(1,"OFFICE").setProjectQuantity(null).setOrderQuantity(new BigDecimal("3.25"));
         assertEquals(1,run(task(List.of(source),()->{}),true).inserted());
         assertEquals(-1L,source.getTarget().getOrderLineId());
         assertEquals(0,new BigDecimal("3.25").compareTo(source.getTarget().getAllocatedQty()));
-        verify(mapper,never()).selectOwnedOrderLines(any());
+        verify(mapper,never()).selectOwnedOrderCatalogue(any());
         verify(mapper,never()).backfillOrderLineIds(any());
         assertTrue(saved.isEmpty());
     }
@@ -96,7 +96,7 @@ class P22DepartmentPostfillMySqlTest extends RemainingTaskMySqlSupport {
         }
         assertTrue(c.runState().warnings().contains("P22_DEPARTMENT_SOURCE_MISSING_PENDING:2"));
         verify(mapper,times(1)).selectDepartments(new P22ProductScopeSyncTask.DepartmentCatalogueQuery(1));
-        verify(mapper,never()).selectOwnedOrderLines(any());verify(mapper,never()).backfillDepartmentIds(any());
+        verify(mapper,never()).selectOwnedOrderCatalogue(any());verify(mapper,never()).backfillDepartmentIds(any());
         assertTrue(saved.isEmpty());assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope",Integer.class));
     }
     @Test void onePostfillKeepsOriginalAuditAndReplayBaselineButRejectsAChangedDerivedId() {
@@ -189,7 +189,7 @@ class P22DepartmentPostfillMySqlTest extends RemainingTaskMySqlSupport {
         orderLine(50,"SAP","0",true);
         jdbc.update("UPDATE com_sales_order_line SET line_type='1' WHERE id=50");
         copyOrderMetadata();
-        assertTrue(mapper.selectOwnedOrderLines(new P22ProductScopeSyncTask.OwnedLinesQuery(1,3,List.of(new P22ProductScopeSyncTask.OrderKey("001","O","1","ITEM")),true)).isEmpty());
+        assertTrue(mapper.selectOwnedOrderCatalogue(new P22ProductScopeSyncTask.OwnedOrderCatalogueQuery(1,3)).isEmpty());
         insertScope(201,1,1,10,-1,"OFFICE");
         assertEquals(0,mapper.backfillOrderLineIds(new P22ProductScopeSyncTask.CurrentRunQuery(1,3)));
         assertEquals(-1L,jdbc.queryForObject("SELECT order_line_id FROM com_delivery_scope",Long.class));
@@ -210,7 +210,7 @@ class P22DepartmentPostfillMySqlTest extends RemainingTaskMySqlSupport {
         var c=context(false);assertEquals(1,transaction.execute(status->task(List.of(row(1,"OFFICE")),()->{}).execute(c)).inserted());
         assertEquals(-1L,jdbc.queryForObject("SELECT order_line_id FROM com_delivery_scope",Long.class));assertTrue(c.runState().warnings().contains("P22_ORDER_LINE_POSTFILL_UNRESOLVED:1"));
         assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope_detail",Integer.class));
-        assertTrue(mapper.selectOwnedOrderLines(new P22ProductScopeSyncTask.OwnedLinesQuery(1,3,List.of(new P22ProductScopeSyncTask.OrderKey("001","O","1","ITEM")),true)).isEmpty());
+        assertTrue(mapper.selectOwnedOrderCatalogue(new P22ProductScopeSyncTask.OwnedOrderCatalogueQuery(1,3)).isEmpty());
     }
     @Test void orderPostfillRequiresAnOwnCompletedNonpreviewP14Binding(){
         orderLine(50,"SAP","0",false);insertScope(201,1,1,10,-1,"OFFICE");var q=new P22ProductScopeSyncTask.CurrentRunQuery(1,3);

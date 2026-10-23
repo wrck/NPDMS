@@ -11,6 +11,10 @@
     WHERE tenant_id=#{query.tenantId} AND id=#{query.taskId} AND deleted=FALSE
     <if test="query.lock">FOR UPDATE</if>
   </select>
+  <select id="selectRegisteredTasks" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper$TaskRow">
+    SELECT id,connection_id,task_code,batch_size,max_rows,active_run_id FROM int_base_sync_task
+    WHERE tenant_id=#{query.tenantId} AND deleted=FALSE ORDER BY task_code,id
+  </select>
   <insert id="createRun">
     INSERT INTO int_base_sync_run(id,tenant_id,task_id,request_key,status,preview,task_code,connection_id,batch_size,max_rows,started_at,creator,updater)
     VALUES(#{row.id},#{row.tenantId},#{row.taskId},#{row.requestKey},'READING',#{row.preview},#{row.config.taskCode},
@@ -50,6 +54,23 @@
     VALUES(#{row.id},#{row.tenantId},#{row.taskId},#{row.object},#{row.sourceKey},#{row.targetId},
            #{row.fingerprint},#{row.runId},#{row.actor},#{row.actor})
   </insert>
+  <insert id="insertBindings">
+    INSERT INTO int_base_sync_binding(id,tenant_id,task_id,object_key,source_key,target_id,fingerprint,last_run_id,creator,updater)
+    VALUES <foreach collection="command.rows" item="row" separator=",">(#{row.id},#{row.tenantId},#{row.taskId},#{row.object},#{row.sourceKey},#{row.targetId},
+           #{row.fingerprint},#{row.runId},#{row.actor},#{row.actor})</foreach>
+  </insert>
+  <update id="updateBindings">
+    UPDATE int_base_sync_binding binding_row
+    JOIN (VALUES <foreach collection="command.rows" item="row" separator=",">ROW(#{row.tenantId},#{row.taskId},#{row.object},#{row.sourceKey},#{row.targetId},#{row.previousFingerprint},#{row.fingerprint},#{row.runId},#{row.actor})</foreach>)
+      incoming(tenant_id,task_id,object_key,source_key,target_id,previous_fingerprint,fingerprint,last_run_id,updater)
+      ON binding_row.tenant_id=incoming.tenant_id AND binding_row.task_id=incoming.task_id
+      AND binding_row.object_key=incoming.object_key COLLATE utf8mb4_unicode_ci
+      AND binding_row.source_key=incoming.source_key COLLATE utf8mb4_bin
+      AND binding_row.target_id=incoming.target_id
+    SET binding_row.fingerprint=incoming.fingerprint,binding_row.last_run_id=incoming.last_run_id,binding_row.updater=incoming.updater
+    WHERE binding_row.deleted=FALSE
+      AND binding_row.fingerprint=incoming.previous_fingerprint COLLATE utf8mb4_unicode_ci
+  </update>
   <update id="updateBinding">
     UPDATE int_base_sync_binding SET fingerprint=#{row.fingerprint},last_run_id=#{row.runId},updater=#{row.actor}
     WHERE tenant_id=#{row.tenantId} AND task_id=#{row.taskId} AND object_key=#{row.object} AND source_key=#{row.sourceKey}

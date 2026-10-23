@@ -18,42 +18,42 @@
     VALUES
     <foreach collection="rows" item="row" separator=",">
       (#{row.productCode}, #{row.productModel}, #{row.productName}, #{row.productDesc}, #{row.technicalSpec}, #{row.productCategory}, #{row.productType}, #{row.listPrice}, #{row.crmStatus}, #{row.businessUnit}, #{row.productLine}, #{row.orgId}, #{row.sourceCreatedAt}, #{row.sourceUpdatedAt}, #{row.crmStateCode}, #{row.crmStatusCode}, #{row.productStage}, #{row.endOfSaleDate}, #{row.endOfSupportDate}, #{row.endOfLifeDate}, #{row.lastRenewalDate}, #{row.id}, #{context.tenantId}, 'CRM', #{row.productCode}, #{row.sourceVersion}, CASE WHEN #{row.crmStateCode}=0 THEN 'ACTIVE' ELSE 'INACTIVE' END, 0, #{context.startedAt}, #{context.actorId}, #{context.actorId}, #{context.startedAt}, #{context.startedAt}, FALSE, 'SUCCESS')
-    </foreach> AS incoming
+    </foreach>
     ON DUPLICATE KEY UPDATE
       <!-- Fail atomically on a protected identity; never revive deleted or take over manual products. -->
-      id=CASE WHEN ast_product_official_info.tenant_id=incoming.tenant_id
-        AND CAST(ast_product_official_info.product_code AS BINARY)=CAST(incoming.product_code AS BINARY)
+      id=CASE WHEN ast_product_official_info.tenant_id=VALUES(tenant_id)
+        AND CAST(ast_product_official_info.product_code AS BINARY)=CAST(VALUES(product_code) AS BINARY)
         AND ast_product_official_info.deleted=FALSE
         AND CAST(ast_product_official_info.source_system AS BINARY) IN (CAST('CRM' AS BINARY),CAST('DPPMS' AS BINARY))
         THEN ast_product_official_info.id ELSE NULL END,
-      product_model=COALESCE(incoming.product_model,ast_product_official_info.product_model),
-      product_name=COALESCE(incoming.product_name,ast_product_official_info.product_name),
-      product_desc=COALESCE(incoming.product_desc,ast_product_official_info.product_desc),
-      technical_spec=COALESCE(incoming.technical_spec,ast_product_official_info.technical_spec),
-      product_category=COALESCE(incoming.product_category,ast_product_official_info.product_category),
-      product_type=COALESCE(incoming.product_type,ast_product_official_info.product_type),
-      list_price=COALESCE(incoming.list_price,ast_product_official_info.list_price),
-      crm_status=COALESCE(incoming.crm_status,ast_product_official_info.crm_status),
-      business_unit=COALESCE(incoming.business_unit,ast_product_official_info.business_unit),
-      product_line=COALESCE(incoming.product_line,ast_product_official_info.product_line),
-      org_id=COALESCE(incoming.org_id,ast_product_official_info.org_id),
-      source_created_at=COALESCE(incoming.source_created_at,ast_product_official_info.source_created_at),
-      source_updated_at=COALESCE(incoming.source_updated_at,ast_product_official_info.source_updated_at),
-      crm_state_code=COALESCE(incoming.crm_state_code,ast_product_official_info.crm_state_code),
-      crm_status_code=COALESCE(incoming.crm_status_code,ast_product_official_info.crm_status_code),
-      product_stage=COALESCE(incoming.product_stage,ast_product_official_info.product_stage),
-      end_of_sale_date=COALESCE(incoming.end_of_sale_date,ast_product_official_info.end_of_sale_date),
-      end_of_support_date=COALESCE(incoming.end_of_support_date,ast_product_official_info.end_of_support_date),
-      end_of_life_date=COALESCE(incoming.end_of_life_date,ast_product_official_info.end_of_life_date),
-      last_renewal_date=COALESCE(incoming.last_renewal_date,ast_product_official_info.last_renewal_date),
-      source_system=incoming.source_system,
-      source_key=incoming.source_key,
-      source_version=incoming.source_version,
-      status=incoming.status,
-      synced_at=incoming.synced_at,
-      updater=incoming.updater,
-      update_time=incoming.update_time,
-      sync_status=incoming.sync_status,
+      product_model=COALESCE(VALUES(product_model),ast_product_official_info.product_model),
+      product_name=COALESCE(VALUES(product_name),ast_product_official_info.product_name),
+      product_desc=COALESCE(VALUES(product_desc),ast_product_official_info.product_desc),
+      technical_spec=COALESCE(VALUES(technical_spec),ast_product_official_info.technical_spec),
+      product_category=COALESCE(VALUES(product_category),ast_product_official_info.product_category),
+      product_type=COALESCE(VALUES(product_type),ast_product_official_info.product_type),
+      list_price=COALESCE(VALUES(list_price),ast_product_official_info.list_price),
+      crm_status=COALESCE(VALUES(crm_status),ast_product_official_info.crm_status),
+      business_unit=COALESCE(VALUES(business_unit),ast_product_official_info.business_unit),
+      product_line=COALESCE(VALUES(product_line),ast_product_official_info.product_line),
+      org_id=COALESCE(VALUES(org_id),ast_product_official_info.org_id),
+      source_created_at=COALESCE(VALUES(source_created_at),ast_product_official_info.source_created_at),
+      source_updated_at=COALESCE(VALUES(source_updated_at),ast_product_official_info.source_updated_at),
+      crm_state_code=COALESCE(VALUES(crm_state_code),ast_product_official_info.crm_state_code),
+      crm_status_code=COALESCE(VALUES(crm_status_code),ast_product_official_info.crm_status_code),
+      product_stage=COALESCE(VALUES(product_stage),ast_product_official_info.product_stage),
+      end_of_sale_date=COALESCE(VALUES(end_of_sale_date),ast_product_official_info.end_of_sale_date),
+      end_of_support_date=COALESCE(VALUES(end_of_support_date),ast_product_official_info.end_of_support_date),
+      end_of_life_date=COALESCE(VALUES(end_of_life_date),ast_product_official_info.end_of_life_date),
+      last_renewal_date=COALESCE(VALUES(last_renewal_date),ast_product_official_info.last_renewal_date),
+      source_system=VALUES(source_system),
+      source_key=VALUES(source_key),
+      source_version=VALUES(source_version),
+      status=VALUES(status),
+      synced_at=VALUES(synced_at),
+      updater=VALUES(updater),
+      update_time=VALUES(update_time),
+      sync_status=VALUES(sync_status),
       version=ast_product_official_info.version+1
   </insert>
 </mapper>

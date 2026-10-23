@@ -1,3 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$SourceMapper"><select id="selectInstallation" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$Source">SELECT `id` AS sourceId,`projectId` AS originalProjectId,`barcode` AS barcode,`itemCode` AS itemCode,`itemModel` AS itemModel,`itemName` AS itemName,`receiveName` AS receiveName,`emsNum` AS emsNum,`emsCompany` AS emsCompany,`packdate` AS packdate,`contractNo` AS contractNo,`installAddress` AS installAddress,`chProjectId` AS chProjectId,`chContractNo` AS chContractNo,`transferProjectId` AS transferProjectId,`transferContractNo` AS transferContractNo,`transferFlag` AS transferFlag,`createTime` AS createTime,`createBy` AS source_creator,`updateTime` AS updateTime,`updateBy` AS source_updater FROM pm_project_shipment <choose><when test="projectKeys != null and !projectKeys.isEmpty()">WHERE installAddress IS NOT NULL AND TRIM(installAddress)&lt;>'' AND projectId IN <foreach collection="projectKeys" item="key" open="(" close=")" separator=",">#{key}</foreach></when><otherwise>WHERE 1=0</otherwise></choose> ORDER BY id LIMIT #{limit}</select></mapper>
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$SourceMapper">
+ <select id="selectInstallation" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$Source">
+  SELECT id AS sourceId,projectId AS originalProjectId,barcode,itemCode,itemModel,itemName,
+         receiveName,emsNum,emsCompany,packdate,contractNo,installAddress,
+         JSON_OBJECT('fallbackLocation',installAddress) AS locationSnapshot,
+         chProjectId,chContractNo,transferProjectId,transferContractNo,transferFlag,
+         CASE WHEN transferFlag='-1' AND chProjectId IS NULL AND chContractNo IS NULL
+                   AND transferProjectId IS NULL AND transferContractNo IS NULL
+              THEN 0 ELSE 1 END AS transferPending,
+         createTime,createBy AS source_creator,updateTime,updateBy AS source_updater
+  FROM pm_project_shipment
+  <choose>
+   <when test="projectKeys != null and !projectKeys.isEmpty()">
+    WHERE installAddress IS NOT NULL AND TRIM(installAddress)&lt;&gt;''
+      AND projectId IN <foreach collection="projectKeys" item="key" open="(" close=")" separator=",">#{key}</foreach>
+   </when>
+   <otherwise>WHERE 1=0</otherwise>
+  </choose>
+  ORDER BY id LIMIT #{limit}
+ </select>
+</mapper>

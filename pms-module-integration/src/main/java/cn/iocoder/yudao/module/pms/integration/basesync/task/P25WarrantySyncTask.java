@@ -83,7 +83,7 @@ public class P25WarrantySyncTask extends AbstractSyncTask<P25WarrantySyncTask.Wa
                 .warrantyEndDate(date(source.getWarrantyEndDate())).remark(source.getRemark()).build();
         checkTextLength(row.getDeviceSn(),100); checkTextLength(row.getWarrantyContractNo(),64); checkTextLength(row.getWarrantyGrade(),32);
         if(source.getWarrantyYears()!=null && !source.getWarrantyYears().isEmpty()) {
-            if(!source.getWarrantyYears().matches("[0-9]")) throw new IllegalArgumentException("原续保参考年数无效");
+            if(source.getWarrantyYears().length()!=1 || source.getWarrantyYears().charAt(0)<'0' || source.getWarrantyYears().charAt(0)>'9') throw new IllegalArgumentException("原续保参考年数无效");
             row.setWarrantyMonths(Integer.parseInt(source.getWarrantyYears())*12);
         }
         row.setExtended(flag(source.getExtended(),true)); row.setIsLatest(flag(source.getIsLatest(),false));

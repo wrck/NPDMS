@@ -12,6 +12,8 @@ class P04AccountBaseSyncTest extends RemainingTaskMySqlSupport {
  cn.iocoder.yudao.framework.tenant.config.TenantProperties tenants;
  P04AccountSyncTask.TargetMapper mapper;
  P04AccountSyncTask task;
+ java.time.LocalDateTime executionAt=at;
+ @Override SyncContext<Void> context(boolean preview){return new SyncContext<>(1,2,3,preview,1,10000,executionAt,source,identities,mock(SyncReferences.class),"Task",session,false,true);}
  @BeforeEach void accountTask(){
   mapper=mock(P04AccountSyncTask.TargetMapper.class,org.mockito.AdditionalAnswers.delegatesTo(session.getMapper(P04AccountSyncTask.TargetMapper.class)));doReturn(0).when(mapper).oneSourcePerTargetIndex();encoder=mock(org.springframework.security.crypto.password.PasswordEncoder.class);when(encoder.encode(any())).thenReturn("fixture-random-secret-digest");tenants=mock(cn.iocoder.yudao.framework.tenant.config.TenantProperties.class);
   task=spy(new P04AccountSyncTask(mock(jakarta.validation.Validator.class),mapper,encoder,tenants,mock(org.springframework.cache.CacheManager.class)));
@@ -31,6 +33,15 @@ class P04AccountBaseSyncTest extends RemainingTaskMySqlSupport {
  @Test void nativeBatchInsertsUseRealPlannedParentIdsAndPreserveOriginalAdminThenReplay(){
   assertEquals(4,run(task,false).inserted());long user=jdbc.queryForObject("SELECT id FROM system_users WHERE username='w00001'",Long.class);assertEquals(user,jdbc.queryForObject("SELECT user_id FROM system_user_role",Long.class));assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM system_user_company_department_scope WHERE user_id=?",Integer.class,user));assertEquals("unchanged-original-credential",jdbc.queryForObject("SELECT password FROM system_users WHERE id=1",String.class));verify(encoder,times(1)).encode(any());assertEquals(1L,saved.get("USER_FND:81").targetId());assertFalse(saved.containsKey("ACCOUNT:AUDIT_ADMIN"));
   assertEquals(0,run(task,true).inserted());assertEquals(6,run(task,true).unchanged());
+ }
+ @Test void generatedMembershipAuditMatchesWholeSecondColumnsAndRealReplayStillDetectsChanges(){
+  executionAt=at.plusNanos(468_000_000);
+  assertEquals(4,run(task,false).inserted());
+  executionAt=executionAt.plusMinutes(1);
+  assertEquals(0,run(task,false).inserted());
+  assertEquals(6,run(task,true).unchanged());
+  jdbc.update("UPDATE system_user_role SET updater='externally-maintained'");
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("MEMBERSHIP_PROTECTED"));
  }
  @Test void laterMissingScopeDepartmentRollsBackAccountAndMembershipWrites(){
   doAnswer(call->{SyncContext<P04AccountSyncTask.Parameters> c=call.getArgument(0);seed(c);c.parameters().powers=List.of(new P04AccountSyncTask.Power().setId(50L).setFndUserId(100L).setAreapower("UNAPPROVED").setCreateTime(at));return null;}).when(task).load(any());

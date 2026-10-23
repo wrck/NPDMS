@@ -49,8 +49,18 @@ class IndependentScopeMySqlTest extends RemainingTaskMySqlSupport {
   assertThrows(IllegalStateException.class,()->transaction.execute(status->scopes.load(new BaseSyncPublishedProjects.Query(1,3,2))));
   var config=session.getConfiguration();new cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration();
   for(var statement:List.of("selectCompleted","countMasters","selectPage")){
-   Object query=statement.equals("selectCompleted")?new BaseSyncPublishedProjects.Query(1,3,100):new BaseSyncPublishedProjects.Page(1,3,10,"");
+   Object query=statement.equals("selectCompleted")?new BaseSyncPublishedProjects.Query(1,3,100):new BaseSyncPublishedProjects.Page(1,3,10,1,"");
    assertNotNull(com.baomidou.mybatisplus.extension.parser.JsqlParserGlobal.parse(config.getMappedStatement(BaseSyncPublishedProjects.ReferenceMapper.class.getName()+"."+statement).getBoundSql(Map.of("query",query)).getSql()));
   }
  }
+ @Test void completedRunPinsTaskAndExactAliasCursorWithoutCrossingTaskTenantOrConnection(){
+  var mapper=session.getMapper(BaseSyncPublishedProjects.ReferenceMapper.class);
+  var completed=mapper.selectCompleted(new BaseSyncPublishedProjects.Query(1,3,100));
+  assertNotNull(completed);assertEquals(10,completed.runId());assertEquals(1,completed.taskId());
+  assertEquals(List.of("2","3"),mapper.selectPage(new BaseSyncPublishedProjects.Page(1,3,10,1,"1")).stream().map(BaseSyncPublishedProjects.Member::sourceKey).toList());
+  assertTrue(mapper.selectPage(new BaseSyncPublishedProjects.Page(1,3,10,99,"1")).isEmpty());
+  assertTrue(mapper.selectPage(new BaseSyncPublishedProjects.Page(2,3,10,1,"1")).isEmpty());
+  assertTrue(mapper.selectPage(new BaseSyncPublishedProjects.Page(1,4,10,1,"1")).isEmpty());
+ }
+
 }

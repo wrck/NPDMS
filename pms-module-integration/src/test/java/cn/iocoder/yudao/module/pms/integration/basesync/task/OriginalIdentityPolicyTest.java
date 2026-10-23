@@ -57,119 +57,73 @@ class OriginalIdentityPolicyTest {
         assertThrows(org.springframework.security.access.AccessDeniedException.class,
                 ()->new BaseSyncProjectReferences(mapper,scope).resolve(new BaseSyncProjectReferences.Query(1,2,3,List.of("7"),true)));
     }
-    @Test void relationUsesSourceCompanyAndRequiresAnActualContractForExecution() {
-        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var projects=mock(BaseSyncProjectReferences.class);
-        when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,null,null,"10",null,null,null,null,false)));
-        var task=new P18ProjectContractSyncTask(mapper,projects,mock(OrganizationScopeApi.class));
-        var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");
-        var base=context();var c=new SyncContext<Void>(base.tenantId(),base.actorId(),base.connectionId(),false,base.batchSize(),base.maxRows(),base.startedAt(),base.source(),base.identities(),base.references(),base.dataName(),base.target(),false,true).forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("001")));
-        assertTrue(assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage().contains("FORMAL_CONTRACT_MISSING:C"));
-        var query=org.mockito.ArgumentCaptor.forClass(P18ProjectContractSyncTask.ContractsQuery.class);verify(mapper).selectContracts(query.capture());
-        assertEquals(List.of(new P18ProjectContractSyncTask.ContractKey("001","C")),query.getValue().keys());
-        source.setOriginalCompanyCode("02");
-        assertTrue(assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage().contains("PROJECT_COMPANY_NOT_AUTHORIZED"));
-        source.setOriginalCompanyCode("01").setOriginalProjectCode("SOURCE");
-        when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,0L,"OTHER","10",null,"001",null,"ACTIVE",false)));
-        assertTrue(assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage().contains("PROJECT_CODE_DIFFERS_FROM_SOURCE"));
+    @Test void relationUsesExactSourceCompanyAndCarriesContractNumberBeforeReferencePostfill() {
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
+        var task=new P18ProjectContractSyncTask(mapper);
+        var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");source.setCanonical(source);
+        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());var batch=new SyncBatch<>(c,List.of(source));
+        task.syncDataInsertBefore(batch);assertEquals("001",source.getCompanyCode());assertEquals("C",source.getTarget().getContractNo());assertNull(source.getTarget().getContractId());assertEquals(new SyncCounts(1,1,0,0,0),task.syncDataCount(batch));
+        source.setOriginalCompanyCode("02").setOriginalProjectCode("SOURCE-NAME-NOT-RELOOKED");
+        task.syncDataInsertBefore(batch);assertEquals("002",source.getCompanyCode());assertEquals(7L,source.getFormalProjectId());assertEquals(7L,source.getTarget().getProjectId());
     }
-    @Test void relationPreviewKeepsOriginalBusinessKeysWithoutInventingContractIdsOrWriteCounts() {
-        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var projects=mock(BaseSyncProjectReferences.class);
-        when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,null,null,"10",null,null,null,null,false)));
-        var task=new P18ProjectContractSyncTask(mapper,projects,mock(OrganizationScopeApi.class));
-        var known=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");
-        var missingCompany=new P18ProjectContractSyncTask.Source().setContractSourceId(3L).setMemberId(4L).setOriginalProjectId(7L).setContractNo("OTHER");
-        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("001")));var batch=new SyncBatch<>(c,List.of(known,missingCompany));
-        assertDoesNotThrow(()->task.syncDataInsertBefore(batch));assertNull(known.getFormalContractId());assertNull(known.getTarget());assertNull(missingCompany.getCompanyCode());
-        assertEquals("C",known.getContractNo());assertEquals("OTHER",missingCompany.getContractNo());assertEquals(new SyncCounts(2,0,0,0,0),task.syncDataCount(batch));
-        assertTrue(c.runState().warnings().contains("P18_CONTRACT_REFERENCE_PENDING:2"));assertTrue(c.runState().warnings().contains("P18_COMPANY_SOURCE_PENDING:1"));
-        verify(mapper,never()).insertProjectContract(any());verify(c.identities(),never()).saveAll(any());
-        known.setOriginalCompanyCode("02");assertDoesNotThrow(()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(known))));
-        assertTrue(c.runState().warnings().contains("P18_COMPANY_AUTHORIZATION_PENDING:002=1"));assertNull(known.getFormalProjectId());
+    @Test void relationPreviewPlansRawBusinessKeysWithoutInventingContractIds() {
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
+        var task=new P18ProjectContractSyncTask(mapper);
+        var known=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");known.setCanonical(known);
+        var missing=new P18ProjectContractSyncTask.Source().setContractSourceId(3L).setMemberId(4L).setOriginalProjectId(7L).setContractNo("OTHER");missing.setCanonical(missing);
+        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());var batch=new SyncBatch<>(c,List.of(known,missing));task.syncDataInsertBefore(batch);
+        for(var row:List.of(known,missing)){assertNotNull(row.getTarget());assertNull(row.getTarget().getId());assertNull(row.getTarget().getContractId());assertEquals(row.getContractNo(),row.getTarget().getContractNo());}
+        assertEquals(new SyncCounts(2,2,0,0,0),task.syncDataCount(batch));assertNull(missing.getCompanyCode());
+        assertTrue(c.runState().warnings().contains("P18_COMPANY_SOURCE_PENDING:1"));assertTrue(c.runState().warnings().contains("P18_CONTRACT_POSTFILL_NOT_EXECUTED"));
+        verify(mapper,never()).fillContractReferences(any());verify(c.identities(),never()).saveAll(any());
     }
-    @Test void relationPreviewCannotDeferAContractForAnExistingIndependentBinding() {
-        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var projects=mock(BaseSyncProjectReferences.class);
-        when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,null,null,"10",null,null,null,null,false)));
-        var task=new P18ProjectContractSyncTask(mapper,projects,mock(OrganizationScopeApi.class));
-        var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");
-        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("001")));
-        when(c.identities().findByKeys(any())).thenAnswer(call->{var q=call.<SyncIdentityStore.Query>getArgument(0);return q.object().equals("RELATION_BUSINESS")?Map.of(source.businessKey(),new SyncIdentityStore.Identity(source.businessKey(),99L,"baseline")):Map.of();});
-        assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source))));
-        verify(mapper,never()).insertProjectContract(any());verify(c.identities(),never()).saveAll(any());
+    @Test void relationPreviewRejectsMissingTargetForExistingBusinessBinding() {
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
+        var task=new P18ProjectContractSyncTask(mapper);var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");source.setCanonical(source);
+        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());
+        when(c.identities().findByKeys(any())).thenAnswer(call->call.<SyncIdentityStore.Query>getArgument(0).object().equals("RELATION_BUSINESS")?Map.of(source.businessKey(),new SyncIdentityStore.Identity(source.businessKey(),99L,"baseline")):Map.of());
+        assertEquals("P18_BOUND_RELATION_MISSING",assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage());verify(c.identities(),never()).saveAll(any());
     }
-    @Test void relationSourcePreviewWithoutCompanyGrantDoesNotReadFormalContractsOrInventWrites() {
-        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var projects=mock(BaseSyncProjectReferences.class);
-        when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,null,null,"10",null,null,null,null,false)));
-        var task=new P18ProjectContractSyncTask(mapper,projects,mock(OrganizationScopeApi.class));
-        var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");
-        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("DPTECH-DEMO")));var batch=new SyncBatch<>(c,List.of(source));
-        assertDoesNotThrow(()->task.syncDataInsertBefore(batch));
-        assertEquals(new SyncCounts(1,0,0,0,0),task.syncDataCount(batch));
-        assertEquals("001",source.getCompanyCode());assertEquals(7L,source.getOriginalProjectId());assertEquals("C",source.getContractNo());
-        assertNull(source.getTarget());assertNull(source.getFormalProjectId());assertNull(source.getFormalContractId());
-        assertTrue(c.runState().warnings().contains("P18_COMPANY_AUTHORIZATION_PENDING:001=1"));
-        verify(projects).resolve(any());verifyNoInteractions(mapper);verify(c.identities(),never()).saveAll(any());
+    @Test void relationCompany002NeedsNoActorCompanyGrantToPlanRawTarget() {
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
+        var task=new P18ProjectContractSyncTask(mapper);var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("02").setContractNo("C");source.setCanonical(source);
+        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());var batch=new SyncBatch<>(c,List.of(source));task.syncDataInsertBefore(batch);
+        assertEquals("002",source.getCompanyCode());assertEquals("C",source.getTarget().getContractNo());assertEquals(new SyncCounts(1,1,0,0,0),task.syncDataCount(batch));assertTrue(c.runState().warnings().stream().noneMatch(w->w.contains("AUTHORIZATION_PENDING")));
     }
-    @Test void relationEmptyCompanyScopesPermitOnlySourcePreview() {
-        var organization=mock(OrganizationScopeApi.class);var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
-        var task=new P18ProjectContractSyncTask(mapper,mock(BaseSyncProjectReferences.class),organization);
-        var preview=context();
-        assertEquals(Set.of(),task.createParameters(preview).companies());
-        when(organization.getActiveScopes(preview.actorId())).thenReturn(List.of());
-        assertEquals(Set.of(),task.createParameters(preview).companies());
-        var execution=new SyncContext<Void>(preview.tenantId(),preview.actorId(),preview.connectionId(),false,preview.batchSize(),preview.maxRows(),preview.startedAt(),preview.source(),preview.identities(),preview.references(),preview.dataName(),preview.target(),false,true);
-        assertEquals("P18_AUTHORIZED_COMPANIES_EMPTY",assertThrows(IllegalArgumentException.class,()->task.createParameters(execution)).getMessage());
-        assertEquals(Set.of("pms:commerce:contract:relate"),task.requiredPermissions());verifyNoInteractions(mapper);
+    @Test void relationParametersNoLongerNeedOrganizationScopesButBusinessPermissionRemains() {
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var task=new P18ProjectContractSyncTask(mapper);var preview=context();
+        assertNotNull(task.createParameters(preview));
+        var actual=new SyncContext<Void>(preview.tenantId(),preview.actorId(),preview.connectionId(),false,preview.batchSize(),preview.maxRows(),preview.startedAt(),preview.source(),preview.identities(),preview.references(),preview.dataName(),preview.target(),false,true);
+        assertNotNull(task.createParameters(actual));assertEquals(Set.of("pms:commerce:contract:relate"),task.requiredPermissions());verifyNoInteractions(mapper);
     }
-    @Test void relationMixedCompanyPreviewQueriesOnlyAuthorizedFormalContracts() {
-        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var projects=mock(BaseSyncProjectReferences.class);
-        when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,null,null,"10",null,null,null,null,false)));
-        var task=new P18ProjectContractSyncTask(mapper,projects,mock(OrganizationScopeApi.class));
-        var permitted=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("AUTHORIZED");
-        var ungranted=new P18ProjectContractSyncTask.Source().setContractSourceId(3L).setMemberId(4L).setOriginalProjectId(7L).setOriginalCompanyCode("02").setContractNo("PENDING");
-        var unknownCompany=new P18ProjectContractSyncTask.Source().setContractSourceId(5L).setMemberId(6L).setOriginalProjectId(7L).setContractNo("NO-COMPANY");
-        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("001")));var batch=new SyncBatch<>(c,List.of(permitted,ungranted,unknownCompany));
-        task.syncDataInsertBefore(batch);
-        var query=org.mockito.ArgumentCaptor.forClass(P18ProjectContractSyncTask.ContractsQuery.class);verify(mapper).selectContracts(query.capture());
-        assertEquals(1L,query.getValue().tenantId());assertTrue(query.getValue().preview());
-        assertEquals(List.of(new P18ProjectContractSyncTask.ContractKey("001","AUTHORIZED")),query.getValue().keys());
-        verifyNoMoreInteractions(mapper);
-        assertEquals(new SyncCounts(3,0,0,0,0),task.syncDataCount(batch));
-        assertTrue(c.runState().warnings().containsAll(List.of("P18_COMPANY_AUTHORIZATION_PENDING:002=1","P18_COMPANY_SOURCE_PENDING:1","P18_CONTRACT_REFERENCE_PENDING:3")));
-        assertNull(ungranted.getTarget());assertNull(ungranted.getFormalProjectId());assertNull(ungranted.getFormalContractId());
+    @Test void relationMixedCompanyPreviewKeepsEveryExactRawRelationKey() {
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
+        var task=new P18ProjectContractSyncTask(mapper);var rows=new ArrayList<P18ProjectContractSyncTask.Source>();
+        for(int i=1;i<=3;i++){var row=new P18ProjectContractSyncTask.Source().setContractSourceId((long)i).setMemberId((long)i).setOriginalProjectId(7L).setOriginalCompanyCode(i==3?null:i==1?"01":"02").setContractNo("C"+i);row.setCanonical(row);rows.add(row);}
+        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());var batch=new SyncBatch<>(c,rows);task.syncDataInsertBefore(batch);
+        var query=org.mockito.ArgumentCaptor.forClass(P18ProjectContractSyncTask.RelationsQuery.class);verify(mapper).selectRelations(query.capture());assertEquals(1,query.getValue().tenantId());
+        assertEquals(List.of(new P18ProjectContractSyncTask.RelationKey(7L,"C1"),new P18ProjectContractSyncTask.RelationKey(7L,"C2"),new P18ProjectContractSyncTask.RelationKey(7L,"C3")),query.getValue().keys());
+        assertEquals(new SyncCounts(3,3,0,0,0),task.syncDataCount(batch));assertTrue(rows.stream().allMatch(row->row.getTarget()!=null&&row.getTarget().getContractId()==null));assertTrue(c.runState().warnings().stream().noneMatch(w->w.contains("AUTHORIZATION_PENDING")));
     }
-    @Test void relationPendingCompanyCannotHideExistingIndependentBindings() {
-        for(var object:List.of("RELATION_BUSINESS","RELATION_ORIGINAL")) {
-            var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var projects=mock(BaseSyncProjectReferences.class);
-            when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,null,null,"10",null,null,null,null,false)));
-            var task=new P18ProjectContractSyncTask(mapper,projects,mock(OrganizationScopeApi.class));
-            var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");
-            var c=context().forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("DPTECH-DEMO")));
-            var key=object.equals("RELATION_BUSINESS")?source.businessKey():source.sourceKey();
-            when(c.identities().findByKeys(any())).thenAnswer(call->call.<SyncIdentityStore.Query>getArgument(0).object().equals(object)?Map.of(key,new SyncIdentityStore.Identity(key,99L,"baseline")):Map.of());
-            var expected=object.equals("RELATION_BUSINESS")?"P18_BOUND_RELATION_COMPANY_AUTHORIZATION_REQUIRED":"P18_ORIGINAL_RELATION_CHANGED";
-            assertEquals(expected,assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage());
-            verifyNoInteractions(mapper);verify(c.identities(),never()).saveAll(any());
+    @Test void relationWithoutCompanyGrantStillProtectsExistingIndependentBindings() {
+        for(var object:List.of("RELATION_BUSINESS","RELATION_ORIGINAL")){
+            var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
+            var task=new P18ProjectContractSyncTask(mapper);var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");source.setCanonical(source);
+            var base=context();var c=new SyncContext<Void>(base.tenantId(),base.actorId(),base.connectionId(),false,base.batchSize(),base.maxRows(),base.startedAt(),base.source(),base.identities(),base.references(),base.dataName(),base.target(),false,true).forParameters(new P18ProjectContractSyncTask.Parameters());
+            var key=object.equals("RELATION_BUSINESS")?source.businessKey():source.sourceKey();when(c.identities().findByKeys(any())).thenAnswer(call->call.<SyncIdentityStore.Query>getArgument(0).object().equals(object)?Map.of(key,new SyncIdentityStore.Identity(key,99L,"baseline")):Map.of());
+            var expected=object.equals("RELATION_BUSINESS")?"P18_BOUND_RELATION_MISSING":"P18_ORIGINAL_RELATION_CHANGED";assertEquals(expected,assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage());verify(c.identities(),never()).saveAll(any());
         }
     }
-    @Test void relationPendingCompanyStillRequiresExistingProjectManagePermission() {
-        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var projects=mock(BaseSyncProjectReferences.class);
-        when(projects.resolve(any())).thenThrow(new org.springframework.security.access.AccessDeniedException("PROJECT_MANAGE_REQUIRED"));
-        var task=new P18ProjectContractSyncTask(mapper,projects,mock(OrganizationScopeApi.class));
-        var source=new P18ProjectContractSyncTask.Source().setOriginalProjectId(7L).setOriginalCompanyCode("01");
-        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("DPTECH-DEMO")));
-        assertThrows(org.springframework.security.access.AccessDeniedException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source))));
-        verifyNoInteractions(mapper);verify(c.identities(),never()).saveAll(any());
+    @Test void relationOriginalProjectIdentityIsStoredWithoutPerProjectOwnerLookup() {
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var task=new P18ProjectContractSyncTask(mapper);
+        var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(701L).setOriginalCompanyCode(null).setOriginalProjectCode("RAW-UNRESOLVED").setContractNo("C");source.setCanonical(source);
+        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)));
+        assertEquals(701L,source.getFormalProjectId());assertEquals(701L,source.getTarget().getProjectId());assertNull(source.getCompanyCode());assertEquals("C",source.getTarget().getContractNo());
+        var query=org.mockito.ArgumentCaptor.forClass(P18ProjectContractSyncTask.RelationsQuery.class);verify(mapper).selectRelations(query.capture());assertEquals(List.of(new P18ProjectContractSyncTask.RelationKey(701L,"C")),query.getValue().keys());verifyNoMoreInteractions(mapper);
     }
     @Test void relationUnmappedSourceCompanyRemainsInvalidForPreviewAndExecution() {
-        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var projects=mock(BaseSyncProjectReferences.class);
-        when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,null,null,"10",null,null,null,null,false)));
-        var task=new P18ProjectContractSyncTask(mapper,projects,mock(OrganizationScopeApi.class));
-        var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("99").setContractNo("C");
-        var preview=context();
-        for(boolean isPreview:List.of(true,false)) {
-            var c=new SyncContext<Void>(preview.tenantId(),preview.actorId(),preview.connectionId(),isPreview,preview.batchSize(),preview.maxRows(),preview.startedAt(),preview.source(),preview.identities(),preview.references(),preview.dataName(),preview.target(),false,true).forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("001")));
-            assertTrue(assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage().contains("DPPMS_COMPANY_CODE_UNMAPPED"));
-        }
-        verifyNoInteractions(mapper);
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
+        var task=new P18ProjectContractSyncTask(mapper);var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("99").setContractNo("C");source.setCanonical(source);var base=context();
+        for(boolean preview:List.of(true,false)){var c=new SyncContext<Void>(base.tenantId(),base.actorId(),base.connectionId(),preview,base.batchSize(),base.maxRows(),base.startedAt(),base.source(),base.identities(),base.references(),base.dataName(),base.target(),false,true).forParameters(new P18ProjectContractSyncTask.Parameters());assertTrue(assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage().contains("DPPMS_COMPANY_CODE_UNMAPPED"));}verifyNoInteractions(mapper);
     }
 }

@@ -1,0 +1,2189 @@
+{
+  "generatedAt": "2026-10-22T18:25:54.348115+08:00",
+  "passed": true,
+  "target": "172.17.90.178:13306/npdms",
+  "failedAttempt": {
+    "runId": 2113183353709326338,
+    "receipt": {
+      "id": 2113183353709326338,
+      "status": "FAILED",
+      "preview": 0,
+      "read_count": 0,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "deleted_count": 0,
+      "started_at": "2026-10-22 16:19:06.879000",
+      "finished_at": "2026-10-22 17:21:43.148000",
+      "error_messageSummary": {
+        "present": true,
+        "sha256": "b7981b569d536735bc121d585de6fc9361cf0786c667c53b0e6f9eeea78387f5",
+        "exceptionTypes": [
+          "UncategorizedSQLException"
+        ],
+        "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+      }
+    },
+    "originalState": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\p22-three-phase-state.json",
+    "cancelReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\cancel-owned-p22-postfill.json",
+    "rollbackReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\reload-p22-postfill.json",
+    "fullRollbackZeroVerified": true,
+    "priorP22RunsSha256": "3c3d6d6570a040bbb8f741fbc62e7530e046b45efb22e6e2ee9d6301e96e23c7",
+    "priorP22RunCount": 5
+  },
+  "scope": "Approved B and new BASE_P22 only; P33 actual remains HOLD",
+  "approvedB": {
+    "status": "VERIFIED",
+    "executedStatements": 1,
+    "approved": true,
+    "target": "172.17.90.178:13306/npdms",
+    "reviewSql": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\docs\\generated\\dppms-24-tasks-three-implementations-20261019\\remote-test-minimal-ddl-B-p22-exception-20261021.review.sql",
+    "reviewSqlSha256": "2b7a04cd1c28b544cdfa8d163e6aa3e3d283b6b809c8610c499f654a53fae5b8",
+    "finishedAt": "2026-10-22T16:00:33.799188+08:00",
+    "onlyApprovedSixColumnsAndOneForeignKeyChanged": true,
+    "indexesChecksOtherSchemasCountsFlywayAndTasksUnchanged": true
+  },
+  "approvedBReceiptPath": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\approved-B-executed.json",
+  "phases": {
+    "preview": {
+      "packageManifest": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\postfill-retry\\composition-p22-postfill.json",
+      "packageSha256": "e0ab8c7bc35552550fca2bf0f0ecca2383551a982aed2d8a48f376ed87ebabb3",
+      "receipt": {
+        "id": 2113199680318668802,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 343858,
+        "inserted_count": 340882,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 17:23:59.526000",
+        "finished_at": "2026-10-22 17:33:02.433000",
+        "error_messageSummary": {
+          "present": true,
+          "sha256": "225bc97638a681220b7f7bc058f0effa8014b4167723353bb59217235e9a3914",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "databaseSeconds": 542.907,
+      "requestElapsedSeconds": 543.144,
+      "success": true,
+      "protectionUnchanged": true,
+      "receiptMatches": true,
+      "contentMatches": true,
+      "contentHashes": {
+        "before": {
+          "scope": {
+            "rows": 0,
+            "fullSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "identityAndFingerprintSha256": null
+          },
+          "details": {
+            "rows": 0,
+            "fullSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "identityAndFingerprintSha256": null
+          },
+          "bindings": {
+            "rows": 0,
+            "fullSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "identityAndFingerprintSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "after": {
+          "scope": {
+            "rows": 0,
+            "fullSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "identityAndFingerprintSha256": null
+          },
+          "details": {
+            "rows": 0,
+            "fullSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "identityAndFingerprintSha256": null
+          },
+          "bindings": {
+            "rows": 0,
+            "fullSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "identityAndFingerprintSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "businessRowsAndAuditUnchanged": null,
+        "bindingIdentityAndFingerprintUnchanged": null,
+        "bindingFullMetadataUnchanged": null
+      }
+    },
+    "execute": {
+      "packageManifest": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\postfill-retry\\composition-p22-postfill.json",
+      "packageSha256": "e0ab8c7bc35552550fca2bf0f0ecca2383551a982aed2d8a48f376ed87ebabb3",
+      "receipt": {
+        "id": 2113202165225684994,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 343858,
+        "inserted_count": 340882,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 17:33:51.930000",
+        "finished_at": "2026-10-22 17:59:29.959000",
+        "error_messageSummary": {
+          "present": true,
+          "sha256": "ff523dd9f3b45921324406557748de7e526b578fcbdf2f6204cb6b4f5f84c531",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "databaseSeconds": 1538.029,
+      "requestElapsedSeconds": 1560.06,
+      "success": true,
+      "protectionUnchanged": true,
+      "receiptMatches": true,
+      "contentMatches": true,
+      "contentHashes": {
+        "before": {
+          "scope": {
+            "rows": 0,
+            "fullSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "identityAndFingerprintSha256": null
+          },
+          "details": {
+            "rows": 0,
+            "fullSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "identityAndFingerprintSha256": null
+          },
+          "bindings": {
+            "rows": 0,
+            "fullSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "identityAndFingerprintSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "after": {
+          "scope": {
+            "rows": 340882,
+            "fullSha256": "43346bc6dedbf5bb46984414a886b64252bc6c167f1bf2066c1f9463f10add90",
+            "identityAndFingerprintSha256": null
+          },
+          "details": {
+            "rows": 340882,
+            "fullSha256": "24a77ec8320936ea6ecdc3588c7867150fc9f2f607e50b80e8b128876ebee891",
+            "identityAndFingerprintSha256": null
+          },
+          "bindings": {
+            "rows": 340882,
+            "fullSha256": "398098c701e53594f39692ced6e45dbdf0d309690874c167962fa3d21feb6048",
+            "identityAndFingerprintSha256": "c729077aa7fb58ed2878d00f61041d723f81fdc7d8064990676f7866837e74c9"
+          }
+        },
+        "businessRowsAndAuditUnchanged": null,
+        "bindingIdentityAndFingerprintUnchanged": null,
+        "bindingFullMetadataUnchanged": null
+      }
+    },
+    "replay": {
+      "packageManifest": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\postfill-retry\\composition-p22-postfill.json",
+      "packageSha256": "e0ab8c7bc35552550fca2bf0f0ecca2383551a982aed2d8a48f376ed87ebabb3",
+      "receipt": {
+        "id": 2113209385740992514,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 343858,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 340882,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 18:02:33.450000",
+        "finished_at": "2026-10-22 18:24:02.161000",
+        "error_messageSummary": {
+          "present": true,
+          "sha256": "ff523dd9f3b45921324406557748de7e526b578fcbdf2f6204cb6b4f5f84c531",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "databaseSeconds": 1288.711,
+      "requestElapsedSeconds": 1293.477,
+      "success": true,
+      "protectionUnchanged": true,
+      "receiptMatches": true,
+      "contentMatches": true,
+      "contentHashes": {
+        "before": {
+          "scope": {
+            "rows": 340882,
+            "fullSha256": "43346bc6dedbf5bb46984414a886b64252bc6c167f1bf2066c1f9463f10add90",
+            "identityAndFingerprintSha256": null
+          },
+          "details": {
+            "rows": 340882,
+            "fullSha256": "24a77ec8320936ea6ecdc3588c7867150fc9f2f607e50b80e8b128876ebee891",
+            "identityAndFingerprintSha256": null
+          },
+          "bindings": {
+            "rows": 340882,
+            "fullSha256": "398098c701e53594f39692ced6e45dbdf0d309690874c167962fa3d21feb6048",
+            "identityAndFingerprintSha256": "c729077aa7fb58ed2878d00f61041d723f81fdc7d8064990676f7866837e74c9"
+          }
+        },
+        "after": {
+          "scope": {
+            "rows": 340882,
+            "fullSha256": "43346bc6dedbf5bb46984414a886b64252bc6c167f1bf2066c1f9463f10add90",
+            "identityAndFingerprintSha256": null
+          },
+          "details": {
+            "rows": 340882,
+            "fullSha256": "24a77ec8320936ea6ecdc3588c7867150fc9f2f607e50b80e8b128876ebee891",
+            "identityAndFingerprintSha256": null
+          },
+          "bindings": {
+            "rows": 340882,
+            "fullSha256": "904da190a7fc6c4b474f69421bc419f53ba1ff50262533eb06f8ec04fe1eeda0",
+            "identityAndFingerprintSha256": "c729077aa7fb58ed2878d00f61041d723f81fdc7d8064990676f7866837e74c9"
+          }
+        },
+        "businessRowsAndAuditUnchanged": true,
+        "bindingIdentityAndFingerprintUnchanged": true,
+        "bindingFullMetadataUnchanged": false
+      }
+    }
+  },
+  "facts": {
+    "scope_rows": 340882,
+    "orders_filled": 340580,
+    "orders_pending": 302,
+    "departments_filled": 326589,
+    "departments_pending": 14293,
+    "confirmed": 0,
+    "current_occupancy": 0,
+    "versions_advanced": 0
+  },
+  "detailRows": 340882,
+  "bindingCounts": [
+    {
+      "object_key": "PRODUCT_SCOPE",
+      "n": 340882
+    }
+  ],
+  "zeroQuantityReadButNotInserted": 2976,
+  "matchingRule": "Exact original company/order number/line number/product key; same tenant and connection, independent BASE_P14 SALES_LINE binding with original numeric lineType SHA identity, completed nonpreview receipt, enabled exact parent source/company/order_type/order_no and unique HAVING. No alternate-type/ambiguous fallback.",
+  "catalogueReuse": {
+    "rows": 363825,
+    "streamAndHashSeconds": 10.900926,
+    "boundary": "One complete protected order catalogue SELECT measured with Python streaming/hash overhead; Run reuses exact OrderKey plus a once-read tenant-bound scope identity directory retaining duplicates/deleted history for original per-batch checks. Earlier one-key/60-key probes are diagnostic only.",
+    "proofPath": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\p22-owned-directory-once-readonly-proof.json"
+  },
+  "tests": {
+    "passed": true,
+    "testCount": 9,
+    "nativeSelectScenarios": 47,
+    "databaseBoundary": "Native MySQL SELECT/CTE only, read-only transaction; no temp DDL, DML or synchronization request",
+    "proofPath": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\tests-postfill-green\\proof.json"
+  },
+  "package": {
+    "manifest": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\postfill-retry\\composition-p22-postfill.json",
+    "runtimeReceipt": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\postfill-retry\\reloaded-p22-runtime\\runtime.json",
+    "sha256": "e0ab8c7bc35552550fca2bf0f0ecca2383551a982aed2d8a48f376ed87ebabb3",
+    "onlyP22TaskAndTargetXmlChanged": true,
+    "sourceCount": 14,
+    "otherBytesUnchanged": true
+  },
+  "finalChecks": {
+    "priorP22RunsUnchanged": true,
+    "globalActiveZero": true,
+    "unfinishedRunZero": true,
+    "P33ActualZero": true,
+    "approvedSchemaUnchangedExceptOwnAutoIncrement": true,
+    "flywayUnchanged": true,
+    "originalTaskCountsUnchanged": true,
+    "nonP22RunSetAndFieldsUnchanged": true,
+    "P22ThreePhaseReceiptsUnchanged": true,
+    "retryPhasesSameC3Package": true,
+    "phasePackagesVerified": true,
+    "P22ExpectedReadAndPositiveCounts": true,
+    "P22ExpectedFacts": true,
+    "P22Binding340882": true,
+    "ownedPid": true,
+    "ownedJavaCommand": true,
+    "healthUP": true,
+    "frozenPackageMatches": true
+  },
+  "latestMatrix": [
+    {
+      "taskCode": "BASE_P01",
+      "taskName": "公司与部门独立目录",
+      "latestPreview": {
+        "id": 2112881211575730177,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 208,
+        "inserted_count": 208,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:18:31.220000",
+        "finished_at": "2026-10-21 20:18:31.349000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "7f5513f4d1b06bb94a37962293a9189131cb50c76a3bd4602db55fa4fd365be7",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112881218542469122,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 208,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 208,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 20:18:32.876000",
+          "finished_at": "2026-10-21 20:18:32.939000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "7f5513f4d1b06bb94a37962293a9189131cb50c76a3bd4602db55fa4fd365be7",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112881214478188546,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 208,
+          "inserted_count": 208,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 20:18:31.906000",
+          "finished_at": "2026-10-21 20:18:32.316000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "7f5513f4d1b06bb94a37962293a9189131cb50c76a3bd4602db55fa4fd365be7",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112881214478188546,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 208,
+        "inserted_count": 208,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:18:31.906000",
+        "finished_at": "2026-10-21 20:18:32.316000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "7f5513f4d1b06bb94a37962293a9189131cb50c76a3bd4602db55fa4fd365be7",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P04",
+      "taskName": "账号、历史任职、角色及公司部门范围",
+      "latestPreview": {
+        "id": 2112975586452414466,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 12632,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 12632,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 02:33:32.132000",
+        "finished_at": "2026-10-22 02:33:34.753000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "a4fb7b07b007bd469531764d98bf36c921309d78588514deef36718097e75358",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112975709714620417,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 12632,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 12632,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 02:34:01.512000",
+          "finished_at": "2026-10-22 02:34:24.001000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "a4fb7b07b007bd469531764d98bf36c921309d78588514deef36718097e75358",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112975607138721794,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 12632,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 12632,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 02:33:37.056000",
+          "finished_at": "2026-10-22 02:33:59.149000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "a4fb7b07b007bd469531764d98bf36c921309d78588514deef36718097e75358",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112914650752462849,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 12632,
+        "inserted_count": 12605,
+        "updated_count": 0,
+        "unchanged_count": 27,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 22:31:23.805000",
+        "finished_at": "2026-10-21 22:31:46.176000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "a4fb7b07b007bd469531764d98bf36c921309d78588514deef36718097e75358",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P08",
+      "taskName": "系统字典类型及字典项",
+      "latestPreview": {
+        "id": 2112881233469997058,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 612,
+        "inserted_count": 611,
+        "updated_count": 0,
+        "unchanged_count": 1,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:18:36.436000",
+        "finished_at": "2026-10-21 20:18:36.527000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112881243729264641,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 612,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 612,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 20:18:38.882000",
+          "finished_at": "2026-10-21 20:18:38.962000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112881236221460481,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 612,
+          "inserted_count": 611,
+          "updated_count": 0,
+          "unchanged_count": 1,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 20:18:37.091000",
+          "finished_at": "2026-10-21 20:18:38.299000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112881236221460481,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 612,
+        "inserted_count": 611,
+        "updated_count": 0,
+        "unchanged_count": 1,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:18:37.091000",
+        "finished_at": "2026-10-21 20:18:38.299000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P10",
+      "taskName": "CRM客户主档",
+      "latestPreview": {
+        "id": 2112914762568413185,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 59544,
+        "inserted_count": 59544,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 22:31:50.461000",
+        "finished_at": "2026-10-21 22:32:12.008000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112915406041755649,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 59544,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 59544,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 22:34:23.877000",
+          "finished_at": "2026-10-21 22:35:00.658000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112914856126558209,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 59544,
+          "inserted_count": 59544,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 22:32:12.768000",
+          "finished_at": "2026-10-21 22:34:21.448000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112914856126558209,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 59544,
+        "inserted_count": 59544,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 22:32:12.768000",
+        "finished_at": "2026-10-21 22:34:21.448000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P11",
+      "taskName": "CRM产品主档",
+      "latestPreview": {
+        "id": 2112975814517694465,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 8443,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 02:34:26.498000",
+        "finished_at": "2026-10-22 02:34:26.994000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112975919945719809,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 8443,
+          "inserted_count": 0,
+          "updated_count": 8443,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 02:34:51.634000",
+          "finished_at": "2026-10-22 02:35:10.841000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112975826093973505,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 8443,
+          "inserted_count": 0,
+          "updated_count": 8443,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 02:34:29.258000",
+          "finished_at": "2026-10-22 02:34:49.125000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112915569980321794,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 8443,
+        "inserted_count": 28,
+        "updated_count": 8415,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 22:35:02.964000",
+        "finished_at": "2026-10-21 22:35:27.120000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P12",
+      "taskName": "DPPMS缺失产品补齐",
+      "latestPreview": {
+        "id": 2112976028385255425,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 34976,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 34976,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 02:35:17.490000",
+        "finished_at": "2026-10-22 02:35:18.969000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112976058395500545,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 34976,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 34976,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 02:35:24.645000",
+          "finished_at": "2026-10-22 02:35:26.135000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112976043560247297,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 34976,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 34976,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 02:35:21.107000",
+          "finished_at": "2026-10-22 02:35:22.470000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112881426923880449,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 34976,
+        "inserted_count": 34976,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:19:22.557000",
+        "finished_at": "2026-10-21 20:19:29.155000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P13",
+      "taskName": "项目执行单头",
+      "latestPreview": {
+        "id": 2112881466157400065,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 99895,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:19:31.913000",
+        "finished_at": "2026-10-21 20:19:44.386000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "921cd1a92c6960fe628a035063fef323505a33c0c7705cd2615a3c5d1eb34351",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112882960613081089,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 99895,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 99895,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 20:25:28.224000",
+          "finished_at": "2026-10-21 20:26:05.383000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "ce294253a8faaf5b67cac7f120d028b8687985d5088805f403d56ff97e850a86",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112881520997924865,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 99895,
+          "inserted_count": 81152,
+          "updated_count": 0,
+          "unchanged_count": 18743,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 20:19:44.988000",
+          "finished_at": "2026-10-21 20:25:23.665000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "ce294253a8faaf5b67cac7f120d028b8687985d5088805f403d56ff97e850a86",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112881520997924865,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 99895,
+        "inserted_count": 81152,
+        "updated_count": 0,
+        "unchanged_count": 18743,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:19:44.988000",
+        "finished_at": "2026-10-21 20:25:23.665000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "ce294253a8faaf5b67cac7f120d028b8687985d5088805f403d56ff97e850a86",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P14",
+      "taskName": "ERP销售订单与订单行",
+      "latestPreview": {
+        "id": 2113085785393692674,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 480044,
+        "inserted_count": 480044,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 09:51:25.830000",
+        "finished_at": "2026-10-22 09:52:43.268000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "7c3d98e5903c01315ee43c4c2e97577ab116aa3b123930f0fd5e5b04bbe1b28e",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2113090487393026050,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 480044,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 480044,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 10:10:06.874000",
+          "finished_at": "2026-10-22 10:12:01.077000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "7c3d98e5903c01315ee43c4c2e97577ab116aa3b123930f0fd5e5b04bbe1b28e",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2113086119482589186,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 480044,
+          "inserted_count": 480044,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 09:52:45.473000",
+          "finished_at": "2026-10-22 10:09:55.387000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "7c3d98e5903c01315ee43c4c2e97577ab116aa3b123930f0fd5e5b04bbe1b28e",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2113086119482589186,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 480044,
+        "inserted_count": 480044,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 09:52:45.473000",
+        "finished_at": "2026-10-22 10:09:55.387000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "7c3d98e5903c01315ee43c4c2e97577ab116aa3b123930f0fd5e5b04bbe1b28e",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P15",
+      "taskName": "合同及全量发货历史",
+      "latestPreview": {
+        "id": 2113072052650901506,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 4708483,
+        "inserted_count": 83105,
+        "updated_count": 0,
+        "unchanged_count": 4625378,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 08:56:51.659000",
+        "finished_at": "2026-10-22 09:13:31.558000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "fc7bdcc8be726d0ab6dda04d520a0cac7497ea324b962a6bed4eecd397c5e65c",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2113081125584764930,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 4708483,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 4708483,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 09:32:54.825000",
+          "finished_at": "2026-10-22 09:49:52.299000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2113076309290647554,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 4708483,
+          "inserted_count": 83105,
+          "updated_count": 0,
+          "unchanged_count": 4625378,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 09:13:46.523000",
+          "finished_at": "2026-10-22 09:32:38.045000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112925483834388482,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 4625378,
+        "inserted_count": 4625378,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 23:14:26.631000",
+        "finished_at": "2026-10-22 02:11:21.502000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P16",
+      "taskName": "项目主档及独立来源身份",
+      "latestPreview": {
+        "id": 2112918944142700545,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 158871,
+        "inserted_count": 79429,
+        "updated_count": 0,
+        "unchanged_count": 79442,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 22:48:27.435000",
+        "finished_at": "2026-10-21 22:50:04.654000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "07075a1fc9154c46afcbf52ab05b3523235941d99f4feead3ace6152fee412ff",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112922496126791681,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 158871,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 158871,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 23:02:34.300000",
+          "finished_at": "2026-10-21 23:09:43.405000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112919355230629890,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 158871,
+          "inserted_count": 79429,
+          "updated_count": 0,
+          "unchanged_count": 79442,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 22:50:05.445000",
+          "finished_at": "2026-10-21 23:02:18.171000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112919355230629890,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 158871,
+        "inserted_count": 79429,
+        "updated_count": 0,
+        "unchanged_count": 79442,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 22:50:05.445000",
+        "finished_at": "2026-10-21 23:02:18.171000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P18",
+      "taskName": "项目合同关系历史",
+      "latestPreview": {
+        "id": 2113155203763126273,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 82676,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 82676,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 14:27:16.597000",
+        "finished_at": "2026-10-22 14:27:42.664000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "0de3cfbe9e3b60b684f0780abb5415ac351d99ddb55c90902c763e11fcd08f3b",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2113155611881488386,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 82676,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 82676,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 14:28:53.892000",
+          "finished_at": "2026-10-22 14:29:19.269000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "baea88a58581885dc43e1f2c9d940f5143a62800d757e5bebfb50989415f0bf8",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2113155401822355458,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 82676,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 82676,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 14:28:03.808000",
+          "finished_at": "2026-10-22 14:28:34.069000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "baea88a58581885dc43e1f2c9d940f5143a62800d757e5bebfb50989415f0bf8",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2113149097510801410,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 82676,
+        "inserted_count": 82381,
+        "updated_count": 80534,
+        "unchanged_count": 295,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 14:03:00.742000",
+        "finished_at": "2026-10-22 14:13:20.655000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "208565ef653d47d10bb37b2bde49ef825635668c7be1667c900e04c244daeb63",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P19",
+      "taskName": "项目相关方及历史状态属性",
+      "latestPreview": {
+        "id": 2112978334317125634,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 186118,
+        "inserted_count": 186118,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 02:44:27.269000",
+        "finished_at": "2026-10-22 02:58:35.854000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "eccdaa5d536d1c1b5d415e49338d6786e5843e371fd289de8bd550594098cc45",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112986838532726785,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 186118,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 186118,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 03:18:14.851000",
+          "finished_at": "2026-10-22 03:32:59.705000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "72c3d09654f40ee4b3a546f1a85b9bb77a0b696bcd2baa053f1b72bf40ec9ef1",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112981903254593538,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 186118,
+          "inserted_count": 186118,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 02:58:38.178000",
+          "finished_at": "2026-10-22 03:18:07.809000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "72c3d09654f40ee4b3a546f1a85b9bb77a0b696bcd2baa053f1b72bf40ec9ef1",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112981903254593538,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 186118,
+        "inserted_count": 186118,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 02:58:38.178000",
+        "finished_at": "2026-10-22 03:18:07.809000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "72c3d09654f40ee4b3a546f1a85b9bb77a0b696bcd2baa053f1b72bf40ec9ef1",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P20",
+      "taskName": "项目真实产品历史清单",
+      "latestPreview": {
+        "id": 2112990563208896514,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 7818,
+        "inserted_count": 7818,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 03:33:02.890000",
+        "finished_at": "2026-10-22 03:33:20.574000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "d26a483939ccd039450b684dfe83fe8d89dc8865e3e9c5dced0f36c9f489348f",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112990778603184130,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 7818,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 7818,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 03:33:54.244000",
+          "finished_at": "2026-10-22 03:34:12.522000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112990647141113858,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 7818,
+          "inserted_count": 7818,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 03:33:22.900000",
+          "finished_at": "2026-10-22 03:33:51.937000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112990647141113858,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 7818,
+        "inserted_count": 7818,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 03:33:22.900000",
+        "finished_at": "2026-10-22 03:33:51.937000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P21",
+      "taskName": "租赁与配置展示缓存",
+      "latestPreview": {
+        "id": 2112990864703856642,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 1190,
+        "inserted_count": 1190,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 03:34:14.771000",
+        "finished_at": "2026-10-22 03:34:14.816000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112990885285306370,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 1190,
+          "inserted_count": 1190,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 1190,
+          "started_at": "2026-10-22 03:34:19.680000",
+          "finished_at": "2026-10-22 03:34:19.963000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112990874229121025,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 1190,
+          "inserted_count": 1190,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 03:34:17.042000",
+          "finished_at": "2026-10-22 03:34:17.470000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112990874229121025,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 1190,
+        "inserted_count": 1190,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 03:34:17.042000",
+        "finished_at": "2026-10-22 03:34:17.470000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P22",
+      "taskName": "项目产品实施范围历史",
+      "latestPreview": {
+        "id": 2113199680318668802,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 343858,
+        "inserted_count": 340882,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 17:23:59.526000",
+        "finished_at": "2026-10-22 17:33:02.433000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "225bc97638a681220b7f7bc058f0effa8014b4167723353bb59217235e9a3914",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2113209385740992514,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 343858,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 340882,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 18:02:33.450000",
+          "finished_at": "2026-10-22 18:24:02.161000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "ff523dd9f3b45921324406557748de7e526b578fcbdf2f6204cb6b4f5f84c531",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2113202165225684994,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 343858,
+          "inserted_count": 340882,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 17:33:51.930000",
+          "finished_at": "2026-10-22 17:59:29.959000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "ff523dd9f3b45921324406557748de7e526b578fcbdf2f6204cb6b4f5f84c531",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2113202165225684994,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 343858,
+        "inserted_count": 340882,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 17:33:51.930000",
+        "finished_at": "2026-10-22 17:59:29.959000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "ff523dd9f3b45921324406557748de7e526b578fcbdf2f6204cb6b4f5f84c531",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P23",
+      "taskName": "合同收款计划展示缓存",
+      "latestPreview": {
+        "id": 2112885696486277121,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 35501,
+        "inserted_count": 35501,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:36:20.509000",
+        "finished_at": "2026-10-21 20:36:21.361000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112885733463261186,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 35501,
+          "inserted_count": 35501,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 35501,
+          "started_at": "2026-10-21 20:36:29.326000",
+          "finished_at": "2026-10-21 20:36:36.739000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112885702647709697,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 35501,
+          "inserted_count": 35501,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 20:36:21.979000",
+          "finished_at": "2026-10-21 20:36:28.624000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112885702647709697,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 35501,
+        "inserted_count": 35501,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:36:21.979000",
+        "finished_at": "2026-10-21 20:36:28.624000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P24",
+      "taskName": "合同回款信息",
+      "latestPreview": {
+        "id": 2112915794509803521,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 81547,
+        "inserted_count": 81540,
+        "updated_count": 0,
+        "unchanged_count": 7,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 22:35:56.500000",
+        "finished_at": "2026-10-21 22:36:04.272000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112916501321330689,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 81547,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 81547,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 22:38:45.014000",
+          "finished_at": "2026-10-21 22:38:57.991000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112915830685675521,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 81547,
+          "inserted_count": 81540,
+          "updated_count": 0,
+          "unchanged_count": 7,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 22:36:05.122000",
+          "finished_at": "2026-10-21 22:38:40.301000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112915830685675521,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 81547,
+        "inserted_count": 81540,
+        "updated_count": 0,
+        "unchanged_count": 7,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 22:36:05.122000",
+        "finished_at": "2026-10-21 22:38:40.301000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P25",
+      "taskName": "设备续保历史",
+      "latestPreview": {
+        "id": 2112885767793639426,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 462213,
+        "inserted_count": 462213,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:36:37.511000",
+        "finished_at": "2026-10-21 20:36:53.062000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112889745310842882,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 462213,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 462213,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 20:52:25.833000",
+          "finished_at": "2026-10-21 20:53:00.336000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112885836148211714,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 462213,
+          "inserted_count": 462213,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-21 20:36:53.808000",
+          "finished_at": "2026-10-21 20:49:48.716000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112885836148211714,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 462213,
+        "inserted_count": 462213,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:36:53.808000",
+        "finished_at": "2026-10-21 20:49:48.716000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P30",
+      "taskName": "正式发货设备基础承接",
+      "latestPreview": {
+        "id": 2113015218036645889,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 3486084,
+        "inserted_count": 3486084,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 05:11:01.108000",
+        "finished_at": "2026-10-22 05:33:18.935000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2113050695838048258,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 3486084,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 3486084,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 07:31:59.747000",
+          "finished_at": "2026-10-22 07:58:52.732000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2113020841616842754,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 3486084,
+          "inserted_count": 3486084,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 05:33:21.886000",
+          "finished_at": "2026-10-22 07:30:31.949000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112889910209904642,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-21 20:53:05.147000",
+        "finished_at": "2026-10-21 20:53:05.160000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "d0c3b17f9d1b3518e37bbb82ad8ce81317084a153e50c9b26c87b072ef08503d",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P31",
+      "taskName": "项目成员及最终客户联系人历史",
+      "latestPreview": {
+        "id": 2113129480075608065,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 381195,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 381195,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 12:45:03.537000",
+        "finished_at": "2026-10-22 12:45:59.240000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "d26a483939ccd039450b684dfe83fe8d89dc8865e3e9c5dced0f36c9f489348f",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2113129731876454402,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 381195,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 381195,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 12:46:03.564000",
+          "finished_at": "2026-10-22 12:47:01.009000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2113125980985991169,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 381195,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 381195,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 12:31:09.275000",
+          "finished_at": "2026-10-22 12:33:58.461000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2113112457387982850,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 381195,
+        "inserted_count": 381195,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 11:37:24.988000",
+        "finished_at": "2026-10-22 12:11:38.494000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P33",
+      "taskName": "设备安装历史",
+      "latestPreview": {
+        "id": 2113175004716552194,
+        "status": "FAILED",
+        "preview": 1,
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 15:45:56.309000",
+        "finished_at": "2026-10-22 15:48:40.320000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "e0801132a858189b8a4ea53f2c5c95ad750875eb7c84dd6b05628b18b221db0c",
+          "exceptionTypes": [
+            "ServiceException"
+          ],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [],
+      "firstCompletedNonPreview": null,
+      "latestActualAndReplayCompleted": false
+    },
+    {
+      "taskCode": "BASE_P34",
+      "taskName": "出厂版本历史",
+      "latestPreview": {
+        "id": 2112996309568954369,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 165801,
+        "inserted_count": 165801,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 03:55:52.941000",
+        "finished_at": "2026-10-22 03:55:56.252000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2112997341774585858,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 165801,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 165801,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 03:59:59.038000",
+          "finished_at": "2026-10-22 04:00:08.380000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112996333128359937,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 165801,
+          "inserted_count": 165801,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 03:55:58.557000",
+          "finished_at": "2026-10-22 03:59:53.331000",
+          "warnings_or_errorSummary": {
+            "present": false,
+            "sha256": null,
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112996333128359937,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 165801,
+        "inserted_count": 165801,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 03:55:58.557000",
+        "finished_at": "2026-10-22 03:59:53.331000",
+        "warnings_or_errorSummary": {
+          "present": false,
+          "sha256": null,
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P35",
+      "taskName": "软件批次及版本历史",
+      "latestPreview": {
+        "id": 2112997394589261826,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 1586578,
+        "inserted_count": 1586578,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 04:00:11.631000",
+        "finished_at": "2026-10-22 04:04:15.742000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "39c3d3672c010141d28928c9dacf4014e0f0b9709b7cab45e36b001345cdafdb",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2113010079905193986,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 1586578,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 1586578,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 04:50:36.075000",
+          "finished_at": "2026-10-22 04:58:37.546000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "79a15cbff28ff8a297cac437e072e4926164bc3eb7ff775edd79dc3afe473b88",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2112998427956715522,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 1586578,
+          "inserted_count": 1586578,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 04:04:18.008000",
+          "finished_at": "2026-10-22 04:49:55.747000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "79a15cbff28ff8a297cac437e072e4926164bc3eb7ff775edd79dc3afe473b88",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2112998427956715522,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 1586578,
+        "inserted_count": 1586578,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 04:04:18.008000",
+        "finished_at": "2026-10-22 04:49:55.747000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "79a15cbff28ff8a297cac437e072e4926164bc3eb7ff775edd79dc3afe473b88",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    },
+    {
+      "taskCode": "BASE_P37",
+      "taskName": "整表许可历史",
+      "latestPreview": {
+        "id": 2113012143003639810,
+        "status": "PREVIEW_READY",
+        "preview": 1,
+        "read_count": 475468,
+        "inserted_count": 475468,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 04:58:47.958000",
+        "finished_at": "2026-10-22 04:59:04.794000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "9e4bb8eb098068ed04502b7e13178ec6441917a9af336777fae8fbeeb2d7d3b0",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestTwoNonPreview": [
+        {
+          "id": 2113015020157771777,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 475468,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 475468,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 05:10:13.931000",
+          "finished_at": "2026-10-22 05:10:55.862000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "69c9781f2687b6da5b215a3ae4ddf04d2b96091f2a439a350902e7970899b8d8",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        },
+        {
+          "id": 2113012224469606401,
+          "status": "COMPLETED",
+          "preview": 0,
+          "read_count": 475468,
+          "inserted_count": 475468,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "deleted_count": 0,
+          "started_at": "2026-10-22 04:59:07.380000",
+          "finished_at": "2026-10-22 05:10:01.086000",
+          "warnings_or_errorSummary": {
+            "present": true,
+            "sha256": "9e4bb8eb098068ed04502b7e13178ec6441917a9af336777fae8fbeeb2d7d3b0",
+            "exceptionTypes": [],
+            "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+          }
+        }
+      ],
+      "firstCompletedNonPreview": {
+        "id": 2113012224469606401,
+        "status": "COMPLETED",
+        "preview": 0,
+        "read_count": 475468,
+        "inserted_count": 475468,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "deleted_count": 0,
+        "started_at": "2026-10-22 04:59:07.380000",
+        "finished_at": "2026-10-22 05:10:01.086000",
+        "warnings_or_errorSummary": {
+          "present": true,
+          "sha256": "9e4bb8eb098068ed04502b7e13178ec6441917a9af336777fae8fbeeb2d7d3b0",
+          "exceptionTypes": [],
+          "boundary": "Raw error/warning text withheld from publication; immutable private receipt retained at evidence source."
+        }
+      },
+      "latestActualAndReplayCompleted": true
+    }
+  ],
+  "actualAndReplayCompletedCount": 23,
+  "P33ActualCount": 0,
+  "P33PriorEvidence": {
+    "report": "base-sync-24-current-results-and-pending-20261022.md",
+    "boundary": "No P33 task submitted in this round; actual remains zero and HOLD. Unresolved issues retain previous report scope."
+  },
+  "P11LatestReplayUpdatedCount": 8443,
+  "otherReplayBehavior": "P21/P23 designed clear/rebuild; keep their actual delete/insert counts. P18 latest zero-write package runs verify existing rows; first completed actual remains separately recorded.",
+  "runtime": {
+    "pid": 26788,
+    "listeners59284": [
+      26788
+    ],
+    "health": "UP",
+    "jar": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\postfill-retry\\yudao-server.jar",
+    "sha256": "e0ab8c7bc35552550fca2bf0f0ecca2383551a982aed2d8a48f376ed87ebabb3"
+  },
+  "59191Observations": {
+    "before": [
+      21376
+    ],
+    "after": [
+      21376
+    ],
+    "boundary": "Listener observations only. Cross-time equality is not required and does not prove no control. This publisher contains no process-control path; controls/actions must be supported by execution audit."
+  },
+  "paths": {
+    "state": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\p22-retry-state.json",
+    "finalCollector": "D:\\CodexTaskArtifacts\\project-detail-followup\\p22-approved-B-execution-20261022\\final-24-status.json",
+    "originalBReview": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\docs\\generated\\dppms-24-tasks-three-implementations-20261019\\remote-test-minimal-ddl-B-p22-exception-20261021.review.sql"
+  },
+  "boundary": "Private local artifact generation only. No database/HTTP/Run/process calls, worktree writes, migration or additional DDL.",
+  "executedSqlSha256": "74d6af7cc9c96c26ac27b7c2605bac7e18a3e95b5790e1ee37c4f0d1f0661609"
+}

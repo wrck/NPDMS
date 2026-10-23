@@ -45,6 +45,8 @@ public class P08DictionarySyncTask extends AbstractSyncTask<P08DictionarySyncTas
         var ids=bindings.values().stream().map(SyncIdentityStore.Identity::targetId).toList();
         var query=new TargetMapper.DefinitionsQuery(codes,names,ids,context.preview());
         var targets=types?dictionaries.selectTypes(query):dictionaries.selectItems(query);
+        var targetsById=new HashMap<Long,DictionaryTarget>();
+        for(var target:targets)targetsById.putIfAbsent(target.getId(),target);
         if(!types){
             for(var code:codes){
                 var type=context.parameters().plannedTypes().get(code);
@@ -67,7 +69,7 @@ public class P08DictionarySyncTask extends AbstractSyncTask<P08DictionarySyncTas
                     ?source.getDataTypeCode().equalsIgnoreCase(row.getType()) || source.getDataTypeName().equalsIgnoreCase(row.getName())
                     :source.getDataTypeCode().equalsIgnoreCase(row.getDictType()) && Objects.equals(lower(source.getBasicDataId()),lower(row.getValue())))
                     .toList();
-            DictionaryTarget old=binding==null?null:targets.stream().filter(row->Objects.equals(row.getId(),binding.targetId())).findFirst().orElse(null);
+            DictionaryTarget old=binding==null?null:targetsById.get(binding.targetId());
             if(binding==null && !matches.isEmpty() || binding!=null && (old==null || matches.size()!=1 || matches.getFirst()!=old
                     || Boolean.TRUE.equals(old.getDeleted()) || !Objects.equals(binding.fingerprint(),fingerprint(source,old))))fail("既有字典或原始来源已变化；禁止接管或覆盖");
             var row=new DictionaryTarget();row.setId(old==null?(context.preview()?null:IdWorker.getId()):old.getId());row.setDeleted(false);

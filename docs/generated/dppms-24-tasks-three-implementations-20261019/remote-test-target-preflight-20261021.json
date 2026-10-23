@@ -1,0 +1,827 @@
+{
+  "observedAt": "2026-10-21T19:14:17.266593+08:00",
+  "worktree": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup",
+  "branch": "fix/dppms-migration-consolidation-20261012",
+  "authorizedScope": "Execute and replay the 24 new independent tasks in 172.17.90.178:13306/npdms only. No migration, original-task or 59191 operation. Previously deferred transfers and other adjudicated source boundaries remain.",
+  "target": {
+    "database_name": "npdms",
+    "server_hostname": "d2bab1a48a9b",
+    "server_port": 3306,
+    "server_version": "8.4.11",
+    "authenticated_account": "npdms_app@%",
+    "connected_account": "npdms_app@10.210.0.11"
+  },
+  "service": {
+    "pid": 44176,
+    "jar": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-execution-prerequisites-p33-sn-20261020\\combined-runtime\\runtime-candidate-p33-p22-final\\yudao-server.jar",
+    "port": 59284,
+    "database": "npdms",
+    "databaseHost": "172.17.90.178",
+    "databasePort": 13306,
+    "databaseUser": "npdms_app",
+    "redisDatabase": 15,
+    "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-remote-test-20261021\\runtime-sanitized.log",
+    "startedAt": "2026-10-21T19:09:31.531816"
+  },
+  "health": "UP",
+  "formalLoginSucceeded": false,
+  "formalLoginError": [
+    "Unknown column 'employee_no' in 'field list'"
+  ],
+  "protectedProfile": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup\\.run\\base-sync-remote-test\\target.encrypted.json",
+  "credentialProtection": "Windows DPAPI CurrentUser; ignored local profile; no plaintext credential in source, logs or process arguments.",
+  "commonMissingMetadataTables": [
+    "int_base_sync_task",
+    "int_base_sync_run",
+    "int_base_sync_binding"
+  ],
+  "additionalMissingBusinessTables": [
+    "ast_device_factory_version_record",
+    "ast_device_license_record",
+    "ast_device_software_change_batch",
+    "ast_device_software_version_record",
+    "ast_device_warranty_renewal_record",
+    "com_contract_collection_plan",
+    "proj_project_lease_product",
+    "proj_project_product_configuration",
+    "proj_project_real_product"
+  ],
+  "missingInsertColumnsByTask": {
+    "P04": [
+      {
+        "table": "system_users",
+        "missingColumns": [
+          "custom_info",
+          "employee_no"
+        ]
+      }
+    ],
+    "P11": [
+      {
+        "table": "ast_product_official_info",
+        "missingColumns": [
+          "product_category",
+          "product_type"
+        ]
+      }
+    ],
+    "P15": [
+      {
+        "table": "com_shipment_contract_reference",
+        "missingColumns": [
+          "warranty_years"
+        ]
+      },
+      {
+        "table": "com_shipment_package",
+        "missingColumns": [
+          "carrier_code",
+          "shipment_contract_source_key"
+        ]
+      }
+    ],
+    "P16": [
+      {
+        "table": "proj_project",
+        "missingColumns": [
+          "custom_info",
+          "disabled",
+          "effective_from",
+          "effective_to",
+          "order_create_time"
+        ]
+      }
+    ],
+    "P22": [
+      {
+        "table": "com_delivery_scope",
+        "missingColumns": [
+          "allocation_confirmed",
+          "delivered_quantity",
+          "open_quantity"
+        ]
+      }
+    ],
+    "P31": [
+      {
+        "table": "proj_project_member_assignment",
+        "missingColumns": [
+          "email",
+          "member_code",
+          "phone_number",
+          "registration_source"
+        ]
+      }
+    ]
+  },
+  "tasks": [
+    {
+      "key": "P01",
+      "name": "公司、部门及主管",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P04",
+      "name": "账号、任职、角色、成员和范围",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [
+        {
+          "table": "system_users",
+          "missingColumns": [
+            "custom_info",
+            "employee_no"
+          ]
+        }
+      ],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P08",
+      "name": "系统字典类型及字典项",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P10",
+      "name": "CRM客户主档",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [],
+      "capacityMismatch": {
+        "column": "cus_customer_master.name",
+        "actual": 128,
+        "reviewedRequired": 255
+      },
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P11",
+      "name": "CRM产品主档",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [
+        {
+          "table": "ast_product_official_info",
+          "missingColumns": [
+            "product_category",
+            "product_type"
+          ]
+        }
+      ],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P12",
+      "name": "DPPMS缺失产品补齐",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P13",
+      "name": "执行单头",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P14",
+      "name": "销售订单及明细",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P15",
+      "name": "合同及全量发货历史",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [
+        {
+          "table": "com_shipment_contract_reference",
+          "missingColumns": [
+            "warranty_years"
+          ]
+        },
+        {
+          "table": "com_shipment_package",
+          "missingColumns": [
+            "carrier_code",
+            "shipment_contract_source_key"
+          ]
+        }
+      ],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P16",
+      "name": "项目主档及独立来源身份",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [
+        {
+          "table": "proj_project",
+          "missingColumns": [
+            "custom_info",
+            "disabled",
+            "effective_from",
+            "effective_to",
+            "order_create_time"
+          ]
+        }
+      ],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P18",
+      "name": "项目合同关系",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P19",
+      "name": "项目相关方及历史状态属性",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P20",
+      "name": "项目真实产品历史清单",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [
+        "proj_project_real_product"
+      ],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P21",
+      "name": "租赁与配置展示缓存",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [
+        "proj_project_lease_product",
+        "proj_project_product_configuration"
+      ],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P22",
+      "name": "项目产品实施范围",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [
+        {
+          "table": "com_delivery_scope",
+          "missingColumns": [
+            "allocation_confirmed",
+            "delivered_quantity",
+            "open_quantity"
+          ]
+        }
+      ],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P23",
+      "name": "合同收款计划展示缓存",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [
+        "com_contract_collection_plan"
+      ],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P24",
+      "name": "合同回款信息",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P25",
+      "name": "设备续保历史",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [
+        "ast_device_warranty_renewal_record"
+      ],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P30",
+      "name": "正式发货设备基础承接",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P31",
+      "name": "项目成员及最终客户联系人",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [
+        {
+          "table": "proj_project_member_assignment",
+          "missingColumns": [
+            "email",
+            "member_code",
+            "phone_number",
+            "registration_source"
+          ]
+        }
+      ],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P33",
+      "name": "设备安装历史",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [],
+      "missingInsertColumns": [],
+      "capacityMismatch": {
+        "column": "imp_eng_installation.install_location",
+        "actual": 255,
+        "reviewedRequired": 1024
+      },
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P34",
+      "name": "出厂版本历史",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [
+        "ast_device_factory_version_record"
+      ],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P35",
+      "name": "软件批次及版本历史",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [
+        "ast_device_software_change_batch",
+        "ast_device_software_version_record"
+      ],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    },
+    {
+      "key": "P37",
+      "name": "整表许可历史",
+      "status": "BLOCKED_BY_TARGET_SCHEMA",
+      "commonMissingMetadataTables": [
+        "int_base_sync_task",
+        "int_base_sync_run",
+        "int_base_sync_binding"
+      ],
+      "additionalMissingTargetTables": [
+        "ast_device_license_record"
+      ],
+      "missingInsertColumns": [],
+      "capacityMismatch": null,
+      "registered": false,
+      "previewRuns": 0,
+      "executions": 0,
+      "replays": 0
+    }
+  ],
+  "sourceConnectionCount": 0,
+  "taskRegistrations": 0,
+  "previewRuns": 0,
+  "actualExecutions": 0,
+  "replays": 0,
+  "verification": {
+    "verifiedAt": "2026-10-21T19:14:17.266593+08:00",
+    "target": "172.17.90.178:13306/npdms",
+    "observedSource": "npdms_app@10.210.0.11",
+    "service": {
+      "pid": 44176,
+      "jar": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-execution-prerequisites-p33-sn-20261020\\combined-runtime\\runtime-candidate-p33-p22-final\\yudao-server.jar",
+      "port": 59284,
+      "database": "npdms",
+      "databaseHost": "172.17.90.178",
+      "databasePort": 13306,
+      "databaseUser": "npdms_app",
+      "redisDatabase": 15,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-remote-test-20261021\\runtime-sanitized.log",
+      "startedAt": "2026-10-21T19:09:31.531816"
+    },
+    "health": "UP",
+    "formalLoginSucceeded": false,
+    "formalLoginError": [
+      "Unknown column 'employee_no' in 'field list'"
+    ],
+    "serviceFlags": {
+      "--server.port=59284": true,
+      "--server.address=127.0.0.1": true,
+      "--spring.profiles.active=local,dac": true,
+      "--spring.flyway.enabled=false": true,
+      "--flowable.database-schema-update=false": true,
+      "--spring.sql.init.mode=never": true,
+      "--spring.batch.jdbc.initialize-schema=never": true,
+      "--spring.quartz.jdbc.initialize-schema=never": true,
+      "--spring.batch.job.enabled=false": true,
+      "--spring.quartz.auto-startup=false": true,
+      "--pms.bindings.backends.event-driven.enabled=false": true
+    },
+    "tableCount": 507,
+    "tableNamesUnchanged": true,
+    "allColumnDefinitionsUnchanged": true,
+    "criticalSchemasCompared": 17,
+    "criticalSchemaDifferences": [],
+    "protectedCountsBefore": {
+      "flyway_schema_history": 10,
+      "int_sync_connection": 0,
+      "int_sync_task": 0,
+      "int_sync_run": 0,
+      "int_sync_binding": 0,
+      "proj_project": 0,
+      "com_contract": 0,
+      "com_sales_order": 0,
+      "com_sales_order_line": 0,
+      "ast_device_shipment": 0,
+      "ast_device": 0,
+      "imp_eng_installation": 0,
+      "cus_customer_master": 0,
+      "system_users": 1,
+      "system_company": 0,
+      "system_dept": 0,
+      "system_user_company_department_scope": 0
+    },
+    "protectedCountsAfter": {
+      "flyway_schema_history": 10,
+      "int_sync_connection": 0,
+      "int_sync_task": 0,
+      "int_sync_run": 0,
+      "int_sync_binding": 0,
+      "proj_project": 0,
+      "com_contract": 0,
+      "com_sales_order": 0,
+      "com_sales_order_line": 0,
+      "ast_device_shipment": 0,
+      "ast_device": 0,
+      "imp_eng_installation": 0,
+      "cus_customer_master": 0,
+      "system_users": 1,
+      "system_company": 0,
+      "system_dept": 0,
+      "system_user_company_department_scope": 0
+    },
+    "migrationHistoryUnchanged": true,
+    "remoteApplicationConnections": [
+      {
+        "ID": 16,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:55030",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 8,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:54928",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 241,
+        "USER": "npdms_app",
+        "HOST": "10.210.0.11:64995",
+        "DB": "npdms",
+        "COMMAND": "Query"
+      },
+      {
+        "ID": 201,
+        "USER": "npdms_app",
+        "HOST": "10.210.0.11:63705",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 17,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:55040",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 9,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:54936",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 202,
+        "USER": "npdms_app",
+        "HOST": "10.210.0.11:63706",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 18,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:55042",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 10,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:54942",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 19,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:55044",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 11,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:54956",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 188,
+        "USER": "npdms_app",
+        "HOST": "10.210.0.11:63307",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 12,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:54972",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 13,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:54986",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 14,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:55002",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      },
+      {
+        "ID": 15,
+        "USER": "npdms_app",
+        "HOST": "10.0.1.1:55014",
+        "DB": "npdms",
+        "COMMAND": "Sleep"
+      }
+    ],
+    "actualExecutions": 0,
+    "replays": 0,
+    "previewRuns": 0,
+    "originalTaskOperations": 0,
+    "stoppedAnyProcess": false,
+    "passwordInProcessArguments": false,
+    "boundary": "Only the dedicated 59284 service is started against the explicitly authorized remote test DB, isolated Redis DB15, read-only SQL inspection and one formal-login attempt. Normal login/error audit bookkeeping may be written. No business synchronization, original-task change, DDL, migration, grants, schema workaround or 59191 operation."
+  },
+  "evidence": {
+    "target-before.json": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-remote-test-20261021\\target-before.json",
+    "service-ready.json": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-remote-test-20261021\\service-ready.json",
+    "login-proof.json": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-remote-test-20261021\\login-proof.json",
+    "login-schema-failure.json": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-remote-test-20261021\\login-schema-failure.json",
+    "target-mapper-table-compatibility.json": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-remote-test-20261021\\target-mapper-table-compatibility.json",
+    "target-insert-column-compatibility.json": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-remote-test-20261021\\target-insert-column-compatibility.json",
+    "secret-storage-check.json": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-remote-test-20261021\\secret-storage-check.json",
+    "final-verification.json": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-remote-test-20261021\\final-verification.json"
+  },
+  "boundary": "Only connection and runtime setup completed. No business writes or execution/replay success claimed. Missing tables and columns require an external schema-compatible test baseline; this task did not create, alter, migrate, bypass authentication or adapt business fields to hide the mismatch. Static table/INSERT-column checks are necessary preflight evidence, not exhaustive runtime or source-data acceptance."
+}

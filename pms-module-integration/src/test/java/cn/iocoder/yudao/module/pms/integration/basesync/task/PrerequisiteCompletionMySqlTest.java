@@ -32,7 +32,7 @@ class PrerequisiteCompletionMySqlTest extends RemainingTaskMySqlSupport {
  }
  static final class DeliveryProbe extends P15DeliverySyncTask {
   final List<String> steps=new ArrayList<>();final List<Boolean> localSources=new ArrayList<>();
-  DeliveryProbe(TargetMapper mapper){super(mapper);}
+  DeliveryProbe(TargetMapper mapper){super(mapper,org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class));}
   @Override protected List<Source> syncData(SyncContext<Parameters> c){steps.add(c.dataName());localSources.add(c.source().local());return List.of();}
  }
 }
