@@ -222,7 +222,7 @@ public class FileQueryService {
         return response;
     }
 
-    private FileReferenceRespVO toReference(FileReferenceDO row) {
+    static FileReferenceRespVO toReference(FileReferenceDO row) {
         FileReferenceRespVO response = new FileReferenceRespVO();
         response.setReferenceId(row.getId());
         response.setOwnerContext(row.getOwnerContext());

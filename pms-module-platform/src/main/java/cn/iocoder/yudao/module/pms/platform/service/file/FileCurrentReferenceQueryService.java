@@ -22,7 +22,6 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE
 public class FileCurrentReferenceQueryService {
     private final FileBusinessObjectPolicyRegistry policies;
     private final FileReferenceMapper references;
-    private final FileQueryService files;
 
     public FileReferenceRespVO resolve(ExactFileReferenceQuery query, FileQueryService.Actor actor) {
         if (query == null || actor == null || actor.actorUserId() == null || actor.actorUserId() <= 0) {
@@ -53,7 +52,11 @@ public class FileCurrentReferenceQueryService {
         }
         var reference = references.selectExact(key);
         if (reference == null) return null;
-        return files.getReference(new FileQueryService.ArtifactQuery(reference.getArtifactId(),
-                key.ownerContext(), key.objectType(), key.objectId(), key.purposeCode(), key.referenceKey()), actor);
+        if (reference.getArtifactId() == null || reference.getArtifactId() <= 0) {
+            throw exception(FILE_COMMAND_INVALID);
+        }
+        // The exact slot was authorized above. Project this read directly rather than
+        // resolving the same owner policy and slot again through getReference.
+        return FileQueryService.toReference(reference);
     }
 }

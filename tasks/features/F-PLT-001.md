@@ -52,3 +52,8 @@
 - 完整后端构建及22项已部署修复保护通过，冻结清单为`.run/build/releases/224316f6-f66d-4ab7-b30f-614f54b05678/manifest.json`。定向vue-tsc本次文件无错误，仍存在需求分析EntityForm.vue:159、292三处既有外部类型错误，不标记全量通过。当前运行后端仍未包含名称字段，待本次独立重启批准及部署复验；用户无需再次上传来触发名称修复。
 - worktree-backend.ps1 ValidateOnly已通过，配置固定local,dac、未变更运行服务。证据：.run/file-version-name-build.log、.run/file-version-name-preflight.log。已按.run/AGENTS.md请求本次59191独立重启批准，批准前不替换运行包；真实浏览器名称验证待部署，用户原页未导航。
 - 用户随后明确批准本次重启并复验，通过worktree-backend.ps1部署冻结包224316f6-f66d-4ab7-b30f-614f54b05678，59191健康、PID 38720、local,dac配置保持；DAC独立健康检查通过，未启停。真实浏览器重新打开2113184905149976576，当前V8显示“插槽show tech.txt”，原“是”结论保持、上传输入可用、无错误提示。真实版本历史显示V2~V8原名为插槽show tech.txt、V1仍为2.png，8个版本均可用，未重命名历史记录。复验使用现有V8，无新上传或清单提交，用户原标签页未导航；保留自建正确显示的复验页。证据：.run/file-version-name-deploy.log、.run/file-version-name-deployed-browser.json、.run/file-version-name-deployed-db.txt。
+
+### 2026-10-23 当前文件引用读取去除重复工作
+
+- 配合F-CUT-003首次加载性能复验，消除FileCurrentReferenceQueryService在完整业务键已授权、已精确读取后，再委托FileQueryService重复授权和读取同一引用的工作；仅复用原引用响应映射，租户、主体、业务键、Owner拒绝、空槽、非法工件身份及Owner不可用规则保留。没有缓存或改动上传/绑定的并发版本与锁内校验。
+- 原实现失败用例确认单次请求重复两次Owner调用；修复后8项检查通过，校验V8和引用版本12原样回传及原授权/异常边界。证据.run/cutover-2s-reference-red-valid.log、.run/cutover-2s-reference-green.log。冻结部署及真实浏览器首次加载验收仍待完成，状态见F-CUT-003同日记录。
