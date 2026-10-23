@@ -34,9 +34,14 @@ public class ProjectScopeApiImpl implements ProjectScopeApi {
 
     @Override
     public Set<Long> resolveAllCurrent(ProjectAllScopeQuery query) {
-        return scopeService.resolveAllFullProjectIds(
-                query.tenantId(), query.subjectUserId(), query.actionCode());
+        return cn.iocoder.yudao.framework.common.util.authorization.AuthorizationReadScope.read(
+                new AllScopeReadKey(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId(),
+                        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.isIgnore(), query),
+                () -> scopeService.resolveAllFullProjectIds(
+                        query.tenantId(), query.subjectUserId(), query.actionCode()));
     }
+
+    private record AllScopeReadKey(Long contextTenantId, boolean tenantIgnored, ProjectAllScopeQuery query) {}
 
     @Override
     @Transactional(rollbackFor = Exception.class)

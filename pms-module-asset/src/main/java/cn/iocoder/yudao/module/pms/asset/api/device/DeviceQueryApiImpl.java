@@ -31,6 +31,16 @@ public class DeviceQueryApiImpl implements DeviceQueryApi {
         if (device == null) {
             return null;
         }
+        return summary(device);
+    }
+
+    @Override
+    public java.util.List<DeviceSummaryDTO> getProjectDeviceSummaries(
+            cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query) {
+        return deviceQueryService.getProjectDevices(query).stream().map(DeviceQueryApiImpl::summary).toList();
+    }
+
+    private static DeviceSummaryDTO summary(DeviceDO device) {
         return new DeviceSummaryDTO(
                 device.getId(), device.getTenantId(), device.getSn(),
                 device.getProductCode(), device.getProductModel(), device.getProductName(),

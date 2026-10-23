@@ -28,6 +28,11 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ActiveProjectTreeVersionsQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectScopeRootPathsQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectScopeDescendantsQuery;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -168,7 +173,7 @@ public class ProjectTreeScopeService {
 
     /**
      * 解析主体在租户内可完整访问的全部项目，用于无锚点的项目分页入口。
-     * 成员关系和有效授权只用于发现候选树，最终范围仍逐树复用统一 resolve 算法。
+     * 成员关系和有效授权发现候选树；批量读取当前树事实，按原规则合并完整权限。
      */
     public Set<Long> resolveAllFullProjectIds(Long tenantId, Long subjectUserId, String actionCode) {
         validateActorAction(tenantId, subjectUserId, actionCode);
@@ -176,39 +181,100 @@ public class ProjectTreeScopeService {
             return Set.copyOf(projectMapper.selectTenantProjectIds(new TenantProjectScopeQuery(tenantId)));
         }
         LocalDateTime effectiveAt = LocalDateTime.now();
-        Set<Long> anchors = memberMapper.selectActiveByUser(
+        List<ProjectMemberAssignmentDO> assignments = memberMapper.selectActiveByUser(
                         new ActiveProjectMemberQuery(tenantId, subjectUserId, effectiveAt)).stream()
-                .filter(item -> allows(item.getMemberRole(), actionCode))
-                .map(ProjectMemberAssignmentDO::getProjectId)
+                .filter(item -> allows(item.getMemberRole(), actionCode)).toList();
+        Set<Long> anchors = assignments.stream().map(ProjectMemberAssignmentDO::getProjectId)
                 .collect(Collectors.toCollection(HashSet::new));
-        if (ACTION_VIEW.equals(actionCode)) {
-            projectMapper.selectListCreatedBy(new CreatedProjectScopeQuery(
-                            tenantId, String.valueOf(subjectUserId), null)).stream()
-                    .map(ProjectMasterDO::getId)
-                    .forEach(anchors::add);
-        }
+        List<ProjectMasterDO> created = ACTION_VIEW.equals(actionCode)
+                ? projectMapper.selectListCreatedBy(new CreatedProjectScopeQuery(
+                        tenantId, String.valueOf(subjectUserId), null)) : List.of();
+        created.stream().map(ProjectMasterDO::getId).forEach(anchors::add);
         String primaryGrantAction = ACTION_EDIT.equals(actionCode) ? ACTION_MANAGE : actionCode;
         discoverGrantAnchors(tenantId, subjectUserId, primaryGrantAction, effectiveAt, anchors);
         if (ACTION_VIEW.equals(actionCode)) {
             discoverGrantAnchors(tenantId, subjectUserId, ACTION_MANAGE, effectiveAt, anchors);
         }
-        if (anchors.isEmpty()) {
-            return Set.of();
-        }
+        if (anchors.isEmpty()) return Set.of();
         Set<Long> rootIds = projectMapper.selectBatchIds(anchors).stream()
                 .filter(project -> Objects.equals(project.getTenantId(), tenantId))
                 .map(project -> project.getRootId() == null ? project.getId() : project.getRootId())
                 .collect(Collectors.toSet());
-        Set<Long> visible = new HashSet<>();
-        for (Long rootId : rootIds) {
-            ProjectTreeVersionDO version = versionMapper.selectLatestActive(rootId);
-            if (version == null) {
-                continue;
+        if (rootIds.isEmpty()) return Set.of();
+        List<ProjectTreeVersionDO> discoveredVersions = versionMapper.selectLatestActiveBatch(
+                new ActiveProjectTreeVersionsQuery(tenantId, rootIds));
+        if (discoveredVersions.isEmpty()) return Set.of();
+        Set<Long> versionedRoots = discoveredVersions.stream().map(ProjectTreeVersionDO::getRootProjectId)
+                .collect(Collectors.toSet());
+        Map<Long, ProjectMasterDO> roots = projectMapper.selectBatchIds(versionedRoots).stream()
+                .collect(Collectors.toMap(ProjectMasterDO::getId, java.util.function.Function.identity()));
+        Map<Long, Long> expectedVersions = new HashMap<>();
+        for (ProjectTreeVersionDO version : discoveredVersions) {
+            validate(new ProjectScopeQuery(tenantId, subjectUserId, version.getRootProjectId(),
+                    actionCode, version.getTreeVersion()));
+            ProjectMasterDO root = roots.get(version.getRootProjectId());
+            if (root == null || !Objects.equals(root.getTenantId(), tenantId)) {
+                throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
             }
-            visible.addAll(resolve(new ProjectScopeQuery(
-                    tenantId, subjectUserId, rootId, actionCode, version.getTreeVersion())).fullProjectIds());
+            Long actualRoot = root.getRootId() == null ? root.getId() : root.getRootId();
+            Long previous = expectedVersions.put(actualRoot, version.getTreeVersion());
+            if (previous != null && !Objects.equals(previous, version.getTreeVersion())) {
+                throw exception(PROJECT_TREE_VERSION_CONFLICT);
+            }
         }
-        return Set.copyOf(visible);
+        // Preserve the discovery -> root validation -> version revalidation boundary, in two batch reads.
+        Map<Long, Long> currentVersions = versionMapper.selectLatestActiveBatch(
+                        new ActiveProjectTreeVersionsQuery(tenantId, expectedVersions.keySet())).stream()
+                .collect(Collectors.toMap(ProjectTreeVersionDO::getRootProjectId, ProjectTreeVersionDO::getTreeVersion));
+        if (!expectedVersions.equals(currentVersions)) throw exception(PROJECT_TREE_VERSION_CONFLICT);
+        List<ProjectScopeRootPathsQuery.TreeVersion> trees = expectedVersions.entrySet().stream()
+                .map(entry -> new ProjectScopeRootPathsQuery.TreeVersion(entry.getKey(), entry.getValue())).toList();
+        Map<Long, Set<Long>> nodesByRoot = pathMapper.selectScopeRootPaths(
+                        new ProjectScopeRootPathsQuery(tenantId, trees)).stream()
+                .collect(Collectors.groupingBy(ProjectTreePathDO::getRootProjectId,
+                        Collectors.mapping(ProjectTreePathDO::getDescendantProjectId, Collectors.toSet())));
+        Set<Long> allNodes = nodesByRoot.values().stream().flatMap(Set::stream).collect(Collectors.toSet());
+        if (allNodes.isEmpty()) return Set.of();
+        if (isTenantSuperAdmin(tenantId, subjectUserId)) return Set.copyOf(allNodes);
+        // Discovery is not authorization: re-read current membership / creator facts for all trees together.
+        LocalDateTime resolutionAt = LocalDateTime.now();
+        Set<Long> full = memberMapper.selectActiveByUser(
+                        new ActiveProjectMemberQuery(tenantId, subjectUserId, resolutionAt)).stream()
+                .filter(item -> allows(item.getMemberRole(), actionCode))
+                .map(ProjectMemberAssignmentDO::getProjectId)
+                .collect(Collectors.toCollection(HashSet::new));
+        if (ACTION_VIEW.equals(actionCode)) {
+            projectMapper.selectListCreatedBy(new CreatedProjectScopeQuery(
+                            tenantId, String.valueOf(subjectUserId), allNodes)).stream()
+                    .map(ProjectMasterDO::getId).forEach(full::add);
+        }
+        List<AuthorizationGrantDTO> grants = new ArrayList<>(authorizationGrantApi.listEffective(
+                new AuthorizationGrantQuery(tenantId, "USER", subjectUserId, "PROJ", "PROJECT",
+                        allNodes, primaryGrantAction, resolutionAt)));
+        if (ACTION_VIEW.equals(actionCode)) {
+            grants.addAll(authorizationGrantApi.listEffective(new AuthorizationGrantQuery(
+                    tenantId, "USER", subjectUserId, "PROJ", "PROJECT", allNodes, ACTION_MANAGE, resolutionAt)));
+        }
+        Set<Long> descendantAnchors = new HashSet<>();
+        for (AuthorizationGrantDTO grant : grants) {
+            if (SCOPE_CURRENT.equals(grant.scopeCode())) full.add(grant.resourceId());
+            else if (SCOPE_DESCENDANTS.equals(grant.scopeCode())) descendantAnchors.add(grant.resourceId());
+        }
+        List<ProjectScopeDescendantsQuery.Subtree> subtrees = new ArrayList<>();
+        for (ProjectScopeRootPathsQuery.TreeVersion tree : trees) {
+            Set<Long> treeAnchors = new HashSet<>(descendantAnchors);
+            treeAnchors.retainAll(nodesByRoot.getOrDefault(tree.rootProjectId(), Set.of()));
+            if (!treeAnchors.isEmpty()) subtrees.add(new ProjectScopeDescendantsQuery.Subtree(
+                    tree.rootProjectId(), tree.treeVersion(), Set.copyOf(treeAnchors)));
+        }
+        if (!subtrees.isEmpty()) {
+            pathMapper.selectScopeDescendants(new ProjectScopeDescendantsQuery(tenantId, subtrees)).stream()
+                    .filter(path -> nodesByRoot.getOrDefault(path.getRootProjectId(), Set.of())
+                            .contains(path.getDescendantProjectId()))
+                    .map(ProjectTreePathDO::getDescendantProjectId).forEach(full::add);
+        }
+        full.retainAll(allNodes);
+        return Set.copyOf(full);
     }
 
     public void assertFullAccess(ProjectScopeQuery query) {

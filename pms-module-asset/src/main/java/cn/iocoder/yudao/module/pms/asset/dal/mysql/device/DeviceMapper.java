@@ -19,6 +19,13 @@ import java.util.List;
 @Mapper
 public interface DeviceMapper extends BaseMapperX<DeviceDO> {
 
+    default List<DeviceDO> selectCurrentProjectDevices(
+            cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query) {
+        return selectList(new LambdaQueryWrapperX<DeviceDO>()
+                .eq(DeviceDO::getTenantId, query.tenantId()).eq(DeviceDO::getProjectId, query.projectId())
+                .orderByAsc(DeviceDO::getId));
+    }
+
     List<cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact> selectProjectInstallationDevicesForUpdate(
             @Param("query") cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query);
 
