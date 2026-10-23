@@ -1,4 +1,4 @@
-import { defineComponent, h, nextTick, reactive } from 'vue'
+import { defineComponent, h, KeepAlive, nextTick, reactive, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CutoverTaskWorkbench from './index.vue'
 import { getProject } from '@/api/pms/project/projects'
@@ -6,7 +6,10 @@ const navigation = vi.hoisted(() => ({ route: undefined as any, push: vi.fn(), r
 vi.mock('vue-router', () => ({ useRoute: () => navigation.route, useRouter: () => navigation }))
 vi.mock('../task-create/index.vue', () => ({ default: defineComponent({
   emits: ['created', 'close'],
-  setup: (_, { emit }) => () => h('button', { 'data-testid': 'finish-create', onClick: () => emit('created', '701') }, '保存成功')
+  setup: (_, { emit }) => () => h('div', [
+    h('button', { 'data-testid': 'finish-create', onClick: () => emit('created', '701') }, '保存成功'),
+    h('button', { 'data-testid': 'cancel-create', onClick: () => emit('close') }, '返回任务列表')
+  ])
 }) }))
 import {
   findByTestId,
@@ -93,6 +96,48 @@ describe('CUT dashboard production page integration', () => {
     navigation.push.mockResolvedValue(undefined); navigation.replace.mockResolvedValue(undefined)
     api.getCutoverDashboardKpis.mockReset().mockResolvedValue(kpis('0', '0', '0', '0', 1788310800000))
     api.getCutoverTaskPage.mockReset()
+  })
+
+  it('does not refresh a disposed creation page after navigation mounted a new workbench', async () => {
+    navigation.route.query.create = '1'
+    api.getCutoverTaskPage.mockResolvedValue({ list: [], total: 0 })
+    const view = mount(CutoverTaskWorkbench, {}, controls); await flush()
+    navigation.push.mockImplementation(async () => {
+      view.app.unmount()
+      delete navigation.route.query.create
+      await nextTick()
+    })
+    await (findByTestId(view.root, 'cancel-create')!.props!.onClick as Function)(); await flush()
+    expect(api.getCutoverTaskPage).not.toHaveBeenCalled()
+    expect(api.getCutoverDashboardKpis).not.toHaveBeenCalled()
+  })
+
+  it('refreshes the retained workbench when closing its inline creation form', async () => {
+    navigation.route.query.create = '1'
+    api.getCutoverTaskPage.mockResolvedValue({ list: [], total: 0 })
+    const view = mount(CutoverTaskWorkbench, {}, controls); await flush()
+    navigation.push.mockImplementation(async () => { delete navigation.route.query.create; await nextTick() })
+    await (findByTestId(view.root, 'cancel-create')!.props!.onClick as Function)(); await flush()
+    expect(api.getCutoverTaskPage).toHaveBeenCalledTimes(2)
+    expect(api.getCutoverDashboardKpis).toHaveBeenCalledTimes(1)
+    view.app.unmount()
+  })
+
+  it('does not refresh the inactive cached creation page after navigation', async () => {
+    navigation.route.query.create = '1'
+    api.getCutoverTaskPage.mockResolvedValue({ list: [], total: 0 })
+    const visible = ref(true)
+    const host = defineComponent({ setup: () => () => h(KeepAlive, () => visible.value ? h(CutoverTaskWorkbench) : h('div')) })
+    const view = mount(host, {}, controls); await flush()
+    navigation.push.mockImplementation(async () => {
+      visible.value = false
+      delete navigation.route.query.create
+      await nextTick()
+    })
+    await (findByTestId(view.root, 'cancel-create')!.props!.onClick as Function)(); await flush()
+    expect(api.getCutoverTaskPage).not.toHaveBeenCalled()
+    expect(api.getCutoverDashboardKpis).not.toHaveBeenCalled()
+    view.app.unmount()
   })
 
   it('opens creation within the current list route and retains its query', async () => {

@@ -154,12 +154,13 @@ const selectedCategory = ref('')
 const categoryLabels: Record<string, string> = { todo: '待办', archived: '已归档', approving: '审批中', rejected: '驳回待修改' }
 const router = useRouter()
 const route = useRoute()
+let pageActive = true
 const createVisible = computed(() => route.query.create === '1' && checkPermi(['pms:cutover-task:create']))
 const openCreate = () => router.push({ path: route.path, query: { ...route.query, create: '1' } })
 const listLocation = () => { const query = { ...route.query }; delete query.create; return { path: route.path, query } }
 const returnToList = async () => {
   await router.push(listLocation())
-  if (!createVisible.value) await refreshListAndKpis()
+  if (pageActive && !createVisible.value && !loading.value) await refreshListAndKpis()
 }
 const createdTask = async (taskId: CutoverApi.WireLong) => {
   await router.replace(listLocation())
@@ -337,8 +338,9 @@ const openDetail = async (row: { id: CutoverApi.WireLong; approvalOnly?: boolean
   } else await router.push(`/pms/cutover/tasks/${row.id}`)
 }
 onMounted(() => { if (!createVisible.value) void refreshListAndKpis() })
-onActivated(() => { if (!createVisible.value && !loading.value) void refreshListAndKpis() })
-onBeforeUnmount(() => { listSequence++; projectSequence++ })
+onActivated(() => { pageActive = true; if (!createVisible.value && !loading.value) void refreshListAndKpis() })
+onDeactivated(() => { pageActive = false })
+onBeforeUnmount(() => { pageActive = false; listSequence++; projectSequence++ })
 // 已发送的现行通知保留原链接；进入后定位到唯一详情路由。
 watch(() => [route.query.taskId, route.query.mode], () => {
   if (typeof route.query.taskId === 'string' && /^[1-9]\d*$/.test(route.query.taskId))

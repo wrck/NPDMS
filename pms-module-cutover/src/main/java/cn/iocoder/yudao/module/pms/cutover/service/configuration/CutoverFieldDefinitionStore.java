@@ -56,6 +56,23 @@ public class CutoverFieldDefinitionStore {
         return item;
     }
 
+    /** 同一清单的系统项按精确修订批量读取；自定义项仍使用各自的字段树。 */
+    public List<CutoverChecklistItemDO> withSchemas(List<CutoverChecklistItemDO> items) {
+        if (items.isEmpty()) return List.of();
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
+        if (TenantContextHolder.isIgnore() || items.stream().anyMatch(item -> !Objects.equals(item.getTenantId(), tenantId))) {
+            throw new IllegalArgumentException("采集项租户与当前上下文不一致");
+        }
+        var definitions = definitions(items.stream().map(CutoverChecklistItemDO::getItemDefinitionId)
+                .filter(Objects::nonNull).collect(Collectors.toSet()));
+        for (var item : items) {
+            var definition = item.getItemDefinitionId() == null ? customDefinition(item.getId())
+                    : definitions.get(item.getItemDefinitionId());
+            item.setInterfaceSchemaSnapshot(JsonUtils.toJsonString(CutoverFieldSchemaCodec.decode(definition)));
+        }
+        return items;
+    }
+
     @Transactional(propagation = Propagation.MANDATORY)
     public void insert(CutoverFieldSchemaCodec.Write write) {
         if (!Objects.equals(write.tenantId(), TenantContextHolder.getRequiredTenantId()) || TenantContextHolder.isIgnore()) {

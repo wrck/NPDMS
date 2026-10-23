@@ -294,16 +294,10 @@ public class CutoverChecklistApplicationService {
     }
 
     public CutoverChecklistView getView(cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery query) {
-        Long tenantId = query.context().tenantId(); Long actorId = query.context().actorId(); Long taskId = query.taskId();
-        require(positive(tenantId) && positive(actorId) && positive(taskId), INVALID_REQUEST, "清单查询参数非法");
-        CutoverTaskDO task = taskMapper.selectById(taskId);
-        require(task != null && Objects.equals(task.getTenantId(), tenantId), NOT_FOUND, "割接任务不存在");
-        CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.inspect(actorId, task.getProjectId(),
-                ACTION_VIEW);
-        require(canReadTask(new TaskRead(query, task, scope)), NOT_FOUND, "当前清单不存在");
-        CutoverChecklistDO checklist = readChecklist(query);
-        require(checklist != null, NOT_FOUND, "当前清单不存在");
-        List<CutoverChecklistItemDO> items = withSchemas(itemMapper.selectListByChecklist(new CutoverChecklistItemsQuery(
+        var authorized = resolveRead(query);
+        Long tenantId = query.context().tenantId(); Long taskId = query.taskId();
+        var task = authorized.task(); var scope = authorized.scope(); var checklist = authorized.checklist();
+        List<CutoverChecklistItemDO> items = fieldDefinitions.withSchemas(itemMapper.selectListByChecklist(new CutoverChecklistItemsQuery(
                 tenantId, checklist.getId())));
         Map<Long, CutoverChecklistItemResultDO> currentResults = resultMapper.selectCurrentByChecklist(
                         new CutoverChecklistResultsQuery(tenantId, checklist.getId())).stream()
@@ -329,6 +323,29 @@ public class CutoverChecklistApplicationService {
                 checklist.getInputSnapshotHash(), JsonUtils.toJsonString(configurationService.resolveFrozen(new CutoverFrozenConfigurationQuery(
                         tenantId, checklist.getConfigurationRevisionId(), checklist.getConfigurationCode(), checklist.getConfigurationRevisionNo()))),
                 checklistMetadata.matchTrace(checklist), checklistMetadata.gap(checklist), viewItems);
+    }
+
+    public record ReadScope(Long checklistId, Long checklistFactVersion) { }
+
+    /** 外部核查状态复用完整清单的授权和版本选择，无需组装无关答案。 */
+    public ReadScope readScope(cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery query) {
+        var authorized = resolveRead(query);
+        return new ReadScope(authorized.checklist().getId(), authorized.checklist().getVersion());
+    }
+
+    private record AuthorizedRead(CutoverTaskDO task, CutoverChecklistDO checklist,
+                                  CutoverProjectScopePort.ProjectScopeFact scope) { }
+
+    private AuthorizedRead resolveRead(cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery query) {
+        Long tenantId = query.context().tenantId(); Long actorId = query.context().actorId(); Long taskId = query.taskId();
+        require(positive(tenantId) && positive(actorId) && positive(taskId), INVALID_REQUEST, "清单查询参数非法");
+        CutoverTaskDO task = taskMapper.selectById(taskId);
+        require(task != null && Objects.equals(task.getTenantId(), tenantId), NOT_FOUND, "割接任务不存在");
+        var scope = projectScopePort.inspect(actorId, task.getProjectId(), ACTION_VIEW);
+        require(canReadTask(new TaskRead(query, task, scope)), NOT_FOUND, "当前清单不存在");
+        var checklist = readChecklist(query);
+        require(checklist != null, NOT_FOUND, "当前清单不存在");
+        return new AuthorizedRead(task, checklist, scope);
     }
 
     private record TaskRead(cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery query,
