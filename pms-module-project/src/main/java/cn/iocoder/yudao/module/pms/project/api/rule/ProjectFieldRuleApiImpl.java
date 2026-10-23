@@ -37,11 +37,19 @@ public class ProjectFieldRuleApiImpl implements ProjectFieldRuleApi {
                 || query.projectId() == null || query.ruleKeys() == null || query.ruleKeys().isEmpty()
                 || query.ruleKeys().stream().anyMatch(key -> key == null || key.isBlank())
                 || new HashSet<>(query.ruleKeys()).size() != query.ruleKeys().size()) throw exception(FORBIDDEN);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant, query.actorId(), query.projectId(), ProjectScopeApi.ACTION_VIEW));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(query.actorId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || !scope.fullProjectIds().contains(query.projectId())) throw exception(FORBIDDEN);
         if (lock) {
-            var locked = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, query.actorId(), query.projectId(),
-                    ProjectScopeApi.ACTION_VIEW, scope.treeVersion()));
+            var locked = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(query.actorId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(scope.treeVersion()).build());
             if (locked == null || !Objects.equals(locked.treeVersion(), scope.treeVersion())
                     || !locked.fullProjectIds().contains(query.projectId())) throw exception(FORBIDDEN);
         }

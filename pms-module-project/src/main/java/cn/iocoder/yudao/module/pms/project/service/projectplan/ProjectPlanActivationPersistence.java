@@ -49,4 +49,17 @@ public class ProjectPlanActivationPersistence {
     }
 
     private void requireOne(int affected) { if (affected != 1) throw exception(PROJECT_PLAN_VERSION_CONFLICT); }
+
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public void activateTemplateReopen(ProjectPlanVersionMapper.TemplateReopenActivation command) {
+        var plan = command.plan();
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || !Objects.equals(TenantContextHolder.getRequiredTenantId(), plan.tenantId())
+                || Objects.equals(plan.oldPlanVersionId(), plan.draftId()) || command.snapshotId() == null)
+            throw exception(PROJECT_PLAN_VERSION_CONFLICT);
+        requireOne(plans.clearClosureProjectionForTemplateReopen(command));
+        requireOne(plans.supersedeForTemplateReopen(command));
+        requireOne(plans.promoteDraftIfCurrent(plan));
+        requireOne(plans.attachActivatedPlan(plan));
+    }
 }

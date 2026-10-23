@@ -30,7 +30,11 @@ class ProjectDeliverableHistoricalAuthorizationTest {
     @Test void retiredCodeHistoryUsesRealAccProjectReadAuthority() {
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(42L,5L,Set.of(42L),Set.of()));
         assertEquals(5L,validator.requireDeliveryAccess(1L,7L,"project_deliverable","42","~plan:99",false,false,null));
-        verify(scopes).resolveCurrent(new ProjectCurrentScopeQuery(1L,7L,42L,ProjectScopeApi.ACTION_VIEW));
+        verify(scopes).resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(1L)
+                .subjectUserId(7L)
+                .anchorProjectId(42L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         verifyNoInteractions(platform,rules);
     }
     @Test void historicalCodeDoesNotGrantForeignProjectVisibility() {
@@ -43,7 +47,11 @@ class ProjectDeliverableHistoricalAuthorizationTest {
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(42L,5L,Set.of(42L),Set.of()));
         var fact=validator.validateUpload(1L,7L,"project_deliverable","42","~plan:99",action,false,null);
         assertNotNull(fact);
-        verify(scopes).resolveCurrent(new ProjectCurrentScopeQuery(1L,7L,42L,ProjectScopeApi.ACTION_VIEW));
+        verify(scopes).resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(1L)
+                .subjectUserId(7L)
+                .anchorProjectId(42L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         verifyNoInteractions(platform,rules);
     }
     @org.junit.jupiter.params.ParameterizedTest

@@ -24,4 +24,11 @@ public class DeviceOpsDispatchDO extends TenantBaseDO {
     private String collectionId;
     private String externalStatus;
     private String traceId;
+    private String dispatchMode;
+    private Long actorId;
+    private String projectId;
+    private Boolean desktopClaimed;
+    private String desktopClaimId;
+    private Boolean cancelRequested;
+    private Boolean redeliveryRequested;
 }

@@ -142,6 +142,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import type { OperationVO } from '@/api/pms/platform/businessmodel'
 import type { AttemptVO, EffectVO, OpinionVO } from '@/api/pms/platform/approval'
@@ -229,7 +230,7 @@ const submit = async () => {
       entityType: props.entityType,
       entityId: props.entityId,
       purpose: submitForm.value.purpose,
-      attemptId: crypto.randomUUID(),
+      attemptId: generateUUID(),
       submissionBasis: submitForm.value.submissionBasis,
       neutralProcessRef: submitForm.value.neutralProcessRef
     })
@@ -269,13 +270,13 @@ const decide = (approved: boolean) =>
   act(() => decideAttempt(selected.value!.id, approved, comment.value), '审批决定失败')
 const resubmit = (row: AttemptVO) =>
   act(
-    () => resubmitAttempt(row.id, crypto.randomUUID(), `重提：${row.attemptId}`),
+    () => resubmitAttempt(row.id, generateUUID(), `重提：${row.attemptId}`),
     '重提失败'
   )
 
 const prepareEffect = (row: AttemptVO) => {
   selectAttempt(row)
-  effectForm.value = { operationCode: effectOperations.value[0]?.code ?? '', idempotencyKey: crypto.randomUUID() }
+  effectForm.value = { operationCode: effectOperations.value[0]?.code ?? '', idempotencyKey: generateUUID() }
 }
 const runEffect = () =>
   act(

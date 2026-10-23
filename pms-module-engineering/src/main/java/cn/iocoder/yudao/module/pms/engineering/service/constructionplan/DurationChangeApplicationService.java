@@ -440,8 +440,11 @@ public class DurationChangeApplicationService {
         }
         ConstructionPlanDO plan = planMapper.selectByLockQuery(new ConstructionPlanLockQuery(actor.tenantId(), planId));
         if (plan == null) throw exception(CONSTRUCTION_PLAN_STATUS_INVALID);
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), plan.getProjectId(), ProjectScopeApi.ACTION_MANAGE));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(plan.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (!scope.fullProjectIds().contains(plan.getProjectId())) {
             throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
         }

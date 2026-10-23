@@ -69,6 +69,40 @@ class ProjectStageCompletionServiceTest {
     }
     void refreshSnapshot() { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); }
 
+    @Test void optionalStartedTaskDoesNotBlockNativeStageOrProspectiveStageRule() {
+        var task = new ProjectTaskInstanceDO().setId(71L).setStageCode("DISCOVERY").setStatus("IN_PROGRESS");
+        task.setRequiredTask(false); task.setActualStartTime(LocalDateTime.now().minusHours(1));
+        when(graph.selectTasksForUpdate(any())).thenReturn(List.of(task));
+        var taskRound = new ProjectNodeExecutionDO(); taskRound.setNodeKind("TASK"); taskRound.setNodeInstanceId(71L);
+        taskRound.setStartedAt(LocalDateTime.now().minusHours(1)); taskRound.setStatus("ACTIVE");
+        when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round, taskRound));
+        var runtime = (ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "facts");
+        var project = projects.selectProjectForCommandForUpdate(null);
+        var prospective = runtime.evaluate(JsonUtils.parseTree("{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}"),
+                new ProjectRuntimeRuleEvaluator.Facts(project, stage, List.of(task), List.of(), List.of(), true));
+        assertEquals(cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionTargetResolver.ConditionStatus.SATISFIED, prospective);
+        round.setSubmittedAt(LocalDateTime.now());
+        when(stages.updateStatusIfMatch(any())).thenReturn(1); when(executions.finishIfActive(any())).thenReturn(1);
+        assertEquals(1, service.completeStage(9L, 11L, 1L, "optional-started").completed());
+        assertEquals("IN_PROGRESS", task.getStatus()); assertEquals("ACTIVE", taskRound.getStatus());
+    }
+
+    @Test void absentOrTrueRequirementStillBlocksStartedWorkAndProspectiveStageRule() {
+        var runtime = (ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "facts");
+        var project = projects.selectProjectForCommandForUpdate(null);
+        for (Boolean required : new Boolean[]{null, true}) {
+            var task = new ProjectTaskInstanceDO().setId(71L).setStageCode("DISCOVERY").setStatus("IN_PROGRESS");
+            task.setRequiredTask(required); task.setActualStartTime(LocalDateTime.now().minusHours(1));
+            when(graph.selectTasksForUpdate(any())).thenReturn(List.of(task));
+            var prospective = runtime.evaluate(JsonUtils.parseTree("{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}"),
+                    new ProjectRuntimeRuleEvaluator.Facts(project, stage, List.of(task), List.of(), List.of(), true));
+            assertEquals(cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionTargetResolver.ConditionStatus.UNSATISFIED, prospective);
+            round.setSubmittedAt(LocalDateTime.now());
+            assertEquals(0, service.completeStage(9L, 11L, 1L, "required-started").completed());
+        }
+        verifyNoInteractions(stages, audit);
+    }
+
     @Test void stageOwnActivationWaitUsesCurrentRoundAndRegistersDependentsOnlyAfterRealCompletion() {
         var evaluator = (ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "facts");
         org.springframework.test.util.ReflectionTestUtils.setField(evaluator, "relativeTime",

@@ -40,7 +40,11 @@ class DeliveryOwnerAccessTest {
     @Test void ownerActualProjectUsedForAuthorizedRead() {
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(42L,5L,Set.of(42L),Set.of()));
         assertEquals(5L,access.require(1L,7L,"SOL","solution",9L,null,false,false,null));
-        verify(scopes).resolveCurrent(new ProjectCurrentScopeQuery(1L,7L,42L,ProjectScopeApi.ACTION_VIEW));
+        verify(scopes).resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(1L)
+                .subjectUserId(7L)
+                .anchorProjectId(42L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
     }
     @Test void changedScopeDuringWriteRejected() {
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(42L,5L,Set.of(42L),Set.of()));

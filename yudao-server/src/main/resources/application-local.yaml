@@ -255,6 +255,14 @@ yudao:
   tencent-lbs-key: ${NPDMS_TENCENT_LBS_KEY:disabled} # QQ 地图的密钥
 
 pms:
+  asset-product-type:
+    trusted-service-principals:
+      INSPECTION:
+        # 仅用于本地模块间只读调用的稳定技术主体，不代表登录用户。
+        principal-id: 970477601
+        allowed-actions:
+          - PRODUCT_TYPE_READ_CODES
+          - DEVICE_PRODUCT_TYPE_READ
   file:
     upload:
       session-ttl: PT15M

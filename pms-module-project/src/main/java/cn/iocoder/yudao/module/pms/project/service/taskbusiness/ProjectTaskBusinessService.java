@@ -94,6 +94,8 @@ public class ProjectTaskBusinessService {
             if (!Objects.equals(row.getNodeExecutionId(),receiver.executionId())) throw failure("CURRENT_AUTOMATIC_ASSOCIATION_REQUIRED");
             var result = reader.apply(row.getObjectId());
             if (result==null) throw failure("OWNER_COMPLETION_FACT_UNAVAILABLE");
+            // Owner facts keep their business meaning across rounds. The normal completion writer
+            // additionally enforces any frozen NEW_RESULT / PINNED_RESULT subscription and all gates.
             var fact = validateFact(new BusinessObjectFact(result.objectId(),"业务完成事实",result.factVersion(),
                     Set.of(),result.completionFacts(),List.of()),row.getObjectId());
             facts.add(new TaskBusinessLinkFact(row.getId(),fact.objectId(),fact.displayName(),fact.factVersion(),fact.completionFacts(),List.of(),Set.of()));
@@ -130,6 +132,11 @@ public class ProjectTaskBusinessService {
                     && access.writable(task, access.project(task.getProjectId()), ctx) && execution != null && execution.writable();
             Set<String> actions = Set.of();
             Set<String> ownerActions = inspection.allowedActions();
+            if (reason == null && !"READ_ONLY_AGGREGATE".equals(binding.instanceResolutionStrategy())
+                    && ownerActions.contains("QUERY") && execution != null && execution.writable()
+                    && Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus())
+                    && access.executable(task, access.project(task.getProjectId()), ctx))
+                actions = Set.of("REFRESH_RESULTS");
             BusinessViewRevision view = null;
             if (reason == null) {
                 if (!ownerActions.contains("QUERY")) throw failure("OWNER_CONTEXT_FORBIDDEN");

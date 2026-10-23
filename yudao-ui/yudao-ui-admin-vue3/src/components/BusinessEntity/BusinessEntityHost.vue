@@ -16,11 +16,9 @@
         </template>
       </el-alert>
       <el-alert
-        v-if="receipt"
-        :title="`操作回执：${receipt.outcome}；并发依据：${receipt.newConcurrencyBasis ?? '-'}${
-          receipt.failureReason ? '；原因：' + receipt.failureReason : ''
-        }`"
-        :type="receipt.outcome === 'FAILED' ? 'error' : 'success'"
+        v-if="receipt?.outcome === 'FAILED'"
+        :title="receipt.failureReason || '操作失败，请重试'"
+        type="error"
         :closable="false"
         show-icon
         class="mb-8px"

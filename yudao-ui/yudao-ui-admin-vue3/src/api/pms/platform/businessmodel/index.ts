@@ -1,6 +1,7 @@
 // 统一业务模型公共客户端：目录、详情、受控查询与操作执行全部由目录数据驱动，
 // 不按实体名称写死任何调用分支；前端禁用状态不代替后端授权。
 import request from '@/config/axios'
+import { generateUUID } from '@/utils'
 
 const baseUrl = '/api/v1/pms/business-models'
 
@@ -170,7 +171,7 @@ export const recoverEntityOperation = (ownerModule: string, entityType: string, 
     params: { operationVersion, idempotencyKey }, silentError: true
   })
 
-export const newIdempotencyKey = () => crypto.randomUUID()
+export const newIdempotencyKey = () => generateUUID()
 
 
 export interface BusinessEntityFormData {

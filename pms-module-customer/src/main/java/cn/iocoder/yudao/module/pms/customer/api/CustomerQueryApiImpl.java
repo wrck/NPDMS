@@ -19,6 +19,14 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class CustomerQueryApiImpl implements CustomerQueryApi {
+    @Override
+    public java.util.Set<Long> findCustomerIdsByName(NameQuery query) {
+        if (!java.util.Objects.equals(TenantContextHolder.getRequiredTenantId(), query.tenantId())
+                || query.keyword() == null || query.keyword().isBlank()) return java.util.Set.of();
+        return customerMasterMapper.selectIdsByName(
+                new cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.query.CustomerNameQuery(
+                        query.tenantId(), query.keyword().trim()));
+    }
 
     private final CustomerMasterMapper customerMasterMapper;
     private final CustomerQueryService customerQueryService;

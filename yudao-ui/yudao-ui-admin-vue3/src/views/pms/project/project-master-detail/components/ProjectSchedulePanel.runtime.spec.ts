@@ -6,6 +6,8 @@ import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import * as MemberApi from '@/api/pms/project/unified-members'
 import {
   mount,
+  findByTestId,
+  textOf,
   passthrough,
   tableColumn
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
@@ -22,7 +24,13 @@ vi.mock('vue-router', () => ({
   onBeforeRouteLeave: vi.fn(),
   onBeforeRouteUpdate: vi.fn()
 }))
-vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+const permission = vi.hoisted(() => ({ bpm: true, task: true, schedule: true }))
+const businessBar = vi.hoisted(() => ({ embedded: false }))
+vi.mock('@/components/BusinessView/businessActionBar', async () => {
+  const { ref } = await import('vue')
+  return { useBusinessActionBar: () => ({ barTarget: businessBar.embedded ? ref(null) : undefined }) }
+})
+vi.mock('@/utils/permission', () => ({ checkPermi: (codes: string[]) => codes.includes('bpm:process-instance:query') ? permission.bpm : codes.includes('bpm:task:query') ? permission.task : codes.includes('pms:imp-stage-plan:update') ? permission.schedule : true }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getDictLabel: () => '直签' }))
 vi.mock('@/api/pms/engineering/stage-plan', () => ({
   getStagePlanBatchPage: vi.fn(),
@@ -103,6 +111,10 @@ const render = () => {
   return { ...mounted, state: (mounted.vm as any).$.setupState }
 }
 beforeEach(() => {
+  businessBar.embedded = false
+  permission.bpm = true
+  permission.task = true
+  permission.schedule = true
   vi.clearAllMocks()
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
   vi.mocked(DurationApi.getByProjectId).mockResolvedValue({
@@ -121,6 +133,47 @@ beforeEach(() => {
   vi.mocked(PlanApi.getOverdueStages).mockResolvedValue([])
 })
 
+it.each([false, true])('only exposes its own refresh outside the unified action bar (embedded=%s)', async embedded => {
+  businessBar.embedded = embedded
+  const app = render()
+  try {
+    await flush()
+    expect(Boolean(findByTestId(app.root, 'refresh-schedule'))).toBe(!embedded)
+  } finally { app.app.unmount() }
+})
+
+it('reloads the selected plan from the unified refresh and refuses to overwrite unsaved dates', async () => {
+  businessBar.embedded = true
+  const app = render()
+  try {
+    await flush()
+    vi.mocked(PlanApi.getStagePlanBatch).mockClear()
+    vi.mocked(PlanApi.getStagePlanBatch).mockImplementation(async id => id === 7 ? structuredClone(effective) : { ...draft(), remark: '刷新后的数据' })
+    await (app.vm as any).refresh()
+    expect(PlanApi.getStagePlanBatch).toHaveBeenCalledWith(8)
+    expect(app.state.batch.remark).toBe('刷新后的数据')
+    app.state.batch.tasks[0].planEnd = '2026-10-19'
+    vi.mocked(PlanApi.getStagePlanBatch).mockClear()
+    await (app.vm as any).refresh()
+    expect(PlanApi.getStagePlanBatch).not.toHaveBeenCalled()
+    expect(app.state.batch.tasks[0].planEnd).toBe('2026-10-19')
+  } finally { app.app.unmount() }
+})
+
+it.each(['bpm', 'task'] as const)('hides the BPM progress entry when the existing account lacks %s query permission', async missing => {
+  permission[missing] = false
+  vi.mocked(PlanApi.getStagePlanBatch).mockResolvedValue({ ...effective, bpmProcessInstanceId: 'approval-1' } as any)
+  const app = render()
+  try {
+    await flush()
+    expect(textOf(app.root)).not.toContain('查看审批进度')
+    permission[missing] = true
+    app.vm.$forceUpdate()
+    await flush()
+    expect(textOf(app.root)).toContain('查看审批进度')
+  } finally { app.app.unmount() }
+})
+
 it('loads effective plan dates for warnings even when the page response has no date fields', async () => {
   const app = render()
   try {
@@ -130,6 +183,51 @@ it('loads effective plan dates for warnings even when the page response has no d
   } finally {
     app.app.unmount()
   }
+})
+
+it('marks completed-date defaults for saving and keeps completed tasks out of stage auto fitting', async () => {
+  const value = draft() as any
+  value.tasks[0].planStart = undefined
+  value.tasks[0].planEnd = undefined
+  value.completedDates = { stages: [], tasks: [{ nodeId: 20, actualStart: '2026-09-28', actualEnd: '2026-09-30' }] }
+  vi.mocked(PlanApi.getStagePlanBatch).mockImplementation(async id => id === 7 ? structuredClone(effective) : structuredClone(value))
+  const app = render()
+  try {
+    await flush()
+    expect(app.state.batch.tasks[0]).toMatchObject({ planStart: '2026-09-28', planEnd: '2026-09-30' })
+    expect(app.state.dirty).toBe(true)
+    app.state.batch.items[0].planStart = '2026-10-03'
+    await flush()
+    expect(app.state.batch.tasks[0].planStart).toBe('2026-09-28')
+    vi.mocked(PlanApi.updateStagePlanItems).mockImplementation(async request => {
+      value.tasks = JSON.parse(JSON.stringify(request.tasks))
+      const items = JSON.parse(JSON.stringify(request.items))
+      value.items = value.items.map((item: any) => ({ ...item, ...items.find((changed: any) => changed.id === item.id) }))
+      return structuredClone(value)
+    })
+    await app.state.save()
+    expect(PlanApi.updateStagePlanItems).toHaveBeenCalledWith(expect.objectContaining({ tasks: [expect.objectContaining({ planStart: '2026-09-28', planEnd: '2026-09-30' })] }))
+    expect(JSON.parse(JSON.stringify(app.state.batch))).toEqual(JSON.parse(app.state.saved))
+    expect(app.state.dirty).toBe(false)
+  } finally { app.app.unmount() }
+})
+
+it('does not modify a view-only draft even when completion metadata is present', async () => {
+  permission.schedule = false
+  const value = draft() as any
+  value.tasks[0].planStart = undefined
+  value.tasks[0].planEnd = undefined
+  value.completedDates = { stages: [], tasks: [{ nodeId: 20, actualStart: '2026-10-10', actualEnd: '2026-10-11' }] }
+  vi.mocked(PlanApi.getStagePlanBatch).mockResolvedValue(value)
+  const app = render()
+  try {
+    await flush()
+    expect(app.state.batch.tasks[0].planStart).toBeUndefined()
+    expect(app.state.batch.tasks[0].planEnd).toBeUndefined()
+    expect(app.state.dirty).toBe(false)
+    await app.state.save()
+    expect(PlanApi.updateStagePlanItems).not.toHaveBeenCalled()
+  } finally { app.app.unmount() }
 })
 
 it.each([1, 2])(
@@ -188,6 +286,22 @@ it('guards navigation without discarding changes when the user cancels', async (
   }
 })
 
+it('excludes external members and service-manager rows without a valid system account from approval candidates', async () => {
+  vi.mocked(MemberApi.getMemberPage).mockResolvedValueOnce({ list: [
+    { userId: null, memberName: '外部人员', memberRole: 'END_USER' },
+    { userId: null, memberName: '无账号', memberRole: 'SERVICE_MANAGER' },
+    { userId: 0, memberName: '无效账号', memberRole: 'SERVICE_MANAGER' },
+    { userId: 9, memberName: '经理', memberRole: 'SERVICE_MANAGER' }
+  ], total: 4 } as any)
+  const app = render()
+  try {
+    await flush()
+    await app.state.openSubmit()
+    expect(app.state.approvers.map((person: { userId: number }) => person.userId)).toEqual([9])
+    expect(app.state.approverId).toBe(9)
+  } finally { app.app.unmount() }
+})
+
 it('collects all current service-manager pages and deduplicates multiple responsibilities', async () => {
   vi.mocked(MemberApi.getMemberPage)
     .mockResolvedValueOnce({
@@ -216,11 +330,47 @@ it('collects all current service-manager pages and deduplicates multiple respons
   }
 })
 
+it('preserves a service manager long account ID when selecting and submitting approval', async () => {
+  const userId = '2108539871029019646'
+  vi.mocked(MemberApi.getMemberPage).mockResolvedValueOnce({ list: [
+    { userId, memberName: '本项目服务经理', memberRole: 'SERVICE_MANAGER' }
+  ], total: 1 } as any)
+  const app = render()
+  try {
+    await flush()
+    await app.state.openSubmit()
+    expect(app.state.approvers.map((person: { userId: string }) => person.userId)).toEqual([userId])
+    expect(app.state.approverId).toBe(userId)
+    expect(app.state.approverError).toBe('')
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).toHaveBeenCalledWith(8, userId, undefined)
+  } finally { app.app.unmount() }
+})
+
+it('deduplicates equivalent account IDs without rounding distinct long IDs or accepting invalid candidates', async () => {
+  vi.mocked(MemberApi.getMemberPage).mockResolvedValueOnce({ list: [
+    { userId: 9, memberRole: 'SERVICE_MANAGER' },
+    { userId: '9', memberRole: 'SERVICE_MANAGER_L1' },
+    { userId: '2108539871029019646', memberRole: 'SERVICE_MANAGER' },
+    { userId: '2108539871029019647', memberRole: 'SERVICE_MANAGER_L2' },
+    { userId: '10', memberRole: 'PROJECT_MANAGER' },
+    ...[null, '', '0', '-1', '1.5', 'abc', 1.5, Number.MAX_SAFE_INTEGER + 1].map(userId => ({ userId, memberRole: 'SERVICE_MANAGER' }))
+  ], total: 13 } as any)
+  const app = render()
+  try {
+    await flush()
+    await app.state.openSubmit()
+    expect(app.state.approvers.map((person: { userId: number | string }) => person.userId))
+      .toEqual(['9', '2108539871029019646', '2108539871029019647'])
+    expect(app.state.approverId).toBeUndefined()
+  } finally { app.app.unmount() }
+})
+
 it('prevents approval when a task remains outside its stage and keeps approved versions read-only', async () => {
   const app = render()
   try {
     await flush()
-    // 提交检查先要求调整原因，再校验阶段区间与任务安排
+    // 首次提交也必须校验阶段区间与任务安排
     app.state.batch.remark = '现场协调调整'
     app.state.batch.tasks[0].planEnd = '2026-11-01'
     app.state.saved = JSON.stringify(app.state.batch)
@@ -233,6 +383,70 @@ it('prevents approval when a task remains outside its stage and keeps approved v
   } finally {
     app.app.unmount()
   }
+})
+
+it('submits the first plan without a reason and keeps reason entry out of the date editor', async () => {
+  const app = render()
+  try {
+    await flush()
+    app.state.batch.adjustmentReasonRequired = false
+    app.state.batch.remark = ''
+    app.state.saved = JSON.stringify(app.state.batch)
+    app.state.approverId = 9
+    vi.mocked(PlanApi.submitStagePlanBatch).mockResolvedValue(draft() as any)
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).toHaveBeenCalledWith(8, 9, undefined)
+  } finally { app.app.unmount() }
+})
+
+it('allows a plan later than the suggested date to enter approval', async () => {
+  const app = render()
+  try {
+    await flush()
+    app.state.batch.items[0].suggestedEnd = '2026-07-16'
+    app.state.saved = JSON.stringify(app.state.batch)
+    app.state.approverId = 9
+    vi.mocked(PlanApi.submitStagePlanBatch).mockResolvedValue(draft() as any)
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).toHaveBeenCalledWith(8, 9, undefined)
+  } finally { app.app.unmount() }
+})
+
+it.each(['baseline', 'acceptance', 'sequence'] as const)('still blocks %s violations when a suggestion is exceeded', async (constraint) => {
+  const app = render()
+  try {
+    await flush()
+    app.state.batch.items[0].suggestedEnd = '2026-07-16'
+    if (constraint === 'baseline') app.state.batch.baselineEnd = '2026-10-25'
+    if (constraint === 'acceptance') app.state.batch.inputSnapshot = JSON.stringify({ stages: [{ stageId: 10, acceptanceTime: '2026-10-25' }] })
+    if (constraint === 'sequence') {
+      app.state.batch.items.push({ phaseId: 9, phaseName: '准备', planStart: '2026-10-01', planEnd: '2026-10-02' })
+      app.state.batch.inputSnapshot = JSON.stringify({ serialEdges: [{ fromStageId: 9, toStageId: 10 }] })
+    }
+    app.state.saved = JSON.stringify(app.state.batch)
+    app.state.approverId = 9
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).not.toHaveBeenCalled()
+    expect(feedback.warning).toHaveBeenCalledWith(expect.stringContaining({ baseline: '超出工期', acceptance: '不得晚于计划验收', sequence: '不得早于前一阶段' }[constraint]!))
+  } finally { app.app.unmount() }
+})
+
+it('collects a fresh adjustment reason in the submission dialog without making dates dirty', async () => {
+  const app = render()
+  try {
+    await flush()
+    app.state.batch.adjustmentReasonRequired = true
+    app.state.saved = JSON.stringify(app.state.batch)
+    app.state.approverId = 9
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).not.toHaveBeenCalled()
+    expect(feedback.warning).toHaveBeenCalledWith('请填写调整理由')
+    app.state.adjustmentReason = '  现场实施窗口调整  '
+    expect(app.state.dirty).toBe(false)
+    vi.mocked(PlanApi.submitStagePlanBatch).mockResolvedValue(draft() as any)
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).toHaveBeenCalledWith(8, 9, '现场实施窗口调整')
+  } finally { app.app.unmount() }
 })
 
 it('auto-fits violating task dates into the stage window when stage dates change', async () => {
@@ -249,4 +463,22 @@ it('auto-fits violating task dates into the stage window when stage dates change
   } finally {
     app.app.unmount()
   }
+})
+
+it.each([false, true])('has one duration entry when no duration exists (embedded=%s)', async embedded => {
+  businessBar.embedded = embedded
+  vi.mocked(DurationApi.getByProjectId).mockResolvedValue(undefined as any)
+  vi.mocked(PlanApi.getStagePlanBatchPage).mockResolvedValue({ list: [], total: 0 })
+  const app = render()
+  try {
+    await flush()
+    const buttons = (node: any): any[] => [
+      ...(node.type === 'button' && /录入.*工期/.test(textOf(node)) ? [node] : []),
+      ...node.children.flatMap(buttons)
+    ]
+    const entries = buttons(app.root)
+    expect(entries).toHaveLength(1)
+    entries[0].props.onClick()
+    expect(app.state.durationVisible).toBe(true)
+  } finally { app.app.unmount() }
 })

@@ -52,7 +52,11 @@ public class SiteSurveyOperationAccessProvider implements ProjectBusinessOperati
         return new Access(actions, "SOL:SITE_SURVEY:" + row.getId() + ":" + row.getVersion() + ":" + row.getStatus());
     }
     private boolean scope(Context context, String action) {
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(context.tenantId(), context.actorId(), context.projectId(), action));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(action).build());
         return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(context.projectId());
     }
 }

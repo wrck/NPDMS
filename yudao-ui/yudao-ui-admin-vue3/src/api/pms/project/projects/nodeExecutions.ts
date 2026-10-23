@@ -66,6 +66,8 @@ export interface ExecutionHistory {
     admittedAt?: string | number
     startedAt?: string | number
     startedPlanVersionId?: string | number
+    stageCode?: string
+    submissionTime?: { at: string | number; source: 'MANUAL' | 'BUSINESS_START' | 'BUSINESS_END'; label: string }
     submittedAt?: string | number
     submittedBy?: string | number
     submissionNote?: string

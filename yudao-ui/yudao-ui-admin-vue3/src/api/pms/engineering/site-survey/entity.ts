@@ -64,7 +64,7 @@ export interface SiteSurveyVO {
   createTime?: Date
 }
 const baseUrl = '/api/v1/pms/site-surveys'
-export const getSiteSurveyPage = (params: PmsProjectPageParam) => request.get({ url: `${baseUrl}/page`, params })
+export const getSiteSurveyPage = (params: PmsProjectPageParam & { status?: number }) => request.get({ url: `${baseUrl}/page`, params })
 export const getSiteSurvey = (id: number) => request.get<SiteSurveyVO>({ url: `${baseUrl}/get`, params: { id } })
 export const getFormSchema = (revisionId: number, revisionVersion: number) => request.get({ url: `${baseUrl}/form-schema`, params: { revisionId, revisionVersion } })
 export interface SiteSurveyCommandResult {

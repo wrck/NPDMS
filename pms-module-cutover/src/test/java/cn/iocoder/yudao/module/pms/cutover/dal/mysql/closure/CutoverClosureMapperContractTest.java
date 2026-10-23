@@ -4,11 +4,11 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosur
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureVersionUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskArchiveUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskDeviceListQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskDeviceReleaseUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskDeviceScopeMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskArchiveUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskDeviceListQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskDeviceReleaseUpdate;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.session.Configuration;
@@ -56,13 +56,13 @@ class CutoverClosureMapperContractTest {
                 .contains("tenant_id = #{query.tenantId}", "deleted = b'0'", "FOR UPDATE", "version = #{query.expectedVersion}")
                 .doesNotContain("${");
         assertThat(read("closure/CutoverClosureAttachmentMapper.xml"))
-                .contains("ORDER BY purpose_code, reference_key, id", "FOR UPDATE",
+                .contains("ORDER BY purpose_code, file_reference_key, id", "FOR UPDATE",
                         "purpose_code &lt;&gt; 'MANUAL_COLLECTION_RESULT'")
                 .doesNotContain("${");
         assertThat(read("closure/CutoverCollectionEvidenceMapper.xml"))
-                .contains("ORDER BY occurred_at, id", "FOR UPDATE", "NOT EXISTS")
+                .contains("ORDER BY occur_time, id", "FOR UPDATE", "NOT EXISTS")
                 .doesNotContain("${");
-        assertThat(read("taskv2/CutoverTaskDeviceScopeMapper.xml"))
+        assertThat(read("task/CutoverTaskDeviceScopeMapper.xml"))
                 .contains("ORDER BY device_id ASC", "active_marker = NULL")
                 .doesNotContain("${");
     }
@@ -72,8 +72,8 @@ class CutoverClosureMapperContractTest {
         parse(configuration, "closure/CutoverClosureMapper.xml");
         parse(configuration, "closure/CutoverClosureAttachmentMapper.xml");
         parse(configuration, "closure/CutoverCollectionEvidenceMapper.xml");
-        parse(configuration, "taskv2/CutoverTaskMapper.xml");
-        parse(configuration, "taskv2/CutoverTaskDeviceScopeMapper.xml");
+        parse(configuration, "task/CutoverTaskMapper.xml");
+        parse(configuration, "task/CutoverTaskDeviceScopeMapper.xml");
         return configuration;
     }
 

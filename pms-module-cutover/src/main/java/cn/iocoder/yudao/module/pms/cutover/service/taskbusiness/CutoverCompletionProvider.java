@@ -109,7 +109,11 @@ public class CutoverCompletionProvider implements TaskBusinessObjectProvider, St
     private void authorize(Long tenant, Long actor, Long project) {
         tenant(tenant, project);
         if (actor == null || !Objects.equals(actor, SecurityFrameworkUtils.getLoginUserId())) throw exception(FORBIDDEN);
-        var visible = scope.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, project, ProjectScopeApi.ACTION_VIEW));
+        var visible = scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (visible == null || visible.fullProjectIds() == null || !visible.fullProjectIds().contains(project)
                 || !permissions.hasAnyPermissions(actor, "pms:cutover-task:query")) throw exception(FORBIDDEN);
     }

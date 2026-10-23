@@ -18,8 +18,17 @@ public class ArrivalDeliveryRegistration {
  private void requireWrite(ArrivalDO row,String permission){
   Long tenant=TenantContextHolder.getRequiredTenantId(),actor=SecurityFrameworkUtils.getLoginUserId();
   if(row==null||!Objects.equals(tenant,row.getTenantId())||actor==null||actor<=0||row.getProjectId()==null||!permissions.hasAnyPermissions(actor,permission))throw denied();
-  var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant,actor,row.getProjectId(),ProjectScopeApi.ACTION_MANAGE));
-  if(!visible(scope,row.getProjectId()))throw denied();var locked=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant,actor,row.getProjectId(),ProjectScopeApi.ACTION_MANAGE,scope.treeVersion()));
+  var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+  if(!visible(scope,row.getProjectId()))throw denied();var locked=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(scope.treeVersion()).build());
   if(!visible(locked,row.getProjectId())||!Objects.equals(scope.treeVersion(),locked.treeVersion()))throw denied();
  }
  public void registerFiles(ArrivalDO row){
@@ -27,6 +36,11 @@ public class ArrivalDeliveryRegistration {
   var sets=files.inspectReferenceSets(new FileReferenceSetCollectionQuery(List.of(key),FileActionCodes.READ));
   var locked=files.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(sets.stream().map(s->new FileReferenceSetExpectation(s.key(),s.scopeVersion(),s.activeFacts())).toList(),FileActionCodes.READ));
   locked.forEach(set->set.activeFacts().forEach(materials::registerNativeSourceFile));
+ }
+ public FileArtifactVersionFact currentSignDocument(ArrivalDO row){
+  var key=new FileReferenceSetKey("IMP","ARRIVAL",row.getId().toString(),ArrivalFilePolicyProvider.PURPOSE_CODE);
+  var sets=files.inspectReferenceSets(new FileReferenceSetCollectionQuery(List.of(key),FileActionCodes.READ));
+  return sets.stream().flatMap(set->set.activeFacts().stream()).findFirst().orElse(null);
  }
  public void preventSourceMove(ArrivalDO row,Long project){if(!Objects.equals(row.getProjectId(),project)&&!materials.listByEntity("IMP","arrival",row.getId()).isEmpty())throw denied();}
  public void registerSigned(ArrivalDO row){materials.registerBusinessResultMaterial("IMP","arrival",row.getId(),"RECEIPT","arrival",row.getId().toString(),null,row.getCode(),row.getProjectId());}

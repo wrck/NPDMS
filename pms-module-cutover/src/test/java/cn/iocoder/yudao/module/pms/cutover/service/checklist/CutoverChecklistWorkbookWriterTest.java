@@ -63,8 +63,9 @@ class CutoverChecklistWorkbookWriterTest {
                                                    Long collectionReference, Long collectionVersion) {
         return new CutoverChecklistView.Item(1L, key, type, key, "description", "TEXT", null,
                 "DIRECT", true, "CONFIGURATION", true, sortOrder,
-                new CutoverChecklistView.CurrentResult(1, resultSource, answer, factDescription,
-                        manualReference, null, collectionReference, collectionVersion, null));
+                CutoverChecklistView.CurrentResult.builder().resultVersion(1).resultSourceCode(resultSource)
+                        .answerSnapshot(answer).factDescription(factDescription).manualEvidenceFileReference(manualReference)
+                        .collectionResultReferenceId(collectionReference).collectionResultVersion(collectionVersion).build());
     }
 
     private static CutoverChecklistView view(List<CutoverChecklistView.Item> items) {

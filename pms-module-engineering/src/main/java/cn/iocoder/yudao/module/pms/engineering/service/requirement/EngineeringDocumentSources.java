@@ -13,7 +13,12 @@ public class EngineeringDocumentSources implements FileDocumentSourceProvider {
     private final RequirementAnalysisMapper requirements;
     @Override public List<Descriptor> descriptors() { return List.of(
             new Descriptor("SOL.REQUIREMENT_DOCUMENT", "需求分析表单附件")); }
-    @Override public Scope resolve(Long tenant, String owner, String type, String object, String purpose) {
+    @Override public Scope resolve(Long tenant, FileEvidenceApi.Document document) {
+        String owner = document.ownerContext();
+        String type = document.objectType();
+        String object = document.objectId();
+        String purpose = document.purposeCode();
+
         if (!Objects.equals(tenant, TenantContextHolder.getRequiredTenantId()) || !"SOL".equals(owner)
                 || purpose == null || !purpose.startsWith(FormAttachmentPolicy.PURPOSE_PREFIX)) return null;
         Long id;

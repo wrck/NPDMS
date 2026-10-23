@@ -12,6 +12,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectPlanImpactAnalyzerTest {
     final ProjectPlanImpactAnalyzer analyzer = new ProjectPlanImpactAnalyzer();
+    @Test void taskRequirementChangeIsDetectedWithoutChangingOtherNodeFields() {
+        var before = gateSnapshot(); var after = copy(before);
+        after.getTasks().getFirst().setRequired(false);
+        var result = analyzer.analyze(before, after, List.of(), List.of());
+        assertTrue(result.changes().stream().anyMatch(change -> before.getTasks().getFirst().getNodeKey().equals(change.nodeKey())));
+        assertNull(before.getTasks().getFirst().getRequired());
+    }
+
     @Test void gateDependenciesReachCrossStageTasksAndClosureButNotIndependentNodes() {
         var before = gateSnapshot();
         String history = JsonUtils.toJsonString(before);

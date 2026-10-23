@@ -12,32 +12,28 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
-import java.util.Optional;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementEntityQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementProjectQuery;
 
 @Mapper
 public interface DeliveryRequirementMapper extends BaseMapperX<DeliveryRequirementDO> {
 
-    default Optional<DeliveryRequirementDO> selectByOwnerAndType(String ownerModule, String entityType,
-                                                                 Long entityId, String typeCode) {
-        return Optional.ofNullable(selectOne(new LambdaQueryWrapperX<DeliveryRequirementDO>()
-                .eq(DeliveryRequirementDO::getOwnerModule, ownerModule)
-                .eq(DeliveryRequirementDO::getEntityType, entityType)
-                .eq(DeliveryRequirementDO::getEntityId, entityId)
-                .eq(DeliveryRequirementDO::getTypeCode, typeCode)));
-    }
-
-    default List<DeliveryRequirementDO> selectByEntity(String ownerModule, String entityType, Long entityId) {
+    default List<DeliveryRequirementDO> selectByEntity(DeliveryRequirementEntityQuery query) {
         return selectList(new LambdaQueryWrapperX<DeliveryRequirementDO>()
-                .eq(DeliveryRequirementDO::getOwnerModule, ownerModule)
-                .eq(DeliveryRequirementDO::getEntityType, entityType)
-                .eq(DeliveryRequirementDO::getEntityId, entityId)
+                .eq(DeliveryRequirementDO::getArchivedReopenSnapshotId, 0L)
+                .eq(DeliveryRequirementDO::getTenantId, query.tenantId())
+                .eq(DeliveryRequirementDO::getOwnerModule, query.ownerModule())
+                .eq(DeliveryRequirementDO::getEntityType, query.entityType())
+                .eq(DeliveryRequirementDO::getEntityId, query.entityId())
                 .orderByAsc(DeliveryRequirementDO::getTypeCode));
     }
 
     /** 项目维度全量要求（跨 owner 三元组）：模板冻结链项目级视图使用。 */
-    default List<DeliveryRequirementDO> selectByProject(Long projectId) {
+    default List<DeliveryRequirementDO> selectByProject(DeliveryRequirementProjectQuery query) {
         return selectList(new LambdaQueryWrapperX<DeliveryRequirementDO>()
-                .eq(DeliveryRequirementDO::getProjectId, projectId)
+                .eq(DeliveryRequirementDO::getArchivedReopenSnapshotId, 0L)
+                .eq(DeliveryRequirementDO::getTenantId, query.tenantId())
+                .eq(DeliveryRequirementDO::getProjectId, query.projectId())
                 .orderByAsc(DeliveryRequirementDO::getId));
     }
 

@@ -77,6 +77,9 @@ public class ProjectPlanImpactAnalyzer {
         }
         if (ruleChanged(before.getClosureRuleKey(), after.getClosureRuleKey(), changedRules))
             changes.add(new Change("$project", "PROJECT", "项目收口", "UPDATE", false, false, List.of("生效后按新的收口条件判断；不附加固定审批")));
+        if (!Objects.equals(before.getImplementationReadiness(), after.getImplementationReadiness()))
+            changes.add(new Change("$implementationReadiness", "PROJECT", "实施前置适用范围", "UPDATE", false, false,
+                    List.of("生效后割接就绪须按新计划重新评估，已冻结就绪快照保留")));
         Map<String, Set<String>> dependents = new LinkedHashMap<>();
         collectDependents(before, dependents); collectDependents(after, dependents);
         Set<String> affected = new LinkedHashSet<>(changes.stream().map(Change::nodeKey).toList());

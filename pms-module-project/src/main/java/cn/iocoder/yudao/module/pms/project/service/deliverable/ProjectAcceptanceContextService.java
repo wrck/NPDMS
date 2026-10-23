@@ -20,13 +20,22 @@ public class ProjectAcceptanceContextService implements ProjectAcceptanceContext
     @Override public Context inspect(Query query) {
         if (query == null) throw new IllegalArgumentException("ACCEPTANCE_PROJECT_CONTEXT_REQUIRED");
         var project = require(query, projects.selectById(query.projectId()));
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(), query.actorId(), query.projectId(), ProjectScopeApi.ACTION_EDIT));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         return context(query, project, scope);
     }
     @Override @Transactional(propagation = Propagation.MANDATORY)
     public Context lock(Query query, Long expectedProjectVersion, Long expectedTreeVersion) {
         if (query == null || expectedProjectVersion == null || expectedTreeVersion == null) throw new IllegalArgumentException("ACCEPTANCE_PROJECT_CONTEXT_REQUIRED");
-        var scope = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(), query.actorId(), query.projectId(), ProjectScopeApi.ACTION_EDIT, expectedTreeVersion));
+        var scope = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(expectedTreeVersion).build());
         var project = require(query, projects.selectByIdForUpdate(query.projectId()));
         var result = context(query, project, scope);
         if (!Objects.equals(project.getVersion(), expectedProjectVersion) || !Objects.equals(scope.treeVersion(), expectedTreeVersion))

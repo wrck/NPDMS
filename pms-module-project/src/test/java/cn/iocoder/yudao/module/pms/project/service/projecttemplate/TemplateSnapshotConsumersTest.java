@@ -49,7 +49,7 @@ class TemplateSnapshotConsumersTest {
         when(plans.selectEffective(any())).thenReturn(plan);
         when(plans.selectHistory(any())).thenReturn(List.of(plan));
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L, 1L, Set.of(9L), Set.of()));
-        var history = new ProjectExecutionHistoryService(scopes, permissions, plans, executions);
+        var history = new ProjectExecutionHistoryService(scopes, permissions, plans, executions, org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectExecutionTimeProjection.class));
         assertThrows(RuntimeException.class, () -> history.get(9L, 1L));
         verifyNoInteractions(executions);
 
@@ -73,7 +73,7 @@ class TemplateSnapshotConsumersTest {
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L, 1L, Set.of(9L), Set.of()));
         when(plans.selectHistory(any())).thenReturn(List.of(old));
         when(executions.selectHistory(any())).thenReturn(List.of(round()));
-        var history = new ProjectExecutionHistoryService(scopes, permissions, plans, executions);
+        var history = new ProjectExecutionHistoryService(scopes, permissions, plans, executions, org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectExecutionTimeProjection.class));
 
         assertEquals("阶段0", history.get(9L, 1L).rounds().getFirst().name());
         assertEquals(frozen, old.getExecutionSnapshot());

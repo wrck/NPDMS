@@ -62,7 +62,7 @@
     "currentRule": "one open selection interval per checklist item",
     "switch": "close old selection and append the new result in one CUT transaction",
     "collectionMeaning": "technical result reference only; never means item passed",
-    "manualFallback": "retain failed automatic/external fact and select a MANUAL result with authorized evidence"
+    "manualFallback": "COLLECTION items may select authorized MANUAL file evidence directly without a failed request; retain any existing automatic failure fact. EXTERNAL items still require their exact failed external query; DIRECT items do not accept MANUAL replacements"
   },
   "filePolicy": {
     "ownerContext": "CUT",
@@ -128,5 +128,18 @@
     "migration": "NO_LEGACY_SOURCE_NO_DUAL_WRITE_NO_INFERENCE"
   },
   "outOfScope": ["V2_EXPORT", "CONFIGURABLE_FLOW_JUMP", "P4_P5_P6", "DAC_PROVIDER", "EXTERNAL_DATA_PROVIDER", "GENERAL_WORK_ORDER", "YUDAO_PLATFORM_CHANGE"],
-  "featureReadyGate": "GO@ea986d61"
+  "featureReadyGate": "GO@ea986d61",
+  "httpConsolidation": {
+    "basePath": "/api/v1/pms/cutover-tasks/{taskId}/checklist",
+    "intent": "every modifying command requires Idempotency-Key; uncertain retry uses the same key, versions and payload",
+    "versions": "existing draft modifications require If-Match and X-Task-Version; body expected versions must equal headers; first generate keeps its existing task-version contract",
+    "externalOperations": [
+      "PUT /device-versions",
+      "POST /items/{stableItemKey}/external-queries",
+      "PUT /items/{stableItemKey}/external-feedback"
+    ],
+    "collection": "POST /items/{stableItemKey}/collection-requests binds an accepted formal PLT execution to the checklist item; commandTemplateId is a positive id for published templates or null for manual commands verified against the exact manual-{checklistItemId} provider identity; provider success alone does not pass the item",
+    "responses": "CutoverChecklistResponses and CutoverExternalChecklistResponses HTTP records; Yudao Long and epoch-millisecond wire rules; allowedActions are server projections",
+    "errors": "CommonResult<CutoverErrorData{category,reasonCode,recoveryAction}>; HTTP 409 stale version/state -> REFRESH_AGGREGATE, 422 evidence -> REFRESH_OWNER_FACTS, conflicting intent -> START_NEW_INTENT, in-progress intent -> RETRY_SAME_KEY"
+  }
 }

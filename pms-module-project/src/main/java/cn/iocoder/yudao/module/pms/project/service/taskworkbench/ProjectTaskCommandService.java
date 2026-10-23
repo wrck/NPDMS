@@ -184,6 +184,7 @@ public class ProjectTaskCommandService {
         task.setDescriptionFormat(command.descriptionFormat());
         task.setProgress(BigDecimal.ZERO);
         task.setStateMachineRevisionId(stateMachine.getId());
+        task.setRequiredTask(true);
         task.setStatus("PENDING_ASSIGN");
         task.setVersion(0);
         if (taskMapper.insert(task) != 1 || taskMapper.insertNewTaskPaths(new NewTaskTreePathInsert(

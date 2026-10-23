@@ -10,7 +10,9 @@
     <select id="lockGraph" resultType="java.lang.Long">
         SELECT tenant_id FROM ast_device_assembly_graph_lock WHERE tenant_id = #{query.tenantId} FOR UPDATE
     </select>
-    <select id="lockLogConflicts" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.assembly.DeviceAssemblyDO">
+
+    <select id="lockLogConflicts"
+            resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.assembly.DeviceAssemblyDO">
         SELECT id, tenant_id, parent_device_sn, child_device_sn, position_code,
                assembly_type, effective_from, effective_to, evidence_ref,
                source_system, source_key, source_version, version
@@ -18,7 +20,8 @@
         WHERE tenant_id = #{query.tenantId} AND deleted = b'0' AND effective_to IS NULL
           AND (child_device_sn = #{query.childDeviceSn}
             OR (parent_device_sn = #{query.parentDeviceSn} AND position_code = #{query.positionCode}))
-        ORDER BY id FOR UPDATE
+        ORDER BY id
+        FOR UPDATE
     </select>
 
     <select id="existsBySource" resultType="boolean">

@@ -27,11 +27,11 @@ public interface ProjectDeliverableArchiveFactApi {
      * @param stageCode       所属阶段编码
      * @param required        是否必交
      * @param sourceObjectType 当前来源对象类型（AcceptanceReportVersion / SatisfactionResult）；未归档为 null
-     * @param sourceCategory   归档类别：PRELIMINARY 初验报告 / FINAL 终验报告 / SATISFACTION 满意度调查报告；未归档为 null
+     * @param sourceCategory   归集类别：RECEIPT 签收单 / PRELIMINARY 初验报告 / FINAL 终验报告 / SATISFACTION 满意度；无提交来源为 null
      * @param sourceObjectId   当前来源对象编号；未归档为 null
      * @param sourceVersion    当前来源版本；未归档为 null
      * @param relationStatus   来源关系状态（CURRENT / SUPERSEDED / REVOKED）；未归档为 null
-     * @param archiveStatus    归档状态（ARCHIVED / PENDING_COMPENSATION / INVALID）；未归档为 null
+     * @param archiveStatus    归档状态（ARCHIVED / PENDING_COMPENSATION / INVALID / NOT_REQUIRED）；无材料为 null，NOT_REQUIRED 表示已提交材料无额外归档义务
      */
     record ProjectDeliverableArchiveFact(
             Long deliverableId,

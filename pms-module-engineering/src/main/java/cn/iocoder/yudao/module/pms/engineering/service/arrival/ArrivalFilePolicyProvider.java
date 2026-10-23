@@ -85,8 +85,11 @@ public class ArrivalFilePolicyProvider implements FileBusinessObjectPolicyProvid
                                                  String purposeCode, String requiredAction) {
         ArrivalDO arrival = locate(tenantId, objectId);
         if (arrival == null || !PURPOSE_CODE.equals(purposeCode)) return denied();
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorUserId, arrival.getProjectId(), scopeAction(requiredAction)));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(arrival.getProjectId())
+                .actionCode(scopeAction(requiredAction)).build());
         if (!inScope(scope, arrival.getProjectId())) return denied();
         return policy(allowed(actorUserId, requiredAction, arrival), scope.treeVersion(), arrival);
     }
@@ -96,9 +99,12 @@ public class ArrivalFilePolicyProvider implements FileBusinessObjectPolicyProvid
                                                            String requiredAction, Long expectedScopeVersion) {
         ArrivalDO located = locate(tenantId, objectId);
         if (located == null || !PURPOSE_CODE.equals(purposeCode)) return denied();
-        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                tenantId, actorUserId, located.getProjectId(),
-                scopeAction(requiredAction), expectedScopeVersion));
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(located.getProjectId())
+                .actionCode(scopeAction(requiredAction))
+                .expectedScopeVersion(expectedScopeVersion).build());
         if (!inScope(scope, located.getProjectId()) || !Objects.equals(expectedScopeVersion, scope.treeVersion())) return denied();
         ArrivalDO locked = arrivalMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.ArrivalDeliveryOwnerQuery(tenantId,located.getId()));
         if (locked == null || !Objects.equals(locked.getTenantId(),tenantId) || !Objects.equals(locked.getProjectId(), located.getProjectId())) return denied();

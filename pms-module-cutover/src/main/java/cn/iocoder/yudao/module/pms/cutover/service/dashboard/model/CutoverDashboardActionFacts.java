@@ -61,9 +61,9 @@ public record CutoverDashboardActionFacts(Long taskId, ActionFacts facts) {
                     save, false, false, false, false, false);
         }
 
-        public static PermissionFacts p5() {
+        public static PermissionFacts p5(boolean canApprove) {
             return new PermissionFacts(false, false, false, false, false, false, false, false,
-                    false, true, true, false, false, false);
+                    false, canApprove, canApprove, false, false, false);
         }
 
         public static PermissionFacts p6(boolean save, boolean requestCollection, boolean submit) {

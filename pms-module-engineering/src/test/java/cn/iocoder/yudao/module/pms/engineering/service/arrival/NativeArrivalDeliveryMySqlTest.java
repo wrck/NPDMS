@@ -173,7 +173,7 @@ class NativeArrivalDeliveryMySqlTest {
         var security = mock(SecurityFrameworkService.class); when(security.hasPermission(anyString())).thenReturn(true);
         context.getBeanFactory().registerSingleton("ss", security);
         context.registerBean(FileQueryService.class, () -> new FileQueryService(context.getBean(FileBusinessObjectPolicyRegistry.class),
-                sessions.getMapper(FileArtifactMapper.class), sessions.getMapper(FileVersionMapper.class), sessions.getMapper(FileReferenceMapper.class), security));
+                sessions.getMapper(FileArtifactMapper.class), sessions.getMapper(FileVersionMapper.class), sessions.getMapper(FileReferenceMapper.class), security, sessions.getMapper(FileUploadSessionMapper.class)));
         context.registerBean(FileLifecycleApplicationService.class, () -> new FileLifecycleApplicationService(context.getBean(PlatformCommandExecutionApiImpl.class),
                 context.getBean(OperationAuditApiImpl.class), context.getBean(FileBusinessObjectPolicyRegistry.class), security, sessions.getMapper(FileArtifactMapper.class),
                 sessions.getMapper(FileVersionMapper.class), sessions.getMapper(FileReferenceMapper.class), sessions.getMapper(FileUploadSessionMapper.class), sessions.getMapper(FileArchiveRecordMapper.class), context.getBean(FileEventFactory.class)));

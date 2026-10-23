@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.controller.admin.projects;
 
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectStatisticsRespVO;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStatisticsService;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
@@ -104,6 +106,8 @@ public class ProjectMasterController {
     @Resource
     private ProjectManualCreationService projectManualCreationService;
     @Resource
+    private ProjectStatisticsService projectStatisticsService;
+    @Resource
     private cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStatusPresentationService projectStatusPresentationService;
     @Resource
     private ProjectTemplateService projectTemplateService;
@@ -180,6 +184,14 @@ public class ProjectMasterController {
             throw cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception(
                     cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TEMPLATE_MATCH_PREVIEW_FAILED);
         }
+    }
+
+    @GetMapping("/statistics")
+    @Operation(summary = "查询全部可见项目状态卡统计")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<ProjectStatisticsRespVO> getProjectStatistics() {
+        return success(BeanUtils.toBean(projectStatisticsService.getStatistics(accessActor()),
+                ProjectStatisticsRespVO.class));
     }
 
     @GetMapping("/page")

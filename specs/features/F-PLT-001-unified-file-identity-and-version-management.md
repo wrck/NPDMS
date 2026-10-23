@@ -55,6 +55,7 @@
 - 每次新内容生成同一Artifact下递增且不可变的`FileVersion`。`uk(tenant_id, artifact_id, version_no)`保证并发单胜，已提交版本没有内容、摘要、大小、媒体类型或存储定位更新入口。
 - `FileReference`是业务对象用途槽位，固定到`artifactId+versionNo`。草稿允许在业务Owner授权后通过`If-Match`切换到新版本；已提交/审批/批准/发布/归档用途必须由业务Owner拒绝原位换版并通过新的业务revision引用新版本。
 - 业务表冻结`artifactId+versionNo`，不得只保存URL；文件列表可从Artifact及版本历史查询当前内容和旧版本。
+- 2026-10-23文件名展示修复：公共文件卡片按精确所选版本显示原上传文件名；当前版本及版本分页的可空名称字段从已有完成上传会话及技术回执对应关系读取，不重命名工件、不回写旧版本。源数据缺失回退工件初始名称，仍执行原用途授权与租户过滤。接口增量见`docs/design/13-file-design.md`。
 
 ### BR-FPLT001-002 上传初始化与完成
 

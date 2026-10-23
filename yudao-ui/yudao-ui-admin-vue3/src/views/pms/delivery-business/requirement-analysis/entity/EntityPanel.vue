@@ -6,7 +6,7 @@
         <div class="requirement-actions">
           <!-- 视图级操作收口到工作区底部吸附操作栏（businessActionBar 协议）；独立页签（需求分析）原地渲染 -->
           <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
-            <el-button :loading="loading" @click="refreshWorkspace"><Icon icon="ep:refresh" />刷新</el-button>
+            <el-button v-if="!hasActionBar" :loading="loading" @click="refreshWorkspace"><Icon icon="ep:refresh" />刷新</el-button>
             <el-button v-if="canCreateInitial" :loading="commandLoading" type="primary" @click="createInitial">创建需求分析草稿</el-button>
             <el-button v-if="canRevise" :loading="commandLoading" type="primary" @click="createRevision">从查看版本创建草稿</el-button>
             <el-button :disabled="!detail" @click="openHistory">修订记录</el-button>
@@ -20,7 +20,8 @@
       </el-alert>
       <template v-else-if="overview">
         <div class="revision-options" data-testid="requirement-version-table" aria-label="选择需求分析版本">
-          <button v-for="item in currentVersions" :key="String(item.revision.ref.revisionId)"
+          <button
+            v-for="item in currentVersions" :key="String(item.revision.ref.revisionId)"
             class="revision-option" :class="{ 'is-selected': item.revision.ref.revisionId === selectedRevisionId }"
             :aria-pressed="item.revision.ref.revisionId === selectedRevisionId"
             @click="selectVersion(item.revision.ref.revisionId)">
@@ -31,8 +32,6 @@
         </div>
 
       </template>
-        <el-alert v-if="operationReceipt" :title="`操作回执：${operationReceipt.outcome}；并发依据：${operationReceipt.newConcurrencyBasis ?? '-'}`"
-          type="success" show-icon :closable="false" data-testid="requirement-operation-receipt" />
         <el-alert v-if="commandError" :title="commandError" type="warning" show-icon closable @close="commandError = ''" />
     </ContentWrap>
     <ContentWrap v-if="overview" :body-style="{ padding: '20px' }">
@@ -40,7 +39,7 @@
       <el-skeleton v-else-if="detailLoading" :rows="8" animated />
       <template v-else-if="detail">
         <div class="analysis-heading">
-          <div><h3>项目需求分析</h3><p>记录客户目标、网络现状和实施要求，作为实施方案与工程交底的输入。</p></div>
+          <div><h3>项目需求分析</h3><p>记录客户目标、网络现状和实施要求，作为实施方案的输入。</p></div>
           <el-tag :type="detail.revision.state === 'DRAFT' ? 'warning' : 'success'">{{ relationLabel }} · V{{ detail.revision.revisionNo }}</el-tag>
         </div>
         <EntityForm
@@ -86,6 +85,7 @@ import { useBusinessActionBar } from '@/components/BusinessView/businessActionBa
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
 const props = defineProps<{ project: ProjectMasterVO; revisionId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean; openBriefing?: () => unknown }>()
 const { barTarget } = useBusinessActionBar()
+const hasActionBar = !!barTarget
 const selectedExecution = (): ProjectBusinessExecutionSelection | undefined =>
   props.taskExecution || props.stageExecution ? {
     ...(props.taskExecution ? { task: { ...props.taskExecution } } : {}),
@@ -111,6 +111,7 @@ const historyRef = ref<InstanceType<typeof RevisionDrawer>>()
 const compareRef = ref<InstanceType<typeof CompareDrawer>>()
 const dynamicFormRef = ref<{
   save: () => Promise<boolean>
+  validateCompletion: () => Promise<boolean>
   discardChanges: () => void
   isSaving: () => boolean
 }>()
@@ -146,8 +147,8 @@ const formatDateTime = (value?: string) => (value ? formatDate(value) : '-')
 const statusLabel = (status: string) => ({ DRAFT: '草稿', FROZEN: '已完成' })[status] || status
 const commandErrorText = (error: any) => {
   if (error?.message?.startsWith('操作已完成，但回执修订重开失败')) return error.message
-  const code = error?.data?.code || error?.code || error?.message
-  return code ? `操作未完成：${String(code)}` : '操作未完成，请刷新权威事实后重试。'
+  const reason = error?.data?.msg || error?.message || error?.msg || error?.data?.code || error?.code
+  return reason ? `操作未完成：${String(reason)}` : '操作未完成，请按错误提示检查填写内容和附件后重试。'
 }
 let loadSequence = 0
 const readDetail = async (revisionId: EntityId, projectId = props.project.id) => {
@@ -316,6 +317,7 @@ const complete = async () => {
   if (!detail.value) return
   const payload = { revision: detail.value.revision, execution: loadedExecution.value }
   if (!(await guardCurrentForm('完成草稿'))) return
+  if (dynamicFormRef.value && !(await dynamicFormRef.value.validateCompletion())) return
   await message.confirm('完成后正文与附件将永久冻结，是否继续？')
   const intent = stableCommandIntent('requirement-complete', payload)
   commandLoading.value = true

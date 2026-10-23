@@ -29,6 +29,7 @@ export interface ProjectWorkspace {
 }
 
 export interface TaskNode {
+  requiredTask?: boolean
   taskId: number
   projectId?: number
   parentTaskId?: number
@@ -107,6 +108,7 @@ export interface TaskWorkbenchDeliverable {
   name: string
   required?: boolean
   status?: string
+  automaticCollection?: boolean
 }
 
 export interface TaskWorkbench {
@@ -119,6 +121,10 @@ export interface TaskWorkbench {
   factVersion?: string
   recoverableError?: string
   approval?: TaskApprovalView
+  startAdmission?: {
+    outcome: 'MATCHED' | 'NOT_MATCHED' | 'UNKNOWN'
+    conditions: { label: string; outcome: 'MATCHED' | 'NOT_MATCHED' | 'UNKNOWN' }[]
+  }
   resultSubscriptions?: TaskSubscriptionRound[]
   deliverables?: TaskWorkbenchDeliverable[]
 }
@@ -220,7 +226,7 @@ const patchTask = async <T>(url: string, data: unknown, version: number) => {
 export const getProjectWorkspace = (projectId: number) =>
   request.get<ProjectWorkspace>({ url: `${baseUrl}/projects/${projectId}/workspace` })
 
-export const getProjectTasks = (projectId: number, params: TaskTreeQuery) =>
+export const getProjectTasks = (projectId: number | string, params: TaskTreeQuery) =>
   request.get<CursorResult<TaskNode>>({ url: `${baseUrl}/projects/${projectId}/tasks`, params })
 
 export const getTaskWorkbench = (taskId: number | string) =>

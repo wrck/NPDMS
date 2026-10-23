@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -59,4 +60,8 @@ public class ProjectDeliverableInstanceDO extends TenantBaseDO {
      * 乐观锁版本列：暂不接 @Version 拦截器，并发由 uk + 行锁保障
      */
     private Integer version;
+
+    /** 自动归集标识，仅供实例视图透传，不映射数据库列。 */
+    @TableField(exist = false)
+    private Boolean automaticCollection;
 }

@@ -21,6 +21,8 @@ public class VisibleProjectPageQuery {
     private PageParam pageParam;
     private String projectNameKeyword;
     private String projectCodePrefix;
+    private String customerCode;
+    private Boolean overdueOnly;
     private String status;
     private String signingMethod;
     private String projectCategory;

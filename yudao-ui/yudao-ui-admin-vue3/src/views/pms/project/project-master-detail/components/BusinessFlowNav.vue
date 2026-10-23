@@ -12,7 +12,6 @@
         >
           <Icon :icon="item.icon" class="flow-icon" />
           <span class="flow-label">{{ item.label }}</span>
-          <span v-if="item.code" class="flow-code">{{ item.code }}</span>
         </button>
       </template>
     </div>
@@ -89,10 +88,4 @@ const visibleItems = (group: BusinessFlowGroup): BusinessNavItem[] =>
   white-space: nowrap;
 }
 
-.flow-code {
-  flex: none;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  color: var(--el-text-color-placeholder);
-}
 </style>

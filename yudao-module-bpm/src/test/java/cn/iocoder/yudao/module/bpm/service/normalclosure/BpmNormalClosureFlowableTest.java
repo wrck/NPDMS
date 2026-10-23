@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.bpm.service.normalclosure;
 
 import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.web.config.WebProperties;
 import cn.iocoder.yudao.module.bpm.api.event.BpmProcessInstanceStatusEvent;
 import cn.iocoder.yudao.module.bpm.api.normalclosure.BpmNormalClosureApi;
 import cn.iocoder.yudao.module.bpm.api.normalclosure.BpmNormalClosureResultEvent;
@@ -19,11 +20,12 @@ import cn.iocoder.yudao.module.bpm.framework.flowable.core.listener.BpmTaskEvent
 import cn.iocoder.yudao.module.bpm.service.comment.BpmCommentServiceImpl;
 import cn.iocoder.yudao.module.bpm.service.definition.BpmModelServiceImpl;
 import cn.iocoder.yudao.module.bpm.service.definition.BpmProcessDefinitionServiceImpl;
-import cn.iocoder.yudao.module.bpm.service.message.BpmMessageService;
+import cn.iocoder.yudao.module.bpm.service.message.BpmMessageServiceImpl;
 import cn.iocoder.yudao.module.bpm.service.task.BpmProcessInstanceServiceImpl;
 import cn.iocoder.yudao.module.bpm.service.task.BpmTaskServiceImpl;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi;
+import cn.iocoder.yudao.module.system.api.sms.SmsSendApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import cn.iocoder.yudao.module.system.api.user.dto.AdminUserRespDTO;
 import org.flowable.common.engine.impl.history.HistoryLevel;
@@ -49,13 +51,16 @@ import java.util.*;
 
 import static cn.iocoder.yudao.module.bpm.api.normalclosure.BpmNormalClosureApi.PROCESS_DEFINITION_KEY;
 import static cn.iocoder.yudao.module.bpm.framework.flowable.core.enums.BpmnVariableConstants.*;
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.SMS_SEND_MOBILE_NOT_EXISTS;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
  * Actual Flowable + H2, Spring transactions, upstream create/deploy/approve/reject and upstream listeners.
- * Only external System/message APIs and the definition metadata persistence adapter are test doubles.
+ * Only external System APIs and the definition metadata persistence adapter are test doubles.
+ * Actual BPM notifications receive missing-mobile failures; result events and business rollback must still work.
  * No runtime/history/task/approval result is mocked; production createProcessDefinition performs registration.
  */
 class BpmNormalClosureFlowableTest {
@@ -100,7 +105,12 @@ class BpmNormalClosureFlowableTest {
                 .thenAnswer(inv -> explicitGrant);
         var department = mock(DeptApi.class);
         when(department.getDeptMap(anyCollection())).thenReturn(Map.of());
-        var messages = mock(BpmMessageService.class);
+        var sms = mock(SmsSendApi.class);
+        when(sms.sendSingleSmsToAdmin(any())).thenThrow(exception(SMS_SEND_MOBILE_NOT_EXISTS));
+        var web = new WebProperties();
+        web.setAdminUi(new WebProperties.Ui().setUrl("http://localhost:19191"));
+        var messages = new BpmMessageServiceImpl();
+        wire(messages, "smsSendApi", sms, "webProperties", web);
         var candidates = new BpmTaskCandidateInvoker(List.of(new BpmTaskCandidateExpressionStrategy()), users);
         var behavior = new BpmActivityBehaviorFactory();
         behavior.setTaskCandidateInvoker(candidates);

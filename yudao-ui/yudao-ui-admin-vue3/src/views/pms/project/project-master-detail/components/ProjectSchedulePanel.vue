@@ -7,7 +7,7 @@
       <div class="schedule-actions">
         <!-- 视图级操作收口到工作区底部吸附操作栏（businessActionBar 协议）；独立页签（计划进度）原地渲染 -->
         <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
-          <el-button :disabled="dirty || acting" @click="load()">刷新</el-button>
+          <el-button v-if="!hasActionBar" data-testid="refresh-schedule" :disabled="dirty || acting || loading" @click="refresh">刷新</el-button>
           <el-button :disabled="acting" @click="durationVisible = true">{{
             durationPlan ? '管理工期' : '录入工期'
           }}</el-button>
@@ -15,33 +15,10 @@
       </div>
     </header>
     <dl class="schedule-facts">
-      <div
-        ><dt>签约方式</dt><dd>{{ signingLabel }}</dd
-        ><small>{{ project.contractNo || '尚未关联合同' }}</small></div
-      >
-      <div
-        ><dt>工勘要求结束日期</dt><dd>{{ project.projectEndDate || '未登记' }}</dd
-        ><small>来自工前准备</small></div
-      >
-      <div
-        ><dt>当前生效工期</dt
-        ><dd>{{ durationPlan ? `${durationPlan.currentRevision.durationDays} 天` : '未录入' }}</dd
-        ><small>{{
-          durationPlan
-            ? `${durationPlan.currentRevision.startDate} 至 ${durationPlan.currentRevision.endDate}`
-            : '录入后可制定施工计划'
-        }}</small></div
-      >
-      <div
-        ><dt>本版倒排截止日期</dt><dd>{{ calculationInput.anchorEnd || '尚未推算' }}</dd
-        ><small>{{
-          calculationInput.signingMethod === 'DIRECT_SIGN'
-            ? '来自回款节点计划验收时间'
-            : calculationInput.anchorEnd
-              ? '来自本版工期要求'
-              : '创建计划后读取权威输入'
-        }}</small></div
-      >
+      <div><dt>生效工期开始</dt><dd>{{ durationPlan?.currentRevision.startDate || '未录入' }}</dd></div>
+      <div><dt>生效工期结束</dt><dd>{{ durationPlan?.currentRevision.endDate || '未录入' }}</dd></div>
+      <div><dt>工期总天数</dt><dd>{{ durationPlan ? `${durationPlan.currentRevision.durationDays} 天` : '未录入' }}</dd></div>
+      <div><dt>计划验收时间</dt><dd>{{ plannedAcceptanceDates || '未登记' }}</dd></div>
     </dl>
     <el-alert
       v-if="errorText"
@@ -147,13 +124,6 @@
         @open-task="openTask"
       />
       <el-form v-if="editable" label-position="top" class="adjustment-form">
-        <el-form-item label="调整原因"
-          ><el-input
-            v-model="batch.remark"
-            type="textarea"
-            :rows="2"
-            placeholder="说明调整依据，随计划一并提交审核"
-        /></el-form-item>
         <div class="schedule-actions plan-footer">
           <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
             <el-button
@@ -183,15 +153,10 @@
       </el-form>
       <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
         <el-button
-          v-if="batch.bpmProcessInstanceId"
+          v-if="batch.bpmProcessInstanceId && checkPermi(['bpm:process-instance:query']) && checkPermi(['bpm:task:query'])"
           link
           type="primary"
-          @click="
-            router.push({
-              name: 'BpmProcessInstanceDetail',
-              query: { id: batch.bpmProcessInstanceId }
-            })
-          "
+          @click="openApprovalDetail(batch.bpmProcessInstanceId)"
           >查看审批进度</el-button
         >
       </Teleport>
@@ -205,11 +170,8 @@
       "
     >
       <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
-        <el-button v-if="!durationPlan" type="primary" :disabled="!!initialDurationHint(project)" @click="durationVisible = true"
-          >录入项目工期</el-button
-        >
         <el-button
-          v-else
+          v-if="durationPlan"
           v-hasPermi="['pms:imp-stage-plan:create']"
           type="primary"
           :disabled="acting"
@@ -242,7 +204,11 @@
             :key="person.userId"
             :value="person.userId"
             :label="person.memberName || `用户 ${person.userId}`" /></el-select></el-form-item
-    ></el-form>
+    >
+      <el-form-item v-if="batch?.adjustmentReasonRequired" label="调整理由" required>
+        <el-input v-model="adjustmentReason" type="textarea" :rows="3" placeholder="说明本次阶段和任务日期的调整理由" :disabled="acting" />
+      </el-form-item>
+    </el-form>
     <template #footer
       ><el-button @click="submitVisible = false">取消</el-button
       ><el-button type="primary" :loading="acting" :disabled="!approverId || dirty" @click="submit"
@@ -267,12 +233,12 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { shortPlan, deadlineHint, taskPlanIssue, stageItemIssue, fitTaskPlanIntoStage, compareSchedules } from './schedulePresentation'
-import { useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
+import { shortPlan, deadlineHint, taskPlanIssue, stageItemBlockingIssue, fitTaskPlanIntoStage, compareSchedules, fillCompletedPlanDates } from './schedulePresentation'
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
+import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
 import { formatDate } from '@/utils/formatTime'
-import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import * as MemberApi from '@/api/pms/project/unified-members'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import * as PlanApi from '@/api/pms/engineering/stage-plan'
@@ -285,21 +251,24 @@ import { initialDurationHint } from './durationEntry'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 const { barTarget } = useBusinessActionBar()
+const hasActionBar = !!barTarget
 const emit = defineEmits<{
   'open-task': [task: TaskApi.TaskNode, stageCode: string]
   changed: []
 }>()
-const router = useRouter(),
+const openApprovalDetail = useProjectApprovalDetail(),
   message = useMessage()
 const loading = ref(false),
   acting = ref(false),
   errorText = ref('')
 const durationVisible = ref(false),
   submitVisible = ref(false),
-  approverId = ref<number>()
-const approvers = ref<(MemberApi.MemberRecord & { userId: number })[]>([]),
+  approverId = ref<number | string>()
+type ServiceManagerApprover = { userId: number | string; memberName?: string }
+const approvers = ref<ServiceManagerApprover[]>([]),
   approversLoading = ref(false),
   approverError = ref('')
+const adjustmentReason = ref('')
 const comparisonVisible = ref(false),
   comparisonLoading = ref(false)
 const comparisonRows = ref<ReturnType<typeof compareSchedules>>([])
@@ -323,12 +292,6 @@ const hasActiveDraft = computed(() =>
 const currentEffective = computed(
   () =>
     batches.value.filter((item) => item.status === 2).sort((a, b) => (b.id || 0) - (a.id || 0))[0]
-)
-const signingLabel = computed(
-  () =>
-    getDictLabel(DICT_TYPE.PMS_SIGNING_METHOD, props.project.signingMethod) ||
-    props.project.signingMethod ||
-    '未登记'
 )
 const staleDuration = computed(
   () =>
@@ -357,11 +320,17 @@ const taskProgress = computed(() =>
 )
 const overdue = ref<PlanApi.StagePlanOverdueRowVO[]>([])
 const overdueError = ref(false)
-const calculationInput = computed(() => {
+const plannedAcceptanceDates = computed(() => {
   try {
-    return JSON.parse(batch.value?.inputSnapshot || '{}')
+    const input = JSON.parse(batch.value?.inputSnapshot || '{}') as {
+      stages?: { acceptanceTime?: string; tasks?: { acceptanceTime?: string }[] }[]
+    }
+    const dates = (input.stages || []).flatMap((stage) =>
+      [stage.acceptanceTime, ...(stage.tasks || []).map((task) => task.acceptanceTime)]
+    ).filter((value): value is string => !!value).map((value) => value.slice(0, 10))
+    return [...new Set(dates)].sort().join('、')
   } catch {
-    return {}
+    return ''
   }
 })
 const statusLabels: Record<number, string> = { 0: '草稿', 1: '审批中', 2: '已生效', 3: '已驳回' }
@@ -394,6 +363,7 @@ const apply = (value: PlanApi.StagePlanBatchVO) => {
   batch.value = value
   selectedId.value = value.id
   saved.value = JSON.stringify(value)
+  if (editable.value) fillCompletedPlanDates(value)
 }
 // 任务计划日期为空时默认沿用所属阶段日期，避免逐项重复填写；阶段计划时间更新时，
 // 不满足阶段区间的任务自动调整进区间（尽量平移保持天数，超长收紧为整个区间）。
@@ -410,7 +380,9 @@ watch(
     if (!value || (value.status !== 0 && value.status !== 3) || !editable.value) return
     const wasDirty = JSON.stringify(value) !== saved.value
     let changed = false
+    const completedTasks = new Set(value.completedDates?.tasks.map(node => String(node.nodeId)) || [])
     for (const task of value.tasks || []) {
+      if (completedTasks.has(String(task.taskId))) continue
       const stage = value.items.find((item) => item.phaseCode === task.stageCode)
       if (!stage?.planStart || !stage.planEnd) continue
       if (!task.planStart || !task.planEnd) {
@@ -547,6 +519,7 @@ const openSubmit = async () => {
   const projectId = props.project.id!
   submitVisible.value = true
   approverId.value = undefined
+  adjustmentReason.value = ''
   approvers.value = []
   approverError.value = ''
   approversLoading.value = true
@@ -566,9 +539,15 @@ const openSubmit = async () => {
     approvers.value = [
       ...new Map(
         members
-          .filter((person): person is MemberApi.MemberRecord & { userId: number } =>
-            person.userId !== null && MemberApi.logicalMemberRole(person.memberRole) === 'SERVICE_MANAGER')
-          .map((person) => [person.userId, person])
+          .flatMap((person): ServiceManagerApprover[] => {
+            if (MemberApi.logicalMemberRole(person.memberRole) !== 'SERVICE_MANAGER') return []
+            // 长整数账号由服务端序列化为字符串，原样传递，避免 Number 转换丢失精度。
+            const userId: unknown = person.userId
+            if (!(typeof userId === 'number' && Number.isSafeInteger(userId) && userId > 0)
+              && !(typeof userId === 'string' && /^[1-9]\d*$/.test(userId))) return []
+            return [{ userId, memberName: person.memberName }]
+          })
+          .map((person) => [String(person.userId), person])
       ).values()
     ]
     if (approvers.value.length === 1) approverId.value = approvers.value[0].userId ?? undefined
@@ -618,21 +597,21 @@ const save = async () => {
   )
 }
 // 保存不做校验，避免填写中的计划日期丢失；完整性检查集中在提交审核时进行。
-// 提交预检与安排检查列同一套规则，文案与后端提交校验一致，提交前即提示不等审批退回；
+// 提交预检保留安排检查列的正式约束；建议日期仅提示风险，调整后的计划交由审批。
 // 阶段次序按模板冻结路径准入约束判定（串行边允许当天衔接，并行分支允许重叠）。
 const submit = async () => {
   const value = batch.value
   if (!value || !approverId.value || dirty.value) return
-  if (!value.remark?.trim()) return message.warning('提交审核前请填写调整原因')
+  if (value.adjustmentReasonRequired && !adjustmentReason.value.trim()) return message.warning('请填写调整理由')
   for (const item of value.items) {
-    const issue = stageItemIssue(item, value)
+    const issue = stageItemBlockingIssue(item, value)
     if (issue) return message.warning(`${item.phaseName || '阶段'} ${issue}`)
   }
   if (taskIssues.value.length)
     return message.warning(`${taskIssues.value[0].task.name}：${taskIssues.value[0].issue}`)
   if (
     await command(
-      () => PlanApi.submitStagePlanBatch(value.id!, approverId.value!),
+      () => PlanApi.submitStagePlanBatch(value.id!, approverId.value!, value.adjustmentReasonRequired ? adjustmentReason.value.trim() : undefined),
       '计划已提交审核'
     )
   )
@@ -681,7 +660,13 @@ onBeforeUnmount(() => {
 })
 onBeforeRouteLeave(guard)
 onBeforeRouteUpdate((to, from) => to.query.projectId === from.query.projectId || guard())
+// 工作区统一刷新已由宿主执行离页保护；再次检查，避免等待期间的新编辑被覆盖。
+const refresh = async () => {
+  if (dirty.value || acting.value || loading.value || durationRef.value?.isDirty()) return
+  await load(selectedId.value)
+}
 defineExpose({
+  refresh,
   requestLeave: guard,
   isDirty: () => dirty.value || acting.value || !!durationRef.value?.isDirty()
 })
@@ -739,13 +724,6 @@ defineExpose({
   margin: 8px 0 0;
   font-size: 15px;
   font-weight: 600;
-}
-
-.schedule-facts small {
-  display: block;
-  margin-top: 8px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
 }
 
 .schedule-toolbar {

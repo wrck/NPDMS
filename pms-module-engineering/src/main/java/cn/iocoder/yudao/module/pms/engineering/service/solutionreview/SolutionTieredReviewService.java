@@ -41,6 +41,7 @@ public class SolutionTieredReviewService {
     private final PlatformDeliveryMaterialApi deliveryMaterials;
     private final SolutionService original;
     private final SolutionReviewPolicyService policies;
+    private final SolutionSubmissionValidator submissionValidator;
 
     public record Start(@jakarta.validation.constraints.NotNull Long projectId,
                         @jakarta.validation.constraints.NotNull Long solutionId,
@@ -82,6 +83,7 @@ public class SolutionTieredReviewService {
         Long expectedVersion = command.expectedVersion() == null ? null : command.expectedVersion().longValue();
         if (!Objects.equals(solution.getVersion(), expectedVersion) || !Set.of(0, 1, 2).contains(solution.getStatus()))
             throw new IllegalArgumentException("只能提交当前未审批通过的方案版本");
+        submissionValidator.validateAndFreezeSources(solution);
         Integer previousLevel = solution.getReviewLevel();
         // 唯一提交入口：冻结本次审核判定（普通或重大），流程内网关按该级别分支，界面与提交动作不再区分级别
         policies.freeze(solution);
@@ -194,8 +196,11 @@ public class SolutionTieredReviewService {
     private Long authorize(Long project, boolean write) {
         Long tenant = TenantContextHolder.getRequiredTenantId(), actor = SecurityFrameworkUtils.getLoginUserId();
         if (actor == null || !permissions.hasAnyPermissions(actor, write ? "pms:sol-solution:update" : "pms:sol-solution:query")) throw exception(FORBIDDEN);
-        var visible = scope.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, project,
-                write ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW));
+        var visible = scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(write ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW).build());
         if (visible == null || !visible.fullProjectIds().contains(project)) throw exception(FORBIDDEN);
         if (write) {
             var fact = participants.inspect(new ProjectParticipantFactQuery(project, actor, Set.of(ProjectMemberRoles.PROJECT_MANAGER), LocalDateTime.now()));

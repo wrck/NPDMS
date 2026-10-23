@@ -24,7 +24,11 @@ class SiteSurveyEntityWriteAccessTest {
         TenantContextHolder.setTenantId(7L); var user = new LoginUser(); user.setId(8L); user.setTenantId(7L);
         SecurityFrameworkUtils.setLoginUser(user,new MockHttpServletRequest());
         when(permissions.hasAnyPermissions(8L,"pms:sol-site-survey:create")).thenReturn(true);
-        when(scopes.resolveCurrent(new ProjectCurrentScopeQuery(7L,8L,9L,ProjectScopeApi.ACTION_MANAGE)))
+        when(scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(7L)
+                .subjectUserId(8L)
+                .anchorProjectId(9L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build()))
                 .thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
     }
     @AfterEach void clear() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }

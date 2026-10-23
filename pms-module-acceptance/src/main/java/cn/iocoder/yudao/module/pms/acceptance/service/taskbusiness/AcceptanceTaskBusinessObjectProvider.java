@@ -48,6 +48,20 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
 
     @Override public String ownerContext() { return "ACC"; }
     @Override public String objectType() { return "ACCEPTANCE"; }
+    @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null || !Objects.equals(context.tenantId(), TenantContextHolder.getRequiredTenantId()))
+            throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
+        var activity = activityMapper.selectById(objectId(objectId));
+        if (activity == null || !Objects.equals(activity.getTenantId(), context.tenantId())
+                || !Objects.equals(activity.getProjectId(), context.projectId()) || Boolean.TRUE.equals(activity.getDeleted()))
+            throw exception(ACC_REPORT_NOT_EXISTS);
+        if (activity.getCurrentReportVersionId() == null) return null;
+        var report = reportMapper.selectById(activity.getCurrentReportVersionId());
+        if (report == null || !Objects.equals(report.getTenantId(), context.tenantId())
+                || !Objects.equals(report.getAcceptanceId(), activity.getId()) || Boolean.TRUE.equals(report.getDeleted()))
+            throw exception(ACC_REPORT_NOT_EXISTS);
+        return report.getCreateTime();
+    }
     @Override public boolean supportsStageCompletionFacts() { return true; }
     @Override public Set<String> completionFactCodes() { return Set.of("REPORT_EFFECTIVE", "PRELIMINARY_ACCEPTANCE_PASSED", "FINAL_ACCEPTANCE_PASSED"); }
     @Override public Map<String, String> completionFactLabels() { return Map.of("REPORT_EFFECTIVE", "当前报告证据有效（不等同验收通过）",
@@ -194,8 +208,11 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
         Set<String> actions = new LinkedHashSet<>(Set.of("QUERY"));
         if (canManage(context)) {
             actions.add("MANAGE");
-            var relationScope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(context.tenantId(), context.actorId(),
-                    context.projectId(), ProjectScopeApi.ACTION_MANAGE));
+            var relationScope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
             if (relationScope != null && relationScope.fullProjectIds() != null
                     && relationScope.fullProjectIds().contains(context.projectId())) actions.addAll(Set.of("LINK", "UNLINK"));
             boolean direct = "DIRECT".equals(activity.originKind());
@@ -207,7 +224,7 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
                 // Q-TPL-FLOW-20260922-008 ruling: the embedded task view may upload report attachments;
                 // the file operation itself stays under PLT's separate upload authorization (pms:file:upload).
                 actions.add("FILE_WRITE");
-                if (direct) actions.add("PUBLISH");
+                actions.add("PUBLISH");
                 if (report != null && "EFFECTIVE".equals(report.getReportStatus()) && report.getEffectiveTo() == null) {
                     actions.add("REVOKE");
                 }
@@ -342,13 +359,20 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
                 || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())
                 || !Objects.equals(context.actorId(), SecurityFrameworkUtils.getLoginUserId())) throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
         if (!permissionApi.hasAnyPermissions(context.actorId(), "pms:acceptance:report:query")) throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(context.tenantId(), context.actorId(),
-                context.projectId(), ProjectScopeApi.ACTION_VIEW));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
                 || !scope.fullProjectIds().contains(context.projectId())) throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
         if (lock) {
-            var locked = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(context.tenantId(), context.actorId(),
-                    context.projectId(), ProjectScopeApi.ACTION_VIEW, scope.treeVersion()));
+            var locked = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(scope.treeVersion()).build());
             if (locked == null || !Objects.equals(scope.treeVersion(), locked.treeVersion())
                     || locked.fullProjectIds() == null || !locked.fullProjectIds().contains(context.projectId())) {
                 throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
@@ -359,8 +383,11 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
     private boolean canManage(Context context) {
         // Existing report commands use PROJECT_EDIT, not a guessed role or template configuration permission.
         if (!permissionApi.hasAnyPermissions(context.actorId(), "pms:acceptance:report:write")) return false;
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(context.tenantId(), context.actorId(),
-                context.projectId(), ProjectScopeApi.ACTION_EDIT));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(context.projectId());
     }
 

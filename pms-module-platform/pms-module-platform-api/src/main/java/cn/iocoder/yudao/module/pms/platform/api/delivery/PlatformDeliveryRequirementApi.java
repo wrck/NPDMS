@@ -16,6 +16,11 @@ import java.util.Optional;
  */
 public interface PlatformDeliveryRequirementApi {
 
+    record ProjectReopenArchive(Long projectId, Long reopenSnapshotId, List<Long> expectedRequirementIds) { }
+
+    /** Internal Owner command. Caller must hold the authorized project restart lock in the same transaction. */
+    void archiveForProjectReopen(ProjectReopenArchive command);
+
     String TEMPLATE_OWNER_MODULE = "ACC";
     String TEMPLATE_ENTITY_TYPE = "project_deliverable";
 

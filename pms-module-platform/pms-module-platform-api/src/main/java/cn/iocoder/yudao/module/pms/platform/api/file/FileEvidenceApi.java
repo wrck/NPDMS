@@ -2,6 +2,9 @@ package cn.iocoder.yudao.module.pms.platform.api.file;
 
 /** Internal rule fact only. Does not grant file access, expose content, or replace user authorization. */
 public interface FileEvidenceApi {
+    record ReferenceIdentity(Long tenantId, Long referenceId) { }
+    /** Original reference creation time, never last modification or archive time; no file access grant. */
+    default java.time.LocalDateTime referenceCreatedAt(ReferenceIdentity query) { return null; }
     /** Internal metadata only. Owner project identity must be independently resolved before use. */
     default Document inspectDocument(Long tenantId, Long referenceId) { return null; }
 

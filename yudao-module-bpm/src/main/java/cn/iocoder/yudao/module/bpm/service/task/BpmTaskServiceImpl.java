@@ -113,12 +113,15 @@ public class BpmTaskServiceImpl implements BpmTaskService {
     @Resource
     private DeptApi deptApi;
 
+    @Resource
+    private cn.iocoder.yudao.module.bpm.service.cutover.CutoverRoleTaskAccess cutoverRoleTaskAccess;
+
     // ========== Query 查询相关方法 ==========
 
     @Override
     public PageResult<Task> getTaskTodoPage(Long userId, BpmTaskPageReqVO pageVO) {
-        TaskQuery taskQuery = taskService.createTaskQuery()
-                .taskAssignee(String.valueOf(userId)) // 分配给自己
+        TaskQuery taskQuery = cutoverRoleTaskAccess.todos(new cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi.ActorQuery(
+                        Long.valueOf(FlowableUtils.getTenantId()), userId))
                 .active()
                 .includeProcessVariables()
                 .taskTenantId(FlowableUtils.getTenantId())
@@ -192,7 +195,7 @@ public class BpmTaskServiceImpl implements BpmTaskService {
         if (task == null) {
             return null;
         }
-        if (!isAssignUserTask(userId, task) && !isAddSignUserTask(userId, task)) {
+        if (!isAssignUserTask(userId, task) && !isAddSignUserTask(userId, task) && !isCandidateUserTask(userId, task)) {
             return null;
         }
         return task;
@@ -221,8 +224,16 @@ public class BpmTaskServiceImpl implements BpmTaskService {
         // 2. 查询我的首个任务
         return CollUtil.findOne(tasks, task -> {
             return isAssignUserTask(userId, task) // 当前用户为审批人
-                    || isAddSignUserTask(userId, task); // 当前用户为加签人（为了减签）
+                    || isAddSignUserTask(userId, task) // 当前用户为加签人（为了减签）
+                    || isCandidateUserTask(userId, task);
         });
+    }
+
+    private boolean isCandidateUserTask(Long userId, Task task) {
+        return task.getAssignee() == null && cutoverRoleTaskAccess.candidate(
+                new cn.iocoder.yudao.module.bpm.service.cutover.CutoverRoleTaskAccess.TaskActor(
+                        new cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi.ActorQuery(
+                                Long.valueOf(FlowableUtils.getTenantId()), userId), task.getId()));
     }
 
     @Override

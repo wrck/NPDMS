@@ -44,6 +44,7 @@ class ProjectStageReadinessServiceTest {
     private ProjectMemberAssignmentDO primaryPm;
     private ProjectMemberAssignmentDO primarySm;
     private ProjectStageReadinessService service;
+    private ProjectRuntimeGraphResolver graphResolver;
     private PermissionApi permissionApi;
     private ProjectParticipantFactApi participantFactApi;
     private ProjectMasterDO project;
@@ -63,7 +64,7 @@ class ProjectStageReadinessServiceTest {
         ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
         participantFactApi = mock(ProjectParticipantFactApi.class);
         permissionApi = mock(PermissionApi.class);
-        var graphResolver = new ProjectRuntimeGraphResolver(graphMapper, referenceMapper,
+        graphResolver = new ProjectRuntimeGraphResolver(graphMapper, referenceMapper,
                 new ProjectRuntimeRuleEvaluator(providerRegistry,
                         new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler(), engine.evaluator(),
                         mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class),
@@ -117,6 +118,85 @@ class ProjectStageReadinessServiceTest {
         when(memberMapper.selectActiveForAssignmentState(any())).thenReturn(List.of(primaryPm));
         assertFalse(service.evaluate(PROJECT_ID, ACTOR_ID).advanceAllowed());
         verify(participantFactApi, never()).inspect(any());
+    }
+
+    @Test
+    void retainedTargetExecutionIsBlockedReadinessWithoutChangingHistory() {
+        for (String status : List.of("DONE", "ACTIVE", "SKIPPED")) {
+            stages.get(1).setStatus(status);
+            var result = service.evaluate(PROJECT_ID, ACTOR_ID);
+            assertFalse(result.advanceAllowed());
+            assertEquals("GRAPH_TARGET_STALE", result.guidance());
+            assertNull(result.nextStage());
+            assertTrue(result.gates().isEmpty());
+            assertEquals(status, stages.get(1).getStatus());
+            assertEquals("S0", project.getCurrentStage());
+        }
+        verifyNoInteractions(providerRegistry);
+        verify(graphMapper, never()).updateById(any(ProjectStageTransitionDO.class));
+    }
+
+    @Test
+    void unrelatedGraphFailuresRemainErrors() {
+        stages.get(1).setTenantId(8L);
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.evaluate(PROJECT_ID, ACTOR_ID));
+    }
+
+    @Test
+    void blockedReadinessCommitsThroughRealSpringTransactionInterceptors() {
+        var transactions = new ReadinessTransactions();
+        var source = new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource();
+        var graphProxy = new org.springframework.aop.framework.ProxyFactory(graphResolver);
+        graphProxy.setProxyTargetClass(true);
+        graphProxy.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(transactions, source));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "runtimeGraphResolver", graphProxy.getProxy());
+        var readinessProxy = new org.springframework.aop.framework.ProxyFactory(service);
+        readinessProxy.setProxyTargetClass(true);
+        readinessProxy.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(transactions, source));
+        var transactionalService = (ProjectStageReadinessService) readinessProxy.getProxy();
+
+        stages.get(1).setStatus("DONE");
+        assertEquals("GRAPH_TARGET_STALE", transactionalService.evaluate(PROJECT_ID, ACTOR_ID).guidance());
+        assertEquals(1, transactions.commits);
+        assertEquals(0, transactions.rollbacks);
+
+        stages.get(1).setTenantId(8L);
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> transactionalService.evaluate(PROJECT_ID, ACTOR_ID));
+        assertEquals(1, transactions.rollbacks);
+
+        stages.get(1).setTenantId(TENANT_ID);
+        when(graphMapper.selectStagesForUpdate(any())).thenReturn(stages);
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> new org.springframework.transaction.support.TransactionTemplate(transactions)
+                    .execute(status -> ((ProjectRuntimeGraphResolver) graphProxy.getProxy()).resolve(project)));
+        assertEquals(2, transactions.rollbacks);
+    }
+
+    private static final class ReadinessTransactions extends org.springframework.transaction.support.AbstractPlatformTransactionManager {
+        private final ThreadLocal<ReadTransaction> current = new ThreadLocal<>();
+        int commits;
+        int rollbacks;
+        @Override protected Object doGetTransaction() {
+            return current.get() == null ? new ReadTransaction() : current.get();
+        }
+        @Override protected boolean isExistingTransaction(Object transaction) { return ((ReadTransaction) transaction).active; }
+        @Override protected void doBegin(Object transaction, org.springframework.transaction.TransactionDefinition definition) {
+            var value = (ReadTransaction) transaction; value.active = true; current.set(value);
+        }
+        @Override protected void doCommit(org.springframework.transaction.support.DefaultTransactionStatus status) { commits++; }
+        @Override protected void doRollback(org.springframework.transaction.support.DefaultTransactionStatus status) { rollbacks++; }
+        @Override protected void doSetRollbackOnly(org.springframework.transaction.support.DefaultTransactionStatus status) {
+            ((ReadTransaction) status.getTransaction()).rollbackOnly = true;
+        }
+        @Override protected void doCleanupAfterCompletion(Object transaction) { current.remove(); }
+        private static final class ReadTransaction implements org.springframework.transaction.support.SmartTransactionObject {
+            boolean active;
+            boolean rollbackOnly;
+            @Override public boolean isRollbackOnly() { return rollbackOnly; }
+            @Override public void flush() { }
+        }
     }
 
     @Test
@@ -220,7 +300,10 @@ class ProjectStageReadinessServiceTest {
     @Test
     void rejectsAStagePairWhoseTargetIsAlreadyActive() {
         stages.get(1).setStatus("ACTIVE");
-        assertThrows(RuntimeException.class, () -> service.evaluate(PROJECT_ID, ACTOR_ID));
+        var result = service.evaluate(PROJECT_ID, ACTOR_ID);
+        assertFalse(result.advanceAllowed());
+        assertEquals("GRAPH_TARGET_STALE", result.guidance());
+        assertEquals("ACTIVE", stages.get(1).getStatus());
     }
 
     @Test

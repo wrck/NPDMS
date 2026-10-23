@@ -18,10 +18,19 @@ public class CollectionAuthorization {
     public void project(Long actor,Long project,boolean edit,boolean lock) {
         if (project==null) throw new CollectionOperationException("请选择项目");
         String action=edit?ProjectScopeApi.ACTION_EDIT:ProjectScopeApi.ACTION_VIEW;
-        var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant(),actor,project,action));
+        var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant())
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(action).build());
         if(scope==null || !scope.fullProjectIds().contains(project)) throw new AccessDeniedException("无当前项目权限");
         if(lock) {
-            var current=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant(),actor,project,action,scope.treeVersion()));
+            var current=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant())
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(action)
+                .expectedScopeVersion(scope.treeVersion()).build());
             if(current==null || !java.util.Objects.equals(current.treeVersion(),scope.treeVersion()) || !current.fullProjectIds().contains(project)) throw new AccessDeniedException("项目权限已变化");
         }
     }

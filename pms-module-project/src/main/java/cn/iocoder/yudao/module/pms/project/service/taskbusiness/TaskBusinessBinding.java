@@ -58,16 +58,30 @@ record TaskBusinessBinding(String ownerContext, String objectType, String compon
                 throw failure("BINDING_SNAPSHOT_INVALID");
             }
         }
+        String strategy = instanceStrategy(metadata);
+        return new TaskBusinessBinding(contract.getTargetContextCode(), contract.getTargetObjectType(),
+                contract.getComponentKey(), revision, strategy);
+    }
+    private static String instanceStrategy(JsonNode metadata) {
         String strategy = null;
-        if (metadata.hasNonNull("instanceResolutionStrategy")) {
+        if (metadata != null && metadata.hasNonNull("instanceResolutionStrategy")) {
             JsonNode value = metadata.get("instanceResolutionStrategy");
             if (!value.isTextual() || !Set.of("REFERENCE_EXISTING", "CREATE_ON_ENTER",
                     "CREATE_ON_FIRST_ACTION", "READ_ONLY_AGGREGATE").contains(value.asText()))
                 throw failure("BINDING_SNAPSHOT_INVALID");
             strategy = value.asText();
         }
-        return new TaskBusinessBinding(contract.getTargetContextCode(), contract.getTargetObjectType(),
-                contract.getComponentKey(), revision, strategy);
+        return strategy;
+    }
+    /** Object reuse does not waive Owner completion rules or frozen result-subscription policies. */
+    boolean referencesExistingObjects() {
+        return referencesExistingObjects(instanceResolutionStrategy);
+    }
+    static boolean referencesExistingObjects(JsonNode parameters) {
+        return referencesExistingObjects(instanceStrategy(parameters));
+    }
+    private static boolean referencesExistingObjects(String strategy) {
+        return "REFERENCE_EXISTING".equals(strategy) || "READ_ONLY_AGGREGATE".equals(strategy);
     }
     String unavailableReason() {
         if (ownerContext == null || ownerContext.isBlank() || objectType == null || objectType.isBlank())

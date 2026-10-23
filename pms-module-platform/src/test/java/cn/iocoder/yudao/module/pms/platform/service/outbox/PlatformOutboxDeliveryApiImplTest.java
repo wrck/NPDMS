@@ -70,6 +70,36 @@ class PlatformOutboxDeliveryApiImplTest {
     }
 
     @Test
+    void claimDueSupportsCutoverCompletionAndPreservesTenantFilter() {
+        LocalDateTime dueAt = LocalDateTime.of(2026, 10, 12, 23, 51);
+        PlatformOutboxEventDO row = new PlatformOutboxEventDO();
+        row.setEventId("cutover-completed-1");
+        row.setEventType("CutoverCompleted");
+        row.setPayload("{\"cutoverTaskId\":101,\"version\":3}");
+        row.setRetryCount(2);
+        row.setTenantId(7L);
+        row.setOccurredAt(dueAt.minusMinutes(1));
+        when(mapper.selectDueForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(List.of(row));
+
+        var result = service.claimDue(new PlatformOutboxClaimQuery(dueAt, 50, Set.of("CutoverCompleted")));
+
+        assertEquals(1, result.size());
+        var message = result.getFirst();
+        assertEquals(row.getEventId(), message.eventId());
+        assertEquals(row.getEventType(), message.eventType());
+        assertEquals(row.getPayload(), message.payload());
+        assertEquals(row.getRetryCount(), message.retryCount());
+        assertEquals(7L, message.tenantId());
+        assertEquals(row.getOccurredAt(), message.occurredAt());
+        ArgumentCaptor<DueOutboxListQuery> captor = ArgumentCaptor.forClass(DueOutboxListQuery.class);
+        verify(mapper).selectDueForUpdate(captor.capture());
+        assertEquals(7L, captor.getValue().tenantId());
+        assertEquals(Set.of("CutoverCompleted"), captor.getValue().eventTypes());
+        assertEquals(50, captor.getValue().limit());
+        assertEquals(dueAt, captor.getValue().dueAt());
+    }
+
+    @Test
     void claimDueSupportsAcceptanceReportVersionChangedWithoutOpeningClosureEvents() {
         LocalDateTime dueAt = LocalDateTime.of(2026, 8, 30, 12, 0);
         when(mapper.selectDueForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(List.of());

@@ -124,6 +124,18 @@ class DeviceLogParsedFactServiceTest {
         assertEquals("LOG-OLD",softwareRows.values().iterator().next().getConpVersion());
         verify(scopes).lockAndRevalidate(argThat(q -> Objects.equals(1L,q.expectedScopeVersion())));
     }
+    @Test void currentVersionComesFromLogEvenWhenOldItrEventTimeIsLater() {
+        var old=new DeviceNetworkVersionDO();old.setId(71L);old.setSourceSystem("ITR");
+        old.setEffectiveFrom(LocalDateTime.of(2030,1,1,0,0));old.setConpVersion("OLD-ITR");
+        when(versions.selectByTenantAndSn(1L,"SN-A")).thenReturn(old);
+        var result=service.record(command("new",7,"LOG-V2"));
+        assertEquals("UPDATED",result.versionStatus());
+        verify(scopes).lockAndRevalidate(argThat(q -> Objects.equals(1L,q.expectedScopeVersion())));
+        var version=org.mockito.ArgumentCaptor.forClass(DeviceNetworkVersionDO.class);
+        verify(projections).replaceCurrent(version.capture());
+        assertEquals("DEVICE_LOG",version.getValue().getSourceSystem());assertEquals("LOG-V2",version.getValue().getConpVersion());
+        assertNull(version.getValue().getConpSeries());
+    }
     @Test void replayIsImmutableAndDoesNotWriteProjectionTwice() {
         var request=command("one",7,"LOG-V1");
         assertEquals(service.record(request),service.record(request));

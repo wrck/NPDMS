@@ -55,7 +55,7 @@ final class DirectInstallationPersistence {
             equipment.add(record.getEquipmentId());
             results.add(new Result(row.sourceKey(),record.getId(),record.getCode(),record.getEffectiveTo(),row.formalFieldsJson()));
         }
-        var selected=devices.validateSelection(new ProjectDeviceSelectionApi.SelectionQuery(command.tenantId(),command.actorId(),command.projectId(),List.copyOf(equipment)));
+        var selected=devices.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(command.tenantId(),command.actorId(),command.projectId(),List.copyOf(equipment)));
         if(selected==null || !selected.stream().map(cn.iocoder.yudao.module.pms.asset.api.device.dto.SelectedProjectDevice::equipmentId)
                 .collect(java.util.stream.Collectors.toSet()).equals(equipment))fail("DEVICE_UNRESOLVED");
         return List.copyOf(results);
@@ -85,7 +85,7 @@ final class DirectInstallationPersistence {
             if(actor.id()==null || actor.id()<=0 || !names.contains(actor.username()) || actors.putIfAbsent(actor.username(),actor.id())!=null)
                 fail("AUDIT_IDENTITY_AMBIGUOUS");
         if(!actors.keySet().equals(names))fail("AUDIT_IDENTITY_UNRESOLVED");
-        var selected=devices.validateSelection(new ProjectDeviceSelectionApi.SelectionQuery(command.tenantId(),command.actorId(),command.projectId(),List.copyOf(equipment)));
+        var selected=devices.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(command.tenantId(),command.actorId(),command.projectId(),List.copyOf(equipment)));
         var serials=new HashMap<Long,String>();
         if(selected==null)fail("DEVICE_UNRESOLVED");
         for(var device:selected)if(serials.putIfAbsent(device.equipmentId(),device.sn())!=null)fail("DEVICE_AMBIGUOUS");

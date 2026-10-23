@@ -10,7 +10,7 @@
 
 ## File ownership
 
-All Java paths below are under `device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/`; tests mirror them in `src/test/java/`.
+All Java paths below are under `device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/`; tests mirror them in `src/test/java/`.
 
 - Security/version worker: `internal/SensitiveValueRedactor.java`, `SensitiveEvidenceSanitizer.java`, `DelimitedSectionParser.java`, `NestedEvidenceExpander.java`, `plan/ParserPlanCompiler.java`; related tests and runtime supported-engine registration.
 - KV/table worker: `internal/KeyValueStructureParser.java`, `TableStructureParser.java`, optional focused enhanced implementations; related tests.

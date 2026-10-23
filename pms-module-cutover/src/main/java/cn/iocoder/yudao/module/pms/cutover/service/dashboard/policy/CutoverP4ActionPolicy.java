@@ -20,7 +20,7 @@ public final class CutoverP4ActionPolicy {
             actions.add("CREATE_DRAFT");
         }
         if (ownerP4 && facts.editAllowed() && "DRAFT".equals(facts.planStatus())
-                && permissions.savePlan() && facts.sourceComparable()) actions.add("SAVE_DRAFT");
+                && permissions.savePlan()) actions.add("SAVE_DRAFT");
         if (ownerP4 && facts.editAllowed() && "DRAFT".equals(facts.planStatus())
                 && permissions.submitPlan() && facts.sourceComparable() && facts.contentComplete()) {
             actions.add("SUBMIT_PLAN");

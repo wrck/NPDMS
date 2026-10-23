@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -42,16 +44,20 @@ public class ProjectDeliverableOwnerSources {
 
     /** 绑定判定：acc_acceptance / acc_satisfaction_collection_task 的 deliverable_id 指向要求实例 ID。 */
     public String ownerType(PlatformDeliveryRequirementApi.TemplateFrozenView view) {
+        return ownerTypes(view.projectId()).get(view.id());
+    }
+
+    /** One project-scoped lookup for lists; the absence of generated material does not enable manual submission. */
+    public Map<Long, String> ownerTypes(Long projectId) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
-        if (activities.selectByProjectScope(new AcceptanceActivityScopeQuery(tenantId, Set.of(view.projectId())))
-                .stream().anyMatch(activity -> Objects.equals(activity.getDeliverableId(), view.id()))) {
-            return "ACCEPTANCE_REPORT";
-        }
-        if (tasks.selectByScope(new SatisfactionTaskScopeQuery(tenantId, Set.of(view.projectId()), null))
-                .stream().anyMatch(task -> Objects.equals(task.getDeliverableId(), view.id()))) {
-            return "SATISFACTION_RESULT";
-        }
-        return null;
+        Map<Long, String> sources = new HashMap<>();
+        activities.selectByProjectScope(new AcceptanceActivityScopeQuery(tenantId, Set.of(projectId)))
+                .stream().map(activity -> activity.getDeliverableId()).filter(Objects::nonNull)
+                .forEach(id -> sources.put(id, "ACCEPTANCE_REPORT"));
+        tasks.selectByScope(new SatisfactionTaskScopeQuery(tenantId, Set.of(projectId), null))
+                .stream().map(task -> task.getDeliverableId()).filter(Objects::nonNull)
+                .forEach(id -> sources.putIfAbsent(id, "SATISFACTION_RESULT"));
+        return Map.copyOf(sources);
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

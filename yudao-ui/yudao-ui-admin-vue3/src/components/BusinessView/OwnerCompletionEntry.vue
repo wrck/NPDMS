@@ -15,7 +15,7 @@ import { isBusinessViewId, type BusinessViewId } from '@/api/pms/platform/busine
 const props = defineProps<{
   projectId: BusinessViewId
   label: string
-  tab: 'members' | 'schedule' | 'solution' | 'cutover'
+  tab: 'members' | 'schedule' | 'solution' | 'cutover' | 'arrival' | 'installation' | 'training'
   allowedActions: string[]
 }>()
 const router = useRouter()

@@ -74,7 +74,7 @@ export interface AreaDepartmentMappingVO {
 }
 
 export interface LocationMaintainRequest {
-  projectId?: number
+  projectId?: number | string
   address?: AddressVO
   site?: SiteVO
   siteLocation?: SiteLocationInput
@@ -89,6 +89,20 @@ export interface LocationMaintainRequest {
 }
 
 const baseUrl = '/pms/asset-locations'
+
+export interface ProjectCustomerLocations {
+  customerId?: number
+  customerName?: string
+  sites: SiteVO[]
+  addresses: AddressVO[]
+  customerAddresses: AddressVO[]
+  siteLocations: SiteLocationVO[]
+}
+
+export const getProjectCustomerLocations = (projectId: number | string, siteId?: number) =>
+  request.get<ProjectCustomerLocations>({
+    url: `/api/v1/pms/projects/${projectId}/customer-overview/locations`, params: { siteId }
+  })
 
 export const maintainLocation = (data: LocationMaintainRequest) =>
   request.post({ url: `${baseUrl}/maintain`, data })

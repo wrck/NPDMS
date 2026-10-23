@@ -90,9 +90,12 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
         if (inspected == null) return denied(query.expectedFact().action(), "PRE04_ROOT_NOT_FOUND");
         boolean managerAction = requiresManager(query.expectedFact().action());
         String scopeAction = managerAction ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW;
-        ProjectScopeResult lockedScope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                query.tenantId(), query.actorUserId(), inspected.getProjectId(), scopeAction,
-                query.expectedFact().scopeVersion()));
+        ProjectScopeResult lockedScope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(inspected.getProjectId())
+                .actionCode(scopeAction)
+                .expectedScopeVersion(query.expectedFact().scopeVersion()).build());
         boolean scopeAllowed = lockedScope != null && lockedScope.fullProjectIds() != null
                 && lockedScope.fullProjectIds().contains(inspected.getProjectId());
         ProjectParticipantFact manager = managerAction ? inspectManager(query.actorUserId(), inspected.getProjectId()) : null;
@@ -151,8 +154,11 @@ public class RequirementAnalysisDynamicFormPolicyProvider implements DynamicForm
         if (!hasFunctionPermission(actorId, action)) return denied(action, "PRE04_ACTION_NOT_ALLOWED");
         ProjectScopeResult scope;
         try {
-            scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(root.getTenantId(), actorId,
-                    root.getProjectId(), managerAction ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW));
+            scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(root.getTenantId())
+                .subjectUserId(actorId)
+                .anchorProjectId(root.getProjectId())
+                .actionCode(managerAction ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW).build());
         } catch (RuntimeException unavailable) {
             return denied(action, "PRE04_ACTION_NOT_ALLOWED");
         }

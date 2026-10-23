@@ -99,23 +99,75 @@ const render = async () => {
       ElSkeleton: passthrough,
       ElResult: passthrough,
       ElRadioGroup: passthrough,
-      ElRadioButton: passthrough
+      ElRadioButton: passthrough,
+      ElRadio: passthrough,
+      ElCheckbox: passthrough,
+      ElCheckboxGroup: passthrough,
+      ElTabs: passthrough,
+      ElTabPane: passthrough
     }
   )
   mounted.push(app)
   await Promise.resolve()
   await nextTick()
-  return child.value.$.setupState
+  const page = child.value.$.setupState
+  // The custom renderer has no layout; preserve the browser scrolling contract on its refs.
+  Object.assign(page.publicPage, { scrollTop: 0, scrollTo: vi.fn(), getBoundingClientRect: () => ({ top: 0 }) })
+  Object.assign(page.surveySection, { getBoundingClientRect: () => ({ top: 100 }) })
+  return page
 }
 describe('public questionnaire handwritten signature submission', () => {
+  it('retries the exact signed payload without another upload after a submission failure', async () => {
+    const page = await render()
+    page.signatureValues = { signatureImageDataUrl: 'data:image/png;base64,iVBORw==' }
+    page.answers.quality = 'excellent'
+    mocks.submit.mockRejectedValueOnce(new Error('result generation temporarily failed'))
+    await expect(page.submit()).rejects.toThrow('temporarily failed')
+    await page.submit()
+    expect(mocks.initialize).toHaveBeenCalledOnce()
+    expect(mocks.complete).toHaveBeenCalledOnce()
+    expect(mocks.submit).toHaveBeenCalledTimes(2)
+    expect(mocks.submit.mock.calls[1][2]).toEqual(mocks.submit.mock.calls[0][2])
+  })
+  it('requires joint consent and uses one signature upload for both forms', async () => {
+    const inspect = await mocks.inspect()
+    inspect.completionCertificate = { id: 20, version: 3, projectId: 9, name: '本次完工证明', devices: [] }
+    mocks.inspect.mockResolvedValue(inspect)
+    const page = await render()
+    page.signatureValues = { signatureImageDataUrl: 'data:image/png;base64,iVBORw==' }
+    page.answers.quality = 'excellent'
+    await page.submit()
+    expect(mocks.initialize).not.toHaveBeenCalled()
+    page.confirmCompletionCertificate = true
+    await page.submit()
+    expect(mocks.initialize).toHaveBeenCalledOnce()
+    expect(mocks.complete).toHaveBeenCalledOnce()
+    expect(mocks.submit.mock.calls[0][2]).toMatchObject({ confirmCompletionCertificate: true, signatureImageDataUrl: 'data:image/png;base64,iVBORw==' })
+    expect(mocks.submit.mock.calls[0][2].files).toHaveLength(1)
+  })
+  it('reopens a submitted bundle with saved answers and signature and prevents another upload', async () => {
+    const inspect = await mocks.inspect()
+    mocks.inspect.mockResolvedValue({ ...inspect, completionCertificate: { id: 20, name: '完工证明', devices: [] },
+      submitted: true, answerSnapshot: JSON.stringify({ answers: [{ questionCode: 'quality', value: 'excellent' }] }),
+      signatureImageDataUrl: 'data:image/png;base64,iVBORw==', signedAt: 1770000000000 })
+    const page = await render()
+    expect(page.answers.quality).toBe('excellent')
+    expect(page.signatureValues.signatureImageDataUrl).toBe('data:image/png;base64,iVBORw==')
+    expect(page.submissionLocked).toBe(true)
+    await page.submit()
+    expect(mocks.initialize).not.toHaveBeenCalled()
+    expect(mocks.submit).not.toHaveBeenCalled()
+  })
   it('blocks uploads when the form validator rejects otherwise complete answers', async () => {
     const page = await render()
     page.customerContactRef = '客户'
     page.signatureValues = { signatureImageDataUrl: 'data:image/png;base64,iVBORw==' }
     page.answers.quality = 'excellent'
     mocks.validate.mockRejectedValueOnce(new Error('invalid form'))
+    page.questionFormApi.validate = mocks.validate
     await page.submit()
     expect(mocks.validate).toHaveBeenCalledOnce()
+    expect(page.publicPage.scrollTo).toHaveBeenCalledWith({ top: 80 })
     expect(mocks.initialize).not.toHaveBeenCalled()
     expect(mocks.submit).not.toHaveBeenCalled()
   })
@@ -147,15 +199,16 @@ describe('public questionnaire handwritten signature submission', () => {
     })
     expect(command.files[0]).toMatchObject({ role: 'SIGNATURE', artifactId: 30, versionNo: 1 })
   })
-  it('retains the existing signature-file upload path', async () => {
+  it('does not accept an uploaded attachment in place of a handwritten signature', async () => {
     const page = await render()
     page.customerContactRef = '客户'
     page.answers.quality = 'excellent'
-    page.signatureMode = 'upload'
     const file = new File(['signed'], 'existing.pdf', { type: 'application/pdf' })
-    page.signatureFile = file
+    page.onAttachmentChange({ raw: file })
     await page.submit()
-    expect(mocks.complete.mock.calls[0][4]).toBe(file)
-    expect(mocks.submit).toHaveBeenCalledOnce()
+    expect(page.attachmentFiles).toEqual([file])
+    expect(mocks.initialize).not.toHaveBeenCalled()
+    expect(mocks.complete).not.toHaveBeenCalled()
+    expect(mocks.submit).not.toHaveBeenCalled()
   })
 })

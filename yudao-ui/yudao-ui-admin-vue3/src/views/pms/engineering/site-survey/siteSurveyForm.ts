@@ -24,6 +24,30 @@ export const surveyFields = [
   'conclusion',
   'remark'
 ] as const
+const retiredSupplementFields = new Set<string>([
+  'powerSupply',
+  'cabinet',
+  'networkPort',
+  'fiber',
+  'module',
+  'cable',
+  'ground',
+  'constructionResource'
+])
+
+export const currentSurveyRules = (rules: any[]): any[] =>
+  rules
+    .filter(
+      (rule) =>
+        !retiredSupplementFields.has(rule?.field) &&
+        rule?.props?.innerText !== '原工勘补充说明（保留原字段内容）'
+    )
+    .map((rule) =>
+      Array.isArray(rule?.children)
+        ? { ...rule, children: currentSurveyRules(rule.children) }
+        : rule
+    )
+
 export const extractSurveyValues = (survey: SiteSurveyVO) => ({
   ...Object.fromEntries(surveyFields.map((key) => [key, survey[key] ?? ''])),
   ...(survey.formExtraValues || {})
@@ -33,7 +57,7 @@ export const mergeSurveyValues = (
   values: Record<string, any>
 ): SiteSurveyVO => ({
   ...survey,
-  ...Object.fromEntries(surveyFields.map((key) => [key, values[key] ?? ''])),
+  ...Object.fromEntries(surveyFields.map((key) => [key, values[key] ?? survey[key] ?? ''])),
   formExtraValues: Object.fromEntries(
     Object.entries(values).filter(([key]) => key.startsWith('extra_'))
   )

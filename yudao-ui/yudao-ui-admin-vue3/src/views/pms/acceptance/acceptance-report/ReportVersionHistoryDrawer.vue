@@ -11,16 +11,22 @@
           </div>
           <dl class="version-facts">
             <div><dt>验收时间</dt><dd>{{ item.acceptanceTime == null ? '未填写' : formatDate(new Date(item.acceptanceTime)) }}</dd></div>
-            <div><dt>验收人</dt><dd>{{ item.acceptorName || '未填写' }}</dd></div>
-            <div><dt>结论</dt><dd>{{ item.conclusionCode || '未填写' }}</dd></div>
+            <div><dt>{{ item.conclusionCode ? '验收人' : '操作人' }}</dt><dd>{{ item.conclusionCode ? (item.acceptorName || '未填写') : (item.uploaderUserId ?? '未记录') }}</dd></div>
+            <div v-if="item.conclusionCode"><dt>结论</dt><dd>{{ item.conclusionCode }}</dd></div>
           </dl>
           <el-alert v-if="item.archiveStatus === 'PENDING_COMPENSATION'" title="归档待补偿，不影响当前报告及历史下载" type="warning" :closable="false" show-icon />
           <div v-if="item.attachments.length" class="attachment-list">
-            <el-button v-for="attachment in item.attachments" :key="attachment.sequence" link type="primary" v-hasPermi="['pms:acceptance:report:download']" @click="download(item, attachment)">
+            <template v-if="item.reportStatus === 'DRAFT'">
+              <PmsFileVersionReferenceList v-for="attachment in item.attachments" :key="attachment.referenceKey"
+                owner-context="ACC" object-type="ACCEPTANCE_REPORT_VERSION" :object-id="String(item.id)"
+                purpose-code="ACCEPTANCE_REPORT_ATTACHMENT" :reference-key="attachment.referenceKey"
+                :artifact-id="attachment.artifactId" :version-no="attachment.versionNo" />
+            </template>
+            <el-button v-for="attachment in item.reportStatus === 'DRAFT' ? [] : item.attachments" :key="attachment.sequence" link type="primary" v-hasPermi="['pms:acceptance:report:download']" @click="download(item, attachment)">
               下载附件 {{ attachment.sequence }}
             </el-button>
           </div>
-          <el-empty v-else description="该版本尚无冻结附件" :image-size="44" />
+          <el-empty v-else :description="item.reportStatus === 'DRAFT' ? '草稿暂无已绑定文件' : '该版本尚无冻结附件'" :image-size="44" />
         </article>
       </el-timeline-item>
     </el-timeline>
@@ -36,6 +42,7 @@ import { sameBusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
 import * as FileApi from '@/api/pms/platform/file'
 import type { AcceptanceReportVersionVO, ReportAttachmentVO } from '@/api/pms/acceptance/acceptance-report'
+import PmsFileVersionReferenceList from '@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue'
 
 const props = defineProps<{ allowedActions?: string[] }>()
 const message = useMessage()

@@ -29,4 +29,14 @@ class JobApiImplTest {
         assertThrows(IllegalStateException.class,
                 () -> new JobApiImpl(jobService).syncEnabledJobByHandlerName("fileOutboxDeliveryJob"));
     }
+
+    @Test
+    void delegatesStatePreservingRegistrationAndPropagatesFailure() throws Exception {
+        new JobApiImpl(jobService).syncJobByHandlerName("cutoverApprovalNotificationJob");
+        verify(jobService).syncJobByHandlerName("cutoverApprovalNotificationJob");
+        doThrow(new SchedulerException("failed")).when(jobService)
+                .syncJobByHandlerName("cutoverResultDeliveryJob");
+        assertThrows(IllegalStateException.class,
+                () -> new JobApiImpl(jobService).syncJobByHandlerName("cutoverResultDeliveryJob"));
+    }
 }

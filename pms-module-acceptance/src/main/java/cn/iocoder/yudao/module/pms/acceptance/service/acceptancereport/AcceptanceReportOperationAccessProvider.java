@@ -27,7 +27,11 @@ public class AcceptanceReportOperationAccessProvider implements ProjectBusinessO
         if (context == null || !Objects.equals(context.tenantId(), TenantContextHolder.getRequiredTenantId())
                 || context.actorId() == null || !Objects.equals(context.actorId(), SecurityFrameworkUtils.getLoginUserId())
                 || !permissions.hasAnyPermissions(context.actorId(), "pms:acceptance:report:query")) throw exception(FORBIDDEN);
-        var view = scopes.resolveCurrent(new ProjectCurrentScopeQuery(context.tenantId(), context.actorId(), context.projectId(), ProjectScopeApi.ACTION_VIEW));
+        var view = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (view == null || view.fullProjectIds() == null || !view.fullProjectIds().contains(context.projectId())) throw exception(FORBIDDEN);
         if (context.objectId() == null) return new Access(Set.of(), null);
         Long id;
@@ -35,7 +39,11 @@ public class AcceptanceReportOperationAccessProvider implements ProjectBusinessO
         var activity = queries.get(id, new AcceptanceReportQueryService.Actor(context.tenantId(), context.actorId()));
         if (activity == null || activity.version() == null || activity.version() < 0
                 || !Objects.equals(activity.projectId(), context.projectId())) throw exception(FORBIDDEN);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(context.tenantId(), context.actorId(), context.projectId(), ProjectScopeApi.ACTION_EDIT));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         boolean writable = permissions.hasAnyPermissions(context.actorId(), "pms:acceptance:report:write")
                 && scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(context.projectId());
         // The selected report's version/content is still validated by each typed Owner command.

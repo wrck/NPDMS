@@ -70,7 +70,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { getSoftwareVersionHistory, type SoftwareVersionHistory } from '@/api/pms/asset/device'
 import DeviceReadOnlyFields from './DeviceReadOnlyFields.vue'
 import { formatSourceDate } from '@/utils/formatSourceDate'
-const props = defineProps<{ deviceId: number }>()
+const props = defineProps<{ deviceId: number | string }>()
 const rows = ref<SoftwareVersionHistory[]>([]),
   selected = ref<SoftwareVersionHistory>()
 const pageNo = ref(1),

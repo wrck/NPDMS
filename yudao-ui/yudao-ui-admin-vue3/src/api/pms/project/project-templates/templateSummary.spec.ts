@@ -43,9 +43,23 @@ describe('project template list summary', () => {
     })
 
     await expect(Template.getProjectTemplateSummary(4)).resolves.toMatchObject({
-      match: { signingMethod: 'DIRECT' }, stageCount: 2, taskCount: 1
+      match: { signingMethod: 'DIRECT' }, stageCount: 2, taskCount: 2
     })
     expect(request.get).toHaveBeenCalledTimes(2)
+  })
+
+  it('counts personnel assignment and final user tasks even when both belong to S0', async () => {
+    const content = draft()
+    content.tasks = [
+      { ...content.tasks[0], code: 'PERSONNEL_ASSIGN', name: '人员指派', required: true },
+      { ...content.tasks[0], nodeKey: 'task:PRE_CONTACT', code: 'PRE_CONTACT', name: '用户信息录入', required: true }
+    ]
+    vi.mocked(request.get).mockImplementation(({ url }: { url: string }) => {
+      if (url === '/api/v1/pms/project-templates/4') return Promise.resolve({ revisions: [{ revisionNo: 0, status: 'DRAFT' }] })
+      if (url === '/api/v1/pms/project-templates/4/draft') return Promise.resolve(content)
+      throw new Error(`unexpected ${url}`)
+    })
+    await expect(Template.getProjectTemplateSummary(4)).resolves.toMatchObject({ taskCount: 2 })
   })
 
   it('uses the newest published revision when a historical template has no draft', async () => {
@@ -57,7 +71,7 @@ describe('project template list summary', () => {
       throw new Error(`unexpected ${url}`)
     })
 
-    await expect(Template.getProjectTemplateSummary(4)).resolves.toMatchObject({ stageCount: 2, taskCount: 1 })
+    await expect(Template.getProjectTemplateSummary(4)).resolves.toMatchObject({ stageCount: 2, taskCount: 2 })
     expect(request.get).toHaveBeenLastCalledWith({ url: '/api/v1/pms/project-templates/4/revisions/5' })
   })
 

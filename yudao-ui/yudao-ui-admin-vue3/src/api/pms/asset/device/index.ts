@@ -41,17 +41,17 @@ export interface SoftwareVersionHistory {
   previous: SoftwareVersionValues | null
   legacyAttributes: Record<string, string | number | null>
 }
-export const getSoftwareVersionCurrent = (deviceId: number) =>
+export const getSoftwareVersionCurrent = (deviceId: number | string) =>
   request.get<SoftwareVersionCurrent>({ url: `/api/v1/pms/devices/${deviceId}/software-version` })
-export const getSoftwareVersionHistory = (deviceId: number, params: PageParam) =>
+export const getSoftwareVersionHistory = (deviceId: number | string, params: PageParam) =>
   request.get<{ list: SoftwareVersionHistory[]; total: number }>({
     url: `/api/v1/pms/devices/${deviceId}/software-version/history`,
     params
   })
 export const registerSoftwareVersion = (
-  deviceId: number,
+  deviceId: number | string,
   data: {
-    projectId: number
+    projectId: number | string
     expectedVersion: number
     requestKey: string
     values: SoftwareVersionValues
@@ -69,8 +69,11 @@ export interface DevicePageReqVO extends PageParam {
   name?: string
   status?: string
   productCode?: string
-  projectId?: number
+  projectId?: number | string
   customerId?: number
+  projectName?: string
+  customerName?: string
+  departmentName?: string
 }
 
 export interface DeviceOrganizationVO {
@@ -83,6 +86,13 @@ export interface DeviceOrganizationVO {
 }
 
 export interface DeviceListVO {
+  warrantyMonths?: number
+  projectCode?: string
+  projectName?: string
+  customerName?: string
+  bootVersion?: string
+  cpldVersion?: string
+  extendedCount?: number
   organization?: DeviceOrganizationVO
   name?: string
   status?: string
@@ -291,7 +301,7 @@ const baseUrl = '/pms/asset/devices'
 export const getDevicePage = (params: DevicePageReqVO) =>
   request.get<PageResult<DeviceListVO[]>>({ url: `${baseUrl}/page`, params })
 
-export const getDevice = (id: number) => request.get<DeviceDetailVO>({ url: `${baseUrl}/${id}` })
+export const getDevice = (id: number | string) => request.get<DeviceDetailVO>({ url: `${baseUrl}/${id}` })
 
 export const getAssignmentHistory = (id: number, params: PageParam) =>
   request.get<PageResult<DeviceProjectRelationshipVO[]>>({

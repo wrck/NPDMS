@@ -18,6 +18,32 @@ class TemplateExecutionSnapshotHashCompatibilityTest {
         assertEquals(compilation.snapshotHash(), TemplateExecutionSnapshotHasher.hash(compilation.snapshot()));
     }
 
+    @Test
+    void absentTaskRequirementKeepsLegacySerializedShapeAndDefaultsToRequired() {
+        var compilation = new TemplateCompiler().compile(validDesigner());
+        assertTrue(compilation.valid(), () -> compilation.issues().toString());
+        var encoded = JsonUtils.parseTree(JsonUtils.toJsonString(compilation.snapshot()));
+        assertTrue(!encoded.path("tasks").get(0).has("required"));
+        var runtime = compilation.snapshot().toRuntimeContent();
+        assertEquals(null, runtime.getTasks().getFirst().getRequired());
+        var instance = cn.iocoder.yudao.module.pms.project.domain.projectmanual.TemplateInstantiator.instantiate(
+                runtime, 1L, 2L, () -> 3L);
+        assertEquals(Boolean.TRUE, instance.getTasks().getFirst().getRequiredTask());
+    }
+
+    @Test
+    void explicitOptionalSurvivesCompilationRuntimeConversionAndInstantiation() {
+        var designer = validDesigner(); designer.getTasks().getFirst().setRequired(false);
+        var compilation = new TemplateCompiler().compile(designer);
+        assertTrue(compilation.valid(), () -> compilation.issues().toString());
+        assertEquals(Boolean.FALSE, compilation.snapshot().getTasks().getFirst().getRequired());
+        var runtime = compilation.snapshot().toRuntimeContent();
+        assertEquals(Boolean.FALSE, runtime.getTasks().getFirst().getRequired());
+        var instance = cn.iocoder.yudao.module.pms.project.domain.projectmanual.TemplateInstantiator.instantiate(
+                runtime, 1L, 2L, () -> 3L);
+        assertEquals(Boolean.FALSE, instance.getTasks().getFirst().getRequiredTask());
+    }
+
     private TemplateDesignerDocument validDesigner() {
         TemplateDesignerDocument designer = new TemplateDesignerDocument();
         designer.getStages().add(stage("stage:S0", "S0", true, false));

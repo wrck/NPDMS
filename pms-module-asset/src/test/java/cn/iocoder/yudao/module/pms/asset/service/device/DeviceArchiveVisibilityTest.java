@@ -33,7 +33,16 @@ class DeviceArchiveVisibilityTest {
         var request = new DeviceArchivePageReqVO(); request.setName("router"); request.setStatus("IN_USE");
         request.setProjectId(10L); request.setPageNo(1); request.setPageSize(10);
         when(scope.visibleProjectIds(1L, 7L)).thenReturn(Set.of(10L));
-        var query = new VisibleDevicePageQuery(1L, Set.of(10L), null, null, 10L, null, 1, 10, "router", "IN_USE", Set.of(), java.util.List.of());
+        var query = VisibleDevicePageQuery.builder()
+                .tenantId(1L)
+                .visibleProjectIds(Set.of(10L))
+                .projectId(10L)
+                .pageNo(1)
+                .pageSize(10)
+                .name("router")
+                .status("IN_USE")
+                .visibleContractNumbers(Set.of())
+                .organizationGrants(java.util.List.of()).build();
         when(devices.selectArchivePage(query)).thenReturn(PageResult.empty());
         assertEquals(0L, service.getDeviceArchivePage(request).getTotal());
         verify(devices).selectArchivePage(query);
@@ -47,7 +56,13 @@ class DeviceArchiveVisibilityTest {
     }
     @Test void emptyScopeReturnsNoRowsWithoutRunningSql() {
         var mapper = mock(DeviceMapper.class, CALLS_REAL_METHODS);
-        var query = new VisibleDevicePageQuery(1L, Set.of(), null, null, null, null, 1, 10, null, null, Set.of(), java.util.List.of());
+        var query = VisibleDevicePageQuery.builder()
+                .tenantId(1L)
+                .visibleProjectIds(Set.of())
+                .pageNo(1)
+                .pageSize(10)
+                .visibleContractNumbers(Set.of())
+                .organizationGrants(java.util.List.of()).build();
         assertEquals(0L, mapper.selectArchivePage(query).getTotal());
         verify(mapper, never()).selectVisibleArchiveList(query);
         verify(mapper, never()).selectVisibleDeviceCount(query);

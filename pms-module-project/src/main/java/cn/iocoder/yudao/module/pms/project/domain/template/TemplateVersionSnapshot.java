@@ -37,6 +37,9 @@ public final class TemplateVersionSnapshot {
                 && snapshot.getGates() != null && snapshot.getTransitions() != null, "冻结内容不完整");
 
         Map<String, VersionRule> rules = TemplateRuleCollection.index(snapshot.getRules());
+        if (snapshot.getImplementationReadiness() != null)
+            snapshot.getImplementationReadiness().validate(snapshot.getTasks());
+        TaskRequirementPolicy.validateDependencies(snapshot);
         Map<String, RuleProgram> programs = snapshot.getRulePrograms();
         Set<String> expectedPrograms = new HashSet<>(rules.keySet());
         for (VersionRule rule : rules.values()) {

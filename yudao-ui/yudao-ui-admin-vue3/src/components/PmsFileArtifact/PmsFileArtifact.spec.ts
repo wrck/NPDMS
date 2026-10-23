@@ -30,8 +30,9 @@ describe('F-PLT-001 shared file components', () => {
     expect(uploader).toContain("stage.value = 'VALIDATING'")
     expect(uploader).toContain('FileApi.initializeUpload')
     expect(uploader).toContain('FileApi.completeUpload')
-    expect(uploader).toContain('attempt.value.initKey')
-    expect(uploader).toContain('attempt.value.completeKey')
+    expect(uploader).toContain('const selectedAttempt = attempt.value')
+    expect(uploader).toContain('selectedAttempt.initKey')
+    expect(uploader).toContain('selectedAttempt.completeKey')
     expect(uploader).toContain("emit('completed', completed)")
     expect(uploader).toContain('是否执行安全扫描由部署配置决定')
     expect(uploader).not.toContain('服务端正在校验与扫描')
@@ -49,7 +50,8 @@ describe('F-PLT-001 shared file components', () => {
     expect(references).toContain("artifact.allowedActions.includes('PREVIEW')")
     expect(references).toContain("artifact.allowedActions.includes('DOWNLOAD')")
     expect(references).toContain('FileApi.createAccessTicket')
-    expect(references).toContain("window.open('about:blank', '_blank')")
+    expect(references).toContain('<PmsFilePreviewDialog')
+    expect(references).not.toContain('window.open')
     expect(references).toContain('ticket.shortLivedUrl')
     expect(references).not.toMatch(/infraFileId|storagePath/)
   })
@@ -66,12 +68,14 @@ describe('F-PLT-001 shared file components', () => {
     expect(versions).toContain("narrow.value ? '100%' : '720px'")
   })
 
-  it('freezes the complete customer-delay evidence tuple and hides the slot for other reasons', () => {
-    expect(durationForm).toContain("form.reasonType === 'CUSTOMER_DELAY'")
+  it('keeps optional supporting attachments available for every reason and freezes the complete evidence tuple', () => {
+    expect(durationForm).toContain('<section class="evidence-section">')
+    expect(durationForm).toContain('可上传变更依据等支持文件（可选）')
+    expect(durationForm).not.toContain("form.reasonType === 'CUSTOMER_DELAY'")
     expect(durationForm).toContain('customerEvidenceFileId: selection.artifactId')
     expect(durationForm).toContain('customerEvidenceFileVersion: selection.versionNo')
     expect(durationForm).toContain('customerEvidenceReferenceKey: selection.referenceKey')
-    expect(durationPanel).toContain(
+    expect(durationPanel).not.toContain(
       'draft.value.customerEvidenceRequired && !draft.value.customerEvidenceFileId'
     )
     expect(durationPanel).toContain('<PmsFileReferenceList')

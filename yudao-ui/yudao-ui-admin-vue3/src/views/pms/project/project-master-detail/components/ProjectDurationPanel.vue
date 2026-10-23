@@ -1,9 +1,6 @@
 <template>
   <ContentWrap>
     <el-form inline class="-mb-15px duration-query">
-      <el-form-item label="项目">
-        <el-input :model-value="project.projectName || `项目 #${project.id}`" disabled class="!w-220px" data-testid="duration-project-name" />
-      </el-form-item>
       <el-form-item>
         <el-button :loading="loading" @click="load"><Icon icon="ep:search" />查询</el-button>
         <el-button v-if="plan" @click="historyRef?.open(plan.planId)">查看历史</el-button>
@@ -11,9 +8,11 @@
     </el-form>
   </ContentWrap>
   <ContentWrap>
-    <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="status-alert"
+    <el-alert
+      v-if="project.projectEndDate" type="info" :closable="false" class="status-alert"
       :title="`工勘要求的项目结束日期：${project.projectEndDate}；录入工期默认据此倒排开始日期，也可切换计算口径手工填写起止。`" />
-    <el-alert v-if="project.projectEndDate && plan && plan.currentRevision.endDate !== project.projectEndDate"
+    <el-alert
+      v-if="project.projectEndDate && plan && plan.currentRevision.endDate !== project.projectEndDate"
       type="warning" :closable="false" class="status-alert"
       title="工勘结束日期与当前生效工期不同，请新建工期变更重新倒排；原生效版本及审批记录保留。" />
     <el-alert
@@ -157,12 +156,13 @@
 <script setup lang="ts">
 import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { useMessage } from '@/hooks/web/useMessage'
 import { useUserStore } from '@/store/modules/user'
 import { PmsFileReferenceList } from '@/components/PmsFileArtifact'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
+import { isBusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import type {
   ConstructionPlanChangeVO,
@@ -175,14 +175,14 @@ import { initialDurationHint } from './durationEntry'
 
 const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
 const emit = defineEmits<{ 'dirty-change': [value: boolean]; changed: [] }>()
-const validProject = computed(() => Number.isSafeInteger(props.project.id) && props.project.id! > 0)
+const validProject = computed(() => isBusinessViewId(props.project.id))
 const canWrite = computed(() => validProject.value && !props.readonly)
 const initialEntryHint = computed(() => initialDurationHint(props.project))
 const drawerDirty = ref(false)
 const errorText = ref('')
 let loadSequence = 0
 let contextVersion = 0
-const router = useRouter()
+const openApprovalDetail = useProjectApprovalDetail()
 const message = useMessage()
 const userStore = useUserStore()
 const loading = ref(false)
@@ -260,7 +260,7 @@ const submitDraft = async () => {
 }
 const openBpm = (processInstanceId: string) => {
   if (!canWrite.value) return
-  return router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } })
+  return openApprovalDetail(processInstanceId)
 }
 const withdraw = async () => {
   const instanceId = plan.value?.pendingChangeSummary?.processInstanceId

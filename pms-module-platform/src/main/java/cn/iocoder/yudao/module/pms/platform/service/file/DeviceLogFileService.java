@@ -92,8 +92,14 @@ public class DeviceLogFileService implements DeviceLogFileApi {
             throw new IllegalStateException("采集日志来源或结果已变化");
         var matches = sources.orderedStream().filter(s -> s.entry().equals("configuration")).toList();
         if (matches.size() != 1) throw new IllegalStateException("采集来源授权入口不可用");
-        var source = matches.getFirst().authorize(origin.tenantId(), origin.actorId(), request.getObjectId(), origin.deviceId(),
-                CollectionSourceAdapter.Access.CONSUME, null);
+        var source = matches.getFirst().authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(origin.tenantId())
+                .actorId(origin.actorId())
+                .objectId(request.getObjectId())
+                .deviceId(origin.deviceId())
+                .access(CollectionSourceAdapter.Access.CONSUME)
+                .expectedVersion(null)
+                .build());
         if (!Objects.equals(source.projectId(), origin.projectId()) || !Objects.equals(source.deviceId(), origin.deviceId()))
             throw new IllegalStateException("采集记录设备归属已变化");
     }

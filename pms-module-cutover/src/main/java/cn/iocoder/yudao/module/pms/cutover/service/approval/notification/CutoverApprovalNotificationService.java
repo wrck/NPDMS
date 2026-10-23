@@ -4,15 +4,14 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNotificationDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNotificationMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNotificationClaimQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNotificationDeliveryUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.system.api.notify.dto.NotifySendSingleToUserReqDTO;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,7 +20,6 @@ import java.util.Map;
 import java.util.Objects;
 
 @Service
-@RequiredArgsConstructor
 public class CutoverApprovalNotificationService {
 
     private static final String PROVIDER_FAILURE = "NOTIFY_PROVIDER_FAILURE";
@@ -32,6 +30,13 @@ public class CutoverApprovalNotificationService {
     private final CutoverApprovalNodeMapper nodeMapper;
     private final CutoverTaskMapper taskMapper;
     private final CutoverApprovalNotificationProviderExecutor providerExecutor;
+
+    public CutoverApprovalNotificationService(CutoverApprovalNotificationMapper notificationMapper,
+            CutoverApprovalInstanceMapper instanceMapper, CutoverApprovalNodeMapper nodeMapper,
+            CutoverTaskMapper taskMapper, CutoverApprovalNotificationProviderExecutor providerExecutor) {
+        this.notificationMapper = notificationMapper; this.instanceMapper = instanceMapper;
+        this.nodeMapper = nodeMapper; this.taskMapper = taskMapper; this.providerExecutor = providerExecutor;
+    }
 
     @Transactional
     public DeliveryResult deliverDue(long tenantId, LocalDateTime dueAt, int batchSize) {
@@ -46,12 +51,37 @@ public class CutoverApprovalNotificationService {
             validateRow(tenantId, row);
             try {
                 long messageId = send(row);
-                update(row, "SENT", messageId, row.getRetryCount(), null, null, dueAt, dueAt);
+                update(ApprovalNotificationDeliveryUpdate.builder()
+                .tenantId(row.getTenantId())
+                .notificationId(row.getId())
+                .expectedVersion(row.getVersion())
+                .expectedStatusCode(row.getStatusCode())
+                .newStatusCode("SENT")
+                .messageId(messageId)
+                .retryCount(row.getRetryCount())
+                .nextRetryAt(null)
+                .lastErrorCode(null)
+                .sentAt(dueAt)
+                .updateTime(dueAt)
+                .updater("0")
+                .build());
                 sent++;
             } catch (NotificationProviderFailure failure) {
                 int nextRetryCount = row.getRetryCount() + 1;
-                update(row, "PENDING_RETRY", null, nextRetryCount,
-                        dueAt.plusMinutes(retryDelayMinutes(row.getRetryCount())), PROVIDER_FAILURE, null, dueAt);
+                update(ApprovalNotificationDeliveryUpdate.builder()
+                .tenantId(row.getTenantId())
+                .notificationId(row.getId())
+                .expectedVersion(row.getVersion())
+                .expectedStatusCode(row.getStatusCode())
+                .newStatusCode("PENDING_RETRY")
+                .messageId(null)
+                .retryCount(nextRetryCount)
+                .nextRetryAt(dueAt.plusMinutes(retryDelayMinutes(row.getRetryCount())))
+                .lastErrorCode(PROVIDER_FAILURE)
+                .sentAt(null)
+                .updateTime(dueAt)
+                .updater("0")
+                .build());
                 retried++;
             }
         }
@@ -81,7 +111,7 @@ public class CutoverApprovalNotificationService {
                 "approvalInstanceId", root.getId(),
                 "nodeNo", node.getNodeNo(),
                 "nodeCode", node.getNodeCode(),
-                "link", "/pms/cutover/cutover-task?taskId=" + task.getId()));
+                "link", "/pms/cutover/approvals/" + root.getId()));
         try {
             Long messageId = providerExecutor.send(request);
             if (messageId == null || messageId <= 0) throw new IllegalStateException("站内信消息编号无效");
@@ -91,12 +121,8 @@ public class CutoverApprovalNotificationService {
         }
     }
 
-    private void update(CutoverApprovalNotificationDO row, String newStatus, Long messageId,
-                        int retryCount, LocalDateTime nextRetryAt, String lastErrorCode,
-                        LocalDateTime sentAt, LocalDateTime updateTime) {
-        int updated = notificationMapper.updateDeliveryIfMatch(new ApprovalNotificationDeliveryUpdate(
-                row.getTenantId(), row.getId(), row.getVersion(), row.getStatusCode(), newStatus, messageId,
-                retryCount, nextRetryAt, lastErrorCode, sentAt, "0", updateTime));
+    private void update(ApprovalNotificationDeliveryUpdate update) {
+        int updated = notificationMapper.updateDeliveryIfMatch(update);
         require(updated == 1, "通知投递状态并发变化");
     }
 

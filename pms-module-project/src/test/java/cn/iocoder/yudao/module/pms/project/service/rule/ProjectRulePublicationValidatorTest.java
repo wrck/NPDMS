@@ -363,6 +363,20 @@ class ProjectRulePublicationValidatorTest {
         return condition(JsonUtils.parseTree(expression));
     }
 
+    @Test void endUserConditionRejectsOtherPagesAdmissionAndCombinedSubmissionBypass() {
+        var doc = document(condition("{\"predicate\":\"PROJECT_END_USER_EXISTS\",\"parameters\":{}}"));
+        var task = new TemplateDesignerDocument.TaskNode(); task.setNodeKey("task:end-users"); task.setCompletionRuleKey("rule");
+        var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType("PAGE");
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/pms/project-management/project-master-detail\"}"));
+        task.setWorkBinding(binding); doc.setTasks(List.of(task)); assertTrue(validator.validate(doc).isEmpty());
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/customer-asset/customer-contact\"}"));
+        assertFalse(validator.validate(doc).isEmpty());
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/pms/project-management/project-master-detail\"}"));
+        task.setCompletionRuleKey(null); task.setAdmissionRuleKey("rule"); assertFalse(validator.validate(doc).isEmpty());
+        task.setAdmissionRuleKey(null); task.setCompletionRuleKey("rule");
+        doc.setRules(List.of(condition("{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"PROJECT_END_USER_EXISTS\",\"parameters\":{}}]}")));
+        assertFalse(validator.validate(doc).isEmpty());
+    }
     @Test void projectContactConditionRequiresIndependentContactPageCompletion() {
         var doc = document(condition("{\"predicate\":\"PROJECT_CONTACT_EXISTS\",\"parameters\":{}}"));
         var task = new TemplateDesignerDocument.TaskNode(); task.setNodeKey("task:contacts"); task.setCompletionRuleKey("rule");

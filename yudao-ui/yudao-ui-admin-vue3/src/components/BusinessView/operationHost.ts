@@ -10,6 +10,8 @@ import { operationPresentation } from './operationPresentation'
 
 export const operationClientKey: InjectionKey<ShallowRef<OperationClient | undefined>> = Symbol('operation-client')
 export const useOperationClient = () => inject(operationClientKey, shallowRef<OperationClient>())
+export const operationCheckKey: InjectionKey<() => Promise<boolean>> = Symbol('operation-check')
+export const useOperationCheck = () => inject(operationCheckKey, async () => true)
 export function editingTargetKey(target: BusinessViewTarget): string {
   const view = target.registration, context = target.resolvedContext
   // Execution versions and registry enable/disable updates do not change an Owner editing buffer.
@@ -30,6 +32,13 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
   const requiresReopen = shallowRef(false)
   const mode = shallowRef<'INDEPENDENT' | 'CHECKING' | 'LEGACY' | 'CONTROLLED'>('CHECKING')
   let generation = 0, disposed = false, timer: ReturnType<typeof setTimeout> | undefined, poll = 0
+  const checkWaiters = new Set<(available: boolean) => void>()
+  const waitForCheck = () => disposed ? Promise.resolve(false) : !checking.value ? Promise.resolve(true)
+    : new Promise<boolean>(resolve => checkWaiters.add(resolve))
+  const settleChecks = (available: boolean) => {
+    for (const resolve of checkWaiters) resolve(available)
+    checkWaiters.clear()
+  }
   const query = (): CapabilityQuery | undefined => {
     const context = active.value.resolvedContext
     const projectId = context.project?.id
@@ -50,7 +59,7 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     const target = query(), sequence = ++generation
     if (!target) {
       client.value?.invalidate(); client.value = undefined; observation.value = undefined
-      mode.value = 'INDEPENDENT'; checking.value = false; return
+      mode.value = 'INDEPENDENT'; checking.value = false; settleChecks(true); return
     }
     checking.value = true
     try {
@@ -124,7 +133,7 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
         failure.value = error instanceof Error ? error.message : 'EXECUTION_CAPABILITY_UNAVAILABLE'
         // Never fall back to an unguarded API after a new-contract request fails.
       }
-    } finally { if (!disposed && sequence === generation) checking.value = false }
+    } finally { if (!disposed && sequence === generation) { checking.value = false; settleChecks(true) } }
   }
   const decorated = computed(() => {
     const context = active.value.resolvedContext
@@ -191,6 +200,6 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     }
     poll = 0; if (timer) clearTimeout(timer); void refresh()
   }, { immediate: true })
-  onBeforeUnmount(() => { disposed = true; generation++; client.value?.invalidate(); if (timer) clearTimeout(timer) })
-  return { observation, client, routingPresentation, receipt, failure, checking, mode, decorated, allowedActions, presentationReadonly, presentationReason, requiresReopen, uncertain, recovering, recover, refresh, reopen }
+  onBeforeUnmount(() => { disposed = true; generation++; settleChecks(false); client.value?.invalidate(); if (timer) clearTimeout(timer) })
+  return { observation, client, routingPresentation, receipt, failure, checking, mode, decorated, allowedActions, presentationReadonly, presentationReason, requiresReopen, uncertain, recovering, recover, refresh, reopen, waitForCheck }
 }

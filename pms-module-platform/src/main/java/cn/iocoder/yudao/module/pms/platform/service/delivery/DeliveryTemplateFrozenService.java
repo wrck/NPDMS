@@ -51,6 +51,30 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
     // ———— 生命周期 ————
 
     @Override
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void archiveForProjectReopen(ProjectReopenArchive command) {
+        if (command == null || command.projectId() == null || command.projectId() <= 0
+                || command.reopenSnapshotId() == null || command.reopenSnapshotId() <= 0
+                || command.expectedRequirementIds() == null) {
+            throw new BusinessContractException("DELIVERY_REQUIREMENT_INVALID", "新轮次交付隔离参数不完整");
+        }
+        var rows = requirementMapper.selectScopeForUpdate(DeliveryRequirementScopeLockQuery.all(
+                TenantContextHolder.getRequiredTenantId(), command.projectId())).stream()
+                .filter(row -> DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(row.getRequirementKind())).toList();
+        var expected = new HashSet<>(command.expectedRequirementIds());
+        var actual = rows.stream().map(DeliveryRequirementDO::getId).collect(java.util.stream.Collectors.toSet());
+        if (expected.size() != command.expectedRequirementIds().size() || !expected.equals(actual)) {
+            throw new BusinessContractException("DELIVERY_REQUIREMENT_VERSION_CONFLICT", "当前交付要求已变化，未执行重置");
+        }
+        for (var row : rows) {
+            row.setArchivedReopenSnapshotId(command.reopenSnapshotId());
+            if (requirementMapper.updateById(row) != 1) {
+                throw new BusinessContractException("DELIVERY_REQUIREMENT_VERSION_CONFLICT", "交付要求归档冲突");
+            }
+        }
+    }
+
+    @Override
     @Transactional
     public List<Long> instantiateTemplateFrozen(Long projectId, Long planVersionId,
                                                 List<TemplateFrozenDefinition> definitions) {
@@ -99,10 +123,11 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
                                      TemplateFrozenDefinition definition) {
         validateDefinition(definition);
         DeliveryRequirementDO row = lockTemplateRequirement(requirementId);
-        if (expectedVersion != null && !expectedVersion.equals(row.getVersion())) {
+        if (expectedVersion != null && !Long.valueOf(expectedVersion.longValue()).equals(row.getVersion())) {
             throw new BusinessContractException("DELIVERY_REQUIREMENT_VERSION_CONFLICT",
                     "交付件定义已被并发修改，请刷新后重试: " + requirementId);
         }
+        row.setTypeCode(definition.deliverableCode());
         row.setName(definition.name());
         row.setStageCode(definition.stageCode());
         row.setTaskCode(definition.taskCode());
@@ -144,6 +169,7 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
                 continue;
             }
             // 平台侧退役护栏：有任何材料或提交历史（含已撤回）即不退役，历史披露留给 Owner 模块。
+            DeliveryRequirementService.requireCurrent(row);
             if (!materialMapper.selectByRequirement(id).isEmpty()
                     || !submissionMapper.selectByRequirement(id).isEmpty()) {
                 continue;
@@ -206,14 +232,18 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
 
     @Override
     public Optional<TemplateFrozenView> findByIdentity(Long projectId, String deliverableCode) {
-        return requirementMapper.selectByOwnerAndType(TEMPLATE_OWNER_MODULE, TEMPLATE_ENTITY_TYPE,
-                        projectId, deliverableCode)
+        return Optional.ofNullable(requirementMapper.selectIdentity(
+                        new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementIdentityQuery(
+                                TenantContextHolder.getRequiredTenantId(), TEMPLATE_OWNER_MODULE, TEMPLATE_ENTITY_TYPE,
+                                projectId, deliverableCode)))
                 .map(DeliveryTemplateFrozenService::toView);
     }
 
     @Override
     public List<TemplateFrozenView> listByProject(Long projectId) {
-        return requirementMapper.selectByProject(projectId).stream()
+        return requirementMapper.selectByProject(
+                new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementProjectQuery(
+                        TenantContextHolder.getRequiredTenantId(), projectId)).stream()
                 .map(DeliveryTemplateFrozenService::toView).toList();
     }
 
@@ -365,6 +395,8 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
     @Override
     @Transactional
     public void withdrawMaterial(Long materialId) {
+        var material = materialService.requireMaterial(materialId);
+        if (material.getRequirementId() != null) lockTemplateRequirement(material.getRequirementId());
         materialService.withdrawTrusted(materialId);
     }
 
@@ -480,6 +512,7 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
             throw new BusinessContractException("DELIVERY_REQUIREMENT_KIND_MISMATCH",
                     "要求不是模板冻结链: " + requirementId);
         }
+        DeliveryRequirementService.requireCurrent(row);
         return row;
     }
 

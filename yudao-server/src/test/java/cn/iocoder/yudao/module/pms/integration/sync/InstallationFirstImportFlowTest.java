@@ -38,7 +38,7 @@ class InstallationFirstImportFlowTest {
         var permissions=mock(PermissionApi.class);var admin=mock(AdminUserApi.class);
         when(permissions.hasAnyPermissions(2L,"pms:integration:execute")).thenReturn(true);
         when(users.getHistoricalIdentitiesByUsername(anyLong(),anySet())).thenReturn(List.of());
-        when(devices.validateSelection(any(ProjectDeviceSelectionApi.SelectionQuery.class))).thenReturn(List.of(new SelectedProjectDevice(50L,"SN",null,null,null,null)));
+        when(devices.validateSelection(any(ProjectDeviceSelectionApi.AuthorizedSelection.class))).thenReturn(List.of(new SelectedProjectDevice(50L,"SN",null,null,null,null)));
         var persisted=new ArrayList<InstallationDO>();
         when(records.selectCurrentRecordForUpdate(any())).thenAnswer(c->persisted.stream().filter(r->r.getEffectiveTo()==null).findFirst().orElse(null));
         when(inserts.insertHistorical(any())).thenAnswer(c->{persisted.add(c.getArgument(0));return 1;});

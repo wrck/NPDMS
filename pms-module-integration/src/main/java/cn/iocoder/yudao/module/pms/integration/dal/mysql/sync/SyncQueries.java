@@ -27,6 +27,7 @@ public final class SyncQueries {
     public record DeliveryBindings(Long tenantId,Long taskId,String object,String sourceObject,Long runId) {}
     public record SourceAdapter(Long tenantId,Long connectionId,String sourceSystem,String adapter) {}
     public record BindingRun(Long tenantId,Long taskId,Long runId,java.util.List<Long> ids,LocalDateTime updatedAt) {}
+    public record BindingCompaction(Long tenantId,Long taskId,long afterId,int limit) {}
     public record Request(Long tenantId,Long taskId,String requestKey) {}
     public record Due(Long tenantId,LocalDateTime now) {}
     public record TaskIdentity(Long tenantId,String sourceSystem,String adapter) {}

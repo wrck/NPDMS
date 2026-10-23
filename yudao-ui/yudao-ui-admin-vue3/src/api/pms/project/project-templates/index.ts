@@ -72,6 +72,7 @@ export interface DesignerStageNode {
 }
 
 export interface DesignerTaskNode {
+  required?: boolean
   execution?: NodeExecutionConfiguration
   admissionRuleKey?: string
   completionRuleKey?: string
@@ -159,6 +160,7 @@ export interface TemplateDesignerDocument {
   match: TemplateMatch
   processDefinitionKey?: string
   closurePolicy?: TemplateClosurePolicy | null
+  implementationReadiness?: { sourceTaskCodes: Partial<Record<'EXE_01' | 'EXE_02' | 'EXE_03' | 'EXE_04', string>> }
   stages: DesignerStageNode[]
   tasks: DesignerTaskNode[]
   milestones: DesignerMilestoneNode[]
@@ -224,6 +226,7 @@ export interface StageDef extends ExecutionLinks {
   terminal?: boolean
 }
 export interface TaskDef extends ExecutionLinks {
+  required?: boolean
   taskCode: string
   name: string
   parentTaskCode?: string
@@ -428,7 +431,7 @@ const summaryOf = (content: TemplateDesignerDocument | TemplateDefinitionContent
     majorProjectLevel: content.majorProjectLevel
   },
   stageCount: content.stages.length,
-  taskCount: content.tasks.filter((task) => task.stageCode !== 'S0').length
+  taskCount: content.tasks.length
 })
 export const matchPreview = (data: MatchPreviewReqVO) =>
   request.post<MatchRespVO>({ url: `${baseUrl}/actions/match-preview`, data })

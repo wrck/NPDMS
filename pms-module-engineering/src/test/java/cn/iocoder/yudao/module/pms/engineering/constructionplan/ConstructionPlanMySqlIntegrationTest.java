@@ -15,6 +15,8 @@ import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.patch.DurationChangePatch;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -267,8 +269,8 @@ class ConstructionPlanMySqlIntegrationTest {
     }
 
     @Test
-    void constructionPlanCommandsDoNotDoubleWriteLegacyScheduleOrChangeTables() {
-        long legacyRowsBefore = legacyRowCount();
+    void constructionPlanCommandsDoNotDoubleWriteScheduleTables() {
+        long scheduleRowsBefore = scheduleRowCount();
         var plan = service.createInitial(command(keyPrefix + "-no-legacy", "a".repeat(64)),
                 actor(keyPrefix + "-no-legacy"));
         var draft = changeService.createDraft(changeCommand(plan.getPlanId(), plan.getPlanVersion(),
@@ -279,15 +281,13 @@ class ConstructionPlanMySqlIntegrationTest {
                 new DurationChangePatch(null, null, null, 7, null, null, null, null,
                         Set.of("durationDays"))), actor(keyPrefix + "-no-legacy-patch"));
 
-        assertEquals(legacyRowsBefore, legacyRowCount());
+        assertEquals(scheduleRowsBefore, scheduleRowCount());
     }
 
-    private long legacyRowCount() {
+    private long scheduleRowCount() {
         return jdbcTemplate.queryForObject("SELECT "
                 + "(SELECT COUNT(*) FROM sol_schedule_backward) + "
-                + "(SELECT COUNT(*) FROM sol_schedule_backward_item) + "
-                + "(SELECT COUNT(*) FROM pms_plan_change_request_retired) + "
-                + "(SELECT COUNT(*) FROM pms_plan_change_phase_snapshot_retired)", Long.class);
+                + "(SELECT COUNT(*) FROM sol_schedule_backward_item)", Long.class);
     }
 
     private CreateInitialDurationCommand command(String key, String digest) {
@@ -343,6 +343,8 @@ class ConstructionPlanMySqlIntegrationTest {
         @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
         @Bean ProjectScopeApi projectScopeApi() { return mock(ProjectScopeApi.class); }
         @Bean ProjectParticipantFactApi participantFactApi() { return mock(ProjectParticipantFactApi.class); }
+        @Bean ProjectEndDateApi projectEndDateApi() { return mock(ProjectEndDateApi.class); }
+        @Bean FileArtifactApi fileArtifactApi() { return mock(FileArtifactApi.class); }
         @Bean DictDataApi dictDataApi() { return mock(DictDataApi.class); }
         @Bean ConfigApi configApi() { return mock(ConfigApi.class); }
         @Bean BpmProcessInstanceApi bpmProcessInstanceApi() { return mock(BpmProcessInstanceApi.class); }

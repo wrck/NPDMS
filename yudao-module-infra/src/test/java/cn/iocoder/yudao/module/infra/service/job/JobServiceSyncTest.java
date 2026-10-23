@@ -18,6 +18,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -61,6 +64,44 @@ class JobServiceSyncTest {
                 () -> service.syncEnabledJobByHandlerName("fileOutboxDeliveryJob"));
         assertThrows(IllegalStateException.class,
                 () -> service.syncEnabledJobByHandlerName("fileOutboxDeliveryJob"));
+    }
+
+    @Test
+    void preservesPausedStatusWhenRegisteringAnExistingJob() throws Exception {
+        JobDO job = enabledJob();
+        job.setStatus(JobStatusEnum.STOP.getStatus());
+        when(jobMapper.selectListByHandlerName(job.getHandlerName())).thenReturn(List.of(job));
+        try (MockedStatic<SpringUtil> spring = mockStatic(SpringUtil.class)) {
+            spring.when(() -> SpringUtil.getBean(job.getHandlerName())).thenReturn(jobHandler);
+            service.syncJobByHandlerName(job.getHandlerName());
+        }
+        var order = inOrder(schedulerManager);
+        order.verify(schedulerManager).deleteJob(job.getHandlerName());
+        order.verify(schedulerManager).addJob(job.getId(), job.getHandlerName(), job.getHandlerParam(),
+                job.getCronExpression(), job.getRetryCount(), job.getRetryInterval());
+        order.verify(schedulerManager).pauseJob(job.getHandlerName());
+        verify(jobMapper, never()).updateById(job);
+    }
+
+    @Test
+    void enabledOnlyContractStillRejectsPausedJobs() {
+        JobDO job = enabledJob();
+        job.setStatus(JobStatusEnum.STOP.getStatus());
+        when(jobMapper.selectListByHandlerName(job.getHandlerName())).thenReturn(List.of(job));
+        assertThrows(IllegalStateException.class, () -> service.syncEnabledJobByHandlerName(job.getHandlerName()));
+        verifyNoInteractions(schedulerManager);
+    }
+
+    @Test
+    void statePreservingSyncRejectsMissingDuplicateAndUninitializedJobs() {
+        JobDO job = enabledJob();
+        job.setStatus(JobStatusEnum.INIT.getStatus());
+        when(jobMapper.selectListByHandlerName(job.getHandlerName()))
+                .thenReturn(List.of(), List.of(job, job), List.of(job));
+        for (int i = 0; i < 3; i++) {
+            assertThrows(IllegalStateException.class, () -> service.syncJobByHandlerName(job.getHandlerName()));
+        }
+        verifyNoInteractions(schedulerManager);
     }
 
     private JobDO enabledJob() {

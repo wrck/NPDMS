@@ -1,32 +1,12 @@
 <template>
-  <Dialog :model-value="visible" :title="draftId ? '编辑报告草稿' : '新建报告草稿'" width="720px" :before-close="beforeClose" @update:model-value="onVisibilityChange">
-    <el-alert
-      v-if="activity"
-      :title="`${typeLabel(activity.acceptanceType)} · 活动版本 ${activity.version}`"
-      type="info"
-      :closable="false"
-      class="editor-alert"
-    />
-    <el-form :model="form" :disabled="!canUpdate || busy" label-position="top">
-      <el-row :gutter="16">
-        <el-col :xs="24" :sm="12">
-          <el-form-item label="验收时间"><el-date-picker v-model="form.acceptanceTime" type="datetime" value-format="x" class="!w-full" /></el-form-item>
-        </el-col>
-        <el-col :xs="24" :sm="12">
-          <el-form-item label="验收结论"><el-select v-model="form.conclusionCode" clearable class="!w-full"><el-option label="通过" value="PASS" /><el-option label="不通过" value="FAIL" /><el-option label="有条件通过" value="CONDITIONAL_PASS" /></el-select></el-form-item>
-        </el-col>
-      </el-row>
-      <el-form-item label="验收人"><el-input v-model="form.acceptorName" maxlength="128" /></el-form-item>
-      <el-form-item label="结论说明"><el-input v-model="form.conclusionText" type="textarea" :rows="4" maxlength="2000" show-word-limit /></el-form-item>
-    </el-form>
-
-    <section v-if="draftId" class="attachment-section" aria-labelledby="attachment-title">
-      <div class="section-heading">
-        <div><h3 id="attachment-title">报告附件</h3><p>可连续上传多个附件；发布时由服务端冻结完整有序集合。</p></div>
-        <el-tag type="info">本次已上传 {{ uploadedCount }} 个</el-tag>
-      </div>
+  <Dialog :model-value="visible" :title="`上传${typeLabel(activity?.acceptanceType)}交付件`" width="min(640px, 95vw)" :before-close="beforeClose" @update:model-value="onVisibilityChange">
+    <AcceptanceReportForm v-if="activity" :operator-name="operatorName" :reports="fileReports" :uploaded-count="uploadedCount">
+      <template #uploader>
       <PmsFileUploader
+        v-if="draftId"
         ref="uploaderRef"
+        hide-submit
+        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
         :key="uploadSession"
         :disabled="!canUpload || saving || publishing"
         owner-context="ACC"
@@ -37,43 +17,55 @@
         category-code="ACCEPTANCE_REPORT_ATTACHMENT"
         @completed="attachmentCompleted"
       />
-    </section>
+      </template>
+    </AcceptanceReportForm>
 
     <template #footer>
       <el-button @click="close">取消</el-button>
-      <el-button v-if="canUpdate" :disabled="busy" :loading="saving" @click="saveDraft">{{ draftId ? '保存草稿' : '创建草稿' }}</el-button>
-      <el-button v-if="draftId && canPublish" type="primary" :disabled="busy" :loading="publishing" @click="publish">发布当前草稿</el-button>
+      <el-button v-if="canUpdate && canPublish" type="primary" :disabled="busy || completing" :loading="saving || publishing || completing" @click="saveAndComplete">保存</el-button>
     </template>
   </Dialog>
 </template>
 
 <script setup lang="ts">
 import { generateUUID } from '@/utils'
+import { useUserStore } from '@/store/modules/user'
 import { activityAllowsReportWrite } from './reportState'
 import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
 import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
-import type { AcceptanceActivityVO, AcceptanceReportVersionVO } from '@/api/pms/acceptance/acceptance-report'
-import { useOperationClient } from '@/components/BusinessView/operationHost'
+import type { AcceptanceActivityVO, AcceptanceReportVersionVO, ReportAttachmentVO } from '@/api/pms/acceptance/acceptance-report'
+import AcceptanceReportForm from './AcceptanceReportForm.vue'
+import { useOperationClient, useOperationCheck } from '@/components/BusinessView/operationHost'
 import type { OperationClient } from '@/components/BusinessView/operationClient'
 
 const props = defineProps<{ readonly?: boolean; allowedActions?: string[] }>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean] }>()
 const executionClient = useOperationClient()
+const waitForCheck = useOperationCheck()
 let openedClient: OperationClient | undefined
 const message = useMessage()
+const userStore = useUserStore()
 const visible = ref(false)
 const saving = ref(false)
 const publishing = ref(false)
+const completing = ref(false)
+let changedDuringCompletion = false
+const notifyChanged = () => { if (completing.value) changedDuringCompletion = true; else emit('changed') }
 const activity = ref<AcceptanceActivityVO>()
 const draftId = ref<number>()
 const draftNo = ref<number>()
 const uploadedCount = ref(0)
+const retainedAttachments = ref<ReportAttachmentVO[]>([])
+const fileReports = computed(() => draftId.value && draftNo.value ? [{
+  id: draftId.value, reportVersionNo: draftNo.value, reportStatus: 'DRAFT' as const, attachments: retainedAttachments.value
+}] : [])
 const referenceKey = ref(generateUUID())
 const publishKey = ref(generateUUID())
 const form = reactive<ReportApi.DraftContent>({})
-const uploaderRef = ref<{ isBusy: () => boolean; hasPendingFile: () => boolean }>()
+const operatorName = computed(() => userStore.getUser.nickname || String(userStore.getUser.id))
+const uploaderRef = ref<{ isBusy: () => boolean; hasPendingFile: () => boolean; submit: () => Promise<void> }>()
 const uploadSession = ref(0)
 const baseline = ref('')
 let generation = 0
@@ -88,20 +80,21 @@ const canPublish = computed(() => allowed('PUBLISH'))
 const canUpload = computed(() => allowed('FILE_WRITE') && checkPermi(['pms:file:upload']))
 const busy = computed(() => saving.value || publishing.value || !!uploaderRef.value?.isBusy())
 const dirty = computed(() => visible.value && (snapshot() !== baseline.value || !!uploaderRef.value?.hasPendingFile()))
-watch([dirty, busy], () => emit('dirty-change', dirty.value || busy.value), { flush: 'sync' })
+watch([dirty, busy, completing], () => emit('dirty-change', dirty.value || busy.value || completing.value), { flush: 'sync' })
 const requestLeave = async (): Promise<boolean> => {
-  if (busy.value) return false
+  if (busy.value || completing.value) return false
   if (!dirty.value) return true
   try { await message.confirm('草稿有未保存的修改，确认放弃并离开？'); return !busy.value } catch { return false }
 }
 const discardChanges = (): boolean => {
-  if (busy.value) return false
+  if (busy.value || completing.value) return false
   generation++
   openSequence++
   visible.value = false
   activity.value = undefined
   draftId.value = undefined
   draftNo.value = undefined
+  retainedAttachments.value = []
   openedClient = undefined
   Object.keys(form).forEach(key => delete form[key as keyof ReportApi.DraftContent])
   baseline.value = snapshot()
@@ -121,6 +114,7 @@ const open = async (target: AcceptanceActivityVO, draft?: AcceptanceReportVersio
   draftId.value = draft?.id
   draftNo.value = draft?.reportVersionNo
   uploadedCount.value = draft?.attachments.length || 0
+  retainedAttachments.value = [...(draft?.attachments || [])]
   referenceKey.value = generateUUID()
   publishKey.value = generateUUID()
   Object.assign(form, {
@@ -132,6 +126,7 @@ const open = async (target: AcceptanceActivityVO, draft?: AcceptanceReportVersio
   })
   baseline.value = snapshot()
   visible.value = true
+  if (!draftId.value && canUpdate.value) await saveDraft()
   return true
 }
 
@@ -152,8 +147,7 @@ const saveDraft = async () => {
     if (result.activityVersion != null) activity.value = { ...activity.value, version: result.activityVersion }
     publishKey.value = generateUUID()
     baseline.value = savedSnapshot
-    message.success('草稿已保存')
-    emit('changed')
+    notifyChanged()
     return true
   } finally {
     if (token === generation) saving.value = false
@@ -164,7 +158,7 @@ const attachmentCompleted = () => {
   if (!visible.value) return
   uploadedCount.value += 1
   referenceKey.value = generateUUID()
-  emit('changed')
+  notifyChanged()
 }
 
 const publish = async () => {
@@ -175,28 +169,53 @@ const publish = async () => {
   try {
     await ReportApi.publishVersion(activity.value, { id: draftId.value, reportVersionNo: draftNo.value }, publishKey.value, openedClient)
     if (token !== generation) return false
-    message.success(activity.value.currentReportVersionId ? '新版本已替换生效' : '报告版本已生效')
+    message.success(`${typeLabel(activity.value.acceptanceType)}已通过`)
     visible.value = false
-    emit('changed')
+    notifyChanged()
     return true
   } finally {
     if (token === generation) publishing.value = false
   }
 }
+const saveAndComplete = async () => {
+  if (!canUpdate.value || !canPublish.value || busy.value || completing.value) return false
+  completing.value = true
+  const token = generation
+  try {
+    if (uploaderRef.value?.hasPendingFile()) {
+      if (!canUpload.value) return false
+      await uploaderRef.value.submit()
+      if (uploaderRef.value.hasPendingFile()) return false
+    }
+    if (!uploadedCount.value) { message.warning('请先上传验收报告'); return false }
+    if (!(await waitForCheck())) return false
+    await nextTick()
+    if (token !== generation) return false
+    if (!(await saveDraft())) { message.warning('交付件已保留为草稿，请刷新后检查操作权限和执行条件再保存'); return false }
+    // A background capability read is temporarily query-only. Wait for its result;
+    // publish still checks fresh Owner actions and the server reauthorizes the command.
+    if (!(await waitForCheck())) return false
+    await nextTick()
+    if (token !== generation) return false
+    const completed = await publish()
+    if (!completed) message.warning('交付件已保留为草稿，请刷新后检查操作权限和执行条件再保存')
+    return completed
+  } catch (error) {
+    message.warning('本次保存未完成，已上传文件仍保留在草稿中，请核查错误后重试')
+    throw error
+  } finally {
+    completing.value = false
+    if (changedDuringCompletion) { changedDuringCompletion = false; if (token === generation) emit('changed') }
+  }
+}
 onBeforeUnmount(() => { generation++ })
 
 const typeLabel = (type?: string) => (type === 'FINAL' ? '终验' : '初验')
-defineExpose({ open, requestLeave, discardChanges, isDirty: () => dirty.value || busy.value })
+defineExpose({ open, requestLeave, discardChanges, isDirty: () => dirty.value || busy.value || completing.value })
 </script>
 
 <style scoped lang="scss">
-.editor-alert { margin-bottom: 16px; }
-.attachment-section { padding-top: 16px; border-top: 1px solid var(--el-border-color-lighter); }
-.section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.section-heading h3 { margin: 0; font-size: 16px; color: var(--el-text-color-primary); }
-.section-heading p { margin: 4px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
 @media (width <= 767px) {
-  .section-heading { flex-direction: column; }
   :deep(.el-dialog__footer) { display: grid; gap: 8px; }
   :deep(.el-dialog__footer .el-button) { width: 100%; margin-left: 0; }
 }

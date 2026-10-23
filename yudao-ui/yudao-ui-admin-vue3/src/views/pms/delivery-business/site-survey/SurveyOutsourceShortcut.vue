@@ -7,7 +7,7 @@
       >需要转包（整单共用）</el-checkbox
     >
     <el-button
-      v-if="survey.outsourceRequired && !survey.outsourceRequestId && !readonly"
+      v-if="!inBranches && survey.outsourceRequired && !survey.outsourceRequestId && !readonly"
       link
       type="primary"
       @click="launch?.('outsource')"
@@ -15,7 +15,7 @@
       >保存工勘并发起转包申请</el-button
     >
     <el-link
-      v-if="survey.outsourceRequestId"
+      v-if="!inBranches && survey.outsourceRequestId"
       :href="outsourceDetailUrl(survey.outsourceRequestId)"
       target="_blank"
       rel="noopener"
@@ -33,6 +33,7 @@ import { extractSurveyValues } from './siteSurveyForm'
 const props = defineProps<{
   getSurvey?: () => SiteSurveyVO
   readonly?: boolean
+  inBranches?: boolean
   hasManufacturerQuestion?: boolean
   updateRequired?: (value: boolean) => void
   launch?: (kind: string) => void

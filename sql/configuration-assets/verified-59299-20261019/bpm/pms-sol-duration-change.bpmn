@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://iocoder.cn/pms/sol/duration-change">
+    <process id="pms-sol-duration-change" name="项目工期变更审批" isExecutable="true">
+        <startEvent id="start"/>
+        <sequenceFlow id="flow-start-approve" sourceRef="start" targetRef="serviceManagerApprove"/>
+        <userTask id="serviceManagerApprove" name="服务经理审批" flowable:candidateStrategy="35"/>
+        <sequenceFlow id="flow-approve-end" sourceRef="serviceManagerApprove" targetRef="end"/>
+        <endEvent id="end"/>
+    </process>
+    <bpmndi:BPMNDiagram xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Diagram_DurationChange">
+        <bpmndi:BPMNPlane id="Plane_DurationChange" bpmnElement="pms-sol-duration-change">
+            <bpmndi:BPMNShape id="Shape_start" bpmnElement="start"><dc:Bounds x="160" y="180" width="36" height="36"/></bpmndi:BPMNShape>
+            <bpmndi:BPMNShape id="Shape_serviceManagerApprove" bpmnElement="serviceManagerApprove"><dc:Bounds x="280" y="158" width="160" height="80"/></bpmndi:BPMNShape>
+            <bpmndi:BPMNShape id="Shape_end" bpmnElement="end"><dc:Bounds x="524" y="180" width="36" height="36"/></bpmndi:BPMNShape>
+            <bpmndi:BPMNEdge id="Edge_flow_start_approve" bpmnElement="flow-start-approve"><di:waypoint x="196" y="198"/><di:waypoint x="280" y="198"/></bpmndi:BPMNEdge>
+            <bpmndi:BPMNEdge id="Edge_flow_approve_end" bpmnElement="flow-approve-end"><di:waypoint x="440" y="198"/><di:waypoint x="524" y="198"/></bpmndi:BPMNEdge>
+        </bpmndi:BPMNPlane>
+    </bpmndi:BPMNDiagram>
+</definitions>

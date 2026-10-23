@@ -38,6 +38,7 @@ class ProjectTaskBusinessAssociationServiceTest {
         task = new ProjectTaskInstanceDO(); task.setId(11L); task.setProjectId(9L); task.setStatus("PENDING_ASSIGN");
         contract = new ProjectTaskExecutionContractDO(); contract.setId(31L); contract.setContractVersion(1);
         contract.setWorkBindingTypeCode("BUSINESS_COMPONENT"); contract.setTargetContextCode("SOL"); contract.setTargetObjectType("SITE_SURVEY");
+        contract.setBindingParameterSnapshot("{}");
         execution = new ProjectNodeExecutionDO(); execution.setId(70L); execution.setNodeKind("TASK"); execution.setNodeInstanceId(11L);
         execution.setContractId(31L); execution.setPlanVersionId(50L); execution.setStatus("PENDING"); execution.setRoundNo(7);
         when(tasks.selectProjectForCommandForUpdate(any())).thenReturn(project);
@@ -116,6 +117,58 @@ class ProjectTaskBusinessAssociationServiceTest {
         verify(links,never()).insertLink(any()); verify(links,never()).unlinkIfMatch(any()); verifyNoInteractions(audit);
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"REFERENCE_EXISTING", "READ_ONLY_AGGREGATE"})
+    void reusableObjectsCanServeANewExecutionWithoutChangingPreviousEvidence(String strategy) {
+        contract.setBindingParameterSnapshot("{\"instanceResolutionStrategy\":\"" + strategy + "\"}");
+        var previous = link(51L, "40", 60L);
+        previous.setFactVersion("frozen-old-result");
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(previous));
+        when(links.selectPreviouslyAssociatedObjectIds(any())).thenReturn(List.of("40"));
+        when(owner.associationCandidates(any(), isNull(), eq(100)))
+                .thenReturn(List.of(new AssociationCandidate("40", "current-owner-result")));
+
+        service.synchronize(9L, 11L, "rework-reuse");
+
+        verify(links).insertLink(argThat(row -> row.getNodeExecutionId() == 70L
+                && row.getObjectId().equals("40") && row.getFactVersion().equals("current-owner-result")));
+        verify(links).unlinkIfMatch(argThat(change -> change.linkId() == 51L && change.expectedVersion() == 0));
+        assertEquals("frozen-old-result", previous.getFactVersion());
+        assertEquals(60L, previous.getNodeExecutionId());
+        verify(owner, never()).handlingCreatedAt(any(), any());
+    }
+
+    @Test void templateReopenUsesTheSameReferencePolicyEvenWhenOwnerCreationTimeIsUnknown() {
+        contract.setBindingParameterSnapshot("{\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\"}");
+        when(owner.associationCandidates(any(), isNull(), eq(100)))
+                .thenReturn(List.of(new AssociationCandidate("37", "confirmed-v2")));
+
+        service.synchronize(9L, 11L, "training-confirmed");
+
+        verify(links).insertLink(argThat(row -> row.getObjectId().equals("37") && row.getNodeExecutionId() == 70L));
+        verify(owner, never()).handlingCreatedAt(any(), any());
+        verify(tasks, never()).updateLifecycleIfMatch(any());
+    }
+
+    @Test void reusableBindingStillRejectsAConcurrentAssociationChange() {
+        contract.setBindingParameterSnapshot("{\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\"}");
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(link(51L, "40", 60L)));
+        when(links.unlinkIfMatch(any())).thenReturn(0);
+        when(owner.associationCandidates(any(), isNull(), eq(100)))
+                .thenReturn(List.of(new AssociationCandidate("40", "current-result")));
+        var failure = assertThrows(IllegalStateException.class, () -> service.synchronize(9L, 11L, "concurrent"));
+        assertEquals("AUTO_ASSOCIATION_VERSION_CONFLICT", failure.getMessage());
+        verify(links, never()).insertLink(any());
+        verifyNoInteractions(audit);
+    }
+
+    @Test void malformedFrozenStrategyCannotSilentlyEnableReuse() {
+        contract.setBindingParameterSnapshot("{\"instanceResolutionStrategy\":\"REUSE_EVERYTHING\"}");
+        assertThrows(RuntimeException.class, () -> service.synchronize(9L, 11L, "invalid-strategy"));
+        verify(owner, never()).associationCandidates(any(), any(), anyInt());
+        verifyNoInteractions(links);
+    }
+
     @Test void unavailableOwnerOrInconsistentCurrentExecutionDoesNotClearRelationships() {
         when(owner.associationCandidates(any(),any(),anyInt())).thenReturn(null);
         assertThrows(IllegalStateException.class, () -> service.synchronize(9L,11L,"unavailable"));
@@ -154,6 +207,23 @@ class ProjectTaskBusinessAssociationServiceTest {
         verify(owner,never()).lockStageCompletionFact(any(),any());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"REFERENCE_EXISTING", "READ_ONLY_AGGREGATE"})
+    void stageReusesExistingObjectsWithTheSamePolicyAsTaskRework(String strategy) {
+        stageReceiver("{\"instanceResolutionStrategy\":\"" + strategy + "\"}");
+        var previous = link(51L, "40", 60L); previous.setTaskId(null); previous.setStageId(90L);
+        previous.setFactVersion("old-result");
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(previous));
+        when(owner.associationCandidates(any(), isNull(), eq(100)))
+                .thenReturn(List.of(new AssociationCandidate("40", "current-result")));
+        service.synchronizeStage(9L, 90L, "stage-reuse");
+        verify(links).insertLink(argThat(row -> row.getTaskId() == null && row.getStageId() == 90L
+                && row.getNodeExecutionId() == 70L && row.getObjectId().equals("40")));
+        verify(links, never()).selectPreviouslyAssociatedObjectIds(any());
+        assertEquals("old-result", previous.getFactVersion()); assertEquals(60L, previous.getNodeExecutionId());
+        verify(owner, never()).handlingCreatedAt(any(), any());
+    }
+
     @Test void stageWithStalePlanDoesNotAskOwnerOrAlterAnyAssociation() {
         stageReceiver(); execution.setPlanVersionId(49L);
         assertThrows(IllegalStateException.class, () -> service.synchronizeStage(9L,90L,"stale-stage"));
@@ -162,13 +232,17 @@ class ProjectTaskBusinessAssociationServiceTest {
     }
 
     private void stageReceiver() {
+        stageReceiver("{}");
+    }
+
+    private void stageReceiver(String parameters) {
         var stage = new ProjectStageInstanceDO(); stage.setId(90L); stage.setTenantId(1L); stage.setProjectId(9L);
         stage.setGraphVersion(1L); stage.setStatus("ACTIVE");
         var stageContract = new cn.iocoder.yudao.module.pms.project.dal.dataobject.runtimegraph.ProjectStageExecutionContractDO();
         stageContract.setId(31L); stageContract.setTenantId(1L); stageContract.setProjectId(9L); stageContract.setStageId(90L);
         stageContract.setGraphVersion(1L); stageContract.setBindingVersion(1); stageContract.setSourceNodeKey("stage:prep");
         stageContract.setBindingType("BUSINESS_COMPONENT");
-        stageContract.setBindingSnapshot("{\"type\":\"BUSINESS_COMPONENT\",\"targetContextCode\":\"SOL\",\"targetObjectType\":\"SITE_SURVEY\",\"parameters\":{}}");
+        stageContract.setBindingSnapshot("{\"type\":\"BUSINESS_COMPONENT\",\"targetContextCode\":\"SOL\",\"targetObjectType\":\"SITE_SURVEY\",\"parameters\":" + parameters + "}");
         when(graph.selectStagesForUpdate(any())).thenReturn(List.of(stage));
         when(graph.selectContracts(any())).thenReturn(List.of(stageContract));
         execution.setNodeKind("STAGE"); execution.setNodeInstanceId(90L); execution.setNodeKey("stage:prep"); execution.setStatus("ACTIVE");

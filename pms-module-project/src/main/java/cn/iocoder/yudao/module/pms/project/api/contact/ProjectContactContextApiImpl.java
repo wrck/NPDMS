@@ -53,11 +53,22 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
 
     @Override
     public Context inspect(Query query) {
+        var current = inspectProject(query);
+        return ordinaryContext(query, current.project(), current.treeVersion());
+    }
+
+    private record ContactProject(ProjectMasterDO project, Long treeVersion) {}
+
+    private ContactProject inspectProject(Query query) {
         validate(query);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(), query.actorUserId(), query.projectId(), ProjectScopeApi.ACTION_VIEW));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || !scope.fullProjectIds().contains(query.projectId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         var project = requireProject(query, projects.selectById(query.projectId()));
-        return context(query, project, scope.treeVersion());
+        return new ContactProject(project, scope.treeVersion());
     }
 
     @Override
@@ -68,7 +79,7 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
 
     @Override
     public FinalCustomer inspectFinalCustomer(Query query) {
-        inspect(query);
+        inspectProject(query);
         return finalCustomer(query, false);
     }
 
@@ -95,13 +106,23 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
     private Context lockContext(WriteQuery write, boolean historical) {
         var query = new Query(write.tenantId(), write.actorUserId(), write.projectId());
         validate(query);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(), query.actorUserId(), query.projectId(), ProjectScopeApi.ACTION_MANAGE));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (scope == null || !scope.fullProjectIds().contains(query.projectId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
-        scope = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(), query.actorUserId(), query.projectId(), ProjectScopeApi.ACTION_MANAGE, scope.treeVersion()));
+        scope = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if (scope == null || !scope.fullProjectIds().contains(query.projectId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         var project = requireProject(query, projects.selectByIdForUpdate(query.projectId()));
         if (write.expectedProjectVersion() == null || !Objects.equals(project.getVersion(), write.expectedProjectVersion())) throw exception(PROJECT_VERSION_CONFLICT);
-        var result = context(query, project, scope.treeVersion());
+        var result = historical ? context(query, project, scope.treeVersion())
+                : ordinaryContext(query, project, scope.treeVersion());
         if (historical ? !result.canViewHistory() || !Set.of("ACTIVE","NORMAL_CLOSED","EXCEPTION_CLOSED").contains(result.lifecycleStatus()) : !result.canManage())
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         return result;
@@ -109,8 +130,12 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
 
     private Context context(Query query, ProjectMasterDO project, Long treeVersion) {
         boolean manager = projectRoles.isTenantSuperAdmin(query.tenantId(), query.actorUserId())
-                || !members.selectParticipantFacts(new ProjectParticipantFactLookupQuery(
-                query.tenantId(), query.projectId(), query.actorUserId(), Set.of("PROJECT_MANAGER"), LocalDateTime.now())).isEmpty();
+                || !members.selectParticipantFacts(ProjectParticipantFactLookupQuery.builder()
+                .tenantId(query.tenantId())
+                .projectId(query.projectId())
+                .subjectUserId(query.actorUserId())
+                .requiredRoleCodes(Set.of("PROJECT_MANAGER"))
+                .effectiveAt(LocalDateTime.now()).build()).isEmpty();
         if (!manager) {
             var ids = new HashSet<>(ancestors.getAncestors(new ProjectAncestorQuery(query.tenantId(), query.projectId(), treeVersion)).ancestorProjectIds());
             ids.add(query.projectId());
@@ -121,6 +146,21 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
         }
         return new Context(project.getId(), project.getCustomerId(), project.getVersion(), project.getLifecycleStatus(),
                 manager && "ACTIVE".equals(project.getLifecycleStatus()), manager);
+    }
+
+    private Context ordinaryContext(Query query, ProjectMasterDO project, Long treeVersion) {
+        var current = context(query, project, treeVersion);
+        Long customerId = project.getCustomerId();
+        if (customerId == null && project.getCustomerCode() != null && !project.getCustomerCode().isBlank()) {
+            var customer = customers.getCustomerByCode(new cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerCodeQuery(
+                    project.getCustomerCode(), query.actorUserId()));
+            if (customer == null || !Objects.equals(customer.tenantId(), query.tenantId())) {
+                throw exception(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CUSTOMER_UNAVAILABLE);
+            }
+            customerId = customer.id();
+        }
+        return new Context(current.projectId(), customerId, current.projectVersion(), current.lifecycleStatus(),
+                current.canManage(), current.canViewHistory());
     }
 
     private void validate(Query query) {

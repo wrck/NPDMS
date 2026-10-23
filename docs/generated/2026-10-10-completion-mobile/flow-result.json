@@ -1,0 +1,63 @@
+{
+  "phase": "flow",
+  "projectId": 992203060198,
+  "certificateId": 30039,
+  "surveyMetrics": {
+    "visibleWidth": 358,
+    "contentWidth": 358
+  },
+  "ratingCount": 53,
+  "signatureBounds": {
+    "x": 12,
+    "y": 32,
+    "width": 366,
+    "height": 812
+  },
+  "missingConsentAndRequiredAnswersBlockUploads": true,
+  "missingSignatureBlocksUploads": true,
+  "responsiveChecks": [
+    {
+      "width": 320,
+      "height": 568,
+      "allOptionsTouchable": true,
+      "equipmentRows": 7,
+      "noHorizontalOverflow": true,
+      "answersPreserved": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "allOptionsTouchable": true,
+      "equipmentRows": 7,
+      "noHorizontalOverflow": true,
+      "answersPreserved": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "allOptionsTouchable": true,
+      "equipmentRows": 7,
+      "noHorizontalOverflow": true,
+      "answersPreserved": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "allOptionsTouchable": true,
+      "equipmentRows": 7,
+      "noHorizontalOverflow": true,
+      "answersPreserved": true
+    }
+  ],
+  "desktopMatrixAndAnswersPreserved": true,
+  "oneTouchSignatureUploadAndOneJointSubmission": true,
+  "outcome": {
+    "score": 80.0,
+    "threshold": 80.0,
+    "passed": true
+  },
+  "ownValidationRecordFinalStatus": 2,
+  "submittedReopenReadonlyWithSameAnswersAndSignature": true,
+  "protectedRecordsUnchanged": true,
+  "pageErrors": []
+}

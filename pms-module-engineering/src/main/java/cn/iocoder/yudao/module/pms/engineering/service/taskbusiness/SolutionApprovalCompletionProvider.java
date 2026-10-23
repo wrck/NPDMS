@@ -95,7 +95,26 @@ public class SolutionApprovalCompletionProvider implements TaskBusinessObjectPro
                 .stream().map(row -> new AssociationCandidate(row.id().toString(), version(row))).toList();
     }
 
+    @Override public HandlingTime historicalHandlingTime(HandlingTimeQuery request) {
+        authorize(request.context().tenantId(),request.context().actorId(),request.context().projectId());
+        if (!request.satisfiedFacts().contains(FACT)) return null;
+        var row = mapper.one(new SolutionCompletionQuery(request.context().tenantId(),request.context().projectId(),parse(request.objectId()),null,1,false));
+        if (row == null || !Objects.equals(row.getTenantId(),request.context().tenantId()) || !Objects.equals(row.getProjectId(),request.context().projectId())
+                || Boolean.TRUE.equals(row.getDeleted()) || !"IMPLEMENTATION".equals(row.getSolutionType())) return null;
+        return Objects.equals(version(load(request.context().tenantId(),request.context().projectId(),parse(request.objectId()),false)),request.factVersion())
+                ? new HandlingTime(row.getApprovedTime(),"BUSINESS_END","实施方案审批通过时间") : null;
+    }
+
     private record Snapshot(Long id, String name, String version, boolean completed) { }
+    @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null) throw unavailable();
+        tenant(context.tenantId(), context.projectId());
+        var row = mapper.one(new SolutionCompletionQuery(context.tenantId(), context.projectId(), parse(objectId), null, 1, false));
+        if (row == null || !Objects.equals(row.getTenantId(), context.tenantId())
+                || !Objects.equals(row.getProjectId(), context.projectId()) || Boolean.TRUE.equals(row.getDeleted())
+                || !"IMPLEMENTATION".equals(row.getSolutionType())) throw unavailable();
+        return row.getCreateTime();
+    }
     private String version(Snapshot row) { return objectType() + ":v1:" + row.version() + ":" + row.completed(); }
     private BusinessObjectFact fact(Snapshot row) {
         return new BusinessObjectFact(row.id().toString(), row.name(), version(row), Set.of("QUERY"),
@@ -108,7 +127,11 @@ public class SolutionApprovalCompletionProvider implements TaskBusinessObjectPro
     private void authorize(Long tenant, Long actor, Long project) {
         tenant(tenant, project);
         if (actor == null || !Objects.equals(actor, SecurityFrameworkUtils.getLoginUserId())) throw exception(FORBIDDEN);
-        var visible = scope.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, project, ProjectScopeApi.ACTION_VIEW));
+        var visible = scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (visible == null || visible.fullProjectIds() == null || !visible.fullProjectIds().contains(project)
                 || !permissions.hasAnyPermissions(actor, "pms:sol-solution:query")) throw exception(FORBIDDEN);
     }

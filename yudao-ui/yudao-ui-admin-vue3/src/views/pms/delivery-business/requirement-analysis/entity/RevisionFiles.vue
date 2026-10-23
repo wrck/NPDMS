@@ -1,6 +1,5 @@
 <template>
-  <details class="controlled-file-field">
-    <summary>附件<span v-if="current.length">（{{ current.length }}）</span><span v-else> · {{ canWrite ? '添加文件' : '暂无文件' }}</span></summary>
+  <section class="controlled-file-field" aria-label="需求分析附件">
     <div v-for="fact in current" :key="fact.referenceKey" class="file-slot">
       <PmsFileReferenceList
         owner-context="SOL"
@@ -16,7 +15,10 @@
         @detached="handleDetached(fact.referenceKey)"
       />
       <PmsFileUploader
+        ref="versionUploaders"
         v-if="canWrite"
+        auto-submit
+        hide-submit
         owner-context="SOL"
         object-type="REQUIREMENT_ANALYSIS_REVISION"
         :object-id="String(revisionId)"
@@ -33,7 +35,10 @@
       />
     </div>
     <PmsFileUploader
+      ref="newUploader"
       v-if="canWrite"
+        auto-submit
+        hide-submit
       owner-context="SOL"
       object-type="REQUIREMENT_ANALYSIS_REVISION"
       :object-id="String(revisionId)"
@@ -45,7 +50,7 @@
       @completed="handleCompleted"
     />
     <el-empty v-else-if="!current.length" description="暂无文件材料" :image-size="56" />
-  </details>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -72,7 +77,16 @@ const props = withDefaults(
   }>(),
   { currentFacts: () => [], allowedActions: () => [], disabled: false }
 )
-const emit = defineEmits<{ 'update:modelValue': [value: string[]] }>()
+const emit = defineEmits<{
+  'update:modelValue': [value: string[]]
+  'upload-busy-change': [busy: boolean]
+}>()
+const versionUploaders = ref<InstanceType<typeof PmsFileUploader>[]>([])
+const newUploader = ref<InstanceType<typeof PmsFileUploader>>()
+const uploadBusy = computed(() => !!newUploader.value?.isBusy()
+  || versionUploaders.value.some(uploader => uploader.isBusy()))
+watch(uploadBusy, busy => emit('upload-busy-change', busy), { flush: 'sync' })
+onBeforeUnmount(() => emit('upload-busy-change', false))
 
 type VisibleFile = Pick<DynamicFormFileFactVO, 'artifactId' | 'versionNo' | 'referenceKey'> &
   Partial<Pick<DynamicFormFileFactVO, 'fileFactVersion'>> & { referenceVersion?: number }
@@ -142,10 +156,4 @@ watch(
     width: 100%;
   }
 }
-</style>
-
-<style scoped>
-summary { cursor: pointer; color: var(--el-color-primary); font-size: 13px; padding: 8px 0; }
-summary span { color: var(--el-text-color-secondary); }
-details[open] summary { margin-bottom: 8px; }
 </style>

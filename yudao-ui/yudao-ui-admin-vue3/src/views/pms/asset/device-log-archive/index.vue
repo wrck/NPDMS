@@ -1,6 +1,8 @@
 <template>
   <ContentWrap>
-    <el-form inline>
+    <div :class="{ 'panel-header': props.projectId }">
+    <span v-if="props.projectId" class="panel-title"><Icon icon="ep:document" /> 配置Log</span>
+    <el-form inline :class="{ 'panel-header-actions': props.projectId }">
       <el-form-item v-if="!props.projectId" label="项目">
         <PmsEntitySelect
           v-model="projectId"
@@ -36,6 +38,17 @@
         </el-upload>
       </el-form-item>
     </el-form>
+    </div>
+    <el-form inline class="log-filters" @submit.prevent="search">
+      <el-form-item label="序列号"><el-input v-model="filters.serialNumber" clearable placeholder="请输入序列号" /></el-form-item>
+      <el-form-item label="设备名称"><el-input v-model="filters.deviceName" clearable placeholder="请输入设备名称" /></el-form-item>
+      <el-form-item label="日志来源"><el-select v-model="filters.sourceType" clearable placeholder="全部来源">
+        <el-option label="手工上传" value="MANUAL_UPLOAD" />
+        <el-option label="采集回传" value="COLLECTION_CALLBACK" />
+      </el-select></el-form-item>
+      <el-form-item><el-button native-type="submit" type="primary" :loading="loading"><Icon icon="ep:search" />查询</el-button>
+        <el-button :disabled="loading" @click="resetSearch"><Icon icon="ep:refresh" />重置</el-button></el-form-item>
+    </el-form>
     <p class="text-sm text-[var(--el-text-color-secondary)] mt-0">
       自动识别 UTF-8、GB18030 / GBK 及带 BOM 的 UTF-16 日志，统一转换为 UTF-8，最大 20 MiB。
       按内容中的设备序列号拆分并关联当前项目设备，历史文件全部保留。
@@ -65,7 +78,7 @@
       v-loading="loading"
       :data="pagedRows"
       row-key="deviceId"
-      empty-text="当前项目没有已归档的设备日志"
+      :empty-text="appliedFilters.serialNumber || appliedFilters.deviceName || appliedFilters.sourceType ? '暂无符合查询条件的设备日志' : '当前项目暂无已归档的设备日志'"
     >
       <el-table-column prop="serialNumber" label="设备序列号" min-width="180" />
       <el-table-column prop="deviceName" label="设备名称" min-width="160" />
@@ -121,7 +134,7 @@
       v-if="projectId"
       v-model:page="pageNo"
       v-model:limit="pageSize"
-      :total="rows.length"
+      :total="filteredRows.length"
       :page-sizes="[20, 50, 100, rows.length || 20]"
     />
   </ContentWrap>
@@ -175,7 +188,7 @@
 </template>
 <script setup lang="ts">
 import { generateUUID } from '@/utils'
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { computed, reactive, ref, watch, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { UploadRequestOptions, UploadInstance } from 'element-plus'
@@ -187,7 +200,7 @@ import { checkPermi } from '@/utils/permission'
 import { decodeLogText } from '@/components/DeviceCollection/decodeLogText'
 import LogParseResult from '@/components/DeviceCollection/LogParseResult.vue'
 defineOptions({ name: 'DeviceLogArchive' })
-const props = defineProps<{ projectId?: Api.Identifier; readonly?: boolean }>()
+const props = defineProps<{ projectId?: Api.Identifier; originTaskId?: Api.Identifier; readonly?: boolean }>()
 const route = useRoute()
 const initial = route.query.projectId
 const projectId = ref<Api.Identifier | undefined>(
@@ -201,10 +214,23 @@ watch(
   }
 )
 const rows = ref<Api.DeviceLog[]>([])
+const filters = reactive({ serialNumber: '', deviceName: '', sourceType: '' })
+const appliedFilters = ref({ ...filters })
+const filteredRows = computed(() => {
+  const query = appliedFilters.value
+  return rows.value.filter(row => (!query.serialNumber || row.serialNumber.toLowerCase().includes(query.serialNumber))
+    && (!query.deviceName || (row.deviceName || '').toLowerCase().includes(query.deviceName))
+    && (!query.sourceType || row.latest?.sourceType === query.sourceType))
+})
+const search = () => { pageNo.value = 1; appliedFilters.value = { serialNumber: filters.serialNumber.trim().toLowerCase(),
+  deviceName: filters.deviceName.trim().toLowerCase(), sourceType: filters.sourceType || '' } }
+const resetSearch = () => {
+  filters.serialNumber = ''; filters.deviceName = ''; filters.sourceType = ''; search()
+}
 const pageNo = ref(1)
 const pageSize = ref(20)
 const pagedRows = computed(() =>
-  rows.value.slice((pageNo.value - 1) * pageSize.value, pageNo.value * pageSize.value)
+  filteredRows.value.slice((pageNo.value - 1) * pageSize.value, pageNo.value * pageSize.value)
 )
 const loading = ref(false)
 const loadFailed = ref(false)
@@ -300,6 +326,7 @@ const load = async () => {
 watch(
   projectId,
   () => {
+    resetSearch()
     result.value = undefined
     ++parsedSequence
     parsedVisible.value = false
@@ -338,7 +365,7 @@ const uploadFile = async (options: UploadRequestOptions) => {
       ElMessage.error(uploadError.value)
       return
     }
-    result.value = await Api.upload(projectId.value, generateUUID(), file)
+    result.value = await Api.upload({ projectId: projectId.value, operationId: generateUUID(), file, originTaskId: props.originTaskId })
     if (result.value.outcome === 'ARCHIVED') {
       ElMessage.success('设备日志已归档')
       await load()
@@ -374,3 +401,12 @@ const downloadSource = async (id: Api.Identifier) => {
 const sourceName = (type: string) => (type === 'MANUAL_UPLOAD' ? '手工上传' : '采集回传')
 const formatTime = (value?: number) => (value ? formatDate(value, 'YYYY-MM-DD HH:mm:ss') : '—')
 </script>
+
+<style scoped>
+.panel-header, .panel-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.panel-header { justify-content: space-between; padding-bottom: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.panel-title { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.panel-header-actions :deep(.el-form-item) { margin: 0; }
+.log-filters :deep(.el-input), .log-filters :deep(.el-select) { width: 180px; }
+@media (max-width: 767px) { .panel-header { align-items: flex-start; } }
+</style>

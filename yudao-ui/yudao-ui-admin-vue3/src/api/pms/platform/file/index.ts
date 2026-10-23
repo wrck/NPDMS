@@ -59,6 +59,7 @@ export interface FileReferenceVO extends FileBusinessKey {
 export interface FileArtifactVO {
   artifactId: FileId
   name: string
+  currentVersionFileName?: string
   categoryCode: string
   ownerContext: string
   lifecycleStatus: string
@@ -71,6 +72,7 @@ export interface FileArtifactVO {
 export interface FileVersionVO {
   id: FileId
   versionNo: number
+  fileName?: string
   sha256: string
   sizeBytes: number
   mediaType: string
@@ -174,3 +176,7 @@ export const detachReference = (
     data: { ...key, reason, ...(ownerExecutionContext ? { ownerExecutionContext } : {}) },
     headers: { 'If-Match': String(referenceVersion), 'Idempotency-Key': idempotencyKey }
   })
+
+export const getPreviewContent = (artifactId: string | number, versionNo: number, key: FileBusinessKey) =>
+  request.postOriginal({ url: `/api/v1/pms/files/${artifactId}/preview-content`, responseType: 'blob', timeout: 150000,
+    data: { versionNo, operationCode: 'PREVIEW', ...key } }) as unknown as Promise<Blob>

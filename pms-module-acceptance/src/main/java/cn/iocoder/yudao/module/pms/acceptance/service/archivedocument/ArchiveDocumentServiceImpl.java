@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.acceptance.controller.admin.archivedocument.v
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.archivedocument.ArchiveDocumentDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.archivedocument.ArchiveDocumentMapper;
 import cn.iocoder.yudao.module.pms.acceptance.service.AcceptanceRecordCodeGenerator;
+import cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceProjectAccess;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.archivedocument.query.ArchiveDocumentPageQuery;
 import jakarta.annotation.Resource;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.archivedocument.query.ArchiveDocumentDeliveryLockQuery;
@@ -54,9 +56,13 @@ public class ArchiveDocumentServiceImpl implements ArchiveDocumentService {
     private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi deliveryMaterials;
     @Resource
     private cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccess nativeAccess;
+    @Resource
+    private NativeAcceptanceProjectAccess projectAccess;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createArchiveDocument(ArchiveDocumentSaveReqVO createReqVO) {
+        projectAccess.requireWrite(createReqVO.getProjectId());
         validateUnifiedPointer(null,createReqVO.getDocumentUrl());
         // 插入；编码由系统按项目编码自动生成
         if(createReqVO.getStatus()!=null && createReqVO.getStatus()!=STATUS_DRAFT)throw exception(ACC_ARCHIVE_DOCUMENT_STATUS_INVALID);
@@ -90,6 +96,7 @@ public class ArchiveDocumentServiceImpl implements ArchiveDocumentService {
             throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("DELIVERY_FILE_OWNER_INVALID","Registered delivery sources cannot be moved to another project");
         validateUnifiedPointer(existing.getId(),updateReqVO.getDocumentUrl());
         ArchiveDocumentDO updateObj = BeanUtils.toBean(updateReqVO, ArchiveDocumentDO.class);
+        projectAccess.requireWrite(updateReqVO.getProjectId());
         // 保持状态不被前端覆盖
         updateObj.setStatus(existing.getStatus());
         if (updateObj.getVersion() == null || archiveDocumentMapper.updateById(updateObj) != 1) {
@@ -114,12 +121,17 @@ public class ArchiveDocumentServiceImpl implements ArchiveDocumentService {
 
     @Override
     public PageResult<ArchiveDocumentDO> getArchiveDocumentPage(ArchiveDocumentPageReqVO pageReqVO) {
-        return archiveDocumentMapper.selectPage(pageReqVO);
+        var query = BeanUtils.toBean(pageReqVO, ArchiveDocumentPageQuery.class);
+        query.setTenantId(TenantContextHolder.getRequiredTenantId());
+        query.setVisibleProjectIds(projectAccess.readableProjects());
+        return archiveDocumentMapper.selectPage(query);
     }
 
     @Override
     public ArchiveDocumentDO getArchiveDocument(Long id) {
-        return archiveDocumentMapper.selectById(id);
+        var row = archiveDocumentMapper.selectById(id);
+        if (row != null) projectAccess.requireRead(row.getProjectId());
+        return row;
     }
 
     @Override
@@ -177,6 +189,7 @@ public class ArchiveDocumentServiceImpl implements ArchiveDocumentService {
         if (entity == null) {
             throw exception(ACC_ARCHIVE_DOCUMENT_NOT_EXISTS);
         }
+        projectAccess.requireWrite(entity.getProjectId());
         return entity;
     }
 

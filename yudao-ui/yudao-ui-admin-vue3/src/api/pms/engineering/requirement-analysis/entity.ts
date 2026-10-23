@@ -41,7 +41,7 @@ export interface View {
   extensionDefinitionRevisionId?: EntityId
   extensionValueVersion: number
   values: JsonObject
-  attachments: Array<{ key: { purposeCode: string }; scopeVersion: EntityId; activeFacts: DynamicFormFileFactVO[] }>
+  attachments: Array<{ key: { purposeCode: string }; scopeVersion: EntityId; activeFacts: Array<DynamicFormFileFactVO & { availabilityStatus: string; referenceStatus: string }> }>
   allowedActions: string[]
   projectTemplateId?: EntityId
   projectTemplateRevisionId?: EntityId

@@ -25,7 +25,7 @@ mvn -pl device-ops-server -am test `
 
 # runtime 与持久化
 mvn -pl device-ops-parser-runtime,device-ops-adapter-persistence-jdbc -am test `
-  '-Dtest=com.dp.deviceops.parser.runtime.**.*Test,com.dp.deviceops.adapter.persistence.jdbc.**.*Test' `
+  '-Dtest=com.dp.plat.deviceops.parser.runtime.**.*Test,com.dp.plat.deviceops.adapter.persistence.jdbc.**.*Test' `
   -Dsurefire.failIfNoSpecifiedTests=false
 ```
 

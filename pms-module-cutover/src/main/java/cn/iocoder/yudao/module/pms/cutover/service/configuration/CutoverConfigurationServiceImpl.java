@@ -7,10 +7,11 @@ import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
-import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationPageReqVO;
-import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationRespVO;
-import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationSaveReqVO;
-import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationValidationRespVO;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.cutover.controller.business.configuration.vo.CutoverConfigurationPageReqVO;
+import cn.iocoder.yudao.module.pms.cutover.controller.business.configuration.vo.CutoverConfigurationRespVO;
+import cn.iocoder.yudao.module.pms.cutover.controller.business.configuration.vo.CutoverConfigurationSaveReqVO;
+import cn.iocoder.yudao.module.pms.cutover.controller.business.configuration.vo.CutoverConfigurationValidationRespVO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistBindingRuleRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistItemDefinitionRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
@@ -21,10 +22,12 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.Cutover
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationChildrenQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationPageQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationItemHistoryQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationStorageQuery;
 import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverConfigurationRules;
 import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverMatrixValidationContext;
 import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverRiskMatrixRules;
 import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverSurveyMatrixRules;
+import cn.iocoder.yudao.module.pms.cutover.service.support.CutoverCommandExecutor;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -63,6 +66,16 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
     private CutoverChecklistBindingRuleRevisionMapper ruleMapper;
     @Resource
     private DictDataApi dictDataApi;
+    @Resource
+    private CutoverConfigurationMetadataStore metadata;
+    @Resource
+    private CutoverFieldDefinitionStore fields;
+    @Resource
+    private CutoverExternalMappingStore externalMappings;
+    @Resource
+    private CutoverCommandExecutor commands;
+
+    private record RevisionInput(Long revisionId, Long expectedVersion, CutoverConfigurationSaveReqVO content) { }
 
     @Override
     public PageResult<CutoverConfigurationRespVO> getPage(CutoverConfigurationPageReqVO request) {
@@ -78,7 +91,15 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long create(CutoverConfigurationSaveReqVO request) {
+    public Long create(CutoverConfigurationCommands.Create command) {
+        return commands.execute(CutoverCommandExecutor.Write.<Long>builder()
+                .tenantId(TenantContextHolder.getRequiredTenantId()).actorId(SecurityFrameworkUtils.getLoginUserId())
+                .operationCode("CUTOVER_CONFIGURATION_CREATE").scopeKey("NEW").aggregateType("CutoverConfiguration")
+                .intent(command.intent()).businessInput(command.content()).responseType(Long.class)
+                .operation(() -> createDraft(command.content())).resourceKey(String::valueOf).build());
+    }
+
+    private Long createDraft(CutoverConfigurationSaveReqVO request) {
         requireNavigationRuleSpecified(request);
         CutoverConfigurationRevisionDO latest = revisionMapper.selectLatestByCode(
                 new CutoverConfigurationByCodeQuery(request.getConfigurationCode(), null));
@@ -86,14 +107,27 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         CutoverConfigurationRevisionDO row = toDraftRoot(request);
         row.setRevisionNo(latest == null ? 1 : latest.getRevisionNo() + 1);
         revisionMapper.insert(row);
-        replaceChildren(row.getId(), request);
+        replaceChildren(row, request);
         return row.getId();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void update(Long revisionId, Long expectedVersion, CutoverConfigurationSaveReqVO request) {
-        CutoverConfigurationRevisionDO existing = requireRevision(revisionId);
+    public void update(CutoverConfigurationCommands.Update command) {
+        commands.execute(CutoverCommandExecutor.Write.<Boolean>builder()
+                .tenantId(TenantContextHolder.getRequiredTenantId()).actorId(SecurityFrameworkUtils.getLoginUserId())
+                .operationCode("CUTOVER_CONFIGURATION_UPDATE").scopeKey(String.valueOf(command.revisionId()))
+                .aggregateType("CutoverConfiguration").intent(command.intent())
+                .businessInput(new RevisionInput(command.revisionId(), command.expectedVersion(), command.content()))
+                .responseType(Boolean.class).operation(() -> { updateDraft(command); return true; })
+                .resourceKey(ignored -> String.valueOf(command.revisionId())).build());
+    }
+
+    private void updateDraft(CutoverConfigurationCommands.Update command) {
+        Long revisionId = command.revisionId();
+        Long expectedVersion = command.expectedVersion();
+        CutoverConfigurationSaveReqVO request = command.content();
+        CutoverConfigurationRevisionDO existing = requireRevisionForUpdate(revisionId);
         requireExpectedVersion(existing, expectedVersion);
         requireDraft(existing);
         if (!Objects.equals(existing.getConfigurationCode(), request.getConfigurationCode())) {
@@ -103,28 +137,39 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         validateStableItemTypeHistory(revisionId, request);
         CutoverConfigurationRevisionDO update = toDraftRoot(request);
         update.setId(revisionId);
+        update.setTenantId(TenantContextHolder.getRequiredTenantId());
+        update.setUpdater(String.valueOf(SecurityFrameworkUtils.getLoginUserId()));
         update.setVersion(expectedVersion);
-        if (revisionMapper.updateById(update) != 1) {
+        if (revisionMapper.updateDraftIfMatch(update) != 1) {
             throw exception(CUTOVER_CONFIG_VERSION_CONFLICT);
         }
-        replaceChildren(revisionId, request);
+        replaceChildren(existing, request);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long copyRevision(Long revisionId, Long expectedVersion) {
-        CutoverConfigurationRevisionDO source = requireRevision(revisionId);
-        requireExpectedVersion(source, expectedVersion);
+    public Long copyRevision(CutoverConfigurationCommands.RevisionAction command) {
+        return commands.execute(CutoverCommandExecutor.Write.<Long>builder()
+                .tenantId(TenantContextHolder.getRequiredTenantId()).actorId(SecurityFrameworkUtils.getLoginUserId())
+                .operationCode("CUTOVER_CONFIGURATION_COPY").scopeKey(String.valueOf(command.revisionId()))
+                .aggregateType("CutoverConfiguration").intent(command.intent())
+                .businessInput(new RevisionInput(command.revisionId(), command.expectedVersion(), null))
+                .responseType(Long.class).operation(() -> copyDraft(command)).resourceKey(String::valueOf).build());
+    }
+
+    private Long copyDraft(CutoverConfigurationCommands.RevisionAction command) {
+        CutoverConfigurationRevisionDO source = requireRevisionForUpdate(command.revisionId());
+        requireExpectedVersion(source, command.expectedVersion());
         CutoverConfigurationRespVO detail = toDetail(source);
         CutoverConfigurationSaveReqVO request = toSaveRequest(detail);
         request.setChangeSummary("基于修订" + source.getRevisionNo() + "创建新草稿");
-        return create(request);
+        return createDraft(request);
     }
 
     @Override
     public CutoverConfigurationValidationRespVO validate(Long revisionId) {
         CutoverConfigurationRespVO detail = get(revisionId);
-        CutoverMatrixValidationContext context = loadMatrixContext();
+        CutoverMatrixValidationContext context = loadMatrixContext(detail);
         List<CutoverConfigurationRules.DimensionDefinition> dimensions = toDomainDimensions(detail.getDimensions());
         List<CutoverConfigurationRules.ItemDefinition> items = toDomainItems(detail.getItems());
         List<CutoverConfigurationRules.BindingRule> rules = toDomainRules(detail.getBindingRules());
@@ -145,12 +190,22 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
                         error.location(), error.message())).toList());
     }
 
-    private CutoverMatrixValidationContext loadMatrixContext() {
-        return new CutoverMatrixValidationContext(
-                enabledDictionaryValues("pms_cutover_type"),
-                enabledDictionaryValues("pms_network_mode"),
-                enabledDictionaryValues("pms_device_type"),
-                enabledDictionaryValues("pms_risk_level"));
+    private CutoverMatrixValidationContext loadMatrixContext(CutoverConfigurationRespVO detail) {
+        return new CutoverMatrixValidationContext(dimensionValues(detail, "CUTOVER_TYPE"),
+                dimensionValues(detail, "NETWORK_MODE"), dimensionValues(detail, "DEVICE_TYPE"),
+                dimensionValues(detail, "CUTOVER_LEVEL"));
+    }
+
+    private String dimensionDictionary(CutoverConfigurationRespVO detail, String code) {
+        return detail.getDimensions().stream().filter(d -> Boolean.TRUE.equals(d.getEnabled()) && code.equals(d.getCode()))
+                .map(CutoverConfigurationSaveReqVO.DimensionVO::getValueSource)
+                .filter(s -> s != null && s.startsWith("DICT:") && s.length() > 5)
+                .map(s -> s.substring(5)).findFirst().orElse("");
+    }
+
+    private Set<String> dimensionValues(CutoverConfigurationRespVO detail, String code) {
+        String dictionary = dimensionDictionary(detail, code);
+        return dictionary.isBlank() ? Set.of() : enabledDictionaryValues(dictionary);
     }
 
     private Set<String> enabledDictionaryValues(String dictType) {
@@ -235,15 +290,15 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         for (int i = 0; i < detail.getItems().size(); i++) {
             CutoverConfigurationSaveReqVO.ItemVO item = detail.getItems().get(i);
             if (Boolean.TRUE.equals(item.getEnabled()) && item.getSubtableCode() != null) {
-                validateDictValues("pms_network_mode", List.of(item.getSubtableCode()),
+                validateDictValues(dimensionDictionary(detail, "NETWORK_MODE"), List.of(item.getSubtableCode()),
                         "items[" + i + "].subtableCode", errors);
             }
         }
         for (int i = 0; i < detail.getPlanTemplateSections().size(); i++) {
             CutoverConfigurationSaveReqVO.PlanTemplateSectionVO section = detail.getPlanTemplateSections().get(i);
-            validateDictValues("pms_cutover_type", section.getCutoverTypeCodes(),
+            validateDictValues(dimensionDictionary(detail, "CUTOVER_TYPE"), section.getCutoverTypeCodes(),
                     "planTemplateSections[" + i + "].cutoverTypeCodes", errors);
-            validateDictValues("pms_risk_level", section.getLevelCodes(),
+            validateDictValues(dimensionDictionary(detail, "CUTOVER_LEVEL"), section.getLevelCodes(),
                     "planTemplateSections[" + i + "].levelCodes", errors);
         }
     }
@@ -270,8 +325,20 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public CutoverConfigurationRespVO publish(Long revisionId, Long expectedVersion) {
-        CutoverConfigurationRevisionDO draft = requireRevision(revisionId);
+    public CutoverConfigurationRespVO publish(CutoverConfigurationCommands.RevisionAction command) {
+        return commands.execute(CutoverCommandExecutor.Write.<CutoverConfigurationRespVO>builder()
+                .tenantId(TenantContextHolder.getRequiredTenantId()).actorId(SecurityFrameworkUtils.getLoginUserId())
+                .operationCode("CUTOVER_CONFIGURATION_PUBLISH").scopeKey(String.valueOf(command.revisionId()))
+                .aggregateType("CutoverConfiguration").intent(command.intent())
+                .businessInput(new RevisionInput(command.revisionId(), command.expectedVersion(), null))
+                .responseType(CutoverConfigurationRespVO.class).operation(() -> publishRevision(command))
+                .resourceKey(value -> String.valueOf(value.getId())).build());
+    }
+
+    private CutoverConfigurationRespVO publishRevision(CutoverConfigurationCommands.RevisionAction command) {
+        Long revisionId = command.revisionId();
+        Long expectedVersion = command.expectedVersion();
+        CutoverConfigurationRevisionDO draft = requireRevisionForUpdate(revisionId);
         requireExpectedVersion(draft, expectedVersion);
         requireDraft(draft);
         CutoverConfigurationValidationRespVO validation = validate(revisionId);
@@ -302,8 +369,12 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         published.setEffectiveFrom(now);
         published.setPublishedBy(actorId);
         published.setPublishedAt(now);
-        published.setDictionarySnapshot(JsonUtils.toJsonString(buildDictionarySnapshot(get(revisionId))));
-        published.setValidationResultSnapshot(JsonUtils.toJsonString(validation.getErrors()));
+        metadata.freezeDictionary(new CutoverConfigurationMetadataStore.DictionaryWrite(
+                revisionId, buildDictionarySnapshot(get(revisionId))));
+        published.setValidationValidFlag(true);
+        published.setCurrentValidationNo(draft.getCurrentValidationNo() == null ? 1 : draft.getCurrentValidationNo() + 1);
+        published.setValidateTime(now);
+        published.setValidateUserId(actorId);
         published.setVersion(expectedVersion);
         if (revisionMapper.updateById(published) != 1) {
             throw exception(CUTOVER_CONFIG_VERSION_CONFLICT);
@@ -339,8 +410,20 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public CutoverConfigurationRespVO disable(Long revisionId, Long expectedVersion) {
-        CutoverConfigurationRevisionDO current = requireRevision(revisionId);
+    public CutoverConfigurationRespVO disable(CutoverConfigurationCommands.RevisionAction command) {
+        return commands.execute(CutoverCommandExecutor.Write.<CutoverConfigurationRespVO>builder()
+                .tenantId(TenantContextHolder.getRequiredTenantId()).actorId(SecurityFrameworkUtils.getLoginUserId())
+                .operationCode("CUTOVER_CONFIGURATION_DISABLE").scopeKey(String.valueOf(command.revisionId()))
+                .aggregateType("CutoverConfiguration").intent(command.intent())
+                .businessInput(new RevisionInput(command.revisionId(), command.expectedVersion(), null))
+                .responseType(CutoverConfigurationRespVO.class).operation(() -> disableRevision(command))
+                .resourceKey(value -> String.valueOf(value.getId())).build());
+    }
+
+    private CutoverConfigurationRespVO disableRevision(CutoverConfigurationCommands.RevisionAction command) {
+        Long revisionId = command.revisionId();
+        Long expectedVersion = command.expectedVersion();
+        CutoverConfigurationRevisionDO current = requireRevisionForUpdate(revisionId);
         requireExpectedVersion(current, expectedVersion);
         if (!CutoverConfigurationRules.STATUS_PUBLISHED.equals(current.getStatusCode())) {
             throw exception(CUTOVER_CONFIG_STATUS_INVALID);
@@ -364,16 +447,17 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         row.setConfigurationCode(request.getConfigurationCode());
         row.setConfigurationName(request.getConfigurationName());
         row.setStatusCode(CutoverConfigurationRules.STATUS_DRAFT);
-        row.setDictionarySnapshot(JsonUtils.toJsonString(request.getDictionarySnapshot()));
-        row.setDimensionDefinitionSnapshot(JsonUtils.toJsonString(request.getDimensions()));
-        row.setPlanTemplateSectionSnapshot(JsonUtils.toJsonString(request.getPlanTemplateSections()));
-        row.setNavigationRuleSnapshot(CutoverNavigationRuleCodec.encode(request.getNavigationRule()));
+        row.setNavigationTargetCode(request.getNavigationRule() == null ? null : request.getNavigationRule().getTarget());
         row.setChangeSummary(request.getChangeSummary());
         return row;
     }
 
-    private void replaceChildren(Long revisionId, CutoverConfigurationSaveReqVO request) {
+    private void replaceChildren(CutoverConfigurationRevisionDO root, CutoverConfigurationSaveReqVO request) {
+        Long revisionId = root.getId();
         CutoverConfigurationChildrenQuery query = new CutoverConfigurationChildrenQuery(revisionId);
+        Set<Long> previousItemIds = itemMapper.selectListByRevision(query).stream()
+                .map(CutoverChecklistItemDefinitionRevisionDO::getId).collect(java.util.stream.Collectors.toSet());
+        metadata.replaceDraft(new CutoverConfigurationMetadataStore.DraftReplacement(root, previousItemIds, request));
         ruleMapper.hardDeleteByRevisionId(query);
         itemMapper.hardDeleteByRevisionId(query);
         Map<String, CutoverChecklistItemDefinitionRevisionDO> itemsByKey = new HashMap<>();
@@ -387,17 +471,19 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             item.setItemName(value.getItemName());
             item.setItemDescription(value.getItemDescription());
             item.setInterfaceFormatCode(value.getInterfaceFormat());
-            item.setInterfaceSchema(JsonUtils.toJsonString(value.getInterfaceSchema() == null
-                    ? Map.of() : value.getInterfaceSchema()));
             item.setFeedbackFormatCode(value.getFeedbackFormat());
             item.setRequiredFlag(Boolean.TRUE.equals(value.getRequired()));
             item.setWorkModeCode(value.getWorkMode());
-            item.setExternalSourceConfig(value.getExternalSourceConfig() == null ? null
-                    : JsonUtils.toJsonString(value.getExternalSourceConfig()));
+            var external = new CutoverExternalMappingStore.Write(item, value.getExternalSourceConfig());
+            externalMappings.setInterface(external);
             item.setSubtableCode(value.getSubtableCode());
             item.setStatusCode(Boolean.FALSE.equals(value.getEnabled()) ? "DISABLED" : "ENABLED");
             item.setSortOrder(value.getSortOrder());
             itemMapper.insert(item);
+            fields.insert(CutoverFieldSchemaCodec.Write.builder().tenantId(TenantContextHolder.getRequiredTenantId())
+                    .itemDefinitionRevisionId(item.getId()).businessCategoryCode(item.getBusinessCategoryCode())
+                    .itemTypeCode(item.getItemTypeCode()).schema(value.getInterfaceSchema()).build());
+            externalMappings.insert(external);
             itemsByKey.put(item.getStableItemKey(), item);
         }
         for (CutoverConfigurationSaveReqVO.BindingRuleVO value : request.getBindingRules()) {
@@ -410,11 +496,12 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             rule.setStableRuleKey(value.getStableRuleKey());
             rule.setItemDefinitionId(item.getId());
             rule.setItemDefinitionVersion(item.getItemDefinitionVersion());
-            rule.setDimensionConditionSnapshot(JsonUtils.toJsonString(value.getDimensionConditions()));
             rule.setPriority(value.getPriority());
             rule.setRequiredResult(value.getRequiredResult());
             rule.setStatusCode(Boolean.FALSE.equals(value.getEnabled()) ? "DISABLED" : "ENABLED");
             ruleMapper.insert(rule);
+            metadata.insertConditions(new CutoverConfigurationMetadataStore.ConditionWrite(
+                    revisionId, rule.getId(), value.getDimensionConditions()));
         }
     }
 
@@ -452,6 +539,13 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         return row;
     }
 
+    private CutoverConfigurationRevisionDO requireRevisionForUpdate(Long revisionId) {
+        CutoverConfigurationRevisionDO row = revisionMapper.selectForUpdate(new CutoverConfigurationStorageQuery(
+                TenantContextHolder.getRequiredTenantId(), revisionId));
+        if (row == null) throw exception(CUTOVER_CONFIG_NOT_FOUND);
+        return row;
+    }
+
     private void requireExpectedVersion(CutoverConfigurationRevisionDO row, Long expectedVersion) {
         if (!Objects.equals(row.getVersion(), expectedVersion)) {
             throw exception(CUTOVER_CONFIG_VERSION_CONFLICT);
@@ -481,20 +575,25 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
         response.setVersion(row.getVersion());
         response.setCreateTime(row.getCreateTime());
         response.setUpdateTime(row.getUpdateTime());
-        response.setDictionarySnapshot(JsonUtils.parseObject(row.getDictionarySnapshot(), Map.class));
-        response.setNavigationRule(CutoverNavigationRuleCodec.decode(row.getNavigationRuleSnapshot()));
+        response.setDictionarySnapshot(metadata.dictionaryView(row.getId()));
+        if (row.getNavigationTargetCode() != null) {
+            var navigation = new CutoverConfigurationSaveReqVO.NavigationRuleVO();
+            navigation.setTarget(row.getNavigationTargetCode());
+            response.setNavigationRule(navigation);
+        }
         return response;
     }
 
     private CutoverConfigurationRespVO toDetail(CutoverConfigurationRevisionDO row) {
         CutoverConfigurationRespVO response = toSummary(row);
-        response.setDimensions(JsonUtils.parseArray(row.getDimensionDefinitionSnapshot(),
-                CutoverConfigurationSaveReqVO.DimensionVO.class));
-        response.setPlanTemplateSections(JsonUtils.parseArray(row.getPlanTemplateSectionSnapshot(),
-                CutoverConfigurationSaveReqVO.PlanTemplateSectionVO.class));
+        response.setDimensions(metadata.dimensionViews(row.getId()));
+        response.setPlanTemplateSections(metadata.sectionViews(row.getId()));
         List<CutoverChecklistItemDefinitionRevisionDO> items = itemMapper.selectListByRevision(
                 new CutoverConfigurationChildrenQuery(row.getId()));
         Map<Long, String> itemKeys = new HashMap<>();
+        var definitions = fields.definitions(items.stream().map(CutoverChecklistItemDefinitionRevisionDO::getId)
+                .collect(java.util.stream.Collectors.toSet()));
+        var sources = externalMappings.views(items);
         List<CutoverConfigurationSaveReqVO.ItemVO> itemViews = new ArrayList<>();
         for (CutoverChecklistItemDefinitionRevisionDO item : items) {
             itemKeys.put(item.getId(), item.getStableItemKey());
@@ -505,34 +604,32 @@ public class CutoverConfigurationServiceImpl implements CutoverConfigurationServ
             view.setItemName(item.getItemName());
             view.setItemDescription(item.getItemDescription());
             view.setInterfaceFormat(item.getInterfaceFormatCode());
-            view.setInterfaceSchema(JsonUtils.parseObject(item.getInterfaceSchema(), Map.class));
+            view.setInterfaceSchema(CutoverFieldSchemaCodec.decode(definitions.get(item.getId())));
             view.setFeedbackFormat(item.getFeedbackFormatCode());
             view.setRequired(item.getRequiredFlag());
             view.setWorkMode(item.getWorkModeCode());
-            view.setExternalSourceConfig(item.getExternalSourceConfig() == null ? null
-                    : JsonUtils.parseObject(item.getExternalSourceConfig(), Map.class));
+            view.setExternalSourceConfig(sources.get(item.getId()));
             view.setSubtableCode(item.getSubtableCode());
             view.setEnabled("ENABLED".equals(item.getStatusCode()));
             view.setSortOrder(item.getSortOrder());
             itemViews.add(view);
         }
         response.setItems(itemViews);
-        List<CutoverConfigurationSaveReqVO.BindingRuleVO> ruleViews = ruleMapper.selectListByRevision(
-                new CutoverConfigurationChildrenQuery(row.getId())).stream().map(rule -> {
+        var rules = ruleMapper.selectListByRevision(new CutoverConfigurationChildrenQuery(row.getId()));
+        var conditions = metadata.conditionViews(new CutoverConfigurationMetadataStore.ConditionRead(row.getId(),
+                rules.stream().map(CutoverChecklistBindingRuleRevisionDO::getId).collect(java.util.stream.Collectors.toSet())));
+        List<CutoverConfigurationSaveReqVO.BindingRuleVO> ruleViews = rules.stream().map(rule -> {
                     CutoverConfigurationSaveReqVO.BindingRuleVO view = new CutoverConfigurationSaveReqVO.BindingRuleVO();
                     view.setStableRuleKey(rule.getStableRuleKey());
                     view.setStableItemKey(itemKeys.get(rule.getItemDefinitionId()));
-                    view.setDimensionConditions(JsonUtils.parseObject(rule.getDimensionConditionSnapshot(), Map.class));
+                    view.setDimensionConditions(conditions.get(rule.getId()));
                     view.setPriority(rule.getPriority());
                     view.setRequiredResult(rule.getRequiredResult());
                     view.setEnabled("ENABLED".equals(rule.getStatusCode()));
                     return view;
                 }).toList();
         response.setBindingRules(ruleViews);
-        if (row.getValidationResultSnapshot() != null) {
-            response.setValidationErrors(JsonUtils.parseArray(row.getValidationResultSnapshot(),
-                    CutoverConfigurationValidationRespVO.ValidationErrorVO.class));
-        }
+        response.setValidationErrors(metadata.validationErrors(row));
         return response;
     }
 

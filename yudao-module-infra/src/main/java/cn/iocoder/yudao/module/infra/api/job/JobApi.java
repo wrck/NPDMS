@@ -4,4 +4,7 @@ package cn.iocoder.yudao.module.infra.api.job;
 public interface JobApi {
 
     void syncEnabledJobByHandlerName(String handlerName);
+
+    /** 同步唯一的既有任务，并保留其启用或暂停状态。 */
+    void syncJobByHandlerName(String handlerName);
 }

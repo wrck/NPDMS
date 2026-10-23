@@ -237,16 +237,16 @@ const getProject = async () => {
       status: '进行中',
       time: new Date('2026-07-10'),
       color: '#409EFF',
-      path: '/pms/project-management/project'
+      path: '/pms/project-management/projects'
     },
     {
       name: '任务 WBS',
       icon: 'ep:tickets',
-      personal: '工作分解结构与非固定层级',
+      personal: '选择项目后查看任务与工作分解结构',
       status: '规划中',
       time: new Date('2026-07-15'),
       color: '#ff4d4f',
-      path: '/pms/project-management/schedule/project-task'
+      path: '/pms/project-management/projects'
     },
     {
       name: '单机风险',

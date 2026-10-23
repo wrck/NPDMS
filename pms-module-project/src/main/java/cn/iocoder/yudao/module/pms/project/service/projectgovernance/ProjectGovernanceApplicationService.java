@@ -56,6 +56,8 @@ import static cn.iocoder.yudao.module.pms.project.service.projectgovernance.Proj
 public class ProjectGovernanceApplicationService {
     @jakarta.annotation.Resource
     private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents childWaitEvents;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanActivationService plans;
 
     public static final String ROLLBACK_SCOPE = "POST:/pms/projects/{id}/actions/rollback";
     public static final String EXCEPTION_CLOSE_SCOPE = "POST:/pms/projects/{id}/actions/close";
@@ -163,6 +165,9 @@ public class ProjectGovernanceApplicationService {
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())) {
             throw exception(PROJECT_NOT_EXISTS);
         }
+        if (command.targetTemplateRevisionId() != null) {
+            return reopenWithLatestTemplate(new TemplateReopenContext(command, actor, project, treeVersion));
+        }
         if (!EXCEPTION_CLOSED.equals(project.getLifecycleStatus())) {
             throw exception(PROJECT_GOVERNANCE_STATE_INVALID);
         }
@@ -195,6 +200,44 @@ public class ProjectGovernanceApplicationService {
                 project.getLifecycleStatus(), project.getCurrentStage(), project.getAssignmentStatus(),
                 ACTIVE, closeSnapshot.getBeforeStage(), UNASSIGNED,
                 command.expectedVersion() + 1, snapshot.getId(), operationId, operatedAt, false);
+    }
+
+    private record TemplateReopenContext(ReopenProjectCommand command, ProjectGovernanceGuardService.Actor actor,
+                                         ProjectMasterDO project, long treeVersion) { }
+
+    private GovernanceActionResult reopenWithLatestTemplate(TemplateReopenContext context) {
+        var command = context.command(); var actor = context.actor(); var project = context.project();
+        if (!"NORMAL_CLOSED".equals(project.getLifecycleStatus())) throw exception(PROJECT_GOVERNANCE_STATE_INVALID);
+        if (!Objects.equals(project.getVersion(), command.expectedVersion())) throw exception(PROJECT_GOVERNANCE_VERSION_CONFLICT);
+        var prepared = plans.prepareTemplateReopen(new cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanActivationService.TemplateReopen(
+                project, command.targetTemplateRevisionId(), actor.actorId()));
+        var now = LocalDateTime.now();
+        String operationId = UUID.randomUUID().toString();
+        var snapshot = new ProjectStageSnapshotDO();
+        snapshot.setProjectId(project.getId()); snapshot.setStageCode(STAGE_S0);
+        var sequence = snapshotMapper.selectNextSnapshotNo(new ProjectStageSnapshotSequenceQuery(actor.tenantId(), project.getId(), STAGE_S0));
+        if (sequence == null || sequence <= 0) throw exception(PROJECT_GOVERNANCE_PERSISTENCE_FAILED);
+        snapshot.setSnapshotNo(sequence); snapshot.setOperationType(REOPEN.name());
+        snapshot.setBeforeStage(project.getCurrentStage()); snapshot.setAfterStage(STAGE_S0);
+        snapshot.setBeforeLifecycleStatus(project.getLifecycleStatus()); snapshot.setAfterLifecycleStatus(ACTIVE);
+        snapshot.setBeforeAssignmentStatus(project.getAssignmentStatus()); snapshot.setAfterAssignmentStatus(UNASSIGNED);
+        snapshot.setReasonCode(command.reasonCode().trim()); snapshot.setReasonDetail(command.reasonDetail().trim());
+        snapshot.setBusinessBasis(command.reasonDetail().trim()); snapshot.setProviderFactsJson(prepared.previousEvidence());
+        snapshot.setTreeVersion(context.treeVersion());
+        snapshot.setGuardSnapshotJson(JsonUtils.toJsonString(Map.of("projectVersion", project.getVersion(),
+                "targetTemplateRevisionId", command.targetTemplateRevisionId(), "operatorUserId", actor.actorId(),
+                "previousPlanVersionId", prepared.previousPlan().getId())));
+        snapshot.setOperationId(operationId); snapshot.setOperatorUserId(actor.actorId()); snapshot.setOperatedAt(now);
+        snapshot.setCreator(actor.actorId().toString()); snapshot.setUpdater(actor.actorId().toString());
+        if (snapshotRepository.append(snapshot) != 1 || snapshot.getId() == null) throw exception(PROJECT_GOVERNANCE_PERSISTENCE_FAILED);
+        if (projectMapper.updateGovernanceStateIfMatch(new ProjectGovernanceStateUpdate(actor.tenantId(), project.getId(),
+                command.expectedVersion(), "NORMAL_CLOSED", STAGE_S0, ACTIVE, UNASSIGNED, actor.actorId().toString())) != 1)
+            throw exception(PROJECT_GOVERNANCE_VERSION_CONFLICT);
+        var installed = plans.installTemplateReopen(new cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanActivationService.InstallTemplateReopen(
+                prepared, snapshot.getId(), now));
+        childWaitEvents.closureChanged(actor.tenantId(), project.getId(), actor.actorId(), actor.correlationId());
+        return new GovernanceActionResult(project.getId(), REOPEN.name(), project.getLifecycleStatus(), project.getCurrentStage(),
+                project.getAssignmentStatus(), ACTIVE, STAGE_S0, UNASSIGNED, installed.projectVersion(), snapshot.getId(), operationId, now, false);
     }
 
     private ProjectStageSnapshotDO reopenSnapshot(
@@ -243,6 +286,7 @@ public class ProjectGovernanceApplicationService {
         detail.put("afterState", afterState);
         detail.put("stageSnapshotId", result.stageSnapshotId());
         detail.put("relatedSnapshotId", command.exceptionCloseSnapshotId());
+        detail.put("targetTemplateRevisionId", command.targetTemplateRevisionId());
         detail.put("operationId", result.operationId());
         detail.put("reasonCode", command.reasonCode().trim());
         detail.put("reasonDetail", command.reasonDetail().trim());
@@ -266,7 +310,9 @@ public class ProjectGovernanceApplicationService {
         event.put("occurredAt", result.operatedAt());
         return new PlatformCommandExecutionApi.SuccessFacts("PROJECT_REOPEN", "Project",
                 String.valueOf(result.projectId()), actor.correlationId(), JsonUtils.toJsonString(detail),
-                "ProjectStageChanged", JsonUtils.toJsonString(event));
+                "ProjectStageChanged", JsonUtils.toJsonString(event), command.targetTemplateRevisionId() == null ? List.of()
+                : List.of(new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleReevaluation(
+                        actor.tenantId(), result.projectId(), actor.actorId(), actor.correlationId()).event()));
     }
 
     private GovernanceActionResult closeOnce(ExceptionCloseProjectCommand command,
@@ -603,7 +649,9 @@ public class ProjectGovernanceApplicationService {
                 || blank(command.reasonCode()) || blank(command.reasonDetail())
                 || command.reasonCode().trim().length() > 64
                 || command.reasonDetail().trim().length() > 1000
-                || command.exceptionCloseSnapshotId() == null || command.exceptionCloseSnapshotId() <= 0
+                || (command.targetTemplateRevisionId() == null
+                    ? command.exceptionCloseSnapshotId() == null || command.exceptionCloseSnapshotId() <= 0
+                    : command.targetTemplateRevisionId() <= 0 || command.exceptionCloseSnapshotId() != null)
                 || blank(command.idempotencyKey()) || command.idempotencyKey().length() > 128
                 || command.requestDigest() == null || !command.requestDigest().matches("[0-9a-f]{64}")
                 || actor == null || actor.tenantId() == null || actor.actorId() == null

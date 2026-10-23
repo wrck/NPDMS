@@ -14,16 +14,50 @@ public class CollectionApplicationController {
     private final CollectionApplicationApi application;
     private final CollectionTemplateService templates;
     private final CollectionConnectionService connections;
-    @GetMapping("/sources/{entry}/{objectId}") public CommonResult<CollectionSourceAdapter.Source> context(@PathVariable String entry,@PathVariable Long objectId){return success(application.context(entry,objectId,actor()));}
+    @GetMapping("/sources/{entry}/{objectId}") public CommonResult<CollectionSourceAdapter.Source> context(@PathVariable String entry,@PathVariable Long objectId){return success(application.context(CollectionApplicationApi.SourceQuery.builder()
+            .entry(entry)
+            .objectId(objectId)
+            .actorId(actor())
+            .build()));}
     @PostMapping("/sources/{entry}/{objectId}/executions") @ApiAccessLog(requestEnable=false)
-    public CommonResult<CollectionApplicationApi.Execution> submit(@PathVariable String entry,@PathVariable Long objectId,@RequestBody CollectionExecutionRequest request){return success(application.submit(entry,objectId,actor(),request));}
-    @GetMapping("/sources/{entry}/{objectId}/executions") public CommonResult<PageResult<CollectionApplicationApi.Execution>> page(@PathVariable String entry,@PathVariable Long objectId,@RequestParam(defaultValue="1") int pageNo,@RequestParam(defaultValue="10") int pageSize){return success(application.page(entry,objectId,actor(),pageNo,pageSize));}
-    @GetMapping("/sources/{entry}/{objectId}/executions/by-request-key") public CommonResult<CollectionApplicationApi.Execution> find(@PathVariable String entry,@PathVariable Long objectId,@RequestParam String requestKey){return success(application.findByRequestKey(entry,objectId,actor(),requestKey));}
-    @PostMapping("/sources/{entry}/{objectId}/executions/{id}/consume") public CommonResult<CollectionApplicationApi.Execution> consume(@PathVariable String entry,@PathVariable Long objectId,@PathVariable Long id){return success(application.consume(entry,objectId,actor(),id));}
-    @PostMapping("/sources/{entry}/{objectId}/executions/{id}/cancel") public CommonResult<Boolean> cancel(@PathVariable String entry,@PathVariable Long objectId,@PathVariable Long id){application.cancel(entry,objectId,actor(),id);return success(true);}
-    @PostMapping("/sources/{entry}/{objectId}/executions/{id}/download") public CommonResult<String> download(@PathVariable String entry,@PathVariable Long objectId,@PathVariable Long id){return success(application.download(entry,objectId,actor(),id));}
-    @GetMapping("/sources/{entry}/{objectId}/executions/{id}/semantic-results") public CommonResult<List<java.util.Map<String,Object>>> semanticResults(@PathVariable String entry,@PathVariable Long objectId,@PathVariable Long id){return success(application.semanticResults(entry,objectId,actor(),id));}
-    @GetMapping("/templates") public CommonResult<List<CollectionTemplateService.View>> templates(@RequestParam(required=false) String purpose,@RequestParam(required=false) String protocol,@RequestParam(defaultValue="false") boolean publishedOnly){return success(templates.list(actor(),purpose,protocol,publishedOnly));}
+    public CommonResult<CollectionApplicationApi.Execution> submit(@PathVariable String entry,@PathVariable Long objectId,@RequestBody CollectionExecutionRequest request){return success(application.submit(CollectionApplicationApi.SourceQuery.builder()
+            .entry(entry)
+            .objectId(objectId)
+            .actorId(actor())
+            .build(), request));}
+    @GetMapping("/sources/{entry}/{objectId}/executions") public CommonResult<PageResult<CollectionApplicationApi.Execution>> page(@PathVariable String entry,@PathVariable Long objectId,@RequestParam(defaultValue="1") int pageNo,@RequestParam(defaultValue="10") int pageSize){return success(application.page(CollectionApplicationApi.SourceQuery.builder()
+            .entry(entry)
+            .objectId(objectId)
+            .actorId(actor())
+            .build(), new PageParam().setPageNo(pageNo).setPageSize(pageSize)));}
+    @GetMapping("/sources/{entry}/{objectId}/executions/by-request-key") public CommonResult<CollectionApplicationApi.Execution> find(@PathVariable String entry,@PathVariable Long objectId,@RequestParam String requestKey){return success(application.findByRequestKey(CollectionApplicationApi.SourceQuery.builder()
+            .entry(entry)
+            .objectId(objectId)
+            .actorId(actor())
+            .build(), requestKey));}
+    @PostMapping("/sources/{entry}/{objectId}/executions/{id}/consume") public CommonResult<CollectionApplicationApi.Execution> consume(@PathVariable String entry,@PathVariable Long objectId,@PathVariable Long id){return success(application.consume(CollectionApplicationApi.SourceQuery.builder()
+            .entry(entry)
+            .objectId(objectId)
+            .actorId(actor())
+            .build(), id));}
+    @PostMapping("/sources/{entry}/{objectId}/executions/{id}/cancel") public CommonResult<Boolean> cancel(@PathVariable String entry,@PathVariable Long objectId,@PathVariable Long id){application.cancel(CollectionApplicationApi.SourceQuery.builder()
+            .entry(entry)
+            .objectId(objectId)
+            .actorId(actor())
+            .build(), id);return success(true);}
+    @PostMapping("/sources/{entry}/{objectId}/executions/{id}/download") public CommonResult<String> download(@PathVariable String entry,@PathVariable Long objectId,@PathVariable Long id){return success(application.download(CollectionApplicationApi.SourceQuery.builder()
+            .entry(entry)
+            .objectId(objectId)
+            .actorId(actor())
+            .build(), id));}
+    @GetMapping("/sources/{entry}/{objectId}/executions/{id}/semantic-results") public CommonResult<List<java.util.Map<String,Object>>> semanticResults(@PathVariable String entry,@PathVariable Long objectId,@PathVariable Long id){return success(application.semanticResults(CollectionApplicationApi.SourceQuery.builder()
+            .entry(entry)
+            .objectId(objectId)
+            .actorId(actor())
+            .build(), id));}
+    @GetMapping("/templates") public CommonResult<List<CollectionTemplateService.View>> templates(@ModelAttribute TemplateListRequest request){return success(templates.list(CollectionTemplateService.ListQuery.builder()
+            .actorId(actor()).purpose(request.getPurpose()).publishedOnly(request.isPublishedOnly())
+            .projectId(request.getProjectId()).deviceId(request.getDeviceId()).build()));}
     @PostMapping("/templates") public CommonResult<CollectionTemplateService.View> saveTemplate(@RequestBody CollectionTemplateService.Draft request){return success(templates.save(actor(),request));}
     @PostMapping("/templates/{id}/publish") public CommonResult<CollectionTemplateService.View> publish(@PathVariable Long id,@RequestParam Long version){return success(templates.publish(actor(),id,version));}
     @PostMapping("/templates/{id}/retire") public CommonResult<CollectionTemplateService.View> retire(@PathVariable Long id,@RequestParam Long version){return success(templates.retire(actor(),id,version));}
@@ -37,4 +71,10 @@ public class CollectionApplicationController {
     @PostMapping("/connections/{id}/disable") public CommonResult<Boolean> disable(@PathVariable Long id){connections.disable(actor(),id);return success(true);}
     private Long actor(){Long id=SecurityFrameworkUtils.getLoginUserId();if(id==null)throw new org.springframework.security.access.AccessDeniedException("请先登录");return id;}
     public record Grant(Long userId,Long templateId,LocalDateTime expiresAt){}
+    @lombok.Data public static class TemplateListRequest {
+        private String purpose;
+        private boolean publishedOnly;
+        private Long projectId;
+        private Long deviceId;
+    }
 }

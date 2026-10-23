@@ -96,7 +96,27 @@ public class StagePlanApprovalCompletionProvider implements TaskBusinessObjectPr
                 .stream().map(row -> new AssociationCandidate(row.id().toString(), version(row))).toList();
     }
 
+    @Override public HandlingTime historicalHandlingTime(HandlingTimeQuery request) {
+        authorize(request.context().tenantId(),request.context().actorId(),request.context().projectId());
+        if (!request.satisfiedFacts().contains(FACT)) return null;
+        var row = mapper.byId(new StagePlanCompletionQuery(request.context().tenantId(),request.context().projectId(),parse(request.objectId()),false));
+        if (row == null || !Objects.equals(row.getTenantId(),request.context().tenantId()) || !Objects.equals(row.getProjectId(),request.context().projectId())
+                || Boolean.TRUE.equals(row.getDeleted()) || !Objects.equals(row.getStatus(),2)) return null;
+        // Batch identity/version is frozen; a newer current construction-plan pointer cannot replace its effective time.
+        String prefix = objectType() + ":v1:" + row.getVersion() + ":";
+        return request.factVersion().startsWith(prefix) && request.factVersion().endsWith(":true")
+                ? new HandlingTime(row.getEffectiveAt(),"BUSINESS_END","施工计划审批生效时间") : null;
+    }
+
     private record Snapshot(Long id, String name, String version, boolean completed) { }
+    @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null) throw unavailable();
+        tenant(context.tenantId(), context.projectId());
+        var row = mapper.byId(new StagePlanCompletionQuery(context.tenantId(), context.projectId(), parse(objectId), false));
+        if (row == null || !Objects.equals(row.getTenantId(), context.tenantId())
+                || !Objects.equals(row.getProjectId(), context.projectId()) || Boolean.TRUE.equals(row.getDeleted())) throw unavailable();
+        return row.getCreateTime();
+    }
     private String version(Snapshot row) { return objectType() + ":v1:" + row.version() + ":" + row.completed(); }
     private BusinessObjectFact fact(Snapshot row) {
         return new BusinessObjectFact(row.id().toString(), row.name(), version(row), Set.of("QUERY"),
@@ -109,7 +129,11 @@ public class StagePlanApprovalCompletionProvider implements TaskBusinessObjectPr
     private void authorize(Long tenant, Long actor, Long project) {
         tenant(tenant, project);
         if (actor == null || !Objects.equals(actor, SecurityFrameworkUtils.getLoginUserId())) throw exception(FORBIDDEN);
-        var visible = scope.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, project, ProjectScopeApi.ACTION_VIEW));
+        var visible = scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (visible == null || visible.fullProjectIds() == null || !visible.fullProjectIds().contains(project)
                 || !permissions.hasAnyPermissions(actor, "pms:imp-stage-plan:query")) throw exception(FORBIDDEN);
     }

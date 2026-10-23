@@ -3,7 +3,7 @@ import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 
 export const formValues = (detail: View): JsonObject => {
   if (!detail.form) return { ...detail.values }
-  const arrays = new Set(detail.form.fields.filter(field => ['checkbox', 'group'].includes(field.componentType || '')).map(field => field.fieldKey))
+  const arrays = new Set(detail.form.fields.filter(field => ['checkbox', 'group', 'RequirementBusinessTable'].includes(field.componentType || '')).map(field => field.fieldKey))
   return Object.fromEntries(Object.entries(detail.form.binding.fieldBindings)
     .map(([field, code]) => [field, detail.values[code] ?? (arrays.has(field) ? [] : null)]))
 }

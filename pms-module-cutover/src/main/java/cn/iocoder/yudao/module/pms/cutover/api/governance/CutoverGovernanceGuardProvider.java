@@ -1,10 +1,9 @@
 package cn.iocoder.yudao.module.pms.cutover.api.governance;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutTaskRetiredDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverGovernanceGuardQuery;
-import cn.iocoder.yudao.module.pms.cutover.domain.CutTaskStatusRules;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceBlocker;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceGuardProviderApi;
 import cn.iocoder.yudao.module.pms.platform.api.guard.ProjectGovernanceGuardQuery;
@@ -25,9 +24,9 @@ import java.util.Objects;
 public class CutoverGovernanceGuardProvider implements ProjectGovernanceGuardProviderApi {
 
     public static final String PROVIDER_CODE = "CUTOVER";
-    private static final String FACT_VERSION = "CUTOVER_TASK_V1";
+    private static final String FACT_VERSION = "CUTOVER_TASK_CURRENT";
 
-    private final CutTaskMapper taskMapper;
+    private final CutoverTaskMapper taskMapper;
 
     @Override
     public String providerCode() {
@@ -40,13 +39,13 @@ public class CutoverGovernanceGuardProvider implements ProjectGovernanceGuardPro
         if (query.projectIds().isEmpty()) {
             return fact(List.of(), List.of());
         }
-        List<CutTaskRetiredDO> tasks = taskMapper.selectListForGovernanceGuardRetired(
+        List<CutoverTaskDO> tasks = taskMapper.selectListForGovernanceGuard(
                 new CutoverGovernanceGuardQuery(query.tenantId(), query.projectIds()));
         validateScope(query, tasks);
         List<String> facts = tasks.stream().map(CutoverGovernanceGuardProvider::canonicalFact).sorted().toList();
         List<ProjectGovernanceBlocker> blockers = tasks.stream()
-                .filter(task -> !CutTaskStatusRules.isTerminal(task.getStatus()))
-                .sorted(Comparator.comparing(CutTaskRetiredDO::getProjectId).thenComparing(CutTaskRetiredDO::getId))
+                .filter(task -> !"ARCHIVED".equals(task.getTaskStatus()))
+                .sorted(Comparator.comparing(CutoverTaskDO::getProjectId).thenComparing(CutoverTaskDO::getId))
                 .map(CutoverGovernanceGuardProvider::toBlocker).toList();
         return fact(facts, blockers);
     }
@@ -57,7 +56,7 @@ public class CutoverGovernanceGuardProvider implements ProjectGovernanceGuardPro
         }
     }
 
-    private static void validateScope(ProjectGovernanceGuardQuery query, List<CutTaskRetiredDO> tasks) {
+    private static void validateScope(ProjectGovernanceGuardQuery query, List<CutoverTaskDO> tasks) {
         if (tasks.stream().anyMatch(task -> !Objects.equals(task.getTenantId(), query.tenantId())
                 || !query.projectIds().contains(task.getProjectId()))) {
             throw new IllegalStateException("cutover guard query returned out-of-scope fact");
@@ -71,8 +70,8 @@ public class CutoverGovernanceGuardProvider implements ProjectGovernanceGuardPro
         return new ProjectGovernanceProviderFact(PROVIDER_CODE, FACT_VERSION, watermark, digest(facts), blockers);
     }
 
-    private static String canonicalFact(CutTaskRetiredDO task) {
-        return value(task.getProjectId()) + "|" + value(task.getId()) + "|" + value(task.getStatus())
+    private static String canonicalFact(CutoverTaskDO task) {
+        return value(task.getProjectId()) + "|" + value(task.getId()) + "|" + value(task.getTaskStatus())
                 + "|" + value(task.getVersion()) + "|" + value(task.getUpdateTime());
     }
 
@@ -81,23 +80,10 @@ public class CutoverGovernanceGuardProvider implements ProjectGovernanceGuardPro
         return fields[0] + "|" + fields[1] + "|" + fields[3] + "|" + fields[4];
     }
 
-    private static ProjectGovernanceBlocker toBlocker(CutTaskRetiredDO task) {
+    private static ProjectGovernanceBlocker toBlocker(CutoverTaskDO task) {
         return new ProjectGovernanceBlocker("CUTOVER_TASK", String.valueOf(task.getId()),
-                statusName(task.getStatus()), "NON_TERMINAL_CUTOVER_TASK", "割接任务阻断");
-    }
-
-    private static String statusName(Integer status) {
-        if (status == null) return "UNKNOWN";
-        return switch (status) {
-            case 0 -> "DRAFT";
-            case 1 -> "PREPARING";
-            case 2 -> "PENDING_REVIEW";
-            case 3 -> "CLOSURE_IN_PROGRESS";
-            case 6 -> "COMPLETED";
-            case 7 -> "ROLLED_BACK";
-            case 8 -> "TERMINATED";
-            default -> "UNKNOWN";
-        };
+                task.getTaskStatus() == null ? "UNKNOWN" : task.getTaskStatus(),
+                "NON_TERMINAL_CUTOVER_TASK", "割接任务阻断");
     }
 
     private static String digest(List<String> facts) {

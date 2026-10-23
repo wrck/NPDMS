@@ -22,16 +22,21 @@ public class ProjectDeviceSelectionContextApiImpl implements ProjectDeviceSelect
 
     @Override
     public Set<String> getContractNumbers(Long projectId) {
-        return getContractNumbers(new Query(TenantContextHolder.getRequiredTenantId(),getLoginUserId(),projectId));
+        return getContractNumbers(new Authorization(TenantContextHolder.getRequiredTenantId(), getLoginUserId(), projectId));
     }
 
     @Override
-    public Set<String> getContractNumbers(Query query) {
-        if(query==null || !Objects.equals(query.tenantId(),TenantContextHolder.getRequiredTenantId()))throw exception(PROJECT_NOT_EXISTS);
-        Long tenantId=query.tenantId(),userId=query.actorId(),projectId=query.projectId();
-        if(projectId==null || projectId<=0 || userId==null || userId<=0)throw exception(PROJECT_NOT_EXISTS);
-        var scope = scopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, userId, projectId, ProjectScopeApi.ACTION_VIEW));
+    public Set<String> getContractNumbers(Authorization query) {
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
+        if (query == null || !Objects.equals(tenantId, query.tenantId())) throw exception(PROJECT_NOT_EXISTS);
+        Long projectId = query.projectId();
+        Long userId = query.actorId();
+        if (projectId == null || projectId <= 0 || userId == null || userId <= 0) throw exception(PROJECT_NOT_EXISTS);
+        var scope = scopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(userId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
             throw exception(PROJECT_NOT_EXISTS);
         }

@@ -60,6 +60,7 @@ class CommerceDeliveryScopeQueryServiceTest {
         assertEquals(new java.math.BigDecimal("4"),result.getList().getFirst().orderFields().orderQuantity());
         assertNull(result.getList().getFirst().orderFields().unitCode());
         verify(scopeMapper).selectOrderFields(argThat(orderQuery->orderQuery.tenantId()==1L && orderQuery.scopeIds().equals(List.of(101L))));
+        assertEquals("C1",result.getList().getFirst().contractNo());
         ArgumentCaptor<DeliveryScopePageQuery> query = ArgumentCaptor.forClass(DeliveryScopePageQuery.class);
         verify(scopeMapper).selectCountByProjectScope(query.capture());
         assertEquals(List.of(10L, 20L), query.getValue().projectIds());
@@ -74,6 +75,17 @@ class CommerceDeliveryScopeQueryServiceTest {
                 .tenantId(1L).subjectUserId(7L).projectId(10L).limit(20).build()).getList().isEmpty());
 
         verifyNoInteractions(scopeMapper, detailMapper);
+    }
+
+    @Test void missingOrderContractDoesNotHideAuthorizedDeliveryScopesOrInventAProjectContract() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        when(scopeMapper.selectCountByProjectScope(any())).thenReturn(1L);
+        var scope = new DeliveryScopeDO(); scope.setId(101L); scope.setProjectId(10L);
+        when(scopeMapper.selectPageByProjectScope(any())).thenReturn(List.of(scope));
+        when(scopeMapper.selectOrderFields(any())).thenReturn(List.of());
+        var result = service.page(CommerceDeliveryScopeQueryService.PageQuery.builder().tenantId(1L).subjectUserId(7L).projectId(10L).limit(20).build());
+        assertEquals(1, result.getList().size());
+        assertNull(result.getList().getFirst().contractNo());
     }
 
     @Test

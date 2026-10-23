@@ -17,6 +17,10 @@ public interface ProjectDeliverableInitializationApplicationService {
     /** Authorized project-plan command holds the project lock and supplies the previewed instance versions. */
     void applyPlanChanges(ApplyDeliverablePlanChanges command);
 
+    /** Retains old material/submission history; a fresh template plan receives new requirement identities. */
+    void archiveForProjectReopen(ProjectReopenArchive command);
+    record ProjectReopenArchive(Long projectId, Long reopenSnapshotId, List<Long> expectedRequirementIds) { }
+
     record ApplyDeliverablePlanChanges(Long projectId, Long actorId, List<DeliverablePlanChange> changes) { }
 
     /** Null id creates a new definition; null definition retires an unhandled instance. */
@@ -50,6 +54,7 @@ public interface ProjectDeliverableInitializationApplicationService {
             Boolean required,
             Long sourceDefinitionId,
             String status,
-            Long version) {
+            Long version,
+            Boolean automaticCollection) {
     }
 }

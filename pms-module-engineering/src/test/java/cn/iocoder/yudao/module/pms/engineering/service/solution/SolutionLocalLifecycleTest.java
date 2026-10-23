@@ -58,6 +58,16 @@ class SolutionLocalLifecycleTest {
         assertEquals(9L, revision.getValue());
     }
 
+    @Test void implementationCannotSkipMandatoryChecksThroughLegacySubmit() {
+        row.setSolutionType("IMPLEMENTATION"); when(tiered.source(any())).thenReturn(row);
+        var validator = mock(cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionSubmissionValidator.class);
+        ReflectionTestUtils.setField(service, "submissionValidator", validator);
+        doThrow(new IllegalArgumentException("缺少配置脚本文件")).when(validator).validateAndFreezeSources(row);
+        assertThrows(IllegalArgumentException.class, () -> service.submitSolution(1L));
+        assertEquals(0, row.getStatus());
+        verify(mapper, never()).updateById(any(SolutionDO.class));
+    }
+
     @Test void majorReviewCannotBeSimulatedAsApproved() {
         row.setStatus(2); row.setReviewLevel(1);
         SolutionApproveReqVO approval = new SolutionApproveReqVO(); approval.setId(1L); approval.setVersion(6);

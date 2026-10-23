@@ -5,13 +5,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 LOCKED_INPUT = "6719ab94"
-LEGACY_PATHS = (
-    "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/controller/admin/srvrule",
-    "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/service/srvrule",
-    "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/dataobject/srvrule",
-    "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/dal/mysql/srvrule",
-    "yudao-ui/yudao-ui-admin-vue3/src/api/pms/service/srv-rule",
-    "yudao-ui/yudao-ui-admin-vue3/src/views/pms/service/srv-rule",
+# The approved inspection retirement removes old runtime code; executed migrations remain immutable.
+HISTORICAL_MIGRATIONS = (
     "sql/migrations/V14__pms_service_tables.sql",
     "sql/migrations/V15__pms_service_menus.sql",
     "sql/migrations/V16__pms_business_button_permissions.sql",
@@ -23,15 +18,15 @@ LEGACY_PATHS = (
 
 class FIns001LegacyPreservationTest(unittest.TestCase):
 
-    def test_locked_legacy_assets_remain_unchanged(self):
+    def test_executed_legacy_migrations_remain_unchanged(self):
         committed = subprocess.run(
-            ["git", "diff", "--name-only", f"{LOCKED_INPUT}..HEAD", "--", *LEGACY_PATHS],
+            ["git", "diff", "--name-only", f"{LOCKED_INPUT}..HEAD", "--", *HISTORICAL_MIGRATIONS],
             cwd=ROOT,
             check=True,
             capture_output=True,
             text=True).stdout.strip()
         working_tree = subprocess.run(
-            ["git", "status", "--porcelain", "--", *LEGACY_PATHS],
+            ["git", "status", "--porcelain", "--", *HISTORICAL_MIGRATIONS],
             cwd=ROOT,
             check=True,
             capture_output=True,

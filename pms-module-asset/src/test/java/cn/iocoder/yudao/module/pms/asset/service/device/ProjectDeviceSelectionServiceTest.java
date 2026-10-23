@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.asset.service.device;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceArchivePageReqVO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.ProjectDeviceSelectionMapper;
@@ -50,6 +51,25 @@ class ProjectDeviceSelectionServiceTest {
         verifyNoInteractions(mapper);
     }
 
+    @Test void inspectionCandidatesPreserveOwnerScopeAndPageInTheIndexedQuery() {
+        when(mapper.selectCandidatePage(any())).thenReturn(new PageResult<>(List.of(device(1L)), 3L));
+
+        var result = service.pageSelection(new ProjectDeviceSelectionApi.SelectionQuery(10L, "SN", 2, 20));
+
+        assertEquals(3L, result.total());
+        assertEquals(List.of("SN-1"), result.list().stream().map(row -> row.sn()).toList());
+        var capture = ArgumentCaptor.forClass(ProjectDeviceSelectionQuery.class);
+        verify(mapper).selectCandidatePage(capture.capture());
+        var query = capture.getValue();
+        assertEquals(1L, query.getTenantId());
+        assertEquals(10L, query.getProjectId());
+        assertEquals(Set.of("CONTRACT-10"), query.getContractNumbers());
+        assertEquals("SN", query.getSn());
+        assertEquals(2, query.getPageNo());
+        assertEquals(20, query.getPageSize());
+        verify(mapper, never()).selectSelectionPage(any());
+    }
+
     @Test void duplicateDeviceCannotBeSubmittedTwice() {
         assertThrows(ServiceException.class, () -> service.validateSelection(10L, List.of(1L, 1L)));
         verifyNoInteractions(mapper);
@@ -75,5 +95,25 @@ class ProjectDeviceSelectionServiceTest {
     private DeviceDO device(long id) {
         var row = new DeviceDO(); row.setId(id); row.setSn("SN-" + id); row.setContractNo("CONTRACT-10");
         return row;
+    }
+    @Test void taskSelectionUsesExplicitActorAndTenantWithLockedEquipmentScope() {
+        var auth=new ProjectDeviceSelectionContextApi.Authorization(1L,42L,10L);
+        when(context.getContractNumbers(auth)).thenReturn(Set.of("CONTRACT-10"));
+        when(mapper.selectSelectionForUpdate(any())).thenReturn(List.of(device(1L)));
+        assertEquals(1,service.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(1L,42L,10L,List.of(1L))).size());
+        verify(context).getContractNumbers(auth);
+        verify(context,never()).getContractNumbers(10L);
+        verify(mapper).selectSelectionForUpdate(argThat(query -> query.getTenantId().equals(1L) && query.getProjectId().equals(10L)
+                && query.getContractNumbers().equals(Set.of("CONTRACT-10")) && query.getDeviceIds().equals(List.of(1L))));
+    }
+    @Test void taskSelectionCannotOverrideTenantOrUseMissingActor() {
+        assertThrows(ServiceException.class,()->service.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(2L,42L,10L,List.of(1L))));
+        assertThrows(ServiceException.class,()->service.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(1L,null,10L,List.of(1L))));
+        verifyNoInteractions(mapper);
+    }
+    @Test void taskSelectionRejectsDeviceOutsideAuthorizedProjectOrContract() {
+        when(context.getContractNumbers(new ProjectDeviceSelectionContextApi.Authorization(1L,42L,10L))).thenReturn(Set.of("CONTRACT-10"));
+        when(mapper.selectSelectionForUpdate(any())).thenReturn(List.of());
+        assertThrows(ServiceException.class,()->service.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(1L,42L,10L,List.of(1L))));
     }
 }

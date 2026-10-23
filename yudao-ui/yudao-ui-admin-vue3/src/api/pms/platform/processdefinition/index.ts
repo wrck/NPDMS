@@ -71,7 +71,7 @@ export interface ScenarioRunOutcomeVO {
 
 export const runScenario = (data: {
   definitionCode: string
-  entityId: number
+  entityId: number | string
   idempotencyKey: string
   backendId?: string
 }) => request.post<ScenarioRunOutcomeVO>({ url: `${scenarioUrl}/run`, data, silentError: true })

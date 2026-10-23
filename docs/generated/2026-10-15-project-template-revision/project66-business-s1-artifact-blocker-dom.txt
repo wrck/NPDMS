@@ -1,0 +1,537 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理" [expanded]:
+        - generic: 项目管理
+        - menu:
+          - menuitem "项目列表":
+            - generic: 项目列表
+          - menuitem "计划进度":
+            - generic: 计划进度
+          - menuitem "项目风险":
+            - generic: 项目风险
+          - menuitem "组合与治理":
+            - generic: 组合与治理
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "割接交付":
+        - generic: 割接交付
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "巡检服务":
+        - generic: 巡检服务
+      - menuitem "项目模板管理":
+        - generic: 项目模板管理
+      - menuitem "交付件汇总（6.4）":
+        - generic: 交付件汇总（6.4）
+      - menuitem "现场培训（6.1）":
+        - generic: 现场培训（6.1）
+      - menuitem "阶段施工计划（3.1）":
+        - generic: 阶段施工计划（3.1）
+      - menuitem "施工计划建议规则":
+        - generic: 施工计划建议规则
+      - menuitem "设备连接与采集":
+        - generic: 设备连接与采集
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "项目交付（新功能暂停）":
+    - generic: 项目交付（新功能暂停）
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- superscript
+- button "管理员":
+  - generic: 管理员
+- button "首页":
+  - text: 首页
+- button "项目详情":
+  - text: 项目详情
+- button:
+- generic: 工前准备
+- heading "工程直签全浏览器16任务验收20261016" [level=2]
+- generic: 工程类
+- generic: "模板 #993009900016 v3"
+- text: 编码
+- generic: PJT2026000066
+- text: FAST001客户设备空摘要验收
+- text: 直签 / 原厂直服
+- text: 2026-10-16 04:43:04
+- generic: 进度 13%
+- generic: 任务 2/16
+- generic: 风险 0
+- button "返回列表":
+  - text: 返回列表
+- tablist "项目阶段推进轨":
+  - button "S0 项目立项":
+    - generic: S0
+    - generic: 项目立项
+  - button "S1 工前准备":
+    - generic: S1
+    - generic: 工前准备
+  - button "S2 施工计划":
+    - generic: S2
+    - generic: 施工计划
+  - button "S3 实施方案":
+    - generic: S3
+    - generic: 实施方案
+  - button "S4 实施部署":
+    - generic: S4
+    - generic: 实施部署
+  - button "S5 验收交维":
+    - generic: S5
+    - generic: 验收交维
+  - button "S6 项目闭环":
+    - generic: S6
+    - generic: 项目闭环
+  - button "推进说明与图例":
+- generic: 项目概览
+- button "基本信息":
+  - generic: 基本信息
+- button "客户信息":
+  - generic: 客户信息
+- button "项目树":
+  - generic: 项目树
+- button "项目成员":
+  - generic: 项目成员
+- button "设备清单":
+  - generic: 设备清单
+- button "序列号详情":
+  - generic: 序列号详情
+- button "配置Log":
+  - generic: 配置Log
+- button "实施范围 待确认":
+  - generic: 实施范围
+  - generic: 待确认
+- generic: 阶段和任务
+- button "阶段状态":
+  - generic: 阶段状态
+- button "S0 项目立项 100%":
+  - generic: S0 项目立项
+  - generic: 100%
+- button "S1 工前准备 0%":
+  - generic: S1 工前准备
+  - generic: 0%
+- button "S2 施工计划 0%":
+  - generic: S2 施工计划
+  - generic: 0%
+- button "S3 实施方案 0%":
+  - generic: S3 实施方案
+  - generic: 0%
+- button "S4 实施部署 0%":
+  - generic: S4 实施部署
+  - generic: 0%
+- button "S5 验收交维 0%":
+  - generic: S5 验收交维
+  - generic: 0%
+- button "S6 项目闭环 0%":
+  - generic: S6 项目闭环
+  - generic: 0%
+- generic: 全流程业务
+- generic: 工前准备
+- button "工勘分工 2.2":
+  - generic: 工勘分工
+  - generic: "2.2"
+- button "需求分析 2.3":
+  - generic: 需求分析
+  - generic: "2.3"
+- button "物料换货 2.2.1":
+  - generic: 物料换货
+  - generic: 2.2.1
+- button "工程交底 2.4":
+  - generic: 工程交底
+  - generic: "2.4"
+- generic: 制定施工计划
+- button "施工计划 3.1-3.4":
+  - generic: 施工计划
+  - generic: 3.1-3.4
+- generic: 实施方案
+- button "实施方案 4.1":
+  - generic: 实施方案
+  - generic: "4.1"
+- generic: 实施部署
+- button "到货签收 5.1":
+  - generic: 到货签收
+  - generic: "5.1"
+- button "硬件安装 5.2":
+  - generic: 硬件安装
+  - generic: "5.2"
+- button "配置调试 5.3":
+  - generic: 配置调试
+  - generic: "5.3"
+- button "业务联调 5.4":
+  - generic: 业务联调
+  - generic: "5.4"
+- button "割接上线 5.5":
+  - generic: 割接上线
+  - generic: "5.5"
+- generic: 验收交维
+- button "现场培训 6.1":
+  - generic: 现场培训
+  - generic: "6.1"
+- button "满意度调查 6.2":
+  - generic: 满意度调查
+  - generic: "6.2"
+- button "初验&终验 6.3":
+  - generic: 初验&终验
+  - generic: "6.3"
+- button "交付件汇总 6.5":
+  - generic: 交付件汇总
+  - generic: "6.5"
+- button "交付件检查 6.6":
+  - generic: 交付件检查
+  - generic: "6.6"
+- button "归档文档 6.7":
+  - generic: 归档文档
+  - generic: "6.7"
+- button "闭环记录 6.8":
+  - generic: 闭环记录
+  - generic: "6.8"
+- button "项目闭环 6.9":
+  - generic: 项目闭环
+  - generic: "6.9"
+- generic: 项目拆分
+- button "拆分方案":
+  - generic: 拆分方案
+- generic: 进度汇总
+- button "进度汇总":
+  - generic: 进度汇总
+- generic: 异常治理
+- button "异常治理":
+  - generic: 异常治理
+- generic: 项目权限
+- button "项目授权":
+  - generic: 项目授权
+- generic: 服务经理
+- button "责任分布":
+  - generic: 责任分布
+- strong: 需求分析
+- paragraph: 维护项目需求与附件，按版本保存和确认。
+- button "刷新":
+  - text: 刷新
+- button "修订记录":
+  - generic: 修订记录
+- separator
+- generic "选择需求分析版本":
+  - button "编辑当前草稿 V1 · 草稿" [pressed]:
+    - strong: 编辑当前草稿
+    - generic: V1 · 草稿
+- heading "项目需求分析" [level=3]
+- paragraph: 记录客户目标、网络现状和实施要求，作为实施方案与工程交底的输入。
+- generic: 当前草稿 · V1
+- region "需求分析动态表单":
+  - generic: 展示模板
+  - combobox "展示模板"
+  - generic: 需求分析标准模板 · V10
+  - group "*1、项目背景":
+    - generic: "*1、项目背景"
+    - button "正文":
+      - text: 正文
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button "默认字号":
+      - text: 默认字号
+    - button "默认字体":
+      - text: 默认字体
+    - button "默认行高":
+      - text: 默认行高
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - paragraph:
+      - generic: 项目66合成隔离实验室全浏览器验收，无真实客户网络。
+  - group "*2、项目目标":
+    - generic: "*2、项目目标"
+    - button "正文":
+      - text: 正文
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button "默认字号":
+      - text: 默认字号
+    - button "默认字体":
+      - text: 默认字体
+    - button "默认行高":
+      - text: 默认行高
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - paragraph:
+      - generic: 完成独立16任务业务闭环，验证上传、审批及历史。
+  - group "3、网络拓扑（附件）":
+    - generic: 3、网络拓扑（附件）
+    - generic "网络拓扑附件（1）"
+    - note: 完成需求分析前，至少上传一个有效的网络拓扑附件；草稿可先保存。
+    - generic "network-topology.pdf"
+    - generic: 已绑定
+    - generic: V1
+    - generic: DYNAMIC_FORM_ATTACHMENT
+    - button "版本历史":
+      - generic: 版本历史
+    - button "预览":
+      - generic: 预览
+    - button "下载":
+      - generic: 下载
+    - button "解绑":
+      - generic: 解绑
+    - button "拖放文件到这里，或点击选择":
+      - text: 拖放文件到这里，或
+      - emphasis: 点击选择
+    - generic: 单文件不超过 50MB；上传完成后由服务端执行适用校验，是否执行安全扫描由部署配置决定。
+    - list
+    - button "上传新版本" [disabled]:
+      - generic: 上传新版本
+    - button "拖放文件到这里，或点击选择":
+      - text: 拖放文件到这里，或
+      - emphasis: 点击选择
+    - generic: 单文件不超过 50MB；上传完成后由服务端执行适用校验，是否执行安全扫描由部署配置决定。
+    - list
+    - button "上传并绑定" [disabled]:
+      - generic: 上传并绑定
+  - generic: 4、传输现状（多选）
+  - group "4、传输现状（多选）":
+    - checkbox "IPv6" [checked]
+    - generic: IPv6
+    - checkbox "分片"
+    - generic: 分片
+    - checkbox "MTU"
+    - generic: MTU
+    - checkbox "Jumbo"
+    - generic: Jumbo
+    - checkbox "隧道"
+    - generic: 隧道
+  - group "5、流量现状":
+    - generic: 5、流量现状
+    - generic: 新建
+    - textbox "流量现状：新建":
+      - /placeholder: 填写现状及单位
+      - text: 合成1连接/秒
+    - generic: 并发
+    - textbox "流量现状：并发":
+      - /placeholder: 填写现状及单位
+      - text: 合成10连接
+    - generic: 吞吐
+    - textbox "流量现状：吞吐":
+      - /placeholder: 填写现状及单位
+      - text: 合成1Mbps
+  - group "6、运行业务情况":
+    - generic: 6、运行业务情况
+    - table:
+      - rowgroup:
+        - row "设备名称 序列号 承载业务名称 业务网段 业务重要等级 出入接口 客户侧业务负责人 备注 操作":
+          - columnheader "设备名称":
+            - generic: 设备名称
+          - columnheader "序列号":
+            - generic: 序列号
+          - columnheader "承载业务名称":
+            - generic: 承载业务名称
+          - columnheader "业务网段":
+            - generic: 业务网段
+          - columnheader "业务重要等级":
+            - generic: 业务重要等级
+          - columnheader "出入接口":
+            - generic: 出入接口
+          - columnheader "客户侧业务负责人":
+            - generic: 客户侧业务负责人
+          - columnheader "备注":
+            - generic: 备注
+          - columnheader "操作":
+            - generic: 操作
+    - table:
+      - rowgroup:
+        - row "项目66合成样机 DIRECT66-BROWSER-20261016-01 合成验收 192.0.2.0/24 实验室 合成接口 项目66合成验收用户 非真实设备，无网络连接 删除":
+          - cell "项目66合成样机":
+            - textbox "设备名称 第1行": 项目66合成样机
+          - cell "DIRECT66-BROWSER-20261016-01":
+            - textbox "序列号 第1行": DIRECT66-BROWSER-20261016-01
+          - cell "合成验收":
+            - textbox "承载业务名称 第1行": 合成验收
+          - cell "192.0.2.0/24":
+            - textbox "业务网段 第1行": 192.0.2.0/24
+          - cell "实验室":
+            - textbox "业务重要等级 第1行": 实验室
+          - cell "合成接口":
+            - textbox "出入接口 第1行": 合成接口
+          - cell "项目66合成验收用户":
+            - textbox "客户侧业务负责人 第1行": 项目66合成验收用户
+          - cell "非真实设备，无网络连接":
+            - textbox "备注 第1行": 非真实设备，无网络连接
+          - cell "删除":
+            - button "删除":
+              - generic: 删除
+    - button "添加行":
+      - generic: 添加行
+  - group "7、IP资源情况":
+    - generic: 7、IP资源情况
+    - generic: 管理IP
+    - textbox "管理IP": 192.0.2.66（文档示例，不连接）
+    - generic: 公网IP资源
+    - textbox "公网IP资源": 无生产公网IP
+  - group "8、冗余备份要求":
+    - generic: 8、冗余备份要求
+    - button "正文":
+      - text: 正文
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button "默认字号":
+      - text: 默认字号
+    - button "默认字体":
+      - text: 默认字体
+    - button "默认行高":
+      - text: 默认行高
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - paragraph:
+      - generic: 合成单设备实验室，无生产流量，保留回退记录。
+  - group "9、本机防护要求":
+    - generic: 9、本机防护要求
+    - button "正文":
+      - text: 正文
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button "默认字号":
+      - text: 默认字号
+    - button "默认字体":
+      - text: 默认字体
+    - button "默认行高":
+      - text: 默认行高
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - button:
+    - paragraph:
+      - generic: 禁止连接真实设备，管理地址仅文档示例。
+  - generic: 10、运维管理要求（多选）
+  - group "10、运维管理要求（多选）":
+    - checkbox "带内管理"
+    - generic: 带内管理
+    - checkbox "带外管理" [checked]
+    - generic: 带外管理
+    - checkbox "SNMP"
+    - generic: SNMP
+    - checkbox "UMC"
+    - generic: UMC
+    - checkbox "第三平台"
+    - generic: 第三平台
+    - checkbox "堡垒机"
+    - generic: 堡垒机
+  - generic: 11、业务日志留存方式
+  - group "11、业务日志留存方式":
+    - checkbox "UMC"
+    - generic: UMC
+    - checkbox "第三方日志平台"
+    - generic: 第三方日志平台
+    - checkbox "本机硬盘" [checked]
+    - generic: 本机硬盘
+    - checkbox "不留存"
+    - generic: 不留存
+    - checkbox "其他"
+    - generic: 其他
+  - button "保存需求分析":
+    - generic: 保存需求分析
+- region "工程交底书":
+  - heading "工程交底书" [level=3]
+  - button "刷新":
+    - generic: 刷新
+  - button "生成与维护":
+    - generic: 生成与维护
+  - paragraph: 查看本项目已生成的交底书。生成、审核和发布沿用工程交底流程。
+  - paragraph: 本项目尚无工程交底书
+- button "完成并冻结当前草稿" [active]:
+  - generic: 完成并冻结当前草稿
+- generic: Copyright ©2026 项目实施交付管理平台
+- dialog "系统提示":
+  - generic: 系统提示
+  - button "关闭此对话框":
+  - paragraph: 当前表单尚未保存，是否放弃这些本地修改并完成草稿？
+  - button "取消":
+    - generic: 取消
+  - button "确定":
+    - generic: 确定

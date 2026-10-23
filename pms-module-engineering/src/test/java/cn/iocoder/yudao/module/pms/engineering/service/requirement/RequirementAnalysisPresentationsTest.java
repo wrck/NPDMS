@@ -41,6 +41,23 @@ class RequirementAnalysisPresentationsTest {
         assertTrue(service.list(9L,actor).options().isEmpty());
     }
 
+    @Test void publishedBusinessTableIsCompatibleButTextCannotRenderBusinessRows() {
+        setup();
+        var table = new EntityPresentationApi.Presentation(30L, "New table layout", 41L, 3, 1,
+                "FORM_CREATE_ELEMENT_PLUS", "3", "3", "{}", "[]", List.of(
+                new DynamicFormFieldDescriptor("BUSINESS_DEVICE_DETAILS", "RequirementBusinessTable", false, false,
+                        "any", null, null, null, List.of())));
+        var text = new EntityPresentationApi.Presentation(30L, "Wrong text layout", 42L, 4, 1,
+                "FORM_CREATE_ELEMENT_PLUS", "3", "3", "{}", "[]", List.of(
+                new DynamicFormFieldDescriptor("BUSINESS_DEVICE_DETAILS", "input", false, false,
+                        "string", null, null, null, List.of())));
+        when(catalog.list(any())).thenReturn(List.of(table, text));
+        var options = service.list(9L, actor).options();
+        assertEquals(1, options.size());
+        assertEquals(41L, options.getFirst().layout().binding().formRevisionId());
+        assertEquals("businessDeviceDetails", options.getFirst().layout().binding().fieldBindings().get("BUSINESS_DEVICE_DETAILS"));
+    }
+
     @Test void revokedBusinessReadCannotExposeTemplateOrData() {
         doThrow(new IllegalStateException("FORBIDDEN")).when(access).read(9L,actor);
         assertThrows(RuntimeException.class,()->service.list(9L,actor));

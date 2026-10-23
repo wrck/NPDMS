@@ -91,9 +91,12 @@ public class SatisfactionResultDecisionService {
                 || !questionnaire.getRuleVersion().equals(evaluation.ruleVersion())) {
             throw new IllegalStateException("SATISFACTION_QUESTIONNAIRE_PROJECTION_CONFLICT");
         }
-        var scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(command.tenantId(),
-                actorUserId, task.getProjectId(), ProjectScopeApi.ACTION_EDIT,
-                questionnaire.getAccessScopeVersion()));
+        var scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(command.tenantId())
+                .subjectUserId(actorUserId)
+                .anchorProjectId(task.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(questionnaire.getAccessScopeVersion()).build());
         if (scope == null || !questionnaire.getAccessScopeVersion().equals(scope.treeVersion())
                 || !scope.fullProjectIds().contains(task.getProjectId())) {
             throw new IllegalStateException("SATISFACTION_RESULT_SCOPE_CONFLICT");
@@ -133,7 +136,15 @@ public class SatisfactionResultDecisionService {
                 String.valueOf(actorUserId))) != 1) {
             throw new IllegalStateException("SATISFACTION_RESULT_WRITE_CONFLICT");
         }
-        if (IndependentSatisfactionService.direct(task)) files.forEach(item -> nativeMaterials.registerNativeSourceFile(item.fact()));
+        if (IndependentSatisfactionService.direct(task)) {
+            archiveDirectResult(new DirectArchive(actorUserId, result, files, scope.treeVersion()));
+            if (resultMapper.updateArchiveProjection(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionResultArchiveProjectionUpdate(
+                    command.tenantId(), resultId, result.getVersion(), null, "ARCHIVED", null, 0, actorUserId.toString())) != 1)
+                throw new IllegalStateException("SATISFACTION_RESULT_ARCHIVE_WRITE_CONFLICT");
+            result.setArchiveStatus("ARCHIVED");
+            result.setVersion(result.getVersion() + 1);
+            files.forEach(item -> nativeMaterials.registerNativeSourceFile(item.fact()));
+        }
         return new DecisionResult(command.operationId(), command.tenantId(), task.getProjectId(), task.getProjectTaskId(),
                 projectTask == null ? null : projectTask.projectTaskVersion(), task.getDeliverableId(), task.getId(), task.getTaskRevisionNo(), questionnaire.getId(),
                 questionnaire.getTemplateRevisionId(),
@@ -144,6 +155,35 @@ public class SatisfactionResultDecisionService {
                 result.getResultStatus(), actorUserId, files.stream()
                         .map(item -> new ResultFileFact(item.role(), item.sequence(), item.sourceSequence(),
                                 item.fact())).toList(), false);
+    }
+
+    private record DirectArchive(Long actorId, SatisfactionResultDO result,
+                                 List<DecisionFile> files, Long scopeVersion) { }
+
+    /** Independent records archive their own immutable evidence; no project deliverable is fabricated. */
+    private void archiveDirectResult(DirectArchive archive) {
+        for (String role : List.of("RESULT_DOCUMENT", "SIGNATURE", "ATTACHMENT")) {
+            var facts = archive.files().stream().filter(file -> role.equals(file.role())).map(DecisionFile::fact).toList();
+            if (facts.isEmpty()) continue;
+            boolean document = "RESULT_DOCUMENT".equals(role);
+            String purpose = document ? "SATISFACTION_RESULT_DOCUMENT" : "SATISFACTION_" + role;
+            var active = new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey("ACC",
+                    document ? "SATISFACTION_RESULT" : "SATISFACTION_RESPONSE",
+                    (document ? archive.result().getId() : archive.result().getResponseId()).toString(), purpose);
+            var archived = new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey("ACC",
+                    "SATISFACTION_RESULT", archive.result().getId().toString(), "SATISFACTION_ARCHIVE");
+            var receipt = fileArtifactApi.archiveReferenceSets(new cn.iocoder.yudao.module.pms.platform.api.file.dto.ArchiveFileReferenceSetsCommand(
+                    "ACC-SAT-DIRECT-ARCHIVE:" + archive.result().getId() + ":" + purpose,
+                    "ACC-SAT-DIRECT-ARCHIVE:" + archive.result().getId(), "ACC-SATISFACTION:" + archive.result().getId(),
+                    archive.actorId(), active, archived, archive.scopeVersion(), facts));
+            if (receipt == null || !archived.equals(receipt.archiveSetKey())
+                    || receipt.archivedFacts().size() != facts.size()
+                    || facts.stream().anyMatch(expected -> receipt.archivedFacts().stream().noneMatch(actual ->
+                    expected.artifactId().equals(actual.artifactId()) && expected.versionNo().equals(actual.versionNo())
+                            && expected.referenceKey().equals(actual.referenceKey()) && expected.sha256().equals(actual.sha256())
+                            && "ARCHIVED".equals(actual.referenceStatus()))))
+                throw new IllegalStateException("SATISFACTION_RESULT_ARCHIVE_RECEIPT_INVALID");
+        }
     }
 
     private SatisfactionResultDO result(SatisfactionCollectionTaskDO task, SatisfactionQuestionnaireDO questionnaire,
@@ -157,7 +197,7 @@ public class SatisfactionResultDecisionService {
         row.setScore(evaluation.score());
         row.setThreshold(evaluation.threshold()); row.setPassed(evaluation.passed());
         row.setRuleVersion(evaluation.ruleVersion()); row.setResultStatus(evaluation.passed() ? "EFFECTIVE" : "FAILED");
-        row.setEffectiveFrom(now); row.setArchiveStatus(IndependentSatisfactionService.direct(task) ? null : "PENDING_COMPENSATION");
+        row.setEffectiveFrom(now); row.setArchiveStatus("PENDING_COMPENSATION");
         row.setArchiveActorUserId(actorUserId); row.setArchiveRetryCount(0); row.setVersion(0);
         row.setCreator(String.valueOf(actorUserId)); row.setUpdater(String.valueOf(actorUserId));
         row.setCreateTime(now); row.setUpdateTime(now);

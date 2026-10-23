@@ -69,7 +69,7 @@
 
 - PDP 后端脱离后的 11 个聚焦测试通过。
 - PDP 管理端 `vue-tsc --noEmit` 通过。
-- PDP 架构边界拒绝依赖 `org.apache.sshd..` 和 `com.dp.deviceops..`。
+- PDP 架构边界拒绝依赖 `org.apache.sshd..` 和 `com.dp.plat.deviceops..`。
 - Device Ops 的 DO、Mapper、迁移和 Vue/API 集成残留已从 PDP 发布边界清理；NPDP 可选集成仅保留部署和 iframe/URL 契约。
 
 ## 安全与数据边界

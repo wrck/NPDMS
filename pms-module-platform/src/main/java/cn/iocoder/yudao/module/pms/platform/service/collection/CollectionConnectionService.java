@@ -42,7 +42,7 @@ public class CollectionConnectionService {
             String external=UUID.nameUUIDFromBytes((tenant()+":"+actor+":"+request.requestKey()).getBytes(StandardCharsets.UTF_8)).toString();
             DeviceCredentialDO pending=new TransactionTemplate(transactions).execute(tx->{
                 auth.project(actor,request.projectId(),true,true);
-                if(request.templateId()!=null)templates.forExecution(actor,request.templateId(),"center",request.protocol(),selected.productModel());
+                if(request.templateId()!=null)templates.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(actor).templateId(request.templateId()).entry("center").deviceModel(selected.productModel()).build());
                 var existing=queries.byExternal(tenant(),external);
                 if(existing!=null){requireSame(existing,actor,request);return existing;}
                 var row=new DeviceCredentialDO();row.setTenantId(tenant());row.setCreator(actor.toString());
@@ -71,7 +71,7 @@ public class CollectionConnectionService {
             if(!"ACTIVE".equals(row.getStatus()))throw new CollectionOperationException("连接未启用");
             if(grantee==null||users.getUser(grantee)==null)throw new CollectionOperationException("被授权用户不存在");
             var device=devices.validateSelection(row.getProjectId(),List.of(row.getDeviceId())).getFirst();
-            if(template!=null)templates.forExecution(actor,template,"center",row.getCredentialType(),device.productModel());
+            if(template!=null)templates.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(actor).templateId(template).entry("center").deviceModel(device.productModel()).build());
             return grantView(grant(row,grantee,template,expires));
         });
     }

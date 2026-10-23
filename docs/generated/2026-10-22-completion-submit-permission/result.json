@@ -1,0 +1,13 @@
+{
+  "certificateId": 30068,
+  "signedStatus": 2,
+  "historyCount": 1,
+  "score": 100.0,
+  "passed": true,
+  "embeddedTestCertificateId": 30069,
+  "embeddedTestVoided": true,
+  "originalCertificateRowsUnchanged": 15,
+  "bothJointDocumentsGenerated": true,
+  "generatedDocumentCount": 2,
+  "dacReadiness": "UP"
+}

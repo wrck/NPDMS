@@ -32,7 +32,11 @@ public class ProjectBusinessConfigurationApiImpl implements ProjectBusinessConfi
         Long tenant = TenantContextHolder.getRequiredTenantId();
         if (query == null || !Objects.equals(tenant, query.tenantId()) || !positive(query.actorId())
                 || !positive(query.projectId()) || !valid(query.target())) throw exception(PROJECT_TASK_QUERY_INVALID);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant, query.actorId(), query.projectId(), ProjectScopeApi.ACTION_VIEW));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(query.actorId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(query.projectId()))
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         var project = projects.selectById(query.projectId());

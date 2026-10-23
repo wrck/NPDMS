@@ -33,7 +33,12 @@ public class TrainingGeneratedFilePolicy implements FileBusinessObjectPolicyProv
         var row=lock?training.selectFileOwnerForUpdate(new TrainingFileOwnerQuery(tenant,key)):training.selectById(key);
         return row!=null && Objects.equals(tenant,row.getTenantId())?row:null;
     }
-    @Override public Scope resolve(Long tenant,String owner,String type,String id,String purpose){
+    @Override public Scope resolve(Long tenant, FileEvidenceApi.Document document) {
+        String owner = document.ownerContext();
+        String type = document.objectType();
+        String id = document.objectId();
+        String purpose = document.purposeCode();
+
         if(!"IMP".equals(owner)||!"TRAINING_RECORD".equals(type)||!purpose(purpose))return null;
         var row=locate(tenant,id,false);
         return row==null?null:new Scope(row.getProjectId(),"TRAINING_RECORD","IMP","training",row.getId(),null);
@@ -42,14 +47,23 @@ public class TrainingGeneratedFilePolicy implements FileBusinessObjectPolicyProv
         if(!Set.of(FileActionCodes.READ,FileActionCodes.DOWNLOAD,FileActionCodes.PREVIEW).contains(query.requiredAction())||!purpose(query.purposeCode()))return denied();
         var row=locate(query.tenantId(),query.objectId(),false);
         if(row==null||!permissions.hasAnyPermissions(query.actorUserId(),"pms:imp-training:query"))return denied();
-        var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(),query.actorUserId(),row.getProjectId(),ProjectScopeApi.ACTION_VIEW));
+        var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         return visible(scope,row.getProjectId())?fact(scope.treeVersion()):denied();
     }
     @Override @Transactional(rollbackFor=Exception.class)
     public FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query){
         var inspected=inspect(query.toInspectionQuery());if(!inspected.allowed())return inspected;
         var row=locate(query.tenantId(),query.objectId(),true);if(row==null)return denied();
-        var scope=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(),query.actorUserId(),row.getProjectId(),ProjectScopeApi.ACTION_VIEW,query.expectedScopeVersion()));
+        var scope=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(query.expectedScopeVersion()).build());
         return visible(scope,row.getProjectId())?fact(scope.treeVersion()):denied();
     }
     @Override public FileBusinessObjectPolicyFact inspectReferenceSet(FileBusinessObjectReferenceSetQuery query){
@@ -59,7 +73,12 @@ public class TrainingGeneratedFilePolicy implements FileBusinessObjectPolicyProv
         var row=locate(query.tenantId(),query.key().objectId(),true);
         if(row==null || !purpose(query.key().purposeCode()) || !Set.of(FileActionCodes.READ,FileActionCodes.DOWNLOAD,FileActionCodes.PREVIEW).contains(query.requiredAction())
                 || !permissions.hasAnyPermissions(query.actorUserId(),"pms:imp-training:query"))return denied();
-        var scope=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(),query.actorUserId(),row.getProjectId(),ProjectScopeApi.ACTION_VIEW,query.expectedScopeVersion()));
+        var scope=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(query.expectedScopeVersion()).build());
         return visible(scope,row.getProjectId())?fact(scope.treeVersion()):denied();
     }
     @Override @Transactional(rollbackFor=Exception.class)
@@ -69,9 +88,18 @@ public class TrainingGeneratedFilePolicy implements FileBusinessObjectPolicyProv
         var row=locate(query.tenantId(),String.valueOf(query.objectId()),true);
         if(row==null || !Objects.equals(row.getVersion(),query.expectedOwnerVersion()) || Integer.valueOf(3).equals(row.getStatus())
                 || !permissions.hasAnyPermissions(query.actorUserId(),"pms:imp-training:update","pms:imp-training:issue"))throw deniedGeneration();
-        var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(),query.actorUserId(),row.getProjectId(),ProjectScopeApi.ACTION_MANAGE));
+        var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if(!visible(scope,row.getProjectId()) || query.expectedScopeVersion()!=null && !query.expectedScopeVersion().equals(scope.treeVersion()))throw deniedGeneration();
-        scope=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(),query.actorUserId(),row.getProjectId(),ProjectScopeApi.ACTION_MANAGE,scope.treeVersion()));
+        scope=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if(!visible(scope,row.getProjectId()))throw deniedGeneration();
         var projectQuery=new ProjectAcceptanceContextApi.Query(query.tenantId(),row.getProjectId(),query.actorUserId());
         var observed=projects.inspect(projectQuery);

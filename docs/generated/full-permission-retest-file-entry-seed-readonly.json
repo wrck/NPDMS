@@ -1,0 +1,10 @@
+{
+  "selectPlansPassed": true,
+  "seedSelectsReturnNoNewRows": true,
+  "readOnlyTransaction": true,
+  "statementCount": 2,
+  "planRows": [
+    10,
+    6
+  ]
+}

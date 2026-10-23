@@ -10,7 +10,16 @@ public interface CollectionDispatchApi {
         throw new UnsupportedOperationException("Semantic results unavailable");
     }
     record Command(Long tenantId, String platformTaskId, List<String> commands,
-                   String username, char[] secret, String traceId) { }
+                   String username, char[] secret, String traceId, CollectionExecutionProfile executionProfile) {
+        public Command(Long tenantId, String platformTaskId, List<String> commands, String username, char[] secret, String traceId) {
+            this(tenantId, platformTaskId, commands, username, secret, traceId, null);
+        }
+        @Override public String toString() { return "CollectionDispatchCommand[credential material omitted]"; }
+    }
     record SavedCommand(Long tenantId, String platformTaskId, List<String> commands,
-                        String username, String connectionId, long connectionVersion, String traceId) { }
+                        String username, String connectionId, long connectionVersion, String traceId, CollectionExecutionProfile executionProfile) {
+        public SavedCommand(Long tenantId, String platformTaskId, List<String> commands, String username, String connectionId, long connectionVersion, String traceId) {
+            this(tenantId, platformTaskId, commands, username, connectionId, connectionVersion, traceId, null);
+        }
+    }
 }

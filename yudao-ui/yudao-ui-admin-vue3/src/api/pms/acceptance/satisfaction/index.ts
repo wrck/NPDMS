@@ -5,6 +5,7 @@ import { customerConfirmationBaseUrl } from '@/api/pms/customerConfirmation'
 export interface QuestionnaireOption {
   code: string
   label: string
+  score?: number | string
 }
 
 export interface QuestionnaireQuestion {
@@ -50,23 +51,6 @@ export interface TemplateView {
   revisions: TemplateRevision[]
 }
 
-export interface TaskView {
-  id: number
-  projectId: number
-  projectTaskId: number | null
-  collectionKey: string
-  revisionNo: number
-  priorTaskId?: number
-  assignedToUserId?: number
-  status: string
-  questionnaireId: number
-  resultId?: number
-  version: number
-  questionnaireStatus: string
-  templateRevisionId: number
-  frozenQuestions?: string
-}
-
 export interface ResultView {
   resultId: number
   projectId: number
@@ -88,10 +72,37 @@ export interface ResultView {
 }
 
 export interface PublicQuestionnaire {
+  submitted?: boolean
+  answerSnapshot?: string
+  signatureImageDataUrl?: string
+  signedAt?: string
   questionnaireId: number
   version: number
   frozenQuestions: string
   expiresAt: string
+  completionCertificate?: CompletionCertificateSnapshot
+}
+
+export interface CompletionCertificateSnapshot {
+  id: number
+  version: number
+  projectId: number
+  code?: string
+  name?: string
+  certificateNo?: string
+  customerUnit?: string
+  contractNo?: string
+  serviceType?: string
+  engineerName?: string
+  engineerContact?: string
+  itemArrival?: string
+  itemInstall?: string
+  itemCutover?: string
+  itemTraining?: string
+  itemDocs?: string
+  arrivalDate?: string | null
+  completionDate?: string
+  devices?: Array<{ deviceType?: string; deviceModel?: string; quantity: number }>
 }
 
 export interface GrantFileFact {
@@ -112,26 +123,6 @@ export interface GrantFileFact {
   }
 }
 
-export interface AssistedResponseReservation {
-  responseId: number
-  taskId: number
-  questionnaireId: number
-  actorUserId: number
-  replayed: boolean
-}
-
-export interface AssistedUploadInitialized {
-  responseId: number
-  fileSlotKey: string
-  fileSequence: number
-  artifactId: number
-  sessionId: number
-  scopeVersion: number
-  expiresAt: string
-}
-
-export type AssistedFileFact = GrantFileFact
-
 export interface SubmissionOutcome {
   responseId: number
   resultId: number
@@ -140,18 +131,6 @@ export interface SubmissionOutcome {
   passed: boolean
   responseReplayed: boolean
   resultReplayed: boolean
-}
-
-export interface ExportTask {
-  taskId: number
-  status: string
-  failureRetryable: boolean
-  retryCount: number
-  version: number
-  resultCount?: number
-  artifactId?: number
-  fileVersionNo?: number
-  expiresAt?: string
 }
 
 export interface ResultDownloadFact {
@@ -196,108 +175,12 @@ export const publishRevision = (templateId: number, revision: TemplateRevision) 
     headers: { 'Idempotency-Key': generateUUID() }
   })
 
-export const listTasks = (projectId?: number) =>
-  request.get<TaskView[]>({ url: '/api/v1/pms/satisfaction-tasks', params: { projectId } })
-
-export interface ManualStartSelection { projectTaskId: number; templateId: number; revisionId: number }
-export interface ManualStartOptions {
-  configured: boolean
-  tasks: { id: number; name: string; stageCode: string; templateId?: number }[]
-}
-export const getStartOptions = (projectId: number) =>
-  request.get<ManualStartOptions>({ url: '/api/v1/pms/satisfaction-tasks/start-options', params: { projectId } })
-
-export const startTask = (projectId: number, operationId: string, selection?: ManualStartSelection) =>
-  request.post<{ outcome: 'CREATED' | 'REPLAYED'; taskId: number }>({
-    url: '/api/v1/pms/satisfaction-tasks/actions/start',
-    params: { projectId, ...selection },
-    headers: { 'Idempotency-Key': operationId }
-  })
-
-export const assignTask = (task: TaskView, assignedToUserId: number) =>
-  request.post({
-    url: `/api/v1/pms/satisfaction-tasks/${task.id}/actions/assign`,
-    data: { assignedToUserId, expectedTaskVersion: task.version },
-    headers: { 'Idempotency-Key': generateUUID() }
-  })
-
-export const createGrant = (taskId: number, expiresAt: number) =>
-  request.post<{ grantId: number; grantVersion: number; token: string; expiresAt: string }>({
-    url: `/api/v1/pms/satisfaction-tasks/${taskId}/access-grants`,
-    data: { expiresAt }
-  })
-
-export const recollect = (taskId: number, data: Record<string, unknown>) =>
-  request.post({ url: `/api/v1/pms/satisfaction-tasks/${taskId}/actions/recollect`, data })
-
-export const submitAssisted = (taskId: number, data: Record<string, unknown>) =>
-  request.post({ url: `/api/v1/pms/satisfaction-tasks/${taskId}/assisted-responses`, data })
-
-export const reserveAssistedResponse = (taskId: number, requestId: string) =>
-  request.post<AssistedResponseReservation>({
-    url: `/api/v1/pms/satisfaction-tasks/${taskId}/assisted-response-reservations`,
-    data: { requestId }
-  })
-
-export const initializeAssistedFile = (
-  taskId: number,
-  data: Record<string, unknown>
-) =>
-  request.post<AssistedUploadInitialized>({
-    url: `/api/v1/pms/satisfaction-tasks/${taskId}/assisted-files`,
-    data
-  })
-
-export const completeAssistedFile = (
-  taskId: number,
-  sessionId: number,
-  metadata: Record<string, unknown>,
-  file: File
-) => {
-  const data = new FormData()
-  data.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
-  data.append('file', file)
-  return request.post<AssistedFileFact>({
-    url: `/api/v1/pms/satisfaction-tasks/${taskId}/assisted-files/${sessionId}/complete`,
-    data,
-    headersType: 'multipart/form-data'
-  })
-}
-
 export const listResults = (projectId?: number) =>
   request.get<ResultView[]>({ url: '/api/v1/pms/satisfaction-results', params: { projectId } })
-
-export const invalidateResult = (result: ResultView, reasonCode: string, reasonSummary?: string) =>
-  request.post({
-    url: `/api/v1/pms/satisfaction-results/${result.resultId}/actions/invalidate`,
-    data: { expectedResultVersion: result.factVersion, reasonCode, reasonSummary },
-    headers: { 'Idempotency-Key': generateUUID() }
-  })
 
 export const getResultDownload = (resultId: number, sequence: number) =>
   request.get<ResultDownloadFact>({
     url: `/api/v1/pms/satisfaction-results/${resultId}/files/${sequence}/download`
-  })
-
-export const requestResultExport = (projectId: number, fields: string[], includeFiles: boolean) =>
-  request.post<ExportTask>({
-    url: '/api/v1/pms/satisfaction-results/exports',
-    data: { projectId, fields, includeFiles },
-    headers: { 'Idempotency-Key': generateUUID() }
-  })
-
-export const getExportTask = (taskId: number) =>
-  request.get<ExportTask>({ url: `/api/v1/pms/export-tasks/${taskId}` })
-
-export const retryExportTask = (task: ExportTask) =>
-  request.post<ExportTask>({
-    url: `/api/v1/pms/export-tasks/${task.taskId}/actions/retry`,
-    data: { expectedVersion: task.version }
-  })
-
-export const getExportAccessTicket = (taskId: number) =>
-  request.post<{ shortLivedUrl: string }>({
-    url: `/api/v1/pms/export-tasks/${taskId}/access-ticket`
   })
 
 export const inspectPublicQuestionnaire = (token: string, tenantId: string | number) =>
@@ -356,18 +239,3 @@ export const submitPublicResponse = (
     baseURL: customerConfirmationBaseUrl(),
     headers: { ...tenantHeaders(tenantId), isToken: false }
   })
-
-export interface IndependentCollectionContext {
-  projectId: number
-  projectVersion: number
-  treeVersion: number
-  lifecycleStatus: string
-}
-export const getIndependentCollectionContext = (projectId: number) =>
-  request.get<IndependentCollectionContext>({ url: '/api/v1/pms/satisfaction-tasks/independent/context', params: { projectId } })
-export const createIndependentCollection = (data: {
-  projectId: number; templateId: number; templateRevisionId: number
-  expectedProjectVersion: number; expectedTreeVersion: number
-}, key: string) => request.post<{ taskId: number; questionnaireId: number; collectionKey: string }>({
-  url: '/api/v1/pms/satisfaction-tasks/independent', data, headers: { 'Idempotency-Key': key }
-})

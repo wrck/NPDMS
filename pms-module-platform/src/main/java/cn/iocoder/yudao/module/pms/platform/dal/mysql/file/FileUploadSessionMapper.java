@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessi
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionValidationUpdate;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.FileUploadSessionStorageBindingUpdate;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.BusinessGrantUploadSessionQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.CompletedFileVersionNamesQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -15,6 +16,8 @@ import org.apache.ibatis.annotations.Param;
 public interface FileUploadSessionMapper {
 
     int insert(@Param("row") FileUploadSessionDO row);
+
+    java.util.List<FileUploadSessionDO> selectCompletedVersionNames(@Param("query") CompletedFileVersionNamesQuery query);
 
     FileUploadSessionDO selectForUpdate(@Param("query") FileUploadSessionLockQuery query);
 

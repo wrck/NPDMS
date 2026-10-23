@@ -38,7 +38,10 @@ public record ExistingFileReferenceTarget(
         boolean inheritedBusiness="PLT".equals(ownerContext) && "DEFAULT_BUSINESS_DELIVERY".equals(objectType)
                 && objectId.matches("[1-9][0-9]*:[A-Za-z][A-Za-z0-9_-]*:[A-Za-z][A-Za-z0-9_-]*:[1-9][0-9]*")
                 && purposeCode.matches("[A-Za-z0-9_.:-]{1,64}");
-        if ((!inheritedBusiness && !requirementSection && !dynamicFormField && !acceptanceReportAttachment && !satisfactionResponseFile && !requirementRevision)
+        boolean cutoverChecklistEvidence = "CUT".equals(ownerContext) && "CUTOVER_CHECKLIST_ITEM".equals(objectType)
+                && "MANUAL_EVIDENCE".equals(purposeCode);
+        boolean cutoverPlan = "CUT".equals(ownerContext) && "CUTOVER_PLAN".equals(objectType) && "FULL_PLAN".equals(purposeCode);
+        if ((!inheritedBusiness && !requirementSection && !dynamicFormField && !acceptanceReportAttachment && !satisfactionResponseFile && !requirementRevision && !cutoverChecklistEvidence && !cutoverPlan)
                 || !inheritedBusiness && !objectId.matches("[1-9][0-9]*")) {
             throw new IllegalArgumentException("unsupported existing file attachment target");
         }

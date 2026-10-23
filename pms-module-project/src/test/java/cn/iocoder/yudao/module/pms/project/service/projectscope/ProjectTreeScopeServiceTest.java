@@ -89,8 +89,11 @@ class ProjectTreeScopeServiceTest {
         when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
                 .thenReturn(List.of(path(1L, 3L), path(3L, 3L)));
 
-        var scope = service.resolveCurrent(new ProjectCurrentScopeQuery(
-                0L, 9L, 3L, "PROJECT_VIEW"));
+        var scope = service.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(0L)
+                .subjectUserId(9L)
+                .anchorProjectId(3L)
+                .actionCode("PROJECT_VIEW").build());
 
         assertEquals(7L, scope.treeVersion());
         assertEquals(ProjectTreeScopeService.Visibility.FULL, scope.visibility(3L));
@@ -115,8 +118,12 @@ class ProjectTreeScopeServiceTest {
         when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
                 .thenReturn(List.of(path(1L, 3L), path(3L, 3L)));
 
-        var scope = service.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                0L, 9L, 3L, "PROJECT_VIEW", 6L));
+        var scope = service.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(0L)
+                .subjectUserId(9L)
+                .anchorProjectId(3L)
+                .actionCode("PROJECT_VIEW")
+                .expectedScopeVersion(6L).build());
 
         assertEquals(7L, scope.treeVersion());
         assertEquals(Set.of(3L), scope.fullProjectIds());

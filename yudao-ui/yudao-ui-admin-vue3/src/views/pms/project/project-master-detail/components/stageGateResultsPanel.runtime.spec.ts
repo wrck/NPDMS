@@ -98,7 +98,7 @@ it('shows the empty state without pretending that an absent gate is an approval'
   const value = result(); value.gates = []
   api.getStageGateWorkbench.mockResolvedValue(value)
   const view = render(); await flush()
-  expect(textOf(view.root)).toContain('当前阶段未配置门禁')
+  expect(textOf(view.root)).toContain('当前阶段无准入条件限制')
   expect(textOf(view.root)).not.toContain('发起审批流程')
 })
 
@@ -160,7 +160,7 @@ it('opens entry approval start for a not-yet-entered stage while hiding submissi
   expect(text).toContain('审批')
   expect(text).toContain('未发起')
   expect(findButton(view.root, '填写审批表单')).toBeTruthy()
-  expect(text).toContain('刷新门禁结果')
+  expect(text).toContain('检查阶段条件')
 })
 
 it('keeps submission and approval entries once the stage has been entered', async () => {
@@ -170,4 +170,13 @@ it('keeps submission and approval entries once the stage has been entered', asyn
   expect(text).toContain('提交与查看')
   expect(text).toContain('审批')
   expect(findButton(view.root, '填写审批表单')).toBeTruthy()
+})
+
+it('shows only view for an automatic deliverable before its materials exist', async () => {
+  api.getStageGateWorkbench.mockResolvedValue(workbenchWithDeliverableRef())
+  const instances = instancesWithStage('ACTIVE')
+  instances.deliverables[0].automaticCollection = true
+  const view = render(instances); await flush()
+  expect(findButton(view.root, '查看')).toBeTruthy()
+  expect(findButton(view.root, '提交与查看')).toBeUndefined()
 })

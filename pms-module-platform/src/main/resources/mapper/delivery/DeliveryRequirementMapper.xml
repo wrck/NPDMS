@@ -6,7 +6,7 @@
         id, owner_module, entity_type, entity_id, type_code, name, requirement_kind,
         stage_code, task_code, plan_version_id, source_definition_id, project_id, frozen_config_json,
         required, minimum_quantity, counting_unit, status, confirmed_by, confirmed_time,
-        config_id, config_version, version,
+        config_id, config_version, version, archived_reopen_snapshot_id,
         creator, create_time, updater, update_time, deleted, tenant_id
     </sql>
 
@@ -29,6 +29,7 @@
           AND entity_type = #{query.entityType}
           AND entity_id = #{query.entityId}
           AND type_code = #{query.typeCode}
+          AND archived_reopen_snapshot_id = 0
           AND deleted = b'0'
     </select>
 
@@ -41,6 +42,7 @@
           AND entity_type = #{query.entityType}
           AND entity_id = #{query.entityId}
           AND type_code = #{query.typeCode}
+          AND archived_reopen_snapshot_id = 0
           AND deleted = b'0'
         FOR UPDATE
     </select>
@@ -52,6 +54,7 @@
         WHERE tenant_id = #{query.tenantId}
           AND project_id = #{query.projectId}
           AND task_code = #{query.taskCode}
+          AND archived_reopen_snapshot_id = 0
           AND deleted = b'0'
         FOR UPDATE
     </select>
@@ -63,6 +66,7 @@
         WHERE tenant_id = #{query.tenantId}
           AND project_id = #{query.projectId}
           AND deleted = b'0'
+          AND archived_reopen_snapshot_id = 0
         <if test="query.stageCode != null">
           AND stage_code = #{query.stageCode}
         </if>

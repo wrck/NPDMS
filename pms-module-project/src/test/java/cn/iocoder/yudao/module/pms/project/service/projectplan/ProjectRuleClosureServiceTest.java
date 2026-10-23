@@ -49,6 +49,38 @@ class ProjectRuleClosureServiceTest {
         org.springframework.test.util.ReflectionTestUtils.setField(service, "childWaitEvents",
                 mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents.class));
     }
+    @Test void optionalInProgressTaskAndItsStartedRoundDoNotBlockRuleClosure() {
+        var task = new ProjectTaskInstanceDO().setId(71L).setStatus("IN_PROGRESS"); task.setRequiredTask(false);
+        task.setActualStartTime(java.time.LocalDateTime.now().minusHours(1));
+        when(graph.selectTasksForUpdate(any())).thenReturn(List.of(task));
+        var round = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO();
+        round.setNodeKind("TASK"); round.setNodeInstanceId(71L); round.setStatus("ACTIVE"); round.setStartedAt(java.time.LocalDateTime.now().minusHours(1));
+        when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round));
+        when(plans.closeProjectIfActive(any())).thenReturn(1); when(plans.recordClosureIfOpen(any())).thenReturn(1);
+        assertTrue(service.closeIfSatisfied(9L, 1L, "optional-round").closed());
+        assertEquals("IN_PROGRESS", task.getStatus()); assertEquals("ACTIVE", round.getStatus());
+    }
+
+    @Test void absentOrTrueRequiredStartedTaskStillBlocksRuleClosure() {
+        for (Boolean required : new Boolean[]{null, true}) {
+            var task = new ProjectTaskInstanceDO().setId(71L).setStatus("IN_PROGRESS"); task.setRequiredTask(required);
+            when(graph.selectTasksForUpdate(any())).thenReturn(List.of(task));
+            assertFalse(service.closeIfSatisfied(9L, 1L, "required-round").closed());
+        }
+        verify(plans, never()).closeProjectIfActive(any());
+    }
+
+    @Test void optionalTaskDoesNotHideAnUnfinishedStageExecution() {
+        var task = new ProjectTaskInstanceDO().setId(71L).setStatus("IN_PROGRESS"); task.setRequiredTask(false);
+        when(graph.selectTasksForUpdate(any())).thenReturn(List.of(task));
+        var stageRound = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO();
+        stageRound.setNodeKind("STAGE"); stageRound.setNodeInstanceId(71L); stageRound.setStatus("ACTIVE");
+        stageRound.setStartedAt(java.time.LocalDateTime.now().minusHours(1));
+        when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(stageRound));
+        assertFalse(service.closeIfSatisfied(9L, 1L, "stage-still-active").closed());
+        verify(plans, never()).closeProjectIfActive(any());
+    }
+
     @Test void explicitClosureRuleClosesOnlyThisProjectWithFrozenEvidence() {
         when(plans.closeProjectIfActive(any())).thenReturn(1); when(plans.recordClosureIfOpen(any())).thenReturn(1);
         assertTrue(service.closeIfSatisfied(9L, 1L, "test").closed());

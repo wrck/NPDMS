@@ -1,0 +1,73 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "项目交付":
+    - generic: 项目交付
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程" [expanded]:
+    - generic: 工作流程
+    - menu:
+      - menuitem "审批中心" [expanded]:
+        - generic: 审批中心
+        - menu:
+          - menuitem "待办任务":
+            - generic: 待办任务
+          - menuitem "已办任务":
+            - generic: 已办任务
+- navigation "面包屑":
+  - link "工作流程":
+    - text: 工作流程
+  - text: /
+  - link "审批中心":
+    - text: 审批中心
+  - text: /
+  - link "待办任务":
+    - text: 待办任务
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button "周文成":
+  - generic: 周文成
+- button "首页":
+  - text: 首页
+- button "待办任务":
+  - text: 待办任务
+- button:
+- textbox "请输入任务名称"
+- button "搜索" [active]:
+  - text: 搜索
+- combobox
+- generic: 请选择流程分类
+- button "高级筛选":
+  - text: 高级筛选
+- table:
+  - rowgroup:
+    - row "流程 摘要 发起人 发起时间 当前任务 任务时间 流程编号 任务编号 操作":
+      - columnheader "流程":
+        - generic: 流程
+      - columnheader "摘要":
+        - generic: 摘要
+      - columnheader "发起人":
+        - generic: 发起人
+      - columnheader "发起时间":
+        - generic: 发起时间
+      - columnheader "当前任务":
+        - generic: 当前任务
+      - columnheader "任务时间":
+        - generic: 任务时间
+      - columnheader "流程编号":
+        - generic: 流程编号
+      - columnheader "任务编号":
+        - generic: 任务编号
+      - columnheader "操作":
+        - generic: 操作
+- table:
+  - rowgroup
+- generic: 暂无数据
+- generic: Copyright ©2026 项目实施交付管理平台

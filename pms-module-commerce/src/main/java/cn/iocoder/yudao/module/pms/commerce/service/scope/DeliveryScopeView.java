@@ -8,4 +8,5 @@ import java.util.List;
 
 public record DeliveryScopeView(DeliveryScopeDO scope, List<DeliveryScopeDetailDO> details, DeliveryScopeOrderFieldsRow orderFields) {
     public DeliveryScopeView(DeliveryScopeDO scope, List<DeliveryScopeDetailDO> details) { this(scope,details,null); }
+    public String contractNo() { return orderFields == null ? null : orderFields.contractNo(); }
 }

@@ -9,7 +9,7 @@ export interface TestNode {
   parent?: TestNode
 }
 
-export const renderer = createRenderer<TestNode, TestNode>({
+const createTestRenderer = (root: TestNode | null = null) => createRenderer<TestNode, TestNode>({
   patchProp: (node, key, _previous, value) => {
     node.props ||= {}
     node.props[key] = value
@@ -39,7 +39,7 @@ export const renderer = createRenderer<TestNode, TestNode>({
     const index = node.parent.children.indexOf(node)
     return index >= 0 ? (node.parent.children[index + 1] ?? null) : null
   },
-  querySelector: () => null,
+  querySelector: (selector) => selector === 'body' ? root : null,
   setScopeId: () => undefined,
   cloneNode: (node) => ({ ...node, children: [...node.children] }),
   insertStaticContent: (content, parent) => {
@@ -48,6 +48,8 @@ export const renderer = createRenderer<TestNode, TestNode>({
     return [node, node]
   }
 })
+
+export const renderer = createTestRenderer()
 
 export const passthrough = defineComponent({
   inheritAttrs: false,
@@ -87,7 +89,7 @@ export const mount = (
   components: Record<string, Component> = {}
 ) => {
   const root: TestNode = { type: 'root', children: [] }
-  const app = renderer.createApp(component, props)
+  const app = createTestRenderer(root).createApp(component, props)
   app.provide(Symbol.for('v-scx'), { modules: new Set<string>() })
   for (const name of [
     'ElDrawer',

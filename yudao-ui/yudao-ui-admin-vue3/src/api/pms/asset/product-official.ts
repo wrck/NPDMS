@@ -6,6 +6,24 @@ export interface ProductOfficialVO {
   productCode?: string
   productName?: string
   productModel?: string
+  productDesc?: string
+  technicalSpec?: string
+  productCategory?: string
+  productType?: string
+  listPrice?: number
+  crmStatus?: number
+  businessUnit?: string
+  productLine?: string
+  orgId?: number
+  sourceCreatedAt?: string
+  sourceUpdatedAt?: string
+  crmStateCode?: number
+  crmStatusCode?: number
+  productStage?: number
+  endOfSaleDate?: string
+  endOfSupportDate?: string
+  endOfLifeDate?: string
+  lastRenewalDate?: string
   /** 发布状态：ACTIVE 已发布 / FAST001_TEST_PUBLISHED 测试发布（下拉禁选） */
   status?: string
 }

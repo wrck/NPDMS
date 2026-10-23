@@ -8,11 +8,18 @@
         type="warning"
         :closable="false"
       />
+      <ProjectMembersBusinessView
+        v-if="completedAssignment && project"
+        ref="membersRef"
+        :project="{ ...project, id: project.id == null ? undefined : legacyOwnerId(project.id) }"
+        :readonly="maintenanceReadonly"
+        @changed="ownerChanged"
+      />
       <BusinessViewHost
-        v-if="registration && project"
+        v-else-if="registration && project"
         ref="hostRef"
         :registration="registration"
-        :resolved-context="{ project, taskId: context.taskId, taskExecution: context.execution, businessObjectId: selectedObject }"
+        :resolved-context="{ project, taskId: context.taskId, taskCode, taskExecution: context.execution, businessObjectId: selectedObject }"
         :allowed-actions="ownerActions"
         :readonly="viewReadonly"
         @changed="ownerChanged"
@@ -42,10 +49,13 @@
   </section>
 </template>
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
 import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'
+import ProjectMembersBusinessView from '@/components/BusinessView/ProjectMembersBusinessView.vue'
 import * as BusinessApi from '@/api/pms/project/task-business'
-import type { TaskBusinessContext } from '@/api/pms/project/task-business'
+import type { TaskBusinessContext, TaskBusinessObject } from '@/api/pms/project/task-business'
+import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
+import { acceptanceUploadIntentKey, type AcceptanceUploadIntent } from '@/views/pms/acceptance/acceptance-report/acceptanceUploadIntent'
 import {
   type BusinessViewId,
   type BusinessViewRegistrationVO
@@ -58,8 +68,10 @@ import {
 } from '../taskViewPrefetch'
 const props = defineProps<{
   taskId: BusinessViewId
+  taskCode?: string
   taskVersion: number
   readonly?: boolean
+  completed?: boolean
   initialProject?: ProjectMasterVO
 }>()
 const emit = defineEmits<{
@@ -71,10 +83,14 @@ const context = ref<TaskBusinessContext>()
 const project = ref<Omit<ProjectMasterVO, 'id'> & { id?: BusinessViewId }>()
 const registration = ref<BusinessViewRegistrationVO>()
 const hostRef = ref<InstanceType<typeof BusinessViewHost>>()
+const membersRef = ref<InstanceType<typeof ProjectMembersBusinessView>>()
 // 业务视图宿主的首判定完成状态（expose 的 viewSettled）：宿主未挂载或执行检查中视为未就绪
 const hostSettled = computed(() => hostRef.value?.viewSettled === true)
 const loading = ref(false), dirty = ref(false)
 const selectedObject = ref<string>()
+const reportCandidates = ref<TaskBusinessObject[]>([])
+const uploadIntent = ref<AcceptanceUploadIntent>()
+provide(acceptanceUploadIntentKey, uploadIntent)
 const error = ref('')
 let sequence = 0
 let generation = 0
@@ -88,16 +104,25 @@ const sameTask = (a: BusinessViewId | undefined, b: BusinessViewId) => String(a)
 const currentTask = (epoch: number, taskId: BusinessViewId) =>
   !disposed && epoch === generation && sameTask(taskId, props.taskId)
 const viewReadonly = computed(() =>
-  Boolean(props.readonly || loading.value || error.value || context.value?.recoverableError ||
+  Boolean(props.completed || props.readonly || loading.value || error.value || context.value?.recoverableError ||
     context.value?.executionAllowed === false ||
     !sameTask(context.value?.taskId, props.taskId))
 )
+// 已完成指派任务展示项目成员的持续维护入口；不恢复任务执行上下文。
+const completedAssignment = computed(() => props.completed &&
+  sameTask(context.value?.taskId, props.taskId) &&
+  context.value?.ownerContext === 'PROJ' && context.value?.objectType === 'PROJECT_ASSIGNMENT' &&
+  registration.value?.componentKey === 'PROJ_PROJECT_ASSIGNMENT' &&
+  context.value?.ownerActions.includes('QUERY'))
+const maintenanceReadonly = computed(() => Boolean(props.readonly || loading.value || error.value ||
+  context.value?.recoverableError || !sameTask(context.value?.taskId, props.taskId)))
 // Owner pages enforce each row's state. Automatic links can lag behind a saved draft.
 // 只读（未进入阶段/已完成/执行不允许）只保留 QUERY：视图照常渲染，写操作由 Owner 页面隐藏
 const ownerActions = computed(() => {
   const actions = context.value?.ownerActions || []
   if (viewReadonly.value) return actions.includes('QUERY') ? ['QUERY'] : []
   const record = context.value?.links.find((row) => row.objectId === selectedObject.value)
+    ?? reportCandidates.value.find(row => row.objectId === selectedObject.value)
   if (!actions.includes('QUERY')) return []
   return [...new Set([
     ...actions.filter((action) => !['LINK', 'UNLINK'].includes(action)),
@@ -107,7 +132,7 @@ const ownerActions = computed(() => {
 const artifacts = computed(() => context.value?.links.flatMap((row) => row.artifacts) || [])
 const snapshotTarget = () => ({
   context: context.value, project: project.value, registration: registration.value,
-  objectId: selectedObject.value
+  objectId: selectedObject.value, reportCandidates: reportCandidates.value
 })
 let previousTarget: ReturnType<typeof snapshotTarget> | undefined
 const restoreTarget = () => {
@@ -116,6 +141,7 @@ const restoreTarget = () => {
   project.value = previousTarget.project
   registration.value = previousTarget.registration
   selectedObject.value = previousTarget.objectId
+  reportCandidates.value = previousTarget.reportCandidates
   previousTarget = undefined
   error.value = '业务页面切换未完成，请先处理当前未保存的内容后重试。'
   clearFactVersion()
@@ -131,6 +157,17 @@ const load = async (useInitialProject = false) => {
       ?? BusinessApi.getTaskBusinessContext(taskId))
     if (!isCurrent()) return
     if (!sameTask(next.taskId, taskId)) throw new Error('Task context mismatch')
+    let candidates: TaskBusinessObject[] = []
+    const reportType = props.taskCode === 'ACCEPT_INITIAL' ? 'PRELIMINARY' : props.taskCode === 'ACCEPT_FINAL' ? 'FINAL' : undefined
+    if (next.ownerContext === 'ACC' && next.objectType === 'ACCEPTANCE' && next.businessView?.componentKey === 'ACC_ACCEPTANCE_REPORT'
+        && !next.links.length && next.ownerActions.includes('QUERY') && reportType) {
+      const [eligible, reports] = await Promise.all([
+        BusinessApi.getTaskBusinessCandidates(taskId), ReportApi.getActivities(legacyOwnerId(next.projectId))
+      ])
+      if (!isCurrent()) return
+      const reportIds = new Set(reports.filter(row => sameTask(row.projectId, next.projectId) && row.acceptanceType === reportType).map(row => String(row.id)))
+      candidates = eligible.filter(row => reportIds.has(row.objectId))
+    }
     // 需求分析：把工作区读取也提前到 Owner 项目解析与 BusinessViewHost 装载之前并行；
     // 仅在 enclosing 项目与业务上下文一致（EntityPanel 直接复用 initialProject）时预取，
     // 键与 EntityPanel.workspace 的实参严格一致。未命中时 EntityPanel 照常直查。
@@ -154,16 +191,18 @@ const load = async (useInitialProject = false) => {
       throw new Error('Cannot unmount a dirty Owner page')
     }
     if (!dirty.value || !previousTarget) previousTarget = snapshotTarget()
+    const available = [...next.links, ...candidates]
     const switchingDirtyTarget = dirty.value && (
       !sameTask(context.value?.taskId, next.taskId) ||
       registration.value?.id !== next.businessView?.id ||
-      !next.links.some((row) => row.objectId === selectedObject.value)
+      !available.some((row) => row.objectId === selectedObject.value)
     )
     context.value = next
     project.value = detail
     registration.value = next.businessView
-    if (!next.links.some((row) => row.objectId === selectedObject.value))
-      selectedObject.value = next.links[0]?.objectId
+    reportCandidates.value = candidates
+    if (!available.some((row) => row.objectId === selectedObject.value))
+      selectedObject.value = available[0]?.objectId
     pendingFactVersion = !next.recoverableError && switchingDirtyTarget ? next.factVersion : undefined
     emit('fact-version', next.recoverableError || switchingDirtyTarget ? undefined : next.factVersion)
     // Outbox may complete the task without changing its already-confirmed Owner facts.
@@ -180,7 +219,7 @@ const load = async (useInitialProject = false) => {
 }
 const requestLeave = async () => {
   try {
-    const host = hostRef.value
+    const host = membersRef.value || hostRef.value
     if (!host) return !dirty.value
     return (await host.requestLeave()) !== false
   } catch {
@@ -188,8 +227,40 @@ const requestLeave = async () => {
   }
 }
 const refresh = async () => {
+  if (loading.value) return
   const epoch = generation, taskId = props.taskId
-  if (await requestLeave() && currentTask(epoch, taskId)) await load()
+  if (!await requestLeave() || !currentTask(epoch, taskId)) return
+  const current = context.value
+  if (!props.completed && !props.readonly && current?.allowedActions.includes('REFRESH_RESULTS')) {
+    loading.value = true
+    error.value = ''
+    clearFactVersion()
+    try {
+      const result = await BusinessApi.refreshTaskBusinessResults({
+        taskId, expectedTaskVersion: props.taskVersion, expectedContractVersion: current.contractVersion
+      })
+      if (!currentTask(epoch, taskId)) return
+      await load()
+      if (!currentTask(epoch, taskId)) return
+      await (membersRef.value || hostRef.value)?.refresh?.()
+      if (!currentTask(epoch, taskId)) return
+      emit('changed')
+      if (result.unknown) {
+        error.value = '业务完成依据暂不可用，任务未完成，请稍后刷新重试。'
+        clearFactVersion()
+      }
+    } catch {
+      if (currentTask(epoch, taskId)) {
+        error.value = '业务结果重新判定失败，请刷新任务后重试。'
+        clearFactVersion()
+      }
+    } finally {
+      if (currentTask(epoch, taskId)) loading.value = false
+    }
+    return
+  }
+  await load()
+  if (currentTask(epoch, taskId)) await (membersRef.value || hostRef.value)?.refresh?.()
 }
 const ownerChanged = () => {
   // A retained old Host may finish an Owner request after the parent selected another task.
@@ -199,6 +270,7 @@ watch(
   () => props.taskId,
   async () => {
     const epoch = ++generation, taskId = props.taskId
+    uploadIntent.value = undefined
     ++sequence
     loading.value = false
       clearFactVersion()
@@ -209,10 +281,21 @@ watch(
   },
   { immediate: true, flush: 'sync' }
 )
-watch(() => [props.readonly, props.taskVersion], () => {
+watch(() => [props.readonly, props.completed, props.taskVersion, props.taskCode], () => {
+  if (props.readonly) uploadIntent.value = undefined
   clearFactVersion()
   if (sameTask(context.value?.taskId, props.taskId)) void load()
 }, { flush: 'sync' })
+watch(() => props.initialProject, (next) => {
+  if (next?.id == null || !project.value ||
+    !sameTask(context.value?.taskId, props.taskId) ||
+    String(next.id) !== String(context.value?.projectId) ||
+    String(next.id) !== String(project.value.id)) return
+  // 同项目上下文更新不重载 Owner，保留其编辑缓冲；较旧的父级响应不能覆盖主动刷新结果。
+  if (project.value.version != null &&
+    (next.version == null || next.version < project.value.version)) return
+  project.value = next
+}, { deep: true, flush: 'sync' })
 watch(dirty, (value) => {
   if (value) previousTarget = snapshotTarget()
   else {

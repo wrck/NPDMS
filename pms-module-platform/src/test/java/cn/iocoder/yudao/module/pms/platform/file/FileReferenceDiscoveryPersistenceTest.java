@@ -83,7 +83,7 @@ class FileReferenceDiscoveryPersistenceTest {
             }
         };
         service = new FileQueryService(new FileBusinessObjectPolicyRegistry(List.of(provider)), null, null,
-                session.getMapper(FileReferenceMapper.class), null);
+                session.getMapper(FileReferenceMapper.class), null, null);
     }
 
     @AfterEach

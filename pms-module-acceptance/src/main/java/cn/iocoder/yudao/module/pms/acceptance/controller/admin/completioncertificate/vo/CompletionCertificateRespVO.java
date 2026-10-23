@@ -32,6 +32,10 @@ public class CompletionCertificateRespVO {
     @Schema(description = "完工日期")
     private LocalDate completionDate;
 
+    @Schema(description = "已签收到货记录的最新到货日期；草稿自动带出，外发后读取冻结值")
+    private LocalDate arrivalDate;
+    private Boolean arrivalDateManualAllowed;
+
     @Schema(description = "工程服务类型：工程实施/工程督导", example = "工程实施")
     private String serviceType;
 
@@ -110,4 +114,12 @@ public class CompletionCertificateRespVO {
     @Schema(description = "创建时间", requiredMode = Schema.RequiredMode.REQUIRED)
     private LocalDateTime createTime;
 
+
+    private Long satisfactionTemplateId;
+    private Long completionPrintTemplateId;
+    private Long completionPrintRevisionId;
+    private String completionPrintSnapshot;
+    private Long satisfactionPrintTemplateId;
+    private Long satisfactionPrintRevisionId;
+    private String satisfactionPrintSnapshot;
 }

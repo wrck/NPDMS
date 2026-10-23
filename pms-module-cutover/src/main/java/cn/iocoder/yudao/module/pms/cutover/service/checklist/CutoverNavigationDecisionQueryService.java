@@ -1,9 +1,9 @@
 package cn.iocoder.yudao.module.pms.cutover.service.checklist;
 
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.NavigationDecision;
 
 import java.util.Objects;
@@ -38,6 +38,6 @@ public class CutoverNavigationDecisionQueryService {
                 || !READABLE_STATUSES.contains(revision.getStatusCode())) {
             throw new IllegalStateException("割接任务冻结配置身份不匹配");
         }
-        return policy.decide(revision.getId(), revision.getNavigationRuleSnapshot());
+        return policy.decide(new CutoverNavigationDecisionPolicy.Context(revision.getId(), revision.getNavigationTargetCode()));
     }
 }

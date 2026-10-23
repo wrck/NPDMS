@@ -1,54 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.spare.CutoverSpareApplicationReferenceMapper">
-    <select id="selectByIdForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareApplicationReferenceDO">
-        SELECT * FROM cut_spare_application_reference
+    <resultMap id="structuredCutoverSpareApplicationReferenceDO" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareApplicationReferenceDO" autoMapping="false">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="task_id" property="cutoverTaskId"/>
+        <result column="project_id" property="projectId"/>
+        <result column="platform_request_id" property="platformRequestId"/>
+        <result column="integration_status_code" property="integrationStatus"/>
+        <result column="external_system_code" property="externalSystemCode"/>
+        <result column="external_request_id" property="externalRequestId"/>
+        <result column="external_application_no" property="externalApplicationNo"/>
+        <result column="launch_url" property="launchUrl"/>
+        <result column="current_status_revision_id" property="currentStatusRevisionId"/>
+        <result column="retry_count" property="retryCount"/>
+        <result column="last_failure_code" property="lastFailureCode"/>
+        <result column="last_failure_detail" property="lastFailureDetail"/>
+        <result column="last_attempt_time" property="lastAttemptAt"/>
+        <result column="version" property="version"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="need_required_flag" property="needRequiredFlag"/>
+        <result column="task_no" property="taskNo"/>
+        <result column="source_task_version" property="sourceTaskVersion"/>
+        <result column="correlation_id" property="correlationId"/>
+    </resultMap>
+
+    <select id="selectByIdForUpdate" resultMap="structuredCutoverSpareApplicationReferenceDO">
+        SELECT id, tenant_id, task_id, project_id, platform_request_id, integration_status_code, external_system_code, external_request_id, external_application_no, launch_url, current_status_revision_id, retry_count, last_failure_code, last_failure_detail, last_attempt_time, version, creator, create_time, updater, update_time, deleted, need_required_flag, task_no, source_task_version, correlation_id FROM cut_spare_application_reference
         WHERE tenant_id = #{query.tenantId} AND id = #{query.applicationReferenceId} AND deleted = b'0'
         FOR UPDATE
     </select>
-    <select id="selectByPlatformRequestForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareApplicationReferenceDO">
-        SELECT * FROM cut_spare_application_reference
+    <select id="selectByPlatformRequestForUpdate" resultMap="structuredCutoverSpareApplicationReferenceDO">
+        SELECT id, tenant_id, task_id, project_id, platform_request_id, integration_status_code, external_system_code, external_request_id, external_application_no, launch_url, current_status_revision_id, retry_count, last_failure_code, last_failure_detail, last_attempt_time, version, creator, create_time, updater, update_time, deleted, need_required_flag, task_no, source_task_version, correlation_id FROM cut_spare_application_reference
         WHERE tenant_id = #{query.tenantId} AND platform_request_id = #{query.platformRequestId} AND deleted = b'0'
         FOR UPDATE
     </select>
-    <select id="selectByExternalApplicationForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareApplicationReferenceDO">
-        SELECT * FROM cut_spare_application_reference
+    <select id="selectByExternalApplicationForUpdate" resultMap="structuredCutoverSpareApplicationReferenceDO">
+        SELECT id, tenant_id, task_id, project_id, platform_request_id, integration_status_code, external_system_code, external_request_id, external_application_no, launch_url, current_status_revision_id, retry_count, last_failure_code, last_failure_detail, last_attempt_time, version, creator, create_time, updater, update_time, deleted, need_required_flag, task_no, source_task_version, correlation_id FROM cut_spare_application_reference
         WHERE tenant_id = #{query.tenantId}
           AND external_system_code = #{query.externalSystemCode}
           AND external_application_no = #{query.externalApplicationNo}
           AND deleted = b'0'
         FOR UPDATE
     </select>
-    <select id="selectByTask" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareApplicationReferenceDO">
-        SELECT * FROM cut_spare_application_reference
-        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.cutoverTaskId} AND deleted = b'0'
+    <select id="selectByTask" resultMap="structuredCutoverSpareApplicationReferenceDO">
+        SELECT id, tenant_id, task_id, project_id, platform_request_id, integration_status_code, external_system_code, external_request_id, external_application_no, launch_url, current_status_revision_id, retry_count, last_failure_code, last_failure_detail, last_attempt_time, version, creator, create_time, updater, update_time, deleted, need_required_flag, task_no, source_task_version, correlation_id FROM cut_spare_application_reference
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.cutoverTaskId} AND deleted = b'0'
         ORDER BY id ASC
     </select>
     <update id="storeInitiateResultIfMatch">
         UPDATE cut_spare_application_reference
-        SET integration_status = #{query.integrationStatus}, external_request_id = #{query.externalRequestId},
+        SET integration_status_code = #{query.integrationStatus}, external_request_id = #{query.externalRequestId},
             external_application_no = #{query.externalApplicationNo}, launch_url = #{query.launchUrl},
-            last_failure_code = NULL, last_failure_detail = NULL, last_attempt_at = #{query.lastAttemptAt},
+            last_failure_code = NULL, last_failure_detail = NULL, last_attempt_time = #{query.lastAttemptAt},
             version = #{query.expectedVersion} + 1, updater = #{query.updater}, update_time = #{query.updateTime}
         WHERE tenant_id = #{query.tenantId} AND id = #{query.applicationReferenceId}
-          AND integration_status = #{query.expectedStatus} AND version = #{query.expectedVersion} AND deleted = b'0'
+          AND integration_status_code = #{query.expectedStatus} AND version = #{query.expectedVersion} AND deleted = b'0'
     </update>
     <update id="storeFailureIfMatch">
         UPDATE cut_spare_application_reference
-        SET integration_status = #{query.integrationStatus}, retry_count = #{query.retryCount},
+        SET integration_status_code = #{query.integrationStatus}, retry_count = #{query.retryCount},
             last_failure_code = #{query.failureCode}, last_failure_detail = #{query.failureDetail},
-            last_attempt_at = #{query.lastAttemptAt}, version = #{query.expectedVersion} + 1,
+            last_attempt_time = #{query.lastAttemptAt}, version = #{query.expectedVersion} + 1,
             updater = #{query.updater}, update_time = #{query.updateTime}
         WHERE tenant_id = #{query.tenantId} AND id = #{query.applicationReferenceId}
           AND version = #{query.expectedVersion} AND deleted = b'0'
     </update>
     <update id="bindExternalReferenceIfMatch">
         UPDATE cut_spare_application_reference
-        SET external_application_no = #{query.externalApplicationNo}, integration_status = 'EXTERNAL_REFERENCED',
+        SET external_application_no = #{query.externalApplicationNo}, integration_status_code = 'EXTERNAL_REFERENCED',
             version = #{query.expectedVersion} + 1, updater = #{query.updater}, update_time = #{query.updateTime}
         WHERE tenant_id = #{query.tenantId} AND id = #{query.applicationReferenceId}
           AND external_request_id = #{query.externalRequestId} AND external_application_no IS NULL
-          AND integration_status = 'REQUEST_PENDING' AND version = #{query.expectedVersion} AND deleted = b'0'
+          AND integration_status_code = 'REQUEST_PENDING' AND version = #{query.expectedVersion} AND deleted = b'0'
     </update>
     <update id="moveCurrentStatusIfMatch">
         UPDATE cut_spare_application_reference

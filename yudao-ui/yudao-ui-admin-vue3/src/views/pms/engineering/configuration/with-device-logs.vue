@@ -1,0 +1,377 @@
+<template>
+  <ContentWrap>
+    <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
+      <el-form-item v-if="!props.projectId" label="项目编号" prop="projectId">
+        <PmsEntitySelect
+          v-model="query.projectId"
+          :api="ProjectApi.getProjectPage"
+          label-field="projectName"
+          value-field="id"
+          query-field="projectName"
+          placeholder="请选择项目"
+          class="!w-180px"
+        />
+      </el-form-item>
+      <el-form-item label="状态" prop="status">
+        <el-select v-model="query.status" clearable class="!w-160px">
+          <el-option
+            v-for="dict in getIntDictOptions(DICT_TYPE.PMS_ENG_STATUS)"
+            :key="dict.value"
+            :label="dict.label"
+            :value="dict.value"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item>
+        <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
+        <el-button
+          v-if="!readonly"
+          type="primary"
+          @click="openForm()"
+          v-hasPermi="['pms:imp-configuration:create']"
+          ><Icon icon="ep:plus" />新增配置调试</el-button
+        >
+        <el-button
+          :disabled="!query.projectId"
+          @click="projectLogsVisible = true"
+          v-hasPermi="['pms:device-log-archive:query']"
+          >上传日志 / 文件历史</el-button
+        >
+      </el-form-item>
+    </el-form>
+    <el-alert
+      title="支持手工日志上传与设备命令采集；采集日志自动回传到配置记录，调试完成仍由原业务动作确认。"
+      type="info"
+      :closable="false"
+    />
+  </ContentWrap>
+  <ContentWrap>
+    <el-table v-loading="loading" :data="rows">
+      <el-table-column prop="equipmentId" label="设备" min-width="160"
+        ><template #default="{ row }"><DeviceTag :device-id="row.equipmentId" /></template
+      ></el-table-column>
+      <el-table-column prop="debugTime" label="调试时间" width="160" :formatter="dateFormatter" />
+      <el-table-column prop="debugResult" label="调试结果" min-width="180" show-overflow-tooltip
+        ><template #default="{ row }"
+          ><div
+            v-if="row.debugResult"
+            v-dompurify-html="row.debugResult"
+            class="max-h-60px overflow-hidden"
+          ></div><span v-else>—</span></template
+      ></el-table-column>
+      <el-table-column prop="status" label="状态" width="100">
+        <template #default="{ row }">
+          <dict-tag :type="DICT_TYPE.PMS_ENG_STATUS" :value="row.status" />
+        </template>
+      </el-table-column>
+      <el-table-column label="配置日志" width="120">
+        <template #default="{ row }">
+          <el-button
+            v-if="row.importedLogFileId && checkPermi(['pms:file:download'])" link type="primary"
+            v-hasPermi="['pms:device-log-archive:download']" @click="downloadImported(row)">下载日志</el-button>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="450" fixed="right">
+        <template #default="{ row }">
+          <el-button
+            link
+            type="primary"
+            @click="collectionRef?.open(row.id)"
+            v-hasPermi="['pms:imp-configuration:query']"
+            >手工命令 / 日志</el-button
+          >
+          <el-button
+            link
+            type="primary"
+            @click="openForm(row)"
+            v-hasPermi="['pms:imp-configuration:query']"
+            >{{ editableRecord(row) && !readonly ? '编辑' : '查看' }}</el-button
+          >
+          <!-- 动态动作由 Vue 同时控制状态与权限，避免指令移除节点后破坏后续插入锚点。 -->
+          <el-button
+            link
+            type="success"
+            v-if="!readonly && row.status === 0 && checkPermi(['pms:imp-configuration:update'])"
+            @click="handleAction(row, 'start')"
+            >开始调试</el-button
+          >
+          <el-button
+            link
+            type="success"
+            v-if="!readonly && row.status === 1 && checkPermi(['pms:imp-configuration:update'])"
+            @click="handleAction(row, 'complete')"
+            >完成调试</el-button
+          >
+          <el-button
+            link
+            type="warning"
+            v-if="!readonly && row.status === 0 && checkPermi(['pms:imp-configuration:update'])"
+            @click="handleAction(row, 'markAbnormal')"
+            >标记异常</el-button
+          >
+          <el-button
+            v-if="!readonly && !row.importedLogFileId && row.status !== 2 && checkPermi(['pms:imp-configuration:delete'])"
+            link
+            type="danger"
+            @click="remove(row)"
+            >删除</el-button
+          >
+        </template>
+      </el-table-column>
+    </el-table>
+    <Pagination
+      :total="total"
+      v-model:page="query.pageNo"
+      v-model:limit="query.pageSize"
+      @pagination="load"
+    />
+  </ContentWrap>
+
+  <ManualCollectionDialog ref="collectionRef" entry="configuration" :readonly="props.readonly" />
+  <ProjectDeviceLogArchiveDialog
+    v-model="projectLogsVisible"
+    :project-id="query.projectId"
+    :origin-task-id="props.originTaskId"
+    :readonly="props.readonly"
+  />
+
+  <Dialog
+    v-model="formVisible"
+    :title="form.id ? (readOnly ? '查看配置' : '编辑配置') : '新增配置'"
+    width="min(780px, 95vw)"
+  >
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readOnly">
+      <el-row :gutter="16">
+        <el-col v-if="!props.projectId" :span="12">
+          <el-form-item label="项目编号" prop="projectId">
+            <PmsEntitySelect
+              v-model="form.projectId"
+              @change="form.equipmentId = undefined"
+              :api="ProjectApi.getProjectPage"
+              label-field="projectName"
+              value-field="id"
+              query-field="projectName"
+              placeholder="请选择项目"
+              :disabled="!!form.id || !!props.projectId"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="关联设备" prop="equipmentId">
+            <ProjectDeviceSelect v-model="form.equipmentId" :project-id="form.projectId" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="调试人员" prop="debuggerUserId">
+            <PmsEntitySelect
+              v-if="!readOnly"
+              v-model="form.debuggerUserId" :api="queryDebuggerUsers"
+              label-field="nickname" value-field="id" query-field="nickname" placeholder="请选择调试人员" />
+            <UserTag v-else-if="form.debuggerUserId" :user-id="form.debuggerUserId" />
+            <span v-else>—</span>
+            <el-alert v-if="!readOnly && debuggerUsersError" :title="debuggerUsersError" type="warning" :closable="false" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item label="调试时间" prop="debugTime">
+            <el-date-picker
+              v-model="form.debugTime"
+              type="datetime"
+              value-format="x"
+              class="!w-full"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="配置日志" prop="configLogUrl"
+            ><UploadFile
+              v-model="form.configLogUrl!"
+              :disabled="readOnly"
+              :file-type="['log', 'txt', 'cfg', 'conf', 'doc', 'xls', 'ppt', 'pdf']"
+          /></el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="调试结果" prop="debugResult">
+            <Editor v-model="form.debugResult" height="200px" :readonly="readOnly" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="24">
+          <el-form-item label="备注" prop="remark">
+            <el-input v-model="form.remark" type="textarea" />
+          </el-form-item>
+        </el-col>
+      </el-row>
+    </el-form>
+    <BusinessCollectionLogs
+      v-if="formVisible && form.id"
+      entry="configuration"
+      :object-id="form.id"
+    />
+    <template #footer>
+      <el-button @click="formVisible = false">取消</el-button>
+      <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
+    </template>
+  </Dialog>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted, reactive, ref } from 'vue'
+import ManualCollectionDialog from '@/components/DeviceCollection/CollectionWithDeviceLogsDialog.vue'
+import ProjectDeviceLogArchiveDialog from '@/components/DeviceCollection/ProjectDeviceLogArchiveDialog.vue'
+import BusinessCollectionLogs from '@/components/DeviceCollection/BusinessCollectionLogs.vue'
+const collectionRef = ref<InstanceType<typeof ManualCollectionDialog>>()
+const projectLogsVisible = ref(false)
+import { useMessage } from '@/hooks/web/useMessage'
+import { download as downloadArchivedLog } from '@/api/pms/asset/device-log-archive'
+import request from '@/config/axios'
+import download from '@/utils/download'
+import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
+import * as ConfigurationApi from '@/api/pms/engineering/configuration'
+import type { ConfigurationVO } from '@/api/pms/engineering/configuration'
+import * as ProjectApi from '@/api/pms/project/projects'
+import * as UserApi from '@/api/system/user'
+import UserTag from '@/components/UserTag/index.vue'
+import { useUserStore } from '@/store/modules/user'
+import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
+import DeviceTag from '@/components/DeviceTag/index.vue'
+import { checkPermi } from '@/utils/permission'
+import { dateFormatter } from '@/utils/formatTime'
+
+defineOptions({ name: 'PmsEngConfigurationWithDeviceLogs' })
+const props = defineProps<{
+  originTaskId?: string | number
+  projectId?: number
+  /** 内嵌于未进入阶段的任务工作区时强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean
+}>()
+const message = useMessage()
+const loading = ref(false)
+const saving = ref(false)
+const rows = ref<ConfigurationVO[]>([])
+const debuggerUsersError = ref('')
+const userStore = useUserStore()
+const queryDebuggerUsers = async (params: PageParam & { nickname?: string }) => {
+  try {
+    const users = await UserApi.getSimpleUserList()
+    const keyword = params.nickname?.trim().toLocaleLowerCase() || ''
+    const matches = users.filter((user) => user.nickname?.toLocaleLowerCase().includes(keyword))
+    const pageSize = params.pageSize ?? 10
+    const start = ((params.pageNo ?? 1) - 1) * pageSize
+    debuggerUsersError.value = ''
+    return { list: matches.slice(start, start + pageSize), total: matches.length }
+  } catch {
+    debuggerUsersError.value = '其他人员暂时无法查询，可选择本人或保留已选人员；查询其他人员请重试或确认权限。'
+    const self = userStore.getUser
+    const list = self.id ? [{ id: self.id, nickname: self.nickname || '本人' }] : []
+    const selected = form.value.debuggerUserId
+    if (selected && String(selected) !== String(self.id)) {
+      list.push({ id: selected, nickname: `已选调试人员（${selected}）` })
+    }
+    return { list, total: list.length }
+  }
+}
+const downloadImported = async (row: ConfigurationVO) => {
+  if (!row.importedLogFileId) return
+  const url = await downloadArchivedLog(row.importedLogFileId)
+  const content = await request.download<Blob>({ url })
+  download.file(content, `配置日志-${row.code || row.id}.txt`)
+}
+const total = ref(0)
+const query = reactive({
+  pageNo: 1,
+  pageSize: 10,
+  projectId: props.projectId ?? '',
+  status: undefined
+})
+const formVisible = ref(false)
+const formRef = ref()
+type ConfigurationForm = Omit<ConfigurationVO, 'debugTime'> & { debugTime?: string | number | null }
+const form = ref<ConfigurationForm>({ projectId: 0, status: 0 })
+const editableRecord = (row: Pick<ConfigurationVO, 'status' | 'importedLogFileId'>) =>
+  !row.importedLogFileId && [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:imp-configuration:update'])
+const readOnly = computed(
+  () =>
+    !!props.readonly ||
+    (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-configuration:create']))
+)
+const rules = {
+  projectId: [
+    { required: true, message: '请选择项目' },
+    {
+      validator: (_rule: unknown, value: number | string, callback: (error?: Error) => void) =>
+        callback(Number(value) > 0 ? undefined : new Error('请选择项目'))
+    }
+  ],
+  equipmentId: [{ required: true, message: '请选择关联设备' }]
+}
+
+const load = async () => {
+  loading.value = true
+  try {
+    const data = await ConfigurationApi.getConfigurationPage(query)
+    rows.value = data.list
+    total.value = data.total
+  } finally {
+    loading.value = false
+  }
+}
+const openForm = (row?: ConfigurationVO) => {
+  debuggerUsersError.value = ''
+  form.value = {
+    id: undefined,
+    projectId: props.projectId ?? 0,
+    equipmentId: undefined,
+    debugResult: '',
+    debuggerUserId: row ? row.debuggerUserId : userStore.getUser.id,
+    debugTime: undefined,
+    remark: '',
+    version: undefined,
+    status: 0,
+    ...row,
+    // Keep UploadFile on the existing string API contract for NULL legacy logs.
+    configLogUrl: row?.configLogUrl ?? ''
+  }
+  formVisible.value = true
+}
+const save = async () => {
+  if (readOnly.value) return
+  await formRef.value.validate()
+  saving.value = true
+  try {
+    const data: ConfigurationVO = {
+      ...form.value,
+      debugTime:
+        form.value.debugTime == null || form.value.debugTime === ''
+          ? undefined
+          : Number(form.value.debugTime)
+    }
+    data.id
+      ? await ConfigurationApi.updateConfiguration(data)
+      : await ConfigurationApi.createConfiguration(data)
+    message.success('保存成功')
+    formVisible.value = false
+    await load()
+  } finally {
+    saving.value = false
+  }
+}
+const remove = async (row: ConfigurationVO) => {
+  if (row.status === 2) return
+  await message.delConfirm()
+  await ConfigurationApi.deleteConfiguration(row.id!)
+  message.success('删除成功')
+  await load()
+}
+const handleAction = async (
+  row: ConfigurationVO,
+  action: 'start' | 'complete' | 'markAbnormal'
+) => {
+  const actionText = { start: '开始调试', complete: '完成调试', markAbnormal: '标记异常' }[action]
+  await message.confirm(`确认${actionText}该配置记录？`)
+  if (action === 'start') await ConfigurationApi.startConfiguration(row.id!)
+  if (action === 'complete') await ConfigurationApi.completeConfiguration(row.id!)
+  if (action === 'markAbnormal') await ConfigurationApi.markAbnormalConfiguration(row.id!)
+  message.success(`${actionText}成功`)
+  await load()
+}
+onMounted(load)
+</script>

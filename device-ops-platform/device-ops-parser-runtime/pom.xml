@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.dp.deviceops</groupId>
+        <groupId>com.dp.plat.deviceops</groupId>
         <artifactId>device-ops-platform</artifactId>
         <version>${revision}</version>
     </parent>
@@ -14,7 +14,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.dp.deviceops</groupId>
+            <groupId>com.dp.plat.deviceops</groupId>
             <artifactId>device-ops-parser-semantic</artifactId>
             <version>${revision}</version>
         </dependency>

@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 public class InspectionRuleRevisionPageQuery extends PageParam {
 
     private Long tenantId;
+    private Long ruleId;
     private String detectionId;
     private String ruleNameKeyword;
     private String categoryCode;

@@ -60,6 +60,43 @@ class ProjectTemplatePublishedSnapshotBoundaryTest {
     }
 
     @Test
+    void invalidPublicationReportsValidationWithoutWritingDraftOrHistory() {
+        var template = new ProjectTemplateDO();
+        template.setId(10L);
+        template.setTenantId(1L);
+        template.setVersion(7L);
+        template.setStatus(TemplateRules.STATUS_ACTIVE);
+        when(templates.lockTemplate(any(TemplateIdentityQuery.class))).thenReturn(template);
+        var draft = new ProjectTemplateRevisionDO();
+        draft.setId(11L);
+        draft.setTemplateId(10L);
+        draft.setTenantId(1L);
+        draft.setRevisionNo(0);
+        draft.setStatus(TemplateRules.REVISION_STATUS_DRAFT);
+        draft.setDesignerSchemaVersion(TemplateDesignerDocument.SCHEMA_VERSION);
+        draft.setDesignerDocument(JsonUtils.toJsonString(new TemplateDesignerDocument()));
+        when(revisions.selectDraftByTemplateId(10L)).thenReturn(draft);
+        when(revisions.updateById(any(ProjectTemplateRevisionDO.class))).thenReturn(1);
+        var issue = new cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Issue(
+                "stages", "REQUIRED", "至少配置一个交付阶段");
+        when(compiler.compileVersioned(any())).thenReturn(
+                new TemplateCompiler.Compilation(null, null, java.util.List.of(issue)));
+        var dependencies = mock(TemplateDesignerDependencyValidator.class);
+        var rules = mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectRulePublicationValidator.class);
+        ReflectionTestUtils.setField(service, "dependencyValidator", dependencies);
+        ReflectionTestUtils.setField(service, "rulePublicationValidator", rules);
+
+        ServiceException failure = assertThrows(ServiceException.class, () -> service.publishProjectTemplate(10L));
+
+        assertEquals(PROJECT_TEMPLATE_PUBLISH_INVALID.getCode(), failure.getCode());
+        assertTrue(failure.getMessage().contains("stages[REQUIRED]"));
+        verify(revisions, never()).updateById(any(ProjectTemplateRevisionDO.class));
+        verify(revisions, never()).insert(any(ProjectTemplateRevisionDO.class));
+        verify(templates, never()).updateById(any(ProjectTemplateDO.class));
+        verify(templates, never()).incrementVersion(any(TemplateIdentityQuery.class));
+    }
+
+    @Test
     void missingStoredSchemaCannotBeRestoredByTheModelDefault() {
         ProjectTemplateRevisionDO row = published();
         ObjectNode json = JsonUtils.parseObject(row.getExecutionSnapshot(), ObjectNode.class);

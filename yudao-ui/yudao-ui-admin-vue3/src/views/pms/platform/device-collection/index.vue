@@ -6,6 +6,11 @@
     >
     <el-tabs v-model="tab">
       <el-tab-pane
+        label="日志解析"
+        name="parsing"
+        v-if="checkPermi(['pms:device-collection:query'])"
+      />
+      <el-tab-pane
         label="采集任务"
         name="tasks"
         v-if="checkPermi(['pms:device-collection:query'])"
@@ -44,6 +49,12 @@
       >
     </template>
     <TemplatePanel v-if="tab === 'templates'" />
+    <LogParsingPanel
+      v-if="tab === 'parsing' && projectId"
+      :key="projectId"
+      :project-id="projectId"
+    />
+    <el-empty v-if="tab === 'parsing' && !projectId" description="请选择日志所属项目" />
     <ConnectionPanel
       v-if="tab === 'connections' && projectId"
       :key="projectId"
@@ -58,6 +69,7 @@ import type { Id } from '@/api/pms/platform/deviceCollection'
 import * as ProjectApi from '@/api/pms/project/projects'
 import PmsEntitySelect from '@/components/PmsEntitySelect/index.vue'
 import CollectionDialog from '@/components/DeviceCollection/CollectionDialog.vue'
+import LogParsingPanel from '@/components/DeviceCollection/LogParsingPanel.vue'
 import TemplatePanel from './TemplatePanel.vue'
 import ConnectionPanel from './ConnectionPanel.vue'
 import { checkPermi } from '@/utils/permission'

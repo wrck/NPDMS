@@ -1,0 +1,53 @@
+{
+  "projectId": 992203060198,
+  "sourceRows": 7,
+  "sourceDeviceQuantity": 40,
+  "formDeviceHeaders": [
+    "设备名称",
+    "数量"
+  ],
+  "observedDefaultRows": [
+    [
+      "DPtech FW1000-TE-C 运营商级双电源AC主机",
+      "4"
+    ],
+    [
+      "DPtech SFP+万兆光模块,单模,(1310nm,10km,LC)",
+      "16"
+    ],
+    [
+      "DPtech 1端口40G以太网光接口模块 (QSFP)",
+      "8"
+    ],
+    [
+      "DPtech 4端口万兆以太网光接口模块(SFP+)",
+      "4"
+    ],
+    [
+      "DPtech 4端口千兆以太网光接口模块(SFP)",
+      "4"
+    ],
+    [
+      "DPtech FW1000-TE-C 双电源DC主机",
+      "2"
+    ],
+    [
+      "DPtech FW1000-TE-C 双电源AC主机",
+      "2"
+    ]
+  ],
+  "newFormMatchesEquipmentNamesAndQuantities": true,
+  "certificateId": 30038,
+  "reopenSavePreservesNamesQuantitiesAndHiddenModelData": true,
+  "readonlyDetailHasOnlyNameAndQuantity": true,
+  "wordPrintHasOnlyNameAndQuantity": true,
+  "layoutPdf": {
+    "pages": 1,
+    "registered": false,
+    "signed": false
+  },
+  "customerMobileHasOnlyNameAndQuantityWithoutPageOverflow": true,
+  "ownValidationLinkRevokedByNativeReject": true,
+  "ownValidationRecordFinalStatus": 4,
+  "protectedRecordsReadonlyRecheckUnchanged": true
+}

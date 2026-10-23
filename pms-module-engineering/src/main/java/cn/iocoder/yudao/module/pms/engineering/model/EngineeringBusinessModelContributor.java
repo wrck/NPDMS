@@ -23,7 +23,6 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.Requir
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.resource.ResourceReadyDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.risk.RiskDO;
-import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.schedulebackward.ScheduleBackwardDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyEntityDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.stageplan.StagePlanBatchDO;
@@ -51,7 +50,6 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.Requirement
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.resource.ResourceReadyMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.risk.RiskMapper;
-import cn.iocoder.yudao.module.pms.engineering.dal.mysql.schedulebackward.ScheduleBackwardMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.SiteSurveyEntityMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.stageplan.StagePlanBatchMapper;
@@ -99,7 +97,6 @@ public class EngineeringBusinessModelContributor implements BusinessModelContrib
     private final IssueMapper issueMapper;
     private final RiskMapper riskMapper;
     private final ResourceReadyMapper resourceReadyMapper;
-    private final ScheduleBackwardMapper scheduleBackwardMapper;
     private final DocTemplateMapper docTemplateMapper;
     private final FormTemplateMapper formTemplateMapper;
     private final FormInstanceMapper formInstanceMapper;
@@ -128,7 +125,6 @@ public class EngineeringBusinessModelContributor implements BusinessModelContrib
                                                IssueMapper issueMapper,
                                                RiskMapper riskMapper,
                                                ResourceReadyMapper resourceReadyMapper,
-                                               ScheduleBackwardMapper scheduleBackwardMapper,
                                                DocTemplateMapper docTemplateMapper,
                                                FormTemplateMapper formTemplateMapper,
                                                FormInstanceMapper formInstanceMapper,
@@ -156,7 +152,6 @@ public class EngineeringBusinessModelContributor implements BusinessModelContrib
         this.issueMapper = issueMapper;
         this.riskMapper = riskMapper;
         this.resourceReadyMapper = resourceReadyMapper;
-        this.scheduleBackwardMapper = scheduleBackwardMapper;
         this.docTemplateMapper = docTemplateMapper;
         this.formTemplateMapper = formTemplateMapper;
         this.formInstanceMapper = formInstanceMapper;
@@ -561,17 +556,6 @@ public class EngineeringBusinessModelContributor implements BusinessModelContrib
                         field("remark", "备注", EntityField.Type.TEXT)),
                 List.of(), List.of(), List.of(), "sol_eng_resource_ready");
         declarations.add(new BusinessModelDeclaration(resourceReady, ResourceReadyDO.class, resourceReadyMapper, null));
-        BusinessModelDescriptor scheduleBackward = new BusinessModelDescriptor("SOL", "scheduleBackward",
-                "SOL_SCHEDULE_BACKWARD", 1, BusinessModelKind.AGGREGATE_ROOT, "工期倒排",
-                "pms:sol-schedule-backward:query",
-                List.of(field("targetDate", "目标完工日期", EntityField.Type.DATE),
-                        field("projectType", "项目类型", EntityField.Type.TEXT),
-                        field("status", "状态", EntityField.Type.NUMBER),
-                        field("conflictSummary", "冲突汇总", EntityField.Type.TEXT),
-                        field("remark", "备注", EntityField.Type.TEXT)),
-                List.of(), List.of(), List.of(), "sol_schedule_backward");
-        declarations.add(new BusinessModelDeclaration(scheduleBackward, ScheduleBackwardDO.class,
-                scheduleBackwardMapper, null));
         BusinessModelDescriptor docTemplate = new BusinessModelDescriptor("IMP", "docTemplate",
                 "IMP_DOC_TEMPLATE", 1, BusinessModelKind.AGGREGATE_ROOT, "文档模板",
                 "pms:imp-doc-template:query",

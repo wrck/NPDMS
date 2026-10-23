@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProjectPlanDeliverablePlannerTest {
     final ProjectPlanDeliverablePlanner planner = new ProjectPlanDeliverablePlanner();
     final TemplateExecutionSnapshot before = new TemplateExecutionSnapshot();
-    final DeliverableView actual = new DeliverableView(10L,9L,"D1","Owner current name","PREP","T1",true,500L,"SUBMITTED",7L);
+    final DeliverableView actual = new DeliverableView(10L,9L,"D1","Owner current name","PREP","T1",true,500L,"SUBMITTED",7L,false);
 
     ProjectPlanDeliverablePlannerTest() {
         var node = new TemplateExecutionSnapshot.DeliverableContract(); node.setNodeKey("deliverable:one");
@@ -37,7 +37,7 @@ class ProjectPlanDeliverablePlannerTest {
     }
     @Test void removalUsesOwnerHistoryEligibilityNotJustPendingStatus() {
         var after = copy(); after.setDeliverables(List.of());
-        var pending = new DeliverableView(10L,9L,"D1","name","PREP","T1",true,500L,"PENDING",8L);
+        var pending = new DeliverableView(10L,9L,"D1","name","PREP","T1",true,500L,"PENDING",8L,false);
         var blocked = planner.plan(9L,before,after,new DeliverablePlanState(List.of(pending),Set.of()));
         assertEquals("DELIVERABLE_HANDLING_HISTORY_PROTECTED",blocked.issues().getFirst().code());
         var allowed = planner.plan(9L,before,after,new DeliverablePlanState(List.of(pending),Set.of(10L)));
@@ -58,7 +58,7 @@ class ProjectPlanDeliverablePlannerTest {
         assertEquals("DELIVERABLE_RUNTIME_IDENTITY_CONFLICT",foreign.issues().getFirst().code()); assertTrue(foreign.writes().isEmpty());
     }
     @Test void independentOwnerDeliverablesRemainUntouchedButCannotHaveTheirCodeOverwritten() {
-        var outside = new DeliverableView(11L,9L,"OUTSIDE","independent","PREP",null,false,null,"PENDING",0L);
+        var outside = new DeliverableView(11L,9L,"OUTSIDE","independent","PREP",null,false,null,"PENDING",0L,false);
         var state = new DeliverablePlanState(List.of(actual,outside),Set.of(11L));
         assertTrue(planner.plan(9L,before,copy(),state).issues().isEmpty());
         var after = copy(); after.getDeliverables().getFirst().setCode("OUTSIDE");

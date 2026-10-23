@@ -1,0 +1,19 @@
+[
+  {
+    "actor": "y06496",
+    "projectId": "992203060198",
+    "taskId": 18,
+    "manager": false,
+    "owner": false,
+    "foreignPageEmpty": true,
+    "executeDenied": 403
+  },
+  {
+    "actor": "z01010",
+    "projectId": "992203060198",
+    "taskId": 18,
+    "manager": true,
+    "owner": false,
+    "foreignPageEmpty": true
+  }
+]

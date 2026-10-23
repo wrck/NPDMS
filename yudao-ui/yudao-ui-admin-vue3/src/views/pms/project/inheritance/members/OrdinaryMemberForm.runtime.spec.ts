@@ -44,6 +44,39 @@ describe('unified ordinary member form', () => {
     vi.mocked(Members.getMemberCandidates).mockResolvedValue({ list: [{ id: 40, username: 'engineer', nickname: '普通人员' }], total: 1 })
     vi.mocked(Members.saveMember).mockResolvedValue({ projectId: 9, version: 4, assignmentId: 13, userId: 40, memberRole: 'TEAM_MEMBER', changed: true })
   })
+  it('maintains external end users without querying system candidates', async () => {
+    const { root, app } = setup({ defaultRole: 'END_USER', member: { ...currentMember,
+      userId: null, memberRole: 'END_USER', memberName: '外部姓名', companyName: '客户单位',
+      departmentName: '客户建设部', title: '原职务', mobile: '123', email: 'a@example.test' } })
+    await nextTick()
+    expect(Members.getMemberCandidates).not.toHaveBeenCalled()
+    expect(find(root, item => item.props?.['aria-label'] === '人员')).toBeUndefined()
+    expect(find(root, item => item.props?.['aria-label'] === '部门')?.props?.modelValue).toBe('客户建设部')
+    expect(find(root, item => item.props?.['aria-label'] === '职务')?.props?.modelValue).toBe('原职务')
+    await set(root, '姓名', '修改姓名')
+    await set(root, '职务', ' 副主任 ')
+    await submit(root)
+    expect(Members.saveMember).toHaveBeenCalledWith(9, 12, expect.objectContaining({
+      userId: null, memberRole: 'END_USER', externalPerson: { name: '修改姓名', companyName: '客户单位', department: '客户建设部', title: '副主任', mobile: '123', email: 'a@example.test' }
+    }), 3, expect.any(String))
+    app.unmount()
+  })
+  it('requires the external name and rejoins from historical external details without selecting an account', async () => {
+    const empty = setup({ defaultRole: 'END_USER' })
+    await submit(empty.root)
+    expect(Members.saveMember).not.toHaveBeenCalled()
+    expect(Members.getMemberCandidates).not.toHaveBeenCalled()
+    empty.app.unmount()
+    const { root, app } = setup({ rejoin: true, member: { ...currentMember, userId: null,
+      memberRole: 'END_USER', memberName: '历史姓名', departmentName: '历史部门', title: '历史职务', mobile: '456', effectiveTo: new Date() } })
+    await nextTick()
+    await submit(root)
+    expect(Members.getMemberCandidates).not.toHaveBeenCalled()
+    expect(Members.saveMember).toHaveBeenCalledWith(9, undefined, expect.objectContaining({ userId: null,
+      externalPerson: { name: '历史姓名', companyName: '', department: '历史部门', title: '历史职务', mobile: '456', email: '' }
+    }), 3, expect.any(String))
+    app.unmount()
+  })
   it('requires a chosen person and reason then posts ordinary member data only', async () => {
     const { root, app } = setup()
     await submit(root)

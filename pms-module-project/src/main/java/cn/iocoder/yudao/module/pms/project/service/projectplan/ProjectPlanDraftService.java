@@ -55,8 +55,10 @@ public class ProjectPlanDraftService {
     private final ProjectPlanDeliverablePlanner deliverablePlanner;
     private final ProjectPlanMilestoneInstaller milestones;
     private final ProjectPlanGateInstaller gates;
+    private final ProjectPlanTemplateBindingReader templateBindings;
 
-    public record Definition(Long id, Integer revisionNo, Long version, Long basePlanVersionId, TemplateDesignerDocument designer) { }
+    public record Definition(Long id, Integer revisionNo, Long version, Long basePlanVersionId,
+                             TemplateDesignerDocument designer, ProjectPlanTemplateBindingReader.Binding templateBinding) { }
     public record State(Definition effective, Definition draft, boolean editable, Long projectVersion) { }
     public record Create(Long projectId, Long expectedPlanVersionId) { }
     public record Save(Long projectId, Long draftId, Long expectedVersion, TemplateDesignerDocument designer) { }
@@ -205,7 +207,11 @@ public class ProjectPlanDraftService {
     ProjectPlanScopeQuery authorize(Long projectId, Long actorId) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         if (!permissions.hasAnyPermissions(actorId, MANAGE_PERMISSION)) throw exception(PROJECT_PLAN_CHANGE_FORBIDDEN);
-        var result = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, ProjectScopeApi.ACTION_EDIT));
+        var result = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (result == null || result.fullProjectIds() == null || !result.fullProjectIds().contains(projectId)) throw exception(PROJECT_PLAN_CHANGE_FORBIDDEN);
         return new ProjectPlanScopeQuery(tenantId, projectId);
     }
@@ -223,7 +229,8 @@ public class ProjectPlanDraftService {
     }
     private Definition definition(ProjectPlanVersionDO plan) {
         return plan == null ? null : new Definition(plan.getId(), plan.getRevisionNo(), plan.getVersion(), plan.getBasePlanVersionId(),
-                JsonUtils.parseObject(plan.getDesignerDocument(), TemplateDesignerDocument.class));
+                JsonUtils.parseObject(plan.getDesignerDocument(), TemplateDesignerDocument.class),
+                templateBindings.read(plan.getSourceTemplateRevisionId()));
     }
     private Definition execute(String action, ProjectPlanScopeQuery scope, Long actorId, String key, Object intent, Supplier<Definition> body) {
         if (key == null || key.isBlank()) throw exception(PROJECT_PLAN_CHANGE_INVALID);

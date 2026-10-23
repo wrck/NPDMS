@@ -1,0 +1,9 @@
+{
+  "processInstanceId": "35e97c3e-ca04-11f1-af8b-00ff0b78abd7",
+  "taskId": "35efe4e9-ca04-11f1-af8b-00ff0b78abd7",
+  "processStatus": 2,
+  "taskStatus": 2,
+  "businessKey": null,
+  "assigneeUserId": "2108539871029019646",
+  "reason": "原项目16200723010901N权限复测：隔离BPM审批，无项目业务变更"
+}

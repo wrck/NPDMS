@@ -50,8 +50,8 @@ public class ScenarioInstanceController {
     @PostMapping("/run")
     @PreAuthorize("@ss.hasPermission('pms:process-definition:operate')")
     public CommonResult<ScenarioRunOutcome> run(@Valid @RequestBody ScenarioRunReqVO reqVO) {
-        return success(executionService.run(reqVO.getDefinitionCode(), reqVO.getEntityId(),
-                reqVO.getIdempotencyKey(), reqVO.getBackendId()));
+        return success(executionService.run(new ScenarioExecutionService.RunCommand(
+                reqVO.getDefinitionCode(), reqVO.getEntityId(), reqVO.getIdempotencyKey(), reqVO.getBackendId())));
     }
 
     @GetMapping("/instances")

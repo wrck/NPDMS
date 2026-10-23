@@ -1,0 +1,30 @@
+[
+  {
+    "roleId": 993109110001,
+    "roleCode": "SERVICE_MANAGER",
+    "addedMenuIds": [
+      970000000000099780,
+      970000000000099781,
+      970000000000099782,
+      970000000000099783,
+      970000000000099785
+    ],
+    "permissionKeysUnchanged": true,
+    "dataScopeUnchanged": true,
+    "infrastructureMenusNotGranted": true
+  },
+  {
+    "roleId": 993109110002,
+    "roleCode": "PROJECT_MANAGER",
+    "addedMenuIds": [
+      970000000000099780,
+      970000000000099781,
+      970000000000099782,
+      970000000000099783,
+      970000000000099785
+    ],
+    "permissionKeysUnchanged": true,
+    "dataScopeUnchanged": true,
+    "infrastructureMenusNotGranted": true
+  }
+]

@@ -61,22 +61,26 @@ public class ProjectDeliverableSubmissionService {
     private final PlatformBusinessEventApi outbox;
     private final ProjectDeliverableOwnerSources ownerSources;
     private final ProjectDeliverableRequirementResolver resolver;
+    private final cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi reopens;
 
     public record FileSelection(@NotNull @Positive Long referenceId) { }
     public record Submission(@NotNull @Positive Long planVersionId, @NotNull @PositiveOrZero Long expectedVersion,
                              @NotBlank String sourceType, @NotNull @Size(max = 100) List<@Valid FileSelection> files,
                              BusinessResultSource.Query businessResult) { }
     public record Evaluation(boolean satisfied, String reason, String evidence) { }
+    public record FileKey(String ownerContext, String objectType, String objectId,
+                          String purposeCode, String referenceKey) { }
     public record MaterialLine(Long id, String materialKind, Long referenceId, Long artifactId,
                                Integer versionNo, String sha256, String fileName,
-                               String businessObjectType, String businessObjectId) { }
+                               String businessObjectType, String businessObjectId, FileKey fileKey) { }
     public record History(Long id, Long planVersionId, String sourceType, List<MaterialLine> materials,
                           String creator, java.time.LocalDateTime submittedAt) { }
     public record Detail(Long id, Long projectId, String code, String name, String status, Long version,
                          Long planVersionId, JsonNode configuration, boolean writable, String automaticSource,
-                         List<History> history) { }
+                         boolean automaticCollection, List<History> history) { }
     public record Submitted(Long submissionId, Long sourceVersionId, String status, Long version, Evaluation evaluation) { }
 
+    @Transactional(rollbackFor = Exception.class)
     public Detail detail(Long projectId, Long id) {
         var view = require(platform.findById(id), projectId);
         var context = rules.read(projectId, view.deliverableCode());
@@ -89,22 +93,36 @@ public class ProjectDeliverableSubmissionService {
                                 .sorted(java.util.Comparator.comparing(MaterialLine::id)).toList(),
                         null, submission.createTime()))
                 .toList();
+        String ownerType = ownerSources.ownerType(view);
+        boolean automaticCollection = ownerType != null || rules.automaticCollectionCodes(projectId).contains(view.deliverableCode());
         return new Detail(id, projectId, view.deliverableCode(), view.name(), accStatus(view.status()), asLong(view.version()),
                 context.planVersionId(), context.configuration(), access.writable(context),
-                ownerSources.ownerType(view), history);
+                ownerType, automaticCollection, history);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public List<BusinessResultSource.Descriptor> resultTypes(Long projectId, Long id) {
-        detail(projectId, id);
-        return results.types();
+        var detail = detail(projectId, id);
+        if (!allowed(detail.configuration(), "BUSINESS_RESULT")) return List.of();
+        var context = rules.read(projectId, detail.code());
+        return results.types().stream().filter(descriptor -> matchesBusinessSource(
+                context, detail.code(), resultSourceCode(descriptor.type()))).toList();
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public BusinessResultInventorySource.InventoryPage candidates(Long projectId, Long id,
                                                                   BusinessResultSource.Type type, String after) {
         var detail = detail(projectId, id);
-        if (!allowed(detail.configuration(), "BUSINESS_RESULT")) throw failure("模板未允许关联业务成果");
-        return results.candidates(new BusinessResultInventorySource.InventoryQuery(
+        if (!allowed(detail.configuration(), "BUSINESS_RESULT")) throw failure("模板未允许关联业务数据");
+        var context = rules.read(projectId, detail.code());
+        if (type == null || !matchesBusinessSource(context, detail.code(), resultSourceCode(type)))
+            throw failure("当前交付件不需要关联此业务类型");
+        var page = results.candidates(new BusinessResultInventorySource.InventoryQuery(
                 TenantContextHolder.getRequiredTenantId(), projectId, type, false, null, after, 30));
+        if (reopens.findTemplateReopen(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Query(
+                TenantContextHolder.getRequiredTenantId(), projectId)).isEmpty()) return page;
+        return new BusinessResultInventorySource.InventoryPage(page.nextCursor(), page.complete(), page.observations().stream()
+                .filter(row -> row.result() != null && currentRoundEvidence(projectId, row.result().formedAt())).toList());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -146,7 +164,7 @@ public class ProjectDeliverableSubmissionService {
         List<Long> materialIds;
         TemplateFrozenSubmitOutcome outcome;
         try {
-            materialIds = capture(locked, projectId, request);
+            materialIds = capture(locked, context, request);
             if (materialIds.size() < locked.minimumQuantity()) {
                 throw failure("有效材料数量不足，至少需要 " + locked.minimumQuantity() + " 项");
             }
@@ -227,12 +245,13 @@ public class ProjectDeliverableSubmissionService {
                                 FileEvidenceApi.Document file, String eventId) {
         var context = rules.read(observed.projectId(), observed.deliverableCode());
         if (!"ACTIVE".equals(context.lifecycleStatus())
-                || !ProjectDocumentSourceRegistry.matches(context.configuration(), scope.sourceCode())) return;
+                || !matchesDocumentSource(context, observed.deliverableCode(), scope)) return;
         context = rules.lock(observed.projectId(), observed.deliverableCode());
         if (!"ACTIVE".equals(context.lifecycleStatus()) || !Objects.equals(scope.projectId(), context.projectId())
-                || !ProjectDocumentSourceRegistry.matches(context.configuration(), scope.sourceCode())) return;
+                || !matchesDocumentSource(context, observed.deliverableCode(), scope)) return;
         var view = require(platform.lockById(observed.id()), observed.projectId());
         String key = "file-event:" + eventId;
+        if (!currentRoundFile(observed.projectId(), file.referenceId())) return;
         if (platform.findSubmissionByRequestKey(observed.id(), key).isPresent()) return;
         var current = platform.findCurrentSubmission(observed.id());
         // 投影来源保持自身不可变链路；业务成果槽位不被文档归集覆盖。
@@ -275,15 +294,15 @@ public class ProjectDeliverableSubmissionService {
         notifyOutcome(view, before, outcome, key);
     }
 
-    /** Called by the committed business-result delivery; automaticSources is the grant, allowedSources still gates revalidation. */
+    /** Called by committed result delivery; frozen explicit sources or native Owner-task references select targets, allowedSources still gates revalidation. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void collectBusinessResult(TemplateFrozenView observed, String sourceCode, BusinessResultChange change) {
         var context = rules.read(observed.projectId(), observed.deliverableCode());
         if (!"ACTIVE".equals(context.lifecycleStatus())
-                || !ProjectDocumentSourceRegistry.matches(context.configuration(), sourceCode)) return;
+                || !matchesBusinessSource(context, observed.deliverableCode(), sourceCode)) return;
         context = rules.lock(observed.projectId(), observed.deliverableCode());
         if (!"ACTIVE".equals(context.lifecycleStatus()) || !Objects.equals(observed.projectId(), context.projectId())
-                || !ProjectDocumentSourceRegistry.matches(context.configuration(), sourceCode)) return;
+                || !matchesBusinessSource(context, observed.deliverableCode(), sourceCode)) return;
         var view = require(platform.lockById(observed.id()), observed.projectId());
         String key = "result-change:" + change.eventId();
         if (platform.findSubmissionByRequestKey(observed.id(), key).isPresent()) return;
@@ -296,6 +315,7 @@ public class ProjectDeliverableSubmissionService {
         // 形成的成果是交付件唯一现行证据槽；归集整体置换（不与文档/上传合并）。
         var result = change.observation().result();
         if (result == null || result.validity() != BusinessResultSource.Validity.CURRENT) return;
+        if (!currentRoundEvidence(observed.projectId(), result.formedAt())) return;
         Long materialId = platform.registerTemplateFrozenBusinessResult(observed.id(),
                 ProjectDeliverableBusinessResultEvidenceProvider.BUSINESS_OBJECT_TYPE,
                 ProjectDeliverableBusinessResultEvidenceProvider.compositeObjectId(result.type(), result.objectId(),
@@ -308,9 +328,26 @@ public class ProjectDeliverableSubmissionService {
         notifyOutcome(view, before, outcome, key);
     }
 
+    private boolean matchesDocumentSource(ProjectDeliverableRuleApi.Context context, String code,
+                                          FileDocumentSourceProvider.Scope scope) {
+        if (scope.originTaskId() == null) return matchesBusinessSource(context, code, scope.sourceCode());
+        return rules.documentTargets(new ProjectDeliverableRuleApi.DocumentTargetsQuery(
+                context.projectId(), scope.sourceCode(), scope.originTaskId())).contains(code);
+    }
+
+    private static String resultSourceCode(BusinessResultSource.Type type) {
+        return type.ownerContext() + "." + type.entityType() + "." + type.resultType();
+    }
+
+    private boolean matchesBusinessSource(ProjectDeliverableRuleApi.Context context, String code, String sourceCode) {
+        return ProjectDocumentSourceRegistry.matches(context.configuration(), sourceCode)
+                || rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(context.projectId(), sourceCode)).contains(code);
+    }
+
     // ———— 内部 ————
 
-    private List<Long> capture(TemplateFrozenView locked, Long projectId, Submission request) {
+    private List<Long> capture(TemplateFrozenView locked, ProjectDeliverableRuleApi.Context context, Submission request) {
+        Long projectId = context.projectId();
         if (PlatformDeliveryRequirementApi.SOURCE_BUSINESS_RESULT.equals(request.sourceType())) {
             var query = request.businessResult();
             Long tenantId = TenantContextHolder.getRequiredTenantId();
@@ -319,6 +356,8 @@ public class ProjectDeliverableSubmissionService {
                     || query.objectId() == null || query.resultId() == null) {
                 throw failure("请选择当前项目的完整业务成果");
             }
+            if (!matchesBusinessSource(context, locked.deliverableCode(), resultSourceCode(query.type())))
+                throw failure("当前交付件不需要关联此业务类型");
             var descriptor = results.types().stream().filter(value -> value.type().equals(query.type())).findFirst()
                     .orElseThrow(() -> failure("不支持的业务成果类型"));
             var observation = results.lockAndInspect(new BusinessResultSource.Query(tenantId, projectId, query.type(),
@@ -328,6 +367,7 @@ public class ProjectDeliverableSubmissionService {
                     || !query.resultId().equals(result.resultId())) {
                 throw failure("业务成果尚未形成、已撤销或已被替换");
             }
+            if (!currentRoundEvidence(projectId, result.formedAt())) throw failure("不能沿用项目重开前的业务成果");
             Long materialId = platform.registerTemplateFrozenBusinessResult(locked.id(),
                     ProjectDeliverableBusinessResultEvidenceProvider.BUSINESS_OBJECT_TYPE,
                     ProjectDeliverableBusinessResultEvidenceProvider.compositeObjectId(result.type(), result.objectId(),
@@ -345,10 +385,26 @@ public class ProjectDeliverableSubmissionService {
                 throw failure("文件引用不存在或不可用: " + selected.referenceId());
             }
             if (!anchorMatches(document, locked, projectId)) throw failure("文件归属与交付件不一致");
+            if (!currentRoundFile(projectId, selected.referenceId())) throw failure("请为本轮重新上传交付文件");
             captured.add(platform.registerTemplateFrozenFile(locked.id(), selected.referenceId(), null,
                     PlatformDeliveryRequirementApi.MATERIAL_SOURCE_UPLOAD));
         }
         return captured;
+    }
+
+    private boolean currentRoundEvidence(Long projectId, java.time.LocalDateTime formedAt) {
+        var round = reopens.findTemplateReopen(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Query(
+                TenantContextHolder.getRequiredTenantId(), projectId));
+        return round.isEmpty() || formedAt != null && formedAt.isAfter(round.get().openedAt());
+    }
+
+    private boolean currentRoundFile(Long projectId, Long referenceId) {
+        var round = reopens.findTemplateReopen(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Query(
+                TenantContextHolder.getRequiredTenantId(), projectId));
+        if (round.isEmpty()) return true;
+        var createdAt = fileEvidence.referenceCreatedAt(new FileEvidenceApi.ReferenceIdentity(
+                TenantContextHolder.getRequiredTenantId(), referenceId));
+        return createdAt != null && createdAt.isAfter(round.get().openedAt());
     }
 
     /** 上传锚：新统一锚（PLT/DELIVERY_MATERIAL/ACC:project_deliverable:{projectId}，purposeCode=交付件编码）
@@ -401,9 +457,18 @@ public class ProjectDeliverableSubmissionService {
             index.put(material.id(), new MaterialLine(material.id(), material.materialKind(),
                     material.fileReferenceId(), material.fileArtifactId(), material.fileVersionNo(),
                     material.fileSha256(), material.fileName(), material.businessObjectType(),
-                    material.businessObjectId()));
+                    material.businessObjectId(), historyFileKey(material)));
         }
         return index;
+    }
+
+    private FileKey historyFileKey(TemplateFrozenMaterialView material) {
+        if (material.fileReferenceId() == null || material.fileArtifactId() == null) return null;
+        var document = fileEvidence.inspectDocument(TenantContextHolder.getRequiredTenantId(), material.fileReferenceId());
+        if (document == null || !Objects.equals(document.artifactId(), material.fileArtifactId())
+                || !Objects.equals(document.versionNo(), material.fileVersionNo())) return null;
+        return new FileKey(document.ownerContext(), document.objectType(), document.objectId(),
+                document.purposeCode(), document.referenceKey());
     }
 
     private static Long planVersionIdFrom(String payloadJson) {

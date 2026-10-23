@@ -17,7 +17,8 @@ export const loadSurveyActionContext = async (
     remark: `来源工勘 #${surveyId}`
   }
   if (kind !== 'exchange') {
-    if (survey.businessValues?.railTrayRequired !== true)
+    if (survey.businessValues?.railTrayRequired !== true &&
+      !(kind === 'procurement' && survey.businessValues?.manufacturerInstallation === true && survey.businessValues?.railTrayRequired === false))
       throw new Error('工勘尚未选择需要导轨、托盘')
     return base
   }

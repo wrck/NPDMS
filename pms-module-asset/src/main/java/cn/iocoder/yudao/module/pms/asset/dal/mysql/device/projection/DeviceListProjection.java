@@ -26,5 +26,8 @@ public record DeviceListProjection(
         String conpMark,
         String syncStatus,
         String locationSnapshot,
-        String locationResolutionStatus) {
+        String locationResolutionStatus,
+        String bootVersion,
+        String cpldVersion,
+        Long extendedCount) {
 }

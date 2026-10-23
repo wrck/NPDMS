@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationStorageMapper">
+    <sql id="draftScope">
+        r.id = #{query.configurationRevisionId} AND r.tenant_id = #{query.tenantId}
+        AND r.status_code = 'DRAFT' AND r.deleted = 0
+    </sql>
+    <delete id="deleteDraftOptions">
+        DELETE o FROM cut_checklist_field_option o
+        JOIN cut_checklist_field_definition f ON f.id = o.field_definition_id AND f.tenant_id = o.tenant_id
+        JOIN cut_cutover_checklist_item_definition_revision i ON i.id = f.item_definition_revision_id AND i.tenant_id = f.tenant_id
+        JOIN cut_cutover_configuration_revision r ON r.id = i.configuration_revision_id AND r.tenant_id = i.tenant_id
+        WHERE <include refid="draftScope"/>
+    </delete>
+    <delete id="deleteDraftField">
+        DELETE f FROM cut_checklist_field_definition f
+        JOIN cut_cutover_checklist_item_definition_revision i ON i.id = f.item_definition_revision_id AND i.tenant_id = f.tenant_id
+        JOIN cut_cutover_configuration_revision r ON r.id = i.configuration_revision_id AND r.tenant_id = i.tenant_id
+        WHERE <include refid="draftScope"/> AND f.id = #{query.fieldDefinitionId}
+    </delete>
+    <delete id="deleteDraftMappings">
+        DELETE m FROM cut_checklist_external_mapping m
+        JOIN cut_cutover_checklist_item_definition_revision i ON i.id = m.item_definition_revision_id AND i.tenant_id = m.tenant_id
+        JOIN cut_cutover_configuration_revision r ON r.id = i.configuration_revision_id AND r.tenant_id = i.tenant_id
+        WHERE <include refid="draftScope"/>
+    </delete>
+    <delete id="deleteDraftConditions">
+        DELETE c FROM cut_checklist_binding_condition c
+        JOIN cut_cutover_checklist_binding_rule_revision b ON b.id = c.binding_rule_revision_id AND b.tenant_id = c.tenant_id
+        JOIN cut_cutover_configuration_revision r ON r.id = b.configuration_revision_id AND r.tenant_id = b.tenant_id
+        WHERE <include refid="draftScope"/>
+    </delete>
+    <delete id="deleteDraftDimensions">
+        DELETE d FROM cut_configuration_dimension d
+        JOIN cut_cutover_configuration_revision r ON r.id = d.configuration_revision_id AND r.tenant_id = d.tenant_id
+        WHERE <include refid="draftScope"/>
+    </delete>
+    <delete id="deleteDraftDictionaryValues">
+        DELETE d FROM cut_configuration_dictionary_value d
+        JOIN cut_cutover_configuration_revision r ON r.id = d.configuration_revision_id AND r.tenant_id = d.tenant_id
+        WHERE <include refid="draftScope"/>
+    </delete>
+    <delete id="deleteDraftSectionScopes">
+        DELETE c FROM cut_configuration_plan_section_scope c
+        JOIN cut_configuration_plan_section s ON s.id = c.plan_section_id AND s.tenant_id = c.tenant_id
+        JOIN cut_cutover_configuration_revision r ON r.id = s.configuration_revision_id AND r.tenant_id = s.tenant_id
+        WHERE <include refid="draftScope"/>
+    </delete>
+    <delete id="deleteDraftSections">
+        DELETE s FROM cut_configuration_plan_section s
+        JOIN cut_cutover_configuration_revision r ON r.id = s.configuration_revision_id AND r.tenant_id = s.tenant_id
+        WHERE <include refid="draftScope"/>
+    </delete>
+</mapper>

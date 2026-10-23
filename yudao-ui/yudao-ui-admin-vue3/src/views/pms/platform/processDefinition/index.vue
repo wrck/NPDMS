@@ -148,6 +148,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
@@ -324,8 +325,8 @@ const select = async (row: ProcessDefinitionVO) => {
 
 const run = async () => {
   if (!selected.value) return
-  const entityId = Number(runEntityId.value)
-  if (!entityId) {
+  const entityId = runEntityId.value.trim()
+  if (!/^[1-9]\d*$/.test(entityId) || BigInt(entityId) > 9223372036854775807n) {
     ElMessage.warning('请输入实体ID')
     return
   }
@@ -334,7 +335,7 @@ const run = async () => {
     runOutcome.value = await runScenario({
       definitionCode: selected.value.definitionCode,
       entityId,
-      idempotencyKey: crypto.randomUUID()
+      idempotencyKey: generateUUID()
     })
     instances.value = await getScenarioInstances(selected.value.definitionCode)
     results.value = await getScenarioResults(selected.value.definitionCode)

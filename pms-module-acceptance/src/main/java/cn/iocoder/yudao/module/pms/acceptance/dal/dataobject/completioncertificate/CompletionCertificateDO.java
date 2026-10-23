@@ -46,6 +46,8 @@ public class CompletionCertificateDO extends BaseBusinessEntity {
      * 完工日期
      */
     private LocalDate completionDate;
+    /** 无可用签收到货记录时填写的日期，不覆盖自动来源。 */
+    private LocalDate manualArrivalDate;
     /**
      * 客户确认人。客户确认是客户单位的外部人员（非系统用户），不落系统 user_id，保持 NULL。
      */
@@ -139,4 +141,12 @@ public class CompletionCertificateDO extends BaseBusinessEntity {
      */
     private String remark;
 
+
+    private Long satisfactionTemplateId;
+    private Long completionPrintTemplateId;
+    private Long completionPrintRevisionId;
+    private String completionPrintSnapshot;
+    private Long satisfactionPrintTemplateId;
+    private Long satisfactionPrintRevisionId;
+    private String satisfactionPrintSnapshot;
 }

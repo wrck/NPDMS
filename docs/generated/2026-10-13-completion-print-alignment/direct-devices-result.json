@@ -1,0 +1,25 @@
+{
+  "projectId": 992203060198,
+  "deviceHeaderRemoved": true,
+  "devices": 7,
+  "tableFillsPrintableWidth": {
+    "bodyWidth": 680.625,
+    "tableWidth": 680.625,
+    "offset": 0
+  },
+  "pdfPages": 1,
+  "completionDateLeftAligned": true,
+  "signatureWidths": [
+    338.796875,
+    338.828125
+  ],
+  "serviceAndDeviceColumnEdgesMatch": true,
+  "outerHeadingPreservedWithoutInnerHeader": true,
+  "directTwoColumns": true,
+  "rightmostColumnsCentered": true,
+  "adjacentContentColspanTwo": true,
+  "rightmostResultAndQuantitySingleColumn": true,
+  "deviceRows": 7,
+  "signedRecordsUnchanged": true,
+  "pageErrors": []
+}

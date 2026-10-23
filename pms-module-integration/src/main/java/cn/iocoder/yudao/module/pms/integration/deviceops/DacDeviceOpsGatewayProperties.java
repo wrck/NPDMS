@@ -32,7 +32,7 @@ public class DacDeviceOpsGatewayProperties {
      */
     private long commandTimeoutSeconds = 30;
 
-    /** 配置调试手工执行的整组命令总时限；DAC 将此值用于整个脚本，而非每行命令。 */
+    /** 配置/联调、独立采集及割接调研的整组命令总时限；DAC 将此值用于整个脚本，而非每行命令。 */
     private long manualExecutionTimeoutSeconds = 600;
 
     /**

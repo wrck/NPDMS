@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.acceptance.service.acceptance.application;
 
 import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException;
 import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,19 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
     @Resource
     private PlatformDeliveryRequirementApi platform;
 
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi rules;
+    @Resource
+    private cn.iocoder.yudao.module.pms.acceptance.service.acceptance.ProjectDeliverableOwnerSources ownerSources;
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public void archiveForProjectReopen(ProjectReopenArchive command) {
+        if (command == null) throw new IllegalArgumentException("交付件重开归档命令不能为空");
+        platform.archiveForProjectReopen(new PlatformDeliveryRequirementApi.ProjectReopenArchive(
+                command.projectId(), command.reopenSnapshotId(), command.expectedRequirementIds()));
+    }
+
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public DeliverableInitializationResult initialize(InitializeProjectDeliverablesCommand command) {
@@ -37,7 +51,12 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
         if (projectId == null) {
             throw new IllegalArgumentException("项目ID不能为空");
         }
-        return platform.listByProject(projectId).stream().map(this::view).toList();
+        var rows = platform.listByProject(projectId);
+        if (rows.isEmpty()) return List.of();
+        var automaticCodes = rules.automaticCollectionCodes(projectId);
+        var owners = ownerSources.ownerTypes(projectId);
+        return rows.stream().map(row -> view(row,
+                automaticCodes.contains(row.deliverableCode()) || owners.containsKey(row.id()))).toList();
     }
 
     @Override
@@ -45,7 +64,7 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
     public DeliverablePlanState inspectPlanDefinitions(Long projectId) {
         if (projectId == null || projectId <= 0) throw new IllegalArgumentException("项目ID不能为空");
         var rows = platform.lockByProject(projectId);
-        List<DeliverableView> definitions = rows.stream().map(this::view).toList();
+        List<DeliverableView> definitions = rows.stream().map(row -> view(row, false)).toList();
         // 退役资格与平台护栏同口径：有任何材料或提交历史（含已撤回）即不可退役。
         Set<Long> retirable = new HashSet<>();
         for (var row : rows) {
@@ -79,6 +98,19 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
         }
         var ordered = command.changes().stream().sorted(java.util.Comparator.comparing(
                 DeliverablePlanChange::id, java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()))).toList();
+        // 在暂存编码或退役前校验调用方版本；锁持续到计划应用事务结束。
+        for (var change : ordered) {
+            if (change.id() == null) continue;
+            var current = platform.lockById(change.id()).orElseThrow(() ->
+                    new BusinessContractException("DELIVERY_REQUIREMENT_NOT_FOUND", "交付要求不存在: " + change.id()));
+            if (!command.projectId().equals(current.projectId())) {
+                throw new BusinessContractException("DELIVERY_REQUIREMENT_PROJECT_MISMATCH", "交付要求不属于当前项目");
+            }
+            if (current.version() == null || change.expectedVersion().longValue() != current.version().longValue()) {
+                throw new BusinessContractException("DELIVERY_REQUIREMENT_VERSION_CONFLICT",
+                        "交付件定义已被并发修改，请刷新后重试: " + change.id());
+            }
+        }
         var updates = new ArrayList<DeliverablePlanChange>();
         var renamed = new ArrayList<Long>();
         var added = new ArrayList<DeliverablePlanChange>();
@@ -97,8 +129,11 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
         if (!renamed.isEmpty()) platform.stageTemplateFrozenCodes(renamed);
         for (var change : updates) {
             var d = change.definition();
+            // 暂存本身会推进乐观版本，沿用同一事务锁下的最新版本执行最终更新。
+            var staged = platform.lockById(change.id()).orElseThrow(() ->
+                    new BusinessContractException("DELIVERY_REQUIREMENT_NOT_FOUND", "交付要求不存在: " + change.id()));
             platform.updateTemplateFrozen(change.id(),
-                    change.expectedVersion() == null ? null : change.expectedVersion().intValue(),
+                    staged.version(),
                     new PlatformDeliveryRequirementApi.TemplateFrozenDefinition(d.deliverableCode(), d.name(),
                             d.stageCode(), d.taskCode(), d.required(), 0, d.sourceDefinitionId(), null));
         }
@@ -108,14 +143,14 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
         }
     }
 
-    private DeliverableView view(PlatformDeliveryRequirementApi.TemplateFrozenView row) {
+    private DeliverableView view(PlatformDeliveryRequirementApi.TemplateFrozenView row, boolean automaticCollection) {
         // 旧实例视图契约（pms_project_deliverable_status 字典：PENDING/SUBMITTED/ACCEPTED）；
         // 统一要求状态 OPEN/SATISFIED/CONFIRMED 在此适配为旧字典，实例视图与任务工作台共用本口径。
         String legacyStatus = PlatformDeliveryRequirementApi.STATUS_OPEN.equals(row.status())
                 ? "PENDING" : "ACCEPTED";
         return new DeliverableView(row.id(), row.projectId(), row.deliverableCode(), row.name(),
                 row.stageCode(), row.taskCode(), row.required(), row.sourceDefinitionId(), legacyStatus,
-                row.version() == null ? null : row.version().longValue());
+                row.version() == null ? null : row.version().longValue(), automaticCollection);
     }
 
     private PlatformDeliveryRequirementApi.TemplateFrozenDefinition definition(DeliverableDefinition definition) {

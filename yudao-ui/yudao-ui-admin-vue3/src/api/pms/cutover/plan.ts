@@ -1,0 +1,72 @@
+import request, { baseUrl } from './request'
+import type { WireLong, WireDateTime, CustomerContactReference, ProjectContactChoice, WritableCutoverPlanContent, CutoverPlanView, CreateCutoverPlanDraftRequest, DownloadCutoverPlanDraftResult, SubmitCutoverPlanResult } from './types'
+
+export const getCutoverPlan = (taskId: WireLong) =>
+  request.get<CutoverPlanView>({ url: `${baseUrl}/${taskId}/plan` })
+
+export const createCutoverPlanDraft = (command: { taskId: WireLong; taskVersion: WireLong; data: CreateCutoverPlanDraftRequest; idempotencyKey: string }) =>
+  request.post<CutoverPlanView>({
+    url: `${baseUrl}/${command.taskId}/plan/actions/create-draft`,
+    silentError: true,
+    data: command.data,
+    headers: { 'X-Task-Version': String(command.taskVersion), 'Idempotency-Key': command.idempotencyKey }
+  })
+
+export const saveCutoverPlanDraft = (command: { taskId: WireLong; taskVersion: WireLong; planVersion: WireLong; data: WritableCutoverPlanContent; idempotencyKey: string }) =>
+  request.put<CutoverPlanView>({
+    url: `${baseUrl}/${command.taskId}/plan`,
+    silentError: true,
+    data: command.data,
+    headers: {
+      'If-Match': String(command.planVersion),
+      'X-Task-Version': String(command.taskVersion),
+      'Idempotency-Key': command.idempotencyKey
+    }
+  })
+
+export const downloadCutoverPlanDraft = (command: { taskId: WireLong; planVersion: WireLong; idempotencyKey: string }) =>
+  request.post<DownloadCutoverPlanDraftResult>({
+    url: `${baseUrl}/${command.taskId}/plan/actions/download-draft`,
+    silentError: true,
+    data: {},
+    headers: { 'If-Match': String(command.planVersion), 'Idempotency-Key': command.idempotencyKey }
+  })
+
+export const downloadSubmittedCutoverPlan = (query: { taskId: WireLong; planVersion: WireLong }) =>
+  request.download<Blob>({ url: `${baseUrl}/${query.taskId}/plan/submitted-file`,
+    silentError: true, headers: { 'If-Match': String(query.planVersion) } })
+
+export const submitCutoverPlan = (command: { taskId: WireLong; taskVersion: WireLong; planVersion: WireLong; idempotencyKey: string }) =>
+  request.post<SubmitCutoverPlanResult>({
+    url: `${baseUrl}/${command.taskId}/plan/actions/submit`,
+    silentError: true,
+    data: {},
+    headers: {
+      'If-Match': String(command.planVersion),
+      'X-Task-Version': String(command.taskVersion),
+      'Idempotency-Key': command.idempotencyKey
+    }
+  })
+
+export const patchApprovedCutoverPlanContact = (command: { taskId: WireLong; arrangementId: WireLong; planVersion: WireLong; data: { personName: string; phone: string; arrivalTime: WireDateTime; reason: string; customerContactReference: CustomerContactReference | null; personReference?: import('./types').SupportPersonReference | null }; idempotencyKey: string }) =>
+  request.put<CutoverPlanView>({
+    method: 'PATCH',
+    url: `${baseUrl}/${command.taskId}/plan/support-arrangements/${command.arrangementId}`,
+    silentError: true,
+    data: command.data,
+    headers: { 'If-Match': String(command.planVersion), 'Idempotency-Key': command.idempotencyKey }
+  })
+
+export const reviseCutoverPlan = (command: { taskId: WireLong; taskVersion: WireLong; data: {
+    sourcePlanRevisionId: WireLong
+    reason: 'APPROVAL_REJECTED' | 'SOURCE_REPLACED' | 'USER_REVISION'
+  }; idempotencyKey: string }) =>
+  request.post<CutoverPlanView>({
+    url: `${baseUrl}/${command.taskId}/plan/actions/revise`,
+    silentError: true,
+    data: command.data,
+    headers: { 'X-Task-Version': String(command.taskVersion), 'Idempotency-Key': command.idempotencyKey }
+  })
+
+export const getProjectContactChoices = (taskId: WireLong) => request.get<ProjectContactChoice[]>({ url: `/api/v1/pms/cutover-tasks/${taskId}/project-contacts` })
+export const getSupportPersonChoices = (taskId: WireLong, roleCode: string) => request.get<import('./types').SupportPersonChoice[]>({ url: `/api/v1/pms/cutover-tasks/${taskId}/support-person-choices`, params: { roleCode } })

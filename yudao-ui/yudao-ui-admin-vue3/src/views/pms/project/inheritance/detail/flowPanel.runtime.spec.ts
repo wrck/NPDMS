@@ -18,6 +18,7 @@ vi.mock('@/components/UserTag/index.vue', () => ({ default: defineComponent({
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => ref(false) }))
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }), onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn(), error: vi.fn() }) }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {} }))
 // 用户store在node环境依赖浏览器storage，浅mock挡住加载链
 vi.mock('@/store/modules/user', () => ({ useUserStore: vi.fn(), useUserStoreWithOut: vi.fn() }))
@@ -29,7 +30,8 @@ vi.mock('./StageBusinessPanel.vue', () => ({ default: defineComponent({
   setup(props, { expose }) { expose({ requestLeave: async () => true, isBusy: () => false, refresh: businessRefresh }); return () => h('div', { 'data-stage-readonly': String(props.readonly) }, '阶段绑定上下文') }
 }) }))
 vi.mock('./TaskStateActions.vue', () => ({ default: defineComponent({
-  setup(_, { expose, slots }) { expose({ isBusy: () => false }); return () => h('section', { 'aria-label': '任务状态操作' }, ['任务状态操作', slots.default?.()]) }
+  props: { workbench: { type: Object, required: true } },
+  setup(props, { expose, slots }) { expose({ isBusy: () => false }); return () => h('section', { 'aria-label': '任务状态操作', 'data-actions': props.workbench.allowedActions.join(',') }, ['任务状态操作', slots.default?.()]) }
 }) }))
 vi.mock('./TaskApprovalPanel.vue', () => ({ default: defineComponent({
   props: { readonly: Boolean },
@@ -47,30 +49,41 @@ vi.mock('../../project-master-detail/components/TaskBusinessPanel.vue', () => ({
 }) }))
 // 交付件弹窗内部走真实文件API（node环境无window），浅mock为入口桩
 vi.mock('../../project-master-detail/components/ProjectDeliverableDialog.vue', () => ({ default: defineComponent({
-  setup(_, { expose }) { expose({ open: vi.fn(), requestLeave: async () => true, isBusy: () => false }); return () => h('div', '交付件弹窗') }
+  emits: ['changed'],
+  setup(_, { expose, emit }) { expose({ open: vi.fn(), requestLeave: async () => true, isBusy: () => false }); return () => h('button', { onClick: () => emit('changed') }, '保存交付件') }
 }) }))
 // 页面嵌入的真实工作台整页组件会拉入store/axios链（node环境无window），与本用例无关，统一浅mock
 vi.mock('./ProjectArrivalReceiptPanel.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '到货回执') }) }))
-vi.mock('@/views/pms/engineering/installation/index.vue', () => ({ default: defineComponent({
+vi.mock('@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue', () => ({ default: defineComponent({
   props: { readonly: Boolean },
   setup: (props) => () => h('div', { 'data-embed-readonly': String(props.readonly) }, '实施部署')
 }) }))
 vi.mock('@/views/pms/engineering/configuration/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '配置实施') }) }))
 vi.mock('@/views/pms/engineering/joint-test/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '联调测试') }) }))
 vi.mock('@/views/pms/engineering/training/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '培训') }) }))
-vi.mock('@/views/pms/customer/contacts/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '客户联系人') }) }))
+vi.mock('@/views/pms/customer/contacts/index.vue', () => ({ default: defineComponent({
+  emits: ['changed', 'updated'],
+  setup: (_, { emit }) => () => h('div', [h('button', { onClick: () => emit('changed') }, '保存联系人'),
+    h('button', { onClick: () => emit('updated') }, '更新联系人')])
+}) }))
+vi.mock('../../project-master-detail/components/ProjectNormalClosurePanel.vue', () => ({ default: defineComponent({
+  props: { projectId: [Number, String], readonly: Boolean },
+  setup: (props) => () => h('div', `正常闭环办理:${props.projectId}:${props.readonly}`)
+}) }))
 const apps: { unmount: () => void }[] = []
 const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
-const render = (selection: Record<string, unknown>, stageGates: { stageCode: string }[] = [], instancesExtra: Record<string, unknown> = {}) => {
+const render = (selection: Record<string, unknown>, stageGates: { stageCode: string }[] = [], instancesExtra: Record<string, unknown> = {}, lifecycleStatus = ref('ACTIVE')) => {
   const child = ref<any>()
+  const changed = vi.fn()
+  const refreshed = vi.fn()
   const wrapper = defineComponent({ setup: () => () => h(FlowPanel, {
-    ref: child, projectId: 9, project: { id: 9 }, selection,
+    ref: child, projectId: 9, project: { id: 9, lifecycleStatus: lifecycleStatus.value }, selection, onChanged: changed, onRefreshed: refreshed,
     instances: { stages: [{ stageCode: 'S2', entryCriteria: '真实准入', exitCriteria: '真实准出' }], gates: stageGates, ...instancesExtra }
   } as any) })
   const view = mount(wrapper, {}, { ElDescriptions: passthrough, ElDescriptionsItem: passthrough,
     ElTable: passthrough, ElTableColumn: tableColumn, DictTag: passthrough })
   apps.push(view.app)
-  return { ...view, state: () => child.value.$.setupState, exposed: () => child.value }
+  return { ...view, changed, refreshed, state: () => child.value.$.setupState, exposed: () => child.value }
 }
 beforeEach(() => {
   vi.clearAllMocks()
@@ -80,7 +93,106 @@ beforeEach(() => {
   api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, name: '任务A', version: 1 }, bindingType: 'BUSINESS_OBJECT' })
   projects.getProjectStageAdvanceReadiness.mockResolvedValue({ currentStage: 'S2', nextStage: null, advanceAllowed: false, gates: [] })
 })
-afterEach(() => apps.splice(0).forEach(app => app.unmount()))
+afterEach(() => { apps.splice(0).forEach(app => app.unmount()); vi.useRealTimers() })
+
+const findContactAction = (node: TestNode, label: string): TestNode | undefined =>
+  node.type === 'button' && textOf(node) === label ? node : node.children.map(child => findContactAction(child, label)).find(Boolean)
+const findTaskActions = (node: TestNode): TestNode | undefined =>
+  node.props?.['aria-label'] === '任务状态操作' ? node : node.children.map(findTaskActions).find(Boolean)
+const contactWorkbench = (version = 1, status = 'IN_PROGRESS') => ({
+  task: { taskId: 10, name: '用户信息录入', version, status, progress: status === 'DONE' ? 100 : 0 },
+  bindingType: 'PAGE', trustedTargetRef: '/customer-asset/customer-contact', allowedActions: status === 'DONE' ? [] : ['SUBMIT']
+})
+
+it.each(['终验', '现场培训'])('shows the unmet %s prerequisite while the server withholds START', async label => {
+  api.getTaskWorkbench.mockResolvedValue({
+    task: { taskId: 10, version: 1 }, bindingType: 'BUSINESS_COMPONENT', allowedActions: ['UPDATE', 'ASSIGN'],
+    startAdmission: { outcome: 'NOT_MATCHED', conditions: [{ label, outcome: 'NOT_MATCHED' }] }
+  })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(textOf(view.root)).toContain(`开始前请先完成：${label}`)
+  expect(findTaskActions(view.root)).toBeUndefined()
+})
+
+it('reports unavailable start prerequisites without claiming they are satisfied', async () => {
+  api.getTaskWorkbench.mockResolvedValue({
+    task: { taskId: 10, version: 1 }, bindingType: 'BUSINESS_COMPONENT', allowedActions: [],
+    startAdmission: { outcome: 'UNKNOWN', conditions: [] }
+  })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(textOf(view.root)).toContain('任务开始条件暂不可用，请刷新后重试')
+  expect(findTaskActions(view.root)).toBeUndefined()
+})
+
+
+it('omits the empty action section for automatic tasks and keeps manual submit and progress', async () => {
+  api.getTaskWorkbench.mockResolvedValue({ ...contactWorkbench(), allowedActions: ['CANCEL', 'UPDATE'] })
+  const automatic = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(findTaskActions(automatic.root)).toBeUndefined()
+  expect(textOf(automatic.root)).not.toContain('任务资料与进度')
+  api.getTaskWorkbench.mockResolvedValue({ ...contactWorkbench(), allowedActions: ['SUBMIT', 'UPDATE_PROGRESS', 'CANCEL', 'UPDATE'] })
+  const manual = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(findTaskActions(manual.root)?.props?.['data-actions']).toBe('SUBMIT,UPDATE_PROGRESS')
+  expect(textOf(manual.root)).toContain('任务资料与进度')
+})
+
+it.each(['保存联系人', '更新联系人'])('refreshes task actions and notifies the project after %s', async label => {
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench())
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench(2, 'DONE'))
+  await (findContactAction(view.root, label)!.props!.onClick as Function)(); await flush()
+  expect(view.state().workbench.task).toMatchObject({ version: 2, status: 'DONE', progress: 100 })
+  expect(view.state().workbench.allowedActions).toEqual([])
+  expect(view.changed).toHaveBeenCalledTimes(1)
+})
+
+it('waits for the committed contact event and hides stale task actions while synchronizing', async () => {
+  vi.useFakeTimers()
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench())
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  await (findContactAction(view.root, '保存联系人')!.props!.onClick as Function)(); await flush()
+  expect(textOf(view.root)).toContain('正在同步任务状态')
+  expect(findTaskActions(view.root)).toBeUndefined()
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench(2, 'DONE'))
+  await vi.advanceTimersByTimeAsync(2000); await flush()
+  expect(view.state().workbench.task.status).toBe('DONE')
+  expect(view.state().pageSyncing).toBe(false)
+  expect(view.changed).toHaveBeenCalledTimes(1)
+})
+
+it('does not restore old task actions after the contact refresh fails', async () => {
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench())
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  api.getTaskWorkbench.mockRejectedValueOnce(new Error('read unavailable'))
+  await (findContactAction(view.root, '保存联系人')!.props!.onClick as Function)(); await flush()
+  expect(textOf(view.root)).toContain('业务已保存，任务详情刷新失败')
+  expect(findTaskActions(view.root)).toBeUndefined()
+  expect(view.changed).not.toHaveBeenCalled()
+})
+
+it('stops contact polling after the user selects a different task', async () => {
+  vi.useFakeTimers()
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench())
+  const selected = reactive({ kind: 'task', stageCode: 'S2', taskId: 10 })
+  const view = render(selected); await flush()
+  await (findContactAction(view.root, '保存联系人')!.props!.onClick as Function)(); await flush()
+  api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 11, name: '下一任务', version: 4 }, bindingType: 'BUSINESS_OBJECT' })
+  selected.taskId = 11; await flush()
+  const calls = api.getTaskWorkbench.mock.calls.length
+  await vi.advanceTimersByTimeAsync(2000); await flush()
+  expect(api.getTaskWorkbench).toHaveBeenCalledTimes(calls)
+  expect(view.state().workbench.task.taskId).toBe(11)
+  expect(view.changed).not.toHaveBeenCalled()
+})
+
+it('opens the current project normal-closure owner inside the approval completion task', async () => {
+  api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, name: '项目闭环', version: 1, status: 'IN_PROGRESS' },
+    bindingType: 'PAGE', trustedTargetRef: '/pms/project/normal-closure', allowedActions: [] })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(textOf(view.root)).toContain('正常闭环办理:9:')
+  expect(textOf(view.root)).toContain('本任务在正常闭环审批通过后完成')
+  expect(textOf(view.root)).not.toContain('使用任务状态操作推进状态')
+})
 
 it('loads configured gates for the selected parallel stage and does not show an empty extra panel for other stages', async () => {
   gates.getStageGateWorkbench.mockResolvedValue({ projectId: '9', stageCode: 'S2', planVersionId: '51', executionId: '61', executionRound: 2, gates: [] })
@@ -97,7 +209,7 @@ it('mounts approval handling in the shared delivery task panel and preserves its
   api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, version: 1 }, bindingType: 'APPROVAL' })
   const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
   expect(textOf(view.root)).toContain('原BPM审批办理')
-  expect(textOf(view.root)).toContain('刷新审批结果')
+  expect(textOf(view.root)).toContain('刷新')
   expect(textOf(view.root)).not.toContain('Owner业务内容')
   expect(textOf(view.root)).not.toContain('尚未取得可用的任务业务绑定')
   expect(await view.exposed().requestLeave()).toBe(false)
@@ -118,6 +230,34 @@ it('shows the template-frozen deliverables of the task as a read-only checklist'
   expect(text).toContain('必选')
   expect(text).toContain('可选')
   expect(text).toContain('自动满足交付要求')
+})
+
+it.each(['dialog', 'external'])('refreshes the task checklist after a deliverable changes through %s', async source => {
+  const task = { taskId: 10, name: '到货签收', version: 1, status: 'IN_PROGRESS' }
+  api.getTaskWorkbench.mockResolvedValue({ task, bindingType: 'TASK_NATIVE',
+    deliverables: [{ id: 25, deliverableCode: 'D_ARRIVAL', name: '到货签收单', status: 'PENDING' }] })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  api.getTaskWorkbench.mockResolvedValue({ task, bindingType: 'TASK_NATIVE',
+    deliverables: [{ id: 25, deliverableCode: 'D_ARRIVAL', name: '到货签收单', status: 'ACCEPTED' }] })
+  if (source === 'dialog') await (findContactAction(view.root, '保存交付件')!.props!.onClick as Function)()
+  else await view.exposed().refreshSummary()
+  await flush()
+  expect(view.state().workbench.deliverables[0].status).toBe('ACCEPTED')
+  expect(view.state().workbench.task.status).toBe('IN_PROGRESS')
+  expect(view.changed).toHaveBeenCalledTimes(source === 'dialog' ? 1 : 0)
+})
+
+it('reports a failed task checklist refresh instead of treating the retained snapshot as current', async () => {
+  api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, version: 1 }, bindingType: 'TASK_NATIVE',
+    deliverables: [{ id: 25, deliverableCode: 'D_ARRIVAL', status: 'PENDING' }] })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  api.getTaskWorkbench.mockRejectedValue(new Error('read unavailable'))
+  await view.exposed().refreshSummary(); await flush()
+  expect(view.state().loadError).toContain('概要刷新失败')
+  expect(view.state().workbench.deliverables[0].status).toBe('PENDING')
+  api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, version: 2 }, bindingType: 'TASK_NATIVE' })
+  expect(await view.exposed().refreshSummary()).toBe(true)
+  expect(view.state().loadError).toBe('')
 })
 
 it('starts independent task reads together and waits for both before exposing Owner actions', async () => {
@@ -154,6 +294,7 @@ it('ignores a completed parallel load from the previously selected task', async 
   await flush()
   expect(textOf(view.root)).toContain('任务B')
   expect(textOf(view.root)).not.toContain('旧任务A')
+  expect(view.refreshed).toHaveBeenCalledTimes(1)
 })
 
 it('propagates the Owner leave refusal and does not clear its content during a refused reload', async () => {
@@ -179,24 +320,49 @@ it('does not equate S2 with duration or call a task workbench with a stage ident
 })
 
 it('places one refresh action in the bottom business bar and delegates to the guarded Owner refresh', async () => {
+  leave.mockResolvedValue(true)
   const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  view.refreshed.mockClear()
   const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode | undefined =>
     predicate(node) ? node : node.children.map(child => find(child, predicate)).find(Boolean)
   const heading = find(view.root, node => String(node.props?.class || '').includes('task-business-heading'))
   expect(heading).toBeTruthy()
   expect(textOf(heading!)).toContain('任务业务办理')
   // 刷新入口统一收口在底部吸附栏业务操作区，不与业务标题同行
-  expect(find(heading!, node => node.type === 'button' && textOf(node) === '刷新业务结果')).toBeUndefined()
+  expect(find(heading!, node => node.type === 'button' && textOf(node) === '刷新')).toBeUndefined()
   const bar = find(view.root, node => String(node.props?.class || '').includes('flow-bar-business'))
   expect(bar).toBeTruthy()
-  const refresh = find(bar!, node => node.type === 'button' && textOf(node) === '刷新业务结果')
+  const refresh = find(bar!, node => node.type === 'button' && textOf(node) === '刷新')
   expect(refresh).toBeTruthy()
   await (refresh!.props!.onClick as () => unknown)()
   expect(businessRefresh).toHaveBeenCalledTimes(1)
-  expect(api.getTaskWorkbench).toHaveBeenCalledTimes(1)
+  expect(api.getTaskWorkbench).toHaveBeenCalledTimes(2)
+  expect(view.refreshed).toHaveBeenCalledTimes(1)
 })
 
-it('omits the task breadcrumb and description block and keeps task editing in the action group', async () => {
+it('refreshes the outer navigation after task or stage selection without replaying business changes', async () => {
+  const selection = reactive({ kind: 'task', stageCode: 'S2', taskId: 10 })
+  const view = render(selection); await flush()
+  view.refreshed.mockClear()
+  selection.taskId = 11; await flush()
+  expect(view.refreshed).toHaveBeenCalledTimes(1)
+  selection.kind = 'stage'; selection.stageCode = 'S3'; await flush()
+  expect(view.refreshed).toHaveBeenCalledTimes(2)
+  expect(view.changed).not.toHaveBeenCalled()
+})
+
+it('does not announce a rejected or failed refresh as current navigation', async () => {
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  view.refreshed.mockClear()
+  await view.exposed().reload(); await flush()
+  expect(view.refreshed).not.toHaveBeenCalled()
+  leave.mockResolvedValue(true)
+  api.getProjectWorkspace.mockRejectedValue(new Error('unavailable'))
+  await view.exposed().reload(); await flush()
+  expect(view.refreshed).not.toHaveBeenCalled()
+})
+
+it('omits the task breadcrumb, description block and unavailable editing action group', async () => {
   const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
   const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode | undefined =>
     predicate(node) ? node : node.children.map(child => find(child, predicate)).find(Boolean)
@@ -206,7 +372,8 @@ it('omits the task breadcrumb and description block and keeps task editing in th
   expect(find(view.root, node => String(node.props?.class || '').includes('task-breadcrumb'))).toBeUndefined()
   expect(find(view.root, node => String(node.props?.class || '').includes('task-description-block'))).toBeUndefined()
   const actions = find(view.root, node => node.props?.['aria-label'] === '任务状态操作')
-  expect(textOf(actions!)).toContain('任务资料与进度')
+  expect(actions).toBeUndefined()
+  expect(text).not.toContain('任务资料与进度')
 })
 
 const pendingStageInstances = {
@@ -233,10 +400,30 @@ it('renders a not-yet-entered stage normally while hiding its operation entries'
   expect(text).not.toContain('只读预览')
   // 业务区以只读方式呈现（readonly 强制透传）
   expect(findNode(view.root, node => node.props?.['data-stage-readonly'] === 'true')).toBeTruthy()
-  // 办理/提交/推进入口全部隐藏；刷新业务结果为重读入口，保留
+  // 办理/提交/推进入口全部隐藏；刷新为重读入口，保留
   expect(findNode(view.root, node => node.type === 'button' && textOf(node) === '提交与查看')).toBeUndefined()
   expect(text).not.toContain('推进至')
-  expect(text).toContain('刷新业务结果')
+  expect(text).toContain('刷新')
+})
+
+it('does not query advancement when viewing or refreshing a normally closed project', async () => {
+  const view = render({ kind: 'stage', stageCode: 'S2' }, [], {}, ref('NORMAL_CLOSED')); await flush()
+  await view.exposed().refreshSummary(); await flush()
+  expect(projects.getProjectStageAdvanceReadiness).not.toHaveBeenCalled()
+  expect(textOf(view.root)).not.toContain('推进至')
+  expect(api.getProjectWorkspace).toHaveBeenCalled()
+})
+
+it('discards an in-flight advancement result after the project closes', async () => {
+  let finish!: (value: unknown) => void
+  projects.getProjectStageAdvanceReadiness.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  const lifecycle = ref('ACTIVE')
+  const view = render({ kind: 'stage', stageCode: 'S2' }, [], {}, lifecycle); await flush()
+  lifecycle.value = 'NORMAL_CLOSED'; await flush()
+  finish({ currentStage: 'S2', nextStage: 'S3', advanceAllowed: true, gates: [] }); await flush()
+  expect(view.state().readiness).toBeUndefined()
+  expect(textOf(view.root)).not.toContain('推进至 S3')
+  expect(projects.getProjectStageAdvanceReadiness).toHaveBeenCalledTimes(1)
 })
 
 it('keeps the stage advance button hidden while exit gates are unmet but still explains the progress', async () => {
@@ -250,7 +437,7 @@ it('keeps the stage advance button hidden while exit gates are unmet but still e
   expect(text).not.toContain('推进至 S3')
   expect(text).toContain('出口门禁 1/2 满足；全部通过后可推进。')
   // 当前阶段的业务操作区不受影响
-  expect(text).toContain('刷新业务结果')
+  expect(text).toContain('刷新')
 })
 
 it('shows the stage advance button only when every exit gate is satisfied', async () => {
@@ -276,10 +463,10 @@ it('renders tasks of a not-yet-entered stage normally without state actions', as
   // 业务内容照常渲染，以只读方式呈现（不附加状态横幅）
   expect(text).toContain('Owner业务内容')
   expect(findNode(view.root, node => node.props?.['data-task-readonly'] === 'true')).toBeTruthy()
-  // 状态操作与提交入口仍隐藏；刷新业务结果为重读入口，保留
+  // 状态操作与提交入口仍隐藏；刷新为重读入口，保留
   expect(text).not.toContain('任务状态操作')
   expect(findNode(view.root, node => node.type === 'button' && textOf(node) === '提交与查看')).toBeUndefined()
-  expect(text).toContain('刷新业务结果')
+  expect(text).toContain('刷新')
 })
 
 it('renders an approval task of a not-yet-entered stage without its handling form', async () => {
@@ -301,8 +488,8 @@ it('renders the page-bound task of a not-yet-entered stage inline with its write
   expect(text).toContain('实施部署')
   expect(text).not.toContain('本任务通过专用页面办理业务')
   expect(findNode(view.root, node => node.props?.['data-embed-readonly'] === 'true')).toBeTruthy()
-  // 任务状态操作与跳转入口隐藏；刷新工作区为重读入口，保留（栏不空壳）
+  // 任务状态操作与跳转入口隐藏；刷新为重读入口，保留（栏不空壳）
   expect(findNode(view.root, node => node.props?.['aria-label'] === '任务状态操作')).toBeUndefined()
   expect(findNode(view.root, node => node.type === 'button' && textOf(node) === '打开页面')).toBeUndefined()
-  expect(text).toContain('刷新工作区')
+  expect(text).toContain('刷新')
 })

@@ -38,7 +38,7 @@ class ProjectPlanDraftServiceTest {
     final ProjectPlanMilestoneInstaller milestoneInstaller = new ProjectPlanMilestoneInstaller(milestoneProjections,
             mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMilestoneInstanceMapper.class));
     final ProjectPlanGateInstaller gates = mock(ProjectPlanGateInstaller.class);
-    final ProjectPlanDraftService service = new ProjectPlanDraftService(scopes,permissions,projectRows,projects,plans,executions,graph,compiler,dependencies,ruleValidator,new ProjectPlanImpactAnalyzer(),new ProjectPlanExecutionPlanner(),commands,deliverables,new ProjectPlanDeliverablePlanner(),milestoneInstaller,gates);
+    final ProjectPlanDraftService service = new ProjectPlanDraftService(scopes,permissions,projectRows,projects,plans,executions,graph,compiler,dependencies,ruleValidator,new ProjectPlanImpactAnalyzer(),new ProjectPlanExecutionPlanner(),commands,deliverables,new ProjectPlanDeliverablePlanner(),milestoneInstaller,gates,mock(ProjectPlanTemplateBindingReader.class));
     ProjectMasterDO project;
     ProjectPlanVersionDO effective, draft;
     PlatformCommandExecutionApi.SuccessFacts recorded;
@@ -131,7 +131,7 @@ class ProjectPlanDraftServiceTest {
         var after = ProjectPlanImpactAnalyzerTest.copy(snapshot); after.setDeliverables(List.of());
         when(compiler.compileVersioned(any())).thenReturn(new TemplateCompiler.Compilation(after,null,List.of()));
         var row = new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverableView(
-                100L,9L,"CUSTOM-D","delivery","A",null,true,null,"PENDING",8L);
+                100L,9L,"CUSTOM-D","delivery","A",null,true,null,"PENDING",8L,false);
         when(deliverables.inspectPlanDefinitions(9L)).thenReturn(new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverablePlanState(List.of(row),Set.of()));
         var result = service.preview(9L,52L,0L,1L);
         assertTrue(result.issues().stream().anyMatch(issue -> "DELIVERABLE_HANDLING_HISTORY_PROTECTED".equals(issue.code())));

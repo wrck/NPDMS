@@ -1,9 +1,9 @@
-import { defineComponent, h, inject, provide } from 'vue'
+import { defineComponent, h, inject, provide, nextTick, reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Members from '@/api/pms/project/unified-members'
 import * as Managers from '@/api/pms/project/members'
 import ProjectMembersPanel from './ProjectMembersPanel.vue'
-import { mount, textOf, passthrough } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, textOf, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
 vi.mock('@/api/pms/project/unified-members', async original => ({
@@ -60,4 +60,25 @@ describe('project member history authorization presentation', () => {
     expect(textOf(root)).toContain('编辑'); expect(textOf(root)).toContain('移出项目')
     app.unmount()
   })
+})
+it('queries the entry default role and restores all roles when switching to assignment', async () => {
+  vi.mocked(Members.getMemberPage).mockResolvedValue({ list: [], total: 0 })
+  vi.mocked(Managers.getProjectManagers).mockResolvedValue({ projectId: 191, version: 1, primaryUserId: 1, assignmentStatus: 'ASSIGNED', changed: false, members: [] })
+  const props = reactive<{ initialRole?: 'END_USER' }>({ initialRole: 'END_USER' })
+  const host = defineComponent({ setup: () => () => h(ProjectMembersPanel, {
+    project: { id: 191, lifecycleStatus: 'ACTIVE' }, ...props
+  }) })
+  const { app } = mount(host, {}, {
+    ElTable: passthrough, ElTableColumn: tableColumn, ElDialog: tableColumn,
+    ElSelect: passthrough, ElOption: passthrough, ElRadioGroup: passthrough,
+    ElRadioButton: passthrough, ElInput: passthrough
+  })
+  await nextTick()
+  expect(Members.getMemberPage).toHaveBeenLastCalledWith(191,
+    expect.objectContaining({ role: 'END_USER', pageNo: 1 }))
+  props.initialRole = undefined
+  await nextTick()
+  expect(Members.getMemberPage).toHaveBeenLastCalledWith(191,
+    expect.objectContaining({ role: undefined, pageNo: 1 }))
+  app.unmount()
 })

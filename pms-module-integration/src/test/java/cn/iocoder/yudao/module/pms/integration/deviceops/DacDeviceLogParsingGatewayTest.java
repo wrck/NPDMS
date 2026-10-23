@@ -46,6 +46,29 @@ class DacDeviceLogParsingGatewayTest {
         var error = assertThrows(DeviceLogParsingApi.ParsingException.class, () -> gateway.find("log-123", "21", "collection-1"));
         assertFalse(error.getMessage().contains("sensitive"));
     }
+    @Test void explicitInvalidLogInputRetainsItsClassificationWithoutEchoingRemoteContent() {
+        server.expect(anything()).andRespond(withStatus(HttpStatus.BAD_REQUEST)
+                .body("{\"code\":\"INVALID_REQUEST\",\"message\":\"sensitive original log\"}"));
+        server.expect(anything()).andRespond(withStatus(HttpStatus.PAYLOAD_TOO_LARGE)
+                .body("{\"code\":\"INPUT_TOO_LARGE\"}"));
+        var input = new DeviceLogParsingApi.LogInput("21", "invalid log", null);
+        var invalid = assertThrows(DeviceLogParsingApi.InvalidInputException.class, () -> gateway.normalize(input));
+        assertFalse(invalid.getMessage().contains("sensitive"));
+        assertThrows(DeviceLogParsingApi.InvalidInputException.class, () -> gateway.normalize(input));
+        server.verify();
+    }
+    @Test void authenticationAndServerFailuresAreNotReportedAsInvalidUserInput() {
+        server.expect(anything()).andRespond(withStatus(HttpStatus.FORBIDDEN)
+                .body("{\"code\":\"INVALID_REQUEST\"}"));
+        server.expect(anything()).andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("{\"code\":\"INVALID_REQUEST\"}"));
+        var input = new DeviceLogParsingApi.LogInput("21", "valid log", null);
+        for (int index = 0; index < 2; index++) {
+            var failure = assertThrows(DeviceLogParsingApi.ParsingException.class, () -> gateway.normalize(input));
+            assertFalse(failure instanceof DeviceLogParsingApi.InvalidInputException);
+        }
+        server.verify();
+    }
     private String response(String project, String resultTask) {
         return "{\"requestId\":\"log-123\",\"namespace\":\"npdms-1\",\"projectKey\":\""+project+"\","
                 +"\"sourceCollectionId\":\"collection-1\",\"taskId\":\"task-1\",\"state\":\"SUCCEEDED\","

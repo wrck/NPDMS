@@ -262,11 +262,18 @@ public class ProjectStageAdvanceApplicationService {
         ProjectMasterDO project = projectMapper.selectByIdForUpdate(projectId);
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())) throw exception(PROJECT_NOT_EXISTS);
         if (!Objects.equals(project.getVersion(), expectedProjectVersion)) throw exception(PROJECT_VERSION_CONFLICT);
-        ProjectScopeResult initial = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(),
-                actor.actorUserId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+        ProjectScopeResult initial = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorUserId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         long treeVersion = expectedTreeVersion == null ? initial.treeVersion() : expectedTreeVersion;
-        ProjectScopeResult locked = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                actor.tenantId(), actor.actorUserId(), projectId, ProjectScopeApi.ACTION_MANAGE, treeVersion));
+        ProjectScopeResult locked = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorUserId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(treeVersion).build());
         if (!Objects.equals(locked.treeVersion(), treeVersion) || !locked.fullProjectIds().contains(projectId)) {
             throw exception(PROJECT_TREE_VERSION_CONFLICT);
         }
@@ -295,8 +302,11 @@ public class ProjectStageAdvanceApplicationService {
         if (!ACTIVE.equals(project.getLifecycleStatus())) {
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "项目当前阶段不可使用通用Gate流程");
         }
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(),
-                actor.actorUserId(), project.getId(), ProjectScopeApi.ACTION_MANAGE));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorUserId())
+                .anchorProjectId(project.getId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (!scope.fullProjectIds().contains(project.getId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         if (permissionApi.hasAnyRoles(actor.actorUserId(),
                 cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return;
@@ -312,7 +322,11 @@ public class ProjectStageAdvanceApplicationService {
         if (permissionApi.hasAnyRoles(actor.actorUserId(),
                 cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return;
         List<ProjectMemberAssignmentDO> managers = memberMapper.selectParticipantFactsForUpdate(
-                new ProjectParticipantFactLockQuery(actor.tenantId(), project.getId(), actor.actorUserId(), Set.of(PROJECT_MANAGER)));
+                ProjectParticipantFactLockQuery.builder()
+                .tenantId(actor.tenantId())
+                .projectId(project.getId())
+                .userId(actor.actorUserId())
+                .requiredRoleCodes(Set.of(PROJECT_MANAGER)).build());
         if (managers.size() != 1) throw exception(PROJECT_STAGE_ACTION_FORBIDDEN);
     }
 

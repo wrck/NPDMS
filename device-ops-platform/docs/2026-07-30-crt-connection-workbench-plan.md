@@ -27,10 +27,10 @@
 ### Task 1：收口当前本地调试认证基线
 
 **Files:**
-- Modify: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/security/DeviceOpsSecurityConfiguration.java`
-- Create: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/security/LocalDebugAuthenticationFilter.java`
-- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/deviceops/server/RuntimeConfigProperties.java`
-- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/deviceops/server/RuntimeConfigController.java`
+- Modify: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/security/DeviceOpsSecurityConfiguration.java`
+- Create: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/security/LocalDebugAuthenticationFilter.java`
+- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/plat/deviceops/server/RuntimeConfigProperties.java`
+- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/plat/deviceops/server/RuntimeConfigController.java`
 - Modify: `device-ops-platform/device-ops-server/src/main/resources/application.yml`
 - Modify: `device-ops-platform/device-ops-web/src/config/runtime.ts`
 - Modify: `device-ops-platform/device-ops-web/src/auth/oidc.ts`
@@ -85,22 +85,22 @@ fix(device-ops): support local standalone authentication
 ### Task 2：建立协议无关连接契约和可选业务上下文
 
 **Files:**
-- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/model/ConnectionProtocol.java`
-- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/model/ConnectionFailure.java`
-- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/port/ProtocolCommandExecutionAdapter.java`
-- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/port/RemoteEndpointPolicy.java`
-- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/service/ProtocolCommandExecutionRouter.java`
-- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/port/CommandExecutionPort.java`
-- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/model/CollectionContextSnapshot.java`
-- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/model/CollectionTarget.java`
-- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/model/CollectionTask.java`
-- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/model/ExecutionConnectionContext.java`
-- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/service/SubmitCollectionService.java`
-- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/service/CollectionWorker.java`
-- Modify: `device-ops-platform/device-ops-core/src/test/java/com/dp/deviceops/core/model/CollectionTaskTest.java`
-- Modify: `device-ops-platform/device-ops-core/src/test/java/com/dp/deviceops/core/service/SubmitCollectionServiceTest.java`
-- Modify: `device-ops-platform/device-ops-core/src/test/java/com/dp/deviceops/core/service/CollectionWorkerTest.java`
-- Create: `device-ops-platform/device-ops-core/src/test/java/com/dp/deviceops/core/service/ProtocolCommandExecutionRouterTest.java`
+- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/model/ConnectionProtocol.java`
+- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/model/ConnectionFailure.java`
+- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/port/ProtocolCommandExecutionAdapter.java`
+- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/port/RemoteEndpointPolicy.java`
+- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/service/ProtocolCommandExecutionRouter.java`
+- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/port/CommandExecutionPort.java`
+- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/model/CollectionContextSnapshot.java`
+- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/model/CollectionTarget.java`
+- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/model/CollectionTask.java`
+- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/model/ExecutionConnectionContext.java`
+- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/service/SubmitCollectionService.java`
+- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/service/CollectionWorker.java`
+- Modify: `device-ops-platform/device-ops-core/src/test/java/com/dp/plat/deviceops/core/model/CollectionTaskTest.java`
+- Modify: `device-ops-platform/device-ops-core/src/test/java/com/dp/plat/deviceops/core/service/SubmitCollectionServiceTest.java`
+- Modify: `device-ops-platform/device-ops-core/src/test/java/com/dp/plat/deviceops/core/service/CollectionWorkerTest.java`
+- Create: `device-ops-platform/device-ops-core/src/test/java/com/dp/plat/deviceops/core/service/ProtocolCommandExecutionRouterTest.java`
 
 **Interfaces:**
 - Produces: `enum ConnectionProtocol { SSH2, TELNET }`
@@ -238,11 +238,11 @@ feat(device-ops-core): add protocol-neutral connection contracts
 
 **Files:**
 - Create: `device-ops-platform/device-ops-adapter-persistence-jdbc/src/main/resources/db/migration/V6__support_protocol_and_optional_context.sql`
-- Modify: `device-ops-platform/device-ops-adapter-persistence-jdbc/src/main/java/com/dp/deviceops/adapter/persistence/jdbc/CollectionJdbcRepository.java`
-- Modify: `device-ops-platform/device-ops-adapter-persistence-jdbc/src/main/java/com/dp/deviceops/adapter/persistence/jdbc/JdbcCollectionQueryAdapter.java`
-- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/port/CollectionQueryPort.java`
-- Modify: `device-ops-platform/device-ops-adapter-persistence-jdbc/src/test/java/com/dp/deviceops/adapter/persistence/jdbc/CollectionPersistenceTest.java`
-- Modify: `device-ops-platform/device-ops-adapter-persistence-jdbc/src/test/java/com/dp/deviceops/adapter/persistence/jdbc/JdbcCollectionQueryAdapterTest.java`
+- Modify: `device-ops-platform/device-ops-adapter-persistence-jdbc/src/main/java/com/dp/plat/deviceops/adapter/persistence/jdbc/CollectionJdbcRepository.java`
+- Modify: `device-ops-platform/device-ops-adapter-persistence-jdbc/src/main/java/com/dp/plat/deviceops/adapter/persistence/jdbc/JdbcCollectionQueryAdapter.java`
+- Modify: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/port/CollectionQueryPort.java`
+- Modify: `device-ops-platform/device-ops-adapter-persistence-jdbc/src/test/java/com/dp/plat/deviceops/adapter/persistence/jdbc/CollectionPersistenceTest.java`
+- Modify: `device-ops-platform/device-ops-adapter-persistence-jdbc/src/test/java/com/dp/plat/deviceops/adapter/persistence/jdbc/JdbcCollectionQueryAdapterTest.java`
 
 **Interfaces:**
 - Consumes: Task 2 optional `CollectionContextSnapshot`
@@ -317,11 +317,11 @@ feat(device-ops-db): persist optional connection context
 ### Task 4：将现有 SSH2 适配器纳入统一错误模型
 
 **Files:**
-- Modify: `device-ops-platform/device-ops-adapter-ssh-mina/src/main/java/com/dp/deviceops/adapter/ssh/mina/MinaCommandExecutionAdapter.java`
-- Delete: `device-ops-platform/device-ops-adapter-ssh-mina/src/main/java/com/dp/deviceops/adapter/ssh/mina/RemoteHostPolicy.java`
-- Create: `device-ops-platform/device-ops-server/src/main/java/com/dp/deviceops/server/SecureRemoteEndpointPolicy.java`
-- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/deviceops/server/DeviceOpsWiringConfiguration.java`
-- Modify: `device-ops-platform/device-ops-adapter-ssh-mina/src/test/java/com/dp/deviceops/adapter/ssh/mina/MinaCommandExecutionAdapterTest.java`
+- Modify: `device-ops-platform/device-ops-adapter-ssh-mina/src/main/java/com/dp/plat/deviceops/adapter/ssh/mina/MinaCommandExecutionAdapter.java`
+- Delete: `device-ops-platform/device-ops-adapter-ssh-mina/src/main/java/com/dp/plat/deviceops/adapter/ssh/mina/RemoteHostPolicy.java`
+- Create: `device-ops-platform/device-ops-server/src/main/java/com/dp/plat/deviceops/server/SecureRemoteEndpointPolicy.java`
+- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/plat/deviceops/server/DeviceOpsWiringConfiguration.java`
+- Modify: `device-ops-platform/device-ops-adapter-ssh-mina/src/test/java/com/dp/plat/deviceops/adapter/ssh/mina/MinaCommandExecutionAdapterTest.java`
 
 **Interfaces:**
 - Consumes: `ProtocolCommandExecutionAdapter`
@@ -378,10 +378,10 @@ refactor(device-ops-ssh): normalize SSH2 connection outcomes
 
 **Files:**
 - Create: `device-ops-platform/device-ops-adapter-telnet/pom.xml`
-- Create: `device-ops-platform/device-ops-adapter-telnet/src/main/java/com/dp/deviceops/adapter/telnet/TelnetCommandExecutionAdapter.java`
-- Create: `device-ops-platform/device-ops-adapter-telnet/src/test/java/com/dp/deviceops/adapter/telnet/TelnetCommandExecutionAdapterTest.java`
-- Create: `device-ops-platform/device-ops-server/src/main/java/com/dp/deviceops/server/TelnetProperties.java`
-- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/deviceops/server/DeviceOpsWiringConfiguration.java`
+- Create: `device-ops-platform/device-ops-adapter-telnet/src/main/java/com/dp/plat/deviceops/adapter/telnet/TelnetCommandExecutionAdapter.java`
+- Create: `device-ops-platform/device-ops-adapter-telnet/src/test/java/com/dp/plat/deviceops/adapter/telnet/TelnetCommandExecutionAdapterTest.java`
+- Create: `device-ops-platform/device-ops-server/src/main/java/com/dp/plat/deviceops/server/TelnetProperties.java`
+- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/plat/deviceops/server/DeviceOpsWiringConfiguration.java`
 - Modify: `device-ops-platform/pom.xml`
 - Modify: `device-ops-platform/device-ops-server/pom.xml`
 - Modify: `device-ops-platform/device-ops-server/src/main/resources/application.yml`
@@ -468,19 +468,19 @@ feat(device-ops-telnet): add optional Telnet execution adapter
 ### Task 6：提供连接测试和通用采集 API
 
 **Files:**
-- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/deviceops/core/service/ConnectionTestService.java`
-- Create: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/ConnectionRequestMapper.java`
-- Create: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/ConnectionTestController.java`
-- Create: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/GenericCollectionController.java`
-- Modify: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/CollectionController.java`
-- Modify: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/CollectionRequestBodyAdvice.java`
-- Modify: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/CollectionCredentialCleanupFilter.java`
-- Modify: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/security/DeviceOpsSecurityConfiguration.java`
-- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/deviceops/server/DeviceOpsWiringConfiguration.java`
-- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/deviceops/server/RuntimeConfigProperties.java`
-- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/deviceops/server/RuntimeConfigController.java`
-- Create: `device-ops-platform/device-ops-adapter-web-spring/src/test/java/com/dp/deviceops/adapter/web/ConnectionTestControllerTest.java`
-- Create: `device-ops-platform/device-ops-adapter-web-spring/src/test/java/com/dp/deviceops/adapter/web/GenericCollectionControllerTest.java`
+- Create: `device-ops-platform/device-ops-core/src/main/java/com/dp/plat/deviceops/core/service/ConnectionTestService.java`
+- Create: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/ConnectionRequestMapper.java`
+- Create: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/ConnectionTestController.java`
+- Create: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/GenericCollectionController.java`
+- Modify: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/CollectionController.java`
+- Modify: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/CollectionRequestBodyAdvice.java`
+- Modify: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/CollectionCredentialCleanupFilter.java`
+- Modify: `device-ops-platform/device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/security/DeviceOpsSecurityConfiguration.java`
+- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/plat/deviceops/server/DeviceOpsWiringConfiguration.java`
+- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/plat/deviceops/server/RuntimeConfigProperties.java`
+- Modify: `device-ops-platform/device-ops-server/src/main/java/com/dp/plat/deviceops/server/RuntimeConfigController.java`
+- Create: `device-ops-platform/device-ops-adapter-web-spring/src/test/java/com/dp/plat/deviceops/adapter/web/ConnectionTestControllerTest.java`
+- Create: `device-ops-platform/device-ops-adapter-web-spring/src/test/java/com/dp/plat/deviceops/adapter/web/GenericCollectionControllerTest.java`
 
 **Interfaces:**
 - Produces: `POST /api/v1/connections/test`

@@ -7,10 +7,9 @@ export interface AcceptanceVO {
   code?: string
   name: string
   acceptanceType?: string
-  signedDate?: Date
-  conclusion?: string
-  opinion?: string
-  attachmentUrl?: string
+  acceptanceDate?: string
+  planId?: number
+  approveOpinion?: string
   status?: number
   remark?: string
   version?: number

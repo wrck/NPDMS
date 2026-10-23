@@ -46,6 +46,16 @@ public class SyncRunService {
     public record Start(Long taskId,Integer expectedVersion,String requestKey,boolean preview,
                         boolean full,boolean adoptExisting,Long retryOf,boolean confirmPreparation) {}
 
+    @org.springframework.transaction.annotation.Transactional(readOnly=true)
+    public cn.iocoder.yudao.framework.common.pojo.PageResult<SyncBindingDO> mappings(SyncQueries.Page page) {
+        taskService.required(page.getTaskId());
+        var query=new cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.query.SyncBindingPageQuery(
+                SyncTaskService.tenant(),page.getTaskId(),((long)page.getPageNo()-1)*page.getPageSize(),page.getPageSize());
+        var result=bindings.selectPage(query);
+        result.getList().forEach(binding->binding.setFieldsJson(JsonUtils.toJsonString(SyncBindingSnapshots.decode(binding.getFieldsJson()))));
+        return result;
+    }
+
     public Long start(Start command) {
         if(command.requestKey()==null||!command.requestKey().matches("[A-Za-z0-9_-]{1,64}"))
             throw new IllegalArgumentException("请求标识无效");
@@ -157,6 +167,7 @@ public class SyncRunService {
             if(!cacheRefresh && (d.clearBeforeLoad()||d.resetMappingsBeforeLoad())&&snapshot.objects().stream().allMatch(o->o.rows().isEmpty()))
                 throw new IllegalArgumentException("来源为空，拒绝清空目标组织或重置映射");
             var adapter=validator.adapter(d.toBuilder().executionActorId(resolved.executionActorId()).build());
+            if(!r.getPreview() && r.getPageNumber()==null)compactBindings(runId,task,d,adapter);
             List<SyncBindingDO> bindingRows=(d.clearBeforeLoad()||d.resetMappingsBeforeLoad())?List.of():
                     adapter.requiresAllBindings()?bindings.selectTask(new SyncQueries.Task(SyncTaskService.tenant(),task.getId()))
                             :loadPageBindingRows(task.getId(),d,snapshot);
@@ -164,10 +175,12 @@ public class SyncRunService {
             var rows=fieldMapper.transform(d,snapshot,existing);
             Set<String> stale=new HashSet<>();
             rows=protectNewer(rows,existing,stale);
-            var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,r.getFullSnapshot(),d.missingPolicy(),r.getAdoptExisting(),d.loadingMode(),d.clearBeforeLoad());
+            var evaluatedRows=rows;
+            var activeRows=adapter.requiresAllBindings()?rows:rows.stream().filter(row->!stale.contains(row.object()+":"+row.sourceKey())).toList();
+            var batch=new DataSyncAdapter.Batch(owner(task),activeRows,existing,r.getFullSnapshot(),d.missingPolicy(),r.getAdoptExisting(),d.loadingMode(),d.clearBeforeLoad());
             if(r.getPreview()) {
-                var preview=d.adapter().endsWith("_DIRECT")
-                        ?directPreviewTransaction().execute(status->adapter.preview(batch)):adapter.preview(batch);
+                var preview=markStale(d.adapter().endsWith("_DIRECT")
+                        ?directPreviewTransaction().execute(status->adapter.preview(batch)):adapter.preview(batch),stale,evaluatedRows);
                 if(preview.stream().anyMatch(c->"CONFLICT".equals(c.action()))) {
                     saveResult(runId,preview);throw new IllegalArgumentException("存在目标归属或字段冲突，未写入任何业务记录");
                 }
@@ -205,10 +218,10 @@ public class SyncRunService {
                 var changes=adapter.apply(batch);
                 if(changes.stream().anyMatch(c->"CONFLICT".equals(c.action())))throw new IllegalArgumentException("写入时发生业务冲突");
                 verifyPrimaryKeys(batch,changes);
-                List<DataSyncAdapter.Change> finalChanges=markStale(changes,stale);
+                List<DataSyncAdapter.Change> finalChanges=markStale(changes,stale,evaluatedRows);
                 timing.stop();timing.start("bindings");
                 if(cacheRefresh)displayCaches.retireBindings(new SyncQueries.Task(SyncTaskService.tenant(),t.getId()));
-                else persistBindings(t,d,finalChanges,runId,bindingRows);
+                else persistBindings(t,d,finalChanges,runId,bindingRows,adapter);
                 if(DppmsPublishedProjectScopeService.eligible(d))projectScopes.getObject().capture(
                         new DppmsPublishedProjectScopeService.Capture(r,d,finalChanges));
                 timing.stop();timing.start("evidence");
@@ -263,6 +276,7 @@ public class SyncRunService {
             var adapter=validator.adapter(d.toBuilder().executionActorId(actor).build());
             if(!adapter.supportsStreaming())throw new IllegalArgumentException("当前业务适配器不支持流式分块执行");
             updateStatus(runId,"READING");
+            if(!root.getPreview())compactBindings(runId,task,d,adapter);
             SyncStreamingState resume=null;
             if("CHECKPOINT_KEY".equals(d.effectiveRestartPolicy())&&root.getPagingJson()!=null)
                 resume=JsonUtils.parseObject(root.getPagingJson(),SyncStreamingState.class);
@@ -280,7 +294,10 @@ public class SyncRunService {
                     streamingReader.stream(resolved,task.getCheckpoint(),true,null,installations::capture);
                     installations.replay(consume);
                 }
-            } else streamingReader.stream(resolved,task.getCheckpoint(),root.getFullSnapshot(),resume,consume);
+            } else {
+                var checkpoint=resume;
+                SyncStreamingPipeline.consume(producer->streamingReader.stream(resolved,task.getCheckpoint(),root.getFullSnapshot(),checkpoint,producer),consume);
+            }
             var completed=required(runId);
             if(root.getPreview() && completed.getSummaryJson()!=null
                     && ((Number)JsonUtils.parseMap(completed.getSummaryJson()).getOrDefault("CONFLICT",0)).longValue()>0)
@@ -358,7 +375,8 @@ public class SyncRunService {
             timing.stop();timing.start("transform");
             var rows=fieldMapper.transform(d,snapshot,existing);
             Set<String> stale=new HashSet<>();rows=protectNewer(rows,existing,stale);
-            var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,d.adapter().endsWith("_DIRECT") && Boolean.TRUE.equals(current.getFullSnapshot()),d.missingPolicy(),false,d.loadingMode(),false);
+            var activeRows=adapter.requiresAllBindings()?rows:rows.stream().filter(row->!stale.contains(row.object()+":"+row.sourceKey())).toList();
+            var batch=new DataSyncAdapter.Batch(owner(task),activeRows,existing,d.adapter().endsWith("_DIRECT") && Boolean.TRUE.equals(current.getFullSnapshot()),d.missingPolicy(),false,d.loadingMode(),false);
             // Target validation still runs for every row; source equality alone cannot hide target drift.
             // FULL retains the original staging order. Reuse mode stages only facts not already evidenced.
             boolean reuseEvidence="REUSE_UNCHANGED".equals(d.effectiveEvidencePolicy());
@@ -370,14 +388,14 @@ public class SyncRunService {
             if(!current.getPreview() && changes.stream().anyMatch(c->"CONFLICT".equals(c.action())))
                 throw new IllegalArgumentException("流式分块存在目标归属或字段冲突，当前分块已回滚");
             verifyPrimaryKeys(batch,changes);
-            var finalChanges=markStale(changes,stale);
+            var finalChanges=markStale(changes,stale,rows);
             timing.stop();timing.start("evidenceSelection");
             var selection=SyncEvidenceSelection.select(d,snapshot,finalChanges,bindingRows,current.getPreview(),"TABLE_MAPPING".equals(d.adapter())?existing:List.of());
             var materialChanges=selection.needingEvidence(finalChanges);
             if(reuseEvidence && !selection.snapshot().objects().isEmpty())
                 evidence=evidenceService.stage(runId,d,selection.snapshot(),correlation,"s"+chunk.sourceIndex()+"-c"+chunk.sequence());
             timing.stop();timing.start("bindingsWrite");
-            if(!current.getPreview())persistBindings(t,d,materialChanges,runId,bindingRows);
+            if(!current.getPreview())persistBindings(t,d,materialChanges,runId,bindingRows,adapter);
             if(DppmsPublishedProjectScopeService.eligible(d))projectScopes.getObject().capture(
                     new DppmsPublishedProjectScopeService.Capture(current,d,finalChanges));
             timing.stop();timing.start("evidenceComplete");
@@ -437,6 +455,7 @@ public class SyncRunService {
         try {
             acquired=lock.tryLock(1,TimeUnit.SECONDS);
             if(!acquired)throw new IllegalStateException("目标范围正在由另一任务同步");
+            if(!root.getPreview())compactBindings(runId,taskService.required(root.getTaskId()),d,validator.adapter(d));
             if(root.getPagingJson()==null) {
                 var initial=reader.pagingBounds(connections.resolve(d));
                 var checkpoint=taskService.required(root.getTaskId()).getCheckpoint();
@@ -560,8 +579,38 @@ public class SyncRunService {
             failTask(r,d);
         });
     }
+    /** Active binding snapshots are mutable replay metadata; immutable source/reconciliation evidence stays in PLT. */
+    private void compactBindings(Long runId,SyncTaskDO task,SyncDefinition d,DataSyncAdapter adapter) {
+        if(!"TABLE_MAPPING".equals(d.adapter()))return;
+        long afterId=0,total=0;
+        while(true) {
+            var query=new SyncQueries.BindingCompaction(task.getTenantId(),task.getId(),afterId,1000);
+            var page=tx().execute(status->{
+                var current=required(runId);var owner=taskService.locked(task.getId());
+                if(!Objects.equals(owner.getActiveRunId(),runId)||!Objects.equals(owner.getVersion(),current.getConfigVersion()))
+                    throw new IllegalStateException("绑定精简运行所有权或配置版本变化");
+                var records=bindings.selectCompactionForUpdate(query);
+                List<GenericSyncJdbcStore.BatchUpdate> updates=new ArrayList<>();
+                for(var record:records) {
+                    var previous=new DataSyncAdapter.Change(record.getObjectKey(),record.getSourceKey(),record.getTargetId(),
+                            "UNCHANGED",Map.of(),SyncBindingSnapshots.decode(record.getFieldsJson()),null);
+                    Map<String,Object> values=new LinkedHashMap<>();
+                    values.put("fields_json",JsonUtils.toJsonString(adapter.bindingFields(previous)));
+                    values.put("updater","data_sync");values.put("update_time",LocalDateTime.now());
+                    updates.add(new GenericSyncJdbcStore.BatchUpdate(BINDING_TABLE,Map.of("id",record.getId()),values,0));
+                }
+                jdbcStore.updateBatch(BINDING_TABLE,updates);
+                return records;
+            });
+            if(page.isEmpty())break;
+            afterId=page.getLast().getId();total+=page.size();
+            if(total%20000==0)log.info("Data sync run={} compactedBindings={}",runId,total);
+        }
+        if(total>0)log.info("Data sync run={} binding snapshots compacted={}",runId,total);
+    }
     private void persistBindings(SyncTaskDO task,SyncDefinition d,List<DataSyncAdapter.Change> changes,Long runId,
-                                 List<SyncBindingDO> bindingRows) {        boolean targetShared=validator.adapter(d).sharesTargetAcrossSources();
+                                 List<SyncBindingDO> bindingRows,DataSyncAdapter adapter) {
+        boolean targetShared=adapter.sharesTargetAcrossSources();
         Map<String,SyncBindingDO> existing=new HashMap<>();
         // All binding writers hold the same adapter lock; reuse this chunk's protected snapshot.
         bindingRows.forEach(b->existing.put(b.getObjectKey()+":"+b.getSourceKey(),b));
@@ -580,7 +629,7 @@ public class SyncRunService {
         for(var c:changes) {
             if(c.targetId()==null||Set.of("SKIPPED","CLEARED","ISSUE").contains(c.action()))continue;
             var b=existing.get(c.object()+":"+c.sourceKey());boolean fresh=b==null;
-            String fieldsJson=SyncBindingSnapshots.encode(c.after(),"REUSE_UNCHANGED".equals(d.effectiveEvidencePolicy()));
+            String fieldsJson=SyncBindingSnapshots.encode(adapter.bindingFields(c),"REUSE_UNCHANGED".equals(d.effectiveEvidencePolicy()));
             if(!fresh && Objects.equals(b.getTargetId(),c.targetId())
                     && (Objects.equals(b.getFieldsJson(),fieldsJson)
                         || SyncBindingSnapshots.same(SyncBindingSnapshots.decode(b.getFieldsJson()),c.after()))
@@ -647,9 +696,14 @@ public class SyncRunService {
             return r;
         }).toList();
     }
-    private static List<DataSyncAdapter.Change> markStale(List<DataSyncAdapter.Change> changes,Set<String> stale) {
-        return changes.stream().map(c->stale.contains(c.object()+":"+c.sourceKey())
-                ?new DataSyncAdapter.Change(c.object(),c.sourceKey(),c.targetId(),"SKIPPED",c.before(),c.after(),"旧来源版本已跳过"):c).toList();
+    private static List<DataSyncAdapter.Change> markStale(List<DataSyncAdapter.Change> changes,Set<String> stale,
+                                                        List<DataSyncAdapter.Row> evaluatedRows) {
+        List<DataSyncAdapter.Change> result=new ArrayList<>(changes.stream().map(c->stale.contains(c.object()+":"+c.sourceKey())
+                ?new DataSyncAdapter.Change(c.object(),c.sourceKey(),c.targetId(),"SKIPPED",c.before(),c.after(),"旧来源版本已跳过"):c).toList());
+        Set<String> reported=new HashSet<>();result.forEach(c->reported.add(c.object()+":"+c.sourceKey()));
+        for(var row:evaluatedRows)if(stale.contains(row.object()+":"+row.sourceKey()) && !reported.contains(row.object()+":"+row.sourceKey()))
+            result.add(new DataSyncAdapter.Change(row.object(),row.sourceKey(),row.targetId(),"SKIPPED",Map.of(),row.fields(),"旧来源版本已跳过"));
+        return result;
     }
     private static void verifyPrimaryKeys(DataSyncAdapter.Batch batch,List<DataSyncAdapter.Change> changes) {
         Map<String,DataSyncAdapter.Change> byKey=new HashMap<>();changes.forEach(c->byKey.put(c.object()+":"+c.sourceKey(),c));

@@ -406,14 +406,6 @@ export enum DICT_TYPE {
   PMS_DOCUMENT_TYPE = 'pms_document_type', // 文档类型
   PMS_TRAINING_TYPE = 'pms_training_type', // 培训类型
   PMS_ACCEPTANCE_STATUS = 'pms_acceptance_status', // 验收状态
-  PMS_INSPECTION_MODE = 'pms_inspection_mode', // 巡检模式
-  PMS_SRV_TASK_STATUS = 'pms_srv_task_status', // 巡检任务状态
-  PMS_SRV_RULE_TYPE = 'pms_srv_rule_type', // 巡检规则类型
-  PMS_SRV_RULE_STATUS = 'pms_srv_rule_status', // 巡检规则状态
-  PMS_SRV_REPORT_TYPE = 'pms_srv_report_type', // 巡检报告类型
-  PMS_SRV_REPORT_STATUS = 'pms_srv_report_status', // 巡检报告状态
-  PMS_SRV_ISSUE_SEVERITY = 'pms_srv_issue_severity', // 巡检问题严重等级
-  PMS_SRV_ISSUE_STATUS = 'pms_srv_issue_status', // 巡检问题状态
   PMS_SRV_MAINTENANCE_STATUS = 'pms_srv_maintenance_status', // 维保状态
   PMS_SERVICE_LEVEL = 'pms_service_level', // 服务等级
   PMS_SRV_LEVEL_STATUS = 'pms_srv_level_status', // 服务等级状态

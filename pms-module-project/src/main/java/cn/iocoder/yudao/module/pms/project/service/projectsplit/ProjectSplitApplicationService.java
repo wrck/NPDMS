@@ -117,7 +117,9 @@ public class ProjectSplitApplicationService {
                     actor.actorId(), actor.correlationId());
             created.add(new CreatedProject(item.getClientItemKey(), child.getId(), child.getProjectCode()));
             projectIds.put(item.getClientItemKey(), child.getId());
-            projectVersions.put(item.getClientItemKey(), child.getVersion());
+            // Initial stage admission may advance the stored version after the creation draft was built.
+            ProjectMasterDO initializedChild = projectMapper.selectByIdForUpdate(child.getId());
+            projectVersions.put(item.getClientItemKey(), initializedChild.getVersion());
         }
         SplitScopeApplyResult scopeResult = deliveryScopeApi.applySplit(new SplitScopeApplyCommand(
                 actor.tenantId(), parent.getId(), parent.getVersion(), command.expectedScopeVersion(),

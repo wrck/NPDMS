@@ -104,10 +104,23 @@
           <el-descriptions-item label="结束时间">{{
             formatDate(selected.finishedAt) || '尚未结束'
           }}</el-descriptions-item>
-          <el-descriptions-item :label="isPagedRoot(selected) ? '已完成页行数' : '读取行数'">{{
-            selected.readCount ?? '尚未返回'
-          }}</el-descriptions-item>
+          <el-descriptions-item
+            :label="
+              selectedProgress
+                ? '本次处理行数'
+                : isPagedRoot(selected)
+                  ? '已完成页行数'
+                  : '读取行数'
+            "
+            >{{ selected.readCount ?? '尚未返回' }}</el-descriptions-item
+          >
           <el-descriptions-item label="处理结果">{{ summary }}</el-descriptions-item>
+          <el-descriptions-item v-if="selectedProgress" label="累计已提交行数">{{
+            selectedProgress.committedRows
+          }}</el-descriptions-item>
+          <el-descriptions-item v-if="selectedProgress" label="已提交分块">{{
+            selectedProgress.committedChunks
+          }}</el-descriptions-item>
           <el-descriptions-item
             v-if="selected.parentRunId && !selected.pageNumber"
             label="重试来源"
@@ -195,6 +208,9 @@
         />
       </ContentWrap>
       <ContentWrap v-else :title="selected.preview ? '预计变更' : '处理明细'">
+        <p v-if="selectedProgress && !selected.preview" class="integration-note"
+          >此处展示处理样本；全量处理结果以运行汇总为准，关联重试保留已提交分块。</p
+        >
         <el-alert
           v-if="changeTotal > 0 && (selected.readCount ?? 0) > changeTotal"
           :title="`当前展示前 ${changeTotal} 条明细样本。完整读取及处理数量见运行结果，全部来源记录保存在迁移证据中。`"
@@ -291,6 +307,19 @@ const isPagedRoot = (run: api.Run) => {
     return false
   }
 }
+const streamingProgress = (run: api.Run) => {
+  if (!run.pagingJson || run.pageNumber) return undefined
+  try {
+    const progress = JSON.parse(run.pagingJson)
+    return typeof progress.committedRows === 'number' &&
+      typeof progress.committedChunks === 'number'
+      ? (progress as { committedRows: number; committedChunks: number })
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+const selectedProgress = computed(() => selected.value && streamingProgress(selected.value))
 const runStatusLabel = (run: api.Run) =>
   run.status === 'FAILED' && run.pagingJson && !run.pageNumber
     ? run.preview

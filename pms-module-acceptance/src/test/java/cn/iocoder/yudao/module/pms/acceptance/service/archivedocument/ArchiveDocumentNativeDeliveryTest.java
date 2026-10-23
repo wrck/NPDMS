@@ -14,9 +14,9 @@ import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 @ExtendWith(MockitoExtension.class)
 class ArchiveDocumentNativeDeliveryTest {
- @Mock ArchiveDocumentMapper mapper; @Mock PlatformDeliveryMaterialApi materials; @Mock cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccess nativeAccess;
+ @Mock ArchiveDocumentMapper mapper; @Mock PlatformDeliveryMaterialApi materials; @Mock cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccess nativeAccess; @Mock cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceProjectAccess projectAccess;
  @InjectMocks ArchiveDocumentServiceImpl service;
- @BeforeEach void setup(){TenantContextHolder.setTenantId(7L);org.springframework.test.util.ReflectionTestUtils.setField(service,"archiveDocumentMapper",mapper);org.springframework.test.util.ReflectionTestUtils.setField(service,"deliveryMaterials",materials);}
+ @BeforeEach void setup(){TenantContextHolder.setTenantId(7L);org.springframework.test.util.ReflectionTestUtils.setField(service,"archiveDocumentMapper",mapper);org.springframework.test.util.ReflectionTestUtils.setField(service,"deliveryMaterials",materials);org.springframework.test.util.ReflectionTestUtils.setField(service,"projectAccess",projectAccess);}
  @AfterEach void clear(){TenantContextHolder.clear();}
  ArchiveDocumentDO owner(int status){var row=new ArchiveDocumentDO();row.setId(9L);row.setTenantId(7L);row.setProjectId(20L);row.setName("Archive");row.setStatus(status);row.setVersion(4L);return row;}
  ArchiveDocumentSaveReqVO request(){var req=new ArchiveDocumentSaveReqVO();req.setId(9L);req.setProjectId(20L);req.setName("Archive");req.setVersion(4);req.setDocumentUrl("/history/a.pdf");req.setVersionNo("v2.3");return req;}

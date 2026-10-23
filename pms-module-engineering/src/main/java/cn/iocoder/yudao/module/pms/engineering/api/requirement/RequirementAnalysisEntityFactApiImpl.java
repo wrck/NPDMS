@@ -41,8 +41,11 @@ public class RequirementAnalysisEntityFactApiImpl implements RequirementAnalysis
         requireQuery(query);
         var actor = trustedActor();
         requireQueryPermission(actor);
-        requireScope(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.actorId(),
-                query.projectId(), ProjectScopeApi.ACTION_VIEW)), query.projectId());
+        requireScope(projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()), query.projectId());
         var project = organizationFactApi.inspect(new ProjectOrganizationFactQuery(query.projectId()));
         requireProject(project, query.projectId());
         var selected = query.revisionId() == null
@@ -61,10 +64,17 @@ public class RequirementAnalysisEntityFactApiImpl implements RequirementAnalysis
         requireQuery(expected);
         var actor = trustedActor();
         requireQueryPermission(actor);
-        var scope = requireScope(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.actorId(),
-                expected.projectId(), ProjectScopeApi.ACTION_VIEW)), expected.projectId());
-        requireScope(projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.actorId(),
-                expected.projectId(), ProjectScopeApi.ACTION_VIEW, scope.treeVersion())), expected.projectId());
+        var scope = requireScope(projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(expected.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()), expected.projectId());
+        requireScope(projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(expected.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(scope.treeVersion()).build()), expected.projectId());
         var project = organizationFactApi.lockAndRevalidate(new ProjectOrganizationFactRevalidationQuery(
                 expected.projectId(), expected.projectVersion()));
         requireProject(project, expected.projectId());

@@ -103,7 +103,7 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
  }
  P33InstallationSyncTask installation(List<P33InstallationSyncTask.Source> rows,AssetLocationApi locations){
   jdbc.update("INSERT INTO ast_device(id,tenant_id,sn,status,version,source_system,source_key) VALUES(9,1,'SN-1','IN_STOCK',0,'DPPMS','SN-1')");
-  var devices=mock(ProjectDeviceSelectionApi.class);when(devices.validateSelection(any(ProjectDeviceSelectionApi.SelectionQuery.class))).thenReturn(List.of(new SelectedProjectDevice(9L,"SN-1",null,null,null,null)));
+  var devices=mock(ProjectDeviceSelectionApi.class);when(devices.validateSelection(any(ProjectDeviceSelectionApi.AuthorizedSelection.class))).thenReturn(List.of(new SelectedProjectDevice(9L,"SN-1",null,null,null,null)));
   var mapper=mock(P33InstallationSyncTask.TargetMapper.class,org.mockito.AdditionalAnswers.delegatesTo(session.getMapper(P33InstallationSyncTask.TargetMapper.class)));
   doReturn(255).when(mapper).installLocationCapacity(); // Temporary fixture capacity; information_schema describes the permanent table.
   var task=spy(new P33InstallationSyncTask(mapper,publications,projects,devices,locations));doReturn(new ArrayList<>(rows)).when(task).syncDataQuery(any());return task;

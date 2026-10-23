@@ -48,8 +48,9 @@ public class DeliveryRequirementService {
     public List<DeliveryRequirementDO> syncFromConfig(String ownerModule, String entityType, Long entityId) {
         List<DeliveryRequirementDO> result = new ArrayList<>();
         for (DeliveryCapabilityConfigDO config : catalogService.enabledConfigs(ownerModule, entityType)) {
-            Optional<DeliveryRequirementDO> existing = requirementMapper.selectByOwnerAndType(
-                    ownerModule, entityType, entityId, config.getTypeCode());
+            Optional<DeliveryRequirementDO> existing = Optional.ofNullable(requirementMapper.selectIdentity(
+                    new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementIdentityQuery(
+                            TenantContextHolder.getRequiredTenantId(), ownerModule, entityType, entityId, config.getTypeCode())));
             if (existing.isPresent()) {
                 result.add(existing.get());
                 continue;
@@ -73,7 +74,9 @@ public class DeliveryRequirementService {
     }
 
     public List<DeliveryRequirementDO> listByEntity(String ownerModule, String entityType, Long entityId) {
-        return requirementMapper.selectByEntity(ownerModule, entityType, entityId);
+        return requirementMapper.selectByEntity(
+                new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementEntityQuery(
+                        TenantContextHolder.getRequiredTenantId(), ownerModule, entityType, entityId));
     }
 
     public record RequirementView(DeliveryRequirementDO requirement, int count, int minimumQuantity,
@@ -95,6 +98,10 @@ public class DeliveryRequirementService {
     @Transactional(rollbackFor = Exception.class)
     public CompletionFact evaluateCompletion(Long requirementId) {
         DeliveryRequirementDO requirement = requireRequirement(requirementId);
+        if (requirement.getArchivedReopenSnapshotId() != null && requirement.getArchivedReopenSnapshotId() != 0L) {
+            return new CompletionFact(requirementId, 0, requirement.getMinimumQuantity(), false, false,
+                    "DELIVERY_PREVIOUS_PROJECT_ROUND");
+        }
         if (DeliveryRequirementDO.KIND_CATALOG.equals(requirement.getRequirementKind())) {
             catalogService.requireEnabledType(requirement.getTypeCode());
         }
@@ -140,6 +147,21 @@ public class DeliveryRequirementService {
                                     DeliveryRequirementDO requirement, int count) {
     }
 
+    static void requireCurrent(DeliveryRequirementDO requirement) {
+        if (requirement.getArchivedReopenSnapshotId() != null && requirement.getArchivedReopenSnapshotId() != 0L) {
+            throw new BusinessContractException("DELIVERY_PREVIOUS_PROJECT_ROUND", "历史轮次交付记录只读");
+        }
+    }
+
+    private DeliveryRequirementDO lockCurrent(Long id) {
+        var row = requirementMapper.selectIdForUpdate(
+                new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryRequirementIdLockQuery(
+                        TenantContextHolder.getRequiredTenantId(), id));
+        if (row == null) throw new BusinessContractException("DELIVERY_REQUIREMENT_NOT_FOUND", "交付要求不存在: " + id);
+        requireCurrent(row);
+        return row;
+    }
+
     @Transactional
     public SubmissionOutcome submit(Long requirementId, String requestKey, List<Long> materialIds) {
         return submit(requirementId, requestKey, materialIds, null, null, null);
@@ -155,7 +177,7 @@ public class DeliveryRequirementService {
         if (materialIds == null || materialIds.isEmpty()) {
             throw new BusinessContractException("CONTRACT_REJECTED", "提交必须携带至少一个材料");
         }
-        DeliveryRequirementDO requirement = requireRequirement(requirementId);
+        DeliveryRequirementDO requirement = lockCurrent(requirementId);
         // 幂等重放按（要求 + request_key）范围：同键落在不同要求上是两个独立提交；
         // 携带请求快照的提交（TEMPLATE_FROZEN）在重放时比对载荷，同键不同载荷显式拒绝。
         Optional<DeliverySubmissionDO> replay = submissionMapper.selectByRequestKey(requirementId, requestKey);
@@ -245,9 +267,9 @@ public class DeliveryRequirementService {
             throw new BusinessContractException("DELIVERY_SUBMISSION_NOT_CURRENT",
                     "仅当前提交可以撤回: " + submissionId);
         }
+        DeliveryRequirementDO requirement = lockCurrent(submission.getRequirementId());
         submission.setStatus(DeliverySubmissionDO.STATUS_WITHDRAWN);
         submissionMapper.updateById(submission);
-        DeliveryRequirementDO requirement = requireRequirement(submission.getRequirementId());
         DeliveryRequirementDO updated = refreshStatus(requirement);
         publishRequirement(updated, "SUBMISSION_WITHDRAWN");
         return new SubmissionOutcome(submission, false, updated, countOf(updated));
@@ -255,7 +277,7 @@ public class DeliveryRequirementService {
 
     @Transactional
     public RequirementView confirm(Long requirementId) {
-        DeliveryRequirementDO requirement = requireRequirement(requirementId);
+        DeliveryRequirementDO requirement = lockCurrent(requirementId);
         if (DeliveryRequirementDO.KIND_CATALOG.equals(requirement.getRequirementKind())) {
             catalogService.requireEnabledType(requirement.getTypeCode());
         }
@@ -289,6 +311,8 @@ public class DeliveryRequirementService {
      *  TEMPLATE_FROZEN 要求的满足 = 数量达标 且 冻结规则判定通过。 */
     @Transactional
     public DeliveryRequirementDO refreshStatus(DeliveryRequirementDO requirement) {
+        requireCurrent(requirement);
+        requirement = lockCurrent(requirement.getId());
         int count = countOf(requirement);
         boolean satisfied = count >= requirement.getMinimumQuantity();
         if (satisfied && DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(requirement.getRequirementKind())) {

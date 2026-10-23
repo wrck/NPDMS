@@ -6,7 +6,7 @@ import type { TemplateMatchEvaluation } from '../project-templates'
  * 新链项目 API（F-PM01 / PM-01，复数路由 /pms/projects）
  *
  * 承接全部项目写语义（创建/更新/指派）与主档查询；
- * 旧单数路由 /pms/project 已冻结只读（仅 get/page 供旧页面选择器过渡）。
+ * 旧单数路由 /pms/project 已退役，项目选择器统一使用本接口。
  */
 
 /** 项目主档（列表行与详情共用） */
@@ -54,6 +54,8 @@ export interface ProjectMasterVO {
   serviceManagerAssigned?: boolean
   projectManagerAssigned?: boolean
   activeStageNames?: string[]
+  overdueNodes?: ProjectOverdueNode[]
+  completedOverdueNodes?: ProjectOverdueNode[]
   version?: number
   progress?: number
   aggregationWeight?: number
@@ -78,6 +80,17 @@ export interface ProjectMasterVO {
   closedAt?: Date
   projectEndDate?: string
   createTime?: Date
+}
+
+export interface ProjectOverdueNode {
+  nodeKind: 'STAGE' | 'TASK'
+  nodeId: number | string
+  nodeName?: string
+  planEndTime?: number
+  acceptanceTime?: number
+  completedAt?: number
+  workOverdue: boolean
+  acceptanceOverdue: boolean
 }
 
 /** 手工创建请求（BR-2 必填：名称/三维/创建原因；parentId 非空=下挂子项目；contractId 非空时服务端按合同链取CRM权威值并绑定） */
@@ -238,6 +251,7 @@ export interface ProjectInstancesVO {
   lifecycleTemplateId?: number
   lifecycleTemplateRevisionNo?: number
   stages: {
+    id?: number | string
     stageCode: string
     name: string
     sortOrder: number
@@ -246,6 +260,7 @@ export interface ProjectInstancesVO {
     suggestedEndTime?: string
     planStartTime?: string
     planEndTime?: string
+    acceptanceTime?: string
     actualStartTime?: string
     actualEndTime?: string
     deviationReason?: string
@@ -260,6 +275,7 @@ export interface ProjectInstancesVO {
     priority?: number
     sortOrder?: number
     estimatedHours?: number
+    requiredTask?: boolean
     satisfactionTiming?: string
     status: string
   }[]
@@ -280,6 +296,7 @@ export interface ProjectInstancesVO {
     taskCode?: string | null
     required?: boolean
     status: string
+    automaticCollection?: boolean
   }[]
   gates: {
     gateCode: string
@@ -367,6 +384,7 @@ export type ProjectTreeQueryType =
   | 'ANCESTORS'
   | 'BUSINESS_LEVEL'
   | 'LOCATE'
+  | 'FULL'
 
 export interface ProjectTreeNodeVO {
   projectId: number
@@ -380,6 +398,7 @@ export interface ProjectTreeNodeVO {
   progressStatus?: 'READY' | 'PENDING' | 'STALE' | 'RESTRICTED'
   progressRecordedAt?: string | number
   visibility: 'FULL' | 'ROOT_SUMMARY' | 'PATH_PLACEHOLDER'
+  displayDetails?: { office?: string; serviceManager?: string; projectManager?: string }
 }
 
 export interface ProjectTreeQueryVO {
@@ -585,6 +604,9 @@ export const matchTemplates = (params: ProjectMatchTemplatesReqVO) =>
 export type ProjectPageParams = PageParam & {
   projectCode?: string
   projectName?: string
+  customerCode?: string
+  overdueOnly?: boolean
+  hasShippedDevices?: boolean
   status?: string
   signingMethod?: string
   projectCategory?: string
@@ -612,8 +634,27 @@ export type ProjectPageParams = PageParam & {
 export const getProjectPage = (params: ProjectPageParams) =>
   request.get<{ list: ProjectMasterVO[]; total: number }>({ url: `${baseUrl}/page`, params })
 
+export interface ProjectStatistics {
+  total: number
+  overdue: number
+  s0: number
+  s1: number
+  s2: number
+  s3: number
+  s4: number
+  s5: number
+  s6: number
+  normalClosed: number
+  noTrackingClosed: number
+  exceptionClosed: number
+}
+
+/** 全部可见项目的状态卡计数，与列表筛选条件独立。 */
+export const getProjectStatistics = () =>
+  request.get<ProjectStatistics>({ url: `${baseUrl}/statistics` })
+
 /** 项目详情（基本信息+四维+模板绑定） */
-export const getProject = (id: number) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
+export const getProject = (id: number | string) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
 
 export const classifyProject = (
   id: number,
@@ -700,7 +741,7 @@ export const advanceProjectStage = (
   })
 
 /** 成员区间列表（当前有效+历史） */
-export const getProjectMembers = (id: number) =>
+export const getProjectMembers = (id: number | string) =>
   request.get<ProjectMemberAssignmentVO[]>({ url: `${baseUrl}/${id}/members` })
 
 export interface ServiceManagerCandidateVO {
@@ -794,7 +835,7 @@ export const assignManager = (
   })
 
 export const queryTree = (
-  id: number,
+  id: string | number,
   params: {
     queryType: ProjectTreeQueryType
     businessLevelCode?: string
@@ -846,7 +887,7 @@ export const submitProgressPolicy = (
     headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
   })
 
-export const getClosureGuard = (projectId: number, treeVersion: number) =>
+export const getClosureGuard = (projectId: string | number, treeVersion: string | number) =>
   request.get<ProjectClosureGuardVO>({
     url: `/pms/closure-gates/${projectId}`,
     params: { treeVersion }

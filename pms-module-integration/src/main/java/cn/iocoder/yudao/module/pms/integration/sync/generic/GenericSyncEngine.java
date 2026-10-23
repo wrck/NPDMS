@@ -165,6 +165,11 @@ public class GenericSyncEngine {
         @Override public boolean requiresAllBindings(){return false;}
         @Override public boolean sharesTargetAcrossSources(){return true;}
         @Override public boolean supportsStreaming(){return true;}
+        @Override public Map<String,Object> bindingFields(Change change){
+            if(localDelivery())return change.after();
+            Object updatedAt=change.after().get("_sourceUpdatedAt");
+            return updatedAt==null?Map.of():Map.of("_sourceUpdatedAt",updatedAt);
+        }
         @Override public List<String> writeTables(){
             return definition.sources().stream().flatMap(s->s.targets().stream()).map(GenericTargetStep::table)
                     .distinct().sorted().toList();
@@ -227,14 +232,14 @@ public class GenericSyncEngine {
             for(var row:batch.rows()) {
                 var source=Objects.requireNonNull(sourceByObject.get(row.object()),"Unknown source object");
                 String primaryStep=source.primaryTarget()==null?source.targets().getLast().name():source.primaryTarget();
-                // Only this row's writes are staged here. Never copy the whole chunk cache per row.
-                Map<String,Map<String,Object>> local=new HashMap<>();
+                var local=new RowOverlay(overlay);
                 List<Mutation> rowWrites=new ArrayList<>();List<Map<String,Object>> refs=new ArrayList<>();
                 Map<String,Object> variables=new HashMap<>(row.fields());
                 variables.put("$SOURCE_KEY",row.sourceKey());variables.put("$SOURCE_SYSTEM",definition.sourceSystem());variables.put("$ROW",row.fields().getOrDefault("_syncSourcePayload",row.fields()));
                 Map<String,Object> beforeValues=new LinkedHashMap<>(),afterValues=new LinkedHashMap<>();
                 List<String> warnings=new ArrayList<>();Long primary=null;String action="UNCHANGED";
                 String frozenEventPayload=null;
+                boolean primarySkipped=false;
                 try {
                     if("DEVICE_SN".equals(row.object()) && "delivery-full-sync".equals(cn.iocoder.yudao.module.pms.integration.sync.GenericDirectTaskLine.businessKey(definition))
                             && definition.sources().stream().anyMatch(s->"LOCAL_OWNER".equals(s.readMode()))) {
@@ -298,6 +303,7 @@ public class GenericSyncEngine {
                                 && (!"DPPMS_ERP".equals(values.get("master_source_system"))
                                 || old!=null && !"DPPMS_ERP".equals(old.get("master_source_system"))))
                             throw new Conflict("合同属于其他来源，禁止本地订单接管");
+                        if(old!=null && "INSERT_IGNORE".equals(step.mode()) && primaryStep.equals(step.name()))primarySkipped=true;
                         if(old!=null && deleted(table,old))throw new Conflict("目标已删除，禁止同步恢复: "+step.table());
                         if(old!=null && !table.immutable() && missingLookupOutputs.stream().anyMatch(column->old.get(column)!=null))throw new Conflict("已有关系无法重新解析，保留原记录: "+step.table());
                         if(old!=null && "INSERT_ONLY".equals(step.mode()))throw new Conflict("目标已存在: "+step.table());
@@ -380,10 +386,11 @@ public class GenericSyncEngine {
                     }
                     if(primary==null) {
                         // No orphan writes or fictitious lineage when the required primary step is skipped.
-                        rowWrites.clear();refs.clear();local.clear();beforeValues.clear();afterValues.clear();
+                        rowWrites.clear();refs.clear();local=new RowOverlay(overlay);beforeValues.clear();afterValues.clear();
                         warnings.add("主目标未生成，保留来源并跳过整行");
                     }
                     if(row.targetId()!=null && primary!=null && !row.targetId().equals(primary))throw new Conflict("来源已经绑定另一目标，禁止改换业务身份");
+                    if(primarySkipped && rowWrites.isEmpty())action="SKIPPED";
                     Map<String,Object> after=new LinkedHashMap<>(row.fields());after.put("_targets",refs);after.putAll(afterValues);
                     var prior=priorBindings.get(new SourceIdentity(row.object(),row.sourceKey()));
                     if(prior!=null && prior.lastFields().containsKey("_postCompletion"))
@@ -391,7 +398,7 @@ public class GenericSyncEngine {
                     if(!warnings.isEmpty())after.put("_warnings",warnings);
                     if(!apply)after.put("_previewVirtualIds",true);
                     changes.add(new Change(row.object(),row.sourceKey(),primary!=null&&primary>0?primary:null,primary==null?"SKIPPED":action,beforeValues,after,warnings.isEmpty()?null:String.join("; ",warnings)));
-                    overlay.putAll(local);mutations.addAll(rowWrites);
+                    local.commit();mutations.addAll(rowWrites);
                 } catch(IllegalArgumentException | ArithmeticException ex) {
                     changes.add(new Change(row.object(),row.sourceKey(),null,ex instanceof Conflict?"CONFLICT":"ISSUE",Map.of(),row.fields(),ex.getMessage()));
                 }
@@ -557,12 +564,12 @@ public class GenericSyncEngine {
                                     Map<String,Map<String,GenericSyncJdbcStore.Column>> schemas) {
         values=comparisonKeys(table,values,schemas);
         String key=cacheKey(table,values);
-        if(local.containsKey(key))return local.get(key);
-        if(!overlay.containsKey(key)) {
+        boolean localMatch=local.containsKey(key);
+        if(!localMatch && !overlay.containsKey(key)) {
             var rows=store.find(new GenericSyncJdbcStore.Match(table,values,lock));
             overlay.put(key,rows.size()>1?AMBIGUOUS_LOOKUP:rows.isEmpty()?null:rows.getFirst());
         }
-        var result=overlay.get(key);
+        var result=localMatch?local.get(key):overlay.get(key);
         if(result==AMBIGUOUS_LOOKUP)throw new AmbiguousLookup("关联不唯一: "+table.table());
         return result;
     }
@@ -590,7 +597,10 @@ public class GenericSyncEngine {
         }
         return normalized==null?values:normalized;
     }
-    private static String cacheKey(GenericTargetCatalog.Table table,Map<String,Object> values) {return table.table()+":"+JsonUtils.toJsonString(new TreeMap<>(values));}
+    private static String cacheKey(GenericTargetCatalog.Table table,Map<String,Object> values) {
+        Map<String,String> normalized=new TreeMap<>();values.forEach((column,value)->normalized.put(column,canonical(value)));
+        return table.table()+":"+JsonUtils.toJsonString(normalized);
+    }
     private static boolean deleted(GenericTargetCatalog.Table table,Map<String,Object> row) {return table.deletedColumn()!=null && (Boolean.TRUE.equals(row.get(table.deletedColumn())) || "1".equals(Objects.toString(row.get(table.deletedColumn()),"")));}
     private static boolean present(Object value) {return value!=null && (!(value instanceof String text)||!text.isBlank());}
     private static boolean equal(Object a,Object b) {
@@ -672,6 +682,14 @@ public class GenericSyncEngine {
         return false;
     }
     private record Mutation(GenericTargetCatalog.Table table,Map<String,Object> before,Map<String,Object> values) {}
+    /** Row-local changes are published only after every step succeeds; copying the whole chunk per row is quadratic. */
+    private static class RowOverlay extends HashMap<String,Map<String,Object>> {
+        private final Map<String,Map<String,Object>> committed;
+        RowOverlay(Map<String,Map<String,Object>> committed){this.committed=committed;}
+        @Override public boolean containsKey(Object key){return super.containsKey(key)||committed.containsKey(key);}
+        @Override public Map<String,Object> get(Object key){return super.containsKey(key)?super.get(key):committed.get(key);}
+        void commit(){committed.putAll(this);}
+    }
     private static class AmbiguousLookup extends IllegalArgumentException {AmbiguousLookup(String message){super(message);}}
     private static class Conflict extends IllegalArgumentException {Conflict(String message){super(message);}}
 }

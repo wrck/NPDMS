@@ -3,8 +3,10 @@
     <header class="panel-header">
       <span class="panel-title"><Icon icon="ep:user" /> 项目成员</span>
       <div class="actions">
-        <el-button :disabled="opening" @click="load"><Icon icon="ep:refresh" />刷新</el-button>
+        <el-button v-if="!hasActionBar" :disabled="opening" @click="load"><Icon icon="ep:refresh" />刷新</el-button>
+        <Teleport :to="barTarget || 'body'" :disabled="!hasActionBar">
         <el-button v-hasPermi="['pms:project-team:create', 'pms:project:assign']" type="primary" :disabled="!editable" @click="openMember()"><Icon icon="ep:plus" />新增成员</el-button>
+        </Teleport>
       </div>
     </header>
     <el-alert v-if="error" :title="error" type="error" :closable="false" role="alert" />
@@ -27,6 +29,9 @@
         {{ row.memberName || '姓名未记录' }}
       </template></el-table-column>
       <el-table-column label="人员编码" min-width="100"><template #default="{ row }">{{ row.memberCode || row.employeeNo || '—' }}</template></el-table-column>
+      <el-table-column label="单位" min-width="130" show-overflow-tooltip><template #default="{ row }">{{ row.companyName || '—' }}</template></el-table-column>
+      <el-table-column label="部门" min-width="120" show-overflow-tooltip><template #default="{ row }">{{ row.departmentName || '—' }}</template></el-table-column>
+      <el-table-column label="职务" min-width="120" show-overflow-tooltip><template #default="{ row }">{{ row.title || '—' }}</template></el-table-column>
       <el-table-column label="角色" min-width="95"><template #default="{ row }">{{ roleLabel(row.memberRole) }}</template></el-table-column>
       <el-table-column label="联系电话" min-width="125"><template #default="{ row }">{{ row.mobile || '—' }}</template></el-table-column>
       <el-table-column label="邮箱" min-width="155" show-overflow-tooltip><template #default="{ row }">{{ row.email || '—' }}</template></el-table-column>
@@ -45,9 +50,11 @@
     </el-table>
     <Pagination v-model:page="query.pageNo" v-model:limit="query.pageSize" :total="total" @pagination="load" />
     <el-text v-if="project.lifecycleStatus !== 'ACTIVE'" type="info">项目已关闭，成员只读。</el-text>
-    <el-dialog v-model="memberVisible" :title="rejoin ? '重新加入项目' : selected ? '编辑项目成员' : '新增项目成员'"
+    <el-dialog
+v-model="memberVisible" :title="rejoin ? '重新加入项目' : selected ? '编辑项目成员' : '新增项目成员'"
       :width="dialogWidth" append-to-body :close-on-click-modal="false" destroy-on-close>
-      <UnifiedMemberForm v-if="memberVisible && dialogProject?.version != null" :project="dialogProject"
+      <UnifiedMemberForm
+v-if="memberVisible && dialogProject?.version != null" :project="dialogProject" :default-role="initialRole"
         :primary-user-id="managers?.primaryUserId ?? undefined" :member="selected" :rejoin="rejoin" @cancel="memberVisible = false" @saved="saved" />
     </el-dialog>
     <el-dialog v-model="removeVisible" title="移出项目成员" :width="dialogWidth" append-to-body :close-on-click-modal="false">
@@ -76,9 +83,12 @@ import * as Members from '@/api/pms/project/unified-members'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
 import UnifiedMemberForm from './OrdinaryMemberForm.vue'
 import { checkPermi } from '@/utils/permission'
+import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
+const { barTarget } = useBusinessActionBar()
+const hasActionBar = !!barTarget
 
 const memberRoles = Members.MEMBER_ROLE
-const props = defineProps<{ project: Projects.ProjectMasterVO }>()
+const props = defineProps<{ project: Projects.ProjectMasterVO; initialRole?: Members.ProjectMemberRole; readonly?: boolean }>()
 const emit = defineEmits<{ updated: [] }>()
 const roles: Record<string, string> = Object.fromEntries(Members.memberRoleOptions.map(role => [role.value, role.label]))
 const roleLabel = (role: string) => roles[Members.logicalMemberRole(role)] || role
@@ -95,7 +105,7 @@ const requiresReplacementPrimary = computed(() => selected.value?.memberRole ===
   && selected.value.userId === managers.value?.primaryUserId && retainedManagers.value.length > 0)
 const mobile = useMediaQuery('(max-width: 767px)')
 const dialogWidth = computed(() => mobile.value ? '96%' : '680px')
-const editable = computed(() => props.project.lifecycleStatus === 'ACTIVE' && !loading.value && !opening.value && !error.value)
+const editable = computed(() => !props.readonly && props.project.lifecycleStatus === 'ACTIVE' && !loading.value && !opening.value && !error.value)
 const removalSubmission = createSubmissionIdempotencyState()
 let sequence = 0
 const canMaintain = (row: Members.MemberRecord) => row.authorizationConfirmed !== false && row.userId != null && Members.memberRoleOptions.some(role =>
@@ -161,7 +171,7 @@ const saved = async () => {
   emit('updated')
 }
 const remove = async () => {
-  if (removing.value || !selected.value || dialogProject.value?.version == null) return
+  if (props.readonly || removing.value || !selected.value || dialogProject.value?.version == null) return
   if (!removeReason.value.trim()) { removeError.value = '请填写退出原因'; return }
   if (requiresReplacementPrimary.value && !replacementPrimaryUserId.value) { removeError.value = '请选择接任主责项目经理'; return }
   removing.value = true
@@ -175,13 +185,18 @@ const remove = async () => {
   } catch { removeError.value = '移出未成功。网络异常可重试；版本冲突时取消并刷新成员。' }
   finally { removing.value = false }
 }
-watch(() => props.project.id, () => {
+watch(() => [props.project.id, props.initialRole], () => {
   memberVisible.value = removeVisible.value = false
   rows.value = []
   total.value = 0
+  query.role = props.initialRole || ''
   reload()
 }, { immediate: true })
+watch(() => props.readonly, value => {
+  if (value) memberVisible.value = removeVisible.value = false
+})
 onBeforeUnmount(() => sequence++)
+defineExpose({ refresh: load, requestLeave: async () => !opening.value && !memberVisible.value && !removeVisible.value })
 </script>
 <style scoped>
 .panel-header, .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

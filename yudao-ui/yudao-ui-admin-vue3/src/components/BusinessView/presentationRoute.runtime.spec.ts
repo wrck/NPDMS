@@ -33,6 +33,10 @@ function harness() {
 beforeEach(() => vi.clearAllMocks())
 
 describe('registered embedded pages', () => {
+  it('registers distinct paths so approval and completed results cannot shadow each other', () => {
+    const paths = Object.values(businessPageRoutes).map(route => route.pageUrl)
+    expect(new Set(paths).size).toBe(paths.length)
+  })
   for (const route of Object.values(businessPageRoutes)) {
     it(`matches the exact ${route.componentKey} identity without converting string IDs`, () => {
       const context = { registration: route, resolvedContext: { project: { id: '9007199254740993' }, businessObjectId: '9007199254740994' } }

@@ -212,8 +212,12 @@ service.interceptors.response.use(
         // hard coding：忽略这个提示，直接登出
         console.log(msg)
         return handleAuthorized()
-      } else {
+      } else if (!(config as any).silentError) {
         ElNotification.error({ title: msg })
+      }
+      // 割接需要区分明确业务拒绝与断网后的未知结果，保留实际响应及恢复指令。
+      if ((config as any).preserveBusinessError) {
+        return Promise.reject(new AxiosError(msg, String(code), config, response.request, { ...response, data }))
       }
       return Promise.reject('error')
     } else {
@@ -224,12 +228,15 @@ service.interceptors.response.use(
     console.log('err' + error) // for debug
     let { message } = error
     const { t } = useI18n()
-    if (message === 'Network Error') {
+    const serverMessage = (error.response?.data as { msg?: unknown } | undefined)?.msg
+    if (typeof serverMessage === 'string' && serverMessage.trim()) {
+      message = serverMessage.trim()
+    } else if (message === 'Network Error') {
       message = t('sys.api.errorMessage')
     } else if (message.includes('timeout')) {
       message = t('sys.api.apiTimeoutMessage')
     } else if (message.includes('Request failed with status code')) {
-      message = t('sys.api.apiRequestFailed') + message.substr(message.length - 3)
+      message = t('sys.api.apiRequestFailed')
     }
     // silentError：调用方自行按契约结果呈现（如办理页的并发冲突提示），不再弹全局错误。
     if (!(error as any)?.config?.silentError) {

@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { checkPermi } from '@/utils/permission'
 import { startProjectStageGateProcess } from '@/api/pms/project/projects'
 import type { StageGateReference, StageGateWorkbench } from '@/api/pms/project/stage-gates'
@@ -24,7 +24,7 @@ import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/s
 import TaskApprovalForm from '@/views/pms/project/inheritance/detail/TaskApprovalForm.vue'
 const props = defineProps<{ workbench: StageGateWorkbench; reference: StageGateReference; editing: boolean; disabled?: boolean }>()
 const emit = defineEmits<{ edit: []; changed: [] }>()
-const router = useRouter()
+const openApprovalDetail = useProjectApprovalDetail()
 const formRef = ref<{ requestLeave: () => Promise<boolean>; isBusy: () => boolean }>()
 const busy = ref(false)
 const intent = createSubmissionIdempotencyState()
@@ -52,7 +52,7 @@ const submit = async (approval: TaskApprovalSubmission) => {
 }
 const openDetail = async () => {
   const id = props.reference.process?.processInstanceId
-  if (id && !isBusy()) await router.push({ name: 'BpmProcessInstanceDetail', query: { id } })
+  if (id && !isBusy()) await openApprovalDetail(id)
 }
 defineExpose({ requestLeave, isBusy })
 </script>

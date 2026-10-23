@@ -40,7 +40,7 @@ class InstallationHistoryInsertServiceTest {
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);when(permissions.hasAnyPermissions(2L,"pms:integration:execute")).thenReturn(true);
         when(historicalUsers.getHistoricalIdentitiesByUsername(1L,Set.of("old-user"))).thenReturn(List.of(new SystemUserMigrationApi.HistoricalIdentity(70L,"old-user")));
-        when(devices.validateSelection(any(ProjectDeviceSelectionApi.SelectionQuery.class))).thenReturn(List.of(new SelectedProjectDevice(50L,"SN",null,null,null,null)));
+        when(devices.validateSelection(any(ProjectDeviceSelectionApi.AuthorizedSelection.class))).thenReturn(List.of(new SelectedProjectDevice(50L,"SN",null,null,null,null)));
         when(codes.next(eq(30L),eq("AZ"),eq(records),any(String[].class))).thenReturn("P-AZ-001");
         when(inserts.insertHistorical(any())).thenReturn(1);
         when(locations.maintain(any())).thenReturn(new LocationReferenceDTO("RESOLVED",80L,0L,null,null,null,null,"原地址"));
@@ -69,7 +69,7 @@ class InstallationHistoryInsertServiceTest {
     @Test void tenantPermissionAndSourceIdentityFailuresCannotInsert() {
         var c=command();assertThrows(IllegalArgumentException.class,()->service.insert(new Command(9L,2L,30L,c.rows())));
         assertThrows(org.springframework.security.access.AccessDeniedException.class,()->service.insert(new Command(1L,3L,30L,c.rows())));
-        when(devices.validateSelection(any(ProjectDeviceSelectionApi.SelectionQuery.class))).thenReturn(List.of(new SelectedProjectDevice(50L,"OTHER",null,null,null,null)));
+        when(devices.validateSelection(any(ProjectDeviceSelectionApi.AuthorizedSelection.class))).thenReturn(List.of(new SelectedProjectDevice(50L,"OTHER",null,null,null,null)));
         assertThrows(IllegalArgumentException.class,()->service.insert(command()));verifyNoInteractions(inserts,locations);
     }
     @Test void multipleHistoricalRowsForOneDeviceCreateOnlyOneCurrentLocation() {

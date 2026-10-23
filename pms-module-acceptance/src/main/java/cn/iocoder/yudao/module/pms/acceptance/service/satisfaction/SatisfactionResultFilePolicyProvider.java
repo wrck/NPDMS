@@ -39,8 +39,11 @@ public class SatisfactionResultFilePolicyProvider implements FileBusinessObjectP
         SatisfactionCollectionTaskDO task = result == null ? null : taskMapper.selectById(result.getCollectionTaskId());
         if (result == null || task == null || !Objects.equals(query.tenantId(), result.getTenantId())
                 || !Objects.equals(query.tenantId(), task.getTenantId())) return denied();
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(),
-                query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_VIEW));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(task.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
                 || !scope.fullProjectIds().contains(task.getProjectId())) return denied();
         return downloadPolicy(scope.treeVersion());
@@ -57,9 +60,12 @@ public class SatisfactionResultFilePolicyProvider implements FileBusinessObjectP
                 : taskMapper.selectByIdForUpdate(query.tenantId(), result.getCollectionTaskId());
         if (FileActionCodes.DOWNLOAD.equals(query.requiredAction())) {
             if (result == null || task == null) return denied();
-            var scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(),
-                    query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_VIEW,
-                    query.expectedScopeVersion()));
+            var scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(task.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(query.expectedScopeVersion()).build());
             if (scope == null || !Objects.equals(scope.treeVersion(), query.expectedScopeVersion())
                     || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(task.getProjectId())) {
                 return denied();
@@ -70,9 +76,12 @@ public class SatisfactionResultFilePolicyProvider implements FileBusinessObjectP
         if (result == null || task == null || !Objects.equals(result.getArchiveActorUserId(), query.actorUserId())) {
             throw new IllegalStateException("SATISFACTION_RESULT_ARCHIVE_OWNER_CONFLICT");
         }
-        var scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(),
-                query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_EDIT,
-                query.expectedScopeVersion()));
+        var scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(task.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(query.expectedScopeVersion()).build());
         if (scope == null || !Objects.equals(scope.treeVersion(), query.expectedScopeVersion())
                 || !scope.fullProjectIds().contains(task.getProjectId())) {
             throw new IllegalStateException("SATISFACTION_RESULT_ARCHIVE_SCOPE_CONFLICT");
@@ -117,8 +126,12 @@ public class SatisfactionResultFilePolicyProvider implements FileBusinessObjectP
         if (resultMapper.selectByIdForUpdate(query.tenantId(), query.resultId()) != null) {
             throw new IllegalStateException("SATISFACTION_RESULT_FILE_RESULT_OCCUPIED");
         }
-        var scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(),
-                query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_EDIT, query.expectedScopeVersion()));
+        var scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(task.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(query.expectedScopeVersion()).build());
         if (scope == null || !query.expectedScopeVersion().equals(scope.treeVersion())
                 || !scope.fullProjectIds().contains(task.getProjectId())) {
             throw new IllegalStateException("SATISFACTION_RESULT_FILE_SCOPE_CONFLICT");

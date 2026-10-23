@@ -14,11 +14,15 @@ import jakarta.validation.Valid;
  */
 public interface InstallationService {
 
+    java.util.List<Long> createInstallationBatch(@Valid cn.iocoder.yudao.module.pms.engineering.controller.admin.installation.vo.InstallationBatchCreateReqVO request);
+
     Long createInstallation(@Valid InstallationSaveReqVO createReqVO);
 
     void updateInstallation(@Valid InstallationSaveReqVO updateReqVO);
 
     void deleteInstallation(Long id);
+
+    java.util.List<cn.iocoder.yudao.module.pms.engineering.controller.admin.installation.vo.InstallationCurrentAddressRespVO> getCurrentAddresses(Long projectId, java.util.List<Long> equipmentIds);
 
     InstallationDO getInstallation(Long id);
 

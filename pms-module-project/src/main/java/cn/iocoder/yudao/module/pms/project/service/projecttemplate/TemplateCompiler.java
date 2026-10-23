@@ -77,6 +77,7 @@ public class TemplateCompiler {
         validateGraph(source, issues);
         validateRules(source, issues);
         validateBindings(source, issues);
+        validateNormalClosureTask(source, issues);
         validateGateReferences(source, issues);
         TemplateOperationCompilation.Result operations = TemplateOperationCompilation.Result.empty();
         if (TemplateOperationCompilation.hasContracts(source)) {
@@ -90,6 +91,13 @@ public class TemplateCompiler {
         if (!issues.isEmpty()) return new Compilation(null, null, List.copyOf(issues));
 
         TemplateExecutionSnapshot snapshot = buildSnapshot(source);
+        try {
+            if (snapshot.getImplementationReadiness() != null)
+                snapshot.getImplementationReadiness().validate(snapshot.getTasks());
+            cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy.validateDependencies(snapshot);
+        } catch (IllegalArgumentException invalid) {
+            return new Compilation(null, null, List.of(new Issue("tasks", "INVALID_TASK_REQUIREMENTS", invalid.getMessage())));
+        }
         operations.install(snapshot);
         if (versioned) {
             snapshot.setExecutionSchemaVersion(TemplateVersionSnapshot.SCHEMA_VERSION);
@@ -114,6 +122,32 @@ public class TemplateCompiler {
         if (source.getDeliverables() == null) issues.add(new Issue("deliverables", "REQUIRED", "交付件集合不能为空引用"));
         if (source.getGates() == null) issues.add(new Issue("gates", "REQUIRED", "门禁集合不能为空引用"));
         if (source.getRuleAssets() == null) issues.add(new Issue("ruleAssets", "REQUIRED", "规则资产集合不能为空引用"));
+    }
+
+    private void validateNormalClosureTask(TemplateDesignerDocument source, List<Issue> issues) {
+        var closureTasks = source.getTasks().stream().filter(Objects::nonNull)
+                .filter(task -> task.getCompletionRule() != null
+                        && cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition
+                        .approvedOnly(task.getCompletionRule().getExpression())).toList();
+        if (closureTasks.isEmpty()) return;
+        if (closureTasks.size() != 1) {
+            issues.add(new Issue("tasks", "CLOSURE_TASK_AMBIGUOUS", "一个模板只能配置一个等待正常闭环审批的任务"));
+            return;
+        }
+        var task = closureTasks.getFirst();
+        var binding = task.getWorkBinding();
+        boolean terminal = source.getStages().stream().filter(Objects::nonNull)
+                .anyMatch(stage -> Objects.equals(task.getStageCode(), stage.getCode()) && Boolean.TRUE.equals(stage.getTerminal()));
+        boolean validPolicy;
+        try {
+            new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(source.getClosurePolicy());
+            validPolicy = blank(source.getClosureRuleKey());
+        } catch (RuntimeException invalid) { validPolicy = false; }
+        if (!terminal || !validPolicy || binding == null
+                || !cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.matches(
+                        binding.getType(), String.valueOf(binding.getParameters()), String.valueOf(task.getCompletionRule().getExpression())))
+            issues.add(new Issue("tasks." + task.getNodeKey(), "CLOSURE_TASK_CONTRACT_INVALID",
+                    "闭环审批任务须位于终态阶段，使用正常闭环页面和有效人工闭环策略，不能同时配置规则自动闭环"));
     }
 
     private void validateNodes(TemplateDesignerDocument source, List<Issue> issues) {
@@ -213,6 +247,10 @@ public class TemplateCompiler {
                 issues.add(new Issue("transitions[" + i + "].edgeKey", "INVALID_EDGE_KEY", "关系edgeKey不能为空且必须唯一"));
             if (!code(edge.getCode()) || !edgeCodes.add(edge.getCode()))
                 issues.add(new Issue("transitions[" + i + "].code", "INVALID_EDGE_CODE", "关系编码不能为空且必须唯一"));
+            if (edge.getPriority() == null)
+                issues.add(new Issue("transitions[" + i + "].priority", "REQUIRED", "关系优先级不能为空"));
+            if (edge.getDefaultBranch() == null)
+                issues.add(new Issue("transitions[" + i + "].defaultBranch", "REQUIRED", "关系默认标记不能为空"));
             if (!stages.contains(edge.getFromStageCode()) || !stages.contains(edge.getToStageCode()))
                 issues.add(new Issue("transitions[" + i + "]", "DANGLING_STAGE", "依赖引用的阶段不存在"));
             if (Objects.equals(edge.getFromStageCode(), edge.getToStageCode()))
@@ -531,6 +569,7 @@ public class TemplateCompiler {
         result.setMatch(copyMatch(source.getMatch()));
         result.setProcessDefinitionKey(source.getProcessDefinitionKey());
         result.setClosurePolicy(copy(source.getClosurePolicy()));
+        result.setImplementationReadiness(source.getImplementationReadiness());
         for (TemplateDesignerDocument.StageNode sourceStage : source.getStages()) result.getStages().add(stage(sourceStage));
         for (TemplateDesignerDocument.TaskNode sourceTask : source.getTasks()) result.getTasks().add(task(sourceTask));
         for (TemplateDesignerDocument.MilestoneNode sourceNode : source.getMilestones()) result.getMilestones().add(milestone(sourceNode));
@@ -572,6 +611,7 @@ public class TemplateCompiler {
         target.setNodeKey(source.getNodeKey()); target.setCode(source.getCode()); target.setName(source.getName());
         target.setParentTaskCode(source.getParentTaskCode()); target.setStageCode(source.getStageCode()); target.setPriority(source.getPriority());
         target.setSortOrder(source.getSortOrder()); target.setEstimatedHours(source.getEstimatedHours()); target.setSatisfactionTiming(source.getSatisfactionTiming());
+        target.setRequired(source.getRequired());
         target.setDescription(source.getDescription()); target.setBinding(binding(source.getWorkBinding())); target.setPermission(permission(source.getPermission()));
         target.setCompletionRule(rule(source.getCompletionRule())); target.setGateRef(source.getGateRef());
         if (source.getSource() != null) {

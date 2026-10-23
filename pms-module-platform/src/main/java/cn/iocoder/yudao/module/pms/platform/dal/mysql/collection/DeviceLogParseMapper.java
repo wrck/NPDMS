@@ -27,6 +27,8 @@ public interface DeviceLogParseMapper extends BaseMapperX<DeviceLogParseDO> {
         var wrapper = new LambdaQueryWrapperX<DeviceLogParseDO>()
                 .eq(DeviceLogParseDO::getTenantId, query.tenantId())
                 .eq(DeviceLogParseDO::getProjectId, query.projectId());
+        // The multi-megabyte immutable envelope is needed only by the detail read.
+        wrapper.select(DeviceLogParseDO.class,field -> !"resultSnapshotJson".equals(field.getProperty()));
         if (query.sourceExecutionId() == null) {
             wrapper.isNull(DeviceLogParseDO::getSourceExecutionId);
         } else {

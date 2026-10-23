@@ -1,0 +1,124 @@
+:
+  - text: 项目设备日志与文件历史
+  - text: 配置Log
+  - button "刷新":
+    - generic: 刷新
+  - button "上传设备日志":
+    - button "上传设备日志":
+      - generic: 上传设备日志
+  - generic: 序列号
+  - textbox "序列号":
+    - /placeholder: 请输入序列号
+  - generic: 设备名称
+  - textbox "设备名称":
+    - /placeholder: 请输入设备名称
+  - generic: 日志来源
+  - combobox "日志来源"
+  - generic: 全部来源
+  - button "查询":
+    - text: 查询
+  - button "重置":
+    - text: 重置
+  - alert:
+    - generic: 已归档 1 台设备的日志，脱敏 0 处敏感内容
+  - table:
+    - rowgroup:
+      - row "设备序列号 设备名称 解析与在网版本 最新版本 来源 归档时间 操作":
+        - columnheader "设备序列号":
+          - generic: 设备序列号
+        - columnheader "设备名称":
+          - generic: 设备名称
+        - columnheader "解析与在网版本":
+          - generic: 解析与在网版本
+        - columnheader "最新版本":
+          - generic: 最新版本
+        - columnheader "来源":
+          - generic: 来源
+        - columnheader "归档时间":
+          - generic: 归档时间
+        - columnheader "操作":
+          - generic: 操作
+  - table:
+    - rowgroup:
+      - row "DIRECT66-BROWSER-20261016-01 项目66全浏览器隔离验收合成设备（非实物） PJT66-JOINT-TEST-1.0 已关联设备并更新在网版本 v2 手工上传 2026-10-16 10:33:52 查看解析结果 文件历史 下载":
+        - cell "DIRECT66-BROWSER-20261016-01":
+          - generic: DIRECT66-BROWSER-20261016-01
+        - cell "项目66全浏览器隔离验收合成设备（非实物）":
+          - generic: 项目66全浏览器隔离验收合成设备（非实物）
+        - cell "PJT66-JOINT-TEST-1.0 已关联设备并更新在网版本":
+          - generic: PJT66-JOINT-TEST-1.0
+          - generic: 已关联设备并更新在网版本
+        - cell "v2":
+          - generic: v2
+        - cell "手工上传":
+          - generic: 手工上传
+        - cell "2026-10-16 10:33:52":
+          - generic: 2026-10-16 10:33:52
+        - cell "查看解析结果 文件历史 下载":
+          - button "查看解析结果":
+            - generic: 查看解析结果
+          - button "文件历史":
+            - generic: 文件历史
+          - button "下载":
+            - generic: 下载
+  - button "关闭":
+    - generic: 关闭
+- generic: 交付件清单
+- generic: 必选
+- generic: 运行业务及联调记录
+- generic: D_JOINT
+- generic: 已验收
+- button "提交与查看":
+  - generic: 提交与查看
+- paragraph: 文件或业务成果有效且模板条件满足时，自动满足交付要求。
+- button "刷新工作区":
+  - generic: 刷新工作区
+- region "任务状态操作"
+- complementary "完成条件与阶段历史":
+  - region "完成条件":
+    - generic: 完成条件
+    - button "刷新门禁结果":
+      - generic: 刷新门禁结果
+    - paragraph: 第 1 轮 · 当前规则结果；刷新不会推进阶段或发起审批。
+    - generic: 准入条件
+    - article "实施部署准入":
+      - generic: 实施部署准入
+      - generic: 满足
+      - generic: 阶段完成
+      - generic: 施工计划
+      - generic: 满足
+      - generic: 阶段完成
+      - generic: 实施方案
+      - generic: 满足
+    - generic: 交付件
+    - generic: 当前任务交付件
+    - generic: 必选
+    - generic: 运行业务及联调记录
+    - generic: 已验收
+    - button "提交与查看":
+      - generic: 提交与查看
+  - text: 阶段历史
+  - button "执行历史与规则结果":
+    - generic: 执行历史与规则结果
+  - generic: 2026-10-16 05:06:13
+  - text: 进入 S6 项目闭环
+  - generic: 进行中
+  - generic: 2026-10-16 05:01:08
+  - text: 进入 S5 验收交维
+  - generic: 已完成
+  - generic: 2026-10-16 04:55:57
+  - text: 进入 S4 实施部署
+  - generic: 已完成
+  - generic: 2026-10-16 04:54:41
+  - text: 进入 S3 实施方案
+  - generic: 已完成
+  - generic: 2026-10-16 04:53:18
+  - text: 进入 S2 施工计划
+  - generic: 已完成
+  - generic: 2026-10-16 04:49:56
+  - text: 进入 S1 工前准备
+  - generic: 已完成
+  - generic: 2026-10-16 04:43:04
+  - text: 进入 S0 项目立项
+  - generic: 已完成
+- generic: Copyright ©2026 项目实施交付管理平台

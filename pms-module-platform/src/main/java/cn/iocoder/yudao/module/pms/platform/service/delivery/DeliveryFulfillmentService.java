@@ -21,6 +21,7 @@ import java.util.Set;
 public class DeliveryFulfillmentService {
     private final DeliveryFulfillmentMapper mapper;
     private final DeliveryMaterialMapper materials;
+    private final cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi reopens;
 
     @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
     public void associate(DeliveryRequirementDO requirement, DeliveryMaterialDO material) {
@@ -39,6 +40,13 @@ public class DeliveryFulfillmentService {
                 || !requirement.getProjectId().equals(locked.getFirst().getProjectId())
                 || !DeliveryMaterialDO.STATUS_ACTIVE.equals(locked.getFirst().getStatus())) {
             throw new BusinessContractException("DELIVERY_MATERIAL_OWNER_MISMATCH", "当前材料已失效或归属已变化");
+        }
+        DeliveryRequirementService.requireCurrent(requirement);
+        if (DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(requirement.getRequirementKind())) {
+            var round = reopens.findTemplateReopen(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Query(
+                    tenantId, requirement.getProjectId()));
+            if (round.isPresent() && (material.getCreateTime() == null || !material.getCreateTime().isAfter(round.get().openedAt())))
+                throw new BusinessContractException("DELIVERY_PREVIOUS_PROJECT_ROUND", "旧轮次材料不能计入本轮交付");
         }
         DeliveryFulfillmentDO existing = mapper.selectIdentity(new DeliveryFulfillmentIdentityQuery(TenantContextHolder.getRequiredTenantId(), requirement.getId(), material.getId()));
         if (existing != null) {

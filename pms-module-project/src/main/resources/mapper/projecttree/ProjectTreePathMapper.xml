@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper">
+    <select id="selectFullTree" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT p.* FROM proj_project_tree_path t
+        JOIN proj_project p ON p.id = t.descendant_project_id
+          AND p.tenant_id = t.tenant_id AND p.deleted = b'0'
+        WHERE t.tenant_id = #{query.tenantId} AND t.deleted = b'0'
+          AND t.root_project_id = #{query.rootProjectId} AND t.tree_version = #{query.treeVersion}
+          AND t.distance = 0
+        <choose>
+            <when test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+                AND p.id IN
+                <foreach collection="query.visibleProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY p.tree_depth, p.tree_sort, p.id
+    </select>
+</mapper>

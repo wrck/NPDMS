@@ -78,9 +78,17 @@ public class SiteSurveyEntityProvider implements EntityFieldProvider {
     @Override
     public void lockForWrite(EntityDataRef target, EntityActor actor, Long expectedVersion) {
         var observed = authorized(target, actor, true);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), observed.getProjectId(), ProjectScopeApi.ACTION_MANAGE));
-        scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.userId(), observed.getProjectId(),
-                ProjectScopeApi.ACTION_MANAGE, scope.treeVersion()));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(observed.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+        scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(observed.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(scope.treeVersion()).build());
         var row = mapper.selectTaskObjectForUpdate(new SiteSurveyEntityTaskObjectQuery(actor.tenantId(), observed.getProjectId(), observed.getId()));
         if (row == null || !Objects.equals(row.getVersion(), expectedVersion)) throw exception(SITE_SURVEY_VERSION_NOT_MATCH);
         if (!Integer.valueOf(0).equals(row.getStatus())) throw exception(SITE_SURVEY_FORM_INVALID);
@@ -97,8 +105,11 @@ public class SiteSurveyEntityProvider implements EntityFieldProvider {
         if (write && actor.isSystemObserver()) throw exception(FORBIDDEN);
         boolean allowed = write ? permissions.hasAnyPermissions(actor.userId(), "pms:sol-site-survey:create", "pms:sol-site-survey:update")
                 : permissions.hasAnyPermissions(actor.userId(), "pms:sol-site-survey:query");
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), row.getProjectId(),
-                write ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(row.getProjectId())
+                .actionCode(write ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW).build());
         if (!allowed || scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(row.getProjectId())) throw exception(FORBIDDEN);
         return row;
     }

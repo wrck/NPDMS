@@ -289,8 +289,11 @@ public class RequirementAnalysisDynamicFormQueryService {
                 RequirementAnalysisQueryService.PERMISSION_QUERY, RequirementAnalysisQueryService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_VIEW));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
             throw exception(FORBIDDEN);
         }
@@ -301,8 +304,11 @@ public class RequirementAnalysisDynamicFormQueryService {
             if (!permissionApi.hasAnyPermissions(actor.actorId(), RequirementAnalysisQueryService.PERMISSION_MANAGE)) {
                 return false;
             }
-            var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+            var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
             ProjectParticipantFact participant = RequirementAnalysisManagerFacts.inspect(
                     participantFactApi, permissionApi, projectId, actor.actorId());
             return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(projectId)

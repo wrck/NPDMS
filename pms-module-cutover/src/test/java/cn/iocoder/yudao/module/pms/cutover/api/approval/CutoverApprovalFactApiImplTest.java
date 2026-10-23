@@ -23,7 +23,7 @@ class CutoverApprovalFactApiImplTest {
         CutoverApprovalApplicationService application = mock(CutoverApprovalApplicationService.class);
         CutoverApprovalInstanceMapper mapper = mock(CutoverApprovalInstanceMapper.class);
         CutoverApprovalInstanceDO row = row();
-        when(mapper.selectOne(any())).thenReturn(row);
+        when(mapper.byPlan(any())).thenReturn(row);
         when(mapper.selectByIdForUpdate(any())).thenReturn(row);
         CutoverApprovalFactApiImpl api = new CutoverApprovalFactApiImpl(
                 new CutoverApprovalFactTransactionExecutor(application, mapper));

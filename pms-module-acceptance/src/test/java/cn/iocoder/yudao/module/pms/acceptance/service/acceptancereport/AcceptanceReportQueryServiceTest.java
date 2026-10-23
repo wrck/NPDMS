@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequire
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.AcceptanceActivityDO;
@@ -23,9 +25,12 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 class AcceptanceReportQueryServiceTest {
@@ -39,6 +44,46 @@ class AcceptanceReportQueryServiceTest {
 
     private final AcceptanceReportQueryService service = new AcceptanceReportQueryService(
             activityMapper, reportMapper, attachmentMapper, projectScopeApi, fileArtifactApi, platform);
+
+    @Test
+    void draftListsLiveBoundFilesWithoutFreezingHistory() {
+        var report = report();
+        report.setReportStatus("DRAFT");
+        when(activityMapper.selectById(100L)).thenReturn(activity(null));
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(80L, 1L, Set.of(80L), Set.of()));
+        when(reportMapper.selectByAcceptanceId(100L)).thenReturn(List.of(report));
+        when(fileArtifactApi.inspectReferenceSets(any())).thenReturn(List.of(new FileReferenceSetFact(
+                new FileReferenceSetKey("ACC", "ACCEPTANCE_REPORT_VERSION", "300", "ACCEPTANCE_REPORT_ATTACHMENT"),
+                8L, List.of(file()))));
+
+        var view = service.listVersions(100L, actor()).getFirst();
+        assertEquals("DRAFT", view.reportStatus());
+        assertEquals(11L, view.attachments().getFirst().artifactId());
+        verifyNoInteractions(attachmentMapper, platform);
+    }
+
+    @Test
+    void missingScopeAndFailedDraftFileInspectionNeverBecomeAnEmptySuccessfulReport() {
+        when(activityMapper.selectById(100L)).thenReturn(activity(null));
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(80L, 1L, Set.of(), Set.of()));
+        assertThrows(Exception.class, () -> service.listVersions(100L, actor()));
+        verifyNoInteractions(fileArtifactApi, reportMapper);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(80L, 1L, Set.of(80L), Set.of()));
+        var report = report(); report.setReportStatus("DRAFT");
+        when(reportMapper.selectByAcceptanceId(100L)).thenReturn(List.of(report));
+        when(fileArtifactApi.inspectReferenceSets(any())).thenThrow(new IllegalStateException("unavailable"));
+        assertThrows(Exception.class, () -> service.listVersions(100L, actor()));
+    }
+
+    @Test
+    void effectiveHistoryKeepsFrozenAttachmentsInsteadOfAdoptingLiveReferences() {
+        when(activityMapper.selectById(100L)).thenReturn(activity(null));
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(80L, 1L, Set.of(80L), Set.of()));
+        when(reportMapper.selectByAcceptanceId(100L)).thenReturn(List.of(report()));
+        when(attachmentMapper.selectByReportVersion(300L)).thenReturn(List.of(attachment()));
+        assertEquals(11L, service.listVersions(100L, actor()).getFirst().attachments().getFirst().artifactId());
+        verify(fileArtifactApi, never()).inspectReferenceSets(any());
+    }
 
     @Test
     void emptyProjectScopeReturnsEmptyActivityList() {

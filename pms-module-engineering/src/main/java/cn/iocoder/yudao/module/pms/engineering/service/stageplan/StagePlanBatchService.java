@@ -38,7 +38,7 @@ public interface StagePlanBatchService {
     /**
      * 提交审批：发起 BPM 流程，批次进入审批中；审批通过后经受控写入回写阶段计划日期并生效。
      */
-    StagePlanBatchRespVO submit(Long batchId, Long approverUserId);
+    StagePlanBatchRespVO submit(Long batchId, Long approverUserId, String adjustmentReason);
 
     /**
      * BPM 终态回执处理：APPROVED 生效回写；REJECTED 记录驳回原因。

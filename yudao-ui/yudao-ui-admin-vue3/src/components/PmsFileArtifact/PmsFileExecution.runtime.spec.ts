@@ -33,6 +33,26 @@ const flush = async () => { await Promise.resolve(); await nextTick(); await Pro
 describe('file writes keep the selected Owner execution', () => {
   beforeEach(() => vi.clearAllMocks())
 
+  it.each([
+    ['evidence.log', '', 'text/plain'], ['device.cfg', 'application/octet-stream', 'text/plain'],
+    ['evidence.csv', 'application/vnd.ms-excel', 'text/csv'],
+    ['evidence.xlsx', '', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+  ])('initializes %s with a usable declared type when browser metadata is missing or misleading', async (name, browserType, expected) => {
+    vi.mocked(FileApi.initializeUpload).mockResolvedValue({ artifactId: 101, sessionId: 201, expiresAt: '2026-10-20T01:00:00' })
+    vi.mocked(FileApi.completeUpload).mockResolvedValue({ artifactId: 101, versionNo: 1, referenceId: 301, referenceKey: 'slot-a', sha256: 'a' })
+    const uploadStub = defineComponent({ setup: (_, { attrs, expose }) => {
+      expose({ clearFiles: vi.fn() }); return () => h('section', attrs)
+    } })
+    const mounted = mount(PmsFileUploader, { ...key, categoryCode: 'CUTOVER_CHECKLIST_MANUAL_EVIDENCE' }, { ElUpload: uploadStub, ElProgress: passthrough })
+    const upload = find(mounted.root, node => typeof node.props?.['on-change'] === 'function')!
+    ;(upload.props!['on-change'] as Function)({ raw: new File(['fixture'], name, { type: browserType }) })
+    await nextTick()
+    const button = find(mounted.root, node => node.type === 'button' && textOf(node).includes('上传并绑定'))!
+    await (button.props!.onClick as () => Promise<void>)()
+    expect(FileApi.initializeUpload).toHaveBeenCalledWith(expect.objectContaining({ fileName: name, declaredMediaType: expected }), expect.any(String))
+    mounted.app.unmount()
+  })
+
   it.each(['task', 'stage'] as const)('retains the selected %s round through upload initialization, completion and retry', async (kind) => {
     const selected = kind === 'task' ? { task: taskExecution } : { stage: stageExecution }
     const execution = ref(structuredClone(selected))

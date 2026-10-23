@@ -1,5 +1,5 @@
 import { defineAsyncComponent, markRaw, type Component } from 'vue'
-import OwnerCompletionEntry from './OwnerCompletionEntry.vue'
+import ProjectArrivalReceiptPanel from '@/views/pms/project/project-master-detail/components/ProjectArrivalReceiptPanel.vue'
 import ProjectMembersBusinessView from './ProjectMembersBusinessView.vue'
 import { businessPageRoutes, validatePagePresentation, type PagePresentation } from './presentationRoute'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
@@ -11,9 +11,15 @@ import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requi
 import DynamicFormInstanceContent from '@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue'
 import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
 import AcceptanceReportPage from '@/views/pms/acceptance/acceptance-report/index.vue'
+import SatisfactionWorkbench from '@/views/pms/acceptance/satisfaction/index.vue'
 import ProjectDurationPanel from '@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue'
 import ProjectSchedulePanel from '@/views/pms/project/project-master-detail/components/ProjectSchedulePanel.vue'
 import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
+import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
+import InstallationWorkbench from '@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue'
+import ProjectCutoverTasks from '@/views/pms/cutover/project-tasks/index.vue'
+import ProjectCutoverCoverage from '@/views/pms/cutover/project-coverage/index.vue'
+import CutoverBusinessEntry from '@/views/pms/cutover/components/CutoverBusinessEntry.vue'
 
 // PM-03. These references come from the application's authorized Owner result, not registration JSON.
 export interface BusinessViewResolvedContext {
@@ -21,6 +27,7 @@ export interface BusinessViewResolvedContext {
   instanceId?: BusinessViewId
   businessObjectId?: BusinessViewId
   taskId?: BusinessViewId
+  taskCode?: string
   stageExecution?: StageExecutionContext
   stageCode?: string
   taskExecution?: TaskExecutionContext
@@ -49,6 +56,48 @@ const positiveId = isBusinessViewId
 // Paths only select these statically imported components; URL metadata never becomes an import or command.
 const adapters: readonly Adapter[] = [
   {
+    ...businessPageRoutes.CUT_CUTOVER_APPROVAL_WORKBENCH,
+    component: markRaw(ProjectCutoverTasks),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId, operationObjectType: 'CUTOVER_APPROVAL' }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.IMP_ARRIVAL_RECEIPT,
+    component: markRaw(ProjectArrivalReceiptPanel),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { projectId: legacyOwnerId(resolvedContext.project.id) }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.IMP_PROJECT_INSTALLATION,
+    component: markRaw(InstallationWorkbench),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { projectId: resolvedContext.project.id }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.IMP_TRAINING_CONFIRMATION,
+    component: markRaw(TrainingWorkbench),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { projectId: resolvedContext.project.id }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.CUT_CUTOVER_APPROVAL,
+    component: markRaw(ProjectCutoverTasks),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId, operationObjectType: 'CUTOVER_APPROVAL' }
+        : undefined
+  },
+  {
     ...businessPageRoutes.PROJ_PROJECT_ASSIGNMENT,
     component: markRaw(ProjectMembersBusinessView),
     resolve: ({ registration, resolvedContext }) =>
@@ -73,11 +122,39 @@ const adapters: readonly Adapter[] = [
         : undefined
   },
   {
-    ...businessPageRoutes.CUT_CUTOVER_COMPLETION,
-    component: markRaw(OwnerCompletionEntry),
+    ...businessPageRoutes.CUT_CUTOVER_WORKBENCH,
+    component: markRaw(ProjectCutoverTasks),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
-        ? { projectId: resolvedContext.project.id, label: '割接上线', tab: 'cutover' }
+        && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.CUT_CUTOVER_COMPLETION,
+    component: markRaw(CutoverBusinessEntry),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId, mode: 'TASK' }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.IMP_CUTOVER_COVERAGE,
+    component: markRaw(ProjectCutoverCoverage),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        && (resolvedContext.businessObjectId == null || String(resolvedContext.businessObjectId) === String(resolvedContext.project.id))
+        ? { projectId: resolvedContext.project.id }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.ACC_SATISFACTION,
+    component: markRaw(SatisfactionWorkbench),
+    resolve: ({ registration, resolvedContext, allowedActions }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { projectId: resolvedContext.project.id, readonly: !allowedActions.includes('MANAGE') }
         : undefined
   },
   {
@@ -87,7 +164,9 @@ const adapters: readonly Adapter[] = [
       registration.dynamicFormRevisionId == null &&
       positiveId(resolvedContext.project?.id) &&
       (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
-        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId }
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId,
+          acceptanceType: resolvedContext.taskCode === 'ACCEPT_INITIAL' ? 'PRELIMINARY'
+            : resolvedContext.taskCode === 'ACCEPT_FINAL' ? 'FINAL' : undefined }
         : undefined
   },
   {
@@ -123,11 +202,12 @@ const adapters: readonly Adapter[] = [
     component: markRaw(ProjectRequirementAnalysisPanel),
     businessEntityViewCode: 'sol_requirement_analysis',
     standaloneProps: (project) => ({ project }),
-      resolve: ({ registration, resolvedContext }) =>
+      resolve: ({ registration, resolvedContext, readonly }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
       && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
       && !(resolvedContext.taskExecution && resolvedContext.stageExecution)
-      && (resolvedContext.taskId == null || resolvedContext.taskExecution != null)
+      && (resolvedContext.taskId == null || (positiveId(resolvedContext.taskId)
+        && (resolvedContext.taskExecution != null || readonly === true)))
       && (resolvedContext.taskExecution == null || (
         positiveId(resolvedContext.taskExecution.taskId) && positiveId(resolvedContext.taskExecution.executionId)
         && String(resolvedContext.taskExecution.taskId) === String(resolvedContext.taskId)
@@ -204,14 +284,18 @@ export const resolveBusinessView = (target: BusinessViewTarget) => {
     try { pageUrl = validatePagePresentation(target.presentation, adapter.pageUrl, target.resolvedContext) }
     catch { return { error: '页面路径或参数与冻结Owner上下文不匹配，禁止回退到默认页面。' } }
   }
-  const readonly = target.readonly === true || registration.status === 'DISABLED'
+  const readonly = target.readonly === true || registration.status === 'DISABLED' || context.readonly === true
   return {
     component: adapter.component,
     pageUrl,
     props: {
       ...context,
       readonly,
-      allowedActions: readonly ? [] : [...(target.allowedActions || [])]
+      // Readonly arrival/report tasks retain authorized reads in their embedded Owner panels.
+      allowedActions: readonly
+        ? (adapter.component === ProjectArrivalReceiptPanel || adapter.component === AcceptanceReportPage) && registration.status === 'PUBLISHED'
+          ? (target.allowedActions || []).filter((action) => action === 'QUERY') : []
+        : [...(target.allowedActions || [])]
     }
   }
 }

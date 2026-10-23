@@ -1,0 +1,84 @@
+[
+  {
+    "actor": "y06496",
+    "ownProjectId": "992203060198",
+    "foreignProjectId": "2110018733130579976",
+    "checks": [
+      {
+        "case": "/pms/imp-joint-test own-page-and-foreign-empty",
+        "result": "passed"
+      },
+      {
+        "case": "/pms/imp-joint-test foreign-detail",
+        "result": "Permission API business error 403"
+      },
+      {
+        "case": "/pms/imp-joint-test foreign-create",
+        "result": "Permission API business error 403"
+      },
+      {
+        "case": "/pms/imp-joint-test forged-owner-update",
+        "result": "Permission API business error 403"
+      },
+      {
+        "case": "/pms/acc-project-closure own-page-and-foreign-empty",
+        "result": "passed"
+      },
+      {
+        "case": "/pms/acc-project-closure foreign-detail",
+        "result": "Permission API business error 403"
+      },
+      {
+        "case": "/pms/acc-project-closure foreign-create",
+        "result": "Permission API business error 403"
+      },
+      {
+        "case": "/pms/acc-project-closure forged-owner-update",
+        "result": "Permission API business error 403"
+      },
+      {
+        "case": "project-manager-bpm-not-granted",
+        "result": "Permission API business error 403"
+      }
+    ]
+  },
+  {
+    "actor": "z01010",
+    "ownProjectId": "992203060198",
+    "foreignProjectId": "2110018733130579976",
+    "checks": [
+      {
+        "case": "/pms/imp-joint-test own-page-and-foreign-empty",
+        "result": "passed"
+      },
+      {
+        "case": "/pms/imp-joint-test foreign-detail",
+        "result": "Permission API business error 403"
+      },
+      {
+        "case": "/pms/imp-joint-test foreign-create",
+        "result": "Permission API business error 403"
+      },
+      {
+        "case": "/pms/imp-joint-test forged-owner-update",
+        "result": "Permission API business error 403"
+      },
+      {
+        "case": "/pms/acc-project-closure own-page-and-foreign-empty",
+        "result": "passed"
+      },
+      {
+        "case": "/pms/acc-project-closure foreign-detail",
+        "result": "Permission API business error 403"
+      },
+      {
+        "case": "/pms/acc-project-closure foreign-create",
+        "result": "Permission API business error 403"
+      },
+      {
+        "case": "/pms/acc-project-closure forged-owner-update",
+        "result": "Permission API business error 403"
+      }
+    ]
+  }
+]

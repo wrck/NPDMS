@@ -24,7 +24,7 @@ class ProjectTaskPlanCompletionServiceTest {
     static RuleEngineTestFixture engine;
     @BeforeAll static void start() { engine=new RuleEngineTestFixture(); }
     @AfterAll static void stop() { engine.close(); }
-    @AfterEach void clear() { TenantContextHolder.clear(); }
+    @AfterEach void clear() { TenantContextHolder.clear(); org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
     final ProjectPlanVersionMapper plans=mock(ProjectPlanVersionMapper.class);
     final ProjectNodeExecutionMapper executions=mock(ProjectNodeExecutionMapper.class);
     final ProjectRuntimeGraphMapper graph=mock(ProjectRuntimeGraphMapper.class);
@@ -63,6 +63,83 @@ class ProjectTaskPlanCompletionServiceTest {
         snapshot.setTasks(List.of(node)); rule("done","{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
         when(plans.selectEffective(any())).thenAnswer(call -> { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); return plan; });
     }
+    @Test void jointDeliverableCanCompleteWithoutSubmissionButStillRequiresLiveFactStageExitAndGate() {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-joint-test\"}");
+        round.setSubmittedAt(null);
+        rule("done", "{\"predicate\":\"DELIVERABLE\",\"parameters\":{\"refCode\":\"D_JOINT\"}}");
+        var facts = spy((ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "facts"));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "facts", facts);
+        for (var fact : List.of(RuleFact.known(false), RuleFact.unknown("FACT_UNAVAILABLE"), RuleFact.known(true))) {
+            doReturn(fact).when(facts).resolveFact(argThat(leaf -> "DELIVERABLE".equals(leaf.predicate())), any());
+            assertEquals(fact.equals(RuleFact.known(true)), service.evaluateAutomatically(project,task,binding).matched());
+        }
+        stage.setStatus("PENDING");
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        stage.setStatus("ACTIVE");
+        snapshot.getTasks().getFirst().setExitRuleKey("exit");
+        rule("exit", "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        snapshot.getTasks().getFirst().setExitRuleKey(null);
+        snapshot.getTasks().getFirst().setGateRef("joint-gate");
+        var waiting = new RuleEvaluation("joint-gate",RuleEvaluation.Outcome.NOT_MATCHED,"GATE_WAIT",List.of(),List.of(),List.of());
+        when(gateRules.evaluate(eq(9L),eq("joint-gate"),isNull(),anyString())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectGateRuleService.Result(waiting,null));
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        assertNull(round.getSubmittedAt());
+        assertEquals("obsolete-binding-rule-must-not-be-read",binding.getCompletionRuleSnapshot());
+        verifyNoInteractions(business,executionApi);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}",
+            "{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"DELIVERABLE\",\"parameters\":{\"refCode\":\"D_JOINT\"}}]}",
+            "{\"operator\":\"ALL\",\"rules\":[{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}},{\"predicate\":\"DELIVERABLE\",\"parameters\":{\"refCode\":\"D_JOINT\"}}]}"
+    })
+    void jointPageDoesNotWaiveSubmissionForOtherOrHistoricalRules(String expression) {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-joint-test\"}");
+        round.setSubmittedAt(null); rule("done",expression);
+        assertEquals("CURRENT_ROUND_SUBMISSION_REQUIRED",service.evaluateAutomatically(project,task,binding).completion().reasonCode());
+    }
+
+    @Test void anotherPageCannotUseJointDeliverableSubmissionExemption() {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-configuration\"}");
+        round.setSubmittedAt(null);
+        rule("done", "{\"predicate\":\"DELIVERABLE\",\"parameters\":{\"refCode\":\"D_JOINT\"}}");
+        assertEquals("CURRENT_ROUND_SUBMISSION_REQUIRED",service.evaluateAutomatically(project,task,binding).completion().reasonCode());
+    }
+
+    @Test void externalEndUserFactCompletesOnlyItsOwnPageAndKeepsStageAndExitGuards() {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/project-management/project-master-detail\"}");
+        round.setSubmittedAt(null);
+        rule("done", "{\"predicate\":\"PROJECT_END_USER_EXISTS\",\"parameters\":{}}");
+        var endUsers = mock(cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "endUsers", endUsers);
+        var fact = new cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService.Fact(9L,
+                List.of(new cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService.MemberFact(88L, 3)));
+        when(endUsers.lockAndInspect(any())).thenReturn(fact);
+        var result = service.evaluateAutomatically(project, task, binding);
+        assertTrue(result.matched()); assertEquals(fact, result.evidence().get("projectEndUsers"));
+        when(endUsers.lockAndInspect(any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService.Fact(9L, List.of()));
+        assertFalse(service.evaluateAutomatically(project, task, binding).matched());
+        when(endUsers.lockAndInspect(any())).thenReturn(fact);
+        stage.setStatus("PENDING"); assertFalse(service.evaluateAutomatically(project, task, binding).matched());
+        stage.setStatus("ACTIVE"); snapshot.getTasks().getFirst().setExitRuleKey("exit");
+        rule("exit", "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(service.evaluateAutomatically(project, task, binding).matched());
+        snapshot.getTasks().getFirst().setExitRuleKey(null);
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/customer-asset/customer-contact\"}");
+        assertFalse(service.evaluateAutomatically(project, task, binding).matched());
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/project-management/project-master-detail\"}");
+        rule("done", "{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"PROJECT_END_USER_EXISTS\",\"parameters\":{}}]}");
+        assertFalse(service.evaluateAutomatically(project, task, binding).matched());
+        assertNull(round.getSubmittedAt()); verifyNoInteractions(business);
+    }
     @Test void contactOwnerFactCompletesWithoutSubmissionButKeepsAdmissionAndExitRules() {
         binding.setWorkBindingTypeCode("PAGE");
         binding.setBindingParameterSnapshot("{\"routePath\":\"/customer-asset/customer-contact\"}");
@@ -91,6 +168,32 @@ class ProjectTaskPlanCompletionServiceTest {
         rule("done","{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
         assertFalse(service.evaluateAutomatically(project,task,binding).matched());
         assertNull(round.getSubmittedAt()); verifyNoInteractions(business);
+    }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void closureApprovalIsTheOnlyCompletionSourceAndCannotBypassStageOrExitRules(boolean splitRule) {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/project/normal-closure\"}");
+        String condition="{\"predicate\":\"NORMAL_CLOSURE_APPROVED\",\"parameters\":{}}";
+        binding.setCompletionRuleSnapshot(condition); rule("done",condition); round.setSubmittedAt(null);
+        if (splitRule) {
+            binding.setCompletionRuleTypeCode("NORMAL_CLOSURE_APPROVED");
+            binding.setCompletionRuleSnapshot("{}");
+        }
+        var login=new cn.iocoder.yudao.framework.security.core.LoginUser();login.setId(1L);login.setTenantId(7L);
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(login,new org.springframework.mock.web.MockHttpServletRequest());
+        var approval=new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand(
+                7L,9L,1L,1L,3L,"closure",101L,102L,1L,"A",5L,"digest","bpm-1",1L);
+        var request=new ProjectTaskPlanCompletionService.ApprovedClosureTask(project,task,binding,approval);
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        assertTrue(service.evaluateApprovedClosure(request).matched());
+        assertEquals(approval,service.evaluateApprovedClosure(request).evidence().get("normalClosureApproval"));
+        stage.setStatus("PENDING");assertFalse(service.evaluateApprovedClosure(request).matched());stage.setStatus("ACTIVE");
+        snapshot.getTasks().getFirst().setExitRuleKey("exit");rule("exit","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(service.evaluateApprovedClosure(request).matched());
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        assertThrows(IllegalArgumentException.class,()->service.evaluateApprovedClosure(request));
+        verifyNoInteractions(business,approvals);assertNull(round.getSubmittedAt());
     }
     @Test void approvalCompletionRequiresThisRoundOwnerResultBeforeAnyTrueOrNotRule() {
         binding.setWorkBindingTypeCode("APPROVAL");
@@ -125,12 +228,50 @@ class ProjectTaskPlanCompletionServiceTest {
     TaskActionCommand command() { return new TaskActionCommand(21L,1,"complete",null,91L,1,null,null,null,null,"a".repeat(64),"intent","b".repeat(64)); }
     ProjectTaskPlanCompletionService.Result evaluate() { return service.evaluate(command(),project,task,binding,new TaskWorkbenchActor(7L,1L,"test")); }
 
+    @Test void optionalTaskCanCompleteAfterStageWithoutBypassingSubmissionExitOrCurrentRound() {
+        stage.setStatus("DONE"); snapshot.getTasks().getFirst().setRequired(false);
+        assertTrue(evaluate().matched());
+        assertEquals("DONE", stage.getStatus());
+        snapshot.getTasks().getFirst().setRequired(true); assertFalse(evaluate().matched());
+        snapshot.getTasks().getFirst().setRequired(null); assertFalse(evaluate().matched());
+        snapshot.getTasks().getFirst().setRequired(false);
+        round.setSubmittedAt(null); assertEquals("CURRENT_ROUND_SUBMISSION_REQUIRED", evaluate().completion().reasonCode());
+        round.setSubmittedAt(LocalDateTime.now());
+        snapshot.getTasks().getFirst().setExitRuleKey("exit");
+        rule("exit","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(evaluate().matched()); snapshot.getTasks().getFirst().setExitRuleKey(null);
+        for (String status : List.of("PENDING", "SKIPPED", "TERMINATED")) {
+            stage.setStatus(status); assertEquals("TASK_STAGE_NOT_ACTIVE", evaluate().completion().reasonCode());
+        }
+        stage.setStatus("DONE"); round.setPlanVersionId(99L); assertFalse(evaluate().matched());
+    }
+
     @Test void readsPlanRulesWithoutChangingTheBindingIdentityOrSnapshot() {
         assertTrue(evaluate().matched());
         rule("done","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
         assertFalse(evaluate().matched());
         assertEquals(91L,binding.getId()); assertEquals("obsolete-binding-rule-must-not-be-read",binding.getCompletionRuleSnapshot());
         assertTrue(evaluate().completion().ruleVersionRef().contains("plan:52")); verifyNoInteractions(business);
+    }
+
+    @Test void installationPageRequiresAllProjectDeviceAddressesAndRetainsPlanRules() {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-installation\"}");
+        var addresses = mock(cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "installationAddresses", addresses);
+        for (var fact : List.of(
+                new cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi.Fact(0, 0),
+                new cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi.Fact(3, 2))) {
+            when(addresses.lockAndInspect(any())).thenReturn(fact);
+            assertFalse(evaluate().matched());
+            assertTrue(evaluate().unmet().contains("PROJECT_DEVICE_INSTALLATION_ADDRESS_MISSING"));
+        }
+        when(addresses.lockAndInspect(any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi.Fact(3, 3));
+        assertTrue(evaluate().matched());
+        rule("done","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(evaluate().matched());
+        verify(addresses, atLeastOnce()).lockAndInspect(new cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationAddressCompletionApi.Query(7L, 9L));
     }
 
     @Test void pageNavigationRetainsNativeCompletionAndRequiresAnActualSubmission() {
@@ -217,6 +358,46 @@ class ProjectTaskPlanCompletionServiceTest {
                 List.of(new TaskBusinessLinkFact(71L,"owner:1","", "owner-v2",Map.of("OWNER_COMPLETED",true),List.of(),Set.of()))));
         rule("done","{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"factCode\":\"OWNER_COMPLETED\",\"quantifier\":\"ALL\"}}");
         assertTrue(evaluate().matched()); assertTrue(JsonUtils.toJsonString(evaluate().evidence()).contains("owner-v2"));
+    }
+
+    @Test void successfullyReadEmptyOwnerGroupIsWaitingAndNeverCompletesEvenUnderAllOrNot() {
+        binding.setWorkBindingTypeCode("BUSINESS_COMPONENT");
+        var context = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                9L, 1L, 21L, 1, 91L, 1, 52L, 61L, 1, 1, 62L, 1, true, LocalDateTime.of(2026,9,14,9,0));
+        when(executionApi.inspect(any())).thenReturn(context);
+        var empty = new TaskBusinessLinkedFacts("a".repeat(64), List.of());
+        when(business.lockCompletionFacts(any(),any(),any())).thenReturn(new TaskBusinessCompletionFacts(empty, false));
+        when(business.lockAndRevalidateLinkedFacts(any(),any(),any(),any(),any())).thenReturn(empty);
+        for (String expression : List.of(
+                "{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"factCode\":\"SIGNED_PASSED_ARCHIVED\",\"quantifier\":\"ANY\"}}",
+                "{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"factCode\":\"SIGNED_PASSED_ARCHIVED\",\"quantifier\":\"ALL\"}}",
+                "{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"factCode\":\"SIGNED_PASSED_ARCHIVED\",\"quantifier\":\"ANY\"}}]}",
+                "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}")) {
+            rule("done", expression);
+            for (var result : List.of(service.evaluateAutomatically(project, task, binding), evaluate())) {
+                assertFalse(result.matched());
+                assertEquals(RuleEvaluation.Outcome.NOT_MATCHED, result.completion().outcome());
+                assertEquals("BUSINESS_HANDLING_PENDING", result.completion().reasonCode());
+            }
+        }
+        assertEquals("obsolete-binding-rule-must-not-be-read", binding.getCompletionRuleSnapshot());
+    }
+
+    @Test void unavailableOwnerFactsAndReadFailuresRemainFailuresRatherThanNormalWaiting() {
+        binding.setWorkBindingTypeCode("BUSINESS_COMPONENT");
+        var context = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                9L, 1L, 21L, 1, 91L, 1, 52L, 61L, 1, 1, 62L, 1, true, LocalDateTime.of(2026,9,14,9,0));
+        when(executionApi.inspect(any())).thenReturn(context);
+        for (var unavailable : Arrays.asList(null, new TaskBusinessCompletionFacts(null, false),
+                new TaskBusinessCompletionFacts(new TaskBusinessLinkedFacts(null, List.of()), false),
+                new TaskBusinessCompletionFacts(new TaskBusinessLinkedFacts("", List.of()), false))) {
+            when(business.lockCompletionFacts(any(),any(),any())).thenReturn(unavailable);
+            var result = service.evaluateAutomatically(project, task, binding);
+            assertFalse(result.matched());
+            assertEquals(RuleEvaluation.Outcome.UNKNOWN, result.completion().outcome());
+        }
+        when(business.lockCompletionFacts(any(),any(),any())).thenThrow(new IllegalStateException("OWNER_UNAVAILABLE"));
+        assertThrows(IllegalStateException.class, () -> service.evaluateAutomatically(project, task, binding));
     }
 
     @Test void automaticCompletionRequiresRealHandlingEvenWithConstantTrue() {

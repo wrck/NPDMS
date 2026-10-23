@@ -28,11 +28,13 @@ public interface ErrorCodeConstants {
     ErrorCode ACC_REPORT_INCOMPLETE = new ErrorCode(1_014_012_009, "验收报告时间、结论、验收人或附件不完整");
     ErrorCode ACC_REPORT_DEPENDENCY_UNAVAILABLE = new ErrorCode(1_014_012_010, "验收报告Owner事实暂不可用");
     ErrorCode ACC_REPORT_SCOPE_FORBIDDEN = new ErrorCode(1_014_012_011, "无权访问该项目验收报告");
+    ErrorCode ACC_ACCEPTANCE_VERSION_CONFLICT = new ErrorCode(1_014_012_012, "验收记录版本冲突，请刷新后重试");
 
     // ========== 交付件检查 1-014-013-000 ==========
     ErrorCode ACC_DELIVERABLE_CHECKLIST_NOT_EXISTS = new ErrorCode(1_014_013_000, "交付件检查记录不存在");
     ErrorCode ACC_DELIVERABLE_CHECKLIST_CODE_DUPLICATE = new ErrorCode(1_014_013_001, "项目内交付件编码已存在");
     ErrorCode ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID = new ErrorCode(1_014_013_002, "交付件状态流转不合法");
+    ErrorCode ACC_DELIVERABLE_CHECKLIST_ACCEPTANCE_INVALID = new ErrorCode(1_014_013_003, "关联验收不存在或不属于当前项目");
 
     // ========== 项目闭环 1-014-014-000（ACC 侧正常闭环用；PROJ 留守检查/退出执行仍持同码副本）==========
     ErrorCode ACC_PROJECT_CLOSURE_VALIDATION_FAILED = new ErrorCode(1_014_014_003, "项目闭环校验未通过：{}");

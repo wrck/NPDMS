@@ -20,7 +20,7 @@
         </div>
       </div>
       <el-form :model="query" inline class="contact-filter -mb-15px">
-        <el-form-item v-if="showCustomerFilter" label="客户" prop="customerId">
+        <el-form-item v-if="showCustomerFilter || (projectId && context && !customerId)" label="客户" prop="customerId">
           <PmsEntitySelect
             v-if="!projectId || !customerId"
             v-model="query.customerId"
@@ -117,7 +117,8 @@
     <Dialog v-model="visible" :title="form.id ? '编辑联系人' : '新增联系人'" width="min(620px, 95vw)" :before-close="beforeClose">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="saving || !canEdit">
         <el-form-item label="客户" prop="customerId">
-          <PmsEntitySelect v-model="form.customerId" :api="CustomerApi.getCustomerPage" :label-field="['code', 'name']"
+          <PmsEntitySelect
+            v-model="form.customerId" :api="CustomerApi.getCustomerPage" :label-field="['code', 'name']"
             value-field="id" query-field="name" placeholder="请选择客户" :disabled="!!projectId || !!form.id" />
         </el-form-item>
         <el-form-item v-if="projectId && !form.id" label="来源">
@@ -240,10 +241,16 @@ const load = async () => {
       : await ContactApi.getMasterPage({ ...query, customerId: customerId.value })
     if (current !== sequence) return
     rows.value = page.list; total.value = page.total
+    if (!props.showCustomerFilter) { customerCodes.value = {}; return context.value }
     // Resolve the business code from CUS, once per customer on this page. The legacy
     // CustomerTag displays names and must not be used under a customer-code heading.
     const codes = await Promise.all([...new Set(page.list.map(row => row.customerId).filter((id): id is number => !!id))].map(async id => {
-      try { return [id, (await CustomerApi.getCustomer(id)).code] as const }
+      try {
+        const customer = props.projectId && String(id) === String(context.value?.project.customerId)
+          ? await CustomerApi.getProjectCustomerOverview(props.projectId)
+          : await CustomerApi.getCustomer(id)
+        return [id, customer?.code || ''] as const
+      }
       catch { return [id, ''] as const }
     }))
     if (current !== sequence) return

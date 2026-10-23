@@ -3,12 +3,15 @@
     <el-alert v-if="error || context?.recoverableError" type="warning" :closable="false" :title="error || unavailableMessage">
       <el-button link @click="refresh">重新加载阶段绑定</el-button>
     </el-alert>
-    <el-alert v-if="!error && !context?.recoverableError && context?.bindingType === 'STAGE_NATIVE'" type="info" :closable="false"
+    <el-alert
+v-if="!error && !context?.recoverableError && context?.bindingType === 'STAGE_NATIVE'" type="info" :closable="false"
       title="本阶段使用原生办理；按阶段自身的完成与门禁规则判定，不挂载外部业务页面。" />
-    <BusinessViewHost v-if="context?.businessView" ref="hostRef" :registration="context.businessView"
+    <BusinessViewHost
+v-if="context?.businessView" ref="hostRef" :registration="context.businessView"
       :resolved-context="{ project, stageExecution: context.execution, stageCode: context.stageCode }" :allowed-actions="error || loading || readonly ? [] : context.ownerActions" :readonly="!!error || loading || context.readonly || !!readonly"
       @changed="handleChanged" @dirty-change="emit('dirty-change', $event)" />
-    <StageApprovalPanel v-if="context?.bindingType === 'APPROVAL'" ref="approvalRef" :workbench="context"
+    <StageApprovalPanel
+v-if="context?.bindingType === 'APPROVAL'" ref="approvalRef" :workbench="context"
       :disabled="!!error || loading || !!readonly" @changed="handleChanged" />
     <el-card v-if="context?.bindingType === 'PAGE'" shadow="never" class="stage-page-card">
       <template #header>页面办理</template>
@@ -63,7 +66,11 @@ const load = async () => {
   }
 }
 const requestLeave = async () => (await hostRef.value?.requestLeave()) !== false && (await approvalRef.value?.requestLeave()) !== false
-const refresh = async () => { if (await requestLeave()) await load() }
+const refresh = async () => {
+  if (!await requestLeave()) return
+  await load()
+  await hostRef.value?.refresh?.()
+}
 const handleChanged = async () => { await load(); emit('changed') }
 const router = useRouter()
 const openPage = () => {

@@ -13,9 +13,10 @@ public record CutoverChecklistView(Long taskId, String taskStage, Long taskVersi
                        Integer sortOrder, CurrentResult currentResult) {
     }
 
+    @lombok.Builder
     public record CurrentResult(Integer resultVersion, String resultSourceCode, String answerSnapshot,
                                 String factDescription, String manualEvidenceFileReference,
                                 Long collectionTaskId, Long collectionResultReferenceId,
-                                Long collectionResultVersion, String loadFailureCode) {
+                                Long collectionResultVersion, String loadFailureCode, String originalFailureCode) {
     }
 }

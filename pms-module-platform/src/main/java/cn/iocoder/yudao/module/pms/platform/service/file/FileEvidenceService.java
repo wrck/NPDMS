@@ -20,6 +20,15 @@ public class FileEvidenceService implements FileEvidenceApi {
     private final FileReferenceMapper references;
 
     @Override @Transactional(propagation = Propagation.MANDATORY)
+    public java.time.LocalDateTime referenceCreatedAt(ReferenceIdentity query) {
+        if (query == null || !Objects.equals(query.tenantId(), TenantContextHolder.getRequiredTenantId())
+                || query.referenceId() == null || query.referenceId() <= 0)
+            throw new IllegalArgumentException("FILE_DOCUMENT_QUERY_INVALID");
+        var reference = references.selectIdentity(new FileReferenceMapper.IdentityQuery(query.tenantId(), query.referenceId()));
+        return reference == null ? null : reference.getCreateTime();
+    }
+
+    @Override @Transactional(propagation = Propagation.MANDATORY)
     public Document inspectDocument(Long tenantId, Long referenceId) {
         if (!Objects.equals(tenantId, TenantContextHolder.getRequiredTenantId()) || referenceId == null)
             throw new IllegalArgumentException("FILE_DOCUMENT_QUERY_INVALID");

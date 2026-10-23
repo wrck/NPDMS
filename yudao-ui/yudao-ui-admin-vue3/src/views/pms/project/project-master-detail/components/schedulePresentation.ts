@@ -5,6 +5,21 @@ import type {
   StagePlanTaskVO
 } from '@/api/pms/engineering/stage-plan'
 
+/** 实际日期补齐空值、替换阶段系统建议默认；保留不同于建议的手工值及历史批次。 */
+export const fillCompletedPlanDates = (plan: StagePlanBatchVO) => {
+  if (![0, 3].includes(plan.status!) || !plan.completedDates) return false
+  let changed = false
+  const fill = (target: { planStart?: string; planEnd?: string; suggestedStart?: string; suggestedEnd?: string }, actual?: { actualStart?: string | null; actualEnd?: string | null }) => {
+    if (actual?.actualStart && target.planStart !== actual.actualStart && (!target.planStart || target.planStart === target.suggestedStart)) { target.planStart = actual.actualStart; changed = true }
+    if (actual?.actualEnd && target.planEnd !== actual.actualEnd && (!target.planEnd || target.planEnd === target.suggestedEnd)) { target.planEnd = actual.actualEnd; changed = true }
+  }
+  const stages = new Map(plan.completedDates.stages.map(node => [String(node.nodeId), node]))
+  const tasks = new Map(plan.completedDates.tasks.map(node => [String(node.nodeId), node]))
+  plan.items.forEach(item => fill(item, stages.get(String(item.phaseId))))
+  plan.tasks?.forEach(task => fill(task, tasks.get(String(task.taskId))))
+  return changed
+}
+
 export const shortPlan = (plan?: StagePlanBatchVO) =>
   !!plan?.baselineStart &&
   !!plan.baselineEnd &&
@@ -127,7 +142,15 @@ export const buildScheduleRows = (
  * 末位的「晚于建议最迟完成时间」为前端独有的提示性检查。
  */
 export const stageItemIssue = (item: StagePlanItemVO, plan?: StagePlanBatchVO) => {
-  const { planStart, planEnd, suggestedEnd } = item
+  const issue = stageItemBlockingIssue(item, plan)
+  if (issue) return issue
+  if (item.suggestedEnd && item.planEnd && item.planEnd > item.suggestedEnd)
+    return '晚于建议最迟完成时间'
+  return ''
+}
+
+export const stageItemBlockingIssue = (item: StagePlanItemVO, plan?: StagePlanBatchVO) => {
+  const { planStart, planEnd } = item
   if (!planStart && !planEnd) return '待安排日期'
   if (!planStart || !planEnd) return '请同时填写开始和结束日期'
   if (planEnd < planStart) return '计划结束时间早于计划开始时间'
@@ -149,7 +172,6 @@ export const stageItemIssue = (item: StagePlanItemVO, plan?: StagePlanBatchVO) =
   )
   if (acceptance && planEnd > String(acceptance.acceptanceTime).slice(0, 10))
     return '计划结束不得晚于计划验收时间'
-  if (suggestedEnd && planEnd > suggestedEnd) return '晚于建议最迟完成时间'
   return ''
 }
 

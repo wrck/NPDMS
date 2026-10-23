@@ -520,7 +520,7 @@
       :width="420"
       trigger="click"
       v-if="
-        userId === processInstance?.startUser?.id && !isEndProcessStatus(processInstance?.status)
+        !serviceManagerApprovalOnly && checkPermi(['bpm:process-instance:cancel']) && userId === processInstance?.startUser?.id && !isEndProcessStatus(processInstance?.status)
       "
     >
       <template #reference>
@@ -561,7 +561,7 @@
       @click="handleReCreate()"
       class="hover-bg-gray-100 rounded-xl p-6px"
       v-if="
-        userId === processInstance?.startUser?.id &&
+        !serviceManagerApprovalOnly && userId === processInstance?.startUser?.id &&
         isEndProcessStatus(processInstance?.status) &&
         processDefinition?.formType === 10
       "
@@ -575,6 +575,8 @@
 </template>
 <script lang="ts" setup>
 import { getCurrentUserId } from '@/utils/auth'
+import { useUserStore } from '@/store/modules/user'
+import { checkPermi } from '@/utils/permission'
 import { setConfAndFields2 } from '@/utils/formCreate'
 import * as TaskApi from '@/api/bpm/task'
 import * as CommentApi from '@/api/bpm/comment'
@@ -1210,8 +1212,12 @@ const isEndProcessStatus = (status: number) => {
   return isEndStatus
 }
 
+const serviceManagerApprovalOnly = computed(() => useUserStore().getRoles.includes('SERVICE_MANAGER')
+  && !checkPermi(['bpm:task:manager-query']))
+
 /** 是否显示按钮 */
 const isShowButton = (btnType: OperationButtonType): boolean => {
+  if (serviceManagerApprovalOnly.value && ![OperationButtonType.APPROVE, OperationButtonType.REJECT].includes(btnType)) return false
   let isShow = true
   if (runningTask.value?.buttonsSetting && runningTask.value?.buttonsSetting[btnType]) {
     isShow = runningTask.value.buttonsSetting[btnType].enable

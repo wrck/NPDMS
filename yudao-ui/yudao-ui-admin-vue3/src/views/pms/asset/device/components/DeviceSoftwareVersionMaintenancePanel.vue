@@ -69,7 +69,7 @@ import DeviceReadOnlyFields from './DeviceReadOnlyFields.vue'
 import DeviceSoftwareSourceHistoryPanel from './DeviceSoftwareSourceHistoryPanel.vue'
 import ProjectDeviceLogArchiveDialog from '@/components/DeviceCollection/ProjectDeviceLogArchiveDialog.vue'
 import { formatSourceDate } from '@/utils/formatSourceDate'
-const props = defineProps<{ deviceId: number; projectId?: number }>()
+const props = defineProps<{ deviceId: number | string; projectId?: number | string }>()
 const emit = defineEmits<{ updated: [] }>()
 const coreFields = [
   { key: 'conpVersion', label: 'CONP' },

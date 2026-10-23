@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.CompletionSatisfactionSigningMapper">
+    <select id="selectFirstSigning" resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.CompletionSatisfactionSigningDO">
+        SELECT * FROM acc_completion_satisfaction_signing
+        WHERE tenant_id = #{query.tenantId} AND bundle_id = #{query.bundleId} AND deleted = b'0'
+        ORDER BY signed_at, id LIMIT 1
+    </select>
+</mapper>

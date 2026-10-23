@@ -271,8 +271,11 @@ public class ConstructionPlanQueryService {
     }
 
     private void assertProjectScope(Actor actor, Long projectId, String action) {
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, action));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         if (!scope.fullProjectIds().contains(projectId)) {
             throw exception(FORBIDDEN);
         }

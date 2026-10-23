@@ -58,8 +58,11 @@ public class PreparationWaiverService {
         PreparationItemDO item = itemMapper.selectList(new PreparationChildrenQuery(actor.tenantId(), preparationId))
                 .stream().filter(row -> Objects.equals(row.getId(), itemId)).findFirst().orElse(null);
         if (preparation == null || item == null) throw exception(PREPARATION_NOT_EXISTS);
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(),
-                actor.actorId(), preparation.getProjectId(), ProjectScopeApi.ACTION_VIEW));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(preparation.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null
                 || !scope.fullProjectIds().contains(preparation.getProjectId())) throw exception(FORBIDDEN);
         WaiverCursor parsed = parseCursor(cursor);
@@ -199,11 +202,18 @@ public class PreparationWaiverService {
         String permission = decision ? PERMISSION_APPROVE : PreparationInitializationService.PERMISSION_MANAGE;
         String action = decision ? ProjectScopeApi.ACTION_VIEW : ProjectScopeApi.ACTION_MANAGE;
         if (!permissionApi.hasAnyPermissions(actor.actorId(), permission)) throw exception(FORBIDDEN);
-        ProjectScopeResult current = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, action));
+        ProjectScopeResult current = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         if (current == null || current.fullProjectIds() == null || !current.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
-        projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.actorId(),
-                projectId, action, current.treeVersion()));
+        projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(action)
+                .expectedScopeVersion(current.treeVersion()).build());
     }
 
     private void authorizeParticipant(Long projectId, Long projectVersion,
@@ -304,8 +314,11 @@ public class PreparationWaiverService {
             String permission, String scopeAction) {
         try {
             if (!permissionApi.hasAnyPermissions(actor.actorId(), permission)) return false;
-            ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    actor.tenantId(), actor.actorId(), projectId, scopeAction));
+            ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(scopeAction).build());
             if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) return false;
             ProjectParticipantFact fact = participantFactApi.inspect(new ProjectParticipantFactQuery(
                     projectId, actor.actorId(), Set.of(roleCode), LocalDateTime.now()));

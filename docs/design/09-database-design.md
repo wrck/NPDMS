@@ -368,6 +368,8 @@ CUT-11、CutoverSupportTask及责任区间不属于当前模型，不建立对�
 
 CUT-03使用CutoverTask从属的三张版本表，不把清单塞入`cut_plan_revision`，也不建立采集阶段、通用工单或结果中转页：
 
+本节及7.2保留最初前向载体设计；2026-10-13已批准的规范列名、固定JSON替换和从属表以7.3及其完整字段清单为准，原业务版本和状态语义保持。
+
 | 目标表 | 关键字段 | 约束与索引 |
 |---|---|---|
 | `cut_cutover_checklist` | `cutover_task_id/assessment_id/assessment_version/checklist_version/status_code/input_snapshot/input_snapshot_hash/config_revision_snapshot/match_trace/config_gap_snapshot/submitted_by/submitted_at/invalidated_at/invalidated_reason/current_marker/version` | `uk(tenant_id, cutover_task_id, checklist_version)`；生成列`current_marker`在`invalidated_at is null`时取1，`uk(tenant_id, cutover_task_id, current_marker)`保证一个当前版本；`status_code`只允许PRD已有草稿、已提交、已失效语义 |
@@ -393,6 +395,18 @@ CUT-03使用CutoverTask从属的三张版本表，不把清单塞入`cut_plan_re
 当前`pms_cut_risk`只作为可证明的旧风险/调研项候选来源：允许迁任务引用、原编码/名称/类型、原说明及可证明填写事实；不得推断采集项定义版本、界面Schema、绑定规则、必填性、CollectionTask、自动结果、业务通过或配置缺口。不能完成字段级证明的记录保留兼容来源证据或迁移问题。新清单根、匹配版本和结果引用由前向Feature产生。
 
 本节完成Phase 2物理设计，不修改当前DDL。三张表及`proj_*`任务执行契约表进入正式Flyway前必须重新执行P3-E09，且不触发`AI-MIG-000`；只有Release同时包含历史迁移或数据切换时，`AI-MIG-000`才在Release前适用并限定批准窗口。
+
+### 7.3 割接整模块结构化存储与规范命名
+
+需求方已批准[75张表的完整字段方案](../superpowers/specs/2026-10-13-cutover-structured-storage.md)，并明确“表字段的名称请统一规范，然后开始实施”。复用28张表（22张结构化调整、4张仅命名调整、2张直接复用），新增47张从属表；Owner分布为CUT 67张、IMP割接专用6张、AST割接专用2张。字段按ADR-0019使用snake_case、明确业务引用及`*_time`、`*_user_id`、`*_code`、`*_flag`等语义，93个现有字段保留旧名映射。完整表列、类型、可空性和约束以上述方案为逐表依据。
+
+前向迁移V474新增结构，V475将可证明的历史事实逐记录投影，V476完成规范字段切换和等价约束。41个旧固定JSON列及原文件载荷只读保留，新写入必须为空，新业务查询只读结构化字段；7个真正自定义/扩展JSON列按精确字段定义使用。迁移不能补造外部查询、角色成员、设备版本或文件水位；来源不足时中止并报告。原业务版本、状态、审计时间及JSON原件保持，禁止应用双写或以旧JSON兜底。
+
+2026-10-14批准的保障人员多人明细由V477前向实现：解除方案内角色唯一约束，新增逐行客户联系ID/版本及填写顺序三列，草稿到位时间允许为空。既有单客户引用只投影到原客户行的新列，原方案根及已存在字段不改写；提交完整性与批准后基线冻结继续生效。表数仍为75，完整字段数为1333。
+
+配置、P1～P6和备件从属于原根及修订，固定答案使用8张对象/单值表和5张表格行表，自定义值使用2张专表，统一结果根保存精确字段定义引用。文件关系分别保存工件、引用、可用性三个独立事实水位；外部查询、实际参数、结果引用及首次原始公告分开保存。已发布/提交/批准/归档事实和结果明细由数据库保护；允许的失效、选择结束和当前指针变化不解冻原内容。父子关系使用同Owner、含租户的外键，不建立跨模块外键。
+
+新旧代码与规范列不兼容，完整迁移与新冻结产物必须在同一经批准的部署窗口切换。隔离库验证不授权向共享实例执行，也不替代业务与真实浏览器验收；实际证据见[割接专项交付记录](../generated/2026-10-12-cutover-platform-implementation.md)。
 
 ## 8. Customer、Commerce、Resource 与 Knowledge
 
@@ -837,3 +851,21 @@ V343 新增 SOL 自有 `sol_solution_review_policy`，按租户与方案唯一�
 2026-09-22 来源更正：V344 停用 V342 独立确认模板，保留 `proj_preparation_confirmation` 及原 PLT 发布修订；服务不再新增独立确认。工前输入复用既有 SOL 工勘实体与表单绑定，新增工勘表单修订仅追加条件展示配置，无新增输入字段或业务表。
 
 同日后续裁决：需求方要求从代码中剔除历史工前确认模块；对应 DO / Mapper / XML 已移除。此变更不删除数据库历史记录，也不修改已执行的 V342 / V344。
+
+2026-10-09 FB-02批准差量：复用PROJ阶段/任务的`plan_end_time`与`acceptance_time`，按日期计算当前两类超期；节点完成即停止两类。V422新增PROJ拥有的追加事实表`proj_node_overdue_completion`，唯一键为`(tenant_id,node_kind,node_id,node_version)`。既有状态更新成功进入DONE且有实际完成时间时，同事务追加当时的两个计划时间、实际完成时间与两个超期标识，不直接写任何生命周期状态。回滚同时撤销新事实；后续修改计划不重写已追加事实。历史节点不回填，不覆盖原快照、批准版本或审计。当前项目状态查询复用已授权项目集合，只读返回当前超期节点和已完成历史超期节点。
+
+2026-10-09 FB-18批准差量：IMP配置记录增加可空`imported_log_file_id`和`imported_log_batch_id`，只存AST不可变文件和批次引用；唯一键`(tenant_id,imported_log_file_id)`防止同一文件重复生成配置记录。V423仅加列与索引，不回填或修改旧配置记录和AST历史。初始化不臆造设备SN或业务来源。
+
+
+### 2026-10-10 完工证明与满意度成套签字存储
+
+新增ACC Owner `acc_completion_satisfaction_bundle`：冻结certificateId/certificateVersion/projectId/collectionKey及裁剪证明快照；tenant+certificateId、tenant+collectionKey分别唯一。`acc_completion_satisfaction_signing`只追加每轮bundleId/questionnaireId/responseId/grantId/完整SIGNATURE公共文件事实/signedAt，tenant+responseId唯一。access_grant加completion_bundle_id，可空仅保留既有单问卷授权；不回填历史、不存原始token或下载URL。首次证明确认严格按tenant/id/expectedVersion/status=1 CAS转2，与Response及成套签字同事务。整改只追加签字，不更新旧配对快照或首次确认。前向迁移V427。
+
+
+### 2026-10-10 完工及满意度完整工作台持久化
+
+V428仅向 `acc_completion_certificate`增补可空的满意度问卷模板选择，以及两份独立打印模板ID、修订ID、不可变版式快照；向 `acc_completion_satisfaction_signing`增补与PLT签字文件摘要一致的PNG回显数据。历史记录不回填、不推断调查或签字。新证明首次推送复用V427的租户/证明唯一关联与原调查冻结链；重新外发不增加调查，撤销旧链接。状态仍为原0/1/2/3/4，新工作台0/1作废使用4，历史4仍保留驳回含义。
+
+V429仅幂等初始化COMPLETION_PRINT与SATISFACTION_PRINT两个独立动态表单打印模板及各自已发布修订，使用高段ID与seed_completion_confirmation来源标识；不替换既有模板、问卷题目或评分。满意度标准打印控件读取该轮冻结问卷和答案，按Demo矩阵展示，签字来自关联的规范文件事实。所有新交付文件通过PLT正式API登记，ACC不读取或写入PLT业务表。
+
+V430按需求方明确裁决，新增 `COMPLETION_SATISFACTION_STANDARD` 原表模板及发布修订，沿用高段ID和 `seed_completion_confirmation` 来源标识。13题中10项RATING采用相同权重的既有平均计分器，满分100、阈值80；购买意愿及两项意见为不计分TEXT。专用 `COMPLETION_CONFIRMATION` 时点与固定模板编码供原证明首次外发显式解析，不加入既有MANUAL/验收活动的模板匹配场景。只初始化新记录，不更新已有模板、发布修订、冻结问卷、答卷或Result。首次推送保存选择并冻结修订，重推/历史查看使用该轮原快照。

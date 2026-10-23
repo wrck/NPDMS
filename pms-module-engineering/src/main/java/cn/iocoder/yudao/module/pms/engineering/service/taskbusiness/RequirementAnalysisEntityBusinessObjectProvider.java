@@ -39,6 +39,29 @@ public class RequirementAnalysisEntityBusinessObjectProvider implements TaskBusi
     private final RequirementAnalysisEntityFactApi facts;
     private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions;
 
+    @Override public HandlingTime historicalHandlingTime(HandlingTimeQuery request) {
+        trusted(request.context().tenantId(),request.context().actorId(),request.context().projectId());
+        queryService.revision(Long.valueOf(request.objectId()), new EntityActor(request.context().tenantId(),request.context().actorId(),null));
+        if (!request.satisfiedFacts().contains(COMPLETED_FACT)) return null;
+        var row = rootMapper.selectRevision(new RequirementRevisionQuery(request.context().tenantId(), Long.valueOf(request.objectId())));
+        if (row == null || !Objects.equals(row.getTenantId(),request.context().tenantId()) || !Objects.equals(row.getProjectId(), request.context().projectId())
+                || Boolean.TRUE.equals(row.getDeleted()) || row.getFrozenBy() == null) return null;
+        String version = "SOL_REQUIREMENT_RESULT:" + row.getId() + ":" + row.getVersion() + ":" + row.getRevisionNo() + ":" + row.getRevisionState();
+        return Objects.equals(version, request.factVersion()) && "FROZEN".equals(row.getRevisionState())
+                ? new HandlingTime(row.getFrozenAt(), "BUSINESS_END", "需求分析完成时间") : null;
+    }
+
+    @Override
+    public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())
+                || objectId == null || !objectId.matches("[1-9][0-9]*")) throw exception(FORBIDDEN);
+        var row = rootMapper.selectRevision(new RequirementRevisionQuery(context.tenantId(), Long.valueOf(objectId)));
+        if (row == null || !Objects.equals(row.getTenantId(), context.tenantId())
+                || !Objects.equals(row.getProjectId(), context.projectId()) || Boolean.TRUE.equals(row.getDeleted()))
+            throw exception(REQUIREMENT_NOT_EXISTS);
+        return row.getCreateTime();
+    }
+
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public CompletionFact lockCompletionFact(CompletionContext context, String objectId) {

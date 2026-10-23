@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.engineering.service.arrival;
 
+import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
+
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.ArrivalMapper;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileDocumentSourceProvider;
@@ -27,8 +29,12 @@ public class ArrivalDocumentSources implements FileDocumentSourceProvider {
     }
 
     @Override
-    public Scope resolve(Long tenantId, String ownerContext, String objectType, String objectId,
-                         String purposeCode) {
+    public Scope resolve(Long tenantId, FileEvidenceApi.Document document) {
+        String ownerContext = document.ownerContext();
+        String objectType = document.objectType();
+        String objectId = document.objectId();
+        String purposeCode = document.purposeCode();
+
         if (!Objects.equals(tenantId, TenantContextHolder.getRequiredTenantId())
                 || !ArrivalFilePolicyProvider.OWNER_CONTEXT.equals(ownerContext)
                 || !ArrivalFilePolicyProvider.OBJECT_TYPE.equals(objectType)

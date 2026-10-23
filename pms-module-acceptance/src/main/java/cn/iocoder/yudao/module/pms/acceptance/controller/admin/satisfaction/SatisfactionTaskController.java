@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.acceptance.controller.admin.satisfaction;
 
 import cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.IndependentSatisfactionService;
+import cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.CompletionSatisfactionBundleService;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionTaskInitializationApiImpl;
@@ -53,6 +54,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @Validated
 @RequiredArgsConstructor
 public class SatisfactionTaskController {
+    private final CompletionSatisfactionBundleService completionBundles;
     private final SatisfactionTaskInitializationApiImpl initializationService;
     private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectManualSatisfactionApi manualProjects;
     private final SatisfactionAccessGrantService grantService;
@@ -185,7 +187,16 @@ public class SatisfactionTaskController {
             @Valid @RequestBody SatisfactionAccessGrantCreateReqVO request) {
         return withTenant(() -> {
             taskService.requireManageable(tenantId(), actorId(), taskId);
-            return success(grantService.create(tenantId(), actorId(), taskId, request.getExpiresAt()));
+            return success(grantService.create(tenantId(), actorId(), taskId, request.getExpiresAt(), request.getCompletionCertificateId()));
+        });
+    }
+
+    @GetMapping("/{id}/completion-certificate")
+    @PreAuthorize("@ss.hasPermission('pms:acceptance:satisfaction:manage')")
+    public CommonResult<CompletionSatisfactionBundleService.CertificateSnapshot> completionCertificate(@PathVariable("id") Long taskId) {
+        return withTenant(() -> {
+            taskService.requireManageable(tenantId(), actorId(), taskId);
+            return success(completionBundles.existing(tenantId(), actorId(), taskService.get(tenantId(), actorId(), taskId)));
         });
     }
 

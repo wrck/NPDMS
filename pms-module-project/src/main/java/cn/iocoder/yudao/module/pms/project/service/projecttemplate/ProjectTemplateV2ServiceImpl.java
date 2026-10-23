@@ -261,7 +261,7 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
     @Transactional(rollbackFor = Exception.class)
     public void publishProjectTemplate(Long id) {
         ProjectTemplateDO template = lockV2Template(id);
-        ProjectTemplateRevisionDO draft = requireWritableDraft(id);
+        requireWritableDraft(id);
         if (!TemplateRules.canPublish(template.getStatus(), true)) {
             throw exception(PROJECT_TEMPLATE_STATUS_INVALID);
         }
@@ -273,7 +273,6 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         issues.addAll(rulePublicationValidator.validate(designer));
         issues = dedupe(issues);
         if (!issues.isEmpty()) {
-            rememberValidation(draft, summarize(issues));
             throw exception(PROJECT_TEMPLATE_PUBLISH_INVALID, summarize(issues));
         }
 
@@ -504,14 +503,6 @@ public class ProjectTemplateV2ServiceImpl extends ProjectTemplateServiceImpl {
         if (v2TemplateMapper.incrementVersion(new TemplateIdentityQuery(
                 TenantContextHolder.getRequiredTenantId(), templateId)) != 1)
             throw exception(DeliveryConfigurationErrors.VERSION_CONFLICT);
-    }
-
-    private void rememberValidation(ProjectTemplateRevisionDO draft, String summary) {
-        ProjectTemplateRevisionDO update = new ProjectTemplateRevisionDO();
-        update.setId(draft.getId());
-        update.setValidationSummary(summary.length() > 1000 ? summary.substring(0, 1000) : summary);
-        update.setClosurePolicy(draft.getClosurePolicy());
-        requireOne(v2RevisionMapper.updateById(update));
     }
 
     private List<Issue> dedupe(List<Issue> issues) {

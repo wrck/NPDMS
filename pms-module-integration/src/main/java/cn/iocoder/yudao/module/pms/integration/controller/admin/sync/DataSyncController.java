@@ -29,7 +29,6 @@ public class DataSyncController {
     private final SyncTaskService tasks;
     private final SyncRunService runner;
     private final SyncRunMapper runs;
-    private final SyncBindingMapper bindings;
     private final cn.iocoder.yudao.module.system.api.permission.PermissionApi permissions;
     private final cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetCatalog genericTargets;
     private final cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncTemplates genericTemplates;
@@ -317,10 +316,7 @@ public class DataSyncController {
     @GetMapping("/mappings")
     @PreAuthorize("@ss.hasPermission('pms:integration:view')")
     public CommonResult<PageResult<SyncBindingDO>> mappings(@Valid SyncQueries.Page q){
-        tasks.required(q.getTaskId());q.setTenantId(SyncTaskService.tenant());
-        var page=bindings.selectPage(q);
-        page.getList().forEach(binding->binding.setFieldsJson(JsonUtils.toJsonString(SyncBindingSnapshots.decode(binding.getFieldsJson()))));
-        return success(page);
+        return success(runner.mappings(q));
     }
     private void requireSqlPermission(){
         if(!permissions.hasAnyPermissions(cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),

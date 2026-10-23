@@ -1,0 +1,18 @@
+{
+  "phase": "after",
+  "projectId": 992203060198,
+  "certificateId": 30039,
+  "surveyMetrics": {
+    "visibleWidth": 358,
+    "contentWidth": 358
+  },
+  "ratingCount": 53,
+  "signatureBounds": {
+    "x": 12,
+    "y": 16.42127799987793,
+    "width": 366,
+    "height": 811.9999866485596
+  },
+  "protectedRecordsUnchanged": true,
+  "pageErrors": []
+}

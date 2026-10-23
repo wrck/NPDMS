@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.asset.service.location;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.EquipmentLocationEffectiveCommand;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
@@ -13,6 +14,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -59,11 +63,25 @@ class DeviceLocationEffectiveServiceTest {
 
         verify(locationMapper).closeCurrent(1L, "SN-8", command().effectiveFrom());
         verify(locationMapper).insert(argThat((DeviceLocationDO value) ->
-                "SN-8".equals(value.getDeviceSn()) && Long.valueOf(201L).equals(value.getInstallationId())));
+                "SN-8".equals(value.getDeviceSn()) && Long.valueOf(201L).equals(value.getInstallationId())
+                        && command().locationSnapshot().equals(value.getLocationSnapshot())));
         verify(deviceMapper).updateLocationProjection(argThat((DeviceLocationProjectionUpdate value) ->
                 Long.valueOf(21L).equals(value.siteId())
                         && Long.valueOf(31L).equals(value.siteLocationId())
-                        && "RESOLVED".equals(value.resolutionStatus())));
+                        && "RESOLVED".equals(value.resolutionStatus())
+                        && command().locationText().equals(JsonUtils.parseTree(value.locationSnapshot()).get("fallbackLocation").asText())
+                        && JsonUtils.parseTree(value.locationSnapshot()).get("site").get("id").asLong() == 21L));
+    }
+
+    @Test
+    void shouldProjectManualTextInSnapshotWithoutInventingSiteReferences() {
+        when(deviceMapper.selectByTenantAndIdForUpdate(1L, 8L)).thenReturn(device());
+        when(deviceMapper.updateLocationProjection(any())).thenReturn(1);
+        var manual = new EquipmentLocationEffectiveCommand(8L,201L,null,null,"手工完整安装地址","UNRESOLVED",null,LocalDateTime.now());
+        assertTrue(service.effect(manual));
+        verify(locationMapper).insert(argThat((DeviceLocationDO history) -> history.getLocationSnapshot() == null));
+        verify(deviceMapper).updateLocationProjection(argThat(update ->
+                "手工完整安装地址".equals(JsonUtils.parseTree(update.locationSnapshot()).get("fallbackLocation").asText()) && update.siteId() == null && update.siteLocationId() == null));
     }
 
     @Test
@@ -144,12 +162,78 @@ class DeviceLocationEffectiveServiceTest {
 
     @Test void historicalFillReplaysItsOwnCurrentLocationWithoutWrites() {
         var device=device();var current=location("SN-8",null,null);current.setId(300L);current.setResolutionStatus("UNRESOLVED");
+        current.setLocationSnapshot("snapshot");
         device.setLocationRecordId(300L);device.setLocationSnapshot(current.getLocationSnapshot());device.setLocationEffectiveFrom(current.getEffectiveFrom());
         when(deviceMapper.selectByTenantAndIdForUpdate(1L,8L)).thenReturn(device);
         when(locationMapper.selectCurrent(any())).thenReturn(current);
         when(locationMapper.selectByTenantAndInstallation(1L,201L)).thenReturn(current);
         var input=new EquipmentLocationEffectiveCommand(8L,201L,null,null,"原地址","UNRESOLVED","snapshot",command().effectiveFrom());
         service.effectIfAbsentOrThrow(input);
+        verify(locationMapper,never()).insert(any(DeviceLocationDO.class));
+        verify(deviceMapper,never()).updateLocationProjection(any());
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"{}", "原始非JSON快照"})
+    void historicalFillReplaysItsOwnDerivedDisplayProjectionWithoutWrites(String rawSnapshot) {
+        var device=device();var current=location("SN-8",null,null);
+        current.setId(300L);current.setResolutionStatus("UNRESOLVED");current.setLocationSnapshot(rawSnapshot);
+        device.setLocationRecordId(300L);device.setLocationSnapshot("{\"fallbackLocation\":\"原地址\"}");
+        device.setLocationEffectiveFrom(current.getEffectiveFrom());
+        when(deviceMapper.selectByTenantAndIdForUpdate(1L,8L)).thenReturn(device);
+        when(locationMapper.selectCurrent(any())).thenReturn(current);
+        when(locationMapper.selectByTenantAndInstallation(1L,201L)).thenReturn(current);
+        var input=new EquipmentLocationEffectiveCommand(8L,201L,null,null,"原地址","UNRESOLVED",rawSnapshot,command().effectiveFrom());
+        service.effectIfAbsentOrThrow(input);
+        verify(locationMapper,never()).closeCurrent(any(),any(),any());
+        verify(locationMapper,never()).insert(any(DeviceLocationDO.class));
+        verify(deviceMapper,never()).updateLocationProjection(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{\"fallbackLocation\":\"被改写地址\"}",
+            "{\"fallbackLocation\":\"原地址\",\"extra\":true}"})
+    void historicalFillCannotReplayATamperedDisplayProjection(String projection) {
+        var device=device();var current=location("SN-8",null,null);
+        current.setId(300L);current.setResolutionStatus("UNRESOLVED");current.setLocationSnapshot("{}");
+        device.setLocationRecordId(300L);device.setLocationSnapshot(projection);
+        device.setLocationEffectiveFrom(current.getEffectiveFrom());
+        when(deviceMapper.selectByTenantAndIdForUpdate(1L,8L)).thenReturn(device);
+        when(locationMapper.selectCurrent(any())).thenReturn(current);
+        var input=new EquipmentLocationEffectiveCommand(8L,201L,null,null,"原地址","UNRESOLVED","{}",command().effectiveFrom());
+        assertThrows(ServiceException.class,()->service.effectIfAbsentOrThrow(input));
+        verify(locationMapper,never()).closeCurrent(any(),any(),any());
+        verify(locationMapper,never()).insert(any(DeviceLocationDO.class));
+        verify(deviceMapper,never()).updateLocationProjection(any());
+    }
+
+    @Test void historicalFillReplaysEquivalentFullJsonProjectionWithoutChangingRawHistory() {
+        var device=device();var current=location("SN-8",null,null);
+        current.setId(300L);current.setResolutionStatus("UNRESOLVED");current.setLocationSnapshot("{\"room\":\"机房\"}");
+        device.setLocationRecordId(300L);device.setLocationSnapshot("{ \"fallbackLocation\": \"原地址\", \"room\": \"机房\" }");
+        device.setLocationEffectiveFrom(current.getEffectiveFrom());
+        when(deviceMapper.selectByTenantAndIdForUpdate(1L,8L)).thenReturn(device);
+        when(locationMapper.selectCurrent(any())).thenReturn(current);
+        when(locationMapper.selectByTenantAndInstallation(1L,201L)).thenReturn(current);
+        var input=new EquipmentLocationEffectiveCommand(8L,201L,null,null,"原地址","UNRESOLVED",current.getLocationSnapshot(),command().effectiveFrom());
+        service.effectIfAbsentOrThrow(input);
+        assertEquals("{\"room\":\"机房\"}",current.getLocationSnapshot());
+        verify(locationMapper,never()).closeCurrent(any(),any(),any());
+        verify(locationMapper,never()).insert(any(DeviceLocationDO.class));
+        verify(deviceMapper,never()).updateLocationProjection(any());
+    }
+
+    @Test void historicalFillCannotChangeRawHistoryFormattingOnReplay() {
+        var device=device();var current=location("SN-8",null,null);
+        current.setId(300L);current.setResolutionStatus("UNRESOLVED");current.setLocationSnapshot("{}");
+        device.setLocationRecordId(300L);device.setLocationSnapshot("{\"fallbackLocation\":\"原地址\"}");
+        device.setLocationEffectiveFrom(current.getEffectiveFrom());
+        when(deviceMapper.selectByTenantAndIdForUpdate(1L,8L)).thenReturn(device);
+        when(locationMapper.selectCurrent(any())).thenReturn(current);
+        var input=new EquipmentLocationEffectiveCommand(8L,201L,null,null,"原地址","UNRESOLVED"," { } ",command().effectiveFrom());
+        assertThrows(ServiceException.class,()->service.effectIfAbsentOrThrow(input));
+        verify(locationMapper,never()).closeCurrent(any(),any(),any());
         verify(locationMapper,never()).insert(any(DeviceLocationDO.class));
         verify(deviceMapper,never()).updateLocationProjection(any());
     }
@@ -179,7 +263,7 @@ class DeviceLocationEffectiveServiceTest {
         location.setSiteId(siteId);
         location.setSiteLocationId(siteLocationId);
         location.setResolutionStatus("RESOLVED");
-        location.setLocationSnapshot("snapshot");
+        location.setLocationSnapshot(command().locationSnapshot());
         location.setEffectiveFrom(command().effectiveFrom());
         location.setInstallationId(201L);
         return location;
@@ -187,7 +271,7 @@ class DeviceLocationEffectiveServiceTest {
 
     private EquipmentLocationEffectiveCommand command() {
         return new EquipmentLocationEffectiveCommand(
-                8L, 201L, 21L, 31L, "机柜A", "RESOLVED", "snapshot",
+                8L, 201L, 21L, 31L, "机柜A", "RESOLVED", "{\"site\":{\"id\":21},\"fallbackLocation\":\"旧文本\"}",
                 LocalDateTime.of(2026, 8, 27, 15, 30));
     }
 }

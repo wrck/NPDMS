@@ -41,7 +41,7 @@ public class RequirementAnalysisPresentations {
                 if (property == null || mapping.containsValue(property)) { compatible = false; break; }
                 final String code = property;
                 var entityField = RequirementAnalysisEntityProvider.FIELDS.fields().stream().filter(value -> value.code().equals(code)).findFirst();
-                if (entityField.isPresent() && (entityField.get().type() == EntityField.Type.OBJECT_LIST && !"group".equals(field.componentType())
+                if (entityField.isPresent() && (entityField.get().type() == EntityField.Type.OBJECT_LIST && !Set.of("group", "RequirementBusinessTable").contains(field.componentType())
                         || entityField.get().type() == EntityField.Type.TEXT_LIST && !"checkbox".equals(field.componentType()))) {
                     compatible = false; break;
                 }

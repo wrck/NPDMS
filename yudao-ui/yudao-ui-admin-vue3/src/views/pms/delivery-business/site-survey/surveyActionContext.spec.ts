@@ -7,6 +7,12 @@ import { loadSurveyActionContext } from './surveyActionContext'
 
 describe('survey shortcuts preserve real source identities', () => {
   beforeEach(() => vi.resetAllMocks())
+  it('allows external procurement for the configured manufacturer and no-rail branch', async () => {
+    vi.mocked(getSiteSurvey).mockResolvedValue({ id: 1, projectId: 7, code: 'SS', name: '工勘', status: 0,
+      businessValues: { manufacturerInstallation: true, railTrayRequired: false } })
+    expect(await loadSurveyActionContext(1, 'procurement')).toMatchObject({ triggerSource: 'SITE_SURVEY', triggerRefId: 1 })
+    await expect(loadSurveyActionContext(1, 'material')).rejects.toThrow('导轨')
+  })
   it('uses the saved survey context for procurement without inventing quantities', async () => {
     vi.mocked(getSiteSurvey).mockResolvedValue({ id: 1, projectId: 7, code: 'SS', name: '工勘', status: 0, businessValues: { railTrayRequired: true } })
     const result = await loadSurveyActionContext(1, 'material')

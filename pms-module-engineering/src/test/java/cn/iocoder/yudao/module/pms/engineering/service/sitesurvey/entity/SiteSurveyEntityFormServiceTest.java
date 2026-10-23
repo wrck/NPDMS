@@ -42,6 +42,19 @@ class SiteSurveyEntityFormServiceTest {
         verifyNoInteractions(forms, bindings, extensions, details);
     }
 
+    @Test void acceptsMaterialLongIdsFromTheBrowserWithoutPrecisionLoss() {
+        var row = new SiteSurveyEntityDO(); row.setProjectId(2108606819783868418L);
+        var request = new SiteSurveyEntitySaveReqVO();
+        request.setBusinessValues(Map.of("selectedMaterials", List.of(Map.of(
+                "projectId", "2108606819783868418", "deviceId", "2108606819783868419", "sn", "SN-1"))));
+        service.prepare(row, request);
+        assertEquals(2108606819783868418L, row.getSelectedMaterials().getFirst().getProjectId());
+        assertEquals(2108606819783868419L, row.getSelectedMaterials().getFirst().getDeviceId());
+        request.setBusinessValues(Map.of("selectedMaterials", List.of(Map.of(
+                "projectId", "2108606819783868418", "deviceId", "invalid", "sn", "SN-1"))));
+        assertThrows(RuntimeException.class, () -> service.prepare(row, request));
+    }
+
     @Test void rejectsForgedManagementFieldsAndFixedValuesInExtensionPayload() {
         var row = new SiteSurveyEntityDO(); row.setProjectId(7L);
         var request = new SiteSurveyEntitySaveReqVO(); request.setBusinessValues(Map.of("status", 3));

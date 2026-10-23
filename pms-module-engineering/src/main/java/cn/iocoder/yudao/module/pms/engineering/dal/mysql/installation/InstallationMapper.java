@@ -30,6 +30,11 @@ public interface InstallationMapper extends ProjectScopedCodeMapper<Installation
                 .eqIfPresent(InstallationDO::getProjectId,query.projectId()).eqIfPresent(InstallationDO::getEquipmentId,query.equipmentId()).likeRight(InstallationDO::getCode,"DPPMS-")
                 .orderByDesc(InstallationDO::getId));
     }
+    java.util.List<InstallationDO> selectProjectAddressRecordsForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.ProjectInstallationAddressQuery query);
+
+    java.util.List<cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.projection.InstallationCurrentAddressProjection> selectCurrentAddresses(
+            @org.apache.ibatis.annotations.Param("query") cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.InstallationCurrentAddressesQuery query);
 
     default PageResult<InstallationDO> selectPage(InstallationPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<InstallationDO>()

@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval.domain;
 
+import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalRoleCandidatePort;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalControlledPorts;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec.ApprovalSourceSnapshot;
@@ -19,6 +21,32 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class CutoverApprovalSourceSnapshotCodecTest {
 
     private final CutoverApprovalSourceSnapshotCodec codec = new CutoverApprovalSourceSnapshotCodec();
+
+    @Test
+    void acceptsNewerProjectAuditVersionButRejectsDifferentProjectOrScope() {
+        var document = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(codec.encode(snapshot("A", null)));
+        var project = (tools.jackson.databind.node.ObjectNode) document.path("project");
+        project.put("projectVersion", 5);
+        var decoded = codec.decode(document.toString());
+        assertEquals(5, decoded.project().projectVersion());
+        assertEquals(decoded, codec.decode(codec.encode(decoded)));
+        project.put("projectId", 3002L);
+        assertThrows(IllegalArgumentException.class, () -> codec.decode(document.toString()));
+        project.put("projectId", 3001L);
+        project.put("projectScopeVersion", 13L);
+        assertThrows(IllegalArgumentException.class, () -> codec.decode(document.toString()));
+    }
+
+    @Test
+    void preservesEmptyOptionalFactDescriptionWithoutChangingRequiredRiskFacts() {
+        var document = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(codec.encode(snapshot("A", null)));
+        ((tools.jackson.databind.node.ObjectNode) document.path("riskItems").get(0)).put("factDescription", "");
+        var decoded = codec.decode(document.toString());
+        assertEquals("", decoded.riskItems().getFirst().factDescription());
+        assertEquals("", codec.decode(codec.encode(decoded)).riskItems().getFirst().factDescription());
+        ((tools.jackson.databind.node.ObjectNode) document.path("riskItems").get(0)).put("factDescription", "x".repeat(4001));
+        assertThrows(IllegalArgumentException.class, () -> codec.decode(document.toString()));
+    }
 
     @Test
     void roundTripsExactSnapshotWithNullableNetworkModeAndStableItemOrder() {
@@ -44,11 +72,16 @@ class CutoverApprovalSourceSnapshotCodecTest {
     @Test
     void controlledCandidatesKeepCompleteSetWhileProjectScopeSelectsOneUser() {
         var candidates = CutoverApprovalControlledPorts.roleCandidates()
-                .inspectCandidates(1L, "CUT_SECOND_LINE_APPROVER");
+                .inspectCandidates(new CutoverApprovalRoleCandidatePort.RoleQuery(1L, "probSupporter"));
         var scope = CutoverApprovalControlledPorts.projectScope(202L);
 
         List<Long> visible = candidates.candidates().stream()
-                .filter(candidate -> scope.inspect(1L, 10L, candidate.adminUserId(), "ACTION_VIEW").allowed())
+                .filter(candidate -> scope.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L)
+                .projectId(10L)
+                .subjectUserId(candidate.adminUserId())
+                .requiredAction("ACTION_VIEW")
+                .build()).allowed())
                 .map(candidate -> candidate.adminUserId()).toList();
 
         assertEquals(List.of(201L, 202L), candidates.candidates().stream()

@@ -20,7 +20,9 @@ public interface DeviceAssemblyMapper extends BaseMapperX<DeviceAssemblyDO> {
         ensureGraphLock(query);
         if (!query.tenantId().equals(lockGraph(query))) throw new IllegalStateException("装配图锁定失败");
     }
-    List<DeviceAssemblyDO> lockLogConflicts(@Param("query") cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.query.DeviceLogAssemblyConflictQuery query);
+
+    List<DeviceAssemblyDO> lockLogConflicts(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.query.DeviceLogAssemblyConflictQuery query);
 
     boolean existsBySource(@Param("query") DeviceAssemblySourceQuery query);
 

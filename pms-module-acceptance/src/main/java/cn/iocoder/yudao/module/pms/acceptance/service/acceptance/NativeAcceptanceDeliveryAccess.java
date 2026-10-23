@@ -42,11 +42,20 @@ public class NativeAcceptanceDeliveryAccess {
         if(projectId==null || !permissions.hasAnyPermissions(actor,permission+"query")
                 || write && !permissions.hasAnyPermissions(actor,permission+"update"))throw denied();
         String action=write?ProjectScopeApi.ACTION_MANAGE:ProjectScopeApi.ACTION_VIEW;
-        var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant,actor,projectId,action));
+        var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         if(scope==null || scope.treeVersion()==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(projectId)
                 || expectedScope!=null && !Objects.equals(expectedScope,scope.treeVersion()))throw denied();
         if(lock) {
-            var checked=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant,actor,projectId,action,scope.treeVersion()));
+            var checked=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(projectId)
+                .actionCode(action)
+                .expectedScopeVersion(scope.treeVersion()).build());
             if(checked==null || !Objects.equals(scope.treeVersion(),checked.treeVersion()) || checked.fullProjectIds()==null
                     || !checked.fullProjectIds().contains(projectId))throw denied();
         }
@@ -66,9 +75,18 @@ public class NativeAcceptanceDeliveryAccess {
                 || projectId==null || !supports(type))throw denied();
         String prefix="archiveDocument".equals(type)?"pms:acc-archive-document:":"pms:acc-completion-certificate:";
         if(!java.util.Set.of("submit","audit").contains(action) || !permissions.hasAnyPermissions(actor,prefix+action))throw denied();
-        var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant,actor,projectId,ProjectScopeApi.ACTION_MANAGE));
+        var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if(scope==null || scope.treeVersion()==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(projectId))throw denied();
-        var checked=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant,actor,projectId,ProjectScopeApi.ACTION_MANAGE,scope.treeVersion()));
+        var checked=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if(checked==null || !Objects.equals(scope.treeVersion(),checked.treeVersion()) || checked.fullProjectIds()==null
                 || !checked.fullProjectIds().contains(projectId))throw denied();
         return checked.treeVersion();

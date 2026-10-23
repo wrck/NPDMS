@@ -87,6 +87,10 @@ class ProjectManualCreationApplicationServiceTest {
     private CustomerQueryApi customerQueryApi;
     @Mock
     private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi commerceSourceApi;
+    @Mock
+    private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectContractScopeApi contractScopeApi;
+    @Mock
+    private cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper projectMasterMapper;
 
     @org.mockito.Spy
     private cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields = new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null);
@@ -175,6 +179,9 @@ class ProjectManualCreationApplicationServiceTest {
         lenient().when(projectSiteService.validateLocationScope(any(), any())).thenReturn("UNRESOLVED");
         lenient().when(projectTemplateService.getExecutionSnapshot(any(), any()))
                 .thenReturn(new TemplateExecutionSnapshot());
+        var persisted = project();
+        persisted.setVersion(3L);
+        lenient().when(projectMasterMapper.selectByIdForUpdate(100L)).thenReturn(persisted);
     }
 
     @Test
@@ -464,6 +471,8 @@ class ProjectManualCreationApplicationServiceTest {
         verify(commerceSourceApi).bindProjectCommerceSource(
                 new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceBindCommand(
                         1L, 100L, 66L, 7L, "key-1", 201L, "a".repeat(64)));
+        verify(contractScopeApi).initialize(new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectContractScopeApi.ScopeContext(
+                1L, 100L, 7L, 3L, 1L, 0L, "key-1"));
     }
 
     @Test
@@ -515,6 +524,7 @@ class ProjectManualCreationApplicationServiceTest {
 
         verify(commerceSourceApi).bindProjectCommerceSource(any());
         verify(projectSiteService, never()).bindSites(any(), any());
+        verifyNoInteractions(contractScopeApi);
     }
 
     @Test
@@ -531,7 +541,37 @@ class ProjectManualCreationApplicationServiceTest {
 
         service.create(command(), actor());
 
-        verifyNoInteractions(commerceSourceApi);
+        verifyNoInteractions(commerceSourceApi, contractScopeApi);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void contractScopeFailureEscapesTheProjectCreationTransactionBeforeSuccessFacts() {
+        var base = command();
+        base.draft().setCustomerCode("C-001");
+        var command = new ManualProjectCreateCommand(base.draft(), 10L, 20L, base.sites(),
+                base.templateRevisionId(), base.candidateWatermark(), null, 66L,
+                base.idempotencyKey(), base.requestDigest(), 201L, "a".repeat(64));
+        when(commerceSourceApi.resolveCreationSourceForUpdate(any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi.CreationSourceResolution(
+                        66L, "CT-1", "合同一", "CO-01", "公司一", "来源项目", null, null, null,
+                        null, null, null, null, null, null, null, null, null, null,
+                        sourceOrder(), sourceExecution(), "a".repeat(64)));
+        stubSourceCustomer();
+        var matchDecision = decision();
+        when(projectAttributeResolutionService.resolveSourceInitial(any(), any(), any())).thenReturn(matchDecision);
+        when(projectCreationService.createProject(any(), any(), any(), eq(matchDecision), isNull())).thenReturn(project());
+        doThrow(new IllegalStateException("CONTRACT_SCOPE_SOURCE_INVALID")).when(contractScopeApi).initialize(any());
+        when(platformFactService.execute(any(), any(), any(), any(), any())).thenAnswer(invocation ->
+                new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,
+                        ((Supplier<Object>) invocation.getArgument(3)).get()));
+
+        assertThrows(IllegalStateException.class, () -> service.create(command, actor()));
+
+        verify(contractScopeApi).initialize(new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectContractScopeApi.ScopeContext(
+                1L, 100L, 7L, 3L, 1L, 0L, "key-1"));
+        verify(projectSiteService, never()).bindSites(any(), any());
+        verifyNoInteractions(preparationInitializationApi, templateMatchHistoryService);
     }
 
     @Test void sourcePreviewUsesCrmMajorLevelAndRejectsStaleSnapshot() {

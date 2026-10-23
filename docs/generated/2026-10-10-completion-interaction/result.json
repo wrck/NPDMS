@@ -1,0 +1,57 @@
+{
+  "projectId": 992203060005,
+  "projectName": "交付全流程审计-20260919",
+  "customerUnit": "本地完工交互验收-20261010-122413",
+  "unifiedHeaderAndList": true,
+  "newDefaultDate": "2026-10-10",
+  "certificateId": 30031,
+  "draftHasNoSurveyAndBothPrintBindings": true,
+  "changedDatePreservedAfterReopen": true,
+  "automaticTaskId": "2108775628717084674",
+  "reissueReusesSurvey": true,
+  "previousLinkRevoked": true,
+  "submission": {
+    "responseId": "2108775653157294081",
+    "resultId": "2108775653157294081",
+    "score": 80.0,
+    "threshold": 80.0,
+    "passed": true,
+    "responseReplayed": false,
+    "resultReplayed": false
+  },
+  "signatureUploadCount": 1,
+  "oneJointSubmission": true,
+  "customerReopenReadonly": true,
+  "confirmedStatus": 2,
+  "drawerHasSharedSignatureAndBothHtml": true,
+  "pdfExports": [
+    {
+      "kind": "COMPLETION",
+      "registered": {
+        "materialId": "9100000000000000128",
+        "referenceId": 246,
+        "artifactId": "2108775694928367618",
+        "versionNo": 1,
+        "sha256": "cd2b2fcaf6d03d8b04fb193e42c3217f36fe658c5a883750b5c2ee0995ae420f",
+        "fileName": "PJT2026000003-WZ-005-COMPLETION.pdf"
+      },
+      "bytes": 115668
+    },
+    {
+      "kind": "SATISFACTION",
+      "registered": {
+        "materialId": "9100000000000000129",
+        "referenceId": 247,
+        "artifactId": "2108775715128135681",
+        "versionNo": 1,
+        "sha256": "7ae9613bbfe9bbc5c85b2e5c22555dae83e908fc1fe43b2240f516faca292c14",
+        "fileName": "PJT2026000003-WZ-005-SATISFACTION.pdf"
+      },
+      "bytes": 237104
+    }
+  ],
+  "bothPdfVisibleAfterReopen": true,
+  "satisfactionDetailRemainsConsistent": true,
+  "pageErrors": [],
+  "existingSignedHistoryUnchanged": true
+}

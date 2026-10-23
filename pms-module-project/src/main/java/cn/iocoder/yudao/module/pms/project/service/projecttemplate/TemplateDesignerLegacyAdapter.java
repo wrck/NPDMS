@@ -25,6 +25,7 @@ public final class TemplateDesignerLegacyAdapter {
         content.setClosurePolicy(designer.getClosurePolicy() == null ? null
                 : new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(designer.getClosurePolicy()));
         content.setDefinitionSnapshot(designer.getSourceEvidence());
+        content.setImplementationReadiness(designer.getImplementationReadiness());
 
         for (TemplateDesignerDocument.StageNode source : designer.getStages()) {
             if (source == null) continue;
@@ -46,6 +47,7 @@ public final class TemplateDesignerLegacyAdapter {
             target.setTaskCode(source.getCode()); target.setName(source.getName()); target.setParentTaskCode(source.getParentTaskCode());
             target.setStageCode(source.getStageCode()); target.setPriority(source.getPriority()); target.setSortOrder(source.getSortOrder());
             target.setEstimatedHours(source.getEstimatedHours()); target.setSatisfactionTiming(source.getSatisfactionTiming());
+            target.setRequired(source.getRequired());
             target.setDescription(source.getDescription()); target.setGateRef(source.getGateRef());
             if (source.getSource() != null) {
                 target.setDefinitionRevisionId(source.getSource().getDefinitionRevisionId());

@@ -1,3 +1,4 @@
+import { checkPermi } from '@/utils/permission'
 // 业务中心全流程五组导航（工前准备/制定施工计划/实施方案/实施部署/验收交维），
 // 分组口径对齐 DemoV2 左侧导航 + PRD S0~S6 阶段主线；key 指向本页既有工作台页签或 businessModuleConfigs 模块面板。
 // 原基本信息组（项目信息/配置Log/团队成员/用户联系人）与项目概览重复已移除：
@@ -6,7 +7,6 @@
 // 满意度导航项 key 'satisfaction' 直接接既有满意度工作台页签（模板/任务/结果一体），不另设结果面板。
 import type { DeliveryModuleConfig } from '@/views/pms/project/inheritance/detail/DeliveryModuleTable.vue'
 import * as BriefingApi from '@/api/pms/engineering/briefing'
-import * as ScheduleBackwardApi from '@/api/pms/engineering/schedule-backward'
 import * as AcceptanceReportApi from '@/api/pms/acceptance/acceptance-report'
 import * as DeliverableCheckApi from '@/api/pms/acceptance/deliverable-checklist'
 import * as ProjectClosureApi from '@/api/pms/project/project-closure'
@@ -36,8 +36,7 @@ export const businessFlowGroups: BusinessFlowGroup[] = [
     items: [
       { key: 'preparation', label: '工勘分工', icon: 'ep:compass', code: '2.2', permission: ['pms:sol-site-survey:query'] },
       { key: 'requirement-analysis', label: '需求分析', icon: 'ep:edit-pen', code: '2.3', permission: ['pms:requirement-analysis:query', 'pms:requirement-analysis:manage'] },
-      { key: 'material-exch', label: '物料换货', icon: 'ep:sort', code: '2.2.1' },
-      { key: 'briefing', label: '工程交底', icon: 'ep:notebook-2', code: '2.4' }
+      { key: 'material-exch', label: '物料换货', icon: 'ep:sort', code: '2.2.1' }
     ]
   },
   {
@@ -73,12 +72,8 @@ export const businessFlowGroups: BusinessFlowGroup[] = [
       { key: 'training', label: '现场培训', icon: 'ep:reading', code: '6.1' },
       { key: 'satisfaction', label: '满意度调查', icon: 'ep:chat-dot-round', code: '6.2', permission: ['pms:acceptance:satisfaction:query'] },
       { key: 'acceptance-reports', label: '初验&终验', icon: 'ep:document-checked', code: '6.3', permission: ['pms:acceptance:report:query'] },
-      { key: 'acceptance', label: '验收记录', icon: 'ep:circle-check', code: '6.3' },
-      { key: 'completion-certificate', label: '完工证明', icon: 'ep:medal', code: '6.4' },
       { key: 'deliverable-summary', label: '交付件汇总', icon: 'ep:folder-opened', code: '6.5' },
       { key: 'deliverable-checklist', label: '交付件检查', icon: 'ep:folder-checked', code: '6.6' },
-      { key: 'archive-document', label: '归档文档', icon: 'ep:archive', code: '6.7' },
-      { key: 'project-closure', label: '闭环记录', icon: 'ep:lock', code: '6.8' },
       { key: 'closure', label: '项目闭环', icon: 'ep:circle-close', code: '6.9' }
     ]
   }
@@ -87,7 +82,7 @@ export const businessFlowGroups: BusinessFlowGroup[] = [
 export const businessNavItems: BusinessNavItem[] = businessFlowGroups.flatMap((group) => group.items)
 
 // 内嵌完整页面的导航 key（创建/编辑/审批等操作直接在详情页内完成，不走通用模块面板）
-// solution/material-exch/arrival/installation/configuration/joint-test/cutover/completion-certificate/config-log
+// solution/material-exch/arrival/installation/configuration/joint-test/cutover/config-log
 // 内嵌各域真实工作台（Demo 操作界面），其余 key 走 businessModuleConfigs 通用模块面板。
 export const flowEmbedKeys = new Set([
   // 施工计划整合工作台（schedule）不在此列：不在 businessModuleConfigs，由专用面板直接承接
@@ -99,7 +94,6 @@ export const flowEmbedKeys = new Set([
   'configuration',
   'joint-test',
   'cutover',
-  'completion-certificate',
   'config-log'
 ])
 
@@ -131,17 +125,6 @@ export const businessModuleConfigs: Record<string, DeliveryModuleConfig> = {
   // --- 方案计划 ---
   // 资源就绪(3.3)模块面板随界面整治决策隐藏：导航项已移除，本配置暂无消费方；
   // ResourceApi（getResourceReadyPage/markReady/markAbnormal/resetToNotReady）保留，恢复时回填本配置。
-  'schedule-backward': {
-    label: '历史工期倒排',
-    icon: 'ep:timer',
-    load: (pid, pageNo, pageSize) => ScheduleBackwardApi.getScheduleBackwardPage({ projectId: pid, pageNo, pageSize }),
-    columns: [
-      { prop: 'targetDate', label: '目标日期', width: 130, type: 'time' },
-      { prop: 'projectType', label: '项目类型', width: 100 },
-      { prop: 'conflictSummary', label: '冲突摘要', minWidth: 200 },
-      { prop: 'status', label: '状态', width: 90, type: 'status' }
-    ]
-  },
   // --- 实施部署（到货/安装/配置/联调/割接均为内嵌工作台） ---
   // --- 验收闭环 ---
   // 完工证明（Demo 6.2 表单）已内嵌 CompletionCertWorkbench，不走通用面板
@@ -193,9 +176,9 @@ export const businessModuleConfigs: Record<string, DeliveryModuleConfig> = {
     label: '项目闭环',
     icon: 'ep:lock',
     load: (pid, pageNo, pageSize) => ProjectClosureApi.getProjectClosurePage({ projectId: pid, pageNo, pageSize }),
-    create: (data) => ProjectClosureApi.createProjectClosure(data),
-    update: (data) => ProjectClosureApi.updateProjectClosure(data),
-    delete: (id) => ProjectClosureApi.deleteProjectClosure(id),
+    get create() { return checkPermi(['pms:acc-project-closure:create']) ? ProjectClosureApi.createProjectClosure : undefined },
+    get update() { return checkPermi(['pms:acc-project-closure:update']) ? ProjectClosureApi.updateProjectClosure : undefined },
+    get delete() { return checkPermi(['pms:acc-project-closure:delete']) ? ProjectClosureApi.deleteProjectClosure : undefined },
     columns: [
       { prop: 'name', label: '闭环名称', minWidth: 180 },
       { prop: 'applicationDate', label: '申请日期', width: 120, type: 'time' },
@@ -207,11 +190,11 @@ export const businessModuleConfigs: Record<string, DeliveryModuleConfig> = {
     canEdit: (r) => r.status === 0,
     canDelete: (r) => r.status === 0 || r.status === 4,
     actions: [
-      { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => ProjectClosureApi.submitProjectClosure(r.id, r.projectId), confirm: '提交该闭环申请？' },
-      { label: '开始审批', type: 'success', show: (r) => r.status === 1, run: (r) => ProjectClosureApi.startApproveProjectClosure(r.id), confirm: '开始审批该闭环申请？' },
-      { label: '通过', type: 'success', show: (r) => r.status === 2, run: (r) => ProjectClosureApi.passProjectClosure(r.id), confirm: '通过该闭环申请？' },
-      { label: '驳回', type: 'danger', show: (r) => r.status === 2, run: (r) => ProjectClosureApi.rejectProjectClosure(r.id), confirm: '驳回该闭环申请？' },
-      { label: '归档', type: 'info', show: (r) => r.status === 3, run: (r) => ProjectClosureApi.archiveProjectClosure(r.id), confirm: '归档该闭环记录？' }
+      { label: '提交', type: 'primary', show: (r) => checkPermi(['pms:acc-project-closure:submit']) && r.status === 0, run: (r) => ProjectClosureApi.submitProjectClosure(r.id, r.projectId), confirm: '提交该闭环申请？' },
+      { label: '开始审批', type: 'success', show: (r) => checkPermi(['pms:acc-project-closure:audit']) && r.status === 1, run: (r) => ProjectClosureApi.startApproveProjectClosure(r.id), confirm: '开始审批该闭环申请？' },
+      { label: '通过', type: 'success', show: (r) => checkPermi(['pms:acc-project-closure:audit']) && r.status === 2, run: (r) => ProjectClosureApi.passProjectClosure(r.id), confirm: '通过该闭环申请？' },
+      { label: '驳回', type: 'danger', show: (r) => checkPermi(['pms:acc-project-closure:audit']) && r.status === 2, run: (r) => ProjectClosureApi.rejectProjectClosure(r.id), confirm: '驳回该闭环申请？' },
+      { label: '归档', type: 'info', show: (r) => checkPermi(['pms:acc-project-closure:audit']) && r.status === 3, run: (r) => ProjectClosureApi.archiveProjectClosure(r.id), confirm: '归档该闭环记录？' }
     ]
   },
   'archive-document': {

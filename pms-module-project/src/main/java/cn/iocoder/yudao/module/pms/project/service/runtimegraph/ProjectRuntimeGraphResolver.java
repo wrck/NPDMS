@@ -38,6 +38,10 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @Service
 @RequiredArgsConstructor
 public class ProjectRuntimeGraphResolver {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper plans;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper executions;
     private final ProjectRuntimeGraphMapper mapper;
     private final ProjectGateReferenceInstanceMapper referenceMapper;
     private final ProjectRuntimeRuleEvaluator evaluator;
@@ -52,14 +56,29 @@ public class ProjectRuntimeGraphResolver {
     @Transactional(propagation = Propagation.MANDATORY)
     public Resolution resolve(ProjectMasterDO project) { return resolve(project, true); }
 
-    @Transactional(propagation = Propagation.MANDATORY)
+    // Readiness may translate an expected domain rejection into a blocked read result.
+    // Leave rollback to its caller; command resolution retains its ordinary rollback behavior.
+    @Transactional(propagation = Propagation.MANDATORY,
+            noRollbackFor = cn.iocoder.yudao.framework.common.exception.ServiceException.class)
     public Resolution inspect(ProjectMasterDO project) { return resolve(project, false); }
 
     @Transactional(propagation = Propagation.MANDATORY)
     public Resolution resolveForClosure(ProjectMasterDO project) { return resolve(project, true, true); }
 
     @Transactional(propagation = Propagation.MANDATORY)
+    public Resolution resolveForClosure(ProjectMasterDO project,
+            cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection pending) {
+        return resolve(new ResolutionRequest(project, true, true, pending));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
     public Resolution inspectForClosure(ProjectMasterDO project) { return resolve(project, false, true); }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Resolution inspectForClosure(ProjectMasterDO project,
+            cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection pending) {
+        return resolve(new ResolutionRequest(project, false, true, pending));
+    }
 
     public record ClosureGates(List<ProjectGateInstanceDO> gates, List<ProjectGateReferenceInstanceDO> references) { }
 
@@ -82,6 +101,17 @@ public class ProjectRuntimeGraphResolver {
     }
 
     private Resolution resolve(ProjectMasterDO project, boolean locked, boolean closureCheck) {
+        return resolve(new ResolutionRequest(project, locked, closureCheck, null));
+    }
+
+    private record ResolutionRequest(ProjectMasterDO project, boolean locked, boolean closureCheck,
+            cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection pending) { }
+
+    private Resolution resolve(ResolutionRequest request) {
+        var project = request.project();
+        boolean locked = request.locked();
+        boolean closureCheck = request.closureCheck();
+        var pending = request.pending();
         if (!Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId()))
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_TENANT_MISMATCH");
         var query = new ProjectRuntimeGraphQuery(project.getTenantId(), project.getId());
@@ -174,9 +204,18 @@ public class ProjectRuntimeGraphResolver {
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_TARGET_STALE");
 
         ProjectStageExecutionContractDO contract = byStage.get(current.getId());
-        JsonNode completionRule = completionRule(contract);
-        StageTransitionTargetResolver.ConditionStatus completion = evaluator.evaluate(completionRule,
-                new ProjectRuntimeRuleEvaluator.Facts(project, current, tasks, allGates, allRefs, true));
+        var completionFacts = new ProjectRuntimeRuleEvaluator.Facts(project, current, tasks, allGates, allRefs, true);
+        StageTransitionTargetResolver.ConditionStatus completion;
+        if (configuredClosure) {
+            // Plan changes may retain an unchanged work binding. Its original inline rule is
+            // historical; stage completion and closure must use the same frozen plan program.
+            var program = closureProgram(new ClosureProgramQuery(project, current, contract, locked));
+            completion = evaluator.evaluateForClosure(program, completionFacts, pending);
+        } else {
+            JsonNode completionRule = completionRule(contract);
+            completion = pending == null ? evaluator.evaluate(completionRule, completionFacts)
+                    : evaluator.evaluateForClosure(completionRule, completionFacts, pending);
+        }
 
         List<ProjectGateInstanceDO> gates = allGates.stream().filter(gate ->
                 (Objects.equals(gate.getStageCode(), current.getCode()) && "EXIT".equals(gate.getGateType()))
@@ -185,6 +224,38 @@ public class ProjectRuntimeGraphResolver {
         Set<Long> gateIds = gates.stream().map(ProjectGateInstanceDO::getId).collect(Collectors.toSet());
         List<ProjectGateReferenceInstanceDO> refs = allRefs.stream().filter(ref -> gateIds.contains(ref.getGateId())).toList();
         return new Resolution(current, target, transition, completion, gates, refs);
+    }
+
+    private record ClosureProgramQuery(ProjectMasterDO project, ProjectStageInstanceDO stage,
+            ProjectStageExecutionContractDO contract, boolean locked) { }
+
+    private cn.iocoder.yudao.module.pms.project.domain.rule.RuleProgram closureProgram(ClosureProgramQuery query) {
+        var project = query.project();
+        var scope = new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery(
+                project.getTenantId(), project.getId());
+        var plan = plans.selectEffective(scope);
+        if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())
+                || !Objects.equals(plan.getTenantId(), project.getTenantId())
+                || !Objects.equals(plan.getProjectId(), project.getId()) || !"EFFECTIVE".equals(plan.getStatus()))
+            throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_PLAN_UNAVAILABLE");
+        var rounds = (query.locked() ? executions.selectCurrentForUpdate(scope) : executions.selectCurrent(scope)).stream()
+                .filter(round -> "STAGE".equals(round.getNodeKind())
+                        && Objects.equals(round.getNodeInstanceId(), query.stage().getId())).toList();
+        if (rounds.size() != 1) throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_EXECUTION_UNAVAILABLE");
+        var round = rounds.getFirst();
+        if (!Objects.equals(round.getTenantId(), project.getTenantId())
+                || !Objects.equals(round.getProjectId(), project.getId())
+                || !Objects.equals(round.getPlanVersionId(), plan.getId())
+                || !Objects.equals(round.getContractId(), query.contract().getId())
+                || !Objects.equals(round.getNodeKey(), query.contract().getSourceNodeKey()))
+            throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_EXECUTION_STALE");
+        var snapshot = cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
+        var definitions = snapshot.getStages().stream().filter(node -> Objects.equals(node.getNodeKey(), round.getNodeKey())
+                && Objects.equals(node.getCode(), query.stage().getCode())).toList();
+        if (definitions.size() != 1) throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_STAGE_DEFINITION_UNAVAILABLE");
+        var program = snapshot.getRulePrograms().get(definitions.getFirst().getCompletionRuleKey());
+        if (program == null) throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_STAGE_PROGRAM_UNAVAILABLE");
+        return program;
     }
 
     private Long conditionToken(ProjectStageTransitionDO edge) {

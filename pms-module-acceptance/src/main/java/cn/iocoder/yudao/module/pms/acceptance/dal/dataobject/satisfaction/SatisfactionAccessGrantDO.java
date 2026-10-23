@@ -12,6 +12,7 @@ public class SatisfactionAccessGrantDO {
     @TableId private Long id;
     private Long tenantId;
     private Long questionnaireId;
+    private Long completionBundleId;
     private Integer grantVersion;
     private String tokenDigest;
     private LocalDateTime effectiveFrom;

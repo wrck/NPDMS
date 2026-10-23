@@ -104,10 +104,10 @@
             ></el-form-item>
             <el-form-item label="写入方式"
               ><el-select v-model="step.mode" aria-label="步骤写入方式"
-                ><el-option label="新增并更新" value="UPSERT" /><el-option
+                ><el-option label="更新覆盖（不存在时新增）" value="UPSERT" /><el-option
                   label="仅新增，重复报错"
                   value="INSERT_ONLY" /><el-option
-                  label="新增，跳过已存在"
+                  label="存在则跳过（不存在时新增）"
                   value="INSERT_IGNORE" /><el-option
                   label="仅更新已有记录"
                   value="UPDATE_ONLY" /></el-select
@@ -118,7 +118,9 @@
                 ><el-radio value="OVERWRITE">使用空值覆盖</el-radio></el-radio-group
               ></el-form-item
             >
-            <el-form-item label="允许更新字段"
+            <el-form-item
+              v-if="step.mode === 'UPSERT' || step.mode === 'UPDATE_ONLY'"
+              label="允许更新字段"
               ><el-select v-model="step.updateColumns" multiple aria-label="允许更新字段"
                 ><el-option
                   v-for="column in targetFor(step)?.updateColumns.filter(

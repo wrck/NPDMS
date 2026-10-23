@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.*;
 import java.util.List;
 @Mapper
 public interface DeviceProjectOrganizationMapper {
+    List<Long> selectIdsByName(@Param("query") DeviceProjectNameQuery query);
     List<Long> selectVisibleProjectIds(@Param("query") DeviceOrganizationProjectQuery query);
     List<Organization> selectOrganizations(@Param("query") DeviceProjectOrganizationListQuery query);
 }

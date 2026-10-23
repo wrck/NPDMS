@@ -118,8 +118,11 @@ class ConstructionPlanApplicationServiceTest {
     void rejectsProjectOutsideManageScopeBeforeParticipantLockAndWrite() {
         when(permissionApi.hasAnyPermissions(9L,
                 ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
-        when(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                0L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
+        when(projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(0L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build()))
                 .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(), Set.of()));
 
         assertThrows(ServiceException.class, () -> service.createInitial(command("DATE_RANGE",
@@ -146,8 +149,11 @@ class ConstructionPlanApplicationServiceTest {
     @Test
     void removingStageRestrictionKeepsParticipantAndLifecycleRevalidation() {
         when(permissionApi.hasAnyPermissions(9L, ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
-        when(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                0L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
+        when(projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(0L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build()))
                 .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
                 100L, 9L, 3L, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))))
@@ -194,8 +200,11 @@ class ConstructionPlanApplicationServiceTest {
     private void stubScopeAndParticipant() {
         when(permissionApi.hasAnyPermissions(9L,
                 ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
-        when(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                0L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
+        when(projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(0L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build()))
                 .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
                 100L, 9L, 3L, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))))

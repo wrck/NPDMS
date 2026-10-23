@@ -86,8 +86,11 @@ public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider 
             };
             if (!roleAllowed || (execute ? !assignee : !manager)
                     || !permissionApi.hasAnyPermissions(query.actorId(), PERMISSIONS.get(action))) continue;
-            var scope = scopeApi.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(), query.actorId(),
-                    task.getProjectId(), execute ? ProjectScopeApi.ACTION_EDIT : ProjectScopeApi.ACTION_MANAGE));
+            var scope = scopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorId())
+                .anchorProjectId(task.getProjectId())
+                .actionCode(execute ? ProjectScopeApi.ACTION_EDIT : ProjectScopeApi.ACTION_MANAGE).build());
             if (scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(task.getProjectId())) {
                 allowed.add(action);
             }

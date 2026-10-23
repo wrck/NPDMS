@@ -179,6 +179,32 @@ class ProjectStageAdmissionServiceTest {
         verifyNoInteractions(stages, audit);
     }
 
+    @Test void optionalTaskMayStartAfterStageCompletionWithoutChangingStageOrFrozenRules() {
+        add("DISCOVERY", null);
+        rows.getFirst().setStatus("DONE");
+        var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO()
+                .setId(21L).setProjectId(9L).setCode("WORK").setStageCode("DISCOVERY");
+        var contract = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO();
+        contract.setSourceNodeKey("task:work");
+        var definition = new TemplateExecutionSnapshot.TaskContract(); definition.setNodeKey("task:work");
+        definition.setCode("WORK"); definition.setStageCode("DISCOVERY"); definition.setRequired(false);
+        definition.setAdmissionRuleKey("admit"); effective.setTasks(List.of(definition));
+        effective.getRulePrograms().put("admit", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}")));
+        assertTrue(service.taskMayStart(project, task, contract));
+        assertEquals("DONE", rows.getFirst().getStatus());
+        definition.setRequired(true); assertFalse(service.taskMayStart(project, task, contract));
+        definition.setRequired(null); assertFalse(service.taskMayStart(project, task, contract));
+        definition.setRequired(false);
+        for (String status : List.of("PENDING", "SKIPPED", "TERMINATED")) {
+            rows.getFirst().setStatus(status); assertFalse(service.taskMayStart(project, task, contract));
+        }
+        rows.getFirst().setStatus("DONE");
+        effective.getRulePrograms().put("admit", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}")));
+        assertFalse(service.taskMayStart(project, task, contract));
+        effective.getRulePrograms().clear(); assertFalse(service.taskMayStart(project, task, contract));
+        verifyNoInteractions(stages, audit);
+    }
+
     @Test void elapsedTimeWaitsForStageThenOrdinaryReevaluationAdmitsThroughNativeLiteFlow() {
         add("PREP", null);
         var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO()
@@ -280,6 +306,36 @@ class ProjectStageAdmissionServiceTest {
         assertTrue(service.activateEligible(9L, 11L, "elapsed").getFirst().activated());
         var timers = (ProjectRuleTimerScheduler) org.springframework.test.util.ReflectionTestUtils.getField(service, "timers");
         verify(timers).scheduleFromNode(9L, "STAGE", 1L); verify(timers).scheduleFromNode(9L, "STAGE", 2L);
+    }
+
+    @Test void taskAdmissionPreviewUsesFrozenRuleAndPreservesCommandDecisionWithoutWriting() {
+        add("S4", null); rows.getFirst().setStatus("ACTIVE");
+        var current = new TemplateExecutionSnapshot.TaskContract(); current.setNodeKey("task:cutover");
+        current.setCode("cutover"); current.setStageCode("S4"); current.setAdmissionRuleKey("enter");
+        var predecessor = new TemplateExecutionSnapshot.TaskContract(); predecessor.setCode("joint"); predecessor.setName("业务联调");
+        effective.getTasks().add(current); effective.getTasks().add(predecessor);
+        var program = compiler.compile(JsonUtils.parseTree("{\"predicate\":\"TASK\",\"parameters\":{\"refCode\":\"joint\"}}"));
+        effective.getRulePrograms().put("enter", program);
+        var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO();
+        task.setId(21L); task.setProjectId(9L); task.setCode("cutover"); task.setStageCode("S4");
+        var binding = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO();
+        binding.setSourceNodeKey("task:cutover");
+        var evaluation = mock(ProjectRuntimeRuleEvaluator.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "evaluator", evaluation);
+        for (var outcome : RuleEvaluation.Outcome.values()) {
+            when(evaluation.evaluate(anyString(), any(), any())).thenReturn(new RuleEvaluation("plan:51", outcome, null,
+                    List.of(new RuleEvaluation.Condition(program.leaves().getFirst().key(), "rule", "TASK", outcome, null)), List.of(), List.of()));
+            var view = service.taskAdmissionView(project, task, binding);
+            assertEquals(outcome, view.outcome());
+            assertEquals(outcome == RuleEvaluation.Outcome.MATCHED, service.taskMayStart(project, task, binding));
+            if (outcome != RuleEvaluation.Outcome.MATCHED) assertEquals("业务联调", view.conditions().getFirst().label());
+        }
+        clearInvocations(projects, graph);
+        service.previewTaskAdmission(project, task, binding);
+        var order = inOrder(projects, graph);
+        order.verify(projects).selectProjectForCommandForUpdate(any());
+        order.verify(graph).selectStagesForUpdate(any());
+        verifyNoInteractions(stages, audit, executions);
     }
 
     private void add(String code, String expression) {

@@ -230,8 +230,11 @@ public class PreparationInitializationService {
         if (!permissionApi.hasAnyPermissions(command.actorUserId(), PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, command.actorUserId(), command.projectId(), ProjectScopeApi.ACTION_MANAGE));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(command.actorUserId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (scope == null || scope.fullProjectIds() == null
                 || !scope.fullProjectIds().contains(command.projectId())) {
             throw exception(PREPARATION_PROJECT_FACT_INVALID);

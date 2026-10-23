@@ -145,7 +145,7 @@ function Start-Backend {
     $env:JAVA_HOME = $javaHome
     Push-Location $root
     try {
-      & 'mvn' -pl yudao-server -am package -DskipTests -q
+      & (Join-Path $root 'scripts/worktree-build.ps1') -Target backend -MavenArguments @('-DskipTests', '-q')
       if ($LASTEXITCODE -ne 0) { throw 'mvn package 失败' }
     } finally { Pop-Location }
   }

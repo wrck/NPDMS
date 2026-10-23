@@ -7,6 +7,7 @@ export interface PlanDefinition {
   version: number
   basePlanVersionId?: string | number
   designer: TemplateDesignerDocument
+  templateBinding?: { templateId: string | number; revisionId: string | number; revisionNo: number; name: string } | null
 }
 export interface ProjectPlanState {
   effective: PlanDefinition
@@ -56,8 +57,8 @@ export interface PlanImpact {
   }[]
   issues: { field: string; code: string; message: string }[]
 }
-const url = (projectId: number) => `/api/v1/pms/projects/${projectId}/plan`
-export const getProjectPlan = (projectId: number): Promise<ProjectPlanState> =>
+const url = (projectId: number | string) => `/api/v1/pms/projects/${projectId}/plan`
+export const getProjectPlan = (projectId: number | string): Promise<ProjectPlanState> =>
   request.get({ url: url(projectId) })
 export const createProjectPlanDraft = (
   projectId: number,

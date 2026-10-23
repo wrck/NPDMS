@@ -35,6 +35,7 @@ public class ArrivalServiceImpl implements ArrivalService {
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
     @Resource private ArrivalDeliveryRegistration deliveryRegistration;
+    @Resource private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringTaskFactEvents taskFactEvents;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -51,6 +52,9 @@ public class ArrivalServiceImpl implements ArrivalService {
             arrival.setQuantity(1);
         }
         arrivalMapper.insert(arrival);
+        if (org.springframework.util.StringUtils.hasText(arrival.getAttachmentUrl())) {
+            signArrival(arrival.getId());
+        }
         return arrival.getId();
     }
 
@@ -73,6 +77,10 @@ public class ArrivalServiceImpl implements ArrivalService {
         deliveryRegistration.requireWrite(update);
         updateRecord(update);
         deliveryRegistration.registerFiles(update);
+        if (Objects.equals(existing.getStatus(), 0)
+                && org.springframework.util.StringUtils.hasText(update.getAttachmentUrl())) {
+            signArrival(update.getId());
+        }
     }
 
     @Override
@@ -105,6 +113,7 @@ public class ArrivalServiceImpl implements ArrivalService {
         deliveryRegistration.registerFiles(arrival);
         updateStatus(arrival, 1);
         deliveryRegistration.registerSigned(arrival);
+        taskFactEvents.arrivalSigned(arrival);
     }
 
     @Override

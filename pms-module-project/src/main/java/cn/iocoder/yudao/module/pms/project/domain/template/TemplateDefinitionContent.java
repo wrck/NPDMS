@@ -45,6 +45,8 @@ public class TemplateDefinitionContent {
     private String processDefinitionVersion;
 
     private ClosurePolicy closurePolicy;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private TemplateImplementationReadiness implementationReadiness;
 
     private List<StageDef> stages = new ArrayList<>();
     private List<TaskDef> tasks = new ArrayList<>();
@@ -116,6 +118,8 @@ public class TemplateDefinitionContent {
         private Integer priority;
         private Integer sortOrder;
         private BigDecimal estimatedHours;
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private Boolean required;
         private String satisfactionTiming;
         private String description;
         private String workBindingTypeCode;

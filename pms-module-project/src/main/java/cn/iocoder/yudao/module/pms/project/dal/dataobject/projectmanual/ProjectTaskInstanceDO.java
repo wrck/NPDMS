@@ -71,6 +71,7 @@ public class ProjectTaskInstanceDO extends ProjectExecutionNodeDO<ProjectTaskIns
     /**
      * 满意度适用时点（快照，由 ACC-02 消费）
      */
+    private Boolean requiredTask;
     private String satisfactionTiming;
     /** ACC满意度模板冻结事实。 */
     private Long accSatisfactionTemplateId;

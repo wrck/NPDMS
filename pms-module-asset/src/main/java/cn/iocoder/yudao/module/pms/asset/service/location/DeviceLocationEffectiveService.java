@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.asset.service.location;
 
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import tools.jackson.core.type.TypeReference;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.EquipmentLocationEffectiveCommand;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
@@ -16,6 +18,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQUIPMENT_LOCATION_COMMAND_INVALID;
@@ -74,7 +78,7 @@ public class DeviceLocationEffectiveService {
         locationMapper.insert(location);
         DeviceLocationProjectionUpdate update = new DeviceLocationProjectionUpdate(
                 tenantId, device.getId(), command.siteId(), command.siteLocationId(),
-                command.resolutionStatus(), command.locationSnapshot(), command.effectiveFrom(),
+                command.resolutionStatus(), currentSnapshot(command), command.effectiveFrom(),
                 location.getId(), device.getVersion());
         if (deviceMapper.updateLocationProjection(update) == 0) {
             throw exception(AST_EQUIPMENT_LOCATION_CONFLICT);
@@ -99,12 +103,39 @@ public class DeviceLocationEffectiveService {
         if(current!=null && (!Objects.equals(device.getLocationRecordId(),current.getId())
                 || !Objects.equals(device.getSiteId(),current.getSiteId()) || !Objects.equals(device.getSiteLocationId(),current.getSiteLocationId())
                 || !Objects.equals(device.getLocationEffectiveFrom(),current.getEffectiveFrom())
-                || !Objects.equals(device.getLocationSnapshot(),current.getLocationSnapshot())))
+                || !matchesCurrentSnapshot(device,current,command)))
             throw exception(AST_EQUIPMENT_LOCATION_CONFLICT);
         var existing=locationMapper.selectByTenantAndInstallation(tenantId,command.installationId());
         if(existing!=null && (existing.getEffectiveTo()!=null || current==null || !Objects.equals(existing.getId(),current.getId())))
             throw exception(AST_EQUIPMENT_LOCATION_CONFLICT);
         if(!effect(command))throw exception(AST_EQUIPMENT_NOT_EXISTS);
+    }
+
+    /** 原文投影保留；回显投影必须完整对应同一份不可变历史命令。 */
+    private boolean matchesCurrentSnapshot(DeviceDO device, DeviceLocationDO current,
+                                           EquipmentLocationEffectiveCommand command) {
+        if (Objects.equals(device.getLocationSnapshot(), current.getLocationSnapshot())) {
+            return true;
+        }
+        if (!isSameRequest(current, device.getSn(), command)
+                || !JsonUtils.isJsonObject(device.getLocationSnapshot())) {
+            return false;
+        }
+        String projection = currentSnapshot(command);
+        return JsonUtils.isJsonObject(projection)
+                && JsonUtils.parseTree(device.getLocationSnapshot()).equals(JsonUtils.parseTree(projection));
+    }
+
+    /** 当前投影补齐完整文本，原始命令快照仍原样记录到位置历史。 */
+    private String currentSnapshot(EquipmentLocationEffectiveCommand command) {
+        if (command.locationText() == null || command.locationText().isBlank()) {
+            return command.locationSnapshot();
+        }
+        Map<String, Object> snapshot = !JsonUtils.isJsonObject(command.locationSnapshot())
+                ? new LinkedHashMap<>()
+                : JsonUtils.parseObject(command.locationSnapshot(), new TypeReference<Map<String, Object>>() {});
+        snapshot.put("fallbackLocation", command.locationText());
+        return JsonUtils.toJsonString(snapshot);
     }
 
     private void validateCommand(EquipmentLocationEffectiveCommand command) {

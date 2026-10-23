@@ -34,8 +34,29 @@ class ProjectDeliverableInitializationApplicationServiceImplTest {
     @Mock
     private PlatformDeliveryRequirementApi platform;
 
+    @Mock
+    private cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi rules;
+    @Mock
+    private cn.iocoder.yudao.module.pms.acceptance.service.acceptance.ProjectDeliverableOwnerSources ownerSources;
+
     @InjectMocks
     private ProjectDeliverableInitializationApplicationServiceImpl service;
+
+    @Test
+    void listDistinguishesFrozenAutomaticAndOwnerProjectionFromManualBeforeMaterialExists() {
+        when(platform.listByProject(9L)).thenReturn(List.of(view(10L, "AUTO"), view(11L, "OWNER"), view(12L, "MANUAL")));
+        when(rules.automaticCollectionCodes(9L)).thenReturn(java.util.Set.of("AUTO"));
+        when(ownerSources.ownerTypes(9L)).thenReturn(java.util.Map.of(11L, "ACCEPTANCE_REPORT"));
+
+        var rows = service.getByProjectId(9L);
+
+        assertEquals(List.of(true, true, false), rows.stream()
+                .map(ProjectDeliverableInitializationApplicationService.DeliverableView::automaticCollection).toList());
+        verify(platform).listByProject(9L);
+        verify(rules).automaticCollectionCodes(9L);
+        verify(ownerSources).ownerTypes(9L);
+        org.mockito.Mockito.verifyNoMoreInteractions(platform, rules, ownerSources);
+    }
 
     @Test
     void implementationRequiresExistingTransaction() throws Exception {
@@ -93,15 +114,19 @@ class ProjectDeliverableInitializationApplicationServiceImplTest {
 
     @Test
     void swapsCodesInTwoPhasesAndAppliesFinalDefinitionsWithOptimisticVersions() {
+        when(platform.lockById(10L)).thenReturn(Optional.of(view(10L, "D10")),
+                Optional.of(stagedView(10L)));
+        when(platform.lockById(20L)).thenReturn(Optional.of(view(20L, "D20")),
+                Optional.of(stagedView(20L)));
         service.applyPlanChanges(command(
                 new ProjectDeliverableInitializationApplicationService.DeliverablePlanChange(20L, 3L, definition("D10")),
                 new ProjectDeliverableInitializationApplicationService.DeliverablePlanChange(10L, 3L, definition("D20"))));
 
         var order = org.mockito.Mockito.inOrder(platform);
         order.verify(platform).stageTemplateFrozenCodes(List.of(10L, 20L));
-        order.verify(platform).updateTemplateFrozen(eq(10L), eq(3),
+        order.verify(platform).updateTemplateFrozen(eq(10L), eq(4),
                 eq(new TemplateFrozenDefinition("D20", "现场工勘交付件", "PREP", "SURVEY", true, 0, null, null)));
-        order.verify(platform).updateTemplateFrozen(eq(20L), eq(3),
+        order.verify(platform).updateTemplateFrozen(eq(20L), eq(4),
                 eq(new TemplateFrozenDefinition("D10", "现场工勘交付件", "PREP", "SURVEY", true, 0, null, null)));
         verify(platform, never()).instantiateTemplateFrozen(any(), any(), any());
         verify(platform, never()).retireUnhandled(any());
@@ -109,6 +134,7 @@ class ProjectDeliverableInitializationApplicationServiceImplTest {
 
     @Test
     void removesUnhandledInstanceBeforeAddingIndependentReplacementWithSameCode() {
+        when(platform.lockById(10L)).thenReturn(Optional.of(view(10L, "D10")));
         when(platform.retireUnhandled(List.of(10L))).thenReturn(1);
         when(platform.instantiateTemplateFrozen(eq(9L), isNull(), any())).thenReturn(List.of(30L));
 
@@ -135,6 +161,7 @@ class ProjectDeliverableInitializationApplicationServiceImplTest {
 
     @Test
     void refusedRetirementDoesNotContinueWithOtherChanges() {
+        when(platform.lockById(10L)).thenReturn(Optional.of(view(10L, "D10")));
         when(platform.retireUnhandled(List.of(10L))).thenReturn(0);
 
         var failure = assertThrows(IllegalStateException.class, () -> service.applyPlanChanges(command(
@@ -149,6 +176,37 @@ class ProjectDeliverableInitializationApplicationServiceImplTest {
     void emptyChangeSetHasNoPersistenceSideEffects() {
         service.applyPlanChanges(command());
         verifyNoInteractions(platform);
+    }
+
+    @Test
+    void staleVersionRejectsUpdateAndRetirementBeforeAnyWrite() {
+        when(platform.lockById(10L)).thenReturn(Optional.of(view(10L, "D10")));
+        for (var definition : java.util.Arrays.asList(definition("D20"), null)) {
+            assertThrows(cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException.class,
+                    () -> service.applyPlanChanges(command(
+                            new ProjectDeliverableInitializationApplicationService.DeliverablePlanChange(
+                                    10L, 2L, definition))));
+        }
+        verify(platform, never()).stageTemplateFrozenCodes(any());
+        verify(platform, never()).retireUnhandled(any());
+        verify(platform, never()).updateTemplateFrozen(any(), any(), any());
+    }
+
+    @Test
+    void otherProjectDefinitionIsRejectedBeforeAnyWrite() {
+        when(platform.lockById(10L)).thenReturn(Optional.of(new TemplateFrozenView(
+                10L, 99L, "D10", "交付件", "S1", null, null, null, true, 1, null, "OPEN", "{}", 3)));
+        assertThrows(cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException.class,
+                () -> service.applyPlanChanges(command(
+                        new ProjectDeliverableInitializationApplicationService.DeliverablePlanChange(
+                                10L, 3L, definition("D20")))));
+        verify(platform, never()).stageTemplateFrozenCodes(any());
+        verify(platform, never()).updateTemplateFrozen(any(), any(), any());
+    }
+
+    private static TemplateFrozenView stagedView(Long id) {
+        return new TemplateFrozenView(id, 9L, "~plan:" + id, "交付件", "S1", null, null, null, true, 1,
+                null, "OPEN", "{}", 4);
     }
 
     private ProjectDeliverableInitializationApplicationService.ApplyDeliverablePlanChanges command(

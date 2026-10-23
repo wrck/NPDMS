@@ -6,7 +6,10 @@
     <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="emit('save')">保存草稿</el-button>
       <el-button v-if="!readOnly && !customerDocUrl" @click="generateFromSources">生成方案（引用前序数据）</el-button>
-      <el-button v-if="!customerDocUrl" @click="downloadSolution">下载方案</el-button>
+      <!-- 原生按钮不继承 ElForm 的编辑禁用状态；下载仍经过服务端文件与Owner授权。 -->
+      <button v-if="!customerDocUrl" type="button" class="el-button" :disabled="solutionDownloadBusy || !form.id" :aria-busy="solutionDownloadBusy" @click="downloadSolution">
+        <span>{{ solutionDownloadBusy ? '正在生成…' : '下载方案' }}</span>
+      </button>
       <el-button v-if="!readOnly" type="warning" :loading="saving" @click="emit('submitReview')">提交审核</el-button>
     </Teleport>
 
@@ -30,19 +33,35 @@
     </section>
 
     <template v-if="!customerDocUrl">
+    <el-alert v-if="solutionDownloadError" :title="solutionDownloadError" type="error" :closable="false" class="mb-12px" />
+    <el-alert v-if="requirementError" :title="requirementError" type="error" :closable="false" class="mb-12px">
+      <el-button link type="primary" :disabled="readOnly || requirementLoading" @click="loadRequirement()">重新加载需求分析</el-button>
+    </el-alert>
+    <div v-else-if="requirementLoading" role="status" class="mb-12px">正在加载需求分析引用内容…</div>
+    <div v-if="requirementInput.revisionId && inputChanged" class="mb-12px">
+      <el-alert v-if="inputChanged" title="需求输入已变化，请确认处理方式后再提交" type="warning" :closable="false">
+        <el-button :disabled="readOnly" @click="refreshRequirementInput">刷新需求引用（保留人工修改）</el-button>
+        <el-input v-model="differenceReason" :disabled="readOnly" placeholder="保留原需求版本时，请说明差异及处理理由" aria-label="需求输入差异说明" />
+        <el-button :disabled="readOnly || !differenceReason.trim()" @click="keepRequirementInput">保留原版本并确认差异</el-button>
+      </el-alert>
+    </div>
+    <header class="solution-document-heading">
+      <h1>{{ form.name || '实施方案' }}</h1>
+      <p v-if="form.versionLabel">版本：{{ form.versionLabel }}</p>
+    </header>
     <!-- 第1章 项目概述 -->
     <section class="chapter">
       <div class="chapter-title">1. 项目概述</div>
       <el-form-item label="1.1 项目背景" label-width="140px">
         <div class="editor-block">
           <Editor v-model="form.background" height="180px" :readonly="readOnly" />
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqBackground" @click="form.background = reqBackground">从 2.3 需求分析引用</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqBackground" @click="form.background = reqBackground">从需求分析引用</el-button>
         </div>
       </el-form-item>
       <el-form-item label="1.2 项目目标" label-width="140px">
         <div class="editor-block">
           <Editor v-model="form.target" height="180px" :readonly="readOnly" />
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqObjective" @click="form.target = reqObjective">从 2.3 需求分析引用</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqObjective" @click="form.target = reqObjective">从需求分析引用</el-button>
         </div>
       </el-form-item>
 
@@ -52,12 +71,13 @@
             <el-table-column label="角色" min-width="130"><template #default="{ row }"><el-input v-model="row.role" :disabled="readOnly" placeholder="如：项目经理" /></template></el-table-column>
             <el-table-column label="姓名" min-width="110"><template #default="{ row }"><el-input v-model="row.name" :disabled="readOnly" /></template></el-table-column>
             <el-table-column label="联系方式" min-width="130"><template #default="{ row }"><el-input v-model="row.contact" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="邮箱" min-width="180"><template #default="{ row }"><el-input v-model="row.email" :disabled="readOnly" /></template></el-table-column>
             <el-table-column label="备注" min-width="120"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
             <el-table-column label="操作" width="70" fixed="right">
               <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.team.splice($index, 1)">删除</el-button></template>
             </el-table-column>
           </el-table>
-          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.team.push({ role: '', name: '', contact: '', remark: '' })">添加成员</el-button>
+          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.team.push({ role: '', name: '', contact: '', email: '', remark: '' })">添加成员</el-button>
           <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !teamRefRows.length" @click="tables.team = memberRows()">从项目成员与客户联系人引用</el-button>
         </div>
       </el-form-item>
@@ -78,11 +98,11 @@
             </el-table-column>
           </el-table>
           <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.inventory.push(emptyInventoryRow())">添加行</el-button>
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !scopeRows.length" @click="tables.inventory = scopeProductRows()">从 1.1 产品信息清单引用</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !scopeRows.length" @click="tables.inventory = scopeProductRows()">从产品信息清单引用</el-button>
         </div>
       </el-form-item>
 
-      <el-form-item label="1.5 进度计划" label-width="140px">
+      <el-form-item v-if="readOnly && tables.plan.length" label="1.5 进度计划" label-width="140px">
         <div class="table-editor">
           <el-table :data="tables.plan" size="small" border>
             <el-table-column label="项目阶段" min-width="110"><template #default="{ row }"><el-input v-model="row.stage" :disabled="readOnly" /></template></el-table-column>
@@ -104,16 +124,11 @@
     <section class="chapter">
       <div class="chapter-title">2. 现网现状分析</div>
       <el-form-item label="2.1 现网拓扑图" label-width="140px">
-        <UploadFile v-model="topology.asIsUrl" :disabled="readOnly" />
+        <UploadFile v-model="topology.asIsUrl" :disabled="readOnly" :file-type="topologyFileTypes" />
       </el-form-item>
-      <div class="ref-block">
-        <div class="ref-head"><span>2.2 现网资源确认（引用 2.2 工勘 + 2.3 传输/流量/业务）</span></div>
-        <div class="ref-body">
-          <div>传输现状：{{ reqTransmission.join('、') || '—' }}</div>
-          <div>流量现状：新建 {{ reqTraffic.new || '—' }} / 并发 {{ reqTraffic.concurrent || '—' }} / 吞吐 {{ reqTraffic.throughput || '—' }}</div>
-          <div>工勘 10 项确认明细见详情页「2.2 工勘分工」环节。</div>
-        </div>
-      </div>
+      <el-form-item label="2.2 现网资源确认" label-width="140px">
+        <ResourceConfirmationEditor v-model="topology.resourceConfirmation" :project-id="form.projectId" :read-only="readOnly" :requirement-values="reqValues" />
+      </el-form-item>
     </section>
 
     <!-- 第3章 总体方案设计 -->
@@ -126,27 +141,17 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'no'" label-width="140px">
-        <div class="ref-body standalone">直接调用 2.3 需求分析中的网络拓扑：{{ stripHtml(reqTopology) || '需求分析暂无网络拓扑' }}</div>
+        <div class="ref-body standalone">直接调用需求分析中的网络拓扑：{{ stripHtml(reqTopology) || '需求分析暂无网络拓扑' }}</div>
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'yes'" label="上传最新拓扑" label-width="140px">
-        <UploadFile v-model="topology.toBeUrl" :disabled="readOnly" />
+        <UploadFile v-model="topology.toBeUrl" :disabled="readOnly" :file-type="topologyFileTypes" />
       </el-form-item>
 
       <el-form-item label="3.2 部署位置规划" label-width="140px">
-        <div class="table-editor">
-          <el-table :data="tables.deploy" size="small" border>
-            <el-table-column label="设备名称" min-width="130"><template #default="{ row }"><el-input v-model="row.deviceName" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="设备类型" min-width="110"><template #default="{ row }"><el-input v-model="row.deviceType" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="设备序列号" min-width="130"><template #default="{ row }"><el-input v-model="row.sn" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="安装位置（机房/机柜/U数）" min-width="180"><template #default="{ row }"><el-input v-model="row.location" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="备注" min-width="110"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="操作" width="70" fixed="right">
-              <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.deploy.splice($index, 1)">删除</el-button></template>
-            </el-table-column>
-          </el-table>
-          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.deploy.push({ deviceName: '', deviceType: '', sn: '', location: '', remark: '' })">添加行</el-button>
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !devices.length" @click="tables.deploy = deviceDeployRows()">从 1.1.1 序列号详情同步</el-button>
-        </div>
+        <SolutionEquipmentTable v-model="tables.deploy" section="deploy" :products="equipmentProducts" :read-only="readOnly" />
+        <el-alert v-if="equipmentError" :title="equipmentError" type="error" :closable="false">
+          <el-button link @click="loadEquipment">重新加载设备清单</el-button>
+        </el-alert>
       </el-form-item>
 
       <el-form-item label="3.3 接口互联规划" label-width="140px">
@@ -185,25 +190,14 @@
       </el-form-item>
 
       <el-form-item label="3.5 软件版本" label-width="140px">
-        <div class="table-editor">
-          <el-table :data="tables.software" size="small" border>
-            <el-table-column label="序列号" min-width="140"><template #default="{ row }"><el-input v-model="row.sn" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="设备型号" min-width="110"><template #default="{ row }"><el-input v-model="row.model" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="软件版本" min-width="120"><template #default="{ row }"><el-input v-model="row.version" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="备注" min-width="110"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="操作" width="70" fixed="right">
-              <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.software.splice($index, 1)">删除</el-button></template>
-            </el-table-column>
-          </el-table>
-          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.software.push({ sn: '', model: '', version: '', remark: '' })">添加行</el-button>
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !devices.length" @click="tables.software = deviceSoftwareRows()">从 1.1.1 序列号详情同步</el-button>
-        </div>
+        <SolutionEquipmentTable v-model="tables.software" section="software" :products="equipmentProducts" :read-only="readOnly" />
       </el-form-item>
     </section>
 
     <!-- 第4章 配置脚本 -->
     <section class="chapter">
       <div class="chapter-title">4. 配置脚本</div>
+      <el-alert v-if="scriptUploadError" :title="scriptUploadError" type="error" :closable="false" />
       <el-form-item v-for="item in scriptItems" :key="item.key" :label="item.label" label-width="140px">
         <div class="script-editor">
           <el-input
@@ -218,12 +212,15 @@
             :show-file-list="false"
             :disabled="readOnly"
             accept=".txt,.cfg,.conf,.sh,.log"
+            :auto-upload="false"
             class="script-upload"
             @change="(uploadFile: any) => readScript(item.key, uploadFile)"
           >
             <el-button size="small" :disabled="readOnly">上传脚本</el-button>
           </el-upload>
-          <div class="form-tip">支持上传脚本文件，读取后自动展示在文本框中，可继续修改</div>
+          <div class="form-tip">可手动录入，或上传 TXT、CFG、CONF、SH、LOG 文件解析后继续编辑；上传文件保留原件，非必填。</div>
+          <div v-if="scriptFileName(item.key)" class="form-tip">{{ scriptFileName(item.key) }}</div>
+          <el-link v-if="storedScript(item.key) && !pendingScripts.some(pending => pending.section === item.key)" type="primary" @click="downloadScript(item.key)">下载原始脚本文件</el-link>
         </div>
       </el-form-item>
     </section>
@@ -264,7 +261,7 @@
             </el-table-column>
           </el-table>
           <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.business.push(emptyBusinessRow())">添加行</el-button>
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqBusinessRows.length" @click="tables.business = reqBusinessRows.map((r) => ({ ...r }))">从 2.3 需求分析引用</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqBusinessRows.length" @click="tables.business = reqBusinessRows.map((r) => ({ ...r }))">从需求分析引用</el-button>
         </div>
       </el-form-item>
     </section>
@@ -356,14 +353,18 @@ import { resolveCustomerSolutionDocument,downloadCustomerSolutionDocument,custom
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import { ElMessage } from 'element-plus'
 import { uploadDeliveryFile } from '@/components/DeliveryArtifact/uploadDeliveryFile'
-import { prepareGeneratedSolutionHtml } from '@/views/pms/engineering/solution/saveGeneratedSolutionHtml'
+import { prepareGeneratedSolutionWord } from '@/views/pms/engineering/solution/prepareGeneratedSolutionWord'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { loadProjectEquipmentList, type ProjectEquipmentProduct } from '@/api/pms/commerce/projectEquipment'
+import ResourceConfirmationEditor from '@/views/pms/engineering/solution/ResourceConfirmationEditor.vue'
+import SolutionEquipmentTable from '@/views/pms/engineering/solution/SolutionEquipmentTable.vue'
+import { equipmentRow, readSolutionEquipment } from '@/views/pms/engineering/solution/solutionEquipment'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
-import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis'
-import * as ProjectsApi from '@/api/pms/project/projects'
+import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
+import { downloadSolutionScript, type PendingScript, type ScriptSection, type ScriptReference } from './saveSolutionScripts'
+import { getMemberPage, logicalMemberRole, type MemberRecord } from '@/api/pms/project/unified-members'
 import * as ContactApi from '@/api/pms/customer/contacts'
 import * as StagePlanApi from '@/api/pms/engineering/stage-plan'
-import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import { getDeliveryScopePage } from '@/api/pms/commerce'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
@@ -373,6 +374,7 @@ defineOptions({ name: 'SolutionChapterForm' })
 const props = defineProps<{ readOnly: boolean; saving?: boolean }>()
 const emit = defineEmits<{ save: []; submitReview: [] }>()
 const form = defineModel<SolutionVO>({ required: true })
+const pendingScripts = defineModel<PendingScript[]>('pendingScripts', { default: () => [] })
 const { barTarget } = useBusinessActionBar()
 
 // ---------- JSON 信封映射说明 ----------
@@ -393,59 +395,72 @@ const parseObject = (raw: string | undefined | null): Record<string, unknown> =>
 }
 
 // ---------- 引用数据（前序阶段真实来源） ----------
+const requirementLoading = ref(false)
+const requirementError = ref('')
 const reqValues = ref<Record<string, unknown>>({})
-const members = ref<ProjectsApi.ProjectMemberAssignmentVO[]>([])
+const members = ref<MemberRecord[]>([])
 const contacts = ref<ContactApi.ContactVO[]>([])
 const scopeRows = ref<{ productCode: string; deviceTypeCode: string; allocatedQuantity: number }[]>([])
 const stagePlanItems = ref<StagePlanApi.StagePlanItemVO[]>([])
-const devices = ref<DeviceArchiveApi.DeviceArchiveVO[]>([])
+const equipmentProducts = ref<ProjectEquipmentProduct[]>([])
+const equipmentError = ref('')
+let equipmentRequest = 0
+const loadEquipment = async () => {
+  const requestId = ++equipmentRequest
+  const projectId = form.value.projectId
+  equipmentProducts.value = []
+  equipmentError.value = ''
+  if (!projectId || props.readOnly) return
+  try {
+    const equipment = await loadProjectEquipmentList(projectId, () => requestId === equipmentRequest)
+    if (requestId === equipmentRequest) equipmentProducts.value = equipment?.list || []
+  } catch {
+    if (requestId === equipmentRequest) equipmentError.value = '项目设备清单加载失败，请重新加载'
+  }
+}
+watch(() => [props.readOnly, form.value.projectId], () => { void loadEquipment() }, { immediate: true })
 
 const stripHtml = (v: unknown) => String(v ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-const reqBackground = computed(() => String(reqValues.value['PROJECT_BACKGROUND'] ?? ''))
-const reqObjective = computed(() => String(reqValues.value['PROJECT_OBJECTIVE'] ?? ''))
-const reqTopology = computed(() => String(reqValues.value['NETWORK_TOPOLOGY'] ?? ''))
-const reqTransmission = computed(() => {
-  const v = reqValues.value['TRANSMISSION_CURRENT_OPTIONS']
-  return Array.isArray(v) ? v.map(String) : []
-})
-const reqTraffic = computed(() => ({
-  new: String(reqValues.value['TRAFFIC_NEW_CONNECTIONS'] ?? ''),
-  concurrent: String(reqValues.value['TRAFFIC_CONCURRENCY'] ?? ''),
-  throughput: String(reqValues.value['TRAFFIC_THROUGHPUT'] ?? '')
-}))
+const isEmptyEditorContent = (value: unknown) =>
+  !stripHtml(value).replace(/&nbsp;/gi, ' ').trim() &&
+  !/<(?:img|video|audio|iframe|table|hr)\b/i.test(String(value ?? ''))
+const reqBackground = computed(() => String(reqValues.value['projectBackground'] ?? ''))
+const reqObjective = computed(() => String(reqValues.value['projectObjective'] ?? ''))
+const reqTopology = computed(() => String(reqValues.value['networkTopology'] ?? ''))
 const reqBusinessRows = computed<Row[]>(() => {
-  const v = reqValues.value['BUSINESS_DEVICE_DETAILS']
+  const v = reqValues.value['businessDeviceDetails']
   if (!Array.isArray(v)) return []
   return v.map((item) => {
     const r = (item ?? {}) as Record<string, unknown>
     return {
       deviceName: String(r['deviceName'] ?? r['设备名称'] ?? ''),
-      sn: String(r['sn'] ?? r['序列号'] ?? ''),
+      sn: String(r['serialNumber'] ?? r['序列号'] ?? ''),
       businessName: String(r['businessName'] ?? r['承载业务名称'] ?? ''),
-      network: String(r['network'] ?? r['业务网段'] ?? ''),
-      level: String(r['level'] ?? r['业务重要等级'] ?? ''),
-      ports: String(r['ports'] ?? r['出入接口'] ?? ''),
-      owner: String(r['owner'] ?? r['客户侧业务负责人'] ?? ''),
+      network: String(r['businessSubnet'] ?? r['业务网段'] ?? ''),
+      level: String(r['businessImportance'] ?? r['业务重要等级'] ?? ''),
+      ports: String(r['interfaces'] ?? r['出入接口'] ?? ''),
+      owner: String(r['customerBusinessOwner'] ?? r['客户侧业务负责人'] ?? ''),
       remark: String(r['remark'] ?? r['备注'] ?? '')
     }
   })
 })
 
 const memberRoleLabel = (role: string) => {
-  const label = getDictLabel(DICT_TYPE.PMS_PROJECT_MEMBER_ROLE, role)
+  const label = getDictLabel(DICT_TYPE.PMS_PROJECT_MEMBER_ROLE, logicalMemberRole(role))
   return label || role || '—'
 }
-// 1.3 项目团队汇总：项目成员在前，项目客户联系人随后；成员链路无联系方式字段，显示占位符。
+// 1.3 项目团队汇总：当前项目成员在前，项目客户联系人随后。
 const contactRows = computed<Row[]>(() =>
   contacts.value.map((c) => ({
     role: c.primaryFlag && c.status === 0 ? '主联系人' : '客户联系人',
     name: c.name || '',
-    contact: c.mobile || '',
+    contact: c.mobile || c.phone || '',
+    email: c.email || '',
     remark: c.remark || ''
   }))
 )
 const teamRefRows = computed<Row[]>(() => [
-  ...members.value.map((m) => ({ role: memberRoleLabel(m.memberRole), name: m.memberName || '', contact: '', remark: '' })),
+  ...members.value.map((m) => ({ role: memberRoleLabel(m.memberRole), name: m.memberName || '', contact: m.mobile || '', email: m.email || '', remark: m.remark || '' })),
   ...contactRows.value
 ])
 const memberRows = (): Row[] => teamRefRows.value.map((row) => ({ ...row }))
@@ -467,16 +482,6 @@ const stagePlanRows = (): Row[] =>
     suggest: '',
     remark: i.remark || ''
   }))
-const deviceDeployRows = (): Row[] =>
-  devices.value.map((d) => ({
-    deviceName: d.name || '',
-    deviceType: d.productModel || '',
-    sn: d.sn || '',
-    location: d.locationSnapshot || '',
-    remark: ''
-  }))
-const deviceSoftwareRows = (): Row[] =>
-  devices.value.map((d) => ({ sn: d.sn || '', model: d.productModel || '', version: '', remark: '' }))
 const emptyInventoryRow = (): Row => ({ productCode: '', model: '', desc: '', projectQty: '', shippedQty: '', unshippedQty: '', sn: '' })
 const emptyBusinessRow = (): Row => ({ deviceName: '', sn: '', businessName: '', network: '', level: '', ports: '', owner: '', remark: '' })
 
@@ -491,8 +496,9 @@ const tables = reactive({
   software: [] as Row[],
   business: [] as Row[]
 })
+const topologyFileTypes = ['ppt', 'pptx', 'vsd', 'vsdx', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp']
 const scripts = reactive({ network: '', businessModule: '', ha: '', full: '' })
-const topology = reactive({ asIsUrl: '', toBeChanged: '', toBeUrl: '' })
+const topology = reactive({ asIsUrl: '', toBeChanged: '', toBeUrl: '', resourceConfirmation: '' })
 // hasCustomerPlan/customerPlanUrl 两键归方案信息组件（SolutionDocMetaForm）读写；
 // customerPlanUrl 本组件仅读取，用于正文区直接展示客户文档
 const meta = reactive({
@@ -515,15 +521,17 @@ const scriptItems = [
 const syncFromForm = () => {
   tables.team = parseRows(safeParse(form.value.team))
   tables.inventory = parseRows(safeParse(form.value.inventory))
-  tables.plan = parseRows(safeParse(form.value.plan))
+  // 已提交版本保留原文；可编辑草稿不再携带已取消的进度计划章节。
+  tables.plan = props.readOnly ? parseRows(safeParse(form.value.plan)) : []
   tables.interface = parseRows(safeParse(form.value.interfacePlan))
   tables.ip = parseRows(safeParse(form.value.ipPlan))
   const topo = parseObject(form.value.topology)
   topology.asIsUrl = String(topo['asIsUrl'] ?? '')
+  topology.resourceConfirmation = String(topo['resourceConfirmation'] ?? '')
   topology.toBeChanged = String(topo['toBeChanged'] ?? '')
   topology.toBeUrl = String(topo['toBeUrl'] ?? '')
-  tables.deploy = parseRows(topo['deploy'])
-  tables.software = parseRows(topo['software'])
+  tables.deploy = readSolutionEquipment({ topology: topo, section: 'deploy' })
+  tables.software = readSolutionEquipment({ topology: topo, section: 'software' })
   const scriptObj = parseObject(form.value.script)
   scripts.network = String(scriptObj['network'] ?? '')
   scripts.businessModule = String(scriptObj['businessModule'] ?? '')
@@ -560,8 +568,10 @@ watch(tables, () => {
 watch(
   [topology, () => tables.deploy, () => tables.software],
   () => {
+    if (props.readOnly) return
     form.value.topology = JSON.stringify({
       asIsUrl: topology.asIsUrl,
+      resourceConfirmation: topology.resourceConfirmation,
       toBeChanged: topology.toBeChanged,
       toBeUrl: topology.toBeUrl,
       deploy: tables.deploy,
@@ -570,7 +580,7 @@ watch(
   },
   { deep: true }
 )
-watch(scripts, () => { form.value.script = JSON.stringify(scripts) }, { deep: true })
+watch(scripts, () => { if (!props.readOnly) form.value.script = JSON.stringify({ ...parseObject(form.value.script), ...scripts }) }, { deep: true })
 watch(
   [meta, archiveModule, () => tables.business],
   () => {
@@ -644,22 +654,85 @@ onBeforeUnmount(() => {
   releaseCustomerDocBlob()
 })
 
+// 需求分析使用当前实体业务字段，独立加载并提供失败重试。
+let requirementRequest = 0
+const latestRequirement = ref<RequirementAnalysisApi.View | null>(null)
+const differenceReason = ref('')
+const requirementInput = computed(() => (parseObject(form.value.sectionData).requirementInput || {}) as Record<string, any>)
+const inputChanged = computed(() => !!latestRequirement.value && !!requirementInput.value.revisionId &&
+  String(requirementInput.value.revisionId) !== String(latestRequirement.value.revision.ref.revisionId))
+const writeRequirementInput = (input: Record<string, unknown>) => {
+  form.value.sectionData = JSON.stringify({ ...parseObject(form.value.sectionData), requirementInput: input })
+}
+const refreshRequirementInput = () => {
+  const source = latestRequirement.value
+  if (!source || props.readOnly) return
+  if (isEmptyEditorContent(form.value.background) || form.value.background === reqValues.value.projectBackground)
+    form.value.background = String(source.values.projectBackground || '')
+  if (isEmptyEditorContent(form.value.target) || form.value.target === reqValues.value.projectObjective)
+    form.value.target = String(source.values.projectObjective || '')
+  writeRequirementInput({ revisionId: source.revision.ref.revisionId, revisionNo: source.revision.revisionNo })
+  reqValues.value = source.values
+}
+const keepRequirementInput = () => {
+  if (!latestRequirement.value || props.readOnly || !differenceReason.value.trim()) return
+  writeRequirementInput({ ...requirementInput.value, acknowledgedRevisionId: latestRequirement.value.revision.ref.revisionId,
+    differenceReason: differenceReason.value.trim() })
+}
+const loadRequirement = async () => {
+  const requestId = ++requirementRequest
+  const projectId = form.value.projectId
+  reqValues.value = {}
+  latestRequirement.value = null
+  requirementError.value = ''
+  requirementLoading.value = false
+  if (!projectId) return
+  requirementLoading.value = true
+  try {
+    const overview = await RequirementAnalysisApi.workspace(projectId)
+    if (requestId !== requirementRequest) return
+    latestRequirement.value = overview.currentEffective
+    if (requirementInput.value.revisionId) {
+      const source = await RequirementAnalysisApi.read(requirementInput.value.revisionId)
+      if (requestId !== requirementRequest) return
+      reqValues.value = source.values
+    } else if (!props.readOnly && overview.currentEffective) {
+      refreshRequirementInput()
+    }
+  } catch {
+    if (requestId === requirementRequest) requirementError.value = '需求分析引用内容加载失败，请重新加载'
+  } finally {
+    if (requestId === requirementRequest) requirementLoading.value = false
+  }
+}
+watch(() => [props.readOnly, form.value.projectId, form.value.id], () => { void loadRequirement() }, { immediate: true })
+
 // 引用数据按项目加载；工作台自动选中时 projectId 晚于挂载到达，须响应式触发
 let referencesProjectId = 0
+const loadCurrentMembers = async (projectId: number): Promise<MemberRecord[]> => {
+  const rows: MemberRecord[] = []
+  let pageNo = 1
+  let total = 0
+  do {
+    const page = await getMemberPage(projectId, { pageNo, pageSize: 100, state: 'CURRENT' })
+    rows.push(...page.list)
+    total = page.total
+    if (!page.list.length) break
+    pageNo++
+  } while (rows.length < total)
+  return rows
+}
 const loadReferences = async () => {
   const projectId = form.value.projectId
   if (props.readOnly || !projectId || referencesProjectId === projectId) return
   referencesProjectId = projectId
-  const [overview, memberList, scopePage, planPage, devicePage, contactPage] = await Promise.all([
-    RequirementAnalysisApi.getCurrent(projectId).catch(() => null),
-    ProjectsApi.getProjectMembers(projectId).catch(() => []),
+  const [memberList, scopePage, planPage, contactPage] = await Promise.all([
+    loadCurrentMembers(projectId).catch(() => []),
     getDeliveryScopePage({ projectId, pageNo: 1, pageSize: 200, includeHistory: false }).catch(() => ({ list: [] })),
     StagePlanApi.getStagePlanBatchPage({ projectId, pageNo: 1, pageSize: 10 }).catch(() => ({ list: [] })),
-    DeviceArchiveApi.getDeviceArchivePage({ projectId, pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] })),
     ContactApi.getProjectPage(projectId, { pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] }))
   ])
-  reqValues.value = ((overview as any)?.currentEffective ?? (overview as any)?.draft)?.values ?? {}
-  members.value = (memberList as ProjectsApi.ProjectMemberAssignmentVO[]) || []
+  members.value = memberList
   contacts.value = ((contactPage as any).list || []) as ContactApi.ContactVO[]
   scopeRows.value = ((scopePage as any).list || []).flatMap((scope: any) =>
     (scope.details || []).map((d: any) => ({
@@ -669,31 +742,56 @@ const loadReferences = async () => {
     }))
   )
   stagePlanItems.value = (planPage as any).list?.[0]?.items || []
-  devices.value = ((devicePage as any).list || []) as DeviceArchiveApi.DeviceArchiveVO[]
 }
 watch(() => [props.readOnly, form.value.projectId], () => { loadReferences() }, { immediate: true })
 
 // ---------- 生成方案（引用前序数据，只填空字段） ----------
 const generateFromSources = () => {
   if (props.readOnly) return
-  if (reqBackground.value && !String(form.value.background ?? '').trim()) form.value.background = reqBackground.value
-  if (reqObjective.value && !String(form.value.target ?? '').trim()) form.value.target = reqObjective.value
-  if (members.value.length && !tables.team.length) tables.team = memberRows()
+  if (reqBackground.value && isEmptyEditorContent(form.value.background)) form.value.background = reqBackground.value
+  if (reqObjective.value && isEmptyEditorContent(form.value.target)) form.value.target = reqObjective.value
+  if (teamRefRows.value.length && !tables.team.length) tables.team = memberRows()
   if (scopeRows.value.length && !tables.inventory.length) tables.inventory = scopeProductRows()
-  if (stagePlanItems.value.length && !tables.plan.length) tables.plan = stagePlanRows()
-  if (devices.value.length && !tables.deploy.length) tables.deploy = deviceDeployRows()
-  if (devices.value.length && !tables.software.length) tables.software = deviceSoftwareRows()
+  if (equipmentProducts.value.length && !tables.deploy.length) tables.deploy = equipmentProducts.value.map(product => equipmentRow(product))
+  if (equipmentProducts.value.length && !tables.software.length) tables.software = equipmentProducts.value.map(product => equipmentRow(product))
   if (reqBusinessRows.value.length && !tables.business.length) tables.business = reqBusinessRows.value.map((r) => ({ ...r }))
 }
 
 // ---------- 配置脚本上传（读取本地脚本文件展示在文本框中） ----------
 type ScriptKey = (typeof scriptItems)[number]['key']
+const scriptUploadError = ref('')
 const readScript = (key: ScriptKey, uploadFile: { raw?: File }) => {
   const raw = uploadFile?.raw
   if (!raw) return
+  scriptUploadError.value = ''
+  if (!/\.(txt|cfg|conf|sh|log)$/i.test(raw.name) || !raw.size) {
+    scriptUploadError.value = '请上传非空 TXT、CFG、CONF、SH、LOG 脚本文件'
+    return
+  }
+  const targetForm = form.value
   const reader = new FileReader()
-  reader.onload = () => { scripts[key] = String(reader.result ?? '') }
+  reader.onload = () => {
+    if (form.value !== targetForm || props.readOnly) return
+    scripts[key] = String(reader.result ?? '')
+    pendingScripts.value = [...pendingScripts.value.filter(item => item.section !== key), { section: key, file: raw }]
+    const stored = parseObject(form.value.script)
+    form.value.script = JSON.stringify({ ...stored, references: ((stored.references || []) as ScriptReference[]).filter(item => item.section !== key) })
+  }
+  reader.onerror = () => { scriptUploadError.value = '脚本读取失败，请重新选择文件' }
   reader.readAsText(raw)
+}
+const scriptFileName = (section: ScriptSection) => {
+  const pending = pendingScripts.value.find(item => item.section === section)
+  if (pending) return `${pending.file.name}（待保存）`
+  const stored = ((parseObject(form.value.script).references || []) as ScriptReference[]).find(item => item.section === section)
+  return stored ? `${stored.name} · v${stored.versionNo} · 已保存` : ''
+}
+const storedScript = (section: ScriptSection) => ((parseObject(form.value.script).references || []) as ScriptReference[]).find(item => item.section === section)
+const downloadScript = async (section: ScriptSection) => {
+  const reference = storedScript(section)
+  if (!reference || !form.value.id) return
+  try { await downloadSolutionScript({ solutionId: form.value.id, reference }) }
+  catch (failure: any) { scriptUploadError.value = failure?.message || '脚本文件下载失败' }
 }
 
 // ---------- 下载方案（九章内容导出为 HTML 文件） ----------
@@ -713,20 +811,20 @@ const buildSolutionHtml = () => {
   const chapter1 = [
     htmlField('1.1 项目背景', form.value.background ?? ''),
     htmlField('1.2 项目目标', form.value.target ?? ''),
-    htmlField('1.3 项目团队', htmlTable(tables.team, [['role', '角色'], ['name', '姓名'], ['contact', '联系方式'], ['remark', '备注']])),
+    htmlField('1.3 项目团队', htmlTable(tables.team, [['role', '角色'], ['name', '姓名'], ['contact', '联系方式'], ['email', '邮箱'], ['remark', '备注']])),
     htmlField('1.4 项目清单', htmlTable(tables.inventory, [['productCode', '产品编码'], ['model', '产品型号'], ['desc', '产品描述'], ['projectQty', '项目数量'], ['shippedQty', '发货数量'], ['unshippedQty', '未发货数量'], ['sn', '序列号']])),
-    htmlField('1.5 项目进度计划', htmlTable(tables.plan, [['stage', '项目阶段'], ['start', '计划开始'], ['end', '计划结束'], ['suggest', '工期建议'], ['remark', '备注']]))
+    props.readOnly && tables.plan.length ? htmlField('1.5 项目进度计划', htmlTable(tables.plan, [['stage', '项目阶段'], ['start', '计划开始'], ['end', '计划结束'], ['suggest', '工期建议'], ['remark', '备注']])) : ''
   ].join('')
   const chapter2 = [
     htmlField('2.1 现网拓扑图', topology.asIsUrl ? `<p>已上传：${escapeHtml(topology.asIsUrl)}</p>` : '<p>（未上传）</p>'),
-    htmlField('2.2 现网资源确认', `<p>传输现状：${escapeHtml(reqTransmission.value.join('、'))}</p><p>流量现状：新建 ${escapeHtml(reqTraffic.value.new)} / 并发 ${escapeHtml(reqTraffic.value.concurrent)} / 吞吐 ${escapeHtml(reqTraffic.value.throughput)}</p>`)
+    htmlField('2.2 现网资源确认', topology.resourceConfirmation)
   ].join('')
   const chapter3 = [
-    htmlField('3.1 建设后拓扑图', topology.toBeChanged === 'yes' ? `<p>与需求分析有变化${topology.toBeUrl ? `，已上传：${escapeHtml(topology.toBeUrl)}` : '（未上传新拓扑）'}</p>` : '<p>与需求分析无变化，调用 2.3 需求分析网络拓扑</p>'),
-    htmlField('3.2 设备部署位置规划', htmlTable(tables.deploy, [['deviceName', '设备名称'], ['deviceType', '设备类型'], ['sn', '设备序列号'], ['location', '安装位置（机房/机柜/U数）'], ['remark', '备注']])),
+    htmlField('3.1 建设后拓扑图', topology.toBeChanged === 'yes' ? `<p>与需求分析有变化${topology.toBeUrl ? `，已上传：${escapeHtml(topology.toBeUrl)}` : '（未上传新拓扑）'}</p>` : '<p>与需求分析无变化，调用需求分析网络拓扑</p>'),
+    htmlField('3.2 部署位置规划', htmlTable(tables.deploy, [['productCode', '产品编码'], ['deviceName', '设备名称'], ['quantity', '数量（订单数量）'], ['location', '安装位置（机房/机柜/U数）'], ['remark', '备注']])),
     htmlField('3.3 设备接口互联规划', htmlTable(tables.interface, [['localDevice', '本端设备'], ['localPort', '本端接口'], ['peerPort', '对端接口'], ['portType', '接口类型'], ['cableModel', '线缆/光模块型号'], ['remark', '备注']])),
     htmlField('3.4 设备IP地址与vlan规划', htmlTable(tables.ip, [['deviceName', '设备名称'], ['port', '接口'], ['ip', 'IP地址'], ['mask', '掩码'], ['vrrp', 'VRRP地址'], ['gateway', '网关'], ['remark', '备注']])),
-    htmlField('3.5 软件版本', htmlTable(tables.software, [['sn', '序列号'], ['model', '设备型号'], ['version', '软件版本'], ['remark', '备注']]))
+    htmlField('3.5 软件版本', htmlTable(tables.software, [['productCode', '产品编码'], ['deviceName', '设备名称'], ['quantity', '数量（订单数量）'], ['version', '软件版本'], ['remark', '备注']]))
   ].join('')
   const chapter4 = scriptItems
     .map((item) => htmlField(item.label, `<pre>${escapeHtml(scripts[item.key] || '（未填写）')}</pre>`))
@@ -771,18 +869,21 @@ const buildSolutionHtml = () => {
   return html
 }
 const solutionDownloadBusy = ref(false)
+const solutionDownloadError = ref('')
 let solutionDownloadAttempt: import('@/components/DeliveryArtifact/uploadDeliveryFile').DeliveryUploadAttempt | undefined
 let solutionDownloadContent = ''
 const downloadSolution = async () => {
   if (solutionDownloadBusy.value) return
   solutionDownloadBusy.value = true
+  solutionDownloadError.value = ''
   try {
     const html = buildSolutionHtml()
-    const fileName = `${(form.value.name || '实施方案').replace(/[\\/:*?"<>|]/g, '_')}${form.value.versionLabel ? `-${form.value.versionLabel}` : ''}.html`
-    if (solutionDownloadContent !== html || solutionDownloadAttempt?.owner.entityId !== form.value.id)
+    const fileName = `${(form.value.name || '实施方案').replace(/[\\/:*?"<>|]/g, '_')}${form.value.versionLabel ? `-${form.value.versionLabel}` : ''}.docx`
+    const contentKey = html
+    if (solutionDownloadContent !== contentKey || solutionDownloadAttempt?.owner.entityId !== form.value.id)
       solutionDownloadAttempt = undefined
-    solutionDownloadContent = html
-    solutionDownloadAttempt = await prepareGeneratedSolutionHtml(form.value.id!, html, fileName, solutionDownloadAttempt)
+    solutionDownloadContent = contentKey
+    solutionDownloadAttempt = await prepareGeneratedSolutionWord(form.value.id!, html, fileName, solutionDownloadAttempt)
     await uploadDeliveryFile(solutionDownloadAttempt)
     const anchor = document.createElement('a')
     anchor.href = URL.createObjectURL(solutionDownloadAttempt.file)
@@ -790,7 +891,8 @@ const downloadSolution = async () => {
     anchor.click()
     URL.revokeObjectURL(anchor.href)
   } catch (failure: any) {
-    ElMessage.error(failure?.response?.data?.msg || failure?.message || '实施方案交付件保存失败')
+    solutionDownloadError.value = failure?.response?.data?.msg || failure?.message || (typeof failure === 'string' && failure !== 'error' ? failure : '实施方案交付件保存失败')
+    ElMessage.error(solutionDownloadError.value)
   } finally {
     solutionDownloadBusy.value = false
   }
@@ -813,6 +915,29 @@ const appendTemplate = (field: 'quality' | 'risk' | 'oAndM' | 'archive', templat
 </script>
 
 <style lang="scss" scoped>
+/* 文档层级：标题、章节、子章节和正文纵向排列，沿用平台主题。 */
+.solution-document-heading {
+  margin: 4px 0 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--el-border-color);
+  h1 { margin: 0; font-size: 22px; line-height: 1.6; font-weight: 600; overflow-wrap: anywhere; }
+  p { margin: 8px 0 0; color: var(--el-text-color-secondary); font-size: 13px; }
+}
+.solution-chapter-form :deep(.el-form-item) { display: block; }
+.solution-chapter-form :deep(.el-form-item__label) {
+  display: block;
+  float: none;
+  width: 100% !important;
+  height: auto;
+  margin-bottom: 8px;
+  padding: 0;
+  text-align: left;
+  font-weight: 600;
+  line-height: 1.7;
+}
+.solution-chapter-form :deep(.el-form-item__content) { min-width: 0; margin-left: 0 !important; }
+.solution-chapter-form .doc-content,
+.solution-chapter-form .ref-block { margin-left: 0; }
 /* 正文不设最大高度、不建内嵌滚动容器，随工作区页面自然伸展，仅保留页面级滚动 */
 .chapter {
   padding: 12px 0 4px;

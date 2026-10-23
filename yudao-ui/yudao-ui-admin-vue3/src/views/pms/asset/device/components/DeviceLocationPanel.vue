@@ -8,12 +8,9 @@
         { label: '解析状态', value: detail.locationResolutionStatus || 'UNRESOLVED' },
         { label: '站点', value: detail.siteId },
         { label: '站点位置', value: detail.siteLocationId },
-        {
-          label: '生效时间',
-          value: formatSourceDate(detail.locationEffectiveFrom, 'effectiveFrom')
-        },
-        { label: '位置记录', value: detail.locationRecordId },
-        { label: '发生时位置快照', value: detail.locationSnapshot, multiline: true }
+        { label: '生效时间', value: formatSourceDate(detail.locationEffectiveFrom, 'effectiveFrom') },
+        { label: '来源安装记录', value: detail.locationRecordId },
+        { label: '发生时位置快照', value: locationSnapshotText(detail.locationSnapshot), multiline: true }
       ]"
     />
     <el-empty
@@ -37,6 +34,7 @@
 <script setup lang="ts">
 import DeviceInstallationSourceHistoryPanel from './DeviceInstallationSourceHistoryPanel.vue'
 import { formatSourceDate } from '@/utils/formatSourceDate'
+import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { ref, watch } from 'vue'
 import DeviceReadOnlyFields from './DeviceReadOnlyFields.vue'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'

@@ -55,7 +55,8 @@
 import { generateUUID } from '@/utils'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
+import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { useMessage } from '@/hooks/web/useMessage'
 import { formatDate } from '@/utils/formatTime'
 import * as ClosureApi from '@/api/pms/acceptance/normal-closure'
@@ -63,7 +64,7 @@ import type { ClosureOverview } from '@/api/pms/acceptance/normal-closure'
 import type { BusinessViewId } from '@/api/pms/platform/business-view/ids'
 const props = defineProps<{ projectId: BusinessViewId; readonly?: boolean }>()
 const emit = defineEmits<{ updated: [] }>()
-const router = useRouter(),
+const openApprovalDetail = useProjectApprovalDetail(),
   route = useRoute(),
   message = useMessage(),
   mobile = useMediaQuery('(max-width: 767px)')
@@ -230,7 +231,7 @@ const submit = async () => {
 }
 const openProcess = () => {
   const id = overview.value?.latestApplication?.processInstanceId
-  if (id) return router.push({ name: 'BpmProcessInstanceDetail', query: { id } })
+  if (id) return openApprovalDetail(id)
 }
 watch(
   () => [props.projectId, route.fullPath],

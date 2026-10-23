@@ -1,0 +1,57 @@
+[
+  {
+    "ownerContext": "ACC",
+    "entityType": "ACCEPTANCE",
+    "resultType": "REPORT_VERSION_PUBLISHED",
+    "currentLookup": true,
+    "exactLookup": true,
+    "historicalLookup": true,
+    "inventory": true,
+    "changes": true,
+    "commitBarrier": true
+  },
+  {
+    "ownerContext": "ACC",
+    "entityType": "SATISFACTION",
+    "resultType": "SATISFACTION_PASSED",
+    "currentLookup": true,
+    "exactLookup": true,
+    "historicalLookup": true,
+    "inventory": true,
+    "changes": true,
+    "commitBarrier": true
+  },
+  {
+    "ownerContext": "SOL",
+    "entityType": "IMPLEMENTATION_SOLUTION",
+    "resultType": "IMPLEMENTATION_PLAN_APPROVED",
+    "currentLookup": true,
+    "exactLookup": false,
+    "historicalLookup": false,
+    "inventory": true,
+    "changes": true,
+    "commitBarrier": true
+  },
+  {
+    "ownerContext": "SOL",
+    "entityType": "REQUIREMENT_ANALYSIS",
+    "resultType": "REQUIREMENT_ANALYSIS_COMPLETED",
+    "currentLookup": true,
+    "exactLookup": true,
+    "historicalLookup": true,
+    "inventory": true,
+    "changes": true,
+    "commitBarrier": true
+  },
+  {
+    "ownerContext": "SOL",
+    "entityType": "SITE_SURVEY",
+    "resultType": "SURVEY_CONFIRMED",
+    "currentLookup": true,
+    "exactLookup": false,
+    "historicalLookup": false,
+    "inventory": true,
+    "changes": true,
+    "commitBarrier": true
+  }
+]

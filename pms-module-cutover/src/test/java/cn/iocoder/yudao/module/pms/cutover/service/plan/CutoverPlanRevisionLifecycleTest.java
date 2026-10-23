@@ -7,18 +7,18 @@ import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalFact;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalFactQuery;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalPauseCommand;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalStartCommand;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanReplacementUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverSupportContactUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanStepDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskStageHistoryDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanReplacementUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverSupportContactUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.PatchApprovedContactCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.ReviseCutoverPlanCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SubmitCutoverPlanCommand;
@@ -29,8 +29,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePo
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.PatchApprovedContactResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverTaskRules;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -54,6 +54,21 @@ import static org.mockito.Mockito.*;
 class CutoverPlanRevisionLifecycleTest {
 
     @Test
+    void userRevisionCopiesInvalidatedUnsubmittedDraftWithoutRequiringApproval() {
+        Fixture fixture = fixture("INVALIDATED", null, ApprovalStatus.PAUSED_SOURCE_INVALIDATED, "SOURCE_REPLACED");
+        fixture.source.setApprovalInstanceId(null); fixture.source.setApprovalVersion(null);
+        fixture.source.setInvalidationReasonCode("USER_REVISION");
+        var result = fixture.service.revise(new ReviseCutoverPlanCommand(1L, 8L, 50L, 6L, 601L,
+                "USER_REVISION", "user-revision-draft", "user-revision-draft"));
+        assertThat(result.revisionNo()).isEqualTo(2);
+        assertThat(fixture.derived.get().getSourcePlanRevisionId()).isEqualTo(601L);
+        assertThat(fixture.derived.get().getRevisionReasonCode()).isEqualTo("USER_REVISION");
+        assertThat(fixture.derived.get().getApprovalInstanceId()).isNull();
+        assertThat(fixture.source.getStatusCode()).isEqualTo("INVALIDATED");
+        assertThat(fixture.contents.get(fixture.derived.get().getId())).isEqualTo(fixture.contents.get(601L));
+    }
+
+    @Test
     void rejectedApprovalCreatesNextDraftWithoutOverwritingSource() {
         Fixture fixture = fixture("SUBMITTED", 1, ApprovalStatus.REJECTED, "APPROVAL_REJECTED");
 
@@ -64,9 +79,10 @@ class CutoverPlanRevisionLifecycleTest {
         assertThat(result.status()).isEqualTo("DRAFT");
         assertThat(fixture.derived.get().getSourcePlanRevisionId()).isEqualTo(601L);
         assertThat(fixture.derived.get().getRevisionReasonCode()).isEqualTo("APPROVAL_REJECTED");
-        assertThat(fixture.derived.get().getContentSnapshot()).isEqualTo(fixture.source.getContentSnapshot());
-        assertThat(JsonUtils.parseObject(fixture.derived.get().getSourceSnapshot(),
-                CutoverPlanSourcePort.SourceSnapshot.class).taskVersion()).isEqualTo(6);
+        assertThat(fixture.contents.get(fixture.derived.get().getId())).isEqualTo(fixture.contents.get(fixture.source.getId()));
+        assertThat(fixture.sources.get(fixture.derived.get().getId()).taskVersion()).isEqualTo(6);
+        assertThat(fixture.sources.get(fixture.source.getId())).isEqualTo(sourceFacts(4L).snapshot());
+        assertThat(fixture.contents.get(fixture.source.getId()).toString()).isEqualTo("{\"editMode\":\"ONLINE_TEMPLATE_SIMPLE_D\"}");
         ArgumentCaptor<CutoverPlanReplacementUpdate> replacement = ArgumentCaptor.forClass(
                 CutoverPlanReplacementUpdate.class);
         verify(fixture.planMapper).replaceSubmittedIfMatch(replacement.capture());
@@ -76,6 +92,8 @@ class CutoverPlanRevisionLifecycleTest {
         assertThat(fixture.copiedSupport).isEmpty();
 
         CutoverPlanRevisionDO derived = fixture.derived.get();
+        // The source history has no scheduled time; fill only the editable derived draft before submission.
+        fixture.contents.get(derived.getId()).put("scheduledTime", 1793498400000L);
         when(fixture.planMapper.selectCurrent(any())).thenReturn(derived);
         when(fixture.planMapper.selectCurrentForUpdate(any())).thenReturn(derived);
         when(fixture.planMapper.submitDraftIfMatch(any())).thenReturn(1);
@@ -120,7 +138,8 @@ class CutoverPlanRevisionLifecycleTest {
 
         PatchApprovedContactResult result = fixture.service.patchApprovedContact(new PatchApprovedContactCommand(
                 1L, 8L, 50L, 801L, 2L, "李工", "13800000000", arrival,
-                "patch-contact", "corr-contact"));
+                "patch-contact", "corr-contact"), new CutoverPlanContactPolicy.Change("测试联系人变更",
+                        new CutoverPlanContactPolicy.Selection(501L, 2)));
 
         assertThat(result.planVersion()).isEqualTo(3);
         assertThat(result.reasonCode()).isEqualTo("APPROVED_CONTACT_CHANGED");
@@ -128,13 +147,17 @@ class CutoverPlanRevisionLifecycleTest {
         assertThat(result.after().personName()).isEqualTo("李工");
         ArgumentCaptor<CutoverSupportContactUpdate> update = ArgumentCaptor.forClass(CutoverSupportContactUpdate.class);
         verify(fixture.supportMapper).updateApprovedContactIfMatch(update.capture());
-        assertThat(update.getValue().expectedVersion()).isZero();
-        assertThat(update.getValue().personName()).isEqualTo("李工");
+        assertThat(update.getValue().baseline().getVersion()).isZero();
+        assertThat(update.getValue().change().getAfterPersonName()).isEqualTo("李工");
+        assertThat(update.getValue().baseline().getPersonName()).isEqualTo("张工");
         assertThat(fixture.platform.facts).singleElement().satisfies(fact -> {
             assertThat(fact.correlationId()).isEqualTo("corr-contact");
             assertThat(fact.detailSnapshot()).contains("张工", "李工", "13800000000",
                     "APPROVED_CONTACT_CHANGED");
         });
+        assertThat(fixture.support.getCurrentSupportContactChangeId()).isEqualTo(update.getValue().change().getId());
+        assertThat(fixture.support.getPersonName()).isEqualTo("张工");
+        assertThat(fixture.support.getPhone()).isEqualTo("13900000000");
         assertThat(fixture.support.getRoleCode()).isEqualTo("CUSTOMER");
         assertThat(fixture.support.getDutyDescription()).isEqualTo("现场协调");
     }
@@ -154,7 +177,12 @@ class CutoverPlanRevisionLifecycleTest {
         when(taskMapper.selectForUpdate(any())).thenReturn(task);
         when(project.inspect(8L, 70L, "ACTION_EDIT"))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
-        when(project.lockAndRevalidate(8L, 70L, "ACTION_EDIT", 30L))
+        when(project.lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery.builder()
+                .actorId(8L)
+                .projectId(70L)
+                .action("ACTION_EDIT")
+                .expectedProjectScopeVersion(30L)
+                .build()))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
         CutoverPlanSourcePort.SourceFacts currentFacts = sourceFacts(6L);
         when(sourcePort.inspect(1L, 8L, 50L)).thenReturn(currentFacts);
@@ -211,15 +239,57 @@ class CutoverPlanRevisionLifecycleTest {
         when(supportMapper.insert(any(CutoverSupportArrangementDO.class))).thenAnswer(invocation -> {
             copiedSupport.add(invocation.getArgument(0)); return 1;
         });
-        when(supportMapper.updateApprovedContactIfMatch(any())).thenReturn(1);
+        when(supportMapper.updateApprovedContactIfMatch(any())).thenAnswer(invocation -> {
+            CutoverSupportContactUpdate update = invocation.getArgument(0);
+            update.baseline().setCurrentSupportContactChangeId(update.change().getId()); return 1;
+        });
         when(taskMapper.submitPlanIfMatch(any())).thenReturn(1);
         when(historyMapper.insert(any(CutoverTaskStageHistoryDO.class))).thenReturn(1);
         DirectPlatform platform = new DirectPlatform();
-        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper, stepMapper,
-                supportMapper, project, sourcePort, filePort, new CutoverPlanContentCodec(), platform,
-                approval, historyMapper, Clock.fixed(Instant.parse("2026-09-01T00:00:00Z"), ZoneOffset.UTC));
+        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper,
+                planMapper,
+                stepMapper,
+                supportMapper,
+                project,
+                sourcePort,
+                filePort,
+                new CutoverPlanContentCodec(),
+                platform,
+                approval,
+                historyMapper,
+                Clock.fixed(Instant.parse("2026-09-01T00:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
+        var storage = mock(CutoverPlanStorage.class);
+        Map<Long, tools.jackson.databind.node.ObjectNode> contents = new HashMap<>();
+        Map<Long, CutoverPlanSourcePort.SourceSnapshot> sources = new HashMap<>();
+        contents.put(source.getId(), (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree("{\"editMode\":\"ONLINE_TEMPLATE_SIMPLE_D\"}"));
+        sources.put(source.getId(), frozenFacts.snapshot());
+        doAnswer(invocation -> {
+            CutoverPlanStorage.Write write = invocation.getArgument(0);
+            contents.put(write.plan().getId(), (tools.jackson.databind.node.ObjectNode) write.content().deepCopy());
+            sources.put(write.plan().getId(), write.source()); return null;
+        }).when(storage).replaceDraft(any());
+        when(storage.source(any())).thenAnswer(invocation -> sources.get(((CutoverPlanRevisionDO) invocation.getArgument(0)).getId()));
+        when(storage.content(any())).thenAnswer(invocation -> contents.get(((CutoverPlanRevisionDO) invocation.getArgument(0)).getId()).deepCopy());
+        when(storage.currentSupport(support)).thenReturn(support);
+        var changes = mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.CutoverPlanSupportContactChangeMapper.class);
+        when(changes.insert(any(cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.CutoverPlanSupportContactChangeDO.class))).thenAnswer(invocation -> {
+            cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.CutoverPlanSupportContactChangeDO row = invocation.getArgument(0);
+            row.setId(901L); return 1;
+        });
+        var contactApi = mock(cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.class);
+        when(contactApi.lockAndInspect(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Revalidation(1L, 8L, 70L, 501L, 2)))
+                .thenReturn(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Reference(
+                        501L, 2, 70L, 401L, "李工", "13800000000", null, null, null));
+        var contactPolicy = new CutoverPlanContactPolicy(contactApi,
+                supportMapper, changes, storage, mock(cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi.class), mock(CutoverSupportPersonPolicy.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "contacts", contactPolicy);
+        var prefill = mock(CutoverPlanSurveyPrefill.class);
+        when(prefill.fill(any())).thenAnswer(invocation -> ((CutoverPlanSurveyPrefill.Query) invocation.getArgument(0)).content());
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "surveyPrefill", prefill);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
         return new Fixture(service, task, source, support, sourcePort, taskMapper, planMapper, stepMapper,
-                supportMapper, historyMapper, approval, derived, copiedSteps, copiedSupport, platform);
+                supportMapper, historyMapper, approval, derived, copiedSteps, copiedSupport, platform, contents, sources);
     }
 
     private static CutoverTaskDO task() {
@@ -238,8 +308,6 @@ class CutoverPlanRevisionLifecycleTest {
         plan.setGradeCode("D"); plan.setAssessmentId(100L); plan.setAssessmentVersion(2L);
         plan.setConfigurationRevisionId(401L); plan.setConfigurationCode("CFG-1"); plan.setConfigurationRevisionNo(1);
         plan.setTemplateSectionSnapshot(JsonUtils.toJsonString(snapshot.templateSections()));
-        plan.setSourceSnapshot(JsonUtils.toJsonString(snapshot));
-        plan.setContentSnapshot("{\"editMode\":\"ONLINE_TEMPLATE_SIMPLE_D\"}");
         plan.setStatusCode(status); plan.setCurrentMarker(currentMarker); plan.setVersion(2L);
         return plan;
     }
@@ -266,7 +334,9 @@ class CutoverPlanRevisionLifecycleTest {
                            ControlledCutoverApprovalFactApi approval,
                            AtomicReference<CutoverPlanRevisionDO> derived,
                            List<CutoverPlanStepDO> copiedSteps,
-                           List<CutoverSupportArrangementDO> copiedSupport, DirectPlatform platform) {
+                           List<CutoverSupportArrangementDO> copiedSupport, DirectPlatform platform,
+                           Map<Long, tools.jackson.databind.node.ObjectNode> contents,
+                           Map<Long, CutoverPlanSourcePort.SourceSnapshot> sources) {
     }
 
     private static final class DirectPlatform implements PlatformCommandExecutionApi {

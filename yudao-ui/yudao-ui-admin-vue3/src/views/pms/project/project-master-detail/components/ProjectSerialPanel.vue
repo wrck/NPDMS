@@ -1,6 +1,6 @@
 <!-- 项目详情 · 序列号详情面板（DemoV2 1.1.1）：18 列序列号明细表，
-     行数据及安装位置直接取 /pms/asset/devices/page（按项目过滤），
-     在网 conboot/cpld 与维保时长/续保次数按当前页逐台补齐（设备详情 + 维保记录接口）。
+     行数据取 /pms/asset/devices/page（按项目过滤），安装地址取设备当前完整地址投影，设备位置快照为兼容显示，
+     在网版本、维保统计由设备分页一次返回，当前安装地址直接取设备当前投影。
      出厂版本（MES）与官网版本/受影响技术公告（KNO）数据源未接入，如实以「—」展示。 -->
 <template>
   <ContentWrap :body-style="{ padding: '20px' }">
@@ -14,22 +14,17 @@
     </el-tabs>
     <DeviceWarrantyRenewalTable v-if="activeSection === 'renewals'" :project-id="projectId" />
     <template v-else>
-    <el-form inline @submit.prevent="search">
-      <el-form-item label="序列号"><el-input v-model="sn" clearable placeholder="查询设备序列号" @keyup.enter="search" /></el-form-item>
-      <el-form-item><el-button type="primary" :loading="loading" @click="search">查询</el-button></el-form-item>
+    <el-form inline class="serial-filters" @submit.prevent="search">
+      <el-form-item label="序列号"><el-input v-model="sn" clearable placeholder="请输入序列号" /></el-form-item>
+      <el-form-item label="设备名称"><el-input v-model="deviceName" clearable placeholder="请输入设备名称" /></el-form-item>
+      <el-form-item label="产品编码"><el-input v-model="productCode" clearable placeholder="请输入产品编码" /></el-form-item>
+      <el-form-item><el-button native-type="submit" type="primary" :loading="loading"><Icon icon="ep:search" />查询</el-button>
+        <el-button :disabled="loading" @click="resetSearch"><Icon icon="ep:refresh" />重置</el-button></el-form-item>
     </el-form>
     <el-alert v-if="errorText" :title="errorText" type="error" :closable="false" class="serial-alert" />
-    <el-alert
-      class="serial-alert"
-      type="info"
-      :closable="false"
-      title="出厂版本、官网版本及技术公告尚未同步，暂以「—」展示。"
-    />
     <el-table
       v-loading="loading"
       :data="rows"
-      stripe
-      border
       empty-text="本项目暂无符合查询条件的已登记设备"
       data-testid="serial-device-table"
     >
@@ -40,7 +35,7 @@
       <el-table-column label="产品名称" min-width="130" show-overflow-tooltip>
         <template #default="{ row }">{{ row.productName || '—' }}</template>
       </el-table-column>
-      <el-table-column label="安装位置" min-width="140" show-overflow-tooltip>
+      <el-table-column label="安装地址" min-width="240" show-overflow-tooltip>
         <template #default="{ row }">{{ row.location || '—' }}</template>
       </el-table-column>
       <el-table-column label="出厂软件版本" min-width="110" align="center">
@@ -90,7 +85,7 @@
             link
             type="primary"
             :data-testid="`serial-config-log-${row.sn}`"
-            @click="emit('open-config-log', row.deviceId)"
+            @click="emit('open-config-log', row.deviceId, row.sn)"
           >
             配置Log
           </el-button>
@@ -108,15 +103,15 @@
 </template>
 
 <script setup lang="ts">
+import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import * as DeviceApi from '@/api/pms/asset/device'
-import { getWarrantyRenewals } from '@/api/pms/asset/warranty-renewal'
 import DeviceWarrantyRenewalTable from '@/views/pms/asset/device/components/DeviceWarrantyRenewalTable.vue'
 
 defineOptions({ name: 'ProjectSerialPanel' })
 
-const props = defineProps<{ projectId: number }>()
-const emit = defineEmits<{ (e: 'open-config-log', deviceId: number): void }>()
+const props = withDefaults(defineProps<{ projectId: number; active?: boolean }>(), { active: true })
+const emit = defineEmits<{ (e: 'open-config-log', deviceId: number, serialNumber: string): void }>()
 
 const NOT_INTEGRATED = '—'
 const activeSection = ref('devices')
@@ -143,29 +138,24 @@ const total = ref(0)
 const pageNo = ref(1)
 const pageSize = ref(20)
 const sn = ref('')
+const deviceName = ref('')
+const productCode = ref('')
 const errorText = ref('')
 let loadSequence = 0
-const locationText = (snapshot?: string) => {
-  if (!snapshot) return ''
-  try {
-    const location = JSON.parse(snapshot)
-    return typeof location?.fallbackLocation === 'string' ? location.fallbackLocation : ''
-  } catch {
-    return snapshot
-  }
-}
 const load = async () => {
   const sequence = ++loadSequence
   const projectId = props.projectId
   rows.value = []
-  total.value = 0
+  // 翻页期间保留总数，避免分页组件把当前页裁回第一页并触发额外请求。
   errorText.value = ''
-  if (!projectId) return
+  if (!projectId || !props.active) { loading.value = false; return }
   loading.value = true
   try {
     const page = await DeviceApi.getDevicePage({
       projectId,
       sn: sn.value.trim() || undefined,
+      name: deviceName.value.trim() || undefined,
+      productCode: productCode.value.trim() || undefined,
       pageNo: pageNo.value,
       pageSize: pageSize.value
     })
@@ -178,13 +168,14 @@ const load = async () => {
       productName: d.productName,
       conpVersion: d.conpVersion,
       conpType: d.conpType,
-      location: locationText(d.locationSnapshot),
       warrantyStartDate: d.warrantyStartDate,
-      warrantyEndDate: d.warrantyEndDate
+      warrantyEndDate: d.warrantyEndDate,
+      bootVersion: d.bootVersion,
+      cpldVersion: d.cpldVersion,
+      warrantyMonths: d.warrantyMonths,
+      extendedCount: d.extendedCount,
+      location: locationSnapshotText(d.locationSnapshot)
     }))
-    // 只读取当前页的设备，避免截断项目第 200 台之后的安装位置。
-    await enrich(list)
-    if (sequence !== loadSequence) return
     rows.value = list
   } catch {
     if (sequence === loadSequence) errorText.value = '序列号加载失败，请重新查询。'
@@ -193,34 +184,11 @@ const load = async () => {
   }
 }
 
-// 在网 conboot/cpld 版本与维保时长/续保次数不在列表投影内，按当前页逐台补齐；
-// 详情切片未同步（NOT_AVAILABLE）时对应列保持「—」，不臆造取值
-const enrich = async (list: SerialRow[]) => {
-  await Promise.allSettled(
-    list.map(async (row) => {
-      const [detail, warranty, renewals] = await Promise.allSettled([
-        DeviceApi.getDevice(row.deviceId),
-        DeviceApi.getWarrantyRecords(row.deviceId, { pageNo: 1, pageSize: 1 }),
-        getWarrantyRenewals({ deviceId: row.deviceId, pageNo: 1, pageSize: 1 })
-      ])
-      if (detail.status === 'fulfilled' && detail.value) {
-        const slice = detail.value.networkVersion
-        const data = (slice?.data || {}) as Record<string, any>
-        if (slice && slice.syncStatus !== 'NOT_AVAILABLE') {
-          row.bootVersion = data.bootVersion || ''
-          row.cpldVersion = data.cpldVersion || ''
-        }
-      }
-      if (warranty.status === 'fulfilled' && warranty.value) {
-        row.warrantyMonths = warranty.value.current?.warrantyMonths
-      }
-      if (renewals.status === 'fulfilled') row.extendedCount = Number(renewals.value.total)
-    })
-  )
-}
-
+// 未同步字段保持「—」，安装地址查询失败时仅展示已有可读快照。
 const search = () => { pageNo.value = 1; void load() }
-watch(() => props.projectId, () => { sn.value = ''; search() }, { immediate: true })
+const resetSearch = () => { sn.value = ''; deviceName.value = ''; productCode.value = ''; search() }
+watch(() => props.projectId, () => { total.value = 0; resetSearch() }, { immediate: true })
+watch(() => props.active, active => { if (active) void load() })
 onBeforeUnmount(() => { ++loadSequence })
 </script>
 
@@ -229,15 +197,19 @@ onBeforeUnmount(() => { ++loadSequence })
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .panel-title {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
+  gap: 6px;
+  font-size: 14px;
   font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 .serial-total {
   font-size: 12px;
@@ -247,4 +219,5 @@ onBeforeUnmount(() => { ++loadSequence })
 .serial-alert {
   margin-bottom: 10px;
 }
+.serial-filters :deep(.el-input) { width: 180px; }
 </style>

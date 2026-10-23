@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.platform.file;
 
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileSecurityScanProvider;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileSecurityScanResult;
@@ -10,9 +12,12 @@ import cn.iocoder.yudao.module.pms.platform.service.file.command.FileContentVali
 import cn.iocoder.yudao.module.pms.platform.service.file.command.ValidatedFileContent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.DataInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -20,16 +25,212 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
+import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_MEDIA_TYPE_INVALID;
+import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_SECURITY_SCAN_REJECTED;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class FileContentValidationTest {
+
+    private static final String DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"show version\n", "#!/bin/sh\necho script-format-acceptance\n"})
+    void acceptsShellScriptAsPlainTextWithoutAllowingBinaryContent(String script) {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        var policy = new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE", Set.of("IMPLEMENTATION_PLAN"),
+                Set.of("text/plain"), 1_048_576L, "INTERNAL");
+        byte[] content = script.getBytes(StandardCharsets.UTF_8);
+        var result = service.validate(command(content, "network.sh", "text/plain", null, policy));
+        assertArrayEquals(content, result.content());
+        assertEquals("text/plain", result.mediaType());
+        assertThrows(ServiceException.class, () -> service.validate(command(PDF, "network.sh", "text/plain", null, policy)));
+        assertThrows(ServiceException.class, () -> service.validate(command(content, "network.sh", "text/plain", null, policy(1024L))));
+        assertThrows(ServiceException.class, () -> service.validate(command(
+                "#!/bin/sh\n\u0000\u0001".getBytes(StandardCharsets.UTF_8), "network.sh", "text/plain", null, policy)));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"evidence.txt,text/plain", "evidence.log,text/plain", "device.cfg,text/plain", "device.conf,text/plain", "evidence.csv,text/csv"})
+    void acceptsTextAndCsvEvidenceButRejectsRenamedBinaryAndDisallowedOwnerMedia(String name, String media) {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        byte[] content = "device,status\nFW,OK\n".getBytes(StandardCharsets.UTF_8);
+        var policy = new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE", Set.of("CUTOVER_CHECKLIST_MANUAL_EVIDENCE"),
+                Set.of(media), 1_048_576L, "INTERNAL");
+        assertArrayEquals(content, service.validate(command(content, name, media, null, policy)).content());
+        assertThrows(ServiceException.class, () -> service.validate(command(
+                "%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF".getBytes(StandardCharsets.US_ASCII), name, media, null, policy)));
+        assertThrows(ServiceException.class, () -> service.validate(command(content, name, media, null, policy(1024L))));
+    }
+
+    @Test
+    void acceptsGenuineExcelWorkbooksAsEvidence() throws Exception {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        for (var extension : List.of("xls", "xlsx")) {
+            String media = "xls".equals(extension) ? "application/vnd.ms-excel"
+                    : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            byte[] bytes;
+            try (org.apache.poi.ss.usermodel.Workbook workbook = "xls".equals(extension)
+                    ? new org.apache.poi.hssf.usermodel.HSSFWorkbook() : new XSSFWorkbook();
+                 var output = new ByteArrayOutputStream()) {
+                workbook.createSheet("evidence").createRow(0).createCell(0).setCellValue("人工核验通过");
+                workbook.write(output); bytes = output.toByteArray();
+            }
+            var policy = new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE", Set.of("CUTOVER_CHECKLIST_MANUAL_EVIDENCE"),
+                    Set.of(media), 1_048_576L, "INTERNAL");
+            assertArrayEquals(bytes, service.validate(command(bytes, "evidence." + extension, media, null, policy)).content());
+        }
+    }
+
+    @Test
+    void acceptsGeneratedSanitizedInspectionJsonByContentAndScansIt() {
+        byte[] content = sanitizedInspectionJson();
+        AtomicInteger scans = new AtomicInteger();
+        FileSecurityScanProvider scanner = scan -> {
+            scans.incrementAndGet();
+            assertArrayEquals(content, scan.validatedContent());
+            assertEquals("application/json", scan.detectedMediaType());
+            return new FileSecurityScanResult("PASSED", "TEST", "1", null);
+        };
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(scanner), true);
+
+        var result = service.validate(command(content, "sanitized-inspection.json",
+                "application/json", null, jsonPolicy()));
+
+        assertEquals("application/json", result.mediaType());
+        assertEquals("json", result.extension());
+        assertArrayEquals(content, result.content());
+        assertEquals("PASSED", result.scanStatusCode());
+        assertEquals(1, scans.get());
+    }
+
+    @Test
+    void rejectsInvalidJsonAndPlainTextDeclaredAsJson() {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        for (String content : List.of("{\"schemaVersion\":\"1.0.0\",\"commandBlocks\":[}",
+                "display version\nSerial number: [REDACTED]")) {
+            var failure = assertThrows(ServiceException.class, () -> service.validate(command(
+                    content.getBytes(StandardCharsets.UTF_8), "sanitized-inspection.json",
+                    "application/json", null, jsonPolicy())));
+
+            assertEquals(FILE_MEDIA_TYPE_INVALID.getCode(), failure.getCode());
+        }
+    }
+
+    @Test
+    void rejectsConcatenatedJsonDocuments() {
+        byte[] content = (new String(sanitizedInspectionJson(), StandardCharsets.UTF_8)
+                + "\n{\"schemaVersion\":\"1.0.0\",\"commandBlocks\":[]}")
+                .getBytes(StandardCharsets.UTF_8);
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+
+        var failure = assertThrows(ServiceException.class, () -> service.validate(command(
+                content, "sanitized-inspection.json", "application/json", null, jsonPolicy())));
+
+        assertEquals(FILE_MEDIA_TYPE_INVALID.getCode(), failure.getCode());
+    }
+
+    @Test
+    void rejectsValidJsonWhenPolicyDoesNotAllowJson() {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+
+        var failure = assertThrows(ServiceException.class, () -> service.validate(command(
+                sanitizedInspectionJson(), "sanitized-inspection.json", "application/json", null, policy(1024L))));
+
+        assertEquals(FILE_MEDIA_TYPE_INVALID.getCode(), failure.getCode());
+    }
+
+    @Test
+    void rejectsValidJsonWithMismatchedFilenameExtension() {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+
+        var failure = assertThrows(ServiceException.class, () -> service.validate(command(
+                sanitizedInspectionJson(), "sanitized-inspection.txt", "application/json", null, jsonPolicy())));
+
+        assertEquals(FILE_MEDIA_TYPE_INVALID.getCode(), failure.getCode());
+    }
+
+    @Test
+    void rejectsValidJsonWhenSecurityScanRejectsIt() {
+        AtomicInteger scans = new AtomicInteger();
+        FileSecurityScanProvider scanner = ignored -> {
+            scans.incrementAndGet();
+            return new FileSecurityScanResult("REJECTED", "TEST", "1", "MALWARE_FOUND");
+        };
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(scanner), true);
+
+        var failure = assertThrows(ServiceException.class, () -> service.validate(command(
+                sanitizedInspectionJson(), "sanitized-inspection.json", "application/json", null, jsonPolicy())));
+
+        assertEquals(FILE_SECURITY_SCAN_REJECTED.getCode(), failure.getCode());
+        assertEquals(1, scans.get());
+    }
+
+    private static byte[] sanitizedInspectionJson() {
+        return JsonUtils.toJsonString(Map.of("schemaVersion", "1.0.0", "commandBlocks", List.of(Map.of(
+                "commandIndex", 1, "commandText", "display version", "status", "SUCCESS",
+                "stdout", "设备巡检模拟日志\nSerial number: [REDACTED]\n", "stderr", "",
+                "truncated", false, "exitCode", 0)))).getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static FileBusinessObjectPolicyFact jsonPolicy() {
+        return new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE", Set.of("INSPECTION_LOG"),
+                Set.of("application/json"), 1024L, "INTERNAL");
+    }
+
+    @Test
+    void acceptsGeneratedDocxByContainerContent() throws Exception {
+        byte[] content;
+        try (var document = new XWPFDocument(); var output = new ByteArrayOutputStream()) {
+            document.createParagraph().createRun().setText("割接平台文档生成回归样例");
+            document.write(output);
+            content = output.toByteArray();
+        }
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        var result = service.validate(command(content, "plan.docx", DOCX, null, docxPolicy()));
+        assertEquals(DOCX, result.mediaType());
+        assertEquals("docx", result.extension());
+        assertArrayEquals(content, result.content());
+    }
+
+    @Test
+    void rejectsRenamedZipSpreadsheetAndTruncatedContainer() throws Exception {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        byte[] zip;
+        try (var output = new ByteArrayOutputStream(); var archive = new ZipOutputStream(output)) {
+            archive.putNextEntry(new ZipEntry("unrelated.txt"));
+            archive.write("not a Word document".getBytes(StandardCharsets.UTF_8));
+            archive.closeEntry();
+            archive.finish();
+            zip = output.toByteArray();
+        }
+        byte[] spreadsheet;
+        try (var workbook = new XSSFWorkbook(); var output = new ByteArrayOutputStream()) {
+            workbook.createSheet("sample").createRow(0).createCell(0).setCellValue("not Word");
+            workbook.write(output);
+            spreadsheet = output.toByteArray();
+        }
+        for (byte[] content : List.of(zip, spreadsheet, new byte[] {'P', 'K', 3, 4, 0, 0})) {
+            var failure = assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                    () -> service.validate(command(content, "plan.docx", DOCX, null, docxPolicy())));
+            assertEquals(cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_MEDIA_TYPE_INVALID.getCode(), failure.getCode());
+        }
+    }
+
+    private static FileBusinessObjectPolicyFact docxPolicy() {
+        return new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE", Set.of("FULL_PLAN"),
+                Set.of(DOCX), 52_428_800L, "INTERNAL");
+    }
 
     private static final byte[] PDF = "%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF"
             .getBytes(StandardCharsets.US_ASCII);

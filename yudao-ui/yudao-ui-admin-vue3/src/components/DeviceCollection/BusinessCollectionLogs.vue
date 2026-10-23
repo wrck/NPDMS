@@ -29,8 +29,15 @@
           }}</div></template
         >
       </el-table-column>
-      <el-table-column label="操作" width="135">
+      <el-table-column label="操作" width="230">
         <template #default="{ row }">
+          <el-button
+            link
+            type="primary"
+            v-hasPermi="['pms:file:download']"
+            @click="logParsing?.open(props.entry, props.objectId, row.executionId)"
+            >结构化解析</el-button
+          >
           <el-button link type="primary" v-hasPermi="['pms:file:download']" @click="preview(row)"
             >查看日志</el-button
           >
@@ -49,6 +56,7 @@
       @current-change="reload"
     />
   </section>
+  <LogParsingDialog ref="logParsing" />
   <Dialog v-model="logVisible" title="业务采集日志" width="min(1080px, 96vw)" @closed="clearLog">
     <el-alert
       v-if="logRejected"
@@ -66,6 +74,8 @@ import { ref, watch, onBeforeUnmount } from 'vue'
 import * as Api from '@/api/pms/platform/deviceCollection'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
+import LogParsingDialog from './LogParsingDialog.vue'
+const logParsing = ref<InstanceType<typeof LogParsingDialog>>()
 const props = defineProps<{ entry: 'configuration' | 'joint-test'; objectId: Api.Id }>()
 const message = useMessage()
 const rows = ref<Api.BusinessLog[]>([])

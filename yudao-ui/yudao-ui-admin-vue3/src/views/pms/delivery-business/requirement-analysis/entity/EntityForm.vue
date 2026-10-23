@@ -1,15 +1,6 @@
 <template>
   <section class="requirement-form-shell" aria-label="需求分析动态表单">
-    <div class="presentation-toolbar">
-      <label for="requirement-presentation">展示模板</label>
-      <el-select id="requirement-presentation" :model-value="selectedPresentation" :disabled="saving" style="width: 300px" @change="switchPresentation">
-        <el-option label="基础业务表单" value="base" />
-        <el-option v-if="detail.form" label="原始展示模板" value="original" />
-        <el-option v-for="option in presentationOptions" :key="String(option.layout.binding.formRevisionId)"
-          :label="`${option.name} · V${option.layout.revisionNo}`" :value="String(option.layout.binding.formRevisionId)" />
-      </el-select>
-      <span v-if="presentationError" role="status">{{ presentationError }}</span>
-    </div>
+    <p v-if="presentationError" role="status">{{ presentationError }}</p>
     <div v-form-create-keyboard-rows="!editable" class="form-host" :class="{ 'is-readonly': !editable }">
       <form-create
         v-model="values"
@@ -20,7 +11,7 @@
       />
     </div>
     <div class="form-actions mt-15px">
-      <el-button v-if="editable" data-testid="save-requirement-form" :loading="saving" type="primary" @click="save">保存需求分析</el-button>
+      <el-button v-if="editable" data-testid="save-requirement-form" :loading="saving" :disabled="uploading" type="primary" @click="save">保存需求分析</el-button>
       <span v-else>{{ detail.revision.state === 'FROZEN' ? '该完成版本正文和附件已冻结，只能查看或对比。' : '当前上下文只读，草稿尚未完成。' }}</span>
     </div>
   </section>
@@ -73,7 +64,7 @@ const withPresentation = (detail: View): View => ({ ...detail, form:
 const allEdits = computed(() => mergePresentationEdits(renderedDetail.value, retainedEdits.value,
   changedOrdinaryValues(values.value, baseline.value, ordinaryFields.value)))
 const switchPresentation = (selected: string) => {
-  if (saving.value) return
+  if (saving.value || uploading.value) return
   const edits = cloneValues(allEdits.value)
   selectedPresentation.value = selected
   apply(props.detail, edits)
@@ -86,10 +77,14 @@ const loadPresentations = async () => {
     if (sequence !== presentationSequence) return
     presentationOptions.value = result.options
     presentationError.value = ''
-    if ((result.defaultRevisionId != null || !props.detail.form && selectedPresentation.value === 'base') && !dirty.value) {
-      const preferred = result.options.find(option => result.defaultRevisionId != null
-        ? String(option.layout.binding.formRevisionId) === String(result.defaultRevisionId)
-        : result.defaultTemplateId != null && String(option.layout.templateId) === String(result.defaultTemplateId))
+    if (editable.value && !dirty.value) {
+      const configured = result.options.find(option =>
+        String(option.layout.binding.formRevisionId) === String(result.defaultRevisionId))
+      const templateId = result.defaultTemplateId ?? configured?.layout.templateId ?? props.detail.form?.templateId
+      const candidates = result.options.filter(option => templateId == null ||
+        String(option.layout.templateId) === String(templateId))
+      const preferred = candidates.reduce<PresentationOption | undefined>((latest, option) =>
+        !latest || option.layout.revisionNo > latest.layout.revisionNo ? option : latest, undefined)
       if (preferred) switchPresentation(String(preferred.layout.binding.formRevisionId))
     }
   } catch {
@@ -104,6 +99,8 @@ const editorReadonlyDefaults = new Map<string, boolean>()
 const render = reactive<{ option: JsonObject; rule: JsonObject[] }>({ option: {}, rule: [] })
 const formApi = ref<FormCreateApi>()
 const saving = ref(false)
+const uploadingFields = reactive(new Set<string>())
+const uploading = computed(() => uploadingFields.size > 0)
 const editable = computed(
   () => props.detail.revision.state === 'DRAFT' && props.detail.allowedActions.includes('PATCH_FORM') &&
     (props.allowedActions === undefined || props.allowedActions.includes('PATCH_FORM'))
@@ -124,6 +121,7 @@ const readPending = (): JsonObject | undefined => {
 
 const updateEditorReadonly = (rules: JsonObject[]) => {
   for (const rule of rules) {
+    if (['RequirementBusinessTable', 'RequirementLoggingChoices'].includes(String(rule.type))) rule.props = { ...((rule.props as JsonObject) || {}), disabled: !editable.value }
     if (rule.type === 'Editor') {
       const field = String(rule.field)
       const editorProps = (rule.props || {}) as JsonObject
@@ -148,19 +146,8 @@ const apply = (source: View, preserve?: JsonObject) => {
         type: 'input', props: { type: 'textarea' }, validate: field.required ? [{ required: true, message: '请填写此项' }] : [] })) }
   const fields = collectValueFields(decoded.rule as JsonObject[])
   const visit = (rules: JsonObject[]) => rules.forEach(rule => {
-    // Display aliases map to stable business fields; presentation is never the data owner.
-    const code = detail.form?.binding.fieldBindings[String(rule.field)] || String(rule.field)
-    // SOL checks business completeness on completion; layout validation cannot block draft saves.
-    rule.validate = []
-    const titles: Record<string, string> = {
-      TRANSMISSION_REQUIREMENT: '传输现状说明', TRAFFIC_REQUIREMENT: '流量现状说明',
-      BUSINESS_REQUIREMENT: '运行业务情况说明', IP_PLANNING: 'IP资源情况说明',
-      REDUNDANCY_REQUIREMENT: '冗余备份要求', SECURITY_PROTECTION: '本机防护要求',
-      OPERATIONS_REQUIREMENT: '运维管理要求', LOGGING_REQUIREMENT: '日志留存要求'
-    }
-    if (titles[code]) rule.title = titles[code]
-    if (rule.type === 'Editor') {
-      rule.props = { height: '180px', ...((rule.props as JsonObject) || {}) }
+    if (detail.revision.state === 'DRAFT' && rule.field === 'BUSINESS_DEVICE_DETAILS') {
+      rule.title = '6、客户当前运行业务情况'
     }
     if (rule.type === 'PmsFileArtifact' && typeof rule.field === 'string') {
       const set = detail.attachments.find(item => item.key.purposeCode === `FORM_FIELD_ATTACHMENT/${rule.field}`)
@@ -168,6 +155,11 @@ const apply = (source: View, preserve?: JsonObject) => {
       rule.props = { ...((rule.props as JsonObject) || {}), revisionId: detail.revision.ref.revisionId,
         fieldKey: rule.field, currentFacts: set?.activeFacts || [], allowedActions: editable.value ? ['PATCH_FORM'] : [],
         ownerExecutionContext: props.execution ? structuredClone(toRaw(props.execution)) : undefined }
+      const field = rule.field
+      rule.props = { ...(rule.props as JsonObject), onUploadBusyChange: (busy: boolean) => {
+        if (busy) uploadingFields.add(field)
+        else uploadingFields.delete(field)
+      } }
     }
     if (Array.isArray(rule.children)) visit(rule.children as JsonObject[])
   })
@@ -176,9 +168,7 @@ const apply = (source: View, preserve?: JsonObject) => {
   values.value = { ...cloneValues(baseline.value), ...displayedValues(detail, preserve || {}) }
   editorReadonlyDefaults.clear()
   updateEditorReadonly(decoded.rule as JsonObject[])
-  render.option = { ...decoded.option,
-    form: { ...(((decoded.option as JsonObject).form as JsonObject) || {}), labelPosition: 'top' },
-    submitBtn: false, resetBtn: false }
+  render.option = decoded.option as JsonObject
   render.rule = decoded.rule as JsonObject[]
   ordinaryFields.value = fields.ordinary
 }
@@ -194,7 +184,7 @@ const save = async () => {
     message.warning('实体回读接口未配置，不能将本地表单标记为已保存。')
     return false
   }
-  if (!editable.value || saving.value) return false
+  if (!editable.value || saving.value || uploading.value) return false
   if (!editable.value || saving.value || entityId !== props.detail.revision.ref.revisionId || !props.reload) return false
   const patch = { values: cloneValues(allEdits.value) }
   if (!Object.keys(patch.values).length) {
@@ -285,7 +275,36 @@ watch([editable, () => props.execution], () => {
 }, { deep: true })
 watch(dirty, (value) => emit('dirty-change', value), { immediate: true })
 
-defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value, switchPresentation })
+const validateCompletion = async () => {
+  const missing: { field: string; message: string }[] = []
+  const visit = (rules: JsonObject[]) => rules.forEach(rule => {
+    const field = String(rule.field || '')
+    const code = renderedDetail.value.form?.binding.fieldBindings[field] || field
+    const required = props.detail.fieldCatalog.some(item => item.code === code && item.required)
+      || (Array.isArray(rule.validate) && rule.validate.some((item: any) => item.required))
+    const value = values.value[field]
+    const empty = value == null || (Array.isArray(value) ? !value.length
+      : typeof value === 'string' && !value.replace(/<[^>]*>/g, '').replace(/&nbsp;|&#160;/g, ' ').trim())
+    const title = String(rule.title || field).replace(/^\d+、\s*/, '')
+    if (field && required && empty) missing.push({ field, message: `请填写${title}` })
+    if (field === 'NETWORK_TOPOLOGY__ATTACHMENTS' && !props.detail.attachments.some(set =>
+      set.key.purposeCode === 'FORM_FIELD_ATTACHMENT/NETWORK_TOPOLOGY__ATTACHMENTS'
+      && set.activeFacts.some(file => file.availabilityStatus === 'AVAILABLE' && file.referenceStatus === 'ACTIVE'))) {
+      missing.push({ field, message: '请上传网络拓扑附件（至少一个有效文件）' })
+    }
+    if (Array.isArray(rule.children)) visit(rule.children.filter(item => typeof item === 'object' && item !== null) as JsonObject[])
+  })
+  visit(render.rule)
+  if (!missing.length) return true
+  message.warning(missing.map(item => item.message).join('；'))
+  await nextTick()
+  const wrapper = formApi.value?.wrapEl(missing[0].field) as any
+  const element = (wrapper?.$el || wrapper) as HTMLElement | undefined
+  element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  element?.querySelector<HTMLElement>('input:not([disabled]), textarea:not([disabled]), [contenteditable="true"], button:not([disabled])')?.focus({ preventScroll: true })
+  return false
+}
+defineExpose({ save, validateCompletion, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value || uploading.value, switchPresentation })
 </script>
 
 <style scoped lang="scss">
@@ -298,14 +317,6 @@ defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () =>
   min-width: 0;
 }
 
-.presentation-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-
 .form-actions {
   display: flex;
   align-items: center;
@@ -315,17 +326,6 @@ defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () =>
 .form-host {
   width: 100%;
 }
-
-.form-host :deep(.el-form-item) { margin-bottom: 24px; }
-.form-host :deep(.el-form-item__label) { font-weight: 600; color: var(--el-text-color-primary); }
-.form-host :deep(.el-form-item__content > div:has(.w-e-text-container)) { width: 100%; border-color: var(--el-border-color); border-radius: var(--el-border-radius-base); overflow: hidden; }
-.form-host.is-readonly :deep(.el-form-item__content > div > div:has(> .w-e-text-container)) { height: auto !important; }
-.form-host.is-readonly :deep(.w-e-toolbar) { display: none; }
-.form-host.is-readonly :deep(.w-e-text-container) { height: auto !important; min-height: 64px; background: var(--el-fill-color-extra-light); }
-.form-host.is-readonly :deep(.w-e-scroll) { overflow: visible; }
-.form-host.is-readonly :deep(.el-form-item.is-required > .el-form-item__label::before) { display: none; }
-.form-host :deep(.el-checkbox-group) { display: flex; flex-wrap: wrap; gap: 4px 20px; }
-.form-host :deep(.el-checkbox) { margin-right: 0; }
 
 @media (width <= 767px) {
   .form-actions,

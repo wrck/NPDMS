@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.bpm.controller.admin.comment;
 
+import cn.iocoder.yudao.module.bpm.service.task.BpmServiceManagerAccess;
 import cn.hutool.core.collection.CollUtil;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.util.date.DateUtils;
@@ -38,6 +39,10 @@ import static cn.iocoder.yudao.framework.common.util.collection.CollectionUtils.
 public class BpmCommentController {
 
     @Resource
+    private BpmServiceManagerAccess serviceManagerAccess;
+
+
+    @Resource
     private BpmCommentService commentService;
     @Resource
     private BpmTaskService taskService;
@@ -52,6 +57,7 @@ public class BpmCommentController {
     public CommonResult<List<BpmCommentRespVO>> getCommentListByProcessInstanceId(
             @RequestParam("processInstanceId") String processInstanceId) {
         // 获得评论列表
+        serviceManagerAccess.requireProcess(processInstanceId);
         List<Comment> commentList = commentService.getCommentListByProcessInstanceId(processInstanceId);
         if (CollUtil.isEmpty(commentList)) {
             return success(Collections.emptyList());
@@ -74,6 +80,7 @@ public class BpmCommentController {
     @Operation(summary = "创建流程评论")
     @PreAuthorize("@ss.hasPermission('bpm:task:update')")
     public CommonResult<Boolean> createComment(@Valid @RequestBody BpmCommentCreateReqVO reqVO) {
+        serviceManagerAccess.requireAssignedTask(reqVO.getTaskId());
         commentService.createComment(reqVO);
         return success(true);
     }

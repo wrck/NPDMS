@@ -25,8 +25,22 @@ class JointTestLocalLifecycleTest {
     private JointTestDO row;
     @BeforeEach void setUp() {
         ReflectionTestUtils.setField(service, "jointTestMapper", mapper);
-        row = new JointTestDO(); row.setId(1L); row.setProjectId(7L); row.setCode("JT-TEST"); row.setStatus(1); row.setVersion(4L);
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
+        var actor = new cn.iocoder.yudao.framework.security.core.LoginUser().setId(10L).setTenantId(1L).setUserType(2);
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(actor,null));
+        var scopes = mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.class);
+        var scope = new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(7L,1L,java.util.Set.of(7L),java.util.Set.of());
+        when(scopes.resolveCurrent(any())).thenReturn(scope);
+        when(scopes.lockAndRevalidate(any())).thenReturn(scope);
+        ReflectionTestUtils.setField(service,"projectScopeApi",scopes);
+        row = new JointTestDO(); row.setTenantId(1L); row.setId(1L); row.setProjectId(7L); row.setCode("JT-TEST"); row.setStatus(1); row.setVersion(4L);
+        when(mapper.selectById(1L)).thenReturn(row);
         when(mapper.selectAttachmentOwnerForUpdate(org.mockito.ArgumentMatchers.any())).thenReturn(row);
+    }
+
+    @org.junit.jupiter.api.AfterEach void clearActor() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 
     @Test void failureRecordsItsReasonWithTheLoadedOptimisticVersion() {

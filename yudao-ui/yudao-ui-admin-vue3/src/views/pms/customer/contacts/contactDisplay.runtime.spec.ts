@@ -3,10 +3,10 @@ import { computed, defineComponent, h, inject, nextTick, provide } from 'vue'
 import Contacts from './index.vue'
 import * as ContactsApi from '@/api/pms/customer/contacts'
 import * as CustomerApi from '@/api/pms/customer'
-import { mount, passthrough, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, passthrough, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/api/pms/customer/contacts', () => ({ getMasterPage: vi.fn(), getProjectContext: vi.fn(), getProjectPage: vi.fn() }))
-vi.mock('@/api/pms/customer', () => ({ __v_isRef: false, getCustomer: vi.fn(), getCustomerPage: vi.fn() }))
+vi.mock('@/api/pms/customer', () => ({ __v_isRef: false, getCustomer: vi.fn(), getProjectCustomerOverview: vi.fn(), getCustomerPage: vi.fn() }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => false }))
 vi.mock('@/utils/dict', () => ({
   getIntDictOptions: () => [],
@@ -16,16 +16,16 @@ vi.mock('./ContactFields.vue', () => ({ default: { render: () => null } }))
 vi.mock('./ContactHistoryDialog.vue', () => ({ default: { render: () => null } }))
 
 const table = defineComponent({
-  props: ['data'], setup(props, { slots }) {
+  props: { data: { type: Array, required: true } }, setup(props, { slots }) {
     provide('test-contact-rows', computed(() => props.data))
     return () => h('table', slots.default?.())
   }
 })
 const column = defineComponent({
-  props: ['prop', 'label'], setup(props, { slots }) {
+  props: { prop: String, label: String }, setup(props, { slots }) {
     const rows = inject<any>('test-contact-rows')
     return () => h('section', { 'data-label': props.label }, [props.label, ...rows.value.map((row: any) =>
-      h('span', slots.default ? slots.default({ row }) : row[props.prop]))])
+      h('span', slots.default ? slots.default({ row }) : row[props.prop!]))])
   }
 })
 const components = { ElTable: table, ElTableColumn: column, ElInput: passthrough, ElSelect: passthrough, ElOption: passthrough, ElRadio: passthrough, ElRadioGroup: passthrough, PmsEntitySelect: passthrough, DictTag: passthrough }
@@ -34,6 +34,8 @@ const page = { list: [
   { id: 1, customerId: 1001, customerName: '验收客户', name: '联系人甲', title: 'TEST_TITLE', status: 0 },
   { id: 2, customerId: 1001, customerName: '验收客户', name: '联系人乙', title: '历史职务', status: 0 }
 ], total: 2 }
+const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode | undefined =>
+  predicate(node) ? node : node.children.map(child => find(child, predicate)).find(Boolean)
 
 describe('contact customer identity and title display', () => {
   beforeEach(() => {
@@ -41,6 +43,7 @@ describe('contact customer identity and title display', () => {
     vi.mocked(ContactsApi.getMasterPage).mockResolvedValue(page as any)
     vi.mocked(ContactsApi.getProjectPage).mockResolvedValue(page as any)
     vi.mocked(ContactsApi.getProjectContext).mockResolvedValue({ project: { projectId: 7, customerId: 1001, canManage: false }, customerName: '验收客户' } as any)
+    vi.mocked(CustomerApi.getProjectCustomerOverview).mockResolvedValue({ id: 1001, code: 'CUST-001', name: '验收客户' } as any)
     vi.mocked(CustomerApi.getCustomer).mockResolvedValue({ id: 1001, code: 'CUST-001', name: '验收客户' })
   })
 
@@ -84,6 +87,52 @@ describe('contact customer identity and title display', () => {
       expect(textOf(mounted.root)).toContain('13500802833')
       expect(textOf(mounted.root)).toContain('只读历史')
       expect(CustomerApi.getCustomer).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('resolves project customer codes through project scope without requiring global customer access', async () => {
+    vi.mocked(CustomerApi.getCustomer).mockRejectedValue(new Error('global scope unavailable'))
+    const mounted = mount(Contacts, { projectId: 7 }, components)
+    try {
+      await flush()
+      expect(textOf(mounted.root)).toContain('客户编号CUST-001CUST-001')
+      expect(textOf(mounted.root)).not.toContain('部分客户编号未获取')
+      expect(CustomerApi.getProjectCustomerOverview).toHaveBeenCalledExactlyOnceWith(7)
+      expect(CustomerApi.getCustomer).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('preserves contact rows and reports failure when project customer lookup fails', async () => {
+    vi.mocked(CustomerApi.getProjectCustomerOverview).mockRejectedValue(new Error('project scope unavailable'))
+    const mounted = mount(Contacts, { projectId: 7 }, components)
+    try {
+      await flush()
+      expect(textOf(mounted.root)).toContain('联系人甲')
+      expect(textOf(mounted.root)).toContain('部分客户编号未获取')
+      expect(CustomerApi.getCustomer).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('does not request hidden customer columns in the project overview', async () => {
+    const mounted = mount(Contacts, { projectId: 7, showCustomerFilter: false }, components)
+    try {
+      await flush()
+      expect(textOf(mounted.root)).toContain('联系人甲')
+      expect(CustomerApi.getCustomer).not.toHaveBeenCalled()
+      expect(CustomerApi.getProjectCustomerOverview).not.toHaveBeenCalled()
+      expect(textOf(mounted.root)).not.toContain('部分客户编号未获取')
+    } finally { mounted.app.unmount() }
+  })
+
+  it('offers customer selection for an unassociated project even when the overview hides the customer filter', async () => {
+    vi.mocked(ContactsApi.getProjectContext).mockResolvedValue({ project: { projectId: 7, canManage: true } } as any)
+    const mounted = mount(Contacts, { projectId: 7, showCustomerFilter: false, showSectionHeader: true }, components)
+    try {
+      await flush()
+      expect(find(mounted.root, node => node.props?.placeholder === '请选择客户' && !node.props?.disabled)).toBeDefined()
+      expect(textOf(mounted.root)).toContain('关联项目客户')
+      expect(ContactsApi.getProjectPage).toHaveBeenCalledWith(7, expect.objectContaining({ customerId: undefined }))
+      expect(textOf(mounted.root)).toContain('联系人甲')
     } finally { mounted.app.unmount() }
   })
 })

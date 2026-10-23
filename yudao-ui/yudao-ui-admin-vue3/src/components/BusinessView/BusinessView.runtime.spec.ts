@@ -2,9 +2,14 @@
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import BusinessViewHost from './BusinessViewHost.vue'
+import ProjectArrivalReceiptPanel from '@/views/pms/project/project-master-detail/components/ProjectArrivalReceiptPanel.vue'
+import { businessPageRoutes } from './presentationRoute'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import { businessViewTargetKey, resolveStandaloneBusinessEntityView, resolveBusinessView, type BusinessViewTarget } from './registry'
 import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
+import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
+import InstallationWorkbench from '@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue'
+import ProjectCutoverTasks from '@/views/pms/cutover/project-tasks/index.vue'
 import * as FormApi from '@/api/pms/platform/dynamic-form'
 import { inspectOperationCapabilities } from '@/api/pms/project/execution-operations'
 import * as RequirementApi from '@/api/pms/engineering/requirement-analysis/entity'
@@ -23,7 +28,10 @@ vi.mock('@/views/pms/project/project-master-detail/components/formCreateKeyboard
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RevisionFiles.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RequirementBriefingSection.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/site-survey/index.vue', () => ({ default: { name: 'PmsEngSiteSurvey', render: () => null } }))
+vi.mock('@/views/pms/acceptance/satisfaction/index.vue', () => ({ default: { name: 'SatisfactionWorkbench', render: () => null } }))
 vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { name: 'AcceptanceReport', render: () => null } }))
+vi.mock('@/views/pms/engineering/training/TrainingPrintTemplates.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/engineering/training/TrainingPrintPreview.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue', async () => {
   const { defineComponent, h, ref } = await import('vue')
   // 工期面板的既定离开协议：不暴露 requestLeave，仅暴露 discardChanges（关闭抽屉）。
@@ -195,6 +203,70 @@ beforeEach(() => {
 })
 
 describe('PM-03 BusinessView runtime', () => {
+  it.each([
+    ['IMP_PROJECT_INSTALLATION', 'IMP', 'INSTALLATION', InstallationWorkbench],
+    ['CUT_CUTOVER_APPROVAL', 'CUT', 'CUTOVER_APPROVAL', ProjectCutoverTasks]
+  ])('embeds %s in the task workspace without adding write actions', (componentKey, ownerContext, entityType, component) => {
+    const data = target('PAGE')
+    Object.assign(data.registration, { componentKey, ownerContext, entityType, supportedActions: ['QUERY'] })
+    data.resolvedContext.project = { id: '2110018733130579974' }
+    data.allowedActions = ['QUERY']
+    expect(resolveBusinessView(data).component).toBe(component)
+    expect(resolveBusinessView(data).props).toMatchObject({ projectId: '2110018733130579974', allowedActions: ['QUERY'] })
+    expect(resolveBusinessView(data).props).not.toHaveProperty('tab')
+    data.readonly = true
+    expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: [] })
+    data.registration.ownerContext = 'OTHER'
+    expect(resolveBusinessView(data).error).toBeTruthy()
+  })
+
+  it('embeds the existing training workspace with the exact project and readonly boundary', () => {
+    const data = target('PAGE')
+    Object.assign(data.registration, { componentKey: 'IMP_TRAINING_CONFIRMATION', ownerContext: 'IMP', entityType: 'TRAINING', supportedActions: ['QUERY'] })
+    data.resolvedContext.project = { id: '2110018733130579974' }
+    data.readonly = true
+    data.allowedActions = ['QUERY', 'CREATE', 'UPDATE']
+    const view = resolveBusinessView(data)
+    expect(view.component).toBe(TrainingWorkbench)
+    expect(view.props).toEqual({ projectId: '2110018733130579974', readonly: true, allowedActions: [] })
+    data.registration.ownerContext = 'OTHER'
+    expect(resolveBusinessView(data).error).toBeTruthy()
+  })
+
+  it('resolves the new approval workbench with exact projection identity while retaining the readonly registration', () => {
+    const data = target('PAGE')
+    Object.assign(data.registration, { componentKey: 'CUT_CUTOVER_APPROVAL_WORKBENCH', ownerContext: 'CUT', entityType: 'CUTOVER_APPROVAL', supportedActions: ['QUERY', 'CREATE'] })
+    data.allowedActions = ['QUERY', 'CREATE']
+    expect(resolveBusinessView(data).props).toMatchObject({ projectId: 11, operationObjectType: 'CUTOVER_APPROVAL', allowedActions: ['QUERY', 'CREATE'] })
+    data.registration.entityType = 'CUTOVER_TASK'
+    expect(resolveBusinessView(data).error).toBeTruthy()
+    Object.assign(data.registration, { componentKey: 'CUT_CUTOVER_APPROVAL', entityType: 'CUTOVER_APPROVAL', supportedActions: ['QUERY'] })
+    data.allowedActions = ['QUERY']
+    expect(resolveBusinessView(data).props).toMatchObject({ projectId: 11, operationObjectType: 'CUTOVER_APPROVAL', allowedActions: ['QUERY'] })
+  })
+  it.each([
+    ['IMP_ARRIVAL_RECEIPT', 'IMP', 'ARRIVAL'],
+  ])('embeds %s in its existing Owner workspace and rejects a different Owner', (componentKey, ownerContext, entityType) => {
+    const data = target('PAGE')
+    Object.assign(data.registration, { componentKey, ownerContext, entityType, supportedActions: ['QUERY'] })
+    data.allowedActions = ['QUERY']
+    expect(resolveBusinessView(data).component).toBe(ProjectArrivalReceiptPanel)
+    expect(resolveBusinessView(data).props).toMatchObject({ projectId: 11, allowedActions: ['QUERY'] })
+    data.registration.ownerContext = 'OTHER'
+    expect(resolveBusinessView(data).error).toBeTruthy()
+  })
+  it('keeps authorized embedded arrival queries for a readonly task without granting writes or missing query access', () => {
+    const data = target('PAGE')
+    Object.assign(data.registration, { componentKey: 'IMP_ARRIVAL_RECEIPT', ownerContext: 'IMP', entityType: 'ARRIVAL', supportedActions: ['QUERY'] })
+    data.readonly = true
+    data.allowedActions = ['QUERY', 'CREATE', 'UPDATE']
+    expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: ['QUERY'] })
+    data.allowedActions = ['CREATE']
+    expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: [] })
+    data.allowedActions = ['QUERY']
+    data.registration.status = 'DISABLED'
+    expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: [] })
+  })
   const stageExecution = {
     projectId: 11, projectVersion: 1, stageId: '2099999999999999997', stageVersion: 1,
     executionContractId: '2099999999999999996', contractVersion: 1,
@@ -305,6 +377,18 @@ describe('PM-03 BusinessView runtime', () => {
     await tick()
     expect(RequirementApi.create).toHaveBeenCalledWith(11, expect.any(String), { stage: stageExecution })
     mounted.app.unmount()
+  })
+  it('loads completed requirement tasks without granting a writable execution', () => {
+    const data = target('PAGE')
+    data.resolvedContext.taskId = '2107838747850678274'
+    data.readonly = true
+    data.allowedActions = ['PATCH_FORM', 'COMPLETE']
+    expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: [] })
+    expect(resolveBusinessView(data).props).not.toHaveProperty('taskExecution')
+    expect(resolveBusinessView({ ...data, readonly: false }).error).toBeTruthy()
+    expect(resolveBusinessView({ ...data, resolvedContext: { ...data.resolvedContext, taskId: 'invalid' } }).error).toBeTruthy()
+    expect(resolveBusinessView({ ...data, resolvedContext: { ...data.resolvedContext,
+      taskExecution: { ...taskExecution, projectId: 12 } } }).error).toBeTruthy()
   })
   it('rejects a foreign stage and switches the frozen target on a new execution, not a version refresh', () => {
     const data = target('PAGE')
@@ -757,4 +841,40 @@ it('loads one shared declared runtime with an exact object reference and denies 
   value.resolvedContext = { businessObjectId: 7 }
   value.registration.dynamicFormRevisionId = 9
   expect(resolveBusinessView(value).error).toBeTruthy()
+})
+
+describe('Satisfaction entity binding', () => {
+  it('opens the satisfaction entity page in its authorized project and keeps query-only access readonly', () => {
+    const satisfaction = businessPageRoutes.ACC_SATISFACTION
+    const source = { registration: { ...satisfaction, id: '8', status: 'PUBLISHED' },
+      resolvedContext: { project: { id: '1' }, businessObjectId: '20' }, allowedActions: ['QUERY'] }
+    const resolved = resolveBusinessView(source as never)
+    expect(resolved.error).toBeFalsy()
+    expect(resolved.props).toMatchObject({ projectId: '1', readonly: true })
+    expect(resolveBusinessView({ ...source, resolvedContext: { project: { id: 'invalid' } } } as never).error).toBeTruthy()
+    expect(resolveBusinessView({ ...source, presentation: { pageUrl: satisfaction.pageUrl,
+      query: { projectId: '99' } } } as never).error).toBeTruthy()
+  })
+})
+
+it('keeps only explicitly authorized report reads after task completion and never enables a disabled view', () => {
+  const source = target('PAGE')
+  Object.assign(source.registration, businessPageRoutes.ACC_ACCEPTANCE_REPORT)
+  source.resolvedContext = { project: { id: 7 }, businessObjectId: '12' }
+  source.readonly = true
+  source.allowedActions = ['QUERY', 'UPDATE', 'PUBLISH', 'FILE_WRITE']
+  expect(resolveBusinessView(source).props).toMatchObject({ projectId: 7, objectId: '12', readonly: true, allowedActions: ['QUERY'] })
+  source.allowedActions = ['UPDATE']
+  expect(resolveBusinessView(source).props?.allowedActions).toEqual([])
+  source.allowedActions = ['QUERY']
+  source.registration.status = 'DISABLED'
+  expect(resolveBusinessView(source).props?.allowedActions).toEqual([])
+})
+
+it.each([['ACCEPT_INITIAL', 'PRELIMINARY'], ['ACCEPT_FINAL', 'FINAL']])('passes the current %s task type to its report list without depending on a report already existing', (taskCode, acceptanceType) => {
+  const source = target('PAGE')
+  Object.assign(source.registration, businessPageRoutes.ACC_ACCEPTANCE_REPORT)
+  source.resolvedContext = { project: { id: 7 }, taskCode }
+  source.allowedActions = ['QUERY']
+  expect(resolveBusinessView(source).props).toMatchObject({ projectId: 7, acceptanceType })
 })

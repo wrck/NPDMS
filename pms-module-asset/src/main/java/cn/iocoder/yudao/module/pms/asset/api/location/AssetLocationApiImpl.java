@@ -35,6 +35,17 @@ public class AssetLocationApiImpl implements AssetLocationApi {
         deviceLocationEffectiveService.effectIfAbsentOrThrow(command);
     }
 
+    @Override
+    public List<SiteRespDTO> getCustomerSites(CustomerSiteQuery query) {
+        if (query == null || query.customerId() == null || !Objects.equals(query.tenantId(),
+                cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId())) {
+            throw exception(AST_LOCATION_REFERENCE_INVALID);
+        }
+        return siteMapper.selectCurrentCustomerSites(
+                new cn.iocoder.yudao.module.pms.asset.dal.mysql.location.query.CurrentCustomerSiteListQuery(
+                        query.tenantId(), query.customerId())).stream().map(this::toSiteResp).toList();
+    }
+
     private static final String SOURCE_SYSTEM_PMS = "PMS";
 
     private final cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customerQueryApi;
@@ -167,6 +178,9 @@ public class AssetLocationApiImpl implements AssetLocationApi {
 
     private AddressDO maintainAddress(AddressInput input) {
         if (input.id() == null) {
+            if (!hasText(input.detailAddress()) || !hasText(input.fullAddress())) {
+                throw exception(AST_LOCATION_REFERENCE_INVALID);
+            }
             AddressDO entity = copyAddress(input);
             entity.setStatus(CommonStatusEnum.ENABLE.getStatus());
             entity.setVersion(0L);

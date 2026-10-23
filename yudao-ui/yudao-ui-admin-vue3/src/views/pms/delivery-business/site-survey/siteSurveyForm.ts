@@ -1,6 +1,16 @@
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey/entity'
 import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 
+// Hide independent application UI without changing published schemas or stored survey values.
+const hiddenApplicationComponents = new Set([
+  'SurveyOutsourceShortcut', 'SurveyPreparationBranches', 'SurveyProcurementLinks', 'SurveyMaterialSelector'
+])
+export const currentSurveyRules = (rules: any[]): any[] => rules
+  .filter(rule => !hiddenApplicationComponents.has(rule?.type))
+  .map(rule => Array.isArray(rule?.children)
+    ? { ...rule, children: currentSurveyRules(rule.children) }
+    : rule)
+
 export const hasStructuredSurveyLocation = (location?: LocationMaintainRequest) =>
   !!location &&
   (Object.values(location.address || {}).some(Boolean) ||

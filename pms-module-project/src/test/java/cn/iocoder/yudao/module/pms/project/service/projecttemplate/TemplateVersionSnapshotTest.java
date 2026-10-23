@@ -200,13 +200,19 @@ class TemplateVersionSnapshotTest {
         task.setExitRuleKey("ready"); designer.getTasks().add(task);
         var edge = new TemplateDesignerDocument.TransitionNode();
         edge.setEdgeKey("edge:S0-S1"); edge.setCode("S0_TO_S1"); edge.setFromStageCode("S0"); edge.setToStageCode("S1");
+        edge.setPriority(1); edge.setDefaultBranch(false);
         designer.getTransitions().add(edge);
         var milestone = new TemplateDesignerDocument.MilestoneNode();
         milestone.setNodeKey("milestone:M1"); milestone.setCode("M1"); milestone.setName("里程碑"); milestone.setStageCode("S1");
         designer.getMilestones().add(milestone);
         var deliverable = new TemplateDesignerDocument.DeliverableNode();
         deliverable.setNodeKey("deliverable:D1"); deliverable.setCode("D1"); deliverable.setName("交付件"); deliverable.setStageCode("S1");
-        deliverable.setTaskCode("T1"); designer.getDeliverables().add(deliverable);
+        deliverable.setTaskCode("T1");
+        deliverable.setConfiguration(tree("""
+                {"scope":"TASK","deliverableType":"DOCUMENT","required":true,"minimumQuantity":1,
+                 "allowedSources":["UPLOAD"],"outputType":"FILE","confirmationRule":{"predicate":"TASK","parameters":{"refCode":"T1"}}}
+                """));
+        designer.getDeliverables().add(deliverable);
         var gate = new TemplateDesignerDocument.GateNode();
         gate.setNodeKey("gate:G1"); gate.setCode("G1"); gate.setName("门禁"); gate.setGateType("EXIT"); gate.setStageCode("S1");
         var ref = new TemplateDesignerDocument.GateReference(); ref.setRefType("TASK"); ref.setRefCode("T1");

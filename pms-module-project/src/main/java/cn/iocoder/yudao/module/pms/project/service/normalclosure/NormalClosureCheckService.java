@@ -25,6 +25,8 @@ import java.util.*;
 /** Checks are evidence only: no task completion, stage advance, legacy final acceptance or project exit. */
 @Service @RequiredArgsConstructor
 public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureCheckApi {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService endUsers;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper closureProjects;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper projects;
     private final ProjectTaskExecutionContractMapper contracts;
@@ -37,15 +39,29 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
     private final ProjectClosureGuardService descendantGuard;
     private final NormalClosureAccess access;
     private final NormalClosureResultEvidence resultEvidence;
+    private final NormalClosurePolicyResolver policies;
 
     public record Evaluation(String policyJson, List<Check> checks, String evidence,
                              String sourceVector, String sourceDigest,
-                             ProjectRuntimeGraphResolver.Resolution graph) {
+                             ProjectRuntimeGraphResolver.Resolution graph, NormalClosureTaskProjection pendingClosureTask) {
+        public Evaluation(String policyJson, List<Check> checks, String evidence, String sourceVector,
+                          String sourceDigest, ProjectRuntimeGraphResolver.Resolution graph) {
+            this(policyJson, checks, evidence, sourceVector, sourceDigest, graph, null);
+        }
         public boolean passed() { return policyJson != null && !checks.isEmpty() && checks.stream().allMatch(Check::passed); }
     }
 
     /** 与 ACC 侧 Views.Check 同构的检查证据行（跨模块经 ClosureCheck DTO 传递）。 */
     public record Check(String code, boolean passed, String reason, Long subjectId) {}
+
+    private static tools.jackson.databind.JsonNode completionExpression(ProjectTaskExecutionContractDO contract) {
+        var snapshot = JsonUtils.parseTree(contract.getCompletionRuleSnapshot());
+        if (snapshot != null && !snapshot.has("predicate") && !snapshot.has("operator")) {
+            return JsonUtils.parseTree(JsonUtils.toJsonString(Map.of(
+                    "predicate", contract.getCompletionRuleTypeCode(), "parameters", snapshot)));
+        }
+        return snapshot;
+    }
 
     /** Caller has already locked root/project and revalidated current PM + MANAGE scope. */
     @Transactional(propagation = Propagation.MANDATORY)
@@ -56,11 +72,13 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
     /** Project closure remains authorized as {@code actorId}; Owner facts are revalidated as the real BPM reviewer. */
     @Transactional(propagation = Propagation.MANDATORY)
     public Evaluation evaluateLocked(ProjectMasterDO project, long treeVersion, Long actorId, Long factActorId, String correlationId) {
-        String policyJson = project.getClosurePolicySnapshot();
+        var policy = policies.resolve(project);
+        String policyJson = policy.policyJson();
         List<Check> checks = new ArrayList<>();
         Map<String, Object> source = new LinkedHashMap<>();
         source.put("projectId", project.getId()); source.put("projectVersion", project.getVersion());
         source.put("treeVersion", treeVersion); source.put("policy", policyJson);
+        source.put("planVersionId", policy.planVersionId()); source.put("planRevisionNo", policy.revisionNo());
         source.put("taskTreeVersion", project.getTaskTreeVersion()); source.put("taskProgressVersion", project.getTaskProgressVersion());
         add(checks, "PROJECT_ACTIVE", "ACTIVE".equals(project.getLifecycleStatus()), project.getId());
         if (!"ACTIVE".equals(project.getLifecycleStatus())) return result(policyJson, checks, source, null);
@@ -82,7 +100,10 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
             links.selectActiveForUpdate(new TaskBusinessLinksQuery(project.getTenantId(), project.getId(), task.getId()));
         }
         var resultRounds = resultEvidence.lockRounds(project);
-        var graph = graphs.resolveForClosure(project);
+        var pending = NormalClosureTaskProjection.resolve(new NormalClosureTaskProjection.Query(
+                project.getTenantId(), project.getCurrentStage(), tasks, current));
+        var graph = pending == null ? graphs.resolveForClosure(project) : graphs.resolveForClosure(project, pending);
+        if (pending != null) source.put("pendingClosureTask", pending);
         var closureGates = graphs.lockClosureGates(project);
         add(checks, "TERMINAL_STAGE", graph.terminal(), graph.current().getId());
         add(checks, "STAGE_COMPLETION", graph.completion() == ConditionStatus.SATISFIED, graph.current().getId());
@@ -107,7 +128,9 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
             }
         }
         source.put("gates", gateEvidence);
-        add(checks, "ALL_TASKS_DONE", tasks.stream().allMatch(t -> "DONE".equals(t.getStatus())), project.getId());
+        add(checks, "ALL_TASKS_DONE", tasks.stream().filter(cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy::required)
+                .allMatch(t -> "DONE".equals(t.getStatus())
+                || pending != null && pending.includes(t)), project.getId());
         List<Object> taskEvidence = new ArrayList<>();
         for (var task : tasks) {
             Map<String, Object> taskSource = new LinkedHashMap<>();
@@ -123,6 +146,10 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
             taskSource.put("contractId", contract.getId()); taskSource.put("contractVersion", contract.getContractVersion());
             taskSource.put("completionRule", contract.getCompletionRuleSnapshot());
             taskSource.put("definitionSnapshot", contract.getDefinitionSnapshot());
+            if (!cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy.required(task)) {
+                taskSource.put("required", false);
+                continue; // 保留真实状态及契约证据，按需任务不参与闭环Owner/订阅完成检查。
+            }
             if (contract.getWorkBindingTypeCode() != null && cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskBusinessBindingHostProvider.TYPES.contains(contract.getWorkBindingTypeCode())) {
                 var before = business.inspectLinkedFactsSnapshot(task.getId(), project.getTenantId(), factActorId, correlationId);
                 var locked = business.lockAndRevalidateLinkedFacts(task.getId(), project.getTenantId(), factActorId,
@@ -144,7 +171,21 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
                 // 本机/页面提交与审批完成；完成规则本体由冻结快照决定，不再要求固定为 TASK_NATIVE_STATUS。
                 boolean nativeContract = Set.of("TASK_NATIVE", "PAGE", "APPROVAL").contains(contract.getWorkBindingTypeCode());
                 add(checks, "TASK_NATIVE_CONTRACT", nativeContract, task.getId());
+                if (cn.iocoder.yudao.module.pms.project.domain.rule.ProjectEndUserCompletionCondition.memberPage(
+                        contract.getWorkBindingTypeCode(), contract.getBindingParameterSnapshot())
+                        && cn.iocoder.yudao.module.pms.project.domain.rule.ProjectEndUserCompletionCondition.automatic(
+                        new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler()
+                                .compile(completionExpression(contract)))) {
+                    var fact = endUsers.lockAndInspect(new cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService.Query(
+                            project.getTenantId(), project.getId()));
+                    add(checks, "TASK_END_USER_FACTS", fact.completed(), task.getId());
+                    taskSource.put("projectEndUsers", fact);
+                }
             }
+            // 闭环审批事务才会完成该任务；就绪检查不能要求它提前产生完成轮次证据。
+            // 仅使用已校验的唯一闭环任务投影，其他任务仍复核原完成证据。
+            if (pending != null && pending.includes(task)
+                    && Objects.equals(pending.contractId(), contract.getId())) continue;
             var proof = resultEvidence.revalidate(project, task, contract, resultRounds);
             if (!"NO_RESULT_SUBSCRIPTION".equals(proof.reason())) {
                 checks.add(new Check("TASK_RESULT_EVIDENCE", proof.ready(), proof.ready() ? null : proof.reason(), task.getId()));
@@ -161,7 +202,8 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
     private static Evaluation result(String policyJson, List<Check> checks, Map<String, Object> source,
                                      ProjectRuntimeGraphResolver.Resolution graph) {
         String vector = canonical(JsonUtils.parseObject(JsonUtils.toJsonString(source), tools.jackson.databind.JsonNode.class));
-        return new Evaluation(policyJson, List.copyOf(checks), JsonUtils.toJsonString(checks), vector, digest(vector), graph);
+        return new Evaluation(policyJson, List.copyOf(checks), JsonUtils.toJsonString(checks), vector, digest(vector), graph,
+                (NormalClosureTaskProjection) source.get("pendingClosureTask"));
     }
     static String canonical(tools.jackson.databind.JsonNode node) {
         if (node.isObject()) {
@@ -202,10 +244,18 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
         var project = projects.selectById(projectId);
         if (project == null || !java.util.Objects.equals(project.getTenantId(), tenantId))
             throw closureFailure("CLOSURE_PROJECT_NOT_FOUND");
-        var graph = graphs.inspectForClosure(project);
-        boolean done = closureProjects.selectTasks(
-                new cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper.ProjectQuery(tenantId, projectId))
-                .stream().allMatch(t -> "DONE".equals(t.getStatus()));
+        var tasks = closureProjects.selectTasks(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper.ProjectQuery(tenantId, projectId));
+        Map<Long, ProjectTaskExecutionContractDO> current = new LinkedHashMap<>();
+        for (var task : tasks) {
+            var contract = contracts.selectCurrentByTaskId(task.getId());
+            if (contract != null) current.put(task.getId(), contract);
+        }
+        var pending = NormalClosureTaskProjection.resolve(new NormalClosureTaskProjection.Query(
+                tenantId, project.getCurrentStage(), tasks, current));
+        var graph = pending == null ? graphs.inspectForClosure(project) : graphs.inspectForClosure(project, pending);
+        boolean done = tasks.stream().filter(cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy::required)
+                .allMatch(t -> "DONE".equals(t.getStatus()) || pending != null && pending.includes(t));
         return new GraphOverview(graph.terminal(), String.valueOf(graph.completion()), graph.current().getId(), done);
     }
 

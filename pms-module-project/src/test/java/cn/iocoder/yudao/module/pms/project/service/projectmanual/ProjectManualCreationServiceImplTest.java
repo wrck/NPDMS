@@ -165,6 +165,8 @@ class ProjectManualCreationServiceImplTest {
     @Mock
     private DeviceQueryApi deviceQueryApi;
     @Mock
+    private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi projectDeviceShipments;
+    @Mock
     private ProjectCompanyDepartmentRelationMapper companyDepartmentRelationMapper;
     @Mock
     private ProjectTemplateService projectTemplateService;
@@ -785,8 +787,9 @@ class ProjectManualCreationServiceImplTest {
         when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class)))
                 .thenReturn(PageResult.empty());
 
-        PageResult<ProjectMasterDO> result = service.getProjectPage(
-                pageReqVO("名称", "PJT", "ACTIVE", null, null, null, null), actor);
+        ProjectPageReqVO filters = pageReqVO("名称", "PJT", "ACTIVE", null, null, null, null);
+        filters.setCustomerCode("CRM-CUSTOMER-001");
+        PageResult<ProjectMasterDO> result = service.getProjectPage(filters, actor);
 
         assertEquals(0L, result.getTotal());
         ArgumentCaptor<VisibleProjectPageQuery> query =
@@ -795,6 +798,7 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(Set.of(), query.getValue().getVisibleProjectIds());
         assertEquals("名称", query.getValue().getProjectNameKeyword());
         assertEquals("PJT", query.getValue().getProjectCodePrefix());
+        assertEquals("CRM-CUSTOMER-001", query.getValue().getCustomerCode());
     }
 
     @Test
@@ -824,6 +828,57 @@ class ProjectManualCreationServiceImplTest {
                 ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
         verify(projectMasterMapper).selectPage(query.capture());
         assertEquals(Set.of(100L, 200L), query.getValue().getVisibleProjectIds());
+    }
+
+    @Test
+    void projectPageShipmentYesKeepsOnlyShippedVisibleProjects() {
+        var filters=pageReqVO(null,null,null,null,null,null,null);
+        filters.setHasShippedDevices(true);
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L,7L,"PROJECT_VIEW")).thenReturn(Set.of(100L,200L));
+        when(projectDeviceShipments.resolveShippedProjectIds(any())).thenReturn(Set.of(100L,999L));
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        var captured=ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertEquals(Set.of(100L),captured.getValue().getVisibleProjectIds());
+    }
+
+    @Test
+    void projectPageShipmentNoKeepsUnshippedAndPreservesOtherFilters() {
+        var filters=pageReqVO("名称","PJT","S3",null,null,null,null);
+        filters.setHasShippedDevices(false); filters.setCustomerCode("CUSTOMER"); filters.setOverdueOnly(false);
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L,7L,"PROJECT_VIEW")).thenReturn(Set.of(100L,200L));
+        when(projectDeviceShipments.resolveShippedProjectIds(any())).thenReturn(Set.of(100L));
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        var captured=ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        var query=captured.getValue();
+        assertEquals(Set.of(200L),query.getVisibleProjectIds());
+        assertEquals("CUSTOMER",query.getCustomerCode()); assertEquals("S3",query.getStatus());
+        assertEquals(false,query.getOverdueOnly()); assertEquals("名称",query.getProjectNameKeyword());
+    }
+
+    @Test
+    void projectPageEmptyShipmentScopeDoesNotExpandOrCallAssetApi() {
+        var filters=pageReqVO(null,null,null,null,null,null,null); filters.setHasShippedDevices(false);
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L,7L,"PROJECT_VIEW")).thenReturn(Set.of());
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        var captured=ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertEquals(Set.of(),captured.getValue().getVisibleProjectIds()); verifyNoInteractions(projectDeviceShipments);
+    }
+
+    @Test
+    void projectPageAbsentShipmentFilterDoesNotQueryAssets() {
+        var filters=pageReqVO(null,null,null,null,null,null,null);
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L,7L,"PROJECT_VIEW")).thenReturn(Set.of(100L,200L));
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        var captured=ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertEquals(Set.of(100L,200L),captured.getValue().getVisibleProjectIds()); verifyNoInteractions(projectDeviceShipments);
     }
 
     @Test
@@ -948,6 +1003,7 @@ class ProjectManualCreationServiceImplTest {
     private TemplateExecutionSnapshot snapshotOf(TemplateDefinitionContent content) {
         var designer = TemplateDesignerDocument.fromResolvedLegacy(content);
         for (var stage : designer.getStages()) {
+            stage.setLifecycleStage("S0");
             var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType("STAGE_NATIVE");
             binding.setParameters(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{}"));
             stage.setWorkBinding(binding);
@@ -957,6 +1013,12 @@ class ProjectManualCreationServiceImplTest {
             completion.setExpression(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
                     "{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}"));
             stage.setCompletionRule(completion);
+        }
+        for (var deliverable : designer.getDeliverables()) {
+            deliverable.setConfiguration(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("""
+                    {"scope":"STAGE","deliverableType":"DOCUMENT","required":true,"minimumQuantity":1,
+                     "allowedSources":["UPLOAD"],"outputType":"FILE","confirmationRule":{"predicate":"TASK","parameters":{"refCode":"T1"}}}
+                    """));
         }
         var compilation = new TemplateCompiler().compile(designer);
         org.junit.jupiter.api.Assertions.assertTrue(compilation.valid(), () -> compilation.issues().toString());

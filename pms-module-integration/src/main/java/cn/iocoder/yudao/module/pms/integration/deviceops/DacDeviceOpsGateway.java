@@ -21,8 +21,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 
 import java.util.Arrays;
 import java.util.HexFormat;
@@ -48,6 +46,8 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
     private final DacDeviceOpsGatewayProperties properties;
     private final DeviceOpsDispatchMapper dispatchMapper;
     private final RestTemplate restTemplate;
+    @Autowired(required = false)
+    private DacDesktopDispatchService desktop;
 
     @Autowired
     public DacDeviceOpsGateway(DacDeviceOpsGatewayProperties properties,
@@ -129,6 +129,7 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
         }
         String namespace = namespace();
         DeviceOpsDispatchDO dispatch = dispatchMapper.selectByTenantAndPlatformTaskId(requiredTenantId(), platformTaskId);
+        if (DacDesktopDispatchService.isDesktop(dispatch)) return desktop.query(dispatch);
         String collectionId = dispatch == null ? null : dispatch.getCollectionId();
         if (isBlank(collectionId)) {
             DacCollectionSummary summary = findByExternalRequestId(platformTaskId, namespace);
@@ -170,6 +171,10 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
     @Override
     public void cancel(String platformTaskId, String reason) {
         if (isBlank(platformTaskId) || isBlank(reason)) throw new IllegalArgumentException("DAC_CANCEL_INVALID");
+        if (DacDesktopDispatchService.isDesktop(dispatchMapper.selectByTenantAndPlatformTaskId(requiredTenantId(), platformTaskId))) {
+            desktop.cancel(platformTaskId);
+            return;
+        }
         restTemplate.exchange(taskUri(platformTaskId, "/cancellations"), HttpMethod.POST,
                 new HttpEntity<>(headers(null)), Void.class);
     }
@@ -193,6 +198,10 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
 
     @Override
     public boolean retryResultDelivery(String platformTaskId) {
+        if (DacDesktopDispatchService.isDesktop(dispatchMapper.selectByTenantAndPlatformTaskId(requiredTenantId(), platformTaskId))) {
+            desktop.redeliver(platformTaskId);
+            return true;
+        }
         restTemplate.exchange(taskUri(platformTaskId, "/result-redeliveries"), HttpMethod.POST,
                 new HttpEntity<>(headers(null)), Void.class);
         return true;
@@ -202,6 +211,9 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
     public List<Map<String, Object>> semanticResults(String platformTaskId) {
         if (isBlank(platformTaskId)) {
             throw new IllegalArgumentException("DAC 查询参数不完整");
+        }
+        if (DacDesktopDispatchService.isDesktop(dispatchMapper.selectByTenantAndPlatformTaskId(requiredTenantId(), platformTaskId))) {
+            throw new IllegalStateException("本机解析结果需要通过执行该任务的本机 DAC 读取");
         }
         ResponseEntity<String> response;
         try {
@@ -240,70 +252,11 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
     }
 
     private Map<String, Object> buildSubmission(DeviceOpsDispatchCommand command) {
-        boolean hasProject = !isBlank(command.projectId());
-        if (hasCallbackUrl() && (!hasProject || isBlank(command.deviceId()))) {
-            throw new IllegalArgumentException("回调地址需要项目与设备上下文");
-        }
-        Map<String, Object> context = new LinkedHashMap<>();
-        if (hasProject) {
-            Map<String, Object> project = new LinkedHashMap<>();
-            project.put("namespace", namespace());
-            project.put("projectKey", command.projectId());
-            context.put("project", project);
-        }
-        Map<String, Object> device = new LinkedHashMap<>();
-        device.put("deviceKey", command.deviceId());
-        device.put("deviceName", command.deviceName());
-        context.put("device", device);
+        return DacCollectionPayloadFactory.build(payloadInput(command));
+    }
 
-        Map<String, Object> connection = new LinkedHashMap<>();
-        connection.put("protocol", dacProtocol(command.protocol()));
-        connection.put("host", command.host());
-        connection.put("port", command.port());
-        connection.put("username", command.temporaryUsername());
-        connection.put("authenticationType", "PASSWORD");
-        connection.put("executionMode", "SHELL");
-        connection.put("password", command.temporarySecret());
-        if ("TELNET".equals(command.protocol())) {
-            connection.put("telnetPrompts", Map.of("login", "(?i)(login|username)\\s*:\\s*$",
-                    "password", "(?i)password\\s*:\\s*$", "command", "[>#\\$]\\s*$", "lineEnding", "AUTO"));
-        }
-        connection.put("connectTimeoutSeconds",
-                Math.max(1, properties.getDeviceConnectTimeoutSeconds()));
-        if ("SAVED_CREDENTIAL".equals(command.credentialMode())) {
-            connection.clear();
-            connection.put("savedConnectionId", command.savedConnectionId());
-            connection.put("savedConnectionVersion", command.savedConnectionVersion());
-        }
-
-        String scriptContent = String.join("\n", command.commands());
-        Map<String, Object> script = new LinkedHashMap<>();
-        script.put("source", "EXTERNAL_DELIVERED");
-        script.put("key", "plt-" + command.templateId());
-        script.put("version", command.templateVersion());
-        script.put("content", scriptContent);
-        if (!sha256Hex(scriptContent).equalsIgnoreCase(command.templateHash())) {
-            throw new IllegalArgumentException("DAC_TEMPLATE_HASH_MISMATCH");
-        }
-        script.put("sha256", command.templateHash());
-        script.put("policy", "EXECUTION_ONLY");
-        script.put("parserType", properties.getParserType());
-
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("namespace", namespace());
-        body.put("context", context);
-        body.put("connection", connection);
-        body.put("script", script);
-        body.put("externalRequestId", command.platformTaskId());
-        body.put("activityType", properties.getActivityType());
-        if (hasCallbackUrl()) {
-            body.put("callbackUrl", properties.getCallbackUrl());
-        }
-        body.put("commandTimeoutSeconds",
-                executionTimeoutSeconds(command));
-        body.put("parseTimeoutSeconds", Math.max(1, properties.getParseTimeoutSeconds()));
-        body.put("leaseGraceSeconds", 0L);
-        return body;
+    private DacCollectionPayloadFactory.Input payloadInput(DeviceOpsDispatchCommand command) {
+        return new DacCollectionPayloadFactory.Input(command, properties, namespace(), properties.getCallbackUrl());
     }
 
     private void recordDispatch(DeviceOpsDispatchCommand command, String idempotencyKey,
@@ -359,10 +312,6 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
         return tenantId;
     }
 
-    private boolean hasCallbackUrl() {
-        return properties.getCallbackUrl() != null && !properties.getCallbackUrl().isBlank();
-    }
-
     private HttpHeaders headers(String idempotencyKey) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -391,6 +340,7 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
             String version = command.savedConnectionVersion().toString();
             binding += command.savedConnectionId().length() + ":" + command.savedConnectionId() + version.length() + ":" + version;
         }
+        if(command.executionOptions()!=null)binding+=command.executionOptions().authorizationBinding();
         try {
             var mac = javax.crypto.Mac.getInstance("HmacSHA256");
             mac.init(new javax.crypto.spec.SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
@@ -404,23 +354,19 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
     }
 
     private long executionTimeoutSeconds(DeviceOpsDispatchCommand command) {
-        boolean manualConfiguration = ("IMP".equals(command.sourceContext())
-                && java.util.Set.of("Configuration", "JointTest").contains(command.sourceObjectType()))
-                || ("PLT".equals(command.sourceContext()) && "CollectionCenter".equals(command.sourceObjectType()));
-        long seconds = manualConfiguration ? properties.getManualExecutionTimeoutSeconds()
-                : properties.getCommandTimeoutSeconds();
-        if (seconds < 1 || (!manualConfiguration && seconds > COMMAND_TIMEOUT_LIMIT_SECONDS)) {
-            throw new IllegalArgumentException("DAC_COMMAND_TIMEOUT_INVALID");
-        }
-        return seconds;
+        return DacCollectionPayloadFactory.timeout(payloadInput(command));
     }
 
     private static void validate(DeviceOpsDispatchCommand command) {
         if (command == null || isBlank(command.platformTaskId()) || isBlank(command.host())
                 || command.port() == null || isBlank(command.protocol()) || isBlank(command.templateId())
-                || isBlank(command.templateVersion()) || command.commands() == null || command.commands().isEmpty()
+                || isBlank(command.templateVersion()) || command.commands() == null
                 || isBlank(command.temporaryUsername()) || command.tenantId() == null || isBlank(command.projectId()) || isBlank(command.deviceId())) {
             throw new IllegalArgumentException("DAC 下发参数不完整");
+        }
+        boolean precheck = command.executionOptions()!=null && "PRECHECK".equals(command.executionOptions().purpose());
+        if (precheck ? !command.commands().isEmpty() : command.commands().isEmpty()) {
+            throw new IllegalArgumentException("采集用途与命令清单不一致");
         }
         boolean temporary = "TEMPORARY_SECRET".equals(command.credentialMode());
         boolean saved = "SAVED_CREDENTIAL".equals(command.credentialMode());
@@ -453,15 +399,6 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
             if (password instanceof char[] secret) {
                 Arrays.fill(secret, '\0');
             }
-        }
-    }
-
-    private static String sha256Hex(String content) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                    .digest(content.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 unavailable", ex);
         }
     }
 

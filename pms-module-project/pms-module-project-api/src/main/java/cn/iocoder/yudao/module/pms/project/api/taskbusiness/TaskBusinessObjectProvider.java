@@ -60,7 +60,9 @@ public interface TaskBusinessObjectProvider {
     /**
      * Unattended rule evaluation: no browser identity, body values or action grants.
      * Join the existing transaction, revalidate the exact PROJ execution, lock the Owner result,
-     * and require evidence from this execution round. Null means unavailable, never false.
+     * and return its actual completion facts. Object reuse follows the frozen binding;
+     * result freshness/pinning follows the frozen result subscription, not project reopen time.
+     * Null means unavailable, never false.
      */
     default CompletionFact lockCompletionFact(CompletionContext context, String objectId) { return null; }
 
@@ -75,6 +77,17 @@ public interface TaskBusinessObjectProvider {
 
     record AssociationContext(Long tenantId, Long projectId, String targetObjectKey, String bindingParameters) { }
     record AssociationCandidate(String objectId, String factVersion) { }
+
+    /** Creation time of the actual handling record (or current report revision for a unique root).
+     * Never return update time or approval time of an old record. Owner must check tenant/project. */
+    default java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) { return null; }
+
+    /** Read-only time of the exact frozen handling fact. Missing/version mismatch returns null; never use update time. */
+    default HandlingTime historicalHandlingTime(HandlingTimeQuery query) { return null; }
+    record HandlingTimeQuery(Context context, String objectId, String factVersion, Set<String> satisfiedFacts) {
+        public HandlingTimeQuery { satisfiedFacts = Set.copyOf(satisfiedFacts); }
+    }
+    record HandlingTime(java.time.LocalDateTime at, String source, String label) { }
 
     record CompletionContext(Long tenantId,
             cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution) { }

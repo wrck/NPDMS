@@ -265,7 +265,7 @@ class DeliveryMaterialWithdrawalPersistenceTest {
         }
         @Bean DeliveryMaterialMapper materials(SqlSessionFactory f){return new SqlSessionTemplate(f).getMapper(DeliveryMaterialMapper.class);}
         @Bean DeliveryFulfillmentMapper fulfillmentMapper(SqlSessionFactory f){return new SqlSessionTemplate(f).getMapper(DeliveryFulfillmentMapper.class);}
-        @Bean DeliveryFulfillmentService fulfillment(DeliveryFulfillmentMapper f,DeliveryMaterialMapper m){return new DeliveryFulfillmentService(f,m);}
+        @Bean DeliveryFulfillmentService fulfillment(DeliveryFulfillmentMapper f,DeliveryMaterialMapper m){return new DeliveryFulfillmentService(f,m,query->java.util.Optional.empty());}
         @Bean PlatformIdempotencyRecordMapper ledger(SqlSessionFactory f){return new SqlSessionTemplate(f).getMapper(PlatformIdempotencyRecordMapper.class);}
         @Bean PlatformOperationAuditMapper audits(SqlSessionFactory f) {
             var real=new SqlSessionTemplate(f).getMapper(PlatformOperationAuditMapper.class);var spy=mock(PlatformOperationAuditMapper.class,org.mockito.AdditionalAnswers.delegatesTo(real));

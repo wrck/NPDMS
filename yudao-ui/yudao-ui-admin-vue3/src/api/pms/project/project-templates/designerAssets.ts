@@ -111,6 +111,7 @@ export const taskFromDefinition = async (
   if (!bindingId || !permissionId || !completionId) throw new Error('任务定义缺少绑定、权限或完成规则引用')
   return {
     nodeKey: `task:${generateUUID()}`,
+    required: true,
     code: `TASK_${generateUUID().replaceAll('-', '')}`,
     name: String(row.payload.name ?? row.definitionCode),
     stageCode,

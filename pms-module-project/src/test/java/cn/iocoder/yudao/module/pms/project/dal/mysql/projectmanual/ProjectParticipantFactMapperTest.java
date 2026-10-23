@@ -122,16 +122,28 @@ class ProjectParticipantFactMapperTest {
         insertAssignment(8_100_003L, ROLE_SERVICE_MANAGER_L2, "PRIMARY",
                 checkedAt.minusDays(2), checkedAt.minusDays(1));
 
-        var result = memberMapper.selectParticipantFacts(new ProjectParticipantFactLookupQuery(
-                0L, projectId, null, Set.of(ROLE_SERVICE_MANAGER_L1, ROLE_SERVICE_MANAGER_L2), checkedAt));
+        var result = memberMapper.selectParticipantFacts(ProjectParticipantFactLookupQuery.builder()
+                .tenantId(0L)
+                .projectId(projectId)
+                .subjectUserId(null)
+                .requiredRoleCodes(Set.of(ROLE_SERVICE_MANAGER_L1, ROLE_SERVICE_MANAGER_L2))
+                .effectiveAt(checkedAt).build());
 
         assertEquals(1, result.size());
         assertEquals(8_100_001L, result.getFirst().getUserId());
         assertEquals(ROLE_SERVICE_MANAGER_L1, result.getFirst().getMemberRole());
-        assertTrue(memberMapper.selectParticipantFacts(new ProjectParticipantFactLookupQuery(
-                0L, projectId, null, Set.of(), checkedAt)).isEmpty());
-        assertTrue(memberMapper.selectParticipantFacts(new ProjectParticipantFactLookupQuery(
-                1L, projectId, null, Set.of(ROLE_SERVICE_MANAGER_L1), checkedAt)).isEmpty());
+        assertTrue(memberMapper.selectParticipantFacts(ProjectParticipantFactLookupQuery.builder()
+                .tenantId(0L)
+                .projectId(projectId)
+                .subjectUserId(null)
+                .requiredRoleCodes(Set.of())
+                .effectiveAt(checkedAt).build()).isEmpty());
+        assertTrue(memberMapper.selectParticipantFacts(ProjectParticipantFactLookupQuery.builder()
+                .tenantId(1L)
+                .projectId(projectId)
+                .subjectUserId(null)
+                .requiredRoleCodes(Set.of(ROLE_SERVICE_MANAGER_L1))
+                .effectiveAt(checkedAt).build()).isEmpty());
     }
 
     @Test
@@ -165,8 +177,11 @@ class ProjectParticipantFactMapperTest {
         insertAssignment(8_100_001L, ROLE_SERVICE_MANAGER_L1, "PRIMARY", now.minusHours(1), now.minusMinutes(1));
 
         var result = transactionTemplate.execute(status -> memberMapper.selectParticipantFactsForUpdate(
-                new ProjectParticipantFactLockQuery(
-                        0L, projectId, 8_100_001L, Set.of(ROLE_SERVICE_MANAGER_L1))));
+                ProjectParticipantFactLockQuery.builder()
+                .tenantId(0L)
+                .projectId(projectId)
+                .userId(8_100_001L)
+                .requiredRoleCodes(Set.of(ROLE_SERVICE_MANAGER_L1)).build()));
 
         assertTrue(result.isEmpty());
     }

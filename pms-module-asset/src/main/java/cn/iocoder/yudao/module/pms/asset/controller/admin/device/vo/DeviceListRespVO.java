@@ -27,5 +27,11 @@ public record DeviceListRespVO(
         String syncStatus,
         String locationSnapshot,
         String locationResolutionStatus,
-        DeviceOrganizationRespVO organization) {
+        DeviceOrganizationRespVO organization,
+        String bootVersion,
+        String cpldVersion,
+        Long extendedCount,
+        String projectName,
+        String customerName,
+        String projectCode) {
 }

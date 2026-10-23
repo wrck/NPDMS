@@ -59,10 +59,18 @@ public class SolutionReviewBpmGuard {
         requireTenant(tenant);
         if (actor == null) throw new IllegalArgumentException("审批人无效");
         users.validateUser(actor);
-        var visible = scope.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, project, ProjectScopeApi.ACTION_VIEW));
+        var visible = scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (visible == null || !visible.fullProjectIds().contains(project)) throw new IllegalArgumentException("审批人没有项目范围");
-        var locked = scope.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, actor, project,
-                ProjectScopeApi.ACTION_VIEW, visible.treeVersion()));
+        var locked = scope.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(visible.treeVersion()).build());
         if (locked == null || !locked.fullProjectIds().contains(project)) throw new IllegalArgumentException("审批人项目范围已变化");
         if ("SERVICE_MANAGER".equals(responsibility)) {
             var member = participants.inspect(new ProjectParticipantFactQuery(project, actor,

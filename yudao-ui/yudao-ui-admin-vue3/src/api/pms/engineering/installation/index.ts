@@ -33,7 +33,11 @@ export interface InstallationVO {
 
 const baseUrl = '/pms/imp-installation'
 
-export const getInstallationPage = (params: PmsProjectPageParam) =>
+export interface InstallationPageRequest extends PmsProjectPageParam {
+  equipmentId?: number | string
+  status?: number
+}
+export const getInstallationPage = (params: InstallationPageRequest) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getInstallation = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
@@ -49,3 +53,22 @@ export const completeInstallation = (id: number) =>
   request.put({ url: `${baseUrl}/complete`, params: { id } })
 export const markAbnormalInstallation = (id: number) =>
   request.put({ url: `${baseUrl}/mark-abnormal`, params: { id } })
+
+export interface InstallationAddressCompletion {
+  totalDevices: number
+  addressedDevices: number
+  completed: boolean
+}
+export const getProjectInstallationAddressCompletion = (projectId: number): Promise<InstallationAddressCompletion> =>
+  request.get({ url: `/api/v1/pms/implementation/projects/${projectId}/installation-address-completion` })
+
+export type InstallationBatchCreateRequest = Omit<InstallationVO, 'id' | 'equipmentId' | 'status' | 'version'> & { equipmentIds: number[] }
+export const createInstallationBatch = (data: InstallationBatchCreateRequest): Promise<number[]> =>
+  request.post({ url: '/api/v1/pms/implementation/installation-records/batch', data })
+
+export interface InstallationCurrentAddress {
+  equipmentId: number | string
+  installLocation?: string
+}
+export const getCurrentInstallationAddresses = (projectId: number, equipmentIds: (number | string)[]) =>
+  request.get<InstallationCurrentAddress[]>({ url: '/api/v1/pms/implementation/installation-records/current-addresses', params: { projectId, equipmentIds } })

@@ -15,7 +15,7 @@
           :disabled="exporting || loading"
           @change="selectLayout"
         >
-          <el-option label="确认样张（标准表格）" value="approved" />
+          <el-option label="服务端 PDF（现场培训标准表单）" value="server" />
           <el-option v-if="boundSnapshot" label="记录绑定版式（历史快照）" value="bound" />
           <el-option
             v-for="item in templates"
@@ -26,7 +26,8 @@
         </el-select>
       </el-form-item>
     </el-form>
-    <el-alert title="正式 PDF 下载前须保存并登记交付件；只读用户可查看当前预览，已登记文件请从培训详情的交付件列表下载。"
+    <el-alert
+v-if="decoded" title="正式 PDF 下载前须保存并登记交付件；只读用户可查看当前预览，已登记文件请从培训详情的交付件列表下载。"
       type="info" :closable="false" class="mb-8px" />
     <div v-loading="loading" class="print-scroll">
       <div
@@ -45,8 +46,9 @@
     </div>
     <template #footer>
       <el-button :disabled="exporting" @click="visible = false">关闭</el-button>
-      <el-button v-if="canRegister" type="primary" :loading="exporting"
-        :disabled="!decoded || loading" @click="exportPdf">下载 PDF（自动登记交付件）</el-button>
+      <el-button
+v-if="selected === 'server' || canRegister" type="primary" :loading="exporting"
+        :disabled="(selected !== 'server' && !decoded) || loading" @click="exportPdf">下载 PDF（自动登记交付件）</el-button>
     </template>
   </Dialog>
 </template>
@@ -55,20 +57,16 @@
 import dayjs from 'dayjs'
 import { getDeliveryTypes } from '@/api/pms/platform/delivery'
 import { createDeliveryUploadAttempt, uploadDeliveryFile, type DeliveryUploadAttempt } from '@/components/DeliveryArtifact/uploadDeliveryFile'
-import { getTraining } from '@/api/pms/engineering/training'
+import { getTraining, getTrainingPdfTicket } from '@/api/pms/engineering/training'
 import type { TrainingVO } from '@/api/pms/engineering/training'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
 import { registerDynamicFormComponents } from '@/views/pms/platform/dynamic-form/components/registerDynamicFormComponents'
 import {
   trainingPrintValues,
-  createTrainingPrintForm,
-  PRINT_CATEGORY,
-  APPROVED_PRINT_CODE,
   PRINT_ENGINE,
   type PrintSnapshot
 } from './trainingPrintForm'
 import * as DynamicFormApi from '@/api/pms/platform/dynamic-form'
-import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import { checkPermi } from '@/utils/permission'
 
 registerDynamicFormComponents()
@@ -82,8 +80,8 @@ const message = useMessage()
 const deliveryAttempt = shallowRef<DeliveryUploadAttempt>()
 const canRegister = computed(() => checkPermi(['pms:file:upload']) && checkPermi(['pms:delivery:operate']))
 const loading = ref(false)
-const selected = ref('approved')
-const templates = ref<DynamicFormApi.DynamicFormSelectionVO[]>([])
+const selected = ref('server')
+const templates = ref<DynamicFormApi.TrainingPrintSelectionVO[]>([])
 const boundSnapshot = shallowRef<PrintSnapshot>()
 let recordData: TrainingVO = {},
   projectLabel = '',
@@ -104,25 +102,16 @@ const applyLayout = (snapshot: PrintSnapshot) => {
       : ''
   }
 }
-const standardLayout = (): PrintSnapshot => ({
-  engine: PRINT_ENGINE,
-  ...createTrainingPrintForm(
-    getStrDictOptions(DICT_TYPE.PMS_TRAINING_TYPE).map((item) => ({
-      label: item.label,
-      value: item.value
-    }))
-  )
-})
 const selectLayout = async () => {
   deliveryAttempt.value = undefined
   loading.value = true
   try {
-    if (selected.value === 'approved') applyLayout(standardLayout())
+    if (selected.value === 'server') decoded.value = undefined
     else if (selected.value === 'bound' && boundSnapshot.value) applyLayout(boundSnapshot.value)
     else {
       const template = templates.value.find((item) => String(item.templateId) === selected.value)
-      if (!template?.currentPublishedRevisionId) throw new Error('Published revision missing')
-      const revision = await DynamicFormApi.getRevision(template.currentPublishedRevisionId)
+      if (!template) throw new Error('Published revision missing')
+      const revision = template
       applyLayout({
         engine: PRINT_ENGINE,
         formConfJson: revision.formConfJson,
@@ -142,30 +131,32 @@ const open = async (record: TrainingVO, projectName: string, snapshot?: PrintSna
   deliveryAttempt.value = undefined
   projectLabel = projectName
   boundSnapshot.value = snapshot?.engine === PRINT_ENGINE ? snapshot : undefined
-  const approvedBound = boundSnapshot.value?.formConfJson.trainingPrintStyle === 'APPROVED_TABLE'
-  selected.value = approvedBound ? 'bound' : 'approved'
+  selected.value = 'server'
   templates.value = []
   filename.value = `${record.code || '培训记录'}.pdf`
-  applyLayout(approvedBound ? boundSnapshot.value! : standardLayout())
+  decoded.value = undefined
   visible.value = true
-  if (!checkPermi(['pms:dynamic-form-template:query'])) return
   loading.value = true
   try {
-    const all: DynamicFormApi.DynamicFormSelectionVO[] = []
+    const all: DynamicFormApi.TrainingPrintSelectionVO[] = []
     for (let pageNo = 1; ; pageNo++) {
-      const page = await DynamicFormApi.getTemplateSelection({ pageNo, pageSize: 100 })
+      const page = await DynamicFormApi.getTrainingPrintSelection({ pageNo, pageSize: 100 })
       all.push(...page.list)
       if (all.length >= page.total || !page.list.length) break
     }
     if (request !== openRequest) return
-    templates.value = all.filter((item) => item.categoryCode === PRINT_CATEGORY)
-    const approved = templates.value.find((item) => item.templateCode === APPROVED_PRINT_CODE)
-    if (approved && !approvedBound) {
-      selected.value = String(approved.templateId)
-      await selectLayout()
+    templates.value = all
+    const latest = all.reduce<DynamicFormApi.TrainingPrintSelectionVO | undefined>((current, item) =>
+      !current || dayjs(item.publishedAt).valueOf() > dayjs(current.publishedAt).valueOf() ? item : current, undefined)
+    if (latest) {
+      selected.value = String(latest.templateId)
+      applyLayout({ engine: PRINT_ENGINE, formConfJson: latest.formConfJson, formRulesJson: latest.formRulesJson })
     }
   } catch {
-    message.warning('已发布模板暂不可用，当前使用确认样张标准版式')
+    if (request !== openRequest) return
+    selected.value = ''
+    decoded.value = undefined
+    message.error('打印模板加载失败，请关闭后重试')
   } finally {
     if (request === openRequest) loading.value = false
   }
@@ -179,8 +170,9 @@ const downloadPdf = (file: File) => {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 const exportPdf = async () => {
-  if (!canRegister.value) return
-  if (exporting.value || loading.value || !paper.value) return
+  if (exporting.value || loading.value) return
+  if (selected.value !== 'server' && (!canRegister.value || !paper.value)) return
+  if (!selected.value) return
   exporting.value = true
   try {
     const current = await getTraining(recordData.id!)
@@ -193,14 +185,21 @@ const exportPdf = async () => {
         || current.version !== recordData.version) {
       throw new Error('培训记录已变化，请关闭预览后重新打开')
     }
+    if (selected.value === 'server') {
+      const ticket = await getTrainingPdfTicket(recordData.id!)
+      window.open(ticket, '_blank', 'noopener')
+      return
+    }
     if (deliveryAttempt.value) {
       await uploadDeliveryFile(deliveryAttempt.value)
       downloadPdf(deliveryAttempt.value.file)
       return
     }
     await nextTick()
+    const exportPaper = paper.value
+    if (!exportPaper) throw new Error('打印预览尚未就绪，请重新打开')
     await document.fonts.ready
-    await Promise.all(Array.from(paper.value.querySelectorAll('img')).map((img) => img.decode()))
+    await Promise.all(Array.from(exportPaper.querySelectorAll('img')).map((img) => img.decode()))
     const { default: html2pdf } = await import('html2pdf.js')
     const worker = html2pdf()
     const pdfFormat = { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true }
@@ -248,7 +247,7 @@ const exportPdf = async () => {
       pagebreak: { mode: ['css', 'legacy'], avoid: ['.el-form-item', 'img', 'h2'] },
       enableLinks: false
     }
-    const blob = await worker.set(options).from(paper.value).outputPdf('blob') as Blob
+    const blob = await worker.set(options).from(exportPaper).outputPdf('blob') as Blob
     if (!canRegister.value) throw new Error('无生成交付件写权限')
     const type = (await getDeliveryTypes(true)).find(item => item.typeCode === 'TRAINING_RECORD')
     if (!type || !current.id) throw new Error('培训记录交付件类型不可用')

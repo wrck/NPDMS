@@ -14,6 +14,16 @@ import java.util.List;
 @Mapper
 public interface SiteMapper extends BaseMapperX<SiteDO> {
 
+    default List<SiteDO> selectCurrentCustomerSites(
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.location.query.CurrentCustomerSiteListQuery query) {
+        if (query == null || query.tenantId() == null || query.customerId() == null) return List.of();
+        return selectList(new LambdaQueryWrapperX<SiteDO>()
+                .eq(SiteDO::getTenantId, query.tenantId())
+                .eq(SiteDO::getCustomerId, query.customerId())
+                .eq(SiteDO::getStatus, 0)
+                .orderByAsc(SiteDO::getId));
+    }
+
     default PageResult<SiteDO> selectPage(SitePageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<SiteDO>()
                 .eqIfPresent(SiteDO::getCode, reqVO.getCode())

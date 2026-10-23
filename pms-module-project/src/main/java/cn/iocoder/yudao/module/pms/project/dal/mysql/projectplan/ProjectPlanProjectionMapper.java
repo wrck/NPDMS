@@ -12,6 +12,15 @@ import java.time.LocalDateTime;
 /** Project-owned current projections only; frozen execution results and Owner business tables are not updated here. */
 @Mapper
 public interface ProjectPlanProjectionMapper {
+    record TemplateReopenProjection(Long tenantId, Long projectId, Long oldPlanId, Long snapshotId,
+                                     LocalDateTime occurredAt, String updater) { }
+    int archiveTasksForTemplateReopen(@Param("query") TemplateReopenProjection query);
+    int archiveStagesForTemplateReopen(@Param("query") TemplateReopenProjection query);
+    int archiveGatesForTemplateReopen(@Param("query") TemplateReopenProjection query);
+    int archiveMilestonesForTemplateReopen(@Param("query") TemplateReopenProjection query);
+    int closeTaskContractsForTemplateReopen(@Param("query") TemplateReopenProjection query);
+    int closeStageContractsForTemplateReopen(@Param("query") TemplateReopenProjection query);
+    int archiveExecutionsForTemplateReopen(@Param("query") TemplateReopenProjection query);
     int updateCurrentStage(@Param("query") CurrentStageUpdate query);
     record CurrentStageUpdate(Long tenantId, Long projectId, Long planVersionId, Long expectedVersion,
                               String currentStage, String updater) { }

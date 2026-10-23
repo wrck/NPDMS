@@ -4,6 +4,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
@@ -60,7 +62,7 @@ public class AcceptanceReportQueryService {
     public List<ReportVersionView> listVersions(Long acceptanceId, Actor actor) {
         requireActivity(acceptanceId, actor, ProjectScopeApi.ACTION_VIEW);
         return reportMapper.selectByAcceptanceId(acceptanceId).stream()
-                .map(row -> toReportView(row, attachmentMapper.selectByReportVersion(row.getId())))
+                .map(row -> toReportView(row, reportAttachments(row)))
                 .toList();
     }
 
@@ -100,8 +102,11 @@ public class AcceptanceReportQueryService {
 
     private Set<Long> requireProjectScope(Long projectId, Actor actor, String action) {
         try {
-            var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    actor.tenantId(), actor.userId(), projectId, action));
+            var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
             if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
                 throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
             }
@@ -119,14 +124,40 @@ public class AcceptanceReportQueryService {
     }
 
     private ReportVersionView toReportView(AcceptanceReportVersionDO row,
-                                           List<AcceptanceReportAttachmentDO> attachments) {
+                                           List<AttachmentView> attachments) {
         var mirror = archiveMirror(row.getAcceptanceId(), row.getId());
         return new ReportVersionView(row.getId(), row.getAcceptanceId(), row.getReportVersionNo(),
                 row.getReportStatus(), row.getAcceptanceTime(), row.getConclusionCode(), row.getConclusionText(),
                 row.getAcceptorName(), row.getPreviousVersionId(), row.getEffectiveFrom(), row.getEffectiveTo(),
                 row.getUploaderUserId(), row.getPublisherUserId(), mirror.status(), mirror.failureCode(),
                 mirror.retryCount(),
-                attachments.stream().map(this::toAttachmentView).toList());
+                attachments);
+    }
+
+    private List<AttachmentView> reportAttachments(AcceptanceReportVersionDO report) {
+        // Draft uploads are live platform references; only publication freezes the native attachment rows.
+        if (!"DRAFT".equals(report.getReportStatus())) {
+            return attachmentMapper.selectByReportVersion(report.getId()).stream().map(this::toAttachmentView).toList();
+        }
+        var key = new FileReferenceSetKey(OWNER_CONTEXT, OBJECT_TYPE, String.valueOf(report.getId()), PURPOSE_CODE);
+        try {
+            var sets = fileArtifactApi.inspectReferenceSets(new FileReferenceSetCollectionQuery(List.of(key), FileActionCodes.READ));
+            if (sets.isEmpty()) return List.of();
+            if (sets.size() != 1 || !key.equals(sets.getFirst().key())) throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
+            var files = sets.getFirst().activeFacts();
+            var attachments = new java.util.ArrayList<AttachmentView>();
+            for (var file : files) {
+                if (file.fileFactVersion() == null) throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
+                attachments.add(new AttachmentView(attachments.size() + 1, file.artifactId(), file.versionNo(),
+                        file.referenceKey(), file.fileFactVersion().artifactVersion(), file.fileFactVersion().referenceVersion(),
+                        file.fileFactVersion().availabilityVersion(), file.scopeVersion(), file.sha256()));
+            }
+            return List.copyOf(attachments);
+        } catch (cn.iocoder.yudao.framework.common.exception.ServiceException business) {
+            throw business;
+        } catch (RuntimeException unavailable) {
+            throw exception(ACC_REPORT_DEPENDENCY_UNAVAILABLE);
+        }
     }
 
     /**

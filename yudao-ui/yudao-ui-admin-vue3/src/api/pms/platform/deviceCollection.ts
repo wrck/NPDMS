@@ -1,7 +1,7 @@
 import request from '@/config/axios'
 
 export type Id = number | string
-export type Entry = 'center' | 'configuration' | 'joint-test'
+export type Entry = 'center' | 'configuration' | 'joint-test' | 'cutover-checklist' | 'cutover-pre-check' | 'cutover-execution' | 'cutover-test' | 'cutover-rollback' | 'cutover-post-collection'
 export interface Source {
   entry: Entry
   objectId: Id
@@ -35,6 +35,7 @@ export interface Execution {
   commandText?: string
   templateName?: string
   retryOfId?: Id
+  dispatchMode?: 'SERVER' | 'DESKTOP'
   task: {
     platformTaskId: string
     deviceId: string
@@ -63,7 +64,6 @@ export interface Template {
   name: string
   purpose: string
   ownerContext?: string
-  protocol: string
   deviceModel?: string
   revision: number
   commands: string
@@ -112,6 +112,27 @@ const source = (entry: Entry, id: Id) => `${root}/sources/${entry}/${id}`
 export const context = (entry: Entry, id: Id) => request.get<Source>({ url: source(entry, id) })
 export const submit = (entry: Entry, id: Id, data: Command) =>
   request.post<Execution>({ url: `${source(entry, id)}/executions`, data })
+export interface DesktopTicket { value: string; tenantId: Id }
+export type DesktopCommand = Omit<Command, 'password' | 'credentialId'> & {
+  localConnectionId?: string
+  localConnectionVersion?: number
+}
+export const prepareDesktop = (entry: Entry, id: Id, data: DesktopCommand) =>
+  request.post<{ execution: Execution; ticket: DesktopTicket }>({
+    url: `${source(entry, id)}/desktop-executions`,
+    // Explicit allowlist keeps device secrets out of the NPDMS HTTP client even if a caller passes extra fields.
+    data: {
+      requestKey: data.requestKey, expectedVersion: data.expectedVersion, deviceId: data.deviceId,
+      host: data.host, port: data.port, protocol: data.protocol, username: data.username,
+      commands: data.commands, templateId: data.templateId, retryOfId: data.retryOfId,
+      localConnectionId: data.localConnectionId, localConnectionVersion: data.localConnectionVersion
+    }
+  })
+export const desktopAccess = (entry: Entry, id: Id,
+  data: { operation: 'CONNECTIONS_READ' | 'CONNECTION_SAVE' | 'TASK_READ'; executionId?: Id }) =>
+  request.post<DesktopTicket>({ url: `${source(entry, id)}/desktop-access`, data })
+export const resumeDesktop = (entry: Entry, id: Id, executionId: Id) =>
+  request.post<{ execution: Execution; ticket: DesktopTicket }>({ url: `${source(entry, id)}/desktop-executions/${executionId}/resume` })
 export const page = (entry: Entry, id: Id, pageNo: number) =>
   request.get<{ list: Execution[]; total: number }>({
     url: `${source(entry, id)}/executions`,
@@ -171,7 +192,7 @@ export const businessLogs = (entry: Entry, id: Id, pageNo: number) =>
     params: { pageNo, pageSize: 10 }
   })
 export const templates = (
-  params: { purpose?: string; protocol?: string; publishedOnly?: boolean } = {}
+  params: { purpose?: string; publishedOnly?: boolean; projectId?: Id; deviceId?: Id } = {}
 ) => request.get<Template[]>({ url: `${root}/templates`, params })
 export const saveTemplate = (data: Template) =>
   request.post<Template>({ url: `${root}/templates`, data })
@@ -211,5 +232,11 @@ export const purposes: Record<string, string> = {
   'joint-test': '业务联调',
   center: '独立采集',
   cutover: '割接（调用契约）',
+  'cutover-checklist': '割接：调研及风险考察',
+  'cutover-pre-check': '割接：割接前检查',
+  'cutover-execution': '割接：割接实施',
+  'cutover-test': '割接：割接测试',
+  'cutover-rollback': '割接：回退',
+  'cutover-post-collection': '割接：割接后采集',
   inspection: '巡检（调用契约）'
 }

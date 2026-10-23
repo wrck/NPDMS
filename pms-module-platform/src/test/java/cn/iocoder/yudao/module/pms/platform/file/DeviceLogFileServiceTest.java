@@ -36,8 +36,27 @@ class DeviceLogFileServiceTest {
         when(tasks.selectByTenantAndPlatformTaskId(1L,"task")).thenReturn(task);
         var request=new CollectionRequestDO();request.setEntry("configuration");request.setObjectId(30L);request.setActorId(7L);
         when(requests.findByTask(1L,"task")).thenReturn(request);
-        when(source.authorize(1L,7L,30L,20L,CollectionSourceAdapter.Access.CONSUME,null)).thenReturn(new CollectionSourceAdapter.Source(
-                "configuration",30L,"IMP","Configuration",10L,20L,"device",1L,true,true,"BUSINESS_CONSUMPTION","configuration"));
+        when(source.authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(1L)
+                .actorId(7L)
+                .objectId(30L)
+                .deviceId(20L)
+                .access(CollectionSourceAdapter.Access.CONSUME)
+                .expectedVersion(null)
+                .build())).thenReturn(CollectionSourceAdapter.Source.builder()
+                        .entry("configuration")
+                        .objectId(30L)
+                        .sourceContext("IMP")
+                        .sourceObjectType("Configuration")
+                        .projectId(10L)
+                        .deviceId(20L)
+                        .deviceName("device")
+                        .version(1L)
+                        .manualAllowed(true)
+                        .canExecute(true)
+                        .completionMode("BUSINESS_CONSUMPTION")
+                        .title("configuration")
+                        .build());
         var version=new FileVersionDO();version.setInfraFileId(200L);version.setSizeBytes(10L);version.setSha256("a".repeat(64));
         version.setAvailabilityStatusCode("AVAILABLE");version.setScanStatusCode("SKIPPED");when(versions.selectByTenantAndId(1L,100L)).thenReturn(version);
     }
@@ -48,15 +67,36 @@ class DeviceLogFileServiceTest {
         verifyNoInteractions(storage);
     }
     @Test void currentOwnerMustStillAuthorizeOriginalProjectAndDevice() {
-        when(source.authorize(anyLong(),anyLong(),anyLong(),anyLong(),any(),isNull())).thenReturn(new CollectionSourceAdapter.Source(
-                "configuration",30L,"IMP","Configuration",11L,20L,"device",2L,true,true,"BUSINESS_CONSUMPTION","configuration"));
+        when(source.authorize(argThat(query -> query != null && query.tenantId() != null
+                && query.actorId() != null && query.objectId() != null && query.deviceId() != null
+                && query.expectedVersion() == null))).thenReturn(CollectionSourceAdapter.Source.builder()
+                        .entry("configuration")
+                        .objectId(30L)
+                        .sourceContext("IMP")
+                        .sourceObjectType("Configuration")
+                        .projectId(11L)
+                        .deviceId(20L)
+                        .deviceName("device")
+                        .version(2L)
+                        .manualAllowed(true)
+                        .canExecute(true)
+                        .completionMode("BUSINESS_CONSUMPTION")
+                        .title("configuration")
+                        .build());
         assertThrows(IllegalStateException.class,()->service.readCollection(origin));verifyNoInteractions(storage);
     }
     @Test void successfulAuthorizedResultReadsItsExactVersion() {
         byte[] bytes=new byte[10];when(storage.read(any())).thenReturn(bytes);
         assertSame(bytes,service.readCollection(origin));
         verify(storage).read(new FileStorageContentApi.Query(1L,200L,10L,"a".repeat(64),20*1024*1024));
-        verify(source).authorize(1L,7L,30L,20L,CollectionSourceAdapter.Access.CONSUME,null);
+        verify(source).authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(1L)
+                .actorId(7L)
+                .objectId(30L)
+                .deviceId(20L)
+                .access(CollectionSourceAdapter.Access.CONSUME)
+                .expectedVersion(null)
+                .build());
     }
     @Test void foreignTenantCannotInspectTask() {
         assertThrows(IllegalArgumentException.class,()->service.readCollection(new DeviceLogFileApi.Origin(2L,7L,10L,20L,"task",1L,100L)));

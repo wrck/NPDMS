@@ -52,6 +52,32 @@ class TemplateRuleCollectionTest {
         assertThrows(IllegalArgumentException.class, () -> TemplateRuleCollection.condition(rules, "strategy"));
     }
 
+    @Test void decisionWithJsonNullConditionSurvivesSaveAndReload() {
+        var table = ProjectDecisionTableServiceTest.table("100", "true");
+        var source = document();
+        source.setRules(List.of(new VersionRule("strategy", "策略", VersionRule.Kind.DECISION,
+                false, JsonUtils.parseTree("null"), table)));
+        String before = JsonUtils.toJsonString(source);
+
+        var saved = TemplateRuleCollection.forEditing(source);
+        var reopened = JsonUtils.parseObject(JsonUtils.toJsonString(saved), TemplateDesignerDocument.class);
+        var compiled = TemplateRuleCollection.forCompilation(reopened);
+
+        assertEquals(table, compiled.getRules().getFirst().decision());
+        assertEquals(before, JsonUtils.toJsonString(source));
+        assertThrows(IllegalArgumentException.class,
+                () -> TemplateRuleCollection.condition(TemplateRuleCollection.index(compiled.getRules()), "strategy"));
+    }
+
+    @Test void jsonNullDoesNotSupplyAMissingConditionOrAllowTwoRealSources() {
+        var table = ProjectDecisionTableServiceTest.table("100", "true");
+        assertThrows(IllegalArgumentException.class, () -> TemplateRuleCollection.index(List.of(
+                new VersionRule("missing", "缺条件", VersionRule.Kind.CONDITION,
+                        false, JsonUtils.parseTree("null"), null))));
+        assertThrows(IllegalArgumentException.class, () -> TemplateRuleCollection.index(List.of(
+                new VersionRule("conflict", "冲突", VersionRule.Kind.DECISION, false, expression(true), table))));
+    }
+
     @Test void decisionReferenceExpansionOnlyChangesTheExecutionCopy() {
         var table = ProjectDecisionTableServiceTest.table("100", "true");
         var expression = JsonUtils.parseTree("""

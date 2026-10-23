@@ -7,22 +7,24 @@
           <div class="project-title-row">
             <ProjectStatusTag :project="detail" />
             <h2 class="project-name">{{ detail?.projectName || '未选择项目' }}</h2>
-            <el-tag v-if="detail?.majorProjectLevel" size="small" type="warning">
-              {{ getDictLabel(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL, detail.majorProjectLevel) }}
+            <el-tag v-if="majorProjectLevelLabel" size="small" type="warning">
+              {{ majorProjectLevelLabel }}
             </el-tag>
             <el-tag v-if="detail?.projectCategory" size="small" effect="plain">
               {{ getDictLabel(DICT_TYPE.PMS_PROJECT_CATEGORY, detail.projectCategory) }}
             </el-tag>
-            <el-tag v-if="detail?.lifecycleTemplateId" size="small" type="info" effect="plain">
-              模板 #{{ detail.lifecycleTemplateId }} v{{ detail.lifecycleTemplateRevisionNo }}
-            </el-tag>
+            <ProjectCurrentPlanTag
+              v-if="detail?.id && checkPermi(['pms:project-plan:manage'])"
+              :project-id="detail.id" :refresh-token="detail.version" />
           </div>
           <div class="project-meta-row">
             <span class="meta-item">
               编码 <span class="meta-code">{{ detail?.projectCode || '—' }}</span>
             </span>
             <span v-if="detail?.parentId" class="meta-item">
-              父项目 <span class="meta-code">#{{ detail.parentId }}</span>
+              父项目
+              <router-link v-if="parentProject?.projectName" class="parent-project-link" :to="{ path: '/pms/project-management/project-master-detail', query: { projectId: String(detail.parentId) } }">{{ parentProject.projectName }}</router-link>
+              <span v-else>{{ parentProjectLoading ? '加载中' : '信息不可见' }}</span>
             </span>
             <span class="meta-item">
               <Icon icon="ep:office-building" />{{ detail?.customerName || '-' }}
@@ -61,6 +63,24 @@
       :gates="instances?.gates || []"
       @select="selectStage"
     />
+
+    <ContentWrap v-if="narrowScreen && detail?.id" class="mobile-task-navigation">
+      <details ref="mobileTaskNavigation">
+        <summary>选择任务<span v-if="stageSelection"> · {{ stageSelection.stageCode }}</span></summary>
+        <div class="mobile-stage-options" aria-label="选择任务所属阶段">
+          <el-button
+            v-for="stage in sortedStages" :key="stage.stageCode"
+            :type="expandedStage === stage.stageCode ? 'primary' : 'default'"
+            :aria-pressed="expandedStage === stage.stageCode" @click="selectStage(stage.stageCode)">
+            {{ stage.stageCode }} {{ stage.name }}
+          </el-button>
+        </div>
+        <ProjectTaskTree
+          v-if="expandedStage" :project-id="detail.id" :stage-code="expandedStage"
+          :refresh-token="stageTreeToken" compact @select="onMobileTaskSelect" @version="treeVersion = $event" />
+        <p v-else>请先选择阶段，再选择任务。</p>
+      </details>
+    </ContentWrap>
 
     <!-- ============ 主体：左侧导航 + 右侧内容区 ============ -->
     <div class="detail-body">
@@ -102,7 +122,7 @@
             >
               <Icon
                 v-if="stageHasTasks(stage)"
-                :icon="expandedStage === stage.stageCode ? 'ep:arrow-down' : 'ep:arrow-right'"
+                :icon="collapsedStages.includes(stage.stageCode) ? 'ep:arrow-right' : 'ep:arrow-down'"
                 class="stage-caret"
               />
               <i class="stage-dot" :class="stageDotClass(stage)"></i>
@@ -110,7 +130,7 @@
               <span class="stage-prog">{{ stageProgress(stage) }}</span>
             </button>
             <div
-              v-if="detail?.id && expandedStage === stage.stageCode && stageHasTasks(stage)"
+              v-if="detail?.id && !collapsedStages.includes(stage.stageCode) && stageHasTasks(stage)"
               class="nav-task-tree"
               :data-testid="`project-nav-tasks-${stage.stageCode}`"
             >
@@ -131,28 +151,6 @@
           <BusinessFlowNav :groups="businessFlowGroups" :active="activeTab" @select="switchTab" />
         </div>
 
-        <div class="rail-stage">
-          <div class="rail-stage-title">项目拆分</div>
-          <button
-            class="rail-item"
-            :class="{ 'rail-item--active': activeTab === 'split' }"
-            @click="switchTab('split')"
-          >
-            <Icon icon="ep:operation" class="rail-icon" />
-            <span class="rail-label">拆分方案</span>
-          </button>
-        </div>
-        <div class="rail-stage">
-          <div class="rail-stage-title">进度汇总</div>
-          <button
-            class="rail-item"
-            :class="{ 'rail-item--active': activeTab === 'progress' }"
-            @click="switchTab('progress')"
-          >
-            <Icon icon="ep:data-analysis" class="rail-icon" />
-            <span class="rail-label">进度汇总</span>
-          </button>
-        </div>
         <div class="rail-stage">
           <div class="rail-stage-title">异常治理</div>
           <button
@@ -199,6 +197,11 @@
             <span class="panel-title"><Icon icon="ep:document" /> 基本信息</span>
           </div>
           <ProjectBaseInfo v-if="detail?.id" :project="detail" />
+          <details v-if="detail?.lifecycleTemplateId && checkRole(['admin'])" class="template-source-history">
+            <summary>历史信息</summary>
+            <p>原始模板来源：#{{ detail.lifecycleTemplateId }} · 模板 v{{ detail.lifecycleTemplateRevisionNo }}</p>
+            <p>此处保留项目最初绑定的模板来源；当前实际执行配置以顶部的生效计划为准。</p>
+          </details>
         </ContentWrap>
 
         <!-- ============ 项目概览：客户信息（与 pms-inheritance/project-detail 同一组件） ============ -->
@@ -218,7 +221,7 @@
         </div>
         <!-- 序列号详情（DemoV2 1.1.1 十八列明细：设备列表 + 档案位置关联 + 在网版本/维保逐台补齐） -->
         <div v-if="detail?.id && visitedTabs.has('sn-result')" v-show="activeTab === 'sn-result'" class="min-w-0" data-testid="project-pane-sn-result">
-          <ProjectSerialPanel :project-id="detail.id" @open-config-log="openConfigLogForDeviceId" />
+          <ProjectSerialPanel :project-id="detail.id" :active="activeTab === 'sn-result'" @open-config-log="openConfigLogForDeviceId" />
         </div>
 
         <!-- ============ 全流程业务模块面板（配置驱动，行操作/新增/编辑/删除同通用模块面板） ============ -->
@@ -229,7 +232,7 @@
             class="min-w-0"
             :data-testid="`project-pane-${item.key}`"
           >
-            <ProjectDeliverablesPanel v-if="item.key === 'deliverable-checklist'" :project-id="detail.id" @changed="loadInstances" />
+            <ProjectDeliverablesPanel v-if="item.key === 'deliverable-checklist'" :project-id="detail.id" @changed="handleExternalWorkspaceChanged" />
             <DeliveryModuleTable v-else :config="businessModuleConfigs[item.key]" :project-id="detail.id" />
           </div>
         </template>
@@ -246,7 +249,7 @@
               :is="comp"
               :key="`embed-${embedKey}-${detail.id}`"
               :project-id="detail.id"
-              :initial-device-id="embedKey === 'config-log' ? configLogDeviceId : undefined"
+              v-bind="embedKey === 'config-log' ? { active: activeTab === embedKey } : {}"
             />
           </div>
         </template>
@@ -288,7 +291,6 @@
                   >任务（{{ instTasks(stage.stageCode).length }}）</div
                 >
                 <el-table :data="instTasks(stage.stageCode)" size="small" border>
-                  <el-table-column prop="taskCode" label="任务码" width="120" />
                   <el-table-column prop="name" label="任务名称" min-width="140" />
                   <el-table-column label="状态" width="90">
                     <template #default="{ row }">
@@ -324,7 +326,7 @@
                   }}</el-tag>
                   {{ d.name }}
                   <el-tag size="small" :type="d.status === 'ACCEPTED' ? 'success' : 'info'">{{ d.status === 'ACCEPTED' ? '已满足' : '待满足' }}</el-tag>
-                  <el-button v-if="d.id" link type="primary" @click="deliverableRef?.open(d.id)">提交与查看</el-button>
+                  <el-button v-if="d.id" link type="primary" @click="deliverableRef?.open(d.id)">{{ d.automaticCollection ? '查看' : '提交与查看' }}</el-button>
                 </div>
               </div>
               <div class="preview-block">
@@ -360,6 +362,7 @@
           <ProjectStageStatusPanel
             :project-id="detail.id"
             :project="detail"
+            :refresh-token="stageTreeToken"
             :key="detail.id"
             @changed="loadAll"
           />
@@ -378,6 +381,7 @@
                 :show-stage-gates="false"
                 show-responsibilities
                 @changed="handleFlowChanged"
+                @refreshed="handleFlowChanged"
               />
             </div>
             <aside class="stage-ws-side" aria-label="完成条件与阶段历史">
@@ -391,14 +395,23 @@
                   :project-version="detail.version"
                   :instances="instances"
                   :task-deliverables="stageSelection?.kind === 'task' ? flowTaskDeliverables : undefined"
-                  @changed="loadAll"
-                />
+                  @changed="handleExternalWorkspaceChanged"
+                >
+                  <template #header="{ loading: gateLoading, disabled, refresh }">
+                    <div class="panel-header">
+                      <span class="panel-title"><Icon icon="ep:circle-check" /> 完成条件</span>
+                      <el-button link type="primary" :loading="gateLoading" :disabled="disabled" @click="refresh">
+                        检查阶段条件
+                      </el-button>
+                    </div>
+                  </template>
+                </StageGateResultsPanel>
               </ContentWrap>
               <ContentWrap>
                 <div class="panel-header">
                   <span class="panel-title"><Icon icon="ep:clock" /> 阶段历史</span>
                   <el-button link type="primary" @click="historyVisible = true"
-                    >执行历史与规则结果</el-button
+                    >阶段状态查看</el-button
                   >
                 </div>
                 <div v-if="stageHistory.length" class="stage-history">
@@ -433,7 +446,6 @@
         <div v-if="detail?.id && visitedTabs.has('requirement-analysis')" v-show="activeTab === 'requirement-analysis'" class="min-w-0" data-testid="project-pane-requirement-analysis">
           <ProjectRequirementAnalysisPanel
             ref="requirementRef"
-            :open-briefing="() => switchTab('briefing')"
             :project="detail"
           />
         </div>
@@ -455,25 +467,30 @@
           />
         </div>
 
-        <div v-if="detail?.id && visitedTabs.has('split')" v-show="activeTab === 'split'" class="min-w-0" data-testid="project-pane-split">
-          <ProjectSplitWizard
-            :project-id="detail.id"
-            @applied="treeRefreshKey++"
-          />
-        </div>
         <div v-if="detail?.id && visitedTabs.has('tree')" v-show="activeTab === 'tree'" class="min-w-0" data-testid="project-pane-tree">
-          <ProjectTreePanel
-            :key="treeRefreshKey"
-            :project-id="detail.id"
-            @tree-version="treeVersion = $event"
-            @updated="loadAll"
-          />
-        </div>
-        <div v-if="detail?.id && visitedTabs.has('progress')" v-show="activeTab === 'progress'" class="min-w-0" data-testid="project-pane-progress">
-          <ProjectProgressPanel
-            :project-id="detail.id"
-            :tree-version="treeVersion"
-          />
+          <el-tabs v-model="projectTreeTab" aria-label="项目树功能">
+            <el-tab-pane label="项目结构" name="structure" lazy>
+              <ProjectTreePanel
+                :key="treeRefreshKey"
+                :project-id="detail.id"
+                @tree-version="treeVersion = $event"
+                @updated="loadAll"
+              />
+            </el-tab-pane>
+            <el-tab-pane label="拆分方案" name="split" lazy>
+              <ProjectSplitWizard
+                :project-id="detail.id"
+                @applied="treeRefreshKey++"
+              />
+            </el-tab-pane>
+            <el-tab-pane label="进度汇总" name="progress" lazy>
+              <ProjectProgressPanel
+                :project-id="detail.id"
+                :refresh-token="treeRefreshKey"
+                :tree-version="treeVersion"
+              />
+            </el-tab-pane>
+          </el-tabs>
         </div>
         <div v-if="detail?.id && visitedTabs.has('closure')" v-show="activeTab === 'closure'" class="min-w-0" data-testid="project-pane-closure">
           <ProjectNormalClosurePanel
@@ -509,86 +526,104 @@
 
         <!-- 现场培训（6.1/ACC-01）：内嵌完整工作台（新建/编辑/生成培训记录表/外发/作废） -->
         <div v-if="detail?.id && visitedTabs.has('training')" v-show="activeTab === 'training'" class="min-w-0" data-testid="project-pane-training">
-          <TrainingWorkbench :key="`training-${detail.id}`" :project-id="detail.id" />
+          <TrainingWorkbench :key="`training-${detail.id}`" :project-id="detail.id" :readonly="detail.lifecycleStatus !== 'ACTIVE'" />
         </div>
 
 
       </div>
     </div>
   </div>
-  <ProjectDeliverableDialog v-if="detail?.id" ref="deliverableRef" :project-id="detail.id" @changed="loadInstances" />
+  <ProjectDeliverableDialog v-if="detail?.id" ref="deliverableRef" :project-id="detail.id" @changed="handleExternalWorkspaceChanged" />
+  <ProjectApprovalDrawer ref="approvalDrawerRef" />
+  <ProjectDeviceConfigLogDrawer v-if="detail?.id" ref="configLogDrawerRef" :project-id="detail.id" />
 </template>
 
 <script setup lang="ts">
 import ProjectBaseInfo from './components/ProjectBaseInfo.vue'
+import ProjectCurrentPlanTag from './components/ProjectCurrentPlanTag.vue'
 import BusinessFlowNav from './components/BusinessFlowNav.vue'
-import { computed, onMounted, ref, type Component } from 'vue'
+import { computed, defineAsyncComponent, onMounted, provide, ref, type Component } from 'vue'
+import { useMediaQuery } from '@vueuse/core'
+import ProjectApprovalDrawer from './components/ProjectApprovalDrawer.vue'
+import { projectApprovalDetailKey } from './components/projectApprovalDetail'
 import { useRoute, useRouter } from 'vue-router'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
-import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
 import ProjectAssociatedDataPanel from './components/ProjectAssociatedDataPanel.vue'
 import * as RiskApi from '@/api/pms/project/project-risk'
-import ProjectSplitWizard from './components/ProjectSplitWizard.vue'
-import ProjectTreePanel from '@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'
-import ProjectProgressPanel from './components/ProjectProgressPanel.vue'
-import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
-import ProjectNormalClosurePanel from './components/ProjectNormalClosurePanel.vue'
 import ProjectStatusTag from '../projects/ProjectStatusTag.vue'
-import ProjectAuthorizationPanel from './components/ProjectAuthorizationPanel.vue'
-import ProjectGovernancePanel from './components/ProjectGovernancePanel.vue'
-import ProjectServiceManagerPanel from './components/ProjectServiceManagerPanel.vue'
-import ProjectMembersPanel from '@/views/pms/project/inheritance/members/ProjectMembersPanel.vue'
-import DeliveryModuleTable, { type DeliveryModuleConfig } from '@/views/pms/project/inheritance/detail/DeliveryModuleTable.vue'
-import ProjectCustomerOverview from './components/ProjectCustomerOverview.vue'
-import ProjectAttributePanel from './components/ProjectAttributePanel.vue'
-import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchHistoryPanel.vue'
-import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
-import ProjectStageStatusPanel from './components/ProjectStageStatusPanel.vue'
-import ProjectSchedulePanel from './components/ProjectSchedulePanel.vue'
-import ProjectSerialPanel from './components/ProjectSerialPanel.vue'
+import type { DeliveryModuleConfig } from '@/views/pms/project/inheritance/detail/DeliveryModuleTable.vue'
+import ProjectDeviceConfigLogDrawer from './components/ProjectDeviceConfigLogDrawer.vue'
 import StageProgressRail from './components/StageProgressRail.vue'
-import ProjectFlowPanel from './components/ProjectFlowPanel.vue'
 import ProjectDeliverableDialog from './components/ProjectDeliverableDialog.vue'
-import ProjectDeliverablesPanel from './components/ProjectDeliverablesPanel.vue'
-import StageGateResultsPanel from './components/StageGateResultsPanel.vue'
-import ProjectTaskTree from './components/ProjectTaskTree.vue'
-import ProjectExecutionHistory from './components/ProjectExecutionHistory.vue'
 import { businessFlowGroups, businessNavItems, businessModuleConfigs, flowEmbedKeys } from './components/businessModules'
 import type { ProjectFlowSelection } from './components/project-flow'
 import type { TaskNode } from '@/api/pms/project/task-workbench'
-import ProjectSiteSurveyPanel from '@/views/pms/delivery-business/site-survey/index.vue'
-import DeliverableSummaryPanel from '@/views/pms/engineering/deliverable/summary/index.vue'
-import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
-import ArrivalAcceptanceWorkbench from './components/ProjectArrivalReceiptPanel.vue'
-import InstallationWorkbench from '@/views/pms/engineering/installation/index.vue'
-import ConfigurationWorkbench from '@/views/pms/engineering/configuration/index.vue'
-import JointTestWorkbench from '@/views/pms/engineering/joint-test/index.vue'
-import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
-import MaterialExchWorkbench from '@/views/pms/engineering/material-exch/index.vue'
-import CutoverTaskWorkbench from '@/views/pms/cutover/cutover-task/index.vue'
-import ConfigLogWorkbench from '@/views/pms/asset/device/config-log/index.vue'
-import CompletionCertificateWorkbench from '@/views/pms/acceptance/completion-certificate/index.vue'
-import SatisfactionWorkbench from '@/views/pms/acceptance/satisfaction/index.vue'
-import AcceptanceReportWorkbench from '@/views/pms/acceptance/acceptance-report/index.vue'
 import * as ContactsApi from '@/api/pms/customer/contacts'
-import * as DeviceApi from '@/api/pms/asset/device'
-import { getDeliveryScopePage, getSalesOrderLinePage } from '@/api/pms/commerce'
 import ProjectDeliveryScopePanel from '@/views/pms/commerce/delivery-scope/index.vue'
 import type { ProjectRouteContext } from '@/views/pms/commerce/commerceInteraction'
-import { checkPermi } from '@/utils/permission'
-import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
+import { loadProjectEquipmentList } from '@/api/pms/commerce/projectEquipment'
+import { checkPermi, checkRole } from '@/utils/permission'
+import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
 import type { ProjectMasterVO, ProjectInstancesVO } from '@/api/pms/project/projects'
+
+// Only load business workspaces when their existing tab host is first mounted.
+const ProjectSplitWizard = defineAsyncComponent(() => import('./components/ProjectSplitPanel.vue'))
+const ProjectTreePanel = defineAsyncComponent(() => import('@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'))
+const ProjectProgressPanel = defineAsyncComponent(() => import('./components/ProjectProgressSummaryPanel.vue'))
+const ProjectClosureGuardPanel = defineAsyncComponent(() => import('./components/ProjectClosureGuardPanel.vue'))
+const ProjectNormalClosurePanel = defineAsyncComponent(() => import('./components/ProjectNormalClosurePanel.vue'))
+const ProjectAuthorizationPanel = defineAsyncComponent(() => import('./components/ProjectAuthorizationPanel.vue'))
+const ProjectGovernancePanel = defineAsyncComponent(() => import('./components/ProjectGovernancePanel.vue'))
+const ProjectServiceManagerPanel = defineAsyncComponent(() => import('./components/ProjectServiceManagerPanel.vue'))
+const ProjectMembersPanel = defineAsyncComponent(() => import('@/views/pms/project/inheritance/members/ProjectMembersPanel.vue'))
+const ProjectCustomerOverview = defineAsyncComponent(() => import('./components/ProjectCustomerOverview.vue'))
+const ProjectAttributePanel = defineAsyncComponent(() => import('./components/ProjectAttributePanel.vue'))
+const ProjectTemplateMatchHistoryPanel = defineAsyncComponent(() => import('./components/ProjectTemplateMatchHistoryPanel.vue'))
+const ProjectTaskPanel = defineAsyncComponent(() => import('./components/ProjectTaskPanel.vue'))
+const ProjectStageStatusPanel = defineAsyncComponent(() => import('./components/ProjectStageStatusPanel.vue'))
+const ProjectSchedulePanel = defineAsyncComponent(() => import('./components/ProjectSchedulePanel.vue'))
+const ProjectSerialPanel = defineAsyncComponent(() => import('./components/ProjectSerialPanel.vue'))
+const ProjectFlowPanel = defineAsyncComponent(() => import('./components/ProjectFlowPanel.vue'))
+const ProjectDeliverablesPanel = defineAsyncComponent(() => import('./components/ProjectDeliverablesPanel.vue'))
+const StageGateResultsPanel = defineAsyncComponent(() => import('./components/StageGateResultsPanel.vue'))
+const ProjectTaskTree = defineAsyncComponent(() => import('./components/ProjectTaskTree.vue'))
+const ProjectExecutionHistory = defineAsyncComponent(() => import('./components/ProjectExecutionHistory.vue'))
+const ProjectSiteSurveyPanel = defineAsyncComponent(() => import('@/views/pms/delivery-business/site-survey/index.vue'))
+const DeliverableSummaryPanel = defineAsyncComponent(() => import('@/views/pms/engineering/deliverable/summary/index.vue'))
+const TrainingWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/training/index.vue'))
+const ArrivalAcceptanceWorkbench = defineAsyncComponent(() => import('./components/ProjectArrivalReceiptPanel.vue'))
+const InstallationWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue'))
+const ConfigurationWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/configuration/with-device-logs.vue'))
+const JointTestWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/joint-test/with-device-logs.vue'))
+const SolutionWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/solution-reviewed/index.vue'))
+const MaterialExchWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/material-exch/index.vue'))
+const ProjectCutoverTasks = defineAsyncComponent(() => import('@/views/pms/cutover/project-tasks/index.vue'))
+const ProjectDeviceLogsPanel = defineAsyncComponent(() => import('./components/ProjectDeviceLogsPanel.vue'))
+const SatisfactionWorkbench = defineAsyncComponent(() => import('@/views/pms/acceptance/satisfaction/index.vue'))
+const AcceptanceReportWorkbench = defineAsyncComponent(() => import('@/views/pms/acceptance/acceptance-report/index.vue'))
+const ProjectRequirementAnalysisPanel = defineAsyncComponent(() => import('@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'))
+const DeliveryModuleTable = defineAsyncComponent(() => import('@/views/pms/project/inheritance/detail/DeliveryModuleTable.vue'))
 
 defineOptions({ name: 'PmsProjectMasterDetail' })
 
+const narrowScreen = useMediaQuery('(max-width: 1024px)')
+const mobileTaskNavigation = ref<HTMLDetailsElement>()
+
 const route = useRoute()
+const projectId = () => isBusinessViewId(route.query.projectId) ? legacyOwnerId(route.query.projectId) : undefined
 const router = useRouter()
 const routeProjectId = () => isBusinessViewId(route.query.projectId) ? legacyOwnerId(route.query.projectId) : undefined
+const approvalDrawerRef = ref<InstanceType<typeof ProjectApprovalDrawer>>()
+provide(projectApprovalDetailKey, (id) => approvalDrawerRef.value?.open(id))
 
 const loading = ref(false)
 const detail = ref<ProjectMasterVO | null>(null)
+const parentProject = ref<ProjectMasterVO | null>(null)
+const parentProjectLoading = ref(false)
+const majorProjectLevelLabel = computed(() => detail.value?.majorProjectLevel
+  ? getDictLabel(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL, detail.value.majorProjectLevel).trim() : '')
 const instances = ref<ProjectInstancesVO | null>(null)
 const scopeVersion = ref<number>()
 const scopeContext = computed<ProjectRouteContext | undefined>(() => {
@@ -614,29 +649,29 @@ const flowModuleItems = businessNavItems.filter(
 )
 // 内嵌工作台组件（Demo 操作界面；均复用既有页面并锁定项目上下文）
 const flowEmbedComponents: Record<string, Component> = {
-  'config-log': ConfigLogWorkbench,
+  'config-log': ProjectDeviceLogsPanel,
   'material-exch': MaterialExchWorkbench,
   solution: SolutionWorkbench,
   arrival: ArrivalAcceptanceWorkbench,
   installation: InstallationWorkbench,
   configuration: ConfigurationWorkbench,
   'joint-test': JointTestWorkbench,
-  cutover: CutoverTaskWorkbench,
-  'completion-certificate': CompletionCertificateWorkbench
+  cutover: ProjectCutoverTasks
 }
 const requestedTab = (
     {
       'stage-gates': 'stage-status',
+      'completion-certificate': 'satisfaction',
       // 施工计划整合前的旧页签 key（3.1/3.2/3.4）统一落到整合工作台
       duration: 'schedule',
       'stage-plan': 'schedule',
       'schedule-backward': 'schedule',
       // 基本信息组移除后，旧深链接落到客户信息（其面板内嵌完整联系人工作台）
-      'customer-contacts': 'customer'
+      'customer-contacts': 'customer',
+      acceptance: 'acceptance-reports'
     } as Record<string, string>
   )[String(route.query.tab)] ||
   ([
-    'tasks',
     'stage-status',
     'stage',
     'customer',
@@ -645,7 +680,6 @@ const requestedTab = (
     'sn-result',
     'config-log',
     'members',
-    'scope',
     'schedule',
     'preparation',
     'requirement-analysis',
@@ -657,6 +691,7 @@ const requestedTab = (
     : 'base')
 const activeTab = ref(requestedTab)
 const visitedTabs = ref(new Set([requestedTab]))
+const projectTreeTab = ref('structure')
 
 // 项目概览子项（设计稿 F-PROJ-007 §6 六类内容 + 既有扩展）；pending 项为规格未定义的占位卡片
 // permission 与 pms-inheritance/project-detail 的 overviewSteps 同口径，无权限时导航项隐藏
@@ -667,7 +702,6 @@ const overviewSteps: { key: string; label: string; icon: string; pending?: boole
   { key: 'product-lists', label: '产品清单', icon: 'ep:collection', permission: ['pms:project:query'] },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
-  { key: 'tasks', label: '项目任务', icon: 'ep:list' },
   { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'config-log', label: '配置Log', icon: 'ep:document-copy' },
@@ -680,126 +714,31 @@ const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
 const formatDateTime = (v?: any) => (v ? formatDate(v) : '-')
 
 // ============ 交付模块表格（与 pms-inheritance/project-detail 同一 DeliveryModuleTable） ============
-const loadEquipmentPages = async <T,>(loadPage: (pageNo: number) => Promise<{ list: T[]; total: number }>) => {
-  const list: T[] = []
-  for (let pageNo = 1; ; pageNo++) {
-    const page = await loadPage(pageNo)
-    const rows = page.list || []
-    list.push(...rows)
-    if (!rows.length || list.length >= page.total) return { list }
-  }
-}
-
-// 设备清单 = 产品清单信息：交付范围明细（序列号级→项目数量、订单行引用）× ERP 订单行（订单号/发货/未发货数量）
-// × 产品设备清单 ast_device（产品身份/设备台数）按产品聚合。交付范围明细与订单行均不带产品编码，
-// 产品身份经 ast_device 按序列号解析；订单行数量按 订单号+行号 归集到产品。逐台明细见「序列号详情」页签
+// 设备清单保留全部产品，分别显示订单数量和设备数量；逐台记录见「序列号详情」。
 const deliveryModules: Record<string, DeliveryModuleConfig> = {
   equipment: {
     label: '设备清单',
+    tableSize: 'default',
     icon: 'ep:cpu',
     load: async (pid, pageNo, pageSize) => {
-      const [scopeRes, devicePage] = await Promise.all([
-        loadEquipmentPages<any>((pageNo) => getDeliveryScopePage({ projectId: pid, pageNo, pageSize: 200, includeHistory: false })).catch(() => ({ list: [] })),
-        loadEquipmentPages((pageNo) => DeviceApi.getDevicePage({ projectId: pid, pageNo, pageSize: 200 })).catch(() => ({ list: [] }))
-      ])
-      // 产品身份解析：ast_device 按序列号 → 产品编码/型号/名称
-      const snProduct = new Map<string, { productCode: string; productModel: string; productName: string }>()
-      for (const d of devicePage.list || []) {
-        const sn = String(d.sn ?? '').trim()
-        if (sn) {
-          snProduct.set(sn, {
-            productCode: String(d.productCode ?? '').trim(),
-            productModel: String(d.productModel ?? '').trim(),
-            productName: String(d.productName ?? '').trim()
-          })
-        }
-      }
-      const grouped = new Map<string, {
-        productModel: string; productName: string
-        orderNos: Set<string>; lines: Set<string>
-        projectQty: number; deviceCount: number
-      }>()
-      const ensure = (key: string) => {
-        const cur = grouped.get(key) || { productModel: '', productName: '', orderNos: new Set<string>(), lines: new Set<string>(), projectQty: 0, deviceCount: 0 }
-        grouped.set(key, cur)
-        return cur
-      }
-      for (const scope of scopeRes.list || []) {
-        for (const d of scope.details || []) {
-          const product = snProduct.get(String(d.serialNo ?? '').trim())
-          const key = product?.productCode || String(d.productCode ?? '').trim() || '—'
-          const cur = ensure(key)
-          if (product) {
-            if (!cur.productModel) cur.productModel = product.productModel
-            if (!cur.productName) cur.productName = product.productName
-          }
-          cur.projectQty += Number(d.allocatedQuantity || 0)
-          if (scope.orderNo) cur.orderNos.add(String(scope.orderNo).trim())
-          if (scope.orderNo && scope.lineNo) cur.lines.add(`${String(scope.orderNo).trim()}|${String(scope.lineNo).trim()}`)
-        }
-      }
-      for (const d of devicePage.list || []) {
-        const key = String(d.productCode ?? '').trim() || String(d.productModel ?? '').trim() || '—'
-        const cur = grouped.get(key)
-        if (!cur) continue
-        if (!cur.productModel) cur.productModel = String(d.productModel ?? '').trim()
-        if (!cur.productName) cur.productName = String(d.productName ?? '').trim()
-        cur.deviceCount += 1
-      }
-      // 订单行数量（ERP 订单数据）：按 订单号+行号 匹配后归集到产品
-      const orderNos = new Set<string>()
-      grouped.forEach((cur) => cur.orderNos.forEach((o) => orderNos.add(o)))
-      const lineQty = new Map<string, { deliveredQty: number; openQty: number }>()
-      await Promise.all(
-        [...orderNos].map((orderNo) =>
-          loadEquipmentPages<any>((pageNo) => getSalesOrderLinePage({ orderNo, pageNo, pageSize: 200 }))
-            .then((res: any) => {
-              for (const l of res.list || []) {
-                lineQty.set(`${String(l.orderNo).trim()}|${String(l.lineNo).trim()}`, {
-                  deliveredQty: Number(l.deliveredQty || 0),
-                  openQty: Number(l.openQty || 0)
-                })
-              }
-            })
-            .catch(() => undefined)
-        )
-      )
-      const rows = [...grouped.entries()].map(([key, cur]) => {
-        let deliveredQty = 0
-        let openQty = 0
-        cur.lines.forEach((lk) => {
-          const q = lineQty.get(lk)
-          if (q) {
-            deliveredQty += q.deliveredQty
-            openQty += q.openQty
-          }
-        })
-        return {
-          productCode: key,
-          productModel: cur.productModel,
-          productName: cur.productName,
-          orderNo: [...cur.orderNos].join('、'),
-          projectQty: cur.projectQty,
-          deliveredQty,
-          openQty,
-          deviceCount: cur.deviceCount
-        }
-      })
+      const equipment = await loadProjectEquipmentList(pid)
+      if (!equipment) return { list: [], total: 0 }
+      const rows = equipment.list
       return {
         list: rows.slice((pageNo - 1) * pageSize, pageNo * pageSize).map((r, i) => ({ ...r, no: (pageNo - 1) * pageSize + i + 1 })),
         total: rows.length
       }
     },
     columns: [
-      { prop: 'no', label: '序号', width: 60 },
-      { prop: 'productCode', label: '产品编码', minWidth: 120 },
-      { prop: 'productModel', label: '产品型号', minWidth: 140 },
-      { prop: 'productName', label: '产品名称', minWidth: 200 },
-      { prop: 'orderNo', label: '订单号', minWidth: 140 },
-      { prop: 'projectQty', label: '项目数量', width: 90 },
-      { prop: 'deliveredQty', label: '发货数量', width: 90 },
-      { prop: 'openQty', label: '未发货数量', width: 100 },
-      { prop: 'deviceCount', label: '设备数量', width: 90 }
+      { prop: 'no', label: '序号', width: 46 },
+      { prop: 'productCode', label: '产品编码', minWidth: 92 },
+      { prop: 'productModel', label: '产品型号', minWidth: 110 },
+      { prop: 'productName', label: '产品名称', minWidth: 130 },
+      { prop: 'orderNo', label: '订单号', minWidth: 100 },
+      { prop: 'projectQty', label: '项目数量', width: 76 },
+      { prop: 'deliveredQty', label: '发货数量', width: 76 },
+      { prop: 'openQty', label: '未发货数量', width: 88 },
+      { prop: 'deviceCount', label: '设备数量', width: 76 }
     ],
     // 该产品的逐台序列号与运维明细在「序列号详情」页签
     actions: [
@@ -808,11 +747,10 @@ const deliveryModules: Record<string, DeliveryModuleConfig> = {
   }
 }
 
-// 序列号详情行 → 配置Log（1.1.1.1）：携带设备ID切换页签，由 ConfigLogWorkbench 预置过滤
-const configLogDeviceId = ref<number>()
-const openConfigLogForDeviceId = async (deviceId: number) => {
-  configLogDeviceId.value = deviceId
-  await switchTab('config-log')
+// 序列号行在当前工作台打开设备日志抽屉。
+const configLogDrawerRef = ref<InstanceType<typeof ProjectDeviceConfigLogDrawer>>()
+const openConfigLogForDeviceId = (deviceId: number, serialNumber: string) => {
+  configLogDrawerRef.value?.open(deviceId, serialNumber)
 }
 
 const requirementRef = ref<InstanceType<typeof ProjectRequirementAnalysisPanel>>()
@@ -860,6 +798,7 @@ const sortedStages = computed(() =>
   [...(instances.value?.stages || [])].sort((a, b) => a.sortOrder - b.sortOrder)
 )
 const expandedStage = ref('')
+const collapsedStages = ref<string[]>([])
 const stageTreeToken = ref(0)
 const stageSelection = ref<ProjectFlowSelection>()
 const flowRef = ref<InstanceType<typeof ProjectFlowPanel>>()
@@ -920,17 +859,12 @@ const selectStage = async (stageCode: string) => {
 }
 
 const toggleStage = async (stageCode: string) => {
-  const selection = stageSelection.value
-  const alreadySelected =
-    activeTab.value === 'stage' &&
-    expandedStage.value === stageCode &&
-    selection?.kind === 'stage' &&
-    selection.stageCode === stageCode
-  if (alreadySelected) {
-    expandedStage.value = ''
-    return
-  }
   await selectStage(stageCode)
+  if (collapsedStages.value.includes(stageCode)) {
+    collapsedStages.value = collapsedStages.value.filter((code) => code !== stageCode)
+  } else {
+    collapsedStages.value.push(stageCode)
+  }
 }
 
 const onTaskSelect = async (task: TaskNode, stageCode: string) => {
@@ -944,9 +878,20 @@ const onTaskSelect = async (task: TaskNode, stageCode: string) => {
   await switchTab('stage')
 }
 
+const onMobileTaskSelect = async (task: TaskNode) => {
+  await onTaskSelect(task, expandedStage.value)
+  if (stageSelection.value?.taskId === task.taskId && mobileTaskNavigation.value) {
+    mobileTaskNavigation.value.open = false
+  }
+}
+
 const handleFlowChanged = async () => {
-  stageTreeToken.value++
   await loadAll()
+}
+
+const handleExternalWorkspaceChanged = async () => {
+  await handleFlowChanged()
+  await flowRef.value?.refreshSummary()
 }
 
 // ============ 数据加载 ============
@@ -954,6 +899,18 @@ const loadDetail = async () => {
   const id = routeProjectId()
   if (!id) return
   detail.value = await ProjectsApi.getProject(id)
+  parentProject.value = null
+  const parentId = detail.value.parentId
+  parentProjectLoading.value = Boolean(parentId)
+  if (parentId) {
+    try {
+      parentProject.value = await ProjectsApi.getProject(parentId)
+    } catch {
+      parentProject.value = null
+    } finally {
+      parentProjectLoading.value = false
+    }
+  }
 }
 const handleAttributeUpdated = async () => {
   await loadDetail()
@@ -964,6 +921,7 @@ const handleMembersUpdated = async () => {
 }
 const handleScheduleChanged = async () => {
   await Promise.all([loadDetail(), loadInstances()])
+  stageTreeToken.value++
 }
 const loadInstances = async () => {
   const id = routeProjectId()
@@ -991,7 +949,7 @@ const loadScopeVersion = async () => {
   }
 }
 const loadAll = async () => {
-  loading.value = true
+  loading.value = !detail.value || String(detail.value.id) !== String(projectId())
   try {
     await Promise.all([loadDetail(), loadInstances(), loadPrimaryContact(), loadRiskCount(), loadScopeVersion()])
     stageTreeToken.value++
@@ -1011,6 +969,16 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.template-source-history {
+  margin-top: 20px;
+  color: var(--el-text-color-secondary);
+
+  summary { cursor: pointer; font-weight: 600; }
+}
+.parent-project-link, .parent-project-link:hover {
+  color: var(--el-color-primary);
+  text-decoration: none;
+}
 /* 顶部档案区 */
 .project-header {
   display: flex;
@@ -1105,6 +1073,20 @@ onMounted(() => {
   align-items: flex-start;
   gap: 12px;
   margin-top: 12px;
+}
+
+.mobile-task-navigation summary {
+  cursor: pointer;
+  color: var(--el-color-primary);
+}
+.mobile-stage-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.mobile-stage-options :deep(.el-button + .el-button) {
+  margin-left: 0;
 }
 
 .canvas {
@@ -1274,6 +1256,10 @@ onMounted(() => {
   font-size: 12.5px;
 }
 
+.stage-ws-side :deep(.stage-gates) {
+  margin-top: 0;
+}
+
 .history-row {
   display: flex;
   gap: 10px;
@@ -1374,15 +1360,35 @@ onMounted(() => {
 
   .rail-wrap {
     width: 100%;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     /* 窄屏下导航改为横向滚动条布局，取消吸顶限高 */
     position: static;
     max-height: none;
 
     :deep(.el-card__body) {
       display: flex;
+      align-items: center;
       gap: 6px;
       overflow-x: auto;
+    }
+
+    :deep(.flow-nav),
+    :deep(.flow-group) {
+      display: flex;
+      align-items: center;
+      flex: 0 0 auto;
+      gap: 6px;
+      margin: 0;
+    }
+
+    :deep(.flow-group-title) {
+      display: none;
+    }
+
+    :deep(.flow-item) {
+      flex: 0 0 auto;
+      width: auto;
+      white-space: nowrap;
     }
   }
 

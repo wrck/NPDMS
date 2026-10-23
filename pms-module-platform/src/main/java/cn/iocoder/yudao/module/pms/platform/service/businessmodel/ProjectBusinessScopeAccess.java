@@ -32,15 +32,23 @@ public class ProjectBusinessScopeAccess implements BusinessScopeAccess {
         observations.stream().sorted(Comparator.comparing((ScopeObservation item) -> item.observed().rootProjectId())
                 .thenComparing(ScopeObservation::id)).forEach(item -> {
             var observed = item.observed();
-            var current = projects.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(),
-                    actor.userId(), item.id(), ProjectScopeApi.ACTION_MANAGE, observed.treeVersion()));
+            var current = projects.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(item.id())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(observed.treeVersion()).build());
             if (current == null || current.fullProjectIds() == null || !current.fullProjectIds().contains(item.id())
                     || !Objects.equals(observed.rootProjectId(), current.rootProjectId())
                     || !Objects.equals(observed.treeVersion(), current.treeVersion())) deny();
         });
     }
     private ProjectScopeResult observe(Long id, EntityActor actor, String action) {
-        var observed = projects.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), id, action));
+        var observed = projects.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(id)
+                .actionCode(action).build());
         if (observed == null || observed.rootProjectId() == null || observed.treeVersion() == null
                 || observed.fullProjectIds() == null || !observed.fullProjectIds().contains(id)) deny();
         return observed;

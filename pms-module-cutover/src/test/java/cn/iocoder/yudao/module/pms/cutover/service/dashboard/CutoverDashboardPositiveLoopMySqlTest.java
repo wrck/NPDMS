@@ -5,12 +5,9 @@ import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfigura
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.dashboard.CutoverDashboardCandidateMapper;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.ActionFacts;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardActionFactPort;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.view.CutoverDashboardKpiView;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import com.alibaba.druid.spring.boot4.autoconfigure.DruidDataSourceAutoConfigure;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinAutoConfiguration;
@@ -100,13 +97,15 @@ class CutoverDashboardPositiveLoopMySqlTest {
         int approvalsBefore = count("cut_approval_instance");
         int plansBefore = count("cut_plan_revision");
 
-        CutoverDashboardKpiView result = service.inspect(tenantId, ACTOR_ID, allPermissions());
+        var context = cn.iocoder.yudao.module.pms.cutover.support.CutoverTestContexts.dashboard(
+                new cn.iocoder.yudao.module.pms.cutover.support.CutoverTestContexts.Identity(tenantId, ACTOR_ID));
+        CutoverDashboardKpiView result = service.statistics(context);
 
         assertEquals(3, result.todoCount());
         assertEquals(1, result.archivedCount());
         assertEquals(1, result.approvingCount());
         assertEquals(2, result.rejectedPendingModificationCount());
-        assertEquals(Instant.parse("2026-09-02T01:00:00Z"), result.generatedAt().toInstant(ZoneOffset.UTC));
+        org.junit.jupiter.api.Assertions.assertNotNull(result.generatedAt());
         assertEquals(tasksBefore, count("cut_task"));
         assertEquals(approvalsBefore, count("cut_approval_instance"));
         assertEquals(plansBefore, count("cut_plan_revision"));
@@ -201,8 +200,12 @@ class CutoverDashboardPositiveLoopMySqlTest {
                 @Override public ProjectScopeFact inspect(Long actorId, Long projectId, String action) {
                     return new ProjectScopeFact(projectId, 7L, true);
                 }
-                @Override public ProjectScopeFact lockAndRevalidate(Long actorId, Long projectId, String action,
-                                                                     long expectedProjectScopeVersion) {
+                @Override public ProjectScopeFact lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery query) {
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        String action = query.action();
+        long expectedProjectScopeVersion = query.expectedProjectScopeVersion();
+
                     return new ProjectScopeFact(projectId, 7L, true);
                 }
                 @Override public Set<Long> resolveAllCurrent(Long actorId, String action) {
@@ -211,21 +214,29 @@ class CutoverDashboardPositiveLoopMySqlTest {
             };
         }
 
-        @Bean CutoverDashboardActionFactPort actionFactPort() {
-            return query -> query.candidates().stream().map(candidate -> new CutoverDashboardActionFacts(
-                    candidate.taskId(), switch (candidate.currentStage()) {
-                        case "P2" -> ActionFacts.p2p3("DRAFT", true, null, true, true);
-                        case "P4" -> ActionFacts.p4("SUBMITTED", 1, "REJECTED",
-                                candidate.taskId() % 10 != 5, true, true, true);
-                        case "P5" -> ActionFacts.p5("PENDING", "PENDING", null, ACTOR_ID, true);
-                        default -> throw new IllegalStateException("unexpected controlled dashboard stage");
-                    })).toList();
-        }
-
         @Bean CutoverDashboardQueryService service(CutoverDashboardCandidateMapper mapper,
-                                                    CutoverProjectScopePort scope,
-                                                    CutoverDashboardActionFactPort facts, Clock clock) {
-            return new CutoverDashboardQueryService(mapper, scope, facts, clock);
+                                                    CutoverProjectScopePort scope) {
+            var tasks = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskQueryService.class);
+            var plans = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanQueryService.class);
+            var approvals = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalQueryService.class);
+            var closures = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureQueryService.class);
+            org.mockito.Mockito.when(tasks.hasWorkbenchAction(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+            org.mockito.Mockito.when(plans.hasWorkbenchAction(org.mockito.ArgumentMatchers.any()))
+                    .thenAnswer(invocation -> {
+                        cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanQueryService.ActionQuery query = invocation.getArgument(0);
+                        return query.taskId() % 10 != 5;
+                    });
+            org.mockito.Mockito.when(approvals.myTodos(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+                    .thenAnswer(invocation -> {
+                        cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext context = invocation.getArgument(0);
+                        var rows = mapper.selectBatch(new cn.iocoder.yudao.module.pms.cutover.dal.mysql.dashboard.query.CutoverDashboardCandidateQuery(
+                                context.tenantId(), Set.of(PROJECT_ID), 0L, 500, Set.of()));
+                        var todos = rows.stream().filter(row -> "P5".equals(row.getCurrentStage())).map(row ->
+                                new cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews.TodoItem(
+                                        row.getTaskId() + 1000, 0L, row.getTaskId(), row.getProjectId(), "CUT", "待审批", "A", 1, "INITIATOR", null)).toList();
+                        return new cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews.Page<>(todos, todos.size(), 1, 100);
+                    });
+            return new CutoverDashboardQueryService(mapper, scope, tasks, plans, approvals, closures);
         }
     }
 }

@@ -23,7 +23,7 @@ import formCreateEngine from '@form-create/element-ui'
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey'
 import { getFormSchema } from '@/api/pms/engineering/site-survey'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
-import { extractSurveyValues, mergeSurveyValues } from './siteSurveyForm'
+import { currentSurveyRules, extractSurveyValues, mergeSurveyValues } from './siteSurveyForm'
 import SurveyOutsourceShortcut from './SurveyOutsourceShortcut.vue'
 import SurveyProcurementLinks from './SurveyProcurementLinks.vue'
 import SurveyMaterialSelector from './SurveyMaterialSelector.vue'
@@ -65,6 +65,7 @@ const load = async () => {
     )
     if (sequence !== loadSequence) return
     const decoded = decodeDynamicForm(schema.formConfJson, schema.formRulesJson)
+    decoded.rule = currentSurveyRules(decoded.rule)
     let integratedOutsource = false
     const visit = (items: any[]) =>
       items.forEach((rule) => {

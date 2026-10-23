@@ -79,7 +79,14 @@ public class ImplementationCollectionLogService implements CollectionBusinessRes
         var matches = sources.stream().filter(s -> entry.equals(s.entry())).toList();
         if (matches.size() != 1) throw new CollectionOperationException("业务日志入口尚未接入");
         Long tenant = TenantContextHolder.getRequiredTenantId();
-        var source = matches.getFirst().authorize(tenant, actor, objectId, null, CollectionSourceAdapter.Access.READ, null);
+        var source = matches.getFirst().authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(tenant)
+                .actorId(actor)
+                .objectId(objectId)
+                .deviceId(null)
+                .access(CollectionSourceAdapter.Access.READ)
+                .expectedVersion(null)
+                .build());
         var page = logs.page(new ImplementationCollectionLogPageQuery(tenant, entry, objectId, source.projectId(), source.deviceId(), pageNo, pageSize));
         return new PageResult<>(page.getList().stream().map(r -> new View(r.getId(), r.getEntry(), r.getObjectId(),
                 r.getProjectId(), r.getDeviceId(), r.getExecutionId(), r.getPlatformTaskId(), r.getResultVersion(), r.getFileVersionId(),

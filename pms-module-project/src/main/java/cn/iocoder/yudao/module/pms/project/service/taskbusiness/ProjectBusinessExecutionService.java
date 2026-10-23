@@ -95,7 +95,11 @@ public class ProjectBusinessExecutionService implements ProjectBusinessExecution
             var expected = selection == null ? executions.inspect(taskQuery(project.getId(), node)) : selection.task();
             executions.lockAndRevalidate(expected);
         } else {
-            var allowed = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, project.getId(), ProjectScopeApi.ACTION_EDIT));
+            var allowed = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(project.getId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
             if (!permissions.hasAnyPermissions(actorId, "pms:project-task:execute") || allowed == null
                     || allowed.fullProjectIds() == null || !allowed.fullProjectIds().contains(project.getId()))
                 throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);

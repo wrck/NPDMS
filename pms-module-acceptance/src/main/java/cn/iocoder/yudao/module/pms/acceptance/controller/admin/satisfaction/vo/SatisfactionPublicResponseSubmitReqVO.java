@@ -14,6 +14,8 @@ public class SatisfactionPublicResponseSubmitReqVO {
     @NotNull private Long responseId;
     @NotBlank private String customerContactRef;
     @NotBlank private String answerSnapshot;
+    private Boolean confirmCompletionCertificate;
+    @jakarta.validation.constraints.Size(max=2_800_000) private String signatureImageDataUrl;
     @Valid @NotEmpty private List<FileFact> files;
 
     @Data

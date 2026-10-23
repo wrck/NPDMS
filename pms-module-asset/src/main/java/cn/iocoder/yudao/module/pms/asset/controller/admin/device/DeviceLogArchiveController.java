@@ -30,16 +30,16 @@ public class DeviceLogArchiveController {
     @PostMapping(value="/imports", consumes="application/octet-stream")
     @PreAuthorize("@ss.hasPermission('pms:device-log-archive:import')")
     @ApiAccessLog(requestEnable=false, responseEnable=false, operateModule="设备配置日志", operateName="导入日志")
-    public CommonResult<DeviceLogArchiveService.ImportView> upload(@RequestParam Long projectId, @RequestParam String operationId,
-                                                                  @RequestParam String fileName, HttpServletRequest request) throws IOException {
+    public CommonResult<DeviceLogArchiveService.ImportView> upload(@ModelAttribute UploadRequest command, HttpServletRequest request) throws IOException {
         int maximum=20*1024*1024;
         if (request.getContentLengthLong()>maximum) throw new IllegalArgumentException("日志文件须为 1 字节至 20 MiB");
         try (var stream = request.getInputStream()) {
             byte[] bytes=stream.readNBytes(maximum+1);
             if (bytes.length<1 || bytes.length>maximum) throw new IllegalArgumentException("日志文件须为 1 字节至 20 MiB");
-            return success(service.upload(projectId, operationId, fileName, bytes));
+            return success(service.upload(new DeviceLogArchiveService.Upload(command.projectId(), command.operationId(), command.fileName(), bytes, command.originTaskId())));
         }
     }
+    public record UploadRequest(Long projectId, String operationId, String fileName, Long originTaskId) { }
     @GetMapping("/latest") @PreAuthorize("@ss.hasPermission('pms:device-log-archive:query')")
     public CommonResult<List<DeviceLogArchiveService.DeviceView>> latest(@RequestParam Long projectId) { return success(service.latest(projectId)); }
     @GetMapping("/imports/{id}") @PreAuthorize("@ss.hasPermission('pms:device-log-archive:query')")

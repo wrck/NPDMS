@@ -12,7 +12,6 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.batchchange.TeamBatchC
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.normalclosure.NormalClosureExitRecordDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.portfolio.ProjectPortfolioDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure.ProjectClosureDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectGovernanceActionDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectSiteDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO;
@@ -27,7 +26,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.batchchange.TeamBatchChange
 import cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.portfolio.ProjectPortfolioMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectclosure.ProjectClosureMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.ProjectGovernanceActionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectSiteMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper;
@@ -67,7 +65,6 @@ public class ProjectBusinessModelContributor implements BusinessModelContributor
     private final ProjectTaskAssignmentMapper projectTaskAssignmentMapper;
     private final ProjectPlanVersionMapper projectPlanVersionMapper;
     private final ProjectClosureMapper projectClosureMapper;
-    private final ProjectGovernanceActionMapper projectGovernanceActionMapper;
     private final ClosureProjectMapper closureProjectMapper;
 
     public ProjectBusinessModelContributor(ProjectMasterMapper projectMasterMapper,
@@ -83,7 +80,6 @@ public class ProjectBusinessModelContributor implements BusinessModelContributor
                                            ProjectTaskAssignmentMapper projectTaskAssignmentMapper,
                                            ProjectPlanVersionMapper projectPlanVersionMapper,
                                            ProjectClosureMapper projectClosureMapper,
-                                           ProjectGovernanceActionMapper projectGovernanceActionMapper,
                                            ClosureProjectMapper closureProjectMapper) {
         this.projectMasterMapper = projectMasterMapper;
         this.projectPortfolioMapper = projectPortfolioMapper;
@@ -98,7 +94,6 @@ public class ProjectBusinessModelContributor implements BusinessModelContributor
         this.projectTaskAssignmentMapper = projectTaskAssignmentMapper;
         this.projectPlanVersionMapper = projectPlanVersionMapper;
         this.projectClosureMapper = projectClosureMapper;
-        this.projectGovernanceActionMapper = projectGovernanceActionMapper;
         this.closureProjectMapper = closureProjectMapper;
     }
 
@@ -217,7 +212,7 @@ public class ProjectBusinessModelContributor implements BusinessModelContributor
         declarations.add(new BusinessModelDeclaration(splitRequest, ProjectSplitRequestDO.class, projectSplitRequestMapper, null));
         BusinessModelDescriptor treeVersion = new BusinessModelDescriptor("PRJ", "treeVersion",
                 "PRJ_TREE_VERSION", 1, BusinessModelKind.AGGREGATE_ROOT, "项目树版本",
-                "pms:project-tree:query",
+                "pms:project:query",
                 List.of(required("rootProjectId", "根项目", EntityField.Type.NUMBER),
                         field("treeVersion", "树版本号", EntityField.Type.NUMBER),
                         field("status", "状态", EntityField.Type.TEXT),
@@ -230,7 +225,7 @@ public class ProjectBusinessModelContributor implements BusinessModelContributor
         declarations.add(new BusinessModelDeclaration(treeVersion, ProjectTreeVersionDO.class, projectTreeVersionMapper, null));
         BusinessModelDescriptor treeChange = new BusinessModelDescriptor("PRJ", "treeChange",
                 "PRJ_TREE_CHANGE", 1, BusinessModelKind.AGGREGATE_ROOT, "项目树变更",
-                "pms:project-tree:query",
+                "pms:project:query",
                 List.of(required("changeBatchId", "变更批次", EntityField.Type.TEXT),
                         field("operationType", "操作类型", EntityField.Type.TEXT),
                         field("projectId", "项目", EntityField.Type.NUMBER),
@@ -315,25 +310,6 @@ public class ProjectBusinessModelContributor implements BusinessModelContributor
                         field("remark", "备注", EntityField.Type.TEXT)),
                 List.of(), List.of(), List.of(), "acc_project_closure_record");
         declarations.add(new BusinessModelDeclaration(projectClosure, ProjectClosureDO.class, projectClosureMapper, null));
-        BusinessModelDescriptor governanceAction = new BusinessModelDescriptor("PRJ", "governanceAction",
-                "PRJ_GOVERNANCE_ACTION", 1, BusinessModelKind.AGGREGATE_ROOT, "项目治理动作",
-                "pms:project-governance:query",
-                List.of(required("projectId", "项目", EntityField.Type.NUMBER),
-                        field("actionNo", "动作编号", EntityField.Type.TEXT),
-                        field("actionType", "动作类型", EntityField.Type.TEXT),
-                        field("reason", "原因", EntityField.Type.TEXT),
-                        field("proofFiles", "证明材料", EntityField.Type.TEXT),
-                        field("applicantUserId", "申请人", EntityField.Type.NUMBER),
-                        field("applyTime", "申请时间", EntityField.Type.DATETIME),
-                        field("approverUserId", "审批人", EntityField.Type.NUMBER),
-                        field("approveTime", "审批时间", EntityField.Type.DATETIME),
-                        field("approveOpinion", "审批意见", EntityField.Type.TEXT),
-                        field("beforeProjectStatus", "变更前项目状态", EntityField.Type.NUMBER),
-                        field("afterProjectStatus", "变更后项目状态", EntityField.Type.NUMBER),
-                        field("beforeManagerUserId", "变更前项目经理", EntityField.Type.NUMBER),
-                        field("afterManagerUserId", "变更后项目经理", EntityField.Type.NUMBER)),
-                List.of(), List.of(), List.of(), "proj_project_governance_action");
-        declarations.add(new BusinessModelDeclaration(governanceAction, ProjectGovernanceActionDO.class, projectGovernanceActionMapper, null));
         BusinessModelDescriptor exitRecord = new BusinessModelDescriptor("PRJ", "exitRecord",
                 "PRJ_EXIT_RECORD", 1, BusinessModelKind.AGGREGATE_ROOT, "项目正常收尾退出记录",
                 "pms:acc-project-closure:query",

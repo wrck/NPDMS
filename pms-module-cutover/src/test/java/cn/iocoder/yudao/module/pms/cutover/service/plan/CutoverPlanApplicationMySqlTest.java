@@ -5,12 +5,12 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.ControlledCutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
@@ -30,8 +30,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.result.InvalidateCutover
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.PatchApprovedContactResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.view.CutoverPlanView;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverTaskRules;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
@@ -119,6 +119,7 @@ class CutoverPlanApplicationMySqlTest {
 
     @AfterEach
     void tearDown() {
+        jdbc.update("DELETE FROM cut_plan_generated_file WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_step WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_cutover_support_arrangement WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_plan_revision WHERE tenant_id=?", tenantId);
@@ -206,9 +207,7 @@ class CutoverPlanApplicationMySqlTest {
         CutoverPlanCommandResult replacement = service.revise(new ReviseCutoverPlanCommand(
                 tenantId, 8L, taskId, 6L, submitted.planRevisionId(), "SOURCE_REPLACED",
                 "revise-source-1", "corr-revise-source-1"));
-        CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper,
-                owners, owners, approval, new CutoverPlanContentCodec()).detail(tenantId, 8L, taskId,
-                new CutoverPlanQueryService.PlanAccess(true, true, true, true));
+        CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper, owners, owners, approval, new CutoverPlanContentCodec()).detail(new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(tenantId, 8L, "query-test", true, true, true, true), taskId);
         assertEquals(302L, detail.sourceSnapshot().path("devices").get(0).path("deviceId").asLong());
         assertEquals(302L, detail.content().path("overview").path("deviceSummary").get(0)
                 .path("deviceId").asLong());
@@ -314,9 +313,7 @@ class CutoverPlanApplicationMySqlTest {
         CutoverPlanCommandResult replacement = service.revise(new ReviseCutoverPlanCommand(
                 tenantId, 8L, taskId, 6L, submitted.planRevisionId(), "APPROVAL_REJECTED",
                 "revise-approval-rejected", "corr-revise-approval-rejected"));
-        CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper,
-                owners, owners, approval, new CutoverPlanContentCodec()).detail(tenantId, 8L, taskId,
-                new CutoverPlanQueryService.PlanAccess(true, true, true, true));
+        CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper, owners, owners, approval, new CutoverPlanContentCodec()).detail(new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(tenantId, 8L, "query-test", true, true, true, true), taskId);
         CutoverPlanCommandResult savedReplacement = service.saveDraft(new SaveCutoverPlanDraftCommand(
                 tenantId, 8L, taskId, 6L, replacement.planVersion(), 30L, detail.content(),
                 "save-approval-rejected-r2", "corr-save-approval-rejected-r2"));
@@ -363,7 +360,7 @@ class CutoverPlanApplicationMySqlTest {
 
         PatchApprovedContactResult patched = service.patchApprovedContact(new PatchApprovedContactCommand(
                 tenantId, 8L, taskId, arrangementId, submitted.planVersion(), "李工", "13900000000",
-                arrival, "patch-approved-contact", "corr-patch-approved-contact"));
+                arrival, "patch-approved-contact", "corr-patch-approved-contact"), new cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.Change("测试联系人变更", null));
 
         assertEquals(submitted.planVersion() + 1, patched.planVersion());
         assertEquals("APPROVED_CONTACT_CHANGED", patched.reasonCode());
@@ -433,7 +430,12 @@ class CutoverPlanApplicationMySqlTest {
             facts = new SourceFacts(snapshot, List.of());
         }
         @Override public ProjectScopeFact inspect(Long actorId, Long projectId, String action) { return new ProjectScopeFact(projectId, 30L, true); }
-        @Override public ProjectScopeFact lockAndRevalidate(Long actorId, Long projectId, String action, long expected) { return new ProjectScopeFact(projectId, 30L, true); }
+        @Override public ProjectScopeFact lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery query) {
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        String action = query.action();
+        long expected = query.expectedProjectScopeVersion();
+ return new ProjectScopeFact(projectId, 30L, true); }
         @Override public java.util.Set<Long> resolveAllCurrent(Long actorId, String action) { return java.util.Set.of(projectId); }
         @Override public SourceFacts inspect(Long tenantId, Long actorId, Long taskId) { return facts; }
         @Override public SourceFacts lockAndRevalidate(Long tenantId, Long actorId, SourceFacts expected) { return facts; }
@@ -471,22 +473,44 @@ class CutoverPlanApplicationMySqlTest {
                     source.configurationCode(), source.configurationRevisionNo(), sections,
                     source.failedRiskFacts()), facts.failedRiskFacts());
         }
-        FileFact fileFact() { return new FileFact(501L, 1, "cut-plan-upload-1", new FileFactVersion(1, 1, 1), 1L, "a".repeat(64)); }
-        @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) { return fileFact(); }
-        @Override public FileFact lockAndRevalidate(Long tenantId, Long actorId, Long projectId, FileHandle handle) { return fileFact(); }
-        @Override public FileFact downloadDraft(Long tenantId, Long actorId, Long projectId, Long planRevisionId) { return fileFact(); }
+        FileFact fileFact() { return FileFact.builder()
+                .artifactId(501L)
+                .versionNo(1)
+                .referenceKey("cut-plan-upload-1")
+                .fileFactVersion(new FileFactVersion(1, 1, 1))
+                .scopeVersion(1L)
+                .sha256("a".repeat(64))
+                .build(); }
+        @Override public FileFact inspect(CutoverPlanFilePort.FileQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        FileHandle handle = query.handle();
+ return fileFact(); }
+        @Override public FileFact lockAndRevalidate(CutoverPlanFilePort.FileQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        FileHandle handle = query.handle();
+ return fileFact(); }
+        @Override public FileFact downloadDraft(CutoverPlanFilePort.DraftQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        Long planRevisionId = query.planRevisionId();
+ return fileFact(); }
     }
 
     @SpringBootConfiguration
     @EnableTransactionManagement(proxyTargetClass = true)
-    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2",
-            "cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2",
+    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.task",
+            "cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class})
+            PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class, CutoverPlanGeneratedFiles.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean ControlledOwners controlledOwners() { return new ControlledOwners(); }
@@ -500,8 +524,19 @@ class CutoverPlanApplicationMySqlTest {
                                                     ControlledOwners owners,
                                                     ControlledCutoverApprovalFactApi approval,
                                                     PlatformCommandExecutionApi platform, Clock clock) {
-            return new CutoverPlanApplicationService(taskMapper, planMapper, stepMapper, supportMapper,
-                    owners, owners, owners, new CutoverPlanContentCodec(), platform, approval, historyMapper, clock);
+            return new CutoverPlanApplicationService(taskMapper,
+                planMapper,
+                stepMapper,
+                supportMapper,
+                owners,
+                owners,
+                owners,
+                new CutoverPlanContentCodec(),
+                platform,
+                approval,
+                historyMapper,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
         }
     }
 }

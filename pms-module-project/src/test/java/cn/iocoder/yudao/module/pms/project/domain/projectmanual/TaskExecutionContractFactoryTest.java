@@ -19,6 +19,14 @@ class TaskExecutionContractFactoryTest {
 
     private final TaskExecutionContractFactory factory = new TaskExecutionContractFactory();
 
+    @Test void taskRequirementIsFrozenOnlyWhenExplicit() {
+        var definition = validTaskNative();
+        assertNull(factory.create(11L, 21L, definition, NOW).getDefinitionSnapshot());
+        definition.setRequired(false);
+        var contract = factory.create(11L, 21L, definition, NOW);
+        assertEquals(false, JsonUtils.parseTree(contract.getDefinitionSnapshot()).path("required").asBoolean());
+    }
+
     @Test void approvalContractPreservesBothDefinitionKeyAndExactIdWithoutMutatingItsSource() {
         var task = validTaskNative(); task.setWorkBindingTypeCode("APPROVAL"); task.setApprovalDefinitionKey("approval");
         task.setBindingConfig("{\"processDefinitionId\":\"approval:1:101\",\"formCode\":\"review\"}");

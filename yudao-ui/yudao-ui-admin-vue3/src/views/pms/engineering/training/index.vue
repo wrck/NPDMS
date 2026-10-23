@@ -22,7 +22,10 @@
         </el-select>
       </el-form-item>
       <el-form-item>
-        <el-button v-hasPermi="['pms:dynamic-form-template:query']" @click="printTemplateManager?.open()">打印模板配置</el-button>
+        <template v-if="canManageTemplates">
+          <el-button v-hasPermi="['pms:dynamic-form-template:query']" @click="openTemplateManagement">客户确认模板配置</el-button>
+          <el-button v-hasPermi="['pms:dynamic-form-template:query']" @click="printTemplateManager?.open()">打印模板配置</el-button>
+        </template>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
         <el-button v-if="!readonly" type="primary" @click="openForm()" v-hasPermi="['pms:imp-training:create']"
           ><Icon icon="ep:plus" />新建培训记录</el-button
@@ -104,7 +107,7 @@
   </ContentWrap>
 
   <TrainingPrintPreview ref="printPreview" />
-  <TrainingPrintTemplates ref="printTemplateManager" @changed="loadPrintTemplates" />
+  <TrainingPrintTemplates v-if="canManageTemplates" ref="printTemplateManager" @changed="loadPrintTemplates" />
 
   <!-- 新建/编辑对话框 -->
   <Dialog v-model="formVisible" :title="form.id ? '编辑培训记录' : '新建培训记录'" width="min(860px, 94vw)">
@@ -180,12 +183,14 @@
           <el-form-item label="培训工程师" prop="trainerUserId">
             <PmsEntitySelect
               v-model="form.trainerUserId"
-              :api="UserApi.getUserPage"
+              :api="queryTrainerUsers"
               label-field="nickname"
               value-field="id"
               query-field="nickname"
               placeholder="默认当前登录人"
+              @change="onTrainerChange"
             />
+            <el-alert v-if="trainerUsersError" :title="trainerUsersError" type="warning" :closable="false" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -194,29 +199,11 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="客户确认模板" prop="confirmationTemplateId">
-            <el-select v-model="form.confirmationTemplateId" class="!w-full" placeholder="请选择已发布的客户确认模板" @visible-change="visible => visible && loadConfirmationTemplates()">
-              <el-option v-for="item in confirmationTemplates" :key="item.templateId" :value="item.templateId" :label="`${item.templateName} · 修订 ${item.currentPublishedRevisionNo}`" />
-            </el-select>
-            <div class="template-hint">外发时冻结已发布版本。后续修改模板不会影响已外发记录。
-              <el-button v-hasPermi="['pms:dynamic-form-template:query']" link type="primary" @click="openTemplateManagement">统一模板配置</el-button>
-            </div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="打印模板" prop="printTemplateId">
-            <el-select v-model="form.printTemplateId" class="!w-full" placeholder="请选择已发布的打印模板" @visible-change="visible => visible && loadPrintTemplates()">
-              <el-option v-if="form.printTemplateId && !printTemplates.some(item => item.templateId === form.printTemplateId)" :value="form.printTemplateId" label="已绑定历史打印模板（保留原版式）" disabled />
-              <el-option v-for="item in printTemplates" :key="item.templateId" :value="item.templateId" :label="`${item.templateName} · 修订 ${item.currentPublishedRevisionNo}`" />
-            </el-select>
-            <div class="template-hint">保存时绑定已发布版式。客户确认模板和打印模板分别配置。</div>
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
           <el-form-item label="备注" prop="remark"><el-input v-model="form.remark" /></el-form-item>
         </el-col>
       </el-row>
     </el-form>
+    <p class="template-hint">客户评价和签字由客户通过推送链接提交，新建、编辑时不可代填客户签字。</p>
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="save">保存</el-button>
@@ -291,7 +278,8 @@
         <el-button tag="a" :href="detail.signatureImageDataUrl" download="客户手写签字.png" link type="primary">保存签字图片</el-button>
       </section>
       <template v-if="detail.remark"><h3>备注</h3><p class="training-text">{{ detail.remark }}</p></template>
-      <DeliveryPanel v-if="detail.id" :key="detail.id" owner-module="IMP" entity-type="training"
+      <DeliveryPanel
+        v-if="detail.id" :key="detail.id" owner-module="IMP" entity-type="training"
         :entity-id="detail.id" :type-codes="['TRAINING_RECORD']" :readonly="readonly || detail.status === 3" />
     </div>
     <template #footer>
@@ -322,6 +310,7 @@ import { getTenantId } from '@/utils/auth'
 import { useUserStore } from '@/store/modules/user'
 import { Qrcode } from '@/components/Qrcode'
 import * as DynamicFormApi from '@/api/pms/platform/dynamic-form'
+import { checkPermi, checkRole } from '@/utils/permission'
 
 defineOptions({ name: 'PmsImpTraining' })
 
@@ -334,6 +323,31 @@ const userStore = useUserStore()
 
 const loading = ref(false)
 const rows = ref<TrainingVO[]>([])
+const trainerUsersError = ref('')
+const selectedTrainer = ref<{ id: number; nickname: string }>()
+const onTrainerChange = (_id: number | undefined, trainer?: { id: number; nickname: string }) => {
+  selectedTrainer.value = trainer
+}
+const queryTrainerUsers = async (params: PageParam) => {
+  try {
+    const result = await UserApi.getUserPage(params)
+    trainerUsersError.value = ''
+    // 查询页可能不含已选人员，保留登录信息或原记录中已知的姓名标签。
+    const selected = selectedTrainer.value
+    if (selected && selected.id === form.trainerUserId && !result.list.some((user: { id: number }) => user.id === selected.id)) {
+      return { ...result, list: [selected, ...result.list] }
+    }
+    return result
+  } catch {
+    trainerUsersError.value = '其他人员暂时无法查询，可选择本人或保留原培训工程师；查询其他人员请重试或确认权限。'
+    const self = userStore.getUser
+    const list = self.id ? [{ id: self.id, nickname: self.nickname || '本人' }] : []
+    if (form.trainerUserId && String(form.trainerUserId) !== String(self.id)) {
+      list.push({ id: form.trainerUserId, nickname: selectedTrainer.value?.nickname || `原培训工程师（${form.trainerUserId}）` })
+    }
+    return { list, total: list.length }
+  }
+}
 const total = ref(0)
 const listQuery = reactive({
   pageNo: 1,
@@ -369,7 +383,11 @@ const load = async () => {
 const printPreview = ref<InstanceType<typeof TrainingPrintPreview>>()
 const printTemplateManager = ref<InstanceType<typeof TrainingPrintTemplates>>()
 const printTemplates = ref<DynamicFormApi.DynamicFormSelectionVO[]>([])
+const canQueryTemplates = computed(() => checkPermi(['pms:dynamic-form-instance:query']))
+const canManageTemplates = computed(() => checkRole(['super_admin', 'tenant_admin']) && checkPermi(['pms:dynamic-form-template:query']))
 const loadPrintTemplates = async () => {
+  if (!canQueryTemplates.value) return
+  try {
   const all: DynamicFormApi.DynamicFormSelectionVO[] = []
   for (let pageNo = 1; ; pageNo++) {
     const page = await DynamicFormApi.getTemplateSelection({ pageNo, pageSize: 100 })
@@ -377,14 +395,13 @@ const loadPrintTemplates = async () => {
     if (all.length >= page.total || !page.list.length) break
   }
   printTemplates.value = all.filter(item => item.categoryCode === PRINT_CATEGORY)
-}
-const confirmationTemplates = ref<DynamicFormApi.DynamicFormSelectionVO[]>([])
-const loadConfirmationTemplates = async () => {
-  const result = await DynamicFormApi.getTemplateSelection({ pageNo: 1, pageSize: 100 })
-  confirmationTemplates.value = result.list.filter(item => item.categoryCode === 'CUSTOMER_CONFIRMATION')
+  } catch {
+    // 保留已有模板关联；新记录仍可使用内置打印版式。
+  }
 }
 const router = useRouter()
 const openTemplateManagement = () => {
+  if (!canManageTemplates.value) return
   const target = router.getRoutes().find(item => item.name === 'PmsDynamicFormTemplate')
   if (target) window.open(router.resolve({ name: target.name }).href, '_blank')
   else message.warning('当前账号未配置动态表单模板菜单，请联系管理员')
@@ -434,6 +451,7 @@ const rules = {
   trainingTime: [{ required: true, message: '请选择培训时间', trigger: 'change' }]
 }
 const openForm = (row?: TrainingVO) => {
+  trainerUsersError.value = ''
   Object.assign(
     form,
     {
@@ -458,9 +476,13 @@ const openForm = (row?: TrainingVO) => {
         }
       : {}
   )
+  const self = userStore.getUser
+  const trainerName = form.trainerUserId === self.id ? self.nickname : row?.trainerName
+  selectedTrainer.value = form.trainerUserId && trainerName
+    ? { id: form.trainerUserId, nickname: trainerName }
+    : undefined
   if (props.projectId) form.projectId = props.projectId
   formVisible.value = true
-  void loadConfirmationTemplates()
   void loadPrintTemplates().then(() => {
     if (formVisible.value && !form.id && !form.printTemplateId) form.printTemplateId = printTemplates.value[0]?.templateId
   })
@@ -502,8 +524,13 @@ const save = async () => {
   saving.value = true
   try {
     // 后端 SaveReqVO.trainingTypes 为 List<String>，回显时再由逗号串拆分
-    const { trainingTypeList, ...rest } = form
-    const payload = { ...rest, trainingTypes: trainingTypeList || [] } as unknown as TrainingApi.TrainingVO
+    const payload = {
+      id: form.id, projectId: form.projectId, name: form.name, contactName: form.contactName,
+      contactPhone: form.contactPhone, trainingTypes: form.trainingTypeList || [],
+      trainingTime: form.trainingTime, trainerUserId: form.trainerUserId, traineeCount: form.traineeCount,
+      content: form.content, remark: form.remark, confirmationTemplateId: form.confirmationTemplateId,
+      printTemplateId: form.printTemplateId, version: form.version
+    } as unknown as TrainingApi.TrainingVO
     form.id ? await TrainingApi.updateTraining(payload) : await TrainingApi.createTraining(payload)
     message.success('保存成功')
     formVisible.value = false
@@ -558,11 +585,6 @@ const downloadRecord = async (row: TrainingVO) => {
       return
     }
     const snapshot = record.printLayoutSnapshot ? JSON.parse(record.printLayoutSnapshot) : undefined
-    if (!snapshot) {
-      const ticket = await TrainingApi.getTrainingPdfTicket(id)
-      window.open(ticket, '_blank', 'noopener')
-      return
-    }
     const project = record.projectId ? await ProjectApi.getProject(record.projectId) : undefined
     await printPreview.value?.open(record, project?.projectName || '', snapshot)
 

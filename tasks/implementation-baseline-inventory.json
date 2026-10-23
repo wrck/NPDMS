@@ -3,6 +3,18 @@
   "status": "BASELINE_SYNCED_IMPLEMENTATION_RECONCILIATION_REQUIRED",
   "items": [
     {
+      "objectKey": "AcceptanceUnclassifiedSurface",
+      "classification": "BLOCKED_BY_SPEC",
+      "requirementRefs": ["ACC-01", "ACC-02", "ACC-03", "ACC-04", "CLO-01", "CLO-02"],
+      "codePaths": [
+        "pms-module-acceptance/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/acceptance/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/customerConfirmation.ts",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/"
+      ],
+      "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
       "objectKey": "AnalyticsUnclassifiedSurface",
       "classification": "BLOCKED_BY_SPEC",
       "requirementRefs": ["RPT-02"],
@@ -99,20 +111,32 @@
       "codePaths": [
         "pms-module-engineering/",
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/",
-        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/"
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/site-survey/"
       ],
+      "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
+    },
+    {
+      "objectKey": "ExecutionBindingsUnclassifiedSurface",
+      "classification": "BLOCKED_BY_SPEC",
+      "requirementRefs": ["PM-03", "NFR-01"],
+      "codePaths": ["pms-module-execution-bindings/"],
       "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
     },
     {
       "objectKey": "IntegrationUnclassifiedSurface",
       "classification": "BLOCKED_BY_SPEC",
       "requirementRefs": ["INT-01", "INT-02", "INT-03", "INT-04", "INT-05", "INT-06", "INT-07", "INT-09", "INT-10", "INT-12"],
-      "codePaths": ["pms-module-integration/"],
+      "codePaths": [
+        "pms-module-integration/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/integration/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/integration/"
+      ],
       "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
     },
     {
       "objectKey": "LegacyCustomerHistoryReadOnly",
-      "classification": "REUSED",
+      "classification": "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
       "requirementRefs": ["CUS-03"],
       "codePaths": [
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/customer/CustomerController.java",
@@ -121,7 +145,7 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/customer/",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/customer/"
       ],
-      "requiredAction": "PRESERVE_HISTORY_LIST_AND_DETAIL_ONLY_WITHOUT_WRITE_DELEGATION"
+      "requiredAction": "PRESERVE_EXISTING_DATABASE_HISTORY_WITHOUT_RESTORING_RETIRED_RUNTIME"
     },
     {
       "objectKey": "LegacyPmsMigrations",
@@ -311,7 +335,9 @@
       "codePaths": [
         "pms-module-service/",
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/service/",
-        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/service/"
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/service/",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/inspection/",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/inspection/"
       ],
       "requiredAction": "REVIEW_PER_FEATURE_BEFORE_REUSE"
     },
@@ -347,7 +373,7 @@
   "legacyCutovers": [
     {
       "legacyKey": "LegacyCustomerWriteRoutes",
-      "status": "DEPRECATED_READ_ONLY",
+      "status": "RUNTIME_REMOVED",
       "requirementRefs": ["CUS-03"],
       "replacementFeatureRefs": ["F-CUS-001"],
       "legacyPaths": [
@@ -361,8 +387,8 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/customer/**",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/customer/**"
       ],
-      "cutoverEvidence": "F-CUS-001 Implementation Done 31834bc6；旧写契约测试与只读错误CUSTOMER_LEGACY_ROUTE_READ_ONLY",
-      "newImplementationPolicy": "HISTORICAL_READ_ONLY_ONLY"
+      "cutoverEvidence": "ef1e6c0c8已退役旧客户与联系人链路并承接cus主档；2026-10-17核对旧Controller、Service及前端入口均不存在，B498排除pms_customer_retired；既有库历史不删除",
+      "newImplementationPolicy": "FORBIDDEN"
     },
     {
       "legacyKey": "LegacyCutExecutionObservation",
@@ -407,20 +433,35 @@
       "replacementFeatureRefs": ["F-SOL-001"],
       "legacyPaths": [
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/schedule-backward/**",
-        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/plan-change/**",
-        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/schedule-backward/**",
-        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/plan-change/**"
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/schedule-backward/**"
       ],
       "replacementPaths": [
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectDurationFormDrawer.vue"
       ],
-      "cutoverEvidence": "F-SOL-001 Implementation Done c417dee；旧API和页面已标明V1.7历史只读",
+      "cutoverEvidence": "F-SOL-001 Implementation Done c417dee；plan-change于2026-10-17移除运行入口；schedule-backward于2026-10-19按用户确认删除历史页面和接口，保留历史数据",
       "newImplementationPolicy": "HISTORICAL_READ_ONLY_ONLY"
     },
     {
+      "legacyKey": "LegacyProjectPlanChangeRuntime",
+      "status": "RUNTIME_REMOVED",
+      "requirementRefs": ["PRE-01"],
+      "replacementFeatureRefs": ["F-SOL-001"],
+      "legacyPaths": [
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/planchange/**",
+        "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/planchange/**",
+        "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/plan-change/**",
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/plan-change/**"
+      ],
+      "replacementPaths": [
+        "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue"
+      ],
+      "cutoverEvidence": "2026-10-17授权移除29张旧表的应用依赖；V499停用旧菜单，旧计划变更深链浏览器404；docs/generated/2026-10-17-flyway-test-v498-release.md",
+      "newImplementationPolicy": "FORBIDDEN"
+    },
+    {
       "legacyKey": "LegacyProjectSingularWrites",
-      "status": "DEPRECATED_READ_ONLY",
+      "status": "RUNTIME_REMOVED",
       "requirementRefs": ["PM-01", "PM-03"],
       "replacementFeatureRefs": ["F-PROJ-001"],
       "legacyPaths": [
@@ -436,12 +477,12 @@
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/index.ts",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue"
       ],
-      "cutoverEvidence": "F-PROJ-001 Implementation Done 1c76050；F-PROJ-008 Task 2已集成158118d0且Feature仍IN_PROGRESS；旧/pms/project仅保留查询",
-      "newImplementationPolicy": "HISTORICAL_READ_ONLY_ONLY"
+      "cutoverEvidence": "F-PROJ-001 Implementation Done 1c76050；2026-10-17授权移除旧/pms/project Controller、Service、Mapper及页面，V499停用旧菜单；docs/generated/2026-10-17-flyway-test-v498-release.md",
+      "newImplementationPolicy": "FORBIDDEN"
     },
     {
       "legacyKey": "LegacyProjectTaskWbsWrites",
-      "status": "DEPRECATED_READ_ONLY",
+      "status": "RUNTIME_REMOVED",
       "requirementRefs": ["PM-11"],
       "replacementFeatureRefs": ["F-PROJ-007"],
       "legacyPaths": [
@@ -454,8 +495,8 @@
         "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/taskworkbench/**",
         "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/task-workbench/**"
       ],
-      "cutoverEvidence": "F-PROJ-007 Implementation Done b559978；旧WBS页面和写入口已迁移",
-      "newImplementationPolicy": "HISTORICAL_READ_ONLY_ONLY"
+      "cutoverEvidence": "F-PROJ-007 Implementation Done b559978；2026-10-17授权移除旧WBS树查询、Controller、Service、Mapper及页面，V499停用旧菜单；docs/generated/2026-10-17-flyway-test-v498-release.md",
+      "newImplementationPolicy": "FORBIDDEN"
     },
     {
       "legacyKey": "LegacyProjectTemplateRuntime",
@@ -509,7 +550,7 @@
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/requirementAnalysisInteraction.ts"
       ],
       "replacementPaths": [
-        "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/api/dynamicform/**",
+        "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/dynamicform/**",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/RequirementAnalysisDynamicForm.vue"
       ],
       "cutoverEvidence": "F-SOL-003 Implementation Done 87e10b82；固定章节载体由动态表单组合替代",

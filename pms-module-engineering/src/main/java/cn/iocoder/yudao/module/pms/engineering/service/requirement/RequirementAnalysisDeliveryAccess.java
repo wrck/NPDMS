@@ -21,8 +21,17 @@ public class RequirementAnalysisDeliveryAccess implements DeliveryMaterialUpload
   Long root;try{root=Long.valueOf(id);}catch(RuntimeException invalid){throw denied();}
   var row=requirements.selectLatestForEntity(new RequirementEntityQuery(tenant,root));if(row==null||!Objects.equals(row.getEntityId(),root)||!Objects.equals(row.getTenantId(),tenant))throw denied();
   var actor=new EntityActor(tenant,actorId,"DELIVERY_READ");access.read(row.getId(),actor);
-  var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant,actorId,row.getProjectId(),ProjectScopeApi.ACTION_VIEW));if(!visible(scope,row.getProjectId())||expected!=null&&!Objects.equals(expected,scope.treeVersion()))throw denied();
-  if(lock){var checked=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant,actorId,row.getProjectId(),ProjectScopeApi.ACTION_VIEW,scope.treeVersion()));if(!visible(checked,row.getProjectId())||!Objects.equals(scope.treeVersion(),checked.treeVersion()))throw denied();var locked=requirements.lockRevision(new RequirementRevisionQuery(tenant,row.getId()));if(locked==null||!Objects.equals(locked.getEntityId(),root)||!Objects.equals(locked.getProjectId(),row.getProjectId()))throw denied();access.read(locked.getId(),actor);}
+  var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actorId)
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());if(!visible(scope,row.getProjectId())||expected!=null&&!Objects.equals(expected,scope.treeVersion()))throw denied();
+  if(lock){var checked=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actorId)
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(scope.treeVersion()).build());if(!visible(checked,row.getProjectId())||!Objects.equals(scope.treeVersion(),checked.treeVersion()))throw denied();var locked=requirements.lockRevision(new RequirementRevisionQuery(tenant,row.getId()));if(locked==null||!Objects.equals(locked.getEntityId(),root)||!Objects.equals(locked.getProjectId(),row.getProjectId()))throw denied();access.read(locked.getId(),actor);}
   return scope.treeVersion();
  }
  public FileBusinessObjectPolicyFact validateUpload(Long tenant,Long actor,String type,String id,String purpose,String action,boolean lock,Long scope){throw denied();}

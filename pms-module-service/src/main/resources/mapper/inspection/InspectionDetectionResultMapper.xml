@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.InspectionDetectionResultMapper">
+    <select id="selectCurrent" resultType="cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionDetectionResultDO">
+        SELECT r.* FROM srv_inspection_detection_result r
+        INNER JOIN (
+            SELECT rule_snapshot_id, MAX(id) AS latest_id
+            FROM srv_inspection_detection_result
+            WHERE tenant_id = #{query.tenantId} AND attempt_id = #{query.attemptId} AND deleted = b'0'
+            GROUP BY rule_snapshot_id
+        ) latest ON latest.latest_id = r.id
+        WHERE r.tenant_id = #{query.tenantId} AND r.attempt_id = #{query.attemptId} AND r.deleted = b'0'
+        ORDER BY r.device_id,r.rule_snapshot_id
+    </select>
+</mapper>

@@ -90,9 +90,10 @@
         </div>
         <div class="rail-stage">
           <div class="rail-stage-title">交付准备</div>
-          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'customer-contacts' }"
+          <button
+class="rail-item" :class="{ 'rail-item--active': activeTab === 'customer-contacts' }"
             @click="switchTab('customer-contacts')" v-hasPermi="['pms:customer-contact:query']">
-            <Icon icon="ep:phone" class="rail-icon"/><span class="rail-label">用户联系人</span>
+            <Icon icon="ep:phone" class="rail-icon" /><span class="rail-label">用户联系人</span>
           </button>
           <!-- Demo 2.2.1 物料选择/换货协同（换货单分页，通过后推送CRM） -->
           <button
@@ -134,12 +135,14 @@
         </div>
         <div class="rail-stage">
           <div class="rail-stage-title">验收交维</div>
-          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'satisfaction' }"
+          <button
+class="rail-item" :class="{ 'rail-item--active': activeTab === 'satisfaction' }"
             @click="switchTab('satisfaction')" v-hasPermi="['pms:acceptance:satisfaction:query']">
             <Icon icon="ep:chat-dot-round" class="rail-icon" />
             <span class="rail-label">满意度</span>
           </button>
-          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-reports' }"
+          <button
+class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-reports' }"
             @click="switchTab('acceptance-reports')" v-hasPermi="['pms:acceptance:report:query']">
             <Icon icon="ep:document-checked" class="rail-icon" />
             <span class="rail-label">验收报告</span>
@@ -459,11 +462,12 @@
           <ProjectDeliveryScopePanel :key="`scope-${detail.id}`" :project-context="scopeContext" />
         </div>
         <div v-if="detail?.id && visitedTabs.has('flow')" v-show="activeTab === 'flow'" class="min-w-0" data-testid="project-pane-flow">
-          <ProjectFlowPanel ref="flowPanelRef" :project-id="detail.id" :project="detail" :instances="instances" :selection="flowSelection" @changed="handleStageChanged" />
+          <ProjectFlowPanel ref="flowPanelRef" :project-id="detail.id" :project="detail" :instances="instances" :selection="flowSelection" @changed="handleStageChanged" @refreshed="handleStageChanged" />
         </div>
         <div v-if="detail?.id && visitedTabs.has('progress')" v-show="activeTab === 'progress'" class="min-w-0" data-testid="project-pane-progress">
           <ProjectProgressPanel
             :project-id="detail.id"
+            :refresh-token="treeRefreshKey"
             :tree-version="treeVersion"
           />
         </div>
@@ -492,19 +496,22 @@
       </div>
     </div>
   </div>
+  <ProjectApprovalDrawer ref="approvalDrawerRef" />
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
+import ProjectApprovalDrawer from '@/views/pms/project/project-master-detail/components/ProjectApprovalDrawer.vue'
+import { projectApprovalDetailKey } from '@/views/pms/project/project-master-detail/components/projectApprovalDetail'
 import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
 import { useMediaQuery } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
-import ProjectSplitWizard from '@/views/pms/project/project-master-detail/components/ProjectSplitWizard.vue'
+import ProjectSplitWizard from '@/views/pms/project/project-master-detail/components/ProjectSplitPanel.vue'
 import ProjectTreePanel from '@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'
-import ProjectProgressPanel from '@/views/pms/project/project-master-detail/components/ProjectProgressPanel.vue'
+import ProjectProgressPanel from '@/views/pms/project/project-master-detail/components/ProjectProgressSummaryPanel.vue'
 import ProjectClosureGuardPanel from '@/views/pms/project/project-master-detail/components/ProjectClosureGuardPanel.vue'
 import ProjectNormalClosurePanel from '@/views/pms/project/project-master-detail/components/ProjectNormalClosurePanel.vue'
 import ProjectStatusTag from '@/views/pms/project/projects/ProjectStatusTag.vue'
@@ -550,6 +557,8 @@ defineOptions({ name: 'PmsProjectInheritanceDetail' })
 const route = useRoute()
 const projectId = () => isBusinessViewId(route.query.projectId) ? legacyOwnerId(route.query.projectId) : undefined
 const router = useRouter()
+const approvalDrawerRef = ref<InstanceType<typeof ProjectApprovalDrawer>>()
+provide(projectApprovalDetailKey, (id) => approvalDrawerRef.value?.open(id))
 const mobile = useMediaQuery('(max-width: 767px)')
 const descriptionColumns = computed(() => (mobile.value ? 1 : 2))
 
@@ -583,7 +592,6 @@ const TAB_KEYS = [
   'legacy-detail',
   'tree',
   'members',
-  'tasks',
   'equipment',
   'sn-result',
   'config-log',
@@ -620,7 +628,6 @@ const overviewSteps: { key: string; label: string; icon: string; permission?: st
   { key: 'legacy-detail', label: 'DPPMS 关联资料', icon: 'ep:collection', permission: ['pms:project:query'] },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
-  { key: 'tasks', label: '项目任务', icon: 'ep:list' },
   { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:commerce:scope:query'] },
   // Demo 1.1.1 / 1.1.1.1（设备序列号域，消费 ast_device 真实数据）
   { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:device:query'] },

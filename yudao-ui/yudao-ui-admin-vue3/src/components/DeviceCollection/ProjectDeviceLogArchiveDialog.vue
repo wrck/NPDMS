@@ -6,7 +6,7 @@
     scroll
     max-height="calc(90vh - 160px)"
   >
-    <DeviceLogArchive v-if="visible && projectId" :project-id="projectId" :readonly="readonly" />
+    <DeviceLogArchive v-if="visible && projectId" :project-id="projectId" :origin-task-id="originTaskId" :readonly="readonly" />
     <template #footer><el-button @click="visible = false">关闭</el-button></template>
   </Dialog>
 </template>
@@ -15,6 +15,6 @@
 import DeviceLogArchive from '@/views/pms/asset/device-log-archive/index.vue'
 import type { Identifier } from '@/api/pms/asset/device-log-archive'
 
-defineProps<{ projectId: Identifier; readonly?: boolean }>()
+defineProps<{ projectId: Identifier; originTaskId?: Identifier; readonly?: boolean }>()
 const visible = defineModel<boolean>({ default: false })
 </script>

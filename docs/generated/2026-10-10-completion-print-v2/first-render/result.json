@@ -1,0 +1,36 @@
+{
+  "projectId": 992203060005,
+  "customerUnit": "本地Word打印验收-20261010-125514",
+  "certificateId": 30033,
+  "defaultBothWordV2Templates": true,
+  "oneJointSubmissionScore80": true,
+  "pdfExports": [
+    {
+      "kind": "COMPLETION",
+      "registered": {
+        "materialId": "9100000000000000135",
+        "referenceId": 252,
+        "artifactId": "2108783486326198274",
+        "versionNo": 1,
+        "sha256": "49a9489d213d2649bf4393807eeaad81aca583b6adcf59c9ebebf5e0b3c93527",
+        "fileName": "PJT2026000003-WZ-007-COMPLETION.pdf"
+      },
+      "bytes": 242275
+    },
+    {
+      "kind": "SATISFACTION",
+      "registered": {
+        "materialId": "9100000000000000136",
+        "referenceId": 253,
+        "artifactId": "2108783505414475777",
+        "versionNo": 1,
+        "sha256": "4be76cabd15fdc1d2b52224edc8824e7e943f9e23fd11d954c83c22154529aef",
+        "fileName": "PJT2026000003-WZ-007-SATISFACTION.pdf"
+      },
+      "bytes": 296246
+    }
+  ],
+  "bothPdfVisibleAfterReopen": true,
+  "pageErrors": [],
+  "oldProofsAndPublishedRevisionsUnchanged": true
+}

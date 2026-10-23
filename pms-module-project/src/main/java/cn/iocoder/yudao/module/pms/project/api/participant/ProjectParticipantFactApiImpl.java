@@ -47,8 +47,12 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
         ProjectMasterDO project = projectMapper.selectById(query.projectId());
         requireProject(project, tenantId);
         List<ProjectMemberAssignmentDO> assignments = memberMapper.selectParticipantFacts(
-                new ProjectParticipantFactLookupQuery(tenantId, query.projectId(), query.subjectUserId(),
-                        lookupRoles(query.requiredRoleCodes(), query.subjectUserId()), query.checkedAt()));
+                ProjectParticipantFactLookupQuery.builder()
+                .tenantId(tenantId)
+                .projectId(query.projectId())
+                .subjectUserId(query.subjectUserId())
+                .requiredRoleCodes(lookupRoles(query.requiredRoleCodes(), query.subjectUserId()))
+                .effectiveAt(query.checkedAt()).build());
         return resolve(project, tenantId, query.subjectUserId(), query.requiredRoleCodes(), assignments);
     }
 
@@ -70,8 +74,11 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
         List<ProjectMemberAssignmentDO> assignments = memberMapper.selectParticipantFactsForUpdate(
-                new ProjectParticipantFactLockQuery(tenantId, query.projectId(), query.userId(),
-                        query.requiredRoleCodes()));
+                ProjectParticipantFactLockQuery.builder()
+                .tenantId(tenantId)
+                .projectId(query.projectId())
+                .userId(query.userId())
+                .requiredRoleCodes(query.requiredRoleCodes()).build());
         return resolve(project, tenantId, query.userId(), query.requiredRoleCodes(), assignments);
     }
 

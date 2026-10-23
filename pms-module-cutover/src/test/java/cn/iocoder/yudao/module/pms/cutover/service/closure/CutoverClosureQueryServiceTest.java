@@ -3,14 +3,14 @@ package cn.iocoder.yudao.module.pms.cutover.service.closure;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureAttachmentDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureAttachmentMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverCollectionEvidenceMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +33,7 @@ class CutoverClosureQueryServiceTest {
         CutoverCollectionEvidenceMapper evidenceMapper = mock(CutoverCollectionEvidenceMapper.class);
         CutoverTaskDO task = new CutoverTaskDO(); task.setId(100L); task.setTenantId(1L); task.setProjectId(10L);
         task.setTaskOrigin("NEW_PLATFORM"); task.setCurrentStage("P6"); task.setTaskStatus("CLOSURE_IN_PROGRESS");
-        task.setOwnerUserId(9L); task.setVersion(7L); task.setDeviceScopeWatermark("device-watermark-1");
+        task.setOwnerUserId(9L); task.setVersion(7L);
         CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO(); plan.setId(300L); plan.setCutoverTaskId(100L);
         plan.setRevisionNo(2); plan.setStatusCode("SUBMITTED"); plan.setApprovalInstanceId(200L);
         plan.setApprovalVersion(4L); plan.setVersion(6L);
@@ -44,7 +44,6 @@ class CutoverClosureQueryServiceTest {
         closure.setTaskId(100L); closure.setProjectId(10L); closure.setTaskVersionAtP6(7L);
         closure.setPlanRevisionId(300L); closure.setPlanRevisionNo(2); closure.setPlanVersion(6L);
         closure.setApprovalInstanceId(200L); closure.setApprovalVersion(4L);
-        closure.setDeviceScopeWatermark("device-watermark-1");
         closure.setStatusCode("DRAFT"); closure.setVersion(1L); closure.setPreCheckNormal(true);
         closure.setExecutionNormal(true); closure.setTestNormal(true); closure.setRollbackOccurred(false);
         closure.setFinalResultCode(null);
@@ -59,20 +58,28 @@ class CutoverClosureQueryServiceTest {
         CutoverClosureQueryService service = new CutoverClosureQueryService(taskMapper, approvalMapper, planMapper,
                 closureMapper, attachmentMapper, evidenceMapper,
                 new CutoverClosureControlledPorts.ProjectScopes(10L, 5L));
+        var storage = mock(CutoverClosureStorage.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
 
-        CutoverClosureView view = service.detail(1L, 9L, 100L,
-                new CutoverClosureQueryService.ClosureAccess(true, true, true));
+        CutoverClosureView view = service.detail(new cn.iocoder.yudao.module.pms.cutover.service.closure.context.CutoverClosureContext(1L, 9L, "query-test", true, true, true), 100L);
 
+        org.mockito.Mockito.verify(storage).requireSame(new CutoverClosureStorage.Source(closure, task));
         assertThat(view.closureVersion()).isEqualTo(1);
         assertThat(view.content().attachments()).extracting(value -> value.purposeCode().name())
                 .containsExactly("IMPLEMENTATION_COMMITMENT", "POST_COLLECTION_CHECKLIST");
         assertThat(view.allowedActions()).containsExactly("SAVE_CLOSURE", "REQUEST_COLLECTION", "SUBMIT_CLOSURE");
+        for (int permissions = 0; permissions < 8; permissions++) {
+            var context = new cn.iocoder.yudao.module.pms.cutover.service.closure.context.CutoverClosureContext(1L, 9L, "closure-equivalence",
+                    (permissions & 1) != 0, (permissions & 2) != 0, (permissions & 4) != 0);
+            assertThat(service.hasWorkbenchAction(new CutoverClosureQueryService.ActionQuery(context, 100L)))
+                    .isEqualTo(!service.detail(context, 100L).allowedActions().isEmpty());
+        }
     }
 
     private static CutoverClosureAttachmentDO attachment(long id, String purpose, String reference) {
         CutoverClosureAttachmentDO row = new CutoverClosureAttachmentDO(); row.setId(id); row.setPurposeCode(purpose);
         row.setArtifactId(500L + id); row.setFileVersionNo(1); row.setReferenceKey(reference);
-        row.setFileFactVersion("{\"artifactVersion\":1,\"referenceVersion\":2,\"availabilityVersion\":3}");
+        row.setFileArtifactFactVersion(1L); row.setFileReferenceFactVersion(2L); row.setFileAvailabilityFactVersion(3L);
         row.setFileScopeVersion(4L); row.setFileHash("a".repeat(64)); return row;
     }
 }

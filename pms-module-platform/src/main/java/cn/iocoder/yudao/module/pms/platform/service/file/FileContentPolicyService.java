@@ -7,13 +7,17 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileSecurityScanResult;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileContentValidationCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.BoundedFileContentValidationCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.ValidatedFileContent;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import org.apache.tika.Tika;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.MessageDigest;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
@@ -34,6 +38,8 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE
 public class FileContentPolicyService {
 
     private static final Tika TIKA = new Tika();
+    private static final JsonFactory JSON = JsonFactory.builder().streamReadConstraints(StreamReadConstraints.builder()
+            .maxStringLength((int) FileUploadApplicationService.PLATFORM_MAX_BYTES).build()).build();
 
     private final BoundedMultipartReader multipartReader;
     private final List<FileSecurityScanProvider> scanProviders;
@@ -78,17 +84,29 @@ public class FileContentPolicyService {
         }
 
         String declaredMediaType = normalizeDeclaration(command.declaredMediaType());
-        String detectedMediaType = normalizeMediaType(TIKA.detect(content));
+        String detectedMediaType = detectContent(content);
+        if ("application/json".equals(declaredMediaType)
+                && Set.of("text/plain", "application/json").contains(detectedMediaType)) {
+            if (!isJsonDocument(content)) throw exception(FILE_MEDIA_TYPE_INVALID);
+            detectedMediaType = "application/json";
+        }
+        // A shell shebang is detected as x-sh even though the uploaded script is plain text.
+        if ("text/plain".equals(declaredMediaType) && "sh".equals(fileNameExtension(command.expectedFileName()))
+                && "application/x-sh".equals(detectedMediaType) && isUtf8Text(content)) {
+            detectedMediaType = "text/plain";
+        }
         String nameMediaType = normalizeMediaType(TIKA.detect(command.expectedFileName()));
         Set<String> allowedMediaTypes = command.policy().allowedMediaTypes().stream()
                 .map(FileContentPolicyService::normalizeMediaType)
                 .collect(Collectors.toUnmodifiableSet());
         boolean unknown = isUnknownDeclaration(declaredMediaType);
         boolean safeText = supportsUnknownDeclaration(command.expectedFileName(), allowedMediaTypes)
-                && "text/plain".equals(detectedMediaType) && safeTextContent(content);
+                && "text/plain".equals(detectedMediaType) && isUtf8Text(content);
+        boolean plainTextName = "text/plain".equals(declaredMediaType) && "text/plain".equals(detectedMediaType)
+                && Set.of("log", "cfg", "conf", "sh").contains(fileNameExtension(command.expectedFileName()));
         if (unknown ? !safeText : (!allowedMediaTypes.contains(declaredMediaType)
                 || !matchesDetectedMediaType(declaredMediaType, detectedMediaType)
-                || !(declaredMediaType.equals(nameMediaType) || "text/plain".equals(declaredMediaType) && safeText))) {
+                || (!declaredMediaType.equals(nameMediaType) && !plainTextName && !("text/plain".equals(declaredMediaType) && safeText)))) {
             throw exception(FILE_MEDIA_TYPE_INVALID);
         }
 
@@ -115,29 +133,50 @@ public class FileContentPolicyService {
                 || ("text/csv".equals(declaredMediaType) && "text/plain".equals(detectedMediaType));
     }
 
-    /** Browser omissions are hints pending byte detection, never permission for arbitrary binary data. */
+    /** Browser omissions remain hints; safe UTF-8 text is still required. */
     static String normalizeDeclaration(String value) {
         return value == null || value.isBlank() ? "application/octet-stream" : normalizeMediaType(value);
     }
-
-    static boolean isUnknownDeclaration(String value) {
-        return "application/octet-stream".equals(value);
-    }
-
+    static boolean isUnknownDeclaration(String value) { return "application/octet-stream".equals(value); }
     static boolean supportsUnknownDeclaration(String fileName, Set<String> allowedMediaTypes) {
-        int dot = fileName == null ? -1 : fileName.lastIndexOf('.');
-        return dot >= 0 && Set.of("log", "cfg", "conf", "txt").contains(fileName.substring(dot + 1).toLowerCase(Locale.ROOT))
-                && allowedMediaTypes.contains("text/plain");
+        int dot=fileName==null?-1:fileName.lastIndexOf('.');
+        return dot>=0 && Set.of("log","cfg","conf","txt").contains(fileName.substring(dot+1).toLowerCase(Locale.ROOT)) && allowedMediaTypes.contains("text/plain");
+    }
+    private static String fileNameExtension(String name) {
+        int dot = name.lastIndexOf('.');
+        return dot < 0 ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
     }
 
-    private static boolean safeTextContent(byte[] content) {
+    private static boolean isUtf8Text(byte[] content) {
         try {
-            var text = java.nio.charset.StandardCharsets.UTF_8.newDecoder()
-                    .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
-                    .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
-                    .decode(java.nio.ByteBuffer.wrap(content));
-            return text.chars().noneMatch(c -> Character.isISOControl(c) && c != '\n' && c != '\r' && c != '\t');
-        } catch (java.nio.charset.CharacterCodingException invalidText) {
+            var text = java.nio.charset.StandardCharsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(content));
+            while (text.hasRemaining()) {
+                char value = text.get();
+                if (Character.isISOControl(value) && value != '\n' && value != '\r' && value != '\t') return false;
+            }
+            return true;
+        } catch (java.nio.charset.CharacterCodingException invalid) {
+            return false;
+        }
+    }
+
+    private static String detectContent(byte[] content) {
+        // Container detection needs TikaInputStream; the filename must not override the actual bytes.
+        // https://tika.apache.org/3.3.1/detection.html#Container_Aware_Detection
+        try (var input = TikaInputStream.get(content)) {
+            return normalizeMediaType(TIKA.detect(input));
+        } catch (IOException ex) {
+            throw exception(FILE_MEDIA_TYPE_INVALID);
+        }
+    }
+
+    private static boolean isJsonDocument(byte[] content) {
+        // Text detection alone cannot establish JSON. Consume exactly one complete value, without building a tree.
+        try (var parser = JSON.createParser(content)) {
+            if (parser.nextToken() == null) return false;
+            parser.skipChildren();
+            return parser.nextToken() == null;
+        } catch (IOException invalid) {
             return false;
         }
     }

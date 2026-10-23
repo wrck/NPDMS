@@ -38,7 +38,12 @@ public class StagePlanBatchRespVO {
 
     @Schema(description = "备注")
     private String remark;
+
+    @Schema(description = "提交审批是否需要调整理由：项目已有生效施工计划时为真")
+    private Boolean adjustmentReasonRequired;
     private java.util.List<cn.iocoder.yudao.module.pms.project.api.stageplan.ProjectStagePlanApi.TaskPlan> tasks;
+    @Schema(description = "可编辑草稿的已完成阶段、任务实际日期，只读默认来源")
+    private cn.iocoder.yudao.module.pms.project.api.stageplan.ProjectStagePlanApi.CompletedDates completedDates;
 
     @Schema(description = "审批流程实例ID")
     private String bpmProcessInstanceId;

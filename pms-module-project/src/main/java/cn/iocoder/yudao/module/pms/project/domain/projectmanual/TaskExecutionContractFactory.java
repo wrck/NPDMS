@@ -51,6 +51,9 @@ public class TaskExecutionContractFactory {
         contract.setCompletionRuleTypeCode(definition.getCompletionRuleTypeCode());
         contract.setCompletionRuleSnapshot(definition.getCompletionRuleConfig());
         contract.setGateRef(definition.getGateRef());
+        if (definition.getRequired() != null) {
+            contract.setDefinitionSnapshot(JsonUtils.toJsonString(java.util.Map.of("required", definition.getRequired())));
+        }
         contract.setSourceDefinitionVersion(definition.getDefinitionVersion());
         contract.setContractVersion(1);
         contract.setEffectiveFrom(effectiveFrom);

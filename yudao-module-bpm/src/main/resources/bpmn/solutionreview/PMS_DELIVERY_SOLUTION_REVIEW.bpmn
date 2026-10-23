@@ -17,7 +17,14 @@
         <flowable:taskListener event="delete" expression="${solutionReviewBpmGuard.validate(task)}"/>
       </extensionElements>
     </userTask>
-    <sequenceFlow id="toSecond" sourceRef="serviceManagerReview" targetRef="engineeringManagementReview"/>
+    <sequenceFlow id="toReviewLevel" sourceRef="serviceManagerReview" targetRef="reviewLevelGateway"/>
+    <exclusiveGateway id="reviewLevelGateway" name="审核级别"/>
+    <sequenceFlow id="toSecond" name="重大方案" sourceRef="reviewLevelGateway" targetRef="engineeringManagementReview">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${solutionReviewLevel == 1}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="ordinaryToEnd" name="普通方案" sourceRef="reviewLevelGateway" targetRef="end">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${solutionReviewLevel == 0}]]></conditionExpression>
+    </sequenceFlow>
     <userTask id="engineeringManagementReview" name="工程管理部复审" flowable:assignee="${solutionReviewCandidates['engineeringManagementReview']}">
       <extensionElements>
         <flowable:pmsReviewResponsibility>ENGINEERING_MANAGEMENT</flowable:pmsReviewResponsibility>
@@ -37,10 +44,13 @@
   <bpmndi:BPMNDiagram id="diagram"><bpmndi:BPMNPlane id="plane" bpmnElement="PMS_DELIVERY_SOLUTION_REVIEW">
     <bpmndi:BPMNShape id="s0" bpmnElement="start"><dc:Bounds x="40" y="132" width="36" height="36"/></bpmndi:BPMNShape>
     <bpmndi:BPMNShape id="s1" bpmnElement="serviceManagerReview"><dc:Bounds x="140" y="110" width="140" height="80"/></bpmndi:BPMNShape>
-    <bpmndi:BPMNShape id="s2" bpmnElement="engineeringManagementReview"><dc:Bounds x="350" y="110" width="140" height="80"/></bpmndi:BPMNShape>
-    <bpmndi:BPMNShape id="s3" bpmnElement="end"><dc:Bounds x="560" y="132" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="sGateway" bpmnElement="reviewLevelGateway" isMarkerVisible="true"><dc:Bounds x="340" y="125" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="s2" bpmnElement="engineeringManagementReview"><dc:Bounds x="460" y="110" width="140" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="s3" bpmnElement="end"><dc:Bounds x="680" y="132" width="36" height="36"/></bpmndi:BPMNShape>
     <bpmndi:BPMNEdge id="e0" bpmnElement="toFirst"><di:waypoint x="76" y="150"/><di:waypoint x="140" y="150"/></bpmndi:BPMNEdge>
-    <bpmndi:BPMNEdge id="e1" bpmnElement="toSecond"><di:waypoint x="280" y="150"/><di:waypoint x="350" y="150"/></bpmndi:BPMNEdge>
-    <bpmndi:BPMNEdge id="e2" bpmnElement="toEnd"><di:waypoint x="490" y="150"/><di:waypoint x="560" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="eGateway" bpmnElement="toReviewLevel"><di:waypoint x="280" y="150"/><di:waypoint x="340" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="e1" bpmnElement="toSecond"><di:waypoint x="390" y="150"/><di:waypoint x="460" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="eOrdinary" bpmnElement="ordinaryToEnd"><di:waypoint x="365" y="175"/><di:waypoint x="365" y="270"/><di:waypoint x="698" y="270"/><di:waypoint x="698" y="168"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="e2" bpmnElement="toEnd"><di:waypoint x="600" y="150"/><di:waypoint x="680" y="150"/></bpmndi:BPMNEdge>
   </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
 </definitions>

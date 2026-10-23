@@ -199,7 +199,11 @@ public class ProjectReworkService {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         if (projectId == null || projectId <= 0 || actorId == null || !permissions.hasAnyPermissions(actorId, PERMISSION))
             throw exception(PROJECT_REWORK_FORBIDDEN);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, ProjectScopeApi.ACTION_EDIT));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) throw exception(PROJECT_REWORK_FORBIDDEN);
         return new ProjectPlanScopeQuery(tenantId, projectId);
     }

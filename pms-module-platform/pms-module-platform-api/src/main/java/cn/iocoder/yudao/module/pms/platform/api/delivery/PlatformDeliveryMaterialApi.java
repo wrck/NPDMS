@@ -81,15 +81,32 @@ public interface PlatformDeliveryMaterialApi {
                                 Integer fileVersionNo, String fileSha256, String fileName,
                                 String businessObjectType, String businessObjectId, Long businessRevisionNo,
                                 String title, String sourceKind, String status, String archiveStatus,
-                                String creator, java.time.LocalDateTime createTime, Long version) {
+                                String creator, java.time.LocalDateTime createTime, Long version, String businessTypeCode, String sourceOwnerModule, String sourceEntityType, Long sourceEntityId) {
         public DeliveryMaterialView(Long id, String ownerModule, String entityType, Long entityId, String typeCode,
-                String materialKind, Long requirementId, Long projectId, Long fileArtifactId, Integer fileVersionNo,
-                String fileSha256, String fileName, String businessObjectType, String businessObjectId,
-                Long businessRevisionNo, String title, String sourceKind, String status, String archiveStatus,
-                String creator, java.time.LocalDateTime createTime) {
-            this(id, ownerModule, entityType, entityId, typeCode, materialKind, requirementId, projectId,
-                    fileArtifactId, fileVersionNo, fileSha256, fileName, businessObjectType, businessObjectId,
-                    businessRevisionNo, title, sourceKind, status, archiveStatus, creator, createTime, null);
+                                String materialKind, Long requirementId, Long projectId, Long fileArtifactId,
+                                Integer fileVersionNo, String fileSha256, String fileName,
+                                String businessObjectType, String businessObjectId, Long businessRevisionNo,
+                                String title, String sourceKind, String status, String archiveStatus,
+                                String creator, java.time.LocalDateTime createTime, Long version) {
+            this(id, ownerModule, entityType, entityId, typeCode, materialKind, requirementId, projectId, fileArtifactId, fileVersionNo, fileSha256, fileName, businessObjectType, businessObjectId, businessRevisionNo, title, sourceKind, status, archiveStatus, creator, createTime, version, null, null, null, null);
+        }
+        public DeliveryMaterialView(Long id, String ownerModule, String entityType, Long entityId, String typeCode,
+                                String materialKind, Long requirementId, Long projectId, Long fileArtifactId,
+                                Integer fileVersionNo, String fileSha256, String fileName,
+                                String businessObjectType, String businessObjectId, Long businessRevisionNo,
+                                String title, String sourceKind, String status, String archiveStatus,
+                                String creator, java.time.LocalDateTime createTime,
+                                String businessTypeCode, String sourceOwnerModule,
+                                String sourceEntityType, Long sourceEntityId) {
+            this(id, ownerModule, entityType, entityId, typeCode, materialKind, requirementId, projectId, fileArtifactId, fileVersionNo, fileSha256, fileName, businessObjectType, businessObjectId, businessRevisionNo, title, sourceKind, status, archiveStatus, creator, createTime, null, businessTypeCode, sourceOwnerModule, sourceEntityType, sourceEntityId);
+        }
+        public DeliveryMaterialView(Long id, String ownerModule, String entityType, Long entityId, String typeCode,
+                                String materialKind, Long requirementId, Long projectId, Long fileArtifactId,
+                                Integer fileVersionNo, String fileSha256, String fileName,
+                                String businessObjectType, String businessObjectId, Long businessRevisionNo,
+                                String title, String sourceKind, String status, String archiveStatus,
+                                String creator, java.time.LocalDateTime createTime) {
+            this(id, ownerModule, entityType, entityId, typeCode, materialKind, requirementId, projectId, fileArtifactId, fileVersionNo, fileSha256, fileName, businessObjectType, businessObjectId, businessRevisionNo, title, sourceKind, status, archiveStatus, creator, createTime, null, null, null, null, null);
         }
     }
 }

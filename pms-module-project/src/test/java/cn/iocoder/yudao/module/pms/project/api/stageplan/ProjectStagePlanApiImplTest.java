@@ -47,6 +47,19 @@ class ProjectStagePlanApiImplTest {
         freeze();
     }
     void freeze() { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); }
+    @Test void completedDatesUseActualFactsOnlyAndKeepTenantProjectBoundaries() {
+        first.setStatus("DONE"); first.setActualStartTime(start.atTime(8, 30)); first.setActualEndTime(start.plusDays(2).atTime(18, 0));
+        last.setStatus("ACTIVE"); last.setActualEndTime(end.atStartOfDay());
+        var done = new ProjectTaskInstanceDO(); done.setId(21L); done.setTenantId(1L); done.setProjectId(7L); done.setStatus("DONE"); done.setActualEndTime(end.atStartOfDay());
+        var foreign = new ProjectTaskInstanceDO(); foreign.setId(22L); foreign.setTenantId(2L); foreign.setProjectId(7L); foreign.setStatus("DONE");
+        var otherProject = new ProjectTaskInstanceDO(); otherProject.setId(23L); otherProject.setTenantId(1L); otherProject.setProjectId(8L); otherProject.setStatus("DONE");
+        when(tasks.selectListByProjectId(7L)).thenReturn(List.of(done, foreign, otherProject));
+        var result = api.readCompletedDates(new ProjectStagePlanApi.CompletedDatesQuery(1L, 7L));
+        assertEquals(List.of(new ProjectStagePlanApi.NodeActualDates(11L, start, start.plusDays(2))), result.stages());
+        assertEquals(List.of(new ProjectStagePlanApi.NodeActualDates(21L, null, end)), result.tasks());
+        assertThrows(IllegalArgumentException.class, () -> api.readCompletedDates(new ProjectStagePlanApi.CompletedDatesQuery(2L, 7L)));
+        verify(stages, never()).updateSchedule(any()); verify(tasks, never()).updateSchedule(any());
+    }
     @Test void windowIsTheBaselineAndDatesComeFromStageSuggestions() {
         // Demo 3.1：推算窗口就是工期基线；阶段建议日期来自阶段配置与规则，
         // 未覆盖规则的阶段留给用户填写

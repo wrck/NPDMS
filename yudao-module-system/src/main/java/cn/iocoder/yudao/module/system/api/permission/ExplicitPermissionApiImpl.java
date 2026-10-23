@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.system.api.permission;
 
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
+import cn.iocoder.yudao.framework.datapermission.core.util.DataPermissionUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.system.dal.mysql.permission.ExplicitPermissionMapper;
 import cn.iocoder.yudao.module.system.dal.mysql.permission.query.ExplicitPermissionQuery;
@@ -22,7 +23,9 @@ public class ExplicitPermissionApiImpl implements ExplicitPermissionApi {
         if (!validContext(tenantId, userId, permission)) {
             return false;
         }
-        return explicitPermissionMapper.existsExplicitPermission(query(tenantId, userId, permission));
+        // Verify the named user's grant, independently of the caller's user-directory visibility.
+        return DataPermissionUtils.executeIgnore(() ->
+                explicitPermissionMapper.existsExplicitPermission(query(tenantId, userId, permission)));
     }
 
     @Override
@@ -31,9 +34,9 @@ public class ExplicitPermissionApiImpl implements ExplicitPermissionApi {
                 || permission == null || permission.isBlank() || permission.length() > 100) {
             return List.of();
         }
-        return explicitPermissionMapper.listUsersWithPermission(ExplicitPermissionQuery.builder()
+        return DataPermissionUtils.executeIgnore(() -> explicitPermissionMapper.listUsersWithPermission(ExplicitPermissionQuery.builder()
                 .tenantId(tenantId).permission(permission)
-                .enabledStatus(CommonStatusEnum.ENABLE.getStatus()).build());
+                .enabledStatus(CommonStatusEnum.ENABLE.getStatus()).build()));
     }
 
     @Override
@@ -42,7 +45,10 @@ public class ExplicitPermissionApiImpl implements ExplicitPermissionApi {
         if (!validContext(tenantId, userId, permission)) {
             return false;
         }
-        ExplicitPermissionQuery query = query(tenantId, userId, permission);
+        return DataPermissionUtils.executeIgnore(() -> lockGrant(query(tenantId, userId, permission)));
+    }
+
+    private boolean lockGrant(ExplicitPermissionQuery query) {
         if (explicitPermissionMapper.selectActiveUserForUpdate(query) == null) {
             return false;
         }

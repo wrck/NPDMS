@@ -58,9 +58,20 @@ public class ProjectDeliverableArchiveFactApiImpl implements ProjectDeliverableA
                 .filter(material -> submission.materialIds().contains(material.id())).toList();
         return new ProjectDeliverableArchiveFact(deliverable.id(), deliverable.deliverableCode(),
                 deliverable.name(), deliverable.stageCode(), deliverable.required(),
-                source.objectType(), source.category(), source.objectId(), source.version(),
+                source.objectType(), source.category() != null ? source.category()
+                        : submittedTemplateCategory(deliverable), source.objectId(), source.version(),
                 "WITHDRAWN".equals(submission.status()) ? "REVOKED" : submission.status(),
                 archiveStatus(materials));
+    }
+
+    /** 已有模板交付件上传以冻结清单编码为类别，不冒充验收活动或签收业务结果。 */
+    private String submittedTemplateCategory(TemplateFrozenView deliverable) {
+        return switch (deliverable.deliverableCode() == null ? "" : deliverable.deliverableCode()) {
+            case "D_ARRIVAL" -> "RECEIPT";
+            case "D_INITIAL" -> "PRELIMINARY";
+            case "D_FINAL" -> "FINAL";
+            default -> null;
+        };
     }
 
     /** 投影提交按 requestKey 反解来源身份；手工/归集/成果提交以提交台账为来源对象。 */
@@ -105,14 +116,17 @@ public class ProjectDeliverableArchiveFactApiImpl implements ProjectDeliverableA
         return activity == null ? null : activity.getAcceptanceType();
     }
 
-    /** 材料级归档状态聚合：全部 ARCHIVED → ARCHIVED；任一 INVALID → INVALID；否则仍待补偿。 */
+    /** 只聚合有归档义务的材料；无需归档的已提交材料不进入补偿队列。 */
     private String archiveStatus(List<TemplateFrozenMaterialView> materials) {
         if (materials.isEmpty()) return null;
-        if (materials.stream().allMatch(material ->
+        var required = materials.stream().filter(material ->
+                !PlatformDeliveryRequirementApi.ARCHIVE_NOT_REQUIRED.equals(material.archiveStatus())).toList();
+        if (required.isEmpty()) return PlatformDeliveryRequirementApi.ARCHIVE_NOT_REQUIRED;
+        if (required.stream().allMatch(material ->
                 PlatformDeliveryRequirementApi.ARCHIVE_ARCHIVED.equals(material.archiveStatus()))) {
             return PlatformDeliveryRequirementApi.ARCHIVE_ARCHIVED;
         }
-        if (materials.stream().anyMatch(material ->
+        if (required.stream().anyMatch(material ->
                 PlatformDeliveryRequirementApi.ARCHIVE_INVALID.equals(material.archiveStatus()))) {
             return PlatformDeliveryRequirementApi.ARCHIVE_INVALID;
         }

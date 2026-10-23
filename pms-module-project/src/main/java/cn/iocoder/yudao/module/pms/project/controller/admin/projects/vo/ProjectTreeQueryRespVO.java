@@ -27,5 +27,6 @@ public class ProjectTreeQueryRespVO {
         private String currentStage;
         private BigDecimal milestoneProgress;
         private String visibility;
+        private cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeViewSanitizer.DisplayDetails displayDetails;
     }
 }

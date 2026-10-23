@@ -32,6 +32,28 @@ public class DacDeviceLogParsingGateway implements DeviceLogParsingApi {
     }
 
     @Override
+    public NormalizedLog normalize(LogInput command) {
+        if (command == null || command.projectKey() == null || command.inputText() == null)
+            throw new ParsingException("设备日志及项目上下文不能为空");
+        try {
+            var body = new NormalizeBody(namespace(), command.projectKey(), command.inputText(), command.commandHint());
+            String response = http.exchange(properties.getBaseUrl() + "/api/v1/log-parses/actions/normalize",
+                    HttpMethod.POST, new HttpEntity<>(JsonUtils.toJsonString(body), headers()), String.class).getBody();
+            var result = JsonUtils.parseObjectQuietly(response, NormalizeResponse.class);
+            if (result == null || !namespace().equals(result.namespace()) || !command.projectKey().equals(result.projectKey())
+                    || result.commandBlocks() == null || result.commandBlocks().isEmpty() || result.serialNumbers() == null
+                    || result.warnings() == null || result.commandBlocks().stream().anyMatch(b -> b == null
+                        || b.commandIndex() == null || b.commandText() == null || b.stdout() == null || b.stderr() == null))
+                throw new ParsingException("DAC 日志脱敏响应绑定校验失败");
+            return new NormalizedLog(List.copyOf(result.commandBlocks()), List.copyOf(result.serialNumbers()), List.copyOf(result.warnings()));
+        } catch (HttpStatusCodeException error) {
+            throw failure(error);
+        } catch (RestClientException error) {
+            throw new ParsingException("DAC 日志脱敏服务暂不可用，原始日志尚未保存，请稍后重试");
+        }
+    }
+
+    @Override
     public ParseTask submit(Submission command) {
         var body = new SubmitBody(namespace(), command.projectKey(), command.requestId(),
                 command.sourceCollectionId(), command.inputText(), command.commandHint());
@@ -86,6 +108,9 @@ public class DacDeviceLogParsingGateway implements DeviceLogParsingApi {
             case "IDEMPOTENCY_CONFLICT" -> "原解析请求内容已变化，请新建解析任务";
             default -> "DAC 未受理日志解析，请检查服务、解析版本和访问权限后重试";
         };
+        if ((error.getStatusCode().value() == 400 && Set.of("INVALID_REQUEST", "INVALID_INPUT").contains(code))
+                || (error.getStatusCode().value() == 413 && "INPUT_TOO_LARGE".equals(code)))
+            return new InvalidInputException(message);
         return new ParsingException(message);
     }
 
@@ -104,6 +129,9 @@ public class DacDeviceLogParsingGateway implements DeviceLogParsingApi {
 
     private record SubmitBody(String namespace, String projectKey, String requestId, String sourceCollectionId,
                               String inputText, String commandHint) { }
+    private record NormalizeBody(String namespace, String projectKey, String inputText, String commandHint) { }
+    private record NormalizeResponse(String namespace, String projectKey, List<LogBlock> commandBlocks,
+                                     List<String> serialNumbers, List<String> warnings) { }
     private record ErrorBody(String code) { }
     private record Response(String requestId, String namespace, String projectKey, String sourceCollectionId,
                             String taskId, String state, String waitReason, String releaseVersion,

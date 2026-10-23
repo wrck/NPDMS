@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.acceptance.service.acceptance;
 
+import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
+
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileDocumentSourceProvider;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.*;
@@ -21,7 +23,12 @@ public class AcceptanceDocumentSources implements FileDocumentSourceProvider {
             new Descriptor("ACC.FINAL_REPORT", "终验报告附件"),
             new Descriptor("ACC.SATISFACTION_RESPONSE", "Satisfaction response evidence"),
             new Descriptor("ACC.SATISFACTION_DOCUMENT", "满意度结果文档")); }
-    @Override public Scope resolve(Long tenant, String owner, String type, String object, String purpose) {
+    @Override public Scope resolve(Long tenant, FileEvidenceApi.Document document) {
+        String owner = document.ownerContext();
+        String type = document.objectType();
+        String object = document.objectId();
+        String purpose = document.purposeCode();
+
         if (!Objects.equals(tenant, TenantContextHolder.getRequiredTenantId()) || !"ACC".equals(owner)) return null;
         Long id;
         try { id = Long.valueOf(object); } catch (RuntimeException invalid) { return null; }

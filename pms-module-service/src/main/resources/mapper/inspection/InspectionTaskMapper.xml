@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.InspectionTaskMapper">
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionTaskDO">
+        SELECT * FROM srv_inspection_task
+        WHERE tenant_id = #{query.tenantId} AND id = #{query.taskId} AND deleted = b'0' FOR UPDATE
+    </select>
+    <sql id="pageScope">
+        tenant_id = #{query.tenantId} AND deleted = b'0'
+        <choose>
+            <when test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+                AND project_id IN
+                <foreach collection="query.visibleProjectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        AND (owner_user_id = #{query.actorId}
+            <if test="query.managedProjectIds != null and !query.managedProjectIds.isEmpty()">
+                OR project_id IN
+                <foreach collection="query.managedProjectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+            </if>
+        )
+        <if test="query.keyword != null and query.keyword != ''">
+            AND (task_name LIKE CONCAT('%',#{query.keyword},'%') OR task_code LIKE CONCAT('%',#{query.keyword},'%'))
+        </if>
+        <if test="query.projectId != null">AND project_id = #{query.projectId}</if>
+        <if test="query.mode != null and query.mode != ''">AND mode = #{query.mode}</if>
+        <if test="query.statusCode != null and query.statusCode != ''">AND status_code = #{query.statusCode}</if>
+        <if test='query.workbenchSection != null and query.workbenchSection.name() == "PENDING"'>
+            AND COALESCE(creator, '') != #{query.actorCreator}
+            AND status_code NOT IN ('CLOSED', 'ARCHIVED', 'CANCELLED')
+        </if>
+        <if test='query.workbenchSection != null and query.workbenchSection.name() == "CREATED"'>
+            AND creator = #{query.actorCreator}
+        </if>
+    </sql>
+    <select id="selectPageList" resultType="cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionTaskDO">
+        SELECT * FROM srv_inspection_task WHERE <include refid="pageScope"/>
+        ORDER BY id DESC LIMIT #{query.offset}, #{query.pageSize}
+    </select>
+    <select id="selectPageCount" resultType="long">
+        SELECT COUNT(*) FROM srv_inspection_task WHERE <include refid="pageScope"/>
+    </select>
+    <select id="selectStateCounts" resultType="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.InspectionStateCount">
+        SELECT status_code,COUNT(*) AS count FROM srv_inspection_task WHERE <include refid="pageScope"/>
+        GROUP BY status_code ORDER BY status_code
+    </select>
+    <select id="selectForGovernance" resultType="cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionTaskDO">
+        SELECT * FROM srv_inspection_task WHERE tenant_id = #{query.tenantId} AND deleted = b'0'
+        <choose>
+            <when test="query.projectIds != null and !query.projectIds.isEmpty()">
+                AND project_id IN
+                <foreach collection="query.projectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY project_id,id
+    </select>
+</mapper>

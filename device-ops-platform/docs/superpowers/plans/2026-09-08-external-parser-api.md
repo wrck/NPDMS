@@ -14,7 +14,7 @@
 
 ## 1. runtime/JDBC 幂等与输入归属
 
-Files: `device-ops-parser-runtime/src/main/java/com/dp/deviceops/parser/runtime/{port/ParserPayloadStore.java,port/ParseTaskRepository.java,service/ParseTaskService.java}`；`device-ops-adapter-persistence-jdbc` 中对应适配器、测试和新增迁移。
+Files: `device-ops-parser-runtime/src/main/java/com/dp/plat/deviceops/parser/runtime/{port/ParserPayloadStore.java,port/ParseTaskRepository.java,service/ParseTaskService.java}`；`device-ops-adapter-persistence-jdbc` 中对应适配器、测试和新增迁移。
 
 - [x] 先写测试证明同请求重试、切换活动发布后重试、改变 context/consumer/输入的冲突，以及 namespace 隔离。
 - [x] 增加 `putScoped(callerNamespace, mediaType, content)`：同命名空间、媒体类型、UTF-8 内容得到稳定 ID，并发写入只保留一个 payload。
@@ -24,7 +24,7 @@ Files: `device-ops-parser-runtime/src/main/java/com/dp/deviceops/parser/runtime/
 
 ## 2. HTTP 接口
 
-Files: `device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/parser/{ParseTaskController.java,ParserControlProperties.java,ParserApiErrorHandler.java}`；安全路由配置与新增测试。
+Files: `device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/parser/{ParseTaskController.java,ParserControlProperties.java,ParserApiErrorHandler.java}`；安全路由配置与新增测试。
 
 - [x] 编写真实 HTTP 回归测试，先验证新增行为失败。
 - [x] 新增 `GET /api/v1/parse-tasks/{taskId}/result`，需要 `parser:task:read`；成功返回现有结果 envelope，结果未就绪返回 409 `RESULT_NOT_READY`，不存在或跨 namespace 返回 404。
@@ -34,7 +34,7 @@ Files: `device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web
 
 ## 3. OpenAPI 与接入文档
 
-Files: `device-ops-server/src/main/java/com/dp/deviceops/server/ExternalParserOpenApiConfiguration.java` 及其测试；`device-ops-server/src/main/resources/application.yml`；`docs/external-api.md`；`README.md`。
+Files: `device-ops-server/src/main/java/com/dp/plat/deviceops/server/ExternalParserOpenApiConfiguration.java` 及其测试；`device-ops-server/src/main/resources/application.yml`；`docs/external-api.md`；`README.md`。
 
 - [x] 在 `/v3/api-docs/external-parser` 提供只包含提交/列表/状态/结果的 OpenAPI 分组，标明 JWT Bearer 与所需 scopes、错误响应。
 - [x] 文档给出 IdP client credentials 配置、PowerShell 获取 token/提交/轮询/读结果完整样例；明确 inputContent 是 `command-output-block/v1` 的 JSON 字符串，不是任意裸文本。

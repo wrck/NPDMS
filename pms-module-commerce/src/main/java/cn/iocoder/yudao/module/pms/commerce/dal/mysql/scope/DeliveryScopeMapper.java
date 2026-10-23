@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeA
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeIdQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderLineQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopePageQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderContractQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderContractRow;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeVersionLockRow;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeProjectQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeEvidenceQuery;
@@ -91,4 +93,5 @@ public interface DeliveryScopeMapper extends BaseMapperX<DeliveryScopeDO> {
     List<DeliveryScopeDO> selectPageByProjectScope(@Param("query") DeliveryScopePageQuery query);
 
     List<DeliveryScopeOrderFieldsRow> selectOrderFields(@Param("query") DeliveryScopeOrderFieldsQuery query);
+    List<DeliveryScopeOrderContractRow> selectOrderContracts(@Param("query") DeliveryScopeOrderContractQuery query);
 }

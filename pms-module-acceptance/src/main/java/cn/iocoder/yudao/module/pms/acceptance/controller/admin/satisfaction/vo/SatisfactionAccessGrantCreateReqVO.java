@@ -9,6 +9,9 @@ import java.time.LocalDateTime;
 @Data
 public class SatisfactionAccessGrantCreateReqVO {
     @NotNull
+    @jakarta.validation.constraints.Positive
+    private Long completionCertificateId;
+    @NotNull
     @Future
     private LocalDateTime expiresAt;
 }

@@ -29,10 +29,15 @@ public class StubExternalRuntimeConfiguration {
     public ProjectDeviceSelectionApi projectDeviceSelectionApi() {
         return new ProjectDeviceSelectionApi() {
             @Override
-            public List<SelectedProjectDevice> validateSelection(SelectionQuery query) {
+            public SelectionPage pageSelection(SelectionQuery query) {
                 throw absent("资产设备");
             }
+
             @Override
+            public List<SelectedProjectDevice> validateSelection(ProjectDeviceSelectionApi.AuthorizedSelection query) {
+                return validateSelection(query.projectId(), query.deviceIds());
+            }
+
             public List<SelectedProjectDevice> validateSelection(Long projectId, List<Long> deviceIds) {
                 throw absent("资产设备");
             }

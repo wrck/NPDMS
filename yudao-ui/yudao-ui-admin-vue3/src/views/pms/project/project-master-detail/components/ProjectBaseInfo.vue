@@ -1,15 +1,15 @@
 <template>
   <div class="project-facts">
-    <section v-for="section in sections" :key="section.title" class="fact-section">
-      <h3>{{ section.title }}</h3>
+    <section v-for="group in baseFields" :key="group.title" class="fact-section legacy-project-fields" :aria-label="group.title">
+      <h3>{{ group.title }}</h3>
       <dl class="fact-grid">
-        <div v-for="field in section.fields" :key="field.label" class="fact" :class="{ 'fact-wide': field.wide }">
+        <div v-for="field in group.fields" :key="field.label" class="fact" :class="{ 'fact-wide': field.wide }">
           <dt>{{ field.label }}</dt>
           <dd>{{ field.value || '—' }}</dd>
         </div>
       </dl>
     </section>
-    <section class="fact-section" v-loading="loading">
+    <section v-if="checkRole(['admin'])" class="fact-section" v-loading="loading">
       <div class="section-heading"><h3>合同与执行单</h3><el-button v-if="error" link type="primary" @click="load">重新加载</el-button></div>
       <el-alert v-if="error" :title="error" type="warning" :closable="false" />
       <p v-else-if="!canReadCommerce" class="empty-note">暂无商务资料查看权限。</p>
@@ -67,10 +67,14 @@
     <section v-if="project.id" class="fact-section">
       <ProjectAssociatedDataPanel :project-id="project.id" title="设备许可" :kinds="['licenses']" />
     </section>
-    <section class="fact-section">
+    <section v-if="checkRole(['admin'])" class="fact-section">
       <h3>补充信息</h3>
       <dl class="fact-grid">
-        <div class="fact fact-wide"><dt>不予跟踪原因</dt><dd>{{ project.notTrackReason || '—' }}</dd></div>
+        <div class="fact"><dt>客户单位</dt><dd>{{ project.customerName || project.customerCode || '—' }}</dd></div>
+        <div class="fact"><dt>用户服务等级</dt><dd>{{ project.serviceLevelCode || '—' }}</dd></div>
+        <div class="fact"><dt>业务层级</dt><dd>{{ project.businessLevelName || project.businessLevelCode || '—' }}</dd></div>
+        <div class="fact"><dt>项目结束日期（工勘要求）</dt><dd>{{ project.projectEndDate || '—' }}</dd></div>
+        <div class="fact fact-wide"><dt>实施地点</dt><dd>{{ project.implementationLocation || '—' }}</dd></div>
         <div class="fact fact-wide"><dt>创建原因</dt><dd>{{ project.creationReason || '—' }}</dd></div>
         <div class="fact"><dt>创建时间</dt><dd>{{ time(project.createTime) }}</dd></div>
         <div class="fact"><dt>创建来源</dt><dd>{{ label(project.sourceType, DICT_TYPE.PMS_PROJECT_SOURCE_TYPE) }}</dd></div>
@@ -82,7 +86,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import request from '@/config/axios'
-import { checkPermi } from '@/utils/permission'
+import { checkPermi, checkRole } from '@/utils/permission'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
@@ -109,6 +113,9 @@ const contracts = computed(() => {
   }
   return result
 })
+type MarketSource = Pick<ProjectMasterVO, 'marketName' | 'marketCode' | 'systemName' | 'systemCode' | 'expendName' | 'expendCode' | 'industryName' | 'industryCode'>
+const scopedMarketSources = ref<MarketSource[]>([])
+const marketPath = (source: MarketSource) => [source.marketName || source.marketCode, source.systemName || source.systemCode, source.expendName || source.expendCode, source.industryName || source.industryCode].filter(Boolean).join(' / ')
 const members = ref<MemberRecord[]>([])
 const loading = ref(false)
 const error = ref('')
@@ -133,8 +140,11 @@ const salesRepresentative = computed(() => {
   const sourceNames = [...new Set((commerce.value?.executionOrders || []).map(order => order.salesRepName || order.salesRepCode).filter(Boolean))]
   return sourceNames.length ? `${sourceNames.join('、')}（执行单）` : assigned
 })
-const sections = computed<{ title: string; fields: FactField[] }[]>(() => {
+const baseFields = computed<{ title: string; fields: FactField[] }[]>(() => {
   const p = props.project
+  const orders = commerce.value?.orders || []
+  const orderCreated = orders.map(order => orders.length > 1
+    ? `${order.orderNo}：${time(order.orderCreateTime)}` : time(order.orderCreateTime)).join('\n')
   return [
     { title: '项目档案', fields: [
       { label: '项目编码', value: p.projectCode }, { label: '项目名称', value: p.projectName },
@@ -164,6 +174,9 @@ const sections = computed<{ title: string; fields: FactField[] }[]>(() => {
       { label: '主责项目经理', value: p.managerName },
       { label: '其他项目经理', value: names(['PROJECT_MANAGER'], p.managerId) },
       { label: '市场', value: p.marketName || p.marketCode },
+      { label: '市场部', value: marketPath(p) || [...new Set(scopedMarketSources.value.map(marketPath).filter(Boolean))].join(' / ') },
+      { label: '订单创建时间', value: orderCreated },
+      { label: '不予跟踪原因', value: p.notTrackReason, wide: true },
       { label: '系统', value: p.systemName || p.systemCode },
       { label: '拓展', value: p.expendName || p.expendCode },
       { label: '行业', value: p.industryName || p.industryCode }
@@ -218,7 +231,7 @@ let requestId = 0
 const load = async () => {
   const id = props.project.id
   const current = ++requestId
-  commerce.value = undefined; contractRelations.value = []; members.value = []; error.value = ''; memberError.value = false
+  commerce.value = undefined; contractRelations.value = []; scopedMarketSources.value = []; members.value = []; error.value = ''; memberError.value = false
   if (!id) return
   loading.value = true
   await Promise.all([
@@ -234,6 +247,13 @@ const load = async () => {
           if (relations.length >= page.total || !page.list.length) break
         }
         if (current === requestId) { commerce.value = value; contractRelations.value = relations }
+        if (current !== requestId) return
+        commerce.value = value
+        if (!marketPath(props.project)) {
+          const executionNos = new Set(value.orders.map(order => order.executionNo).filter(Boolean))
+          const sources = await Promise.all(value.contracts.map(contract => request.get<{ executionOrders: (MarketSource & { executionNo: string })[] }>({ url: `/api/v1/pms/contracts/${contract.id}/creation-source` })))
+          if (current === requestId) scopedMarketSources.value = sources.flatMap(source => source.executionOrders).filter(execution => executionNos.has(execution.executionNo))
+        }
       } catch { if (current === requestId) error.value = '商务资料加载失败，请重试。' }
     })(),
     (async () => {

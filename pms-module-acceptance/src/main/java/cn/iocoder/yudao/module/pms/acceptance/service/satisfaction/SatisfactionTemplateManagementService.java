@@ -128,14 +128,21 @@ public class SatisfactionTemplateManagementService {
             if (previous != null && "PUBLISHED".equals(previous.getRevisionStatus())) {
                 previous.setRevisionStatus("SUPERSEDED"); previous.setEffectiveTo(now);
                 previous.setVersion(previous.getVersion() + 1); previous.setUpdater(String.valueOf(actorUserId));
-                revisionMapper.updateById(previous);
+                if (revisionMapper.updateById(previous) != 1) {
+                    throw new IllegalStateException("SATISFACTION_TEMPLATE_REVISION_CONFLICT");
+                }
             }
         }
         revision.setRevisionStatus("PUBLISHED"); revision.setEffectiveFrom(now);
         revision.setVersion(revision.getVersion() + 1); revision.setUpdater(String.valueOf(actorUserId));
-        revisionMapper.updateById(revision);
-        root.setStatus("PUBLISHED"); root.setCurrentRevisionId(revisionId); root.setVersion(root.getVersion() + 1);
-        root.setUpdater(String.valueOf(actorUserId)); templateMapper.updateById(root);
+        if (revisionMapper.updateById(revision) != 1) {
+            throw new IllegalStateException("SATISFACTION_TEMPLATE_REVISION_CONFLICT");
+        }
+        root.setStatus("PUBLISHED"); root.setCurrentRevisionId(revisionId);
+        root.setUpdater(String.valueOf(actorUserId));
+        if (templateMapper.updateById(root) != 1) {
+            throw new IllegalStateException("SATISFACTION_TEMPLATE_VERSION_CONFLICT");
+        }
         return new PublishResult(templateId, revisionId, revision.getRevisionNo(), root.getVersion(), false);
     }
 

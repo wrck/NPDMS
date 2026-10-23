@@ -3,13 +3,13 @@ package cn.iocoder.yudao.module.pms.cutover.service.approval.notification.extern
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNotificationDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNotificationMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ExternalApprovalNotificationClaimQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ExternalApprovalNotificationDeliveryUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.CutoverApprovalNotificationService;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,12 +72,38 @@ public class CutoverExternalApprovalNotificationTransactionExecutor {
                 continue;
             }
             if (result instanceof ExternalApprovalNotificationResult.Accepted value) {
-                update(row, "ACCEPTED", value.providerReferenceId(), row.getRetryCount(), null,
-                        null, value.acceptedAt(), dueAt);
+                update(ExternalApprovalNotificationDeliveryUpdate.builder()
+                .tenantId(row.getTenantId())
+                .notificationId(row.getId())
+                .channelCode(row.getChannelCode())
+                .expectedVersion(row.getVersion())
+                .expectedStatusCode(row.getStatusCode())
+                .newStatusCode("ACCEPTED")
+                .providerReferenceId(value.providerReferenceId())
+                .retryCount(row.getRetryCount())
+                .nextRetryAt(null)
+                .lastErrorCode(null)
+                .lastAttemptAt(value.acceptedAt())
+                .updateTime(dueAt)
+                .updater("0")
+                .build());
                 accepted++;
             } else if (result instanceof ExternalApprovalNotificationResult.DeliveryUnknown value) {
-                update(row, "DELIVERY_UNKNOWN", value.providerReferenceId(), row.getRetryCount(),
-                        null, null, dueAt, dueAt);
+                update(ExternalApprovalNotificationDeliveryUpdate.builder()
+                .tenantId(row.getTenantId())
+                .notificationId(row.getId())
+                .channelCode(row.getChannelCode())
+                .expectedVersion(row.getVersion())
+                .expectedStatusCode(row.getStatusCode())
+                .newStatusCode("DELIVERY_UNKNOWN")
+                .providerReferenceId(value.providerReferenceId())
+                .retryCount(row.getRetryCount())
+                .nextRetryAt(null)
+                .lastErrorCode(null)
+                .lastAttemptAt(dueAt)
+                .updateTime(dueAt)
+                .updater("0")
+                .build());
                 unknown++;
             } else if (result instanceof ExternalApprovalNotificationResult.ExplicitFailure value) {
                 retry(row, dueAt, value.errorCode());
@@ -113,23 +139,30 @@ public class CutoverExternalApprovalNotificationTransactionExecutor {
         variables.put("nodeName", nodeName(node.getNodeCode()));
         return new ExternalApprovalNotificationRequest(tenantId, row.getRecipientUserId(), row.getChannelCode(),
                 row.getTemplateCode(), row.getDeliveryKey(), task.getId(), root.getId(), node.getNodeNo(),
-                "/pms/cutover/cutover-task?taskId=" + task.getId(), variables, row.getCorrelationId());
+                "/pms/cutover/approvals/" + root.getId(), variables, row.getCorrelationId());
     }
 
     private void retry(CutoverApprovalNotificationDO row, LocalDateTime dueAt, String errorCode) {
         int nextRetryCount = row.getRetryCount() + 1;
-        update(row, "PENDING_RETRY", null, nextRetryCount,
-                dueAt.plusMinutes(CutoverApprovalNotificationService.retryDelayMinutes(row.getRetryCount())),
-                errorCode, dueAt, dueAt);
+        update(ExternalApprovalNotificationDeliveryUpdate.builder()
+                .tenantId(row.getTenantId())
+                .notificationId(row.getId())
+                .channelCode(row.getChannelCode())
+                .expectedVersion(row.getVersion())
+                .expectedStatusCode(row.getStatusCode())
+                .newStatusCode("PENDING_RETRY")
+                .providerReferenceId(null)
+                .retryCount(nextRetryCount)
+                .nextRetryAt(dueAt.plusMinutes(CutoverApprovalNotificationService.retryDelayMinutes(row.getRetryCount())))
+                .lastErrorCode(errorCode)
+                .lastAttemptAt(dueAt)
+                .updateTime(dueAt)
+                .updater("0")
+                .build());
     }
 
-    private void update(CutoverApprovalNotificationDO row, String newStatus, String providerReferenceId,
-                        int retryCount, LocalDateTime nextRetryAt, String lastErrorCode,
-                        LocalDateTime lastAttemptAt, LocalDateTime updateTime) {
-        int updated = notificationMapper.updateExternalDeliveryIfMatch(new ExternalApprovalNotificationDeliveryUpdate(
-                row.getTenantId(), row.getId(), row.getChannelCode(), row.getVersion(), row.getStatusCode(),
-                newStatus, providerReferenceId, retryCount, nextRetryAt, lastErrorCode,
-                lastAttemptAt, "0", updateTime));
+    private void update(ExternalApprovalNotificationDeliveryUpdate update) {
+        int updated = notificationMapper.updateExternalDeliveryIfMatch(update);
         require(updated == 1, "外部提醒投递状态并发变化");
     }
 

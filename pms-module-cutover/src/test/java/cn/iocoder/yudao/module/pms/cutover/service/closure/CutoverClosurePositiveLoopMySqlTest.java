@@ -2,11 +2,11 @@ package cn.iocoder.yudao.module.pms.cutover.service.closure;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.HandleClosureCollectionCallbackCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.RequestClosureCollectionCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand;
@@ -42,6 +42,7 @@ class CutoverClosurePositiveLoopMySqlTest {
     @Resource CutoverPlanRevisionMapper planMapper;
     @Resource CutoverApprovalInstanceMapper approvalMapper;
     @Resource CutoverClosureApplicationService service;
+    @Resource CutoverClosureTestExecutions executions;
 
     private long tenantId;
     private long taskId;
@@ -151,7 +152,7 @@ class CutoverClosurePositiveLoopMySqlTest {
                 VALUES (?,?,?,?,?,'SN-P6-LOOP',1,1,0,'8',NOW(3),'8',NOW(3),b'0')
                 """, 996_000_000_000L + Math.floorMod(deviceId, 1_000_000L), tenantId, taskId, projectId, deviceId);
 
-        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
+        executions.link(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
                 deviceId, CollectionStage.POST_COLLECTION, new SavedCredential(71L, 3L),
                 "post-check", 2L, "loop-collect", "corr-loop-collect"));
         String collectionTaskId = jdbc.queryForObject("""

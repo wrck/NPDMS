@@ -10,7 +10,7 @@
       <el-table-column prop="name" label="交付件" min-width="190" />
       <el-table-column label="要求" width="80"><template #default="{ row }">{{ row.required ? '必需' : '可选' }}</template></el-table-column>
       <el-table-column label="状态" width="100"><template #default="{ row }"><el-tag :type="row.status === 'ACCEPTED' ? 'success' : 'info'">{{ row.status === 'ACCEPTED' ? '已满足' : '待提交' }}</el-tag></template></el-table-column>
-      <el-table-column label="材料" width="160"><template #default="{ row }"><el-button v-if="row.id" link type="primary" @click="dialog?.open(row.id)">上传 / 查看材料</el-button></template></el-table-column>
+      <el-table-column label="材料" width="160"><template #default="{ row }"><el-button v-if="row.id" link type="primary" @click="dialog?.open(row.id)">{{ row.automaticCollection ? '查看材料' : '上传 / 查看材料' }}</el-button></template></el-table-column>
     </el-table>
     <ProjectDeliverableDialog ref="dialog" :project-id="projectId" @changed="changed" />
   </ContentWrap>

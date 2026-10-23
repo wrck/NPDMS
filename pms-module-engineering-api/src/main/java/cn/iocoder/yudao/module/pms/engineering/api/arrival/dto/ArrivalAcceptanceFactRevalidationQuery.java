@@ -12,7 +12,7 @@ public record ArrivalAcceptanceFactRevalidationQuery(
         Set<Long> deviceIds,
         List<ArrivalQuantityScopeFact> quantityScopes,
         Long expectedFactVersion,
-        ArrivalScopeWatermark expectedScopeWatermark) {
+        ArrivalScopeWatermark expectedScopeWatermark) implements ArrivalAcceptanceScopeQuery {
 
     public ArrivalAcceptanceFactRevalidationQuery {
         if (tenantId == null || tenantId < 0 || projectId == null || projectId <= 0

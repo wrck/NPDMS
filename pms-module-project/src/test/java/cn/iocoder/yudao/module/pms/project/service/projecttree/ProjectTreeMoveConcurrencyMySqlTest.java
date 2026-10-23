@@ -206,8 +206,12 @@ class ProjectTreeMoveConcurrencyMySqlTest {
                 TenantContextHolder.setTenantId(0L);
                 try {
                     return transactionTemplate.execute(status -> {
-                        var scope = scopeService.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                                0L, 9_900_006L, baseId + 1, "PROJECT_MANAGE", 7L));
+                        var scope = scopeService.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(0L)
+                .subjectUserId(9_900_006L)
+                .anchorProjectId(baseId + 1)
+                .actionCode("PROJECT_MANAGE")
+                .expectedScopeVersion(7L).build());
                         scopeLocked.countDown();
                         await(releaseScope);
                         return scope.treeVersion();
@@ -242,8 +246,12 @@ class ProjectTreeMoveConcurrencyMySqlTest {
 
             TenantContextHolder.setTenantId(0L);
             Long currentVersion = transactionTemplate.execute(status -> scopeService.lockAndRevalidate(
-                    new ProjectScopeRevalidationQuery(
-                            0L, 9_900_006L, baseId + 1, "PROJECT_MANAGE", 7L)).treeVersion());
+                    ProjectScopeRevalidationQuery.builder()
+                .tenantId(0L)
+                .subjectUserId(9_900_006L)
+                .anchorProjectId(baseId + 1)
+                .actionCode("PROJECT_MANAGE")
+                .expectedScopeVersion(7L).build()).treeVersion());
             assertEquals(8L, currentVersion);
         } finally {
             releaseScope.countDown();

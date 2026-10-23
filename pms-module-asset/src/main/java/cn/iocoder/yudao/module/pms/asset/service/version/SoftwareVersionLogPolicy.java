@@ -8,7 +8,8 @@ public final class SoftwareVersionLogPolicy {
     private SoftwareVersionLogPolicy() {}
     public static boolean mayAdopt(DeviceNetworkVersionDO current, LocalDateTime receivedAt) {
         if (receivedAt == null) throw new IllegalArgumentException("Log reception time is required");
-        return current == null || current.getEffectiveFrom() == null || !current.getEffectiveFrom().isAfter(receivedAt);
+        return current == null || "ITR".equals(current.getSourceSystem())
+                || current.getEffectiveFrom() == null || !current.getEffectiveFrom().isAfter(receivedAt);
     }
     public static SoftwareVersionValues merge(DeviceNetworkVersionDO current, String conp, String boot, String cpld, String pcb) {
         var prior = SoftwareVersionValues.of(current);

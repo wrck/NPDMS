@@ -71,7 +71,10 @@ public class DeviceAccessScopeService {
         Set<Long> projectIds = visibleProjectIds(tenantId, userId);
         var grants = organizationGrants(tenantId, userId);
         Set<String> contractNumbers = contractScope(tenantId, userId,
-                new DeviceContractCandidateQuery(tenantId, deviceId, null, null, null, null, null, null, grants));
+                DeviceContractCandidateQuery.builder()
+                .tenantId(tenantId)
+                .deviceId(deviceId)
+                .organizationGrants(grants).build());
         if ((projectIds.isEmpty() && contractNumbers.isEmpty() && grants.isEmpty()) || !deviceMapper.existsVisibleDevice(
                 new DeviceVisibilityQuery(tenantId, deviceId, projectIds, contractNumbers, grants))) {
             throw exception(AST_EQUIPMENT_NOT_EXISTS);

@@ -30,6 +30,8 @@ public class TemplateExecutionSnapshot {
     private TemplateDesignerDocument.Match match = new TemplateDesignerDocument.Match();
     private String processDefinitionKey;
     private JsonNode closurePolicy;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private TemplateImplementationReadiness implementationReadiness;
     private List<StageContract> stages = new ArrayList<>();
     private List<TaskContract> tasks = new ArrayList<>();
     private List<MilestoneContract> milestones = new ArrayList<>();
@@ -80,6 +82,8 @@ public class TemplateExecutionSnapshot {
         private Integer priority;
         private Integer sortOrder;
         private BigDecimal estimatedHours;
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private Boolean required;
         private String satisfactionTiming;
         private String description;
         private BindingContract binding;
@@ -206,6 +210,7 @@ public class TemplateExecutionSnapshot {
      */
     public TemplateDefinitionContent toRuntimeContent() {
         TemplateDefinitionContent content = new TemplateDefinitionContent();
+        content.setImplementationReadiness(implementationReadiness);
         if (match != null) {
             content.setSigningMethod(match.getSigningMethod());
             content.setProjectCategory(match.getProjectCategory());
@@ -252,6 +257,7 @@ public class TemplateExecutionSnapshot {
             target.setSortOrder(source.getSortOrder());
             target.setEstimatedHours(source.getEstimatedHours());
             target.setSatisfactionTiming(source.getSatisfactionTiming());
+            target.setRequired(source.getRequired());
             target.setDescription(source.getDescription());
             applyBinding(target, source.getBinding());
             if (source.getPermission() != null) {

@@ -42,3 +42,13 @@
 - F-SOL-001 Task 10：上述材料主线闭合后返回其正式浏览器验收。
 
 > 检查点（2026-08-27）：基线规格`9328c13`；F-PLT-001 Implementation Done已通过，证据为原实现`6d6c6ea`、可选扫描`890196d2`、展示修复`24f3c1a4`及独立GO；受管基线已同步，无阻塞。下一步定位最近未通过的开发Gate，不进入Deployment/SIT/UAT/Release。
+
+### 2026-10-23 文件卡片按所选版本显示原上传名称
+
+- 用户反馈割接人工证据上传后版本递增、名称仍为首次文件名。原FileArtifact.name作为稳定工件初始名称保留；补充当前引用版本名称及版本分页名称的可空响应字段，从既有COMPLETED上传会话读取，按租户/工件/版本/注册技术文件身份精确匹配，不修改历史或新增持久化字段。
+- 公共PmsFileVersionReferenceList按所选版本显示名称，预览标题和下载名复用同一名称；历史版本按原分页查询精确查找，迟到响应仍受原generation保护。版本历史补充名称展示。新查询使用场景Query对象及Mapper XML，空集合返回空、授权失败不读取元数据，不扩大文件访问范围。
+- 两个新前端失败用例先复现当前和历史文件名错误，再修复后文件组件12项、割接受控流程48项通过。后端13项通过，其中7项真实MySQL检查包含源名称、旧版本、工件名称不变、未完成会话/错误技术回执过滤、空集合及租户/权限拒绝。首次集成上下文因既有FileArtifactApiImpl新增的三个独立写入提供方未装配而失败，测试配置补齐未使用提供方mock后通过，实际被验证的查询/授权/访问票据路径仍使用原实现。ESLint及diff检查通过；冻结构建和部署后浏览器结果另行记录。
+- 证据：.run/file-version-name-failure-tests.log、.run/file-version-name-ui-tests.log、.run/file-version-name-cutover-tests.log、.run/file-version-name-backend-tests.log、.run/file-version-name-backend-retest.log、.run/file-version-name-eslint.log。
+- 完整后端构建及22项已部署修复保护通过，冻结清单为`.run/build/releases/224316f6-f66d-4ab7-b30f-614f54b05678/manifest.json`。定向vue-tsc本次文件无错误，仍存在需求分析EntityForm.vue:159、292三处既有外部类型错误，不标记全量通过。当前运行后端仍未包含名称字段，待本次独立重启批准及部署复验；用户无需再次上传来触发名称修复。
+- worktree-backend.ps1 ValidateOnly已通过，配置固定local,dac、未变更运行服务。证据：.run/file-version-name-build.log、.run/file-version-name-preflight.log。已按.run/AGENTS.md请求本次59191独立重启批准，批准前不替换运行包；真实浏览器名称验证待部署，用户原页未导航。
+- 用户随后明确批准本次重启并复验，通过worktree-backend.ps1部署冻结包224316f6-f66d-4ab7-b30f-614f54b05678，59191健康、PID 38720、local,dac配置保持；DAC独立健康检查通过，未启停。真实浏览器重新打开2113184905149976576，当前V8显示“插槽show tech.txt”，原“是”结论保持、上传输入可用、无错误提示。真实版本历史显示V2~V8原名为插槽show tech.txt、V1仍为2.png，8个版本均可用，未重命名历史记录。复验使用现有V8，无新上传或清单提交，用户原标签页未导航；保留自建正确显示的复验页。证据：.run/file-version-name-deploy.log、.run/file-version-name-deployed-browser.json、.run/file-version-name-deployed-db.txt。

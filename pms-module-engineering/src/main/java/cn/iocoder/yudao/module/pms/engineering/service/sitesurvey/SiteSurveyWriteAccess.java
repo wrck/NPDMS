@@ -28,7 +28,11 @@ public class SiteSurveyWriteAccess {
         Long actorId = SecurityFrameworkUtils.getLoginUserId();
         if (projectId == null || projectId <= 0 || actorId == null || !permissions.hasAnyPermissions(actorId, permission))
             throw exception(FORBIDDEN);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, ProjectScopeApi.ACTION_MANAGE));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
         executions.lockForWrite(new ProjectBusinessExecutionApi.WriteRequest(projectId, "SOL", "SITE_SURVEY", selection));
     }

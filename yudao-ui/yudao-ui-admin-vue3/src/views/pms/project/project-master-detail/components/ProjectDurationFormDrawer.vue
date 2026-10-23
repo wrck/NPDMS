@@ -8,7 +8,8 @@
       class="form-alert"
     />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" :disabled="!canWrite">
-      <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="form-alert"
+      <el-alert
+        v-if="project.projectEndDate" type="info" :closable="false" class="form-alert"
         title="默认按工期结束日期锁定结束并倒排开始（初始取工勘要求日期，切换起止日期口径后可修改结束日期再倒排）。自然日包含首尾两天；此处不会回写项目结束日期。" />
       <el-form-item v-if="project.projectEndDate" label="计算口径">
         <el-radio-group v-model="surveyEntryMode" @change="onSurveyEntryModeChange">
@@ -148,6 +149,7 @@ import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtif
 import { useFileSlotState } from '@/components/PmsFileArtifact/useFileSlotState'
 import type { DetachedFileSlot, FileSelection } from '@/components/PmsFileArtifact/types'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
+import { isBusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import type {
   ConstructionPlanChangeVO,
@@ -163,7 +165,7 @@ import {
 const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
 const emit = defineEmits<{ saved: []; 'dirty-change': [value: boolean] }>()
 const canWrite = computed(
-  () => !props.readonly && Number.isSafeInteger(props.project.id) && props.project.id! > 0
+  () => !props.readonly && isBusinessViewId(props.project.id)
 )
 let contextVersion = 0
 const message = useMessage()

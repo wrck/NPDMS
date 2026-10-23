@@ -51,6 +51,9 @@ public class SolutionServiceImpl implements SolutionService {
     private cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewPolicyService reviewPolicies;
 
     @Resource
+    private cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionSubmissionValidator submissionValidator;
+
+    @Resource
     private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents completionEvents;
 
     @Override
@@ -126,7 +129,10 @@ public class SolutionServiceImpl implements SolutionService {
     public void submitSolution(Long id) {
         SolutionDO solution = validateSolutionExists(id);
         validateStatus(solution, 0); // 草稿 → 已提交
-        if ("IMPLEMENTATION".equals(solution.getSolutionType())) reviewPolicies.freeze(solution, 0);
+        if ("IMPLEMENTATION".equals(solution.getSolutionType())) {
+            reviewPolicies.freeze(solution, 0);
+            submissionValidator.validateAndFreezeSources(solution);
+        }
         updateStatus(solution, 1);
     }
 

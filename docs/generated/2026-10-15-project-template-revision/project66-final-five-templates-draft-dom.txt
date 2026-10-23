@@ -1,0 +1,260 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理":
+        - generic: 项目管理
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "割接交付":
+        - generic: 割接交付
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "巡检服务":
+        - generic: 巡检服务
+      - menuitem "项目模板管理":
+        - generic: 项目模板管理
+      - menuitem "交付件汇总（6.4）":
+        - generic: 交付件汇总（6.4）
+      - menuitem "现场培训（6.1）":
+        - generic: 现场培训（6.1）
+      - menuitem "阶段施工计划（3.1）":
+        - generic: 阶段施工计划（3.1）
+      - menuitem "施工计划建议规则":
+        - generic: 施工计划建议规则
+      - menuitem "设备连接与采集":
+        - generic: 设备连接与采集
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "项目交付（新功能暂停）":
+    - generic: 项目交付（新功能暂停）
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑":
+  - link "项目交付":
+    - text: 项目交付
+  - text: /
+  - link "项目模板管理":
+    - text: 项目模板管理
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- superscript
+- button
+- button "首页":
+  - text: 首页
+- button "项目详情":
+  - text: 项目详情
+- button "项目模板管理":
+  - text: 项目模板管理
+- button:
+- heading "项目交付模板" [level=2]
+- paragraph: 使用 DesignerDocument 组织阶段、真实任务、办理方式和规则；发布时由 Compiler 生成不可变 ExecutionSnapshot。
+- generic: 模板编码
+- textbox "模板编码"
+- generic: 模板名称
+- textbox "模板名称"
+- generic: 状态
+- combobox "状态"
+- generic: 请选择
+- button "查询":
+  - generic: 查询
+- button "新增模板":
+  - generic: 新增模板
+- button "匹配预演":
+  - generic: 匹配预演
+- table:
+  - rowgroup:
+    - row "模板名称 适用场景 状态 设计概览 操作":
+      - columnheader "模板名称":
+        - generic: 模板名称
+      - columnheader "适用场景":
+        - generic: 适用场景
+      - columnheader "状态":
+        - generic: 状态
+      - columnheader "设计概览":
+        - generic: 设计概览
+      - columnheader "操作":
+        - generic: 操作
+- table:
+  - rowgroup:
+    - row "默认业务完整链路浏览器复核 20261012 TPL-DEFAULT-UI-20261012 全部场景 生效 6 个阶段 · 17 项任务 编辑 复制":
+      - cell "默认业务完整链路浏览器复核 20261012 TPL-DEFAULT-UI-20261012":
+        - strong: 默认业务完整链路浏览器复核 20261012
+        - generic: TPL-DEFAULT-UI-20261012
+      - cell "全部场景":
+        - generic: 全部场景
+      - cell "生效":
+        - generic: 生效
+      - cell "6 个阶段 · 17 项任务":
+        - generic: 6 个阶段 · 17 项任务
+      - cell "编辑 复制":
+        - button "编辑":
+          - generic: 编辑
+        - button "复制":
+          - generic: 复制
+    - row "默认业务阶段验收模板（20261015） TPL-DEFAULT-STAGE-ACCEPT-20261015-4600 全部场景 生效 6 个阶段 · 17 项任务 编辑 复制":
+      - cell "默认业务阶段验收模板（20261015） TPL-DEFAULT-STAGE-ACCEPT-20261015-4600":
+        - strong: 默认业务阶段验收模板（20261015）
+        - generic: TPL-DEFAULT-STAGE-ACCEPT-20261015-4600
+      - cell "全部场景":
+        - generic: 全部场景
+      - cell "生效":
+        - generic: 生效
+      - cell "6 个阶段 · 17 项任务":
+        - generic: 6 个阶段 · 17 项任务
+      - cell "编辑 复制":
+        - button "编辑":
+          - generic: 编辑
+        - button "复制":
+          - generic: 复制
+    - row "浏览器全闭环验收－工程直签－20261014-13974 TPL-E2E-ENG-DIRECT-20261014-13974 直签 / 工程类 生效 7 个阶段 · 17 项任务 编辑 复制":
+      - cell "浏览器全闭环验收－工程直签－20261014-13974 TPL-E2E-ENG-DIRECT-20261014-13974":
+        - strong: 浏览器全闭环验收－工程直签－20261014-13974
+        - generic: TPL-E2E-ENG-DIRECT-20261014-13974
+      - cell "直签 / 工程类":
+        - generic: 直签 / 工程类
+      - cell "生效":
+        - generic: 生效
+      - cell "7 个阶段 · 17 项任务":
+        - generic: 7 个阶段 · 17 项任务
+      - cell "编辑 复制":
+        - button "编辑":
+          - generic: 编辑
+        - button "复制":
+          - generic: 复制
+    - row "非直签－原厂督导 TPL-CFG20261014-CHANNEL-SUPERVISION 非直签 / 原厂督导 草稿 6 个阶段 · 12 项任务 编辑 复制":
+      - cell "非直签－原厂督导 TPL-CFG20261014-CHANNEL-SUPERVISION":
+        - strong: 非直签－原厂督导
+        - generic: TPL-CFG20261014-CHANNEL-SUPERVISION
+      - cell "非直签 / 原厂督导":
+        - generic: 非直签 / 原厂督导
+      - cell "草稿":
+        - generic: 草稿
+      - cell "6 个阶段 · 12 项任务":
+        - generic: 6 个阶段 · 12 项任务
+      - cell "编辑 复制":
+        - button "编辑":
+          - generic: 编辑
+        - button "复制":
+          - generic: 复制
+    - row "工程类－非直签 TPL-CFG20261014-ENGINEERING-CHANNEL 非直签 / 工程类 草稿 7 个阶段 · 13 项任务 编辑 复制":
+      - cell "工程类－非直签 TPL-CFG20261014-ENGINEERING-CHANNEL":
+        - strong: 工程类－非直签
+        - generic: TPL-CFG20261014-ENGINEERING-CHANNEL
+      - cell "非直签 / 工程类":
+        - generic: 非直签 / 工程类
+      - cell "草稿":
+        - generic: 草稿
+      - cell "7 个阶段 · 13 项任务":
+        - generic: 7 个阶段 · 13 项任务
+      - cell "编辑 复制":
+        - button "编辑":
+          - generic: 编辑
+        - button "复制":
+          - generic: 复制
+    - row "普通类－非直签 TPL-CFG20261014-GENERAL-CHANNEL 非直签 / 普通类 草稿 7 个阶段 · 13 项任务 编辑 复制":
+      - cell "普通类－非直签 TPL-CFG20261014-GENERAL-CHANNEL":
+        - strong: 普通类－非直签
+        - generic: TPL-CFG20261014-GENERAL-CHANNEL
+      - cell "非直签 / 普通类":
+        - generic: 非直签 / 普通类
+      - cell "草稿":
+        - generic: 草稿
+      - cell "7 个阶段 · 13 项任务":
+        - generic: 7 个阶段 · 13 项任务
+      - cell "编辑 复制":
+        - button "编辑":
+          - generic: 编辑
+        - button "复制":
+          - generic: 复制
+    - row "工程类－直签 TPL-CFG20261014-ENGINEERING-DIRECT 直签 / 工程类 草稿 7 个阶段 · 16 项任务 编辑 复制":
+      - cell "工程类－直签 TPL-CFG20261014-ENGINEERING-DIRECT":
+        - strong: 工程类－直签
+        - generic: TPL-CFG20261014-ENGINEERING-DIRECT
+      - cell "直签 / 工程类":
+        - generic: 直签 / 工程类
+      - cell "草稿":
+        - generic: 草稿
+      - cell "7 个阶段 · 16 项任务":
+        - generic: 7 个阶段 · 16 项任务
+      - cell "编辑 复制":
+        - button "编辑":
+          - generic: 编辑
+        - button "复制":
+          - generic: 复制
+    - row "普通类－直签 TPL-CFG20261014-GENERAL-DIRECT 直签 / 普通类 草稿 7 个阶段 · 16 项任务 编辑 复制":
+      - cell "普通类－直签 TPL-CFG20261014-GENERAL-DIRECT":
+        - strong: 普通类－直签
+        - generic: TPL-CFG20261014-GENERAL-DIRECT
+      - cell "直签 / 普通类":
+        - generic: 直签 / 普通类
+      - cell "草稿":
+        - generic: 草稿
+      - cell "7 个阶段 · 16 项任务":
+        - generic: 7 个阶段 · 16 项任务
+      - cell "编辑 复制":
+        - button "编辑":
+          - generic: 编辑
+        - button "复制":
+          - generic: 复制
+    - row "项目交付全流程（默认业务实现） TPL-DELIVERY-FLOW-20261009 全部场景 生效 6 个阶段 · 17 项任务 编辑 复制":
+      - cell "项目交付全流程（默认业务实现） TPL-DELIVERY-FLOW-20261009":
+        - strong: 项目交付全流程（默认业务实现）
+        - generic: TPL-DELIVERY-FLOW-20261009
+      - cell "全部场景":
+        - generic: 全部场景
+      - cell "生效":
+        - generic: 生效
+      - cell "6 个阶段 · 17 项任务":
+        - generic: 6 个阶段 · 17 项任务
+      - cell "编辑 复制":
+        - button "编辑":
+          - generic: 编辑
+        - button "复制":
+          - generic: 复制
+    - row "项目交付全流程V2 TPL-DELIVERY-FLOW-20260924 全部场景 生效 6 个阶段 · 17 项任务 编辑 复制":
+      - cell "项目交付全流程V2 TPL-DELIVERY-FLOW-20260924":
+        - strong: 项目交付全流程V2
+        - generic: TPL-DELIVERY-FLOW-20260924
+      - cell "全部场景":
+        - generic: 全部场景
+      - cell "生效":
+        - generic: 生效
+      - cell "6 个阶段 · 17 项任务":
+        - generic: 6 个阶段 · 17 项任务
+      - cell "编辑 复制":
+        - button "编辑":
+          - generic: 编辑
+        - button "复制":
+          - generic: 复制
+- combobox
+- generic: 10条/页
+- generic: 共 38 条
+- button "上一页" [disabled]:
+- list:
+  - listitem "第 1 页": "1"
+  - listitem "第 2 页": "2"
+  - listitem "第 3 页": "3"
+  - listitem "第 4 页": "4"
+- button "下一页":
+- generic: 前往
+- spinbutton "页": "1"
+- generic: 页
+- button "高级资产管理 · 可复用定义库（仅导入来源）":
+  - generic: 高级资产管理 · 可复用定义库（仅导入来源）
+- paragraph: DefinitionLibrary 只提供可复用导入来源；模板运行结构由 DesignerDocument 和发布后的 ExecutionSnapshot 决定。
+- generic: Copyright ©2026 项目实施交付管理平台

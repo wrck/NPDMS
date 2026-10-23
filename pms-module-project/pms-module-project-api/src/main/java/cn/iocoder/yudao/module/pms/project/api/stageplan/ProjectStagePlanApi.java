@@ -5,6 +5,12 @@ import java.util.List;
 
 /** SOL 施工计划倒排消费的 PROJ 阶段计划契约：阶段事实只读与计划起止日期受控写入。 */
 public interface ProjectStagePlanApi {
+    /** 可编辑施工计划的只读默认来源；只含DONE节点，不推测缺失的实际日期。 */
+    CompletedDates readCompletedDates(CompletedDatesQuery query);
+    record CompletedDatesQuery(Long tenantId, Long projectId) { }
+    record NodeActualDates(Long nodeId, LocalDate actualStart, LocalDate actualEnd) { }
+    record CompletedDates(List<NodeActualDates> stages, List<NodeActualDates> tasks) { }
+
     /** Calculate from the project's frozen plan and current planned acceptance times. No writes. */
     ScheduleCalculation calculateSchedule(Long tenantId, Long projectId, LocalDate start, LocalDate end);
     List<TaskPlan> listTaskPlans(Long tenantId, Long projectId);

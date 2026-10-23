@@ -144,8 +144,11 @@ public class PreparationReadinessService {
     public SiteSurveyReadinessFact inspect(SiteSurveyReadinessQuery query, Long tenantId, Long actorId) {
         requireTrusted(tenantId, actorId);
         PreparationDO preparation = locate(query, tenantId, false);
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorId, query.projectId(), ProjectScopeApi.ACTION_VIEW));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         requireScope(scope, query.projectId());
         UnlockedFacts facts = loadUnlocked(tenantId, preparation.getId());
         Evaluation evaluation = calculate(preparation, facts.items(), facts.forms(), facts.sources(),
@@ -160,9 +163,12 @@ public class PreparationReadinessService {
     public SiteSurveyReadinessFact lockAndRevalidate(SiteSurveyReadinessRevalidationQuery query,
                                                       Long tenantId, Long actorId) {
         requireTrusted(tenantId, actorId);
-        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                tenantId, actorId, query.projectId(), ProjectScopeApi.ACTION_VIEW,
-                query.expectedProjectScopeVersion()));
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(query.expectedProjectScopeVersion()).build());
         requireScope(scope, query.projectId());
         LockedFacts facts = loadLocked(tenantId, query.preparationId());
         PreparationDO preparation = facts.preparation();
@@ -192,11 +198,18 @@ public class PreparationReadinessService {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        ProjectScopeResult current = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+        ProjectScopeResult current = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         requireScope(current, projectId);
-        ProjectScopeResult locked = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE, current.treeVersion()));
+        ProjectScopeResult locked = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(current.treeVersion()).build());
         requireScope(locked, projectId);
         participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(projectId,
                 actor.actorId(), projectVersion, "ACTIVE", null,

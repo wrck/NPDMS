@@ -84,6 +84,7 @@ public class PlatformDeliveryMaterialApiImpl implements PlatformDeliveryMaterial
                 row.getFileArtifactId(), row.getFileVersionNo(), row.getFileSha256(), row.getFileName(),
                 row.getBusinessObjectType(), row.getBusinessObjectId(), row.getBusinessRevisionNo(),
                 row.getTitle(), row.getSourceKind(), row.getStatus(), row.getArchiveStatus(),
-                row.getCreator(), row.getCreateTime(), row.getVersion());
+                row.getCreator(), row.getCreateTime(), row.getVersion(), row.getBusinessTypeCode(), row.getSourceOwnerModule(),
+                row.getSourceEntityType(), row.getSourceEntityId());
     }
 }

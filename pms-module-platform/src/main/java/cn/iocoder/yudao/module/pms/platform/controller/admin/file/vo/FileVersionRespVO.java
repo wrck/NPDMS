@@ -9,6 +9,7 @@ public class FileVersionRespVO {
 
     private Long id;
     private Integer versionNo;
+    private String fileName;
     private String sha256;
     private Long sizeBytes;
     private String mediaType;

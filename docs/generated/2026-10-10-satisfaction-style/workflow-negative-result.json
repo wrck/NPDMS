@@ -1,0 +1,15 @@
+{
+  "projectId": 992203060005,
+  "certificateId": 30029,
+  "taskId": "2108766555858718721",
+  "missingConsentPrevented": true,
+  "missingRequiredRatingsPrevented": true,
+  "missingSignaturePrevented": true,
+  "invalidSubmissionHasNoUploadsOrResponse": true,
+  "rejectedStatus": 4,
+  "alreadyOpenedLinkUploadDenied": true,
+  "uploadDenialCode": 500,
+  "rejectedCustomerLinkUnavailable": true,
+  "pageErrors": [],
+  "existingSignedHistoryUnchanged": true
+}

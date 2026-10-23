@@ -31,5 +31,15 @@ public interface ProjectDeviceSelectionMapper extends BaseMapperX<DeviceDO> {
                 .orderByDesc(DeviceDO::getId));
     }
 
+    default PageResult<DeviceDO> selectCandidatePage(ProjectDeviceSelectionQuery query) {
+        if (query.getProjectId() == null || query.getProjectId() <= 0) return PageResult.empty();
+        long total = selectCountCandidates(query);
+        return total == 0 ? PageResult.empty() : new PageResult<>(selectPageCandidates(query), total);
+    }
+
+    List<DeviceDO> selectPageCandidates(@Param("query") ProjectDeviceSelectionQuery query);
+
+    Long selectCountCandidates(@Param("query") ProjectDeviceSelectionQuery query);
+
     List<DeviceDO> selectSelectionForUpdate(@Param("query") ProjectDeviceSelectionQuery query);
 }

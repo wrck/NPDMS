@@ -91,6 +91,14 @@ public class DynamicFormActionProjection {
         }
     }
 
+    /** Print configuration is administrative; selecting a published layout remains a business read. */
+    public void requireConfiguration(Long actorId, String category) {
+        if (("COMPLETION_PRINT".equals(category) || "SATISFACTION_PRINT".equals(category))
+                && (actorId == null || !permissionApi.hasAnyRoles(actorId, "super_admin"))) {
+            throw exception(FORBIDDEN);
+        }
+    }
+
     private boolean has(Long actorId, String permission) {
         return actorId != null && permissionApi.hasAnyPermissions(actorId, permission);
     }

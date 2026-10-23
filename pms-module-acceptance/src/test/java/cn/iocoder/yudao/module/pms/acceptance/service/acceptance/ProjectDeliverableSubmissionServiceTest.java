@@ -56,7 +56,7 @@ class ProjectDeliverableSubmissionServiceTest {
     final ProjectDeliverableRequirementResolver resolver =
             new ProjectDeliverableRequirementResolver(platform, rules, ownerSources, documentSources, fileEvidence);
     final ProjectDeliverableSubmissionService service = new ProjectDeliverableSubmissionService(
-            platform, rules, access, fileEvidence, results, outbox, ownerSources, resolver);
+            platform, rules, access, fileEvidence, results, outbox, ownerSources, resolver, query -> Optional.empty());
 
     TemplateFrozenView view;
     ProjectDeliverableRuleApi.Context context;
@@ -140,7 +140,64 @@ class ProjectDeliverableSubmissionServiceTest {
         return new FileDocumentSourceProvider.Scope(projectId, "SOL.REQUIREMENT_DOCUMENT");
     }
 
+    @Test
+    void historicalFileLookupRunsInsideTheRequiredTransaction() {
+        var manager = new org.springframework.transaction.support.AbstractPlatformTransactionManager() {
+            protected Object doGetTransaction() {
+                return org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive();
+            }
+            protected boolean isExistingTransaction(Object transaction) { return Boolean.TRUE.equals(transaction); }
+            protected void doBegin(Object transaction, org.springframework.transaction.TransactionDefinition definition) { }
+            protected void doCommit(org.springframework.transaction.support.DefaultTransactionStatus status) { }
+            protected void doRollback(org.springframework.transaction.support.DefaultTransactionStatus status) { }
+        };
+        var factory = new org.springframework.aop.framework.ProxyFactory(service);
+        factory.setProxyTargetClass(true);
+        factory.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(manager,
+                new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
+        when(platform.listMaterials(31L)).thenReturn(List.of(fileMaterial(1L, 50L, null, "ACTIVE")));
+        when(fileEvidence.inspectDocument(7L, 50L)).thenAnswer(invocation -> {
+            assertTrue(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+            return unifiedDocument(50L, true);
+        });
+        var proxied = (ProjectDeliverableSubmissionService) factory.getProxy();
+        assertDoesNotThrow(() -> proxied.detail(9L, 31L));
+        assertDoesNotThrow(() -> proxied.resultTypes(9L, 31L));
+        assertDoesNotThrow(() -> proxied.candidates(9L, 31L,
+                new BusinessResultSource.Type("SOL", "REQUIREMENT_ANALYSIS", "REQUIREMENT_ANALYSIS_COMPLETED"), null));
+        verify(fileEvidence, times(3)).inspectDocument(7L, 50L);
+        assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+    }
+
+    @Test
+    void historyProjectsOriginalFileKeyWithoutChangingFrozenMaterial() {
+        when(platform.listMaterials(31L)).thenReturn(List.of(fileMaterial(1L, 50L, null, "ACTIVE")));
+        when(platform.listSubmissions(31L)).thenReturn(List.of(submission(2L, "UPLOAD", "{}", "{}", List.of(1L))));
+        var material = service.detail(9L, 31L).history().getFirst().materials().getFirst();
+        assertEquals("plt/ref/50", material.fileKey().referenceKey());
+        assertEquals("ACC:project_deliverable:9", material.fileKey().objectId());
+        assertEquals("proof.pdf", material.fileName());
+        when(fileEvidence.inspectDocument(7L, 50L)).thenReturn(unifiedDocument(51L, true));
+        assertNull(service.detail(9L, 31L).history().getFirst().materials().getFirst().fileKey());
+        when(fileEvidence.inspectDocument(7L, 50L)).thenReturn(null);
+        assertNull(service.detail(9L, 31L).history().getFirst().materials().getFirst().fileKey());
+    }
+
     // ———— 手工提交：幂等、并发、守卫 ————
+
+    @Test
+    void detailReportsAutomaticCollectionBeforeAnySubmissionAndRetainsManualDistinction() {
+        when(rules.automaticCollectionCodes(9L)).thenReturn(java.util.Set.of("D1"));
+        assertTrue(service.detail(9L, 31L).automaticCollection());
+        assertTrue(service.detail(9L, 31L).history().isEmpty());
+
+        when(rules.automaticCollectionCodes(9L)).thenReturn(java.util.Set.of());
+        assertFalse(service.detail(9L, 31L).automaticCollection());
+        when(ownerSources.ownerType(view)).thenReturn("ACCEPTANCE_REPORT");
+        assertTrue(service.detail(9L, 31L).automaticCollection());
+        verify(platform, never()).submitTemplateFrozen(any());
+        verifyNoInteractions(outbox);
+    }
 
     @Test
     void uploadSatisfiesReplaysByKeyAndFreezesConfirmationEvidence() {
@@ -354,6 +411,37 @@ class ProjectDeliverableSubmissionServiceTest {
     }
 
     @Test
+    void frozenTaskDocumentTargetCollectsAndRevalidatesWithoutChangingConfiguration() {
+        var config = JsonUtils.parseTree(CONFIG); config = JsonUtils.parseTree(config.toString().replace("SOL.REQUIREMENT_DOCUMENT", "UNRELATED"));
+        var frozen = new ProjectDeliverableRuleApi.Context(9L,15L,"ACTIVE",11L,"S1","T1",config);
+        when(rules.read(9L,"D1")).thenReturn(frozen);when(rules.lock(9L,"D1")).thenReturn(frozen);
+        when(rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"SOL.REQUIREMENT_DOCUMENT"))).thenReturn(java.util.Set.of("D1"));
+        service.collectDocument(view,scope(9L),collectedDocument(71L,true),"bound-page-document");
+        verify(platform).submitTemplateFrozen(any());
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(submission(1001L,PlatformDeliveryRequirementApi.SOURCE_BUSINESS_DOCUMENT,"{}",null,List.of(9003L))));
+        when(platform.listMaterials(31L)).thenReturn(List.of(fileMaterial(9003L,71L,"SOL.REQUIREMENT_DOCUMENT","ACTIVE")));
+        when(fileEvidence.inspectDocument(7L,71L)).thenReturn(collectedDocument(71L,true));
+        when(documentSources.resolve(7L,collectedDocument(71L,true))).thenReturn(scope(9L));
+        assertTrue(resolver.evaluate(31L,9L,"D1",1).satisfied());
+        when(rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"SOL.REQUIREMENT_DOCUMENT"))).thenReturn(java.util.Set.of());
+        assertFalse(resolver.evaluate(31L,9L,"D1",1).satisfied());
+    }
+
+    @Test
+    void explicitAutomaticSourceCannotOverrideTaskOrigin() {
+        var scope = new FileDocumentSourceProvider.Scope(9L, "SOL.REQUIREMENT_DOCUMENT", "SOL", "document", 1L, 1L, 102L);
+        var query = new ProjectDeliverableRuleApi.DocumentTargetsQuery(9L, scope.sourceCode(), 102L);
+        when(rules.documentTargets(query)).thenReturn(java.util.Set.of("OTHER_TASK_DELIVERABLE"));
+        service.collectDocument(view, scope, collectedDocument(71L,true), "wrong-task");
+        verify(platform, never()).submitTemplateFrozen(any());
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(submission(1001L,PlatformDeliveryRequirementApi.SOURCE_BUSINESS_DOCUMENT,"{}",null,List.of(9003L))));
+        when(platform.listMaterials(31L)).thenReturn(List.of(fileMaterial(9003L,71L,"SOL.REQUIREMENT_DOCUMENT","ACTIVE")));
+        when(fileEvidence.inspectDocument(7L,71L)).thenReturn(collectedDocument(71L,true));
+        when(documentSources.resolve(7L,collectedDocument(71L,true))).thenReturn(scope);
+        assertFalse(resolver.evaluate(31L,9L,"D1",1).satisfied());
+    }
+
+    @Test
     void collectDocumentGuardsLifecycleScopeProjectionAndResultSlots() {
         var file = collectedDocument(71L, true);
         when(rules.read(9L, "D1")).thenReturn(new ProjectDeliverableRuleApi.Context(9L, 15L, "NORMAL_CLOSED",
@@ -427,6 +515,29 @@ class ProjectDeliverableSubmissionServiceTest {
         service.collectBusinessResult(view, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED",
                 resultChange(UUID.randomUUID(), BusinessResultSource.Validity.CURRENT));
         verify(platform, times(1)).submitTemplateFrozen(any());
+    }
+
+    @Test
+    void nativePlanTargetsUseFrozenOwnerBindingWithoutChangingConfiguration() {
+        context = new ProjectDeliverableRuleApi.Context(9L, 15L, "ACTIVE", 11L, "S2", "T1",
+                JsonUtils.parseTree(CONFIG).deepCopy());
+        ((tools.jackson.databind.node.ObjectNode) context.configuration()).remove("automaticSources");
+        when(rules.read(9L, "D1")).thenReturn(context);
+        when(rules.lock(9L, "D1")).thenReturn(context);
+        when(rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L, "PLN.STAGE_PLAN.CONSTRUCTION_PLAN_APPROVED"))).thenReturn(java.util.Set.of("D1"));
+        var original = resultChange(UUID.randomUUID(), BusinessResultSource.Validity.CURRENT);
+        var type = new BusinessResultSource.Type("PLN", "STAGE_PLAN", "CONSTRUCTION_PLAN_APPROVED");
+        var result = new BusinessResultSource.Result(7L, 9L, type, "30", "30", null, "2",
+                BusinessResultSource.Validity.CURRENT, original.observation().result().formedAt());
+        var change = new BusinessResultChange(original.eventId(), original.eventVersion(),
+                new BusinessResultChange.Channel(1L, 7L, 9L, type), original.sequence(),
+                new cn.iocoder.yudao.module.pms.project.api.workbinding.operation.BusinessOperationResultEvent(
+                        UUID.randomUUID().toString(), 1, 7L, 9L, "PLN", "STAGE_PLAN", "30", null, 2L, "2",
+                        "CONSTRUCTION_PLAN_APPROVED", "OWNER.StagePlanBatch.CHANGED", "approval-30", 11L,
+                        result.formedAt(), "plan-test"),
+                BusinessResultSource.Observation.available(result), true);
+        service.collectBusinessResult(view, "PLN.STAGE_PLAN.CONSTRUCTION_PLAN_APPROVED", change);
+        verify(platform).submitTemplateFrozen(any());
     }
 
     @Test
@@ -529,5 +640,29 @@ class ProjectDeliverableSubmissionServiceTest {
         var payload = JsonUtils.parseTree(evaluated.getFirst().eventPayload());
         assertEquals(evaluated.getFirst().eventId(), payload.path("eventId").asText());
         assertEquals("SATISFIED", payload.path("status").asText());
+    }
+
+    @Test void resultTypesOnlyContainSourcesRequiredByTheFrozenBusiness() {
+        var unrelated = new BusinessResultSource.Type("IMP", "INSTALLATION", "INSTALLATION_COMPLETED");
+        var required = new BusinessResultSource.Descriptor(resultType(), true, true, true);
+        when(results.types()).thenReturn(List.of(required, new BusinessResultSource.Descriptor(unrelated, true, true, true)));
+        assertEquals(List.of(required), service.resultTypes(9L,31L));
+        assertThrows(RuntimeException.class, () -> service.candidates(9L,31L,unrelated,null));
+        assertThrows(RuntimeException.class, () -> service.submit(9L,31L,"unrelated-type",
+                new ProjectDeliverableSubmissionService.Submission(15L,0L,"BUSINESS_RESULT",List.of(),
+                        new BusinessResultSource.Query(7L,9L,unrelated,"55","56"))));
+        verify(results,never()).candidates(any());
+        verify(results,never()).lockAndInspect(any());
+        verify(platform,never()).registerTemplateFrozenBusinessResult(any(),any(),any(),any(),any());
+    }
+
+    @Test void resultTypesUseExistingNativeTaskSourceMappingAndNeverFallBackToAllTypes() {
+        var type = new BusinessResultSource.Type("PLN","STAGE_PLAN","CONSTRUCTION_PLAN_APPROVED");
+        var descriptor = new BusinessResultSource.Descriptor(type,true,true,true);
+        when(results.types()).thenReturn(List.of(descriptor));
+        assertTrue(service.resultTypes(9L,31L).isEmpty());
+        when(rules.documentTargets(new ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"PLN.STAGE_PLAN.CONSTRUCTION_PLAN_APPROVED")))
+                .thenReturn(java.util.Set.of("D1"));
+        assertEquals(List.of(descriptor), service.resultTypes(9L,31L));
     }
 }

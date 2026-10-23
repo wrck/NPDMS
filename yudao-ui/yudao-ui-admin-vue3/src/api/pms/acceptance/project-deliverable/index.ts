@@ -1,5 +1,5 @@
 import request from '@/config/axios'
-import type { FileId } from '@/api/pms/platform/file'
+import type { FileId, FileBusinessKey } from '@/api/pms/platform/file'
 
 // P06R 统一交付件承接后的 ACC 兼容契约：存储在平台 plt_delivery_*，
 // FileSelection 只带 referenceId（上传返回引用，与统一材料登记一致），历史行渲染统一材料。
@@ -18,6 +18,7 @@ export interface BusinessResult {
 }
 export interface FileSelection { referenceId: FileId }
 export interface MaterialLine {
+  fileKey?: FileBusinessKey
   id: number
   materialKind: string
   referenceId?: number
@@ -45,6 +46,8 @@ export interface DeliverableDetail {
   planVersionId: number
   writable: boolean
   automaticSource?: string
+  /** Display policy only; the server still checks permissions, scope and concurrency. */
+  automaticCollection?: boolean
   configuration: { minimumQuantity?: number; allowedSources?: string[]; outputType?: string; automaticSources?: string[] }
   history: HistoryLine[]
 }

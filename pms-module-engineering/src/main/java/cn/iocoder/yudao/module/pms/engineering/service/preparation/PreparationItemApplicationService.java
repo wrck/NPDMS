@@ -131,14 +131,18 @@ public class PreparationItemApplicationService {
         boolean managerWrite = command.submittedFields().stream().anyMatch(MANAGER_FIELDS::contains);
         boolean assigneeWrite = command.submittedFields().stream().anyMatch(ASSIGNEE_FIELDS::contains);
 
-        ProjectScopeResult currentScope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), located.getProjectId(),
-                managerWrite ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW));
+        ProjectScopeResult currentScope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(located.getProjectId())
+                .actionCode(managerWrite ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW).build());
         requireScope(currentScope, located.getProjectId());
-        ProjectScopeResult lockedScope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                actor.tenantId(), actor.actorId(), located.getProjectId(),
-                managerWrite ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW,
-                currentScope.treeVersion()));
+        ProjectScopeResult lockedScope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(located.getProjectId())
+                .actionCode(managerWrite ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(currentScope.treeVersion()).build());
         requireScope(lockedScope, located.getProjectId());
 
         if (managerWrite) requireManagerLocked(located.getProjectId(), command.expectedProjectVersion(), actor);
@@ -287,8 +291,11 @@ public class PreparationItemApplicationService {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         requireScope(scope, projectId);
         ProjectParticipantFact manager = participantFactApi.inspect(new ProjectParticipantFactQuery(
                 projectId, actor.actorId(), Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),

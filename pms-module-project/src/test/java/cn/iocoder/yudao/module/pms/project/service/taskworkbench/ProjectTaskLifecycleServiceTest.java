@@ -598,14 +598,20 @@ class ProjectTaskLifecycleServiceTest {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.CsvSource({"IN_PROGRESS,BUSINESS_OBJECT", "PENDING_ACCEPT,BUSINESS_OBJECT", "PENDING_ACCEPT,TASK_NATIVE", "PENDING_ACCEPT,PAGE", "IN_PROGRESS,APPROVAL"})
+    @org.junit.jupiter.params.provider.CsvSource({"IN_PROGRESS,BUSINESS_OBJECT", "PENDING_ACCEPT,BUSINESS_OBJECT", "PENDING_ACCEPT,TASK_NATIVE", "PENDING_ACCEPT,PAGE", "IN_PROGRESS,APPROVAL", "IN_PROGRESS,PAGE", "IN_PROGRESS,JOINT_PAGE"})
     @SuppressWarnings("unchecked")
     void submittedOrBusinessResultCompletesThroughFrozenStateMachineOnceWithoutUserActions(String status, String bindingType) {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
         try {
             var task = automaticTask(status);
             contractMapper.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L))
-                    .setWorkBindingTypeCode(bindingType);
+                    .setWorkBindingTypeCode("JOINT_PAGE".equals(bindingType) ? "PAGE" : bindingType);
+            if ("JOINT_PAGE".equals(bindingType))
+                contractMapper.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L))
+                        .setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-joint-test\"}");
+            if ("IN_PROGRESS".equals(status) && "PAGE".equals(bindingType))
+                contractMapper.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L))
+                        .setBindingParameterSnapshot("{\"routePath\":\"/customer-asset/customer-contact\"}");
             var transition = new TaskStateTransitionDO(); transition.setToStatusCode("DONE");
             when(stateMachineMapper.requireTransition(any())).thenAnswer(call -> {
                 var query = (cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateTransitionQuery) call.getArgument(0);
@@ -641,6 +647,31 @@ class ProjectTaskLifecycleServiceTest {
         } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"FACT_UNAVAILABLE", "CURRENT_ROUND_SUBMISSION_REQUIRED"})
+    void jointCompletionNeverWritesStateWhenCurrentPlanEvidenceIsUnavailable(String reason) {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
+        try {
+            var task = automaticTask("IN_PROGRESS");
+            var contract = contractMapper.selectCurrentByTaskIdForUpdate(
+                    new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L));
+            contract.setWorkBindingTypeCode("PAGE");
+            contract.setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-joint-test\"}");
+            var project = taskMapper.selectProjectForCommandForUpdate(
+                    new cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskProjectLockQuery(0L,100L));
+            var unknown = new cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation("joint-plan",
+                    cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.UNKNOWN,reason,
+                    java.util.List.of(),java.util.List.of(),java.util.List.of());
+            when(businessEvaluator.evaluateAutomatically(project,task,contract)).thenReturn(new ProjectTaskPlanCompletionService.Result(
+                    unknown,unknown,java.util.Map.of("completion",unknown,"exit",unknown)));
+            var result = service.completeFromBusinessResult(100L,11L,"joint-fact-unavailable");
+            assertFalse(result.completed());
+            assertEquals("FACT_UNAVAILABLE".equals(reason),result.unknown());
+            verify(taskMapper,never()).updateLifecycleIfMatch(any());
+            org.mockito.Mockito.verifyNoInteractions(commandExecutionApi,stateMachineMapper);
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
     @Test void automaticCompletionNeverDiscardsStartedChildWork() {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
         try {
@@ -650,6 +681,51 @@ class ProjectTaskLifecycleServiceTest {
             verify(taskMapper, never()).updateLifecycleIfMatch(any());
             verify(commandExecutionApi, never()).execute(any(), any(), any(), any(), any());
         } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    @SuppressWarnings("unchecked")
+    void normalClosureApprovalUsesTheFrozenTransitionsAndRecordsApprovalInTheSameRound(boolean splitRule) {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
+        var login=new cn.iocoder.yudao.framework.security.core.LoginUser();login.setId(1L);login.setTenantId(0L);
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(login,new org.springframework.mock.web.MockHttpServletRequest());
+        try {
+            var task=automaticTask("IN_PROGRESS");
+            org.mockito.Mockito.reset(businessEvaluator);
+            var project=taskMapper.selectProjectForCommandForUpdate(null);project.setCurrentStage(task.getStageCode());
+            var contract=contractMapper.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L));
+            contract.setWorkBindingTypeCode("PAGE");contract.setBindingParameterSnapshot("{\"routePath\":\"/pms/project/normal-closure\"}");
+            contract.setCompletionRuleSnapshot("{\"predicate\":\"NORMAL_CLOSURE_APPROVED\",\"parameters\":{}}");
+            if (splitRule) {
+                contract.setCompletionRuleTypeCode("NORMAL_CLOSURE_APPROVED");
+                contract.setCompletionRuleSnapshot("{}");
+            }
+            var approval=new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand(0L,100L,1L,1L,3L,"closure",101L,102L,1L,task.getStageCode(),5L,"digest","bpm-1",1L);
+            var evidence=new java.util.LinkedHashMap<String,Object>();evidence.put("executionId",61L);evidence.put("normalClosureApproval",approval);
+            when(businessEvaluator.evaluateApprovedClosure(any())).thenReturn(planned(true,java.util.List.of(),evidence));
+            when(stateMachineMapper.requireTransition(any())).thenAnswer(call->{
+                var query=(cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateTransitionQuery)call.getArgument(0);
+                var transition=new TaskStateTransitionDO();transition.setToStatusCode("SUBMIT".equals(query.actionCode())?"PENDING_ACCEPT":"DONE");return transition;
+            });
+            when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
+            when(commandExecutionApi.execute(any(),any(),any(),any(),any())).thenAnswer(call->{
+                var scope=(PlatformCommandExecutionApi.IdempotencyScope)call.getArgument(0);
+                assertEquals("closure:101:task:11:execution:61",scope.key());assertEquals(1L,scope.actorId());
+                var result=((Supplier<TaskCommandResult>)call.getArgument(3)).get();
+                return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,result);
+            });
+            service.completeFromNormalClosureApproval(new ProjectTaskLifecycleService.ApprovedClosureCompletion(approval,
+                    new cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection(11L,task.getCode(),91L)));
+            verify(stateMachineMapper).requireTransition(argThat(q->"IN_PROGRESS".equals(q.fromStatusCode())&&"SUBMIT".equals(q.actionCode())));
+            verify(stateMachineMapper).requireTransition(argThat(q->"PENDING_ACCEPT".equals(q.fromStatusCode())&&"COMPLETE".equals(q.actionCode())));
+            verify(taskMapper).updateLifecycleIfMatch(argThat(update->"DONE".equals(update.nextStatus())&&update.progress()==100));
+            var rounds=(cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper)org.springframework.test.util.ReflectionTestUtils.getField(service,"nodeExecutions");
+            verify(rounds).recordTaskTransition(argThat(update->cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(update.evidence()).path("normalClosureApproval").path("applicationId").asLong()==101L));
+        } finally {
+            cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
     }
 
     @Test void pageNavigationCannotCompleteWithoutTheUserSubmittingTheTask() {

@@ -41,12 +41,20 @@ public class ProjectDeliverableAccess {
                 || !permissions.hasAnyPermissions(actor, write ? "pms:project:update" : "pms:project:query"))
             throw failure("无项目交付件操作权限");
         String action = write ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW;
-        var observed = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, projectId, action));
+        var observed = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         if (observed == null || observed.treeVersion() == null || observed.fullProjectIds() == null
                 || !observed.fullProjectIds().contains(projectId)) throw failure("项目不在授权范围内");
         if (expectedScope != null && !Objects.equals(expectedScope, observed.treeVersion())) throw failure("项目权限范围已变化，请刷新");
-        var scope = lock ? scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, actor, projectId,
-                action, observed.treeVersion())) : observed;
+        var scope = lock ? scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(projectId)
+                .actionCode(action)
+                .expectedScopeVersion(observed.treeVersion()).build()) : observed;
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)
                 || !Objects.equals(observed.treeVersion(), scope.treeVersion())) throw failure("项目权限范围已变化，请刷新");
         if (write && !"ACTIVE".equals(lifecycleStatus))

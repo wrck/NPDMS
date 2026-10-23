@@ -1,4 +1,6 @@
 <template>
+  <el-alert v-if="!canQuery" title="当前没有查看该业务的权限" type="info" :closable="false" />
+  <template v-else>
   <ContentWrap :body-style="{ padding: '20px', overflow: 'hidden' }">
     <header class="receipt-heading"><h2>到货签收</h2><p>登记到货情况，上传交付件并记录签收结果。</p></header>
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
@@ -38,14 +40,6 @@
           >
           <el-button
             link
-            type="success"
-            v-if="!readonly && row.status === 0"
-            @click="handleAction(row, 'sign')"
-            v-hasPermi="['pms:imp-arrival:update']"
-            >签收</el-button
-          >
-          <el-button
-            link
             type="warning"
             v-if="!readonly && row.status === 0"
             @click="handleAction(row, 'markAbnormal')"
@@ -80,16 +74,34 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="上传交付件" prop="attachmentUrl"
-            ><span v-if="readOnly && !form.attachmentUrl">未上传</span><UploadFile v-else v-model="form.attachmentUrl!" @update:model-value="handleAttachmentUpload" :file-type="['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx', 'txt']" :disabled="readOnly" /></el-form-item>
+          <el-form-item label="上传交付件" prop="attachmentUrl">
+            <PmsFileReferenceList
+              v-if="form.id && form.signDocumentArtifactId"
+              owner-context="IMP" object-type="ARRIVAL" :object-id="String(form.id)"
+              purpose-code="ARRIVAL_SIGN_DOCUMENT" reference-key="arrival-sign-document"
+              :artifact-id="form.signDocumentArtifactId" :version-no="form.signDocumentVersionNo" />
+            <template v-if="form.attachmentUrl">
+              <a
+                v-for="url in form.attachmentUrl.split(',').filter(Boolean)" :key="url" :href="url" target="_blank" rel="noopener">查看历史附件</a>
+            </template>
+            <el-upload
+              v-if="!readOnly" v-model:file-list="uploadFiles" :auto-upload="false" :limit="1"
+              :disabled="saving" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.txt"
+              :on-change="selectAttachment" :on-remove="removeAttachment">
+              <el-button :disabled="saving">选择签收单文件</el-button>
+              <template #tip><div class="el-upload__tip">保存时上传并自动关联项目交付件；支持 PDF、图片、Word、TXT，最大 50 MB。</div></template>
+            </el-upload>
+            <span v-else-if="!form.attachmentUrl && !form.signDocumentArtifactId">未上传</span>
+          </el-form-item>
         </el-col>
       </el-row>
     </el-form>
     <template #footer>
-      <el-button @click="formVisible = false">{{ readOnly ? '关闭' : '取消' }}</el-button>
+      <el-button :disabled="saving" @click="formVisible = false">{{ readOnly ? '关闭' : '取消' }}</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
+  </template>
 </template>
 
 <script setup lang="ts">
@@ -102,9 +114,14 @@ import * as UserApi from '@/api/system/user'
 import { useUserStore } from '@/store/modules/user'
 import { checkPermi } from '@/utils/permission'
 import { dateFormatter, formatDate } from '@/utils/formatTime'
+import type { UploadFile, UploadFiles, UploadUserFile } from 'element-plus'
+import { PmsFileReferenceList } from '@/components/PmsFileArtifact'
+import { createArrivalUploadAttempt, saveArrivalReceipt, type ArrivalUploadAttempt } from './saveArrivalReceipt'
 
 defineOptions({ name: 'ProjectArrivalReceiptPanel' })
-const props = defineProps<{ projectId: number; /** 任务所属阶段未进入时由工作区强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean }>()
+const props = defineProps<{ projectId: number; /** 任务所属阶段未进入时由工作区强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean; allowedActions?: string[] }>()
+const canQuery = computed(() => checkPermi(['pms:imp-arrival:query']) &&
+  (props.allowedActions === undefined || props.allowedActions.includes('QUERY')))
 const userStore = useUserStore()
 const message = useMessage()
 const loading = ref(false)
@@ -114,12 +131,18 @@ const total = ref(0)
 const query = reactive({ pageNo: 1, pageSize: 10, projectId: props.projectId, code: '', status: undefined })
 const formVisible = ref(false)
 const formRef = ref()
+const uploadFiles = ref<UploadUserFile[]>([])
+let uploadAttempt: ArrivalUploadAttempt | undefined
+const detailLoading = ref(false)
+const detailError = ref(false)
+let detailSequence = 0
 type ArrivalForm = Omit<ArrivalVO, 'arrivalTime'> & { arrivalTime?: string | number | null }
 const form = ref<ArrivalForm>({ projectId: props.projectId, code: '', status: 0 })
 const editableRecord = (row: Pick<ArrivalVO, 'status'>) => (row.status === 0 || row.status === 2) && checkPermi(['pms:imp-arrival:update'])
-const readOnly = computed(() => !!props.readonly || (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-arrival:create'])))
+const readOnly = computed(() => !canQuery.value || detailLoading.value || detailError.value || !!props.readonly || (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-arrival:create'])))
 const rules = {
-  attachmentUrl: [{ required: true, message: '请上传交付件' }]
+  attachmentUrl: [{ validator: (_rule: unknown, _value: unknown, callback: (error?: Error) => void) =>
+    callback(uploadAttempt || form.value.signDocumentArtifactId ? undefined : new Error('请选择签收单文件')) }]
 }
 const receiverName = ref('')
 // 到货人默认当前用户；承接历史记录中他人签收时按编号回显昵称
@@ -143,6 +166,7 @@ const completionTimeText = computed(() => {
 })
 
 const load = async () => {
+  if (!canQuery.value) return
   loading.value = true
   try {
     const data = await ArrivalApi.getArrivalPage({ ...query, projectId: props.projectId })
@@ -152,7 +176,12 @@ const load = async () => {
     loading.value = false
   }
 }
-const openForm = (row?: ArrivalVO) => {
+const openForm = async (row?: ArrivalVO) => {
+  if (saving.value || !canQuery.value) return
+  const sequence = ++detailSequence
+  detailLoading.value = false
+  uploadFiles.value = []; uploadAttempt = undefined
+  detailError.value = false
   form.value = {
       id: undefined,
       projectId: props.projectId,
@@ -173,38 +202,52 @@ const openForm = (row?: ArrivalVO) => {
   }
   resolveReceiverName(form.value.receiverUserId)
   formVisible.value = true
+  if (row?.id) {
+    detailLoading.value = true
+    try {
+      const detail = await ArrivalApi.getArrival(row.id)
+      if (sequence === detailSequence) form.value = { ...form.value, ...detail }
+    }
+    catch { if (sequence === detailSequence) { detailError.value = true; message.error('签收详情加载失败，请关闭后重试') } }
+    finally { if (sequence === detailSequence) detailLoading.value = false }
+  }
 }
-// 上传完成即视为签收动作完成：交付件上传成功的时刻自动填入完成时间（绑定值由 v-model 更新）
-const handleAttachmentUpload = (value: string) => {
-  if (value && !readOnly.value) form.value.arrivalTime = Date.now()
+const selectAttachment = (file: UploadFile, list: UploadFiles) => {
+  if (readOnly.value || !file.raw) return
+  if (!/\.(pdf|png|jpe?g|docx?|txt)$/i.test(file.name) || file.size! <= 0 || file.size! > 50 * 1024 * 1024) {
+    list.splice(list.indexOf(file), 1); message.error('文件格式不支持或大小超过 50 MB'); return
+  }
+  uploadAttempt = createArrivalUploadAttempt(file.raw)
 }
+const removeAttachment = () => { uploadAttempt = undefined }
 const save = async () => {
   if (readOnly.value) return
   await formRef.value.validate()
   saving.value = true
   try {
-    // Match the existing TimestampLocalDateTimeDeserializer contract, not a
-    // formatted date string that would be interpreted as an invalid timestamp.
-    const data: ArrivalVO = { ...form.value, projectId: props.projectId, arrivalTime: form.value.arrivalTime == null || form.value.arrivalTime === '' ? undefined : Number(form.value.arrivalTime) }
-    data.id ? await ArrivalApi.updateArrival(data) : await ArrivalApi.createArrival(data)
+    form.value.projectId = props.projectId
+    await saveArrivalReceipt(form.value as ArrivalVO, uploadAttempt)
     message.success('保存成功')
     formVisible.value = false
     await load()
+  } catch (failure: any) {
+    message.error(failure?.message || '保存失败，请重试；已上传文件会保留')
   } finally {
     saving.value = false
   }
 }
 const remove = async (row: ArrivalVO) => {
+  if (props.readonly || !canQuery.value || !checkPermi(['pms:imp-arrival:delete'])) return
   if (row.status === 1) return
   await message.delConfirm()
   await ArrivalApi.deleteArrival(row.id!)
   message.success('删除成功')
   await load()
 }
-const handleAction = async (row: ArrivalVO, action: 'sign' | 'markAbnormal') => {
-  const actionText = { sign: '签收', markAbnormal: '标记异常' }[action]
+const handleAction = async (row: ArrivalVO, action: 'markAbnormal') => {
+  if (props.readonly || !canQuery.value || !checkPermi(['pms:imp-arrival:update'])) return
+  const actionText = { markAbnormal: '标记异常' }[action]
   await message.confirm(`确认${actionText}该签收记录？`)
-  if (action === 'sign') await ArrivalApi.signArrival(row.id!)
   if (action === 'markAbnormal') await ArrivalApi.markAbnormalArrival(row.id!)
   message.success(`${actionText}成功`)
   await load()

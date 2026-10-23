@@ -3,9 +3,10 @@ import { defineComponent, h, nextTick, ref } from 'vue'
 import PmsFileReferenceList from './PmsFileReferenceList.vue'
 import * as FileApi from '@/api/pms/platform/file'
 import download from '@/utils/download'
-import { mount, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, passthrough, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-vi.mock('@/api/pms/platform/file', () => ({ getArtifact: vi.fn(), createAccessTicket: vi.fn() }))
+vi.mock('@/api/pms/platform/file', () => ({ getArtifact: vi.fn(), createAccessTicket: vi.fn(), getPreviewContent: vi.fn() }))
+vi.mock('@/components/PmsFileArtifact/PmsPdfPreview.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/utils/download', () => ({ default: { file: vi.fn() } }))
 vi.mock('./PmsFileVersionDrawer.vue', () => ({ default: { render: () => null } }))
 const key = { ownerContext: 'PLATFORM', objectType: 'DYNAMIC_FORM_INSTANCE', objectId: '32', purposeCode: 'FORM_FIELD_ATTACHMENT/PROJECT_BACKGROUND', referenceKey: 'slot-1' }
@@ -18,7 +19,8 @@ const flush = async () => { for (let i = 0; i < 6; i++) await nextTick() }
 describe('controlled file access uses the requested operation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.stubGlobal('window', { open: vi.fn() })
+    vi.stubGlobal('window', { open: vi.fn(), setInterval: vi.fn(), clearInterval: vi.fn() })
+    vi.mocked(FileApi.getPreviewContent).mockResolvedValue(new Blob(['%PDF-test'], { type: 'application/pdf' }))
     vi.stubGlobal('fetch', vi.fn())
     vi.mocked(FileApi.getArtifact).mockResolvedValue({ artifactId: 9, name: '工勘附件.txt', categoryCode: 'DYNAMIC_FORM_ATTACHMENT', reference: { ...key, versionNo: 1, status: 'ACTIVE' }, allowedActions: ['PREVIEW', 'DOWNLOAD'] } as any)
     vi.mocked(FileApi.createAccessTicket).mockResolvedValue({ shortLivedUrl: 'https://storage.test/signed-file' } as any)
@@ -26,7 +28,7 @@ describe('controlled file access uses the requested operation', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   const setup = async () => {
-    const mounted = mount(PmsFileReferenceList, { ...key, artifactId: 9, versionNo: 2 })
+    const mounted = mount(PmsFileReferenceList, { ...key, artifactId: 9, versionNo: 2 }, { ElDialog: passthrough })
     await flush()
     const click = (label: string) => (findButton(mounted.root, label)!.props!.onClick as () => Promise<void>)()
     return { ...mounted, click }
@@ -45,15 +47,15 @@ describe('controlled file access uses the requested operation', () => {
     } finally { mounted.app.unmount() }
   })
 
-  it('keeps preview navigation and does not download preview bytes', async () => {
-    const popup = { opener: {}, location: { replace: vi.fn() }, close: vi.fn() }
-    vi.mocked(window.open).mockReturnValue(popup as any)
+  it('previews the exact version inside a dialog without opening a tab or downloading bytes', async () => {
     const mounted = await setup()
     try {
       await mounted.click('预览')
-      expect(FileApi.createAccessTicket).toHaveBeenCalledWith(9, 2, 'PREVIEW', key)
-      expect(popup.opener).toBeNull()
-      expect(popup.location.replace).toHaveBeenCalledWith('https://storage.test/signed-file')
+      expect(FileApi.getPreviewContent).toHaveBeenCalledWith(9, 2, key)
+      expect(FileApi.createAccessTicket).not.toHaveBeenCalled()
+      await flush()
+      expect(window.open).not.toHaveBeenCalled()
+      expect(textOf(mounted.root)).toContain('工勘附件.txt · V2')
       expect(fetch).not.toHaveBeenCalled()
       expect(download.file).not.toHaveBeenCalled()
     } finally { mounted.app.unmount() }
@@ -67,6 +69,21 @@ describe('controlled file access uses the requested operation', () => {
       expect(fetch).not.toHaveBeenCalled()
       expect(download.file).not.toHaveBeenCalled()
       expect(textOf(mounted.root)).toContain('文件下载未完成')
+    } finally { mounted.app.unmount() }
+  })
+
+  it('keeps a failed preview in the dialog and retries the same exact document version', async () => {
+    vi.mocked(FileApi.getPreviewContent).mockRejectedValueOnce(new Error('conversion failed'))
+    const mounted = await setup()
+    try {
+      await mounted.click('预览'); await flush()
+      expect(window.open).not.toHaveBeenCalled()
+      expect(textOf(mounted.root)).toContain('文件预览未完成')
+      await mounted.click('重试预览'); await flush()
+      expect(FileApi.getPreviewContent).toHaveBeenCalledTimes(2)
+      expect(FileApi.getPreviewContent).toHaveBeenLastCalledWith(9, 2, key)
+      expect(textOf(mounted.root)).not.toContain('文件预览未完成')
+      expect(download.file).not.toHaveBeenCalled()
     } finally { mounted.app.unmount() }
   })
 
@@ -120,4 +137,30 @@ describe('controlled file access uses the requested operation', () => {
     } finally { mounted.app.unmount() }
   })
 
+
+  it('does not unlock an active download when a closed preview finishes in the background', async () => {
+    let resolvePreview!: (blob: Blob) => void
+    let resolveDownload!: (response: Response) => void
+    vi.mocked(FileApi.getPreviewContent).mockImplementation(() => new Promise(done => { resolvePreview = done }))
+    vi.mocked(fetch).mockImplementation(() => new Promise(done => { resolveDownload = done }))
+    const mounted = await setup()
+    try {
+      const preview = mounted.click('预览'); await flush()
+      const closeDialog = (node: TestNode): boolean => {
+        if (node.props?.title === '工勘附件.txt · V2') {
+          ;(node.props.onClose as () => void)()
+          return true
+        }
+        return node.children.some(closeDialog)
+      }
+      expect(closeDialog(mounted.root)).toBe(true)
+      const downloading = mounted.click('下载'); await flush()
+      resolvePreview(new Blob(['%PDF'], { type: 'application/pdf' })); await preview
+      await mounted.click('下载')
+      expect(FileApi.createAccessTicket).toHaveBeenCalledTimes(1)
+      resolveDownload({ ok: true, blob: async () => new Blob(['file']) } as Response)
+      await downloading
+      expect(download.file).toHaveBeenCalledOnce()
+    } finally { mounted.app.unmount() }
+  })
 })

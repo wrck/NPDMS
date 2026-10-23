@@ -86,8 +86,8 @@
 
 | 路径 | 方法/命令 | 作用 | 关键约束 |
 |---|---|---|---|
-| `/projects` | `POST`, `GET` | 创建、分页查询项目 | 创建需幂等键及必填非空白createReason；公司与办事处部门按同一组织范围校验；请求包含零到多个站点及一个可选主站点，或显式未解析文本降级；F-PROJ-004生效后所有成功创建须记录AUTO_UNIQUE或EXPLICIT_SELECTION的INITIAL_CREATE历史；查询服务端过滤 ProjectTreeScope |
-| `/projects/{id}` | `GET`, `PATCH` | 项目详情、可编辑属性 | `PATCH`不能修改状态、父节点、来源权威字段及四项模板输入属性；四属性只能走PM-07受控命令并追加历史 |
+| `/projects` | `POST`, `GET` | 创建、分页查询项目 | 创建需幂等键及必填非空白createReason；公司与办事处部门按同一组织范围校验；请求包含零到多个站点及一个可选主站点，或显式未解析文本降级；F-PROJ-004生效后所有成功创建须记录AUTO_UNIQUE或EXPLICIT_SELECTION的INITIAL_CREATE历史；查询服务端过滤 ProjectTreeScope；FB-03批准差量：分页增加可选customerCode，非空时按项目主档客户编码精确匹配，与其他条件取交集，空值不筛选，不扩大租户或项目权限范围；FB-02增加可选overdueOnly，不填为全部，true筛选存在未完成超期节点的ACTIVE项目，false筛选当前不超期项目，均与其他条件取交集 |
+| `/projects/{id}` | `GET`, `PATCH` | 项目详情、可编辑属性 | `PATCH`不能修改状态、父节点、来源权威字段及四项模板输入属性；四属性只能走PM-07受控命令并追加历史；列表与详情状态展示增加overdueNodes/completedOverdueNodes，包含节点类型、ID、名称、计划结束、计划验收、完成时间和两个超期标识，复用既有项目授权；截止当日不超期，完成停止两类，历史只读 |
 | `/projects/{id}/workspace` | `GET` | 项目概览六页签、Stage→ProjectTask导航和投影水位 | 不返回第二套导航真值；按ProjectTreeScope裁剪，任务子树按需加载 |
 | `/projects/{id}/gantt` | `GET` | V2按同一ProjectTask、计划字段和TaskDependency返回甘特投影 | 只读展示，不建立第二套任务事实；按ProjectTreeScope裁剪 |
 | `/projects/{id}/tree` | `GET` | 直接下级、全部后代、完整上级链、指定业务层级或节点定位 | 先执行ProjectTreeScope；返回同一完整`treeVersion`、裁剪结果和稳定游标 |
@@ -120,7 +120,7 @@ PM-01创建请求可携带`serviceManagerUserId`作为人工确认的一级服�
 | `/project-split-requests/{id}` | `GET`, `PUT` | 读取/更新草稿、范围项和逐项校验结果 | APPLIED不可编辑；`If-Match`校验草稿版本；失败草稿保留 |
 | `/project-split-requests/{id}/actions/{preview|validate}` | `POST` | 服务端返回子项目方案、Commerce/AST/组织校验结果、`previewHash`与各Owner水位 | 无业务写入；客户端预览摘要不能作为确认依据；权威范围不可用时禁止确认 |
 | `/project-split-requests/{id}/actions/apply` | `POST` | `Idempotency-Key`、`If-Match`及父项目/范围/树期望版本；返回全部子项目、范围分配、`changeBatchId/treeVersion` | 服务端重新校验；全部子项目、模板实例、范围、树、审计、Outbox和幂等完成点原子提交 |
-| `/projects/{id}/tree` | `GET` | `queryType=CHILDREN/DESCENDANTS/ANCESTORS/BUSINESS_LEVEL/LOCATE`、业务层级、游标；返回`treeVersion/items/nextCursor/updating` | 游标固定在同一完整版本；服务端先执行租户与ProjectTreeScope；无权路径只返回必要占位 |
+| `/projects/{id}/tree` | `GET` | `queryType=CHILDREN/DESCENDANTS/ANCESTORS/BUSINESS_LEVEL/LOCATE/FULL`；`FULL`一次返回锚点所在根项目的全部可见分支，不使用游标、不受分页大小截断；其FULL可见节点附带`displayDetails.office/serviceManager/projectManager`（当前有效经理姓名）；其他查询保持原分页契约；返回`treeVersion/items/nextCursor/updating` | 固定同一完整版本；服务端先执行租户与ProjectTreeScope；无权路径只返回必要占位；根概要和占位节点不返回办事处或经理信息；FULL拒绝游标和业务层级筛选 |
 | `/projects/{id}/actions/move` | `POST` | 目标父项目、原因、`Idempotency-Key`、`If-Match`；返回`changeBatchId/treeVersion` | 按稳定ID锁定，拒绝自身、后代、跨租户和陈旧版本；移动不改项目编码命名空间 |
 | `/projects/{id}/progress-policies` | `POST`, `GET` | 创建/查询直接子项目权重和分母口径版本 | 草稿完整覆盖直接子项目；权重合计100%；默认等权也形成版本；历史版本只读 |
 | `/progress-policies/{id}/actions/submit` | `POST` | 提交配置化BPM审批；返回流程实例和策略版本 | `If-Match`；批准回调幂等；未批准版本不影响当前计算 |
@@ -151,6 +151,16 @@ PLT公开`AuthorizationGrantApi`完成授权创建、撤销和按主体/资源/�
 对象清单的 `handlingMode` 只能是 `READ_ONLY_REFERENCE` 或 `DERIVED_COPY`；默认前者。派生副本必须返回 `sourceObjectId/sourceVersion/derivedObjectId`。只有所有项成功后服务端才完成转销并归档源项目，不提供客户端直接设置完成/归档状态的接口。
 
 ### 5.4 PM-06 同一项目范围追加 API
+
+#### 既有关联合同订单范围初始化与同步（2026-10-12专项批准）
+
+PM-01合同建项在原创建事务绑定合同后调用COM `ProjectContractScopeApi.initialize`：按项目—合同—全部订单—订单行取源，初始化当前可承接数量；PROJ传入初始化完成后的真实项目版本及树版本。COM以MANDATORY加入事务，合同绑定、项目、初始范围、明细、版本、审计及Outbox全有或全无。无已确认订单时保持既有离线建项边界，不以人工数量补造范围。
+
+`POST /api/v1/pms/project-contract-scopes/{projectId}/actions/preview`只计算差异；`POST .../actions/synchronize`根据已预览的sourceDigest同步。请求携带expectedProjectVersion、expectedTreeVersion、expectedScopeVersion；确认另需sourceDigest及Idempotency-Key。tenant/actor来自登录上下文，入口要求`pms:project:update`及`pms:commerce:scope:query`；实际新增、调整、释放仍逐类校验COM既有`scope:assign/adjust/release`权限。数据范围要求当前根项目MANAGE、活动生命周期和合同可见性。建项自动初始化属于已授权建项事务的派生事实。子项目不能通过同步入口扩为整份合同范围。
+
+来源仅限项目已显式关联的合同；不接受客户端订单ID或分配数量。按订单行稳定ID去重，读取全部订单而非属性建议所选主订单；父项目目标数量为ERP有效数量减其他项目当前承接数量。只追加/替换父项目当前范围，子项目及其历史不改。取消、减量涉及其他项目承接量、序列号明细或验收保护时明确拒绝；未知依赖失败关闭。来源、项目、树、范围或占用在预览后变化，确认拒绝并要求重算。
+
+成功同步关闭被替换区间、追加新范围与来源证据，同一次命令只递增一次项目范围版本；无差异不推进版本。同键同载荷重放返回原结果，异载荷拒绝。原始订单及ERP字段只读。新增合同的PM-06申请、批准、任务与验收覆盖规则仍由下文契约承接；订单同步不声明新增范围已实施或已验收。
 
 Requirement：PM-06@V2、COM-01@V1。`POST /api/v1/pms/projects/{id}/scope-append-requests`创建待评估申请；`POST /api/v1/pms/scope-append-requests/{id}/actions/submit`冻结申请及审批实际定义；`POST .../actions/apply`只消费已批准且未失效版本。
 
@@ -297,19 +307,37 @@ PROJ继续拥有任务命令，ACC拥有验收业务命令与事实。修订018�
 
 | 路径 | 命令/查询 | 关键约束 |
 |---|---|---|
-| `/cutover-tasks` | create、list、detail | 来源键幂等；项目/设备归属校验 |
-| `/cutover-dashboard/kpis` | GET | CUT-01 V2按授权可见的CutoverTask聚合首页KPI | 只读聚合，不改变任务状态或P1～P6流程，不返回无权任务明细 |
-| `/cutover-tasks/{id}/assessment` | save draft、submit | 一线提交问卷与人工等级；用服经理在P5复核，不新增P2审批 |
+| `/cutover-tasks` | create、list | 来源键幂等；列表支持项目、P2～P6阶段、状态、listKind和分页，包含已归档任务；项目查看范围与当前审批资格分别校验，审批专属行只返回受限摘要 |
+| `/cutover-tasks/statistics` | GET | CUT-01 V2按授权可见的CutoverTask聚合首页KPI | 只读聚合，不改变任务状态或P1～P6流程，不返回无权任务明细 |
+| `/cutover-tasks/{id}` | GET detail | 按任务ID查询统一详情；不将审批资格扩展为普通项目查看权限 |
+| `/cutover-tasks/{id}/assessment` | PUT save draft；`actions/submit` POST | 一线提交问卷与人工等级；保存与提交均携带If-Match、Assessment-If-Match和Idempotency-Key；用服经理在P5复核，不新增P2审批 |
+| `/cutover-tasks/{id}/actions/revise-assessment`、`actions/revise-checklist`、`actions/withdraw-plan` | POST | 任务负责人携带If-Match、Idempotency-Key、projectScopeVersion及reason；按目标阶段对应写权限校验。审批前生成新草稿并使下游失效留存；P5在同一事务撤回未结束审批、取消未办节点后修订。已批准或归档不可调用 |
+| `/cutover-tasks/{id}/revision-options` | GET | 具有评估或清单写权限且在项目编辑范围内的任务负责人，查询同一配置当前生效的已发布版本；已批准或归档任务不可使用 |
 | `/cutover-tasks/{id}/checklist` | detail、save draft、submit | P3同一工作台返回checklistId/version、inputSnapshotHash、匹配项、界面格式、当前选择结果、CollectionTask/结果引用和重新匹配差异；D级不存在该资源 | save/submit携带If-Match与Idempotency-Key；提交只读取当前适用项和当前选择结果，全部必填满足后冻结版本 |
 | `/cutover-tasks/{id}/checklist/actions/rematch` | POST | 输入checklistVersion、inputSnapshotHash和新维度，预览或应用差异 | 保留stableItemKey未变的有效答案；移出项仅留历史，不进入当前提交；已提交版本不得原位重匹配 |
+| `/cutover-tasks/{id}/checklist/revisions` | GET | 返回当前及历史清单修订；清单detail、matching-options、external-state以可选checklistId读取同任务历史。历史访问仍要求当前项目查看范围，不开放历史写入 |
 | `/cutover-tasks/{id}/checklist/actions/export` | POST | CUT-03 V2导出当前授权清单版本 | 按清单项、设备和字段权限裁剪；导出不改变清单、任务或流程状态 |
-| `/cutover-tasks/{id}/checklist/items/{itemId}/actions/request-collection` | POST | 输入checklistVersion、itemVersion、deviceId、commandTemplateId和Idempotency-Key，为设备采集项创建DAC CollectionTask | 绑定任务、清单版本、采集项、设备和命令模板；DAC回调只生成技术结果，CUT经版本匹配后追加/选择ItemResult，不直接判定采集项通过 |
-| `/cutover-tasks/{id}/plan-revisions` | create、submit、approve、reject | 文件/安全/归属/人工确认校验；不强制解析全部模板字段 |
-| `/cutover-tasks/{id}/support-arrangements` | update contacts / revise duties | 联系人、联系方式、到位时间变化留痕不重审；角色/职责变化必须生成新方案revision并重走P5 |
-| `/cutover-tasks/{id}/actions/request-collection` | POST | 兼容非清单级采集入口 | 新P3采集项使用item级入口；均不读取凭证明文，不创建独立采集阶段 |
-| `/cutover-tasks/{id}/approval-actions/{approve|reject}` | POST | 按人工等级和冻结路由校验节点；任一评审项为否必须驳回并填写原因；V2对A/B级校验专项提前时间并按INT-10/INT-05发送已定义提醒，提醒失败不改变审批状态 |
+| `/cutover-tasks/{id}/checklist/items/{stableItemKey}/collection-requests` | POST | 关联平台正式采集执行，携带现行任务、清单版本与Idempotency-Key；绑定清单项和冻结设备范围，技术成功不直接判定采集项通过 |
+| `/cutover-tasks/{id}/plan` | GET、PUT；`actions/{create-draft|download-draft|submit|revise}` POST | 文件/安全/归属/人工确认校验；不强制解析全部模板字段；审批使用独立审批实例资源 |
+| `/cutover-tasks/{id}/plan/support-arrangements/{arrangementId}` | PATCH contacts | 联系人、联系方式、到位时间变化留痕不重审；角色/职责变化必须生成新方案revision并重走P5，未裁决的P6回退仍保持规格阻塞 |
+| `/cutover-tasks/{id}/closure/actions/link-collection-execution` | POST | 以entry和executionId关联平台正式执行，携带If-Match、X-Task-Version和Idempotency-Key；CUT不接收凭证明文，失败无日志的执行保留失败事实 |
+| `/cutover-approvals/{approvalId}`、`/cutover-approvals/{approvalId}/actions/{approve|reject|reassign}` | GET、POST | 按审批实例及当前角色/人员资格校验；任一评审项为否必须驳回并填写原因；通知和审批队列进入同一审批实例详情，提醒失败不改变审批状态 |
 | `/cutover-tasks/{id}/closure` | save、submit、detail | 保存P6结果与INT-12证据引用；提交即归档；失败不发布CutoverCompleted |
-| `/cutover-config/{types|network-modes|checklist-items|binding-rules|navigation-rules}` | CRUD + `actions/publish` | CUT-07/09/10的V1动态模板、表单和匹配配置先于或不晚于首个消费能力交付；CUT-03 V2可增加受控跳转规则 | 发布版本不可覆盖；稳定编码、引用启用状态、条件可判定性和目标流程状态不合法时整版拒绝 |
+| `/cutover-configurations/revisions`、`/cutover-configurations/revisions/{revisionId}` | GET、POST、PUT；`actions/{copy|validate|publish|disable}` POST | 创建、保存、复制、发布、停用携带Idempotency-Key；修改既有修订携带If-Match；发布版本不可覆盖，校验为只读操作 |
+
+方案 GET 的 `generatedDraft` 返回当前已保存正文对应的生成文件精确引用和生成时间（未生成时为 null），结构沿用 `DownloadCutoverPlanDraftResult`。生成成功同事务保存引用，不推进方案版本或审批状态；保存新正文后按新正文版本查询，无对应生成记录时返回 null；旧生成记录、平台文件及审计保留。重开页面恢复该事实，文件展示与下载仍走 PLT 的实时授权和可用性校验。
+
+在线方案渲染将拓扑/组网配置中的PNG、JPEG通过PLT `AuthenticatedFileContentApi`按原工件版本和正式DOWNLOAD权限有界读取（沿用50MiB平台上限），验证Owner完整业务键及原摘要后内嵌DOCX；非图片保留名称/版本引用。草稿生成与提交后导出使用同一附件解析器和渲染器。生成DOCX记录内部渲染格式属性；再次生成检查该属性，旧格式仅追加新生成引用，不修改旧文件、审计或正文版本，新的生成操作身份包含渲染格式以避免复用旧的幂等文件。前端“生成并下载”始终由后端确认格式，文件卡片仍可读取其精确历史版本。只读导出无业务写入，但图片读取需在普通事务中完成PLT既有文件授权锁定，不设置数据库只读事务。
+
+已提交在线方案下载使用 `GET /api/v1/pms/cutover-tasks/{taskId}/plan/submitted-file`，要求 `pms:cutover-task:download-plan`、既有任务可见范围及 `If-Match` 当前方案版本。返回DOCX附件（`Cache-Control: no-store`）；只读取已提交方案原始正文、步骤和保障安排，复用既有方案渲染器，不创建平台文件、不推进版本或审批状态，不重验后续变化的项目成员或前序提交条件。上传方案仍以冻结的工件和版本走PLT下载；草稿生成接口保持原契约。
+
+以上为真实物理前缀`/api/v1/pms`下的割接资源，不再叠加`/admin-api`。割接路径接入既有身份、租户、权限及访问日志链；其他模块的路径行为保持既有契约。HTTP响应由割接VO显式投影，Long和时间沿用Yudao序列化，错误携带稳定reasonCode/recoveryAction；版本冲突刷新，未确定结果以同一幂等键及原始载荷重试，刷新失败时暂停后续写入。旧任务、方案、风险接口已退役，不提供兼容读写入口。
+
+2026-10-15已确认的主动修订合同见`Q-CUTOVER-ACTIVE-REVISION-20261015`。`WITHDRAWN`为审批终止事实，单独保存撤回人、时间、原因；原已办意见及来源修订保持不变。重新提交创建新审批实例，沿方案来源修订找到前序审批并建立替代关系。修订失败时评估、清单、方案、审批和任务阶段在同一事务回滚；重复命令返回首次结果。
+
+P2/P3主动修订请求可选`configurationRevisionId`，不传则保留任务当前配置。选择新配置时，在同一事务锁定并验证同一配置的有效发布修订及当前类型、组网值，然后更新当前任务的精确配置引用；原清单与方案继续保存原配置引用。P3随后重新匹配，不把旧清单直接标成新配置；按稳定采集项编码和相同字段定义承接填报及正式文件引用，字段变化的项重新填写，自动查询和采集重新确认。P4方案撤回入口不得单独变更配置。
+
+P3生成及重新匹配的`matchingInput`包含`cutoverType/networkMode/deviceTypeCodes`，按任务冻结配置校验取值。类型或组网变化以任务版本CAS更新；所有匹配维度存于清单关系表。`PROJECT_MAJOR_LEVEL`只从PROJ已有`ProjectBusinessContextApi.inspect/lockAndRevalidate`的`Context.majorProjectLevel`取得，锁定范围及项目版本后冻结`matchingProjectVersion`；不得采信客户端传入级别或跨模块查表。该值沿CRM权威字典映射，不把空值、无或未映射值推断为重大项目；配置草稿按用户裁决仅将正式办事处级、市场级、公司级关联重大项目备件项。
 
 PROJ公开`ProjectCutoverContextFactApi.inspect(ProjectCutoverContextFactQuery)`与`lockAndRevalidate(ProjectCutoverContextFactRevalidationQuery)`。inspect Query固定携带正数`tenantId/projectId`；重验Query携带从前次`FOUND`原样复制的完整`ExpectedProjectCutoverContextFact`，tenant必须与受信运行时上下文一致。`FOUND`返回同一ProjectMaster行的`tenantId/projectId/projectVersion/projectCode/projectName/customerId/customerCode/customerName/departmentId/departmentCode/departmentName`完整事实；三个编码字段最大64字符，`projectName/customerName/departmentName`最大255字符。`NOT_FOUND/INACTIVE`无Fact，写重验的`VERSION_CONFLICT`返回当前完整Fact。锁定方法以`MANDATORY`加入CUT写事务并锁定项目当前行，锁后逐字段比较完整Expected与currentFact；任一字段变化均返回`VERSION_CONFLICT`，Expected只作并发守卫，CUT只冻结Owner返回的currentFact。Owner损坏和Provider不可用分别使用公共稳定失败。客户字段和部门字段是项目发生时展示快照，CUT仍分别以`ProjectScopeApi.treeVersion`做用户范围重验、以`CustomerServiceLevelFactApi`取得当前服务等级；不得跨Context读表、拼接Summary或以projectVersion替代treeVersion。精确机器合同见`specs/features/F-CUT-002-project-context-fact-contract.json`。当前master尚未包含公共Java接口或生产Provider。
 
@@ -326,6 +354,21 @@ PROJ为F-CUT-005预留`ProjectCutoverServiceManagerFactApi.inspectCurrent/lockAn
 | Inspection | `/inspection-reports/{id}/versions` | 生成/发布报告版本，原始采集结果只引用 |
 | Inspection | `/service-issues`、`/{id}/actions/{remediate|review|close|mark-false-positive}` | 问题闭环和误报留痕 |
 | Service Operations | `/devices/{deviceId}/service-status` | V2 只读客观状态与来源，不提供续保空间/续保率接口 |
+
+### 巡检专项接口细化（2026-10-15 用户批准）
+
+巡检为手工建单的独立业务入口，仅引用项目、客户和设备资料；不创建项目事件任务，不接入 WorkBinding/BusinessView 或回写项目进度。保留 PM-10 已有 `INSPECTION` 只读事实提供方。页面为 `/pms/inspection/{workbench,tasks,rules}` 和隐藏的 `/pms/inspection/tasks/:taskId`。
+
+- Business API 的物理前缀为 `/api/v1/pms`，不叠加 `/admin-api`；沿用平台身份、租户、`CommonResult`、分页和 Long/时间序列化。写命令携带 `Idempotency-Key`，修改已有任务或规则携带 `If-Match`。同键重试固定原载荷与原版本，未知执行结果不换键重新执行。
+- 任务 `POST /inspection-tasks`、`PUT /inspection-tasks/{id}/preparation`；`POST .../actions/{start-attempt|assign|cancel}`。设备清单在创建时冻结，方式和规则修订在执行尝试开始时冻结。日志、结果、报告、标注及处理记录分别保留版本；报告文件格式为 PDF/DOCX/XML，人工上传兼容 DOC。
+- AST 在既有 `ProjectDeviceSelectionApi` 增加对象查询 `pageSelection(SelectionQuery)`，返回授权项目及其关联合同的分页设备资料。写入仍使用 Owner 的 `validateSelection` 锁定复核，不从客户端设备名称或 SN 建立真值。
+- 新巡检设备候选由AST在Mapper XML中合并当前项目及关联合同的设备ID，去重后按原ID倒序分页；各分支和回表均保留租户、删除及筛选条件，空项目范围返回空，既有设备页面查询保持原行为。产品类型读取沿用ADR-0036的受信模块主体及当前用户设备范围双重校验；local配置仅登记INSPECTION的`PRODUCT_TYPE_READ_CODES`和`DEVICE_PRODUCT_TYPE_READ`两个读动作，不授予导入或业务写入权限，也不替代权威产品类型与设备映射。
+- 离线人员在平台外执行命令，上传 `.log/.txt/.zip`（50 MiB）。日志进入存储前使用 DAC 现有 `DeviceLogInputNormalizer` 脱敏；增加经 namespace/project 授权的无持久化 `POST /api/v1/log-parses/actions/normalize`，由 INT `DeviceLogParsingApi.normalize` 调用。返回脱敏命令块、识别的 SN 与警告，不能据此宣称设备执行已验证。输入原文不进入 NPDMS 数据库、审计或文件存储。脱敏后文件由 PLT 注册，执行提交使用精确文件版本及任务/设备/尝试上下文；不要求用户提供结构化结果包、脚本或脚本摘要。
+- 2026-10-16 用户批准的多设备上传扩展：新增 `POST /inspection-tasks/{taskId}/offline-log-batches`（multipart，`attemptId`、`file`，沿用执行权限、If-Match、Idempotency-Key），支持 `.log/.txt/.zip`、20 MiB；保留原单设备上传50 MiB及可选命令提示。经 INT `DeviceOpsLogSplitApi` 调用既有 DAC `/api/v1/npdms/log-splits`，按SN拆分并脱敏；所有SN须唯一对应本任务冻结设备，缺失、歧义、越界或任一日志无效均在登记前整批拒绝，不新增任务设备。逐设备进入现有 SRV 执行、命令分片、`DeviceLogParsingApi`解析及冻结规则判定；同一设备跨ZIP成员的日志合并为一次执行，原历史保留。该入口不调用配置调试导入、AST日志归档或设备事实投影，不生成配置记录、不更新设备事实；拆分和解析成功不代替巡检闭环。
+- PLT 增加 `AuthenticatedFileContentApi.read(ReadCommand)`，复用 `FileArtifactApi` 的当前权限、对象策略和精确版本重验后读取有界字节；不向消费者暴露存储表、路径或凭据。SRV 文件策略键为 `SRV/INSPECTION_TASK/{taskId}`，用途区分 `LOG/REPORT/EVIDENCE/ATTACHMENT`；LOG 仅由受控脱敏流程注册，禁止通用上传绕过。历史访问必须命中 SRV 冻结的 artifact/version/referenceKey。
+- 普通附件由 `GET /api/v1/pms/inspection-tasks/{taskId}/attachments` 返回PLT当前授权引用的工件、版本、文件名及可用性；写入复用平台文件接口及SRV对象策略，不新建文件存储或附件业务表。客户获准证明可选，不影响执行前置条件；已归档/取消任务禁止附件修改。
+- PROJ `ProjectBusinessContextApi.currentActorScope(ActorQuery)` 一次解析当前可见项目，并按当前有效的服务经理主成员事实返回管理范围；管理员可见范围不自动成为管理范围。`searchOptions(OptionsQuery)` 在Owner内部按当前授权、租户、逻辑删除、名称/编码包含匹配及固定排序查询最多100项。SRV工作台和列表消费批量范围，禁止按租户每个项目逐项重查成员；选中对象的写入仍使用原版本化上下文和锁定复核，两个只读接口不替代写入授权。
+- 报告、标注、跟踪和最终归档由 SRV 服务事务控制；工程师申请归档，当前项目管理范围内的服务经理最终执行。CUS 通过公开来源引用 API 保存原任务、报告、问题和处理记录引用，失败不能写入已归档。文件和客户资产引用均不代替 SRV 业务完成条件。
 
 Inspection复用System既有`PermissionApi.hasAnyPermissions(Long userId, String... permissions)`，不新增System接口、DTO或查询。审核入口必须从受信认证上下文取得`userId`，在租户访问拦截器已设置的目标`TenantContextHolder`内仅传入精确权限码`pms:inspection-rule:security-review`；不得接收客户端提交的租户、审核人或替代权限码。该直接调用不经过`SecurityFrameworkService`的租户访问`skipPermissionCheck`短路，返回`true`时沿用System既有角色—菜单与超级管理员语义，返回`false`或抛出异常时Inspection不追加审核事实。布尔结果只记录`authorizationType=RBAC_PERMISSION`，`authorizationSourceId`为空。现有内部`InspectionRuleExplicitAuthorizationApi`不得继续扩展为第二套契约，Task 8应删除或收口该未装配端口。
 
@@ -360,6 +403,8 @@ COM合同不可见或项目关联无管理范围时保持拒绝和零写入，�
 | COM | COM-01 | `/contracts`、`/sales-orders`、`/order-lines`、`/commerce-authority/import-batches`、`/commerce-authority-candidates`、`/delivery-scopes` | ERP合同/订单/订单行核心字段只读；COM维护人工待核对候选、显式对账、项目范围水位和范围分配/调整/释放。地点只返回项目办事处发生时快照，实施站点/位置由IMP/AST独立提供 |
 | RES | RES-01、SUB-01～SUB-05、INT-07 | `/suppliers`、`/subcontract-requests`、`/payment-gates` | 备件业务由外部系统承接；财务结果只回写引用 |
 | KNO | INT-04 | `/technical-notices`、`/technical-notices/{id}/references` | V2 仅 ITR 同步查询与业务引用；无本地 publish/disable API |
+
+工勘项目地点选择使用`GET /api/v1/pms/projects/{projectId}/customer-overview/locations`，要求`pms:project:query + pms:customer:query`。CUS复用PROJ当前VIEW及关联客户检查，只接受项目ID，不接受客户端customerId；返回关联客户ID/名称、该客户启用站点及所引用地址、客户当前ADDRESS引用。可选siteId必须属于上述站点集合，才经AST公开契约读取任意深度位置树。租户/操作者来自登录上下文；无关联客户返回空集合，越项目/跨租户/他客站点拒绝，不回退全局查询。AST按受信tenantId/customerId提供只读启用站点列表，保留AST全局管理API权限不变；此查询不授予地点管理权限，原工勘保存和地址/站点写入规则不变。
 
 设备归属命令 `POST /devices/{id}/actions/assign-project` 必须携带 `If-Match`、目标项目和原因；返回新的 `assignmentVersion` 和异步投影 `operationId`。上级项目统计读取设备祖先投影，不创建第二条归属。
 
@@ -535,6 +580,8 @@ F-SOL-003现已形成首个真实调用方，因此F-PLT-002前向增加`Dynamic
 - AST当前设备业务API固定使用`/api/v1/pms/devices`；旧`/pms/equipment`继续提供历史查询。普通角色的旧写入口退役，`super_admin`可对旧设备模型执行创建、更新、删除和状态变更，但不得代理或双写AST。
 - 客户动作路径为`/{id}/actions/{disable|delete|restore}`；删除必须完成全部`CustomerReferenceGuardApi`检查。
 - 客户地点路径为`/{id}/locations`，仅维护CUS对Address/Site的引用，写入前调用AST校验。
+- `GET /api/v1/pms/projects/{projectId}/customer-overview`由CUS提供项目客户只读摘要：要求`pms:project:query`及`pms:customer:query`，先经PROJ公开`ProjectContactContextApi.inspect`核验调用者当前项目查看范围，再按Owner返回的唯一客户ID读取同租户客户。请求不接受客户ID或编码；未绑定客户返回null，绑定客户不存在时沿用客户不存在错误。响应复用`CustomerRespVO`及既有联系方式脱敏，不附带其他项目、设备、地点或全局变更历史；停用客户的既有项目引用继续展示。客户主档全局查询与修改范围不因此扩大。
+- `PUT /api/v1/pms/projects/{projectId}/customer-overview`由CUS维护当前项目唯一关联客户的平台备注，仅接受`remark`，要求`pms:project:query`及`pms:customer:update`，必须携带`If-Match`客户版本和`Idempotency-Key`。CUS通过PROJ既有范围契约解析并锁定重验当前MANAGE完整项目范围，再由`ProjectContactContextApi.inspect`取得同租户唯一客户；不接受客户端客户ID、不修改项目绑定或CRM权威字段。复用CUS更新、乐观锁、幂等、历史、审计及事件；项目未关联、范围撤销、非ACTIVE项目和旧版本均拒绝且无成功副作用。该入口不授予客户主档全局范围，也不覆盖既有历史。
 - 设备客户归属命令固定为`POST /api/v1/pms/devices/{id}/actions/assign-customer`，携带目标客户、关系类型、原因、`If-Match`和幂等键。
 - 设备详情采用固定摘要外壳和分Tab DTO；每个Tab统一返回`sourceSystem/sourceVersion/dataAsOf/syncStatus`。官网信息通过`KnowledgePublicProductInfoQueryApi`查询KNO已发布版本。
 - 配置Log下载链接默认5分钟、可配置、绑定当前用户和文件；每次生成前重新校验设备查询与文件下载权限。
@@ -749,6 +796,12 @@ Requirement：INT-12、EXE-03、EXE-04、NFR-02。管理端部署前缀仍为 `a
 
 创建连接的响应不含秘密或 DAC 引用；待完成记录仅向创建人提供原注册键、模板和有效期，允许重新输入密码继续原请求。时间沿用平台 EpochMillis JSON 约定；Long 标识沿用平台安全序列化，不按 JavaScript 浮点数截断。
 
+### 直接设备日志解析（2026-10-06 专项批准）
+
+`/api/v1/pms/device-collection/log-parses`：POST 提交，GET 按 `projectId` 分页查询；GET `/{id}` 查询任务和结构化结果。上传请求为 `requestKey/projectId/inputName/inputText/commandHint?`；已采集日志请求为 `requestKey/projectId?/entry/objectId/executionId`，两种来源互斥。上传限制为非空文本、UTF-8 最多 8 MiB，前端支持 UTF-8 与 GB18030 解码。`requestKey` 为 16–64 位字母/数字/连字符，同键异内容拒绝。
+
+独立上传沿用采集 query/execute 与当前项目范围；业务日志沿用来源 query/update、当前项目/设备绑定及 `pms:file:download`。来源文件必须可用，跨租户、来源已迁移或文件已隔离拒绝。分页默认只返回独立上传；业务来源历史必须显式传完整 `entry/objectId/executionId`。响应含输入文件名、来源执行/文件版本、解析状态、发布版本、警告和可选结构化结果；查询不重新提交。此接口是业务授权入口，调用的独立 DAC 接口为通用 `/api/v1/log-parses`，使用原生 `sourceCollectionId`，不新增 `/npdms/` 路径。详见集成设计 11.7。
+
 ### 业务实体自动接收采集日志（2026-09-21 后续批准）
 
 `GET /api/v1/pms/implementation/{entry}/{objectId}/collection-logs?pageNo=1&pageSize=10` 由 IMP 提供；`entry` 仅支持 `configuration` 和 `joint-test`。使用原业务查询权限与当前项目范围，按实体当前项目/设备筛选本实体已接收日志。返回分页元数据：业务实体、项目/设备、执行/任务标识、命令、协议、技术结果、失败类别、不可变文件/结果版本、回传时间；不返回秘密或持久化下载地址。文件预览/下载仍通过统一采集的受权下载接口，继续校验业务归属与文件权限。
@@ -761,6 +814,14 @@ Requirement：INT-12、EXE-03、EXE-04、NFR-02。管理端部署前缀仍为 `a
 独立采集、配置调试和业务联调均允许直接输入命令，模板为可选命令来源；选择模板时仍只执行已发布版本，服务端冻结实际命令。手工命令同时支持临时密码和已保存连接。覆盖此前独立采集/业务联调必须模板、手工命令仅临时凭证的限制，不扩展巡检或割接业务。
 
 保存连接和新增使用授权不要求 templateId；省略时创建明确的不限模板授权（command_template_id=`*`），仍限定用户、项目、设备、协议和有效期。旧模板限定授权及旧空值不自动扩大；原待完成保存请求保留注册摘要和模板。重叠授权拒绝，执行前与执行中继续校验撤销、到期、停用及连接版本。无需修改历史任务或数据库结构。
+
+### 割接调研命令与保存连接（2026-10-16 需求方确认）
+
+`cutover-checklist` 调研采集入口允许手工命令，复用统一采集的来源授权、设备范围、幂等下发、不可变日志和 CUT 结果消费；手工命令不表示采集项或 P3 已完成。调研弹窗支持显式验证并保存连接：用户填写连接名称和授权到期时间，调用既有 `/connections`，仅在 DAC 加密保存成功后建立本人使用授权；密码只在当前交互和请求中使用，不回显或进入业务日志。
+
+调研 `/collection-requests` 关联手工执行时 `commandTemplateId=null`；模板执行仍为正整数模板标识。CUT 保留独立的执行记录、设备、状态、日志及结果版本列；PLT 适配器核验当前项目/设备及精确来源：无模板时只能关联本清单项的 `manual-{checklistItemId}` 执行，不能接受其他项的手工执行或把模板执行冒充手工执行。手工执行不使用虚构模板 ID，不改变旧模板执行的请求摘要、结果或历史。
+
+`GET /api/v1/pms/device-collection/templates` 增加可选 `projectId/deviceId` 筛选对，必须同时提供；服务端校验当前项目查看权限与设备归属后，按正式资产型号保留通用模板及精确型号匹配模板。设备执行入口使用 `publishedOnly=true` 和当前用途。未选择设备时不展示执行模板候选；管理端原有无设备查询保持原义。执行时继续独立校验模板发布状态、用途和设备型号，分别提示未发布/停用、入口不适用、设备型号不适用；不放宽原有校验，不改写已发布模板或历史执行。
 
 
 ### 需求分析展示投影（2026-09-22，PRE-04 / F-SOL-003）
@@ -1049,3 +1110,397 @@ INT批量调用现有Commerce精确合同解析及Asset许可Owner，保留项�
 `DppmsProjectBindingApi.BatchQuery.originalLine()` 显式限定原任务来源绑定；原任务消费者不得以独立直写任务的回执替代本线前置。既有未限定调用保留双线兼容行为，独立任务身份及入口保持。INT内部 `IdentitySources/EhrEmployeeUsers` 使用相同显式限定，并保留租户、连接、来源对象、空集合与冲突保护。
 
 `WarrantyShipmentEligibilityApi.resolve(Query(tenantId, actorId, deviceSns))` 是AST只读批量接口，每次最多500个SN、空集合返回空。AST读取本地DPPMS逐次发货的原 `rma_no` 与包裹来源键，再调用COM `ShipmentSourceFactsApi` 获取精确父链合同类型（Fact新增可空 `contractType`，既有三字段构造继续可用）。仅原RMA号为NULL、空串或字符串null且合同类型0/11的本地事实满足资格；缺发货或父链返回明确issue，不猜配，不做项目授权、指派或续保写入。P25原任务远端只采集fb_service，再按本地资格交回既有续保Owner；已绑定来源资格变化拒绝覆盖。
+
+### 设备配置日志文件归档（2026-10-06，EXE-03 / EQP-02 文件增量）
+
+新增 `/api/v1/pms/device-configuration-log-archives`：POST `/imports` 以 `application/octet-stream` 接收UTF-8日志字节流，query传 `projectId`、UUID `operationId` 和 `fileName`；GET `/imports/{id}` 返回不可变导入结果及关联文件；GET `/latest?projectId` 仅返回当前项目已归档日志的设备及各自最新可用日志；设备没有可用文件时保留最新归档记录并标记不可用，不返回无归档设备；GET `/history?projectId&deviceId` 返回全部设备文件版本；GET `/{fileId}/download` 重验权限后签发原 PLT 下载票据。导入需要 `pms:device-log-archive:import` 与项目 EDIT 范围，查询需要 query 与项目 VIEW 范围，下载另须 download 和文件平台权限。导入返回 `ARCHIVED` 或 `REJECTED` 处理结果；它们不是配置生命周期状态或配置完成事实。拒绝结果不包含原始内容或Secret。入口最多从内存流读取20MiB加一个超限判断字节，拒绝空输入及超限输入，不使用会将原文落盘的multipart临时文件；保留操作审计但关闭请求/响应正文记录。
+
+INT公开 `DeviceOpsLogSplitApi.split(Command)`，DAC实现内容拆分；命令携带当前租户、项目、输入格式与瞬态内容。结果只包含脱敏完整来源、按唯一整机序列号分组的完整日志及脱敏数量。调用方仍须独立授权与校验设备归属。AST公开 `DeviceConfigurationLogArchiveApi.receiveCollection` 承接IMP验证后的配置结果；PLT公开 `DeviceLogFileApi.readCollection/store` 重验源任务、结果、当前IMP Owner和发起人，复用原PLT文件校验/扫描/存储/引用与统一材料。后台接入使用原任务显式actor，不伪造登录主体。Infra以新的内部 `FileStorageContentApi.read` 读取已登记的receipt内容，核对当前租户、长度和摘要；PLT必须先按已授权FileVersion定位该receipt。此API不创建HTTP入口，不改变上游FileApi，不允许业务模块直接调用Infra Service或读取其表。
+
+DAC新增 POST `/api/v1/npdms/log-splits`，只接受 `TERMINAL_TEXT` 或已验签来源的 `DAC_CALLBACK` 内容，重验JWT execute scope、namespace和project claim；不下发设备命令。输入上限复用采集日志20MiB限制。422仅返回固定失败code及可选内容块序号，不回显日志。配置采集成功不等于此归档成功，归档成功不等于业务配置完成。
+
+采集回传沿用原 `pms:imp-configuration:update` 消费权限及当前项目EDIT范围，PLT通过原配置来源适配器的CONSUME入口锁定重验；该入口不向主体授予手工日志导入权限。手工导入还须 `pms:file:upload`，在调用DAC前重验；下载还须 `pms:file:download`。新的归档权限由已有授权管理显式配置，迁移只初始化菜单，不自动给业务角色授权。归档时间沿用平台EpochMillis，标识沿用Long安全序列化。
+
+### 日志解析记录与在网版本（2026-10-07）
+
+按用户明确确认，在网版本由最新设备日志解析结果生成，来源为 `DEVICE_LOG`。AST 通过 `DeviceLogParsedFactApi.record` 在项目 EDIT 范围内按租户、序列号及当前项目关联设备，保存不可变解析事实，并在同一事务中更新设备软件版本及在网版本投影；不以 ITR 事件时间判断日志新旧。归档日志按设备版本序号排序，其他上传/采集日志按原始来源接收时间排序，重新解析旧日志不改变其来源时间。未识别软件版本、序列号不匹配及历史日志分别展示结果，不伪装成版本更新成功。
+
+GET `/api/v1/pms/device-configuration-log-archives/{fileId}/parse` 返回每设备归档文件的解析状态、关联结果和版本更新状态；GET `/pms/asset/devices/{id}/log-parses` 返回授权设备的结构化解析记录。归档事务提交后创建独立解析任务，后台在原租户和原操作人授权范围内查询结果并投影；不重新执行设备命令。解析 SN 与不可变归档 SN 不一致、文件不可用或文件归属不一致时禁止更新。原历史来源与 ITR 事件记录不被改写。没有正式语义字段时不猜测 CONP 派生属性或 BOOT 版本。
+
+已批准补充（2026-10-16）：GET `/{fileId}/parse-result` 在当前租户、项目 VIEW 范围及原文件有效性校验后，优先返回 AST 本地不可变完整解析快照，不依赖 DAC 实时在线；状态查询对已完成且已投影的本地结果同样不回查 DAC。首次读取原成功任务或新任务成功关联时，将 DAC 原完整脱敏结果补存到 `ast_device_log_parse_snapshot`，明确保存原任务、解析版本和文件来源绑定，仅插入，不覆盖。补存只查询原任务，不提交解析、不连接设备、不回写历史版本；未补存且 DAC 不可用时如实提示待恢复补存。原租户、范围、文件归属/隔离及设备 SN 校验继续生效。独立上传和命令采集解析由 PLT 在原解析行保存一次成功响应（含原警告），详情同样先鉴权、后读本地；列表不加载完整结果正文，原来源及版本变化继续拒绝读取。
+
+
+### 项目安装批量创建（2026-10-08用户确认）
+
+`POST /api/v1/pms/implementation/installation-records/batch`：接收 `projectId`、非空且不重复的 `equipmentIds` 及共用安装信息、`installLocation`、可选 `locationMaintenance`，返回按设备顺序排列的安装记录ID。权限为 `pms:imp-installation:create` 且当前项目具有 `PROJECT_EDIT` 完整范围；服务端整体校验设备归属，在一个事务内新增安装记录，地址/站点/任意深度位置链只维护一次，后续记录引用相同地点ID与版本。任一步失败整批回滚，不改变旧记录、既有单条API或安装状态机。手动地点沿用 `UNRESOLVED` 兼容文本语义。前端只提交一次请求，不循环调用单条新增API。
+
+2026-10-08用户追加确认：项目安装批量保存即安装完成。批量事务创建记录后，服务端衔接现有开始、完成状态动作并执行AST设备位置生效；任一设备的位置校验或生效失败也整批回滚。前端不再提供开始/结束动作，历史记录从设备操作列进入只读抽屉，地址变更通过新增安装记录保留历史；旧单条API及旧记录状态不做追溯改写。
+
+### 2026-10-09 序列号分页批量展示
+
+GET `/pms/asset/devices/page` 增补bootVersion、cpldVersion、warrantyMonths、extendedCount，沿用原设备可见范围；boot/cpld只取DEVICE_LOG来源，续保次数统计全部未删除续保记录，列表分页不逐台读取设备详情。
+
+GET `/api/v1/pms/implementation/installation-records/current-addresses`：projectId及equipmentIds（1～200个正整数）返回当前已完成且effectiveFrom存在、effectiveTo为空的设备安装地址。要求pms:imp-installation:query和项目VIEW范围，租户及项目条件在服务端生效；无匹配为空，不返回历史或其他项目数据。序列号页每个不超过200条的分页只需设备页与当前地址2次业务请求，旧详情、维保和安装历史接口保留。
+
+### 2026-10-15 割接详情式新建与项目已发货设备选择
+
+需求方确认：新建割接任务直接进入详情式新建页，支持先选项目或先输入设备序列号；项目资料自动回填，设备序列号、产品编码、产品型号独立按行展示。仅新建阶段可增删设备，创建后的设备范围保持只读；原创建事务、活动设备唯一性、来源版本及项目嵌入入口的执行上下文校验继续生效。
+
+- CUT 新增只读 `GET /api/v1/pms/cutover-tasks/creation-projects?keyword=...`、`GET .../creation-projects/{projectId}` 和 `GET .../creation-projects/{projectId}/devices?keyword=...&pageNo=...&pageSize=...`。均要求 `pms:cutover-task:create`；项目选项和详情只在当前租户、当前主体 `ACTION_EDIT` 范围内返回。设备分页由 AST 提供，固定限制当前直接归属项目、未删除、非空序列号且 `shipmentTime` 存在，不能借用关联合同扩大到其他项目。
+- CUT 新增只读 `POST /api/v1/pms/cutover-tasks/creation-devices/resolve`，输入 `serialNumbers`，复用原上下文解析与授权，返回项目候选及设备产品资料；无发货事实的设备不能成为本选择器的可选项。唯一项目候选自动回填，多候选仍显式选择，不能静默丢弃其他项目设备。提交继续使用既有创建接口及其来源水位。
+- PROJ 在既有 `ProjectBusinessContextApi` 增加 `presentation(Query)`，返回经项目范围校验的当前项目展示资料及有效成员名称；独立于冻结 `Context`，不改变既有来源相等性、快照或锁定契约。AST 在既有 `ProjectDeviceShipmentApi` 增加 `pageDevices(DeviceQuery)`，对象传参并返回分页结果；租户及当前主体必须有效，Owner 再校验项目可见范围。
+- 查询不创建任务、不修改项目或设备归属。产品编码、产品型号从 AST 读取，项目名称、经理、销售、行业及级别从 PROJ 读取，客户服务等级沿用 CUS 正式事实；缺失信息不猜测。旧接口、旧新建向导原件及已创建任务历史保留。
+
+### 2026-10-15 新建割接与巡检任务自动命名
+
+需求方确认：两个新建界面不显示任务名称输入项。CUT手工新建由创建事务在锁定项目并生成实际taskNo后写入`项目名称-割接-taskNo`；INS由创建事务写入`项目名称-巡检-taskCode`，不再使用计划日期或客户端名称。名称使用授权Owner项目事实，幂等重放返回原任务及原单号，不重新命名既有对象。
+
+- 两类手工创建请求不再要求taskName；旧字段如仍传入也不替代服务端生成。CUT项目操作入口未提供来源名称时同样生成；已明确传入名称的外部来源保留原契约，其他来源准入、授权及事实重验不变。
+- 保留单号现有`CUT-...`/`INS-...`格式。项目名最长255字符，业务名称2字符、两个分隔符及单号最长23字符，名称存储容量为282字符。前向迁移仅扩容CUT/SRV主表及AST/CUS后续结果/历史投影的名称列，不更新既有名称或来源证据。INS准备保存及CUS历史接收校验同步支持新容量。
+
+### 2026-10-15 项目选择资料统一能力
+
+需求方确认：授权项目搜索、项目背景信息及项目已发货设备查询属于PROJ公共只读能力，CUT、INS复用同一套接口与前端查询逻辑，不以消费模块权限或创建资格限制公共候选。
+
+- `GET /api/v1/pms/projects/options?keyword=...`：当前登录主体在当前租户的项目VIEW范围内搜索名称/编号，最多100项；无可见项目返回空，不扩大范围。keyword最多128字符。
+- `GET /api/v1/pms/projects/{projectId}/context`：VIEW授权后返回`{project, customerServiceLevel}`。project复用`ProjectBusinessContextApi.Presentation`，成员名称仅取当前有效事实；客户服务等级来自CUS正式API，未配置或提供方不可用返回null，不伪造等级或版本。显示层沿用既定默认等级文案，不能当作已配置事实或冻结快照。
+- `GET /api/v1/pms/projects/{projectId}/devices?keyword=...&pageNo=1&pageSize=20`：VIEW授权后通过AST `ProjectDeviceShipmentApi.pageDevices`取得`{list,total}`，每行含deviceId、serialNumber、productCode、productModel。pageNo>=1，pageSize为1～100，keyword最多128字符；只含当前直接归属项目、未删除、非空SN且有shipmentTime的设备，不扩大到关联合同或历史关系。
+- 三个入口均要求有效登录；tenantId/actorId由服务端当前上下文取得并校验，不接受客户端指定。项目列表及选中项目授权仍由PROJ负责，发货事实和设备明细由AST负责，禁止跨模块直读表。
+- CUT、INS新建页面直接消费以上公共API和共享项目卡片，不额外要求`pms:project:query`。旧业务候选入口保留原契约，新页面不再调用。CUT的序列号跨项目解析、创建资格、EDIT授权、冻结来源及提交重验，INS的创建权限、设备锁定/归属/发货/产品类型重验均留在各自业务服务，不因候选可见而放宽。
+- 本次只读查询不新增数据表、种子、状态机或历史写入，也不改写既有任务、方案及审批快照。
+
+### 2026-10-09 设备当前安装地址投影统一
+
+设备当前安装地址统一由ast_device.location_snapshot.fallbackLocation承载。AST在原EquipmentLocationEffectiveCommand生效事务中按IMP传入locationText补齐当前快照，保留其他结构化内容；手工地址只生成fallbackLocation，不臆造站点引用。位置历史仍保存命令的原始快照，安装记录及已有历史不改写。
+
+设备分页沿用locationSnapshot，序列号详情直接读取fallbackLocation，不调用地址补齐接口。V420曾增加独立文本列；V421按当前设备指针、租户、设备、项目、安装来源及有效时间严格匹配当前已完成安装，补齐当前快照后移除该冗余列。已执行迁移历史不修改。批量地址查询接口保留兼容，序列号当前页为单请求。
+### 2026-10-09 阶段状态日期展示
+
+现有 `GET /api/v1/pms/projects/{id}/instances` 的阶段视图增补 `id` 和 `acceptanceTime`，分别来自已有阶段实例主键、计划验收时间；原 `planEndTime` 保留。沿用原项目VIEW范围与日期序列化，不从建议日期或项目工勘日期推断验收截止。阶段状态页通过实例ID关联项目查询返回的超期事实，显示两类独立标识；计划或任务更新后沿用原刷新链读取最新实例与事实。
+
+2026-10-09 FB-18批准差量：`POST /api/v1/pms/configuration-log-imports` 接收项目ID、幂等operationId、文件名和二进制日志（沿用AST 20 MiB限制），要求配置创建、日志导入、文件上传及项目EDIT范围。IMP通过AST `DeviceConfigurationLogImportApi.importLog`接收不可变归档文件ID、设备ID、SN及可用性，逐设备生成待调试记录；上传不完成调试。`validateFile`只校验当前身份、项目设备归属和引用可用性，不返回日志内容。重复导入复用原配置记录。两模块在原本地事务内失败回滚，禁止IMP直接读AST表。
+
+### 2026-10-09 施工计划审批成果自动关联
+
+施工计划审批生效继续沿用原BPM回调、输入校验及生效事务；在原changed通道登记PLN/STAGE_PLAN/CONSTRUCTION_PLAN_APPROVED成果。成果身份为不可变批准批次ID和原生效时间，仅最新生效且当前工期修订一致的批次为CURRENT，旧批次不得充当当前证据。跨租户、项目及精确身份不符拒绝，未批准或来源不完整不伪造成果。
+
+沿用PROJECT有效冻结计划中的automaticSources；按需求方追加确认，若冻结任务明确绑定PLN/STAGE_PLAN，并在完成规则中引用交付件，且该交付件属于同阶段同任务并允许BUSINESS_RESULT，也作为施工计划成果的自动关联目标。不按名称、阶段编号或固定交付件编码猜测，不改写冻结模板。原Outbox持久化投递至成果归集服务，按事件和要求幂等登记、提交；关联落库才算完成。新批准版本通过原提交置换保留旧材料和提交历史，不新增审批或直接写项目生命周期状态。
+
+### 2026-10-09 FB-03 发货状态筛选
+
+`GET /api/v1/pms/projects` 增加可选布尔参数 `hasShippedDevices`：不填为全部，`true` 为存在已发货序列号，`false` 为不存在。项目含已发货与未发货设备时只属于 `true`；无设备项目属于 `false`。与现有客户、项目状态、超期、成员及设备等条件取交集，不改变分页及权限范围。
+
+PROJ 先解析当前用户可见项目，经过成员条件收窄，再调用 AST `ProjectDeviceShipmentApi.resolveShippedProjectIds(Query)`；Query 包含当前租户和候选项目集合。AST 只返回本租户当前主档归属在候选集合内、未删除、非空序列号且存在发货时间的项目ID；无候选不查询。身份或租户不符、缺失候选集合均拒绝，不能按空结果减集扩大“未发货”范围。AST 负责设备事实查询，PROJ 负责项目范围；不跨模块访问业务表。既有项目状态同时作为实施状态，流程状态当前不新增筛选。
+
+### 2026-10-09 FB-17 现有安装批量保存自动元数据
+
+`POST /api/v1/pms/implementation/installation-records/batch` 的新记录安装人员取当前认证用户、安装时间取本次服务端保存时间。客户端人员/时间字段不影响落库值；未认证在写入或地点生效前拒绝。继续沿用整体设备范围校验、项目EDIT范围、既有状态动作、位置生效和整批回滚。单条旧接口及已存在历史记录不改写；界面人员只读、时间自动，现场照片和安装位置能力保留。
+
+### 2026-10-09 到货签收统一文件引用回显
+
+现有 GET `/pms/imp-arrival/get` 增补 signDocumentArtifactId、signDocumentVersionNo、signDocumentReferenceVersion，取自 PLT FileArtifactApi 对 IMP/ARRIVAL/{id}/ARRIVAL_SIGN_DOCUMENT 的当前授权引用事实，不读取其他模块表、不持久化文件访问地址。项目签收工作台保存时先建立真实待签收记录，以固定 arrival-sign-document 引用键完成统一文件上传，再复用现有 update/sign 命令登记材料和完成签收。项目交付件关联由既定 IMP.ARRIVAL_SIGN_DOCUMENT 自动归集规则承接；附件 URL 历史字段仍只读保留。
+
+### 2026-10-09 施工计划提交时填写调整理由
+
+PUT `/pms/imp-stage-plan/{id}/submit` 增补可选参数 adjustmentReason，项目不存在任何已生效施工计划时允许不填写；已有生效计划时服务端要求本次提交携带非空白理由，并在同一审批发起事务内写入当前可编辑批次 remark。不得以草稿已有 remark 代替本次理由，旧生效版本不改写。GET `/pms/imp-stage-plan/get` 返回 adjustmentReasonRequired，由服务端项目内已生效批次事实判断，避免分页漏掉历史生效计划。项目工作台与独立页面均将理由输入移至提交弹窗，草稿保存不要求填写理由。原授权、服务经理校验、日期/任务校验、版本冲突与审批后生效流程保持。
+
+### 2026-10-20 施工计划已完成项默认日期
+
+`ProjectStagePlanApi.readCompletedDates(CompletedDatesQuery)` 在原租户、项目校验后，只读返回本项目DONE阶段、任务的节点ID及实际开始/结束日期，缺失日期保持空。施工计划详情仅对草稿、已驳回批次附加`completedDates`，审批中、已生效历史不附加当前完成事实；GET不写入。新建草稿、重新倒排的阶段默认优先取实际日期，任务仅补齐空日期。页面加载可编辑草稿时按节点ID补齐空日期，并将仍等于系统建议的阶段默认日期替换为实际日期；不同于建议的已有填写保留，回填标记待保存。已完成任务不再套用阶段默认区间或被自动平移。实际时间、审批历史、既有权限、项目范围、版本及提交日期约束均不变。
+
+
+### 2026-10-09 FB-05交付范围的订单合同只读回显
+
+`GET /api/v1/pms/delivery-scopes` 增补可为空的`contractNo`，由COM使用当前已授权分页范围ID、当前服务端租户，通过范围→订单行→订单的稳定ID读取。关联表租户和逻辑删除全部生效；空范围失败关闭，来源缺失不补项目主合同。该字段为只读当前订单事实，不修改范围、订单、审批或历史快照；分页、项目VIEW权限和原响应字段保持。工程物料选择消费此字段，产品名称/型号使用既有`productDesc`，不把换货目标产品快照当作原订单产品。
+
+### 2026-10-22 交付件自动归集查看标识
+
+`GET /pms/projects/{id}/instances` 的交付件、`GET /api/v1/pms/project-tasks/{id}/workbench` 的交付件及 `GET /api/v1/pms/projects/{projectId}/deliverables/{id}` 详情增补只读布尔字段 `automaticCollection`。该标识复用当前有效冻结计划的明确自动来源、原生任务归集规则，以及验收报告/满意度的既有交付件绑定，按项目批量生成；不以材料是否已经生成判断，也不修改冻结配置或持久化新业务字段。
+
+按需求方确认，自动归集项（包括同时允许手工来源的项）在清单仅保留查看，详情隐藏上传、关联业务成果和提交材料入口；纯手动交付件保留原提交行为。该字段仅控制界面展示，不授予权限；既有服务端授权、项目范围、并发和历史保护继续生效，原业务归集和历史文件访问契约保持不变。
+
+### 安装记录业务成果自动归集（2026-10-09）
+
+安装成果来源 IMP/INSTALLATION/INSTALLATION_COMPLETED 复用现有成果查询和提交契约。仅项目全部设备均有当前有效、已完成且地址非空的原生安装记录时形成当前成果；以该设备集合最新完成记录的原生编号作为 objectId/resultId，以全部当前记录编号、设备编号与版本生成 observationVersion，formedAt 保留该记录的原生生效时间。空项目、缺记录、未完成、失效或地址缺失不形成成果，旧完成编号不可充当当前证据，不声明历史枚举或全量变更覆盖。
+
+安装完成命令在原事务内追加原生事件与成果日志；部分完成仅记录变化，不声明项目成果形成。匹配有效冻结计划中绑定安装页面、完成规则明确引用且允许 BUSINESS_RESULT 的交付件，或原显式 automaticSources；不修改冻结计划。复用原归集、交付件判定和任务状态机，仍需原任务已提交及其他完成条件满足。
+
+
+### 2026-10-10 完工证明与满意度成套客户确认（需求方批准）
+
+- `POST /api/v1/pms/satisfaction-tasks/{id}/access-grants` 新创建链接必须提供 `completionCertificateId`；认证操作者须有满意度管理、完工证明查询/审核权限及当前项目管理范围。证明必须是同项目、待客户确认的明确记录；按 `collectionKey` 固定关联，一次完工只对应一条调查链。旧客户链接不扩张授权；未配对历史链继续原契约，建立配对后旧单问卷入口须拒绝单侧提交。
+- `GET /api/v1/pms/satisfaction-questionnaires/{token}` 成套链接追加裁剪后的 `completionCertificate` 冻结展示快照。不得读取其他项目证明、临时URL或秘密字段。
+- 原 `POST .../{token}/responses` 统一提交两份表单；请求须确认 `confirmCompletionCertificate=true`，一次SIGNATURE文件事实共同绑定本次证明快照及问卷/答卷。服务端复核授权、租户、版本、状态；答卷、成套签字事实、完工客户确认同事务。失败不消费链接，不留下单侧提交。评分及Result生成继续采用原独立可重试事务。
+- 原证明审批/归档状态机不新增状态、不追认历史；整改沿用同collectionKey和冻结证明，追加签字/答卷事实，不覆盖首次证明确认。
+
+- `GET /api/v1/pms/satisfaction-tasks/{id}/completion-certificate` 以既有满意度manage和项目范围返回已配对证明快照或null；已配对时重推和整改固定复用原证明，不重新选择其他完工。
+
+
+### 2026-10-10 完工证明与满意度成套确认工作台
+
+按需求方最终确认，完工证明保留原界面，满意度填写保留DemoV2原表矩阵；满意度管理、查看、打印及两份文件保存参考现场培训。ACC新增 `/api/v1/pms/completion-confirmations`，沿用原完工证明权限与当前项目范围，不新增角色。GET分页接收原分页筛选及 `survey`：调查列表只列已实际关联问卷的证明，空可见范围返回空。GET `/{id}` 返回证明、最新调查和整改历史；问卷、答案、评分和签字按原轮次只读展示。
+
+POST新增及PUT `/{id}` 保存草稿；`satisfactionTemplateId`可选，显式提供时须为本租户已发布模板，两个打印模板ID可选，选择时通过PLT当前已发布修订校验并冻结版式。显式清除打印模板选择恢复内置版式，已外发证明禁止修改。原完工证明页面沿用原保存接口，不要求选择调查；POST `/{id}/actions/issue` 默认查找本租户已发布的 `COMPLETION_SATISFACTION_STANDARD` 原表模板，不按其他模板优先级推断。该命令在同一事务中检查当前ACTIVE项目与授权、创建并冻结一份调查、提交证明、关联两表并生成7天客户链接。重新外发沿用原调查，撤销旧ACTIVE链接；不重复创建调查。首次推送还须沿用满意度manage权限及完工证明audit权限，任何一步失败整体回滚。POST `/{id}/actions/void`仅草稿/已外发允许，撤销ACTIVE链接；DELETE仅草稿允许。历史已确认/已归档事实不改写。
+
+客户沿用匿名业务Grant受控签字文件上传，在同次答卷提交中确认两表。新工作台要求PNG签字回显数据与PLT锁定的签字文件摘要一致；客户端传入图片不能替代平台文件事实。证明确认、答卷、关联签字及两份不可变HTML交付文件在同一事务内保存；失败回滚，重试复用原准备的文件事实。已消费的成套链接只读展示该Grant自身的答案、签字与确认时间，不能再次提交，也不能读取另一Grant的签字。整改新增轮次保留首次完工确认，旧单问卷/代录入口不得单侧提交已成套的调查。
+
+POST `/{id}/documents`接收multipart PDF、kind（COMPLETION/SATISFACTION）、expectedVersion与Idempotency-Key；下载前调用PLT原生生成文件API登记不可变文件及交付件。技术大小上限沿用PLT 50MiB，不增加业务评分或阈值。GET `/{id}/files/{materialId}`在当前证明与项目VIEW授权下生成受控下载票据。文件Owner为ACC/COMPLETION_CONFIRMATION，交付件原类型为COMPLETION_CERTIFICATE，通过purpose区分两份文档及HTML/PDF。打印只读入口不授予生成写权限。
+
+
+原表冻结13题：10项评分等权平均，满分100、80分及以上达标；购买意愿与两项意见不计分。购买意愿在UI提供“是/否/其他”和其他说明，存储为TEXT答案以复用既有未计分文本契约，不进入计分分母。其余已有问卷的题型、规则和冻结历史不变。原表未发布时推送失败，不创建半份调查。
+
+原完工证明 `PUT /pms/acc-completion-certificate/reject` 保留原audit授权与1→4状态机；已配对记录在同一事务撤销关联ACTIVE链接，状态/版本冲突时不撤销仍有效的授权。客户已经打开页面也不能再初始化签字上传或统一提交。
+
+### 2026-10-10 项目选择性返工并生效修复计划
+
+`POST /api/v1/pms/projects/{projectId}/plan/draft/{draftId}/rework-apply` 将既有选择性返工与项目独立计划生效合并为一个事务，用于已完成任务的业务绑定修复。须同时具备 `pms:project-plan:manage`、`pms:project-plan:rework` 和当前项目编辑范围；租户取服务端上下文。请求头 `Idempotency-Key` 非空且最多128字符；请求体包含完整 `expectedPreview` 和 `rework`（既有返工请求的 planVersionId、expectedProjectVersion、selectedNodeKeys、expectedExecutions、reason；项目ID仅取路径）。
+
+锁定后要求修复预览逐项一致，返工使用同一生效计划和项目版本；仅允许所选节点的 UPDATE 与关联 REEVALUATE，不接纳新增/删除节点或交付件、里程碑、门禁定义变化。返工前预览唯一可暂存的问题是所选节点 binding 的 `STARTED_BINDING_IMMUTABLE`；不豁免其他编译问题。先通过原返工服务建立新轮次，再重新编译、预览并通过原计划生效服务提交，任一步失败整体回滚。必要父阶段仍由原返工规划器确定，须在 expectedExecutions 中显式确认，不扩大其他返工范围。
+
+响应包含 `plan`（生效结果）和 `rework`（新旧轮次关联）。幂等重放不重复返工；相同键不同请求拒绝。原完成轮次、原冻结计划及完成证据保持，当前轮次按修复计划运行；原规则重判事件只能在整个事务提交后投递，不能在返工与修复之间误用旧完成规则。本入口不替代普通计划生效、返工接口，不发布项目模板。
+
+### 2026-10-11 项目联系人完成事实（CUS-04 / PRE_CONTACT）
+
+需求方确认：项目当前至少存在一条启用、未删除、属于项目关联客户且满足现有联系人内容校验的项目联系人记录，即满足“用户联系人获取”完成条件，不要求主联系人标识、再次创建或手工提交。客户通讯录记录未引用到项目时不参与；停用、删除、其他项目或其他客户的记录不参与。此变更只作用于当前及后续执行，不撤销或覆盖已完成历史，阶段准入、退出、门禁及子任务保护继续生效。
+
+`ProjectContactCompletionApi.lockAndInspect(Query(tenantId,projectId,customerId,customerCode))` 为内部无人值守事实查询，CUS拥有查询和有效性判定；PROJ调用方须保留当前项目、任务及执行轮次的锁和授权边界。加入既有事务（MANDATORY），校验服务端租户，只锁定该项目、该客户、启用且未删除的项目联系人记录。项目customerId优先；无ID时只以租户内稳定customerCode解析，不按名称匹配，不写回项目。无关联或无有效记录返回completed=false，Owner查询失败不视为完成。响应只含completed及contactId/version证据，不携带姓名、电话或邮箱。
+
+独立完成条件 `PROJECT_CONTACT_EXISTS`，parameters为空，只用于客户联系人PAGE任务的独立完成规则。完成命令读取CUS锁定事实，保留contactId/version到当前轮次结果证据，经原状态机SUBMIT→COMPLETE完成；该条件不替代其他PAGE/TASK_NATIVE的本轮手工提交要求。联系人新增/引用、修改、删除和恢复在原命令事务内写入既有 `ProjectRuleReevaluationRequested` Outbox；事务回滚不发送，提交后重新读取事实，不由CUS直接改项目状态。计划生效的既有重判机制使已有有效记录也参与判定。原联系人接口、项目客户归属及已发布模板不变。
+
+2026-10-15经需求方确认，新增独立完成条件`PROJECT_END_USER_EXISTS`，parameters为空，仅用于项目成员PAGE（`/pms/project-management/project-master-detail`）任务的独立完成规则。读取本项目、本租户当前有效`END_USER`成员区间并锁定，至少一条有效外部人员记录才满足；轮次证据保留区间ID/版本，经原SUBMIT→COMPLETE状态机完成。沿用成员变更Outbox重新判定，不改联系人条件。统一成员写接口增补`externalPerson: {name, companyName?, mobile?, email?}`：`END_USER`要求该对象且`userId`为空，其余角色要求有效`userId`且不接受外部资料；列表继续返回姓名、单位、电话、邮箱，外部人员联系方式来自PROJ自己的区间资料。
+2026-10-17经需求方确认，项目成员补齐与项目客户联系人同口径的部门、职务字段。`externalPerson`增补可选`department`、`title`（各最多64字符）；仅作为PROJ外部最终用户的区间资料，不创建系统部门关系、不授予系统身份，也不与CUS联系人按姓名匹配或互相写入。列表沿用`departmentName`展示内部成员既有部门及外部成员填写部门，并新增可空`title`；未记录时显示“—”，不以项目角色推断职务。编辑仍关闭原区间并新增区间，历史原值不回填或覆盖；原项目范围、版本、幂等和状态约束不变。
+
+PROJ公共`ProjectBusinessContextApi`增补冻结实施前置查询及锁定重验，使用现有Query/Revalidation上下文，返回计划ID、计划版本、是否显式配置及必选EXE来源码；不得让IMP直接读取PROJ表。IMP公开就绪上下文增补可空计划适用事实，历史无该字段仍要求EXE_01～04全量完成；显式不适用项使用`NOT_APPLICABLE`并禁止携带伪造的完成对象、水位或重开标记。CUT继续消费IMP就绪/重验接口，既有任务冻结快照不被重写。
+
+### 2026-10-11 任务审批首次发起准入预览
+
+需求方确认修复割接审批入口：未满足准入时禁止首次提交并显示前置条件，保留既有准入规则。`GET /api/v1/pms/project-tasks/{taskId}/workbench` 在审批绑定原本允许START时返回 `startAdmission`，包含 `outcome`（MATCHED/NOT_MATCHED/UNKNOWN）及 `conditions`（label、outcome）。PROJ复用命令START的当前生效计划、冻结规则和事实求值；仅MATCHED保留START，未满足或不可用都移除该操作，不改变其他操作。项目范围受限的任务可见者只获总体结果，不返回其他任务名称。
+
+此预览只读，不激活节点、不写轮次、规则历史或完成证据，不能代替提交时的锁内版本、权限、准入复核。前端按预览显示未满足条件，不把未知结果当作已满足；当前轮次已经启动后的APPROVAL重提仍沿用原契约。模板配置、审批人和流程定义不变。
+
+### 2026-10-13 割接参考V2工作台与标准方案表格
+
+`GET /api/v1/pms/cutover-workbench/tasks` 接收场景化列表查询 `listKind=TODO|SELF_CREATED`、可选projectId/currentStage/taskStatus及pageNo/pageSize；复用 `pms:cutover-task:query`、当前租户与项目VIEW范围。TODO使用服务端当前可办理集合，SELF_CREATED限定自建来源；筛选在分页前执行，空项目或待办集合返回空。响应为PageResult，每项含原任务Summary及持久化creator对应的creatorName，不将当前owner推定为创建人。项目范围拒绝返回原CUT任务错误契约的403分类。
+
+现有P4阶段方案content继续区分标准、D级简易和完整文件。标准方案新增可选rollbackDescription；steps每行新增可选details（stepName/testResult/businessImpactTime/operator/operationTime）；overview新增可选deviceDetails，行包含deviceId/productModel/currentVersion/targetVersion/remark，deviceId必须属于方案冻结deviceSummary且不能重复。它们是CUT方案记录，不修改AST设备属性，不新增必填门禁；原步骤正文校验保持，D级不接收标准表格details。
+
+步骤正文及补充列按sectionCode/stepNo保存于结构化步骤明细；HTTP仍返回steps.details，暂存、重开、修订派生、审批冻结及Word导出消费同一份字段。依需求方随后确认的整模块持久化整改，固定业务字段不再写入content_snapshot JSON，数据库采用前向迁移补充列及关系。旧方案缺少补充字段时保留原正文，已提交及批准版本仍不可覆盖。
+
+2026-10-13 结构化存储实施：CUT 的配置维度、字段树、选项、绑定条件和外部字段映射由明细表提供，既有 HTTP JSON 对象仅作为传输格式。IMP `ImplementationReadinessApi.readSnapshot(ImplementationReadinessSnapshotQuery)` 按 `tenantId/projectId/snapshotId/snapshotVersion` 读取精确不可变快照，校验当前租户与项目查看范围；不重新评估、不回写、不以最新快照替代。CUT 通过该公共 API 解析任务/评估的就绪引用，再核对其设备集合；执行前仍调用 `lockAndRevalidate` 核实当前前序事实。全表及字段定义见 [割接结构化存储方案](../superpowers/specs/2026-10-13-cutover-structured-storage.md)。
+
+P3外部数据端口以正式Provider目录提供接口、参数及响应字段定义，配置界面不得录入任意URL、凭据或未声明字段。设备版本、加载和反馈命令沿用原任务负责人、项目范围、清单草稿及版本校验；实际调用在事务外执行，返回后重新校验，期间来源变化仅追加历史结果，不替换当前答案。成功零条仍需显式保存反馈，调用失败不能当作零条；人工替代必须由配置允许，并引用当前设备/版本上下文中的真实失败查询。没有正式Provider时返回明确未接通状态，不模拟外部成功。详情只读原始公告，反馈版本引用首次原始行而不覆盖原文。
+
+2026-10-16 需求方确认：设备序列号清单展示当前软件版本。`ProjectDeviceShipmentApi.Device` 及项目设备分页响应增加可空 `currentSoftwareVersion`，来源为 AST 设备的 `conpVersion`。P3 草稿通过 `DeviceQueryApi` 读取同一设备的型号和当前版本，只读展示，不接受人工改写；升级目标版本仍由 CUT 维护。设备版本变化后旧公告查询不再满足当前上下文，必须重新核查；提交在原事务内冻结设备型号、当前版本和目标版本，已提交及历史修订读取原快照。缺少版本保持空值，来源不可用失败关闭，不回退到旧人工版本。
+
+### 2026-10-13 割接二线与研发角色共享审批
+
+需求方指定二线 `probSupporter`、研发 `probRD`，确认按角色审批、不指定具体人员，并随后否决冻结人员池的设计。新节点以明确的列保存角色/候选组引用，由BPM原生candidateGroups建立一个未领取的共享待办；不将角色展开为全量candidateUsers，不保存候选人员清单或整组成员水位。待办读取及办理使用SYSTEM提供的当前有效成员资格，角色无人时待办保留，不跳过或自动通过。原个人审批、旧流程定义及不可变历史保留。
+
+P5详情Node保留可选 `candidateRoleCode`；共享节点办理前originalApproverUserId/currentApproverUserId均为空，决定后currentApproverUserId为实际办理人。我的待办、首页待办及详情读取均以当前有效BPM任务及CUT当前节点为依据；客户端不选择或回传角色成员，角色节点不接受个人改派。现有approve/reject、身份、版本和五项评审不变。办理事务重新核对并锁定该操作者当前资格，领取与决定同事务，记录实际办理人及其当时资格来源；其他成员并发办理不能形成第二个决定。越权尝试不得将共享审批写为HOLD。
+
+BPM新定义的二线/研发使用原生候选组共享任务；现有平台角色策略、角色查询API和任务服务按职责复用，不能随机指定一个人替代角色共享待办。CUT不直接访问SYSTEM或Flowable业务表。领取与决定仅允许经CUT业务校验的同一事务；通用BPM领取、审批或变量修改不能绕过CUT。流程初始化产生新定义版本，既有实例仍引用原定义。通知按发送时有效的收件资格生成幂等消息记录；消息收件记录不作为审批候选名单，通知送达不等于审批完成。流程保存业务身份和角色引用等明确的标量变量，不序列化全量人员池。
+
+首页任务摘要保留 `approvalOnly`：角色待办通过专用审批页读取冻结资料。首页以原项目范围或精确待办任务ID限定分页及计数；自建、创建、P4、P6写入仍用原权限。角色临时读取只在未暂停、未替换的PENDING审批根及其当前有效角色待办存在时成立，节点未轮到、已办理或实例关闭后不再授予；不扩大到完整项目、同项目其他任务或历史审批。冻结文件关系按明确的列/明细保存，继续由PLT核验当前权限、完整业务引用键、固定工件和文件版本及可用性。CUT读取授权水位只用于事务内复核，不绑定文件登记时范围版本；闭环附件和文件写入不由角色待办授权。
+
+V463仅为既有角色补充必要入口与查询/审批权限；V464补充PLT文件下载与预览按钮权限，Owner策略继续限定冻结文件只读范围。不分配用户、修改role.data_scope或PROJ项目成员。租户范围与服务端当前角色资格持续校验。
+
+2026-10-20 审批原始资料显示修复：现有审批详情及决定响应仅在已授权的 `FULL` 投影中追加 `sourcePresentation:{matchingOptions,answerSchemas,incomplete}`。显示说明按审批冻结的 checklistId、同租户同任务清单及原配置修订读取；字段须与冻结事实的采集项ID、稳定键、类型、定义ID及版本一致，answerSchemas以字符串checklistItemId为键。答案始终来自sourceSnapshot，不读取当前清单结果、不改变历史快照。仅补充显示说明失败时保留已授权审批事实并返回incomplete=true；受限投影和审批无权请求不读取或返回这些说明。审批页不再因普通任务查询菜单存在而请求普通清单接口，原普通任务查询仍保留项目范围校验。
+
+
+
+### 2026-10-14 模板正常闭环任务完成契约
+
+本次需求方明确S6任务在正常闭环审批通过后完成。新增无参数条件 `NORMAL_CLOSURE_APPROVED`，仅允许独立作为正常闭环PAGE任务的完成规则，专用入口为`/pms/project/normal-closure`并复用现有正常闭环面板；每个模板最多一个，必须位于终态阶段并冻结原有人工正常闭环策略，不得同时配置规则自动闭环。该条件不对手工提交、普通规则重评估、HTTP成功或审批发起返回已满足。
+
+ACC沿用现有正常闭环检查、申请、BPM事实与审批回调接口；PROJ在申请检查中仅对这一精确冻结契约的当前在办任务做审批后完成预判，原始未完成状态、契约及版本进入检查证据摘要。其他任务、子项目、阶段条件、退出门禁、业务事实和成果重验全部保留。审批回调验证真实BPM结果、审核人和原检查摘要后，调用PROJ任务生命周期服务，通过冻结状态机完成该任务并追加执行轮次、完成评估及事件，再关闭阶段和项目；任一步失败整体回滚。拒绝、撤回、陈旧来源、跨租户或错误审核人不得完成任务。无该专用任务的既有模板和原厂督导S5路径维持原检查语义；已冻结历史不回写。
+
+
+### 2026-10-14 到货、安装、培训与割接审批任务事实
+
+复用 `TaskBusinessObjectProvider` 的候选分页、当前事实、事务内锁定重验和当前执行轮次接口，新增以下Owner适配。既有 `CUT/CUTOVER_TASK/CUTOVER_COMPLETED` 保持P6成功归档语义。
+
+| Owner / 对象 | 完成事实 | 本次五类草稿口径 |
+| --- | --- | --- |
+| IMP / ARRIVAL | ARRIVAL_SIGNED | 本项目现有到货签收记录status=1；至少一条关联记录达标 |
+| IMP / INSTALLATION | PROJECT_INSTALLATION_COMPLETED | 本项目当前设备集合非空，每台设备都有当前有效的已完成安装记录和安装位置；复用原全设备结果读取 |
+| IMP / TRAINING | TRAINING_CONFIRMED | 本项目现场培训经现有客户确认操作形成CONFIRMED；至少一条关联记录达标；草稿、已外发和已作废均不通过 |
+| CUT / CUTOVER_APPROVAL | CUTOVER_APPROVED | 本项目割接任务当前提交方案的正式审批实例为APPROVED，决定时间存在且未被替代；至少一条关联记录达标 |
+
+项目割接审批办理补充独立视图 `CUT_CUTOVER_APPROVAL_WORKBENCH@1`，页面 `/pms/cutover/approval-workbench`，Owner/实体为 `CUT/CUTOVER_APPROVAL`，支持 QUERY、CREATE。创建操作 `CUT.CUTOVER_APPROVAL.CREATE@1` 复用既有项目割接 intake 的输入、幂等及权限/数据范围/实施前置契约，来源保持 PROJECT_EVENT；返回 objectType 为 CUTOVER_APPROVAL、objectId 为割接任务 ID。后续方案与审批仍由 CUT 原生命令办理，完成事实仍为 CUTOVER_APPROVED。既有 `CUT_CUTOVER_APPROVAL@1` 只读注册及冻结绑定不变，新视图仅经新草稿或正式计划修订启用。
+
+正常闭环上下文与锁定复核统一读取项目 activePlanVersionId 指向的本租户、本项目 EFFECTIVE 计划 executionSnapshot.closurePolicy；仅无生效计划指针的旧项目沿用建项 closurePolicySnapshot。有指针但计划身份/状态无效时拒绝，冻结规则为空时不得回退旧规则。闭环来源证据包含计划 ID、修订号；规则与历史快照不回写，计划变更后必须重新检查和申请，原审批不得解释为批准新计划。
+
+交互读取保留当前功能权限与完整项目数据范围，未授权或空范围不能成为候选；自动完成必须锁定并重验本次PROJ执行轮次及对应Owner对象。模板和已执行历史只冻结引用、业务版本与完成证据，不复制签名、Token或客户外发秘密。到货签收、培训客户确认和CUT最终审批的成功事务追加独立重评事件，重评重新读取事实；原业务事件、通知和状态机保持不变。
+
+V478补充四个高段ID、幂等的业务视图种子，只登记现有业务办理入口。五类项目模板仍为未发布草稿，业务视图注册不发布项目模板。
+
+### 2026-10-15 巡检专项客户归档引用
+
+按本次已批准的巡检专项口径，SRV持有巡检任务、冻结规则、执行、结果、报告、标注及处理记录。CUS新增内部 `CustomerInspectionHistoryApi.register(ArchiveCommand)`，只能加入调用方事务，校验当前租户、操作者、客户可见范围、原项目范围及当前服务经理资格。SRV在已锁定的任务内先重验有效报告、完整标注、全部跟踪闭环及冻结处理证据，再登记引用并经状态机归档；引用失败整体回滚。工程师申请与服务经理归档分别使用 `POST /api/v1/pms/inspection-tasks/{taskId}/actions/request-archive|archive`，沿用If-Match和Idempotency-Key。
+
+CUS仅保存原任务及最终任务版本、当前报告、原项目和客户标识，以及设备、历次报告、执行、结果、标注、问题、处理记录和证据的精确来源ID。固定关系存列或明细表，不复制SRV业务正文，不修改项目进度，不引入WorkBinding。每租户每任务只能登记一份不可变归档引用；同来源版本与内容可重放，内容不同拒绝。项目后续调整客户不重写原任务客户。客户删除守卫保留该引用。
+
+`GET /admin-api/pms/customers/{customerId}/inspection-history` 复用客户查看权限和客户数据范围，并以操作者当前可见的原项目集合在分页前筛选；空范围返回空。详情仍由原SRV接口再次授权，引用链接不授予巡检或文件访问权限。客户历史与巡检已归档内容只读，下载精确工件版本，不用当前文件替代历史版本。
+
+巡检误报接口位于 `/api/v1/pms/inspection-rules/feedback`：按标注ID保留每次误报历史，最新标注不再为误报或报告被新版本替代时标为历史，不删除。管理员的有效性确认独立追加修订，If-Match为该标注最新确认修订号（未确认是0），不改巡检已归档真值。查询按当前项目范围裁剪；普通查询只返回本人标注，具有`pms:inspection-feedback:analyze`时可分析授权项目汇总。`details`字段权限控制设备标识、型号、原始命令和输出摘要。
+
+统计按规则修订分别展示，统计期为检出结果生成时间，分母为同修订的异常检出结果数，分子为其中当前报告最新误报标注且经管理员确认有效的不同结果数；历史标注与重复报告不重复计数。确认筛选只裁剪反馈列表，不改变统计分母。结果同时返回统计期和本次数据截止时间，查询失败不发布部分比率。规则优化仍通过现有复制修订草稿及发布流程完成。
+
+Excel/CSV导出先创建来源快照记录，再生成平台文件；记录筛选列、截止时间、条数、精确标注/确认引用和当前/历史状态。单次10000行及50MB是导出资源上限，超过时明确失败并要求收窄筛选，不静默截断。失败可重试，下载重新核对原导出人、当前分析/导出/字段权限和全部来源项目范围。固定业务筛选及来源关系均使用列和明细，不存JSON业务结构。
+
+巡检在线来源绑定SRV的单次设备执行记录，预检与正式执行各自拥有独立记录和CollectionTask。Owner通过统一采集`Source`返回可选的冻结执行规格：`PRECHECK`只有连接与认证测试、命令列表为空；`INSPECTION`按SRV冻结规则顺序形成整批命令。按2026-10-15用户补充裁决，本次暂不实现逐命令超时与继续策略，正式执行复用现有整批下发和整体超时配置`manual-execution-timeout-seconds`；未来确有独立超时需求时可拆分采集任务。规则原有版本与配置历史保留。未提供该规格的既有实施、割接与独立中心沿用原语义。命令与用途均由Owner决定，HTTP输入不能替换冻结内容。
+
+PLT在创建任务前先解析当次临时认证或重新核验保存凭证，再将不含Secret的实际连接快照交由Owner核对预检设备、操作者、端点、认证模式、用户名、凭证版本及授权引用。正式执行授权独立签发；临时密码不进入幂等摘要、持久化、审计或队列，完成请求后清空。用途单独存列，并进入DAC幂等指纹和任务HMAC授权绑定。DAC的预检工作分支仅调用协议连接测试，不执行巡检命令；正式执行使用原有整体超时行为。
+
+
+2026-10-16新建割接等级确认最小输入：项目、已发货设备、等级问卷。创建请求的 `configurationCode/background/cutoverType/networkMode/scheduledTime` 可缺省或为空；未提供配置时，服务端重查创建时点有效发布配置，仅唯一时采用，零个或多个均返回配置冲突，不自行挑选。既有显式配置及来源调用保留范围校验。A/B/C在调研选定类型、组网、设备类型并保存结构化割接背景；D级跳过调研且无需这三个匹配字段。方案与审批不得继续把创建时背景和计划时间作为必填事实；所有方案（在线标准、D级简易、完整上传）增加单个 `scheduledTime` 计划割接时间输入；审批采用该明确输入值，原明细计划表保留，A/B时限继续按该值执行，不以当前时间或虚构默认值填补。D级来源允许匹配类型及计划时间为空，不影响人工等级、审批权限、状态机和不可变历史。
+
+
+### 2026-10-19 割接服务等级来源接入
+
+`CustomerServiceLevelCurrentApi` 由 CUS 实现，独立于尚未实施的时态等级版本 API。`inspect(Query)` 查询现有 `cus_customer_service_level` 的当前唯一有效记录。查询携带受信 tenant/customer，Fact 明确区分 `AVAILABLE/NOT_CONFIGURED`，包含来源记录 ID、行版本、等级代码和可空起止日期，不伪造版本修订 ID。当前日期按服务端时钟；状态为已生效，日期区间两端包含当天，空端不限；多条有效记录返回数据冲突，客户不存在或 Provider 失败均不返回未维护。现有维护功能与角色授权不改动，CUT 仅调用公开 API。
+
+CUT P2 保存体增加可空 `manualCustomerServiceLevelCode`，只在真实未维护时接收已启用字典值；已维护时拒绝人工覆盖。查询返回原客户来源事实及评估的手选值/操作者/时间；保存后沿用该快照，客户后续等级变化不触发刷新、重新保存或提交阻断。只补齐创建阶段未维护时的手动取值，不增加动态跟随规则。新增列保存来源记录引用和手选审计，既有不可变 JSON 历史保留。该差量不新增 CUS 维护入口或全员/全模板查询权限。
+
+### 2026-10-17 工勘删除与当前业务关联的事务边界
+
+SOL工勘Owner在原生删除授权、项目MANAGE范围、执行入口、草稿状态、委外引用及行版本校验全部通过并删除成功后，在同一事务调用PROJ公开内部端口 `ProjectBusinessObjectDeletionApi.unlinkDeletedObject(DeletedObject)`。该端口不开放HTTP入口，租户和操作者来自当前认证上下文，重验项目范围；只按项目、Owner、对象类型及对象ID精确关闭有效计划下当前未结束阶段/任务轮次的活动关联，沿用关联版本CAS与审计。已完成轮次、旧计划、其他对象及关联原行均保留；清理冲突必须与工勘删除和回执整体回滚。异步规则重评继续使用原事件，不再承担删除回执返回前的引用清理。
+
+### F-SOL-001 工期审批任务意见事实
+
+2026-10-19按用户授权修复后续工期审批意见回写。BPM新增内部只读`DurationChangeBpmApi.getApprovalOpinion(ApprovalOpinionQuery)`，查询对象包含受信租户、冻结流程实例ID/定义key/业务changeId及冻结审批人ID。BPM校验租户一致、流程已通过并结束、业务关联一致，读取唯一已完成且通过的`serviceManagerApprove`任务意见。关联不存在、不一致或不唯一时失败关闭；真实未填写的可选同意意见可为空，不用流程结束原因兜底。SOL完成原授权、当前状态及冻结事实校验后调用该契约，不直接访问BPM Service或表。
+
+同意终态在BPM原事务`beforeCommit`阶段处理，使任务历史已由引擎写入且BPM与SOL仍同事务提交/回滚；驳回与撤回沿用原流程结束原因和同步处理。平台既有状态事件定义及流程节点、候选策略、路由均不变；重复终态不查询补填意见、不覆盖历史。本次无新增HTTP接口、数据表、权限或初始化配置。
+
+
+### 交付件历史材料文件入口补充（2026-10-19）
+
+GET `/api/v1/pms/projects/{projectId}/deliverables/{id}` 的历史材料行增补可空 `fileKey`（ownerContext、objectType、objectId、purposeCode、referenceKey）。仅在原项目与交付件查询授权通过，且当前租户引用对应冻结工件及版本时投影原文件业务锚；不改历史、不生成下载地址、不授予文件权限。预览、下载和版本历史仍走 PLT 文件接口及原业务授权；无法解析引用时保留历史文件名和版本，不臆造访问入口。
+
+### 2026-10-20 项目当前模板绑定迁移
+
+按需求方授权，项目可通过新的项目计划修订更换当前模板绑定，项目类别等属性保持不变。创建时的`lifecycleTemplateId/lifecycleTemplateRevisionNo/lifecycleTemplateRevisionId`仍为不可变来源历史；当前绑定由`activePlanVersionId`所指生效计划的`sourceTemplateRevisionId`承载，旧计划及其来源不回写。不能仅修改显示名称或将原来源字段覆盖为新模板。
+
+`POST /api/v1/pms/projects/{projectId}/plan/draft/{draftId}/template-binding` 输入`expectedVersion/expectedBasePlanVersionId/targetTemplateRevisionId`及`Idempotency-Key`，要求既有`pms:project-plan:manage`和当前项目编辑范围。服务端锁定当前项目和目标模板，目标须为同租户启用模板的已发布V2修订，使用项目现有事实执行目标版本冻结的匹配规则；不修改属性以满足模板，不回退到旧四维匹配器。校验草稿、基线及版本后，将目标发布设计和来源修订ID原子写入指定草稿，并记录原/新来源审计。接口不发布模板、不生效计划、不改任务或业务记录。后续项目专属调整仍受原保存、影响预览与生效保护约束，已开始节点不能直接删除、换绑定或移阶段；生效失败不切换当前绑定。
+
+计划查询的`effective/draft`加性返回`templateBinding`（`templateId/revisionId/revisionNo/name`），按该计划来源修订读取，缺失来源不猜测。页面展示生效计划的当前绑定，不将未生效草稿显示为已绑定。公共模板、立项来源及各旧计划历史保持独立。
+### 指定存量项目一次性新轮次的交付隔离（2026-10-20）
+
+依据 Q-PROJECT-RESTART-RESULT-20261020，本次仅对获授权的六个项目执行一次。项目集合与目标模板作为执行输入，不在产品代码中固化项目ID、项目编码、租户、模板映射或日期标记。PROJ 在项目锁、授权、状态、版本和幂等校验后，通过 ACC/PLT Owner API 创建新轮次，不直接访问其他模块表；不新增日常重置页面或独立重置机制。
+
+PLT 的模板冻结交付要求增加 `archived_reopen_snapshot_id`：0 为当前要求，非0引用既有受控重开快照。内部 `archiveForProjectReopen(ProjectReopenArchive)` 接收项目、重开快照ID及预期当前要求ID集合，完整比对并原子归档；保留原要求、材料、提交、确认及来源字段，不撤回旧成果。当前身份、列表和完成判定只使用当前要求，新计划以相同交付编码创建新的要求ID。历史ID可读，但不允许重新提交、确认、修改、撤回或刷新历史完成状态。此内部能力不公开为通用重开入口，也不以归档代替上游状态机动作或授权。
+
+PROJ 复用 `actions/reopen` 命令与 `proj_project_stage_snapshot` 的 REOPEN 快照，保留前后计划、目标模板、时间和不可变旧运行证据，不新增重置台账或独立重置入口。提供 `targetTemplateRevisionId` 时校验正常结项、最新已发布且匹配的模板，并从S0建立新轮；未提供时沿用原异常关闭快照恢复路径。跨模块通过 `ProjectReopenScopeApi` 读取正常结项至ACTIVE/S0的最新REOPEN快照，不依赖特定原因码、日期或项目白名单；未执行此操作的项目保持现有行为。可独立建单的 Owner 通过 `TaskBusinessObjectProvider.handlingCreatedAt` 提供同租户同项目办理记录的原始创建时间；固定主记录的验收业务取当前报告版本创建时间，不取旧记录更新时间或审批时间。未知时间不得算作新记录。关联、人工引用和完成判定均排除重开前对象，不能仅排除旧任务已关联对象。
+
+人员指派与安装等复用原项目对象的业务，按当前执行轮次重新读取并校验 Owner 当前真实完成事实，不继承旧任务完成状态。2026-10-20需求方纠正：不增加“确认本轮已核对”按钮、确认接口或额外确认凭证门槛；保留既有授权、执行轮次、事实版本和业务完成校验。新旧关联与执行历史继续隔离，可独立建单业务的新记录要求不变。
+
+### 2026-10-20 任务业务结果主动刷新
+
+既有“刷新业务结果”入口对可办理的业务绑定任务调用 `POST /api/v1/pms/project-tasks/{taskId}/business/refresh`；请求体为 `expectedTaskVersion/expectedContractVersion`，`If-Match` 与合同版本一致。租户、操作者和项目由服务端确定。须具备 `pms:project-task:execute`、当前任务可见及办理范围、Owner 查询权限；锁定项目、任务和当前合同后重新校验版本及可写执行轮次。仅 `IN_PROGRESS/PENDING_ACCEPT` 任务参与，未开始及已结束任务的页面刷新保持只读。
+
+服务端在同一事务中复用自动关联同步及 `completeFromBusinessResult`，按当前计划、Owner 事实、门禁及冻结状态机判定，返回 `completed/unknown`。不新增人工确认凭证、不改业务数据、不跳过开始或完成规则。完成命令仍使用既有执行轮次幂等键与审计/Outbox；页面刷新本身只追加操作者刷新审计。重复请求在版本过期或任务已经结束时拒绝，客户端须重新读取，不自动重放过期请求；条件未满足的重复刷新不会推进状态。GET 上下文不产生写入。上下文 `allowedActions` 的 `REFRESH_RESULTS` 仅表示可执行上述重评；没有该操作时按钮仅重读现有业务上下文。
+
+
+### 2026-10-20 割接未提交草稿来源更新
+
+割接详情 `GET /api/v1/pms/cutover-tasks/{id}` 增加可空 `assessmentSubmissionBlockReason`，仅用于解释 P2 当前提交阻断原因，不作为授权或状态字段。未提交草稿详情读取最新项目和原选设备来源；GET 不更新业务表。既有评估保存及提交接口沿原授权、租户、任务/评估版本、幂等和状态机执行，在事务中锁定本次读取的最新项目范围、项目版本与设备归属版本；创建时的旧通用项目版本不再永久阻塞草稿。不能自动增删、替换设备或接纳跨项目设备。保存更新当前草稿及其设备事实，提交冻结本次来源，已提交历史不改写；项目客户变化须更新来源并重新确认服务等级。
+
+
+### 2026-10-20 保障人员选择差量（需求方批准）
+
+标准方案仅客户、一线必填，二线和研发可选；已添加行保持完整性校验。客户可选择该项目全部当前有效成员或手填；一线、二线、研发分别选择当前租户启用的 PROJECT_MANAGER、probSupporter、probRD 系统角色成员。
+新增只读 GET `/api/v1/pms/cutover-tasks/{taskId}/support-person-choices?roleCode=...`，沿用割接查询权限并校验任务租户及项目范围，返回 `[{reference:{sourceCode,id,version},name,phone}]`；sourceCode 仅 PROJECT_MEMBER 或 SYSTEM_USER。
+标准方案人员行及批准后联系人 PATCH 可带可空 `personReference`，原 customerContactReference 用于保留既有历史，不与新引用同时使用。CUT 以可空关系列保存人员来源，不以 JSON 保存固定关系；保存重验所选来源，提交要求工程师选择实际用户并重验角色，姓名不得伪造。成员失效、改角色、用户停用或版本变化均要求重选。客户手填仍需完整姓名和电话。所有授权、项目范围、幂等与根版本并发校验保留；历史来源不回填，批准后变更继续追加原审计链。
+
+
+### 2026-10-20 割接共享审批直接办理恢复
+
+根据用户随后确认的恢复要求，共享待办直接返回既有 `APPROVE/REJECT` 动作，打开后填写完整五项评审并提交，不再暴露独立 `actions/claim` API。`approve/reject` 保持既有权限、版本和幂等契约，在同一事务锁定操作者当前角色资格、领取原生任务并完成审批决定，失败一并回滚，不留下单独领取状态。既有已领取节点继续由固定人员办理，不重新核验项目成员资格；仍检查账号有效、租户及审批权限。改派仅面向已分配/既有已领取的非终态节点，保持已有原因、版本、审计及原子性契约，历史审批和领取记录保留。
+
+
+### 2026-10-20 审批人员查看完整割接任务（需求方批准）
+
+审批人员可从FULL审批页进入完整任务只读视图。原任务详情、清单/修订/匹配选项/外部状态、方案及闭环GET接受普通查询权限或query-approval，但服务端逐次校验同租户同任务：普通项目范围，或者本人当前有效审批待办，或者有明确决定时间和已通过/驳回状态的本人实际办理记录。未领取角色成员仅当前共享待办期间可看；实际办理过的启用人员在审批结束、角色变化或驳回重提后仍可只读查看这项任务；其他任务和整个项目不因此可见。无项目范围的任务、方案和闭环查询不返回写操作，所有写接口继续原权限、项目范围、负责人、版本及状态校验。审批原页继续展示原冻结版本，完整任务页面明确为只读当前任务。
+
+完整任务附件READ/PREVIEW/DOWNLOAD复用PLT业务引用校验及CUT逐次读取/锁定授权，保持精确工件、文件版本、引用和可用性校验；不授予文件写权限。历史审批及来源快照不回写。已实际办理人员的原审批FULL投影延续只读访问，不能因历史参与而重新办理已结束节点。
+
+
+### 2026-10-20 受控Word方案在线预览（需求方批准保留分页、图片和版式）
+
+公共文件查询为可用Word版本投影PREVIEW动作。新增POST `/api/v1/pms/files/{artifactId}/preview-content`，使用原文件访问请求体（versionNo/operationCode=PREVIEW/ownerContext/objectType/objectId/purposeCode/referenceKey），须具备pms:file:preview且通过Owner精确版本读取、锁定及当前可用性校验。服务器有界读取不超过原50MiB平台上限；Word由本机LibreOffice无界面转换为PDF，原生PDF/图片/文本原样返回受控内容，转换不登记新工件/版本、不修改原件，不调用公共Office在线服务。每次转换独立临时目录及用户配置，禁用宏和链接更新，超时/失败关闭并清理；返回前重新校验授权。响应Content-Type对应派生内容、Cache-Control:no-store、nosniff，成功/失败追加FILE_PREVIEW审计；不公开存储位置或凭据。已有下载及原生格式短时访问票据保持原契约。CUT只接入既有公共文件组件，不实现独立方案预览页。
+
+
+完整任务GET新增 `approvalReadOnly`，仅通过审批资格而无普通项目范围时为true，allowedActions为空；project追加来源办事处departmentName。该视图读取CUT自己的原记录、冻结设备和已保存的前序就绪引用，不重新调用IMP、PROJ或CUS接口获取其权限范围外的当前资料；就绪引用仅包含已保存的decision/snapshotId/version/projectId/deviceIds，不将缺失的IMP明细伪造为空结果或重新评估。前端据此强制任务各步骤只读，并跳过普通项目/成员接口。普通项目查询及实施条件复核仍保留原Owner授权链。
+
+### 2026-10-20 服务经理改派候选选择
+
+需求方确认保留服务经理资格限制，不允许把服务经理节点改给不具备资格的管理员。新增 `GET /api/v1/pms/cutover-approvals/{approvalId}/reassignment-service-manager`，须具备 `pms:cutover-task:reassign-approval`，按受信租户和精确审批实例校验存在未处理服务经理节点后，复用PROJ当前唯一主责服务经理事实，返回 `CommonResult<WireLong|null>`。无唯一有效人选返回null，提供方失败返回原错误，不回退为全部用户或冻结旧审批人；不返回项目业务快照。读取只是选择依据，提交仍按原锁定重验、版本及状态规则判断资格。`REASSIGN_TARGET_NOT_OPEN`保留机器错误码和HTTP409，msg显示具体业务拒绝原因。
+
+### 割接方案复用调研附件（2026-10-20）
+
+PLT既有内部`FileArtifactApi.attachExistingVersions`增加受支持目标`CUT/CUTOVER_PLAN/FULL_PLAN`，保持UUID引用键、精确源版本重验、源不可变/目标可变策略、类型/大小、范围权限与同事务审计。CUT方案文件策略允许既有清单证据类别作为方案引用来源；不增加上传权限或匿名访问。方案保存仅从其冻结清单ID/版本中的现网拓扑绑定到空的割接前拓扑，源引用不改写。方案文件消费必须按当前任务完整业务键查询，不能将同一工件的最早引用当作唯一归属；公开文件接口及响应结构不变。
+
+### 本机 DAC 服务发现（2026-10-21）
+
+仅 desktop 运行配置提供 `GET http://127.0.0.1:48182/api/v1/desktop/status`，响应 `product=npdms-dac`、`protocolVersion=1`、`status=READY|STARTING`、`serverUrl`、`webOrigin`，不返回账户、凭据或任务数据；响应禁止缓存。该只读发现端点不要求登录，CORS 只允许客户端配置的精确网页来源；服务只监听回环地址并拒绝非回环 Host，所有业务接口继续认证。网页在产品、协议和服务器环境匹配后才可使用本机业务接口，探测失败不能区分未安装、服务停止或浏览器权限拒绝，不能伪报安装状态。
+
+desktop 的 `GET /desktop-status` 提供本机只读 HTML 状态页，无需登录，复用上述发现接口展示就绪状态和配置的环境地址；禁止缓存和被框架嵌入，沿用回环 Host 校验。只开放此页面的 GET，不开放其他通用页面或业务操作。交互式安装成功后等待页面可访问并用默认浏览器自动打开；静默安装不打开浏览器。
+
+客户端注册 `npdms-dac://start/`，仅允许启动固定的 NpdmsDac Windows 服务，不接受任意命令、地址、文件路径或凭据。页面须由用户点击触发协议，随后有界轮询发现端点；不得自动循环唤起外部应用，不以服务进程存在代替业务就绪。
+
+NPDMS 增加 `POST /api/v1/pms/device-collection/sources/{entry}/{objectId}/desktop-executions`，沿用网页登录、来源执行权限、项目范围、期望版本及请求幂等键，仅接受连接元数据及本机保存连接引用/版本，不接受秘密。返回原执行记录与短期操作票据。`POST .../desktop-access` 在当前来源范围内签发本机任务读取或个人连接读取/保存的操作票据；连接保存/使用同时要求原设备凭据权限。原服务器执行 API 保持原契约。
+
+DAC 的 desktop 业务路由通过 `X-NPDMS-DAC-Ticket` 向已配置 NPDMS 的 `POST /api/v1/pms/integration/device-ops/desktop/tickets/resolve` 解析授权，保留租户、使用人、项目、任务、命令、连接版本及操作绑定；60秒窗口外拒绝。浏览器不向回环端点发送完整登录 Token。解析后的主体进入原 DAC 授权和执行引擎，本机任务使用原任务号幂等提交。
+
+本机通过任务限定回传凭证主动报告接受状态并轮询取消，终态通过原 multipart 结果协议送达 `POST /api/v1/pms/integration/device-ops/desktop/callbacks`。接收仍验证固定任务/collection、结果序号/版本、日志大小/摘要和不可变 Receipt，并复用原 PLT 文件接收、状态机及业务消费。平台只读本地上报投影，不尝试连接现场回环地址；离线不推断失败，也不重发命令。
+
+响应不明时可通过 `POST .../desktop-executions/{executionId}/resume` 重新核验原使用人及当前来源授权，继续原任务；不创建新幂等键。DAC 在提交前调用 `POST .../desktop/tasks/{taskId}/claim`，以本机持久化的 executionId 独占认领；另一客户端、已取消任务或缺少明确 `accepted=true` 的业务回执均不得下发。后续 `/observations`、`/control`、`/cancelled-before-submission` 仅接受该任务限定凭证，不能授予新执行；取消证明仍由原状态机收敛。
+
+
+### 2026-10-22 既有未绑定项目首次模板分配
+
+`POST /api/v1/pms/projects/{projectId}/plan/initialize` 补充已有项目首次绑定模板并实例化计划的入口。沿用 `pms:project-plan:manage`、服务端租户及当前项目编辑范围；请求体为 `expectedProjectVersion`、`expectedTemplateRevisionId`，请求头为非空且不超过128字符的 `Idempotency-Key`。不接收模板ID、项目属性覆盖、人员指派或生命周期状态。
+
+锁定项目后重验授权、版本和ACTIVE状态，要求所有原模板引用和当前计划为空，且无任何计划、阶段、任务、里程碑、交付件或门禁实例（包括已删除历史）。目标为同租户启用模板的当前已发布V2修订，提交时按项目真实属性重新求值，只允许唯一命中且与请求修订一致；无匹配、多匹配、过期发布或停用模板拒绝，不兜底、不覆盖旧绑定。候选范围由启用状态与冻结规则决定，不硬编码模板ID、名称、数量或项目白名单。
+
+同事务首次冻结模板来源与闭环策略，按完整发布快照生成阶段、任务、状态机引用、执行契约、WBS闭包、里程碑、交付件及门禁引用，再生成有效计划和执行轮次、结果订阅与定时规则。阶段仅由原准入服务正常激活，不直接改写项目生命周期、指派、编码、树、来源或业务事实。命令幂等、审计及初始化整体提交或回滚；相同请求重放返回原结果，不重复生成计划；不同键再次初始化拒绝。响应为 `projectId/planVersionId/templateId/templateRevisionId`。此入口不更换已有计划，不绕过历史保护，不承接旧功能新Feature。
+
+### 培训打印模板只读选用（2026-10-22）
+
+`GET /api/v1/pms/dynamic-form-templates/training-print-selection`：沿用`pms:imp-training:query`，服务端可信租户/用户上下文，标准分页上限。PLT仅返回当前租户`TRAINING_PRINT_FORM`分类中已启用且具有当前发布修订的模板名称、模板/修订ID、发布时间及表单配置/规则；不返回草稿、其他分类或管理动作，不授予通用模板查询/管理权限。前端按发布时间默认选择最新项；空列表使用服务端现场培训标准表单PDF，查询失败明确报错。既有通用模板接口权限和发布/启停契约保持不变。
+
+### 交付件关联业务数据类型范围（2026-10-22）
+
+需求方要求界面“关联业务成果”改为“关联业务数据”，仅显示当前业务需要关联的类型。既有交付件`result-types`接口只返回当前项目有效冻结计划为该交付件声明的来源类型：复用既有显式来源及原生任务来源匹配，不按显示名称、阶段编号或固定业务类型臆测。未允许BUSINESS_RESULT或无匹配来源时返回空列表，不降级为全类型。`result-candidates`及新提交同样验证所选类型属于该范围；既有提交重放、授权、项目范围、成果精确版本复核和不可变提交历史保持原语义。
+
+
+2026-10-22 阶段状态查看时间口径（用户确认）：`GET /api/v1/pms/projects/{projectId}/node-executions/history` 增加轮次 `stageCode` 和只读 `submissionTime {at, source, label}`。原 `submittedAt/submittedBy/submissionNote` 仍只代表真实手工提交；有手工提交时优先显示。自动完成按冻结完成依据读取业务开始/生效或结束/确认时间，标明来源；`endedAt` 继续代表正式状态转换时间，不替换为业务日期。结果订阅读取原完成收据所指不可变扫描的形成时间，不能改用最新扫描；业务绑定仅通过 Owner 公共 `historicalHandlingTime(HandlingTimeQuery)` 或精确版本重验后的结果契约读取。人员与最终用户引用原冻结成员区间；原生阶段按本计划必需任务的业务依据汇总。缺失、外项目、版本不匹配或无法证明的历史业务时间不猜测、不落库回填，不改写轮次、历史快照、状态机或权限规则。
+
+
+2026-10-22 完工证明到货日期：IMP新增内部只读 `SignedArrivalDateApi.latest(Query{tenantId,projectId})`，仅查询原 `imp_eng_arrival` 当前项目、同租户、未删除、状态“已签收”且实际到货时间非空的记录，返回最大实际到货日期或null。ACC通过公开API消费，授权后提供 `GET /api/v1/pms/completion-confirmations/project-arrival-date?projectId=...`，允许既有完工证明查询/创建/编辑权限并保留项目可见范围；不授予到货维护权限。完工证明详情增加有效arrivalDate，草稿优先从IMP读取（缺失时按下述补充采用手填值），外发/确认后仅从原成套不可变CertificateSnapshot读取；外发新增快照冻结arrivalDate，缺字段的旧快照按空值读取。不更新既有快照；手填列按下述补充裁决新增。
+
+### 2026-10-22 项目状态卡聚合查询
+
+经需求方确认，新增只读 `GET /admin-api/pms/projects/statistics`，与既有 `/admin-api/pms/projects/page` 使用同一 Controller 前缀及 `pms:project:query` 权限，租户和主体均来自服务端。只在 `ProjectTreeScopeService` 当前 `PROJECT_VIEW` 完整可见集合内聚合，空范围返回全零，不接受客户端权限集合或列表筛选条件。返回 `total/overdue/s0/s1/s2/s3/s4/s5/s6/normalClosed/noTrackingClosed/exceptionClosed` 数字字段：total含全部可见未删除项目，s0～s6限定ACTIVE及current_stage，三种闭环按原生命周期值精确计数；overdue复用原分页当前超期判定，同项目多个超期节点仅计一次，已完成历史不参与。顶部卡片维持独立于列表筛选的现有口径，用一次聚合替代逐卡分页；原分页、状态展示、授权与超期历史保持不变。
+
+### 2026-10-22 完工证明无签收日期时的手填补充
+
+完工证明保存请求允许可空 `arrivalDate`。ACC只在当前项目无可用签收日期且 `itemArrival=是` 时将其保存为 `acc_completion_certificate.manual_arrival_date DATE NULL`；不得覆盖已签收来源。草稿详情返回有效 `arrivalDate` 与 `arrivalDateManualAllowed`；自动来源优先，缺失时采用手填值。外发快照仍冻结有效日期，历史快照和文件不更新。
+
+### 2026-10-22 设备管理名称筛选与首屏加载
+
+需求方确认项目、客户、办事处同时作为常用筛选和列表名称展示，隐藏页面“新增设备”按钮。既有 `GET /admin-api/pms/asset/devices/page` 增补可选 `projectName/customerName/departmentName`（最长128字符）：按名称包含匹配；空白忽略，与原SN、设备名称、状态、产品编码、projectId/customerId及服务端三路可见范围取交集，先筛选再分页、排序不变。办事处仅来自设备现有固化组织 `department_name`，不按设备所属项目重猜历史归属。合同候选解析使用同一名称限制；有名称过滤时不强制无筛选覆盖索引，允许优化器选择原精确归属索引。
+
+列表响应增补可空 `projectName/customerName`，ID字段继续供已有消费者使用，设备管理界面不显示ID。AST只为已经授权的当前设备页批量读取名称，PROJ复用 `ProjectDeviceOrganizationApi.getOrganizations` 增补projectName，CUS复用 `CustomerQueryApi.getCustomers`，不逐设备读取详情、不直接联表跨模块。两Owner既有公开接口分别增加 `findProjectIdsByName(NameQuery)`、`findCustomerIdsByName(NameQuery)`，仅返回当前租户、未删除主档的筛选候选ID；候选不授予业务读取权限，AST仍重验原设备组织/项目/合同范围，空候选必须空结果，不得退化为忽略条件。名称缺失显示“-”，不显示ID或从其他关系臆造名称。详情与编辑、状态变更、关系历史及现有写权限保留，详情组件仅在用户打开时加载；设备创建API和其他调用方不因本页隐藏按钮而改变。
+
+### 本机DAC任务复核的显式发起人（2026-10-22）
+
+AST `ProjectDeviceSelectionApi.validateSelection(AuthorizedSelection{tenantId,actorId,projectId,deviceIds})` 供已校验任务的内部调用方复核设备，PROJ `ProjectDeviceSelectionContextApi.getContractNumbers(Authorization{tenantId,actorId,projectId})` 按显式主体重验当前项目范围和租户。原网页登录入口保持原校验。PLT采集中心从冻结任务的AuthorizationQuery传递发起人，不要求客户端提交网页登录Token，不设置模拟登录态，不弱化项目/设备/凭据/版本/票据校验。原任务继续使用原platformTaskId和本机幂等键；已接受的请求不能重复执行。前端本机失败提示区分授权、参数和网络未知结果，不输出请求或凭据。
+
+### 2026-10-23 设备列表项目两行与详情链接
+
+需求方要求项目列分两行展示项目名称和项目编码，并提供现有项目详情链接。设备分页只读响应增补可空 `projectCode`，复用PROJ既有 `ProjectDeviceOrganizationApi.getOrganizations` 同次批量查询的project_code，不从ID/名称推算，不增加逐行HTTP请求。名称/编码缺失显示“-”；仅有关联项目且至少一项真实展示事实时生成 `/pms/project-management/project-master-detail?projectId={projectId}` 链接，Long项目ID原样传递，目标详情继续执行原项目权限校验。该字段只读，不改项目关系、历史快照或设备查询权限。
+
+### 2026-10-23 设备列表移除维保月数
+
+按需求方批准，`GET /admin-api/pms/asset/devices/page` 列表响应移除 `warrantyMonths`；列表SQL取消关联 `ast_device_warranty`。`warrantyStartDate/warrantyEndDate/warrantyStatus` 继续直接读取 `ast_device`。分页、总数、筛选、排序、租户与组织/项目/合同可见范围、延保次数及详情维保查询保持原语义。

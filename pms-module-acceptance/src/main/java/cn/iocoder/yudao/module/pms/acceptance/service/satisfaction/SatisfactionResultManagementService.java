@@ -193,7 +193,11 @@ public class SatisfactionResultManagementService {
     }
 
     private Set<Long> requireScope(Long tenantId, Long actorUserId, Long projectId, String action) {
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorUserId, projectId, action));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) throw unavailable();
         return scope.fullProjectIds();
     }

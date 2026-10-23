@@ -10,7 +10,23 @@ public record ImplementationReadinessContextFact(
         Long projectScopeVersion,
         List<DeviceFact> devices,
         ApprovedPlanFact approvedPlan,
-        List<SourceFact> sourceFacts) {
+        List<SourceFact> sourceFacts,
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        PlanApplicability planApplicability) {
+
+    public ImplementationReadinessContextFact(Long projectScopeVersion, List<DeviceFact> devices,
+            ApprovedPlanFact approvedPlan, List<SourceFact> sourceFacts) {
+        this(projectScopeVersion, devices, approvedPlan, sourceFacts, null);
+    }
+
+    public record PlanApplicability(Long planVersionId, Long planVersion, java.util.Set<SourceCode> requiredSources) {
+        public PlanApplicability {
+            if (planVersionId == null || planVersionId <= 0 || planVersion == null || planVersion < 0
+                    || requiredSources == null || requiredSources.stream().anyMatch(java.util.Objects::isNull))
+                throw corrupted("invalid frozen plan applicability");
+            requiredSources = java.util.Set.copyOf(requiredSources);
+        }
+    }
 
     public ImplementationReadinessContextFact {
         if (projectScopeVersion == null || projectScopeVersion < 0 || devices == null || devices.isEmpty()
@@ -27,6 +43,11 @@ public record ImplementationReadinessContextFact(
         if (!sourceFacts.stream().map(SourceFact::sourceCode).toList().equals(List.of(
                 SourceCode.EXE_01, SourceCode.EXE_02, SourceCode.EXE_03, SourceCode.EXE_04))) {
             throw corrupted("sourceFacts must contain EXE_01..EXE_04 exactly once");
+        }
+        for (var source : sourceFacts) {
+            boolean required = planApplicability == null || planApplicability.requiredSources().contains(source.sourceCode());
+            if (required == (source.completionStatus() == CompletionStatus.NOT_APPLICABLE))
+                throw corrupted("source applicability differs from frozen plan");
         }
     }
 
@@ -79,6 +100,9 @@ public record ImplementationReadinessContextFact(
             }
             boolean completed = completionStatus == CompletionStatus.ACCEPTED
                     || completionStatus == CompletionStatus.COMPLETED;
+            if (completionStatus == CompletionStatus.NOT_APPLICABLE
+                    && (!sourceObjectIds.isEmpty() || !watermarkEntries.isEmpty() || reopened || factVersion != 0L))
+                throw corrupted("non-applicable source cannot claim business evidence");
             if (completed && (sourceObjectIds.isEmpty() || watermarkEntries.isEmpty())
                     || !completed && sourceObjectIds.isEmpty() != watermarkEntries.isEmpty()) {
                 throw corrupted("source identity and watermark do not match completion status");
@@ -105,10 +129,11 @@ public record ImplementationReadinessContextFact(
 
     public enum SourceCode { EXE_01, EXE_02, EXE_03, EXE_04 }
 
-    public enum CompletionStatus { ACCEPTED, COMPLETED, NOT_COMPLETED }
+    public enum CompletionStatus { ACCEPTED, COMPLETED, NOT_COMPLETED, NOT_APPLICABLE }
 
     public boolean isReady() {
-        return sourceFacts.stream().allMatch(fact -> !fact.reopened()
+        return sourceFacts.stream().filter(fact -> fact.completionStatus() != CompletionStatus.NOT_APPLICABLE)
+                .allMatch(fact -> !fact.reopened()
                 && (fact.sourceCode() == SourceCode.EXE_01
                 ? fact.completionStatus() == CompletionStatus.ACCEPTED
                 : fact.completionStatus() == CompletionStatus.COMPLETED));

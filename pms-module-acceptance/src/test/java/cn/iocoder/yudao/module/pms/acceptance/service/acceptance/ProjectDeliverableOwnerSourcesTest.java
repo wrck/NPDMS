@@ -98,6 +98,20 @@ class ProjectDeliverableOwnerSourcesTest {
     }
 
     @Test
+    void batchOwnersUseTenantAndProjectScopeWithoutRequiringGeneratedMaterials() {
+        var satisfaction = new SatisfactionCollectionTaskDO();
+        satisfaction.setDeliverableId(32L);
+        var unbound = new SatisfactionCollectionTaskDO();
+        when(activities.selectByProjectScope(new AcceptanceActivityScopeQuery(7L, Set.of(9L))))
+                .thenReturn(List.of(activity));
+        when(tasks.selectByScope(new SatisfactionTaskScopeQuery(7L, Set.of(9L), null)))
+                .thenReturn(List.of(satisfaction, unbound));
+
+        assertEquals(java.util.Map.of(31L, "ACCEPTANCE_REPORT", 32L, "SATISFACTION_RESULT"), service.ownerTypes(9L));
+        verifyNoInteractions(platform, files, results);
+    }
+
+    @Test
     void currentReportUsesItsExactOriginalFileReference() {
         var evidence = service.revalidate(view, projection(REPORT_PROJECTION, List.of(9001L)));
         assertTrue(evidence.valid());

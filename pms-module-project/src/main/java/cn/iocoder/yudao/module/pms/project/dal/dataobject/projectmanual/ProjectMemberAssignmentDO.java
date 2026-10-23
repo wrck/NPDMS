@@ -41,7 +41,7 @@ public class ProjectMemberAssignmentDO extends TenantBaseDO {
     private String email;
     /** 1项目信息，2手工成员资料；不表示账号类型。 */
     private String registrationSource;
-    /** 未确认历史不参与当前授权、指派或任务资格。 */
+    /** 未确认历史及外部最终用户不参与当前授权、指派或任务资格；历史确认值保持原样。 */
     private Boolean authorizationConfirmed = Boolean.TRUE;
     /**
      * 成员工号
@@ -51,6 +51,10 @@ public class ProjectMemberAssignmentDO extends TenantBaseDO {
      * 成员姓名
      */
     private String memberName;
+    private String externalMobile;
+    private String externalEmail;
+    /** 外部最终用户职务，随成员区间留痕，不解释为项目角色。 */
+    private String title;
     /**
      * 成员加入时公司主档ID
      */

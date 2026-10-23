@@ -23,7 +23,7 @@ import formCreateEngine from '@form-create/element-ui'
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey/entity'
 import { getFormSchema } from '@/api/pms/engineering/site-survey/entity'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
-import { extractSurveyValues, mergeSurveyValues } from './siteSurveyForm'
+import { currentSurveyRules, extractSurveyValues, mergeSurveyValues } from './siteSurveyForm'
 import SurveyOutsourceShortcut from './SurveyOutsourceShortcut.vue'
 import SurveyProcurementLinks from './SurveyProcurementLinks.vue'
 import SurveyMaterialSelector from './SurveyMaterialSelector.vue'
@@ -43,7 +43,7 @@ Object.entries(businessComponents).forEach(([name, component]) =>
   formCreateEngine.component(`Entity${name}`, component)
 )
 
-const props = defineProps<{ modelValue: SiteSurveyVO; readonly: boolean }>()
+const props = defineProps<{ modelValue: SiteSurveyVO; readonly: boolean; applicationRevision?: number }>()
 const emit = defineEmits<{
   'update:modelValue': [value: SiteSurveyVO]
   action: [kind: string, sn?: string]
@@ -67,11 +67,13 @@ const load = async () => {
     )
     if (sequence !== loadSequence) return
     const decoded = decodeDynamicForm(schema.formConfJson, schema.formRulesJson)
+    decoded.rule = currentSurveyRules(decoded.rule)
     const model = { ...props.modelValue, fieldCatalog: schema.fieldCatalog,
       fieldBindings: props.modelValue.id ? props.modelValue.fieldBindings : schema.fieldBindings }
     const initialValues = extractSurveyValues(model)
     if (!props.readonly) emit('update:modelValue', model)
     let integratedOutsource = false
+    const inBranches = decoded.rule.some((rule: any) => rule?.type === 'SurveyPreparationBranches')
     const visit = (items: any[]) =>
       items.forEach((rule) => {
         if (!rule || typeof rule !== 'object') return
@@ -92,8 +94,10 @@ const load = async () => {
           rule.type = `Entity${rule.type}`
           rule.props = {
             ...rule.props,
-            getSurvey: () => props.modelValue,
+            getSurvey: () => mergeSurveyValues(props.modelValue, values.value),
             readonly: props.readonly,
+            inBranches,
+            getApplicationRevision: () => props.applicationRevision ?? 0,
             updateProjectVersion: (version: number, needsInitialSync: boolean) => {
               if (!props.readonly)
                 emit('update:modelValue', {
@@ -114,6 +118,7 @@ const load = async () => {
           }
         }
         if (rule.type === 'Editor') {
+          rule.style = { ...rule.style, width: '100%', minWidth: '0' }
           const readonly =
             props.readonly ||
             rule.props?.readonly === true ||

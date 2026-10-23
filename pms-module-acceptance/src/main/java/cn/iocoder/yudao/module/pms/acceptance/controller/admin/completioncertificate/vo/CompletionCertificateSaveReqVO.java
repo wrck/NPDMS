@@ -36,6 +36,9 @@ public class CompletionCertificateSaveReqVO {
     @Schema(description = "完工日期")
     private LocalDate completionDate;
 
+    @Schema(description = "无可用签收到货记录时的手填到货日期")
+    private LocalDate arrivalDate;
+
     @Schema(description = "工程服务类型：工程实施/工程督导", example = "工程实施")
     @Size(max = 32, message = "工程服务类型长度不能超过 32 个字符")
     private String serviceType;
@@ -114,4 +117,7 @@ public class CompletionCertificateSaveReqVO {
     @Schema(description = "乐观锁版本号", example = "0")
     private Integer version;
 
+    private Long satisfactionTemplateId;
+    private Long completionPrintTemplateId;
+    private Long satisfactionPrintTemplateId;
 }

@@ -259,4 +259,34 @@ class DynamicFormQueryServiceTest {
                 "DYNAMIC_FORM_ATTACHMENT", "drawing.pdf", 10L, "application/pdf", "sha", "AVAILABLE",
                 "ACTIVE", new FileFactVersion(1, 2, 3), 21L);
     }
+
+    @Test
+    void trainingConsumerCanOnlyReadEnabledPublishedPrintCategoryForItsTenant() {
+        var template = template(11L,"Training",null,22L);
+        var revision = new DynamicFormTemplateRevisionDO();
+        revision.setId(22L); revision.setTemplateId(11L); revision.setTenantId(0L);
+        revision.setStatusCode("PUBLISHED"); revision.setFormConfJson("{}"); revision.setFormRulesJson("[]");
+        revision.setPublishedAt(java.time.LocalDateTime.of(2026,10,22,10,0));
+        when(templateMapper.selectCountPage(any())).thenReturn(1L);
+        when(templateMapper.selectPage(any())).thenReturn(List.of(template));
+        when(revisionMapper.selectByRow(any())).thenReturn(revision);
+        var result = service.pageTrainingPrints(new DynamicFormQueryService.TrainingPrintQuery(ACTOR,1,100));
+        assertEquals(22L,result.list().getFirst().revisionId());
+        assertEquals(revision.getPublishedAt(),result.list().getFirst().publishedAt());
+        var capture = ArgumentCaptor.forClass(DynamicFormTemplatePageQuery.class);
+        verify(templateMapper).selectPage(capture.capture());
+        assertEquals(0L,capture.getValue().tenantId());
+        assertEquals("TRAINING_PRINT_FORM",capture.getValue().categoryCode());
+        assertEquals("ENABLED",capture.getValue().availabilityCode());
+        assertTrue(capture.getValue().selectionOnly());
+        verify(actionProjection).require(9L,"pms:imp-training:query");
+    }
+
+    @Test
+    void trainingPrintReadRejectsMissingPermissionBeforeAccessingTemplates() {
+        org.mockito.Mockito.doThrow(new ServiceException(403,"forbidden")).when(actionProjection)
+                .require(9L,"pms:imp-training:query");
+        assertThrows(ServiceException.class,()->service.pageTrainingPrints(new DynamicFormQueryService.TrainingPrintQuery(ACTOR,1,100)));
+        verifyNoInteractions(templateMapper,revisionMapper);
+    }
 }

@@ -29,11 +29,17 @@
     .el-dialog__footer { flex-shrink: 0; padding-top: 12px; }
     .el-button { min-width: 88px; min-height: 44px; }
   }
+  .form-create-signature-dialog--portrait .el-dialog__headerbtn { top: 0; right: 0; width: 44px; height: 44px; }
 }
 @media (pointer: coarse) and (max-width: 1024px) and (orientation: portrait) {
   .form-create-signature-dialog.el-dialog {
     width: calc(100dvh - 24px) !important;
     height: calc(100dvw - 24px);
     transform: translate(-50%, -50%) rotate(90deg);
+  }
+  .form-create-signature-dialog--portrait.el-dialog {
+    width: calc(100dvw - 24px) !important;
+    height: min(calc(100dvh - 24px), 440px);
+    transform: translate(-50%, -50%);
   }
 }

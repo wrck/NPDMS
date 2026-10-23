@@ -51,6 +51,42 @@ const remainingRouter: AppRouteRecordRaw[] = [
     meta: { hidden: true, canTo: true, title: '项目交付件归集' }
   },
   {
+    path: '/pms/inspection/tasks/:taskId', component: Layout, name: 'PmsInspectionTaskDetailRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'PmsInspectionTaskDetail', component: () => import('@/views/pms/inspection/task-detail/index.vue'),
+      meta: { hidden: true, canTo: true, noCache: true, title: '巡检任务详情', activeMenu: '/pms/inspection/tasks' } }]
+  },
+  {
+    path: '/pms/project/normal-closure', component: Layout, name: 'ProjectNormalClosureRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'ProjectNormalClosure', component: () => import('@/views/pms/project/normal-closure/index.vue'),
+      meta: { hidden: true, canTo: true, title: '项目正常闭环', activeMenu: '/pms/project-management/project-master' } }]
+  },
+  {
+    path: '/pms/cutover/project-coverage', component: Layout, name: 'ProjectCutoverCoverageRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'ProjectCutoverCoverage', component: () => import('@/views/pms/cutover/project-coverage/index.vue'),
+      meta: { hidden: true, canTo: true, title: '项目割接范围覆盖', activeMenu: '/pms/cutover/workbench' } }]
+  },
+  {
+    path: '/pms/cutover/tasks/create', component: Layout, name: 'PmsCutoverTaskCreateRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'PmsCutoverTaskCreate', component: () => import('@/views/pms/cutover/task-create/route.vue'),
+      meta: { hidden: true, canTo: true, noCache: true, title: '新建割接任务', activeMenu: '/pms/cutover/tasks' } }]
+  },
+  {
+    path: '/pms/cutover/tasks/:taskId', component: Layout, name: 'PmsCutoverTaskDetailRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'PmsCutoverTaskDetail', component: () => import('@/views/pms/cutover/task-detail/route.vue'),
+      meta: { hidden: true, canTo: true, noCache: true, title: '割接任务详情', activeMenu: '/pms/cutover/tasks' } }]
+  },
+  {
+    path: '/pms/cutover/approvals/:approvalId', component: Layout, name: 'PmsCutoverApprovalDetailRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'PmsCutoverApprovalDetail', component: () => import('@/views/pms/cutover/approval-form/route.vue'),
+      meta: { hidden: true, canTo: true, noCache: true, title: '割接审批详情', activeMenu: '/pms/cutover/workbench' } }]
+  },
+  {
     // 统一业务实体默认页面：目录驱动的独立入口，不进入生产菜单/字典，测试装配实体也由此承载。
     path: '/pms/business-entity/:ownerModule?/:entityType?',
     name: 'PmsBusinessEntityBrowser',

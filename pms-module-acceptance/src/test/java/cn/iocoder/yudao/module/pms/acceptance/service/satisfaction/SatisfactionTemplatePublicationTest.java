@@ -36,6 +36,8 @@ class SatisfactionTemplatePublicationTest {
     }
     @Test void supersedesOnlyTheCurrentRevisionOfTheSameTemplate() {
         var previous = setup(10L);
+        when(revisions.updateById(any(SatisfactionQuestionnaireTemplateRevisionDO.class))).thenReturn(1);
+        when(roots.updateById(any(SatisfactionQuestionnaireTemplateDO.class))).thenReturn(1);
         var result = service.publishOnce(1L, 1L, 10L, 21L, 0);
         assertEquals(21L, result.revisionId());
         assertEquals("SUPERSEDED", previous.getRevisionStatus());
@@ -47,5 +49,32 @@ class SatisfactionTemplatePublicationTest {
         assertThrows(IllegalStateException.class, () -> service.publishOnce(1L, 1L, 10L, 21L, 0));
         assertEquals("PUBLISHED", previous.getRevisionStatus());
         verify(revisions, never()).updateById(any(SatisfactionQuestionnaireTemplateRevisionDO.class));
+    }
+
+    @Test void rootUpdateUsesTheObservedOptimisticVersion() {
+        setup(10L);
+        var observed = new java.util.concurrent.atomic.AtomicLong(-1);
+        when(revisions.updateById(any(SatisfactionQuestionnaireTemplateRevisionDO.class))).thenReturn(1);
+        when(roots.updateById(any(SatisfactionQuestionnaireTemplateDO.class))).thenAnswer(call -> {
+            SatisfactionQuestionnaireTemplateDO root = call.getArgument(0);
+            observed.set(root.getVersion());
+            root.setVersion(root.getVersion() + 1); // MyBatis optimistic-lock interceptor
+            return 1;
+        });
+        var result = service.publishOnce(1L, 1L, 10L, 21L, 0);
+        assertEquals(1L, observed.get());
+        assertEquals(2L, result.rootVersion());
+    }
+
+    @Test void failedRootUpdateCannotReportPublicationSuccess() {
+        setup(10L);
+        when(revisions.updateById(any(SatisfactionQuestionnaireTemplateRevisionDO.class))).thenReturn(1);
+        assertThrows(IllegalStateException.class, () -> service.publishOnce(1L, 1L, 10L, 21L, 0));
+    }
+
+    @Test void failedRevisionUpdateCannotAdvanceTheRoot() {
+        setup(10L);
+        assertThrows(IllegalStateException.class, () -> service.publishOnce(1L, 1L, 10L, 21L, 0));
+        verify(roots, never()).updateById(any(SatisfactionQuestionnaireTemplateDO.class));
     }
 }

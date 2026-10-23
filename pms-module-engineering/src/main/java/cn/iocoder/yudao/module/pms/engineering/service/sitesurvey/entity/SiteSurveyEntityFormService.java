@@ -48,6 +48,19 @@ public class SiteSurveyEntityFormService {
         fields.forEach(field -> {
             if ("".equals(fixed.get(field.code())) && field.type() != EntityField.Type.TEXT) fixed.put(field.code(), null);
         });
+        // JSON IDs are strings to preserve Long precision; normalize only the typed material identity fields.
+        if (fixed.get("selectedMaterials") instanceof List<?> materials) {
+            fixed.put("selectedMaterials", materials.stream().map(item -> {
+                Map<String, Object> material = new LinkedHashMap<>((Map<String, Object>) item);
+                for (String key : List.of("deviceId", "projectId")) {
+                    if (material.get(key) instanceof String id) {
+                        try { material.put(key, Long.valueOf(id)); }
+                        catch (NumberFormatException invalid) { throw exception(SITE_SURVEY_FORM_INVALID); }
+                    }
+                }
+                return material;
+            }).toList());
+        }
         if (extras.keySet().stream().anyMatch(code -> fields.stream().anyMatch(field -> field.code().equals(code)))) {
             throw exception(SITE_SURVEY_FORM_INVALID);
         }

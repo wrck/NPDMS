@@ -50,11 +50,19 @@ public class ProjectIndependentOperationAdmission {
         Long actor = SecurityFrameworkUtils.getLoginUserId();
         if (actor == null || actor <= 0 || request.projectId() == null || request.projectId() <= 0
                 || request.ownerProof() != null) throw exception(PROJECT_TASK_QUERY_INVALID);
-        var observed = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, request.projectId(), ProjectScopeApi.ACTION_MANAGE));
+        var observed = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(request.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (observed == null || observed.treeVersion() == null || observed.fullProjectIds() == null
                 || !observed.fullProjectIds().contains(request.projectId())) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
-        var locked = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, actor, request.projectId(),
-                ProjectScopeApi.ACTION_MANAGE, observed.treeVersion()));
+        var locked = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(request.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(observed.treeVersion()).build());
         if (locked == null || locked.fullProjectIds() == null || !locked.fullProjectIds().contains(request.projectId()))
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         return true;

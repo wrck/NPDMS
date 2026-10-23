@@ -11,10 +11,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class DeviceOrganizationProjectionServiceTest {
+    @Test void contractOnlyRefreshUsesTheDedicatedCursorWhileMixedScopeKeepsItsUnion() {
+        var mapper = mock(DeviceOrganizationMapper.class);
+        var source = mock(DeviceOrganizationService.class);
+        var contracts = mock(DeviceOrganizationContractRefreshService.class);
+        var service = new DeviceOrganizationProjectionService(mapper, source, contracts);
+        var contractOnly = new cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.Refresh(1L, Set.of(), Set.of(), Set.of("A"));
+        service.refresh(contractOnly);
+        verify(contracts).refresh(contractOnly); verifyNoInteractions(mapper, source);
+        when(mapper.selectBatchForUpdate(any())).thenReturn(List.of());
+        service.refresh(new cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.Refresh(1L, Set.of(8L), Set.of(), Set.of("A")));
+        verify(mapper).selectBatchForUpdate(any()); verifyNoMoreInteractions(contracts);
+    }
     @Test void unresolvedSourceClearsPreviousGrantAndRepeatedRebuildDoesNotWrite() {
         var mapper=mock(DeviceOrganizationMapper.class);
         var source=mock(DeviceOrganizationService.class);
-        var service=new DeviceOrganizationProjectionService(mapper,source);
+        var service=new DeviceOrganizationProjectionService(mapper,source,mock(DeviceOrganizationContractRefreshService.class));
         var device=new DeviceDO();device.setId(8L);device.setCompanyId(1L);device.setDepartmentId(2L);
         device.setOrganizationSource("CONTRACT");device.setOrganizationUpdatedAt(LocalDateTime.now());
         var device9=new DeviceDO();device9.setId(9L);device9.setCompanyId(1L);device9.setDepartmentId(2L);
@@ -38,7 +50,7 @@ class DeviceOrganizationProjectionServiceTest {
         var device=new DeviceDO();device.setId(8L);
         when(mapper.selectBatchForUpdate(any())).thenReturn(List.of(device));
         when(source.resolveSource(eq(1L),any())).thenThrow(new IllegalStateException("Owner unavailable"));
-        assertThrows(IllegalStateException.class,()->new DeviceOrganizationProjectionService(mapper,source).rebuildPage(1L,0));
+        assertThrows(IllegalStateException.class,()->new DeviceOrganizationProjectionService(mapper,source,mock(DeviceOrganizationContractRefreshService.class)).rebuildPage(1L,0));
         verify(mapper,never()).updateOrganizationBatch(any(),any());
     }
 
@@ -47,7 +59,7 @@ class DeviceOrganizationProjectionServiceTest {
         var contracts=mock(cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.class);
         var service=new DeviceOrganizationService(projects,contracts,mock(DeviceOrganizationMapper.class));
         when(projects.getOrganizations(1L,Set.of(10L))).thenReturn(List.of(
-                new cn.iocoder.yudao.module.pms.project.api.organization.ProjectDeviceOrganizationApi.Organization(10L,2L,"Company2",20L,"D20","Office20")));
+                new cn.iocoder.yudao.module.pms.project.api.organization.ProjectDeviceOrganizationApi.Organization(10L,2L,"Company2",20L,"D20","Office20","Project20","PJT020")));
         var devices=List.of(new DeviceOrganizationService.Device(8L,10L,"C-1"));
         assertEquals(2L,service.resolveSource(1L,devices).get(8L).companyId());
         verifyNoInteractions(contracts);
@@ -71,7 +83,7 @@ class DeviceOrganizationProjectionServiceTest {
             List<DeviceOrganizationUpdate> rows=invocation.getArgument(1);
             assertTrue(rows.size()<=100);captured.addAll(rows);return rows.size();
         });
-        var result=new DeviceOrganizationProjectionService(mapper,source).rebuildPage(7L,0);
+        var result=new DeviceOrganizationProjectionService(mapper,source,mock(DeviceOrganizationContractRefreshService.class)).rebuildPage(7L,0);
         assertEquals(500,result.updated());assertEquals(500,result.processed());assertEquals(500,result.afterId());
         verify(mapper,times(5)).updateOrganizationRows(eq(7L),any());
         verify(mapper,never()).updateOrganizationBatch(any(),any());
@@ -99,7 +111,7 @@ class DeviceOrganizationProjectionServiceTest {
                     new DeviceOrganizationUpdate(1L,3L,null,null,null,null,null,"UNRESOLVED")),rows);
             return rows.size();
         });
-        assertEquals(3,new DeviceOrganizationProjectionService(mapper,source).rebuildPage(1L,0).updated());
+        assertEquals(3,new DeviceOrganizationProjectionService(mapper,source,mock(DeviceOrganizationContractRefreshService.class)).rebuildPage(1L,0).updated());
         verify(mapper).updateOrganizationRows(eq(1L),any());verify(mapper,never()).updateOrganizationBatch(any(),any());
     }
 
@@ -107,7 +119,7 @@ class DeviceOrganizationProjectionServiceTest {
         var mapper=mock(DeviceOrganizationMapper.class);var source=mock(DeviceOrganizationService.class);
         when(mapper.selectBatchForUpdate(any())).thenReturn(List.of());
         when(source.resolveSource(eq(1L),any())).thenReturn(Map.of());
-        assertEquals(0,new DeviceOrganizationProjectionService(mapper,source).rebuildPage(1L,0).updated());
+        assertEquals(0,new DeviceOrganizationProjectionService(mapper,source,mock(DeviceOrganizationContractRefreshService.class)).rebuildPage(1L,0).updated());
         verify(mapper,never()).updateOrganizationRows(any(),any());verify(mapper,never()).updateOrganizationBatch(any(),any());
     }
 }
