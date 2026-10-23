@@ -64,7 +64,7 @@ export interface LocalCollection {
 
 export interface LocalDacStatus {
   product: 'npdms-dac'
-  protocolVersion: 1
+  protocolVersion: 2
   status: 'READY' | 'STARTING'
   serverUrl: string
   webOrigin: string
@@ -97,7 +97,7 @@ export async function discoverLocalDac(options: {
     const data = await response.json()
     if (
       data?.product !== 'npdms-dac' ||
-      data?.protocolVersion !== 1 ||
+      data?.protocolVersion !== 2 ||
       !['READY', 'STARTING'].includes(data?.status) ||
       typeof data?.serverUrl !== 'string' ||
       typeof data?.webOrigin !== 'string'

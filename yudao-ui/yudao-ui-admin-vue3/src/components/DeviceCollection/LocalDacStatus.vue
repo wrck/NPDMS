@@ -11,7 +11,7 @@
       v-if="state === 'unavailable' || state === 'incompatible'"
       :href="installerUrl"
       data-testid="dac-installer-download"
-      download="NPDMS-DAC-1.0.5-x64.msi"
+      download="NPDMS-DAC-1.0.6-x64.msi"
       class="local-dac-start"
     >{{ state === 'incompatible' ? '下载更新 DAC' : '下载并安装 DAC' }}</a>
     <el-button v-if="state !== 'ready'" link :loading="checking" @click="check">重新检测</el-button>
@@ -27,7 +27,7 @@ import { discoverLocalDac, LOCAL_DAC_START_URI } from './localDac'
 import type { LocalDacDiscovery } from './localDac'
 
 const props = defineProps<{ serverUrl: string }>()
-const installerUrl = `${import.meta.env.BASE_URL}downloads/dac/NPDMS-DAC-1.0.5-x64.msi`
+const installerUrl = `${import.meta.env.BASE_URL}downloads/dac/NPDMS-DAC-1.0.6-x64.msi`
 const emit = defineEmits<{ ready: [ready: boolean] }>()
 const state = ref<LocalDacDiscovery['state'] | 'checking'>('checking')
 const checking = ref(false)

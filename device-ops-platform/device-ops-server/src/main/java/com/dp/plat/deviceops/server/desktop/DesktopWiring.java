@@ -9,6 +9,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Configuration
 @Profile("desktop")
 class DesktopWiring {
+    @Bean JdbcDesktopConnectionScopeStore desktopConnectionScopes(JdbcClient jdbc) {
+        return new JdbcDesktopConnectionScopeStore(jdbc);
+    }
     @Bean JdbcDesktopTaskStore desktopTasks(JdbcClient jdbc, TransactionTemplate tx,
             @Value("${device-ops.credentials.master-key}") String key) {
         var cipher = new AesGcmCredentialCipher(key);

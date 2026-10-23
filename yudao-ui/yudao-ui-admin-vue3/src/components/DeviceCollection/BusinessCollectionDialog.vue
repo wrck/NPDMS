@@ -64,7 +64,7 @@
         </el-select>
       </el-form-item>
       <el-form-item label="认证方式">
-        <el-radio-group v-model="credentialMode">
+        <el-radio-group v-model="credentialMode" @change="rememberConnectionChoice">
           <el-radio value="temporary">本次临时密码</el-radio>
           <el-radio value="saved" :disabled="!checkPermi(['pms:device-credential:use'])"
             >已保存连接</el-radio
@@ -112,7 +112,7 @@
         ></el-col>
       </el-row>
       <el-form-item v-if="credentialMode === 'temporary' && checkPermi(['pms:device-credential:create'])">
-        <el-button :disabled="!form.deviceId || choicesLoading || (executionLocation === 'desktop' && !localReady)" @click="openConnectionSave">保存为连接</el-button>
+        <el-button :disabled="(executionLocation !== 'desktop' && !form.deviceId) || choicesLoading || (executionLocation === 'desktop' && !localReady)" @click="openConnectionSave">保存为连接</el-button>
       </el-form-item>
       <el-form-item label="执行命令" prop="commands">
         <el-input
@@ -395,8 +395,14 @@ const objectId = ref<Api.Id>(0)
 const templates = ref<Api.Template[]>([])
 type ConnectionChoice = Pick<Api.Connection, 'id' | 'name' | 'host' | 'port' | 'username' | 'protocol' | 'version'>
 const connections = ref<ConnectionChoice[]>([])
+const normalizeDeviceId = (value: Api.Id | null | undefined): Api.Id | undefined =>
+  value == null || String(value).trim() === '' ? undefined : typeof value === 'string' ? value.trim() : value
+const validBusinessId = (value: Api.Id | null | undefined) => typeof value === 'number'
+  ? Number.isSafeInteger(value) && value > 0
+  : typeof value === 'string' && /^[1-9]\d*$/.test(value)
 const executionLocation = ref<'desktop' | 'server'>('desktop')
 const localReady = ref(false)
+const localConnectionScopeReady = ref(false)
 const npdmsServerUrl = new URL(import.meta.env.VITE_BASE_URL || '/', window.location.origin).href.replace(/\/+$/, '')
 const pendingDesktop = ref<Api.DesktopCommand>()
 const pendingDesktopExecution = ref<Api.Execution>()
@@ -429,11 +435,12 @@ const connectionSaveRules = computed(() => Object.fromEntries(['name', 'secret',
   [key, [{ required: true, message: '请填写此项', trigger: 'change' }]])))
 const clearConnectionSecret = () => { connectionSaveForm.secret = '' }
 const openConnectionSave = async () => {
-  if (!source.value || !form.deviceId || !canDispatch.value || connectionSaving.value) return
+  if (!source.value || (!form.deviceId && executionLocation.value !== 'desktop') || !canDispatch.value || connectionSaving.value) return
+  if (executionLocation.value === 'desktop' && !localReady.value) return
   if (!connectionSaveFrozen.value) {
     await formRef.value.validateField(['host', 'port', 'username', 'protocol'])
     Object.assign(connectionSaveForm, {
-      requestKey: generateUUID(), name: '', projectId: source.value.projectId, deviceId: form.deviceId,
+      requestKey: generateUUID(), name: '', projectId: source.value.projectId, deviceId: form.deviceId ?? 0,
       protocol: form.protocol, host: form.host, port: form.port, username: form.username,
       templateId: commandMode.value === 'template' ? form.templateId : undefined,
       secret: form.password, expiresAt: ''
@@ -449,7 +456,8 @@ const saveCurrentConnection = async () => {
   try {
     let saved: { id: Api.Id }
     if (executionLocation.value === 'desktop') {
-      const ticket = await Api.desktopAccess(props.entry, objectId.value, { operation: 'CONNECTION_SAVE' })
+      const ticket = await Api.desktopAccess(props.entry, objectId.value, { operation: 'CONNECTION_SAVE',
+        deviceId: connectionSaveForm.deviceId === 0 ? undefined : connectionSaveForm.deviceId, protocol: connectionSaveForm.protocol })
       const result = await localDacRequest<{ saved: boolean; connection?: LocalSavedConnection }>({
         path: '/saved-connections', ticket, method: 'POST', timeout: 60000,
         body: { requestKey: connectionSaveForm.requestKey, displayName: connectionSaveForm.name,
@@ -605,7 +613,7 @@ const rules = computed(() =>
   Object.fromEntries(
     [
       'protocol',
-      ...(props.entry === 'center' ? ['deviceId'] : []),
+      'deviceId',
       ...(commandMode.value === 'template' ? ['templateId'] : ['commands']),
       ...(credentialMode.value === 'saved'
         ? ['credentialId']
@@ -640,18 +648,39 @@ const loadChoices = async () => {
   }
 }
 let connectionGeneration = 0
+let connectionAutoMatchKey = ''
+const currentConnectionScopeKey = () => JSON.stringify([executionLocation.value, source.value?.projectId, form.deviceId ?? null, form.protocol])
+const rememberConnectionChoice = () => { connectionAutoMatchKey = currentConnectionScopeKey() }
 const loadConnections = async () => {
   const generation = ++connectionGeneration
   if (!source.value || !visible.value) return
   let list: ConnectionChoice[] = []
-  if (checkPermi(['pms:device-credential:use']) && form.deviceId) {
+  const deviceId = form.deviceId
+  const protocol = form.protocol
+  const scopeKey = JSON.stringify([executionLocation.value, source.value.projectId, deviceId ?? null, protocol])
+  if (executionLocation.value === 'desktop' && scopeKey !== connectionAutoMatchKey) {
+    localConnectionScopeReady.value = false
+    connections.value = []
+    form.credentialId = undefined
+  }
+  if (checkPermi(['pms:device-credential:use']) && (deviceId || executionLocation.value === 'desktop')) {
     if (executionLocation.value === 'desktop') {
       if (localReady.value) {
-        const ticket = await Api.desktopAccess(props.entry, objectId.value, { operation: 'CONNECTIONS_READ' })
-        const local = await localDacRequest<{ items: LocalSavedConnection[] }>({ path: '/saved-connections', ticket })
-        list = local.items.filter(row => row.connection.protocol === (form.protocol === 'SSH' ? 'SSH2' : 'TELNET')
+        const ticket = await Api.desktopAccess(props.entry, objectId.value, { operation: 'CONNECTIONS_READ', deviceId, protocol })
+        const local = await localDacRequest<{ items: LocalSavedConnection[]; scope?: { projectId: string; deviceId?: string; protocol: string } }>({ path: '/saved-connections', ticket })
+        if (generation !== connectionGeneration) return
+        localConnectionScopeReady.value = !!local.scope && String(local.scope.projectId) === String(source.value.projectId)
+          && String(local.scope.deviceId ?? '') === String(deviceId ?? '')
+          && local.scope.protocol === (protocol === 'SSH' ? 'SSH2' : 'TELNET')
+        if (!localConnectionScopeReady.value) {
+          connections.value = []
+          form.credentialId = undefined
+          message.warning('本机连接范围未确认，请更新 DAC 客户端和服务端后重试')
+          return
+        }
+        list = local.items.filter(row => row.connection.protocol === (protocol === 'SSH' ? 'SSH2' : 'TELNET')
           && row.connection.authenticationType === 'PASSWORD' && row.connection.executionMode === 'SHELL')
-          .map(row => ({ id: row.id, name: row.displayName, version: row.version, protocol: form.protocol,
+          .map(row => ({ id: row.id, name: row.displayName, version: row.version, protocol,
             host: row.connection.host, port: row.connection.port, username: row.connection.username }))
       }
     } else {
@@ -666,6 +695,15 @@ const loadConnections = async () => {
   if (generation !== connectionGeneration) return
   connections.value = list
   if (!list.some((r) => r.id === form.credentialId)) form.credentialId = undefined
+  if (executionLocation.value === 'desktop' && localReady.value && scopeKey !== connectionAutoMatchKey) {
+    connectionAutoMatchKey = scopeKey
+    credentialMode.value = list.length ? 'saved' : 'temporary'
+    await nextTick()
+    if (generation !== connectionGeneration) return
+    form.credentialId = list.length === 1 ? list[0].id : undefined
+    // Only metadata is selected; passwords are never returned by the local connection API.
+    form.password = ''
+  }
 }
 watch(
   () => form.protocol,
@@ -741,7 +779,24 @@ onBeforeUnmount(() => {
   clearLog()
 })
 const open = async (id: Api.Id) => {
-  source.value = await Api.context(props.entry, id)
+  if (!validBusinessId(id)) { message.warning('请先选择有效的项目或业务记录'); return }
+  const requestedDevice = normalizeDeviceId(props.deviceId)
+  if (requestedDevice !== undefined && !validBusinessId(requestedDevice)) {
+    message.warning('设备信息无效，请重新选择设备'); return
+  }
+  let currentSource: Api.Source
+  try { currentSource = await Api.context(props.entry, id) }
+  catch { message.warning('采集来源加载失败，请核对当前记录与访问权限后重试'); return }
+  if (!currentSource || !validBusinessId(currentSource.projectId)) {
+    message.warning('当前采集来源缺少项目，请先完善来源记录'); return
+  }
+  const sourceDevice = normalizeDeviceId(currentSource.deviceId)
+  if (sourceDevice !== undefined && !validBusinessId(sourceDevice)) {
+    message.warning('当前采集来源的设备信息无效，请先完善来源记录'); return
+  }
+  connectionAutoMatchKey = ''
+  localConnectionScopeReady.value = false
+  source.value = currentSource
   objectId.value = id
   commandMode.value = source.value.manualAllowed ? 'manual' : 'template'
   credentialMode.value = 'temporary'
@@ -752,7 +807,7 @@ const open = async (id: Api.Id) => {
     username: '',
     password: '',
     commands: '',
-    deviceId: props.deviceId ?? source.value.deviceId,
+    deviceId: requestedDevice ?? sourceDevice,
     templateId: undefined,
     credentialId: undefined,
     retryOfId: undefined
@@ -771,7 +826,10 @@ const open = async (id: Api.Id) => {
   total.value = 0
   visible.value = true
   await nextTick()
-  await Promise.all([loadChoices(), refresh()])
+  await Promise.all([
+    loadChoices().catch(() => { message.warning('采集选项加载失败，请检查设备、协议和当前权限后重试') }),
+    refresh().catch(() => { message.warning('执行历史加载失败，请重试刷新状态') })
+  ])
 }
 const refresh = async (silent = false) => {
   if (!objectId.value) return
@@ -844,8 +902,20 @@ const toggleAutoRefresh = () => {
 }
 const submit = async () => {
   if (submissionUncertain.value || busy.value || (executionLocation.value === 'desktop' && !localReady.value)) return
+  if (!validBusinessId(form.deviceId)) {
+    message.warning(props.entry === 'center' ? '请先选择设备；项目级连接不能替代采集目标设备'
+      : '当前来源未指定设备，请返回业务记录或入口选择设备后重试')
+    return
+  }
+  if (source.value?.version == null) { message.warning('采集来源版本缺失，请刷新来源记录后重试'); return }
   await formRef.value.validate()
   const target = credentialMode.value === 'saved' ? selectedConnection.value : form
+  if (!target?.host?.trim() || !target.username?.trim() || !Number.isInteger(target.port) || target.port < 1 || target.port > 65535) {
+    message.warning('连接信息不完整，请填写地址、端口、用户名，或重新选择保存连接'); return
+  }
+  if (executionLocation.value === 'desktop' && credentialMode.value === 'saved' && selectedConnection.value?.version == null) {
+    message.warning('保存连接版本缺失，请刷新并重新选择连接'); return
+  }
   await message.confirm(`确认向 ${target?.host}:${target?.port} 执行当前命令？`)
   busy.value = true
   autoRefresh.value = true
@@ -919,6 +989,10 @@ const executePreparedDesktop = async (prepared: { execution: Api.Execution; tick
 const continueDesktop = async (row?: Api.Execution) => {
   if (busy.value || !localReady.value) return
   const execution = row ?? pendingDesktopExecution.value
+  if (!execution && !pendingDesktop.value) { message.warning('没有可继续的本机任务，请先发起采集'); return }
+  if (execution && (!validBusinessId(execution.id) || !execution.task?.platformTaskId)) {
+    message.warning('原执行记录缺少任务标识，请刷新执行历史后重试'); return
+  }
   if ((execution?.task.credentialMode === 'LOCAL_TEMPORARY' || !execution && !pendingDesktop.value?.localConnectionId) && !form.password) {
     message.warning('请在上方填写本次密码，再继续原任务')
     return
@@ -1083,16 +1157,29 @@ const tagType = (row: Api.Execution): 'success' | 'danger' | 'warning' | 'info' 
         ? 'warning'
         : 'info'
 const retry = async (row: Api.Execution) => {
-  source.value = await Api.context(props.entry, objectId.value)
-  if (!source.value.canExecute) return
-  form.deviceId = props.entry === 'center' ? row.task.deviceId : source.value.deviceId
+  const originalDevice = normalizeDeviceId(row.task?.deviceId)
+  if (!validBusinessId(originalDevice)) { message.warning('原执行记录缺少设备，请刷新执行历史后重试'); return }
+  let currentSource: Api.Source
+  try { currentSource = await Api.context(props.entry, objectId.value) }
+  catch { message.warning('采集来源加载失败，请刷新来源记录后重试'); return }
+  if (!currentSource?.canExecute) return
+  if (!validBusinessId(currentSource.projectId) || currentSource.version == null) {
+    message.warning('采集来源缺少项目或版本，请先完善来源记录'); return
+  }
+  if (['configuration', 'joint-test'].includes(props.entry) && String(currentSource.deviceId) !== String(originalDevice)) {
+    message.warning('当前业务记录的设备已变化，请刷新后重新发起采集'); return
+  }
+  source.value = currentSource
+  form.deviceId = originalDevice
   form.protocol = row.task.protocol
   form.host = row.task.host
   form.port = row.task.port
   form.retryOfId = row.id
+  form.password = ''
   // Let protocol watchers start before awaiting the authoritative choice reload.
   await nextTick()
-  await loadChoices()
+  try { await loadChoices() }
+  catch { message.warning('采集选项加载失败，请检查设备与权限后重试'); return }
   const template = templates.value.find(
     (t) => String(t.id) === row.task.templateId && String(t.revision) === row.task.templateVersion
   )

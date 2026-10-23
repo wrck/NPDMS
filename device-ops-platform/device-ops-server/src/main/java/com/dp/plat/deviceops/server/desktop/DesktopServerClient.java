@@ -89,8 +89,9 @@ public class DesktopServerClient {
     record Control(boolean cancelRequested, boolean redeliveryRequested) { }
     record Confirmation(boolean accepted) { }
     public record Grant(long tenantId, long actorId, String projectId, String namespace, String operation, String platformTaskId,
-                        Map<String, Object> submission, ExpectedConnection connection, String taskToken) {
+                        Map<String, Object> submission, ExpectedConnection connection, String taskToken, ConnectionScope connectionScope) {
         @Override public String toString() { return "DesktopGrant[redacted]"; }
     }
+    public record ConnectionScope(String deviceId, String protocol) { }
     public record ExpectedConnection(String host, Integer port, String protocol, String username, String savedConnectionId, Long savedConnectionVersion) { }
 }

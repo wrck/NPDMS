@@ -1,6 +1,7 @@
 package com.dp.plat.deviceops.server.desktop;
 
 import com.dp.plat.deviceops.adapter.persistence.jdbc.JdbcDesktopTaskStore;
+import com.dp.plat.deviceops.adapter.persistence.jdbc.JdbcDesktopConnectionScopeStore;
 import com.dp.plat.deviceops.adapter.web.*;
 import com.dp.plat.deviceops.adapter.web.parser.CollectionSemanticResultController;
 import com.dp.plat.deviceops.core.port.*;
@@ -30,13 +31,15 @@ public class DesktopCollectionController {
     private final JdbcDesktopTaskStore tasks;
     private final DesktopServerClient server;
     private final Validator validator;
+    private final JdbcDesktopConnectionScopeStore connectionScopes;
     private final ObjectMapper json = new ObjectMapper();
 
     public DesktopCollectionController(GenericCollectionController collections, NpdmsCollectionController reads,
             SavedConnectionController connections, SavedConnectionStore saved, JdbcDesktopTaskStore tasks,
-            DesktopServerClient server, Validator validator) {
+            DesktopServerClient server, Validator validator, JdbcDesktopConnectionScopeStore connectionScopes) {
         this.collections = collections; this.reads = reads; this.connections = connections; this.saved = saved;
         this.tasks = tasks; this.server = server; this.validator = validator;
+        this.connectionScopes = connectionScopes;
     }
 
     @PostMapping("/tasks/{taskId}/executions")
@@ -60,6 +63,7 @@ public class DesktopCollectionController {
                 connection.put("password", input.password());
             } else {
                 if (input.password() != null) reject();
+                if (!connectionScopes.matching(scope(jwt, grant)).contains(expected.savedConnectionId())) reject();
                 var stored = saved.find(jwt.getSubject(), grant.namespace(), expected.savedConnectionId())
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "本机保存的连接不存在"));
                 var endpoint = stored.connection();
@@ -103,18 +107,39 @@ public class DesktopCollectionController {
     }
 
     @GetMapping("/saved-connections")
-    public SavedConnectionController.ListResponse connections(@AuthenticationPrincipal Jwt jwt, HttpServletRequest http) {
-        return connections.list(jwt, grant(http, "CONNECTIONS_READ").namespace());
+    public ScopedConnections connections(@AuthenticationPrincipal Jwt jwt, HttpServletRequest http) {
+        var grant = grant(http, "CONNECTIONS_READ");
+        var matching = connectionScopes.matching(scope(jwt, grant));
+        return new ScopedConnections(connections.list(jwt, grant.namespace()).items().stream()
+                .filter(connection -> matching.contains(connection.id())).toList(),
+                new ConnectionScopeView(grant.projectId(), grant.connectionScope().deviceId(), grant.connectionScope().protocol()));
     }
 
     @PostMapping("/saved-connections")
+    @org.springframework.transaction.annotation.Transactional
     public SavedConnectionService.SaveResult save(@AuthenticationPrincipal Jwt jwt, HttpServletRequest http, @Valid @RequestBody Save input) {
         try {
             var grant = grant(http, "CONNECTION_SAVE");
-            return connections.verifyAndCreateIdentified(jwt, new SavedConnectionController.IdentifiedCreate(input.requestKey(),
+            var scope = scope(jwt, grant);
+            if (input.connection().protocol()==null || !scope.protocol().equals(input.connection().protocol().name())) reject();
+            if (saved.find(jwt.getSubject(), grant.namespace(), input.requestKey()).isPresent()
+                    && !connectionScopes.matching(scope).contains(input.requestKey())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "原连接不属于当前范围，请重新保存");
+            }
+            var result = connections.verifyAndCreateIdentified(jwt, new SavedConnectionController.IdentifiedCreate(input.requestKey(),
                     new SavedConnectionController.CreateRequest(grant.namespace(), input.displayName(), input.description(), input.connection())));
+            if (result.saved()) connectionScopes.bind(new JdbcDesktopConnectionScopeStore.Binding(scope, result.connection().id()));
+            return result;
         } finally { if (input.connection() != null) input.connection().clearCredentials(); }
     }
+
+    private static JdbcDesktopConnectionScopeStore.Scope scope(Jwt jwt, DesktopServerClient.Grant grant) {
+        if (grant.connectionScope() == null) throw new ResponseStatusException(HttpStatus.CONFLICT, "请更新服务端后重试本机连接操作");
+        return new JdbcDesktopConnectionScopeStore.Scope(jwt.getSubject(),grant.namespace(),grant.projectId(),
+                grant.connectionScope().deviceId(),grant.connectionScope().protocol());
+    }
+    public record ConnectionScopeView(String projectId, String deviceId, String protocol) { }
+    public record ScopedConnections(List<com.dp.plat.deviceops.core.model.SavedConnection> items, ConnectionScopeView scope) { }
 
     private static DesktopServerClient.Grant grant(HttpServletRequest request, String operation) {
         Object value = request.getAttribute(DesktopTicketFilter.GRANT);

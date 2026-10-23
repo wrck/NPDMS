@@ -43,6 +43,12 @@ public class CollectionApplicationService implements CollectionApplicationApi {
                 .expectedVersion(null)
                 .build());
     }
+    public CollectionSourceAdapter.Source desktopConnectionContext(DesktopConnectionContext query) {
+        return source(query.source().entry()).authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(tenant()).actorId(query.source().actorId()).objectId(query.source().objectId())
+                .deviceId(query.deviceId()).access(READ).build());
+    }
+    public record DesktopConnectionContext(SourceQuery source, Long deviceId) { }
     @Override public Execution submit(SourceQuery query,CollectionExecutionRequest request) {
         try {
             if(request==null||request.getRequestKey()==null||!request.getRequestKey().matches("[a-zA-Z0-9-]{16,64}"))throw new CollectionOperationException("请求标识无效");

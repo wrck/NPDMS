@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$Manifest,
-    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.0.5',
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.0.6',
     [string]$DefaultServerUrl = 'http://10.210.0.11:59191',
     [string]$DefaultWebOrigin = 'http://10.210.0.11:19191',
     [string]$OutputDirectory,

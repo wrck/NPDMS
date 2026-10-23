@@ -28,7 +28,7 @@ public class DesktopStatusController {
 
     @GetMapping("/api/v1/desktop/status")
     public ResponseEntity<Status> status() {
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new Status("npdms-dac", 1,
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new Status("npdms-dac", 2,
                 availability.getReadinessState() == ReadinessState.ACCEPTING_TRAFFIC ? "READY" : "STARTING",
                 properties.serverUrl(), properties.webOrigin()));
     }

@@ -81,12 +81,22 @@ class DacDesktopDispatchServiceTest {
 
     @Test void readTicketNeverCarriesExecutionOrCallbackCapability() {
         register();
-        var ticket = service.access(new DeviceOpsDesktopApi.Access(1L, 50L, "7", "TASK_READ", "task-1"));
+        var ticket = service.access(new DeviceOpsDesktopApi.Access(1L, 50L, "7", "TASK_READ", "task-1", null));
         var grant = service.resolve(ticket.value());
         assertEquals("TASK_READ", grant.operation());
         assertNull(grant.submission());
         assertNull(grant.taskToken());
         assertFalse(persisted.get().getDesktopClaimed());
+    }
+
+    @Test void connectionTicketFreezesDeviceAndProtocolAndRejectsMissingScope() {
+        var scope=new DeviceOpsDesktopApi.ConnectionScope("9007199254740993","SSH2");
+        var ticket=service.access(new DeviceOpsDesktopApi.Access(1L,50L,"7","CONNECTIONS_READ",null,scope));
+        var grant=service.resolve(ticket.value());
+        assertEquals(scope,grant.connectionScope());
+        assertNull(grant.submission()); assertNull(grant.taskToken());
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,()->service.access(
+                new DeviceOpsDesktopApi.Access(1L,50L,"7","CONNECTION_SAVE",null,null)));
     }
 
     @Test void cancellationAfterClaimAlsoRejectsSameClientExecutionRetry() {

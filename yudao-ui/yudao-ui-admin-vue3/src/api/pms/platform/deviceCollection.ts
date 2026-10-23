@@ -129,7 +129,7 @@ export const prepareDesktop = (entry: Entry, id: Id, data: DesktopCommand) =>
     }
   })
 export const desktopAccess = (entry: Entry, id: Id,
-  data: { operation: 'CONNECTIONS_READ' | 'CONNECTION_SAVE' | 'TASK_READ'; executionId?: Id }) =>
+  data: { operation: 'CONNECTIONS_READ' | 'CONNECTION_SAVE' | 'TASK_READ'; executionId?: Id; deviceId?: Id; protocol?: string }) =>
   request.post<DesktopTicket>({ url: `${source(entry, id)}/desktop-access`, data })
 export const resumeDesktop = (entry: Entry, id: Id, executionId: Id) =>
   request.post<{ execution: Execution; ticket: DesktopTicket }>({ url: `${source(entry, id)}/desktop-executions/${executionId}/resume` })
