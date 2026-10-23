@@ -47,7 +47,7 @@ class DeviceJoinedPageSqlTest {
     static VisibleDevicePageQuery query(ProjectViewReadScopeApi.ReadScope projectScope) {
         return VisibleDevicePageQuery.builder().tenantId(1L).pageNo(1).pageSize(30)
                 .organizationGrants(List.of(new DeviceOrganizationGrant(88L, 99L, "D99")))
-                .readScope(new DevicePageReadScope(projectScope, new ContractDeviceVisibilityApi.ReadScope(List.of("C01"))))
+                .readScope(new DevicePageReadScope(projectScope, new ContractDeviceVisibilityApi.ReadScope(List.of(new ContractDeviceVisibilityApi.OrganizationGrant(88L, 99L, "D99")))))
                 .build();
     }
 
@@ -70,8 +70,8 @@ class DeviceJoinedPageSqlTest {
     @Test void pageAndCountUseTheSameProjectContractAndPairedOrganizationAuthorization() throws Exception {
         withDatabase(mapper -> {
             var page = mapper.selectJoinedDevicePage(query(scope(ProjectViewReadScopeApi.Mode.SCOPED)));
-            assertEquals(7L, page.getTotal());
-            assertEquals(List.of(15L, 8L, 5L, 3L, 2L, 1L, 16L).stream().sorted(java.util.Comparator.reverseOrder()).toList(),
+            assertEquals(6L, page.getTotal());
+            assertEquals(List.of(15L, 8L, 3L, 2L, 1L, 16L).stream().sorted(java.util.Comparator.reverseOrder()).toList(),
                     page.getList().stream().map(item -> item.deviceId()).toList());
             assertEquals(2L, page.getList().stream().filter(item -> item.deviceId() == 1L).findFirst().orElseThrow().extendedCount());
         });
@@ -87,11 +87,46 @@ class DeviceJoinedPageSqlTest {
         });
     }
 
+    @Test void companyCodeFromDepartmentScopeCannotAuthorizeAnotherDepartmentsContract() throws Exception {
+        withDatabase(sql -> sql.execute("UPDATE com_contract SET department_code='OTHER' WHERE contract_no='C_OK'"), mapper -> {
+            var q = query(null).toBuilder().sn("CONTRACT").build();
+            assertTrue(ids(mapper, q).isEmpty(), "合同公司匹配不能绕过同一范围行的部门约束");
+        });
+    }
+
+    @Test void companyLevelGrantCoversOtherDepartmentsButNeverAnotherCompany() throws Exception {
+        withDatabase(sql -> sql.execute("UPDATE com_contract SET department_code='OTHER' WHERE contract_no='C_OK'"), mapper -> {
+            var q = query(null).toBuilder().readScope(new DevicePageReadScope(null,
+                    new ContractDeviceVisibilityApi.ReadScope(List.of(new ContractDeviceVisibilityApi.OrganizationGrant(88L, null, null)))))
+                    .build();
+            assertEquals(Set.of(3L, 8L, 16L), ids(mapper, q));
+        });
+    }
+
+    @Test void explicitProjectStillAuthorizesDeviceOutsideOrganizationButContractRelationAloneDoesNot() throws Exception {
+        withDatabase(mapper -> {
+            var q = query(scope(ProjectViewReadScopeApi.Mode.SCOPED));
+            assertTrue(ids(mapper, q).contains(1L));
+            assertFalse(ids(mapper, q).contains(5L));
+        });
+    }
+
+    @Test void cannotCombineCompanyFromOneGrantWithDepartmentFromAnother() throws Exception {
+        withDatabase(mapper -> {
+            var q = query(null).toBuilder().readScope(new DevicePageReadScope(null,
+                    new ContractDeviceVisibilityApi.ReadScope(List.of(
+                            new ContractDeviceVisibilityApi.OrganizationGrant(88L, 100L, "D100"),
+                            new ContractDeviceVisibilityApi.OrganizationGrant(89L, 99L, "D99")))))
+                    .sn("CONTRACT").build();
+            assertTrue(ids(mapper, q).isEmpty());
+        });
+    }
+
     @Test void emptyAndOutOfRangePagesRetainTheCorrectTotalWithoutReturningAnEmptyDeviceRow() throws Exception {
         withDatabase(mapper -> {
             var q = query(scope(ProjectViewReadScopeApi.Mode.SCOPED));
             var outside = mapper.selectJoinedDevicePage(q.toBuilder().pageNo(100).build());
-            assertEquals(7L, outside.getTotal());
+            assertEquals(6L, outside.getTotal());
             assertTrue(outside.getList().isEmpty());
             var empty = mapper.selectJoinedDevicePage(q.toBuilder().sn("DOES_NOT_EXIST").build());
             assertEquals(0L, empty.getTotal());
@@ -154,8 +189,14 @@ class DeviceJoinedPageSqlTest {
             sql.execute("INSERT INTO plt_authorization_grant VALUES (1,'USER',7,'PROJ','PROJECT',20,'PROJECT_MANAGE','CURRENT_PROJECT','ACTIVE',1,'2020-01-01',NULL,false),(1,'USER',7,'PROJ','PROJECT',11,'PROJECT_VIEW','PROJECT_AND_DESCENDANTS','ACTIVE',1,'2020-01-01',NULL,false),(1,'USER',7,'PROJ','PROJECT',21,'PROJECT_VIEW','CURRENT_PROJECT','ACTIVE',NULL,'2020-01-01',NULL,false)");
             sql.execute("CREATE TABLE com_contract(id BIGINT,tenant_id BIGINT,contract_no VARCHAR(64),company_code VARCHAR(64),deleted BOOLEAN)");
             sql.execute("INSERT INTO com_contract VALUES (1,1,'C_OK','C01',false),(2,1,'C_PROJECT','OTHER',false),(3,1,'C_CONFLICT','C01',false)");
+            sql.execute("ALTER TABLE com_contract ADD company_id BIGINT");
+            sql.execute("ALTER TABLE com_contract ADD department_code VARCHAR(64)");
+            sql.execute("UPDATE com_contract SET company_id=CASE WHEN company_code='C01' THEN 88 ELSE 89 END,department_code='D99'");
             sql.execute("CREATE TABLE com_shipment_contract_reference(tenant_id BIGINT,contract_no VARCHAR(64),company_code VARCHAR(64),deleted BOOLEAN)");
             sql.execute("INSERT INTO com_shipment_contract_reference VALUES (1,'C_CONFLICT','OTHER',false)");
+            sql.execute("ALTER TABLE com_shipment_contract_reference ADD company_id BIGINT");
+            sql.execute("ALTER TABLE com_shipment_contract_reference ADD department_id BIGINT");
+            sql.execute("ALTER TABLE com_shipment_contract_reference ADD department_code VARCHAR(64)");
             sql.execute("CREATE TABLE com_project_contract_relation(tenant_id BIGINT,project_id BIGINT,contract_id BIGINT,status VARCHAR(20),effective_to TIMESTAMP,deleted BOOLEAN)");
             sql.execute("INSERT INTO com_project_contract_relation VALUES (1,20,2,'ACTIVE',NULL,false)");
             sql.execute("CREATE TABLE ast_device (id BIGINT,tenant_id BIGINT,sn VARCHAR(64),name VARCHAR(128),status VARCHAR(20),product_code VARCHAR(64),product_model VARCHAR(64),product_name VARCHAR(64),shipment_time TIMESTAMP,package_no VARCHAR(64),contract_no VARCHAR(64),shipment_record_id BIGINT,project_id BIGINT,customer_id BIGINT,warranty_start_date DATE,warranty_end_date DATE,warranty_status VARCHAR(20),conp_version VARCHAR(64),conp_type VARCHAR(64),conp_series VARCHAR(64),conp_mark VARCHAR(64),sync_status VARCHAR(20),location_snapshot VARCHAR(1024),location_resolution_status VARCHAR(20),company_id BIGINT,company_name VARCHAR(64),department_id BIGINT,department_code VARCHAR(64),department_name VARCHAR(64),organization_source VARCHAR(20),deleted BOOLEAN)");

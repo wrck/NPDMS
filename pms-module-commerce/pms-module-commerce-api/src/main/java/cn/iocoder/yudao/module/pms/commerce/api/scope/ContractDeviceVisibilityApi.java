@@ -5,8 +5,9 @@ import java.util.List;
 public interface ContractDeviceVisibilityApi {
     /** 关联查询的小范围输入；完整合同授权由配套ContractDeviceReadScopeSql维护，不展开合同号。 */
     record ReadScopeQuery(Long tenantId, Long subjectUserId) {}
-    record ReadScope(java.util.List<String> companyCodes) {
-        public ReadScope { companyCodes = java.util.List.copyOf(companyCodes); }
+    record OrganizationGrant(Long companyId, Long departmentId, String departmentCode) {}
+    record ReadScope(java.util.List<OrganizationGrant> organizationGrants) {
+        public ReadScope { organizationGrants = java.util.List.copyOf(organizationGrants); }
     }
     ReadScope prepareReadScope(ReadScopeQuery query);
     record Organization(String contractNo, Long companyId, String companyName,

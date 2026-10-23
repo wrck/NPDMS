@@ -47,7 +47,14 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
     @Override
     public ReadScope prepareReadScope(ReadScopeQuery query) {
         if (query.tenantId() == null || query.subjectUserId() == null) return new ReadScope(List.of());
-        return new ReadScope(currentCompanyCodes(query.tenantId(), query.subjectUserId(), "device-contract-visibility"));
+        return new ReadScope(currentDeviceOrganizationGrants(query));
+    }
+
+    private List<OrganizationGrant> currentDeviceOrganizationGrants(ReadScopeQuery query) {
+        return currentScopes(query.tenantId(), query.subjectUserId(), "device-contract-visibility").stream()
+                .filter(s -> s != null && s.getId() != null && s.getVersion() != null && s.getCompanyId() != null)
+                .map(s -> new OrganizationGrant(s.getCompanyId(), s.getDepartmentId(), s.getDepartmentCode()))
+                .distinct().toList();
     }
 
     @Override
@@ -85,9 +92,19 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
         if (tenantId == null || userId == null) return Set.of();
         AccessScope scope = currentAccessScope(tenantId, userId, "device-contract-visibility");
         if (scope.empty()) return Set.of();
-        return Set.copyOf(contractMapper.selectVisibleDeviceContractNumbers(
+        Set<String> visible = new java.util.HashSet<>(contractMapper.selectVisibleDeviceContractNumbers(
                 new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractScopeQuery(
                         tenantId, scope.companyCodes(), scope.projectIds(), candidates)));
+        if (visible.isEmpty()) return Set.of();
+        var grants = currentDeviceOrganizationGrants(new ReadScopeQuery(tenantId, userId)).stream()
+                .map(grant -> new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery.Grant(
+                        grant.companyId(), grant.departmentId(), grant.departmentCode())).toList();
+        if (grants.isEmpty()) return Set.of();
+        // 合同目录的公司范围不变；只有设备消费者额外重验同一行公司与部门。
+        visible.retainAll(contractMapper.selectOrganizationVisibleContractNumbers(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery(
+                        tenantId, grants, Set.copyOf(visible))));
+        return Set.copyOf(visible);
     }
 
     public PageResult<ContractDO> pageContracts(Long tenantId, Long subjectUserId, String correlationId,
