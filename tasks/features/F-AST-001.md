@@ -86,3 +86,21 @@
 ### 2026-10-23 设备列表移除维保月数及关联
 
 按需求方明确授权，列表响应、内部投影和前端列表类型移除 warrantyMonths；分页SQL删除 ast_device_warranty 关联，维保开始/结束日期及状态仍直接读取 ast_device，其余权限、筛选、排序和延保次数不改。详情维保月数保留。DeviceSerialPageSqlTest 在不建维保当前表时执行分页，验证主表维保值、版本和延保次数，并覆盖其他租户、未授权项目及软删除设备排除；DeviceQueryServiceTest、DeviceAccessScopeServiceTest 均通过。真实浏览器现有运行环境列表、详情和项目范围回归通过，无控制台错误；后端新SQL仅完成定向测试，尚未部署或重启。
+
+### 2026-10-23 设备列表延保计数改为当前页聚合
+
+按批准替换 selectVisibleDeviceList：device_page 保留原字段、版本关联、权限/筛选片段、倒序及 LIMIT；去重当前页 SN 后在同租户内聚合未删除且 extended=1 的维保记录，再 LEFT JOIN 并将无记录次数补0。取消 SELECT 列中的逐行相关计数子查询，其余 Mapper 查询逐字比对无改动。为兼容H2参数类型推断，租户参数保持在聚合JOIN条件，不单独投影为CTE参数列。
+
+定向 16 项测试通过（分页SQL、名称筛选、可见范围、查询服务和权限范围服务）；补充首/次/空页、零延保、空权限、空集合筛选及精确SN回归。实际MySQL只读事务中，新旧SQL七种场景结果逐行一致，包含分页偏移、空筛选集合、空权限和其他租户；执行计划已记录 .run/device-no-correlated-count-mysql.json。初次H2类型推断失败已修复并重跑通过。不宣称整体接口性能提升，未重启、未部署服务。
+
+### 2026-10-23 设备组织信息并入分页投影
+
+按需求方批准，DeviceListProjection 和 device_page 增补 ast_device 固化的 company_id/company_name/department_id/department_code/department_name/organization_source；列表控制器直接组装原 organization 响应，移除 DeviceOrganizationService 依赖与分页后 resolve 补查。未重新解析归属，不改其他入口组织查询、响应结构及权限语义；源码比对确认SQL除新增六个投影列外其余内容不变。
+
+24 项定向测试通过（含控制器组织字段/空值映射、端点权限契约、分页SQL、名称筛选、可见范围、查询服务及名称批量服务）。新增控制器测试首次受 Mockito 包装数字默认0影响，显式构造null场景后重跑通过；未修改生产规则。实际MySQL只读事务七种分页/空集合/空权限/跨租户场景比对，既有字段及行顺序与替换前完全一致；8行组织字段逐列与 ast_device 原值一致，证据 .run/device-organization-page-mysql.json。无UI布局变更，未部署、未重启服务；不声明运行接口已使用新SQL。
+
+### 2026-10-23 设备及合同侧授权读取去重
+
+按需求方授权，仅 DeviceQueryService.getPage 显式开启同步 AuthorizationReadScope，正常返回、提前返回或异常均自动清理；下一次列表建立新作用域，不向其他线程传播，不启用跨请求缓存。SYSTEM.getActiveScopes 在作用域内按当前租户、租户忽略模式及用户复用原始只读行，每次重新转换DTO，避免消费者修改污染后续调用。PROJ.resolveAllCurrent 按上下文租户、租户忽略模式及完整ProjectAllScopeQuery（租户、主体、动作）复用。未开启作用域的既有入口继续每次读取；异常不缓存，保留调用方原失败关闭、审计和重试行为。AST及COM继续分别通过Owner API获取并裁剪范围，未改变SQL、授权规则、合同候选交集、筛选、排序或分页。
+
+36 项定向测试通过，包含新增common作用域测试和yudao-server装配层调用链测试（测试依赖仅test scope）：真实AST→COM→SYSTEM/PROJ实现配合持久层替身，验证成功组织查询和项目解析各一次，下一次列表再次查询，租户/用户/动作隔离，DTO修改隔离，空范围，失败重试及异常后清理；既有合同授权、设备权限与SQL回归通过。验证证明代码调用次数与规则回归，不等同已部署接口时延或真实浏览器验收。日志及结果见 .run/device-permission-reuse-tests.log、.run/device-permission-reuse-results.json。未部署、未重启服务。

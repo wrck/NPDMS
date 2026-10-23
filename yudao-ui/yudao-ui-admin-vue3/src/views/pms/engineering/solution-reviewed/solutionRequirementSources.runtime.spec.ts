@@ -39,7 +39,8 @@ const render = (projectId?: number, readOnly = false, script?: string) => {
   }) })
   const components = Object.fromEntries(['ElRow', 'ElCol', 'ElInput', 'ElSelect', 'ElOption', 'ElRadioGroup', 'ElRadio', 'ElCheckboxGroup', 'ElCheckbox', 'ElTable', 'ElLink', 'ElUpload', 'Editor', 'UploadFile'].map(name => [name, passthrough]))
   const topologyUpload = defineComponent({ inheritAttrs: false, setup: (_, { attrs }) => () => h(UploadFile, {
-    modelValue: '', ...attrs, ref: value => { if (value && !uploads.includes(value)) uploads.push(value) }
+    ...attrs, modelValue: attrs.modelValue as string | string[],
+    ref: value => { if (value && !uploads.includes(value)) uploads.push(value) }
   } as InstanceType<typeof UploadFile>['$props']) })
   const mounted = mount(wrapper, {}, { ...components, UploadFile: topologyUpload, ElTableColumn: tableColumn })
   return { ...mounted, form, uploads, get state() { return state } }

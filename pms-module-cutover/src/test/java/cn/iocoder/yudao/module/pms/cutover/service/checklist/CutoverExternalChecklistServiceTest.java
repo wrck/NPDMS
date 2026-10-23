@@ -19,6 +19,28 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class CutoverExternalChecklistServiceTest {
+    @Test void stateUsesAuthorizedVersionWithoutBuildingTheEntireChecklist() {
+        var read = new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(
+                new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 2L, "state"), 3L, 5L);
+        when(checklist.readScope(read)).thenReturn(new CutoverChecklistApplicationService.ReadScope(5L, 6L));
+        when(storage.contexts(any())).thenReturn(List.of());
+        when(items.selectListByChecklist(any())).thenReturn(List.of());
+        when(results.selectCurrentByChecklist(any())).thenReturn(List.of());
+        var state = service.state(read);
+        assertEquals(5L, state.checklistId()); assertEquals(6L, state.checklistFactVersion());
+        verify(checklist, never()).getView(any());
+        verify(results).selectCurrentByChecklist(new cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistResultsQuery(1L, 5L));
+    }
+
+    @Test void deniedReadNeverLoadsExternalState() {
+        var read = new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(
+                new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 2L, "state"), 3L, null);
+        doThrow(new CutoverChecklistException(CutoverChecklistException.Code.NOT_FOUND, "denied")).when(checklist).readScope(read);
+        assertThrows(CutoverChecklistException.class, () -> service.state(read));
+        verify(storage, never()).contexts(any());
+        verify(items, never()).selectListByChecklist(any());
+        verify(results, never()).selectCurrentByChecklist(any());
+    }
     private final CutoverChecklistApplicationService checklist = mock(CutoverChecklistApplicationService.class);
     private final CutoverExternalBulletinStore storage = mock(CutoverExternalBulletinStore.class);
     private final CutoverExternalDataDirectory directory = mock(CutoverExternalDataDirectory.class);

@@ -65,8 +65,8 @@ public class CutoverExternalChecklistService {
                                     CutoverChecklistDeviceContextDO device, CutoverAssessmentDeviceDO source, String version) { }
 
     public State state(cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery query) {
-        var context = query.context(); var taskId = query.taskId();
-        var authorized = checklist.getView(query);
+        var context = query.context();
+        var authorized = checklist.readScope(query);
         var rows = storage.contexts(new CutoverExternalBulletinStore.ContextKey(context.tenantId(), authorized.checklistId()));
         Map<Long, CutoverAssessmentDeviceDO> frozen = rows.isEmpty() ? Map.of() : assessmentDevices.selectByIds(rows.stream()
                 .map(CutoverChecklistDeviceContextDO::getAssessmentDeviceId).toList()).stream()

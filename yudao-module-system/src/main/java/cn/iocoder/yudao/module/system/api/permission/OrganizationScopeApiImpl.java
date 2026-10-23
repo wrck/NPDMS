@@ -41,11 +41,16 @@ public class OrganizationScopeApiImpl implements OrganizationScopeApi {
 
     @Override
     public List<UserCompanyDepartmentScopeRespDTO> getActiveScopes(Long userId) {
-        List<UserCompanyDepartmentScopeDO> scopes = scopeMapper.selectActiveListByUserId(
+        List<UserCompanyDepartmentScopeDO> scopes = cn.iocoder.yudao.framework.common.util.authorization.AuthorizationReadScope.read(
+                new ActiveScopeReadKey(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId(),
+                        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.isIgnore(), userId),
+                () -> scopeMapper.selectActiveListByUserId(
                 ActiveUserScopeListQuery.builder().userId(userId).currentTime(LocalDateTime.now())
-                        .enabledStatus(CommonStatusEnum.ENABLE.getStatus()).build());
+                        .enabledStatus(CommonStatusEnum.ENABLE.getStatus()).build()));
         return BeanUtils.toBean(scopes, UserCompanyDepartmentScopeRespDTO.class);
     }
+
+    private record ActiveScopeReadKey(Long tenantId, boolean tenantIgnored, Long userId) {}
 
     @Override
     public boolean hasScope(Long userId, Long companyId, Long departmentId) {

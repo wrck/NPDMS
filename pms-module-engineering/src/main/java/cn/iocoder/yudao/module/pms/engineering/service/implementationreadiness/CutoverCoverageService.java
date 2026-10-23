@@ -24,9 +24,14 @@ public class CutoverCoverageService implements CutoverCoverageApi {
         var successes = results.successes(new CutoverResultApi.ProjectQuery(query.tenantId(), query.projectId()));
         if (lock) successes = successes.stream().map(result -> results.lockAndInspect(new CutoverResultApi.ResultQuery(
                 query.tenantId(), query.projectId(), result.taskId(), result.closureId(), result.closureVersion()))).toList();
-        var current = devices.lockProjectInstallationDevices(new ProjectDeviceInstallationQuery(query.tenantId(), query.projectId()))
+        var scope = new ProjectDeviceInstallationQuery(query.tenantId(), query.projectId());
+        var locked = devices.lockProjectInstallationDevices(scope);
+        var summaries = locked.isEmpty() ? java.util.Map.<Long, cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO>of()
+                : devices.getProjectDeviceSummaries(scope).stream().collect(java.util.stream.Collectors.toMap(
+                        value -> value.deviceId(), java.util.function.Function.identity()));
+        var current = locked
                 .stream().map(device -> {
-                    var value = devices.getDevice(device.deviceId());
+                    var value = summaries.get(device.deviceId());
                     if (value == null || !Objects.equals(value.projectId(), query.projectId())
                             || !Objects.equals(value.tenantId(), query.tenantId())) throw new IllegalStateException("当前设备范围已变化");
                     return new Device(value.deviceId(), value.sn(), value.projectAssignmentVersion());

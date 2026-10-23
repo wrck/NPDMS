@@ -195,44 +195,64 @@
     </select>
 
     <select id="selectVisibleDeviceList" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection">
-        SELECT d.id AS device_id,
-               d.sn,
-               d.name,
-               d.status,
-               d.product_code,
-               d.product_model,
-               d.product_name,
-               d.shipment_time,
-               d.package_no,
-               d.contract_no,
-               d.shipment_record_id,
-               d.project_id,
-               d.customer_id,
-               d.warranty_start_date,
-               d.warranty_end_date,
-               d.warranty_status,
-               d.conp_version,
-               d.conp_type,
-               d.conp_series,
-               d.conp_mark,
-               d.sync_status,
-               d.location_snapshot,
-               d.location_resolution_status,
-               nv.boot_version,
-               nv.cpld_version,
-               (SELECT COUNT(*) FROM ast_device_warranty_record wr
-                WHERE wr.tenant_id = d.tenant_id AND wr.device_sn = d.sn
-                  AND wr.deleted = b'0' AND wr.extended = b'1') AS extended_count
-        FROM ast_device d
-        LEFT JOIN ast_device_network_version nv ON nv.tenant_id = d.tenant_id
-          AND nv.device_sn = d.sn AND nv.deleted = b'0' AND nv.source_system = 'DEVICE_LOG'
-          AND (nv.sync_status IS NULL OR nv.sync_status &lt;&gt; 'NOT_AVAILABLE')
-        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
-        <include refid="deviceVisibility"/>
-        <include refid="deviceSearchFilters"/>
-        <include refid="deviceListNameFilters"/>
-        ORDER BY d.id DESC
-        LIMIT #{query.offset}, #{query.pageSize}
+        WITH device_page AS (
+            SELECT d.id AS device_id,
+                   d.sn,
+                   d.name,
+                   d.status,
+                   d.product_code,
+                   d.product_model,
+                   d.product_name,
+                   d.shipment_time,
+                   d.package_no,
+                   d.contract_no,
+                   d.shipment_record_id,
+                   d.project_id,
+                   d.customer_id,
+                   d.warranty_start_date,
+                   d.warranty_end_date,
+                   d.warranty_status,
+                   d.conp_version,
+                   d.conp_type,
+                   d.conp_series,
+                   d.conp_mark,
+                   d.sync_status,
+                   d.location_snapshot,
+                   d.location_resolution_status,
+                   d.company_id,
+                   d.company_name,
+                   d.department_id,
+                   d.department_code,
+                   d.department_name,
+                   d.organization_source,
+                   nv.boot_version,
+                   nv.cpld_version
+            FROM ast_device d
+            LEFT JOIN ast_device_network_version nv ON nv.tenant_id = d.tenant_id
+              AND nv.device_sn = d.sn AND nv.deleted = b'0' AND nv.source_system = 'DEVICE_LOG'
+              AND (nv.sync_status IS NULL OR nv.sync_status &lt;&gt; 'NOT_AVAILABLE')
+            WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+            <include refid="deviceVisibility"/>
+            <include refid="deviceSearchFilters"/>
+            <include refid="deviceListNameFilters"/>
+            ORDER BY d.id DESC
+            LIMIT #{query.offset}, #{query.pageSize}
+        ), page_device_keys AS (
+            SELECT DISTINCT sn
+            FROM device_page
+        ), renewal_counts AS (
+            SELECT wr.tenant_id, wr.device_sn, COUNT(*) AS extended_count
+            FROM page_device_keys k
+            JOIN ast_device_warranty_record wr
+              ON wr.tenant_id = #{query.tenantId} AND wr.device_sn = k.sn
+            WHERE wr.deleted = b'0' AND wr.extended = b'1'
+            GROUP BY wr.tenant_id, wr.device_sn
+        )
+        SELECT p.*, COALESCE(rc.extended_count, 0) AS extended_count
+        FROM device_page p
+        LEFT JOIN renewal_counts rc
+          ON rc.tenant_id = #{query.tenantId} AND rc.device_sn = p.sn
+        ORDER BY p.device_id DESC
     </select>
 
     <select id="selectVisibleDeviceCount" resultType="long">

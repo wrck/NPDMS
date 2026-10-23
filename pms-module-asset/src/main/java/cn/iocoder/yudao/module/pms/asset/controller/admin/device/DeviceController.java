@@ -78,7 +78,6 @@ public class DeviceController {
     private final DeviceConfigurationLogDownloadService configurationLogDownloadService;
     private final DeviceAccessScopeService accessScopeService;
     private final cn.iocoder.yudao.module.pms.asset.dal.mysql.shipment.DeviceShipmentMapper shipmentMapper;
-    private final cn.iocoder.yudao.module.pms.asset.service.device.DeviceOrganizationService organizationService;
     private final cn.iocoder.yudao.module.pms.asset.service.device.DeviceShipmentProductQueryService shipmentProducts;
 
     @GetMapping("/page")
@@ -100,12 +99,9 @@ public class DeviceController {
                 .visibleContractNumbers(java.util.Set.of())
                 .organizationGrants(java.util.List.of()).build();
         PageResult<DeviceListProjection> page = deviceQueryService.getPage(query);
-        var organizations = organizationService.resolve(currentTenantId(), page.getList().stream().map(item ->
-                new cn.iocoder.yudao.module.pms.asset.service.device.DeviceOrganizationService.Device(
-                        item.deviceId(),item.projectId(),item.contractNo())).toList());
         var names = listNames.resolve(new cn.iocoder.yudao.module.pms.asset.service.device.DeviceListNameService.Query(currentTenantId(), page.getList()));
         List<DeviceListRespVO> list = page.getList().stream().map(item -> toListResp(item,
-                organizations.get(item.deviceId()), names.get(item.deviceId()))).toList();
+                names.get(item.deviceId()))).toList();
         return success(new PageResult<>(list, page.getTotal()));
     }
 
@@ -235,7 +231,6 @@ public class DeviceController {
     }
 
     private static DeviceListRespVO toListResp(DeviceListProjection item,
-            cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceOrganizationRespVO organization,
             cn.iocoder.yudao.module.pms.asset.service.device.DeviceListNameService.Names names) {
         return new DeviceListRespVO(
                 item.deviceId(), item.sn(), item.name(), item.status(), item.productCode(),
@@ -243,7 +238,10 @@ public class DeviceController {
                 item.shipmentTime(), item.packageNo(), item.contractNo(), item.shipmentRecordId(),
                 item.projectId(), item.customerId(), item.warrantyStartDate(), item.warrantyEndDate(),
                 item.warrantyStatus(), item.conpVersion(), item.conpType(), item.conpSeries(),
-                item.conpMark(), item.syncStatus(), item.locationSnapshot(), item.locationResolutionStatus(), organization,
+                item.conpMark(), item.syncStatus(), item.locationSnapshot(), item.locationResolutionStatus(),
+                new cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceOrganizationRespVO(
+                        item.companyId(), item.companyName(), item.departmentId(), item.departmentCode(),
+                        item.departmentName(), item.organizationSource()),
                 item.bootVersion(), item.cpldVersion(), item.extendedCount(),
                 names.projectName(), names.customerName(), names.projectCode());
     }

@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
+import cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDevicePageQuery;
@@ -22,7 +23,8 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class DeviceQueryServiceTest {
@@ -47,6 +49,57 @@ class DeviceQueryServiceTest {
     void tearDown() {
         TenantContextHolder.clear();
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void projectVisibilityLoadsWholeDeviceRangeWithoutRepeatedVisibilityQueries() {
+        var query = new ProjectDeviceInstallationQuery(1L, 10L);
+        var first = device(8L); var second = device(9L);
+        when(accessScopeService.visibleProjectIds(1L, 7L)).thenReturn(Set.of(10L));
+        when(deviceMapper.selectCurrentProjectDevices(query)).thenReturn(List.of(first, second));
+
+        assertEquals(List.of(first, second), service.getProjectDevices(query));
+
+        verify(accessScopeService).visibleProjectIds(1L, 7L);
+        verifyNoMoreInteractions(accessScopeService);
+        verify(deviceMapper).selectCurrentProjectDevices(query);
+        verifyNoMoreInteractions(deviceMapper);
+    }
+
+    @Test
+    void projectBatchRejectsForeignTenantBeforeReadingAnyScopeOrDevice() {
+        assertThrows(SecurityException.class,
+                () -> service.getProjectDevices(new ProjectDeviceInstallationQuery(2L, 10L)));
+        verifyNoInteractions(accessScopeService, deviceMapper);
+    }
+
+    @Test
+    void withoutProjectVisibilityEveryDeviceStillUsesOriginalAuthorization() {
+        var query = new ProjectDeviceInstallationQuery(1L, 10L);
+        var first = device(8L); var second = device(9L);
+        when(accessScopeService.visibleProjectIds(1L, 7L)).thenReturn(Set.of());
+        when(deviceMapper.selectCurrentProjectDevices(query)).thenReturn(List.of(first, second));
+        when(deviceMapper.selectById(8L)).thenReturn(first);
+        when(deviceMapper.selectById(9L)).thenReturn(second);
+        assertEquals(List.of(first, second), service.getProjectDevices(query));
+        verify(accessScopeService).assertVisible(1L, 7L, 8L);
+        verify(accessScopeService).assertVisible(1L, 7L, 9L);
+    }
+
+    @Test
+    void aDeniedDeviceFailsWholeBatchInsteadOfReturningAPartialRange() {
+        var query = new ProjectDeviceInstallationQuery(1L, 10L);
+        when(accessScopeService.visibleProjectIds(1L, 7L)).thenReturn(Set.of());
+        when(deviceMapper.selectCurrentProjectDevices(query)).thenReturn(List.of(device(8L), device(9L)));
+        when(deviceMapper.selectById(8L)).thenReturn(device(8L));
+        doNothing().when(accessScopeService).assertVisible(1L, 7L, 8L);
+        doThrow(new SecurityException("denied")).when(accessScopeService).assertVisible(1L, 7L, 9L);
+        assertThrows(SecurityException.class, () -> service.getProjectDevices(query));
+        verify(deviceMapper, never()).selectById(9L);
+    }
+
+    private static DeviceDO device(Long id) {
+        var row = new DeviceDO(); row.setId(id); row.setTenantId(1L); row.setProjectId(10L); return row;
     }
 
     @Test

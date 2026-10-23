@@ -275,19 +275,18 @@ class ProjectTreeScopeServiceTest {
         });
         ProjectMasterDO granted = project(3L, 1L);
         when(projectMapper.selectBatchIds(Set.of(3L))).thenReturn(List.of(granted));
-        when(projectMapper.selectById(1L)).thenReturn(project(1L, 1L));
+        when(projectMapper.selectBatchIds(Set.of(1L))).thenReturn(List.of(project(1L, 1L)));
         ProjectTreeVersionDO version = new ProjectTreeVersionDO();
         version.setTreeVersion(7L);
-        when(versionMapper.selectLatestActive(1L)).thenReturn(version);
-        when(pathMapper.selectByAncestor(1L, 7L, 1L, null)).thenReturn(List.of(
-                path(1L, 1L), path(1L, 2L), path(1L, 3L)));
+        version.setRootProjectId(1L);
+        when(versionMapper.selectLatestActiveBatch(any())).thenReturn(List.of(version));
+        when(pathMapper.selectScopeRootPaths(any())).thenReturn(List.of(
+                globalPath(1L), globalPath(2L), globalPath(3L)));
         when(authorizationGrantApi.listEffective(any(AuthorizationGrantQuery.class))).thenAnswer(invocation -> {
             AuthorizationGrantQuery query = invocation.getArgument(0);
             return "PROJECT_VIEW".equals(query.actionCode())
                     ? List.of(grant(3L, "PROJECT_VIEW", "CURRENT_PROJECT")) : List.of();
         });
-        when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
-                .thenReturn(List.of(path(1L, 3L), path(3L, 3L)));
 
         assertEquals(Set.of(3L), service.resolveAllFullProjectIds(0L, 9L, "PROJECT_VIEW"));
     }
@@ -386,6 +385,10 @@ class ProjectTreeScopeServiceTest {
                 100L + resourceId, 0L, "USER", 9L, "PROJ", "PROJECT", resourceId,
                 actionCode, scopeCode, null, null, "ACTIVE", "PROJ", null, null,
                 7L, null, null, null, null, 0L);
+    }
+
+    private ProjectTreePathDO globalPath(Long id) {
+        var value=path(1L,id);value.setRootProjectId(1L);value.setTreeVersion(7L);return value;
     }
 
     private ProjectTreePathDO path(Long ancestorId, Long descendantId) {

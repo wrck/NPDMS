@@ -1504,3 +1504,7 @@ AST `ProjectDeviceSelectionApi.validateSelection(AuthorizedSelection{tenantId,ac
 ### 2026-10-23 设备列表移除维保月数
 
 按需求方批准，`GET /admin-api/pms/asset/devices/page` 列表响应移除 `warrantyMonths`；列表SQL取消关联 `ast_device_warranty`。`warrantyStartDate/warrantyEndDate/warrantyStatus` 继续直接读取 `ast_device`。分页、总数、筛选、排序、租户与组织/项目/合同可见范围、延保次数及详情维保查询保持原语义。
+
+### 2026-10-23 割接读取性能契约补充
+
+`DeviceQueryApi.getProjectDeviceSummaries(ProjectDeviceInstallationQuery)`批量读取当前直接归属项目的设备摘要，复用现有DeviceSummaryDTO；查询租户必须为当前租户。资产当前项目可见范围包含该项目时，同一次读取只解析一次项目范围，再按租户、项目和未删除条件读取设备；该条件是既有单设备可见性OR规则的充分条件。项目范围不包含该项目时仍逐台执行原getDevice的组织/合同/项目可见性校验，任一设备无权读取仍失败，不返回部分成功替代完整范围。没有跨请求权限缓存。IMP覆盖查询保留原锁定项目设备集合与逐项租户、项目、归属版本核对，只将单设备重复查询改为消费该批量接口，不更改覆盖/完成判定。

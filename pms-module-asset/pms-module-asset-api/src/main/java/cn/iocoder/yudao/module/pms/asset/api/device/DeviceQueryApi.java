@@ -13,6 +13,10 @@ public interface DeviceQueryApi {
 
     DeviceSummaryDTO getDevice(Long deviceId);
 
+    /** 当前项目设备的完整摘要；复用单设备可见性规则，任一设备不可见仍失败。 */
+    java.util.List<DeviceSummaryDTO> getProjectDeviceSummaries(
+            cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query);
+
     /** 按设备条件解析当前归属项目ID集合（仅含 project_id 非空的设备）；无命中返回空集合。 */
     Set<Long> resolveProjectIds(DeviceProjectMatchQuery query);
 }

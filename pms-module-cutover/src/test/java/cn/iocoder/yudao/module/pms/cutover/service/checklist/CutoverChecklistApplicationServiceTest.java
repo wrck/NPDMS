@@ -54,6 +54,34 @@ import static org.mockito.Mockito.when;
 class CutoverChecklistApplicationServiceTest {
 
     @Test
+    void lightweightReadScopeKeepsHistoricalSelectionAndRejectsUnauthorizedOrForeignReads() {
+        var fixture = fixture();
+        var service = fixture.service;
+        var checklists = (CutoverChecklistMapper) org.springframework.test.util.ReflectionTestUtils.getField(service, "checklistMapper");
+        var scopes = (CutoverProjectScopePort) org.springframework.test.util.ReflectionTestUtils.getField(service, "projectScopePort");
+        var audience = mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "approvalAudience", audience);
+        var query = new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(
+                new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 8L, "read-scope"), 1000L, 301L);
+        var historical = new CutoverChecklistDO(); historical.setId(301L); historical.setVersion(4L);
+        when(checklists.selectHistorical(any())).thenReturn(historical);
+        assertEquals(new CutoverChecklistApplicationService.ReadScope(301L, 4L), service.readScope(query));
+        verify(checklists).selectHistorical(new cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRowQuery(1L, 1000L, 301L));
+        org.mockito.Mockito.verifyNoInteractions(org.springframework.test.util.ReflectionTestUtils.getField(service, "itemMapper"),
+                org.springframework.test.util.ReflectionTestUtils.getField(service, "resultMapper"),
+                org.springframework.test.util.ReflectionTestUtils.getField(service, "fieldDefinitions"));
+        org.mockito.Mockito.clearInvocations(checklists);
+        when(scopes.inspect(8L, 10L, "ACTION_VIEW")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(10L, 7L, false));
+        assertEquals(CutoverChecklistException.Code.NOT_FOUND, org.junit.jupiter.api.Assertions.assertThrows(
+                CutoverChecklistException.class, () -> service.readScope(query)).getCode());
+        verify(audience).inspectTask(any());
+        fixture.task.get().setTenantId(2L);
+        assertEquals(CutoverChecklistException.Code.NOT_FOUND, org.junit.jupiter.api.Assertions.assertThrows(
+                CutoverChecklistException.class, () -> service.readScope(query)).getCode());
+        org.mockito.Mockito.verifyNoInteractions(checklists);
+    }
+
+    @Test
     void manualCollectionConclusionAppendsHistoryAndKeepsItsFileAndOriginalFailure() {
         var fixture = fixture(); var generated = generate(fixture);
         fixture.service.selectManual(manual(generated, 0L, "SYS-COLLECT"));
@@ -718,6 +746,10 @@ class CutoverChecklistApplicationServiceTest {
             CutoverChecklistItemDO item = invocation.getArgument(0);
             item.setInterfaceSchemaSnapshot("COLLECTION".equals(item.getWorkModeCode())
                     ? "{\"type\":\"object\"}" : "{\"type\":\"string\"}"); return item;
+        });
+        when(fields.withSchemas(any())).thenAnswer(invocation -> {
+            List<CutoverChecklistItemDO> rows = invocation.getArgument(0);
+            return rows.stream().map(fields::withSchema).toList();
         });
         org.mockito.Mockito.doAnswer(invocation -> {
             CutoverChecklistResultStore.Write write = invocation.getArgument(0);

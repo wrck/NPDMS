@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
 import jakarta.annotation.Resource;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.*;
@@ -14,6 +15,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 import tools.jackson.databind.JsonNode;
 
 import java.time.LocalDateTime;
@@ -63,7 +66,7 @@ public class CutoverRoleApprovalAudience {
             if (nodes.all(new CutoverApprovalNodesQuery(query.tenantId(), root.getId())).stream()
                     .anyMatch(node -> CutoverApprovalEligibilityPolicy.handledBy(node, query.actorId()))) {
                 roles.requireActiveUser(new CutoverApprovalRoleCandidatePort.ActorQuery(query.tenantId(), query.actorId()));
-                return new Grant(root.getId(), JsonUtils.toJsonString(storage.sourceView(root)));
+                return readGrant(root);
             }
         }
         return null;
@@ -137,9 +140,26 @@ public class CutoverRoleApprovalAudience {
                 var actorQuery = new CutoverApprovalRoleCandidatePort.ActorQuery(query.tenantId(), query.actorId());
                 if (snapshot.currentActor(actorQuery, roles.lockAndInspectActor(actorQuery)) == null) return null;
             }
-            return new Grant(root.getId(), JsonUtils.toJsonString(storage.sourceView(root)));
+            return lock ? new Grant(root.getId(), JsonUtils.toJsonString(storage.sourceView(root))) : readGrant(root);
         }
         return null;
+    }
+
+    /** 仅复用本次HTTP请求已校验的冻结来源；资格判断及所有锁内重验仍逐次执行。 */
+    private Grant readGrant(cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO root) {
+        var request = RequestContextHolder.getRequestAttributes();
+        String key = CutoverRoleApprovalAudience.class.getName() + ":source:"
+                + root.getTenantId() + ":" + root.getId() + ":" + root.getVersion();
+        String source = request == null ? null : (String) request.getAttribute(key, RequestAttributes.SCOPE_REQUEST);
+        if (source != null && (TenantContextHolder.isIgnore()
+                || !Objects.equals(TenantContextHolder.getTenantId(), root.getTenantId()))) {
+            throw new IllegalArgumentException("审批来源租户不一致");
+        }
+        if (source == null) {
+            source = JsonUtils.toJsonString(storage.sourceView(root));
+            if (request != null) request.setAttribute(key, source, RequestAttributes.SCOPE_REQUEST);
+        }
+        return new Grant(root.getId(), source);
     }
 
     public record Query(Long tenantId, Long actorId, Long taskId, Long expectedApprovalId) { }

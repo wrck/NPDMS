@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalRoleCandidatePort;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
@@ -11,12 +12,71 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class CutoverRoleApprovalAudienceTest {
+    @BeforeEach void setTenant() { TenantContextHolder.setTenantId(1L); }
+    @AfterEach void clearRequest() { RequestContextHolder.resetRequestAttributes(); TenantContextHolder.clear(); }
+
+    @Test void reusedSourceCannotBypassTenantContextOrCurrentFileAvailability() {
+        Fixture f = new Fixture();
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+        var fileQuery = new CutoverRoleApprovalAudience.FileQuery(query(1L, 8L, 20L), file("CUTOVER_PLAN", "10", "cutover-plan:50:2"));
+        assertNotNull(f.audience.inspectFile(fileQuery));
+        when(f.evidence.lockAndRevalidate(any())).thenReturn(new FileEvidenceApi.Fact(false, "FILE_UNAVAILABLE", 1, 1, 1));
+        assertNull(f.audience.inspectFile(fileQuery));
+        verify(f.evidence, times(2)).lockAndRevalidate(any());
+        TenantContextHolder.setTenantId(2L);
+        assertThrows(IllegalArgumentException.class, () -> f.audience.inspectTask(query(1L, 8L, null)));
+        TenantContextHolder.setTenantId(1L); TenantContextHolder.setIgnore(true);
+        assertThrows(IllegalArgumentException.class, () -> f.audience.inspectTask(query(1L, 8L, null)));
+    }
+
+    @Test void sameRequestReusesFrozenSourceButStillChecksCurrentEligibilityAndLockedFacts() {
+        Fixture f = new Fixture();
+        var storage = (CutoverApprovalStorage) org.springframework.test.util.ReflectionTestUtils.getField(f.audience, "storage");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+        for (int i = 0; i < 3; i++) assertNotNull(f.audience.inspectTask(query(1L, 8L, null)));
+        verify(storage).sourceView(f.root);
+        verify(f.roles, times(3)).inspectActor(any());
+        assertNotNull(f.audience.lockAndRevalidateTask(query(1L, 8L, 20L)));
+        verify(storage, times(2)).sourceView(f.root);
+        doReturn(List.of()).when(f.roles).inspectActor(any());
+        assertNull(f.audience.inspectTask(query(1L, 8L, null)));
+        verify(storage, times(2)).sourceView(f.root);
+    }
+
+    @Test void requestAndApprovalVersionBoundariesNeverReuseAnEarlierFrozenRead() {
+        Fixture f = new Fixture();
+        var storage = (CutoverApprovalStorage) org.springframework.test.util.ReflectionTestUtils.getField(f.audience, "storage");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+        assertNotNull(f.audience.inspectTask(query(1L, 8L, null)));
+        f.root.setVersion(4L);
+        assertNotNull(f.audience.inspectTask(query(1L, 8L, null)));
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+        assertNotNull(f.audience.inspectTask(query(1L, 8L, null)));
+        verify(storage, times(3)).sourceView(f.root);
+    }
+
+    @Test void aBrokenFrozenSourceStillFailsAndIsNotMemoized() {
+        Fixture f = new Fixture();
+        var storage = (CutoverApprovalStorage) org.springframework.test.util.ReflectionTestUtils.getField(f.audience, "storage");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
+        when(storage.sourceView(f.root)).thenThrow(new IllegalArgumentException("invalid frozen source"))
+                .thenReturn(JsonUtils.parseTree(sourceSnapshot()));
+        assertThrows(IllegalArgumentException.class, () -> f.audience.inspectTask(query(1L, 8L, null)));
+        assertNotNull(f.audience.inspectTask(query(1L, 8L, null)));
+        assertNotNull(f.audience.inspectTask(query(1L, 8L, null)));
+        verify(storage, times(2)).sourceView(f.root);
+    }
     @Test void completeTaskReadSurvivesActualDecisionAndResubmissionButNotMembershipAlone() {
         Fixture f = new Fixture();
         assertNotNull(f.audience.inspectTask(query(1L, 8L, null)));

@@ -17,4 +17,37 @@
         </choose>
         ORDER BY p.tree_depth, p.tree_sort, p.id
     </select>
+    <select id="selectScopeRootPaths" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO">
+        SELECT t.* FROM proj_project_tree_path t
+        WHERE t.tenant_id = #{query.tenantId} AND t.deleted = b'0'
+          AND t.ancestor_project_id = t.root_project_id
+        <choose>
+            <when test="query.trees != null and !query.trees.isEmpty()">
+                AND <foreach collection="query.trees" item="tree" open="(" separator=" OR " close=")">
+                    (t.root_project_id = #{tree.rootProjectId} AND t.tree_version = #{tree.treeVersion})
+                </foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+
+    <select id="selectScopeDescendants" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreePathDO">
+        SELECT t.* FROM proj_project_tree_path t
+        WHERE t.tenant_id = #{query.tenantId} AND t.deleted = b'0'
+        <choose>
+            <when test="query.subtrees != null and !query.subtrees.isEmpty()">
+                AND <foreach collection="query.subtrees" item="tree" open="(" separator=" OR " close=")">
+                    (t.root_project_id = #{tree.rootProjectId} AND t.tree_version = #{tree.treeVersion}
+                    <choose>
+                        <when test="tree.ancestorProjectIds != null and !tree.ancestorProjectIds.isEmpty()">
+                            AND t.ancestor_project_id IN
+                            <foreach collection="tree.ancestorProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+                        </when>
+                        <otherwise>AND 1 = 0</otherwise>
+                    </choose>)
+                </foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
 </mapper>

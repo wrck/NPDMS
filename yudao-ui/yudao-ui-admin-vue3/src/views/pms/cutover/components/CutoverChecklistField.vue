@@ -52,7 +52,7 @@ class="checklist-field" :class="{ required: item.required, 'is-table-row': table
     <p v-if="item.currentResult?.factDescription" class="fact-description">{{ item.currentResult.factDescription }}</p>
     <PmsFileVersionReferenceList v-if="displayManualFile" owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(item.itemId)" purpose-code="MANUAL_EVIDENCE" :reference-key="displayManualFile.referenceKey" :artifact-id="displayManualFile.artifactId" :version-no="displayManualFile.versionNo" />
 
-    <details v-if="!readonly && (allowSave || externalBusy) && canUseManual" class="manual-area" open>
+    <details v-if="!readonly && (allowSave || externalBusy) && canUseManual" class="manual-area" :aria-busy="manualReferenceLoading" open>
       <summary>{{ item.workModeCode === 'COLLECTION' ? '上传人工校验证据' : item.workModeCode === 'MANUAL' ? '上传本项材料' : '改用人工核验证据' }}</summary>
       <el-input v-model="factDescription" placeholder="材料说明（选填）" />
       <PmsFileUploader

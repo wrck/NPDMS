@@ -101,9 +101,9 @@ import { activeCutoverStagePanel, createCutoverWriteCoordinator } from '../share
 import CutoverProjectContextCard from '../components/CutoverProjectContextCard.vue'
 import CutoverTaskDevices from '../components/CutoverTaskDevices.vue'
 import CutoverAssessmentPanel from '../components/CutoverAssessmentPanel.vue'
-import CutoverChecklistPanel from '../components/CutoverChecklistPanel.vue'
 import CutoverWorkbenchSteps from '../components/CutoverWorkbenchSteps.vue'
 
+const CutoverChecklistPanel = defineAsyncComponent(() => import('../components/CutoverChecklistPanel.vue').then(module => module.default))
 const CutoverApprovalPanel = defineAsyncComponent(() => import('../components/CutoverApprovalPanel.vue').then(module => module.default))
 const CutoverClosurePanel = defineAsyncComponent(() => import('../components/CutoverClosurePanel.vue').then(module => module.default))
 const CutoverPlanPanel = defineAsyncComponent(() => import('../components/CutoverPlanPanel.vue').then(module => module.default))
