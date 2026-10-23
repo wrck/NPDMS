@@ -49,6 +49,7 @@ import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { FileSelection } from './types'
 import { resolveFileUploadMode } from './useFileSlotState'
 import { fileUploadMediaType } from './fileMediaType'
+import { registerDraftUpload } from '@/hooks/web/useDraftUploads'
 
 const props = withDefaults(
   defineProps<
@@ -112,6 +113,15 @@ const removeFile = () => {
   attempt.value = undefined
 }
 const onExceed = () => message.warning('每个材料槽位一次只能选择一个文件')
+registerDraftUpload({
+  isBusy: () => busy.value,
+  hasPendingFile: () => !!selectedFile.value,
+  discard: () => {
+    if (busy.value) return
+    removeFile()
+    uploadRef.value?.clearFiles()
+  }
+})
 
 const submit = async () => {
   const file = selectedFile.value

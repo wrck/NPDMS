@@ -30,7 +30,7 @@ const detail = (id = '101', grade = 'A') => ({
 
 describe('P2 detail write recovery', () => {
   beforeEach(() => vi.resetAllMocks())
-  it('retains unsaved assessment input on source conflict and prevents leaving until a draft can be saved', async () => {
+  it('retains unsaved assessment on failure and offers an explicit discard without another write', async () => {
     api.getCutoverTaskDetail.mockImplementation(async () => structuredClone(detail()))
     const failure = { response: { status: 409, data: { data: { recoveryAction: 'REFRESH_OWNER_FACTS' } } } }
     api.saveCutoverAssessment.mockRejectedValue(failure)
@@ -43,10 +43,21 @@ describe('P2 detail write recovery', () => {
     const event = new Event('beforeunload', { cancelable: true })
     window.dispatchEvent(event)
     expect(event.defaultPrevented).toBe(true)
-    await (findByTestId(page.root, 'close-cutover-detail')!.props!.onClick as Function)()
+    const leaving = (findByTestId(page.root, 'close-cutover-detail')!.props!.onClick as Function)()
+    await flush()
+    expect(state.leaveDialogVisible).toBe(true)
+    state.resolveLeaveDecision('stay')
+    await leaving
     expect(state.assessmentModel.manualGrade).toBe('D')
     expect(api.submitCutoverAssessment).not.toHaveBeenCalled()
-    expect(messages.warning).toHaveBeenCalledWith('草稿保存未完成，当前填写已保留，请保存成功后再离开。')
+    const discard = (page.vm as any).saveBeforeLeave()
+    await flush()
+    const writes = api.saveCutoverAssessment.mock.calls.length
+    state.resolveLeaveDecision('discard')
+    expect(await discard).toBe(true)
+    expect(state.assessmentModel.manualGrade).toBe('A')
+    expect(await (page.vm as any).saveBeforeLeave()).toBe(true)
+    expect(api.saveCutoverAssessment).toHaveBeenCalledTimes(writes)
     page.app.unmount()
   })
   it('retries an uncertain assessment save with exactly the original key, versions and content', async () => {

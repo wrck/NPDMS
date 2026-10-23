@@ -31,7 +31,7 @@ class="checklist-field" :class="{ required: item.required, 'is-table-row': table
       <el-button data-testid="open-item-collection" :disabled="!selectedDeviceId" :loading="openingCollection" @click="openCollection">{{ readonly ? '查看采集日志' : '设备采集与日志' }}</el-button>
       <el-button v-if="!readonly && allowCollection" @click="loadExecutions">选择已有采集记录</el-button>
       <Teleport to="body">
-        <component :is="collectionDialogComponent" v-if="collectionDialogComponent" ref="collectionDialog" entry="cutover-checklist" :device-id="selectedDeviceId" align-center @accepted="acceptExecution" @closed="emit('refresh')" />
+        <component :is="collectionDialogComponent" v-if="collectionDialogComponent" ref="collectionDialog" entry="cutover-checklist" :device-id="selectedDeviceId" :readonly="readonly || !allowCollection" align-center @accepted="acceptExecution" @closed="emit('refresh')" />
       </Teleport>
       <el-dialog v-model="executionsVisible" title="选择本项采集记录" width="min(900px, 94vw)" append-to-body align-center>
         <el-table :data="executions" v-loading="executionsLoading">

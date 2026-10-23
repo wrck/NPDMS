@@ -22,7 +22,7 @@
       <el-select v-model="collectionStage"><el-option v-for="stage in stages" :key="stage" :label="stageLabels[stage]" :value="stage" /></el-select>
       <template #footer><el-button type="primary" :disabled="!collectionDeviceId" @click="openCollection">进入平台采集窗口</el-button></template>
     </el-dialog>
-    <BusinessCollectionDialog ref="collectionDialog" :entry="collectionEntry" :device-id="collectionDeviceId" @closed="emit('refresh')" @observed="observeExecutions" />
+    <BusinessCollectionDialog ref="collectionDialog" :entry="collectionEntry" :device-id="collectionDeviceId" :readonly="!canRequest" @closed="emit('refresh')" @observed="observeExecutions" />
 
     <el-dialog v-model="manualVisible" title="补录失败采集结果" width="min(560px, 94vw)" append-to-body>
       <el-select v-model="manual.originalFailedCollectionTaskId" data-testid="manual-failed-task">
