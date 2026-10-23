@@ -33,6 +33,9 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
     java.util.Set<String> selectContractCandidates(@Param("query")
             cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery query);
 
+    java.util.Set<Long> selectProjectCandidates(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceProjectCandidatesQuery query);
+
     default DeviceDO selectByTenantAndSn(Long tenantId, String sn) {
         return selectOne(new LambdaQueryWrapperX<DeviceDO>()
                 .eq(DeviceDO::getTenantId, tenantId)
@@ -116,6 +119,18 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
         }
         return new PageResult<>(selectVisibleDeviceList(query), selectVisibleDeviceCount(query));
     }
+
+    default PageResult<DeviceListProjection> selectJoinedDevicePage(VisibleDevicePageQuery query) {
+        if (query.readScope() == null) return PageResult.empty();
+        var rows = selectJoinedDevicePageRows(query);
+        if (rows.isEmpty()) return PageResult.empty();
+        var devices = rows.stream().map(cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DevicePageProjection::getDevice)
+                .filter(java.util.Objects::nonNull).toList();
+        return new PageResult<>(devices, rows.getFirst().getTotal());
+    }
+
+    List<cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DevicePageProjection> selectJoinedDevicePageRows(
+            @Param("query") VisibleDevicePageQuery query);
 
     static PageResult<DeviceListProjection> emptyWhenInvisible(VisibleDevicePageQuery query) {
         if ((query.visibleProjectIds() == null || query.visibleProjectIds().isEmpty())

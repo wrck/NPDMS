@@ -7,8 +7,12 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DevicePageReadScope;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDevicePageQuery;
 import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.Set;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -34,6 +39,13 @@ class DeviceQueryServiceTest {
     @Mock private cn.iocoder.yudao.module.pms.project.api.organization.ProjectDeviceOrganizationApi projects;
     @Mock private cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customers;
     private DeviceQueryService service;
+
+    private DevicePageReadScope readScope() {
+        return new DevicePageReadScope(
+                new ProjectViewReadScopeApi.ReadScope(1L, 7L, ProjectViewReadScopeApi.Mode.TENANT_ADMIN,
+                        LocalDateTime.now(), List.of()),
+                new ContractDeviceVisibilityApi.ReadScope(List.of("C01")));
+    }
 
     @BeforeEach
     void setUp() {
@@ -107,22 +119,23 @@ class DeviceQueryServiceTest {
         VisibleDevicePageQuery request = VisibleDevicePageQuery.builder()
                 .sn("SN-8")
                 .pageNo(1)
-                .pageSize(20)
-                .visibleContractNumbers(Set.of())
-                .organizationGrants(java.util.List.of()).build();
+                .pageSize(20).build();
+        var readScope = readScope();
         VisibleDevicePageQuery query = VisibleDevicePageQuery.builder()
                 .tenantId(1L)
-                .visibleProjectIds(Set.of(10L))
                 .sn("SN-8")
                 .pageNo(1)
                 .pageSize(20)
-                .visibleContractNumbers(Set.of())
-                .organizationGrants(java.util.List.of()).build();
+                .organizationGrants(List.of())
+                .readScope(readScope).build();
         PageResult<DeviceListProjection> expected = new PageResult<>(List.of(), 1L);
-        when(accessScopeService.visibleProjectIds(1L, 7L)).thenReturn(Set.of(10L));
-        when(deviceMapper.selectVisibleDevicePage(query)).thenReturn(expected);
+        when(accessScopeService.pageReadScope(new ProjectAllScopeQuery(1L, 7L, "PROJECT_VIEW"))).thenReturn(readScope);
+        when(deviceMapper.selectJoinedDevicePage(query)).thenReturn(expected);
 
         assertSame(expected, service.getPage(request));
+        verify(deviceMapper).selectJoinedDevicePage(query);
+        verify(accessScopeService, never()).visibleProjectIds(1L, 7L);
+        verify(deviceMapper, never()).selectVisibleDevicePage(any());
     }
 
     @Test
@@ -134,20 +147,25 @@ class DeviceQueryServiceTest {
     }
 
     @Test
-    void nameMatchesIntersectOriginalVisibilityAndReachContractCandidateQuery() {
+    void nameMatchesRemainFiltersAlongsideTheOwnerReadScope() {
         when(projects.findProjectIdsByName(org.mockito.ArgumentMatchers.any())).thenReturn(Set.of(10L, 20L));
         when(customers.findCustomerIdsByName(org.mockito.ArgumentMatchers.any())).thenReturn(Set.of(30L));
-        when(accessScopeService.visibleProjectIds(1L, 7L)).thenReturn(Set.of(10L));
-        when(deviceMapper.selectVisibleDevicePage(org.mockito.ArgumentMatchers.any())).thenReturn(PageResult.empty());
+        var readScope = readScope();
+        when(accessScopeService.pageReadScope(new ProjectAllScopeQuery(1L, 7L, "PROJECT_VIEW"))).thenReturn(readScope);
+        when(deviceMapper.selectJoinedDevicePage(org.mockito.ArgumentMatchers.any())).thenReturn(PageResult.empty());
         service.getPage(VisibleDevicePageQuery.builder().projectName("项目").customerName("客户")
                 .departmentName(" 杭州 ").projectId(10L).pageNo(1).pageSize(10).build());
-        org.mockito.Mockito.verify(deviceMapper).selectVisibleDevicePage(org.mockito.ArgumentMatchers.argThat(q ->
-                q.visibleProjectIds().equals(Set.of(10L)) && q.matchingProjectIds().equals(Set.of(10L, 20L))
+        org.mockito.Mockito.verify(projects).findProjectIdsByName(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(customers).findCustomerIdsByName(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(accessScopeService).pageReadScope(new ProjectAllScopeQuery(1L, 7L, "PROJECT_VIEW"));
+        org.mockito.Mockito.verify(deviceMapper).selectJoinedDevicePage(org.mockito.ArgumentMatchers.argThat(q ->
+                q.readScope().equals(readScope) && q.visibleProjectIds() == null && q.visibleContractNumbers() == null
+                        && q.matchingProjectIds().equals(Set.of(10L, 20L))
                         && q.matchingCustomerIds().equals(Set.of(30L)) && q.projectId().equals(10L)
                         && "杭州".equals(q.departmentName())));
-        org.mockito.Mockito.verify(accessScopeService).contractScope(org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.eq(7L),
-                org.mockito.ArgumentMatchers.argThat(q -> q.matchingProjectIds().equals(Set.of(10L, 20L))
-                        && q.matchingCustomerIds().equals(Set.of(30L)) && "杭州".equals(q.departmentName())));
+        org.mockito.Mockito.verify(accessScopeService, never()).visibleProjectIds(1L, 7L);
+        org.mockito.Mockito.verify(accessScopeService, never()).contractScope(anyLong(), anyLong(), any());
+        org.mockito.Mockito.verify(deviceMapper, never()).selectVisibleDevicePage(any());
     }
 
     @Test

@@ -26,7 +26,7 @@
 - `ProjectMemberAssignment`只表达项目角色、成员和生效区间；当前有效成员关系只授予该角色在当前项目允许的动作，项目经理、一级服务经理和二级服务经理角色本身不自动获得全部后代范围。
 - PM-04项目范围由PLT拥有的`AuthorizationGrant`显式表达，范围代码固定为`CURRENT_PROJECT`、`PROJECT_AND_DESCENDANTS`，动作至少区分`PROJECT_VIEW`、`PROJECT_MANAGE`；角色与授权范围不得合并为同一事实。
 - 服务经理只有同时具备授权维护功能权限、有效服务经理角色和目标项目`PROJECT_MANAGE`范围时，才可指派PRD已定义项目角色或创建、撤销项目授权；被授予动作和范围不得超过授权人自己的有效管理范围。
-- PROJ通过PLT公开`AuthorizationGrantApi`取得有效授权，并以当前完整项目树版本展开范围；其他模块只通过PROJ公开`ProjectScopeApi`取得项目范围，不得读取双方表或复制授权算法。
+- PROJ通过PLT公开`AuthorizationGrantApi`取得有效授权，并以当前完整项目树版本展开范围；其他模块通过PROJ公开`ProjectScopeApi`，或关联只读用的`ProjectViewReadScopeApi`与其固定XML契约取得项目范围，不得自行读取双方表或复制授权算法。关联只读仍由PROJ校验主体、发现候选根并复核当前版本，最终成员、创建人和PLT有效授权在同一查询中重新读取；只返回完整可见项目，不含路径占位。
 - 空成员与空授权集合返回空范围。撤权、到期、授权版本变化或项目树版本变化后，旧缓存不得放行敏感读写；项目移动按新完整树版本重算，不复制或改写后代授权。
 
 ## 2.2 实施执行操作级矩阵

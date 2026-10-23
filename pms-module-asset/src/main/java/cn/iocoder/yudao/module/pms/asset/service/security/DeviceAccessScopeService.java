@@ -1,5 +1,8 @@
 package cn.iocoder.yudao.module.pms.asset.service.security;
 
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DevicePageReadScope;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceVisibilityQuery;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery;
@@ -19,8 +22,24 @@ public class DeviceAccessScopeService {
 
     private final ProjectScopeApi projectScopeApi;
     private final DeviceMapper deviceMapper;
-    private final cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi contractVisibilityApi;
+    private final ContractDeviceVisibilityApi contractVisibilityApi;
     private final cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi organizationScopeApi;
+    private final ProjectViewReadScopeApi projectViewReadScopeApi;
+
+    public DevicePageReadScope pageReadScope(
+            ProjectAllScopeQuery query) {
+        ProjectViewReadScopeApi.ReadScope projectScope = null;
+        ContractDeviceVisibilityApi.ReadScope contractScope = null;
+        if (query.tenantId() != null && query.subjectUserId() != null) {
+            try { projectScope = projectViewReadScopeApi.prepare(query); }
+            catch (RuntimeException exception) { /* Owner失败只关闭项目分支。 */ }
+            try { contractScope = contractVisibilityApi.prepareReadScope(
+                    new ContractDeviceVisibilityApi.ReadScopeQuery(
+                            query.tenantId(), query.subjectUserId())); }
+            catch (RuntimeException exception) { /* Owner失败只关闭合同公司分支。 */ }
+        }
+        return new DevicePageReadScope(projectScope, contractScope);
+    }
 
     public Set<Long> visibleProjectIds(Long tenantId, Long userId) {
         if (tenantId == null || userId == null) {
@@ -57,6 +76,18 @@ public class DeviceAccessScopeService {
 
     public Set<String> contractScope(Long tenantId, Long userId, DeviceContractCandidateQuery query) {
         if (tenantId == null || userId == null || !tenantId.equals(query.tenantId())) return Set.of();
+        if (query.isUnfilteredPage()) {
+            Set<String> numbers;
+            try {
+                numbers = contractVisibilityApi.getVisibleContractNumbers(tenantId, userId);
+            } catch (RuntimeException ex) {
+                return Set.of();
+            }
+            if (numbers == null || numbers.isEmpty()) return Set.of();
+            // 默认页直接使用COM正式授权；最终可见SQL仍逐设备按合同原文精确匹配。
+            // 无设备的合同自然不命中，无需先枚举全租户设备合同再求同一交集。
+            return Set.copyOf(numbers);
+        }
         return visibleContractNumbers(tenantId, userId, deviceMapper.selectContractCandidates(query));
     }
 

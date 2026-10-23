@@ -20,9 +20,17 @@ public record VisibleDevicePageQuery(
         String customerName,
         String departmentName,
         Set<Long> matchingProjectIds,
-        Set<Long> matchingCustomerIds) {
+        Set<Long> matchingCustomerIds,
+        DevicePageReadScope readScope) {
 
     public long offset() {
         return (long) (pageNo - 1) * pageSize;
     }
+
+    public boolean hasDeviceFilters() {
+        return projectId != null || customerId != null || matchingProjectIds != null || matchingCustomerIds != null
+                || present(sn) || present(productCode) || present(name) || present(status) || present(departmentName);
+    }
+
+    private static boolean present(String value) { return value != null && !value.isEmpty(); }
 }

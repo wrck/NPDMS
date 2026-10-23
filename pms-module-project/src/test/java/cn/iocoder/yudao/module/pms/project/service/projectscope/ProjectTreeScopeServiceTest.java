@@ -330,6 +330,53 @@ class ProjectTreeScopeServiceTest {
     }
 
     @Test
+    void joinedViewScopeKeepsAdministratorAuthorityWithoutEnumeratingAnyProjectIds() {
+        when(permissionApi.hasAnyRoles(9L, "super_admin")).thenReturn(true);
+        var scope = service.prepareViewReadScope(
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(0L, 9L, "PROJECT_VIEW"));
+        assertEquals(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.Mode.TENANT_ADMIN, scope.mode());
+        assertEquals(0L, scope.tenantId());
+        assertEquals(9L, scope.subjectUserId());
+        assertEquals(List.of(), scope.trees());
+        verify(projectMapper, never()).selectTenantProjectIds(any());
+        verify(memberMapper, never()).selectActiveByUser(any());
+    }
+
+    @Test
+    void joinedViewScopeRetainsDiscoveryAndVersionRevalidationWithoutReadingFinalNodeIds() {
+        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(assignment(3L, "PROJECT_MANAGER")));
+        when(authorizationGrantApi.page(any())).thenReturn(new AuthorizationGrantPageResult(List.of(), 0));
+        when(projectMapper.selectBatchIds(Set.of(3L))).thenReturn(List.of(project(3L, 1L)));
+        when(projectMapper.selectBatchIds(Set.of(1L))).thenReturn(List.of(project(1L, 1L)));
+        var version = new ProjectTreeVersionDO(); version.setRootProjectId(1L); version.setTreeVersion(7L);
+        when(versionMapper.selectLatestActiveBatch(any())).thenReturn(List.of(version));
+        var scope = service.prepareViewReadScope(
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(0L, 9L, "PROJECT_VIEW"));
+        assertEquals(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.Mode.SCOPED, scope.mode());
+        assertEquals(List.of(new cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.Tree(1L, 7L)), scope.trees());
+        org.mockito.Mockito.verify(versionMapper, org.mockito.Mockito.times(2)).selectLatestActiveBatch(any());
+        verify(pathMapper, never()).selectScopeRootPaths(any());
+        verify(authorizationGrantApi, never()).listEffective(any());
+    }
+
+    @Test
+    void joinedViewScopeStillRejectsAChangedTreeVersionAndForeignTenant() {
+        assertThrows(ServiceException.class, () -> service.prepareViewReadScope(
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(1L, 9L, "PROJECT_VIEW")));
+        assertThrows(ServiceException.class, () -> service.prepareViewReadScope(
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(0L, 9L, "PROJECT_MANAGE")));
+        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(assignment(3L, "PROJECT_MANAGER")));
+        when(authorizationGrantApi.page(any())).thenReturn(new AuthorizationGrantPageResult(List.of(), 0));
+        when(projectMapper.selectBatchIds(Set.of(3L))).thenReturn(List.of(project(3L, 1L)));
+        when(projectMapper.selectBatchIds(Set.of(1L))).thenReturn(List.of(project(1L, 1L)));
+        var before = new ProjectTreeVersionDO(); before.setRootProjectId(1L); before.setTreeVersion(7L);
+        var after = new ProjectTreeVersionDO(); after.setRootProjectId(1L); after.setTreeVersion(8L);
+        when(versionMapper.selectLatestActiveBatch(any())).thenReturn(List.of(before), List.of(after));
+        assertThrows(ServiceException.class, () -> service.prepareViewReadScope(
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(0L, 9L, "PROJECT_VIEW")));
+    }
+
+    @Test
     void superAdminCannotSelectAnotherTenantOrBypassTreeVersion() {
         assertThrows(ServiceException.class, () -> service.resolveAllFullProjectIds(1L, 9L, "PROJECT_VIEW"));
         when(projectMapper.selectById(3L)).thenReturn(project(3L, 1L));

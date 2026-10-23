@@ -45,6 +45,12 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
     private final OperationAuditApi operationAuditApi;
 
     @Override
+    public ReadScope prepareReadScope(ReadScopeQuery query) {
+        if (query.tenantId() == null || query.subjectUserId() == null) return new ReadScope(List.of());
+        return new ReadScope(currentCompanyCodes(query.tenantId(), query.subjectUserId(), "device-contract-visibility"));
+    }
+
+    @Override
     public Set<String> getOrganizationVisibleContractNumbers(Long tenantId, Long userId) {
         if (tenantId == null || userId == null) return Set.of();
         var grants = currentScopes(tenantId,userId,"device-organization-visibility").stream()
