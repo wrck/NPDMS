@@ -51,6 +51,32 @@ class CutoverFieldDefinitionStoreTest {
         verifyNoInteractions(fields, options);
     }
 
+    @Test void dualResultPresentationUsesOneSchemaWithoutChangingStoredDefinitionsOrOtherItemTypes() {
+        var definition = CutoverFieldSchemaCodec.encode(CutoverFieldSchemaCodec.Write.builder().tenantId(1L)
+                .itemDefinitionRevisionId(10L).itemTypeCode("DUAL_MACHINE_CHECK")
+                .schema(Map.of("fields", List.of(
+                        Map.of("code", "executed", "type", "BOOLEAN", "label", "是否已执行", "required", true),
+                        Map.of("code", "normal", "type", "BOOLEAN", "label", "是否符合本次部署要求"),
+                        Map.of("code", "remark", "label", "事实说明", "visibleWhen", Map.of("field", "normal", "equals", false))))).build());
+        when(fields.selectListByParents(any())).thenReturn(definition.fields());
+        when(options.selectListByParents(any())).thenReturn(definition.options());
+        var stored = JsonUtils.toJsonString(CutoverFieldSchemaCodec.decode(definition));
+        var dual = item(1L, 10L); dual.setItemTypeCode("DUAL_MACHINE_CHECK");
+        var risk = item(2L, 10L); risk.setItemTypeCode("RISK");
+        var one = JsonUtils.parseTree(store.withSchema(dual).getInterfaceSchemaSnapshot());
+        var batch = store.withSchemas(List.of(dual, risk));
+
+        assertEquals("检查是否正常", one.path("fields").get(0).path("label").asText());
+        assertEquals(one, JsonUtils.parseTree(batch.get(0).getInterfaceSchemaSnapshot()));
+        assertEquals("executed", one.path("fields").get(0).path("code").asText());
+        assertTrue(one.path("fields").get(0).path("required").asBoolean());
+        assertEquals("是否符合本次部署要求", one.path("fields").get(1).path("label").asText());
+        assertFalse(one.path("fields").get(2).path("visibleWhen").path("equals").asBoolean());
+        assertEquals(JsonUtils.parseTree(stored), JsonUtils.parseTree(batch.get(1).getInterfaceSchemaSnapshot()));
+        assertEquals(stored, JsonUtils.toJsonString(CutoverFieldSchemaCodec.decode(definition)));
+        verify(fields, never()).insert(any(cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.CutoverChecklistFieldDefinitionDO.class));
+    }
+
     @Test void emptyItemsNeverBecomeAnUnfilteredDefinitionQuery() {
         assertEquals(List.of(), store.withSchemas(List.of())); verifyNoInteractions(fields, options);
     }

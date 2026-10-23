@@ -52,7 +52,7 @@ public class CutoverFieldDefinitionStore {
 
     /** 给 HTTP 校验和展示组装 schema，来源只有精确修订的字段树。 */
     public CutoverChecklistItemDO withSchema(CutoverChecklistItemDO item) {
-        item.setInterfaceSchemaSnapshot(JsonUtils.toJsonString(CutoverFieldSchemaCodec.decode(forItem(item))));
+        item.setInterfaceSchemaSnapshot(presentationSchema(item, forItem(item)));
         return item;
     }
 
@@ -68,9 +68,22 @@ public class CutoverFieldDefinitionStore {
         for (var item : items) {
             var definition = item.getItemDefinitionId() == null ? customDefinition(item.getId())
                     : definitions.get(item.getItemDefinitionId());
-            item.setInterfaceSchemaSnapshot(JsonUtils.toJsonString(CutoverFieldSchemaCodec.decode(definition)));
+            item.setInterfaceSchemaSnapshot(presentationSchema(item, definition));
         }
         return items;
+    }
+
+    /** 调研、审批及文档消费同一显示投影；不改写原字段定义或结果编码。 */
+    private static String presentationSchema(CutoverChecklistItemDO item, CutoverFieldSchemaCodec.Definition definition) {
+        tools.jackson.databind.JsonNode schema = JsonUtils.getObjectMapper().valueToTree(CutoverFieldSchemaCodec.decode(definition));
+        if ("DUAL_MACHINE_CHECK".equals(item.getItemTypeCode())) {
+            for (var field : schema.path("fields")) {
+                if (field.isObject() && "executed".equals(field.path("code").asText())) {
+                    ((tools.jackson.databind.node.ObjectNode) field).put("label", "检查是否正常");
+                }
+            }
+        }
+        return JsonUtils.toJsonString(schema);
     }
 
     @Transactional(propagation = Propagation.MANDATORY)

@@ -25,7 +25,8 @@ public final class CutoverPlanDocumentRenderer {
     @Builder
     public record RenderContext(CutoverTaskDO task, CutoverPlanRevisionDO plan, ObjectNode content,
                                 List<CutoverPlanStepDO> steps, List<CutoverSupportArrangementDO> supports,
-                                Function<JsonNode, Attachment> attachment) { }
+                                Function<JsonNode, Attachment> attachment,
+                                Function<JsonNode, String> riskDescription) { }
 
     public static byte[] render(RenderContext context) {
         var task = context.task(); var plan = context.plan();
@@ -99,7 +100,10 @@ public final class CutoverPlanDocumentRenderer {
             if (content.has("riskMitigations")) {
                 paragraph(document, "风险缓解措施", true);
                 for (var risk : content.path("riskMitigations")) {
-                    paragraph(document, risk.path("riskFact").path("itemName").asText() + "：" + risk.path("riskFact").path("factDescription").asText(), false);
+                    var fact = risk.path("riskFact");
+                    String description = context.riskDescription() == null ? fact.path("factDescription").asText()
+                            : context.riskDescription().apply(fact);
+                    paragraph(document, fact.path("itemName").asText() + "：" + description, false);
                     paragraph(document, "缓解措施：" + risk.path("mitigation").asText(), false);
                 }
             }

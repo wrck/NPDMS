@@ -31,7 +31,7 @@ const scalarLabel = computed(() => {
 })
 const fileFact = computed(() => answer.value && !Array.isArray(answer.value) && typeof answer.value === 'object' && 'artifactId' in answer.value ? answer.value : null)
 const labels: Record<string, string> = {
-  executed: '是否已执行', specialNote: '特殊情况备注', remark: '备注', notes: '备注', description: '说明',
+  specialNote: '特殊情况备注', remark: '备注', notes: '备注', description: '说明',
   solvesOnlineIssue: '是否解决网上问题', issueTicketNo: '问题工单号', issueHandler: '问题处理二线工程师',
   repeatCutover: '是否再次割接', firstCutoverOwner: '上次割接负责人', backgroundDescription: '割接背景表述',
   deviceType: '设备类型', serialNumber: '序列号', deviceName: '设备名称', location: '部署位置',
