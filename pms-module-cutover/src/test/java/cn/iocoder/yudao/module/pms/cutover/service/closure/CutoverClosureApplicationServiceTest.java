@@ -137,6 +137,24 @@ class CutoverClosureApplicationServiceTest {
         assertThat(evidence.getLast().getOriginalFailedCollectionTaskId()).isEqualTo(failedTaskId);
         assertThat(attachments).extracting(CutoverClosureAttachmentDO::getPurposeCode)
                 .containsExactly("MANUAL_COLLECTION_RESULT");
+
+        when(closureMapper.selectById(400L)).thenReturn(closure);
+        for (String status : List.of("SUCCEEDED", "FAILED")) {
+            int previousSize = evidence.size();
+            var platformResult = new cn.iocoder.yudao.module.pms.platform.api.collection.CollectionBusinessResultReceiver.Result(
+                    1L, "cutover-pre-check", 400L, "CUT", "CUTOVER_CLOSURE", 10L, 11L,
+                    (long) previousSize, 9L, "platform-" + status, 1L, 503L, "SSH", status,
+                    null, "show version", null);
+            service.receivePlatformResult(platformResult);
+            assertThat(evidence).hasSize(previousSize + 2);
+            assertThat(evidence.get(previousSize).getRecordedBy()).isEqualTo(9L);
+            // Automated callbacks use the same system identity required by the database union constraint.
+            assertThat(evidence.getLast().getRecordedBy()).isZero();
+            assertThat(evidence.getLast().getEvidenceTypeCode()).isEqualTo("SUCCEEDED".equals(status)
+                    ? "CALLBACK_SUCCEEDED" : "CALLBACK_FAILED");
+            service.receivePlatformResult(platformResult);
+            assertThat(evidence).hasSize(previousSize + 2);
+        }
     }
 
     @Test
