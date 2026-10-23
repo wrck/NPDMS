@@ -20,7 +20,7 @@ vi.mock('@/components/ProjectDeviceSelect/index.vue', () => ({ default: {} }))
 vi.mock('./LogParsingDialog.vue', () => ({ default: {} }))
 
 const dialog = defineComponent({ props: { modelValue: Boolean }, setup(props, { slots }) { return () => props.modelValue ? h('section', [slots.default?.(), slots.footer?.()]) : null } })
-const form = defineComponent({ setup(_, { slots, expose }) { expose({ validate: async () => true, validateField: async () => true }); return () => h('form', slots.default?.()) } })
+const form = defineComponent({ setup(_, { slots, expose }) { expose({ validate: async () => true, validateField: async () => true, clearValidate: vi.fn() }); return () => h('form', slots.default?.()) } })
 const controls = Object.fromEntries(['ElAlert', 'ElFormItem', 'ElRadioGroup', 'ElRadio', 'ElSelect', 'ElOption', 'ElRow', 'ElCol', 'ElInput', 'ElInputNumber', 'ElButton', 'ElTable', 'ElTableColumn', 'ElDatePicker', 'ElTag', 'Pagination'].map(key => [key, passthrough]))
 const flush = async () => { for (let i = 0; i < 12; i++) await nextTick() }
 const render = (location = 'server', options: Record<string, unknown> = {}) => {
@@ -47,6 +47,70 @@ const desktopExecution = { id: '41', actorId: '7', dispatchMode: 'DESKTOP', comm
 
 const localConnection = (id = 'local-connection-1') => ({ id, displayName: '设备连接', version: 0,
   connection: { protocol: 'SSH2', authenticationType: 'PASSWORD', executionMode: 'SHELL', host: '192.0.2.10', port: 2222, username: 'operator' } })
+
+it.each(['server', 'desktop'])('%s refreshes the source version for a new dispatch after previous results changed it', async location => {
+  const m = render(location)
+  try {
+    await m.state.open('30'); m.state.localReady = true; await flush()
+    Object.assign(m.state.form, {host:'test.example',username:'operator',password:'test-secret',commands:'show version'})
+    api.context.mockResolvedValue({...m.state.source,version:4})
+    api.submit.mockResolvedValue(desktopExecution)
+    api.prepareDesktop.mockResolvedValue({execution:desktopExecution,ticket:{value:'execute-ticket'}})
+    local.request.mockResolvedValue({collectionId:'collection-1',existing:false})
+    await m.state.submit()
+    expect(location === 'desktop' ? api.prepareDesktop : api.submit).toHaveBeenCalledWith('cutover-checklist','30',expect.objectContaining({expectedVersion:4}))
+  } finally { m.app.unmount() }
+})
+
+it.each(['revoked','project-changed','device-changed','version-missing'])('does not dispatch when refreshed source is %s', async change => {
+  const m = render('desktop',{entry:'configuration',deviceId:undefined})
+  try {
+    await m.state.open('30'); m.state.localReady = true; await flush()
+    Object.assign(m.state.form, {host:'test.example',username:'operator',password:'test-secret',commands:'show version'})
+    api.context.mockResolvedValue({...m.state.source,...({
+      revoked:{canExecute:false},'project-changed':{projectId:'22'},'device-changed':{deviceId:'9'},'version-missing':{version:null}
+    }[change])})
+    await m.state.submit()
+    expect(api.prepareDesktop).not.toHaveBeenCalled()
+    expect(messages.warning).toHaveBeenCalled()
+  } finally { m.app.unmount() }
+})
+
+it('rematches a saved local connection on retry and clears stale validation without dispatching', async () => {
+  const m = render('desktop')
+  local.request.mockResolvedValue({items:[localConnection()],scope:{projectId:'21',deviceId:'9007199254740993',protocol:'SSH2'}})
+  try {
+    await m.state.open('30'); m.state.localReady = true; await flush()
+    expect(m.state.credentialMode).toBe('saved')
+    await m.state.retry({id:'41',commandText:'show verison',task:{deviceId:'9007199254740993',host:'192.0.2.10',port:2222,protocol:'SSH'}})
+    await flush()
+    expect(m.state.credentialMode).toBe('saved')
+    expect(m.state.form.credentialId).toBe('local-connection-1')
+    expect(m.state.form.password).toBe('')
+    expect(m.state.form.commands).toBe('show verison')
+    expect(m.state.form.retryOfId).toBe('41')
+    expect(m.state.formRef.clearValidate).toHaveBeenCalled()
+    expect(api.prepareDesktop).not.toHaveBeenCalled()
+  } finally { m.app.unmount() }
+})
+
+it('keeps rejected form validation local without opening save or dispatching requests', async () => {
+  const m = render('desktop')
+  try {
+    await m.state.open('30'); m.state.localReady = true; await flush()
+    const invalid = () => Promise.reject({ host: [{ message: '请填写此项' }] })
+    m.state.formRef.validateField = invalid
+    await expect(m.state.openConnectionSave()).resolves.toBeUndefined()
+    expect(m.state.connectionSaveVisible).toBe(false)
+    m.state.formRef.validate = invalid
+    await expect(m.state.submit()).resolves.toBeUndefined()
+    expect(api.prepareDesktop).not.toHaveBeenCalled()
+    m.state.connectionSaveRef = { validate: invalid }
+    await expect(m.state.saveCurrentConnection()).resolves.toBeUndefined()
+    expect(api.saveConnection).not.toHaveBeenCalled()
+    expect(m.state.connectionSaving).toBe(false)
+  } finally { m.app.unmount() }
+})
 
 it.each(['cutover-checklist','cutover-pre-check','cutover-execution','cutover-test','cutover-rollback','cutover-post-collection'])(
   '%s keeps the original execution device when retrying a multi-device source', async entry => {

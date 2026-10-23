@@ -438,7 +438,7 @@ const openConnectionSave = async () => {
   if (!source.value || (!form.deviceId && executionLocation.value !== 'desktop') || !canDispatch.value || connectionSaving.value) return
   if (executionLocation.value === 'desktop' && !localReady.value) return
   if (!connectionSaveFrozen.value) {
-    await formRef.value.validateField(['host', 'port', 'username', 'protocol'])
+    if (!await formRef.value.validateField(['host', 'port', 'username', 'protocol']).catch(() => false)) return
     Object.assign(connectionSaveForm, {
       requestKey: generateUUID(), name: '', projectId: source.value.projectId, deviceId: form.deviceId ?? 0,
       protocol: form.protocol, host: form.host, port: form.port, username: form.username,
@@ -450,7 +450,7 @@ const openConnectionSave = async () => {
 }
 const saveCurrentConnection = async () => {
   if (connectionSaving.value) return
-  await connectionSaveRef.value.validate()
+  if (!await connectionSaveRef.value.validate().catch(() => false)) return
   connectionSaving.value = true
   connectionSaveFrozen.value = true
   try {
@@ -908,7 +908,7 @@ const submit = async () => {
     return
   }
   if (source.value?.version == null) { message.warning('采集来源版本缺失，请刷新来源记录后重试'); return }
-  await formRef.value.validate()
+  if (!await formRef.value.validate().catch(() => false)) return
   const target = credentialMode.value === 'saved' ? selectedConnection.value : form
   if (!target?.host?.trim() || !target.username?.trim() || !Number.isInteger(target.port) || target.port < 1 || target.port > 65535) {
     message.warning('连接信息不完整，请填写地址、端口、用户名，或重新选择保存连接'); return
@@ -920,6 +920,18 @@ const submit = async () => {
   busy.value = true
   autoRefresh.value = true
   try {
+    // Accepted executions and callbacks can advance the source while this window stays open.
+    // Re-authorize a new dispatch without reusing the previous source version or changing its scope.
+    const currentSource = await Api.context(props.entry, objectId.value)
+    if (!currentSource?.canExecute) { message.warning('当前来源已不可采集，请刷新业务记录后重试'); return }
+    if (!validBusinessId(currentSource.projectId) || currentSource.version == null) {
+      message.warning('采集来源缺少项目或版本，请先完善来源记录'); return
+    }
+    if (String(currentSource.projectId) !== String(source.value!.projectId)
+      || ['configuration', 'joint-test'].includes(props.entry) && String(currentSource.deviceId) !== String(form.deviceId)) {
+      message.warning('当前业务记录的项目或设备已变化，请关闭窗口后重新发起采集'); return
+    }
+    source.value = currentSource
     requestKey.value ||= generateUUID()
     trackedRequestKey.value = requestKey.value
     const common = {
@@ -1176,6 +1188,8 @@ const retry = async (row: Api.Execution) => {
   form.port = row.task.port
   form.retryOfId = row.id
   form.password = ''
+  credentialMode.value = 'temporary'
+  connectionAutoMatchKey = ''
   // Let protocol watchers start before awaiting the authoritative choice reload.
   await nextTick()
   try { await loadChoices() }
@@ -1186,8 +1200,9 @@ const retry = async (row: Api.Execution) => {
   commandMode.value = template || !source.value.manualAllowed ? 'template' : 'manual'
   form.templateId = template?.id
   form.commands = row.commandText || ''
-  credentialMode.value = 'temporary'
   requestKey.value = ''
+  await nextTick()
+  formRef.value?.clearValidate()
   message.info('已填入原任务内容，请核对模板与凭证后下发')
 }
 defineExpose({ open })
