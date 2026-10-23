@@ -85,3 +85,9 @@
 按需求方授权，仅 DeviceQueryService.getPage 显式开启同步 AuthorizationReadScope，正常返回、提前返回或异常均自动清理；下一次列表建立新作用域，不向其他线程传播，不启用跨请求缓存。SYSTEM.getActiveScopes 在作用域内按当前租户、租户忽略模式及用户复用原始只读行，每次重新转换DTO，避免消费者修改污染后续调用。PROJ.resolveAllCurrent 按上下文租户、租户忽略模式及完整ProjectAllScopeQuery（租户、主体、动作）复用。未开启作用域的既有入口继续每次读取；异常不缓存，保留调用方原失败关闭、审计和重试行为。AST及COM继续分别通过Owner API获取并裁剪范围，未改变SQL、授权规则、合同候选交集、筛选、排序或分页。
 
 36 项定向测试通过，包含新增common作用域测试和yudao-server装配层调用链测试（测试依赖仅test scope）：真实AST→COM→SYSTEM/PROJ实现配合持久层替身，验证成功组织查询和项目解析各一次，下一次列表再次查询，租户/用户/动作隔离，DTO修改隔离，空范围，失败重试及异常后清理；既有合同授权、设备权限与SQL回归通过。验证证明代码调用次数与规则回归，不等同已部署接口时延或真实浏览器验收。日志及结果见 .run/device-permission-reuse-tests.log、.run/device-permission-reuse-results.json。未部署、未重启服务。
+
+### 2026-10-23 普通用户全部项目权限改为批量树事实读取
+
+按需求方授权，ProjectTreeScopeService.resolveAllFullProjectIds 保留候选发现（成员、创建人及Owner授权分页）和既有三种动作判定，普通用户不再逐树调用 resolve 查库。新增场景Query及Mapper XML：按租户/根集合以ROW_NUMBER选最新ACTIVE版本（tree_version、id倒序），按精确根/版本对批量取根路径，按每棵树自身的授权锚点集合批量取后代路径；空根/树/锚点集合失败关闭。候选版本发现后批量检查根项目，再批量复核版本，保留失配/缺失的失败行为。发现阶段不冻结最终授权：成员、创建人均在授权阶段再批量读取；权限动作、有效时点、VIEW附加MANAGE授权、EDIT映射MANAGE、仅显式后代授权扩展及租户边界保持。完整ID集合不计算无消费者的路径占位节点；单树resolve/resolveCurrent及写入lockAndRevalidate原路径不变。
+
+固定工具链与工作树构建锁下55项相关测试通过：18项原单树权限测试、5项批量权限测试、1项真实Mapper SQL测试及31项设备/合同/装配链回归。多树三动作与原单树结果逐棵对照一致；覆盖跨树锚点隔离、无活动版本、版本变化、缺失根、Owner失败、发现后成员/创建人撤销、角色复核和空集合。MySQL只读验证3棵实际树及35条根/后代路径，新旧查询结果一致，4种空集合返回空结果。首次测试等待其他构建释放锁，未绕过锁；最新源文件已编译并完成重跑。日志见 .run/project-scope-batch-tests.log、.run/project-scope-batch-retest.log，结果见 .run/project-scope-batch-results.json、.run/project-scope-batch-mysql.json。未修改业务数据，未部署、未重启服务；不以这些证据宣称运行接口已切换或整体时延已提升。
