@@ -1242,3 +1242,16 @@ AST `ProjectDeviceSelectionApi.validateSelection(AuthorizedSelection{tenantId,ac
 ### 2026-10-23 割接读取性能契约补充
 
 `DeviceQueryApi.getProjectDeviceSummaries(ProjectDeviceInstallationQuery)`批量读取当前直接归属项目的设备摘要，复用现有DeviceSummaryDTO；查询租户必须为当前租户。资产当前项目可见范围包含该项目时，同一次读取只解析一次项目范围，再按租户、项目和未删除条件读取设备；该条件是既有单设备可见性OR规则的充分条件。项目范围不包含该项目时仍逐台执行原getDevice的组织/合同/项目可见性校验，任一设备无权读取仍失败，不返回部分成功替代完整范围。没有跨请求权限缓存。IMP覆盖查询保留原锁定项目设备集合与逐项租户、项目、归属版本核对，只将单设备重复查询改为消费该批量接口，不更改覆盖/完成判定。
+
+### 2026-10-23 用户公司部门范围维护（需求方本次会话批准）
+
+SYSTEM继续拥有既有`UserCompanyDepartmentScope`，用户管理新增“公司部门范围”入口。该补齐不改变`OrganizationScopeApi`、公司部门匹配、合同公司范围、项目资格及设备组织授权的既定含义，不由部门树推导公司。
+
+| PMS Business API（统一admin-api前缀） | 方法 | 契约 |
+| --- | --- | --- |
+| `/api/v1/pms/user-organization-scopes` | GET | `userId`必填，`status`可选0/1；PageParam/PageResult，稳定按ID倒序，含停用历史。查看权限`system:user-scope:query`或维护权限`system:user-scope:manage`；目标用户须通过SYSTEM既有用户数据权限。 |
+| 同上 | POST | 需维护权限；公司必选、部门可空；提交组织ID、既定scopeRole、isPrimary、生效及可空到期时间。组织编码/名称由SYSTEM回源，新增启用范围并返回ID。不得接受客户端租户、组织快照或状态。 |
+| `/{id}/actions/revise` | POST | 需维护权限及完整保存体、expectedVersion；范围必须属于userId。事务内按版本停用原行并新增修订行，返回新ID；不覆盖原组织、角色、主标记、时间区间，失败整体回滚。 |
+| `/{id}/actions/disable` | POST | 需维护权限，提交userId、expectedVersion；按版本停用并递增版本，保留历史。已停用或陈旧版本返回明确冲突；主数据停用不阻止撤权。 |
+
+新增及修订要求用户/公司启用，部门存在时启用且具有非空统一编码；部门ID/编码同源保存。生效区间为左闭右开，到期须晚于生效；不新增范围角色枚举或主范围唯一性规则。角色编码为已有资格接口使用的稳定scopeRole（非空、最长32），维护不授予全局功能角色。租户由框架上下文隔离，用户/部门数据范围继续生效；越权/跨租户不可读写，不提供删除接口。业务写入沿用SYSTEM操作日志，记录操作者、时间、用户、原范围与修订范围ID；范围原行持续保留。

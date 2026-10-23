@@ -158,7 +158,9 @@
                   v-hasPermi="[
                     'system:user:delete',
                     'system:user:update-password',
-                    'system:permission:assign-user-role'
+                    'system:permission:assign-user-role',
+                    'system:user-scope:query',
+                    'system:user-scope:manage'
                   ]"
                 >
                   <el-button type="primary" link><Icon icon="ep:d-arrow-right" /> 更多</el-button>
@@ -181,6 +183,12 @@
                         v-if="checkPermi(['system:permission:assign-user-role'])"
                       >
                         <Icon icon="ep:circle-check" />分配角色
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        command="handleOrganizationScope"
+                        v-if="checkPermi(['system:user-scope:query', 'system:user-scope:manage'])"
+                      >
+                        <Icon icon="ep:office-building" />公司部门范围
                       </el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
@@ -205,6 +213,7 @@
   <UserImportForm ref="importFormRef" @success="getList" />
   <!-- 分配角色 -->
   <UserAssignRoleForm ref="assignRoleFormRef" @success="getList" />
+  <UserOrganizationScopeForm ref="organizationScopeFormRef" />
 </template>
 <script lang="ts" setup>
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
@@ -216,6 +225,7 @@ import * as UserApi from '@/api/system/user'
 import UserForm from './UserForm.vue'
 import UserImportForm from './UserImportForm.vue'
 import UserAssignRoleForm from './UserAssignRoleForm.vue'
+import UserOrganizationScopeForm from './UserOrganizationScopeForm.vue'
 import DeptTreeSelect from '@/views/system/dept/components/DeptTreeSelect.vue'
 
 defineOptions({ name: 'SystemUser' })
@@ -324,6 +334,9 @@ const handleCommand = (command: string, row: UserApi.UserVO) => {
     case 'handleRole':
       handleRole(row)
       break
+    case 'handleOrganizationScope':
+      organizationScopeFormRef.value.open(row)
+      break
     default:
       break
   }
@@ -378,6 +391,7 @@ const handleResetPwd = async (row: UserApi.UserVO) => {
 
 /** 分配角色 */
 const assignRoleFormRef = ref()
+const organizationScopeFormRef = ref()
 const handleRole = (row: UserApi.UserVO) => {
   assignRoleFormRef.value.open(row)
 }
