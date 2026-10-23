@@ -1597,3 +1597,10 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Current action: 已复现并保存证据.run/user-org-scope/z01010-device-detail.png及.txt；按本条Resolution实现设备专用范围收敛，验证记录归F-AST-001 Task，未再次部署。
 
 - Resolution (2026-10-24): 需求方选择“采用建议，保留公司部门约束”。设备保留组织范围或明确项目授权；合同分支必须命中同一当前有效组织范围行的公司及可选部门，公司级范围仍覆盖公司。收敛仅适用于设备授权，不改变COM合同目录的既定公司范围，不靠修改实际用户角色/授权修复。
+
+## Q-PLN-MANAGEMENT-MENU-20261024 — 施工计划独立菜单开放范围
+
+- Status: RESOLVED（2026-10-24，需求方确认四类现有角色）。
+- Resolution: 独立“阶段施工计划”菜单仅对super_admin、admin、engineeManager、engineeManagerLeader展示；多角色用户命中任一上述角色即可保留。项目经理、服务经理单独持有角色时隐藏入口。需求方同时要求检查隐藏入口对施工计划重排的影响。
+- Boundary: 菜单展示收敛不撤销既有施工计划query/create/update/submit权限，不移除路由，不改变项目详情内重新倒排的项目范围、草稿状态、日期校验和批准历史保护。仅给现有三个管理角色补齐独立页面及父目录的菜单初始化授权，不创建新角色或自动授予项目范围。
+- Evidence: 当前验收库原显式菜单角色为PROJECT_MANAGER/SERVICE_MANAGER，super_admin默认全菜单；三个管理角色原无该页面授权。实现及验证见docs/generated/2026-10-24-stage-plan-menu-visibility.md。
