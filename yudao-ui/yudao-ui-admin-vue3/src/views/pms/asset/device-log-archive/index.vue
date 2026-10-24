@@ -86,7 +86,7 @@
               parseStates[String(row.latest.id)].message || parseStates[String(row.latest.id)].state
             }}</div>
           </template>
-          <span v-else>—</span>
+          <span v-else>{{ row.latest?.available ? '解析状态加载中…' : '—' }}</span>
         </template></el-table-column
       >
       <el-table-column label="最新版本" width="110"
@@ -251,15 +251,16 @@ const viewParsed = async (file: Api.LogFile) => {
 const parseStates = ref<Record<string, Api.ParseState>>({})
 let parseTimer: ReturnType<typeof setTimeout> | undefined
 let parseAttempts = 0
+let parseSequence = 0
 const refreshParses = async (currentRows: Api.DeviceLog[], sequence: number) => {
   const files = currentRows.flatMap((row) => (row.latest?.available ? [row.latest] : []))
   await Promise.all(
     files.map(async (file) => {
       try {
         const state = await Api.parseState(file.id)
-        if (sequence === loadSequence) parseStates.value[String(file.id)] = state
+        if (sequence === parseSequence) parseStates.value[String(file.id)] = state
       } catch {
-        if (sequence === loadSequence)
+        if (sequence === parseSequence)
           parseStates.value[String(file.id)] = {
             state: 'QUERY_FAILED',
             message: '解析状态加载失败，请刷新重试'
@@ -267,23 +268,31 @@ const refreshParses = async (currentRows: Api.DeviceLog[], sequence: number) => 
       }
     })
   )
-  if (sequence !== loadSequence) return
-  const pending = Object.values(parseStates.value).some((v) =>
-    ['SUBMITTING', 'QUEUED', 'RUNNING'].includes(v.state)
+  if (sequence !== parseSequence) return
+  const pending = files.some((file) =>
+    ['SUBMITTING', 'QUEUED', 'RUNNING'].includes(parseStates.value[String(file.id)]?.state)
   )
   if (pending && ++parseAttempts < 60)
     parseTimer = setTimeout(() => refreshParses(currentRows, sequence), 2000)
 }
 onBeforeUnmount(() => {
   ++loadSequence
+  ++parseSequence
   ++parsedSequence
   if (parseTimer) clearTimeout(parseTimer)
 })
 let loadSequence = 0
 let historySequence = 0
+watch(filteredRows, (visibleRows) => {
+  const sequence = ++parseSequence
+  if (parseTimer) clearTimeout(parseTimer)
+  parseAttempts = 0
+  void refreshParses(visibleRows, sequence)
+})
 const load = async () => {
   const current = projectId.value
   const sequence = ++loadSequence
+  ++parseSequence
   if (parseTimer) clearTimeout(parseTimer)
   parseAttempts = 0
   parseStates.value = {}
@@ -298,7 +307,6 @@ const load = async () => {
     const data = await Api.latest(current)
     if (sequence === loadSequence) {
       rows.value = data
-      await refreshParses(data, sequence)
     }
   } catch {
     if (sequence === loadSequence) loadFailed.value = true

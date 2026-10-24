@@ -10,8 +10,9 @@
               AND t.ancestor_project_id = t.root_project_id
             <choose>
                 <when test="query.readScope.projectScope != null and query.readScope.projectScope.tenantId == query.tenantId and !query.readScope.projectScope.trees.isEmpty()">
-                    AND <foreach collection="query.readScope.projectScope.trees" item="tree" open="(" separator=" OR " close=")">
-                        (t.root_project_id = #{tree.rootProjectId} AND t.tree_version = #{tree.treeVersion})
+                    AND (t.root_project_id, t.tree_version) IN
+                    <foreach collection="query.readScope.projectScope.trees" item="tree" open="(" separator="," close=")">
+                        (#{tree.rootProjectId}, #{tree.treeVersion})
                     </foreach>
                 </when>
                 <otherwise>AND 1 = 0</otherwise>

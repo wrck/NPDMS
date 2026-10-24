@@ -207,6 +207,7 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
                 latest.put(row.getDeviceId(), fileView(row));
             }
         }
+        if (latest.isEmpty()) return List.of();
         return deviceQueries.projectDevices(new DeviceLogProjectQuery(tenant, projectId)).stream()
                 .filter(d -> latest.containsKey(d.getId()))
                 .map(d -> new DeviceView(d.getId(), d.getSn(), d.getName(), latest.get(d.getId()))).toList();

@@ -48,7 +48,8 @@ public class CommerceDeliveryScopeQueryService {
             return PageResult.empty();
         }
         DeliveryScopePageQuery query = new DeliveryScopePageQuery(
-                tenantId, visibleProjectIds, projectId, orderLineId, includeHistory, offset, limit);
+                tenantId, projectId == null ? visibleProjectIds : List.of(projectId),
+                projectId, orderLineId, includeHistory, offset, limit);
         long total = scopeMapper.selectCountByProjectScope(query);
         if (total == 0L) {
             return PageResult.empty();

@@ -292,4 +292,43 @@ class ContractAccessServiceTest {
         value.setVersion(version);
         return value;
     }
+    @Test void orderLineCandidatesOnlyNarrowAuthorizedProjectsAndPreserveCompanyScope() {
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "001", 1)));
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L, 20L));
+        when(lineMapper.selectProjectCandidatesByOrder(any())).thenReturn(List.of(20L, 999L));
+        service.pageSalesOrderLines(1L, 7L, "trace", lineSearch("ORDER"));
+        var captor = ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineCompanyScopeQuery.class);
+        verify(lineMapper).selectCountByCompanyScope(captor.capture());
+        assertEquals(List.of(20L), captor.getValue().projectIds());
+        assertEquals(List.of("001"), captor.getValue().companyCodes());
+        assertEquals("ORDER", captor.getValue().orderNo());
+    }
+
+    @Test void orderLineWithoutOrderFilterKeepsFullAuthorizedScope() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L, 20L));
+        service.pageSalesOrderLines(1L, 7L, "trace", lineSearch(null));
+        verify(lineMapper, never()).selectProjectCandidatesByOrder(any());
+        var captor = ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineCompanyScopeQuery.class);
+        verify(lineMapper).selectCountByCompanyScope(captor.capture());
+        assertEquals(List.of(10L, 20L), captor.getValue().projectIds());
+    }
+
+    @Test void unrelatedOrderCandidatesCannotGrantAccess() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        when(lineMapper.selectProjectCandidatesByOrder(any())).thenReturn(List.of(999L));
+        assertEquals(0L, service.pageSalesOrderLines(1L, 7L, "trace", lineSearch("ORDER")).getTotal());
+        verify(lineMapper, never()).selectCountByCompanyScope(any());
+        verify(lineMapper, never()).selectByCompanyScope(any());
+    }
+
+    @Test void candidateReadFailureNeverFallsBackToUnrestrictedLines() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        when(lineMapper.selectProjectCandidatesByOrder(any())).thenThrow(new IllegalStateException("unavailable"));
+        assertThrows(IllegalStateException.class, () -> service.pageSalesOrderLines(1L, 7L, "trace", lineSearch("ORDER")));
+        verify(lineMapper, never()).selectCountByCompanyScope(any());
+    }
+
+    private ContractAccessService.SalesOrderLineSearch lineSearch(String orderNo) {
+        return new ContractAccessService.SalesOrderLineSearch(null, null, null, orderNo, null, null, null, null, 0, 20);
+    }
 }

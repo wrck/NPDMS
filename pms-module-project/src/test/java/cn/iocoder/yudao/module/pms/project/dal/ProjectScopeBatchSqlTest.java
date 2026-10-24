@@ -6,9 +6,42 @@ import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.Test;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.stream.LongStream;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectScopeBatchSqlTest {
+    @Test void thousandsOfRootVersionPairsSurviveTheProductionSqlCache() throws Exception {
+        var trees = LongStream.rangeClosed(1, 5000)
+                .mapToObj(id -> new ProjectScopeRootPathsQuery.TreeVersion(id, id % 7 + 1)).toList();
+        assertProductionCacheRoundTrip("selectScopeRootPaths", new ProjectScopeRootPathsQuery(1L, trees));
+    }
+
+    @Test void thousandsOfSubtreeScopesSurviveTheProductionSqlCache() throws Exception {
+        var subtrees = LongStream.rangeClosed(1, 5000)
+                .mapToObj(id -> new ProjectScopeDescendantsQuery.Subtree(id, id % 7 + 1, Set.of(id, id + 10000))).toList();
+        assertProductionCacheRoundTrip("selectScopeDescendants", new ProjectScopeDescendantsQuery(1L, subtrees));
+    }
+
+    private void assertProductionCacheRoundTrip(String method, Object query) throws Exception {
+        new cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration();
+        var config = new Configuration();
+        try (var xml = getClass().getResourceAsStream("/mapper/projecttree/ProjectTreePathMapper.xml")) {
+            new XMLMapperBuilder(xml, config, "ProjectTreePathMapper", config.getSqlFragments()).parse();
+        }
+        String sql = config.getMappedStatement("cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper." + method)
+                .getBoundSql(Map.of("query", query)).getSql();
+        // A fixed worker stack reproduces the production serialization failure independently of Maven's stack size.
+        try (var executor = Executors.newSingleThreadExecutor(task -> new Thread(null, task, "large-project-scope", 512 * 1024))) {
+            executor.submit(() -> {
+                var first = com.baomidou.mybatisplus.extension.parser.JsqlParserGlobal.parse(sql);
+                var cached = com.baomidou.mybatisplus.extension.parser.JsqlParserGlobal.parse(sql);
+                assertNotSame(first, cached, "Tenant interception must receive its own parsed statement");
+                return null;
+            }).get(60, TimeUnit.SECONDS);
+        }
+    }
+
     @Test void batchQueriesKeepLatestActiveTenantVersionAndExactRootVersionPairsAndFailClosed() throws Exception {
         var config=new Configuration();
         for(String mapper:List.of("ProjectTreeVersionMapper","ProjectTreePathMapper")) {
@@ -31,6 +64,11 @@ class ProjectScopeBatchSqlTest {
             assertEquals(Set.of(3L,6L),ids(connection,config,"ProjectTreePathMapper.selectScopeDescendants",new ProjectScopeDescendantsQuery(0L,subtrees)));
             assertEquals(Set.of(),ids(connection,config,"ProjectTreePathMapper.selectScopeDescendants",new ProjectScopeDescendantsQuery(0L,List.of())));
             assertEquals(Set.of(),ids(connection,config,"ProjectTreePathMapper.selectScopeDescendants",new ProjectScopeDescendantsQuery(0L,List.of(new ProjectScopeDescendantsQuery.Subtree(1L,8L,Set.of())))));
+            var mixed = Arrays.asList(new ProjectScopeDescendantsQuery.Subtree(1L,8L,Set.of()),
+                    new ProjectScopeDescendantsQuery.Subtree(10L,4L,Set.of(11L)),
+                    new ProjectScopeDescendantsQuery.Subtree(1L,8L,null));
+            assertEquals(Set.of(6L),ids(connection,config,"ProjectTreePathMapper.selectScopeDescendants",new ProjectScopeDescendantsQuery(0L,mixed)));
+            assertEquals(Set.of(),ids(connection,config,"ProjectTreePathMapper.selectScopeDescendants",new ProjectScopeDescendantsQuery(0L,null)));
         }
     }
     private Set<Long> ids(Connection connection,Configuration config,String method,Object query) throws Exception {

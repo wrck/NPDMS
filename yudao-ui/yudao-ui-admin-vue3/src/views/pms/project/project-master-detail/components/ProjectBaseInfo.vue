@@ -4,14 +4,21 @@
       <dl class="fact-grid">
         <div v-for="field in baseFields" :key="field.label" class="fact" :class="{ 'fact-wide': field.wide }">
           <dt>{{ field.label }}</dt>
-          <dd>{{ field.value || '—' }}</dd>
+          <dd>
+            {{ field.value || '—' }}
+            <template v-if="field.label === '合同号'">
+              <span v-if="loading" role="status" class="text-[var(--el-text-color-secondary)]">合同信息加载中…</span>
+              <el-button v-if="error" link type="primary" @click="load">合同信息加载失败，重试</el-button>
+            </template>
+          </dd>
         </div>
       </dl>
     </section>
     <section v-if="checkRole(['admin'])" class="fact-section" v-loading="loading">
-      <div class="section-heading"><h3>合同与执行单</h3><el-button v-if="error" link type="primary" @click="load">重新加载</el-button></div>
+      <div class="section-heading"><h3>合同与执行单</h3><el-button v-if="error || marketError" link type="primary" @click="load">重新加载</el-button></div>
       <el-alert v-if="error" :title="error" type="warning" :closable="false" />
-      <p v-else-if="!canReadCommerce" class="empty-note">暂无商务资料查看权限。</p>
+      <el-alert v-if="marketError" :title="marketError" type="warning" :closable="false" />
+      <p v-if="!canReadCommerce" class="empty-note">暂无商务资料查看权限。</p>
       <template v-else>
         <div v-for="contract in commerce?.contracts || []" :key="contract.id" class="source-record">
           <div class="record-heading"><el-tag effect="plain">合同</el-tag><strong>{{ contract.contractNo }}</strong><span>{{ contract.contractName }}</span></div>
@@ -81,6 +88,7 @@ const marketPath = (source: MarketSource) => [source.marketName || source.market
 const members = ref<MemberRecord[]>([])
 const loading = ref(false)
 const error = ref('')
+const marketError = ref('')
 const memberError = ref(false)
 const canReadCommerce = computed(() => checkPermi(['pms:commerce:contract:query']))
 const label = (value: string | null | undefined, dict: DICT_TYPE) => value ? getDictLabel(dict, value) || value : '—'
@@ -139,9 +147,9 @@ let requestId = 0
 const load = async () => {
   const id = props.project.id
   const current = ++requestId
-  commerce.value = undefined; scopedMarketSources.value = []; members.value = []; error.value = ''; memberError.value = false
+  commerce.value = undefined; scopedMarketSources.value = []; members.value = []; error.value = ''; memberError.value = false; marketError.value = ''
   if (!id) return
-  loading.value = true
+  loading.value = canReadCommerce.value
   await Promise.all([
     (async () => {
       if (!canReadCommerce.value) return
@@ -149,12 +157,16 @@ const load = async () => {
         const value = await request.get<CommerceOverview>({ url: `/api/v1/pms/contracts/project/${id}/overview` })
         if (current !== requestId) return
         commerce.value = value
+        loading.value = false
         if (!marketPath(props.project)) {
-          const executionNos = new Set(value.orders.map(order => order.executionNo).filter(Boolean))
-          const sources = await Promise.all(value.contracts.map(contract => request.get<{ executionOrders: (MarketSource & { executionNo: string })[] }>({ url: `/api/v1/pms/contracts/${contract.id}/creation-source` })))
-          if (current === requestId) scopedMarketSources.value = sources.flatMap(source => source.executionOrders).filter(execution => executionNos.has(execution.executionNo))
+          try {
+            const executionNos = new Set(value.orders.map(order => order.executionNo).filter(Boolean))
+            const sources = await Promise.all(value.contracts.map(contract => request.get<{ executionOrders: (MarketSource & { executionNo: string })[] }>({ url: `/api/v1/pms/contracts/${contract.id}/creation-source` })))
+            if (current === requestId) scopedMarketSources.value = sources.flatMap(source => source.executionOrders).filter(execution => executionNos.has(execution.executionNo))
+          } catch { if (current === requestId) marketError.value = '市场补充信息加载失败，请重试。' }
         }
       } catch { if (current === requestId) error.value = '商务资料加载失败，请重试。' }
+      finally { if (current === requestId) loading.value = false }
     })(),
     (async () => {
       try {

@@ -151,10 +151,22 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
                                                              SalesOrderLineSearch criteria) {
         AccessScope scope = currentAccessScope(tenantId, subjectUserId, correlationId);
         if (scope.empty()) return PageResult.empty();
+        int offset = checkedOffset(criteria.offset());
+        int limit = checkedLimit(criteria.limit());
+        List<Long> projectIds = scope.projectIds();
+        if (!projectIds.isEmpty() && (criteria.orderId() != null
+                || (criteria.orderNo() != null && !criteria.orderNo().isEmpty()))) {
+            // Candidate discovery only narrows the authoritative scope; the final SQL rechecks relations.
+            var candidates = new java.util.HashSet<>(lineMapper.selectProjectCandidatesByOrder(
+                    new cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineProjectCandidateQuery(
+                            tenantId, criteria.orderId(), criteria.orderNo())));
+            projectIds = projectIds.stream().filter(candidates::contains).toList();
+            if (scope.companyCodes().isEmpty() && projectIds.isEmpty()) return PageResult.empty();
+        }
         SalesOrderLineCompanyScopeQuery query = new SalesOrderLineCompanyScopeQuery(tenantId,
-                scope.companyCodes(), scope.projectIds(), criteria.orderId(), criteria.companyCode(),
+                scope.companyCodes(), projectIds, criteria.orderId(), criteria.companyCode(),
                 criteria.orderType(), criteria.orderNo(), criteria.lineNo(), criteria.productCode(), criteria.quantityStatus(), criteria.status(),
-                checkedOffset(criteria.offset()), checkedLimit(criteria.limit()));
+                offset, limit);
         long total = lineMapper.selectCountByCompanyScope(query);
         return total == 0L ? PageResult.empty() : new PageResult<>(lineMapper.selectByCompanyScope(query), total);
     }
