@@ -155,20 +155,35 @@ let projectSequence = 0
 const changeProject = async (value: WireLong | null | undefined) => {
   const next = value ? String(value) : ''
   if (locked.value || props.projectId && next !== String(props.projectId)) return false
-  if (next === selectedProjectId.value && projectContext.value && !projectError.value) return true
+  if (next === selectedProjectId.value && projectContext.value && !projectError.value
+      && assessmentCustomerLevel.value && assessmentCustomerLevel.value.status !== 'UNAVAILABLE') return true
   if (selectedDevices.value.length && next !== selectedProjectId.value) {
     try { await message.confirm('切换项目会移除当前已选设备，请确认后重新选择。') } catch { return false }
   }
-  ++projectSequence
+  const sequence = ++projectSequence
   assessmentCustomerLevel.value = null
   assessmentLevelDeviceIds.value = []
   assessmentModel.manualCustomerServiceLevelCode = null
   selectedProjectId.value = next
   selectedDevices.value = []
   const context = await loadProjectInformation(next)
+  if (sequence !== projectSequence) return false
   if (!context) return !next
   if (!projectOptions.value.some(option => String(option.id) === next)) {
     projectOptions.value.unshift({ id: context.project.projectId, code: context.project.projectCode, name: context.project.projectName, customerName: context.project.customerName })
+  }
+  try {
+    const levelContext = await CutoverApi.getCreationProject(next)
+    if (sequence !== projectSequence || selectedProjectId.value !== next) return false
+    if (String(levelContext.project.projectId) !== next) throw new Error('PROJECT_CONTEXT_MISMATCH')
+    assessmentCustomerLevel.value = levelContext.customerServiceLevelContext
+  } catch {
+    if (sequence === projectSequence) {
+      assessmentCustomerLevel.value = { status: 'UNAVAILABLE', customerId: null, customerCode: null,
+        customerName: null, serviceLevelRevisionId: null, serviceLevelCode: null, factVersion: 0,
+        effectiveFrom: null, effectiveTo: null }
+      message.warning('客户服务等级暂时无法获取，请重新选择项目后重试。')
+    }
   }
   return true
 }
@@ -179,7 +194,7 @@ const addDevices = (devices: CreationDevice[]) => {
 }
 watch(() => selectedDevices.value.map(device => String(device.deviceId)).join(','), async () => {
   const devices = [...selectedDevices.value]
-  if (!devices.length) { assessmentCustomerLevel.value = null; assessmentLevelDeviceIds.value = []; return }
+  if (!devices.length) { assessmentLevelDeviceIds.value = []; return }
   if (assessmentCustomerLevel.value && devices.every(device => assessmentLevelDeviceIds.value.includes(String(device.deviceId)))) return
   const projectId = selectedProjectId.value
   const serials = devices.map(device => device.serialNumber)
