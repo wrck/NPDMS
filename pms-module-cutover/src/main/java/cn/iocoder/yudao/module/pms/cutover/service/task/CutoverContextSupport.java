@@ -61,6 +61,11 @@ final class CutoverContextSupport {
 
     static CutoverCustomerLevelPort.CustomerLevelFact customerReference(
             CutoverCustomerLevelPort port, CutoverProjectContextPort.ProjectContextFact project) {
+        if (project.customerId() == null && (project.customerCode() == null || project.customerCode().isBlank())) {
+            // Explicitly absent customer association is a project fact, not a failed CUS read.
+            return CutoverCustomerLevelPort.CustomerLevelFact.builder().status("NOT_CONFIGURED")
+                    .customerName(project.customerName()).factVersion(0L).build();
+        }
         try {
             var fact = project.customerId() == null ? null : port.inspect(project.customerId());
             if (fact != null) return fact.toBuilder().customerCode(project.customerCode()).customerName(project.customerName()).build();

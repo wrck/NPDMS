@@ -76,6 +76,23 @@ class CutoverTaskCreationQueryServiceTest {
                 .customerServiceLevelContext().status());
     }
 
+    @Test void projectWithoutCustomerAssociationAllowsManualSelectionWithoutInventingCustomer() {
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(101L, 7L, Set.of(101L), Set.of()));
+        when(projectContexts.inspect(any())).thenReturn(CutoverProjectContextPort.ProjectContextFact.builder().projectId(101L).build());
+        var result = service.project(new CutoverTaskCreationQueryService.ProjectQuery(actor, 101L));
+        assertEquals("NOT_CONFIGURED", result.customerServiceLevelContext().status());
+        assertNull(result.customerServiceLevelContext().customerId());
+        assertNull(result.customerServiceLevelContext().serviceLevelCode());
+        verifyNoInteractions(customer);
+    }
+
+    @Test void unresolvedCustomerCodeIsNotTreatedAsAnAbsentAssociation() {
+        var fact = CutoverContextSupport.customerReference(customer,
+                CutoverProjectContextPort.ProjectContextFact.builder().projectId(101L).customerCode("UNRESOLVED").build());
+        assertEquals("UNAVAILABLE", fact.status());
+        verifyNoInteractions(customer);
+    }
+
     @Test void serialResolutionRejectsUnshippedOrReassignedDevicesAndReturnsProductFields() {
         var candidate = new CutoverTaskViews.CreateContextCandidate(CutoverProjectContextPort.ProjectContextFact.builder().projectId(101L).build(),
                 List.of(new CutoverDeviceScopePort.DeviceFact(401L,"SN-401",101L,5L)), null, null, true);

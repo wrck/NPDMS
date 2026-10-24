@@ -116,3 +116,5 @@ Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`�
 ## CUT等级确认项目选择读取补充（2026-10-25）
 
 既有CUT `GET /api/v1/pms/cutover-tasks/creation-projects/{projectId}`响应保留`project`及`customerServiceLevel`，新增`customerServiceLevelContext`（既有CUT客户等级事实字段与AVAILABLE/NOT_CONFIGURED/UNAVAILABLE状态）。该查询先核验当前租户/主体/项目EDIT范围，再复用CUT项目上下文端口解析同租户客户编码，读取CUS当前等级事实；无项目编辑范围不查询客户资料。页面选择项目后即可决定等级只读或手选，不以设备选择、空显示字符串或读取失败推定未维护。真实读取失败仍UNAVAILABLE，多命中/资料损坏仍失败关闭；写命令的来源、设备、幂等与历史冻结约束不变。共享PROJ项目摘要接口不变。
+
+Q-CUT-NO-CUSTOMER-LEVEL-20261025追加批准：当受权PROJ事实的customerId为空且customerCode为空时，以NOT_CONFIGURED表示本次评估可手选；此处不存在CUS查询成功声明，客户身份与CUS来源引用继续为空。已有关联客户的读取失败／记录冲突不适用此规则。只修改新建及可编辑P2来源判定，不回填已提交评估或审批快照。
