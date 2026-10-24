@@ -2,7 +2,9 @@
   <section class="closure-form" aria-label="割接闭环填写">
     <div v-for="(item, index) in resultItems" :key="item.key" class="closure-question">
       <label class="question-label">{{ index + 1 }}. {{ item.label }}是否正常？<span class="cut-required"> *</span></label>
+      <span v-if="!editable" class="readonly-answer">{{ modelValue[item.normalKey] == null ? '未记录' : modelValue[item.normalKey] ? '正常' : '异常' }}</span>
       <el-radio-group
+v-else
 :model-value="modelValue[item.normalKey] ?? undefined" :disabled="!editable"
         :data-testid="'closure-' + item.key + '-normal'" :aria-label="item.label + '是否正常'"
         @update:model-value="update(item.normalKey, $event)">
@@ -18,7 +20,9 @@
     </div>
     <div class="closure-question">
       <label class="question-label">4. 割接是否存在回退操作？<span class="cut-required"> *</span></label>
+      <span v-if="!editable" class="readonly-answer">{{ modelValue.rollbackOccurred == null ? '未记录' : modelValue.rollbackOccurred ? '有回退' : '无回退' }}</span>
       <el-radio-group
+v-else
 :model-value="modelValue.rollbackOccurred ?? undefined" :disabled="!editable"
         data-testid="closure-rollback-occurred" aria-label="是否存在回退操作" @update:model-value="update('rollbackOccurred', $event)">
         <el-radio :value="true">是，有回退</el-radio><el-radio :value="false">否，无回退</el-radio>
@@ -61,7 +65,9 @@ v-if="editable && closureId !== null && !attachment(slot.purposeCode)" :disabled
       </div>
     </section>
     <h4 class="cut-section-title">7. 割接遗留项</h4>
+    <p v-if="!editable" class="readonly-answer">{{ modelValue.legacyItems || '未记录' }}</p>
     <el-input
+v-else
 :model-value="modelValue.legacyItems" :disabled="!editable" type="textarea" :rows="3"
       placeholder="请输入割接遗留事项及后续安排，无遗留事项可填写“无”" data-testid="closure-legacy-items" @update:model-value="update('legacyItems', $event)" />
   </section>

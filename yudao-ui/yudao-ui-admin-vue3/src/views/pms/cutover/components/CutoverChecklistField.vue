@@ -6,7 +6,7 @@ class="checklist-field" :class="{ required: item.required, 'is-table-row': table
     <header v-if="!tableRow && !embedded">
       <div>
         <h4>{{ item.itemName }}<span v-if="item.required" aria-label="必填"> *</span></h4>
-        <p v-if="item.itemDescription">{{ item.itemDescription }}</p>
+        <details v-if="item.itemDescription"><summary>填写说明与来源</summary><p>{{ item.itemDescription }}</p></details>
       </div>
       <div class="field-tags">
         <el-tag v-if="item.sourceCode === 'CUSTOM'" size="small" effect="plain">自定义项</el-tag>

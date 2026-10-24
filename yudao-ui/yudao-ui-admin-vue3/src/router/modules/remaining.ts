@@ -34,6 +34,12 @@ const { t } = useI18n()
  **/
 const remainingRouter: AppRouteRecordRaw[] = [
   {
+    path: '/pms/cutover/tasks', component: Layout, name: 'PmsCutoverTaskListEntryRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'PmsCutoverTaskListEntry', component: () => import('@/views/pms/cutover/tasks/index.vue'),
+      meta: { hidden: true, canTo: true, noCache: true, title: '割接任务列表', activeMenu: '/pms/cutover/tasks' } }]
+  },
+  {
     path: '/pms/inspection/tasks/:taskId', component: Layout, name: 'PmsInspectionTaskDetailRoot',
     meta: { hidden: true },
     children: [{ path: '', name: 'PmsInspectionTaskDetail', component: () => import('@/views/pms/inspection/task-detail/index.vue'),

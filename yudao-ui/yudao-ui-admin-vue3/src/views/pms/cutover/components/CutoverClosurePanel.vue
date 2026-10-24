@@ -5,27 +5,32 @@
       <details open class="cut-card">
         <summary class="cut-card__header"><h3><Icon icon="ep:circle-check" />割接结果与闭环</h3><small>{{ closure.closureStatus === 'SUBMITTED' ? '已归档，只读' : '草稿，保存不推进流程' }}</small></summary>
         <div class="cut-card__body">
-          <CutoverClosureForm ref="closureFormRef" v-model="content" :closure-id="closure.closureId" :editable="canSave && !writing"
+          <CutoverClosureForm
+ref="closureFormRef" v-model="content" :closure-id="closure.closureId" :editable="canSave && !writing"
             @upload-pending="attachmentPending = $event" @attachment-completed="onAttachmentCompleted" />
           <h4 class="cut-section-title">8. 割接结果<span class="cut-required"> *</span></h4>
-          <el-radio-group :model-value="selectedResult ?? undefined" :disabled="!canAttemptSubmit || writing" data-testid="closure-final-result" aria-label="割接最终结果" @update:model-value="selectedResult = $event as 'SUCCESS' | 'FAILED'">
+          <p v-if="closure.closureStatus === 'SUBMITTED'" data-testid="closure-final-summary">{{ selectedResult === 'SUCCESS' ? '割接成功' : selectedResult === 'FAILED' ? '割接失败' : '未记录' }}</p>
+          <el-radio-group v-else :model-value="selectedResult ?? undefined" :disabled="!canAttemptSubmit || writing" data-testid="closure-final-result" aria-label="割接最终结果" @update:model-value="selectedResult = $event as 'SUCCESS' | 'FAILED'">
             <el-radio value="SUCCESS">成功</el-radio><el-radio value="FAILED">失败</el-radio>
           </el-radio-group>
           <p class="cut-help result-help">成功与失败均可归档；项目、资产和外部系统的处理结果以实际回执为准。</p>
         </div>
         <Teleport :to="actionsTarget || 'body'" :disabled="!actionsTarget">
         <footer v-if="canSave || canAttemptSubmit" class="cut-actions" :class="actionsTarget ? 'cut-actions--embedded' : 'cut-actions--sticky'">
-          <el-button v-if="canSave" v-hasPermi="['pms:cutover-task:save-closure']" data-testid="save-closure"
+          <el-button
+v-if="canSave" v-hasPermi="['pms:cutover-task:save-closure']" data-testid="save-closure"
             :loading="writing" :disabled="attachmentPending" @click="save">{{ closure.closureId === null ? '创建闭环草稿' : '保存' }}</el-button>
-          <el-button v-if="canAttemptSubmit" v-hasPermi="['pms:cutover-task:submit-closure']" data-testid="submit-closure" type="primary"
+          <el-button
+v-if="canAttemptSubmit" v-hasPermi="['pms:cutover-task:submit-closure']" data-testid="submit-closure" type="primary"
             :loading="writing" :disabled="attachmentPending || !selectedResult" @click="submitSelected"><Icon icon="ep:upload" />提交（结束流程）</el-button>
         </footer>
         </Teleport>
       </details>
-      <details v-if="closure.closureId !== null" open class="cut-card collection-details">
+      <details v-if="closure.closureId !== null" :open="closure.closureStatus !== 'SUBMITTED' || closure.collectionEvidence.length > 0" class="cut-card collection-details">
         <summary class="cut-card__header"><h3>采集记录与失败恢复</h3><span class="cut-muted">{{ closure.collectionEvidence.length }} 条记录</span></summary>
         <div class="cut-card__body">
-          <CutoverClosureEvidencePanel :task-id="taskId" :closure-id="closure.closureId" :evidence="closure.collectionEvidence" :devices="devices"
+          <CutoverClosureEvidencePanel
+:task-id="taskId" :closure-id="closure.closureId" :evidence="closure.collectionEvidence" :devices="devices"
             :can-request="!props.readonly && closure.allowedActions.includes('REQUEST_COLLECTION')"
             :can-link-manual="!props.readonly && closure.allowedActions.includes('LINK_MANUAL_RESULT')" @refresh="refreshEvidence" @manual="linkManual" />
         </div>

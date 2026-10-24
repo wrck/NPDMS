@@ -53,7 +53,7 @@
           <div class="cut-form-field"><label>操作复杂度等级</label><span class="cut-form-value cut-form-value--plain">{{ levelLabels[view.sourceSnapshot.assessment.operationComplexityLevel] || view.sourceSnapshot.assessment.operationComplexityLevel }}</span></div>
           <div class="cut-form-field"><label>隐患风险等级</label><span class="cut-form-value cut-form-value--plain">{{ levelLabels[view.sourceSnapshot.assessment.hiddenRiskLevel] || view.sourceSnapshot.assessment.hiddenRiskLevel }}</span></div>
           <div class="cut-form-field"><label>备件是否申请</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.assessment.sparePartApplied ? '是' : '否' }}</span></div>
-          <div class="cut-form-field"><label>客户服务等级</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.assessment.customerServiceLevelCode === 'NOT_CONFIGURED' ? '未配置' : view.sourceSnapshot.assessment.customerServiceLevelCode }}</span></div>
+          <div class="cut-form-field"><label>客户服务等级</label><span class="cut-form-value cut-form-value--plain">{{ ({ NOT_CONFIGURED: '未配置', STANDARD: '标准服务' })[view.sourceSnapshot.assessment.customerServiceLevelCode] || view.sourceSnapshot.assessment.customerServiceLevelCode }}</span></div>
           <div class="cut-form-field"><label>人工确定割接等级</label><span class="grade-badge">{{ view.sourceSnapshot.assessment.manualGrade }}级</span></div>
         </div>
       </details>

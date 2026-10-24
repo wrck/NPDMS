@@ -1,5 +1,11 @@
 <template>
   <main class="cutover-task-list" data-testid="cutover-task-list">
+    <el-result
+      v-if="!canQueryTasks" icon="info" title="割接审批入口"
+      :sub-title="canOpenApprovalTodos ? '普通任务列表需要任务查询权限；割接审批请从我的待办进入。' : '当前账号没有割接任务查询权限或审批待办入口。'">
+      <template #extra><el-button v-if="canOpenApprovalTodos" type="primary" @click="router.push('/bpm/task/todo')">查看我的审批待办</el-button></template>
+    </el-result>
+    <template v-else>
     <ContentWrap>
       <el-form :model="query" inline @submit.prevent="search">
         <el-form-item v-if="checkPermi(['pms:project:query'])" label="项目">
@@ -18,6 +24,7 @@
       <CutoverTaskTable :rows="rows" :loading="loading" :error="error" @open="openTask" />
       <Pagination v-model:page="query.pageNo" v-model:limit="query.pageSize" :total="total" @pagination="loadPage" />
     </ContentWrap>
+    </template>
   </main>
 </template>
 
@@ -31,6 +38,8 @@ import { stageLabels, statusLabels } from '../shared/taskPresentation'
 defineOptions({ name: 'PmsCutoverTaskList' })
 const route = useRoute()
 const router = useRouter()
+const canQueryTasks = computed(() => checkPermi(['pms:cutover-task:query']))
+const canOpenApprovalTodos = computed(() => checkPermi(['bpm:task:query']))
 const rows = ref<CutoverTaskListItem[]>([])
 const total = ref(0)
 const loading = ref(false)
@@ -50,6 +59,7 @@ const searchProjects = async (projectName: string) => {
   } finally { if (current === projectSequence) projectsLoading.value = false }
 }
 const loadPage = async () => {
+  if (!canQueryTasks.value) return
   const current = ++sequence
   loading.value = true
   error.value = ''

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { defineComponent, h, nextTick } from 'vue'
 import { findByTestId, mount, textOf, type TestNode } from '../cutoverTestHarness'
 import TaskList from './index.vue'
+import { checkPermi } from '@/utils/permission'
 
 const api = vi.hoisted(() => ({ getCutoverTaskPage: vi.fn() }))
 const navigation = vi.hoisted(() => ({ route: { query: {} as Record<string, unknown> }, push: vi.fn() }))
@@ -22,7 +23,20 @@ const click = async (root: TestNode, label: string) => {
 }
 
 describe('独立割接任务列表', () => {
-  beforeEach(() => { vi.clearAllMocks(); api.getCutoverTaskPage.mockReset(); navigation.route.query = {} })
+  beforeEach(() => { vi.clearAllMocks(); vi.mocked(checkPermi).mockReturnValue(true); api.getCutoverTaskPage.mockReset(); navigation.route.query = {} })
+
+  it('审批专用账号只提供原BPM待办入口，不请求普通任务列表或项目查询', async () => {
+    vi.mocked(checkPermi).mockImplementation(codes => codes.includes('bpm:task:query'))
+    const mounted = mount(TaskList, {}, { ElResult: defineComponent({
+      props: { title: String, subTitle: String }, setup: (props, { slots }) => () => h('section', [props.title, props.subTitle, slots.extra?.()])
+    }) })
+    await flush()
+    expect(api.getCutoverTaskPage).not.toHaveBeenCalled()
+    expect(textOf(mounted.root)).toContain('割接审批入口')
+    await click(mounted.root, '查看我的审批待办')
+    expect(navigation.push).toHaveBeenCalledWith('/bpm/task/todo')
+    mounted.app.unmount()
+  })
 
   it('默认查询全部来源和已归档任务，按任务ID打开统一详情', async () => {
     api.getCutoverTaskPage.mockResolvedValue(page([row('9007199254740993')]))
