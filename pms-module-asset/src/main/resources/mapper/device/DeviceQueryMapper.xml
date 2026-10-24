@@ -318,7 +318,7 @@
     </select>
 
     <select id="selectProjectInstallationDevicesForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact">
-        SELECT id AS device_id, sn, location_snapshot FROM ast_device
+        SELECT id AS device_id, sn, location_snapshot, project_assignment_version FROM ast_device
         WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND deleted = 0
         ORDER BY id FOR UPDATE
     </select>

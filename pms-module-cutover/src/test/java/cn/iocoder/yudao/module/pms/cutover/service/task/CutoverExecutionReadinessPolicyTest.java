@@ -8,6 +8,22 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class CutoverExecutionReadinessPolicyTest {
+    @Test void approvalUsesExactReferenceWithoutGeneralProjectReadAndRejectsChangedSource() {
+        var port = mock(CutoverReadinessPort.class);
+        var snapshots = mock(CutoverTaskSnapshotStore.class);
+        var task = task(); task.setId(10L); task.setTenantId(7L); task.setVersion(2L);
+        when(snapshots.readinessReference(task)).thenReturn(ready());
+        var policy = new CutoverExecutionReadinessPolicy(port, snapshots);
+        var command = new CutoverExecutionReadinessPolicy.ApprovalRevalidation(task, 40L, 3L, 4);
+        when(port.lockAndRevalidateForApproval(any())).thenReturn(ready());
+        policy.requireCurrentForApproval(command);
+        verify(snapshots, never()).readiness(any()); verify(port, never()).readSnapshot(any());
+        verify(port).lockAndRevalidateForApproval(argThat(q -> q.taskId().equals(10L) && q.taskVersion().equals(2L)
+                && q.approvalInstanceId().equals(40L) && q.approvalVersion().equals(3L) && q.nodeNo() == 4
+                && q.projectId().equals(20L) && q.snapshotId().equals(100L) && q.snapshotVersion() == 0L && q.deviceIds().equals(List.of(30L))));
+        when(port.lockAndRevalidateForApproval(any())).thenReturn(new CutoverReadinessPort.ReadinessFact(100L, 0L, "STALE", 20L, List.of(30L), null, null));
+        assertThatThrownBy(() -> policy.requireCurrentForApproval(command)).isInstanceOf(IllegalArgumentException.class);
+    }
     @Test void independentSourcesNeverUseImplementationAsAnExecutionGate() {
         var port = mock(CutoverReadinessPort.class);
         var snapshots = mock(CutoverTaskSnapshotStore.class);
