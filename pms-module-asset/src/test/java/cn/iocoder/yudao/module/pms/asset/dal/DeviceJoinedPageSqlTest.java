@@ -67,6 +67,41 @@ class DeviceJoinedPageSqlTest {
         assertNotNull(net.sf.jsqlparser.parser.CCJSqlParserUtil.parse(bound.getSql()));
     }
 
+    @Test void projectRootAndVersionPairsCannotAuthorizeCrossedOrEmptyTrees() throws Exception {
+        withDatabase(mapper -> {
+            var current = scope(ProjectViewReadScopeApi.Mode.TREE_ADMIN);
+            var query = query(current).toBuilder().organizationGrants(List.of())
+                    .readScope(new DevicePageReadScope(current, null)).build();
+            assertEquals(Set.of(1L, 2L, 4L, 15L), ids(mapper, query));
+        });
+        withDatabase(mapper -> {
+            var crossed = new ProjectViewReadScopeApi.ReadScope(1L, 7L, ProjectViewReadScopeApi.Mode.TREE_ADMIN,
+                    AT, List.of(new ProjectViewReadScopeApi.Tree(10L, 8L), new ProjectViewReadScopeApi.Tree(20L, 7L)));
+            var query = query(crossed).toBuilder().organizationGrants(List.of())
+                    .readScope(new DevicePageReadScope(crossed, null)).build();
+            assertEquals(Set.of(), ids(mapper, query));
+        });
+        withDatabase(mapper -> {
+            var empty = new ProjectViewReadScopeApi.ReadScope(1L, 7L, ProjectViewReadScopeApi.Mode.SCOPED, AT, List.of());
+            var query = query(empty).toBuilder().organizationGrants(List.of())
+                    .readScope(new DevicePageReadScope(empty, null)).build();
+            assertEquals(Set.of(), ids(mapper, query));
+        });
+    }
+
+    @Test void projectFilterPreservesVisibleRowsAndEmptyProjectResults() throws Exception {
+        withDatabase(mapper -> {
+            var q = query(scope(ProjectViewReadScopeApi.Mode.SCOPED));
+            var expected = mapper.selectJoinedDevicePage(q).getList().stream()
+                    .filter(device -> java.util.Objects.equals(device.projectId(), 11L))
+                    .map(device -> device.deviceId()).collect(Collectors.toSet());
+            var filtered = mapper.selectJoinedDevicePage(q.toBuilder().projectId(11L).build());
+            assertEquals(expected, filtered.getList().stream().map(device -> device.deviceId()).collect(Collectors.toSet()));
+            assertEquals(expected.size(), filtered.getTotal());
+            assertEquals(0L, mapper.selectJoinedDevicePage(q.toBuilder().projectId(9999L).build()).getTotal());
+        });
+    }
+
     @Test void pageAndCountUseTheSameProjectContractAndPairedOrganizationAuthorization() throws Exception {
         withDatabase(mapper -> {
             var page = mapper.selectJoinedDevicePage(query(scope(ProjectViewReadScopeApi.Mode.SCOPED)));

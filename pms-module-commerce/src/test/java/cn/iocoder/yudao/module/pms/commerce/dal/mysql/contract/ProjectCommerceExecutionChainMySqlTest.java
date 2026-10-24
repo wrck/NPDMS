@@ -25,7 +25,7 @@ class ProjectCommerceExecutionChainMySqlTest {
     @BeforeEach void fixture() throws Exception {
         assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));
         assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
-        db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&serverTimezone=Asia/Shanghai",
+        db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
                 System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
         for(String table:List.of("com_contract","com_project_contract_relation","com_sales_order",
                 "com_order_contract_relation","com_crm_execution_order")) {
@@ -44,11 +44,8 @@ class ProjectCommerceExecutionChainMySqlTest {
                 try(var rows=sql.executeQuery("SELECT COUNT(*) FROM "+clone)) {
                     assertTrue(rows.next());assertEquals(0,rows.getInt(1),"Expected an empty temporary clone");
                 }
-                if(table.equals("com_crm_execution_order")) {
-                    sql.execute(ddl.replaceFirst(create,"CREATE TEMPORARY TABLE `test_secondary_execution_order`"));
-                    try(var rows=sql.executeQuery("SELECT COUNT(*) FROM test_secondary_execution_order")) {
-                        assertTrue(rows.next());assertEquals(0,rows.getInt(1));
-                    }
+                for (int branch = 1; branch <= 2; branch++) {
+                    sql.execute(ddl.replaceFirst(create,"CREATE TEMPORARY TABLE `test_b" + branch + "_" + table + "`"));
                 }
             }
         }
@@ -58,12 +55,22 @@ class ProjectCommerceExecutionChainMySqlTest {
         String path="mapper/contract/ProjectCommerceMapper.xml";
         try(var xml=getClass().getClassLoader().getResourceAsStream(path)) {
             assertNotNull(xml);
-            // MySQL cannot reopen a temporary table in UNION. Both branches read identical fixture rows
+            // MySQL cannot reopen a temporary table in UNION. All branches read identical fixture rows
             // from separate local clones; predicates and the production UNION are kept unchanged.
             String text=new String(xml.readAllBytes(),StandardCharsets.UTF_8);
             assertTrue(text.contains("JOIN com_crm_execution_order e"));
-            text=text.replace("FROM com_crm_execution_order e","FROM test_com_crm_execution_order e")
-                    .replace("JOIN com_crm_execution_order e","JOIN test_secondary_execution_order e");
+            int begin = text.indexOf("    <select id=\"selectExecutionOrders\"");
+            int end = text.indexOf("    </select>", begin);
+            String[] branches = text.substring(begin, end).split("\\bUNION\\b");
+            assertEquals(3, branches.length);
+            branches[0] = branches[0].replace("com_crm_execution_order", "test_com_crm_execution_order");
+            for (int branch = 1; branch < branches.length; branch++) {
+                for (String table : List.of("com_contract", "com_project_contract_relation", "com_sales_order",
+                        "com_order_contract_relation", "com_crm_execution_order")) {
+                    branches[branch] = branches[branch].replace(table, "test_b" + branch + "_" + table);
+                }
+            }
+            text = text.substring(0, begin) + String.join("UNION", branches) + text.substring(end);
             new XMLMapperBuilder(new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8)),configuration,path,configuration.getSqlFragments()).parse();
         }
         session=new SqlSessionFactoryBuilder().build(configuration).openSession(db);assertSame(db,session.getConnection());
@@ -78,14 +85,20 @@ class ProjectCommerceExecutionChainMySqlTest {
         if(session!=null)session.close();if(db!=null&&!db.isClosed())db.close();
     }
     private void execute(String sql,Object... values) throws Exception {
-        boolean executionFixture=sql.contains("com_crm_execution_order");
         sql=sql.replace("com_crm_execution_order","test_com_crm_execution_order");
         try(var statement=db.prepareStatement(sql)) {
             for(int i=0;i<values.length;i++)statement.setObject(i+1,values[i]);statement.executeUpdate();
         }
-        if(executionFixture)try(var statement=db.createStatement()) {
-            statement.executeUpdate("DELETE FROM test_secondary_execution_order");
-            statement.executeUpdate("INSERT INTO test_secondary_execution_order SELECT * FROM test_com_crm_execution_order");
+        try(var statement=db.createStatement()) {
+            for (String table : List.of("com_contract", "com_project_contract_relation", "com_sales_order",
+                    "com_order_contract_relation", "com_crm_execution_order")) {
+                String original = table.equals("com_crm_execution_order") ? "test_com_crm_execution_order" : table;
+                for (int branch = 1; branch <= 2; branch++) {
+                    String clone = "test_b" + branch + "_" + table;
+                    statement.executeUpdate("DELETE FROM " + clone);
+                    statement.executeUpdate("INSERT INTO " + clone + " SELECT * FROM " + original);
+                }
+            }
         }
         if(session!=null)session.clearCache();
     }
@@ -130,5 +143,11 @@ class ProjectCommerceExecutionChainMySqlTest {
         execute("UPDATE com_project_contract_relation SET source_system='PMS' WHERE id=11");assertTrue(ids().isEmpty());
         execute("UPDATE com_crm_execution_order SET primary_project_id=100 WHERE id=30");assertEquals(List.of(30L),ids());
         execute("UPDATE com_crm_execution_order SET deleted=1 WHERE id=30");assertTrue(ids().isEmpty());
+    }
+
+    @Test void overlappingPrimaryDirectAndExplicitPathsRemainDeduplicated() throws Exception {
+        execute("UPDATE com_crm_execution_order SET primary_project_id=100 WHERE id=30");
+        execute("INSERT INTO com_order_contract_relation(id,tenant_id,contract_id,order_id,effective_from,relation_source,source_system,sales_order_source_key,contract_source_key,source_version,source_evidence,creator,updater) VALUES(40,?,10,20,'2000-01-01','ERP','DPPMS','ORDER-20','CONTRACT-10','original','{}','fixture','fixture')",tenant);
+        assertEquals(List.of(30L), ids());
     }
 }

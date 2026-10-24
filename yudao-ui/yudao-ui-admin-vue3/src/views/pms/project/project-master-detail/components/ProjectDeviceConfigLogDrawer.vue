@@ -8,6 +8,7 @@
   >
     <div data-testid="device-config-log-drawer">
       <el-button :loading="loading" class="mb-4" @click="load">刷新</el-button>
+      <p v-if="pendingSources" role="status">正在加载其余配置日志…</p>
       <el-alert
         v-for="error in errors"
         :key="error"
@@ -78,6 +79,7 @@ const visible = ref(false)
 const deviceId = ref<number>()
 const serialNumber = ref('')
 const loading = ref(false)
+const pendingSources = ref(0)
 const errors = ref<string[]>([])
 interface LogRow {
   key: string
@@ -107,35 +109,48 @@ const load = async () => {
   parseStates.value = {}
   const canQueryArchive = checkPermi(['pms:device-log-archive:query'])
   const canQueryLegacy = checkPermi(['pms:device:query'])
-  const [archive, legacy] = await Promise.allSettled([
-    canQueryArchive ? ArchiveApi.history(props.projectId, currentDeviceId) : Promise.resolve([]),
-    canQueryLegacy ? DeviceApi.getConfigurationLogs(currentDeviceId) : Promise.resolve([])
-  ])
-  if (current !== sequence) return
+  pendingSources.value = Number(canQueryArchive) + Number(canQueryLegacy)
+  const projectId = props.projectId
   if (!canQueryArchive && !canQueryLegacy) errors.value.push('暂无配置日志查看权限')
-  if (archive.status === 'fulfilled') {
-    rows.value.push(
-      ...archive.value.map((file: ArchiveApi.LogFile) => ({
+  const sourceFinished = () => {
+    if (current !== sequence) return
+    --pendingSources.value
+    rows.value.sort((a, b) => new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime())
+    loading.value = rows.value.length === 0 && pendingSources.value > 0
+  }
+  await Promise.all([
+    canQueryArchive ? (async () => {
+      try {
+        const files = await ArchiveApi.history(projectId, currentDeviceId)
+        if (current !== sequence) return
+        rows.value.push(...files.map((file: ArchiveApi.LogFile) => ({
         key: `archive:${file.id}`,
         name: file.fileName,
         source: file.sourceType === 'MANUAL_UPLOAD' ? '手工上传' : '采集回传',
         time: file.archivedAt,
         file
-      }))
-    )
-  } else errors.value.push('设备归档日志加载失败，请刷新重试')
-  if (legacy.status === 'fulfilled') {
-    rows.value.push(
-      ...legacy.value.map((log: DeviceApi.DeviceConfigurationLogVO) => ({
+        })))
+      } catch {
+        if (current === sequence) errors.value.push('设备归档日志加载失败，请刷新重试')
+      } finally { sourceFinished() }
+    })() : Promise.resolve(),
+    canQueryLegacy ? (async () => {
+      try {
+        const logs = await DeviceApi.getConfigurationLogs(currentDeviceId)
+        if (current !== sequence) return
+        rows.value.push(...logs.map((log: DeviceApi.DeviceConfigurationLogVO) => ({
         key: `legacy:${log.id}`,
         name: log.configType || '配置日志',
         source: log.sourceSystem || '—',
         time: log.collectedAt,
         legacy: log
-      }))
-    )
-  } else errors.value.push('历史配置日志加载失败，请刷新重试')
-  rows.value.sort((a, b) => new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime())
+        })))
+      } catch {
+        if (current === sequence) errors.value.push('历史配置日志加载失败，请刷新重试')
+      } finally { sourceFinished() }
+    })() : Promise.resolve()
+  ])
+  if (current !== sequence) return
   loading.value = false
   await Promise.all(
     rows.value
@@ -179,6 +194,7 @@ watch(visible, (value) => {
   if (!value) {
     ++sequence
     loading.value = false
+    pendingSources.value = 0
     rows.value = []
     errors.value = []
     parseStates.value = {}

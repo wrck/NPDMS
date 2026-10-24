@@ -550,7 +550,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
-import ProjectAssociatedDataPanel from './components/ProjectAssociatedDataPanel.vue'
 import * as RiskApi from '@/api/pms/project/project-risk'
 import ProjectStatusTag from '../projects/ProjectStatusTag.vue'
 import type { DeliveryModuleConfig } from '@/views/pms/project/inheritance/detail/DeliveryModuleTable.vue'
@@ -561,7 +560,6 @@ import { businessFlowGroups, businessNavItems, businessModuleConfigs, flowEmbedK
 import type { ProjectFlowSelection } from './components/project-flow'
 import type { TaskNode } from '@/api/pms/project/task-workbench'
 import * as ContactsApi from '@/api/pms/customer/contacts'
-import ProjectDeliveryScopePanel from '@/views/pms/commerce/delivery-scope/index.vue'
 import type { ProjectRouteContext } from '@/views/pms/commerce/commerceInteraction'
 import { loadProjectEquipmentList } from '@/api/pms/commerce/projectEquipment'
 import { checkPermi, checkRole } from '@/utils/permission'
@@ -569,6 +567,8 @@ import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-vie
 import type { ProjectMasterVO, ProjectInstancesVO } from '@/api/pms/project/projects'
 
 // Only load business workspaces when their existing tab host is first mounted.
+const ProjectAssociatedDataPanel = defineAsyncComponent(() => import('./components/ProjectAssociatedDataPanel.vue'))
+const ProjectDeliveryScopePanel = defineAsyncComponent(() => import('@/views/pms/commerce/delivery-scope/index.vue'))
 const ProjectSplitWizard = defineAsyncComponent(() => import('./components/ProjectSplitPanel.vue'))
 const ProjectTreePanel = defineAsyncComponent(() => import('@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'))
 const ProjectProgressPanel = defineAsyncComponent(() => import('./components/ProjectProgressSummaryPanel.vue'))
