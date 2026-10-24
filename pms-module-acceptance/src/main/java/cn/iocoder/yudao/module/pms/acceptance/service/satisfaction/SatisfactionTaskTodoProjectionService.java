@@ -5,12 +5,14 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFact;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskFactQuery;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectSatisfactionTaskIdentityQuery;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionCollectionTaskDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.SatisfactionCollectionTaskMapper;
 import cn.iocoder.yudao.module.pms.acceptance.service.satisfaction.event.SatisfactionTaskCreatedMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -20,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -29,12 +32,29 @@ public class SatisfactionTaskTodoProjectionService {
     private final PlatformCommandExecutionApi commandExecutionApi;
 
     @Transactional(rollbackFor = Exception.class)
-    public void project(SatisfactionTaskCreatedMessage event) {
+    public ProjectionOutcome project(SatisfactionTaskCreatedMessage event) {
         require(event);
+        if (!Objects.equals(event.tenantId(), TenantContextHolder.getRequiredTenantId())) {
+            throw new IllegalArgumentException("SATISFACTION_TASK_TODO_TENANT_CONFLICT");
+        }
+        // Keep the same PROJ -> ACC locking order as collection submission.
+        ProjectSatisfactionTaskFact current = workBindingFactApi.lockCurrentSatisfactionTask(
+                new ProjectSatisfactionTaskIdentityQuery(event.projectId(), event.projectTaskId()));
+        SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(event.tenantId(), event.taskId());
+        if (current == null || !Objects.equals(current.projectId(), event.projectId())
+                || !Objects.equals(current.projectTaskId(), event.projectTaskId())
+                || !Objects.equals(current.taskCode(), event.taskCode()) || !exactTask(task, event)) {
+            throw new IllegalStateException("SATISFACTION_TASK_TODO_IDENTITY_CONFLICT");
+        }
+        // A consumed collection request cannot become a new pending todo on a later retry.
+        // Validate its immutable source identity first; do not rewrite the task or its result.
+        if (task.getTaskStatus() != null
+                && Set.of("PENDING_DECISION", "PASSED", "PENDING_ARCHIVE", "FAILED").contains(task.getTaskStatus())) {
+            return ProjectionOutcome.OBSOLETE;
+        }
         ProjectSatisfactionTaskFact fact = workBindingFactApi.lockAndRevalidateSatisfactionTask(
                 new ProjectSatisfactionTaskFactQuery(event.projectId(), event.projectTaskId(),
                         event.projectTaskVersion()));
-        SatisfactionCollectionTaskDO task = taskMapper.selectByIdForUpdate(event.tenantId(), event.taskId());
         if (!exact(fact, task, event)) {
             throw new IllegalStateException("SATISFACTION_TASK_TODO_IDENTITY_CONFLICT");
         }
@@ -49,6 +69,7 @@ public class SatisfactionTaskTodoProjectionService {
                 || execution.response() == null) {
             throw new IllegalStateException("SATISFACTION_TASK_TODO_IDEMPOTENCY_CONFLICT");
         }
+        return ProjectionOutcome.PROJECTED;
     }
 
     private PlatformCommandExecutionApi.SuccessFacts todoFacts(SatisfactionTaskCreatedMessage event,
@@ -74,6 +95,16 @@ public class SatisfactionTaskTodoProjectionService {
                 && Objects.equals(fact.projectTaskId(), event.projectTaskId())
                 && Objects.equals(fact.projectTaskVersion(), event.projectTaskVersion())
                 && Objects.equals(fact.currentAssigneeUserId(), event.assigneeUserId())
+                && Objects.equals(fact.templateRevisionId(), event.templateRevisionId())
+                && Objects.equals(fact.templateVersion(), event.templateVersion())
+                && Objects.equals(fact.ruleVersion(), event.ruleVersion())
+                && fact.threshold() != null && fact.threshold().compareTo(event.threshold()) == 0
+                && exactTask(task, event);
+    }
+
+    private boolean exactTask(SatisfactionCollectionTaskDO task, SatisfactionTaskCreatedMessage event) {
+        return task != null && Objects.equals(task.getId(), event.taskId())
+                && Objects.equals(task.getTenantId(), event.tenantId())
                 && Objects.equals(task.getProjectId(), event.projectId())
                 && Objects.equals(task.getProjectTaskId(), event.projectTaskId())
                 && Objects.equals(task.getCollectionKey(), event.collectionKey())
@@ -119,4 +150,5 @@ public class SatisfactionTaskTodoProjectionService {
     private boolean blank(String value) { return value == null || value.isBlank(); }
 
     public record TodoProjectionResult(String key, Long taskId, Integer taskRevisionNo) {}
+    public enum ProjectionOutcome { PROJECTED, OBSOLETE }
 }
