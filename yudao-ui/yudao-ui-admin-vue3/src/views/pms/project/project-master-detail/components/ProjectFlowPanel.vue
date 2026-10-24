@@ -293,9 +293,9 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
         >推进至 {{ readiness.nextStage }}{{ nextStageName ? ` ${nextStageName}` : '' }}</el-button>
       </template>
       <template v-else-if="workbench && !taskPending && !loadError">
-        <span v-if="pageSyncing" role="status">业务已保存，正在同步任务状态…</span>
+        <span v-if="pageSyncing && workbench.trustedTargetRef !== '/pms/project-management/project-master-detail'" role="status">业务已保存，正在同步任务状态…</span>
         <TaskStateActions
-          v-else-if="taskActionWorkbench"
+          v-if="!pageSyncing && taskActionWorkbench"
           ref="stateActionsRef" :workbench="taskActionWorkbench" :business-bound="businessBound"
           :business-fact-version="businessFactVersion" :before-action="requestLeave" @changed="handleBusinessChanged">
           <ProjectTaskDetailsEditor v-if="taskActionWorkbench.allowedActions.includes('UPDATE_PROGRESS')" ref="detailsRef" :workbench="taskActionWorkbench" :before-action="requestLeave" @changed="handleBusinessChanged" />
@@ -439,7 +439,7 @@ const taskOverdueDays = computed(() => {
 })
 const loadError = ref('')
 const businessRef = ref<InstanceType<typeof TaskBusinessPanel>>()
-const pageEmbedRef = ref<{ requestLeave?: () => Promise<boolean> }>()
+const pageEmbedRef = ref<{ requestLeave?: () => Promise<boolean>; refresh?: () => Promise<unknown> }>()
 const stageBusinessRef = ref<InstanceType<typeof StageBusinessPanel>>()
 // 阶段业务绑定类型由 StageBusinessPanel 装载后上报；STAGE_NATIVE 阶段不渲染业务办理区
 const stageBindingType = ref<string>()
@@ -685,6 +685,7 @@ const handleEmbeddedBusinessChanged = async () => {
   if (taskId == null) return
   const token = sequence, refresh = ++embeddedRefresh
   const previousVersion = workbench.value?.task.version
+  const endUserEntry = workbench.value?.trustedTargetRef === '/pms/project-management/project-master-detail'
   // 联系人规则由提交后的事件重评；给异步完成留出回读窗口，期间不展示旧版本任务动作。
   const attempts = ['/customer-asset/customer-contact', '/pms/project-management/project-master-detail']
     .includes(workbench.value?.trustedTargetRef || '') ? 16 : 1
@@ -697,7 +698,8 @@ const handleEmbeddedBusinessChanged = async () => {
       const next = await TaskWorkbenchApi.getTaskWorkbench(taskId)
       if (!stillCurrent()) return
       workbench.value = next
-      if (next.task.version !== previousVersion || ['DONE', 'CLOSED', 'CANCELLED'].includes(next.task.status || '')) break
+      if (['DONE', 'CLOSED', 'CANCELLED'].includes(next.task.status || '')
+          || !endUserEntry && next.task.version !== previousVersion) break
     }
     await loadWorkspace(token)
     if (stillCurrent()) emit('changed')
@@ -724,6 +726,7 @@ const refreshSummary = async () => {
     await Promise.all([loadWorkspace(token), taskId == null ? undefined : loadTaskWorkbench(taskId, token)])
     if (current(token) && props.selection?.kind === 'stage') await tasks.reload()
     if (!current(token)) return false
+    if (pageEmbed.value === ProjectNormalClosurePanel) await pageEmbedRef.value?.refresh?.()
     loadError.value = ''
     return true
   } catch {
