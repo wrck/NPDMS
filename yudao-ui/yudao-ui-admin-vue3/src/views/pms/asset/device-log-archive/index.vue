@@ -353,6 +353,9 @@ const uploadFile = async (options: UploadRequestOptions) => {
       ElMessage.success('设备日志已归档')
       await load()
     } else ElMessage.error(result.value.rejectionReason || '日志未归档')
+  } catch (failure: unknown) {
+    uploadError.value = (typeof failure === 'string' ? failure : failure instanceof Error ? failure.message : '')
+      || '日志上传未成功，请检查服务连接后重试；本次未确认归档'
   } finally {
     uploading.value = false
     uploadRef.value?.clearFiles()

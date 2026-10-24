@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.integration.deviceops;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.integration.api.deviceops.DeviceOpsLogSplitApi;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -35,7 +36,7 @@ public class DacDeviceOpsLogSplitGateway implements DeviceOpsLogSplitApi {
             var result = JsonUtils.parseObject(http.postForObject(URI.create(properties.getBaseUrl()+"/api/v1/npdms/log-splits"),
                     new HttpEntity<>(body, headers), String.class), Result.class);
             if (result == null || result.devices().isEmpty() || result.sanitizedSource() == null
-                    || result.redactedValueCount() < 0) throw new IllegalStateException("DAC 日志拆分响应无效");
+                    || result.redactedValueCount() < 0) throw new ServiceException(503, "日志拆分服务返回无效结果，请检查本地 DAC 版本后重试；本次未归档");
             return result;
         } catch (HttpClientErrorException failure) {
             if (failure.getStatusCode().value() == 422) {
@@ -57,12 +58,12 @@ public class DacDeviceOpsLogSplitGateway implements DeviceOpsLogSplitApi {
                 throw new Rejected(reason);
             }
             if (failure.getStatusCode().value()==401 || failure.getStatusCode().value()==403)
-                throw new IllegalStateException("DAC 日志拆分授权失败");
+                throw new ServiceException(503, "日志拆分服务授权失败，请检查本地 DAC 授权配置；本次未归档");
             if (failure.getStatusCode().value()==404)
-                throw new IllegalStateException("当前 DAC 未提供日志拆分接口，请部署对应版本");
-            throw new IllegalStateException("DAC 未接受日志拆分请求");
+                throw new ServiceException(503, "当前 DAC 未提供日志拆分接口，请部署对应版本；本次未归档");
+            throw new ServiceException(503, "日志拆分服务未接受请求，请检查 DAC 服务后重试；本次未归档");
         } catch (RestClientException failure) {
-            throw new IllegalStateException("DAC 日志拆分暂不可用，请重试");
+            throw new ServiceException(503, "日志拆分服务暂不可用，请启动本地 DAC 并检查连接后重试；本次未归档");
         }
     }
 }

@@ -49,6 +49,21 @@ beforeEach(() => {
   vi.mocked(Api.upload).mockResolvedValue({ id: 1, outcome: 'ARCHIVED', deviceCount: 1, redactedValueCount: 0, files: [] })
 })
 
+it('keeps service failures visible without reporting an archive and allows retry', async () => {
+  const m = render()
+  try {
+    await flush()
+    vi.mocked(Api.upload).mockRejectedValueOnce('日志拆分服务暂不可用，请启动本地 DAC；本次未归档')
+    await m.state.uploadFile({ file: new File(['SN: SN001'], '设备.log') })
+    expect(m.state.uploadError).toContain('本次未归档')
+    expect(m.state.result).toBeUndefined()
+    expect(m.state.uploading).toBe(false)
+    await m.state.uploadFile({ file: new File(['SN: SN001'], '设备.log') })
+    expect(m.state.uploadError).toBe('')
+    expect(m.state.result.outcome).toBe('ARCHIVED')
+  } finally { m.app.unmount() }
+})
+
 it('sends valid UTF-8 as UTF-8 under the original filename and project', async () => {
   const m = render()
   try {
