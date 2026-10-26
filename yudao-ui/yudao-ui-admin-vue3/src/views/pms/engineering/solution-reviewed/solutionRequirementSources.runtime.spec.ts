@@ -47,6 +47,64 @@ const render = (projectId?: number, readOnly = false, script?: string) => {
 }
 
 describe('solution requirement analysis references', () => {
+  it('persists long chapter content outside the 500-character remark while preserving source and document metadata', async () => {
+    const mounted = render(1)
+    try {
+      await flush()
+      mounted.form.value.remark = JSON.stringify({ hasCustomerPlan: 'no', customerPlanUrl: '', legacyFlag: 'keep' })
+      mounted.form.value.sectionData = JSON.stringify({ requirementInput: { revisionId: '7001' } })
+      const longText = '完整培训及调试内容'.repeat(200)
+      mounted.state.meta.softwareDebug = longText
+      mounted.state.meta.trainingContent = longText
+      mounted.state.tables.business = [{ deviceName: '设备', remark: longText }]
+      await flush()
+      const saved = JSON.parse(JSON.stringify(mounted.form.value))
+      expect(saved.remark.length).toBeLessThanOrEqual(500)
+      expect(JSON.parse(saved.remark)).toEqual({ hasCustomerPlan: 'no', customerPlanUrl: '', legacyFlag: 'keep' })
+      expect(JSON.parse(saved.sectionData)).toMatchObject({ requirementInput: { revisionId: '7001' }, '5.2': longText, '7.2': longText, '5.3': [{ deviceName: '设备', remark: longText }] })
+      mounted.form.value = { ...saved, id: 99 }; await flush()
+      expect(mounted.state.meta.trainingContent).toBe(longText)
+      expect(mounted.state.tables.business[0].remark).toBe(longText)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('reads historical remark chapters without rewriting a read-only version', async () => {
+    const mounted = render(1, true)
+    try {
+      await flush()
+      const remark = JSON.stringify({ hardwareInvolved: 'yes', trainingContent: '历史培训', business: [{ deviceName: '历史设备' }], archive: '历史归档' })
+      mounted.form.value = { id: 42, projectId: 1, remark }; await flush()
+      expect(mounted.state.meta.trainingContent).toBe('历史培训')
+      expect(mounted.state.tables.business[0].deviceName).toBe('历史设备')
+      expect(mounted.form.value.remark).toBe(remark)
+      expect(mounted.form.value.sectionData).toBeUndefined()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('honors explicitly cleared chapter values instead of restoring legacy content', async () => {
+    const mounted = render(1, true)
+    try {
+      await flush()
+      const source = { id: 43, projectId: 1, remark: JSON.stringify({ trainingContent: '旧培训', business: [{ deviceName: '旧设备' }] }), sectionData: JSON.stringify({ '7.2': '', '5.3': [] }) }
+      mounted.form.value = { ...source }; await flush()
+      expect(mounted.state.meta.trainingContent).toBe('')
+      expect(mounted.state.tables.business).toEqual([])
+      expect(mounted.form.value.remark).toBe(source.remark)
+      expect(mounted.form.value.sectionData).toBe(source.sectionData)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('preserves a historical plain-text remark when editing chapter content', async () => {
+    const mounted = render(1)
+    try {
+      await flush()
+      mounted.form.value = { id: 44, projectId: 1, remark: '原备注，不是JSON', sectionData: JSON.stringify({ customChapter: '保留' }) }
+      await flush()
+      mounted.state.meta.trainingPurpose = '新培训目的'; await flush()
+      expect(mounted.form.value.remark).toBe('原备注，不是JSON')
+      expect(JSON.parse(mounted.form.value.sectionData)).toMatchObject({ customChapter: '保留', '7.1': '新培训目的' })
+    } finally { mounted.app.unmount() }
+  })
   it('allows independent authoring without an effective requirement and never imports a draft', async () => {
     vi.mocked(RequirementApi.workspace).mockResolvedValue({ currentEffective: null, draft: { values: { projectBackground: '未完成草稿' } } } as any)
     const mounted = render(1)
@@ -170,7 +228,7 @@ describe('solution requirement analysis references', () => {
       mounted.state.generateFromSources()
       await flush()
       expect(mounted.form.value).toMatchObject({ background: '<p>已冻结背景</p>', target: '<p>项目目标</p>' })
-      expect(JSON.parse(mounted.form.value.remark).business[0]).toEqual({ deviceName: '设备A', sn: 'SN-A', businessName: '业务A', network: '10.0.0.0/24', level: '高', ports: 'GE1', owner: '负责人', remark: '备注' })
+      expect(JSON.parse(mounted.form.value.sectionData)['5.3'][0]).toEqual({ deviceName: '设备A', sn: 'SN-A', businessName: '业务A', network: '10.0.0.0/24', level: '高', ports: 'GE1', owner: '负责人', remark: '备注' })
       mounted.form.value.background = '人工编辑'
       mounted.state.generateFromSources()
       expect(mounted.form.value.background).toBe('人工编辑')

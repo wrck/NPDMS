@@ -382,7 +382,12 @@ const { barTarget } = useBusinessActionBar()
 //   background/target = 1.1/1.2 正文；team/inventory/plan/interfacePlan/ipPlan = 对应章节行 JSON；
 //   topology = {asIsUrl,toBeChanged,toBeUrl,deploy[],software[]}（2.1/3.1/3.2/3.5）；
 //   script = {network,businessModule,ha,full}（4.x）；quality/risk/oAndM = 6.x 正文；
-//   remark = {hasCustomerPlan,customerPlanUrl,hardwareInvolved,softwareDebug,trainingPurpose,trainingContent,archive(6.4),business[]}。
+//   sectionData 的章节编码保存 5.1/5.2/5.3/6.4/7.1/7.2；remark 只保留原备注及客户文档元信息。
+// 已有 remark 章节只作兼容读取；只读/批准版本不改写。
+const chapterCodes = {
+  hardwareInvolved: '5.1', softwareDebug: '5.2', business: '5.3',
+  archive: '6.4', trainingPurpose: '7.1', trainingContent: '7.2'
+} as const
 type Row = Record<string, string>
 const parseRows = (raw: unknown): Row[] => (Array.isArray(raw) ? (raw as Row[]) : [])
 const parseObject = (raw: string | undefined | null): Record<string, unknown> => {
@@ -508,7 +513,7 @@ const meta = reactive({
   trainingContent: ''
 })
 const modules = ref<string[]>([])
-// Demo 6.4 问题闭环与文档归档：无独立列，随 remark 信封序列化
+// 6.4 问题闭环与文档归档：随 sectionData 章节数据保存。
 const archiveModule = ref('')
 
 const scriptItems = [
@@ -538,6 +543,10 @@ const syncFromForm = () => {
   scripts.ha = String(scriptObj['ha'] ?? '')
   scripts.full = String(scriptObj['full'] ?? '')
   const metaObj = parseObject(form.value.remark)
+  const chapters = parseObject(form.value.sectionData)
+  Object.entries(chapterCodes).forEach(([field, code]) => {
+    if (Object.hasOwn(chapters, code)) metaObj[field] = chapters[code]
+  })
   meta.hardwareInvolved = String(metaObj['hardwareInvolved'] ?? '')
   meta.softwareDebug = String(metaObj['softwareDebug'] ?? '')
   meta.trainingPurpose = String(metaObj['trainingPurpose'] ?? '')
@@ -584,8 +593,20 @@ watch(scripts, () => { if (!props.readOnly) form.value.script = JSON.stringify({
 watch(
   [meta, archiveModule, () => tables.business],
   () => {
-    // 共享信封 merge-at-write：只覆盖本组件拥有的键，保留方案信息组件的 hasCustomerPlan/customerPlanUrl
-    form.value.remark = JSON.stringify({ ...parseObject(form.value.remark), ...meta, archive: archiveModule.value, business: tables.business })
+    if (props.readOnly) return
+    const chapters = parseObject(form.value.sectionData)
+    const values = { ...meta, archive: archiveModule.value, business: tables.business }
+    for (const field of Object.keys(chapterCodes) as (keyof typeof chapterCodes)[]) {
+      chapters[chapterCodes[field]] = values[field]
+    }
+    form.value.sectionData = JSON.stringify(chapters)
+    // Only remove the migrated chapter keys from an explicitly edited draft.
+    // Preserve customer document pointers, unrelated metadata and plain-text remarks.
+    const legacy = parseObject(form.value.remark)
+    if (Object.keys(chapterCodes).some(field => Object.hasOwn(legacy, field))) {
+      Object.keys(chapterCodes).forEach(field => { delete legacy[field] })
+      form.value.remark = JSON.stringify(legacy)
+    }
   },
   { deep: true }
 )
