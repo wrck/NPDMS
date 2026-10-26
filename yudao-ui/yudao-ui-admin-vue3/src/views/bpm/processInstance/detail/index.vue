@@ -9,7 +9,11 @@
           alt=""
         />
         <div class="flex">
-          <div class="text-#878c93 h-15px">编号：{{ id }}</div>
+          <details v-if="String(processInstance.businessKey || '').startsWith('PROJECT_NORMAL_CLOSURE:')" class="text-#878c93">
+            <summary>流程技术标识</summary>
+            <span>编号：{{ id }}</span>
+          </details>
+          <div v-else class="text-#878c93 h-15px">编号：{{ id }}</div>
           <Icon icon="ep:printer" class="ml-15px cursor-pointer" @click="handlePrint" />
         </div>
         <el-divider class="!my-8px" />
@@ -140,6 +144,7 @@
 </template>
 <script lang="ts" setup>
 import { formatDate } from '@/utils/formatTime'
+import { approvalPeopleKey } from './approvalPeople'
 import { DICT_TYPE } from '@/utils/dict'
 import { BpmModelType, BpmModelFormType } from '@/utils/constants'
 import { setConfAndFields2 } from '@/utils/formCreate'
@@ -203,6 +208,17 @@ const getDetail = () => {
 const BusinessFormComponent = ref<any>(null) // 异步组件
 /** 获取审批详情 */
 const activityNodes = ref<ProcessInstanceApi.ApprovalNodeInfo[]>([]) // 审批节点信息
+provide(approvalPeopleKey, computed(() => {
+  const users = [processInstance.value.startUser, ...activityNodes.value.flatMap((node) => [
+    ...(node.candidateUsers || []),
+    ...(node.tasks || []).flatMap((task) => [task.assigneeUser, task.ownerUser])
+  ])]
+  return {
+    processInstanceId: String(processInstance.value.id || ''),
+    businessKey: processInstance.value.businessKey || '',
+    names: Object.fromEntries(users.filter((user) => user?.id != null && user.nickname).map((user) => [String(user.id), user.nickname]))
+  }
+}))
 const getApprovalDetail = async () => {
   processInstanceLoading.value = true
   try {

@@ -52,7 +52,7 @@ class DefaultDevicePagePerformanceTest {
 
     @Test void defaultPageUsesOwnerReadScopesWithoutEnumeratingProjectOrContractIds() {
         when(viewScopes.prepare(any())).thenReturn(tenantAdminReadScope());
-        when(contracts.prepareReadScope(any())).thenReturn(new ContractDeviceVisibilityApi.ReadScope(List.of("C01")));
+        when(contracts.prepareReadScope(any())).thenReturn(new ContractDeviceVisibilityApi.ReadScope(List.of(new ContractDeviceVisibilityApi.OrganizationGrant(88L, 99L, "D99"))));
         when(devices.selectJoinedDevicePage(any())).thenReturn(PageResult.empty());
 
         assertEquals(0L, new DeviceQueryService(devices, access, null, null).getPage(
@@ -64,7 +64,7 @@ class DefaultDevicePagePerformanceTest {
         assertNull(query.getValue().visibleProjectIds());
         assertNull(query.getValue().visibleContractNumbers());
         assertTrue(query.getValue().readScope().projectScope().trees().isEmpty());
-        assertEquals(List.of("C01"), query.getValue().readScope().contractScope().companyCodes());
+        assertEquals(List.of(new ContractDeviceVisibilityApi.OrganizationGrant(88L, 99L, "D99")), query.getValue().readScope().contractScope().organizationGrants());
         verify(viewScopes).prepare(any());
         verify(contracts).prepareReadScope(any());
         verify(projects, never()).resolveAllCurrent(any());
@@ -110,7 +110,7 @@ class DefaultDevicePagePerformanceTest {
         var projectScope = new ProjectViewReadScopeApi.ReadScope(1L, 7L, ProjectViewReadScopeApi.Mode.SCOPED,
                 LocalDateTime.now(), List.of(new ProjectViewReadScopeApi.Tree(10L, 3L)));
         when(viewScopes.prepare(any())).thenReturn(projectScope);
-        when(contracts.prepareReadScope(any())).thenReturn(new ContractDeviceVisibilityApi.ReadScope(List.of("C01")));
+        when(contracts.prepareReadScope(any())).thenReturn(new ContractDeviceVisibilityApi.ReadScope(List.of(new ContractDeviceVisibilityApi.OrganizationGrant(88L, 99L, "D99"))));
         var organization = new cn.iocoder.yudao.module.system.api.permission.dto.UserCompanyDepartmentScopeRespDTO();
         organization.setId(1L); organization.setVersion(1); organization.setCompanyId(30L);
         organization.setDepartmentId(31L); organization.setDepartmentCode("OFFICE");
@@ -123,7 +123,7 @@ class DefaultDevicePagePerformanceTest {
         var query = ArgumentCaptor.forClass(VisibleDevicePageQuery.class);
         verify(devices).selectJoinedDevicePage(query.capture());
         assertEquals(projectScope, query.getValue().readScope().projectScope());
-        assertEquals(List.of("C01"), query.getValue().readScope().contractScope().companyCodes());
+        assertEquals(List.of(new ContractDeviceVisibilityApi.OrganizationGrant(88L, 99L, "D99")), query.getValue().readScope().contractScope().organizationGrants());
         var grant = query.getValue().organizationGrants().getFirst();
         assertEquals(30L, grant.companyId());
         assertEquals(31L, grant.departmentId());
@@ -136,7 +136,7 @@ class DefaultDevicePagePerformanceTest {
 
     @Test void projectOwnerFailureClosesOnlyProjectScopeBranch() {
         when(viewScopes.prepare(any())).thenThrow(new IllegalStateException("project owner unavailable"));
-        when(contracts.prepareReadScope(any())).thenReturn(new ContractDeviceVisibilityApi.ReadScope(List.of("C01")));
+        when(contracts.prepareReadScope(any())).thenReturn(new ContractDeviceVisibilityApi.ReadScope(List.of(new ContractDeviceVisibilityApi.OrganizationGrant(88L, 99L, "D99"))));
         when(devices.selectJoinedDevicePage(any())).thenReturn(PageResult.empty());
 
         new DeviceQueryService(devices, access, null, null).getPage(
@@ -145,7 +145,7 @@ class DefaultDevicePagePerformanceTest {
         var query = ArgumentCaptor.forClass(VisibleDevicePageQuery.class);
         verify(devices).selectJoinedDevicePage(query.capture());
         assertNull(query.getValue().readScope().projectScope());
-        assertEquals(List.of("C01"), query.getValue().readScope().contractScope().companyCodes());
+        assertEquals(List.of(new ContractDeviceVisibilityApi.OrganizationGrant(88L, 99L, "D99")), query.getValue().readScope().contractScope().organizationGrants());
         verify(contracts, never()).getVisibleContractNumbers(anyLong(), anyLong());
     }
 

@@ -47,4 +47,12 @@ it('does not announce completion when the server leaves the task pending', async
   const view = await render(); await view.state().execute('COMPLETE')
   expect(messages.success).not.toHaveBeenCalled()
   expect(messages.warning).toHaveBeenCalledWith(expect.stringContaining('未满足'))
+  expect(view.state().error).toContain('交付件')
+  expect(view.state().error).toContain('状态未改变')
+})
+it('keeps a business rejection visible when the request layer rejects with text', async () => {
+  api.executeTaskAction.mockRejectedValueOnce('项目任务命令不符合当前规则')
+  const view = await render(); await view.state().execute('START')
+  expect(view.state().error).toBe('项目任务命令不符合当前规则')
+  expect(view.changed).not.toHaveBeenCalled()
 })

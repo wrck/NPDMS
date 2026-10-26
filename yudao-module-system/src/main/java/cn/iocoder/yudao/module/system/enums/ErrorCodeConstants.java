@@ -182,5 +182,8 @@ public interface ErrorCodeConstants {
     // ========== 组织范围 1-002-029-100 ==========
     ErrorCode ORGANIZATION_SCOPE_INVALID_ARGUMENT = new ErrorCode(1_002_029_100, "组织候选查询参数不合法");
     ErrorCode ORGANIZATION_SCOPE_INVALID = new ErrorCode(1_002_029_101, "组织范围不存在、已停用或编码不一致");
+    ErrorCode USER_ORGANIZATION_SCOPE_NOT_FOUND = new ErrorCode(1_002_029_102, "用户公司部门范围不存在");
+    ErrorCode USER_ORGANIZATION_SCOPE_VERSION_CONFLICT = new ErrorCode(1_002_029_103, "范围已变更或停用，请刷新后重试");
+    ErrorCode USER_ORGANIZATION_SCOPE_INTERVAL_INVALID = new ErrorCode(1_002_029_104, "到期时间必须晚于生效时间");
 
 }

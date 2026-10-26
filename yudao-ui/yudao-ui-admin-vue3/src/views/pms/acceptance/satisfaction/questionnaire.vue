@@ -6,10 +6,11 @@
           <img :src="logo" alt="DPtech 迪普科技" />
           <span v-if="questionnaire" class="packet-status" :class="{ submitted: questionnaire.submitted || outcome }">{{ questionnaire.submitted || outcome ? '已提交' : '客户确认' }}</span>
         </div>
-        <h1 id="questionnaire-title">{{ outcome ? '感谢您的反馈' : questionnaire?.completionCertificate ? '完工确认与满意度调查' : '项目满意度调查' }}</h1>
+        <h1 id="questionnaire-title">{{ outcome || questionnaire?.submitted ? '感谢您的反馈' : questionnaire?.completionCertificate ? '完工确认与满意度调查' : '项目满意度调查' }}</h1>
         <p v-if="questionnaire?.completionCertificate" class="packet-project">{{ questionnaire.completionCertificate.name }}</p>
-        <p class="packet-intro">{{ questionnaire?.completionCertificate ? '请核对完工内容并评价本次服务，最后一次签字确认两份表单。' : '请评价本次项目交付服务，填写后签字提交。' }}</p>
-        <p v-if="questionnaire" class="packet-expiry">链接有效至 {{ formatDate(questionnaire.expiresAt) }}。提交后内容不可修改。</p>
+        <p v-if="questionnaire?.submitted || outcome" class="packet-intro">您的评价与签字已保存，以下内容为提交记录，不可修改。</p>
+        <p v-else class="packet-intro">{{ questionnaire?.completionCertificate ? '请核对完工内容并评价本次服务，最后一次签字确认两份表单。' : '请评价本次项目交付服务，填写后签字提交。' }}</p>
+        <p v-if="questionnaire && !questionnaire.submitted && !outcome" class="packet-expiry">链接有效至 {{ formatDate(questionnaire.expiresAt) }}。提交后内容不可修改。</p>
       </header>
       <el-skeleton v-if="loading" :rows="7" animated aria-label="正在加载确认表单" />
       <el-result v-else-if="errorMessage" icon="warning" title="问卷暂不可用" :sub-title="errorMessage" />
@@ -27,14 +28,14 @@
           <CompletionCertificateSheet :certificate="questionnaire.completionCertificate" :show-title="false" :show-hint="false" />
         </section>
         <section id="survey-section" ref="surveySection" class="packet-section survey-section" aria-labelledby="survey-title">
-          <div class="section-heading"><span class="section-number" aria-hidden="true">{{ questionnaire.completionCertificate ? '2' : '1' }}</span><div><h2 id="survey-title">满意度调查表</h2><p>请按实际体验评价，每一项选择一个选项。</p></div></div>
+          <div class="section-heading"><span class="section-number" aria-hidden="true">{{ questionnaire.completionCertificate ? '2' : '1' }}</span><div><h2 id="survey-title">满意度调查表</h2><p>{{ questionnaire.submitted ? '以下为已提交的服务评价。' : '请按实际体验评价，每一项选择一个选项。' }}</p></div></div>
           <QuestionnaireTable ref="questionFormApi" :definition="definition" :answers="answers" :disabled="submissionLocked" :show-signature="false" />
         </section>
         <section id="signature-section" ref="signatureSection" class="packet-section file-section" aria-labelledby="signature-title">
-          <div class="section-heading"><span class="section-number" aria-hidden="true">{{ questionnaire.completionCertificate ? '3' : '2' }}</span><div><h2 id="signature-title">{{ questionnaire.completionCertificate ? '统一签字确认' : '客户签字确认' }}</h2><p>{{ questionnaire.completionCertificate ? '仅需签字一次，同时确认以上完工证明与满意度调查表。' : '请由客户本人核对并签字。' }}</p></div></div>
+          <div class="section-heading"><span class="section-number" aria-hidden="true">{{ questionnaire.completionCertificate ? '3' : '2' }}</span><div><h2 id="signature-title">{{ questionnaire.completionCertificate ? '统一签字确认' : '客户签字确认' }}</h2><p>{{ questionnaire.submitted ? '已保存的客户签字。' : questionnaire.completionCertificate ? '仅需签字一次，同时确认以上完工证明与满意度调查表。' : '请由客户本人核对并签字。' }}</p></div></div>
           <div class="customer-confirmation-form"><form-create v-model="signatureValues" :rule="signatureRules" :option="questionFormOption" /></div>
           <div v-if="!questionnaire.submitted" class="attachment-field"><p>补充附件（可选）</p><el-upload multiple :auto-upload="false" :disabled="submissionLocked" :on-change="onAttachmentChange" :on-remove="onAttachmentRemove"><el-button>选择附件</el-button></el-upload></div>
-          <el-alert v-if="questionnaire.submitted" type="success" :closable="false" :title="`两份表单已统一提交 · ${formatDate(questionnaire.signedAt)}`" />
+          <el-alert v-if="questionnaire.submitted" type="success" :closable="false" :title="`${questionnaire.completionCertificate ? '两份表单已统一提交' : '评价已提交'} · ${formatDate(questionnaire.signedAt)}`" />
           <el-checkbox v-else-if="questionnaire.completionCertificate" v-model="confirmCompletionCertificate" :disabled="submissionLocked" class="joint-confirmation">我已核对完工证明及满意度调查表，以上签字同时确认两份表单。</el-checkbox>
         </section>
         <footer v-if="!questionnaire.submitted" class="submission-actions">

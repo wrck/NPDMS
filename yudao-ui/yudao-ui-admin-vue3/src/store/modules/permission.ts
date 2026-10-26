@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { store } from '@/store'
 import { useUserStore } from './user'
 import { commerceMenusForRoles } from './commerceMenuVisibility'
+import { stagePlanMenusForRoles } from './stagePlanMenuVisibility'
 import { configurationRoutes } from './configurationRoutes'
 import { withoutRetiredHistoryMenus } from './retiredHistoryMenus'
 import { cloneDeep } from 'lodash-es'
@@ -49,7 +50,14 @@ export const usePermissionStore = defineStore('permission', {
           res = roleRouters as AppCustomRouteRecordRaw[]
         }
         const routerMap: AppRouteRecordRaw[] = configurationRoutes(
-          generateRoute(withoutRetiredHistoryMenus(commerceMenusForRoles(res, useUserStore().getRoles)))
+          generateRoute(
+            withoutRetiredHistoryMenus(
+              stagePlanMenusForRoles(
+                commerceMenusForRoles(res, useUserStore().getRoles),
+                useUserStore().getRoles
+              )
+            )
+          )
         )
         // 动态路由，404一定要放到最后面
         // preschooler：vue-router@4以后已支持静态404路由，此处可不再追加

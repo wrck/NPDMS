@@ -94,6 +94,27 @@ public class ProjectBusinessContextApiImpl implements ProjectBusinessContextApi 
     }
 
     @Override
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public ImplementationRequirements lockCutoverReadinessRequirements(ReadinessQuery query) {
+        if (query == null || TenantContextHolder.isIgnore() || query.tenantId() == null
+                || !Objects.equals(query.tenantId(), TenantContextHolder.getTenantId())
+                || query.projectId() == null || query.projectId() <= 0 || query.expectedScopeVersion() == null)
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        Long actor = cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId();
+        if (actor == null || actor <= 0) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        // 锁住真实项目树并校验版本；该专用内部事实不把审批资格转换成通用项目权限。
+        var scope = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId()).subjectUserId(actor).anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).expectedScopeVersion(query.expectedScopeVersion()).build());
+        if (scope == null || !Objects.equals(scope.treeVersion(), query.expectedScopeVersion()))
+            throw exception(PROJECT_TREE_VERSION_CONFLICT);
+        var project = projects.selectByIdForUpdate(query.projectId());
+        if (project == null || !Objects.equals(project.getTenantId(), query.tenantId()))
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        return implementationRequirements(project);
+    }
+
+    @Override
     public ServiceManagers serviceManagers(Query query) {
         var context = inspect(query);
         var rows = members.selectParticipantFacts(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectParticipantFactLookupQuery.builder()

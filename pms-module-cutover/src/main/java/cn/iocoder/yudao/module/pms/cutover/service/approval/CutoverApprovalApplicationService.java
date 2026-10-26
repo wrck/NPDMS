@@ -271,16 +271,20 @@ public class CutoverApprovalApplicationService {
             return decisionResult(instance, task, current.getNodeNo());
         }
         validateAssessmentReview(current, input);
+        CutoverApprovalNodeDO next = approve ? nodeMapper.selectByInstanceAndNodeForUpdate(
+                new ApprovalNodeLockQuery(tenantId, instance.getId(), current.getNodeNo() + 1)) : null;
+        if (approve && next == null) {
+            if (byRole) readiness.requireCurrentForApproval(new cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.ApprovalRevalidation(
+                    task, instance.getId(), instance.getVersion(), current.getNodeNo()));
+            else readiness.requireCurrent(task);
+        }
         LocalDateTime now = LocalDateTime.now(clock);
         var operation = new CutoverOperationContext(actorId, correlationId, now);
         insertReviewItems(current, reviewItems, operation);
         workflow.decide(instance, current, input, actorId);
         updateNode(current, input, new DecisionAuditContext(operation, qualification.roleCandidate()));
         if (!approve) return rejectNew(instance, task, current, input, operation);
-        CutoverApprovalNodeDO next = nodeMapper.selectByInstanceAndNodeForUpdate(
-                new ApprovalNodeLockQuery(tenantId, instance.getId(), current.getNodeNo() + 1));
         if (next != null) return approveIntermediate(instance, task, current, next, operation);
-        readiness.requireCurrent(task);
         return approveFinal(instance, task, current, operation);
     }
 

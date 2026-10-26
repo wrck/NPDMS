@@ -139,6 +139,7 @@
               clearable
               class="!w-full"
               placeholder="从项目客户联系人中选择"
+              no-data-text="当前可见范围暂无该项目的客户联系人，请核对客户及联系人维护权限"
               :disabled="!form.projectId"
               @change="onContactSelect"
             >

@@ -63,8 +63,18 @@ class CommerceDeliveryScopeQueryServiceTest {
         assertEquals("C1",result.getList().getFirst().contractNo());
         ArgumentCaptor<DeliveryScopePageQuery> query = ArgumentCaptor.forClass(DeliveryScopePageQuery.class);
         verify(scopeMapper).selectCountByProjectScope(query.capture());
-        assertEquals(List.of(10L, 20L), query.getValue().projectIds());
+        assertEquals(List.of(10L), query.getValue().projectIds());
         assertFalse(query.getValue().includeHistory());
+    }
+
+    @Test
+    void unfilteredPageRetainsAllAuthorizedProjects() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(20L, 10L));
+        service.page(CommerceDeliveryScopeQueryService.PageQuery.builder()
+                .tenantId(1L).subjectUserId(7L).limit(20).build());
+        verify(scopeMapper).selectCountByProjectScope(argThat(query ->
+                query.projectId() == null && query.projectIds().equals(List.of(10L, 20L))));
+        verifyNoInteractions(detailMapper);
     }
 
     @Test

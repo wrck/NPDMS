@@ -85,7 +85,7 @@
             <el-table-column label="采集项及核查说明" min-width="1">
               <template #default="{ row }">
                 <div v-if="isTableItem(row)" class="stacked-table-item">
-                  <div class="stacked-table-item__heading"><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><p v-if="row.itemDescription" class="item-description">{{ row.itemDescription }}</p><small v-if="row.sourceCode === 'CUSTOM'" class="cut-muted">自定义项</small></div>
+                  <div class="stacked-table-item__heading"><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><details v-if="row.itemDescription" class="item-description"><summary>填写说明与来源</summary><p>{{ row.itemDescription }}</p></details><small v-if="row.sourceCode === 'CUSTOM'" class="cut-muted">自定义项</small></div>
                   <CutoverChecklistField
                     :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" :table-row="true"
                     :validation-message="validationKey === row.stableItemKey ? validationMessage : undefined"
@@ -95,7 +95,7 @@
                     @external-feedback="setExternalFeedback" @external-load="loadExternal" @external-save="saveExternalFeedback"
                     @collection="requestCollection" @remove="removeCustom" @refresh="refreshAfterCollection" />
                 </div>
-                <template v-else><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><p v-if="row.itemDescription" class="item-description">{{ row.itemDescription }}</p><small v-if="row.sourceCode === 'CUSTOM'" class="cut-muted">自定义项</small></template>
+                <template v-else><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><details v-if="row.itemDescription" class="item-description"><summary>填写说明与来源</summary><p>{{ row.itemDescription }}</p></details><small v-if="row.sourceCode === 'CUSTOM'" class="cut-muted">自定义项</small></template>
               </template>
             </el-table-column>
             <el-table-column label="检查结果／反馈内容" min-width="2">

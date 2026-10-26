@@ -41,6 +41,61 @@ class ImplementationReadinessServiceTest {
             List.of(new ImplementationReadinessQuery.ExpectedDevice(11L, "SN-11", 3L)));
     final ImplementationReadinessSnapshotDO row = new ImplementationReadinessSnapshotDO();
 
+    @Test void roleApprovalWithoutProjectScopeRevalidatesWithoutReturningOwnerData() {
+        var access = approvalAccess();
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L, 41L, Set.of(), Set.of()));
+        when(snapshots.selectById(71L)).thenReturn(row);
+        row.setTenantId(7L); row.setProjectId(9L);
+        row.setDeviceScopeKey(cn.hutool.crypto.digest.DigestUtil.sha256Hex(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(query.expectedDevices())));
+        when(projects.lockCutoverReadinessRequirements(any())).thenReturn(
+                new ProjectBusinessContextApi.ImplementationRequirements(21L, 3L, true, Set.of()));
+        when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(new ProjectDeviceInstallationFact(11L, "SN-11", "room", 3L)));
+        var result = service.lockAndRevalidateForApproval(approvalQuery());
+        assertEquals("READY", result.decision()); assertEquals(List.of(11L), result.deviceIds());
+        verify(access).requireCurrent(approvalQuery());
+        verify(projects, never()).inspect(any()); verify(devices, never()).getDevice(any());
+        verifyNoInteractions(scopes);
+        assertEquals(Set.of("decision", "projectId", "snapshotId", "snapshotVersion", "deviceIds"),
+                Arrays.stream(result.getClass().getRecordComponents()).map(java.lang.reflect.RecordComponent::getName).collect(java.util.stream.Collectors.toSet()));
+    }
+
+    @Test void invalidCurrentApprovalCannotReadAnyOwnerOrSnapshot() {
+        var access = approvalAccess();
+        doThrow(new SecurityException("not current")).when(access).requireCurrent(any());
+        assertThrows(SecurityException.class, () -> service.lockAndRevalidateForApproval(approvalQuery()));
+        verify(snapshots, never()).selectById(any()); verifyNoInteractions(projects, devices, sources);
+    }
+
+    @Test void crossTenantApprovalCannotReachAuthorizationProvider() {
+        var access = approvalAccess(); TenantContextHolder.setTenantId(8L);
+        assertThrows(ImplementationReadinessException.class, () -> service.lockAndRevalidateForApproval(approvalQuery()));
+        verifyNoInteractions(access, projects, devices, sources);
+    }
+
+    @Test void exactSnapshotVersionIsMandatoryForApproval() {
+        approvalAccess(); when(snapshots.selectById(71L)).thenReturn(row);
+        row.setTenantId(7L); row.setProjectId(9L);
+        var q = approvalQuery();
+        var changed = new cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query(
+                q.tenantId(), q.taskId(), q.taskVersion(), q.approvalInstanceId(), q.approvalVersion(), q.nodeNo(), q.projectId(), q.snapshotId(), 1L, q.deviceIds());
+        assertThrows(ImplementationReadinessException.class, () -> service.lockAndRevalidateForApproval(changed));
+        verifyNoInteractions(projects, devices, sources);
+    }
+
+    cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi approvalAccess() {
+        var access = mock(cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.class);
+        org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi> provider = mock(org.springframework.beans.factory.ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(access);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "approvalAccess", provider);
+        return access;
+    }
+
+    cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query approvalQuery() {
+        return new cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query(
+                7L, 81L, 2L, 91L, 3L, 4, 9L, 71L, 0L, List.of(11L));
+    }
+
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
         SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(13L).setTenantId(7L), new MockHttpServletRequest());

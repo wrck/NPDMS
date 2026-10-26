@@ -11,12 +11,12 @@
     <sql id="joinedDeviceVisibility">
         AND (
             <include refid="deviceOrganizationVisibility"/>
-            OR (EXISTS (SELECT 1 FROM visible_direct_projects)
-                AND d.project_id IN (SELECT project_id FROM visible_direct_projects))
-            OR (EXISTS (SELECT 1 FROM visible_related_devices)
-                AND d.sn IN (SELECT device_sn FROM visible_related_devices))
-            OR (EXISTS (SELECT 1 FROM visible_device_contracts)
-                AND CAST(d.contract_no AS BINARY) IN (SELECT contract_key FROM visible_device_contracts))
+            OR (<if test="query.projectId == null">EXISTS (SELECT 1 FROM visible_direct_projects) AND </if>
+                d.project_id IN (SELECT project_id FROM visible_direct_projects))
+            OR (<if test="query.projectId == null">EXISTS (SELECT 1 FROM visible_related_devices) AND </if>
+                d.sn IN (SELECT device_sn FROM visible_related_devices))
+            OR (<if test="query.projectId == null">EXISTS (SELECT 1 FROM visible_device_contracts) AND </if>
+                CAST(d.contract_no AS BINARY) IN (SELECT contract_key FROM visible_device_contracts))
         )
     </sql>
 

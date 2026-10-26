@@ -44,7 +44,7 @@ class DeviceQueryServiceTest {
         return new DevicePageReadScope(
                 new ProjectViewReadScopeApi.ReadScope(1L, 7L, ProjectViewReadScopeApi.Mode.TENANT_ADMIN,
                         LocalDateTime.now(), List.of()),
-                new ContractDeviceVisibilityApi.ReadScope(List.of("C01")));
+                new ContractDeviceVisibilityApi.ReadScope(List.of(new ContractDeviceVisibilityApi.OrganizationGrant(88L, 99L, "D99"))));
     }
 
     @BeforeEach

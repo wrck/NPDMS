@@ -60,6 +60,16 @@ class DeviceLogArchiveServiceTest {
         when(devices.selectLogDeviceForUpdate(new cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceLogDeviceLockQuery(1L,20L))).thenReturn(device(20L,"SN001"));
     }
     @AfterEach void teardown() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
+    @Test void projectWithoutArchivedLogsDoesNotLoadItsDeviceInventoryAndStillRequiresScope() {
+        when(files.projectFiles(any())).thenReturn(List.of());
+        assertTrue(service.latest(10L).isEmpty());
+        verifyNoInteractions(deviceQueries);
+        clearInvocations(files);
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L,1L,Set.of(),Set.of()));
+        assertThrows(RuntimeException.class, () -> service.latest(10L));
+        verifyNoInteractions(deviceQueries);
+        verify(files,never()).projectFiles(any());
+    }
     @Test void scopeVersionIsRequiredAndChangesRejectBeforeSplitting() {
         when(scopes.lockAndRevalidate(any())).thenAnswer(inv -> {
             var q=inv.getArgument(0,cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery.class);

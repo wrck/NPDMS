@@ -19,6 +19,11 @@ public interface ProjectBusinessContextApi {
     ImplementationRequirements implementationRequirements(Query query);
     ImplementationRequirements lockImplementationRequirements(Revalidation query);
 
+    /** 内部Owner事实。调用方必须已核验当前CUT审批实例及节点，只用于IMP原事务重验，不得返回给用户。 */
+    ImplementationRequirements lockCutoverReadinessRequirements(ReadinessQuery query);
+
+    record ReadinessQuery(Long tenantId, Long projectId, Long expectedScopeVersion) { }
+
     record ImplementationRequirements(Long planVersionId, Long planVersion, boolean configured,
                                       java.util.Set<String> requiredSourceCodes) {
         public ImplementationRequirements {

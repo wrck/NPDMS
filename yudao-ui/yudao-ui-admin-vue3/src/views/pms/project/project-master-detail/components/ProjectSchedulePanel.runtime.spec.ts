@@ -4,6 +4,7 @@ import Panel from './ProjectSchedulePanel.vue'
 import * as PlanApi from '@/api/pms/engineering/stage-plan'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import * as MemberApi from '@/api/pms/project/unified-members'
+import { stagePlanMenusForRoles } from '@/store/modules/stagePlanMenuVisibility'
 import {
   mount,
   findByTestId,
@@ -36,6 +37,7 @@ vi.mock('@/api/pms/engineering/stage-plan', () => ({
   getStagePlanBatchPage: vi.fn(),
   getStagePlanBatch: vi.fn(),
   getOverdueStages: vi.fn(),
+  autoEstimateStagePlanBatch: vi.fn(),
   updateStagePlanItems: vi.fn(),
   submitStagePlanBatch: vi.fn()
 }))
@@ -249,6 +251,25 @@ it.each([1, 2])(
     }
   }
 )
+
+it.each(['PROJECT_MANAGER', 'SERVICE_MANAGER'])('独立菜单对%s隐藏后项目详情仍能重新倒排并刷新草稿', async (role) => {
+  expect(stagePlanMenusForRoles([
+    { component: 'pms/engineering/stage-plan/index', visible: true }
+  ], [role])[0].visible).toBe(false)
+  feedback.confirm.mockResolvedValue(undefined)
+  vi.mocked(PlanApi.autoEstimateStagePlanBatch).mockResolvedValue(draft() as any)
+  const app = render()
+  try {
+    await flush()
+    expect(app.state.editable).toBe(true)
+    await app.state.estimate()
+    expect(PlanApi.autoEstimateStagePlanBatch).toHaveBeenCalledWith(8)
+    expect(feedback.success).toHaveBeenCalledWith('倒排已完成，请核对阶段与任务安排')
+    expect(app.state.batch.id).toBe(8)
+    expect(app.state.dirty).toBe(false)
+    expect(effective.status).toBe(2)
+  } finally { app.app.unmount() }
+})
 
 it('saves nested task dates with the batch version and retains unsaved input on API failure', async () => {
   const app = render()
