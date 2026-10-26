@@ -72,6 +72,30 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
     /** Project closure remains authorized as {@code actorId}; Owner facts are revalidated as the real BPM reviewer. */
     @Transactional(propagation = Propagation.MANDATORY)
     public Evaluation evaluateLocked(ProjectMasterDO project, long treeVersion, Long actorId, Long factActorId, String correlationId) {
+        return evaluateLocked(new EvaluationContext(project, treeVersion, actorId, factActorId, correlationId, null));
+    }
+
+    public record ApprovedEvaluation(ProjectMasterDO project, long treeVersion,
+            cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand approval) { }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Evaluation evaluateApproved(ApprovedEvaluation query) {
+        var approval = query.approval();
+        if (!Objects.equals(query.project().getId(), approval.projectId())
+                || !Objects.equals(query.project().getTenantId(), approval.tenantId())
+                || !Objects.equals(query.treeVersion(), approval.expectedTreeVersion()))
+            throw new IllegalStateException("CLOSURE_REVALIDATION_CONTEXT_MISMATCH");
+        return evaluateLocked(new EvaluationContext(query.project(), query.treeVersion(), approval.actorId(),
+                approval.expectedReviewerUserId(), approval.correlationId(), approval));
+    }
+
+    private record EvaluationContext(ProjectMasterDO project, long treeVersion, Long actorId, Long factActorId,
+            String correlationId, cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand approval) { }
+
+    private Evaluation evaluateLocked(EvaluationContext context) {
+        var project = context.project(); var treeVersion = context.treeVersion();
+        var actorId = context.actorId(); var factActorId = context.factActorId();
+        var correlationId = context.correlationId(); var approval = context.approval();
         var policy = policies.resolve(project);
         String policyJson = policy.policyJson();
         List<Check> checks = new ArrayList<>();
@@ -152,8 +176,11 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
             }
             if (contract.getWorkBindingTypeCode() != null && cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskBusinessBindingHostProvider.TYPES.contains(contract.getWorkBindingTypeCode())) {
                 var before = business.inspectLinkedFactsSnapshot(task.getId(), project.getTenantId(), factActorId, correlationId);
-                var locked = business.lockAndRevalidateLinkedFacts(task.getId(), project.getTenantId(), factActorId,
-                        correlationId, before.factVersion());
+                var locked = approval == null
+                        ? business.lockAndRevalidateLinkedFacts(task.getId(), project.getTenantId(), factActorId,
+                                correlationId, before.factVersion())
+                        : business.lockForApprovedClosure(new ProjectTaskBusinessService.ApprovedClosureQuery(
+                                approval, task.getId(), before.factVersion()));
                 // 冻结完成规则按任务完成路径的同一语义复评：DELIVERABLE 等运行时谓词经门禁事实提供者解析，
                 // 本机状态以闭环时刻任务实例状态为准（DONE 蕴含当轮已提交）。
                 var runtimeFacts = new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator.Facts(

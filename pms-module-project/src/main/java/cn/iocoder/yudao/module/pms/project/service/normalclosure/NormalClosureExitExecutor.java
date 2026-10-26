@@ -47,7 +47,7 @@ public class NormalClosureExitExecutor implements ProjectClosureExitApi {
         var smIds = access.lockPrimaryServiceManagerUserIds(command.tenantId(), command.projectId());
         if (smIds.size() != 1 || !Objects.equals(command.expectedServiceManagerUserId(), smIds.getFirst()))
             throw closureFailure("CLOSURE_PRIMARY_SM_CHANGED");
-        var evaluation = checks.evaluateLocked(project, context.treeVersion(), command.actorId(), factActorId, command.correlationId());
+        var evaluation = checks.evaluateApproved(new NormalClosureCheckService.ApprovedEvaluation(project, context.treeVersion(), command));
         if (!evaluation.passed() || !Objects.equals(command.expectedReviewerUserId(), reviewerOf(evaluation.policyJson())))
             throw closureFailure("CLOSURE_REVALIDATION_FAILED");
         if (!Objects.equals(command.expectedSourceDigest(), evaluation.sourceDigest()))

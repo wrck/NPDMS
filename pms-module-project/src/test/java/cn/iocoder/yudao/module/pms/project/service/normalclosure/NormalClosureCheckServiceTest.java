@@ -235,6 +235,17 @@ class NormalClosureCheckServiceTest {
     }
 
     @Test
+    void approvedEvaluationCarriesTheBoundApplicationAndLeavesOrdinaryLockingUnused() {
+        var approval = new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand(
+                7L,9L,3L,15L,103L,"BPM_NORMAL_CLOSURE:process-1",101L,102L,1L,"S6",5L,"digest-1","process-1",0L);
+        when(business.lockForApprovedClosure(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessLinkedFacts("owner-v1",List.of()));
+        checks.evaluateApproved(new NormalClosureCheckService.ApprovedEvaluation(project,15L,approval));
+        verify(business).lockForApprovedClosure(new ProjectTaskBusinessService.ApprovedClosureQuery(approval,21L,"owner-v1"));
+        verify(business,org.mockito.Mockito.never()).lockAndRevalidateLinkedFacts(any(),any(),any(),any(),any());
+        org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class,()->checks.evaluateApproved(new NormalClosureCheckService.ApprovedEvaluation(project,16L,approval)));
+    }
+
+    @Test
     void originalEntryUsesApplicantForBothProjectAndOwnerFactChecks() {
         checks.evaluateLocked(project, 15L, 103L, "closure-1");
 

@@ -50,7 +50,7 @@ class NormalClosureExitExecutorTest {
         login(1L);
         when(access.lock(eq(9L), eq(3L), eq(15L), any())).thenReturn(new NormalClosureAccess.Context(project, 15L));
         when(access.lockPrimaryServiceManagerUserIds(7L, 9L)).thenReturn(List.of(5L));
-        when(checks.evaluateLocked(eq(project), eq(15L), eq(103L), eq(1L), eq("closure-1"))).thenReturn(evaluation());
+        when(checks.evaluateApproved(any())).thenReturn(evaluation());
         when(closureProjects.selectFrozenTemplateRevisionId(any())).thenReturn(51L);
         when(stages.updateStatusIfMatch(any())).thenReturn(1);
         when(closureProjects.closeProjectIfMatch(any())).thenReturn(1);
@@ -71,7 +71,7 @@ class NormalClosureExitExecutorTest {
         var result = executor.executeApprovedExit(command());
 
         assertEquals(11L, result.stageInstanceId());
-        verify(checks).evaluateLocked(project, 15L, 103L, 1L, "closure-1");
+        verify(checks).evaluateApproved(new NormalClosureCheckService.ApprovedEvaluation(project,15L,command()));
         verify(executions).finishIfActive(argThat(finish -> {
             var snapshot = JsonUtils.parseTree(finish.resultSnapshot());
             return finish.tenantId().equals(7L) && finish.projectId().equals(9L)
@@ -93,7 +93,7 @@ class NormalClosureExitExecutorTest {
         org.springframework.test.util.ReflectionTestUtils.setField(executor,"taskLifecycle",provider);
         var original=evaluation();
         var pending=new NormalClosureTaskProjection(21L,"CLOSE",41L);
-        when(checks.evaluateLocked(eq(project),eq(15L),eq(103L),eq(1L),eq("closure-1")))
+        when(checks.evaluateApproved(any()))
                 .thenReturn(new NormalClosureCheckService.Evaluation(original.policyJson(),original.checks(),original.evidence(),
                         original.sourceVector(),original.sourceDigest(),original.graph(),pending));
         when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round(31L,21L,"ACTIVE",1,1)));
@@ -225,7 +225,7 @@ class NormalClosureExitExecutorTest {
 
     @Test
     void propagatesOwnerRevalidationFailureWithoutChangingTheStageOrProject() {
-        when(checks.evaluateLocked(eq(project), eq(15L), eq(103L), eq(1L), eq("closure-1")))
+        when(checks.evaluateApproved(any()))
                 .thenThrow(new IllegalStateException("OWNER_FACT_FORBIDDEN"));
 
         assertThrows(IllegalStateException.class, () -> executor.executeApprovedExit(command()));
@@ -237,7 +237,7 @@ class NormalClosureExitExecutorTest {
 
     @Test
     void rejectsAChangedOwnerFactDigestBeforeChangingTheStageOrProject() {
-        when(checks.evaluateLocked(eq(project), eq(15L), eq(103L), eq(1L), eq("closure-1")))
+        when(checks.evaluateApproved(any()))
                 .thenReturn(evaluation("changed-digest"));
 
         assertThrows(RuntimeException.class, () -> executor.executeApprovedExit(command()));

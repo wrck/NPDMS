@@ -159,6 +159,30 @@ class SatisfactionTaskBusinessObjectProviderReadTest {
         verifyNoInteractions(questionnaires, source, executions);
     }
 
+    @Test
+    void approvedClosureRevalidatesProjectResultWithoutAcquiringTheAssigneesQueue() {
+        var approval = new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand(
+                7L,9L,3L,1L,21L,"BPM_NORMAL_CLOSURE:process-1",101L,102L,11L,"S6",31L,"digest-1","process-1",0L);
+        when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
+        when(tasks.selectByIdForUpdate(7L,10L)).thenReturn(task);
+        when(results.selectByIdForUpdate(7L,20L)).thenReturn(result);
+        when(source.lockAndInspect(any())).thenReturn(cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Observation.available(
+                new cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Result(7L,9L,
+                        SatisfactionBusinessResultSource.TYPE,"10","20","1","1",
+                        cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Validity.CURRENT,java.time.LocalDateTime.now())));
+        org.springframework.test.util.ReflectionTestUtils.setField(provider,"closureApproval",
+                mock(cn.iocoder.yudao.module.pms.acceptance.service.normalclosure.NormalClosureApprovalRevalidation.class));
+        var before = provider.inspect(context,"10");
+        var locked = provider.lockForApprovedClosure(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.ClosureRevalidation(
+                context,approval,"10",before.factVersion()));
+        assertTrue(locked.completionFacts().get(SatisfactionTaskBusinessObjectProvider.COMPLETE));
+        assertTrue(locked.allowedActions().isEmpty());
+        assertEquals(before.factVersion(),locked.factVersion());
+        assertEquals(21L,task.getAssignedToUserId());
+        assertThrows(IllegalStateException.class,()->queries.get(7L,11L,10L));
+        verify(tasks,never()).updateById(any(SatisfactionCollectionTaskDO.class));
+    }
+
     private SatisfactionResultFileDO file(String role) {
         var file = new SatisfactionResultFileDO();
         file.setTenantId(7L); file.setResultId(20L); file.setFileRole(role);

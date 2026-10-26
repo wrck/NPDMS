@@ -25,6 +25,8 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class SatisfactionTaskBusinessObjectProvider implements TaskBusinessObjectProvider {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.acceptance.service.normalclosure.NormalClosureApprovalRevalidation closureApproval;
     public static final String COMPLETE = "SIGNED_PASSED_ARCHIVED";
     private final SatisfactionCollectionTaskMapper tasks;
     private final SatisfactionResultMapper results;
@@ -77,6 +79,22 @@ public class SatisfactionTaskBusinessObjectProvider implements TaskBusinessObjec
         var actions = inspectContext(context);
         var visible = queries.get(context.tenantId(), context.actorId(), id(objectId));
         if (!context.projectId().equals(visible.projectId())) throw unavailable();
+        return lockProjectFact(new ProjectFactLock(context, objectId, expectedVersion, actions));
+    }
+
+    @Override @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public BusinessObjectFact lockForApprovedClosure(ClosureRevalidation query) {
+        closureApproval.require(query);
+        requireActor(query.context());
+        // Internal facts carry no page actions. The work-queue get and ordinary command remain assignee-only.
+        return lockProjectFact(new ProjectFactLock(query.context(), query.objectId(), query.expectedVersion(), Set.of()));
+    }
+
+    private record ProjectFactLock(Context context, String objectId, String expectedVersion, Set<String> actions) { }
+
+    private BusinessObjectFact lockProjectFact(ProjectFactLock query) {
+        var context = query.context(); var objectId = query.objectId();
+        var expectedVersion = query.expectedVersion(); var actions = query.actions();
         var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder().tenantId(context.tenantId())
                 .subjectUserId(context.actorId()).anchorProjectId(context.projectId()).actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.treeVersion() == null) throw unavailable();
