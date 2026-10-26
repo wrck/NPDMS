@@ -267,6 +267,7 @@ const reopenReceipt = async (result: Revision | undefined) => {
     selectedRevisionId.value = result.ref.revisionId
     loadedExecution.value = execution
     formDirty.value = false
+    emit('changed')
   } catch (error: any) {
     if (sequence === loadSequence) {
       overview.value = undefined
@@ -278,7 +279,19 @@ const reopenReceipt = async (result: Revision | undefined) => {
 }
 const refreshWorkspace = async () => {
   if (!(await guardCurrentForm('刷新'))) return
-  await load()
+  if (!detail.value || !selectedRevisionId.value) return await load()
+  loading.value = true
+  try {
+    const value = await reloadSelectedDetail()
+    dynamicFormRef.value?.discardChanges()
+    formDirty.value = false
+    commandError.value = ''
+    return value
+  } catch {
+    commandError.value = '需求分析刷新失败，当前内容已保留，请稍后重试。'
+  } finally {
+    loading.value = false
+  }
 }
 const openHistory = async () => {
   if (!detail.value || !(await guardCurrentForm('查看修订记录'))) return
@@ -411,10 +424,7 @@ watch([() => props.project.id, missingCreationActions], async ([projectId, missi
     if (!cancelled) errorText.value = '业务操作状态刷新失败，请点击查询重试；当前正文未改变。'
   }
 })
-watch(() => overview.value, (value, previous) => {
-  if (previous && value) emit('changed')
-})
-defineExpose({ requestLeave, isDirty: () => formDirty.value })
+defineExpose({ requestLeave, refresh: refreshWorkspace, isDirty: () => formDirty.value })
 const beforeUnload = (event: BeforeUnloadEvent) => {
   if (!formDirty.value) return
   event.preventDefault()

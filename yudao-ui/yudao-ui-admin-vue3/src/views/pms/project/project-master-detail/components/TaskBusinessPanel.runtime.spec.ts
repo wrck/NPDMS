@@ -134,6 +134,23 @@ afterEach(() => {
 })
 
 describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
+  it('blocks interaction while refreshing requirements without toggling editor permissions, then applies denial', async () => {
+    const requirement = context('11', { ownerContext: 'SOL', objectType: 'REQUIREMENT_ANALYSIS' })
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(requirement)
+    const page = await setup()
+    expect(visit(page.root, node => node.props?.['aria-label'] === '来源交付件')).toBeUndefined()
+    let resolve!: (value: TaskBusinessContext) => void
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockImplementationOnce(() => new Promise(done => { resolve = done }))
+    const refreshing = page.panel.value.refresh()
+    await tick()
+    const region = visit(page.root, node => node.props?.['aria-label'] === '任务业务办理')!
+    expect(region.props?.inert).toBe(true)
+    expect(controls.ownerProps.mock.lastCall![0].readonly).toBe(false)
+    resolve({ ...requirement, executionAllowed: false })
+    await refreshing; await tick()
+    expect(region.props?.inert).toBe(false)
+    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: ['QUERY'] })
+  })
   it('refreshes eligible business results through the command then reloads the task', async () => {
     vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { allowedActions: ['REFRESH_RESULTS'] }))
     vi.mocked(BusinessApi.refreshTaskBusinessResults).mockResolvedValue({ completed: true, unknown: false })
