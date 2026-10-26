@@ -47,6 +47,9 @@
                 <if test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
                     OR contract_no IN
                     <foreach collection="query.contractNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
+                </if>
+                <if test="query.includeCompletedInstallation">
+                    OR id IN (<include refid="cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationProjectReadSql.completedEquipmentForProject"/>)
                 </if>)
             </when>
             <otherwise>AND 1 = 0</otherwise>

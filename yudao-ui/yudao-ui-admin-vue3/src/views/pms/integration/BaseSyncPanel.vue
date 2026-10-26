@@ -17,6 +17,25 @@
         <template #default="{ row }">{{ names[row.taskCode] || row.taskCode }}</template>
       </el-table-column>
       <el-table-column prop="connectionId" label="连接 ID" min-width="190" />
+      <el-table-column label="执行阶段" min-width="300">
+        <template #default="{ row }">
+          <el-select
+            v-if="row.taskCode === 'BASE_P15'"
+            v-model="row.inputStages"
+            multiple
+            clearable
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="请选择执行阶段"
+            class="w-full"
+            :disabled="busy || loading || hasActiveRun"
+            aria-label="P15执行阶段"
+          >
+            <el-option v-for="stage in p15Stages" :key="stage.value" v-bind="stage" />
+          </el-select>
+          <span v-else>完整流程</span>
+        </template>
+      </el-table-column>
       <el-table-column label="每批数量" width="190">
         <template #default="{ row }">
           <el-input-number
@@ -58,7 +77,18 @@
 </template>
 <script setup lang="ts">
 import * as api from '@/api/pms/integration/base-sync'
-type Row = api.Registration & { inputBatchSize?: number }
+const p15Stages = [
+  { value: 'ShipmentContract', label: '发货合同基础数据' },
+  { value: 'Package', label: '装箱基础数据' },
+  { value: 'ShipmentEvent', label: '发货历史基础数据' },
+  { value: 'DeviceRelationship', label: '设备历史关系' },
+  { value: 'Contract', label: '合同基础数据' },
+  { value: 'ContractOrganization', label: '合同组织关系' },
+  { value: 'ShipmentContractOrganization', label: '发货合同组织关系' },
+  { value: 'OrderContractRelation', label: '订单—合同关系' },
+  { value: 'ShipmentOrderLine', label: '发货—订单行关系' }
+]
+type Row = api.Registration & { inputBatchSize?: number; inputStages?: string[] }
 const rows = ref<Row[]>([])
 const names = ref<Record<string, string>>({})
 const loading = ref(false)
@@ -67,10 +97,15 @@ const error = ref('')
 const result = ref<{ title: string; counts: api.SyncCounts }>()
 const hasActiveRun = computed(() => rows.value.some((row) => row.activeRunId != null))
 const registrations = async () => {
-  const inputs = new Map(rows.value.map((row) => [String(row.id), row.inputBatchSize]))
+  const inputs = new Map(rows.value.map((row) => [String(row.id), row]))
   rows.value = (await api.getRegistrations()).map((row) => ({
     ...row,
-    inputBatchSize: inputs.has(String(row.id)) ? inputs.get(String(row.id)) : row.batchSize
+    inputBatchSize: inputs.has(String(row.id))
+      ? inputs.get(String(row.id))?.inputBatchSize
+      : row.batchSize,
+    inputStages:
+      inputs.get(String(row.id))?.inputStages ??
+      (row.taskCode === 'BASE_P15' ? p15Stages.map((stage) => stage.value) : undefined)
   }))
 }
 const load = async () => {
@@ -88,6 +123,11 @@ const load = async () => {
 }
 const submit = async (row: Row, preview: boolean) => {
   if (busy.value || loading.value || hasActiveRun.value) return
+  const stages = row.taskCode === 'BASE_P15' ? row.inputStages : undefined
+  if (row.taskCode === 'BASE_P15' && !stages?.length) {
+    error.value = 'P15请至少选择一个执行阶段'
+    return
+  }
   const batchSize = row.inputBatchSize ?? undefined
   if (
     batchSize !== undefined &&
@@ -100,9 +140,16 @@ const submit = async (row: Row, preview: boolean) => {
   error.value = ''
   result.value = undefined
   try {
-    const counts = await api.run(preview, row.id, batchSize)
+    const counts = await api.run({ preview, taskId: row.id, batchSize, stages })
+    const stageSummary =
+      stages && stages.length < p15Stages.length
+        ? p15Stages
+            .filter((stage) => stages.includes(stage.value))
+            .map((stage) => stage.label)
+            .join('、')
+        : '全部阶段'
     result.value = {
-      title: `${names.value[row.taskCode] || row.taskCode} · ${preview ? '预览' : '执行'}`,
+      title: `${names.value[row.taskCode] || row.taskCode} · ${stageSummary} · ${preview ? '预览' : '执行'}`,
       counts
     }
   } catch {

@@ -84,7 +84,9 @@ class BaseSyncTenantSqlTest {
                     insert.getColumns().size(), statement.getId());
             checked++;
         }
-        assertEquals(30, checked, "All affected and dependent inserts, including post-processing, must be exercised");
+        assertTrue(configuration.hasStatement(
+                "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertOrderContractRelation"));
+        assertEquals(31, checked, "All affected and dependent inserts, including post-processing, must be exercised");
     }
 
     @Test void crmUpsertParsesThroughTenantInterceptorAndRetainsProtectedIdentity() throws Exception {

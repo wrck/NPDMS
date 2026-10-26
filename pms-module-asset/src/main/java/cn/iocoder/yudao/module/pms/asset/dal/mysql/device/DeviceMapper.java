@@ -18,14 +18,14 @@ import java.util.List;
 
 @Mapper
 public interface DeviceMapper extends BaseMapperX<DeviceDO> {
-    DeviceDO selectLogDeviceForUpdate(@Param("query") cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceLogDeviceLockQuery query);
+    List<cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectShipmentFact> selectProjectShipmentContext(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.ProjectShipmentPageContextQuery query);
+    List<DeviceDO> selectProjectListDevices(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query);
 
-    default List<DeviceDO> selectCurrentProjectDevices(
-            cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query) {
-        return selectList(new LambdaQueryWrapperX<DeviceDO>()
-                .eq(DeviceDO::getTenantId, query.tenantId()).eq(DeviceDO::getProjectId, query.projectId())
-                .orderByAsc(DeviceDO::getId));
-    }
+    List<Long> selectIdsByProjectList(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query);
+    DeviceDO selectLogDeviceForUpdate(@Param("query") cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceLogDeviceLockQuery query);
 
     List<cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact> selectProjectInstallationDevicesForUpdate(
             @Param("query") cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query);
@@ -48,15 +48,6 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
                 .eq(DeviceDO::getId, id));
     }
 
-    /** 按租户+项目查询设备编号集合（配置日志项目维度筛选）。 */
-    default List<Long> selectIdsByTenantAndProject(Long tenantId, Long projectId) {
-        return selectList(new LambdaQueryWrapperX<DeviceDO>()
-                .select(DeviceDO::getId)
-                .eq(DeviceDO::getTenantId, tenantId)
-                .eq(DeviceDO::getProjectId, projectId))
-                .stream().map(DeviceDO::getId).toList();
-    }
-
     /** 客户删除守卫：按租户+客户统计设备引用数。 */
     default Long selectCountByCustomer(Long tenantId, Long customerId) {
         return selectCount(new LambdaQueryWrapperX<DeviceDO>()
@@ -76,19 +67,9 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
                 .in(DeviceDO::getSn, sns));
     }
 
-    /** 按设备条件解析当前归属项目ID集合（project_id 非空，去重）；无命中返回空集合。 */
-    default List<Long> selectListProjectIdsByMatch(
-            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceProjectFilterQuery query) {
-        LambdaQueryWrapperX<DeviceDO> wrapper = new LambdaQueryWrapperX<DeviceDO>()
-                .likeIfPresent(DeviceDO::getSn, query.deviceSnKeyword())
-                .likeIfPresent(DeviceDO::getProductModel, query.deviceProductModelKeyword())
-                .eqIfPresent(DeviceDO::getWarrantyStatus, query.deviceWarrantyStatus());
-        return selectList(wrapper
-                .select(DeviceDO::getProjectId)
-                .eq(DeviceDO::getTenantId, query.tenantId())
-                .isNotNull(DeviceDO::getProjectId))
-                .stream().map(DeviceDO::getProjectId).distinct().toList();
-    }
+    /** 按设备条件解析当前归属及项目清单关联；无命中返回空集合。 */
+    List<Long> selectListProjectIdsByMatch(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceProjectFilterQuery query);
 
     /** 与设备工作台共用当前用户的项目数据范围。 */
     default PageResult<DeviceDO> selectArchivePage(VisibleDevicePageQuery query) {

@@ -34,12 +34,19 @@ class ProjectDeviceSelectionMapperTest {
                     + "(5,1,10,'DELETED-5','已删除','C-10',1),"
                     + "(6,1,20,'BLANK-6','空合同','',0)");
         }
+        try (var connection = source.getConnection(); var sql = connection.createStatement()) {
+            sql.execute("CREATE TABLE imp_eng_installation (equipment_id BIGINT, tenant_id BIGINT, project_id BIGINT, status INT, deleted INT)");
+            sql.execute("INSERT INTO imp_eng_installation VALUES (3,1,10,2,0),(4,1,10,2,0),(5,1,10,2,0),(6,2,10,2,0),(6,1,20,2,0),(6,1,10,1,0),(6,1,10,2,1)");
+        }
         var config = new MybatisConfiguration();
         config.setEnvironment(new Environment("selection", new JdbcTransactionFactory(), source));
         config.setMapUnderscoreToCamelCase(true);
         var interceptor = new MybatisPlusInterceptor();
         interceptor.addInnerInterceptor(new PaginationInnerInterceptor(DbType.H2));
         config.addInterceptor(interceptor);
+        try (var xml = getClass().getResourceAsStream("/mapper/installation/InstallationProjectReadSql.xml")) {
+            new XMLMapperBuilder(xml, config, "installation-owner-xml", config.getSqlFragments()).parse();
+        }
         config.addMapper(ProjectDeviceSelectionMapper.class);
         try (var xml = getClass().getResourceAsStream("/mapper/device/ProjectDeviceSelectionMapper.xml")) {
             new XMLMapperBuilder(xml, config, "selection-xml", config.getSqlFragments()).parse();
@@ -56,6 +63,9 @@ class ProjectDeviceSelectionMapperTest {
             assertEquals(1, mapper.selectSelectionPage(query).getTotal());
             query.setDeviceIds(List.of(1L, 2L, 3L, 4L, 5L));
             assertEquals(List.of(1L, 2L), mapper.selectSelectionForUpdate(query).stream().map(row -> row.getId()).toList());
+            query.setDeviceIds(List.of(1L, 2L, 3L, 4L, 5L, 6L));
+            query.setIncludeCompletedInstallation(true);
+            assertEquals(List.of(1L, 2L, 3L), mapper.selectSelectionForUpdate(query).stream().map(row -> row.getId()).toList());
             query.setDeviceIds(List.of());
             assertTrue(mapper.selectSelectionForUpdate(query).isEmpty());
             query.setSn(null); query.setContractNumbers(Set.of()); query.setPageSize(20);

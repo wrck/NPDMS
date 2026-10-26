@@ -57,4 +57,24 @@ SELECT packlist_id AS source_key,con_id AS contract_source_key,packdate AS shipm
 <select id="selectShipmentContractReferences" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$ShipmentContractReference"><![CDATA[
 SELECT contract_id AS source_key,contract_code AS contract_no FROM fb_contract WHERE NOT ((contract_id IS NULL OR TRIM(contract_id)='') AND (contract_code IS NULL OR TRIM(contract_code)='')) LIMIT #{limit}
 ]]></select>
+<!-- Raw inventory transaction IDs are used only for this postfill, never mirrored into business JSON. -->
+<select id="selectShipmentOrderLine" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$Source" fetchSize="-2147483648"><![CDATA[
+ SELECT CAST(b.id AS CHAR) AS `key`,b.orderNumber AS raw_order_no,CAST(b.lineNum AS CHAR) AS raw_line_no,
+  l.candidate_count AS line_candidate_count,l.line_source_key,l.source_system AS line_source_system,
+  l.company_code AS line_company_code,l.line_type,l.line_no AS formal_line_no,l.product_code AS line_product_code
+ FROM fb_shipment_barcode b
+ LEFT JOIN (
+  SELECT orderNumber,
+   JSON_UNQUOTE(JSON_EXTRACT(IF(JSON_VALID(customInfo),customInfo,'{}'),'$.inventTransId')) AS inventory_transaction_id,
+   COUNT(DISTINCT SHA2(CAST(JSON_ARRAY(source,CASE compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE compCode END,lineType,orderNumber,lineNum) AS CHAR),256)) AS candidate_count,
+   MIN(SHA2(CAST(JSON_ARRAY(source,CASE compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE compCode END,lineType,orderNumber,lineNum) AS CHAR),256)) AS line_source_key,
+   MIN(source) AS source_system,MIN(CASE compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE compCode END) AS company_code,
+   MIN(lineType) AS line_type,MIN(lineNum) AS line_no,MIN(itemCode) AS product_code
+  FROM pm_order_line_from_erp
+  GROUP BY orderNumber,CAST(orderNumber AS BINARY),inventory_transaction_id,CAST(inventory_transaction_id AS BINARY)
+ ) l ON l.orderNumber=b.orderNumber AND l.inventory_transaction_id=CAST(b.lineNum AS CHAR)
+  AND CAST(l.orderNumber AS BINARY)=CAST(b.orderNumber AS BINARY)
+  AND CAST(l.inventory_transaction_id AS BINARY)=CAST(b.lineNum AS BINARY)
+ ORDER BY b.id LIMIT #{limit}
+]]></select>
 </mapper>

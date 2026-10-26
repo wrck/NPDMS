@@ -40,8 +40,9 @@ public class DeviceConfigurationLogQueryService {
             return configurationLogMapper.selectPage(reqVO);
         }
         // 项目维度：先解析项目下设备集合；空集合直接返回空结果，不扩大查询范围
-        List<Long> deviceIds = deviceMapper.selectIdsByTenantAndProject(
-                TenantContextHolder.getRequiredTenantId(), reqVO.getProjectId());
+        List<Long> deviceIds = deviceMapper.selectIdsByProjectList(
+                new cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery(
+                        TenantContextHolder.getRequiredTenantId(), reqVO.getProjectId()));
         if (deviceIds.isEmpty()) {
             return PageResult.empty();
         }

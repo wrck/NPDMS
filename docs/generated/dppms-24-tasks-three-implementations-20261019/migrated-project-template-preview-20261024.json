@@ -1,0 +1,109 @@
+{
+  "taskCode": "BASE_P38",
+  "taskId": "2113735279960838146",
+  "runtimePort": 59284,
+  "frontendPort": 59285,
+  "run": {
+    "id": 2113735375741964289,
+    "status": "PREVIEW_READY",
+    "preview": 1,
+    "read_count": 79429,
+    "inserted_count": 0,
+    "updated_count": 6956,
+    "unchanged_count": 72473,
+    "error_message": "PROJECT_TEMPLATE_NOT_ACTIVE:72473",
+    "started_at": "2026-10-24 04:52:40.700000",
+    "finished_at": "2026-10-24 04:56:10.508000"
+  },
+  "matchedActiveProjects": 6956,
+  "unmatchedActiveProjects": 0,
+  "ambiguousActiveProjects": 0,
+  "skippedClosedProjects": 72473,
+  "actualAssignments": 0,
+  "protection": {
+    "at": "2026-10-24T04:56:17.816296+08:00",
+    "active": [],
+    "summary": [
+      {
+        "lifecycle_status": "EXCEPTION_CLOSED",
+        "n": 51799,
+        "bound": "0"
+      },
+      {
+        "lifecycle_status": "NORMAL_CLOSED",
+        "n": 20674,
+        "bound": "0"
+      },
+      {
+        "lifecycle_status": "ACTIVE",
+        "n": 6956,
+        "bound": "0"
+      }
+    ],
+    "protectedProjects": [
+      {
+        "n": 79429,
+        "checksum": 2886414739
+      }
+    ],
+    "registrations": [
+      {
+        "id": 2112881208178343938,
+        "task_code": "BASE_P16",
+        "connection_id": 2112881203220676609,
+        "batch_size": 500,
+        "max_rows": 1000000
+      },
+      {
+        "id": 2113735279960838146,
+        "task_code": "BASE_P38",
+        "connection_id": 2112881203220676609,
+        "batch_size": 500,
+        "max_rows": 1000000
+      }
+    ],
+    "runtime": {
+      "proj_project_plan_version": {
+        "n": 0,
+        "maxId": 0
+      },
+      "proj_project_stage": {
+        "n": 0,
+        "maxId": 0
+      },
+      "proj_project_task": {
+        "n": 0,
+        "maxId": 0
+      },
+      "proj_project_gate": {
+        "n": 0,
+        "maxId": 0
+      },
+      "proj_project_milestone": {
+        "n": 0,
+        "maxId": 0
+      },
+      "proj_project_deliverable": {
+        "n": 0,
+        "maxId": 0
+      }
+    },
+    "projectBindingsVersionsAndStatesUnchanged": true
+  },
+  "deployment": {
+    "completeCurrentWorktreeArtifact": true,
+    "candidateSha256": "da051d3687d1079c62c11a0ccd2447875a373c78002d20054343497f3386902d",
+    "source": "f3338abbd9b454d89d906f75f5a07eec754142737579188ce491fb749b4f0445",
+    "priorBaseSyncEntriesChecked": 394,
+    "reviewedDifferences": [
+      {
+        "entry": "cn/iocoder/yudao/module/pms/integration/basesync/task/P16ProjectSyncTask$Actor.class",
+        "review": "obsolete unreferenced nested class removed by clean build; all current P16 executable classes retained byte-identically"
+      }
+    ],
+    "formal59191Release": false
+  },
+  "browserEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\migrated-project-template-sync-20261024\\browser-preview-result.txt",
+  "evidenceDirectory": "D:\\CodexTaskArtifacts\\project-detail-followup\\migrated-project-template-sync-20261024",
+  "executeSubmitted": false
+}

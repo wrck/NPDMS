@@ -102,6 +102,7 @@ class DeviceVisibilityCandidateSqlTest {
 
     private Configuration configuration() throws Exception {
         var config = new Configuration();
+        ProjectDeviceListSqlFixture.load(config);
         try (var xml = getClass().getResourceAsStream("/mapper/device/DeviceQueryMapper.xml")) {
             new XMLMapperBuilder(xml, config, "device", config.getSqlFragments()).parse();
         }
@@ -114,6 +115,7 @@ class DeviceVisibilityCandidateSqlTest {
             sql.execute("CREATE TABLE ast_device(id BIGINT,tenant_id BIGINT,sn VARCHAR(40),project_id BIGINT,"
                     + "contract_no VARCHAR_IGNORECASE(40),deleted BOOLEAN,company_id BIGINT,department_id BIGINT,"
                     + "department_code VARCHAR(40),organization_source VARCHAR(40))");
+            ProjectDeviceListSqlFixture.schema(sql);
             sql.execute("CREATE TABLE ast_device_project_relationship(tenant_id BIGINT,device_sn VARCHAR(40),"
                     + "project_id BIGINT,effective_from TIMESTAMP,effective_to TIMESTAMP,deleted BOOLEAN)");
         }

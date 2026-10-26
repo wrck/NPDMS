@@ -33,5 +33,6 @@ public record DeviceListRespVO(
         Long extendedCount,
         String projectName,
         String customerName,
-        String projectCode) {
+        String projectCode,
+        java.util.List<cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectShipmentFact> projectShipments) {
 }

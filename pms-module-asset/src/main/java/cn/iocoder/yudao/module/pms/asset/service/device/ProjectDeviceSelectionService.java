@@ -68,6 +68,21 @@ public class ProjectDeviceSelectionService implements ProjectDeviceSelectionApi 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public List<SelectedProjectDevice> validateSelection(AuthorizedSelection request) {
+        return lockedSelection(authorizedQuery(request), request.deviceIds());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public List<SelectedProjectDevice> validateInstallationSelection(AuthorizedSelection request) {
+        if (request == null || !java.util.Objects.equals(request.actorId(),
+                cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId()))
+            throw exception(AST_DEVICE_SELECTION_INVALID);
+        var query = authorizedQuery(request);
+        query.setIncludeCompletedInstallation(true);
+        return lockedSelection(query, request.deviceIds());
+    }
+
+    private ProjectDeviceSelectionQuery authorizedQuery(AuthorizedSelection request) {
         if (request == null || !java.util.Objects.equals(TenantContextHolder.getRequiredTenantId(), request.tenantId())
                 || request.actorId() == null || request.actorId() <= 0 || request.deviceIds() == null
                 || request.deviceIds().stream().anyMatch(id -> id == null || id <= 0)
@@ -77,7 +92,7 @@ public class ProjectDeviceSelectionService implements ProjectDeviceSelectionApi 
         query.setProjectId(request.projectId());
         query.setContractNumbers(contextApi.getContractNumbers(new ProjectDeviceSelectionContextApi.Authorization(
                 request.tenantId(), request.actorId(), request.projectId())));
-        return lockedSelection(query, request.deviceIds());
+        return query;
     }
 
     private List<SelectedProjectDevice> lockedSelection(ProjectDeviceSelectionQuery query, List<Long> deviceIds) {

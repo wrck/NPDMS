@@ -116,4 +116,18 @@ class ProjectDeviceSelectionServiceTest {
         when(mapper.selectSelectionForUpdate(any())).thenReturn(List.of());
         assertThrows(ServiceException.class,()->service.validateSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(1L,42L,10L,List.of(1L))));
     }
+    @Test void installationMaintenanceChecksCurrentActorAndProjectBeforeHistoricalMembership() {
+        try (var security = mockStatic(cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.class)) {
+            security.when(cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils::getLoginUserId).thenReturn(42L);
+            var auth = new ProjectDeviceSelectionContextApi.Authorization(1L,42L,10L);
+            when(context.getContractNumbers(auth)).thenReturn(Set.of());
+            when(mapper.selectSelectionForUpdate(any())).thenReturn(List.of(device(1L)));
+            assertEquals(1, service.validateInstallationSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(1L,42L,10L,List.of(1L))).size());
+            verify(mapper).selectSelectionForUpdate(argThat(ProjectDeviceSelectionQuery::isIncludeCompletedInstallation));
+            assertThrows(ServiceException.class, () -> service.validateInstallationSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(1L,43L,10L,List.of(1L))));
+            when(context.getContractNumbers(auth)).thenThrow(new IllegalArgumentException("forbidden"));
+            assertThrows(IllegalArgumentException.class, () -> service.validateInstallationSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(1L,42L,10L,List.of(1L))));
+            verify(mapper, times(1)).selectSelectionForUpdate(any());
+        }
+    }
 }

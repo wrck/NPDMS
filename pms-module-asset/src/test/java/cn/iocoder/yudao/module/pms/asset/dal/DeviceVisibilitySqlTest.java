@@ -13,13 +13,15 @@ import static org.junit.jupiter.api.Assertions.*;
 class DeviceVisibilitySqlTest {
     @Test void independentContractAndProjectGrantsUseSameSqlForListAndDetail() throws Exception {
         Configuration configuration = new Configuration();
+        ProjectDeviceListSqlFixture.load(configuration);
         try (var xml = getClass().getResourceAsStream("/mapper/device/DeviceQueryMapper.xml")) {
             new XMLMapperBuilder(xml, configuration, "device", configuration.getSqlFragments()).parse();
         }
         try (Connection connection = DriverManager.getConnection("jdbc:h2:mem:device_visibility;MODE=MySQL;DB_CLOSE_DELAY=-1")) {
             try (Statement sql = connection.createStatement()) {
                 sql.execute("CREATE TABLE ast_device(id BIGINT,tenant_id BIGINT,sn VARCHAR(40),project_id BIGINT,contract_no VARCHAR(40),deleted BOOLEAN)");
-                sql.execute("CREATE TABLE ast_device_project_relationship(tenant_id BIGINT,device_sn VARCHAR(40),project_id BIGINT,effective_from TIMESTAMP,effective_to TIMESTAMP,deleted BOOLEAN)");
+                ProjectDeviceListSqlFixture.schema(sql);
+            sql.execute("CREATE TABLE ast_device_project_relationship(tenant_id BIGINT,device_sn VARCHAR(40),project_id BIGINT,effective_from TIMESTAMP,effective_to TIMESTAMP,deleted BOOLEAN)");
                 sql.execute("INSERT INTO ast_device VALUES (1,1,'project-visible',10,'hidden',false),(2,1,'project-denied',20,'C-1',false),(3,1,'contract-visible',NULL,'C-1',false),(4,1,'contract-denied',NULL,'hidden',false),(5,2,'other-tenant',NULL,'C-1',false),(6,1,'effective-project-denied',NULL,'C-1',false),(7,1,'expired-project',NULL,'C-1',false),(8,1,'no-contract',NULL,NULL,false)");
                 sql.execute("INSERT INTO ast_device_project_relationship VALUES (1,'effective-project-denied',20,DATEADD('DAY',-1,CURRENT_TIMESTAMP),NULL,false),(1,'expired-project',20,DATEADD('DAY',-2,CURRENT_TIMESTAMP),DATEADD('DAY',-1,CURRENT_TIMESTAMP),false)");
             }

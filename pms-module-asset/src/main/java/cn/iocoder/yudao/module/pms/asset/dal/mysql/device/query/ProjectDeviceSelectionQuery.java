@@ -13,6 +13,7 @@ public class ProjectDeviceSelectionQuery extends PageParam {
     private Long projectId;
     private Set<String> contractNumbers;
     private List<Long> deviceIds;
+    private boolean includeCompletedInstallation;
     private String sn;
     private String name;
     private String productModel;

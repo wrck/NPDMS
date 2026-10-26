@@ -11,12 +11,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class DeviceNameFilterSqlTest {
     @Test void namesRemainAnIntersectionWithTenantVisibilityAndLogicalDeletion() throws Exception {
         var config = new Configuration();
+        ProjectDeviceListSqlFixture.load(config);
         try (var xml = getClass().getResourceAsStream("/mapper/device/DeviceQueryMapper.xml")) {
             new XMLMapperBuilder(xml, config, "device", config.getSqlFragments()).parse();
         }
         try (var connection = DriverManager.getConnection("jdbc:h2:mem:device_names;MODE=MySQL")) {
             var sql = connection.createStatement();
             sql.execute("CREATE TABLE ast_device(id BIGINT,tenant_id BIGINT,project_id BIGINT,customer_id BIGINT,department_name VARCHAR(100),sn VARCHAR(30),contract_no VARCHAR(30),deleted BOOLEAN)");
+            ProjectDeviceListSqlFixture.schema(sql);
             sql.execute("CREATE TABLE ast_device_project_relationship(tenant_id BIGINT,device_sn VARCHAR(30),project_id BIGINT,effective_from TIMESTAMP,effective_to TIMESTAMP,deleted BOOLEAN)");
             sql.execute("INSERT INTO ast_device VALUES (1,1,10,100,'杭州','SN1','C1',false),(2,1,10,200,'北京','SN2','C2',false),(3,1,20,100,'杭州','SN3','C3',false),(4,2,10,100,'杭州','SN4','C4',false),(5,1,10,100,'杭州','SN5','C5',true)");
             var base = VisibleDevicePageQuery.builder().tenantId(1L).visibleProjectIds(Set.of(10L))

@@ -72,13 +72,13 @@ public class DeviceQueryService {
         if (query == null || tenantId == null || !tenantId.equals(query.tenantId())
                 || query.projectId() == null || query.projectId() <= 0) throw new SecurityException("PROJECT_DEVICE_SCOPE_REQUIRED");
         var projectIds = accessScopeService.visibleProjectIds(tenantId, SecurityFrameworkUtils.getLoginUserId());
-        var devices = deviceMapper.selectCurrentProjectDevices(query);
+        var devices = deviceMapper.selectProjectListDevices(query);
         if (projectIds.contains(query.projectId())) return devices;
         // 合同和组织授权仍经过既有逐设备判断，不能把项目设备清单当成授权。
         return devices.stream().map(device -> getDevice(device.getId())).toList();
     }
 
-    /** 按设备条件解析当前归属项目ID集合；租户不一致按无命中返回空集合。 */
+    /** 按设备条件解析当前归属及清单关联项目ID集合；租户不一致按无命中返回空集合。 */
     public java.util.Set<Long> resolveProjectIds(
             cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceProjectMatchQuery query) {
         Long tenantId = currentTenantId();

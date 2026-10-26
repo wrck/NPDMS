@@ -85,7 +85,25 @@ export interface DeviceOrganizationVO {
   source: 'PROJECT' | 'CONTRACT' | 'UNRESOLVED'
 }
 
+export interface ProjectShipmentFact {
+  projectId: number
+  installationId?: number | null
+  contractNo: string
+  deviceSn: string
+  physicalSn?: string | null
+  productCode?: string | null
+  productName?: string | null
+  physicalProductCode?: string | null
+  physicalProductName?: string | null
+  installAddress?: string | null
+  receiveName?: string | null
+  emsNum?: string | null
+  emsCompany?: string | null
+  packdate?: string | null
+}
+
 export interface DeviceListVO {
+  projectShipments?: ProjectShipmentFact[]
   warrantyMonths?: number
   projectCode?: string
   projectName?: string

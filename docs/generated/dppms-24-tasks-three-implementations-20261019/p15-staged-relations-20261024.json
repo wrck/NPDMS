@@ -1,0 +1,65 @@
+{
+  "checks": {
+    "migrationHistory": true,
+    "originalTaskCounts": true,
+    "nonP15Runs": true,
+    "orders": true,
+    "orderLines": true,
+    "shipmentProtected": true,
+    "contracts": true,
+    "packages": true,
+    "shipmentContracts": true,
+    "deviceRelationships": true,
+    "sample40Correct": true,
+    "sample40ReplayStable": true,
+    "allLinkCountsReplayStable": true,
+    "executionExpectedWrites": true,
+    "replayNoWrites": true,
+    "newRelations": true,
+    "relationsReplayStable": true,
+    "relationsExact": true,
+    "relationsBound": true,
+    "sampleRelationDate": true
+  },
+  "passed": true,
+  "beforeLinks": [
+    {
+      "tenant_id": 1,
+      "n": 4283326,
+      "linked": "0"
+    }
+  ],
+  "afterLinks": [
+    {
+      "tenant_id": 1,
+      "n": 4283326,
+      "linked": "1794084"
+    }
+  ],
+  "sampleLineCounts": {
+    "2113086983152697381": 24,
+    "2113086983152697382": 16
+  },
+  "execute": {
+    "code": 0,
+    "data": {
+      "read": 4376216,
+      "inserted": 92883,
+      "updated": 1794084,
+      "unchanged": 2489249,
+      "deleted": 0
+    },
+    "msg": ""
+  },
+  "replay": {
+    "code": 0,
+    "data": {
+      "read": 4376216,
+      "inserted": 0,
+      "updated": 0,
+      "unchanged": 4376216,
+      "deleted": 0
+    },
+    "msg": ""
+  }
+}

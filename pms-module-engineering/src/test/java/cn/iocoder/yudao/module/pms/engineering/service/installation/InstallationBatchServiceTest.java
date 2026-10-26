@@ -34,6 +34,7 @@ class InstallationBatchServiceTest {
     InstallationBatchCreateReqVO request;
 
     @BeforeEach void setup() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
         var user = new cn.iocoder.yudao.framework.security.core.LoginUser();
         user.setId(7L); user.setTenantId(0L);
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
@@ -86,6 +87,7 @@ class InstallationBatchServiceTest {
 
     @org.junit.jupiter.api.AfterEach void clearAuthentication() {
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();
     }
 
     @Test void ignoresForgedInstallerAndTimeAndUsesAuthenticatedSaveMetadata() {
@@ -102,6 +104,7 @@ class InstallationBatchServiceTest {
 
     @Test void anonymousCannotCreateOrChangeInstallationLocations() {
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();
         var error=assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
                 () -> service.createInstallationBatch(request));
         assertEquals(401,error.getCode());
@@ -153,7 +156,7 @@ class InstallationBatchServiceTest {
         assertEquals(0, jdbc.queryForObject("select count(*) from device_projection_test", Integer.class));
     }
     @Test void invalidDeviceSetIsRejectedBeforeAnyWrites() {
-        doThrow(new IllegalArgumentException("invalid selection")).when(devices).validateSelection(anyLong(), anyList());
+        doThrow(new IllegalArgumentException("invalid selection")).when(devices).validateInstallationSelection(any());
         assertThrows(IllegalArgumentException.class, () -> service.createInstallationBatch(request));
         verifyNoInteractions(mapper, locations);
     }
@@ -162,5 +165,25 @@ class InstallationBatchServiceTest {
         assertEquals(3, service.createInstallationBatch(request).size());
         verifyNoInteractions(locations);
         assertEquals(0, jdbc.queryForObject("select count(*) from location_test", Integer.class));
+    }
+    @Test void maintainingLegacyBlankAddressCreatesNewRecordAndPreservesHistoricalAddressAndStatus() {
+        var history = new InstallationDO();
+        history.setId(90L); history.setProjectId(1L); history.setEquipmentId(11L);
+        history.setStatus(2); history.setVersion(0L);
+        history.setInstallTime(java.time.LocalDateTime.of(2020,1,1,0,0));
+        history.setEffectiveFrom(history.getInstallTime());
+        when(mapper.selectCurrentByEquipmentId(11L)).thenReturn(history);
+        request.setEquipmentIds(List.of(11L));
+        var ids = service.createInstallationBatch(request);
+        assertEquals(1, ids.size());
+        assertNotEquals(history.getId(), ids.getFirst());
+        assertNull(history.getInstallLocation());
+        assertEquals(2, history.getStatus());
+        assertEquals(java.time.LocalDateTime.of(2020,1,1,0,0), history.getInstallTime());
+        var created = savedRows.get(ids.getFirst());
+        assertEquals(2, created.getStatus());
+        assertEquals("site / room", created.getInstallLocation());
+        assertEquals(created.getEffectiveFrom(), history.getEffectiveTo());
+        verify(devices).validateInstallationSelection(new ProjectDeviceSelectionApi.AuthorizedSelection(0L,7L,1L,List.of(11L)));
     }
 }

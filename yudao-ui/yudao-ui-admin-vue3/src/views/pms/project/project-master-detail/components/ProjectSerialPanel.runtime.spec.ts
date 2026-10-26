@@ -83,3 +83,21 @@ it('loads 40 devices and all columns through one page request', async () => {
     expect(m.state.rows[0]).toMatchObject({ location: '完整安装地址', bootVersion: 'BOOT', cpldVersion: 'CPLD', warrantyMonths: 12, extendedCount: 3 })
   } finally { m.app.unmount() }
 })
+it('preserves every project entry and uses project installation and dual SN instead of current ownership location', async () => {
+  const entries = [
+    { projectId: 1002, installationId: 1, contractNo: 'C1', deviceSn: 'SN11', physicalSn: 'PHYSICAL11', installAddress: '本项目安装地址' },
+    { projectId: 1002, installationId: 2, contractNo: 'C1', deviceSn: 'SN11', physicalSn: null, installAddress: null }
+  ]
+  vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', syncStatus: 'NOT_AVAILABLE', locationSnapshot: JSON.stringify({ fallbackLocation: '其他项目当前地址' }), projectShipments: entries }], total: 1 })
+  const m = render()
+  try {
+    await flush()
+    expect(m.state.rows).toHaveLength(1)
+    expect(m.state.rows[0].physicalSn).toBe('PHYSICAL11、SN11')
+    expect(m.state.rows[0].location).toBe('本项目安装地址')
+    expect(m.state.rows[0].projectShipments).toEqual(entries)
+    entries[0].installAddress = ''
+    await m.state.load(); await flush()
+    expect(m.state.rows[0].location).toBe('')
+  } finally { m.app.unmount() }
+})

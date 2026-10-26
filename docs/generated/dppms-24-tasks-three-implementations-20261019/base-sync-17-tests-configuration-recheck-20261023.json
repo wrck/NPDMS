@@ -1,0 +1,188 @@
+{
+  "at": "2026-10-23T19:04:58.116956+08:00",
+  "branch": "fix/dppms-migration-consolidation-20261012",
+  "commit": "b143cfe890dda1ef51f21d34abb75a5b5fd43ee9",
+  "p22": {
+    "exitCode": 0,
+    "externalDdl": false,
+    "externalDml": false,
+    "serviceAction": false,
+    "tests": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "cases": [
+      {
+        "name": "ownershipAndCompletedNonPreviewRunAreRequired",
+        "status": "PASS"
+      },
+      {
+        "name": "postfillKeepsCurrentRunBoundaryAndExactOrderKeys",
+        "status": "PASS"
+      },
+      {
+        "name": "sameOrderNumberWithDifferentParentTypeCannotMatch",
+        "status": "PASS"
+      },
+      {
+        "name": "catalogueLookupKeepsExactProductText",
+        "status": "PASS"
+      },
+      {
+        "name": "ambiguousOwnedLinesAreExcluded",
+        "status": "PASS"
+      },
+      {
+        "name": "scopeIdentityCatalogueRetainsDuplicatesAndDeletedHistoryInTenant",
+        "status": "PASS"
+      },
+      {
+        "name": "scopePrimaryKeyReadsKeepTenantAndEmptySetBoundaries",
+        "status": "PASS"
+      },
+      {
+        "name": "emptyCatalogueReturnsNoCandidates",
+        "status": "PASS"
+      },
+      {
+        "name": "numericP14TypesAndStringLineNumbersMatchFormalVarcharTypes",
+        "status": "PASS"
+      }
+    ],
+    "freshReport": true,
+    "passed": true
+  },
+  "p04": {
+    "originalErrors": [
+      {
+        "name": "generatedMembershipAuditMatchesWholeSecondColumnsAndRealReplayStillDetectsChanges",
+        "type": "java.lang.NullPointerException",
+        "initializationFrame": "RemainingTaskMySqlSupport.setup:32",
+        "rerunStatus": "NOT_RUN_TEMPORARY_DDL_NOT_AUTHORIZED"
+      },
+      {
+        "name": "historicalEmploymentUsesAlreadyApprovedJsonAndKeepsUnresolvedPersonnelReferences",
+        "type": "java.lang.NullPointerException",
+        "initializationFrame": "RemainingTaskMySqlSupport.setup:32",
+        "rerunStatus": "NOT_RUN_TEMPORARY_DDL_NOT_AUTHORIZED"
+      },
+      {
+        "name": "oldMetadataIndexBlocksWritesButNotPreview",
+        "type": "java.lang.NullPointerException",
+        "initializationFrame": "RemainingTaskMySqlSupport.setup:32",
+        "rerunStatus": "NOT_RUN_TEMPORARY_DDL_NOT_AUTHORIZED"
+      },
+      {
+        "name": "fndPrimaryDepartmentUsesApprovedDirectoryAlias",
+        "type": "java.lang.NullPointerException",
+        "initializationFrame": "RemainingTaskMySqlSupport.setup:32",
+        "rerunStatus": "NOT_RUN_TEMPORARY_DDL_NOT_AUTHORIZED"
+      },
+      {
+        "name": "previewPlansNewAccountsMembershipAndScopesWithoutCredentialsOrAnyFormalWrite",
+        "type": "java.lang.NullPointerException",
+        "initializationFrame": "RemainingTaskMySqlSupport.setup:32",
+        "rerunStatus": "NOT_RUN_TEMPORARY_DDL_NOT_AUTHORIZED"
+      },
+      {
+        "name": "nativeBatchInsertsUseRealPlannedParentIdsAndPreserveOriginalAdminThenReplay",
+        "type": "java.lang.NullPointerException",
+        "initializationFrame": "RemainingTaskMySqlSupport.setup:32",
+        "rerunStatus": "NOT_RUN_TEMPORARY_DDL_NOT_AUTHORIZED"
+      },
+      {
+        "name": "existingUnboundAccountIsProtectedAndTenantQuotaIsEnforced",
+        "type": "java.lang.NullPointerException",
+        "initializationFrame": "RemainingTaskMySqlSupport.setup:32",
+        "rerunStatus": "NOT_RUN_TEMPORARY_DDL_NOT_AUTHORIZED"
+      },
+      {
+        "name": "laterMissingScopeDepartmentRollsBackAccountAndMembershipWrites",
+        "type": "java.lang.NullPointerException",
+        "initializationFrame": "RemainingTaskMySqlSupport.setup:32",
+        "rerunStatus": "NOT_RUN_TEMPORARY_DDL_NOT_AUTHORIZED"
+      }
+    ],
+    "existingConfigurationConnectsReadOnly": true,
+    "fixtureAudit": {
+      "p04TestNames": [
+        "previewPlansNewAccountsMembershipAndScopesWithoutCredentialsOrAnyFormalWrite",
+        "nativeBatchInsertsUseRealPlannedParentIdsAndPreserveOriginalAdminThenReplay",
+        "generatedMembershipAuditMatchesWholeSecondColumnsAndRealReplayStillDetectsChanges",
+        "laterMissingScopeDepartmentRollsBackAccountAndMembershipWrites",
+        "historicalEmploymentUsesAlreadyApprovedJsonAndKeepsUnresolvedPersonnelReferences",
+        "fndPrimaryDepartmentUsesApprovedDirectoryAlias",
+        "oldMetadataIndexBlocksWritesButNotPreview",
+        "existingUnboundAccountIsProtectedAndTenantQuotaIsEnforced"
+      ],
+      "initialFailure": "Path.of(BASE_PRODUCT_MYSQL_DRIVER_JAR=null) before JDBC connect",
+      "fixtureSupport": "RemainingTaskMySqlSupport.java:24-75",
+      "fixedTemporaryTableCount": 32,
+      "distinctSourceCopies": {
+        "pm_project_test_read_2": "pm_project",
+        "pm_project_property_from_sms_test_read_2": "pm_project_property_from_sms",
+        "pm_project_property_from_sms_test_read_3": "pm_project_property_from_sms",
+        "pm_project_test_read_3": "pm_project"
+      },
+      "temporaryDdlPerTest": 36,
+      "allEightTemporaryDdlCount": 288,
+      "ddlExecuted": false,
+      "fixturesExecuted": false,
+      "actualJunitJupiterApiVersion": "6.0.3",
+      "conditionalAnnotationInherited": false,
+      "ddlReview": "D:\\CodexTaskArtifacts\\project-detail-followup\\test-17-initialization-recheck-20261023\\p04-connection-local-fixture.review.sql"
+    },
+    "status": "NOT_RERUN_SHARED_FIXTURE_OVERBROAD_NO_DDL_APPROVAL",
+    "classification": "Previous launcher omitted environment; inherited fixture condition is ineffective on child. Production P04 failure not established."
+  },
+  "environment": {
+    "p22Target": "172.17.90.178:13306/npdms",
+    "p22Version": "8.4.11",
+    "p04Target": "127.0.0.1:24306/npdms_reverify_20261014",
+    "p04Version": "8.4.10",
+    "credentialsReused": true,
+    "plaintextCredentialsStored": false
+  },
+  "sourceUnchangedDuringTest": true,
+  "productionCodeChanged": false,
+  "testSourceChanged": false,
+  "ddlExecuted": false,
+  "persistentDmlExecuted": false,
+  "migrationExecuted": false,
+  "originalTaskOperation": false,
+  "port59191Operation": false,
+  "evidenceRoot": "D:\\CodexTaskArtifacts\\project-detail-followup\\test-17-initialization-recheck-20261023",
+  "p04MinimumScopeCorrection": {
+    "at": "2026-10-23T19:21:47.435726+08:00",
+    "finding": "36 is the current shared fixture creation count, not a P04 requirement",
+    "minimalTablesForExistingEightTests": [
+      "system_users",
+      "system_role",
+      "system_user_role",
+      "system_user_company_department_scope",
+      "system_tenant"
+    ],
+    "minimalTableCount": 5,
+    "unusedFixedTables": 27,
+    "unusedReadCopyTables": 4,
+    "sourceLoadIsSeededInTheseTests": true,
+    "productionWriteTables": [
+      "system_users",
+      "system_role",
+      "system_user_role",
+      "system_user_company_department_scope",
+      "system_user_post"
+    ],
+    "productionTargetReadOnlyTables": [
+      "system_company",
+      "system_dept",
+      "system_post",
+      "system_tenant"
+    ],
+    "ddlApprovalReceived": false,
+    "ddlExecuted": false,
+    "testFixtureRefactored": false,
+    "p04TestsRerun": false,
+    "qualification": "Static dependency audit only; preserve all eight assertions before any fixture reduction."
+  }
+}

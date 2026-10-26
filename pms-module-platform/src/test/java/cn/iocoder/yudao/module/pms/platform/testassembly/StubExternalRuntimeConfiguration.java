@@ -38,6 +38,11 @@ public class StubExternalRuntimeConfiguration {
                 return validateSelection(query.projectId(), query.deviceIds());
             }
 
+            @Override
+            public List<SelectedProjectDevice> validateInstallationSelection(AuthorizedSelection query) {
+                throw absent("资产设备");
+            }
+
             public List<SelectedProjectDevice> validateSelection(Long projectId, List<Long> deviceIds) {
                 throw absent("资产设备");
             }

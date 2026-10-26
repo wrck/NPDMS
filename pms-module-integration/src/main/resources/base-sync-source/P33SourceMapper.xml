@@ -13,8 +13,7 @@
   FROM pm_project_shipment
   <choose>
    <when test="projectKeys != null and !projectKeys.isEmpty()">
-    WHERE installAddress IS NOT NULL AND TRIM(installAddress)&lt;&gt;''
-      AND projectId IN <foreach collection="projectKeys" item="key" open="(" close=")" separator=",">#{key}</foreach>
+    WHERE projectId IN <foreach collection="projectKeys" item="key" open="(" close=")" separator=",">#{key}</foreach>
    </when>
    <otherwise>WHERE 1=0</otherwise>
   </choose>

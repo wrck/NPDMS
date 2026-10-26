@@ -1,6 +1,6 @@
-<!-- 项目详情 · 序列号详情面板（DemoV2 1.1.1）：18 列序列号明细表，
-     行数据取 /pms/asset/devices/page（按项目过滤），安装地址取设备当前完整地址投影，设备位置快照为兼容显示，
-     在网版本、维保统计由设备分页一次返回，当前安装地址直接取设备当前投影。
+<!-- 项目详情 · 序列号详情面板（DemoV2 1.1.1）：设备及项目发货安装明细表，
+     行数据取 /pms/asset/devices/page（按项目过滤），安装地址取本项目已有安装记录，无清单上下文时兼容设备位置快照，
+     在网版本、维保统计由设备分页一次返回，项目清单不代表设备当前归属。
      出厂版本（MES）与官网版本/受影响技术公告（KNO）数据源未接入，如实以「—」展示。 -->
 <template>
   <ContentWrap :body-style="{ padding: '20px' }">
@@ -28,7 +28,20 @@
       empty-text="本项目暂无符合查询条件的已登记设备"
       data-testid="serial-device-table"
     >
-      <el-table-column prop="sn" label="序列号" width="150" fixed="left" show-overflow-tooltip />
+      <el-table-column type="expand">
+        <template #default="{ row }">
+          <el-table :data="row.projectShipments" empty-text="暂无项目发货安装明细" size="small">
+            <el-table-column prop="contractNo" label="合同号" min-width="150" />
+            <el-table-column prop="deviceSn" label="发货SN" min-width="150" />
+            <el-table-column label="实物SN" min-width="150"><template #default="{ row: entry }">{{ entry.physicalSn || entry.deviceSn }}</template></el-table-column>
+            <el-table-column prop="physicalProductCode" label="实物产品编码" min-width="130" />
+            <el-table-column prop="physicalProductName" label="实物产品名称" min-width="180" />
+            <el-table-column prop="installAddress" label="项目安装地址" min-width="240" />
+          </el-table>
+        </template>
+      </el-table-column>
+      <el-table-column prop="sn" label="发货SN" width="150" fixed="left" show-overflow-tooltip />
+      <el-table-column prop="physicalSn" label="实物SN" min-width="150" show-overflow-tooltip />
       <el-table-column label="产品编码" min-width="130" show-overflow-tooltip>
         <template #default="{ row }">{{ row.productCode || '—' }}</template>
       </el-table-column>
@@ -119,6 +132,8 @@ const activeSection = ref('devices')
 interface SerialRow {
   deviceId: number
   sn: string
+  physicalSn: string
+  projectShipments: DeviceApi.ProjectShipmentFact[]
   productCode?: string
   productName?: string
   conpVersion?: string
@@ -164,8 +179,13 @@ const load = async () => {
     const list: SerialRow[] = (page.list || []).map((d) => ({
       deviceId: d.deviceId,
       sn: d.sn,
-      productCode: d.productCode,
-      productName: d.productName,
+      physicalSn: [...new Set((d.projectShipments?.length ? d.projectShipments : [{ deviceSn: d.sn, physicalSn: undefined }])
+        .map(entry => entry.physicalSn || entry.deviceSn))].join('、'),
+      projectShipments: d.projectShipments || [],
+      productCode: d.projectShipments?.length
+        ? [...new Set(d.projectShipments.map(entry => entry.productCode).filter(Boolean))].join('、') : d.productCode,
+      productName: d.projectShipments?.length
+        ? [...new Set(d.projectShipments.map(entry => entry.productName).filter(Boolean))].join('、') : d.productName,
       conpVersion: d.conpVersion,
       conpType: d.conpType,
       warrantyStartDate: d.warrantyStartDate,
@@ -174,7 +194,9 @@ const load = async () => {
       cpldVersion: d.cpldVersion,
       warrantyMonths: d.warrantyMonths,
       extendedCount: d.extendedCount,
-      location: locationSnapshotText(d.locationSnapshot)
+      location: d.projectShipments?.length
+        ? [...new Set(d.projectShipments.map(entry => entry.installAddress).filter(Boolean))].join('；')
+        : locationSnapshotText(d.locationSnapshot)
     }))
     rows.value = list
   } catch {

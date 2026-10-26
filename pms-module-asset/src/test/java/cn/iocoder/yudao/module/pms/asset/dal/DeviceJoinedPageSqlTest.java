@@ -27,6 +27,7 @@ class DeviceJoinedPageSqlTest {
 
     static Configuration configuration() throws Exception {
         var config = new Configuration();
+        ProjectDeviceListSqlFixture.load(config);
         config.setMapUnderscoreToCamelCase(true);
         for (var resource : List.of("mapper/authorization/ProjectViewGrantReadSql.xml",
                 "mapper/projectscope/ProjectViewReadScopeSql.xml", "mapper/contract/ContractDeviceReadScopeSql.xml",
@@ -203,6 +204,28 @@ class DeviceJoinedPageSqlTest {
         return mapper.selectJoinedDevicePage(query).getList().stream().map(item -> item.deviceId()).collect(Collectors.toSet());
     }
 
+    @Test void shipmentMembershipShowsUnassignedDevicesWithoutDuplicatesAndPreservesAuthorization() throws Exception {
+        withDatabase(sql -> {
+            ProjectDeviceListSqlFixture.history(sql,101,1,11,10,"FUTURE","PHYSICAL");
+            ProjectDeviceListSqlFixture.history(sql,102,1,11,10,"FUTURE",null);
+            ProjectDeviceListSqlFixture.history(sql,103,1,21,11,"EXPIRED",null);
+            ProjectDeviceListSqlFixture.history(sql,104,2,11,18,"CONFLICT",null);
+            ProjectDeviceListSqlFixture.history(sql,105,1,22,14,"OLD_TREE",null);
+        }, mapper -> {
+            var q = query(scope(ProjectViewReadScopeApi.Mode.SCOPED)).toBuilder().projectId(11L).build();
+            var page = mapper.selectJoinedDevicePage(q);
+            assertEquals(Set.of(1L,10L), ids(mapper,q));
+            assertEquals(2L,page.getTotal());
+            assertNull(page.getList().stream().filter(d -> d.deviceId()==10L).findFirst().orElseThrow().projectId());
+            assertEquals(Set.of(10L), ids(mapper,q.toBuilder().sn("PHYSICAL").build()));
+            assertEquals(Set.of(1L,10L), ids(mapper,q.toBuilder().projectId(null).matchingProjectIds(Set.of(11L)).build()));
+            assertTrue(ids(mapper,q.toBuilder().readScope(new DevicePageReadScope(null,null)).organizationGrants(List.of()).build()).isEmpty());
+            assertTrue(mapper.existsVisibleDevice(new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceVisibilityQuery(1L,10L,Set.of(11L),Set.of(),List.of())));
+            assertFalse(mapper.existsVisibleDevice(new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceVisibilityQuery(1L,10L,Set.of(21L),Set.of(),List.of())));
+            assertEquals(List.of(1L,10L),mapper.selectProjectListDevices(new cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery(1L,11L)).stream().map(d -> d.getId()).toList());
+        });
+    }
+
     interface Check { void run(DeviceMapper mapper) throws Exception; }
     interface Setup { void run(java.sql.Statement sql) throws Exception; }
 
@@ -237,6 +260,7 @@ class DeviceJoinedPageSqlTest {
             sql.execute("CREATE TABLE ast_device (id BIGINT,tenant_id BIGINT,sn VARCHAR(64),name VARCHAR(128),status VARCHAR(20),product_code VARCHAR(64),product_model VARCHAR(64),product_name VARCHAR(64),shipment_time TIMESTAMP,package_no VARCHAR(64),contract_no VARCHAR(64),shipment_record_id BIGINT,project_id BIGINT,customer_id BIGINT,warranty_start_date DATE,warranty_end_date DATE,warranty_status VARCHAR(20),conp_version VARCHAR(64),conp_type VARCHAR(64),conp_series VARCHAR(64),conp_mark VARCHAR(64),sync_status VARCHAR(20),location_snapshot VARCHAR(1024),location_resolution_status VARCHAR(20),company_id BIGINT,company_name VARCHAR(64),department_id BIGINT,department_code VARCHAR(64),department_name VARCHAR(64),organization_source VARCHAR(20),deleted BOOLEAN)");
             sql.execute("INSERT INTO ast_device(id,tenant_id,sn,project_id,contract_no,company_id,department_id,deleted) VALUES (1,1,'ONE',11,NULL,NULL,NULL,false),(2,1,'RELATED',NULL,NULL,NULL,NULL,false),(3,1,'CONTRACT',NULL,'C_OK',NULL,NULL,false),(4,1,'HIDDEN',21,NULL,NULL,NULL,false),(5,1,'PROJECT_CONTRACT',NULL,'C_PROJECT',NULL,NULL,false),(6,1,'LOWER',NULL,'c_ok',NULL,NULL,false),(7,1,'SPACE',NULL,'C_OK ',NULL,NULL,false),(8,1,'ORGANIZATION',NULL,NULL,88,99,false),(9,1,'OTHER_DEPT',NULL,NULL,88,100,false),(10,1,'FUTURE',NULL,NULL,NULL,NULL,false),(11,1,'EXPIRED',NULL,NULL,NULL,NULL,false),(12,1,'DELETED',11,NULL,NULL,NULL,true),(13,2,'FOREIGN',11,NULL,NULL,NULL,false),(14,1,'OLD_TREE',22,NULL,NULL,NULL,false),(15,1,'CREATOR',12,NULL,NULL,NULL,false),(16,1,'CONTRACT_AGAIN',NULL,'C_OK',NULL,NULL,false),(17,1,'DELETED_PROJECT',22,NULL,NULL,NULL,false),(18,1,'CONFLICT',NULL,'C_CONFLICT',NULL,NULL,false)");
             sql.execute("CREATE TABLE ast_device_project_relationship(tenant_id BIGINT,device_sn VARCHAR(64),project_id BIGINT,effective_from TIMESTAMP,effective_to TIMESTAMP,deleted BOOLEAN)");
+            ProjectDeviceListSqlFixture.schema(sql);
             sql.execute("INSERT INTO ast_device_project_relationship VALUES (1,'RELATED',12,'2020-01-01',NULL,false),(1,'FUTURE',11,'2099-01-01',NULL,false),(1,'EXPIRED',11,'2020-01-01','2021-01-01',false)");
             sql.execute("CREATE TABLE ast_device_network_version(tenant_id BIGINT,device_sn VARCHAR(64),source_system VARCHAR(40),sync_status VARCHAR(20),boot_version VARCHAR(64),cpld_version VARCHAR(64),deleted BOOLEAN)");
             sql.execute("CREATE TABLE ast_device_warranty_record(tenant_id BIGINT,device_sn VARCHAR(64),extended BOOLEAN,deleted BOOLEAN)");

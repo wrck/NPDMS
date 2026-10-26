@@ -9,7 +9,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class DeviceSerialPageSqlTest {
     @Test void returnsDeviceLogVersionsAndFullRenewalCountWithoutOtherTenantOrDeletedFacts() throws Exception {
-        var config=new Configuration();try(var xml=getClass().getResourceAsStream("/mapper/device/DeviceQueryMapper.xml")){new XMLMapperBuilder(xml,config,"device",config.getSqlFragments()).parse();}
+        var config=new Configuration();ProjectDeviceListSqlFixture.load(config);try(var xml=getClass().getResourceAsStream("/mapper/device/DeviceQueryMapper.xml")){new XMLMapperBuilder(xml,config,"device",config.getSqlFragments()).parse();}
         try(var connection=DriverManager.getConnection("jdbc:h2:mem:serial_page;MODE=MySQL")){
             var fields=new ArrayList<String>();
             for(var field:DeviceListProjection.class.getRecordComponents()){
@@ -19,6 +19,7 @@ class DeviceSerialPageSqlTest {
             }
             var sql=connection.createStatement();
             sql.execute("CREATE TABLE ast_device("+String.join(",",fields)+",tenant_id BIGINT,deleted BOOLEAN)");
+            ProjectDeviceListSqlFixture.schema(sql);
             sql.execute("CREATE TABLE ast_device_project_relationship(tenant_id BIGINT,device_sn VARCHAR(100),project_id BIGINT,effective_from TIMESTAMP,effective_to TIMESTAMP,deleted BOOLEAN)");
             sql.execute("CREATE TABLE ast_device_network_version(tenant_id BIGINT,device_sn VARCHAR(100),source_system VARCHAR(20),sync_status VARCHAR(20),boot_version VARCHAR(20),cpld_version VARCHAR(20),deleted BOOLEAN)");
             sql.execute("CREATE TABLE ast_device_warranty_record(tenant_id BIGINT,device_sn VARCHAR(100),extended BOOLEAN,deleted BOOLEAN)");

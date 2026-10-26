@@ -13,6 +13,12 @@
               #{projectId}
             </foreach>
             OR EXISTS (
+              SELECT 1 FROM project_list_entries ps
+              WHERE ps.tenant_id=d.tenant_id AND ps.device_sn=d.sn
+                AND ps.project_id IN
+                <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">#{projectId}</foreach>
+            )
+            OR EXISTS (
               SELECT 1
               FROM ast_device_project_relationship r
               WHERE r.tenant_id = d.tenant_id
@@ -52,6 +58,8 @@
 
     <sql id="visibleDeviceConditions">
         FROM ast_device d
+        <include refid="projectDeviceFilterJoin"/>
+        <include refid="projectNameDeviceFilterJoin"/>
         WHERE d.tenant_id = #{query.tenantId}
           AND d.deleted = b'0'
         <include refid="deviceVisibility"/>
@@ -62,7 +70,10 @@
     <sql id="deviceListNameFilters">
         <if test="query.matchingProjectIds != null">
             <choose><when test="!query.matchingProjectIds.isEmpty()">
-                AND d.project_id IN <foreach collection="query.matchingProjectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+                AND (d.project_id IN <foreach collection="query.matchingProjectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+                  OR EXISTS (SELECT 1 FROM project_list_entries ps
+                    WHERE ps.tenant_id=d.tenant_id AND ps.device_sn=d.sn AND ps.project_id IN
+                    <foreach collection="query.matchingProjectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>))
             </when><otherwise>AND 1=0</otherwise></choose>
         </if>
         <if test="query.matchingCustomerIds != null">
@@ -83,6 +94,10 @@
     </sql>
 
     <select id="selectProjectCandidates" resultType="java.lang.Long">
+        <bind name="shipmentProjectIds" value="null"/>
+        <bind name="shipmentDeviceIds" value="null"/>
+        WITH <include refid="projectListCommonTables"/>
+
         SELECT DISTINCT d.project_id
         FROM ast_device d
         WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
@@ -93,12 +108,20 @@
         WHERE r.tenant_id = #{query.tenantId} AND r.deleted = b'0'
           AND r.project_id IS NOT NULL
         <!-- 候选保留未来/过期关系，最终可见查询仍独立校验有效期，避免候选与分页时点差。 -->
+        UNION
+        SELECT DISTINCT ps.project_id FROM project_list_entries ps WHERE ps.tenant_id=#{query.tenantId}
     </select>
 
     <select id="selectContractCandidates" resultType="java.lang.String">
+        <bind name="shipmentProjectIds" value="query.projectId != null ? {query.projectId} : query.matchingProjectIds"/>
+        <bind name="shipmentDeviceIds" value="(query.deviceId == null ? null : {query.deviceId})"/>
+        WITH <include refid="projectListCommonTables"/>
+
         SELECT DISTINCT CAST(d.contract_no AS BINARY)
         FROM ast_device d
         <if test="query.deviceId == null and query.authorizedContractNumbers == null"><include refid="unfilteredVisibilityIndex"/></if>
+        <include refid="projectDeviceFilterJoin"/>
+        <include refid="projectNameDeviceFilterJoin"/>
         WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
           AND d.contract_no IS NOT NULL AND d.contract_no &lt;&gt; ''
           AND NOT COALESCE((<include refid="deviceOrganizationVisibility"/>), FALSE)
@@ -115,7 +138,11 @@
 
     <sql id="deviceSearchFilters">
         <if test="query.sn != null and query.sn != ''">
-          AND d.sn = #{query.sn}
+          AND (d.sn = #{query.sn}
+            <if test="query.projectId != null">
+              OR EXISTS (SELECT 1 FROM project_list_entries ps WHERE ps.tenant_id=d.tenant_id
+                AND ps.project_id=#{query.projectId} AND ps.device_sn=d.sn AND ps.physical_sn=#{query.sn})
+            </if>)
         </if>
         <if test="query.name != null and query.name != ''">
           AND d.name LIKE CONCAT('%', #{query.name}, '%')
@@ -127,12 +154,104 @@
           AND d.product_code = #{query.productCode}
         </if>
         <if test="query.projectId != null">
-          AND d.project_id = #{query.projectId}
+          AND <include refid="projectDeviceMembership"/>
         </if>
         <if test="query.customerId != null">
           AND d.customer_id = #{query.customerId}
         </if>
     </sql>
+
+    <!-- Read-list membership is distinct from current ownership; EXISTS keeps one row per device. -->
+    <sql id="projectDeviceFilterJoin">
+      <if test="query.projectId != null">
+        JOIN (
+          SELECT owned.id FROM ast_device owned
+          WHERE owned.tenant_id=#{query.tenantId} AND owned.deleted=0 AND owned.project_id=#{query.projectId}
+          UNION
+          SELECT listed.id FROM project_list_entries ps
+          JOIN ast_device listed ON listed.tenant_id=ps.tenant_id AND listed.sn=ps.device_sn AND listed.deleted=0
+          WHERE ps.tenant_id=#{query.tenantId} AND ps.project_id=#{query.projectId}
+        ) project_devices ON project_devices.id=d.id
+      </if>
+    </sql>
+
+    <sql id="projectNameDeviceFilterJoin">
+      <if test="query.projectId == null and query.matchingProjectIds != null and !query.matchingProjectIds.isEmpty()">
+        JOIN (
+          SELECT owned.id FROM ast_device owned
+          WHERE owned.tenant_id=#{query.tenantId} AND owned.deleted=0 AND owned.project_id IN
+            <foreach collection="query.matchingProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+          UNION
+          SELECT listed.id FROM project_list_entries ps
+          JOIN ast_device listed ON listed.tenant_id=ps.tenant_id AND listed.sn=ps.device_sn AND listed.deleted=0
+          WHERE ps.tenant_id=#{query.tenantId} AND ps.project_id IN
+            <foreach collection="query.matchingProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ) project_devices ON project_devices.id=d.id
+      </if>
+    </sql>
+
+    <sql id="projectDeviceMembership">
+      (d.project_id=#{query.projectId} OR EXISTS (
+        SELECT 1 FROM project_list_entries ps
+        WHERE ps.tenant_id=d.tenant_id AND ps.device_sn=d.sn AND ps.project_id=#{query.projectId}))
+    </sql>
+
+    <select id="selectProjectListDevices" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        <bind name="shipmentProjectIds" value="{query.projectId}"/>
+        <bind name="shipmentDeviceIds" value="null"/>
+        WITH <include refid="projectListCommonTables"/>
+
+      SELECT d.* FROM ast_device d
+      <include refid="projectDeviceFilterJoin"/>
+      WHERE d.tenant_id=#{query.tenantId} AND d.deleted=0 AND <include refid="projectDeviceMembership"/>
+      ORDER BY d.id
+    </select>
+
+    <select id="selectProjectShipmentContext" resultType="cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectShipmentFact">
+        <bind name="shipmentProjectIds" value="{query.projectId}"/>
+        <bind name="shipmentDeviceIds" value="query.deviceIds"/>
+        WITH <include refid="projectListCommonTables"/>
+
+      SELECT DISTINCT d.id AS device_id,ps.project_id,ps.installation_id,ps.contract_no,
+        ps.device_sn,ps.physical_sn,ps.product_code,ps.product_name,ps.physical_product_code,ps.physical_product_name,
+        ps.install_address,ps.receive_name,ps.ems_num,ps.ems_company,ps.packdate
+      FROM ast_device d JOIN project_list_entries ps ON ps.tenant_id=d.tenant_id AND ps.device_sn=d.sn
+      WHERE d.tenant_id=#{query.tenantId} AND d.deleted=0 AND ps.project_id=#{query.projectId}
+      <choose><when test="query.deviceIds != null and !query.deviceIds.isEmpty()">
+        AND d.id IN <foreach collection="query.deviceIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+      </when><otherwise>AND 1=0</otherwise></choose>
+      ORDER BY ps.project_id,ps.installation_id,ps.contract_no,ps.physical_sn
+    </select>
+
+    <select id="selectIdsByProjectList" resultType="java.lang.Long">
+        <bind name="shipmentProjectIds" value="{query.projectId}"/>
+        <bind name="shipmentDeviceIds" value="null"/>
+        WITH <include refid="projectListCommonTables"/>
+
+      SELECT d.id FROM ast_device d
+      <include refid="projectDeviceFilterJoin"/>
+      WHERE d.tenant_id=#{query.tenantId} AND d.deleted=0 AND <include refid="projectDeviceMembership"/>
+      ORDER BY d.id
+    </select>
+
+    <sql id="projectMatchDeviceFilters">
+      d.tenant_id=#{query.tenantId} AND d.deleted=0
+      <if test="query.deviceSnKeyword != null and query.deviceSnKeyword != ''">AND d.sn LIKE CONCAT('%',#{query.deviceSnKeyword},'%')</if>
+      <if test="query.deviceProductModelKeyword != null and query.deviceProductModelKeyword != ''">AND d.product_model LIKE CONCAT('%',#{query.deviceProductModelKeyword},'%')</if>
+      <if test="query.deviceWarrantyStatus != null">AND d.warranty_status=#{query.deviceWarrantyStatus}</if>
+    </sql>
+    <select id="selectListProjectIdsByMatch" resultType="java.lang.Long">
+        <bind name="shipmentProjectIds" value="null"/>
+        <bind name="shipmentDeviceIds" value="null"/>
+        WITH <include refid="projectListCommonTables"/>
+
+      SELECT DISTINCT d.project_id FROM ast_device d
+      WHERE <include refid="projectMatchDeviceFilters"/> AND d.project_id IS NOT NULL
+      UNION
+      SELECT DISTINCT ps.project_id FROM ast_device d
+      JOIN project_list_entries ps ON ps.tenant_id=d.tenant_id AND ps.device_sn=d.sn
+      WHERE <include refid="projectMatchDeviceFilters"/>
+    </select>
 
     <!-- 客户维度可见性的项目侧条件，两个汇总分支共用；调用方保证 visibleProjectIds 非空 -->
     <sql id="customerSummaryProjectVisibility">
@@ -207,6 +326,10 @@
     </select>
 
     <select id="selectVisibleArchiveList" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        <bind name="shipmentProjectIds" value="query.projectId != null ? {query.projectId} : query.matchingProjectIds"/>
+        <bind name="shipmentDeviceIds" value="null"/>
+        WITH <include refid="projectListCommonTables"/>
+
         SELECT d.id, d.tenant_id, d.sn, d.name, d.product_code, d.product_model, d.product_name, d.product_desc, d.shipment_time, d.package_no, d.contract_no, d.shipment_record_id, d.project_id, d.project_assignment_version, d.customer_id, d.customer_assignment_version, d.site_id, d.site_location_id, d.location_resolution_status, d.location_snapshot, d.location_effective_from, d.location_record_id, d.warranty_start_date, d.warranty_end_date, d.warranty_status, d.conp_version, d.conp_type, d.conp_series, d.conp_mark, d.status, d.remark, d.source_system, d.source_key, d.source_version, d.source_updated_at, d.synced_at, d.sync_status, d.version, d.creator, d.create_time, d.updater, d.update_time, d.deleted
         <include refid="visibleDeviceConditions"/>
         ORDER BY d.id DESC
@@ -248,9 +371,14 @@
     </sql>
 
     <select id="selectVisibleDeviceList" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection">
-        WITH device_page AS (
+        <bind name="shipmentProjectIds" value="query.projectId != null ? {query.projectId} : query.matchingProjectIds"/>
+        <bind name="shipmentDeviceIds" value="null"/>
+        WITH <include refid="projectListCommonTables"/>,
+        device_page AS (
             SELECT <include refid="deviceListColumns"/>
             FROM ast_device d
+            <include refid="projectDeviceFilterJoin"/>
+            <include refid="projectNameDeviceFilterJoin"/>
             LEFT JOIN ast_device_network_version nv ON nv.tenant_id = d.tenant_id
               AND nv.device_sn = d.sn AND nv.deleted = b'0' AND nv.source_system = 'DEVICE_LOG'
               AND (nv.sync_status IS NULL OR nv.sync_status &lt;&gt; 'NOT_AVAILABLE')
@@ -279,8 +407,14 @@
     </select>
 
     <select id="selectVisibleDeviceCount" resultType="long">
+        <bind name="shipmentProjectIds" value="query.projectId != null ? {query.projectId} : query.matchingProjectIds"/>
+        <bind name="shipmentDeviceIds" value="null"/>
+        WITH <include refid="projectListCommonTables"/>
+
         SELECT COUNT(*)
         FROM ast_device d
+        <include refid="projectDeviceFilterJoin"/>
+        <include refid="projectNameDeviceFilterJoin"/>
         <!-- 计数允许优化器选择更窄的合同/项目索引，不强制扫描组织覆盖索引。 -->
         WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
         <include refid="deviceVisibility"/>
@@ -289,6 +423,10 @@
     </select>
 
     <select id="existsVisibleDevice" resultType="boolean">
+        <bind name="shipmentProjectIds" value="query.visibleProjectIds"/>
+        <bind name="shipmentDeviceIds" value="{query.deviceId}"/>
+        WITH <include refid="projectListCommonTables"/>
+
         SELECT EXISTS(
             SELECT 1
             FROM ast_device d

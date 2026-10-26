@@ -25,10 +25,16 @@ const root = '/api/v1/pms/integration/base-sync'
 export const getTasks = () => request.get<BaseSyncTask[]>({ baseURL, url: root + '/tasks' })
 export const getRegistrations = () =>
   request.get<Registration[]>({ baseURL, url: root + '/registrations' })
-export const run = (preview: boolean, taskId: Id, batchSize?: number) =>
+export interface RunRequest {
+  preview: boolean
+  taskId: Id
+  batchSize?: number
+  stages?: string[]
+}
+export const run = ({ preview, ...data }: RunRequest) =>
   request.post<SyncCounts>({
     baseURL,
     url: root + (preview ? '/preview' : '/execute'),
-    data: { taskId, ...(batchSize === undefined ? {} : { batchSize }) },
+    data,
     timeout: 0
   })

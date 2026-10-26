@@ -68,13 +68,13 @@ class DeviceQueryServiceTest {
         var query = new ProjectDeviceInstallationQuery(1L, 10L);
         var first = device(8L); var second = device(9L);
         when(accessScopeService.visibleProjectIds(1L, 7L)).thenReturn(Set.of(10L));
-        when(deviceMapper.selectCurrentProjectDevices(query)).thenReturn(List.of(first, second));
+        when(deviceMapper.selectProjectListDevices(query)).thenReturn(List.of(first, second));
 
         assertEquals(List.of(first, second), service.getProjectDevices(query));
 
         verify(accessScopeService).visibleProjectIds(1L, 7L);
         verifyNoMoreInteractions(accessScopeService);
-        verify(deviceMapper).selectCurrentProjectDevices(query);
+        verify(deviceMapper).selectProjectListDevices(query);
         verifyNoMoreInteractions(deviceMapper);
     }
 
@@ -90,7 +90,7 @@ class DeviceQueryServiceTest {
         var query = new ProjectDeviceInstallationQuery(1L, 10L);
         var first = device(8L); var second = device(9L);
         when(accessScopeService.visibleProjectIds(1L, 7L)).thenReturn(Set.of());
-        when(deviceMapper.selectCurrentProjectDevices(query)).thenReturn(List.of(first, second));
+        when(deviceMapper.selectProjectListDevices(query)).thenReturn(List.of(first, second));
         when(deviceMapper.selectById(8L)).thenReturn(first);
         when(deviceMapper.selectById(9L)).thenReturn(second);
         assertEquals(List.of(first, second), service.getProjectDevices(query));
@@ -102,7 +102,7 @@ class DeviceQueryServiceTest {
     void aDeniedDeviceFailsWholeBatchInsteadOfReturningAPartialRange() {
         var query = new ProjectDeviceInstallationQuery(1L, 10L);
         when(accessScopeService.visibleProjectIds(1L, 7L)).thenReturn(Set.of());
-        when(deviceMapper.selectCurrentProjectDevices(query)).thenReturn(List.of(device(8L), device(9L)));
+        when(deviceMapper.selectProjectListDevices(query)).thenReturn(List.of(device(8L), device(9L)));
         when(deviceMapper.selectById(8L)).thenReturn(device(8L));
         doNothing().when(accessScopeService).assertVisible(1L, 7L, 8L);
         doThrow(new SecurityException("denied")).when(accessScopeService).assertVisible(1L, 7L, 9L);

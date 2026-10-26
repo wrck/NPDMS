@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.integration.basesync.task;
 import cn.iocoder.yudao.module.pms.integration.api.basesync.*;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.support.migration.DppmsWarrantyYearsConverter;
 import cn.iocoder.yudao.module.pms.integration.api.basesync.AbstractSyncTask.*;
 import cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi;
@@ -25,6 +26,7 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
  }
  @Override public String taskCode(){return "BASE_P15";}
  @Override public String taskName(){return "合同及全量发货历史";}
+ @Override public List<String> supportedStages(){return List.of("ShipmentContract","Package","ShipmentEvent","DeviceRelationship","Contract","ContractOrganization","ShipmentContractOrganization","OrderContractRelation","ShipmentOrderLine");}
  @Override protected Parameters createParameters(SyncContext<?> c){
   var names=new HashMap<String,String>();var ambiguous=new HashSet<String>();
   for(var item:mapper.selectCarriers(new TenantQuery(c.tenantId()))){if(item.code==null || item.label==null || item.label.isBlank())continue;var old=names.putIfAbsent(item.code,item.label);if(old!=null && !old.equals(item.label))ambiguous.add(item.code);}
@@ -42,18 +44,17 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
   return new Parameters(Map.copyOf(names),c.connectionId(),Map.copyOf(directory),new LinkedHashMap<>());
  }
  @Override public void work(SyncContext<Parameters> c){
-  if(mapper.packageSourceColumnReady()!=1)fail("TARGET_COLUMN_MISSING:com_shipment_package.shipment_contract_source_key");
-  try(var session=c.source().open(c.connectionId())){long count=session.mapper(SourceMapper.class).countShipmentEvents(new SourceQuery<>(1,c.tenantId(),true,c.parameters()));if(count>c.maxRows())fail("FULL_SHIPMENT_SOURCE_EXCEEDS_CONFIGURED_LIMIT:"+count+":"+c.maxRows());}
+  if((c.runState().includesStage("Package")||c.runState().includesStage("ShipmentEvent"))&&mapper.packageSourceColumnReady()!=1)fail("TARGET_COLUMN_MISSING:com_shipment_package.shipment_contract_source_key");
+  if(c.runState().includesStage("ShipmentEvent"))try(var session=c.source().open(c.connectionId())){long count=session.mapper(SourceMapper.class).countShipmentEvents(new SourceQuery<>(1,c.tenantId(),true,c.parameters()));if(count>c.maxRows())fail("FULL_SHIPMENT_SOURCE_EXCEEDS_CONFIGURED_LIMIT:"+count+":"+c.maxRows());}
   if(!c.preview()){var prerequisite=mapper.latestP24Execution(new PrerequisiteQuery(c.tenantId(),c.connectionId()));if(prerequisite==null || !"COMPLETED".equals(prerequisite))fail("COMPLETE_FORMAL_BASE_P24_INPUT_REQUIRED");}
   else c.runState().warning("P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED");
   try{
-   syncData(c.forData("ShipmentContract",false,true));syncData(c.forData("Package",false,true));
-   syncData(c.forData("ShipmentEvent",false,true));syncData(c.forData("DeviceRelationship",false,true));
-   // Both phases use the reviewed raw business fields; optional P14 IDs are not a prerequisite.
-   syncData(c.forData("Contract",false,false));
-   // Reviewed completion follows raw acceptance. Only this task's protected bindings may change.
-   syncData(c.forLocalData("ContractOrganization",false,true));
-   syncData(c.forLocalData("ShipmentContractOrganization",false,true));
+   // Only fixed, reviewed stages are selectable; caller ordering never changes dependency order.
+   for(String stage:supportedStages()){
+    if(!c.runState().includesStage(stage))continue;
+    boolean local=stage.equals("ContractOrganization")||stage.equals("ShipmentContractOrganization")||stage.equals("OrderContractRelation");
+    syncData(local?c.forLocalData(stage,false,true):c.forData(stage,false,!stage.equals("Contract")));
+   }
    c.parameters().missing.forEach((key,count)->c.runState().warning("P15_"+key+":"+count));
   }catch(StackOverflowError error){var frames=error.getStackTrace();org.slf4j.LoggerFactory.getLogger(P15DeliverySyncTask.class).error("P15_STACK_OVERFLOW_FRAMES:{}",Arrays.toString(Arrays.copyOf(frames,Math.min(32,frames.length))));throw error;}
  }
@@ -106,6 +107,8 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
  }
  @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
   var c=b.context();String kind=c.dataName();
+  if(kind.equals("OrderContractRelation")){completeOrderContractRelations(b);return;}
+  if(kind.equals("ShipmentOrderLine")){completeShipmentOrderLines(b);return;}
   if(kind.endsWith("Organization")){completeOrganizations(b);return;}
   if(kind.equals("Contract")&&b.rows().size()>c.batchSize()){org.slf4j.LoggerFactory.getLogger(P15DeliverySyncTask.class).info("P15_CONTRACT_IDENTITY_BATCHES:rows={},batchSize={}",b.rows().size(),c.batchSize());for(int i=0;i<b.rows().size();i+=c.batchSize())syncDataInsertBefore(new SyncBatch<>(c,b.rows().subList(i,Math.min(i+c.batchSize(),b.rows().size()))));return;}
   var keys=b.rows().stream().map(s->s.key).toList();
@@ -179,7 +182,76 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
    }
   }
  }
- static String completionKind(String kind){return switch(kind){case "ContractOrganization"->"Contract";case "ShipmentContractOrganization"->"ShipmentContract";default->kind;};}
+ private void completeOrderContractRelations(SyncBatch<Source,Parameters> batch){
+  var c=batch.context();var bindings=c.identities().findByKeys(new SyncIdentityStore.Query("ORDER_CONTRACT_RELATION",batch.rows().stream().map(Source::getKey).toList()));
+  var current=new HashMap<OrderContractKey,OrderContractRow>();
+  var candidates=batch.rows().stream().filter(s->s.relation.contractId!=null).toList();
+  if(!candidates.isEmpty())for(var row:mapper.selectOrderContractRelations(new OrderContractQuery(c.tenantId(),candidates,c.preview())))
+   if(current.putIfAbsent(new OrderContractKey(row.orderId,row.contractId),row)!=null)fail("ORDER_CONTRACT_TARGET_AMBIGUOUS");
+  for(var source:batch.rows()){
+   source.action=SyncWriteAction.UNCHANGED;var row=source.relation;var binding=bindings.get(source.key);
+   if(row.contractId==null||row.effectiveFrom==null){
+    if(binding!=null)fail("ORDER_CONTRACT_BOUND_INPUT_MISSING");
+    orderContractPending(batch,row.contractId==null?"CONTRACT_MISSING":"ORDER_DATE_MISSING");continue;
+   }
+   var old=current.get(new OrderContractKey(row.orderId,row.contractId));
+   if(old!=null){
+    if(binding==null){orderContractPending(batch,"EXISTING_RELATION_NOT_OWNED");continue;}
+    if(!Objects.equals(old.tenantId,c.tenantId())||binding.targetId()!=old.id||Boolean.TRUE.equals(old.deleted)
+      ||!binding.fingerprint().equals(orderContractFingerprint(old)))fail("ORDER_CONTRACT_EXISTING_FACT_PROTECTED");
+    if(!orderContractBusiness(old).equals(orderContractBusiness(row)))orderContractPending(batch,"EXISTING_RELATION_DIFFERENT");
+    source.relation=old;continue;
+   }
+   if(binding!=null)fail("ORDER_CONTRACT_BOUND_TARGET_MISSING");
+   row.id=c.preview()?null:IdWorker.getId();row.tenantId=c.tenantId();row.deleted=false;
+   row.creator=Long.toString(c.actorId());row.updater=row.creator;row.createTime=c.startedAt();row.updateTime=c.startedAt();
+   source.action=SyncWriteAction.INSERT;
+  }
+ }
+ private static void orderContractPending(SyncBatch<Source,Parameters> batch,String reason){
+  batch.context().parameters().missing.merge("ORDER_CONTRACT_"+reason,1L,Long::sum);
+ }
+ static List<Object> orderContractBusiness(OrderContractRow row){
+  return Arrays.asList(row.orderId,row.contractId,row.relationRole,row.relationSource,row.sourceSystem,
+    row.salesOrderSourceKey,row.contractSourceKey,row.sourceVersion,JsonUtils.parseTree(row.sourceEvidence),row.effectiveFrom,row.effectiveTo);
+ }
+ static String orderContractFingerprint(OrderContractRow row){
+  return SyncFingerprint.of(Arrays.asList(row.id,row.tenantId,orderContractBusiness(row),row.creator,row.createTime,row.updater,row.updateTime,row.deleted));
+ }
+ private void completeShipmentOrderLines(SyncBatch<Source,Parameters> batch){
+  var c=batch.context();var keys=batch.rows().stream().map(Source::getKey).toList();
+  var bindings=c.identities().findByKeys(new SyncIdentityStore.Query("SHIPMENT_EVENT",keys));
+  var current=new HashMap<String,Row>();
+  for(var row:mapper.selectEvents(new KeysQuery(c.tenantId(),keys,c.preview())))
+   if(current.putIfAbsent(row.sourceKey,row)!=null)fail("FORMAL_IDENTITY_AMBIGUOUS");
+  var candidates=batch.rows().stream().filter(s->Objects.equals(s.lineCandidateCount,1L)&&s.lineSourceKey!=null).toList();
+  var resolved=new HashMap<String,Long>();
+  if(!candidates.isEmpty())for(var match:mapper.selectShipmentOrderLines(new ShipmentOrderLineQuery(c.tenantId(),c.connectionId(),candidates)))
+   if(resolved.putIfAbsent(match.shipmentKey,match.orderLineId)!=null)fail("FORMAL_LINE_IDENTITY_AMBIGUOUS");
+  for(var source:batch.rows()){
+   source.action=SyncWriteAction.UNCHANGED;var binding=bindings.get(source.key);var old=current.get(source.key);
+   if(binding==null){shipmentLinePending(batch,source,"SHIPMENT_NOT_OWNED");continue;}
+   if(old==null||binding.targetId()!=old.id||Boolean.TRUE.equals(old.deleted)||!Objects.equals(old.tenantId,c.tenantId())
+     ||!binding.fingerprint().equals(fingerprint(new Validation("ShipmentEvent",old))))fail("EXISTING_FACT_PROTECTED");
+   source.target=old;
+   if(!Objects.equals(old.orderNo,source.rawOrderNo)||!Objects.equals(old.lineNo,source.rawLineNo)){
+    shipmentLinePending(batch,source,"RAW_IDENTITY_CHANGED");continue;
+   }
+   if(!Objects.equals(source.lineCandidateCount,1L)){
+    shipmentLinePending(batch,source,source.lineCandidateCount==null?"SOURCE_LINE_MISSING":"SOURCE_LINE_AMBIGUOUS");continue;
+   }
+   var targetId=resolved.get(source.key);
+   if(targetId==null){shipmentLinePending(batch,source,"FORMAL_LINE_MISSING");continue;}
+   if(old.orderLineId!=null){if(!old.orderLineId.equals(targetId))shipmentLinePending(batch,source,"EXISTING_REFERENCE_DIFFERENT");continue;}
+   var next=new Row();org.springframework.beans.BeanUtils.copyProperties(old,next);next.orderLineId=targetId;
+   source.target=next;source.previous=binding.fingerprint();source.expectedVersion=old.version;source.action=SyncWriteAction.UPDATE;
+  }
+ }
+ private static void shipmentLinePending(SyncBatch<Source,Parameters> batch,Source source,String reason){
+  long count=batch.context().parameters().missing.merge("SHIPMENT_ORDER_LINE_"+reason,1L,Long::sum);
+  if(count<=20)org.slf4j.LoggerFactory.getLogger(P15DeliverySyncTask.class).warn("P15_SHIPMENT_ORDER_LINE_PENDING:tenantId={},sourceKey={},reason={}",batch.context().tenantId(),source.key,reason);
+ }
+ static String completionKind(String kind){return switch(kind){case "ContractOrganization"->"Contract";case "ShipmentContractOrganization"->"ShipmentContract";case "ShipmentOrderLine"->"ShipmentEvent";default->kind;};}
  public record Validation(String kind,Row row){}
  static LocalDateTime relationshipTime(Source source){
   if(source.rawRelationshipCreatedAt==null)return null;
@@ -202,6 +274,10 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
  static void fail(String code){throw new IllegalArgumentException("P15_"+code);}
  @Override protected SyncCounts syncDataCount(SyncBatch<Source,Parameters> b){return SyncCounts.fromActions(b.rows(),Source::getAction);}
  @Override protected void syncDataInsert(SyncBatch<Source,Parameters> b){
+  if("ShipmentOrderLine".equals(b.context().dataName())){
+   var changed=b.matching(s->s.action==SyncWriteAction.UPDATE);if(changed.rows().isEmpty()||b.context().preview())return;
+   if(mapper.updateShipmentOrderLine(changed)!=changed.rows().size())fail("SHIPMENT_ORDER_LINE_TARGET_CHANGED");return;
+  }
   if(b.context().dataName().endsWith("Organization")){
    var changed=b.matching(s->s.action==SyncWriteAction.UPDATE);if(changed.rows().isEmpty())return;
    int count=b.context().dataName().equals("ContractOrganization")?mapper.updateContractOrganization(changed):mapper.updateShipmentContractOrganization(changed);
@@ -209,18 +285,33 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
   }
   super.syncDataInsert(b.matching(s->s.action==SyncWriteAction.INSERT));super.syncDataUpdate(b.matching(s->s.action==SyncWriteAction.UPDATE));
  }
- @Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){String kind=completionKind(b.context().dataName());b.context().identities().saveAll(b.rows().stream().filter(s->s.action!=SyncWriteAction.UNCHANGED).map(s->new SyncIdentityStore.Save(objectKey(kind),s.key,s.target.id,fingerprint(new Validation(kind,s.target)),s.previous)).toList());}
- @lombok.Data public static class Source {private String key,issue,rawWarranty,rawRelationshipCreatedAt,previous,resolvedCompanyCode;private Long expectedVersion,resolvedContractId;private Row target;private SyncWriteAction action;}
+ @Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){
+  if("OrderContractRelation".equals(b.context().dataName())){
+   b.context().identities().saveAll(b.rows().stream().filter(s->s.action==SyncWriteAction.INSERT)
+     .map(s->new SyncIdentityStore.Save("ORDER_CONTRACT_RELATION",s.key,s.relation.id,orderContractFingerprint(s.relation),null)).toList());return;
+  }
+  String kind=completionKind(b.context().dataName());b.context().identities().saveAll(b.rows().stream().filter(s->s.action!=SyncWriteAction.UNCHANGED).map(s->new SyncIdentityStore.Save(objectKey(kind),s.key,s.target.id,fingerprint(new Validation(kind,s.target)),s.previous)).toList());}
+ @lombok.Data public static class Source {private String key,issue,rawWarranty,rawRelationshipCreatedAt,previous,resolvedCompanyCode;private Long expectedVersion,resolvedContractId,lineCandidateCount;private String lineSourceKey,lineSourceSystem,lineCompanyCode,lineType,rawOrderNo,rawLineNo,formalLineNo,lineProductCode;private Row target;private OrderContractRow relation;private SyncWriteAction action;}
  @lombok.Data public static class Row {private Long id;private Long tenantId;private Long companyId;private String companyCode;private String companyName;private String contractNo;private String masterSourceSystem;private String masterSourceRecordKey;private String masterSourceVersion;private String contractType;private Long customerId;private String customerCode;private String customerName;private String contractName;private BigDecimal contractAmount;private String currencyCode;private String currencyName;private LocalDateTime contractCreateTime;private String authorityStatus;private String sourceLifecycleStatus;private LocalDate effectiveDate;private LocalDate expiryDate;private String projectName;private String projectCode;private String marketCode;private String marketName;private String departmentCode;private String departmentName;private String systemCode;private String systemName;private String expendCode;private String expendName;private String industryCode;private String industryName;private String marketingRepresentativeCode;private String marketingRepresentativeName;private String secondaryRepresentativeCode;private LocalDateTime sourceSyncTime;private LocalDateTime sourceUpdatedAt;private String status;private Long version;private String creator;private LocalDateTime createTime;private String updater;private LocalDateTime updateTime;private Boolean deleted;private Long contractId;private Long departmentId;private String systemSourceKey;private Long warrantyYears;private String remark;private String mappingStatus;private String sourceSystem;private String sourceRecordKey;private Long shipmentContractRefId;private String packageNo;private LocalDateTime shipmentTime;private LocalDateTime warrantyStartTime;private LocalDateTime warrantyEndTime;private String receiverName;private String expressNo;private String carrierName;private String carrierCode;private String deviceSn;private String eventType;private LocalDate warrantyStartDate;private Long warrantyMonths;private String rmaNo;private String relatedDeviceSn;private String sourceKey;private String sourceVersion;private LocalDateTime syncedAt;private String syncStatus;private String legacyPackageKey;private String rmaRelatedSn;private Boolean rmaMarked;private Long orderLineId;private String sourcePayload;private String orderNo;private String lineNo;private String productCode;private String secondarySn;private String secondaryItem;private String internalSerialNo;private Long isRma;private String profitCenter;private String soleAgentSuffix;private LocalDateTime syncTime;private String uuid;private String sourceDeviceSn;private String targetDeviceSn;private String relationshipType;private LocalDateTime effectiveFrom;private LocalDateTime effectiveTo;private String sourceItem;private String targetItem;private String shipmentContractSourceKey;}
+ @lombok.Data public static class OrderContractRow {
+  private Long id,tenantId,orderId,contractId;
+  private String relationRole,relationSource,sourceSystem,salesOrderSourceKey,contractSourceKey,sourceVersion,sourceEvidence,creator,updater;
+  private LocalDateTime effectiveFrom,effectiveTo,createTime,updateTime;
+  private Boolean deleted;
+ }
+ public record OrderContractKey(Long orderId,Long contractId){}
+ public record OrderContractQuery(long tenantId,List<Source> rows,boolean preview){}
  @lombok.Data public static class Carrier {private String code,label;}
   @lombok.Data public static class ContractCustomer {private String rawKey,issue,companyCode,contractNo,customerCode,customerName,orderType,orderNo;}
  @lombok.Data public static class ShipmentPackageReference {private String sourceKey,contractSourceKey;private LocalDateTime shipmentTime;}
  @lombok.Data public static class ShipmentContractReference {private String sourceKey,contractNo;}
+ public record ShipmentOrderLineQuery(long tenantId,long connectionId,List<Source> rows){}
+ @lombok.Data public static class ResolvedOrderLine {private String shipmentKey;private Long orderLineId;}
  public record TenantQuery(long tenantId){}
  public record PrerequisiteQuery(long tenantId,long connectionId){}
  public record KeysQuery(long tenantId,List<String> keys,boolean preview){}
  public record ContractIdentity(String companyCode,String contractNo){}
  public record ContractsQuery(long tenantId,List<ContractIdentity> keys,boolean preview){}
- public interface SourceMapper {long countShipmentEvents(SourceQuery<Parameters> query);void selectShipmentContract(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectPackage(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectShipmentEvent(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectDeviceRelationship(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);List<ContractCustomer> selectContractCustomers(SourceQuery<Parameters> query);List<Row> selectContractShipmentFields(SourceQuery<Parameters> query);List<Row> selectContractReceivableFields(SourceQuery<Parameters> query);List<ShipmentPackageReference> selectShipmentPackageReferences(SourceQuery<Parameters> query);List<ShipmentContractReference> selectShipmentContractReferences(SourceQuery<Parameters> query);}
- @Mapper public interface TargetMapper {List<Carrier> selectCarriers(@Param("query") TenantQuery query);@com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true",dataPermission="true") int packageSourceColumnReady();String latestP24Execution(@Param("query") PrerequisiteQuery query);List<Row> selectContracts(@Param("query") ContractsQuery query);List<Row> selectShipmentContracts(@Param("query") KeysQuery query);List<Row> selectPackages(@Param("query") KeysQuery query);List<Row> selectEvents(@Param("query") KeysQuery query);List<Row> selectRelationships(@Param("query") KeysQuery query);void selectContract(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectContractOrganization(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectShipmentContractOrganization(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);int updateContractOrganization(SyncBatch<Source,Parameters> batch);int updateShipmentContractOrganization(SyncBatch<Source,Parameters> batch);int insertContract(SyncBatch<Source,Parameters> batch);int insertShipmentContract(SyncBatch<Source,Parameters> batch);int insertPackage(SyncBatch<Source,Parameters> batch);int insertShipmentEvent(SyncBatch<Source,Parameters> batch);int insertDeviceRelationship(SyncBatch<Source,Parameters> batch); int updateContract(RowParameter<Source,Parameters> row);int updateShipmentContract(RowParameter<Source,Parameters> row);int updatePackage(RowParameter<Source,Parameters> row);}
+ public interface SourceMapper {void selectShipmentOrderLine(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);long countShipmentEvents(SourceQuery<Parameters> query);void selectShipmentContract(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectPackage(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectShipmentEvent(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectDeviceRelationship(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);List<ContractCustomer> selectContractCustomers(SourceQuery<Parameters> query);List<Row> selectContractShipmentFields(SourceQuery<Parameters> query);List<Row> selectContractReceivableFields(SourceQuery<Parameters> query);List<ShipmentPackageReference> selectShipmentPackageReferences(SourceQuery<Parameters> query);List<ShipmentContractReference> selectShipmentContractReferences(SourceQuery<Parameters> query);}
+ @Mapper public interface TargetMapper {void selectOrderContractRelation(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);List<OrderContractRow> selectOrderContractRelations(@Param("query") OrderContractQuery query);int insertOrderContractRelation(SyncBatch<Source,Parameters> batch);List<ResolvedOrderLine> selectShipmentOrderLines(@Param("query") ShipmentOrderLineQuery query);int updateShipmentOrderLine(SyncBatch<Source,Parameters> batch);List<Carrier> selectCarriers(@Param("query") TenantQuery query);@com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true",dataPermission="true") int packageSourceColumnReady();String latestP24Execution(@Param("query") PrerequisiteQuery query);List<Row> selectContracts(@Param("query") ContractsQuery query);List<Row> selectShipmentContracts(@Param("query") KeysQuery query);List<Row> selectPackages(@Param("query") KeysQuery query);List<Row> selectEvents(@Param("query") KeysQuery query);List<Row> selectRelationships(@Param("query") KeysQuery query);void selectContract(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectContractOrganization(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectShipmentContractOrganization(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);int updateContractOrganization(SyncBatch<Source,Parameters> batch);int updateShipmentContractOrganization(SyncBatch<Source,Parameters> batch);int insertContract(SyncBatch<Source,Parameters> batch);int insertShipmentContract(SyncBatch<Source,Parameters> batch);int insertPackage(SyncBatch<Source,Parameters> batch);int insertShipmentEvent(SyncBatch<Source,Parameters> batch);int insertDeviceRelationship(SyncBatch<Source,Parameters> batch); int updateContract(RowParameter<Source,Parameters> row);int updateShipmentContract(RowParameter<Source,Parameters> row);int updatePackage(RowParameter<Source,Parameters> row);}
 }

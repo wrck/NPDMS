@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.service.projectplan.MigratedProjectTemplateSyncTask$TargetMapper">
+    <select id="selectMigratedProjects"
+            resultType="cn.iocoder.yudao.module.pms.project.service.projectplan.MigratedProjectTemplateSyncTask$Row">
+        SELECT p.* FROM proj_project p
+        WHERE p.tenant_id = #{tenantId} AND p.deleted = 0 AND p.source_type = 'MIGRATION'
+        <choose>
+            <when test="parameters.projectIds != null and !parameters.projectIds.isEmpty()">
+                AND p.id IN
+                <foreach collection="parameters.projectIds" item="projectId" open="(" separator="," close=")">
+                    #{projectId}
+                </foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY p.id
+        LIMIT #{limit}
+    </select>
+</mapper>

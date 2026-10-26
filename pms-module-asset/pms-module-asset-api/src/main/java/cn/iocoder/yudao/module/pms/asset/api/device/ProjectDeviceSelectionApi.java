@@ -17,6 +17,9 @@ public interface ProjectDeviceSelectionApi {
 
     /** 任务授权复核：发起人来自已验证的任务，不能来自终端任意输入。 */
     List<SelectedProjectDevice> validateSelection(AuthorizedSelection query);
+    /** 安装地址维护专用：当前登录人授权项目内，允许已有已完成安装历史的设备新增安装记录。 */
+    List<SelectedProjectDevice> validateInstallationSelection(AuthorizedSelection query);
+
     record AuthorizedSelection(Long tenantId, Long actorId, Long projectId, List<Long> deviceIds) { }
 
 }

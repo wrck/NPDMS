@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper">
+  <!-- All facts come from existing owner tables. Callers bind project/device filters and enforce access. -->
+  <sql id="projectListCommonTables">
+    project_list_contracts AS (
+      SELECT DISTINCT p.project_id,
+        CASE WHEN p.sales_type='14' AND NULLIF(TRIM(p.profit_center),'') IS NOT NULL
+          THEN REPLACE(c.contract_no,'-L','') ELSE c.contract_no END AS contract_no,
+        CASE WHEN p.sales_type='14' AND NULLIF(TRIM(p.profit_center),'') IS NOT NULL
+          THEN p.profit_center ELSE NULL END AS profit_center
+      FROM (<include refid="cn.iocoder.yudao.module.pms.project.api.scope.ProjectShipmentContextSql.projects"/>) p
+      JOIN (<include refid="cn.iocoder.yudao.module.pms.commerce.api.scope.ProjectShipmentSourceSql.contracts"/>) c
+        ON c.tenant_id=p.tenant_id AND c.project_id=p.project_id
+    ), project_list_installations AS (
+      SELECT i.*,d.sn AS device_sn
+      FROM (<include refid="cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationProjectReadSql.completedHistory"/>) i
+      JOIN ast_device d ON d.tenant_id=i.tenant_id AND d.id=i.equipment_id AND d.deleted=0
+    ), project_list_shipments AS (
+      SELECT s.tenant_id,s.device_sn,s.secondary_sn AS physical_sn,p.contract_no,s.product_code,
+        s.secondary_item AS physical_product_code,
+        CASE WHEN s.profit_center IN ('311202','311203','311204','311205','311206','311207','311208','311209','311210')
+          THEN CONCAT('1621',SUBSTRING(s.profit_center,5)) ELSE s.profit_center END AS profit_center,
+        p.receive_name,p.ems_num,p.ems_company,
+        CAST(CAST(p.packdate AS DATETIME(0)) AS CHAR) COLLATE utf8mb4_unicode_ci AS packdate
+      FROM ast_device_shipment s
+      JOIN (<include refid="cn.iocoder.yudao.module.pms.commerce.api.scope.ProjectShipmentSourceSql.packages"/>) p
+        ON p.tenant_id=s.tenant_id AND
+        <choose>
+          <when test="shipmentDeviceIds != null">p.package_key=s.legacy_package_key COLLATE utf8mb4_0900_ai_ci</when>
+          <otherwise>p.package_key COLLATE utf8mb4_unicode_ci=s.legacy_package_key</otherwise>
+        </choose>
+      WHERE s.tenant_id=#{query.tenantId} AND s.deleted=0 AND s.source_system='DPPMS' AND s.device_sn IS NOT NULL
+        AND (s.rma_no IS NULL OR s.rma_no='' OR s.rma_no='null')
+        AND EXISTS (SELECT 1 FROM project_list_contracts c WHERE p.contract_no=c.contract_no
+          OR p.contract_no=REPLACE(REPLACE(c.contract_no,'-L',''),'-C',''))
+      <if test="shipmentDeviceIds != null">
+        <choose><when test="!shipmentDeviceIds.isEmpty()">AND EXISTS (
+          SELECT 1 FROM ast_device selected WHERE selected.tenant_id=s.tenant_id AND selected.sn=s.device_sn AND selected.deleted=0
+            AND selected.id IN <foreach collection="shipmentDeviceIds" item="deviceId" open="(" close=")" separator=",">#{deviceId}</foreach>)
+        </when><otherwise>AND 1=0</otherwise></choose>
+      </if>
+    ), project_list_entries AS (
+      SELECT DISTINCT s.tenant_id,c.project_id,NULL AS installation_id,
+        s.contract_no,s.device_sn,s.physical_sn,s.product_code,product.product_name,s.physical_product_code,
+        physical_product.product_name AS physical_product_name,NULL AS install_address,
+        s.receive_name,s.ems_num,s.ems_company,s.packdate
+      FROM project_list_contracts c JOIN project_list_shipments s ON s.contract_no=c.contract_no
+      LEFT JOIN ast_product_official_info product ON product.tenant_id=s.tenant_id AND product.product_code=s.product_code AND product.deleted=0
+      LEFT JOIN ast_product_official_info physical_product ON physical_product.tenant_id=s.tenant_id AND physical_product.product_code=s.physical_product_code AND physical_product.deleted=0
+      WHERE (c.profit_center IS NULL OR c.profit_center=s.profit_center)
+        AND NOT EXISTS (SELECT 1 FROM project_list_installations installed
+          WHERE installed.project_id=c.project_id AND installed.device_sn=s.device_sn)
+      UNION ALL
+      SELECT DISTINCT i.tenant_id,i.project_id,i.installation_id,
+        c.contract_no,i.device_sn,r.target_device_sn AS physical_sn,s.product_code,product.product_name,
+        r.target_item AS physical_product_code,physical_product.product_name AS physical_product_name,
+        i.install_address,s.receive_name,s.ems_num,s.ems_company,s.packdate
+      FROM project_list_installations i
+      JOIN project_list_contracts c ON c.project_id=i.project_id
+      JOIN project_list_shipments s ON s.device_sn=i.device_sn
+        AND s.contract_no=REPLACE(REPLACE(c.contract_no,'-L',''),'-C','')
+      LEFT JOIN ast_device_relationship r ON r.tenant_id=i.tenant_id AND r.source_device_sn=i.device_sn
+        AND r.contract_no=REPLACE(c.contract_no,'-C','') AND r.source_system='DPPMS' AND r.relationship_type='EXTRA_SN' AND r.deleted=0
+      LEFT JOIN ast_product_official_info product ON product.tenant_id=s.tenant_id AND product.product_code=s.product_code AND product.deleted=0
+      LEFT JOIN ast_product_official_info physical_product ON physical_product.tenant_id=i.tenant_id AND physical_product.product_code=r.target_item AND physical_product.deleted=0
+    )
+  </sql>
+</mapper>

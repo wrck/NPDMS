@@ -1513,6 +1513,21 @@ AST `ProjectDeviceSelectionApi.validateSelection(AuthorizedSelection{tenantId,ac
 
 `DeviceQueryApi.getProjectDeviceSummaries(ProjectDeviceInstallationQuery)`批量读取当前直接归属项目的设备摘要，复用现有DeviceSummaryDTO；查询租户必须为当前租户。资产当前项目可见范围包含该项目时，同一次读取只解析一次项目范围，再按租户、项目和未删除条件读取设备；该条件是既有单设备可见性OR规则的充分条件。项目范围不包含该项目时仍逐台执行原getDevice的组织/合同/项目可见性校验，任一设备无权读取仍失败，不返回部分成功替代完整范围。没有跨请求权限缓存。IMP覆盖查询保留原锁定项目设备集合与逐项租户、项目、归属版本核对，只将单设备重复查询改为消费该批量接口，不更改覆盖/完成判定。
 
+### 2026-10-24 项目设备清单兼容扩展
+
+设备分页 `/pms/asset/devices/page` 的 projectId / projectName 筛选包含 AST 的项目清单关联及设备当前归属；总数按设备去重，projectId 字段仍表示设备当前归属，不改成请求项目。项目只读设备查询采用同一集合语义；写入场景的当前归属与状态校验不由清单关联替代。新增可选 `projectShipments` 数组，仅在指定项目且通过该项目查看权限时返回本页设备的该项目清单上下文，包含现有业务projectId、installationId、合同、发货/实物SN及产品、安装地址和物流。未指定项目或无可读上下文时为空数组。设备详情的项目授权分支允许该清单中的未归属设备；空授权和租户隔离保持失败关闭。查询集合复用既有业务表按旧系统规则产生，不凭合同号前缀或安装历史推定当前归属。
+
+
+### 2026-10-25 项目清单现有数据复用契约
+
+撤销独立清单投影和P39依赖，既有设备分页、项目只读设备列表及项目筛选改用当前归属与旧业务清单并集；设备主档归属字段原样返回。`projectShipments`仍为本页、本项目已授权的可选业务上下文，不跨项目附带同SN的其他历史。
+
+IMP `InstallationProjectReadSql.completedHistory`公开状态2且未删除的既有安装业务记录；PROJ `ProjectShipmentContextSql.projects`公开项目销售类型和现有部门编码；COM `ProjectShipmentSourceSql.contracts/packages`公开既有保留合同关系及原包裹物流。固定XML契约仅接收当前租户与调用方绑定的项目/设备筛选集合，空集合返回空；这些事实不构成授权。调用方不写外部业务表、不传SQL片段，继续经过PROJ/COM正式可见性契约。旧安装分支不要求非空地址，不以转出标记改写设备归属，双SN及借货-L/-C规则保持来源语义。
+
+安装地址批量维护专用 `ProjectDeviceSelectionApi.validateInstallationSelection(AuthorizedSelection)` 校验当前登录人、租户和项目权限，并锁定当前项目/合同设备或该项目已有已完成安装历史的设备。只扩展该维护入口；配置采集、凭证和其他写入仍沿用原选择契约。后续地址维护新建安装记录并经原状态机完成，原空地址与历史状态保留，按既有有效期规则结束上一记录。
+
+合同及展示文本按既有AST/IMP的 `utf8mb4_unicode_ci` 比较，避免COM/PROJ的 `utf8mb4_0900_ai_ci` 与来源事实连接时冲突；不改表级排序规则。包裹来源键保留COM原生排序规则：本页设备明细对查询值一侧使用0900比较以命中原唯一索引；项目级集合仍使用原unicode比较，避免改变大集合查询计划。发货时间按秒展示。产品名称继续消费现有官方产品主档，P12既定“不覆盖已有CRM产品”规则不因清单修复而改变，因此既有CRM名称可能与旧系统标签存在标点或空格差异。
+
 ### 2026-10-23 用户公司部门范围维护（需求方本次会话批准）
 
 SYSTEM继续拥有既有`UserCompanyDepartmentScope`，用户管理新增“公司部门范围”入口。该补齐不改变`OrganizationScopeApi`、公司部门匹配、合同公司范围、项目资格及设备组织授权的既定含义，不由部门树推导公司。

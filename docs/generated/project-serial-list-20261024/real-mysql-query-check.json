@@ -1,0 +1,22 @@
+{
+  "mysqlTemporaryTableCopiesAdapter" : true,
+  "joinedPageNotVerified" : true,
+  "checks" : [ {
+    "projectId" : 58469,
+    "total" : 13488,
+    "unassigned" : 2,
+    "countSeconds" : 1.1932068,
+    "listNameContextDetailScopeChecks" : true
+  }, {
+    "projectId" : 59086,
+    "total" : 10627,
+    "unassigned" : 2,
+    "countSeconds" : 0.1728795,
+    "listNameContextDetailScopeChecks" : true
+  }, {
+    "returned" : 1,
+    "physicalSnSearchCount" : true
+  } ],
+  "temporaryTableOnly" : true,
+  "persistentDml" : false
+}

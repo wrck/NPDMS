@@ -1,0 +1,322 @@
+{
+  "at": "2026-10-23T18:53:40.741294+08:00",
+  "target": "172.17.90.178:13306/npdms",
+  "taskCode": "BASE_P01",
+  "scope": "Company source UNION ALL t_company only; preserve existing FND004 completion, account authorization and business relations.",
+  "targetedTests": 28,
+  "stages": {
+    "preview": {
+      "id": 2113583800482410497,
+      "task_code": "BASE_P01",
+      "status": "PREVIEW_READY",
+      "preview": 1,
+      "read_count": 209,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 209,
+      "deleted_count": 0,
+      "error_message": "P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050",
+      "started_at": "2026-10-23 18:50:22.050000",
+      "finished_at": "2026-10-23 18:50:22.354000"
+    },
+    "execute": {
+      "id": 2113583803363897345,
+      "task_code": "BASE_P01",
+      "status": "COMPLETED",
+      "preview": 0,
+      "read_count": 209,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 209,
+      "deleted_count": 0,
+      "error_message": "P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050",
+      "started_at": "2026-10-23 18:50:22.727000",
+      "finished_at": "2026-10-23 18:50:22.800000"
+    },
+    "replay": {
+      "id": 2113583805150670849,
+      "task_code": "BASE_P01",
+      "status": "COMPLETED",
+      "preview": 0,
+      "read_count": 209,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 209,
+      "deleted_count": 0,
+      "error_message": "P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050",
+      "started_at": "2026-10-23 18:50:23.154000",
+      "finished_at": "2026-10-23 18:50:23.198000"
+    }
+  },
+  "protection": {
+    "allPassed": true,
+    "checks": {
+      "system_company": true,
+      "system_dept": true,
+      "system_user_company_department_scope": true,
+      "plt_authorization_grant": true,
+      "companies": true,
+      "orders004": true,
+      "p01Bindings": true,
+      "accountRoles": true,
+      "tasks": true,
+      "nonP01Runs": true,
+      "originalTaskCounts": true,
+      "migrationHistory": true
+    },
+    "scope": "P01 source union and preservation; no claim of sales-order visibility authorization"
+  },
+  "sourceRows": [
+    {
+      "id": 1,
+      "code": "001",
+      "name": "杭州迪普科技股份有限公司",
+      "disabled": null,
+      "source_table": "ehr_company",
+      "original_code": "001"
+    },
+    {
+      "id": 3,
+      "code": "003",
+      "name": "杭州迪普科技股份有限公司南京分公司",
+      "disabled": null,
+      "source_table": "ehr_company",
+      "original_code": "003"
+    },
+    {
+      "id": 4,
+      "code": "002",
+      "name": "杭州迪普信息技术有限公司",
+      "disabled": null,
+      "source_table": "ehr_company",
+      "original_code": "002"
+    },
+    {
+      "id": 1,
+      "code": "001",
+      "name": "杭州迪普科技股份有限公司",
+      "disabled": 0,
+      "source_table": "t_company",
+      "original_code": "01"
+    },
+    {
+      "id": 2,
+      "code": "002",
+      "name": "杭州迪普信息技术有限公司",
+      "disabled": 0,
+      "source_table": "t_company",
+      "original_code": "02"
+    },
+    {
+      "id": 3,
+      "code": "003",
+      "name": "杭州迪普科技股份有限公司南京分公司",
+      "disabled": 0,
+      "source_table": "t_company",
+      "original_code": "03"
+    }
+  ],
+  "formalApi": {
+    "at": "2026-10-23T18:50:50.670935+08:00",
+    "companies": {
+      "code": 0,
+      "message": "",
+      "rows": [
+        {
+          "id": "2112881214645960705",
+          "code": "001",
+          "name": "杭州迪普科技股份有限公司",
+          "status": 0
+        },
+        {
+          "id": "2112881214645960707",
+          "code": "002",
+          "name": "杭州迪普信息技术有限公司",
+          "status": 0
+        },
+        {
+          "id": "2112881214645960706",
+          "code": "003",
+          "name": "杭州迪普科技股份有限公司南京分公司",
+          "status": 0
+        },
+        {
+          "id": "2113578382599356417",
+          "code": "004",
+          "name": "迪普科技（香港）有限公司",
+          "status": 0
+        }
+      ]
+    },
+    "projects": {
+      "code": 0,
+      "message": "",
+      "total": 79429,
+      "sampleIds": [
+        84571
+      ]
+    },
+    "orders004": {
+      "code": 0,
+      "message": "",
+      "total": 0,
+      "sampleIds": []
+    }
+  },
+  "browser": {
+    "url": "http://172.17.90.178/system/company",
+    "account": "系统管理员",
+    "companyCode": "004",
+    "companyName": "迪普科技（香港）有限公司",
+    "status": "开启",
+    "visibleRows": 1,
+    "readOnlyQuery": true,
+    "at": "2026-10-23T10:52:11.412Z"
+  },
+  "authorizationAudit": {
+    "account": [
+      {
+        "id": 1,
+        "tenant_id": 1,
+        "username": "admin",
+        "nickname": "系统管理员",
+        "dept_id": null,
+        "status": 0,
+        "deleted": 0
+      }
+    ],
+    "roles": [
+      {
+        "user_role_id": 1,
+        "role_id": 1,
+        "user_role_deleted": 0,
+        "code": "super_admin",
+        "name": "超级管理员",
+        "status": 0,
+        "role_deleted": 0,
+        "data_scope": 1
+      }
+    ],
+    "allAdminCompanyScopes": [],
+    "adminExplicitGrants": [],
+    "adminMemberSummary": [],
+    "orders004": [
+      {
+        "id": 2113086178974598523,
+        "tenant_id": 1,
+        "source_system": "D365",
+        "company_id": 2113578382599356417,
+        "company_code": "004",
+        "company_name": "迪普科技（香港）有限公司",
+        "order_no": "SO40000003",
+        "order_type": "0",
+        "contract_no": "95020260904A01",
+        "status": "ENABLED",
+        "version": 1,
+        "deleted": 0
+      },
+      {
+        "id": 2113086178974598524,
+        "tenant_id": 1,
+        "source_system": "D365",
+        "company_id": 2113578382599356417,
+        "company_code": "004",
+        "company_name": "迪普科技（香港）有限公司",
+        "order_no": "SO40000005",
+        "order_type": "0",
+        "contract_no": "95020260904A01",
+        "status": "ENABLED",
+        "version": 1,
+        "deleted": 0
+      },
+      {
+        "id": 2113086178974598525,
+        "tenant_id": 1,
+        "source_system": "D365",
+        "company_id": 2113578382599356417,
+        "company_code": "004",
+        "company_name": "迪普科技（香港）有限公司",
+        "order_no": "SO40000007",
+        "order_type": "0",
+        "contract_no": "95020260928A01",
+        "status": "ENABLED",
+        "version": 1,
+        "deleted": 0
+      },
+      {
+        "id": 2113086178974598526,
+        "tenant_id": 1,
+        "source_system": "D365",
+        "company_id": 2113578382599356417,
+        "company_code": "004",
+        "company_name": "迪普科技（香港）有限公司",
+        "order_no": "SO40000004",
+        "order_type": "1",
+        "contract_no": "95020260904A01",
+        "status": "DISABLED",
+        "version": 1,
+        "deleted": 0
+      }
+    ],
+    "orderContractRelations": [],
+    "contracts": [
+      {
+        "id": 2113080488008614215,
+        "tenant_id": 1,
+        "company_id": null,
+        "company_code": "004",
+        "company_name": null,
+        "contract_no": "95020260904A01",
+        "contract_type": null,
+        "master_source_system": "DPPMS_ERP",
+        "authority_status": "CONFIRMED",
+        "status": null,
+        "version": 0,
+        "deleted": 0
+      },
+      {
+        "id": 2113080488008614216,
+        "tenant_id": 1,
+        "company_id": null,
+        "company_code": "004",
+        "company_name": null,
+        "contract_no": "95020260928A01",
+        "contract_type": null,
+        "master_source_system": "DPPMS_ERP",
+        "authority_status": "CONFIRMED",
+        "status": null,
+        "version": 0,
+        "deleted": 0
+      }
+    ],
+    "projectContractRelations": [],
+    "projectSummary": [
+      {
+        "total": 79429,
+        "nonDeleted": "79429",
+        "createdByAdmin": "0"
+      }
+    ],
+    "rawProjectContractInput": {
+      "contracts": [],
+      "groups": [],
+      "members": []
+    }
+  },
+  "noAuthorizationChanges": true,
+  "noOriginalTaskChanges": true,
+  "noDdlOrMigrations": true,
+  "runtime": {
+    "pid": 20488,
+    "jar": "D:\\CodexTaskArtifacts\\project-detail-followup\\company004-visibility-audit-20261023\\candidate\\yudao-server.jar",
+    "port": 59284,
+    "database": "npdms",
+    "databaseHost": "172.17.90.178",
+    "databasePort": 13306,
+    "databaseUser": "npdms_app",
+    "redisDatabase": 15,
+    "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\company004-visibility-audit-20261023\\runtime\\runtime-sanitized.log",
+    "startedAt": "2026-10-23T18:49:15.178698"
+  },
+  "candidateSha256": "4bd8a1c60b84c30c49e84b38c2f9807a4298aff31b6af61f76cef911015d5579"
+}

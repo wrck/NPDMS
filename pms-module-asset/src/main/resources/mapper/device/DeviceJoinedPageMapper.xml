@@ -21,12 +21,16 @@
     </sql>
 
     <select id="selectJoinedDevicePageRows" resultMap="joinedPageRow">
-        WITH
+        <bind name="shipmentProjectIds" value="query.projectId != null ? {query.projectId} : query.matchingProjectIds"/>
+        <bind name="shipmentDeviceIds" value="null"/>
+        WITH <include refid="projectListCommonTables"/>,
         <include refid="cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeSql.commonTables"/>,
         device_filter_contract_keys AS (
             <choose><when test="query.hasDeviceFilters()">
                 SELECT DISTINCT CAST(d.contract_no AS BINARY) AS contract_key
                 FROM ast_device d
+                <include refid="projectDeviceFilterJoin"/>
+                <include refid="projectNameDeviceFilterJoin"/>
                 WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
                   AND d.contract_no IS NOT NULL AND d.contract_no &lt;&gt; ''
                 <include refid="deviceSearchFilters"/>
@@ -37,6 +41,8 @@
         visible_direct_projects AS (
             SELECT DISTINCT d.project_id
             FROM ast_device d
+            <include refid="projectDeviceFilterJoin"/>
+            <include refid="projectNameDeviceFilterJoin"/>
             JOIN visible_projects vp ON vp.project_id = d.project_id
             WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0' AND d.project_id IS NOT NULL
             <include refid="deviceSearchFilters"/>
@@ -50,10 +56,18 @@
               AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
               AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
               <if test="query.sn != null and query.sn != ''">AND r.device_sn = #{query.sn}</if>
+            UNION
+            SELECT DISTINCT ps.device_sn FROM project_list_entries ps
+            JOIN visible_projects vp ON vp.project_id=ps.project_id
+            WHERE ps.tenant_id=#{query.tenantId}
+            <if test="query.projectId != null">AND ps.project_id=#{query.projectId}</if>
+            <if test="query.sn != null and query.sn != ''">AND (ps.device_sn=#{query.sn} OR ps.physical_sn=#{query.sn})</if>
         ),
         device_totals AS (
             SELECT COUNT(*) AS total
             FROM ast_device d
+            <include refid="projectDeviceFilterJoin"/>
+            <include refid="projectNameDeviceFilterJoin"/>
             WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
             <include refid="joinedDeviceVisibility"/>
             <include refid="deviceSearchFilters"/>
@@ -61,6 +75,8 @@
         ), device_page AS (
             SELECT <include refid="deviceListColumns"/>
             FROM ast_device d
+            <include refid="projectDeviceFilterJoin"/>
+            <include refid="projectNameDeviceFilterJoin"/>
             LEFT JOIN ast_device_network_version nv ON nv.tenant_id = d.tenant_id
               AND nv.device_sn = d.sn AND nv.deleted = b'0' AND nv.source_system = 'DEVICE_LOG'
               AND (nv.sync_status IS NULL OR nv.sync_status &lt;&gt; 'NOT_AVAILABLE')

@@ -93,7 +93,10 @@ public class InstallationServiceImpl implements InstallationService {
         if (installerUserId == null) {
             throw exception(cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.UNAUTHORIZED);
         }
-        deviceSelectionApi.validateSelection(request.getProjectId(), request.getEquipmentIds());
+        deviceSelectionApi.validateInstallationSelection(
+                new cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi.AuthorizedSelection(
+                        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(),
+                        installerUserId, request.getProjectId(), request.getEquipmentIds()));
         LocalDateTime savedAt = LocalDateTime.now();
         List<Long> ids = new ArrayList<>();
         LocationMaintenanceCommand sharedLocation = request.getLocationMaintenance();

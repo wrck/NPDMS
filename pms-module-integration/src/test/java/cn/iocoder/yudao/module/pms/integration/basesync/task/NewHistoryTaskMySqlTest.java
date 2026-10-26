@@ -198,7 +198,7 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("INSTALL_LOCATION_CAPACITY_REQUIRED"));
   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));assertTrue(saved.isEmpty());verifyNoInteractions(location);
  }
- @Test void installationSourceFiltersOnlyEmptyAddressesWithinTheSelectedOriginalProjects()throws Exception{
+ @Test void installationSourceIncludesEmptyAddressesWhileExistingJavaFilterRemains()throws Exception{
   jdbc.execute("""
    CREATE TEMPORARY TABLE pm_project_shipment(id BIGINT PRIMARY KEY,projectId BIGINT,barcode VARCHAR(64),
    itemCode VARCHAR(64),itemModel VARCHAR(64),itemName VARCHAR(64),receiveName VARCHAR(64),emsNum VARCHAR(64),emsCompany VARCHAR(64),
@@ -210,13 +210,16 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   jdbc.update("INSERT INTO pm_project_shipment(id,projectId,barcode,installAddress,transferFlag,createTime) VALUES(10,2,'OUTSIDE','outside address','-1',?)",at);
   var resource="base-sync-source/P33SourceMapper.xml";try(var input=new org.springframework.core.io.ClassPathResource(resource).getInputStream()){new org.apache.ibatis.builder.xml.XMLMapperBuilder(input,session.getConfiguration(),resource,session.getConfiguration().getSqlFragments()).parse();}
   var mapper=session.getMapper(P33InstallationSyncTask.SourceMapper.class);
+  var sourceRows=mapper.selectInstallation(new P33InstallationSyncTask.ReadQuery(100,List.of("1")));
+  assertEquals(addresses,sourceRows.stream().map(P33InstallationSyncTask.Source::getInstallAddress).toList());
+  assertEquals(List.of(1L,2L,3L,4L,5L,6L,7L,8L,9L),sourceRows.stream().map(P33InstallationSyncTask.Source::getSourceId).toList());
   var rows=new ArrayList<P33InstallationSyncTask.Source>();var locations=mock(AssetLocationApi.class);
   var task=spy(new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects));
   doAnswer(call->{rows.addAll(call.<SyncBatch<P33InstallationSyncTask.Source,P33InstallationSyncTask.Parameters>>getArgument(0).rows());return call.callRealMethod();}).when(task).syncDataInsertBefore(any());
   var context=context(true);assertEquals(new SyncCounts(2,0,0,0,0),transaction.execute(status->task.execute(context)));
   assertEquals(List.of(5L,6L),rows.stream().map(P33InstallationSyncTask.Source::getSourceId).toList());
   assertEquals(addresses.subList(4,6),rows.stream().map(P33InstallationSyncTask.Source::getInstallAddress).toList());
-  assertTrue(context.runState().warnings().contains("P33_BLANK_ADDRESS_FILTERED_AFTER_READ:3"));verifyNoInteractions(locations);
+  assertTrue(context.runState().warnings().contains("P33_BLANK_ADDRESS_FILTERED_AFTER_READ:7"));verifyNoInteractions(locations);
   assertTrue(mapper.selectInstallation(new P33InstallationSyncTask.ReadQuery(100,List.of())).isEmpty());
   assertEquals(10,jdbc.queryForObject("SELECT COUNT(*) FROM pm_project_shipment",Integer.class));
  }

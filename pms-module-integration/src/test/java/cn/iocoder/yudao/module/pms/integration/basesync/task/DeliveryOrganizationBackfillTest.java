@@ -27,7 +27,7 @@ class DeliveryOrganizationBackfillTest {
                 mock(SyncIdentityStore.class),mock(SyncReferences.class),"BASE_P15",mock(SqlSession.class),false,true);
         task.work(context.forParameters(new P15DeliverySyncTask.Parameters(Map.of(),3)));
         assertEquals(List.of("ShipmentContract","Package","ShipmentEvent","DeviceRelationship","Contract",
-                "ContractOrganization","ShipmentContractOrganization"),steps);
+                "ContractOrganization","ShipmentContractOrganization","OrderContractRelation","ShipmentOrderLine"),steps);
     }
 
     @Test void ownedExistingDeviceNeedsItsContractOrganizationProjection() {

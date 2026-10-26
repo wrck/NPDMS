@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.api.installation.InstallationProjectReadSql">
+  <!-- IMP owns this fixed read contract. Scope is supplied by the caller; these facts never grant access.
+       Null filters mean no additional business filter, empty filters mean no rows. History is not current ownership. -->
+  <!-- Only installation address maintenance may use this exact-project historical membership. -->
+  <sql id="completedEquipmentForProject">
+    SELECT i.equipment_id FROM imp_eng_installation i
+    WHERE i.tenant_id=#{query.tenantId} AND i.deleted=0 AND i.status=2
+      AND i.project_id=#{query.projectId}
+    <choose><when test="query.deviceIds != null and !query.deviceIds.isEmpty()">
+      AND i.equipment_id IN
+      <foreach collection="query.deviceIds" item="deviceId" open="(" close=")" separator=",">#{deviceId}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+  </sql>
+  <sql id="completedHistory">
+    SELECT i.tenant_id,i.id AS installation_id,i.project_id,i.equipment_id,
+      i.install_location AS install_address
+    FROM imp_eng_installation i
+    WHERE i.tenant_id=#{query.tenantId} AND i.deleted=0 AND i.status=2
+    <if test="shipmentProjectIds != null">
+      <choose><when test="!shipmentProjectIds.isEmpty()">AND i.project_id IN
+        <foreach collection="shipmentProjectIds" item="projectId" open="(" close=")" separator=",">#{projectId}</foreach>
+      </when><otherwise>AND 1=0</otherwise></choose>
+    </if>
+    <if test="shipmentDeviceIds != null">
+      <choose><when test="!shipmentDeviceIds.isEmpty()">AND i.equipment_id IN
+        <foreach collection="shipmentDeviceIds" item="deviceId" open="(" close=")" separator=",">#{deviceId}</foreach>
+      </when><otherwise>AND 1=0</otherwise></choose>
+    </if>
+  </sql>
+</mapper>
