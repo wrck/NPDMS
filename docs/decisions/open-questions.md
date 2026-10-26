@@ -11,6 +11,14 @@
 - Decision: 需求方确认“采用受控内部重验，保留满意度采集待办的受派人限制，不增加权限、不改历史”。通过既有公开跨模块Provider契约新增内部结项专用入口，ACC核验原申请/快照及BPM双人工审批证据，PROJ保留关联锁与结果版本/完整摘要检查；原通用入口不放宽。契约归`docs/design/10-api-design.md`正常闭环节。
 - Evidence path: `.run/project-16200721122903N-20261025/59-closure-material-failure-rollback.json`；申请IN_REVIEW，工程材料任务END_TIME为空。
 
+## Q-PROJECT-JOINT-DELIVERY-SOURCE-20261025 — 联调文件交付件的自动归集来源
+
+- Status: RESOLVED（2026-10-25按需求方要求从联调任务重新上传日志，既有归集规则和文件有效性校验通过，无需新增业务规则）
+- Area: 项目16200721122903N-0（178测试库ID44637）的D_JOINT联调交付件；不改冻结门禁、历史附件或既有批准版本。
+- Evidence: 初查时联调记录通过、任务待验收99%，交付件30为FILE且历史为空；仅据automaticSource=null判断来源缺失并不充分。后续审计ProjectDeliverableRuleService确认冻结PAGE联调任务可通过originTaskId限定AST.DEVICE_CONFIGURATION_LOG来源。真实浏览器在业务联调任务的“上传日志 / 文件历史”重新上传同一合成日志，归档为v2，交付件自动归集99020573D222000007-v2.txt。点击重新检测并刷新后，交付件已验收、联调任务完成100%，项目10/16。
+- Decision: 复用既有任务来源日志归集，不新增联调附件映射，不以状态通过替代有效文件，不改冻结门禁。此次追加v2，保留v1及原联调、审批历史。
+- Decision owner: 需求方要求“再上传一次日志”；已按既有浏览器业务入口验证。
+- Evidence path: `.run/project-16200721122903N-20261025/`；浏览器交付件30判定响应及联调记录见本轮验收证据。
 
 ## Q-CUT-BPM-ACTION-EXTENSION-20261020 — 原生 BPM 操作栏与割接办理接入边界
 

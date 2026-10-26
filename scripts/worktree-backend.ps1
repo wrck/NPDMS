@@ -24,7 +24,13 @@ try {
         & $taskPython (Join-Path $taskWorkspace '.run/dac-host/verify-deployed-repairs.py') backend $taskCurrentJar
         if ($LASTEXITCODE -ne 0) { throw 'Running repairs changed; review before deployment' }
     }
-    if ($ValidateOnly) { Write-Output 'Frozen release and pinned local,dac profile validated; no service changed.'; return }
+    # Never print or persist decrypted credentials from the local protected profile.
+    $taskDatabaseProfile=Get-Content -LiteralPath (Join-Path $taskWorkspace '.run/backend-test-database.json') -Raw | ConvertFrom-Json
+    if ($taskDatabaseProfile.host -ne '172.17.90.178' -or $taskDatabaseProfile.port -ne 13306 -or $taskDatabaseProfile.database -ne 'npdms') { throw 'Unexpected test database target; no service changed.' }
+    Add-Type -AssemblyName System.Security
+    $taskDatabasePassword=[Text.Encoding]::UTF8.GetString([Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($taskDatabaseProfile.encryptedPassword),$null,[Security.Cryptography.DataProtectionScope]::CurrentUser))
+    if ([string]::IsNullOrWhiteSpace($taskDatabaseProfile.username) -or [string]::IsNullOrWhiteSpace($taskDatabasePassword)) { throw 'Missing protected test database credentials; no service changed.' }
+    if ($ValidateOnly) { Write-Output 'Frozen release, local,dac and protected test database configuration validated; no service changed. Automatic migrations and schema updates are disabled.'; return }
     if (!$ApprovedRestart) { throw 'Explicit per-deployment restart approval is required' }
     . (Join-Path $taskWorkspace '.run/dac-host/environment.ps1')
     $taskSettings=@{}
@@ -44,10 +50,31 @@ try {
     }
     $env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD=$taskSettings['NPDMS_MYBATIS_ENCRYPTOR_PASSWORD']
     $env:SPRING_APPLICATION_JSON=(@{
-        'spring.datasource.dynamic.datasource.master.url'='jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true'
-        'spring.datasource.dynamic.datasource.master.username'=$taskSettings['NPDMS_DB_USER']
-        'spring.datasource.dynamic.datasource.master.password'=$taskSettings['NPDMS_DB_PASSWORD']
+        'spring.datasource.dynamic.datasource.master.url'='jdbc:mysql://172.17.90.178:13306/npdms?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true'
+        'spring.datasource.dynamic.datasource.master.username'=$taskDatabaseProfile.username
+        'spring.datasource.dynamic.datasource.master.password'=$taskDatabasePassword
+        'spring.datasource.dynamic.datasource.slave.url'='jdbc:mysql://172.17.90.178:13306/npdms?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true'
+        'spring.datasource.dynamic.datasource.slave.username'=$taskDatabaseProfile.username
+        'spring.datasource.dynamic.datasource.slave.password'=$taskDatabasePassword
+        'spring.flyway.enabled'=$false
+        'spring.liquibase.enabled'=$false
+        'spring.sql.init.mode'='never'
+        'spring.jpa.hibernate.ddl-auto'='none'
+        'spring.quartz.jdbc.initialize-schema'='never'
+        'spring.batch.jdbc.initialize-schema'='never'
+        'flowable.database-schema-update'='false'
+        'spring.datasource.dynamic.druid.filters'='wall'
+        'spring.datasource.dynamic.druid.wall.create-table-allow'=$false
+        'spring.datasource.dynamic.druid.wall.alter-table-allow'=$false
+        'spring.datasource.dynamic.druid.wall.drop-table-allow'=$false
+        'spring.datasource.dynamic.druid.wall.rename-table-allow'=$false
+        'spring.datasource.dynamic.druid.wall.truncate-allow'=$false
+        'spring.datasource.dynamic.druid.wall.none-base-statement-allow'=$false
+        'spring.datasource.dynamic.druid.wall.call-allow'=$false
+        # Empty authorized/filter sets intentionally render AND 1=0; they must return no rows.
+        'spring.datasource.dynamic.druid.wall.condition-and-alway-false-allow'=$true
         'spring.data.redis.host'='127.0.0.1';'spring.data.redis.port'=24379
+        'spring.data.redis.database'=14
         'spring.data.redis.password'=$taskSettings['NPDMS_REDIS_PASSWORD']
     } | ConvertTo-Json -Compress)
     $taskStarted=Start-Process -FilePath "$taskJavaHome/bin/java.exe" -ArgumentList @('-jar',$taskDestination,'--server.port=59191','--spring.profiles.active=local,dac') -WorkingDirectory $taskWorkspace -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $taskWorkspace '.run/logs/satisfaction-manual-backend.log') -RedirectStandardError (Join-Path $taskWorkspace '.run/logs/satisfaction-manual-backend.err.log')

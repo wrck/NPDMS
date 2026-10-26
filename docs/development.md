@@ -111,6 +111,14 @@ pnpm dev
 
 ## 迁移校验与重复启动
 
+### 当前59191测试库限制（2026-10-25）
+
+用户要求将当前工作树59191连接切换到 `172.17.90.178:13306/npdms`。固定后端脚本从被Git忽略的 `.run/backend-test-database.json` 读取Windows当前用户DPAPI加密凭据，不在命令行或日志输出明文。Redis改用本地DB14隔离原库缓存。重启仍须单独明确批准。
+
+该测试库禁止运行Flyway、Liquibase、SQL初始化及任何迁移或表结构变更；固定入口关闭上述初始化，以及Flowable、Hibernate、Quartz和Batch自动建表，并启用Druid Wall拦截建表、改表、删表、重命名、清空、其他非基础语句和存储过程调用。该拦截仅覆盖本应用连接，不改变数据库账号权限。下方迁移命令仅适用于另行明确授权的本地数据库，**不得对178测试库执行**。缺表、缺列或版本不一致应报告，不执行DDL修复。切换不搬迁、覆盖或删除原库历史。
+
+2026-10-25经用户明确批准，以冻结清单 `e23c8046-4ea7-4e65-8eff-f1d8aecfaf5a` 通过固定脚本启动59191，PID `45968`、`local,dac`，健康检查 `UP`。进程TCP连接与数据库会话匹配，确认实际连接178的 `npdms`；运行进程配置与Actuator有效属性来源交叉核对，确认禁迁移、禁自动建表及Wall配置生效。启动前后520张表、9490列、4218条索引元数据、241个触发器及22条Flyway历史指纹一致；校验仅执行SELECT及本地配置/健康读取，不执行迁移或DDL。证据：`.run/test178-switch-20261025/{start.log,runtime-settings.json,before.json,after.json,result.json}`。本次未启动或重启前端、DAC。
+
 ```powershell
 docker compose run --rm migrate info
 docker compose run --rm migrate validate
