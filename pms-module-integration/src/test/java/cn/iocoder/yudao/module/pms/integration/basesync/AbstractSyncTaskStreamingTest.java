@@ -63,6 +63,9 @@ class AbstractSyncTaskStreamingTest {
         final int batchSize;
         final SyncContext<Void> context;
         Fixture(int batchSize,boolean preview) throws Exception {
+            this(batchSize,preview,10_000);
+        }
+        Fixture(int batchSize,boolean preview,int maxRows) throws Exception {
             this.batchSize=batchSize;
             var data=new DriverManagerDataSource("jdbc:h2:mem:stream-"+UUID.randomUUID()+";MODE=MySQL","sa","");
             // Keep this isolated test database alive until close().
@@ -129,7 +132,7 @@ class AbstractSyncTaskStreamingTest {
                 public <M> M mapper(Class<M> type){return session.getMapper(type);}
                 public void close(){session.close();}
             };
-            context=new SyncContext<>(1,2,3,preview,batchSize,total,LocalDateTime.now(),source,
+            context=new SyncContext<>(1,2,3,preview,batchSize,maxRows,LocalDateTime.now(),source,
                     mock(SyncIdentityStore.class),mock(SyncReferences.class),"Rows",target,true,true);
         }
         final Connection keeper;
@@ -157,8 +160,26 @@ class AbstractSyncTaskStreamingTest {
             verify(f.statement).setFetchSize(Integer.MIN_VALUE);verify(f.sourceConnection).close();
         }
     }
+    @Test void formalStreamingReadsBeyondMaxRowsAndWritesEveryBatch() throws Exception {
+        try(var f=new Fixture(128,false,256)){
+            assertEquals(new SyncCounts(10_000,10_000,0,0,1),f.run());
+            assertEquals(79,f.task.finished);assertEquals(128,f.task.maxBatch);
+            assertTrue(f.task.lastBatch.isEmpty());
+            assertEquals(10_000,f.jdbc.queryForObject("SELECT COUNT(*) FROM target_row",Integer.class));
+            verify(f.resultSet).close();verify(f.sourceConnection).close();
+        }
+    }
+    @Test void previewStillRejectsProbeRowBeyondMaxRowsWithoutWriting() throws Exception {
+        try(var f=new Fixture(128,true,256)){
+            assertEquals("源数据超过本次读取上限",assertThrows(IllegalArgumentException.class,f::run).getMessage());
+            assertEquals(257,f.consumed.get());assertEquals(0,f.task.finished);
+            assertTrue(f.task.lastBatch.isEmpty());
+            assertEquals(List.of(-1L),f.jdbc.queryForList("SELECT id FROM target_row",Long.class));
+            verify(f.resultSet).close();verify(f.sourceConnection).close();
+        }
+    }
     @Test void failureInLastBatchReleasesRowsAndRollsBackClearAndAllEarlierBatches() throws Exception {
-        try(var f=new Fixture(128,false)){
+        try(var f=new Fixture(128,false,256)){
             f.task.failAt=9999;
             assertEquals("last batch rejected",assertThrows(IllegalArgumentException.class,f::run).getMessage());
             assertEquals(78,f.task.finished);assertTrue(f.task.lastBatch.isEmpty());

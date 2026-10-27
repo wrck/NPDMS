@@ -17,6 +17,6 @@
    </when>
    <otherwise>WHERE 1=0</otherwise>
   </choose>
-  ORDER BY id LIMIT #{limit}
+  ORDER BY id <if test="limit != null">LIMIT #{limit}</if>
  </select>
 </mapper>

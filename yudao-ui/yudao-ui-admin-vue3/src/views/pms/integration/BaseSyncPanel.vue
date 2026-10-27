@@ -48,7 +48,11 @@
           />
         </template>
       </el-table-column>
-      <el-table-column prop="maxRows" label="读取上限" width="120" />
+      <el-table-column prop="maxRows" label="受限读取上限" width="150">
+        <template #default="{ row }">
+          <span title="适用于预览、列表/分页及引用缓存；正式流式主数据无总行数上限">{{ row.maxRows }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="活动 Run" min-width="190">
         <template #default="{ row }">{{ row.activeRunId ?? '—' }}</template>
       </el-table-column>

@@ -6,6 +6,6 @@
     SELECT 1 FROM fb_service GROUP BY BINARY id,BINARY COALESCE(barcode,'') HAVING COUNT(*)&gt;1 LIMIT 1
   </select>
   <select id="selectWarranty" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P25WarrantySyncTask$WarrantySyncSource">
-    SELECT `id` AS `source_id`, `con_xb` AS `warranty_contract_no`, `barcode` AS `device_sn`, `grade` AS `warranty_grade`, `begin_date` AS `warranty_start_date`, `end_date` AS `warranty_end_date`, `warranty` AS `warranty_years`, `remark` AS `remark`, `isyb` AS `extended`, `state` AS `is_latest` FROM fb_service LIMIT #{limit}
+    SELECT `id` AS `source_id`, `con_xb` AS `warranty_contract_no`, `barcode` AS `device_sn`, `grade` AS `warranty_grade`, `begin_date` AS `warranty_start_date`, `end_date` AS `warranty_end_date`, `warranty` AS `warranty_years`, `remark` AS `remark`, `isyb` AS `extended`, `state` AS `is_latest` FROM fb_service <if test="limit != null">LIMIT #{limit}</if>
   </select>
 </mapper>

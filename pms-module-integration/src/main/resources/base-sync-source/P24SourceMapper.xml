@@ -42,6 +42,6 @@ SELECT
   r.`expendid_o` AS `original_expend_source_key`,
   r.`industry_name_o` AS `original_industry_name`,
   r.`dataSource` AS `source_system`
-FROM sms_ofst_contract_head_sap r ORDER BY r.id LIMIT #{limit}
+FROM sms_ofst_contract_head_sap r ORDER BY r.id <if test="limit != null">LIMIT #{limit}</if>
   </select>
 </mapper>

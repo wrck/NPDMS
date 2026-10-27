@@ -16,7 +16,7 @@
  JOIN int_base_sync_binding b ON b.tenant_id=r.tenant_id AND b.target_id=r.id AND b.object_key='SALES_ORDER' AND b.deleted=FALSE
  JOIN int_base_sync_task t ON t.tenant_id=b.tenant_id AND t.id=b.task_id AND t.task_code='BASE_P14' AND t.connection_id=#{parameters.connectionId} AND t.deleted=FALSE
  WHERE r.tenant_id=#{tenantId} AND r.deleted=0
- ORDER BY r.id LIMIT #{limit}
+ ORDER BY r.id <if test="limit != null">LIMIT #{limit}</if>
 </select>
 <update id="updateOrderCompany">
  UPDATE com_sales_order SET

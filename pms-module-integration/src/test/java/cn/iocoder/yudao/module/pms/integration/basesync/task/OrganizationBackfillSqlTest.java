@@ -41,6 +41,51 @@ class OrganizationBackfillSqlTest {
         }
     }
 
+    @Test void completionCandidatesAreScopedToTheCurrentTaskConnectionBeforeLimiting() throws Exception {
+        var config=config("P15TargetMapper");
+        for(var statement:List.of("selectContractOrganization","selectShipmentContractOrganization")){
+            var bound=config.getMappedStatement(P15DeliverySyncTask.TargetMapper.class.getName()+"."+statement)
+                    .getBoundSql(new AbstractSyncTask.SourceQuery<>(2,1,true,new P15DeliverySyncTask.Parameters(Map.of(),3)));
+            var sql=bound.getSql();
+            assertTrue(sql.contains("int_base_sync_binding"));
+            assertTrue(sql.contains("task_code='BASE_P15'"));
+            assertTrue(bound.getParameterMappings().stream().anyMatch(p->p.getProperty().equals("parameters.connectionId")));
+            assertTrue(sql.contains("b.target_id="));
+            parseWithRuntimeStack(sql);
+        }
+    }
+
+    @Test void formalLocalStreamingDoesNotEmitAnSqlLimit() throws Exception {
+        var config=config("P15TargetMapper");
+        for(var statement:List.of("selectContractOrganization","selectShipmentContractOrganization","selectOrderContractRelation")){
+            var sql=config.getMappedStatement(P15DeliverySyncTask.TargetMapper.class.getName()+"."+statement)
+                    .getBoundSql(new AbstractSyncTask.SourceQuery<>(null,1,false,new P15DeliverySyncTask.Parameters(Map.of(),3))).getSql();
+            assertFalse(sql.toUpperCase(Locale.ROOT).contains("LIMIT"));
+            parseWithRuntimeStack(sql);
+        }
+    }
+
+    @Test void unrelatedRowsCannotConsumeTheCompletionPreviewLimit() throws Exception {
+        var dataSource=new org.springframework.jdbc.datasource.DriverManagerDataSource("jdbc:h2:mem:p15_scope;MODE=MySQL;DB_CLOSE_DELAY=-1","sa","");
+        var jdbc=new org.springframework.jdbc.core.JdbcTemplate(dataSource);
+        jdbc.execute("CREATE TABLE com_contract(id BIGINT,tenant_id BIGINT,deleted BOOLEAN,master_source_system VARCHAR,master_source_record_key VARCHAR)");
+        jdbc.execute("CREATE TABLE int_base_sync_task(id BIGINT,tenant_id BIGINT,task_code VARCHAR,connection_id BIGINT,deleted BOOLEAN)");
+        jdbc.execute("CREATE TABLE int_base_sync_binding(tenant_id BIGINT,task_id BIGINT,object_key VARCHAR,source_key VARCHAR,target_id BIGINT,deleted BOOLEAN)");
+        jdbc.update("INSERT INTO com_contract VALUES(1,1,FALSE,'DPPMS_ERP','other'),(2,1,FALSE,'DPPMS_ERP','mine'),(3,2,FALSE,'DPPMS_ERP','tenant')");
+        jdbc.update("INSERT INTO int_base_sync_task VALUES(10,1,'BASE_P15',3,FALSE),(11,1,'BASE_P15',4,FALSE),(12,1,'BASE_P14',3,FALSE)");
+        jdbc.update("INSERT INTO int_base_sync_binding VALUES(1,11,'CONTRACT','other',1,FALSE),(1,12,'CONTRACT','other',1,FALSE),(1,10,'CONTRACT','mine',2,FALSE)");
+        var config=config("P15TargetMapper");
+        config.setEnvironment(new org.apache.ibatis.mapping.Environment("test",new org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory(),dataSource));
+        try(var session=new SqlSessionFactoryBuilder().build(config).openSession()){
+            List<P15DeliverySyncTask.Source> rows=session.selectList(P15DeliverySyncTask.TargetMapper.class.getName()+".selectContractOrganization",
+                    new AbstractSyncTask.SourceQuery<>(1,1,true,new P15DeliverySyncTask.Parameters(Map.of(),3)));
+            assertEquals(List.of("mine"),rows.stream().map(P15DeliverySyncTask.Source::getKey).toList());
+            List<P15DeliverySyncTask.Source> empty=session.selectList(P15DeliverySyncTask.TargetMapper.class.getName()+".selectContractOrganization",
+                    new AbstractSyncTask.SourceQuery<>(1,1,true,new P15DeliverySyncTask.Parameters(Map.of(),99)));
+            assertTrue(empty.isEmpty(),"an unbound connection must not fall back to every source row");
+        }
+    }
+
     static Configuration config(String name)throws Exception{
         var config=new Configuration();config.setMapUnderscoreToCamelCase(true);String resource="mapper/basesync/"+name+".xml";
         try(var input=new ClassPathResource(resource).getInputStream()){new XMLMapperBuilder(input,config,resource,config.getSqlFragments()).parse();}return config;

@@ -47,6 +47,23 @@ class P15StageSelectionTest {
         assertEquals(task.supportedStages(),executed);
         verify(sourceMapper).countShipmentEvents(any());
     }
+    @Test void previewShipmentStillRejectsCapacityBeforeProcessing(){
+        var session=mock(SyncSource.Session.class);
+        var sourceMapper=mock(P15DeliverySyncTask.SourceMapper.class);
+        when(source.open(3)).thenReturn(session);
+        when(session.mapper(P15DeliverySyncTask.SourceMapper.class)).thenReturn(sourceMapper);
+        when(sourceMapper.countShipmentEvents(any())).thenReturn(5000001L);
+        when(mapper.packageSourceColumnReady()).thenReturn(1);
+        assertThrows(IllegalArgumentException.class,()->task.execute(context(true,List.of("ShipmentEvent"))));
+        assertTrue(executed.isEmpty());
+    }
+    @Test void formalShipmentStreamingDoesNotRunTotalCapacityQuery(){
+        when(mapper.packageSourceColumnReady()).thenReturn(1);
+        when(mapper.latestP24Execution(any())).thenReturn("COMPLETED");
+        task.execute(context(false,List.of("ShipmentEvent")));
+        assertEquals(List.of("ShipmentEvent"),executed);
+        verifyNoInteractions(source);
+    }
     @Test void invalidOrRepeatedStageIsRejectedBeforeAnyReads(){
         for(var stages:List.of(List.of("selectAnyTable"),List.of("OrderContractRelation","OrderContractRelation"))){
             assertThrows(IllegalArgumentException.class,()->task.execute(context(true,stages)));

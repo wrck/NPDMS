@@ -5,5 +5,5 @@ JOIN pm_project p ON p.projectId=l.projectId
 JOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,MAX(projectId) AS projectId FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) canonical
  ON canonical.typeKey=CAST(p.projectType AS BINARY) AND canonical.codeKey=CAST(p.projectCode AS BINARY)
 JOIN pm_project current_project ON current_project.projectId=canonical.projectId
-WHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0 AND current_project.effectiveTo IS NULL AND current_project.projectType='10' ORDER BY l.id LIMIT #{limit}</select><select id="selectCompanies" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$Company">SELECT id,compCode AS code FROM t_company LIMIT #{limit}</select>
+WHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0 AND current_project.effectiveTo IS NULL AND current_project.projectType='10' ORDER BY l.id <if test="limit != null">LIMIT #{limit}</if></select><select id="selectCompanies" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$Company">SELECT id,compCode AS code FROM t_company <if test="limit != null">LIMIT #{limit}</if></select>
 </mapper>

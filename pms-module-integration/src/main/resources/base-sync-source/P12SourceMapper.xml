@@ -4,6 +4,6 @@
   
   <select id="selectSupplementProduct" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$ProductSyncRow">
     SELECT item AS product_code, itemname AS product_model, describe_ AS product_name, describe_ AS product_desc
-    FROM fb_items ORDER BY item, id LIMIT #{limit}
+    FROM fb_items ORDER BY item, id <if test="limit != null">LIMIT #{limit}</if>
   </select>
 </mapper>

@@ -33,5 +33,5 @@ LEFT JOIN (
  FROM pm_project_real_product_line_from_sms GROUP BY CAST(projectCode AS BINARY),CAST(orderExecNumber AS BINARY),CAST(productFirstName AS BINARY),CAST(productName AS BINARY),CAST(productSubCode AS BINARY),CAST(productSubModel AS BINARY),CAST(productSubName AS BINARY),num,CAST(memo AS BINARY)
 ) u ON CAST(u.projectCode AS BINARY) <=> CAST(l.projectCode AS BINARY) AND CAST(u.orderExecNumber AS BINARY) <=> CAST(l.orderExecNumber AS BINARY) AND CAST(u.productFirstName AS BINARY) <=> CAST(l.productFirstName AS BINARY) AND CAST(u.productName AS BINARY) <=> CAST(l.productName AS BINARY) AND CAST(u.productSubCode AS BINARY) <=> CAST(l.productSubCode AS BINARY) AND CAST(u.productSubModel AS BINARY) <=> CAST(l.productSubModel AS BINARY) AND CAST(u.productSubName AS BINARY) <=> CAST(l.productSubName AS BINARY) AND u.num <=> l.num AND CAST(u.memo AS BINARY) <=> CAST(l.memo AS BINARY)
 WHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0 AND current_project.effectiveTo IS NULL AND current_project.projectType='10'
-ORDER BY l.id LIMIT #{limit}
+ORDER BY l.id ]]><if test="limit != null">LIMIT #{limit}</if><![CDATA[
 ]]></select></mapper>

@@ -12,7 +12,7 @@ public abstract class AbstractSyncTask<T,P> {
     private final org.slf4j.Logger logger=org.slf4j.LoggerFactory.getLogger(getClass());
     private volatile RetrySettings retrySettings=new RetrySettings(3,2000,false);
     private volatile boolean defaultUseRowHandler=true;
-    public record SourceQuery<Q>(int limit,long tenantId,boolean preview,Q parameters) {}
+    public record SourceQuery<Q>(Integer limit,long tenantId,boolean preview,Q parameters) {}
     public record PageQuery<Q>(int offset,int limit,long tenantId,boolean preview,Q parameters) {
         public PageQuery { if(offset<0 || limit<1 || tenantId<=0) throw new IllegalArgumentException("分页范围无效"); }
     }
@@ -87,7 +87,7 @@ public abstract class AbstractSyncTask<T,P> {
                 try {
                     syncDataQueryByRowHandler(context,row->{
                         try {
-                            if(++read[0]>context.maxRows()) throw new IllegalArgumentException("源数据超过本次读取上限");
+                            if(++read[0]>context.maxRows() && context.preview()) throw new IllegalArgumentException("源数据超过本次读取上限");
                             batch.rows().add(Objects.requireNonNull(row.getResultObject()));
                             if(batch.rows().size()==context.batchSize()) flush.run();
                         } catch(RuntimeException error) { callbackFailure[0]=error;throw error; }
@@ -205,7 +205,7 @@ public abstract class AbstractSyncTask<T,P> {
     }
     protected MappedCall<SourceQuery<P>> sourceQuery(SyncContext<P> context) {
         return new MappedCall<>(context,statement(queryMapperNamespace(context),"select"+context.dataName(),context.statements().query()),
-                new SourceQuery<>(context.maxRows()+1,context.tenantId(),context.preview(),context.parameters()));
+                new SourceQuery<>(context.useRowHandler() && !context.preview()?null:context.maxRows()+1,context.tenantId(),context.preview(),context.parameters()));
     }
 
     protected void syncDataQueryByRowHandler(SyncContext<P> context,ResultHandler<T> handler) {
@@ -254,7 +254,7 @@ public abstract class AbstractSyncTask<T,P> {
         try {
             session.select(call.statement(),call.parameter(),(ResultHandler<R>)result->{
                 try {
-                    if(++read[0]>call.context().maxRows()) throw new IllegalArgumentException("源数据超过本次读取上限");
+                    if(++read[0]>call.context().maxRows() && call.context().preview()) throw new IllegalArgumentException("源数据超过本次读取上限");
                     handler.handleResult(result);
                 } catch(RuntimeException error) { callbackFailure[0]=error;throw error; }
             });
@@ -270,7 +270,9 @@ public abstract class AbstractSyncTask<T,P> {
         }
     }
     protected List<T> syncDataQuery(SyncContext<P> context) {
-        return syncDataQueryBySql(sourceQuery(context));
+        var call=sourceQuery(context);
+        return syncDataQueryBySql(new MappedCall<>(context,call.statement(),
+                new SourceQuery<>(context.maxRows()+1,context.tenantId(),context.preview(),context.parameters())));
     }
     protected long syncDataClearCount(SyncContext<P> context) {
         Number count=context.target().selectOne(statement(targetMapperNamespace(),"count"+context.dataName()

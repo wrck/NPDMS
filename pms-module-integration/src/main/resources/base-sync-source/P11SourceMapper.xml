@@ -3,7 +3,7 @@
 <mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$SourceMapper">
   <!-- Use itemCode as the target key; retain every source row and trim only in SQL. -->
   <select id="selectCrmProduct" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$ProductSyncRow">
-    SELECT TOP (#{limit})
+    SELECT <if test="limit != null">TOP (#{limit})</if>
   LTRIM(RTRIM(t.[itemCode])) AS [product_code],
   t.[itemModel] AS [product_model],
   t.[itemDesc] AS [product_name],

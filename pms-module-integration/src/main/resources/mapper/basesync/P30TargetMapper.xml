@@ -9,7 +9,7 @@
    ROW_NUMBER() OVER(PARTITION BY s.device_sn ORDER BY s.shipment_time DESC,s.id DESC) AS latest_rank,
    MAX(CASE WHEN s.source_system='DPPMS' THEN 1 ELSE 0 END) OVER(PARTITION BY s.device_sn ORDER BY s.shipment_time DESC,s.id DESC ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS has_dppms
   FROM ast_device_shipment s WHERE s.tenant_id=#{tenantId} AND s.deleted=FALSE
- ) ranked WHERE latest_rank=1 AND has_dppms=1 ORDER BY device_sn LIMIT #{limit}
+ ) ranked WHERE latest_rank=1 AND has_dppms=1 ORDER BY device_sn <if test="limit != null">LIMIT #{limit}</if>
 </select>
 <select id="selectProducts" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$Product">SELECT product_code,product_model,product_name FROM ast_product_official_info WHERE tenant_id=#{query.tenantId} AND deleted=FALSE</select>
 <select id="selectExisting" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$DeviceRow">

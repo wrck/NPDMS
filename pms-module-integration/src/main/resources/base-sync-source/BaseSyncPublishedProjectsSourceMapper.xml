@@ -11,6 +11,6 @@
     JOIN pm_project current_project ON current_project.projectId=chosen.projectId
     WHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0
       AND current_project.effectiveTo IS NULL AND current_project.projectType='10'
-    ORDER BY p.projectId LIMIT #{limit}
+    ORDER BY p.projectId <if test="limit != null">LIMIT #{limit}</if>
   </select>
 </mapper>

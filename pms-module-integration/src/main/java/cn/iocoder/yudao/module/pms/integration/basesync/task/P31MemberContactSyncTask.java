@@ -19,10 +19,10 @@ public class P31MemberContactSyncTask extends AbstractSyncTask<P31MemberContactS
  @Override public String taskCode(){return "BASE_P31";}
  @Override public String taskName(){return "项目成员及最终客户联系人历史";}
  @Override public void work(SyncContext<Parameters> c){if(c.preview())c.runState().warning("SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED");c.parameters().publication=publications.load(new BaseSyncPublishedProjects.Query(c.tenantId(),c.connectionId(),c.maxRows(),c.source(),c.preview()));c.parameters().manageScope=projects.currentManageScope(new BaseSyncProjectReferences.ManageScopeQuery(c.tenantId(),c.actorId()));syncData(c.forData("MemberContact",false,true));}
- public record ReadQuery(int limit,List<String> projectKeys){}
+ public record ReadQuery(Integer limit,List<String> projectKeys){}
  @Override protected void syncDataQueryByRowHandler(SyncContext<Parameters> c,ResultHandler<Source> handler){
   var keys=new ArrayList<>(c.parameters().publication.members().keySet());Collections.sort(keys);
-  try(var session=c.source().open(c.connectionId())){for(int i=0;i<keys.size();i+=500)syncDataQueryBySql(session.sqlSession(),new MappedCall<>(c,sourceMapperNamespace()+".selectMemberContact",new ReadQuery(c.maxRows()+1,keys.subList(i,Math.min(i+500,keys.size())))),handler);}
+  try(var session=c.source().open(c.connectionId())){for(int i=0;i<keys.size();i+=500)syncDataQueryBySql(session.sqlSession(),new MappedCall<>(c,sourceMapperNamespace()+".selectMemberContact",new ReadQuery(sourceQuery(c).parameter().limit(),keys.subList(i,Math.min(i+500,keys.size())))),handler);}
  }
  @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
   var c=b.context();var publication=c.parameters().publication;var selected=new LinkedHashMap<String,BaseSyncPublishedProjects.Member>();

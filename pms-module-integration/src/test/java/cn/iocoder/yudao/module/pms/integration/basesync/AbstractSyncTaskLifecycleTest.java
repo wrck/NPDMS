@@ -43,6 +43,25 @@ class AbstractSyncTaskLifecycleTest {
     @Test void previewHasNoWriteHooks(){var task=new Task();task.execute(context(true));assertEquals(List.of("before","query","validate","count","prepare[1, 2, 3]","success","finally"),task.events);}
     @Test void emptySnapshotCanReplaceTenantCache(){var task=new Task();task.rows=List.of();assertEquals(new SyncCounts(0,0,0,0,1),task.execute(context(false)));assertEquals(List.of("before","query","validate","count","clear","success","after","finally"),task.events);}
     @Test void rowLimitFailsBeforeClear(){var task=new Task();task.rows=Collections.nCopies(11,1);assertThrows(IllegalArgumentException.class,()->task.execute(context(false)));assertEquals(List.of("before","query","fail","finally"),task.events);}
+    @Test void overriddenRowHandlerCanStreamBeyondConfiguredCapacity(){
+        var task=new Task(){public void work(SyncContext<Void> c){syncData(c.forData("TEST",false,true));}};
+        task.rows=Collections.nCopies(11,1);
+        assertEquals(11,task.execute(context(false)).read());
+        assertEquals(6,task.events.stream().filter("afterBatch"::equals).count());
+    }
+    @Test void sourceQueryOmitsLimitOnlyForFormalStreaming(){
+        var task=new Task(){
+            public void work(SyncContext<Void> c){
+                assertNull(sourceQuery(c.forData("TEST",false,true)).parameter().limit());
+                assertEquals(11,sourceQuery(c.forData("TEST",false,false)).parameter().limit());
+            }
+        };
+        task.execute(context(false));
+        var previewTask=new Task(){
+            public void work(SyncContext<Void> c){assertEquals(11,sourceQuery(c.forData("TEST",false,true)).parameter().limit());}
+        };
+        previewTask.execute(context(true));
+    }
     @Test void workCanOrchestrateMultipleSyncDataCalls(){
         var task=new Task(){
             public void work(SyncContext<Void> context){syncData(context.forData("Header"));syncData(context.forData("Line"));}
@@ -83,6 +102,21 @@ class AbstractSyncTaskLifecycleTest {
         var transaction=new TransactionTemplate(new DataSourceTransactionManager(ds));
         assertThrows(IllegalStateException.class,()->transaction.execute(status->task.execute(context(false))));
         assertEquals(List.of(9,99),jdbc.queryForList("SELECT id FROM cache ORDER BY id",Integer.class));assertFalse(task.events.contains("success"));assertTrue(task.events.contains("fail"));
+    }
+    @Test void streamingTailFailureBeyondOldLimitRollsBackEarlierBatches(){
+        var ds=new org.h2.jdbcx.JdbcDataSource();ds.setURL("jdbc:h2:mem:stream_tail_rollback;DB_CLOSE_DELAY=-1");
+        var jdbc=new JdbcTemplate(ds);jdbc.execute("CREATE TABLE cache(id INT PRIMARY KEY,tenant_id BIGINT)");
+        jdbc.update("INSERT INTO cache VALUES(9,1),(99,2)");
+        var tailFailure=new IllegalStateException("tail failure");
+        var task=new Task(){
+            public void work(SyncContext<Void> c){syncData(c.forData("TEST",true,true));}
+            protected long syncDataClear(SyncContext<Void> c){return jdbc.update("DELETE FROM cache WHERE tenant_id=?",c.tenantId());}
+            protected void syncDataInsert(SyncBatch<Integer,Void> b){for(int id:b.rows()){if(id==3)throw tailFailure;jdbc.update("INSERT INTO cache VALUES(?,?)",id,b.context().tenantId());}}
+        };
+        var c=new SyncContext<Void>(1,2,3,false,2,2,LocalDateTime.now(),mock(SyncSource.class),mock(SyncIdentityStore.class),mock(SyncReferences.class),"TEST",mock(org.apache.ibatis.session.SqlSession.class),false,true);
+        var transaction=new TransactionTemplate(new DataSourceTransactionManager(ds));
+        assertSame(tailFailure,assertThrows(IllegalStateException.class,()->transaction.execute(status->task.execute(c))));
+        assertEquals(List.of(9,99),jdbc.queryForList("SELECT id FROM cache ORDER BY id",Integer.class));
     }
     @Test void finalCleanupCannotMaskOriginalCallbackFailure(){
         var original=new IllegalArgumentException("write failed");

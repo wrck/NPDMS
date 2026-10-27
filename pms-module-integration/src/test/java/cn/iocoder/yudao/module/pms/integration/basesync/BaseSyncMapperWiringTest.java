@@ -82,6 +82,31 @@ class BaseSyncMapperWiringTest {
             }
         }
     }
+    record LimitQuery(Integer limit,List<String> projectKeys) {}
+    @Test void sourceXmlBindsProbeLimitAndOmitsItForUnlimitedReads() throws Exception {
+        var configuration=new org.apache.ibatis.session.Configuration();
+        for(var resource:new PathMatchingResourcePatternResolver().getResources("classpath*:base-sync-source/*Mapper.xml"))
+            try(var input=resource.getInputStream()) {
+                new XMLMapperBuilder(input,configuration,resource.toString(),configuration.getSqlFragments()).parse();
+            }
+        int checked=0;
+        for(var id:new ArrayList<>(configuration.getMappedStatementNames())) {
+            if(!id.contains("."))continue;
+            var mapped=configuration.getMappedStatement(id);
+            var bounded=mapped.getBoundSql(new LimitQuery(11,List.of("1")));
+            if(bounded.getParameterMappings().stream().noneMatch(p->p.getProperty().equals("limit")))continue;
+            checked++;
+            assertTrue(bounded.getSql().matches("(?is).*\\b(?:LIMIT|TOP)\\b.*"),id);
+            var unlimited=mapped.getBoundSql(new LimitQuery(null,List.of("1")));
+            assertFalse(unlimited.getSql().matches("(?is).*\\b(?:LIMIT|TOP)\\b.*"),id);
+            assertFalse(unlimited.getSql().contains("<if"),id);
+            assertTrue(unlimited.getParameterMappings().stream().noneMatch(p->p.getProperty().equals("limit")),id);
+            var statement=mock(java.sql.PreparedStatement.class);
+            configuration.newParameterHandler(mapped,new LimitQuery(11,List.of("1")),bounded).setParameters(statement);
+            verify(statement).setInt(anyInt(),eq(11));
+        }
+        assertTrue(checked>=50,"all source limit statements must be exercised");
+    }
     @Test void newBatchParameterShapesBindBothRowsInEveryChangedInsertXml() throws Exception {
         try(var spring=new AnnotationConfigApplicationContext(Wiring.class)) {
             var configuration=spring.getBean(SqlSessionFactory.class).getConfiguration();

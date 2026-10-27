@@ -55,7 +55,7 @@ syncData(context.forData("Line", true, false));
 - 分页路径：前置处理 → 同一源会话按页查询和校验 → 首页按需清理一次 → 每页公共引用及前处理 → 拆批插入及该页后处理 → 成功及后置处理。空快照也遵守 clear；读取上限处查询探测行，超限整次回滚。
 - syncDataInsertWrapper 在专用前处理之后拆批，因此前处理允许增行、删行和替换值；后处理仅在该次输入的全部拆分批成功后调用一次。前处理删光数据时不发空 INSERT，仍调用该次后处理。空输入则不调用批次前后钩子。
 - 三种模式均保留，不用删除完整读取或分页来证明流式节省内存。需要完整输入及完整返回列表时显式选择完整读取；需要分页时调用 syncDataWithPaging。
-- 空快照替换缓存、读取上限、预览不写业务、整次失败回滚等既有保护保持。默认流式流程只持有本批条目及其引用数据，不积累完整行列表；满批和尾批处理后释放行引用，异常也释放。子类不能把本批行或无限增长的身份集合留在任务 Bean、参数或异步队列中。完整读取和分页合并返回列表按原参考语义保留，明确不属于批次内存上界的承诺。
+- 2026-10-26用户批准：正式原生ResultHandler同步不受maxRows总量限制，仍按batchSize满批及尾批处理；preview、完整列表、分页累计返回及引用缓存保留容量保护，超限失败而非静默截断。空快照替换缓存、预览不写业务、整次失败回滚等既有保护保持。默认流式流程只持有本批条目及其引用数据，不积累完整行列表；满批和尾批处理后释放行引用，异常也释放。子类不能把本批行或无限增长的身份集合留在任务 Bean、参数或异步队列中。完整读取和分页合并返回列表按原参考语义保留，明确不属于批次内存上界的承诺。
 - source、target 与公共引用均来自运行上下文。默认源连接按已有配置打开，只读会话在查询结束或异常时关闭。
 
 syncDataSuccess 表示该步骤 SQL 执行成功，仍处于外层 Spring 事务中，不表示业务已提交。整次 work 及成功运行回执由 BaseSyncService 在同一事务中完成；第二步骤、后置处理或回执写入失败均回滚本次目标业务写入。这是当前系统的事务适配，不沿用旧类手工提交、吞异常后继续执行后置写入的行为。
@@ -84,7 +84,7 @@ P15 支持 `ShipmentContract`、`Package`、`ShipmentEvent`、`DeviceRelationshi
 | 清理计数及删除 | count + dataName；delete + dataName |
 | 批量插入及可选更新 | insert + dataName；update + dataName |
 
-- 源查询默认接收 SourceQuery<P>(limit, tenantId, preview, parameters)，分页接收 PageQuery<P>(offset, limit, tenantId, preview, parameters)。外部源 SQL 按已审核源范围筛选；本地源 SQL 必须使用 tenantId 和既定权限范围。更复杂的查询在子类使用场景 Query 重载。
+- 源查询默认接收 SourceQuery<P>(limit, tenantId, preview, parameters)，limit为可空Integer：正式流式为null，XML不输出TOP/LIMIT；非null读取maxRows+1探测超限。sourceQuery(context)遵循本次流式模式，syncDataQuery列表辅助入口始终使用有界查询，即使context.useRowHandler=true也不能取消列表上限。自定义流式Query须传播相同可空limit，引用列表仍显式传入容量探测值。分页接收 PageQuery<P>(offset, limit, tenantId, preview, parameters)。外部源 SQL 按已审核源范围筛选；本地源 SQL 必须使用 tenantId 和既定权限范围。更复杂的查询在子类使用场景 Query 重载。
 - 默认清理接收 ClearQuery<P>(tenantId, preview, parameters)。有业务参数时选择 count/delete + dataName + ByParams；无业务参数使用 count/delete + dataName；每次调用也可显式指定计数和清理语句。删除必须显式限定已审核范围；语句缺失或异常直接失败，不降级为无条件删除。
 - 默认插入直接接收 SyncBatch，XML 使用 rows 和 context；foreach 中使用明确命名字段，不生成 SQL 文本或动态表名。
 - 默认更新接收 RowParameter(row, context)，XML 使用 row 和 context.parameters，保留已有乐观锁条件；此处是有条件的逐行更新，不宣称 JDBC 批量更新。
@@ -197,7 +197,7 @@ SQL 先考虑单表读取或拆分步骤；不新增超过原系统原始查表 
 
 2026-10-18补充：P01组织四表、P16公司/账号目录、P15运输字典均在本次运行内各读一次。P18无索引巨型联表拆成四份原始查询后按精确键归并，属于有容量限制的显式全量处理；P14订单表头规划、P20完整清单和P33按设备最新原时间选择也有全量内存成本，不宣称流式恒定内存。P31/P33/P35的当前范围实现见下述2026-10-18复核；上一轮误接旧发布入口的实现已纠正，不以旧发布表存在作为新套件前置。
 
-P15的原始条码表有4283326行，代码允许的最大上限为500万；各任务实际注册的maxRows仍独立生效。数据库现有CHECK和注册值不因代码上限变化自动提升，V484仅准备、不执行。多条原始记录归入同一正式对象需保留每个独立来源身份，不能通过伪造object_key或target_id绕开旧目标唯一索引。当前结构不满足时明确阻断。
+P15的原始条码表有4283326行，maxRows配置允许的上界为500万，仅约束预览、完整列表/分页累计返回及引用容量，不是正式原生流式同步的总量上界；各任务实际注册的maxRows仍在这些有界场景独立生效。数据库现有CHECK和注册值不因代码上限变化自动提升，V484仅准备、不执行。多条原始记录归入同一正式对象需保留每个独立来源身份，不能通过伪造object_key或target_id绕开旧目标唯一索引。当前结构不满足时明确阻断。
 
 P04历史任职的具体承载已由Q-LEGACY-IDENTITY-USERS-EMPLOYMENT-20261009-011批准为custom_info.employmentAssignments；沿该既有裁决实施，不再错误要求另造任职表。其他固定业务模型不得用JSON规避具名关系规则。新BASE_P04独立实现账号、角色、成员和范围，未精确关联的汇报人员ID保持NULL并保留原引用；isSysUser按本轮明确含义保存为systemPresetUser原值，不代表管理员权限。真正获批准的项目状态/软件历史扩展和不可变地址快照仍按正式公共契约处理，不新增原行镜像。
 

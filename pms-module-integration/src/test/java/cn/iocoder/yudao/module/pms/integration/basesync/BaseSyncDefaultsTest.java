@@ -81,23 +81,23 @@ class BaseSyncDefaultsTest {
         sourceSql=session(sourceData,"""
             <mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest$Task$SourceMapper">
               <select id="selectRows" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest$Row">
-                SELECT id,author AS source_creator FROM source_row ORDER BY id LIMIT #{limit}
+                SELECT id,author AS source_creator FROM source_row ORDER BY id <if test="limit != null">LIMIT #{limit}</if>
               </select>
               <select id="selectOther" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest$Row">
-                SELECT id+100 AS id,author AS source_creator FROM source_row ORDER BY id LIMIT #{limit}
+                SELECT id+100 AS id,author AS source_creator FROM source_row ORDER BY id <if test="limit != null">LIMIT #{limit}</if>
               </select>
               <select id="selectRowsWithPaging" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest$Row">
                 SELECT id,author AS source_creator FROM source_row ORDER BY id LIMIT #{limit} OFFSET #{offset}
               </select>
               <select id="selectedRows" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest$Row">
-                SELECT id,author AS source_creator FROM source_row WHERE id &gt; #{afterId} ORDER BY id LIMIT #{limit}
+                SELECT id,author AS source_creator FROM source_row WHERE id &gt; #{afterId} ORDER BY id <if test="limit != null">LIMIT #{limit}</if>
               </select>
               <sql id="incrementRows">SELECT id,author AS source_creator FROM source_row
-                WHERE id &gt; #{parameters.afterId} AND id &lt;= #{parameters.maxId} ORDER BY id LIMIT #{limit}</sql>
+                WHERE id &gt; #{parameters.afterId} AND id &lt;= #{parameters.maxId} ORDER BY id <if test="limit != null">LIMIT #{limit}</if></sql>
               <select id="selectIncrement" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest$Row"><include refid="incrementRows"/></select>
               <select id="selectIncrementWithPaging" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest$Row"><include refid="incrementRows"/> OFFSET #{offset}</select>
               <select id="chooseIncrement" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest$Row">
-                SELECT id,author AS source_creator FROM source_row WHERE id=#{parameters.maxId} ORDER BY id LIMIT #{limit}
+                SELECT id,author AS source_creator FROM source_row WHERE id=#{parameters.maxId} ORDER BY id <if test="limit != null">LIMIT #{limit}</if>
               </select>
               <select id="chooseIncrementPage" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest$Row">
                 SELECT id,author AS source_creator FROM source_row WHERE id=#{parameters.maxId} ORDER BY id LIMIT #{limit} OFFSET #{offset}
@@ -132,7 +132,7 @@ class BaseSyncDefaultsTest {
                 <foreach collection="rows" item="row" separator=",">(#{row.id},#{context.tenantId},#{row.resolvedCreator})</foreach>
               </insert>
               <select id="selectLocal" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest$Row">
-                SELECT id+100 AS id,creator AS source_creator FROM target_row WHERE tenant_id=#{tenantId} ORDER BY id LIMIT #{limit}
+                SELECT id+100 AS id,creator AS source_creator FROM target_row WHERE tenant_id=#{tenantId} ORDER BY id <if test="limit != null">LIMIT #{limit}</if>
               </select>
               <insert id="insertLocal">INSERT INTO target_row VALUES
                 <foreach collection="rows" item="row" separator=",">(#{row.id},#{context.tenantId},#{row.resolvedCreator})</foreach>
@@ -307,6 +307,12 @@ class BaseSyncDefaultsTest {
         assertEquals(new SyncCounts(0,0,0,0,1),run(context(false).forData("Rows",true,true)));
         assertEquals(List.of(99L),targetJdbc.queryForList("SELECT id FROM target_row",Long.class));
         assertEquals(0,task.beforeCalls);verify(external).close();
+    }
+    @Test void formalStreamingReadsAllRowsBeyondConfiguredLimit(){
+        var original=context(false);
+        var limited=new SyncContext<Void>(1,2,3,false,2,2,original.startedAt(),source,original.identities(),references,"Rows",targetSql,true,true);
+        assertEquals(new SyncCounts(3,3,0,0,1),run(limited));
+        assertEquals(List.of(1L,2L,3L),targetJdbc.queryForList("SELECT id FROM target_row WHERE tenant_id=1 ORDER BY id",Long.class));
     }
     @Test void pagingLimitProbeRollsBackEarlierPagesAndClear(){
         task=pagingTask();var original=context(false);

@@ -50,7 +50,7 @@ SELECT r.source,CASE r.compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '
  GROUP BY r.source,company_code,r.orderType,r.orderNumber,CAST(r.source AS BINARY),CAST(r.orderType AS BINARY),CAST(r.orderNumber AS BINARY)
 ) h
 
-LIMIT #{limit}
+]]><if test="limit != null">LIMIT #{limit}</if><![CDATA[
 ]]></select>
 <resultMap id="LineSource" type="cn.iocoder.yudao.module.pms.integration.basesync.task.P14SalesOrderSyncTask$Source"><id column="source_key" property="key"/><result column="issue" property="issue"/><result column="original_source_ids" property="originalSourceIds"/><association property="line" javaType="cn.iocoder.yudao.module.pms.integration.basesync.task.P14SalesOrderSyncTask$LineRow" notNullColumn="source_key"><result column="source_system" property="sourceSystem"/><result column="company_code" property="companyCode"/><result column="order_no" property="orderNo"/><result column="source_record_key" property="sourceRecordKey"/><result column="source_version" property="sourceVersion"/><result column="source_updated_at" property="sourceUpdatedAt"/><result column="source_sync_time" property="sourceSyncTime"/><result column="custom_info" property="customInfo"/><result column="order_type" property="orderType"/><result column="line_type" property="lineType"/><result column="line_no" property="lineNo"/><result column="product_code" property="productCode"/><result column="product_desc" property="productDesc"/><result column="bundle_code" property="bundleCode"/><result column="profit_center" property="profitCenter"/><result column="real_execution_no" property="realExecutionNo"/><result column="warranty_month" property="warrantyMonth"/><result column="order_qty" property="orderQty"/><result column="open_qty" property="openQty"/><result column="delivered_qty" property="deliveredQty"/><result column="source_lifecycle_status" property="sourceLifecycleStatus"/><result column="status" property="status"/></association></resultMap>
 <select id="selectLine" resultMap="LineSource" resultOrdered="true"><![CDATA[
@@ -103,6 +103,6 @@ SELECT r.source,CASE r.compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '
  GROUP BY r.source,company_code,r.lineType,r.orderNumber,r.lineNum,CAST(r.source AS BINARY),CAST(r.lineType AS BINARY),CAST(r.orderNumber AS BINARY),CAST(r.lineNum AS BINARY)
 ) h
 
-LIMIT #{limit}
+]]><if test="limit != null">LIMIT #{limit}</if><![CDATA[
 ]]></select>
 </mapper>

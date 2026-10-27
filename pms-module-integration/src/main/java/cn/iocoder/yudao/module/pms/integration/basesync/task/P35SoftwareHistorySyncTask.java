@@ -25,8 +25,8 @@ public class P35SoftwareHistorySyncTask extends AbstractSyncTask<P35SoftwareHist
   c.runState().warning("P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change");
   try(var source=c.source().open(c.connectionId())){c.parameters().source=source;syncData(c.forData("SoftwareBatch",false,true));syncData(c.forData("SoftwareObservation",false,true));}finally{c.parameters().source=null;}
  }
- public record ReadQuery(int limit,List<String> projectKeys){}
- @Override protected void syncDataQueryByRowHandler(SyncContext<Parameters> c,ResultHandler<Source> handler){var keys=new ArrayList<>(c.parameters().publication.members().keySet());Collections.sort(keys);for(int i=0;i<keys.size();i+=500)syncDataQueryBySql(c.parameters().source.sqlSession(),new MappedCall<>(c,sourceMapperNamespace()+".select"+c.dataName(),new ReadQuery(c.maxRows()+1,keys.subList(i,Math.min(i+500,keys.size())))),handler);}
+ public record ReadQuery(Integer limit,List<String> projectKeys){}
+ @Override protected void syncDataQueryByRowHandler(SyncContext<Parameters> c,ResultHandler<Source> handler){var keys=new ArrayList<>(c.parameters().publication.members().keySet());Collections.sort(keys);for(int i=0;i<keys.size();i+=500)syncDataQueryBySql(c.parameters().source.sqlSession(),new MappedCall<>(c,sourceMapperNamespace()+".select"+c.dataName(),new ReadQuery(sourceQuery(c).parameter().limit(),keys.subList(i,Math.min(i+500,keys.size())))),handler);}
  @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
   var c=b.context();boolean batch=c.dataName().equals("SoftwareBatch");var selected=new LinkedHashMap<String,BaseSyncPublishedProjects.Member>();
   for(var s:b.rows()){if(s.sourceId==null||s.sourceId<=0||s.originalProjectId==null)fail("SOURCE_IDENTITY_INVALID");var member=c.parameters().publication.members().get(s.originalProjectId.toString());if(member==null)fail("SOURCE_OUTSIDE_PUBLISHED_SCOPE");selected.put(member.sourceKey(),member);}

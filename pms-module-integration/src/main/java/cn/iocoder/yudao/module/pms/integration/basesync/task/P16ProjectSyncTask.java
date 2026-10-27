@@ -44,7 +44,7 @@ public class P16ProjectSyncTask extends AbstractSyncTask<P16ProjectSyncTask.Sour
   }finally{p.source=null;}
  }
  @Override protected void syncDataQueryByRowHandler(SyncContext<Parameters> c,ResultHandler<Source> handler){
-  syncDataQueryBySql(c.parameters().source.sqlSession(),new MappedCall<>(c,sourceMapperNamespace()+".select"+c.dataName(),new SourceQuery<>(c.maxRows()+1,c.tenantId(),c.preview(),c.parameters())),handler);
+  syncDataQueryBySql(c.parameters().source.sqlSession(),sourceQuery(c),handler);
  }
  @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){if(b.context().dataName().equals("ProjectAlias")){prepareAliases(b);return;}
   var c=b.context();var keys=b.rows().stream().map(s->s.projectId.toString()).toList();var bindings=c.identities().findByKeys(new SyncIdentityStore.Query("PROJECT_MASTER",keys));var originals=c.identities().findByKeys(new SyncIdentityStore.Query("PROJECT_ORIGINAL",keys));

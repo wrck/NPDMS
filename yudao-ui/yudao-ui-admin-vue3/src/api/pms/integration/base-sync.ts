@@ -10,6 +10,7 @@ export interface Registration {
   connectionId: Id
   taskCode: string
   batchSize: number
+  /** 预览、列表/分页及引用缓存上限；正式流式主数据不受总行数限制。 */
   maxRows: number
   activeRunId?: Id | null
 }

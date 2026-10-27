@@ -38,7 +38,7 @@ JOIN (SELECT CAST(dataSource AS BINARY) AS systemKey,CAST(orderExecNumber AS BIN
  FROM pm_project_property_from_sms GROUP BY CAST(dataSource AS BINARY),CAST(orderExecNumber AS BINARY)) chosen
  ON chosen.systemKey &lt;=> CAST(r.dataSource AS BINARY) AND chosen.executionKey &lt;=> CAST(r.orderExecNumber AS BINARY)
 JOIN pm_project_property_from_sms latest ON latest.id=chosen.canonicalId
-ORDER BY r.id LIMIT #{limit}
+ORDER BY r.id <if test="limit != null">LIMIT #{limit}</if>
 </select>
 <select id="selectProjectPrefixes" resultType="java.lang.String">
 SELECT DISTINCT SUBSTRING_INDEX(p.projectCode,'-',1)
@@ -47,5 +47,5 @@ JOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) 
  FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) chosen
  ON chosen.canonicalId=p.projectId
 WHERE p.disabled=0 AND p.effectiveTo IS NULL AND p.projectType='10' AND p.projectCode IS NOT NULL
-LIMIT #{limit}
+<if test="limit != null">LIMIT #{limit}</if>
 </select></mapper>
