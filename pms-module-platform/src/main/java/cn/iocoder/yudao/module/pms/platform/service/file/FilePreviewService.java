@@ -24,6 +24,7 @@ public class FilePreviewService {
     private final FileArtifactApi artifacts;
     private final FileVersionMapper versions;
     private final FileOfficePdfConverter office;
+    private final FileVisioPdfConverter visio;
     private final OperationAuditApi audit;
     private final cn.iocoder.yudao.module.system.api.permission.PermissionApi permissions;
     public record Preview(byte[] bytes, String mediaType) { }
@@ -40,6 +41,8 @@ public class FilePreviewService {
             Preview preview;
             if (FileOfficePdfConverter.supports(version.getDetectedMediaType())) {
                 preview = new Preview(office.convert(new FileOfficePdfConverter.Document(original, version.getDetectedMediaType())), "application/pdf");
+            } else if (FileVisioPdfConverter.supports(version.getDetectedMediaType())) {
+                preview = new Preview(visio.convert(new FileVisioPdfConverter.Document(original, version.getDetectedMediaType())), "application/pdf");
             } else if (FileAccessTicketService.isPreviewable(version.getDetectedMediaType())) {
                 preview = new Preview(original, version.getDetectedMediaType());
             } else throw exception(FILE_ACCESS_GRANT_INVALID);

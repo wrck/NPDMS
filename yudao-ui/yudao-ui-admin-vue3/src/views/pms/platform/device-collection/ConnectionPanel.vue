@@ -149,9 +149,7 @@
       :disabled="busy"
     >
       <el-form-item label="使用人" prop="userId"
-        ><el-select v-model="grantForm.userId" filterable class="!w-full"
-          ><el-option v-for="u in users" :key="u.id" :value="u.id" :label="u.nickname" /></el-select
-      ></el-form-item>
+        ><UserSelect v-model="grantForm.userId" :clearable="false" class="!w-full" /></el-form-item>
       <el-form-item label="到期时间" prop="expiresAt"
         ><el-date-picker
           v-model="grantForm.expiresAt"
@@ -209,6 +207,8 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import * as Api from '@/api/pms/platform/deviceCollection'
 import * as UserApi from '@/api/system/user'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
@@ -337,7 +337,7 @@ const grantRules = Object.fromEntries(
 )
 const openGrants = async (row: Api.Connection) => {
   selected.value = row
-  const result = await Promise.all([Api.grants(row.id), UserApi.getSimpleUserList()])
+  const result = await Promise.all([Api.grants(row.id), systemUserSelection.active()])
   grantRows.value = result[0]
   users.value = result[1]
   Object.assign(grantForm, { userId: undefined, templateId: undefined, expiresAt: '' })

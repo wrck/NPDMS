@@ -4,6 +4,9 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.file.*;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionTaskDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionReportRevisionDO;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcReportResults;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.*;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.InspectionTaskRows;
 import cn.iocoder.yudao.module.pms.service.service.inspection.*;
@@ -30,6 +33,7 @@ public class InspectionFilePolicy implements FileBusinessObjectPolicyProvider, F
     private final ServiceIssueMapper issues;
     private final InspectionAccessService access;
     private final PermissionApi permissions;
+    private final InspectionReportRevisionMapper reports;
 
     @Override public String ownerContext() { return "SRV"; }
     @Override public String objectType() { return "INSPECTION_TASK"; }
@@ -86,7 +90,7 @@ public class InspectionFilePolicy implements FileBusinessObjectPolicyProvider, F
     private FileBusinessObjectPolicyFact resolvePolicy(Resolution request) {
         var query = request.query();
         if (!Objects.equals(query.tenantId(), TenantContextHolder.getRequiredTenantId()) || !ownerContext().equals(query.ownerContext())
-                || !objectType().equals(query.objectType()) || !Set.of("LOG", "REPORT", "EVIDENCE", "ATTACHMENT").contains(query.purposeCode())) return denied();
+                || !objectType().equals(query.objectType()) || !Set.of("LOG", "REPORT", "UMC_REPORT", "EVIDENCE", "ATTACHMENT").contains(query.purposeCode())) return denied();
         Long id;
         try { id = Long.valueOf(query.objectId()); } catch (NumberFormatException invalid) { return denied(); }
         var task = tasks.selectById(id);
@@ -112,6 +116,10 @@ public class InspectionFilePolicy implements FileBusinessObjectPolicyProvider, F
                         && permissions.hasAnyPermissions(query.actorUserId(), "pms:inspection-task:execute");
                 case "REPORT" -> (owner || manager) && Set.of("REPORT_PENDING", "ANNOTATION_PENDING").contains(task.getStatusCode())
                         && permissions.hasAnyPermissions(query.actorUserId(), "pms:inspection-report:generate");
+                case "UMC_REPORT" -> request.nativeFile() && (owner || manager)
+                        && Set.of("EXECUTING", "REPORT_PENDING", "ANNOTATION_PENDING").contains(task.getStatusCode())
+                        && permissions.hasAnyPermissions(query.actorUserId(), "pms:inspection-report:generate")
+                        && permissions.hasAnyPermissions(query.actorUserId(), "pms:inspection-task:execute");
                 case "EVIDENCE" -> request.referenceSet() ? issueSetAccess(request, task)
                         : issueAccess(new IssueAccess(query, task, true, request.lock()));
                 case "ATTACHMENT" -> (owner || manager) && permissions.hasAnyPermissions(query.actorUserId(), "pms:inspection-task:prepare");
@@ -122,10 +130,12 @@ public class InspectionFilePolicy implements FileBusinessObjectPolicyProvider, F
         }
         if (allowed && request.frozen() != null) allowed = frozenReference(new FrozenReference(rows, query.purposeCode(),
                 query.referenceKey(), request.frozen().artifactId(), request.frozen().versionNo()));
-        Set<String> media = "LOG".equals(query.purposeCode()) ? Set.of("text/plain", "application/zip", "application/json")
+        Set<String> media = "UMC_REPORT".equals(query.purposeCode())
+                ? Set.of("text/plain", "application/vnd.ms-wordml")
+                : "LOG".equals(query.purposeCode()) ? Set.of("text/plain", "application/zip", "application/json")
                 : "REPORT".equals(query.purposeCode()) ? REPORT_MEDIA : EVIDENCE_MEDIA;
         return new FileBusinessObjectPolicyFact(allowed, project.scopeVersion(), writing && allowed ? "MUTABLE" : "IMMUTABLE",
-                "MULTIPLE", Set.of("INSPECTION_" + query.purposeCode()), media, 52_428_800L, "INTERNAL");
+                "MULTIPLE", Set.of("UMC_REPORT".equals(query.purposeCode()) ? "INSPECTION_REPORT" : "INSPECTION_" + query.purposeCode()), media, 52_428_800L, "INTERNAL");
     }
 
     private record IssueAccess(FileBusinessObjectPolicyQuery query, InspectionTaskDO task, boolean write, boolean lock) { }
@@ -163,24 +173,38 @@ public class InspectionFilePolicy implements FileBusinessObjectPolicyProvider, F
     private boolean frozenReference(FrozenReference reference) {
         return switch (reference.purpose()) {
             case "REPORT" -> reportFiles.selectForTask(reference.rows()).stream().anyMatch(f -> reference.matches(f.getReferenceKey(), f.getArtifactId(), f.getFileVersionNo()));
+            case "UMC_REPORT" -> reportFiles.selectForTask(reference.rows()).stream().anyMatch(f -> reference.matches(f.getReferenceKey(), f.getArtifactId(), f.getFileVersionNo()))
+                    || reports.selectUmcSources(reference.rows()).stream().map(this::umcInput).filter(Objects::nonNull)
+                            .anyMatch(f -> reference.matches(f.referenceKey(), f.artifactId(), f.versionNo()));
             case "LOG" -> executions.selectForTask(reference.rows()).stream().anyMatch(f -> reference.matches(f.getFileReferenceKey(), f.getArtifactId(), f.getFileVersionNo()));
             case "EVIDENCE" -> evidence.selectForTask(reference.rows()).stream().anyMatch(f -> reference.matches(f.getReferenceKey(), f.getArtifactId(), f.getFileVersionNo()));
             default -> false;
         };
     }
 
+    private InspectionUmcReportResults.StoredLog umcInput(InspectionReportRevisionDO report) {
+        if (report.getSourceContextJson() == null) return null;
+        var source = JsonUtils.parseObjectQuietly(report.getSourceContextJson(), InspectionUmcReportResults.Source.class);
+        return source == null ? null : source.log();
+    }
+
     @Override public Scope resolve(Long tenantId, FileEvidenceApi.Document document) {
         if (!Objects.equals(tenantId, TenantContextHolder.getRequiredTenantId()) || !ownerContext().equals(document.ownerContext())
-                || !objectType().equals(document.objectType()) || !Set.of("LOG", "REPORT", "EVIDENCE", "ATTACHMENT").contains(document.purposeCode())) return null;
+                || !objectType().equals(document.objectType()) || !Set.of("LOG", "REPORT", "UMC_REPORT", "EVIDENCE", "ATTACHMENT").contains(document.purposeCode())) return null;
         Long taskId;
         try { taskId = Long.valueOf(document.objectId()); } catch (NumberFormatException invalid) { return null; }
         var task = tasks.selectById(taskId);
         if (task == null || !Objects.equals(task.getTenantId(), tenantId)) return null;
         Long revisionId = null;
-        if ("REPORT".equals(document.purposeCode())) revisionId = reportFiles.selectForTask(new InspectionTaskRows(tenantId, taskId)).stream()
+        if (Set.of("REPORT", "UMC_REPORT").contains(document.purposeCode())) revisionId = reportFiles.selectForTask(new InspectionTaskRows(tenantId, taskId)).stream()
                 .filter(f -> Objects.equals(f.getArtifactId(), document.artifactId()) && Objects.equals(f.getFileVersionNo(), document.versionNo()))
                 .map(f -> f.getReportId()).findFirst().orElse(null);
-        return new Scope(task.getProjectId(), "INS." + document.purposeCode(), "SRV", "inspectionTask", taskId, revisionId);
+        if (revisionId == null && "UMC_REPORT".equals(document.purposeCode())) revisionId = reports.selectUmcSources(new InspectionTaskRows(tenantId, taskId)).stream()
+                .filter(r -> { var input = umcInput(r); return input != null && Objects.equals(input.artifactId(), document.artifactId())
+                        && Objects.equals(input.versionNo(), document.versionNo()) && Objects.equals(input.referenceKey(), document.referenceKey()); })
+                .map(InspectionReportRevisionDO::getId).findFirst().orElse(null);
+        return new Scope(task.getProjectId(), "UMC_REPORT".equals(document.purposeCode()) ? "INS.REPORT" : "INS." + document.purposeCode(),
+                "SRV", "inspectionTask", taskId, revisionId);
     }
     private static FileBusinessObjectPolicyFact denied() { return new FileBusinessObjectPolicyFact(false, null, null, null, null, null, null, null); }
 }

@@ -25,6 +25,7 @@ public class ServiceIssueService {
     private final InspectionTaskService tasks;
     private final InspectionClosureFacts closure;
     private final ServiceIssueMapper issues;
+    private final InspectionDetectionResultMapper results;
     private final ServiceIssueRemediationMapper remediations;
     private final InspectionEvidenceMapper evidence;
     private final InspectionFiles files;
@@ -136,12 +137,17 @@ public class ServiceIssueService {
         return new Scope(task, issue, manager);
     }
     private void record(Record command) {
-        InspectionTaskService.validateText(command.content(), 8000, "处理记录或闭环说明");
         var references = command.files() == null ? List.<InspectionFiles.Reference>of() : command.files();
+        String content = command.content() == null ? "" : command.content().trim();
+        boolean optionalProgress = "PROCESS".equals(command.action()) && umcIssue(command.scope());
+        if (optionalProgress) {
+            require(content.length() <= 8000, "处理内容不能超过8000字符");
+            require(!content.isEmpty() || !references.isEmpty(), "没有需要保存的情况备注或处理证据");
+        } else InspectionTaskService.validateText(command.content(), 8000, "处理记录或闭环说明");
         require(references.size() <= 20 && new HashSet<>(references).size() == references.size(), "证据数量超过限制或存在重复");
         var note = new ServiceIssueRemediationDO(); note.setTenantId(command.scope().task().getTenantId()); note.setVersion(1L);
         note.setTaskId(command.scope().task().getId()); note.setIssueId(command.scope().issue().getId()); note.setActionCode(command.action());
-        note.setContent(command.content().trim()); note.setActorId(command.context().actorId()); note.setActionAt(LocalDateTime.now()); remediations.insert(note);
+        note.setContent(content); note.setActorId(command.context().actorId()); note.setActionAt(LocalDateTime.now()); remediations.insert(note);
         for (var ref : references) {
             require(ref != null && ref.referenceKey() != null && ref.referenceKey().startsWith("issue:" + note.getIssueId() + ":"),
                     "证据引用不属于当前问题");
@@ -150,6 +156,13 @@ public class ServiceIssueService {
             row.setRemediationId(note.getId()); row.setArtifactId(fact.artifactId()); row.setFileVersionNo(fact.versionNo());
             row.setReferenceKey(fact.referenceKey()); row.setFileName(fact.name()); row.setSha256(fact.sha256()); evidence.insert(row);
         }
+    }
+    private boolean umcIssue(Scope scope) {
+        if (scope.issue().getResultId() == null) return false;
+        var result = results.selectById(scope.issue().getResultId());
+        return result != null && Objects.equals(result.getTenantId(), scope.task().getTenantId())
+                && Objects.equals(result.getTaskId(), scope.task().getId())
+                && "UMC".equals(result.getSourceCode()) && result.getSourceReportId() != null;
     }
     private void proof(Scope scope) {
         var rows = new InspectionTaskRows(scope.task().getTenantId(), scope.task().getId());

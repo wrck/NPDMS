@@ -85,7 +85,7 @@
     <section v-if="canProcess" class="write-section" aria-label="追加问题处理记录">
       <h3 class="inspection-section-title">追加处理记录</h3>
       <el-form label-position="top" :disabled="disabled || currentBusy">
-        <el-form-item label="处理内容" required
+        <el-form-item label="处理内容" :required="!optionalProgress"
           ><el-input
             v-model="draft.content"
             type="textarea"
@@ -176,7 +176,11 @@
 
     <section v-if="canProcess" class="write-section" aria-label="申请问题闭环">
       <h3 class="inspection-section-title">申请闭环</h3>
-      <p class="help-text">申请前需有已保存的处理记录和有效处理证据，服务端会重新核对。</p>
+      <p class="help-text">{{
+        optionalProgress
+          ? '申请前需有有效处理证据，处理内容可不填写。'
+          : '申请前需有已保存的处理记录和有效处理证据。'
+      }}</p>
       <el-form label-position="top" :disabled="disabled || currentBusy">
         <el-form-item label="闭环申请说明" required
           ><el-input
@@ -262,7 +266,7 @@ import { getArtifact } from '@/api/pms/platform/file/version-reference'
 import type { FileBusinessKey } from '@/api/pms/platform/file'
 import type { EvidenceView, FileReference, IssueDetail, WireLong } from '@/api/pms/inspection/tasks'
 
-const props = defineProps<{ issue: IssueDetail; disabled: boolean }>()
+const props = defineProps<{ issue: IssueDetail; disabled: boolean; optionalProgress?: boolean }>()
 type Action = 'record-process' | 'request-closure' | 'confirm-closure' | 'return-closure'
 const emit = defineEmits<{
   action: [
@@ -310,8 +314,17 @@ const actionLabels: Record<string, string> = {
 const statusLabel = (value: string) => statusLabels[value] || value
 const actionLabel = (value?: string) => (value ? actionLabels[value] || value : '处理记录')
 const severities = computed(() => getStrDictOptions('pms_inspection_rule_severity'))
+const umcSeverities: Record<string, string> = {
+  UMC_LEVEL_1: 'UMC一般级',
+  UMC_LEVEL_2: 'UMC重要级',
+  UMC_LEVEL_3: 'UMC致命级',
+  UMC_UNSPECIFIED: 'UMC未提供级别'
+}
 const severityLabel = (code?: string) =>
-  severities.value.find((item) => item.value === code)?.label || code || '未提供'
+  (code && umcSeverities[code]) ||
+  severities.value.find((item) => item.value === code)?.label ||
+  code ||
+  '未提供'
 const userLabel = (user: { name?: string; id?: WireLong }) => {
   const name = user.name?.trim()
   return user.id != null ? `${name || '用户'}（编号${user.id}）` : name || '未提供'
@@ -379,7 +392,7 @@ const currentBusy = computed(
 )
 const processReady = computed(
   () =>
-    !!draft.value.content.trim() &&
+    (!!draft.value.content.trim() || (props.optionalProgress && !!draft.value.files.length)) &&
     draft.value.files.length <= 20 &&
     draft.value.files.every((file) => file.state === 'READY')
 )

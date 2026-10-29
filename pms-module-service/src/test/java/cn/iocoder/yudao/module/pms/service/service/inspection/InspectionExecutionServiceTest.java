@@ -402,6 +402,45 @@ class InspectionExecutionServiceTest {
         verify(tasks, never()).save(any());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"192.0.2.10", "设备甲(192.0.2.10)"})
+    void umcOriginalNamesPreserveSingleDeviceIdentityAndReplayWithoutDuplicatingFiles(String fileName) {
+        var attempt = attempts.selectById(20L); attempt.setMode("OFFLINE"); attempt.setProviderCode("UMC");
+        when(parser.normalize(any())).thenReturn(normalized(List.of(block(1, "show version", "safe output")), List.of("SELECTED-SN")));
+        when(executions.selectForTask(any())).thenAnswer(call -> List.copyOf(executionRows.values()));
+        when(executions.insert(any(InspectionExecutionDO.class))).thenAnswer(call -> {
+            var row = call.<InspectionExecutionDO>getArgument(0); row.setId(50L); executionRows.put(50L, row); return 1;
+        });
+        var upload = new InspectionExecutionService.Upload(context, 10L, 20L, 30L, fileName, bytes("original log"), null);
+
+        service.upload(upload); service.upload(upload);
+
+        assertEquals(fileName, executionRows.get(50L).getFileName());
+        assertEquals("SELECTED-SN", executionRows.get(50L).getRecognizedSerial());
+        assertEquals("PENDING", executionRows.get(50L).getStatusCode());
+        verify(generatedFiles, times(1)).create(any()); verify(executions, times(1)).insert(any(InspectionExecutionDO.class));
+        verify(parser, times(1)).normalize(any()); verify(parser, never()).submit(any());
+    }
+
+    @Test void umcOriginalNameDoesNotOverrideAnObservedSerialMismatch() {
+        var attempt = attempts.selectById(20L); attempt.setMode("OFFLINE"); attempt.setProviderCode("UMC");
+        when(parser.normalize(any())).thenReturn(normalized(List.of(block(1, "show version", "safe output")), List.of("OTHER-SN")));
+        when(executions.insert(any(InspectionExecutionDO.class))).thenAnswer(call -> {
+            var row = call.<InspectionExecutionDO>getArgument(0); row.setId(50L); executionRows.put(50L, row); return 1;
+        });
+        service.upload(new InspectionExecutionService.Upload(context, 10L, 20L, 30L, "192.0.2.10", bytes("original log"), null));
+        assertEquals("FAILED", executionRows.get(50L).getStatusCode());
+        assertEquals("DEVICE_SERIAL_MISMATCH", executionRows.get(50L).getFailureCode());
+        verify(parser, never()).submit(any());
+    }
+
+    @Test void platformStillRejectsAnUnsupportedOriginalUmcFilename() {
+        attempts.selectById(20L).setMode("OFFLINE");
+        assertThrows(InspectionException.class, () -> service.upload(new InspectionExecutionService.Upload(
+                context, 10L, 20L, 30L, "192.0.2.10", bytes("original log"), null)));
+        verifyNoInteractions(generatedFiles, parser); verify(executions, never()).insert(any(InspectionExecutionDO.class));
+    }
+
     private void prepareBatch() {
         attempts.selectById(20L).setMode("OFFLINE");
         var second = new InspectionTaskDeviceDO(); second.setDeviceId(31L); second.setSerialNumber("SECOND-SN");
@@ -424,6 +463,56 @@ class InspectionExecutionServiceTest {
 
     private InspectionExecutionService.BatchUpload batch() {
         return new InspectionExecutionService.BatchUpload(context, 10L, 20L, "multi.log", bytes("raw secret log"));
+    }
+
+    private InspectionExecutionService.BatchFiles multipleFiles() {
+        return new InspectionExecutionService.BatchFiles(context, 10L, 20L, List.of(
+                new InspectionExecutionService.UploadFile("first.log", bytes("first")),
+                new InspectionExecutionService.UploadFile("second.txt", bytes("second"))), null);
+    }
+
+    @Test void severalFilesMergeSameDeviceCommandsOnceAndReplayWithoutNewFiles() {
+        prepareBatch(); attempts.selectById(20L).setProviderCode("UMC");
+        service.uploadFiles(multipleFiles());
+        assertEquals(2, executionRows.size());
+        for (var e : executionRows.values()) {
+            assertEquals("PENDING", e.getStatusCode());
+            assertEquals(InspectionExecutionService.batchDigest(multipleFiles().files()), e.getOriginalFileSha256());
+            assertEquals(2, InspectionParserDocuments.decode(documents.get(e.getArtifactId())).commandBlocks().size());
+        }
+        service.uploadFiles(multipleFiles());
+        verify(generatedFiles, times(2)).create(any());
+        assertEquals(2, executionRows.size());
+    }
+
+    @Test void lastFileUnknownSerialRejectsWholeSelectionWithoutStoredContent() {
+        prepareBatch(); attempts.selectById(20L).setProviderCode("UMC");
+        when(splitter.split(any())).thenAnswer(call -> {
+            DeviceOpsLogSplitApi.Command c = call.getArgument(0);
+            return new DeviceOpsLogSplitApi.Result("safe", 0, List.of(new DeviceOpsLogSplitApi.DeviceLog(
+                    c.content().equals("first") ? "SELECTED-SN" : "OUTSIDE-SN", "safe first")));
+        });
+        assertThrows(InspectionException.class, () -> service.uploadFiles(multipleFiles()));
+        assertTrue(executionRows.isEmpty()); verifyNoInteractions(generatedFiles);
+    }
+
+    @Test void laterFileInvalidFormatIsRejectedBeforeAnyParserOrStorage() {
+        prepareBatch(); attempts.selectById(20L).setProviderCode("UMC");
+        var input = new InspectionExecutionService.BatchFiles(context, 10L, 20L, List.of(
+                new InspectionExecutionService.UploadFile("valid.txt", bytes("first")),
+                new InspectionExecutionService.UploadFile("invalid.pdf", bytes("second"))), null);
+        assertThrows(InspectionException.class, () -> service.uploadFiles(input));
+        verifyNoInteractions(splitter, generatedFiles); assertTrue(executionRows.isEmpty());
+    }
+
+    @Test void multiFileFingerprintIncludesNamesBytesAndOrder() {
+        var files = multipleFiles().files();
+        var reversed = new ArrayList<>(files); java.util.Collections.reverse(reversed);
+        assertNotEquals(InspectionExecutionService.batchDigest(files), InspectionExecutionService.batchDigest(reversed));
+        assertNotEquals(InspectionExecutionService.batchDigest(files), InspectionExecutionService.batchDigest(List.of(
+                new InspectionExecutionService.UploadFile("renamed.log", bytes("first")), files.get(1))));
+        assertNotEquals(InspectionExecutionService.batchDigest(files), InspectionExecutionService.batchDigest(List.of(
+                new InspectionExecutionService.UploadFile("first.log", bytes("changed")), files.get(1))));
     }
 
     @Test

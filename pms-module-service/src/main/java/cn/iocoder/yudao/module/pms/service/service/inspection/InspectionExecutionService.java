@@ -47,7 +47,21 @@ public class InspectionExecutionService {
 
     @Builder public record Upload(InspectionRequestContext context, Long taskId, Long attemptId, Long deviceId,
                                    String fileName, byte[] content, String commandHint) { }
-    public record BatchUpload(InspectionRequestContext context, Long taskId, Long attemptId, String fileName, byte[] content) { }
+    public record BatchUpload(InspectionRequestContext context, Long taskId, Long attemptId, String fileName, byte[] content,
+                              List<cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host> sourceHosts) {
+        public BatchUpload(InspectionRequestContext context, Long taskId, Long attemptId, String fileName, byte[] content) {
+            this(context, taskId, attemptId, fileName, content, null);
+        }
+    }
+    public record UploadFile(String fileName, byte[] content) { }
+    public record BatchFiles(InspectionRequestContext context, Long taskId, Long attemptId, List<UploadFile> files,
+                             List<cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host> sourceHosts) { }
+    private record FileIdentity(String fileName, String sha256) { }
+    public static String batchDigest(List<UploadFile> files) {
+        require(files != null && !files.isEmpty() && files.stream().allMatch(f -> f != null && f.content() != null), "日志文件不能为空");
+        return DigestUtil.sha256Hex(JsonUtils.toJsonString(files.stream()
+                .map(f -> new FileIdentity(f.fileName(), DigestUtil.sha256Hex(f.content()))).toList()));
+    }
     private record PreparedUpload(Scope scope, List<InspectionParserDocuments.Block> blocks,
                                   Set<String> serials, String fileName, String digest, String commandHint) { }
     public record Refresh(InspectionRequestContext context, Long taskId, Long executionId) { }
@@ -99,7 +113,8 @@ public class InspectionExecutionService {
                         && Objects.equals(row.getCommandHint(), command.commandHint())).findFirst();
         if (existing.isPresent()) return InspectionTaskService.summary(task);
         List<InspectionLogArchiveReader.LogEntry> entries;
-        try { entries = new InspectionLogArchiveReader().read(new InspectionLogArchiveReader.Input(command.fileName(), command.content())); }
+        try { entries = new InspectionLogArchiveReader().read(new InspectionLogArchiveReader.Input(command.fileName(), command.content(),
+                "UMC".equals(scope.attempt().getProviderCode()))); }
         catch (IllegalArgumentException invalid) { throw new InspectionException(InspectionException.Reason.FILE_INVALID, invalid.getMessage()); }
         var availableCommands = commands(new CommandList(command.context(), task.getId(), command.deviceId()));
         if (command.commandHint() != null && !command.commandHint().isBlank()) {
@@ -127,16 +142,42 @@ public class InspectionExecutionService {
 
     @Transactional(rollbackFor = Exception.class)
     public InspectionViews.TaskSummary uploadBatch(BatchUpload command) {
+        require(command.content() != null && command.content().length > 0, "多设备日志不能为空且不得超过20MB");
+        return uploadBatchFiles(new BatchFiles(command.context(), command.taskId(), command.attemptId(),
+                List.of(new UploadFile(command.fileName(), command.content())), command.sourceHosts()),
+                DigestUtil.sha256Hex(command.content()), false);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public InspectionViews.TaskSummary uploadFiles(BatchFiles command) {
+        return uploadBatchFiles(command, batchDigest(command.files()), true);
+    }
+
+    private InspectionViews.TaskSummary uploadBatchFiles(BatchFiles command, String digest, boolean multipleInput) {
         var task = writable(command.context(), command.taskId());
         var attempt = attempts.selectById(command.attemptId());
         scope(new Scope(command.context(), task, attempt, null));
         require("OFFLINE".equals(attempt.getMode()), "当前尝试不是离线巡检，请显式新建离线执行尝试");
-        require(command.content() != null && command.content().length > 0 && command.content().length <= 20 * 1024 * 1024,
-                "多设备日志不能为空且不得超过20MB");
-        require(command.fileName() != null && command.fileName().length() <= 300, "日志文件名过长");
-        List<InspectionLogArchiveReader.LogEntry> entries;
-        try { entries = new InspectionLogArchiveReader().read(new InspectionLogArchiveReader.Input(command.fileName(), command.content())); }
-        catch (IllegalArgumentException invalid) { throw new InspectionException(InspectionException.Reason.FILE_INVALID, invalid.getMessage()); }
+        if (multipleInput) require("UMC".equals(attempt.getProviderCode()), "多文件入口仅支持UMC巡检尝试");
+        require(command.files() != null && !command.files().isEmpty() && command.files().size() <= 1024, "请选择1至1024份巡检日志");
+        List<InspectionLogArchiveReader.LogEntry> entries = new ArrayList<>();
+        long inputBytes = 0, expandedBytes = 0;
+        for (var file : command.files()) {
+            require(file != null && file.content() != null && file.content().length > 0, "日志文件不能为空");
+            inputBytes += file.content().length;
+            require(inputBytes <= 20 * 1024 * 1024, "本次巡检日志总量不得超过20MB");
+            require(file.fileName() != null && file.fileName().length() <= 300, "日志文件名过长");
+            try {
+                var read = new InspectionLogArchiveReader().read(new InspectionLogArchiveReader.Input(file.fileName(), file.content(),
+                        multipleInput && "UMC".equals(attempt.getProviderCode())));
+                for (var entry : read) {
+                    expandedBytes += entry.text().getBytes(StandardCharsets.UTF_8).length;
+                    require(expandedBytes <= 50 * 1024 * 1024 && entries.size() < 1024, "展开后的日志总量或条目数超过资源限制");
+                    entries.add(entry);
+                }
+            } catch (IllegalArgumentException invalid) { throw new InspectionException(InspectionException.Reason.FILE_INVALID, invalid.getMessage()); }
+        }
+        String fileName = command.files().size() == 1 ? command.files().getFirst().fileName() : "多份巡检日志（" + command.files().size() + "份）";
         var bySerial = new HashMap<String, InspectionTaskDeviceDO>();
         var ambiguous = new HashSet<String>();
         for (var device : devices.selectForTask(new InspectionTaskRows(task.getTenantId(), task.getId()))) {
@@ -178,12 +219,15 @@ public class InspectionExecutionService {
         }
         // Prepare every device before registering any file or execution. Only sanitized command blocks are stored.
         var prepared = new ArrayList<PreparedUpload>();
-        String digest = DigestUtil.sha256Hex(command.content());
+        if (command.sourceHosts() != null) {
+            var mapped = command.sourceHosts().stream().map(cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host::deviceId).collect(Collectors.toSet());
+            require(blocksBySerial.keySet().stream().allMatch(serial -> mapped.contains(bySerial.get(serial).getDeviceId())), "请为日志中每台设备填写来源IP，未登记本批日志");
+        }
         for (var entry : blocksBySerial.entrySet()) {
             var device = bySerial.get(entry.getKey());
             require(InspectionParserDocuments.encode(entry.getValue()).length <= 52_428_800, "脱敏设备日志超过50MB，请拆分上传");
             prepared.add(new PreparedUpload(new Scope(command.context(), task, attempt, device), entry.getValue(),
-                    Set.of(device.getSerialNumber()), command.fileName(), digest, null));
+                    Set.of(device.getSerialNumber()), fileName, digest, null));
         }
         var previous = executions.selectForTask(new InspectionTaskRows(task.getTenantId(), task.getId()));
         for (var input : prepared) {
@@ -266,7 +310,7 @@ public class InspectionExecutionService {
             execution.setStatusCode("FAILED"); execution.setFailureCode("DEVICE_SERIAL_MISMATCH");
             execution.setFailureMessage("日志中识别的设备序列号与所选设备不一致，请核对来源后重新执行或上传");
             execution.setCompletedAt(LocalDateTime.now());
-        } else {
+        } else if (!"UMC".equals(scope.attempt().getProviderCode())) {
             int partNo = 0;
             for (var segment : InspectionParserDocuments.parts(blocks)) {
                 var row = new InspectionParsePartDO(); row.setTenantId(task.getTenantId()); row.setVersion(1L);
@@ -383,6 +427,7 @@ public class InspectionExecutionService {
     @Transactional(rollbackFor = Exception.class)
     public InspectionViews.TaskSummary finish(Finish command) {
         var task = writable(command.context(), command.taskId());
+        require(!"UMC".equals(attempts.selectById(task.getCurrentAttemptId()).getProviderCode()), "UMC正式尝试请通过UMC完成执行接口办理");
         var frozen = frozen(new InspectionTaskRows(task.getTenantId(), task.getId())).stream()
                 .filter(r -> Objects.equals(r.getAttemptId(), task.getCurrentAttemptId())).toList();
         var current = results.selectCurrent(new InspectionAttemptRows(task.getTenantId(), task.getCurrentAttemptId()));

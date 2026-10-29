@@ -49,6 +49,12 @@
         <el-form-item label="项目名称"
           ><el-input :model-value="task.projectName" readonly
         /></el-form-item>
+        <el-form-item label="客户名称（巡检记录）"
+          ><el-input
+            :model-value="task.customerName || '—'"
+            data-testid="inspection-task-customer-name"
+            readonly
+        /></el-form-item>
       </el-form>
     </ProjectInformationCard>
     <p v-else-if="issue" class="help-text">当前显示你有权办理的问题及处理记录。</p>
@@ -306,6 +312,7 @@
         <InspectionReportPanel
           :task="task"
           :disabled="writeDisabled"
+          @retry-external="retryExternal"
           @generate="generate"
           @submit-manual="submitManual"
           @download="downloadReport"
@@ -318,7 +325,33 @@
           @annotate="annotate"
           @complete="completeAnnotations"
           @draft-changed="drafts.annotation = $event"
-        />
+        >
+          <template #recovery>
+            <el-alert
+              v-if="writeError"
+              :title="writeError"
+              :type="pending ? 'warning' : 'error'"
+              :closable="false"
+              show-icon
+              class="mb-16px"
+            />
+            <el-button
+              v-if="pending?.section === 'annotation' && writeError"
+              :loading="busy"
+              type="primary"
+              class="mb-16px"
+              @click="retryPending"
+              >重试原请求并确认结果</el-button
+            >
+            <el-button
+              v-else-if="!fresh && !pending"
+              :disabled="busy"
+              class="mb-16px"
+              @click="reload"
+              >刷新最新资料</el-button
+            >
+          </template>
+        </InspectionAnnotationPanel>
       </ContentWrap>
 
       <ContentWrap v-show="activeStep === 'issues'" :body-style="{}">
@@ -444,7 +477,7 @@
           }}</el-descriptions-item>
         </el-descriptions>
         <p class="help-text"
-          >报告有效、问题标注完成且所有跟踪事项确认闭环后，由任务负责工程师申请，再由本区域服务经理归档。</p
+          >报告有效、问题标注完成且所有跟踪事项确认闭环后，由任务负责工程师申请，具备归档权限的服务经理或系统管理员确认归档。</p
         >
         <el-form v-if="task.statusCode === 'CLOSED'" label-position="top" :disabled="writeDisabled">
           <el-form-item label="申请或归档说明" required
@@ -463,7 +496,7 @@
             >申请归档</el-button
           >
           <el-button
-            v-if="task.manager && task.archiveRequestedAt"
+            v-if="(task.canArchive ?? task.manager) && task.archiveRequestedAt"
             v-hasPermi="['pms:inspection-task:archive']"
             type="primary"
             @click="archive('archive')"
@@ -493,7 +526,7 @@
                 :key="String(event.id)"
                 :timestamp="event.occurredAt ? formatDate(event.occurredAt) : ''"
               >
-                <strong>{{ event.actionCode }}</strong> ·
+                <strong>{{ inspectionEventActionName(event.actionCode) }}</strong> ·
                 {{ event.description || statusLabel(event.toStatus || '') }}
                 <p class="help-text"
                   >办理人 {{ personLabel({ name: event.actorName, id: event.actorId }) }} ·
@@ -510,18 +543,12 @@
           >
             <el-form label-position="top" :disabled="writeDisabled" class="management-form">
               <el-form-item label="新负责人"
-                ><el-select
+                ><UserSelect
                   v-model="assignment.userId"
-                  filterable
-                  @visible-change="(visible) => visible && loadPeople()"
-                >
-                  <el-option
-                    v-for="person in people"
-                    :key="String(person.id)"
-                    :value="String(person.id)"
-                    :label="person.nickname"
-                  /> </el-select
-              ></el-form-item>
+                  placeholder="选择负责人"
+                  :disabled="writeDisabled"
+                  :context-key="taskId"
+              /></el-form-item>
               <el-form-item label="分配原因"
                 ><el-input v-model="assignment.reason" maxlength="2000"
               /></el-form-item>
@@ -549,11 +576,7 @@
       :append-to-body="false"
       class="issue-drawer"
     >
-      <ContentWrap
-        v-if="selectedIssueId"
-        :body-style="{}"
-        v-loading="issueLoading"
-      >
+      <ContentWrap v-if="selectedIssueId" :body-style="{}" v-loading="issueLoading">
         <el-alert v-if="issueError" :title="issueError" type="error" :closable="false">
           <template #default><el-button link @click="loadIssue">重新加载问题</el-button></template>
         </el-alert>
@@ -589,6 +612,7 @@ import { checkPermi } from '@/utils/permission'
 import { useUserStore } from '@/store/modules/user'
 import { formatDate } from '@/utils/formatTime'
 import * as Api from '@/api/pms/inspection/tasks'
+import * as ReportResultsApi from '@/api/pms/inspection/reportResults'
 import type {
   AnnotationInput,
   CommandView,
@@ -605,8 +629,9 @@ import type {
 } from '@/api/pms/inspection/tasks'
 import * as RuleApi from '@/api/pms/inspection/rules'
 import * as FileApi from '@/api/pms/platform/file/version-reference'
-import { getSimpleUserList } from '@/api/system/user'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { inspectionFailure } from '../shared/interaction'
+import { inspectionEventActionName } from '../shared/history'
 import InspectionExecutionPanel from '../components/InspectionExecutionPanel.vue'
 import InspectionOnlinePanel from '../components/InspectionOnlinePanel.vue'
 import InspectionReportPanel from '../components/InspectionReportPanel.vue'
@@ -655,8 +680,7 @@ const loadError = ref(''),
 let loadSequence = 0,
   issueSequence = 0,
   ruleSequence = 0,
-  commandSequence = 0,
-  peopleSequence = 0
+  commandSequence = 0
 const statuses: Record<string, string> = {
   PREPARING: '待准备',
   PRECHECK_PENDING: '待预检',
@@ -757,14 +781,19 @@ const missingDescription = ref('')
 const missingFeedbackVisible = ref(false)
 const attachmentsVisible = ref(false)
 const assignment = reactive({ userId: '', reason: '' })
-const people = ref<Awaited<ReturnType<typeof getSimpleUserList>>>([])
 const terminal = computed(
   () => !!task.value && ['ARCHIVED', 'CANCELLED'].includes(task.value.statusCode)
 )
 type Intent = { taskId: string; label: string; section: string; run: () => Promise<unknown> }
 const pending = shallowRef<Intent>()
+const umcHistoryOnly = computed(
+  () =>
+    task.value?.attempts.find((a) => String(a.id) === String(task.value?.currentAttemptId))
+      ?.providerCode === 'UMC'
+)
 const writeDisabled = computed(
   () =>
+    umcHistoryOnly.value ||
     busy.value ||
     !!pending.value ||
     onlineBusy.value ||
@@ -776,6 +805,7 @@ const writeDisabled = computed(
 )
 const onlineDisabled = computed(
   () =>
+    umcHistoryOnly.value ||
     busy.value ||
     !!pending.value ||
     attachmentBusy.value ||
@@ -790,6 +820,7 @@ const onlineDisabled = computed(
 )
 const attachmentDisabled = computed(
   () =>
+    umcHistoryOnly.value ||
     busy.value ||
     !!pending.value ||
     onlineBusy.value ||
@@ -983,7 +1014,8 @@ const load = async (selectStep = false) => {
       fresh.value = true
       resetPreparation(value)
       clearDrafts()
-      if (selectStep) activeStep.value = selectedIssueId.value ? 'issues' : stateStep(value.statusCode)
+      if (selectStep)
+        activeStep.value = selectedIssueId.value ? 'issues' : stateStep(value.statusCode)
       void loadSelectable()
       void loadCommands()
     } else if (!selectedIssueId.value) loadError.value = '没有巡检任务查询权限。'
@@ -1027,7 +1059,10 @@ const retryPending = async () => {
     pending.value = undefined
     await load(true)
     if (fresh.value || issueFresh.value) message.success('已更新处理结果，请查看当前业务状态。')
-    if (fresh.value && intent.section === 'execution') executionPanelKey.value++
+    if (fresh.value && intent.section === 'execution') {
+      executionPanelKey.value++
+      activeStep.value = 'execute'
+    }
   } catch (error) {
     if (intent.taskId !== taskId.value) return
     const failure = inspectionFailure(error)
@@ -1036,7 +1071,8 @@ const retryPending = async () => {
     if (failure.refresh) {
       fresh.value = false
       issueFresh.value = false
-      writeError.value += ' 请刷新最新资料后继续。'
+      if (!failure.unknown && !anyDirty.value) await load(false)
+      if (!fresh.value && !issueFresh.value) writeError.value += ' 请刷新最新资料后继续。'
     }
   } finally {
     if (intent.taskId === taskId.value) busy.value = false
@@ -1101,7 +1137,12 @@ const reportMissing = () => {
     run: (c) => Api.reportMissingRule(c.id, data, c.version, c.key)
   })
 }
-const uploadLog = (data: { deviceId: WireLong; file: File; commandHint?: string }) => {
+const uploadLog = (data: {
+  deviceId: WireLong
+  file: File
+  commandHint?: string
+  sourceHost: string
+}) => {
   if (!task.value?.currentAttemptId) return
   const payload = { ...data, attemptId: task.value.currentAttemptId }
   return runTask({
@@ -1110,9 +1151,12 @@ const uploadLog = (data: { deviceId: WireLong; file: File; commandHint?: string 
     run: (c) => Api.uploadOfflineLog(c.id, payload, c.version, c.key)
   })
 }
-const uploadLogBatch = (file: File) => {
+const uploadLogBatch = (data: {
+  file: File
+  sourceHosts: { deviceId: WireLong; host: string }[]
+}) => {
   if (!task.value?.currentAttemptId) return
-  const payload = { file, attemptId: task.value.currentAttemptId }
+  const payload = { ...data, attemptId: task.value.currentAttemptId }
   return runTask({
     label: '登记多设备日志',
     section: 'execution',
@@ -1151,6 +1195,12 @@ const abandonLog = async (row: ExecutionView) => {
       Api.taskAction(c.id, 'abandon-log-parse', { executionId: row.id, reason }, c.version, c.key)
   })
 }
+const retryExternal = (reportId: WireLong) =>
+  runTask({
+    label: '恢复报告生成',
+    section: 'none',
+    run: (c) => ReportResultsApi.retry({ taskId: c.id, reportId, version: c.version, key: c.key })
+  })
 const generate = (data: { explanation: string }) =>
   runTask({
     label: '生成报告',
@@ -1193,18 +1243,6 @@ const archive = (action: 'request-archive' | 'archive') => {
     section: 'archive',
     run: (c) => Api.taskAction(c.id, action, { description }, c.version, c.key)
   })
-}
-const loadPeople = async () => {
-  const seq = ++peopleSequence
-  try {
-    const values = await getSimpleUserList()
-    if (seq === peopleSequence) people.value = values
-  } catch {
-    if (seq === peopleSequence) {
-      people.value = []
-      message.error('负责人候选加载失败')
-    }
-  }
 }
 const assign = () => {
   const ownerUserId = assignment.userId,
@@ -1323,13 +1361,13 @@ const downloadLog = (row: ExecutionView) =>
     referenceKey: row.fileReferenceKey,
     purpose: 'LOG'
   })
-const downloadReport = ({ file }: { report: ReportView; file: ReportFileView }) =>
+const downloadReport = ({ report, file }: { report: ReportView; file: ReportFileView }) =>
   download({
     taskId: taskId.value,
     artifactId: file.artifactId,
     versionNo: file.fileVersionNo,
     referenceKey: file.referenceKey,
-    purpose: 'REPORT'
+    purpose: report.sourceCode === 'UMC' ? 'UMC_REPORT' : 'REPORT'
   })
 const downloadEvidence = (row: EvidenceView) =>
   issue.value &&
@@ -1380,7 +1418,6 @@ watch(
     issueSequence++
     commandSequence++
     ruleSequence++
-    peopleSequence++
     task.value = undefined
     issue.value = undefined
     pending.value = undefined
@@ -1398,7 +1435,6 @@ onBeforeUnmount(() => {
   issueSequence++
   commandSequence++
   ruleSequence++
-  peopleSequence++
   window.removeEventListener('beforeunload', beforeUnload)
 })
 </script>

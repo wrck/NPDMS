@@ -11,6 +11,9 @@ import cn.iocoder.yudao.module.infra.framework.file.core.utils.FilePathUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.security.MessageDigest;
@@ -44,7 +47,10 @@ public class FileStorageReceiptAccessService {
             throw new IllegalArgumentException("FILE_STORAGE_RECEIPT_DB_ACCESS_INVALID");
         }
         FilePathUtils.validatePath(file.getPath());
-        String urlBase = receiptConfigDomain(file.getConfigId());
+        // The capability lives in this application's Redis, not at the storage client's configured domain.
+        String urlBase = RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes
+                ? normalizeDomain(ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString())
+                : receiptConfigDomain(file.getConfigId());
         String token = newToken();
         LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationSeconds);
         var ticket = new ReceiptTicket(file.getId(), file.getConfigId(), file.getPath(), file.getName(),

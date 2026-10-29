@@ -29,6 +29,25 @@ class InspectionReportRendererTest {
     private final InspectionReportRenderer renderer = new InspectionReportRenderer();
 
     @Test
+    void optionalCustomerSnapshotRendersWithoutInventingACustomerIdentity() throws Exception {
+        for (String customerName : new String[] {null, "", "现场手填客户"}) {
+            var context = ReportContext.builder().taskCode("INS-OPTIONAL").taskName("无客户巡检")
+                    .projectName("授权项目").customerName(customerName).mode("离线巡检")
+                    .revision(1).generatedAt("2026-10-29 20:00").results(List.of()).build();
+            var xml = renderer.render(new RenderRequest(context, Format.XML));
+            var document = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+                    .parse(new ByteArrayInputStream(xml.content()));
+            assertEquals(customerName == null ? "" : customerName,
+                    document.getElementsByTagName("customerName").item(0).getTextContent());
+            var word = renderer.render(new RenderRequest(context, Format.DOCX));
+            try (var file = new XWPFDocument(new ByteArrayInputStream(word.content()));
+                    var text = new XWPFWordExtractor(file)) {
+                assertTrue(text.getText().contains("客户：" + (customerName == null || customerName.isBlank() ? "—" : customerName)));
+            }
+        }
+    }
+
+    @Test
     void pdfEmbedsChineseFontAndKeepsLongResultAndLastDeviceAcrossPages() throws Exception {
         List<ResultRow> rows = new ArrayList<>();
         rows.add(new ResultRow("SN-FIRST", "链路健康检测", "网络", "严重", "检测失败", "低于阈值",

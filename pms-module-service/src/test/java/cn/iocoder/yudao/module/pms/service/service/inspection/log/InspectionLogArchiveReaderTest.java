@@ -17,6 +17,19 @@ import static org.junit.jupiter.api.Assertions.*;
 class InspectionLogArchiveReaderTest {
     private final InspectionLogArchiveReader reader = new InspectionLogArchiveReader();
 
+    @Test void umcSingleNameOptInRetainsContentGuardsAndDoesNotExtendZipMembersOrLegacy() throws Exception {
+        var content = "<device>show version\r\nSN: TEST-SN".getBytes(StandardCharsets.UTF_8);
+        assertEquals("设备甲(192.0.2.10)", reader.read(new Input("设备甲(192.0.2.10)", content, true)).getFirst().fileName());
+        assertThrows(IllegalArgumentException.class, () -> reader.read(new Input("192.0.2.10", content)));
+        assertThrows(IllegalArgumentException.class, () -> reader.read(new Input("capture.csv", content, true)));
+        assertThrows(IllegalArgumentException.class, () -> reader.read(new Input("192.0.2.999", content, true)));
+        assertThrows(IllegalArgumentException.class, () -> reader.read(new Input("192.0.2.10", new byte[] {'A', 0, 'B'}, true)));
+        assertThrows(IllegalArgumentException.class, () -> reader.read(new Input("192.0.2.10", "%PDF-1.7".getBytes(StandardCharsets.UTF_8), true)));
+        var archive = zip(List.of(new Entry("192.0.2.10", content)));
+        assertThrows(IllegalArgumentException.class, () -> reader.read(new Input("logs.zip", archive, true)));
+        assertThrows(IllegalArgumentException.class, () -> reader.read(new Input("192.0.2.10", archive, true)));
+    }
+
     @Test
     void readsUtf8BomAndGb18030WithoutChangingLogContents() {
         String original = "设备序列号：中文设备\r\n接口状态正常\n\u001B[32m保留终端控制\u001B[0m\t值=10\n";

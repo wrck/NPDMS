@@ -133,6 +133,7 @@ public class InspectionFeedbackService {
         access.project(new InspectionAccessService.ProjectAccess(command.context(), task.getProjectId(), true));
         var result = results.selectById(annotation.getResultId());
         require(result != null && Objects.equals(result.getTenantId(), task.getTenantId()) && Objects.equals(result.getTaskId(), task.getId()), "误报来源结果不完整");
+        require(!"UMC".equals(result.getSourceCode()) && result.getRuleRevisionId() != null, "UMC规则由UMC维护，不能复制为平台规则修订");
         var source = rules.detail(result.getRuleRevisionId());
         if (source.getVersion().longValue() != command.context().requireVersion())
             throw new InspectionException(InspectionException.Reason.VERSION_CONFLICT, "来源规则版本已变化，请刷新后重试", source.getVersion().longValue());

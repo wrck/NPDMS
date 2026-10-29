@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.service.service.inspection;
 
 import cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionTaskDO;
@@ -36,7 +37,7 @@ public class InspectionAccessService {
     public ProjectBusinessContextApi.AccessScope queryScope(InspectionRequestContext context) {
         var scope = projects.currentActorScope(ProjectBusinessContextApi.ActorQuery.builder()
                 .tenantId(context.tenantId()).actorId(context.actorId()).build());
-        if (permissions.hasAnyRoles(context.actorId(), "PROJECT_MANAGER")) {
+        if (hasManagerReadRole(context)) {
             // Assigned/authorized project visibility only; this set never grants task commands.
             return new ProjectBusinessContextApi.AccessScope(scope.visibleProjectIds(), scope.visibleProjectIds());
         }
@@ -77,6 +78,22 @@ public class InspectionAccessService {
                 .projectId(request.projectId()).expectedScopeVersion(scope.treeVersion()).build();
     }
 
+    /** Archive capability is distinct from actual service-manager membership. */
+    public boolean canArchive(ProjectAccess request) {
+        if (!permissions.hasAnyPermissions(request.context().actorId(), "pms:inspection-task:archive")) return false;
+        return manager(request) || administratorArchive(request);
+    }
+
+    private boolean administratorArchive(ProjectAccess request) {
+        var context = request.context();
+        if (!permissions.hasAnyRoles(context.actorId(), "super_admin")
+                || !permissions.hasAnyPermissions(context.actorId(), "pms:inspection-task:archive")) return false;
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder().tenantId(context.tenantId())
+                .subjectUserId(context.actorId()).anchorProjectId(request.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+        return scope != null && scope.fullProjectIds().contains(request.projectId());
+    }
+
     public InspectionTaskDO task(TaskAccess request) {
         var context = request.context();
         permission(context, request.permission());
@@ -85,15 +102,18 @@ public class InspectionAccessService {
             throw new InspectionException(InspectionException.Reason.NOT_FOUND, "巡检任务不存在或不可见");
         var project = project(new ProjectAccess(context, task.getProjectId(), request.write()));
         boolean manager = manager(new ProjectAccess(context, task.getProjectId(), request.write()));
-        boolean projectManagerRead = !request.write() && !request.managerOnly()
-                && permissions.hasAnyRoles(context.actorId(), "PROJECT_MANAGER");
-        if (!projectManagerRead && (request.managerOnly() ? !manager : (!Objects.equals(task.getOwnerUserId(), context.actorId()) && !manager)))
+        boolean archiveAdministrator = (request.managerOnly() && "pms:inspection-task:archive".equals(request.permission())
+                || !request.write() && "pms:inspection-task:query".equals(request.permission()))
+                && administratorArchive(new ProjectAccess(context, task.getProjectId(), request.write()));
+        boolean managerRoleRead = !request.write() && !request.managerOnly() && (hasManagerReadRole(context) || archiveAdministrator);
+        if (!managerRoleRead && (request.managerOnly() ? !(manager || archiveAdministrator) : (!Objects.equals(task.getOwnerUserId(), context.actorId()) && !manager)))
             forbidden();
         if (request.write()) {
             task = tasks.selectForUpdate(new InspectionTaskRows(context.tenantId(), request.taskId()));
             if (task == null || !Objects.equals(task.getProjectId(), project.projectId()))
                 throw new InspectionException(InspectionException.Reason.STATE_CONFLICT, "巡检任务归属已变化");
-            if (request.managerOnly() ? !manager : (!Objects.equals(task.getOwnerUserId(), context.actorId()) && !manager))
+            if (request.managerOnly() ? !(manager || archiveAdministrator && administratorArchive(new ProjectAccess(context, task.getProjectId(), true)))
+                    : (!Objects.equals(task.getOwnerUserId(), context.actorId()) && !manager))
                 forbidden();
             if (!Objects.equals(task.getVersion(), context.requireVersion()))
                 throw new InspectionException(InspectionException.Reason.VERSION_CONFLICT,
@@ -116,6 +136,11 @@ public class InspectionAccessService {
 
     public void permission(InspectionRequestContext context, String permission) {
         if (permission == null || !permissions.hasAnyPermissions(context.actorId(), permission)) forbidden();
+    }
+
+    private boolean hasManagerReadRole(InspectionRequestContext context) {
+        return permissions.hasAnyRoles(context.actorId(), ProjectMemberRoles.PROJECT_MANAGER)
+                || permissions.hasAnyRoles(context.actorId(), ProjectMemberRoles.SERVICE_CODES.toArray(String[]::new));
     }
 
     private static void forbidden() {

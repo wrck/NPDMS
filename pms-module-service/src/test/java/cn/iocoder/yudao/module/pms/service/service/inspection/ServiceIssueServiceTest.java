@@ -1,6 +1,9 @@
 package cn.iocoder.yudao.module.pms.service.service.inspection;
 
 import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.InspectionDetectionResultMapper;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionDetectionResultDO;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionEvidenceDO;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionTaskDO;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.ServiceIssueDO;
@@ -27,6 +30,7 @@ class ServiceIssueServiceTest {
     private final InspectionTaskMapper taskMapper = mock(InspectionTaskMapper.class);
     private final InspectionTaskService tasks = mock(InspectionTaskService.class);
     private final InspectionClosureFacts closure = mock(InspectionClosureFacts.class);
+    private final InspectionDetectionResultMapper results = mock(InspectionDetectionResultMapper.class);
     private final ServiceIssueMapper issues = mock(ServiceIssueMapper.class);
     private final ServiceIssueRemediationMapper remediations = mock(ServiceIssueRemediationMapper.class);
     private final InspectionEvidenceMapper evidence = mock(InspectionEvidenceMapper.class);
@@ -42,7 +46,7 @@ class ServiceIssueServiceTest {
 
     @BeforeEach
     void setup() {
-        service = new ServiceIssueService(access, taskMapper, tasks, closure, issues,
+        service = new ServiceIssueService(access, taskMapper, tasks, closure, issues, results,
                 remediations, evidence, files, fileEvidence, permissions, users);
         task = new InspectionTaskDO();
         task.setId(10L); task.setTenantId(1L); task.setVersion(5L); task.setProjectId(100L);
@@ -257,6 +261,55 @@ class ServiceIssueServiceTest {
         assertEquals("CANCELLED", task.getStatusCode());
         verify(tasks).save(any(InspectionTaskService.Save.class));
         verify(tasks, never()).transition(any());
+    }
+
+    @Test
+    void umcEvidenceCanBeSavedWithoutProgressText() {
+        umcResult(1L, 10L);
+        when(files.lock(any())).thenReturn(new FileArtifactVersionFact(100L, 1, "issue:50:qa",
+                "INSPECTION_EVIDENCE", "proof.txt", 10L, "text/plain", "sha", "AVAILABLE", "ACTIVE", null, 1L));
+        service.process(new ServiceIssueService.Process(context(2L, 7L), 50L, null,
+                List.of(new InspectionFiles.Reference(100L, 1, "issue:50:qa"))));
+        var saved = ArgumentCaptor.forClass(ServiceIssueRemediationDO.class);
+        verify(remediations).insert(saved.capture());
+        assertEquals("", saved.getValue().getContent());
+        verify(evidence).insert(any(InspectionEvidenceDO.class));
+        assertEquals("PROCESSING", currentIssue.getStatusCode());
+    }
+
+    @Test
+    void emptyUmcProgressWithoutEvidenceDoesNotCreateARecord() {
+        umcResult(1L, 10L);
+        assertThrows(InspectionException.class, () -> service.process(
+                new ServiceIssueService.Process(context(2L, 7L), 50L, "  ", List.of())));
+        assertNoWrites();
+    }
+
+    @Test
+    void platformProgressStillRequiresText() {
+        assertThrows(InspectionException.class, () -> service.process(
+                new ServiceIssueService.Process(context(2L, 7L), 50L, null,
+                        List.of(new InspectionFiles.Reference(100L, 1, "issue:50:qa")))));
+        assertNoWrites();
+    }
+
+    @Test
+    void anotherTenantOrTaskCannotMakeProgressOptional() {
+        for (var identity : List.of(new long[]{2L, 10L}, new long[]{1L, 11L})) {
+            umcResult(identity[0], identity[1]);
+            assertThrows(InspectionException.class, () -> service.process(
+                    new ServiceIssueService.Process(context(2L, 7L), 50L, null,
+                            List.of(new InspectionFiles.Reference(100L, 1, "issue:50:qa")))));
+        }
+        assertNoWrites();
+    }
+
+    private void umcResult(Long tenant, Long taskId) {
+        currentIssue.setResultId(80L);
+        var result = new InspectionDetectionResultDO();
+        result.setId(80L); result.setTenantId(tenant); result.setTaskId(taskId);
+        result.setSourceCode("UMC"); result.setSourceReportId(90L);
+        when(results.selectById(80L)).thenReturn(result);
     }
 
     private enum InvalidProof { NO_PROCESS, NO_EVIDENCE, OTHER_ISSUE, NON_PROCESS_RECORD, UNAVAILABLE_FILE }

@@ -72,6 +72,24 @@ class FileStorageReceiptAccessServiceTest {
     }
 
     @Test
+    void webRequestIssuesTicketAtServingApplicationInsteadOfRemoteStorageDomain() {
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        request.setScheme("http"); request.setServerName("10.210.0.11"); request.setServerPort(59191);
+        request.setContextPath("/app"); request.setRequestURI("/app/admin-api/api/v1/pms/files/80/access-tickets");
+        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(
+                new org.springframework.web.context.request.ServletRequestAttributes(request));
+        try {
+            String url = service.issue(file, 120);
+            assertTrue(url.startsWith("http://10.210.0.11:59191/app/admin-api/infra/file-storage-receipts/content?ticket="));
+            assertFalse(url.contains("files.example"));
+            when(files.selectById(501L)).thenReturn(file); when(configs.getFileClient(51L)).thenReturn(frozenClient);
+            when(frozenClient.getContent(file.getPath())).thenReturn(new byte[]{1,2,3});
+            assertArrayEquals(new byte[]{1,2,3}, service.read(token(url)).content());
+        } catch (Exception exception) { fail(exception); }
+        finally { org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes(); }
+    }
+
+    @Test
     void rejectsUnmanagedFilesBeforeIssuingACapability() {
         file.setPath("public/document.pdf");
         assertThrows(IllegalArgumentException.class, () -> service.issue(file, 60));

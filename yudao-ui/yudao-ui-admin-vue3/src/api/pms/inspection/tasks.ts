@@ -64,6 +64,7 @@ export interface AttemptView {
   id: WireLong
   attemptNo?: number
   mode: 'ONLINE' | 'OFFLINE'
+  providerCode?: 'PLATFORM' | 'UMC'
   statusCode: string
   reason?: string
   startedBy?: WireLong
@@ -125,6 +126,19 @@ export interface ResultView {
   outputSummary?: string
   detailCode?: string
   detailMessage?: string
+  sourceCode?: string
+  reportId?: WireLong
+  externalRule?: import('./reportResults').UmcRule
+}
+
+export interface UmcExecutionResultView {
+  reportId: WireLong
+  attemptId: WireLong
+  executionId: WireLong
+  deviceId: WireLong
+  statusCode: string
+  failureMessage?: string
+  result?: import('./reportResults').UmcDevice
 }
 
 export interface ReportFileView {
@@ -149,6 +163,7 @@ export interface ReportView {
   generatedBy?: WireLong
   files?: ReportFileView[]
   resultIds?: WireLong[]
+  componentReportIds?: WireLong[]
 }
 
 export interface AnnotationView {
@@ -160,8 +175,10 @@ export interface AnnotationView {
   reason?: string
   changeReason?: string
   responsibleUserId?: WireLong
+  responsibleName?: string
   dueAt?: number
   annotatedBy?: WireLong
+  annotatedByName?: string
   annotatedAt?: number
 }
 
@@ -222,6 +239,7 @@ export interface TaskDetail extends TaskSummary {
     receivedAt: number
   }[]
   results: ResultView[]
+  umcResults?: UmcExecutionResultView[]
   reports: ReportView[]
   annotations: AnnotationView[]
   issues: IssueView[]
@@ -237,10 +255,12 @@ export interface TaskDetail extends TaskSummary {
     reportedAt: number
   }[]
   manager: boolean
+  canArchive?: boolean
   owner: boolean
 }
 export interface CreateTaskInput {
   taskName?: string
+  customerName?: string
   projectId: WireLong
   deviceIds: WireLong[]
   background: string
@@ -377,6 +397,7 @@ export const uploadOfflineLog = (
     deviceId: WireLong
     file: File
     commandHint?: string
+    sourceHost?: string
   },
   version: WireLong,
   key: string
@@ -386,27 +407,34 @@ export const uploadOfflineLog = (
   form.append('deviceId', String(data.deviceId))
   form.append('file', data.file)
   if (data.commandHint) form.append('commandHint', data.commandHint)
+  if (data.sourceHost) form.append('sourceHost', data.sourceHost)
   return request.post<TaskSummary>({
     url: `${base}/${taskId}/offline-logs`,
     data: form,
     headers: { ...writeHeaders(key, version), 'Content-Type': 'multipart/form-data' },
-    timeout: 180000
+    timeout: 195000
   })
 }
 export const uploadOfflineLogBatch = (
   taskId: WireLong,
-  data: { attemptId: WireLong; file: File },
+  data: { attemptId: WireLong; sourceHosts?: { deviceId: WireLong; host: string }[] } & (
+    | { file: File; files?: never }
+    | { files: File[]; file?: never }
+  ),
   version: WireLong,
   key: string
 ) => {
   const form = new FormData()
   form.append('attemptId', String(data.attemptId))
-  form.append('file', data.file)
+  if (data.files) data.files.forEach((file) => form.append('files', file))
+  else form.append('file', data.file)
+  if (data.sourceHosts && (!data.files || data.sourceHosts.length))
+    form.append('sourceHosts', JSON.stringify(data.sourceHosts))
   return request.post<TaskSummary>({
     url: `${base}/${taskId}/offline-log-batches`,
     data: form,
     headers: { ...writeHeaders(key, version), 'Content-Type': 'multipart/form-data' },
-    timeout: 180000
+    timeout: 195000 * Math.max(1, data.sourceHosts?.length || 1)
   })
 }
 export const generateReport = (

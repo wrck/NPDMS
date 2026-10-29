@@ -15,6 +15,10 @@ import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.ServiceIssu
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.InspectionEvidenceMapper;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.InspectionExecutionMapper;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.InspectionReportFileMapper;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.InspectionReportRevisionMapper;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionReportRevisionDO;
+import cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcReportResults;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.InspectionTaskMapper;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.ServiceIssueMapper;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.InspectionTaskRows;
@@ -46,6 +50,7 @@ class InspectionFilePolicyTest {
     private static final String REFERENCE_KEY = "issue:30:evidence";
     private static final InspectionTaskRows TASK_ROWS = new InspectionTaskRows(TENANT_ID, TASK_ID);
 
+    private final InspectionReportRevisionMapper reports = mock(InspectionReportRevisionMapper.class);
     private final InspectionTaskMapper tasks = mock(InspectionTaskMapper.class);
     private final InspectionReportFileMapper reportFiles = mock(InspectionReportFileMapper.class);
     private final InspectionExecutionMapper executions = mock(InspectionExecutionMapper.class);
@@ -54,7 +59,7 @@ class InspectionFilePolicyTest {
     private final InspectionAccessService access = mock(InspectionAccessService.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
     private final InspectionFilePolicy policy = new InspectionFilePolicy(
-            tasks, reportFiles, executions, evidence, issues, access, permissions);
+            tasks, reportFiles, executions, evidence, issues, access, permissions, reports);
     private InspectionTaskDO task;
 
     @BeforeEach
@@ -77,6 +82,50 @@ class InspectionFilePolicyTest {
     @AfterEach
     void clearTenantContext() {
         TenantContextHolder.clear();
+    }
+
+    @Test
+    void umcFilesRequireNativeGenerationAndBothInspectionPermissions() {
+        task.setOwnerUserId(ACTOR_ID); task.setStatusCode("EXECUTING");
+        when(permissions.hasAnyPermissions(ACTOR_ID, "pms:inspection-report:generate")).thenReturn(true);
+        when(permissions.hasAnyPermissions(ACTOR_ID, "pms:inspection-task:execute")).thenReturn(true);
+        var query = new NativeGeneratedFilePolicyQuery(TENANT_ID, ACTOR_ID, "SRV", "INSPECTION_TASK", TASK_ID, 5L, "UMC_REPORT", null);
+        var allowed = policy.lockAndRevalidateNativeGeneratedFile(query);
+        assertTrue(allowed.allowed()); assertTrue(allowed.allowedMediaTypes().contains("application/vnd.ms-wordml"));
+        assertFalse(allowed.allowedMediaTypes().contains("application/json"));
+        assertFalse(policy.inspect(new FileBusinessObjectPolicyQuery(TENANT_ID, ACTOR_ID, "SRV", "INSPECTION_TASK",
+                TASK_ID.toString(), "UMC_REPORT", "direct-upload", UPLOAD)).allowed());
+        when(permissions.hasAnyPermissions(ACTOR_ID, "pms:inspection-task:execute")).thenReturn(false);
+        assertFalse(policy.lockAndRevalidateNativeGeneratedFile(query).allowed());
+    }
+
+    @Test
+    void archivedUmcDocAllowsOnlyItsExactFrozenVersion() {
+        task.setOwnerUserId(ACTOR_ID); task.setStatusCode("ARCHIVED");
+        when(permissions.hasAnyPermissions(ACTOR_ID, "pms:inspection-task:query")).thenReturn(true);
+        var file = new cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionReportFileDO();
+        file.setReferenceKey("umc-stored"); file.setArtifactId(80L); file.setFileVersionNo(2);
+        when(reportFiles.selectForTask(TASK_ROWS)).thenReturn(List.of(file));
+        var scope = new FileBusinessObjectPolicyQuery(TENANT_ID, ACTOR_ID, "SRV", "INSPECTION_TASK", TASK_ID.toString(),
+                "UMC_REPORT", "umc-stored", DOWNLOAD);
+        assertTrue(policy.inspectFrozenFileVersion(new FrozenFileVersionAccessQuery(scope, 80L, 2, SCOPE_VERSION)).allowed());
+        assertFalse(policy.inspectFrozenFileVersion(new FrozenFileVersionAccessQuery(scope, 80L, 3, SCOPE_VERSION)).allowed());
+    }
+
+    @Test
+    void umcInputReferenceUsesExistingReportSourceAndDeniesWrongVersionOrMalformedContext() {
+        task.setOwnerUserId(ACTOR_ID);
+        when(permissions.hasAnyPermissions(ACTOR_ID, "pms:inspection-task:query")).thenReturn(true);
+        var report = new InspectionReportRevisionDO(); report.setId(90L);
+        report.setSourceContextJson(JsonUtils.toJsonString(new InspectionUmcReportResults.Source(91L, "192.0.2.10", "TEST-SN", true, null,
+                new InspectionUmcReportResults.StoredLog(80L, 2, "umc-input", "a".repeat(64)))));
+        when(reports.selectUmcSources(TASK_ROWS)).thenReturn(List.of(report));
+        var scope = new FileBusinessObjectPolicyQuery(TENANT_ID, ACTOR_ID, "SRV", "INSPECTION_TASK", TASK_ID.toString(),
+                "UMC_REPORT", "umc-input", DOWNLOAD);
+        assertTrue(policy.inspectFrozenFileVersion(new FrozenFileVersionAccessQuery(scope, 80L, 2, SCOPE_VERSION)).allowed());
+        assertFalse(policy.inspectFrozenFileVersion(new FrozenFileVersionAccessQuery(scope, 80L, 3, SCOPE_VERSION)).allowed());
+        report.setSourceContextJson("{}");
+        assertFalse(policy.inspectFrozenFileVersion(new FrozenFileVersionAccessQuery(scope, 80L, 2, SCOPE_VERSION)).allowed());
     }
 
     @Test

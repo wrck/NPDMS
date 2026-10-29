@@ -44,6 +44,41 @@ class FileContentValidationTest {
 
     private static final String DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+    @Test
+    void acceptsChecklistZipAndOpaqueLicenseWhileRejectingOtherBinaryAndBatchFiles() throws Exception {
+        var scans = new AtomicInteger();
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(scan -> {
+            scans.incrementAndGet();
+            return new FileSecurityScanResult("PASSED", "TEST", "1", null);
+        }), true);
+        var policy = new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "MULTIPLE",
+                Set.of("CUTOVER_CHECKLIST_MANUAL_EVIDENCE"), Set.of("application/zip", "text/plain", "application/octet-stream"), 1_048_576L, "INTERNAL");
+        byte[] zip;
+        try (var output = new ByteArrayOutputStream(); var archive = new ZipOutputStream(output)) {
+            archive.putNextEntry(new ZipEntry("backup.cfg"));
+            archive.write("test-only backup".getBytes(StandardCharsets.UTF_8));
+            archive.closeEntry(); archive.finish(); zip = output.toByteArray();
+        }
+        byte[] license = "TEST_ONLY_LICENSE\nserial=sample\n".getBytes(StandardCharsets.UTF_8);
+        assertArrayEquals(zip, service.validate(command(zip, "backup.zip", "application/zip", null, policy)).content());
+        assertArrayEquals(license, service.validate(command(license, "backup.lic", "text/plain", null, policy)).content());
+        assertArrayEquals(license, service.validate(command(license, "backup.lic", "application/octet-stream", null, policy)).content());
+        byte[] binaryLicense = {0, 1, 2, (byte) 255, (byte) 128, 0, 12};
+        var binary = service.validate(command(binaryLicense, "binary.LIC", "application/octet-stream", null, policy));
+        assertArrayEquals(binaryLicense, binary.content());
+        assertEquals("lic", binary.extension());
+        assertEquals(4, scans.get());
+        assertThrows(ServiceException.class, () -> service.validate(command(PDF, "backup.zip", "application/zip", null, policy)));
+        assertThrows(ServiceException.class, () -> service.validate(command(PDF, "backup.lic", "text/plain", null, policy)));
+        assertThrows(ServiceException.class, () -> service.validate(command(license, "backup.bat", "text/plain", null, policy)));
+        assertThrows(ServiceException.class, () -> service.validate(command(binaryLicense, "backup.bin", "application/octet-stream", null, policy)));
+        assertThrows(ServiceException.class, () -> service.validate(command(binaryLicense, "backup.bat", "application/octet-stream", null, policy)));
+        var otherOwner = new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "MULTIPLE",
+                Set.of("OTHER"), Set.of("text/plain"), 1_048_576L, "INTERNAL");
+        assertThrows(ServiceException.class, () -> service.validate(command(license, "backup.lic", "text/plain", null, otherOwner)));
+        assertEquals(4, scans.get());
+    }
+
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {"show version\n", "#!/bin/sh\necho script-format-acceptance\n"})
     void acceptsShellScriptAsPlainTextWithoutAllowingBinaryContent(String script) {

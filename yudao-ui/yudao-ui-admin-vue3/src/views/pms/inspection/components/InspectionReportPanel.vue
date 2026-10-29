@@ -5,7 +5,7 @@
       <el-tag type="info">{{ task.reports.length }} 个版本</el-tag>
     </header>
     <el-alert
-      v-if="!currentReport"
+      v-if="!currentReport && !task.reports.length"
       title="尚无当前报告"
       type="info"
       :closable="false"
@@ -21,10 +21,21 @@
       >
         <template #title
           ><div class="section-heading report-version-heading">
-            <h3>报告 V{{ report.revisionNo ?? '未提供' }}</h3>
+            <h3
+              >{{
+                report.componentReportIds?.length
+                  ? 'UMC正式巡检报告'
+                  : report.sourceCode === 'UMC'
+                    ? 'UMC设备报告'
+                    : '报告'
+              }}
+              V{{ report.revisionNo ?? '未提供' }}</h3
+            >
             <div class="report-tags">
               <el-tag v-if="isCurrent(report)" type="success">当前报告</el-tag>
-              <el-tag v-else type="info">历史版本</el-tag>
+              <el-tag v-else type="info">{{
+                report.sourceCode === 'UMC' ? '已保存版本' : '历史版本'
+              }}</el-tag>
               <el-tag :type="report.statusCode === 'FAILED' ? 'danger' : 'info'">{{
                 statusLabel(report.statusCode)
               }}</el-tag>
@@ -32,6 +43,9 @@
           </div></template
         >
         <el-descriptions :column="smallScreen ? 1 : 2" class="mt-12px">
+          <el-descriptions-item v-if="report.sourceCode === 'UMC'" label="对应设备">{{
+            reportDevice(report)
+          }}</el-descriptions-item>
           <el-descriptions-item label="来源">{{
             sourceLabel(report.sourceCode)
           }}</el-descriptions-item>
@@ -78,6 +92,12 @@
             </template></el-table-column
           >
           <el-table-column prop="formatCode" label="格式" width="90" />
+          <el-table-column
+            v-if="report.componentReportIds?.length"
+            label="对应设备 / SN"
+            min-width="200"
+            ><template #default="{ row }">{{ fileDevice(row) }}</template></el-table-column
+          >
           <el-table-column label="文件名" min-width="200" show-overflow-tooltip>
             <template #default="{ row }">{{ row.fileName || '未提供文件名' }}</template>
           </el-table-column>
@@ -90,16 +110,55 @@
                 type="primary"
                 :disabled="!hasReference(row)"
                 @click="download(report, row)"
-                >下载此版本文件</el-button
+                >{{
+                  report.componentReportIds?.length
+                    ? `下载 ${fileDevice(row)} DOC`
+                    : '下载此版本文件'
+                }}</el-button
               >
               <span v-if="!hasReference(row)" class="help-text">文件引用不完整</span>
             </template>
           </el-table-column>
         </el-table>
+        <InspectionReportResult
+          v-if="
+            report.sourceCode === 'UMC' &&
+            !report.componentReportIds?.length &&
+            report.statusCode === 'AVAILABLE'
+          "
+          :task-id="task.id"
+          :report-id="report.id"
+        />
+        <template v-if="report.componentReportIds?.length">
+          <p class="help-text">本次报告包含以下全部设备报告。</p>
+          <InspectionReportResult
+            v-for="sourceId in report.componentReportIds"
+            :key="String(sourceId)"
+            :task-id="task.id"
+            :report-id="sourceId"
+          />
+        </template>
+        <el-button
+          v-if="
+            report.sourceCode === 'UMC' &&
+            report.statusCode === 'GENERATING' &&
+            String(report.attemptId) === String(task.currentAttemptId)
+          "
+          :disabled="disabled"
+          @click="emit('retryExternal', report.id)"
+          >确认或重试报告生成</el-button
+        >
       </el-collapse-item>
     </el-collapse>
 
-    <el-collapse v-if="canGenerate" v-model="writeSections" class="report-writing">
+    <el-button
+      v-if="umcMode && canGenerate && task.statusCode === 'REPORT_PENDING'"
+      type="primary"
+      :disabled="disabled"
+      @click="emit('adoptExternal')"
+      >采用全部设备UMC报告并进入问题确认</el-button
+    >
+    <el-collapse v-if="canGenerate && !umcMode" v-model="writeSections" class="report-writing">
       <el-collapse-item name="write" title="生成或补充巡检报告" :disabled="currentBusy">
         <div class="report-mode-titles" role="group" aria-label="报告提交方式">
           <h3 class="inspection-section-title" :class="{ 'is-active': reportMode === 'GENERATE' }">
@@ -141,8 +200,7 @@
 
         <section v-show="reportMode === 'MANUAL'" class="write-section" aria-label="提交人工报告">
           <p class="help-text"
-            >至少提交一种报告格式和人工报告说明，每种格式保留一个文件。支持
-            PDF、DOCX、DOC、XML，实际文件格式由服务端校验。</p
+            >至少提交一种报告格式和人工报告说明，每种格式保留一个文件。支持 PDF、DOCX、DOC、XML。</p
           >
           <el-form label-position="top" :disabled="disabled || currentBusy">
             <el-form-item label="人工报告说明" required
@@ -243,6 +301,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
+import InspectionReportResult from './InspectionReportResult.vue'
 import { generateUUID } from '@/utils'
 import { checkPermi } from '@/utils/permission'
 import { formatDate } from '@/utils/formatTime'
@@ -258,12 +317,14 @@ import type {
   WireLong
 } from '@/api/pms/inspection/tasks'
 
-const props = defineProps<{ task: TaskDetail; disabled: boolean }>()
+const props = defineProps<{ task: TaskDetail; disabled: boolean; umcMode?: boolean }>()
 const reportSections = ref<Array<string | number>>([])
 const writeSections = ref<Array<string | number>>([])
 const reportMode = ref<'GENERATE' | 'MANUAL'>('GENERATE')
 type FormatCode = 'PDF' | 'DOCX' | 'DOC' | 'XML'
 const emit = defineEmits<{
+  adoptExternal: []
+  retryExternal: [reportId: WireLong]
   generate: [value: { explanation: string }]
   submitManual: [
     value: { explanation: string; files: { formatCode: FormatCode; file: FileReference }[] }
@@ -273,7 +334,11 @@ const emit = defineEmits<{
 }>()
 const message = useMessage()
 const smallScreen = useMediaQuery('(max-width: 768px)')
-const canGenerate = computed(() => checkPermi(['pms:inspection-report:generate']))
+const canGenerate = computed(
+  () =>
+    checkPermi(['pms:inspection-report:generate']) &&
+    ['REPORT_PENDING', 'ANNOTATION_PENDING'].includes(props.task.statusCode)
+)
 const canUpload = computed(() => checkPermi(['pms:file:upload']))
 const canDownload = computed(() => checkPermi(['pms:file:download']))
 const generationExplanation = ref('')
@@ -305,21 +370,46 @@ const draftFiles = ref<DraftFile[]>([])
 const currentReport = computed(() =>
   props.task.reports.find((report) => String(report.id) === String(props.task.currentReportId))
 )
-watch(
-  () => `${props.task.id}:${currentReport.value?.id ?? ''}`,
-  () => {
-    reportSections.value = currentReport.value ? [String(currentReport.value.id)] : []
-    writeSections.value = currentReport.value ? [] : ['write']
-  },
-  { immediate: true }
-)
 const isCurrent = (report: ReportView) => String(report.id) === String(props.task.currentReportId)
+const reportDevice = (report: ReportView) => {
+  if (report.componentReportIds?.length) return `全部${report.componentReportIds.length}台设备`
+  const saved = props.task.umcResults?.find((row) => String(row.reportId) === String(report.id))
+  const device = props.task.devices.find((row) => String(row.deviceId) === String(saved?.deviceId))
+  return saved?.result?.sn || device?.serialNumber || '原报告未关联执行设备'
+}
+const fileDevice = (file: ReportFileView) => {
+  const source = props.task.reports.find(
+    (report) =>
+      !report.componentReportIds?.length &&
+      report.files?.some((row) => String(row.id) === String(file.id))
+  )
+  return source ? reportDevice(source) : '未提供设备'
+}
 const orderedReports = computed(() =>
   [...props.task.reports].sort(
     (left, right) =>
       (isCurrent(right) ? 1 : 0) - (isCurrent(left) ? 1 : 0) ||
       (right.revisionNo ?? 0) - (left.revisionNo ?? 0)
   )
+)
+watch(
+  () => `${props.task.id}:${orderedReports.value[0]?.id ?? ''}`,
+  () => {
+    const currentUmc = orderedReports.value.filter(
+      (report) =>
+        report.sourceCode === 'UMC' &&
+        String(report.attemptId) === String(props.task.currentAttemptId)
+    )
+    reportSections.value = currentReport.value
+      ? [String(currentReport.value.id)]
+      : currentUmc.length
+        ? currentUmc.map((report) => String(report.id))
+        : orderedReports.value[0]
+          ? [String(orderedReports.value[0].id)]
+          : []
+    writeSections.value = currentReport.value || props.task.reports.length ? [] : ['write']
+  },
+  { immediate: true }
 )
 const statusLabels: Record<string, string> = {
   AVAILABLE: '文件已就绪',
@@ -328,7 +418,13 @@ const statusLabels: Record<string, string> = {
 }
 const statusLabel = (status: string) => statusLabels[status] || status
 const sourceLabel = (source?: string) =>
-  source === 'PLATFORM' ? '平台基础模板' : source === 'MANUAL' ? '人工报告' : source || '未提供'
+  source === 'PLATFORM'
+    ? '平台基础模板'
+    : source === 'MANUAL'
+      ? '人工报告'
+      : source === 'UMC'
+        ? 'UMC日志报告'
+        : source || '未提供'
 const currentSlot = computed(() =>
   uploadSlots.value.find((slot) => slot.referenceKey === activeReferenceKey.value)
 )

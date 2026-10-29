@@ -12,6 +12,7 @@ public class InspectionAttemptDO extends BaseBusinessEntity {
     private Long taskId;
     private Integer attemptNo;
     private String mode;
+    private String providerCode;
     private String statusCode;
     private String reason;
     private Long startedBy;

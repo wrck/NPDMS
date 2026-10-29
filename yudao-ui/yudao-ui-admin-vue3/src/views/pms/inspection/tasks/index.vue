@@ -105,7 +105,9 @@
           <el-table-column prop="taskCode" label="任务编号" min-width="190" />
           <el-table-column prop="taskName" label="任务名称" min-width="200" show-overflow-tooltip />
           <el-table-column prop="projectName" label="项目" min-width="180" show-overflow-tooltip />
-          <el-table-column prop="customerName" label="客户" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="customerName" label="客户" min-width="160" show-overflow-tooltip
+            ><template #default="{ row }">{{ row.customerName || '—' }}</template></el-table-column
+          >
           <el-table-column label="负责人" min-width="110">
             <template #default="{ row }">{{ row.ownerName || '未提供姓名' }}</template>
           </el-table-column>
@@ -190,6 +192,15 @@
                 </el-select>
               </el-form-item>
         </ProjectInformationCard>
+        <el-form-item v-if="canFillCustomerName" label="客户名称（选填）" prop="customerName">
+          <el-input
+            v-model="form.customerName"
+            data-testid="inspection-create-customer-name"
+            :maxlength="300"
+            placeholder="可填写本次巡检的客户名称"
+          />
+          <p class="help-text">仅记录在本次巡检中，归档到客户资产库仍需关联客户档案。</p>
+        </el-form-item>
         <el-form-item prop="deviceIds" class="device-selection-field" style="display: block">
           <ProjectDeviceSelection
             :model-value="devices" :project-id="form.projectId"
@@ -232,7 +243,7 @@
               </el-radio-group>
             </el-form-item>
             <p class="help-text"
-              >保存后进入任务详情，继续选择巡检规则和配置执行信息。负责人默认为当前登录工程师，服务经理可在创建后分配。</p
+              >保存后进入任务详情，继续配置日志采集或上传日志获取巡检报告。负责人默认为当前登录工程师，服务经理可在创建后分配。</p
             >
           </div>
         </section>
@@ -246,7 +257,7 @@
           :loading="submitting"
           :disabled="!canCreate || (!pendingCreate && (devicesLoading))"
           @click="submitCreate"
-          >{{ pendingCreate ? '重试原请求' : '保存巡检准备' }}</el-button
+          >{{ submitting ? '保存中' : pendingCreate ? '重试原请求' : '保存巡检准备' }}</el-button
         >
       </footer>
     </template>
@@ -381,15 +392,18 @@ const createVisible = ref(false)
 const formRef = ref<FormInstance>()
 const form = reactive({
   projectId: '',
+  customerName: '',
   deviceIds: [] as string[],
   background: '',
   plannedAt: null as Date | null,
-  mode: 'ONLINE' as CreateTaskInput['mode']
+  mode: 'OFFLINE' as CreateTaskInput['mode']
 })
 const defaultPlannedAt = ref<number>()
 const { project: projectInformation, customerServiceLevel: projectCustomerServiceLevel,
   loading: projectInformationLoading, error: projectInformationError, load: loadProjectInformation } = useProjectInformation()
 watch(() => form.projectId, projectId => { void loadProjectInformation(projectId) })
+const canFillCustomerName = computed(() => !!form.projectId && !!projectInformation.value && !projectInformationLoading.value &&
+  !projectInformationError.value && !projectInformation.value.customerName?.trim())
 const rules: FormRules = {
   projectId: [{ required: true, message: '请选择项目', trigger: 'change' }],
   deviceIds: [
@@ -405,7 +419,7 @@ const updateDevices = (selected: DeviceOption[]) => {
   form.deviceIds = selected.map(device => String(device.deviceId))
   formRef.value?.clearValidate('deviceIds')
 }
-const changeProject = () => { updateDevices([]) }
+const changeProject = () => { updateDevices([]); form.customerName = '' }
 const submitting = ref(false)
 const createError = ref('')
 const pendingCreate = ref<{ key: string; data: CreateTaskInput } | null>(null)
@@ -415,16 +429,17 @@ const createDirty = computed(
     form.deviceIds.length > 0 ||
     !!form.background ||
     form.plannedAt?.getTime() !== defaultPlannedAt.value ||
-    form.mode !== 'ONLINE'
+    form.mode !== 'OFFLINE'
 )
 const resetCreateForm = () => {
   defaultPlannedAt.value = undefined
   Object.assign(form, {
       projectId: '',
+    customerName: '',
     deviceIds: [],
     background: '',
     plannedAt: null,
-    mode: 'ONLINE'
+    mode: 'OFFLINE'
   })
   resetCreateProjects()
   devices.value = []
@@ -483,6 +498,7 @@ const submitCreate = async () => {
       key: generateUUID(),
       data: {
         projectId: form.projectId,
+        ...(canFillCustomerName.value && form.customerName.trim() ? { customerName: form.customerName.trim() } : {}),
         deviceIds: [...form.deviceIds],
         background: form.background.trim(),
         ...(form.plannedAt ? { plannedAt: form.plannedAt.getTime() } : {}),
@@ -498,10 +514,11 @@ const submitCreate = async () => {
     createVisible.value = false
     Object.assign(form, {
           projectId: '',
+      customerName: '',
       deviceIds: [],
       background: '',
       plannedAt: null,
-      mode: 'ONLINE'
+      mode: 'OFFLINE'
     })
       devices.value = []
       message.success('巡检任务已创建')
@@ -509,7 +526,7 @@ const submitCreate = async () => {
   } catch (error) {
     if (definiteRejection(error)) {
       pendingCreate.value = null
-      createError.value = '创建未成功，请核对填写内容、项目设备范围和权限后重试。'
+      createError.value = inspectionFailure(error).message
     } else {
       createError.value = '暂时无法确认创建结果。已保留本次内容，请重试原请求确认结果。'
     }
