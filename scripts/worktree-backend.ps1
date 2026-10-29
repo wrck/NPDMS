@@ -1,6 +1,8 @@
 param([Parameter(Mandatory=$true)][string]$Manifest,[switch]$ApprovedRestart,[switch]$ValidateOnly,[switch]$StartIfOffline)
 . (Join-Path $PSScriptRoot 'worktree-toolchain.ps1')
+. (Join-Path $PSScriptRoot 'worktree-umc-profile.ps1')
 $taskLock=Enter-WorktreeBuildLock
+$taskPreviousNodeCa=[Environment]::GetEnvironmentVariable('NODE_EXTRA_CA_CERTS','Process')
 try {
     $taskResult = & $taskPython (Join-Path $PSScriptRoot 'worktree-artifact.py') verify $taskWorkspace $Manifest
     if ($LASTEXITCODE -ne 0) { throw 'Release verification failed; no service changed' }
@@ -30,7 +32,12 @@ try {
     Add-Type -AssemblyName System.Security
     $taskDatabasePassword=[Text.Encoding]::UTF8.GetString([Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($taskDatabaseProfile.encryptedPassword),$null,[Security.Cryptography.DataProtectionScope]::CurrentUser))
     if ([string]::IsNullOrWhiteSpace($taskDatabaseProfile.username) -or [string]::IsNullOrWhiteSpace($taskDatabasePassword)) { throw 'Missing protected test database credentials; no service changed.' }
-    if ($ValidateOnly) { Write-Output 'Frozen release, local,dac and protected test database configuration validated; no service changed. Automatic migrations and schema updates are disabled.'; return }
+    $taskUmcConfiguration=Get-WorktreeUmcConfiguration -Path (Join-Path $taskWorkspace '.run/backend-umc.json')
+    if ($ValidateOnly) {
+        Write-Output 'Frozen release, local,dac and protected test database configuration validated; no service changed. Automatic migrations and schema updates are disabled.'
+        if ($taskUmcConfiguration) { Write-Output 'Protected UMC configuration validated; no secret values were printed and no service changed.' }
+        return
+    }
     if (!$ApprovedRestart) { throw 'Explicit per-deployment restart approval is required' }
     . (Join-Path $taskWorkspace '.run/dac-host/environment.ps1')
     $taskSettings=@{}
@@ -49,7 +56,7 @@ try {
         Copy-Item -LiteralPath $taskArtifact -Destination $taskDestination -Force
     }
     $env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD=$taskSettings['NPDMS_MYBATIS_ENCRYPTOR_PASSWORD']
-    $env:SPRING_APPLICATION_JSON=(@{
+    $taskApplicationSettings=@{
         'spring.datasource.dynamic.datasource.master.url'='jdbc:mysql://172.17.90.178:13306/npdms?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true'
         'spring.datasource.dynamic.datasource.master.username'=$taskDatabaseProfile.username
         'spring.datasource.dynamic.datasource.master.password'=$taskDatabasePassword
@@ -76,7 +83,12 @@ try {
         'spring.data.redis.host'='127.0.0.1';'spring.data.redis.port'=24379
         'spring.data.redis.database'=14
         'spring.data.redis.password'=$taskSettings['NPDMS_REDIS_PASSWORD']
-    } | ConvertTo-Json -Compress)
+    }
+    if ($taskUmcConfiguration) {
+        foreach ($taskUmcKey in $taskUmcConfiguration.Settings.Keys) { $taskApplicationSettings[$taskUmcKey]=$taskUmcConfiguration.Settings[$taskUmcKey] }
+        if ($taskUmcConfiguration.ExtraCaCertificatePath) { $env:NODE_EXTRA_CA_CERTS=$taskUmcConfiguration.ExtraCaCertificatePath }
+    }
+    $env:SPRING_APPLICATION_JSON=($taskApplicationSettings | ConvertTo-Json -Compress)
     $taskStarted=Start-Process -FilePath "$taskJavaHome/bin/java.exe" -ArgumentList @('-jar',$taskDestination,'--server.port=59191','--spring.profiles.active=local,dac') -WorkingDirectory $taskWorkspace -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $taskWorkspace '.run/logs/satisfaction-manual-backend.log') -RedirectStandardError (Join-Path $taskWorkspace '.run/logs/satisfaction-manual-backend.err.log')
     $taskStarted.Id | Set-Content -LiteralPath $taskPidFile
     & $taskPython (Join-Path $taskWorkspace '.run/dac-host/check-ready.py') backend
@@ -86,5 +98,8 @@ try {
 } finally {
     Remove-Item Env:SPRING_APPLICATION_JSON -ErrorAction SilentlyContinue
     Remove-Item Env:NPDMS_DEVICE_OPS_BEARER_TOKEN -ErrorAction SilentlyContinue
+    [Environment]::SetEnvironmentVariable('NODE_EXTRA_CA_CERTS',$taskPreviousNodeCa,'Process')
+    $taskUmcConfiguration=$null
+    $taskApplicationSettings=$null
     $taskLock.Dispose()
 }
