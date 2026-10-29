@@ -30,12 +30,14 @@ class RequirementAnalysisIndependentRevisionOperationTest {
     private final RequirementAnalysisMapper mapper = mock(RequirementAnalysisMapper.class);
     private final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     private final ProjectParticipantFactApi participants = mock(ProjectParticipantFactApi.class);
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi qualifications = mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
     private final ProjectNodeExecutionApi nodes = mock(ProjectNodeExecutionApi.class);
     private final ProjectWorkBindingFactApi bindings = mock(ProjectWorkBindingFactApi.class);
     private final ProjectBusinessExecutionApi guard = mock(ProjectBusinessExecutionApi.class);
     private final RequirementAnalysisExecutionAccess executions = new RequirementAnalysisExecutionAccess(nodes, bindings, guard);
-    private final RequirementAnalysisAccess access = new RequirementAnalysisAccess(mapper, scopes, participants, permissions, bindings, executions);
+    private final RequirementAnalysisAccess access = new RequirementAnalysisAccess(mapper, scopes, participants, permissions, bindings, executions,
+            qualifications);
     private final EntityActor actor = new EntityActor(1L, 9L, "independent");
     private final RequirementAnalysisRevisionDO row = new RequirementAnalysisRevisionDO();
     private final ProjectTaskExecutionContext origin = new ProjectTaskExecutionContext(20L, 1L, 30L, 1, 40L, 1,
@@ -54,8 +56,8 @@ class RequirementAnalysisIndependentRevisionOperationTest {
         when(permissions.hasAnyPermissions(eq(9L), any(String[].class))).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L, 2L, Set.of(20L), Set.of()));
         when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L, 2L, Set.of(20L), Set.of()));
-        when(participants.inspect(any())).thenReturn(new ProjectParticipantFact(20L, 9L, Set.of("PROJECT_MANAGER"),
-                "PRIMARY", "ACTIVE", "S6", 2L, 2L));
+        when(qualifications.inspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Fact(new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Query(1L,20L,9L),cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Source.PROJECT_MEMBER,new ProjectParticipantFact(20L, 9L, Set.of("PROJECT_MANAGER"),
+                "PRIMARY", "ACTIVE", "S6", 2L, 2L),null));
     }
 
     @Test void existingRevisionLocksCurrentOwnerPermissionAndRowButNotTheOriginNode() {
@@ -63,7 +65,7 @@ class RequirementAnalysisIndependentRevisionOperationTest {
         assertSame(row, access.lock(80L, 3, actor, null, true));
         assertTrue(executions.canUseFrozenConfiguration(20L, before));
         verify(scopes).lockAndRevalidate(any());
-        verify(participants).lockAndRevalidate(any());
+        verify(qualifications).lockAndRevalidate(any());
         verify(mapper).lockRevision(any());
         verifyNoInteractions(nodes, bindings, guard);
         assertEquals(before, row.getExecutionSnapshot());
@@ -74,7 +76,7 @@ class RequirementAnalysisIndependentRevisionOperationTest {
         switch (failure) {
             case "permission" -> when(permissions.hasAnyPermissions(eq(9L), any(String[].class))).thenReturn(false);
             case "scope" -> when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(20L, 2L, Set.of(), Set.of(20L)));
-            case "manager" -> when(participants.inspect(any())).thenReturn(null);
+            case "manager" -> when(qualifications.inspect(any())).thenReturn(null);
             case "version" -> row.setVersion(4L);
             case "frozen" -> row.setRevisionState("FROZEN");
             default -> throw new AssertionError(failure);

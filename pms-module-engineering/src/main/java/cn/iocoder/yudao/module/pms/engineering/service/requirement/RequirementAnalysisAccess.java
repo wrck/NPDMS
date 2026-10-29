@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.requirement;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.RequirementRevisionQuery;
@@ -17,7 +18,6 @@ import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.Objects;
-import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
@@ -33,6 +33,7 @@ public class RequirementAnalysisAccess {
     private final PermissionApi permissions;
     private final ProjectWorkBindingFactApi bindings;
     private final RequirementAnalysisExecutionAccess executions;
+    private final ProjectManagementQualificationApi managementQualifications;
 
     public RequirementAnalysisRevisionDO read(Long revisionId, EntityActor actor) {
         var row = mapper.selectRevision(new RequirementRevisionQuery(actor.tenantId(), revisionId));
@@ -62,10 +63,13 @@ public class RequirementAnalysisAccess {
                 .subjectUserId(actor.userId())
                 .anchorProjectId(projectId)
                 .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
-            var participant = RequirementAnalysisManagerFacts.inspect(participants, permissions, projectId, actor.userId());
-            return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(projectId)
-                    && participant != null && "ACTIVE".equals(participant.lifecycleStatus())
-                    && participant.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
+            if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) return false;
+            if (administrator(actor)) {
+                var participant = currentManager(projectId, actor);
+                if (participant != null && "ACTIVE".equals(participant.lifecycleStatus())
+                        && participant.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)) return true;
+            }
+            return managementQualifications.inspect(managementSubject(projectId, actor)) != null;
         } catch (RuntimeException unavailable) {
             // Preserve the original query behavior: unavailable manager facts disable editing only.
             return false;
@@ -88,10 +92,36 @@ public class RequirementAnalysisAccess {
                 .actionCode(ProjectScopeApi.ACTION_MANAGE)
                 .expectedScopeVersion(observed.treeVersion()).build());
         if (locked.fullProjectIds() == null || !locked.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
-        var manager = RequirementAnalysisManagerFacts.inspect(participants, permissions, projectId, actor.userId());
-        if (manager == null) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
-        participants.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(projectId, manager.userId(), manager.projectVersion(),
-                "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+        if (administrator(actor)) {
+            var manager = currentManager(projectId, actor);
+            if (manager != null && "ACTIVE".equals(manager.lifecycleStatus())
+                    && manager.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)) {
+                participants.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(projectId, manager.userId(), manager.projectVersion(),
+                        "ACTIVE", null, java.util.Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+                return;
+            }
+        }
+        var qualification = managementQualifications.inspect(managementSubject(projectId, actor));
+        if (qualification == null) throw exception(FORBIDDEN);
+        managementQualifications.lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(
+                qualification, qualification.projectVersion(), "ACTIVE", null));
+    }
+
+    private boolean administrator(EntityActor actor) {
+        return permissions.hasAnyRoles(actor.userId(), cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode());
+    }
+
+    private ProjectManagementQualificationApi.Query managementSubject(Long projectId, EntityActor actor) {
+        return new ProjectManagementQualificationApi.Query(actor.tenantId(), projectId, actor.userId());
+    }
+
+    private cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact currentManager(Long projectId, EntityActor actor) {
+        try {
+            return RequirementAnalysisManagerFacts.inspect(participants, permissions, projectId, actor.userId());
+        } catch (cn.iocoder.yudao.framework.common.exception.ServiceException denied) {
+            if (denied.getCode() != ProjectParticipantFactApi.SCOPE_DENIED_ERROR_CODE) throw denied;
+            return null;
+        }
     }
 
     public RequirementAnalysisExecutionAccess.Frozen lockExecution(Long projectId, String snapshot,

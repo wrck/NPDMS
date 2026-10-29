@@ -41,7 +41,7 @@ class RequirementAnalysisDynamicFormPolicyProviderTest {
         when(roots.selectDraftForUpdate(any())).thenReturn(root);
         when(scopes.resolveCurrent(any())).thenReturn(scope()); when(scopes.lockAndRevalidate(any())).thenReturn(scope());
         when(permissions.hasAnyPermissions(ACTOR,"pms:requirement-analysis:manage")).thenReturn(true);
-        when(participants.inspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact(
+        when(participants.inspectAuthorization(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact(
                 PROJECT,ACTOR,Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),"PRIMARY","ACTIVE",null,1L,7L));
         var selected = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection(
                 new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(PROJECT,1L,61L,1,71L,1,81L,91L,1,2,101L,1,true,null),null);

@@ -2,6 +2,24 @@ import { businessViewIdKey, sameBusinessViewId, legacyOwnerId, type BusinessView
 import { getTaskBusinessContext } from '@/api/pms/project/task-business'
 import { getStageBusinessContext } from '@/api/pms/project/stage-business'
 import type { ProjectBusinessExecutionSelection as SiteSurveyExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
+import { selectionClient, selectionIdentity } from '@/components/BusinessView/operationClient'
+import { surveyExecutionQuery } from './siteSurveyOutsource'
+
+/** A new command observes current versions of the same frozen binding and round. */
+export const refreshSurveyExecution = async (request: {
+  projectId: BusinessViewId; execution?: SiteSurveyExecutionSelection; stageCode?: string
+}): Promise<SiteSurveyExecutionSelection | undefined> => {
+  const expected = request.execution
+  if (!expected || selectionClient(expected)) return expected
+  const identity = selectionIdentity(expected)
+  const current = await resolveSurveyExecution(request.projectId, surveyExecutionQuery(expected, request.stageCode))
+  const before = expected.task || expected.stage
+  const after = current?.task || current?.stage
+  if (!current || selectionIdentity(current) !== identity || before?.roundNo !== after?.roundNo
+    || expected.task && String(expected.task.stageExecutionId) !== String(current.task?.stageExecutionId))
+    throw new Error('工勘绑定或执行轮次已变化，请从原任务或阶段重新进入')
+  return current
+}
 
 // Read a fresh version of this exact execution; never switch to another round or matching node.
 export const resolveSurveyExecution = async (

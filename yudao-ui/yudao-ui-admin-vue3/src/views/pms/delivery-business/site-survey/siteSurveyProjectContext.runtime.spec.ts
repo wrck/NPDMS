@@ -9,12 +9,15 @@ import request from '@/config/axios'
 import { resolveStandaloneBusinessEntityView } from '@/components/BusinessView/registry'
 import { OperationRejected, OperationClient, routeSelection, selectionClient } from '@/components/BusinessView/operationClient'
 import { pinSurveySave } from './surveyReceiptIntent'
+import { getStageBusinessContext } from '@/api/pms/project/stage-business'
 
 const api = vi.hoisted(() => Object.fromEntries(['getSiteSurveyPage', 'getSiteSurvey', 'getDefaultFormSchema', 'saveSiteSurveyReceipt', 'siteSurveyActionReceipt', 'deleteSiteSurvey', 'updateSiteSurvey', 'createSiteSurvey', 'confirmSiteSurvey', 'rejectSiteSurvey', 'archiveSiteSurvey'].map(key => [key, vi.fn()])))
+const executionReads = vi.hoisted(() => ({ refresh: vi.fn() }))
+vi.mock('./siteSurveyExecutionShortcut', async original => ({ ...(await original<typeof import('./siteSurveyExecutionShortcut')>()), refreshSurveyExecution: executionReads.refresh }))
 const projects = vi.hoisted(() => ({ getProjectPage: vi.fn(), getProject: vi.fn() }))
 const message = vi.hoisted(() => ({ warning: vi.fn(), success: vi.fn(), error: vi.fn(), confirm: vi.fn(), delConfirm: vi.fn() }))
 const push = vi.hoisted(() => vi.fn())
-const navigation = vi.hoisted(() => ({ leave: vi.fn(), update: vi.fn() }))
+const navigation = vi.hoisted(() => ({ leave: vi.fn(), update: vi.fn(), query: {} as Record<string, string> }))
 // Registry renders other business views too; all network calls remain test doubles during module loading.
 vi.mock('@/config/axios/service', () => ({ service: { defaults: { transformResponse: [] } }, isRelogin: { show: false } }))
 vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() } }))
@@ -29,7 +32,7 @@ vi.mock('@/api/pms/platform/dynamic-form', () => ({}))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true, checkRole: () => true }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getIntDictOptions: () => [] }))
-vi.mock('vue-router', () => ({ onBeforeRouteLeave: navigation.leave, onBeforeRouteUpdate: navigation.update, useRoute: () => ({ query: {} }), useRouter: () => ({ push }) }))
+vi.mock('vue-router', () => ({ onBeforeRouteLeave: navigation.leave, onBeforeRouteUpdate: navigation.update, useRoute: () => ({ query: navigation.query }), useRouter: () => ({ push }) }))
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue', () => ({ default: { render: () => null } }))
 vi.mock('./SiteSurveyDynamicForm.vue', () => ({ default: { render: () => null } }))
@@ -64,6 +67,8 @@ const makeReceipt = (row: any, state = '0', deleted = false) => ({ outcome: ['1'
   references: [{ kind: 'COMMAND', ownerModule: 'SOL', value: JSON.stringify({ id: String(row.id), projectId: String(row.projectId), version: row.version, state, deleted }) }] })
 beforeEach(() => {
   vi.resetAllMocks()
+  navigation.query = {}
+  executionReads.refresh.mockImplementation(async (query: any) => query.execution)
   api.getSiteSurveyPage.mockResolvedValue({ list: [], total: 0 })
   records.clear()
   api.getSiteSurvey.mockImplementation(async (id: unknown) => records.get(String(id)) || record())
@@ -85,6 +90,63 @@ beforeEach(() => {
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
 
 describe('SOL site-survey shared project and standalone context', () => {
+  it('refreshes a standalone stage deep link through the real helper for save and confirmation', async () => {
+    const stage = { projectId: 7, stageId: 5, executionId: '2099999999999999999', executionVersion: 2,
+      executionContractId: '2099999999999999998', contractVersion: 1, planVersionId: 100, roundNo: 1, writable: true }
+    navigation.query = { surveyStageId: '5', surveyStageCode: '工前/准备', surveyExecutionId: stage.executionId }
+    vi.mocked(getStageBusinessContext).mockResolvedValue({ projectId: 7, stageId: 5, stageCode: '工前/准备', readonly: false,
+      businessView: { ownerContext: 'SOL', entityType: 'SITE_SURVEY' }, execution: stage } as any)
+    const actual = await vi.importActual<typeof import('./siteSurveyExecutionShortcut')>('./siteSurveyExecutionShortcut')
+    executionReads.refresh.mockImplementation(actual.refreshSurveyExecution)
+    const { state } = render({ projectId: 7, allowedActions: ['QUERY', 'UPDATE', 'CONFIRM'] })
+    await state.openForm(record()); state.form.name = 'stage deep link'; state.formRef = { validate: vi.fn() }
+    expect(await state.save()).toBe(true)
+    expect(api.saveSiteSurveyReceipt).toHaveBeenLastCalledWith(expect.objectContaining({ execution: { stage } }), expect.any(String))
+    await state.handleAction({ ...state.form }, 'confirm')
+    expect(api.siteSurveyActionReceipt).toHaveBeenCalledWith('confirm', 12, 1, 7, expect.any(String), { stage })
+    expect(getStageBusinessContext).toHaveBeenCalledWith(7, '工前/准备')
+  })
+  it('observes the same round again for a second save after the first receipt without losing edits', async () => {
+    const execution = { projectId: 7, taskId: 4, executionId: '2099999999999999999', executionVersion: 1, projectVersion: 5, writable: true }
+    const { state } = render({ projectId: 7, taskId: 4, taskExecution: execution, allowedActions: ['QUERY', 'CREATE', 'UPDATE'] })
+    await state.openForm(); Object.assign(state.form, { name: 'draft', location: 'onsite', formRevisionId: undefined }); state.formRef = { validate: vi.fn() }
+    expect(await state.save()).toBe(true)
+    executionReads.refresh.mockResolvedValueOnce({ task: { ...execution, executionVersion: 2, projectVersion: 6 } })
+    state.form.name = 'second edit'
+    expect(await state.save()).toBe(true)
+    expect(api.saveSiteSurveyReceipt).toHaveBeenLastCalledWith(expect.objectContaining({ name: 'second edit', version: 1,
+      execution: { task: { ...execution, executionVersion: 2, projectVersion: 6 } } }), expect.any(String))
+    expect(executionReads.refresh).toHaveBeenCalledTimes(2)
+  })
+  it('keeps unsaved content and sends no command when the original execution cannot be refreshed', async () => {
+    const { state } = render({ projectId: 7, taskId: 4, taskExecution: { projectId: 7, taskId: 4 }, allowedActions: ['QUERY', 'CREATE'] })
+    await state.openForm(); Object.assign(state.form, { name: 'preserved', location: 'onsite', formRevisionId: undefined }); state.formRef = { validate: vi.fn() }
+    executionReads.refresh.mockRejectedValueOnce(new Error('execution changed'))
+    expect(await state.save()).toBe(false)
+    expect(state.form.name).toBe('preserved')
+    expect(api.saveSiteSurveyReceipt).not.toHaveBeenCalled()
+  })
+  it('reads current versions for a subsequent confirmation while retaining its clicked object and basis', async () => {
+    const execution = { projectId: 7, taskId: 4, executionId: '2099999999999999999', executionVersion: 1, writable: true }
+    const { state } = render({ projectId: 7, taskId: 4, taskExecution: execution, allowedActions: ['QUERY', 'CREATE', 'UPDATE', 'CONFIRM'] })
+    await state.openForm(); Object.assign(state.form, { name: 'draft', location: 'onsite', formRevisionId: undefined }); state.formRef = { validate: vi.fn() }
+    expect(await state.save()).toBe(true)
+    const saved = { ...state.form }
+    executionReads.refresh.mockResolvedValueOnce({ task: { ...execution, executionVersion: 2 } })
+    await state.handleAction(saved, 'confirm')
+    expect(api.siteSurveyActionReceipt).toHaveBeenCalledWith('confirm', 12, 1, 7, expect.any(String), { task: { ...execution, executionVersion: 2 } })
+  })
+  it('recovers a lost command without rereading or replacing its pinned execution', async () => {
+    const execution = { projectId: 7, taskId: 4, executionId: '2099999999999999999', executionVersion: 1, writable: true }
+    const { state } = render({ projectId: 7, taskId: 4, taskExecution: execution, allowedActions: ['QUERY', 'CREATE', 'UPDATE'] })
+    await state.openForm(); Object.assign(state.form, { name: 'draft', location: 'onsite', formRevisionId: undefined }); state.formRef = { validate: vi.fn() }
+    api.saveSiteSurveyReceipt.mockRejectedValueOnce(new Error('response lost'))
+    expect(await state.save()).toBe(false)
+    executionReads.refresh.mockRejectedValueOnce(new Error('new round'))
+    expect(await state.recoverOperation()).toBe(true)
+    expect(executionReads.refresh).toHaveBeenCalledTimes(1)
+    expect(api.saveSiteSurveyReceipt.mock.calls[1]).toEqual(api.saveSiteSurveyReceipt.mock.calls[0])
+  })
   it('freezes the opened task execution and preserves unsaved content when a new round arrives', async () => {
     const execution = { projectId: 7, taskId: 4, executionId: '2099999999999999999', executionVersion: 1, roundNo: 1, writable: true }
     const { state, input } = render({ projectId: 7, taskId: 4, taskExecution: execution, allowedActions: ['QUERY', 'UPDATE'] })
@@ -262,6 +324,36 @@ describe('SOL site-survey shared project and standalone context', () => {
     expect(exposed.discardChanges()).toBe(true)
     expect(exposed.isDirty()).toBe(false)
   })
+  it('closes an untouched draft without confirmation after loading project concurrency metadata', async () => {
+    const { state, exposed } = render({ projectId: 7 })
+    await state.openForm(record())
+    state.updateDynamicForm({ ...state.form, projectEndDateVersion: 3 })
+    await flush()
+    expect(state.form.projectEndDateVersion).toBe(3)
+    expect(exposed.isDirty()).toBe(false)
+    await state.beforeClose(() => { state.formVisible = false })
+    expect(state.formVisible).toBe(false)
+    expect(message.confirm).not.toHaveBeenCalled()
+    expect(api.saveSiteSurveyReceipt).not.toHaveBeenCalled()
+  })
+  it('retains real date edits and their leave guard through later project metadata refreshes', async () => {
+    const { state, exposed } = render({ projectId: 7 })
+    await state.openForm(record())
+    state.form.businessValues.requiredEndDate = '2026-12-31'
+    state.form.projectEndDateChanged = true
+    state.updateDynamicForm({ ...state.form, projectEndDateVersion: 3 })
+    state.updateDynamicForm({ ...state.form, projectEndDateVersion: 4 })
+    await flush()
+    expect(exposed.isDirty()).toBe(true)
+    message.confirm.mockRejectedValueOnce(new Error('cancel'))
+    await state.beforeClose(() => { state.formVisible = false })
+    expect(message.confirm).toHaveBeenCalledWith('尚有未保存的工勘内容，确定放弃并关闭？')
+    expect(state.formVisible).toBe(true)
+    expect(state.form.businessValues.requiredEndDate).toBe('2026-12-31')
+    expect(state.form.projectEndDateChanged).toBe(true)
+    expect(state.form.projectEndDateVersion).toBe(4)
+    expect(exposed.isDirty()).toBe(true)
+  })
   it('Host cancels a dirty object switch, keeps stale approved switches intact, then changes exact object', async () => {
     const input = reactive<any>({ registration: { id: 1, version: 1, status: 'PUBLISHED', componentKey: 'SOL_SITE_SURVEY', componentVersion: '1', ownerContext: 'SOL', entityType: 'SITE_SURVEY', viewSource: 'PAGE' }, resolvedContext: { project: { id: 7 }, businessObjectId: 12, taskId: 4 }, allowedActions: ['QUERY', 'UPDATE'] })
     const host = ref<any>(), blocked = vi.fn()
@@ -331,6 +423,59 @@ describe('SOL site-survey receipt recovery and exact reopen', () => {
     expect(state.pendingIntent).toBeUndefined()
     expect(state.receiptResult.id).toBe('9007199254740993')
   })
+  it.each([true, false])('keeps a saved draft editable after a temporary permission refresh (new: %s)', async create => {
+    const { state, input, exposed } = render({ projectId: 7, taskId: 4, allowedActions: ['QUERY', 'CREATE', 'UPDATE'],
+      onChanged: () => { input.allowedActions = ['QUERY'] } })
+    api.getSiteSurvey.mockImplementation(async (id: unknown) => {
+      const row = { ...(records.get(String(id)) || record()) }
+      delete row.projectEndDateVersion
+      delete row.projectEndDateChanged
+      return row
+    })
+    await state.openForm(create ? undefined : record())
+    Object.assign(state.form, { name: 'saved draft', location: 'onsite', formRevisionId: undefined })
+    state.formRef = { validate: vi.fn() }
+    expect(await state.save()).toBe(true)
+    expect(state.formVisible).toBe(true)
+    expect(state.form.status).toBe(0)
+    expect(state.form.id).toBe(12)
+    expect(state.form.version).toBe(1)
+    expect(exposed.isDirty()).toBe(false)
+    expect(state.formReadonly).toBe(true)
+    expect(await state.save()).toBe(false)
+    expect(api.saveSiteSurveyReceipt).toHaveBeenCalledTimes(1)
+    input.allowedActions = ['QUERY', 'UPDATE']
+    await flush()
+    expect(state.formReadonly).toBe(false)
+    expect(state.detailReadonly).toBe(false)
+    state.updateDynamicForm({ ...state.form, projectEndDateVersion: 3, projectEndDateChanged: false })
+    expect(exposed.isDirty()).toBe(false)
+    state.form.name = 'next draft edit'
+    expect(await state.save()).toBe(true)
+    const [first, second] = api.saveSiteSurveyReceipt.mock.calls
+    expect(second[0]).toEqual(expect.objectContaining({ id: 12, version: 1, name: 'next draft edit', status: 0 }))
+    expect(second[1]).not.toBe(first[1])
+    expect(state.form.version).toBe(2)
+    expect(api.siteSurveyActionReceipt).not.toHaveBeenCalled()
+  })
+  it.each([
+    { action: 'confirm', before: 0, after: 1 },
+    { action: 'reject', before: 0, after: 2 },
+    { action: 'archive', before: 1, after: 3 }
+  ])('keeps $action results read-only after permissions recover', async ({ action, before, after }) => {
+    const { state, input } = render({ projectId: 7, allowedActions: ['QUERY', 'UPDATE', action.toUpperCase()] })
+    await state.openForm(record())
+    await state.handleAction({ ...record(), status: before }, action)
+    expect(state.form.status).toBe(after)
+    input.allowedActions = ['QUERY']
+    await flush()
+    input.allowedActions = ['QUERY', 'UPDATE']
+    await flush()
+    expect(state.formReadonly).toBe(true)
+    expect(state.detailReadonly).toBe(true)
+    expect(await state.save()).toBe(false)
+    expect(api.saveSiteSurveyReceipt).not.toHaveBeenCalled()
+  })
   it('pins a lost create response, blocks new writes and leaving, and recovers the same key/body', async () => {
     const { state, exposed } = render({ projectId: 7 })
     await state.openForm(); Object.assign(state.form,{ name:'original',location:'onsite',formRevisionId:undefined,businessValues:{powerTypes:['AC']}})
@@ -353,6 +498,7 @@ describe('SOL site-survey receipt recovery and exact reopen', () => {
     expect(state.form.name).toBe('original')
     expect(state.pendingIntent).toBeUndefined()
     expect(exposed.isDirty()).toBe(false)
+    expect(state.formReadonly).toBe(false)
   })
   it('coalesces duplicate save and recovery clicks while a request is in flight', async () => {
     const { state } = render({ projectId: 7 })
@@ -404,6 +550,34 @@ describe('SOL site-survey receipt recovery and exact reopen', () => {
     expect(state.pendingIntent).toBeDefined();expect(state.formReadonly).toBe(true)
     expect(api.saveSiteSurveyReceipt.mock.calls[1][1]).toBe(api.saveSiteSurveyReceipt.mock.calls[2][1])
     expect(api.saveSiteSurveyReceipt.mock.calls[0][1]).not.toBe(api.saveSiteSurveyReceipt.mock.calls[1][1])
+  })
+  it.each([
+    { code: 403, reason: 'permission revoked' },
+    { code: 409, reason: 'CONCURRENCY_CONFLICT' }
+  ])('preserves the draft and reports a definite $code refusal without retrying', async ({ code, reason }) => {
+    const { state, exposed } = render({ projectId: 7 })
+    await state.openForm(record())
+    state.form.name = 'unsaved edit'
+    state.updateDynamicForm({ ...state.form, projectEndDateVersion: 3,
+      projectEndDateChanged: true, businessValues: { requiredEndDate: '2026-12-31' } })
+    state.formRef = { validate: vi.fn() }
+    api.saveSiteSurveyReceipt.mockRejectedValueOnce(new OperationRejected(code, reason))
+    expect(await state.save()).toBe(false)
+    await flush()
+    expect(state.formVisible).toBe(true)
+    expect(state.form.name).toBe('unsaved edit')
+    expect(state.form.version).toBe(0)
+    expect(state.form.status).toBe(0)
+    expect(state.form.businessValues.requiredEndDate).toBe('2026-12-31')
+    expect(state.form.projectEndDateVersion).toBe(3)
+    expect(api.saveSiteSurveyReceipt).toHaveBeenCalledWith(expect.objectContaining({
+      projectEndDateVersion: 3, projectEndDateChanged: true, businessValues: { requiredEndDate: '2026-12-31' }
+    }), expect.any(String))
+    expect(exposed.isDirty()).toBe(true)
+    expect(state.pendingIntent).toBeUndefined()
+    expect(message.warning).toHaveBeenCalledWith(`工勘保存未执行：${reason}`)
+    expect(message.success).not.toHaveBeenCalled()
+    expect(api.saveSiteSurveyReceipt).toHaveBeenCalledTimes(1)
   })
   it('replays deletion with its original object, basis and key without reading a deleted row', async () => {
     const {state}=render({projectId:7,allowedActions:['QUERY','DELETE']});await flush()

@@ -42,6 +42,17 @@ class SiteSurveyEntityFormServiceTest {
         verifyNoInteractions(forms, bindings, extensions, details);
     }
 
+    @Test void otherPortChoicePreservesManualDescriptionAndStillRejectsUnknownCodes() {
+        var row = new SiteSurveyEntityDO(); row.setProjectId(7L);
+        var request = new SiteSurveyEntitySaveReqVO();
+        request.setBusinessValues(Map.of("networkPortTypes", List.of("10GE_FIBER", "OTHER"), "networkPort", "100G光口"));
+        service.prepare(row, request);
+        assertEquals(List.of("10GE_FIBER", "OTHER"), row.getNetworkPortTypes());
+        assertEquals("100G光口", row.getNetworkPort());
+        request.setBusinessValues(Map.of("networkPortTypes", List.of("INVENTED")));
+        assertThrows(RuntimeException.class, () -> service.prepare(row, request));
+    }
+
     @Test void acceptsMaterialLongIdsFromTheBrowserWithoutPrecisionLoss() {
         var row = new SiteSurveyEntityDO(); row.setProjectId(2108606819783868418L);
         var request = new SiteSurveyEntitySaveReqVO();

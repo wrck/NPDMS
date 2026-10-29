@@ -56,8 +56,8 @@ class RequirementAnalysisDynamicFormCommandServiceTest {
         when(permissionApi.hasAnyPermissions(9L, RequirementAnalysisQueryService.PERMISSION_MANAGE)).thenReturn(true);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
-        when(participantFactApi.inspect(any())).thenReturn(manager());
-        when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
+        when(participantFactApi.inspectAuthorization(any())).thenReturn(manager());
+        when(participantFactApi.lockAndRevalidateAuthorization(any())).thenReturn(manager());
         var binding = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFact(
                 100L, 5L, 200L, 1, 300L, 1, 700L, 1, "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS",
                 "PRE_04_REQUIREMENT_ANALYSIS", null, null, null, null);

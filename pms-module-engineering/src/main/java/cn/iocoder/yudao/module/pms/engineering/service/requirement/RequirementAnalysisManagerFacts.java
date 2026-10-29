@@ -14,9 +14,10 @@ final class RequirementAnalysisManagerFacts {
 
     static ProjectParticipantFact inspect(ProjectParticipantFactApi participants, PermissionApi permissions,
                                           Long projectId, Long actorId) {
-        // null subject is the existing PROJ contract for the actual current primary manager.
-        Long subjectId = permissions.hasAnyRoles(actorId, RoleCodeEnum.SUPER_ADMIN.getCode()) ? null : actorId;
-        return participants.inspect(new ProjectParticipantFactQuery(projectId, subjectId,
-                Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), LocalDateTime.now()));
+        boolean administrator = permissions.hasAnyRoles(actorId, RoleCodeEnum.SUPER_ADMIN.getCode());
+        var selection = new ProjectParticipantFactQuery(projectId, administrator ? null : actorId,
+                Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), LocalDateTime.now());
+        // Administrator power is independent; member-based operation qualification must be confirmed.
+        return administrator ? participants.inspect(selection) : participants.inspectAuthorization(selection);
     }
 }

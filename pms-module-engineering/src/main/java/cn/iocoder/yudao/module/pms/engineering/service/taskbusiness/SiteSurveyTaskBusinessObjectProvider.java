@@ -166,6 +166,17 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     }
 
     @Override
+    public BusinessObjectInspection inspectContextAndObjects(TaskBusinessObjectProvider.Context context, List<String> objectIds) {
+        // Reuse Owner authorization only within this read; each object still validates its current identity and facts.
+        var allowed = inspectContext(context);
+        var objects = objectIds.stream().map(id -> {
+            var query = objectQuery(context, id);
+            return toFact(context, requireObject(mapper.selectTaskObject(query), query), allowed);
+        }).toList();
+        return new BusinessObjectInspection(allowed, objects);
+    }
+
+    @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public BusinessObjectFact lockAndRevalidate(TaskBusinessObjectProvider.Context context, String objectId, String expectedVersion) {
         requireQuery(context);

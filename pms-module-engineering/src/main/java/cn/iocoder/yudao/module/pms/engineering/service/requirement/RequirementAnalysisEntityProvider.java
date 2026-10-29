@@ -202,7 +202,10 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
     @Transactional(rollbackFor = Exception.class)
     public void discard(RevisionRef ref, EntityActor actor) {
         requireType(ref.entity(), actor);
-        var draft = access.read(ref.revisionId(), actor);
+        var observed = access.read(ref.revisionId(), actor);
+        requireEntity(observed, ref.entity());
+        var draft = access.lock(ref.revisionId(), observed.getVersion() == null ? null : Math.toIntExact(observed.getVersion()),
+                actor, null, true);
         requireEntity(draft, ref.entity());
         // 已冻结修订是不可变历史；只有未冻结的草稿工作区可以放弃。
         if (!"DRAFT".equals(draft.getRevisionState())) throw exception(REQUIREMENT_STATUS_INVALID);

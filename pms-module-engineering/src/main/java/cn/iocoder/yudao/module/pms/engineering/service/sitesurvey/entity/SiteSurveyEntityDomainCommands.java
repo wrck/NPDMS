@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.entity.vo.SiteSurveyEntityPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.sitesurvey.entity.vo.SiteSurveyEntitySaveReqVO;
@@ -15,6 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.Objects;
+import java.util.Set;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -125,10 +130,24 @@ public class SiteSurveyEntityDomainCommands {
         var query = BeanUtils.toBean(pageReqVO,
                 cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityPageQuery.class);
         query.setTenantId(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId());
-        query.setVisibleProjectIds(projectScopes.resolveAllCurrent(
-                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(query.getTenantId(),
-                        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),
-                        cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW)));
+        var userId = cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId();
+        var allScope = new ProjectAllScopeQuery(query.getTenantId(), userId, ProjectScopeApi.ACTION_VIEW);
+        if (query.getProjectId() == null) {
+            query.setVisibleProjectIds(projectScopes.resolveAllCurrent(allScope));
+        } else {
+            boolean visible;
+            try {
+                var scope = projectScopes.resolveCurrent(new ProjectCurrentScopeQuery(
+                        query.getTenantId(), userId, query.getProjectId(), ProjectScopeApi.ACTION_VIEW));
+                visible = scope != null && scope.fullProjectIds() != null
+                        && scope.fullProjectIds().contains(query.getProjectId());
+            } catch (ServiceException unavailableAnchor) {
+                // Keep the original authorization for missing anchors and historical admin projects without a current tree.
+                var ids = projectScopes.resolveAllCurrent(allScope);
+                visible = ids != null && ids.contains(query.getProjectId());
+            }
+            query.setVisibleProjectIds(visible ? Set.of(query.getProjectId()) : Set.of());
+        }
         return siteSurveyEntityMapper.selectPage(query);
     }
 

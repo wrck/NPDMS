@@ -1,5 +1,5 @@
 <template>
-  <section class="requirement-form-shell" aria-label="需求分析动态表单">
+  <section class="requirement-form-shell" aria-label="需求分析动态表单" :inert="checkingCompletion" :aria-busy="checkingCompletion">
     <p v-if="presentationError" role="status">{{ presentationError }}</p>
     <div v-form-create-keyboard-rows="!editable" class="form-host" :class="{ 'is-readonly': !editable }">
       <form-create
@@ -99,6 +99,7 @@ const editorReadonlyDefaults = new Map<string, boolean>()
 const render = reactive<{ option: JsonObject; rule: JsonObject[] }>({ option: {}, rule: [] })
 const formApi = ref<FormCreateApi>()
 const saving = ref(false)
+const checkingCompletion = ref(false)
 const uploadingFields = reactive(new Set<string>())
 const uploading = computed(() => uploadingFields.size > 0)
 const editable = computed(
@@ -136,10 +137,14 @@ const updateEditorReadonly = (rules: JsonObject[]) => {
   }
 }
 
+let appliedSource: View | undefined
+const resetEdits = (preserve?: JsonObject) => {
+  retainedEdits.value = cloneValues(preserve || {})
+  values.value = { ...cloneValues(baseline.value), ...displayedValues(renderedDetail.value, preserve || {}) }
+}
 const apply = (source: View, preserve?: JsonObject) => {
   const detail = withPresentation(source)
   renderedDetail.value = detail
-  retainedEdits.value = cloneValues(preserve || {})
   const decoded = detail.form
     ? decodeDynamicForm(JSON.parse(detail.form.formConfJson), JSON.parse(detail.form.formRulesJson))
     : { option: {}, rule: detail.fieldCatalog.map(field => ({ field: field.code, title: field.code,
@@ -165,16 +170,27 @@ const apply = (source: View, preserve?: JsonObject) => {
   })
   visit(decoded.rule as JsonObject[])
   baseline.value = cloneValues(formValues(detail))
-  values.value = { ...cloneValues(baseline.value), ...displayedValues(detail, preserve || {}) }
+  resetEdits(preserve)
   editorReadonlyDefaults.clear()
   updateEditorReadonly(decoded.rule as JsonObject[])
   render.option = decoded.option as JsonObject
   render.rule = decoded.rule as JsonObject[]
   ordinaryFields.value = fields.ordinary
+  appliedSource = toRaw(source)
+}
+const applyReadback = (readback: { source: View; renderedBeforeReload: View; preserve?: JsonObject }) => {
+  // A parent reload may already have rebuilt the form through the document watcher.
+  // Clear/reconcile pending edits without remounting every controlled-file field again.
+  if (renderedDetail.value !== readback.renderedBeforeReload && appliedSource === toRaw(readback.source)) {
+    resetEdits(readback.preserve)
+  } else {
+    apply(readback.source, readback.preserve)
+  }
 }
 
 const save = async () => {
   const entityId = props.detail.revision.ref.revisionId
+  const projectId = props.detail.projectId
   const execution = props.execution ? {
     ...(props.execution.task ? { task: { ...props.execution.task } } : {}),
     ...(props.execution.stage ? { stage: { ...props.execution.stage } } : {})
@@ -216,29 +232,35 @@ const save = async () => {
     const result = await RequirementAnalysisApi.save(props.detail.revision, payload, intent.key)
     if (result?.operationReceipt) emit('receipt', result.operationReceipt)
     if (entityId !== props.detail.revision.ref.revisionId) return false
+    const renderedBeforeReload = renderedDetail.value
     const authoritative = await props.reload()
-    if (entityId !== props.detail.revision.ref.revisionId || authoritative.revision.ref.revisionId !== entityId) return false
+    await nextTick()
+    if (entityId !== props.detail.revision.ref.revisionId || authoritative.revision.ref.revisionId !== entityId
+      || projectId !== props.detail.projectId || authoritative.projectId !== projectId) return false
     intent.clear()
     sessionStorage.removeItem(cacheKey)
-    apply(authoritative)
+    applyReadback({ source: authoritative, renderedBeforeReload })
     message.success('需求分析实体已保存并重新加载')
     emit('saved', authoritative)
     return true
   } catch {
     if (entityId !== props.detail.revision.ref.revisionId) return false
     try {
+      const renderedBeforeReload = renderedDetail.value
       const authoritative = await props.reload()
-      if (entityId !== props.detail.revision.ref.revisionId || authoritative.revision.ref.revisionId !== entityId) return false
+      await nextTick()
+      if (entityId !== props.detail.revision.ref.revisionId || authoritative.revision.ref.revisionId !== entityId
+        || projectId !== props.detail.projectId || authoritative.projectId !== projectId) return false
       const reconciled = reconcileInstancePatch(authoritative.values, patch.values)
       if (reconciled.committed) {
         intent.clear()
         sessionStorage.removeItem(cacheKey)
-        apply(authoritative)
+        applyReadback({ source: authoritative, renderedBeforeReload })
         message.success('已回读确认需求分析实体保存成功')
         emit('saved', authoritative)
         return true
       }
-      apply(authoritative, reconciled.values)
+      applyReadback({ source: authoritative, renderedBeforeReload, preserve: reconciled.values })
     } catch {
       // Preserve the edit and request intent when the entity cannot yet be read back.
     }
@@ -287,6 +309,26 @@ watch([editable, () => props.execution], () => {
 watch(dirty, (value) => emit('dirty-change', value), { immediate: true })
 
 const validateCompletion = async () => {
+  if (saving.value || uploading.value || checkingCompletion.value) return false
+  const projectId = String(props.detail.projectId)
+  const revisionId = String(props.detail.revision.ref.revisionId)
+  let current: View
+  checkingCompletion.value = true
+  try {
+    if (!props.reload) throw new Error('Authoritative reload unavailable')
+    current = await props.reload()
+    if (String(current.projectId) !== projectId
+        || String(current.revision.ref.revisionId) !== revisionId
+        || String(props.detail.revision.ref.revisionId) !== revisionId) {
+      message.warning('需求分析版本已切换，请在当前版本重新确认。')
+      return false
+    }
+  } catch {
+    message.warning('需求分析附件状态读取失败，请稍后重试。')
+    return false
+  } finally {
+    checkingCompletion.value = false
+  }
   const missing: { field: string; message: string }[] = []
   const visit = (rules: JsonObject[]) => rules.forEach(rule => {
     const field = String(rule.field || '')
@@ -298,7 +340,7 @@ const validateCompletion = async () => {
       : typeof value === 'string' && !value.replace(/<[^>]*>/g, '').replace(/&nbsp;|&#160;/g, ' ').trim())
     const title = String(rule.title || field).replace(/^\d+、\s*/, '')
     if (field && required && empty) missing.push({ field, message: `请填写${title}` })
-    if (field === 'NETWORK_TOPOLOGY__ATTACHMENTS' && !props.detail.attachments.some(set =>
+    if (field === 'NETWORK_TOPOLOGY__ATTACHMENTS' && !current.attachments.some(set =>
       set.key.purposeCode === 'FORM_FIELD_ATTACHMENT/NETWORK_TOPOLOGY__ATTACHMENTS'
       && set.activeFacts.some(file => file.availabilityStatus === 'AVAILABLE' && file.referenceStatus === 'ACTIVE'))) {
       missing.push({ field, message: '请上传网络拓扑附件（至少一个有效文件）' })
@@ -315,7 +357,7 @@ const validateCompletion = async () => {
   element?.querySelector<HTMLElement>('input:not([disabled]), textarea:not([disabled]), [contenteditable="true"], button:not([disabled])')?.focus({ preventScroll: true })
   return false
 }
-defineExpose({ save, validateCompletion, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value || uploading.value, switchPresentation })
+defineExpose({ save, validateCompletion, discardChanges, isDirty: () => dirty.value, isSaving: () => saving.value || uploading.value || checkingCompletion.value, switchPresentation })
 </script>
 
 <style scoped lang="scss">
