@@ -53,7 +53,9 @@
 - `rollbackOccurred`必填；未发生回退时`rollbackSuccessful/rollbackReason`均为空；发生回退时二者必填，原因1..4000字符。
 - `legacyItems`为0..4000字符快照文本，可空，不产生独立生命周期或阻断提交。
 - DRAFT中的`finalResult`固定为`null`且普通保存不得提前持久化最终结果；提交命令必须由一线工程师明确携带`SUCCESS/FAILED`，平台不得从通知、采集HTTP结果或附件自动推导。
-- 提交必须各有一个`POST_COLLECTION_CHECKLIST`和`IMPLEMENTATION_COMMITMENT`当前文件revision；可附加`OTHER_EVIDENCE`。文件以`ownerContext=CUT/objectType=CUTOVER_CLOSURE/objectId=closureId`绑定，保存时inspect，提交时按冻结`artifactId/referenceKey/versionNo/FileFactVersion/scopeVersion`锁定重验。客户端不得提交URL或正文。
+- 提交必须各有至少一个`POST_COLLECTION_CHECKLIST`和`IMPLEMENTATION_COMMITMENT`当前文件revision；同一用途允许多个独立文件，可附加`OTHER_EVIDENCE`。每个文件使用独立`referenceKey`并保留各自版本；草稿可取消单个附件关联，随普通保存生效，不删除PLT文件、版本或人工采集证据。文件以`ownerContext=CUT/objectType=CUTOVER_CLOSURE/objectId=closureId`绑定，保存时inspect，提交时对全部关联附件按冻结`artifactId/referenceKey/versionNo/FileFactVersion/scopeVersion`锁定重验。客户端不得提交URL或正文。此数量及取消关联规则依据2026-10-26需求方对TF-055的确认；已归档记录保持不可变。
+
+- 草稿恢复入口按当前闭环读取上述三类PLT有效文件引用，只有具备SAVE_CLOSURE资格的任务负责人可用，并继续满足平台文件READ权限。刷新后未随草稿保存的文件可由用户显式选择重新关联；读取不自动保存、不恢复被主动取消的关联，后续保存继续逐文件重验。
 
 ### BR-FCUT006-003 INT-12证据与人工降级
 

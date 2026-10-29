@@ -71,9 +71,11 @@
     "purposeCode": "MANUAL_EVIDENCE",
     "scopeVersion": "ProjectScopeApi treeVersion revalidated for the task project",
     "storedPublicFacts": ["artifactId", "versionNo", "referenceKey", "fileFactVersion", "scopeVersion", "sha256"],
+    "cardinality": "MULTIPLE; one manual-results command appends a distinct reference or replaces only the same reference; revalidate every retained file before appending the immutable result",
     "physicalMapping": {
-      "answer_snapshot": "complete immutable PLT public file fact",
-      "manual_evidence_file_reference": "the same fact's stable referenceKey only"
+      "cut_checklist_result_file": "one MANUAL_EVIDENCE relation per selected file, ordered by file_no; complete immutable PLT public facts remain relational",
+      "answerSnapshot": "read projection only: files contains all selected facts; file is the first-file historical display alias; no fixed business JSON persistence",
+      "manualEvidenceFileReference": "first selected reference key for existing presence checks; never the source for enumerating attachments"
     },
     "forbidden": ["PLT FileVersion.id", "PLT FileReference.id", "file bytes in CUT tables", "client supplied file fact as authority"]
   },

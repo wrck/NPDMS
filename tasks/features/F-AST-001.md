@@ -11,6 +11,25 @@
 > Feature Spec：`specs/features/F-AST-001-device-serial-archive-and-temporal-assignment.md`
 > 历史实现证据：`a9f8b7c5`
 
+## 2026-10-27 TF-039 项目设备清单与序列号导出
+
+- 授权：需求方批准独立导出权限授予项目经理、服务经理，数据保持各自获授权项目范围。旧功能范围仅为项目详情既有设备清单/序列号页签的导出补强，不新增设备事实或改变订单数量口径。
+- 复用审计：设备清单由COM当前ACTIVE交付范围关联订单行，去重订单行后汇总已发货/未发货数量；序列号由AST当前项目设备、DEVICE_LOG在网版本及续保记录投影；既有页面分页不能直接作为完整导出源。Excel复用平台ExcelUtils，跨模块只使用公开API。
+- 实施：独立`pms:project-device:export`权限；COM/AST分别提供项目定界、游标分批的导出读取及固定列Excel响应。服务端复核当前租户、用户、设备查询/导出权限和PROJECT_VIEW完整项目范围；办事处只读通道拒绝文件接口。序列号保留当前SN精确、名称包含及产品编码精确筛选，数量未知保持空白。
+- 验证计划：失败测试覆盖缺少导出权限、项目不在范围、跨租户、超过批次、订单行去重/未知数量、查询失败不返回部分文件；前端验证两个按钮、筛选和只读保护。新增权限种子仅准备，运行权限通过获批的正式SYSTEM接口配置；不运行178 Flyway/DDL。
+- 实施结果：两个项目导出接口和前端入口、V518独立权限种子已完成；COM继续复用既有订单行公司/合同项目范围，不以分配关系放宽其读取权。22项后端检查通过（真实Mapper/租户拦截器、130/132行分批、服务501行、Excel内容、权限种子幂等与历史），12项前端运行时测试、定向类型检查及ESLint通过。先失败后修复日志位于.run/feedback-20261026/tf039-*-before.log，最终tf039-verified-tests.log与tf039-frontend.log。冻结ebf7348c-e211-433f-b463-904cc4731a38经2026-10-27 15:45单独批准启动59191，PID13304、local,dac、健康UP且运行哈希一致；正式SYSTEM接口配置后SM/PM分别209/179项，各仅新增导出权限。期间Number转换18位菜单ID造成SM12项原授权短暂缺失，已用字符串ID恢复208项并独立核验后再追加权限，异常和恢复证据完整保留；PM未受影响。未执行V518或其他迁移，不提升Feature总体状态。
+- 浏览器补正与验收：新下载API补Business API baseURL，4项URL回归先失败后通过。84459经理真实下载15行设备清单（数量119）、130行序列全量及1行精确SN筛选，Artifact Tool/原始OpenXML独立只读核对通过；渲染器省略文本数字前导零为预览限制，原文件与读取值未丢失。实际响应缺少文件类型头，已在两个新增Controller写流前设置附件响应头；受影响后端检查通过。新补正包3f888267-6df9-4c00-86d7-c91f84c97086完整构建、22项保护和固定脚本预检通过，经需求方本次单独批准重启59191，16:46核验PID34676、local,dac、健康UP及运行哈希一致。两类新下载响应头均正确，15/1行文件与补正前逐格值和类型一致，三类下载验收完成；权限未再次调整。完整证据与操作异常见docs/generated/2026-10-26-test-feedback-triage/问题跟进.md。
+
+## 2026-10-27 TF-048 当前型号只读补充
+
+2026-10-28当前规则修订：需求方在TF-043明确复用正式主档物理唯一键，不默认限制来源/状态、不作归一产品聚合。当前共享读取已改按同租户 `UNIQUE(tenant_id,product_code)`、设备编码trim及未删除主档索引唯一读取，设备非空型号原样优先；无写回/历史保护不变。此前CRM/ACTIVE、逐字节归一冲突与分组说明保留为当时实施历史，不再作为当前规则。实现、25项直接消费者回归及尚待≤1秒真实验收统一记录于F-IMP-005的TF-043小节。
+
+- 授权：需求方确认设备型号为空时按精确产品编码采用唯一有效CRM产品型号供展示和搜索，无匹配或多记录保持空值，不写回设备、不改历史快照。
+- 旧实现审计：AST设备主档/设备锁定查询保存原始型号；ProjectDeviceShipmentMapper和ProjectDeviceSelectionMapper的列表及过滤直接读取该列。DeviceQueryApi当前详情由原设备查询授权后构造DTO，前端割接新建及设备表复用这些只读接口。CRM同步副本已提供itemCode/itemModel对应关系，现无设备查询回退。
+- 实施顺序：先在AST提供统一当前型号SQL表达式及按设备ID批量只读查询，接入候选显示/检索和当前详情；所有写入、锁定查询、版本历史保留原始值。完成该局部增量后再推进TF-039导出；不并行扩展其他Feature。
+- 验证计划：实际Mapper SQL验证唯一/多记录/空型号/停用/跨租户和计数分页一致，当前详情测试验证已有型号优先且DO未改写；按固定工具链和锁运行定向测试。部署后真实浏览器复验57302的型号展示与检索，不创建割接任务。
+- 当前验证：原2项失败修复后相关35项通过，随后原文二进制匹配修正11项通过；但ebf7348c部署后的原账号/原项目真实型号搜索仍为code0/total0。只读DB确认318台编码含8个尾部填充空格，初始诊断trim输出掩盖了该格式。现按既有产品引用trim惯例逐字节比较并一次分组唯一CRM副本，已有值、大小写/内部空格差异、归一冲突和租户保护保持。先复现2项填充/冲突失败，最终16项受影响后端检查通过；其中H2仅以VARBINARY模拟MySQL无长度BINARY的完整字节语义，所有业务断言不变（[H2说明](https://h2database.com/html/datatypes.html#binary_type)、[MySQL说明](https://dev.mysql.com/doc/refman/8.0/en/cast-functions.html)）。另用真实MySQL READ ONLY事务、SELECT/CTE字面量验证未改写生产表达式的14个结果通过，无DDL/DML；实际318台按192/96/24/6匹配四型号，原字段未改，投影查询约40ms，不代表HTTP时延。新补正包3f888267经本次批准部署后，原账号y04503/原项目57302真实浏览器空关键字318行、SFP型号192行及第二页20行、切换ADX型号回第1页6行均符合当前数据，型号显示正确且无旧查询残留。保留原始填充编码，取消表单且无设备选择/任务保存。最终证据tf039-tf048-final-browser-acceptance.json、tf048-model-search-final.json及截图；不据此提升Feature总体Done状态。日志tf039-tf048-browser-regression-verified.log，证据tf048-current-model-database-{grouped,fixtures}.json。既有DeviceSourceFallbackTest的ITR与DEVICE_LOG来源不符失败保留，不降低规则。
+
 ## 权威状态纠偏
 
 - Feature Spec继续唯一维护Ready和业务Scope，不再维护Implementation状态。
@@ -121,3 +140,21 @@
 验证：固定工具链与工作树锁下9类61项通过（SYSTEM6、COM17、AST34、装配链4），包含同公司跨部门拒绝、同一行配对、公司级范围、明确项目授权、合同冲突及Owner失败关闭。实际MySQL只读连接执行生产XML：z01010当前组织范围查询杭州SN02010502N224800206为0、长春SN02230029D239025060为1；仅在内存改为公司级范围后杭州SN为1，不写实际授权/设备/合同。日志.run/device-scope-20261024/full-tests.log。新增合同服务测试首次发现候选Set在查询后被retainAll改变，已改为传入不可变候选副本并重跑通过。最初定向测试被其他构建锁阻止，等待原锁，未并行写target；未将未执行的失败测试标为通过。本会话未再次部署或重启；共享运行环境已被其他会话更新，当前e280a1b8发布清单源码指纹f087551c5539730197d0adb880dec536d9500d8ac36b7e6d9c873071818060c6与当前后端源码一致。该包只作为现有运行环境证据，不作为本会话构建产物。真实浏览器当前连接拒绝，尚未完成修复后页面验收；原59191范围维护包的批准不自动覆盖后续重启授权。
 
 后续收口：本会话使用worktree-build.ps1重新完整构建并冻结448d14f2-70e8-4da8-bba2-a59386b57692（源码指纹同f087551c），22项保护修复校验及worktree-backend.ps1 -ValidateOnly通过，未再次重启。浏览器恢复后z01010实际页面查询SN02010502N224800206为0条，SN02230029D239025060为1条，默认页面当前38754条（不将共享数据变化全部归因本修复）。证据.run/device-scope-20261024/z01010-denied-after.png、.txt及z01010-allowed-after.png、.txt。修复后详情/档案/日志/下载的拒绝由服务共用路径及定向测试覆盖，未逐入口执行真实浏览器拒绝验收。
+
+## 2026-10-28 项目内设备当前分页复用与性能（旧功能范围）
+
+- 需求方要求同步核查所有项目内设备查询。本增量复用现有当前列表SQL：受信租户、当前登录主体及目标项目 `PROJECT_VIEW` 完整范围均由PROJ确认时，直接使用原 `selectVisibleDevicePage` 按租户和目标项目索引分页；不准备全局项目/合同范围CTE。没有目标完整范围、仅占位或PROJ探测失败时，仍走原全局关联SQL的项目/合同/组织三路OR授权。姓名类关联筛选、SN/产品编码/状态/客户/部门条件、排序、投影及越界页真实总数保持。
+- `deviceListColumns`的两个当前列表消费者统一引用既有 `currentProductModel`：设备自身非空型号优先，空值按本租户唯一产品编码补充；主档逻辑删除/跨租户不参与，缺失保持空，不写死产品来源或启用状态、不新增聚合、不写回设备。影响项目序列号、安装/工勘材料、方案/复核方案设备引用、完工证明及CUT清单空白补充等当前列表消费者，也影响全局设备当前列表；不可变设备版本、安装历史、割接冻结事实及原始主档不变。网络版本 `DEVICE_LOG` 来源与分页续保次数继续遵守既有SDS10契约。
+- 失败与回归：原FULL分流失败用例先失败，32项修复后通过；随后缺本地型号用例在旧投影返回NULL时失败。统一投影后11套件55项通过，包含actor/tenant/VIEW、非FULL及Owner失败fallback、10种全列/排序/total分页等价、缺/已有/空白本地型号、缺/删除/越租户/停用/其他来源主档以及5000树SQL解析。所有后端检查持固定工具链和工作树独占锁，日志 `.run/feedback-20261028/tests/project-device-full-page-before.log`、`project-device-full-page-after.log`、`device-current-page-model-before.log`、`device-current-page-model-after.log`。
+- 178库只读SQL对照：在已证明目标FULL的比较前提下，79557和84459原关联页约0.30～0.38秒，复用直查列表约3～5毫秒、COUNT约1～2毫秒，行/排序/total一致；这不是普通账号授权或HTTP性能验收。型号投影调整后两项目各100行全部列与原投影一致，约6.6/7.9毫秒；查询投影内模拟缺本地型号时使用 `uk_product_official_tenant_code` 单行 `eq_ref`，没有改实际设备或产品。证据 `.run/feedback-20261028/acceptance/project-device-full-scope-readonly.json`、`project-device-full-page-compare-readonly.json`、`device-current-page-model-readonly.json`。
+- 尚未部署或完成指定项目详情阶段任务的真实浏览器复验；没有迁移、DDL、业务写入或服务启停，不将SQL毫秒值宣称为所有设备查询已满足1秒。
+
+## 2026-10-28 当前设备摘要批量读取与项目快路（旧功能范围）
+
+- 既有项目详情、CUT与巡检流程的当前设备摘要复用`getVisibleDeviceSummaries(DeviceSummaryBatchQuery)`。受信租户和actor必须等于当前登录上下文；空ID集合直接返回空，DTO仅增加可空name/locationSnapshot，型号继续复用唯一当前型号补全。单台详情同一受权直读，缺项保持AST_EQUIPMENT_NOT_EXISTS，不再先EXISTS再按ID回表。
+- 可选projectId是查询提示。PROJ确认当前主体PROJECT_VIEW FULL后，AST以租户、当前直接项目和本次ID集合单表Lambda读取，不强加合同号、来源或状态；保留已命中行，仅缺项进入原组织/项目/有效参与关系/合同OR授权。无FULL不能通过提示获权。通用缺项分支复用PROJ/COM公开SQL，所有AST候选和最终记录先限定本次IDs，不再展开79,433项目或全合同集合。COM索引预筛只转换候选binary key，原binary精确比较、同号冲突、公司部门同一行和两Owner独立失败关闭均保留。
+- HTTP批量入口沿用pms:device:query，仅接受deviceIds和可选projectId，tenant/actor由服务端取；前端WireLong保持number|string，不转Number。CUT消费者保留原逐项错误次序、缺项位置及后续归属/版本/发货校验；项目全集少任一受权设备仍整批失败。P2/P4历史迁出冻结行保持，当前补空仍受原资产权限；非草稿/已提交历史不以实时资料改写。
+- 失败与验证：项目提示部分命中红测17项中1项按预期失败；修复后AST9类58个唯一用例已通过，覆盖当前actor/tenant/FULL、伪造项目提示、只缺项fallback、单表空范围、所有原授权分支、SQL结果/排序/总数与生产解析器/cache。CONVERT(candidate USING utf8mb4)通过5000树生产解析；原CHAR CHARACTER SET解析失败日志保留。HTTP请求字段旧枚举断言修正后所属5项重新通过；主体租户新守卫所属6项重新通过。TS批量API两项WireLong/可选提示测试通过。
+- 消费者回归：CUT本轮94项中93通过，1条既有无客户等级用例与正式手选必填契约冲突而报错，保留原断言和日志，未放松生产规则。巡检6项通过。此前DeviceSourceFallbackTest的ITR/DEVICE_LOG既有失败同样单列，不计入本轮功能通过数。
+- 178库只读证据：79557直接232行约23.7ms、84459直接130行约8.8ms（含20行空合同号），原项目集合全字段/排序一致，混入外项目/不存在ID不返回，跨租户为空。受限合同候选20行原始DO完全一致，索引预筛约9.9ms，idx_contract_no第二键生效，8组大小写/重音/Unicode/尾空格/通配字面量保持原二进制结果；这些是SQL诊断，不是普通账号HTTP或浏览器验收。
+- 证据：`.run/feedback-20261028/tests/device-bounded-scope-project-before.log`、`device-bounded-scope-project-full.log`、`device-project-context-verified2.log`、`device-project-context-remaining.log`，以及acceptance目录下`device-project-ids-direct-readonly.json`、`device-summary-bounded-cte-readonly.json`、`device-summary-contract-convert-readonly.json`、`device-contract-convert-literals-readonly.json`。均未部署、重启、DDL、迁移或写入业务数据；真实浏览器验收由项目详情阶段任务入口另行完成。

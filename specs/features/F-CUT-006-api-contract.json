@@ -48,7 +48,7 @@
         "rollbackReason": "trimmed String 1..4000 iff rollbackOccurred=true, otherwise null",
         "legacyItems": "trimmed String 0..4000|null",
         "finalResult": "literal JSON null while saving DRAFT; SUCCESS|FAILED is supplied only by submit",
-        "attachments": "FileArtifactExpectation[] restricted to POST_COLLECTION_CHECKLIST|IMPLEMENTATION_COMMITMENT|OTHER_EVIDENCE, unique purposeCode+referenceKey, stable purposeCode then referenceKey; MANUAL_COLLECTION_RESULT is forbidden here and may only be created by linkManualResult"
+        "attachments": "FileArtifactExpectation[] restricted to POST_COLLECTION_CHECKLIST|IMPLEMENTATION_COMMITMENT|OTHER_EVIDENCE, unique purposeCode+referenceKey, stable purposeCode then referenceKey; multiple independent references per purpose are allowed, submit requires at least one POST_COLLECTION_CHECKLIST and one IMPLEMENTATION_COMMITMENT; omitting an ordinary attachment in a DRAFT save cancels its closure association without deleting PLT files or versions; MANUAL_COLLECTION_RESULT is forbidden here and may only be created by linkManualResult"
       }
     },
     "ClosureView": {
@@ -138,6 +138,16 @@
       "permission": "pms:cutover-task:query-closure",
       "headers": [],
       "success": "CommonResult<ClosureView>",
+      "errors": {"403": ["PROJECT_OR_TASK_SCOPE_DENIED"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "503": ["PROJECT_SCOPE_PROVIDER_UNAVAILABLE"]}
+    },
+    "availableAttachments": {
+      "method": "GET",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/closure/available-attachments",
+      "permission": "pms:cutover-task:save-closure",
+      "headers": [],
+      "success": "CommonResult<FileArtifactExpectation[]>; current ACTIVE and AVAILABLE references for POST_COLLECTION_CHECKLIST/IMPLEMENTATION_COMMITMENT/OTHER_EVIDENCE in this closure only",
+      "eligibility": "Existing DRAFT closure with SAVE_CLOSURE action, task owner, current project read/edit scope and existing PLT file READ policy; excludes MANUAL_COLLECTION_RESULT and archived/read-only access",
+      "semantics": "Read only. Includes uploaded files not currently saved in the closure draft. UI requires explicit selection to associate a file; cancellation does not automatically restore it. Existing save command revalidates all file facts.",
       "errors": {"403": ["PROJECT_OR_TASK_SCOPE_DENIED"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "503": ["PROJECT_SCOPE_PROVIDER_UNAVAILABLE"]}
     },
     "save": {
