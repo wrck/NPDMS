@@ -61,7 +61,11 @@
             <el-table-column prop="serialNumber" label="序列号" min-width="180" />
             <el-table-column prop="deviceName" label="设备" min-width="160" />
             <el-table-column prop="productModel" label="型号" min-width="130" />
-            <el-table-column prop="productTypeName" label="产品类型" min-width="140" />
+            <el-table-column prop="productTypeName" label="产品类型" min-width="140"
+              ><template #default="{ row }">{{
+                row.productTypeName || '未提供'
+              }}</template></el-table-column
+            >
             <el-table-column label="判定来源" width="120"
               ><template #default>UMC全部适用规则</template></el-table-column
             >

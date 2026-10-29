@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { defineComponent, h, nextTick } from 'vue'
 import Detail from './index.vue'
 import PlatformDetail from '../task-detail/index.vue'
 import {
@@ -141,12 +141,17 @@ const flush = async () => {
   for (let i = 0; i < 12; i++) await nextTick()
 }
 const nodes = (node: TestNode): TestNode[] => [node, ...node.children.flatMap(nodes)]
-const render = async (component = Detail) => {
+const render = async (component = Detail, productRow?: { productTypeName?: string }) => {
   const view = mount(
     component,
     {},
     {
-      ElTableColumn: tableColumn,
+      ElTableColumn: productRow ? defineComponent({
+        props: { label: String },
+        setup: (props, { slots }) => () => props.label === '产品类型'
+          ? h('span', { 'data-testid': 'inspection-product-type' }, slots.default?.({ row: productRow }))
+          : h('span')
+      }) : tableColumn,
       ...Object.fromEntries(
         [
           'ElInput',
@@ -199,6 +204,11 @@ for (const [page, component] of [
   ['UMC', Detail],
   ['原巡检', PlatformDetail]
 ] as const) {
+  it.each(['', '已知设备类型'])(`${page}产品类型缺失时明确提示并保留已有名称：%s`, async productTypeName => {
+    const view = await render(component, { productTypeName })
+    expect(textOf(findByTestId(view.root, 'inspection-product-type')!)).toBe(productTypeName || '未提供')
+  })
+
   it(`${page}显示本次巡检客户名称快照并对空值明确留空`, async () => {
     api.getTask.mockResolvedValue({ ...task(), customerId: '0', customerName: '手填巡检客户' })
     const view = await render(component)
