@@ -36,20 +36,13 @@
         />
       </el-form-item>
       <el-form-item label="员工" prop="userId">
-        <el-select
+        <UserSelect
           v-model="queryParams.userId"
           class="!w-240px"
           clearable
           placeholder="员工"
           @change="handleQuery"
-        >
-          <el-option
-            v-for="user in userListByDeptId"
-            :key="user.id"
-            :label="user.nickname"
-            :value="user.id"
-          />
-        </el-select>
+         :dept-id="queryParams.deptId" :disabled="!queryParams.deptId" />
       </el-form-item>
       <el-form-item label="产品分类" prop="categoryId">
         <el-tree-select
@@ -108,8 +101,8 @@
 </template>
 
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as DeptApi from '@/api/system/dept'
-import * as UserApi from '@/api/system/user'
 import * as ProductApi from '@/api/crm/product'
 import * as ProductCategoryApi from '@/api/crm/product/category'
 import { useUserStore } from '@/store/modules/user'
@@ -133,16 +126,10 @@ const queryParams = reactive({
 
 const queryFormRef = ref() // 搜索的表单
 const deptList = ref<Tree[]>([]) // 部门树形结构
-const userList = ref<UserApi.UserVO[]>([]) // 全量用户清单
 const productCategoryList = ref<any[]>([]) // 产品分类树
 const productList = ref<ProductApi.ProductVO[]>([]) // 产品列表
 
 /** 根据选择的部门筛选员工清单 */
-const userListByDeptId = computed(() =>
-  queryParams.deptId
-    ? userList.value.filter((user: UserApi.UserVO) => user.deptId === queryParams.deptId)
-    : []
-)
 
 const activeTab = ref('productSalesList') // 活跃标签
 const productSalesListRef = ref() // 产品销售情况统计
@@ -174,7 +161,7 @@ const resetQuery = () => {
 /** 初始化 */
 onMounted(async () => {
   deptList.value = handleTree(await DeptApi.getSimpleDeptList())
-  userList.value = await UserApi.getSimpleUserList()
+
   productCategoryList.value = handleTree(
     await ProductCategoryApi.getProductCategoryList({}),
     'id',

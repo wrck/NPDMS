@@ -15,19 +15,12 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="负责人" prop="ownerUserId">
-            <el-select
+            <UserSelect
               v-model="formData.ownerUserId"
               placeholder="请选择负责人"
-              :disabled="formData.id"
+              :disabled="!!formData.id"
               class="w-1/1"
-            >
-              <el-option
-                v-for="user in userList"
-                :key="user.id"
-                :label="user.nickname"
-                :value="user.id"
-              />
-            </el-select>
+             :clearable="false" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -98,11 +91,11 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as ProductApi from '@/api/crm/product'
 import * as ProductCategoryApi from '@/api/crm/product/category'
 import { defaultProps, handleTree } from '@/utils/tree'
-import { getSimpleUserList, UserVO } from '@/api/system/user'
 import { getCurrentUserId } from '@/utils/auth'
 
 defineOptions({ name: 'CrmProductForm' })
@@ -201,12 +194,11 @@ const resetForm = () => {
 
 /** 初始化 */
 const productCategoryList = ref<any[]>([]) // 产品分类树
-const userList = ref<UserVO[]>([]) // 系统用户
 onMounted(async () => {
   // 产品分类树
   const data = await ProductCategoryApi.getProductCategoryList({})
   productCategoryList.value = handleTree(data, 'id', 'parentId')
   // 系统用户列表
-  userList.value = await getSimpleUserList()
+
 })
 </script>

@@ -10,14 +10,7 @@
       label-width="68px"
     >
       <el-form-item label="发起人" prop="startUserId">
-        <el-select v-model="queryParams.startUserId" placeholder="请选择发起人" class="!w-240px">
-          <el-option
-            v-for="user in userList"
-            :key="user.id"
-            :label="user.nickname"
-            :value="user.id"
-          />
-        </el-select>
+        <UserSelect v-model="queryParams.startUserId" placeholder="请选择发起人" class="!w-240px" :clearable="false" />
       </el-form-item>
       <el-form-item label="流程名称" prop="name">
         <el-input
@@ -156,10 +149,10 @@
   </ContentWrap>
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { dateFormatter } from '@/utils/formatTime'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
-import * as UserApi from '@/api/system/user'
 import * as DefinitionApi from '@/api/bpm/definition'
 import { parseFormFields } from '@/components/FormCreate/src/utils'
 import { ElMessageBox } from 'element-plus'
@@ -188,7 +181,6 @@ const queryParams = reactive({
   formFieldsParams: {}
 })
 const queryFormRef = ref() // 搜索的表单
-const userList = ref<any[]>([]) // 用户列表
 
 /** 查询列表 */
 const getList = async () => {
@@ -268,6 +260,6 @@ onMounted(async () => {
   // 获取流程列表
   await getList()
   // 获取用户列表
-  userList.value = await UserApi.getSimpleUserList()
+
 })
 </script>

@@ -14,14 +14,7 @@
         <el-input v-model="formData.description" placeholder="请输入描述" type="textarea" />
       </el-form-item>
       <el-form-item label="成员" prop="userIds">
-        <el-select v-model="formData.userIds" multiple placeholder="请选择成员">
-          <el-option
-            v-for="user in userList"
-            :key="user.id"
-            :label="user.nickname"
-            :value="user.id"
-          />
-        </el-select>
+        <UserSelect v-model="formData.userIds" multiple placeholder="请选择成员" :clearable="false" />
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-radio-group v-model="formData.status">
@@ -42,10 +35,10 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { CommonStatusEnum } from '@/utils/constants'
 import * as UserGroupApi from '@/api/bpm/userGroup'
-import * as UserApi from '@/api/system/user'
 
 defineOptions({ name: 'UserGroupForm' })
 
@@ -70,7 +63,6 @@ const formRules = reactive({
   status: [{ required: true, message: '状态不能为空', trigger: 'blur' }]
 })
 const formRef = ref() // 表单 Ref
-const userList = ref<any[]>([]) // 用户列表
 
 /** 打开弹窗 */
 const open = async (type: string, id?: number) => {
@@ -88,7 +80,7 @@ const open = async (type: string, id?: number) => {
     }
   }
   // 加载用户列表
-  userList.value = await UserApi.getSimpleUserList()
+
 }
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗
 

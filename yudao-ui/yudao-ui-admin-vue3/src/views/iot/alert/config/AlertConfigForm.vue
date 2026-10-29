@@ -49,19 +49,12 @@
         </el-select>
       </el-form-item>
       <el-form-item label="接收的用户" prop="receiveUserIds">
-        <el-select
+        <UserSelect
           v-model="formData.receiveUserIds"
           multiple
           placeholder="请选择接收的用户"
           class="w-full"
-        >
-          <el-option
-            v-for="user in userOptions"
-            :key="user.id"
-            :label="user.nickname"
-            :value="user.id"
-          />
-        </el-select>
+         :clearable="false" />
       </el-form-item>
       <el-form-item label="接收类型" prop="receiveTypes">
         <el-select
@@ -107,12 +100,12 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { AlertConfigApi, AlertConfig } from '@/api/iot/alert/config'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { CommonStatusEnum } from '@/utils/constants'
 import { RuleSceneApi } from '@/api/iot/rule/scene'
 import { IotAlertReceiveTypeEnum } from '@/views/iot/utils/constants'
-import * as UserApi from '@/api/system/user'
 import MailTemplateSelect from '@/views/system/mail/template/components/MailTemplateSelect.vue'
 import NotifyTemplateSelect from '@/views/system/notify/template/components/NotifyTemplateSelect.vue'
 import SmsTemplateSelect from '@/views/system/sms/template/components/SmsTemplateSelect.vue'
@@ -164,7 +157,6 @@ const formRef = ref() // 表单 Ref
 
 // 选项数据
 const sceneRuleOptions = ref<any[]>([])
-const userOptions = ref<UserApi.UserVO[]>([])
 
 /** 按接收类型同步模板校验规则 */
 const syncTemplateFormRules = () => {
@@ -233,12 +225,8 @@ defineExpose({ open }) // 提供 open 方法，用于打开弹窗
 /** 加载选项数据 */
 const loadOptions = async () => {
   try {
-    const [scenes, users] = await Promise.all([
-      RuleSceneApi.getSimpleRuleSceneList(),
-      UserApi.getSimpleUserList()
-    ])
+    const scenes = await RuleSceneApi.getSimpleRuleSceneList()
     sceneRuleOptions.value = scenes
-    userOptions.value = users
   } catch (error) {
     console.error('加载选项数据失败:', error)
   }

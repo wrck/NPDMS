@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { systemUserSelection } from '@/api/system/user/selection'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import * as AreaApi from '@/api/system/area'
 import * as DeptApi from '@/api/system/dept'
-import * as UserApi from '@/api/system/user'
 import { useUserStore } from '@/store/modules/user'
 import { formatDate } from '@/utils/formatTime'
 import {
@@ -283,7 +283,7 @@ const loadPrintLookupMaps = async (formFieldsObj: FormFieldRule[]) => {
 
   const [areaList, userList, deptList] = await Promise.all([
     hasAreaSelect ? AreaApi.getAreaTree() : Promise.resolve([]),
-    hasUserSelect ? UserApi.getSimpleUserList() : Promise.resolve([]),
+    hasUserSelect ? systemUserSelection.active() : Promise.resolve([]),
     hasDeptSelect ? DeptApi.getSimpleDeptList() : Promise.resolve([])
   ])
 

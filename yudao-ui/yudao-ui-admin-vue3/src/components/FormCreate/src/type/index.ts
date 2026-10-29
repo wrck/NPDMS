@@ -19,6 +19,7 @@ export interface ApiSelectProps {
   valueField?: string // 选项的值
   url?: string // url 接口
   isDict?: boolean // 是否字典选择器
+  userSelection?: boolean // 系统用户字段通过共用选择数据源保留历史Schema契约
 }
 
 // 选择组件规则配置类型

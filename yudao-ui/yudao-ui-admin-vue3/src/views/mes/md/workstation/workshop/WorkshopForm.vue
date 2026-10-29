@@ -42,19 +42,12 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="负责人" prop="chargeUserId">
-            <el-select
+            <UserSelect
               v-model="formData.chargeUserId"
               placeholder="请选择负责人"
               clearable
               class="!w-1/1"
-            >
-              <el-option
-                v-for="user in userList"
-                :key="user.id"
-                :label="user.nickname"
-                :value="user.id"
-              />
-            </el-select>
+             />
           </el-form-item>
         </el-col>
       </el-row>
@@ -95,12 +88,12 @@
   <BarcodeDetail ref="barcodeDetailRef" />
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { getIntDictOptions, DICT_TYPE } from '@/utils/dict'
 import { MdWorkshopApi, MdWorkshopVO } from '@/api/mes/md/workstation/workshop'
 import { CommonStatusEnum } from '@/utils/constants'
 import { MesAutoCodeRuleCode, BarcodeBizTypeEnum } from '@/views/mes/utils/constants'
 import { AutoCodeRecordApi } from '@/api/mes/md/autocode/record'
-import * as UserApi from '@/api/system/user'
 import { BarcodeDetail } from '@/views/mes/wm/barcode/components'
 
 defineOptions({ name: 'WorkshopForm' })
@@ -120,7 +113,6 @@ const dialogTitle = computed(() => {
   }
   return titles[formType.value] || formType.value
 })
-const userList = ref<UserApi.UserVO[]>([]) // 用户列表
 const formData = ref({
   id: undefined,
   code: undefined,
@@ -161,7 +153,7 @@ const open = async (type: string, id?: number) => {
   formType.value = type
   resetForm()
   // 加载用户列表
-  userList.value = await UserApi.getSimpleUserList()
+
   // 修改时，设置数据
   if (id) {
     formLoading.value = true

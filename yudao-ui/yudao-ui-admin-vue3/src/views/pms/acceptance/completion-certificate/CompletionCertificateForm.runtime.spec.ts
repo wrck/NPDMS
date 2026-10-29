@@ -16,6 +16,13 @@ it('opens the engineer picker through the enabled-user directory without requiri
   { PmsEntitySelect, ...Object.fromEntries(['ElInput', 'ElSelect', 'ElOption', 'ElRow', 'ElCol', 'ElDatePicker', 'ElRadio', 'ElRadioGroup', 'ElInputNumber'].map(name => [name, passthrough])) })
   try {
     for (let i = 0; i < 8; i++) { await nextTick(); await Promise.resolve() }
+    const nodes: any[] = []
+    const walk = (node: any) => { nodes.push(node); (node.children || []).forEach(walk) }
+    walk(view.root)
+    const picker = nodes.find(node => node.props?.placeholder === '默认当前用户，可修改' && node.props?.onVisibleChange)
+    expect(picker).toBeTruthy()
+    await picker.props.onVisibleChange(true)
+    for (let i = 0; i < 8; i++) { await nextTick(); await Promise.resolve() }
     expect(users.getSimpleUserList).toHaveBeenCalled()
     expect(users.getUserPage).not.toHaveBeenCalled()
     const result = await (view.vm as any).$.setupState.findEngineers({ nickname: '另一' })

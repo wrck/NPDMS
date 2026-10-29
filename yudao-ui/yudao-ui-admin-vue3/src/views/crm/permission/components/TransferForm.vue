@@ -9,14 +9,7 @@
       label-width="150px"
     >
       <el-form-item label="选择新负责人" prop="newOwnerUserId">
-        <el-select v-model="formData.newOwnerUserId">
-          <el-option
-            v-for="item in userOptions"
-            :key="item.id"
-            :label="item.nickname"
-            :value="item.id"
-          />
-        </el-select>
+        <UserSelect v-model="formData.newOwnerUserId" :clearable="false" />
       </el-form-item>
       <el-form-item label="老负责人">
         <el-radio-group v-model="oldOwnerHandler" @change="handleOwnerChange">
@@ -51,7 +44,7 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
-import * as UserApi from '@/api/system/user'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as BusinessApi from '@/api/crm/business'
 import * as ClueApi from '@/api/crm/clue'
 import * as ContactApi from '@/api/crm/contact'
@@ -70,7 +63,6 @@ const message = useMessage() // 消息弹窗
 const dialogVisible = ref(false) // 弹窗的是否展示
 const dialogTitle = ref('') // 弹窗的标题
 const formLoading = ref(false) // 表单的加载中：1）修改时的数据加载；2）提交的按钮禁用
-const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 const oldOwnerHandler = ref(false) // 老负责人的处理方式
 const formData = ref<TransferReqVO>({} as TransferReqVO)
 const formRules = reactive({
@@ -157,6 +149,6 @@ const resetForm = () => {
 }
 onMounted(async () => {
   // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
+
 })
 </script>

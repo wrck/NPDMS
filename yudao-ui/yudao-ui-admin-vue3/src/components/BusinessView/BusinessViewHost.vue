@@ -43,6 +43,7 @@ import { onBeforeRouteLeave } from 'vue-router'
 import { resolveBusinessView, type BusinessViewTarget } from './registry'
 import { editingTargetKey, operationClientKey, operationCheckKey, useOperationHost } from './operationHost'
 import { useBusinessActionBar } from './businessActionBar'
+import { officeProjectReadContext } from '@/utils/officeProjectReadonly'
 
 defineOptions({ name: 'BusinessViewHost' })
 const props = defineProps<BusinessViewTarget>()
@@ -51,7 +52,7 @@ const message = useMessage()
 const { barTarget } = useBusinessActionBar()
 const hasActionBar = !!barTarget
 const capture = (): BusinessViewTarget => ({ registration: { ...props.registration }, resolvedContext: { ...props.resolvedContext },
-  allowedActions: [...(props.allowedActions || [])], readonly: props.readonly })
+  allowedActions: officeProjectReadContext() ? ['QUERY'] : [...(props.allowedActions || [])], readonly: !!officeProjectReadContext() || props.readonly })
 const active = shallowRef(capture())
 const operationReason = (row: { operationCode: string; reason?: string }) => {
   if (row.reason === 'OWNER_OPERATION_FORBIDDEN' && active.value.resolvedContext.businessObjectId != null

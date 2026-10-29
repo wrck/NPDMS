@@ -31,15 +31,7 @@
         placeholder="请输入你要发送的消息"
         type="textarea"
       />
-      <el-select v-model="sendUserId" class="mt-4" placeholder="请选择发送人">
-        <el-option key="" label="所有人" value="" />
-        <el-option
-          v-for="user in userList"
-          :key="user.id"
-          :label="user.nickname"
-          :value="user.id"
-        />
-      </el-select>
+      <UserSelect :preserve-empty-value="true" v-model="sendUserId" class="mt-4" placeholder="请选择发送人" :clearable="false"><template #prefix-options><el-option key="" label="所有人" value="" /></template></UserSelect>
       <el-button :disabled="!getIsOpen" block class="ml-2 mt-4" type="primary" @click="handlerSend">
         发送
       </el-button>
@@ -68,10 +60,10 @@
   </div>
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { formatDate } from '@/utils/formatTime'
 import { useWebSocket } from '@vueuse/core'
 import { getRefreshToken } from '@/utils/auth'
-import * as UserApi from '@/api/system/user'
 
 defineOptions({ name: 'InfraWebSocket' })
 
@@ -176,9 +168,8 @@ const toggleConnectStatus = () => {
 }
 
 /** 初始化 **/
-const userList = ref<any[]>([]) // 用户列表
 onMounted(async () => {
   // 获取用户列表
-  userList.value = await UserApi.getSimpleUserList()
+
 })
 </script>

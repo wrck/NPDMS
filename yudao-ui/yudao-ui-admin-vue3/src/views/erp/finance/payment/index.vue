@@ -46,36 +46,22 @@
         </el-select>
       </el-form-item>
       <el-form-item label="创建人" prop="creator">
-        <el-select
+        <UserSelect
           v-model="queryParams.creator"
           clearable
-          filterable
+
           placeholder="请选择创建人"
           class="!w-240px"
-        >
-          <el-option
-            v-for="item in userList"
-            :key="item.id"
-            :label="item.nickname"
-            :value="item.id"
-          />
-        </el-select>
+         />
       </el-form-item>
       <el-form-item label="财务人员" prop="financeUserId">
-        <el-select
+        <UserSelect
           v-model="queryParams.financeUserId"
           clearable
-          filterable
+
           placeholder="请选择财务人员"
           class="!w-240px"
-        >
-          <el-option
-            v-for="item in userList"
-            :key="item.id"
-            :label="item.nickname"
-            :value="item.id"
-          />
-        </el-select>
+         />
       </el-form-item>
       <el-form-item label="付款账户" prop="accountId">
         <el-select
@@ -260,13 +246,12 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { getIntDictOptions, DICT_TYPE } from '@/utils/dict'
 import { dateFormatter2 } from '@/utils/formatTime'
 import download from '@/utils/download'
 import { FinancePaymentApi, FinancePaymentVO } from '@/api/erp/finance/payment'
 import FinancePaymentForm from './FinancePaymentForm.vue'
-import { UserVO } from '@/api/system/user'
-import * as UserApi from '@/api/system/user'
 import { erpPriceTableColumnFormatter } from '@/utils'
 import { SupplierApi, SupplierVO } from '@/api/erp/purchase/supplier'
 import { AccountApi, AccountVO } from '@/api/erp/finance/account'
@@ -296,7 +281,6 @@ const queryParams = reactive({
 const queryFormRef = ref() // 搜索的表单
 const exportLoading = ref(false) // 导出的加载中
 const supplierList = ref<SupplierVO[]>([]) // 供应商列表
-const userList = ref<UserVO[]>([]) // 用户列表
 const accountList = ref<AccountVO[]>([]) // 账户列表
 
 /** 查询列表 */
@@ -382,7 +366,7 @@ onMounted(async () => {
   await getList()
   // 加载供应商、用户、账户
   supplierList.value = await SupplierApi.getSupplierSimpleList()
-  userList.value = await UserApi.getSimpleUserList()
+
   accountList.value = await AccountApi.getAccountSimpleList()
 })
 // TODO 可优化功能：列表界面，支持导入

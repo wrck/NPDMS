@@ -10,14 +10,7 @@
       label-width="68px"
     >
       <el-form-item label="发起人" prop="startUserId">
-        <el-select v-model="queryParams.startUserId" placeholder="请选择发起人" class="!w-240px">
-          <el-option
-            v-for="user in userList"
-            :key="user.id"
-            :label="user.nickname"
-            :value="user.id"
-          />
-        </el-select>
+        <UserSelect v-model="queryParams.startUserId" placeholder="请选择发起人" class="!w-240px" :clearable="false" />
       </el-form-item>
       <el-form-item label="流程名称" prop="name">
         <el-input
@@ -162,12 +155,12 @@
   </ContentWrap>
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { dateFormatter, formatPast2 } from '@/utils/formatTime'
 import { ElMessageBox } from 'element-plus'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import { CategoryApi, CategoryVO } from '@/api/bpm/category'
-import * as UserApi from '@/api/system/user'
 
 // 它和【我的流程】的差异是，该菜单可以看全部的流程实例
 defineOptions({ name: 'BpmProcessInstanceManager' })
@@ -191,7 +184,6 @@ const queryParams = reactive({
 })
 const queryFormRef = ref() // 搜索的表单
 const categoryList = ref<CategoryVO[]>([]) // 流程分类列表
-const userList = ref<any[]>([]) // 用户列表
 
 /** 查询列表 */
 const getList = async () => {
@@ -252,6 +244,6 @@ onActivated(() => {
 onMounted(async () => {
   await getList()
   categoryList.value = await CategoryApi.getCategorySimpleList()
-  userList.value = await UserApi.getSimpleUserList()
+
 })
 </script>

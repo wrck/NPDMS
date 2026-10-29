@@ -35,6 +35,22 @@ const flushPromises = async () => {
 }
 beforeEach(() => vi.clearAllMocks())
 describe('retained Owner view and execution routing', () => {
+  it('office readonly viewing never creates a command client or requests execution capabilities', async () => {
+    const original = window.location.href
+    window.history.replaceState({}, '', '/pms/project/office-readonly?projectId=1&projectName=Exact')
+    const view = harness()
+    try {
+      await flushPromises()
+      expect(view.state.mode.value).toBe('INDEPENDENT')
+      expect(view.state.allowedActions.value).toEqual(['QUERY'])
+      expect(view.state.client.value).toBeUndefined()
+      expect(inspectOperationCapabilities).not.toHaveBeenCalled()
+      expect(request.post).not.toHaveBeenCalled()
+    } finally {
+      view.wrapper.app.unmount()
+      window.history.replaceState({}, '', original)
+    }
+  })
   it('settles a waiting Owner save as cancelled when its host is disposed during a capability read', async () => {
     vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability() as never)
     const view = harness(); await flushPromises()

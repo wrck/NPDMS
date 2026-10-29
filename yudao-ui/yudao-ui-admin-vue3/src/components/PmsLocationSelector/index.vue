@@ -1,6 +1,6 @@
 <template>
   <div class="location-selector">
-    <el-alert v-if="contextError" :title="contextError" type="error" :closable="false" class="mb-12px" />
+    <el-alert v-if="validationError" :title="validationError" type="warning" :closable="false" class="mb-12px" />
     <el-radio-group v-model="mode" class="mb-12px" @change="changeMode">
       <el-radio-button value="existing">选择已有地点</el-radio-button>
       <el-radio-button value="new">现场维护新地点</el-radio-button>
@@ -24,7 +24,7 @@
         />
       </el-select>
       <el-tree-select
-        v-if="selectedSiteId"
+        v-if="selectedSiteId && (!projectScoped || sites.some(site => site.id === selectedSiteId))"
         v-model="selectedLocationId"
         :data="locationTree"
         node-key="id"
@@ -162,6 +162,9 @@ const emit = defineEmits<{ (e: 'update:modelValue', value: LocationMaintainReque
 const customerId = ref<number>()
 const customerName = ref('')
 const contextError = ref('')
+const locationError = ref('')
+const contextLoading = ref(false)
+const locationLoading = ref(false)
 const customerAddresses = ref<AddressVO[]>([])
 const selectedCustomerAddressId = ref<number>()
 
@@ -236,7 +239,7 @@ const removeChainItem = (index: number) => {
   draft.extraSiteLocations?.splice(index - offset, 1)
 }
 const extraAvailable = computed(
-  () => mode.value === 'new' || (mode.value === 'existing' && !!selectedSiteId.value)
+  () => !validationError.value && (mode.value === 'new' || (mode.value === 'existing' && !!selectedSiteId.value))
 )
 const findLocationPath = (
   nodes: SiteLocationVO[],
@@ -253,6 +256,22 @@ const findLocationPath = (
 const selectedLocationPath = computed(() =>
   (findLocationPath(locationTree.value, selectedLocationId.value) || []).map(node => node.name).join(' / ')
 )
+const validationError = computed(() => {
+  if (!props.projectScoped) return ''
+  if (contextLoading.value || locationLoading.value) return '正在加载项目地点，请稍候。'
+  if (contextError.value) return contextError.value
+  if (locationError.value) return locationError.value
+  if (mode.value !== 'existing') return ''
+  if (selectedSiteId.value && !sites.value.some(site => site.id === selectedSiteId.value)) {
+    return '原站点不在当前项目可选范围，请重新选择站点或维护新地点。'
+  }
+  if (selectedLocationId.value && !findLocationPath(locationTree.value, selectedLocationId.value)) {
+    return '原位置不在当前站点可选范围，请重新选择安装位置。'
+  }
+  return ''
+})
+const getValidationError = () => validationError.value
+defineExpose({ getValidationError })
 const existingPathPreview = computed(() => {
   const site = sites.value.find((item) => item.id === selectedSiteId.value)
   const path = findLocationPath(locationTree.value, selectedLocationId.value) || []
@@ -334,6 +353,7 @@ const loadCustomerContext = async (projectId?: number | string) => {
   customerAddresses.value = []
   selectedCustomerAddressId.value = undefined
   stampSiteCustomer()
+  contextLoading.value = !!projectId
   if (!projectId) return
   try {
     if (props.projectScoped) {
@@ -366,14 +386,31 @@ const loadCustomerContext = async (projectId?: number | string) => {
   } catch {
     if (props.projectScoped && current === customerSequence) contextError.value = '项目地点加载失败，请重新打开后重试。'
     // 项目客户信息不可读时不阻塞地点维护，仅不提供客户地址选择
+  } finally {
+    if (current === customerSequence) contextLoading.value = false
   }
   stampSiteCustomer()
 }
 
-const readLocationTree = async (siteId: number) => {
-  if (!props.projectScoped) return LocationApi.getSiteLocationTree(siteId)
-  if (!props.projectId) return []
-  return (await LocationApi.getProjectCustomerLocations(props.projectId, siteId)).siteLocations
+let locationSequence = 0
+const loadLocationTree = async (siteId?: number) => {
+  const current = ++locationSequence
+  const projectId = props.projectId
+  locationTree.value = []
+  locationError.value = ''
+  locationLoading.value = false
+  if (!siteId || (props.projectScoped && (!projectId || !sites.value.some(site => site.id === siteId)))) return
+  locationLoading.value = true
+  try {
+    const locations = props.projectScoped && projectId
+      ? (await LocationApi.getProjectCustomerLocations(projectId, siteId)).siteLocations
+      : await LocationApi.getSiteLocationTree(siteId)
+    if (current === locationSequence) locationTree.value = handleTree(locations, 'id', 'parentId')
+  } catch {
+    if (current === locationSequence) locationError.value = '项目地点加载失败，请重新选择站点后重试。'
+  } finally {
+    if (current === locationSequence) locationLoading.value = false
+  }
 }
 
 const selectCustomerAddress = (id?: number) => {
@@ -400,12 +437,7 @@ const selectSite = async (siteId?: number) => {
   draft.siteLocation = undefined
   draft.fallbackLocation = site ? siteLabel(site) : undefined
   draft.site = site ? { id: site.id, expectedVersion: site.version } : undefined
-  if (siteId)
-    locationTree.value = handleTree(
-      await readLocationTree(siteId),
-      'id',
-      'parentId'
-    )
+  await loadLocationTree(siteId)
 }
 
 const selectLocation = (id?: number) => {
@@ -426,6 +458,7 @@ const selectLocation = (id?: number) => {
 watch(
   () => props.projectId,
   (projectId) => {
+    void loadLocationTree()
     draft.projectId = projectId
     if (draft.address?.id) {
       draft.address = { countryCode: 'CN', countryName: '中国' }
@@ -473,11 +506,7 @@ watch(
       selectedLocationId.value = value.siteLocation?.id
       if (selectedSiteId.value) {
         if (!sites.value.length) await loadSites()
-        locationTree.value = handleTree(
-          await readLocationTree(selectedSiteId.value),
-          'id',
-          'parentId'
-        )
+        await loadLocationTree(selectedSiteId.value)
       }
     } else if (value.address || value.site || value.siteLocation) mode.value = 'new'
     ensureStructure()
@@ -490,16 +519,17 @@ watch(
     // 已有站点引用的 siteLocation 只带 id，保存文本由 fallbackLocation 承载；
     // 在 emit 前同步读取 computed 派生完整路径（站点/各级位置/追加层级），
     // 不依赖 watcher 触发顺序，保证地点文本体现所有层级。
-    if (mode.value === 'existing') draft.fallbackLocation = existingPathPreview.value || undefined
+    if (mode.value === 'existing' && !validationError.value) draft.fallbackLocation = existingPathPreview.value || undefined
     emit('update:modelValue', JSON.parse(JSON.stringify(draft)))
   },
   { deep: true }
 )
-watch(existingPathPreview, (path) => {
-  if (mode.value === 'existing') draft.fallbackLocation = path || undefined
+watch([existingPathPreview, validationError], ([path, error]) => {
+  if (mode.value === 'existing' && !error) draft.fallbackLocation = path || undefined
 })
 watch(mode, ensureStructure)
 const changeMode = (value: 'existing' | 'new' | 'fallback') => {
+  void loadLocationTree()
   Object.assign(draft, emptyDraft())
   selectedSiteId.value = undefined
   selectedLocationId.value = undefined
@@ -515,7 +545,7 @@ const changeMode = (value: 'existing' | 'new' | 'fallback') => {
 
 onMounted(() => {
   if (!props.projectCustomerSitesOnly && !props.projectScoped) loadSites()
-  loadCustomerContext(props.projectId)
+  if (customerSequence === 0) loadCustomerContext(props.projectId)
 })
 </script>
 

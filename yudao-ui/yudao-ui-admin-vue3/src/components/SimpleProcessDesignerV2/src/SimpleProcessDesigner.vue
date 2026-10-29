@@ -31,7 +31,8 @@ import { handleTree } from '@/utils/tree'
 import * as RoleApi from '@/api/system/role'
 import * as DeptApi from '@/api/system/dept'
 import * as PostApi from '@/api/system/post'
-import * as UserApi from '@/api/system/user'
+import type * as UserApi from '@/api/system/user'
+import { systemUserSelection } from '@/api/system/user/selection'
 import * as UserGroupApi from '@/api/bpm/userGroup'
 import { BpmModelFormType } from '@/utils/constants'
 
@@ -212,7 +213,7 @@ onMounted(async () => {
     // 获得岗位列表
     postOptions.value = await PostApi.getSimplePostList()
     // 获得用户列表
-    userOptions.value = await UserApi.getSimpleUserList()
+    userOptions.value = await systemUserSelection.active()
     // 获得部门列表
     deptOptions.value = await DeptApi.getSimpleDeptList()
     deptTreeOptions.value = handleTree(deptOptions.value as DeptApi.DeptVO[], 'id')

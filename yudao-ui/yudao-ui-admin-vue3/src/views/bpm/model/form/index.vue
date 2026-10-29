@@ -85,6 +85,7 @@
 </template>
 
 <script lang="ts" setup>
+import { systemUserSelection } from '@/api/system/user/selection'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { useTagsViewStore } from '@/store/modules/tagsView'
@@ -244,7 +245,7 @@ const initData = async () => {
   // 获取分类列表
   categoryList.value = await CategoryApi.getCategorySimpleList()
   // 获取用户列表
-  userList.value = await UserApi.getSimpleUserList()
+  userList.value = await systemUserSelection.active()
   // 获取部门列表
   deptList.value = await DeptApi.getSimpleDeptList()
 

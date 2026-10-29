@@ -132,6 +132,7 @@
 </template>
 
 <script setup lang="ts">
+import { systemUserSelection } from '@/api/system/user/selection'
 import { dateFormatter } from '@/utils/formatTime'
 import { DICT_TYPE } from '@/utils/dict'
 import { WmWarehouseApi, WmWarehouseVO } from '@/api/mes/wm/warehouse'
@@ -161,7 +162,7 @@ const queryFormRef = ref() // 查询表单 Ref
 
 /** 加载用户列表 */
 const loadUserList = async () => {
-  userList.value = await UserApi.getSimpleUserList()
+  userList.value = await systemUserSelection.active()
 }
 
 /** 查询列表 */

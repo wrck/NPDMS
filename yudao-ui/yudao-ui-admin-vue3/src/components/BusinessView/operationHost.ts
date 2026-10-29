@@ -7,6 +7,7 @@ import { OperationClient, routeSelection, captureOperationResponse, type Result,
 import type { BusinessViewTarget } from './registry'
 import { validateBusinessPage, pagePresentationKey, businessOperationAliases, type PagePresentation } from './presentationRoute'
 import { operationPresentation } from './operationPresentation'
+import { officeProjectReadContext } from '@/utils/officeProjectReadonly'
 
 export const operationClientKey: InjectionKey<ShallowRef<OperationClient | undefined>> = Symbol('operation-client')
 export const useOperationClient = () => inject(operationClientKey, shallowRef<OperationClient>())
@@ -57,6 +58,10 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
   }
   const refresh = async (follow = false) => {
     const target = query(), sequence = ++generation
+    if (officeProjectReadContext()) {
+      client.value?.invalidate(); client.value = undefined; observation.value = undefined
+      mode.value = 'INDEPENDENT'; checking.value = false; settleChecks(true); return
+    }
     if (!target) {
       client.value?.invalidate(); client.value = undefined; observation.value = undefined
       mode.value = 'INDEPENDENT'; checking.value = false; settleChecks(true); return
@@ -148,6 +153,7 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
   const presentationReason = computed(() => presentation.value.reason)
   const allowedActions = computed(() => {
     const target = active.value
+    if (officeProjectReadContext()) return target.allowedActions.includes('QUERY') ? ['QUERY'] : []
     if (requiresReopen.value) return target.allowedActions.includes('QUERY') ? ['QUERY'] : []
     if (mode.value === 'INDEPENDENT' || mode.value === 'LEGACY') return configuredPresentation.value && (presentationReadonly.value || checking.value || failure.value)
       ? target.allowedActions.includes('QUERY') ? ['QUERY'] : [] : target.allowedActions

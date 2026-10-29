@@ -126,20 +126,14 @@
               prop="userIds"
               span="24"
             >
-              <el-select
+              <UserSelect
                 filterable
                 v-model="configForm.userIds"
                 clearable
                 multiple
                 style="width: 100%"
-              >
-                <el-option
-                  v-for="item in userOptions"
-                  :key="item.id"
-                  :label="item.nickname"
-                  :value="item.id"
-                />
-              </el-select>
+                :scoped-source="nodeUsers"
+              />
             </el-form-item>
             <el-form-item
               v-if="configForm.candidateStrategy === CandidateStrategy.USER_GROUP"
@@ -365,20 +359,14 @@
               prop="assignEmptyHandlerUserIds"
               span="24"
             >
-              <el-select
+              <UserSelect
                 filterable
                 v-model="configForm.assignEmptyHandlerUserIds"
                 clearable
                 multiple
                 style="width: 100%"
-              >
-                <el-option
-                  v-for="item in userOptions"
-                  :key="item.id"
-                  :label="item.nickname"
-                  :value="item.id"
-                />
-              </el-select>
+                :scoped-source="nodeUsers"
+              />
             </el-form-item>
 
             <div v-if="currentNode.type === NodeType.USER_TASK_NODE">
@@ -528,6 +516,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import {
   SimpleFlowNode,
   APPROVE_TYPE,
@@ -657,6 +647,12 @@ const {
   getShowText
 } = useNodeForm(currentNode.value.type)
 const configForm = tempConfigForm as Ref<UserTaskFormType>
+const nodeUsers = computed(() =>
+  systemUserSelection.fromCandidates(
+    `bpm-node:${currentNode.value?.id || ''}`,
+    userOptions.value || []
+  )
+)
 
 // 改变审批人设置策略
 const changeCandidateStrategy = () => {

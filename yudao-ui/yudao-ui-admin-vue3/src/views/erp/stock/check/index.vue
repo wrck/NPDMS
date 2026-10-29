@@ -62,20 +62,13 @@
         </el-select>
       </el-form-item>
       <el-form-item label="创建人" prop="creator">
-        <el-select
+        <UserSelect
           v-model="queryParams.creator"
           clearable
-          filterable
+
           placeholder="请选择创建人"
           class="!w-240px"
-        >
-          <el-option
-            v-for="item in userList"
-            :key="item.id"
-            :label="item.nickname"
-            :value="item.id"
-          />
-        </el-select>
+         />
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="请选择状态" clearable class="!w-240px">
@@ -227,6 +220,7 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { getIntDictOptions, DICT_TYPE } from '@/utils/dict'
 import { dateFormatter2 } from '@/utils/formatTime'
 import download from '@/utils/download'
@@ -234,8 +228,6 @@ import { StockCheckApi, StockCheckVO } from '@/api/erp/stock/check'
 import StockCheckForm from './StockCheckForm.vue'
 import { ProductApi, ProductVO } from '@/api/erp/product/product'
 import { WarehouseApi, WarehouseVO } from '@/api/erp/stock/warehouse'
-import { UserVO } from '@/api/system/user'
-import * as UserApi from '@/api/system/user'
 import { erpCountTableColumnFormatter, erpPriceTableColumnFormatter } from '@/utils'
 
 /** ERP 其它盘点单列表 */
@@ -262,7 +254,6 @@ const queryFormRef = ref() // 搜索的表单
 const exportLoading = ref(false) // 导出的加载中
 const productList = ref<ProductVO[]>([]) // 产品列表
 const warehouseList = ref<WarehouseVO[]>([]) // 仓库列表
-const userList = ref<UserVO[]>([]) // 用户列表
 
 /** 查询列表 */
 const getList = async () => {
@@ -348,7 +339,7 @@ onMounted(async () => {
   // 加载产品、仓库列表、客户
   productList.value = await ProductApi.getProductSimpleList()
   warehouseList.value = await WarehouseApi.getWarehouseSimpleList()
-  userList.value = await UserApi.getSimpleUserList()
+
 })
 // TODO 可优化功能：列表界面，支持导入
 // TODO 可优化功能：详情界面，支持打印
