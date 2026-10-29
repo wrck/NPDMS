@@ -7,6 +7,12 @@ import java.util.Set;
 public interface ActiveUserSelectionApi {
     PageResult<User> page(Query query);
 
+    /** Current project-list member filters; separate from assignment role/organization qualification. */
+    PageResult<MemberOption> pageProjectMembers(MemberFilterQuery query);
+    record MemberOption(Long id, String username, String nickname, Long deptId, String deptName) { }
+    record MemberFilterQuery(int pageNo, int pageSize, String keyword, ProjectMemberIdentityScopeProvider.Filter field) { }
+
+
     record Query(int pageNo, int pageSize, String keyword, Set<Long> userIds,
                  String roleCode, Qualification qualification) { }
     record Qualification(Long companyId, Long departmentId, String departmentCode, String scopeRole) { }

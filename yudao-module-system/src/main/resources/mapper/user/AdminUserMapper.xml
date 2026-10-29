@@ -42,4 +42,31 @@
         SELECT u.id, u.username, u.nickname, u.dept_id <include refid="activeRoleSelectionWhere"/>
         ORDER BY u.id LIMIT #{query.offset}, #{query.pageSize}
     </select>
+    <sql id="scopedActiveIdentityBase">
+        FROM system_users u
+        WHERE u.tenant_id = #{query.tenantId} AND u.status = 0 AND u.deleted = b'0'
+        <choose><when test="query.userIds != null and !query.userIds.isEmpty()">
+            AND u.id IN <foreach collection="query.userIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </when><otherwise>AND 1 = 0</otherwise></choose>
+    </sql>
+    <sql id="scopedActiveIdentityWhere">
+        <include refid="scopedActiveIdentityBase"/>
+        <if test="query.keyword != null">
+            AND (u.username LIKE CONCAT('%', #{query.keyword}, '%') OR u.nickname LIKE CONCAT('%', #{query.keyword}, '%')
+                <if test="query.matchedDepartmentIds != null and !query.matchedDepartmentIds.isEmpty()">
+                    OR u.dept_id IN <foreach collection="query.matchedDepartmentIds" item="dept" open="(" separator="," close=")">#{dept}</foreach>
+                </if>
+            )
+        </if>
+    </sql>
+    <select id="selectScopedActiveUserDepartmentIds" resultType="java.lang.Long">
+        SELECT DISTINCT u.dept_id <include refid="scopedActiveIdentityBase"/> AND u.dept_id IS NOT NULL
+    </select>
+    <select id="selectScopedActiveUserCount" resultType="long">
+        SELECT COUNT(*) <include refid="scopedActiveIdentityWhere"/>
+    </select>
+    <select id="selectScopedActiveUserPage" resultType="cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO">
+        SELECT u.id, u.username, u.nickname, u.dept_id <include refid="scopedActiveIdentityWhere"/>
+        ORDER BY u.id LIMIT #{query.offset}, #{query.pageSize}
+    </select>
 </mapper>

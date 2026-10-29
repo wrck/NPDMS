@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.bpm.service.task;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 import lombok.RequiredArgsConstructor;
 import org.flowable.engine.HistoryService;
 import org.flowable.engine.TaskService;
@@ -22,8 +23,7 @@ public class BpmServiceManagerAccess {
 
     private boolean restricted() {
         Long actor = SecurityFrameworkUtils.getLoginUserId();
-        return actor != null && (permissions.hasAnyRoles(actor, "SERVICE_MANAGER")
-                || permissions.hasAnyRoles(actor, "PROJECT_MANAGER"))
+        return actor != null && permissions.hasAnyRoles(actor, ProjectMemberRoles.MANAGEMENT_CODES.toArray(String[]::new))
                 && !permissions.hasAnyPermissions(actor, "bpm:task:manager-query");
     }
 
@@ -34,7 +34,7 @@ public class BpmServiceManagerAccess {
         var process = history.createHistoricProcessInstanceQuery().includeProcessVariables().processInstanceId(processInstanceId)
                 .processInstanceTenantId(tenant).singleResult();
         if (process == null) throw exception(FORBIDDEN);
-        if (permissions.hasAnyRoles(SecurityFrameworkUtils.getLoginUserId(), "PROJECT_MANAGER")
+        if (permissions.hasAnyRoles(SecurityFrameworkUtils.getLoginUserId(), ProjectMemberRoles.MANAGEMENT_CODES.toArray(String[]::new))
                 && process.getBusinessKey() != null && process.getBusinessKey().startsWith("SOL_REVIEW:" + tenant + ":")) {
             var variables = process.getProcessVariables();
             Object project = variables == null ? null : variables.get("projectId");

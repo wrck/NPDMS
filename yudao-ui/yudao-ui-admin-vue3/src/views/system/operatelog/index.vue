@@ -10,20 +10,13 @@
       label-width="68px"
     >
       <el-form-item label="操作人" prop="userId">
-        <el-select
+        <UserSelect
           v-model="queryParams.userId"
           clearable
-          filterable
+
           placeholder="请输入操作人员"
           class="!w-240px"
-        >
-          <el-option
-            v-for="user in userList"
-            :key="user.id"
-            :label="user.nickname"
-            :value="user.id"
-          />
-        </el-select>
+         />
       </el-form-item>
       <el-form-item label="操作模块" prop="type">
         <el-input
@@ -131,12 +124,11 @@
   <OperateLogDetail ref="detailRef" />
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { dateFormatter } from '@/utils/formatTime'
 import download from '@/utils/download'
 import * as OperateLogApi from '@/api/system/operatelog'
 import OperateLogDetail from './OperateLogDetail.vue'
-import * as UserApi from '@/api/system/user'
-const userList = ref<UserApi.UserVO[]>([]) // 用户列表
 
 defineOptions({ name: 'SystemOperateLog' })
 
@@ -207,6 +199,6 @@ const handleExport = async () => {
 onMounted(async () => {
   await getList()
   // 获得用户列表
-  userList.value = await UserApi.getSimpleUserList()
+
 })
 </script>
