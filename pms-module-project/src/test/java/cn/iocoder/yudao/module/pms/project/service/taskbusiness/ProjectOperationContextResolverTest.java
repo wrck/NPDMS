@@ -60,6 +60,18 @@ class ProjectOperationContextResolverTest {
     }
     @AfterEach void clear() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
 
+    @Test void controlledTaskWriteRevalidatesExecutionAuthorityBeforeOwnerCommand() {
+        var project = projects.selectById(1L);
+        var binding = snapshot.getTasks().getFirst().getBinding();
+        var context = new ProjectOperationContextResolver.Context(7L,8L,project,
+                new cn.iocoder.yudao.module.pms.project.service.operation.ProjectOperationCapabilities.Node(1L,"TASK",2L,"SURVEY","survey","IN_PROGRESS"),
+                round,binding,null,true,null);
+        assertThrows(RuntimeException.class, () -> resolver.lockForWrite(context));
+        when(access.executableLocked(any(),any(),any())).thenReturn(true);
+        assertDoesNotThrow(() -> resolver.lockForWrite(context));
+        verify(access, times(2)).executableLocked(eq(task),eq(project),any());
+    }
+
     @Test void completedRoundReadsItsFrozenBindingWithoutGrantingExecutionOrChangingHistory() {
         String original = JsonUtils.toJsonString(round);
         var result = resolver.resolve(1L, "TASK", 2L, null);
@@ -99,5 +111,29 @@ class ProjectOperationContextResolverTest {
         when(access.read(2L, 7L, 8L)).thenThrow(new IllegalArgumentException("denied"));
         assertThrows(IllegalArgumentException.class, () -> resolver.resolve(1L, "TASK", 2L, null));
         verifyNoInteractions(plans, nodes, executions);
+    }
+
+    @Test void assignmentOwnerMaintenanceCanUseCurrentHostWithoutTaskExecutionAuthority() {
+        task.setStatus("IN_PROGRESS"); round.setPlanVersionId(12L); round.setStatus("ACTIVE"); round.setEndedAt(null);
+        var binding = snapshot.getTasks().getFirst().getBinding();
+        binding.setType("BUSINESS_OBJECT"); binding.setTargetContextCode("PROJ");
+        binding.setTargetObjectType("PROJECT_ASSIGNMENT"); binding.setTargetObjectKey("PROJECT_ASSIGNMENT");
+        binding.setComponentKey("PROJ_PROJECT_ASSIGNMENT");
+        binding.setParameters(JsonUtils.parseTree("{\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\"}"));
+        var effective = plans.selectEffective(null);
+        effective.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        var current = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                1L, 1L, 2L, 1, 4L, 1, 12L, 3L, 1, 1, 6L, 1, true, LocalDateTime.now());
+        when(executions.inspect(any())).thenReturn(current);
+        when(access.assignmentOperationAllowed(any())).thenReturn(true);
+
+        assertTrue(resolver.resolve(1L, "TASK", 2L, null).permitted());
+        when(access.assignmentOperationAllowed(any())).thenReturn(false);
+        assertFalse(resolver.resolve(1L, "TASK", 2L, null).permitted());
+        when(access.assignmentOperationAllowed(any())).thenReturn(true);
+        when(executions.inspect(any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
+                        1L, 1L, 2L, 1, 4L, 1, 12L, 3L, 1, 1, 6L, 1, false, current.startedAt()));
+        assertFalse(resolver.resolve(1L, "TASK", 2L, null).permitted());
     }
 }

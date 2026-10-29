@@ -40,25 +40,50 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
     private final ProjectMasterMapper projectMapper;
     private final ProjectMemberAssignmentMapper memberMapper;
 
+    private enum EvidencePurpose { FACT, AUTHORIZATION }
+
     @Override
     public ProjectParticipantFact inspect(ProjectParticipantFactQuery query) {
+        return inspect(query, EvidencePurpose.FACT);
+    }
+
+    @Override
+    public ProjectParticipantFact inspectAuthorization(ProjectParticipantFactQuery query) {
+        return inspect(query, EvidencePurpose.AUTHORIZATION);
+    }
+
+    private ProjectParticipantFact inspect(ProjectParticipantFactQuery query, EvidencePurpose purpose) {
         Long tenantId = trustedTenantId();
         validateInspect(query);
+        if (purpose == EvidencePurpose.AUTHORIZATION && query.subjectUserId() == null)
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         ProjectMasterDO project = projectMapper.selectById(query.projectId());
         requireProject(project, tenantId);
-        List<ProjectMemberAssignmentDO> assignments = memberMapper.selectParticipantFacts(
-                ProjectParticipantFactLookupQuery.builder()
+        var selection = ProjectParticipantFactLookupQuery.builder()
                 .tenantId(tenantId)
                 .projectId(query.projectId())
                 .subjectUserId(query.subjectUserId())
                 .requiredRoleCodes(lookupRoles(query.requiredRoleCodes(), query.subjectUserId()))
-                .effectiveAt(query.checkedAt()).build());
-        return resolve(project, tenantId, query.subjectUserId(), query.requiredRoleCodes(), assignments);
+                .effectiveAt(purpose == EvidencePurpose.AUTHORIZATION ? java.time.LocalDateTime.now() : query.checkedAt()).build();
+        List<ProjectMemberAssignmentDO> assignments = purpose == EvidencePurpose.AUTHORIZATION
+                ? memberMapper.selectAuthorizationParticipantFacts(selection)
+                : memberMapper.selectParticipantFacts(selection);
+        return resolve(new ResolutionContext(project, tenantId, query.subjectUserId(), query.requiredRoleCodes(), purpose), assignments);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ProjectParticipantFact lockAndRevalidate(ProjectParticipantFactRevalidationQuery query) {
+        return lockAndRevalidate(query, EvidencePurpose.FACT);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProjectParticipantFact lockAndRevalidateAuthorization(ProjectParticipantFactRevalidationQuery query) {
+        return lockAndRevalidate(query, EvidencePurpose.AUTHORIZATION);
+    }
+
+    private ProjectParticipantFact lockAndRevalidate(ProjectParticipantFactRevalidationQuery query, EvidencePurpose purpose) {
         Long tenantId = trustedTenantId();
         validateRevalidation(query);
         ProjectMasterDO project = projectMapper.selectByIdForUpdate(query.projectId());
@@ -73,18 +98,23 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
                     : currentStages.isActive(project, query.requiredCurrentStage()))) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
-        List<ProjectMemberAssignmentDO> assignments = memberMapper.selectParticipantFactsForUpdate(
-                ProjectParticipantFactLockQuery.builder()
+        var selection = ProjectParticipantFactLockQuery.builder()
                 .tenantId(tenantId)
                 .projectId(query.projectId())
                 .userId(query.userId())
-                .requiredRoleCodes(query.requiredRoleCodes()).build());
-        return resolve(project, tenantId, query.userId(), query.requiredRoleCodes(), assignments);
+                .requiredRoleCodes(query.requiredRoleCodes()).build();
+        List<ProjectMemberAssignmentDO> assignments = purpose == EvidencePurpose.AUTHORIZATION
+                ? memberMapper.selectAuthorizationParticipantFactsForUpdate(selection)
+                : memberMapper.selectParticipantFactsForUpdate(selection);
+        return resolve(new ResolutionContext(project, tenantId, query.userId(), query.requiredRoleCodes(), purpose), assignments);
     }
 
-    private ProjectParticipantFact resolve(ProjectMasterDO project, Long tenantId, Long subjectUserId,
-                                           Set<String> requiredRoles,
-                                           List<ProjectMemberAssignmentDO> assignments) {
+    private record ResolutionContext(ProjectMasterDO project, Long tenantId, Long subjectUserId,
+                                     Set<String> requiredRoles, EvidencePurpose purpose) { }
+
+    private ProjectParticipantFact resolve(ResolutionContext context, List<ProjectMemberAssignmentDO> assignments) {
+        var project = context.project(); var tenantId = context.tenantId();
+        var subjectUserId = context.subjectUserId(); var requiredRoles = context.requiredRoles();
         Map<Long, Set<String>> rolesByUser = new HashMap<>();
         if (subjectUserId == null && requiredRoles.contains(ROLE_PROJECT_MANAGER)
                 && project.getManagerId() != null) {
@@ -92,7 +122,7 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
                     .add(ROLE_PROJECT_MANAGER);
         }
         for (ProjectMemberAssignmentDO assignment : assignments) {
-            requireAssignment(assignment, tenantId, project.getId(), subjectUserId, requiredRoles);
+            requireAssignment(assignment, context);
             rolesByUser.computeIfAbsent(assignment.getUserId(), ignored -> new HashSet<>())
                     .add(assignment.getMemberRole());
         }
@@ -108,6 +138,10 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
                 .filter(item -> ROLE_PROJECT_MANAGER.equals(item.getMemberRole()))
                 .map(ProjectMemberAssignmentDO::getAssignmentType)
                 .filter(Objects::nonNull).findFirst().orElse(PRIMARY);
+        if (context.purpose() == EvidencePurpose.AUTHORIZATION) {
+            var types = assignments.stream().map(ProjectMemberAssignmentDO::getAssignmentType).distinct().toList();
+            assignmentType = types.size() == 1 ? types.getFirst() : null;
+        }
         return new ProjectParticipantFact(project.getId(), selected.getKey(), selected.getValue(), assignmentType,
                 project.getLifecycleStatus(), project.getCurrentStage(), project.getVersion(), factVersion);
     }
@@ -156,14 +190,15 @@ public class ProjectParticipantFactApiImpl implements ProjectParticipantFactApi 
         }
     }
 
-    private void requireAssignment(ProjectMemberAssignmentDO assignment, Long tenantId, Long projectId,
-                                   Long subjectUserId, Set<String> requiredRoles) {
+    private void requireAssignment(ProjectMemberAssignmentDO assignment, ResolutionContext context) {
+        var tenantId = context.tenantId(); var projectId = context.project().getId();
+        var subjectUserId = context.subjectUserId(); var requiredRoles = context.requiredRoles();
         if (assignment == null || !Objects.equals(assignment.getTenantId(), tenantId)
                 || !Objects.equals(assignment.getProjectId(), projectId)
                 || assignment.getUserId() == null
                 || subjectUserId != null && !Objects.equals(assignment.getUserId(), subjectUserId)
                 || !requiredRoles.contains(assignment.getMemberRole())
-                || !ROLE_PROJECT_MANAGER.equals(assignment.getMemberRole())
+                || context.purpose() == EvidencePurpose.FACT && !ROLE_PROJECT_MANAGER.equals(assignment.getMemberRole())
                 && assignment.getAssignmentType() != null && !PRIMARY.equals(assignment.getAssignmentType())) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }

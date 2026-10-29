@@ -47,7 +47,7 @@ class ProjectTaskBusinessRefreshServiceTest {
         contract.setComponentKey("assignment"); contract.setWorkBindingTypeCode("BUSINESS_COMPONENT");
         contract.setBindingParameterSnapshot("{\"businessViewRevisionId\":40,\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\"}");
         when(access.read(10L, 1L, 9L)).thenReturn(task);
-        when(access.executable(any(), any(), any())).thenReturn(true);
+        when(access.executableLocked(any(), any(), any())).thenReturn(true);
         when(tasks.selectProjectForCommandForUpdate(any())).thenReturn(project);
         when(tasks.selectTaskForAssignmentForUpdate(any())).thenReturn(task);
         when(contracts.selectCurrentByTaskIdForUpdate(any())).thenReturn(contract);
@@ -84,7 +84,7 @@ class ProjectTaskBusinessRefreshServiceTest {
     }
 
     @Test void revokedAuthorityStopsBeforeAnyBusinessWrite() {
-        when(access.executable(any(), any(), any())).thenReturn(false);
+        when(access.executableLocked(any(), any(), any())).thenReturn(false);
         assertThrows(RuntimeException.class, () -> service.refresh(command, actor));
         verifyNoInteractions(associations, lifecycle, audit);
     }

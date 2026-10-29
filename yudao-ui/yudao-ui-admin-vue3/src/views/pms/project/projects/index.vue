@@ -71,20 +71,13 @@ v-model="query.customerCode" :api="getCustomerPage"
           </el-select>
         </el-form-item>
         <el-form-item label="项目经理" prop="managerId">
-          <el-select
-            v-model="query.managerId"
+          <UserSelect
+            v-model="query.managerId" :scoped-source="memberFilterSources.MANAGER"
             placeholder="全部"
             clearable
-            filterable
+
             class="!w-130px"
-          >
-            <el-option
-              v-for="user in userOptions"
-              :key="user.id"
-              :label="user.nickname || user.username"
-              :value="user.id"
-            />
-          </el-select>
+           />
         </el-form-item>
         <el-form-item label="创建时间" prop="createTimeRange">
           <el-date-picker
@@ -193,30 +186,16 @@ v-model="query.customerCode" :api="getCustomerPage"
             </el-select>
           </el-form-item>
           <el-form-item label="服务经理" prop="serviceManagerId">
-            <el-select
-              v-model="query.serviceManagerId"
+            <UserSelect
+              v-model="query.serviceManagerId" :scoped-source="memberFilterSources.SERVICE_MANAGER"
               placeholder="全部"
               clearable
-              filterable
+
               class="!w-130px"
-            >
-              <el-option
-                v-for="user in userOptions"
-                :key="user.id"
-                :label="user.nickname || user.username"
-                :value="user.id"
-              />
-            </el-select>
+             />
           </el-form-item>
           <el-form-item label="销售人员" prop="salesId">
-            <el-select v-model="query.salesId" placeholder="全部" clearable filterable class="!w-130px">
-              <el-option
-                v-for="user in userOptions"
-                :key="user.id"
-                :label="user.nickname || user.username"
-                :value="user.id"
-              />
-            </el-select>
+            <UserSelect v-model="query.salesId" :scoped-source="memberFilterSources.SALES" placeholder="全部" clearable class="!w-130px" />
           </el-form-item>
           <el-form-item label="闭环时间" prop="closeTimeRange">
             <el-date-picker
@@ -283,6 +262,7 @@ v-model="query.customerCode" :api="getCustomerPage"
         <el-form-item>
           <el-button @click="handleSearch"><Icon icon="ep:search" />查询</el-button>
           <el-button @click="handleReset"><Icon icon="ep:refresh-left" />重置</el-button>
+          <el-button @click="officeVisible = true">办事处精确查询</el-button>
           <el-button link type="primary" @click="showMoreFilters = !showMoreFilters">
             <Icon :icon="showMoreFilters ? 'ep:arrow-up' : 'ep:arrow-down'" />
             {{ showMoreFilters ? '收起筛选' : `更多筛选${moreFilterCount ? `(${moreFilterCount})` : ''}` }}
@@ -397,14 +377,6 @@ v-model="query.customerCode" :api="getCustomerPage"
               v-hasPermi="['pms:project:query']"
             >
               详情
-            </el-button>
-            <el-button
-              link
-              type="warning"
-              @click="openEdit(row)"
-              v-hasPermi="['pms:project:update']"
-            >
-              编辑
             </el-button>
             <el-button
 link type="primary" v-hasPermi="['pms:project:update']"
@@ -837,6 +809,25 @@ v-model="createForm.contractNo" :api="getSelectableContracts"
     </Dialog>
 
     <!-- ============ 模板预览抽屉 ============ -->
+    <el-dialog v-model="officeVisible" title="办事处项目精确查询" width="min(900px, 94vw)">
+      <p>至少填写完整项目名称或合同号；两项填写时须同时匹配。仅查询有效授权办事处，结果只读，不能办理或下载。</p>
+      <el-form :model="officeQuery" label-position="top" @submit.prevent="searchOffice(1)">
+        <el-form-item label="完整项目名称"><el-input v-model="officeQuery.projectName" clearable @keyup.enter="searchOffice(1)" /></el-form-item>
+        <el-form-item label="完整合同号"><el-input v-model="officeQuery.contractNo" clearable @keyup.enter="searchOffice(1)" /></el-form-item>
+        <el-button type="primary" :loading="officeLoading" @click="searchOffice(1)">精确查询</el-button>
+      </el-form>
+      <el-table v-loading="officeLoading" :data="officeRows" empty-text="暂无匹配项目">
+        <el-table-column prop="projectCode" label="项目编码" min-width="150" />
+        <el-table-column prop="projectName" label="项目名称" min-width="200" />
+        <el-table-column prop="contractNo" label="合同号" min-width="140" />
+        <el-table-column label="操作" width="120"><template #default="{ row }">
+          <el-button link type="primary" @click="openOfficeProject(row)">只读查看</el-button>
+        </template></el-table-column>
+      </el-table>
+      <el-pagination
+v-if="officeTotal > 0" v-model:current-page="officePage" :page-size="10" :total="officeTotal"
+        layout="total, prev, pager, next" class="mt-12px" @current-change="searchOffice(officePage)" />
+    </el-dialog>
     <el-drawer v-model="previewVisible" :title="`模板预览：${previewTitle}`" size="620px">
       <div v-loading="previewLoading">
         <el-descriptions v-if="previewContent" :column="2" border size="small" class="mb-12px">
@@ -1163,6 +1154,9 @@ v-model="createForm.contractNo" :api="getSelectableContracts"
 </template>
 
 <script setup lang="ts">
+import { createProjectMemberFilterSource } from '@/api/pms/project/projects'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreationTemplateMatch"
 /**
  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
@@ -1188,8 +1182,6 @@ import type {
 } from '@/api/pms/project/projects'
 import { getProjectTemplateRevision } from '@/api/pms/project/project-templates'
 import type { TemplateDefinitionContent } from '@/api/pms/project/project-templates'
-import * as UserApi from '@/api/system/user'
-import type { UserVO } from '@/api/system/user'
 import * as CompanyApi from '@/api/system/company'
 import type { CompanyVO } from '@/api/system/company'
 import * as DeptApi from '@/api/system/dept'
@@ -1218,6 +1210,11 @@ const wizardWidth = computed(() => (mobile.value ? '96%' : '880px'))
 const loading = ref(false)
 const rows = ref<ProjectMasterVO[]>([])
 const total = ref(0)
+const memberFilterSources = {
+  MANAGER: createProjectMemberFilterSource('MANAGER'),
+  SERVICE_MANAGER: createProjectMemberFilterSource('SERVICE_MANAGER'),
+  SALES: createProjectMemberFilterSource('SALES')
+}
 const query = reactive({
   pageNo: 1,
   pageSize: 10,
@@ -1227,7 +1224,7 @@ const query = reactive({
   overdueOnly: undefined as boolean | undefined,
   hasShippedDevices: undefined as boolean | undefined,
   status: '',
-  managerId: undefined as number | undefined,
+  managerId: undefined as number | string | undefined,
   createTimeRange: null as string[] | null,
   signingMethod: '',
   projectCategory: '',
@@ -1236,8 +1233,8 @@ const query = reactive({
   contractNo: '',
   companyId: undefined as number | undefined,
   departmentId: undefined as number | undefined,
-  serviceManagerId: undefined as number | undefined,
-  salesId: undefined as number | undefined,
+  serviceManagerId: undefined as number | string | undefined,
+  salesId: undefined as number | string | undefined,
   closeTimeRange: null as string[] | null,
   refreshTimeRange: null as string[] | null,
   deviceSn: '',
@@ -1273,7 +1270,6 @@ const moreFilterCount = computed(() => {
 })
 
 // ============ 成员下拉（项目经理/服务经理/销售人员共用） ============
-const userOptions = ref<UserVO[]>([])
 
 /** daterange 选取值按左闭右开换算：start=起始日 00:00:00，endExclusive=结束日次日 00:00:00（含结束日整天） */
 const rangeToParams = (range: string[] | null | undefined, prefix: string) => {
@@ -1730,6 +1726,36 @@ const submitCreate = async () => {
 
 // ============ 详情抽屉 ============
 const detailVisible = ref(false)
+const officeVisible = ref(false)
+const officeLoading = ref(false)
+const officeQuery = reactive({ projectName: '', contractNo: '' })
+const officeRows = ref<ProjectMasterVO[]>([])
+const officeTotal = ref(0)
+const officePage = ref(1)
+let officeMatchedCriteria = { projectName: '', contractNo: '' }
+const searchOffice = async (pageNo = 1) => {
+  officeRows.value = []
+  officeTotal.value = 0
+  if (!officeQuery.projectName.trim() && !officeQuery.contractNo.trim()) {
+    message.error('请至少填写完整项目名称或合同号')
+    return
+  }
+  officeLoading.value = true
+  try {
+    const criteria = { ...officeQuery }
+    const result = await ProjectsApi.searchOfficeProjects({ ...criteria, pageNo, pageSize: 10 })
+    officeMatchedCriteria = criteria
+    officePage.value = pageNo
+    officeRows.value = result.list
+    officeTotal.value = result.total
+  } finally {
+    officeLoading.value = false
+  }
+}
+const openOfficeProject = (row: ProjectMasterVO) => {
+  officeVisible.value = false
+  router.push({ path: '/pms/project/office-readonly', query: { projectId: String(row.id), ...officeMatchedCriteria } })
+}
 const detailLoading = ref(false)
 const detailTab = ref('base')
 const detail = ref<ProjectMasterVO | null>(null)
@@ -1790,7 +1816,7 @@ const loadUserNicknames = async (userIds: number[]) => {
   const missing = userIds.filter((id) => id && !userNicknames.value[id])
   if (!missing.length) return
   try {
-    const data = await UserApi.getUserPage({ pageNo: 1, pageSize: 100 })
+    const data = await systemUserSelection.page({ pageNo: 1, pageSize: 100 })
     const map: Record<number, string> = {}
     for (const u of data?.list || []) {
       if (u?.id != null) map[u.id] = u.nickname || u.username || ''
@@ -1821,19 +1847,6 @@ const editForm = reactive({
   implementationLocation: ''
 })
 
-const openEdit = (row: ProjectMasterVO) => {
-  Object.assign(editForm, {
-    id: row.id,
-    projectCode: row.projectCode,
-    projectName: row.projectName || '',
-    customerCode: row.customerCode || '',
-    customerName: row.customerName || '',
-    contractNo: row.contractNo || '',
-    implementationLocation: row.implementationLocation || ''
-  })
-  editVisible.value = true
-}
-
 const submitEdit = async () => {
   saving.value = true
   try {
@@ -1857,11 +1870,6 @@ onMounted(() => {
   loadStats()
   load()
   loadOrganizations()
-  UserApi.getSimpleUserList()
-    .then((list) => (userOptions.value = list || []))
-    .catch(() => {
-      // 人员下拉加载失败不阻断列表（成员筛选仍可手动保留空选项）
-    })
 })
 </script>
 

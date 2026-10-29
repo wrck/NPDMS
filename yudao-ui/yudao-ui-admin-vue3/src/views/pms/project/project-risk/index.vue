@@ -103,12 +103,10 @@
       <el-form-item label="缓解措施"><el-input v-model="form.mitigation" type="textarea" /></el-form-item>
       <el-form-item label="应急措施"><el-input v-model="form.contingency" type="textarea" /></el-form-item>
       <el-form-item label="负责人">
-        <PmsEntitySelect
+        <UserSelect
           v-model="form.ownerUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择负责人"
         />
       </el-form-item>
@@ -136,15 +134,26 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import { onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as ProjectRiskApi from '@/api/pms/project/project-risk'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import type { ProjectRiskVO } from '@/api/pms/project/project-risk'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/project/project-risk/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsProjectRisk' })
 const message = useMessage()

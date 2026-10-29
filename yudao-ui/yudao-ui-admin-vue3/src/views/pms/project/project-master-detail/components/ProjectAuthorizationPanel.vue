@@ -217,6 +217,7 @@
 </template>
 
 <script setup lang="ts">
+import { systemUserSelection } from '@/api/system/user/selection'
 import { generateUUID } from '@/utils'
 import { computed, reactive, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
@@ -307,7 +308,7 @@ const loadUserNames = async (items: ProjectAuthorizationVO[]) => {
   const ids = [...new Set(items.map((item) => item.subjectUserId))]
   if (!ids.length) return
   try {
-    if (!simpleUsers.value.length) simpleUsers.value = await UserApi.getSimpleUserList()
+    if (!simpleUsers.value.length) simpleUsers.value = await systemUserSelection.active()
     const requiredIds = new Set(ids)
     userNames.value = {
       ...userNames.value,

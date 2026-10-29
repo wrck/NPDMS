@@ -198,6 +198,7 @@ public class ProjectMasterController {
                 projectManualCreationService.getProjectPage(pageReqVO, accessActor());
         PageResult<ProjectRespVO> response = BeanUtils.toBean(pageResult, ProjectRespVO.class);
         projectStatusPresentationService.populate(response.getList());
+        response.setList(response.getList().stream().map(ProjectOverviewSanitizer::sanitize).toList());
         return success(response);
     }
 

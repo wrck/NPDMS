@@ -87,20 +87,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="项目经理" prop="managerId">
-          <el-select
+          <UserSelect
             v-model="query.managerId"
             placeholder="全部"
             clearable
-            filterable
+
             class="!w-180px"
-          >
-            <el-option
-              v-for="item in managerOptions"
-              :key="item.id"
-              :label="item.nickname || item.username"
-              :value="item.id!"
-            />
-          </el-select>
+           />
         </el-form-item>
         <el-form-item>
           <el-button @click="handleSearch"><Icon icon="ep:search" />查询</el-button>
@@ -221,7 +214,8 @@
             >
               编辑
             </el-button>
-            <el-button link type="primary" v-hasPermi="['pms:project:update']"
+            <el-button
+link type="primary" v-hasPermi="['pms:project:update']"
               @click="customerCorrectionRef?.open(row)">更正客户</el-button>
             <el-button
               link
@@ -267,7 +261,8 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="客户主档" prop="customerCode">
-                <PmsEntitySelect v-model="createForm.customerCode" :api="getSelectableCustomers"
+                <PmsEntitySelect
+v-model="createForm.customerCode" :api="getSelectableCustomers"
                   :label-field="['code', 'name']" value-field="code" query-field="keyword"
                   placeholder="按客户名称或编码选择" @change="selectCustomer" />
               </el-form-item>
@@ -281,7 +276,8 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="合同主档" prop="contractNo">
-                <PmsEntitySelect v-model="createForm.contractNo" :api="getSelectableContracts"
+                <PmsEntitySelect
+v-model="createForm.contractNo" :api="getSelectableContracts"
                   :label-field="['contractNo', 'customerName', 'companyName']" value-field="contractNo"
                   query-field="keyword" placeholder="按合同号选择" @change="selectContract" />
               </el-form-item>
@@ -917,6 +913,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreationTemplateMatch"
 /**
  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
@@ -940,7 +938,6 @@ import type {
 } from '@/api/pms/project/projects'
 import { getProjectTemplateRevision } from '@/api/pms/project/project-templates'
 import type { TemplateDefinitionContent } from '@/api/pms/project/project-templates'
-import * as UserApi from '@/api/system/user'
 import * as CompanyApi from '@/api/system/company'
 import type { CompanyVO } from '@/api/system/company'
 import * as DeptApi from '@/api/system/dept'
@@ -980,14 +977,6 @@ const query = reactive({
   implementationMode: '',
   managerId: undefined as number | undefined
 })
-const managerOptions = ref<UserApi.UserVO[]>([])
-const loadManagerOptions = async () => {
-  try {
-    managerOptions.value = (await UserApi.getSimpleUserList()) || []
-  } catch {
-    managerOptions.value = []
-  }
-}
 
 // ============ 顶部状态卡（生命周期阶段统计，逐阶段全展开） ============
 const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: string }[] = [
@@ -1381,7 +1370,7 @@ const loadUserNicknames = async (userIds: number[]) => {
   const missing = userIds.filter((id) => id && !userNicknames.value[id])
   if (!missing.length) return
   try {
-    const data = await UserApi.getUserPage({ pageNo: 1, pageSize: 100 })
+    const data = await systemUserSelection.page({ pageNo: 1, pageSize: 100 })
     const map: Record<number, string> = {}
     for (const u of data?.list || []) {
       if (u?.id != null) map[u.id] = u.nickname || u.username || ''
@@ -1454,7 +1443,7 @@ onMounted(() => {
   loadStats()
   load()
   loadOrganizationAndSites()
-  loadManagerOptions()
+
 })
 </script>
 

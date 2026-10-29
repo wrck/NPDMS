@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmember;
 
 import cn.hutool.crypto.digest.DigestUtil;
+import cn.hutool.core.lang.Validator;
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
@@ -414,6 +415,13 @@ public class OrdinaryProjectMemberService {
                 || actor.userId() == null || actor.userId() <= 0 || actor.correlationId() == null
                 || actor.correlationId().isBlank()) throw exception(PROJECT_AUTHORIZATION_FORBIDDEN);
     }
+    private static void validateExternalContact(ExternalPerson person) {
+        String mobile = normalized(person.mobile()), email = normalized(person.email());
+        if (mobile != null && (!mobile.matches("[+()\\-\\s0-9]+") || mobile.chars().noneMatch(Character::isDigit)))
+            throw invalid("联系电话格式无效");
+        if (email != null && !Validator.isEmail(email)) throw invalid("邮箱格式无效");
+    }
+
     private static void validateCommand(Command command) {
         if (command == null || command.projectId() == null || command.projectId() <= 0 || command.action() == null
                 || command.expectedVersion() == null || command.expectedVersion() < 0
@@ -436,6 +444,7 @@ public class OrdinaryProjectMemberService {
                         || person.mobile() != null && person.mobile().length() > 64
                         || person.email() != null && person.email().length() > 255)
                     throw invalid("最终用户资料无效");
+                validateExternalContact(person);
             } else if (values.userId() == null || values.userId() <= 0 || values.externalPerson() != null) {
                 throw invalid("内部成员必须选择有效系统账号");
             }

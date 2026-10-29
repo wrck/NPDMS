@@ -13,7 +13,14 @@
       <el-form-item label="设备名称"><el-input v-model="deviceName" clearable placeholder="请输入设备名称" /></el-form-item>
       <el-form-item label="产品编码"><el-input v-model="productCode" clearable placeholder="请输入产品编码" /></el-form-item>
       <el-form-item><el-button native-type="submit" type="primary" :loading="loading"><Icon icon="ep:search" />查询</el-button>
-        <el-button :disabled="loading" @click="resetSearch"><Icon icon="ep:refresh" />重置</el-button></el-form-item>
+        <el-button :disabled="loading" @click="resetSearch"><Icon icon="ep:refresh" />重置</el-button>
+        <ProjectDeviceExportButton
+          :project-id="projectId"
+          kind="serials"
+          :filters="{ sn: sn.trim() || undefined, name: deviceName.trim() || undefined, productCode: productCode.trim() || undefined }"
+          :disabled="loading"
+        />
+      </el-form-item>
     </el-form>
     <el-alert v-if="errorText" :title="errorText" type="error" :closable="false" class="serial-alert" />
     <el-table
@@ -99,6 +106,7 @@
 import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import * as DeviceApi from '@/api/pms/asset/device'
+import ProjectDeviceExportButton from './ProjectDeviceExportButton.vue'
 
 defineOptions({ name: 'ProjectSerialPanel' })
 

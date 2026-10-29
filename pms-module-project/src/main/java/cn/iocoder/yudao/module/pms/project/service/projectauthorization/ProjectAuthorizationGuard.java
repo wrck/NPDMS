@@ -156,7 +156,10 @@ public class ProjectAuthorizationGuard {
     private void requireServiceManagerRole(Actor actor) {
         if (Objects.equals(actor.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
                 && permissionApi.hasAnyRoles(actor.actorId(), cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return;
-        boolean matches = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
+        // The target's MANAGE scope is checked independently by resolveBounds; global role alone grants nothing.
+        if (Objects.equals(actor.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
+                && permissionApi.hasAnyRoles(actor.actorId(), SERVICE_MANAGER_ROLES.toArray(String[]::new))) return;
+        boolean matches = memberMapper.selectAuthorizedByUser(new ActiveProjectMemberQuery(
                         actor.tenantId(), actor.actorId(), LocalDateTime.now())).stream()
                 .map(ProjectMemberAssignmentDO::getMemberRole)
                 .anyMatch(SERVICE_MANAGER_ROLES::contains);

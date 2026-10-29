@@ -11,19 +11,30 @@ vi.mock('@/api/pms/project/unified-members', async importOriginal => ({
 vi.mock('@/utils/permission', () => ({ checkPermi: vi.fn(() => true) }))
 vi.mock('@/api/pms/project/projects', () => ({ getProjectSites: vi.fn(async () => []) }))
 vi.mock('@/api/system/dept', () => ({ getSimpleDeptList: vi.fn(async () => [{ id: 25, code: 'OFFICE', name: '办事处' }]) }))
-const control = defineComponent({ inheritAttrs: false, setup(_, { attrs, slots }) {
+const control = defineComponent({ inheritAttrs: false, setup(_, { attrs, slots, expose }) {
+  expose({ scrollbarRef: { wrapRef: { scrollHeight: 300, clientHeight: 100 } } })
   return () => h('control', attrs, [...(slots.default?.() || []), ...(slots.footer?.() || [])])
 } })
 const find = (node: TestNode, predicate: (item: TestNode) => boolean): TestNode | undefined => {
   if (predicate(node)) return node
   for (const child of node.children) { const found = find(child, predicate); if (found) return found }
 }
+const flush = async () => { for (let i = 0; i < 8; i++) { await nextTick(); await Promise.resolve() } }
+const userControl = (root: TestNode) => {
+  const wrapper = find(root, item => item.props?.['aria-label'] === '人员')!
+  return find(wrapper, item => typeof item.props?.['remote-method'] === 'function')!
+}
 const set = async (root: TestNode, label: string, value: unknown) => {
-  const node = find(root, item => item.props?.['aria-label'] === label)
+  let node = find(root, item => item.props?.['aria-label'] === label)
   expect(node).toBeTruthy()
+  if (label === '人员') {
+    node = userControl(root)
+    ;(node.props!.onVisibleChange as (open: boolean) => void)(true)
+    await flush()
+  }
   ;(node!.props!['onUpdate:modelValue'] as (value: unknown) => void)(value)
-  if (node!.props!.onChange) (node!.props!.onChange as (value: unknown) => void)(value)
-  await nextTick()
+  if (label !== '人员' && node!.props!.onChange) (node!.props!.onChange as (value: unknown) => void)(value)
+  await flush()
 }
 const submit = async (root: TestNode) => {
   const node = find(root, item => Boolean(item.props?.onSubmit))
@@ -41,7 +52,7 @@ const currentMember = { id: 12, projectId: 9, userId: 40, memberRole: 'TEAM_MEMB
 describe('unified ordinary member form', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(Members.getMemberCandidates).mockResolvedValue({ list: [{ id: 40, username: 'engineer', nickname: '普通人员' }], total: 1 })
+    vi.mocked(Members.getMemberCandidates).mockReset().mockResolvedValue({ list: [{ id: 40, username: 'engineer', nickname: '普通人员' }], total: 1 })
     vi.mocked(Members.saveMember).mockResolvedValue({ projectId: 9, version: 4, assignmentId: 13, userId: 40, memberRole: 'TEAM_MEMBER', changed: true })
   })
   it('maintains external end users without querying system candidates', async () => {
@@ -89,13 +100,35 @@ describe('unified ordinary member form', () => {
       { userId: 40, memberRole: 'TEAM_MEMBER', responsibility: '', remark: '保留普通备注', reason: '现场支持', primary: undefined, scope: undefined }, 3, expect.any(String))
     app.unmount()
   })
+  it.each([
+    ['联系电话', '随便填写', '联系电话格式无效'],
+    ['联系电话', '+()-', '联系电话格式无效'],
+    ['邮箱', 'invalid-email', '邮箱格式无效']
+  ])('rejects malformed external %s without saving', async (label, value, hint) => {
+    const { root, app } = setup({ defaultRole: 'END_USER' })
+    await set(root, '姓名', '最终用户')
+    await set(root, label, value)
+    await submit(root)
+    expect(Members.saveMember).not.toHaveBeenCalled()
+    expect(find(root, item => item.props?.role === 'alert')?.props?.title).toBe(hint)
+    app.unmount()
+  })
+  it.each(['', '+86 (571) 8888-1234'])('accepts optional or international external phone %s', async mobile => {
+    const { root, app } = setup({ defaultRole: 'END_USER' })
+    await set(root, '姓名', '最终用户')
+    await set(root, '联系电话', mobile)
+    await submit(root)
+    expect(Members.saveMember).toHaveBeenCalledWith(9, undefined,
+      expect.objectContaining({ externalPerson: expect.objectContaining({ mobile, email: '' }) }), 3, expect.any(String))
+    app.unmount()
+  })
   it('service manager needs only role, person, primary and reason, and shows directory contacts', async () => {
     vi.mocked(Members.getMemberCandidates).mockResolvedValue({ list: [{ id: 40, username: 'service',
       nickname: '服务人员', mobile: '13800000000', email: 'service@example.test' }], total: 1 })
     const { root, app } = setup()
     await set(root, '项目角色', 'SERVICE_MANAGER')
-    const select = find(root, item => item.props?.['aria-label'] === '人员')!
-    await (select.props!['remote-method'] as (value: string) => Promise<void>)('')
+    const select = userControl(root)
+    await (select.props!['remote-method'] as (value: string) => Promise<void>)(''); await new Promise(resolve => setTimeout(resolve, 320)); await flush()
     await set(root, '人员', 40)
     await set(root, '设为当前角色主责', true)
     await set(root, '调整原因', '统一角色加入')
@@ -165,12 +198,14 @@ describe('unified ordinary member form', () => {
       .mockRejectedValueOnce(new Error('network'))
       .mockResolvedValueOnce({ list: [{ id: 41, username: 'two', nickname: '二' }], total: 2 })
     const { root, app } = setup()
-    const select = find(root, item => item.props?.['aria-label'] === '人员')!
-    await (select.props!['remote-method'] as (value: string) => Promise<void>)('')
+    const select = userControl(root)
+    await (select.props!['remote-method'] as (value: string) => Promise<void>)(''); await new Promise(resolve => setTimeout(resolve, 320)); await flush()
     await nextTick()
-    const more = () => find(root, item => Boolean(item.props?.onClick) && textOf(item).includes('加载更多人员'))!
-    await (more().props!.onClick as () => Promise<void>)(); await nextTick()
-    await (more().props!.onClick as () => Promise<void>)(); await nextTick()
+    ;(select.props!.onVisibleChange as (opened: boolean) => void)(true)
+    ;(select.props!.onPopupScroll as (value: { scrollTop: number }) => void)({ scrollTop: 200 })
+    await flush()
+    const retry = find(root, item => Boolean(item.props?.onClick) && textOf(item).includes('重试'))!
+    await (retry.props!.onClick as () => Promise<void>)(); await flush()
     expect(vi.mocked(Members.getMemberCandidates).mock.calls.map(call => call[1].pageNo)).toEqual([1, 2, 2])
     app.unmount()
   })
@@ -181,8 +216,8 @@ describe('unified ordinary member form', () => {
     await set(root, '调整原因', '销售协同')
     await submit(root)
     expect(Members.saveMember).not.toHaveBeenCalled()
-    const select = find(root, item => item.props?.['aria-label'] === '人员')!
-    await (select.props!['remote-method'] as (value: string) => Promise<void>)('')
+    const select = userControl(root)
+    await (select.props!['remote-method'] as (value: string) => Promise<void>)(''); await flush()
     expect(Members.getMemberCandidates).toHaveBeenLastCalledWith(9,
       expect.objectContaining({ projectRole: 'SALES_REPRESENTATIVE' }))
     await set(root, '人员', 40)
@@ -196,12 +231,13 @@ describe('unified ordinary member form', () => {
     vi.mocked(Members.getMemberCandidates).mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
       .mockResolvedValueOnce({ list: [{ id: 41, username: 'sales', nickname: '销售人员' }], total: 1 })
     const { root, app } = setup()
-    const select = () => find(root, item => item.props?.['aria-label'] === '人员')!
+    const select = () => userControl(root)
     const pending = (select().props!['remote-method'] as (value: string) => Promise<void>)('')
+    await vi.waitFor(() => expect(finish).toBeTypeOf('function'))
     await set(root, '项目角色', 'SALES_REPRESENTATIVE')
-    await (select().props!['remote-method'] as (value: string) => Promise<void>)('')
+    await (select().props!['remote-method'] as (value: string) => Promise<void>)(''); await new Promise(resolve => setTimeout(resolve, 320)); await flush()
     finish({ list: [{ id: 40, username: 'old', nickname: '旧角色候选' }], total: 1 })
-    await pending; await nextTick()
+    await pending; await flush()
     expect(find(root, item => item.props?.label === '销售人员（sales）')).toBeTruthy()
     expect(find(root, item => item.props?.label === '旧角色候选（old）')).toBeUndefined()
     app.unmount()

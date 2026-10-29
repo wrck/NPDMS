@@ -44,33 +44,13 @@
       </el-select>
     </el-form-item>
     <el-form-item label="服务经理" required>
-      <el-select
-        v-model="managerId"
-        aria-label="服务经理"
-        filterable
-        remote
-        :remote-method="search"
-        :loading="searching"
-        placeholder="按既有公司、办事处规则搜索"
-        @visible-change="(open: boolean) => open && search('')"
-      >
-        <el-option
-          v-for="person in candidates"
-          :key="person.userId"
-          :value="person.userId"
-          :label="`${person.nickname}（${person.username}）`"
-        />
-        <template #footer
-          ><el-text v-if="total > candidates.length"
-            >当前显示前20项，请输入更精确的姓名或账号</el-text
-          ></template
-        >
-      </el-select>
+      <UserSelect v-model="managerId" option-label="nickname-account" aria-label="服务经理" :scoped-source="managerSource" :disabled="!departmentId || (levelCode === 'L2' && !siteId)" :clearable="false" placeholder="按既有公司、办事处规则搜索" />
     </el-form-item>
   </div>
 </template>
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { computed, onMounted, ref } from 'vue'
 import * as Projects from '@/api/pms/project/projects'
 import * as Depts from '@/api/system/dept'
 import type { ServiceManagerSelection } from '@/api/pms/project/members'
@@ -82,42 +62,19 @@ const departmentId = ref(props.project.departmentId)
 const managerId = ref<number>()
 const departments = ref<Depts.DeptVO[]>([])
 const sites = ref<Projects.ProjectSiteVO[]>([])
-const candidates = ref<Projects.ServiceManagerCandidateVO[]>([])
-const loading = ref(false),
-  searching = ref(false),
-  error = ref(''),
-  total = ref(0)
-let sequence = 0
-const clearCandidate = () => {
-  sequence++
-  managerId.value = undefined
-  candidates.value = []
-  searching.value = false
-}
-const search = async (keyword: string) => {
-  const dept = departments.value.find((item) => item.id === departmentId.value)
-  if (!dept || (levelCode.value === 'L2' && !siteId.value)) return
-  const current = ++sequence
-  searching.value = true
-  try {
+const loading = ref(false), error = ref('')
+const clearCandidate = () => { managerId.value = undefined }
+const managerSource = computed(() => ({
+  key: `service-manager:${props.project.id}:${departmentId.value}:${levelCode.value}:${siteId.value ?? ''}`,
+  search: async ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const dept = departments.value.find(item => item.id === departmentId.value)
+    if (!dept || (levelCode.value === 'L2' && !siteId.value)) return { list: [], total: 0 }
     const result = await Projects.getServiceManagerCandidates(props.project.id!, {
-      departmentId: dept.id,
-      departmentCode: dept.code,
-      siteId: siteId.value,
-      keyword,
-      pageNo: 1,
-      pageSize: 20
+      departmentId: dept.id, departmentCode: dept.code, siteId: siteId.value, keyword, pageNo, pageSize
     })
-    if (current === sequence) {
-      candidates.value = result.list
-      total.value = result.total
-    }
-  } catch {
-    error.value = '服务经理候选加载失败，请重试。'
-  } finally {
-    if (current === sequence) searching.value = false
+    return { list: result.list.map(item => ({ ...item, id: item.userId })), total: result.total }
   }
-}
+}))
 const selection = (): ServiceManagerSelection | undefined => {
   const dept = departments.value.find((item) => item.id === departmentId.value)
   if (!dept || !managerId.value || (levelCode.value === 'L2' && !siteId.value)) return undefined

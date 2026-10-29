@@ -2,6 +2,8 @@ import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TaskBusinessPanel from './TaskBusinessPanel.vue'
 import * as BusinessApi from '@/api/pms/project/task-business'
+import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
+import { requirementWorkspaceKey, takeTaskViewPrefetch } from '../taskViewPrefetch'
 import { getProject } from '@/api/pms/project/projects'
 import { inspectOperationCapabilities } from '@/api/pms/project/execution-operations'
 import { getBusinessView } from '@/api/pms/platform/business-view'
@@ -11,7 +13,7 @@ import {
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const controls = vi.hoisted(() => ({
-  confirm: vi.fn(), leave: vi.fn(), discard: vi.fn(), ownerProps: vi.fn(), warning: vi.fn()
+  confirm: vi.fn(), leave: vi.fn(), discard: vi.fn(), ownerProps: vi.fn(), ownerRefresh: vi.fn(), warning: vi.fn()
 }))
 vi.mock('@/components/BusinessView/ProjectMembersBusinessView.vue', async () => {
   const { defineComponent, h } = await import('vue')
@@ -30,7 +32,7 @@ vi.mock('@/api/pms/project/task-business', () => ({
   linkTaskBusinessObject: vi.fn(), unlinkTaskBusinessObject: vi.fn(), refreshTaskBusinessResults: vi.fn()
 }))
 vi.mock('@/api/pms/project/projects', () => ({ getProject: vi.fn() }))
-vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ getWorkspace: vi.fn() }))
+vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ workspace: vi.fn() }))
 vi.mock('@/api/pms/project/execution-operations', () => ({ inspectOperationCapabilities: vi.fn() }))
 vi.mock('@/config/axios', () => ({ default: {} }))
 vi.mock('@/config/axios/service', () => ({ service: {} }))
@@ -45,6 +47,7 @@ vi.mock('@/components/BusinessView/registry', async () => {
       const dirty = ref(false)
       expose({
         isDirty: () => dirty.value,
+        refresh: () => controls.ownerRefresh(),
         requestLeave: async () => dirty.value ? await controls.leave() : true,
         discardChanges: () => {
           if (controls.discard() === false) return false
@@ -103,7 +106,7 @@ const click = async (root: TestNode, label: string) => {
 }
 const apps: { unmount: () => void }[] = []
 const setup = async (initial: Record<string, unknown> = {}) => {
-  const state = reactive({ taskId: '11', taskVersion: 4, readonly: false, ...initial })
+  const state = reactive({ taskId: '11', taskVersion: 4, readonly: false, pending: false, ...initial })
   const panel = ref<any>()
   const facts = vi.fn(), changed = vi.fn(), dirtyChanged = vi.fn()
   const mounted = mount(defineComponent({ setup: () => () => h(TaskBusinessPanel, {
@@ -127,13 +130,77 @@ beforeEach(() => {
   vi.mocked(BusinessApi.linkTaskBusinessObject).mockResolvedValue({} as any)
   vi.mocked(BusinessApi.unlinkTaskBusinessObject).mockResolvedValue({} as any)
   vi.mocked(getProject).mockResolvedValue({ id: 12 } as any)
+  vi.mocked(RequirementAnalysisApi.workspace).mockResolvedValue({
+    projectId: 12, currentEffective: null, draft: null, allowedActions: ['QUERY']
+  })
 })
 afterEach(() => {
   apps.splice(0).forEach((app) => app.unmount())
+  for (const taskId of ['11', '12'])
+    takeTaskViewPrefetch(requirementWorkspaceKey(12, undefined, taskId))
   expect(getBusinessView).not.toHaveBeenCalled()
 })
 
 describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
+  it('keeps pending survey tasks read-only even when the Owner grants write actions', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
+      executionAllowed: true, ownerActions: ['QUERY', 'CREATE', 'UPDATE', 'CONFIRM'],
+      allowedActions: ['REFRESH_RESULTS']
+    }))
+    const page = await setup({ pending: true })
+    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: ['QUERY'] })
+    await page.panel.value.refresh()
+    await tick()
+    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: ['QUERY'] })
+    expect(BusinessApi.refreshTaskBusinessResults).not.toHaveBeenCalled()
+    expect(BusinessApi.linkTaskBusinessObject).not.toHaveBeenCalled()
+    expect(BusinessApi.unlinkTaskBusinessObject).not.toHaveBeenCalled()
+  })
+  it('keeps completed installation maintenance independent from the closed execution round', async () => {
+    vi.mocked(getProject).mockResolvedValue({ id: 12, lifecycleStatus: 'ACTIVE' } as any)
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
+      projectId: 12, ownerContext: 'IMP', objectType: 'INSTALLATION', executionAllowed: false,
+      ownerActions: ['QUERY'], allowedActions: [],
+      businessView: { id: '31', componentKey: 'IMP_PROJECT_INSTALLATION', status: 'PUBLISHED' } as any
+    }))
+    const page = await setup({ completed: true })
+    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: false, allowedActions: ['QUERY'] })
+    expect(controls.ownerProps.mock.lastCall![0].resolvedContext.taskId).toBeUndefined()
+    expect(inspectOperationCapabilities).not.toHaveBeenCalled()
+    await page.panel.value.refresh()
+    expect(BusinessApi.refreshTaskBusinessResults).not.toHaveBeenCalled()
+    page.state.readonly = true
+    await tick()
+    expect(controls.ownerProps.mock.lastCall![0].readonly).toBe(true)
+  })
+  it('allows implementation drafts in a pending stage while retaining explicit readonly', async () => {
+    vi.mocked(getProject).mockResolvedValue({ id: 12, lifecycleStatus: 'ACTIVE' } as any)
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
+      projectId: 12, ownerContext: 'SOL', objectType: 'IMPLEMENTATION_SOLUTION', executionAllowed: false,
+      ownerActions: ['QUERY'], allowedActions: [],
+      businessView: { id: '31', componentKey: 'SOL_IMPLEMENTATION_SOLUTION', status: 'PUBLISHED' } as any
+    }))
+    const page = await setup({ pending: true })
+    expect(controls.ownerProps.mock.lastCall![0].readonly).toBe(false)
+    expect(controls.ownerProps.mock.lastCall![0].resolvedContext.taskId).toBeUndefined()
+    page.state.readonly = true
+    await tick()
+    expect(controls.ownerProps.mock.lastCall![0].readonly).toBe(true)
+  })
+  it.each([
+    { lifecycleStatus: 'CLOSED', viewStatus: 'PUBLISHED', strategy: 'REFERENCE_EXISTING' },
+    { lifecycleStatus: 'ACTIVE', viewStatus: 'DISABLED', strategy: 'REFERENCE_EXISTING' },
+    { lifecycleStatus: 'ACTIVE', viewStatus: 'PUBLISHED', strategy: 'READ_ONLY_AGGREGATE' }
+  ])('does not open maintenance for an unavailable project/view or a frozen readonly binding: %j', async scenario => {
+    vi.mocked(getProject).mockResolvedValue({ id: 12, lifecycleStatus: scenario.lifecycleStatus } as any)
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
+      projectId: 12, ownerContext: 'IMP', objectType: 'INSTALLATION', executionAllowed: false,
+      instanceResolutionStrategy: scenario.strategy, ownerActions: ['QUERY'],
+      businessView: { id: '31', componentKey: 'IMP_PROJECT_INSTALLATION', status: scenario.viewStatus } as any
+    }))
+    await setup({ completed: true })
+    expect(controls.ownerProps.mock.lastCall![0].readonly).toBe(true)
+  })
   it('blocks interaction while refreshing requirements without toggling editor permissions, then applies denial', async () => {
     const requirement = context('11', { ownerContext: 'SOL', objectType: 'REQUIREMENT_ANALYSIS' })
     vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(requirement)
@@ -308,6 +375,62 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     expect(page.facts).toHaveBeenLastCalledWith(undefined)
     expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual(['QUERY'])
   })
+  const requirementContext = (taskId = '11', patch: Partial<TaskBusinessContext> = {}) => context(taskId, {
+    projectId: 12, ownerContext: 'SOL', objectType: 'REQUIREMENT_ANALYSIS',
+    businessView: { id: '31', componentKey: 'PROJ_REQUIREMENT_ANALYSIS' } as any,
+    execution: {
+      projectId: 12, projectVersion: 1, taskId, taskVersion: 4,
+      executionContractId: '21', contractVersion: 3, planVersionId: '61', executionId: '71',
+      executionVersion: 2, roundNo: 1, stageExecutionId: '81', stageExecutionVersion: 1, writable: true
+    },
+    ...patch
+  })
+  it('prefetches the matching requirement workspace on entry and when selecting another task', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockImplementation(async id => requirementContext(String(id)))
+    const page = await setup({ initialProject: { id: 12 } })
+    expect(RequirementAnalysisApi.workspace).toHaveBeenCalledExactlyOnceWith(12, undefined, '11')
+    expect(takeTaskViewPrefetch(requirementWorkspaceKey(12, undefined, '11'))).toBeInstanceOf(Promise)
+    page.state.taskId = '12'
+    await tick()
+    expect(RequirementAnalysisApi.workspace).toHaveBeenCalledTimes(2)
+    expect(RequirementAnalysisApi.workspace).toHaveBeenLastCalledWith(12, undefined, '12')
+    expect(takeTaskViewPrefetch(requirementWorkspaceKey(12, undefined, '12'))).toBeInstanceOf(Promise)
+    expect(getProject).not.toHaveBeenCalled()
+  })
+  it('refreshes saved Owner facts and denied permissions without another workspace prefetch', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(requirementContext())
+    const page = await setup({ initialProject: { id: 12 } })
+    await takeTaskViewPrefetch(requirementWorkspaceKey(12, undefined, '11'))
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(requirementContext('11', {
+      factVersion: 'saved-fact', executionAllowed: false, ownerActions: ['QUERY']
+    }))
+    await click(page.root, 'Owner changed')
+    expect(BusinessApi.getTaskBusinessContext).toHaveBeenCalledTimes(2)
+    expect(getProject).toHaveBeenCalledExactlyOnceWith(12)
+    expect(page.facts).toHaveBeenLastCalledWith('saved-fact')
+    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: ['QUERY'] })
+    expect(RequirementAnalysisApi.workspace).toHaveBeenCalledTimes(1)
+    expect(takeTaskViewPrefetch(requirementWorkspaceKey(12, undefined, '11'))).toBeUndefined()
+  })
+  it('keeps explicit refresh reading the Owner workspace without adding an unused prefetch', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(requirementContext())
+    const page = await setup({ initialProject: { id: 12 } })
+    await takeTaskViewPrefetch(requirementWorkspaceKey(12, undefined, '11'))
+    controls.ownerRefresh.mockImplementation(() => RequirementAnalysisApi.workspace(12, undefined, '11'))
+    await page.panel.value.refresh()
+    await tick()
+    expect(BusinessApi.getTaskBusinessContext).toHaveBeenCalledTimes(2)
+    expect(getProject).toHaveBeenCalledExactlyOnceWith(12)
+    expect(controls.ownerRefresh).toHaveBeenCalledTimes(1)
+    expect(RequirementAnalysisApi.workspace).toHaveBeenCalledTimes(2)
+    expect(takeTaskViewPrefetch(requirementWorkspaceKey(12, undefined, '11'))).toBeUndefined()
+  })
+  it('does not prefetch requirements for a different enclosing project', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(requirementContext())
+    await setup({ initialProject: { id: 13 } })
+    expect(getProject).toHaveBeenCalledExactlyOnceWith(12)
+    expect(RequirementAnalysisApi.workspace).not.toHaveBeenCalled()
+  })
   it('does not reuse another project or use the enclosing project to bypass denied context', async () => {
     vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
       projectId: 12, businessView: { id: '31', componentKey: 'PROJ_REQUIREMENT_ANALYSIS' } as any
@@ -475,6 +598,9 @@ describe('completed assignment member maintenance', () => {
     expect(BusinessApi.refreshTaskBusinessResults).not.toHaveBeenCalled()
     controls.leave.mockResolvedValue(false)
     expect(await page.panel.value.requestLeave()).toBe(false)
+    page.state.pending = true
+    await tick()
+    expect(textOf(page.root)).toContain('member-maintenance;readonly:true')
   })
   it.each([{ readonly: true }, { recoverableError: 'unavailable' }])('retains restrictions %j', async (restriction) => {
     vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue({ ...assignment(), ...restriction })

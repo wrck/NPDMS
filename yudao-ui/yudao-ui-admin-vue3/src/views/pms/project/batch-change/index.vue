@@ -5,12 +5,10 @@
         <el-input v-model="query.batchNo" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
       <el-form-item label="源用户" prop="sourceUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="query.sourceUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择源用户"
           class="!w-200px"
         />
@@ -80,22 +78,18 @@
   <Dialog v-model="createVisible" title="新建批量变更" width="640px">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="110px">
       <el-form-item label="源用户" prop="sourceUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="form.sourceUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择源用户"
         />
       </el-form-item>
       <el-form-item label="目标用户" prop="targetUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="form.targetUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择目标用户"
         />
       </el-form-item>
@@ -157,14 +151,25 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import { onMounted, reactive, ref } from 'vue'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as BatchChangeApi from '@/api/pms/project/batch-change'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import type { TeamBatchChangeItemVO, TeamBatchChangeVO } from '@/api/pms/project/batch-change'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/project/batch-change/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsTeamBatchChange' })
 const message = useMessage()

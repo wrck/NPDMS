@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TaskNativeBindingHostProviderTest {
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi regional = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
 
     @Mock ProjectTaskRuntimeMapper taskMapper;
     @Mock ProjectTaskExecutionContractMapper contractMapper;
@@ -52,7 +53,7 @@ class TaskNativeBindingHostProviderTest {
     void setUp() {
         provider = new TaskNativeBindingHostProvider(taskMapper, contractMapper, assignmentMapper,
                 memberMapper, stateMachineMapper, permissionApi, projectMapper,
-                projectTreeVersionMapper, projectTreeScopeService);
+                projectTreeVersionMapper, projectTreeScopeService, regional);
         task = new ProjectTaskInstanceDO();
         task.setId(11L);
         task.setTenantId(0L);
@@ -81,7 +82,7 @@ class TaskNativeBindingHostProviderTest {
         assignment.setAssigneeUserId(9L);
         assignment.setVersion(1L);
         when(assignmentMapper.selectCurrent(any())).thenReturn(List.of(assignment));
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of());
         TaskStateTransitionDO transition = new TaskStateTransitionDO();
         transition.setFromStatusCode("PENDING_START");
         transition.setActionCode("START");
@@ -122,7 +123,7 @@ class TaskNativeBindingHostProviderTest {
             contract.setCompletionRuleSnapshot("{}");
         }
         var assignment=new ProjectTaskAssignmentDO();assignment.setProjectTaskId(11L);assignment.setAssigneeUserId(9L);assignment.setVersion(1L);
-        when(assignmentMapper.selectCurrent(any())).thenReturn(List.of(assignment));when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
+        when(assignmentMapper.selectCurrent(any())).thenReturn(List.of(assignment));when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of());
         var submit=new TaskStateTransitionDO();submit.setFromStatusCode("IN_PROGRESS");submit.setActionCode("SUBMIT");submit.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
         when(stateMachineMapper.selectTransitions(any())).thenReturn(List.of(submit));
         when(permissionApi.hasAnyPermissions(9L,"pms:project-task:execute")).thenReturn(true);
@@ -136,7 +137,7 @@ class TaskNativeBindingHostProviderTest {
         allowProjectScope();
         var member = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO();
         member.setProjectId(100L); member.setMemberRole("TEAM_MEMBER");
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(member));
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(member));
         var start = new TaskStateTransitionDO(); start.setFromStatusCode("PENDING_START"); start.setActionCode("START"); start.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
         var complete = new TaskStateTransitionDO(); complete.setFromStatusCode("PENDING_START"); complete.setActionCode("COMPLETE"); complete.setAllowedRoleCode("CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER");
         when(stateMachineMapper.selectTransitions(any())).thenReturn(List.of(start,complete));
@@ -196,7 +197,8 @@ class TaskNativeBindingHostProviderTest {
         var membership = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO();
         membership.setProjectId(100L);
         membership.setMemberRole("PROJECT_MANAGER");
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(membership));
+        when(regional.permits(any())).thenReturn(true);
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(membership));
         TaskStateTransitionDO transition = new TaskStateTransitionDO();
         transition.setFromStatusCode("IN_PROGRESS");
         transition.setToStatusCode("PENDING_ACCEPT");

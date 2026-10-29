@@ -26,6 +26,19 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
+    default PageResult<ProjectMasterDO> selectOfficeProjectPage(
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.OfficeProjectSearchQuery query) {
+        if (query.getOrganizations() == null || query.getOrganizations().isEmpty()) return PageResult.empty();
+        IPage<ProjectMasterDO> page = MyBatisUtils.buildPage(query.getPageParam());
+        selectOfficeProjects(page, query);
+        return new PageResult<>(page.getRecords(), page.getTotal());
+    }
+
+    IPage<ProjectMasterDO> selectOfficeProjects(IPage<ProjectMasterDO> page, @Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.OfficeProjectSearchQuery query);
+
+    List<Long> selectOrganizationProjectIds(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.OrganizationProjectScopeQuery query);
     ProjectStatistics selectStatistics(@Param("query") ProjectStatisticsQuery query);
 
     List<ProjectMasterDO> selectBusinessOptions(@Param("query")

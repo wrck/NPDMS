@@ -22,7 +22,7 @@ class TaskBusinessOperationPermissionTest {
     private final ProjectTreeScopeService trees = mock(ProjectTreeScopeService.class);
     private final TaskBusinessAccess access = new TaskBusinessAccess(scopes, mock(ProjectMasterMapper.class),
             mock(ProjectMemberAssignmentMapper.class), mock(ProjectTaskAssignmentMapper.class),
-            mock(ProjectTaskRuntimeMapper.class), permissions, trees);
+            mock(ProjectTaskRuntimeMapper.class), permissions, trees, mock(cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectOrganizationScopeService.class), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class));
     private final Context context = new Context(1L, 2L, 3L, 4L, null);
 
     private ProjectMasterDO project() {

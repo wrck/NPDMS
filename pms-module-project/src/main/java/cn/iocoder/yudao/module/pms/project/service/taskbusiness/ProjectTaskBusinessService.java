@@ -129,7 +129,12 @@ public class ProjectTaskBusinessService {
             String reason = binding.unavailableReason();
             var execution = executionContext(ctx, contract);
             boolean writable = reason == null && !"READ_ONLY_AGGREGATE".equals(binding.instanceResolutionStrategy())
-                    && access.writable(task, access.project(task.getProjectId()), ctx) && execution != null && execution.writable();
+                    && (access.writable(task, access.project(task.getProjectId()), ctx)
+                        || access.planningOperationAllowed(TaskBusinessAccess.PlanningOperationQuery.fromContract(
+                            task, access.project(task.getProjectId()), ctx, contract))
+                        || access.assignmentOperationAllowed(TaskBusinessAccess.PlanningOperationQuery.fromContract(
+                            task, access.project(task.getProjectId()), ctx, contract)))
+                    && execution != null && execution.writable();
             Set<String> actions = Set.of();
             Set<String> ownerActions = inspection.allowedActions();
             if (reason == null && !"READ_ONLY_AGGREGATE".equals(binding.instanceResolutionStrategy())
@@ -268,7 +273,7 @@ public class ProjectTaskBusinessService {
 
     private LinkCommandResult mutate(Context ctx, String objectId, Long linkId, Integer taskVersion, Integer contractVersion) {
         var locked = lock(ctx);
-        if (!access.writable(locked.task(), locked.project(), ctx)) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        if (!access.writableLocked(locked.task(), locked.project(), ctx)) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         if (!Objects.equals(taskVersion, locked.task().getVersion())
                 || !Objects.equals(contractVersion, locked.contract().getContractVersion()))
             throw exception(PROJECT_TASK_VERSION_CONFLICT);

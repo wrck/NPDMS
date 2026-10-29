@@ -1,3 +1,4 @@
+import type { ScopedUserSelectionSource } from '@/api/system/user/selection'
 import request from '@/config/axios'
 import type { TaskApprovalSubmission } from '../task-workbench'
 import type { TemplateMatchEvaluation } from '../project-templates'
@@ -11,6 +12,7 @@ import type { TemplateMatchEvaluation } from '../project-templates'
 
 /** 项目主档（列表行与详情共用） */
 export interface ProjectMasterVO {
+  visibility?: 'FULL' | 'OFFICE_READONLY'
   id?: number
   projectCode?: string
   codeRootId?: number
@@ -602,9 +604,9 @@ export type ProjectPageParams = PageParam & {
   signingMethod?: string
   projectCategory?: string
   implementationMode?: string
-  managerId?: number
-  serviceManagerId?: number
-  salesId?: number
+  managerId?: number | string
+  serviceManagerId?: number | string
+  salesId?: number | string
   majorProjectLevel?: string
   contractNo?: string
   companyId?: number
@@ -985,3 +987,29 @@ export const revokeProjectAuthorization = (
     data: { reason },
     headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
   })
+
+/** 主档合同号/名称逐字精确匹配；空条件禁止查询，双条件取交集。 */
+export const searchOfficeProjects = (params: { projectName?: string; contractNo?: string; pageNo: number; pageSize: number }) =>
+  request.get<{ list: ProjectMasterVO[]; total: number }>({ url: '/api/v1/pms/projects/office-readonly-search', params, baseURL: import.meta.env.VITE_BASE_URL || '/' })
+
+export type ProjectMemberFilterField = 'MANAGER' | 'SERVICE_MANAGER' | 'SALES'
+export interface ProjectMemberFilterOption { id: number | string; username: string; nickname: string; deptId?: number | string; deptName?: string }
+export const getProjectMemberFilterOptions = (params: { field: ProjectMemberFilterField; keyword?: string; pageNo: number; pageSize: number }) =>
+  request.get<{ list: ProjectMemberFilterOption[]; total: number }>({ url: '/api/v1/pms/projects/member-filter-options', params })
+
+/** Component-local source: only labels already returned by this authorized source can be resolved. */
+export const createProjectMemberFilterSource = (field: ProjectMemberFilterField): ScopedUserSelectionSource => {
+  const labels = new Map<string, ProjectMemberFilterOption>()
+  return {
+    key: `project-member-filter:${field}`,
+    search: async (query) => {
+      const result = await getProjectMemberFilterOptions({ ...query, field })
+      result.list.forEach((user) => labels.set(String(user.id), user))
+      return result
+    },
+    resolve: async (ids) => ids.flatMap((id) => {
+      const user = labels.get(String(id))
+      return user ? [user] : []
+    })
+  }
+}

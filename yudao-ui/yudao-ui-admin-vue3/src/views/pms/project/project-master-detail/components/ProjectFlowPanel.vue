@@ -164,7 +164,8 @@ v-if="showStageGates && hasStageGates" ref="stageGatesRef" :project-id="projectI
         :task-version="workbench.task.version"
         :initial-project="project"
         :completed="workbench.task.status === 'DONE'"
-        :readonly="taskPending || ['CLOSED', 'CANCELLED'].includes(workbench.task.status || '')"
+        :pending="taskPending"
+        :readonly="['CLOSED', 'CANCELLED'].includes(workbench.task.status || '')"
         @changed="handleBusinessChanged"
         @fact-version="handleBusinessFactChanged"
       />

@@ -44,8 +44,8 @@ vi.mock('../../project-master-detail/components/ProjectTaskDetailsEditor.vue', (
   setup(_, { expose }) { expose({ requestLeave: () => true }); return () => h('div', '任务资料与进度') }
 }) }))
 vi.mock('../../project-master-detail/components/TaskBusinessPanel.vue', () => ({ default: defineComponent({
-  props: { readonly: Boolean },
-  setup(props, { expose }) { expose({ requestLeave: leave, refresh: businessRefresh, loading: false }); return () => h('div', { 'data-task-readonly': String(props.readonly) }, 'Owner业务内容') }
+  props: { readonly: Boolean, pending: Boolean },
+  setup(props, { expose }) { expose({ requestLeave: leave, refresh: businessRefresh, loading: false }); return () => h('div', { 'data-task-readonly': String(props.readonly), 'data-task-pending': String(props.pending) }, 'Owner业务内容') }
 }) }))
 // 交付件弹窗内部走真实文件API（node环境无window），浅mock为入口桩
 vi.mock('../../project-master-detail/components/ProjectDeliverableDialog.vue', () => ({ default: defineComponent({
@@ -483,9 +483,9 @@ it('renders tasks of a not-yet-entered stage normally without state actions', as
   expect(text).toContain('硬实施')
   expect(text).toContain('实施方案')
   expect(text).not.toContain('阶段尚未进入')
-  // 业务内容照常渲染，以只读方式呈现（不附加状态横幅）
+  // 父级传递未入阶段事实；Owner 子组件按其办理契约收紧普通业务，方案提前草稿有独立规则。
   expect(text).toContain('Owner业务内容')
-  expect(findNode(view.root, node => node.props?.['data-task-readonly'] === 'true')).toBeTruthy()
+  expect(findNode(view.root, node => node.props?.['data-task-pending'] === 'true')).toBeTruthy()
   // 状态操作与提交入口仍隐藏；刷新为重读入口，保留
   expect(text).not.toContain('任务状态操作')
   expect(findNode(view.root, node => node.type === 'button' && textOf(node) === '提交与查看')).toBeUndefined()

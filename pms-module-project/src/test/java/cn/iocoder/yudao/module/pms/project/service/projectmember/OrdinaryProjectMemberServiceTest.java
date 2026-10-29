@@ -95,7 +95,7 @@ class OrdinaryProjectMemberServiceTest {
         previous.setExternalMobile("旧电话"); previous.setDepartmentName("旧部门"); previous.setTitle("旧职务");
         when(memberMapper.selectById(10L)).thenReturn(previous);
         var values = new MemberValues(null, "END_USER", "原职责", "原备注", false, null,
-                ExternalPerson.builder().name("新姓名").mobile("新电话").department("新部门").title("新职务").build());
+                ExternalPerson.builder().name("新姓名").mobile("+86 (571) 8888-1234").department("新部门").title("新职务").build());
         service.mutate(new Command(100L, 0L, Action.UPDATE, 10L, values, "变更", "external-update"), actor());
         var closed = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
         verify(memberMapper).updateById(closed.capture());
@@ -113,17 +113,17 @@ class OrdinaryProjectMemberServiceTest {
 
     @Test void unchangedExternalDetailsDoNotWriteAndRemovalOnlyClosesHistory() {
         var previous = member("END_USER"); previous.setUserId(null); previous.setMemberName("姓名");
-        previous.setCompanyName("单位"); previous.setExternalMobile("电话"); previous.setExternalEmail("a@example.test");
+        previous.setCompanyName("单位"); previous.setExternalMobile("123"); previous.setExternalEmail("a@example.test");
         previous.setDepartmentName("部门"); previous.setTitle("职务");
         when(memberMapper.selectById(10L)).thenReturn(previous);
         var values = new MemberValues(null, "END_USER", "原职责", "原备注", false, null,
-                ExternalPerson.builder().name("姓名").companyName("单位").mobile("电话").email("a@example.test")
+                ExternalPerson.builder().name("姓名").companyName("单位").mobile("123").email("a@example.test")
                         .department(" 部门 ").title(" 职务 ").build());
         assertFalse(service.mutate(new Command(100L, 0L, Action.UPDATE, 10L, values, "", "external-same"), actor()).changed());
         verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
         verify(memberMapper, never()).updateById(any(ProjectMemberAssignmentDO.class));
         assertTrue(service.mutate(new Command(100L, 0L, Action.REMOVE, 10L, null, "退出", "external-remove"), actor()).changed());
-        assertEquals("姓名", previous.getMemberName()); assertEquals("电话", previous.getExternalMobile());
+        assertEquals("姓名", previous.getMemberName()); assertEquals("123", previous.getExternalMobile());
         assertEquals("部门", previous.getDepartmentName()); assertEquals("职务", previous.getTitle());
         verify(memberMapper, never()).deleteById(anyLong()); verifyNoInteractions(users);
     }
@@ -141,6 +141,28 @@ class OrdinaryProjectMemberServiceTest {
                     new Command(100L, 0L, Action.ADD, null, values, "", "external-invalid"), actor()));
         }
         verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class)); verifyNoInteractions(users);
+    }
+
+    @Test void rejectsMalformedExternalPhoneAndEmailBeforeAnyWrite() {
+        for (var person : List.of(
+                ExternalPerson.builder().name("最终用户").mobile("任意内容").build(),
+                ExternalPerson.builder().name("最终用户").mobile("+()-").build(),
+                ExternalPerson.builder().name("最终用户").email("invalid-email").build())) {
+            var values = new MemberValues(null, "END_USER", null, null, false, null, person);
+            assertThrows(ServiceException.class, () -> service.mutate(
+                    new Command(100L, 0L, Action.ADD, null, values, "", "invalid-format"), actor()));
+        }
+        verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
+        verify(memberMapper, never()).updateById(any(ProjectMemberAssignmentDO.class));
+    }
+
+    @Test void externalContactAllowsEmptyValuesAndInternationalLandline() {
+        for (var person : List.of(
+                ExternalPerson.builder().name("最终用户").build(),
+                ExternalPerson.builder().name("最终用户").mobile(" +86 (571) 8888-1234 ").email(" person@example.test ").build())) {
+            var values = new MemberValues(null, "END_USER", null, null, false, null, person);
+            assertTrue(service.mutate(new Command(100L, project.getVersion(), Action.ADD, null, values, "", "valid-format-" + project.getVersion()), actor()).changed());
+        }
     }
 
     @Test void changingOnlyExternalDepartmentCreatesNewInterval() {

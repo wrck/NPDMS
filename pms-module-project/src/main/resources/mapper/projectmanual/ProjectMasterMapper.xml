@@ -2,6 +2,35 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper">
+    <select id="selectOfficeProjects" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT p.* FROM proj_project p
+        WHERE p.tenant_id=#{query.tenantId} AND p.deleted=b'0'
+        <choose>
+            <when test="query.organizations != null and !query.organizations.isEmpty()">
+                AND (
+                <foreach collection="query.organizations" item="scope" separator=" OR ">
+                    (p.company_id=#{scope.companyId}
+                    <if test="scope.departmentId != null">AND p.department_id=#{scope.departmentId}</if>)
+                </foreach>)
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        <choose>
+            <when test="query.exactProjectName != null or query.exactContractNo != null">
+                <if test="query.exactProjectName != null">AND CAST(p.project_name AS BINARY)=CAST(#{query.exactProjectName} AS BINARY)</if>
+                <if test="query.exactContractNo != null">
+                    AND (CAST(p.contract_no AS BINARY)=CAST(#{query.exactContractNo} AS BINARY)
+                    <if test="query.contractProjectIds != null and !query.contractProjectIds.isEmpty()">
+                        OR p.id IN
+                        <foreach collection="query.contractProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+                    </if>)
+                </if>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        <if test="query.projectId != null">AND p.id=#{query.projectId}</if>
+        ORDER BY p.id DESC
+    </select>
     <select id="selectStatistics" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.projection.ProjectStatistics">
         SELECT COUNT(*) AS total,
           COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND (
@@ -143,6 +172,32 @@
         WHERE id=#{query.projectId} AND tenant_id=#{query.tenantId}
           AND version=#{query.expectedVersion} AND lifecycle_status='ACTIVE' AND deleted=b'0'
     </update>
+
+    <select id="selectOrganizationProjectIds" resultType="java.lang.Long">
+        SELECT p.id FROM proj_project p
+        WHERE p.tenant_id=#{query.tenantId} AND p.deleted=b'0'
+        <if test="query.activeOnly">AND p.lifecycle_status='ACTIVE'</if>
+        <choose>
+            <when test="query.organizations != null and !query.organizations.isEmpty()">
+                AND (
+                <foreach collection="query.organizations" item="scope" separator=" OR ">
+                    (p.company_id=#{scope.companyId}
+                    <if test="scope.departmentId != null">AND p.department_id=#{scope.departmentId}</if>)
+                </foreach>
+                )
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        <if test="query.candidateProjectIds != null">
+            <choose>
+                <when test="!query.candidateProjectIds.isEmpty()">
+                    AND p.id IN
+                    <foreach collection="query.candidateProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+                </when>
+                <otherwise>AND 1=0</otherwise>
+            </choose>
+        </if>
+    </select>
 
     <!-- 服务端已解析项目范围的项目分页；时间范围统一左闭右开，成员与设备条件由 Service 预先取交集 -->
     <select id="selectVisiblePage"

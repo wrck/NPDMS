@@ -27,6 +27,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class ProjectStageReadinessServiceTest {
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi management = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
 
     static cn.iocoder.yudao.module.pms.project.service.rule.RuleEngineTestFixture engine;
     @org.junit.jupiter.api.BeforeAll static void startRules() { engine = new cn.iocoder.yudao.module.pms.project.service.rule.RuleEngineTestFixture(); }
@@ -71,7 +72,7 @@ class ProjectStageReadinessServiceTest {
                         mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null)));
         service = new ProjectStageReadinessService(graphResolver, projectMapper,
                 mock(ProjectStageInstanceMapper.class), mock(ProjectGateInstanceMapper.class), referenceMapper,
-                providerRegistry, scopeApi, participantFactApi, permissionApi, memberMapper);
+                providerRegistry, scopeApi, permissionApi, memberMapper, management);
 
         project = new ProjectMasterDO();
         project.setId(PROJECT_ID); project.setTenantId(TENANT_ID);
@@ -98,8 +99,7 @@ class ProjectStageReadinessServiceTest {
         ProjectScopeResult scope = new ProjectScopeResult(PROJECT_ID, 3L, Set.of(PROJECT_ID), Set.of());
         when(scopeApi.resolveCurrent(any())).thenReturn(scope);
         when(permissionApi.hasAnyPermissions(anyLong(), any())).thenReturn(true);
-        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(PROJECT_ID, ACTOR_ID,
-                Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY", "ACTIVE", "S0", 4L, 4L));
+        when(management.permits(any())).thenReturn(true);
     }
 
     @AfterEach
@@ -110,14 +110,14 @@ class ProjectStageReadinessServiceTest {
     @Test
     void tenantSuperAdminDoesNotNeedMembershipButStillNeedsS0Facts() {
         when(permissionApi.hasAnyRoles(ACTOR_ID, "super_admin")).thenReturn(true);
-        when(participantFactApi.inspect(any())).thenThrow(new IllegalStateException("not a project member"));
+        when(management.permits(any())).thenReturn(false);
         when(providerRegistry.lockAndRevalidate(any(), any())).thenReturn(new ProjectStageGateFact(
                 ProjectStageGateFactProviderApi.PROVIDER_BPM_PROCESS, "PROCESS", "gate-process",
                 "1", "1", ProjectStageGateOutcome.SATISFIED, null));
         assertTrue(service.evaluate(PROJECT_ID, ACTOR_ID).advanceAllowed());
         when(memberMapper.selectActiveForAssignmentState(any())).thenReturn(List.of(primaryPm));
         assertFalse(service.evaluate(PROJECT_ID, ACTOR_ID).advanceAllowed());
-        verify(participantFactApi, never()).inspect(any());
+        verify(management, never()).permits(any());
     }
 
     @Test

@@ -5,7 +5,7 @@ import cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMast
 import cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper;
 import cn.iocoder.yudao.module.pms.customer.service.security.CustomerContactAccessService;
 import cn.iocoder.yudao.module.pms.customer.service.security.CustomerFieldMaskingService;
-import cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -14,18 +14,18 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ProjectCustomerOverviewServiceTest {
-    private final ProjectContactContextApi projects = mock(ProjectContactContextApi.class);
+    private final CustomerQueryApi projects = mock(CustomerQueryApi.class);
     private final CustomerMasterMapper customers = mock(CustomerMasterMapper.class);
     private final CustomerContactAccessService contacts = mock(CustomerContactAccessService.class);
     private final ProjectCustomerOverviewService service = new ProjectCustomerOverviewService(projects, customers,
             new CustomerResponseService(new CustomerFieldMaskingService()), contacts);
     private final ProjectCustomerOverviewService.Query query = new ProjectCustomerOverviewService.Query(1L, 31L, 100L);
-    private final ProjectContactContextApi.Query projectQuery = new ProjectContactContextApi.Query(1L, 31L, 100L);
+    private final CustomerQueryApi.ProjectQuery projectQuery = new CustomerQueryApi.ProjectQuery(1L, 31L, 100L);
     private CustomerMasterDO customer;
 
     @BeforeEach
     void setUp() {
-        when(projects.inspect(projectQuery)).thenReturn(context(100L, 200L));
+        when(projects.getProjectCustomer(projectQuery)).thenReturn(context(100L, 200L));
         customer = new CustomerMasterDO();
         customer.setId(200L); customer.setTenantId(1L); customer.setCode("C-200");
         customer.setName("项目关联客户"); customer.setLifecycleStatus("ENABLED");
@@ -40,34 +40,34 @@ class ProjectCustomerOverviewServiceTest {
         assertEquals(200L, result.getId());
         assertEquals("138****5678", result.getContactPhone());
         assertEquals("e****@gmail.com", result.getContactEmail());
-        verify(projects).inspect(projectQuery);
+        verify(projects).getProjectCustomer(projectQuery);
         verify(customers).selectById(200L);
     }
 
     @Test
     void ownerScopeDenialStopsBeforeCustomerLookup() {
-        when(projects.inspect(projectQuery)).thenThrow(new SecurityException("project access denied"));
+        when(projects.getProjectCustomer(projectQuery)).thenThrow(new SecurityException("project access denied"));
         assertThrows(SecurityException.class, () -> service.get(query));
         verifyNoInteractions(customers, contacts);
     }
 
     @Test
     void mismatchedProjectIdentityCannotReadCustomer() {
-        when(projects.inspect(projectQuery)).thenReturn(context(101L, 200L));
+        when(projects.getProjectCustomer(projectQuery)).thenReturn(context(101L, 200L));
         assertThrows(ServiceException.class, () -> service.get(query));
         verifyNoInteractions(customers, contacts);
     }
 
     @Test
     void unassociatedProjectReturnsEmptyWithoutCustomerLookup() {
-        when(projects.inspect(projectQuery)).thenReturn(context(100L, null));
+        when(projects.getProjectCustomer(projectQuery)).thenReturn(context(100L, null));
         assertNull(service.get(query));
         verifyNoInteractions(customers, contacts);
     }
 
     @Test
     void unavailableOwnerDoesNotTurnIntoGlobalLookup() {
-        when(projects.inspect(projectQuery)).thenReturn(null);
+        when(projects.getProjectCustomer(projectQuery)).thenReturn(null);
         assertThrows(ServiceException.class, () -> service.get(query));
         verifyNoInteractions(customers, contacts);
     }
@@ -92,7 +92,9 @@ class ProjectCustomerOverviewServiceTest {
         assertEquals("DISABLED", service.get(query).getLifecycleStatus());
     }
 
-    private ProjectContactContextApi.Context context(Long projectId, Long customerId) {
-        return new ProjectContactContextApi.Context(projectId, customerId, 3L, "ACTIVE", true);
+    private CustomerQueryApi.ProjectCustomerContext context(Long projectId, Long customerId) {
+        var customer = customerId == null ? null : new cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO(
+                customerId, 1L, "C-200", "项目关联客户", null, "ENABLED", "CRM_SYNC", 0L, null);
+        return new CustomerQueryApi.ProjectCustomerContext(projectId, 3L, "ACTIVE", customer);
     }
 }

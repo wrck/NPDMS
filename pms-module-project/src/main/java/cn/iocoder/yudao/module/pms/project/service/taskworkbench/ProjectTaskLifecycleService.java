@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
+
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
@@ -92,6 +94,7 @@ public class ProjectTaskLifecycleService {
     private final ProjectTaskPlanCompletionService planCompletion;
     private final TaskBusinessBindingHostProvider businessProvider;
     private final cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService treeScopes;
+    private final ProjectManagementQualificationApi managementAccess;
 
     public TaskCommandResult act(TaskActionCommand command, TaskWorkbenchActor actor) {
         AtomicReference<ActionFacts> facts = new AtomicReference<>();
@@ -167,7 +170,7 @@ public class ProjectTaskLifecycleService {
             }
         }
         LocalDateTime occurredAt = LocalDateTime.now();
-        requireCurrentSubject(action, task, actor, occurredAt, acceptanceContract);
+        requireCurrentSubject(new TaskSubjectQuery(action, project, task, actor, occurredAt, acceptanceContract));
         if ("START".equals(action) && !stageAdmissionService.taskMayStart(project, task, contract))
             throw exception(PROJECT_TASK_COMMAND_INVALID);
         if ("CANCEL".equals(action) && "APPROVAL".equals(contract.getWorkBindingTypeCode()))
@@ -203,7 +206,7 @@ public class ProjectTaskLifecycleService {
         if (inspection.recoverableError() != null || !inspection.allowedActions().contains("APPROVAL"))
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         var now = LocalDateTime.now();
-        requireCurrentSubject("START", task, actor, now, false);
+        requireCurrentSubject(new TaskSubjectQuery("START", project, task, actor, now, false));
         var receipt = taskApprovals.start(actor.tenantId(), project.getId(), task.getId(), contract, actor.actorId(),
                 "APPROVAL:" + command.idempotencyKey(), command.approval());
         var facts = new CompletionDecision(true, List.of(), null, null, now, Map.of("approval", receipt));
@@ -500,27 +503,29 @@ public class ProjectTaskLifecycleService {
                         + ":REPORT:" + fact.reportVersionId() + ":" + fact.reportVersion(), occurredAt);
     }
 
-    private void requireCurrentSubject(String action, ProjectTaskInstanceDO task,
-                                       TaskWorkbenchActor actor, LocalDateTime effectiveAt,
-                                       boolean acceptanceContract) {
+    private record TaskSubjectQuery(String action, ProjectMasterDO project, ProjectTaskInstanceDO task,
+                                    TaskWorkbenchActor actor, LocalDateTime effectiveAt, boolean acceptanceContract) { }
+
+    private void requireCurrentSubject(TaskSubjectQuery query) {
+        var action = query.action(); var project = query.project(); var task = query.task();
+        var actor = query.actor(); var effectiveAt = query.effectiveAt(); var acceptanceContract = query.acceptanceContract();
         if (treeScopes.isTenantSuperAdmin(actor.tenantId(), actor.actorId())) {
             // 超管授权不创建指派事实；未指定任务不再要求存在空的指派前置。
             return;
         }
         if ("START".equals(action) || "SUBMIT".equals(action)) {
             var assignment = assignmentMapper.selectCurrentForUpdate(new TaskAssignmentLockQuery(actor.tenantId(), task.getId()));
-            var memberships = memberMapper.selectActiveByUserForUpdate(new ActiveProjectMemberForUpdateQuery(
+            var memberships = memberMapper.selectAuthorizedByUserForUpdate(new ActiveProjectMemberForUpdateQuery(
                     actor.tenantId(), task.getProjectId(), actor.actorId(), effectiveAt));
-            if (!TaskExecutionPolicy.permits(task.getProjectId(), actor.actorId(), assignment, memberships)) {
+            if (!TaskExecutionPolicy.permits(task.getProjectId(), actor.actorId(), assignment, memberships)
+                    && !(assignment == null && (managementAccess.lockCurrent(new ProjectManagementQualificationApi.CurrentRevalidation(new ProjectManagementQualificationApi.Query(
+                        actor.tenantId(), task.getProjectId(), actor.actorId()), project.getVersion(), "ACTIVE", null)) != null))) {
                 throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
             }
             return;
         }
-        boolean projectManager = memberMapper.selectActiveByUserForUpdate(
-                        new ActiveProjectMemberForUpdateQuery(actor.tenantId(), task.getProjectId(),
-                                actor.actorId(), effectiveAt)).stream()
-                .map(ProjectMemberAssignmentDO::getMemberRole)
-                .anyMatch("PROJECT_MANAGER"::equals);
+        boolean projectManager = (managementAccess.lockCurrent(new ProjectManagementQualificationApi.CurrentRevalidation(new ProjectManagementQualificationApi.Query(
+                    actor.tenantId(), task.getProjectId(), actor.actorId()), project.getVersion(), "ACTIVE", null)) != null);
         if (acceptanceContract && "COMPLETE".equals(action)) {
             if (!projectManager && !isCurrentAssignee(task, actor)) {
                 throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);

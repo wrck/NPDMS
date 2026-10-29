@@ -9,6 +9,10 @@ import cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact.*;
 import cn.iocoder.yudao.module.pms.customer.dal.mysql.contact.*;
 import cn.iocoder.yudao.module.pms.customer.dal.mysql.contact.query.*;
 import cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApi;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,6 +35,7 @@ public class ProjectCustomerContactService {
     private final cn.iocoder.yudao.module.pms.customer.service.query.CustomerQueryService customerQuery;
     private final cn.iocoder.yudao.module.pms.customer.service.security.CustomerScopeContextService customerScopes;
     private final ProjectContactRuleWakeup ruleWakeup;
+    @jakarta.annotation.Resource private CustomerQueryApi projectCustomers;
 
     @Transactional(rollbackFor = Exception.class)
     public ProjectContactContextApi.Context associateCustomer(CustomerContactMasterService.Actor actor, Long projectId, Integer version, Long customerId) {
@@ -41,6 +46,26 @@ public class ProjectCustomerContactService {
 
     public ProjectContactContextApi.Context context(CustomerContactMasterService.Actor actor, Long projectId) {
         return projects.inspect(new ProjectContactContextApi.Query(actor.tenantId(), actor.userId(), projectId));
+    }
+
+    /** 已有项目联系记录可读不代表可引用客户通讯录或维护联系记录。 */
+    public record ReadContext(ProjectContactContextApi.Context project, boolean sensitiveReadEligible) {}
+
+    public ReadContext readContext(CustomerContactMasterService.Actor actor, Long projectId) {
+        var login = SecurityFrameworkUtils.getLoginUser();
+        if (actor == null || login == null || !Objects.equals(actor.userId(), login.getId())
+                || !Objects.equals(actor.tenantId(), login.getTenantId())
+                || !Objects.equals(actor.tenantId(), TenantContextHolder.getTenantId())) throw exception(CUSTOMER_SCOPE_DENIED);
+        try {
+            return new ReadContext(context(actor, projectId), true);
+        } catch (ServiceException unavailable) {
+            if (!Objects.equals(unavailable.getCode(), ProjectContactContextApi.CUSTOMER_UNAVAILABLE)) throw unavailable;
+            var binding = projectCustomers.getProjectCustomer(new CustomerQueryApi.ProjectQuery(actor.tenantId(), actor.userId(), projectId));
+            if (binding == null || !Objects.equals(binding.projectId(), projectId)
+                    || binding.projectVersion() == null || binding.lifecycleStatus() == null) throw exception(CUSTOMER_SCOPE_DENIED);
+            return new ReadContext(new ProjectContactContextApi.Context(binding.projectId(), binding.customer() == null ? null : binding.customer().id(),
+                    binding.projectVersion(), binding.lifecycleStatus(), false, false), false);
+        }
     }
 
     public PageResult<ContactHistoryDO> history(CustomerContactMasterService.Actor actor, Long projectId, PageParam page) {
@@ -62,9 +87,20 @@ public class ProjectCustomerContactService {
         return result;
     }
 
-    public PageResult<ProjectCustomerContactDO> page(CustomerContactMasterService.Actor actor, Long projectId, Integer status, String name, PageParam page) {
-        var context = context(actor, projectId);
-        return contacts.selectPage(new ProjectContactPageQuery(actor.tenantId(), projectId, context.canViewHistory() ? status : Integer.valueOf(0), name, page));
+    public record PageRead(PageResult<ProjectCustomerContactDO> page, ReadContext context) {}
+
+    public PageRead page(CustomerContactMasterService.Actor actor, Long projectId, Integer status, String name, PageParam page) {
+        var before = readContext(actor, projectId);
+        var result = contacts.selectPage(new ProjectContactPageQuery(actor.tenantId(), projectId,
+                before.project().canViewHistory() ? status : Integer.valueOf(0), name, page));
+        var after = readContext(actor, projectId);
+        if (!Objects.equals(before.project().customerId(), after.project().customerId())
+                || before.project().canViewHistory() && !after.project().canViewHistory()) throw exception(CUSTOMER_SCOPE_DENIED);
+        var current = after.project();
+        var effective = new ProjectContactContextApi.Context(current.projectId(), current.customerId(), current.projectVersion(),
+                current.lifecycleStatus(), before.project().canManage() && current.canManage(),
+                before.project().canViewHistory() && current.canViewHistory());
+        return new PageRead(result, new ReadContext(effective, before.sensitiveReadEligible() && after.sensitiveReadEligible()));
     }
 
     public PageResult<CustomerContactMasterDO> sources(CustomerContactMasterService.Actor actor, Long projectId, String name, PageParam page) {

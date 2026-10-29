@@ -21,6 +21,9 @@ import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectMasterDO extends BaseBusinessEntity {
+    /** Response projection only; never persisted or used as an authorization fact. */
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String visibility;
 
     /**
      * 项目ID

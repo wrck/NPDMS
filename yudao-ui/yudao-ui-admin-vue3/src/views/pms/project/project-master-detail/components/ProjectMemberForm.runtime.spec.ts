@@ -1,8 +1,10 @@
+vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
 import { defineComponent, h, nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Members from '@/api/pms/project/members'
 import * as Projects from '@/api/pms/project/projects'
 import * as Depts from '@/api/system/dept'
+import { systemUserSelection } from '@/api/system/user/selection'
 import ProjectMemberForm from './ProjectMemberForm.vue'
 import {
   mount,
@@ -22,8 +24,9 @@ vi.mock('@/api/system/dept', () => ({ getSimpleDeptList: vi.fn() }))
 
 const control = defineComponent({
   inheritAttrs: false,
-  setup(_, { attrs, slots }) {
-    return () => h('control', attrs, slots.default?.())
+  setup(_, { attrs, slots, expose }) {
+    expose({ scrollbarRef: { wrapRef: { scrollHeight: 300, clientHeight: 100 } } })
+    return () => h('control', attrs, [slots.default?.(), slots.footer?.()])
   }
 })
 const find = (node: TestNode, predicate: (item: TestNode) => boolean): TestNode | undefined => {
@@ -33,11 +36,17 @@ const find = (node: TestNode, predicate: (item: TestNode) => boolean): TestNode 
     if (result) return result
   }
 }
+const flush = async () => { for (let i = 0; i < 8; i++) { await nextTick(); await Promise.resolve() } }
 const set = async (root: TestNode, label: string, value: unknown) => {
-  const node = find(root, (item) => item.props?.['aria-label'] === label)
+  let node = find(root, (item) => item.props?.['aria-label'] === label)
   expect(node).toBeTruthy()
+  if (typeof node!.props!['onUpdate:modelValue'] !== 'function') {
+    node = find(node!, item => typeof item.props?.['onUpdate:modelValue'] === 'function')
+    ;(node!.props!.onVisibleChange as (open: boolean) => void)(true)
+    await flush()
+  }
   ;(node!.props!['onUpdate:modelValue'] as (value: unknown) => void)(value)
-  await nextTick()
+  await flush()
 }
 const submit = async (root: TestNode) => {
   const form = find(root, (item) => Boolean(item.props?.onSubmit))
@@ -68,6 +77,7 @@ describe('PM-01 project member form runtime', () => {
       total: 1
     })
     vi.mocked(Projects.getProjectSites).mockResolvedValue([])
+    vi.mocked(Projects.getServiceManagerCandidates).mockResolvedValue({ list: [{ userId: 7, username: 'service', nickname: '服务经理', companyId: 1, departmentId: 5, departmentCode: 'OFFICE', departmentName: '办事处' }], total: 1 })
     vi.mocked(Depts.getSimpleDeptList).mockResolvedValue([
       { id: 5, code: 'OFFICE', name: '办事处' }
     ] as Depts.DeptVO[])
@@ -138,4 +148,41 @@ describe('PM-01 project member form runtime', () => {
     )
     app.unmount()
   })
+  it('uses project-scoped candidates and keeps existing managers disabled while paging', async () => {
+    vi.mocked(Members.getManagerCandidates).mockResolvedValueOnce({
+      list: [{ userId: 1, username: 'old', nickname: '原经理' }], total: 2
+    }).mockResolvedValueOnce({ list: [{ userId: 2, username: 'new', nickname: '新经理' }], total: 2 })
+    const active = vi.spyOn(systemUserSelection, 'active')
+    const { root, app } = setup()
+    const wrapper = find(root, item => item.props?.['aria-label'] === '增补项目经理')!
+    const select = find(wrapper, item => typeof item.props?.['remote-method'] === 'function')!
+    ;(select.props!['remote-method'] as (keyword: string) => void)('经理')
+    await vi.waitFor(() => expect(Members.getManagerCandidates).toHaveBeenCalled())
+    await flush()
+    expect(Members.getManagerCandidates).toHaveBeenLastCalledWith(9, '经理', 1)
+    expect(find(wrapper, item => item.props?.value === 1)?.props?.disabled).toBe(true)
+    ;(select.props!.onVisibleChange as (opened: boolean) => void)(true)
+    ;(select.props!.onPopupScroll as (value: { scrollTop: number }) => void)({ scrollTop: 200 })
+    await flush()
+    expect(Members.getManagerCandidates).toHaveBeenLastCalledWith(9, '经理', 2)
+    expect(active).not.toHaveBeenCalled()
+    active.mockRestore()
+    app.unmount()
+  })
+
+  it('does not supplement project candidates from the user directory when the owner API fails', async () => {
+    vi.mocked(Members.getManagerCandidates).mockReset().mockRejectedValue(new Error('denied'))
+    const active = vi.spyOn(systemUserSelection, 'active')
+    const { root, app } = setup()
+    const wrapper = find(root, item => item.props?.['aria-label'] === '增补项目经理')!
+    const select = find(wrapper, item => typeof item.props?.['remote-method'] === 'function')!
+    ;(select.props!.onVisibleChange as (opened: boolean) => void)(true)
+    await flush()
+    expect(textOf(wrapper)).toContain('人员候选加载失败')
+    expect(active).not.toHaveBeenCalled()
+    expect(find(wrapper, item => item.props?.value === 2)).toBeUndefined()
+    active.mockRestore()
+    app.unmount()
+  })
+
 })

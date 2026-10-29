@@ -55,6 +55,25 @@ class CustomerInspectionHistoryServiceTest {
         assertThrows(RuntimeException.class, () -> service.register(command()));
         verifyNoInteractions(histories, references, customers);
     }
+    @Test void systemAdministratorRegistersThroughTheSameImmutableArchiveContract() {
+        authorizeProject();
+        when(permissions.hasAnyRoles(7L,"super_admin")).thenReturn(true);
+        var manage=ProjectCurrentScopeQuery.builder().tenantId(1L).subjectUserId(7L).anchorProjectId(20L).actionCode(ProjectScopeApi.ACTION_MANAGE).build();
+        when(projectScopes.resolveCurrent(manage)).thenReturn(new ProjectScopeResult(20L,3L,Set.of(20L),Set.of()));
+        when(projects.lockServiceManagers(any())).thenReturn(new ProjectBusinessContextApi.ServiceManagers(2L,List.of()));
+        when(customers.lockCustomerByCode(any())).thenReturn(new CustomerSummaryDTO(30L,1L,"C30","原客户","原客户","ENABLED","LOCAL",3L,null));
+        doAnswer(inv->{inv.<CustomerInspectionHistoryDO>getArgument(0).setId(100L);return 1;}).when(histories).insert(any(CustomerInspectionHistoryDO.class));
+        assertEquals(100L,service.register(command()).id());
+    }
+    @Test void administratorWithOnlyViewScopeCannotRegisterHistory() {
+        authorizeProject();
+        when(permissions.hasAnyRoles(7L,"super_admin")).thenReturn(true);
+        when(projects.lockServiceManagers(any())).thenReturn(new ProjectBusinessContextApi.ServiceManagers(2L,List.of()));
+        var manage=ProjectCurrentScopeQuery.builder().tenantId(1L).subjectUserId(7L).anchorProjectId(20L).actionCode(ProjectScopeApi.ACTION_MANAGE).build();
+        when(projectScopes.resolveCurrent(manage)).thenReturn(new ProjectScopeResult(20L,3L,Set.of(),Set.of()));
+        assertThrows(RuntimeException.class,()->service.register(command()));
+        verifyNoInteractions(histories,references,customers);
+    }
     @Test void missingCustomerScopePreventsRegistration() {
         authorizeProject();
         when(projects.lockServiceManagers(any())).thenReturn(new ProjectBusinessContextApi.ServiceManagers(2L, List.of(7L)));

@@ -53,6 +53,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ProjectStageAdvanceApplicationServiceTest {
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi management = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
 
     static cn.iocoder.yudao.module.pms.project.service.rule.RuleEngineTestFixture engine;
     @org.junit.jupiter.api.BeforeAll static void startRules() { engine = new cn.iocoder.yudao.module.pms.project.service.rule.RuleEngineTestFixture(); }
@@ -111,10 +112,9 @@ class ProjectStageAdvanceApplicationServiceTest {
         processOwnerApi = mock(ProjectStageGateProcessOwnerApi.class);
         participantFactApi = mock(ProjectParticipantFactApi.class);
         processContexts = mock(ProjectStageGateProcessContextResolver.class);
-        service = new ProjectStageAdvanceApplicationService(commandExecutionApi, permissionApi, projectScopeApi,
-                participantFactApi, processOwnerApi, providerRegistry,
+        service = new ProjectStageAdvanceApplicationService(commandExecutionApi, permissionApi, projectScopeApi, processOwnerApi, providerRegistry,
                 projectMapper, stageMapper, gateMapper, referenceMapper, memberMapper,
-                snapshotMapper, snapshotRepository, graphResolver, processContexts);
+                snapshotMapper, snapshotRepository, graphResolver, processContexts, management);
 
         when(permissionApi.hasAnyPermissions(ACTOR_ID, "pms:project:update")).thenReturn(true);
         ProjectScopeResult scope = new ProjectScopeResult(PROJECT_ID, 3L, Set.of(PROJECT_ID), Set.of());
@@ -140,12 +140,12 @@ class ProjectStageAdvanceApplicationServiceTest {
     void tenantSuperAdminCanAdvanceWithoutMembershipButCannotBypassGates() {
         stubLockedContext(ProjectStageGateOutcome.SATISFIED);
         when(permissionApi.hasAnyRoles(ACTOR_ID, "super_admin")).thenReturn(true);
-        when(memberMapper.selectParticipantFactsForUpdate(any())).thenReturn(List.of());
+        when(management.lockCurrent(any())).thenReturn(null);
         var command = new ProjectStageAdvanceCommand(PROJECT_ID, 4L, "S0", 3L,
                 "admin-advance", "a".repeat(64));
         var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "corr-admin");
         assertEquals("S4", service.advance(command, actor).afterStage());
-        verify(memberMapper, never()).selectParticipantFactsForUpdate(any());
+        verify(management, never()).lockCurrent(any());
         org.mockito.Mockito.clearInvocations(projectMapper, stageMapper, gateMapper);
         when(providerRegistry.lockAndRevalidate(eq(ProjectStageGateFactProviderApi.PROVIDER_PROJ_TASK), any()))
                 .thenReturn(new ProjectStageGateFact(ProjectStageGateFactProviderApi.PROVIDER_PROJ_TASK,
@@ -251,13 +251,26 @@ class ProjectStageAdvanceApplicationServiceTest {
         member.setUserId(ACTOR_ID);
         member.setMemberRole("PROJECT_MANAGER");
         member.setAssignmentType("COLLABORATOR");
-        when(memberMapper.selectParticipantFactsForUpdate(any())).thenReturn(List.of(member));
+        when(management.lockCurrent(any())).thenAnswer(call -> cn.iocoder.yudao.module.pms.project.api.participant.ManagementQualificationTestFacts.locked(call.getArgument(0)));
         var command = new ProjectStageAdvanceCommand(PROJECT_ID, 4L, "S0", 3L,
                 "secondary", "d".repeat(64));
         var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "corr-secondary");
         assertEquals("S4", service.advance(command, actor).afterStage());
-        when(memberMapper.selectParticipantFactsForUpdate(any())).thenReturn(List.of());
+        when(management.lockCurrent(any())).thenReturn(null);
         org.junit.jupiter.api.Assertions.assertThrows(RuntimeException.class, () -> service.advance(command, actor));
+    }
+
+    @Test
+    void processDefinitionsRejectUnconfirmedManagerBeforeCallingOwner() {
+        stubLockedContext(ProjectStageGateOutcome.SATISFIED);
+        when(management.permits(any())).thenReturn(false);
+        var actor = new ProjectStageAdvanceApplicationService.Actor(TENANT_ID, ACTOR_ID, "unconfirmed-definition");
+        var error = assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.listDefinitions(PROJECT_ID, 42L, actor));
+        assertEquals(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_STAGE_ACTION_FORBIDDEN.getCode(), error.getCode());
+        verify(processOwnerApi, never()).inspectDefinitionKey(any());
+        verify(processContexts, never()).resolve(any(), any());
+        verify(participantFactApi, never()).inspect(any());
     }
 
     @Test
@@ -280,6 +293,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         when(processOwnerApi.inspectDefinitionKey(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateProcessDefinitionFact(
                 "def-entry", "entry-process", "前置审批", true));
         assertEquals("def-entry", service.listDefinitions(PROJECT_ID, 42L, actor).getFirst().processDefinitionId());
+        verify(management).permits(org.mockito.ArgumentMatchers.argThat(query -> PROJECT_ID.equals(query.projectId()) && ACTOR_ID.equals(query.userId())));
         verify(processOwnerApi).inspectDefinitionKey(org.mockito.ArgumentMatchers.argThat(query -> "def-entry".equals(query.processDefinitionId())));
         verify(processOwnerApi, never()).listSelectableDefinitions(any());
         doAnswer(invocation -> {
@@ -418,9 +432,9 @@ class ProjectStageAdvanceApplicationServiceTest {
                 query != null && query.userId().equals(12L)));
         org.mockito.Mockito.clearInvocations(projectMapper, memberMapper);
         assertS0AssignmentRejected("S0_PRIMARY_SERVICE_MANAGER_REQUIRED");
-        var order = org.mockito.Mockito.inOrder(projectMapper, memberMapper);
+        var order = org.mockito.Mockito.inOrder(projectMapper, management, memberMapper);
         order.verify(projectMapper).selectByIdForUpdate(PROJECT_ID);
-        order.verify(memberMapper).selectParticipantFactsForUpdate(any());
+        order.verify(management).lockCurrent(any());
         order.verify(memberMapper).selectActiveByUserForUpdate(org.mockito.ArgumentMatchers.argThat(query -> query.userId().equals(ACTOR_ID)));
         order.verify(memberMapper).selectActiveByUserForUpdate(org.mockito.ArgumentMatchers.argThat(query -> query.userId().equals(12L)));
         verifyNoAdvanceWrites();
@@ -507,6 +521,7 @@ class ProjectStageAdvanceApplicationServiceTest {
     }
 
     private void stubLockedContext(ProjectStageGateOutcome outcome) {
+        when(management.permits(any())).thenReturn(true);
         when(memberMapper.selectActiveForAssignmentState(any())).thenReturn(List.of(
                 responsibility("PROJECT_MANAGER", ACTOR_ID), responsibility("SERVICE_MANAGER_L1", 12L)));
         ProjectMemberAssignmentDO member = new ProjectMemberAssignmentDO();
@@ -514,7 +529,7 @@ class ProjectStageAdvanceApplicationServiceTest {
         member.setUserId(ACTOR_ID);
         member.setMemberRole("PROJECT_MANAGER");
         member.setAssignmentType("PRIMARY");
-        when(memberMapper.selectParticipantFactsForUpdate(any())).thenReturn(List.of(member));
+        when(management.lockCurrent(any())).thenAnswer(call -> cn.iocoder.yudao.module.pms.project.api.participant.ManagementQualificationTestFacts.locked(call.getArgument(0)));
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(PROJECT_ID);
         project.setTenantId(TENANT_ID);

@@ -16,16 +16,10 @@
     </template>
     <template v-else>
       <el-form-item label="人员" required>
-        <el-select
-v-model="userId" aria-label="人员" filterable remote :remote-method="search"
-          :loading="searching" :disabled="!candidateReady || saving" placeholder="按姓名或账号搜索">
-          <el-option
-v-for="user in candidates" :key="user.id" :value="user.id"
-            :label="`${user.nickname}（${user.username}）`" />
-          <template #footer>
-            <el-button v-if="candidates.length < total" link :loading="searching" @click="more">加载更多人员</el-button>
-          </template>
-        </el-select>
+        <UserSelect
+v-model="userId" aria-label="人员" option-label="nickname-account" :scoped-source="memberSource"
+          :disabled="!candidateReady || saving || searching" :clearable="false" placeholder="按姓名或账号搜索"
+          :current-label="selectedPerson?.nickname" @change="selectPerson" />
       </el-form-item>
       <el-form-item label="联系电话">
         <el-input :model-value="selectedPerson?.mobile || ''" aria-label="联系电话" readonly placeholder="选择人员后显示" />
@@ -50,6 +44,8 @@ v-model="reason" aria-label="调整原因" type="textarea"
   </el-form>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import type { SystemUserSelectionUser } from '@/api/system/user/selection'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import * as Members from '@/api/pms/project/unified-members'
 import * as Projects from '@/api/pms/project/projects'
@@ -79,39 +75,30 @@ const roleHint = computed(() => Members.memberRoleOptions.find(role => role.valu
 const responsibility = ref(props.member?.responsibility || '')
 const remark = ref(props.member?.remark || '')
 const reason = ref(''), error = ref(''), searching = ref(false), saving = ref(false)
-const candidates = ref<Members.MemberCandidate[]>([]), total = ref(0)
+const candidates = ref<Members.MemberCandidate[]>([])
 const selectedPerson = computed(() => candidates.value.find(person => person.id === userId.value))
-let sequence = 0, keyword = '', pageNo = 1
+let sequence = 0
 const submission = createSubmissionIdempotencyState()
 const clearCandidate = () => {
   sequence++
   userId.value = undefined
   candidates.value = []
-  total.value = 0
-  pageNo = 1
   searching.value = false
   error.value = ''
   primary.value = false
 }
 const candidateParams = () => ({ projectRole: memberRole.value })
-const search = async (value: string, append = false) => {
-  if (isExternal.value || !candidateReady.value) return
-  const request = ++sequence
-  keyword = value
-  const requestedPage = append ? pageNo + 1 : 1
-  searching.value = true
-  try {
-    const result = await Members.getMemberCandidates(props.project.id!, { pageNo: requestedPage, pageSize: 20, keyword: value, ...candidateParams() })
-    if (request !== sequence) return
-    error.value = ''
-    candidates.value = append ? [...new Map([...candidates.value, ...result.list].map(user => [user.id, user])).values()] : result.list
-    total.value = result.total
-    pageNo = requestedPage
-  } catch {
-    if (request === sequence) error.value = '人员加载失败，请重新搜索。'
-  } finally { if (request === sequence) searching.value = false }
+const memberSource = computed(() => ({
+  key: `project-member:${props.project.id}:${memberRole.value}:${candidateReady.value}`,
+  search: async (query: { keyword: string; pageNo: number; pageSize: number }) => {
+    if (isExternal.value || !candidateReady.value) return { list: [], total: 0 }
+    return Members.getMemberCandidates(props.project.id!, { ...query, ...candidateParams() })
+  }
+}))
+const selectPerson = (person: SystemUserSelectionUser | SystemUserSelectionUser[] | undefined) => {
+  if (!person || Array.isArray(person)) return
+  candidates.value = [{ ...person, id: person.id, username: person.username || '', nickname: person.nickname || '' } as Members.MemberCandidate]
 }
-const more = () => search(keyword, true)
 onMounted(async () => {
   if (!props.member) return
   if (isExternal.value || !candidateReady.value) return
@@ -121,7 +108,6 @@ onMounted(async () => {
     const result = await Members.getMemberCandidates(props.project.id!, { pageNo: 1, pageSize: 1, userId: props.member.userId ?? undefined, ...candidateParams() })
     if (request !== sequence) return
     candidates.value = result.list
-    total.value = result.total
     userId.value = result.list.find(user => user.id === props.member?.userId)?.id
     if (!userId.value) error.value = '原人员当前不可选，请选择有效用户；历史记录保持不变。'
   } catch { if (request === sequence) error.value = '人员校验失败，请重试。' }
@@ -137,9 +123,18 @@ const submit = async () => {
   const data: Members.MemberMutation = { userId: isExternal.value ? null : userId.value!, memberRole: memberRole.value,
     responsibility: responsibility.value.trim(), remark: remark.value.trim(), reason: reason.value.trim(),
     primary: memberRole.value === memberRoles.PROJECT_MANAGER || memberRole.value === memberRoles.SERVICE_MANAGER ? primary.value : undefined }
-  if (isExternal.value) data.externalPerson = { name: externalName.value.trim(), companyName: externalCompany.value.trim(),
-    department: externalDepartment.value.trim(), title: externalTitle.value.trim(),
-    mobile: externalMobile.value.trim(), email: externalEmail.value.trim() }
+  if (isExternal.value) {
+    data.externalPerson = { name: externalName.value.trim(), companyName: externalCompany.value.trim(),
+      department: externalDepartment.value.trim(), title: externalTitle.value.trim(),
+      mobile: externalMobile.value.trim(), email: externalEmail.value.trim() }
+    const { mobile, email } = data.externalPerson
+    if (mobile && (!/^[+()\-\s0-9]+$/.test(mobile) || !/[0-9]/.test(mobile))) {
+      error.value = '联系电话格式无效'; return
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      error.value = '邮箱格式无效'; return
+    }
+  }
   const assignmentId = props.rejoin ? undefined : props.member?.id
   saving.value = true
   try {

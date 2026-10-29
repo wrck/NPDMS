@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 @Schema(description = "管理后台 - 项目 Response VO")
 @Data
 public class ProjectRespVO {
+    @Schema(description = "列表可见级别：FULL完整访问、OFFICE_READONLY精确查询只读；不构成办理授权")
+    private String visibility;
 
     @Schema(description = "项目ID")
     private Long id;

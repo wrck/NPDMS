@@ -75,7 +75,7 @@ describe('Designer V2 minimal NORMAL closure policy', () => {
     await (all(root, 'select')[0].props!.onVisibleChange as Function)(true)
     await nextTick()
     expect(content.closurePolicy?.reviewerUserId).toBe('9007199254740993')
-    expect(textOf(root)).toContain('已选审核人保持不变')
+    expect(textOf(root)).toContain('已选用户保留')
   })
 
   it('read-only Designer cannot be changed by emitted control events', async () => {

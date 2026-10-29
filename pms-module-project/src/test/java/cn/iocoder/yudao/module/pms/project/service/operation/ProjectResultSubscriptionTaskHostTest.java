@@ -34,7 +34,7 @@ class ProjectResultSubscriptionTaskHostTest {
         when(tasks.selectTask(any())).thenReturn(task);when(contracts.selectCurrentByTaskId(4L)).thenReturn(contract);when(projects.selectById(3L)).thenReturn(project);when(versions.selectLatestActive(3L)).thenReturn(version);
         when(scopes.isTenantSuperAdmin(1L,9L)).thenReturn(true);when(scopes.resolve(any())).thenReturn(new ProjectTreeScopeService.ProjectTreeScope(3L,1L,Set.of(3L),Set.of(),Set.of()));
         when(permissions.hasAnyPermissions(eq(9L),any(String.class))).thenReturn(true);
-        host=new TaskNativeBindingHostProvider(tasks,contracts,mock(ProjectTaskAssignmentMapper.class),mock(ProjectMemberAssignmentMapper.class),transitions,permissions,projects,versions,scopes);
+        host=new TaskNativeBindingHostProvider(tasks,contracts,mock(ProjectTaskAssignmentMapper.class),mock(ProjectMemberAssignmentMapper.class),transitions,permissions,projects,versions,scopes, org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class));
     }
     @ParameterizedTest @ValueSource(strings={"PENDING_START","IN_PROGRESS","PENDING_ACCEPT"})
     void queryAndManagementDoNotExposeFakeSubmissionCompletionOrBusinessOperations(String status){

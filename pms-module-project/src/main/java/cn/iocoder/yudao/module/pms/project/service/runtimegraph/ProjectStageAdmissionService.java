@@ -186,6 +186,24 @@ public class ProjectStageAdmissionService {
             cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO project,
             cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO task,
             cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO taskContract) {
+        return evaluateTaskAdmission(new TaskPrerequisiteQuery(project, task, taskContract), false);
+    }
+
+    public record TaskPrerequisiteQuery(
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO project,
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO task,
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO contract) { }
+
+    /** Owner submission can follow a completed stage; this does not grant START or reopen that stage. */
+    @Transactional(rollbackFor = Exception.class)
+    public TaskAdmissionView submissionPrerequisites(TaskPrerequisiteQuery query) {
+        return evaluateTaskAdmission(query, true);
+    }
+
+    private TaskAdmissionView evaluateTaskAdmission(TaskPrerequisiteQuery request, boolean submission) {
+        var project = request.project();
+        var task = request.task();
+        var taskContract = request.contract();
         if (!"ACTIVE".equals(project.getLifecycleStatus()) || !Objects.equals(project.getId(), task.getProjectId())
                 || !Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId())) return TaskAdmissionView.unavailable();
         var query = new ProjectRuntimeGraphQuery(project.getTenantId(), project.getId());
@@ -204,7 +222,7 @@ public class ProjectStageAdmissionService {
                     && task.getCode().equals(node.getCode()) && task.getStageCode().equals(node.getStageCode())).toList();
             if (definitions.size() != 1) return TaskAdmissionView.unavailable();
             boolean stageAllowsWork = "ACTIVE".equals(parent.getStatus())
-                    || ("DONE".equals(parent.getStatus()) && Boolean.FALSE.equals(definitions.getFirst().getRequired()));
+                    || ("DONE".equals(parent.getStatus()) && (submission || Boolean.FALSE.equals(definitions.getFirst().getRequired())));
             if (!stageAllowsWork) return new TaskAdmissionView(RuleEvaluation.Outcome.NOT_MATCHED,
                     List.of(new TaskAdmissionCondition("所属阶段不允许办理此任务", RuleEvaluation.Outcome.NOT_MATCHED)));
             String key = definitions.getFirst().getAdmissionRuleKey();

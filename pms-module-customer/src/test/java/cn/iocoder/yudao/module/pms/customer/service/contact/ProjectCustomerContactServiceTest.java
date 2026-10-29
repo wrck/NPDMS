@@ -28,9 +28,17 @@ class ProjectCustomerContactServiceTest {
     private final CustomerContactMasterService.Actor actor = new CustomerContactMasterService.Actor(1L, 3L);
 
     @BeforeEach void context() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(
+                new cn.iocoder.yudao.framework.security.core.LoginUser().setId(3L).setTenantId(1L),
+                new org.springframework.mock.web.MockHttpServletRequest());
         when(projects.lockForWrite(any())).thenReturn(new ProjectContactContextApi.Context(7L, 8L, 2L, "ACTIVE", true));
         var customer = new CustomerMasterDO(); customer.setId(8L); customer.setLifecycleStatus("ENABLED");
         when(sources.selectCustomerForUpdate(any())).thenReturn(customer);
+    }
+    @org.junit.jupiter.api.AfterEach void clearActor() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();
     }
     private ProjectCustomerContactDO row() {
         var row = new ProjectCustomerContactDO(); row.setId(10L); row.setTenantId(1L); row.setProjectId(7L);

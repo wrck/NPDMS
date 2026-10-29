@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
+
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
@@ -82,6 +84,8 @@ public class ProjectTaskQueryService {
     private final cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery subscriptionObservations;
     private final ProjectDeliverableInitializationApplicationService deliverableInitializationApplicationService;
     private final PermissionCommonApi permissionApi;
+    private final cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectOrganizationScopeService organizationScopes;
+    private final ProjectManagementQualificationApi managementAccess;
 
     public ProjectWorkspaceRespVO getWorkspace(Long projectId, TaskWorkbenchActor actor) {
         TaskAccess access = resolveAccess(projectId, actor, true);
@@ -251,12 +255,13 @@ public class ProjectTaskQueryService {
             if (requireProject) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
             return null;
         }
-        List<ProjectMemberAssignmentDO> memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
+        List<ProjectMemberAssignmentDO> memberships = memberMapper.selectAuthorizedByUser(new ActiveProjectMemberQuery(
                 actor.tenantId(), actor.actorId(), LocalDateTime.now()));
         boolean superAdmin = projectTreeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId());
-        boolean fullProjectAccess = superAdmin || TaskExecutionPolicy.isProjectMember(projectId, memberships);
-        boolean projectManager = superAdmin || memberships.stream().anyMatch(item -> Objects.equals(item.getProjectId(), projectId)
-                && "PROJECT_MANAGER".equals(item.getMemberRole()));
+        boolean fullProjectAccess = superAdmin || TaskExecutionPolicy.isProjectMember(projectId, memberships)
+                || organizationScopes.projectIds(new cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectOrganizationScopeService.Query(
+                    actor.tenantId(), actor.actorId(), ProjectScopeApi.ACTION_MANAGE, false, Set.of(projectId))).contains(projectId);
+        boolean projectManager = superAdmin || managementAccess.permits(new ProjectManagementQualificationApi.Query(project.getTenantId(), project.getId(), actor.actorId()));
         TaskVisibilityQuery visibilityQuery = new TaskVisibilityQuery(
                 actor.tenantId(), projectId, actor.actorId(), fullProjectAccess);
         Set<Long> full = fullProjectAccess

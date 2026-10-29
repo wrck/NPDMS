@@ -20,6 +20,7 @@
       <div><dt>工期总天数</dt><dd>{{ durationPlan ? `${durationPlan.currentRevision.durationDays} 天` : '未录入' }}</dd></div>
       <div><dt>计划验收时间</dt><dd>{{ plannedAcceptanceDates || '未登记' }}</dd></div>
     </dl>
+    <el-alert v-if="!loading && !canWrite" title="当前施工计划仅可查看。" type="info" :closable="false" class="schedule-notice" />
     <el-alert
       v-if="errorText"
       :title="errorText"
@@ -59,7 +60,7 @@
       <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
         <el-button
           v-hasPermi="['pms:imp-stage-plan:create']"
-          :disabled="dirty || acting || loading || hasActiveDraft || !durationPlan"
+          :disabled="!canWrite || dirty || acting || loading || hasActiveDraft || !durationPlan"
           @click="createDraft"
           >{{ currentEffective ? '新建调整版本' : '制定施工计划' }}</el-button
         >
@@ -176,23 +177,14 @@
     size="min(960px, 100%)"
     :before-close="closeDuration"
   >
-    <ProjectDurationPanel ref="durationRef" :project="project" @changed="durationChanged" />
+    <ProjectDurationPanel ref="durationRef" :project="project" :readonly="!!props.readonly || !entryReadiness.durationWritable" @changed="durationChanged" />
   </el-drawer>
   <el-dialog v-model="submitVisible" title="提交施工计划审核" width="min(480px, 94vw)">
     <p>提交当前阶段及任务的全部计划日期，由本项目服务经理审核。</p>
     <el-alert v-if="approverError" :title="approverError" type="error" :closable="false" />
     <el-form label-position="top"
       ><el-form-item label="服务经理审批人" required
-        ><el-select
-          v-model="approverId"
-          :loading="approversLoading"
-          placeholder="选择本项目服务经理"
-          style="width: 100%"
-          ><el-option
-            v-for="person in approvers"
-            :key="person.userId"
-            :value="person.userId"
-            :label="person.memberName || `用户 ${person.userId}`" /></el-select></el-form-item
+        ><UserSelect v-model="approverId" :scoped-source="approverSource" :disabled="approversLoading" :clearable="false" placeholder="选择本项目服务经理" style="width: 100%" /></el-form-item
     >
       <el-form-item v-if="batch?.adjustmentReasonRequired" label="调整理由" required>
         <el-input v-model="adjustmentReason" type="textarea" :rows="3" placeholder="说明本次阶段和任务日期的调整理由" :disabled="acting" />
@@ -200,7 +192,7 @@
     </el-form>
     <template #footer
       ><el-button @click="submitVisible = false">取消</el-button
-      ><el-button type="primary" :loading="acting" :disabled="!approverId || dirty" @click="submit"
+      ><el-button type="primary" :loading="acting" :disabled="!canWrite || !approverId || dirty" @click="submit"
         >发起审批</el-button
       ></template
     >
@@ -221,6 +213,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { shortPlan, deadlineHint, taskPlanIssue, stageItemBlockingIssue, fitTaskPlanIntoStage, compareSchedules, fillCompletedPlanDates } from './schedulePresentation'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
@@ -238,7 +232,10 @@ import SchedulePlanningTable from './SchedulePlanningTable.vue'
 import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 import { initialDurationHint } from './durationEntry'
 
-const props = defineProps<{ project: ProjectMasterVO }>()
+const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean; allowedActions?: string[] }>()
+// PAGE的QUERY表示可装载既有Owner工作区；实际办理资格由宿主readonly及Owner功能权限约束。
+const entryReadiness = ref<DurationApi.PlanningEntryReadiness>({ durationWritable: false, scheduleWritable: false })
+const canWrite = computed(() => !props.readonly && entryReadiness.value.scheduleWritable)
 const { barTarget } = useBusinessActionBar()
 const hasActionBar = !!barTarget
 const emit = defineEmits<{
@@ -257,6 +254,10 @@ type ServiceManagerApprover = { userId: number | string; memberName?: string }
 const approvers = ref<ServiceManagerApprover[]>([]),
   approversLoading = ref(false),
   approverError = ref('')
+const approverSource = computed(() => systemUserSelection.fromCandidates(
+  `schedule-approver:${props.project.id}`,
+  approvers.value.map(person => ({ id: person.userId, nickname: person.memberName || `用户 ${person.userId}` }))
+))
 const adjustmentReason = ref('')
 const comparisonVisible = ref(false),
   comparisonLoading = ref(false)
@@ -271,7 +272,7 @@ let sequence = 0
 const dirty = computed(() => !!batch.value && JSON.stringify(batch.value) !== saved.value)
 const editable = computed(
   () =>
-    !!batch.value &&
+    canWrite.value && !!batch.value &&
     [0, 3].includes(batch.value.status!) &&
     checkPermi(['pms:imp-stage-plan:update'])
 )
@@ -414,14 +415,17 @@ const load = async (preferred?: number) => {
   const current = ++sequence,
     projectId = props.project.id
   if (!projectId) return
+  entryReadiness.value = { durationWritable: false, scheduleWritable: false }
   loading.value = true
   errorText.value = ''
   try {
-    const [duration, page] = await Promise.all([
+    const [duration, page, readiness] = await Promise.all([
       DurationApi.getByProjectId(projectId),
-      PlanApi.getStagePlanBatchPage({ projectId, pageNo: 1, pageSize: 100 })
+      PlanApi.getStagePlanBatchPage({ projectId, pageNo: 1, pageSize: 100 }),
+      DurationApi.getEntryReadiness(projectId).catch(() => ({ durationWritable: false, scheduleWritable: false }))
     ])
     if (current !== sequence) return
+    entryReadiness.value = readiness
     durationPlan.value = duration
     const versions: PlanApi.StagePlanBatchVO[] = [...(page.list || [])]
     for (let pageNo = 2; versions.length < Number(page.total || 0); pageNo++) {
@@ -471,7 +475,7 @@ const load = async (preferred?: number) => {
   }
 }
 const command = async (action: () => Promise<PlanApi.StagePlanBatchVO>, success: string) => {
-  if (acting.value) return false
+  if (!canWrite.value || acting.value) return false
   const projectId = props.project.id
   acting.value = true
   try {
@@ -489,9 +493,10 @@ const command = async (action: () => Promise<PlanApi.StagePlanBatchVO>, success:
     acting.value = false
   }
 }
-const createDraft = () =>
-  command(() => PlanApi.createStagePlanBatch(props.project.id!), '计划草稿已创建')
+const createDraft = () => canWrite.value
+  ? command(() => PlanApi.createStagePlanBatch(props.project.id!), '计划草稿已创建') : false
 const estimate = async () => {
+  if (!editable.value) return
   try {
     await message.confirm(
       '将按最新工期、阶段占比和回款验收时间重新倒排，替换本草稿的阶段日期。已安排任务会保留，请核对是否仍在阶段范围内。'
@@ -505,6 +510,7 @@ const estimate = async () => {
   )
 }
 const openSubmit = async () => {
+  if (!editable.value) return
   const projectId = props.project.id!
   submitVisible.value = true
   approverId.value = undefined
@@ -590,7 +596,7 @@ const save = async () => {
 // 阶段次序按模板冻结路径准入约束判定（串行边允许当天衔接，并行分支允许重叠）。
 const submit = async () => {
   const value = batch.value
-  if (!value || !approverId.value || dirty.value) return
+  if (!canWrite.value || !editable.value || !value || !approverId.value || dirty.value) return
   if (value.adjustmentReasonRequired && !adjustmentReason.value.trim()) return message.warning('请填写调整理由')
   for (const item of value.items) {
     const issue = stageItemBlockingIssue(item, value)
@@ -631,6 +637,7 @@ watch(
     approvers.value = []
     approverId.value = undefined
     durationPlan.value = null
+    entryReadiness.value = { durationWritable: false, scheduleWritable: false }
     overdue.value = []
     void load()
   },

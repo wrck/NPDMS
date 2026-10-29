@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.customer.service.query;
 import cn.iocoder.yudao.module.pms.customer.controller.admin.customer.vo.CustomerRespVO;
 import cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper;
 import cn.iocoder.yudao.module.pms.customer.service.security.CustomerContactAccessService;
-import cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApi;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +16,7 @@ import static cn.iocoder.yudao.module.pms.customer.enums.ErrorCodeConstants.CUST
 @Service
 @RequiredArgsConstructor
 public class ProjectCustomerOverviewService {
-    private final ProjectContactContextApi projects;
+    private final CustomerQueryApi projectCustomers;
     private final CustomerMasterMapper customers;
     private final CustomerResponseService responses;
     private final CustomerContactAccessService contacts;
@@ -24,12 +24,12 @@ public class ProjectCustomerOverviewService {
     public record Query(Long tenantId, Long actorUserId, Long projectId) { }
 
     public CustomerRespVO get(Query query) {
-        var project = projects.inspect(new ProjectContactContextApi.Query(
+        var project = projectCustomers.getProjectCustomer(new CustomerQueryApi.ProjectQuery(
                 query.tenantId(), query.actorUserId(), query.projectId()));
         if (project == null || !Objects.equals(query.projectId(), project.projectId()))
             throw exception(CUSTOMER_NOT_EXISTS);
-        if (project.customerId() == null) return null;
-        var customer = customers.selectById(project.customerId());
+        if (project.customer() == null) return null;
+        var customer = customers.selectById(project.customer().id());
         if (customer == null || !Objects.equals(query.tenantId(), customer.getTenantId()))
             throw exception(CUSTOMER_NOT_EXISTS);
         return responses.detail(customer, contacts.resolve(query.actorUserId(), true));
