@@ -1,5 +1,13 @@
 import request from '@/config/axios'
 
+export interface PlanningEntryReadiness {
+  durationWritable: boolean
+  scheduleWritable: boolean
+}
+
+export const getEntryReadiness = (projectId: number) =>
+  request.get<PlanningEntryReadiness>({ url: '/api/v1/pms/construction-plans/entry-readiness', params: { projectId } })
+
 export type DurationCalculationBasis = 'DATE_RANGE' | 'DURATION_FROM_START'
 export type DurationChangeStatus =
   | 'DRAFT'

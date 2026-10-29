@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.preparation;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -29,10 +30,6 @@ import cn.iocoder.yudao.module.pms.project.api.organization.ProjectOrganizationF
 import cn.iocoder.yudao.module.pms.project.api.organization.dto.ProjectOrganizationFact;
 import cn.iocoder.yudao.module.pms.project.api.organization.dto.ProjectOrganizationFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.organization.dto.ProjectOrganizationFactRevalidationQuery;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
@@ -87,7 +84,7 @@ public class PreparationItemApplicationService {
     private final DynamicFormInstanceMapper formMapper;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
-    private final ProjectParticipantFactApi participantFactApi;
+    private final ProjectManagementQualificationApi managementAccess;
     private final ProjectOrganizationFactApi organizationFactApi;
     private final AdminUserApi adminUserApi;
     private final OrganizationScopeApi organizationScopeApi;
@@ -297,28 +294,17 @@ public class PreparationItemApplicationService {
                 .anchorProjectId(projectId)
                 .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         requireScope(scope, projectId);
-        ProjectParticipantFact manager = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                projectId, actor.actorId(), Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                LocalDateTime.now()));
-        requireManager(manager, projectId, actor.actorId());
+        boolean manager = (managementAccess.inspect(new ProjectManagementQualificationApi.Query(actor.tenantId(), projectId, actor.actorId())) != null);
+        if (!manager) throw exception(PREPARATION_PROJECT_FACT_INVALID);
     }
 
     private void requireManagerLocked(Long projectId, Long expectedProjectVersion, Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        ProjectParticipantFact manager = participantFactApi.lockAndRevalidate(
-                new ProjectParticipantFactRevalidationQuery(projectId, actor.actorId(), expectedProjectVersion,
-                        "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
-        requireManager(manager, projectId, actor.actorId());
-    }
-
-    private void requireManager(ProjectParticipantFact fact, Long projectId, Long actorId) {
-        if (fact == null || !Objects.equals(fact.projectId(), projectId)
-                || !Objects.equals(fact.userId(), actorId)
-                || !fact.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)) {
-            throw exception(PREPARATION_PROJECT_FACT_INVALID);
-        }
+        var qualification = managementAccess.inspect(new ProjectManagementQualificationApi.Query(actor.tenantId(), projectId, actor.actorId()));
+        if (qualification == null) throw exception(FORBIDDEN);
+        managementAccess.lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(qualification, expectedProjectVersion, "ACTIVE", null));
     }
 
     private void requireAssignee(PreparationItemDO item, Actor actor) {

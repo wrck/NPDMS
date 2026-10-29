@@ -37,6 +37,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
@@ -100,6 +101,7 @@ public class DurationChangeApplicationService {
     private final FileArtifactApi fileArtifactApi;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
+    private final ProjectDurationOperatorApi durationOperatorApi;
     private final ProjectParticipantFactApi participantFactApi;
     private final DictDataApi dictDataApi;
     private final ConfigApi configApi;
@@ -108,6 +110,7 @@ public class DurationChangeApplicationService {
     private final TransactionTemplate transactionTemplate;
     private final Environment environment;
     private final cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi projectEndDateApi;
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
 
     public ConstructionPlanChangeRespVO createDraft(
             CreateDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
@@ -164,7 +167,7 @@ public class DurationChangeApplicationService {
             SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor,
             AtomicReference<Map<String, Object>> auditSnapshot) {
         FileArtifactVersionFact inspectedEvidence = inspectEvidenceBeforeLocks(command, actor);
-        ProjectParticipantFact applicant = requireManageAndProject(
+        ProjectDurationOperatorApi.Fact applicant = requireManageAndProject(
                 command.planId(), command.expectedProjectVersion(), actor);
         if (applicant == null || applicant.projectId() == null) {
             throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
@@ -433,7 +436,7 @@ public class DurationChangeApplicationService {
         return plan;
     }
 
-    private ProjectParticipantFact requireManageAndProject(Long planId, Long projectVersion,
+    private ProjectDurationOperatorApi.Fact requireManageAndProject(Long planId, Long projectVersion,
                                                            ConstructionPlanApplicationService.Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), ConstructionPlanApplicationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
@@ -448,9 +451,11 @@ public class DurationChangeApplicationService {
         if (!scope.fullProjectIds().contains(plan.getProjectId())) {
             throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
         }
-        return participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                plan.getProjectId(), actor.actorId(), projectVersion, "ACTIVE", null,
-                Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+        var operator = durationOperatorApi.lockAndRevalidate(new ProjectDurationOperatorApi.RevalidationQuery(
+                new ProjectDurationOperatorApi.Query(actor.tenantId(), plan.getProjectId(), actor.actorId()), projectVersion));
+        executionGuard.lockForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                plan.getProjectId(), "PLN", "CONSTRUCTION_PLAN", null));
+        return operator;
     }
 
     private ProjectParticipantFact requireUniqueServiceManager(

@@ -8,6 +8,10 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionSource
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.*;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
+import cn.iocoder.yudao.module.pms.platform.api.file.FormAttachmentPolicy;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
 import cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionCustomerDocumentService;
 import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +27,7 @@ public class SolutionSubmissionValidator {
     private final SolutionSourceMapper sources;
     private final FileEvidenceApi files;
     private final SolutionCustomerDocumentService customerDocuments;
+    private final FileArtifactApi artifacts;
 
     public void validateAndFreezeSources(SolutionDO solution) {
         if (!"IMPLEMENTATION".equals(solution.getSolutionType())) return;
@@ -37,7 +42,10 @@ public class SolutionSubmissionValidator {
         if (!content(solution.getBackground())) missing.add("项目背景");
         if (!content(solution.getTarget())) missing.add("项目目标");
         var topology = json(solution.getTopology());
-        if (!content(topology.path("asIsUrl").asText())
+        var input = json(solution.getSectionData()).path("requirementInput");
+        boolean needsSourceTopology = !content(topology.path("asIsUrl").asText())
+                || "no".equals(topology.path("toBeChanged").asText());
+        if (needsSourceTopology && !input.hasNonNull("revisionId")
                 || "yes".equals(topology.path("toBeChanged").asText()) && !content(topology.path("toBeUrl").asText())) missing.add("网络拓扑");
         boolean deployed = false;
         for (var row : topology.path("deploy")) {
@@ -68,7 +76,6 @@ public class SolutionSubmissionValidator {
             if (fact == null || !fact.valid()) throw new IllegalArgumentException("配置脚本文件已变化，请重新上传后提交");
         }
 
-        var input = json(solution.getSectionData()).path("requirementInput");
         // 需求分析按需引入；未引用时独立编制，已有引用仍执行完整版本校验。
         if (input.isMissingNode() || input.isNull()) return;
         if (!input.isObject()) throw new IllegalArgumentException("需求分析引用格式无效");
@@ -89,11 +96,25 @@ public class SolutionSubmissionValidator {
                 && (!String.valueOf(effective.getId()).equals(input.path("acknowledgedRevisionId").asText())
                 || !content(input.path("differenceReason").asText())))
             throw new IllegalArgumentException("需求输入已变化，请刷新引用或保留现值并说明差异");
+        List<FileReferenceSetFact> topologyFiles = List.of();
+        if (needsSourceTopology) {
+            var key = new FileReferenceSetKey("SOL", "REQUIREMENT_ANALYSIS_REVISION", revisionId.toString(),
+                    FormAttachmentPolicy.PURPOSE_PREFIX + "NETWORK_TOPOLOGY__ATTACHMENTS");
+            var inspected = artifacts.inspectReferenceSets(new FileReferenceSetCollectionQuery(List.of(key), FileActionCodes.READ));
+            topologyFiles = artifacts.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(
+                    inspected.stream().map(set -> new FileReferenceSetExpectation(set.key(), set.scopeVersion(), set.activeFacts())).toList(),
+                    FileActionCodes.READ));
+            if (topologyFiles.size() != 1 || !key.equals(topologyFiles.getFirst().key())
+                    || topologyFiles.getFirst().activeFacts().isEmpty()
+                    || topologyFiles.getFirst().activeFacts().stream().anyMatch(file -> !"AVAILABLE".equals(file.availabilityStatus())))
+                throw new IllegalArgumentException("所引用需求版本缺少有效拓扑附件，请刷新需求引用或上传方案拓扑");
+        }
         var source = new SolutionSourceDO();
         source.setSolutionId(solution.getId()); source.setSourceType("REQUIREMENT");
         source.setSourceId(revisionId); source.setSourceCode("PRE-04:r" + revision.getRevisionNo());
         source.setSourceSnapshot(JsonUtils.toJsonString(Map.of("revision", revision, "effectiveRevisionId", effective.getId(),
-                "referencedAt", LocalDateTime.now(), "differenceReason", input.path("differenceReason").asText())));
+                "referencedAt", LocalDateTime.now(), "differenceReason", input.path("differenceReason").asText(),
+                "topologyFiles", topologyFiles)));
         // A running review is handled idempotently before this boundary; never replace an existing source snapshot.
         if (sources.selectBySolutionAndSource(solution.getId(), "REQUIREMENT", revisionId) == null) sources.insert(source);
     }

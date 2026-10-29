@@ -182,15 +182,7 @@
         </el-col>
         <el-col :xs="24" :sm="12">
           <el-form-item label="培训工程师" prop="trainerUserId">
-            <PmsEntitySelect
-              v-model="form.trainerUserId"
-              :api="queryTrainerUsers"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
-              placeholder="默认当前登录人"
-              @change="onTrainerChange"
-            />
+            <UserSelect v-model="form.trainerUserId" :scoped-source="trainerSource" :current-label="selectedTrainer?.nickname" placeholder="默认当前登录人" @change="onTrainerChange" />
             <el-alert v-if="trainerUsersError" :title="trainerUsersError" type="warning" :closable="false" />
           </el-form-item>
         </el-col>
@@ -296,6 +288,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import TrainingPrintTemplates from './TrainingPrintTemplates.vue'
 import TrainingPrintPreview from './TrainingPrintPreview.vue'
@@ -303,7 +297,6 @@ import { PRINT_CATEGORY } from './trainingPrintForm'
 import * as TrainingApi from '@/api/pms/engineering/training'
 import type { TrainingVO } from '@/api/pms/engineering/training'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import * as ContactApi from '@/api/pms/customer/contacts'
 import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
@@ -325,13 +318,17 @@ const userStore = useUserStore()
 const loading = ref(false)
 const rows = ref<TrainingVO[]>([])
 const trainerUsersError = ref('')
-const selectedTrainer = ref<{ id: number; nickname: string }>()
-const onTrainerChange = (_id: number | undefined, trainer?: { id: number; nickname: string }) => {
+const selectedTrainer = ref<{ id: number | string; nickname?: string }>()
+const onTrainerChange = (trainer?: { id: number | string; nickname?: string }) => {
   selectedTrainer.value = trainer
 }
+const trainerSource = computed(() => ({
+  key: `training-trainer:${form.projectId || 'none'}:${form.id || 'new'}`,
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => queryTrainerUsers({ nickname: keyword, pageNo, pageSize })
+}))
 const queryTrainerUsers = async (params: PageParam & { nickname?: string }) => {
   try {
-    const users = await UserApi.getSimpleUserList()
+    const users = await systemUserSelection.active()
     const keyword = params.nickname?.trim().toLocaleLowerCase() || ''
     const matches = users.filter(user => user.nickname?.toLocaleLowerCase().includes(keyword))
     const pageSize = params.pageSize ?? 10

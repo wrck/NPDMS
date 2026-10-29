@@ -16,6 +16,7 @@ import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.patch.Du
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
@@ -59,11 +60,13 @@ class DurationChangeApplicationServiceTest {
     @Mock FileArtifactApi fileArtifactApi;
     @Mock PermissionApi permissionApi;
     @Mock ProjectScopeApi projectScopeApi;
+    @Mock ProjectDurationOperatorApi durationOperatorApi;
     @Mock ProjectParticipantFactApi participantFactApi;
     @Mock cn.iocoder.yudao.module.system.api.dict.DictDataApi dictDataApi;
     @Mock cn.iocoder.yudao.module.infra.api.config.ConfigApi configApi;
     @Mock cn.iocoder.yudao.module.bpm.api.task.BpmProcessInstanceApi processInstanceApi;
     @Mock TransactionTemplate transactionTemplate;
+    @Mock cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
     private DurationChangeProperties properties;
     private DurationChangeApplicationService service;
 
@@ -72,8 +75,8 @@ class DurationChangeApplicationServiceTest {
         properties = new DurationChangeProperties();
         service = new DurationChangeApplicationService(planMapper, revisionMapper, changeMapper,
                 commandExecutionApi, operationAuditApi, fileArtifactApi, permissionApi, projectScopeApi,
-                participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
-                transactionTemplate, new MockEnvironment(), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class));
+                durationOperatorApi, participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
+                transactionTemplate, new MockEnvironment(), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class), executionGuard);
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(org.mockito.Mockito.mock(TransactionStatus.class));
@@ -214,8 +217,24 @@ class DurationChangeApplicationServiceTest {
         when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         when(projectScopeApi.resolveCurrent(any())).thenReturn(
                 new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
-        when(participantFactApi.lockAndRevalidate(any())).thenReturn(null);
+        when(durationOperatorApi.lockAndRevalidate(any())).thenReturn(new ProjectDurationOperatorApi.Fact(100L,9L,"ACTIVE",3L,"REGIONAL_SERVICE_MANAGER"));
         when(planMapper.selectForUpdate(any())).thenReturn(plan());
+    }
+
+    @Test void readonlyTemplateExecutionRejectsDurationChangeCreationAndPatchBeforeAnyBusinessLockOrWrite() {
+        when(permissionApi.hasAnyPermissions(9L, ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
+        when(durationOperatorApi.lockAndRevalidate(any())).thenReturn(new ProjectDurationOperatorApi.Fact(100L,9L,"ACTIVE",3L,"REGIONAL_SERVICE_MANAGER"));
+        org.mockito.Mockito.doThrow(new IllegalStateException("CURRENT_PLANNING_EXECUTION_REQUIRED"))
+                .when(executionGuard).lockForWrite(any());
+        assertThrows(IllegalStateException.class, () -> service.createDraft(createCommand(), actor()));
+        var patch = new DurationChangePatch(null, null, null, null, null, "调整", null, null, Set.of("reasonDetail"));
+        assertThrows(IllegalStateException.class, () -> service.patchDraft(patchCommand(patch), actor()));
+        verify(executionGuard, org.mockito.Mockito.times(2)).lockForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                100L, "PLN", "CONSTRUCTION_PLAN", null));
+        verify(planMapper, never()).selectForUpdate(any());
+        org.mockito.Mockito.verifyNoInteractions(revisionMapper, changeMapper, commandExecutionApi, processInstanceApi);
     }
 
     private void stubPatchRows() {

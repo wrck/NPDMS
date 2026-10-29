@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateInitialDurationCommand;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
@@ -50,17 +51,18 @@ class ConstructionPlanApplicationServiceTest {
     @Mock PlatformCommandExecutionApi commandExecutionApi;
     @Mock PermissionApi permissionApi;
     @Mock ProjectScopeApi projectScopeApi;
-    @Mock ProjectParticipantFactApi participantFactApi;
+    @Mock ProjectDurationOperatorApi durationOperatorApi;
     @Mock OperationAuditApi operationAuditApi;
     @Mock TransactionTemplate transactionTemplate;
     @Mock cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi projectEndDateApi;
+    @Mock cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
     private ConstructionPlanApplicationService service;
 
     @BeforeEach
     void setUp() {
         service = new ConstructionPlanApplicationService(planMapper, revisionMapper,
-                commandExecutionApi, permissionApi, projectScopeApi, participantFactApi,
-                operationAuditApi, transactionTemplate, projectEndDateApi);
+                commandExecutionApi, permissionApi, projectScopeApi, durationOperatorApi,
+                operationAuditApi, transactionTemplate, projectEndDateApi, executionGuard);
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(org.mockito.Mockito.mock(TransactionStatus.class));
@@ -85,8 +87,20 @@ class ConstructionPlanApplicationServiceTest {
         verify(planMapper).updateVersionIfMatch(update.capture());
         assertEquals(701L, update.getValue().currentDurationRevisionId());
         assertEquals(701L, update.getValue().planRecalculationSourceRevisionId());
-        verify(participantFactApi).lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                100L, 9L, 3L, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+        verify(durationOperatorApi).lockInitialAndRevalidate(new ProjectDurationOperatorApi.RevalidationQuery(new ProjectDurationOperatorApi.Query(0L,100L,9L),3L));
+    }
+
+    @Test
+    void createsInitialForRegionalServiceManagerWithoutProjectPmFact() {
+        stubAuthorizedCommandExecution();
+        when(durationOperatorApi.lockInitialAndRevalidate(new ProjectDurationOperatorApi.RevalidationQuery(
+                new ProjectDurationOperatorApi.Query(0L,100L,9L),3L))).thenReturn(
+                new ProjectDurationOperatorApi.Fact(100L, 9L, "ACTIVE", 3L, "REGIONAL_SERVICE_MANAGER"));
+        var response = service.createInitial(command("DATE_RANGE",
+                LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5), actor());
+        assertEquals(501L, response.getPlanId());
+        verify(durationOperatorApi).lockInitialAndRevalidate(new ProjectDurationOperatorApi.RevalidationQuery(
+                new ProjectDurationOperatorApi.Query(0L, 100L, 9L), 3L));
     }
 
     @Test
@@ -128,7 +142,7 @@ class ConstructionPlanApplicationServiceTest {
         assertThrows(ServiceException.class, () -> service.createInitial(command("DATE_RANGE",
                 LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5), actor()));
 
-        verify(participantFactApi, never()).lockAndRevalidate(any());
+        verify(durationOperatorApi, never()).lockAndRevalidate(any());
         verify(commandExecutionApi, never()).execute(any(), any(), any(), any(), any());
     }
 
@@ -155,8 +169,7 @@ class ConstructionPlanApplicationServiceTest {
                 .anchorProjectId(100L)
                 .actionCode(ProjectScopeApi.ACTION_MANAGE).build()))
                 .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
-        when(participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                100L, 9L, 3L, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))))
+        when(durationOperatorApi.lockInitialAndRevalidate(new ProjectDurationOperatorApi.RevalidationQuery(new ProjectDurationOperatorApi.Query(0L,100L,9L),3L)))
                 .thenThrow(new ServiceException(403, "Current project participant unavailable"));
         assertThrows(ServiceException.class, () -> service.createInitial(command("DATE_RANGE",
                 LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5), actor()));
@@ -206,11 +219,19 @@ class ConstructionPlanApplicationServiceTest {
                 .anchorProjectId(100L)
                 .actionCode(ProjectScopeApi.ACTION_MANAGE).build()))
                 .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
-        when(participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                100L, 9L, 3L, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))))
-                .thenReturn(new ProjectParticipantFact(100L, 9L,
-                        Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
-                        "ACTIVE", "S2", 3L, 3L));
+        when(durationOperatorApi.lockInitialAndRevalidate(new ProjectDurationOperatorApi.RevalidationQuery(new ProjectDurationOperatorApi.Query(0L,100L,9L),3L)))
+                .thenReturn(new ProjectDurationOperatorApi.Fact(100L,9L,"ACTIVE",3L,"CONFIRMED_PROJECT_PM"));
+    }
+
+    @Test void rejectsFirstDurationWhenItsTemplateExecutionIsReadonlyWithoutPersistingABaseline() {
+        stubScopeAndParticipant();
+        org.mockito.Mockito.doThrow(new IllegalStateException("CURRENT_PLANNING_EXECUTION_REQUIRED"))
+                .when(executionGuard).lockForWrite(any());
+        assertThrows(IllegalStateException.class, () -> service.createInitial(command("DATE_RANGE",
+                LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5), actor()));
+        verify(executionGuard).lockForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                100L, "PLN", "CONSTRUCTION_PLAN", null));
+        org.mockito.Mockito.verifyNoInteractions(planMapper, revisionMapper, commandExecutionApi, projectEndDateApi);
     }
 
     private CreateInitialDurationCommand command(String basis, LocalDate start,

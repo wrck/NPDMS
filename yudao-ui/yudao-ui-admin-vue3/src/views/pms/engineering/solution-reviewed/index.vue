@@ -31,7 +31,7 @@
           >
             <el-option v-for="row in rows" :key="row.id" :value="row.id!" :label="solutionLabel(row)" />
           </el-select>
-          <el-button type="primary" plain @click="openCreate" v-hasPermi="['pms:sol-solution:create']">
+          <el-button v-if="!props.readonly" type="primary" plain @click="openCreate" v-hasPermi="['pms:sol-solution:create']">
             <Icon icon="ep:plus" />新增方案
           </el-button>
           <template v-if="form.id">
@@ -44,7 +44,7 @@
               >审批记录</el-button
             >
             <el-button
-              v-if="form.status === 0"
+              v-if="!props.readonly && form.status === 0"
               link
               type="danger"
               @click="remove(form)"
@@ -102,7 +102,7 @@
         </el-form-item>
         <el-form-item>
           <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-          <el-button type="primary" @click="openForm()" v-hasPermi="['pms:sol-solution:create']"
+          <el-button v-if="!props.readonly" type="primary" @click="openForm()" v-hasPermi="['pms:sol-solution:create']"
             ><Icon icon="ep:plus" />新增方案</el-button
           >
         </el-form-item>
@@ -122,7 +122,7 @@
         <el-table-column label="操作" width="300" fixed="right">
           <template #default="{ row }">
             <el-button
-              v-if="row.status === 0"
+              v-if="!props.readonly && row.status === 0"
               link
               type="primary"
               @click="tieredReview.open(row)"
@@ -138,9 +138,9 @@
               >审批记录</el-button
             >
             <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:sol-solution:query']"
-              >{{ editableDraft(row) ? '编辑' : '查看' }}</el-button
+              >{{ !props.readonly && editableDraft(row) ? '编辑' : '查看' }}</el-button
             >
-            <el-button v-if="row.status === 0" link type="danger" @click="remove(row)" v-hasPermi="['pms:sol-solution:delete']"
+            <el-button v-if="!props.readonly && row.status === 0" link type="danger" @click="remove(row)" v-hasPermi="['pms:sol-solution:delete']"
               >删除</el-button
             >
           </template>
@@ -229,7 +229,7 @@
     </template>
   </Dialog>
 
-  <SolutionTieredReviewDialog ref="tieredReview" @changed="load" />
+  <SolutionTieredReviewDialog ref="tieredReview" :readonly="props.readonly" @changed="load" @revised="openRevision" />
 </template>
 
 <script setup lang="ts">
@@ -254,7 +254,7 @@ import { saveSolutionScripts, type PendingScript, type ScriptReference } from '.
 
 defineOptions({ name: 'PmsSolutionReviewed' })
 const tieredReview = ref()
-const props = defineProps<{ projectId?: number }>()
+const props = defineProps<{ projectId?: number; readonly?: boolean }>()
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
@@ -293,7 +293,7 @@ let detailSequence = 0
 const formRef = ref()
 const form = ref<SolutionVO>({ projectId: props.projectId ?? 0, name: '', reviewLevel: 0, status: 0 })
 const editableDraft = (row: SolutionVO) => row.status === 0 && checkPermi(['pms:sol-solution:update'])
-const readOnly = computed(() => detailLoading.value || !!detailError.value || (form.value.id ? !editableDraft(form.value) : !checkPermi(['pms:sol-solution:create'])))
+const readOnly = computed(() => props.readonly || detailLoading.value || !!detailError.value || (form.value.id ? !editableDraft(form.value) : !checkPermi(['pms:sol-solution:create'])))
 const rules = {
   projectId: [
     { required: true, message: '请选择项目' },
@@ -340,7 +340,7 @@ const pickSolution = (id: number | string) => {
   if (row) openForm(row)
 }
 
-const load = async () => {
+const loadPage = async (revision?: { projectId: number; sourceSolutionId: string | number; solutionId: string | number }) => {
   loading.value = true
   try {
     const data = await SolutionApi.getSolutionPage(query)
@@ -353,7 +353,10 @@ const load = async () => {
       catch { policies[projectId] = { configured: true, reviewLevel: null, reason: '审核判定加载失败，请刷新后重试。' } }
     }))
     // 工作台没有列表态：加载后保持选中并刷新当前方案状态；无方案时进入新建草稿
-    if (props.projectId) await syncSelection()
+    if (revision) {
+      if (String(form.value.projectId) === String(revision.projectId)
+        && String(form.value.id) === String(revision.sourceSolutionId)) await openForm({ id: revision.solutionId })
+    } else if (props.projectId) await syncSelection()
   } catch {
     // 拦截器已弹后端错误提示；保留既有列表/选中态，吞掉 rejection 防止逃逸到业务视图错误边界
   } finally {
@@ -361,6 +364,7 @@ const load = async () => {
     bootstrapPending.value = false
   }
 }
+const load = () => loadPage()
 const syncSelection = async () => {
   if (!props.projectId) return
   const currentId = form.value.id
@@ -371,6 +375,13 @@ const syncSelection = async () => {
     await openForm()
     openCreate()
   }
+}
+const openRevision = async (revision: { projectId: number; sourceSolutionId: string | number; solutionId: string | number }) => {
+  if (String(form.value.projectId) !== String(revision.projectId)
+    || String(form.value.id) !== String(revision.sourceSolutionId)) return
+  await loadPage(revision)
+  if (!detailError.value && String(form.value.id) === String(revision.solutionId)
+    && !rows.value.some(row => String(row.id) === String(revision.solutionId))) rows.value.unshift(form.value)
 }
 
 // 新增方案弹窗：客户方案在创建时一次性选定并随记录冻结；确定后进入自动命名的本地草稿，
@@ -383,6 +394,7 @@ let savedCustomerDraft: string | undefined
 const createVisible = ref(false)
 const createChoice = reactive({ hasCustomerPlan: 'no', customerPlanUrl: '' })
 const openCreate = () => {
+  if (props.readonly) return
   createChoice.hasCustomerPlan = 'no'
   createChoice.customerPlanUrl = ''
   createCustomerFiles.value=[]
@@ -397,6 +409,7 @@ const parseEnvelope = (raw: unknown): Record<string, unknown> => {
   }
 }
 const confirmCreate = () => {
+  if (props.readonly) return
   createVisible.value = false
   openForm()
   pendingCustomerFiles.value=createCustomerFiles.value.slice()
@@ -406,7 +419,7 @@ const confirmCreate = () => {
     customerPlanUrl: createChoice.customerPlanUrl
   })
 }
-const openForm = async (row?: SolutionVO) => {
+const openForm = async (row?: Pick<SolutionVO, 'id'>) => {
   pendingCustomerFiles.value=[]
   pendingScripts.value=[]
   customerAttempts.splice(0)
@@ -449,7 +462,7 @@ const openForm = async (row?: SolutionVO) => {
   try {
     const detail: SolutionVO | null = await SolutionApi.getSolution(row.id)
     if (sequence !== detailSequence) return
-    if (!detail || detail.id !== row.id) {
+    if (!detail || String(detail.id) !== String(row.id)) {
       detailError.value = '方案不存在或已不可见，请刷新后重试'
       return
     }
@@ -531,8 +544,9 @@ const submitReview = async () => {
   }
 }
 const remove = async (row: SolutionVO) => {
-  if (row.status !== 0) return
+  if (props.readonly || row.status !== 0) return
   await message.delConfirm()
+  if (props.readonly) return
   try {
     await SolutionApi.deleteSolution(row.id!)
     message.success('删除成功')

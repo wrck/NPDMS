@@ -30,6 +30,8 @@ public class ProjectInstallationAddressController {
                 .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (visible == null || visible.fullProjectIds() == null || !visible.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
         var fact = addresses.lockAndInspect(new InstallationAddressCompletionApi.Query(tenant, projectId));
-        return CommonResult.success(Map.of("totalDevices", fact.totalDevices(), "addressedDevices", fact.addressedDevices(), "completed", fact.completed()));
+        return CommonResult.success(Map.of("totalDevices", fact.totalDevices(), "addressedDevices", fact.addressedDevices(),
+                "requiredDevices", fact.requiredDevices(), "exemptedDevices", fact.exemptedDevices(),
+                "exemptDeviceIds", fact.exemptDeviceIds(), "completed", fact.completed()));
     }
 }

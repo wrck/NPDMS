@@ -75,6 +75,8 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
     private cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi projectScopeApi;
     @Resource
     private cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi participants;
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
 
     private java.util.Set<Long> visibleProjects(String action) {
         return projectScopeApi.resolveAllCurrent(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(
@@ -83,6 +85,9 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
     private void requireAccess(Long projectId, boolean write) {
         if (!visibleProjects(write ? "PROJECT_EDIT" : "PROJECT_VIEW").contains(projectId))
             throw exception(cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN);
+        if (write) executionGuard.lockForWrite(
+                new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                        projectId, "PLN", "STAGE_PLAN", null));
     }
 
     @Override

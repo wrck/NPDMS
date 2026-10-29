@@ -234,12 +234,10 @@
   <el-dialog v-model="submitVisible" title="提交审核" width="480px">
     <el-form label-width="90px">
       <el-form-item label="审批人" required>
-        <PmsEntitySelect
+        <UserSelect
           v-model="submitForm.approverUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择服务经理审批人"
           class="!w-300px"
         />
@@ -258,6 +256,9 @@
 </template>
 
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 defineOptions({ name: 'PmsImpStagePlan' })
 
 // 项目详情页嵌入模式：传入 project-id 固定项目并隐藏项目选择；独立路由页行为不变
@@ -265,7 +266,15 @@ const props = defineProps<{ projectId?: number }>()
 
 import * as StagePlanApi from '@/api/pms/engineering/stage-plan'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/stage-plan/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 const message = useMessage()
 

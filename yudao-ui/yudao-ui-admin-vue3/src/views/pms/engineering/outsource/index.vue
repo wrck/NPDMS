@@ -148,7 +148,8 @@
   </ContentWrap>
 
   <!-- 新建/编辑对话框 -->
-  <OutsourceRequestFormDialog ref="formRef" v-model="formVisible" :form="form"
+  <OutsourceRequestFormDialog
+ref="formRef" v-model="formVisible" :form="form"
     :source-survey-id="sourceSurveyId" :saving="saving" @save="save" />
 
   <!-- 明细对话框 -->
@@ -167,12 +168,10 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item label="审批人" prop="approverUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="approveForm.approverUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择审批人"
         />
       </el-form-item>
@@ -188,6 +187,9 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import OutsourceRequestFormDialog from './OutsourceRequestFormDialog.vue'
 import OutsourceRequestDetailDialog from './OutsourceRequestDetailDialog.vue'
 import { onMounted, reactive, ref } from 'vue'
@@ -197,13 +199,21 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as OutsourceApi from '@/api/pms/engineering/outsource'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import type { OutsourceRequestVO } from '@/api/pms/engineering/outsource'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import * as SiteSurveyApi from '@/api/pms/engineering/site-survey/entity'
 import { positiveShortcutId, surveyPath, surveyExecutionQuery } from '@/views/pms/delivery-business/site-survey/siteSurveyOutsource'
 import { resolveSurveyExecution } from '@/views/pms/delivery-business/site-survey/siteSurveyExecutionShortcut'
 import { useUserStore } from '@/store/modules/user'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/outsource/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngOutsource' })
 const message = useMessage()

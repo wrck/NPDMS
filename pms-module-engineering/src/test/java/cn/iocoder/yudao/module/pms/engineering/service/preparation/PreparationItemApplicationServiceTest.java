@@ -46,6 +46,10 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class PreparationItemApplicationServiceTest {
 
+    @org.junit.jupiter.api.BeforeEach void managementQualification() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "managementAccess", EngineeringManagementFixtures.confirmed(participantFactApi));
+    }
+
     @Mock private PreparationMapper preparationMapper;
     @Mock private PreparationItemMapper itemMapper;
     @Mock private DynamicFormInstanceMapper formMapper;
@@ -75,7 +79,7 @@ class PreparationItemApplicationServiceTest {
                 .thenReturn(true);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
-        when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
+        when(participantFactApi.lockAndRevalidateAuthorization(any())).thenReturn(manager());
         when(organizationFactApi.lockAndRevalidate(any()))
                 .thenReturn(new ProjectOrganizationFact(10L, 3L, 20L, 30L, "D30"));
         when(organizationScopeApi.hasScope(200L, 20L, 30L)).thenReturn(true);
@@ -99,7 +103,7 @@ class PreparationItemApplicationServiceTest {
                 .thenReturn(true);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
-        when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
+        when(participantFactApi.lockAndRevalidateAuthorization(any())).thenReturn(manager());
         when(organizationFactApi.lockAndRevalidate(any()))
                 .thenReturn(new ProjectOrganizationFact(10L, 3L, 20L, 30L, "D30"));
         doThrow(new IllegalArgumentException("disabled")).when(adminUserApi).validateUser(200L);
@@ -148,7 +152,7 @@ class PreparationItemApplicationServiceTest {
         when(permissionApi.hasAnyPermissions(100L, PreparationInitializationService.PERMISSION_MANAGE))
                 .thenReturn(true);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
-        when(participantFactApi.inspect(any())).thenReturn(manager());
+        when(participantFactApi.inspectAuthorization(any())).thenReturn(manager());
         when(organizationFactApi.inspect(any()))
                 .thenReturn(new ProjectOrganizationFact(10L, 3L, 20L, 30L, "D30"));
         when(organizationScopeApi.pageActiveUsers(any())).thenReturn(new PageResult<>(List.of(), 0L));

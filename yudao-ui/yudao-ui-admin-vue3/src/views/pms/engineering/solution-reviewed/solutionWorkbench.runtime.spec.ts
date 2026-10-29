@@ -71,9 +71,15 @@ vi.mock('./SolutionDocMetaForm.vue', () => ({
 }))
 vi.mock('./SolutionTieredReviewDialog.vue', () => ({
   default: defineComponent({
-    setup(_, { expose }) {
+    emits: ['changed', 'revised'],
+    setup(_, { expose, emit }) {
       expose({ open: tieredOpen })
-      return () => h('div', 'TIERED_REVIEW_STUB')
+      return () => h('div', [
+        'TIERED_REVIEW_STUB',
+        h('button', { 'data-testid': 'revision-created', onClick: () => emit('revised', {
+          projectId: 123, sourceSolutionId: 11, solutionId: '2110018733130579973'
+        }) }, '已复制方案')
+      ])
     }
   })
 }))
@@ -146,6 +152,64 @@ beforeEach(() => {
 })
 
 describe('实施方案页面结构', () => {
+  it('复制后按返回ID直接打开新草稿，即使分页仍只包含原驳回方案', async () => {
+    const rejected = draftRow({ status: 4, version: 4 })
+    const created = draftRow({ id: '2110018733130579973', status: 0, version: 0, versionLabel: 'V2' })
+    getSolutionPage.mockResolvedValue({ list: [rejected], total: 12 })
+    getSolution.mockImplementation(async id => structuredClone(String(id) === String(created.id) ? created : rejected))
+    const mounted = mount(Workbench, { projectId: 123 }, {
+      PmsEntitySelect: passthrough, DictTag: passthrough, ElSelect: passthrough,
+      ElOption: passthrough, ElDescriptions: passthrough, ElDescriptionsItem: passthrough, Dialog: dialogShell
+    })
+    try {
+      const state = (mounted.vm as any).$.setupState
+      await vi.waitFor(() => expect(state.form.id).toBe(11))
+      expect(renderedText(mounted.root)).toContain('CHAPTER readOnly=true')
+      ;(findByTestId(mounted.root, 'revision-created')!.props!.onClick as Function)()
+      await vi.waitFor(() => expect(state.form.id).toBe(created.id))
+      expect(getSolution).toHaveBeenCalledWith('2110018733130579973')
+      expect(state.form.status).toBe(0)
+      expect(renderedText(mounted.root)).toContain('CHAPTER readOnly=false')
+      expect(state.rows.some(row => row.id === created.id)).toBe(true)
+      expect(rejected.status).toBe(4)
+      expect(createSolution).not.toHaveBeenCalled()
+      expect(submitSolution).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('显式只读入口禁止维护草稿和打开提交，不影响正常草稿维护', async () => {
+    getSolutionPage.mockResolvedValue({ list: [draftRow()], total: 1 })
+    getSolution.mockResolvedValue(draftRow())
+    const root = await mountWorkbench({ projectId: 123, readonly: true })
+    await vi.waitFor(() => expect(renderedText(root)).toContain('CHAPTER readOnly=true'))
+    expect(buttonLabels(root)).not.toContain('新增方案')
+    expect(buttonLabels(root)).not.toContain('删除')
+    ;(findByTestId(root, 'stub-submit')!.props!.onClick as Function)()
+    expect(tieredOpen).not.toHaveBeenCalled()
+    expect(createSolution).not.toHaveBeenCalled()
+  })
+  it('复制回执刷新等待期间改选其他方案，不抢回新草稿', async () => {
+    const rejected = draftRow({ status: 4 })
+    let resolvePage!: (page: { list: any[]; total: number }) => void
+    getSolutionPage.mockResolvedValueOnce({ list: [rejected], total: 1 })
+      .mockImplementationOnce(() => new Promise(resolve => { resolvePage = resolve }))
+    getSolution.mockResolvedValue(rejected)
+    const mounted = mount(Workbench, { projectId: 123 }, {
+      PmsEntitySelect: passthrough, DictTag: passthrough, ElSelect: passthrough,
+      ElOption: passthrough, ElDescriptions: passthrough, ElDescriptionsItem: passthrough, Dialog: dialogShell
+    })
+    try {
+      const state = (mounted.vm as any).$.setupState
+      await vi.waitFor(() => expect(state.form.id).toBe(11))
+      ;(findByTestId(mounted.root, 'revision-created')!.props!.onClick as Function)()
+      await vi.waitFor(() => expect(getSolutionPage).toHaveBeenCalledTimes(2))
+      state.form = draftRow({ id: 12, status: 0 })
+      resolvePage({ list: [rejected], total: 2 })
+      await vi.waitFor(() => expect(state.loading).toBe(false))
+      expect(state.form.id).toBe(12)
+      expect(getSolution).not.toHaveBeenCalledWith('2110018733130579973')
+    } finally { mounted.app.unmount() }
+  })
   it('操作栏刷新回读当前方案正文及并发版本', async () => {
     getSolutionPage.mockResolvedValue({ list: [draftRow()], total: 1 })
     getSolution.mockResolvedValue(draftRow())

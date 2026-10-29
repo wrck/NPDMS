@@ -24,6 +24,7 @@ class SolutionSubmissionValidatorTest {
     @Mock RequirementAnalysisMapper requirements;
     @Mock SolutionSourceMapper sources;
     @Mock FileEvidenceApi files;
+    @Mock cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi artifacts;
     @Mock cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionCustomerDocumentService customerDocuments;
     @InjectMocks SolutionSubmissionValidator validator;
     SolutionDO solution;
@@ -45,13 +46,32 @@ class SolutionSubmissionValidatorTest {
         when(files.lockAndRevalidate(any())).thenReturn(new FileEvidenceApi.Fact(true,null,1,1,1));
     }
     @AfterEach void cleanup() { TenantContextHolder.clear(); }
+    @Test void sourceTopologyUsesLockedExactRevisionAndFreezesAllFiles() {
+        solution.setTopology("{\"toBeChanged\":\"no\",\"deploy\":[{\"deviceName\":\"路由器\",\"location\":\"机柜\"}]}");
+        var key = new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey(
+                "SOL", "REQUIREMENT_ANALYSIS_REVISION", "7", "FORM_FIELD_ATTACHMENT/NETWORK_TOPOLOGY__ATTACHMENTS");
+        var fact = new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact(
+                51L, 2, "topology-1", "DYNAMIC_FORM_ATTACHMENT", "topology.vsdx", 20L,
+                "application/vnd.ms-visio.drawing", "digest", "AVAILABLE", "ACTIVE", null, 7L);
+        var set = new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetFact(key, 7L, java.util.List.of(fact));
+        when(artifacts.inspectReferenceSets(any())).thenReturn(java.util.List.of(set));
+        when(artifacts.lockAndRevalidateReferenceSets(any())).thenReturn(java.util.List.of(set));
+        validator.validateAndFreezeSources(solution);
+        verify(artifacts).inspectReferenceSets(argThat(query -> query.collectionKeys().equals(java.util.List.of(key))));
+        var saved = ArgumentCaptor.forClass(SolutionSourceDO.class);
+        verify(sources).insert(saved.capture());
+        assertTrue(saved.getValue().getSourceSnapshot().contains("topology.vsdx"));
+        when(artifacts.lockAndRevalidateReferenceSets(any())).thenReturn(java.util.List.of());
+        assertThrows(IllegalArgumentException.class, () -> validator.validateAndFreezeSources(solution));
+        verify(sources, times(1)).insert(any(SolutionSourceDO.class));
+    }
     private FileEvidenceApi.Document document(String owner, boolean available) {
         return new FileEvidenceApi.Document(4L,"PLT","DELIVERY_MATERIAL",owner,"IMPLEMENTATION_PLAN","solution-script-full-test",5L,1,"digest","script.txt",available);
     }
     @Test void rejectsBlankRichTextAndEmptyJsonBeforeAnySourceOrFileWrite() {
         solution.setBackground("<p>&nbsp;<br></p>"); solution.setTarget(" "); solution.setTopology("{}"); solution.setScript("{}");
         var error = assertThrows(IllegalArgumentException.class, () -> validator.validateAndFreezeSources(solution));
-        for (String field : new String[]{"项目背景","项目目标","网络拓扑","部署方案"}) assertTrue(error.getMessage().contains(field));
+        for (String field : new String[]{"项目背景","项目目标","部署方案"}) assertTrue(error.getMessage().contains(field));
         assertFalse(error.getMessage().contains("配置脚本文件"));
         verifyNoInteractions(files,requirements,sources);
     }

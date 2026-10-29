@@ -12,9 +12,11 @@ import static org.mockito.Mockito.*;
 class ProjectInstallationAddressCompletionServiceTest {
     final DeviceQueryApi devices = mock(DeviceQueryApi.class);
     final InstallationMapper installations = mock(InstallationMapper.class);
-    final ProjectInstallationAddressCompletionService service = new ProjectInstallationAddressCompletionService(devices, installations);
+    final InstallationAddressRequirementPolicy requirements = mock(InstallationAddressRequirementPolicy.class);
+    final ProjectInstallationAddressCompletionService service = new ProjectInstallationAddressCompletionService(devices, installations, requirements);
     final InstallationAddressCompletionApi.Query query = new InstallationAddressCompletionApi.Query(1L, 9L);
-    @BeforeEach void setup() { TenantContextHolder.setTenantId(1L); when(installations.selectProjectAddressRecordsForUpdate(any())).thenReturn(List.of()); }
+    @BeforeEach void setup() { TenantContextHolder.setTenantId(1L); when(installations.selectProjectAddressRecordsForUpdate(any())).thenReturn(List.of());
+        when(requirements.inspect(any())).thenReturn(new InstallationAddressRequirementPolicy.Decision(java.util.Set.of(), "")); }
     @AfterEach void clear() { TenantContextHolder.clear(); }
     @Test void emptyInventoryAndMissingOrBlankAddressesCannotComplete() {
         when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of());
@@ -33,5 +35,22 @@ class ProjectInstallationAddressCompletionServiceTest {
         when(installations.selectProjectAddressRecordsForUpdate(any())).thenReturn(List.of(record));
         assertFalse(service.lockAndInspect(query).completed());
         assertThrows(IllegalArgumentException.class, () -> service.lockAndInspect(new InstallationAddressCompletionApi.Query(2L, 9L)));
+    }
+    @Test void onlyRequiredDevicesNeedAddressesAndExemptionsNeverWriteInstallationHistory() {
+        when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(
+                new ProjectDeviceInstallationFact(10L, "A", "地址"), new ProjectDeviceInstallationFact(11L, "B", null)));
+        when(requirements.inspect(any())).thenReturn(new InstallationAddressRequirementPolicy.Decision(java.util.Set.of(11L), "rule-v1"));
+        var fact = service.lockAndInspect(query);
+        assertTrue(fact.completed()); assertEquals(2, fact.totalDevices());
+        assertEquals(1, fact.requiredDevices()); assertEquals(1, fact.addressedDevices()); assertEquals(1, fact.exemptedDevices());
+        when(requirements.inspect(any())).thenReturn(new InstallationAddressRequirementPolicy.Decision(java.util.Set.of(10L, 11L), "rule-v2"));
+        fact = service.lockAndInspect(query);
+        assertTrue(fact.completed()); assertEquals(0, fact.addressedDevices()); assertEquals(0, fact.requiredDevices());
+        verify(installations, times(2)).selectProjectAddressRecordsForUpdate(any()); verifyNoMoreInteractions(installations);
+    }
+    @Test void invalidConfigurationDoesNotReturnACompletionFact() {
+        when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(new ProjectDeviceInstallationFact(10L, "A", null)));
+        when(requirements.inspect(any())).thenThrow(new IllegalArgumentException("invalid filter"));
+        assertThrows(IllegalArgumentException.class, () -> service.lockAndInspect(query));
     }
 }

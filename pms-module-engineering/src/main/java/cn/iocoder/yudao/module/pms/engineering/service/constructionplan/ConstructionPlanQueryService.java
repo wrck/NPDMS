@@ -20,8 +20,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionLockQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionListQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionPageQuery;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
@@ -56,7 +55,38 @@ public class ConstructionPlanQueryService {
     private final ConstructionPlanChangeMapper changeMapper;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
-    private final ProjectParticipantFactApi participantFactApi;
+    private final ProjectDurationOperatorApi durationOperatorApi;
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
+
+    public record EntryReadiness(boolean durationWritable, boolean scheduleWritable) { }
+
+    /** Only permission-scoped booleans; frozen contracts, identities and node details remain private. */
+    public EntryReadiness entryReadiness(Long projectId, Actor actor) {
+        requireActor(actor);
+        if (!permissionApi.hasAnyPermissions(actor.actorId(), PERMISSION_QUERY, PERMISSION_MANAGE,
+                "pms:imp-stage-plan:query", "pms:imp-stage-plan:create", "pms:imp-stage-plan:update", "pms:imp-stage-plan:submit"))
+            throw exception(FORBIDDEN);
+        long checkedProjectId = requirePositive(projectId);
+        assertProjectScope(actor, checkedProjectId, ProjectScopeApi.ACTION_VIEW);
+        boolean duration = false;
+        if (permissionApi.hasAnyPermissions(actor.actorId(), PERMISSION_MANAGE)) {
+            try {
+                assertProjectScope(actor, checkedProjectId, ProjectScopeApi.ACTION_MANAGE);
+                durationOperatorApi.inspect(new ProjectDurationOperatorApi.Query(actor.tenantId(), checkedProjectId, actor.actorId()));
+                duration = executionGuard.inspectForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                        checkedProjectId, "PLN", "CONSTRUCTION_PLAN", null));
+            } catch (ServiceException forbidden) { duration = false; }
+        }
+        boolean schedule = false;
+        if (permissionApi.hasAnyPermissions(actor.actorId(), "pms:imp-stage-plan:create", "pms:imp-stage-plan:update", "pms:imp-stage-plan:submit")) {
+            try {
+                assertProjectScope(actor, checkedProjectId, ProjectScopeApi.ACTION_EDIT);
+                schedule = executionGuard.inspectForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                        checkedProjectId, "PLN", "STAGE_PLAN", null));
+            } catch (ServiceException forbidden) { schedule = false; }
+        }
+        return new EntryReadiness(duration, schedule);
+    }
 
     public ConstructionPlanRespVO getById(Long planId, Actor actor) {
         requireQueryPermission(actor);
@@ -209,12 +239,13 @@ public class ConstructionPlanQueryService {
         }
         try {
             assertProjectScope(actor, plan.getProjectId(), ProjectScopeApi.ACTION_MANAGE);
-            var fact = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                    plan.getProjectId(), actor.actorId(),
-                    Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), LocalDateTime.now()));
+            var fact = durationOperatorApi.inspect(new ProjectDurationOperatorApi.Query(
+                    actor.tenantId(), plan.getProjectId(), actor.actorId()));
             if (!"ACTIVE".equals(fact.lifecycleStatus())) {
                 return List.of();
             }
+            if (!executionGuard.inspectForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                    plan.getProjectId(), "PLN", "CONSTRUCTION_PLAN", null))) return List.of();
             return List.of("CREATE_CHANGE");
         } catch (ServiceException ex) {
             return List.of();

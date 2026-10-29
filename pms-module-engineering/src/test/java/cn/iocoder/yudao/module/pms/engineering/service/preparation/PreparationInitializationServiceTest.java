@@ -75,6 +75,7 @@ class PreparationInitializationServiceTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "managementAccess", EngineeringManagementFixtures.confirmed(participantFactApi));
         TenantContextHolder.setTenantId(1L);
         when(transactionTemplate.execute(any())).thenAnswer(invocation ->
                 ((TransactionCallback<Object>) invocation.getArgument(0))
@@ -154,7 +155,7 @@ class PreparationInitializationServiceTest {
                 PreparationInitializationApi.TRIGGER_AUTHORIZED_RECOVERY));
 
         assertEquals(created, recovered);
-        verify(participantFactApi).lockAndRevalidate(any());
+        verify(participantFactApi).lockAndRevalidateAuthorization(any());
         verify(commandExecutionApi).execute(any(), any(), any(), any(), any());
         verify(operationAuditApi).record(eq(1L), eq(8L), eq("PRE02-OP-8"),
                 eq("PREPARATION_INITIALIZATION_RECOVERY"), eq("Preparation"), eq("1000"),
@@ -190,7 +191,7 @@ class PreparationInitializationServiceTest {
         assertEquals(first, replay);
         verify(preparationMapper).insert(any());
         verify(commandExecutionApi, times(2)).execute(any(), any(), any(), any(), any());
-        verify(participantFactApi, times(2)).lockAndRevalidate(any());
+        verify(participantFactApi, times(2)).lockAndRevalidateAuthorization(any());
         verifyNoInteractions(operationAuditApi);
     }
 

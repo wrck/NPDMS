@@ -98,7 +98,7 @@
             </el-table-column>
           </el-table>
           <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.inventory.push(emptyInventoryRow())">添加行</el-button>
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !scopeRows.length" @click="tables.inventory = scopeProductRows()">从产品信息清单引用</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !equipmentProducts.length" @click="tables.inventory = equipmentInventoryRows()">从产品信息清单引用</el-button>
         </div>
       </el-form-item>
 
@@ -124,6 +124,7 @@
     <section class="chapter">
       <div class="chapter-title">2. 现网现状分析</div>
       <el-form-item label="2.1 现网拓扑图" label-width="140px">
+        <RequirementTopologyFiles v-if="!topology.asIsUrl && requirementSource" :source="requirementSource" />
         <UploadFile v-model="topology.asIsUrl" :disabled="readOnly" :file-type="topologyFileTypes" />
       </el-form-item>
       <el-form-item label="2.2 现网资源确认" label-width="140px">
@@ -141,7 +142,8 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'no'" label-width="140px">
-        <div class="ref-body standalone">直接调用需求分析中的网络拓扑：{{ stripHtml(reqTopology) || '需求分析暂无网络拓扑' }}</div>
+        <div v-if="stripHtml(reqTopology) || !requirementTopologyFiles(requirementSource).length" class="ref-body standalone">直接调用需求分析中的网络拓扑：{{ stripHtml(reqTopology) || '需求分析暂无网络拓扑' }}</div>
+        <RequirementTopologyFiles :source="requirementSource" />
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'yes'" label="上传最新拓扑" label-width="140px">
         <UploadFile v-model="topology.toBeUrl" :disabled="readOnly" :file-type="topologyFileTypes" />
@@ -167,7 +169,10 @@
               <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.interface.splice($index, 1)">删除</el-button></template>
             </el-table-column>
           </el-table>
-          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.interface.push({ localDevice: '', localPort: '', peerPort: '', portType: '', cableModel: '', remark: '' })">添加行</el-button>
+          <div class="planning-actions">
+            <el-button size="small" :disabled="readOnly" @click="tables.interface.push({ localDevice: '', localPort: '', peerPort: '', portType: '', cableModel: '', remark: '' })">添加行</el-button>
+            <SolutionPlanningImport section="interface" :read-only="readOnly" @imported="tables.interface.push(...$event)" />
+          </div>
         </div>
       </el-form-item>
 
@@ -185,7 +190,10 @@
               <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.ip.splice($index, 1)">删除</el-button></template>
             </el-table-column>
           </el-table>
-          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.ip.push({ deviceName: '', port: '', ip: '', mask: '', vrrp: '', gateway: '', remark: '' })">添加行</el-button>
+          <div class="planning-actions">
+            <el-button size="small" :disabled="readOnly" @click="tables.ip.push({ deviceName: '', port: '', ip: '', mask: '', vrrp: '', gateway: '', remark: '' })">添加行</el-button>
+            <SolutionPlanningImport section="ip" :read-only="readOnly" @imported="tables.ip.push(...$event)" />
+          </div>
         </div>
       </el-form-item>
 
@@ -354,18 +362,23 @@ import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import { ElMessage } from 'element-plus'
 import { uploadDeliveryFile } from '@/components/DeliveryArtifact/uploadDeliveryFile'
 import { prepareGeneratedSolutionWord } from '@/views/pms/engineering/solution/prepareGeneratedSolutionWord'
+import { prepareDocumentImages } from './documentImages'
+import { getFileNameFromUrl, isImage } from '@/utils/file'
+import companyLogo from '@/views/pms/acceptance/completion-certificate/dptech-print-v2.png'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { loadProjectEquipmentList, type ProjectEquipmentProduct } from '@/api/pms/commerce/projectEquipment'
 import ResourceConfirmationEditor from '@/views/pms/engineering/solution/ResourceConfirmationEditor.vue'
 import SolutionEquipmentTable from '@/views/pms/engineering/solution/SolutionEquipmentTable.vue'
+import SolutionPlanningImport from './SolutionPlanningImport.vue'
 import { equipmentRow, readSolutionEquipment } from '@/views/pms/engineering/solution/solutionEquipment'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
+import RequirementTopologyFiles from './RequirementTopologyFiles.vue'
+import { requirementTopologyFiles, requirementTopologyImages } from './requirementTopology'
 import { downloadSolutionScript, type PendingScript, type ScriptSection, type ScriptReference } from './saveSolutionScripts'
 import { getMemberPage, logicalMemberRole, type MemberRecord } from '@/api/pms/project/unified-members'
 import * as ContactApi from '@/api/pms/customer/contacts'
 import * as StagePlanApi from '@/api/pms/engineering/stage-plan'
-import { getDeliveryScopePage } from '@/api/pms/commerce'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 
@@ -405,20 +418,32 @@ const requirementError = ref('')
 const reqValues = ref<Record<string, unknown>>({})
 const members = ref<MemberRecord[]>([])
 const contacts = ref<ContactApi.ContactVO[]>([])
-const scopeRows = ref<{ productCode: string; deviceTypeCode: string; allocatedQuantity: number }[]>([])
 const stagePlanItems = ref<StagePlanApi.StagePlanItemVO[]>([])
 const equipmentProducts = ref<ProjectEquipmentProduct[]>([])
+const equipmentSerials = ref<Record<string, string[]>>({})
 const equipmentError = ref('')
 let equipmentRequest = 0
 const loadEquipment = async () => {
   const requestId = ++equipmentRequest
   const projectId = form.value.projectId
   equipmentProducts.value = []
+  equipmentSerials.value = {}
   equipmentError.value = ''
   if (!projectId || props.readOnly) return
   try {
     const equipment = await loadProjectEquipmentList(projectId, () => requestId === equipmentRequest)
-    if (requestId === equipmentRequest) equipmentProducts.value = equipment?.list || []
+    if (requestId === equipmentRequest) {
+      equipmentProducts.value = equipment?.list || []
+      const serials = new Map<string, Set<string>>()
+      for (const device of equipment?.devices || []) {
+        const code = device.productCode?.trim() || device.productModel?.trim() || '—'
+        if (!device.sn?.trim()) continue
+        const values = serials.get(code) || new Set<string>()
+        values.add(device.sn.trim())
+        serials.set(code, values)
+      }
+      equipmentSerials.value = Object.fromEntries([...serials].map(([code, values]) => [code, [...values]]))
+    }
   } catch {
     if (requestId === equipmentRequest) equipmentError.value = '项目设备清单加载失败，请重新加载'
   }
@@ -469,15 +494,15 @@ const teamRefRows = computed<Row[]>(() => [
   ...contactRows.value
 ])
 const memberRows = (): Row[] => teamRefRows.value.map((row) => ({ ...row }))
-const scopeProductRows = (): Row[] =>
-  scopeRows.value.map((s) => ({
+const equipmentInventoryRows = (): Row[] =>
+  equipmentProducts.value.map((s) => ({
     productCode: s.productCode || '',
-    model: s.deviceTypeCode || '',
-    desc: '',
-    projectQty: String(s.allocatedQuantity ?? ''),
-    shippedQty: '',
-    unshippedQty: '',
-    sn: ''
+    model: s.productModel || '',
+    desc: s.productName || '',
+    projectQty: String(s.projectQty ?? ''),
+    shippedQty: String(s.deliveredQty ?? ''),
+    unshippedQty: String(s.openQty ?? ''),
+    sn: (equipmentSerials.value[s.productCode] || []).join('、')
   }))
 const stagePlanRows = (): Row[] =>
   stagePlanItems.value.map((i) => ({
@@ -678,6 +703,7 @@ onBeforeUnmount(() => {
 // 需求分析使用当前实体业务字段，独立加载并提供失败重试。
 let requirementRequest = 0
 const latestRequirement = ref<RequirementAnalysisApi.View | null>(null)
+const requirementSource = ref<RequirementAnalysisApi.View | null>(null)
 const differenceReason = ref('')
 const requirementInput = computed(() => (parseObject(form.value.sectionData).requirementInput || {}) as Record<string, any>)
 const inputChanged = computed(() => !!latestRequirement.value && !!requirementInput.value.revisionId &&
@@ -694,6 +720,7 @@ const refreshRequirementInput = () => {
     form.value.target = String(source.values.projectObjective || '')
   writeRequirementInput({ revisionId: source.revision.ref.revisionId, revisionNo: source.revision.revisionNo })
   reqValues.value = source.values
+  requirementSource.value = source
 }
 const keepRequirementInput = () => {
   if (!latestRequirement.value || props.readOnly || !differenceReason.value.trim()) return
@@ -704,6 +731,7 @@ const loadRequirement = async () => {
   const requestId = ++requirementRequest
   const projectId = form.value.projectId
   reqValues.value = {}
+  requirementSource.value = null
   latestRequirement.value = null
   requirementError.value = ''
   requirementLoading.value = false
@@ -717,6 +745,7 @@ const loadRequirement = async () => {
       const source = await RequirementAnalysisApi.read(requirementInput.value.revisionId)
       if (requestId !== requirementRequest) return
       reqValues.value = source.values
+      requirementSource.value = source
     } else if (!props.readOnly && overview.currentEffective) {
       refreshRequirementInput()
     }
@@ -747,21 +776,13 @@ const loadReferences = async () => {
   const projectId = form.value.projectId
   if (props.readOnly || !projectId || referencesProjectId === projectId) return
   referencesProjectId = projectId
-  const [memberList, scopePage, planPage, contactPage] = await Promise.all([
+  const [memberList, planPage, contactPage] = await Promise.all([
     loadCurrentMembers(projectId).catch(() => []),
-    getDeliveryScopePage({ projectId, pageNo: 1, pageSize: 200, includeHistory: false }).catch(() => ({ list: [] })),
     StagePlanApi.getStagePlanBatchPage({ projectId, pageNo: 1, pageSize: 10 }).catch(() => ({ list: [] })),
     ContactApi.getProjectPage(projectId, { pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] }))
   ])
   members.value = memberList
   contacts.value = ((contactPage as any).list || []) as ContactApi.ContactVO[]
-  scopeRows.value = ((scopePage as any).list || []).flatMap((scope: any) =>
-    (scope.details || []).map((d: any) => ({
-      productCode: d.productCode || '',
-      deviceTypeCode: d.deviceTypeCode || '',
-      allocatedQuantity: d.allocatedQuantity ?? scope.allocatedQuantity ?? 0
-    }))
-  )
   stagePlanItems.value = (planPage as any).list?.[0]?.items || []
 }
 watch(() => [props.readOnly, form.value.projectId], () => { loadReferences() }, { immediate: true })
@@ -772,7 +793,7 @@ const generateFromSources = () => {
   if (reqBackground.value && isEmptyEditorContent(form.value.background)) form.value.background = reqBackground.value
   if (reqObjective.value && isEmptyEditorContent(form.value.target)) form.value.target = reqObjective.value
   if (teamRefRows.value.length && !tables.team.length) tables.team = memberRows()
-  if (scopeRows.value.length && !tables.inventory.length) tables.inventory = scopeProductRows()
+  if (equipmentProducts.value.length && !tables.inventory.length) tables.inventory = equipmentInventoryRows()
   if (equipmentProducts.value.length && !tables.deploy.length) tables.deploy = equipmentProducts.value.map(product => equipmentRow(product))
   if (equipmentProducts.value.length && !tables.software.length) tables.software = equipmentProducts.value.map(product => equipmentRow(product))
   if (reqBusinessRows.value.length && !tables.business.length) tables.business = reqBusinessRows.value.map((r) => ({ ...r }))
@@ -815,9 +836,9 @@ const downloadScript = async (section: ScriptSection) => {
   catch (failure: any) { scriptUploadError.value = failure?.message || '脚本文件下载失败' }
 }
 
-// ---------- 下载方案（九章内容导出为 HTML 文件） ----------
+// ---------- 下载方案（章节及图片导出为 Word） ----------
 const escapeHtml = (v: unknown) =>
-  String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 const htmlField = (title: string, value: string) =>
   String(value ?? '').trim() ? `<h3>${escapeHtml(title)}</h3>${value}` : ''
 const htmlTable = (rows: Row[], cols: [string, string][]) => {
@@ -828,7 +849,21 @@ const htmlTable = (rows: Row[], cols: [string, string][]) => {
     .join('')
   return `<table border="1" cellspacing="0" cellpadding="4"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`
 }
-const buildSolutionHtml = () => {
+const topologyUrls = (value: string) => value.split(',').map(url => url.trim()).filter(Boolean)
+const topologyHtml = (value: string, images: Record<string, string>) => {
+  const urls = topologyUrls(value)
+  if (!urls.length) return '<p>（未上传）</p>'
+  return urls.map(url => {
+    const name = escapeHtml(getFileNameFromUrl(url))
+    if (!/^(https?:\/\/|\/(?!\/))/i.test(url)) return `<p>${name}</p>`
+    return isImage(url)
+      ? `<p><img src="${escapeHtml(images[url] || url)}" alt="${name}" width="520" style="max-width:100%;height:auto" /></p><p>${name}</p>`
+      : `<p>拓扑原文件：<a href="${escapeHtml(url)}">${name}</a></p>`
+  }).join('')
+}
+const buildSolutionHtml = (images: Record<string, string> = {}, requirementImages: string[] = []) => {
+  const sourceTopologyHtml = requirementImages.map((src, index) =>
+    `<p><img src="${escapeHtml(src)}" alt="需求拓扑第${index + 1}页" width="520" style="max-width:100%;height:auto" /></p>`).join('')
   const chapter1 = [
     htmlField('1.1 项目背景', form.value.background ?? ''),
     htmlField('1.2 项目目标', form.value.target ?? ''),
@@ -837,11 +872,11 @@ const buildSolutionHtml = () => {
     props.readOnly && tables.plan.length ? htmlField('1.5 项目进度计划', htmlTable(tables.plan, [['stage', '项目阶段'], ['start', '计划开始'], ['end', '计划结束'], ['suggest', '工期建议'], ['remark', '备注']])) : ''
   ].join('')
   const chapter2 = [
-    htmlField('2.1 现网拓扑图', topology.asIsUrl ? `<p>已上传：${escapeHtml(topology.asIsUrl)}</p>` : '<p>（未上传）</p>'),
+    htmlField('2.1 现网拓扑图', topology.asIsUrl ? topologyHtml(topology.asIsUrl, images) : sourceTopologyHtml || '<p>（未上传）</p>'),
     htmlField('2.2 现网资源确认', topology.resourceConfirmation)
   ].join('')
   const chapter3 = [
-    htmlField('3.1 建设后拓扑图', topology.toBeChanged === 'yes' ? `<p>与需求分析有变化${topology.toBeUrl ? `，已上传：${escapeHtml(topology.toBeUrl)}` : '（未上传新拓扑）'}</p>` : '<p>与需求分析无变化，调用需求分析网络拓扑</p>'),
+    htmlField('3.1 建设后拓扑图', topology.toBeChanged === 'yes' ? `<p>与需求分析有变化</p>${topologyHtml(topology.toBeUrl, images)}` : `<p>与需求分析无变化，调用需求分析网络拓扑</p>${sourceTopologyHtml}`),
     htmlField('3.2 部署位置规划', htmlTable(tables.deploy, [['productCode', '产品编码'], ['deviceName', '设备名称'], ['quantity', '数量（订单数量）'], ['location', '安装位置（机房/机柜/U数）'], ['remark', '备注']])),
     htmlField('3.3 设备接口互联规划', htmlTable(tables.interface, [['localDevice', '本端设备'], ['localPort', '本端接口'], ['peerPort', '对端接口'], ['portType', '接口类型'], ['cableModel', '线缆/光模块型号'], ['remark', '备注']])),
     htmlField('3.4 设备IP地址与vlan规划', htmlTable(tables.ip, [['deviceName', '设备名称'], ['port', '接口'], ['ip', 'IP地址'], ['mask', '掩码'], ['vrrp', 'VRRP地址'], ['gateway', '网关'], ['remark', '备注']])),
@@ -874,6 +909,7 @@ const buildSolutionHtml = () => {
     '<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><title>',
     escapeHtml(form.value.name || '实施方案'),
     '</title><style>body{font-family:SimSun,sans-serif;margin:24px;line-height:1.7}h1{font-size:20px}h2{font-size:17px;border-bottom:1px solid #ddd;padding-bottom:4px}h3{font-size:15px}table{border-collapse:collapse;font-size:13px;margin:6px 0}th{background:#f0f0f0}pre{white-space:pre-wrap;font-family:Consolas,monospace;background:#f7f7f7;padding:8px}</style></head><body>',
+    `<p><img src="${escapeHtml(images[companyLogo] || companyLogo)}" alt="DPtech" width="150" height="60" /></p>`,
     `<h1>实施方案：${escapeHtml(form.value.name || '')}</h1>`,
     form.value.versionLabel ? `<p>版本：${escapeHtml(form.value.versionLabel)}</p>` : '',
     `<h2>1. 项目概述</h2>${chapter1}`,
@@ -893,19 +929,41 @@ const solutionDownloadBusy = ref(false)
 const solutionDownloadError = ref('')
 let solutionDownloadAttempt: import('@/components/DeliveryArtifact/uploadDeliveryFile').DeliveryUploadAttempt | undefined
 let solutionDownloadContent = ''
+let solutionExportActive = true
+onBeforeUnmount(() => { solutionExportActive = false })
+const exportIdentity = () => JSON.stringify({ form: form.value, topology, tables, scripts, meta,
+  requirementSource: requirementSource.value })
 const downloadSolution = async () => {
   if (solutionDownloadBusy.value) return
   solutionDownloadBusy.value = true
   solutionDownloadError.value = ''
   try {
-    const html = buildSolutionHtml()
+    const identity = exportIdentity()
+    const solutionId = form.value.id!
     const fileName = `${(form.value.name || '实施方案').replace(/[\\/:*?"<>|]/g, '_')}${form.value.versionLabel ? `-${form.value.versionLabel}` : ''}.docx`
+    const requireSameSource = () => {
+      if (!solutionExportActive || exportIdentity() !== identity)
+        throw new Error('生成期间方案或引用内容已变化，请重新导出当前方案。')
+    }
+    const imageUrls = [companyLogo, ...topologyUrls(topology.asIsUrl).filter(isImage),
+      ...(topology.toBeChanged === 'yes' ? topologyUrls(topology.toBeUrl).filter(isImage) : [])]
+    const images = await prepareDocumentImages(imageUrls)
+    requireSameSource()
+    const needsRequirementTopology = !!requirementInput.value.revisionId &&
+      (!topology.asIsUrl || topology.toBeChanged === 'no')
+    if (needsRequirementTopology && !requirementSource.value)
+      throw new Error('请先加载所引用的需求分析拓扑附件')
+    const requirementImages = needsRequirementTopology ? await requirementTopologyImages(requirementSource.value!) : []
+    requireSameSource()
+    const html = buildSolutionHtml(images, requirementImages)
     const contentKey = html
-    if (solutionDownloadContent !== contentKey || solutionDownloadAttempt?.owner.entityId !== form.value.id)
+    if (solutionDownloadContent !== contentKey || solutionDownloadAttempt?.owner.entityId !== solutionId)
       solutionDownloadAttempt = undefined
     solutionDownloadContent = contentKey
-    solutionDownloadAttempt = await prepareGeneratedSolutionWord(form.value.id!, html, fileName, solutionDownloadAttempt)
+    solutionDownloadAttempt = await prepareGeneratedSolutionWord(solutionId, html, fileName, solutionDownloadAttempt)
+    requireSameSource()
     await uploadDeliveryFile(solutionDownloadAttempt)
+    requireSameSource()
     const anchor = document.createElement('a')
     anchor.href = URL.createObjectURL(solutionDownloadAttempt.file)
     anchor.download = fileName
@@ -936,6 +994,17 @@ const appendTemplate = (field: 'quality' | 'risk' | 'oAndM' | 'archive', templat
 </script>
 
 <style lang="scss" scoped>
+.planning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+}
+.planning-actions :deep(.planning-import) {
+  flex: 1;
+  margin-bottom: 0;
+}
 /* 文档层级：标题、章节、子章节和正文纵向排列，沿用平台主题。 */
 .solution-document-heading {
   margin: 4px 0 28px;

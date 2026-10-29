@@ -145,12 +145,10 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="填报人" prop="fillerUserId">
-            <PmsEntitySelect
+            <UserSelect
               v-model="form.fillerUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
+              :scoped-source="managementUsers"
+              :page-size="50"
               placeholder="请选择填报人"
             />
           </el-form-item>
@@ -162,7 +160,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="填报数据" prop="formData">
-            <el-input v-model="form.formData" type="textarea" :rows="8" placeholder='请输入填报数据JSON，如 {"deviceModel":"NGFW-5000","deployMode":"transparent"}' />
+            <el-input v-model="form.formData" type="textarea" :rows="8" placeholder="请输入填报数据JSON，如 {&quot;deviceModel&quot;:&quot;NGFW-5000&quot;,&quot;deployMode&quot;:&quot;transparent&quot;}" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -222,12 +220,10 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item label="审核人" prop="approverUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="approveForm.approverUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择审核人"
         />
       </el-form-item>
@@ -243,6 +239,9 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import { onMounted, reactive, ref } from 'vue'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -250,11 +249,19 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as FormInstanceApi from '@/api/pms/engineering/form-instance'
 import * as FormTemplateApi from '@/api/pms/engineering/form-template'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import type { FormInstanceVO } from '@/api/pms/engineering/form-instance'
 import type { FormTemplateVO } from '@/api/pms/engineering/form-template'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import UserTag from '@/components/UserTag/index.vue'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/form-instance/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngFormInstance' })
 const message = useMessage()

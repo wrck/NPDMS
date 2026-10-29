@@ -93,12 +93,10 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="申请人" prop="applicantUserId">
-            <PmsEntitySelect
+            <UserSelect
               v-model="form.applicantUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
+              :scoped-source="managementUsers"
+              :page-size="50"
               placeholder="请选择申请人"
             />
           </el-form-item>
@@ -145,12 +143,23 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import { computed, ref } from 'vue'
 import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import type { MaterialRequisitionVO } from '@/api/pms/engineering/material-req'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/material-req/MaterialRequisitionFormDialog.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 const props = defineProps<{ modelValue: boolean; form: MaterialRequisitionVO; sourceSurveyId?: number | string; saving: boolean; error?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; save: [] }>()
 const visible = computed({ get: () => props.modelValue, set: value => { if (!props.saving) emit('update:modelValue', value) } })

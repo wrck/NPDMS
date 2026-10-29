@@ -21,6 +21,7 @@ public class InstallationBusinessResultSource implements BusinessResultChangeSou
     public static final Type TYPE = new Type("IMP", "INSTALLATION", "INSTALLATION_COMPLETED");
     private final InstallationMapper installations;
     private final DeviceQueryApi devices;
+    private final InstallationAddressRequirementPolicy requirements;
 
     @Override public Descriptor descriptor() { return new Descriptor(TYPE, true, true, false); }
     @Override public Query changeQuery(BusinessOperationResultEvent event) {
@@ -39,7 +40,15 @@ public class InstallationBusinessResultSource implements BusinessResultChangeSou
     @Override @Transactional(propagation = Propagation.MANDATORY)
     public Observation lockAndInspect(Query query) { return read(query); }
 
-    private Observation read(Query query) {
+    private record LockedProjectData(
+            List<cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact> inventory,
+            List<InstallationDO> records) { }
+    private record ReadContext(Query query, LockedProjectData locked) { }
+
+    private Observation read(Query query) { return read(new ReadContext(query, null)); }
+
+    private Observation read(ReadContext context) {
+        var query = context.query();
         scope(query.tenantId(), query.projectId(), query.type());
         Long id = BusinessResultSource.nativeId(query.objectId() == null ? query.resultId() : query.objectId());
         if (id == null || query.resultId() != null && !Objects.equals(id, BusinessResultSource.nativeId(query.resultId())))
@@ -48,8 +57,13 @@ public class InstallationBusinessResultSource implements BusinessResultChangeSou
         if (row == null) return Observation.absent(Status.NOT_FORMED, "INSTALLATION_RESULT_NOT_FORMED");
         if (!Objects.equals(row.getTenantId(), query.tenantId()) || !Objects.equals(row.getProjectId(), query.projectId()))
             throw new IllegalArgumentException("RESULT_OWNER_SCOPE_MISMATCH");
-        var inventory = devices.lockProjectInstallationDevices(new ProjectDeviceInstallationQuery(query.tenantId(), query.projectId()));
-        var records = installations.selectProjectAddressRecordsForUpdate(new ProjectInstallationAddressQuery(query.tenantId(), query.projectId()));
+        var inventory = context.locked() == null
+                ? devices.lockProjectInstallationDevices(new ProjectDeviceInstallationQuery(query.tenantId(), query.projectId()))
+                : context.locked().inventory();
+        var decision = requirements.inspect(new ProjectDeviceInstallationQuery(query.tenantId(), query.projectId()));
+        var records = context.locked() == null
+                ? installations.selectProjectAddressRecordsForUpdate(new ProjectInstallationAddressQuery(query.tenantId(), query.projectId()))
+                : context.locked().records();
         Map<Long, InstallationDO> current = new HashMap<>();
         for (var record : records) if (record.getEquipmentId() != null && Integer.valueOf(2).equals(record.getStatus())) current.putIfAbsent(record.getEquipmentId(), record);
         if (inventory.isEmpty()) return Observation.absent(Status.NOT_FORMED, "PROJECT_DEVICE_INSTALLATION_ADDRESS_MISSING");
@@ -58,10 +72,13 @@ public class InstallationBusinessResultSource implements BusinessResultChangeSou
             var record = current.get(device.deviceId());
             if (record == null || !Integer.valueOf(2).equals(record.getStatus()) || record.getEffectiveFrom() == null
                     || record.getEffectiveTo() != null || record.getInstallLocation() == null || record.getInstallLocation().isBlank()
-                    || record.getVersion() == null)
+                    || record.getVersion() == null) {
+                if (decision.exemptDeviceIds().contains(device.deviceId())) continue;
                 return Observation.absent(Status.NOT_FORMED, "PROJECT_DEVICE_INSTALLATION_ADDRESS_MISSING");
+            }
             completed.add(record);
         }
+        if (completed.isEmpty()) return Observation.absent(Status.NOT_FORMED, "INSTALLATION_RESULT_NOT_FORMED");
         completed.sort(Comparator.comparing(InstallationDO::getId));
         var latest = completed.getLast();
         if (!Integer.valueOf(2).equals(row.getStatus()) || row.getEffectiveFrom() == null)
@@ -69,6 +86,7 @@ public class InstallationBusinessResultSource implements BusinessResultChangeSou
         String version = cn.hutool.crypto.digest.DigestUtil.sha256Hex(completed.stream()
                 .map(record -> record.getEquipmentId() + ":" + record.getId() + ":" + record.getVersion())
                 .collect(java.util.stream.Collectors.joining("|")));
+        if (!decision.version().isEmpty()) version = cn.hutool.crypto.digest.DigestUtil.sha256Hex(version + ":" + decision.version());
         return Observation.available(new Result(query.tenantId(), query.projectId(), TYPE, id.toString(), id.toString(),
                 null, version, Objects.equals(latest.getId(), id) ? Validity.CURRENT : Validity.NOT_CURRENT, row.getEffectiveFrom()));
     }
@@ -78,14 +96,16 @@ public class InstallationBusinessResultSource implements BusinessResultChangeSou
         if (query.historical()) throw new IllegalArgumentException("RESULT_HISTORY_UNSUPPORTED");
         var objects = BusinessResultInventorySource.nativeObjects(query);
         var after = BusinessResultSource.nativeId(query.after());
-        var deviceIds = devices.lockProjectInstallationDevices(new ProjectDeviceInstallationQuery(query.tenantId(), query.projectId()))
-                .stream().map(device -> device.deviceId()).collect(java.util.stream.Collectors.toSet());
+        var inventory = devices.lockProjectInstallationDevices(new ProjectDeviceInstallationQuery(query.tenantId(), query.projectId()));
+        var deviceIds = inventory.stream().map(device -> device.deviceId()).collect(java.util.stream.Collectors.toSet());
         var records = installations.selectProjectAddressRecordsForUpdate(new ProjectInstallationAddressQuery(query.tenantId(), query.projectId()));
         var latest = records.stream().filter(row -> deviceIds.contains(row.getEquipmentId()) && Integer.valueOf(2).equals(row.getStatus()) && row.getEffectiveFrom() != null)
                 .max(Comparator.comparing(InstallationDO::getId)).orElse(null);
         if (latest == null || after != null && latest.getId() <= after || objects != null && !objects.contains(latest.getId()))
             return new InventoryPage(query.after(), true, List.of());
-        return new InventoryPage(latest.getId().toString(), true, List.of(read(new Query(query.tenantId(), query.projectId(), TYPE, latest.getId().toString(), null))));
+        return new InventoryPage(latest.getId().toString(), true, List.of(read(new ReadContext(
+                new Query(query.tenantId(), query.projectId(), TYPE, latest.getId().toString(), null),
+                new LockedProjectData(inventory, records)))));
     }
     private void scope(Long tenant, Long project, Type type) {
         if (!TYPE.equals(type) || !Objects.equals(tenant, TenantContextHolder.getRequiredTenantId()) || project == null || project <= 0)

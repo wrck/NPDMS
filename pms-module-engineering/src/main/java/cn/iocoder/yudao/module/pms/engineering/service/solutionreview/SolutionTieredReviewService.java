@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.solutionreview;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
@@ -17,6 +18,7 @@ import cn.iocoder.yudao.module.pms.project.api.participant.*;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi;
 import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
@@ -35,13 +37,14 @@ public class SolutionTieredReviewService {
     private final SolutionReviewMapper reviews;
     private final SolutionReviewBpmApi bpm;
     private final ProjectScopeApi scope;
-    private final ProjectParticipantFactApi participants;
+    private final ProjectManagementQualificationApi managementQualifications;
     private final PermissionApi permissions;
     private final EngineeringRuleReevaluationEvents events;
     private final PlatformDeliveryMaterialApi deliveryMaterials;
     private final SolutionService original;
     private final SolutionReviewPolicyService policies;
     private final SolutionSubmissionValidator submissionValidator;
+    private final ProjectTaskPrerequisiteApi prerequisites;
 
     public record Start(@jakarta.validation.constraints.NotNull Long projectId,
                         @jakarta.validation.constraints.NotNull Long solutionId,
@@ -83,6 +86,7 @@ public class SolutionTieredReviewService {
         Long expectedVersion = command.expectedVersion() == null ? null : command.expectedVersion().longValue();
         if (!Objects.equals(solution.getVersion(), expectedVersion) || !Set.of(0, 1, 2).contains(solution.getStatus()))
             throw new IllegalArgumentException("只能提交当前未审批通过的方案版本");
+        prerequisites.requireSatisfied(new ProjectTaskPrerequisiteApi.Query(command.projectId(), "SOL", "IMPLEMENTATION_SOLUTION"));
         submissionValidator.validateAndFreezeSources(solution);
         Integer previousLevel = solution.getReviewLevel();
         // 唯一提交入口：冻结本次审核判定（普通或重大），流程内网关按该级别分支，界面与提交动作不再区分级别
@@ -131,6 +135,11 @@ public class SolutionTieredReviewService {
     public SolutionReviewPolicyService.Policy policy(Long projectId) {
         authorize(projectId, false);
         return policies.preview(projectId);
+    }
+
+    public ProjectTaskPrerequisiteApi.Readiness submissionReadiness(Long projectId) {
+        authorize(projectId, false);
+        return prerequisites.inspect(new ProjectTaskPrerequisiteApi.Query(projectId, "SOL", "IMPLEMENTATION_SOLUTION"));
     }
 
     @EventListener @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
@@ -203,10 +212,10 @@ public class SolutionTieredReviewService {
                 .actionCode(write ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW).build());
         if (visible == null || !visible.fullProjectIds().contains(project)) throw exception(FORBIDDEN);
         if (write) {
-            var fact = participants.inspect(new ProjectParticipantFactQuery(project, actor, Set.of(ProjectMemberRoles.PROJECT_MANAGER), LocalDateTime.now()));
-            if (fact == null || !fact.effectiveRoleCodes().contains(ProjectMemberRoles.PROJECT_MANAGER)) throw exception(FORBIDDEN);
-            participants.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(project, actor, fact.projectVersion(), "ACTIVE", null,
-                    Set.of(ProjectMemberRoles.PROJECT_MANAGER)));
+            var observed = managementQualifications.inspect(new ProjectManagementQualificationApi.Query(tenant, project, actor));
+            if (observed == null) throw exception(FORBIDDEN);
+            managementQualifications.lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(
+                    observed, observed.projectVersion(), "ACTIVE", null));
         }
         return actor;
     }

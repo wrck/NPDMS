@@ -8,14 +8,14 @@ export interface ScriptReference {
   section: ScriptSection; name: string; referenceId: number; artifactId: number
   versionNo: number; referenceKey: string; sha256: string
 }
-export const downloadSolutionScript = async (input: { solutionId: number; reference: ScriptReference }) => {
+export const downloadSolutionScript = async (input: { solutionId: string | number; reference: ScriptReference }) => {
   const ticket = await createAccessTicket(input.reference.artifactId, input.reference.versionNo, 'DOWNLOAD', {
     ownerContext: 'PLT', objectType: 'DELIVERY_MATERIAL', objectId: `SOL:solution:${input.solutionId}`,
     purposeCode: 'IMPLEMENTATION_PLAN', referenceKey: input.reference.referenceKey
   })
   window.open(ticket.shortLivedUrl, '_blank', 'noopener')
 }
-export const saveSolutionScripts = async (input: { solutionId: number; pending: PendingScript[] }): Promise<ScriptReference[]> => {
+export const saveSolutionScripts = async (input: { solutionId: string | number; pending: PendingScript[] }): Promise<ScriptReference[]> => {
   if (!input.solutionId) throw new Error('请先保存真实方案草稿')
   const type = (await getDeliveryTypes(true)).find(item => item.typeCode === 'IMPLEMENTATION_PLAN')
   if (!type) throw new Error('实施方案文件类型不可用')

@@ -15,6 +15,10 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class SolutionReviewController {
     private final SolutionTieredReviewService service;
     private final SolutionReviewBpmApi bpm;
+    @GetMapping("/submission-readiness") @PreAuthorize("@ss.hasPermission('pms:sol-solution:query')")
+    public CommonResult<cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi.Readiness> submissionReadiness(@RequestParam Long projectId) {
+        return success(service.submissionReadiness(projectId));
+    }
     @GetMapping("/policy") @PreAuthorize("@ss.hasPermission('pms:sol-solution:query')")
     public CommonResult<cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewPolicyService.Policy> policy(@RequestParam Long projectId) {
         return success(service.policy(projectId));

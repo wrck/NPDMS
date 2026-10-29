@@ -5,7 +5,11 @@ import * as DeviceApi from '@/api/pms/asset/device'
 import * as InstallationApi from '@/api/pms/engineering/installation'
 import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-vi.mock('@/components/PmsLocationSelector/index.vue', () => ({ default: defineComponent({ setup: () => () => h('location-selector') }) }))
+const locationValidation = vi.hoisted(() => ({ error: '' }))
+vi.mock('@/components/PmsLocationSelector/index.vue', () => ({ default: defineComponent({ setup(_, { expose }) {
+  expose({ getValidationError: () => locationValidation.error })
+  return () => h('location-selector')
+} }) }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
 vi.mock('@/api/pms/asset/device', () => ({ getDevicePage: vi.fn() }))
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
@@ -30,9 +34,23 @@ const render = () => {
 const completed = { id: 8, projectId: 1, code: 'INS-COMPLETE', status: 2, version: 3, installLocation: '历史站点/机房A', installTime: 1788055200000, photoUrl: 'historical-photo' }
 beforeEach(() => {
   vi.clearAllMocks()
+  locationValidation.error = ''
   vi.mocked(InstallationApi.getProjectInstallationAddressCompletion).mockResolvedValue({ totalDevices: 0, addressedDevices: 0, completed: false })
   vi.mocked(InstallationApi.getInstallationPage).mockResolvedValue({ list: [], total: 0 })
   vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [], total: 0 })
+})
+
+it('does not save a new installation while the project location reference is invalid', async () => {
+  const m = render()
+  try {
+    await flush()
+    m.state.openDevices([{ deviceId: 11, sn: 'SN11' }])
+    await flush()
+    locationValidation.error = '原站点不在当前项目可选范围，请重新选择。'
+    await m.state.save()
+    expect(InstallationApi.createInstallationBatch).not.toHaveBeenCalled()
+    expect(m.state.formVisible).toBe(true)
+  } finally { m.app.unmount() }
 })
 
 
@@ -51,6 +69,23 @@ it('checks all project device pages independent of filtering', async () => {
     vi.mocked(InstallationApi.getProjectInstallationAddressCompletion).mockResolvedValue({ totalDevices: 101, addressedDevices: 101, completed: true })
     await m.state.load()
     expect(m.state.completed).toBe(true)
+  } finally { m.app.unmount() }
+})
+it('uses server exemptions for counts and labels while retaining optional address maintenance', async () => {
+  vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', syncStatus: 'FRESH' }, { deviceId: 12, sn: 'SN12', syncStatus: 'FRESH' }], total: 2 })
+  vi.mocked(InstallationApi.getProjectInstallationAddressCompletion).mockResolvedValue({ totalDevices: 2, addressedDevices: 1, requiredDevices: 1, exemptedDevices: 1, exemptDeviceIds: ['12'], completed: true })
+  const m = render()
+  try {
+    await flush()
+    expect(m.state.completed).toBe(true)
+    expect(m.state.completionText).toContain('1/1 台，免填 1 台')
+    expect(m.state.addressExempt({ deviceId: 12 })).toBe(true)
+    expect(m.state.addressExempt({ deviceId: 11 })).toBe(false)
+    m.state.sn = 'SN11'
+    expect(m.state.completionText).toContain('1/1 台，免填 1 台')
+    m.state.openDevices([{ deviceId: 12, sn: 'SN12' }])
+    expect(m.state.readOnly).toBe(false)
+    expect(m.state.targetDevices).toHaveLength(1)
   } finally { m.app.unmount() }
 })
 it('submits one batch request and preserves the whole selection on failure', async () => {

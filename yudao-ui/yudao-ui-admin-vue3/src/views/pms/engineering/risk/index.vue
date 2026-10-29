@@ -195,12 +195,10 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="处理人" prop="handlerUserId">
-            <PmsEntitySelect
+            <UserSelect
               v-model="form.handlerUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
+              :scoped-source="managementUsers"
+              :page-size="50"
               placeholder="请选择处理人"
             />
           </el-form-item>
@@ -269,12 +267,10 @@
     <el-form :model="handleForm" label-width="100px">
       <el-form-item label="风险编号">{{ handleForm.code }}</el-form-item>
       <el-form-item label="处理人" prop="handlerUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="handleForm.handlerUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择处理人"
         />
       </el-form-item>
@@ -291,15 +287,26 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as RiskApi from '@/api/pms/engineering/risk'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import type { RiskVO } from '@/api/pms/engineering/risk'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import UserTag from '@/components/UserTag/index.vue'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/risk/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngRisk' })
 const message = useMessage()

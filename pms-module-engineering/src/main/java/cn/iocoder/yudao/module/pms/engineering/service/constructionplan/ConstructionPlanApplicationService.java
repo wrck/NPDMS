@@ -12,10 +12,9 @@ import cn.iocoder.yudao.module.pms.engineering.domain.constructionplan.DurationR
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateInitialDurationCommand;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi;
 import cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested;
@@ -28,7 +27,6 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -43,17 +41,17 @@ public class ConstructionPlanApplicationService {
 
     public static final String PERMISSION_MANAGE = "pms:construction-plan:duration-manage";
     private static final String SCOPE_INITIAL_CREATE = "POST:/api/v1/pms/construction-plans";
-    private static final String ACTIVE = "ACTIVE";
 
     private final ConstructionPlanMapper planMapper;
     private final ConstructionPlanRevisionMapper revisionMapper;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
-    private final ProjectParticipantFactApi participantFactApi;
+    private final ProjectDurationOperatorApi durationOperatorApi;
     private final OperationAuditApi operationAuditApi;
     private final TransactionTemplate transactionTemplate;
     private final ProjectEndDateApi projectEndDateApi;
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
 
     public ConstructionPlanRespVO createInitial(CreateInitialDurationCommand command, Actor actor) {
         try {
@@ -71,9 +69,11 @@ public class ConstructionPlanApplicationService {
             throw exception(FORBIDDEN);
         }
         assertProjectScope(actor, command.projectId(), ProjectScopeApi.ACTION_MANAGE);
-        participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                command.projectId(), actor.actorId(), command.expectedProjectVersion(), ACTIVE,
-                null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+        durationOperatorApi.lockInitialAndRevalidate(new ProjectDurationOperatorApi.RevalidationQuery(
+                new ProjectDurationOperatorApi.Query(actor.tenantId(), command.projectId(), actor.actorId()),
+                command.expectedProjectVersion()));
+        executionGuard.lockForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                command.projectId(), "PLN", "CONSTRUCTION_PLAN", null));
 
         DurationRules.ResolvedDuration duration;
         try {

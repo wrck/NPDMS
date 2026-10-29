@@ -21,9 +21,11 @@ class SolutionLocalLifecycleTest {
     private final PlatformDeliveryMaterialApi deliveryMaterialApi = mock(PlatformDeliveryMaterialApi.class);
     private final EngineeringRecordCodeGenerator recordCodeGenerator = mock(EngineeringRecordCodeGenerator.class);
     private final SolutionServiceImpl service = new SolutionServiceImpl();
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi prerequisites = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi.class);
     private final cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper tiered = mock(cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper.class);
     private SolutionDO row;
     @BeforeEach void setUp() {
+        ReflectionTestUtils.setField(service, "prerequisites", prerequisites);
         ReflectionTestUtils.setField(service, "reviewPolicies", mock(cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewPolicyService.class));
         ReflectionTestUtils.setField(service, "tieredReviewMapper", tiered);
         ReflectionTestUtils.setField(service, "completionEvents", mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents.class));
@@ -66,6 +68,18 @@ class SolutionLocalLifecycleTest {
         assertThrows(IllegalArgumentException.class, () -> service.submitSolution(1L));
         assertEquals(0, row.getStatus());
         verify(mapper, never()).updateById(any(SolutionDO.class));
+    }
+
+    @Test void legacySubmitAndStartReviewCannotBypassTaskPrerequisites() {
+        row.setSolutionType("IMPLEMENTATION");
+        doThrow(new IllegalArgumentException("前置任务未完成")).when(prerequisites).requireSatisfied(any());
+        assertThrows(IllegalArgumentException.class, () -> service.submitSolution(1L));
+        assertEquals(0, row.getStatus());
+        row.setStatus(1);
+        assertThrows(IllegalArgumentException.class, () -> service.startReview(1L));
+        assertEquals(1, row.getStatus());
+        verify(mapper, never()).updateById(any(SolutionDO.class));
+        verifyNoInteractions(tiered, deliveryMaterialApi);
     }
 
     @Test void majorReviewCannotBeSimulatedAsApproved() {

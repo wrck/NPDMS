@@ -162,12 +162,10 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="编制人" prop="creatorUserId">
-            <PmsEntitySelect
+            <UserSelect
               v-model="form.creatorUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
+              :scoped-source="managementUsers"
+              :page-size="50"
               placeholder="请选择编制人"
             />
           </el-form-item>
@@ -271,12 +269,10 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item label="审核人" prop="approverUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="approveForm.approverUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择审核人"
         />
       </el-form-item>
@@ -292,6 +288,9 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import { getGeneratedBriefingFileTicket } from '@/api/pms/engineering/briefing'
 const downloadBriefingFile = async (url: string) => {
@@ -306,10 +305,18 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as BriefingApi from '@/api/pms/engineering/briefing'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import type { BriefingVO } from '@/api/pms/engineering/briefing'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import UserTag from '@/components/UserTag/index.vue'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/briefing/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngBriefing' })
 const message = useMessage()
