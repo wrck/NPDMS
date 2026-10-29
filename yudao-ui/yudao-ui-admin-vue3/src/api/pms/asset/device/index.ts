@@ -79,6 +79,17 @@ export interface DeviceSummaryVO {
   conpType?: string
   conpSeries?: string
   conpMark?: string
+  name?: string
+  locationSnapshot?: string
+}
+
+/** Long标识保留服务端原始字符串，不经Number转换。 */
+export type DeviceCurrentSummaryVO = Omit<DeviceSummaryVO, 'deviceId' | 'tenantId' | 'projectId' | 'customerId' | 'shipmentRecordId'> & {
+  deviceId: number | string
+  tenantId: number | string
+  projectId?: number | string
+  customerId?: number | string
+  shipmentRecordId?: number | string
 }
 
 export interface DeviceSourceSliceVO<T = Record<string, unknown>> {
@@ -209,6 +220,9 @@ export const getDevicePage = (params: DevicePageReqVO) =>
   request.get<PageResult<DeviceListVO[]>>({ url: `${baseUrl}/page`, params })
 
 export const getDevice = (id: number | string) => request.get<DeviceDetailVO>({ url: `${baseUrl}/${id}` })
+
+export const getCurrentDeviceSummaries = (deviceIds: (number | string)[], projectId?: number | string) =>
+  request.post<DeviceCurrentSummaryVO[]>({ url: `${baseUrl}/current-summaries`, data: { deviceIds, ...(projectId == null ? {} : { projectId }) } })
 
 export const getAssignmentHistory = (id: number, params: PageParam) =>
   request.get<PageResult<DeviceProjectRelationshipVO[]>>({

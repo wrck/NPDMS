@@ -38,7 +38,7 @@ class DeviceOrganizationScopeMySqlReadOnlyTest {
         var config = new Configuration();
         for (String resource : List.of("mapper/authorization/ProjectViewGrantReadSql.xml",
                 "mapper/projectscope/ProjectViewReadScopeSql.xml", "mapper/contract/ContractDeviceReadScopeSql.xml",
-                "mapper/device/DeviceQueryMapper.xml", "mapper/device/DeviceJoinedPageMapper.xml")) {
+                "mapper/device/DeviceCurrentModelMapper.xml", "mapper/device/DeviceQueryMapper.xml", "mapper/device/DeviceJoinedPageMapper.xml")) {
             try (var input = getClass().getClassLoader().getResourceAsStream(resource)) {
                 assertNotNull(input, resource);
                 new XMLMapperBuilder(input, config, resource, config.getSqlFragments()).parse();

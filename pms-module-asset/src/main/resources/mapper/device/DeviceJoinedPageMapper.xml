@@ -20,6 +20,49 @@
         )
     </sql>
 
+    <sql id="requestedDeviceIds">
+        <choose>
+            <when test="query.deviceIds != null and !query.deviceIds.isEmpty()">
+                AND d.id IN <foreach collection="query.deviceIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </sql>
+
+    <select id="selectJoinedDeviceIds" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        WITH
+        <include refid="cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeSql.commonTables"/>,
+        device_filter_contract_keys AS (
+            SELECT DISTINCT CAST(d.contract_no AS BINARY) AS contract_key
+            FROM ast_device d
+            WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+              AND d.contract_no IS NOT NULL AND d.contract_no &lt;&gt; ''
+            <include refid="requestedDeviceIds"/>
+        ),
+        <include refid="cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceReadScopeSql.commonTables"/>,
+        visible_direct_projects AS (
+            SELECT DISTINCT d.project_id
+            FROM ast_device d JOIN visible_projects p ON p.project_id = d.project_id
+            WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+            <include refid="requestedDeviceIds"/>
+        ),
+        visible_related_devices AS (
+            SELECT DISTINCT r.device_sn
+            FROM ast_device d
+            JOIN ast_device_project_relationship r ON r.tenant_id = d.tenant_id AND r.device_sn = d.sn AND r.deleted = b'0'
+            JOIN visible_projects p ON p.project_id = r.project_id
+            WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+              AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
+              AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
+            <include refid="requestedDeviceIds"/>
+        )
+        SELECT d.* FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+        <include refid="requestedDeviceIds"/>
+        <include refid="joinedDeviceVisibility"/>
+        ORDER BY d.id
+    </select>
+
     <select id="selectJoinedDevicePageRows" resultMap="joinedPageRow">
         WITH
         <include refid="cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeSql.commonTables"/>,

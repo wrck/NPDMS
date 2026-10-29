@@ -29,6 +29,40 @@ class DeviceAccessScopeServiceTest {
     @Mock private cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi contracts;
 
     @Test
+    void fullProjectProbeRequiresCurrentTenantActorViewAndActualFullScope() {
+        var service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations,
+                mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class));
+        var request = new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(1L, 7L, 10L, "PROJECT_VIEW");
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(
+                new cn.iocoder.yudao.framework.security.core.LoginUser().setId(7L).setTenantId(1L),
+                new org.springframework.mock.web.MockHttpServletRequest());
+        try {
+            when(projectScopeApi.resolveCurrent(request)).thenReturn(
+                    new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(10L, 4L, Set.of(10L), Set.of()));
+            org.junit.jupiter.api.Assertions.assertTrue(service.hasFullProjectView(request));
+            for (var invalid : java.util.List.of(
+                    new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(2L, 7L, 10L, "PROJECT_VIEW"),
+                    new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(1L, 8L, 10L, "PROJECT_VIEW"),
+                    new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(1L, 7L, 10L, "PROJECT_EDIT"),
+                    new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(1L, 7L, null, "PROJECT_VIEW"))) {
+                org.junit.jupiter.api.Assertions.assertFalse(service.hasFullProjectView(invalid));
+            }
+            org.junit.jupiter.api.Assertions.assertFalse(service.hasFullProjectView(null));
+            cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUser().setTenantId(2L);
+            org.junit.jupiter.api.Assertions.assertFalse(service.hasFullProjectView(request));
+            verify(projectScopeApi).resolveCurrent(request);
+            org.mockito.Mockito.verifyNoMoreInteractions(projectScopeApi);
+            org.mockito.Mockito.verifyNoInteractions(deviceMapper, contracts, organizations);
+        } finally {
+            cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+        org.junit.jupiter.api.Assertions.assertFalse(service.hasFullProjectView(request));
+    }
+
+
+    @Test
     void organizationGrantAloneAllowsDeviceLookup() {
         var service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations, mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class));
         var grant = new cn.iocoder.yudao.module.system.api.permission.dto.UserCompanyDepartmentScopeRespDTO();

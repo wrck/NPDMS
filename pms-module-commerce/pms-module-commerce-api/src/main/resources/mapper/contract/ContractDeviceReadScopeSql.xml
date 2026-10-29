@@ -7,7 +7,9 @@
             <choose><when test="query.hasDeviceFilters()">
             SELECT c.id, c.tenant_id, c.contract_no, c.company_code, c.company_id, c.department_code
             FROM com_contract c
-            JOIN device_filter_contract_keys k ON k.contract_key = CAST(c.contract_no AS BINARY)
+            JOIN device_filter_contract_keys k
+              ON c.contract_no = CONVERT(k.contract_key USING utf8mb4) COLLATE utf8mb4_0900_ai_ci
+             AND k.contract_key = CAST(c.contract_no AS BINARY)
             WHERE c.tenant_id = #{query.tenantId} AND c.deleted = b'0'
               <!-- 只裁剪原文候选；同号冲突仍按COM列排序规则在完整主表检查。 -->
               AND NOT EXISTS (

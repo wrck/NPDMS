@@ -4,37 +4,65 @@
     <sql id="candidateIds">
         <choose>
             <when test="query.projectId != null and query.projectId > 0">
-                SELECT p.id FROM ast_device p
-                WHERE p.tenant_id = #{query.tenantId} AND p.deleted = 0 AND p.project_id = #{query.projectId}
+                SELECT d.id FROM ast_device d
+                <include refid="candidateFilters"/>
+                AND d.project_id = #{query.projectId}
                 <if test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
                     UNION
-                    SELECT c.id FROM ast_device c
-                    WHERE c.tenant_id = #{query.tenantId} AND c.deleted = 0 AND c.contract_no IN
+                    SELECT d.id FROM ast_device d
+                    <include refid="candidateFilters"/>
+                    AND d.contract_no IN
                     <foreach collection="query.contractNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
                 </if>
             </when>
             <otherwise>SELECT empty_device.id FROM ast_device empty_device WHERE 1 = 0</otherwise>
         </choose>
     </sql>
-    <sql id="candidateScope">
-        FROM ast_device d
-        INNER JOIN (<include refid="candidateIds"/>) candidates ON candidates.id = d.id
+    <sql id="candidateFilters">
         WHERE d.tenant_id = #{query.tenantId} AND d.deleted = 0
+        <if test="query.keyword != null and query.keyword != ''">
+            AND (d.sn LIKE CONCAT('%', #{query.keyword}, '%')
+                OR (<include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductModel"/>) LIKE CONCAT('%', #{query.keyword}, '%'))
+        </if>
         <if test="query.sn != null and query.sn != ''">AND d.sn LIKE CONCAT('%', #{query.sn}, '%')</if>
         <if test="query.name != null and query.name != ''">AND d.name LIKE CONCAT('%', #{query.name}, '%')</if>
-        <if test="query.productModel != null and query.productModel != ''">AND d.product_model LIKE CONCAT('%', #{query.productModel}, '%')</if>
+        <if test="query.productModel != null and query.productModel != ''">
+            <choose>
+                <when test="query.keyword != null and query.keyword != ''">
+                    AND (<include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductModel"/>) LIKE CONCAT('%', #{query.productModel}, '%')
+                </when>
+                <otherwise>AND d.product_model LIKE CONCAT('%', #{query.productModel}, '%')</otherwise>
+            </choose>
+        </if>
         <if test="query.contractNo != null and query.contractNo != ''">AND d.contract_no LIKE CONCAT('%', #{query.contractNo}, '%')</if>
     </sql>
-    <select id="selectPageCandidates" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
-        SELECT d.id, d.sn, d.name, d.product_code, d.product_model, d.contract_no,
+    <sql id="candidateColumns">
+        d.id, d.sn, d.name, d.product_code,
+               <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductModel"/> AS product_model, d.contract_no,
                d.project_id, d.customer_id, d.status
-        <include refid="candidateScope"/>
-        ORDER BY d.id DESC
+    </sql>
+    <select id="selectPageCandidates" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        <choose>
+            <when test="query.projectId != null and query.projectId > 0">
+                SELECT <include refid="candidateColumns"/> FROM ast_device d
+                <include refid="candidateFilters"/>
+                AND d.project_id = #{query.projectId}
+                <if test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
+                    UNION
+                    SELECT <include refid="candidateColumns"/> FROM ast_device d
+                    <include refid="candidateFilters"/>
+                    AND d.contract_no IN
+                    <foreach collection="query.contractNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
+                </if>
+            </when>
+            <otherwise>SELECT <include refid="candidateColumns"/> FROM ast_device d WHERE 1 = 0</otherwise>
+        </choose>
+        ORDER BY id DESC
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
     <select id="selectCountCandidates" resultType="java.lang.Long">
         SELECT COUNT(*)
-        <include refid="candidateScope"/>
+        FROM (<include refid="candidateIds"/>) candidates
     </select>
     <select id="selectSelectionForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
         SELECT * FROM ast_device

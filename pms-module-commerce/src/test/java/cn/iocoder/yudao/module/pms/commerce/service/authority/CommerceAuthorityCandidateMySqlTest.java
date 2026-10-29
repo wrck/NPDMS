@@ -243,6 +243,18 @@ class CommerceAuthorityCandidateMySqlTest {
         OrganizationScopeApi organizationScopeApi() {
             return new OrganizationScopeApi() {
                 @Override
+                public UserCompanyDepartmentScopeRespDTO inspectRoleScope(
+                        cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public UserCompanyDepartmentScopeRespDTO lockRoleScope(
+                        cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
                 public List<UserCompanyDepartmentScopeRespDTO> getActiveScopes(Long userId) {
                     if (ACTOR_ACME == userId) return List.of(scope("ACME"));
                     if (ACTOR_OTHER == userId) return List.of(scope("OTHER"));

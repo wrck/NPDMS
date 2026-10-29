@@ -68,6 +68,9 @@ class ProjectDeviceSelectionMysqlTest {
         interceptor.addInnerInterceptor(new TenantLineInnerInterceptor(new TenantDatabaseInterceptor(new TenantProperties())));
         configuration.addInterceptor(interceptor);
         configuration.addMapper(ProjectDeviceSelectionMapper.class);
+        try (var xml = getClass().getResourceAsStream("/mapper/device/DeviceCurrentModelMapper.xml")) {
+            new XMLMapperBuilder(xml, configuration, "current-model", configuration.getSqlFragments()).parse();
+        }
         String resource = "/mapper/device/ProjectDeviceSelectionMapper.xml";
         try (var xml = getClass().getResourceAsStream(resource)) {
             assertNotNull(xml, "必须加载实际项目设备选择器 XML");

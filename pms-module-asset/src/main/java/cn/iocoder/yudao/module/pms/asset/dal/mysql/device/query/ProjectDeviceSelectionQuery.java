@@ -14,6 +14,7 @@ public class ProjectDeviceSelectionQuery extends PageParam {
     private Set<String> contractNumbers;
     private List<Long> deviceIds;
     private String sn;
+    private String keyword;
     private String name;
     private String productModel;
     private String contractNo;

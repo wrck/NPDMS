@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper">
+    <!-- Current read projection only. The caller's device alias is d; no row multiplication. -->
+    <!-- The official product table owns UNIQUE(tenant_id, product_code); normalize only the device reference. -->
+    <sql id="currentProductModel">
+        CASE WHEN NULLIF(TRIM(d.product_model), '') IS NOT NULL THEN d.product_model
+        ELSE (SELECT NULLIF(TRIM(product.product_model), '')
+              FROM ast_product_official_info product
+              WHERE product.tenant_id = d.tenant_id AND product.deleted = 0
+                AND product.product_code = TRIM(d.product_code)
+                AND NULLIF(TRIM(d.product_code), '') IS NOT NULL)
+        END
+    </sql>
+    <select id="selectCurrentModels" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper$Model">
+        SELECT d.id AS device_id, <include refid="currentProductModel"/> AS product_model
+        FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = 0
+        <choose>
+            <when test="query.deviceIds != null and !query.deviceIds.isEmpty()">
+                AND d.id IN
+                <foreach collection="query.deviceIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+</mapper>

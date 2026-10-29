@@ -92,7 +92,8 @@ class ContractAccessServiceTest {
     void projectOverviewRejectsInvisibleProjectBeforeReadingCommerce() {
         var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);
-        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(
+                10L, 1L, Set.of(10L), Set.of(11L)));
         assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
                 () -> service.getProjectCommerceDetail(1L, 7L, 11L));
         verifyNoInteractions(mapper);
@@ -102,17 +103,19 @@ class ContractAccessServiceTest {
     void projectOverviewFailsClosedWhenScopeOwnerUnavailable() {
         var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);
-        when(projectScopeApi.resolveAllCurrent(any())).thenThrow(new IllegalStateException("unavailable"));
+        when(projectScopeApi.resolveCurrent(any())).thenThrow(new IllegalStateException("unavailable"));
         assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
                 () -> service.getProjectCommerceDetail(1L, 7L, 10L));
         verifyNoInteractions(mapper);
+        verify(projectScopeApi, never()).resolveAllCurrent(any());
     }
 
     @Test
     void projectOverviewPreservesAllContractsOrdersAndExecutionsWithinTenant() {
         var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);
-        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(
+                10L, 1L, Set.of(10L), Set.of()));
         var query = new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery(2L, 10L);
         when(mapper.selectContracts(query)).thenReturn(List.of(new ContractDO(), new ContractDO()));
         when(mapper.selectOrders(query)).thenReturn(List.of(new SalesOrderDO()));
@@ -122,8 +125,24 @@ class ContractAccessServiceTest {
         assertEquals(2, result.contracts().size());
         assertEquals(1, result.orders().size());
         assertEquals(1, result.executionOrders().size());
-        verify(projectScopeApi).resolveAllCurrent(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(
-                2L, 7L, ProjectScopeApi.ACTION_VIEW));
+        verify(projectScopeApi).resolveCurrent(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(
+                2L, 7L, 10L, ProjectScopeApi.ACTION_VIEW));
+        verify(projectScopeApi, never()).resolveAllCurrent(any());
+    }
+
+    @Test
+    void projectOverviewKeepsHistoricalAuthorizationWhenCurrentTreeIsUnavailable() {
+        var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);
+        when(projectScopeApi.resolveCurrent(any())).thenThrow(new cn.iocoder.yudao.framework.common.exception.ServiceException(1, "no current tree"));
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        assertNotNull(service.getProjectCommerceDetail(1L, 7L, 10L));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.getProjectCommerceDetail(1L, 7L, 11L));
+        verify(mapper).selectContracts(new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery(1L, 10L));
+        verify(mapper).selectOrders(any());
+        verify(mapper).selectExecutionOrders(any());
+        verifyNoMoreInteractions(mapper);
     }
 
     @Test

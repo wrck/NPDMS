@@ -18,6 +18,11 @@ public class DeviceDetailService {
     private final DeviceNetworkVersionMapper networkVersionMapper;
     private final DeviceOrganizationService organizationService;
 
+    public java.util.List<DeviceSummaryDTO> getCurrentSummaries(
+            cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery query) {
+        return deviceQueryApi.getVisibleDeviceSummaries(query);
+    }
+
     public DeviceDetailRespVO getDetail(Long deviceId) {
         DeviceSummaryDTO summary = deviceQueryApi.getDevice(deviceId);
         if (summary == null) {

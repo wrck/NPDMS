@@ -28,6 +28,7 @@ class DeviceScopeFactMapperContractTest {
     @Test
     void scopeQueriesBindScenarioObjectsAndUseStableLockOrder() throws IOException {
         Configuration configuration = new Configuration();
+        parse(configuration, Path.of("src/main/resources/mapper/device/DeviceCurrentModelMapper.xml"));
         parse(configuration, QUERY_XML);
         parse(configuration, COMMAND_XML);
 

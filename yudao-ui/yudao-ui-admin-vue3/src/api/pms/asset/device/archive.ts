@@ -86,6 +86,7 @@ export const getDeviceConfigLogPage = (params: DeviceConfigLogPageParam) =>
 
 export interface DeviceArchivePageParam extends PageParam {
   selectionProjectId?: number | string
+  keyword?: string
   productModel?: string
   contractNo?: string
   sn?: string

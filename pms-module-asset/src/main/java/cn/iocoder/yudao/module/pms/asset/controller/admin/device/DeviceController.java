@@ -109,6 +109,15 @@ public class DeviceController {
         return success(deviceDetailService.getDetail(id));
     }
 
+    @PostMapping("/current-summaries")
+    @PreAuthorize("@ss.hasPermission('pms:device:query')")
+    public CommonResult<List<cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO>> getCurrentSummaries(
+            @Valid @RequestBody cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceSummaryBatchReqVO request) {
+        return success(deviceDetailService.getCurrentSummaries(
+                new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery(
+                        currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), request.getDeviceIds(), request.getProjectId())));
+    }
+
     @GetMapping("/{id}/archive")
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
     public CommonResult<DeviceDetailRespVO> getDeviceArchive(@PathVariable("id") Long id) {

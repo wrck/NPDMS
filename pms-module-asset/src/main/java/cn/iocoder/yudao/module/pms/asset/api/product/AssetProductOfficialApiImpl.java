@@ -19,6 +19,16 @@ public class AssetProductOfficialApiImpl implements AssetProductOfficialApi {
     private final AssetProductOfficialMapper productOfficialMapper;
 
     @Override
+    public List<ProductOfficialSnapshot> getProductDisplaySnapshots(ProductDisplayQuery query) {
+        Long tenant=cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId();
+        if (query==null || tenant==null || !tenant.equals(query.tenantId())) throw new SecurityException("PRODUCT_DISPLAY_TENANT_MISMATCH");
+        if (query.productCodes()==null || query.productCodes().isEmpty()) return List.of();
+        return productOfficialMapper.selectDisplayByCodes(query).stream()
+                .filter(row->row.getProductCode()!=null && query.productCodes().contains(row.getProductCode().trim()))
+                .map(row->new ProductOfficialSnapshot(row.getId(),row.getProductCode(),row.getProductName(),row.getProductModel())).toList();
+    }
+
+    @Override
     public List<ProductOfficialSnapshot> getActiveProductSnapshots(Collection<Long> productIds) {
         if (productIds == null || productIds.isEmpty()) {
             return List.of();
