@@ -51,7 +51,7 @@ class CutoverTaskIntakePolicyTest {
 
     @Test void explicitProjectSelectionUsesOnlyThatProjectsMatchingSerial() {
         var fixture = fixture();
-        when(fixture.deviceScope().resolveBySerials(List.of("SN-400"))).thenReturn(List.of(
+        when(fixture.deviceScope().resolveBySerials(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(1L, 100L, List.of("SN-400")))).thenReturn(List.of(
                 new CutoverDeviceScopePort.DeviceFact(400L, "SN-400", 100L, 9L),
                 new CutoverDeviceScopePort.DeviceFact(401L, "SN-400", 101L, 2L)));
         fixture.service().create(createCommand("selected-project"));
@@ -111,7 +111,7 @@ class CutoverTaskIntakePolicyTest {
     }
 
     @Test
-    void selfCreatedTaskWithoutCustomerCompletesAssessmentDWithoutCustomerProvider() {
+    void selfCreatedTaskWithoutCustomerCompletesAssessmentDWithManualLevelWithoutCustomerProvider() {
         Fixture fixture = fixture();
         var source = createCommand("no-customer");
         var originalProject = source.expectedContext().project();
@@ -136,7 +136,7 @@ class CutoverTaskIntakePolicyTest {
                 source.businessEventId(), new CreateCutoverTaskCommand.ExpectedCreateContext(project,
                 source.expectedContext().devices(),
                 CutoverCustomerLevelPort.CustomerLevelFact.builder()
-                        .status("UNAVAILABLE")
+                        .status("NOT_CONFIGURED")
                         .customerId(null)
                         .customerCode(null)
                         .customerName(null)
@@ -148,12 +148,20 @@ class CutoverTaskIntakePolicyTest {
                         .build(), source.expectedContext().readiness()));
 
         var created = fixture.service().create(command);
-        var saved = fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D"));
+        var assessment = saveCommand(created.taskId(), created.version(), "D");
+        var dictionary = mock(cn.iocoder.yudao.module.system.api.dict.DictDataApi.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(fixture.service(), "serviceLevelDictionary", dictionary);
+        var saved = fixture.service().saveAssessment(new SaveCutoverAssessmentCommand(
+                assessment.tenantId(), assessment.actorId(), assessment.taskId(), assessment.expectedTaskVersion(),
+                assessment.expectedAssessmentVersion(), assessment.answers(), assessment.manualGrade(),
+                assessment.idempotencyKey(), assessment.correlationId(), "STANDARD"));
         var submitted = fixture.service().submitAssessment(submitCommand(
                 created.taskId(), saved.taskVersion(), saved.assessmentRowVersion(), "no-customer-submit"));
 
         assertEquals("P4", submitted.currentStage());
-        assertEquals("UNAVAILABLE", fixture.assessment().get().getCustomerFactStatusCode());
+        assertEquals("NOT_CONFIGURED", fixture.assessment().get().getCustomerFactStatusCode());
+        assertEquals("STANDARD", fixture.assessment().get().getManualCustomerServiceLevelCode());
+        verify(dictionary).validateDictDataList("pms_service_level", List.of("STANDARD"));
         verifyNoInteractions(fixture.customerLevel());
     }
 
@@ -331,7 +339,7 @@ class CutoverTaskIntakePolicyTest {
                 .expectedProjectScopeVersion(7L)
                 .build())).thenReturn(projectFact);
         when(projectContext.lockAndRevalidate(projectFact)).thenReturn(projectFact);
-        when(deviceScope.resolveBySerials(List.of("SN-400"))).thenReturn(devices);
+        when(deviceScope.resolveBySerials(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(1L, 100L, List.of("SN-400")))).thenReturn(devices);
         when(deviceScope.lockAndRevalidate(100L, devices)).thenReturn(devices);
         when(productType.resolveAuthorized(8L, List.of(400L))).thenReturn(productTypes);
         when(customerLevel.inspect(200L)).thenReturn(customerFact);

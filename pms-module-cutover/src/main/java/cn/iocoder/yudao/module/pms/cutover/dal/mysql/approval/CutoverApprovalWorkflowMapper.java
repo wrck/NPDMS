@@ -5,4 +5,8 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprov
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface CutoverApprovalWorkflowMapper extends BaseMapperX<CutoverApprovalWorkflowDO> {}
+public interface CutoverApprovalWorkflowMapper extends BaseMapperX<CutoverApprovalWorkflowDO> {
+    java.util.List<cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.projection.CutoverApprovalProjectSummary>
+            selectProjectSummaries(@org.apache.ibatis.annotations.Param("query")
+                    cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.CutoverApprovalProjectSummaryQuery query);
+}

@@ -7,7 +7,7 @@ import CutoverClosurePanel from '../components/CutoverClosurePanel.vue'
 import { findByTestId, mount, passthrough, textOf } from '../cutoverTestHarness'
 
 const api = vi.hoisted(() => ({
-  getCutoverClosure: vi.fn(), saveCutoverClosure: vi.fn(),
+  getCutoverClosure: vi.fn(), getAvailableClosureAttachments: vi.fn(), saveCutoverClosure: vi.fn(),
   linkClosureExecution: vi.fn(), linkCutoverClosureManualResult: vi.fn(), submitCutoverClosure: vi.fn()
 }))
 const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn(), getCurrentReference: vi.fn() }))
@@ -55,6 +55,7 @@ const controls = {
 describe('F-CUT-006 mounted P6 closure workbench', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    api.getAvailableClosureAttachments.mockResolvedValue([])
     fileApi.getCurrentReference.mockResolvedValue(null)
     fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'a'.repeat(64) }] })
@@ -65,7 +66,7 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
       .mockResolvedValueOnce(view(['CREATE_CLOSURE']))
       .mockResolvedValue(view(['SAVE_CLOSURE', 'SUBMIT_CLOSURE'], 1))
     api.saveCutoverClosure.mockResolvedValue(view(['SAVE_CLOSURE'], 1))
-    const mounted = mount(CutoverClosurePanel, { taskId: '9007199254740995' }, controls)
+    const mounted = mount(CutoverClosurePanel, { taskId: '9007199254740995', devices: [] }, controls)
     await flush()
 
     await click(mounted.root, 'save-closure')
@@ -108,6 +109,80 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
     },controls)
     try { expect(findByTestId(mounted.root,'observe-platform-execution')?.props?.['data-readonly']).toBe(!canRequest) }
     finally { mounted.app.unmount() }
+  })
+
+  it('keeps two uploads for the same purpose as independent references in the saved draft', async () => {
+    api.getCutoverClosure.mockReset().mockResolvedValue(view(['SAVE_CLOSURE'], 1))
+    api.saveCutoverClosure.mockResolvedValue({})
+    const mounted = mount(CutoverClosurePanel, { taskId: '101', devices: [] }, controls)
+    try {
+      await flush()
+      const first = uploadReference(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')
+      await click(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST'); await flush()
+      const second = uploadReference(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')
+      await click(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST'); await flush()
+      await click(mounted.root, 'save-closure'); await flush()
+      const files = api.saveCutoverClosure.mock.calls[0][0].data.attachments
+      expect(first).not.toBe(second)
+      expect(files).toHaveLength(2)
+      expect(files.map((file: any) => file.referenceKey)).toEqual([first, second].sort())
+      expect(files.every((file: any) => file.purposeCode === 'POST_COLLECTION_CHECKLIST')).toBe(true)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('cancels only the selected draft association and keeps the other file and its version', async () => {
+    const draft = view(['SAVE_CLOSURE'], 1)
+    draft.content!.attachments = [attachment('first-photo'), attachment('second-photo')]
+    api.getCutoverClosure.mockReset().mockResolvedValue(draft)
+    api.saveCutoverClosure.mockResolvedValue({})
+    const mounted = mount(CutoverClosurePanel, { taskId: '101', devices: [] }, controls)
+    try {
+      await flush()
+      await click(mounted.root, 'closure-remove-first-photo'); await flush()
+      expect(api.saveCutoverClosure).not.toHaveBeenCalled()
+      await click(mounted.root, 'save-closure'); await flush()
+      expect(api.saveCutoverClosure.mock.calls[0][0].data.attachments).toEqual([attachment('second-photo')])
+      expect(api.submitCutoverClosure).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('keeps archived attachments read-only without upload or cancellation actions', async () => {
+    const archived = content()
+    archived.attachments = [attachment('first-photo'), attachment('second-photo')]
+    const mounted = mount(CutoverClosureForm, { modelValue: archived, taskId: '101', closureId: '501', editable: false }, controls)
+    try {
+      await flush()
+      expect(findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')).toBeUndefined()
+      expect(findByTestId(mounted.root, 'closure-remove-first-photo')).toBeUndefined()
+      expect(findByTestId(mounted.root, 'closure-remove-second-photo')).toBeUndefined()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('finds uploaded files after remount and associates only the explicitly selected file', async () => {
+    api.getCutoverClosure.mockReset().mockResolvedValue(view(['SAVE_CLOSURE'], 1))
+    const first = mount(CutoverClosurePanel, { taskId: '101', devices: [] }, controls)
+    await flush()
+    const uploadedKey = uploadReference(first.root, 'closure-file-POST_COLLECTION_CHECKLIST')
+    await click(first.root, 'closure-file-POST_COLLECTION_CHECKLIST'); await flush()
+    first.app.unmount()
+    const recovered = attachment(uploadedKey)
+    const previouslyCancelled = attachment('cancelled-earlier')
+    api.getAvailableClosureAttachments.mockResolvedValue([recovered, previouslyCancelled])
+    api.saveCutoverClosure.mockResolvedValue({})
+    const reopened = mount(CutoverClosurePanel, { taskId: '101', devices: [] }, controls)
+    try {
+      await flush()
+      expect(uploadReference(reopened.root, 'closure-file-POST_COLLECTION_CHECKLIST')).not.toBe(uploadedKey)
+      await click(reopened.root, 'closure-restore-POST_COLLECTION_CHECKLIST'); await flush()
+      expect(api.getAvailableClosureAttachments).toHaveBeenCalledWith('101')
+      expect(api.saveCutoverClosure).not.toHaveBeenCalled()
+      expect(findByTestId(reopened.root, 'closure-remove-' + uploadedKey)).toBeUndefined()
+      expect(findByTestId(reopened.root, 'closure-recover-cancelled-earlier')).toBeDefined()
+      await click(reopened.root, 'closure-recover-' + uploadedKey); await flush()
+      await click(reopened.root, 'save-closure'); await flush()
+      expect(api.saveCutoverClosure.mock.calls[0][0].data.attachments).toEqual([recovered])
+      expect(api.submitCutoverClosure).not.toHaveBeenCalled()
+    } finally { reopened.app.unmount() }
   })
 
   it('links formal platform execution ids and keeps the same intent after an uncertain response', async () => {
@@ -176,21 +251,22 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
   })
 
   it('loads the current reference before appending a version and advances it after upload', async () => {
-    fileApi.getCurrentReference.mockResolvedValue({ artifactId: '9007199254740993', referenceVersion: 7, versionNo: 3, status: 'ACTIVE' })
+    fileApi.getCurrentReference.mockImplementation(async (key) => key.referenceKey === 'existing-key'
+      ? { artifactId: '9007199254740993', referenceVersion: 7, versionNo: 3, status: 'ACTIVE' } : null)
     const model = ref(content())
     model.value.attachments.push({ purposeCode: 'POST_COLLECTION_CHECKLIST', artifactId: '9007199254740993', versionNo: 2,
       referenceKey: 'existing-key', scopeVersion: 17, sha256: 'a'.repeat(64),
       fileFactVersion: { artifactVersion: 1, referenceVersion: 3, availabilityVersion: 1 } })
     fileApi.getArtifact.mockResolvedValue({ artifactVersion: 9, reference: { scopeVersion: 17, referenceVersion: 8 } })
-    const mounted = mount(defineComponent({ setup: () => () => h(CutoverClosureForm, { modelValue: model.value, closureId: '501', editable: true,
+    const mounted = mount(defineComponent({ setup: () => () => h(CutoverClosureForm, { modelValue: model.value, taskId: '101', closureId: '501', editable: true,
       'onAttachment-completed': (fact: any) => { model.value = { ...model.value, attachments: [fact] } } }) }), {}, controls)
     await flush()
-    let uploader = findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')!
+    let uploader = findByTestId(mounted.root, 'closure-replace-existing-key')!
     expect((uploader.props?.artifactId ?? uploader.props?.['artifact-id'])).toBe('9007199254740993')
     expect((uploader.props?.expectedReferenceVersion ?? uploader.props?.['expected-reference-version'])).toBe(7)
     expect((uploader.props?.referenceKey ?? uploader.props?.['reference-key'])).toBe('existing-key')
-    await click(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST'); await flush()
-    uploader = findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')!
+    await click(mounted.root, 'closure-replace-existing-key'); await flush()
+    uploader = findByTestId(mounted.root, 'closure-replace-existing-key')!
     expect((uploader.props?.expectedReferenceVersion ?? uploader.props?.['expected-reference-version'])).toBe(8)
     expect(api.saveCutoverClosure).not.toHaveBeenCalled()
     mounted.app.unmount()
@@ -198,7 +274,7 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
 
   it('blocks upload on failed reference read and retries without replacing the form', async () => {
     fileApi.getCurrentReference.mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue(null)
-    const mounted = mount(CutoverClosureForm, { modelValue: content(), closureId: '501', editable: true }, controls)
+    const mounted = mount(CutoverClosureForm, { modelValue: content(), taskId: '101', closureId: '501', editable: true }, controls)
     await flush()
     expect(findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')!.props?.disabled).toBe(true)
     expect(textOf(mounted.root)).toContain('当前材料引用读取失败')
@@ -213,7 +289,7 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
   })
 
   it('keeps the form and stage navigation responsive at the locked 320/768/1024/1440 breakpoints', () => {
-    const mounted = mount(CutoverClosureForm, { modelValue: content(), closureId: '501', editable: false }, controls)
+    const mounted = mount(CutoverClosureForm, { modelValue: content(), taskId: '101', closureId: '501', editable: false }, controls)
     expect(textOf(mounted.root)).toContain('割接前检查')
     expect(textOf(mounted.root)).toContain('割接后信息采集清单')
     expect(textOf(mounted.root)).toContain('实施承诺')
@@ -225,6 +301,11 @@ const content = (): CutoverClosureContent => ({
   preCheckNormal: null, preCheckDetail: null, executionNormal: null, executionDetail: null,
   testNormal: null, testDetail: null, rollbackOccurred: null, rollbackSuccessful: null,
   rollbackReason: null, legacyItems: null, finalResult: null, attachments: []
+})
+const attachment = (referenceKey: string) => ({
+  purposeCode: 'POST_COLLECTION_CHECKLIST' as const, artifactId: '9007199254740993', versionNo: 4,
+  referenceKey, scopeVersion: 17, sha256: 'a'.repeat(64),
+  fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 }
 })
 const view = (
   allowedActions: string[], closureVersion: number | null = null,
@@ -242,7 +323,12 @@ const view = (
   allowedActions
 })
 const flush = async () => { await Promise.resolve(); await Promise.resolve(); await nextTick() }
+const uploadReference = (root: any, id: string) => {
+  const props = findByTestId(root, id)!.props!
+  return String(props.referenceKey ?? props['reference-key'])
+}
 const click = async (root: any, id: string) => {
+  await vi.waitFor(() => expect(findByTestId(root, id)?.props?.disabled).not.toBe(true))
   const target = findByTestId(root, id)
   if (!target) throw new Error(`missing ${id}: ${textOf(root)}`)
   await (target.props?.onClick as () => void | Promise<void>)()

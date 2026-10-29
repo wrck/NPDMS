@@ -158,7 +158,7 @@ class CutoverClosureApplicationServiceTest {
     }
 
     @Test
-    void createsThenSavesDraftWithFrozenSourcesAndControlledOwnerFacts() {
+    void createsSavesMultipleFilesAndCancelsDraftAssociationsBeforeSubmit() {
         CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
         CutoverApprovalInstanceMapper approvalMapper = mock(CutoverApprovalInstanceMapper.class);
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
@@ -243,6 +243,36 @@ class CutoverClosureApplicationServiceTest {
         assertThat(attachments).extracting(CutoverClosureAttachmentDO::getPurposeCode)
                 .containsExactly("IMPLEMENTATION_COMMITMENT", "POST_COLLECTION_CHECKLIST");
         assertThat(platform.facts).hasSize(2).allSatisfy(fact -> assertThat(fact.correlationId()).isNotBlank());
+
+        var threeFiles = new ArrayList<>(twoAttachments());
+        threeFiles.add(file(AttachmentPurpose.POST_COLLECTION_CHECKLIST, 504L, "ref-check-second"));
+        service.save(command(1, "save-multiple", draft("multiple", threeFiles)));
+        assertThat(attachments).extracting(CutoverClosureAttachmentDO::getReferenceKey)
+                .containsExactly("ref-commit", "ref-check", "ref-check-second");
+
+        // Removing a required purpose in a draft remains legal, but it cannot be submitted.
+        service.save(command(2, "cancel-commitment", draft("removed", List.of(threeFiles.get(0), threeFiles.get(2)))));
+        assertThat(attachments).extracting(CutoverClosureAttachmentDO::getReferenceKey)
+                .containsExactly("ref-check", "ref-check-second");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.submit(
+                new cn.iocoder.yudao.module.pms.cutover.service.closure.command.SubmitCutoverClosureCommand(
+                        1L, 9L, 100L, 7L, closure.get().getId(), 3L, "FAILED", "missing-required", "corr-missing")))
+                .isInstanceOf(CutoverClosureApplicationException.class).hasMessageContaining("闭环必需附件不完整");
+        org.mockito.Mockito.verify(closureMapper, org.mockito.Mockito.never()).submitIfMatch(any());
+
+        service.save(command(3, "restore-commitment", draft("ready", threeFiles)));
+        when(deviceScopeMapper.selectActiveByTaskForUpdate(any())).thenReturn(List.of(
+                new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDeviceScopeDO()));
+        when(deviceScopeMapper.releaseActiveByTask(any())).thenReturn(1);
+        when(closureMapper.submitIfMatch(any())).thenReturn(1);
+        when(taskMapper.archiveFromP6IfMatch(any())).thenReturn(1);
+        when(stageHistoryMapper.insert(any(cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskStageHistoryDO.class))).thenReturn(1);
+        var submitted = service.submit(
+                new cn.iocoder.yudao.module.pms.cutover.service.closure.command.SubmitCutoverClosureCommand(
+                        1L, 9L, 100L, 7L, closure.get().getId(), 4L, "FAILED", "submit-multiple", "corr-submit"));
+        assertThat(submitted.closureStatus()).isEqualTo("SUBMITTED");
+        assertThat(attachments).extracting(CutoverClosureAttachmentDO::getReferenceKey)
+                .containsExactly("ref-commit", "ref-check", "ref-check-second");
     }
 
     private static SaveCutoverClosureCommand command(Integer version, String key, ClosureContent content) {

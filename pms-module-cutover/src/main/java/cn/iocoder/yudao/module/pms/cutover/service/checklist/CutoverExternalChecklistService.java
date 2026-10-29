@@ -83,7 +83,7 @@ public class CutoverExternalChecklistService {
             if (!Boolean.TRUE.equals(item.getApplicableFlag()) || !"EXTERNAL".equals(item.getWorkModeCode())) continue;
             var definition = storage.definition(item);
             var result = current.get(item.getId());
-            var read = new CutoverExternalBulletinStore.Read(item, result);
+            var read = new CutoverExternalBulletinStore.Read(item, result, rows);
             List<CutoverChecklistExternalQueryDO> selected = result == null ? List.of() : storage.selectedQueries(read);
             boolean contextCurrent = false;
             if (result != null) {

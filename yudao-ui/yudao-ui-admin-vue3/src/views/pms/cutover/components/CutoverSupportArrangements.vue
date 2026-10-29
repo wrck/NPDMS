@@ -8,8 +8,14 @@
         </el-select>
       </template></el-table-column>
       <el-table-column label="姓名" min-width="195"><template #default="{ row, $index }">
+        <UserSelect
+          v-if="!contactReadonly && row.roleCode !== 'CUSTOMER'"
+          :data-testid="'support-system-' + $index"
+          :model-value="row.personReference ? referenceKey(row.personReference) : row.personName || undefined" :current-label="supportCurrentLabel(row)"
+          :scoped-source="supportSource(row, $index)" placeholder="选择对应角色的系统用户"
+          @update:model-value="selectPerson($index, $event == null ? undefined : String($event))" />
         <el-select
-v-if="!contactReadonly" :data-testid="(row.roleCode === 'CUSTOMER' ? 'support-customer-' : 'support-system-') + $index"
+v-else-if="!contactReadonly" :data-testid="(row.roleCode === 'CUSTOMER' ? 'support-customer-' : 'support-system-') + $index"
           :model-value="row.personReference ? referenceKey(row.personReference) : row.personName || undefined"
           filterable :allow-create="row.roleCode === 'CUSTOMER'" clearable
           :placeholder="row.roleCode === 'CUSTOMER' ? '选择项目成员或输入姓名' : '选择对应角色的系统用户'"
@@ -31,6 +37,9 @@ v-if="row.personReference && !(personChoices[row.roleCode] || []).some(person =>
   </section>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import type { CutoverPlanSupportArrangement, WireDateTime, SupportPersonChoice, SupportPersonReference } from '@/api/pms/cutover'
 
 const props = withDefaults(defineProps<{
@@ -53,6 +62,18 @@ const selectPerson = (index: number, value: string | undefined) => {
     ...current, customerContactReference: null, personReference: person?.reference || null,
     personName: person?.name || (row.roleCode === 'CUSTOMER' ? value?.trim() || '' : ''), phone: person?.phone || ''
   } : current))
+}
+const supportSource = (row: CutoverPlanSupportArrangement, index: number) => {
+  const choices = props.personChoices[row.roleCode] || []
+  return systemUserSelection.fromCandidates(
+    `cutover-support:${index}:${row.roleCode}:${choices.map(person => referenceKey(person.reference)).join(',')}`,
+    choices.map(person => ({ id: referenceKey(person.reference), nickname: person.name }))
+  )
+}
+const supportCurrentLabel = (row: CutoverPlanSupportArrangement) => {
+  const choices = props.personChoices[row.roleCode]
+  return row.personReference && choices && !choices.some(person => referenceKey(person.reference) === referenceKey(row.personReference!))
+    ? `${row.personName}（原选择，请重新选择）` : row.personName
 }
 const rows = computed(() => props.modelValue)
 const contactReadonly = computed(() => props.readonly && !props.patchApproved)

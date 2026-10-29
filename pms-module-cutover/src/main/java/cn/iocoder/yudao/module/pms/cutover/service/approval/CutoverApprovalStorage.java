@@ -149,12 +149,12 @@ public class CutoverApprovalStorage {
                 || !Objects.equals(result.getTenantId(), reference.getTenantId()) || !Objects.equals(result.getChecklistItemId(), item.getId())
                 || !Objects.equals(item.getChecklistId(), root.getChecklistId())
                 || !Objects.equals(result.getResultVersion(), reference.getResultVersion())) throw new IllegalArgumentException("审批冻结采集结果引用损坏");
-        var manual = "MANUAL".equals(result.getResultSourceCode()) ? customResults.manualFile(result) : null;
+        var manual = "MANUAL".equals(result.getResultSourceCode()) ? customResults.manualFiles(result) : List.<cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverChecklistFilePort.FileFact>of();
         return new ChecklistResultSnapshot(item.getId(), item.getStableItemKey(), item.getItemDefinitionId(), item.getItemDefinitionVersion(),
                 item.getItemTypeCode(), item.getItemName(), Boolean.TRUE.equals(reference.getRequiredFlag()), result.getResultVersion(),
                 result.getResultSourceCode(), resultStorage.answer(new CutoverChecklistResultStore.Read(item, result)), result.getFactDescription(),
                 result.getCollectionTaskId(), result.getCollectionResultReferenceId(), result.getCollectionResultVersion(),
-                result.getExternalSourceCode(), manual == null ? null : manual.referenceKey());
+                result.getExternalSourceCode(), manual.isEmpty() ? null : manual.getFirst().referenceKey());
     }
 
     private JsonNode planSource(CutoverPlanRevisionDO plan) {

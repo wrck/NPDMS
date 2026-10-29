@@ -8,10 +8,12 @@ vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn() }) }))
 vi.mock('../components/CutoverProjectContextCard.vue', () => ({ default: defineComponent({ render: () => null }) }))
 vi.mock('../components/CutoverChecklistPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
-vi.mock('../components/CutoverPlanPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
+vi.mock('../components/CutoverPlanPanel.vue', () => ({ default: defineComponent({
+  props: { taskId: [String, Number], projectId: [String, Number], readonly: Boolean }, setup(props) { return () => h('section', { 'data-testid': 'project-aware-plan', 'data-project-id': props.projectId }, `方案:${props.taskId}`) }
+}) }))
 vi.mock('../components/CutoverApprovalPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
 vi.mock('../components/CutoverClosurePanel.vue', () => ({ default: defineComponent({
-  props: ['taskId', 'readonly'], setup(props) { return () => h('section', { 'data-testid': 'closure', readonly: props.readonly }, `闭环:${props.taskId}`) }
+  props: { taskId: [String, Number], readonly: Boolean }, setup(props) { return () => h('section', { 'data-testid': 'closure', readonly: props.readonly }, `闭环:${props.taskId}`) }
 }) }))
 
 const flush = async () => { await vi.dynamicImportSettled(); for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
@@ -22,6 +24,20 @@ const task = (id = '9007199254740993', projectId = '201') => ({
 
 describe('共享割接任务详情', () => {
   beforeEach(() => vi.resetAllMocks())
+
+
+  it('passes the current task project string to P4 without using a frozen source snapshot', async () => {
+    const projectId = '9007199254741999'
+    const detail = task('9007199254740993', projectId)
+    detail.task.currentStage = 'P4'
+    detail.task.taskStatus = 'ACTIVE'
+    detail.workbenchSteps = [{ stage: 'P4', label: '方案编制', state: 'CURRENT' }]
+    api.getCutoverTaskDetail.mockResolvedValue(detail)
+    const page = mount(Detail, { taskId: detail.task.id })
+    await flush()
+    expect(findByTestId(page.root, 'project-aware-plan')?.props?.['data-project-id']).toBe(projectId)
+    page.app.unmount()
+  })
 
   it('仅按任务ID加载详情，项目上下文只用于约束归属', async () => {
     api.getCutoverTaskDetail.mockResolvedValue(task())

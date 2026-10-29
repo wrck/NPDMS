@@ -75,5 +75,8 @@ export const getCreationProject = (projectId: WireLong) =>
   request.get<CreationProjectContext>({ url: `${baseUrl}/creation-projects/${projectId}` })
 export const getCreationProjectDevices = (projectId: WireLong, params: { keyword?: string; pageNo: number; pageSize: number }) =>
   request.get<{ list: CreationDevice[]; total: number }>({ url: `${baseUrl}/creation-projects/${projectId}/devices`, params })
-export const resolveCreationDevices = (serialNumbers: string[]) =>
-  request.post<ResolvedCreationDevices>({ url: `${baseUrl}/creation-devices/resolve`, data: { serialNumbers } })
+export const resolveCreationDevices = (serialNumbers: string[], projectId?: WireLong) =>
+  request.post<ResolvedCreationDevices>({
+    url: `${baseUrl}/creation-devices/resolve`,
+    data: { serialNumbers, ...(projectId == null ? {} : { projectId }) }
+  })

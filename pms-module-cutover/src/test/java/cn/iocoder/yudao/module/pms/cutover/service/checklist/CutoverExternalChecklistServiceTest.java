@@ -41,6 +41,33 @@ class CutoverExternalChecklistServiceTest {
         verify(items, never()).selectListByChecklist(any());
         verify(results, never()).selectCurrentByChecklist(any());
     }
+
+    @Test void stateSharesOneDeviceContextAcrossAllExternalResultChecks() {
+        var read = new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(
+                new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 2L, "state"), 3L, 5L);
+        var rows = List.copyOf(devices);
+        when(checklist.readScope(read)).thenReturn(new CutoverChecklistApplicationService.ReadScope(5L, 6L));
+        when(storage.contexts(any())).thenReturn(rows);
+        item.setWorkModeCode("EXTERNAL");
+        var second = new CutoverChecklistItemDO();
+        org.springframework.beans.BeanUtils.copyProperties(item, second);
+        second.setId(11L); second.setStableItemKey("RISK_TARGET_VERSION_BULLETIN");
+        when(storage.definition(second)).thenReturn(definition);
+        when(items.selectListByChecklist(any())).thenReturn(List.of(item, second));
+        when(results.selectCurrentByChecklist(any())).thenReturn(List.of(
+                CutoverChecklistItemResultDO.builder().id(60L).checklistItemId(10L).resultSourceCode("EXTERNAL").build(),
+                CutoverChecklistItemResultDO.builder().id(61L).checklistItemId(11L).resultSourceCode("EXTERNAL").build()));
+        when(storage.requireCurrent(any())).thenAnswer(call -> {
+            CutoverExternalBulletinStore.Read current = call.getArgument(0);
+            assertEquals(rows, current.deviceContexts());
+            return List.of();
+        });
+
+        assertEquals(2, service.state(read).items().size());
+
+        verify(storage, times(1)).contexts(new CutoverExternalBulletinStore.ContextKey(1L, 5L));
+        verify(storage, times(2)).requireCurrent(any());
+    }
     private final CutoverChecklistApplicationService checklist = mock(CutoverChecklistApplicationService.class);
     private final CutoverExternalBulletinStore storage = mock(CutoverExternalBulletinStore.class);
     private final CutoverExternalDataDirectory directory = mock(CutoverExternalDataDirectory.class);

@@ -119,4 +119,80 @@ class CutoverTaskCreationQueryServiceTest {
                 () -> service.resolve(new CutoverTaskCreationQueryService.ResolveQuery(actor, List.of("SN-401", "SN-OUTSIDE")))).code());
         verifyNoInteractions(devices);
     }
+
+    @Test void authorizedSerialResolutionDoesNotReadEveryDeviceSeparately() {
+        var first = summary(401L, true); var second = summary(402L, true);
+        serialCandidates();
+        when(devices.getVisibleDeviceSummaries(any())).thenReturn(List.of(second, first));
+
+        var result = service.resolve(new CutoverTaskCreationQueryService.ResolveQuery(actor, List.of("SN-401", "SN-402")));
+
+        assertEquals(List.of(401L, 402L), result.devices().stream().map(ProjectDeviceShipmentApi.Device::deviceId).toList());
+        verify(devices, never()).getDevice(any());
+    }
+
+    @Test void projectBoundSerialResolutionForwardsTheTrustedContextAndKeepsProductProjection() {
+        var first = summary(401L, true);
+        var candidate = new CutoverTaskViews.CreateContextCandidate(
+                CutoverProjectContextPort.ProjectContextFact.builder().projectId(101L).build(),
+                List.of(new CutoverDeviceScopePort.DeviceFact(401L, "SN-401", 101L, 5L)), null, null, true);
+        var ownerQuery = new CutoverTaskQueryService.CreateContextQuery(actor, 101L, List.of("SN-401"));
+        when(tasks.resolveCreateContext(ownerQuery)).thenReturn(new CutoverTaskViews.CreateContextData(
+                List.of(candidate), false, List.of(), true));
+        when(devices.getVisibleDeviceSummaries(any())).thenReturn(List.of(first));
+
+        var result = service.resolve(new CutoverTaskCreationQueryService.ResolveQuery(actor, List.of("SN-401"), 101L));
+
+        assertEquals(List.of(401L), result.devices().stream().map(ProjectDeviceShipmentApi.Device::deviceId).toList());
+        verify(tasks).resolveCreateContext(ownerQuery);
+        verify(tasks, never()).resolveCreateContext(any(CutoverTaskContext.class), anyList());
+        verify(devices).getVisibleDeviceSummaries(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery(
+                1L, 9L, Set.of(401L), 101L));
+    }
+
+    @Test void earlierUnshippedDeviceIsNotHiddenByLaterUnauthorizedDevice() {
+        var first = summary(401L, false);
+        serialCandidates();
+        when(devices.getVisibleDeviceSummaries(any())).thenReturn(List.of(first));
+        when(devices.getDevice(402L)).thenThrow(new org.springframework.security.access.AccessDeniedException("later denied"));
+
+        var failure = assertThrows(CutoverTaskApplicationException.class, () -> service.resolve(
+                new CutoverTaskCreationQueryService.ResolveQuery(actor, List.of("SN-401", "SN-402"))));
+
+        assertEquals(INVALID_REQUEST, failure.code());
+        assertTrue(failure.getMessage().contains("SN-401"));
+        verify(devices, never()).getDevice(402L);
+    }
+
+    @Test void earlierStaleAssignmentIsNotHiddenByLaterUnauthorizedDevice() {
+        var first = summary(401L, true);
+        when(first.projectAssignmentVersion()).thenReturn(6L);
+        serialCandidates();
+        when(devices.getVisibleDeviceSummaries(any())).thenReturn(List.of(first));
+        when(devices.getDevice(402L)).thenThrow(new org.springframework.security.access.AccessDeniedException("later denied"));
+
+        var failure = assertThrows(CutoverTaskApplicationException.class, () -> service.resolve(
+                new CutoverTaskCreationQueryService.ResolveQuery(actor, List.of("SN-401", "SN-402"))));
+
+        assertEquals(DEVICE_SCOPE_STALE, failure.code());
+        verify(devices, never()).getDevice(402L);
+    }
+
+    private DeviceSummaryDTO summary(Long id, boolean shipped) {
+        var summary = mock(DeviceSummaryDTO.class);
+        when(summary.deviceId()).thenReturn(id);
+        when(summary.projectId()).thenReturn(101L);
+        when(summary.projectAssignmentVersion()).thenReturn(5L);
+        when(summary.shipmentTime()).thenReturn(shipped ? LocalDateTime.of(2026, 10, 1, 0, 0) : null);
+        return summary;
+    }
+
+    private void serialCandidates() {
+        var candidate = new CutoverTaskViews.CreateContextCandidate(
+                CutoverProjectContextPort.ProjectContextFact.builder().projectId(101L).build(),
+                List.of(new CutoverDeviceScopePort.DeviceFact(401L, "SN-401", 101L, 5L),
+                        new CutoverDeviceScopePort.DeviceFact(402L, "SN-402", 101L, 5L)), null, null, true);
+        when(tasks.resolveCreateContext(actor, List.of("SN-401", "SN-402")))
+                .thenReturn(new CutoverTaskViews.CreateContextData(List.of(candidate), false, List.of(), false));
+    }
 }

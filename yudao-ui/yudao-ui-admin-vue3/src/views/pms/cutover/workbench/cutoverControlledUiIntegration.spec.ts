@@ -77,7 +77,8 @@ vi.mock('vue-router', () => ({ useRouter: () => router, useRoute: () => route,
   onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
 const selectionApi = vi.hoisted(() => ({ searchProjectOptions: vi.fn(), getProjectContext: vi.fn(), getProjectDevicePage: vi.fn() }))
 vi.mock('@/api/pms/project/selection', () => selectionApi)
-vi.mock('@/api/pms/asset/device', () => ({ getDevice: vi.fn(async (deviceId) => ({ summary: { id: deviceId, productCode: 'ROUTER-01', productModel: 'Router' } })) }))
+// Current asset enrichment has dedicated component tests; this workflow retains its frozen source facts.
+vi.mock('@/api/pms/asset/device', () => ({ getCurrentDeviceSummaries: vi.fn(async () => []) }))
 vi.mock('@/components/DeviceCollection/BusinessCollectionDialog.vue', () => ({ default: defineComponent({ setup: () => () => null }) }))
 vi.mock('@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue', () => ({ default: defineComponent({ setup: () => () => null }) }))
 

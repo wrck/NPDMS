@@ -136,16 +136,22 @@ public class CutoverFilePolicy implements FileBusinessObjectPolicyProvider, File
                             || !frozen.versionNo().equals(file.versionNo())) return denied();
                 }
                 return new FileBusinessObjectPolicyFact(true, grant.approvalId(), "IMMUTABLE", "MULTIPLE",
-                        categories(), MEDIA, 52_428_800L, "INTERNAL");
+                        categories(), mediaTypes(), 52_428_800L, "INTERNAL");
             }
         }
         // A draft owner validates the files through the same project scope used for upload.
         // An earlier approval must not replace that mutable scope with an approval read grant.
-        boolean closureDraftOwner = READ.contains(query.requiredAction()) && "CUTOVER_CLOSURE".equals(type) && context.editable()
+        String suffix = switch (type) {
+            case "CUTOVER_CHECKLIST_ITEM" -> "checklist";
+            case "CUTOVER_PLAN" -> "plan";
+            case "CUTOVER_CLOSURE" -> "closure";
+            default -> throw new IllegalArgumentException("unknown CUT file type");
+        };
+        boolean draftOwner = READ.contains(query.requiredAction()) && Set.of("CUTOVER_PLAN", "CUTOVER_CLOSURE").contains(type) && context.editable()
                 && Objects.equals(context.task().getOwnerUserId(), query.actorUserId());
-        var draftOwnerScope = closureDraftOwner ? scopes.inspect(query.actorUserId(), context.task().getProjectId(), action) : null;
+        var draftOwnerScope = draftOwner ? scopes.inspect(query.actorUserId(), context.task().getProjectId(), action) : null;
         boolean projectOwnerRead = draftOwnerScope != null && draftOwnerScope.allowed()
-                && permissions.hasAnyPermissions(query.actorUserId(), "pms:cutover-task:query", "pms:cutover-task:query-closure");
+                && permissions.hasAnyPermissions(query.actorUserId(), "pms:cutover-task:query", "pms:cutover-task:query-" + suffix);
         if (READ.contains(query.requiredAction()) && !projectOwnerRead) {
             var access = new CutoverRoleApprovalAudience.Query(query.tenantId(), query.actorUserId(), context.task().getId(), lock ? expected : null);
             var grant = lock ? approvalAudience.lockAndRevalidateTask(access) : approvalAudience.inspectTask(access);
@@ -160,7 +166,7 @@ public class CutoverFilePolicy implements FileBusinessObjectPolicyProvider, File
                     selectedVersion = file != null && frozen.artifactId().equals(file.artifactId()) && frozen.versionNo().equals(file.versionNo());
                 }
                 if (selectedVersion) return new FileBusinessObjectPolicyFact(true, grant.approvalId(), "IMMUTABLE", "MULTIPLE",
-                        categories(), MEDIA, 52_428_800L, "INTERNAL");
+                        categories(), mediaTypes(), 52_428_800L, "INTERNAL");
             }
         }
         var inspected = draftOwnerScope != null ? draftOwnerScope : scopes.inspect(query.actorUserId(), context.task().getProjectId(), action);
@@ -175,12 +181,6 @@ public class CutoverFilePolicy implements FileBusinessObjectPolicyProvider, File
         if (!scope.allowed() || lock && scope.projectScopeVersion() != expected) return denied();
         if (lock) context = locate(query.tenantId(), id, true);
         if (context == null) return denied();
-        String suffix = switch (type) {
-            case "CUTOVER_CHECKLIST_ITEM" -> "checklist";
-            case "CUTOVER_PLAN" -> "plan";
-            case "CUTOVER_CLOSURE" -> "closure";
-            default -> throw new IllegalArgumentException("unknown CUT file type");
-        };
         boolean allowed = writing ? context.editable() && Objects.equals(context.task().getOwnerUserId(), query.actorUserId())
                 && permissions.hasAnyPermissions(query.actorUserId(), "pms:cutover-task:save-" + suffix)
                 : READ.contains(query.requiredAction()) && permissions.hasAnyPermissions(query.actorUserId(), "pms:cutover-task:query", "pms:cutover-task:query-" + suffix);
@@ -191,7 +191,14 @@ public class CutoverFilePolicy implements FileBusinessObjectPolicyProvider, File
                     .versionNo(frozen.versionNo()).referenceKey(query.referenceKey()).build());
         }
         return new FileBusinessObjectPolicyFact(allowed, scope.projectScopeVersion(), context.editable() ? "MUTABLE" : "IMMUTABLE",
-                "MULTIPLE", categories(), MEDIA, 52_428_800L, "INTERNAL");
+                "MULTIPLE", categories(), mediaTypes(), 52_428_800L, "INTERNAL");
+    }
+    private Set<String> mediaTypes() {
+        if (!"CUTOVER_CHECKLIST_ITEM".equals(type)) return MEDIA;
+        var media = new HashSet<>(MEDIA);
+        media.add("application/zip");
+        media.add("application/octet-stream"); // Opaque .lic attachments; the content policy restricts this to that suffix.
+        return Set.copyOf(media);
     }
     private Set<String> categories() {
         return "CUTOVER_PLAN".equals(type) ? Set.of("CUTOVER_PLAN", "CUTOVER_CHECKLIST_MANUAL_EVIDENCE")

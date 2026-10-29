@@ -19,6 +19,17 @@ class CutoverTaskRequestCodecTest {
         assertThat(request.serialNumbers()).containsExactly("SN-001", "SN-002");
     }
 
+    @Test void creationDeviceResolutionHasItsOwnOptionalProjectContract() {
+        var bound = codec.resolveCreationDevices(JsonUtils.parseTree("{\"projectId\":\"101\",\"serialNumbers\":[\"SN-001\"]}"));
+        assertThat(bound.projectId()).isEqualTo(101L);
+        assertThat(bound.serialNumbers()).containsExactly("SN-001");
+        assertThat(codec.resolveCreationDevices(JsonUtils.parseTree("{\"serialNumbers\":[\"SN-001\"]}")).projectId()).isNull();
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> codec.resolveCreationDevices(JsonUtils.parseTree("{\"projectId\":101}")));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> codec.resolveCreateContext(JsonUtils.parseTree("{\"projectId\":101,\"serialNumbers\":[\"SN-001\"]}")));
+    }
+
     @Test
     void acceptsCreationWithoutAClientTaskName() {
         var request = codec.create(JsonUtils.parseTree("""

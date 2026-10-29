@@ -33,7 +33,7 @@ public class CutoverCustomResultStore {
     public record Read(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result,
                        CutoverFieldSchemaCodec.Definition definition, Object builtinValue) { }
     public record Manual(CutoverChecklistItemResultDO result, Long fieldDefinitionId,
-                         CutoverChecklistFilePort.FileFact fact) { }
+                         List<CutoverChecklistFilePort.FileFact> facts) { }
     private record Node(Write write, CutoverChecklistFieldDefinitionDO field, JsonNode value, Long parentRowId) { }
     private record FileWrite(CutoverChecklistItemResultDO result, Long fieldId, Long rowId, int number,
                              String role, CutoverChecklistFilePort.FileFact fact) { }
@@ -48,7 +48,9 @@ public class CutoverCustomResultStore {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void insertManual(Manual command) {
-        insertFile(new FileWrite(command.result(), command.fieldDefinitionId(), null, 0, "MANUAL_EVIDENCE", command.fact()));
+        for (int index = 0; index < command.facts().size(); index++)
+            insertFile(new FileWrite(command.result(), command.fieldDefinitionId(), null, index,
+                    "MANUAL_EVIDENCE", command.facts().get(index)));
     }
 
     private void writeNode(Node node, int[] fileNumber) {
@@ -162,10 +164,11 @@ public class CutoverCustomResultStore {
         return readNode(new ReadNode(data, CutoverChecklistResultStore.root(query.definition()), query.builtinValue(), null));
     }
 
-    public CutoverChecklistFilePort.FileFact manualFile(CutoverChecklistItemResultDO result) {
+    public List<CutoverChecklistFilePort.FileFact> manualFiles(CutoverChecklistItemResultDO result) {
         return files.selectListByParents(CutoverChecklistResultFileListQuery.builder().tenantId(result.getTenantId())
                 .checklistResultIds(Set.of(result.getId())).build()).stream().filter(row -> "MANUAL_EVIDENCE".equals(row.getFileRoleCode()))
-                .findFirst().map(CutoverCustomResultStore::fileFact).orElse(null);
+                .sorted(Comparator.comparing(CutoverChecklistResultFileDO::getFileNo))
+                .map(CutoverCustomResultStore::fileFact).toList();
     }
 
     private Object readNode(ReadNode node) {

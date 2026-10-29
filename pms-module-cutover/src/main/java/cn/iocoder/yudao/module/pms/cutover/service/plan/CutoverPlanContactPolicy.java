@@ -48,11 +48,14 @@ public class CutoverPlanContactPolicy {
             }
         }
         var customers = content.supportArrangements().stream().filter(row -> "CUSTOMER".equals(row.roleCode())).toList();
-        if (submitting && customers.isEmpty()) invalid("客户保障安排尚未填写");
+        if (submitting && customers.isEmpty()) throw new CutoverPlanApplicationException(
+                CutoverPlanApplicationException.Code.SUPPORT_ARRANGEMENT_INCOMPLETE, "客户保障安排尚未填写");
         for (var customer : customers) {
             var selection = customer.customerContactReference();
             if (selection == null) {
-                if (submitting) manualIdentity(customer.personName(), customer.phone());
+                if (submitting && (customer.personName() == null || customer.personName().isBlank()
+                        || customer.phone() == null || customer.phone().isBlank())) throw new CutoverPlanApplicationException(
+                        CutoverPlanApplicationException.Code.SUPPORT_ARRANGEMENT_INCOMPLETE, "请填写客户姓名和联系电话");
                 continue;
             }
             var fact = lock(query, selection);

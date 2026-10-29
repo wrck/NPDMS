@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalWorkflowMapper">
+    <select id="selectProjectSummaries" resultType="cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.projection.CutoverApprovalProjectSummary">
+        SELECT w.process_instance_id, a.project_name
+        FROM cut_approval_workflow w
+        JOIN cut_approval_instance a ON a.id = w.id AND a.tenant_id = w.tenant_id AND a.task_id = w.task_id
+        WHERE w.tenant_id = #{query.tenantId} AND w.deleted = 0 AND a.deleted = 0
+        <choose>
+            <when test="query.processInstanceIds != null and !query.processInstanceIds.isEmpty()">
+                AND w.process_instance_id IN
+                <foreach collection="query.processInstanceIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY w.id
+    </select>
+</mapper>

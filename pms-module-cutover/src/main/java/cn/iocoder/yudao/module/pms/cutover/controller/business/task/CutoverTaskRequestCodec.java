@@ -45,6 +45,15 @@ public final class CutoverTaskRequestCodec {
         return read(body, CutoverTaskReqVO.ResolveCreateContext.class);
     }
 
+    public CutoverTaskReqVO.ResolveCreationDevices resolveCreationDevices(JsonNode body) {
+        require(body != null && body.isObject(), "resolve-creation-devices");
+        Set<String> keys = new HashSet<>();
+        body.properties().forEach(entry -> keys.add(entry.getKey()));
+        require(keys.contains("serialNumbers") && Set.of("serialNumbers", "projectId").containsAll(keys),
+                "resolve-creation-devices keys");
+        return read(body, CutoverTaskReqVO.ResolveCreationDevices.class);
+    }
+
     public CutoverTaskReqVO.Create create(JsonNode body) {
         require(body != null && body.isObject(), "create");
         Set<String> keys = new HashSet<>();

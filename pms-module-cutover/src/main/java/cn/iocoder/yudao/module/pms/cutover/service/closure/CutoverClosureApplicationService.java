@@ -812,7 +812,7 @@ public class CutoverClosureApplicationService {
                 "POST_COLLECTION_CHECKLIST".equals(value.getPurposeCode())).count();
         long commitment = attachments.stream().filter(value ->
                 "IMPLEMENTATION_COMMITMENT".equals(value.getPurposeCode())).count();
-        if (checklist != 1 || commitment != 1) {
+        if (checklist < 1 || commitment < 1) {
             throw failure(FILE_INVALID, REQUIRED_ATTACHMENT_MISSING, "PLT", "闭环必需附件不完整");
         }
     }

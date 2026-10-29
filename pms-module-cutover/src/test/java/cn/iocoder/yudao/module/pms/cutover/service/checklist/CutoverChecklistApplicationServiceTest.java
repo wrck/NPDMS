@@ -89,7 +89,7 @@ class CutoverChecklistApplicationServiceTest {
         prior.setOriginalFailedCollectionTaskId(99L); prior.setOriginalFailedResultVersion(3L);
         prior.setOriginalFailureCode("CONNECT_TIMEOUT");
         var custom = (CutoverCustomResultStore) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "customResultStorage");
-        var originalFile = custom.manualFile(prior);
+        var originalFile = custom.manualFiles(prior);
         var answer = "{\"value\":{\"normal\":false,\"remark\":\"需处理告警\"}}";
         fixture.service.save(new SaveChecklistCommand(1L, 8L, 1000L, 2L, generated.checklistId(), 1L, 7L,
                 List.of(new SaveChecklistCommand.DirectAnswer("SYS-COLLECT", answer)),
@@ -98,14 +98,14 @@ class CutoverChecklistApplicationServiceTest {
         assertEquals("MANUAL", current.getResultSourceCode());
         assertEquals("MANUAL_ANALYSIS_SAVED", current.getSelectionReasonCode());
         assertEquals(prior.getId(), current.getBaseChecklistResultId());
-        assertEquals(originalFile, custom.manualFile(current));
+        assertEquals(originalFile, custom.manualFiles(current));
         assertEquals(99L, current.getOriginalFailedCollectionTaskId());
         assertEquals(3L, current.getOriginalFailedResultVersion());
         assertEquals("CONNECT_TIMEOUT", current.getOriginalFailureCode());
         assertEquals(prior.getFactDescription(), current.getFactDescription());
         assertTrue(prior.getSelectionEndedAt() != null);
         assertEquals("MANUAL_EVIDENCE_SELECTED", prior.getSelectionReasonCode());
-        assertEquals(originalFile, custom.manualFile(prior));
+        assertEquals(originalFile, custom.manualFiles(prior));
         var storage = (CutoverChecklistResultStore) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "resultStorage");
         verify(storage).insertAnswer(new CutoverChecklistResultStore.Write(
                 ((CutoverChecklistItemMapper) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "itemMapper")).selectById(current.getChecklistItemId()),
@@ -116,11 +116,43 @@ class CutoverChecklistApplicationServiceTest {
                 new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 8L, "read-analysis"), 1000L, null));
         var snapshot = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(view.items().stream()
                 .filter(value -> "SYS-COLLECT".equals(value.stableItemKey())).findFirst().orElseThrow().currentResult().answerSnapshot());
-        assertEquals(originalFile.artifactId().longValue(), snapshot.get("file").get("artifactId").asLong());
+        assertEquals(originalFile.getFirst().artifactId().longValue(), snapshot.get("file").get("artifactId").asLong());
         assertFalse(snapshot.get("analysis").get("value").get("normal").asBoolean());
         assertEquals("需处理告警", snapshot.get("analysis").get("value").get("remark").asText());
         assertEquals("P3", fixture.task.get().getCurrentStage());
         assertTrue(fixture.history.isEmpty());
+    }
+
+    @Test
+    void addingAnotherManualFileKeepsBothAndRevalidatesThePreviouslySelectedFile() {
+        var fixture = fixture(); var generated = generate(fixture);
+        var port = (CutoverChecklistFilePort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "filePort");
+        when(port.lockAndRevalidate(any())).thenAnswer(invocation -> {
+            var handle = ((CutoverChecklistFilePort.FileQuery) invocation.getArgument(0)).handle();
+            return CutoverChecklistFilePort.FileFact.builder().artifactId(handle.artifactId()).versionNo(handle.versionNo())
+                    .referenceKey(handle.referenceKey()).fileFactVersion(handle.fileFactVersion()).scopeVersion(handle.scopeVersion())
+                    .sha256("a".repeat(64)).build();
+        });
+        fixture.service.selectManual(manual(generated, 0L, "SYS-COLLECT"));
+        var prior = fixture.results.getLast();
+        var second = new SelectManualResultCommand(1L, 8L, 1000L, 2L, generated.checklistId(), 1L, 7L, "SYS-COLLECT",
+                CutoverChecklistFilePort.FileHandle.builder().artifactId(91L).versionNo(1).referenceKey("ref-91")
+                        .fileFactVersion(new CutoverChecklistFilePort.FileFactVersion(1, 1, 1)).scopeVersion(7L).build(),
+                "两份材料", cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent());
+        fixture.service.selectManual(second);
+        var custom = (CutoverCustomResultStore) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "customResultStorage");
+        assertEquals(List.of(90L, 91L), custom.manualFiles(fixture.results.getLast()).stream().map(CutoverChecklistFilePort.FileFact::artifactId).toList());
+        assertEquals(List.of(90L), custom.manualFiles(prior).stream().map(CutoverChecklistFilePort.FileFact::artifactId).toList());
+        verify(port, times(2)).lockAndRevalidate(org.mockito.ArgumentMatchers.argThat(query -> query.handle().artifactId().equals(90L)));
+        var current = fixture.results.getLast();
+        int resultCount = fixture.results.size();
+        org.mockito.Mockito.doThrow(new SecurityException("old attachment unavailable")).when(port)
+                .lockAndRevalidate(org.mockito.ArgumentMatchers.argThat(query -> query != null && query.handle().artifactId().equals(90L)));
+        var retry = new SelectManualResultCommand(1L, 8L, 1000L, 2L, generated.checklistId(), 2L, 7L, "SYS-COLLECT",
+                second.fileHandle(), "保留两份材料", cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent());
+        org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class, () -> fixture.service.selectManual(retry));
+        assertEquals(resultCount, fixture.results.size());
+        org.junit.jupiter.api.Assertions.assertNull(current.getSelectionEndedAt());
     }
 
     @Test
@@ -733,7 +765,7 @@ class CutoverChecklistApplicationServiceTest {
         var customStore = mock(CutoverCustomResultStore.class);
         var metadata = mock(CutoverChecklistMetadataStore.class);
         Map<Long, String> storedAnswers = new HashMap<>();
-        Map<Long, CutoverChecklistFilePort.FileFact> storedFiles = new HashMap<>();
+        Map<Long, List<CutoverChecklistFilePort.FileFact>> storedFiles = new HashMap<>();
         when(fields.forItem(any())).thenAnswer(invocation -> {
             CutoverChecklistItemDO item = invocation.getArgument(0);
             return cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldSchemaCodec.encode(
@@ -757,15 +789,15 @@ class CutoverChecklistApplicationServiceTest {
         }).when(resultStore).insertAnswer(any());
         org.mockito.Mockito.doAnswer(invocation -> {
             CutoverCustomResultStore.Manual write = invocation.getArgument(0);
-            storedFiles.put(write.result().getId(), write.fact()); return null;
+            storedFiles.put(write.result().getId(), write.facts()); return null;
         }).when(customStore).insertManual(any());
-        when(customStore.manualFile(any())).thenAnswer(invocation -> storedFiles.get(((CutoverChecklistItemResultDO) invocation.getArgument(0)).getId()));
+        when(customStore.manualFiles(any())).thenAnswer(invocation -> storedFiles.getOrDefault(((CutoverChecklistItemResultDO) invocation.getArgument(0)).getId(), List.of()));
         when(resultStore.answer(any())).thenAnswer(invocation -> {
             CutoverChecklistResultStore.Read read = invocation.getArgument(0);
             String answer = storedAnswers.get(read.result().getId());
             return answer != null ? answer : cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(
                     "MANUAL".equals(read.result().getResultSourceCode())
-                    ? Map.of("file", storedFiles.get(read.result().getId())) : Map.of("value", "collection-result"));
+                    ? Map.of("files", storedFiles.get(read.result().getId()), "file", storedFiles.get(read.result().getId()).getFirst()) : Map.of("value", "collection-result"));
         });
         when(resultStore.value(any())).thenAnswer(invocation -> {
             CutoverChecklistResultStore.Read read = invocation.getArgument(0);

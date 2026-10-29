@@ -63,15 +63,24 @@ public class CutoverTaskCreationQueryService {
 
     public ResolvedDevices resolve(ResolveQuery query) {
         var serials = CutoverTaskQueryService.normalizeSerials(query.serialNumbers());
-        var resolved = tasks.resolveCreateContext(query.context(), serials);
+        var resolved = query.projectId() == null ? tasks.resolveCreateContext(query.context(), serials)
+                : tasks.resolveCreateContext(new CutoverTaskQueryService.CreateContextQuery(
+                        query.context(), query.projectId(), serials));
         var returnedSerials = resolved.candidates().stream().flatMap(candidate -> candidate.devices().stream())
                 .map(device -> device.serialNumber().trim().toUpperCase(Locale.ROOT)).collect(Collectors.toSet());
         if (!returnedSerials.equals(serials.stream().map(serial -> serial.toUpperCase(Locale.ROOT)).collect(Collectors.toSet())))
             throw new CutoverTaskApplicationException(DATA_SCOPE_FORBIDDEN, "部分设备不在可创建项目范围内，未添加任何设备");
+        var ids = resolved.candidates().stream().flatMap(candidate -> candidate.devices().stream())
+                .map(device -> device.deviceId()).collect(Collectors.toSet());
+        var projectIds = resolved.candidates().stream().map(candidate -> candidate.project().projectId()).distinct().toList();
+        var current = devices.getVisibleDeviceSummaries(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery(
+                query.context().tenantId(), query.context().actorId(), ids, projectIds.size() == 1 ? projectIds.getFirst() : null))
+                .stream().collect(Collectors.toMap(device -> device.deviceId(), java.util.function.Function.identity()));
         var summaries = new ArrayList<ProjectDeviceShipmentApi.Device>();
         for (var candidate : resolved.candidates()) {
             for (var device : candidate.devices()) {
-                var summary = devices.getDevice(device.deviceId());
+                var summary = current.get(device.deviceId());
+                if (summary == null) summary = devices.getDevice(device.deviceId());
                 if (summary == null || !Objects.equals(summary.projectId(), candidate.project().projectId())
                         || !Objects.equals(summary.projectAssignmentVersion(), device.projectAssignmentVersion()))
                     throw new CutoverTaskApplicationException(DEVICE_SCOPE_STALE, "设备归属已变化，请重新查询序列号");
@@ -106,7 +115,9 @@ public class CutoverTaskCreationQueryService {
     public record ProjectQuery(CutoverTaskContext context, Long projectId) {}
     @lombok.Builder
     public record DevicePageQuery(CutoverTaskContext context, Long projectId, String keyword, int pageNo, int pageSize) {}
-    public record ResolveQuery(CutoverTaskContext context, List<String> serialNumbers) {}
+    public record ResolveQuery(CutoverTaskContext context, List<String> serialNumbers, Long projectId) {
+        public ResolveQuery(CutoverTaskContext context, List<String> serialNumbers) { this(context, serialNumbers, null); }
+    }
     public record ProjectContext(ProjectBusinessContextApi.Presentation project, String customerServiceLevel,
             CutoverCustomerLevelPort.CustomerLevelFact customerServiceLevelContext) {}
     public record ResolvedDevices(CutoverTaskViews.CreateContextData context, List<ProjectDeviceShipmentApi.Device> devices) {}

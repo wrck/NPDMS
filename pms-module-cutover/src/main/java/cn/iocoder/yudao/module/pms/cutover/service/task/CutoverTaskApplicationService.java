@@ -413,7 +413,8 @@ public class CutoverTaskApplicationService {
                 .build();
         CutoverProjectContextPort.ProjectContextFact project = projectContextPort.inspect(projectQuery);
         requireProjectContext(projectQuery, project);
-        List<CutoverDeviceScopePort.DeviceFact> devices = orderedDevices(deviceScopePort.resolveBySerials(normalizedSerials))
+        List<CutoverDeviceScopePort.DeviceFact> devices = orderedDevices(deviceScopePort.resolveBySerials(
+                new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(tenantId, projectId, normalizedSerials)))
                 .stream().filter(device -> projectId.equals(device.projectId())).toList();
         requireDevices(projectId, normalizedSerials, devices);
         CutoverCustomerLevelPort.CustomerLevelFact customer = customerReference(customerLevelPort, project);
@@ -439,8 +440,9 @@ public class CutoverTaskApplicationService {
                 .projectId(task.getProjectId()).expectedProjectScopeVersion(scope.projectScopeVersion()).build();
         var project = projectContextPort.inspect(query);
         requireProjectContext(query, project);
-        var devices = orderedDevices(deviceScopePort.resolveBySerials(selected.stream()
-                .map(CutoverDeviceScopePort.DeviceFact::serialNumber).toList()));
+        var devices = orderedDevices(deviceScopePort.resolveBySerials(
+                new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(task.getTenantId(), task.getProjectId(),
+                        selected.stream().map(CutoverDeviceScopePort.DeviceFact::serialNumber).toList())));
         require(sameSelectedDevices(selected, devices), DEVICE_SCOPE_STALE,
                 "原选设备已缺失、替换或不属于当前项目，请核查设备归属后重试");
         var readiness = requiresImplementationReadiness(task.getIntakeSourceType())

@@ -25,6 +25,26 @@ class CutoverRoleApprovalFilePolicyTest {
     @BeforeEach void tenant() { TenantContextHolder.setTenantId(1L); }
     @AfterEach void clearTenant() { TenantContextHolder.clear(); }
 
+    @Test void zipIsAllowedForChecklistEvidenceWithoutExpandingPlanOrClosureFormats() {
+        Fixture f = new Fixture();
+        var item = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO();
+        item.setId(70L); item.setTenantId(1L); item.setChecklistId(71L);
+        var checklist = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO();
+        checklist.setId(71L); checklist.setTenantId(1L); checklist.setCutoverTaskId(10L);
+        when(f.items.selectById(70L)).thenReturn(item);
+        when(f.checklists.selectById(71L)).thenReturn(checklist);
+        var result = f.policy("CUTOVER_CHECKLIST_ITEM").inspect(query("CUTOVER_CHECKLIST_ITEM", "70", "MANUAL_EVIDENCE", "READ"));
+        assertTrue(result.allowed());
+        assertTrue(result.allowedMediaTypes().contains("application/zip"));
+        assertTrue(result.allowedMediaTypes().contains("application/octet-stream"));
+        assertFalse(f.policy("CUTOVER_PLAN").inspect(query("CUTOVER_PLAN", "10", "FULL_PLAN", "READ")).allowedMediaTypes().contains("application/zip"));
+        var closure = closureOwner().policy("CUTOVER_CLOSURE").inspect(query("CUTOVER_CLOSURE", "40", "OTHER_EVIDENCE", "READ"));
+        assertTrue(closure.allowed());
+        assertFalse(closure.allowedMediaTypes().contains("application/zip"));
+        assertFalse(closure.allowedMediaTypes().contains("application/octet-stream"));
+        assertFalse(f.policy("CUTOVER_PLAN").inspect(query("CUTOVER_PLAN", "10", "FULL_PLAN", "READ")).allowedMediaTypes().contains("application/octet-stream"));
+    }
+
     @Test void roleContentGrantIsLimitedToTheExactFileInItsFrozenApproval() {
         Fixture f = new Fixture();
         assertTrue(f.policy("CUTOVER_PLAN").inspectFrozenFileVersion(frozen(60L, 1, 20L)).allowed());
@@ -143,6 +163,52 @@ class CutoverRoleApprovalFilePolicyTest {
             assertEquals("MUTABLE", fact.referenceMutability());
         }
         verifyNoInteractions(f.audience);
+    }
+    @Test void planDraftOwnerKeepsUploadScopeAfterItsEarlierApprovalWasRejected() {
+        Fixture f = planDraftOwner();
+        for (String action : List.of("UPLOAD", "READ", "DOWNLOAD", "PREVIEW")) {
+            var fact = f.policy("CUTOVER_PLAN").inspect(query("CUTOVER_PLAN", "10", "FULL_PLAN", action));
+            assertTrue(fact.allowed());
+            assertEquals(9L, fact.scopeVersion());
+            assertEquals("MUTABLE", fact.referenceMutability());
+        }
+        verify(f.audience, never()).inspectTask(any());
+    }
+    @Test void planDraftOwnerLocksCurrentProjectScopeAndRejectsItsRevocation() {
+        Fixture f = planDraftOwner();
+        when(f.scopes.lockAndRevalidate(any())).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(30L, 9L, true));
+        var task = f.tasks.selectById(10L);
+        when(f.tasks.selectForUpdate(any())).thenReturn(task);
+        when(f.audience.lockAndRevalidateTask(any())).thenReturn(new CutoverRoleApprovalAudience.Grant(20L, "{}"));
+        var request = new FileBusinessObjectPolicyRevalidationQuery(1L, 8L, "CUT", "CUTOVER_PLAN",
+                "10", "FULL_PLAN", "cutover-plan:50:2", "READ", 9L);
+        var fact = f.policy("CUTOVER_PLAN").lockAndRevalidate(request);
+        assertTrue(fact.allowed());
+        assertEquals(9L, fact.scopeVersion());
+        verify(f.scopes).lockAndRevalidate(argThat(value -> value.expectedProjectScopeVersion() == 9L));
+        verify(f.audience, never()).lockAndRevalidateTask(any());
+
+        when(f.scopes.lockAndRevalidate(any())).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(30L, 10L, false));
+        assertFalse(f.policy("CUTOVER_PLAN").lockAndRevalidate(request).allowed());
+    }
+    @Test void planDraftOwnerWithoutProjectAccessRetainsOnlyHistoricalReadGrant() {
+        Fixture f = planDraftOwner();
+        when(f.scopes.inspect(any(), any(), any())).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(30L, 9L, false));
+        var fact = f.policy("CUTOVER_PLAN").inspect(query("CUTOVER_PLAN", "10", "FULL_PLAN", "READ"));
+        assertTrue(fact.allowed());
+        assertEquals(20L, fact.scopeVersion());
+        assertEquals("IMMUTABLE", fact.referenceMutability());
+        assertFalse(f.policy("CUTOVER_PLAN").inspect(query("CUTOVER_PLAN", "10", "FULL_PLAN", "UPLOAD")).allowed());
+    }
+    private static Fixture planDraftOwner() {
+        Fixture f = new Fixture();
+        f.tasks.selectById(10L).setOwnerUserId(8L);
+        when(f.audience.inspectFile(any())).thenReturn(null);
+        when(f.audience.inspectTask(any())).thenReturn(new CutoverRoleApprovalAudience.Grant(20L, "{}"));
+        when(f.scopes.inspect(any(), any(), any())).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(30L, 9L, true));
+        when(f.permissions.hasAnyPermissions(8L, "pms:cutover-task:query", "pms:cutover-task:query-plan")).thenReturn(true);
+        when(f.permissions.hasAnyPermissions(8L, "pms:cutover-task:save-plan")).thenReturn(true);
+        return f;
     }
     @Test void closureDraftOwnerRevalidatesTheSameProjectScopeUnderLock() {
         Fixture f = closureOwner();

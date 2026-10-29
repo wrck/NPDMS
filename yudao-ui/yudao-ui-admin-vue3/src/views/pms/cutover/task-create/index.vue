@@ -200,7 +200,7 @@ watch(() => selectedDevices.value.map(device => String(device.deviceId)).join(',
   const serials = devices.map(device => device.serialNumber)
   assessmentCustomerLevel.value = null
   try {
-    const resolved = await CutoverApi.resolveCreationDevices(serials)
+    const resolved = await CutoverApi.resolveCreationDevices(serials, props.projectId)
     if (projectId !== selectedProjectId.value || serials.join(',') !== selectedDevices.value.map(device => device.serialNumber).join(',')) return
     const candidate = resolved.context.candidates.find(value => String(value.project.projectId) === projectId)
     if (!candidate) return
@@ -228,7 +228,7 @@ const resolveSerials = async () => {
   const sequence = projectSequence
   resolving.value = true
   try {
-    const result = await CutoverApi.resolveCreationDevices(parseSerials(serialText.value))
+    const result = await CutoverApi.resolveCreationDevices(parseSerials(serialText.value), props.projectId)
     if (sequence !== projectSequence) return
     if (startProject) {
       if (result.context.candidates.length !== 1 || String(result.context.candidates[0].project.projectId) !== startProject) {
@@ -262,7 +262,7 @@ const submit = async () => {
     if (!pendingCreate) {
       if (!props.createAllowed) return
       const serials = selectedDevices.value.map(device => device.serialNumber)
-      const result = await CutoverApi.resolveCreationDevices(serials)
+      const result = await CutoverApi.resolveCreationDevices(serials, props.projectId)
       const candidate = result.context.candidates.find(value => String(value.project.projectId) === selectedProjectId.value)
       if (!candidate || result.context.candidates.length !== 1 || candidate.devices.length !== selectedDevices.value.length) {
         message.warning('设备归属已变化，请重新选择本项目设备。')

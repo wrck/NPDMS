@@ -228,10 +228,10 @@ class CutoverChecklistPositiveLoopMySqlTest {
         assertEquals(2, exported.businessSurveyRowCount());
         assertEquals(0, exported.riskRowCount());
         try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(exported.content()))) {
-            assertEquals("业务调研", workbook.getSheetName(0));
-            assertEquals("风险考察", workbook.getSheetName(1));
+            assertEquals("调研清单", workbook.getSheetName(0));
+            assertEquals(1, workbook.getNumberOfSheets());
             assertEquals(3, workbook.getSheetAt(0).getPhysicalNumberOfRows());
-            assertEquals(1, workbook.getSheetAt(1).getPhysicalNumberOfRows());
+            assertEquals(3, workbook.getSheetAt(0).getRow(0).getPhysicalNumberOfCells());
         } catch (Exception exception) {
             throw new AssertionError(exception);
         }
@@ -588,7 +588,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
         }
         @Bean CutoverChecklistExportService exportService(CutoverChecklistApplicationService service,
                                                             OperationAuditApi auditApi) {
-            return new CutoverChecklistExportService(service, new CutoverChecklistWorkbookWriter(), auditApi);
+            return new CutoverChecklistExportService(service, new CutoverChecklistSummaryWorkbookWriter(), auditApi);
         }
     }
 }

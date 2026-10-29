@@ -86,18 +86,19 @@ public class CutoverChecklistRevisionService {
             }
             var selected = previousResults.get(previous.getId());
             if (selected == null || "EXTERNAL".equals(previous.getWorkModeCode()) || "COLLECTION".equals(selected.getResultSourceCode())) continue;
-            var manualFile = "MANUAL".equals(selected.getResultSourceCode()) ? custom.manualFile(selected) : null;
+            var manualFiles = "MANUAL".equals(selected.getResultSourceCode()) ? custom.manualFiles(selected) : List.<CutoverChecklistFilePort.FileFact>of();
             if ("MANUAL".equals(selected.getResultSourceCode())
-                    && (!CutoverChecklistEvidenceRules.allowsManual(item) || manualFile == null)) continue;
+                    && (!CutoverChecklistEvidenceRules.allowsManual(item) || manualFiles.isEmpty())) continue;
             var result = new CutoverChecklistItemResultDO(); BeanUtils.copyProperties(selected, result);
             result.setId(IdUtil.getSnowflakeNextId()); result.setChecklistItemId(item.getId()); result.setResultVersion(1);
             result.setFieldDefinitionId(CutoverChecklistResultStore.root(fields.forItem(item)).getId()); result.setBaseChecklistResultId(selected.getId());
             result.setSelectionStartedAt(command.time()); result.setSelectionEndedAt(null); result.setCurrentMarker(null);
             result.setSelectedBy(command.actorId()); result.setSelectionReasonCode("REVISION_COPY"); result.setCreatedBy(command.actorId()); result.setCreatedAt(command.time());
             if ("MANUAL".equals(selected.getResultSourceCode())) {
-                var file = attachFile(new FileCopy(command, previous, item, manualFile));
+                var files = new ArrayList<CutoverChecklistFilePort.FileFact>();
+                for (var file : manualFiles) files.add(attachFile(new FileCopy(command, previous, item, file)));
                 require(results.insert(result) == 1, "修订附件结果创建失败");
-                custom.insertManual(new CutoverCustomResultStore.Manual(result, result.getFieldDefinitionId(), file));
+                custom.insertManual(new CutoverCustomResultStore.Manual(result, result.getFieldDefinitionId(), files));
                 var snapshot = JsonUtils.parseTree(answers.answer(new CutoverChecklistResultStore.Read(previous, selected)));
                 if (snapshot != null && snapshot.has("analysis")) {
                     answers.insertAnswer(new CutoverChecklistResultStore.Write(item, result, snapshot.get("analysis").toString()));
@@ -165,7 +166,8 @@ public class CutoverChecklistRevisionService {
                 new FileFactVersion(version.artifactVersion(), version.referenceVersion(), version.availabilityVersion()), copy.command().target().getProjectScopeVersion());
         var target = new ExistingFileReferenceTarget("CUT", "CUTOVER_CHECKLIST_ITEM", copy.target().getId().toString(), "MANUAL_EVIDENCE",
                 UUID.randomUUID().toString(), copy.command().target().getProjectScopeVersion());
-        var attached = files.attachExistingVersions(new AttachExistingFileVersionsCommand("cutover-revision:" + copy.target().getId(),
+        var attached = files.attachExistingVersions(new AttachExistingFileVersionsCommand("cutover-revision:" + copy.target().getId()
+                + ":" + UUID.nameUUIDFromBytes(file.referenceKey().getBytes(java.nio.charset.StandardCharsets.UTF_8)),
                 List.of(new AttachExistingFileVersionItem(source, target)))).getFirst();
         var actual = attached.fileFactVersion();
         return CutoverChecklistFilePort.FileFact.builder().artifactId(attached.artifactId()).versionNo(attached.versionNo())

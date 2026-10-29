@@ -35,6 +35,23 @@ class CutoverClosureActionEligibilityTest {
         assertThat(view.allowedActions()).containsExactly("SAVE_CLOSURE", "REQUEST_COLLECTION", "SUBMIT_CLOSURE");
     }
 
+    @Test
+    void acceptsMultipleIndependentRequiredFilesButStillRejectsMissingOrDuplicateReferences() {
+        var fixture = fixture();
+        fixture.attachments().add(attachment(3L, "POST_COLLECTION_CHECKLIST", "ref-check-second"));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.closure.context.CutoverClosureContext(
+                1L, 9L, "query-test", true, true, true);
+        var multiple = fixture.service().detail(context, 100L);
+        assertThat(multiple.content().attachments()).hasSize(3);
+        assertThat(multiple.allowedActions()).contains("SUBMIT_CLOSURE");
+
+        fixture.attachments().add(attachment(4L, "POST_COLLECTION_CHECKLIST", "ref-check-second"));
+        assertThat(fixture.service().detail(context, 100L).allowedActions()).doesNotContain("SUBMIT_CLOSURE");
+        fixture.attachments().removeLast();
+        fixture.attachments().removeIf(file -> "IMPLEMENTATION_COMMITMENT".equals(file.getPurposeCode()));
+        assertThat(fixture.service().detail(context, 100L).allowedActions()).doesNotContain("SUBMIT_CLOSURE");
+    }
+
 
     @Test void successAndFailureRemainReadableAfterTaskArchiveIncrement() {
         for (String result : List.of("SUCCESS", "FAILED")) {
@@ -53,7 +70,8 @@ class CutoverClosureActionEligibilityTest {
         assertThatThrownBy(() -> fixture.service().detail(new cn.iocoder.yudao.module.pms.cutover.service.closure.context.CutoverClosureContext(1L, 9L, "query-test", true, true, true), 100L))
                 .isInstanceOf(CutoverClosureApplicationException.class);
     }
-    private record Fixture(CutoverTaskDO task, CutoverClosureDO closure, CutoverClosureQueryService service) { }
+    private record Fixture(CutoverTaskDO task, CutoverClosureDO closure, CutoverClosureQueryService service,
+                           java.util.List<CutoverClosureAttachmentDO> attachments) { }
     private static Fixture fixture() {
         CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
         CutoverApprovalInstanceMapper approvalMapper = mock(CutoverApprovalInstanceMapper.class);
@@ -83,7 +101,8 @@ class CutoverClosureActionEligibilityTest {
         when(closureMapper.selectByTask(any())).thenReturn(closure);
         when(planMapper.selectById(300L)).thenReturn(plan);
         when(approvalMapper.selectById(200L)).thenReturn(approval);
-        when(attachmentMapper.selectListByClosure(any())).thenReturn(List.of(commitment, checklist));
+        var attachments = new java.util.ArrayList<>(List.of(commitment, checklist));
+        when(attachmentMapper.selectListByClosure(any())).thenReturn(attachments);
         when(evidenceMapper.selectListByClosure(any())).thenReturn(List.of());
         CutoverClosureQueryService service = new CutoverClosureQueryService(taskMapper, approvalMapper, planMapper,
                 closureMapper, attachmentMapper, evidenceMapper,
@@ -91,7 +110,7 @@ class CutoverClosureActionEligibilityTest {
         var storage = mock(CutoverClosureStorage.class);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
 
-        return new Fixture(task, closure, service);
+        return new Fixture(task, closure, service, attachments);
     }
 
     private static CutoverClosureAttachmentDO attachment(long id, String purpose, String reference) {

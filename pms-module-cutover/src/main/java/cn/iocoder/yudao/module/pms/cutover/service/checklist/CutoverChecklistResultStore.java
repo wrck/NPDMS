@@ -118,7 +118,9 @@ public class CutoverChecklistResultStore {
                 Map<String, Object> analysis = new LinkedHashMap<>(); analysis.put("value", value); answer.put("analysis", analysis);
             }
         } else if ("MANUAL".equals(result.getResultSourceCode())) {
-            answer.put("file", custom.manualFile(result));
+            var files = custom.manualFiles(result);
+            answer.put("files", files);
+            answer.put("file", files.isEmpty() ? null : files.getFirst());
             if ("COLLECTION".equals(query.item().getWorkModeCode())
                     && ("MANUAL_ANALYSIS_SAVED".equals(result.getSelectionReasonCode()) || feedback(result) != null)) {
                 answer.put("analysis", Collections.singletonMap("value", value(query)));

@@ -52,6 +52,22 @@ import static org.mockito.Mockito.when;
 class CutoverTaskApplicationServiceTest {
 
     @Test
+    void knownProjectDraftSaveDoesNotRediscoverProjectsFromSerials() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("known-project-source-read"));
+        var devices = (CutoverDeviceScopePort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service(), "deviceScopePort");
+        clearInvocations(devices);
+
+        fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D"));
+
+        verify(devices, org.mockito.Mockito.never()).resolveBySerials(org.mockito.ArgumentMatchers.anyList());
+        verify(devices).resolveBySerials(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(
+                1L, 100L, List.of("SN-400")));
+        assertEquals("P2", fixture.task().get().getCurrentStage());
+        assertNotNull(fixture.assessment().get());
+    }
+
+    @Test
     void sourceRefreshRejectsMissingReplacedAndForeignProjectDevicesBeforeWriting() {
         for (var current : List.<List<CutoverDeviceScopePort.DeviceFact>>of(List.of(),
                 List.of(new CutoverDeviceScopePort.DeviceFact(401L, "SN-400", 100L, 10L)),
@@ -59,7 +75,7 @@ class CutoverTaskApplicationServiceTest {
             var fixture = fixture();
             var created = fixture.service().create(createCommand("invalid-current-device"));
             var devices = (CutoverDeviceScopePort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service(), "deviceScopePort");
-            when(devices.resolveBySerials(List.of("SN-400"))).thenReturn(current);
+            when(devices.resolveBySerials(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(1L, 100L, List.of("SN-400")))).thenReturn(current);
             var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
                     () -> fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D")));
             assertEquals(CutoverTaskApplicationException.Code.DEVICE_SCOPE_STALE, failure.code());
@@ -126,7 +142,7 @@ class CutoverTaskApplicationServiceTest {
         when(projects.inspect(any())).thenReturn(latest);
         when(projects.lockAndRevalidate(any())).thenReturn(latest);
         var currentDevices = List.of(new CutoverDeviceScopePort.DeviceFact(400L, "SN-400", 100L, 10L));
-        when(devices.resolveBySerials(List.of("SN-400"))).thenReturn(currentDevices);
+        when(devices.resolveBySerials(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(1L, 100L, List.of("SN-400")))).thenReturn(currentDevices);
         when(devices.lockAndRevalidate(100L, currentDevices)).thenReturn(currentDevices);
         var saved = fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D"));
         assertEquals(4L, fixture.assessment().get().getProjectVersion());
@@ -554,7 +570,7 @@ class CutoverTaskApplicationServiceTest {
                 .expectedProjectScopeVersion(7L)
                 .build())).thenReturn(projectFact);
         when(projectContext.lockAndRevalidate(any())).thenReturn(projectFact);
-        when(deviceScope.resolveBySerials(List.of("SN-400"))).thenReturn(devices);
+        when(deviceScope.resolveBySerials(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(1L, 100L, List.of("SN-400")))).thenReturn(devices);
         when(deviceScope.lockAndRevalidate(100L, devices)).thenReturn(devices);
         when(productType.resolveAuthorized(8L, List.of(400L))).thenReturn(productTypes);
         when(customerLevel.inspect(200L)).thenReturn(customerFact);

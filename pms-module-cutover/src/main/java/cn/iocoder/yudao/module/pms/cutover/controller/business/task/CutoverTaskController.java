@@ -88,9 +88,9 @@ public class CutoverTaskController {
     @PostMapping("/creation-devices/resolve")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:create')")
     public CommonResult<ResolvedCreationDevices> resolveCreationDevices(@RequestBody JsonNode body) {
-        var request = requestCodec.resolveCreateContext(body);
+        var request = requestCodec.resolveCreationDevices(body);
         var result = creationQueries.resolve(new cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskCreationQueryService.ResolveQuery(
-                requestContext.current(), request.serialNumbers()));
+                requestContext.current(), request.serialNumbers(), request.projectId()));
         return success(new ResolvedCreationDevices(createContext(result.context()), result.devices()));
     }
 

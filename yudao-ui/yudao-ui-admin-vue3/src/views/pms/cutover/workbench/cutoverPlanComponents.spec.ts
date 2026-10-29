@@ -1,7 +1,7 @@
 import { defineComponent, h, nextTick, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CutoverPlanView } from '@/api/pms/cutover'
-import { getDevice } from '@/api/pms/asset/device'
+import { getCurrentDeviceSummaries } from '@/api/pms/asset/device'
 import { checkPermi } from '@/utils/permission'
 import CutoverPlanPanel from '../components/CutoverPlanPanel.vue'
 import CutoverPlanEditor from '../components/CutoverPlanEditor.vue'
@@ -74,7 +74,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(checkPermi).mockReturnValue(true)
-    vi.mocked(getDevice).mockReset().mockResolvedValue({ summary: { deviceId: '9007199254740995', sn: 'SN-001' } } as any)
+    vi.mocked(getCurrentDeviceSummaries).mockReset().mockResolvedValue([{ deviceId: '9007199254740995', sn: 'SN-001' }] as any)
     api.getCutoverExternalState.mockReset().mockResolvedValue({ checklistId: '301', devices: [], items: [] })
     api.getCutoverChecklist.mockReset().mockResolvedValue({ taskId: '101', checklistId: '301', checklistVersion: 3, status: 'SUBMITTED', items: [] })
     fileApi.getCurrentReference.mockReset().mockResolvedValue(null)
@@ -88,7 +88,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     const original = structuredClone(server)
     api.getCutoverPlan.mockResolvedValue(server)
     api.saveCutoverPlanDraft.mockReset().mockRejectedValue(new Error('response lost'))
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush()
       const state = (page.vm as any).$.setupState
@@ -114,7 +114,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
 
   it('offers discard after plan save permission changes while keeping the save authorization enforced', async () => {
     api.getCutoverPlan.mockResolvedValue(standardPlan([]))
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush()
       const state = (page.vm as any).$.setupState
@@ -130,15 +130,15 @@ describe('F-CUT-004 mounted plan workbench', () => {
   it('fills task device model and running version and saves them with the ordinary draft', async () => {
     let server = standardPlan(['SAVE_DRAFT'])
     const original = structuredClone(server)
-    vi.mocked(getDevice).mockResolvedValue({ summary: { deviceId: '9007199254740995', sn: 'SN-001', productModel: 'FW-1000', conpVersion: 'R-11' } } as any)
+    vi.mocked(getCurrentDeviceSummaries).mockResolvedValue([{ deviceId: '9007199254740995', sn: 'SN-001', productModel: 'FW-1000', conpVersion: 'R-11' }] as any)
     api.getCutoverPlan.mockImplementation(async () => structuredClone(server))
     api.saveCutoverPlanDraft.mockImplementation(async command => { server = { ...server, content: command.data, planVersion: 2 }; return server })
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush()
       expect(findByTestId(page.root, 'plan-device-9007199254740995-productModel')?.props?.['model-value']).toBe('FW-1000')
       expect(findByTestId(page.root, 'plan-device-9007199254740995-currentVersion')?.props?.['model-value']).toBe('R-11')
-      expect(getDevice).toHaveBeenCalledWith('9007199254740995')
+      expect(getCurrentDeviceSummaries).toHaveBeenCalledWith(['9007199254740995'], '9007199254741999')
       expect(server).toEqual(original)
       await click(page.root, 'save-plan'); await flush()
       expect(api.saveCutoverPlanDraft.mock.calls[0][0].data.overview.deviceDetails).toEqual([
@@ -152,10 +152,10 @@ describe('F-CUT-004 mounted plan workbench', () => {
     const server = standardPlan(['SAVE_DRAFT'])
     if (server.content?.editMode !== 'ONLINE_TEMPLATE_STANDARD') throw new Error('fixture')
     server.content.overview.deviceDetails = [{ deviceId: '9007199254740995', productModel: '原型号', currentVersion: '', targetVersion: '目标版本', remark: '原备注' }]
-    vi.mocked(getDevice).mockResolvedValue({ summary: { deviceId: '9007199254740995', sn: 'SN-001', productModel: '新型号', conpVersion: 'R-11' } } as any)
+    vi.mocked(getCurrentDeviceSummaries).mockResolvedValue([{ deviceId: '9007199254740995', sn: 'SN-001', productModel: '新型号', conpVersion: 'R-11' }] as any)
     api.getCutoverPlan.mockResolvedValue(server)
     api.saveCutoverPlanDraft.mockResolvedValue(server)
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush(); await click(page.root, 'save-plan')
       expect(api.saveCutoverPlanDraft.mock.calls[0][0].data.overview.deviceDetails[0]).toEqual({
@@ -182,7 +182,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     api.saveCutoverPlanDraft.mockResolvedValue(server)
     // CUT target versions do not require the separate asset-query permission.
     vi.mocked(checkPermi).mockReturnValue(false)
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush()
       expect(api.getCutoverExternalState).toHaveBeenCalledWith('101', '301')
@@ -194,7 +194,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
         { deviceId: '9007199254740996', productModel: 'FW-2000', currentVersion: 'R-12', targetVersion: '手填升级版本', remark: '' }
       ])
       expect(server.content.overview.deviceDetails[0].targetVersion).toBe('  ')
-      expect(getDevice).not.toHaveBeenCalled()
+      expect(getCurrentDeviceSummaries).not.toHaveBeenCalled()
     } finally { page.app.unmount() }
   })
 
@@ -204,7 +204,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
       { deviceId: '9007199254740995', sn: condition === 'wrong device' ? 'SN-OTHER' : 'SN-001', targetSoftwareVersion: condition === 'no target' ? null : 'R-99' }
     ] })
     api.getCutoverPlan.mockResolvedValue(standardPlan(['SAVE_DRAFT']))
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush()
       expect(api.getCutoverExternalState).toHaveBeenCalledOnce()
@@ -214,10 +214,10 @@ describe('F-CUT-004 mounted plan workbench', () => {
   })
 
   it.each(['failed', 'wrong device'])('keeps manual editing available when the device lookup is %s', async condition => {
-    if (condition === 'failed') vi.mocked(getDevice).mockRejectedValue(new Error('unavailable'))
-    else vi.mocked(getDevice).mockResolvedValue({ summary: { deviceId: '9007199254740996', sn: 'SN-OTHER', productModel: '不应填入' } } as any)
+    if (condition === 'failed') vi.mocked(getCurrentDeviceSummaries).mockRejectedValue(new Error('unavailable'))
+    else vi.mocked(getCurrentDeviceSummaries).mockResolvedValue([{ deviceId: '9007199254740996', sn: 'SN-OTHER', productModel: '不应填入' }] as any)
     api.getCutoverPlan.mockResolvedValue(standardPlan(['SAVE_DRAFT']))
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush()
       expect(findByTestId(page.root, 'plan-device-9007199254740995-productModel')?.props).toMatchObject({ 'model-value': '', disabled: false })
@@ -229,17 +229,16 @@ describe('F-CUT-004 mounted plan workbench', () => {
     const server = standardPlan(['SAVE_DRAFT'])
     if (server.content?.editMode !== 'ONLINE_TEMPLATE_STANDARD') throw new Error('fixture')
     server.content.overview.deviceSummary.push({ ...server.content.overview.deviceSummary[0], deviceId: '9007199254740996', serialNumber: 'SN-002' })
-    vi.mocked(getDevice).mockImplementation(async id => {
-      if (id === '9007199254740995') throw new Error('unavailable')
-      return { summary: { deviceId: id, sn: 'SN-002', productModel: '第二台型号', conpVersion: 'R-22' } } as any
-    })
+    vi.mocked(getCurrentDeviceSummaries).mockResolvedValue([{ deviceId: '9007199254740996', sn: 'SN-002', productModel: '第二台型号', conpVersion: 'R-22' }] as any)
     api.getCutoverPlan.mockResolvedValue(server)
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush()
       expect(findByTestId(page.root, 'plan-device-9007199254740995-productModel')?.props?.['model-value']).toBe('')
       expect(findByTestId(page.root, 'plan-device-9007199254740996-productModel')?.props?.['model-value']).toBe('第二台型号')
       expect(findByTestId(page.root, 'plan-device-9007199254740996-currentVersion')?.props?.['model-value']).toBe('R-22')
+      expect(getCurrentDeviceSummaries).toHaveBeenCalledOnce()
+      expect(getCurrentDeviceSummaries).toHaveBeenCalledWith(['9007199254740995', '9007199254740996'], '9007199254741999')
       expect(textOf(page.root)).toContain('部分设备信息暂时无法读取')
     } finally { page.app.unmount() }
   })
@@ -249,20 +248,39 @@ describe('F-CUT-004 mounted plan workbench', () => {
     if (condition === 'submitted') { server.status = 'SUBMITTED'; server.allowedActions = [] }
     if (condition === 'no device permission') vi.mocked(checkPermi).mockReturnValue(false)
     api.getCutoverPlan.mockResolvedValue(server)
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A', readonly: condition === 'readonly' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A', readonly: condition === 'readonly' }, controls)
     try {
       await flush()
-      expect(getDevice).not.toHaveBeenCalled()
+      expect(getCurrentDeviceSummaries).not.toHaveBeenCalled()
       if (condition !== 'no device permission') expect(api.getCutoverExternalState).not.toHaveBeenCalled()
       expect(findByTestId(page.root, 'plan-device-9007199254740995-productModel')?.props?.['model-value']).toBe('')
       expect(api.saveCutoverPlanDraft).not.toHaveBeenCalled()
     } finally { page.app.unmount() }
   })
 
+  it('does not replace a newly opened task with an older pending summary batch', async () => {
+    const first = standardPlan(['SAVE_DRAFT'])
+    const second = { ...standardPlan(['SAVE_DRAFT']), taskId: '102', planRevisionId: '502', sourceSnapshot: null }
+    api.getCutoverPlan.mockImplementation(async id => id === '101' ? first : second)
+    let resolveOld!: (value: any) => void
+    vi.mocked(getCurrentDeviceSummaries).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve }))
+      .mockResolvedValueOnce([{ deviceId: '9007199254740995', sn: 'SN-001', productModel: '当前型号' }] as any)
+    const taskId = ref('101')
+    const page = mount(defineComponent({ setup: () => () => h(CutoverPlanPanel,
+      { taskId: taskId.value, projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }) }), {}, controls)
+    try {
+      await vi.waitFor(() => expect(getCurrentDeviceSummaries).toHaveBeenCalledOnce())
+      taskId.value = '102'
+      await vi.waitFor(() => expect(findByTestId(page.root, 'plan-device-9007199254740995-productModel')?.props?.['model-value']).toBe('当前型号'))
+      resolveOld([{ deviceId: '9007199254740995', sn: 'SN-001', productModel: '过期型号' }]); await flush()
+      expect(findByTestId(page.root, 'plan-device-9007199254740995-productModel')?.props?.['model-value']).toBe('当前型号')
+    } finally { page.app.unmount() }
+  })
+
   it('edits and saves the complete A/B/C standard content exposed by server actions', async () => {
     api.getCutoverPlan.mockResolvedValue(standardPlan(['SAVE_DRAFT', 'SUBMIT_PLAN']))
     api.saveCutoverPlanDraft.mockResolvedValue(standardPlan(['SAVE_DRAFT', 'SUBMIT_PLAN']))
-    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     await flush()
 
     const description = findByTestId(mounted.root, 'plan-project-description')!
@@ -292,7 +310,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
       { stableItemKey: 'SURVEY_BUSINESS_SUMMARY', applicable: true, currentResult: { answerSnapshot: JSON.stringify({ value: '办公业务' }) } }
     ] })
     api.getCutoverPlan.mockResolvedValue(server)
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush()
       expect(api.getCutoverChecklist).toHaveBeenCalledWith('101', '301')
@@ -327,7 +345,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     api.getCutoverPlan.mockResolvedValue(server)
     const blob = new Blob(['submitted-document'])
     api.downloadSubmittedCutoverPlan.mockResolvedValue(blob)
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A', readonly: true }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A', readonly: true }, controls)
     try {
       await flush()
       expect(textOf(page.root)).toContain('下载方案')
@@ -350,7 +368,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'a'.repeat(64) }] })
     fileApi.createAccessTicket.mockResolvedValue({ shortLivedUrl: '/current-rendering' })
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush(); await click(page.root, 'download-plan'); await flush()
       expect(api.downloadCutoverPlanDraft).toHaveBeenCalledWith({ taskId: '101', planVersion: 1, idempotencyKey: expect.any(String) })
@@ -367,7 +385,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'a'.repeat(64) }] })
     fileApi.createAccessTicket.mockResolvedValue({ shortLivedUrl: '/authorized-submitted-file' })
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A', readonly: true }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A', readonly: true }, controls)
     try {
       await flush(); await click(page.root, 'download-plan'); await flush()
       expect(fileApi.createAccessTicket).toHaveBeenCalledWith(uploadedFact().artifactId, 4, 'DOWNLOAD', {
@@ -382,7 +400,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
   it('retains the submitted download button after an export failure and allows retry without saving', async () => {
     api.getCutoverPlan.mockResolvedValue({ ...standardPlan([]), status: 'SUBMITTED' })
     api.downloadSubmittedCutoverPlan.mockRejectedValueOnce(new Error('unavailable')).mockResolvedValueOnce(new Blob(['retry']))
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush(); await click(page.root, 'download-plan'); await flush()
       expect(findByTestId(page.root, 'download-plan')!.props!.loading).toBe(false)
@@ -395,7 +413,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
   it('does not download another revision when the task has changed after the page opened', async () => {
     const original = { ...standardPlan([]), status: 'SUBMITTED' }
     api.getCutoverPlan.mockResolvedValueOnce(original).mockResolvedValue({ ...original, planRevisionId: '502' })
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush(); await click(page.root, 'download-plan'); await flush()
       expect(api.downloadSubmittedCutoverPlan).not.toHaveBeenCalled()
@@ -413,7 +431,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     })
     fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'a'.repeat(64) }] })
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush(); await flush()
       await (findByTestId(page.root, 'plan-project-description')!.props!['onUpdate:modelValue'] as Function)('保留当前填写')
@@ -437,7 +455,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
   })
 
   it.each(['A', 'D'] as const)('restores the uploaded reference after saving and reopening a %s online draft', async grade => {
-    vi.mocked(getDevice).mockResolvedValue({ summary: { deviceId: '9007199254740995', sn: 'SN-001', productModel: 'FW-1000', conpVersion: 'R-11' } } as any)
+    vi.mocked(getCurrentDeviceSummaries).mockResolvedValue([{ deviceId: '9007199254740995', sn: 'SN-001', productModel: 'FW-1000', conpVersion: 'R-11' }] as any)
     let server = standardPlan(['SAVE_DRAFT'])
     server.sourceSnapshot!.grade = grade
     server.content = { editMode: 'FULL_FILE_UPLOAD', fileArtifactFact: { ...uploadedFact(), referenceKey: 'cutover-plan-101' }, ownershipConfirmed: true, scheduledTime: 1793498400000 }
@@ -450,10 +468,10 @@ describe('F-CUT-004 mounted plan workbench', () => {
     api.saveCutoverPlanDraft.mockImplementation(async command => {
       server = { ...server, content: structuredClone(command.data), planVersion: server.planVersion! + 1 }
     })
-    const props = { taskId: '101', taskVersion: 7, manualGrade: grade }
+    const props = { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: grade }
     const page = mount(CutoverPlanPanel, props, controls)
     await flush(); await flush(); await flush()
-    expect(getDevice).not.toHaveBeenCalled()
+    expect(getCurrentDeviceSummaries).not.toHaveBeenCalled()
     await (findByTestId(page.root, 'plan-edit-mode')!.props!['onUpdate:modelValue'] as Function)(grade === 'D' ? 'ONLINE_TEMPLATE_SIMPLE_D' : 'ONLINE_TEMPLATE_STANDARD')
     await flush(); await flush()
     await click(page.root, 'save-plan'); await flush(); await flush()
@@ -463,7 +481,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
       expect(server.content).toMatchObject({ overview: { deviceDetails: [
         { deviceId: '9007199254740995', productModel: 'FW-1000', currentVersion: 'R-11', targetVersion: '', remark: '' }
       ] } })
-    } else expect(getDevice).not.toHaveBeenCalled()
+    } else expect(getCurrentDeviceSummaries).not.toHaveBeenCalled()
     expect(original.content!.editMode).toBe('FULL_FILE_UPLOAD')
     page.app.unmount()
     const reopened = mount(CutoverPlanPanel, props, controls)
@@ -477,7 +495,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
   it('disables mode changes until failed file reference loading is retried, and does not expose changes for submitted plans', async () => {
     api.getCutoverPlan.mockResolvedValue(standardPlan(['SAVE_DRAFT']))
     fileApi.getCurrentReference.mockRejectedValueOnce(new Error('unavailable'))
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush(); await flush()
       expect(findByTestId(page.root, 'plan-edit-mode')!.props!.disabled).toBe(true)
@@ -486,7 +504,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     } finally { page.app.unmount() }
     const submitted = { ...standardPlan(['DOWNLOAD_DRAFT']), status: 'SUBMITTED' }
     api.getCutoverPlan.mockResolvedValue(submitted)
-    const history = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A', readonly: true }, controls)
+    const history = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A', readonly: true }, controls)
     try { await flush(); expect(findByTestId(history.root, 'plan-edit-mode')).toBeUndefined() }
     finally { history.app.unmount() }
   })
@@ -501,7 +519,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     fileApi.getCurrentReference.mockResolvedValue({ artifactId: '9007199254740993', versionNo: 4, referenceVersion: 3, status: 'ACTIVE' })
     fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'a'.repeat(64) }] })
-    const page = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const page = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush(); await flush(); await flush()
       expect(textOf(page.root)).not.toContain('内容已修改')
@@ -568,7 +586,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     api.createCutoverPlanDraft.mockResolvedValue(standardPlan([]))
     fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'a'.repeat(64) }] })
-    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     await flush()
 
     const mode = findByTestId(mounted.root, 'plan-create-mode')!
@@ -612,7 +630,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     api.downloadCutoverPlanDraft.mockRejectedValueOnce({ response: { status: 422, data: {
       msg: '方案内容尚未完整', data: { category: 'BUSINESS_INCOMPLETE', reasonCode: 'PLAN_SECTION_INCOMPLETE', recoveryAction: 'FIX_REQUEST' }
     } } })
-    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     await flush()
     await click(mounted.root, 'download-plan'); await flush()
     expect(messages.error).toHaveBeenCalledWith('方案内容尚未完整，请补充方案各章节及步骤后再生成或提交。')
@@ -627,7 +645,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     api.downloadCutoverPlanDraft.mockRejectedValueOnce({ response: { status: 422, data: {
       msg: '方案内容尚未完整', data: { category: 'BUSINESS_INCOMPLETE', reasonCode: 'PLAN_SECTION_INCOMPLETE', recoveryAction: 'FIX_REQUEST' }
     } } })
-    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'C' }, controls)
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'C' }, controls)
     await flush()
     await click(mounted.root, 'download-plan'); await flush()
     expect(messages.error).toHaveBeenCalledWith('保障安排缺少角色：迪普一线工程师。请新增人员并补齐保障信息。')
@@ -640,6 +658,46 @@ describe('F-CUT-004 mounted plan workbench', () => {
     mounted.app.unmount()
   })
 
+  it.each(['请填写计划割接时间', '方案步骤不完整', '标准方案概览不完整'])(
+    'keeps the specific server rejection %s without redirecting to unrelated support fields', async (serverMessage) => {
+      api.getCutoverPlan.mockResolvedValue(standardPlan(['DOWNLOAD_DRAFT']))
+      api.downloadCutoverPlanDraft.mockRejectedValueOnce({ response: { status: 422, data: {
+        msg: serverMessage,
+        data: { category: 'BUSINESS_INCOMPLETE', reasonCode: 'PLAN_SECTION_INCOMPLETE', recoveryAction: 'FIX_REQUEST' }
+      } } })
+      const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'C' }, controls)
+      await flush()
+      await click(mounted.root, 'download-plan'); await flush()
+      expect(messages.error).toHaveBeenCalledWith(serverMessage)
+      expect(supportValidationFocus).not.toHaveBeenCalled()
+      expect(textOf(mounted.root)).not.toContain('保障安排缺少角色')
+      expect(api.submitCutoverPlan).not.toHaveBeenCalled()
+      expect(fileApi.createAccessTicket).not.toHaveBeenCalled()
+      mounted.app.unmount()
+    }
+  )
+
+  it('highlights customer support after the server rejects a missing customer arrangement', async () => {
+    const plan = standardPlan(['SUBMIT_PLAN'])
+    if (plan.content?.editMode === 'ONLINE_TEMPLATE_STANDARD') plan.content.supportArrangements = []
+    api.getCutoverPlan.mockResolvedValue(plan)
+    api.submitCutoverPlan.mockRejectedValueOnce({ response: { status: 422, data: {
+      msg: '客户保障安排尚未填写',
+      data: { category: 'BUSINESS_INCOMPLETE', reasonCode: 'SUPPORT_ARRANGEMENT_INCOMPLETE', recoveryAction: 'FIX_REQUEST' }
+    } } })
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'C' }, controls)
+    try {
+      await flush()
+      await click(mounted.root, 'submit-plan'); await flush()
+      expect(messages.error).toHaveBeenCalledWith('保障安排缺少角色：客户、迪普一线工程师。请新增人员并补齐保障信息。')
+      expect(textOf(mounted.root)).toContain('保障安排缺少角色：客户')
+      expect(supportValidationFocus).toHaveBeenCalledOnce()
+      expect(api.submitCutoverPlan).toHaveBeenCalledOnce()
+      expect(api.saveCutoverPlanDraft).not.toHaveBeenCalled()
+      expect(api.downloadCutoverPlanDraft).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
   it('executes download, submit and rejected revision only from server allowedActions', async () => {
     api.getCutoverPlan.mockResolvedValue(standardPlan(['DOWNLOAD_DRAFT', 'SUBMIT_PLAN', 'REVISE_PLAN'], 'REJECTED'))
     api.downloadCutoverPlanDraft.mockResolvedValue({
@@ -649,7 +707,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     api.submitCutoverPlan.mockResolvedValue({ taskId: '101' })
     api.reviseCutoverPlan.mockResolvedValue(standardPlan([]))
     fileApi.createAccessTicket.mockResolvedValue({ shortLivedUrl: 'https://download.local/ticket' })
-    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     await flush()
 
     await click(mounted.root, 'download-plan'); await flush()
@@ -759,7 +817,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
         ? { ...business, artifactId: original.artifactId, versionNo: 2, referenceVersion: 1, status: 'ACTIVE' } : null)
       fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 1 } })
       fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 2, availabilityVersion: 1, sha256: 'b'.repeat(64) }] })
-      const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+      const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
       try {
         await flush(); await flush()
         await click(mounted.root, 'save-plan'); await flush()
@@ -796,7 +854,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     let complete!: (value: unknown) => void
     fileApi.getCurrentReference.mockImplementationOnce(() => new Promise(resolve => { complete = resolve }))
     api.getCutoverPlan.mockResolvedValue(standardPlan(['SAVE_DRAFT']))
-    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush()
       expect(findByTestId(mounted.root, 'save-plan')!.props?.disabled).toBe(true)
@@ -955,7 +1013,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     api.saveCutoverPlanDraft.mockResolvedValue(standardPlan([]))
     fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'b'.repeat(64) }] })
-    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     await flush()
 
     for (const field of ['preTopologyFile', 'postTopologyFile', 'networkConfigurationFile']) {
@@ -981,7 +1039,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
       .mockRejectedValueOnce(new Error('refresh unavailable'))
       .mockResolvedValue(standardPlan(['SAVE_DRAFT']))
     api.saveCutoverPlanDraft.mockResolvedValue(standardPlan(['SAVE_DRAFT']))
-    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     await flush()
 
     await click(mounted.root, 'save-plan'); await flush()
@@ -998,7 +1056,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     api.saveCutoverPlanDraft.mockRejectedValueOnce({ response: { status: 409, data: {
       msg: '方案来源事实已变化或尚未完成，请刷新前序环节', data: { recoveryAction: 'REFRESH_OWNER_FACTS' }
     } } })
-    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush()
       await (findByTestId(mounted.root, 'plan-project-description')!.props?.['onUpdate:modelValue'] as Function)('不能丢失的项目概述')
@@ -1021,7 +1079,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     api.submitCutoverPlan.mockRejectedValueOnce({ response: { status: 422, data: {
       msg: '方案内容尚未完整', data: { reasonCode: 'PLAN_SECTION_INCOMPLETE', recoveryAction: 'START_NEW_INTENT' }
     } } })
-    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', projectId: '9007199254741999', taskVersion: 7, manualGrade: 'A' }, controls)
     try {
       await flush()
       await (findByTestId(mounted.root, 'plan-project-description')!.props?.['onUpdate:modelValue'] as Function)('已落为草稿的填写')

@@ -103,10 +103,30 @@ public class CutoverTaskQueryService {
     }
 
     public CutoverTaskViews.CreateContextData resolveCreateContext(CutoverTaskContext context, List<String> serialNumbers) {
+        return resolveCreateContext(new CreateContextQuery(context, null, serialNumbers));
+    }
+
+    public record CreateContextQuery(CutoverTaskContext context, Long projectId, List<String> serialNumbers) { }
+
+    public CutoverTaskViews.CreateContextData resolveCreateContext(CreateContextQuery query) {
+        var context = query.context();
         Long tenantId = context.tenantId();
         Long actorId = context.actorId();
-        List<String> normalized = normalizeSerials(serialNumbers);
-        List<CutoverDeviceScopePort.DeviceFact> devices = deviceScopePort.resolveBySerials(normalized);
+        List<String> normalized = normalizeSerials(query.serialNumbers());
+        CutoverProjectScopePort.ProjectScopeFact selectedScope = null;
+        List<CutoverDeviceScopePort.DeviceFact> devices;
+        if (query.projectId() == null) {
+            devices = deviceScopePort.resolveBySerials(normalized);
+        } else {
+            require(query.projectId() > 0, INVALID_REQUEST, "请选择项目");
+            selectedScope = projectScopePort.inspect(actorId, query.projectId(), ACTION_EDIT);
+            require(selectedScope != null, PROJ_PROVIDER_UNAVAILABLE, "项目范围事实不可用");
+            require(selectedScope.allowed() && Objects.equals(selectedScope.projectId(), query.projectId()),
+                    DATA_SCOPE_FORBIDDEN, "项目不在可创建割接任务的范围内");
+            devices = deviceScopePort.resolveBySerials(
+                    new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(
+                            tenantId, query.projectId(), normalized));
+        }
         require(devices != null && !devices.isEmpty()
                         && devices.stream().map(device -> serialKey(device.serialNumber())).collect(Collectors.toSet())
                             .equals(normalized.stream().map(CutoverTaskQueryService::serialKey).collect(Collectors.toSet())), AST_PROVIDER_UNAVAILABLE,
@@ -117,7 +137,9 @@ public class CutoverTaskQueryService {
                         LinkedHashMap::new, Collectors.toList()));
         List<CutoverTaskViews.CreateContextCandidate> candidates = new ArrayList<>();
         for (Map.Entry<Long, List<CutoverDeviceScopePort.DeviceFact>> entry : byProject.entrySet()) {
-            CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.inspect(actorId, entry.getKey(), ACTION_EDIT);
+            if (query.projectId() != null && !query.projectId().equals(entry.getKey())) continue;
+            CutoverProjectScopePort.ProjectScopeFact scope = selectedScope == null
+                    ? projectScopePort.inspect(actorId, entry.getKey(), ACTION_EDIT) : selectedScope;
             if (scope == null || !scope.allowed()) {
                 continue;
             }
@@ -150,9 +172,14 @@ public class CutoverTaskQueryService {
     protected P2ActionEligibility p2ActionEligibility(
             CutoverTaskContext context, CutoverTaskDO task,
             CutoverTaskViews.StoredAssessmentContext stored, CutoverAssessmentDO assessment) {
-        Long tenantId = context.tenantId();
+        var editEligibility = p2EditEligibility(context, task, assessment);
+        if (!editEligibility.editAllowed()) return editEligibility;
+        return p2SubmissionEligibility(context, task, stored, assessment);
+    }
+
+    private P2ActionEligibility p2EditEligibility(
+            CutoverTaskContext context, CutoverTaskDO task, CutoverAssessmentDO assessment) {
         Long actorId = context.actorId();
-        var storedDevices = stored.devices();
         if (!CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
                 || !actorId.equals(task.getOwnerUserId())
                 || !CutoverTaskRules.STATUS_GRADE_CONFIRMING.equals(task.getTaskStatus())
@@ -167,16 +194,25 @@ public class CutoverTaskQueryService {
         if (!Objects.equals(task.getProjectScopeVersion(), editScope.projectScopeVersion())) {
             return new P2ActionEligibility(false, false, null, "项目范围版本已变化，请核查原任务项目范围后再办理");
         }
+        return new P2ActionEligibility(true, false, null, null);
+    }
+
+    private P2ActionEligibility p2SubmissionEligibility(
+            CutoverTaskContext context, CutoverTaskDO task,
+            CutoverTaskViews.StoredAssessmentContext stored, CutoverAssessmentDO assessment) {
+        Long tenantId = context.tenantId();
+        var storedDevices = stored.devices();
         try {
             var currentProject = projectContextPort.inspect(CutoverProjectContextPort.Inspection.builder()
                     .tenantId(tenantId).projectId(task.getProjectId())
-                    .expectedProjectScopeVersion(editScope.projectScopeVersion()).build());
+                    .expectedProjectScopeVersion(task.getProjectScopeVersion()).build());
             require(currentProject != null && tenantId.equals(currentProject.tenantId())
                     && task.getProjectId().equals(currentProject.projectId())
-                    && currentProject.projectScopeVersion() == editScope.projectScopeVersion(),
+                    && currentProject.projectScopeVersion() == task.getProjectScopeVersion(),
                     PROJ_PROVIDER_UNAVAILABLE, "项目来源暂不可用，请刷新重试");
-            var currentDevices = deviceScopePort.resolveBySerials(storedDevices.stream()
-                    .map(CutoverDeviceScopePort.DeviceFact::serialNumber).toList());
+            var currentDevices = deviceScopePort.resolveBySerials(
+                    new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(tenantId, task.getProjectId(),
+                            storedDevices.stream().map(CutoverDeviceScopePort.DeviceFact::serialNumber).toList()));
             if (!sameSelectedDevices(storedDevices, currentDevices)) {
                 return new P2ActionEligibility(true, false, null,
                         "原选设备已缺失、替换或不属于当前项目，请核查设备归属后重试");
@@ -261,10 +297,21 @@ public class CutoverTaskQueryService {
         return new TaskAccess(task, projectRead);
     }
 
-    /** Same action rules as detail; P3 does not need the display-only device/readiness payload. */
+    /** Test existing save actions before loading sources needed only for submission. */
     public boolean hasWorkbenchAction(ActionQuery query) {
         TaskAccess access = readAccess(query);
         if (!access.projectRead()) return false;
+        if ("P2".equals(access.task().getCurrentStage())) {
+            var task = access.task();
+            var assessment = task.getCurrentAssessmentId() == null ? null : assessmentMapper.selectById(task.getCurrentAssessmentId());
+            var editEligibility = p2EditEligibility(query.context(), task, assessment);
+            if (!allowedActions(task, assessment, null, query.context(), editEligibility).isEmpty()) return true;
+            if (!editEligibility.editAllowed() || !query.context().canSubmitAssessment()) return false;
+            var stored = new CutoverTaskViews.StoredAssessmentContext(CutoverTaskSnapshotStore.project(task),
+                    taskDevices(task), null, CutoverTaskSnapshotStore.customer(task));
+            var eligibility = p2SubmissionEligibility(query.context(), task, stored, assessment);
+            return !allowedActions(task, assessment, null, query.context(), eligibility).isEmpty();
+        }
         if (!"P3".equals(access.task().getCurrentStage())) return !detail(query, access).allowedActions().isEmpty();
         var task = access.task();
         var assessment = task.getCurrentAssessmentId() == null ? null : assessmentMapper.selectById(task.getCurrentAssessmentId());

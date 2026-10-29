@@ -384,8 +384,8 @@ public class CutoverPlanApplicationService {
         requireSameSource(sourceFacts, lockedSource);
         CutoverPlanContentCodec.DecodedContent content = storedContent(command.tenantId(), plan, sourceFacts);
         contacts.validate(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Query(command.tenantId(), command.actorId(), task.getProjectId()), content, true);
+        if (CutoverPlanScheduleTime.value(content.rootSnapshot()) == null) throw failure(PLAN_SECTION_INCOMPLETE, "请填写计划割接时间");
         try {
-            if (CutoverPlanScheduleTime.value(content.rootSnapshot()) == null) throw new IllegalArgumentException("请填写计划割接时间");
             codec.validateComplete(content, sourceFacts);
         } catch (IllegalArgumentException ex) {
             throw failure(PLAN_SECTION_INCOMPLETE, "方案内容尚未完整");

@@ -45,7 +45,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistExportService;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistMatcher;
-import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistWorkbookWriter;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistSummaryWorkbookWriter;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverNavigationDecisionPolicy;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverNavigationDecisionQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverChecklistFilePort;
@@ -221,10 +221,10 @@ public class CutoverStageConfiguration {
     CutoverNavigationDecisionPolicy cutoverNavigationDecisionPolicy() { return new CutoverNavigationDecisionPolicy(); }
 
     @Bean
-    CutoverChecklistWorkbookWriter cutoverChecklistWorkbookWriter() { return new CutoverChecklistWorkbookWriter(); }
+    CutoverChecklistSummaryWorkbookWriter cutoverChecklistWorkbookWriter() { return new CutoverChecklistSummaryWorkbookWriter(); }
 
     @Bean
-    CutoverChecklistExportService cutoverChecklistExportService(CutoverChecklistApplicationService service, CutoverChecklistWorkbookWriter writer, OperationAuditApi audit) {
+    CutoverChecklistExportService cutoverChecklistExportService(CutoverChecklistApplicationService service, CutoverChecklistSummaryWorkbookWriter writer, OperationAuditApi audit) {
         return new CutoverChecklistExportService(service, writer, audit);
     }
 }

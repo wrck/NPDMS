@@ -13,6 +13,9 @@ public final class CutoverTaskReqVO {
     public record ResolveCreateContext(List<String> serialNumbers) {
     }
 
+    public record ResolveCreationDevices(List<String> serialNumbers, Long projectId) {
+    }
+
     public record ProjectContext(Long projectId, Integer projectVersion, String projectCode, String projectName,
                                  Long customerId, String customerCode, String customerName,
                                  Long departmentId, String departmentCode, String departmentName) {

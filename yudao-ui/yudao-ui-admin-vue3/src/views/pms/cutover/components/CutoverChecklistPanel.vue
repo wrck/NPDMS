@@ -72,7 +72,7 @@
           <CutoverChecklistField
             v-for="row in group.items" :key="row.stableItemKey" :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" embedded
             :validation-message="validationKey === row.stableItemKey ? validationMessage : undefined"
-            :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" @manual="saveManual"
+            :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" :save-manual="saveManual"
             :external-state="externalState?.items.find(item => item.stableItemKey === row.stableItemKey)" :external-feedback="externalFeedbacks[row.stableItemKey]"
             :external-busy="externalBusy || saving || submitting" :version-dirty="deviceVersionsDirty"
             @external-feedback="setExternalFeedback" @external-load="loadExternal" @external-save="saveExternalFeedback"
@@ -89,7 +89,7 @@
                   <CutoverChecklistField
                     :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" :table-row="true"
                     :validation-message="validationKey === row.stableItemKey ? validationMessage : undefined"
-                    :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" @manual="saveManual"
+                    :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" :save-manual="saveManual"
                     :external-state="externalState?.items.find(item => item.stableItemKey === row.stableItemKey)" :external-feedback="externalFeedbacks[row.stableItemKey]"
                     :external-busy="externalBusy || saving || submitting" :version-dirty="deviceVersionsDirty"
                     @external-feedback="setExternalFeedback" @external-load="loadExternal" @external-save="saveExternalFeedback"
@@ -103,7 +103,7 @@
                 <CutoverChecklistField
                   :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" :table-row="true"
                   :validation-message="validationKey === row.stableItemKey ? validationMessage : undefined"
-                  :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" @manual="saveManual"
+                  :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" :save-manual="saveManual"
                   :external-state="externalState?.items.find(item => item.stableItemKey === row.stableItemKey)" :external-feedback="externalFeedbacks[row.stableItemKey]"
                   :external-busy="externalBusy || saving || submitting" :version-dirty="deviceVersionsDirty"
                   @external-feedback="setExternalFeedback" @external-load="loadExternal" @external-save="saveExternalFeedback"
@@ -162,7 +162,7 @@ import {
 import CutoverChecklistField from './CutoverChecklistField.vue'
 import { findChecklistValidationItem, focusChecklistValidationItem } from '../shared/cutoverChecklistValidation'
 import { needsDeviceListFields, rebuildTaskDeviceAnswer } from '../shared/cutoverDeviceSource'
-import { getDevicePage, type DeviceListVO } from '@/api/pms/asset/device'
+import { getCurrentDeviceSummaries, type DeviceCurrentSummaryVO } from '@/api/pms/asset/device'
 import { checkPermi } from '@/utils/permission'
 
 const isTableItem = (item: CutoverChecklistItem) => {
@@ -210,7 +210,7 @@ const frozenDeviceTypeCodes = ref<string[]>([])
 const rematching = ref(false)
 const savedAnswers = ref('')
 const answers = reactive<Record<string, string>>({})
-const deviceListRows = ref<Record<string, DeviceListVO>>({})
+const deviceListRows = ref<Record<string, DeviceCurrentSummaryVO>>({})
 const deviceListError = ref('')
 let deviceListRequest: Promise<void> = Promise.resolve()
 const loading = ref(false)
@@ -289,18 +289,17 @@ const loadDeviceList = async (sequence: number) => {
   const projectId = props.detail.task.projectId
   const checklistId = checklist.value.checklistId
   const devices = props.detail.devices
-  const results = await Promise.allSettled(devices.map(async device => {
-    const page = await getDevicePage({ sn: device.serialNumber, pageNo: 1, pageSize: 100 })
-    const row = page.list.find(row => String(row.deviceId) === String(device.deviceId) && row.sn === device.serialNumber
-      && (projectId == null || String(row.projectId) === String(projectId)))
-    if (!row) throw new Error('任务设备与设备清单不匹配')
-    return row
-  }))
+  const summaries = devices.length
+    ? await getCurrentDeviceSummaries(devices.map(device => device.deviceId), props.detail.task.projectId).catch(() => []) : []
   if (sequence !== loadSequence || String(taskId) !== String(props.detail.task.id)
     || String(checklistId) !== String(checklist.value?.checklistId) || readonly.value || !canSave.value) return
-  deviceListRows.value = Object.fromEntries(results.flatMap((result, index) => result.status === 'fulfilled'
-    ? [[String(devices[index].deviceId), result.value]] : []))
-  deviceListError.value = results.some(result => result.status === 'rejected') ? '部分设备资料暂时无法读取，已有填写已保留，可刷新重试。' : ''
+  const byId = new Map(summaries.map(summary => [String(summary.deviceId), summary]))
+  deviceListRows.value = Object.fromEntries(devices.flatMap(device => {
+    const row = byId.get(String(device.deviceId))
+    return row && row.sn === device.serialNumber && (projectId == null || String(row.projectId) === String(projectId))
+      ? [[String(device.deviceId), row]] : []
+  }))
+  deviceListError.value = Object.keys(deviceListRows.value).length < devices.length ? '部分设备资料暂时无法读取，已有填写已保留，可刷新重试。' : ''
   fillDeviceAnswers()
 }
 const load = async () => {
@@ -620,8 +619,8 @@ const rematch = async () => {
   } finally { deviceTypeCodes.value = selected; rematching.value = false }
 }
 const saveManual = async (stableItemKey: string, file: ChecklistFileHandle, factDescription: string) => {
-  if (!checklist.value || !canSave.value || readonly.value) return
-  if (!(await beforeWrite())) return
+  if (!checklist.value || !canSave.value || readonly.value) return false
+  if (!(await beforeWrite())) return false
   const checklistId = String(checklist.value.checklistId)
   const taskId = String(props.detail.task.id)
   const previousAnswers = JSON.parse(savedAnswers.value) as Record<string, string>
@@ -645,9 +644,10 @@ const saveManual = async (stableItemKey: string, file: ChecklistFileHandle, fact
         hydrateExternal(await CutoverApi.getCutoverExternalState(props.detail.task.id, historicalRevisionId.value))
       }
     } })
-    if (!outcome.writeCalled || !outcome.refreshSucceeded) return
-    if (!(await saveDirect())) return
+    if (!outcome.writeCalled || !outcome.refreshSucceeded) return false
+    if (!(await saveDirect())) return false
     message.success('人工证据已选为当前结果')
+    return true
   } finally { externalBusy.value = false }
 }
 const addCustom = async () => {

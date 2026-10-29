@@ -14,6 +14,11 @@ const answer = computed<any>(() => {
     try {
       const snapshot = JSON.parse(props.snapshot)
       result = snapshot?.analysis ?? snapshot
+      if (result !== null && typeof result === 'object' && 'files' in result
+          && Array.isArray(result.files) && 'file' in result) {
+        const { file: _legacyFirstFile, ...multipleFiles } = result
+        result = multipleFiles
+      }
       if (result !== null && typeof result === 'object' && Object.prototype.hasOwnProperty.call(result, 'value')) result = (result as Record<string, unknown>).value
     } catch { return props.snapshot }
   }
@@ -40,7 +45,7 @@ const labels: Record<string, string> = {
   concurrentConnections: '并发连接数', newConnections: '新建连接数', cpuUsage: 'CPU使用率', memoryUsage: '内存使用率',
   hasBulletins: '是否有相关技术公告', queryBasis: '版本与查询依据', bulletins: '技术公告', number: '公告编号',
   subject: '主题', solution: '解决方案', involved: '本次是否涉及', measures: '采取措施',
-  normal: '检查是否正常', passed: '是否通过', resultCode: '检查结果', factDescription: '事实说明', file: '附件',
+  normal: '检查是否正常', passed: '是否通过', resultCode: '检查结果', factDescription: '事实说明', file: '附件', files: '附件',
   majorCutover: '本次是否为重大割接项目', spareReference: '备件外部申请引用或人工核验说明',
   collectionTaskId: '采集任务编号', deviceId: '采集设备编号', commandTemplateId: '采集命令模板编号',
   technicalStatus: '采集技术状态编码', resultReferenceId: '采集结果引用编号', resultVersion: '采集结果版本',

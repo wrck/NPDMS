@@ -44,8 +44,8 @@ import static org.mockito.Mockito.*;
 class CutoverPlanSubmissionTest {
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(ints = {1, 0})
-    void downloadsCompleteSimpleDraftWithoutAdvancingTaskOrPlan(int boundRows) {
+    @org.junit.jupiter.params.provider.CsvSource({"1,true", "0,true", "1,false"})
+    void downloadsSimpleDraftOrRejectsMissingTimeWithoutAdvancingTaskOrPlan(int boundRows, boolean scheduled) {
         CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
         CutoverPlanStepMapper stepMapper = mock(CutoverPlanStepMapper.class);
@@ -96,6 +96,17 @@ class CutoverPlanSubmissionTest {
                 org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
 
         injectStorage(service, plan, facts.snapshot());
+        if (!scheduled) {
+            var storage = (CutoverPlanStorage) org.springframework.test.util.ReflectionTestUtils.getField(service, "storage");
+            ((tools.jackson.databind.node.ObjectNode) storage.content(plan)).remove("scheduledTime");
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.downloadDraft(
+                    new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-missing-time", "corr-missing-time")))
+                    .isInstanceOf(CutoverPlanApplicationException.class).hasMessage("请填写计划割接时间");
+            verifyNoInteractions(filePort);
+            verifyNoInteractions(generatedMapper);
+            verify(taskMapper, never()).submitPlanIfMatch(any());
+            return;
+        }
         org.springframework.test.util.ReflectionTestUtils.setField(service, "generatedFiles", new CutoverPlanGeneratedFiles(generatedMapper));
         var documentAttachments = mock(CutoverPlanDocumentAttachments.class);
         when(documentAttachments.usesCurrentRendering(any())).thenReturn(true);

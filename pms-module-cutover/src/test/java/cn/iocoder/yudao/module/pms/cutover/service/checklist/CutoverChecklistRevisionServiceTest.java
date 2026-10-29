@@ -43,11 +43,11 @@ class CutoverChecklistRevisionServiceTest {
     void carriesManualEvidenceWithOrWithoutOriginalFailureThroughFormalFileOwner(boolean failed) {
         var f = new Fixture("MANUAL"); f.sourceItem.setWorkModeCode("COLLECTION");
         if (failed) { f.selected.setOriginalFailedCollectionTaskId(80L); f.selected.setOriginalFailureCode("DEVICE_UNREACHABLE"); }
-        when(f.custom.manualFile(f.selected)).thenReturn(f.file);
+        when(f.custom.manualFiles(f.selected)).thenReturn(List.of(f.file));
         f.service.copyItems(f.copy(false));
         var stored = ArgumentCaptor.forClass(CutoverCustomResultStore.Manual.class);
         verify(f.custom).insertManual(stored.capture());
-        assertEquals("new-reference", stored.getValue().fact().referenceKey());
+        assertEquals("new-reference", stored.getValue().facts().getFirst().referenceKey());
         assertEquals(failed ? 80L : null, stored.getValue().result().getOriginalFailedCollectionTaskId());
         assertEquals(failed ? "DEVICE_UNREACHABLE" : null, stored.getValue().result().getOriginalFailureCode());
         assertEquals(31L, stored.getValue().result().getBaseChecklistResultId());
@@ -57,7 +57,7 @@ class CutoverChecklistRevisionServiceTest {
     void revisionRetainsManualCollectionConclusionTogetherWithTheAttachedFile() {
         var f = new Fixture("MANUAL");
         f.sourceItem.setWorkModeCode("COLLECTION");
-        when(f.custom.manualFile(f.selected)).thenReturn(f.file);
+        when(f.custom.manualFiles(f.selected)).thenReturn(List.of(f.file));
         when(f.answers.answer(any())).thenReturn("{\"analysis\":{\"value\":{\"normal\":false,\"remark\":\"需核查\"}}}");
         f.service.copyItems(f.copy(false));
         var stored = ArgumentCaptor.forClass(CutoverChecklistResultStore.Write.class);
@@ -65,6 +65,23 @@ class CutoverChecklistRevisionServiceTest {
         assertEquals("{\"value\":{\"normal\":false,\"remark\":\"需核查\"}}", stored.getValue().answer());
         verify(f.custom).insertManual(any());
         assertEquals("MANUAL", stored.getValue().result().getResultSourceCode());
+    }
+
+    @Test
+    void revisionCopiesEveryManualFileWithIndependentAttachmentOperations() {
+        var f = new Fixture("MANUAL");
+        var second = CutoverChecklistFilePort.FileFact.builder().artifactId(100L).versionNo(1)
+                .referenceKey("second-reference").scopeVersion(7L).sha256("b".repeat(64))
+                .fileFactVersion(new CutoverChecklistFilePort.FileFactVersion(2, 3, 4)).build();
+        when(f.custom.manualFiles(f.selected)).thenReturn(List.of(f.file, second));
+        f.service.copyItems(f.copy(false));
+        var operations = ArgumentCaptor.forClass(AttachExistingFileVersionsCommand.class);
+        verify(f.files, times(2)).attachExistingVersions(operations.capture());
+        assertNotEquals(operations.getAllValues().get(0).operationId(), operations.getAllValues().get(1).operationId());
+        var stored = ArgumentCaptor.forClass(CutoverCustomResultStore.Manual.class);
+        verify(f.custom).insertManual(stored.capture());
+        assertEquals(2, stored.getValue().facts().size());
+        assertEquals(31L, stored.getValue().result().getBaseChecklistResultId());
     }
 
     @Test
@@ -83,7 +100,7 @@ class CutoverChecklistRevisionServiceTest {
     @Test
     void propagatesFileOwnerDenialInsteadOfInsertingManualResult() {
         var f = new Fixture("MANUAL");
-        when(f.custom.manualFile(f.selected)).thenReturn(f.file);
+        when(f.custom.manualFiles(f.selected)).thenReturn(List.of(f.file));
         when(f.files.attachExistingVersions(any())).thenThrow(new IllegalStateException("reference denied"));
         assertThrows(IllegalStateException.class, () -> f.service.copyItems(f.copy(false)));
         verify(f.results, never()).insert(any(CutoverChecklistItemResultDO.class));
