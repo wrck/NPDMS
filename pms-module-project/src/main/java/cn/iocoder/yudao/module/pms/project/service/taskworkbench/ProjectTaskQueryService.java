@@ -196,6 +196,7 @@ public class ProjectTaskQueryService {
             }
         }
         if (("APPROVAL".equals(contract.getWorkBindingTypeCode())
+                || "PAGE".equals(contract.getWorkBindingTypeCode())
                 || TaskBusinessBindingHostProvider.TYPES.contains(contract.getWorkBindingTypeCode()))
                 && response.getAllowedActions().contains("START")) {
             var admission = stageAdmission.previewTaskAdmission(value.access().project(), value.task(), contract);

@@ -309,7 +309,7 @@ public class ProjectTaskBusinessService {
         return inspectRows(ctx, contract, rows, row -> {
             var fact = validateFact(provider.inspect(ctx, row.getObjectId()), row.getObjectId());
             if (lockOwner) {
-                var locked = validateFact(provider.lockAndRevalidate(ctx, row.getObjectId(), fact.factVersion()), row.getObjectId());
+                var locked = validateFact(provider.lockLinkedFact(ctx, row.getObjectId(), fact.factVersion()), row.getObjectId());
                 if (!fact.factVersion().equals(locked.factVersion())) throw failure("FACT_VERSION_CONFLICT");
                 return locked;
             }

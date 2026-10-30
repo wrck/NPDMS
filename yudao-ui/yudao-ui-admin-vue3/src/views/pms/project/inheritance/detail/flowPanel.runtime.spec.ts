@@ -59,6 +59,7 @@ vi.mock('@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue',
   setup: (props) => () => h('div', { 'data-embed-readonly': String(props.readonly) }, '实施部署')
 }) }))
 vi.mock('@/views/pms/engineering/configuration/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '配置实施') }) }))
+vi.mock('@/views/pms/engineering/configuration/with-device-logs.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '配置调试与Log') }) }))
 vi.mock('@/views/pms/engineering/joint-test/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '联调测试') }) }))
 vi.mock('@/views/pms/engineering/training/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '培训') }) }))
 vi.mock('@/views/pms/customer/contacts/index.vue', () => ({ default: defineComponent({
@@ -124,6 +125,18 @@ it('reports unavailable start prerequisites without claiming they are satisfied'
   expect(findTaskActions(view.root)).toBeUndefined()
 })
 
+it('shows hardware prerequisite for a pending configuration page even with satisfied deliverables', async () => {
+  api.getTaskWorkbench.mockResolvedValue({
+    task: { taskId: 10, version: 1, name: '配置调试', status: 'PENDING_ASSIGN' },
+    bindingType: 'PAGE', trustedTargetRef: '/pms/engineering/execution/imp-configuration', allowedActions: [],
+    deliverables: [{ id: 1, deliverableCode: 'D_CONFIGURATION', status: 'SATISFIED' }],
+    startAdmission: { outcome: 'NOT_MATCHED', conditions: [{ label: '硬件实施', outcome: 'NOT_MATCHED' }] }
+  })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(textOf(view.root)).toContain('开始前请先完成：硬件实施')
+  expect(findTaskActions(view.root)).toBeUndefined()
+})
+
 
 it('omits the empty action section for automatic tasks and keeps manual submit and progress', async () => {
   api.getTaskWorkbench.mockResolvedValue({ ...contactWorkbench(), allowedActions: ['CANCEL', 'UPDATE'] })
@@ -152,6 +165,7 @@ it('waits for the committed contact event and hides stale task actions while syn
   const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
   await (findContactAction(view.root, '保存联系人')!.props!.onClick as Function)(); await flush()
   expect(textOf(view.root)).toContain('正在同步任务状态')
+  expect(view.state().pageSyncing).toBe(true)
   expect(findTaskActions(view.root)).toBeUndefined()
   api.getTaskWorkbench.mockResolvedValue(contactWorkbench(2, 'DONE'))
   await vi.advanceTimersByTimeAsync(2000); await flush()

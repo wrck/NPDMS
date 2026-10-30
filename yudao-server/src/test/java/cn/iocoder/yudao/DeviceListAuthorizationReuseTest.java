@@ -75,7 +75,8 @@ class DeviceListAuthorizationReuseTest {
             var readScope = captured.getValue().readScope();
             assertEquals(1L, captured.getValue().tenantId());
             assertEquals(List.of(new ProjectViewReadScopeApi.Tree(10L, 3L)), readScope.projectScope().trees());
-            assertEquals(List.of("C01"), readScope.contractScope().companyCodes());
+            assertEquals(List.of(new cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.OrganizationGrant(
+                    11L, 22L, "OFFICE")), readScope.contractScope().organizationGrants());
             assertNull(captured.getValue().visibleProjectIds());
             assertNull(captured.getValue().visibleContractNumbers());
             var grant = captured.getValue().organizationGrants().getFirst();
@@ -136,7 +137,7 @@ class DeviceListAuthorizationReuseTest {
         verify(devices).selectJoinedDevicePage(captured.capture());
         assertTrue(captured.getValue().organizationGrants().isEmpty());
         assertTrue(captured.getValue().readScope().projectScope().trees().isEmpty());
-        assertTrue(captured.getValue().readScope().contractScope().companyCodes().isEmpty());
+        assertTrue(captured.getValue().readScope().contractScope().organizationGrants().isEmpty());
         assertNull(captured.getValue().visibleProjectIds());
         assertNull(captured.getValue().visibleContractNumbers());
         verify(devices, never()).selectProjectCandidates(any());

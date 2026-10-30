@@ -72,6 +72,11 @@ class ProjectTaskQueryServiceTest {
     @Test
     void automaticMemberPageUsesEffectiveRuleAndKeepsManualSubmissionForOtherConditions() {
         stubProjectScope(true);
+        var admission = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "stageAdmission", admission);
+        when(admission.previewTaskAdmission(any(), any(), any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionView(
+                        cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.MATCHED, List.of()));
         var project = projectMapper.selectById(100L);
         project.setActivePlanVersionId(50L);
         when(taskMapper.selectTask(any())).thenReturn(task(11L, null, 0));
@@ -469,13 +474,16 @@ class ProjectTaskQueryServiceTest {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings = {"BUSINESS_OBJECT", "BUSINESS_COMPONENT"})
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"BUSINESS_OBJECT", "BUSINESS_COMPONENT", "PAGE"})
     void businessTaskStartUsesFrozenAdmissionAndRedactsRestrictedPredecessors(String bindingType) {
         stubProjectScope(true);
         when(taskMapper.selectTask(any())).thenReturn(task(11L, null, 0));
         var contract = new ProjectTaskExecutionContractDO();
         contract.setId(91L); contract.setTenantId(0L); contract.setProjectTaskId(11L);
         contract.setContractVersion(1); contract.setWorkBindingTypeCode(bindingType);
+        if ("PAGE".equals(bindingType)) {
+            contract.setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-configuration\"}");
+        }
         when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
         when(bindingRegistry.inspect(any(), any())).thenReturn(
                 new TaskBindingInspection(bindingType, Set.of("START", "CANCEL"), "v1", null));

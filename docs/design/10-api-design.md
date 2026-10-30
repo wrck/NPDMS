@@ -1512,3 +1512,13 @@ AST `ProjectDeviceSelectionApi.validateSelection(AuthorizedSelection{tenantId,ac
 ### 2026-10-23 割接读取性能契约补充
 
 `DeviceQueryApi.getProjectDeviceSummaries(ProjectDeviceInstallationQuery)`批量读取当前直接归属项目的设备摘要，复用现有DeviceSummaryDTO；查询租户必须为当前租户。资产当前项目可见范围包含该项目时，同一次读取只解析一次项目范围，再按租户、项目和未删除条件读取设备；该条件是既有单设备可见性OR规则的充分条件。项目范围不包含该项目时仍逐台执行原getDevice的组织/合同/项目可见性校验，任一设备无权读取仍失败，不返回部分成功替代完整范围。没有跨请求权限缓存。IMP覆盖查询保留原锁定项目设备集合与逐项租户、项目、归属版本核对，只将单设备重复查询改为消费该批量接口，不更改覆盖/完成判定。
+
+### 2026-10-24 设备合同授权保留公司部门约束
+
+Q-AST-DEVICE-CONTRACT-SCOPE-20261024经需求方确认：设备组织与明确项目授权继续独立OR；设备合同分支必须在COM提供的唯一、无公司冲突的合同组织事实中匹配同一条SYSTEM当前有效范围，公司相同且部门级授权须匹配部门ID或同公司精确部门编码，公司级授权不限定部门。禁止仅取部门级范围的companyCode放行整公司设备；项目—合同关联也不能绕过该合同组织约束。设备当前直接项目或有效设备参与关系命中明确项目授权时仍独立可见。列表、筛选、详情、档案、日志及下载复用相同判定，空组织范围或COM不可用关闭合同分支。COM合同目录、订单及敏感字段权限继续依原契约，实际用户范围、历史与设备组织投影不回填。
+
+COM ContractDeviceVisibilityApi.ReadScope在设备专用只读上下文携带同一行companyId、departmentId、departmentCode的组织组合；配套Owner XML使用该组合匹配合同主档与发货合同的既有归属聚合。getVisibleContractNumbers两重载用于设备时执行相同组合限制并保留原合同号唯一、冲突、原文匹配、租户与空候选保护。此收敛替代设备合同分支仅companyCode的旧读取，COM其他查询契约不变。
+
+### 2026-10-25 已关联成果的闭环锁定读取
+
+TaskBusinessObjectProvider.lockLinkedFact(Context, objectId, expectedVersion)仅供已校验项目任务、当前契约及活动关联的完成/闭环事实复核：沿用inspect的当前用户、租户、项目查看范围，锁定范围、业务对象及成果并核对版本，不创建或修改业务对象、关联或权限。默认沿用lockAndRevalidate的更严格限制；ACC满意度按项目可见性复核既有关联成果，不借用仅调查经办人工作队列查询。关联命令仍调用原lockAndRevalidate，工作队列经办人限制及命令授权保持不变。

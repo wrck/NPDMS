@@ -75,6 +75,8 @@
 
 ### BR-FPROJ007-005 状态机与完成判定
 
+- 2026-10-24需求方确认：核心任务状态机属于系统默认规则，正式初始化后即应存在可用的已发布版本，不要求管理员重复发布默认规则。前向修复保留已有配置和发布历史；已有发布版本优先，定制或冲突配置不得被默认种子覆盖。存量任务的冻结版本保持不变。
+
 - 核心标准状态固定为`PENDING_ASSIGN/PENDING_START/IN_PROGRESS/PENDING_ACCEPT/DONE/CLOSED`，不得删除、复用或改义。
 - 核心迁移为：指派`PENDING_ASSIGN→PENDING_START`，开始`PENDING_START→IN_PROGRESS`，提交`IN_PROGRESS→PENDING_ACCEPT`，完成`PENDING_ACCEPT→DONE`，授权关闭从未终态进入`CLOSED`。未知状态、未知动作或非法迁移均失败关闭。
 - 授权管理员可维护租户级扩展中间状态；发布版本必须给出标准状态映射、允许迁移、适用角色和进入/退出条件。已发布版本不可覆盖，新任务冻结当前发布版本，存量任务不自动换版。

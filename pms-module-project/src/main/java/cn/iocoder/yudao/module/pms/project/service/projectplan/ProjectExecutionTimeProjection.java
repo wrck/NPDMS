@@ -130,9 +130,10 @@ public class ProjectExecutionTimeProjection {
             }
         }
         if (ids.isEmpty()) return null;
-        var rows = members.members(new ProjectAssignmentCompletionQuery(query.tenantId(), query.projectId(), false));
-        var times = new ArrayList<Time>();
         boolean endUser = endUsers.isObject();
+        var memberQuery = new ProjectAssignmentCompletionQuery(query.tenantId(), query.projectId(), false);
+        var rows = endUser ? members.endUserMembers(memberQuery) : members.members(memberQuery);
+        var times = new ArrayList<Time>();
         for (Long id : ids) {
             var row = rows.stream().filter(r -> Objects.equals(r.getId(), id) && Objects.equals(r.getTenantId(), query.tenantId())
                     && Objects.equals(r.getProjectId(), query.projectId())).findFirst().orElse(null);

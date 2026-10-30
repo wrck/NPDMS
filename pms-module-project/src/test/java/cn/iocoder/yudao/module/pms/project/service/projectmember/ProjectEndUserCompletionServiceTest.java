@@ -26,18 +26,18 @@ class ProjectEndUserCompletionServiceTest {
     private ProjectMemberAssignmentDO member() {
         var member = new ProjectMemberAssignmentDO(); member.setId(30L); member.setTenantId(7L);
         member.setProjectId(9L); member.setMemberRole("END_USER"); member.setMemberName("外部最终用户");
-        member.setVersion(2); member.setStatus("ACTIVE"); member.setDeleted(false);
+        member.setAuthorizationConfirmed(false); member.setVersion(2); member.setStatus("ACTIVE"); member.setDeleted(false);
         member.setEffectiveFrom(LocalDateTime.now().minusDays(1)); return member;
     }
     @Test void validExternalIntervalProducesVersionedFactWithoutSystemIdentity() {
-        var member = member(); when(mapper.members(any())).thenReturn(List.of(member));
+        var member = member(); when(mapper.endUserMembers(any())).thenReturn(List.of(member));
         var fact = service.lockAndInspect(query);
         assertTrue(fact.completed()); assertNull(member.getUserId());
         assertEquals(List.of(new ProjectEndUserCompletionService.MemberFact(30L, 2)), fact.members());
         verify(mapper).project(argThat(value -> value.lock() && value.tenantId().equals(7L) && value.projectId().equals(9L)));
     }
     @Test void emptyInactiveExpiredFutureDeletedAndOtherIdentitiesCannotSatisfy() {
-        when(mapper.members(any())).thenReturn(List.of()); assertFalse(service.lockAndInspect(query).completed());
+        when(mapper.endUserMembers(any())).thenReturn(List.of()); assertFalse(service.lockAndInspect(query).completed());
         var ended = member(); ended.setEffectiveTo(LocalDateTime.now().minusSeconds(1));
         var future = member(); future.setEffectiveFrom(LocalDateTime.now().plusDays(1));
         var inactive = member(); inactive.setStatus("INACTIVE");
@@ -47,7 +47,7 @@ class ProjectEndUserCompletionServiceTest {
         var foreign = member(); foreign.setProjectId(10L);
         var tenant = member(); tenant.setTenantId(8L);
         var unnamed = member(); unnamed.setMemberName(" ");
-        when(mapper.members(any())).thenReturn(List.of(ended, future, inactive, deleted, account, internal, foreign, tenant, unnamed));
+        when(mapper.endUserMembers(any())).thenReturn(List.of(ended, future, inactive, deleted, account, internal, foreign, tenant, unnamed));
         assertFalse(service.lockAndInspect(query).completed());
     }
     @Test void untrustedTenantAndMissingProjectFailBeforeReadingMemberEvidence() {
@@ -55,6 +55,6 @@ class ProjectEndUserCompletionServiceTest {
         verifyNoInteractions(mapper);
         when(mapper.project(any())).thenReturn(null);
         assertThrows(IllegalArgumentException.class, () -> service.lockAndInspect(query));
-        verify(mapper, never()).members(any());
+        verify(mapper, never()).endUserMembers(any());
     }
 }

@@ -54,14 +54,14 @@ class ProjectExecutionTimeProjectionTest {
     }
     @Test void endUserUsesFrozenIntervalIdsAndFirstJoiningTimeRatherThanCurrentMembers() {
         var r=round(); r.setResultSnapshot("{\"projectEndUsers\":{\"projectId\":9,\"members\":[{\"assignmentId\":61},{\"assignmentId\":62}]}}");
-        when(members.members(any())).thenReturn(List.of(member(61L,"END_USER",finished.minusHours(2)),member(62L,"END_USER",finished.minusHours(1)),member(63L,"END_USER",finished.minusDays(7))));
+        when(members.endUserMembers(any())).thenReturn(List.of(member(61L,"END_USER",finished.minusHours(2)),member(62L,"END_USER",finished.minusHours(1)),member(63L,"END_USER",finished.minusDays(7))));
         assertEquals(finished.minusHours(2),service.project(query(r)).at());
         assertNull(r.getSubmittedAt());
-        verify(members).members(argThat(q -> q.tenantId().equals(7L) && q.projectId().equals(9L) && !q.lock()));
+        verify(members).endUserMembers(argThat(q -> q.tenantId().equals(7L) && q.projectId().equals(9L) && !q.lock()));
     }
     @Test void missingFrozenIntervalDoesNotFallBackToTodaysReplacement() {
         var r=round(); r.setResultSnapshot("{\"projectEndUsers\":{\"projectId\":9,\"members\":[{\"assignmentId\":61}]}}");
-        when(members.members(any())).thenReturn(List.of(member(62L,"END_USER",finished.minusMinutes(1))));
+        when(members.endUserMembers(any())).thenReturn(List.of(member(62L,"END_USER",finished.minusMinutes(1))));
         assertNull(service.project(query(r)));
     }
     @Test void frozenResultFormationTimeSurvivesLaterBusinessChanges() {
@@ -102,7 +102,7 @@ class ProjectExecutionTimeProjectionTest {
     @Test void stageUsesBusinessTimesOfRequiredTasksAndKeepsRoundEndTimeIntact() {
         var stage=round(); stage.setNodeKind("STAGE"); stage.setNodeKey("stage:one"); stage.setId(30L);
         var child=round(); child.setResultSnapshot("{\"projectEndUsers\":{\"projectId\":9,\"members\":[{\"assignmentId\":61}]}}");
-        when(members.members(any())).thenReturn(List.of(member(61L,"END_USER",finished.minusHours(1))));
+        when(members.endUserMembers(any())).thenReturn(List.of(member(61L,"END_USER",finished.minusHours(1))));
         var snapshot=new TemplateExecutionSnapshot();
         var s=new TemplateExecutionSnapshot.StageContract(); s.setNodeKey("stage:one"); s.setCode("S0"); s.setCompletionRuleKey("complete"); snapshot.setStages(List.of(s));
         var t=new TemplateExecutionSnapshot.TaskContract(); t.setNodeKey("task:one"); t.setCode("USER"); t.setStageCode("S0"); snapshot.setTasks(List.of(t));

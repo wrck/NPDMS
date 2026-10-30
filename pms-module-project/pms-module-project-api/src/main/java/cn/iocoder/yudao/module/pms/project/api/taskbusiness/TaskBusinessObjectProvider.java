@@ -57,6 +57,13 @@ public interface TaskBusinessObjectProvider {
      */
     BusinessObjectFact lockAndRevalidate(Context context, String objectId, String expectedVersion);
 
+    /** Lock an already linked result for read-only completion/closure evaluation, under inspect's
+     * project-view authorization. Retain tenant, project, actor, scope and version locks; never grant
+     * association or Owner commands. Existing providers keep their stricter command check by default. */
+    default BusinessObjectFact lockLinkedFact(Context context, String objectId, String expectedVersion) {
+        return lockAndRevalidate(context, objectId, expectedVersion);
+    }
+
     /**
      * Unattended rule evaluation: no browser identity, body values or action grants.
      * Join the existing transaction, revalidate the exact PROJ execution, lock the Owner result,

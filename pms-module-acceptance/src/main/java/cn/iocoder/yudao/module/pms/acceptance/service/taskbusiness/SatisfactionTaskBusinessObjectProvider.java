@@ -74,9 +74,15 @@ public class SatisfactionTaskBusinessObjectProvider implements TaskBusinessObjec
 
     @Override @Transactional(propagation = Propagation.MANDATORY)
     public BusinessObjectFact lockAndRevalidate(Context context, String objectId, String expectedVersion) {
-        var actions = inspectContext(context);
+        inspectContext(context);
         var visible = queries.get(context.tenantId(), context.actorId(), id(objectId));
         if (!context.projectId().equals(visible.projectId())) throw unavailable();
+        return lockLinkedFact(context, objectId, expectedVersion);
+    }
+
+    @Override @Transactional(propagation = Propagation.MANDATORY)
+    public BusinessObjectFact lockLinkedFact(Context context, String objectId, String expectedVersion) {
+        var actions = inspectContext(context);
         var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder().tenantId(context.tenantId())
                 .subjectUserId(context.actorId()).anchorProjectId(context.projectId()).actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.treeVersion() == null) throw unavailable();

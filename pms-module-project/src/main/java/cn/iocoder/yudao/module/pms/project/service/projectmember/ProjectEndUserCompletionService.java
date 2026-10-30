@@ -36,7 +36,7 @@ public class ProjectEndUserCompletionService {
                 || !Objects.equals(project.getTenantId(), request.tenantId()))
             throw new IllegalArgumentException("PROJECT_END_USER_PROJECT_UNAVAILABLE");
         var now = LocalDateTime.now();
-        var current = members.members(query).stream()
+        var current = members.endUserMembers(query).stream()
                 .filter(member -> Objects.equals(member.getTenantId(), request.tenantId())
                         && Objects.equals(member.getProjectId(), request.projectId())
                         && !Boolean.TRUE.equals(member.getDeleted()) && "ACTIVE".equals(member.getStatus())

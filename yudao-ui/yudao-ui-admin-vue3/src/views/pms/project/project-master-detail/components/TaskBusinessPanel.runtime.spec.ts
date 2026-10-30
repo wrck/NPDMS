@@ -24,6 +24,13 @@ vi.mock('@/components/BusinessView/ProjectMembersBusinessView.vue', async () => 
   }) }
 })
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => controls }))
+vi.mock('@/views/pms/cutover/task-detail/index.vue', () => ({ default: defineComponent({
+  props: { taskId: String, projectId: [String, Number], readonly: Boolean, closureOnly: Boolean },
+  setup(props, { expose }) {
+    expose({ saveBeforeLeave: () => controls.leave() })
+    return () => h('article', `cutover-maintenance:${props.taskId};closure-only:${props.closureOnly};readonly:${props.readonly}`)
+  }
+}) }))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn() }))
 vi.mock('@/api/pms/project/task-business', () => ({
   getTaskBusinessContext: vi.fn(), getTaskBusinessCandidates: vi.fn(),
@@ -110,6 +117,8 @@ const setup = async (initial: Record<string, unknown> = {}) => {
     ...state, ref: panel, onFactVersion: facts, onChanged: changed, onDirtyChange: dirtyChanged
   }) }), {}, { ElSelect: passthrough, ElOption: passthrough })
   apps.push(mounted.app)
+  await tick()
+  await vi.dynamicImportSettled()
   await tick()
   return { ...mounted, state, panel, facts, changed, dirtyChanged }
 }
@@ -467,6 +476,31 @@ describe('completed assignment member maintenance', () => {
   it('keeps other completed business readonly', async () => {
     const page = await setup({ completed: true })
     expect(textOf(page.root)).not.toContain('member-maintenance')
+    expect(textOf(page.root)).toContain('readonly:true')
+  })
+  const cutover = () => context('11', {
+    ownerContext: 'CUT', objectType: 'CUTOVER_APPROVAL', executionAllowed: false,
+    ownerActions: ['QUERY'], allowedActions: [],
+    businessView: { id: '31', componentKey: 'CUT_CUTOVER_APPROVAL_WORKBENCH' } as any
+  })
+  it('continues only the linked cutover closure after the approval task completes', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(cutover())
+    const page = await setup({ completed: true })
+    expect(textOf(page.root)).toContain('cutover-maintenance:41;closure-only:true;readonly:false')
+    await page.panel.value.refresh()
+    expect(BusinessApi.refreshTaskBusinessResults).not.toHaveBeenCalled()
+    controls.leave.mockResolvedValue(false)
+    expect(await page.panel.value.requestLeave()).toBe(false)
+  })
+  it.each([{ readonly: true }, { recoverableError: 'unavailable' }])('retains cutover restrictions %j', async restriction => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue({ ...cutover(), ...restriction })
+    const page = await setup({ completed: true, readonly: restriction.readonly })
+    expect(textOf(page.root)).toContain('closure-only:true;readonly:true')
+  })
+  it('does not create cutover maintenance without an inspected linked object', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue({ ...cutover(), links: [] })
+    const page = await setup({ completed: true })
+    expect(textOf(page.root)).not.toContain('cutover-maintenance')
     expect(textOf(page.root)).toContain('readonly:true')
   })
 })

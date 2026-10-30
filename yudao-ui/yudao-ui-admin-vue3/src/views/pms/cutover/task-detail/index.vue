@@ -111,7 +111,7 @@ const CutoverApprovalPanel = defineAsyncComponent(() => import('../components/Cu
 const CutoverClosurePanel = defineAsyncComponent(() => import('../components/CutoverClosurePanel.vue').then(module => module.default))
 const CutoverPlanPanel = defineAsyncComponent(() => import('../components/CutoverPlanPanel.vue').then(module => module.default))
 
-const props = defineProps<{ taskId: WireLong; projectId?: WireLong; readonly?: boolean; approvalOnly?: boolean }>()
+const props = defineProps<{ taskId: WireLong; projectId?: WireLong; readonly?: boolean; approvalOnly?: boolean; closureOnly?: boolean }>()
 const emit = defineEmits<{ close: []; changed: [] }>()
 const message = useMessage()
 const planPanel = ref<InstanceType<typeof CutoverPlanPanel>>()
@@ -119,7 +119,8 @@ const checklistPanel = ref<InstanceType<typeof CutoverChecklistPanel>>()
 const approvalPanel = ref<InstanceType<typeof CutoverApprovalPanel>>()
 const stageActions = shallowRef<HTMLElement>()
 const detail = ref<CutoverTaskDetail | null>(null)
-const readonly = computed(() => !!props.readonly || !!detail.value?.approvalReadOnly)
+const readonly = computed(() => !!props.readonly || !!detail.value?.approvalReadOnly ||
+  (!!props.closureOnly && (detail.value?.task.currentStage !== 'P6' || selectedStage.value !== 'P6')))
 const detailLoading = ref(false)
 const detailError = ref('')
 const selectedStage = ref<CutoverApi.CutoverStage | null>(null)

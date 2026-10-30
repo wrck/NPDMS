@@ -41,8 +41,11 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
     public Context associateCustomer(AssociateQuery query) {
         var current = lockForWrite(new WriteQuery(query.tenantId(), query.actorUserId(), query.projectId(), query.expectedProjectVersion()));
         if (current.customerId() != null) {
-            if (Objects.equals(current.customerId(), query.customerId())) return current;
-            throw exception(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CONTACT_CUSTOMER_ALREADY_BOUND);
+            if (!Objects.equals(current.customerId(), query.customerId()))
+                throw exception(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CONTACT_CUSTOMER_ALREADY_BOUND);
+            // lockForWrite may resolve a code-only legacy reference without persisting it.
+            // Only an already stored identity makes this explicit association a no-op.
+            if (projects.selectById(query.projectId()).getCustomerId() != null) return current;
         }
         var customer = customers.getCustomer(query.customerId());
         if (customer == null || !Objects.equals(customer.tenantId(), query.tenantId()) || !"ENABLED".equals(customer.lifecycleStatus())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);

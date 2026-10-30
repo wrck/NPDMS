@@ -92,6 +92,7 @@ class OrdinaryProjectMemberServiceTest {
 
     @Test void externalEditAppendsIntervalAndRemovalKeepsOldDetails() {
         var previous = member("END_USER"); previous.setUserId(null); previous.setMemberName("旧姓名");
+        previous.setAuthorizationConfirmed(false);
         previous.setExternalMobile("旧电话"); previous.setDepartmentName("旧部门"); previous.setTitle("旧职务");
         when(memberMapper.selectById(10L)).thenReturn(previous);
         var values = new MemberValues(null, "END_USER", "原职责", "原备注", false, null,
@@ -100,6 +101,7 @@ class OrdinaryProjectMemberServiceTest {
         var closed = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
         verify(memberMapper).updateById(closed.capture());
         assertNotNull(closed.getValue().getEffectiveTo()); assertNull(closed.getValue().getMemberName());
+        assertNull(closed.getValue().getAuthorizationConfirmed());
         assertEquals("旧姓名", previous.getMemberName()); assertEquals("旧电话", previous.getExternalMobile());
         assertEquals("旧部门", previous.getDepartmentName()); assertEquals("旧职务", previous.getTitle());
         assertNull(closed.getValue().getDepartmentName()); assertNull(closed.getValue().getTitle());
@@ -113,6 +115,7 @@ class OrdinaryProjectMemberServiceTest {
 
     @Test void unchangedExternalDetailsDoNotWriteAndRemovalOnlyClosesHistory() {
         var previous = member("END_USER"); previous.setUserId(null); previous.setMemberName("姓名");
+        previous.setAuthorizationConfirmed(false);
         previous.setCompanyName("单位"); previous.setExternalMobile("电话"); previous.setExternalEmail("a@example.test");
         previous.setDepartmentName("部门"); previous.setTitle("职务");
         when(memberMapper.selectById(10L)).thenReturn(previous);
@@ -123,6 +126,8 @@ class OrdinaryProjectMemberServiceTest {
         verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
         verify(memberMapper, never()).updateById(any(ProjectMemberAssignmentDO.class));
         assertTrue(service.mutate(new Command(100L, 0L, Action.REMOVE, 10L, null, "退出", "external-remove"), actor()).changed());
+        verify(memberMapper).updateById(argThat((ProjectMemberAssignmentDO row) -> row.getAuthorizationConfirmed() == null
+                && row.getEffectiveTo() != null));
         assertEquals("姓名", previous.getMemberName()); assertEquals("电话", previous.getExternalMobile());
         assertEquals("部门", previous.getDepartmentName()); assertEquals("职务", previous.getTitle());
         verify(memberMapper, never()).deleteById(anyLong()); verifyNoInteractions(users);

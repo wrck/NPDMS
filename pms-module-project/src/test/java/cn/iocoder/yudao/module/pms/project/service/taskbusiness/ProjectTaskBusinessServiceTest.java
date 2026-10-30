@@ -62,6 +62,7 @@ class ProjectTaskBusinessServiceTest {
         when(provider.candidates(any())).thenReturn(List.of(fact("candidate", "v1")));
         when(provider.inspect(any(), anyString())).thenAnswer(i -> fact(i.getArgument(1), "v1"));
         when(provider.lockAndRevalidate(any(), anyString(), anyString())).thenAnswer(i -> fact(i.getArgument(1), i.getArgument(2)));
+        when(provider.lockLinkedFact(any(), anyString(), anyString())).thenAnswer(i -> fact(i.getArgument(1), i.getArgument(2)));
         when(links.insertLink(any())).thenReturn(1); when(links.unlinkIfMatch(any())).thenReturn(1);
         when(tasks.incrementTaskVersionIfMatch(any())).thenReturn(1);
         when(views.getRevision(any())).thenReturn(new BusinessViewRevision(40L, "SiteSurvey", "survey", 1L,
@@ -431,7 +432,7 @@ class ProjectTaskBusinessServiceTest {
                 () -> service.lockAndRevalidateLinkedFacts(10L, 1L, 5L, "c", expected));
 
         assertEquals("TASK_BUSINESS_FACT_VERSION_CONFLICT", error.getMessage());
-        verify(provider).lockAndRevalidate(any(), eq("x"), eq("v2"));
+        verify(provider).lockLinkedFact(any(), eq("x"), eq("v2"));
         verify(links, never()).insertLink(any());
         verify(tasks, never()).incrementTaskVersionIfMatch(any());
     }
@@ -440,7 +441,7 @@ class ProjectTaskBusinessServiceTest {
         when(links.selectActive(any())).thenReturn(List.of(row));
         when(links.selectActiveForUpdate(any())).thenReturn(List.of(row));
         String expected = service.inspectLinkedFactsSnapshot(10L, 1L, 5L, "c").factVersion();
-        when(provider.lockAndRevalidate(any(), eq("x"), eq("v1"))).thenReturn(fact("x", "v2"));
+        when(provider.lockLinkedFact(any(), eq("x"), eq("v1"))).thenReturn(fact("x", "v2"));
         TransactionSynchronizationManager.setActualTransactionActive(true);
         assertThrows(ServiceException.class,
                 () -> service.lockAndRevalidateLinkedFacts(10L, 1L, 5L, "c", expected));

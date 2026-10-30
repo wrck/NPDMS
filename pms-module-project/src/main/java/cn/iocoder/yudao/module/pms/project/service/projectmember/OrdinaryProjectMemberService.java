@@ -383,6 +383,7 @@ public class OrdinaryProjectMemberService {
 
     private void close(ProjectMemberAssignmentDO member, String reason, LocalDateTime now) {
         var close = new ProjectMemberAssignmentDO();
+        close.setAuthorizationConfirmed(null);
         close.setId(member.getId());
         close.setEffectiveTo(now);
         close.setEndReason(reason.trim());
@@ -436,7 +437,8 @@ public class OrdinaryProjectMemberService {
         }
     }
     private static boolean current(ProjectMemberAssignmentDO member, LocalDateTime now) {
-        return Boolean.TRUE.equals(member.getAuthorizationConfirmed()) && "ACTIVE".equals(member.getStatus())
+        return (END_USER.equals(member.getMemberRole()) || Boolean.TRUE.equals(member.getAuthorizationConfirmed()))
+                && "ACTIVE".equals(member.getStatus())
                 && (member.getEffectiveFrom() == null || !member.getEffectiveFrom().isAfter(now))
                 && (member.getEffectiveTo() == null || member.getEffectiveTo().isAfter(now));
     }

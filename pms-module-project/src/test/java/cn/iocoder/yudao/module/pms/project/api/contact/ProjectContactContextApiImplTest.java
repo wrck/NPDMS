@@ -131,4 +131,26 @@ class ProjectContactContextApiImplTest {
         assertNull(api.inspect(new ProjectContactContextApi.Query(1L, 3L, 7L)).customerId());
         verifyNoInteractions(customers);
     }
+
+    @Test void explicitAssociationPersistsTheCodeResolvedCustomerInsteadOfReturningAnUnwrittenSuccess() {
+        var row = projects.selectById(7L); row.setCustomerId(null); row.setCustomerCode("CUS-8");
+        when(projectRoles.isTenantSuperAdmin(1L, 3L)).thenReturn(true);
+        var customer = new cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO(
+                8L, 1L, "CUS-8", "客户", null, "ENABLED", "CRM_SYNC", 0L, null);
+        when(customers.getCustomerByCode(any())).thenReturn(customer);
+        when(customers.getCustomer(8L)).thenReturn(customer);
+        when(projects.associateCustomerIfMissing(any())).thenReturn(1);
+        var result = api.associateCustomer(new ProjectContactContextApi.AssociateQuery(1L, 3L, 7L, 2L, 8L));
+        assertEquals(8L, result.customerId()); assertEquals(3L, result.projectVersion());
+        verify(projects).associateCustomerIfMissing(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectContactCustomerUpdate(
+                1L, 7L, 2L, 8L, "CUS-8", "客户", "3"));
+    }
+
+    @Test void explicitAssociationDoesNotRewriteAnExistingCustomerOrChangeAResolvedIdentity() {
+        when(projectRoles.isTenantSuperAdmin(1L, 3L)).thenReturn(true);
+        assertEquals(2L, api.associateCustomer(new ProjectContactContextApi.AssociateQuery(1L, 3L, 7L, 2L, 8L)).projectVersion());
+        assertThrows(RuntimeException.class, () -> api.associateCustomer(
+                new ProjectContactContextApi.AssociateQuery(1L, 3L, 7L, 2L, 9L)));
+        verify(projects, never()).associateCustomerIfMissing(any());
+    }
 }

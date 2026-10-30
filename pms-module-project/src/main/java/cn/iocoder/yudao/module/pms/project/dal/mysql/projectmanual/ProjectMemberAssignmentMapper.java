@@ -73,14 +73,16 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
         }
         if ("CURRENT".equals(query.getState())) {
             conditions.eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
-                    .eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, true)
+                    .and(w -> w.eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, true)
+                            .or().eq(ProjectMemberAssignmentDO::getMemberRole, "END_USER"))
                     .and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
                             .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, query.getEffectiveAt()))
                     .and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveTo)
                             .or().gt(ProjectMemberAssignmentDO::getEffectiveTo, query.getEffectiveAt()));
         } else {
             conditions.and(w -> w.ne(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
-                    .or().eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, false)
+                    .or(w2 -> w2.eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, false)
+                            .ne(ProjectMemberAssignmentDO::getMemberRole, "END_USER"))
                     .or().le(ProjectMemberAssignmentDO::getEffectiveTo, query.getEffectiveAt()));
         }
         return selectPage(query.getPage(), conditions);

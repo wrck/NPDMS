@@ -71,9 +71,46 @@ class ProjectMemberHistoryMySqlTest {
         assertTrue(mapper.selectActiveByUser(new ActiveProjectMemberQuery(1L,40L,now)).isEmpty());
         assertTrue(mapper.selectActiveMemberIdentityForUpdate(new ProjectMemberIdentityQuery(1L,100L,40L,"PROJECT_MANAGER",now)).isEmpty());
     }
+    @Test void normalExternalMemberIsCurrentWithoutAuthorizationAndMovesToHistoryWhenClosed() throws Exception {
+        row(1,1,null,false);
+        row(2,1,null,false);
+        try(var sql=db.createStatement()) {
+            sql.executeUpdate("UPDATE proj_project_member_assignment SET member_role='END_USER' WHERE id=1");
+            sql.executeUpdate("UPDATE proj_project_member_assignment SET member_role='60' WHERE id=2");
+        }
+        var current=mapper.selectMemberPage(page("CURRENT"));
+        assertEquals(List.of(1L),current.getList().stream().map(ProjectMemberAssignmentDO::getId).toList());
+        assertFalse(current.getList().getFirst().getAuthorizationConfirmed());
+        assertEquals(List.of(2L),mapper.selectMemberPage(page("HISTORY")).getList().stream().map(ProjectMemberAssignmentDO::getId).toList());
+        assertTrue(mapper.selectActiveForAssignmentState(new ProjectAssignmentStateQuery(100L,now)).isEmpty());
+        try(var sql=db.createStatement()) {
+            sql.executeUpdate("UPDATE proj_project_member_assignment SET effective_to='2026-10-11 12:00:00' WHERE id=1");
+        }
+        assertEquals(0,mapper.selectMemberPage(page("CURRENT")).getTotal());
+        assertEquals(2,mapper.selectMemberPage(page("HISTORY")).getTotal());
+    }
     @Test void confirmationCannotBypassTheRequiredUserAndAudit() throws Exception {
         assertThrows(SQLException.class,()->row(1,1,null,true));
         row(2,1,40L,true);assertEquals(1,mapper.selectMemberPage(page("CURRENT")).getTotal());
+    }
+    @Test void ordinaryIntervalClosePreservesExternalAndConfirmedAuthorization() throws Exception {
+        row(1,1,null,false); row(2,1,40L,true);
+        try(var sql=db.createStatement()) {
+            sql.executeUpdate("UPDATE proj_project_member_assignment SET member_role='END_USER' WHERE id=1");
+        }
+        var unsafePatch=new ProjectMemberAssignmentDO();unsafePatch.setId(1L);unsafePatch.setEffectiveTo(now);
+        assertThrows(org.springframework.dao.DataAccessException.class,()->mapper.updateById(unsafePatch));
+        var service=org.mockito.Mockito.mock(OrdinaryProjectMemberService.class,org.mockito.Mockito.CALLS_REAL_METHODS);
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"memberMapper",mapper);
+        for(long id:List.of(1L,2L)) {
+            var before=mapper.selectById(id);
+            org.springframework.test.util.ReflectionTestUtils.invokeMethod(service,"close",before,"资料调整",now);
+            var after=mapper.selectById(id);
+            assertEquals(before.getAuthorizationConfirmed(),after.getAuthorizationConfirmed());
+            assertEquals(before.getUserId(),after.getUserId());assertEquals(before.getMemberName(),after.getMemberName());
+            assertEquals(before.getCreator(),after.getCreator());assertEquals(before.getCreateTime(),after.getCreateTime());
+            assertEquals(now,after.getEffectiveTo());assertEquals("资料调整",after.getEndReason());
+        }
     }
     @Test void normalInsertDefaultsToConfirmedAndRetainsNormalAuditFilling() {
         var row=new ProjectMemberAssignmentDO();row.setProjectId(100L);row.setTenantId(1L);row.setUserId(40L);

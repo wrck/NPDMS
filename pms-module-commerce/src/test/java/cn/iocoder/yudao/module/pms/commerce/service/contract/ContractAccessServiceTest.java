@@ -47,13 +47,38 @@ class ContractAccessServiceTest {
     }
 
     @Test
-    void deviceContractScopeUsesBothAuthoritativeScopes() {
+    void deviceContractScopeRequiresPairedOrganizationAfterOriginalContractValidation() {
         when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "001", 1)));
         when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
         var query = new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractScopeQuery(
                 1L, List.of("001"), List.of(10L));
         when(contractMapper.selectVisibleDeviceContractNumbers(query)).thenReturn(List.of("C-1"));
+        when(contractMapper.selectOrganizationVisibleContractNumbers(any())).thenReturn(List.of("C-1"));
         assertEquals(Set.of("C-1"), service.getVisibleContractNumbers(1L, 7L));
+    }
+
+    @Test
+    void departmentGrantDoesNotBecomeCompanyWideDeviceContractAuthorization() {
+        var grant = scope(1L, "001", 1);
+        grant.setDepartmentId(178L); grant.setDepartmentCode("162007");
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(grant));
+        when(contractMapper.selectVisibleDeviceContractNumbers(any())).thenReturn(List.of("HANGZHOU", "CHANGCHUN"));
+        when(contractMapper.selectOrganizationVisibleContractNumbers(any())).thenReturn(List.of("CHANGCHUN"));
+        assertEquals(Set.of("CHANGCHUN"), service.getVisibleContractNumbers(1L, 7L, Set.of("HANGZHOU", "CHANGCHUN")));
+        verify(contractMapper).selectOrganizationVisibleContractNumbers(argThat(query ->
+                query.grants().equals(List.of(new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery.Grant(1L,178L,"162007")))
+                        && query.contractNumbers().equals(Set.of("HANGZHOU", "CHANGCHUN"))));
+    }
+
+    @Test
+    void deviceReadScopeRetainsCompanyDepartmentPairsAndCompanyLevelNull() {
+        var department = scope(1L, "001", 1); department.setDepartmentId(178L); department.setDepartmentCode("162007");
+        var company = scope(2L, "002", 1); company.setCompanyId(4L);
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(department, company));
+        var scope = service.prepareReadScope(new cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.ReadScopeQuery(1L,7L));
+        assertEquals(List.of(
+                new cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.OrganizationGrant(1L,178L,"162007"),
+                new cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.OrganizationGrant(4L,null,null)), scope.organizationGrants());
     }
 
     @Test void historicalProjectReadRequiresBothProjectAndCompanyScope() {
@@ -286,9 +311,11 @@ class ContractAccessServiceTest {
         UserCompanyDepartmentScopeRespDTO value = new UserCompanyDepartmentScopeRespDTO();
         value.setId(id);
         value.setCompanyCode(companyCode);
+        value.setCompanyId(id);
         value.setVersion(version);
         return value;
     }
+
     @Test void orderLineCandidatesOnlyNarrowAuthorizedProjectsAndPreserveCompanyScope() {
         when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "001", 1)));
         when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L, 20L));

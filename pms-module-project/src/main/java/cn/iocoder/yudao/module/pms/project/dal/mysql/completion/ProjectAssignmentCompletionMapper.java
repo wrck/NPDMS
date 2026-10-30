@@ -8,4 +8,5 @@ import java.util.List;
 public interface ProjectAssignmentCompletionMapper {
     ProjectMasterDO project(@Param("query") ProjectAssignmentCompletionQuery query);
     List<ProjectMemberAssignmentDO> members(@Param("query") ProjectAssignmentCompletionQuery query);
+    List<ProjectMemberAssignmentDO> endUserMembers(@Param("query") ProjectAssignmentCompletionQuery query);
 }

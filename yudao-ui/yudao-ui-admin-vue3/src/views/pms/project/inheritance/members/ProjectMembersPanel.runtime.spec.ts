@@ -60,6 +60,23 @@ describe('project member history authorization presentation', () => {
     expect(textOf(root)).toContain('编辑'); expect(textOf(root)).toContain('移出项目')
     app.unmount()
   })
+  it('keeps accountless END_USER maintenance without granting authorization', async () => {
+    const row = { ...record(false, null), memberRole: 'END_USER' }
+    const { root, app } = setup(row)
+    await vi.waitFor(() => expect(textOf(root)).toContain('历史人员'))
+    expect(textOf(root)).toContain('编辑')
+    expect(textOf(root)).toContain('移出项目')
+    expect(row.authorizationConfirmed).toBe(false)
+    app.unmount()
+  })
+  it('does not treat migrated role 60 as a maintainable END_USER', async () => {
+    const { root, app } = setup({ ...record(false, null), memberRole: '60' })
+    await vi.waitFor(() => expect(textOf(root)).toContain('历史人员'))
+    expect(textOf(root)).not.toContain('编辑')
+    expect(textOf(root)).not.toContain('移出项目')
+    expect(textOf(root)).not.toContain('重新加入')
+    app.unmount()
+  })
 })
 it('queries the entry default role and restores all roles when switching to assignment', async () => {
   vi.mocked(Members.getMemberPage).mockResolvedValue({ list: [], total: 0 })

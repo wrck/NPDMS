@@ -8,7 +8,9 @@ vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn() }) }))
 vi.mock('../components/CutoverProjectContextCard.vue', () => ({ default: defineComponent({ render: () => null }) }))
 vi.mock('../components/CutoverChecklistPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
-vi.mock('../components/CutoverPlanPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
+vi.mock('../components/CutoverPlanPanel.vue', () => ({ default: defineComponent({
+  props: ['readonly'], setup(props) { return () => h('section', { 'data-testid': 'plan', readonly: props.readonly }) }
+}) }))
 vi.mock('../components/CutoverApprovalPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
 vi.mock('../components/CutoverClosurePanel.vue', () => ({ default: defineComponent({
   props: ['taskId', 'readonly'], setup(props) { return () => h('section', { 'data-testid': 'closure', readonly: props.readonly }, `闭环:${props.taskId}`) }
@@ -39,6 +41,25 @@ describe('共享割接任务详情', () => {
     await flush()
     expect(findByTestId(page.root, 'closure')?.props?.readonly).toBe(true)
     expect(api.saveCutoverAssessment).not.toHaveBeenCalled()
+    page.app.unmount()
+  })
+
+  it.each([false, true])('closure maintenance preserves owner approval-only access=%s', async approvalReadOnly => {
+    api.getCutoverTaskDetail.mockResolvedValue({ ...task(), approvalReadOnly,
+      task: { ...task().task, taskStatus: 'CLOSURE_IN_PROGRESS' } })
+    const page = mount(Detail, { taskId: '9007199254740993', projectId: '201', closureOnly: true })
+    await flush()
+    expect(findByTestId(page.root, 'closure')?.props?.readonly).toBe(approvalReadOnly)
+    page.app.unmount()
+  })
+
+  it('does not reopen a plan draft through the closure-only maintenance entry', async () => {
+    api.getCutoverTaskDetail.mockResolvedValue({ ...task(),
+      task: { ...task().task, currentStage: 'P4', taskStatus: 'PLAN_DRAFTING' } })
+    const page = mount(Detail, { taskId: '9007199254740993', projectId: '201', closureOnly: true })
+    await flush()
+    expect(findByTestId(page.root, 'plan')?.props?.readonly).toBe(true)
+    expect(findByTestId(page.root, 'closure')).toBeUndefined()
     page.app.unmount()
   })
 

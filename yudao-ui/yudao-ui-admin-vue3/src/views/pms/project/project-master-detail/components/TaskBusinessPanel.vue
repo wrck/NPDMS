@@ -15,6 +15,11 @@
         :readonly="maintenanceReadonly"
         @changed="ownerChanged"
       />
+      <CutoverTaskDetail
+        v-else-if="completedCutover && project && selectedObject"
+        ref="cutoverRef" :task-id="selectedObject" :project-id="project.id"
+        closure-only :readonly="maintenanceReadonly" @changed="ownerChanged"
+      />
       <BusinessViewHost
         v-else-if="registration && project"
         ref="hostRef"
@@ -52,6 +57,7 @@
 import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
 import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'
 import ProjectMembersBusinessView from '@/components/BusinessView/ProjectMembersBusinessView.vue'
+const CutoverTaskDetail = defineAsyncComponent(() => import('@/views/pms/cutover/task-detail/index.vue').then(module => module.default))
 import * as BusinessApi from '@/api/pms/project/task-business'
 import type { TaskBusinessContext, TaskBusinessObject } from '@/api/pms/project/task-business'
 import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
@@ -84,6 +90,7 @@ const project = ref<Omit<ProjectMasterVO, 'id'> & { id?: BusinessViewId }>()
 const registration = ref<BusinessViewRegistrationVO>()
 const hostRef = ref<InstanceType<typeof BusinessViewHost>>()
 const membersRef = ref<InstanceType<typeof ProjectMembersBusinessView>>()
+const cutoverRef = ref<InstanceType<typeof CutoverTaskDetail>>()
 // 业务视图宿主的首判定完成状态（expose 的 viewSettled）：宿主未挂载或执行检查中视为未就绪
 const hostSettled = computed(() => hostRef.value?.viewSettled === true)
 const loading = ref(false), dirty = ref(false)
@@ -116,6 +123,13 @@ const completedAssignment = computed(() => props.completed &&
   context.value?.ownerActions.includes('QUERY'))
 const maintenanceReadonly = computed(() => Boolean(props.readonly || loading.value || error.value ||
   context.value?.recoverableError || !sameTask(context.value?.taskId, props.taskId)))
+// 审批完成只结束项目任务；关联割接的P6继续由割接Owner授权和状态机办理。
+const completedCutover = computed(() => props.completed &&
+  sameTask(context.value?.taskId, props.taskId) && context.value?.ownerContext === 'CUT' &&
+  context.value?.objectType === 'CUTOVER_APPROVAL' &&
+  registration.value?.componentKey === 'CUT_CUTOVER_APPROVAL_WORKBENCH' &&
+  context.value?.ownerActions.includes('QUERY') &&
+  context.value.links.some(row => row.objectId === selectedObject.value))
 // Owner pages enforce each row's state. Automatic links can lag behind a saved draft.
 // 只读（未进入阶段/已完成/执行不允许）只保留 QUERY：视图照常渲染，写操作由 Owner 页面隐藏
 const ownerActions = computed(() => {
@@ -219,6 +233,7 @@ const load = async (useInitialProject = false) => {
 }
 const requestLeave = async () => {
   try {
+    if (cutoverRef.value) return await cutoverRef.value.saveBeforeLeave()
     const host = membersRef.value || hostRef.value
     if (!host) return !dirty.value
     return (await host.requestLeave()) !== false

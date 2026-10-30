@@ -45,19 +45,21 @@ public class SatisfactionTaskOutboxDeliveryJob implements JobHandler {
         List<PlatformOutboxMessageDTO> messages = outboxDeliveryApi.claimDue(new PlatformOutboxClaimQuery(
                 now, BATCH_SIZE, Set.of("SatisfactionTaskCreated")));
         int delivered = 0;
+        int obsolete = 0;
         int retried = 0;
         for (PlatformOutboxMessageDTO message : messages) {
             try {
-                projectionService.project(parse(message));
+                var outcome = projectionService.project(parse(message));
                 outboxDeliveryApi.markDelivered(message.eventId(), message.retryCount());
-                delivered++;
+                if (outcome == SatisfactionTaskTodoProjectionService.ProjectionOutcome.OBSOLETE) obsolete++;
+                else delivered++;
             } catch (RuntimeException failure) {
                 outboxDeliveryApi.scheduleRetry(message.eventId(), message.retryCount(), now.plusMinutes(1));
                 retried++;
                 log.warn("[execute][满意度Task事件({})投影失败]", message.eventId(), failure);
             }
         }
-        return String.format("满意度Task事件投影成功 %d 条，待重试 %d 条", delivered, retried);
+        return String.format("满意度Task事件投影成功 %d 条，已处理任务跳过 %d 条，待重试 %d 条", delivered, obsolete, retried);
     }
 
     private SatisfactionTaskCreatedMessage parse(PlatformOutboxMessageDTO message) {

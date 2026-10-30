@@ -108,9 +108,10 @@ const dialogWidth = computed(() => mobile.value ? '96%' : '680px')
 const editable = computed(() => !props.readonly && props.project.lifecycleStatus === 'ACTIVE' && !loading.value && !opening.value && !error.value)
 const removalSubmission = createSubmissionIdempotencyState()
 let sequence = 0
-const canMaintain = (row: Members.MemberRecord) => row.authorizationConfirmed !== false && row.userId != null && Members.memberRoleOptions.some(role =>
+const canMaintain = (row: Members.MemberRecord) => (row.memberRole === memberRoles.END_USER
+  || row.authorizationConfirmed !== false && row.userId != null) && Members.memberRoleOptions.some(role =>
   role.value === Members.logicalMemberRole(row.memberRole) && checkPermi([role.permission]))
-const isCurrent = (row: Members.MemberRecord) => row.authorizationConfirmed !== false && row.status === 'ACTIVE'
+const isCurrent = (row: Members.MemberRecord) => (row.memberRole === memberRoles.END_USER || row.authorizationConfirmed !== false) && row.status === 'ACTIVE'
   && (!row.effectiveFrom || new Date(row.effectiveFrom).getTime() <= Date.now())
   && (!row.effectiveTo || new Date(row.effectiveTo).getTime() > Date.now())
 const time = (value?: Date | null) => value ? formatDate(value) : '—'
