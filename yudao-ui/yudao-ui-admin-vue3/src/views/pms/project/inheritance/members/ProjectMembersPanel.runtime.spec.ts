@@ -1,87 +1,31 @@
 vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
-import { defineComponent, h, inject, provide, nextTick, reactive } from 'vue'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { computed, defineComponent, h, inject, nextTick, provide, reactive, type ComputedRef } from 'vue'
+import { expect, it, vi } from 'vitest'
 import * as Members from '@/api/pms/project/unified-members'
 import * as Managers from '@/api/pms/project/members'
+import * as Projects from '@/api/pms/project/projects'
 import ProjectMembersPanel from './ProjectMembersPanel.vue'
-import { mount, textOf, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, passthrough, tableColumn, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
-vi.mock('@/api/pms/project/unified-members', async original => ({
-  ...await original<typeof Members>(), getMemberPage: vi.fn()
+vi.mock('@/api/pms/project/projects', () => ({ getProject: vi.fn() }))
+vi.mock('@/api/pms/project/members', () => ({
+  getProjectManagers: vi.fn().mockResolvedValue({ members: [] })
 }))
-vi.mock('@/api/pms/project/members', () => ({ getProjectManagers: vi.fn() }))
-vi.mock('@/utils/permission', () => ({ checkPermi: vi.fn(() => true) }))
-const table = defineComponent({ props: ['data'], setup(props, { slots }) {
-  provide('member-history-test-rows', () => props.data || [])
-  return () => h('table', slots.default?.())
-} })
-const column = defineComponent({ setup(_, { slots }) {
-  const rows = inject<() => Members.MemberRecord[]>('member-history-test-rows', () => [])
-  return () => h('column', rows().flatMap(row => slots.default?.({ row }) || []))
-} })
-const dialog = defineComponent({ props: ['modelValue'], setup(props, { slots }) {
-  return () => h('dialog', props.modelValue ? slots.default?.() : [])
-} })
-const record = (confirmed: boolean, userId: number | null = 40): Members.MemberRecord => ({
-  id: 12, projectId: 9, userId, memberName: '历史人员', memberCode: 'z01010', memberRole: 'PROJECT_MANAGER',
-  mobile: '原联系电话', email: 'interval@example.test', authorizationConfirmed: confirmed,
-  effectiveFrom: new Date('2020-01-01'), status: 'ACTIVE'
-})
-const setup = (row: Members.MemberRecord) => {
-  vi.mocked(Members.getMemberPage).mockResolvedValue({ list: [row], total: 1 })
-  return mount(ProjectMembersPanel, { project: { id: 9, version: 3, lifecycleStatus: 'ACTIVE' } }, {
-    ElTable: table, ElTableColumn: column, ElDialog: dialog, ElRadioGroup: passthrough,
-    ElRadioButton: passthrough, ElSelect: passthrough, ElOption: passthrough, ElInput: passthrough, ElText: passthrough
-  })
-}
-describe('project member history authorization presentation', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    vi.mocked(Managers.getProjectManagers).mockResolvedValue({ projectId: 9, version: 3, primaryUserId: 1, assignmentStatus: 'ASSIGNED', changed: false, members: [] })
-  })
-  it('unconfirmed effective history shows its interval facts with no edit, remove or rejoin action', async () => {
-    const { root, app } = setup(record(false))
-    await vi.waitFor(() => expect(textOf(root)).toContain('历史人员'))
-    const text = textOf(root)
-    expect(text).toContain('z01010'); expect(text).toContain('原联系电话'); expect(text).toContain('interval@example.test')
-    expect(text).toContain('未确认授权'); expect(text).toContain('只读')
-    expect(text).not.toContain('编辑'); expect(text).not.toContain('移出项目'); expect(text).not.toContain('重新加入')
-    app.unmount()
-  })
-  it('an unlinked historical person remains readable without selecting a fabricated platform user', async () => {
-    const { root, app } = setup(record(false, null))
-    await vi.waitFor(() => expect(textOf(root)).toContain('历史人员'))
-    expect(textOf(root)).toContain('只读'); expect(textOf(root)).not.toContain('编辑')
-    app.unmount()
-  })
-  it('confirmed normal members retain the existing maintenance actions', async () => {
-    const { root, app } = setup(record(true))
-    await vi.waitFor(() => expect(textOf(root)).toContain('历史人员'))
-    expect(textOf(root)).toContain('编辑'); expect(textOf(root)).toContain('移出项目')
-    app.unmount()
-  })
-  it('keeps accountless END_USER maintenance without granting authorization', async () => {
-    const row = { ...record(false, null), memberRole: 'END_USER' }
-    const { root, app } = setup(row)
-    await vi.waitFor(() => expect(textOf(root)).toContain('历史人员'))
-    expect(textOf(root)).toContain('编辑')
-    expect(textOf(root)).toContain('移出项目')
-    expect(row.authorizationConfirmed).toBe(false)
-    app.unmount()
-  })
-  it('does not treat migrated role 60 as a maintainable END_USER', async () => {
-    const { root, app } = setup({ ...record(false, null), memberRole: '60' })
-    await vi.waitFor(() => expect(textOf(root)).toContain('历史人员'))
-    expect(textOf(root)).not.toContain('编辑')
-    expect(textOf(root)).not.toContain('移出项目')
-    expect(textOf(root)).not.toContain('重新加入')
-    app.unmount()
-  })
-})
+vi.mock('@/api/pms/project/unified-members', () => ({
+  MEMBER_ROLE: { PROJECT_MANAGER: 'PROJECT_MANAGER', SERVICE_MANAGER: 'SERVICE_MANAGER' },
+  memberRoleOptions: [
+    { value: 'END_USER', label: '最终用户', permission: 'pms:project-team:create' },
+    { value: 'PROJECT_MANAGER', label: '项目经理', permission: 'pms:project:assign' }
+  ],
+  logicalMemberRole: (role: string) => role,
+  getMemberPage: vi.fn().mockResolvedValue({ list: [], total: 0 })
+}))
+vi.mock('./OrdinaryMemberForm.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/system/user/components/UserSelect.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('@vueuse/core', () => ({ useMediaQuery: () => false }))
+
 it('queries the entry default role and restores all roles when switching to assignment', async () => {
-  vi.mocked(Members.getMemberPage).mockResolvedValue({ list: [], total: 0 })
-  vi.mocked(Managers.getProjectManagers).mockResolvedValue({ projectId: 191, version: 1, primaryUserId: 1, assignmentStatus: 'ASSIGNED', changed: false, members: [] })
   const props = reactive<{ initialRole?: 'END_USER' }>({ initialRole: 'END_USER' })
   const host = defineComponent({ setup: () => () => h(ProjectMembersPanel, {
     project: { id: 191, lifecycleStatus: 'ACTIVE' }, ...props
@@ -98,5 +42,96 @@ it('queries the entry default role and restores all roles when switching to assi
   await nextTick()
   expect(Members.getMemberPage).toHaveBeenLastCalledWith(191,
     expect.objectContaining({ role: undefined, pageNo: 1 }))
+  app.unmount()
+})
+
+it.each([
+  [false, false],
+  [true, true]
+])('requires a successor only when a bound project manager remains (%s)', async (anotherBoundManager, expected) => {
+  const primaryUserId = '2112914651683598351'
+  const row = { id: '2113118246009847875', userId: primaryUserId, memberRole: 'PROJECT_MANAGER', status: 'ACTIVE' }
+  vi.mocked(Members.getMemberPage).mockResolvedValue({ list: [row], total: 1 } as never)
+  vi.mocked(Managers.getProjectManagers).mockResolvedValue({ primaryUserId, members: [
+    { userId: null, name: '未绑定历史经理' }, { userId: primaryUserId, name: '当前主责' },
+    ...(anotherBoundManager ? [{ userId: '2112914651683598352', name: '保留经理' }] : [])
+  ] } as never)
+  vi.mocked(Projects.getProject).mockResolvedValue({ id: 191, version: 0, lifecycleStatus: 'ACTIVE' } as never)
+  const table = defineComponent({
+    props: { data: Array },
+    setup(props, { slots }) {
+      provide('member-rows', computed(() => props.data))
+      return () => h('section', slots.default?.())
+    }
+  })
+  const column = defineComponent({
+    props: { label: String },
+    setup(props, { slots }) {
+      const data = inject<ComputedRef<unknown[]>>('member-rows')!
+      return () => props.label === '操作'
+        ? h('section', data.value.map(row => slots.default?.({ row }))) : null
+    }
+  })
+  const dialog = defineComponent({
+    props: { modelValue: Boolean },
+    setup(props, { slots }) { return () => props.modelValue ? h('section', slots.default?.()) : null }
+  })
+  const { app, root } = mount(ProjectMembersPanel, { project: { id: 191, lifecycleStatus: 'ACTIVE' } }, {
+    ElTable: table, ElTableColumn: column, ElDialog: dialog,
+    ElSelect: passthrough, ElOption: passthrough, ElRadioGroup: passthrough,
+    ElRadioButton: passthrough, ElInput: passthrough
+  })
+  await nextTick(); await nextTick()
+  const nodes = () => {
+    const found: TestNode[] = []
+    const visit = (node: TestNode) => { found.push(node); node.children.forEach(visit) }
+    visit(root); return found
+  }
+  const remove = nodes().find(node => node.type === 'button' && textOf(node) === '移出项目')!
+  await (remove.props!.onClick as () => Promise<void>)()
+  await nextTick()
+  expect(nodes().some(node => node.props?.label === '接任主责项目经理')).toBe(expected)
+  app.unmount()
+})
+
+it.each([
+  [null, ['否', '否']],
+  ['2112914651683598351', ['否', '是']]
+])('labels only a bound project manager as primary (%s)', async (primaryUserId, expected) => {
+  const rows = [
+    { id: '2113118246009847875', userId: null, memberRole: 'PROJECT_MANAGER', status: 'ACTIVE' },
+    { id: '2113118246009847876', userId: '2112914651683598351', memberRole: 'PROJECT_MANAGER', status: 'ACTIVE' }
+  ]
+  vi.mocked(Members.getMemberPage).mockResolvedValue({ list: rows, total: 2 } as never)
+  vi.mocked(Managers.getProjectManagers).mockResolvedValue({ primaryUserId, members: [] } as never)
+  const table = defineComponent({
+    props: { data: Array },
+    setup(props, { slots }) {
+      provide('member-rows', computed(() => props.data))
+      return () => h('section', slots.default?.())
+    }
+  })
+  const column = defineComponent({
+    props: { label: String },
+    setup(props, { slots }) {
+      const data = inject<ComputedRef<unknown[]>>('member-rows')!
+      return () => props.label === '主责'
+        ? h('section', data.value.map(row => h('span', { 'data-testid': 'primary-label' }, slots.default?.({ row }))))
+        : null
+    }
+  })
+  const { app, root } = mount(ProjectMembersPanel, { project: { id: 191, lifecycleStatus: 'ACTIVE' } }, {
+    ElTable: table, ElTableColumn: column, ElDialog: tableColumn,
+    ElSelect: passthrough, ElOption: passthrough, ElRadioGroup: passthrough,
+    ElRadioButton: passthrough, ElInput: passthrough
+  })
+  await nextTick(); await nextTick()
+  const labels: string[] = []
+  const visit = (node: TestNode) => {
+    if (node.props?.['data-testid'] === 'primary-label') labels.push(textOf(node))
+    node.children.forEach(visit)
+  }
+  visit(root)
+  expect(labels).toEqual(expected)
   app.unmount()
 })

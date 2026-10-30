@@ -285,6 +285,32 @@ class OrdinaryProjectMemberServiceTest {
         assertEquals("原备注", previous.getRemark()); assertEquals("原加入原因", previous.getChangeReason());
     }
 
+    @Test void removingUnlinkedProjectManagerClosesOnlyItsAssignmentAndRetainsHistory() {
+        when(permissions.hasAnyPermissions(7L, "pms:project:assign")).thenReturn(true);
+        var previous = member("PROJECT_MANAGER");
+        previous.setUserId(null); previous.setAuthorizationConfirmed(false);
+        previous.setMemberName("历史项目经理");
+        project.setManagerId(null); project.setAssignmentStatus("UNASSIGNED");
+        when(memberMapper.selectById(10L)).thenReturn(previous);
+
+        var result = service.mutate(command(Action.REMOVE, 10L, null, null, null, 0), actor());
+
+        assertTrue(result.changed()); assertEquals(10L, result.assignmentId());
+        assertNull(result.userId()); assertNotNull(result.effectiveTo()); assertEquals(1L, result.version());
+        var closed = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
+        verify(memberMapper).updateById(closed.capture());
+        assertEquals(10L, closed.getValue().getId()); assertNotNull(closed.getValue().getEffectiveTo());
+        assertEquals("本次调整", closed.getValue().getEndReason());
+        assertNull(closed.getValue().getUserId()); assertNull(closed.getValue().getMemberName());
+        assertEquals("历史项目经理", previous.getMemberName()); assertEquals("原加入原因", previous.getChangeReason());
+        assertNull(project.getManagerId()); assertEquals("UNASSIGNED", project.getAssignmentStatus());
+        assertEquals(1, successFacts.businessEvents().size());
+        assertFalse(service.mutate(command(Action.REMOVE, 10L, null, null, null, 1), actor()).changed());
+        verify(memberMapper, times(1)).updateById(any(ProjectMemberAssignmentDO.class));
+        verifyNoInteractions(projectManagers, serviceManagers, users);
+        verify(memberMapper, never()).deleteById(anyLong());
+    }
+
     @Test void historicalEditAndCrossProjectAssignmentAreRejected() {
         var previous = member("TEAM_MEMBER"); previous.setEffectiveTo(LocalDateTime.now().minusHours(1));
         when(memberMapper.selectById(10L)).thenReturn(previous);
@@ -293,6 +319,22 @@ class OrdinaryProjectMemberServiceTest {
         assertEquals(PROJECT_TEAM_MEMBER_NOT_EXISTS.getCode(), assertThrows(ServiceException.class,
                 () -> service.mutate(command(Action.REMOVE, 10L, null, null, null, 0), actor())).getCode());
         verify(memberMapper, never()).updateById(any(ProjectMemberAssignmentDO.class));
+    }
+
+    @Test void removingBoundProjectManagerKeepsDedicatedPrimaryReplacementCommand() {
+        when(permissions.hasAnyPermissions(7L, "pms:project:assign")).thenReturn(true);
+        var previous = member("PROJECT_MANAGER");
+        when(memberMapper.selectById(10L)).thenReturn(previous);
+        when(projectManagers.update(any(), any())).thenReturn(new ProjectManagerMemberResult(
+                100L, 1L, 55L, "ASSIGNED", true, List.of()));
+
+        service.mutate(new Command(100L, 0L, Action.REMOVE, 10L, null, "退出", "remove-linked", 55L), actor());
+
+        var command = ArgumentCaptor.forClass(ProjectManagerMemberCommand.class);
+        verify(projectManagers).update(command.capture(), any());
+        assertEquals(Set.of(40L), command.getValue().removeUserIds());
+        assertEquals(55L, command.getValue().primaryUserId());
+        verify(projectMapper, never()).incrementVersionIfMatch(anyLong(), anyLong());
     }
 
     @Test void closedProjectAndStaleVersionCannotWrite() {
