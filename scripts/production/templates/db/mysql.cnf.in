@@ -2,6 +2,7 @@
 basedir=/opt/sdp/mysql
 datadir=/data/mysql
 tmpdir=/data/mysql-tmp
+secure-file-priv=/data/mysql-tmp
 bind-address=@@db_ip@@
 port=3306
 socket=/run/sdp-mysql/mysql.sock
