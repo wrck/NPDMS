@@ -32,7 +32,8 @@
             </when>
         </choose>
         <if test="query.keyword != null">
-            AND (u.username LIKE CONCAT('%', #{query.keyword}, '%') OR u.nickname LIKE CONCAT('%', #{query.keyword}, '%'))
+            AND (u.username LIKE CONCAT('%', #{query.keyword}, '%') OR u.nickname LIKE CONCAT('%', #{query.keyword}, '%')
+                OR u.email LIKE CONCAT('%', #{query.keyword}, '%'))
         </if>
     </sql>
     <select id="selectActiveSelectionCount" resultType="long">
@@ -53,6 +54,7 @@
         <include refid="scopedActiveIdentityBase"/>
         <if test="query.keyword != null">
             AND (u.username LIKE CONCAT('%', #{query.keyword}, '%') OR u.nickname LIKE CONCAT('%', #{query.keyword}, '%')
+                OR u.email LIKE CONCAT('%', #{query.keyword}, '%')
                 <if test="query.matchedDepartmentIds != null and !query.matchedDepartmentIds.isEmpty()">
                     OR u.dept_id IN <foreach collection="query.matchedDepartmentIds" item="dept" open="(" separator="," close=")">#{dept}</foreach>
                 </if>

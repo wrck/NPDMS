@@ -830,6 +830,30 @@ class ProjectManualCreationServiceImplTest {
         assertEquals(Set.of(100L, 200L), query.getValue().getVisibleProjectIds());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"MANAGER", "SERVICE_MANAGER", "SALES"})
+    void projectPageGlobalRoleCandidateNeverAddsItsOutOfScopeProjects(String field) {
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L, 7L, "PROJECT_VIEW"))
+                .thenReturn(Set.of(100L));
+        var outside = new ProjectMemberAssignmentDO();
+        outside.setProjectId(999L);
+        outside.setMemberRole("SALES".equals(field) ? "SALES_REPRESENTATIVE" : "SERVICE_MANAGER");
+        when(memberAssignmentMapper.selectActiveByUser(any())).thenReturn(List.of(outside));
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        var filters = pageReqVO(null, null, null, null, null, null, null);
+        switch (field) {
+            case "MANAGER" -> filters.setManagerId(9001L);
+            case "SERVICE_MANAGER" -> filters.setServiceManagerId(9001L);
+            case "SALES" -> filters.setSalesId(9001L);
+        }
+
+        service.getProjectPage(filters, new ProjectManualCreationService.ProjectAccessActor(0L, 7L));
+
+        var captured = ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertTrue(captured.getValue().getVisibleProjectIds().isEmpty());
+    }
+
     @Test
     void projectPageShipmentYesKeepsOnlyShippedVisibleProjects() {
         var filters=pageReqVO(null,null,null,null,null,null,null);
