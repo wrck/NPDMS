@@ -22,8 +22,8 @@ v-if="operation.receipt.value"
         <el-table-column prop="label" label="业务操作" min-width="120" />
         <el-table-column label="业务权限" width="120"><template #default="{ row }">{{ row.ownerPermitted ? '允许' : active.resolvedContext.businessObjectId == null ? '选择对象后校验' : '未获授权' }}</template></el-table-column>
         <el-table-column label="项目执行" width="100"><template #default="{ row }">{{ row.executionPermitted ? '允许' : '不可办理' }}</template></el-table-column>
-        <el-table-column prop="pre.outcome" label="前置判定" width="160" />
-        <el-table-column prop="reason" label="阻塞原因" min-width="180" />
+        <el-table-column label="前置判定" width="160"><template #default="{ row }">{{ ({ MATCHED: '满足', NO_ADDITIONAL_RULE: '无附加条件', NOT_MATCHED: '未满足', UNKNOWN: '暂无法判定' })[row.pre.outcome] || row.pre.outcome }}</template></el-table-column>
+        <el-table-column label="操作说明" min-width="180"><template #default="{ row }"><span :title="row.reason">{{ operationReason(row) }}</span></template></el-table-column>
       </el-table>
     </section>
     <el-alert v-if="operationError" :title="operationError" type="error" :closable="false" show-icon />
@@ -53,6 +53,14 @@ const hasActionBar = !!barTarget
 const capture = (): BusinessViewTarget => ({ registration: { ...props.registration }, resolvedContext: { ...props.resolvedContext },
   allowedActions: [...(props.allowedActions || [])], readonly: props.readonly })
 const active = shallowRef(capture())
+const operationReason = (row: { operationCode: string; reason?: string }) => {
+  if (row.reason === 'OWNER_OPERATION_FORBIDDEN' && active.value.resolvedContext.businessObjectId != null
+      && active.value.registration.ownerContext === 'CUT'
+      && ['CUT.CUTOVER_TASK.CREATE', 'CUT.CUTOVER_APPROVAL.CREATE'].includes(row.operationCode))
+    return '新建入口不适用于已关联任务；已有任务按下方业务权限办理。'
+  return ({ OWNER_OPERATION_FORBIDDEN: '当前用户未获此操作授权', NODE_EXECUTION_FORBIDDEN: '当前节点不可再办理',
+    OPERATION_PRECONDITION_NOT_MATCHED: '操作前置条件未满足', OPERATION_RUNTIME_NOT_INSTALLED: '操作服务暂不可用' })[row.reason || ''] || row.reason || '无'
+}
 const operation = useOperationHost(active, () => emit('changed'))
 provide(operationClientKey, operation.client)
 provide(operationCheckKey, operation.waitForCheck)
