@@ -22,7 +22,8 @@ class CutoverTaskCreationQueryServiceTest {
     private final DeviceQueryApi devices = mock(DeviceQueryApi.class);
     private final CutoverCustomerLevelPort customer = mock(CutoverCustomerLevelPort.class);
     private final CutoverTaskQueryService tasks = mock(CutoverTaskQueryService.class);
-    private final CutoverTaskCreationQueryService service = new CutoverTaskCreationQueryService(projects, scopes, shipments, devices, customer, tasks);
+    private final CutoverProjectContextPort projectContexts = mock(CutoverProjectContextPort.class);
+    private final CutoverTaskCreationQueryService service = new CutoverTaskCreationQueryService(projects, scopes, shipments, devices, customer, tasks, projectContexts);
     private final CutoverTaskContext actor = new CutoverTaskContext(1L, 9L, "create-detail-test", true, true, false, false, false);
 
     @Test void optionsNeverExposeReadOnlyProjectsOrQueryWhenEditScopeIsEmpty() {
@@ -50,9 +51,29 @@ class CutoverTaskCreationQueryServiceTest {
         var presentation = ProjectBusinessContextApi.Presentation.builder().projectId(101L).projectName("项目").customerName("客户")
                 .projectManagerName("项目经理").serviceManagerNames("服务经理").industryName("金融").build();
         when(projects.presentation(any())).thenReturn(presentation);
-        when(projects.inspect(any())).thenReturn(ProjectBusinessContextApi.Context.builder().projectId(101L).build());
+        when(projectContexts.inspect(any())).thenReturn(CutoverProjectContextPort.ProjectContextFact.builder().projectId(101L).build());
         assertEquals(presentation, service.project(new CutoverTaskCreationQueryService.ProjectQuery(actor, 101L)).project());
         verify(projects).presentation(argThat(value -> value.tenantId() == 1L && value.actorId() == 9L && value.expectedScopeVersion() == 7L));
+    }
+
+    @Test void projectSelectionPreservesUnconfiguredStatusBeforeAnyDeviceIsSelected() {
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(101L, 7L, Set.of(101L), Set.of()));
+        when(projectContexts.inspect(any())).thenReturn(CutoverProjectContextPort.ProjectContextFact.builder().projectId(101L).customerId(201L).build());
+        when(customer.inspect(201L)).thenReturn(CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .customerId(201L).status("NOT_CONFIGURED").build());
+        var result = service.project(new CutoverTaskCreationQueryService.ProjectQuery(actor, 101L));
+        assertNull(result.customerServiceLevel());
+        assertEquals("NOT_CONFIGURED", result.customerServiceLevelContext().status());
+        verifyNoInteractions(shipments, devices, tasks);
+    }
+
+    @Test void failedCustomerLookupDoesNotTurnIntoUnconfigured() {
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(101L, 7L, Set.of(101L), Set.of()));
+        when(projectContexts.inspect(any())).thenReturn(CutoverProjectContextPort.ProjectContextFact.builder().projectId(101L).customerId(201L).build());
+        when(customer.inspect(201L)).thenThrow(new CutoverOwnerFactException(
+                CutoverOwnerFactException.Code.PROVIDER_UNAVAILABLE, "offline"));
+        assertEquals("UNAVAILABLE", service.project(new CutoverTaskCreationQueryService.ProjectQuery(actor, 101L))
+                .customerServiceLevelContext().status());
     }
 
     @Test void serialResolutionRejectsUnshippedOrReassignedDevicesAndReturnsProductFields() {

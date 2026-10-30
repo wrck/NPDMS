@@ -6,7 +6,7 @@ import TaskDevices from '../components/CutoverTaskDevices.vue'
 import { findByTestId, mount, textOf, type TestNode } from '../cutoverTestHarness'
 
 const selectionApi = vi.hoisted(() => ({ searchProjectOptions: vi.fn(), getProjectContext: vi.fn(), getProjectDevicePage: vi.fn() }))
-const api = vi.hoisted(() => ({ resolveCreationDevices: vi.fn(), getCreationOptions: vi.fn(), createCutoverTask: vi.fn(), getCutoverTaskPage: vi.fn(), getCutoverTaskDetail: vi.fn(), saveCutoverAssessment: vi.fn() }))
+const api = vi.hoisted(() => ({ getCreationProject: vi.fn(), resolveCreationDevices: vi.fn(), getCreationOptions: vi.fn(), createCutoverTask: vi.fn(), getCutoverTaskPage: vi.fn(), getCutoverTaskDetail: vi.fn(), saveCutoverAssessment: vi.fn() }))
 const feedback = vi.hoisted(() => ({ confirm: vi.fn(), warning: vi.fn(), success: vi.fn(), error: vi.fn() }))
 const operation = vi.hoisted(() => ({ execute: vi.fn(), enabled: false }))
 const assets = vi.hoisted(() => ({ getDevice: vi.fn() }))
@@ -45,6 +45,7 @@ beforeEach(() => {
   feedback.confirm.mockResolvedValue(true)
   selectionApi.searchProjectOptions.mockResolvedValue([{ id: '101', code: 'P-101', name: '项目101', customerName: '真实客户' }])
   selectionApi.getProjectContext.mockImplementation(async id => project(id))
+  api.getCreationProject.mockImplementation(async id => ({ ...project(id), customerServiceLevelContext: { status: 'AVAILABLE', serviceLevelCode: 'GOLD' } }))
   selectionApi.getProjectDevicePage.mockResolvedValue({ list: [device(), device('402')], total: 2 })
   api.resolveCreationDevices.mockImplementation(async serials => resolution('101', serials.map((serial: string) => serial.replace('SN-', ''))))
   api.getCreationOptions.mockResolvedValue([{ revisionId: '41', code: 'STANDARD', name: '标准配置', revisionNo: 1,
@@ -339,6 +340,26 @@ describe('详情式新建割接任务', () => {
     expect(textOf(view.root)).toContain('SN-401'); expect(textOf(view.root)).toContain('SN-402'); expect(textOf(view.root)).toContain('CODE-401')
     expect(textOf(view.root)).toContain('部分产品信息暂时无法读取'); expect(findByTestId(view.root, 'remove-create-device-401')).toBeUndefined(); view.app.unmount()
   })
+  it('offers manual selection immediately after project selection without requiring a device', async () => {
+    api.getCreationProject.mockResolvedValue({ ...project('101'), customerServiceLevelContext: { status: 'NOT_CONFIGURED' } })
+    const view = mount(TaskCreate, {}, controls); await flush()
+    await update(view.root, 'create-project-select', '101'); await flush()
+    expect(findByTestId(view.root, 'manual-customer-service-level')).toBeDefined()
+    expect(api.resolveCreationDevices).not.toHaveBeenCalled()
+    await update(view.root, 'manual-customer-service-level', 'GOLD')
+    expect(textOf(view.root)).toContain('客户未配置等级，请手动选择')
+    view.app.unmount()
+  })
+
+  it('does not offer manual selection when the project level lookup fails', async () => {
+    api.getCreationProject.mockRejectedValue(new Error('offline'))
+    const view = mount(TaskCreate, {}, controls); await flush()
+    await update(view.root, 'create-project-select', '101'); await flush()
+    expect(findByTestId(view.root, 'manual-customer-service-level')).toBeUndefined()
+    expect(textOf(view.root)).toContain('不能手动替代')
+    view.app.unmount()
+  })
+
   it('saves a manual service level from the shared creation questionnaire when the customer has none configured', async () => {
     const resolved = resolution()
     resolved.context.candidates[0].customerServiceLevel.status = 'NOT_CONFIGURED'

@@ -61,7 +61,8 @@ public class CutoverOwnerAdapters {
     }
 
     @Bean
-    CutoverProjectContextPort cutoverProjectContextPort(ProjectBusinessContextApi api) {
+    CutoverProjectContextPort cutoverProjectContextPort(ProjectBusinessContextApi api,
+            cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customers) {
         return new CutoverProjectContextPort() {
             public ProjectContextFact inspect(CutoverProjectContextPort.Inspection query) {
                 Long tenantId = query.tenantId();
@@ -72,7 +73,7 @@ public class CutoverOwnerAdapters {
                 .tenantId(tenantId)
                 .actorId(actor())
                 .projectId(projectId)
-                .expectedScopeVersion(scopeVersion).build()));
+                .expectedScopeVersion(scopeVersion).build()), false);
             }
             public ProjectContextFact lockAndRevalidate(ProjectContextFact expected) {
                 requireTenant(expected.tenantId());
@@ -82,17 +83,26 @@ public class CutoverOwnerAdapters {
                 .actorId(actor())
                 .projectId(expected.projectId())
                 .expectedScopeVersion(expected.projectScopeVersion()).build())
-                .expectedProjectVersion((long) expected.projectVersion()).build()));
+                .expectedProjectVersion((long) expected.projectVersion()).build()), true);
             }
-            private ProjectContextFact fact(ProjectBusinessContextApi.Context value) {
+            private ProjectContextFact fact(ProjectBusinessContextApi.Context value, boolean lockCustomer) {
                 if (value == null) throw unavailable("PROJ 项目上下文服务未返回事实");
+                Long customerId = value.customerId();
+                if (customerId == null && value.customerCode() != null && !value.customerCode().isBlank()) {
+                    var query = new cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerCodeQuery(value.customerCode(), actor());
+                    var customer = lockCustomer ? customers.lockCustomerByCode(query) : customers.getCustomerByCode(query);
+                    if (customer == null || customer.id() == null || !Objects.equals(value.tenantId(), customer.tenantId())
+                            || !Objects.equals(value.customerCode(), customer.code()))
+                        throw unavailable("项目客户编码未能解析为当前租户内的客户主档，请核查客户资料");
+                    customerId = customer.id();
+                }
                 return ProjectContextFact.builder()
                         .tenantId(value.tenantId())
                         .projectId(value.projectId())
                         .projectVersion(Math.toIntExact(value.projectVersion()))
                         .projectCode(value.projectCode())
                         .projectName(value.projectName())
-                        .customerId(value.customerId())
+                        .customerId(customerId)
                         .customerCode(value.customerCode())
                         .customerName(value.customerName())
                         .departmentId(value.departmentId())

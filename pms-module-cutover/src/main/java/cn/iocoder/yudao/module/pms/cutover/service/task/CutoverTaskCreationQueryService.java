@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi;
 import cn.iocoder.yudao.module.pms.cutover.service.task.context.CutoverTaskContext;
 import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverCustomerLevelPort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort;
 import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.task.view.CutoverTaskViews;
 import cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi;
@@ -31,6 +32,7 @@ public class CutoverTaskCreationQueryService {
     private final DeviceQueryApi devices;
     private final CutoverCustomerLevelPort customerLevels;
     private final CutoverTaskQueryService tasks;
+    private final CutoverProjectContextPort projectContexts;
 
     public List<ProjectBusinessContextApi.Option> projects(ProjectOptionsQuery query) {
         requireKeyword(query.keyword());
@@ -46,17 +48,20 @@ public class CutoverTaskCreationQueryService {
     public ProjectContext project(ProjectQuery query) {
         var ownerQuery = authorizedProject(query);
         var presentation = projects.presentation(ownerQuery);
-        var project = projects.inspect(ownerQuery);
-        String customerLevel = null;
+        var project = projectContexts.inspect(new CutoverProjectContextPort.Inspection(
+                query.context().tenantId(), query.projectId(), ownerQuery.expectedScopeVersion()));
+        CutoverCustomerLevelPort.CustomerLevelFact customerFact = null;
         if (project.customerId() != null) {
             try {
                 var fact = customerLevels.inspect(project.customerId());
-                if (fact != null) customerLevel = fact.serviceLevelCode();
+                customerFact = fact;
             } catch (CutoverOwnerFactException exception) {
                 if (exception.code() != CutoverOwnerFactException.Code.PROVIDER_UNAVAILABLE) throw exception;
             }
         }
-        return new ProjectContext(presentation, customerLevel);
+        if (customerFact == null) customerFact = CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .status("UNAVAILABLE").customerId(project.customerId()).factVersion(0L).build();
+        return new ProjectContext(presentation, customerFact.serviceLevelCode(), customerFact);
     }
 
     public ProjectDeviceShipmentApi.DevicePage devices(DevicePageQuery query) {
@@ -113,6 +118,7 @@ public class CutoverTaskCreationQueryService {
     @lombok.Builder
     public record DevicePageQuery(CutoverTaskContext context, Long projectId, String keyword, int pageNo, int pageSize) {}
     public record ResolveQuery(CutoverTaskContext context, List<String> serialNumbers) {}
-    public record ProjectContext(ProjectBusinessContextApi.Presentation project, String customerServiceLevel) {}
+    public record ProjectContext(ProjectBusinessContextApi.Presentation project, String customerServiceLevel,
+            CutoverCustomerLevelPort.CustomerLevelFact customerServiceLevelContext) {}
     public record ResolvedDevices(CutoverTaskViews.CreateContextData context, List<ProjectDeviceShipmentApi.Device> devices) {}
 }
