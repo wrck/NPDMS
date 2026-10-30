@@ -114,13 +114,13 @@ public class InspectionTaskService {
         tasks.insert(task);
         for (var device : selected) {
             var type = types.get(device.equipmentId());
-            require(type != null && type.enabled() && type.productTypeCode() != null && type.displayName() != null,
-                    "设备产品类型未由权威来源解析或已停用，请先完善设备资料");
             require(device.sn() != null && !device.sn().isBlank(), "巡检设备缺少序列号");
             var row = new InspectionTaskDeviceDO();
             row.setTenantId(context.tenantId()); row.setVersion(1L); row.setTaskId(task.getId());
             row.setDeviceId(device.equipmentId()); row.setSerialNumber(device.sn()); row.setDeviceName(device.name());
-            row.setProductTypeCode(type.productTypeCode()); row.setProductTypeName(type.displayName());
+            // 创建只记录已有类型事实；空串表示未提供，不虚构类型或改变 AST 来源事实。
+            row.setProductTypeCode(type == null || type.productTypeCode() == null ? "" : type.productTypeCode());
+            row.setProductTypeName(type == null || type.displayName() == null ? "" : type.displayName());
             row.setProductModel(device.productModel()); row.setContractNo(device.contractNo()); devices.insert(row);
         }
         recordEvent(new Save(context, task, "CREATE", null, "手工创建巡检任务"));

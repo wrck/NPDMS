@@ -71,7 +71,11 @@
             <el-table-column prop="serialNumber" label="序列号" min-width="180" />
             <el-table-column prop="deviceName" label="设备" min-width="160" />
             <el-table-column prop="productModel" label="型号" min-width="130" />
-            <el-table-column prop="productTypeName" label="产品类型" min-width="140" />
+            <el-table-column prop="productTypeName" label="产品类型" min-width="140"
+              ><template #default="{ row }">{{
+                row.productTypeName || '未提供'
+              }}</template></el-table-column
+            >
             <el-table-column label="已选检测项" width="120"
               ><template #default="{ row }">{{
                 selectedRules[String(row.deviceId)]?.length || 0
