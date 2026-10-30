@@ -5,7 +5,6 @@ import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi;
 import cn.iocoder.yudao.module.pms.cutover.service.task.context.CutoverTaskContext;
 import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverCustomerLevelPort;
 import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort;
-import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.task.view.CutoverTaskViews;
 import cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -50,17 +49,7 @@ public class CutoverTaskCreationQueryService {
         var presentation = projects.presentation(ownerQuery);
         var project = projectContexts.inspect(new CutoverProjectContextPort.Inspection(
                 query.context().tenantId(), query.projectId(), ownerQuery.expectedScopeVersion()));
-        CutoverCustomerLevelPort.CustomerLevelFact customerFact = null;
-        if (project.customerId() != null) {
-            try {
-                var fact = customerLevels.inspect(project.customerId());
-                customerFact = fact;
-            } catch (CutoverOwnerFactException exception) {
-                if (exception.code() != CutoverOwnerFactException.Code.PROVIDER_UNAVAILABLE) throw exception;
-            }
-        }
-        if (customerFact == null) customerFact = CutoverCustomerLevelPort.CustomerLevelFact.builder()
-                .status("UNAVAILABLE").customerId(project.customerId()).factVersion(0L).build();
+        var customerFact = CutoverContextSupport.customerReference(customerLevels, project);
         return new ProjectContext(presentation, customerFact.serviceLevelCode(), customerFact);
     }
 

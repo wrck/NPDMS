@@ -40,6 +40,7 @@ import java.util.function.Supplier;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
@@ -195,6 +196,34 @@ class CutoverTaskApplicationServiceTest {
                 saved.assessmentRowVersion(), "submit-manual-level"));
         assertEquals("P4", submitted.currentStage());
         verify(fixture.dictionary()).validateDictDataList("pms_service_level", List.of("STANDARD"));
+    }
+
+    @Test
+    void unassociatedProjectKeepsCustomerNullAndArchivesManualChoiceOnAssessment() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("no-associated-customer"));
+        var task = fixture.task().get();
+        var old = CutoverTaskSnapshotStore.project(task);
+        var project = CutoverProjectContextPort.ProjectContextFact.builder().tenantId(old.tenantId())
+                .projectId(old.projectId()).projectVersion(old.projectVersion()).projectCode(old.projectCode())
+                .projectName(old.projectName()).departmentId(old.departmentId()).departmentCode(old.departmentCode())
+                .departmentName(old.departmentName()).projectScopeVersion(old.projectScopeVersion()).build();
+        var projects = (CutoverProjectContextPort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service(), "projectContextPort");
+        when(projects.inspect(any())).thenReturn(project);
+        when(projects.lockAndRevalidate(any())).thenReturn(project);
+        unconfiguredCustomer(fixture);
+        task.setCustomerId(null); task.setCustomerCode(null); task.setCustomerName(null);
+        clearInvocations(fixture.customerLevel());
+        var saved = fixture.service().saveAssessment(manualLevelCommand(created, "STANDARD"));
+        assertNull(fixture.assessment().get().getCustomerId());
+        assertEquals("STANDARD", fixture.assessment().get().getManualCustomerServiceLevelCode());
+        assertEquals(8L, fixture.assessment().get().getManualCustomerServiceLevelSelectedBy());
+        assertNotNull(fixture.assessment().get().getManualCustomerServiceLevelSelectedAt());
+        var submitted = fixture.service().submitAssessment(submitCommand(created.taskId(), saved.taskVersion(),
+                saved.assessmentRowVersion(), "submit-no-customer"));
+        assertEquals("P4", submitted.currentStage());
+        assertNull(fixture.assessment().get().getCustomerId());
+        verifyNoInteractions(fixture.customerLevel());
     }
 
     @Test
