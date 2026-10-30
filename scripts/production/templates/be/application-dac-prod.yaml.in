@@ -1,0 +1,62 @@
+# Host process; separate database, identity, credentials and migration stream.
+server:
+  address: @@be_ip@@
+  port: 8443
+  ssl:
+    enabled: true
+    key-store-type: PKCS12
+    key-store-password: ${DEVICE_OPS_TLS_KEYSTORE_PASSWORD}
+  tomcat:
+    accesslog:
+      enabled: false
+spring:
+  datasource:
+    url: jdbc:mysql://@@db_tls_name@@:3306/device_ops?sslMode=VERIFY_IDENTITY&allowPublicKeyRetrieval=false&serverTimezone=Asia/Shanghai
+    username: ${DEVICE_OPS_DB_USER}
+    password: ${DEVICE_OPS_DB_PASSWORD}
+  flyway:
+    enabled: false
+  liquibase:
+    enabled: false
+  sql:
+    init:
+      mode: never
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI}
+          jwk-set-uri: ${OIDC_JWK_SET_URI}
+device-ops:
+  credentials:
+    master-key: ${DEVICE_OPS_CREDENTIAL_MASTER_KEY}
+  security:
+    mode: oauth2
+  runtime:
+    auth-mode: oauth2
+    oidc-authority: ${OIDC_AUTHORITY}
+  npdms:
+    request-signing-key: ${NPDMS_DAC_REQUEST_SIGNING_KEY}
+  callback:
+    enabled: true
+    allowed-hosts: ["@@backend_tls_name@@"]
+    npdms-destination: https://@@backend_tls_name@@:443/api/v1/pms/integration/device-ops/callbacks
+    npdms-signing-key: ${NPDMS_DAC_CALLBACK_SIGNING_KEY}
+    npdms-namespace-prefix: npdms-
+  telnet:
+    enabled: false
+  serial:
+    enabled: false
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+logging:
+  file:
+    name: /var/log/sdp/dac/dac.log

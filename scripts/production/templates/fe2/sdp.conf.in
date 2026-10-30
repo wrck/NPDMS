@@ -1,0 +1,38 @@
+# Same frontend artifact; only the two customer flows are reachable.
+log_format npdms_safe '$remote_addr $request_method $status $body_bytes_sent $request_time';
+server {
+    listen 443 ssl;
+    server_name @@external_domain@@;
+    ssl_certificate /etc/sdp/tls/frontend.crt;
+    ssl_certificate_key /run/sdp-secrets/frontend.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    root /opt/sdp/frontend/current;
+    access_log /var/log/nginx/npdms-access.log npdms_safe;
+    error_log /dev/null;
+    add_header Referrer-Policy no-referrer always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Cache-Control no-store always;
+    client_max_body_size 52m;
+    client_body_temp_path /run/sdp-nginx/body;
+    proxy_temp_path /run/sdp-nginx/proxy;
+    location ~ (^|/)\. { return 404; }
+    location ~ \.map$ { return 404; }
+    location ~ ^/admin-api/api/v1/pms/(satisfaction-questionnaires/[A-Za-z0-9_-]+|training-records/[A-Za-z0-9_-]+)$ {
+        limit_except GET { deny all; }
+        include /etc/sdp/customer-proxy.conf;
+    }
+    location ~ ^/admin-api/api/v1/pms/(satisfaction-questionnaires/[A-Za-z0-9_-]+/(responses|files/initialize|files/[0-9]+/complete)|training-records/[A-Za-z0-9_-]+/confirm)$ {
+        limit_except POST { deny all; }
+        include /etc/sdp/customer-proxy.conf;
+    }
+    location ~ ^/(satisfaction-questionnaires|training-records)/[A-Za-z0-9_-]+$ {
+        limit_except GET { deny all; }
+        try_files /index.html =404;
+    }
+    location /assets/ {
+        limit_except GET { deny all; }
+        try_files $uri =404;
+    }
+    location = /favicon.ico { try_files $uri =404; }
+    location / { return 404; }
+}

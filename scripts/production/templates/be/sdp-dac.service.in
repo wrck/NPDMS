@@ -1,0 +1,28 @@
+[Unit]
+Description=NPDMS independent DAC HTTPS service
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/data
+ConditionPathIsMountPoint=/data
+
+[Service]
+Type=simple
+User=sdp-dac
+Group=sdp-dac
+WorkingDirectory=/data/dac
+LoadCredentialEncrypted=application-secrets.properties:/etc/credstore.encrypted/sdp-dac
+LoadCredentialEncrypted=dac.p12:/etc/credstore.encrypted/sdp-dac-tls
+ExecStart=/opt/sdp/jdk/bin/java -Duser.home=/data/dac -jar /opt/sdp/dac/current/device-ops-server.jar --spring.profiles.active=mysql,npdms,dac-prod --spring.config.additional-location=file:/etc/sdp/dac/,file:%d/application-secrets.properties --server.ssl.key-store=file:%d/dac.p12
+Restart=on-failure
+RestartSec=10
+UMask=0077
+LogsDirectory=sdp/dac
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/data/dac /var/log/sdp/dac
+LimitCORE=0
+
+[Install]
+WantedBy=multi-user.target
