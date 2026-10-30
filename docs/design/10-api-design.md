@@ -857,9 +857,9 @@ PLT共享`EntityPresentationApi.list(Query(target, actor, categoryCode))`基于�
 
 ### 实施方案分级复审接入（2026-09-22，SCH-05 / F-PROJ-009）
 
-新增 `/api/v1/pms/solution-reviews`：GET 按 projectId、solutionId 读取版本关联；POST 按 expectedVersion、processDefinitionId 提交，审批人由系统按节点职责自动解析（服务经理节点取本项目唯一有效服务经理，工程管理部节点取 `pms:sol-solution:major-review` 显式授权的唯一持有人），提交人不再指定候选人，且不排除申请人本人。GET `/definition` 返回部署定义和职责元数据；POST `/refresh` 回源重验 BPM 终态；POST `/revise` 从终态复制新的方案草稿。查询使用方案 query 权限与项目范围；写入使用相应 create/update 权限、当前项目经理资格和租户，旧接口不能修改正在分级审批的对象。重复同版本、同定义的请求返回同一在审记录，冲突请求拒绝；解析结果（节点→审批人）随在审记录落库供审计。
+新增 `/api/v1/pms/solution-reviews`：GET 按 projectId、solutionId 读取版本关联；POST 按 expectedVersion、processDefinitionId 提交，服务经理节点沿用本项目唯一有效服务经理解析，重大方案工程管理部节点按2026-10-29需求方裁决指定现有`engineeManager`角色共享复审，不指定个人，也不要求`pms:sol-solution:major-review`唯一持有人。同租户任一当前有效角色成员均可办理当前角色待办，发起人属于该角色时允许本人复审；提交人不能从请求指定候选人员。GET `/definition` 返回部署定义和职责元数据；POST `/refresh` 回源重验 BPM 终态；POST `/revise` 从终态复制新的方案草稿。普通查询继续使用方案 query 权限与项目范围；创建、修改正文仍使用原 create/update 权限、当前项目经理资格和租户，不因复审角色取得写正文权限，旧接口不能修改正在分级审批的对象。重复同版本、同定义的请求返回同一在审记录，冲突请求拒绝；新重大复审只保存节点的角色或候选组引用及实际办理人审计，不冻结整组候选人员。
 
-SOL 通过新增 BPM `SolutionReviewBpmApi` 读取实际定义、发起和读取历史，BPM 原创建、权限、任务处理与历史不改写。初审候选人重验项目服务经理关系；工程管理部复审须独立显式权限 `pms:sol-solution:major-review` 及项目范围。定义和完整任务 key、职责均来自模型；候选人通过 BPM identity links 冻结，任务操作前重新校验。只有真实结束且所需人工审核历史完整才返回批准；结果在 BPM 原事务内经受信事件由 SOL CAS 形成批准基线及交付件，不直接推进项目阶段。
+SOL 通过新增 BPM `SolutionReviewBpmApi` 读取实际定义、发起和读取历史。初审候选人沿用项目服务经理关系重验；重大复审通过既有`engineeManager`角色候选组共享办理，读取和办理前由服务端重验当前租户、有效角色成员及当前待办资格，管理员身份或服务经理身份不能替代该角色资格。定义和完整任务 key、职责均来自模型；新实例保留角色候选组引用，不以发起时人员名单代替当前角色资格。当前角色待办成员无项目普通VIEW时，仅能读取及办理该待办所需资料，不扩展普通项目可见范围。只有真实结束且所需人工审核历史完整才返回批准；结果在 BPM 原事务内经受信事件由 SOL CAS 形成批准基线及交付件，不直接推进项目阶段。既有冻结来源、批准版本、旧实例的身份链接和人工历史不回写或自动换绑。
 
 ### 项目工前确认历史（2026-09-22，F-PROJ-009 更正）
 
@@ -867,7 +867,7 @@ SOL 通过新增 BPM `SolutionReviewBpmApi` 读取实际定义、发起和读取
 
 工前数据统一沿用 SOL 工勘原有读写、字段目录、表单绑定及确认命令。独立支线的显示条件由工勘表单修订配置，不新增项目字段来源或跨模块读表接口。
 
-方案复审另提供 GET `/api/v1/pms/solution-reviews/source?businessKey=...`，仅返回当前租户、当前项目范围内对应真实审批关联的只读方案正文，供 BPM 审批页查看。
+方案复审另提供 GET `/api/v1/pms/solution-reviews/source?businessKey=...`，返回当前租户对应真实审批关联的只读冻结方案正文，供 BPM 审批页查看。除原项目范围读取外，允许当前`engineeManager`角色复审待办成员读取办理该待办所需资料；即使没有项目普通VIEW，也须逐次核对当前角色与当前待办关联，不得只凭businessKey、角色名称或历史候选身份取得其他方案或普通项目资料。引用来源、批注及其附件沿同一待办边界校验字段和文件权限，不授予一般项目查询、正文修改或泛化下载权限。
 
 GET `/api/v1/pms/solution-reviews/policy?projectId=...` 只读预览服务器计算的审核级别与不可用原因。内部 `ProjectFieldRuleApi` 按项目冻结模板修订和规则 key 读取既有发布程序，只接受实体 FIELD/CONSTANT 条件，不从请求接收业务事实或重新编译历史规则。读接口校验当前主体与项目范围；提交用事务锁定项目版本的求值接口。返回配置是否存在、各规则三值结果及规则/项目事实快照。无配置与配置不完整分开处理，未知结果不按普通审批放行。
 
@@ -1333,21 +1333,36 @@ COM ContractDeviceVisibilityApi.ReadScope在设备专用只读上下文携带同
 IMP安装地址仅作为消费者读取参数`pms.installation.address.product.filters`的`productFilters`并用NOT_MATCHING取得免填ID；不把安装地址语义放入AST通用条件或SQL。`InstallationAddressCompletionApi.Fact`及GET `installation-address-completion`增加`requiredDevices/exemptedDevices/exemptDeviceIds`，`addressedDevices`为必填范围中已有地址数，`totalDevices`仍为全部设备数；完成条件为项目非空且必填全部有地址。原未配置行为不变，服务端每次重新读取参数核对，前端不得提交豁免标记替代判定。
 
 
-### TF-011 项目列表人员筛选与成员授权确认（2026-10-29 隔离差量）
+### TF-011 项目列表人员筛选与成员授权确认（2026-10-30 用户裁决）
 
 `GET /admin-api/api/v1/pms/projects/member-filter-options`复用既有ProjectSelectionController，仅接受field（MANAGER/SERVICE_MANAGER/SALES）、keyword（最多64字符）、pageNo及pageSize（1~100）；要求pms:project:query，额外主体、租户、授权IDs、项目范围参数拒绝。返回既有CommonResult<PageResult<ActiveUserSelectionApi.MemberOption>>（id/username/nickname/deptId/deptName；旧User契约不变），不修改旧simple-list与成员指派资格API。
 
-SYSTEM定义ProjectMemberIdentityScopeProvider专项SPI，PROJ实现当前登录主体普通FULL项目有效成员候选。双方重验当前tenant/actor及查询权限；不接受前端授权ID，不新增SYSTEM到PROJ-biz依赖，各Owner只查自身表。PROJ复用既有prepareViewReadScope/commonTables，不复制授权算法。Office请求上下文或Owner officeReadonlyProjectId均返回空候选，SUMMARY/路径占位不产生候选。manager保留MANAGEMENT_CODES全部别名，service和sales分别复用既有角色集合；候选成员按ACTIVE/未删除及生效左闭右开匹配，不用主表指针或姓名/employee_no快照替代当前SYSTEM姓名/账号。
+用户批准将上述既有HTTP接口的候选改为当前租户全部生效指定系统角色用户，不再先收敛到当前主体可见项目的成员。内部新增`ProjectMemberRoleSelectionApi`，复制并复用新增成员底层SYSTEM的启用用户、未删除绑定、启用且未删除系统角色和显式同租户资格；不调用需要具体项目与写权限的详情成员HTTP，也不带其项目公司qualification。PROJ根据field固定映射MANAGER→既有MANAGEMENT_CODES（PROJECT_MANAGER、SERVICE_MANAGER及历史L1/L2别名）、SERVICE_MANAGER→SERVICE_CODES、SALES→SALES_CODES。SYSTEM对允许的角色代码白名单校验，空角色集合返回空；一次角色集合EXISTS查询完成COUNT、ID升序及数据库分页，不分别分页后Java拼接。候选查询重验当前tenant/login及pms:project:query，角色、主体、租户、项目范围不开放给HTTP输入。原ActiveUserSelectionApi与成员资格SQL不改。
+
+项目列表的实际数据查询保持原规则：先resolveAllFullProjectIds，再按所选人员及对应原成员角色集合intersectMemberProjects求交。候选人员可见不产生任何项目读取、成员、指派或审批资格；选中没有合法项目交集的人员返回空项目集，不能放宽项目范围或空集条件。
+
+历史专项实现保留：ProjectMemberIdentityScopeProvider专项SPI、PROJ普通FULL有效成员实现及原ActiveUserSelectionApi.pageProjectMembers不删除、不改语义；它们继续保留原tenant/actor及查询权限重验、Office/SUMMARY空候选和Owner范围限定。当前列表候选HTTP改用新角色API，不再调用该历史SPI。历史受限夹具与验收只证明当时版本，不能作为新角色候选全集预期。
 
 用户裁决“未确认不授予，正常情况，这里的有效期应该和参与授权保持一致”：所有通过成员身份形成的项目FULL、任务读取/办理/经理资格均要求authorization_confirmed=1且处同一有效成员区间；旧Java FULL与公开Owner SQL一致。事实查询继续展示/筛选未确认成员，不新增完成Gate，不修改独立PLT Grant、组织、创建人只读、SYSTEM角色、显式任务指派或独立审批的既定来源。
 
-授权SPI在普通DataPermission上下文执行；SYSTEM仅在Owner返回合法非空受权候选后对其用户元数据及COUNT/LIMIT SQL临时executeIgnore并finally恢复。部门名匹配和本页补名保持原Dept数据权限，不能随用户范围一起ignore；新专项API明确enable=true防止继承调用方的目录豁免。SQL保留当前租户、enabled、未删除、ID范围和姓名/账号LIKE；空范围不查目录，失败不回退全量。前端保留最新UserSelect并通过既有scopedSource接口接入，不新增平行选择组件；保留部门名标签及检索；只从该source已获权页面缓存回显标签，不以标签缓存产生资格。
+新角色API明确DataPermission(enable=true)防止继承调用方的目录豁免，仅角色用户及COUNT/LIMIT SQL临时executeIgnore并finally恢复；显式当前租户和角色条件始终生效。部门名匹配和本页补名保持原Dept数据权限；有keyword时只从该角色集合的用户部门IDs检索可见部门，零keyword不扫描部门，零页不补名。姓名、账号、邮箱及可见部门名在同一COUNT/PAGE条件内匹配；响应仍只返回原MemberOption，不暴露邮箱、手机号。前端保留原UserSelect/scopedSource及HTTP路径，不新增平行选择组件；缓存标签不产生资格。旧授权SPI及原API继续按其原FULL候选规则执行。
 
-实际受限账号Owner准备总耗时与浏览器一秒目标待验；合成管理员SQL诊断、隔离编译/测试不代表SLA通过，不为优化展开全量用户后Java过滤。
+新角色候选的实际账号、分页与浏览器一秒目标仍按本次运行验证，历史受限Owner耗时不直接套用；合成SQL与编译/单测不代表SLA通过，不展开全量用户后Java过滤。
 
-部门名沿原SYSTEM DeptDataPermission范围展示和匹配：keyword非空时，先仅在PROJ已裁决用户IDs中SQL取distinct dept_id，再在普通部门权限下按这些部门IDs+名称匹配；用户COUNT/PAGE的同一WHERE包含匹配部门IDs。同一请求复用已按普通权限取得的匹配部门名称，分页后只补本页缺失部门名称，沿普通权限，不额外要求部门启用（保持原getDeptMap行为）。零keyword省部门搜索，零页不补名；空集合关闭。用户元数据/分页段的ignore不包含Dept查询；新方法以DataPermission(enable=true)覆盖外层豁免，退出恢复上下文。UserSelect的已有Scoped分支保留部门标签；没有全目录用户加载、Java用户过滤或无必要JOIN。
+部门名沿原SYSTEM DeptDataPermission范围展示和匹配：keyword非空时，新角色查询只在当前租户已通过角色资格的用户中SQL取distinct dept_id；原FULL查询仍仅在PROJ已裁决用户IDs中取部门。随后在普通部门权限下按这些部门IDs+名称匹配，COUNT/PAGE同一WHERE包含匹配部门IDs。同一请求复用已按普通权限取得的名称，分页后只补本页缺失名称，不额外要求部门启用（保持原getDeptMap行为）。零keyword省部门搜索，零页不补名；空集合关闭。ignore不包含Dept查询，退出恢复原上下文；保留Scoped部门标签，没有全量用户加载或Java用户过滤。
 
 授权资格差量（NO-GO整改）：既有ProjectParticipantFactApi增加inspectAuthorization(ProjectParticipantFactQuery)、lockAndRevalidateAuthorization(ProjectParticipantFactRevalidationQuery)，复用原Fact返回及Query；前者要求显式subject并使用Owner当前时间，后者沿原project版本/生命周期/阶段与DB当前时间、user/role/id锁顺序。两者只接收已确认且当前有效成员，不能从manager_id指针回退出授权。原inspect/lockAndRevalidate事实方法、历史及主责指针解释保持。调用方仍独立校验功能权限与项目scope；新端口本身不形成Grant。阶段流程启动、闭环检查/提交、现行需求实体和动态表单经理准入使用授权端口；超管独立权限的真实主责经理证据分支保留。
+
+### PMS现行业务人员邮箱搜索（TF-010，2026-10-30）
+
+`GET /admin-api/api/v1/pms/user-selections`服务于原先采用普通启用用户目录的业务选择。要求已登录且登录主体租户与当前租户一致，沿用原`simple-list`无`deptId`分支的候选范围，不增加`system:user:query`管理权限要求。通过SYSTEM独立`BusinessUserSelectionApi`，在显式`DataPermission(enable=true)`上下文调用原`AdminUserService.getUserListByStatus(ENABLE)`与`DeptService.getDeptMap`，保留用户和部门的租户、逻辑删除及部门/本人数据权限，不用忽略数据权限的身份API补人；部门不额外新增停用过滤。原上游`UserController`、`UserSimpleRespVO`及接口不变。
+
+接受`keyword`（最多64字符）、`pageNo`（从1开始）、`pageSize`（1~100）与可选`userIds`（最多100个正整数）。先在上述原候选集合中按姓名、账号、邮箱或可见部门名进行忽略大小写的包含匹配，再保留原列表顺序分页。`userIds`仅与该原候选集合求交，用于已选人员回显；未指定时不加ID过滤，显式空集返回空，不能扩大范围。当前实现复用原目录服务加载与部门补名，不新增数据库查询或缓存；不宣称大目录检索性能已验收。
+
+返回`CommonResult<PageResult<Option>>`，选项仅含`id/nickname/deptId/deptName`，不返回邮箱、手机号或账号详情。邮箱只参与服务端搜索。不可见、停用、删除和其他租户用户不因匹配或指定ID而补入；目录失败不回退管理分页或其他更大目录。该API不提供项目成员、角色、任务分派或审批资格，后续业务写入继续使用各Owner现有授权。首次接入项目阶段现行工勘、配置调试和培训人员选择；其他上游、旧入口及已有专项候选接口保持原契约。
+
+组织限定候选增量：当前服务经理公司/办事处及L1/L2站点选择、工勘分工负责人和阶段任务指派候选改用独立内部`OrganizationUserSelectionApi.page(OrganizationUserCandidatePageReqDTO)`，复用既有请求、响应及场景Query。复制原组织候选读取后，只在原姓名/账号的关键字条件内增加邮箱包含匹配；公司、部门ID与编码、有效授权区间、启用/未删除、原租户及数据权限链路、分页上限和ID稳定排序保持。邮箱仅参与SQL筛选，不增加响应字段。旧`OrganizationScopeApi.pageActiveUsers`及其SQL保留原行为，`hasScope`等写入资格校验仍沿原接口；专项候选不接通用用户目录，不因邮箱命中建立成员、指派或授权资格。
+
 
 
 ### TF-022 工期办理资格与区域服务经理（2026-10-29 用户确认差量）
@@ -1364,3 +1379,13 @@ PROJ与SYSTEM写重验方法均以MANDATORY加入原调用方事务。先锁项�
 TF-022入口整改补充：项目详情的阶段任务读取复用既有`ProjectOrganizationScopeService`的区域PROJECT_MANAGE集合，区域读取不会把`projectManager`身份置真。已冻结为`BUSINESS_OBJECT / PLN / STAGE_PLAN / STAGE_PLAN / PLN_STAGE_PLAN_APPROVAL / REFERENCE_EXISTING`的施工计划任务，可由该区域服务经理取得该Owner业务办理上下文；仍要求原任务查询/执行功能、对应工期或施工计划业务功能、EDIT范围、ACTIVE与原非终态规则，以及当前执行轮次writable/版本。`ProjectTaskBusinessService.executionAllowed`和`ProjectOperationContextResolver.permitted`只在该精确绑定使用这项增量。通用TaskExecutionPolicy、任务START/COMPLETE/审批、关系维护writable与结果刷新executable均保持原规则，不伪造任务受派身份或项目成员。
 
 首次工期另调用`ProjectDurationOperatorApi.lockInitialAndRevalidate`：保留既有“项目已有当前PM”前置。旧首次入口的ParticipantFact锁调用明确传入当前actor，原实现只有subject为空才允许manager_id投影回退，因此区域分支不得单凭manager_id代替有效PM成员事实。新首次方法在原事务与项目锁内额外确认同项目当前已确认、ACTIVE且处有效区间的PROJECT_MANAGER行；缺失拒绝。后续工期变更、附件和撤回不增加此首次专用前置。专项SQL和Owner实现由原模块持有，无跨业务表访问。
+
+### TF-024 项目产品型号引用（2026-10-30）
+
+`GET /api/v1/pms/delivery-scopes` 的可空 `productModel`、`productName` 表示当前 CRM 产品主档展示值，不是范围、订单行或方案的历史快照。2026-10-30需求方明确要求在查询源头SQL直接关联主档，并批准本次对模块表读取限制的特定例外：仅COM交付范围当前分页及同范围产品清单导出，可只读关联AST的 `ast_product_official_info`；其他跨域表访问不因此放开，表Owner仍为AST，集成同步仍是原写入来源。两查询保留原功能权限、租户、项目VIEW及各自订单行权限条件，以 `product.tenant_id = scope.tenant_id AND product.product_code = scope.product_code AND product.deleted = 0` 原生等值关联，沿已认证的 `UNIQUE(tenant_id, product_code)` 保持一范围一行。禁止程序二次反查、TRIM、产品关联类型/字符集转换、重复型号投影和臆造的择一防御。主档无记录保留空值，不新增来源/启停状态过滤；数据库错误向调用方传播，不能伪装成成功的空字段。
+
+项目详情产品清单直接使用上述受授权展示字段，名称仍优先范围 `productDesc`。实施方案引用保留现有产品集合、设备型号优先、SN 和数量口径，仅在设备型号缺失时使用范围返回的主档型号；范围读取失败显示加载失败。两入口均不调用要求换货权限的产品目录接口，不增加角色权限，不改范围 DO、订单事实、既有方案正文或不可变历史；方案内容仅在用户显式引用后进入当前编辑草稿。
+
+同类设备读取统一在原授权源SQL关联同租户主档：设备列表、项目候选、已发货设备、单设备及授权批量/项目摘要使用同一关联和唯一 `product_model` 投影，已有设备非空型号优先，否则使用主档原值；不再调用型号补查后在Java合并。产品编码与型号在前端引用、SN归集的编码键、清单及导出分组中保留原文，不做trim，不能把 `A` 与 ` A ` 合并；SN自身规则、订单号与描述展示、公司/合同授权的既定逐字比较不变。设备写入、锁定和历史读取不使用当前展示值回填。
+
+部署物理前提：目标178库的COM产品编码为 `utf8mb4_0900_ai_ci`，主档及设备编码为 `utf8mb4_unicode_ci`；当前交付范围分页及导出原生关联均报MySQL 1267，源码候选不得部署。设备同排序集的关联可独立验证。字符集/排序集统一先提交盘点及影响方案，未经另行授权不执行DDL或迁移，不通过SQL转换、程序反查或切换连接排序集规避列冲突。
