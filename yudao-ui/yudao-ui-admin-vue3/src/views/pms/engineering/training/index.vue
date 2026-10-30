@@ -329,9 +329,14 @@ const selectedTrainer = ref<{ id: number; nickname: string }>()
 const onTrainerChange = (_id: number | undefined, trainer?: { id: number; nickname: string }) => {
   selectedTrainer.value = trainer
 }
-const queryTrainerUsers = async (params: PageParam) => {
+const queryTrainerUsers = async (params: PageParam & { nickname?: string }) => {
   try {
-    const result = await UserApi.getUserPage(params)
+    const users = await UserApi.getSimpleUserList()
+    const keyword = params.nickname?.trim().toLocaleLowerCase() || ''
+    const matches = users.filter(user => user.nickname?.toLocaleLowerCase().includes(keyword))
+    const pageSize = params.pageSize ?? 10
+    const start = ((params.pageNo ?? 1) - 1) * pageSize
+    const result = { list: matches.slice(start, start + pageSize), total: matches.length }
     trainerUsersError.value = ''
     // 查询页可能不含已选人员，保留登录信息或原记录中已知的姓名标签。
     const selected = selectedTrainer.value
