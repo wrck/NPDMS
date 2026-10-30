@@ -10,7 +10,6 @@ vi.mock('@vueuse/core', () => ({ useWindowSize: () => ({ width: { value: 1280 } 
 vi.mock('./RevisionDrawer.vue', () => ({ default: { render: () => null } }))
 vi.mock('./CompareDrawer.vue', () => ({ default: { render: () => null } }))
 vi.mock('./RequirementBriefingSection.vue', () => ({ default: { render: () => null } }))
-vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({ default: defineComponent({ setup(_, { attrs }) { return () => h('delivery-panel', attrs) } }) }))
 vi.mock('./EntityForm.vue', () => ({ default: defineComponent({ props: { detail: { type: Object, required: true } }, setup(props, { expose }) { expose({ validateCompletion: async () => true, isSaving: () => false, discardChanges: () => true }); return () => h('div', `revision:${props.detail.revision.ref.revisionId}`) } }) }))
 const businessBar = vi.hoisted(() => ({ embedded: false }))
 vi.mock('@/components/BusinessView/businessActionBar', async () => {
@@ -33,15 +32,6 @@ it('opens current draft from workspace without reading old preparation detail', 
   const mounted = render(); await flush()
   expect(textOf(mounted.root)).toContain('revision:31'); expect(api.read).not.toHaveBeenCalled()
   expect(findButton(mounted.root,'完成并冻结')).toBeDefined()
-  mounted.app.unmount()
-})
-it('shows the common material ledger using the entity root and keeps historical revisions read-only', async () => {
-  const historical = { ...view(), revision: { ...view().revision, state: 'FROZEN', ref: { entity: { entityId: '9007199254740993' }, revisionId: '9007199254740994' } } }
-  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: null, currentEffective: historical, allowedActions: [] })
-  vi.mocked(api.read).mockResolvedValue(historical)
-  const mounted = render({ project: { id: 7 }, revisionId: '9007199254740994' }); await flush()
-  const find = (node: TestNode): TestNode | undefined => node.type === 'delivery-panel' ? node : node.children.map(find).find(Boolean)
-  expect(find(mounted.root)?.props).toMatchObject({ 'owner-module': 'SOL', 'entity-type': 'requirementAnalysis', 'entity-id': '9007199254740993', readonly: true })
   mounted.app.unmount()
 })
 it('retains the draft and shows the Owner validation message instead of only its code', async () => {

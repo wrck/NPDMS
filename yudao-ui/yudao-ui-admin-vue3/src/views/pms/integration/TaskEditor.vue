@@ -35,7 +35,7 @@
           <el-form-item label="来源系统标识"
             ><el-input v-model="draft.definition.sourceSystem" placeholder="例如 DPPMS"
           /></el-form-item>
-          <el-form-item label="任务类型"
+          <el-form-item label="同步方式"
             ><el-select v-model="draft.definition.adapter" @change="changeAdapter"
               ><el-option
                 v-for="a in adapters"

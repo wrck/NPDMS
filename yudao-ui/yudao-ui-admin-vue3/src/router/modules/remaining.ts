@@ -34,9 +34,10 @@ const { t } = useI18n()
  **/
 const remainingRouter: AppRouteRecordRaw[] = [
   {
-    path: '/pms/business/requirement-analyses', name: 'PmsInheritedRequirementAnalyses',
-    component: () => import('@/views/pms/business/requirement-analysis/index.vue'),
-    meta: { hidden: true, canTo: true, title: '需求分析' }
+    path: '/pms/cutover/tasks', component: Layout, name: 'PmsCutoverTaskListEntryRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'PmsCutoverTaskListEntry', component: () => import('@/views/pms/cutover/tasks/index.vue'),
+      meta: { hidden: true, canTo: true, noCache: true, title: '割接任务列表', activeMenu: '/pms/cutover/tasks' } }]
   },
   {
     path: '/pms/business/site-surveys',

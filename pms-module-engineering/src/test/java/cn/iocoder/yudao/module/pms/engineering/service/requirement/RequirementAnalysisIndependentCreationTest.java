@@ -114,7 +114,21 @@ class RequirementAnalysisIndependentCreationTest {
         assertEquals(frozen, rows.get(copy.ref().revisionId()).getExecutionSnapshot());
         assertEquals(2, rows.get(copy.ref().revisionId()).getRevisionNo());
         verify(events).changed(80L, "RequirementAnalysis", row.getId(), 19L, actor.correlationId());
-        verify(files).lockForFreeze(created.ref(), actor);
+        verify(files).lockForCompletion(created.ref(), actor);
+        verifyNoInteractions(nodes, bindings, guard);
+    }
+
+    @Test void missingCompletionEvidenceCannotFreezeOrRewriteTheDraft() {
+        var created = provider.createInitial(80L, actor, null);
+        Map<String, Object> values = new LinkedHashMap<>();
+        RequirementAnalysisEntityProvider.FIELDS.fields().stream().filter(EntityField::required)
+                .forEach(field -> values.put(field.code(), "有效业务内容"));
+        var saved = provider.save(created.ref(), created.version(), values, actor);
+        doThrow(new IllegalStateException("MISSING_TOPOLOGY_EVIDENCE"))
+                .when(files).lockForCompletion(saved.ref(), actor);
+        assertThrows(IllegalStateException.class, () -> provider.freeze(saved.ref(), saved.version(), actor));
+        assertEquals("DRAFT", rows.get(saved.ref().revisionId()).getRevisionState());
+        verify(mapper, never()).freeze(any());
         verifyNoInteractions(nodes, bindings, guard);
     }
 

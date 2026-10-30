@@ -46,11 +46,8 @@
           ref="dynamicFormRef"
           :key="`${detail.revision.ref.revisionId}-${detail.extensionValueVersion}`"
           :detail="detail" :allowed-actions="detailActions" :reload="reloadSelectedDetail" :execution="loadedExecution"
-          @dirty-change="formDirty = $event" @saved="deliveryEpoch += 1; emit('changed')" @receipt="operationReceipt = $event"
+          @dirty-change="formDirty = $event" @saved="emit('changed')" @receipt="operationReceipt = $event"
         />
-        <RequirementBriefingSection v-if="project.id" :project-id="project.id" :manage="openBriefing" />
-        <DeliveryPanel :key="`${detail.revision.ref.entity.entityId}-${detail.revision.ref.revisionId}-${deliveryEpoch}`"
-          owner-module="SOL" entity-type="requirementAnalysis" :entity-id="detail.revision.ref.entity.entityId" :readonly="true" />
         <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
           <el-button v-if="canComplete" :loading="commandLoading" type="success" class="mt-15px" @click="complete">完成并冻结当前草稿</el-button>
         </Teleport>
@@ -74,8 +71,6 @@ import type { EntityId, Revision, View, Workspace } from '@/api/pms/engineering/
 import { useMessage } from '@/hooks/web/useMessage'
 import { onBeforeRouteLeave } from 'vue-router'
 import EntityForm from './EntityForm.vue'
-import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
-import RequirementBriefingSection from './RequirementBriefingSection.vue'
 import RevisionDrawer from './RevisionDrawer.vue'
 import CompareDrawer from './CompareDrawer.vue'
 import { stableCommandIntent } from '@/views/pms/platform/dynamic-form/components/dynamicFormRuntime'
@@ -83,7 +78,7 @@ import { takeTaskViewPrefetch, requirementWorkspaceKey } from '@/views/pms/proje
 import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
-const props = defineProps<{ project: ProjectMasterVO; revisionId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean; openBriefing?: () => unknown }>()
+const props = defineProps<{ project: ProjectMasterVO; revisionId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean }>()
 const { barTarget } = useBusinessActionBar()
 const hasActionBar = !!barTarget
 const selectedExecution = (): ProjectBusinessExecutionSelection | undefined =>
@@ -116,7 +111,6 @@ const dynamicFormRef = ref<{
   isSaving: () => boolean
 }>()
 const formDirty = ref(false)
-const deliveryEpoch = ref(0)
 
 const hasAction = (actions: string[], candidates: string[]) =>
   candidates.some((action) => actions.includes(action))

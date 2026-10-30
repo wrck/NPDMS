@@ -1,10 +1,12 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
-import type { FileSelection } from '@/components/PmsFileArtifact'
 import Attachments from './ChecklistAttachments.vue'
 import * as ChecklistApi from '@/api/pms/acceptance/deliverable-checklist'
 import * as DeliveryApi from '@/api/pms/platform/delivery'
 import { mount, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+vi.mock('@/api/pms/platform/file', () => ({ initializeUpload: vi.fn(), completeUpload: vi.fn() }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('@/hooks/web/useDraftUploads', () => ({ registerDraftUpload: vi.fn() }))
 vi.mock('@/utils', () => ({ generateUUID: vi.fn(() => 'actual-new-slot') }))
 vi.mock('@/api/pms/acceptance/deliverable-checklist', () => ({ getDeliverableChecklist: vi.fn(), updateDeliverableChecklist: vi.fn() }))
 vi.mock('@/api/pms/platform/delivery', () => ({ listMaterials: vi.fn(), withdrawMaterial: vi.fn() }))
@@ -20,9 +22,7 @@ it('native completion uses persisted Owner and preserves retry after a failed sa
   try {
     await flush(); vi.mocked(ChecklistApi.getDeliverableChecklist).mockResolvedValue({id:19,projectId:20,name:'saved',status:0,version:3})
     vi.mocked(ChecklistApi.updateDeliverableChecklist).mockRejectedValueOnce(new Error('registration unavailable'))
-    await (nodes(mounted.root,'native-uploader')[0].props!.onCompleted as (selection: FileSelection) => Promise<void>)({
-      artifactId: 31, versionNo: 1, referenceId: 41, referenceKey: 'actual-new-slot'
-    }); await flush()
+    await state.collect(); await flush()
     expect(state.pending).toBe(true); expect(state.error).toContain('registration unavailable'); expect(nodes(mounted.root,'native-uploader')).toEqual([])
     await state.collect(); await flush()
     expect(ChecklistApi.updateDeliverableChecklist).toHaveBeenCalledTimes(2)

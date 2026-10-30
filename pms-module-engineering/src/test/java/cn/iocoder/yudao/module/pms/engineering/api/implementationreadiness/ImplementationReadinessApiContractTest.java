@@ -18,14 +18,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ImplementationReadinessApiContractTest {
 
     @Test
-    void apiExposesOnlyInspectAndLockRevalidation() {
+    void apiExposesOriginalReadAndLockOperations() {
         List<Method> methods = Arrays.stream(ImplementationReadinessApi.class.getDeclaredMethods())
                 .sorted(java.util.Comparator.comparing(Method::getName)).toList();
-        assertEquals(List.of("inspect", "lockAndRevalidate"), methods.stream().map(Method::getName).toList());
+        assertEquals(List.of("inspect", "lockAndRevalidate", "readSnapshot"), methods.stream().map(Method::getName).toList());
         assertEquals(ImplementationReadinessQuery.class, methods.get(0).getParameterTypes()[0]);
         assertEquals(ImplementationReadinessResult.class, methods.get(0).getReturnType());
         assertEquals(ImplementationReadinessRevalidationQuery.class, methods.get(1).getParameterTypes()[0]);
         assertEquals(ImplementationReadinessResult.class, methods.get(1).getReturnType());
+        assertEquals(cn.iocoder.yudao.module.pms.engineering.api.implementationreadiness.dto.ImplementationReadinessSnapshotQuery.class, methods.get(2).getParameterTypes()[0]);
+        assertEquals(cn.iocoder.yudao.module.pms.engineering.api.implementationreadiness.dto.ImplementationReadinessSnapshotFact.class, methods.get(2).getReturnType());
     }
 
     @Test

@@ -118,7 +118,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="配置日志" prop="configLogUrl"><NativeAttachments :key="String(form.id || 'new')" kind="configuration" :entity-id="form.id"
+          <el-form-item label="配置日志" prop="configLogUrl"><NativeAttachments :key="attachmentEpoch" ref="attachmentsRef" kind="configuration" :entity-id="form.id"
               :readonly="readOnly" :legacy="form.configLogUrl" @changed="attachmentOwnerChanged" /></el-form-item>
         </el-col>
         <el-col :span="24">
@@ -135,7 +135,7 @@
     </el-form>
     <BusinessCollectionLogs v-if="formVisible && form.id" entry="configuration" :object-id="form.id" />
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button :disabled="saving" @click="formVisible = false">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
@@ -143,7 +143,7 @@
 
 <script setup lang="ts">
 import NativeAttachments from '../attachment/NativeAttachments.vue'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import ManualCollectionDialog from './ManualCollectionDialog.vue'
 import BusinessCollectionLogs from '@/components/DeviceCollection/BusinessCollectionLogs.vue'
 const collectionRef = ref<InstanceType<typeof ManualCollectionDialog>>()
@@ -167,6 +167,8 @@ const total = ref(0)
 const query = reactive({ pageNo: 1, pageSize: 10, projectId: props.projectId ?? '', status: undefined })
 const formVisible = ref(false)
 const formRef = ref()
+const attachmentEpoch = ref(0)
+const attachmentsRef = ref<InstanceType<typeof NativeAttachments>>()
 type ConfigurationForm = Omit<ConfigurationVO, 'debugTime'> & { debugTime?: string | number | null }
 const form = ref<ConfigurationForm>({ projectId: 0, status: 0 })
 const editableRecord = (row: Pick<ConfigurationVO, 'status'>) => [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:imp-configuration:update'])
@@ -190,6 +192,7 @@ const load = async () => {
   }
 }
 const openForm = (row?: ConfigurationVO) => {
+  attachmentEpoch.value++
   form.value = {
       id: undefined,
       projectId: props.projectId ?? 0,
@@ -212,12 +215,16 @@ const attachmentOwnerChanged = (saved: { version?: number; status?: number; conf
   form.value.configLogUrl = saved.configLogUrl ?? ''
 }
 const save = async () => {
-  if (readOnly.value) return
+  if (readOnly.value || saving.value) return
   await formRef.value.validate()
   saving.value = true
   try {
     const data: ConfigurationVO = { ...form.value, debugTime: form.value.debugTime == null || form.value.debugTime === '' ? undefined : Number(form.value.debugTime) }
-    data.id ? await ConfigurationApi.updateConfiguration(data) : await ConfigurationApi.createConfiguration(data)
+    if (data.id) await ConfigurationApi.updateConfiguration(data)
+    else form.value.id = await ConfigurationApi.createConfiguration(data)
+    Object.assign(form.value, await ConfigurationApi.getConfiguration(form.value.id!))
+    await nextTick()
+    if (!attachmentsRef.value || !(await attachmentsRef.value.savePending(form.value.id!))) return
     message.success('保存成功')
     formVisible.value = false
     await load()

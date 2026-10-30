@@ -135,18 +135,14 @@
             </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="数据版本" prop="version"><span>{{ form.version ?? '保存后生成' }}</span></el-form-item>
-        </el-col>
         <el-col :span="24">
           <el-form-item label="检查结果" prop="checkResult">
             <el-input v-model="form.checkResult" type="textarea" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="附件" prop="attachmentUrl">
-            <ChecklistAttachments v-if="form.id" :key="form.id" :entity-id="form.id" :readonly="readOnly" @changed="attachmentsChanged" />
-            <span v-else>保存后可上传附件，自动归入同一核对清单</span>
+          <el-form-item label="交付件附件" prop="attachmentUrl">
+            <ChecklistAttachments :key="attachmentEpoch" ref="attachmentsRef" :entity-id="form.id" :readonly="readOnly" @changed="attachmentsChanged" />
             <a v-for="url in legacyAttachments" :key="url" :href="url" target="_blank" rel="noopener">查看历史附件</a>
           </el-form-item>
         </el-col>
@@ -159,7 +155,7 @@
     </el-form>
     <DeliveryPanel v-if="form.id" :key="`${form.id}-${deliveryEpoch}`" owner-module="ACC" entity-type="deliverableChecklist" :entity-id="form.id" :readonly="true" />
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button :disabled="saving" @click="formVisible = false">取消</el-button>
       <el-button type="primary" :loading="saving" :disabled="readOnly" @click="save">保存</el-button>
     </template>
   </Dialog>
@@ -170,7 +166,7 @@ import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import ChecklistAttachments from './ChecklistAttachments.vue'
 import { checkPermi } from '@/utils/permission'
 import ProjectDeliverablesPanel from '@/views/pms/project/project-master-detail/components/ProjectDeliverablesPanel.vue'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as DeliverableChecklistApi from '@/api/pms/acceptance/deliverable-checklist'
@@ -193,6 +189,8 @@ const query = reactive({
 })
 const formVisible = ref(false)
 const formRef = ref()
+const attachmentEpoch = ref(0)
+const attachmentsRef = ref<InstanceType<typeof ChecklistAttachments>>()
 const form = reactive<DeliverableChecklistVO>({ projectId: undefined!, name: '' })
 const deliveryEpoch = ref(0)
 const readOnly = computed(() => !!form.id && (form.status !== 0 || !checkPermi(['pms:acc-deliverable-checklist:update'])))
@@ -218,6 +216,7 @@ const load = async () => {
   }
 }
 const openForm = (row?: DeliverableChecklistVO) => {
+  attachmentEpoch.value++
   Object.assign(
     form,
     {
@@ -245,8 +244,11 @@ const save = async () => {
     else form.id = await DeliverableChecklistApi.createDeliverableChecklist(form)
     const current = await DeliverableChecklistApi.getDeliverableChecklist(form.id!)
     Object.assign(form, current)
+    await nextTick()
+    if (!attachmentsRef.value || !(await attachmentsRef.value.savePending(form.id!))) return
     deliveryEpoch.value += 1
     message.success('保存成功')
+    formVisible.value = false
     await load()
   } finally {
     saving.value = false

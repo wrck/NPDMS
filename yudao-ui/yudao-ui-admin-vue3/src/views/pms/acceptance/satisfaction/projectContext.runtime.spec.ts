@@ -38,7 +38,7 @@ vi.mock('../completion-certificate/confirmationPrintForm', () => ({ documentLabe
 vi.mock('@/api/pms/platform/file', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
 vi.mock('@/utils/auth', () => ({ getTenantId: () => 1 }))
-vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true, checkRole: () => false }))
 vi.mock('@/components/Qrcode', () => ({ Qrcode: { render: () => null } }))
 vi.mock('./TemplatePanel.vue', () => ({ default: { render: () => '模板管理测试占位' } }))
 

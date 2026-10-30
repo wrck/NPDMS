@@ -22,6 +22,18 @@ const setup = () => {
   return { form, state, wrapper }
 }
 beforeEach(() => vi.resetAllMocks())
+it('prefills engineering for a major project while allowing a subsequent user choice', async () => {
+  const value = source(1)
+  value.resolved.majorProjectLevel = 'A'
+  vi.mocked(getContractCreationSource).mockResolvedValue(value)
+  const { form, state, wrapper } = setup()
+  await state.selectContract(1, contract(1))
+  expect(form.projectCategory).toBe('ENGINEERING')
+  form.projectCategory = 'SERVICE'
+  expect(form.projectCategory).toBe('SERVICE')
+  expect(state.sourceReady.value).toBe(true)
+  wrapper.app.unmount()
+})
 it('keeps the order buyer separate from the final customer selection', async () => {
   vi.mocked(getContractCreationSource).mockResolvedValue(source(1))
   const { form, state, wrapper } = setup()

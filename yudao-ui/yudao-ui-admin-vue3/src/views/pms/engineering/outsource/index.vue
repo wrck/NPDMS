@@ -190,7 +190,7 @@
 <script setup lang="ts">
 import OutsourceRequestFormDialog from './OutsourceRequestFormDialog.vue'
 import OutsourceRequestDetailDialog from './OutsourceRequestDetailDialog.vue'
-import { onMounted, reactive, ref } from 'vue'
+import { nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { dateFormatter, formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -305,13 +305,16 @@ const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
+    const creating = !form.id
     if (form.id) {
       await OutsourceApi.updateOutsourceRequest(form)
-      message.success('更新成功')
     } else {
-      await OutsourceApi.createOutsourceRequest(form)
-      message.success(sourceSurveyId.value ? '转包申请草稿已创建，ID已关联回工勘；尚未提交审批。' : '创建成功')
+      form.id = await OutsourceApi.createOutsourceRequest(form)
     }
+    Object.assign(form, await OutsourceApi.getOutsourceRequest(form.id!))
+    await nextTick()
+    if (!(await formRef.value.savePending(form.id!))) return
+    message.success(creating ? (sourceSurveyId.value ? '转包申请草稿已创建，ID已关联回工勘；尚未提交审批。' : '创建成功') : '更新成功')
     formVisible.value = false
     if (sourceSurveyId.value) await router.push({ path: surveyPath, query: {
       surveyId: String(sourceSurveyId.value), ...surveyExecutionQuery(form.siteSurveyExecution,

@@ -49,10 +49,6 @@
       <el-form-item><el-button native-type="submit" type="primary" :loading="loading"><Icon icon="ep:search" />查询</el-button>
         <el-button :disabled="loading" @click="resetSearch"><Icon icon="ep:refresh" />重置</el-button></el-form-item>
     </el-form>
-    <p class="text-sm text-[var(--el-text-color-secondary)] mt-0">
-      自动识别 UTF-8、GB18030 / GBK 及带 BOM 的 UTF-16 日志，统一转换为 UTF-8，最大 20 MiB。
-      按内容中的设备序列号拆分并关联当前项目设备，历史文件全部保留。
-    </p>
     <el-alert v-if="uploadError" :title="uploadError" type="error" :closable="false" class="mb-4" />
     <el-alert
       v-if="result"
@@ -323,7 +319,7 @@ const load = async () => {
   try {
     const data = await Api.latest(current)
     if (sequence === loadSequence) {
-      rows.value = data.filter((row) => row.latest)
+      rows.value = data
     }
   } catch {
     if (sequence === loadSequence) loadFailed.value = true

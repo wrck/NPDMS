@@ -38,8 +38,7 @@ it('combines log filters over the authorized snapshot and resets without hiding 
     m.state.filters.deviceName = '不存在'; m.state.search()
     expect(m.state.filteredRows).toEqual([])
     m.state.resetSearch()
-    expect(m.state.filteredRows).toHaveLength(2)
-    expect(m.state.filteredRows.some((row: Api.DeviceLog) => row.deviceId === 3)).toBe(false)
+    expect(m.state.filteredRows).toHaveLength(3)
     expect(m.state.filteredRows[0].latest.available).toBe(false)
     expect(Api.latest).toHaveBeenCalledTimes(1)
   } finally { m.app.unmount() }
@@ -48,6 +47,21 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(Api.latest).mockResolvedValue([])
   vi.mocked(Api.upload).mockResolvedValue({ id: 1, outcome: 'ARCHIVED', deviceCount: 1, redactedValueCount: 0, files: [] })
+})
+
+it('keeps service failures visible without reporting an archive and allows retry', async () => {
+  const m = render()
+  try {
+    await flush()
+    vi.mocked(Api.upload).mockRejectedValueOnce('日志拆分服务暂不可用，请启动本地 DAC；本次未归档')
+    await expect(m.state.uploadFile({ file: new File(['SN: SN001'], '设备.log') }))
+      .rejects.toBe('日志拆分服务暂不可用，请启动本地 DAC；本次未归档')
+    expect(m.state.result).toBeUndefined()
+    expect(m.state.uploading).toBe(false)
+    await m.state.uploadFile({ file: new File(['SN: SN001'], '设备.log') })
+    expect(m.state.uploadError).toBe('')
+    expect(m.state.result.outcome).toBe('ARCHIVED')
+  } finally { m.app.unmount() }
 })
 
 it('sends valid UTF-8 as UTF-8 under the original filename and project', async () => {

@@ -127,7 +127,8 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="附件" prop="attachmentFiles">
-            <UploadFile v-model="form.attachmentFiles!" />
+            <NativeAttachments :key="attachmentEpoch" ref="attachmentsRef" kind="outsourceRequest" :entity-id="form.id"
+              :readonly="form.id ? ![0, 4].includes(form.status ?? -1) || !checkPermi(['pms:res-outsource:update']) : !checkPermi(['pms:res-outsource:create'])" :legacy="form.attachmentFiles" @changed="emit('attachmentChanged', $event)" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -147,12 +148,6 @@
             </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="24">
-          <el-form-item label="附件" prop="attachmentFiles">
-            <NativeAttachments :key="String(form.id || 'new')" kind="outsourceRequest" :entity-id="form.id"
-              :readonly="![0, 4].includes(form.status ?? -1) || !checkPermi(['pms:res-outsource:update'])" :legacy="form.attachmentFiles" @changed="emit('attachmentChanged', $event)" />
-          </el-form-item>
-        </el-col>
       </el-row>
     </el-form>
     <template #footer>
@@ -162,7 +157,7 @@
   </Dialog>
 </template>
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { checkPermi } from '@/utils/permission'
 import NativeAttachments from '../attachment/NativeAttachments.vue'
 import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
@@ -173,6 +168,9 @@ const props = defineProps<{ modelValue: boolean; form: OutsourceRequestVO; sourc
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; save: []; attachmentChanged: [owner: { version?: number; status?: number; configLogUrl?: string }] }>()
 const visible = computed({ get: () => props.modelValue, set: value => { if (!props.saving) emit('update:modelValue', value) } })
 const formRef = ref()
+const attachmentEpoch = ref(0)
+const attachmentsRef = ref<InstanceType<typeof NativeAttachments>>()
+watch(() => props.modelValue, visible => { if (visible) attachmentEpoch.value++ })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   code: [{ required: true, message: '请输入单号' }],
@@ -182,7 +180,8 @@ const rules = {
   applicantUserId: [{ required: true, message: '请选择申请人' }],
   applyTime: [{ required: true, message: '请选择申请时间' }]
 }
-defineExpose({ validate: () => formRef.value.validate() })
+defineExpose({ validate: () => formRef.value.validate(),
+  savePending: (id: number) => attachmentsRef.value?.savePending(id) ?? false })
 </script>
 <style scoped>
 @media (max-width: 767px) {

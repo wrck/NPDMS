@@ -17,7 +17,8 @@ beforeEach(() => {
 })
 it('shows only uploaded devices with pagination and all, retaining unavailable archive history', async () => {
   const uploaded = Array.from({ length: 25 }, (_, i) => ({ deviceId: i + 1, serialNumber: `SN${i + 1}`, deviceName: '设备', latest: { id: i + 1, available: i !== 24 } }))
-  vi.mocked(Api.latest).mockResolvedValue([...uploaded, { deviceId: 26, serialNumber: 'NO-LOG', deviceName: '无日志' }] as any)
+  // The latest endpoint returns archived devices only; filtering belongs to its service contract.
+  vi.mocked(Api.latest).mockResolvedValue(uploaded as any)
   const m = mount(Panel, { projectId: 1002 }, { ElTable: passthrough, ElTableColumn: tableColumn })
   const state = (m.vm as any).$.setupState
   try {
@@ -35,7 +36,7 @@ it('shows only uploaded devices with pagination and all, retaining unavailable a
     await state.load()
     expect(state.pageNo).toBe(1)
     expect(state.pagedRows).toHaveLength(20)
-    vi.mocked(Api.latest).mockResolvedValue([{ deviceId: 26, serialNumber: 'NO-LOG', deviceName: '无日志' }])
+    vi.mocked(Api.latest).mockResolvedValue([])
     await state.load()
     expect(state.rows).toHaveLength(0)
   } finally { m.app.unmount() }

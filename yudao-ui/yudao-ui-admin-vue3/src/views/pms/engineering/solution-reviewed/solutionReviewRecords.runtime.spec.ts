@@ -4,6 +4,7 @@ import { mount } from '@/views/pms/platform/dynamic-form/components/runtimeTestH
 import ReviewDialog from './SolutionTieredReviewDialog.vue'
 
 const api = vi.hoisted(() => ({ read: vi.fn(), definition: vi.fn(), start: vi.fn(), open: vi.fn() }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
 vi.mock('@/api/pms/engineering/solution-review', () => api)
 vi.mock('@/views/pms/project/project-master-detail/components/projectApprovalDetail', () => ({
   projectApprovalDetailKey: Symbol(), useProjectApprovalDetail: () => api.open

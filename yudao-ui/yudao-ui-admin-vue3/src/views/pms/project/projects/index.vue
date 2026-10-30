@@ -626,7 +626,7 @@ v-model="createForm.contractId" :api="getSelectableContracts"
               v-model="createForm.creationReason"
               type="textarea"
               :rows="2"
-              placeholder="请说明项目创建原因"
+              placeholder="BR-2 必填：说明为何脱离 CRM/ERP 链路手工创建"
             />
           </el-form-item>
         </el-form>

@@ -212,22 +212,78 @@ class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-repor
             <span class="panel-title"><Icon icon="ep:document" /> 基本信息</span>
           </div>
           <el-descriptions v-if="detail" :column="descriptionColumns" border size="small">
+            <el-descriptions-item label="项目编码">{{ detail.projectCode }}</el-descriptions-item>
             <el-descriptions-item label="编码命名空间">
               根 #{{ detail.codeRootId }} · 序号 {{ detail.projectSequence }} · 规则
               {{ detail.codeRuleVersion }}
             </el-descriptions-item>
+            <el-descriptions-item label="项目名称" :span="2">{{
+              detail.projectName
+            }}</el-descriptions-item>
+            <el-descriptions-item label="签约方式">
+              <dict-tag :type="DICT_TYPE.PMS_SIGNING_METHOD" :value="detail.signingMethod ?? ''" />
+            </el-descriptions-item>
+            <el-descriptions-item label="项目类别">
+              <dict-tag
+                :type="DICT_TYPE.PMS_PROJECT_CATEGORY"
+                :value="detail.projectCategory ?? ''"
+              />
+            </el-descriptions-item>
+            <el-descriptions-item label="实施方式">
+              <dict-tag
+                :type="DICT_TYPE.PMS_IMPLEMENTATION_METHOD"
+                :value="detail.implementationMode ?? ''"
+              />
+            </el-descriptions-item>
+            <el-descriptions-item label="重大项目级别">
+              <dict-tag
+                v-if="detail.majorProjectLevel"
+                :type="DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL"
+                :value="detail.majorProjectLevel ?? ''"
+              />
+              <span v-else>不限</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="业务层级">
+              {{ detail.businessLevelName || detail.businessLevelCode || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="结构深度">{{
+              detail.treeDepth ?? '-'
+            }}</el-descriptions-item>
             <el-descriptions-item label="父项目"
               >#{{ detail.parentId ?? '-' }}</el-descriptions-item
             >
+            <el-descriptions-item label="客户"
+              >{{ detail.customerName || '-' }}（{{
+                detail.customerCode || '-'
+              }}）</el-descriptions-item
+            >
+            <el-descriptions-item label="合同号">{{
+              detail.contractNo || '-'
+            }}</el-descriptions-item>
+            <el-descriptions-item label="实施地点">{{
+              detail.implementationLocation || '-'
+            }}</el-descriptions-item>
             <el-descriptions-item label="状态">
               <ProjectStatusTag :project="detail" />
             </el-descriptions-item>
+            <el-descriptions-item label="创建来源">
+              <dict-tag
+                :type="DICT_TYPE.PMS_PROJECT_SOURCE_TYPE"
+                :value="detail.sourceType ?? ''"
+              />
+            </el-descriptions-item>
+            <el-descriptions-item label="创建原因" :span="2">{{
+              detail.creationReason || '-'
+            }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间" :span="2">{{
+              formatDateTime(detail.createTime)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="项目结束日期（工勘要求）" :span="2">{{ detail.projectEndDate || '-' }}</el-descriptions-item>
             <el-descriptions-item label="项目主联系人" :span="2">
               <template v-if="primaryContact">{{ primaryContact.name }} · {{ primaryContact.mobile || primaryContact.phone || primaryContact.email }}</template>
               <span v-else>暂未设置</span><el-tag v-if="primaryContactPending" type="warning">展示待刷新</el-tag>
             </el-descriptions-item>
           </el-descriptions>
-          <ProjectBaseInfo v-if="detail" :project="detail" />
         </ContentWrap>
 
         <ProjectCustomerOverview
@@ -236,7 +292,6 @@ class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-repor
           @changed="handleContactsChanged"
         />
 
-        <ProjectLegacyDetailPanel v-if="detail?.id && visitedTabs.has('legacy-detail')" v-show="activeTab === 'legacy-detail'" :project-id="detail.id" />
 
         <ProjectAttributePanel
           v-if="detail?.id && activeTab === 'attributes'"
@@ -515,7 +570,6 @@ import ProjectProgressPanel from '@/views/pms/project/project-master-detail/comp
 import ProjectClosureGuardPanel from '@/views/pms/project/project-master-detail/components/ProjectClosureGuardPanel.vue'
 import ProjectNormalClosurePanel from '@/views/pms/project/project-master-detail/components/ProjectNormalClosurePanel.vue'
 import ProjectStatusTag from '@/views/pms/project/projects/ProjectStatusTag.vue'
-import ProjectBaseInfo from '@/views/pms/project/project-master-detail/components/ProjectBaseInfo.vue'
 import ProjectAuthorizationPanel from '@/views/pms/project/project-master-detail/components/ProjectAuthorizationPanel.vue'
 import ProjectGovernancePanel from '@/views/pms/project/project-master-detail/components/ProjectGovernancePanel.vue'
 import ProjectMembersPanel from '../members/ProjectMembersPanel.vue'
@@ -544,7 +598,6 @@ import DeliveryModuleTable from './DeliveryModuleTable.vue'
 import type { DeliveryModuleConfig } from './DeliveryModuleTable.vue'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import ProjectCustomerOverview from '@/views/pms/project/project-master-detail/components/ProjectCustomerOverview.vue'
-import ProjectLegacyDetailPanel from '@/views/pms/project/project-master-detail/components/ProjectLegacyDetailPanel.vue'
 import ProjectDeliveryScopePanel from '@/views/pms/commerce/delivery-scope/index.vue'
 import type { ProjectRouteContext } from '@/views/pms/commerce/commerceInteraction'
 import type {
@@ -589,7 +642,6 @@ const acceptanceReportRef = ref<InstanceType<typeof AcceptanceReportWorkbench>>(
 const TAB_KEYS = [
   'base',
   'customer',
-  'legacy-detail',
   'tree',
   'members',
   'equipment',
@@ -625,7 +677,6 @@ const visitedTabs = ref(new Set([requestedTab()]))
 const overviewSteps: { key: string; label: string; icon: string; permission?: string[] }[] = [
   { key: 'base', label: '基本信息', icon: 'ep:document' },
   { key: 'customer', label: '客户与联系人', icon: 'ep:office-building' },
-  { key: 'legacy-detail', label: 'DPPMS 关联资料', icon: 'ep:collection', permission: ['pms:project:query'] },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
   { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:commerce:scope:query'] },

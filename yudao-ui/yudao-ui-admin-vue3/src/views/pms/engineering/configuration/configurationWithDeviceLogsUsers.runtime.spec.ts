@@ -3,11 +3,14 @@ import { defineComponent, h, nextTick } from 'vue'
 import Configuration from './with-device-logs.vue'
 import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-const api = vi.hoisted(() => ({ users: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn() }))
+const api = vi.hoisted(() => ({ users: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn(), get: vi.fn(), saveAttachments: vi.fn() }))
+vi.mock('../attachment/NativeAttachments.vue', () => ({ default: defineComponent({ setup(_, { attrs, expose }) {
+  expose({ savePending: api.saveAttachments }); return () => h('native-attachments', attrs)
+} }) }))
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 3, nickname: 'Self' } }) }))
 vi.mock('@/utils/permission', () => ({ checkPermi: (permissions: string[]) => !permissions.includes('system:user:query') }))
 vi.mock('@/api/system/user', () => ({ getSimpleUserList: api.users }))
-vi.mock('@/api/pms/engineering/configuration', () => ({ getConfigurationPage: api.page, createConfiguration: api.create, updateConfiguration: api.update }))
+vi.mock('@/api/pms/engineering/configuration', () => ({ getConfigurationPage: api.page, createConfiguration: api.create, updateConfiguration: api.update, getConfiguration: api.get }))
 vi.mock('@/api/pms/project/projects', () => ({ getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/asset/device-log-archive', () => ({ download: vi.fn() }))
 vi.mock('@/config/axios', () => ({ default: { download: vi.fn() } }))
@@ -36,8 +39,25 @@ const render = () => {
   return { ...view, state: (view.vm as any).$.setupState }
 }
 const debuggerPicker = (root: TestNode) => nodes(root, 'entity-picker').find(node => node.props?.placeholder === '请选择调试人员')!
-beforeEach(() => { vi.resetAllMocks(); api.page.mockResolvedValue({ list: [], total: 0 }); api.users.mockResolvedValue([{ id: 3, nickname: 'Self' }]) })
+beforeEach(() => {
+  vi.resetAllMocks(); api.page.mockResolvedValue({ list: [], total: 0 }); api.users.mockResolvedValue([{ id: 3, nickname: 'Self' }])
+  api.create.mockResolvedValue(91); api.get.mockImplementation(async id => ({ id, projectId: 1, status: 0, version: 4 }))
+  api.saveAttachments.mockResolvedValue(true)
+})
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
+
+it('saves stage-entry attachments after creating the Owner and retries without a second creation', async () => {
+  const view = render(); view.state.openForm(); await flush()
+  Object.assign(view.state.form, { equipmentId: '123' })
+  api.saveAttachments.mockResolvedValueOnce(false)
+  await view.state.save()
+  expect(view.state.formVisible).toBe(true)
+  expect(view.state.form.id).toBe(91)
+  await view.state.save()
+  expect(api.create).toHaveBeenCalledTimes(1)
+  expect(api.saveAttachments).toHaveBeenLastCalledWith(91)
+  expect(view.state.formVisible).toBe(false)
+})
 
 it('queries the authorized user API despite a missing menu permission snapshot and saves the selected Self user', async () => {
   const view = render(); view.state.openForm(); await flush()

@@ -29,7 +29,13 @@ it('puts cached panel visibility on native hosts, independent of component root 
   }
   visit(ast)
   expect(invalid).toEqual([])
-  expect(hosts).toHaveLength(21)
+  // Two generic business hosts use dynamic test IDs; the 19 named hosts below
+  // include product/scope and must each retain their independent visibility.
+  expect(hosts.map(node => node.props.find((prop: any) => prop.name === 'data-testid').value.content).sort()).toEqual([
+    'equipment', 'sn-result', 'product-lists', 'scope', 'tasks', 'stage-gates', 'stage-workspace',
+    'preparation', 'schedule', 'requirement-analysis', 'satisfaction', 'acceptance-reports', 'tree',
+    'closure', 'authorization', 'governance', 'service-managers', 'deliverable-summary', 'training'
+  ].map(key => `project-pane-${key}`).sort())
   const children = hosts.flatMap(node => node.children)
   const taskPanel = children.find(node => node.tag === 'ProjectTaskPanel')
   expect(taskPanel.props.find((prop: any) => prop.name === 'on' && prop.arg?.content === 'updated').exp.content).toBe('loadAll')

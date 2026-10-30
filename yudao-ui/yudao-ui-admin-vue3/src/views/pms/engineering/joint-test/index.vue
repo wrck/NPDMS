@@ -185,7 +185,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="证据附件" prop="evidenceUrl"><NativeAttachments :key="String(form.id || 'new')" kind="jointTest" :entity-id="form.id"
+          <el-form-item label="证据附件" prop="evidenceUrl"><NativeAttachments :key="attachmentEpoch" ref="attachmentsRef" kind="jointTest" :entity-id="form.id"
               :readonly="readOnly" :legacy="form.evidenceUrl" @changed="attachmentOwnerChanged" /></el-form-item>
         </el-col>
         <el-col v-if="form.exceptionRecord" :span="24">
@@ -200,7 +200,7 @@
     </el-form>
     <BusinessCollectionLogs v-if="formVisible && form.id" ref="businessLogs" entry="joint-test" :object-id="form.id" />
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button :disabled="saving" @click="formVisible = false">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
@@ -221,7 +221,7 @@
 
 <script setup lang="ts">
 import NativeAttachments from '../attachment/NativeAttachments.vue'
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as JointTestApi from '@/api/pms/engineering/joint-test'
@@ -245,6 +245,8 @@ const total = ref(0)
 const query = reactive({ pageNo: 1, pageSize: 10, projectId: props.projectId ?? '', status: undefined })
 const formVisible = ref(false)
 const formRef = ref()
+const attachmentEpoch = ref(0)
+const attachmentsRef = ref<InstanceType<typeof NativeAttachments>>()
 type JointTestForm = Omit<JointTestVO, 'testTime'> & { testTime?: number | string | null }
 const form = ref<JointTestForm>({ projectId: props.projectId ?? 0, testCase: '', status: 0 })
 
@@ -318,6 +320,7 @@ const load = async () => {
   }
 }
 const openForm = (row?: JointTestVO) => {
+  attachmentEpoch.value++
   form.value = {
       id: undefined,
       projectId: props.projectId ?? 0,
@@ -344,13 +347,17 @@ const attachmentOwnerChanged = (saved: { version?: number; status?: number; conf
   form.value.status = saved.status
 }
 const save = async () => {
-  if (readOnly.value) return
+  if (readOnly.value || saving.value) return
   await formRef.value.validate()
   saving.value = true
   try {
     writeMetaToForm()
     const data: JointTestVO = { ...form.value, testTime: form.value.testTime == null || form.value.testTime === '' ? undefined : Number(form.value.testTime) }
-    data.id ? await JointTestApi.updateJointTest(data) : await JointTestApi.createJointTest(data)
+    if (data.id) await JointTestApi.updateJointTest(data)
+    else form.value.id = await JointTestApi.createJointTest(data)
+    Object.assign(form.value, await JointTestApi.getJointTest(form.value.id!))
+    await nextTick()
+    if (!attachmentsRef.value || !(await attachmentsRef.value.savePending(form.value.id!))) return
     message.success('保存成功')
     formVisible.value = false
     await load()

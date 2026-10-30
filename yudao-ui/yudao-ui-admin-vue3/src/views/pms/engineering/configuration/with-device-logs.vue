@@ -184,10 +184,10 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="配置日志" prop="configLogUrl"
-            ><UploadFile
-              v-model="form.configLogUrl!"
-              :disabled="readOnly"
-              :file-type="['log', 'txt', 'cfg', 'conf', 'doc', 'xls', 'ppt', 'pdf']"
+            ><NativeAttachments
+              :key="attachmentEpoch" ref="attachmentsRef" kind="configuration"
+              :entity-id="form.id" :readonly="readOnly" :legacy="form.configLogUrl"
+              @changed="attachmentOwnerChanged"
           /></el-form-item>
         </el-col>
         <el-col :span="24">
@@ -208,14 +208,15 @@
       :object-id="form.id"
     />
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button :disabled="saving" @click="formVisible = false">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import NativeAttachments from '../attachment/NativeAttachments.vue'
 import ManualCollectionDialog from '@/components/DeviceCollection/CollectionWithDeviceLogsDialog.vue'
 import ProjectDeviceLogArchiveDialog from '@/components/DeviceCollection/ProjectDeviceLogArchiveDialog.vue'
 import BusinessCollectionLogs from '@/components/DeviceCollection/BusinessCollectionLogs.vue'
@@ -284,6 +285,8 @@ const query = reactive({
 })
 const formVisible = ref(false)
 const formRef = ref()
+const attachmentEpoch = ref(0)
+const attachmentsRef = ref<InstanceType<typeof NativeAttachments>>()
 type ConfigurationForm = Omit<ConfigurationVO, 'debugTime'> & { debugTime?: string | number | null }
 const form = ref<ConfigurationForm>({ projectId: 0, status: 0 })
 const editableRecord = (row: Pick<ConfigurationVO, 'status' | 'importedLogFileId'>) =>
@@ -315,6 +318,7 @@ const load = async () => {
   }
 }
 const openForm = (row?: ConfigurationVO) => {
+  attachmentEpoch.value++
   debuggerUsersError.value = ''
   form.value = {
     id: undefined,
@@ -327,13 +331,18 @@ const openForm = (row?: ConfigurationVO) => {
     version: undefined,
     status: 0,
     ...row,
-    // Keep UploadFile on the existing string API contract for NULL legacy logs.
+    // Keep legacy metadata readonly; new files use the native Owner binding.
     configLogUrl: row?.configLogUrl ?? ''
   }
   formVisible.value = true
 }
+const attachmentOwnerChanged = (saved: { version?: number; status?: number; configLogUrl?: string }) => {
+  form.value.version = saved.version
+  form.value.status = saved.status
+  form.value.configLogUrl = saved.configLogUrl ?? ''
+}
 const save = async () => {
-  if (readOnly.value) return
+  if (readOnly.value || saving.value) return
   await formRef.value.validate()
   saving.value = true
   try {
@@ -344,9 +353,11 @@ const save = async () => {
           ? undefined
           : Number(form.value.debugTime)
     }
-    data.id
-      ? await ConfigurationApi.updateConfiguration(data)
-      : await ConfigurationApi.createConfiguration(data)
+    if (data.id) await ConfigurationApi.updateConfiguration(data)
+    else form.value.id = await ConfigurationApi.createConfiguration(data)
+    Object.assign(form.value, await ConfigurationApi.getConfiguration(form.value.id!))
+    await nextTick()
+    if (!attachmentsRef.value || !(await attachmentsRef.value.savePending(form.value.id!))) return
     message.success('保存成功')
     formVisible.value = false
     await load()

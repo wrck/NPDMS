@@ -1,20 +1,28 @@
 <template>
   <div class="native-attachments">
-    <p>附件统一保存到交付材料，单文件上限 5MB。</p>
-    <p v-if="legacyLinks.length">历史附件（只读）：{{ legacyLinks.join('，') }}</p>
-    <p v-if="!entityId">请先保存业务记录，再打开记录上传附件。</p>
-    <template v-else>
-      <DeliveryPanel :key="`${kind}-${entityId}-${deliveryEpoch}`" :owner-module="config.module" :entity-type="config.type" :entity-id="entityId" :readonly="true" />
+    <p v-if="!deferredKinds.includes(kind)">附件统一保存到交付材料，单文件上限 5MiB。</p>
+    <div v-if="legacyLinks.length">
+      <p>历史附件（只读）：</p>
+      <ul><li v-for="link in legacyLinks" :key="link"><el-link :href="link" target="_blank" rel="noopener noreferrer" type="primary">{{ link }}</el-link></li></ul>
+    </div>
+    <p v-if="!entityId && !deferredKinds.includes(kind)">请先保存业务记录，再打开记录上传附件。</p>
+    <el-upload v-if="deferredKinds.includes(kind) && !readonly" multiple :auto-upload="false" :file-list="pendingFiles"
+      :accept="config.accept" :limit="5" :disabled="draftBusy" :on-change="selectPending" :before-remove="beforeRemovePending" :on-remove="removePending" v-hasPermi="['pms:file:upload']">
+      <el-button type="primary" :disabled="draftBusy"><Icon icon="ep:upload-filled" />选取文件</el-button>
+    </el-upload>
+    <el-alert v-if="draftError" :title="draftError" type="error" :closable="false" />
+    <template v-if="entityId">
+      <DeliveryPanel v-if="!deferredKinds.includes(kind)" :key="`${kind}-${entityId}-${deliveryEpoch}`" :owner-module="config.module" :entity-type="config.type" :entity-id="entityId" :readonly="true" />
       <div v-for="material in materials" :key="material.id">
         <PmsFileReferenceList v-if="material.fileBusinessKey" v-bind="material.fileBusinessKey"
           :artifact-id="material.fileArtifactId" :version-no="material.fileVersionNo" :editable="!readonly && material.status === 'ACTIVE'" @detached="refresh" />
         <el-button v-if="!readonly && material.status === 'ACTIVE'" :disabled="busy" @click="withdraw(material.id)">撤回材料</el-button>
         <span v-else-if="material.status === 'WITHDRAWN'">已撤回</span>
       </div>
-      <PmsFileUploader v-if="!readonly && !error && !pending" :key="referenceKey"
+      <PmsFileUploader v-if="!deferredKinds.includes(kind) && !readonly && !error && !pending && !pendingFiles.length" :key="referenceKey"
         :owner-context="config.module" :object-type="config.type" :object-id="String(entityId)"
         :purpose-code="config.purpose" :reference-key="referenceKey" :category-code="config.purpose"
-        :accept="config.accept" @completed="completed" />
+        :accept="config.accept" :max-size-mi-b="5" @completed="completed" />
       <el-alert v-if="error" :title="error" type="error" :closable="false">
         <template #default><el-button :disabled="busy" @click="pending ? collect() : refresh()">{{ pending ? '重试归集已上传附件' : '重新读取材料' }}</el-button></template>
       </el-alert>
@@ -26,6 +34,7 @@ import { computed, ref, watch } from 'vue'
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import { PmsFileUploader, PmsFileReferenceList } from '@/components/PmsFileArtifact'
 import { generateUUID } from '@/utils'
+import { isOpenableUrl } from '@/utils/url'
 import { listMaterials, withdrawMaterial, type DeliveryMaterialVO } from '@/api/pms/platform/delivery'
 import * as Configuration from '@/api/pms/engineering/configuration'
 import * as JointTest from '@/api/pms/engineering/joint-test'
@@ -33,7 +42,9 @@ import * as ExternalProcurement from '@/api/pms/engineering/ext-proc'
 import * as Outsource from '@/api/pms/engineering/outsource'
 import * as MaterialRequisition from '@/api/pms/engineering/material-req'
 import * as MaterialExchange from '@/api/pms/engineering/material-exch'
+import { useNativeAttachmentDraft } from './useNativeAttachmentDraft'
 type Kind = 'configuration' | 'jointTest' | 'externalProcurement' | 'outsourceRequest' | 'materialRequisition' | 'materialExchange'
+const deferredKinds: Kind[] = ['configuration', 'jointTest', 'externalProcurement', 'outsourceRequest', 'materialRequisition']
 const props = defineProps<{ kind: Kind; entityId?: number | string; readonly: boolean; legacy?: string }>()
 const emit = defineEmits<{ changed: [owner: { version?: number; status?: number; configLogUrl?: string }] }>()
 const office = '.doc,.xls,.ppt,.txt,.pdf'
@@ -46,7 +57,7 @@ const adapters = {
   materialExchange: { module: 'IMP', type: 'materialExchange', purpose: 'MATERIAL_EXCHANGE_REASON', states: [0, 4], accept: office, get: MaterialExchange.getMaterialExchange, update: MaterialExchange.updateMaterialExchange }
 }
 const config = computed(() => adapters[props.kind])
-const legacyLinks = computed(() => (props.legacy || '').split(',').filter(value => /^https?:\/\//.test(value)))
+const legacyLinks = computed(() => (props.legacy || '').split(',').map(value => value.trim()).filter(isOpenableUrl))
 const deliveryEpoch = ref(0)
 const materials = ref<DeliveryMaterialVO[]>([])
 const referenceKey = ref(generateUUID())
@@ -69,22 +80,24 @@ const refresh = async () => {
   } catch (failure: any) { if (current(seen)) error.value = failure?.message || '材料读取失败' }
 }
 const collect = async () => {
-  if (props.readonly || !props.entityId || busy.value) return
+  if (props.readonly || !props.entityId || busy.value) return false
   const seen = context(), adapter = config.value
   busy.value = true; error.value = ''
+  pending.value = true
   try {
     const owner = await adapter.get(seen.id as number)
-    if (!current(seen)) return
+    if (!current(seen) || props.readonly) return false
     if (!owner || String(owner.id) !== String(seen.id) || !adapter.states.includes(owner.status)) throw new Error('记录已不可编辑，请重新读取')
     // Persist the saved Owner, keeping unsubmitted form edits and exchange serial snapshots untouched.
     const request = { ...owner }
     if (seen.kind === 'materialExchange') delete request.serials
     await adapter.update(request)
     const saved = await adapter.get(seen.id as number)
-    if (!current(seen)) return
+    if (!current(seen) || props.readonly) return false
     pending.value = false; referenceKey.value = generateUUID(); emit('changed', saved)
     await refresh()
-  } catch (failure: any) { if (current(seen)) error.value = failure?.message || '附件已上传，归集失败' }
+    return true
+  } catch (failure: any) { if (current(seen)) error.value = failure?.message || '附件已上传，归集失败'; return false }
   finally { if (current(seen)) busy.value = false }
 }
 const completed = computed(() => {
@@ -103,7 +116,12 @@ const withdraw = async (id: number) => {
   catch (failure: any) { if (current(seen)) error.value = failure?.message || '材料撤回失败' }
   finally { if (current(seen)) busy.value = false }
 }
-watch(() => [props.kind, props.entityId], () => { sequence++; pending.value = false; busy.value = false; error.value = ''; materials.value = []; referenceKey.value = generateUUID(); void refresh() }, { immediate: true })
+const {pendingFiles,draftBusy,draftError,selectPending,beforeRemovePending,removePending,resetPending,savePending}=useNativeAttachmentDraft({context:()=>config.value,readonly:()=>props.readonly,collect})
+watch(() => [props.kind, props.entityId], (_next,previous) => {
+ if(previous && (previous[0]!==props.kind || previous[1] && String(previous[1])!==String(props.entityId)))resetPending()
+ sequence++; pending.value = false; busy.value = false; error.value = ''; materials.value = []; referenceKey.value = generateUUID(); void refresh()
+}, { immediate: true })
+defineExpose({savePending})
 </script>
 <style scoped>
 .native-attachments { width: 100%; min-width: 0; overflow-x: auto; }

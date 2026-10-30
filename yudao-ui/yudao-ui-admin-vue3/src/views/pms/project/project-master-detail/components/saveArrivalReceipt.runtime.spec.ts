@@ -56,3 +56,17 @@ it('requires a real attached document and preserves the abnormal-record lifecycl
   expect(api.updateArrival).toHaveBeenCalled()
   expect(api.signArrival).not.toHaveBeenCalled()
 })
+it('does not submit null as an existing file identity for a new receipt', async () => {
+  const empty = { ...pending, signDocumentArtifactId: null, signDocumentReferenceVersion: null }
+  api.getArrival.mockResolvedValueOnce(empty).mockResolvedValueOnce(attached)
+    .mockResolvedValueOnce(attached).mockResolvedValueOnce({ ...attached, status: 1 })
+  api.initializeUpload.mockImplementation(async request => {
+    if (request.artifactId === null) throw new Error('文件 ID 无效，请刷新后重试')
+    return { artifactId: '2113922974813126658', sessionId: '2113922974813126659' }
+  })
+  await saveArrivalReceipt({ projectId: 123 }, createArrivalUploadAttempt(file))
+  expect(api.initializeUpload).toHaveBeenCalledWith(expect.objectContaining({ modeCode: 'CREATE_ARTIFACT' }), 'attempt-key')
+  expect(api.completeUpload).toHaveBeenCalledWith('2113922974813126658', '2113922974813126659', file, 'attempt-key')
+  expect(api.createArrival).toHaveBeenCalledTimes(1)
+  expect(api.signArrival).toHaveBeenCalledWith(7)
+})

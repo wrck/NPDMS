@@ -184,7 +184,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="附件" prop="fileUrl">
-            <AdditionalNativeAttachments kind="briefing" :entity-id="form.id" :legacy="form.fileUrl" :readonly="form.status !== 0 || !checkPermi(['pms:sol-briefing:update'])" @changed="attachmentOwnerChanged" />
+            <AdditionalNativeAttachments :key="attachmentEpoch" ref="attachmentsRef" kind="briefing" :entity-id="form.id" :legacy="form.fileUrl" :readonly="form.status !== 0 || !checkPermi([form.id ? 'pms:sol-briefing:update' : 'pms:sol-briefing:create'])" @changed="attachmentOwnerChanged" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -195,7 +195,7 @@
       </el-row>
     </el-form>
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button :disabled="saving" @click="formVisible = false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
@@ -302,7 +302,7 @@ const downloadBriefingFile = async (url: string) => {
   window.open(ticket, '_blank', 'noopener')
 }
 
-import { onMounted, reactive, ref } from 'vue'
+import { nextTick, onMounted, reactive, ref } from 'vue'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
@@ -341,6 +341,8 @@ const load = async () => {
 
 // 新建/编辑
 const formVisible = ref(false)
+const attachmentEpoch = ref(0)
+const attachmentsRef = ref<InstanceType<typeof AdditionalNativeAttachments>>()
 const formRef = ref()
 const form = reactive<BriefingVO>({
   projectId: undefined!,
@@ -358,6 +360,7 @@ const rules = {
 }
 
 const openCreate = () => {
+  attachmentEpoch.value++
   Object.assign(form, {
     id: undefined,
     projectId: undefined,
@@ -365,6 +368,7 @@ const openCreate = () => {
     briefingType: 'STANDARD',
     content: '',
     fileUrl: '',
+    status: 0,
     creatorUserId: undefined,
     remark: '',
     version: 0
@@ -372,22 +376,26 @@ const openCreate = () => {
   formVisible.value = true
 }
 const openEdit = async (row: BriefingVO) => {
+  attachmentEpoch.value++
   const detail = await BriefingApi.getBriefing(row.id!)
   Object.assign(form, detail)
   formVisible.value = true
 }
 const attachmentOwnerChanged = (owner: { version?: number; status?: number }) => { form.version = owner.version; form.status = owner.status }
 const save = async () => {
+  if (saving.value) return
   await formRef.value.validate()
   saving.value = true
   try {
     if (form.id) {
       await BriefingApi.updateBriefing(form)
-      message.success('更新成功')
     } else {
-      await BriefingApi.createBriefing(form)
-      message.success('创建成功')
+      form.id = await BriefingApi.createBriefing(form)
     }
+    Object.assign(form, await BriefingApi.getBriefing(form.id!))
+    await nextTick()
+    if (!attachmentsRef.value || !(await attachmentsRef.value.savePending(form.id!))) return
+    message.success('保存成功')
     formVisible.value = false
     await load()
   } finally {

@@ -192,7 +192,7 @@
 <script setup lang="ts">
 import MaterialRequisitionFormDialog from './MaterialRequisitionFormDialog.vue'
 import MaterialRequisitionDetailDialog from './MaterialRequisitionDetailDialog.vue'
-import { onMounted, reactive, ref } from 'vue'
+import { nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
 import { positiveShortcutId, surveyPath } from '@/views/pms/delivery-business/site-survey/siteSurveyOutsource'
@@ -305,13 +305,16 @@ const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
+    const creating = !form.id
     if (form.id) {
       await MaterialReqApi.updateMaterialRequisition(form)
-      message.success('更新成功')
     } else {
-      await MaterialReqApi.createMaterialRequisition(form)
-      message.success('创建成功')
+      form.id = await MaterialReqApi.createMaterialRequisition(form)
     }
+    Object.assign(form, await MaterialReqApi.getMaterialRequisition(form.id!))
+    await nextTick()
+    if (!(await formRef.value.savePending(form.id!))) return
+    message.success(creating ? '创建成功' : '更新成功')
     formVisible.value = false
     if (sourceSurveyId.value) await router.push({ path: surveyPath, query: { surveyId: String(sourceSurveyId.value) } })
     else await load()

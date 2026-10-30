@@ -30,7 +30,8 @@ export const saveArrivalReceipt = async (form: ArrivalVO, attempt?: ArrivalUploa
     }
     attempt.initialized ||= await initializeUpload({
       modeCode: form.signDocumentArtifactId ? 'ADD_VERSION' : 'CREATE_ARTIFACT',
-      artifactId: form.signDocumentArtifactId, expectedReferenceVersion: form.signDocumentReferenceVersion,
+      ...(form.signDocumentArtifactId ? { artifactId: form.signDocumentArtifactId,
+        expectedReferenceVersion: form.signDocumentReferenceVersion } : {}),
       ownerContext: 'IMP', objectType: 'ARRIVAL', objectId: String(form.id),
       purposeCode: 'ARRIVAL_SIGN_DOCUMENT', referenceKey: 'arrival-sign-document', categoryCode: 'ARRIVAL_SIGN_DOCUMENT',
       fileName: attempt.file.name, declaredSizeBytes: attempt.file.size,

@@ -16,11 +16,11 @@ const props = defineProps({
 })
 
 // 模块级缓存：避免同一用户ID重复请求
-const userCache = new Map<number, string>()
+const userCache = new Map<string, string>()
 
 const displayName = ref<string>('')
 
-const loadUserName = async (id: number) => {
+const loadUserName = async (id: string) => {
   if (!id) {
     displayName.value = '-'
     return
@@ -44,7 +44,7 @@ const loadUserName = async (id: number) => {
 watch(
   () => props.userId,
   (val) => {
-    if (val) loadUserName(Number(val))
+    if (val) loadUserName(String(val))
     else displayName.value = '-'
   },
   { immediate: true }

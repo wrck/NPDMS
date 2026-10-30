@@ -83,8 +83,9 @@
           :fields="detail.fields"
           :presentation="formPresentation"
           :disabled="executing || !editingOperation?.executable"
-        />
-            <div class="business-operation-toolbar">
+        >
+          <template #extra>
+            <el-form-item>
               <el-button
                 type="primary"
                 :loading="executing"
@@ -100,14 +101,16 @@
                 :title="operation.reason"
                 @click="runCustom(operation)"
               >{{ operation.name }}</el-button>
-              <el-button v-if="current && !current.revisionId && deleteOperation" type="danger"
-                :loading="deleting" :disabled="executing || deleting || !deleteOperation.executable"
-                :title="deleteOperation.reason" @click="removeEntity">删除</el-button>
               <el-button :disabled="executing || deleting" @click="backToList">返回列表</el-button>
               <el-button v-if="current" :disabled="executing" @click="reopen">
                 重新读取（重开）
               </el-button>
-            </div>
+            </el-form-item>
+          </template>
+        </BusinessEntityForm>
+        <el-button v-if="current && !current.revisionId && deleteOperation" type="danger"
+          :loading="deleting" :disabled="executing || deleting || !deleteOperation.executable"
+          :title="deleteOperation.reason" @click="removeEntity">删除</el-button>
         <el-descriptions
           v-if="current"
           :column="2"
@@ -126,7 +129,7 @@
           </el-descriptions-item>
         </el-descriptions>
         <DefaultBusinessDelivery
-          v-if="current && !current.revisionId"
+          v-if="!deliveryEnabled && current && !current.revisionId"
           :readonly="props.readonly || props.allowedActions !== undefined || !updateOperation?.executable"
           :owner-module="props.ownerModule" :entity-type="props.entityType" :entity-id="current.ref.entityId"
           :deliverable-type="props.deliverableType" @changed="reloadCurrent"

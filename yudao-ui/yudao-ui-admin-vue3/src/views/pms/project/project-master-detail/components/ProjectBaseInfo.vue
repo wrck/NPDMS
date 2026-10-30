@@ -1,9 +1,8 @@
 <template>
   <div class="project-facts">
-    <section v-for="group in baseFields" :key="group.title" class="fact-section legacy-project-fields" :aria-label="group.title">
-      <h3>{{ group.title }}</h3>
+    <section class="fact-section legacy-project-fields" aria-label="项目基础信息">
       <dl class="fact-grid">
-        <div v-for="field in group.fields" :key="field.label" class="fact" :class="{ 'fact-wide': field.wide }">
+        <div v-for="field in baseFields" :key="field.label" class="fact" :class="{ 'fact-wide': field.wide }">
           <dt>{{ field.label }}</dt>
           <dd>
             {{ field.value || '—' }}
@@ -26,7 +25,7 @@
           <div class="record-heading"><el-tag effect="plain">合同</el-tag><strong>{{ contract.contractNo }}</strong><span>{{ contract.contractName }}</span></div>
           <dl class="fact-grid">
             <div class="fact"><dt>签约公司</dt><dd>{{ contract.companyName || contract.companyCode || '—' }}</dd></div>
-            <div class="fact"><dt>合同购货方</dt><dd>{{ contract.customerName || contract.customerCode || '—' }}</dd></div>
+            <div class="fact"><dt>合同客户</dt><dd>{{ contract.customerName || '—' }}</dd></div>
             <div class="fact"><dt>合同金额</dt><dd>{{ amount(contract.contractAmount, contract.currencyCode) }}</dd></div>
             <div class="fact"><dt>币种</dt><dd>{{ contract.currencyCode || '—' }}</dd></div>
           </dl>
@@ -138,10 +137,7 @@ const names = (roles: string[], exclude?: number) => members.value.filter(m => r
 const party = (role: string) => {
   const roles = role === 'AGENT' ? ['AGENT', '30'] : [role]
   const assigned = [...new Set(props.project.parties?.filter(p => roles.includes(p.role)).map(p => p.name || p.code).filter(Boolean) || [])].join('、')
-  if (assigned) return assigned
-  const key = role === 'FINAL_CUSTOMER' ? 'finalCustomerName' : role === 'AGENT' ? 'agentName' : undefined
-  const sourced = key ? [...new Set((commerce.value?.executionOrders || []).map(order => order[key]).filter(Boolean))] : []
-  return sourced.length ? `${sourced.join('、')}（执行单）` : '—'
+  return assigned || '—'
 }
 interface FactField { label: string; value?: string | null; wide?: boolean }
 const salesRepresentative = computed(() => {
@@ -150,63 +146,33 @@ const salesRepresentative = computed(() => {
   const sourceNames = [...new Set((commerce.value?.executionOrders || []).map(order => order.salesRepName || order.salesRepCode).filter(Boolean))]
   return sourceNames.length ? `${sourceNames.join('、')}（执行单）` : assigned
 })
-const baseFields = computed<{ title: string; fields: FactField[] }[]>(() => {
+const baseFields = computed<FactField[]>(() => {
   const p = props.project
   const orders = commerce.value?.orders || []
   const orderCreated = orders.map(order => orders.length > 1
     ? `${order.orderNo}：${time(order.orderCreateTime)}` : time(order.orderCreateTime)).join('\n')
   return [
-    { title: '项目档案', fields: [
-      { label: '项目编码', value: p.projectCode }, { label: '项目名称', value: p.projectName },
-      { label: '客户项目名称', value: p.customerProjectName },
-      { label: '签约方式', value: label(p.signingMethod, DICT_TYPE.PMS_SIGNING_METHOD) },
-      { label: '项目类别', value: label(p.projectCategory, DICT_TYPE.PMS_PROJECT_CATEGORY) },
-      { label: '实施方式', value: label(p.implementationMode, DICT_TYPE.PMS_IMPLEMENTATION_METHOD) },
-      { label: '重大项目级别', value: label(p.majorProjectLevel, DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL) },
-      { label: '业务层级', value: p.businessLevelName || p.businessLevelCode },
-      { label: '结构深度', value: p.treeDepth == null ? undefined : String(p.treeDepth) },
-      { label: '项目开始时间', value: time(p.projectStartTime) },
-      { label: '项目刷新时间', value: time(p.projectRefreshTime) },
-      { label: '项目关闭时间', value: time(p.closedAt ?? p.projectCloseTime) },
-      { label: '销售类型', value: p.salesType }, { label: '业务类型', value: p.businessType },
-      { label: '项目结束日期（工勘要求）', value: p.projectEndDate },
-      { label: '实施地点', value: p.implementationLocation, wide: true },
-      { label: '发货状态', value: statusLabel(p.statusAttributes?.shipment_status, shipmentStatusLabels) },
-      { label: '发货状态更新时间', value: time(p.statusAttributes?.shipment_status_updated_at) },
-      { label: '执行状态', value: statusLabel(p.statusAttributes?.execution_status, executionStatusLabels) },
-      { label: '执行状态更新时间', value: time(p.statusAttributes?.execution_status_updated_at) }
-    ] },
-    { title: '组织与人员', fields: [
-      { label: '所属公司', value: p.companyName || p.companyCode },
-      { label: '办事处', value: p.departmentName || p.departmentCode },
-      { label: '销售代表', value: salesRepresentative.value },
-      { label: '服务经理', value: names(['SERVICE_MANAGER', 'SERVICE_MANAGER_L1', 'SERVICE_MANAGER_L2']) },
-      { label: '主责项目经理', value: p.managerName },
-      { label: '其他项目经理', value: names(['PROJECT_MANAGER'], p.managerId) },
-      { label: '市场', value: p.marketName || p.marketCode },
-      { label: '市场部', value: marketPath(p) || [...new Set(scopedMarketSources.value.map(marketPath).filter(Boolean))].join(' / ') },
-      { label: '订单创建时间', value: orderCreated },
-      { label: '不予跟踪原因', value: p.notTrackReason, wide: true },
-      { label: '系统', value: p.systemName || p.systemCode },
-      { label: '拓展', value: p.expendName || p.expendCode },
-      { label: '行业', value: p.industryName || p.industryCode }
-    ] },
-    { title: '客户与参与方', fields: [
-      { label: '项目最终客户', value: p.customerName || p.customerCode },
-      { label: '最终客户单位', value: party('FINAL_CUSTOMER') },
-      { label: '下单代理商', value: party('AGENT') },
-      { label: '服务提供商', value: party('SERVICE_PROVIDER') },
-      { label: '服务渠道', value: party('10') },
-      { label: '出货渠道', value: party('20') },
-      { label: '合同号', value: [...new Set([p.contractNo, ...contracts.value.map(contract => contract.contractNo)].filter(Boolean))].join('、') },
-      { label: '用户服务等级', value: p.serviceLevelCode }
-    ] }
+    { label: '合同号', value: [...new Set([p.contractNo, ...contracts.value.map(contract => contract.contractNo)].filter(Boolean))].join('、') },
+    { label: '销售代表', value: salesRepresentative.value },
+    { label: '办事处', value: p.departmentName || p.departmentCode },
+    { label: '所属公司', value: p.companyName || p.companyCode },
+    { label: '市场部', value: marketPath(p) || [...new Set(scopedMarketSources.value.map(marketPath).filter(Boolean))].join('\n') },
+    { label: '订单创建时间', value: orderCreated },
+    { label: '项目开始时间', value: p.projectStartTime ? formatDate(p.projectStartTime, 'YYYY-MM-DD') : '—' },
+    { label: '项目类别', value: label(p.signingMethod, DICT_TYPE.PMS_SIGNING_METHOD) },
+    { label: '重大项目级别', value: label(p.majorProjectLevel, DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL) },
+    { label: '服务经理', value: names(['SERVICE_MANAGER', 'SERVICE_MANAGER_L1', 'SERVICE_MANAGER_L2']) },
+    { label: '项目类型', value: label(p.projectCategory, DICT_TYPE.PMS_PROJECT_CATEGORY) },
+    { label: '主责项目经理', value: p.managerName },
+    { label: '其他项目经理', value: names(['PROJECT_MANAGER'], p.managerId) },
+    { label: '实施方式', value: label(p.implementationMode, DICT_TYPE.PMS_IMPLEMENTATION_METHOD) },
+    { label: '下单/施工代理商', value: party('AGENT') },
+    { label: '服务提供商', value: party('SERVICE_PROVIDER') },
+    { label: '最终客户单位', value: party('FINAL_CUSTOMER') },
+    { label: '客户项目名称', value: p.customerProjectName },
+    { label: '不予跟踪原因', value: p.notTrackReason, wide: true }
   ]
 })
-const shipmentStatusLabels: Record<string, string> = { '-1': '已发货', '1': '未发货', '2': '部分发货' }
-const executionStatusLabels: Record<string, string> = { '5': '未实施', '7': '挂起状态', '10': '到货签收', '20': '上架加电',
-  '30': '配置调试', '40': '业务割接', '50': '实施完毕', '60': '初验-直签', '70': '终验-直签', '80': '项目闭环', '90': '维护阶段' }
-const statusLabel = (value: unknown, labels: Record<string, string>) => value == null ? '—' : labels[String(value)] || String(value)
 const receivableAmountFields = [
   { key: 'contractAmount', label: '合同金额' }, { key: 'deliveredAmount', label: '发货金额' },
   { key: 'collectedAmount', label: '已回款金额' }, { key: 'collectedRatio', label: '回款比例' },

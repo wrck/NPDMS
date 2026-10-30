@@ -1,5 +1,5 @@
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
-vi.mock('../attachment/NativeAttachments.vue', () => ({ default: defineComponent({ setup(_, { attrs }) { return () => h('uploader', { ...attrs, disabled: attrs.readonly }) } }) }))
+vi.mock('../attachment/NativeAttachments.vue', () => ({ default: defineComponent({ setup(_, { attrs, expose }) { expose({ savePending: async () => true }); return () => h('uploader', { ...attrs, disabled: attrs.readonly }) } }) }))
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import { mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
@@ -7,13 +7,13 @@ import Page from './index.vue'
 
 const mocks = vi.hoisted(() => ({
   route: { query: {} as Record<string, unknown> }, push: vi.fn(),
-  getSurvey: vi.fn(), resolve: vi.fn(), create: vi.fn(), remove: vi.fn(),
+  getSurvey: vi.fn(), resolve: vi.fn(), create: vi.fn(), get: vi.fn(), remove: vi.fn(),
   message: { success: vi.fn(), warning: vi.fn(), confirm: vi.fn(), delConfirm: vi.fn() }
 }))
 vi.mock('vue-router', () => ({ useRoute: () => mocks.route, useRouter: () => ({ push: mocks.push }) }))
 vi.mock('@/api/pms/engineering/site-survey/entity', () => ({ getSiteSurvey: mocks.getSurvey }))
 vi.mock('@/views/pms/delivery-business/site-survey/siteSurveyExecutionShortcut', () => ({ resolveSurveyExecution: mocks.resolve }))
-vi.mock('@/api/pms/engineering/outsource', () => ({ getOutsourceRequestPage: async () => ({ list: [], total: 0 }), createOutsourceRequest: mocks.create, deleteOutsourceRequest: mocks.remove }))
+vi.mock('@/api/pms/engineering/outsource', () => ({ getOutsourceRequestPage: async () => ({ list: [], total: 0 }), createOutsourceRequest: mocks.create, getOutsourceRequest: mocks.get, deleteOutsourceRequest: mocks.remove }))
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
 vi.mock('@/api/system/user', () => ({ __v_isRef: false, getUserPage: vi.fn() }))
 vi.mock('@/utils/formatTime', () => ({ formatDate: () => '2026-09-14 12:00:00', dateFormatter: vi.fn() }))
@@ -36,6 +36,8 @@ const render = () => {
 const selection = { task: { projectId: 9, taskId: '9007199254740994', executionId: '9007199254740995', executionVersion: 2 } }
 beforeEach(() => {
   vi.clearAllMocks()
+  mocks.create.mockResolvedValue(91)
+  mocks.get.mockResolvedValue({ id: 91, projectId: 9, status: 0, version: 4 })
   mocks.route.query = { siteSurveyId: '9007199254740993', surveyTaskId: selection.task.taskId, surveyExecutionId: selection.task.executionId }
   mocks.getSurvey.mockResolvedValue({ id: '9007199254740993', projectId: 9, status: 0, outsourceRequired: true, name: '工勘' })
   mocks.resolve.mockResolvedValue(selection)
@@ -47,7 +49,7 @@ it('opens the original application form with exact survey/round context, saves a
   expect(state.formVisible).toBe(true)
   expect(state.form.siteSurveyExecution).toEqual(selection)
   expect(state.form.triggerRefId).toBe('9007199254740993')
-  state.formRef = { validate: vi.fn() }
+  state.formRef = { validate: vi.fn(), savePending: vi.fn().mockResolvedValue(true) }
   await state.save()
   expect(mocks.create).toHaveBeenCalledWith(expect.objectContaining({ siteSurveyExecution: selection, triggerSource: 'SITE_SURVEY' }))
   expect(mocks.push).toHaveBeenCalledWith(expect.objectContaining({ query: {

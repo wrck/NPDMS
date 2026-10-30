@@ -16,7 +16,7 @@
       <div class="el-upload__text">拖放文件到这里，或<em>点击选择</em></div>
       <template #tip>
         <div class="upload-tip">
-          单文件不超过 50MiB；上传完成后由服务端执行适用校验，是否执行安全扫描由部署配置决定。
+          单文件不超过 {{ fileSizeLimitMiB }}MiB；上传完成后由服务端执行适用校验，是否执行安全扫描由部署配置决定。
         </div>
       </template>
     </el-upload>
@@ -58,6 +58,7 @@ const props = withDefaults(
       expectedReferenceVersion?: number
       categoryCode: string
       accept?: string
+      maxSizeMiB?: number
       disabled?: boolean
       hideSubmit?: boolean
       autoSubmit?: boolean
@@ -66,6 +67,7 @@ const props = withDefaults(
   >(),
   {
     accept: '.pdf,.png,.jpg,.jpeg',
+    maxSizeMiB: 50,
     disabled: false
   }
 )
@@ -79,6 +81,7 @@ const uploadFailed = ref(false)
 const progress = ref(0)
 const stage = ref<'UPLOADING' | 'VALIDATING'>('UPLOADING')
 const uploadMode = computed(() => resolveFileUploadMode(props.artifactId))
+const fileSizeLimitMiB = computed(() => Math.min(50, props.maxSizeMiB))
 const attempt = ref<{
   initKey: string
   completeKey: string
@@ -139,9 +142,9 @@ registerDraftUpload({
 const submit = async () => {
   const file = selectedFile.value
   if (!file || props.disabled || busy.value) return
-  if (file.size <= 0 || file.size > 50 * 1024 * 1024) {
+  if (file.size <= 0 || file.size > fileSizeLimitMiB.value * 1024 * 1024) {
     uploadFailed.value = true
-    return message.error('文件大小必须在 50MiB 以内')
+    return message.error(`文件大小必须在 ${fileSizeLimitMiB.value}MiB 以内`)
   }
   uploadFailed.value = false
   busy.value = true

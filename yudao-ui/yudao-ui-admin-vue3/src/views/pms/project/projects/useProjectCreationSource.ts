@@ -5,6 +5,7 @@ import type { SelectedContract } from './contractSelection'
 interface SourceForm {
   contractId?: number; contractNo: string; salesOrderId?: number; sourceFingerprint?: string
   projectName: string; customerCode: string; customerName: string
+  projectCategory?: string
   orderOfficeCompanyId?: number; orderOfficeDepartmentId?: number
 }
 interface Organization { id?: number; code?: string }
@@ -37,6 +38,7 @@ export const useProjectCreationSource = (form: SourceForm, companies: Ref<Organi
       form.salesOrderId = resolved.salesOrderId
       form.sourceFingerprint = source.sourceFingerprint
       form.projectName = resolved.projectName ?? ''
+      if (resolved.majorProjectLevel) form.projectCategory = 'ENGINEERING'
       form.contractNo = source.contract.contractNo
       form.orderOfficeCompanyId = companies.value.find(item => item.code === resolved.companyCode)?.id
       const execution = source.executionOrders.find(item => item.id === resolved.executionOrderId)

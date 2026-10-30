@@ -191,7 +191,7 @@
 <script setup lang="ts">
 import ExternalProcurementFormDialog from './ExternalProcurementFormDialog.vue'
 import ExternalProcurementDetailDialog from './ExternalProcurementDetailDialog.vue'
-import { onMounted, reactive, ref } from 'vue'
+import { nextTick, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
 import { positiveShortcutId, surveyPath } from '@/views/pms/delivery-business/site-survey/siteSurveyOutsource'
@@ -314,13 +314,16 @@ const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
+    const creating = !form.id
     if (form.id) {
       await ExtProcApi.updateExternalProcurement(form)
-      message.success('更新成功')
     } else {
-      await ExtProcApi.createExternalProcurement(form)
-      message.success('创建成功')
+      form.id = await ExtProcApi.createExternalProcurement(form)
     }
+    Object.assign(form, await ExtProcApi.getExternalProcurement(form.id!))
+    await nextTick()
+    if (!(await formRef.value.savePending(form.id!))) return
+    message.success(creating ? '创建成功' : '更新成功')
     formVisible.value = false
     if (sourceSurveyId.value) await router.push({ path: surveyPath, query: { surveyId: String(sourceSurveyId.value) } })
     else await load()

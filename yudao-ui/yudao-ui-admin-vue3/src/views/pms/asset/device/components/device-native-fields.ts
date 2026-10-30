@@ -111,6 +111,10 @@ export const deviceWarrantyFields = [
     label: '合同号'
   },
   {
+    key: 'extended',
+    label: '续保'
+  },
+  {
     key: 'combinedDeviceSn',
     label: '组合设备序列号'
   },

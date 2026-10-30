@@ -161,7 +161,8 @@ export const executeEntityOperation = (
     params: entityId == null ? undefined : { entityId },
     data,
     // 契约结果（并发冲突、权限拒绝等）由办理页按回执与原因呈现，不重复弹全局错误提示。
-    silentError: true
+    silentError: true,
+    preserveBusinessError: true
   })
 
 export const recoverEntityOperation = (ownerModule: string, entityType: string, operationCode: string,

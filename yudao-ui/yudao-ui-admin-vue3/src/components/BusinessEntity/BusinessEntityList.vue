@@ -35,7 +35,7 @@
     </div>
     <el-table :data="rows" v-loading="listLoading" @row-click="(row: any) => emit('open', row)">
       <el-table-column
-        v-for="field in readableFields"
+        v-for="field in readableFields.slice(0, 8)"
         :key="field.code"
         :label="field.name"
         :prop="field.code"

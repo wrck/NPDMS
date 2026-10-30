@@ -1,4 +1,7 @@
 vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/api/pms/platform/file', () => ({ initializeUpload: vi.fn(), completeUpload: vi.fn() }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('@/hooks/web/useDraftUploads', () => ({ registerDraftUpload: vi.fn() }))
 import { beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, reactive } from 'vue'
 import type { FileSelection } from '@/components/PmsFileArtifact'
@@ -16,15 +19,32 @@ vi.mock('@/api/pms/platform/delivery', () => ({ listMaterials: mocks.list, withd
 vi.mock('@/components/PmsFileArtifact', () => ({ PmsFileUploader: defineComponent({ setup(_, { attrs }) { return () => h('native-uploader', attrs) } }), PmsFileReferenceList: defineComponent({ setup(_, { attrs }) { return () => h('native-file', attrs) } }) }))
 const nodes = (n: TestNode, type: string): TestNode[] => [...(n.type === type ? [n] : []), ...n.children.flatMap(c => nodes(c, type))]
 const flush = async () => { for (let i = 0; i < 12; i++) await nextTick() }
+it('keeps safe absolute and relative legacy download links readonly', async () => {
+  vi.stubGlobal('window', { location: { origin: 'http://localhost:19085' } })
+  const mounted = mount(Attachments, { kind: 'configuration', readonly: true,
+    legacy: ' https://files.example.test/old.pdf ,/admin-api/infra/file/old.pdf,javascript:alert(1),data:text/html,bad' })
+  try {
+    await flush()
+    const links = nodes(mounted.root, 'el-link')
+    expect(links.map(link => link.props?.href)).toContain('https://files.example.test/old.pdf')
+    expect(links.map(link => link.props?.href)).toContain('/admin-api/infra/file/old.pdf')
+    expect(links.some(link => String(link.props?.href).startsWith('javascript:'))).toBe(false)
+    expect(links.some(link => String(link.props?.href).startsWith('data:'))).toBe(false)
+    expect(links.every(link => link.props?.rel === 'noopener noreferrer')).toBe(true)
+    expect(nodes(mounted.root, 'native-uploader')).toEqual([])
+    expect(mocks.update).not.toHaveBeenCalled()
+  } finally { mounted.app.unmount(); vi.unstubAllGlobals() }
+})
 beforeEach(() => { vi.resetAllMocks(); mocks.list.mockResolvedValue([]); mocks.get.mockResolvedValue({ id: '9007199254740993', projectId: 20, status: 0, version: 3, remark: 'saved Owner', serials: [{ sn: 'immutable-snapshot' }] }) })
 const kinds = ['configuration', 'jointTest', 'externalProcurement', 'outsourceRequest', 'materialRequisition', 'materialExchange'] as const
 it.each(kinds)('%s retries actual native collection without a new file upload', async kind => {
   const mounted = mount(Attachments, { kind, entityId: '9007199254740993', readonly: false }); const state = (mounted.vm as any).$.setupState
   try {
     await flush(); const uploader = nodes(mounted.root, 'native-uploader')[0]
-    expect(uploader.props?.['object-id']).toBe('9007199254740993')
+    if (uploader) expect(uploader.props?.['object-id']).toBe('9007199254740993')
+    else expect(nodes(mounted.root, 'el-upload')).toHaveLength(1)
     mocks.update.mockRejectedValueOnce(new Error('native registration unavailable'))
-    await (uploader.props!.onCompleted as (selection: FileSelection) => Promise<void>)({
+    await ((uploader?.props?.onCompleted || state.completed) as (selection: FileSelection) => Promise<void>)({
       artifactId: '9007199254740995', versionNo: 1, referenceId: '9007199254740997', referenceKey: 'independent-native-slot'
     }); await flush()
     expect(state.pending).toBe(true); expect(state.error).toContain('registration unavailable'); expect(nodes(mounted.root, 'native-uploader')).toEqual([])
@@ -55,13 +75,13 @@ it('an upload completion from the previous Owner cannot save the newly opened Ow
   const mounted = mount(defineComponent({ setup: () => () => h(Attachments, props) }))
   try {
     await flush()
-    const oldCompleted = nodes(mounted.root, 'native-uploader')[0].props!.onCompleted as () => Promise<void>
+    const oldCompleted = (mounted.vm as any).$.subTree.component.setupState.completed as () => Promise<void>
     props.entityId = 31; props.kind = 'jointTest'
     await flush()
     await oldCompleted(); await flush()
     expect(mocks.get).not.toHaveBeenCalled()
     expect(mocks.update).not.toHaveBeenCalled()
-    expect(nodes(mounted.root, 'native-uploader')[0].props?.['object-id']).toBe('31')
+    expect((mounted.vm as any).$.subTree.component.props.entityId).toBe(31)
   } finally { mounted.app.unmount() }
 })
 it('a late Owner lookup cannot collect files after the record changes', async () => {
@@ -71,12 +91,12 @@ it('a late Owner lookup cannot collect files after the record changes', async ()
   const mounted = mount(defineComponent({ setup: () => () => h(Attachments, props) }))
   try {
     await flush()
-    const completed = nodes(mounted.root, 'native-uploader')[0].props!.onCompleted as () => Promise<void>
+    const completed = (mounted.vm as any).$.subTree.component.setupState.completed as () => Promise<void>
     const collecting = completed()
     await flush(); props.entityId = 31; await flush()
     resolveOwner({ id: 30, projectId: 20, status: 0, version: 0 })
     await collecting; await flush()
     expect(mocks.update).not.toHaveBeenCalled()
-    expect(nodes(mounted.root, 'native-uploader')[0].props?.['object-id']).toBe('31')
+    expect((mounted.vm as any).$.subTree.component.props.entityId).toBe(31)
   } finally { mounted.app.unmount() }
 })

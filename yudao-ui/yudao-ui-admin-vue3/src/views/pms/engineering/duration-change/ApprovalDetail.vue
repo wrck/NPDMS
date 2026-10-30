@@ -40,6 +40,7 @@
           :editable="false"
         />
       </template>
+      <el-alert v-else-if="change.customerEvidenceFileId" title="该历史附件缺少业务引用信息，暂无法查看；原文件记录保留。" type="warning" :closable="false" />
       <template v-if="change.approvalOpinion">
         <h4>审批意见</h4>
         <p class="duration-reason">{{ change.approvalOpinion }}</p>

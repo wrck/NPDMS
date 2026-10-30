@@ -1,7 +1,16 @@
-vi.mock('../attachment/NativeAttachments.vue', () => ({ default: defineComponent({ setup(_, { attrs }) { return () => h('uploader', { ...attrs, disabled: attrs.readonly }) } }) }))
+vi.mock('../attachment/NativeAttachments.vue', () => ({ default: defineComponent({ setup(_, { attrs, expose }) { expose({ savePending: attachmentSave }); return () => h('uploader', { ...attrs, disabled: attrs.readonly }) } }) }))
 import { beforeEach, expect, it, vi } from 'vitest'
+vi.mock('@/config/axios', () => ({ default: {} }))
+vi.mock('./ManualCollectionDialog.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/components/DeviceCollection/CollectionDialog.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/components/DeviceCollection/BusinessCollectionLogs.vue', () => ({ default: { render: () => null } }))
+const attachmentSave = vi.hoisted(() => vi.fn())
 import { defineComponent, h, nextTick } from 'vue'
 import JointTest from './index.vue'
+import JointTestWithDeviceLogs from './with-device-logs.vue'
+vi.mock('@/components/DeviceCollection/CollectionWithDeviceLogsDialog.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/components/DeviceCollection/ProjectDeviceLogArchiveDialog.vue', () => ({ default: { render: () => null } }))
+vi.mock('./resolveLogTask', () => ({ resolveJointLogTask: vi.fn() }))
 import * as JointTestApi from '@/api/pms/engineering/joint-test'
 import { mount, passthrough, tableColumn, findByTestId, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
@@ -12,7 +21,7 @@ vi.mock('@/api/pms/asset/device/archive', () => ({ __v_isRef: false, getDeviceAr
 // BusinessCollectionLogs 的设备采集 API 导入链会在导入期访问 window，按 API 模块边界 mock
 vi.mock('@/api/pms/platform/deviceCollection', () => ({ context: vi.fn(), page: vi.fn(), findByRequestKey: vi.fn() }))
 vi.mock('@/components/DeviceTag/index.vue', () => ({ default: { render: () => null } }))
-vi.mock('@/api/pms/engineering/joint-test', () => ({ getJointTestPage: vi.fn(), createJointTest: vi.fn(), updateJointTest: vi.fn(), deleteJointTest: vi.fn(), failJointTest: vi.fn() }))
+vi.mock('@/api/pms/engineering/joint-test', () => ({ getJointTestPage: vi.fn(), getJointTest: vi.fn(), createJointTest: vi.fn(), updateJointTest: vi.fn(), deleteJointTest: vi.fn(), failJointTest: vi.fn() }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_JOINT_TEST_STATUS: 'joint' }, getIntDictOptions: () => [] }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ warning, success: vi.fn(), delConfirm: vi.fn() }) }))
 const formStub = defineComponent({ setup(_, { slots, attrs, expose }) {
@@ -21,13 +30,16 @@ const formStub = defineComponent({ setup(_, { slots, attrs, expose }) {
 } })
 const uploaderStub = defineComponent({ setup(_, { attrs }) { return () => h('uploader', attrs) } })
 const uploaders = (node: TestNode): TestNode[] => [...(node.type === 'uploader' ? [node] : []), ...node.children.flatMap(uploaders)]
-const render = () => {
-  const mounted = mount(JointTest, {}, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, ElInput: passthrough, ElDatePicker: passthrough, ElSelect: passthrough, ElOption: passthrough, PmsEntitySelect: passthrough, Editor: passthrough, UploadFile: uploaderStub })
+const render = (component = JointTest) => {
+  const mounted = mount(component, {}, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, ElInput: passthrough, ElDatePicker: passthrough, ElSelect: passthrough, ElOption: passthrough, PmsEntitySelect: passthrough, Editor: passthrough, UploadFile: uploaderStub })
   return { ...mounted, state: (mounted.vm as any).$.setupState }
 }
 const flush = async () => { for (let i = 0; i < 5; i++) await nextTick() }
 beforeEach(() => {
   vi.clearAllMocks()
+  attachmentSave.mockResolvedValue(true)
+  vi.mocked(JointTestApi.createJointTest).mockResolvedValue(91)
+  vi.mocked(JointTestApi.getJointTest).mockImplementation(async id => ({ id, projectId: 1, status: 0, version: 4, testCase: 'saved' }))
   vi.mocked(JointTestApi.getJointTestPage).mockResolvedValue({ list: [], total: 0 })
 })
 
@@ -79,4 +91,20 @@ it('keeps empty legacy attachment metadata when reopening a record with no evide
     await mounted.state.save()
     expect(JointTestApi.updateJointTest).toHaveBeenCalledWith(expect.objectContaining({ evidenceUrl: '', status: 1, version: 2 }))
   } finally { mounted.app.unmount() }
+})
+
+it.each([JointTest, JointTestWithDeviceLogs])('keeps the created identity and open dialog when attachment saving fails, then retries without duplicate creation: %s', async component => {
+ const view=render(component)
+ try {
+  view.state.openForm(); await flush()
+  Object.assign(view.state.form,{projectId:1,equipmentId:9,testCase:'test'})
+  attachmentSave.mockResolvedValueOnce(false)
+  await view.state.save()
+  expect(view.state.form.id).toBe(91)
+  expect(view.state.formVisible).toBe(true)
+  await view.state.save()
+  expect(JointTestApi.createJointTest).toHaveBeenCalledTimes(1)
+  expect(attachmentSave).toHaveBeenLastCalledWith(91)
+  expect(view.state.formVisible).toBe(false)
+ }finally{view.app.unmount()}
 })

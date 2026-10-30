@@ -33,6 +33,24 @@ beforeEach(() => {
   api.completeUpload.mockResolvedValue({ artifactId: 101, versionNo: 2, referenceId: 301, referenceKey: key.referenceKey })
 })
 
+it('applies the native owner size limit without changing the generic upload limit', async () => {
+  const native = renderUpload({ maxSizeMiB: 5 })
+  try {
+    native.select(new File([new Uint8Array(6 * 1024 * 1024)], 'too-large.txt'))
+    await flush()
+    expect(api.initializeUpload).not.toHaveBeenCalled()
+    expect(native.state.uploadFailed).toBe(true)
+    expect(native.state.fileSizeLimitMiB).toBe(5)
+  } finally { native.app.unmount() }
+  const generic = renderUpload()
+  try {
+    generic.select(new File([new Uint8Array(6 * 1024 * 1024)], 'allowed.txt'))
+    await flush()
+    expect(api.initializeUpload).toHaveBeenCalledTimes(1)
+    expect(generic.state.fileSizeLimitMiB).toBe(50)
+  } finally { generic.app.unmount() }
+})
+
 it('automatically uploads once and retains a string artifact identity for a new version', async () => {
   const view = renderUpload({ artifactId: '9007199254740993', expectedReferenceVersion: 7 })
   try {

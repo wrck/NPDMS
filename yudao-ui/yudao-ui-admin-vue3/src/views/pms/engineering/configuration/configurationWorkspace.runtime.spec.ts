@@ -1,5 +1,9 @@
-vi.mock('../attachment/NativeAttachments.vue', () => ({ default: defineComponent({ setup(_, { attrs }) { return () => h('uploader', { ...attrs, disabled: attrs.readonly }) } }) }))
+vi.mock('../attachment/NativeAttachments.vue', () => ({ default: defineComponent({ setup(_, { attrs, expose }) { expose({ savePending: attachmentSave }); return () => h('uploader', { ...attrs, disabled: attrs.readonly }) } }) }))
 import { beforeEach, expect, it, vi } from 'vitest'
+vi.mock('@/config/axios', () => ({ default: {} }))
+vi.mock('./ManualCollectionDialog.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/components/DeviceCollection/BusinessCollectionLogs.vue', () => ({ default: { render: () => null } }))
+const attachmentSave = vi.hoisted(() => vi.fn())
 import { defineComponent, h, nextTick } from 'vue'
 import Configuration from './index.vue'
 import * as ConfigurationApi from '@/api/pms/engineering/configuration'
@@ -11,7 +15,7 @@ vi.mock('@/api/pms/asset/device/archive', () => ({ __v_isRef: false, getDeviceAr
 // BusinessCollectionLogs 的设备采集 API 导入链会在导入期访问 window，按 API 模块边界 mock
 vi.mock('@/api/pms/platform/deviceCollection', () => ({ context: vi.fn(), page: vi.fn(), findByRequestKey: vi.fn() }))
 vi.mock('@/components/DeviceTag/index.vue', () => ({ default: { render: () => null } }))
-vi.mock('@/api/pms/engineering/configuration', () => ({ getConfigurationPage: vi.fn(), createConfiguration: vi.fn(), updateConfiguration: vi.fn(), deleteConfiguration: vi.fn() }))
+vi.mock('@/api/pms/engineering/configuration', () => ({ getConfigurationPage: vi.fn(), getConfiguration: vi.fn(), createConfiguration: vi.fn(), updateConfiguration: vi.fn(), deleteConfiguration: vi.fn() }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_ENG_STATUS: 'configuration' }, getIntDictOptions: () => [] }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), delConfirm: vi.fn() }) }))
 const formStub = defineComponent({ setup(_, { slots, attrs, expose }) {
@@ -28,6 +32,9 @@ const render = () => {
 }
 beforeEach(() => {
   vi.clearAllMocks()
+  attachmentSave.mockResolvedValue(true)
+  vi.mocked(ConfigurationApi.createConfiguration).mockResolvedValue(91)
+  vi.mocked(ConfigurationApi.getConfiguration).mockImplementation(async id => ({ id, projectId: 1, status: 0, version: 4, testCase: 'saved' }))
   vi.mocked(ConfigurationApi.getConfigurationPage).mockResolvedValue({ list: [], total: 0 })
 })
 
@@ -88,4 +95,20 @@ it('keeps empty legacy attachment metadata when reopening a record with no log',
     await mounted.state.save()
     expect(ConfigurationApi.updateConfiguration).toHaveBeenCalledWith(expect.objectContaining({ configLogUrl: '', status: 0, version: 1 }))
   } finally { mounted.app.unmount() }
+})
+
+it('keeps the created identity and open dialog when attachment saving fails, then retries without duplicate creation', async () => {
+ const view=render()
+ try {
+  view.state.openForm(); await flush()
+  Object.assign(view.state.form,{projectId:1,equipmentId:9,testCase:'test'})
+  attachmentSave.mockResolvedValueOnce(false)
+  await view.state.save()
+  expect(view.state.form.id).toBe(91)
+  expect(view.state.formVisible).toBe(true)
+  await view.state.save()
+  expect(ConfigurationApi.createConfiguration).toHaveBeenCalledTimes(1)
+  expect(attachmentSave).toHaveBeenLastCalledWith(91)
+  expect(view.state.formVisible).toBe(false)
+ }finally{view.app.unmount()}
 })

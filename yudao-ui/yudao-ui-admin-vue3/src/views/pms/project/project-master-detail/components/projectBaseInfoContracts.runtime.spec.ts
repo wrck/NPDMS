@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { mount, flushPromises } from '@vue/test-utils'
 import { afterEach, expect, it, vi } from 'vitest'
 import ElementPlus from 'element-plus'
@@ -8,7 +9,7 @@ import { getProjectContractRelations } from '@/api/pms/commerce'
 vi.mock('@/config/axios', () => ({ default: { get: vi.fn() } }))
 vi.mock('@/api/pms/commerce', () => ({ getProjectContractRelations: vi.fn() }))
 vi.mock('@/api/pms/project/unified-members', () => ({ getMemberPage: vi.fn(async () => ({ list: [], total: 0 })) }))
-vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true, checkRole: () => true }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getDictLabel: (_: unknown, value: string) => value }))
 vi.mock('./ProjectAssociatedDataPanel.vue', () => ({ default: { template: '<div>回款计划</div>' } }))
 let wrapper: ReturnType<typeof mount> | undefined
