@@ -80,17 +80,55 @@ describe('详情式新建割接任务', () => {
     } finally { view.app.unmount() }
   })
 
-  it('does not add a project hint to independent creation after a project is selected', async () => {
+  it.each(['device watcher', 'serial resolver', 'submit validation'])('uses the independently selected WireLong project in %s instead of rediscovering every project', async source => {
     const projectId = '9007199254741999'
     api.resolveCreationDevices.mockImplementation(async serials => resolution(projectId, serials.map((serial: string) => serial.replace('SN-', ''))))
     const view = mount(TaskCreate, {}, controls)
     await flush()
     try {
       await update(view.root, 'create-project-select', projectId)
+      if (source === 'serial resolver') {
+        await update(view.root, 'create-serials', 'SN-401')
+        await click(view.root, 'resolve-create-serials')
+      } else {
+        ;(view.vm as any).$.setupState.selectedDevices = [device()]
+        await flush()
+        if (source === 'submit validation') {
+          api.resolveCreationDevices.mockClear()
+          await click(view.root, 'submit-create-detail')
+        }
+      }
+      expect(api.resolveCreationDevices).toHaveBeenCalledExactlyOnceWith(['SN-401'], projectId)
+      expect(selectedCount(view.root)).toBe(1)
+    } finally { view.app.unmount() }
+  })
+
+  it('retains unanchored serial discovery until any project is selected', async () => {
+    const view = mount(TaskCreate, {}, controls)
+    await flush()
+    try {
       await update(view.root, 'create-serials', 'SN-401')
       await click(view.root, 'resolve-create-serials')
       expect(api.resolveCreationDevices).toHaveBeenCalledExactlyOnceWith(['SN-401'], undefined)
-      expect(selectedCount(view.root)).toBe(1)
+      expect(findByTestId(view.root, 'create-project-select')!.props!['model-value']).toBe('101')
+      expect(api.createCutoverTask).not.toHaveBeenCalled()
+      expect(api.saveCutoverAssessment).not.toHaveBeenCalled()
+    } finally { view.app.unmount() }
+  })
+
+  it('does not fall back to global discovery or create when selected-project resolution is forbidden', async () => {
+    api.resolveCreationDevices.mockRejectedValue(new Error('无当前项目编辑权限'))
+    const view = mount(TaskCreate, {}, controls)
+    await flush()
+    try {
+      await update(view.root, 'create-project-select', '101')
+      await update(view.root, 'create-serials', 'SN-401')
+      await click(view.root, 'resolve-create-serials')
+      expect(api.resolveCreationDevices).toHaveBeenCalledExactlyOnceWith(['SN-401'], '101')
+      expect(selectedCount(view.root)).toBe(0)
+      expect(feedback.error).toHaveBeenCalledWith('无当前项目编辑权限')
+      expect(api.createCutoverTask).not.toHaveBeenCalled()
+      expect(api.saveCutoverAssessment).not.toHaveBeenCalled()
     } finally { view.app.unmount() }
   })
 
