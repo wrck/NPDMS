@@ -58,6 +58,15 @@ it('keeps resolved historical names read-only rather than adding them as qualifi
   expect(page.state.rows.map((u: any) => u.id)).toEqual([1])
   expect(page.update).not.toHaveBeenCalled()
 })
+it('retains the chosen name when a later scoped resolve returns no matching row', async () => {
+  const scope = source()
+  const page = render(scope, { modelValue: 1 })
+  await page.state.load(1)
+  page.state.clearCandidatePage()
+  await page.state.resolveHistory()
+  expect(page.state.labelFor(1)).toBe('获资格人员')
+  expect(page.update).not.toHaveBeenCalled()
+})
 it('keeps the selected ID type on a qualified option so ElSelect can display its name', async () => {
   const scope = source()
   scope.search.mockResolvedValue({ list: [{ id: 9, nickname: '当前工勘人' }], total: 1 })
@@ -177,7 +186,7 @@ it('automatically pages only at the open dropdown bottom and preserves account l
   page.state.open(true)
   await flush()
   page.state.selectRef = { scrollbarRef: { wrapRef: { scrollHeight: 300, clientHeight: 100 } } }
-  expect(page.state.labelFor(1)).toBe('项目人员（engineer）')
+  expect(page.state.labelFor(1)).toBe('engineer-项目人员')
   page.state.popupScroll({ scrollTop: 20 })
   expect(scope.search).toHaveBeenCalledTimes(1)
   page.state.popupScroll({ scrollTop: 200 })
@@ -365,4 +374,14 @@ it('waits for composition to end and resumes even when its final text is unchang
   expect(scope.search).toHaveBeenCalledTimes(2)
   expect(scope.search).toHaveBeenLastCalledWith({ keyword: '中文', pageNo: 1, pageSize: 20 })
   expect(page.state.loading).toBe(false)
+})
+
+it('uses the same account-name display by default without changing the selected nickname', async () => {
+  const scope = source()
+  scope.search.mockResolvedValue({ list: [{ id: 7, nickname: '张三', username: 'z007', deptName: '杭州办事处' }], total: 1 })
+  const page = render(scope, { valueField: 'nickname' })
+  await page.state.load(1)
+  expect(page.state.labelFor(7)).toBe('z007-张三')
+  page.state.update(7)
+  expect(page.update).toHaveBeenCalledWith('张三')
 })

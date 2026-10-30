@@ -10,7 +10,7 @@
       <p class="policy-hint">人工审批顺序：当前主责服务经理 → 显式材料审核人。全部审批通过后正常闭环。</p>
       <el-form label-position="top" :disabled="readonly">
         <el-form-item label="材料审核人（必选，无默认值）" :error="reviewerError">
-          <UserSelect :model-value="reviewerUserId" :disabled="readonly" clearable placeholder="请选择材料审核人" @update:model-value="setReviewer" />
+          <UserSelect :model-value="reviewerUserId" :scoped-source="reviewerSource" :disabled="readonly" clearable placeholder="请选择材料审核人" @update:model-value="setReviewer" />
         </el-form-item>
       </el-form>
 
@@ -22,8 +22,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { pmsUserSelectionSource } from '@/api/pms/platform/user-selection'
 import type { TemplateDesignerDocument, TemplateClosurePolicy } from '@/api/pms/project/project-templates'
 
+const reviewerSource = pmsUserSelectionSource('template-closure-reviewer')
 const props = defineProps<{ content: Pick<TemplateDesignerDocument, 'closurePolicy'>; readonly?: boolean }>()
 const policy = computed(() => props.content.closurePolicy as TemplateClosurePolicy | null | undefined)
 const enabled = computed(() => policy.value != null)

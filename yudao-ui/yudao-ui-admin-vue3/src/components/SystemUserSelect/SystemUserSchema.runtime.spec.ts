@@ -116,3 +116,10 @@ it('forwards original form-create change events through the common kernel', asyn
   ;(select!.props!.onChange as (value: any) => void)(7)
   expect(change).toHaveBeenCalledWith(7)
 })
+
+it('formats an available account for display without changing name-valued fields', async () => {
+  source.schemaRequest.mockResolvedValue([{ id: 7, nickname: '张三', username: 'z007' }])
+  const page = render({ returnType: 'name' })
+  await flush()
+  expect(flatten(page.root).some(node => node.props?.label === 'z007-张三' && node.props?.value === '张三')).toBe(true)
+})

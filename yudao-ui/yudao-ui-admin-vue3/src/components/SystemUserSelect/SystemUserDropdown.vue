@@ -1,8 +1,9 @@
 <!-- 系统启用用户选择：候选只代表身份，业务分派资格由业务服务校验。 -->
 <template>
-  <div class="user-select" :data-historical-selection="missingSelection">
+  <div class="user-select" :data-historical-selection="missingSelection" :aria-busy="resolvingSelection">
     <el-select
       v-model="selectValue"
+      :style="{ visibility: resolvingSelection ? 'hidden' : undefined }"
       :placeholder="placeholder"
       :disabled="disabled"
       :clearable="clearable"
@@ -18,10 +19,10 @@
       <el-option
         v-for="id in missingSelections"
         :key="`history-${id}`"
-        :value="id"
+        :value="allList.find((item) => sameId(item.id, id))?.id ?? id"
         :label="
+          formatSystemUserLabel(allList.find((item) => sameId(item.id, id)) || {}) ||
           currentLabel ||
-          allList.find((item) => sameId(item.id, id))?.nickname ||
           `用户 ${id}（当前不可选）`
         "
         disabled
@@ -29,12 +30,12 @@
       <el-option
         v-for="item in filteredList"
         :key="String(item.id)"
-        :label="item.nickname || item.username || `用户 ${item.id}`"
+        :label="formatSystemUserLabel(item) || `用户 ${item.id}`"
         :value="item.id"
         :disabled="disabledIds?.some((id) => String(id) === String(item.id))"
       >
         <div class="flex items-center gap-8px"
-          ><span>{{ item.nickname || item.username || `用户 ${item.id}` }}</span
+          ><span>{{ formatSystemUserLabel(item) || `用户 ${item.id}` }}</span
           ><el-tag v-if="item.deptName" size="small" type="info" class="ml-4px">{{
             item.deptName
           }}</el-tag></div
@@ -53,6 +54,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import type * as UserApi from '@/api/system/user'
 import { systemUserSelection } from '@/api/system/user/selection'
+import { formatSystemUserLabel } from './userLabel'
 defineOptions({ name: 'SystemUserDropdown' })
 type Candidate = Omit<UserApi.UserVO, 'id'> & { id: string | number }
 const props = withDefaults(
@@ -103,6 +105,8 @@ const missingSelections = computed(() => {
   return ids.filter((id) => !filteredList.value.some((item) => sameId(item.id, id)))
 })
 const missingSelection = computed(() => missingSelections.value.length > 0)
+const resolvingSelection = computed(() => loading.value && hasValue.value && !props.currentLabel &&
+  missingSelections.value.some((id) => !allList.value.some((item) => sameId(item.id, id))))
 const selectValue = computed({
   get: () =>
     props.multiple
@@ -140,7 +144,7 @@ const handleChange = (id?: string | number | (string | number)[]) =>
       : allList.value.find((item) => sameId(item.id, id))
   )
 async function load() {
-  if (props.disabled || loading.value) return
+  if (loading.value) return
   const current = ++sequence
   loading.value = true
   error.value = ''

@@ -110,6 +110,16 @@ describe('SOL site-survey shared project and standalone context', () => {
     expect(state.surveyorSource.search).toBe(searchPmsUserOptions)
     expect(api.saveSiteSurveyReceipt).not.toHaveBeenCalled()
   })
+  it('disables the surveyor picker when the business record becomes read-only', async () => {
+    const { state, input, root } = render({ projectId: 7 })
+    await state.openForm(record())
+    input.allowedActions = ['QUERY']
+    await flush()
+    const flatten = (node: any): any[] => [node, ...node.children.flatMap(flatten)]
+    const picker = flatten(root).find(node => node.props?.placeholder === '请选择工勘人员')
+    expect(state.formReadonly).toBe(true)
+    expect(picker?.props?.disabled).toBe(true)
+  })
   it('refreshes a standalone stage deep link through the real helper for save and confirmation', async () => {
     const stage = { projectId: 7, stageId: 5, executionId: '2099999999999999999', executionVersion: 2,
       executionContractId: '2099999999999999998', contractVersion: 1, planVersionId: 100, roundNo: 1, writable: true }

@@ -2,7 +2,7 @@
   <div class="system-user-scoped" :aria-busy="resolvingHistory && historicalIds.length > 0" @input="inputChanged" @compositionend="inputChanged">
     <el-select
       ref="selectRef"
-      :style="{ visibility: resolvingHistory && historicalIds.length ? 'hidden' : undefined }"
+      :style="{ visibility: resolvingSelection ? 'hidden' : undefined }"
       :model-value="selectModel"
       :disabled="disabled"
       :clearable="clearable"
@@ -46,7 +46,7 @@
     <p v-if="error" role="alert"
       >{{ error
       }}<el-button link type="primary" :disabled="disabled || loading" @click="retry"
-        >重试</el-button
+        >重新加载用户</el-button
       ></p
     >
   </div>
@@ -54,6 +54,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import type { ElSelect } from 'element-plus'
+import { formatSystemUserLabel } from './userLabel'
 import {
   systemUserSelection,
   sameSystemUserId,
@@ -146,6 +147,8 @@ const historicalIds = computed(() => {
       : ids.value
   return selected.filter((id) => !rows.value.some((row) => sameSystemUserId(row.id, id)))
 })
+const resolvingSelection = computed(() => resolvingHistory.value && !props.currentLabel &&
+  historicalIds.value.some(id => !history.value.some(row => sameSystemUserId(row.id, id))))
 // Long IDs may arrive as strings while a small directory ID is numeric. ElSelect compares
 // option values strictly, so retain the selected value's exact type for the matching option.
 const optionValue = (id: SystemUserId) => props.valueField === 'nickname'
@@ -157,9 +160,7 @@ const labelFor = (id: SystemUserId) => {
     rows.value.find((row) => sameSystemUserId(row.id, id)) ||
     history.value.find((row) => sameSystemUserId(row.id, id)) ||
     (sameSystemUserId(nameSelection.value?.id, id) ? nameSelection.value : undefined)
-  if (row && props.optionLabel === 'nickname-account' && row.nickname && row.username)
-    return `${row.nickname}（${row.username}）`
-  return row?.nickname || row?.username || props.currentLabel || `用户 ${id}（当前不可选）`
+  return (row && formatSystemUserLabel(row)) || props.currentLabel || `用户 ${id}（当前不可选）`
 }
 function clearCandidatePage() {
   const selectedIds =
@@ -293,6 +294,8 @@ function update(value: SystemUserId | SystemUserId[] | undefined) {
   const selected = Array.isArray(value) ? value : value == null ? [] : [value]
   if (selected.some((id) => !ids.value.some((current) => sameSystemUserId(current, id))
       && !rows.value.some((row) => sameSystemUserId(row.id, id)))) return
+  const selectedRows = rows.value.filter(row => selected.some(id => sameSystemUserId(id, row.id)))
+  history.value = [...new Map([...history.value, ...selectedRows].map(row => [String(row.id), row])).values()]
   emit('update:modelValue', value)
   const users = rows.value.filter((row) => selected.some((id) => sameSystemUserId(id, row.id)))
   emit('change', props.multiple ? users : users[0])
@@ -330,7 +333,10 @@ async function resolveHistory() {
   resolvingHistory.value = true
   try {
     const users = await systemUserSelection.scopedResolve(props.scopedSource, ids.value)
-    if (request === resolveSequence && key === props.scopedSource.key) history.value = users
+    if (request === resolveSequence && key === props.scopedSource.key) {
+      const retained = history.value.filter(row => ids.value.some(id => sameSystemUserId(id, row.id)))
+      history.value = [...new Map([...retained, ...users].map(row => [String(row.id), row])).values()]
+    }
   } catch {
     if (request === resolveSequence) error.value = '已选人员回显失败，原编号保留。'
   } finally {

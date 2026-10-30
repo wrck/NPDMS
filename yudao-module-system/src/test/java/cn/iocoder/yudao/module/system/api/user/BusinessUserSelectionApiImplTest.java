@@ -53,8 +53,8 @@ class BusinessUserSelectionApiImplTest {
         when(departments.getDeptMap(any())).thenReturn(Map.of(10L, dept(10L, "交付团队")));
         var result = api.page(new BusinessUserSelectionApi.Query(2, 1, " ZHANGSAN "));
         assertEquals(2L, result.getTotal());
-        assertEquals(List.of(new BusinessUserSelectionApi.Option(3L, "张三乙", 10L, "交付团队")), result.getList());
-        assertEquals(List.of("id", "nickname", "deptId", "deptName"), Arrays.stream(
+        assertEquals(List.of(new BusinessUserSelectionApi.Option(3L, "张三乙", "z00002", 10L, "交付团队")), result.getList());
+        assertEquals(List.of("id", "nickname", "username", "deptId", "deptName"), Arrays.stream(
                 BusinessUserSelectionApi.Option.class.getRecordComponents()).map(java.lang.reflect.RecordComponent::getName).toList());
         verify(users).getUserListByStatus(0);
         verifyNoMoreInteractions(users);

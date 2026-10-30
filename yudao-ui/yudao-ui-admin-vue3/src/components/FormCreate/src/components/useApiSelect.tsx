@@ -1,5 +1,6 @@
 import request from '@/config/axios'
 import { systemUserSelection } from '@/api/system/user/selection'
+import { formatSystemUserLabel } from '@/components/SystemUserSelect/userLabel'
 import { isEmpty } from '@/utils/is'
 import { ApiSelectProps } from '@/components/FormCreate/src/type'
 import { jsonParse } from '@/utils'
@@ -190,7 +191,8 @@ export const useApiSelect = (option: ApiSelectProps) => {
             }
 
             return {
-              label: label,
+              label: option.userSelection && props.labelField === 'nickname'
+                ? formatSystemUserLabel(item) || label : label,
               value: value
             }
           })

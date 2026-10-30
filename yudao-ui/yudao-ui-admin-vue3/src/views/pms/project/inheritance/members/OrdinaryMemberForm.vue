@@ -19,7 +19,7 @@
         <UserSelect
 v-model="userId" aria-label="人员" option-label="nickname-account" :scoped-source="memberSource"
           :disabled="!candidateReady || saving || searching" :clearable="false" placeholder="按姓名、账号或邮箱搜索"
-          :current-label="selectedPerson?.nickname" @change="selectPerson" />
+          :current-label="selectedPerson ? formatSystemUserLabel(selectedPerson) : undefined" @change="selectPerson" />
       </el-form-item>
       <el-form-item label="联系电话">
         <el-input :model-value="selectedPerson?.mobile || ''" aria-label="联系电话" readonly placeholder="选择人员后显示" />
@@ -47,6 +47,7 @@ v-model="reason" aria-label="调整原因" type="textarea"
 <script setup lang="ts">
 import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { sameSystemUserId, type SystemUserSelectionUser } from '@/api/system/user/selection'
+import { formatSystemUserLabel } from '@/components/SystemUserSelect/userLabel'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import * as Members from '@/api/pms/project/unified-members'
 import * as Projects from '@/api/pms/project/projects'

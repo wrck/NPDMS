@@ -289,7 +289,7 @@
 
 <script setup lang="ts">
 import UserSelect from '@/views/system/user/components/UserSelect.vue'
-import { searchPmsUserOptions } from '@/api/pms/platform/user-selection'
+import { pmsUserSelectionSource, searchPmsUserOptions } from '@/api/pms/platform/user-selection'
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import TrainingPrintTemplates from './TrainingPrintTemplates.vue'
 import TrainingPrintPreview from './TrainingPrintPreview.vue'
@@ -322,29 +322,31 @@ const selectedTrainer = ref<{ id: number | string; nickname?: string }>()
 const onTrainerChange = (trainer?: { id: number | string; nickname?: string }) => {
   selectedTrainer.value = trainer
 }
-const trainerSource = computed(() => ({
-  key: `training-trainer:${form.projectId || 'none'}:${form.id || 'new'}`,
-  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => queryTrainerUsers({ nickname: keyword, pageNo, pageSize })
-}))
+const trainerSource = computed(() => {
+  const source = pmsUserSelectionSource(`training-trainer:${form.projectId || 'none'}:${form.id || 'new'}`)
+  return {
+    ...source,
+    resolve: async (ids: (number | string)[]) => {
+      // The saved record owns its historical label; it does not grant candidate eligibility.
+      const selected = selectedTrainer.value
+      const known = selected?.nickname && ids.some(id => String(id) === String(selected.id)) ? [selected] : []
+      const remaining = ids.filter(id => !known.some(user => String(user.id) === String(id)))
+      return [...known, ...(remaining.length ? await source.resolve?.(remaining) || [] : [])]
+    },
+    search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => queryTrainerUsers({ nickname: keyword, pageNo, pageSize })
+  }
+})
 const queryTrainerUsers = async (params: PageParam & { nickname?: string }) => {
   try {
     const result = await searchPmsUserOptions({
       keyword: params.nickname || '', pageNo: params.pageNo ?? 1, pageSize: params.pageSize ?? 10
     })
     trainerUsersError.value = ''
-    // 查询页可能不含已选人员，保留登录信息或原记录中已知的姓名标签。
-    const selected = selectedTrainer.value
-    if (selected && selected.id === form.trainerUserId && !result.list.some((user) => user.id === selected.id)) {
-      return { ...result, list: [selected, ...result.list] }
-    }
     return result
   } catch {
     trainerUsersError.value = '其他人员暂时无法查询，可选择本人或保留原培训工程师；查询其他人员请重试或确认权限。'
     const self = userStore.getUser
     const list = self.id ? [{ id: self.id, nickname: self.nickname || '本人' }] : []
-    if (form.trainerUserId && String(form.trainerUserId) !== String(self.id)) {
-      list.push({ id: form.trainerUserId, nickname: selectedTrainer.value?.nickname || `原培训工程师（${form.trainerUserId}）` })
-    }
     return { list, total: list.length }
   }
 }
@@ -477,7 +479,7 @@ const openForm = (row?: TrainingVO) => {
       : {}
   )
   const self = userStore.getUser
-  const trainerName = form.trainerUserId === self.id ? self.nickname : row?.trainerName
+  const trainerName = row?.trainerName || (String(form.trainerUserId) === String(self.id) ? self.nickname : undefined)
   selectedTrainer.value = form.trainerUserId && trainerName
     ? { id: form.trainerUserId, nickname: trainerName }
     : undefined

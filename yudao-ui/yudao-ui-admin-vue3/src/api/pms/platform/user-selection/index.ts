@@ -10,10 +10,14 @@ export const searchPmsUserOptions = (params: {
 }): Promise<{ list: SystemUserSelectionUser[]; total: number }> =>
   request.get({ url: '/api/v1/pms/user-selections', params })
 
-const resolvePmsUserOptions = async (ids: SystemUserId[]) => {
+export const resolvePmsUserOptions = async (ids: SystemUserId[]) => {
   if (!ids.length) return []
-  const result = await searchPmsUserOptions({ keyword: '', pageNo: 1, pageSize: 100, userIds: ids.join(',') })
-  return result.list
+  const result: SystemUserSelectionUser[] = []
+  for (let offset = 0; offset < ids.length; offset += 100) {
+    const page = await searchPmsUserOptions({ keyword: '', pageNo: 1, pageSize: 100, userIds: ids.slice(offset, offset + 100).join(',') })
+    result.push(...page.list)
+  }
+  return result
 }
 
 export const pmsUserSelectionSource = (key: string): ScopedUserSelectionSource => ({

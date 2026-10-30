@@ -25,18 +25,19 @@ const loadUserName = async (id: string) => {
     displayName.value = '-'
     return
   }
-  if (userCache.has(id)) {
-    displayName.value = userCache.get(id) || '-'
+  const key = String(id)
+  if (userCache.has(key)) {
+    displayName.value = userCache.get(key) || '-'
     return
   }
   try {
     const res = await UserApi.getSimpleUser(id)
     const name = res?.nickname || `用户#${id}`
-    userCache.set(id, name)
+    userCache.set(key, name)
     displayName.value = name
   } catch {
     const fallback = `用户#${id}`
-    userCache.set(id, fallback)
+    userCache.set(key, fallback)
     displayName.value = fallback
   }
 }

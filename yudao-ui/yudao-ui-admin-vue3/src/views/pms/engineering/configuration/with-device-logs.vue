@@ -146,7 +146,7 @@
           <el-form-item label="项目编号" prop="projectId">
             <PmsEntitySelect
               v-model="form.projectId"
-              @change="form.equipmentId = undefined"
+              @change="onFormProjectChange"
               :api="ProjectApi.getProjectPage"
               label-field="projectName"
               value-field="id"
@@ -164,9 +164,8 @@
         <el-col :span="12">
           <el-form-item label="调试人员" prop="debuggerUserId">
             <UserSelect v-if="!readOnly" v-model="form.debuggerUserId" :scoped-source="debuggerSource" placeholder="请选择调试人员" />
-            <UserTag v-else-if="form.debuggerUserId" :user-id="form.debuggerUserId" />
+            <span v-else-if="form.debuggerUserId">{{ debuggerDisplayName }}</span>
             <span v-else>—</span>
-            <el-alert v-if="!readOnly && debuggerUsersError" :title="debuggerUsersError" type="warning" :closable="false" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -213,8 +212,10 @@
 
 <script setup lang="ts">
 import UserSelect from '@/views/system/user/components/UserSelect.vue'
-import { searchPmsUserOptions } from '@/api/pms/platform/user-selection'
-import { computed, nextTick, onMounted, reactive, ref } from 'vue'
+import { pmsUserSelectionSource } from '@/api/pms/platform/user-selection'
+import { systemUserSelection, type SystemUserSelectionUser } from '@/api/system/user/selection'
+import { formatSystemUserLabel } from '@/components/SystemUserSelect/userLabel'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import NativeAttachments from '../attachment/NativeAttachments.vue'
 import ManualCollectionDialog from '@/components/DeviceCollection/CollectionWithDeviceLogsDialog.vue'
 import ProjectDeviceLogArchiveDialog from '@/components/DeviceCollection/ProjectDeviceLogArchiveDialog.vue'
@@ -229,8 +230,9 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as ConfigurationApi from '@/api/pms/engineering/configuration'
 import type { ConfigurationVO } from '@/api/pms/engineering/configuration'
 import * as ProjectApi from '@/api/pms/project/projects'
-import UserTag from '@/components/UserTag/index.vue'
+import * as UserApi from '@/api/system/user'
 import { useUserStore } from '@/store/modules/user'
+import { getMemberPage } from '@/api/pms/project/unified-members'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import DeviceTag from '@/components/DeviceTag/index.vue'
 import { checkPermi } from '@/utils/permission'
@@ -246,30 +248,37 @@ const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<ConfigurationVO[]>([])
-const debuggerUsersError = ref('')
 const userStore = useUserStore()
-const queryDebuggerUsers = async (params: PageParam & { nickname?: string }) => {
-  try {
-    const result = await searchPmsUserOptions({
-      keyword: params.nickname || '', pageNo: params.pageNo ?? 1, pageSize: params.pageSize ?? 10
-    })
-    debuggerUsersError.value = ''
-    return result
-  } catch {
-    debuggerUsersError.value = '其他人员暂时无法查询，可选择本人或保留已选人员；查询其他人员请重试或确认权限。'
-    const self = userStore.getUser
-    const list = self.id ? [{ id: self.id, nickname: self.nickname || '本人' }] : []
-    const selected = form.value.debuggerUserId
-    if (selected && String(selected) !== String(self.id)) {
-      list.push({ id: selected, nickname: `已选调试人员（${selected}）` })
+const projectDebuggerCandidates = async (): Promise<SystemUserSelectionUser[]> => {
+  const projectId = form.value.projectId
+  if (!projectId) return []
+  const users = new Map<string, SystemUserSelectionUser>()
+  let pageNo = 1
+  for (;;) {
+    const page = await getMemberPage(projectId, { state: 'CURRENT', pageNo, pageSize: 100 })
+    for (const member of page.list) {
+      if (member.userId == null || String(member.userId) === '0') continue
+      const key = String(member.userId)
+      if (!users.has(key)) users.set(key, {
+        id: member.userId, nickname: member.memberName || member.employeeNo || `用户 ${key}`,
+        deptName: member.departmentName || undefined,
+        email: member.email || undefined
+      })
     }
-    return { list, total: list.length }
+    if (pageNo * 100 >= page.total || !page.list.length) break
+    pageNo++
   }
+  return [...users.values()]
 }
 const debuggerSource = computed(() => ({
-  key: `configuration-debugger:${form.value.projectId || 'none'}:${form.value.id || 'new'}`,
-  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => queryDebuggerUsers({ nickname: keyword, pageNo, pageSize })
+  ...pmsUserSelectionSource(`configuration-debugger:${form.value.projectId || 'none'}:${form.value.id || 'new'}`),
+  search: async (query: { keyword: string; pageNo: number; pageSize: number }) =>
+    systemUserSelection.fromCandidates('configuration-project-members', await projectDebuggerCandidates()).search(query)
 }))
+const onFormProjectChange = () => {
+  form.value.equipmentId = undefined
+  form.value.debuggerUserId = userStore.getUser.id
+}
 const downloadImported = async (row: ConfigurationVO) => {
   if (!row.importedLogFileId) return
   const url = await downloadArchivedLog(row.importedLogFileId)
@@ -296,6 +305,52 @@ const readOnly = computed(
     !!props.readonly ||
     (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-configuration:create']))
 )
+const debuggerDisplayName = ref('')
+let debuggerDisplaySequence = 0
+watch(() => [formVisible.value, readOnly.value, form.value.projectId, form.value.debuggerUserId] as const,
+  async ([visible, readonly, projectId, userId]) => {
+    const sequence = ++debuggerDisplaySequence
+    debuggerDisplayName.value = ''
+    if (!visible || !readonly || !userId) return
+    debuggerDisplayName.value = '正在加载姓名…'
+    try {
+      const users = await pmsUserSelectionSource('configuration-history').resolve?.([userId])
+      if (sequence !== debuggerDisplaySequence) return
+      const user = users?.find(item => String(item.id) === String(userId))
+      if (user?.username) {
+        debuggerDisplayName.value = formatSystemUserLabel(user)
+        return
+      }
+    } catch { /* Existing project-authorized fallbacks remain available. */ }
+    try {
+      const user = await UserApi.getSimpleUser(userId)
+      if (sequence !== debuggerDisplaySequence) return
+      if (user?.nickname || user?.username) {
+        debuggerDisplayName.value = formatSystemUserLabel(user)
+        return
+      }
+    } catch { /* Continue with the project-authorized member record. */ }
+    try {
+      if (!projectId) throw new Error('project unavailable')
+      const matches = new Set<string>()
+      for (const state of ['CURRENT', 'HISTORY'] as const) {
+        let pageNo = 1
+        for (;;) {
+          const page = await getMemberPage(projectId, { state, pageNo, pageSize: 100 })
+          if (sequence !== debuggerDisplaySequence) return
+          for (const member of page.list) {
+            if (String(member.userId) === String(userId) && member.memberName) matches.add(member.memberName)
+          }
+          if (pageNo * 100 >= page.total || !page.list.length) break
+          pageNo++
+        }
+        if (matches.size) break
+      }
+      if (sequence === debuggerDisplaySequence) debuggerDisplayName.value = matches.size === 1 ? [...matches][0] : '姓名暂无法确认'
+    } catch {
+      if (sequence === debuggerDisplaySequence) debuggerDisplayName.value = '姓名加载失败'
+    }
+  }, { immediate: true })
 const rules = {
   projectId: [
     { required: true, message: '请选择项目' },
@@ -319,7 +374,6 @@ const load = async () => {
 }
 const openForm = (row?: ConfigurationVO) => {
   attachmentEpoch.value++
-  debuggerUsersError.value = ''
   form.value = {
     id: undefined,
     projectId: props.projectId ?? 0,

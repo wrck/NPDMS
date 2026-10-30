@@ -22,8 +22,13 @@
           filterable
           filter-placeholder="搜索成员"
           :data="transferUserList"
-          :props="{ label: 'nickname', key: 'id' }"
-        />
+          :props="{ label: 'displayLabel', key: 'id' }"
+        >
+          <template #default="{ option }">
+            <span>{{ option.displayLabel }}</span>
+            <el-tag v-if="option.deptName" size="small" type="info" class="ml-4px">{{ option.deptName }}</el-tag>
+          </template>
+        </el-transfer>
       </el-col>
     </el-row>
     <template #footer>
@@ -39,6 +44,7 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
+import { formatSystemUserLabel } from './userLabel'
 import { defaultProps, handleTree } from '@/utils/tree'
 import * as DeptApi from '@/api/system/dept'
 import {
@@ -77,7 +83,9 @@ const transferUserList = computed(() => {
   )
 
   // 2. 合并并去重
-  return [...selectedUsers, ...filteredUnselectedUsers]
+  return [...selectedUsers, ...filteredUnselectedUsers].map(user => ({
+    ...user, displayLabel: formatSystemUserLabel(user) || `用户 ${user.id}`
+  }))
 })
 
 /** 打开弹窗 */
