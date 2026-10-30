@@ -73,6 +73,8 @@
 - `src/test`可提供确定性`COMPLETED`受控替身完成正向闭环；替身不得进入生产装配、不得冒充INT-12 Provider或真实浏览器证据。生产Provider缺失继续只阻断生产激活、真实验收和Implementation Done。
 - 外部数据和设备采集不可用时保留请求摘要、失败码和时间；授权工程师可改用`MANUAL`结果，并冻结PLT公共文件事实作为人工证据。原自动失败事实不可覆盖或改写为成功。
 - 人工证据文件目标固定为`CUT/CUTOVER_CHECKLIST_ITEM/{checklistItemId}/MANUAL_EVIDENCE`。CUT文件策略Provider锁定任务、清单和项目范围，PLT继续拥有上传、扫描、存储、Artifact/Version/Reference和Access Ticket。
+- 2026-10-27 TF-051已批准多附件增量：同一人工材料项可并列选择多份独立附件。既有单文件命令逐份办理；新引用追加，同一引用的新版本只更新该引用的当前选择，并逐份重验保留附件。每次结果仍追加不可变历史，文件关系写入既有`cut_checklist_result_file`，不新增固定结构JSON持久化。清单修订、业务结论保存、审批冻结与展示保留全部附件；任何一份失效不得被悄悄丢弃。历史单附件投影继续可读，未批准的删除语义不随本次加入。
+- 2026-10-27 TF-053已批准格式增量：清单人工证据支持ZIP和LIC，不开放BAT。需求方进一步确认LIC以统一后缀作为不透明附件接收，文本和二进制均允许，不解析或特别识别许可证格式；自行生成两类测试文件验证。该二进制例外仅限清单人工证据的`.lic`，不扩展其他二进制后缀。ZIP沿用ZIP内容校验；大小、摘要、Owner授权和部署扫描配置继续生效，不扩展方案或闭环材料的格式白名单。
 - 2026-10-22 需求方确认：设备采集项选择并保存人工证据后，既有“检查是否正常”等核查字段可以填写。结论沿用`MANUAL`来源追加新结果，原附件公共事实和原采集失败引用保留，固定字段写入既有具名答案明细；读取及清单修订同时保留附件与结论。不得自动勾选正常或改写自动采集技术状态，既有历史缺失结论不自动补值。
 - 文件结果只保存PLT公共`artifactId/versionNo/referenceKey/fileFactVersion/scopeVersion/sha256`，不得保存或读取PLT内部主键。完整公共Fact冻结在既有`answer_snapshot`中，`manual_evidence_file_reference`只保存同一Fact的稳定`referenceKey`，两者不形成第二文件真值。
 

@@ -239,3 +239,53 @@ NormalClosureProcessView以中文条件、实际姓名和原审批意见为主�
 2026-10-24管理员验收收口：需求方切回管理员后，在独立临时浏览器标签完成原未来测试行的变更及停用，保留用户原标签中“曹浪”的新增草稿。通过页面将2108571489659667376的生效时间由2099-01-01 10:00:00修订为2099-01-02 10:00:00；原行停用、版本0→1且原日期保留，新行2108571489659667377创建成功，全部记录6→7。再通过页面停用新行，新行状态1、版本1，两条均显示“已停用/历史保留”。刷新后保持；启用筛选5条、停用筛选2条。测试行全程未到生效时间，当前有效范围仍为5条；原五行的公司/部门ID及编码、角色、状态、版本、生效/到期时间与初始快照逐行一致。
 
 操作日志9252/9253/9254分别记录新增、修订（原行和新行ID）及停用，操作者1、业务用户1、success=1；对应真实POST入口，未直接写库完成业务操作。只读数据库用于前后核对，未删除历史。临时标签已关闭，原草稿未改动。该标签无控制台error。证据.run/user-org-scope/browser-revised.png及.txt、browser-disabled-after-refresh.png及.txt、browser-enabled-filter.txt、browser-disabled-filter.png及.txt、browser-audit-final.tsv、browser-scope-and-audit-after.tsv。复用本节既有23项后端测试、5项前端交互与类型/构建、V515迁移证据，未重复构建或重启；历史Flyway全链缺口仍按原记录保留，不将聚焦迁移成功表述为全链通过。
+
+### 2026-10-27 TF-008 / TF-024 / TF-025 / TF-026 测试反馈修复
+
+- TF-008外部最终用户电话/邮箱沿用CUS-04基础格式约定，前后端拒绝无效格式，保留可空和国际电话；历史联系方式不回填。前端16项、后端26项通过；真实浏览器替代账号负例不发业务写请求。后端待部署，有效保存闭环未执行。
+- TF-024增强页solution-reviewed复用loadProjectEquipmentList返回的真实型号、描述和精确订单数量，并按产品编码聚合SN。未知数量仍为空，已有保存/只读方案不自动重写；旧方案消费者仅补相同返回类型的测试夹具。3组28项通过；真实项目84459引用17行，16行型号、17行描述、15行数量、16行SN有值，未保存。
+- TF-025/026增强页导出将上传图片实际字节嵌入DOCX并复用既有DPtech PNG；非图片拓扑保留原文件链接，不声称Visio/PPT已转图。读取失败拒绝生成空图片。组件/实际DOCX媒体关系与失败检查27项通过，未真实写入交付件或做Word视觉验收。PRE-04原附件引用TF-028仍独立待衔接，不宣称已完成。
+- 本轮定向类型检查、ESLint、env.local构建及固定工具链后端构建通过；实际部署与业务写入验收未执行。原始来源、样本与边界统一见docs/generated/2026-10-26-test-feedback-triage/问题跟进.md。
+
+### 2026-10-27 TF-008 / TF-024 / TF-025 / TF-026 部署后受控浏览器验收
+
+- 需求方批准后，冻结包6c41e0a2已按固定脚本部署至59191。TF-008由m06425在84459真实UI验证错误邮箱不发写请求；明确标记的测试联系人使用国际电话和example.invalid邮箱保存，重开一致。留存测试成员assignmentId2113121068914852013，不回填原历史成员。
+- TF-024另建独立测试方案43（DRAFT/version0），产品引用保存重开17行：型号16、描述17、项目数量15、发货数量15、SN16行有值；未知数量保留空白。原方案10/11/16/17/22的状态与版本保留，测试草稿不加入已批准方案完成关联，S3任务仍DONE/100%/version3。
+- TF-025/026通过页面上传明确TEST_ONLY拓扑、保存并下载Word；交付材料362/fileReferenceId506、类型IMPLEMENTATION_PLAN、来源GENERATED登记成功。实际下载178383字节DOCX的拓扑和LOGO由内部drawing关系引用，字节哈希分别与上传图和仓库品牌图完全一致；已提取查看两张图像。没有将Visio/PPT链接算作已转换图片。
+- 真实导出证据：.run/feedback-20261026/acceptance/tf025-word-export-evidence.json、tf025-tf026-downloaded-docx-validation.json；文件SHA-256为df4292c2f83856586702e100fc3d85b4ea667fa78e21497dfe968884af52e557。标准render_docx.py实际执行因缺少soffice.exe失败，整份Word逐页排版尚未视觉验收，未将结构/字节检查等同于版面验证。
+- 原始反馈、各项边界和仍待处理问题统一记录于docs/generated/2026-10-26-test-feedback-triage/问题跟进.md；无提交审核、归档真实割接任务或直接写业务生命周期状态。
+
+### 2026-10-27 TF-038 发货数量以订单行为唯一来源
+
+- 需求方明确发货数量直接采用订单行值，不根据设备发货数据聚合。已核对当前Owner链：com_sales_order_line.delivered_qty→OrderController的deliveredQty→projectEquipment.ts→项目清单及方案引用；同一订单行按精确ID去重，设备数与SN不参与数量计算。
+- 当前计算主来源已符合该口径；修复其源发货量null/缺失经Number转换为0/NaN的问题。未知发货量保留空值，明确的0保留；不改写已有方案库存快照、设备发货状态或数据库数据。
+- 失败用例先复现0/NaN，修复后订单来源与方案组件共26项通过，覆盖订单量与设备数不一致、发货0、无设备的软件发货数、缺失值和重复范围去重；ESLint及定向vue-tsc通过。
+- 真实浏览器只读核验84459：产品02052555设备数0但发货数1，与精确订单行2113088200020951202的deliveredQty一致；两条无订单关联的软件产品各有6台设备，发货数仍空。证据.run/feedback-20261026/acceptance/order-line-shipment-source.json及对应宽屏截图；空源值分支由定向失败测试验证，不声称真实库出现过该样本。本次无后端变更或服务重启。
+
+### 2026-10-27 项目详情设备清单查询来源回归修复
+
+- 来源：需求方进一步明确项目详情设备清单此前已改为直接取订单行或已分配订单行。首轮仅核对发货字段，遗漏行集合；当前共用projectEquipment.ts将范围明细和设备产品合并，84459的25条已分配订单行实际15种产品，页面却显示17行。
+- 旧实现审计与边界：复用COM现有项目交付范围、订单行及AST产品只读接口；项目详情是本次消费者Owner，服务端权限/查询契约未变。2026-10-10完工证明曾独立批准保留完整设备产品及deviceCount，故复制增强为projectOrderEquipment.ts供项目详情使用，保留验收证明、方案旧消费者和已保存快照，不把其统计规则改成订单数。
+- 实现：当前ACTIVE且无effectiveTo的已分配订单行决定产品集合及项目数量，范围拆分明细和SN不参与；发货/未发货字段取精确订单行ID对应的源值，同一行只计一次，缺失值仍未知。名称取订单描述、型号精确匹配官方产品编码。空范围不扩大到其他订单或设备，分页失败不返回部分范围；逐台数量仍在序列号页查看。
+- 验证：新来源回归用例在旧实现上先复现8项失败，修复后新旧查询13项通过；相关ESLint及包含项目详情的定向vue-tsc通过。真实浏览器19191/59191使用m06425只读验收84459：清单15行、项目数量119、发货119、未发货0，无devices/page请求及API/页面错误；序列号页仍130台，设备独有53012931/53012932各6台，仅从订单清单排除。源码类型注解修正不改变已验收运行行为。
+- 证据：.run/feedback-20261026/acceptance/project84459-order-equipment-browser-acceptance.json、equipment-order-source-regression-before.json、project84459-equipment-order-source-15rows-top.png及bottom.png；测试/检查日志order-equipment-source-before.log、order-equipment-source-after.log、order-equipment-lint.log、order-equipment-types.log。历史项目992203060190在当前账号环境返回项目不存在/无权限，不声称复验通过。
+- 本次仅前端修复，无业务数据写入、后端构建或服务重启，未提交或推送；其他反馈项状态保留。
+
+### 2026-10-28 TF-017 项目列表普通信息编辑入口隐藏
+
+- 按需求方已明确的“隐藏项目列表信息编辑操作”，仅移除 `projects/index.vue` 列表行的普通“编辑”按钮。复核既有按钮、编辑弹窗及 `openEdit/submitEdit`：本次为已授权的入口收敛，直接修改当前入口，不复制新页面；原编辑实现保留，更正客户、项目成员、详情、创建及并行办事处精确查询保持原样。
+- 已检查本次差异无空白错误，并完成 Vue SFC 模板编译；没有新增仅断言按钮源码的镜像测试。未修改后端授权、项目主档或历史数据，未提交、推送或启停服务。真实浏览器尚待指定验收会话核对列表操作及项目详情入口，不能以源码检查替代业务验收。
+
+
+## 2026-10-29 TF-011 隔离候选（旧功能范围）
+
+- 用户已裁决未确认不授予，成员授权与成员区间有效期一致。逐调用分类见.run隔离证据member-authorization-callsite-scope.md；TreeScope与任务成员授权使用确认+区间查询，事实筛选/展示/StageReadiness不增加授权Gate。SYSTEM SPI各Owner自查，不接受前端授权IDs，不回退全目录。
+- 保留最新UserSelect并复用scopedSource，仅接专项分页API；撤下原专用组件方案。此前projects/index.vue缺失systemUserSelection import已由并行工作补齐，本候选重基保留且不重复增加，不改回填逻辑。
+- 真实Mapper+TreeScope确认位两项先红（2个功能failure/0error）；之后211项后端通过、前端新旧复用20项通过。部门SQL一项及真实Advisor外层ignore一项分别先红后绿，类型复跑通过，完整结果以review-status.json为准；历史失败均保留。源码/资源/测试仅在.run，不写活源码/target，不重启/迁移/写业务数据。
+- 性能SQL先离线提交根会话，未建立DB连接；现无真实受限Owner完整scope，不用手工组装或旧自过滤11/156当证明。Owner准备+查询+浏览器<1秒仍待受控应用后的真实账号验收。候选未应用，不记反馈关闭或Feature完成。
+
+- ParticipantFact事实/授权边界已与TF022 Owner交接；本候选不改engineering及其事实API。共享ProjectMemberAssignmentMapper两文件已冻结hash供TF022增量依赖，不整覆盖。真实部门DataPermission拦截器、隐藏/跨租户/删除/停用部门、外层ignore恢复均有行为测试，未实际连接数据库。
+
+- 部门名称在同一请求内复用已获权搜索结果，仅补本页缺失部门IDs，避免重复回表；最终后端211/211，前端20/20，类型无诊断。实际账号性能与浏览器仍未通过，候选保留reviewOnly。
+
+- NO-GO整改已转D盘：恢复并核验207a原56文件，真实独立MANAGE+未确认PM先复现3/3失败（startProcess实际触发、insertSnapshot实际触发、实体经理/锁放行），再修复；现行动态表单workspace/锁也另获真实红证。最终263/263、40容器成功，0skip/abort/容器失败；选择器缺失即失败，旧226含解析警告结果不采纳。仅D源码副本/classes/temp/log，固定JDK及共同锁；不写E活源码/target、不改业务库。未运行MySQL业务IT或真实浏览器/一秒验证。

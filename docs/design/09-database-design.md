@@ -19,6 +19,10 @@
 6. 生命周期状态使用稳定字符串代码；字典负责显示和分类扩展，状态机负责合法迁移。
 7. JSON 仅用于低频扩展快照或外部原文摘要，不承载必须唯一、关联、排序、过滤或参与门禁的核心字段。
 
+### UMC外部报告数据（2026-10-27需求方指定接入）
+
+按需求方“原表或现成巡检结果表承接”的后续纠正，使用既有`srv_inspection_report_revision`保存UMC报告结果。原表新增可空的`result_json`、`result_sha256`及`source_context_json`；不新增UMC结果表、DO或Mapper。报告结果按原任务/尝试/报告版本保存，source_code增加UMC。列表默认不加载结果内容，详情按租户、任务、报告ID显式查询；JSON只保存该报告结果快照与外部恢复上下文，不复制设备台账或规则定义。DOC仍由现有`srv_inspection_report_file`关联PLT文件，输入日志以报告来源引用保存，不引入UMC_LOG等报告格式。`srv_inspection_detection_result`及`srv_inspection_report_result`仍保留平台规则快照/执行结果和关联语义。可重试失败保留在GENERATING报告并记录失败说明，不重写FAILED或AVAILABLE历史。既有报告不可变触发器、外键、格式约束及平台检测判定保留。V520仅准备原表增列和来源CHECK扩展，不自动执行受保护测试库DDL。
+
 ### 1.1 数据元、旧库和目标 DDL 证据基线
 
 物理设计必须先读取结构化证据，不重复凭印象解析 Excel 或复制旧表。当前采用以下证据层级：

@@ -67,3 +67,18 @@
 需求方给出workbench?create=1及实际项目16200720111902N（对应-0/2109733000842969090）。真实浏览器复现：项目无客户ID和编码，等级返回UNAVAILABLE，原规则不允许手选；上轮项目79有关联客户，遗漏此场景。需求方明确批准无关联客户时只在评估内手选，不补客户关联、不写主档，真实读取失败及冲突仍拒绝。Q-CUT-NO-CUSTOMER-LEVEL-20261025已落字，CUT统一来源判定增加此分支，新建查询复用，不改前端或历史原件。
 
 30项定向测试、固定完整构建及22项基线通过；用户单独批准后部署冻结包e23c8046-4ea7-4e65-8eff-f1d8aecfaf5a，59191 local,dac健康。按用户提供的完整地址对实际项目和未关联客户隔离项目64验证初始无默认、可选金牌；没有保存或创建割接写请求，64原结项及两条审批逐项保持。详见[验收续记](../../docs/generated/2026-10-25-cutover-customer-level-browser-acceptance.md)。不将UI选择当成实际项目新割接落库证明，不提升整个Feature状态。
+
+### 2026-10-28 TF-057 原账号慢请求修复候选
+
+- 部署后原账号真实验收：用户明确批准8eb8a840后，通过受控入口仅重启59191，PID17436、local,dac健康且SHA与冻结清单一致；19191/DAC未启停，迁移禁用。外部Chrome以已正常登录的t03470首次加载统计/TODO约2303/2347ms，刷新约1452/1508ms，两轮均HTTP200/业务码0；待办1条（2114323753347493888）、自建1条（2114584115338719232），统计1/0/1/0，与原任务事实一致，无加载失败。此账号本轮真实UI通过，两个样本不作为生产容量结论。部署及浏览器收据见`.run/feedback-20261027/acceptance/tf057-8eb-approved-deployment-20261028.json`、`tf057-after-8eb-chrome-20261028.json`、`tf057-after-8eb-refresh-20261028.json`。以下为部署前的候选阶段记录。
+
+- 原账号t03470正常登录外部Chrome，统计及TODO约30秒中断，自建列表约1.8秒成功；只省去展示快照的前次优化未解决该账号问题。只读线程采样定位到P2待办判断调用提交资格的实施条件读取，继而逐台执行设备可见性检查。原账号复现及栈证据位于`.run/feedback-20261027/acceptance/tf057-t03470-real-browser-reproduced-20261028.json`、`tf057-slow-path-stack-evidence-20261028.json`。
+- 复用原P2编辑资格与动作策略，先判断已有保存动作是否足以进入待办；没有保存动作而仅有提交权限时继续完整来源/设备/实施条件检查。编辑资格仍核对新平台来源、本人负责人、任务及评估状态、当前编辑范围和范围版本；详情与实际保存/提交仍执行完整既有规则，不新增SQL、授权缓存或角色范围。局部改动保留此前未提交的P2优化及其他会话代码。
+- 新增失败用例在修复前实际失败；修复后DashboardQuery/TaskList/TaskQuery共30项通过，含96组详情动作等价对照与READY/NOT_READY/UNAVAILABLE提交专用场景。日志`tf057-save-membership-failure.log`、`tf057-save-membership-tests.log`。固定入口42模块clean package、22项已部署修复保护及ValidateOnly预检通过。
+- 冻结清单`.run/build/releases/8eb8a840-1232-4752-abbd-0348b2609058/manifest.json`，SHA-256 `673ae601c77e224d34fe91f69f27f5228e180c96fccea1fb256d27736fa5ffb8`；与当前运行包相比为4个CUT类及23个工作树巡检/UMC并行类差异，另39个构建元数据差异。并行类没有被本轮改写，其业务验收不在本轮CUT测试覆盖内；明细`tf057-frozen-vs-runtime-review-20261028.json`。本次只打包预检，未部署；19191/DAC未启停、迁移禁用。待本次59191明确重启批准后，以原账号复测统计/TODO耗时及列表事实，不将单测与预检记为真实性能通过。
+
+### 2026-10-28 项目上下文设备创建解析（旧功能范围）
+
+- 需求方要求项目内设备读取按已有项目上下文查询。项目创建页三处资料解析已持有选中projectId；现有`creation-devices/resolve`加性接收可选projectId，以独立场景Request/codec维护旧actions请求精确契约。后端按当前受信上下文重验PROJECT_EDIT完整范围，复用该scope版本，不以客户端项目ID直接授权；已选项目通过既有Owner一次读取本次SN集合并按原状态/项目规则校验，不再逐SN全局项目发现。无项目时保留独立向导原全局发现及多项目显式选择。
+- SN集合完整性、原候选/设备顺序、逐项归属版本及发货校验保持；无权项目先拒绝，不能返回部分成功或扩展其他项目。没有改变创建写接口的幂等、锁定与来源水位，不改历史或状态。前端projectId仍保留WireLong；其三处调用修改仅进入离线可恢复stage补丁，当前19191直播源码不提前请求新字段。
+- 真实codec旧版拒projectId失败用例先失败；修复后Controller真实codec/原Controller契约/请求codec/已知项目Owner/CreationQuery/TaskQuery共6类42项通过。日志`.run/feedback-20261028/tests/cutover-creation-project-before.log`、`cutover-creation-project-after.log`。独立静态核对selectedScope复用、完整SN及错误位置未见阻塞；这些不替代部署后从项目详情阶段任务入口的真实浏览器验收。不提升Feature状态、不部署、不迁移、不重启。

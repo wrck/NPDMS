@@ -195,3 +195,7 @@
 | 独立Feature Ready裁决 | PASS（`NPDMS-FSOL002-FEATURE-READY-20260827-01-R2`） |
 
 结论：`BASELINE / READY`。原Feature Ready阻断已闭环，独立裁决已GO；本规格修订合入目标分支后创建全新Technical Plan。不重开已通过的PRD/SDS门禁，本结论不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release已通过。
+
+## 2026-10-27 TF-019 网口其他选项
+
+需求方确认网口类型多选增加“其他”，允许手填。当前实体的`networkPortTypes`增加`OTHER`；手填复用已有`networkPort`字段，不臆造100G等完整枚举，也不新增必填门槛。以新展示模板修订补充选项和说明输入，原发布修订、已有业务绑定、历史记录及旧入口保持。

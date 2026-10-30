@@ -90,3 +90,7 @@
 - 已有验证：后端定向33项零失败，入口 `test.ps1` 沿用 `worktree-toolchain.ps1` 和同一工作树锁；前端3文件33项通过，前端构建成功，本轮 `git diff --check` 已通过。全量类型检查被 `cutoverTaskInteraction.spec.ts:21-24` 的6项语法错误阻断；隔离该文件后仍有43项类型错误，本轮 `EntityPanel`、`RevisionFiles`、`ProjectFlowPanel`、`index.vue`、`flowPanel.runtime` 无命中，不能记全量类型通过。日志及截图见 [本轮证据目录](../../.run/20261014-project61-repair/)，包括 `backend-tests.log`、`frontend-tests.log`、`frontend-build.log`、`frontend-types.log`、`frontend-types-isolated.log`、`contact-after-save.png` 和 `narrow-task-navigation.png`。
 - 打包阻塞与后续：完整后端构建最初被 `CutoverWebConfiguration.java` 泛型错误阻断，经用户2026-10-14明确授权只将一行改为 `FilterRegistrationBean<OncePerRequestFilter> registration`。重试主代码通过，随后 `CutoverGovernanceGuardProviderTest`、`CutoverDashboardControllerMockMvcTest`、`CutoverFullFlowMySqlTest`、`CutoverTaskListServiceTest` 引用已删类导致 `testCompile` 失败（`backend-build.log`、`backend-build-retry.log`）。用户已选择由割接会话修复并通知后继续打包，不在本轮处理或跳过测试编译。尚无新冻结产物清单，本轮未部署、未重启59191；产物就绪后仍须明确批准重启，再复核后端精确错误提示。
 - 验收边界：未上传虚假拓扑、未冻结或推进项目、未改变模板发布状态。局部前端已浏览器复核，后端部署及新提示的浏览器验证待完成；本轮不能记全闭环Done或Implementation Done，不改写历史状态与证据。
+
+## 2026-10-27 TF-021/028 拓扑附件增量
+
+需求拓扑支持VSD/VSDX多文件独立上传及受控派生PDF预览；方案读取所引用的冻结需求版本，提交锁定重验拓扑文件并保存新来源快照，旧快照不改写。Word导出按每份文件的全部页面嵌入图片，读取/转换失败停止导出。真实VSDX上传内容验证、伪装拒绝及原件不变/全页转换6项平台检查，28项SOL检查、9项前端检查通过。尚未部署及真实业务浏览器/Word布局验收，不晋级完成状态。

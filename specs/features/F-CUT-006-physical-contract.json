@@ -83,7 +83,7 @@
       "checks": [
         "purpose is one of the closed attachmentPurpose values",
         "artifact/reference/version/scope/hash are copied from one PLT fact and never inferred from URL",
-        "POST_COLLECTION_CHECKLIST and IMPLEMENTATION_COMMITMENT each have exactly one current reference at submit"
+        "POST_COLLECTION_CHECKLIST and IMPLEMENTATION_COMMITMENT each have at least one current reference at submit; multiple independent references per purpose retain their own file versions; DRAFT save may remove an ordinary attachment association without deleting PLT files or immutable history"
       ]
     },
     {

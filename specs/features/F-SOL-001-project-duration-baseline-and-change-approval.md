@@ -18,7 +18,7 @@
 
 ### 2.1 包含
 
-- 本人负责项目的项目经理按“起止日期”或“工期时长+计算起点”首次录入，服务端统一计算开始日期、结束日期和自然日时长；
+- 本人负责项目的已确认有效项目经理或同区域服务经理按“起止日期”或“工期时长+计算起点”首次录入，服务端统一计算开始日期、结束日期和自然日时长；
 - 首次录入在同一事务创建`sol_construction_plan`、revision 1、当前生效引用、幂等成功和审计；
 - 变更草稿、提交及平台BPM单节点服务经理审批；通过、驳回和申请人撤回结果由BPM终态驱动，同一项目同一时点最多一个`PENDING_APPROVAL`变更；
 - 原生效revision、候选revision、变更原因、原因规则结果和客户延期材料`FileArtifact`稳定引用冻结；
@@ -80,10 +80,12 @@
 | 能力 | 功能权限码 | ProjectScope | 主体/字段约束 |
 |---|---|---|---|
 | 查看当前工期和历史 | `pms:construction-plan:query` | `PROJECT_VIEW` | 项目成员只读；附件下载另行回源文件权限 |
-| 首次录入、草稿、提交和发起BPM撤回 | `pms:construction-plan:duration-manage` | `PROJECT_MANAGE` | 当前项目经理；不得直接修改生效revision |
+| 首次录入、草稿、提交和发起BPM撤回 | `pms:construction-plan:duration-manage` | `PROJECT_MANAGE` | 已确认且处有效参与区间的本项目PM，或经Owner确认同区域的当前服务经理；不得直接修改生效revision |
 | BPM任务通过/驳回 | `pms:construction-plan:duration-approve` | `PROJECT_MANAGE` | 当前主责服务经理，不得为申请人；业务终态只消费BPM结果 |
 
-服务端按受信租户、功能权限、ProjectScope、当前项目角色、变更状态和版本依次重验。前端按钮与角色名称不是权限真值。
+服务端按受信租户、功能权限、ProjectScope、当前办理资格、变更状态和版本依次重验。前端按钮与角色名称不是权限真值。
+
+2026-10-29 TF-022按用户确认补充办理主体：`ProjectDurationOperatorApi`在PROJ Owner内区分真实PM授权与区域组织授权。PM必须同项目本人、已确认、ACTIVE且处有效参与区间；区域服务经理须同时具有有效SERVICE_CODES系统角色与同一有效公司/部门范围行，项目在该范围内，不能仅凭角色、项目可见或伪造成员办理。沿用既有公司级可空部门范围与L1/L2别名，不扩大数据范围。写事务锁定并重验实际授权来源，撤销/失效后不能复用预检结果。初次录入、变更create/patch/submit、allowedActions、该变更附件及本人撤回统一适用；审批人选择和冻结事实仍走原审批契约。附件保留原项目成员/审批人读取路径，新增区域经理读取分支仅限该工期变更，仍保留原VIEW、文件Owner和安全校验。公开API不接受客户端tenantId、actorUserId、任意组织范围；expectedProjectVersion继续必需。
 
 ### BR-FSOL001-006 幂等、并发与审计
 
@@ -98,7 +100,7 @@
 
 | 接口 | 操作 | 契约 |
 |---|---|---|
-| `/construction-plans` | `POST` | 首次工期；Header必填`Idempotency-Key`，输入`projectId/calculationBasis/startDate/endDate/durationDays`，只允许当前项目经理 |
+| `/construction-plans` | `POST` | 首次工期；Header必填`Idempotency-Key`，输入`projectId/calculationBasis/startDate/endDate/durationDays`，办理资格按BR-FSOL001-005的本项目PM或同区域服务经理 |
 | `/construction-plans/{id}` | `GET` | 返回plan、当前生效revision、pending change摘要、重算影响状态、planVersion和允许操作 |
 | `/construction-plans` | `GET` | 参数`projectId`；只返回VIEW范围内的唯一plan，无记录返回空业务结果 |
 | `/construction-plans/{id}/revisions` | `GET` | 稳定`revisionNo,id`分页，返回历史工期及是否当前；不返回文件URL |
@@ -129,7 +131,7 @@
 ## 6. UI
 
 - 在项目工作区/详情中增加“项目工期”真实入口，展示当前基线、计算口径、重算影响、待审摘要和历史。
-- 项目经理使用表单/抽屉完成首次录入、草稿和提交；服务经理从平台BPM待办或项目详情跳转同一BPM任务查看冻结差异后通过或驳回，页面不得直接调用SOL终态写接口。
+- 具备上述办理资格的项目经理或同区域服务经理使用表单/抽屉完成首次录入、草稿和提交；服务经理从平台BPM待办或项目详情跳转同一BPM任务查看冻结差异后通过或驳回，页面不得直接调用SOL终态写接口。
 - 优先复用Yudao现有Descriptions、Form、DatePicker、InputNumber、Upload、Table、Timeline、Dialog/Drawer和权限组件；无可复用时遵循Element Plus结构与主题变量，不堆叠内联样式。
 - 320/768/1024/1440无页面级横向溢出；窄屏差异和审批区使用抽屉/分段布局，文件权限失效时只显示稳定摘要和可恢复错误。
 - 旧“工期倒排”和“计划变更审批”页面只作差距证据，不作当前入口；本Feature实施后冻结其PRE-01写路由，但不提前退役PLN后续所需查询证据。
@@ -166,3 +168,8 @@
 | 独立Feature Ready裁决 | PASS（`NPDMS-FSOL001-FEATURE-READY-20260826-01-R1`） |
 
 结论：`BASELINE / READY`。原三项NO-GO阻断已闭环，独立Feature Ready裁决已GO；本规格修订合入目标分支后创建全新Technical Plan。不重开已通过的PRD/SDS门禁，本结论不代表Technical Plan、Implementation、Deployment、SIT、UAT或Release已通过。
+
+
+### TF-022 隔离入口整改（2026-10-29）
+
+首次工期的区域经理操作主体不取消“项目已有当前项目经理”业务前置；首次使用`lockInitialAndRevalidate`重验已确认有效PM成员存在，后续变更仍使用原通用办理资格重验。项目详情→S2阶段任务的读取及精确冻结的PLN/STAGE_PLAN施工计划Owner办理上下文复用既有区域范围，任务执行功能、Owner功能、EDIT/MANAGE、ACTIVE/非终态及当前执行轮次/版本继续生效。该入口增量不授予任务生命周期或审批，不把其他业务绑定一起放开。真实链自动化位于yudao-server装配层，业务模块单测不新增对其他biz的依赖。
