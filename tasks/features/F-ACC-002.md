@@ -270,3 +270,9 @@ Task精确文件、命令和验收条件以唯一Technical Plan为准。Task 1�
 需求方已明确批准本次迁移及59191重启。仅挂载V514，通过现有Compose/Flyway入口迁移npdms_domain_test至514，新增manual_arrival_date DATE NULL成功。完整后端构建冻结清单`.run/build/releases/ad883c6b-14b3-412f-9506-9467d6ecec73/manifest.json`；经worktree-backend.ps1以local,dac部署，PID32712，后端健康和DAC独立readiness均正常。
 
 真实浏览器以周文成新建验收标记草稿30075（非既有证明），项目992203060196无签收到货日期，手填2026-10-11；保存后数据库和详情同值，重新打开编辑回显并再次保存成功（version0至1）。查看、Word V2打印预览均显示“于2026年10月11日完成到货验收”。实际导出登记交付件9100000000000000562，通过Owner受控下载PDF288083字节，渲染第一页核对日期一致。保留草稿和生成文件，未外发或提交调查。证据：`.run/completion-manual-arrival-deployment-evidence.json`、`.run/completion-manual-arrival-30075.pdf`及同名PNG。上述部署结果替代前一轮“尚未部署”的时点限制，未改变历史文件。
+
+### 2026-10-24 已提交采集任务的待办事件重试修复
+
+需求方授权修复五模板验收报告遗留问题并按固定脚本部署。复用现有PROJ当前满意度任务事实与ACC采集任务锁，按PROJ→ACC顺序确认租户、项目、任务代码和原事件来源身份；已提交采集的PENDING_DECISION、PASSED、PENDING_ARCHIVE、FAILED任务不再新增采集待办，返回OBSOLETE后仅确认原Outbox投递，不改业务结果、原事件载荷及审批历史。仍待采集的任务继续按事件冻结的项目任务版本重验，并核对问卷修订、规则、阈值、责任人与原始来源；身份、版本或幂等冲突继续失败重试。投递日志区分正常投影、已处理任务跳过和待重试，不以业务已闭环掩盖通知失败。
+
+8项定向测试通过，覆盖四种已提交采集状态、错误来源、跨租户、活动任务版本失败和原TodoRequested正向路径。固定构建冻结清单为`.run/build/releases/e67a7bf1-8c1e-4be9-b0ba-56228844dfba/manifest.json`，22项运行修复基线通过，以local,dac部署。部署后的业务回归只经真实浏览器；完整结果、历史保护对照与界面效果记录在`docs/generated/2026-10-23-five-template-browser-acceptance.md`的2026-10-24续验章节，不提升整个Feature的完成状态。
