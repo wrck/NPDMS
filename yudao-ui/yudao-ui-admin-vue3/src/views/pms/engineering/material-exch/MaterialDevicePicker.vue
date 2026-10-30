@@ -12,7 +12,7 @@
         <template #default="{ row }">{{ row.itemCode || '-' }}</template>
       </el-table-column>
       <el-table-column label="型号" min-width="240" show-overflow-tooltip>
-        <template #default="{ row }">{{ row.name || '-' }}</template>
+        <template #default="{ row }">{{ row.productModel || '-' }}</template>
       </el-table-column>
       <el-table-column label="项目数量" width="100">
         <template #default="{ row }">{{ row.allocatedQuantity ?? '-' }}</template>
@@ -36,7 +36,7 @@
         <template #default="{ row }">{{ row.itemCode || '-' }}</template>
       </el-table-column>
       <el-table-column label="型号" min-width="240" show-overflow-tooltip>
-        <template #default="{ row }">{{ row.name || '-' }}</template>
+        <template #default="{ row }">{{ row.productModel || '-' }}</template>
       </el-table-column>
       <el-table-column label="项目数量" width="100">
         <template #default="{ row }">{{ row.allocatedQuantity ?? '-' }}</template>
@@ -79,6 +79,7 @@ interface ScopeLineRow {
   lineNo: string
   itemCode: string
   name: string
+  productModel: string
   productCode: string
   deviceTypeCode: string
   deviceTypeName: string
@@ -158,7 +159,7 @@ const restoreChecks = async () => {
 /** 展平交付范围为清单行：明细拆分行带稳定明细ID；未拆分范围为基行，与设备清单Tab同口径。 */
 const flatten = (result: { list?: Array<Record<string, any>> }) => (result.list || []).flatMap((scope: any) => {
   const base = { scopeId: scope.id, contractNo: scope.contractNo, orderNo: scope.orderNo || '', lineNo: scope.lineNo || '',
-    itemCode: scope.productCode || scope.itemCode || '', deviceTypeName: '' }
+    itemCode: scope.productCode || scope.itemCode || '', productModel: scope.productModel || '', deviceTypeName: '' }
   const details = scope.details || []
   if (!details.length) {
     return [{ ...base, key: `S${scope.id}`, scopeDetailId: undefined, name: scope.productDesc || scope.itemDesc || '',

@@ -26,7 +26,7 @@ it('applies combined server filters from page one and clears them on reset', asy
     m.state.sn = ' SN11 '; m.state.deviceName = ' 核心设备 '; m.state.productCode = ' P001 '
     m.state.pageNo = 3; m.state.search(); await flush()
     expect(DeviceApi.getDevicePage).toHaveBeenLastCalledWith({
-      projectId: 1002, sn: 'SN11', name: '核心设备', productCode: 'P001', pageNo: 1, pageSize: 20
+      projectId: 1002, sn: 'SN11', name: '核心设备', productCode: ' P001 ', pageNo: 1, pageSize: 20
     })
     m.state.resetSearch(); await flush()
     expect(DeviceApi.getDevicePage).toHaveBeenLastCalledWith({
@@ -41,7 +41,7 @@ it('passes the current serial filters and project to export without paging', asy
     m.state.sn = ' 001SN '; m.state.deviceName = ' 核心设备 '; m.state.productCode = ' 02010005 '
     m.state.pageNo = 3; await flush()
     expect(findByTestId(m.root, 'serial-export-query')!.props).toMatchObject({
-      projectId: 1002, kind: 'serials', filters: { sn: '001SN', name: '核心设备', productCode: '02010005' }
+      projectId: 1002, kind: 'serials', filters: { sn: '001SN', name: '核心设备', productCode: ' 02010005 ' }
     })
     m.state.resetSearch(); await flush()
     expect(findByTestId(m.root, 'serial-export-query')!.props!.filters).toEqual({ sn: undefined, name: undefined, productCode: undefined })

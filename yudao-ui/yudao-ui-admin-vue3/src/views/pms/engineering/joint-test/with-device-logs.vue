@@ -334,7 +334,7 @@ import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import CollectionDialog from '@/components/DeviceCollection/CollectionWithDeviceLogsDialog.vue'
 import ProjectDeviceLogArchiveDialog from '@/components/DeviceCollection/ProjectDeviceLogArchiveDialog.vue'
 import BusinessCollectionLogs from '@/components/DeviceCollection/BusinessCollectionLogs.vue'
-import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
+import * as DeviceApi from '@/api/pms/asset/device'
 import DeviceTag from '@/components/DeviceTag/index.vue'
 import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
@@ -403,7 +403,7 @@ const openProjectLogs = async () => {
 }
 const businessLogs = ref<InstanceType<typeof BusinessCollectionLogs>>()
 const jointMeta = reactive({ businessDesc: '', note: '' })
-const deviceInfo = ref<DeviceArchiveApi.DeviceArchiveVO | null>(null)
+const deviceInfo = ref<DeviceApi.DeviceSummaryVO | null>(null)
 const parseRemark = (raw: string | undefined | null) => {
   try {
     const v = raw ? JSON.parse(raw) : null
@@ -439,9 +439,7 @@ const loadDeviceInfo = async () => {
   deviceInfo.value = null
   if (!id) return
   try {
-    deviceInfo.value = (await DeviceArchiveApi.getDeviceArchiveRecord(
-      id as number
-    )) as DeviceArchiveApi.DeviceArchiveVO
+    deviceInfo.value = (await DeviceApi.getDevice(id)).summary
   } catch {
     deviceInfo.value = null
   }
