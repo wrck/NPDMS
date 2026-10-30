@@ -11,6 +11,28 @@
       </div>
       <div class="actions">
         <el-tag v-if="task">{{ statusLabel(task.statusCode) }}</el-tag>
+        <el-tooltip
+          v-if="
+            task?.currentAttemptId &&
+            ['execute', 'report'].includes(activeStep) &&
+            ['EXECUTING', 'REPORT_PENDING'].includes(task.statusCode)
+          "
+          :content="
+            pendingLogs.length
+              ? '未完成日志可继续获取结果；更换日志前请先停止采用相关记录。'
+              : '原日志和报告会保留。填写重新执行原因后，新尝试可上传新的日志。'
+          "
+        >
+          <el-button
+            v-hasPermi="['pms:inspection-task:execute']"
+            data-testid="inspection-restart-upload"
+            type="primary"
+            :disabled="!canStart"
+            @click="startAttempt"
+          >
+            {{ preparation.mode === 'OFFLINE' ? '重新执行并上传日志' : '重新执行巡检' }}
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
     <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" show-icon />
@@ -359,35 +381,78 @@
         >
         <h3 class="inspection-section-title">已完成待办项</h3>
         <el-table :data="closedIssues" empty-text="暂无已完成待办项">
-          <el-table-column type="index" label="序号" width="70" />
-          <el-table-column
-            prop="description"
-            label="待办项"
-            min-width="280"
-            show-overflow-tooltip
-          />
+          <el-table-column type="index" label="序号" width="60" />
+          <el-table-column label="检出问题" min-width="260">
+            <template #default="{ row }">
+              <template v-if="row.finding">
+                <el-button
+                  link
+                  type="primary"
+                  class="finding-link"
+                  aria-haspopup="dialog"
+                  @click="issueFindingId = String(row.finding.id)"
+                  >{{ row.finding.ruleName || '未提供项目名称' }}</el-button
+                >
+                <p class="help-text">{{
+                  row.finding.externalRule?.info || row.finding.detailMessage || '未提供判定说明'
+                }}</p>
+                <span class="help-text">{{ findingDeviceLabel(row.finding.deviceId) }}</span>
+              </template>
+              <span v-else class="help-text">巡检项目来源缺失</span>
+              <p v-if="row.description" class="help-text">跟踪原因：{{ row.description }}</p>
+            </template>
+          </el-table-column>
           <el-table-column label="严重程度" width="120"
-            ><template #default="{ row }">{{
-              severityLabels[row.severityCode] || row.severityCode || '—'
-            }}</template></el-table-column
+            ><template #default="{ row }">
+              <el-tag :type="row.finding ? umcSeverityType(row.finding) : 'info'">{{
+                row.finding
+                  ? umcSeverityLabel(row.finding)
+                  : severityLabels[row.severityCode] || row.severityCode || '—'
+              }}</el-tag>
+            </template></el-table-column
           >
           <el-table-column label="状态" width="120"
             ><template #default><el-tag type="success">已闭环</el-tag></template></el-table-column
           >
         </el-table>
+        <InspectionUmcProjectItems
+          v-model:detail-id="issueFindingId"
+          :model-value="[]"
+          :results="task.results"
+          :device-label="findingDeviceLabel"
+          :show-items="false"
+        />
         <h3 class="inspection-section-title">未完成待办项</h3>
         <el-table :data="openIssues" empty-text="无未完成待办项">
-          <el-table-column type="index" label="序号" width="70" />
-          <el-table-column
-            prop="description"
-            label="待办项"
-            min-width="280"
-            show-overflow-tooltip
-          />
+          <el-table-column type="index" label="序号" width="60" />
+          <el-table-column label="检出问题" min-width="260">
+            <template #default="{ row }">
+              <template v-if="row.finding">
+                <el-button
+                  link
+                  type="primary"
+                  class="finding-link"
+                  aria-haspopup="dialog"
+                  @click="issueFindingId = String(row.finding.id)"
+                  >{{ row.finding.ruleName || '未提供项目名称' }}</el-button
+                >
+                <p class="help-text">{{
+                  row.finding.externalRule?.info || row.finding.detailMessage || '未提供判定说明'
+                }}</p>
+                <span class="help-text">{{ findingDeviceLabel(row.finding.deviceId) }}</span>
+              </template>
+              <span v-else class="help-text">巡检项目来源缺失</span>
+              <p v-if="row.description" class="help-text">跟踪原因：{{ row.description }}</p>
+            </template>
+          </el-table-column>
           <el-table-column label="严重程度" width="120"
-            ><template #default="{ row }">{{
-              severityLabels[row.severityCode] || row.severityCode || '—'
-            }}</template></el-table-column
+            ><template #default="{ row }">
+              <el-tag :type="row.finding ? umcSeverityType(row.finding) : 'info'">{{
+                row.finding
+                  ? umcSeverityLabel(row.finding)
+                  : severityLabels[row.severityCode] || row.severityCode || '—'
+              }}</el-tag>
+            </template></el-table-column
           >
           <el-table-column label="状态" width="120"
             ><template #default="{ row }"
@@ -500,6 +565,7 @@
               <el-form-item label="新负责人"
                 ><UserSelect
                   v-model="assignment.userId"
+                  :scoped-source="assignmentSource"
                   placeholder="选择负责人"
                   :disabled="writeDisabled"
                   :context-key="taskId"
@@ -541,12 +607,12 @@
     >
       <div class="inspection-navigation-actions">
         <el-button
-          :disabled="busy || !!pending || onlineBusy || attachmentBusy"
+          :disabled="busy || onlineBusy || attachmentBusy"
           @click="router.push('/pms/inspection/tasks')"
           ><Icon icon="ep:back" />返回</el-button
         >
         <el-button
-          :disabled="busy || !!pending || onlineBusy || attachmentBusy"
+          :disabled="busy || onlineBusy || attachmentBusy"
           :loading="loading"
           @click="reload"
           >刷新</el-button
@@ -620,14 +686,18 @@ import type {
 import * as RuleApi from '@/api/pms/inspection/rules'
 import * as FileApi from '@/api/pms/platform/file/version-reference'
 import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { pmsUserSelectionSource } from '@/api/pms/platform/user-selection'
 import { inspectionFailure } from '../shared/interaction'
 import { inspectionEventActionName } from '../shared/history'
+import downloadFile from '@/utils/download'
 import InspectionExecutionPanel from '../components/InspectionExecutionPanel.vue'
 import InspectionOnlinePanel from '../components/InspectionOnlinePanel.vue'
 
 import InspectionReportPanel from '../components/InspectionUmcReportPanel.vue'
 import InspectionAnnotationPanel from '../components/InspectionAnnotationPanel.vue'
 import InspectionUmcTrackingPanel from '../components/InspectionUmcTrackingPanel.vue'
+import InspectionUmcProjectItems from '../components/InspectionUmcProjectItems.vue'
+import { umcSeverityLabel, umcSeverityType } from '../components/inspectionUmcSeverity'
 import InspectionIssuePanel from '../components/InspectionIssuePanel.vue'
 import InspectionAttachmentPanel from '../components/InspectionAttachmentPanel.vue'
 import InspectionSteps from '../components/InspectionSteps.vue'
@@ -726,17 +796,33 @@ const reachedStepIndex = computed(() => {
       : task.value.statusCode
   return steps.findIndex((step) => step.key === stateStep(state))
 })
-const closedIssues = computed(
-  () => task.value?.issues.filter((row) => row.statusCode === 'CLOSED') || []
+const issueFindings = computed(() => {
+  const current = task.value
+  if (!current) return []
+  return current.issues.map((row) => {
+    const matches = current.results.filter(
+      (result) => row.resultId != null && String(result.id) === String(row.resultId)
+    )
+    return { ...row, finding: matches.length === 1 ? matches[0] : undefined }
+  })
+})
+const closedIssues = computed(() =>
+  issueFindings.value.filter((row) => row.statusCode === 'CLOSED')
 )
+const issueFindingId = ref('')
+const findingDeviceLabel = (id: WireLong) => {
+  const device = task.value?.devices.find((item) => String(item.deviceId) === String(id))
+  return device
+    ? [device.serialNumber || '未提供 SN', device.deviceName].filter(Boolean).join(' · ')
+    : `设备 ${id}`
+}
+watch(taskId, () => (issueFindingId.value = ''))
 const currentReport = computed(() => {
   const current = task.value
   if (!current) return undefined
   return current.reports.find((report) => String(report.id) === String(current.currentReportId))
 })
-const openIssues = computed(
-  () => task.value?.issues.filter((row) => row.statusCode !== 'CLOSED') || []
-)
+const openIssues = computed(() => issueFindings.value.filter((row) => row.statusCode !== 'CLOSED'))
 const severityLabels: Record<string, string> = {
   GENERAL: '一般',
   SEVERE: '严重',
@@ -788,6 +874,7 @@ const missingDescription = ref('')
 const missingFeedbackVisible = ref(false)
 const attachmentsVisible = ref(false)
 const assignment = reactive({ userId: '', reason: '' })
+const assignmentSource = computed(() => pmsUserSelectionSource(`umc-inspection-assignee:${taskId.value}`))
 const terminal = computed(
   () => !!task.value && ['ARCHIVED', 'CANCELLED'].includes(task.value.statusCode)
 )
@@ -1407,14 +1494,21 @@ const download = async (input: {
     message.error('此文件版本暂不可用或无权下载，请重试')
   }
 }
-const downloadLog = (row: ExecutionView) =>
-  download({
-    taskId: taskId.value,
-    artifactId: row.artifactId,
-    versionNo: row.fileVersionNo,
-    referenceKey: row.fileReferenceKey,
-    purpose: 'LOG'
-  })
+const downloadLog = async (row: ExecutionView) => {
+  const requestedTaskId = taskId.value
+  const device = task.value?.devices.find((item) => String(item.deviceId) === String(row.deviceId))
+  const serial = (device?.serialNumber ?? 'device').replace(/[^\p{L}\p{N}_.-]/gu, '_')
+  try {
+    const blob = await Api.downloadRedactedLog(requestedTaskId, row.id)
+    if (!(blob instanceof Blob) || !blob.type.toLowerCase().startsWith('text/plain')) {
+      message.error('未取得有效的脱敏文本日志')
+      return
+    }
+    downloadFile.file(blob, `inspection-${requestedTaskId}-${row.id}-${serial}-redacted.txt`)
+  } catch {
+    message.error('此日志版本暂不可用或无权下载，请重试')
+  }
+}
 const downloadReport = ({ report, file }: { report: ReportView; file: ReportFileView }) =>
   download({
     taskId: taskId.value,
@@ -1434,14 +1528,16 @@ const downloadEvidence = (row: EvidenceView) =>
   })
 
 const mayLeave = async () => {
-  if (busy.value || pending.value || onlineBusy.value || attachmentBusy.value) {
+  if (busy.value || onlineBusy.value || attachmentBusy.value) {
     message.warning('请先确认当前操作结果，再离开此页。')
     return false
   }
-  if (!anyDirty.value) return true
+  if (!anyDirty.value && !pending.value) return true
   try {
     await message.confirm(
-      '有尚未提交的内容，离开后将丢失这些输入。已上传到平台的文件会保留原归属。',
+      pending.value
+        ? '操作结果尚未确认。放弃本地重试和未保存输入后继续？服务器已收到的操作不会因此撤销，继续后请核对最新状态。'
+        : '有尚未提交的内容，离开后将丢失这些输入。已上传到平台的文件会保留原归属。',
       '确认离开'
     )
     return true
@@ -1451,8 +1547,11 @@ const mayLeave = async () => {
 }
 const reload = async () => {
   if (await mayLeave()) {
-    writeError.value = ''
     await load(false)
+    if (fresh.value) {
+      pending.value = undefined
+      writeError.value = ''
+    }
   }
 }
 onBeforeRouteLeave(mayLeave)
@@ -1495,6 +1594,13 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.finding-link {
+  height: auto;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .detail-card {
   margin-bottom: 16px;
   overflow: hidden;

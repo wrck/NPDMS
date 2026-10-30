@@ -69,9 +69,11 @@
           </template></el-table-column
         >
         <el-table-column label="严重程度" width="120"
-          ><template #default="{ row }">{{
-            row.severityName || severityLabel(row.severityCode)
-          }}</template></el-table-column
+          ><template #default="{ row }">
+            <el-tag class="finding-severity" :type="umcSeverityType(row)">{{
+              umcSeverityLabel(row)
+            }}</el-tag>
+          </template></el-table-column
         >
         <el-table-column label="标注" min-width="130"
           ><template #default="{ row }">
@@ -265,6 +267,7 @@
                 <el-form-item label="责任人" prop="responsibleUserId">
                   <UserSelect
                     v-model="form.responsibleUserId"
+                    :scoped-source="responsibleSource"
                     :current-label="
                       sameId(form.responsibleUserId, userStore.getUser.id)
                         ? userStore.getUser.nickname
@@ -440,12 +443,14 @@ import type {
   WireLong
 } from '@/api/pms/inspection/tasks'
 import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { pmsUserSelectionSource } from '@/api/pms/platform/user-selection'
 import { useUserStore } from '@/store/modules/user'
 import { useMessage } from '@/hooks/web/useMessage'
 import { formatDate } from '@/utils/formatTime'
 import { getStrDictOptions } from '@/utils/dict'
 import InspectionUmcRuleDetail from './InspectionUmcRuleDetail.vue'
 import InspectionUmcProjectItems from './InspectionUmcProjectItems.vue'
+import { umcSeverityLabel, umcSeverityType } from './inspectionUmcSeverity'
 
 defineOptions({ name: 'InspectionAnnotationPanel' })
 const props = defineProps<{
@@ -477,7 +482,10 @@ const frozenResultsComplete = computed(
 )
 const abnormalResults = computed(() =>
   props.task.results.filter(
-    (result) => frozenIds.value.has(String(result.id)) && result.outcome === 'ABNORMAL'
+    (result) =>
+      frozenIds.value.has(String(result.id)) &&
+      result.externalRule?.support !== false &&
+      result.outcome === 'ABNORMAL'
   )
 )
 const greaterId = (left: WireLong, right: WireLong) => {
@@ -695,6 +703,9 @@ const submitAnnotation = async () => {
   }
 }
 const users = ref<{ id: WireLong; nickname?: string; username?: string }[]>([])
+const responsibleSource = computed(() => props.umcMode
+  ? pmsUserSelectionSource(`umc-inspection-responsible:${props.task.id}`)
+  : undefined)
 const userLabel = (id?: WireLong) => {
   if (id == null) return '未提供用户'
   if (sameId(id, userStore.getUser.id) && userStore.getUser.nickname)

@@ -10,18 +10,54 @@ import {
   type TestNode
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 const confirmDiscard = vi.hoisted(() => vi.fn())
+const people = vi.hoisted(() => ({ search: vi.fn(), resolve: vi.fn() }))
+vi.mock('@/api/pms/platform/user-selection', () => ({
+  pmsUserSelectionSource: (key: string) => ({ key, search: people.search, resolve: people.resolve })
+}))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ confirm: confirmDiscard }) }))
-beforeEach(() => confirmDiscard.mockReset())
+beforeEach(() => {
+  confirmDiscard.mockReset()
+  people.search.mockReset().mockResolvedValue({ list: [], total: 0 })
+  people.resolve.mockReset().mockResolvedValue([])
+})
 
 vi.mock('@/views/system/user/components/UserSelect.vue', async () => {
   const { defineComponent, h } = await import('vue')
   return {
     default: defineComponent({
-      props: { modelValue: [String, Number], currentLabel: String },
+      props: { modelValue: [String, Number], currentLabel: String, scopedSource: Object, disabled: Boolean },
       setup: (props) => () =>
-        h('user-select', { modelValue: props.modelValue, currentLabel: props.currentLabel })
+        h('user-select', { modelValue: props.modelValue, currentLabel: props.currentLabel, scopedSource: props.scopedSource, disabled: props.disabled })
     })
   }
+})
+
+it.each([false, true])('limits the new email search source to UMC tracking responsibility (UMC=%s)', async (umcMode) => {
+  const page = render(undefined, true, umcMode)
+  const nodes = (node: TestNode): TestNode[] => [node, ...node.children.flatMap(nodes)]
+  try {
+    await page.state.openEditor(page.task.results[0])
+    page.state.form.kind = 'TRACK'
+    await nextTick()
+    const picker = nodes(page.root).find(node => node.type === 'user-select')!
+    expect(picker).toBeTruthy()
+    if (!umcMode) {
+      expect(picker.props?.scopedSource).toBeUndefined()
+      expect(people.search).not.toHaveBeenCalled()
+      return
+    }
+    const source = picker.props!.scopedSource as any
+    expect(source).toBeDefined()
+    expect(source.key).toBe('umc-inspection-responsible:10')
+    people.search.mockResolvedValueOnce({ list: [{ id: '2115387679367467008', nickname: '张三' }], total: 2 })
+    const params = { keyword: 'zhangsan', pageNo: 2, pageSize: 1 }
+    expect(await source.search(params)).toEqual({ list: [{ id: '2115387679367467008', nickname: '张三' }], total: 2 })
+    expect(people.search).toHaveBeenCalledWith(params)
+    page.task.id = '11'
+    await nextTick()
+    expect(page.state.responsibleSource.key).toBe('umc-inspection-responsible:11')
+    expect(page.annotate).not.toHaveBeenCalled()
+  } finally { page.app.unmount() }
 })
 vi.mock('@/utils/dict', () => ({ getStrDictOptions: () => [] }))
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => false }))
@@ -112,6 +148,46 @@ const render = (actionsTarget?: TestNode, renderEditor = false, umcMode = false)
   )
   return { ...page, task, annotate, state: (page.vm as any).$.setupState }
 }
+
+it.each([
+  [3, '致命', 'danger'],
+  [2, '重要', 'warning'],
+  [1, '一般', 'info'],
+  [99, '未知', 'info'],
+  [undefined, '未提供', 'info']
+])('renders UMC finding level %s as the execution severity tag', async (level, label, type) => {
+  const page = render(undefined, true, true)
+  const nodes = (node: TestNode): TestNode[] => [node, ...node.children.flatMap(nodes)]
+  try {
+    Object.assign(page.task.results[0], {
+      severityName: level == null ? 'UMC未提供级别' : `UMC级别${level}`,
+      externalRule: { level }
+    })
+    await nextTick()
+    const column = nodes(page.root).find((node) => node.props?.label === '严重程度')!
+    const tag = nodes(column).find((node) => node.props?.class === 'finding-severity')
+    expect(tag).toBeTruthy()
+    expect(textOf(tag!)).toBe(label)
+    expect(tag!.props?.type).toBe(type)
+    expect(textOf(column)).not.toContain('UMC')
+  } finally {
+    page.app.unmount()
+  }
+})
+
+it('preserves native inspection severity labels without changing them to UMC tags', async () => {
+  const page = render(undefined, true)
+  const nodes = (node: TestNode): TestNode[] => [node, ...node.children.flatMap(nodes)]
+  try {
+    Object.assign(page.task.results[0], { severityName: '原平台严重级别' })
+    await nextTick()
+    const column = nodes(page.root).find((node) => node.props?.label === '严重级别')!
+    expect(textOf(column)).toBe('原平台严重级别')
+    expect(nodes(column).some((node) => node.props?.class === 'finding-severity')).toBe(false)
+  } finally {
+    page.app.unmount()
+  }
+})
 
 it('preserves expanded and collapsed rows when an annotation save refreshes task data', async () => {
   const page = render()

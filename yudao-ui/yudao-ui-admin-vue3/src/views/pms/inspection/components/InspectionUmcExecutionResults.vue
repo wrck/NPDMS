@@ -16,7 +16,17 @@
     >
       <el-table-column label="设备名称 / 序列号" min-width="220">
         <template #default="{ row }">
-          <strong>{{ row.device.deviceName || row.observed?.devicelabel || '未提供名称' }}</strong>
+          <strong
+            class="device-selector"
+            role="button"
+            tabindex="0"
+            data-testid="inspection-device-selector"
+            :aria-label="`选择巡检设备 ${row.device.serialNumber || row.device.deviceName || '未提供名称'}`"
+            :aria-pressed="selected?.key === row.key"
+            @keydown.enter.stop.prevent="selectDevice(row)"
+            @keydown.space.stop.prevent="selectDevice(row)"
+            >{{ row.device.deviceName || row.observed?.devicelabel || '未提供名称' }}</strong
+          >
           <div class="help-text">{{ row.device.serialNumber || '未提供序列号' }}</div>
           <el-tag v-if="row.execution && !isCurrent(row.execution)" type="info" size="small"
             >历史执行</el-tag
@@ -64,14 +74,6 @@
       <el-table-column label="操作" min-width="230" :fixed="smallScreen ? false : 'right'">
         <template #default="{ row }">
           <el-button
-            link
-            type="primary"
-            :aria-pressed="selected?.key === row.key"
-            @click.stop="selectDevice(row)"
-          >
-            查看巡检项目
-          </el-button>
-          <el-button
             v-if="canRefresh(row)"
             link
             type="primary"
@@ -84,8 +86,9 @@
             v-if="hasLog(row.execution)"
             link
             type="primary"
+            title="由已保存日志生成的脱敏文本副本，非上传原文件"
             @click.stop="emit('downloadLog', row.execution!)"
-            >下载冻结日志</el-button
+            >下载脱敏日志</el-button
           >
         </template>
       </el-table-column>
@@ -151,7 +154,11 @@
                   : '尚未完成'
               }}</dd></div
             >
-            <div v-if="selected.execution?.failureMessage || selected.saved?.failureMessage"
+            <div
+              v-if="
+                !(selected.saved?.statusCode === 'AVAILABLE' && registeredAll(selected)) &&
+                (selected.execution?.failureMessage || selected.saved?.failureMessage)
+              "
               ><dt>异常说明</dt
               ><dd>{{
                 selected.execution?.failureMessage || selected.saved?.failureMessage
@@ -181,6 +188,9 @@
               ><dt>未完成判定</dt><dd>{{ incompleteCount(selected) }}</dd></div
             >
             <div
+              ><dt>不支持</dt><dd>{{ unsupportedCount(selected) }}</dd></div
+            >
+            <div
               ><dt>已登记规则</dt
               ><dd>{{ formalCount(selected) }} / {{ selected.results.length }}</dd></div
             >
@@ -206,13 +216,29 @@
       />
       <el-alert
         v-else-if="!selected.results.length"
-        title="本设备尚无巡检判定结果，不能视为通过；可获取或重试结果。"
-        type="warning"
+        :title="
+          selected.saved?.statusCode === 'AVAILABLE' &&
+          Array.isArray(selected.saved.result?.rulelist) &&
+          selected.saved.result.rulelist.length === 0
+            ? '报告已保存，未返回巡检项目。'
+            : '本设备尚无巡检判定结果，不能视为通过；可获取或重试结果。'
+        "
+        :type="
+          selected.saved?.statusCode === 'AVAILABLE' &&
+          Array.isArray(selected.saved.result?.rulelist) &&
+          selected.saved.result.rulelist.length === 0
+            ? 'info'
+            : 'warning'
+        "
         :closable="false"
       />
       <el-empty
         v-else-if="!visibleResults.length"
-        description="当前筛选下没有异常或未判定项目；取消筛选可查看全部规则。"
+        :description="
+          onlyAttention
+            ? '当前筛选下没有异常或未判定项目；取消筛选可查看全部规则。'
+            : '报告未返回巡检项目。'
+        "
         :image-size="70"
       />
       <InspectionUmcProjectItems
@@ -238,6 +264,7 @@ import type {
 } from '@/api/pms/inspection/tasks'
 import type { UmcDevice } from '@/api/pms/inspection/reportResults'
 import { formatDate } from '@/utils/formatTime'
+import { checkPermi } from '@/utils/permission'
 import InspectionUmcProjectItems from './InspectionUmcProjectItems.vue'
 
 const props = defineProps<{
@@ -302,7 +329,9 @@ watch(
   }
 )
 const visibleResults = computed(() =>
-  (selected.value?.results || []).filter((row) => !onlyAttention.value || row.outcome !== 'PASS')
+  (selected.value?.results || []).filter(
+    (row) => !onlyAttention.value || (row.externalRule?.support !== false && row.outcome !== 'PASS')
+  )
 )
 const expandedItemIds = computed({
   get: () =>
@@ -342,23 +371,45 @@ const isFormal = (result: ResultView) => registeredIds.value.has(String(result.i
 const formalCount = (row: DeviceRow) => row.results.filter(isFormal).length
 const countSeverity = (row: DeviceRow, level: number) =>
   row.results.filter(
-    (result) => result.outcome === 'ABNORMAL' && result.externalRule?.level === level
+    (result) =>
+      result.externalRule?.support !== false &&
+      result.outcome === 'ABNORMAL' &&
+      result.externalRule?.level === level
   ).length
 const unclassifiedCount = (row: DeviceRow) =>
   row.results.filter(
     (result) =>
-      result.outcome === 'ABNORMAL' && ![1, 2, 3].includes(result.externalRule?.level ?? 0)
+      result.externalRule?.support !== false &&
+      result.outcome === 'ABNORMAL' &&
+      ![1, 2, 3].includes(result.externalRule?.level ?? 0)
   ).length
 const incompleteCount = (row: DeviceRow) =>
-  row.results.filter((result) => !['PASS', 'ABNORMAL'].includes(result.outcome || '')).length
+  row.results.filter(
+    (result) =>
+      result.externalRule?.support !== false && !['PASS', 'ABNORMAL'].includes(result.outcome || '')
+  ).length
+const unsupportedCount = (row: DeviceRow) =>
+  row.results.filter((result) => result.externalRule?.support === false).length
+const registeredAll = (row: DeviceRow) =>
+  Array.isArray(row.saved?.result?.rulelist) &&
+  row.results.length === row.saved!.result!.rulelist!.length &&
+  formalCount(row) === row.results.length
 const hasLog = (row?: ExecutionView) =>
   row != null && row.artifactId != null && row.fileVersionNo != null && !!row.fileReferenceKey
 const canRefresh = (row: DeviceRow) =>
+  props.task.statusCode === 'EXECUTING' &&
+  checkPermi(['pms:inspection-task:execute']) &&
+  (props.task.owner || props.task.manager) &&
+  props.task.attempts.some(
+    (attempt) =>
+      String(attempt.id) === String(props.task.currentAttemptId) && attempt.providerCode === 'UMC'
+  ) &&
   row.execution != null &&
   isCurrent(row.execution) &&
+  row.execution.statusCode !== 'CANCELLED' &&
   (row.execution.purposeCode === 'OFFLINE' ||
     (row.execution.purposeCode === 'COLLECT' && hasLog(row.execution))) &&
-  (row.saved != null || ['PENDING', 'RUNNING'].includes(row.execution.statusCode))
+  row.saved != null
 const attemptLabel = (execution?: ExecutionView) => {
   if (!execution) return '尚无执行记录'
   const attempt = props.task.attempts.find((row) => String(row.id) === String(execution.attemptId))
@@ -385,24 +436,25 @@ const statusLabel = (row: DeviceRow) => {
   if (attempt?.providerCode !== 'UMC')
     return statuses[row.execution.statusCode] || row.execution.statusCode
   if (
+    ['COMPLETE', 'PARTIAL', 'FAILED'].includes(row.execution.statusCode) &&
+    registeredAll(row) &&
+    row.saved?.statusCode === 'AVAILABLE'
+  )
+    return '报告已保存'
+  if (
     ['PARTIAL', 'FAILED', 'CANCELLED', 'PASSED', 'TIMED_OUT', 'CANCEL_REQUESTED'].includes(
       row.execution.statusCode
     )
   )
     return statuses[row.execution.statusCode]
-  if (
-    row.execution.statusCode === 'COMPLETE' &&
-    row.results.length &&
-    formalCount(row) === row.results.length
-  )
-    return '判定完成'
+  if (row.execution.statusCode === 'COMPLETE' && registeredAll(row)) return '判定完成'
   if (row.saved?.failureMessage) return '未完成，需重试'
   return row.saved?.statusCode === 'AVAILABLE' ? '报告已保存，待登记判定' : '等待UMC结果'
 }
 const statusType = (row: DeviceRow): TagProps['type'] =>
-  row.execution?.statusCode === 'COMPLETE' &&
-  row.results.length > 0 &&
-  formalCount(row) === row.results.length
+  ['COMPLETE', 'PARTIAL', 'FAILED'].includes(row.execution?.statusCode || '') &&
+  row.saved?.statusCode === 'AVAILABLE' &&
+  registeredAll(row)
     ? 'success'
     : ['FAILED', 'TIMED_OUT'].includes(row.execution?.statusCode || '')
       ? 'danger'
@@ -412,6 +464,10 @@ const statusType = (row: DeviceRow): TagProps['type'] =>
 </script>
 
 <style scoped>
+.device-selector:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 3px;
+}
 .umc-execution-results {
   min-width: 0;
 }

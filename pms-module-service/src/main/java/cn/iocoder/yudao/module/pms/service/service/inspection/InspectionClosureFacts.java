@@ -34,8 +34,10 @@ public class InspectionClosureFacts {
         var abnormal = results.selectForTask(rows).stream().filter(r -> inputs.contains(r.getId()) && "ABNORMAL".equals(r.getOutcome()))
                 .map(InspectionDetectionResultDO::getId).collect(Collectors.toSet());
         var latest = latestAnnotations(new AnnotationQuery(rows, task.getCurrentReportId()));
-        boolean complete = !inputs.isEmpty() && abnormal.stream().allMatch(latest::containsKey);
-        return new Facts(reports.available(new InspectionReportService.ReportGate(query.context(), task, task.getCurrentReportId())), complete, open);
+        var gate = new InspectionReportService.ReportGate(query.context(), task, task.getCurrentReportId());
+        boolean available = reports.available(gate);
+        boolean complete = (!inputs.isEmpty() || (available && reports.hasEmptyUmcResults(gate))) && abnormal.stream().allMatch(latest::containsKey);
+        return new Facts(available, complete, open);
     }
     public record AnnotationQuery(InspectionTaskRows rows, Long reportId) { }
     public Map<Long, InspectionAnnotationDO> latestAnnotations(AnnotationQuery query) {

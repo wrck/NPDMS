@@ -13,6 +13,21 @@ import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.any;
 
 class InspectionUmcBundleTest {
+    @Test void zeroResultBundleStillRequiresAnAuthenticEmptySourceAndAvailableDoc() {
+        var reports=mock(InspectionReportRevisionMapper.class);var files=mock(InspectionReportFileMapper.class);var evidence=mock(FileEvidenceApi.class);
+        var bundle=new InspectionUmcBundle(reports,files,evidence);var report=part(70L);report.setTemplateVersion(InspectionUmcBundle.TEMPLATE);
+        report.setResultJson(JsonUtils.toJsonString(new InspectionUmcBundle.Snapshot(List.of(60L),List.of())));
+        report.setResultSha256(DigestUtil.sha256Hex(report.getResultJson()));
+        var source=part(60L);source.setResultJson("{\"devlist\":[{\"id\":\"d1\",\"rulelist\":[]}]}");
+        var detail=JsonUtils.parseObject(source.getResultJson(),cn.iocoder.yudao.module.pms.integration.api.umc.UmcInspectionApi.Report.class);
+        source.setResultJson(JsonUtils.toJsonString(detail));source.setResultSha256(DigestUtil.sha256Hex(source.getResultJson()));
+        when(reports.selectById(60L)).thenReturn(source);when(reports.selectContent(any())).thenReturn(source);
+        when(files.selectForTask(any())).thenReturn(List.of(file(60L,600L)));
+        when(evidence.lockAndRevalidate(any())).thenReturn(new FileEvidenceApi.Fact(true,"",1,1,1));
+        assertTrue(bundle.available(new InspectionUmcBundle.Query(report)));
+        source.setResultJson("{}");source.setResultSha256(DigestUtil.sha256Hex("{}"));
+        assertThrows(InspectionException.class,()->bundle.available(new InspectionUmcBundle.Query(report)));
+    }
     @Test void closureGateLoadsTheBundleSnapshotAfterReadingOnlyReportMetadata() {
         var reports=mock(InspectionReportRevisionMapper.class);var bundle=mock(InspectionUmcBundle.class);
         var metadata=part(70L);metadata.setTemplateVersion(InspectionUmcBundle.TEMPLATE);

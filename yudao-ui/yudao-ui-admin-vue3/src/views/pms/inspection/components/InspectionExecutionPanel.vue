@@ -63,13 +63,15 @@
             <el-input
               v-model="sourceHosts[String(device.deviceId)]"
               :disabled="disabled"
-              placeholder="日志中包含该设备时填写"
+              :placeholder="umcMode ? '文件名无法识别IP或同文件含多设备时填写' : '日志中包含该设备时填写'"
             />
           </el-form-item>
         </template>
         <p v-if="umcMode" class="help-text">
           多设备日志按SN自动识别，可一次选择多份日志或包含多台设备的日志。所有文件合计不超过20MB。
-          请填写本次日志涉及设备的来源IP；只有一台任务设备且单份文件名明确携带IP时可自动识别。
+          优先从每份文件名识别IP（支持IPv4.txt、IPv4.log、设备名称(IP)），上传后按日志SN绑定设备。
+          文件名IP优先于手填值；文件名无法识别IP或同文件含多设备时，请填写对应设备来源IP。
+          同一设备的不同文件名IP冲突时整批拒绝；ZIP按包内每份日志文件名识别。
         </p>
         <p v-else-if="uploadMode === 'batch'" class="help-text">
           自动按SN拆分并匹配本次任务设备。任一设备不匹配时整批拒绝；请分别刷新各设备的解析结果。
@@ -135,7 +137,7 @@
                 class="file-summary"
                 role="status"
               >
-                <span>{{ file.name }} · {{ fileSize(file.size) }}</span>
+                <span>{{ file.name }} · {{ fileSize(file.size) }}<template v-if="originalFilenameHost(file.name)"> · 文件名来源IP：{{ originalFilenameHost(file.name) }}（上传后按SN绑定）</template></span>
                 <el-button
                   link
                   :disabled="disabled"
@@ -148,7 +150,7 @@
                 >已选 {{ selectedFiles.length }} 份日志 · 合计
                 {{ fileSize(selectedFiles.reduce((total, file) => total + file.size, 0))
                 }}<span v-if="inferredSourceHost">
-                  · 文件名来源IP：{{ inferredSourceHost }}，无需填写</span
+                  · 文件名来源IP：{{ inferredSourceHost }}，上传后按SN核对</span
                 ></p
               >
             </template>
@@ -157,6 +159,7 @@
               <el-button link :disabled="disabled" @click="clearDraft">移除文件</el-button>
             </div>
             <p v-if="fileError" class="file-error" role="alert">{{ fileError }}</p>
+            <p v-if="fileNotice" class="help-text" role="status">{{ fileNotice }}</p>
           </el-form-item>
           <el-form-item v-if="uploadMode === 'single' && !umcMode" label="命令提示（可选）">
             <el-select
@@ -615,11 +618,19 @@ const umcComplete = computed(() => {
         (row) => String(row.deviceId) === String(device.deviceId) && row.purposeCode !== 'PRECHECK'
       )
       .sort((a, b) => (BigInt(String(a.id)) > BigInt(String(b.id)) ? -1 : 1))[0]
+    if (!latest || !['COMPLETE', 'PARTIAL', 'FAILED'].includes(latest.statusCode)) return false
+    const saved = umcForExecution(latest)
+    const rules = saved?.result?.rulelist
     return (
-      latest?.statusCode === 'COMPLETE' &&
-      props.task.results.some(
-        (row) => row.sourceCode === 'UMC' && String(row.executionId) === String(latest.id)
-      )
+      saved?.statusCode === 'AVAILABLE' &&
+      Array.isArray(rules) &&
+      props.task.results.filter(
+        (row) =>
+          row.sourceCode === 'UMC' &&
+          String(row.executionId) === String(latest.id) &&
+          String(row.reportId) === String(saved.reportId) &&
+          String(row.attemptId) === String(latest.attemptId)
+      ).length === rules.length
     )
   })
 })
@@ -654,10 +665,16 @@ const latestIds = computed(
 const umcExecutionStatus = (row: ExecutionView) => {
   const saved = umcForExecution(row)
   if (
-    row.statusCode === 'COMPLETE' &&
-    props.task.results.some(
-      (r) => r.sourceCode === 'UMC' && String(r.executionId) === String(row.id)
-    )
+    ['COMPLETE', 'PARTIAL', 'FAILED'].includes(row.statusCode) &&
+    saved?.statusCode === 'AVAILABLE' &&
+    Array.isArray(saved.result?.rulelist) &&
+    props.task.results.filter(
+      (r) =>
+        r.sourceCode === 'UMC' &&
+        String(r.executionId) === String(row.id) &&
+        String(r.reportId) === String(saved.reportId) &&
+        String(r.attemptId) === String(row.attemptId)
+    ).length === saved.result.rulelist.length
   )
     return '判定完成'
   if (['PARTIAL', 'FAILED', 'CANCELLED'].includes(row.statusCode))
@@ -767,8 +784,9 @@ const originalFilenameHost = (name: string) => {
     [...name].some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)
   )
     return ''
-  const match = /^([^()（）]*?)[(（]([^()（）]+)[)）]$/.exec(name)
-  const host = match ? match[2] : name
+  const stem = name.replace(/\.(txt|log)$/i, '')
+  const match = /^([^()（）]*?)[(（]([^()（）]+)[)）]$/.exec(stem)
+  const host = match ? match[2] : stem
   return /^[0-9]{1,3}(\.[0-9]{1,3}){3}$/.test(host) &&
     host.split('.').every((part) => Number(part) <= 255 && String(Number(part)) === part)
     ? host
@@ -780,6 +798,7 @@ const inferredSourceHost = computed(() =>
     : ''
 )
 const fileError = ref('')
+const fileNotice = ref('')
 const currentAttempt = computed(() =>
   props.task.attempts.find((attempt) => String(attempt.id) === String(props.task.currentAttemptId))
 )
@@ -876,6 +895,7 @@ const clearDraft = () => {
   sourceHost.value = ''
   Object.keys(sourceHosts).forEach((key) => delete sourceHosts[key])
   fileError.value = ''
+  fileNotice.value = ''
   if (fileInput.value) fileInput.value.value = ''
   emit('draftChanged', false)
 }
@@ -887,6 +907,7 @@ const acceptFile = (file: File | undefined) => {
   if (!canSelectFile.value) return
   selectedFile.value = null
   fileError.value = ''
+  fileNotice.value = ''
   if (fileInput.value) fileInput.value.value = ''
   if (!file) return
   if (
@@ -908,9 +929,11 @@ const acceptFile = (file: File | undefined) => {
 const addFiles = (files: File[]) => {
   if (!canSelectFile.value) return
   fileError.value = ''
+  fileNotice.value = ''
   if (fileInput.value) fileInput.value.value = ''
   if (!files.length) return
   const combined = [...selectedFiles.value]
+  const duplicates = new Set<string>()
   for (const file of files) {
     if (!/\.(log|txt|zip)$/i.test(file.name) && !originalFilenameHost(file.name)) {
       fileError.value = '请选择 .log、.txt、.zip，或以IPv4、设备名称(IPv4)命名的原始日志文件。'
@@ -928,8 +951,8 @@ const addFiles = (files: File[]) => {
           item.lastModified === file.lastModified
       )
     ) {
-      fileError.value = `文件“${file.name}”已选择，请勿重复添加。`
-      return
+      duplicates.add(file.name)
+      continue
     }
     combined.push(file)
   }
@@ -941,11 +964,14 @@ const addFiles = (files: File[]) => {
     return
   }
   selectedFiles.value = combined
+  if (duplicates.size)
+    fileNotice.value = `已跳过重复文件：${[...duplicates].join('、')}。其他文件可继续上传。`
 }
 const removeFile = (index: number) => {
   if (props.disabled) return
   selectedFiles.value = selectedFiles.value.filter((_file, position) => position !== index)
   fileError.value = ''
+  fileNotice.value = ''
 }
 const selectFile = (event: Event) => {
   const files = (event.target as HTMLInputElement).files
@@ -991,7 +1017,7 @@ const submitUpload = () => {
         deviceId: device.deviceId,
         host: sourceHosts[String(device.deviceId)].trim()
       }))
-    if (!bindings.length && !inferredSourceHost.value) {
+    if (!bindings.length && !selectedFiles.value.every((file) => originalFilenameHost(file.name) || /\.zip$/i.test(file.name))) {
       fileError.value = '请为本次日志涉及的设备填写来源IP。'
       return
     }

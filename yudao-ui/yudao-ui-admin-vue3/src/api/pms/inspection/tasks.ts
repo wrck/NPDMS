@@ -4,6 +4,9 @@ export type { WireLong } from './request'
 
 const base = '/api/v1/pms/inspection-tasks'
 
+export const downloadRedactedLog = (taskId: WireLong, executionId: WireLong) =>
+  request.download<Blob>({ url: `${base}/${taskId}/executions/${executionId}/redacted-log` })
+
 export interface AttachmentView {
   artifactId: WireLong
   versionNo: number
@@ -434,7 +437,7 @@ export const uploadOfflineLogBatch = (
     url: `${base}/${taskId}/offline-log-batches`,
     data: form,
     headers: { ...writeHeaders(key, version), 'Content-Type': 'multipart/form-data' },
-    timeout: 195000 * Math.max(1, data.sourceHosts?.length || 1)
+    timeout: 195000 * Math.max(1, data.sourceHosts?.length || 0, data.files?.length || 0)
   })
 }
 export const generateReport = (

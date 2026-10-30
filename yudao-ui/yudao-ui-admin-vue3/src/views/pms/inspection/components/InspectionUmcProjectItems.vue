@@ -42,9 +42,13 @@
             </span>
             <span class="item-actions">
               <slot name="actions" :row="row"></slot>
-              <el-tag :type="outcomeType(row.outcome)" size="small">{{
-                outcomeLabel(row.outcome)
-              }}</el-tag>
+              <el-tag
+                :type="row.externalRule?.support === false ? 'info' : outcomeType(row.outcome)"
+                size="small"
+                >{{
+                  row.externalRule?.support === false ? '不支持' : outcomeLabel(row.outcome)
+                }}</el-tag
+              >
             </span>
             <span v-if="deviceLabel" class="project-device-name">{{
               deviceLabel(row.deviceId)
@@ -161,6 +165,10 @@ import { computed, watch } from 'vue'
 import type { TagProps } from 'element-plus'
 import type { ResultView, WireLong } from '@/api/pms/inspection/tasks'
 import InspectionUmcRuleDetail from './InspectionUmcRuleDetail.vue'
+import {
+  umcSeverityLabel as severityLabel,
+  umcSeverityType as severityType
+} from './inspectionUmcSeverity'
 const props = withDefaults(
   defineProps<{
     results: ResultView[]
@@ -195,28 +203,6 @@ const detailVisible = computed({
 watch(detailRow, (row) => {
   if (!row && props.detailId) emit('update:detailId', '')
 })
-const severityLabel = (row: ResultView) => {
-  const level = row.externalRule?.level
-  return level === 3
-    ? '致命'
-    : level === 2
-      ? '重要'
-      : level === 1
-        ? '一般'
-        : level == null
-          ? row.severityName || '未提供'
-          : `UMC级别${level}`
-}
-// 沿用 pms_inspection_rule_severity 字典颜色及设备概览中既有的致命/重要颜色。
-const severityType = (row: ResultView): TagProps['type'] => {
-  const code =
-    row.externalRule?.level == null ? row.severityCode : `UMC_LEVEL_${row.externalRule.level}`
-  return code === 'FATAL' || code === 'UMC_LEVEL_3'
-    ? 'danger'
-    : code === 'SEVERE' || code === 'UMC_LEVEL_2'
-      ? 'warning'
-      : 'info'
-}
 const outcomeLabel = (outcome?: string) =>
   ({ PASS: '通过', ABNORMAL: '异常', UNJUDGED: '未判定', ERROR: '判定错误' })[outcome || ''] ||
   outcome ||

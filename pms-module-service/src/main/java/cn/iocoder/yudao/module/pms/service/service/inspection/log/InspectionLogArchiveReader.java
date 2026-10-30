@@ -136,10 +136,11 @@ public final class InspectionLogArchiveReader {
         }
         if (text.startsWith("\uFEFF")) text = text.substring(1);
         if (text.isBlank()) throw new IllegalArgumentException("日志内容不能为空");
-        // ANSI ESC, backspace and form-feed are text terminal controls, retained for the DAC parser.
-        if (text.codePoints().anyMatch(cp -> Character.isISOControl(cp)
-                && cp != '\r' && cp != '\n' && cp != '\t' && cp != '\b' && cp != '\f' && cp != 0x1B)) {
-            throw new IllegalArgumentException("日志含非文本控制字符，疑似二进制文件");
+        // Terminal captures can contain C0/C1 controls. Preserve them; a control character alone is not binary evidence.
+        // Signatures, NUL and strict decoding above still reject non-text formats; control-only payloads are not logs.
+        if (text.codePoints().noneMatch(cp -> !Character.isISOControl(cp) && !Character.isWhitespace(cp)
+                && !Character.isSpaceChar(cp) && !Character.isIdentifierIgnorable(cp))) {
+            throw new IllegalArgumentException("日志不含可读文本，不能作为设备日志读取");
         }
         return new LogEntry(input.fileName(), text);
     }

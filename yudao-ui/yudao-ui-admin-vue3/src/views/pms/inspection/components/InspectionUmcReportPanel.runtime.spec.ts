@@ -102,6 +102,35 @@ it('does not adopt an incomplete report, partial rule set or an execution still 
     }
   }
 })
+it('allows a saved complete report with unsupported or error outcomes and a valid empty rule list', () => {
+  const task: any = sample()
+  task.results[0].outcome = 'UNJUDGED'
+  task.results[0].externalRule = { support: false }
+  task.results[1].outcome = 'ERROR'
+  let page = render(task)
+  try {
+    expect(page.state.canConfirm).toBe(true)
+    expect(page.state.unsupportedCount(task.results)).toBe(1)
+    expect(page.state.count(task.results, 'ABNORMAL')).toBe(0)
+  } finally {
+    page.app.unmount()
+  }
+  task.umcResults[0].result.rulelist = []
+  task.results.shift()
+  page = render(task)
+  try {
+    expect(page.state.canConfirm).toBe(true)
+  } finally {
+    page.app.unmount()
+  }
+  task.umcResults[0].result.rulelist = null
+  page = render(task)
+  try {
+    expect(page.state.canConfirm).toBe(false)
+  } finally {
+    page.app.unmount()
+  }
+})
 it('an adopted report keeps its frozen device files instead of following later executions', () => {
   const task: any = sample()
   task.currentReportId = '9'

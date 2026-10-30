@@ -47,6 +47,9 @@ it('omits empty bindings for multi-file single-device filename inference, preser
   uploadOfflineLogBatch('10', { attemptId: '20', files: [file], sourceHosts: [] }, '7', 'inferred-key')
   let form = vi.mocked(request.post).mock.calls.at(-1)![0].data as FormData
   expect(form.has('sourceHosts')).toBe(false)
+  const second = new File(['second'], '192.0.2.11.txt')
+  uploadOfflineLogBatch('10', { attemptId: '20', files: [file, second], sourceHosts: [] }, '7', 'multi-inferred-key')
+  expect(vi.mocked(request.post).mock.calls.at(-1)![0].timeout).toBe(390000)
   uploadOfflineLogBatch('10', { attemptId: '20', file, sourceHosts: [] }, '7', 'legacy-key')
   form = vi.mocked(request.post).mock.calls.at(-1)![0].data as FormData
   expect(form.get('sourceHosts')).toBe('[]')

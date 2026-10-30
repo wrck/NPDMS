@@ -39,6 +39,7 @@ public final class UmcLogDocument {
     /** The UMC filename itself supplies the address; command output is never searched for one. */
     public static String sourceHostFromFileName(String name) {
         if (name == null || name.length() > 255 || name.matches("(?s).*[\\\\/:*?\"<>|\\p{Cntrl}].*")) return null;
+        name = name.replaceFirst("(?i)\\.(txt|log)$", "");
         var match = java.util.regex.Pattern.compile("^([^()（）]*?)[(（]([^()（）]+)[)）]$").matcher(name);
         String host = match.matches() ? match.group(2) : name;
         try { requireIpv4(host); return host; }

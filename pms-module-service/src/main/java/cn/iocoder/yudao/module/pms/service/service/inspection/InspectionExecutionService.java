@@ -13,6 +13,8 @@ import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.*;
 import cn.iocoder.yudao.module.pms.service.domain.inspection.InspectionResultEvaluator;
 import cn.iocoder.yudao.module.pms.service.domain.inspection.InspectionTaskStateMachine;
 import cn.iocoder.yudao.module.pms.service.service.inspection.log.*;
+import cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host;
+import cn.iocoder.yudao.module.pms.service.service.inspection.umc.UmcLogDocument;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleQueryService;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +58,24 @@ public class InspectionExecutionService {
     public record UploadFile(String fileName, byte[] content) { }
     public record BatchFiles(InspectionRequestContext context, Long taskId, Long attemptId, List<UploadFile> files,
                              List<cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host> sourceHosts) { }
+    /** Flat task-summary shape keeps existing idempotency receipts readable after the upload enhancement. */
+    @lombok.Getter @lombok.Setter
+    public static class BatchRegistration extends InspectionViews.TaskSummary {
+        private List<Host> sourceHosts;
+        @com.fasterxml.jackson.annotation.JsonCreator
+        public BatchRegistration() { }
+        @com.fasterxml.jackson.annotation.JsonCreator(mode = com.fasterxml.jackson.annotation.JsonCreator.Mode.DISABLED)
+        public BatchRegistration(InspectionViews.TaskSummary summary, List<Host> sourceHosts) {
+            org.springframework.beans.BeanUtils.copyProperties(summary, this);
+            this.sourceHosts = sourceHosts;
+        }
+        public InspectionViews.TaskSummary summary() {
+            var summary = new InspectionViews.TaskSummary();
+            org.springframework.beans.BeanUtils.copyProperties(this, summary);
+            return summary;
+        }
+        public List<Host> sourceHosts() { return sourceHosts; }
+    }
     private record FileIdentity(String fileName, String sha256) { }
     public static String batchDigest(List<UploadFile> files) {
         require(files != null && !files.isEmpty() && files.stream().allMatch(f -> f != null && f.content() != null), "日志文件不能为空");
@@ -145,15 +165,15 @@ public class InspectionExecutionService {
         require(command.content() != null && command.content().length > 0, "多设备日志不能为空且不得超过20MB");
         return uploadBatchFiles(new BatchFiles(command.context(), command.taskId(), command.attemptId(),
                 List.of(new UploadFile(command.fileName(), command.content())), command.sourceHosts()),
-                DigestUtil.sha256Hex(command.content()), false);
+                DigestUtil.sha256Hex(command.content()), false).summary();
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public InspectionViews.TaskSummary uploadFiles(BatchFiles command) {
+    public BatchRegistration uploadFiles(BatchFiles command) {
         return uploadBatchFiles(command, batchDigest(command.files()), true);
     }
 
-    private InspectionViews.TaskSummary uploadBatchFiles(BatchFiles command, String digest, boolean multipleInput) {
+    private BatchRegistration uploadBatchFiles(BatchFiles command, String digest, boolean multipleInput) {
         var task = writable(command.context(), command.taskId());
         var attempt = attempts.selectById(command.attemptId());
         scope(new Scope(command.context(), task, attempt, null));
@@ -186,12 +206,16 @@ public class InspectionExecutionService {
             if (bySerial.putIfAbsent(serial, device) != null) ambiguous.add(serial);
         }
         var blocksBySerial = new LinkedHashMap<String, List<InspectionParserDocuments.Block>>();
+        var filenameHosts = new LinkedHashMap<String, String>();
+        var needsManualHost = new HashSet<String>();
         long totalBytes = 0;
         try {
             for (var entry : entries) {
                 require(entry.text().getBytes(StandardCharsets.UTF_8).length <= 20 * 1024 * 1024, "解压后的单份多设备日志不得超过20MB");
                 var split = splitter.split(new DeviceOpsLogSplitApi.Command(task.getTenantId(), task.getProjectId(), "TERMINAL_TEXT", entry.text()));
                 require(split != null && !split.devices().isEmpty(), "日志拆分未返回设备日志");
+                String entryName = entry.fileName().replace('\\', '/');
+                String filenameHost = multipleInput ? UmcLogDocument.sourceHostFromFileName(entryName.substring(entryName.lastIndexOf('/') + 1)) : null;
                 var entrySerials = new HashSet<String>();
                 for (var log : split.devices()) {
                     require(log != null && log.serialNumber() != null && !log.serialNumber().isBlank()
@@ -199,6 +223,10 @@ public class InspectionExecutionService {
                     String serial = log.serialNumber().toUpperCase(Locale.ROOT);
                     require(entrySerials.add(serial), "日志拆分返回了重复设备序列号");
                     require(bySerial.containsKey(serial) && !ambiguous.contains(serial), "日志设备序列号不能唯一对应本巡检任务设备");
+                    if (filenameHost != null && split.devices().size() == 1) {
+                        String previousHost = filenameHosts.putIfAbsent(serial, filenameHost);
+                        require(previousHost == null || previousHost.equals(filenameHost), "同一设备的不同日志文件名包含冲突的来源IP，请核对并分别上传，未登记本批日志");
+                    } else if (multipleInput) needsManualHost.add(serial);
                     totalBytes += log.content().getBytes(StandardCharsets.UTF_8).length;
                     require(totalBytes <= 50 * 1024 * 1024, "拆分后的日志总量超过50MB，请拆分上传");
                     var normalized = parser.normalize(new DeviceLogParsingApi.LogInput(task.getProjectId().toString(), log.content(), null));
@@ -219,7 +247,24 @@ public class InspectionExecutionService {
         }
         // Prepare every device before registering any file or execution. Only sanitized command blocks are stored.
         var prepared = new ArrayList<PreparedUpload>();
-        if (command.sourceHosts() != null) {
+        List<Host> resolvedHosts = command.sourceHosts();
+        if (multipleInput) {
+            var supplied = command.sourceHosts() == null ? List.<Host>of() : command.sourceHosts();
+            require(supplied.size() <= 100 && supplied.stream().allMatch(h -> h != null && h.deviceId() != null)
+                    && supplied.stream().map(Host::deviceId).distinct().count() == supplied.size(), "设备来源IP对应关系无效");
+            supplied.forEach(h -> UmcLogDocument.requireIpv4(h.host()));
+            resolvedHosts = new ArrayList<>();
+            for (String serial : blocksBySerial.keySet()) {
+                Long deviceId = bySerial.get(serial).getDeviceId();
+                var manual = supplied.stream().filter(h -> deviceId.equals(h.deviceId())).findFirst();
+                String inferred = filenameHosts.get(serial);
+                if (needsManualHost.contains(serial)) require(manual.isPresent(), "文件名无法唯一确定每台设备来源IP（含同文件多设备），请为涉及设备填写来源IP，未登记本批日志");
+                String host = inferred != null ? inferred : manual.map(Host::host).orElse(null);
+                require(host != null, "未从文件名识别到设备来源IPv4，请填写来源IP后上传，未登记本批日志");
+                resolvedHosts.add(new Host(deviceId, host));
+            }
+            resolvedHosts = List.copyOf(resolvedHosts);
+        } else if (command.sourceHosts() != null) {
             var mapped = command.sourceHosts().stream().map(cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host::deviceId).collect(Collectors.toSet());
             require(blocksBySerial.keySet().stream().allMatch(serial -> mapped.contains(bySerial.get(serial).getDeviceId())), "请为日志中每台设备填写来源IP，未登记本批日志");
         }
@@ -237,7 +282,7 @@ public class InspectionExecutionService {
                     && input.scope().device().getSerialNumber().equalsIgnoreCase(row.getRecognizedSerial()));
             if (!existing) registerUpload(input);
         }
-        return InspectionTaskService.summary(task);
+        return new BatchRegistration(InspectionTaskService.summary(task), resolvedHosts);
     }
 
     private void registerUpload(PreparedUpload input) {

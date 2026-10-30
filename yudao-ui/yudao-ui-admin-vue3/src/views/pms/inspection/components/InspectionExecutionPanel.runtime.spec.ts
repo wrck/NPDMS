@@ -10,6 +10,7 @@ import {
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/utils/dict', () => ({ getStrDictOptions: () => [] }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => false }))
 vi.mock('@/utils/formatTime', () => ({ formatDate: () => '' }))
 
@@ -117,7 +118,8 @@ it('uses one UMC multi-file entry, preserves append/remove order and emits the o
     expect(page.upload).not.toHaveBeenCalled()
     expect(page.uploadBatch).not.toHaveBeenCalled()
     page.state.addFiles([first])
-    expect(page.state.fileError).toContain('重复')
+    expect(page.state.fileNotice).toContain('重复')
+    expect(page.state.fileError).toBe('')
     expect(page.state.selectedFiles).toHaveLength(2)
     page.state.removeFile(0)
     expect(page.state.selectedFiles).toEqual([second])
@@ -128,7 +130,32 @@ it('uses one UMC multi-file entry, preserves append/remove order and emits the o
   }
 })
 
-it('allows a unique filename IP for a single task device and never guesses IPs in multi-device files', () => {
+it('skips selected and intra-addition duplicates while retaining every new valid file and original upload objects', () => {
+  const page = render('', [], {}, true)
+  try {
+    const first = new File(['A'], 'first.txt')
+    const second = new File(['B'], 'second.txt')
+    const third = new File(['C'], 'third.txt')
+    page.state.addFiles([first])
+    page.state.addFiles([second, first, third, second])
+    expect(page.state.selectedFiles).toEqual([first, second, third])
+    expect(page.state.fileError).toBe('')
+    expect(page.state.fileNotice).toContain('first.txt')
+    expect(page.state.fileNotice).toContain('second.txt')
+    page.state.sourceHosts['30'] = '192.0.2.10'
+    page.state.submitUpload()
+    expect(page.uploadFiles).toHaveBeenCalledWith({
+      files: [first, second, third],
+      sourceHosts: [{ deviceId: '30', host: '192.0.2.10' }]
+    })
+    page.state.clearDraft()
+    expect(page.state.fileNotice).toBe('')
+  } finally {
+    page.app.unmount()
+  }
+})
+
+it('passes filename IP logs to the backend for SN binding without guessing task-device order', () => {
   const page = render('', [], {}, true)
   const multi = render('', [], { devices: [{ deviceId: '30' }, { deviceId: '31' }] }, true)
   try {
@@ -146,10 +173,26 @@ it('allows a unique filename IP for a single task device and never guesses IPs i
     multi.state.addFiles([file])
     expect(multi.state.inferredSourceHost).toBe('')
     multi.state.submitUpload()
-    expect(multi.uploadFiles).not.toHaveBeenCalled()
+    expect(multi.uploadFiles).toHaveBeenCalledWith({ files: [file], sourceHosts: [] })
   } finally {
     page.app.unmount()
     multi.app.unmount()
+  }
+})
+
+it('recognizes txt and log filename IPs in multiple files and preserves original files for server SN matching', () => {
+  const page = render('', [], { devices: [{ deviceId: '31' }, { deviceId: '30' }] }, true)
+  try {
+    const files = [new File(['A'], '10.27.35.201.txt'), new File(['B'], '设备乙(10.27.35.202).LOG')]
+    page.state.addFiles(files)
+    expect(page.state.originalFilenameHost(files[0].name)).toBe('10.27.35.201')
+    expect(page.state.originalFilenameHost(files[1].name)).toBe('10.27.35.202')
+    page.state.submitUpload()
+    expect(page.uploadFiles).toHaveBeenCalledWith({ files, sourceHosts: [] })
+    expect(page.state.originalFilenameHost('10.27.35.999.txt')).toBe('')
+    expect(page.state.originalFilenameHost('10.27.35.201.txt.exe')).toBe('')
+  } finally {
+    page.app.unmount()
   }
 })
 
@@ -268,8 +311,19 @@ it('requires formal references rather than a report preview, deduplicates adopte
   } finally {
     accepted.app.unmount()
   }
+  const historicalPartial = render(
+    '30',
+    [saved],
+    { executions: [{ ...execution, statusCode: 'PARTIAL' }], results: [formal] },
+    true
+  )
+  try {
+    expect(finish(historicalPartial.root).props?.disabled).toBe(false)
+  } finally {
+    historicalPartial.app.unmount()
+  }
   for (const patch of [
-    { executions: [{ ...execution, statusCode: 'PARTIAL' }] },
+    { executions: [{ ...execution, statusCode: 'RUNNING' }] },
     { devices: [{ deviceId: '30' }, { deviceId: '31' }] }
   ]) {
     const blocked = render(
@@ -371,7 +425,17 @@ it('online connection checks never replace collected UMC judgements', () => {
     attempts: [{ id: '20', mode: 'ONLINE', providerCode: 'UMC', statusCode: 'ACTIVE' }],
     results: [result]
   }
-  const ready = render('30', [], { ...base, executions: [collected, precheck] }, true)
+  const saved = [
+    {
+      reportId: '90',
+      attemptId: '20',
+      executionId: '80',
+      deviceId: '30',
+      statusCode: 'AVAILABLE',
+      result: { rulelist: [{ id: 'r1' }] }
+    }
+  ]
+  const ready = render('30', saved, { ...base, executions: [collected, precheck] }, true)
   const onlyCheck = render('30', [], { ...base, executions: [precheck] }, true)
   const running = render(
     '30',
@@ -387,6 +451,24 @@ it('online connection checks never replace collected UMC judgements', () => {
     ready.app.unmount()
     onlyCheck.app.unmount()
     running.app.unmount()
+  }
+})
+
+it('allows completion for a saved report with an explicitly empty rule list', () => {
+  const execution = { id: '80', attemptId: '20', deviceId: '30', statusCode: 'COMPLETE' }
+  const saved = {
+    reportId: '90',
+    attemptId: '20',
+    executionId: '80',
+    deviceId: '30',
+    statusCode: 'AVAILABLE',
+    result: { rulelist: [] }
+  }
+  const page = render('30', [saved], { executions: [execution], results: [] }, true)
+  try {
+    expect(page.state.umcComplete).toBe(true)
+  } finally {
+    page.app.unmount()
   }
 })
 

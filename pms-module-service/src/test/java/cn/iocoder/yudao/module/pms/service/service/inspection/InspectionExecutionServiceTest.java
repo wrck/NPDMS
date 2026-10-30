@@ -468,7 +468,84 @@ class InspectionExecutionServiceTest {
     private InspectionExecutionService.BatchFiles multipleFiles() {
         return new InspectionExecutionService.BatchFiles(context, 10L, 20L, List.of(
                 new InspectionExecutionService.UploadFile("first.log", bytes("first")),
-                new InspectionExecutionService.UploadFile("second.txt", bytes("second"))), null);
+                new InspectionExecutionService.UploadFile("second.txt", bytes("second"))), List.of(
+                        new cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host(30L, "192.0.2.10"),
+                        new cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host(31L, "192.0.2.11")));
+    }
+
+    private InspectionExecutionService.BatchFiles namedFiles(String first, String second) {
+        return new InspectionExecutionService.BatchFiles(context, 10L, 20L, List.of(
+                new InspectionExecutionService.UploadFile(first, bytes("first")),
+                new InspectionExecutionService.UploadFile(second, bytes("second"))), null);
+    }
+
+    private void prepareSeparateFiles() {
+        prepareBatch(); attempts.selectById(20L).setProviderCode("UMC");
+        when(splitter.split(any())).thenAnswer(call -> {
+            DeviceOpsLogSplitApi.Command c = call.getArgument(0);
+            boolean first = c.content().equals("first");
+            return new DeviceOpsLogSplitApi.Result("safe", 0, List.of(new DeviceOpsLogSplitApi.DeviceLog(
+                    first ? "SELECTED-SN" : "SECOND-SN", first ? "safe first" : "safe second")));
+        });
+    }
+
+    @Test void filenameIpsBindOnlyAfterEachFileSerialMatchesATaskDeviceAndReplayKeepsTheMapping() {
+        prepareSeparateFiles();
+        var input = namedFiles("10.27.35.201.txt", "设备乙(10.27.35.202).log");
+        var expected = List.of(
+                new cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host(30L, "10.27.35.201"),
+                new cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host(31L, "10.27.35.202"));
+        assertEquals(expected, service.uploadFiles(input).sourceHosts());
+        assertEquals(expected, service.uploadFiles(input).sourceHosts());
+        assertEquals(2, executionRows.size()); verify(generatedFiles, times(2)).create(any());
+        assertEquals("SELECTED-SN", executionRows.get(50L).getRecognizedSerial());
+        assertEquals("SECOND-SN", executionRows.get(51L).getRecognizedSerial());
+    }
+
+    @Test void oneFilenameIpCannotBeAssignedToMultipleSplitDevicesWithoutManualBindings() {
+        prepareBatch(); attempts.selectById(20L).setProviderCode("UMC");
+        var input = namedFiles("10.27.35.201.txt", "10.27.35.202.txt");
+        var failure = assertThrows(InspectionException.class, () -> service.uploadFiles(input));
+        assertTrue(failure.getMessage().contains("同文件多设备"));
+        assertTrue(executionRows.isEmpty()); verifyNoInteractions(generatedFiles);
+        assertEquals(2, service.uploadFiles(new InspectionExecutionService.BatchFiles(context, 10L, 20L,
+                input.files(), multipleFiles().sourceHosts())).sourceHosts().size());
+    }
+
+    @Test void differentFilenameIpsForTheSameDeviceRejectTheWholeBatchEvenWhenManualIpIsProvided() {
+        prepareSeparateFiles();
+        doReturn(new DeviceOpsLogSplitApi.Result("safe", 0,
+                List.of(new DeviceOpsLogSplitApi.DeviceLog("SELECTED-SN", "safe first")))).when(splitter).split(any());
+        var input = namedFiles("10.27.35.201.txt", "10.27.35.202.txt");
+        var failure = assertThrows(InspectionException.class, () -> service.uploadFiles(
+                new InspectionExecutionService.BatchFiles(context, 10L, 20L, input.files(), multipleFiles().sourceHosts())));
+        assertTrue(failure.getMessage().contains("冲突"));
+        assertTrue(executionRows.isEmpty()); verifyNoInteractions(generatedFiles);
+    }
+
+    @Test void missingFilenameAndManualAddressRejectBeforeRegistrationAndFilenameWinsOverManualFallback() {
+        prepareSeparateFiles();
+        assertThrows(InspectionException.class, () -> service.uploadFiles(namedFiles("capture.log", "10.27.35.202.txt")));
+        assertTrue(executionRows.isEmpty()); verifyNoInteractions(generatedFiles);
+        var registered = service.uploadFiles(new InspectionExecutionService.BatchFiles(context, 10L, 20L,
+                namedFiles("10.27.35.201.txt", "10.27.35.202.txt").files(), multipleFiles().sourceHosts()));
+        assertEquals(List.of("10.27.35.201", "10.27.35.202"), registered.sourceHosts().stream().map(
+                cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host::host).toList());
+    }
+
+    @Test void zipUsesEachValidatedEntryBasenameInsteadOfTheOuterArchiveIp() throws Exception {
+        prepareSeparateFiles();
+        var output = new java.io.ByteArrayOutputStream();
+        try (var zip = new java.util.zip.ZipOutputStream(output)) {
+            for (var entry : Map.of("first/10.27.35.201.txt", "first", "second/10.27.35.202.log", "second").entrySet()) {
+                zip.putNextEntry(new java.util.zip.ZipEntry(entry.getKey())); zip.write(bytes(entry.getValue())); zip.closeEntry();
+            }
+        }
+        var input = new InspectionExecutionService.BatchFiles(context, 10L, 20L, List.of(
+                new InspectionExecutionService.UploadFile("10.27.35.250.zip", output.toByteArray())), null);
+        var sources = service.uploadFiles(input).sourceHosts();
+        assertTrue(sources.contains(new cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host(30L, "10.27.35.201")));
+        assertTrue(sources.contains(new cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host(31L, "10.27.35.202")));
     }
 
     @Test void severalFilesMergeSameDeviceCommandsOnceAndReplayWithoutNewFiles() {
@@ -483,6 +560,23 @@ class InspectionExecutionServiceTest {
         service.uploadFiles(multipleFiles());
         verify(generatedFiles, times(2)).create(any());
         assertEquals(2, executionRows.size());
+    }
+
+    @Test void replayedDeviceInTheSameBatchDoesNotPreventRegisteringOtherValidDevices() {
+        prepareBatch(); attempts.selectById(20L).setProviderCode("UMC");
+        var previous = new InspectionExecutionDO(); previous.setId(49L); previous.setTenantId(1L);
+        previous.setTaskId(10L); previous.setAttemptId(20L); previous.setDeviceId(30L);
+        previous.setStatusCode("COMPLETE"); previous.setRecognizedSerial("SELECTED-SN");
+        previous.setOriginalFileSha256(InspectionExecutionService.batchDigest(multipleFiles().files()));
+        executionRows.put(49L, previous);
+
+        service.uploadFiles(multipleFiles());
+
+        assertEquals(2, executionRows.size());
+        assertSame(previous, executionRows.get(49L));
+        assertEquals("COMPLETE", previous.getStatusCode());
+        verify(executions).insert(argThat((InspectionExecutionDO row) -> row.getDeviceId().equals(31L)));
+        verify(generatedFiles).create(any());
     }
 
     @Test void lastFileUnknownSerialRejectsWholeSelectionWithoutStoredContent() {
