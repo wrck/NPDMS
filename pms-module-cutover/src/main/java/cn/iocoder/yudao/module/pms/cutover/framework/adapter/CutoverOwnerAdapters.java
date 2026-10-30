@@ -192,6 +192,13 @@ public class CutoverOwnerAdapters {
                 return fact(api().lockAndRevalidate(new ImplementationReadinessRevalidationQuery(tenant(), expected.projectId(),
                         expected.snapshotId(), expected.snapshotVersion(), expectedDevices(expected.projectId(), expected.deviceIds()))));
             }
+              public ReadinessFact lockAndRevalidateForApproval(
+                      cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query query) {
+                  requireTenant(query.tenantId());
+                  var result = api().lockAndRevalidateForApproval(query);
+                  return new ReadinessFact(result.snapshotId(), result.snapshotVersion(), result.decision(),
+                          result.projectId(), result.deviceIds(), null, null);
+              }
             public ReadinessFact readSnapshot(SnapshotReference reference) {
                 requireTenant(reference.tenantId());
                 var snapshot = api().readSnapshot(new cn.iocoder.yudao.module.pms.engineering.api.implementationreadiness.dto.ImplementationReadinessSnapshotQuery(

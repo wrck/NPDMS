@@ -1,5 +1,9 @@
 # SDS Phase 1：跨 Context 契约
 
+## CUT角色审批内部就绪重验补充（2026-10-24）
+
+依据Q-CUT-ROLE-FINAL-READINESS-20261024批准：`CutoverApprovalReadinessAccessApi.requireCurrent`由CUT Owner在原决定写事务内锁定并验证当前角色节点、有效资格、任务/审批版本、项目、设备及精确快照。IMP新增`ImplementationReadinessApi.lockAndRevalidateForApproval`，先核验CUT授权，再消费PROJ的`lockCutoverReadinessRequirements`内部冻结计划事实和AST的锁定设备归属版本，以及原EXE来源事实。PROJ内部事实不转换为通用项目查看权限；调用方必须已核验当前CUT实例，且不得暴露为HTTP入口。返回`CutoverApprovalReadinessResult`仅含决定、项目、快照ID/版本和设备ID，不返回实时Owner正文。普通读取及P6原门禁保持，资格/租户/版本/来源变化均失败关闭，不继承发起人权限，不改写冻结历史。
+
 > 文档状态：`REVALIDATION_REQUIRED`（修订018受影响边界已回写；正式复审以当前Gate为准）
 > 适用基线：PRD V1.8修订018（`docs/baseline/prd-v1.8.md`）；未受影响旧设计及历史证据保留
 > Requirement ID：PRD V1.8 附录 A.1 的全部 100 项 V1/V2 正式需求；逐项范围与本分册落位见 `docs/traceability/requirement-matrix.md`
@@ -119,3 +123,7 @@ Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`�
 2026-10-13正式合同关系由COM消费PROJ公开内部`ProjectMigrationIdentityContextApi`：只提供经管理权、租户、版本及准确来源绑定核验的正式身份与公司，不附带实施办事处要求。锁定调用加入COM/INT迁移事务，失败整体回滚；COM仍负责合同引用和公司范围。实施范围继续消费原`ProjectScopeMigrationContextApi`及其办事处目录守卫。详细输入、返回值与禁止回退条件见[API设计](10-api-design.md#2026-10-12-整表项目正式创建及来源身份契约)，不改变原NULL组织裁决或授予任何新权限。
 
 2026-10-13新增项目范围异常仍待需求方裁决，当前不接管6570个项目及关联，不提供或执行撤销动作；保留原十项目及不可变来源、审计和运行回执。实际范围见[待裁决清单](../decisions/open-questions.md)。
+
+## CUT等级确认项目选择读取补充（2026-10-25）
+
+既有CUT `GET /api/v1/pms/cutover-tasks/creation-projects/{projectId}`响应保留`project`及`customerServiceLevel`，新增`customerServiceLevelContext`（既有CUT客户等级事实字段与AVAILABLE/NOT_CONFIGURED/UNAVAILABLE状态）。该查询先核验当前租户/主体/项目EDIT范围，再复用CUT项目上下文端口解析同租户客户编码，读取CUS当前等级事实；无项目编辑范围不查询客户资料。页面选择项目后即可决定等级只读或手选，不以设备选择、空显示字符串或读取失败推定未维护。真实读取失败仍UNAVAILABLE，多命中/资料损坏仍失败关闭；写命令的来源、设备、幂等与历史冻结约束不变。共享PROJ项目摘要接口不变。

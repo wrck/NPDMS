@@ -26,6 +26,8 @@ import static cn.iocoder.yudao.module.pms.engineering.api.implementationreadines
 
 @Service @RequiredArgsConstructor
 public class ImplementationReadinessService implements ImplementationReadinessApi, ImplementationReadinessEvaluationApi {
+    @jakarta.annotation.Resource
+    private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi> approvalAccess;
     private final ImplementationReadinessSnapshotMapper snapshots;
     private final ImplementationReadinessSourceMapper sources;
     private final ProjectBusinessContextApi projects;
@@ -35,6 +37,38 @@ public class ImplementationReadinessService implements ImplementationReadinessAp
     private final DeliveryScopePort delivery;
     private final SolutionTieredReviewService reviews;
     private final ImplementationReadinessSnapshotStore snapshotStore;
+
+    @Override @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public CutoverApprovalReadinessResult lockAndRevalidateForApproval(
+            cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query query) {
+        if (query == null || TenantContextHolder.isIgnore() || !Objects.equals(query.tenantId(), TenantContextHolder.getTenantId()))
+            throw failure(TENANT_CONTEXT_MISMATCH, "实施就绪租户身份不一致");
+        var access = approvalAccess.getIfAvailable();
+        if (access == null) throw new SecurityException("当前审批重验授权服务不可用");
+        access.requireCurrent(query);
+        var row = snapshots.selectById(query.snapshotId());
+        if (row == null || !Objects.equals(row.getTenantId(), query.tenantId())
+                || !Objects.equals(row.getProjectId(), query.projectId()) || !Long.valueOf(0L).equals(query.snapshotVersion()))
+            throw failure(SNAPSHOT_NOT_FOUND, "精确就绪快照不存在");
+        var frozen = snapshot(row);
+        var ids = frozen.context().devices().stream().map(DeviceFact::deviceId).sorted().toList();
+        if (!ids.equals(query.deviceIds().stream().sorted().toList()))
+            throw failure(SNAPSHOT_NOT_FOUND, "精确就绪快照设备范围不一致");
+        var requested = new ImplementationReadinessQuery(query.tenantId(), query.projectId(), frozen.context().devices().stream()
+                .map(value -> new ImplementationReadinessQuery.ExpectedDevice(value.deviceId(), value.serialNumber(), value.projectAssignmentVersion())).toList());
+        if (!Objects.equals(row.getDeviceScopeKey(), deviceKey(requested)))
+            throw failure(SNAPSHOT_NOT_FOUND, "精确就绪快照设备范围不一致");
+        var requirements = projects.lockCutoverReadinessRequirements(new ProjectBusinessContextApi.ReadinessQuery(
+                query.tenantId(), query.projectId(), frozen.context().projectScopeVersion()));
+        var all = devices.lockProjectInstallationDevices(new ProjectDeviceInstallationQuery(query.tenantId(), query.projectId())).stream()
+                .map(value -> {
+                    if (value.projectAssignmentVersion() == null) throw failure(OWNER_DATA_CORRUPTED, "设备归属版本不可用");
+                    return new DeviceFact(value.deviceId(), value.sn(), value.projectAssignmentVersion());
+                }).sorted(Comparator.comparing(DeviceFact::deviceId)).toList();
+        var current = context(new ContextRead(requested, frozen.context().projectScopeVersion(), all, requirements, true));
+        var result = result(frozen, current);
+        return new CutoverApprovalReadinessResult(result.decision().name(), query.projectId(), frozen.snapshotId(), frozen.snapshotVersion(), ids);
+    }
 
     @Override @Transactional(rollbackFor = Exception.class)
     public ImplementationReadinessResult evaluate(ImplementationReadinessQuery query) {
@@ -131,6 +165,17 @@ public class ImplementationReadinessService implements ImplementationReadinessAp
                         throw failure(OWNER_DATA_CORRUPTED, "AST 当前项目设备事实不一致");
                     return new DeviceFact(device.deviceId(), device.sn(), device.projectAssignmentVersion());
                 }).sorted(Comparator.comparing(DeviceFact::deviceId)).toList();
+        var policyQuery = new ProjectBusinessContextApi.Query(query.tenantId(), actor(), query.projectId(), project.scopeVersion());
+        var requirements = lock ? projects.lockImplementationRequirements(
+                new ProjectBusinessContextApi.Revalidation(policyQuery, project.projectVersion())) : projects.implementationRequirements(policyQuery);
+        return context(new ContextRead(query, project.scopeVersion(), all, requirements, lock));
+    }
+
+    private record ContextRead(ImplementationReadinessQuery query, Long scopeVersion, List<DeviceFact> all,
+                               ProjectBusinessContextApi.ImplementationRequirements requirements, boolean lock) { }
+
+    private ImplementationReadinessContextFact context(ContextRead read) {
+        var query = read.query(); var all = read.all(); var requirements = read.requirements(); boolean lock = read.lock();
         var selected = query.expectedDevices().stream().map(expected -> {
             var fact = all.stream().filter(device -> Objects.equals(device.deviceId(), expected.deviceId())).findFirst()
                     .orElseThrow(() -> failure(INVALID_REQUEST, "设备已不属于当前项目"));
@@ -140,9 +185,6 @@ public class ImplementationReadinessService implements ImplementationReadinessAp
                 throw failure(INVALID_REQUEST, "设备范围版本已变化，请重新校验");
             return fact;
         }).toList();
-        var policyQuery = new ProjectBusinessContextApi.Query(query.tenantId(), actor(), query.projectId(), project.scopeVersion());
-        var requirements = lock ? projects.lockImplementationRequirements(
-                new ProjectBusinessContextApi.Revalidation(policyQuery, project.projectVersion())) : projects.implementationRequirements(policyQuery);
         if (requirements == null) throw failure(OWNER_DATA_CORRUPTED, "PROJ冻结实施前置不可用");
         var applicable = requirements.requiredSourceCodes().stream().map(SourceCode::valueOf)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
@@ -162,7 +204,7 @@ public class ImplementationReadinessService implements ImplementationReadinessAp
         var tested = !applicable.contains(SourceCode.EXE_04) ? List.<ImplementationReadinessRules.Record>of()
                 : sources.jointTests(owner).stream().map(row -> new ImplementationReadinessRules.Record(
                 row.getId(), row.getVersion(), row.getEquipmentId(), Integer.valueOf(2).equals(row.getStatus()))).toList();
-        return new ImplementationReadinessContextFact(project.scopeVersion(), selected,
+        return new ImplementationReadinessContextFact(read.scopeVersion(), selected,
                 new ApprovedPlanFact(plan.getId(), plan.getVersion()), List.of(
                 applicable.contains(SourceCode.EXE_01) ? arrival(query, all, lock) : notApplicable(SourceCode.EXE_01),
                 applicable.contains(SourceCode.EXE_02) ? ImplementationReadinessRules.milestone(SourceCode.EXE_02, installed, all) : notApplicable(SourceCode.EXE_02),

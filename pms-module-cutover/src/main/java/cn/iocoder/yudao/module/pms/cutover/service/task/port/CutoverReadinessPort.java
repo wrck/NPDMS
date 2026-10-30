@@ -12,6 +12,11 @@ public interface CutoverReadinessPort {
 
     ReadinessFact readSnapshot(SnapshotReference reference);
 
+    default ReadinessFact lockAndRevalidateForApproval(
+            cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query query) {
+        throw new SecurityException("当前审批重验服务未接入");
+    }
+
     @Builder
     record SnapshotReference(Long tenantId, Long projectId, Long snapshotId, Long snapshotVersion,
                              List<Long> deviceIds) { }

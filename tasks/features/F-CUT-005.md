@@ -15,6 +15,8 @@
 
 ## 当前最小工作单元
 
+- 2026-10-24本轮浏览器验收修复：项目74原研发终审暴露通用项目读取权限与角色共享审批冲突。需求方已批准Q-CUT-ROLE-FINAL-READINESS-20261024的受控内部重验；实现及失败验证限定当前审批实例、任务、项目、设备和精确快照，保留P5/P6门禁及三节点既有历史。进展与浏览器结果统一记录于`docs/generated/2026-10-23-five-template-browser-acceptance.md`，不据本轮局部修复改写总体Feature Done状态。
+
 - Feature Ready已在锁定提交`2e3fdba3`独立复审GO；唯一Technical Plan已在`912d0cdb`独立复审GO，Task 1～10均已独立GO。CUT受控正向闭环已完成；Task 11/12生产Owner支撑仍按依赖边界阻断，不因测试替身解除。
 - PROJ/SYSTEM生产候选Provider缺失不阻断受控替身规格与后续内核实现，但阻断生产完整装配、真实浏览器和Implementation Done。
 

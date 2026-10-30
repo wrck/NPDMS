@@ -19,6 +19,21 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ProjectBusinessContextApiImplTest {
+    @Test void internalReadinessLocksTreeWithoutGrantingGenericProjectScope() {
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(
+                new cn.iocoder.yudao.framework.security.core.LoginUser().setId(13L).setTenantId(7L), new org.springframework.mock.web.MockHttpServletRequest());
+        try {
+            when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(29L, 41L, Set.of(), Set.of()));
+            when(projects.selectByIdForUpdate(29L)).thenReturn(project);
+            var internal = new ProjectBusinessContextApi.ReadinessQuery(7L, 29L, 41L);
+            assertEquals(Set.of("EXE_01", "EXE_02", "EXE_03", "EXE_04"), service.lockCutoverReadinessRequirements(internal).requiredSourceCodes());
+            verify(scopes).lockAndRevalidate(argThat(value -> value.subjectUserId().equals(13L) && value.expectedScopeVersion().equals(41L)));
+            when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(29L, 41L, Set.of(), Set.of()));
+            assertThrows(ServiceException.class, () -> service.inspect(query));
+            when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(29L, 42L, Set.of(), Set.of()));
+            assertThrows(ServiceException.class, () -> service.lockCutoverReadinessRequirements(internal));
+        } finally { org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
+    }
     private final ProjectMasterMapper projects = mock(ProjectMasterMapper.class);
     private final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     private final ProjectMemberAssignmentMapper members = mock(ProjectMemberAssignmentMapper.class);

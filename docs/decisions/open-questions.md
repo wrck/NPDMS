@@ -3090,3 +3090,12 @@ P31性能收口：旧预览基线1280.963秒；A3首轮实际执行2058.91秒；
 - Resolution: 独立“阶段施工计划”菜单仅对super_admin、admin、engineeManager、engineeManagerLeader展示；多角色用户命中任一上述角色即可保留。项目经理、服务经理单独持有角色时隐藏入口。需求方同时要求检查隐藏入口对施工计划重排的影响。
 - Boundary: 菜单展示收敛不撤销既有施工计划query/create/update/submit权限，不移除路由，不改变项目详情内重新倒排的项目范围、草稿状态、日期校验和批准历史保护。仅给现有三个管理角色补齐独立页面及父目录的菜单初始化授权，不创建新角色或自动授予项目范围。
 - Evidence: 当前验收库原显式菜单角色为PROJECT_MANAGER/SERVICE_MANAGER，super_admin默认全菜单；三个管理角色原无该页面授权。实现及验证见docs/generated/2026-10-24-stage-plan-menu-visibility.md。
+
+## Q-CUT-ROLE-FINAL-READINESS-20261024 — 角色共享终审的内部就绪重验授权
+
+- Status: RESOLVED（2026-10-24，需求方选择“采用受控内部重验”）。
+- Evidence: 项目74原割接任务CUT-2113678637070770176在真实浏览器完成发起人、服务经理及二线审批后，当前合格研发角色账号提交终审，服务端403，业务码1011005603，“无权读取该项目就绪快照”。该决定未写入，原三节点通过历史保留。终审调用CutoverExecutionReadinessPolicy.requireCurrent，ImplementationReadinessService.readSnapshot仍以当前审批人的通用项目查看范围校验。
+- Existing contract: F-CUT-005当前角色共享审批不要求项目成员交集，只授予当前审批实例冻结资料及文件的临时只读范围；F-IMP-001要求CUT内部消费按受信租户、明确业务动作、项目/设备范围及快照版本校验，不能继承项目经理发起权限。现有内部就绪API尚未声明角色审批动作的受控重验授权。
+- Question: 是否允许在保留P5/P6就绪门禁的前提下，为当前合格审批节点提供仅绑定审批实例、项目、设备和精确快照的服务端内部重验，不授予审批人通用项目查看权、不返回实时Owner资料？
+- Resolution: 保留P5/P6就绪门禁；当前合格审批节点可在原决定事务内，对绑定本审批实例、任务、项目、设备及精确快照执行服务端内部重验。不得增加审批人的通用项目查看权限、继承发起人权限或向其返回实时Owner资料。租户、节点资格、版本、来源变化及设备归属校验继续失败关闭。
+- Current action: 内部契约、实现及70项相关测试已完成，固定清单ca889a29-5e21-474c-9649-a815474c7e4c已部署；74原研发节点与78研发节点、75二线终审均浏览器通过，原历史保留。五项目最终正常闭环，证据见docs/generated/2026-10-23-five-template-browser-acceptance.md。
