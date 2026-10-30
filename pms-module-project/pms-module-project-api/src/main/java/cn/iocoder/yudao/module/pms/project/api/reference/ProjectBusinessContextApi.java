@@ -44,7 +44,7 @@ public interface ProjectBusinessContextApi {
     record Context(Long tenantId, Long projectId, Long projectVersion, Long scopeVersion,
                    String projectCode, String projectName, Long customerId, String customerCode,
                    String customerName, Long departmentId, String departmentCode, String departmentName,
-                   String majorProjectLevel) {}
+                   String majorProjectLevel, String lifecycleStatus) {}
     record ServiceManagers(Long projectVersion, java.util.List<Long> userIds) {}
     @Builder
     record ActorQuery(Long tenantId, Long actorId) {}

@@ -87,20 +87,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="项目经理" prop="managerId">
-          <el-select
+          <UserSelect
             v-model="query.managerId"
             placeholder="全部"
             clearable
-            filterable
+
             class="!w-180px"
-          >
-            <el-option
-              v-for="item in managerOptions"
-              :key="item.id"
-              :label="item.nickname || item.username"
-              :value="item.id!"
-            />
-          </el-select>
+           />
         </el-form-item>
         <el-form-item>
           <el-button @click="handleSearch"><Icon icon="ep:search" />查询</el-button>
@@ -221,7 +214,8 @@
             >
               编辑
             </el-button>
-            <el-button link type="primary" v-hasPermi="['pms:project:update']"
+            <el-button
+link type="primary" v-hasPermi="['pms:project:update']"
               @click="customerCorrectionRef?.open(row)">更正客户</el-button>
             <el-button
               link
@@ -262,12 +256,13 @@
           <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="项目名称" prop="projectName">
-                <el-input :readonly="!!createForm.contractId" v-model="createForm.projectName" placeholder="某客户网络优化工程" />
+                <el-input v-model="createForm.projectName" placeholder="某客户网络优化工程" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="最终客户主档" prop="customerCode">
-                <PmsEntitySelect v-model="createForm.customerCode" :api="getSelectableCustomers"
+              <el-form-item label="客户主档" prop="customerCode">
+                <PmsEntitySelect
+v-model="createForm.customerCode" :api="getSelectableCustomers"
                   :label-field="['code', 'name']" value-field="code" query-field="keyword"
                   placeholder="按客户名称或编码选择" @change="selectCustomer" />
               </el-form-item>
@@ -281,14 +276,11 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="合同主档" prop="contractNo">
-                <PmsEntitySelect v-model="createForm.contractId" :api="getSelectableContracts"
-                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="id"
+                <PmsEntitySelect
+v-model="createForm.contractNo" :api="getSelectableContracts"
+                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="contractNo"
                   query-field="keyword" placeholder="按合同号选择" @change="selectContract" />
               </el-form-item>
-            </el-col>
-            <el-col v-if="createForm.contractId" :span="24">
-              <ProjectCreationSource :source="creationSource" :loading="creationSourceLoading" :error="sourceError"
-                :sales-order-id="createForm.salesOrderId" @select-order="selectSalesOrder" />
             </el-col>
           </el-row>
           <el-row :gutter="16">
@@ -921,8 +913,8 @@
 </template>
 
 <script setup lang="ts">
-import ProjectCreationSource from '@/views/pms/project/projects/ProjectCreationSource.vue'
-import { useProjectCreationSource } from '@/views/pms/project/projects/useProjectCreationSource'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreationTemplateMatch"
 /**
  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
@@ -946,7 +938,6 @@ import type {
 } from '@/api/pms/project/projects'
 import { getProjectTemplateRevision } from '@/api/pms/project/project-templates'
 import type { TemplateDefinitionContent } from '@/api/pms/project/project-templates'
-import * as UserApi from '@/api/system/user'
 import * as CompanyApi from '@/api/system/company'
 import type { CompanyVO } from '@/api/system/company'
 import * as DeptApi from '@/api/system/dept'
@@ -959,7 +950,7 @@ import CustomerCorrectionDialog from './CustomerCorrectionDialog.vue'
 import ProjectMembersPanel from '../members/ProjectMembersPanel.vue'
 import { matchCustomerSelectedTemplates, createCustomerSelectedProject, type CustomerSelectedProjectCreate } from '@/api/pms/project/customer-selected'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
-import { getSelectableContracts } from '@/views/pms/project/projects/contractSelection'
+import { getSelectableContracts, type SelectedContract } from '@/views/pms/project/projects/contractSelection'
 import ProjectStatusTag from '@/views/pms/project/projects/ProjectStatusTag.vue'
 import { closedProjectStatuses } from '@/views/pms/project/projects/projectStatus'
 
@@ -986,14 +977,6 @@ const query = reactive({
   implementationMode: '',
   managerId: undefined as number | undefined
 })
-const managerOptions = ref<UserApi.UserVO[]>([])
-const loadManagerOptions = async () => {
-  try {
-    managerOptions.value = (await UserApi.getSimpleUserList()) || []
-  } catch {
-    managerOptions.value = []
-  }
-}
 
 // ============ 顶部状态卡（生命周期阶段统计，逐阶段全展开） ============
 const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: string }[] = [
@@ -1108,9 +1091,6 @@ const createForm = reactive({
   customerCode: '',
   customerName: '',
   contractNo: '',
-  contractId: undefined as number | undefined,
-  salesOrderId: undefined as number | undefined,
-  sourceFingerprint: undefined as string | undefined,
   orderOfficeCompanyId: undefined as number | undefined,
   orderOfficeDepartmentId: undefined as number | undefined,
   locationMode: 'sites' as 'sites' | 'fallback',
@@ -1130,13 +1110,16 @@ const selectCustomer = (code: unknown, customer?: SelectedCustomer) => {
   createForm.customerName = customer && customer.code === code ? customer.name : ''
 }
 
-const { creationSource, creationSourceLoading, sourceError, sourceReady, selectContract, selectSalesOrder, resetSource } =
-  useProjectCreationSource(createForm, companies, departments)
+/** 选择合同主档后跟随合同带入客户主档信息；合同号即选择值本身。 */
+const selectContract = (no: unknown, contract?: SelectedContract) => {
+  if (!contract || contract.contractNo !== no) return
+  if (!contract.customerCode) return
+  createForm.customerCode = contract.customerCode
+  createForm.customerName = contract.customerName ?? contract.customerCode
+}
 
 const createRules = {
-  customerCode: [{ validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
-    callback(value?.trim() ? undefined : new Error('请选择最终客户主档'))
-  }, trigger: 'change' }],
+  customerCode: [{ required: true, message: '请选择客户主档', trigger: 'change' }],
   projectName: [{ required: true, message: '项目名称不能为空', trigger: 'blur' }],
   orderOfficeCompanyId: [{ required: true, message: '请选择下单公司', trigger: 'change' }],
   orderOfficeDepartmentId: [{ required: true, message: '请选择下单办事处', trigger: 'change' }],
@@ -1172,15 +1155,11 @@ const loadOrganizationAndSites = async () => {
 
 const openWizard = () => {
   wizardStep.value = 0
-  resetSource()
   Object.assign(createForm, {
     projectName: '',
     customerCode: '',
     customerName: '',
     contractNo: '',
-    contractId: undefined,
-    salesOrderId: undefined,
-    sourceFingerprint: undefined,
     orderOfficeCompanyId: undefined,
     orderOfficeDepartmentId: undefined,
     locationMode: 'sites',
@@ -1200,7 +1179,6 @@ const openWizard = () => {
 }
 
 const wizardNext0 = async () => {
-  if (!sourceReady.value) { message.error('请先选择关联销售订单并加载来源'); return }
   await wizardFormRef.value?.validate()
   if (createForm.locationMode === 'sites') {
     if (createForm.sites.some((item) => !item.siteId || item.siteVersion === undefined)) {
@@ -1221,9 +1199,6 @@ const wizardNext0 = async () => {
 
 // ============ 模板匹配（步骤②） ============
 const { matchLoading, matchResult, selectedTemplateRevisionId, runMatch } = useCreationTemplateMatch(() => ({
-  contractId: createForm.contractId,
-  salesOrderId: createForm.salesOrderId,
-  sourceFingerprint: createForm.sourceFingerprint,
   projectName: createForm.projectName,
   customerCode: createForm.customerCode || undefined,
   orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
@@ -1290,7 +1265,6 @@ const stageGates = (code: string) =>
 
 // ============ 提交创建（步骤③） ============
 const submitCreate = async () => {
-  if (!sourceReady.value) { message.error('请重新加载合同订单来源'); return }
   const sites: ProjectSiteReqVO[] | undefined =
     createForm.locationMode === 'sites'
       ? createForm.sites.map((item, index) => ({
@@ -1303,9 +1277,6 @@ const submitCreate = async () => {
     projectName: createForm.projectName,
     customerCode: createForm.customerCode,
     contractNo: createForm.contractNo || undefined,
-    contractId: createForm.contractId,
-    salesOrderId: createForm.salesOrderId,
-    sourceFingerprint: createForm.sourceFingerprint,
     orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
     orderOfficeDepartmentId: createForm.orderOfficeDepartmentId!,
     sites,
@@ -1399,7 +1370,7 @@ const loadUserNicknames = async (userIds: number[]) => {
   const missing = userIds.filter((id) => id && !userNicknames.value[id])
   if (!missing.length) return
   try {
-    const data = await UserApi.getUserPage({ pageNo: 1, pageSize: 100 })
+    const data = await systemUserSelection.page({ pageNo: 1, pageSize: 100 })
     const map: Record<number, string> = {}
     for (const u of data?.list || []) {
       if (u?.id != null) map[u.id] = u.nickname || u.username || ''
@@ -1472,7 +1443,7 @@ onMounted(() => {
   loadStats()
   load()
   loadOrganizationAndSites()
-  loadManagerOptions()
+
 })
 </script>
 

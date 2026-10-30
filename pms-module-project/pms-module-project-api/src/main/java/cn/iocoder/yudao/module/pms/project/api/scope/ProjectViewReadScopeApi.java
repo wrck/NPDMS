@@ -16,10 +16,20 @@ public interface ProjectViewReadScopeApi {
     enum Mode { TENANT_ADMIN, TREE_ADMIN, SCOPED }
 
     record Tree(Long rootProjectId, Long treeVersion) {}
+    record Organization(Long companyId, Long departmentId) {}
 
     record ReadScope(Long tenantId, Long subjectUserId, Mode mode,
-                     LocalDateTime effectiveAt, List<Tree> trees) {
-        public ReadScope { trees = List.copyOf(trees); }
+                     LocalDateTime effectiveAt, List<Tree> trees, List<Organization> organizations, Long officeReadonlyProjectId) {
+        public ReadScope {
+            trees = List.copyOf(trees);
+            organizations = List.copyOf(organizations);
+        }
+        public ReadScope(Long tenantId, Long subjectUserId, Mode mode, LocalDateTime effectiveAt, List<Tree> trees) {
+            this(tenantId, subjectUserId, mode, effectiveAt, trees, List.of(), null);
+        }
+        public ReadScope(Long tenantId, Long subjectUserId, Mode mode, LocalDateTime effectiveAt, List<Tree> trees, List<Organization> organizations) {
+            this(tenantId, subjectUserId, mode, effectiveAt, trees, organizations, null);
+        }
         public String creator() { return String.valueOf(subjectUserId); }
     }
 }

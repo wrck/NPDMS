@@ -56,6 +56,19 @@ public class ProjectOperationContextResolver {
     }
     private record FrozenNode(TemplateExecutionSnapshot.BindingContract binding, JsonNode execution) { }
 
+    /** Called by the controlled writer after the project/execution locks, before any Owner command. */
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void lockForWrite(Context context) {
+        if (context == null || !context.permitted() || context.reason() != null) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        if (!"TASK".equals(context.node().kind())) return;
+        var task = taskAccess.read(context.node().id(), context.tenantId(), context.actorId());
+        var subject = new TaskBusinessObjectProvider.Context(context.tenantId(), context.actorId(), context.project().getId(), task.getId(), null);
+        var planning = new TaskBusinessAccess.PlanningOperationQuery(task, context.project(), subject, context.binding());
+        if (!taskAccess.executableLocked(task, context.project(), subject)
+                && !taskAccess.planningOperationAllowed(planning) && !taskAccess.assignmentOperationAllowed(planning))
+            throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+    }
+
     public Context resolve(Long projectId, String kind, Long nodeId, ProjectBusinessExecutionSelection expected) {
         Long tenant = TenantContextHolder.getRequiredTenantId(), actor = SecurityFrameworkUtils.getLoginUserId();
         if (actor == null || actor <= 0 || projectId == null || projectId <= 0 || nodeId == null || nodeId <= 0
@@ -121,8 +134,12 @@ public class ProjectOperationContextResolver {
                 if (!Objects.equals(current.executionId(), round.getId()) || !Objects.equals(current.planVersionId(), plan.getId()))
                     return unavailable(tenant, actor, project, summary, "EXECUTION_CONTEXT_STALE");
                 selection = new ProjectBusinessExecutionSelection(current, null);
-                permitted = current.writable() && taskAccess.executable(task, project,
-                        new TaskBusinessObjectProvider.Context(tenant, actor, projectId, nodeId, null));
+                var subject = new TaskBusinessObjectProvider.Context(tenant, actor, projectId, nodeId, null);
+                permitted = current.writable() && (taskAccess.executable(task, project, subject)
+                        || taskAccess.planningOperationAllowed(new TaskBusinessAccess.PlanningOperationQuery(
+                            task, project, subject, matched.binding()))
+                        || taskAccess.assignmentOperationAllowed(new TaskBusinessAccess.PlanningOperationQuery(
+                            task, project, subject, matched.binding())));
             } else {
                 var current = executions.inspectStage(new ProjectStageExecutionQuery(projectId, nodeId, round.getContractId()));
                 if (!Objects.equals(current.executionId(), round.getId()) || !Objects.equals(current.planVersionId(), plan.getId()))

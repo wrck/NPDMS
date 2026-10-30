@@ -882,6 +882,22 @@ class ProjectManualCreationServiceImplTest {
     }
 
     @Test
+    void defaultListAndPrivateFiltersNeverAddOfficeOverviewProjects() {
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L,7L,"PROJECT_VIEW")).thenReturn(Set.of(100L));
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        var filters=pageReqVO(null,null,null,null,null,null,null);
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        var captured=ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertEquals(Set.of(100L),captured.getValue().getVisibleProjectIds());
+        org.mockito.Mockito.clearInvocations(projectMasterMapper);
+        filters.setContractNo("PRIVATE");
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertEquals(Set.of(100L),captured.getValue().getVisibleProjectIds());
+    }
+
+    @Test
     void projectDetailHidesProjectWhenViewScopeIsEmpty() {
         ProjectMasterDO current = persistedProject();
         when(projectMasterMapper.selectById(100L)).thenReturn(current);

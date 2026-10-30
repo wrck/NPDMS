@@ -205,6 +205,30 @@ class ProjectStageAdmissionServiceTest {
         verifyNoInteractions(stages, audit);
     }
 
+    @Test void submissionAfterCompletedRequiredTaskStillChecksFrozenPreconditionsWithoutReopening() {
+        add("DISCOVERY", null);
+        rows.getFirst().setStatus("DONE");
+        var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO()
+                .setId(21L).setProjectId(9L).setCode("WORK").setStageCode("DISCOVERY").setStatus("DONE");
+        var contract = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO();
+        contract.setSourceNodeKey("task:work");
+        var definition = new TemplateExecutionSnapshot.TaskContract(); definition.setNodeKey("task:work");
+        definition.setCode("WORK"); definition.setStageCode("DISCOVERY"); definition.setRequired(true);
+        definition.setAdmissionRuleKey("admit"); effective.setTasks(List.of(definition));
+        var query = new ProjectStageAdmissionService.TaskPrerequisiteQuery(project, task, contract);
+        for (boolean satisfied : List.of(false, true)) {
+            effective.getRulePrograms().put("admit", compiler.compile(JsonUtils.parseTree(
+                    "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":" + satisfied + "}}")));
+            assertEquals(satisfied ? RuleEvaluation.Outcome.MATCHED : RuleEvaluation.Outcome.NOT_MATCHED,
+                    service.submissionPrerequisites(query).outcome());
+            assertFalse(service.taskMayStart(project, task, contract));
+        }
+        effective.getRulePrograms().clear();
+        assertEquals(RuleEvaluation.Outcome.UNKNOWN, service.submissionPrerequisites(query).outcome());
+        assertEquals("DONE", task.getStatus()); assertEquals("DONE", rows.getFirst().getStatus());
+        verifyNoInteractions(stages, audit, executions);
+    }
+
     @Test void elapsedTimeWaitsForStageThenOrdinaryReevaluationAdmitsThroughNativeLiteFlow() {
         add("PREP", null);
         var task = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO()

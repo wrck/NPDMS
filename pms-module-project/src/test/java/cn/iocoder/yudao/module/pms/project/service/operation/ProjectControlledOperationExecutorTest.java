@@ -86,6 +86,15 @@ class ProjectControlledOperationExecutorTest {
         assertThrows(RuntimeException.class,() -> executor.execute(CODE,1,command,c -> { calls.incrementAndGet(); return result; }));
         assertEquals(0,calls.get()); verifyNoInteractions(sink);
     }
+    @Test void revokedExecutionAuthorityStopsBeforeOwnerCommandOrSuccessEvidence() {
+        doThrow(new IllegalStateException("TASK_EXECUTION_AUTHORITY_REVOKED")).when(contexts).lockForWrite(any());
+        AtomicInteger calls = new AtomicInteger();
+        assertThrows(IllegalStateException.class, () -> executor.execute(CODE,1,command,c -> {
+            calls.incrementAndGet(); return result;
+        }));
+        assertEquals(0,calls.get());
+        verifyNoInteractions(sink);
+    }
     @Test void postFailureProducesNoSuccessEventAndClearsScope() {
         when(rules.evaluate(contains(":POST"),any(),any(),any(),any())).thenReturn(new ProjectOperationRuleEvaluator.Evaluation("NOT_MATCHED",null));
         assertThrows(RuntimeException.class,() -> executor.execute(CODE,1,command,c -> result)); verifyNoInteractions(sink);

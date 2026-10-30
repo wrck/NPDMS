@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
+
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -46,6 +48,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 @Service
 @RequiredArgsConstructor
 public class ProjectTaskProgressService {
+    private final ProjectManagementQualificationApi managementAccess;
 
     private static final String EXECUTE_PERMISSION = "pms:project-task:execute";
     private static final BigDecimal DEFAULT_WEIGHT = BigDecimal.ONE;
@@ -194,11 +197,13 @@ public class ProjectTaskProgressService {
                 ProjectScopeApi.ACTION_EDIT, treeVersion.getTreeVersion()));
         var assignment = assignmentMapper.selectCurrentForUpdate(
                 new TaskAssignmentLockQuery(actor.tenantId(), task.getId()));
-        var memberships = assignment == null ? memberMapper.selectActiveByUserForUpdate(
+        var memberships = assignment == null ? memberMapper.selectAuthorizedByUserForUpdate(
                 new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberForUpdateQuery(
                         actor.tenantId(), project.getId(), actor.actorId(), LocalDateTime.now())) : List.<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO>of();
         if (!treeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId())
-                && !TaskExecutionPolicy.permits(project.getId(), actor.actorId(), assignment, memberships)) {
+                && !TaskExecutionPolicy.permits(project.getId(), actor.actorId(), assignment, memberships)
+                && !(assignment == null && (managementAccess.lockCurrent(new ProjectManagementQualificationApi.CurrentRevalidation(
+                    new ProjectManagementQualificationApi.Query(project.getTenantId(), project.getId(), actor.actorId()), project.getVersion(), "ACTIVE", null)) != null))) {
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         }
     }

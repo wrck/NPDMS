@@ -27,7 +27,8 @@ class ProjectAllScopeBatchTest {
     final ProjectTreeVersionMapper versions=mock(ProjectTreeVersionMapper.class);
     final AuthorizationGrantApi grants=mock(AuthorizationGrantApi.class);
     final PermissionApi permissions=mock(PermissionApi.class);
-    final ProjectTreeScopeService service=new ProjectTreeScopeService(projects,members,paths,versions,grants,permissions);
+    final ProjectOrganizationScopeService organizations=mock(ProjectOrganizationScopeService.class);
+    final ProjectTreeScopeService service=new ProjectTreeScopeService(projects,members,paths,versions,grants,permissions,organizations);
     final Map<Long,ProjectMasterDO> projectRows=new HashMap<>();
     final Map<Long,ProjectTreeVersionDO> versionRows=new HashMap<>();
     final List<ProjectTreePathDO> pathRows=new ArrayList<>();
@@ -53,7 +54,7 @@ class ProjectAllScopeBatchTest {
             CreatedProjectScopeQuery q=i.getArgument(0);
             return creators.stream().filter(id->q.candidateProjectIds()==null||q.candidateProjectIds().contains(id)).map(projectRows::get).toList();
         });
-        when(members.selectActiveByUser(any())).thenAnswer(i->List.copyOf(memberRows));
+        when(members.selectAuthorizedByUser(any())).thenAnswer(i->List.copyOf(memberRows));
         when(versions.selectLatestActive(any())).thenAnswer(i->versionRows.get(i.getArgument(0)));
         when(versions.selectLatestActiveBatch(any())).thenAnswer(i->{
             ActiveProjectTreeVersionsQuery q=i.getArgument(0);
@@ -88,7 +89,7 @@ class ProjectAllScopeBatchTest {
             clearInvocations(projects,members,versions,paths,grants);
             assertEquals(expected,service.resolveAllFullProjectIds(0L,9L,action));
             assertFalse(expected.contains(21L));assertFalse(expected.contains(31L));assertFalse(expected.contains(1L));assertFalse(expected.contains(10L));
-            verify(members,times(2)).selectActiveByUser(any());
+            verify(members,times(2)).selectAuthorizedByUser(any());
             verify(versions,times(2)).selectLatestActiveBatch(any());
             verify(paths).selectScopeRootPaths(any());verify(paths).selectScopeDescendants(any());
             verify(versions,never()).selectLatestActive(any());verify(projects,never()).selectById(any());
@@ -116,11 +117,22 @@ class ProjectAllScopeBatchTest {
 
     @Test void discoveryDoesNotFreezeRevokedMembershipOrCreatorRights() {
         grantRows.clear();creators.clear();
-        when(members.selectActiveByUser(any())).thenReturn(List.copyOf(memberRows),List.of());
+        when(members.selectAuthorizedByUser(any())).thenReturn(List.copyOf(memberRows),List.of());
         assertEquals(Set.of(),service.resolveAllFullProjectIds(0L,9L,"PROJECT_VIEW"));
         memberRows.clear();
-        when(members.selectActiveByUser(any())).thenReturn(List.of());
+        when(members.selectAuthorizedByUser(any())).thenReturn(List.of());
         when(projects.selectListCreatedBy(any())).thenReturn(List.of(projectRows.get(13L)),List.of());
+        assertEquals(Set.of(),service.resolveAllFullProjectIds(0L,9L,"PROJECT_VIEW"));
+    }
+
+    @Test void organizationDiscoveryIsRevalidatedAndOverviewIsNotReturnedAsFullAccess() {
+        memberRows.clear();grantRows.clear();creators.clear();
+        when(organizations.projectIds(any())).thenReturn(Set.of(4L),Set.of());
+        assertEquals(Set.of(),service.resolveAllFullProjectIds(0L,9L,"PROJECT_MANAGE"));
+        doAnswer(invocation -> {
+            ProjectOrganizationScopeService.Query q=invocation.getArgument(0);
+            return q.summaryOnly() ? Set.of(4L) : Set.of();
+        }).when(organizations).projectIds(any());
         assertEquals(Set.of(),service.resolveAllFullProjectIds(0L,9L,"PROJECT_VIEW"));
     }
 

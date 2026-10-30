@@ -65,7 +65,7 @@ public class ProjectBusinessContextApiImpl implements ProjectBusinessContextApi 
         var visible = Set.copyOf(scopes.resolveAllCurrent(new ProjectAllScopeQuery(
                 query.tenantId(), query.actorId(), ProjectScopeApi.ACTION_VIEW)));
         if (visible.isEmpty()) return new AccessScope(Set.of(), Set.of());
-        var managed = members.selectActiveByUser(new ActiveProjectMemberQuery(query.tenantId(), query.actorId(), LocalDateTime.now()))
+        var managed = members.selectAuthorizedByUser(new ActiveProjectMemberQuery(query.tenantId(), query.actorId(), LocalDateTime.now()))
                 .stream().filter(row -> visible.contains(row.getProjectId()))
                 .filter(row -> ProjectMemberRoles.isServiceManager(row.getMemberRole()))
                 .filter(row -> row.getAssignmentType() == null || "PRIMARY".equals(row.getAssignmentType()))
@@ -237,6 +237,7 @@ public class ProjectBusinessContextApiImpl implements ProjectBusinessContextApi 
                 .departmentId(project.getDepartmentId())
                 .departmentCode(project.getDepartmentCode())
                 .departmentName(project.getDepartmentName())
+                .lifecycleStatus(project.getLifecycleStatus())
                 .majorProjectLevel(project.getMajorProjectLevel()).build();
     }
 }

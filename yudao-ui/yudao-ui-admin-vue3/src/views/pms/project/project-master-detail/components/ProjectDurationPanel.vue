@@ -8,6 +8,7 @@
     </el-form>
   </ContentWrap>
   <ContentWrap>
+    <el-alert v-if="!loading && !canWrite" title="当前工期仅可查看。" type="info" :closable="false" class="status-alert" />
     <el-alert
       v-if="project.projectEndDate" type="info" :closable="false" class="status-alert"
       :title="`工勘要求的项目结束日期：${project.projectEndDate}；录入工期默认据此倒排开始日期，也可切换计算口径手工填写起止。`" />
@@ -146,7 +147,7 @@
   <ProjectDurationFormDrawer
     ref="formRef"
     :project="project"
-    :readonly="props.readonly"
+    :readonly="!canWrite"
     @saved="onSaved"
     @dirty-change="drawerDirty = $event"
   />
@@ -176,7 +177,8 @@ import { initialDurationHint } from './durationEntry'
 const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
 const emit = defineEmits<{ 'dirty-change': [value: boolean]; changed: [] }>()
 const validProject = computed(() => isBusinessViewId(props.project.id))
-const canWrite = computed(() => validProject.value && !props.readonly)
+const durationWritable = ref(false)
+const canWrite = computed(() => validProject.value && !props.readonly && durationWritable.value)
 const initialEntryHint = computed(() => initialDurationHint(props.project))
 const drawerDirty = ref(false)
 const errorText = ref('')
@@ -206,6 +208,7 @@ const load = async () => {
   const projectId = props.project.id!
   plan.value = null
   draft.value = undefined
+  durationWritable.value = false
   errorText.value = ''
   if (!validProject.value) {
     loading.value = false
@@ -213,8 +216,12 @@ const load = async () => {
   }
   loading.value = true
   try {
-    const current = await DurationApi.getByProjectId(projectId)
+    const [current, readiness] = await Promise.all([
+      DurationApi.getByProjectId(projectId),
+      DurationApi.getEntryReadiness(projectId).catch(() => ({ durationWritable: false, scheduleWritable: false }))
+    ])
     if (sequence !== loadSequence) return
+    durationWritable.value = readiness.durationWritable
     let currentDraft: ConstructionPlanChangeVO | undefined
     if (current) {
       const page = await DurationApi.getChanges(current.planId, { pageSize: 20 })

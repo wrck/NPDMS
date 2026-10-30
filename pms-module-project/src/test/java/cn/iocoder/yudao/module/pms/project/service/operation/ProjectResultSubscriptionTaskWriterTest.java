@@ -80,7 +80,7 @@ class ProjectResultSubscriptionTaskWriterTest {
         });
         var service=new ProjectTaskLifecycleService(tasks,contracts,mock(ProjectTaskAssignmentMapper.class),mock(ProjectMemberAssignmentMapper.class),evaluations,transitions,
             mock(TaskNativeBindingHostProvider.class),commands,mock(OperationAuditApi.class),mock(ProjectTaskProgressService.class),mock(PermissionApi.class),
-            mock(AcceptanceActivityCompletionFactApi.class),mock(ProjectScopeApi.class),f.recovery.proxy(planService),mock(TaskBusinessBindingHostProvider.class),mock(ProjectTreeScopeService.class));
+            mock(AcceptanceActivityCompletionFactApi.class),mock(ProjectScopeApi.class),f.recovery.proxy(planService),mock(TaskBusinessBindingHostProvider.class),mock(ProjectTreeScopeService.class), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class));
         ReflectionTestUtils.setField(service,"nodeExecutions",f.recovery.rounds);ReflectionTestUtils.setField(service,"timers",mock(ProjectRuleTimerScheduler.class));
         writer=f.recovery.proxy(service);
     }

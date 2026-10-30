@@ -444,7 +444,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                 effectiveAt);
         visibleProjectIds = filterShipmentProjects(visibleProjectIds, actor.tenantId(), pageReqVO.getHasShippedDevices());
         visibleProjectIds = intersectDeviceProjects(visibleProjectIds, actor.tenantId(), pageReqVO);
-        return projectMasterMapper.selectPage(VisibleProjectPageQuery.builder()
+        var page = projectMasterMapper.selectPage(VisibleProjectPageQuery.builder()
                 .tenantId(actor.tenantId())
                 .visibleProjectIds(visibleProjectIds)
                 .pageParam(pageReqVO)
@@ -469,6 +469,8 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                 .refreshTimeStart(pageReqVO.getRefreshTimeStart())
                 .refreshTimeEnd(pageReqVO.getRefreshTimeEnd())
                 .build());
+        page.getList().forEach(project -> project.setVisibility("FULL"));
+        return page;
     }
 
     /** 成员类筛选解析：按有效时点取该用户的成员项目并按角色过滤，无筛选或无命中返回原范围（命中空集则交集为空）。 */

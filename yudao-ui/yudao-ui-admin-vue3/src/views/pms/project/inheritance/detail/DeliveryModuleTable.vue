@@ -5,6 +5,7 @@
         <Icon :icon="config.icon" /> {{ config.label }}
       </span>
       <div class="panel-header-actions">
+        <slot name="header-actions"></slot>
         <el-button v-if="config.create" type="primary" size="small" @click="openCreate">
           <Icon icon="ep:plus" /> 新增
         </el-button>

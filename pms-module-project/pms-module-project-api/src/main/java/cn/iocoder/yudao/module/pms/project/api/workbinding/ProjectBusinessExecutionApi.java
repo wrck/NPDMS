@@ -8,6 +8,9 @@ public interface ProjectBusinessExecutionApi {
     /** Owner supplies its own identity; this does not replace its functional permission or data-scope checks. */
     void lockForWrite(WriteRequest request);
 
+    /** Read-only entry hint; never authorizes a write or starts a node execution. */
+    boolean inspectForWrite(WriteRequest request);
+
     record WriteRequest(Long projectId, String ownerContext, String objectType, ProjectBusinessExecutionSelection selection,
                         String operationCode, Integer operationVersion, String objectId,
                         ProjectOwnerOperationScope.Proof ownerProof) {

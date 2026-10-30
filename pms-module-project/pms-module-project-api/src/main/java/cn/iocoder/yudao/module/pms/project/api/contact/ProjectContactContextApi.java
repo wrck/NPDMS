@@ -2,6 +2,9 @@ package cn.iocoder.yudao.module.pms.project.api.contact;
 
 /** PROJ supplies customer affiliation and current contact-maintenance authority to CUS. */
 public interface ProjectContactContextApi {
+    /** 既有PROJECT_CUSTOMER_UNAVAILABLE稳定业务码；不表示项目VIEW本身被授予。 */
+    int CUSTOMER_UNAVAILABLE = 1_014_001_003;
+
     Context inspect(Query query);
     /** Locks project scope/identity until the caller's transaction ends. */
     Context lockForWrite(WriteQuery query);

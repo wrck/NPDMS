@@ -1,7 +1,7 @@
 <template>
   <ContentWrap class="rail-band">
     <div v-if="sortedStages.length" class="rail-scroll">
-      <div class="rail" role="tablist" aria-label="项目阶段推进轨">
+      <div class="rail" :class="{ 'rail--compact': !hasGateLabels }" role="tablist" aria-label="项目阶段推进轨">
         <template v-for="(stage, index) in sortedStages" :key="stage.stageCode">
           <button
             class="station"
@@ -88,6 +88,10 @@ const gateLabel = (stageCode: string) =>
     .filter((gate) => gate.stageCode === stageCode && gate.gateType !== 'ENTRY')
     .map((gate) => gate.name)
     .join(' · ')
+
+const hasGateLabels = computed(() =>
+  sortedStages.value.slice(0, -1).some((stage) => gateLabel(stage.stageCode).trim())
+)
 </script>
 
 <style scoped lang="scss">
@@ -105,6 +109,10 @@ const gateLabel = (stageCode: string) =>
   align-items: flex-start;
   min-width: 860px;
   padding-bottom: 20px;
+
+  &--compact {
+    padding-bottom: 0;
+  }
 }
 
 .station {

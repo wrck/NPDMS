@@ -83,7 +83,7 @@ class ProjectBusinessQueryScopeTest {
         var visible = LongStream.rangeClosed(1, 6687).boxed().collect(Collectors.toSet());
         when(scopes.resolveAllCurrent(ALL_SCOPE)).thenReturn(visible);
         var startedAt = LocalDateTime.now();
-        when(members.selectActiveByUser(any(ActiveProjectMemberQuery.class))).thenAnswer(call -> {
+        when(members.selectAuthorizedByUser(any(ActiveProjectMemberQuery.class))).thenAnswer(call -> {
             ActiveProjectMemberQuery query = call.getArgument(0);
             assertEquals(TENANT_ID, query.tenantId());
             assertEquals(ACTOR_ID, query.userId());
@@ -99,7 +99,7 @@ class ProjectBusinessQueryScopeTest {
         assertEquals(visible, result.visibleProjectIds());
         assertEquals(Set.of(6687L), result.serviceManagedProjectIds());
         verify(scopes).resolveAllCurrent(ALL_SCOPE);
-        verify(members).selectActiveByUser(any(ActiveProjectMemberQuery.class));
+        verify(members).selectAuthorizedByUser(any(ActiveProjectMemberQuery.class));
         verifyNoMoreInteractions(scopes, members);
         verifyNoInteractions(projects);
         verifyNoPerProjectAuthorization();
@@ -110,7 +110,7 @@ class ProjectBusinessQueryScopeTest {
         var visible = Set.of(21L, 22L, 23L, 24L, 25L, 26L, 27L);
         when(scopes.resolveAllCurrent(ALL_SCOPE)).thenReturn(visible);
         // selectActiveByUser supplies the active interval facts; SQL interval filtering is tested separately.
-        when(members.selectActiveByUser(any(ActiveProjectMemberQuery.class))).thenAnswer(call -> {
+        when(members.selectAuthorizedByUser(any(ActiveProjectMemberQuery.class))).thenAnswer(call -> {
             ActiveProjectMemberQuery query = call.getArgument(0);
             assertEquals(TENANT_ID, query.tenantId());
             assertEquals(ACTOR_ID, query.userId());
@@ -130,7 +130,7 @@ class ProjectBusinessQueryScopeTest {
                 service.currentActorScope(ACTOR));
 
         verify(scopes).resolveAllCurrent(ALL_SCOPE);
-        verify(members).selectActiveByUser(any(ActiveProjectMemberQuery.class));
+        verify(members).selectAuthorizedByUser(any(ActiveProjectMemberQuery.class));
         verifyNoMoreInteractions(scopes, members);
         verifyNoInteractions(projects);
         verifyNoPerProjectAuthorization();

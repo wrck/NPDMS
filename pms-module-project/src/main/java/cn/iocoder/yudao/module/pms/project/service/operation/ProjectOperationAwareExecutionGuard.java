@@ -23,6 +23,10 @@ public class ProjectOperationAwareExecutionGuard implements ProjectBusinessExecu
     private final ProjectNodeExecutionApi executions;
     private final ProjectIndependentOperationAdmission independent;
     @Override
+    public boolean inspectForWrite(WriteRequest request) {
+        return legacy.getObject().inspectForWrite(request);
+    }
+    @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void lockForWrite(WriteRequest request) {
         var frame = ProjectVerifiedOperationScope.current();

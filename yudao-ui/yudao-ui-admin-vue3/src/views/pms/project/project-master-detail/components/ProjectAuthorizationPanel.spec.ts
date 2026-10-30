@@ -17,7 +17,7 @@ describe('F-PROJ-003 project authorization panel', () => {
 
   it('reuses Yudao and Element Plus components under permission controls', () => {
     expect(panel).toContain('UserSelect')
-    expect(panel).toContain('UserApi.getSimpleUserList()')
+    expect(panel).toContain('systemUserSelection.active()')
     expect(panel).not.toContain('UserSelectV2')
     expect(panel).not.toContain('UserApi.getUserList(')
     expect(panel).toContain('<dict-tag')

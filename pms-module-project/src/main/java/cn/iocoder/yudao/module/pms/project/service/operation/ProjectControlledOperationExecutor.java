@@ -83,6 +83,7 @@ public class ProjectControlledOperationExecutor {
         if (selected.size() != 1) throw exception(BAD_REQUEST, "OPERATION_NOT_BOUND");
         if (request.execution().task() != null) executions.lockAndRevalidate(request.execution().task());
         else executions.lockAndRevalidateStage(request.execution().stage());
+        contexts.lockForWrite(context);
         var providers = accessProviders.stream().filter(p -> descriptor.ownerContext().equals(p.ownerContext())
                 && descriptor.objectType().equals(p.objectType())).toList();
         if (providers.size() != 1) throw exception(BAD_REQUEST, "OWNER_OPERATION_PROVIDER_NOT_UNIQUE");

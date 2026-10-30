@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
+
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
@@ -35,6 +37,7 @@ public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider 
     private final TaskStateMachineMapper stateMachineMapper;
     private final ProjectScopeApi scopeApi;
     private final PermissionApi permissionApi;
+    private final ProjectManagementQualificationApi managementAccess;
 
     @Override public String bindingType() { return "BUSINESS_OBJECT"; }
     @Override public Set<String> bindingTypes() { return TYPES; }
@@ -68,10 +71,11 @@ public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider 
                 && permissionApi.hasAnyRoles(query.actorId(), cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode());
         var assignment = assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(query.tenantId(),
                 Set.of(task.getId()))).stream().findFirst().orElse(null);
-        var memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(query.tenantId(), query.actorId(), LocalDateTime.now()));
+        var memberships = memberMapper.selectAuthorizedByUser(new ActiveProjectMemberQuery(query.tenantId(), query.actorId(), LocalDateTime.now()));
         boolean assignee = superAdmin || TaskExecutionPolicy.permits(task.getProjectId(), query.actorId(), assignment, memberships);
-        boolean manager = superAdmin || memberships.stream().anyMatch(row ->
-                Objects.equals(task.getProjectId(), row.getProjectId()) && "PROJECT_MANAGER".equals(row.getMemberRole()));
+        boolean manager = superAdmin || managementAccess.permits(new ProjectManagementQualificationApi.Query(
+                    query.tenantId(), task.getProjectId(), query.actorId()));
+        assignee = assignee || assignment == null && manager;
         Set<String> allowed = new HashSet<>();
         for (var transition : transitions) {
             String action = transition.getActionCode();

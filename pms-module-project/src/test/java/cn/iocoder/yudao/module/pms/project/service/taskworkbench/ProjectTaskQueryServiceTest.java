@@ -43,6 +43,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectTaskQueryServiceTest {
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi management = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
 
     @Mock ProjectMasterMapper projectMapper;
     @Mock ProjectTreeVersionMapper projectTreeVersionMapper;
@@ -65,7 +66,7 @@ class ProjectTaskQueryServiceTest {
         service = new ProjectTaskQueryService(projectMapper, projectTreeVersionMapper,
                 projectTreeScopeService, memberMapper, stageMapper, taskMapper, assignmentMapper,
                 contractMapper, bindingRegistry, subscriptionObservations,
-                deliverableInitializationApplicationService, permissionApi);
+                deliverableInitializationApplicationService, permissionApi, org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectOrganizationScopeService.class), management);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "plans", plans);
     }
 
@@ -384,6 +385,7 @@ class ProjectTaskQueryServiceTest {
     }
 
     private void stubProjectScope(boolean manager) {
+        org.mockito.Mockito.lenient().when(management.permits(any())).thenReturn(manager);
         stubProjectRecord();
         when(projectTreeScopeService.resolve(any())).thenReturn(new ProjectTreeScopeService.ProjectTreeScope(
                 100L, 7L, Set.of(100L), Set.of(), Set.of()));
@@ -391,9 +393,9 @@ class ProjectTaskQueryServiceTest {
             ProjectMemberAssignmentDO membership = new ProjectMemberAssignmentDO();
             membership.setProjectId(100L);
             membership.setMemberRole("PROJECT_MANAGER");
-            when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(membership));
+            when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(membership));
         } else {
-            when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
+            when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of());
         }
     }
 
@@ -459,7 +461,7 @@ class ProjectTaskQueryServiceTest {
                     response.getAllowedActions().contains("START"));
             assertTrue(response.getAllowedActions().contains("CANCEL"));
         }
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of());
         when(taskMapper.selectFullTaskIds(any())).thenReturn(List.of(11L));
         when(admission.previewTaskAdmission(any(), any(), any())).thenReturn(
                 new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionView(
@@ -499,7 +501,7 @@ class ProjectTaskQueryServiceTest {
                     response.getAllowedActions().contains("START"));
             assertTrue(response.getAllowedActions().contains("CANCEL"));
         }
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of());
         when(taskMapper.selectFullTaskIds(any())).thenReturn(List.of(11L));
         assertTrue(service.getWorkbench(11L, actor()).getStartAdmission().conditions().isEmpty());
     }

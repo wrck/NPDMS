@@ -99,7 +99,7 @@ public class ProjectTaskMaintenanceService {
         return execute(command.taskId(), command.version(), command.key(), "PROJECT_TASK_" + command.role(), command, actor, () -> {
             var locked = lockTask(command.taskId(), command.version(), actor);
             var task = locked.task(); var project = locked.project();
-            assignmentSupport.requireAssignmentActor(project, actor);
+            assignmentSupport.requireAssignmentActor(new ProjectTaskAssignmentService.AssignmentActorQuery(project, actor, true));
             if (!"PENDING_ASSIGN".equals(task.getStatus()) && !assignmentSupport.isKnownNonTerminalStatus(task, actor.tenantId())) throw exception(PROJECT_TASK_COMMAND_INVALID);
             if (activeMembers(task.getProjectId(), actor).stream().noneMatch(user -> user.getId().equals(command.userId()))) throw exception(PROJECT_TASK_COMMAND_INVALID);
             var now = LocalDateTime.now();

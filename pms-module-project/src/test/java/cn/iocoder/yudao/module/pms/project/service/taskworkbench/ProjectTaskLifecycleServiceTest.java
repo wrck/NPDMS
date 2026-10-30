@@ -48,6 +48,7 @@ import static org.mockito.ArgumentMatchers.eq;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectTaskLifecycleServiceTest {
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi regional = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
     private final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService stageAdmission =
             org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.class);
 
@@ -77,7 +78,7 @@ class ProjectTaskLifecycleServiceTest {
         service = new ProjectTaskLifecycleService(taskMapper, contractMapper, assignmentMapper, memberMapper,
                 evaluationMapper,
                 stateMachineMapper, nativeProvider, commandExecutionApi, operationAuditApi, progressService,
-                permissionApi, acceptanceActivityCompletionFactApi, projectScopeApi, businessEvaluator, businessProvider, treeScopes);
+                permissionApi, acceptanceActivityCompletionFactApi, projectScopeApi, businessEvaluator, businessProvider, treeScopes, regional);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "stageAdmissionService", stageAdmission);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "timers", org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "taskApprovals", taskApprovals);
@@ -232,7 +233,7 @@ class ProjectTaskLifecycleServiceTest {
         org.mockito.Mockito.reset(assignmentMapper);
         when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
         assertEquals("IN_PROGRESS", service.act(command("start", 3, null, null), actor()).status());
-        verify(memberMapper, never()).selectActiveByUserForUpdate(any());
+        verify(memberMapper, never()).selectAuthorizedByUserForUpdate(any());
         verify(assignmentMapper, never()).insertAssignment(any());
     }
 
@@ -241,7 +242,7 @@ class ProjectTaskLifecycleServiceTest {
         allowAction("PENDING_ASSIGN", "START", "IN_PROGRESS");
         when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(null);
         var member = new ProjectMemberAssignmentDO(); member.setProjectId(100L); member.setMemberRole("TEAM_MEMBER");
-        when(memberMapper.selectActiveByUserForUpdate(any())).thenReturn(java.util.List.of(member));
+        when(memberMapper.selectAuthorizedByUserForUpdate(any())).thenReturn(java.util.List.of(member));
         when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
         assertEquals("IN_PROGRESS",service.act(command("start",3,null,null),actor()).status());
         verify(stateMachineMapper).requireTransition(org.mockito.ArgumentMatchers.argThat(q ->
@@ -251,6 +252,22 @@ class ProjectTaskLifecycleServiceTest {
         assertEquals("PENDING_ASSIGN", update.getValue().expectedStatus());
         assertTrue(successFacts.detailSnapshot().contains("\"transitionFromStatus\":\"PENDING_START\""));
         verify(assignmentMapper,never()).insertAssignment(any());
+    }
+
+    @Test void regionalStartRequiresLockedAuthorityAndStillHonorsDesignation() {
+        allowAction("PENDING_START", "START", "IN_PROGRESS");
+        when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(null);
+        when(memberMapper.selectAuthorizedByUserForUpdate(any())).thenReturn(java.util.List.of());
+        assertThrows(RuntimeException.class, () -> service.act(command("start",3,null,null),actor()));
+        verify(taskMapper,never()).updateLifecycleIfMatch(any());
+        when(regional.lockCurrent(any())).thenAnswer(call -> cn.iocoder.yudao.module.pms.project.api.participant.ManagementQualificationTestFacts.locked(call.getArgument(0)));
+        when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);
+        assertEquals("IN_PROGRESS",service.act(command("start",3,null,null),actor()).status());
+        var assignment = new ProjectTaskAssignmentDO(); assignment.setAssigneeUserId(22L);
+        when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(assignment);
+        assertThrows(RuntimeException.class, () -> service.act(command("start",3,null,null),actor()));
+        verify(regional,org.mockito.Mockito.times(2)).lockCurrent(any());
+        verify(taskMapper,org.mockito.Mockito.times(1)).updateLifecycleIfMatch(any());
     }
 
     @Test void directStartFailsIfFrozenStartDefinitionIsMissing() {
@@ -280,7 +297,7 @@ class ProjectTaskLifecycleServiceTest {
         var assignment = new ProjectTaskAssignmentDO(); assignment.setAssigneeUserId(22L);
         when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(assignment);
         var member = new ProjectMemberAssignmentDO(); member.setProjectId(100L); member.setMemberRole("PROJECT_MANAGER");
-        when(memberMapper.selectActiveByUserForUpdate(any())).thenReturn(java.util.List.of(member));
+        when(memberMapper.selectAuthorizedByUserForUpdate(any())).thenReturn(java.util.List.of(member));
         assertThrows(RuntimeException.class,()->service.act(command("start",3,null,null),actor()));
         verify(taskMapper, never()).updateLifecycleIfMatch(any());
     }
@@ -294,7 +311,7 @@ class ProjectTaskLifecycleServiceTest {
         when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
         assertEquals("PENDING_ACCEPT", service.act(businessCommand(), actor()).status());
         verify(taskMapper, never()).updateLifecycleIfMatch(any());
-        verify(memberMapper, never()).selectActiveByUserForUpdate(any());
+        verify(memberMapper, never()).selectAuthorizedByUserForUpdate(any());
     }
 
     @Test
@@ -356,7 +373,7 @@ class ProjectTaskLifecycleServiceTest {
     @Test
     void completeRejectsWhenLockedCurrentProjectManagerMembershipIsGone() {
         allowAction("PENDING_ACCEPT", "COMPLETE", "DONE");
-        when(memberMapper.selectActiveByUserForUpdate(any())).thenReturn(java.util.List.of());
+        org.mockito.Mockito.doReturn(null).when(regional).lockCurrent(any());
 
         assertThrows(RuntimeException.class, () -> service.act(command("complete", 3, 91L, 2), actor()));
 
@@ -431,7 +448,7 @@ class ProjectTaskLifecycleServiceTest {
     @Test
     void acceptanceCompletionAllowsCurrentAssigneeWithManageScope() {
         allowAcceptanceAction();
-        when(memberMapper.selectActiveByUserForUpdate(any())).thenReturn(java.util.List.of());
+        org.mockito.Mockito.doReturn(null).when(regional).lockCurrent(any());
         ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();
         assignment.setAssigneeUserId(9L);
         when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(assignment);
@@ -814,7 +831,7 @@ class ProjectTaskLifecycleServiceTest {
         } else {
             ProjectMemberAssignmentDO member = new ProjectMemberAssignmentDO();
             member.setMemberRole("PROJECT_MANAGER");
-            lenient().when(memberMapper.selectActiveByUserForUpdate(any())).thenReturn(java.util.List.of(member));
+            lenient().when(regional.lockCurrent(any())).thenAnswer(call -> cn.iocoder.yudao.module.pms.project.api.participant.ManagementQualificationTestFacts.locked(call.getArgument(0)));
         }
         when(commandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
             Supplier<TaskCommandResult> operation = invocation.getArgument(3);

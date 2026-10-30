@@ -31,6 +31,10 @@
                     FROM proj_project p
                     WHERE p.tenant_id = #{query.tenantId} AND p.deleted = b'0'
                 </when>
+                <when test="query.readScope.projectScope != null and query.readScope.projectScope.tenantId == query.tenantId and query.readScope.projectScope.officeReadonlyProjectId != null">
+                    SELECT DISTINCT n.project_id FROM project_scope_nodes n
+                    WHERE n.project_id = #{query.readScope.projectScope.officeReadonlyProjectId}
+                </when>
                 <when test="query.readScope.projectScope != null and query.readScope.projectScope.tenantId == query.tenantId and !query.readScope.projectScope.trees.isEmpty()">
                     SELECT DISTINCT n.project_id
                     FROM project_scope_nodes n
@@ -43,6 +47,20 @@
                               AND m.status = 'ACTIVE' AND m.authorization_confirmed = b'1'
                               AND (m.effective_from IS NULL OR m.effective_from &lt;= #{query.readScope.projectScope.effectiveAt})
                               AND (m.effective_to IS NULL OR m.effective_to &gt; #{query.readScope.projectScope.effectiveAt})
+                        ) OR EXISTS (
+                            SELECT 1 FROM proj_project p
+                            WHERE p.tenant_id = #{query.tenantId} AND p.deleted = b'0' AND p.id = n.project_id
+                            <choose>
+                                <when test="!query.readScope.projectScope.organizations.isEmpty()">
+                                    AND (
+                                    <foreach collection="query.readScope.projectScope.organizations" item="scope" separator=" OR ">
+                                        (p.company_id=#{scope.companyId}
+                                        <if test="scope.departmentId != null">AND p.department_id=#{scope.departmentId}</if>)
+                                    </foreach>
+                                    )
+                                </when>
+                                <otherwise>AND 1=0</otherwise>
+                            </choose>
                         ) OR EXISTS (
                             SELECT 1 FROM proj_project p
                             WHERE p.tenant_id = #{query.tenantId} AND p.deleted = b'0'

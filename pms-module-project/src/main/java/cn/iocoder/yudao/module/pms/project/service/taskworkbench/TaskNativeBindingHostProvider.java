@@ -1,4 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
+
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
@@ -38,7 +40,6 @@ import java.util.Set;
 public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
 
     private static final String BINDING_TYPE = "TASK_NATIVE";
-    private static final Set<String> MANAGER_ROLES = ProjectMemberRoles.MANAGEMENT_CODES;
     private static final Map<String, String> ACTION_PERMISSIONS = Map.of(
             "ASSIGN", "pms:project-task:assign",
             "START", "pms:project-task:execute",
@@ -57,6 +58,7 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
     private final ProjectMasterMapper projectMapper;
     private final ProjectTreeVersionMapper projectTreeVersionMapper;
     private final ProjectTreeScopeService projectTreeScopeService;
+    private final ProjectManagementQualificationApi managementAccess;
 
     @Override
     public String bindingType() {
@@ -145,21 +147,18 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
                     "CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER"));
             return roles;
         }
-        List<ProjectMemberAssignmentDO> memberships = memberMapper.selectActiveByUser(
+        List<ProjectMemberAssignmentDO> memberships = memberMapper.selectAuthorizedByUser(
                 new ActiveProjectMemberQuery(query.tenantId(), query.actorId(), LocalDateTime.now()));
         if (TaskExecutionPolicy.permits(task.getProjectId(), query.actorId(), assignment, memberships)) {
             roles.add("CURRENT_EFFECTIVE_ASSIGNEE");
         }
-        boolean projectManager = memberships.stream()
-                .anyMatch(item -> Objects.equals(item.getProjectId(), task.getProjectId())
-                        && "PROJECT_MANAGER".equals(item.getMemberRole()));
-        boolean manager = memberships.stream()
-                .anyMatch(item -> Objects.equals(item.getProjectId(), task.getProjectId())
-                        && MANAGER_ROLES.contains(item.getMemberRole()));
+        boolean manager = managementAccess.permits(new ProjectManagementQualificationApi.Query(
+                    query.tenantId(), task.getProjectId(), query.actorId()));
+        if (assignment == null && manager) roles.add("CURRENT_EFFECTIVE_ASSIGNEE");
         if (manager && hasManageScope(task, query)) {
             roles.add("CURRENT_PROJECT_MANAGER_OR_AUTHORIZED_SERVICE_MANAGER_FOR_CROSS_REGION");
         }
-        if (projectManager && hasManageScope(task, query)) {
+        if (manager && hasManageScope(task, query)) {
             roles.add("CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER");
         }
         return roles;

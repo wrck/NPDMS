@@ -1,10 +1,10 @@
 package cn.iocoder.yudao.module.pms.project.service.stagegate;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
+
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
@@ -21,7 +21,6 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.Proj
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.ProjectStageSnapshotMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectStageSnapshotSequenceQuery;
@@ -33,7 +32,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageI
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectExitGateForUpdateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGateReferenceForUpdateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGateStatusUpdate;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectParticipantFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageAdvanceUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStagePairForUpdateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate;
@@ -76,12 +74,10 @@ public class ProjectStageAdvanceApplicationService {
     public static final String START_PROCESS_SCOPE =
             "POST:/api/v1/pms/projects/{id}/stage-gates/{gateReferenceId}/actions/start-process";
     private static final String ACTIVE = "ACTIVE";
-    private static final String PROJECT_MANAGER = "PROJECT_MANAGER";
 
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
-    private final ProjectParticipantFactApi participantFactApi;
     private final ProjectStageGateProcessOwnerApi processOwnerApi;
     private final ProjectStageGateProviderRegistry providerRegistry;
     private final ProjectMasterMapper projectMapper;
@@ -93,6 +89,7 @@ public class ProjectStageAdvanceApplicationService {
     private final ProjectStageSnapshotRepository snapshotRepository;
     private final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphResolver runtimeGraphResolver;
     private final ProjectStageGateProcessContextResolver processContexts;
+    private final ProjectManagementQualificationApi managementAccess;
 
     @Transactional(rollbackFor = Exception.class)
     public List<ProjectStageGateProcessDefinitionFact> listDefinitions(
@@ -310,24 +307,15 @@ public class ProjectStageAdvanceApplicationService {
         if (!scope.fullProjectIds().contains(project.getId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         if (permissionApi.hasAnyRoles(actor.actorUserId(),
                 cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return;
-        try {
-            participantFactApi.inspect(new ProjectParticipantFactQuery(project.getId(), actor.actorUserId(),
-                    Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), LocalDateTime.now()));
-        } catch (RuntimeException ex) {
+        if (!managementAccess.permits(new ProjectManagementQualificationApi.Query(project.getTenantId(), project.getId(), actor.actorUserId())))
             throw exception(PROJECT_STAGE_ACTION_FORBIDDEN);
-        }
     }
 
     private void requireCurrentManager(ProjectMasterDO project, Actor actor) {
         if (permissionApi.hasAnyRoles(actor.actorUserId(),
                 cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return;
-        List<ProjectMemberAssignmentDO> managers = memberMapper.selectParticipantFactsForUpdate(
-                ProjectParticipantFactLockQuery.builder()
-                .tenantId(actor.tenantId())
-                .projectId(project.getId())
-                .userId(actor.actorUserId())
-                .requiredRoleCodes(Set.of(PROJECT_MANAGER)).build());
-        if (managers.size() != 1) throw exception(PROJECT_STAGE_ACTION_FORBIDDEN);
+        if (!(managementAccess.lockCurrent(new ProjectManagementQualificationApi.CurrentRevalidation(new ProjectManagementQualificationApi.Query(project.getTenantId(), project.getId(), actor.actorUserId()), project.getVersion(), "ACTIVE", null)) != null))
+            throw exception(PROJECT_STAGE_ACTION_FORBIDDEN);
     }
 
     private ProjectStageGateFactQuery factQuery(LockedContext context, GateReferenceContext item) {

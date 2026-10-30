@@ -28,6 +28,22 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class ProjectSelectionController {
     private final ProjectSelectionQueryService queries;
 
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi activeUserSelectionApi;
+
+    @GetMapping("/member-filter-options")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<cn.iocoder.yudao.framework.common.pojo.PageResult<cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.MemberOption>> memberFilterOptions(
+            @Valid cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMemberFilterPageReqVO query,
+            jakarta.servlet.http.HttpServletRequest request) {
+        if (!java.util.Set.of("field", "keyword", "pageNo", "pageSize").containsAll(request.getParameterMap().keySet()))
+            throw cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception(cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.BAD_REQUEST);
+        return success(activeUserSelectionApi.pageProjectMembers(
+                new cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.MemberFilterQuery(
+                        query.getPageNo(), query.getPageSize(), query.getKeyword(), query.getField())));
+    }
+
+
     @GetMapping("/options")
     public CommonResult<List<ProjectBusinessContextApi.Option>> options(
             @RequestParam(value = "keyword", required = false) @Size(max = 128) String keyword) {

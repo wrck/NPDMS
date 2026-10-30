@@ -6,6 +6,7 @@ import Drawer from './ProjectDurationFormDrawer.vue'
 
 const api = vi.hoisted(() => ({
   getByProjectId: vi.fn(),
+  getEntryReadiness: vi.fn(),
   getChanges: vi.fn(),
   getChange: vi.fn(),
   createInitial: vi.fn(),
@@ -105,6 +106,7 @@ const render = (component: Component, readonly = false, id: number | string | un
 
 beforeEach(() => {
   vi.clearAllMocks()
+  api.getEntryReadiness.mockResolvedValue({ durationWritable: true, scheduleWritable: false })
   api.getByProjectId.mockImplementation(async (id: number) => plan(id))
   api.getChanges.mockResolvedValue({ items: [], hasMore: false })
   api.getChange.mockResolvedValue(change())
@@ -117,6 +119,22 @@ it('shows the real current revision in the original-style table', async () => {
   await flush()
   expect(findByTestId(mounted.root, 'duration-current-revision')?.props?.data).toEqual([revision])
   expect(findByTestId(mounted.root, 'duration-project-name')).toBeUndefined()
+})
+
+it.each(['denied', 'unavailable'])('keeps duration history readable but disables the nested editor when template readiness is %s', async status => {
+  if (status === 'denied') api.getEntryReadiness.mockResolvedValue({ durationWritable: false, scheduleWritable: true })
+  else api.getEntryReadiness.mockRejectedValue(new Error('readiness unavailable'))
+  const mounted = render(Panel)
+  await flush()
+  expect(findByTestId(mounted.root, 'duration-current-revision')?.props?.data).toEqual([revision])
+  expect(mounted.state().canWrite).toBe(false)
+  const drawer = mounted.state().formRef.$.setupState
+  expect(drawer.canWrite).toBe(false)
+  drawer.openInitial()
+  await drawer.save()
+  expect(api.createInitial).not.toHaveBeenCalled()
+  expect(api.createChange).not.toHaveBeenCalled()
+  expect(api.patchChange).not.toHaveBeenCalled()
 })
 
 it('uses the survey project deadline to derive the submitted initial date range', async () => {

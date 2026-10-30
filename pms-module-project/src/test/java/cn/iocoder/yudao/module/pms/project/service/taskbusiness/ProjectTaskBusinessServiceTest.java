@@ -52,6 +52,7 @@ class ProjectTaskBusinessServiceTest {
         contract.setBindingParameterSnapshot("{\"bindingType\":\"BUSINESS_COMPONENT\",\"businessViewRevisionId\":40,\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\",\"contextMapping\":{\"project\":\"project\"}}");
         when(access.read(10L, 1L, 5L)).thenReturn(task); when(access.project(20L)).thenReturn(project);
         when(access.writable(any(), any(), any())).thenReturn(true);
+        when(access.writableLocked(any(), any(), any())).thenReturn(true);
         when(executionApi.inspect(any())).thenReturn(execution(true));
         when(links.selectCurrentContract(any())).thenReturn(contract);
         when(links.selectActive(any())).thenReturn(List.of()); when(links.selectActiveForUpdate(any())).thenReturn(List.of());
@@ -115,6 +116,45 @@ class ProjectTaskBusinessServiceTest {
         when(executionApi.inspect(any())).thenReturn(execution(true));
         task.setStatus("DONE");
         assertTrue(service.getContext(10L, 1L, 5L, "refresh").allowedActions().isEmpty());
+    }
+
+    @Test void assignmentOwnerMaintenanceDoesNotRequireTaskMetadataOrExecutionAuthority() {
+        assignmentHost();
+        when(access.writable(any(), any(), any())).thenReturn(false);
+        when(access.writableLocked(any(), any(), any())).thenReturn(false);
+        when(access.assignmentOperationAllowed(any())).thenReturn(true);
+
+        var result = service.getContext(10L, 1L, 5L, "assignment-owner");
+        assertNull(result.recoverableError());
+        assertTrue(result.executionAllowed());
+        assertTrue(service.getContext(10L, 1L, 5L, "assignment-owner").allowedActions().isEmpty());
+        when(access.assignmentOperationAllowed(any())).thenReturn(false);
+        assertFalse(service.getContext(10L, 1L, 5L, "assignment-owner-denied").executionAllowed());
+    }
+
+    @Test void assignmentOwnerMaintenanceCannotMakeAnUnwritableRoundOrAggregateWritable() {
+        assignmentHost();
+        when(access.writable(any(), any(), any())).thenReturn(false);
+        when(access.writableLocked(any(), any(), any())).thenReturn(false);
+        when(access.assignmentOperationAllowed(any())).thenReturn(true);
+        when(executionApi.inspect(any())).thenReturn(execution(false));
+        assertFalse(service.getContext(10L, 1L, 5L, "inactive-round").executionAllowed());
+        when(executionApi.inspect(any())).thenReturn(execution(true));
+        contract.setBindingParameterSnapshot("{\"businessViewRevisionId\":40,\"instanceResolutionStrategy\":\"READ_ONLY_AGGREGATE\"}");
+        assertFalse(service.getContext(10L, 1L, 5L, "aggregate").executionAllowed());
+    }
+
+    private void assignmentHost() {
+        when(provider.ownerContext()).thenReturn("PROJ"); when(provider.objectType()).thenReturn("PROJECT_ASSIGNMENT");
+        contract.setTargetContextCode("PROJ"); contract.setTargetObjectType("PROJECT_ASSIGNMENT");
+        contract.setTargetObjectKey("PROJECT_ASSIGNMENT"); contract.setComponentKey("PROJ_PROJECT_ASSIGNMENT");
+        contract.setWorkBindingTypeCode("BUSINESS_OBJECT");
+        contract.setBindingParameterSnapshot("{\"businessViewRevisionId\":40,\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\"}");
+        when(views.getRevision(any())).thenReturn(new BusinessViewRevision(40L, "PROJECT_ASSIGNMENT", "assignment", 1L,
+                "PROJ", BusinessViewComponentProvider.ViewSource.PAGE, "PROJ_PROJECT_ASSIGNMENT", "1", null,
+                JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"), "query", "command", "permission", null, null,
+                1L, "PUBLISHED", Set.of("UPDATE")));
+        service = service(List.of(provider));
     }
 
     ProjectTaskBusinessService service(List<TaskBusinessObjectProvider> providers) {

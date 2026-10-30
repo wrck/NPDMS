@@ -48,7 +48,7 @@ public class ProjectTaskBusinessRefreshService {
         var project = tasks.selectProjectForCommandForUpdate(new ProjectTaskProjectLockQuery(actor.tenantId(), context.projectId()));
         var task = tasks.selectTaskForAssignmentForUpdate(new TaskAssignmentCommandQuery(actor.tenantId(), context.projectId(), command.taskId()));
         if (task == null || !Objects.equals(task.getId(), command.taskId())
-                || !access.executable(task, project, context))
+                || !access.executableLocked(task, project, context))
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         var contract = contracts.selectCurrentByTaskIdForUpdate(new CurrentTaskExecutionContractLockQuery(actor.tenantId(), command.taskId()));
         if (contract == null || !Objects.equals(contract.getTenantId(), actor.tenantId())

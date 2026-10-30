@@ -24,31 +24,7 @@
           />
         </el-form-item>
         <el-form-item label="负责人">
-          <el-select
-            v-model="draft.assigneeUserId"
-            clearable
-            filterable
-            remote
-            :remote-method="searchCandidates"
-            :loading="candidateLoading"
-            :disabled="!canManager"
-            placeholder="按姓名、账号或工号搜索"
-            @visible-change="openCandidateSelect"
-          >
-            <el-option
-              v-for="candidate in candidates"
-              :key="candidate.userId"
-              :value="candidate.userId"
-              :label="candidateLabel(candidate)"
-            />
-          </el-select>
-          <Pagination
-            v-if="canManager && candidateTotal > candidateQuery.pageSize"
-            v-model:page="candidateQuery.pageNo"
-            v-model:limit="candidateQuery.pageSize"
-            :total="candidateTotal"
-            @pagination="loadCandidates"
-          />
+          <UserSelect v-model="draft.assigneeUserId" :scoped-source="assigneeSource" :page-size="10" :disabled="!canManager" :current-label="item?.assigneeUserId === draft.assigneeUserId ? `当前负责人 #${draft.assigneeUserId}` : undefined" placeholder="按姓名、账号或工号搜索" />
         </el-form-item>
         <el-form-item label="上架加电外包">
           <el-switch v-model="draft.outsourced" :disabled="!canManager" />
@@ -157,6 +133,7 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
 import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtifact'
@@ -164,7 +141,6 @@ import type { DetachedFileSlot, FileSelection } from '@/components/PmsFileArtifa
 import * as FileApi from '@/api/pms/platform/file'
 import * as PreparationApi from '@/api/pms/engineering/preparation'
 import type {
-  AssignmentCandidateVO,
   EvidenceReference,
   PatchPreparationItemReqVO,
   PreparationItemVO,
@@ -203,10 +179,6 @@ const baseline = ref<{
 const referenceKey = computed(
   () => evidence.value?.referenceKey || `site-survey-${item.value?.itemCode || 'evidence'}`
 )
-const candidateLoading = ref(false)
-const candidates = ref<AssignmentCandidateVO[]>([])
-const candidateTotal = ref(0)
-const candidateQuery = reactive({ keyword: '', pageNo: 1, pageSize: 10 })
 const draft = reactive({
   applicabilityCode: 'REQUIRED',
   outsourced: false,
@@ -260,48 +232,18 @@ const open = (current: PreparationVO, row: PreparationItemVO) => {
     formValues: parseJson(JSON.stringify(formValues), {}),
     evidence: evidence.value ? [parseJson(JSON.stringify(evidence.value), evidence.value)] : []
   }
-  candidates.value = row.assigneeUserId
-    ? [
-        {
-          userId: row.assigneeUserId,
-          username: String(row.assigneeUserId),
-          nickname: `当前负责人 #${row.assigneeUserId}`
-        }
-      ]
-    : []
-  candidateTotal.value = candidates.value.length
   visible.value = true
 }
 
-const candidateLabel = (candidate: AssignmentCandidateVO) =>
-  [candidate.nickname || candidate.username, candidate.employeeNo, candidate.departmentName]
-    .filter(Boolean)
-    .join(' · ')
-
-const loadCandidates = async () => {
-  if (!preparation.value) return
-  candidateLoading.value = true
-  try {
-    const page = await PreparationApi.getAssignmentCandidates(
-      preparation.value.preparationId,
-      candidateQuery
-    )
-    candidates.value = page.list
-    candidateTotal.value = page.total
-  } finally {
-    candidateLoading.value = false
+const assigneeSource = computed(() => ({
+  key: `preparation-assignee:${preparation.value?.preparationId}:${item.value?.itemId}:${item.value?.version}`,
+  search: async (query: { keyword: string; pageNo: number; pageSize: number }) => {
+    if (!preparation.value || !canManager.value) return { list: [], total: 0 }
+    const result = await PreparationApi.getAssignmentCandidates(preparation.value.preparationId, query)
+    return { list: result.list.map(candidate => ({ ...candidate, id: candidate.userId,
+      nickname: [candidate.nickname || candidate.username, candidate.employeeNo, candidate.departmentName].filter(Boolean).join(' · ') })), total: result.total }
   }
-}
-
-const searchCandidates = (keyword: string) => {
-  candidateQuery.keyword = keyword
-  candidateQuery.pageNo = 1
-  void loadCandidates()
-}
-
-const openCandidateSelect = (opened: boolean) => {
-  if (opened && candidates.value.length <= 1) void loadCandidates()
-}
+}))
 
 const captureEvidence = async (selection: FileSelection) => {
   if (!item.value) return

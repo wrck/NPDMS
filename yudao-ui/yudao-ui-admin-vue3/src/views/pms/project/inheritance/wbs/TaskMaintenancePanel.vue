@@ -5,9 +5,9 @@
     <template v-if="view">
       <div v-if="showResponsibilities" class="section-heading"><h4>任务职责</h4><el-button link @click="showHistory">调整历史</el-button></div>
       <el-descriptions v-if="showResponsibilities" :column="1" border>
-        <el-descriptions-item v-for="role in TASK_ROLE_OPTIONS" :key="role.value" :label="role.label">
-          <span>{{ view.currentRoles.find(row => row.role === role.value)?.name || '未指派' }}</span>
-          <el-button v-if="view.canAssign" link type="primary" class="role-action" @click="openRole(role.value)">设置{{ role.label }}</el-button>
+        <el-descriptions-item v-for="roleOption in TASK_ROLE_OPTIONS" :key="roleOption.value" :label="roleOption.label">
+          <span>{{ view.currentRoles.find(row => row.role === roleOption.value)?.name || '未指派' }}</span>
+          <el-button v-if="view.canAssign" link type="primary" class="role-action" @click="openRole(roleOption.value)">设置{{ roleOption.label }}</el-button>
         </el-descriptions-item>
       </el-descriptions>
       <template v-if="showDescription">
@@ -19,8 +19,7 @@
   </section>
   <Dialog v-if="showResponsibilities" v-model="roleVisible" :title="`设置${roleLabel(role)}`" width="min(560px, calc(100vw - 24px))">
     <el-form label-position="top">
-      <el-form-item label="项目成员" required><PmsEntitySelect v-if="roleVisible" v-model="userId" :api="loadMembers" label-field="name"
-        value-field="userId" query-field="keyword" placeholder="按项目成员姓名搜索" :disabled="saving" /></el-form-item>
+      <el-form-item label="项目成员" required><UserSelect v-if="roleVisible" v-model="userId" :scoped-source="memberSource" :page-size="50" placeholder="按项目成员姓名搜索" :disabled="saving" /></el-form-item>
       <el-form-item label="调整原因" required><el-input v-model="reason" type="textarea" maxlength="500" :disabled="saving" /></el-form-item>
       <el-alert v-if="saveError" :title="saveError" type="error" :closable="false" />
     </el-form>
@@ -45,6 +44,7 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { computed, ref, watch } from 'vue'
 import escape from 'lodash-es/escape'
 import { Editor } from '@/components/Editor'
@@ -67,7 +67,13 @@ const historyVisible = ref(false), historyRole = ref<TaskRole>('RESPONSIBLE'), h
 const historyPage = ref(1), historyMore = ref(false), historyLoading = ref(false), historyError = ref('')
 let sequence = 0, historySequence = 0
 const roleLabel = (value: TaskRole) => TASK_ROLE_OPTIONS.find(row => row.value === value)?.label
-const loadMembers = (params: PageParam & { keyword?: string }) => Api.getMembers(props.projectId, params)
+const memberSource = computed(() => ({
+  key: `task-role-member:${props.projectId}:${props.taskId}:${role.value}`,
+  search: async (query: { keyword: string; pageNo: number; pageSize: number }) => {
+    const result = await Api.getMembers(props.projectId, query)
+    return { list: result.list.map(item => ({ ...item, id: item.userId, nickname: item.name })), total: result.total }
+  }
+}))
 const load = async () => {
   const request = ++sequence; loading.value = true; error.value = ''
   try { const data = await Api.getMaintenance(props.taskId); if (request === sequence) view.value = data }

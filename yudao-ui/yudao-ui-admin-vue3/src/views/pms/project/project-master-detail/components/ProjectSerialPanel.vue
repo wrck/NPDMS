@@ -8,18 +8,19 @@
       <span class="panel-title"><Icon icon="ep:cpu" /> 序列号详情</span>
       <span class="serial-total num">共 {{ total }} 台</span>
     </div>
-    <el-tabs v-model="activeSection">
-      <el-tab-pane label="设备序列号" name="devices" />
-      <el-tab-pane label="续保记录" name="renewals" />
-    </el-tabs>
-    <DeviceWarrantyRenewalTable v-if="activeSection === 'renewals'" :project-id="projectId" />
-    <template v-else>
     <el-form inline class="serial-filters" @submit.prevent="search">
       <el-form-item label="序列号"><el-input v-model="sn" clearable placeholder="请输入序列号" /></el-form-item>
       <el-form-item label="设备名称"><el-input v-model="deviceName" clearable placeholder="请输入设备名称" /></el-form-item>
       <el-form-item label="产品编码"><el-input v-model="productCode" clearable placeholder="请输入产品编码" /></el-form-item>
       <el-form-item><el-button native-type="submit" type="primary" :loading="loading"><Icon icon="ep:search" />查询</el-button>
-        <el-button :disabled="loading" @click="resetSearch"><Icon icon="ep:refresh" />重置</el-button></el-form-item>
+        <el-button :disabled="loading" @click="resetSearch"><Icon icon="ep:refresh" />重置</el-button>
+        <ProjectDeviceExportButton
+          :project-id="projectId"
+          kind="serials"
+          :filters="{ sn: sn.trim() || undefined, name: deviceName.trim() || undefined, productCode: productCode.trim() || undefined }"
+          :disabled="loading"
+        />
+      </el-form-item>
     </el-form>
     <el-alert v-if="errorText" :title="errorText" type="error" :closable="false" class="serial-alert" />
     <el-table
@@ -98,7 +99,6 @@
       :total="total"
       @pagination="load"
     />
-    </template>
   </ContentWrap>
 </template>
 
@@ -106,7 +106,7 @@
 import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import * as DeviceApi from '@/api/pms/asset/device'
-import DeviceWarrantyRenewalTable from '@/views/pms/asset/device/components/DeviceWarrantyRenewalTable.vue'
+import ProjectDeviceExportButton from './ProjectDeviceExportButton.vue'
 
 defineOptions({ name: 'ProjectSerialPanel' })
 
@@ -114,7 +114,6 @@ const props = withDefaults(defineProps<{ projectId: number; active?: boolean }>(
 const emit = defineEmits<{ (e: 'open-config-log', deviceId: number, serialNumber: string): void }>()
 
 const NOT_INTEGRATED = '—'
-const activeSection = ref('devices')
 
 interface SerialRow {
   deviceId: number

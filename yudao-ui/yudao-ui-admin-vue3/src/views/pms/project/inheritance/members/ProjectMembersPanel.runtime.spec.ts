@@ -1,3 +1,4 @@
+vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
 import { defineComponent, h, inject, provide, nextTick, reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Members from '@/api/pms/project/unified-members'

@@ -58,6 +58,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectTaskCommandServiceTest {
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi management = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
 
     @Test
     void eventFailureRollsBackSourceWriteAndSuccessfulRetryCommits() {
@@ -115,9 +116,9 @@ class ProjectTaskCommandServiceTest {
     @BeforeEach
     void setUp() {
         service = new ProjectTaskCommandService(taskMapper, taskInstanceMapper, dependencyMapper, contractMapper,
-                new TaskExecutionContractFactory(), stateMachineMapper, stageMapper, milestoneMapper, memberMapper,
+                new TaskExecutionContractFactory(), stateMachineMapper, stageMapper, milestoneMapper,
                 treeVersionMapper, treeScopeService, commandExecutionApi, operationAuditApi,
-                progressService, permissionApi, ruleEvents);
+                progressService, permissionApi, ruleEvents, management);
         project = new ProjectMasterDO();
         project.setId(100L);
         project.setRootId(100L);
@@ -130,7 +131,7 @@ class ProjectTaskCommandServiceTest {
         manager.setUserId(9L);
         manager.setMemberRole("PROJECT_MANAGER");
         manager.setStatus("ACTIVE");
-        lenient().when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(manager));
+        lenient().when(management.lockCurrent(any())).thenAnswer(call -> cn.iocoder.yudao.module.pms.project.api.participant.ManagementQualificationTestFacts.locked(call.getArgument(0)));
         ProjectTreeVersionDO treeVersion = new ProjectTreeVersionDO();
         treeVersion.setTreeVersion(1L);
         lenient().when(treeVersionMapper.selectLatestActive(100L)).thenReturn(treeVersion);
@@ -234,7 +235,7 @@ class ProjectTaskCommandServiceTest {
     void superAdminCreatesTaskWithoutBeingProjectManager() {
         when(treeScopeService.isTenantSuperAdmin(0L, 9L)).thenReturn(true);
         assertCreatesTaskWithNativeContractAndTreeVersion();
-        verify(memberMapper, never()).selectActiveByUser(any());
+        verify(management, never()).lockCurrent(any());
     }
 
     private void assertCreatesTaskWithNativeContractAndTreeVersion() {
@@ -458,7 +459,7 @@ class ProjectTaskCommandServiceTest {
     @Test
     void rejectsNonManagerWithoutWrites() {
         when(taskMapper.selectProjectForCommandForUpdate(any())).thenReturn(project);
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
+        when(management.lockCurrent(any())).thenReturn(null);
 
         ServiceException error = assertThrows(ServiceException.class, () -> service.create(
                 new CreateTaskCommand(100L, "T-1", "任务1", "S1", null, null,

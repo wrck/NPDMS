@@ -6,60 +6,13 @@
       :closable="false"
     />
     <el-form-item label="增补项目经理">
-      <el-select
-        v-model="addUserIds"
-        aria-label="增补项目经理"
-        multiple
-        filterable
-        remote
-        :remote-method="search"
-        :loading="searching"
-        placeholder="输入姓名或账号搜索"
-        @visible-change="(open: boolean) => open && search('')"
-      >
-        <el-option
-          v-for="item in candidates"
-          :key="item.userId"
-          :value="item.userId"
-          :label="`${item.nickname}（${item.username}）`"
-          :disabled="currentIds.includes(item.userId)"
-        />
-        <template #footer
-          ><el-button v-if="candidates.length < total" link :loading="searching" @click="more"
-            >加载更多候选</el-button
-          ></template
-        >
-      </el-select>
+      <UserSelect v-model="addUserIds" option-label="nickname-account" aria-label="增补项目经理" multiple :clearable="false" :scoped-source="managerSource" :disabled-ids="currentIds" placeholder="输入姓名或账号搜索" />
     </el-form-item>
     <el-form-item label="移除项目经理">
-      <el-select
-        v-model="removeUserIds"
-        aria-label="移除项目经理"
-        multiple
-        placeholder="不选则保留所有现有经理"
-      >
-        <el-option
-          v-for="item in current.members"
-          :key="item.userId"
-          :value="item.userId"
-          :label="item.name || `用户 ${item.userId}`"
-        />
-      </el-select>
+      <UserSelect v-model="removeUserIds" aria-label="移除项目经理" multiple :clearable="false" :scoped-source="removalSource" placeholder="不选则保留所有现有经理" />
     </el-form-item>
     <el-form-item label="当前主责项目经理">
-      <el-select
-        v-model="primaryUserId"
-        aria-label="当前主责项目经理"
-        clearable
-        placeholder="从保留及新增经理中选择"
-      >
-        <el-option
-          v-for="item in retained"
-          :key="item.userId"
-          :value="item.userId"
-          :label="item.name"
-        />
-      </el-select>
+      <UserSelect v-model="primaryUserId" aria-label="当前主责项目经理" :scoped-source="primarySource" :current-label="retained.find(item => item.userId === primaryUserId)?.name" placeholder="从保留及新增经理中选择" />
     </el-form-item>
     <el-checkbox v-model="withService" aria-label="同时指派服务经理">同时指派服务经理</el-checkbox>
     <ProjectMemberServiceFields v-if="withService" ref="serviceFields" :project="project" />
@@ -83,6 +36,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { computed, reactive, ref } from 'vue'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import * as Members from '@/api/pms/project/members'
@@ -99,13 +54,7 @@ const withService = ref(false)
 const serviceFields = ref<InstanceType<typeof ProjectMemberServiceFields>>()
 const saving = ref(false)
 const error = ref('')
-const candidates = ref<Members.ManagerCandidate[]>([])
 const selectedNames = reactive(new Map<number, string>())
-const searching = ref(false)
-const total = ref(0)
-let keyword = '',
-  pageNo = 1,
-  searchSequence = 0
 const submission = createSubmissionIdempotencyState()
 const currentIds = computed(() => props.current.members.map((item) => item.userId))
 const retained = computed(() => [
@@ -114,29 +63,22 @@ const retained = computed(() => [
     .filter((id) => !currentIds.value.includes(id))
     .map((userId) => ({ userId, name: selectedNames.get(userId) || `用户 ${userId}` }))
 ])
-// Element Plus remote/filterable：候选只来自受项目管理权限约束的后端分页。
-// https://element-plus.org/en-US/component/select.html#remote-search
-const search = async (value: string, append = false) => {
-  const sequence = ++searchSequence
-  keyword = value
-  if (!append) pageNo = 1
-  searching.value = true
-  try {
-    const result = await Members.getManagerCandidates(props.current.projectId, value, pageNo)
-    if (sequence !== searchSequence) return
-    candidates.value = append ? [...candidates.value, ...result.list] : result.list
-    total.value = result.total
-    result.list.forEach((item) => selectedNames.set(item.userId, item.nickname))
-  } catch {
-    error.value = '候选加载失败，请重新搜索。'
-  } finally {
-    if (sequence === searchSequence) searching.value = false
+const managerSource = computed(() => ({
+  key: `project-manager-add:${props.current.projectId}:${props.current.version}`,
+  search: async ({ keyword, pageNo }: { keyword: string; pageNo: number }) => {
+    const result = await Members.getManagerCandidates(props.current.projectId, keyword, pageNo)
+    result.list.forEach(item => selectedNames.set(item.userId, item.nickname))
+    return { list: result.list.map(item => ({ ...item, id: item.userId })), total: result.total }
   }
-}
-const more = () => {
-  pageNo++
-  return search(keyword, true)
-}
+}))
+const removalSource = computed(() => systemUserSelection.fromCandidates(
+  `project-manager-remove:${props.current.projectId}:${props.current.version}`,
+  props.current.members.map(item => ({ id: item.userId, nickname: item.name || `用户 ${item.userId}` }))
+))
+const primarySource = computed(() => systemUserSelection.fromCandidates(
+  `project-manager-primary:${props.current.projectId}:${props.current.version}`,
+  retained.value.map(item => ({ id: item.userId, nickname: item.name }))
+))
 const submit = async () => {
   if (saving.value) return
   error.value = ''

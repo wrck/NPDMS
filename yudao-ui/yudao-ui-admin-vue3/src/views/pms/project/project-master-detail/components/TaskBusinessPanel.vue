@@ -24,7 +24,7 @@
         v-else-if="registration && project"
         ref="hostRef"
         :registration="registration"
-        :resolved-context="{ project, taskId: context.taskId, taskCode, taskExecution: context.execution, businessObjectId: selectedObject }"
+        :resolved-context="{ project, taskId: independentMaintenance ? undefined : context.taskId, taskCode, taskExecution: independentMaintenance ? undefined : context.execution, businessObjectId: selectedObject }"
         :allowed-actions="ownerActions"
         :readonly="viewReadonly"
         @changed="ownerChanged"
@@ -77,6 +77,7 @@ const props = defineProps<{
   taskCode?: string
   taskVersion: number
   readonly?: boolean
+  pending?: boolean
   completed?: boolean
   initialProject?: ProjectMasterVO
 }>()
@@ -110,18 +111,27 @@ const clearFactVersion = () => {
 const sameTask = (a: BusinessViewId | undefined, b: BusinessViewId) => String(a) === String(b)
 const currentTask = (epoch: number, taskId: BusinessViewId) =>
   !disposed && epoch === generation && sameTask(taskId, props.taskId)
-const viewReadonly = computed(() =>
-  Boolean(props.completed || props.readonly || (loading.value && !requirementAnalysis.value) || error.value || context.value?.recoverableError ||
-    context.value?.executionAllowed === false ||
-    !sameTask(context.value?.taskId, props.taskId))
-)
+// 持续维护使用 Owner 的当前项目入口，不借用或恢复已结束的任务执行轮次。
+// 方案允许提前编写；提交是否满足前置条件由 SOL 服务在提交事务中重新校验。
+const independentMaintenance = computed(() => {
+  if (project.value?.lifecycleStatus !== 'ACTIVE' || registration.value?.status !== 'PUBLISHED'
+      || context.value?.instanceResolutionStrategy === 'READ_ONLY_AGGREGATE'
+      || !context.value?.ownerActions.includes('QUERY') || !sameTask(context.value?.taskId, props.taskId)) return false
+  return context.value.ownerContext === 'SOL' && context.value.objectType === 'IMPLEMENTATION_SOLUTION'
+      && registration.value.componentKey === 'SOL_IMPLEMENTATION_SOLUTION'
+    || props.completed && !props.pending && context.value.ownerContext === 'IMP' && context.value.objectType === 'INSTALLATION'
+      && registration.value.componentKey === 'IMP_PROJECT_INSTALLATION'
+})
+const viewReadonly = computed(() => Boolean(props.readonly || (loading.value && !requirementAnalysis.value)
+  || error.value || context.value?.recoverableError || !sameTask(context.value?.taskId, props.taskId)
+  || !independentMaintenance.value && (props.completed || props.pending || context.value?.executionAllowed === false)))
 // 已完成指派任务展示项目成员的持续维护入口；不恢复任务执行上下文。
 const completedAssignment = computed(() => props.completed &&
   sameTask(context.value?.taskId, props.taskId) &&
   context.value?.ownerContext === 'PROJ' && context.value?.objectType === 'PROJECT_ASSIGNMENT' &&
   registration.value?.componentKey === 'PROJ_PROJECT_ASSIGNMENT' &&
   context.value?.ownerActions.includes('QUERY'))
-const maintenanceReadonly = computed(() => Boolean(props.readonly || loading.value || error.value ||
+const maintenanceReadonly = computed(() => Boolean(props.readonly || props.pending || loading.value || error.value ||
   context.value?.recoverableError || !sameTask(context.value?.taskId, props.taskId)))
 // 审批完成只结束项目任务；关联割接的P6继续由割接Owner授权和状态机办理。
 const completedCutover = computed(() => props.completed &&
@@ -135,6 +145,7 @@ const completedCutover = computed(() => props.completed &&
 const ownerActions = computed(() => {
   const actions = context.value?.ownerActions || []
   if (viewReadonly.value) return actions.includes('QUERY') ? ['QUERY'] : []
+  if (independentMaintenance.value) return actions.filter(action => !['LINK', 'UNLINK'].includes(action))
   const record = context.value?.links.find((row) => row.objectId === selectedObject.value)
     ?? reportCandidates.value.find(row => row.objectId === selectedObject.value)
   if (!actions.includes('QUERY')) return []
@@ -187,11 +198,11 @@ const load = async (useInitialProject = false) => {
       candidates = eligible.filter(row => reportIds.has(row.objectId))
     }
     // 需求分析：把工作区读取也提前到 Owner 项目解析与 BusinessViewHost 装载之前并行；
-    // 仅在 enclosing 项目与业务上下文一致（EntityPanel 直接复用 initialProject）时预取，
+    // 仅在进入/切换任务且 enclosing 项目与业务上下文一致时预取；同任务刷新由 Owner 权威回读，
     // 键与 EntityPanel.workspace 的实参严格一致。未命中时 EntityPanel 照常直查。
     const execution = next.execution
     const initialProjectId = props.initialProject?.id
-    if (next.businessView?.componentKey === 'PROJ_REQUIREMENT_ANALYSIS' && execution != null
+    if (useInitialProject && next.businessView?.componentKey === 'PROJ_REQUIREMENT_ANALYSIS' && execution != null
         && initialProjectId != null && String(initialProjectId) === String(next.projectId)) {
       const workspaceProjectId = legacyOwnerId(initialProjectId)
       prefetchTaskView(requirementWorkspaceKey(workspaceProjectId, undefined, execution.taskId),
@@ -250,7 +261,7 @@ const refresh = async () => {
   const epoch = generation, taskId = props.taskId
   if (!await requestLeave() || !currentTask(epoch, taskId)) return
   const current = context.value
-  if (!props.completed && !props.readonly && current?.allowedActions.includes('REFRESH_RESULTS')) {
+  if (!props.completed && !props.readonly && !props.pending && current?.allowedActions.includes('REFRESH_RESULTS')) {
     loading.value = true
     error.value = ''
     clearFactVersion()
@@ -300,8 +311,8 @@ watch(
   },
   { immediate: true, flush: 'sync' }
 )
-watch(() => [props.readonly, props.completed, props.taskVersion, props.taskCode], () => {
-  if (props.readonly) uploadIntent.value = undefined
+watch(() => [props.readonly, props.pending, props.completed, props.taskVersion, props.taskCode], () => {
+  if (props.readonly || props.pending) uploadIntent.value = undefined
   clearFactVersion()
   if (sameTask(context.value?.taskId, props.taskId)) void load()
 }, { flush: 'sync' })

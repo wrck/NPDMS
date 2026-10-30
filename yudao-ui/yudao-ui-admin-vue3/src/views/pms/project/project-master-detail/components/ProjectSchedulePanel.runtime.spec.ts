@@ -1,3 +1,4 @@
+vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
 import { beforeEach, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import Panel from './ProjectSchedulePanel.vue'
@@ -37,19 +38,24 @@ vi.mock('@/api/pms/engineering/stage-plan', () => ({
   getStagePlanBatchPage: vi.fn(),
   getStagePlanBatch: vi.fn(),
   getOverdueStages: vi.fn(),
+  createStagePlanBatch: vi.fn(),
   autoEstimateStagePlanBatch: vi.fn(),
   updateStagePlanItems: vi.fn(),
   submitStagePlanBatch: vi.fn()
 }))
-vi.mock('@/api/pms/engineering/construction-plan', () => ({ getByProjectId: vi.fn() }))
+vi.mock('@/api/pms/engineering/construction-plan', () => ({ getByProjectId: vi.fn(), getEntryReadiness: vi.fn() }))
 vi.mock('@/api/pms/project/unified-members', () => ({
   getMemberPage: vi.fn(),
   logicalMemberRole: (role: string) =>
     role.startsWith('SERVICE_MANAGER') ? 'SERVICE_MANAGER' : role
 }))
-vi.mock('./ProjectDurationPanel.vue', () => ({
-  default: { methods: { isDirty: () => false }, render: () => null }
-}))
+vi.mock('./ProjectDurationPanel.vue', async () => {
+  const { defineComponent, h } = await import('vue')
+  return { default: defineComponent({
+    props: { readonly: Boolean }, methods: { isDirty: () => false },
+    render() { return h('section', { 'data-testid': 'duration-panel', readonly: this.readonly }) }
+  }) }
+})
 vi.mock('./SchedulePlanningTable.vue', () => ({ default: { render: () => null } }))
 
 const effective = {
@@ -91,10 +97,10 @@ const draft = () => ({
 const flush = async () => {
   for (let i = 0; i < 14; i++) await nextTick()
 }
-const render = () => {
+const render = (extraProps: Record<string, unknown> = {}) => {
   const mounted = mount(
     Panel,
-    { project: { id: 1 } },
+    { project: { id: 1 }, ...extraProps },
     Object.fromEntries(
       [
         'ElSelect',
@@ -118,6 +124,7 @@ beforeEach(() => {
   permission.task = true
   permission.schedule = true
   vi.clearAllMocks()
+  vi.mocked(DurationApi.getEntryReadiness).mockResolvedValue({ durationWritable: true, scheduleWritable: true })
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
   vi.mocked(DurationApi.getByProjectId).mockResolvedValue({
     currentRevision: { revisionId: 2, durationDays: 31 }
@@ -133,6 +140,79 @@ beforeEach(() => {
     id === 7 ? structuredClone(effective) : draft()
   )
   vi.mocked(PlanApi.getOverdueStages).mockResolvedValue([])
+})
+
+it.each([
+  { readonly: true, allowedActions: ['QUERY', 'CREATE', 'UPDATE'] },
+  { readonly: true, allowedActions: ['QUERY'] }
+])('blocks every planning command and the nested duration editor for a read-only task (%j)', async props => {
+  const app = render(props)
+  try {
+    await flush()
+    expect(app.state.editable).toBe(false)
+    await app.state.createDraft()
+    await app.state.estimate()
+    await app.state.save()
+    await app.state.openSubmit()
+    app.state.approverId = 99
+    await app.state.submit()
+    expect(PlanApi.createStagePlanBatch).not.toHaveBeenCalled()
+    expect(PlanApi.autoEstimateStagePlanBatch).not.toHaveBeenCalled()
+    expect(PlanApi.updateStagePlanItems).not.toHaveBeenCalled()
+    expect(PlanApi.submitStagePlanBatch).not.toHaveBeenCalled()
+    expect(MemberApi.getMemberPage).not.toHaveBeenCalled()
+    expect(app.state.canWrite).toBe(false)
+    expect(findByTestId(app.root, 'duration-panel')?.props?.readonly).toBe(true)
+  } finally { app.app.unmount() }
+})
+
+it('retains the writable Owner workspace when a current PAGE task exposes its QUERY registration', async () => {
+  const app = render({ readonly: false, allowedActions: ['QUERY'] })
+  try {
+    await flush()
+    expect(app.state.canWrite).toBe(true)
+    expect(app.state.editable).toBe(true)
+    expect(findByTestId(app.root, 'duration-panel')?.props?.readonly).toBe(false)
+  } finally { app.app.unmount() }
+})
+
+it('keeps independent duration entry available while the construction-plan task is not writable', async () => {
+  vi.mocked(DurationApi.getEntryReadiness).mockResolvedValue({ durationWritable: true, scheduleWritable: false })
+  const app = render()
+  try {
+    await flush()
+    expect(app.state.canWrite).toBe(false)
+    expect(app.state.editable).toBe(false)
+    expect(findByTestId(app.root, 'duration-panel')?.props?.readonly).toBe(false)
+    await app.state.createDraft()
+    expect(PlanApi.createStagePlanBatch).not.toHaveBeenCalled()
+  } finally { app.app.unmount() }
+})
+
+it('fails closed on an unavailable template qualification while retaining readable planning history', async () => {
+  vi.mocked(DurationApi.getEntryReadiness).mockRejectedValue(new Error('unavailable'))
+  const app = render()
+  try {
+    await flush()
+    expect(app.state.batch.id).toBe(8)
+    expect(app.state.canWrite).toBe(false)
+    expect(findByTestId(app.root, 'duration-panel')?.props?.readonly).toBe(true)
+    await app.state.createDraft()
+    expect(PlanApi.createStagePlanBatch).not.toHaveBeenCalled()
+  } finally { app.app.unmount() }
+})
+
+it('clears an earlier write grant when refreshing the same project fails', async () => {
+  const app = render()
+  try {
+    await flush()
+    expect(app.state.canWrite).toBe(true)
+    vi.mocked(PlanApi.getStagePlanBatchPage).mockRejectedValueOnce(new Error('failed refresh'))
+    await app.state.refresh()
+    await flush()
+    expect(app.state.canWrite).toBe(false)
+    expect(findByTestId(app.root, 'duration-panel')?.props?.readonly).toBe(true)
+  } finally { app.app.unmount() }
 })
 
 it.each([false, true])('only exposes its own refresh outside the unified action bar (embedded=%s)', async embedded => {

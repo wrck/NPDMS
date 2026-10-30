@@ -1,10 +1,14 @@
 vi.mock('@/views/pms/asset/device/components/DeviceWarrantyRenewalTable.vue', () => ({ default: { render: () => null } }))
 import { beforeEach, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { defineComponent, h, nextTick } from 'vue'
 import Panel from './ProjectSerialPanel.vue'
 import * as DeviceApi from '@/api/pms/asset/device'
-import { mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { findByTestId, mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 vi.mock('@/api/pms/asset/device', () => ({ getDevicePage: vi.fn(), getDevice: vi.fn(), getWarrantyRecords: vi.fn() }))
+vi.mock('./ProjectDeviceExportButton.vue', () => ({ default: defineComponent({
+  props: { projectId: [Number, String], kind: String, filters: Object, disabled: Boolean },
+  setup(props) { return () => h('button', { 'data-testid': 'serial-export-query', ...props }) }
+}) }))
 const flush = async () => { for (let i = 0; i < 12; i++) await nextTick() }
 const render = () => {
   const mounted = mount(Panel, { projectId: 1002, active: true }, { ElTable: passthrough, ElTableColumn: tableColumn, ElInput: passthrough })
@@ -29,6 +33,19 @@ it('applies combined server filters from page one and clears them on reset', asy
     expect(DeviceApi.getDevicePage).toHaveBeenLastCalledWith({
       projectId: 1002, sn: undefined, name: undefined, productCode: undefined, pageNo: 1, pageSize: 20
     })
+  } finally { m.app.unmount() }
+})
+it('passes the current serial filters and project to export without paging', async () => {
+  const m = render()
+  try {
+    await flush()
+    m.state.sn = ' 001SN '; m.state.deviceName = ' 核心设备 '; m.state.productCode = ' 02010005 '
+    m.state.pageNo = 3; await flush()
+    expect(findByTestId(m.root, 'serial-export-query')!.props).toMatchObject({
+      projectId: 1002, kind: 'serials', filters: { sn: '001SN', name: '核心设备', productCode: '02010005' }
+    })
+    m.state.resetSearch(); await flush()
+    expect(findByTestId(m.root, 'serial-export-query')!.props!.filters).toEqual({ sn: undefined, name: undefined, productCode: undefined })
   } finally { m.app.unmount() }
 })
 it('uses the projected complete address and refreshes it when returning to the serial tab', async () => {

@@ -59,7 +59,8 @@ public class CustomerInspectionHistoryService implements CustomerInspectionHisto
                 .expectedScopeVersion(inspected.scopeVersion()).build()).expectedProjectVersion(inspected.projectVersion()).build();
         var project = projects.lockAndRevalidate(revalidation);
         var managers = projects.lockServiceManagers(revalidation);
-        if (managers == null || managers.userIds() == null || !managers.userIds().contains(command.actorId()))
+        if ((managers == null || managers.userIds() == null || !managers.userIds().contains(command.actorId()))
+                && !administratorArchive(command))
             throw exception(CUSTOMER_SCOPE_DENIED);
         var customer = customers.lockCustomerByCode(new CustomerCodeQuery(command.customerCode(), command.actorId()));
         if (customer == null || !Objects.equals(customer.id(), command.customerId())) throw exception(CUSTOMER_NOT_EXISTS);
@@ -108,6 +109,14 @@ public class CustomerInspectionHistoryService implements CustomerInspectionHisto
     }
     private record Source(Long customerId, Long projectId, Long taskId, Long taskVersion, String taskCode,
                           String taskName, Long reportId, List<SourceReference> references) { }
+    private boolean administratorArchive(ArchiveCommand command) {
+        if (!permissions.hasAnyRoles(command.actorId(), "super_admin")) return false;
+        var scope = projectScopes.resolveCurrent(ProjectCurrentScopeQuery.builder().tenantId(command.tenantId())
+                .subjectUserId(command.actorId()).anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+        return scope != null && scope.fullProjectIds().contains(command.projectId());
+    }
+
     private void validate(ArchiveCommand command) {
         if (command == null || !Objects.equals(command.tenantId(), TenantContextHolder.getRequiredTenantId())
                 || command.actorId() == null || !Objects.equals(command.actorId(), SecurityFrameworkUtils.getLoginUserId())

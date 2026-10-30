@@ -122,6 +122,29 @@ class ProjectParticipantFactApiImplTest {
                 100L, 300L, Set.of(ROLE_SERVICE_MANAGER_L1), LocalDateTime.now())));
     }
 
+    @Test void confirmedCollaboratingServiceManagerIsAuthorizationWithoutPrimaryResponsibility() {
+        var project = project(100L,200L,"ACTIVE","S3",7L,0L);
+        when(projectMapper.selectById(100L)).thenReturn(project);
+        when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project);
+        var collaborator = assignment(100L,300L,ROLE_SERVICE_MANAGER_L1,"COLLABORATOR",0L);
+        when(memberMapper.selectAuthorizationParticipantFacts(any())).thenReturn(List.of(collaborator));
+        when(memberMapper.selectAuthorizationParticipantFactsForUpdate(any())).thenReturn(List.of(collaborator));
+        var query = new ProjectParticipantFactQuery(100L,300L,Set.of(ROLE_SERVICE_MANAGER_L1),LocalDateTime.now());
+        assertEquals("COLLABORATOR",api.inspectAuthorization(query).assignmentType());
+        assertEquals("COLLABORATOR",api.lockAndRevalidateAuthorization(new ProjectParticipantFactRevalidationQuery(
+                100L,300L,7L,"ACTIVE","S3",Set.of(ROLE_SERVICE_MANAGER_L1))).assignmentType());
+        when(memberMapper.selectParticipantFacts(any())).thenReturn(List.of(collaborator));
+        assertThrows(ServiceException.class,()->api.inspect(query));
+    }
+
+    @Test void missingConfirmedMembershipDoesNotUseResponsibilityEvidenceOrInventPrimaryLabel() {
+        when(projectMapper.selectById(100L)).thenReturn(project(100L,200L,"ACTIVE","S3",7L,0L));
+        var query = new ProjectParticipantFactQuery(100L,300L,Set.of(ROLE_SERVICE_MANAGER_L1),LocalDateTime.now());
+        when(memberMapper.selectAuthorizationParticipantFacts(any())).thenReturn(List.of());
+        assertThrows(ServiceException.class,()->api.inspectAuthorization(query));
+        verify(memberMapper,never()).selectParticipantFacts(any());
+    }
+
     @Test
     void lockAndRevalidateUsesProjectThenCurrentAssignment() {
         when(projectMapper.selectByIdForUpdate(100L))

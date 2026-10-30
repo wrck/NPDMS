@@ -39,6 +39,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectTaskProgressServiceTest {
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi regional = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
 
     @Mock ProjectTaskRuntimeMapper taskMapper;
     @Mock ProjectTaskAssignmentMapper assignmentMapper;
@@ -52,7 +53,7 @@ class ProjectTaskProgressServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ProjectTaskProgressService(taskMapper, assignmentMapper,
+        service = new ProjectTaskProgressService(regional, taskMapper, assignmentMapper,
                 org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.class), factMapper, treeVersionMapper,
                 treeScopeService, permissionApi, operationAuditApi);
     }

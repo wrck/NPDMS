@@ -61,9 +61,7 @@ v-if="memberVisible && dialogProject?.version != null" :project="dialogProject" 
       <el-form label-position="top" @submit.prevent="remove">
         <p>{{ selected?.memberName }} · {{ selected && roleLabel(selected.memberRole) }}；只结束当前区间，不删除历史。</p>
         <el-form-item v-if="requiresReplacementPrimary" label="接任主责项目经理" required>
-          <el-select v-model="replacementPrimaryUserId" aria-label="接任主责项目经理" placeholder="从保留的项目经理中选择">
-            <el-option v-for="manager in retainedManagers" :key="manager.userId" :value="manager.userId" :label="manager.name" />
-          </el-select>
+          <UserSelect v-model="replacementPrimaryUserId" aria-label="接任主责项目经理" :clearable="false" :scoped-source="replacementSource" placeholder="从保留的项目经理中选择" />
         </el-form-item>
         <el-form-item label="退出原因" required><el-input v-model="removeReason" aria-label="退出原因" type="textarea" maxlength="500" /></el-form-item>
         <el-alert v-if="removeError" :title="removeError" type="error" :closable="false" role="alert" />
@@ -74,6 +72,8 @@ v-if="memberVisible && dialogProject?.version != null" :project="dialogProject" 
   </ContentWrap>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { formatDate } from '@/utils/formatTime'
@@ -101,6 +101,10 @@ const managers = ref<Managers.ProjectManagers>()
 const removeReason = ref(''), removeError = ref(''), removing = ref(false)
 const replacementPrimaryUserId = ref<number>()
 const retainedManagers = computed(() => managers.value?.members.filter(member => member.userId !== selected.value?.userId) || [])
+const replacementSource = computed(() => systemUserSelection.fromCandidates(
+  `project-manager-successor:${props.project.id}:${selected.value?.id}`,
+  retainedManagers.value.map(manager => ({ id: manager.userId, nickname: manager.name }))
+))
 const requiresReplacementPrimary = computed(() => selected.value?.memberRole === memberRoles.PROJECT_MANAGER
   && selected.value.userId === managers.value?.primaryUserId && retainedManagers.value.length > 0)
 const mobile = useMediaQuery('(max-width: 767px)')

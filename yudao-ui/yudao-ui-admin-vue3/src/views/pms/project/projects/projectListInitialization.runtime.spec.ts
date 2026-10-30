@@ -8,12 +8,14 @@ import * as LocationApi from '@/api/pms/asset/location'
 import { mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const grants = vi.hoisted(() => new Set<string>())
+const navigate = vi.hoisted(() => vi.fn())
 vi.mock('@/directives/permission/hasPermi', () => ({ hasPermission: (keys: string[]) => keys.some(key => grants.has(key)) }))
-vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+vi.mock('vue-router', () => ({ useRouter: () => ({ push: navigate }) }))
 vi.mock('@vueuse/core', async () => { const { ref } = await import('vue'); return { useMediaQuery: () => ref(false) } })
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), error: vi.fn() }) }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getStrDictOptions: () => [], getDictLabel: () => '' }))
-vi.mock('@/api/pms/project/projects', () => ({ getProjectPage: vi.fn(), getProjectStatistics: vi.fn(), matchTemplates: vi.fn() }))
+vi.mock('@/api/pms/project/projects', () => ({ getProjectPage: vi.fn(), getProjectStatistics: vi.fn(), matchTemplates: vi.fn(), searchOfficeProjects: vi.fn(),
+  createProjectMemberFilterSource: (role: string) => ({ key: `filter:${role}`, search: vi.fn(async () => ({ list: [], total: 0 })) }) }))
 vi.mock('@/api/pms/project/project-templates', () => ({ getProjectTemplateRevision: vi.fn() }))
 vi.mock('@/api/system/company', () => ({ getSimpleCompanyList: vi.fn() }))
 vi.mock('@/api/system/dept', () => ({ getSimpleDeptList: vi.fn() }))
@@ -60,6 +62,24 @@ it('loads scoped projects and organization filters without requesting the site a
   expect(state.companies).toEqual([{ id: 11, name: '公司' }])
   expect(state.departments).toEqual([{ id: 12, name: '办事处' }])
   expect(LocationApi.getSitePage).not.toHaveBeenCalled()
+})
+
+it('requires exact criteria, retains both submitted values and opens only the explicit readonly route', async () => {
+  const state = await render()
+  expect(ProjectsApi.searchOfficeProjects).not.toHaveBeenCalled()
+  await state.searchOffice()
+  expect(ProjectsApi.searchOfficeProjects).not.toHaveBeenCalled()
+  const row = { id: 9, projectName: '办事处项目', visibility: 'OFFICE_READONLY' }
+  vi.mocked(ProjectsApi.searchOfficeProjects).mockResolvedValue({ list: [row], total: 1 } as any)
+  state.officeQuery.projectName = '办事处项目'
+  state.officeQuery.contractNo = 'Exact%_'
+  await state.searchOffice(1)
+  expect(ProjectsApi.searchOfficeProjects).toHaveBeenCalledWith({ projectName: '办事处项目', contractNo: 'Exact%_', pageNo: 1, pageSize: 10 })
+  state.officeQuery.projectName = '未查询的新值'
+  state.openOfficeProject(row)
+  expect(navigate).toHaveBeenCalledWith({ path: '/pms/project/office-readonly', query: { projectId: '9', projectName: '办事处项目', contractNo: 'Exact%_' } })
+  expect(state.detailVisible).toBe(false)
+  expect(state.editVisible).toBe(false)
 })
 
 it('keeps list usable when statistics fail and preserves list filters on search', async () => {
