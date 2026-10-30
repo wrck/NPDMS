@@ -20,6 +20,7 @@ mountpoint -q /data
 install -d -o sdp-mysql -g sdp-mysql -m 0700 /run/sdp-mysql-bootstrap
 runuser -u sdp-mysql -- /opt/sdp/mysql/bin/mysqld --no-defaults \
   --initialize --basedir=/opt/sdp/mysql --datadir="$data" \
+  --secure-file-priv=/data/mysql-tmp \
   --auto-generate-certs=OFF --sha256-password-auto-generate-rsa-keys=OFF \
   --caching-sha2-password-auto-generate-rsa-keys=OFF \
   --log-error=/run/sdp-mysql-bootstrap/initialize.log
