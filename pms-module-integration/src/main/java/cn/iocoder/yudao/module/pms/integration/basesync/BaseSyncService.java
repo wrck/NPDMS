@@ -20,8 +20,10 @@ import java.util.*;
 
 @Service
 public final class BaseSyncService {
-    public record Run(long taskId,Integer batchSize) {
-        public Run(long taskId){this(taskId,null);}
+    public record Run(long taskId,Integer batchSize,List<String> stages) {
+        public Run { stages=stages==null?List.of():List.copyOf(stages); }
+        public Run(long taskId){this(taskId,null,List.of());}
+        public Run(long taskId,Integer batchSize){this(taskId,batchSize,List.of());}
     }
     public record PreviewRecovery(long taskId,long runId) {}
     public record Task(String code, String name) {}
@@ -107,6 +109,7 @@ public final class BaseSyncService {
         var registeredConfig=registration.configuration();
         var config=request.batchSize()==null?registeredConfig:new BaseSyncConfiguration(registeredConfig.taskCode(),registeredConfig.connectionId(),request.batchSize(),registeredConfig.maxRows());
         var task=requiredTask(config.taskCode());
+        task.validateStages(request.stages());
         for (var permission : task.requiredPermissions())
             if (!permissions.hasAnyPermissions(actorId, permission)) throw new IllegalArgumentException("缺少任务业务权限：" + permission);
         connections.required(config.connectionId());
@@ -120,7 +123,7 @@ public final class BaseSyncService {
             if(metadata.createRun(run)!=1 || metadata.claimTask(claim)!=1) throw new IllegalStateException("无法认领新任务运行");
         });
         var context = new SyncContext<Void>(tenantId, actorId, config.connectionId(), preview, config.batchSize(),
-                config.maxRows(), LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS), sources,new RunSyncIdentityStore(metadata,run),references,config.taskCode(),target,false,task.defaultUseRowHandler());
+                config.maxRows(), LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS), sources,new RunSyncIdentityStore(metadata,run),references,config.taskCode(),target,false,task.defaultUseRowHandler()).forStages(request.stages());
         try {
             var settings=task.retrySettings();
             var retry=new RetryTemplate(RetryPolicy.builder().maxRetries(settings.maxRetries())
@@ -139,6 +142,7 @@ public final class BaseSyncService {
         } catch(RuntimeException | Error failure) {
             String reason=failure.getClass()==IllegalArgumentException.class || failure.getClass()==IllegalStateException.class
                     ?failure.getMessage():"同步读取或写入失败："+failure.getClass().getSimpleName();
+            if(!request.stages().isEmpty())reason="STAGES:"+String.join(",",request.stages())+";"+reason;
             var finish=new BaseSyncMetadataMapper.FinishRun(tenantId,registration.id(),run.id(),SyncCounts.empty(),"FAILED",reason);
             try {
                 transaction().executeWithoutResult(status -> {

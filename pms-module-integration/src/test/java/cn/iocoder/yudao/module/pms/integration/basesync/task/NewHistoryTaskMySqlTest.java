@@ -81,6 +81,25 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   assertTrue(assertThrows(IllegalArgumentException.class,()->transaction.execute(status->task.execute(batch))).getMessage().contains("ORIGINAL_MEMBER_CANNOT_ADOPT"));
   assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));assertFalse(saved.containsKey("MEMBER_HISTORY:2"));
  }
+ @Test void sourceQueryNormalizesOnlyReversedEndsAndTargetCheckRemainsEnforced() throws Exception {
+  jdbc.execute("CREATE TEMPORARY TABLE pm_project_member(id BIGINT,projectId BIGINT,projectType VARCHAR(2),memberRole VARCHAR(2),memberCode VARCHAR(45),memberName VARCHAR(128),phoneNum VARCHAR(20),email VARCHAR(45),fromFlag VARCHAR(2),createTime DATETIME,createBy VARCHAR(64),updateTime DATETIME,updateBy VARCHAR(64),effectiveFrom DATETIME,effectiveTo DATETIME)");
+  for(int id=1;id<=5;id++)jdbc.update("INSERT INTO pm_project_member(id,projectId,projectType,memberRole,memberCode,createTime,effectiveFrom,effectiveTo) VALUES(?,1,'10','30',?,?,?,?)",id,"M"+id,at,id==5?null:at,switch(id){case 1->at.minusDays(1);case 2->at;case 3->at.plusDays(1);case 4->null;default->at.minusDays(1);});
+  jdbc.update("INSERT INTO pm_project_member(id,projectId,projectType,memberRole,createTime) VALUES(6,2,'10','30',?),(7,1,'10','50',?),(8,1,'20','30',?)",at,at,at);
+  String resource="base-sync-source/P31SourceMapper.xml";
+  try(var input=new org.springframework.core.io.ClassPathResource(resource).getInputStream()){
+   new org.apache.ibatis.builder.xml.XMLMapperBuilder(input,session.getConfiguration(),resource,session.getConfiguration().getSqlFragments()).parse();
+  }
+  var mapper=session.getMapper(P31MemberContactSyncTask.SourceMapper.class);
+  var rows=new ArrayList<P31MemberContactSyncTask.Source>();mapper.selectMemberContact(new P31MemberContactSyncTask.ReadQuery(100,List.of("1")),r->rows.add(r.getResultObject()));
+  assertEquals(5,rows.size());assertEquals(at.minusDays(1),rows.get(0).getOriginalEffectiveTo());assertEquals(at,rows.get(0).getEffectiveTo());assertEquals(at,rows.get(1).getEffectiveTo());assertEquals(at.plusDays(1),rows.get(2).getEffectiveTo());assertNull(rows.get(3).getEffectiveTo());assertNull(rows.get(4).getEffectiveFrom());assertEquals(at.minusDays(1),rows.get(4).getEffectiveTo());
+  var empty=new ArrayList<P31MemberContactSyncTask.Source>();mapper.selectMemberContact(new P31MemberContactSyncTask.ReadQuery(100,List.of()),r->empty.add(r.getResultObject()));assertTrue(empty.isEmpty());
+  assertEquals(at.minusDays(1),jdbc.queryForObject("SELECT effectiveTo FROM pm_project_member WHERE id=1",LocalDateTime.class));
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+  doAnswer(call->{emit(rows,call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
+  assertEquals(5,run(task,false).inserted());assertEquals(5,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment WHERE user_id IS NULL AND authorization_confirmed=0",Integer.class));
+  assertEquals(at,jdbc.queryForObject("SELECT effective_to FROM proj_project_member_assignment WHERE id=?",LocalDateTime.class,rows.getFirst().getMember().getId()));
+  assertEquals(5,run(task,true).unchanged());
+ }
  @Test void existingFormalDateCheckStillRejectsRawIntervalAndRollsBackEarlierMember(){
   var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
   var member=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("10").setMemberCode("w123");
@@ -110,7 +129,10 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
    assertFalse(row.getMember().getAuthorizationConfirmed());assertNull(row.getMember().getUserId());
    assertTrue(saved.containsKey("MEMBER_HISTORY:"+row.getSourceId()));
   }
+  for(var row:rows){row.setOriginalEffectiveTo(row.getEffectiveTo());if(row.getEffectiveTo()!=null&&row.getEffectiveFrom()!=null&&row.getEffectiveTo().isBefore(row.getEffectiveFrom()))row.setEffectiveTo(row.getEffectiveFrom());}
   var replay=run(task,false);assertEquals(3,replay.unchanged());assertEquals(0,replay.inserted());assertEquals(0,replay.updated());
+  assertEquals(at.minusDays(1),jdbc.queryForObject("SELECT effective_to FROM proj_project_member_assignment WHERE id=?",LocalDateTime.class,earlierDay.getMember().getId()));
+  earlierDay.setOriginalEffectiveTo(at.minusDays(2));assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("MEMBER_HISTORY_IMMUTABLE"));earlierDay.setOriginalEffectiveTo(at.minusDays(1));
   jdbc.update("UPDATE proj_project_member_assignment SET member_name='changed' WHERE id=?",earlierDay.getMember().getId());
   assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("EXISTING_MEMBER_PROTECTED"));
  }
@@ -198,7 +220,7 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("INSTALL_LOCATION_CAPACITY_REQUIRED"));
   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));assertTrue(saved.isEmpty());verifyNoInteractions(location);
  }
- @Test void installationSourceFiltersOnlyEmptyAddressesWithinTheSelectedOriginalProjects()throws Exception{
+ @Test void installationSourceIncludesEmptyAddressesWhileExistingJavaFilterRemains()throws Exception{
   jdbc.execute("""
    CREATE TEMPORARY TABLE pm_project_shipment(id BIGINT PRIMARY KEY,projectId BIGINT,barcode VARCHAR(64),
    itemCode VARCHAR(64),itemModel VARCHAR(64),itemName VARCHAR(64),receiveName VARCHAR(64),emsNum VARCHAR(64),emsCompany VARCHAR(64),
@@ -210,13 +232,16 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   jdbc.update("INSERT INTO pm_project_shipment(id,projectId,barcode,installAddress,transferFlag,createTime) VALUES(10,2,'OUTSIDE','outside address','-1',?)",at);
   var resource="base-sync-source/P33SourceMapper.xml";try(var input=new org.springframework.core.io.ClassPathResource(resource).getInputStream()){new org.apache.ibatis.builder.xml.XMLMapperBuilder(input,session.getConfiguration(),resource,session.getConfiguration().getSqlFragments()).parse();}
   var mapper=session.getMapper(P33InstallationSyncTask.SourceMapper.class);
+  var sourceRows=mapper.selectInstallation(new P33InstallationSyncTask.ReadQuery(100,List.of("1")));
+  assertEquals(addresses,sourceRows.stream().map(P33InstallationSyncTask.Source::getInstallAddress).toList());
+  assertEquals(List.of(1L,2L,3L,4L,5L,6L,7L,8L,9L),sourceRows.stream().map(P33InstallationSyncTask.Source::getSourceId).toList());
   var rows=new ArrayList<P33InstallationSyncTask.Source>();var locations=mock(AssetLocationApi.class);
   var task=spy(new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects));
   doAnswer(call->{rows.addAll(call.<SyncBatch<P33InstallationSyncTask.Source,P33InstallationSyncTask.Parameters>>getArgument(0).rows());return call.callRealMethod();}).when(task).syncDataInsertBefore(any());
   var context=context(true);assertEquals(new SyncCounts(2,0,0,0,0),transaction.execute(status->task.execute(context)));
   assertEquals(List.of(5L,6L),rows.stream().map(P33InstallationSyncTask.Source::getSourceId).toList());
   assertEquals(addresses.subList(4,6),rows.stream().map(P33InstallationSyncTask.Source::getInstallAddress).toList());
-  assertTrue(context.runState().warnings().contains("P33_BLANK_ADDRESS_FILTERED_AFTER_READ:3"));verifyNoInteractions(locations);
+  assertTrue(context.runState().warnings().contains("P33_BLANK_ADDRESS_FILTERED_AFTER_READ:7"));verifyNoInteractions(locations);
   assertTrue(mapper.selectInstallation(new P33InstallationSyncTask.ReadQuery(100,List.of())).isEmpty());
   assertEquals(10,jdbc.queryForObject("SELECT COUNT(*) FROM pm_project_shipment",Integer.class));
  }

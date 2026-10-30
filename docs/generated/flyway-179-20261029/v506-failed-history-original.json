@@ -1,0 +1,20 @@
+{
+  "target": "172.17.90.179:13306/npdms",
+  "captured_at": "2026-10-29T10:05:49.678997+08:00",
+  "original_history_row": {
+    "installed_rank": 9,
+    "version": "506",
+    "description": "cutover support person selection",
+    "type": "SQL",
+    "script": "V506__cutover_support_person_selection.sql",
+    "checksum": 2089897356,
+    "installed_by": "npdms_app",
+    "installed_on": "2026-10-29 09:58:26",
+    "execution_time": 95,
+    "success": 0
+  },
+  "original_flyway_receipt_sha256": "1374a07d0bad7b96ae4745eed6eb3db6e1e3b137257a2d62123cf42710db3119",
+  "v506_named_triggers_present": [],
+  "support_rows_with_source": 0,
+  "change_rows_with_source": 0
+}

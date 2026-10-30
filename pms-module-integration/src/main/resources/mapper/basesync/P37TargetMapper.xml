@@ -2,5 +2,21 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P37LicenseHistorySyncTask$TargetMapper">
 <select id="selectExisting" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P37LicenseHistorySyncTask$LicenseTarget">SELECT `id`,`tenant_id`,`device_id`,`contract_id`,`device_sn`,`contract_no`,`contract_type`,`product_code`,`product_model`,`license_status`,`creator`,`updater`,`create_time`,`update_time`,`deleted`,`license_code_ciphertext` FROM ast_device_license_record WHERE tenant_id=#{query.tenantId} <choose><when test="query.ids != null and !query.ids.isEmpty()">AND id IN <foreach collection="query.ids" item="id" open="(" close=")" separator=",">#{id}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview">FOR UPDATE</if></select>
+<select id="selectDevices" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P37LicenseHistorySyncTask$DeviceReference">
+ SELECT d.id,requests.requested_sn FROM ast_device d
+ JOIN (<choose><when test="query.serials != null and !query.serials.isEmpty()">VALUES <foreach collection="query.serials" item="sn" separator=",">ROW(#{sn})</foreach></when><otherwise>SELECT '' AS requested_sn WHERE 1=0</otherwise></choose>) requests(requested_sn)
+  ON d.sn=requests.requested_sn COLLATE utf8mb4_unicode_ci AND CAST(d.sn AS BINARY)=CAST(requests.requested_sn AS BINARY)
+ WHERE d.tenant_id=#{query.tenantId} AND d.deleted=FALSE
+ <if test="!query.preview">FOR UPDATE</if>
+</select>
 <insert id="insertLicenseHistory">INSERT INTO ast_device_license_record (`id`,tenant_id,`device_id`,`contract_id`,`device_sn`,`contract_no`,`contract_type`,`product_code`,`product_model`,`license_status`,`creator`,`updater`,`create_time`,`update_time`,`deleted`,`license_code_ciphertext`) VALUES <foreach collection="rows" item="row" separator=",">(#{row.target.id},#{row.target.tenantId},#{row.target.deviceId},#{row.target.contractId},#{row.target.deviceSn},#{row.target.contractNo},#{row.target.contractType},#{row.target.productCode},#{row.target.productModel},#{row.target.licenseStatus},#{row.target.creator},#{row.target.updater},#{row.target.createTime},#{row.target.updateTime},#{row.target.deleted},#{row.target.licenseCodeCiphertext})</foreach></insert>
+<update id="updateDeviceReferences">
+ UPDATE ast_device_license_record r
+ JOIN (VALUES <foreach collection="rows" item="row" separator=",">ROW(#{row.target.id},#{row.target.deviceId})</foreach>) requested(license_id,device_id)
+  ON requested.license_id=r.id
+ JOIN ast_device d ON d.tenant_id=r.tenant_id AND d.id=requested.device_id AND d.deleted=FALSE
+  AND CAST(d.sn AS BINARY)=CAST(r.device_sn AS BINARY)
+ SET r.device_id=d.id,r.update_time=r.update_time
+ WHERE r.tenant_id=#{context.tenantId} AND r.deleted=FALSE AND r.device_id IS NULL
+</update>
 </mapper>

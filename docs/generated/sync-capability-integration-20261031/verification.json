@@ -1,0 +1,145 @@
+{
+  "baseline": "66bb184b7dc499ca34e8996d6bddc06948e36fb5",
+  "source": "9d7b1141cfa043efe6625ca9a0599617286054ca",
+  "backend": {
+    "tests": 199,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "buildSuccess": true,
+    "classes": [
+      {
+        "name": "cn.iocoder.yudao.module.pms.project.service.projectplan.MigratedProjectTemplateSyncTaskTest",
+        "tests": 9,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanInitializationSnapshotTest",
+        "tests": 22,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectTemplateInitializationServiceTest",
+        "tests": 14,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.asset.service.device.DeviceQueryServiceTest",
+        "tests": 18,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncIsolationTest",
+        "tests": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncMapperWiringTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncTenantSqlTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.DeliveryOrganizationBackfillTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.LicenseBaseSyncTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.LicenseDeviceReferenceMySqlTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.NewHistoryTaskMySqlTest",
+        "tests": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.OrderContractPostfillTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01CompanyCompletionTest",
+        "tests": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountBaseSyncTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15StageSelectionTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.P22DepartmentPostfillMySqlTest",
+        "tests": 34,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "name": "cn.iocoder.yudao.module.pms.integration.basesync.task.ShipmentOrderLinePostfillTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ]
+  },
+  "frontend": 3,
+  "historicalBusinessWrites": false,
+  "deployed": false,
+  "typecheck": {
+    "passed": false,
+    "errors": 5,
+    "log": ".run/sync-integration-20261031/types.log",
+    "changedFilesHaveErrors": false
+  },
+  "existingContractFailure": {
+    "test": "ContractAccessServiceTest.projectOverviewKeepsHistoricalAuthorizationWhenCurrentTreeIsUnavailable",
+    "productionAndTestFilesUnchanged": true
+  }
+}

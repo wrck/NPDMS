@@ -90,10 +90,12 @@ class BaseSyncIsolationTest {
         boolean fatalLast;
         boolean warn;
         int transientFailures,attempts,fullReads,lastBatchSize;
+        final List<List<String>> attemptedStages=new ArrayList<>();
         @Override public String taskCode(){return "BASE_P11";}
         @Override public String taskName(){return "Independent fixture";}
         @Override public Set<String> requiredPermissions(){return Set.of();}
-        @Override public void work(SyncContext<Void> context){attempts++;lastBatchSize=context.batchSize();super.work(context);if(warn)context.runState().warning("SOURCE_WARNING:10");}
+        @Override public List<String> supportedStages(){return List.of("Rows");}
+        @Override public void work(SyncContext<Void> context){attempts++;lastBatchSize=context.batchSize();attemptedStages.add(context.runState().stages());super.work(context);if(warn)context.runState().warning("SOURCE_WARNING:10");}
         @Override protected List<Long> syncDataQuery(SyncContext<Void> context){fullReads++;return List.of(10L,20L,30L);}
         @Override protected void syncDataQueryByRowHandler(SyncContext<Void> context,ResultHandler<Long> handler){AbstractSyncTaskLifecycleTest.emit(List.of(10L,20L,30L),handler);}
         @Override protected void syncDataInsert(SyncBatch<Long,Void> batch){
@@ -283,6 +285,28 @@ class BaseSyncIsolationTest {
         assertOriginalUnchanged();
     }
 
+    @Test void selectedStagesSurviveRetryAndAreRecordedWithoutChangingRegistration(){
+        long id=service.register(config);task.transientFailures=1;task.setRetryIntervalMillis(0);
+        assertEquals(new SyncCounts(3,3,0,0,0),service.execute(new BaseSyncService.Run(id,null,List.of("Rows"))));
+        assertEquals(List.of(List.of("Rows"),List.of("Rows")),task.attemptedStages);
+        assertEquals("STAGES:Rows",jdbc.queryForObject("SELECT error_message FROM int_base_sync_run",String.class));
+        assertEquals(config,mapper.selectTask(new BaseSyncMetadataMapper.TaskQuery(1,id,false)).configuration());
+        assertOriginalUnchanged();
+    }
+    @Test void invalidStageDoesNotClaimTaskOrCreateRun(){
+        long id=service.register(config);
+        assertThrows(IllegalArgumentException.class,()->service.preview(new BaseSyncService.Run(id,null,List.of("Unknown"))));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM int_base_sync_run",Integer.class));
+        assertNull(mapper.selectTask(new BaseSyncMetadataMapper.TaskQuery(1,id,false)).activeRunId());
+        assertEquals(0,task.attempts);
+    }
+    @Test void selectedStageFailureRollsBackAndRecordsScope(){
+        long id=service.register(config);task.failLast=true;
+        assertThrows(IllegalStateException.class,()->service.execute(new BaseSyncService.Run(id,null,List.of("Rows"))));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM example_business",Integer.class));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM int_base_sync_binding",Integer.class));
+        assertTrue(jdbc.queryForObject("SELECT error_message FROM int_base_sync_run",String.class).startsWith("STAGES:Rows;"));
+    }
     private void assertOriginalUnchanged() {
         assertEquals(List.of("original-task-definition"),jdbc.queryForList("SELECT definition FROM int_sync_task",String.class));
         assertEquals(900L,jdbc.queryForObject("SELECT active_run_id FROM int_sync_task WHERE id=100",Long.class));

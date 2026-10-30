@@ -41,9 +41,15 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
     @Override protected Parameters createParameters(SyncContext<?> runtime){return new Parameters();}
     @Override public String taskCode(){return "BASE_P37";}
     @Override public String taskName(){return "整表许可历史";}
+    @Override public List<String> supportedStages(){return List.of("DeviceReference");}
     @Override public void work(SyncContext<Parameters> context){
         if(key==null)throw new IllegalStateException("LICENSE_MASTER_KEY_UNAVAILABLE");
         if(approvedFacts==null || !Files.isRegularFile(approvedFacts))throw new IllegalStateException("P37已批准非秘密来源清单未配置");
+        if(context.runState().stages().contains("DeviceReference")){
+            syncData(context.forData("DeviceReference",false,true));
+            if(context.parameters().devicePending>0)context.runState().warning("P37_DEVICE_REFERENCE_PENDING:"+context.parameters().devicePending);
+            return;
+        }
         syncData(context.forData("LicenseHistory",false,true));
         if(context.parameters().devicePending>0)context.runState().warning("P37_DEVICE_ASSOCIATION_PENDING:"+context.parameters().devicePending);
         if(context.parameters().contractPending>0)context.runState().warning("P37_CONTRACT_ASSOCIATION_PENDING:"+context.parameters().contractPending);
@@ -55,8 +61,10 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
                 var row=result.getResultObject();
                 try{
                     if(row.getSourceId()==null || !Objects.equals(approved.next(),fact(row)))throw new IllegalStateException("P37来源身份或七项批准原值已变化");
-                    row.setEnvelope(encrypt(new Capture(context.tenantId(),row.getSourceId().toString(),row.getLicenseCode()==null?null:row.getLicenseCode().toCharArray())));
-                    if(row.getLicenseCode().isEmpty())context.runState().warning("P37_LICENSE_CODE_EMPTY:sourceId="+row.getSourceId());
+                    if(!"DeviceReference".equals(context.dataName())){
+                        row.setEnvelope(encrypt(new Capture(context.tenantId(),row.getSourceId().toString(),row.getLicenseCode()==null?null:row.getLicenseCode().toCharArray())));
+                        if(row.getLicenseCode().isEmpty())context.runState().warning("P37_LICENSE_CODE_EMPTY:sourceId="+row.getSourceId());
+                    }
                 }finally{row.setLicenseCode(null);}
                 handler.handleResult(result);
             });
@@ -64,6 +72,7 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
         }catch(IOException failure){throw new IllegalStateException("P37批准清单不可读取");}
     }
     @Override protected void syncDataInsertBefore(SyncBatch<LicenseSource,Parameters> batch){
+        if("DeviceReference".equals(batch.context().dataName())){planDeviceReferences(batch);return;}
         var context=batch.context();var keys=batch.rows().stream().map(row->row.getSourceId().toString()).toList();
         var bindings=context.identities().findByKeys(new SyncIdentityStore.Query("LICENSE_HISTORY",keys));
         var targets=bindings.isEmpty()?List.<LicenseTarget>of():licenses.selectExisting(new TargetMapper.ExistingQuery(context.tenantId(),bindings.values().stream().map(SyncIdentityStore.Identity::targetId).toList(),context.preview()));
@@ -89,10 +98,42 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
             source.setTarget(row);source.setSyncAction(SyncWriteAction.INSERT);
         }
     }
+    private void planDeviceReferences(SyncBatch<LicenseSource,Parameters> batch){
+        var context=batch.context();var keys=batch.rows().stream().map(row->row.getSourceId().toString()).toList();
+        var bindings=context.identities().findByKeys(new SyncIdentityStore.Query("LICENSE_HISTORY",keys));
+        var targets=bindings.isEmpty()?List.<LicenseTarget>of():licenses.selectExisting(new TargetMapper.ExistingQuery(context.tenantId(),bindings.values().stream().map(SyncIdentityStore.Identity::targetId).toList(),context.preview()));
+        var byId=new HashMap<Long,LicenseTarget>();for(var row:targets)if(byId.putIfAbsent(row.getId(),row)!=null)throw new IllegalStateException("P37目标身份重复");
+        var serials=batch.rows().stream().map(LicenseSource::getSn).filter(sn->sn!=null&&!sn.isBlank()).distinct().toList();
+        var devices=new HashMap<String,DeviceReference>();
+        if(!serials.isEmpty())for(var device:licenses.selectDevices(new TargetMapper.DeviceQuery(context.tenantId(),serials,context.preview())))
+            if(device.getRequestedSn()==null||device.getId()==null||device.getId()<=0||devices.putIfAbsent(device.getRequestedSn(),device)!=null)throw new IllegalStateException("P37设备SN身份不唯一");
+        for(var source:batch.rows()){
+            var binding=bindings.get(source.getSourceId().toString());var old=binding==null?null:byId.get(binding.targetId());
+            if(old==null||old.getTenantId()!=context.tenantId()||Boolean.TRUE.equals(old.getDeleted())||!sourceValues(source).equals(business(old)))throw new IllegalStateException("P37不可变许可历史或来源绑定已变化");
+            String mac=verifyStored(old.getLicenseCodeCiphertext(),context.tenantId(),source.getSourceId().toString());
+            source.setEnvelope(new Envelope(source.getSourceId().toString(),null,keyId,mac));
+            if(!Objects.equals(binding.fingerprint(),fingerprint(source,old)))throw new IllegalStateException("P37不可变许可历史或来源绑定已变化");
+            source.setTarget(old);source.setSyncAction(SyncWriteAction.UNCHANGED);
+            if(old.getDeviceId()!=null)continue;
+            var device=devices.get(source.getSn());
+            if(device==null){context.parameters().devicePending++;continue;}
+            source.setPreviousFingerprint(binding.fingerprint());old.setDeviceId(device.getId());source.setSyncAction(SyncWriteAction.UPDATE);
+        }
+    }
     @Override protected SyncCounts syncDataCount(SyncBatch<LicenseSource,Parameters> batch){return SyncCounts.fromActions(batch.rows(),LicenseSource::getSyncAction);}
-    @Override protected void syncDataInsert(SyncBatch<LicenseSource,Parameters> batch){super.syncDataInsert(batch.matching(row->row.getSyncAction()==SyncWriteAction.INSERT));}
+    @Override protected void syncDataInsert(SyncBatch<LicenseSource,Parameters> batch){
+        if("DeviceReference".equals(batch.context().dataName())){
+            var updates=batch.matching(row->row.getSyncAction()==SyncWriteAction.UPDATE);
+            if(!updates.rows().isEmpty()&&licenses.updateDeviceReferences(updates)!=updates.rows().size())throw new IllegalStateException("P37设备引用或许可历史发生并发变化");
+            return;
+        }
+        super.syncDataInsert(batch.matching(row->row.getSyncAction()==SyncWriteAction.INSERT));
+    }
     @Override protected void syncDataInsertAfter(SyncBatch<LicenseSource,Parameters> batch){
-        batch.context().identities().saveAll(batch.rows().stream().filter(row->row.getSyncAction()==SyncWriteAction.INSERT)
+        if("DeviceReference".equals(batch.context().dataName())){
+            batch.context().identities().saveAll(batch.rows().stream().filter(row->row.getSyncAction()==SyncWriteAction.UPDATE)
+                    .map(row->new SyncIdentityStore.Save("LICENSE_HISTORY",row.getSourceId().toString(),row.getTarget().getId(),fingerprint(row,row.getTarget()),row.getPreviousFingerprint())).toList());
+        }else batch.context().identities().saveAll(batch.rows().stream().filter(row->row.getSyncAction()==SyncWriteAction.INSERT)
                 .map(row->new SyncIdentityStore.Save("LICENSE_HISTORY",row.getSourceId().toString(),row.getTarget().getId(),fingerprint(row,row.getTarget()),null)).toList());
     }
     public record Approved(String id,String sn,String specModel,String contract,String contractType,String item,String status){}
@@ -163,8 +204,10 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
         @JsonIgnore private String licenseCode;
         @JsonIgnore private Envelope envelope;
         @JsonIgnore private LicenseTarget target;
+        @JsonIgnore private String previousFingerprint;
         private SyncWriteAction syncAction;
     }
+    @lombok.Getter @lombok.Setter public static class DeviceReference {private Long id;private String requestedSn;}
     @lombok.Getter @lombok.Setter public static class LicenseTarget {
         private Long id;
         private Long tenantId;
@@ -183,10 +226,13 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
         private Boolean deleted;
         @JsonIgnore private String licenseCodeCiphertext;
     }
-    public interface SourceMapper {void selectLicenseHistory(SourceQuery<Parameters> query,ResultHandler<? super LicenseSource> handler);}
+    public interface SourceMapper {void selectLicenseHistory(SourceQuery<Parameters> query,ResultHandler<? super LicenseSource> handler);void selectDeviceReference(SourceQuery<Parameters> query,ResultHandler<? super LicenseSource> handler);}
     @Mapper public interface TargetMapper {
         record ExistingQuery(long tenantId,List<Long> ids,boolean preview){}
+        record DeviceQuery(long tenantId,List<String> serials,boolean preview){}
         List<LicenseTarget> selectExisting(@Param("query") ExistingQuery query);
+        List<DeviceReference> selectDevices(@Param("query") DeviceQuery query);
         int insertLicenseHistory(SyncBatch<LicenseSource,Parameters> batch);
+        int updateDeviceReferences(SyncBatch<LicenseSource,Parameters> batch);
     }
 }

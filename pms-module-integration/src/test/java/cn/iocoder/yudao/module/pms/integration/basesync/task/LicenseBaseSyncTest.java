@@ -69,4 +69,15 @@ class LicenseBaseSyncTest {
         var extra=approval("[{\"id\":\"1\",\"sn\":null,\"specModel\":null,\"contract\":null,\"contractType\":null,\"item\":null,\"status\":null,\"unapproved\":true}]");
         try(var cursor=new P37LicenseHistorySyncTask.ApprovalCursor(extra)){assertThrows(IllegalStateException.class,cursor::next);}
     }
+    @Test void deviceReferenceStageStillChecksApprovedFactsWithoutReadingTheLicenseCode()throws Exception{
+        var path=approval("[{\"id\":\"1\",\"sn\":\"SN-1\",\"specModel\":null,\"contract\":\"C-1\",\"contractType\":null,\"item\":\"ITEM\",\"status\":\"ACTIVE\"}]");
+        var task=task(path);var source=mock(SyncSource.class);var opened=mock(SyncSource.Session.class);var nativeSession=mock(SqlSession.class);
+        when(source.open(3)).thenReturn(opened);when(opened.sqlSession()).thenReturn(nativeSession);
+        var row=new P37LicenseHistorySyncTask.LicenseSource().setSourceId(1L).setSn("SN-1").setContract("C-1").setItem("ITEM").setStatus("ACTIVE");
+        doAnswer(call->{ResultHandler<P37LicenseHistorySyncTask.LicenseSource> handler=call.getArgument(2);var result=mock(ResultContext.class);when(result.getResultObject()).thenReturn(row);handler.handleResult(result);return null;}).when(nativeSession).select(contains("selectDeviceReference"),any(),any(ResultHandler.class));
+        var runtime=new SyncContext<Void>(1,2,3,true,500,1000000,LocalDateTime.now(),source,mock(SyncIdentityStore.class),mock(SyncReferences.class),"DeviceReference",mock(SqlSession.class),false,true);
+        var context=runtime.forParameters(task.createParameters(runtime));int[] called={0};
+        assertThrows(IllegalStateException.class,()->task.syncDataQueryByRowHandler(context,result->{assertNull(result.getResultObject().getLicenseCode());assertNull(result.getResultObject().getEnvelope());called[0]++;}));
+        assertEquals(1,called[0]);verify(opened).close();
+    }
 }

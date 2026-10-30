@@ -49,15 +49,18 @@ WHERE p.tenant_id=#{query.tenantId} AND p.deleted=FALSE
 <update id="backfillDepartmentIds">
  UPDATE com_delivery_scope s <include refid="currentRunScopes"/>
  JOIN system_dept d ON d.tenant_id=s.tenant_id AND CAST(d.code AS BINARY)=CAST(s.department_code AS BINARY)
-  AND d.deleted=FALSE AND d.id&gt;0 AND d.version=s.department_version AND CAST(d.name AS BINARY)=CAST(s.department_name AS BINARY)
+  AND d.deleted=FALSE AND d.id&gt;0 AND d.version IS NOT NULL AND d.name IS NOT NULL AND TRIM(d.name)&lt;&gt;''
+  AND (s.department_version IS NULL OR d.version=s.department_version)
+  AND (s.department_name IS NULL OR CAST(d.name AS BINARY)=CAST(s.department_name AS BINARY))
  SET s.department_id=d.id,s.update_time=s.update_time
  WHERE s.tenant_id=#{query.tenantId} AND s.department_id=-1 AND s.deleted=FALSE AND s.allocation_source='DPPMS'
  AND s.department_code IS NOT NULL AND TRIM(s.department_code)&lt;&gt;''
 </update>
-<select id="countUnresolvedCodedDepartments" resultType="long">
+<select id="countUnresolvedCodedDepartmentsWithSnapshot" resultType="long">
  SELECT COUNT(*) FROM com_delivery_scope s <include refid="currentRunScopes"/>
  WHERE s.tenant_id=#{query.tenantId} AND s.department_id=-1 AND s.deleted=FALSE AND s.allocation_source='DPPMS'
  AND s.department_code IS NOT NULL AND TRIM(s.department_code)&lt;&gt;''
+ AND (s.department_name IS NOT NULL OR s.department_version IS NOT NULL)
 </select>
 <select id="pendingDepartmentSchemaReady" resultType="int">
  SELECT CASE WHEN COUNT(*)=3 THEN 1 ELSE 0 END FROM information_schema.columns
@@ -107,4 +110,65 @@ WHERE p.tenant_id=#{query.tenantId} AND p.deleted=FALSE
  SELECT COUNT(*) FROM com_delivery_scope s <include refid="currentRunScopes"/>
  WHERE s.tenant_id=#{query.tenantId} AND s.order_line_id=-1 AND s.deleted=FALSE AND s.allocation_source='DPPMS'
 </select>
+<!-- Connection-local stages contain only rows inserted by this transaction; committed history is never reclassified. -->
+<update id="dropAllocationStage">DROP TEMPORARY TABLE IF EXISTS p22_allocation_plan,p22_allocation_pairs,p22_allocation_totals,p22_allocation_occupied,p22_allocation_orders,p22_allocation_new</update>
+<update id="createAllocationStage">CREATE TEMPORARY TABLE p22_allocation_new (scope_id BIGINT PRIMARY KEY,source_key VARCHAR(128) NOT NULL,project_id BIGINT NULL,order_line_id BIGINT NULL,allocated_qty DECIMAL(18,6) NULL,allocation_version BIGINT NULL,project_company_code VARCHAR(64) NULL,order_source_system VARCHAR(32) NULL,order_company_code VARCHAR(64) NULL,order_type VARCHAR(32) NULL,order_no VARCHAR(64) NULL,line_no VARCHAR(32) NULL,product_code VARCHAR(64) NULL,KEY(order_line_id,project_id)) ENGINE=InnoDB</update>
+<insert id="stageNewScopes">INSERT INTO p22_allocation_new(scope_id,source_key) VALUES <foreach collection="rows" item="row" separator=",">(#{row.target.id},#{row.sourceId})</foreach></insert>
+<update id="fillAllocationStage">UPDATE p22_allocation_new n JOIN com_delivery_scope s ON s.id=n.scope_id AND s.tenant_id=#{query.tenantId} AND s.deleted=FALSE AND s.allocation_confirmed=FALSE SET n.project_id=s.project_id,n.order_line_id=s.order_line_id,n.allocated_qty=s.allocated_qty,n.allocation_version=s.allocation_version,n.project_company_code=s.project_company_code,n.order_source_system=s.order_source_system,n.order_company_code=s.order_company_code,n.order_type=s.order_type,n.order_no=s.order_no,n.line_no=s.line_no,n.product_code=s.product_code</update>
+<update id="createAllocationOrders">CREATE TEMPORARY TABLE p22_allocation_orders (id BIGINT PRIMARY KEY,order_qty DECIMAL(18,6) NULL,unit_scale INT NULL,source_system VARCHAR(32),company_code VARCHAR(64),order_type VARCHAR(32),order_no VARCHAR(64),line_no VARCHAR(32),product_code VARCHAR(64)) ENGINE=InnoDB</update>
+<insert id="lockAllocationOrders">INSERT INTO p22_allocation_orders(id,order_qty,unit_scale,source_system,company_code,order_type,order_no,line_no,product_code) SELECT DISTINCT l.id,l.order_qty,l.unit_scale,l.source_system,l.company_code,l.order_type,l.order_no,l.line_no,l.product_code <include refid="ownedOrderRows"/> AND l.source_lifecycle_status='ACTIVE' AND l.id IN (SELECT n.order_line_id FROM p22_allocation_new n WHERE n.order_line_id&gt;0) FOR UPDATE</insert>
+<update id="createAllocationOccupied">CREATE TEMPORARY TABLE p22_allocation_occupied (order_line_id BIGINT NOT NULL,project_id BIGINT NOT NULL,allocated_qty DECIMAL(18,6) NOT NULL,KEY(order_line_id,project_id)) ENGINE=InnoDB</update>
+<insert id="lockExistingAllocations">INSERT INTO p22_allocation_occupied(order_line_id,project_id,allocated_qty) SELECT s.order_line_id,s.project_id,s.allocated_qty FROM com_delivery_scope s WHERE s.tenant_id=#{query.tenantId} AND s.deleted=FALSE AND s.effective_to IS NULL AND s.allocation_confirmed=TRUE AND s.order_line_id IN (SELECT n.order_line_id FROM p22_allocation_new n WHERE n.order_line_id&gt;0) FOR UPDATE</insert>
+<update id="createAllocationTotals">CREATE TEMPORARY TABLE p22_allocation_totals (order_line_id BIGINT PRIMARY KEY,allocated_qty DECIMAL(28,6) NOT NULL) ENGINE=InnoDB</update>
+<insert id="fillAllocationTotals">INSERT INTO p22_allocation_totals SELECT order_line_id,SUM(allocated_qty) FROM p22_allocation_occupied GROUP BY order_line_id</insert>
+<update id="createAllocationPairs">CREATE TEMPORARY TABLE p22_allocation_pairs (order_line_id BIGINT NOT NULL,project_id BIGINT NOT NULL,PRIMARY KEY(order_line_id,project_id)) ENGINE=InnoDB</update>
+<insert id="fillAllocationPairs">INSERT INTO p22_allocation_pairs SELECT DISTINCT order_line_id,project_id FROM p22_allocation_occupied</insert>
+<update id="createAllocationPlan">CREATE TEMPORARY TABLE p22_allocation_plan (scope_id BIGINT PRIMARY KEY,source_key VARCHAR(128) NOT NULL,project_id BIGINT NOT NULL,order_line_id BIGINT NOT NULL,allocation_version BIGINT NOT NULL,decision VARCHAR(16) NOT NULL,KEY(project_id,decision)) ENGINE=InnoDB</update>
+<insert id="fillAllocationPlan">
+ INSERT INTO p22_allocation_plan(scope_id,source_key,project_id,order_line_id,allocation_version,decision)
+ SELECT c.scope_id,c.source_key,c.project_id,c.order_line_id,c.allocation_version,
+ CASE WHEN c.eligibility&lt;&gt;'CANDIDATE' THEN c.eligibility
+      WHEN SUM(CASE WHEN c.eligibility='CANDIDATE' THEN c.allocated_qty ELSE 0 END)
+           OVER(PARTITION BY c.order_line_id)+c.occupied_qty&gt;c.order_qty THEN 'EXCESS'
+      ELSE 'CONFIRMED' END
+ FROM (
+  SELECT n.*,o.order_qty,COALESCE(occupied.allocated_qty,0) occupied_qty,
+   CASE WHEN n.order_line_id&lt;=0 OR o.id IS NULL OR o.order_qty IS NULL OR o.order_qty&lt;=0 OR o.unit_scale IS NULL OR p.id IS NULL
+        OR NOT (CAST(n.project_company_code AS BINARY) &lt;=&gt; CAST(o.company_code AS BINARY))
+        OR NOT (CAST(n.order_source_system AS BINARY) &lt;=&gt; CAST(o.source_system AS BINARY))
+        OR NOT (CAST(n.order_company_code AS BINARY) &lt;=&gt; CAST(o.company_code AS BINARY))
+        OR NOT (CAST(n.order_type AS BINARY) &lt;=&gt; CAST(o.order_type AS BINARY))
+        OR NOT (CAST(n.order_no AS BINARY) &lt;=&gt; CAST(o.order_no AS BINARY))
+        OR NOT (CAST(n.line_no AS BINARY) &lt;=&gt; CAST(o.line_no AS BINARY))
+        OR NOT (CAST(n.product_code AS BINARY) &lt;=&gt; CAST(o.product_code AS BINARY)) THEN 'PENDING'
+        WHEN n.project_count&gt;1 OR pair.order_line_id IS NOT NULL THEN 'DUPLICATE'
+        WHEN ROUND(n.allocated_qty,o.unit_scale)&lt;&gt;n.allocated_qty THEN 'EXCESS'
+        ELSE 'CANDIDATE' END eligibility
+  FROM (SELECT a.*,COUNT(*) OVER(PARTITION BY a.project_id,a.order_line_id) project_count FROM p22_allocation_new a) n
+  LEFT JOIN p22_allocation_orders o ON o.id=n.order_line_id
+  LEFT JOIN p22_allocation_totals occupied ON occupied.order_line_id=n.order_line_id
+  LEFT JOIN p22_allocation_pairs pair ON pair.order_line_id=n.order_line_id AND pair.project_id=n.project_id
+  LEFT JOIN proj_project p ON p.tenant_id=#{query.tenantId} AND p.id=n.project_id AND p.deleted=FALSE
+ ) c
+</insert>
+<select id="countAllocationDecisions" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$AllocationDecision">SELECT decision,COUNT(*) AS count FROM p22_allocation_plan GROUP BY decision ORDER BY decision</select>
+<select id="selectAllocationProjects" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$AllocationProject">SELECT project_id,MIN(allocation_version) min_version,MAX(allocation_version) max_version FROM p22_allocation_plan WHERE decision='CONFIRMED' AND project_id&gt;#{query.after} GROUP BY project_id ORDER BY project_id LIMIT #{query.limit}</select>
+<insert id="seedAllocationVersions">
+ INSERT IGNORE INTO com_delivery_scope_project_version(id,tenant_id,project_id,scope_version,payload_version,last_change_type,version,creator,create_time,updater,update_time,deleted)
+ VALUES <foreach collection="query.rows" item="row" separator=",">(#{row.id},#{query.tenantId},#{row.projectId},0,0,'INITIALIZED',0,#{query.actorId},#{query.at},#{query.actorId},#{query.at},0)</foreach>
+</insert>
+<update id="advanceAllocationVersions">
+ UPDATE com_delivery_scope_project_version v
+ JOIN (VALUES <foreach collection="query.rows" item="row" separator=",">ROW(#{row.projectId},#{row.expectedVersion})</foreach>) requested(project_id,expected_version)
+ ON requested.project_id=v.project_id
+ SET v.scope_version=v.scope_version+1,v.payload_version=v.payload_version+1,v.last_change_type='ASSIGNED',v.version=v.version+1,v.updater=#{query.actorId},v.update_time=#{query.at}
+ WHERE v.tenant_id=#{query.tenantId} AND v.deleted=FALSE AND v.scope_version=requested.expected_version
+</update>
+<select id="selectConfirmableAllocations" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$AllocationRow">SELECT scope_id,source_key,order_line_id FROM p22_allocation_plan WHERE decision='CONFIRMED' AND scope_id&gt;#{query.after} ORDER BY scope_id LIMIT #{query.limit}</select>
+<update id="confirmAllocations">
+ UPDATE com_delivery_scope s JOIN (VALUES <foreach collection="query.rows" item="row" separator=",">ROW(#{row.scopeId},#{row.orderLineId})</foreach>) requested(scope_id,order_line_id)
+ ON requested.scope_id=s.id AND requested.order_line_id=s.order_line_id
+ SET s.allocation_confirmed=TRUE,s.update_time=s.update_time
+ WHERE s.tenant_id=#{query.tenantId} AND s.deleted=FALSE AND s.effective_to IS NULL AND s.allocation_source='DPPMS' AND s.allocation_confirmed=FALSE
+</update>
 </mapper>

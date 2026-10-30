@@ -33,6 +33,8 @@ class BaseSyncMapperWiringTest {
             return factory.getObject();
         }
         @Bean cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi organizationScope(){return mock(cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi.class);}
+        @Bean cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi managedOrganizations(){return mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class);}
+        @Bean cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi contractVisibility(){return mock(cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.class);}
         @Bean cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi projectScope(){return mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.class);}
         @Bean BaseSyncProjectReferences projectReferences(BaseSyncProjectReferences.ReferenceMapper mapper,cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi scope){return new BaseSyncProjectReferences(mapper,scope);}
         @Bean cn.iocoder.yudao.module.pms.platform.api.entity.EntityExtensionApi extensions(){return mock(cn.iocoder.yudao.module.pms.platform.api.entity.EntityExtensionApi.class);}

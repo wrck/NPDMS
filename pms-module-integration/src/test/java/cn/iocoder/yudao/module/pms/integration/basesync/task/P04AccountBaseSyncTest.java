@@ -3,11 +3,13 @@ package cn.iocoder.yudao.module.pms.integration.basesync.task;
 import cn.iocoder.yudao.module.pms.integration.api.basesync.*;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class P04AccountBaseSyncTest extends RemainingTaskMySqlSupport {
+@EnabledIfEnvironmentVariable(named="BASE_PRODUCT_TEMP_MYSQL_TEST",matches="true")
+class P04AccountBaseSyncTest extends P04AccountMySqlSupport {
  org.springframework.security.crypto.password.PasswordEncoder encoder;
  cn.iocoder.yudao.framework.tenant.config.TenantProperties tenants;
  P04AccountSyncTask.TargetMapper mapper;

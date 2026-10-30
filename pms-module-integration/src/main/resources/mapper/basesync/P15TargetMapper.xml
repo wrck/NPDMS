@@ -144,4 +144,88 @@ GROUP BY s.tenant_id,s.contract_no) rr ON rr.tenant_id=#{tenantId} AND CAST(rr.c
  WHERE tenant_id=#{context.tenantId} AND deleted=FALSE AND source_system='DPPMS'
  AND id IN <foreach collection="rows" item="row" open="(" close=")" separator=",">#{row.target.id}</foreach>
 </update>
+<select id="selectShipmentOrderLines" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$ResolvedOrderLine">
+ SELECT incoming.shipment_key,l.id AS order_line_id
+ FROM (
+  <choose><when test="query.rows != null and !query.rows.isEmpty()">
+   VALUES <foreach collection="query.rows" item="row" separator=",">ROW(#{row.key},#{row.lineSourceKey},#{row.lineSourceSystem},#{row.lineCompanyCode},#{row.lineType},#{row.rawOrderNo},#{row.formalLineNo},#{row.lineProductCode})</foreach>
+  </when><otherwise>SELECT NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL WHERE 1=0</otherwise></choose>
+ ) incoming(shipment_key,line_source_key,source_system,company_code,line_type,order_no,line_no,product_code)
+ JOIN int_base_sync_task t ON t.tenant_id=#{query.tenantId} AND t.task_code='BASE_P14' AND t.connection_id=#{query.connectionId} AND t.deleted=FALSE
+ JOIN int_base_sync_binding b ON b.tenant_id=t.tenant_id AND b.task_id=t.id AND b.object_key='SALES_LINE' AND b.source_key=incoming.line_source_key AND b.deleted=FALSE
+ JOIN com_sales_order_line l ON l.tenant_id=b.tenant_id AND l.id=b.target_id AND l.deleted=FALSE
+ WHERE l.tenant_id=#{query.tenantId}
+  AND CAST(l.source_system AS BINARY)=CAST(incoming.source_system AS BINARY)
+  AND CAST(l.company_code AS BINARY)=CAST(incoming.company_code AS BINARY)
+  AND CAST(l.line_type AS BINARY)=CAST(incoming.line_type AS BINARY)
+  AND CAST(l.order_no AS BINARY)=CAST(incoming.order_no AS BINARY)
+  AND CAST(l.line_no AS BINARY)=CAST(incoming.line_no AS BINARY)
+  AND CAST(l.product_code AS BINARY)&lt;=&gt;CAST(incoming.product_code AS BINARY)
+</select>
+<update id="updateShipmentOrderLine">
+ UPDATE ast_device_shipment s JOIN (
+  VALUES <foreach collection="rows" item="row" separator=",">ROW(#{row.target.id},#{row.target.tenantId},#{row.expectedVersion},#{row.target.orderLineId})</foreach>
+ ) incoming(id,tenant_id,version,order_line_id) ON incoming.id=s.id AND incoming.tenant_id=s.tenant_id
+ SET s.order_line_id=incoming.order_line_id,s.update_time=s.update_time
+ WHERE s.tenant_id=#{context.tenantId} AND s.deleted=FALSE AND s.source_system='DPPMS'
+  AND s.order_line_id IS NULL AND s.version=incoming.version
+</update>
+<resultMap id="OrderContractSource" type="cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$Source">
+ <id property="key" column="raw_key"/>
+ <association property="relation" javaType="cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$OrderContractRow" notNullColumn="order_id">
+  <result property="orderId" column="order_id"/><result property="contractId" column="contract_id"/>
+  <result property="relationRole" column="relation_role"/><result property="relationSource" column="relation_source"/>
+  <result property="sourceSystem" column="source_system"/><result property="salesOrderSourceKey" column="sales_order_source_key"/>
+  <result property="contractSourceKey" column="contract_source_key"/><result property="sourceVersion" column="source_version"/>
+  <result property="sourceEvidence" column="source_evidence"/><result property="effectiveFrom" column="effective_from"/>
+ </association>
+</resultMap>
+<select id="selectOrderContractRelation" resultMap="OrderContractSource" resultOrdered="true">
+ SELECT SHA2(CAST(JSON_ARRAY(o.source_system,o.source_record_key,CAST(JSON_ARRAY(o.company_code,o.contract_no) AS CHAR)) AS CHAR),256) AS raw_key,
+  o.id AS order_id,c.id AS contract_id,'RELATED' AS relation_role,o.source_system AS relation_source,
+  o.source_system,o.source_record_key AS sales_order_source_key,
+  CAST(JSON_ARRAY(o.company_code,o.contract_no) AS CHAR) AS contract_source_key,o.source_version,
+  CAST(JSON_OBJECT('companyCode',o.company_code,'orderType',o.order_type,'orderNo',o.order_no,
+    'contractNo',o.contract_no,'effectiveFromSource','order_create_time') AS CHAR) AS source_evidence,
+  o.order_create_time AS effective_from
+ FROM com_sales_order o
+ LEFT JOIN com_contract c ON c.tenant_id=o.tenant_id AND c.company_code=o.company_code AND c.contract_no=o.contract_no
+  AND CAST(c.company_code AS BINARY)=CAST(o.company_code AS BINARY) AND CAST(c.contract_no AS BINARY)=CAST(o.contract_no AS BINARY)
+  AND c.deleted=FALSE AND c.master_source_system='DPPMS_ERP'
+  AND CAST(c.master_source_record_key AS BINARY)=CAST(JSON_ARRAY(o.company_code,o.contract_no) AS BINARY)
+  AND EXISTS (SELECT 1 FROM int_base_sync_task ct JOIN int_base_sync_binding cb ON cb.tenant_id=ct.tenant_id AND cb.task_id=ct.id
+    AND cb.object_key='CONTRACT' AND cb.source_key=c.master_source_record_key COLLATE utf8mb4_bin AND cb.target_id=c.id AND cb.deleted=FALSE
+    WHERE ct.tenant_id=#{tenantId} AND ct.connection_id=#{parameters.connectionId} AND ct.task_code='BASE_P15' AND ct.deleted=FALSE)
+ WHERE o.tenant_id=#{tenantId} AND o.deleted=FALSE AND o.source_system IN ('SAP','D365','SMS') AND o.order_type IN ('0','1')
+  AND CAST(o.source_record_key AS BINARY)=CAST(CONCAT('BASE_P14|ORDER|',o.source_system,'|',o.company_code,'|',o.order_type,'|',o.order_no) AS BINARY)
+  AND EXISTS (SELECT 1 FROM int_base_sync_task ot JOIN int_base_sync_binding ob ON ob.tenant_id=ot.tenant_id AND ob.task_id=ot.id
+    AND ob.object_key='SALES_ORDER' AND ob.target_id=o.id AND ob.deleted=FALSE
+    AND ob.source_key=SHA2(CAST(JSON_ARRAY(o.source_system,o.company_code,CAST(o.order_type AS SIGNED),o.order_no) AS CHAR),256)
+    WHERE ot.tenant_id=#{tenantId} AND ot.connection_id=#{parameters.connectionId} AND ot.task_code='BASE_P14' AND ot.deleted=FALSE)
+ ORDER BY o.id LIMIT #{limit}
+</select>
+<select id="selectOrderContractRelations" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$OrderContractRow">
+ SELECT r.id,r.tenant_id,r.order_id,r.contract_id,r.relation_role,r.relation_source,r.source_system,
+  r.sales_order_source_key,r.contract_source_key,r.source_version,CAST(r.source_evidence AS CHAR) AS source_evidence,
+  r.effective_from,r.effective_to,r.creator,r.create_time,r.updater,r.update_time,r.deleted
+ FROM (
+  <choose><when test="query.rows != null and !query.rows.isEmpty()">
+   VALUES <foreach collection="query.rows" item="row" separator=",">ROW(#{row.relation.orderId},#{row.relation.contractId})</foreach>
+  </when><otherwise>SELECT NULL,NULL WHERE 1=0</otherwise></choose>
+ ) incoming(order_id,contract_id)
+ JOIN com_order_contract_relation r ON r.tenant_id=#{query.tenantId} AND r.order_id=incoming.order_id
+  AND r.contract_id=incoming.contract_id AND r.relation_role='RELATED'
+ <if test="!query.preview">FOR UPDATE</if>
+</select>
+<insert id="insertOrderContractRelation">
+ INSERT INTO com_order_contract_relation
+  (id,tenant_id,order_id,contract_id,relation_role,relation_source,source_system,sales_order_source_key,
+   contract_source_key,source_version,source_evidence,effective_from,effective_to,creator,create_time,updater,update_time,deleted)
+ VALUES <foreach collection="rows" item="row" separator=",">
+  (#{row.relation.id},#{row.relation.tenantId},#{row.relation.orderId},#{row.relation.contractId},#{row.relation.relationRole},
+   #{row.relation.relationSource},#{row.relation.sourceSystem},#{row.relation.salesOrderSourceKey},#{row.relation.contractSourceKey},
+   #{row.relation.sourceVersion},#{row.relation.sourceEvidence},#{row.relation.effectiveFrom},#{row.relation.effectiveTo},
+   #{row.relation.creator},#{row.relation.createTime},#{row.relation.updater},#{row.relation.updateTime},#{row.relation.deleted})
+ </foreach>
+</insert>
 </mapper>

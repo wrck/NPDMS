@@ -2,10 +2,12 @@ package cn.iocoder.yudao.module.pms.integration.basesync.task;
 
 import cn.iocoder.yudao.module.pms.integration.api.basesync.*;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
-import org.apache.ibatis.session.Configuration;
-import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.mapping.Environment;
+import org.apache.ibatis.session.*;
+import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import java.time.LocalDateTime;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,89 +15,185 @@ import static org.mockito.Mockito.*;
 
 class P01CompanyCompletionTest {
     static final LocalDateTime AT=LocalDateTime.of(2026,7,12,0,0);
-    static P01OrganizationSyncTask.Company ehr(long id,String code,String name){
-        return new P01OrganizationSyncTask.Company().setId(id).setCode(code).setName(name).setDisabled(0).setSourceTable("ehr_company").setOriginalCode(code);
+    static final AbstractSyncTask.SourceQuery<Void> QUERY=new AbstractSyncTask.SourceQuery<>(1001,1,true,null);
+
+    static class Fixture implements AutoCloseable {
+        final SqlSession session;
+        final P01OrganizationSyncTask.SourceMapper source;
+        Fixture() throws Exception {
+            var dataSource=new DriverManagerDataSource("jdbc:h2:mem:"+UUID.randomUUID()+";MODE=MySQL;DB_CLOSE_DELAY=-1","sa","");
+            var config=new Configuration(new Environment("test",new JdbcTransactionFactory(),dataSource));
+            config.setMapUnderscoreToCamelCase(true);
+            for(var resource:List.of("base-sync-source/P01SourceMapper.xml","mapper/basesync/P01TargetMapper.xml"))
+                try(var input=new ClassPathResource(resource).getInputStream()){
+                    new XMLMapperBuilder(input,config,resource,config.getSqlFragments()).parse();
+                }
+            session=new SqlSessionFactoryBuilder().build(config).openSession();
+            source=session.getMapper(P01OrganizationSyncTask.SourceMapper.class);
+            sql("CREATE DOMAIN UNSIGNED AS BIGINT",
+                "CREATE TABLE ehr_company(compID BIGINT PRIMARY KEY,compCode VARCHAR(64),compName VARCHAR(128),isDisabled INT)",
+                "CREATE TABLE t_company(id BIGINT PRIMARY KEY,compCode VARCHAR(64),compName VARCHAR(128),state INT)",
+                "CREATE TABLE fnd_company(id BIGINT PRIMARY KEY,code VARCHAR(64),name VARCHAR(128),status INT)",
+                "CREATE TABLE ehr_department(depID BIGINT PRIMARY KEY,depCode VARCHAR(64),depName VARCHAR(128),compID BIGINT,adminID BIGINT,depGrade VARCHAR(8),director BIGINT,isDisabled INT,remark VARCHAR(128))",
+                "CREATE TABLE fnd_department(id BIGINT PRIMARY KEY,departmentNum VARCHAR(64),departmentName VARCHAR(128),status INT,createTime TIMESTAMP,updateTime TIMESTAMP)",
+                "CREATE TABLE system_company(id BIGINT PRIMARY KEY,tenant_id BIGINT,code VARCHAR(64),name VARCHAR(128),status INT,version INT,creator VARCHAR(64),create_time TIMESTAMP,updater VARCHAR(64),update_time TIMESTAMP,deleted BOOLEAN)",
+                "CREATE TABLE system_dept(id BIGINT PRIMARY KEY,tenant_id BIGINT,code VARCHAR(64),name VARCHAR(128),status INT,version INT,creator VARCHAR(64),create_time TIMESTAMP,updater VARCHAR(64),update_time TIMESTAMP,deleted BOOLEAN,parent_id BIGINT,sort INT,leader_user_id BIGINT,phone VARCHAR(64),email VARCHAR(128))",
+                "INSERT INTO ehr_company VALUES(1,'001','公司一',0),(4,'002','公司二',0),(3,'003','公司三',0)",
+                "INSERT INTO ehr_department VALUES(100,'160000','基础部门',4,NULL,'1',NULL,0,NULL)");
+        }
+        void sql(String... statements) throws Exception {
+            try(var statement=session.getConnection().createStatement()){for(var sql:statements)statement.execute(sql);}
+            session.clearCache();
+        }
+        SyncContext<Void> context(boolean preview,int maxRows,SyncIdentityStore identities) {
+            return new SyncContext<>(1,2,3,preview,2,maxRows,AT,SyncSource.local(session),identities,
+                    mock(SyncReferences.class),"BASE_P01",session,false,true);
+        }
+        List<P01OrganizationSyncTask.Source> rows() {
+            var task=new P01OrganizationSyncTask(session.getMapper(P01OrganizationSyncTask.TargetMapper.class));
+            var context=context(true,1000,mock(SyncIdentityStore.class));
+            return task.syncDataQuery(context.forParameters(task.createParameters(context)));
+        }
+        P01OrganizationSyncTask.Source row(String code) {
+            return rows().stream().filter(r->code.equals(r.getCode())).findFirst().orElseThrow();
+        }
+        @Override public void close() throws Exception {
+            try { sql("DROP ALL OBJECTS"); } finally { session.close(); }
+        }
     }
-    static P01OrganizationSyncTask.Fnd fnd(long id,String code,String name){
-        return new P01OrganizationSyncTask.Fnd().setId(id).setCode(code).setName(name).setStatus(1).setCreateTime(AT);
+
+    @Test void approvedFnd004CompletesCompaniesWithoutChangingEhrDepartmentCompanyReferences() throws Exception {
+        try(var f=new Fixture()){
+            f.sql("INSERT INTO fnd_company VALUES(4,'04','香港公司',1),(7,'007','范围外公司',1)");
+            var rows=f.rows();
+            assertEquals(4,rows.stream().filter(r->"COMPANY".equals(r.getKind())).count());
+            assertEquals("香港公司",f.row("004").getName());
+            assertEquals("fnd_company:4",f.row("004").getSourceId());
+            assertEquals(0,f.row("004").getStatus());
+            assertEquals("002",f.row("160000").getCompanyCode());
+            assertFalse(rows.stream().anyMatch(r->"007".equals(r.getCode())));
+        }
     }
-    static SyncContext<Void> context(){return new SyncContext<>(1,2,3,true,37,10000,AT,mock(SyncSource.class),
-        mock(SyncIdentityStore.class),mock(SyncReferences.class),"BASE_P01",mock(SqlSession.class),false,true);}
-    static P01OrganizationSyncTask.Input input(List<P01OrganizationSyncTask.Fnd> companyCompletions){
-        var companies=new ArrayList<>(List.of(ehr(1,"001","公司一"),ehr(3,"003","公司三"),ehr(4,"002","公司二")));
-        var departments=new ArrayList<P01OrganizationSyncTask.Department>();
-        departments.add(new P01OrganizationSyncTask.Department().setId(10000L).setCode("160000").setName("基础部门").setGrade("1").setCompanyId(4L));
-        long id=20000;
-        for(var code:List.of("167010","167020","167050","162007003","162012003","162022003","310409001","310422001"))
-            departments.add(new P01OrganizationSyncTask.Department().setId(id++).setCode(code).setName("补齐部门").setParentId(10000L).setCompanyId(4L));
-        departments.add(new P01OrganizationSyncTask.Department().setId(541L).setCode("160700002").setName("停用例外").setDisabled(1));
-        departments.add(new P01OrganizationSyncTask.Department().setId(391L).setCode("310500001").setName("停用例外").setDisabled(1));
-        var fnd=new ArrayList<P01OrganizationSyncTask.Fnd>();
-        for(var code:List.of("160300","160700002","162028","162029","163120","163140","163220","163230","163240","163320",
-            "165030","165040","165050","167060","280700","310500001","310500001001","310500001002","310500001003","310500001004","310500001005",
-            "310500001006","310500001007","310500001008","310500002","310500002001","310500002002","999999","163130","167010","167020","167050"))
-            fnd.add(fnd(id++,code,"既定FND部门"));
-        return new P01OrganizationSyncTask.Input(companies,departments,fnd,List.of(),companyCompletions,context());
+
+    @Test void wholeEhrDefinitionWinsAndTCompanyCompletesMissingCompany() throws Exception {
+        try(var f=new Fixture()){
+            f.sql("INSERT INTO t_company VALUES(4,'04','T公司四',1),(2,'02','T公司二',0)",
+                  "INSERT INTO fnd_company VALUES(4,'04','FND公司四',0)");
+            assertEquals("T公司四",f.row("004").getName());
+            assertEquals("t_company:4",f.row("004").getSourceId());
+            assertEquals("公司二",f.row("002").getName());
+            assertEquals(0,f.row("002").getStatus());
+            assertEquals("002",f.row("160000").getCompanyCode());
+            f.sql("INSERT INTO ehr_company VALUES(99,'004','EHR公司四',0)");
+            assertEquals("EHR公司四",f.row("004").getName());
+            assertEquals("99",f.row("004").getSourceId());
+        }
     }
-    @Test void approvedFnd004CompletesFourCompaniesWithoutChangingEhrDepartmentCompanyReferences(){
-        var rows=P01OrganizationSyncTask.plan(input(List.of(fnd(4,"004","迪普科技（香港）有限公司"))));
-        var companies=rows.stream().filter(s->"COMPANY".equals(s.getKind())).toList();assertEquals(4,companies.size());
-        var added=companies.stream().filter(s->"004".equals(s.getCode())).findFirst().orElseThrow();
-        assertEquals("迪普科技（香港）有限公司",added.getName());assertEquals(0,added.getStatus());assertEquals(1,added.getRank());
-        assertEquals("fnd_company:4",added.getSourceId());
-        assertEquals("002",rows.stream().filter(s->"160000".equals(s.getCode())).findFirst().orElseThrow().getCompanyCode());
-        var original=new HashMap<String,String>();companies.stream().filter(s->!"004".equals(s.getCode())).forEach(s->original.put(s.getCode(),s.getSourceId()+":"+s.getName()));
-        assertEquals(Map.of("001","1:公司一","003","3:公司三","002","4:公司二"),original);
+
+    @Test void absentSupplementarySnapshotDoesNotBlockDirectoryOrExpandScope() throws Exception {
+        try(var f=new Fixture()){
+            f.sql("INSERT INTO ehr_department VALUES(101,'888888','范围外',4,100,'3',NULL,0,NULL)",
+                  "INSERT INTO fnd_department VALUES(9,'777777','范围外FND',1,'2020-01-01',NULL)");
+            assertEquals(4,f.rows().size());
+        }
     }
-    @Test void wholeEhr004DefinitionWinsAndAbsentCompletionDoesNotBlockExistingDirectory(){
-        var input=input(List.of(fnd(4,"004","FND名称").setStatus(0)));
-        input.companies().add(ehr(99,"004","EHR名称"));
-        var chosen=P01OrganizationSyncTask.plan(input).stream().filter(s->"COMPANY".equals(s.getKind())&&"004".equals(s.getCode())).findFirst().orElseThrow();
-        assertEquals("EHR名称",chosen.getName());assertEquals(0,chosen.getStatus());assertEquals(0,chosen.getRank());assertEquals("99",chosen.getSourceId());
-        assertEquals(3,P01OrganizationSyncTask.plan(input(List.of())).stream().filter(s->"COMPANY".equals(s.getKind())).count());
+
+    @Test void sourceQueryResolvesHistoryAndParentsWithoutTechnicalIdAssumptions() throws Exception {
+        try(var f=new Fixture()){
+            f.sql("INSERT INTO ehr_department VALUES(9999,'160700002','停用部门',4,100,'3',NULL,1,NULL)",
+                  "INSERT INTO ehr_department VALUES(200,'167010','EHR名称',4,100,'3',293,0,'后来补充的原备注')",
+                  "INSERT INTO fnd_department VALUES(10,'160700002','FND部门',1,'2020-01-01','2020-02-01'),(11,'167010','历史部门',1,'2019-01-01',NULL)");
+            var disabled=f.row("160700002");
+            assertEquals(1,disabled.getStatus());
+            assertEquals("160000",disabled.getParentCode());
+            var historical=f.row("167010");
+            assertEquals("历史部门",historical.getName());
+            assertEquals("160000",historical.getParentCode());
+            assertEquals("002",historical.getCompanyCode());
+            assertEquals(LocalDateTime.of(2019,1,1,0,0),historical.getCreateTime());
+            assertTrue(historical.isHistorical());
+            assertEquals("P01_DIRECTOR_ASSOCIATION_PENDING:167010",historical.getWarning());
+        }
     }
-    @Test void unreviewedFndCompaniesAreNotAdded(){
-        assertEquals(3,P01OrganizationSyncTask.plan(input(List.of(fnd(7,"007","未审核公司")))).stream().filter(s->"COMPANY".equals(s.getKind())).count());
+
+    @Test void unresolvedSourceReferencesAndConflictingDefinitionsStillFailClosed() throws Exception {
+        try(var f=new Fixture()){
+            f.sql("INSERT INTO ehr_department VALUES(201,'123456','缺公司',999,100,'2',NULL,0,NULL)");
+            assertEquals("P01_RAW_COMPANY_REFERENCE_MISSING",assertThrows(IllegalArgumentException.class,f::rows).getMessage());
+            f.sql("DELETE FROM ehr_department WHERE depID=201",
+                  "INSERT INTO ehr_company VALUES(9,'001','另一同码来源',0)");
+            assertEquals("P01_WHOLE_DEFINITION_SAME_PRIORITY_AMBIGUOUS",assertThrows(IllegalArgumentException.class,f::rows).getMessage());
+        }
     }
-    @Test void companyCompletionSqlOnlyReadsTheApprovedCodeAndUsesSourceName() throws Exception {
-        var configuration=new Configuration();String resource="base-sync-source/P01SourceMapper.xml";
-        try(var stream=new ClassPathResource(resource).getInputStream()){new XMLMapperBuilder(stream,configuration,resource,configuration.getSqlFragments()).parse();}
-        var sql=configuration.getMappedStatement(P01OrganizationSyncTask.SourceMapper.class.getName()+".selectCompanyCompletions")
-            .getBoundSql(new AbstractSyncTask.SourceQuery<Void>(10001,1,true,null)).getSql();
-        assertTrue(sql.startsWith("SELECT "));assertTrue(sql.contains("FROM fnd_company WHERE code IN ('04','004')"));
-        assertTrue(sql.contains("CASE code WHEN '04' THEN '004' ELSE code END AS code,name,status"));
-        assertFalse(sql.contains("迪普"));assertFalse(sql.toUpperCase(Locale.ROOT).contains("INSERT"));assertFalse(sql.toUpperCase(Locale.ROOT).contains("CREATE"));
+
+    @Test void runtimeCapacityControlsProjectionInsteadOfFixedSnapshotSize() throws Exception {
+        try(var f=new Fixture()){
+            var task=new P01OrganizationSyncTask(f.session.getMapper(P01OrganizationSyncTask.TargetMapper.class));
+            var context=f.context(true,3,mock(SyncIdentityStore.class));
+            assertEquals("P01_RAW_DIRECTORY_CAPACITY",assertThrows(IllegalArgumentException.class,()->task.createParameters(context)).getMessage());
+        }
     }
-    @Test void companyCompletionIsReadOncePerRunAlongsideExistingSourceQueries(){
-        var fixture=input(List.of(fnd(4,"004","公司四")));fixture.companies().add(ehr(2,"002","T公司二").setSourceTable("t_company").setOriginalCode("02"));var source=mock(SyncSource.class);var session=mock(SyncSource.Session.class);
-        var sourceMapper=mock(P01OrganizationSyncTask.SourceMapper.class);when(source.open(3)).thenReturn(session);when(session.mapper(P01OrganizationSyncTask.SourceMapper.class)).thenReturn(sourceMapper);
-        when(sourceMapper.selectCompanies(any())).thenReturn(fixture.companies());when(sourceMapper.selectDepartments(any())).thenReturn(fixture.departments());
-        when(sourceMapper.selectFnd(any())).thenReturn(fixture.fnd());
-        when(sourceMapper.selectCompanyCompletions(any())).thenReturn(fixture.companyCompletions());
-        var context=new SyncContext<Void>(1,2,3,true,37,10000,AT,source,mock(SyncIdentityStore.class),mock(SyncReferences.class),"BASE_P01",mock(SqlSession.class),false,true);
-        new P01OrganizationSyncTask(mock(P01OrganizationSyncTask.TargetMapper.class)).createParameters(context);
-        verify(sourceMapper,times(1)).selectCompanyCompletions(any());verify(sourceMapper,times(1)).selectCompanies(any());
+
+    @Test void ambiguousDepartmentSourceJoinCannotSilentlyPickOneDefinition() throws Exception {
+        try(var f=new Fixture()){
+            f.sql("INSERT INTO ehr_department VALUES(900,'160700002','原部门一',4,100,'3',NULL,1,NULL),(901,'160700002','原部门二',4,100,'3',NULL,0,NULL)",
+                  "INSERT INTO fnd_department VALUES(10,'160700002','FND部门',1,'2020-01-01',NULL)");
+            assertEquals("P01_WHOLE_DEFINITION_SAME_PRIORITY_AMBIGUOUS",assertThrows(IllegalArgumentException.class,f::rows).getMessage());
+        }
     }
-    @Test void tCompanyDefinitionCompletes004WithoutPollutingEhrCompanyIdReferences(){
-        var input=input(List.of());input.companies().add(ehr(4,"004","T公司四").setSourceTable("t_company").setOriginalCode("04"));
-        var rows=P01OrganizationSyncTask.plan(input);var company=rows.stream().filter(s->"COMPANY".equals(s.getKind())&&"004".equals(s.getCode())).findFirst().orElseThrow();
-        assertEquals("T公司四",company.getName());assertEquals("t_company:4",company.getSourceId());assertEquals(1,company.getRank());
-        assertEquals("002",rows.stream().filter(s->"160000".equals(s.getCode())).findFirst().orElseThrow().getCompanyCode());
+
+    @Test void sourcePriorityPreservesWholeEhrDepartmentAndInvalidAliasesAreRejected() throws Exception {
+        try(var f=new Fixture()){
+            f.sql("INSERT INTO ehr_department VALUES(201,'163130','EHR正式定义',4,100,'2',NULL,0,NULL)",
+                  "INSERT INTO fnd_department VALUES(11,'163130','FND旧定义',0,'2020-01-01',NULL)");
+            var row=f.row("163130");
+            assertEquals("EHR正式定义",row.getName());assertEquals("201",row.getSourceId());
+            assertEquals(0,row.getStatus());assertFalse(row.isHistorical());assertNull(row.getCreateTime());
+            f.sql("INSERT INTO t_company VALUES(7,'07','无映射公司',1)");
+            assertEquals("P01_COMPANY_ALIAS_UNMAPPED",assertThrows(IllegalArgumentException.class,f::rows).getMessage());
+        }
     }
-    @Test void ehrCompanyWholeDefinitionWinsOverSameCodeFromTCompany(){
-        var input=input(List.of());input.companies().add(0,ehr(2,"002","T名称").setDisabled(1).setSourceTable("t_company").setOriginalCode("02"));
-        var chosen=P01OrganizationSyncTask.plan(input).stream().filter(s->"COMPANY".equals(s.getKind())&&"002".equals(s.getCode())).findFirst().orElseThrow();
-        assertEquals("公司二",chosen.getName());assertEquals(0,chosen.getStatus());assertEquals("4",chosen.getSourceId());assertEquals(0,chosen.getRank());
+
+    @Test void previewBatchWriteReplayAndHistoryFingerprintProtectionRemainEffective() throws Exception {
+        try(var f=new Fixture()){
+            var stored=new HashMap<String,SyncIdentityStore.Identity>();
+            var identities=mock(SyncIdentityStore.class);
+            when(identities.findByKeys(any())).thenAnswer(call->{
+                var query=call.<SyncIdentityStore.Query>getArgument(0);
+                var found=new HashMap<String,SyncIdentityStore.Identity>();
+                for(var key:query.sourceKeys()){var row=stored.get(query.object()+":"+key);if(row!=null)found.put(key,row);}
+                return found;
+            });
+            doAnswer(call->{
+                for(var row:call.<List<SyncIdentityStore.Save>>getArgument(0))
+                    stored.put(row.object()+":"+row.sourceKey(),new SyncIdentityStore.Identity(row.sourceKey(),row.targetId(),row.fingerprint()));
+                return null;
+            }).when(identities).saveAll(anyList());
+            var task=new P01OrganizationSyncTask(f.session.getMapper(P01OrganizationSyncTask.TargetMapper.class));
+            var preview=task.execute(f.context(true,1000,identities));
+            assertEquals(4,preview.inserted());assertTrue(stored.isEmpty());
+            assertTrue(f.session.getMapper(P01OrganizationSyncTask.TargetMapper.class)
+                    .selectCompanies(new P01OrganizationSyncTask.CatalogueQuery(1,true)).isEmpty());
+            var actual=task.execute(f.context(false,1000,identities));
+            assertEquals(4,actual.inserted());assertEquals(4,stored.size());
+            var before=Map.copyOf(stored);
+            var replay=task.execute(f.context(false,1000,identities));
+            assertEquals(0,replay.inserted());assertEquals(4,replay.unchanged());assertEquals(before,stored);
+            f.sql("UPDATE system_dept SET name='人工维护名称' WHERE code='160000'");
+            assertEquals("P01_FORMAL_DIRECTORY_MAINTAINED",
+                    assertThrows(IllegalArgumentException.class,()->task.execute(f.context(false,1000,identities))).getMessage());
+        }
     }
-    @Test void companyUnionMapsAllFourCodesAndBindsOneGlobalLimit() throws Exception {
-        var configuration=new Configuration();String resource="base-sync-source/P01SourceMapper.xml";
-        try(var stream=new ClassPathResource(resource).getInputStream()){new XMLMapperBuilder(stream,configuration,resource,configuration.getSqlFragments()).parse();}
-        var bound=configuration.getMappedStatement(P01OrganizationSyncTask.SourceMapper.class.getName()+".selectCompanies")
-            .getBoundSql(new AbstractSyncTask.SourceQuery<Void>(10001,1,true,null));var sql=bound.getSql();
-        OrganizationBackfillSqlTest.parseWithRuntimeStack(sql);assertTrue(sql.contains("FROM ehr_company UNION ALL SELECT"));assertTrue(sql.endsWith("FROM t_company LIMIT ?"));
-        for(var pair:Map.of("01","001","02","002","03","003","04","004").entrySet())assertTrue(sql.contains("WHEN '"+pair.getKey()+"' THEN '"+pair.getValue()+"'"));
-        assertTrue(sql.contains("CASE CAST(state AS UNSIGNED) WHEN 1 THEN 0 WHEN 0 THEN 1 ELSE NULL END"));
-        assertEquals(1,bound.getParameterMappings().size());assertEquals("limit",bound.getParameterMappings().getFirst().getProperty());
-        assertFalse(configuration.hasStatement(P01OrganizationSyncTask.SourceMapper.class.getName()+".selectCompanyAliases"));
+
+    @Test void bothSourceProjectionsParseWithRuntimeParserAndParameterizeLimit() throws Exception {
+        try(var f=new Fixture()){
+            for(var method:List.of("selectCompanies","selectDepartments")){
+                var bound=f.session.getConfiguration().getMappedStatement(P01OrganizationSyncTask.SourceMapper.class.getName()+"."+method).getBoundSql(QUERY);
+                OrganizationBackfillSqlTest.parseWithRuntimeStack(bound.getSql());
+                assertEquals(1,bound.getParameterMappings().size());
+                assertEquals("limit",bound.getParameterMappings().getFirst().getProperty());
+                assertTrue(bound.getSql().stripTrailing().endsWith("LIMIT ?"));
+            }
+        }
     }
 }

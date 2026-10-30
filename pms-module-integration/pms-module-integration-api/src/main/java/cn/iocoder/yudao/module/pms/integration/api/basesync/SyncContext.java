@@ -8,9 +8,14 @@ public record SyncContext<P>(long tenantId, long actorId, long connectionId, boo
                           SyncIdentityStore identities, SyncReferences references, String dataName, org.apache.ibatis.session.SqlSession target,
                           boolean clear, boolean useRowHandler, P parameters, Statements statements, StepLog stepLog, RunState runState) {
     public static final class RunState {
+        private final java.util.List<String> stages;
         private SyncCounts counts=SyncCounts.empty();
         private final java.util.Set<String> warnings=new java.util.LinkedHashSet<>();
         private java.util.List<SyncReferences.AuditUser> auditCatalogue;
+        public RunState(){this(java.util.List.of());}
+        public RunState(java.util.List<String> stages){this.stages=java.util.List.copyOf(stages);}
+        public java.util.List<String> stages(){return stages;}
+        public boolean includesStage(String stage){return stages.isEmpty() || stages.contains(stage);}
         public SyncCounts counts(){return counts;}
         public void add(SyncCounts value){counts=counts.plus(value);}
         public java.util.List<String> warnings(){return java.util.List.copyOf(warnings);}
@@ -74,7 +79,11 @@ public record SyncContext<P>(long tenantId, long actorId, long connectionId, boo
     }
     <Q> SyncContext<Q> newAttempt(Q value) {
         return new SyncContext<>(tenantId,actorId,connectionId,preview,batchSize,maxRows,startedAt,
-                source,identities,references,dataName,target,clear,useRowHandler,value,statements,new StepLog(),new RunState());
+                source,identities,references,dataName,target,clear,useRowHandler,value,statements,new StepLog(),new RunState(runState.stages()));
+    }
+    public SyncContext<P> forStages(java.util.List<String> stages) {
+        return new SyncContext<>(tenantId,actorId,connectionId,preview,batchSize,maxRows,startedAt,
+                source,identities,references,dataName,target,clear,useRowHandler,parameters,statements,new StepLog(),new RunState(stages));
     }
     public SyncContext<P> forStatements(Statements value) {
         return new SyncContext<>(tenantId,actorId,connectionId,preview,batchSize,maxRows,startedAt,

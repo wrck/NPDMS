@@ -1,0 +1,126 @@
+{
+  "target": "172.17.90.179:13306/npdms",
+  "source_commit": "3ea13217a0c5e8212ab9e83a5ebffa23570a04b7",
+  "purpose": "179 only: retain the failed V506 receipt externally, reconcile its already committed schema as V506.1, then continue through V516",
+  "excluded_published_v506": {
+    "source": "sql/migrations/V506__cutover_support_person_selection.sql",
+    "filename": "V506__cutover_support_person_selection.sql",
+    "sha256": "adba087ab36bc40d0ca107be779acff81d42586687be41dfef9667d5e3b0bb1b"
+  },
+  "files": [
+    {
+      "source": "sql/releases/test-v498/migrations/B498__npdms_formal_test_baseline.sql",
+      "filename": "B498__npdms_formal_test_baseline.sql",
+      "sha256": "592d5c377ccb358016e62369a2ddadb8f6967e4f48cc57a099a820082ea8120b",
+      "origin": "git"
+    },
+    {
+      "source": "sql/releases/test-v498/migrations/V499__retire_legacy_project_application_entries.sql",
+      "filename": "V499__retire_legacy_project_application_entries.sql",
+      "sha256": "e595cd3530ec583af6190e01cee5c7d1ae41fc331527a5d0ef72b37d28e912dd",
+      "origin": "git"
+    },
+    {
+      "source": "sql/releases/test-v498/migrations/V500__complete_project_risk_status_dictionary.sql",
+      "filename": "V500__complete_project_risk_status_dictionary.sql",
+      "sha256": "d4d6d69731f40cf6fd72169af61db7c4b1e3ba8f80db10ed835a786fc710d3ed",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V501__cutover_manual_customer_service_level.sql",
+      "filename": "V501__cutover_manual_customer_service_level.sql",
+      "sha256": "1d85f49b22a465cbf1f97fb1fd17c7a0edf02642f0eda6d9380605e722c085cf",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V502__restore_verified_base_configuration.sql",
+      "filename": "V502__restore_verified_base_configuration.sql",
+      "sha256": "d36cdc9424ad360921f9f2c4f85097bf7b8ae30157f9087ee12d7d2e726f645d",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V503__retire_backward_and_legacy_governance_entries.sql",
+      "filename": "V503__retire_backward_and_legacy_governance_entries.sql",
+      "sha256": "a19702802540cc0b2b3c48ec8b32752fb3714534928d907e68cca83fd75c0ffb",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V504__satisfaction_entity_business_view.sql",
+      "filename": "V504__satisfaction_entity_business_view.sql",
+      "sha256": "2c8ba5964a21948a85773d89fd3351686cbcaf7e836e21800c0b827e344f742c",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V505__project_restart_delivery_history.sql",
+      "filename": "V505__project_restart_delivery_history.sql",
+      "sha256": "bb10711c8ec80b4e7c6ba48ce417c0b36703fb5912090c808da3bc006f5115c1",
+      "origin": "git"
+    },
+    {
+      "source": "sql/releases/test-v498/recovery-179/V506_1__reconcile_partial_cutover_support.sql",
+      "filename": "V506_1__reconcile_partial_cutover_support.sql",
+      "sha256": "d32bf8d6d8a0f040aa6fd411162c3cd08eee4a6848facbdc709c815060caa703",
+      "origin": "workspace"
+    },
+    {
+      "source": "sql/migrations/V507__cutover_approval_fixed_assignees.sql",
+      "filename": "V507__cutover_approval_fixed_assignees.sql",
+      "sha256": "3c0fcd4911cfbba6dd26dc146d4dc71772c8cf63a0135f06736761c6f847a93d",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V508__project_manager_solution_process_read.sql",
+      "filename": "V508__project_manager_solution_process_read.sql",
+      "sha256": "321ad0f2a1fd0b8375a7059b8d0d90095c49dc28ccee719890e3544b50ea47f9",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V509__solution_delivery_operation_permission_mapping.sql",
+      "filename": "V509__solution_delivery_operation_permission_mapping.sql",
+      "sha256": "272e9af3bdf715a2393065b967588b7a7d758a52f77be573c4648e719e809308",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V510__cutover_initiator_approval_permission.sql",
+      "filename": "V510__cutover_initiator_approval_permission.sql",
+      "sha256": "ac76668850142dab62974fdffb251a983d370bbee68862f9dd1856dd887ca21b",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V511__dac_desktop_transport.sql",
+      "filename": "V511__dac_desktop_transport.sql",
+      "sha256": "6e1f3e46a8d77796bfdd5c341bd7a8b972478d15c5e2e310beb7b7e2887009b1",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V512__five_v2_acceptance_shipments.sql",
+      "filename": "V512__five_v2_acceptance_shipments.sql",
+      "sha256": "57211596bf7b92fa8c59f92b6eb48801f703c50935e8b1872b4a4cd814e8af9e",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V513__project_manager_draft_record_delete.sql",
+      "filename": "V513__project_manager_draft_record_delete.sql",
+      "sha256": "fed331de3abe05f1ab8411b4aaa663594eaf8203da7ccf4e1139f7da98c18cfd",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V514__completion_manual_arrival_date.sql",
+      "filename": "V514__completion_manual_arrival_date.sql",
+      "sha256": "229249ca1481daac4a077e7f50cb864a14bdad750ade4b5f6e849e77e4eb5c27",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V515__user_organization_scope_maintenance.sql",
+      "filename": "V515__user_organization_scope_maintenance.sql",
+      "sha256": "8fd907874af13aefe0bac8c32a188cda40a6efb7a82076c97588a6692bf9a3ac",
+      "origin": "git"
+    },
+    {
+      "source": "sql/migrations/V516__stage_plan_management_menu_roles.sql",
+      "filename": "V516__stage_plan_management_menu_roles.sql",
+      "sha256": "0b189becf4c9c4eb25b0595666b4f804313f34ee14d0d75859dcba77fbd82f52",
+      "origin": "git"
+    }
+  ]
+}

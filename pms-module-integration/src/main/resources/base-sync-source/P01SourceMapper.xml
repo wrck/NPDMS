@@ -1,8 +1,85 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$SourceMapper">
-<select id="selectCompanies" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Company">SELECT compID AS id,compCode AS code,compName AS name,CAST(isDisabled AS UNSIGNED) AS disabled,'ehr_company' AS source_table,compCode AS original_code FROM ehr_company UNION ALL SELECT id,CASE compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE compCode END AS code,compName AS name,CASE CAST(state AS UNSIGNED) WHEN 1 THEN 0 WHEN 0 THEN 1 ELSE NULL END AS disabled,'t_company' AS source_table,compCode AS original_code FROM t_company LIMIT #{limit}</select>
-<select id="selectDepartments" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Department">SELECT depID AS id,depCode AS code,depName AS name,compID AS companyId,adminID AS parentId,depGrade AS grade,director,depProperty AS property,depNum AS number,xOrder AS sortOrder,remark,depCustom1 AS custom1,depCustom3 AS custom3,depCustom5 AS custom5,CAST(isDisabled AS UNSIGNED) AS disabled FROM ehr_department LIMIT #{limit}</select>
-<select id="selectFnd" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Fnd">SELECT id,departmentNum AS code,departmentName AS name,status,createTime,updateTime,effectiveFrom,effectiveTo FROM fnd_department LIMIT #{limit}</select>
-<select id="selectCompanyCompletions" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Fnd">SELECT id,CASE code WHEN '04' THEN '004' ELSE code END AS code,name,status FROM fnd_company WHERE code IN ('04','004') LIMIT #{limit}</select>
+    <!-- Approved P01/P02/P03 scope; DPPMS-IAM-035 defines supplementary department history.
+         Source selection lives here. Historical sample counts and database IDs are not run prerequisites. -->
+    <sql id="companyCode">
+        CASE t.compCode WHEN '01' THEN '001' WHEN '02' THEN '002'
+            WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE t.compCode END
+    </sql>
+    <sql id="completionCodes">
+        '167010','167020','167050','162007003','162012003','162022003','310409001','310422001'
+    </sql>
+    <sql id="historicalCompletionCodes">'167010','167020','167050'</sql>
+    <sql id="fndDepartmentCodes">
+        '160300','160700002','162028','162029','163120','163140','163220','163230','163240','163320',
+        '165030','165040','165050','167060','280700','310500001','310500001001','310500001002',
+        '310500001003','310500001004','310500001005','310500001006','310500001007','310500001008',
+        '310500002','310500002001','310500002002','999999','163130'
+    </sql>
+    <select id="selectCompanies" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Source">
+        SELECT 'COMPANY' AS kind,TRIM(compCode) AS code,TRIM(compName) AS name,
+               COALESCE(CAST(isDisabled AS UNSIGNED),0) AS status,
+               CONCAT('',compID) AS source_id,NULL AS source_issue
+        FROM ehr_company
+        UNION ALL
+        SELECT 'COMPANY',TRIM(<include refid="companyCode"/>),TRIM(t.compName),
+               CASE CAST(t.state AS UNSIGNED) WHEN 1 THEN 0 WHEN 0 THEN 1 ELSE 0 END,
+               CONCAT('t_company:',t.id),
+               CASE WHEN t.compCode IS NULL OR t.compCode NOT IN ('01','02','03','04')
+                    THEN 'COMPANY_ALIAS_UNMAPPED' END
+        FROM t_company t
+        WHERE NOT EXISTS (SELECT 1 FROM ehr_company e WHERE TRIM(e.compCode)=TRIM(<include refid="companyCode"/>))
+        UNION ALL
+        SELECT 'COMPANY',CASE code WHEN '04' THEN '004' ELSE code END,name,
+               CASE status WHEN 1 THEN 0 WHEN 0 THEN 1 END,CONCAT('fnd_company:',id),NULL
+        FROM fnd_company
+        WHERE code IN ('04','004')
+          AND NOT EXISTS (SELECT 1 FROM ehr_company WHERE TRIM(compCode)='004')
+          AND NOT EXISTS (SELECT 1 FROM t_company t WHERE TRIM(<include refid="companyCode"/>)='004')
+        ORDER BY code,source_id
+        LIMIT #{limit}
+    </select>
+    <select id="selectDepartments" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Source">
+        SELECT 'DEPARTMENT' AS kind,d.depCode AS code,
+               CASE WHEN d.depCode IN (<include refid="historicalCompletionCodes"/>) THEN f.departmentName ELSE d.depName END AS name,
+               CASE WHEN d.depCode IN (<include refid="historicalCompletionCodes"/>)
+                    THEN CASE f.status WHEN 1 THEN 0 WHEN 0 THEN 1 END
+                    ELSE COALESCE(CAST(d.isDisabled AS UNSIGNED),0) END AS status,
+               CONCAT('',d.depID) AS source_id,TRIM(c.compCode) AS company_code,
+               CASE WHEN d.depCode IN (<include refid="historicalCompletionCodes"/>) THEN '160000' ELSE parent.depCode END AS parent_code,
+               CASE WHEN d.depCode IN (<include refid="historicalCompletionCodes"/>) THEN 1 ELSE 0 END AS historical,
+               f.createTime AS create_time,f.updateTime AS update_time,
+               CASE WHEN d.compID IS NOT NULL AND d.compID != 0 AND c.compID IS NULL THEN 'RAW_COMPANY_REFERENCE_MISSING'
+                    WHEN d.adminID IS NOT NULL AND d.adminID != 0 AND parent.depID IS NULL THEN 'RAW_PARENT_REFERENCE_MISSING'
+                    WHEN d.depCode IN (<include refid="historicalCompletionCodes"/>) AND f.id IS NULL THEN 'FND_HISTORY_REQUIRED'
+                    WHEN d.depCode IN (<include refid="completionCodes"/>)
+                         AND d.depCode NOT IN (<include refid="historicalCompletionCodes"/>) AND parent.depCode IS NULL
+                    THEN 'COMPLETION_PARENT_MISSING' END AS source_issue,
+               CASE WHEN d.depCode IN (<include refid="completionCodes"/>) AND d.director IS NOT NULL
+                    THEN CONCAT('P01_DIRECTOR_ASSOCIATION_PENDING:',d.depCode) END AS warning
+        FROM ehr_department d
+        LEFT JOIN ehr_company c ON c.compID=d.compID AND d.compID != 0
+        LEFT JOIN ehr_department parent ON parent.depID=d.adminID AND d.adminID != 0
+        LEFT JOIN fnd_department f ON f.departmentNum=d.depCode AND d.depCode IN (<include refid="historicalCompletionCodes"/>)
+        WHERE (d.depGrade &lt;= '2' AND LENGTH(d.depCode)=6) OR d.depCode IN (<include refid="completionCodes"/>)
+        UNION ALL
+        SELECT 'DEPARTMENT',f.departmentNum,f.departmentName,
+               CASE WHEN f.departmentNum IN ('160700002','310500001') THEN CAST(e.isDisabled AS UNSIGNED)
+                    ELSE CASE f.status WHEN 1 THEN 0 WHEN 0 THEN 1 END END,
+               CONCAT('',f.id),NULL,
+               CASE WHEN f.departmentNum LIKE '16%' THEN '160000'
+                    WHEN f.departmentNum LIKE '31%' THEN '310000'
+                    WHEN f.departmentNum='280700' THEN '280000' END,
+               1,f.createTime,f.updateTime,
+               CASE WHEN f.departmentNum IN ('160700002','310500001') AND e.depID IS NULL THEN 'RAW_DEPARTMENT_REFERENCE_MISSING' END,
+               NULL
+        FROM fnd_department f
+        LEFT JOIN ehr_department e ON e.depCode=f.departmentNum AND f.departmentNum IN ('160700002','310500001')
+        WHERE f.departmentNum IN (<include refid="fndDepartmentCodes"/>)
+          AND NOT EXISTS (SELECT 1 FROM ehr_department d WHERE d.depCode=f.departmentNum
+                          AND ((d.depGrade &lt;= '2' AND LENGTH(d.depCode)=6) OR d.depCode IN (<include refid="completionCodes"/>)))
+        ORDER BY code,source_id
+        LIMIT #{limit}
+    </select>
 </mapper>

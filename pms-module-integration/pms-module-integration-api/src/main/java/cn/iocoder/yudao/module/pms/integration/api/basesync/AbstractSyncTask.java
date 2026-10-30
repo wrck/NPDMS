@@ -43,9 +43,16 @@ public abstract class AbstractSyncTask<T,P> {
     public abstract String taskName();
     public String sourceSystem() { return "DPPMS"; }
     public Set<String> requiredPermissions() { return Set.of(); }
+    public List<String> supportedStages() { return List.of(); }
+    public final void validateStages(List<String> stages) {
+        if(new HashSet<>(stages).size()!=stages.size() || !supportedStages().containsAll(stages))
+            throw new IllegalArgumentException("任务不支持所选执行阶段："+stages);
+    }
 
     public final SyncCounts execute(SyncContext<?> runtime) {
+        validateStages(runtime.runState().stages());
         var context=runtime.newAttempt(createParameters(runtime));
+        if(!context.runState().stages().isEmpty())context.runState().warning("STAGES:"+String.join(",",context.runState().stages()));
         work(context);
         runtime.runState().replaceWarnings(context.runState().warnings());
         return context.runState().counts();

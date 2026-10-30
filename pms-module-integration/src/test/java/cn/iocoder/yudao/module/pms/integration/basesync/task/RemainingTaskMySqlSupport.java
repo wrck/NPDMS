@@ -32,7 +32,8 @@ abstract class RemainingTaskMySqlSupport {
   loader=new java.net.URLClassLoader(new java.net.URL[]{Path.of(System.getenv("BASE_PRODUCT_MYSQL_DRIVER_JAR")).toUri().toURL()},getClass().getClassLoader());
   var driver=(java.sql.Driver)Class.forName("com.mysql.cj.jdbc.Driver",true,loader).getConstructor().newInstance();
   var properties=new Properties();properties.setProperty("user",System.getenv("BASE_PRODUCT_DB_USER"));properties.setProperty("password",System.getenv("BASE_PRODUCT_DB_PASSWORD"));
-  connection=driver.connect("jdbc:mysql://127.0.0.1:24306/npdms_reverify_20261014?useSSL=false&serverTimezone=Asia/Shanghai",properties);
+  String url=System.getenv("BASE_PRODUCT_DB_URL");
+  connection=driver.connect(url==null?"jdbc:mysql://127.0.0.1:24306/npdms_reverify_20261014?useSSL=false&serverTimezone=Asia/Shanghai":url,properties);
   var data=new SingleConnectionDataSource(connection,true);jdbc=new JdbcTemplate(data);
   String ddl;try(var input=new ClassPathResource("basesync/remaining-first-wave-mysql.sql").getInputStream()){ddl=new String(input.readAllBytes(),StandardCharsets.UTF_8);}
   for(var statement:ddl.split(";\\s*(?:\\r?\\n|$)"))if(!statement.isBlank()){

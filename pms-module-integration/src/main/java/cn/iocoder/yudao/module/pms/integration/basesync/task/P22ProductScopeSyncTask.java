@@ -12,17 +12,23 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.session.ResultHandler;
 import org.springframework.stereotype.Component;
 
-/** Historical scope and product quantity detail; no allocation confirmation, version advancement or SN effects. */
+/** Historical scope and product quantity detail; eligible new records occupy their original order quantity. */
 @Component @RequiredArgsConstructor
 public class P22ProductScopeSyncTask extends AbstractSyncTask<P22ProductScopeSyncTask.Source,P22ProductScopeSyncTask.Parameters> {
  private final TargetMapper mapper;private final BaseSyncProjectReferences projects;
  @Override public String taskCode(){return "BASE_P22";}
  @Override public String taskName(){return "项目产品实施范围历史";}
- public static final class Parameters {private BaseSyncProjectReferences.CurrentManageScope manageScope;private final Map<String,Department> departments=new HashMap<>();private final Map<Long,String> companies=new HashMap<>();private final Map<OrderKey,OrderLine> ownedLines=new HashMap<>();private final Map<String,List<Long>> scopeIds=new HashMap<>();private long zeroQuantityPending,missingDepartmentPending;private boolean departmentSchemaReady,ownedLinesLoaded,scopeIdentitiesLoaded;}
+ @Override public Set<String> requiredPermissions(){return Set.of("pms:commerce:scope:assign");}
+ public static final class Parameters {private BaseSyncProjectReferences.CurrentManageScope manageScope;private final Map<String,Department> departments=new HashMap<>();private final Map<Long,String> companies=new HashMap<>();private final Map<OrderKey,OrderLine> ownedLines=new HashMap<>();private final Map<String,List<Long>> scopeIds=new HashMap<>();private long zeroQuantityPending,missingDepartmentPending,unresolvedDepartmentPending,newScopes;private boolean departmentSchemaReady,ownedLinesLoaded,scopeIdentitiesLoaded,stageReady;}
  @Override protected Parameters createParameters(SyncContext<?> c){return new Parameters();}
  @Override public void work(SyncContext<Parameters> c){
+  Throwable failure=null;
+  try{workScope(c);}catch(RuntimeException | Error error){failure=error;throw error;}
+  finally{if(c.parameters().stageReady)try{mapper.dropAllocationStage();}catch(RuntimeException cleanup){if(failure==null)throw cleanup;failure.addSuppressed(cleanup);}}
+ }
+ private void workScope(SyncContext<Parameters> c){
   c.parameters().manageScope=projects.currentManageScope(new BaseSyncProjectReferences.ManageScopeQuery(c.tenantId(),c.actorId()));
-  if(c.preview()){c.runState().warning("SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED");c.runState().warning("P22_DEPARTMENT_ID_POSTFILL_PENDING:-1");c.runState().warning("P22_ORDER_LINE_ID_POSTFILL_PENDING:-1");}
+  if(c.preview()){c.runState().warning("SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED");c.runState().warning("P22_DEPARTMENT_ID_POSTFILL_PENDING:-1");c.runState().warning("P22_ORDER_LINE_ID_POSTFILL_PENDING:-1");c.runState().warning("P22_ALLOCATION_EVALUATED_AFTER_POSTFILL");}
   if(mapper.pendingOrderSchemaReady()!=1){if(!c.preview())fail("EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference");c.runState().warning("P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference");}
   c.parameters().departmentSchemaReady=mapper.pendingDepartmentSchemaReady()==1;
   try(var source=c.source().open(c.connectionId())){
@@ -34,14 +40,16 @@ public class P22ProductScopeSyncTask extends AbstractSyncTask<P22ProductScopeSyn
   if(c.parameters().zeroQuantityPending>0)c.runState().warning("P22_ZERO_QUANTITY_PENDING:"+c.parameters().zeroQuantityPending);
   if(c.parameters().missingDepartmentPending>0){
    c.runState().warning("P22_DEPARTMENT_SOURCE_MISSING_PENDING:"+c.parameters().missingDepartmentPending);
-   if(!c.parameters().departmentSchemaReady)c.runState().warning("P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference");
   }
+  if(c.parameters().unresolvedDepartmentPending>0)c.runState().warning("P22_DEPARTMENT_CODE_UNRESOLVED_AT_READ:"+c.parameters().unresolvedDepartmentPending);
+  if((c.parameters().missingDepartmentPending>0||c.parameters().unresolvedDepartmentPending>0)&&!c.parameters().departmentSchemaReady)c.runState().warning("P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference");
   if(!c.preview()){
    var q=new CurrentRunQuery(c.tenantId(),c.connectionId());
    mapper.backfillDepartmentIds(q);
-   if(mapper.countUnresolvedCodedDepartments(q)!=0)fail("DEPARTMENT_POSTFILL_UNRESOLVED");
+   if(mapper.countUnresolvedCodedDepartmentsWithSnapshot(q)!=0)fail("DEPARTMENT_POSTFILL_UNRESOLVED");
    mapper.backfillOrderLineIds(q);
    long pending=mapper.countPendingOrderLines(q);if(pending>0)c.runState().warning("P22_ORDER_LINE_POSTFILL_UNRESOLVED:"+pending);
+   if(c.parameters().stageReady)recognizeNewAllocations(c,q);
   }
  }
  @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
@@ -92,13 +100,12 @@ public class P22ProductScopeSyncTask extends AbstractSyncTask<P22ProductScopeSyn
    }
    String code=s.originalDepartmentCode;if(code!=null&&code.matches("31120[2-9]|311210"))code="1621"+code.substring(4);
    var department=c.parameters().departments.get(code);
-   if(code==null||code.isBlank()){
+   if(code==null||code.isBlank()||department==null||department.version==null||department.name==null||department.name.isBlank()){
     department=null;
     if(!c.preview()&&!c.parameters().departmentSchemaReady)fail("EXECUTION_SCHEMA_REQUIRED:department_pending_reference");
-    c.parameters().missingDepartmentPending++;
+    if(code==null||code.isBlank())c.parameters().missingDepartmentPending++;else c.parameters().unresolvedDepartmentPending++;
     p.setDepartmentCode(code).setDepartmentName(null).setDepartmentVersion(null);
    }else{
-    if(department==null||department.version==null||department.name==null||department.name.isBlank())fail("DEPARTMENT_CODE_UNRESOLVED:"+code);
     // Match known source offices by tenant and exact code. Missing source codes retain their original value.
     p.setDepartmentCode(department.code).setDepartmentName(department.name).setDepartmentVersion(department.version);
    }
@@ -139,10 +146,77 @@ public class P22ProductScopeSyncTask extends AbstractSyncTask<P22ProductScopeSyn
  @Override protected SyncCounts syncDataCount(SyncBatch<Source,Parameters> b){return SyncCounts.fromActions(b.rows(),Source::getAction);}
  @Override protected void syncDataInsert(SyncBatch<Source,Parameters> b){var fresh=b.matching(s->s.action==SyncWriteAction.INSERT);super.syncDataInsert(fresh);if(!fresh.rows().isEmpty()&&mapper.insertDetails(fresh)!=fresh.rows().size())fail("DETAIL_INSERT_CONFLICT");}
  @Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){
-  b.context().identities().saveAll(b.rows().stream().map(s->new SyncIdentityStore.Save("PRODUCT_SCOPE",s.sourceId.toString(),s.target.id,fingerprint(s.target,s.detail),s.previous)).toList());
-  for(var s:b.matching(row->row.action==SyncWriteAction.INSERT).rows())
+  var fresh=b.matching(row->row.action==SyncWriteAction.INSERT);
+  b.context().identities().saveAll(fresh.rows().stream().map(s->new SyncIdentityStore.Save("PRODUCT_SCOPE",s.sourceId.toString(),s.target.id,fingerprint(s.target,s.detail),null)).toList());
+  if(!fresh.rows().isEmpty()){
+   if(!b.context().parameters().stageReady){b.context().parameters().stageReady=true;mapper.dropAllocationStage();mapper.createAllocationStage();}
+   if(mapper.stageNewScopes(fresh)!=fresh.rows().size())fail("ALLOCATION_STAGE_CONFLICT");
+   b.context().parameters().newScopes+=fresh.rows().size();
+  }
+  for(var s:fresh.rows())
    b.context().parameters().scopeIds.computeIfAbsent(s.evidence(),k->new ArrayList<>()).add(s.target.id);
  }
+ private void recognizeNewAllocations(SyncContext<Parameters> c,CurrentRunQuery q){
+  if(mapper.fillAllocationStage(q)!=c.parameters().newScopes)fail("ALLOCATION_STAGE_CHANGED");
+  // Order lines are locked before reading existing confirmed allocations, as in the normal allocation command.
+  mapper.createAllocationOrders();mapper.lockAllocationOrders(q);
+  mapper.createAllocationOccupied();mapper.lockExistingAllocations(q);
+  mapper.createAllocationTotals();mapper.fillAllocationTotals();
+  mapper.createAllocationPairs();mapper.fillAllocationPairs();
+  mapper.createAllocationPlan();if(mapper.fillAllocationPlan(q)!=c.parameters().newScopes)fail("ALLOCATION_PLAN_INCOMPLETE");
+  long planned=0;
+  for(var count:mapper.countAllocationDecisions()){
+   if(!Set.of("CONFIRMED","PENDING","DUPLICATE","EXCESS").contains(count.getDecision())||count.getCount()<0)fail("ALLOCATION_DECISION_INVALID");
+   planned=Math.addExact(planned,count.getCount());
+   if(count.getCount()>0)c.runState().warning("P22_ALLOCATION_"+count.getDecision()+":"+count.getCount());
+  }
+  if(planned!=c.parameters().newScopes)fail("ALLOCATION_PLAN_INCOMPLETE");
+  long after=0;
+  while(true){
+   var projects=mapper.selectAllocationProjects(new AllocationPage(c.tenantId(),after,c.batchSize()));
+   if(projects.isEmpty())break;
+   var seeds=new ArrayList<AllocationVersion>();
+   for(var project:projects){
+    if(project.getProjectId()==null||project.getProjectId()<=after||project.getMinVersion()==null
+      ||project.getMinVersion()<1||!Objects.equals(project.getMinVersion(),project.getMaxVersion()))fail("ALLOCATION_VERSION_CONFLICT");
+    seeds.add(new AllocationVersion(IdWorker.getId(),project.getProjectId(),project.getMinVersion()-1));after=project.getProjectId();
+   }
+   var versions=new AllocationVersions(c.tenantId(),c.actorId(),c.startedAt(),seeds);
+   mapper.seedAllocationVersions(versions);
+   if(mapper.advanceAllocationVersions(versions)!=seeds.size())fail("ALLOCATION_PROJECT_VERSION_CHANGED");
+  }
+  after=0;
+  while(true){
+   var plan=mapper.selectConfirmableAllocations(new AllocationPage(c.tenantId(),after,c.batchSize()));
+   if(plan.isEmpty())break;
+   var ids=plan.stream().map(AllocationRow::getScopeId).toList();
+   var scopes=new HashMap<Long,ScopeRow>();for(var row:mapper.selectScopes(new ScopesQuery(c.tenantId(),ids,false)))scopes.put(row.getId(),row);
+   var details=new HashMap<Long,List<DetailRow>>();for(var row:mapper.selectDetails(new ScopesQuery(c.tenantId(),ids,false)))details.computeIfAbsent(row.getDeliveryScopeId(),k->new ArrayList<>()).add(row);
+   var identities=c.identities().findByKeys(new SyncIdentityStore.Query("PRODUCT_SCOPE",plan.stream().map(AllocationRow::getSourceKey).toList()));
+   for(var item:plan){
+    var row=scopes.get(item.getScopeId());var detail=details.getOrDefault(item.getScopeId(),List.of());var identity=identities.get(item.getSourceKey());
+    if(item.getScopeId()==null||item.getScopeId()<=after||row==null||detail.size()!=1||identity==null
+      ||identity.targetId()!=item.getScopeId()||!Objects.equals(identity.fingerprint(),fingerprint(row,detail.getFirst()))
+      ||!Boolean.FALSE.equals(row.getAllocationConfirmed())||!Objects.equals(row.getOrderLineId(),item.getOrderLineId()))fail("ALLOCATION_SCOPE_CHANGED");
+    after=item.getScopeId();
+   }
+   if(mapper.confirmAllocations(new AllocationUpdates(c.tenantId(),plan))!=plan.size())fail("ALLOCATION_CONFIRM_CONFLICT");
+   var saves=new ArrayList<SyncIdentityStore.Save>();
+   for(var item:plan){
+    var row=scopes.get(item.getScopeId());var identity=identities.get(item.getSourceKey());
+    row.setAllocationConfirmed(true);row.setCurrentOrderLineId(row.getOrderLineId());
+    saves.add(new SyncIdentityStore.Save("PRODUCT_SCOPE",item.getSourceKey(),row.getId(),fingerprint(row,details.get(row.getId()).getFirst()),identity.fingerprint()));
+   }
+   c.identities().saveAll(saves);
+  }
+ }
+ public record AllocationPage(long tenantId,long after,int limit){}
+ public record AllocationVersion(long id,long projectId,long expectedVersion){}
+ public record AllocationVersions(long tenantId,long actorId,LocalDateTime at,List<AllocationVersion> rows){}
+ public record AllocationUpdates(long tenantId,List<AllocationRow> rows){}
+ @lombok.Data public static class AllocationDecision {private String decision;private long count;}
+ @lombok.Data public static class AllocationProject {private Long projectId,minVersion,maxVersion;}
+ @lombok.Data public static class AllocationRow {private Long scopeId,orderLineId;private String sourceKey;}
  @lombok.Data public static class Source {private Long sourceId,originalProjectId,canonicalProjectId,formalProjectId,originalCompanyId;private String originalProjectCode,originalProjectName,originalDepartmentCode,previous,projectType,itemCode,itemName,orderNumber,lineNum;private BigDecimal projectQuantity,orderQuantity,deliverQuantity,openQuantity;private ScopeRow target;private DetailRow detail;private SyncWriteAction action;String evidence(){return "DPPMS:pm_project_product_line:"+originalProjectId+":"+sourceId;}}
  @lombok.Data public static class Snapshot {private Long projectId,projectVersion,departmentId,scopeVersion;private String projectCode,projectName,companyCode,companyName,departmentCode,departmentName,customerCode,customerName,managerEmployeeNo,managerName;private Integer departmentVersion;}
  @lombok.Data public static class OrderLine {private Long id,projectId;private String contractNo,orderNo,lineNo,productCode,sourceSystem,companyCode,companyName,orderType;private BigDecimal orderQty;}
@@ -157,7 +231,29 @@ public class P22ProductScopeSyncTask extends AbstractSyncTask<P22ProductScopeSyn
  public record ScopeIdentityQuery(long tenantId,boolean preview){}
  public record ScopesQuery(long tenantId,List<Long> ids,boolean preview){}
  public interface SourceMapper {List<Company> selectCompanies(SourceQuery<Parameters> query);void selectProductScope(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);}
- @Mapper public interface TargetMapper {int pendingOrderSchemaReady();int pendingDepartmentSchemaReady();int backfillOrderLineIds(@Param("query") CurrentRunQuery query);long countPendingOrderLines(@Param("query") CurrentRunQuery query);List<Department> selectDepartments(@Param("query") DepartmentCatalogueQuery query);int backfillDepartmentIds(@Param("query") CurrentRunQuery query);long countUnresolvedCodedDepartments(@Param("query") CurrentRunQuery query);List<Snapshot> selectSnapshots(@Param("query") ProjectsQuery query);List<OrderLine> selectOwnedOrderCatalogue(@Param("query") OwnedOrderCatalogueQuery query);List<ScopeIdentity> selectScopeIdentities(@Param("query") ScopeIdentityQuery query);List<ScopeRow> selectScopes(@Param("query") ScopesQuery query);List<DetailRow> selectDetails(@Param("query") ScopesQuery query);int insertProductScope(SyncBatch<Source,Parameters> batch);int insertDetails(SyncBatch<Source,Parameters> batch);}
+ @Mapper public interface TargetMapper {
+  int pendingOrderSchemaReady();int pendingDepartmentSchemaReady();int backfillOrderLineIds(@Param("query") CurrentRunQuery query);long countPendingOrderLines(@Param("query") CurrentRunQuery query);List<Department> selectDepartments(@Param("query") DepartmentCatalogueQuery query);int backfillDepartmentIds(@Param("query") CurrentRunQuery query);long countUnresolvedCodedDepartmentsWithSnapshot(@Param("query") CurrentRunQuery query);List<Snapshot> selectSnapshots(@Param("query") ProjectsQuery query);List<OrderLine> selectOwnedOrderCatalogue(@Param("query") OwnedOrderCatalogueQuery query);List<ScopeIdentity> selectScopeIdentities(@Param("query") ScopeIdentityQuery query);List<ScopeRow> selectScopes(@Param("query") ScopesQuery query);List<DetailRow> selectDetails(@Param("query") ScopesQuery query);int insertProductScope(SyncBatch<Source,Parameters> batch);int insertDetails(SyncBatch<Source,Parameters> batch);
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") void dropAllocationStage();
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") void createAllocationStage();
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") int stageNewScopes(SyncBatch<Source,Parameters> batch);
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") int fillAllocationStage(@Param("query") CurrentRunQuery query);
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") void createAllocationOrders();
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") int lockAllocationOrders(@Param("query") CurrentRunQuery query);
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") void createAllocationOccupied();
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") int lockExistingAllocations(@Param("query") CurrentRunQuery query);
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") void createAllocationTotals();
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") int fillAllocationTotals();
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") void createAllocationPairs();
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") int fillAllocationPairs();
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") void createAllocationPlan();
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") int fillAllocationPlan(@Param("query") CurrentRunQuery query);
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") List<AllocationDecision> countAllocationDecisions();
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") List<AllocationProject> selectAllocationProjects(@Param("query") AllocationPage query);
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") int seedAllocationVersions(@Param("query") AllocationVersions query);
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") int advanceAllocationVersions(@Param("query") AllocationVersions query);
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") List<AllocationRow> selectConfirmableAllocations(@Param("query") AllocationPage query);
+  @com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true") int confirmAllocations(@Param("query") AllocationUpdates query);
+ }
 @lombok.Data public static class ScopeRow {private Long id,tenantId;private String creator,updater;private java.time.LocalDateTime createTime,updateTime;private Boolean deleted;private Long version;
     private Long projectId;
     private String projectCode;
