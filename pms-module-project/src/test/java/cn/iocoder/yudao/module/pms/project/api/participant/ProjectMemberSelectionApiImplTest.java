@@ -68,6 +68,28 @@ class ProjectMemberSelectionApiImplTest {
     private ProjectMemberSelectionApi.Query query(String role){
         return ProjectMemberSelectionApi.Query.builder().tenantId(1L).actorId(2L).projectId(7L).pageNo(1).pageSize(100).role(role).build();
     }
+    @Test void userRevalidationUsesCurrentMemberLockWithoutRestrictingMemberRoles(){
+        var member=new ProjectMemberAssignmentDO();member.setMemberRole(ProjectMemberRoles.TEAM_MEMBER);
+        when(members.selectActiveByUserForUpdate(any())).thenReturn(List.of(member));
+        api.requireCurrentUser(userQuery(1L,7L,9L));
+        verify(members).selectActiveByUserForUpdate(argThat(q -> q.tenantId().equals(1L)
+                && q.projectId().equals(7L) && q.userId().equals(9L) && q.effectiveAt()!=null));
+        verify(scopes).lockAndRevalidate(any());
+        verifyNoInteractions(users);
+    }
+    @Test void userRevalidationRejectsMissingRevokedForeignAndNullSubjects(){
+        when(members.selectActiveByUserForUpdate(any())).thenReturn(List.of());
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->api.requireCurrentUser(userQuery(1L,7L,9L)));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->api.requireCurrentUser(userQuery(1L,7L,null)));
+        assertThrows(SecurityException.class,()->api.requireCurrentUser(userQuery(2L,7L,9L)));
+        when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(7L,2L,Set.of(),Set.of()));
+        clearInvocations(members);
+        assertThrows(SecurityException.class,()->api.requireCurrentUser(userQuery(1L,7L,9L)));
+        verifyNoInteractions(members,users);
+    }
+    private ProjectMemberSelectionApi.UserQuery userQuery(Long tenant,Long project,Long user){
+        return ProjectMemberSelectionApi.UserQuery.builder().tenantId(tenant).actorId(2L).projectId(project).userId(user).build();
+    }
     private ProjectMemberSelectionApi.Revalidation revalidation(String role){
         return ProjectMemberSelectionApi.Revalidation.builder().tenantId(1L).actorId(2L).projectId(7L).assignmentId(8L).expectedVersion(3L).role(role).build();
     }

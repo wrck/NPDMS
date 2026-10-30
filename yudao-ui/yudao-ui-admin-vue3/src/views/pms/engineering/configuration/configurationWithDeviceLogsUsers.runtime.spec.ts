@@ -3,11 +3,12 @@ import { defineComponent, h, nextTick } from 'vue'
 import Configuration from './with-device-logs.vue'
 import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-const api = vi.hoisted(() => ({ users: vi.fn(), options: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn() }))
-vi.mock('@/api/pms/platform/user-selection', () => ({ searchPmsUserOptions: api.options }))
+const api = vi.hoisted(() => ({ users: vi.fn(), simple: vi.fn(), members: vi.fn(), resolve: vi.fn(), options: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn() }))
+vi.mock('@/api/pms/platform/user-selection', () => ({ searchPmsUserOptions: api.options, pmsUserSelectionSource: (key: string) => ({ key, resolve: api.resolve }) }))
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 3, nickname: 'Self' } }) }))
 vi.mock('@/utils/permission', () => ({ checkPermi: (permissions: string[]) => !permissions.includes('system:user:query') }))
-vi.mock('@/api/system/user', () => ({ getSimpleUserList: api.users }))
+vi.mock('@/api/system/user', () => ({ getSimpleUserList: api.users, getSimpleUser: api.simple }))
+vi.mock('@/api/pms/project/unified-members', () => ({ getMemberPage: api.members }))
 vi.mock('@/api/pms/engineering/configuration', () => ({ getConfigurationPage: api.page, createConfiguration: api.create, updateConfiguration: api.update }))
 vi.mock('@/api/pms/project/projects', () => ({ getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/asset/device-log-archive', () => ({ download: vi.fn() }))
@@ -32,7 +33,6 @@ vi.mock('@/views/system/user/components/UserSelect.vue', () => ({ default: defin
     })
   }
 }) }))
-
 const apps: { unmount: () => void }[] = []
 const form = defineComponent({ setup(_, { slots, expose }) { expose({ validate: async () => true }); return () => h('form', slots.default?.()) } })
 const picker = defineComponent({ inheritAttrs: false, props: { api: Function, modelValue: [Number, String], placeholder: String }, emits: ['update:modelValue'], setup(props, { emit }) {
@@ -47,98 +47,82 @@ const render = () => {
   return { ...view, state: (view.vm as any).$.setupState }
 }
 const debuggerPicker = (root: TestNode) => nodes(root, 'entity-picker').find(node => node.props?.placeholder === '请选择调试人员')!
-beforeEach(() => { vi.resetAllMocks(); api.page.mockResolvedValue({ list: [], total: 0 }); api.options.mockResolvedValue({ list: [{ id: 3, nickname: 'Self' }], total: 1 }) })
+beforeEach(() => { vi.resetAllMocks(); api.page.mockResolvedValue({ list: [], total: 0 }); api.options.mockResolvedValue({ list: [{ id: 3, nickname: 'Self' }], total: 1 }); api.simple.mockResolvedValue({ nickname: 'Self' }); api.members.mockResolvedValue({ list: [], total: 0 }) })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
 
-it('queries the authorized user API despite a missing menu permission snapshot and saves the selected Self user', async () => {
+it('selects only current project members, deduplicates roles and searches across pages', async () => {
+  api.members.mockImplementation(async (_projectId: number, params: { pageNo: number }) => params.pageNo === 1
+    ? { list: [{ userId: 3, memberName: 'Self', employeeNo: 's003' }, { userId: null, memberName: '外部人员' }, ...Array.from({ length: 98 }, () => ({ userId: 3, memberName: 'Self' }))], total: 101 }
+    : { list: [{ userId: '2112914651700375582', memberName: 'k06057-康志伟', employeeNo: 'k06057', email: 'kang@example.test' }], total: 101 })
   const view = render(); view.state.openForm(); await flush()
   const select = debuggerPicker(view.root)
-  expect(select).toBeDefined()
-  const params = { pageNo: 1, pageSize: 20, nickname: 'Self' }
-  await expect((select.props!.api as Function)(params)).resolves.toEqual({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
-  expect(api.options).toHaveBeenCalledWith({ pageNo: 1, pageSize: 20, keyword: 'Self' })
-  expect(api.users).not.toHaveBeenCalled()
   expect(select.props!.modelValue).toBe(3)
+  const result = await (select.props!.api as Function)({ pageNo: 1, pageSize: 20, nickname: 'k06057' })
+  expect(result.list).toEqual([expect.objectContaining({ id: '2112914651700375582', nickname: 'k06057-康志伟' })])
+  expect(result.total).toBe(1)
+  expect(api.members).toHaveBeenCalledWith(1, { state: 'CURRENT', pageNo: 2, pageSize: 100 })
+  expect(api.options).not.toHaveBeenCalled()
+  ;(select.props!.select as Function)('2112914651700375582')
   Object.assign(view.state.form, { equipmentId: '123', code: 'CFG-USERS' })
   await view.state.save()
-  expect(api.create).toHaveBeenCalledWith(expect.objectContaining({ debuggerUserId: 3, projectId: 1 }))
+  expect(api.create).toHaveBeenCalledWith(expect.objectContaining({ debuggerUserId: '2112914651700375582', projectId: 1 }))
 })
 
-it('contains an actual user query rejection, displays its error, and recovers after retry', async () => {
+it('defaults a new record to self without adding self to the project candidate range', async () => {
+  api.members.mockResolvedValue({ list: [{ userId: 9, memberName: '项目成员' }], total: 1 })
   const view = render(); view.state.openForm(); await flush()
   const select = debuggerPicker(view.root)
-  expect(select).toBeDefined()
-  api.options.mockRejectedValueOnce(new Error('Forbidden'))
-  await expect((select.props!.api as Function)({ pageNo: 1, pageSize: 20 })).resolves.toEqual({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
-  await flush()
-  expect(text(view.root)).toContain('其他人员暂时无法查询，可选择本人或保留已选人员；查询其他人员请重试或确认权限。')
-  await expect((select.props!.api as Function)({ pageNo: 1, pageSize: 20 })).resolves.toEqual({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
-  await flush()
-  expect(text(view.root)).not.toContain('其他人员暂时无法查询，可选择本人或保留已选人员；查询其他人员请重试或确认权限。')
+  expect(select.props!.modelValue).toBe(3)
+  const result = await (select.props!.api as Function)({ pageNo: 1, pageSize: 20 })
+  expect(result.list.map((user: { id: number }) => user.id)).toEqual([9])
+  expect(api.users).not.toHaveBeenCalled()
+  expect(api.options).not.toHaveBeenCalled()
 })
 
-it('keeps completed history read-only without querying personnel', async () => {
+it('preserves an existing record with no debugger instead of replacing it with self', async () => {
+  const view = render(); view.state.openForm({ id: 8, projectId: 1, status: 0, version: 3 }); await flush()
+  expect(view.state.form.debuggerUserId).toBeUndefined()
+})
+
+it('fails closed when the project member query fails and preserves historical selection', async () => {
+  const view = render(); view.state.openForm({ id: 8, projectId: 1, status: 0, version: 3, debuggerUserId: 9 }); await flush()
+  api.members.mockRejectedValueOnce(new Error('Forbidden'))
+  await expect((debuggerPicker(view.root).props!.api as Function)({ pageNo: 1, pageSize: 20 })).rejects.toThrow('Forbidden')
+  expect(view.state.form.debuggerUserId).toBe(9)
+  expect(api.options).not.toHaveBeenCalled()
+})
+
+it('clears the device and resets the debugger to self when the project changes', async () => {
+  const view = render(); view.state.openForm(); await flush()
+  Object.assign(view.state.form, { debuggerUserId: 9, equipmentId: 8 })
+  view.state.onFormProjectChange()
+  expect(view.state.form.debuggerUserId).toBe(3)
+  expect(view.state.form.equipmentId).toBeUndefined()
+})
+
+it('keeps completed history read-only and displays the stored person', async () => {
   const view = render(); view.state.openForm({ id: 8, projectId: 1, status: 2, version: 3, debuggerUserId: 3 }); await flush()
   expect(view.state.readOnly).toBe(true)
   expect(debuggerPicker(view.root)).toBeUndefined()
-  expect(nodes(view.root, 'user-tag')[0].props?.userId).toBe(3)
-  expect(api.options).not.toHaveBeenCalled()
+  expect(text(view.root)).toContain('Self')
   await view.state.save()
   expect(api.update).not.toHaveBeenCalled()
 })
 
-
-it('saves the known Self user after a 403 without inventing any other user options', async () => {
-  const view = render(); view.state.openForm(); await flush()
-  api.options.mockRejectedValueOnce(new Error('403'))
-  const select = debuggerPicker(view.root)
-  const result = await (select.props!.api as Function)({ pageNo: 1, pageSize: 20 })
-  expect(result).toEqual({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
-  ;(select.props!.select as Function)(result.list[0].id)
-  Object.assign(view.state.form, { equipmentId: '123', code: 'CFG-SELF' })
-  await view.state.save()
-  expect(api.create).toHaveBeenCalledWith(expect.objectContaining({ debuggerUserId: 3 }))
+it('shows the account and name for a readable selected person without altering history', async () => {
+  api.resolve.mockResolvedValue([{ id: 3, username: 's003', nickname: 'Self' }])
+  const view = render(); view.state.openForm({ id: 8, projectId: 1, status: 2, version: 3, debuggerUserId: 3 }); await flush()
+  expect(text(view.root)).toContain('s003-Self')
+  expect(api.simple).not.toHaveBeenCalled()
+  expect(api.update).not.toHaveBeenCalled()
 })
 
-it('retains an existing non-Self debugger after personnel query failure', async () => {
-  const view = render(); view.state.openForm({ id: 8, projectId: 1, status: 0, version: 3, debuggerUserId: 9 }); await flush()
-  api.options.mockRejectedValueOnce(new Error('403'))
-  const result = await (debuggerPicker(view.root).props!.api as Function)({ pageNo: 1, pageSize: 20 })
-  expect(result.list.map((user: { id: number }) => user.id)).toEqual([3, 9])
-  expect(view.state.form.debuggerUserId).toBe(9)
-  await view.state.save()
-  expect(api.update).toHaveBeenCalledWith(expect.objectContaining({ debuggerUserId: 9 }))
-})
-
-it('preserves server filtering and pagination for the personnel picker', async () => {
-  api.options.mockResolvedValueOnce({ list: [{ id: 9, nickname: 'Other' }], total: 1 })
-    .mockResolvedValueOnce({ list: [{ id: 9, nickname: 'Other' }], total: 2 })
-    .mockResolvedValueOnce({ list: [], total: 0 })
-  const view = render(); view.state.openForm(); await flush()
-  const query = debuggerPicker(view.root).props!.api as Function
-  await expect(query({ pageNo: 1, pageSize: 1, nickname: 'o' })).resolves.toEqual({ list: [{ id: 9, nickname: 'Other' }], total: 1 })
-  await expect(query({ pageNo: 2, pageSize: 1 })).resolves.toEqual({ list: [{ id: 9, nickname: 'Other' }], total: 2 })
-  await expect(query({ pageNo: 1, pageSize: 20, nickname: 'missing' })).resolves.toEqual({ list: [], total: 0 })
-  expect(api.options.mock.calls.map(call => call[0])).toEqual([
-    { pageNo: 1, pageSize: 1, keyword: 'o' }, { pageNo: 2, pageSize: 1, keyword: '' },
-    { pageNo: 1, pageSize: 20, keyword: 'missing' }
-  ])
-})
-
-it('preserves an empty historical debugger and resets a new form to Self', async () => {
-  const view = render()
-  view.state.openForm({ id: 8, projectId: 1, status: 0, version: 3 }); await flush()
-  expect(view.state.form.debuggerUserId).toBeUndefined()
-  view.state.openForm(); await flush()
-  expect(view.state.form.debuggerUserId).toBe(3)
-})
-
-it('uses server-side email search without requiring the email in returned debugger options', async () => {
-  api.users.mockResolvedValue([{ id: 8, nickname: '张三' }])
-  api.options.mockResolvedValue({ list: [{ id: 8, nickname: '张三' }], total: 1 })
-  const view = render(); view.state.openForm(); await flush()
-  const result = await view.state.queryDebuggerUsers({ pageNo: 2, pageSize: 1, nickname: 'zhangsan' })
-  expect(result).toEqual({ list: [{ id: 8, nickname: '张三' }], total: 1 })
-  expect(api.options).toHaveBeenCalledWith({ pageNo: 2, pageSize: 1, keyword: 'zhangsan' })
-  expect(api.users).not.toHaveBeenCalled()
+it('shows the exact historical project member when the system user lookup returns no data', async () => {
+  api.simple.mockResolvedValue(null)
+  api.members.mockImplementation(async (_projectId: number, params: { state: string }) => params.state === 'HISTORY'
+    ? { list: [{ userId: '2112914651700375582', memberName: 'k06057-康志伟' }], total: 1 }
+    : { list: [], total: 0 })
+  const view = render(); view.state.openForm({ id: 8, projectId: 1, status: 2, version: 3, debuggerUserId: '2112914651700375582' }); await flush()
+  expect(text(view.root)).toContain('k06057-康志伟')
+  expect(text(view.root)).not.toContain('2112914651700375582')
 })

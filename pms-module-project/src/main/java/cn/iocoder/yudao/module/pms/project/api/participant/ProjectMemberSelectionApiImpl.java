@@ -21,6 +21,18 @@ public class ProjectMemberSelectionApiImpl implements ProjectMemberSelectionApi 
     private final ProjectScopeApi scopes;
     private final AdminUserApi users;
 
+    @Override @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public void requireCurrentUser(UserQuery query) {
+        if (query == null || query.userId() == null || query.userId() <= 0)
+            throw new cn.iocoder.yudao.framework.common.exception.ServiceException(400, "请选择项目当前有效成员");
+        scope(Query.builder().tenantId(query.tenantId()).actorId(query.actorId()).projectId(query.projectId())
+                .pageNo(1).pageSize(1).build(), true);
+        var current = members.selectActiveByUserForUpdate(new ActiveProjectMemberForUpdateQuery(
+                query.tenantId(), query.projectId(), query.userId(), LocalDateTime.now()));
+        if (current.isEmpty()) throw new cn.iocoder.yudao.framework.common.exception.ServiceException(400,
+                "所选人员已不属于项目当前有效成员，请重新选择");
+    }
+
     @Override public Page page(Query query) {
         scope(query, false);
         if (query.pageNo() < 1 || query.pageSize() < 1 || query.pageSize() > 100) throw new IllegalArgumentException("成员分页条件无效");

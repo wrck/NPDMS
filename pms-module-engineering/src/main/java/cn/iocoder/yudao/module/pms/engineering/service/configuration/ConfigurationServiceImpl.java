@@ -30,6 +30,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 public class ConfigurationServiceImpl implements ConfigurationService {
 
     @Resource
+    private cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberSelectionApi projectMembers;
+
+    @Resource
     private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi deviceSelectionApi;
 
     @Resource
@@ -47,6 +50,12 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createConfiguration(ConfigurationSaveReqVO createReqVO) {
+        if (createReqVO.getDebuggerUserId() != null) {
+            projectMembers.requireCurrentUser(cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberSelectionApi.UserQuery.builder()
+                    .tenantId(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId())
+                    .actorId(cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId())
+                    .projectId(createReqVO.getProjectId()).userId(createReqVO.getDebuggerUserId()).build());
+        }
         if (createReqVO.getEquipmentId() != null) {
             deviceSelectionApi.validateSelection(createReqVO.getProjectId(), java.util.List.of(createReqVO.getEquipmentId()));
         }
@@ -73,6 +82,16 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         }
         validateStatus(existing, 0, 1, 3);
         validateVersion(existing, updateReqVO.getVersion());
+        Long projectId = updateReqVO.getProjectId() != null ? updateReqVO.getProjectId() : existing.getProjectId();
+        Long debugger = updateReqVO.getDebuggerUserId() != null ? updateReqVO.getDebuggerUserId() : existing.getDebuggerUserId();
+        // Preserve the existing historical choice; changing either its person or project is a new selection.
+        if (debugger != null && (!Objects.equals(projectId, existing.getProjectId())
+                || !Objects.equals(debugger, existing.getDebuggerUserId()))) {
+            projectMembers.requireCurrentUser(cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberSelectionApi.UserQuery.builder()
+                    .tenantId(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId())
+                    .actorId(cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId())
+                    .projectId(projectId).userId(debugger).build());
+        }
         ConfigurationDO update = BeanUtils.toBean(updateReqVO, ConfigurationDO.class);
         update.setStatus(existing.getStatus());
         update.setVersion(existing.getVersion());

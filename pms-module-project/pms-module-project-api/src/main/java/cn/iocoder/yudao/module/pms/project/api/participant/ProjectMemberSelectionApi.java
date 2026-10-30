@@ -7,6 +7,10 @@ import lombok.Builder;
 public interface ProjectMemberSelectionApi {
     Page page(Query query);
     Member lockAndInspect(Revalidation query);
+    /** Validates a system user against the same current-member scope, within the caller's transaction. */
+    void requireCurrentUser(UserQuery query);
+    @Builder
+    record UserQuery(Long tenantId, Long actorId, Long projectId, Long userId) {}
     @Builder
     record Query(Long tenantId, Long actorId, Long projectId, int pageNo, int pageSize, String role) {}
     @Builder
