@@ -380,6 +380,36 @@ describe('solution requirement analysis references', () => {
     } finally { mounted.app.unmount() }
   })
 
+  it('shows product-source failure and offers retry without presenting an empty import as success', async () => {
+    vi.mocked(loadProjectEquipmentList).mockRejectedValueOnce(new Error('product owner unavailable'))
+    const mounted = render(84499)
+    try {
+      await flush()
+      expect(mounted.state.equipmentError).toBe('项目设备清单加载失败，请重新加载')
+      expect(mounted.state.equipmentProducts).toEqual([])
+      expect(textOf(mounted.root)).toContain('重新加载设备清单')
+      vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({
+        list: [{ productCode: '02011299', productModel: 'QSFP28-LX2-SM1310-CWDM4', productName: '', deviceCount: 0 }],
+        scopes: [], devices: []
+      })
+      await mounted.state.loadEquipment(); await flush()
+      expect(mounted.state.equipmentError).toBe('')
+      expect(mounted.state.equipmentProducts[0].productModel).toBe('QSFP28-LX2-SM1310-CWDM4')
+    } finally { mounted.app.unmount() }
+  })
+
+  it('keeps the exact product-code key when associating serials with imported inventory', async () => {
+    vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({
+      list: [{ productCode: ' A ', productModel: 'MASTER', productName: '', deviceCount: 1 }],
+      scopes: [], devices: [{ productCode: ' A ', sn: 'SN-EXACT' }] as any
+    })
+    const mounted = render(84499)
+    try {
+      await flush(); mounted.state.generateFromSources(); await flush()
+      expect(mounted.state.tables.inventory[0]).toMatchObject({ productCode: ' A ', model: 'MASTER', sn: 'SN-EXACT' })
+    } finally { mounted.app.unmount() }
+  })
+
   it('does not import into read-only records', async () => {
     vi.mocked(RequirementApi.workspace).mockResolvedValue(overview({ projectBackground: '来源背景' }))
     const mounted = render(1, true)

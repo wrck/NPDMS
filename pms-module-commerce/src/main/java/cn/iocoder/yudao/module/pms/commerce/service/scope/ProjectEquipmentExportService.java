@@ -4,9 +4,6 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.ProjectEquipmentExpo
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.ProjectEquipmentExportQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.ProjectEquipmentExportSource;
 import cn.iocoder.yudao.module.pms.commerce.service.contract.ContractAccessService;
-import cn.iocoder.yudao.module.pms.asset.api.product.AssetProductOfficialApi;
-import cn.iocoder.yudao.module.pms.asset.api.product.ProductDisplayQuery;
-import cn.iocoder.yudao.module.pms.asset.api.product.ProductOfficialSnapshot;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -26,7 +23,6 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 @RequiredArgsConstructor
 public class ProjectEquipmentExportService {
     private final ProjectEquipmentExportMapper mapper;
-    private final AssetProductOfficialApi products;
     private final ProjectScopeApi projects;
     private final PermissionApi permissions;
     private final ContractAccessService contracts;
@@ -53,30 +49,20 @@ public class ProjectEquipmentExportService {
         sources.sort(Comparator.comparing(ProjectEquipmentExportSource::orderLineId,Comparator.nullsFirst(Long::compareTo))
                 .thenComparing(ProjectEquipmentExportSource::scopeId,Comparator.reverseOrder()));
         Map<String,List<ProjectEquipmentExportSource>> grouped=sources.stream().collect(Collectors.groupingBy(
-                row->text(row.productCode()).isEmpty()?"—":text(row.productCode()),LinkedHashMap::new,Collectors.toList()));
-        var codes=grouped.keySet().stream().filter(code->!"—".equals(code)).toList();
-        Map<String,ProductOfficialSnapshot> display=new HashMap<>();
-        for (int offset=0;offset<codes.size();offset+=500) {
-            var codeBatch=Set.copyOf(codes.subList(offset,Math.min(offset+500,codes.size())));
-            for (var product:Objects.requireNonNull(products.getProductDisplaySnapshots(new ProductDisplayQuery(tenant,codeBatch)))) {
-                String code=text(product.productCode());
-                if (codeBatch.contains(code)) display.putIfAbsent(code,product);
-            }
-        }
+                row->row.productCode()==null || row.productCode().isEmpty()?"—":row.productCode(),LinkedHashMap::new,Collectors.toList()));
         List<ProjectEquipmentExportRow> result=new ArrayList<>();
         for (var entry:grouped.entrySet()) {
             var row=new ProjectEquipmentExportRow();var group=entry.getValue();String code=entry.getKey();
             row.setNo(result.size()+1);row.setProductCode(code);
             row.setProjectQty(sum(group,ProjectEquipmentExportSource::allocatedQuantity));
             row.setOrderNo(group.stream().map(value->text(value.orderNo())).filter(value->!value.isEmpty()).distinct().collect(Collectors.joining("、")));
-            var product=display.get(code);
-            row.setProductModel(product==null?null:text(product.productModel()));
+            row.setProductModel(group.getFirst().productModel());
             row.setProductName(group.stream().map(value->text(value.productDesc())).filter(value->!value.isEmpty()).findFirst()
-                    .orElse(product==null?null:text(product.productName())));
+                    .orElse(group.getFirst().productName()));
             Map<Long,ProjectEquipmentExportSource> lines=new LinkedHashMap<>();
             group.forEach(value->lines.putIfAbsent(value.orderLineId(),value));
             if (lines.values().stream().allMatch(value->value.matchedLineId()!=null
-                    && value.matchedLineId().equals(value.orderLineId()) && code.equals(text(value.lineProductCode())))) {
+                    && value.matchedLineId().equals(value.orderLineId()) && code.equals(value.lineProductCode()))) {
                 row.setDeliveredQty(sum(lines.values(),ProjectEquipmentExportSource::deliveredQuantity));
                 row.setOpenQty(sum(lines.values(),ProjectEquipmentExportSource::openQuantity));
             }

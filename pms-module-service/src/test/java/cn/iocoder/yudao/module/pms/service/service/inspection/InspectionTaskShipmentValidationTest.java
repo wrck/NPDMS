@@ -215,7 +215,7 @@ class InspectionTaskShipmentValidationTest {
                 new SelectedProjectDevice(1L, "SN-1", "设备", "CODE", "MODEL", "CONTRACT")));
         when(deviceFacts.getVisibleDeviceSummaries(any())).thenReturn(List.of(new DeviceSummaryDTO(1L, 7L, "SN-1", "CODE", "MODEL",
                 "设备", shippedAt, null, "CONTRACT", null, projectId, 1L, 30L, 1L,
-                null, null, null, null, null, null, null, null, null)));
+                null, null, null, null, null, null, null, null, null, null)));
     }
 
     private InspectionTaskService.Create command() {

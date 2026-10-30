@@ -32,7 +32,7 @@ class DeviceCurrentSummariesControllerTest {
                 assertEquals(Set.of(2113043793829797942L, 8L), request.getDeviceIds());
                 var summary = new DeviceSummaryDTO(2113043793829797942L, 1L, "SN", "CODE", "MODEL", "产品",
                         null, null, null, null, 10L, 1L, null, null, null, null, null, null, null, null, null,
-                        "设备", null);
+                        "设备", null, "当前描述");
                 when(details.getCurrentSummaries(any())).thenReturn(List.of(summary));
 
                 var result = controller.getCurrentSummaries(request);
@@ -43,6 +43,7 @@ class DeviceCurrentSummariesControllerTest {
                 var json = mapper.writeValueAsString(result);
                 assertTrue(json.contains("\"deviceId\":\"2113043793829797942\""));
                 assertTrue(json.contains("\"name\":\"设备\""));
+                assertTrue(json.contains("\"productDesc\":\"当前描述\""));
                 assertNull(result.getData().getFirst().locationSnapshot());
             } finally {
                 TenantContextHolder.clear(); SecurityContextHolder.clearContext();

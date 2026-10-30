@@ -124,6 +124,8 @@ export interface DeliveryScopeRespVO {
   lineNo: string
   productCode: string
   productDesc?: string
+  productModel?: string
+  productName?: string
   allocatedQuantity: number
   scopeStatus: string
   allocationVersion: number

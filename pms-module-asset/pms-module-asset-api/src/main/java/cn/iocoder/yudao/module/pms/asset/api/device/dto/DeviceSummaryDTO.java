@@ -26,5 +26,6 @@ public record DeviceSummaryDTO(
         String conpSeries,
         String conpMark,
         String name,
-        String locationSnapshot) {
+        String locationSnapshot,
+        String productDesc) {
 }

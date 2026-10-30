@@ -43,7 +43,7 @@ export const loadProjectEquipmentList = async (
     loadPages<DeliveryScopeRespVO>(
       (pageNo) => getDeliveryScopePage({ projectId, pageNo, pageSize: 100, includeHistory: false }),
       isCurrent
-    ).catch(() => [])
+    )
   ])
   if (!devices || !scopes || !isCurrent()) return
   const snProducts = new Map(devices.filter((device) => device.sn?.trim()).map((device) => [device.sn.trim(), device]))
@@ -61,7 +61,7 @@ export const loadProjectEquipmentList = async (
     return row
   }
   const fillProduct = (row: ProjectEquipmentProduct, device?: DeviceListVO) => {
-    row.productModel ||= device?.productModel?.trim() || ''
+    row.productModel ||= device?.productModel || ''
     row.productName ||= device?.productName?.trim() || ''
   }
   const addOrder = (row: EquipmentGroup, scope: DeliveryScopeRespVO) => {
@@ -72,24 +72,25 @@ export const loadProjectEquipmentList = async (
   for (const scope of scopes) {
     for (const detail of scope.details || []) {
       const device = snProducts.get(detail.serialNo?.trim() || '')
-      const row = ensure(device?.productCode?.trim() || detail.productCode?.trim() || '—')
+      const row = ensure(device?.productCode || detail.productCode || '—')
       fillProduct(row, device)
       row.projectQty = (row.projectQty ?? 0) + Number(detail.allocatedQuantity)
       addOrder(row, scope)
     }
   }
   for (const device of devices) {
-    const row = ensure(device.productCode?.trim() || device.productModel?.trim() || '—')
+    const row = ensure(device.productCode || device.productModel || '—')
     fillProduct(row, device)
     row.deviceCount += 1
   }
   // 迁入的订单范围可能没有逐台明细，仍按产品编码关联其订单号与分配数量。
   const scopeQuantities = new Map<string, number>()
   for (const scope of scopes) {
-    const code = scope.productCode?.trim()
+    const code = scope.productCode
     if (!code) continue
     const row = ensure(code)
-    row.productName ||= scope.productDesc?.trim() || ''
+    row.productModel ||= scope.productModel || ''
+    row.productName ||= scope.productDesc?.trim() || scope.productName || ''
     scopeQuantities.set(code, (scopeQuantities.get(code) ?? 0) + Number(scope.allocatedQuantity))
     row.projectQty = scopeQuantities.get(code)
     addOrder(row, scope)
@@ -105,7 +106,7 @@ export const loadProjectEquipmentList = async (
   const lines = new Map(orders.flatMap((order) => order ?? []).map((line) => [String(line.id), line]))
   const list: ProjectEquipmentProduct[] = [...grouped.values()].map(({ orderNos, orderLineIds, ...row }) => {
     const matched = [...orderLineIds].map((id) => lines.get(id))
-    const complete = matched.length > 0 && matched.every((line) => line?.productCode?.trim() === row.productCode)
+    const complete = matched.length > 0 && matched.every((line) => line?.productCode === row.productCode)
     // 发货数量只取关联订单行；源值缺失保留未知，不从设备数或设备发货记录推算。
     const deliveredQtyKnown = complete && matched.every((line) => line?.deliveredQty != null)
     return {

@@ -20,6 +20,8 @@ class ProjectEquipmentExportSqlTest {
             s.execute("CREATE TABLE com_sales_order_line(id BIGINT PRIMARY KEY,tenant_id BIGINT,order_id BIGINT,company_code VARCHAR(64),product_code VARCHAR(64),delivered_qty DECIMAL(20,4),open_qty DECIMAL(20,4),deleted INT DEFAULT 0)");
             s.execute("CREATE TABLE com_order_contract_relation(tenant_id BIGINT,order_id BIGINT,contract_id BIGINT,deleted INT DEFAULT 0)");
             s.execute("CREATE TABLE com_project_contract_relation(tenant_id BIGINT,project_id BIGINT,contract_id BIGINT,status VARCHAR(20),effective_to TIMESTAMP,deleted INT DEFAULT 0)");
+            s.execute("CREATE TABLE ast_product_official_info(tenant_id BIGINT,product_code VARCHAR(100),product_model VARCHAR(100),product_name VARCHAR(100),deleted INT DEFAULT 0, UNIQUE(tenant_id,product_code))");
+            s.execute("INSERT INTO ast_product_official_info VALUES(1,'02010005','SFP-G-SX-MM850','主档产品',0),(2,'02010075','FOREIGN','跨租户产品',0),(1,'FOREIGN','DELETED','已删除产品',1)");
             s.execute("INSERT INTO com_sales_order_line VALUES(11,1,111,'001','02010005',20,30,0),(12,1,112,'002','02010075',NULL,0,0),(13,2,113,'001','FOREIGN',999,999,0)");
             for(int id=1;id<=130;id++) s.execute("INSERT INTO com_delivery_scope(id,tenant_id,project_id,order_line_id,product_code,allocated_qty,scope_status) VALUES("+id+",1,10,11,'02010005',1,'ACTIVE')");
             s.execute("INSERT INTO com_delivery_scope VALUES(131,1,10,12,'02010075','P2','ORDER2',1,'ACTIVE',NULL,0),(132,1,10,13,'FOREIGN','P3','ORDER3',1,'ACTIVE',NULL,0),"
@@ -48,6 +50,8 @@ class ProjectEquipmentExportSqlTest {
         while(true){var rows=mapper.selectBatch(q);rows.forEach(row->ids.add(row.scopeId()));if(rows.size()<50)break;q=q.toBuilder().afterId(rows.getLast().scopeId()).build();}
         assertEquals(132,ids.size());assertEquals(132,new HashSet<>(ids).size());
         var last=mapper.selectBatch(query().toBuilder().afterId(130L).build());assertEquals(12L,last.getFirst().matchedLineId());assertNull(last.getFirst().deliveredQuantity());assertNull(last.getLast().matchedLineId());
+        var first=mapper.selectBatch(query()).getFirst();assertEquals("SFP-G-SX-MM850",first.productModel());assertEquals("主档产品",first.productName());
+        assertNull(last.getFirst().productModel());assertNull(last.getLast().productModel());
     }
     @Test void emptyOrderLinePermissionsKeepAllocationsButHideSourceQuantities() {
         var rows=mapper.selectBatch(query().toBuilder().companyCodes(List.of()).orderLineProjectIds(List.of()).build());

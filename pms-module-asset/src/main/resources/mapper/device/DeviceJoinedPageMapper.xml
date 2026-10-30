@@ -56,7 +56,9 @@
               AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
             <include refid="requestedDeviceIds"/>
         )
-        SELECT d.* FROM ast_device d
+        SELECT <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentDeviceColumns"/>
+        FROM ast_device d
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
         WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
         <include refid="requestedDeviceIds"/>
         <include refid="joinedDeviceVisibility"/>
@@ -104,6 +106,7 @@
         ), device_page AS (
             SELECT <include refid="deviceListColumns"/>
             FROM ast_device d
+            <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
             LEFT JOIN ast_device_network_version nv ON nv.tenant_id = d.tenant_id
               AND nv.device_sn = d.sn AND nv.deleted = b'0' AND nv.source_system = 'DEVICE_LOG'
               AND (nv.sync_status IS NULL OR nv.sync_status &lt;&gt; 'NOT_AVAILABLE')

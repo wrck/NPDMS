@@ -73,4 +73,23 @@ class DeviceArchiveVisibilityTest {
         assertEquals(0L, service.getDeviceArchivePage(request).getTotal());
         verifyNoInteractions(scope, devices);
     }
+    @Test void archiveReadKeepsStoredValuesForEditorsAndExposesTheirDescription() {
+        var raw = new cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO();
+        raw.setId(9L); raw.setTenantId(1L); raw.setSn("RAW-SN");
+        raw.setProductModel(null); raw.setProductName(null); raw.setProductDesc("STORED-DESCRIPTION");
+        when(devices.selectByTenantAndId(1L, 9L)).thenReturn(raw);
+
+        var result = service.getDeviceArchiveRecord(9L);
+        var response = cn.iocoder.yudao.framework.common.util.object.BeanUtils.toBean(result,
+                cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceArchiveRespVO.class);
+        var json = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(response));
+
+        assertSame(raw, result);
+        assertNull(response.getProductModel()); assertNull(response.getProductName());
+        assertEquals("STORED-DESCRIPTION", json.path("productDesc").asText());
+        verify(scope).assertVisible(1L, 7L, 9L);
+        verifyNoInteractions(versions);
+        verify(devices, never()).updateById(any(cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO.class));
+    }
 }

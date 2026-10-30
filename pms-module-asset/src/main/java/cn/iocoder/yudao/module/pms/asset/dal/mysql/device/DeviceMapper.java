@@ -18,26 +18,16 @@ import java.util.List;
 
 @Mapper
 public interface DeviceMapper extends BaseMapperX<DeviceDO> {
-    default List<DeviceDO> selectCurrentProjectDevicesByIds(
-            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.CurrentProjectDeviceIdsQuery query) {
-        if (query.tenantId() == null || query.projectId() == null || query.deviceIds() == null || query.deviceIds().isEmpty())
-            return List.of();
-        return selectList(new LambdaQueryWrapperX<DeviceDO>()
-                .eq(DeviceDO::getTenantId, query.tenantId()).eq(DeviceDO::getProjectId, query.projectId())
-                .in(DeviceDO::getId, query.deviceIds()).orderByAsc(DeviceDO::getId));
-    }
+    List<DeviceDO> selectCurrentProjectDevicesByIds(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.CurrentProjectDeviceIdsQuery query);
     List<DeviceDO> selectJoinedDeviceIds(@Param("query")
             cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDeviceIdsQuery query);
 
     List<Long> selectProjectDeviceIdsByProductFilter(
             @Param("query") cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceProductQuery query);
 
-    default List<DeviceDO> selectCurrentProjectDevices(
-            cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query) {
-        return selectList(new LambdaQueryWrapperX<DeviceDO>()
-                .eq(DeviceDO::getTenantId, query.tenantId()).eq(DeviceDO::getProjectId, query.projectId())
-                .orderByAsc(DeviceDO::getId));
-    }
+    List<DeviceDO> selectCurrentProjectDevices(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query);
 
     List<cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact> selectProjectInstallationDevicesForUpdate(
             @Param("query") cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query);
@@ -89,18 +79,8 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
     }
 
     /** 按设备条件解析当前归属项目ID集合（project_id 非空，去重）；无命中返回空集合。 */
-    default List<Long> selectListProjectIdsByMatch(
-            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceProjectFilterQuery query) {
-        LambdaQueryWrapperX<DeviceDO> wrapper = new LambdaQueryWrapperX<DeviceDO>()
-                .likeIfPresent(DeviceDO::getSn, query.deviceSnKeyword())
-                .likeIfPresent(DeviceDO::getProductModel, query.deviceProductModelKeyword())
-                .eqIfPresent(DeviceDO::getWarrantyStatus, query.deviceWarrantyStatus());
-        return selectList(wrapper
-                .select(DeviceDO::getProjectId)
-                .eq(DeviceDO::getTenantId, query.tenantId())
-                .isNotNull(DeviceDO::getProjectId))
-                .stream().map(DeviceDO::getProjectId).distinct().toList();
-    }
+    List<Long> selectListProjectIdsByMatch(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceProjectFilterQuery query);
 
     /** 与设备工作台共用当前用户的项目数据范围。 */
     default PageResult<DeviceDO> selectArchivePage(VisibleDevicePageQuery query) {

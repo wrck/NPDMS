@@ -51,7 +51,7 @@ class ProjectSerialExportServiceTest {
         var first=LongStream.rangeClosed(2,501).mapToObj(id->{var r=new ProjectSerialExportRow();r.setDeviceId(503-id);r.setSn("001"+id);return r;}).toList();
         var last=new ProjectSerialExportRow(); last.setDeviceId(1L);last.setSn("001LAST");last.setLocationSnapshot("{\"fallbackLocation\":\"机房A\",\"secret\":\"not-exported\"}");
         when(mapper.selectBatch(any())).thenAnswer(call->{ProjectSerialExportQuery q=call.getArgument(0);
-            assertEquals(1L,q.tenantId());assertEquals(10L,q.projectId());assertEquals("001SN",q.sn());assertEquals("交换机",q.name());assertEquals("02010005",q.productCode());
+            assertEquals(1L,q.tenantId());assertEquals(10L,q.projectId());assertEquals("001SN",q.sn());assertEquals("交换机",q.name());assertEquals(" 02010005 ",q.productCode());
             if(q.beforeId()==null)return first;assertEquals(2L,q.beforeId());return List.of(last);});
         var result=service.read(request);
         assertEquals(501,result.size());assertEquals("001LAST",result.getLast().getSn());assertEquals("机房A",result.getLast().getLocation());

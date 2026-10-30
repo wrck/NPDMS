@@ -9,7 +9,8 @@ public record DeliveryScopeRespVO(
         String productCode, String productDesc, BigDecimal allocatedQuantity, String scopeStatus, Long allocationVersion,
         String allocationSource, String changeReason, Long departmentId, String departmentCode,
         String departmentName, Integer departmentVersion, LocalDateTime effectiveFrom,
-        LocalDateTime effectiveTo, Long version, List<Detail> details, String contractNo) {
+        LocalDateTime effectiveTo, Long version, List<Detail> details, String contractNo,
+        String productModel, String productName) {
 
     public record Detail(Long id, Integer sequence, String serialNo, String productName, String productCode,
                          String deviceTypeCode, String deviceTypeName, BigDecimal allocatedQuantity, String status) {

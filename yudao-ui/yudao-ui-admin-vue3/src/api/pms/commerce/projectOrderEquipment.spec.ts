@@ -2,15 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadProjectOrderEquipmentList } from './projectOrderEquipment'
 const deviceApi = vi.hoisted(() => ({ getDevicePage: vi.fn() }))
 const commerceApi = vi.hoisted(() => ({ getDeliveryScopePage: vi.fn(), getSalesOrderLinePage: vi.fn() }))
-const productApi = vi.hoisted(() => ({ page: vi.fn() }))
 vi.mock('@/api/pms/asset/device', () => deviceApi)
 vi.mock('./index', () => commerceApi)
-vi.mock('@/api/pms/asset/product-official', () => ({ AssetProductOfficialApi: productApi }))
 
 const lineA = '2113088200020951202'
 const lineB = '2113088200020951203'
 const scope = (overrides = {}) => ({
   id: 'SCOPE-A', orderLineId: lineA, orderNo: 'SO-A', productCode: 'A', productDesc: '订单产品A',
+  productModel: 'MODEL-A', productName: '产品A',
   allocatedQuantity: 4, scopeStatus: 'ACTIVE', details: [], ...overrides
 })
 const line = (overrides = {}) => ({
@@ -25,10 +24,6 @@ beforeEach(() => {
     { productCode: 'A', productModel: 'SN-MODEL-A', productName: '设备A', sn: 'A-1' },
     { productCode: 'DEVICE-ONLY', productModel: 'SN-ONLY', sn: 'EXTRA-1' }
   ], total: 2 })
-  productApi.page.mockImplementation(async ({ keyword }) => ({ list: [
-    { productCode: `${keyword}-SIMILAR`, productModel: '错误模糊匹配' },
-    { productCode: keyword, productModel: `MODEL-${keyword}`, productName: `产品${keyword}` }
-  ], total: 2 }))
 })
 
 describe('project detail equipment uses assigned order lines', () => {
@@ -56,7 +51,6 @@ describe('project detail equipment uses assigned order lines', () => {
     expect((await loadProjectOrderEquipmentList({ projectId: 84459 }))?.list).toEqual([])
     expect(commerceApi.getSalesOrderLinePage).not.toHaveBeenCalled()
     expect(deviceApi.getDevicePage).not.toHaveBeenCalled()
-    expect(productApi.page).not.toHaveBeenCalled()
   })
 
   it('does not accept incomplete assignment pages or fall back to device products after a source failure', async () => {
@@ -91,10 +85,31 @@ describe('project detail equipment uses assigned order lines', () => {
     expect((await loadProjectOrderEquipmentList({ projectId: 84459 }))?.list.map((row) => row.productCode)).toEqual(['A'])
   })
 
-  it('does not replace the order product with a similar catalog result or device metadata', async () => {
-    productApi.page.mockResolvedValue({ list: [{ productCode: 'A-SIMILAR', productModel: 'WRONG' }], total: 1 })
+  it('keeps an absent authorized model unknown instead of using device metadata', async () => {
+    commerceApi.getDeliveryScopePage.mockResolvedValue({ list: [scope({ productModel: null })], total: 1 })
     const result = await loadProjectOrderEquipmentList({ projectId: 84459 })
     expect(result?.list[0]).toMatchObject({ productName: '订单产品A', productModel: '', deliveredQty: 3 })
+  })
+
+  it('uses current product name only when the assigned order description is missing', async () => {
+    commerceApi.getDeliveryScopePage.mockResolvedValue({ list: [scope({ productDesc: null })], total: 1 })
+    expect((await loadProjectOrderEquipmentList({ projectId: 84459 }))?.list[0].productName).toBe('产品A')
+  })
+
+  it('keeps the current source model unchanged', async () => {
+    commerceApi.getDeliveryScopePage.mockResolvedValue({ list: [scope({ productModel: ' MASTER ' })], total: 1 })
+    expect((await loadProjectOrderEquipmentList({ projectId: 84459 }))?.list[0].productModel).toBe(' MASTER ')
+  })
+
+  it('does not merge product codes that differ by surrounding whitespace', async () => {
+    commerceApi.getDeliveryScopePage.mockResolvedValue({ list: [
+      scope({ productCode: ' A ', productModel: null, allocatedQuantity: 2 }),
+      scope({ id: 'SCOPE-B', orderLineId: lineB, productCode: 'A', productModel: 'MASTER', allocatedQuantity: 3 })
+    ], total: 2 })
+    const rows = (await loadProjectOrderEquipmentList({ projectId: 84499 }))?.list
+    expect(rows?.map((row) => [row.productCode, row.productModel, row.projectQty])).toEqual([
+      [' A ', '', 2], ['A', 'MASTER', 3]
+    ])
   })
 
   it('discards a late result after changing the current project', async () => {
