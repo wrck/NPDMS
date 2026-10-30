@@ -12,8 +12,10 @@ class UmcLogDocumentTest {
         assertEquals("192.0.2.10", UmcLogDocument.sourceHostFromFileName("192.0.2.10"));
         assertEquals("192.0.2.10", UmcLogDocument.sourceHostFromFileName("设备甲(192.0.2.10)"));
         assertEquals("192.0.2.10", UmcLogDocument.sourceHostFromFileName("设备甲（192.0.2.10）"));
+        assertEquals("192.0.2.10", UmcLogDocument.sourceHostFromFileName("192.0.2.10.txt"));
+        assertEquals("192.0.2.10", UmcLogDocument.sourceHostFromFileName("设备甲(192.0.2.10).LOG"));
         assertNull(UmcLogDocument.sourceHostFromFileName(null));
-        for (String name : List.of("capture.log", "192.0.2.10.txt", "设备甲(192.0.2.10).log", "设备甲(192.0.2.999)",
+        for (String name : List.of("capture.log", "192.0.2.10.zip", "192.0.2.10.txt.exe", "设备甲(192.0.2.999)",
                 "192.0.2.01", " 192.0.2.10", "192.0.2.10 ", "../192.0.2.10", "folder/设备甲(192.0.2.10)",
                 "设备甲\r\n(192.0.2.10)", "name((192.0.2.10))", "name(192.0.2.10)(192.0.2.11)", "设备甲(2001:db8::1)"))
             assertNull(UmcLogDocument.sourceHostFromFileName(name), name);

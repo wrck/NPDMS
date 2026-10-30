@@ -107,10 +107,57 @@ class InspectionUmcWorkflowTest {
         assertEquals("r1",row.getExternalRuleId());assertNull(row.getRuleRevisionId());assertNull(row.getRuleSnapshotId());assertNull(row.getOutputSummary());
         assertEquals("COMPLETE",execution.getStatusCode());verify(results,times(1)).insert(any(InspectionDetectionResultDO.class));verify(tasks,times(1)).save(any());
     }
-    @Test void unsupportedAndErrorRemainIncompleteAndCannotFinish() {
-        observe(false,false,null);workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L));
-        assertEquals("UNJUDGED",stored.getFirst().getOutcome());assertEquals("PARTIAL",execution.getStatusCode());
-        assertThrows(InspectionException.class,()->workflow.finish(new InspectionUmcWorkflow.Command(context,10L,null)));verify(tasks,never()).transition(any());
+    @Test void unsupportedReportCompletesWithoutRewritingItsFormalOutcome() {
+        observe(false,false,"unsupported");workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L));
+        assertEquals("UNJUDGED",stored.getFirst().getOutcome());assertEquals("COMPLETE",execution.getStatusCode());
+        assertDoesNotThrow(()->workflow.finish(new InspectionUmcWorkflow.Command(context,10L,null)));
+    }
+    @Test void returnedExecutionErrorsAndUnjudgedRulesDoNotEraseSuccessfulReportRetrieval() {
+        observe(null,true,"command failed");workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L));
+        assertEquals("ERROR",stored.getFirst().getOutcome());assertEquals("COMPLETE",execution.getStatusCode());
+        assertDoesNotThrow(()->workflow.finish(new InspectionUmcWorkflow.Command(context,10L,null)));
+    }
+    @Test void unjudgedResultStaysUnjudgedWhileTheReportCompletesAndClearsOldIncompleteDiagnostic() {
+        observe(null,true,null);execution.setStatusCode("PARTIAL");execution.setFailureCode("UMC_RESULT_INCOMPLETE");
+        execution.setFailureMessage("old result gate");workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L));
+        assertEquals("UNJUDGED",stored.getFirst().getOutcome());assertEquals("COMPLETE",execution.getStatusCode());
+        assertEquals("",execution.getFailureCode());assertEquals("",execution.getFailureMessage());
+        assertDoesNotThrow(()->workflow.finish(new InspectionUmcWorkflow.Command(context,10L,null)));
+    }
+    @Test void validZeroRuleReportCompletesAndAdoptsTheOriginalDocWithoutInventedResults() {
+        var device=JsonUtils.parseObject("{\"id\":\"d1\",\"sn\":\"QA\",\"rulelist\":[]}",UmcInspectionApi.Device.class);
+        when(facts.observation(report)).thenReturn(new InspectionUmcFormalResults.Observation(report,execution,device));
+        workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L));
+        assertEquals("COMPLETE",execution.getStatusCode());assertTrue(stored.isEmpty());
+        workflow.finish(new InspectionUmcWorkflow.Command(context,10L,null));task.setStatusCode("REPORT_PENDING");
+        workflow.adopt(new InspectionUmcWorkflow.Command(context,10L,"zero rules"));
+        verify(reports).insert(argThat((InspectionReportRevisionDO row)->InspectionUmcBundle.snapshot(row).reportIds().equals(List.of(60L))
+                && InspectionUmcBundle.snapshot(row).resultIds().isEmpty()));
+        verify(links,never()).insert(any(InspectionReportResultDO.class));
+    }
+    @Test void missingRuleListRemainsInvalidAndCreatesNoFormalResults() {
+        var device=JsonUtils.parseObject("{\"id\":\"d1\",\"sn\":\"QA\"}",UmcInspectionApi.Device.class);
+        when(facts.observation(report)).thenReturn(new InspectionUmcFormalResults.Observation(report,execution,device));
+        assertThrows(InspectionException.class,()->workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L)));
+        assertTrue(stored.isEmpty());assertEquals("PENDING",execution.getStatusCode());
+    }
+    @Test void previouslyPartialExecutionCanFinishFromItsSavedCompleteReportWithoutFetchingOrRewritingHistory() {
+        observe(false,false,"unsupported");workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L));
+        execution.setStatusCode("PARTIAL");clearInvocations(executions,results);
+        assertDoesNotThrow(()->workflow.finish(new InspectionUmcWorkflow.Command(context,10L,null)));
+        assertEquals("PARTIAL",execution.getStatusCode());assertEquals("UNJUDGED",stored.getFirst().getOutcome());
+        verify(executions,never()).updateById(any(InspectionExecutionDO.class));
+        verify(results,never()).updateById(any(InspectionDetectionResultDO.class));
+    }
+    @Test void substitutedRuleIdsCannotPassEvenWhenTheNumberOfResultsMatches() {
+        workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L));stored.getFirst().setExternalRuleId("other-rule");
+        assertThrows(InspectionException.class,()->workflow.finish(new InspectionUmcWorkflow.Command(context,10L,null)));
+        verify(tasks,never()).transition(any());
+    }
+    @Test void completedExecutionCannotFinishWhenItsSourceReportIsNoLongerAvailable() {
+        workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L));report.setStatusCode("FAILED");
+        assertThrows(InspectionException.class,()->workflow.finish(new InspectionUmcWorkflow.Command(context,10L,null)));
+        verify(tasks,never()).transition(any());
     }
     @Test void pendingReportDoesNotCreateFormalJudgement() {
         report.setStatusCode("GENERATING");workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L));
@@ -127,6 +174,21 @@ class InspectionUmcWorkflowTest {
         assertEquals("COMPLETED",attempt.getStatusCode());task.setStatusCode("REPORT_PENDING");workflow.adopt(new InspectionUmcWorkflow.Command(context,10L,"all devices"));
         assertEquals(70L,task.getCurrentReportId());verify(links).insert(argThat((InspectionReportResultDO row)->row.getReportId().equals(70L) && row.getResultId().equals(stored.getFirst().getId())));
         verify(reports).insert(argThat((InspectionReportRevisionDO row)->InspectionUmcBundle.snapshot(row).reportIds().equals(List.of(60L))));
+    }
+    @Test void adoptionRejectsForeignTaskOrTenantRowsBeforeWritingAnyAssociation() {
+        workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L));
+        task.setStatusCode("REPORT_PENDING");attempt.setStatusCode("COMPLETED");
+        stored.getFirst().setTenantId(8L);stored.getFirst().setTaskId(11L);
+        assertThrows(InspectionException.class,()->workflow.adopt(new InspectionUmcWorkflow.Command(context,10L,null)));
+        verify(links,never()).insert(any(InspectionReportResultDO.class));
+    }
+    @Test void adoptionRejectsAnAlreadyFrozenReportBeforeWritingAnyAssociation() {
+        workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L));
+        task.setStatusCode("REPORT_PENDING");attempt.setStatusCode("COMPLETED");
+        doAnswer(inv->{var row=inv.<InspectionReportRevisionDO>getArgument(0);row.setId(70L);row.setStatusCode("AVAILABLE");return 1;})
+                .when(reports).insert(any(InspectionReportRevisionDO.class));
+        assertThrows(InspectionException.class,()->workflow.adopt(new InspectionUmcWorkflow.Command(context,10L,null)));
+        verify(links,never()).insert(any(InspectionReportResultDO.class));
     }
     @Test void cancelledOrForeignExecutionIsNeverConsumed() {
         execution.setStatusCode("CANCELLED");assertThrows(InspectionException.class,()->workflow.capture(new InspectionUmcWorkflow.Fetch(context,10L,40L)));

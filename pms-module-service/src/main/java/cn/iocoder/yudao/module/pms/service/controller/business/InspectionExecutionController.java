@@ -88,6 +88,7 @@ public class InspectionExecutionController {
         }
         var context = InspectionRequestContext.write(headers);
         var hosts = sourceHosts == null ? null : JsonUtils.parseArray(sourceHosts, InspectionUmcService.Host.class);
+        // Keep existing single-task-device request fingerprints stable; the service still verifies the log SN.
         if (hosts == null && files.size() == 1) hosts = workflow.inferBatchUploadSources(
                 new InspectionUmcWorkflow.NamedUpload(context, taskId, attemptId, files.getFirst().getOriginalFilename()));
         if (hosts != null) {
@@ -95,17 +96,20 @@ public class InspectionExecutionController {
                     && hosts.stream().map(InspectionUmcService.Host::deviceId).distinct().count() == hosts.size(), "设备来源IP对应关系无效");
             hosts.forEach(h -> UmcLogDocument.requireIpv4(h.host()));
         }
-        workflow.validateUploadSource(new InspectionUmcWorkflow.UploadSource(context, taskId, attemptId, hosts != null));
         var documents = new java.util.ArrayList<InspectionExecutionService.UploadFile>();
         try {
             for (var item : files) documents.add(new InspectionExecutionService.UploadFile(item.getOriginalFilename(), item.getBytes()));
             var digest = InspectionExecutionService.batchDigest(documents);
             var fingerprint = new MultiFingerprint(attemptId, digest, hosts);
             var request = new InspectionExecutionService.BatchFiles(context, taskId, attemptId, List.copyOf(documents), hosts);
-            var uploaded = execute(new Write(context, taskId, "LOG_BATCH_FILES_UPLOAD", fingerprint, () -> service.uploadFiles(request)));
-            if (hosts != null) umc.fromOfflineBatch(new InspectionUmcService.UploadedBatch(new InspectionRequestContext(context.tenantId(),
-                    context.actorId(), context.idempotencyKey(), context.correlationId(), uploaded.getData().getVersion()), taskId, attemptId, digest, hosts));
-            return hosts == null ? uploaded : completeUpload(new Completion(context, taskId, uploaded.getData(), digest));
+            var uploaded = commands.execute(InspectionCommandExecutor.Write.<InspectionExecutionService.BatchRegistration>builder()
+                    .context(context).operation("LOG_BATCH_FILES_UPLOAD").scope(taskId.toString())
+                    .input(new Input(context.requireVersion(), fingerprint)).responseType(InspectionExecutionService.BatchRegistration.class)
+                    .action(() -> service.uploadFiles(request)).resourceKey(result -> result.summary().getId().toString()).build());
+            umc.fromOfflineBatch(new InspectionUmcService.UploadedBatch(new InspectionRequestContext(context.tenantId(),
+                    context.actorId(), context.idempotencyKey(), context.correlationId(), uploaded.getVersion()), taskId, attemptId, digest,
+                    uploaded.sourceHosts() != null ? uploaded.sourceHosts() : hosts));
+            return completeUpload(new Completion(context, taskId, uploaded.summary(), digest));
         } finally { documents.forEach(d -> java.util.Arrays.fill(d.content(), (byte) 0)); }
     }
 

@@ -16,21 +16,40 @@ const api = vi.hoisted(() => ({
   savePreparation: vi.fn(),
   getIssue: vi.fn(),
   annotateResult: vi.fn(),
+  downloadRedactedLog: vi.fn(),
   taskAction: vi.fn()
 }))
+const saveLogDownload = vi.hoisted(() => vi.fn())
+vi.mock('@/utils/download', () => ({ default: { file: saveLogDownload } }))
 const confirmLeave = vi.hoisted(() => vi.fn())
+const askReason = vi.hoisted(() => vi.fn())
+const umcApi = vi.hoisted(() => ({ action: vi.fn() }))
+const permissions = vi.hoisted(() => ({ execute: true }))
+const people = vi.hoisted(() => ({ search: vi.fn(), resolve: vi.fn() }))
+vi.mock('@/api/pms/platform/user-selection', () => ({
+  pmsUserSelectionSource: (key: string) => ({ key, search: people.search, resolve: people.resolve })
+}))
 vi.mock('@/api/pms/inspection/tasks', () => api)
 vi.mock('@/api/pms/inspection/rules', () => ({}))
-vi.mock('@/api/pms/inspection/umcWorkflow', () => ({}))
+vi.mock('@/api/pms/inspection/umcWorkflow', () => umcApi)
 vi.mock('@/api/pms/inspection/reportResults', () => ({}))
 vi.mock('@/api/pms/platform/file/version-reference', () => ({}))
 vi.mock('@/api/system/user', () => ({ getSimpleUserList: vi.fn(async () => []) }))
-vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('@/utils/permission', () => ({
+  checkPermi: (names: string[]) =>
+    !names.includes('pms:inspection-task:execute') || permissions.execute
+}))
 vi.mock('@/utils', () => ({ generateUUID: () => 'task-action-test' }))
 vi.mock('@/utils/formatTime', () => ({ formatDate: () => '' }))
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: '9' } }) }))
 vi.mock('@/hooks/web/useMessage', () => ({
-  useMessage: () => ({ success: vi.fn(), warning: vi.fn(), prompt: vi.fn(), confirm: confirmLeave })
+  useMessage: () => ({
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    prompt: askReason,
+    confirm: confirmLeave
+  })
 }))
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => false }))
 vi.mock('vue-router', () => ({
@@ -53,7 +72,14 @@ vi.mock('@/components/ProjectInformationCard/useProjectInformation', async () =>
 })
 vi.mock('@/components/ProjectInformationCard/index.vue', async () => {
   const { defineComponent, h } = await import('vue')
-  return { default: defineComponent({ setup: (_, { slots }) => () => h('section', slots.default?.()) }) }
+  return {
+    default: defineComponent({
+      setup:
+        (_, { slots }) =>
+        () =>
+          h('section', slots.default?.())
+    })
+  }
 })
 vi.mock('../components/InspectionSteps.vue', () => ({ default: { render: () => null } }))
 vi.mock('../components/InspectionOnlinePanel.vue', () => ({ default: { render: () => null } }))
@@ -146,12 +172,21 @@ const render = async (component = Detail, productRow?: { productTypeName?: strin
     component,
     {},
     {
-      ElTableColumn: productRow ? defineComponent({
-        props: { label: String },
-        setup: (props, { slots }) => () => props.label === '产品类型'
-          ? h('span', { 'data-testid': 'inspection-product-type' }, slots.default?.({ row: productRow }))
-          : h('span')
-      }) : tableColumn,
+      ElTableColumn: productRow
+        ? defineComponent({
+            props: { label: String },
+            setup:
+              (props, { slots }) =>
+              () =>
+                props.label === '产品类型'
+                  ? h(
+                      'span',
+                      { 'data-testid': 'inspection-product-type' },
+                      slots.default?.({ row: productRow })
+                    )
+                  : h('span')
+          })
+        : tableColumn,
       ...Object.fromEntries(
         [
           'ElInput',
@@ -192,22 +227,339 @@ beforeEach(() => {
   api.getTask.mockReset()
   api.taskAction.mockReset()
   api.annotateResult.mockReset()
+  api.downloadRedactedLog.mockReset()
+  askReason.mockReset()
+  umcApi.action.mockReset()
+  permissions.execute = true
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
   api.getTask.mockResolvedValue(task())
+  people.search.mockResolvedValue({ list: [], total: 0 })
+  people.resolve.mockResolvedValue([])
 })
 afterEach(() => {
   apps.splice(0).forEach((app) => app.unmount())
   vi.unstubAllGlobals()
 })
 
+it('searches UMC assignees by email using sparse authorized options without issuing assignment writes', async () => {
+  const view = await render()
+  expect(view.state.assignmentSource).toBeDefined()
+  expect(view.state.assignmentSource.key).toBe('umc-inspection-assignee:10')
+  const picker = nodes(view.root).find(node => node.props?.placeholder === '选择负责人' && node.props?.onVisibleChange)!
+  expect(picker).toBeTruthy()
+  await (picker.props!.onVisibleChange as Function)(true)
+  await flush()
+  expect(people.search).toHaveBeenCalledWith({ keyword: '', pageNo: 1, pageSize: 20 })
+  people.search.mockResolvedValueOnce({ list: [{ id: '2115387679367467008', nickname: '张三' }], total: 3 })
+  ;(picker.props!['remote-method'] as Function)('zhangsan')
+  await vi.waitFor(() => expect(people.search).toHaveBeenLastCalledWith({ keyword: 'zhangsan', pageNo: 1, pageSize: 20 }))
+  await flush()
+  expect(nodes(view.root).some(node => node.props?.label === '张三' && node.props?.value === '2115387679367467008')).toBe(true)
+  people.search.mockResolvedValueOnce({ list: [{ id: '2115387679367467008', nickname: '张三' }], total: 3 })
+  const params = { keyword: 'zhangsan', pageNo: 2, pageSize: 1 }
+  expect(await view.state.assignmentSource.search(params)).toEqual({
+    list: [{ id: '2115387679367467008', nickname: '张三' }], total: 3
+  })
+  expect(people.search).toHaveBeenCalledWith(params)
+  expect(api.taskAction).not.toHaveBeenCalled()
+  expect(umcApi.action).not.toHaveBeenCalled()
+})
+
+it('downloads a device-specific UTF-8 redacted text copy without posting or changing task state', async () => {
+  const view = await render()
+  const before = JSON.stringify(view.state.task)
+  const blob = new Blob(['脱敏日志文本副本'], { type: 'text/plain;charset=UTF-8' })
+  api.downloadRedactedLog.mockResolvedValueOnce(blob)
+  await view.state.downloadLog({ id: '40', deviceId: '30' })
+  expect(api.downloadRedactedLog).toHaveBeenCalledWith('10', '40')
+  expect(saveLogDownload).toHaveBeenCalledWith(blob, 'inspection-10-40-SN-30-redacted.txt')
+  expect(api.taskAction).not.toHaveBeenCalled()
+  expect(umcApi.action).not.toHaveBeenCalled()
+  expect(JSON.stringify(view.state.task)).toBe(before)
+})
+
+it('does not download a JSON or rejected response as a text log', async () => {
+  const view = await render()
+  api.downloadRedactedLog.mockResolvedValueOnce(new Blob(['{}'], { type: 'application/json' }))
+  await view.state.downloadLog({ id: '40', deviceId: '30' })
+  expect(api.downloadRedactedLog).toHaveBeenCalledTimes(1)
+  expect(saveLogDownload).not.toHaveBeenCalled()
+  api.downloadRedactedLog.mockRejectedValueOnce(new Error('unavailable'))
+  await view.state.downloadLog({ id: '40', deviceId: '30' })
+  expect(api.downloadRedactedLog).toHaveBeenCalledTimes(2)
+  expect(saveLogDownload).not.toHaveBeenCalled()
+})
+
+it('keeps the requested device filename when page data changes while its download is pending', async () => {
+  const view = await render()
+  let finishDownload!: (blob: Blob) => void
+  api.downloadRedactedLog.mockReturnValueOnce(
+    new Promise<Blob>((resolve) => (finishDownload = resolve))
+  )
+  const pendingDownload = view.state.downloadLog({ id: '40', deviceId: '30' })
+  view.state.task.devices = [{ deviceId: '30', serialNumber: 'CHANGED-PAGE-DEVICE' }]
+  const blob = new Blob(['脱敏日志文本副本'], { type: 'text/plain;charset=UTF-8' })
+  finishDownload(blob)
+  await pendingDownload
+  expect(saveLogDownload).toHaveBeenCalledWith(blob, 'inspection-10-40-SN-30-redacted.txt')
+})
+
+for (const [name, component] of [
+  ['UMC', Detail],
+  ['platform', PlatformDetail]
+] as const) {
+  it.each(['execute', 'report'])(
+    `${name} exposes a restart/upload action from %s without editing completed history`,
+    async (step) => {
+      const previous = { ...task(), statusCode: 'REPORT_PENDING', currentReportId: undefined }
+      previous.attempts[0].providerCode = name === 'platform' ? 'PLATFORM' : 'UMC'
+      previous.attempts[0].statusCode = 'COMPLETED'
+      const previousJson = JSON.stringify(previous)
+      api.getTask
+        .mockResolvedValueOnce(previous)
+        .mockResolvedValueOnce({ ...task(), version: '2', currentAttemptId: '21' })
+      const view = await render(component)
+      view.state.activeStep = step
+      await flush()
+      const restart = findByTestId(view.root, 'inspection-restart-upload')!
+      expect(restart).toBeDefined()
+      expect(restart.props!.disabled).toBe(false)
+      askReason.mockResolvedValueOnce({ value: '  更换本次日志  ' })
+      await (restart.props!.onClick as Function)()
+      if (name === 'UMC')
+        expect(umcApi.action).toHaveBeenCalledWith({
+          taskId: '10',
+          action: 'start-offline',
+          body: { explanation: '更换本次日志' },
+          version: '1',
+          key: 'task-action-test'
+        })
+      else
+        expect(api.taskAction).toHaveBeenCalledWith(
+          '10',
+          'start-attempt',
+          { reason: '更换本次日志' },
+          '1',
+          'task-action-test'
+        )
+      expect(view.state.activeStep).toBe('execute')
+      expect(view.state.task.currentAttemptId).toBe('21')
+      expect(JSON.stringify(previous)).toBe(previousJson)
+    }
+  )
+
+  it(`${name} requires the existing restart reason and execute permission`, async () => {
+    const current = { ...task(), statusCode: 'REPORT_PENDING' }
+    current.attempts[0].providerCode = name === 'platform' ? 'PLATFORM' : 'UMC'
+    api.getTask.mockResolvedValue(current)
+    const view = await render(component)
+    askReason.mockRejectedValueOnce(new Error('cancel'))
+    await view.state.startAttempt()
+    expect(api.taskAction).not.toHaveBeenCalled()
+    expect(umcApi.action).not.toHaveBeenCalled()
+    permissions.execute = false
+    const denied = await render(component)
+    expect(findByTestId(denied.root, 'inspection-restart-upload')!.props!.disabled).toBe(true)
+    await denied.state.startAttempt()
+    expect(askReason).toHaveBeenCalledTimes(1)
+  })
+
+  it(`${name} keeps file selection editable after a definite serial mismatch rejection`, async () => {
+    const current = task()
+    current.attempts[0].providerCode = name === 'platform' ? 'PLATFORM' : 'UMC'
+    api.getTask.mockResolvedValue(current)
+    const view = await render(component)
+    view.state.drafts.execution = true
+    const panelKey = view.state.executionPanelKey
+    await view.state.perform({
+      taskId: '10',
+      label: '登记多设备日志',
+      section: 'execution',
+      run: async () => {
+        throw {
+          response: {
+            status: 400,
+            data: {
+              msg: '日志设备序列号不能唯一对应本巡检任务设备',
+              data: { reasonCode: 'INVALID_REQUEST' }
+            }
+          }
+        }
+      }
+    })
+    expect(view.state.pending).toBeUndefined()
+    expect(view.state.fresh).toBe(true)
+    expect(view.state.writeDisabled).toBe(false)
+    expect(view.state.canExecute).toBe(true)
+    expect(view.state.drafts.execution).toBe(true)
+    expect(view.state.executionPanelKey).toBe(panelKey)
+    expect(api.getTask).toHaveBeenCalledTimes(1)
+    expect(view.state.writeError).toContain('日志设备序列号')
+  })
+
+  it(`${name} keeps the original upload request and draft locked when the outcome is unknown`, async () => {
+    const current = task()
+    current.attempts[0].providerCode = name === 'platform' ? 'PLATFORM' : 'UMC'
+    api.getTask.mockResolvedValue(current)
+    const view = await render(component)
+    view.state.drafts.execution = true
+    const run = vi.fn().mockRejectedValue(new Error('Network Error'))
+    await view.state.perform({ taskId: '10', label: '登记多设备日志', section: 'execution', run })
+    const original = view.state.pending
+    expect(original).toBeDefined()
+    expect(view.state.writeDisabled).toBe(true)
+    expect(view.state.drafts.execution).toBe(true)
+    await view.state.retryPending()
+    expect(view.state.pending).toBe(original)
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(api.getTask).toHaveBeenCalledTimes(1)
+  })
+
+  it.each(['ANNOTATION_PENDING', 'ARCHIVED'])(
+    `${name} does not offer restart after formal confirmation or archive: %s`,
+    async (statusCode) => {
+      api.getTask.mockResolvedValue({ ...task(), statusCode })
+      const view = await render(component)
+      view.state.activeStep = 'execute'
+      await flush()
+      expect(findByTestId(view.root, 'inspection-restart-upload')).toBeUndefined()
+    }
+  )
+}
+
+it('keeps unfinished UMC logs behind the existing explicit stop-consumption gate', async () => {
+  api.getTask.mockResolvedValue({
+    ...task(),
+    executions: [
+      {
+        id: '40',
+        attemptId: '20',
+        deviceId: '30',
+        purposeCode: 'OFFLINE',
+        statusCode: 'PENDING',
+        artifactId: '300'
+      }
+    ]
+  })
+  const view = await render()
+  expect(findByTestId(view.root, 'inspection-restart-upload')!.props!.disabled).toBe(true)
+  await view.state.startAttempt()
+  expect(askReason).not.toHaveBeenCalled()
+  expect(umcApi.action).not.toHaveBeenCalled()
+  expect(textOf(view.root)).toContain('停止采用')
+})
+
+it('keeps UMC history read-only in the original platform page', async () => {
+  api.getTask.mockResolvedValue({ ...task(), statusCode: 'REPORT_PENDING' })
+  const view = await render(PlatformDetail)
+  expect(findByTestId(view.root, 'inspection-restart-upload')!.props!.disabled).toBe(true)
+  await view.state.startAttempt()
+  expect(askReason).not.toHaveBeenCalled()
+  expect(api.taskAction).not.toHaveBeenCalled()
+})
+
+for (const [name, component] of [
+  ['UMC', Detail],
+  ['platform', PlatformDetail]
+] as const) {
+  const unresolvedView = async () => {
+    const current = task()
+    current.attempts[0].providerCode = name === 'platform' ? 'PLATFORM' : 'UMC'
+    api.getTask.mockResolvedValue(current)
+    const view = await render(component)
+    const run = vi.fn()
+    view.state.pending = { taskId: '10', label: '登记多设备日志', section: 'execution', run }
+    view.state.drafts.execution = true
+    view.state.writeError = '暂时无法确认操作结果，请重试原请求。'
+    await flush()
+    return { view, run, original: view.state.pending, current: view.state.task }
+  }
+
+  it(`${name} permits explicit refresh confirmation instead of trapping pending drafts`, async () => {
+    const { view, run, original } = await unresolvedView()
+    const refresh = nodes(view.root).find(
+      (node) => node.type === 'button' && textOf(node) === '刷新'
+    )!
+    expect(refresh.props!.disabled).not.toBe(true)
+    confirmLeave.mockRejectedValueOnce(new Error('cancel'))
+    await view.state.reload()
+    expect(confirmLeave).toHaveBeenCalledTimes(1)
+    expect(view.state.pending).toBe(original)
+    expect(view.state.drafts.execution).toBe(true)
+    expect(api.getTask).toHaveBeenCalledTimes(1)
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it(`${name} clears local recovery only after confirmed refresh reads fresh state successfully`, async () => {
+    const { view, run } = await unresolvedView()
+    api.getTask.mockResolvedValueOnce({ ...task(), version: '2', statusCode: 'REPORT_PENDING' })
+    confirmLeave.mockResolvedValueOnce(undefined)
+    await view.state.reload()
+    expect(confirmLeave).toHaveBeenCalledTimes(1)
+    expect(confirmLeave.mock.calls[0][0]).toMatch(/服务器|服务端/)
+    expect(api.getTask).toHaveBeenCalledTimes(2)
+    expect(view.state.pending).toBeUndefined()
+    expect(view.state.drafts.execution).toBe(false)
+    expect(view.state.task.version).toBe('2')
+    expect(view.state.writeError).toBe('')
+    expect(run).not.toHaveBeenCalled()
+    expect(api.taskAction).not.toHaveBeenCalled()
+    expect(umcApi.action).not.toHaveBeenCalled()
+  })
+
+  it(`${name} keeps the original request and files draft if confirmed refresh fails`, async () => {
+    const { view, run, original, current } = await unresolvedView()
+    const panelKey = view.state.executionPanelKey
+    api.getTask.mockRejectedValueOnce(new Error('read unavailable'))
+    confirmLeave.mockResolvedValueOnce(undefined)
+    await view.state.reload()
+    expect(api.getTask).toHaveBeenCalledTimes(2)
+    expect(view.state.pending).toBe(original)
+    expect(view.state.drafts.execution).toBe(true)
+    expect(view.state.task).toBe(current)
+    expect(view.state.executionPanelKey).toBe(panelKey)
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it(`${name} confirms leaving unresolved local drafts without replaying a server request`, async () => {
+    const { view, run, original } = await unresolvedView()
+    confirmLeave.mockRejectedValueOnce(new Error('cancel'))
+    expect(await view.state.mayLeave()).toBe(false)
+    expect(view.state.pending).toBe(original)
+    expect(view.state.drafts.execution).toBe(true)
+    confirmLeave.mockResolvedValueOnce(undefined)
+    expect(await view.state.mayLeave()).toBe(true)
+    expect(confirmLeave).toHaveBeenCalledTimes(2)
+    expect(confirmLeave.mock.calls[1][0]).toMatch(/服务器|服务端/)
+    expect(run).not.toHaveBeenCalled()
+    expect(api.getTask).toHaveBeenCalledTimes(1)
+  })
+
+  it(`${name} still blocks refresh and leaving while a request is actually in flight`, async () => {
+    const { view, run, original } = await unresolvedView()
+    view.state.busy = true
+    await view.state.reload()
+    expect(await view.state.mayLeave()).toBe(false)
+    expect(confirmLeave).not.toHaveBeenCalled()
+    expect(api.getTask).toHaveBeenCalledTimes(1)
+    expect(view.state.pending).toBe(original)
+    expect(run).not.toHaveBeenCalled()
+  })
+}
+
 for (const [page, component] of [
   ['UMC', Detail],
   ['原巡检', PlatformDetail]
 ] as const) {
-  it.each(['', '已知设备类型'])(`${page}产品类型缺失时明确提示并保留已有名称：%s`, async productTypeName => {
-    const view = await render(component, { productTypeName })
-    expect(textOf(findByTestId(view.root, 'inspection-product-type')!)).toBe(productTypeName || '未提供')
-  })
+  it.each(['', '已知设备类型'])(
+    `${page}产品类型缺失时明确提示并保留已有名称：%s`,
+    async (productTypeName) => {
+      const view = await render(component, { productTypeName })
+      expect(textOf(findByTestId(view.root, 'inspection-product-type')!)).toBe(
+        productTypeName || '未提供'
+      )
+    }
+  )
 
   it(`${page}显示本次巡检客户名称快照并对空值明确留空`, async () => {
     api.getTask.mockResolvedValue({ ...task(), customerId: '0', customerName: '手填巡检客户' })

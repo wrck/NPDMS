@@ -42,12 +42,17 @@
         ><template #default="{ row }">
           <span
             >{{ row.results.length }} 条：正常 {{ count(row.results, 'PASS') }}，异常
-            {{ count(row.results, 'ABNORMAL') }}</span
+            {{ count(row.results, 'ABNORMAL') }}，不支持 {{ unsupportedCount(row.results) }}</span
           >
           <p
-            v-if="row.results.some((r) => !['PASS', 'ABNORMAL'].includes(r.outcome))"
+            v-if="
+              row.results.some(
+                (r) =>
+                  r.externalRule?.support !== false && !['PASS', 'ABNORMAL'].includes(r.outcome)
+              )
+            "
             class="help-text"
-            >含无法判定或执行错误，请先处理执行结果。</p
+            >含无法判定或执行错误，请查看执行结果。</p
           >
         </template></el-table-column
       >
@@ -204,9 +209,8 @@ const canConfirm = computed(
     deviceReports.value.every(
       (r) =>
         r.ready &&
-        r.results.length > 0 &&
-        r.results.length === r.saved?.result?.rulelist?.length &&
-        r.results.every((v) => ['PASS', 'ABNORMAL'].includes(v.outcome || 'UNJUDGED'))
+        Array.isArray(r.saved?.result?.rulelist) &&
+        r.results.length === r.saved!.result!.rulelist!.length
     )
 )
 const blocker = computed(() =>
@@ -234,7 +238,9 @@ const history = computed(() => {
     .sort((a, b) => (b.revisionNo || 0) - (a.revisionNo || 0))
 })
 const count = (results: ResultView[], outcome: string) =>
-  results.filter((r) => r.outcome === outcome).length
+  results.filter((r) => r.externalRule?.support !== false && r.outcome === outcome).length
+const unsupportedCount = (results: ResultView[]) =>
+  results.filter((r) => r.externalRule?.support === false).length
 </script>
 
 <style scoped>

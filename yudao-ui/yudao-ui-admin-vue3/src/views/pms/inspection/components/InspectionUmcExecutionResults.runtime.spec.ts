@@ -11,6 +11,8 @@ import {
 
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => false }))
 vi.mock('@/utils/formatTime', () => ({ formatDate: () => '2026-10-28 16:18:01' }))
+const permission = vi.hoisted(() => ({ execute: true }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => permission.execute }))
 const apps: Array<{ unmount: () => void }> = []
 const deviceTable = defineComponent({
   props: { data: { type: Array, default: () => [] } },
@@ -84,7 +86,10 @@ const dialog = defineComponent({
         : null
   }
 })
-afterEach(() => apps.splice(0).forEach((app) => app.unmount()))
+afterEach(() => {
+  apps.splice(0).forEach((app) => app.unmount())
+  permission.execute = true
+})
 const fixture = () => {
   const first: ExecutionView = {
     id: '9007199254740993',
@@ -142,6 +147,9 @@ const fixture = () => {
   }))
   const task = {
     id: '10',
+    statusCode: 'EXECUTING',
+    owner: true,
+    manager: false,
     currentAttemptId: '20',
     devices: [
       {
@@ -199,6 +207,46 @@ const render = (input = fixture(), disabled = false) => {
 }
 const nodes = (node: TestNode): TestNode[] => [node, ...node.children.flatMap(nodes)]
 const click = (node: TestNode) => (node.props!.onClick as Function)({ stopPropagation: vi.fn() })
+
+it('selects a device by row click and keeps current-row highlighting without a redundant view action', async () => {
+  const view = render()
+  const table = () => nodes(view.root).find((node) => node.props?.onRowClick)!
+  expect(
+    nodes(view.root).filter(
+      (node) => node.type === 'button' && textOf(node).trim() === '查看巡检项目'
+    )
+  ).toHaveLength(0)
+  expect(table().props?.['highlight-current-row']).toBeDefined()
+  ;(table().props!.onRowClick as Function)(view.state.deviceRows[1])
+  await nextTick()
+  expect(view.state.selected.key).toBe(view.state.deviceRows[1].key)
+  expect(table().props?.['current-row-key']).toBe(view.state.deviceRows[1].key)
+  expect(view.state.visibleResults).toHaveLength(0)
+})
+
+it('keeps device selection keyboard reachable through the existing name with Enter and Space', async () => {
+  const view = render()
+  const selectors = () =>
+    nodes(view.root).filter((node) => node.props?.['data-testid'] === 'inspection-device-selector')
+  expect(selectors()).toHaveLength(3)
+  for (const [index, key] of [
+    [1, 'Enter'],
+    [0, ' ']
+  ] as const) {
+    const selector = selectors()[index]
+    expect(selector.props?.role).toBe('button')
+    expect(Number(selector.props?.tabindex)).toBe(0)
+    const stopPropagation = vi.fn(),
+      preventDefault = vi.fn()
+    const handlers = [selector.props!.onKeydown].flat() as Function[]
+    handlers.forEach((handler) => handler({ key, stopPropagation, preventDefault }))
+    await nextTick()
+    expect(view.state.selected.key).toBe(view.state.deviceRows[index].key)
+    expect(selectors()[index].props?.['aria-pressed']).toBe(true)
+    expect(stopPropagation).toHaveBeenCalledTimes(1)
+    expect(preventDefault).toHaveBeenCalledTimes(1)
+  }
+})
 
 it('lists every device including devices with no upload and keeps rule detail on the selected execution', async () => {
   const view = render()
@@ -336,7 +384,10 @@ it('starts every device, history execution and new task collapsed while retainin
     executionId: input.executions[1].id
   })
   const view = render(input)
-  const headers = () => nodes(view.root).filter((node) => node.props?.role === 'button')
+  const headers = () =>
+    nodes(view.root).filter(
+      (node) => node.props?.role === 'button' && node.props?.['aria-expanded'] != null
+    )
   expect(headers().every((node) => node.props?.['aria-expanded'] === false)).toBe(true)
   click(headers()[1])
   await nextTick()
@@ -405,14 +456,7 @@ it('shows severity tags in existing dictionary colors without treating missing o
     'info',
     'danger'
   ])
-  expect(levels.slice(0, 6).map(textOf)).toEqual([
-    '致命',
-    '重要',
-    '一般',
-    '未提供',
-    'UMC级别99',
-    '致命'
-  ])
+  expect(levels.slice(0, 6).map(textOf)).toEqual(['致命', '重要', '一般', '未提供', '未知', '致命'])
   const first = nodes(view.root).find((node) => node.type === 'article')!
   expect(textOf(first)).toContain('异常')
   expect(
@@ -480,7 +524,9 @@ it('shows unsupported, errored, ungraded and empty-value facts without treating 
   const view = render(input)
   expect(view.state.statusLabel(view.state.selected)).toBe('报告已保存，待登记判定')
   expect(view.state.formalCount(view.state.selected)).toBe(0)
-  expect(view.state.incompleteCount(view.state.selected)).toBe(1)
+  expect(view.state.incompleteCount(view.state.selected)).toBe(0)
+  expect(view.state.unsupportedCount(view.state.selected)).toBe(1)
+  expect(textOf(view.root)).toContain('不支持')
   for (const expected of [
     '本设备不支持此规则',
     '命令执行失败',
@@ -506,14 +552,22 @@ it('retains original execution actions and does not permit refreshing another at
     false
   )
   expect(view.state.canRefresh(view.state.deviceRows[2])).toBe(false)
+  expect(view.state.canRefresh(view.state.deviceRows[1])).toBe(false)
+  expect(
+    view.state.canRefresh({ ...row, execution: { ...row.execution, statusCode: 'CANCELLED' } })
+  ).toBe(false)
   const update = nodes(view.root).find(
     (node) => node.type === 'button' && textOf(node) === '更新结果'
   )!
   const download = nodes(view.root).find(
-    (node) => node.type === 'button' && textOf(node) === '下载冻结日志'
+    (node) => node.type === 'button' && textOf(node) === '下载脱敏日志'
   )!
-  ;(update.props!.onClick as Function)({ stopPropagation: vi.fn() })
-  ;(download.props!.onClick as Function)({ stopPropagation: vi.fn() })
+  view.state.selectDevice(view.state.deviceRows[1])
+  const stopPropagation = vi.fn()
+  ;(update.props!.onClick as Function)({ stopPropagation })
+  ;(download.props!.onClick as Function)({ stopPropagation })
+  expect(stopPropagation).toHaveBeenCalledTimes(2)
+  expect(view.state.selected.key).toBe(view.state.deviceRows[1].key)
   expect(view.refresh).toHaveBeenCalledWith('9007199254740993')
   expect(view.downloadLog).toHaveBeenCalledWith(view.input.executions[0])
 })
@@ -524,10 +578,59 @@ it('disables write actions during another operation while preserving read-only l
     (node) => node.type === 'button' && textOf(node) === '更新结果'
   )!
   const download = nodes(view.root).find(
-    (node) => node.type === 'button' && textOf(node) === '下载冻结日志'
+    (node) => node.type === 'button' && textOf(node) === '下载脱敏日志'
   )!
   expect(update.props!.disabled).toBe(true)
   expect(download.props!.disabled).not.toBe(true)
+})
+
+it.each(['REPORT_PENDING', 'ANNOTATION_PENDING', 'ARCHIVED'])(
+  'hides result updates in %s while preserving inspection viewing and log downloads',
+  (statusCode) => {
+    const input = fixture()
+    input.task.statusCode = statusCode
+    const view = render(input, true)
+    expect(textOf(view.root)).not.toContain('更新结果')
+    expect(textOf(view.root)).not.toContain('获取 / 重试结果')
+    expect(
+      nodes(view.root).some((node) => node.props?.['data-testid'] === 'inspection-device-selector')
+    ).toBe(true)
+    expect(textOf(view.root)).toContain('下载脱敏日志')
+  }
+)
+
+it('hides result updates without execute permission instead of showing a disabled action', () => {
+  permission.execute = false
+  const view = render()
+  expect(textOf(view.root)).not.toContain('更新结果')
+  expect(textOf(view.root)).not.toContain('获取 / 重试结果')
+  expect(
+    nodes(view.root).some((node) => node.props?.['data-testid'] === 'inspection-device-selector')
+  ).toBe(true)
+})
+
+it('hides result updates for a read-only viewer who is neither the task owner nor its manager', () => {
+  const input = fixture()
+  input.task.owner = false
+  const view = render(input)
+  expect(
+    nodes(view.root).some(
+      (node) => node.type === 'button' && ['更新结果', '获取 / 重试结果'].includes(textOf(node))
+    )
+  ).toBe(false)
+  expect(textOf(view.root)).toContain('下载脱敏日志')
+})
+
+it('keeps platform attempts read-only in the UMC device list', () => {
+  const input = fixture()
+  input.task.attempts[0].providerCode = 'PLATFORM'
+  const view = render(input)
+  expect(
+    nodes(view.root).filter(
+      (node) => node.type === 'button' && ['更新结果', '获取 / 重试结果'].includes(textOf(node))
+    )
+  ).toHaveLength(0)
+  expect(textOf(view.root)).toContain('下载脱敏日志')
 })
 
 it('preserves legacy historical status rather than relabelling it as a pending UMC result', () => {
@@ -535,4 +638,18 @@ it('preserves legacy historical status rather than relabelling it as a pending U
   input.task.attempts[0].providerCode = 'PLATFORM'
   const view = render(input)
   expect(view.state.statusLabel(view.state.selected)).toBe('判定完成')
+})
+
+it('shows saved historical partial reports as available and excludes unsupported rules from attention', async () => {
+  const input = fixture()
+  input.executions[0].statusCode = 'PARTIAL'
+  input.results[0].outcome = 'UNJUDGED'
+  input.results[0].externalRule!.support = false
+  const view = render(input)
+  expect(view.state.statusLabel(view.state.selected)).toBe('报告已保存')
+  expect(view.state.unsupportedCount(view.state.selected)).toBe(1)
+  expect(view.state.incompleteCount(view.state.selected)).toBe(0)
+  view.state.onlyAttention = true
+  await nextTick()
+  expect(view.state.visibleResults).toHaveLength(0)
 })

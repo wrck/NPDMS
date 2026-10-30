@@ -17,6 +17,44 @@ import static org.junit.jupiter.api.Assertions.*;
 class InspectionLogArchiveReaderTest {
     private final InspectionLogArchiveReader reader = new InspectionLogArchiveReader();
 
+    @Test
+    void terminalControlFamiliesAreNotBinaryEvidenceAndRemainUnchangedInBothEncodingsAndZip() throws Exception {
+        var text = new StringBuilder("<QA>show version\r\n设备终端输出：");
+        for (int cp = 1; cp < 32; cp++) text.appendCodePoint(cp);
+        for (int cp = 127; cp <= 159; cp++) text.appendCodePoint(cp);
+        text.append("\r\nSN: QA-SN\r\n");
+        String original = text.toString();
+        for (Charset charset : List.of(StandardCharsets.UTF_8, Charset.forName("GB18030"))) {
+            byte[] content = original.getBytes(charset);
+            assertEquals(original, reader.read(new Input("device.txt", content)).getFirst().text());
+            assertEquals(original, reader.read(new Input("logs.zip", zip(List.of(new Entry("device.log", content))))).getFirst().text());
+        }
+        assertEquals("A\u0001B", reader.read(new Input("device.txt", new byte[] {'A', 1, 'B'})).getFirst().text());
+    }
+
+    @Test
+    void controlOnlyPayloadAndInvisibleFormattingAreNotReadableLogs() {
+        rejected("可读文本", new Input("device.txt", new byte[] {1, 4, 6, 15, 23, 27, 127}));
+        rejected("可读文本", new Input("device.txt", "\u200B\u200D\u0001".getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    void terminalEotAndDeleteAreTextInUtf8Gb18030AndZipWhilePreservingOriginalCharacters() throws Exception {
+        String terminal = "<QA>show version\r\nSN: QA-SN\r\n设备输出A\u0004B\u007F\r\n";
+        for (Charset charset : List.of(StandardCharsets.UTF_8, Charset.forName("GB18030"))) {
+            assertEquals(terminal, reader.read(new Input("device.txt", terminal.getBytes(charset))).getFirst().text());
+        }
+        assertEquals(terminal, reader.read(new Input("logs.zip", zip(List.of(
+                new Entry("device.log", terminal.getBytes(StandardCharsets.UTF_8)))))).getFirst().text());
+    }
+
+    @Test
+    void terminalControlsDoNotDisableRealBinaryChecks() {
+        rejected("二进制", new Input("device.txt", "%PDF-1.7\u0004".getBytes(StandardCharsets.UTF_8)));
+        rejected("NUL", new Input("device.txt", new byte[] {'A', 4, 0, 'B'}));
+        rejected("可读文本", new Input("device.txt", new byte[] {4, 1}));
+    }
+
     @Test void umcSingleNameOptInRetainsContentGuardsAndDoesNotExtendZipMembersOrLegacy() throws Exception {
         var content = "<device>show version\r\nSN: TEST-SN".getBytes(StandardCharsets.UTF_8);
         assertEquals("设备甲(192.0.2.10)", reader.read(new Input("设备甲(192.0.2.10)", content, true)).getFirst().fileName());
@@ -61,7 +99,7 @@ class InspectionLogArchiveReaderTest {
         rejected("ZIP 格式不符", new Input("device.zip", "设备日志".getBytes(StandardCharsets.UTF_8)));
         rejected("二进制", new Input("device.log", "%PDF-1.7\nnot a device log".getBytes(StandardCharsets.UTF_8)));
         rejected("NUL", new Input("device.txt", new byte[] { 'A', 0, 'B' }));
-        rejected("非文本控制字符", new Input("device.log", new byte[] { 'A', 1, 'B' }));
+        rejected("可读文本", new Input("device.log", new byte[] { 1, 2, 3 }));
         rejected("压缩包", new Input("device.log", zip(List.of(new Entry("inner.txt", new byte[] { 'A' })))));
         rejected("只支持", new Input("logs.zip", zip(List.of(new Entry("readme.csv", new byte[] { 'A' })))));
     }

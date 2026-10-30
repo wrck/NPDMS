@@ -12,7 +12,8 @@
         ><dt>执行错误</dt><dd>{{ rule.error || '无' }}</dd></div
       >
       <div
-        ><dt>UMC结论</dt><dd>{{ conclusion(rule.result) }}</dd></div
+        ><dt>UMC结论</dt
+        ><dd>{{ rule.support === false ? '不支持' : conclusion(rule.result) }}</dd></div
       >
     </dl>
     <p v-if="showCommands && rule.cmd"><strong>执行命令：</strong>{{ rule.cmd }}</p>

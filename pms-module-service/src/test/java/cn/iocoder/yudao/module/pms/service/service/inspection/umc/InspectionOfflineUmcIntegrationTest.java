@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.service.service.inspection.umc;
 
 import cn.hutool.crypto.digest.DigestUtil;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.service.controller.business.InspectionExecutionController;
 import cn.iocoder.yudao.module.pms.service.service.inspection.*;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionAttemptDO;
@@ -20,6 +21,16 @@ class InspectionOfflineUmcIntegrationTest {
     private final InspectionUmcWorkflow workflow=mock(InspectionUmcWorkflow.class);
     private final InspectionExecutionController controller = new InspectionExecutionController(executions, commands, umc,workflow);
     private final InspectionRequestContext context = new InspectionRequestContext(7L, 9L, "offline-upload", "test", 3L);
+
+    @Test void batchReceiptsKeepTheOriginalSummaryShapeAndReadHistoricalSummaryReceipts() {
+        var summary = new InspectionViews.TaskSummary(); summary.setId(10L); summary.setVersion(5L);
+        var historical = JsonUtils.parseObject(JsonUtils.toJsonString(summary), InspectionExecutionService.BatchRegistration.class);
+        assertEquals(10L, historical.getId()); assertEquals(5L, historical.getVersion()); assertNull(historical.sourceHosts());
+        var receipt = new InspectionExecutionService.BatchRegistration(summary, java.util.List.of(new InspectionUmcService.Host(40L, "10.27.35.201")));
+        var replay = JsonUtils.parseObject(JsonUtils.toJsonString(receipt), InspectionExecutionService.BatchRegistration.class);
+        assertEquals(receipt.sourceHosts(), replay.sourceHosts()); assertEquals(5L, replay.summary().getVersion());
+        assertFalse(JsonUtils.parseTree(JsonUtils.toJsonString(receipt.summary())).has("sourceHosts"));
+    }
 
     @Test void umcSingleUploadDerivesSourceFromItsOriginalProtocolFilename() throws Exception {
         var controller = controllerWithProvider("UMC");
@@ -107,7 +118,8 @@ class InspectionOfflineUmcIntegrationTest {
     @Test void multiFilesAreRegisteredTogetherAndCaptureUsesTheirOrderedDigest() throws Exception {
         var summary = new InspectionViews.TaskSummary(); summary.setId(10L); summary.setVersion(5L);
         when(commands.execute(any())).thenAnswer(c -> c.<InspectionCommandExecutor.Write<?>>getArgument(0).action().get());
-        when(executions.uploadFiles(any())).thenReturn(summary);
+        when(executions.uploadFiles(any())).thenReturn(new InspectionExecutionService.BatchRegistration(summary,
+                java.util.List.of(new InspectionUmcService.Host(40L, "192.0.2.10"))));
         when(workflow.captureUploaded(any())).thenReturn(summary);
         var files = java.util.List.of(new MockMultipartFile("files", "a.log", "text/plain", new byte[]{1}),
                 new MockMultipartFile("files", "b.txt", "text/plain", new byte[]{2}));
@@ -121,14 +133,28 @@ class InspectionOfflineUmcIntegrationTest {
         }
     }
 
-    @Test void multipleFilesWithoutRequiredIpFailBeforeReadingOrStoringContent() {
-        var controller = controllerWithProvider("UMC");
+    @Test void multipleFilesResolveIpInsideTheRegistrationBeforeUmcAndReplayRetainsResolvedSources() throws Exception {
+        var summary = new InspectionViews.TaskSummary(); summary.setId(10L); summary.setVersion(5L);
+        var sources = java.util.List.of(new InspectionUmcService.Host(40L, "10.27.35.201"), new InspectionUmcService.Host(41L, "10.27.35.202"));
+        var receipt = new InspectionExecutionService.BatchRegistration(summary, sources);
+        when(commands.execute(any())).thenAnswer(c -> c.<InspectionCommandExecutor.Write<?>>getArgument(0).action().get());
+        when(executions.uploadFiles(any())).thenReturn(receipt);
+        when(workflow.captureUploaded(any())).thenReturn(summary);
         try (var identity = mockStatic(InspectionRequestContext.class)) {
             identity.when(() -> InspectionRequestContext.write(any())).thenReturn(context);
-            assertThrows(InspectionException.class, () -> controller.uploadFiles(10L, new HttpHeaders(), 30L, null, null,
-                    java.util.List.of(new MockMultipartFile("files", "one.log", "text/plain", new byte[]{1}),
-                            new MockMultipartFile("files", "two.log", "text/plain", new byte[]{2}))));
-            verifyNoInteractions(commands, executions, umc);
+            var files = java.util.List.of(new MockMultipartFile("files", "10.27.35.201.txt", "text/plain", new byte[]{1}),
+                    new MockMultipartFile("files", "10.27.35.202.txt", "text/plain", new byte[]{2}));
+            controller.uploadFiles(10L, new HttpHeaders(), 30L, null, null, java.util.List.copyOf(files));
+            verify(executions).uploadFiles(argThat(c -> c.sourceHosts() == null));
+            verify(umc).fromOfflineBatch(argThat(c -> c.hosts().equals(sources)));
+            reset(executions, umc);
+            doAnswer(c -> {
+                var write = c.<InspectionCommandExecutor.Write<?>>getArgument(0);
+                return write.responseType() == InspectionExecutionService.BatchRegistration.class ? receipt : write.action().get();
+            }).when(commands).execute(any());
+            controller.uploadFiles(10L, new HttpHeaders(), 30L, null, null, java.util.List.copyOf(files));
+            verifyNoInteractions(executions);
+            verify(umc).fromOfflineBatch(argThat(c -> c.hosts().equals(sources)));
         }
     }
     @Test void ambiguousOrEmptyMultiFileInputCannotRegisterOrSubmitAnything() {

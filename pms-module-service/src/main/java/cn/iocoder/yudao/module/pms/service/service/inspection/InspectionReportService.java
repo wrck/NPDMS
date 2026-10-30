@@ -98,6 +98,14 @@ public class InspectionReportService {
         ready(new Ready(command.context(), task, report)); return InspectionTaskService.summary(task);
     }
 
+    /** Only a verified UMC report set can legitimately contain no formal rule rows. */
+    public boolean hasEmptyUmcResults(ReportGate gate) {
+        var report = reports.selectContent(new cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.InspectionReportContentQuery(
+                gate.task().getTenantId(), gate.task().getId(), gate.reportId()));
+        return report != null && cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcBundle.matches(report)
+                && cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcBundle.snapshot(report).resultIds().isEmpty();
+    }
+
     public boolean available(ReportGate gate) {
         var report = reports.selectById(gate.reportId());
         if (report == null || !Objects.equals(report.getTenantId(), gate.task().getTenantId())
@@ -161,7 +169,8 @@ public class InspectionReportService {
     private List<InspectionDetectionResultDO> inputs(InspectionTaskDO task) {
         require(task.getCurrentAttemptId() != null, "尚无完成的执行尝试");
         var attempt = attempts.selectById(task.getCurrentAttemptId());
-        require(attempt != null && "COMPLETED".equals(attempt.getStatusCode()), "执行尝试未完成");
+        require(attempt != null && Objects.equals(attempt.getTenantId(), task.getTenantId()) && Objects.equals(attempt.getTaskId(), task.getId())
+                && !Boolean.TRUE.equals(attempt.getDeleted()) && "COMPLETED".equals(attempt.getStatusCode()), "执行尝试未完成或不属于本巡检任务");
         require(!"UMC".equals(attempt.getProviderCode()), "UMC正式尝试应采用已归档的全设备UMC报告");
         var current = results.selectCurrent(new InspectionAttemptRows(task.getTenantId(), task.getCurrentAttemptId()));
         long count = snapshots.selectForTask(new InspectionTaskRows(task.getTenantId(), task.getId())).stream()

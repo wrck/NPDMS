@@ -12,9 +12,29 @@
       </div>
       <div class="actions">
         <el-tag v-if="task">{{ statusLabel(task.statusCode) }}</el-tag>
-        <el-button :disabled="busy || !!pending || onlineBusy || attachmentBusy" @click="reload"
-          >刷新</el-button
+        <el-tooltip
+          v-if="
+            task?.currentAttemptId &&
+            ['execute', 'report'].includes(activeStep) &&
+            ['EXECUTING', 'REPORT_PENDING'].includes(task.statusCode)
+          "
+          :content="
+            pendingLogs.length
+              ? '未完成日志可继续获取结果；更换日志前请先停止采用相关记录。'
+              : '原日志和报告会保留。填写重新执行原因后，新尝试可上传新的日志。'
+          "
         >
+          <el-button
+            v-hasPermi="['pms:inspection-task:execute']"
+            data-testid="inspection-restart-upload"
+            type="primary"
+            :disabled="!canStart"
+            @click="startAttempt"
+          >
+            {{ preparation.mode === 'OFFLINE' ? '重新执行并上传日志' : '重新执行巡检' }}
+          </el-button>
+        </el-tooltip>
+        <el-button :disabled="busy || onlineBusy || attachmentBusy" @click="reload">刷新</el-button>
       </div>
     </div>
     <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" show-icon />
@@ -1384,14 +1404,16 @@ const downloadEvidence = (row: EvidenceView) =>
   })
 
 const mayLeave = async () => {
-  if (busy.value || pending.value || onlineBusy.value || attachmentBusy.value) {
+  if (busy.value || onlineBusy.value || attachmentBusy.value) {
     message.warning('请先确认当前操作结果，再离开此页。')
     return false
   }
-  if (!anyDirty.value) return true
+  if (!anyDirty.value && !pending.value) return true
   try {
     await message.confirm(
-      '有尚未提交的内容，离开后将丢失这些输入。已上传到平台的文件会保留原归属。',
+      pending.value
+        ? '操作结果尚未确认。放弃本地重试和未保存输入后继续？服务器已收到的操作不会因此撤销，继续后请核对最新状态。'
+        : '有尚未提交的内容，离开后将丢失这些输入。已上传到平台的文件会保留原归属。',
       '确认离开'
     )
     return true
@@ -1401,8 +1423,11 @@ const mayLeave = async () => {
 }
 const reload = async () => {
   if (await mayLeave()) {
-    writeError.value = ''
     await load(false)
+    if (fresh.value) {
+      pending.value = undefined
+      writeError.value = ''
+    }
   }
 }
 onBeforeRouteLeave(mayLeave)
