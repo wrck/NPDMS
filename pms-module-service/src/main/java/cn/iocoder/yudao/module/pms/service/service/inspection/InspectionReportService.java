@@ -139,6 +139,18 @@ public class InspectionReportService {
         report.setInputDigest(DigestUtil.sha256Hex(JsonUtils.toJsonString(creation.input())));
         report.setExplanation(creation.explanation()); report.setGeneratedBy(creation.context().actorId()); report.setGeneratedAt(LocalDateTime.now());
         reports.insert(report);
+        require(report.getId() != null && "GENERATING".equals(report.getStatusCode()) && !Boolean.TRUE.equals(report.getDeleted())
+                && Objects.equals(report.getTenantId(), task.getTenantId()) && Objects.equals(report.getTaskId(), task.getId())
+                && Objects.equals(report.getAttemptId(), task.getCurrentAttemptId())
+                && Set.of("PLATFORM", "MANUAL").contains(report.getSourceCode()), "报告已冻结或来源范围不一致");
+        require(!creation.input().isEmpty()
+                && creation.input().stream().map(InspectionDetectionResultDO::getId).distinct().count() == creation.input().size()
+                && creation.input().stream().allMatch(result -> result.getId() != null && !Boolean.TRUE.equals(result.getDeleted())
+                    && Objects.equals(result.getTenantId(), report.getTenantId()) && Objects.equals(result.getTaskId(), report.getTaskId())
+                    && Objects.equals(result.getAttemptId(), report.getAttemptId()) && "PLATFORM".equals(result.getSourceCode())
+                    && Set.of("PASS", "ABNORMAL").contains(result.getOutcome()) && result.getRuleSnapshotId() != null
+                    && result.getRuleRevisionId() != null && result.getSourceReportId() == null && result.getExternalRuleId() == null),
+                "原平台报告输入范围或判定来源不一致");
         for (var result : creation.input()) {
             var row = new InspectionReportResultDO(); row.setTenantId(task.getTenantId()); row.setVersion(1L);
             row.setTaskId(task.getId()); row.setReportId(report.getId()); row.setResultId(result.getId()); reportResults.insert(row);

@@ -194,6 +194,17 @@ public class InspectionUmcWorkflow {
         report.setStatusCode("GENERATING"); report.setInputDigest(DigestUtil.sha256Hex(json)); report.setSourceContextJson(json);
         report.setResultJson(json); report.setResultSha256(DigestUtil.sha256Hex(json)); report.setGeneratedAt(LocalDateTime.now()); report.setGeneratedBy(command.context().actorId());
         report.setExplanation("采用全部设备的UMC DOC原件及正式判定；" + Objects.toString(command.explanation(), "")); reports.insert(report);
+        require(report.getId() != null && "GENERATING".equals(report.getStatusCode()) && !Boolean.TRUE.equals(report.getDeleted())
+                && Objects.equals(report.getTenantId(), task.getTenantId()) && Objects.equals(report.getTaskId(), task.getId())
+                && Objects.equals(report.getAttemptId(), task.getCurrentAttemptId()) && InspectionUmcBundle.matches(report),
+                "UMC报告已冻结或来源范围不一致");
+        require(selected.stream().map(InspectionDetectionResultDO::getId).distinct().count() == selected.size()
+                && selected.stream().allMatch(input -> input.getId() != null && !Boolean.TRUE.equals(input.getDeleted())
+                    && Objects.equals(input.getTenantId(), report.getTenantId()) && Objects.equals(input.getTaskId(), report.getTaskId())
+                    && Objects.equals(input.getAttemptId(), report.getAttemptId()) && "UMC".equals(input.getSourceCode())
+                    && Set.of("PASS", "ABNORMAL", "UNJUDGED", "ERROR").contains(input.getOutcome())
+                    && input.getSourceReportId() != null && sourceIds.contains(input.getSourceReportId())
+                    && input.getRuleSnapshotId() == null && input.getRuleRevisionId() == null), "UMC报告输入范围或判定来源不一致");
         for (var input : selected) {
             var link = new InspectionReportResultDO(); link.setTenantId(task.getTenantId()); link.setVersion(1L); link.setTaskId(task.getId());
             link.setReportId(report.getId()); link.setResultId(input.getId()); reportInputs.insert(link);
