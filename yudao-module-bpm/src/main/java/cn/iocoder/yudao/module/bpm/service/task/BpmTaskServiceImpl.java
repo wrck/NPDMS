@@ -115,17 +115,20 @@ public class BpmTaskServiceImpl implements BpmTaskService {
 
     @Resource
     private cn.iocoder.yudao.module.bpm.service.cutover.CutoverRoleTaskAccess cutoverRoleTaskAccess;
+    @Resource
+    private cn.iocoder.yudao.module.bpm.service.solutionreview.SolutionReviewRoleTasks solutionReviewRoleTasks;
 
     // ========== Query 查询相关方法 ==========
 
     @Override
     public PageResult<Task> getTaskTodoPage(Long userId, BpmTaskPageReqVO pageVO) {
-        TaskQuery taskQuery = cutoverRoleTaskAccess.todos(new cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi.ActorQuery(
-                        Long.valueOf(FlowableUtils.getTenantId()), userId))
+        TaskQuery taskQuery = taskService.createTaskQuery().taskCandidateOrAssigned(userId.toString())
                 .active()
                 .includeProcessVariables()
                 .taskTenantId(FlowableUtils.getTenantId())
                 .orderByTaskCreateTime().desc(); // 创建时间倒序
+        var sharedGroups = sharedRoleGroups(userId);
+        if (!sharedGroups.isEmpty()) taskQuery.taskCandidateGroupIn(sharedGroups);
         if (StrUtil.isNotBlank(pageVO.getName())) {
             taskQuery.taskNameLike("%" + pageVO.getName() + "%");
         }
@@ -230,10 +233,19 @@ public class BpmTaskServiceImpl implements BpmTaskService {
     }
 
     private boolean isCandidateUserTask(Long userId, Task task) {
-        return task.getAssignee() == null && cutoverRoleTaskAccess.candidate(
-                new cn.iocoder.yudao.module.bpm.service.cutover.CutoverRoleTaskAccess.TaskActor(
-                        new cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi.ActorQuery(
-                                Long.valueOf(FlowableUtils.getTenantId()), userId), task.getId()));
+        if (task.getAssignee() != null) return false;
+        var query = taskService.createTaskQuery().taskId(task.getId()).taskTenantId(FlowableUtils.getTenantId())
+                .taskUnassigned().taskCandidateUser(userId.toString());
+        var groups = sharedRoleGroups(userId);
+        if (!groups.isEmpty()) query.taskCandidateGroupIn(groups);
+        return query.count() == 1;
+    }
+
+    private List<String> sharedRoleGroups(Long userId) {
+        var actor = new cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi.ActorQuery(
+                Long.valueOf(FlowableUtils.getTenantId()), userId);
+        return java.util.stream.Stream.concat(cutoverRoleTaskAccess.groups(actor).stream(),
+                solutionReviewRoleTasks.groups(actor).stream()).distinct().toList();
     }
 
     @Override
@@ -584,6 +596,9 @@ public class BpmTaskServiceImpl implements BpmTaskService {
     @Transactional(rollbackFor = Exception.class)
     @DataPermission(enable = false) // 关闭数据权限，避免查询不到用户数据
     public void approveTask(Long userId, @Valid BpmTaskApproveReqVO reqVO) {
+        solutionReviewRoleTasks.claimForDecision(new cn.iocoder.yudao.module.bpm.service.solutionreview.SolutionReviewRoleTasks.DecisionActor(
+                Long.valueOf(FlowableUtils.getTenantId()), userId, reqVO.getId()));
+        solutionReviewRoleTasks.validateApprovalVariables(reqVO);
         // 1.1 校验任务存在
         Task task = validateTask(userId, reqVO.getId());
         // 1.2 校验流程实例存在
@@ -846,6 +861,8 @@ public class BpmTaskServiceImpl implements BpmTaskService {
     @Transactional(rollbackFor = Exception.class)
     @DataPermission(enable = false) // 关闭数据权限，避免查询不到用户数据
     public void rejectTask(Long userId, @Valid BpmTaskRejectReqVO reqVO) {
+        solutionReviewRoleTasks.claimForDecision(new cn.iocoder.yudao.module.bpm.service.solutionreview.SolutionReviewRoleTasks.DecisionActor(
+                Long.valueOf(FlowableUtils.getTenantId()), userId, reqVO.getId()));
         // 1.1 校验任务存在
         Task task = validateTask(userId, reqVO.getId());
         // 1.2 校验流程实例存在

@@ -31,6 +31,9 @@ public interface PlatformDeliveryMaterialApi {
             Long materialId, Long expectedMaterialVersion, String idempotencyKey, String reason) {
         throw new UnsupportedOperationException("Native Owner material withdrawal unavailable");
     }
+    record FileReferenceQuery(Long materialId, String ownerModule, String entityType, Long entityId) { }
+    /** Internal exact source identity only; the caller still authorizes the Owner and file content. */
+    default Long fileReferenceId(FileReferenceQuery query) { return null; }
     /** Explicit native upload attachment: preserve actual source identity and enabled catalog, without a requirement. */
     default Long registerNativeUploadedFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact fact) {
         throw new UnsupportedOperationException("Native uploaded delivery file registration unavailable");

@@ -20,32 +20,34 @@ public class BpmServiceManagerAccess {
     private final HistoryService history;
     private final TaskService tasks;
     private final cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi projectScope;
+    private final cn.iocoder.yudao.module.bpm.service.solutionreview.SolutionReviewRoleTasks solutionRoles;
 
     private boolean restricted() {
         Long actor = SecurityFrameworkUtils.getLoginUserId();
-        return actor != null && permissions.hasAnyRoles(actor, ProjectMemberRoles.MANAGEMENT_CODES.toArray(String[]::new))
+        return actor != null && (permissions.hasAnyRoles(actor, ProjectMemberRoles.MANAGEMENT_CODES.toArray(String[]::new))
+                || permissions.hasAnyRoles(actor, cn.iocoder.yudao.module.bpm.api.solutionreview.SolutionReviewBpmApi.ENGINEERING_REVIEW_ROLE))
                 && !permissions.hasAnyPermissions(actor, "bpm:task:manager-query");
     }
 
     public void requireProcess(String processInstanceId) {
-        if (!restricted()) return;
         String actor = String.valueOf(SecurityFrameworkUtils.getLoginUserId());
         String tenant = String.valueOf(TenantContextHolder.getRequiredTenantId());
         var process = history.createHistoricProcessInstanceQuery().includeProcessVariables().processInstanceId(processInstanceId)
                 .processInstanceTenantId(tenant).singleResult();
         if (process == null) throw exception(FORBIDDEN);
+        boolean solution = process.getBusinessKey() != null && process.getBusinessKey().startsWith("SOL_REVIEW:" + tenant + ":");
+        boolean sharedSolution = solution && history.getHistoricIdentityLinksForProcessInstance(processInstanceId).stream()
+                .anyMatch(link -> link.getType() != null && link.getType().startsWith("solutionReview:role:"));
+        if (sharedSolution) {
+            if (solutionRoles.read(new cn.iocoder.yudao.module.bpm.api.solutionreview.SolutionReviewBpmApi.ReadQuery(
+                    TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), process.getBusinessKey())) != null
+                    || ordinaryProjectView(process)) return;
+            throw exception(FORBIDDEN);
+        }
+        if (!restricted()) return;
         if (permissions.hasAnyRoles(SecurityFrameworkUtils.getLoginUserId(), ProjectMemberRoles.MANAGEMENT_CODES.toArray(String[]::new))
                 && process.getBusinessKey() != null && process.getBusinessKey().startsWith("SOL_REVIEW:" + tenant + ":")) {
-            var variables = process.getProcessVariables();
-            Object project = variables == null ? null : variables.get("projectId");
-            if (project == null) throw exception(FORBIDDEN);
-            Long projectId;
-            try { projectId = Long.valueOf(project.toString()); }
-            catch (NumberFormatException invalid) { throw exception(FORBIDDEN); }
-            var visible = projectScope.resolveCurrent(cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery.builder()
-                    .tenantId(TenantContextHolder.getRequiredTenantId()).subjectUserId(SecurityFrameworkUtils.getLoginUserId())
-                    .anchorProjectId(projectId).actionCode(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW).build());
-            if (visible == null || !visible.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
+            if (!ordinaryProjectView(process)) throw exception(FORBIDDEN);
             return;
         }
         if (actor.equals(process.getStartUserId())) return;
@@ -57,18 +59,33 @@ public class BpmServiceManagerAccess {
     }
 
     public void requireTask(String taskId) {
-        if (!restricted()) return;
         var task = tasks.createTaskQuery().taskId(taskId).singleResult();
         if (task == null) throw exception(FORBIDDEN);
         requireProcess(task.getProcessInstanceId());
+    }
+
+    private boolean ordinaryProjectView(org.flowable.engine.history.HistoricProcessInstance process) {
+        var variables = process.getProcessVariables();
+        Object project = variables == null ? null : variables.get("projectId");
+        if (project == null) return false;
+        Long projectId;
+        try { projectId = Long.valueOf(project.toString()); }
+        catch (NumberFormatException invalid) { return false; }
+        var visible = projectScope.resolveCurrent(cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery.builder()
+                .tenantId(TenantContextHolder.getRequiredTenantId()).subjectUserId(SecurityFrameworkUtils.getLoginUserId())
+                .anchorProjectId(projectId).actionCode(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW).build());
+        return visible != null && visible.fullProjectIds().contains(projectId);
     }
 
     public void requireAssignedTask(String taskId) {
         if (!restricted()) return;
         var task = tasks.createTaskQuery().taskId(taskId).singleResult();
         if (task == null || !Objects.equals(task.getTenantId(), String.valueOf(TenantContextHolder.getRequiredTenantId()))
-                || !Objects.equals(task.getAssignee(), String.valueOf(SecurityFrameworkUtils.getLoginUserId()))) throw exception(FORBIDDEN);
+                || !Objects.equals(task.getAssignee(), String.valueOf(SecurityFrameworkUtils.getLoginUserId()))
+                && !solutionRoles.canReadTask(new cn.iocoder.yudao.module.bpm.service.solutionreview.SolutionReviewRoleTasks.DecisionActor(
+                TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), taskId))) throw exception(FORBIDDEN);
     }
+
 
     /** The approval grant does not include reassignment, sign manipulation, copying or generic process creation. */
     public void requireAdvancedAction() {

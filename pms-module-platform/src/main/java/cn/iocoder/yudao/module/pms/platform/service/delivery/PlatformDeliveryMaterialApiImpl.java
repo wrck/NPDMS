@@ -33,6 +33,17 @@ public class PlatformDeliveryMaterialApiImpl implements PlatformDeliveryMaterial
     }
 
     @Override
+    public Long fileReferenceId(FileReferenceQuery query) {
+        if (query == null || query.materialId() == null) return null;
+        var row = materialMapper.selectById(query.materialId());
+        if (row == null || !java.util.Objects.equals(row.getTenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId())
+                || !java.util.Objects.equals(row.getOwnerModule(), query.ownerModule())
+                || !java.util.Objects.equals(row.getEntityType(), query.entityType()) || !java.util.Objects.equals(row.getEntityId(), query.entityId())
+                || !"ACTIVE".equals(row.getStatus()) || !"FILE".equals(row.getMaterialKind())) return null;
+        return row.getFileReferenceId();
+    }
+
+    @Override
     public Long registerNativeUploadedFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact fact) {
         return materialService.registerNativeUploadedDocument(fact).getId();
     }

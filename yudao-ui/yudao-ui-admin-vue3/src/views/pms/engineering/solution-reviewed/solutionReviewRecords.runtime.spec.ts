@@ -9,7 +9,7 @@ vi.mock('@/api/pms/engineering/solution-review', () => api)
 vi.mock('@/views/pms/project/project-master-detail/components/projectApprovalDetail', () => ({
   projectApprovalDetailKey: Symbol(), useProjectApprovalDetail: () => api.open
 }))
-vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn() }) }))
+vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), error: vi.fn() }) }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
 const apps: { unmount: () => void }[] = []
 beforeEach(() => { api.submissionReadiness.mockResolvedValue({ allowed: true, blockers: [] }) })

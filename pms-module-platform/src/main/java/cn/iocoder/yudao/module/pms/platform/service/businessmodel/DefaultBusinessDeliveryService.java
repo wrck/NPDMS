@@ -165,7 +165,7 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
                         new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery(document.artifactId(),document.versionNo(),document.ownerContext(),document.objectType(),document.objectId(),document.purposeCode(),document.referenceKey(),cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes.READ,fact.fileFactVersion(),fact.scopeVersion()),
                         new cn.iocoder.yudao.module.pms.platform.api.file.dto.ExistingFileReferenceTarget("PLT",FILE_OBJECT_TYPE,object,record.deliverableType(),slot,observed.treeVersion()));
                 api.attachExistingVersions(new cn.iocoder.yudao.module.pms.platform.api.file.dto.AttachExistingFileVersionsCommand("default-copy:"+slot,List.of(item)));
-                var copied=files.inspectReference(new FileEvidenceApi.Reference(caller.tenantId(),"PLT",FILE_OBJECT_TYPE,object,record.deliverableType(),slot));
+                var copied=files.inspectDocument(new FileEvidenceApi.ReferenceQuery(caller.tenantId(),"PLT",FILE_OBJECT_TYPE,object,record.deliverableType(),slot));
                 if(copied==null || !copied.available() || !Objects.equals(copied.artifactId(),document.artifactId()) || !Objects.equals(copied.versionNo(),document.versionNo()) || !Objects.equals(copied.sha256(),document.sha256()))throw invalid("复制文件事实不一致");
                 result.add(register(scope,targetModel,copied,DeliveryMaterialDO.SOURCE_ASSOCIATED,record.title(),source));
             }

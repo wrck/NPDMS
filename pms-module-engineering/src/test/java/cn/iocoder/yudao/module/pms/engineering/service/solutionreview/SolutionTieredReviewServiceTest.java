@@ -192,6 +192,39 @@ class SolutionTieredReviewServiceTest {
         verify(original).createSolution(captured.capture()); assertNull(captured.getValue().getId());
         assertEquals("保留源正文",captured.getValue().getBackground()); assertEquals(4,solution.getStatus());
     }
+    @Test void approvedCopyThroughActualCreationCanReadMaterialsWithoutChangingOriginal() {
+        service.start(command(0)); result("APPROVE"); service.refresh(selection);
+        var approved = solution;
+        var approvedVersion = approved.getVersion();
+        var approvedTime = approved.getApprovedTime();
+        var approvedReview = stored;
+        var creator = new cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionServiceImpl();
+        var codes = mock(cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(creator,"solutionMapper",solutions);
+        org.springframework.test.util.ReflectionTestUtils.setField(creator,"recordCodeGenerator",codes);
+        org.springframework.test.util.ReflectionTestUtils.setField(creator,"completionEvents",events);
+        when(codes.next(eq(9L),anyString(),eq(solutions),isNull())).thenReturn("SOL-43");
+        when(solutions.insert(any(SolutionDO.class))).thenAnswer(call -> {
+            solution = call.getArgument(0); solution.setId(43L); solution.setTenantId(1L); return 1;
+        });
+        when(original.createSolution(any())).thenAnswer(call -> creator.createSolution(call.getArgument(0)));
+        assertEquals(43L,service.revise(selection));
+        assertEquals(0,solution.getStatus()); assertNull(solution.getApprovedBy());
+        assertTrue(solution.getRemark().startsWith("源方案 "));
+        stored = null;
+        when(reviews.source(any())).thenReturn(solution);
+        service.start(new SolutionTieredReviewService.Start(9L,43L,0,"definition-1"));
+        when(solutions.selectById(43L)).thenReturn(solution);
+        var sourceMapper = mock(cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionSourceMapper.class);
+        var requirementMapper = mock(cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper.class);
+        var evidence = mock(cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.class);
+        var contents = mock(org.springframework.beans.factory.ObjectProvider.class);
+        var reader = new SolutionReviewReadMaterials(service,sourceMapper,requirementMapper,deliveryMaterials,evidence,contents);
+        assertTrue(reader.read("SOL_REVIEW:1:43").attachments().isEmpty());
+        assertEquals(3,approved.getStatus()); assertEquals(approvedVersion,approved.getVersion());
+        assertEquals(approvedTime,approved.getApprovedTime()); assertEquals("APPROVE",approvedReview.getStatus());
+        verifyNoInteractions(sourceMapper,requirementMapper,evidence,contents);
+    }
     @Test void currentSourceChangeRejectsTerminalResultWithoutOverwrite() {
         service.start(command(0)); result("APPROVE"); solution.setVersion(99L);
         assertThrows(IllegalStateException.class, () -> service.refresh(selection)); assertNull(solution.getBaselineVersion());
@@ -226,6 +259,29 @@ class SolutionTieredReviewServiceTest {
         var started = ArgumentCaptor.forClass(SolutionReviewBpmApi.Start.class);
         verify(bpm).start(started.capture());
         assertEquals(0, started.getValue().reviewLevel());
+    }
+    @Test void activeEngineeringTaskReadsOnlyItsFrozenSourceWithoutGrantingProjectView() {
+        when(solutions.selectById(42L)).thenReturn(solution);
+        service.start(command(0));
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        when(permissions.hasAnyPermissions(eq(7L), any(String[].class))).thenReturn(false);
+        when(bpm.readAccess(new SolutionReviewBpmApi.ReadQuery(1L,7L,"SOL_REVIEW:1:42")))
+                .thenReturn(new SolutionReviewBpmApi.ReadAccess("instance-1","task-1","engineeringManagementReview","SOL_REVIEW:1:42"));
+        assertSame(solution, service.sourceForReview("SOL_REVIEW:1:42"));
+        assertThrows(RuntimeException.class, () -> service.read(selection));
+        solution.setVersion(99L);
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+    }
+    @Test void finishedRevokedOrOtherInstanceTaskCannotReadSourceOutsideProjectScope() {
+        when(solutions.selectById(42L)).thenReturn(solution);
+        service.start(command(0));
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+        when(bpm.readAccess(any())).thenReturn(new SolutionReviewBpmApi.ReadAccess("foreign","task-1","engineeringManagementReview","SOL_REVIEW:1:42"));
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+        when(bpm.readAccess(any())).thenReturn(new SolutionReviewBpmApi.ReadAccess("instance-1","task-1","engineeringManagementReview","SOL_REVIEW:1:42"));
+        stored.setStatus("APPROVE");
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
     }
     @Test void missingPolicyDecisionBlocksSubmitBeforeProcessStart() {
         doThrow(new IllegalArgumentException("项目审核判定依据缺失或规则冲突，请由工程管理部补齐来源及规则")).when(policies).freeze(solution);

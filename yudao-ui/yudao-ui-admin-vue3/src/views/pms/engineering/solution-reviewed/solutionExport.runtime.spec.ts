@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import { mount, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 import Chapter from './SolutionReviewChapterForm.vue'
-const mocks = vi.hoisted(() => ({ images: vi.fn(), topology: vi.fn(), word: vi.fn(), upload: vi.fn() }))
+const mocks = vi.hoisted(() => ({ images: vi.fn(), topology: vi.fn(), word: vi.fn(), upload: vi.fn(), workspace: vi.fn(), readRequirement: vi.fn() }))
 vi.mock('./documentImages', () => ({ prepareDocumentImages: mocks.images }))
 vi.mock('@/api/pms/platform/file', () => ({ getPreviewContent: vi.fn() }))
 vi.mock('./requirementTopology', async importOriginal => ({
@@ -21,22 +21,35 @@ vi.mock('@/api/pms/commerce/projectEquipment', () => ({ loadProjectEquipmentList
 vi.mock('@/api/pms/project/unified-members', () => ({ getMemberPage: async () => ({ list: [], total: 0 }), logicalMemberRole: () => '' }))
 vi.mock('@/api/pms/customer/contacts', () => ({ getProjectPage: async () => ({ list: [] }) }))
 vi.mock('@/api/pms/engineering/stage-plan', () => ({ getStagePlanBatchPage: async () => ({ list: [] }) }))
-vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ workspace: async () => ({ currentEffective: null }),
-  read: async () => ({ values: {}, revision: { ref: { revisionId: '701' } }, attachments: [] }) }))
+vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ workspace: mocks.workspace, read: mocks.readRequirement }))
 vi.mock('@/components/BusinessView/businessActionBar', () => ({ useBusinessActionBar: () => ({ barTarget: ref(null) }) }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getDictLabel: () => '' }))
 vi.mock('element-plus', () => ({ ElMessage: { error: vi.fn() } }))
 const flush = async () => { for (let i = 0; i < 20; i++) { await Promise.resolve(); await nextTick() } }
-beforeEach(() => { vi.resetAllMocks(); mocks.images.mockResolvedValue({}); mocks.topology.mockResolvedValue(['data:image/png;base64,A']) })
-const render = (overrides: Record<string, unknown> = {}) => {
+beforeEach(() => { vi.resetAllMocks(); mocks.images.mockResolvedValue({}); mocks.topology.mockResolvedValue(['data:image/png;base64,A']);
+  mocks.workspace.mockResolvedValue({ currentEffective: null }); mocks.readRequirement.mockResolvedValue({ values: {}, revision: { ref: { revisionId: '701' } }, attachments: [] }) })
+const render = (overrides: Record<string, unknown> = {}, reviewContext = false) => {
   const model = ref({ id: 42, projectId: 20, name: '方案A', version: 1, sectionData: '{"requirementInput":{"revisionId":"701"}}', topology: '{"toBeChanged":"no"}', ...overrides })
   let state: any
-  const wrapper = defineComponent({ setup: () => () => h(Chapter, { modelValue: model.value, readOnly: true,
+  const wrapper = defineComponent({ setup: () => () => h(Chapter, { modelValue: model.value, readOnly: true, reviewContext,
+    reviewRequirement: { networkTopology: '冻结需求拓扑正文' },
     'onUpdate:modelValue': value => { model.value = value as typeof model.value },
     ref: value => { if (value) state = (value as any).$.setupState }
   }) })
   return { ...mount(wrapper, {}, { ElTableColumn: tableColumn }), model, get state() { return state } }
 }
+it('uses only frozen review requirements and cannot generate or upload from the review page', async () => {
+  const view = render({}, true)
+  try {
+    await flush()
+    expect(mocks.workspace).not.toHaveBeenCalled()
+    expect(mocks.readRequirement).not.toHaveBeenCalled()
+    expect(view.state.reqValues.networkTopology).toBe('冻结需求拓扑正文')
+    await view.state.downloadSolution()
+    expect(mocks.word).not.toHaveBeenCalled()
+    expect(mocks.upload).not.toHaveBeenCalled()
+  } finally { view.app.unmount() }
+})
 it('exports an independently prepared solution without requiring an unselected requirement source', async () => {
   mocks.word.mockRejectedValueOnce(new Error('conversion boundary reached'))
   const view = render({ sectionData: '{}', topology: '{}' })

@@ -8,9 +8,14 @@ import java.util.Map;
 public interface SolutionReviewBpmApi {
     String DEFINITION_KEY = "PMS_DELIVERY_SOLUTION_REVIEW";
     String ENGINEERING_REVIEW_PERMISSION = "pms:sol-solution:major-review";
+    String ENGINEERING_REVIEW_ROLE = "engineeManager";
     Definition definition(Long tenantId);
     Started start(Start command);
     Result result(Long tenantId, String instanceId);
+    /** Only the actor's current engineering-role todo grants this narrow, temporary source read. */
+    ReadAccess readAccess(ReadQuery query);
+    record ReadQuery(Long tenantId, Long actorId, String businessKey) { }
+    record ReadAccess(String processInstanceId, String taskId, String nodeKey, String businessKey) { }
 
     record Node(String key, String name, String responsibility) { }
     record Definition(String id, String key, List<Node> nodes) { }

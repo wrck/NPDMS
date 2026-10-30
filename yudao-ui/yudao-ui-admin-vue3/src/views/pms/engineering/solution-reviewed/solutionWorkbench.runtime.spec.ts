@@ -147,9 +147,16 @@ const draftRow = (overrides: Partial<Record<string, unknown>> = {}) =>
 
 beforeEach(() => {
   vi.clearAllMocks()
+  createSolution.mockResolvedValue(13)
   policyMock.mockResolvedValue({ configured: true, reviewLevel: 0, reason: '' })
   getProject.mockResolvedValue({ projectCode: 'PJT-TEST-001', projectName: '测试项目' })
 })
+
+const confirmPreparedDraft = async () => {
+  await vi.waitFor(() => expect(tieredOpen).toHaveBeenCalled())
+  expect(createSolution).not.toHaveBeenCalled()
+  await tieredOpen.mock.calls[0][1].beforeSubmit()
+}
 
 describe('实施方案页面结构', () => {
   it('复制后按返回ID直接打开新草稿，即使分页仍只包含原驳回方案', async () => {
@@ -234,6 +241,7 @@ describe('实施方案页面结构', () => {
     await vi.waitFor(() => expect(getProject).toHaveBeenCalledWith(projectId))
     await vi.waitFor(() => expect(findByTestId(root, 'stub-submit')).toBeTruthy())
     ;(findByTestId(root, 'stub-submit')!.props!.onClick as Function)()
+    await confirmPreparedDraft()
     await vi.waitFor(() => expect(createSolution).toHaveBeenCalled())
     expect(createSolution.mock.calls[0][0]).toMatchObject({
       projectId, name: 'PJT-TEST-001_测试项目_实施方案_V1'
@@ -343,6 +351,7 @@ describe('实施方案页面结构', () => {
     await vi.waitFor(() => expect(findByTestId(root, 'solution-create-dialog')).toBeTruthy())
     // 版本标签按方案版本自动生成（项目首份为 V1），名称按 项目编码_项目名称_实施方案_版本标签 收尾
     ;(findByTestId(root, 'stub-submit')!.props!.onClick as Function)()
+    await confirmPreparedDraft()
     await vi.waitFor(() => expect(createSolution).toHaveBeenCalled())
     const draftPayload = createSolution.mock.calls[0][0] as any
     expect(draftPayload.versionLabel).toBe('V1')
@@ -362,8 +371,9 @@ describe('实施方案页面结构', () => {
     ;(findButton(root, '确定')!.props!.onClick as Function)()
     // 弹窗确定只落到本地草稿，记录创建仍由保存草稿/提交审核承载
     expect(createSolution).not.toHaveBeenCalled()
-    // 经提交入口建记录：登记信封随载荷写入；版本标签按方案版本自动顺延（已有 1 份 → V2）
+    // 最终确认才建记录：登记信封随载荷写入；版本标签按方案版本自动顺延（已有 1 份 → V2）
     ;(findByTestId(root, 'stub-submit')!.props!.onClick as Function)()
+    await confirmPreparedDraft()
     await vi.waitFor(() => expect(createSolution).toHaveBeenCalled())
     const draftPayload = createSolution.mock.calls[0][0] as any
     expect(JSON.parse(draftPayload.remark)).toMatchObject({ hasCustomerPlan: 'no', customerPlanUrl: '' })

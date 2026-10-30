@@ -12,6 +12,10 @@ public class BpmCutoverActivityBehaviorFactory extends BpmActivityBehaviorFactor
                 && CutoverWorkflowApi.DEFINITION_KEY.equals(process.getId())
                 && userTask.getExtensionElements().containsKey("cutoverRoleGroup"))
             return new CutoverRoleTaskActivityBehavior(userTask);
+        if (userTask.getParentContainer() instanceof org.flowable.bpmn.model.Process process
+                && cn.iocoder.yudao.module.bpm.api.solutionreview.SolutionReviewBpmApi.DEFINITION_KEY.equals(process.getId())
+                && userTask.getExtensionElements().containsKey("pmsReviewRole"))
+            return new CutoverRoleTaskActivityBehavior(userTask);
         return super.createUserTaskActivityBehavior(userTask);
     }
 }

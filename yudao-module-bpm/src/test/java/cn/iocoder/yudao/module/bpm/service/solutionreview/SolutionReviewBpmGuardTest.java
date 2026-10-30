@@ -20,7 +20,7 @@ class SolutionReviewBpmGuardTest {
     final ProjectParticipantFactApi participants = mock(ProjectParticipantFactApi.class);
     final ExplicitPermissionApi permissions = mock(ExplicitPermissionApi.class);
     final SolutionReviewBpmGuard guard = new SolutionReviewBpmGuard(mock(RuntimeService.class),mock(RepositoryService.class),
-            scope,participants,permissions,mock(AdminUserApi.class));
+            scope,participants,permissions,mock(AdminUserApi.class),mock(SolutionReviewRoleTasks.class));
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
         var visible = new ProjectScopeResult(9L,1L,Set.of(9L),Set.of());

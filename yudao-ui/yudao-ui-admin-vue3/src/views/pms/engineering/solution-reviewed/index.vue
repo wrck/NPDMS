@@ -24,6 +24,7 @@
           <el-select
             :model-value="form.id ?? undefined"
             :loading="detailLoading"
+            :disabled="saving"
             placeholder="选择本项目的实施方案"
             class="!w-320px"
             data-testid="solution-workbench-select"
@@ -336,6 +337,7 @@ watch(
 
 const solutionLabel = (row: SolutionVO) => `${row.name}（${row.versionLabel || '未设版本'}）`
 const pickSolution = (id: number | string) => {
+  if (saving.value) return
   const row = rows.value.find(item => String(item.id) === String(id))
   if (row) openForm(row)
 }
@@ -394,7 +396,7 @@ let savedCustomerDraft: string | undefined
 const createVisible = ref(false)
 const createChoice = reactive({ hasCustomerPlan: 'no', customerPlanUrl: '' })
 const openCreate = () => {
-  if (props.readonly) return
+  if (props.readonly || saving.value) return
   createChoice.hasCustomerPlan = 'no'
   createChoice.customerPlanUrl = ''
   createCustomerFiles.value=[]
@@ -526,22 +528,36 @@ const save = async () => {
     saving.value = false
   }
 }
-// 提交审批：唯一提交入口——保存后统一弹出审批发起框选择候选人；流程内分支网关按提交时冻结的审核级别路由（服务经理审核，重大项目由工程管理部复审），界面不再区分级别
+// 打开准备窗口只读；最终确认时才保存当前草稿及附件，并以保存后的版本发起审批。
 const submitReview = async () => {
-  if (readOnly.value) return
+  if (readOnly.value || saving.value) return
+  const source = form.value, sequence = detailSequence
   if (formRef.value?.validate) {
     try { await formRef.value.validate() } catch { return }
   }
-  saving.value = true
-  try {
-    await persistDraftAndCustomerFiles()
-    await load()
-    tieredReview.value?.open(form.value)
-  } catch (failure: any) {
-    message.error(failure?.message || '方案保存失败，尚未发起审批')
-  } finally {
-    saving.value = false
-  }
+  if (form.value !== source || sequence !== detailSequence || readOnly.value) return
+  let preparedDraft: string | undefined
+  await tieredReview.value?.open(source, { beforeSubmit: async () => {
+    if (form.value !== source || sequence !== detailSequence || readOnly.value || saving.value) {
+      throw new Error('当前方案已变化，请关闭审批窗口后重新提交')
+    }
+    if (formRef.value?.validate) await formRef.value.validate()
+    if (form.value !== source || sequence !== detailSequence || readOnly.value || saving.value) {
+      throw new Error('当前方案已变化，请关闭审批窗口后重新提交')
+    }
+    saving.value = true
+    try {
+      // 发起请求响应丢失时允许以同一版本重试，由服务端返回已创建的审批。
+      if (preparedDraft !== JSON.stringify(source) || pendingCustomerFiles.value.length || pendingScripts.value.length) {
+        await persistDraftAndCustomerFiles()
+        preparedDraft = JSON.stringify(source)
+      }
+      if (form.value !== source || sequence !== detailSequence) throw new Error('当前方案已变化，请重新提交')
+      return { ...source }
+    } finally {
+      saving.value = false
+    }
+  } })
 }
 const remove = async (row: SolutionVO) => {
   if (props.readonly || row.status !== 0) return
