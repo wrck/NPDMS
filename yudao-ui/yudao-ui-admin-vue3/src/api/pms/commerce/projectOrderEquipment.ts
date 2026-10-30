@@ -5,7 +5,6 @@ import {
   type SalesOrderLineRespVO
 } from './index'
 import type { ProjectEquipmentProduct } from './projectEquipment'
-import { AssetProductOfficialApi, type ProductOfficialVO } from '@/api/pms/asset/product-official'
 
 type ProjectOrderEquipmentProduct = Omit<ProjectEquipmentProduct, 'deviceCount'>
 interface ProjectOrderEquipmentQuery {
@@ -38,40 +37,30 @@ export const loadProjectOrderEquipmentList = async ({
   const scopes = assigned.filter((scope) => scope.scopeStatus === 'ACTIVE' && !scope.effectiveTo)
   const grouped = new Map<string, DeliveryScopeRespVO[]>()
   for (const scope of scopes) {
-    const code = scope.productCode?.trim() || '—'
+    const code = scope.productCode || '—'
     const group = grouped.get(code) ?? []
     group.push(scope)
     grouped.set(code, group)
   }
   const orderNos = [...new Set(scopes.map((scope) => scope.orderNo?.trim()).filter(Boolean))]
-  const [orderPages, products] = await Promise.all([
-    Promise.all(orderNos.map((orderNo) => loadPages<SalesOrderLineRespVO>({
+  const orderPages = await Promise.all(orderNos.map((orderNo) => loadPages<SalesOrderLineRespVO>({
       load: (pageNo) => getSalesOrderLinePage({ orderNo, pageNo, pageSize: 100 }),
       isCurrent
-    }).catch(() => []))),
-    Promise.all([...grouped.keys()].map(async (code) => {
-      const matches: ProductOfficialVO[] | undefined = await loadPages<ProductOfficialVO>({
-        load: (pageNo) => AssetProductOfficialApi.page({ keyword: code, pageNo, pageSize: 100 }),
-        isCurrent
-      }).catch(() => [])
-      return matches?.find((product) => product.productCode?.trim() === code)
-    }))
-  ])
+    }).catch(() => [])))
   if (!isCurrent()) return
   const lines = new Map(orderPages.flatMap((page) => page ?? []).map((line) => [String(line.id), line]))
-  const list: ProjectOrderEquipmentProduct[] = [...grouped].map(([code, group], index) => {
+  const list: ProjectOrderEquipmentProduct[] = [...grouped].map(([code, group]) => {
     const orderLineIds = new Set(group.map((scope) => String(scope.orderLineId)))
     const matched = [...orderLineIds].map((id) => lines.get(id))
-    const complete = matched.every((line) => line?.productCode?.trim() === code)
+    const complete = matched.every((line) => line?.productCode === code)
     const quantity = (field: 'orderQty' | 'deliveredQty' | 'openQty') =>
       complete && matched.every((line) => line?.[field] != null)
         ? matched.reduce((sum, line) => sum + Number(line![field]), 0) : undefined
-    const product = products[index]
     return {
       productCode: code,
-      productModel: product?.productModel?.trim() || '',
+      productModel: group.find((scope) => scope.productModel)?.productModel || '',
       productName: group.find((scope) => scope.productDesc?.trim())?.productDesc?.trim()
-        || product?.productName?.trim() || '',
+        || group.find((scope) => scope.productName)?.productName || '',
       orderNo: [...new Set(group.map((scope) => scope.orderNo?.trim()).filter(Boolean))].join('、') || undefined,
       projectQty: group.every((scope) => scope.allocatedQuantity != null)
         ? group.reduce((sum, scope) => sum + Number(scope.allocatedQuantity), 0) : undefined,

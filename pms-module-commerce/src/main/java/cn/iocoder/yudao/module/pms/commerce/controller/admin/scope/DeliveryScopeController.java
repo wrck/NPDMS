@@ -126,7 +126,7 @@ public class DeliveryScopeController {
                 .version(scope.getVersion()).details(details).allocationConfirmed(scope.getAllocationConfirmed())
                 .deliveredQuantity(scope.getDeliveredQuantity()).openQuantity(scope.getOpenQuantity())
                 .contractNo(order==null?null:order.contractNo()).orderQuantity(order==null?null:order.orderQuantity())
-                .unitCode(order==null?null:order.unitCode()).build();
+                .unitCode(order==null?null:order.unitCode()).productModel(scope.getProductModel()).productName(scope.getProductName()).build();
     }
 
     private Long parseVersion(String value) {

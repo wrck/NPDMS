@@ -52,6 +52,7 @@
 
     <sql id="visibleDeviceConditions">
         FROM ast_device d
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
         WHERE d.tenant_id = #{query.tenantId}
           AND d.deleted = b'0'
         <include refid="deviceVisibility"/>
@@ -81,6 +82,24 @@
             FORCE INDEX (idx_ast_device_visibility_cover)
         </if>
     </sql>
+
+    <select id="selectListProjectIdsByMatch" resultType="java.lang.Long">
+        SELECT DISTINCT d.project_id
+        FROM ast_device d
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = 0
+          AND d.project_id IS NOT NULL
+        <if test="query.deviceSnKeyword != null and query.deviceSnKeyword != ''">
+            AND d.sn LIKE CONCAT('%', #{query.deviceSnKeyword}, '%')
+        </if>
+        <if test="query.deviceProductModelKeyword != null and query.deviceProductModelKeyword != ''">
+            AND (<include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductModel"/>)
+                LIKE CONCAT('%', #{query.deviceProductModelKeyword}, '%')
+        </if>
+        <if test="query.deviceWarrantyStatus != null and query.deviceWarrantyStatus != ''">
+            AND d.warranty_status = #{query.deviceWarrantyStatus}
+        </if>
+    </select>
 
     <select id="selectProjectCandidates" resultType="java.lang.Long">
         SELECT DISTINCT d.project_id
@@ -207,7 +226,7 @@
     </select>
 
     <select id="selectVisibleArchiveList" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
-        SELECT d.id, d.tenant_id, d.sn, d.name, d.product_code, d.product_model, d.product_name, d.product_desc, d.shipment_time, d.package_no, d.contract_no, d.shipment_record_id, d.project_id, d.project_assignment_version, d.customer_id, d.customer_assignment_version, d.site_id, d.site_location_id, d.location_resolution_status, d.location_snapshot, d.location_effective_from, d.location_record_id, d.warranty_start_date, d.warranty_end_date, d.warranty_status, d.conp_version, d.conp_type, d.conp_series, d.conp_mark, d.status, d.remark, d.source_system, d.source_key, d.source_version, d.source_updated_at, d.synced_at, d.sync_status, d.version, d.creator, d.create_time, d.updater, d.update_time, d.deleted
+        SELECT <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentDeviceColumns"/>
         <include refid="visibleDeviceConditions"/>
         ORDER BY d.id DESC
         LIMIT #{query.offset}, #{query.pageSize}
@@ -220,7 +239,7 @@
                    d.status,
                    d.product_code,
                    <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductModel"/> AS product_model,
-                   d.product_name,
+                   <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductName"/> AS product_name,
                    d.shipment_time,
                    d.package_no,
                    d.contract_no,
@@ -251,6 +270,7 @@
         WITH device_page AS (
             SELECT <include refid="deviceListColumns"/>
             FROM ast_device d
+            <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
             LEFT JOIN ast_device_network_version nv ON nv.tenant_id = d.tenant_id
               AND nv.device_sn = d.sn AND nv.deleted = b'0' AND nv.source_system = 'DEVICE_LOG'
               AND (nv.sync_status IS NULL OR nv.sync_status &lt;&gt; 'NOT_AVAILABLE')
@@ -286,6 +306,28 @@
         <include refid="deviceVisibility"/>
         <include refid="deviceSearchFilters"/>
         <include refid="deviceListNameFilters"/>
+    </select>
+
+    <select id="selectCurrentProjectDevicesByIds" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentDeviceColumns"/>
+        FROM ast_device d
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
+        WHERE d.tenant_id = #{query.tenantId} AND d.project_id = #{query.projectId} AND d.deleted = b'0'
+        <choose>
+            <when test="query.deviceIds != null and !query.deviceIds.isEmpty()">
+                AND d.id IN <foreach collection="query.deviceIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY d.id
+    </select>
+
+    <select id="selectCurrentProjectDevices" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentDeviceColumns"/>
+        FROM ast_device d
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
+        WHERE d.tenant_id = #{query.tenantId} AND d.project_id = #{query.projectId} AND d.deleted = b'0'
+        ORDER BY d.id
     </select>
 
     <select id="existsVisibleDevice" resultType="boolean">

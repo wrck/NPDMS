@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeD
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopePageQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderFieldsQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderFieldsRow;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopePageRow;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeFactException;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
@@ -59,7 +60,7 @@ public class CommerceDeliveryScopeQueryService {
         if (total == 0L) {
             return PageResult.empty();
         }
-        List<DeliveryScopeDO> scopes = scopeMapper.selectPageByProjectScope(query);
+        List<DeliveryScopePageRow> scopes = scopeMapper.selectPageByProjectScope(query);
         if (scopes.isEmpty()) {
             return new PageResult<>(List.of(), total);
         }

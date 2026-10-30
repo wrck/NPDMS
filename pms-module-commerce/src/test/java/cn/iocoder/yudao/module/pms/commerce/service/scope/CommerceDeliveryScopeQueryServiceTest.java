@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeP
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderFieldsRow;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeFactException;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopePageRow;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,7 +42,7 @@ class CommerceDeliveryScopeQueryServiceTest {
     void shouldPageOnlyStableCurrentProjectScopeAndAttachDetails() {
         when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(20L, 10L));
         when(scopeMapper.selectCountByProjectScope(any())).thenReturn(3L);
-        DeliveryScopeDO scope = new DeliveryScopeDO();
+        DeliveryScopePageRow scope = new DeliveryScopePageRow();
         scope.setId(101L);
         scope.setProjectId(10L);
         when(scopeMapper.selectPageByProjectScope(any())).thenReturn(List.of(scope));
@@ -90,7 +91,7 @@ class CommerceDeliveryScopeQueryServiceTest {
     @Test void missingOrderContractDoesNotHideAuthorizedDeliveryScopesOrInventAProjectContract() {
         when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
         when(scopeMapper.selectCountByProjectScope(any())).thenReturn(1L);
-        var scope = new DeliveryScopeDO(); scope.setId(101L); scope.setProjectId(10L);
+        var scope = new DeliveryScopePageRow(); scope.setId(101L); scope.setProjectId(10L);
         when(scopeMapper.selectPageByProjectScope(any())).thenReturn(List.of(scope));
         when(scopeMapper.selectOrderFields(any())).thenReturn(List.of());
         var result = service.page(CommerceDeliveryScopeQueryService.PageQuery.builder().tenantId(1L).subjectUserId(7L).projectId(10L).limit(20).build());
@@ -118,5 +119,45 @@ class CommerceDeliveryScopeQueryServiceTest {
                 assertThrows(DeliveryScopeFactException.class,
                         () -> service.currentVersion(1L, 7L, 11L)).getCode());
         verify(projectVersionService).current(1L, 10L);
+    }
+
+    @Test
+    void retainsEachAuthorizedSourceProjectionWithoutMutatingOrRegroupingScopes() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(84499L));
+        when(scopeMapper.selectCountByProjectScope(any())).thenReturn(3L);
+        var first = productScope(101L, " 02011299 ");
+        var duplicate = productScope(102L, "02011299");
+        var missing = productScope(103L, "02010257");
+        first.setProductModel("QSFP28-LX2-SM1310-CWDM4");
+        first.setProductName("产品名称");
+        duplicate.setProductModel(first.getProductModel());
+        when(scopeMapper.selectPageByProjectScope(any())).thenReturn(List.of(first, duplicate, missing));
+
+        var result = service.page(1L, 7L, 84499L, null, false, 0, 20);
+
+        assertEquals("QSFP28-LX2-SM1310-CWDM4", result.getList().getFirst().scope().getProductModel());
+        assertEquals("产品名称", result.getList().getFirst().scope().getProductName());
+        assertEquals(result.getList().getFirst().scope().getProductModel(), result.getList().get(1).scope().getProductModel());
+        assertNull(result.getList().getLast().scope().getProductModel());
+        assertSame(first, result.getList().getFirst().scope());
+        assertEquals(" 02011299 ", first.getProductCode());
+        verify(scopeMapper, never()).updateById(any(DeliveryScopeDO.class));
+    }
+
+    @Test
+    void sourceQueryFailureIsPropagatedInsteadOfReturningAnEmptyOrPartialPage() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(84499L));
+        when(scopeMapper.selectCountByProjectScope(any())).thenReturn(1L);
+        when(scopeMapper.selectPageByProjectScope(any())).thenThrow(new IllegalStateException("product source unavailable"));
+        assertThrows(IllegalStateException.class, () -> service.page(1L, 7L, 84499L, null, false, 0, 20));
+        verifyNoInteractions(detailMapper);
+    }
+
+    private DeliveryScopePageRow productScope(Long id, String code) {
+        var scope = new DeliveryScopePageRow();
+        scope.setId(id);
+        scope.setProjectId(84499L);
+        scope.setProductCode(code);
+        return scope;
     }
 }

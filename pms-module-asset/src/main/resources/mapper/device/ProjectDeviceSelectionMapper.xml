@@ -5,11 +5,13 @@
         <choose>
             <when test="query.projectId != null and query.projectId > 0">
                 SELECT d.id FROM ast_device d
+                <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
                 <include refid="candidateFilters"/>
                 AND d.project_id = #{query.projectId}
                 <if test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
                     UNION
                     SELECT d.id FROM ast_device d
+                    <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
                     <include refid="candidateFilters"/>
                     AND d.contract_no IN
                     <foreach collection="query.contractNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
@@ -27,12 +29,7 @@
         <if test="query.sn != null and query.sn != ''">AND d.sn LIKE CONCAT('%', #{query.sn}, '%')</if>
         <if test="query.name != null and query.name != ''">AND d.name LIKE CONCAT('%', #{query.name}, '%')</if>
         <if test="query.productModel != null and query.productModel != ''">
-            <choose>
-                <when test="query.keyword != null and query.keyword != ''">
-                    AND (<include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductModel"/>) LIKE CONCAT('%', #{query.productModel}, '%')
-                </when>
-                <otherwise>AND d.product_model LIKE CONCAT('%', #{query.productModel}, '%')</otherwise>
-            </choose>
+            AND (<include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductModel"/>) LIKE CONCAT('%', #{query.productModel}, '%')
         </if>
         <if test="query.contractNo != null and query.contractNo != ''">AND d.contract_no LIKE CONCAT('%', #{query.contractNo}, '%')</if>
     </sql>
@@ -45,17 +42,21 @@
         <choose>
             <when test="query.projectId != null and query.projectId > 0">
                 SELECT <include refid="candidateColumns"/> FROM ast_device d
+                <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
                 <include refid="candidateFilters"/>
                 AND d.project_id = #{query.projectId}
                 <if test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
                     UNION
                     SELECT <include refid="candidateColumns"/> FROM ast_device d
+                    <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
                     <include refid="candidateFilters"/>
                     AND d.contract_no IN
                     <foreach collection="query.contractNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
                 </if>
             </when>
-            <otherwise>SELECT <include refid="candidateColumns"/> FROM ast_device d WHERE 1 = 0</otherwise>
+            <otherwise>SELECT <include refid="candidateColumns"/> FROM ast_device d
+                <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
+                WHERE 1 = 0</otherwise>
         </choose>
         ORDER BY id DESC
         LIMIT #{query.offset}, #{query.pageSize}

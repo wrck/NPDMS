@@ -289,7 +289,7 @@ class CutoverExternalBulletinStoreTest {
     private cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO summary(Long id, String version) {
         return new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO(id, 1L, "SN-" + id,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                version, null, null, null, null, null);
+                version, null, null, null, null, null, null);
     }
 
     private CutoverChecklistItemResultDO loadBulletin() {

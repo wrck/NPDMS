@@ -73,6 +73,6 @@ class DeviceSourceFallbackTest {
                 null, null, null, null,
                 null, null, null, null,
                 null, null, null,
-                "V3.2.1", "CONP", "S3", "3.2.1", null, null);
+                "V3.2.1", "CONP", "S3", "3.2.1", null, null, null);
     }
 }

@@ -438,7 +438,7 @@ const loadEquipment = async () => {
       equipmentProducts.value = equipment?.list || []
       const serials = new Map<string, Set<string>>()
       for (const device of equipment?.devices || []) {
-        const code = device.productCode?.trim() || device.productModel?.trim() || '—'
+        const code = device.productCode || device.productModel || '—'
         if (!device.sn?.trim()) continue
         const values = serials.get(code) || new Set<string>()
         values.add(device.sn.trim())

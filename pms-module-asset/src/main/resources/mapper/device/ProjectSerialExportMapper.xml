@@ -3,10 +3,13 @@
 <mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.ProjectSerialExportMapper">
     <select id="selectBatch" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.ProjectSerialExportRow">
         WITH device_batch AS (
-            SELECT d.id AS device_id, d.sn, d.product_code, d.product_name, d.location_snapshot,
+            SELECT d.id AS device_id, d.sn, d.product_code,
+                   <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductName"/> AS product_name,
+                   d.location_snapshot,
                    d.conp_type, d.conp_version, d.warranty_start_date, d.warranty_end_date,
                    nv.boot_version, nv.cpld_version
             FROM ast_device d
+            <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
             LEFT JOIN ast_device_network_version nv ON nv.tenant_id=d.tenant_id AND nv.device_sn=d.sn
               AND nv.deleted=0 AND nv.source_system='DEVICE_LOG'
               AND (nv.sync_status IS NULL OR nv.sync_status&lt;&gt;'NOT_AVAILABLE')

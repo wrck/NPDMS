@@ -37,7 +37,7 @@ public class ProjectSerialExportService {
         var scope=projects.resolveCurrent(new ProjectCurrentScopeQuery(tenant,user.getId(),request.projectId(),ProjectScopeApi.ACTION_VIEW));
         if (scope==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(request.projectId())) throw exception(FORBIDDEN);
         var query=ProjectSerialExportQuery.builder().tenantId(tenant).projectId(request.projectId())
-                .sn(trim(request.sn())).name(trim(request.name())).productCode(trim(request.productCode())).limit(500).build();
+                .sn(trim(request.sn())).name(trim(request.name())).productCode(request.productCode()).limit(500).build();
         List<ProjectSerialExportRow> result=new ArrayList<>();
         while (true) {
             var batch=Objects.requireNonNull(mapper.selectBatch(query));

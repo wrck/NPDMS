@@ -25,7 +25,7 @@ class DeviceCurrentModelSqlTest {
             for (int id = 1; id <= 10; id++)
                 sql.execute("INSERT INTO ast_device(id,tenant_id,project_id,sn,product_code) VALUES(" + id + ",1,10,'SN-" + id + "','C" + id + "')");
             sql.execute("UPDATE ast_device SET product_model='DEVICE-ORIGINAL' WHERE id=2");
-            sql.execute("UPDATE ast_device SET product_model='   ' WHERE id=9");
+            sql.execute("UPDATE ast_device SET product_model='' WHERE id=9");
             sql.execute("INSERT INTO ast_device(id,tenant_id,project_id,sn,product_code) VALUES(11,2,10,'FOREIGN','C1'),(12,1,20,'OUTSIDE','C1')");
             sql.execute("INSERT INTO ast_product_official_info VALUES (1,1,'C1','CRM-ONE','CRM','ACTIVE',0),(2,1,'C2','CRM-OTHER','CRM','ACTIVE',0),"
                     + "(3,1,'C3','A','CRM','ACTIVE',0),(5,1,'C4','SAME','CRM','ACTIVE',0),"
@@ -71,7 +71,8 @@ class DeviceCurrentModelSqlTest {
         assertEquals("CRM-NINE", byId.get(9L));
         assertEquals("A", byId.get(3L)); assertEquals("SAME", byId.get(4L));
         assertEquals("INACTIVE", byId.get(6L)); assertEquals("OTHER-SOURCE", byId.get(8L));
-        for (long id : List.of(5L,7L,10L)) assertNull(byId.get(id), "unexpected model for " + id);
+        for (long id : List.of(5L,7L)) assertNull(byId.get(id), "unexpected model for " + id);
+        assertEquals("   ", byId.get(10L), "主档展示值不在查询中归一化");
         assertEquals(10, rows.size());
         try (var c = source.getConnection(); var s = c.createStatement(); var r = s.executeQuery("SELECT product_model FROM ast_device WHERE id=1")) {
             assertTrue(r.next()); assertNull(r.getString(1));
@@ -86,9 +87,13 @@ class DeviceCurrentModelSqlTest {
         query.setPageNo(1); query.setKeyword("CRM-OTHER");
         assertEquals(0, mapper.selectCountCandidates(query));
     }
-    @Test void independentModelFilterWithoutKeywordKeepsTheOriginalStoredModelSemantics() {
+    @Test void independentModelFilterWithoutKeywordUsesTheDisplayedCurrentModel() {
         var query = query(); query.setProductModel("CRM");
-        assertEquals(0, mapper.selectCountCandidates(query), "旧独立型号条件不能扩大到主档补充型号");
+        assertEquals(2, mapper.selectCountCandidates(query));
+        assertEquals(List.of(9L, 1L), mapper.selectPageCandidates(query).stream().map(row -> row.getId()).toList());
+        query.setKeyword("SN-1");
+        assertEquals(1, mapper.selectCountCandidates(query), "关键词仍按AND收窄当前型号");
+        query.setKeyword(null);
         query.setProductModel("DEVICE-ORIGINAL");
         assertEquals(List.of(2L), mapper.selectPageCandidates(query).stream().map(row -> row.getId()).toList());
         query.setSn("SN-1");
@@ -135,22 +140,22 @@ class DeviceCurrentModelSqlTest {
         assertEquals("CANONICAL-MODEL",values.get(13L));assertEquals("EXACT-MODEL",values.get(15L));
     }
 
-    @Test void paddedBusinessCodesMatchAfterTrimWithoutChangingStoredEvidence() throws Exception {
+    @Test void businessCodesUseNativeEqualityWithoutTrimmingStoredEvidence() throws Exception {
         try(var c=source.getConnection();var sql=c.createStatement()) {
-            sql.execute("INSERT INTO ast_device(id,tenant_id,project_id,sn,product_code) VALUES(13,1,10,'PADDED','02010005        '),(14,1,10,'TRIMMED',' PAD ')");
+            sql.execute("INSERT INTO ast_device(id,tenant_id,project_id,sn,product_code) VALUES(13,1,10,'EXACT','02010005'),(14,1,10,'PADDED',' PAD ')");
             sql.execute("INSERT INTO ast_product_official_info VALUES(13,1,'02010005','SFP-G-SX-MM850','CRM','ACTIVE',0),(14,1,'PAD','PAD-MODEL','CRM','ACTIVE',0)");
         }
         var models=session.getMapper(cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.class)
                 .selectCurrentModels(new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceCurrentModelQuery(1L,Set.of(13L,14L)));
         var values=new HashMap<Long,String>();models.forEach(row->values.put(row.deviceId(),row.productModel()));
-        assertEquals("SFP-G-SX-MM850",values.get(13L));assertEquals("PAD-MODEL",values.get(14L));
+        assertEquals("SFP-G-SX-MM850",values.get(13L));assertNull(values.get(14L));
         var shipments=session.getMapper(cn.iocoder.yudao.module.pms.asset.dal.mysql.device.ProjectDeviceShipmentMapper.class);
         var selection=cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.ProjectShippedDevicePageQuery.builder()
                 .tenantId(1L).projectId(10L).keyword("SFP-G-SX-MM850").pageNo(1).pageSize(20).build();
         assertEquals(1,shipments.countProjectDevices(selection));
         assertEquals(13L,shipments.selectProjectDevices(selection).getFirst().getId());
         try(var c=source.getConnection();var sql=c.createStatement();var raw=sql.executeQuery("SELECT product_code,product_model FROM ast_device WHERE id=13")) {
-            assertTrue(raw.next());assertEquals("02010005        ",raw.getString(1));assertNull(raw.getString(2));
+            assertTrue(raw.next());assertEquals("02010005",raw.getString(1));assertNull(raw.getString(2));
         }
     }
 

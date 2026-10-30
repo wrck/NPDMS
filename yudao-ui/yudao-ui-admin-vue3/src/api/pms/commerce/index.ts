@@ -127,6 +127,8 @@ export interface DeliveryScopeRespVO {
   contractNo?: string | null
   orderQuantity?: number | null
   unitCode?: string | null
+  productModel?: string
+  productName?: string
   allocatedQuantity: number
   allocationConfirmed: boolean
   deliveredQuantity?: number | null

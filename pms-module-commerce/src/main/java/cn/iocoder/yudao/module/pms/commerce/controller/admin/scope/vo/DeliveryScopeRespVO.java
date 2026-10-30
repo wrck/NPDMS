@@ -12,7 +12,7 @@ public record DeliveryScopeRespVO(
         String departmentName, Integer departmentVersion, LocalDateTime effectiveFrom,
         LocalDateTime effectiveTo, Long version, List<Detail> details,
         Boolean allocationConfirmed, BigDecimal deliveredQuantity, BigDecimal openQuantity,
-        String contractNo, BigDecimal orderQuantity, String unitCode) {
+        String contractNo, BigDecimal orderQuantity, String unitCode, String productModel, String productName) {
 
     public record Detail(Long id, Integer sequence, String serialNo, String productName, String productCode,
                          String deviceTypeCode, String deviceTypeName, BigDecimal allocatedQuantity, String status) {
