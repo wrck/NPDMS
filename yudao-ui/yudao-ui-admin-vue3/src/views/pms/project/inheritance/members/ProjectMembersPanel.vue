@@ -42,7 +42,7 @@
       <el-table-column label="操作" width="140" fixed="right"><template #default="{ row }">
         <template v-if="canMaintain(row)">
           <el-button v-if="isCurrent(row)" link type="primary" :disabled="!editable" @click="openMember(row)">编辑</el-button>
-          <el-button v-if="isCurrent(row)" link type="danger" :disabled="!editable" @click="openRemoval(row)">移出项目</el-button>
+          <el-button v-if="isCurrent(row)" link type="danger" :disabled="!editable || !canRemove(row)" @click="openRemoval(row)">移出项目</el-button>
           <el-button v-else link type="primary" :disabled="!editable" @click="openMember(row, true)">重新加入</el-button>
         </template>
         <span v-else>只读</span>
@@ -98,6 +98,7 @@ const loading = ref(false), opening = ref(false), error = ref('')
 const memberVisible = ref(false), removeVisible = ref(false)
 const selected = ref<Members.MemberRecord>(), rejoin = ref(false), dialogProject = ref<Projects.ProjectMasterVO>()
 const managers = ref<Managers.ProjectManagers>()
+const canAppointPrimary = ref(false)
 const removeReason = ref(''), removeError = ref(''), removing = ref(false)
 const replacementPrimaryUserId = ref<number>()
 const retainedManagers = computed(() => managers.value?.members.filter(member => member.userId != null
@@ -117,6 +118,10 @@ let sequence = 0
 const canMaintain = (row: Members.MemberRecord) => (row.memberRole === memberRoles.END_USER
   || row.authorizationConfirmed !== false && row.userId != null) && Members.memberRoleOptions.some(role =>
   role.value === Members.logicalMemberRole(row.memberRole) && checkPermi([role.permission]))
+  && (Members.logicalMemberRole(row.memberRole) !== memberRoles.SERVICE_MANAGER || canAppointPrimary.value)
+const canRemove = (row: Members.MemberRecord) => canMaintain(row)
+  && (row.memberRole !== memberRoles.PROJECT_MANAGER || row.userId == null
+    || String(row.userId) !== String(managers.value?.primaryUserId) || canAppointPrimary.value)
 const isCurrent = (row: Members.MemberRecord) => (row.memberRole === memberRoles.END_USER || row.authorizationConfirmed !== false) && row.status === 'ACTIVE'
   && (!row.effectiveFrom || new Date(row.effectiveFrom).getTime() <= Date.now())
   && (!row.effectiveTo || new Date(row.effectiveTo).getTime() > Date.now())
@@ -134,14 +139,16 @@ const load = async () => {
   loading.value = true
   error.value = ''
   try {
-    const [result, managerState] = await Promise.all([
+    const [result, managerState, appointmentPermission] = await Promise.all([
       Members.getMemberPage(projectId, { ...query, role: query.role || undefined, keyword: query.keyword || undefined }),
-      Managers.getProjectManagers(projectId)
+      Managers.getProjectManagers(projectId),
+      Members.canAppointPrimaryProjectManager(projectId).catch(() => false)
     ])
     if (request !== sequence) return
     rows.value = result.list
     total.value = result.total
     managers.value = managerState
+    canAppointPrimary.value = appointmentPermission
   } catch { if (request === sequence) error.value = '成员加载失败，当前数据可能未刷新。请重试后再操作。' }
   finally { if (request === sequence) loading.value = false }
 }
@@ -166,6 +173,7 @@ const openMember = async (row?: Members.MemberRecord, joining = false) => {
   memberVisible.value = true
 }
 const openRemoval = async (row: Members.MemberRecord) => {
+  if (!canRemove(row)) return
   if (!await prepare()) return
   selected.value = row
   removeReason.value = ''

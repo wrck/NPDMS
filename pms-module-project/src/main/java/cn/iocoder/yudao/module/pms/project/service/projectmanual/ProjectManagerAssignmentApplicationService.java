@@ -132,6 +132,8 @@ public class ProjectManagerAssignmentApplicationService {
                 || project.getCompanyId() == null) {
             throw exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, "项目或项目公司范围不存在");
         }
+        projectAuthorizationGuard.assertCanMaintainServiceManagers(
+                new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.actorId()), project);
         var projectSites = projectSiteService.getActiveSites(command.projectId());
         boolean levelTwo = "L2".equals(command.levelCode());
         if (projectSites.isEmpty()) {

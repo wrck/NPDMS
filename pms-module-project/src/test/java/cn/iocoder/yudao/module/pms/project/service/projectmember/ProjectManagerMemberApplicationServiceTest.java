@@ -32,6 +32,10 @@ class ProjectManagerMemberApplicationServiceTest {
         var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setVersion(0L);
         project.setCompanyId(8L); project.setLifecycleStatus("ACTIVE");
         var current = new ArrayList<ProjectMemberAssignmentDO>();
+        var unbound = new ProjectMemberAssignmentDO(); unbound.setId(70L); unbound.setMemberName("历史姓名");
+        current.add(unbound);
+        var retired = new ProjectMemberAssignmentDO(); retired.setId(71L); retired.setUserId(41L); retired.setMemberName("旧经理");
+        current.add(retired); project.setManagerId(41L);
         when(projects.selectByIdForUpdate(9L)).thenReturn(project);
         when(members.selectProjectManagersForUpdate(any())).thenReturn(current);
         when(members.insert(any(ProjectMemberAssignmentDO.class))).thenAnswer(call -> {
@@ -49,6 +53,10 @@ class ProjectManagerMemberApplicationServiceTest {
         var initial = new ProjectManagerMemberCommand(9L, 0L, Set.of(42L), Set.of(), 42L, "指定经理", "first");
         var saved = service.update(initial, actor);
         assertTrue(saved.changed()); assertEquals(1, facts.getFirst().businessEvents().size());
+        assertEquals(2, saved.members().size());
+        assertNull(unbound.getUserId()); assertNull(unbound.getEffectiveTo());
+        assertNull(retired.getEffectiveTo());
+        verify(users).page(org.mockito.ArgumentMatchers.argThat(query -> query.userIds().equals(Set.of(42L))));
         assertEquals("ProjectManagersChanged", facts.getFirst().eventType());
         var event = facts.getFirst().businessEvents().getFirst();
         assertEquals("ProjectRuleReevaluationRequested", event.eventType());

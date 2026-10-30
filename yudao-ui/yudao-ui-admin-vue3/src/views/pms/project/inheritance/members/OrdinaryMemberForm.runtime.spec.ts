@@ -6,7 +6,7 @@ import { mount, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/
 
 vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
 vi.mock('@/api/pms/project/unified-members', async importOriginal => ({
-  ...await importOriginal<typeof Members>(), getMemberCandidates: vi.fn(), saveMember: vi.fn()
+  ...await importOriginal<typeof Members>(), getMemberCandidates: vi.fn(), saveMember: vi.fn(), canAppointPrimaryProjectManager: vi.fn(async () => true)
 }))
 vi.mock('@/utils/permission', () => ({ checkPermi: vi.fn(() => true) }))
 vi.mock('@/api/pms/project/projects', () => ({ getProjectSites: vi.fn(async () => []) }))
@@ -52,13 +52,14 @@ const currentMember = { id: 12, projectId: 9, userId: 40, memberRole: 'TEAM_MEMB
 describe('unified ordinary member form', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(Members.canAppointPrimaryProjectManager).mockResolvedValue(true)
     vi.mocked(Members.getMemberCandidates).mockReset().mockResolvedValue({ list: [{ id: 40, username: 'engineer', nickname: '普通人员' }], total: 1 })
     vi.mocked(Members.saveMember).mockResolvedValue({ projectId: 9, version: 4, assignmentId: 13, userId: 40, memberRole: 'TEAM_MEMBER', changed: true })
   })
   it('maintains external end users without querying system candidates', async () => {
     const { root, app } = setup({ defaultRole: 'END_USER', member: { ...currentMember,
       userId: null, memberRole: 'END_USER', memberName: '外部姓名', companyName: '客户单位',
-      departmentName: '客户建设部', title: '原职务', mobile: '123', email: 'a@example.test' } })
+      departmentName: '客户建设部', title: '原职务', mobile: '13800138000', email: 'a@example.test' } })
     await nextTick()
     expect(Members.getMemberCandidates).not.toHaveBeenCalled()
     expect(find(root, item => item.props?.['aria-label'] === '人员')).toBeUndefined()
@@ -68,7 +69,7 @@ describe('unified ordinary member form', () => {
     await set(root, '职务', ' 副主任 ')
     await submit(root)
     expect(Members.saveMember).toHaveBeenCalledWith(9, 12, expect.objectContaining({
-      userId: null, memberRole: 'END_USER', externalPerson: { name: '修改姓名', companyName: '客户单位', department: '客户建设部', title: '副主任', mobile: '123', email: 'a@example.test' }
+      userId: null, memberRole: 'END_USER', externalPerson: { name: '修改姓名', companyName: '客户单位', department: '客户建设部', title: '副主任', mobile: '13800138000', email: 'a@example.test' }
     }), 3, expect.any(String))
     app.unmount()
   })
@@ -79,12 +80,12 @@ describe('unified ordinary member form', () => {
     expect(Members.getMemberCandidates).not.toHaveBeenCalled()
     empty.app.unmount()
     const { root, app } = setup({ rejoin: true, member: { ...currentMember, userId: null,
-      memberRole: 'END_USER', memberName: '历史姓名', departmentName: '历史部门', title: '历史职务', mobile: '456', effectiveTo: new Date() } })
+      memberRole: 'END_USER', memberName: '历史姓名', departmentName: '历史部门', title: '历史职务', mobile: '13900139000', effectiveTo: new Date() } })
     await nextTick()
     await submit(root)
     expect(Members.getMemberCandidates).not.toHaveBeenCalled()
     expect(Members.saveMember).toHaveBeenCalledWith(9, undefined, expect.objectContaining({ userId: null,
-      externalPerson: { name: '历史姓名', companyName: '', department: '历史部门', title: '历史职务', mobile: '456', email: '' }
+      externalPerson: { name: '历史姓名', companyName: '', department: '历史部门', title: '历史职务', mobile: '13900139000', email: '' }
     }), 3, expect.any(String))
     app.unmount()
   })
@@ -100,9 +101,39 @@ describe('unified ordinary member form', () => {
       { userId: 40, memberRole: 'TEAM_MEMBER', responsibility: '', remark: '保留普通备注', reason: '现场支持', primary: undefined, scope: undefined }, 3, expect.any(String))
     app.unmount()
   })
+  it('resolves an existing member with equivalent string and numeric IDs without clearing the person', async () => {
+    const { root, app } = setup({ member: { ...currentMember, userId: '40' } })
+    await flush()
+    await submit(root)
+    expect(Members.saveMember).toHaveBeenCalledWith(9, 12,
+      expect.objectContaining({ userId: 40, memberRole: 'TEAM_MEMBER' }), 3, expect.any(String))
+    app.unmount()
+  })
+  it('cannot request primary appointment or maintain service managers when project role permission is denied', async () => {
+    vi.mocked(Members.canAppointPrimaryProjectManager).mockResolvedValue(false)
+    const { root, app } = setup({ defaultRole: 'PROJECT_MANAGER' })
+    await flush()
+    const checkbox = find(root, item => item.props?.['aria-label'] === '设为当前角色主责')!
+    expect(checkbox.props?.disabled).toBe(true)
+    await set(root, '人员', 40)
+    // Even a synthetic change to the disabled checkbox must not become a primary mutation.
+    await set(root, '设为当前角色主责', true)
+    await submit(root)
+    expect(Members.saveMember).toHaveBeenCalledWith(9, undefined, expect.objectContaining({ primary: false }), 3, expect.any(String))
+    vi.mocked(Members.saveMember).mockClear()
+    await set(root, '项目角色', 'SERVICE_MANAGER')
+    await submit(root)
+    expect(Members.saveMember).not.toHaveBeenCalled()
+    app.unmount()
+  })
   it.each([
     ['联系电话', '随便填写', '联系电话格式无效'],
     ['联系电话', '+()-', '联系电话格式无效'],
+    ['联系电话', '0'.repeat(64), '联系电话格式无效'],
+    ['联系电话', '121231', '联系电话格式无效'],
+    ['联系电话', '12800138000', '联系电话格式无效'],
+    ['邮箱', '000@1.1', '邮箱格式无效'],
+    ['邮箱', 'a..b@example.com', '邮箱格式无效'],
     ['邮箱', 'invalid-email', '邮箱格式无效']
   ])('rejects malformed external %s without saving', async (label, value, hint) => {
     const { root, app } = setup({ defaultRole: 'END_USER' })
@@ -113,7 +144,7 @@ describe('unified ordinary member form', () => {
     expect(find(root, item => item.props?.role === 'alert')?.props?.title).toBe(hint)
     app.unmount()
   })
-  it.each(['', '+86 (571) 8888-1234'])('accepts optional or international external phone %s', async mobile => {
+  it.each(['', '+86 (571) 8888-1234', '0571-88881234', '13800138000', '+86 13900139000'])('accepts optional or international external phone %s', async mobile => {
     const { root, app } = setup({ defaultRole: 'END_USER' })
     await set(root, '姓名', '最终用户')
     await set(root, '联系电话', mobile)

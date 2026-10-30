@@ -1,7 +1,8 @@
 <template>
-  <div class="system-user-scoped" @input="inputChanged" @compositionend="inputChanged">
+  <div class="system-user-scoped" :aria-busy="resolvingHistory && historicalIds.length > 0" @input="inputChanged" @compositionend="inputChanged">
     <el-select
       ref="selectRef"
+      :style="{ visibility: resolvingHistory && historicalIds.length ? 'hidden' : undefined }"
       :model-value="selectModel"
       :disabled="disabled"
       :clearable="clearable"
@@ -18,7 +19,7 @@
     >
       <el-option
         v-for="id in historicalIds"
-        :key="`history-${id}`"
+        :key="`history-${id}-${labelFor(id)}`"
         :value="id"
         :label="labelFor(id)"
         disabled
@@ -26,7 +27,7 @@
       <el-option
         v-for="row in rows"
         :key="String(row.id)"
-        :value="row.id"
+        :value="optionValue(row.id)"
         :label="labelFor(row.id)"
         :disabled="disabledIds.some((id) => sameSystemUserId(id, row.id))"
       >
@@ -98,6 +99,7 @@ const rows = ref<SystemUserSelectionUser[]>([]),
   keyword = ref(''),
   loading = ref(false),
   error = ref('')
+const resolvingHistory = ref(false)
 const loadingPage = ref(0)
 const paginationVisible = ref(false)
 const paginationStatus = computed(() =>
@@ -144,6 +146,10 @@ const historicalIds = computed(() => {
       : ids.value
   return selected.filter((id) => !rows.value.some((row) => sameSystemUserId(row.id, id)))
 })
+// Long IDs may arrive as strings while a small directory ID is numeric. ElSelect compares
+// option values strictly, so retain the selected value's exact type for the matching option.
+const optionValue = (id: SystemUserId) => props.valueField === 'nickname'
+  ? id : ids.value.find(current => sameSystemUserId(current, id)) ?? id
 const labelFor = (id: SystemUserId) => {
   if (props.valueField === 'nickname' && id === nameLegacyKey.value)
     return String(props.modelValue || '')
@@ -318,13 +324,17 @@ async function resolveHistory() {
     key = props.scopedSource.key
   if (!ids.value.length) {
     history.value = []
+    resolvingHistory.value = false
     return
   }
+  resolvingHistory.value = true
   try {
     const users = await systemUserSelection.scopedResolve(props.scopedSource, ids.value)
     if (request === resolveSequence && key === props.scopedSource.key) history.value = users
   } catch {
     if (request === resolveSequence) error.value = '已选人员回显失败，原编号保留。'
+  } finally {
+    if (request === resolveSequence) resolvingHistory.value = false
   }
 }
 watch(() => [props.scopedSource.key, props.modelValue], resolveHistory, {

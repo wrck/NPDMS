@@ -58,6 +58,18 @@ it('keeps resolved historical names read-only rather than adding them as qualifi
   expect(page.state.rows.map((u: any) => u.id)).toEqual([1])
   expect(page.update).not.toHaveBeenCalled()
 })
+it('keeps the selected ID type on a qualified option so ElSelect can display its name', async () => {
+  const scope = source()
+  scope.search.mockResolvedValue({ list: [{ id: 9, nickname: '当前工勘人' }], total: 1 })
+  scope.resolve.mockResolvedValue([{ id: 9, nickname: '当前工勘人' }])
+  const page = render(scope, { modelValue: '9' })
+  await flush()
+  await page.state.load(1)
+  expect(page.state.optionValue(9)).toBe('9')
+  expect(page.state.historicalIds).toEqual([])
+  expect(page.state.labelFor('9')).toBe('当前工勘人')
+  expect(page.update).not.toHaveBeenCalled()
+})
 it('preserves search/page inputs and appends pages without duplicates', async () => {
   const scope = source()
   scope.search

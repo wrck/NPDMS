@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectmember;
 
 import cn.hutool.crypto.digest.DigestUtil;
-import cn.hutool.core.lang.Validator;
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
@@ -50,6 +49,14 @@ public class OrdinaryProjectMemberService {
     private final ProjectAuthorizationGuard authorization;
     private final PlatformCommandExecutionApi commands;
     private final ProjectManagerMemberApplicationService projectManagers;
+
+    public boolean canAppointPrimaryProjectManager(Long projectId, Actor actor) {
+        validateActor(actor);
+        projects.getProject(projectId, accessActor(actor));
+        return permissions.hasAnyPermissions(actor.userId(), "pms:project:assign")
+                && authorization.canAppointPrimaryProjectManager(
+                new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()), projectId);
+    }
 
     public PageResult<ProjectMemberAssignmentDO> page(Long projectId, Filter filter, Actor actor) {
         validateActor(actor);
@@ -232,6 +239,8 @@ public class OrdinaryProjectMemberService {
 
     private Result serviceManagerMutation(ProjectMasterDO project, ProjectMemberAssignmentDO previous,
             Command command, Actor actor, LocalDateTime now) {
+        authorization.assertCanMaintainServiceManagers(
+                new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()), project);
         if (command.action() == Action.REMOVE) {
             close(previous, command.reason(), now);
             incrementVersion(project);
@@ -335,7 +344,7 @@ public class OrdinaryProjectMemberService {
                     ? values.userId() : null;
             var changed = projectManagers.update(new ProjectManagerMemberCommand(project.getId(), project.getVersion(),
                     samePerson ? Set.of() : Set.of(values.userId()),
-                    previous != null && !samePerson ? Set.of(previous.getUserId()) : Set.of(), primary,
+                    previous != null && previous.getUserId() != null && !samePerson ? Set.of(previous.getUserId()) : Set.of(), primary,
                     command.reason(), command.idempotencyKey()), new ProjectManagerMemberApplicationService.Actor(
                     actor.tenantId(), actor.userId(), actor.correlationId()));
             project.setVersion(changed.version());
@@ -344,7 +353,10 @@ public class OrdinaryProjectMemberService {
                 if (!changed.changed()) incrementVersion(project);
                 return result(project, created, true);
             }
-            if (previous != null) recordEndReason(previous.getId(), command.reason());
+            if (previous != null) {
+                if (previous.getUserId() == null) close(previous, command.reason(), now);
+                else recordEndReason(previous.getId(), command.reason());
+            }
             Long assignmentId = changed.members().stream().filter(member -> Objects.equals(member.userId(), values.userId()))
                     .map(ProjectManagerMemberResult.Member::assignmentId).findFirst().orElseThrow(() -> invalid("经理关系未生成"));
             created = memberMapper.selectById(assignmentId);
@@ -416,9 +428,11 @@ public class OrdinaryProjectMemberService {
     }
     private static void validateExternalContact(ExternalPerson person) {
         String mobile = normalized(person.mobile()), email = normalized(person.email());
-        if (mobile != null && (!mobile.matches("[+()\\-\\s0-9]+") || mobile.chars().noneMatch(Character::isDigit)))
+        // 国内手机号或区号+固话；允许既有 +86 (571) 8888-1234 展示格式。
+        if (mobile != null && !mobile.matches("(?:\\+86[ -]?)?(?:1[3-9][0-9]{9}|(?:0[1-9][0-9]{1,2}|\\(0?[1-9][0-9]{1,2}\\))[ -]?(?:[1-9][0-9]{6,7}|[1-9][0-9]{2,3}-[0-9]{4})(?:-[0-9]{1,6})?)"))
             throw invalid("联系电话格式无效");
-        if (email != null && !Validator.isEmail(email)) throw invalid("邮箱格式无效");
+        if (email != null && !email.matches("[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}"))
+            throw invalid("邮箱格式无效");
     }
 
     private static void validateCommand(Command command) {

@@ -8,7 +8,7 @@ vi.mock('@/api/system/user/selection', () => ({
   sameSystemUserId: (left: unknown, right: unknown) => left != null && right != null && String(left) === String(right),
   systemUserSelection: {
     scoped: (source: any, request: any) => source.search(request),
-    scopedResolve: async () => []
+    scopedResolve: (source: any, ids: any[]) => source.resolve ? source.resolve(ids) : Promise.resolve([])
   }
 }))
 
@@ -16,6 +16,35 @@ const apps: ReturnType<typeof createApp>[] = []
 const settle = async () => {
   for (let index = 0; index < 10; index++) await nextTick()
 }
+it('does not flash an unresolved ID while the selected user name is loading', async () => {
+  let resolveUser: (value: any[]) => void = () => undefined
+  const host = document.createElement('div')
+  document.body.append(host)
+  const source = { key: 'initial-name', search: vi.fn(), resolve: () => new Promise<any[]>(resolve => { resolveUser = resolve }) }
+  const app = createApp(Scoped, { modelValue: 1, scopedSource: source })
+  apps.push(app)
+  for (const component of [ElSelect, ElOption, ElButton, ElTag]) app.component(component.name!, component)
+  app.mount(host)
+  await settle()
+  expect(host.querySelector<HTMLElement>('.el-select')?.style.visibility).toBe('hidden')
+  resolveUser([{ id: 1, nickname: '系统管理员' }])
+  await settle()
+  expect(host.querySelector<HTMLElement>('.el-select')?.style.visibility).not.toBe('hidden')
+  expect(host.querySelector('.el-select__selection')?.textContent).toContain('系统管理员')
+})
+it('displays a qualified user name when the stored ID is a string and the option ID is numeric', async () => {
+  const host = document.createElement('div')
+  document.body.append(host)
+  const search = vi.fn().mockResolvedValue({ list: [{ id: 9, nickname: '当前服务经理' }], total: 1 })
+  const app = createApp(Scoped, { modelValue: '9', scopedSource: { key: 'typed-id', search } })
+  apps.push(app)
+  for (const component of [ElSelect, ElOption, ElButton, ElTag]) app.component(component.name!, component)
+  app.mount(host)
+  await settle()
+  host.querySelector<HTMLElement>('.el-select__wrapper')!.click()
+  await settle()
+  expect(host.querySelector('.el-select__selection')?.textContent).toContain('当前服务经理')
+})
 afterEach(() => {
   apps.splice(0).forEach(app => app.unmount())
   document.body.replaceChildren()
