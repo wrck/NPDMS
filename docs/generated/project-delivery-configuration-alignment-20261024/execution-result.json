@@ -1,0 +1,16 @@
+{
+  "status": "APPLIED_WITH_DOCUMENTED_EXCLUSIONS",
+  "target": "172.17.90.178:13306/npdms tenant 1",
+  "dictionaryValues": 98,
+  "dictionaryTypes": 23,
+  "formalProcesses": 6,
+  "trainingForms": 2,
+  "documentTemplates": 6,
+  "preparationForms": 8,
+  "publishedViews": 2,
+  "incompatibleLegacyViewsNotImported": 12,
+  "verificationPassed": 162,
+  "verificationFailed": 0,
+  "applicationRestarted": false,
+  "sourceDraftsOrSimulatedRulesEnabled": false
+}

@@ -1,0 +1,13 @@
+{
+  "existingTables": 22,
+  "existingRows": 97,
+  "changedExistingRows": [],
+  "addedRows": {
+    "sol_eng_solution": 1,
+    "sol_requirement_analysis_revision": 1,
+    "imp_eng_training": 1,
+    "proj_project_plan_version": 1,
+    "proj_project_task": 16,
+    "proj_project_stage": 7
+  }
+}

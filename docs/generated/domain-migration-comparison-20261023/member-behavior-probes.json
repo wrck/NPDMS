@@ -1,0 +1,71 @@
+{
+  "scope": "Execute actual source and target component predicates with controlled permission input; no API or database mutations",
+  "cases": [
+    {
+      "ref": "codex/domain-migration",
+      "row": {
+        "memberRole": "END_USER",
+        "userId": null,
+        "authorizationConfirmed": false,
+        "status": "ACTIVE"
+      },
+      "canMaintain": true,
+      "isCurrent": true
+    },
+    {
+      "ref": "codex/domain-migration",
+      "row": {
+        "memberRole": "60",
+        "userId": null,
+        "authorizationConfirmed": false,
+        "status": "ACTIVE"
+      },
+      "canMaintain": false,
+      "isCurrent": true
+    },
+    {
+      "ref": "codex/domain-migration",
+      "row": {
+        "memberRole": "TEAM_MEMBER",
+        "userId": 7,
+        "authorizationConfirmed": true,
+        "status": "ACTIVE"
+      },
+      "canMaintain": true,
+      "isCurrent": true
+    },
+    {
+      "ref": "HEAD",
+      "row": {
+        "memberRole": "END_USER",
+        "userId": null,
+        "authorizationConfirmed": false,
+        "status": "ACTIVE"
+      },
+      "canMaintain": false,
+      "isCurrent": false
+    },
+    {
+      "ref": "HEAD",
+      "row": {
+        "memberRole": "60",
+        "userId": null,
+        "authorizationConfirmed": false,
+        "status": "ACTIVE"
+      },
+      "canMaintain": false,
+      "isCurrent": false
+    },
+    {
+      "ref": "HEAD",
+      "row": {
+        "memberRole": "TEAM_MEMBER",
+        "userId": 7,
+        "authorizationConfirmed": true,
+        "status": "ACTIVE"
+      },
+      "canMaintain": true,
+      "isCurrent": true
+    }
+  ]
+}

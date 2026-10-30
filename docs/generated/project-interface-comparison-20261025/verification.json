@@ -1,0 +1,14 @@
+{
+  "files": 555,
+  "different": 121,
+  "drift": [],
+  "backendContractDiffBlocks": 6,
+  "productionDiscoveryFilesVerified": 5070,
+  "discoveryDrift": [],
+  "uiDiffBlocks": 121,
+  "ledgerRows": 121,
+  "staticVueControlInventories": 333,
+  "browserBusinessEntries": 23,
+  "browserCompletedTasks": 16,
+  "localMarkdownLinksMissing": 0
+}

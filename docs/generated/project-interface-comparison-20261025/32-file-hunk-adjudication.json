@@ -1,0 +1,1349 @@
+{
+  "sourceBaseline": "4d149f34faec4b66e93373794693d6bbd738b716",
+  "sourceLater": "e0ae05247e6662c155c5503919506405eed07cf9",
+  "rows": [
+    {
+      "id": "F01",
+      "path": "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/device/dto/ProjectDeviceInstallationFact.java",
+      "beforeSha256": "90f0068e9df61d26f79f3d39deba67eec5de6ab1c125629003dc722337531164",
+      "sourceCommits": [
+        "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F01-H01",
+          "header": "@@ -1,2 +1,6 @@",
+          "diff": "@@ -1,2 +1,6 @@\n package cn.iocoder.yudao.module.pms.asset.api.device.dto;\n-public record ProjectDeviceInstallationFact(Long deviceId, String sn, String locationSnapshot) { }\n+public record ProjectDeviceInstallationFact(Long deviceId, String sn, String locationSnapshot, Long projectAssignmentVersion) {\n+    public ProjectDeviceInstallationFact(Long deviceId, String sn, String locationSnapshot) {\n+        this(deviceId, sn, locationSnapshot, null);\n+    }\n+}\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "移除后续审批重验链新增的设备归属版本投影及兼容构造器；原三字段契约恢复。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        }
+      ],
+      "afterSha256": "1257cb66c1aabd4fefe1dbacc173ca7e9e1ff6f289a82f49cb853d98fc2ea2ef",
+      "verified": true
+    },
+    {
+      "id": "F02",
+      "path": "pms-module-asset/src/main/resources/mapper/device/DeviceQueryMapper.xml",
+      "beforeSha256": "a42b956d1a82df41ea8baee9964e349c85a350c81ff68a4e31ca08a0cb62d16e",
+      "sourceCommits": [
+        "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F02-H01",
+          "header": "@@ -318,7 +318,7 @@",
+          "diff": "@@ -318,7 +318,7 @@\n     </select>\n \n     <select id=\"selectProjectInstallationDevicesForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact\">\n-        SELECT id AS device_id, sn, location_snapshot FROM ast_device\n+        SELECT id AS device_id, sn, location_snapshot, project_assignment_version FROM ast_device\n         WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND deleted = 0\n         ORDER BY id FOR UPDATE\n     </select>\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "仅恢复安装设备锁查询原投影；租户、项目、逻辑删除、排序与FOR UPDATE保持。无DDL/DML。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        }
+      ],
+      "afterSha256": "5e07e2a0c6295287444835348553f46a9a9f6f5dcde15a156635f35beba7b056",
+      "verified": true
+    },
+    {
+      "id": "F03",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalApplicationService.java",
+      "beforeSha256": "1fd64352e574401cd6fd8212d7ef854ea7202c1397f84105c7f5706a47c92dba",
+      "sourceCommits": [
+        "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F03-H01",
+          "header": "@@ -271,16 +271,20 @@",
+          "diff": "@@ -271,16 +271,20 @@\n             return decisionResult(instance, task, current.getNodeNo());\n         }\n         validateAssessmentReview(current, input);\n+        CutoverApprovalNodeDO next = approve ? nodeMapper.selectByInstanceAndNodeForUpdate(\n+                new ApprovalNodeLockQuery(tenantId, instance.getId(), current.getNodeNo() + 1)) : null;\n+        if (approve && next == null) {\n+            if (byRole) readiness.requireCurrentForApproval(new cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.ApprovalRevalidation(\n+                    task, instance.getId(), instance.getVersion(), current.getNodeNo()));\n+            else readiness.requireCurrent(task);\n+        }\n         LocalDateTime now = LocalDateTime.now(clock);\n         var operation = new CutoverOperationContext(actorId, correlationId, now);\n         insertReviewItems(current, reviewItems, operation);\n         workflow.decide(instance, current, input, actorId);\n         updateNode(current, input, new DecisionAuditContext(operation, qualification.roleCandidate()));\n         if (!approve) return rejectNew(instance, task, current, input, operation);\n-        CutoverApprovalNodeDO next = nodeMapper.selectByInstanceAndNodeForUpdate(\n-                new ApprovalNodeLockQuery(tenantId, instance.getId(), current.getNodeNo() + 1));\n         if (next != null) return approveIntermediate(instance, task, current, next, operation);\n-        readiness.requireCurrent(task);\n         return approveFinal(instance, task, current, operation);\n     }\n \n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "恢复原最终审批调用通用requireCurrent及原顺序；原候选资格、事务、节点/任务版本、拒绝分支和就绪校验仍在，不新增审批可读范围。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        }
+      ],
+      "afterSha256": "b704898c6beadbb76498241d98d21cf54b23a94d88c69de60b1f14b2d89b357b",
+      "verified": true
+    },
+    {
+      "id": "F04",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/task/CutoverContextSupport.java",
+      "beforeSha256": "3f0ff5888558d4ad7fbff35b8cbf597913e8abe1c7938e72dcaa9a745959a97a",
+      "sourceCommits": [
+        "e0ae05247e6662c155c5503919506405eed07cf9 fix(cutover): 允许未关联客户的割接等级手选"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F04-H01",
+          "header": "@@ -61,6 +61,11 @@",
+          "diff": "@@ -61,6 +61,11 @@\n \n     static CutoverCustomerLevelPort.CustomerLevelFact customerReference(\n             CutoverCustomerLevelPort port, CutoverProjectContextPort.ProjectContextFact project) {\n+        if (project.customerId() == null && (project.customerCode() == null || project.customerCode().isBlank())) {\n+            // An absent association differs from a failed or unresolved customer lookup.\n+            return CutoverCustomerLevelPort.CustomerLevelFact.builder().status(\"NOT_CONFIGURED\")\n+                    .customerName(project.customerName()).factVersion(0L).build();\n+        }\n         try {\n             var fact = project.customerId() == null ? null : port.inspect(project.customerId());\n             if (fact != null) return fact.toBuilder().customerCode(project.customerCode()).customerName(project.customerName()).build();\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "e0ae05247e6662c155c5503919506405eed07cf9 fix(cutover): 允许未关联客户的割接等级手选"
+          ],
+          "reason": "撤回后续“无客户则NOT_CONFIGURED并允许手选”规则；不把后续新规则当成原行为。",
+          "matchedSourceCommits": [
+            "e0ae05247e6662c155c5503919506405eed07cf9"
+          ]
+        }
+      ],
+      "afterSha256": "2d998703f4533bb0c1964fe6b6668a9a803bf26c8a20dfd0fcc088c0fd585407",
+      "verified": true
+    },
+    {
+      "id": "F05",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/task/CutoverExecutionReadinessPolicy.java",
+      "beforeSha256": "155e17ed15bfa3567ceaaa01a13b94180785eaffc5efa67ee84d500a61e280e1",
+      "sourceCommits": [
+        "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F05-H01",
+          "header": "@@ -13,13 +13,32 @@",
+          "diff": "@@ -13,13 +13,32 @@\n     private final CutoverReadinessPort readiness;\n     private final CutoverTaskSnapshotStore snapshots;\n \n+    public void requireCurrentForApproval(ApprovalRevalidation command) {\n+        var task = command.task();\n+        if (!\"PROJECT_EVENT\".equals(task.getIntakeSourceType())) return;\n+        var expected = snapshots.readinessReference(task);\n+        if (expected == null || !\"READY\".equals(expected.decision()) || !Objects.equals(task.getProjectId(), expected.projectId()))\n+            throw new IllegalArgumentException(\"项目割接缺少有效的前序就绪快照\");\n+        var current = readiness.lockAndRevalidateForApproval(new cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query(\n+                task.getTenantId(), task.getId(), task.getVersion(), command.approvalInstanceId(), command.approvalVersion(), command.nodeNo(),\n+                task.getProjectId(), expected.snapshotId(), expected.snapshotVersion(), expected.deviceIds()));\n+        requireSame(expected, current);\n+    }\n+\n+    public record ApprovalRevalidation(CutoverTaskDO task, Long approvalInstanceId, Long approvalVersion, Integer nodeNo) { }\n+\n     public void requireCurrent(CutoverTaskDO task) {\n         if (!\"PROJECT_EVENT\".equals(task.getIntakeSourceType())) return;\n         var expected = snapshots.readiness(task);\n         if (expected == null || !\"READY\".equals(expected.decision()) || !Objects.equals(task.getProjectId(), expected.projectId()))\n             throw new IllegalArgumentException(\"项目割接缺少有效的前序就绪快照\");\n         var current = readiness.lockAndRevalidate(expected);\n+        requireSame(expected, current);\n+    }\n+\n+    private static void requireSame(CutoverReadinessPort.ReadinessFact expected, CutoverReadinessPort.ReadinessFact current) {\n         if (current == null || !\"READY\".equals(current.decision())\n+                || !Objects.equals(expected.projectId(), current.projectId())\n                 || !Objects.equals(expected.snapshotId(), current.snapshotId())\n                 || expected.snapshotVersion() != current.snapshotVersion()\n                 || !Objects.equals(expected.deviceIds(), current.deviceIds()))\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "撤回后续专用审批路径及其抽取；原PROJECT_EVENT就绪快照/项目/版本/设备集合校验完整恢复。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        }
+      ],
+      "afterSha256": "35e6bff87cdf1bc7556eb5021a3dbf07d725aedab5e2f201ba65518c0edb9509",
+      "verified": true
+    },
+    {
+      "id": "F06",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/task/CutoverTaskCreationQueryService.java",
+      "beforeSha256": "5a13d2a51ae1c43d582f850cd589c408bd2fd3f1c9d280092cb721b129ba75b1",
+      "sourceCommits": [
+        "e0ae05247e6662c155c5503919506405eed07cf9 fix(cutover): 允许未关联客户的割接等级手选",
+        "18a1d1876585f8dbec42922054a25a7cbfc42737 fix(cutover): 恢复客户编码解析与新建等级上下文"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F06-H01",
+          "header": "@@ -4,7 +4,7 @@",
+          "diff": "@@ -4,7 +4,7 @@\n import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi;\n import cn.iocoder.yudao.module.pms.cutover.service.task.context.CutoverTaskContext;\n import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverCustomerLevelPort;\n-import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException;\n+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort;\n import cn.iocoder.yudao.module.pms.cutover.service.task.view.CutoverTaskViews;\n import cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi;\n import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "e0ae05247e6662c155c5503919506405eed07cf9 fix(cutover): 允许未关联客户的割接等级手选",
+            "18a1d1876585f8dbec42922054a25a7cbfc42737 fix(cutover): 恢复客户编码解析与新建等级上下文"
+          ],
+          "reason": "恢复原选项目读取客户服务等级方式及二字段返回；撤回提前完整等级上下文和客户缺省处理，设备解析路径不改。",
+          "matchedSourceCommits": [
+            "18a1d1876585f8dbec42922054a25a7cbfc42737"
+          ]
+        },
+        {
+          "id": "F06-H02",
+          "header": "@@ -31,6 +31,7 @@",
+          "diff": "@@ -31,6 +31,7 @@\n     private final DeviceQueryApi devices;\n     private final CutoverCustomerLevelPort customerLevels;\n     private final CutoverTaskQueryService tasks;\n+    private final CutoverProjectContextPort projectContexts;\n \n     public List<ProjectBusinessContextApi.Option> projects(ProjectOptionsQuery query) {\n         requireKeyword(query.keyword());\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "e0ae05247e6662c155c5503919506405eed07cf9 fix(cutover): 允许未关联客户的割接等级手选",
+            "18a1d1876585f8dbec42922054a25a7cbfc42737 fix(cutover): 恢复客户编码解析与新建等级上下文"
+          ],
+          "reason": "恢复原选项目读取客户服务等级方式及二字段返回；撤回提前完整等级上下文和客户缺省处理，设备解析路径不改。",
+          "matchedSourceCommits": [
+            "18a1d1876585f8dbec42922054a25a7cbfc42737"
+          ]
+        },
+        {
+          "id": "F06-H03",
+          "header": "@@ -46,17 +47,10 @@",
+          "diff": "@@ -46,17 +47,10 @@\n     public ProjectContext project(ProjectQuery query) {\n         var ownerQuery = authorizedProject(query);\n         var presentation = projects.presentation(ownerQuery);\n-        var project = projects.inspect(ownerQuery);\n-        String customerLevel = null;\n-        if (project.customerId() != null) {\n-            try {\n-                var fact = customerLevels.inspect(project.customerId());\n-                if (fact != null) customerLevel = fact.serviceLevelCode();\n-            } catch (CutoverOwnerFactException exception) {\n-                if (exception.code() != CutoverOwnerFactException.Code.PROVIDER_UNAVAILABLE) throw exception;\n-            }\n-        }\n-        return new ProjectContext(presentation, customerLevel);\n+        var project = projectContexts.inspect(new CutoverProjectContextPort.Inspection(\n+                query.context().tenantId(), query.projectId(), ownerQuery.expectedScopeVersion()));\n+        var customerFact = CutoverContextSupport.customerReference(customerLevels, project);\n+        return new ProjectContext(presentation, customerFact.serviceLevelCode(), customerFact);\n     }\n \n     public ProjectDeviceShipmentApi.DevicePage devices(DevicePageQuery query) {\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "e0ae05247e6662c155c5503919506405eed07cf9 fix(cutover): 允许未关联客户的割接等级手选",
+            "18a1d1876585f8dbec42922054a25a7cbfc42737 fix(cutover): 恢复客户编码解析与新建等级上下文"
+          ],
+          "reason": "恢复原选项目读取客户服务等级方式及二字段返回；撤回提前完整等级上下文和客户缺省处理，设备解析路径不改。",
+          "matchedSourceCommits": [
+            "18a1d1876585f8dbec42922054a25a7cbfc42737",
+            "e0ae05247e6662c155c5503919506405eed07cf9"
+          ]
+        },
+        {
+          "id": "F06-H04",
+          "header": "@@ -113,6 +107,7 @@",
+          "diff": "@@ -113,6 +107,7 @@\n     @lombok.Builder\n     public record DevicePageQuery(CutoverTaskContext context, Long projectId, String keyword, int pageNo, int pageSize) {}\n     public record ResolveQuery(CutoverTaskContext context, List<String> serialNumbers) {}\n-    public record ProjectContext(ProjectBusinessContextApi.Presentation project, String customerServiceLevel) {}\n+    public record ProjectContext(ProjectBusinessContextApi.Presentation project, String customerServiceLevel,\n+            CutoverCustomerLevelPort.CustomerLevelFact customerServiceLevelContext) {}\n     public record ResolvedDevices(CutoverTaskViews.CreateContextData context, List<ProjectDeviceShipmentApi.Device> devices) {}\n }\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "e0ae05247e6662c155c5503919506405eed07cf9 fix(cutover): 允许未关联客户的割接等级手选",
+            "18a1d1876585f8dbec42922054a25a7cbfc42737 fix(cutover): 恢复客户编码解析与新建等级上下文"
+          ],
+          "reason": "恢复原选项目读取客户服务等级方式及二字段返回；撤回提前完整等级上下文和客户缺省处理，设备解析路径不改。",
+          "matchedSourceCommits": [
+            "18a1d1876585f8dbec42922054a25a7cbfc42737"
+          ]
+        }
+      ],
+      "afterSha256": "40be9af034f665571e62516e75d3d3fd539e2d141c59c7fd39a5ad0e6b48bac4",
+      "verified": true
+    },
+    {
+      "id": "F07",
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/task/port/CutoverReadinessPort.java",
+      "beforeSha256": "12ffa20e5da7ee5a28de468b8de48de7472ea0a345f1e82ec098dd35b9648d49",
+      "sourceCommits": [
+        "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F07-H01",
+          "header": "@@ -12,6 +12,11 @@",
+          "diff": "@@ -12,6 +12,11 @@\n \n     ReadinessFact readSnapshot(SnapshotReference reference);\n \n+    default ReadinessFact lockAndRevalidateForApproval(\n+            cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query query) {\n+        throw new SecurityException(\"当前审批重验服务未接入\");\n+    }\n+\n     @Builder\n     record SnapshotReference(Long tenantId, Long projectId, Long snapshotId, Long snapshotVersion,\n                              List<Long> deviceIds) { }\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "撤回后续专用审批方法；原inspect、lockAndRevalidate、readSnapshot保留。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        }
+      ],
+      "afterSha256": "a92486b3b4c53b028fd8f92c093f86e48ef6f6d828762a8bfa4d82f8216f2db1",
+      "verified": true
+    },
+    {
+      "id": "F08",
+      "path": "pms-module-engineering-api/src/main/java/cn/iocoder/yudao/module/pms/engineering/api/implementationreadiness/ImplementationReadinessApi.java",
+      "beforeSha256": "51d1bc48dc9e6d17b6e6029aa8aa76fa41b4e587f795c3988cbfc6afdf171b97",
+      "sourceCommits": [
+        "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F08-H01",
+          "header": "@@ -9,6 +9,10 @@",
+          "diff": "@@ -9,6 +9,10 @@\n /** EXE-06割接前实施就绪快照的公共只读事实。 */\n public interface ImplementationReadinessApi {\n \n+    /** 原审批事务内对当前合格节点做受控重验；不继承发起人权限，不泄露Owner正文。 */\n+    cn.iocoder.yudao.module.pms.engineering.api.implementationreadiness.dto.CutoverApprovalReadinessResult\n+        lockAndRevalidateForApproval(cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query query);\n+\n     ImplementationReadinessResult inspect(ImplementationReadinessQuery query);\n \n     ImplementationReadinessResult lockAndRevalidate(ImplementationReadinessRevalidationQuery query);\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "撤回后续审批专用方法；原公共读取、锁定重验和精确快照读取保留。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        }
+      ],
+      "afterSha256": "21ed3fc88e0aa3cf857a95e4332e611421c8887f66f954901b507fd522f6e49c",
+      "verified": true
+    },
+    {
+      "id": "F09",
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/implementationreadiness/ImplementationReadinessService.java",
+      "beforeSha256": "29e461e90362677ba045abe858311b1272230b1ab514b650a553c484728b25ef",
+      "sourceCommits": [
+        "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F09-H01",
+          "header": "@@ -26,6 +26,8 @@",
+          "diff": "@@ -26,6 +26,8 @@\n \n @Service @RequiredArgsConstructor\n public class ImplementationReadinessService implements ImplementationReadinessApi, ImplementationReadinessEvaluationApi {\n+    @jakarta.annotation.Resource\n+    private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi> approvalAccess;\n     private final ImplementationReadinessSnapshotMapper snapshots;\n     private final ImplementationReadinessSourceMapper sources;\n     private final ProjectBusinessContextApi projects;\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "撤回专用审批身份入口及为它抽取的ContextRead；恢复原通用项目/设备授权后重验，不扩大权限。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        },
+        {
+          "id": "F09-H02",
+          "header": "@@ -35,6 +37,38 @@",
+          "diff": "@@ -35,6 +37,38 @@\n     private final DeliveryScopePort delivery;\n     private final SolutionTieredReviewService reviews;\n     private final ImplementationReadinessSnapshotStore snapshotStore;\n+\n+    @Override @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)\n+    public CutoverApprovalReadinessResult lockAndRevalidateForApproval(\n+            cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query query) {\n+        if (query == null || TenantContextHolder.isIgnore() || !Objects.equals(query.tenantId(), TenantContextHolder.getTenantId()))\n+            throw failure(TENANT_CONTEXT_MISMATCH, \"实施就绪租户身份不一致\");\n+        var access = approvalAccess.getIfAvailable();\n+        if (access == null) throw new SecurityException(\"当前审批重验授权服务不可用\");\n+        access.requireCurrent(query);\n+        var row = snapshots.selectById(query.snapshotId());\n+        if (row == null || !Objects.equals(row.getTenantId(), query.tenantId())\n+                || !Objects.equals(row.getProjectId(), query.projectId()) || !Long.valueOf(0L).equals(query.snapshotVersion()))\n+            throw failure(SNAPSHOT_NOT_FOUND, \"精确就绪快照不存在\");\n+        var frozen = snapshot(row);\n+        var ids = frozen.context().devices().stream().map(DeviceFact::deviceId).sorted().toList();\n+        if (!ids.equals(query.deviceIds().stream().sorted().toList()))\n+            throw failure(SNAPSHOT_NOT_FOUND, \"精确就绪快照设备范围不一致\");\n+        var requested = new ImplementationReadinessQuery(query.tenantId(), query.projectId(), frozen.context().devices().stream()\n+                .map(value -> new ImplementationReadinessQuery.ExpectedDevice(value.deviceId(), value.serialNumber(), value.projectAssignmentVersion())).toList());\n+        if (!Objects.equals(row.getDeviceScopeKey(), deviceKey(requested)))\n+            throw failure(SNAPSHOT_NOT_FOUND, \"精确就绪快照设备范围不一致\");\n+        var requirements = projects.lockCutoverReadinessRequirements(new ProjectBusinessContextApi.ReadinessQuery(\n+                query.tenantId(), query.projectId(), frozen.context().projectScopeVersion()));\n+        var all = devices.lockProjectInstallationDevices(new ProjectDeviceInstallationQuery(query.tenantId(), query.projectId())).stream()\n+                .map(value -> {\n+                    if (value.projectAssignmentVersion() == null) throw failure(OWNER_DATA_CORRUPTED, \"设备归属版本不可用\");\n+                    return new DeviceFact(value.deviceId(), value.sn(), value.projectAssignmentVersion());\n+                }).sorted(Comparator.comparing(DeviceFact::deviceId)).toList();\n+        var current = context(new ContextRead(requested, frozen.context().projectScopeVersion(), all, requirements, true));\n+        var result = result(frozen, current);\n+        return new CutoverApprovalReadinessResult(result.decision().name(), query.projectId(), frozen.snapshotId(), frozen.snapshotVersion(), ids);\n+    }\n \n     @Override @Transactional(rollbackFor = Exception.class)\n     public ImplementationReadinessResult evaluate(ImplementationReadinessQuery query) {\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "撤回专用审批身份入口及为它抽取的ContextRead；恢复原通用项目/设备授权后重验，不扩大权限。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        },
+        {
+          "id": "F09-H03",
+          "header": "@@ -131,6 +165,17 @@",
+          "diff": "@@ -131,6 +165,17 @@\n                         throw failure(OWNER_DATA_CORRUPTED, \"AST 当前项目设备事实不一致\");\n                     return new DeviceFact(device.deviceId(), device.sn(), device.projectAssignmentVersion());\n                 }).sorted(Comparator.comparing(DeviceFact::deviceId)).toList();\n+        var policyQuery = new ProjectBusinessContextApi.Query(query.tenantId(), actor(), query.projectId(), project.scopeVersion());\n+        var requirements = lock ? projects.lockImplementationRequirements(\n+                new ProjectBusinessContextApi.Revalidation(policyQuery, project.projectVersion())) : projects.implementationRequirements(policyQuery);\n+        return context(new ContextRead(query, project.scopeVersion(), all, requirements, lock));\n+    }\n+\n+    private record ContextRead(ImplementationReadinessQuery query, Long scopeVersion, List<DeviceFact> all,\n+                               ProjectBusinessContextApi.ImplementationRequirements requirements, boolean lock) { }\n+\n+    private ImplementationReadinessContextFact context(ContextRead read) {\n+        var query = read.query(); var all = read.all(); var requirements = read.requirements(); boolean lock = read.lock();\n         var selected = query.expectedDevices().stream().map(expected -> {\n             var fact = all.stream().filter(device -> Objects.equals(device.deviceId(), expected.deviceId())).findFirst()\n                     .orElseThrow(() -> failure(INVALID_REQUEST, \"设备已不属于当前项目\"));\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "撤回专用审批身份入口及为它抽取的ContextRead；恢复原通用项目/设备授权后重验，不扩大权限。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        },
+        {
+          "id": "F09-H04",
+          "header": "@@ -140,9 +185,6 @@",
+          "diff": "@@ -140,9 +185,6 @@\n                 throw failure(INVALID_REQUEST, \"设备范围版本已变化，请重新校验\");\n             return fact;\n         }).toList();\n-        var policyQuery = new ProjectBusinessContextApi.Query(query.tenantId(), actor(), query.projectId(), project.scopeVersion());\n-        var requirements = lock ? projects.lockImplementationRequirements(\n-                new ProjectBusinessContextApi.Revalidation(policyQuery, project.projectVersion())) : projects.implementationRequirements(policyQuery);\n         if (requirements == null) throw failure(OWNER_DATA_CORRUPTED, \"PROJ冻结实施前置不可用\");\n         var applicable = requirements.requiredSourceCodes().stream().map(SourceCode::valueOf)\n                 .collect(java.util.stream.Collectors.toUnmodifiableSet());\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "撤回专用审批身份入口及为它抽取的ContextRead；恢复原通用项目/设备授权后重验，不扩大权限。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        },
+        {
+          "id": "F09-H05",
+          "header": "@@ -162,7 +204,7 @@",
+          "diff": "@@ -162,7 +204,7 @@\n         var tested = !applicable.contains(SourceCode.EXE_04) ? List.<ImplementationReadinessRules.Record>of()\n                 : sources.jointTests(owner).stream().map(row -> new ImplementationReadinessRules.Record(\n                 row.getId(), row.getVersion(), row.getEquipmentId(), Integer.valueOf(2).equals(row.getStatus()))).toList();\n-        return new ImplementationReadinessContextFact(project.scopeVersion(), selected,\n+        return new ImplementationReadinessContextFact(read.scopeVersion(), selected,\n                 new ApprovedPlanFact(plan.getId(), plan.getVersion()), List.of(\n                 applicable.contains(SourceCode.EXE_01) ? arrival(query, all, lock) : notApplicable(SourceCode.EXE_01),\n                 applicable.contains(SourceCode.EXE_02) ? ImplementationReadinessRules.milestone(SourceCode.EXE_02, installed, all) : notApplicable(SourceCode.EXE_02),\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "撤回专用审批身份入口及为它抽取的ContextRead；恢复原通用项目/设备授权后重验，不扩大权限。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        }
+      ],
+      "afterSha256": "1d4d402751616c711bc4c4fff2772f3333a6488153316969bec62013fad78838",
+      "verified": true
+    },
+    {
+      "id": "F10",
+      "path": "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/reference/ProjectBusinessContextApi.java",
+      "beforeSha256": "b9d0120f0c0e780b01cf7003114c024301349854e26a946f799d9092f6344575",
+      "sourceCommits": [
+        "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F10-H01",
+          "header": "@@ -18,6 +18,11 @@",
+          "diff": "@@ -18,6 +18,11 @@\n     /** 已授权项目当前冻结计划的实施前置适用性，不读取其他模块业务表。 */\n     ImplementationRequirements implementationRequirements(Query query);\n     ImplementationRequirements lockImplementationRequirements(Revalidation query);\n+\n+    /** 内部Owner事实。调用方必须已核验当前CUT审批实例及节点，只用于IMP原事务重验，不得返回给用户。 */\n+    ImplementationRequirements lockCutoverReadinessRequirements(ReadinessQuery query);\n+\n+    record ReadinessQuery(Long tenantId, Long projectId, Long expectedScopeVersion) { }\n \n     record ImplementationRequirements(Long planVersionId, Long planVersion, boolean configured,\n                                       java.util.Set<String> requiredSourceCodes) {\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "撤回后续内部ReadinessQuery/专用方法；原项目事实契约保留。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        }
+      ],
+      "afterSha256": "5459a9471958ea8f7ae464536997bb6600093dbb2131d79158e624281c943328",
+      "verified": true
+    },
+    {
+      "id": "F11",
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/reference/ProjectBusinessContextApiImpl.java",
+      "beforeSha256": "06f58f615806df1c4523481e61e99d2e140381cc930b35e5f1a7477b541ef69e",
+      "sourceCommits": [
+        "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F11-H01",
+          "header": "@@ -94,6 +94,27 @@",
+          "diff": "@@ -94,6 +94,27 @@\n     }\n \n     @Override\n+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)\n+    public ImplementationRequirements lockCutoverReadinessRequirements(ReadinessQuery query) {\n+        if (query == null || TenantContextHolder.isIgnore() || query.tenantId() == null\n+                || !Objects.equals(query.tenantId(), TenantContextHolder.getTenantId())\n+                || query.projectId() == null || query.projectId() <= 0 || query.expectedScopeVersion() == null)\n+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);\n+        Long actor = cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId();\n+        if (actor == null || actor <= 0) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);\n+        // 锁住真实项目树并校验版本；该专用内部事实不把审批资格转换成通用项目权限。\n+        var scope = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()\n+                .tenantId(query.tenantId()).subjectUserId(actor).anchorProjectId(query.projectId())\n+                .actionCode(ProjectScopeApi.ACTION_VIEW).expectedScopeVersion(query.expectedScopeVersion()).build());\n+        if (scope == null || !Objects.equals(scope.treeVersion(), query.expectedScopeVersion()))\n+            throw exception(PROJECT_TREE_VERSION_CONFLICT);\n+        var project = projects.selectByIdForUpdate(query.projectId());\n+        if (project == null || !Objects.equals(project.getTenantId(), query.tenantId()))\n+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);\n+        return implementationRequirements(project);\n+    }\n+\n+    @Override\n     public ServiceManagers serviceManagers(Query query) {\n         var context = inspect(query);\n         var rows = members.selectParticipantFacts(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectParticipantFactLookupQuery.builder()\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e fix(cutover): 限定角色审批的内部就绪重验范围"
+          ],
+          "reason": "撤回后续专用项目事实锁入口；原通用事实读取授权及锁定方法保留。",
+          "matchedSourceCommits": [
+            "1969038688295e7b45f24497e85ae5c0f8cbff6e"
+          ]
+        }
+      ],
+      "afterSha256": "4538c152e4b3c53fec3ade37cc8f34639930d8f81fba7dfd5231bcdd9747d3e2",
+      "verified": true
+    },
+    {
+      "id": "F12",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/cutover/task.ts",
+      "beforeSha256": "273e4ef4829d2323a4279e9da7e2fb3482b61075b881737b6283cf3227677d27",
+      "sourceCommits": [
+        "18a1d1876585f8dbec42922054a25a7cbfc42737 fix(cutover): 恢复客户编码解析与新建等级上下文"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F12-H01",
+          "header": "@@ -61,9 +61,12 @@",
+          "diff": "@@ -61,9 +61,12 @@\n export const getCreationOptions = () => request.get<IntakeOption[]>({ url: '/api/v1/pms/cutover-tasks/creation-options' })\n \n export type { ProjectOption as CreationProjectOption, ProjectPresentation as CreationProjectPresentation,\n-  ProjectDevice as CreationDevice, ProjectContext as CreationProjectContext } from '@/api/pms/project/selection'\n+  ProjectDevice as CreationDevice } from '@/api/pms/project/selection'\n import type { ProjectOption as CreationProjectOption, ProjectDevice as CreationDevice,\n-  ProjectContext as CreationProjectContext } from '@/api/pms/project/selection'\n+  ProjectContext } from '@/api/pms/project/selection'\n+export interface CreationProjectContext extends ProjectContext {\n+  customerServiceLevelContext: import('./types').CustomerServiceLevelContext\n+}\n export interface ResolvedCreationDevices { context: CreateContextData; devices: CreationDevice[] }\n \n export const searchCreationProjects = (keyword = '') =>\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "18a1d1876585f8dbec42922054a25a7cbfc42737 fix(cutover): 恢复客户编码解析与新建等级上下文"
+          ],
+          "reason": "恢复原CreationProjectContext类型别名，配套恢复原后端响应；不改变WireLong精度类型。",
+          "matchedSourceCommits": [
+            "18a1d1876585f8dbec42922054a25a7cbfc42737"
+          ]
+        }
+      ],
+      "afterSha256": "c4b7f287829d16458cd173e6a229d744db059b79f5fe8f77d77a67b5e840e592",
+      "verified": true
+    },
+    {
+      "id": "F13",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/BusinessViewHost.vue",
+      "beforeSha256": "561ecca99a16a6562c8599d051d6ae553e54425000f9d9d1999ecb2d4d4e4696",
+      "sourceCommits": [
+        "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F13-H01",
+          "header": "@@ -22,8 +22,8 @@",
+          "diff": "@@ -22,8 +22,8 @@\n         <el-table-column prop=\"label\" label=\"业务操作\" min-width=\"120\" />\n         <el-table-column label=\"业务权限\" width=\"120\"><template #default=\"{ row }\">{{ row.ownerPermitted ? '允许' : active.resolvedContext.businessObjectId == null ? '选择对象后校验' : '未获授权' }}</template></el-table-column>\n         <el-table-column label=\"项目执行\" width=\"100\"><template #default=\"{ row }\">{{ row.executionPermitted ? '允许' : '不可办理' }}</template></el-table-column>\n-        <el-table-column prop=\"pre.outcome\" label=\"前置判定\" width=\"160\" />\n-        <el-table-column prop=\"reason\" label=\"阻塞原因\" min-width=\"180\" />\n+        <el-table-column label=\"前置判定\" width=\"160\"><template #default=\"{ row }\">{{ ({ MATCHED: '满足', NO_ADDITIONAL_RULE: '无附加条件', NOT_MATCHED: '未满足', UNKNOWN: '暂无法判定' })[row.pre.outcome] || row.pre.outcome }}</template></el-table-column>\n+        <el-table-column label=\"操作说明\" min-width=\"180\"><template #default=\"{ row }\"><span :title=\"row.reason\">{{ operationReason(row) }}</span></template></el-table-column>\n       </el-table>\n     </section>\n     <el-alert v-if=\"operationError\" :title=\"operationError\" type=\"error\" :closable=\"false\" show-icon />\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+          ],
+          "reason": "恢复原操作表前置判定、阻塞原因字段及原文输出，移除后续文案映射和解释；不改操作宿主鉴权。",
+          "matchedSourceCommits": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e"
+          ]
+        },
+        {
+          "id": "F13-H02",
+          "header": "@@ -53,6 +53,14 @@",
+          "diff": "@@ -53,6 +53,14 @@\n const capture = (): BusinessViewTarget => ({ registration: { ...props.registration }, resolvedContext: { ...props.resolvedContext },\n   allowedActions: [...(props.allowedActions || [])], readonly: props.readonly })\n const active = shallowRef(capture())\n+const operationReason = (row: { operationCode: string; reason?: string }) => {\n+  if (row.reason === 'OWNER_OPERATION_FORBIDDEN' && active.value.resolvedContext.businessObjectId != null\n+      && active.value.registration.ownerContext === 'CUT'\n+      && ['CUT.CUTOVER_TASK.CREATE', 'CUT.CUTOVER_APPROVAL.CREATE'].includes(row.operationCode))\n+    return '新建入口不适用于已关联任务；已有任务按下方业务权限办理。'\n+  return ({ OWNER_OPERATION_FORBIDDEN: '当前用户未获此操作授权', NODE_EXECUTION_FORBIDDEN: '当前节点不可再办理',\n+    OPERATION_PRECONDITION_NOT_MATCHED: '操作前置条件未满足', OPERATION_RUNTIME_NOT_INSTALLED: '操作服务暂不可用' })[row.reason || ''] || row.reason || '无'\n+}\n const operation = useOperationHost(active, () => emit('changed'))\n provide(operationClientKey, operation.client)\n provide(operationCheckKey, operation.waitForCheck)\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+          ],
+          "reason": "恢复原操作表前置判定、阻塞原因字段及原文输出，移除后续文案映射和解释；不改操作宿主鉴权。",
+          "matchedSourceCommits": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e"
+          ]
+        }
+      ],
+      "afterSha256": "a14447e36b4c95988949dc22b6cc5c1065f0cecd978918a59b5594907aa17f14",
+      "verified": true
+    },
+    {
+      "id": "F14",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/UserTag/index.vue",
+      "beforeSha256": "83a89e120ff8906274448c9ed8a64706f99e11943a15ca043180703bd1222e67",
+      "sourceCommits": [],
+      "decision": "KEEP_TEST_FIX",
+      "hunks": [
+        {
+          "id": "F14-H01",
+          "header": "@@ -16,11 +16,11 @@",
+          "diff": "@@ -16,11 +16,11 @@\n })\n \n // 模块级缓存：避免同一用户ID重复请求\n-const userCache = new Map<number, string>()\n+const userCache = new Map<string, string>()\n \n const displayName = ref<string>('')\n \n-const loadUserName = async (id: number) => {\n+const loadUserName = async (id: string) => {\n   if (!id) {\n     displayName.value = '-'\n     return\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "browser/configuration-detail-user-id-fixed.txt；UserTag.runtime.spec.ts：2112914651746513004保持原值，真实页面显示周文成",
+          "matchedSourceCommits": []
+        },
+        {
+          "id": "F14-H02",
+          "header": "@@ -44,7 +44,7 @@",
+          "diff": "@@ -44,7 +44,7 @@\n watch(\n   () => props.userId,\n   (val) => {\n-    if (val) loadUserName(Number(val))\n+    if (val) loadUserName(String(val))\n     else displayName.value = '-'\n   },\n   { immediate: true }\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "browser/configuration-detail-user-id-fixed.txt；UserTag.runtime.spec.ts：2112914651746513004保持原值，真实页面显示周文成",
+          "matchedSourceCommits": []
+        }
+      ],
+      "afterSha256": "83a89e120ff8906274448c9ed8a64706f99e11943a15ca043180703bd1222e67",
+      "verified": true
+    },
+    {
+      "id": "F15",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/satisfaction/questionnaire.vue",
+      "beforeSha256": "6c53951624c3cdbcb12af058eced225f40f826dc706d39956c02826d85d5f5ad",
+      "sourceCommits": [
+        "0499e2e3fcc6fe63addab55078b8b6016ae4b37d fix(acceptance): 跳过已处理采集的过期待办重试"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F15-H01",
+          "header": "@@ -6,10 +6,11 @@",
+          "diff": "@@ -6,10 +6,11 @@\n           <img :src=\"logo\" alt=\"DPtech 迪普科技\" />\n           <span v-if=\"questionnaire\" class=\"packet-status\" :class=\"{ submitted: questionnaire.submitted || outcome }\">{{ questionnaire.submitted || outcome ? '已提交' : '客户确认' }}</span>\n         </div>\n-        <h1 id=\"questionnaire-title\">{{ outcome ? '感谢您的反馈' : questionnaire?.completionCertificate ? '完工确认与满意度调查' : '项目满意度调查' }}</h1>\n+        <h1 id=\"questionnaire-title\">{{ outcome || questionnaire?.submitted ? '感谢您的反馈' : questionnaire?.completionCertificate ? '完工确认与满意度调查' : '项目满意度调查' }}</h1>\n         <p v-if=\"questionnaire?.completionCertificate\" class=\"packet-project\">{{ questionnaire.completionCertificate.name }}</p>\n-        <p class=\"packet-intro\">{{ questionnaire?.completionCertificate ? '请核对完工内容并评价本次服务，最后一次签字确认两份表单。' : '请评价本次项目交付服务，填写后签字提交。' }}</p>\n-        <p v-if=\"questionnaire\" class=\"packet-expiry\">链接有效至 {{ formatDate(questionnaire.expiresAt) }}。提交后内容不可修改。</p>\n+        <p v-if=\"questionnaire?.submitted || outcome\" class=\"packet-intro\">您的评价与签字已保存，以下内容为提交记录，不可修改。</p>\n+        <p v-else class=\"packet-intro\">{{ questionnaire?.completionCertificate ? '请核对完工内容并评价本次服务，最后一次签字确认两份表单。' : '请评价本次项目交付服务，填写后签字提交。' }}</p>\n+        <p v-if=\"questionnaire && !questionnaire.submitted && !outcome\" class=\"packet-expiry\">链接有效至 {{ formatDate(questionnaire.expiresAt) }}。提交后内容不可修改。</p>\n       </header>\n       <el-skeleton v-if=\"loading\" :rows=\"7\" animated aria-label=\"正在加载确认表单\" />\n       <el-result v-else-if=\"errorMessage\" icon=\"warning\" title=\"问卷暂不可用\" :sub-title=\"errorMessage\" />\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "0499e2e3fcc6fe63addab55078b8b6016ae4b37d fix(acceptance): 跳过已处理采集的过期待办重试"
+          ],
+          "reason": "撤回后续submitted历史引导文案/有效期显隐/一表两表提示改动；原submissionLocked、禁写和提交防重保留。",
+          "matchedSourceCommits": [
+            "0499e2e3fcc6fe63addab55078b8b6016ae4b37d"
+          ]
+        },
+        {
+          "id": "F15-H02",
+          "header": "@@ -27,14 +28,14 @@",
+          "diff": "@@ -27,14 +28,14 @@\n           <CompletionCertificateSheet :certificate=\"questionnaire.completionCertificate\" :show-title=\"false\" :show-hint=\"false\" />\n         </section>\n         <section id=\"survey-section\" ref=\"surveySection\" class=\"packet-section survey-section\" aria-labelledby=\"survey-title\">\n-          <div class=\"section-heading\"><span class=\"section-number\" aria-hidden=\"true\">{{ questionnaire.completionCertificate ? '2' : '1' }}</span><div><h2 id=\"survey-title\">满意度调查表</h2><p>请按实际体验评价，每一项选择一个选项。</p></div></div>\n+          <div class=\"section-heading\"><span class=\"section-number\" aria-hidden=\"true\">{{ questionnaire.completionCertificate ? '2' : '1' }}</span><div><h2 id=\"survey-title\">满意度调查表</h2><p>{{ questionnaire.submitted ? '以下为已提交的服务评价。' : '请按实际体验评价，每一项选择一个选项。' }}</p></div></div>\n           <QuestionnaireTable ref=\"questionFormApi\" :definition=\"definition\" :answers=\"answers\" :disabled=\"submissionLocked\" :show-signature=\"false\" />\n         </section>\n         <section id=\"signature-section\" ref=\"signatureSection\" class=\"packet-section file-section\" aria-labelledby=\"signature-title\">\n-          <div class=\"section-heading\"><span class=\"section-number\" aria-hidden=\"true\">{{ questionnaire.completionCertificate ? '3' : '2' }}</span><div><h2 id=\"signature-title\">{{ questionnaire.completionCertificate ? '统一签字确认' : '客户签字确认' }}</h2><p>{{ questionnaire.completionCertificate ? '仅需签字一次，同时确认以上完工证明与满意度调查表。' : '请由客户本人核对并签字。' }}</p></div></div>\n+          <div class=\"section-heading\"><span class=\"section-number\" aria-hidden=\"true\">{{ questionnaire.completionCertificate ? '3' : '2' }}</span><div><h2 id=\"signature-title\">{{ questionnaire.completionCertificate ? '统一签字确认' : '客户签字确认' }}</h2><p>{{ questionnaire.submitted ? '已保存的客户签字。' : questionnaire.completionCertificate ? '仅需签字一次，同时确认以上完工证明与满意度调查表。' : '请由客户本人核对并签字。' }}</p></div></div>\n           <div class=\"customer-confirmation-form\"><form-create v-model=\"signatureValues\" :rule=\"signatureRules\" :option=\"questionFormOption\" /></div>\n           <div v-if=\"!questionnaire.submitted\" class=\"attachment-field\"><p>补充附件（可选）</p><el-upload multiple :auto-upload=\"false\" :disabled=\"submissionLocked\" :on-change=\"onAttachmentChange\" :on-remove=\"onAttachmentRemove\"><el-button>选择附件</el-button></el-upload></div>\n-          <el-alert v-if=\"questionnaire.submitted\" type=\"success\" :closable=\"false\" :title=\"`两份表单已统一提交 · ${formatDate(questionnaire.signedAt)}`\" />\n+          <el-alert v-if=\"questionnaire.submitted\" type=\"success\" :closable=\"false\" :title=\"`${questionnaire.completionCertificate ? '两份表单已统一提交' : '评价已提交'} · ${formatDate(questionnaire.signedAt)}`\" />\n           <el-checkbox v-else-if=\"questionnaire.completionCertificate\" v-model=\"confirmCompletionCertificate\" :disabled=\"submissionLocked\" class=\"joint-confirmation\">我已核对完工证明及满意度调查表，以上签字同时确认两份表单。</el-checkbox>\n         </section>\n         <footer v-if=\"!questionnaire.submitted\" class=\"submission-actions\">\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "0499e2e3fcc6fe63addab55078b8b6016ae4b37d fix(acceptance): 跳过已处理采集的过期待办重试"
+          ],
+          "reason": "撤回后续submitted历史引导文案/有效期显隐/一表两表提示改动；原submissionLocked、禁写和提交防重保留。",
+          "matchedSourceCommits": [
+            "0499e2e3fcc6fe63addab55078b8b6016ae4b37d"
+          ]
+        }
+      ],
+      "afterSha256": "63cb03fde54a7b7ed5516e006b739a5e4636ec2df19a5d95e0619e3c39ad6df3",
+      "verified": true
+    },
+    {
+      "id": "F16",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/components/CutoverApprovalPanel.vue",
+      "beforeSha256": "5dad91d827775f75d05d263c0a4792d4b63d61eb917e3e0a8c3b8c6eedf470f4",
+      "sourceCommits": [
+        "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F16-H01",
+          "header": "@@ -53,7 +53,7 @@",
+          "diff": "@@ -53,7 +53,7 @@\n           <div class=\"cut-form-field\"><label>操作复杂度等级</label><span class=\"cut-form-value cut-form-value--plain\">{{ levelLabels[view.sourceSnapshot.assessment.operationComplexityLevel] || view.sourceSnapshot.assessment.operationComplexityLevel }}</span></div>\n           <div class=\"cut-form-field\"><label>隐患风险等级</label><span class=\"cut-form-value cut-form-value--plain\">{{ levelLabels[view.sourceSnapshot.assessment.hiddenRiskLevel] || view.sourceSnapshot.assessment.hiddenRiskLevel }}</span></div>\n           <div class=\"cut-form-field\"><label>备件是否申请</label><span class=\"cut-form-value cut-form-value--plain\">{{ view.sourceSnapshot.assessment.sparePartApplied ? '是' : '否' }}</span></div>\n-          <div class=\"cut-form-field\"><label>客户服务等级</label><span class=\"cut-form-value cut-form-value--plain\">{{ view.sourceSnapshot.assessment.customerServiceLevelCode === 'NOT_CONFIGURED' ? '未配置' : view.sourceSnapshot.assessment.customerServiceLevelCode }}</span></div>\n+          <div class=\"cut-form-field\"><label>客户服务等级</label><span class=\"cut-form-value cut-form-value--plain\">{{ ({ NOT_CONFIGURED: '未配置', STANDARD: '标准服务' })[view.sourceSnapshot.assessment.customerServiceLevelCode] || view.sourceSnapshot.assessment.customerServiceLevelCode }}</span></div>\n           <div class=\"cut-form-field\"><label>人工确定割接等级</label><span class=\"grade-badge\">{{ view.sourceSnapshot.assessment.manualGrade }}级</span></div>\n         </div>\n       </details>\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+          ],
+          "reason": "恢复原客户服务等级显示（仅NOT_CONFIGURED译名）；原冻结评估内容不变。",
+          "matchedSourceCommits": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e"
+          ]
+        }
+      ],
+      "afterSha256": "7fa066b7eef45803af5d64fc10905c05005e0d7cb5290690b5a33265d1777fa3",
+      "verified": true
+    },
+    {
+      "id": "F17",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/components/CutoverChecklistPanel.vue",
+      "beforeSha256": "c3bece3496fd43dfdcb38c56ed6aa4f0cdde56934104494a3420d8c2ea177561",
+      "sourceCommits": [
+        "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F17-H01",
+          "header": "@@ -85,7 +85,7 @@",
+          "diff": "@@ -85,7 +85,7 @@\n             <el-table-column label=\"采集项及核查说明\" min-width=\"1\">\n               <template #default=\"{ row }\">\n                 <div v-if=\"isTableItem(row)\" class=\"stacked-table-item\">\n-                  <div class=\"stacked-table-item__heading\"><span>{{ row.itemName }}</span><span v-if=\"row.required\" class=\"cut-required\"> *</span><p v-if=\"row.itemDescription\" class=\"item-description\">{{ row.itemDescription }}</p><small v-if=\"row.sourceCode === 'CUSTOM'\" class=\"cut-muted\">自定义项</small></div>\n+                  <div class=\"stacked-table-item__heading\"><span>{{ row.itemName }}</span><span v-if=\"row.required\" class=\"cut-required\"> *</span><details v-if=\"row.itemDescription\" class=\"item-description\"><summary>填写说明与来源</summary><p>{{ row.itemDescription }}</p></details><small v-if=\"row.sourceCode === 'CUSTOM'\" class=\"cut-muted\">自定义项</small></div>\n                   <CutoverChecklistField\n                     :item=\"row\" :direct-value=\"answers[row.stableItemKey] || ''\" :readonly=\"readonly\" :table-row=\"true\"\n                     :validation-message=\"validationKey === row.stableItemKey ? validationMessage : undefined\"\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+          ],
+          "reason": "恢复原说明平铺；不改题目、必填、来源与答案。",
+          "matchedSourceCommits": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e"
+          ]
+        },
+        {
+          "id": "F17-H02",
+          "header": "@@ -95,7 +95,7 @@",
+          "diff": "@@ -95,7 +95,7 @@\n                     @external-feedback=\"setExternalFeedback\" @external-load=\"loadExternal\" @external-save=\"saveExternalFeedback\"\n                     @collection=\"requestCollection\" @remove=\"removeCustom\" @refresh=\"refreshAfterCollection\" />\n                 </div>\n-                <template v-else><span>{{ row.itemName }}</span><span v-if=\"row.required\" class=\"cut-required\"> *</span><p v-if=\"row.itemDescription\" class=\"item-description\">{{ row.itemDescription }}</p><small v-if=\"row.sourceCode === 'CUSTOM'\" class=\"cut-muted\">自定义项</small></template>\n+                <template v-else><span>{{ row.itemName }}</span><span v-if=\"row.required\" class=\"cut-required\"> *</span><details v-if=\"row.itemDescription\" class=\"item-description\"><summary>填写说明与来源</summary><p>{{ row.itemDescription }}</p></details><small v-if=\"row.sourceCode === 'CUSTOM'\" class=\"cut-muted\">自定义项</small></template>\n               </template>\n             </el-table-column>\n             <el-table-column label=\"检查结果／反馈内容\" min-width=\"2\">\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+          ],
+          "reason": "恢复原说明平铺；不改题目、必填、来源与答案。",
+          "matchedSourceCommits": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e"
+          ]
+        }
+      ],
+      "afterSha256": "469e22586091c7e171e1dea60c9b89384447ee62e3f5f3c68773d302c772aeac",
+      "verified": true
+    },
+    {
+      "id": "F18",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/components/CutoverClosurePanel.vue",
+      "beforeSha256": "4d6ca4145c2d237d8907c383a8a76fa56217b632436283ad660546017c7c960a",
+      "sourceCommits": [
+        "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F18-H01",
+          "header": "@@ -8,7 +8,8 @@",
+          "diff": "@@ -8,7 +8,8 @@\n           <CutoverClosureForm ref=\"closureFormRef\" v-model=\"content\" :closure-id=\"closure.closureId\" :editable=\"canSave && !writing\"\n             @upload-pending=\"attachmentPending = $event\" @attachment-completed=\"onAttachmentCompleted\" />\n           <h4 class=\"cut-section-title\">8. 割接结果<span class=\"cut-required\"> *</span></h4>\n-          <el-radio-group :model-value=\"selectedResult ?? undefined\" :disabled=\"!canAttemptSubmit || writing\" data-testid=\"closure-final-result\" aria-label=\"割接最终结果\" @update:model-value=\"selectedResult = $event as 'SUCCESS' | 'FAILED'\">\n+          <p v-if=\"closure.closureStatus === 'SUBMITTED'\" data-testid=\"closure-final-summary\">{{ selectedResult === 'SUCCESS' ? '割接成功' : selectedResult === 'FAILED' ? '割接失败' : '未记录' }}</p>\n+          <el-radio-group v-else :model-value=\"selectedResult ?? undefined\" :disabled=\"!canAttemptSubmit || writing\" data-testid=\"closure-final-result\" aria-label=\"割接最终结果\" @update:model-value=\"selectedResult = $event as 'SUCCESS' | 'FAILED'\">\n             <el-radio value=\"SUCCESS\">成功</el-radio><el-radio value=\"FAILED\">失败</el-radio>\n           </el-radio-group>\n           <p class=\"cut-help result-help\">成功与失败均可归档；项目、资产和外部系统的处理结果以实际回执为准。</p>\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+          ],
+          "reason": "恢复原禁用结果单选与采集记录默认展开；不改归档状态/附件/写权限。",
+          "matchedSourceCommits": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e"
+          ]
+        },
+        {
+          "id": "F18-H02",
+          "header": "@@ -22,7 +23,7 @@",
+          "diff": "@@ -22,7 +23,7 @@\n         </footer>\n         </Teleport>\n       </details>\n-      <details v-if=\"closure.closureId !== null\" open class=\"cut-card collection-details\">\n+      <details v-if=\"closure.closureId !== null\" :open=\"closure.closureStatus !== 'SUBMITTED' || closure.collectionEvidence.length > 0\" class=\"cut-card collection-details\">\n         <summary class=\"cut-card__header\"><h3>采集记录与失败恢复</h3><span class=\"cut-muted\">{{ closure.collectionEvidence.length }} 条记录</span></summary>\n         <div class=\"cut-card__body\">\n           <CutoverClosureEvidencePanel :task-id=\"taskId\" :closure-id=\"closure.closureId\" :evidence=\"closure.collectionEvidence\" :devices=\"devices\"\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+          ],
+          "reason": "恢复原禁用结果单选与采集记录默认展开；不改归档状态/附件/写权限。",
+          "matchedSourceCommits": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e"
+          ]
+        }
+      ],
+      "afterSha256": "a2e87183eceb6d9af5cc6101349852b845614a61689253170decf96c1146ac22",
+      "verified": true
+    },
+    {
+      "id": "F19",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/task-create/index.vue",
+      "beforeSha256": "0c161beb90d67fa2ba805f3250ffbb5d0d7a79b95073d5b0dfc806a61de8ecae",
+      "sourceCommits": [
+        "18a1d1876585f8dbec42922054a25a7cbfc42737 fix(cutover): 恢复客户编码解析与新建等级上下文"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F19-H01",
+          "header": "@@ -155,20 +155,35 @@",
+          "diff": "@@ -155,20 +155,35 @@\n const changeProject = async (value: WireLong | null | undefined) => {\n   const next = value ? String(value) : ''\n   if (locked.value || props.projectId && next !== String(props.projectId)) return false\n-  if (next === selectedProjectId.value && projectContext.value && !projectError.value) return true\n+  if (next === selectedProjectId.value && projectContext.value && !projectError.value\n+      && assessmentCustomerLevel.value && assessmentCustomerLevel.value.status !== 'UNAVAILABLE') return true\n   if (selectedDevices.value.length && next !== selectedProjectId.value) {\n     try { await message.confirm('切换项目会移除当前已选设备，请确认后重新选择。') } catch { return false }\n   }\n-  ++projectSequence\n+  const sequence = ++projectSequence\n   assessmentCustomerLevel.value = null\n   assessmentLevelDeviceIds.value = []\n   assessmentModel.manualCustomerServiceLevelCode = null\n   selectedProjectId.value = next\n   selectedDevices.value = []\n   const context = await loadProjectInformation(next)\n+  if (sequence !== projectSequence) return false\n   if (!context) return !next\n   if (!projectOptions.value.some(option => String(option.id) === next)) {\n     projectOptions.value.unshift({ id: context.project.projectId, code: context.project.projectCode, name: context.project.projectName, customerName: context.project.customerName })\n+  }\n+  try {\n+    const levelContext = await CutoverApi.getCreationProject(next)\n+    if (sequence !== projectSequence || selectedProjectId.value !== next) return false\n+    if (String(levelContext.project.projectId) !== next) throw new Error('PROJECT_CONTEXT_MISMATCH')\n+    assessmentCustomerLevel.value = levelContext.customerServiceLevelContext\n+  } catch {\n+    if (sequence === projectSequence) {\n+      assessmentCustomerLevel.value = { status: 'UNAVAILABLE', customerId: null, customerCode: null,\n+        customerName: null, serviceLevelRevisionId: null, serviceLevelCode: null, factVersion: 0,\n+        effectiveFrom: null, effectiveTo: null }\n+      message.warning('客户服务等级暂时无法获取，请重新选择项目后重试。')\n+    }\n   }\n   return true\n }\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "18a1d1876585f8dbec42922054a25a7cbfc42737 fix(cutover): 恢复客户编码解析与新建等级上下文"
+          ],
+          "reason": "撤回提前额外请求客户等级及其消息/空设备保留逻辑；恢复原项目选择/设备解析顺序。",
+          "matchedSourceCommits": [
+            "18a1d1876585f8dbec42922054a25a7cbfc42737"
+          ]
+        },
+        {
+          "id": "F19-H02",
+          "header": "@@ -179,7 +194,7 @@",
+          "diff": "@@ -179,7 +194,7 @@\n }\n watch(() => selectedDevices.value.map(device => String(device.deviceId)).join(','), async () => {\n   const devices = [...selectedDevices.value]\n-  if (!devices.length) { assessmentCustomerLevel.value = null; assessmentLevelDeviceIds.value = []; return }\n+  if (!devices.length) { assessmentLevelDeviceIds.value = []; return }\n   if (assessmentCustomerLevel.value && devices.every(device => assessmentLevelDeviceIds.value.includes(String(device.deviceId)))) return\n   const projectId = selectedProjectId.value\n   const serials = devices.map(device => device.serialNumber)\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "18a1d1876585f8dbec42922054a25a7cbfc42737 fix(cutover): 恢复客户编码解析与新建等级上下文"
+          ],
+          "reason": "撤回提前额外请求客户等级及其消息/空设备保留逻辑；恢复原项目选择/设备解析顺序。",
+          "matchedSourceCommits": [
+            "18a1d1876585f8dbec42922054a25a7cbfc42737"
+          ]
+        }
+      ],
+      "afterSha256": "4571d5702b974e5d4d2c4f526fc05ec5ee66aa024b762017e705ddd4670ff59e",
+      "verified": true
+    },
+    {
+      "id": "F20",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/task-detail/index.vue",
+      "beforeSha256": "f4c3ebae4eeb47c3047af5f11647767a2ba15588f364aedb1c881626bb5b453b",
+      "sourceCommits": [],
+      "decision": "KEEP_TEST_FIX",
+      "hunks": [
+        {
+          "id": "F20-H01",
+          "header": "@@ -111,7 +111,7 @@",
+          "diff": "@@ -111,7 +111,7 @@\n const CutoverClosurePanel = defineAsyncComponent(() => import('../components/CutoverClosurePanel.vue').then(module => module.default))\n const CutoverPlanPanel = defineAsyncComponent(() => import('../components/CutoverPlanPanel.vue').then(module => module.default))\n \n-const props = defineProps<{ taskId: WireLong; projectId?: WireLong; readonly?: boolean; approvalOnly?: boolean }>()\n+const props = defineProps<{ taskId: WireLong; projectId?: WireLong; readonly?: boolean; approvalOnly?: boolean; closureOnly?: boolean }>()\n const emit = defineEmits<{ close: []; changed: [] }>()\n const message = useMessage()\n const planPanel = ref<InstanceType<typeof CutoverPlanPanel>>()\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "stage-workflow-retest-result.md：已完成审批任务导致P6只读已真实复现；限定closureOnly后双附件V1正式归档，历史阶段仍只读",
+          "matchedSourceCommits": []
+        },
+        {
+          "id": "F20-H02",
+          "header": "@@ -119,7 +119,8 @@",
+          "diff": "@@ -119,7 +119,8 @@\n const approvalPanel = ref<InstanceType<typeof CutoverApprovalPanel>>()\n const stageActions = shallowRef<HTMLElement>()\n const detail = ref<CutoverTaskDetail | null>(null)\n-const readonly = computed(() => !!props.readonly || !!detail.value?.approvalReadOnly)\n+const readonly = computed(() => !!props.readonly || !!detail.value?.approvalReadOnly ||\n+  (!!props.closureOnly && (detail.value?.task.currentStage !== 'P6' || selectedStage.value !== 'P6')))\n const detailLoading = ref(false)\n const detailError = ref('')\n const selectedStage = ref<CutoverApi.CutoverStage | null>(null)\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "stage-workflow-retest-result.md：已完成审批任务导致P6只读已真实复现；限定closureOnly后双附件V1正式归档，历史阶段仍只读",
+          "matchedSourceCommits": []
+        }
+      ],
+      "afterSha256": "f4c3ebae4eeb47c3047af5f11647767a2ba15588f364aedb1c881626bb5b453b",
+      "verified": true
+    },
+    {
+      "id": "F21",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/tasks/index.vue",
+      "beforeSha256": "e9e469525acda09ef892c74bcc45aa22f1921054eb5c96ae19d37547f71bbc62",
+      "sourceCommits": [
+        "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F21-H01",
+          "header": "@@ -1,5 +1,11 @@",
+          "diff": "@@ -1,5 +1,11 @@\n <template>\n   <main class=\"cutover-task-list\" data-testid=\"cutover-task-list\">\n+    <el-result\n+      v-if=\"!canQueryTasks\" icon=\"info\" title=\"割接审批入口\"\n+      :sub-title=\"canOpenApprovalTodos ? '普通任务列表需要任务查询权限；割接审批请从我的待办进入。' : '当前账号没有割接任务查询权限或审批待办入口。'\">\n+      <template #extra><el-button v-if=\"canOpenApprovalTodos\" type=\"primary\" @click=\"router.push('/bpm/task/todo')\">查看我的审批待办</el-button></template>\n+    </el-result>\n+    <template v-else>\n     <ContentWrap>\n       <el-form :model=\"query\" inline @submit.prevent=\"search\">\n         <el-form-item v-if=\"checkPermi(['pms:project:query'])\" label=\"项目\">\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+          ],
+          "reason": "撤回后续审批导航替代页及查询跳过；原列表鉴权由服务器维持，不补账号权限。",
+          "matchedSourceCommits": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e"
+          ]
+        },
+        {
+          "id": "F21-H02",
+          "header": "@@ -18,6 +24,7 @@",
+          "diff": "@@ -18,6 +24,7 @@\n       <CutoverTaskTable :rows=\"rows\" :loading=\"loading\" :error=\"error\" @open=\"openTask\" />\n       <Pagination v-model:page=\"query.pageNo\" v-model:limit=\"query.pageSize\" :total=\"total\" @pagination=\"loadPage\" />\n     </ContentWrap>\n+    </template>\n   </main>\n </template>\n \n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+          ],
+          "reason": "撤回后续审批导航替代页及查询跳过；原列表鉴权由服务器维持，不补账号权限。",
+          "matchedSourceCommits": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e"
+          ]
+        },
+        {
+          "id": "F21-H03",
+          "header": "@@ -31,6 +38,8 @@",
+          "diff": "@@ -31,6 +38,8 @@\n defineOptions({ name: 'PmsCutoverTaskList' })\n const route = useRoute()\n const router = useRouter()\n+const canQueryTasks = computed(() => checkPermi(['pms:cutover-task:query']))\n+const canOpenApprovalTodos = computed(() => checkPermi(['bpm:task:query']))\n const rows = ref<CutoverTaskListItem[]>([])\n const total = ref(0)\n const loading = ref(false)\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+          ],
+          "reason": "撤回后续审批导航替代页及查询跳过；原列表鉴权由服务器维持，不补账号权限。",
+          "matchedSourceCommits": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e"
+          ]
+        },
+        {
+          "id": "F21-H04",
+          "header": "@@ -50,6 +59,7 @@",
+          "diff": "@@ -50,6 +59,7 @@\n   } finally { if (current === projectSequence) projectsLoading.value = false }\n }\n const loadPage = async () => {\n+  if (!canQueryTasks.value) return\n   const current = ++sequence\n   loading.value = true\n   error.value = ''\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e fix(cutover): 改善只读展示与审批入口导航"
+          ],
+          "reason": "撤回后续审批导航替代页及查询跳过；原列表鉴权由服务器维持，不补账号权限。",
+          "matchedSourceCommits": [
+            "8e6cc41223db605eab1676fa14c42e1efba4ec5e"
+          ]
+        }
+      ],
+      "afterSha256": "4868d0a2196ecaa1381fb996251d5564c1a055f43f4bbf24cd271f5dd6a10c48",
+      "verified": true
+    },
+    {
+      "id": "F22",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/training/index.vue",
+      "beforeSha256": "50c5a320529dfb042badec5391e5d8ac28b45e54c6883f2ba8120831fecff8c7",
+      "sourceCommits": [
+        "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F22-H01",
+          "header": "@@ -139,6 +139,7 @@",
+          "diff": "@@ -139,6 +139,7 @@\n               clearable\n               class=\"!w-full\"\n               placeholder=\"从项目客户联系人中选择\"\n+              no-data-text=\"当前可见范围暂无该项目的客户联系人，请核对客户及联系人维护权限\"\n               :disabled=\"!form.projectId\"\n               @change=\"onContactSelect\"\n             >\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回源后续联系人空列表说明；原选择、授权及确认流程不变。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        }
+      ],
+      "afterSha256": "1532dfa41ae2d2e5f37cb2dea02198b290c50111b0418f950e040b1e1d0e4eca",
+      "verified": true
+    },
+    {
+      "id": "F23",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/training/public-confirm.vue",
+      "beforeSha256": "645284ca7aa172a5e2b8cfc92956a7d4c99c689e65c89231d1f7886877d586ce",
+      "sourceCommits": [
+        "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F23-H01",
+          "header": "@@ -4,7 +4,7 @@",
+          "diff": "@@ -4,7 +4,7 @@\n       <header>\n         <span class=\"service-label\">现场培训 · 客户确认</span>\n         <h1 id=\"training-title\">{{ record?.status === 2 ? '感谢您的确认' : '请评价本次培训' }}</h1>\n-        <p>感谢您参与本次现场培训。欢迎核对培训内容、填写评价并反馈意见，手写签字确认后将归档至项目交付件。</p>\n+        <p>{{ record?.status === 2 ? '以下为已确认的培训内容、评价和签字，记录已归档，不可修改。' : '感谢您参与本次现场培训。请核对培训内容、填写评价并签字确认。' }}</p>\n       </header>\n       <el-skeleton v-if=\"loading\" :rows=\"7\" animated />\n       <el-result\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回源后续已确认说明和字体样式；原status=2禁用、无重复提交/归档保护保持。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F23-H02",
+          "header": "@@ -36,7 +36,7 @@",
+          "diff": "@@ -36,7 +36,7 @@\n           :closable=\"false\"\n           :title=\"confirmedTitle\"\n         />\n-        <div class=\"customer-confirmation-form\">\n+        <div class=\"customer-confirmation-form\" :class=\"{ 'confirmed-record': record.status === 2 }\">\n           <form-create\n             v-model=\"values\"\n             v-model:api=\"formApi\"\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回源后续已确认说明和字体样式；原status=2禁用、无重复提交/归档保护保持。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F23-H03",
+          "header": "@@ -255,4 +255,10 @@",
+          "diff": "@@ -255,4 +255,10 @@\n     padding: 16px;\n   }\n }\n+.confirmed-record :deep(.el-input.is-disabled .el-input__inner),\n+.confirmed-record :deep(.el-textarea.is-disabled .el-textarea__inner),\n+.confirmed-record :deep(.el-radio.is-disabled.is-checked .el-radio__label) {\n+  color: var(--el-text-color-primary);\n+  -webkit-text-fill-color: var(--el-text-color-primary);\n+}\n </style>\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回源后续已确认说明和字体样式；原status=2禁用、无重复提交/归档保护保持。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        }
+      ],
+      "afterSha256": "90d922c704bb8f230de543d5edfb04291a22d99aaee55034acf0b6c1dee1f3a6",
+      "verified": true
+    },
+    {
+      "id": "F24",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/detail/TaskStateActions.vue",
+      "beforeSha256": "1825faab2f9b90f27e2bcd937675dec78e647afba4be5eb59f742980db9cb425",
+      "sourceCommits": [
+        "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F24-H01",
+          "header": "@@ -42,10 +42,13 @@",
+          "diff": "@@ -42,10 +42,13 @@\n   busy.value = true; error.value = ''\n   try {\n     const result = await executeTaskAction(taskId, action, body, version, intent.keyFor({ taskId, action, version, body }))\n-    if (action === 'COMPLETE' && result.status !== 'DONE') message.warning('完成条件尚未满足，任务状态未改变')\n+    if (action === 'COMPLETE' && result.status !== 'DONE') {\n+      error.value = '完成条件尚未满足，任务状态未改变。请核对本任务要求的交付件、业务结果及完成条件。'\n+      message.warning(error.value)\n+    }\n     else message.success('任务操作已保存')\n     emit('changed', result)\n-  } catch (failure: any) { error.value = failure?.message || '任务操作未成功，可刷新核对或重试' }\n+  } catch (failure: any) { error.value = (typeof failure === 'string' ? failure : failure?.message) || '任务操作未成功，可刷新核对或重试' }\n   finally { busy.value = false }\n }\n defineExpose({ isBusy: () => busy.value })\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "恢复原完成条件提示和异常显示；不改COMPLETE命令、服务端完成条件或版本。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        }
+      ],
+      "afterSha256": "351ba4fd3ffd8dc6961dc91377bf4ba19902d085e9f3656c25db63cc327c7f7f",
+      "verified": true
+    },
+    {
+      "id": "F25",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-closure/NormalClosureProcessView.vue",
+      "beforeSha256": "31ec7305e00fb27209f2fea8d5c4b27ac3f179652b4ec56760f16bd7735400e5",
+      "sourceCommits": [
+        "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F25-H01",
+          "header": "@@ -10,13 +10,11 @@",
+          "diff": "@@ -10,13 +10,11 @@\n     <template v-if=\"detail\">\n       <h3>正常闭环申请</h3>\n       <el-descriptions :column=\"1\" border>\n-        <el-descriptions-item label=\"申请 ID\">{{ detail.application.id }}</el-descriptions-item>\n-        <el-descriptions-item label=\"项目 ID\">{{ detail.projectId }}</el-descriptions-item>\n         <el-descriptions-item label=\"真实闭环来源阶段\">{{\n           detail.application.fromStage\n         }}</el-descriptions-item>\n         <el-descriptions-item label=\"闭环类型\">{{\n-          detail.application.closureType\n+          detail.application.closureType === 'NORMAL' ? '正常闭环' : detail.application.closureType\n         }}</el-descriptions-item>\n         <el-descriptions-item label=\"申请状态\">{{\n           statusLabel(detail.application.status)\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续正常闭环/节点/结果翻译、日期格式和技术证据折叠；恢复原审批信息展示，原审批历史不变。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F25-H02",
+          "header": "@@ -31,11 +29,15 @@",
+          "diff": "@@ -31,11 +29,15 @@\n           detail.application.reviewerUserId\n         }}</el-descriptions-item>\n         <el-descriptions-item label=\"提交时间\">{{\n-          detail.application.submittedAt\n+          formatDate(detail.application.submittedAt)\n         }}</el-descriptions-item>\n         <el-descriptions-item label=\"决定时间\">{{\n-          detail.application.decidedAt || '尚无决定'\n+          detail.application.decidedAt ? formatDate(detail.application.decidedAt) : '尚无决定'\n         }}</el-descriptions-item>\n+      </el-descriptions>\n+<details class=\"technical-evidence\"><summary>来源与流程标识</summary><el-descriptions :column=\"1\" border>\n+        <el-descriptions-item label=\"申请 ID\">{{ detail.application.id }}</el-descriptions-item>\n+        <el-descriptions-item label=\"项目 ID\">{{ detail.projectId }}</el-descriptions-item>\n         <el-descriptions-item label=\"实际流程实例 ID\">{{\n           detail.application.processInstanceId\n         }}</el-descriptions-item>\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续正常闭环/节点/结果翻译、日期格式和技术证据折叠；恢复原审批信息展示，原审批历史不变。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F25-H03",
+          "header": "@@ -48,7 +50,7 @@",
+          "diff": "@@ -48,7 +50,7 @@\n         <el-descriptions-item label=\"业务 Key\">{{\n           detail.application.businessKey\n         }}</el-descriptions-item>\n-      </el-descriptions>\n+      </el-descriptions></details>\n       <h3>申请冻结的条件校验</h3>\n       <el-descriptions v-if=\"detail.snapshot\" :column=\"1\" border>\n         <el-descriptions-item label=\"快照 ID\">{{ detail.snapshot.id }}</el-descriptions-item>\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续正常闭环/节点/结果翻译、日期格式和技术证据折叠；恢复原审批信息展示，原审批历史不变。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F25-H04",
+          "header": "@@ -59,7 +61,7 @@",
+          "diff": "@@ -59,7 +61,7 @@\n           detail.snapshot.checkedBy\n         }}</el-descriptions-item>\n         <el-descriptions-item label=\"校验时间\">{{\n-          detail.snapshot.checkedAt\n+          formatDate(detail.snapshot.checkedAt)\n         }}</el-descriptions-item>\n       </el-descriptions>\n       <el-table :data=\"checks\" empty-text=\"暂无可展示的校验项\" border>\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续正常闭环/节点/结果翻译、日期格式和技术证据折叠；恢复原审批信息展示，原审批历史不变。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F25-H05",
+          "header": "@@ -70,26 +72,27 @@",
+          "diff": "@@ -70,26 +72,27 @@\n         <el-table-column prop=\"reason\" label=\"原因\" min-width=\"180\" />\n         <el-table-column prop=\"subjectId\" label=\"来源对象 ID\" min-width=\"180\" />\n       </el-table>\n-      <h3>实际流程与候选人冻结证据</h3>\n-      <pre class=\"process-evidence\">{{ detail.application.processEvidence || '暂无流程证据' }}</pre>\n+      <details class=\"technical-evidence\"><summary>查看实际流程与候选人冻结证据</summary>\n+      <pre class=\"process-evidence\">{{ detail.application.processEvidence || '暂无流程证据' }}</pre></details>\n       <h3>历史审核记录</h3>\n       <el-table\n         :data=\"detail.reviews\"\n         empty-text=\"暂无已归档审核记录；当前待办请查看 BPM 流程记录\"\n         border\n       >\n-        <el-table-column prop=\"taskDefinitionKey\" label=\"实际节点 Key\" min-width=\"180\" />\n+        <el-table-column label=\"审批节点\" min-width=\"180\"><template #default=\"{ row }\"><span :title=\"row.taskDefinitionKey\">{{ ({ serviceManagerReview: '服务经理审核', materialReview: '材料审核' })[row.taskDefinitionKey] || row.taskDefinitionKey }}</span></template></el-table-column>\n         <el-table-column prop=\"taskId\" label=\"任务 ID\" min-width=\"180\" />\n         <el-table-column prop=\"reviewerUserId\" label=\"实际处理人 ID\" min-width=\"160\" />\n-        <el-table-column prop=\"outcome\" label=\"处理结果\" width=\"120\" />\n+        <el-table-column label=\"处理结果\" width=\"120\"><template #default=\"{ row }\">{{ ({ APPROVE: '同意', REJECT: '驳回' })[row.outcome] || row.outcome }}</template></el-table-column>\n         <el-table-column prop=\"reason\" label=\"审核意见\" min-width=\"180\" />\n-        <el-table-column prop=\"reviewedAt\" label=\"处理时间\" min-width=\"180\" />\n+        <el-table-column label=\"处理时间\" min-width=\"180\"><template #default=\"{ row }\">{{ formatDate(row.reviewedAt) }}</template></el-table-column>\n       </el-table>\n     </template>\n   </ContentWrap>\n </template>\n <script setup lang=\"ts\">\n import { onBeforeUnmount, ref, watch } from 'vue'\n+import { formatDate } from '@/utils/formatTime'\n import {\n   getNormalClosureApplication,\n   type ApplicationDetail,\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续正常闭环/节点/结果翻译、日期格式和技术证据折叠；恢复原审批信息展示，原审批历史不变。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        }
+      ],
+      "afterSha256": "eb150846de355c56895024c4bde89db4aa82b44ddff8108efecf75d922403042",
+      "verified": true
+    },
+    {
+      "id": "F26",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectApprovalDrawer.vue",
+      "beforeSha256": "26484e12f011f06a99dcc89b4e6ff7b3f12df8922337f03e7609f5bbbad2f025",
+      "sourceCommits": [
+        "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F26-H01",
+          "header": "@@ -1,5 +1,5 @@",
+          "diff": "@@ -1,5 +1,5 @@\n <template>\n-  <el-drawer v-model=\"visible\" title=\"审批记录\" size=\"min(1200px, 100%)\" append-to-body destroy-on-close>\n+  <el-drawer v-model=\"visible\" title=\"审批记录\" size=\"min(1200px, 100%)\" append-to-body destroy-on-close @closed=\"emit('closed')\">\n     <div class=\"project-approval-detail\">\n       <ProcessInstanceDetail v-if=\"visible && instanceId\" :key=\"instanceId\" :id=\"instanceId\" />\n     </div>\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续closed事件，与父级监听同步恢复；原抽屉和BPM详情不变。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F26-H02",
+          "header": "@@ -10,6 +10,7 @@",
+          "diff": "@@ -10,6 +10,7 @@\n import { defineAsyncComponent, ref } from 'vue'\n \n const ProcessInstanceDetail = defineAsyncComponent(() => import('@/views/bpm/processInstance/detail/index.vue').then(module => module.default))\n+const emit = defineEmits<{ closed: [] }>()\n const visible = ref(false)\n const instanceId = ref('')\n const open = (id: string) => {\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续closed事件，与父级监听同步恢复；原抽屉和BPM详情不变。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        }
+      ],
+      "afterSha256": "09d90653de9cadf0d5e76c84ecaadc3cc86f574c560643f26f2e7826f4ffca2b",
+      "verified": true
+    },
+    {
+      "id": "F27",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectDeviceConfigLogDrawer.vue",
+      "beforeSha256": "3dfe533d14b138f9889178d025b55817d1df7d1a56047909d9188de94160fcdd",
+      "sourceCommits": [],
+      "decision": "KEEP_TEST_FIX",
+      "hunks": [
+        {
+          "id": "F27-H01",
+          "header": "@@ -8,6 +8,7 @@",
+          "diff": "@@ -8,6 +8,7 @@\n   >\n     <div data-testid=\"device-config-log-drawer\">\n       <el-button :loading=\"loading\" class=\"mb-4\" @click=\"load\">刷新</el-button>\n+      <p v-if=\"pendingSources\" role=\"status\">正在加载其余配置日志…</p>\n       <el-alert\n         v-for=\"error in errors\"\n         :key=\"error\"\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "project-template-transfer-20261024/config-log-loading-performance.md；ProjectDeviceConfigLogDrawer.runtime.spec.ts：慢源不阻塞另一源、关闭/切换取消旧结果、权限分别检查",
+          "matchedSourceCommits": []
+        },
+        {
+          "id": "F27-H02",
+          "header": "@@ -78,6 +79,7 @@",
+          "diff": "@@ -78,6 +79,7 @@\n const deviceId = ref<number>()\n const serialNumber = ref('')\n const loading = ref(false)\n+const pendingSources = ref(0)\n const errors = ref<string[]>([])\n interface LogRow {\n   key: string\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "project-template-transfer-20261024/config-log-loading-performance.md；ProjectDeviceConfigLogDrawer.runtime.spec.ts：慢源不阻塞另一源、关闭/切换取消旧结果、权限分别检查",
+          "matchedSourceCommits": []
+        },
+        {
+          "id": "F27-H03",
+          "header": "@@ -107,35 +109,48 @@",
+          "diff": "@@ -107,35 +109,48 @@\n   parseStates.value = {}\n   const canQueryArchive = checkPermi(['pms:device-log-archive:query'])\n   const canQueryLegacy = checkPermi(['pms:device:query'])\n-  const [archive, legacy] = await Promise.allSettled([\n-    canQueryArchive ? ArchiveApi.history(props.projectId, currentDeviceId) : Promise.resolve([]),\n-    canQueryLegacy ? DeviceApi.getConfigurationLogs(currentDeviceId) : Promise.resolve([])\n-  ])\n-  if (current !== sequence) return\n+  pendingSources.value = Number(canQueryArchive) + Number(canQueryLegacy)\n+  const projectId = props.projectId\n   if (!canQueryArchive && !canQueryLegacy) errors.value.push('暂无配置日志查看权限')\n-  if (archive.status === 'fulfilled') {\n-    rows.value.push(\n-      ...archive.value.map((file: ArchiveApi.LogFile) => ({\n+  const sourceFinished = () => {\n+    if (current !== sequence) return\n+    --pendingSources.value\n+    rows.value.sort((a, b) => new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime())\n+    loading.value = rows.value.length === 0 && pendingSources.value > 0\n+  }\n+  await Promise.all([\n+    canQueryArchive ? (async () => {\n+      try {\n+        const files = await ArchiveApi.history(projectId, currentDeviceId)\n+        if (current !== sequence) return\n+        rows.value.push(...files.map((file: ArchiveApi.LogFile) => ({\n         key: `archive:${file.id}`,\n         name: file.fileName,\n         source: file.sourceType === 'MANUAL_UPLOAD' ? '手工上传' : '采集回传',\n         time: file.archivedAt,\n         file\n-      }))\n-    )\n-  } else errors.value.push('设备归档日志加载失败，请刷新重试')\n-  if (legacy.status === 'fulfilled') {\n-    rows.value.push(\n-      ...legacy.value.map((log: DeviceApi.DeviceConfigurationLogVO) => ({\n+        })))\n+      } catch {\n+        if (current === sequence) errors.value.push('设备归档日志加载失败，请刷新重试')\n+      } finally { sourceFinished() }\n+    })() : Promise.resolve(),\n+    canQueryLegacy ? (async () => {\n+      try {\n+        const logs = await DeviceApi.getConfigurationLogs(currentDeviceId)\n+        if (current !== sequence) return\n+        rows.value.push(...logs.map((log: DeviceApi.DeviceConfigurationLogVO) => ({\n         key: `legacy:${log.id}`,\n         name: log.configType || '配置日志',\n         source: log.sourceSystem || '—',\n         time: log.collectedAt,\n         legacy: log\n-      }))\n-    )\n-  } else errors.value.push('历史配置日志加载失败，请刷新重试')\n-  rows.value.sort((a, b) => new Date(b.time || 0).getTime() - new Date(a.time || 0).getTime())\n+        })))\n+      } catch {\n+        if (current === sequence) errors.value.push('历史配置日志加载失败，请刷新重试')\n+      } finally { sourceFinished() }\n+    })() : Promise.resolve()\n+  ])\n+  if (current !== sequence) return\n   loading.value = false\n   await Promise.all(\n     rows.value\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "project-template-transfer-20261024/config-log-loading-performance.md；ProjectDeviceConfigLogDrawer.runtime.spec.ts：慢源不阻塞另一源、关闭/切换取消旧结果、权限分别检查",
+          "matchedSourceCommits": []
+        },
+        {
+          "id": "F27-H04",
+          "header": "@@ -179,6 +194,7 @@",
+          "diff": "@@ -179,6 +194,7 @@\n   if (!value) {\n     ++sequence\n     loading.value = false\n+    pendingSources.value = 0\n     rows.value = []\n     errors.value = []\n     parseStates.value = {}\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "project-template-transfer-20261024/config-log-loading-performance.md；ProjectDeviceConfigLogDrawer.runtime.spec.ts：慢源不阻塞另一源、关闭/切换取消旧结果、权限分别检查",
+          "matchedSourceCommits": []
+        }
+      ],
+      "afterSha256": "3dfe533d14b138f9889178d025b55817d1df7d1a56047909d9188de94160fcdd",
+      "verified": true
+    },
+    {
+      "id": "F28",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectFlowPanel.vue",
+      "beforeSha256": "79c24b5edf68bbc1cebf0a6a95e28a0da4bb5caf789a414d7a6c36244eb8db94",
+      "sourceCommits": [
+        "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F28-H01",
+          "header": "@@ -293,9 +293,9 @@",
+          "diff": "@@ -293,9 +293,9 @@\n         >推进至 {{ readiness.nextStage }}{{ nextStageName ? ` ${nextStageName}` : '' }}</el-button>\n       </template>\n       <template v-else-if=\"workbench && !taskPending && !loadError\">\n-        <span v-if=\"pageSyncing\" role=\"status\">业务已保存，正在同步任务状态…</span>\n+        <span v-if=\"pageSyncing && workbench.trustedTargetRef !== '/pms/project-management/project-master-detail'\" role=\"status\">业务已保存，正在同步任务状态…</span>\n         <TaskStateActions\n-          v-else-if=\"taskActionWorkbench\"\n+          v-if=\"!pageSyncing && taskActionWorkbench\"\n           ref=\"stateActionsRef\" :workbench=\"taskActionWorkbench\" :business-bound=\"businessBound\"\n           :business-fact-version=\"businessFactVersion\" :before-action=\"requestLeave\" @changed=\"handleBusinessChanged\">\n           <ProjectTaskDetailsEditor v-if=\"taskActionWorkbench.allowedActions.includes('UPDATE_PROGRESS')\" ref=\"detailsRef\" :workbench=\"taskActionWorkbench\" :before-action=\"requestLeave\" @changed=\"handleBusinessChanged\" />\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续回读终止条件、提示及闭环refresh联动；恢复原任务同步行为，不改任务状态机和P6修复。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F28-H02",
+          "header": "@@ -439,7 +439,7 @@",
+          "diff": "@@ -439,7 +439,7 @@\n })\n const loadError = ref('')\n const businessRef = ref<InstanceType<typeof TaskBusinessPanel>>()\n-const pageEmbedRef = ref<{ requestLeave?: () => Promise<boolean> }>()\n+const pageEmbedRef = ref<{ requestLeave?: () => Promise<boolean>; refresh?: () => Promise<unknown> }>()\n const stageBusinessRef = ref<InstanceType<typeof StageBusinessPanel>>()\n // 阶段业务绑定类型由 StageBusinessPanel 装载后上报；STAGE_NATIVE 阶段不渲染业务办理区\n const stageBindingType = ref<string>()\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续回读终止条件、提示及闭环refresh联动；恢复原任务同步行为，不改任务状态机和P6修复。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F28-H03",
+          "header": "@@ -685,6 +685,7 @@",
+          "diff": "@@ -685,6 +685,7 @@\n   if (taskId == null) return\n   const token = sequence, refresh = ++embeddedRefresh\n   const previousVersion = workbench.value?.task.version\n+  const endUserEntry = workbench.value?.trustedTargetRef === '/pms/project-management/project-master-detail'\n   // 联系人规则由提交后的事件重评；给异步完成留出回读窗口，期间不展示旧版本任务动作。\n   const attempts = ['/customer-asset/customer-contact', '/pms/project-management/project-master-detail']\n     .includes(workbench.value?.trustedTargetRef || '') ? 16 : 1\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续回读终止条件、提示及闭环refresh联动；恢复原任务同步行为，不改任务状态机和P6修复。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F28-H04",
+          "header": "@@ -697,7 +698,8 @@",
+          "diff": "@@ -697,7 +698,8 @@\n       const next = await TaskWorkbenchApi.getTaskWorkbench(taskId)\n       if (!stillCurrent()) return\n       workbench.value = next\n-      if (next.task.version !== previousVersion || ['DONE', 'CLOSED', 'CANCELLED'].includes(next.task.status || '')) break\n+      if (['DONE', 'CLOSED', 'CANCELLED'].includes(next.task.status || '')\n+          || !endUserEntry && next.task.version !== previousVersion) break\n     }\n     await loadWorkspace(token)\n     if (stillCurrent()) emit('changed')\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续回读终止条件、提示及闭环refresh联动；恢复原任务同步行为，不改任务状态机和P6修复。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F28-H05",
+          "header": "@@ -724,6 +726,7 @@",
+          "diff": "@@ -724,6 +726,7 @@\n     await Promise.all([loadWorkspace(token), taskId == null ? undefined : loadTaskWorkbench(taskId, token)])\n     if (current(token) && props.selection?.kind === 'stage') await tasks.reload()\n     if (!current(token)) return false\n+    if (pageEmbed.value === ProjectNormalClosurePanel) await pageEmbedRef.value?.refresh?.()\n     loadError.value = ''\n     return true\n   } catch {\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续回读终止条件、提示及闭环refresh联动；恢复原任务同步行为，不改任务状态机和P6修复。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        }
+      ],
+      "afterSha256": "c02a41fade8ed98fe2f980b154e1c9cffff141742789f3e94dfe202fd002330d",
+      "verified": true
+    },
+    {
+      "id": "F29",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectNormalClosurePanel.vue",
+      "beforeSha256": "181aa9249fc0694796b2dabe5c4d5cd5b949e78a3c5ab2294cb4e8e070a0baac",
+      "sourceCommits": [
+        "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F29-H01",
+          "header": "@@ -166,6 +166,7 @@",
+          "diff": "@@ -166,6 +166,7 @@\n const refresh = () => {\n   if (!busy.value && !disposed) return load()\n }\n+defineExpose({ refresh })\n const check = async () => {\n   if (!overview.value || !allowed('CHECK')) return\n   const value = { ...overview.value },\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续暴露refresh；原内部刷新/校验/提交及权限保持。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        }
+      ],
+      "afterSha256": "0f2b7ae699ce957ac37b4d687862d25b50cef0d03e8c83093085c886b468914f",
+      "verified": true
+    },
+    {
+      "id": "F30",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/StageGateResultsPanel.vue",
+      "beforeSha256": "1c5c41230843cf0d0e68a2f7dac9b9e4fd91708899c5bd73fb59a5909f895fc2",
+      "sourceCommits": [
+        "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+      ],
+      "decision": "RESTORE_ORIGINAL_HUNK",
+      "hunks": [
+        {
+          "id": "F30-H01",
+          "header": "@@ -9,7 +9,8 @@",
+          "diff": "@@ -9,7 +9,8 @@\n     <p v-if=\"loading\" role=\"status\">正在读取本轮门禁结果…</p>\n     <el-alert v-else-if=\"error\" :title=\"error\" type=\"warning\" :closable=\"false\" show-icon />\n     <template v-else-if=\"workbench\">\n-      <p class=\"hint\">第 {{ workbench.executionRound }} 轮 · 当前规则结果；刷新不会推进阶段或发起审批。</p>\n+      <el-alert v-if=\"historical\" title=\"项目已结束，当前办理条件不再适用。以下为当前规则诊断，历史完成及审批记录保持原样。\" type=\"info\" :closable=\"false\" show-icon />\n+      <p v-else class=\"hint\">第 {{ workbench.executionRound }} 轮 · 当前规则结果；刷新不会推进阶段或发起审批。</p>\n       <p v-if=\"!workbench.gates.length\" role=\"status\">当前阶段无准入条件限制。</p>\n \n       <!-- 准入/准出条件：与交付件清单同款分节行格式；每条引用的满足结果来自按下标对齐的规则条件诊断 -->\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续历史诊断说明、historical参数与PROJECT_NOT_ACTIVE文案；原诊断/历史业务数据不改。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F30-H02",
+          "header": "@@ -103,6 +104,7 @@",
+          "diff": "@@ -103,6 +104,7 @@\n   projectId: number\n   stageCode: string\n   projectVersion?: number\n+  historical?: boolean\n   /** 面板标题：项目主档侧栏按完成条件口径展示，其余用法保持阶段门禁条件 */\n   title?: string\n   /** 项目实例视图：用于把引用编码解析为业务名称/交付件实例；缺省时回退展示编码 */\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续历史诊断说明、historical参数与PROJECT_NOT_ACTIVE文案；原诊断/历史业务数据不改。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        },
+        {
+          "id": "F30-H03",
+          "header": "@@ -207,6 +209,7 @@",
+          "diff": "@@ -207,6 +209,7 @@\n const handleDeliverableChanged = async () => { await load(); emit('changed') }\n // 原因码中文名：仅覆盖各门禁事实提供者已登记的取值，未登记的原样展示\n const REASON_LABELS: Record<string, string> = {\n+  PROJECT_NOT_ACTIVE: '项目已结束，当前办理条件不再适用',\n   TASK_NOT_FOUND: '任务不存在',\n   TASK_NOT_DONE: '任务未完成',\n   MILESTONE_NOT_FOUND: '里程碑不存在',\n",
+          "decision": "RESTORE_ORIGINAL_HUNK",
+          "source": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446 fix(project): 刷新审批结果并保留历史只读展示"
+          ],
+          "reason": "撤回后续历史诊断说明、historical参数与PROJECT_NOT_ACTIVE文案；原诊断/历史业务数据不改。",
+          "matchedSourceCommits": [
+            "ce6b78654615adebd84ef4c5a198fb41ba443446"
+          ]
+        }
+      ],
+      "afterSha256": "6aa04488ab03617815afec25fda5e9bfa40e895bf015dc425a1a20911ce91767",
+      "verified": true
+    },
+    {
+      "id": "F31",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/TaskBusinessPanel.vue",
+      "beforeSha256": "a89f15511cd5fd1f0dd2392b85f25432cfd48c6530b3abd6a2c42ffd6176acf4",
+      "sourceCommits": [],
+      "decision": "KEEP_TEST_FIX",
+      "hunks": [
+        {
+          "id": "F31-H01",
+          "header": "@@ -14,6 +14,11 @@",
+          "diff": "@@ -14,6 +14,11 @@\n         :project=\"{ ...project, id: project.id == null ? undefined : legacyOwnerId(project.id) }\"\n         :readonly=\"maintenanceReadonly\"\n         @changed=\"ownerChanged\"\n+      />\n+      <CutoverTaskDetail\n+        v-else-if=\"completedCutover && project && selectedObject\"\n+        ref=\"cutoverRef\" :task-id=\"selectedObject\" :project-id=\"project.id\"\n+        closure-only :readonly=\"maintenanceReadonly\" @changed=\"ownerChanged\"\n       />\n       <BusinessViewHost\n         v-else-if=\"registration && project\"\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "stage-workflow-retest-result.md：CUT/CUTOVER_APPROVAL、冻结组件、QUERY与既有关联共同限定，不恢复项目任务写动作",
+          "matchedSourceCommits": []
+        },
+        {
+          "id": "F31-H02",
+          "header": "@@ -52,6 +57,7 @@",
+          "diff": "@@ -52,6 +57,7 @@\n import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'\n import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'\n import ProjectMembersBusinessView from '@/components/BusinessView/ProjectMembersBusinessView.vue'\n+const CutoverTaskDetail = defineAsyncComponent(() => import('@/views/pms/cutover/task-detail/index.vue').then(module => module.default))\n import * as BusinessApi from '@/api/pms/project/task-business'\n import type { TaskBusinessContext, TaskBusinessObject } from '@/api/pms/project/task-business'\n import * as ReportApi from '@/api/pms/acceptance/acceptance-report'\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "stage-workflow-retest-result.md：CUT/CUTOVER_APPROVAL、冻结组件、QUERY与既有关联共同限定，不恢复项目任务写动作",
+          "matchedSourceCommits": []
+        },
+        {
+          "id": "F31-H03",
+          "header": "@@ -84,6 +90,7 @@",
+          "diff": "@@ -84,6 +90,7 @@\n const registration = ref<BusinessViewRegistrationVO>()\n const hostRef = ref<InstanceType<typeof BusinessViewHost>>()\n const membersRef = ref<InstanceType<typeof ProjectMembersBusinessView>>()\n+const cutoverRef = ref<InstanceType<typeof CutoverTaskDetail>>()\n // 业务视图宿主的首判定完成状态（expose 的 viewSettled）：宿主未挂载或执行检查中视为未就绪\n const hostSettled = computed(() => hostRef.value?.viewSettled === true)\n const loading = ref(false), dirty = ref(false)\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "stage-workflow-retest-result.md：CUT/CUTOVER_APPROVAL、冻结组件、QUERY与既有关联共同限定，不恢复项目任务写动作",
+          "matchedSourceCommits": []
+        },
+        {
+          "id": "F31-H04",
+          "header": "@@ -116,6 +123,13 @@",
+          "diff": "@@ -116,6 +123,13 @@\n   context.value?.ownerActions.includes('QUERY'))\n const maintenanceReadonly = computed(() => Boolean(props.readonly || loading.value || error.value ||\n   context.value?.recoverableError || !sameTask(context.value?.taskId, props.taskId)))\n+// 审批完成只结束项目任务；关联割接的P6继续由割接Owner授权和状态机办理。\n+const completedCutover = computed(() => props.completed &&\n+  sameTask(context.value?.taskId, props.taskId) && context.value?.ownerContext === 'CUT' &&\n+  context.value?.objectType === 'CUTOVER_APPROVAL' &&\n+  registration.value?.componentKey === 'CUT_CUTOVER_APPROVAL_WORKBENCH' &&\n+  context.value?.ownerActions.includes('QUERY') &&\n+  context.value.links.some(row => row.objectId === selectedObject.value))\n // Owner pages enforce each row's state. Automatic links can lag behind a saved draft.\n // 只读（未进入阶段/已完成/执行不允许）只保留 QUERY：视图照常渲染，写操作由 Owner 页面隐藏\n const ownerActions = computed(() => {\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "stage-workflow-retest-result.md：CUT/CUTOVER_APPROVAL、冻结组件、QUERY与既有关联共同限定，不恢复项目任务写动作",
+          "matchedSourceCommits": []
+        },
+        {
+          "id": "F31-H05",
+          "header": "@@ -219,6 +233,7 @@",
+          "diff": "@@ -219,6 +233,7 @@\n }\n const requestLeave = async () => {\n   try {\n+    if (cutoverRef.value) return await cutoverRef.value.saveBeforeLeave()\n     const host = membersRef.value || hostRef.value\n     if (!host) return !dirty.value\n     return (await host.requestLeave()) !== false\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "stage-workflow-retest-result.md：CUT/CUTOVER_APPROVAL、冻结组件、QUERY与既有关联共同限定，不恢复项目任务写动作",
+          "matchedSourceCommits": []
+        }
+      ],
+      "afterSha256": "a89f15511cd5fd1f0dd2392b85f25432cfd48c6530b3abd6a2c42ffd6176acf4",
+      "verified": true
+    },
+    {
+      "id": "F32",
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/saveArrivalReceipt.ts",
+      "beforeSha256": "cb11731c13b5492eaaf0df6f46f63a4dd91a3ab689248a663805d7c0385321cd",
+      "sourceCommits": [],
+      "decision": "KEEP_TEST_FIX",
+      "hunks": [
+        {
+          "id": "F32-H01",
+          "header": "@@ -30,7 +30,8 @@",
+          "diff": "@@ -30,7 +30,8 @@\n     }\n     attempt.initialized ||= await initializeUpload({\n       modeCode: form.signDocumentArtifactId ? 'ADD_VERSION' : 'CREATE_ARTIFACT',\n-      artifactId: form.signDocumentArtifactId, expectedReferenceVersion: form.signDocumentReferenceVersion,\n+      ...(form.signDocumentArtifactId ? { artifactId: form.signDocumentArtifactId,\n+        expectedReferenceVersion: form.signDocumentReferenceVersion } : {}),\n       ownerContext: 'IMP', objectType: 'ARRIVAL', objectId: String(form.id),\n       purposeCode: 'ARRIVAL_SIGN_DOCUMENT', referenceKey: 'arrival-sign-document', categoryCode: 'ARRIVAL_SIGN_DOCUMENT',\n       fileName: attempt.file.name, declaredSizeBytes: attempt.file.size,\n",
+          "decision": "KEEP_TEST_FIX",
+          "source": [
+            "目标工作区独有修复；原两份提交一致"
+          ],
+          "reason": "stage-workflow-retest-result.md及saveArrivalReceipt.runtime.spec.ts：首次上传省略artifactId/referenceVersion，既有版本上传仍带预期版本",
+          "matchedSourceCommits": []
+        }
+      ],
+      "afterSha256": "cb11731c13b5492eaaf0df6f46f63a4dd91a3ab689248a663805d7c0385321cd",
+      "verified": true
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/framework/adapter/CutoverOwnerAdapters.java",
+      "reason": "撤回32文件中源后续同功能迁入的直接依赖或对应验收断言；保留原授权/历史/文件保护和纯新增能力"
+    },
+    {
+      "path": "pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/task/CutoverExecutionReadinessPolicyTest.java",
+      "reason": "撤回32文件中源后续同功能迁入的直接依赖或对应验收断言；保留原授权/历史/文件保护和纯新增能力"
+    },
+    {
+      "path": "pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/service/task/CutoverTaskCreationQueryServiceTest.java",
+      "reason": "撤回32文件中源后续同功能迁入的直接依赖或对应验收断言；保留原授权/历史/文件保护和纯新增能力"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/implementationreadiness/ImplementationReadinessServiceTest.java",
+      "reason": "撤回32文件中源后续同功能迁入的直接依赖或对应验收断言；保留原授权/历史/文件保护和纯新增能力"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/tasks/index.spec.ts",
+      "reason": "撤回32文件中源后续同功能迁入的直接依赖或对应验收断言；保留原授权/历史/文件保护和纯新增能力"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/task-create/taskCreationDetail.spec.ts",
+      "reason": "撤回32文件中源后续同功能迁入的直接依赖或对应验收断言；保留原授权/历史/文件保护和纯新增能力"
+    },
+    {
+      "path": "pms-module-engineering-api/pom.xml",
+      "reason": "撤回32文件中源后续同功能迁入的直接依赖或对应验收断言；保留原授权/历史/文件保护和纯新增能力"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/api/implementationreadiness/ImplementationReadinessApiContractTest.java",
+      "reason": "撤回32文件中源后续同功能迁入的直接依赖或对应验收断言；保留原授权/历史/文件保护和纯新增能力"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/components/CutoverChecklistField.vue",
+      "reason": "撤回32文件中源后续同功能迁入的直接依赖或对应验收断言；保留原授权/历史/文件保护和纯新增能力"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/components/CutoverClosureForm.vue",
+      "reason": "撤回32文件中源后续同功能迁入的直接依赖或对应验收断言；保留原授权/历史/文件保护和纯新增能力"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/index.vue",
+      "reason": "撤回32文件中源后续同功能迁入的直接依赖或对应验收断言；保留原授权/历史/文件保护和纯新增能力"
+    },
+    {
+      "path": "pms-module-cutover-api/src/main/java/cn/iocoder/yudao/module/pms/cutover/api/approval/CutoverApprovalReadinessAccessApi.java",
+      "reason": "上轮错误迁入的专用审批链新增文件；属于替换既有审批处理的依赖，非独立新增业务；随调用链撤回，原审批安全测试保留"
+    },
+    {
+      "path": "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/api/approval/CutoverApprovalReadinessAccessApiImpl.java",
+      "reason": "上轮错误迁入的专用审批链新增文件；属于替换既有审批处理的依赖，非独立新增业务；随调用链撤回，原审批安全测试保留"
+    },
+    {
+      "path": "pms-module-cutover/src/test/java/cn/iocoder/yudao/module/pms/cutover/api/approval/CutoverApprovalReadinessAccessApiImplTest.java",
+      "reason": "上轮错误迁入的专用审批链新增文件；属于替换既有审批处理的依赖，非独立新增业务；随调用链撤回，原审批安全测试保留"
+    },
+    {
+      "path": "pms-module-engineering-api/src/main/java/cn/iocoder/yudao/module/pms/engineering/api/implementationreadiness/dto/CutoverApprovalReadinessResult.java",
+      "reason": "上轮错误迁入的专用审批链新增文件；属于替换既有审批处理的依赖，非独立新增业务；随调用链撤回，原审批安全测试保留"
+    }
+  ]
+}

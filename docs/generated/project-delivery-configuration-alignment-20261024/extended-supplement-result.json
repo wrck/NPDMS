@@ -1,0 +1,178 @@
+{
+  "dictionaryValues": [
+    {
+      "type": "system_menu_type",
+      "value": "1",
+      "id": "2112881237060321740"
+    },
+    {
+      "type": "system_menu_type",
+      "value": "2",
+      "id": "2112881237060321741"
+    },
+    {
+      "type": "system_menu_type",
+      "value": "3",
+      "id": "2112881237060321742"
+    },
+    {
+      "type": "system_data_scope",
+      "value": "1",
+      "id": "2112881237060321743"
+    },
+    {
+      "type": "system_data_scope",
+      "value": "2",
+      "id": "2112881237060321744"
+    },
+    {
+      "type": "system_data_scope",
+      "value": "3",
+      "id": "2112881237060321745"
+    },
+    {
+      "type": "system_data_scope",
+      "value": "4",
+      "id": "2112881237060321746"
+    },
+    {
+      "type": "system_data_scope",
+      "value": "5",
+      "id": "2112881237060321747"
+    }
+  ],
+  "smsTemplates": [
+    {
+      "code": "user-sms-login",
+      "id": 5,
+      "channelId": 1
+    },
+    {
+      "code": "user-update-mobile",
+      "id": 6,
+      "channelId": 1
+    },
+    {
+      "code": "user-update-password",
+      "id": 7,
+      "channelId": 1
+    },
+    {
+      "code": "user-reset-password",
+      "id": 8,
+      "channelId": 1
+    },
+    {
+      "code": "admin-sms-login",
+      "id": 9,
+      "channelId": 1
+    },
+    {
+      "code": "admin-reset-password",
+      "id": 10,
+      "channelId": 1
+    }
+  ],
+  "checks": [
+    {
+      "identity": [
+        "system_menu_type",
+        "1"
+      ],
+      "passed": true
+    },
+    {
+      "identity": [
+        "system_menu_type",
+        "2"
+      ],
+      "passed": true
+    },
+    {
+      "identity": [
+        "system_menu_type",
+        "3"
+      ],
+      "passed": true
+    },
+    {
+      "identity": [
+        "system_data_scope",
+        "1"
+      ],
+      "passed": true
+    },
+    {
+      "identity": [
+        "system_data_scope",
+        "2"
+      ],
+      "passed": true
+    },
+    {
+      "identity": [
+        "system_data_scope",
+        "3"
+      ],
+      "passed": true
+    },
+    {
+      "identity": [
+        "system_data_scope",
+        "4"
+      ],
+      "passed": true
+    },
+    {
+      "identity": [
+        "system_data_scope",
+        "5"
+      ],
+      "passed": true
+    },
+    {
+      "identity": "user-sms-login",
+      "passed": true
+    },
+    {
+      "identity": "user-update-mobile",
+      "passed": true
+    },
+    {
+      "identity": "user-update-password",
+      "passed": true
+    },
+    {
+      "identity": "user-reset-password",
+      "passed": true
+    },
+    {
+      "identity": "admin-sms-login",
+      "passed": true
+    },
+    {
+      "identity": "admin-reset-password",
+      "passed": true
+    }
+  ],
+  "sourceGaps": [
+    {
+      "kind": "SMS_SCENE",
+      "code": "admin-sms-register",
+      "action": "No source definition; no invented template"
+    }
+  ],
+  "dictionaryTypes": [
+    {
+      "code": "system_menu_type",
+      "id": "2112881236359872601",
+      "consumer": "system/menu/MenuForm.vue"
+    },
+    {
+      "code": "system_data_scope",
+      "id": "2112881236359872602",
+      "consumer": "system/role/RoleDataPermissionForm.vue"
+    }
+  ],
+  "preservedExistingDictionaryRows": 2047
+}

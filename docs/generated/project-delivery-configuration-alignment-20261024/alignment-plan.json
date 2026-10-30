@@ -1,0 +1,525 @@
+{
+  "status": "PREPARED_NOT_APPLIED",
+  "source": "codex/domain-migration@4d149f34faec4b66e93373794693d6bbd738b716 + 24306/npdms_domain_test",
+  "target": "172.17.90.178:13306/npdms tenant 1",
+  "scope": "Restore required configuration availability and content; preserve approved target repairs and immutable history",
+  "required": [
+    {
+      "type": "trainingForms",
+      "codes": [
+        "TRAINING_FORM_20260920",
+        "TRAINING_PRINT_APPROVED"
+      ],
+      "sourcePublishedRevision": 2,
+      "action": "Import exact published content through form revision/publish/enable services; preserve target draft evidence"
+    },
+    {
+      "type": "processes",
+      "definitions": [
+        {
+          "key": "PMS_CUTOVER_APPROVAL",
+          "sourceVersion": 4,
+          "sourceId": "PMS_CUTOVER_APPROVAL:4:11e4f961-cc73-11f1-b370-00ff0b78abd7"
+        },
+        {
+          "key": "PMS_DELIVERY_CUTOVER_APPROVAL",
+          "sourceVersion": 1,
+          "sourceId": "0e48d1a2-b761-11f1-bd7e-00ff0b78abd7"
+        },
+        {
+          "key": "PMS_DELIVERY_SOLUTION_REVIEW",
+          "sourceVersion": 2,
+          "sourceId": "a2d48fdb-c15b-11f1-8ba1-00ff0b78abd7"
+        },
+        {
+          "key": "pms-cutover-done-approval",
+          "sourceVersion": 1,
+          "sourceId": "pms-cutover-done-approval:1:39b31dd1-c49f-11f1-844a-00ff0b78abd7"
+        },
+        {
+          "key": "pms-sol-duration-change",
+          "sourceVersion": 2,
+          "sourceId": "pms-sol-duration-change:2:46418d38-b80e-11f1-892d-00ff0b78abd7"
+        },
+        {
+          "key": "pms-sol-stage-plan",
+          "sourceVersion": 2,
+          "sourceId": "pms-sol-stage-plan:2:d8d633dd-b4db-11f1-9122-00ff0b78abd7"
+        }
+      ],
+      "bpmFormDependencies": [
+        1
+      ],
+      "action": "Create/deploy via native BPM model services; validate all candidates, pages and form references; never copy runtime instances"
+    },
+    {
+      "type": "cutoverConfiguration",
+      "code": "CUTOVER_STANDARD_V1",
+      "sourceRevision": 2,
+      "action": "Validate and publish equivalent revision via configuration service; retire prior choices as source; preserve every task snapshot"
+    },
+    {
+      "type": "dictionaryValues",
+      "rows": [
+        {
+          "dictType": "pms_acceptance_status",
+          "values": [
+            "0",
+            "1",
+            "2",
+            "3"
+          ]
+        },
+        {
+          "dictType": "pms_acceptance_type",
+          "values": [
+            "FINAL",
+            "PRELIMINARY"
+          ]
+        },
+        {
+          "dictType": "pms_announcement_type",
+          "values": [
+            "PATCH",
+            "SECURITY",
+            "TECHNICAL"
+          ]
+        },
+        {
+          "dictType": "pms_authorization_type",
+          "values": [
+            "OFFICIAL",
+            "TEMP"
+          ]
+        },
+        {
+          "dictType": "pms_briefing_type",
+          "values": [
+            "CUSTOM",
+            "EMERGENCY",
+            "SAFETY",
+            "STANDARD",
+            "TECHNICAL"
+          ]
+        },
+        {
+          "dictType": "pms_completion_cert_status",
+          "values": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "dictType": "pms_deliverable_status",
+          "values": [
+            "0",
+            "1",
+            "2",
+            "3"
+          ]
+        },
+        {
+          "dictType": "pms_deliverable_type",
+          "values": [
+            "CONDITIONAL",
+            "OPTIONAL",
+            "REQUIRED"
+          ]
+        },
+        {
+          "dictType": "pms_document_type",
+          "values": [
+            "ACCEPTANCE",
+            "DESIGN",
+            "IMPLEMENTATION",
+            "OTHER",
+            "REQUIREMENT",
+            "TRAINING"
+          ]
+        },
+        {
+          "dictType": "pms_eng_deliverable_status",
+          "values": [
+            "0",
+            "1",
+            "2"
+          ]
+        },
+        {
+          "dictType": "pms_eng_deliverable_type",
+          "values": [
+            "COMPLETION",
+            "CONFIG",
+            "DAILY",
+            "IMPLEMENTATION",
+            "RECEIPT",
+            "SERVICE",
+            "TEST",
+            "TRAINING"
+          ]
+        },
+        {
+          "dictType": "pms_eng_status",
+          "values": [
+            "0",
+            "1",
+            "2",
+            "3"
+          ]
+        },
+        {
+          "dictType": "pms_form_instance_status",
+          "values": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "dictType": "pms_form_template_status",
+          "values": [
+            "0",
+            "1",
+            "2"
+          ]
+        },
+        {
+          "dictType": "pms_implementation_method",
+          "values": [
+            "DIRECT_SUBCONTRACT",
+            "FACTORY_INTEGRATION"
+          ]
+        },
+        {
+          "dictType": "pms_issue_severity",
+          "values": [
+            "1",
+            "2",
+            "3"
+          ]
+        },
+        {
+          "dictType": "pms_issue_status",
+          "values": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4"
+          ]
+        },
+        {
+          "dictType": "pms_portfolio_category",
+          "values": [
+            "专项",
+            "区域",
+            "客户",
+            "战略",
+            "计划"
+          ]
+        },
+        {
+          "dictType": "pms_portfolio_rule_dimension",
+          "values": [
+            "CUSTOMER",
+            "REGION",
+            "STATUS",
+            "TYPE"
+          ]
+        },
+        {
+          "dictType": "pms_product_type",
+          "values": [
+            "FIREWALL",
+            "IPS",
+            "ROUTER",
+            "SWITCH",
+            "WAF"
+          ]
+        },
+        {
+          "dictType": "pms_project_type",
+          "values": [
+            "10"
+          ]
+        },
+        {
+          "dictType": "pms_requirement_type",
+          "values": [
+            "BUSINESS",
+            "INTERFACE"
+          ]
+        },
+        {
+          "dictType": "pms_resource_type",
+          "values": [
+            "APPROVAL",
+            "PEOPLE",
+            "SPARE",
+            "TEST_ENV",
+            "TOOL",
+            "WINDOW"
+          ]
+        },
+        {
+          "dictType": "pms_risk_level",
+          "values": [
+            "A",
+            "B",
+            "C",
+            "D"
+          ]
+        },
+        {
+          "dictType": "pms_trigger_source",
+          "values": [
+            "MANUAL",
+            "RESOURCE_READY",
+            "SITE_SURVEY",
+            "SOLUTION"
+          ]
+        }
+      ],
+      "action": "Idempotent forward seed by dict_type+value; retain current target values and metadata"
+    },
+    {
+      "type": "businessViews",
+      "rows": [
+        {
+          "key": "CUTOVER_TASK|VISIO_DELIVERY_20260922_CUTOVER_TASK|1",
+          "id": 2102312818482794497,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "PROJECT_ASSIGNMENT|IT_DEFAULT_20261012_PROJ_PROJECT_ASSIGNMENT|1",
+          "id": 2102312818482794510,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "acceptanceActivity|IT_DEFAULT_20261012_DIRECT_BUSINESS_ACC_ACCEPTANCE_ACTIVITY|1",
+          "id": 2102312818482794508,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "arrival|IT_DEFAULT_20261012_DIRECT_BUSINESS_IMP_ARRIVAL|1",
+          "id": 2102312818482794504,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "configuration|IT_DEFAULT_20261012_DIRECT_BUSINESS_IMP_CONFIGURATION|1",
+          "id": 2102312818482794506,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "constructionPlan|IT_DEFAULT_20261012_DIRECT_BUSINESS_SOL_CONSTRUCTION_PLAN|1",
+          "id": 2102312818482794500,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "installation|IT_DEFAULT_20261012_DIRECT_BUSINESS_IMP_INSTALLATION|1",
+          "id": 2102312818482794505,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "jointTest|IT_DEFAULT_20261012_DIRECT_BUSINESS_IMP_JOINT_TEST|1",
+          "id": 2102312818482794507,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "projectContact|IT_DEFAULT_20261012_DIRECT_BUSINESS_CUS_PROJECT_CONTACT|1",
+          "id": 2102312818482794501,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "requirementAnalysisRevision|IT_DEFAULT_20261012_DIRECT_BUSINESS_SOL_REQUIREMENT_ANALYSIS_REVISION|1",
+          "id": 2102312818482794499,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "siteSurvey|IT_DEFAULT_20261012_DIRECT_BUSINESS_SOL_SITE_SURVEY|1",
+          "id": 2102312818482794498,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "solution|IT_DEFAULT_20261012_DIRECT_BUSINESS_SOL_SOLUTION|1",
+          "id": 2102312818482794503,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "stagePlanBatch|IT_DEFAULT_20261012_DIRECT_BUSINESS_SOL_STAGE_PLAN_BATCH|1",
+          "id": 2102312818482794502,
+          "status": null,
+          "published": true,
+          "name": null
+        },
+        {
+          "key": "training|IT_DEFAULT_20261012_DIRECT_BUSINESS_IMP_TRAINING|1",
+          "id": 2102312818482794509,
+          "status": null,
+          "published": true,
+          "name": null
+        }
+      ],
+      "action": "Import published registrations with explicit ID map; validate registered components, Owner and Providers; retain 15 existing registrations and template snapshots"
+    },
+    {
+      "type": "stageSuggestion",
+      "identity": "S3|null|DURATION_REQUIRE|null",
+      "action": "Import exact source row via reviewed configuration seed; no project plan updates"
+    }
+  ],
+  "catalogScopeForExplicitInclusion": {
+    "engineeringDocumentTemplates": {
+      "enabledCodes": [
+        "DT-REQ-BASE-001",
+        "DT-REQ-DATA-001",
+        "DT-REQ-SEC-001",
+        "DT-SOL-BASE-001",
+        "DT-SOL-DATA-001",
+        "DT-SOL-SEC-001"
+      ],
+      "draftCodes": [
+        "DT-REQ-WIRELESS-001"
+      ]
+    },
+    "preparationFormTemplates": {
+      "enabledCodes": [
+        "FT-2026-001",
+        "FT-2026-002",
+        "FT-2026-003",
+        "FT-2026-005",
+        "FT-2026-006",
+        "FT-2026-007",
+        "FT-2026-008",
+        "FT-2026-010"
+      ],
+      "disabledCodes": [
+        "FT-2026-004",
+        "FT-2026-009"
+      ]
+    },
+    "publishedDefinitionAssets": {
+      "count": 619,
+      "referenceCount": 651,
+      "action": "Preserve the entire exact dependency graph and publication semantics; not project instances"
+    },
+    "collectionTemplates": {
+      "publishedCodes": [
+        "DEVICE-SHOW-5f6af2",
+        "QA-SUPERVISION64-SYSTEM",
+        "QA-SUPERVISION64-DIAGNOSTIC"
+      ],
+      "note": "Published names include QA/sample purpose; do not recast them as production commands"
+    },
+    "inspectionRules": {
+      "publishedNames": [
+        "【模拟验收】离线合成延迟检测",
+        "【模拟验收】仅类型A适配"
+      ],
+      "note": "These are explicitly simulated acceptance rules, not production rule evidence"
+    },
+    "otherMissingDictionaries": 73,
+    "otherMissingForms": [
+      {
+        "code": "5",
+        "sourceEnabled": "DISABLED",
+        "targetEnabled": null,
+        "sourceRevision": null,
+        "targetRevision": null,
+        "contentDifferencePaths": []
+      },
+      {
+        "code": "CONFIRM_QA_1789910001",
+        "sourceEnabled": "ENABLED",
+        "targetEnabled": null,
+        "sourceRevision": 2,
+        "targetRevision": null,
+        "contentDifferencePaths": [
+          ""
+        ]
+      },
+      {
+        "code": "SOL_PRE04_DISABLED_COMPATIBLE",
+        "sourceEnabled": "DISABLED",
+        "targetEnabled": null,
+        "sourceRevision": 1,
+        "targetRevision": null,
+        "contentDifferencePaths": [
+          ""
+        ]
+      },
+      {
+        "code": "SOL_PRE04_DUPLICATE_CORE_EXAMPLE",
+        "sourceEnabled": "ENABLED",
+        "targetEnabled": null,
+        "sourceRevision": 1,
+        "targetRevision": null,
+        "contentDifferencePaths": [
+          ""
+        ]
+      },
+      {
+        "code": "SOL_PRE04_MISSING_CORE_EXAMPLE",
+        "sourceEnabled": "ENABLED",
+        "targetEnabled": null,
+        "sourceRevision": 1,
+        "targetRevision": null,
+        "contentDifferencePaths": [
+          ""
+        ]
+      }
+    ],
+    "otherActiveProcessKeys": [
+      "IT_DEFAULT_BUSINESS_20261012",
+      "xx"
+    ]
+  },
+  "preserve": [
+    "Five published formal project templates and all 51 valid view snapshots",
+    "All past project plans and execution/approval history",
+    "Current approved role and scope decisions",
+    "Target state-machine publication with equivalent eight transitions",
+    "Existing source/target drafts and immutable publication evidence"
+  ],
+  "noImplicitAuthorization": [
+    "Do not infer database publication approval from the prior order-index approval",
+    "No user/role grants, new business roles, workflow instances or lifecycle direct writes",
+    "Do not execute source V515/V516 without scope approval"
+  ],
+  "verification": [
+    "Snapshot affected configuration rows and referenced objects before mutation",
+    "Compare semantic bodies by natural keys and explicit ID maps after publication",
+    "Check published/selectable dependency closure and metadata references",
+    "Verify all original immutable rows remain identical",
+    "Run actual read/write business acceptance only in explicitly authorized samples"
+  ]
+}

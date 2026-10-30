@@ -1,0 +1,71 @@
+{
+  "basis": {
+    "source": "604dc3a4361b0fdda026a43518ad2c0e78282dea",
+    "target": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  "scope": "Actual SFC script setup transpiled; imports replaced with controlled dependencies, no DOM/browser or server writes",
+  "baseInfo": [
+    {
+      "ref": "codex/domain-migration",
+      "mode": "delayed",
+      "beforeRelationSettled": {
+        "hasOverview": true,
+        "error": "",
+        "relationCalls": 0
+      },
+      "after": {
+        "hasOverview": true,
+        "error": ""
+      }
+    },
+    {
+      "ref": "codex/domain-migration",
+      "mode": "failure",
+      "beforeRelationSettled": {
+        "hasOverview": true,
+        "error": "",
+        "relationCalls": 0
+      },
+      "after": {
+        "hasOverview": true,
+        "error": ""
+      }
+    },
+    {
+      "ref": "HEAD",
+      "mode": "delayed",
+      "beforeRelationSettled": {
+        "hasOverview": false,
+        "error": "",
+        "relationCalls": 1
+      },
+      "after": {
+        "hasOverview": true,
+        "error": ""
+      }
+    },
+    {
+      "ref": "HEAD",
+      "mode": "failure",
+      "beforeRelationSettled": {
+        "hasOverview": false,
+        "error": "商务资料加载失败，请重试。",
+        "relationCalls": 1
+      },
+      "after": {
+        "hasOverview": false,
+        "error": "商务资料加载失败，请重试。"
+      }
+    }
+  ],
+  "warranty": [
+    {
+      "ref": "codex/domain-migration",
+      "requestsOnSetupWatchers": 0
+    },
+    {
+      "ref": "HEAD",
+      "requestsOnSetupWatchers": 1
+    }
+  ]
+}

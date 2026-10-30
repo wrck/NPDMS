@@ -1,0 +1,25 @@
+{
+  "baseline": "4d149f34faec4b66e93373794693d6bbd738b716",
+  "rows": [
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/asset/device-log-archive/index.vue",
+      "matchesSource": false
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/DeviceCollection/ProjectDeviceLogArchiveDialog.vue",
+      "matchesSource": true
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/DeviceCollection/LogParseResult.vue",
+      "matchesSource": true
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/DeviceCollection/decodeLogText.ts",
+      "matchesSource": true
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/asset/device-log-archive/index.ts",
+      "matchesSource": true
+    }
+  ]
+}

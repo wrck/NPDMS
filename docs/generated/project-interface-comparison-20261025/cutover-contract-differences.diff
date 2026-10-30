@@ -1,0 +1,266 @@
+
+FILE pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/api/approval/CutoverApprovalReadinessAccessApiImpl.java
+--- source
++++ target
+@@ -1,60 +0,0 @@
+-package cn.iocoder.yudao.module.pms.cutover.api.approval;
+-
+-import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+-import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
+-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.*;
+-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.*;
+-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.*;
+-import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRoleApprovalSnapshot;
+-import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalRoleCandidatePort;
+-import lombok.RequiredArgsConstructor;
+-import org.springframework.stereotype.Service;
+-import org.springframework.transaction.annotation.*;
+-import java.util.Objects;
+-
+-@Service
+-@RequiredArgsConstructor
+-public class CutoverApprovalReadinessAccessApiImpl implements CutoverApprovalReadinessAccessApi {
+-    private final CutoverTaskMapper tasks;
+-    private final CutoverApprovalInstanceMapper instances;
+-    private final CutoverApprovalNodeMapper nodes;
+-    private final CutoverFrozenDeviceMapper devices;
+-    private final CutoverApprovalRoleCandidatePort roles;
+-
+-    @Override
+-    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+-    public void requireCurrent(Query query) {
+-        Long actor = SecurityFrameworkUtils.getLoginUserId();
+-        require(query != null && !TenantContextHolder.isIgnore() && query.tenantId() != null
+-                && Objects.equals(query.tenantId(), TenantContextHolder.getTenantId()) && actor != null && actor > 0);
+-        var task = tasks.selectForUpdate(new CutoverTaskRowQuery(query.tenantId(), query.taskId()));
+-        require(task != null && Objects.equals(task.getTenantId(), query.tenantId())
+-                && "PROJECT_EVENT".equals(task.getIntakeSourceType()) && "P5".equals(task.getCurrentStage())
+-                && "APPROVING".equals(task.getTaskStatus()) && Objects.equals(task.getVersion(), query.taskVersion())
+-                && Objects.equals(task.getProjectId(), query.projectId())
+-                && Objects.equals(task.getImplementationReadinessSnapshotId(), query.snapshotId())
+-                && Objects.equals(task.getImplementationReadinessSnapshotVersion(), query.snapshotVersion())
+-                && "READY".equals(task.getReadinessDecisionCode()));
+-        var current = instances.selectCurrentByTask(new ApprovalTaskQuery(query.tenantId(), query.taskId()));
+-        require(current != null && Objects.equals(current.getId(), query.approvalInstanceId()));
+-        var root = instances.selectByIdForUpdate(new ApprovalInstanceLockQuery(query.tenantId(), query.approvalInstanceId(), null, null));
+-        require(root != null && Objects.equals(root.getTenantId(), query.tenantId())
+-                && Objects.equals(root.getTaskId(), query.taskId()) && Objects.equals(root.getProjectId(), query.projectId())
+-                && Objects.equals(root.getVersion(), query.approvalVersion()) && Objects.equals(root.getCurrentNodeNo(), query.nodeNo()));
+-        var node = nodes.selectByInstanceAndNodeForUpdate(new ApprovalNodeLockQuery(query.tenantId(), root.getId(), query.nodeNo()));
+-        require(CutoverRoleApprovalSnapshot.currentRoleTodo(root, node));
+-        var actorQuery = new CutoverApprovalRoleCandidatePort.ActorQuery(query.tenantId(), actor);
+-        roles.requireActiveUser(actorQuery);
+-        require(CutoverRoleApprovalSnapshot.from(node).currentActor(actorQuery, roles.lockAndInspectActor(actorQuery)) != null
+-                && (node.getCurrentApproverUserId() == null || Objects.equals(node.getCurrentApproverUserId(), actor)));
+-        var ids = devices.byTask(new CutoverTaskDeviceListQuery(query.tenantId(), query.taskId())).stream()
+-                .map(value -> value.getDeviceId()).sorted().toList();
+-        require(!ids.isEmpty() && ids.equals(query.deviceIds().stream().distinct().sorted().toList())
+-                && ids.size() == query.deviceIds().size());
+-    }
+-
+-    private static void require(boolean allowed) {
+-        if (!allowed) throw new SecurityException("当前审批节点不具备绑定快照的内部重验资格");
+-    }
+-}
+
+FILE pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/framework/adapter/CutoverOwnerAdapters.java
+--- source
++++ target
+@@ -61,8 +61,7 @@
+     }
+ 
+     @Bean
+-    CutoverProjectContextPort cutoverProjectContextPort(ProjectBusinessContextApi api,
+-            cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customers) {
++    CutoverProjectContextPort cutoverProjectContextPort(ProjectBusinessContextApi api) {
+         return new CutoverProjectContextPort() {
+             public ProjectContextFact inspect(CutoverProjectContextPort.Inspection query) {
+                 Long tenantId = query.tenantId();
+@@ -73,7 +72,7 @@
+                 .tenantId(tenantId)
+                 .actorId(actor())
+                 .projectId(projectId)
+-                .expectedScopeVersion(scopeVersion).build()), false);
++                .expectedScopeVersion(scopeVersion).build()));
+             }
+             public ProjectContextFact lockAndRevalidate(ProjectContextFact expected) {
+                 requireTenant(expected.tenantId());
+@@ -83,26 +82,17 @@
+                 .actorId(actor())
+                 .projectId(expected.projectId())
+                 .expectedScopeVersion(expected.projectScopeVersion()).build())
+-                .expectedProjectVersion((long) expected.projectVersion()).build()), true);
+-            }
+-            private ProjectContextFact fact(ProjectBusinessContextApi.Context value, boolean lockCustomer) {
++                .expectedProjectVersion((long) expected.projectVersion()).build()));
++            }
++            private ProjectContextFact fact(ProjectBusinessContextApi.Context value) {
+                 if (value == null) throw unavailable("PROJ 项目上下文服务未返回事实");
+-                Long customerId = value.customerId();
+-                if (customerId == null && value.customerCode() != null && !value.customerCode().isBlank()) {
+-                    var query = new cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerCodeQuery(value.customerCode(), actor());
+-                    var customer = lockCustomer ? customers.lockCustomerByCode(query) : customers.getCustomerByCode(query);
+-                    if (customer == null || customer.id() == null || !Objects.equals(value.tenantId(), customer.tenantId())
+-                            || !Objects.equals(value.customerCode(), customer.code()))
+-                        throw unavailable("项目客户编码未能解析为当前租户内的客户主档，请核查客户资料");
+-                    customerId = customer.id();
+-                }
+                 return ProjectContextFact.builder()
+                         .tenantId(value.tenantId())
+                         .projectId(value.projectId())
+                         .projectVersion(Math.toIntExact(value.projectVersion()))
+                         .projectCode(value.projectCode())
+                         .projectName(value.projectName())
+-                        .customerId(customerId)
++                        .customerId(value.customerId())
+                         .customerCode(value.customerCode())
+                         .customerName(value.customerName())
+                         .departmentId(value.departmentId())
+@@ -192,13 +182,6 @@
+                 return fact(api().lockAndRevalidate(new ImplementationReadinessRevalidationQuery(tenant(), expected.projectId(),
+                         expected.snapshotId(), expected.snapshotVersion(), expectedDevices(expected.projectId(), expected.deviceIds()))));
+             }
+-              public ReadinessFact lockAndRevalidateForApproval(
+-                      cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query query) {
+-                  requireTenant(query.tenantId());
+-                  var result = api().lockAndRevalidateForApproval(query);
+-                  return new ReadinessFact(result.snapshotId(), result.snapshotVersion(), result.decision(),
+-                          result.projectId(), result.deviceIds(), null, null);
+-              }
+             public ReadinessFact readSnapshot(SnapshotReference reference) {
+                 requireTenant(reference.tenantId());
+                 var snapshot = api().readSnapshot(new cn.iocoder.yudao.module.pms.engineering.api.implementationreadiness.dto.ImplementationReadinessSnapshotQuery(
+
+FILE pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/approval/CutoverApprovalApplicationService.java
+--- source
++++ target
+@@ -271,20 +271,16 @@
+             return decisionResult(instance, task, current.getNodeNo());
+         }
+         validateAssessmentReview(current, input);
+-        CutoverApprovalNodeDO next = approve ? nodeMapper.selectByInstanceAndNodeForUpdate(
+-                new ApprovalNodeLockQuery(tenantId, instance.getId(), current.getNodeNo() + 1)) : null;
+-        if (approve && next == null) {
+-            if (byRole) readiness.requireCurrentForApproval(new cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.ApprovalRevalidation(
+-                    task, instance.getId(), instance.getVersion(), current.getNodeNo()));
+-            else readiness.requireCurrent(task);
+-        }
+         LocalDateTime now = LocalDateTime.now(clock);
+         var operation = new CutoverOperationContext(actorId, correlationId, now);
+         insertReviewItems(current, reviewItems, operation);
+         workflow.decide(instance, current, input, actorId);
+         updateNode(current, input, new DecisionAuditContext(operation, qualification.roleCandidate()));
+         if (!approve) return rejectNew(instance, task, current, input, operation);
++        CutoverApprovalNodeDO next = nodeMapper.selectByInstanceAndNodeForUpdate(
++                new ApprovalNodeLockQuery(tenantId, instance.getId(), current.getNodeNo() + 1));
+         if (next != null) return approveIntermediate(instance, task, current, next, operation);
++        readiness.requireCurrent(task);
+         return approveFinal(instance, task, current, operation);
+     }
+ 
+
+FILE pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/task/CutoverExecutionReadinessPolicy.java
+--- source
++++ target
+@@ -13,32 +13,13 @@
+     private final CutoverReadinessPort readiness;
+     private final CutoverTaskSnapshotStore snapshots;
+ 
+-    public void requireCurrentForApproval(ApprovalRevalidation command) {
+-        var task = command.task();
+-        if (!"PROJECT_EVENT".equals(task.getIntakeSourceType())) return;
+-        var expected = snapshots.readinessReference(task);
+-        if (expected == null || !"READY".equals(expected.decision()) || !Objects.equals(task.getProjectId(), expected.projectId()))
+-            throw new IllegalArgumentException("项目割接缺少有效的前序就绪快照");
+-        var current = readiness.lockAndRevalidateForApproval(new cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query(
+-                task.getTenantId(), task.getId(), task.getVersion(), command.approvalInstanceId(), command.approvalVersion(), command.nodeNo(),
+-                task.getProjectId(), expected.snapshotId(), expected.snapshotVersion(), expected.deviceIds()));
+-        requireSame(expected, current);
+-    }
+-
+-    public record ApprovalRevalidation(CutoverTaskDO task, Long approvalInstanceId, Long approvalVersion, Integer nodeNo) { }
+-
+     public void requireCurrent(CutoverTaskDO task) {
+         if (!"PROJECT_EVENT".equals(task.getIntakeSourceType())) return;
+         var expected = snapshots.readiness(task);
+         if (expected == null || !"READY".equals(expected.decision()) || !Objects.equals(task.getProjectId(), expected.projectId()))
+             throw new IllegalArgumentException("项目割接缺少有效的前序就绪快照");
+         var current = readiness.lockAndRevalidate(expected);
+-        requireSame(expected, current);
+-    }
+-
+-    private static void requireSame(CutoverReadinessPort.ReadinessFact expected, CutoverReadinessPort.ReadinessFact current) {
+         if (current == null || !"READY".equals(current.decision())
+-                || !Objects.equals(expected.projectId(), current.projectId())
+                 || !Objects.equals(expected.snapshotId(), current.snapshotId())
+                 || expected.snapshotVersion() != current.snapshotVersion()
+                 || !Objects.equals(expected.deviceIds(), current.deviceIds()))
+
+FILE pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/task/CutoverTaskCreationQueryService.java
+--- source
++++ target
+@@ -4,7 +4,7 @@
+ import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi;
+ import cn.iocoder.yudao.module.pms.cutover.service.task.context.CutoverTaskContext;
+ import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverCustomerLevelPort;
+-import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort;
++import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException;
+ import cn.iocoder.yudao.module.pms.cutover.service.task.view.CutoverTaskViews;
+ import cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi;
+ import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+@@ -31,7 +31,6 @@
+     private final DeviceQueryApi devices;
+     private final CutoverCustomerLevelPort customerLevels;
+     private final CutoverTaskQueryService tasks;
+-    private final CutoverProjectContextPort projectContexts;
+ 
+     public List<ProjectBusinessContextApi.Option> projects(ProjectOptionsQuery query) {
+         requireKeyword(query.keyword());
+@@ -47,10 +46,17 @@
+     public ProjectContext project(ProjectQuery query) {
+         var ownerQuery = authorizedProject(query);
+         var presentation = projects.presentation(ownerQuery);
+-        var project = projectContexts.inspect(new CutoverProjectContextPort.Inspection(
+-                query.context().tenantId(), query.projectId(), ownerQuery.expectedScopeVersion()));
+-        var customerFact = CutoverContextSupport.customerReference(customerLevels, project);
+-        return new ProjectContext(presentation, customerFact.serviceLevelCode(), customerFact);
++        var project = projects.inspect(ownerQuery);
++        String customerLevel = null;
++        if (project.customerId() != null) {
++            try {
++                var fact = customerLevels.inspect(project.customerId());
++                if (fact != null) customerLevel = fact.serviceLevelCode();
++            } catch (CutoverOwnerFactException exception) {
++                if (exception.code() != CutoverOwnerFactException.Code.PROVIDER_UNAVAILABLE) throw exception;
++            }
++        }
++        return new ProjectContext(presentation, customerLevel);
+     }
+ 
+     public ProjectDeviceShipmentApi.DevicePage devices(DevicePageQuery query) {
+@@ -107,7 +113,6 @@
+     @lombok.Builder
+     public record DevicePageQuery(CutoverTaskContext context, Long projectId, String keyword, int pageNo, int pageSize) {}
+     public record ResolveQuery(CutoverTaskContext context, List<String> serialNumbers) {}
+-    public record ProjectContext(ProjectBusinessContextApi.Presentation project, String customerServiceLevel,
+-            CutoverCustomerLevelPort.CustomerLevelFact customerServiceLevelContext) {}
++    public record ProjectContext(ProjectBusinessContextApi.Presentation project, String customerServiceLevel) {}
+     public record ResolvedDevices(CutoverTaskViews.CreateContextData context, List<ProjectDeviceShipmentApi.Device> devices) {}
+ }
+
+FILE pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/task/port/CutoverReadinessPort.java
+--- source
++++ target
+@@ -12,11 +12,6 @@
+ 
+     ReadinessFact readSnapshot(SnapshotReference reference);
+ 
+-    default ReadinessFact lockAndRevalidateForApproval(
+-            cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalReadinessAccessApi.Query query) {
+-        throw new SecurityException("当前审批重验服务未接入");
+-    }
+-
+     @Builder
+     record SnapshotReference(Long tenantId, Long projectId, Long snapshotId, Long snapshotVersion,
+                              List<Long> deviceIds) { }

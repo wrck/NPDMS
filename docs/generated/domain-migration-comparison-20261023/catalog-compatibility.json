@@ -1,0 +1,53 @@
+{
+  "scope": "Catalog membership comparison using actual committed template data; not a database execution or full Java validator test",
+  "cases": [
+    {
+      "case": "historical CRM product template from 04055e8b3",
+      "ref": "codex/domain-migration",
+      "target": "ast_product_official_info",
+      "configuredKeys": [
+        "source_system",
+        "source_key"
+      ],
+      "catalogKeys": [
+        [
+          "source_system",
+          "source_key"
+        ],
+        [
+          "product_code"
+        ]
+      ],
+      "acceptedKeySet": true
+    },
+    {
+      "case": "historical CRM product template from 04055e8b3",
+      "ref": "HEAD",
+      "target": "ast_product_official_info",
+      "configuredKeys": [
+        "source_system",
+        "source_key"
+      ],
+      "catalogKeys": [
+        [
+          "product_code"
+        ]
+      ],
+      "acceptedKeySet": false
+    },
+    {
+      "case": "source tip template shipment-contract",
+      "ref": "codex/domain-migration",
+      "target": "com_shipment_contract_reference",
+      "configuredUpdateColumn": "warranty_flag",
+      "acceptedUpdateColumn": true
+    },
+    {
+      "case": "source tip template shipment-contract",
+      "ref": "HEAD",
+      "target": "com_shipment_contract_reference",
+      "configuredUpdateColumn": "warranty_flag",
+      "acceptedUpdateColumn": false
+    }
+  ]
+}

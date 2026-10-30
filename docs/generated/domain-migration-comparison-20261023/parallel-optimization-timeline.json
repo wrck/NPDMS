@@ -1,0 +1,155 @@
+{
+  "target": {
+    "commit": "5f0122a45867c3602b2f4b0b6bdb810faaf84796",
+    "authorTime": "2026-10-23T18:27:47+08:00",
+    "commitTime": "2026-10-23T18:27:47+08:00",
+    "parents": [
+      "c2d20d57b3ea0202c6ae0631711081ae87a6d773"
+    ],
+    "title": "perf(asset): 合并设备清单授权查询以减少重复扫描"
+  },
+  "source": {
+    "commit": "aaaa27c76bfb5fb5a2442b2ef1f1adb347bf86e6",
+    "authorTime": "2026-10-23T18:41:31+08:00",
+    "commitTime": "2026-10-23T18:41:31+08:00",
+    "parents": [
+      "1fa1f69b4c58a96b2f58a4109ec6f59992bdf291"
+    ],
+    "title": "perf(asset): 合并设备清单授权查询以减少重复扫描"
+  },
+  "samePathSet": true,
+  "files": [
+    {
+      "path": "docs/design/07-authorization-design.md",
+      "sameChangedLines": true
+    },
+    {
+      "path": "docs/design/10-api-design.md",
+      "sameChangedLines": true
+    },
+    {
+      "path": "docs/generated/device-page-performance-20261023/report.md",
+      "sameChangedLines": true
+    },
+    {
+      "path": "docs/generated/device-page-sql-join-20261023/device-list-joined.readonly.sql",
+      "sameChangedLines": true
+    },
+    {
+      "path": "docs/generated/device-page-sql-join-20261023/report.md",
+      "sameChangedLines": true
+    },
+    {
+      "path": "docs/generated/device-page-sql-join-20261023/verification.json",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/DeviceMapper.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/projection/DevicePageProjection.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/query/DeviceContractCandidateQuery.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/query/DevicePageReadScope.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/query/DeviceProjectCandidatesQuery.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/query/VisibleDevicePageQuery.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/device/DeviceQueryService.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/security/DeviceAccessScopeService.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/main/resources/mapper/device/DeviceJoinedPageMapper.xml",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/main/resources/mapper/device/DeviceQueryMapper.xml",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/dal/DeviceJoinedPageSqlTest.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/dal/DeviceVisibilityCandidateSqlTest.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/device/DefaultDevicePagePerformanceTest.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/device/DeviceQueryServiceTest.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/service/security/DeviceAccessScopeServiceTest.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/scope/ContractDeviceVisibilityApi.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-commerce/pms-module-commerce-api/src/main/resources/mapper/contract/ContractDeviceReadScopeSql.xml",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-commerce/src/main/resources/mapper/contract/ContractMapper.xml",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/resources/mapper/authorization/ProjectViewGrantReadSql.xml",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/scope/ProjectViewReadScopeApi.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-project/pms-module-project-api/src/main/resources/mapper/projectscope/ProjectViewReadScopeSql.xml",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/scope/ProjectScopeApiImpl.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectscope/ProjectTreeScopeService.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "pms-module-project/src/test/java/cn/iocoder/yudao/module/pms/project/service/projectscope/ProjectTreeScopeServiceTest.java",
+      "sameChangedLines": true
+    },
+    {
+      "path": "tasks/features/F-AST-001.md",
+      "sameChangedLines": true
+    },
+    {
+      "path": "yudao-server/src/test/java/cn/iocoder/yudao/DeviceListAuthorizationReuseTest.java",
+      "sameChangedLines": true
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "mode": "READ_ONLY_AUDIT",
+  "date": "2026-10-24",
+  "sourceCommit": "4d149f34faec4b66e93373794693d6bbd738b716",
+  "sourceWorkingTreeUncommittedEntries": 69,
+  "targetExistingUncommittedEntries": 84,
+  "workingTreeComparison": {
+    "same": 7228,
+    "targetOnly": 611,
+    "changed": 394,
+    "missingFromTarget": 8
+  },
+  "vueFilesChanged": 67,
+  "sameBusinessProject": {
+    "code": "16200726072401N-0",
+    "sourceId": 2109733194632396801,
+    "targetId": 84529,
+    "sourceStages": 7,
+    "sourceTasks": 13,
+    "targetStages": 0,
+    "targetTasks": 0
+  },
+  "sourceInitializedActiveMigratedProjects": 204,
+  "targetMatchedCodes": 181,
+  "targetMatchedCohorts": {
+    "ACTIVE|NO_PLAN": 181
+  },
+  "unmatchedSourceCodes": 23,
+  "runtimeArtifacts": {
+    "source": {
+      "artifact": "E:\\AICoding\\Projects\\NPDMS\\.run\\dac-route-server.jar",
+      "artifactSha256": "789fbeb37395dcf01d3d38e07e6a7d0630916951a69932db067a6cf078219634",
+      "cutoverApprovalReadinessSpecificLock": true
+    },
+    "target": {
+      "artifact": "M:\\AICoding\\CodexData\\worktrees\\853c\\NPDMS\\.run\\direct-test\\releases\\f6844f4a337de46120f8ed1b0d47c02f01a3d15c86fb8b14005656fa365ec901\\application.jar",
+      "artifactSha256": "f6844f4a337de46120f8ed1b0d47c02f01a3d15c86fb8b14005656fa365ec901",
+      "cutoverApprovalReadinessSpecificLock": false
+    }
+  },
+  "actions": {
+    "businessCodeChanged": false,
+    "databaseWritten": false,
+    "permissionsChanged": false,
+    "applicationRestarted": false,
+    "businessOperationsReplayed": false
+  }
+}

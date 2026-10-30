@@ -1,0 +1,558 @@
+{
+  "sourceHead": "4d149f34faec4b66e93373794693d6bbd738b716",
+  "targetHead": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a",
+  "checked": 471,
+  "same": 438,
+  "changed": 33,
+  "files": [
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionTaskOutboxDeliveryJob.java",
+      "sourceUncommitted": true,
+      "targetUncommitted": false,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": true,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "b6b4dcabb603503d7e7c545ad32d0a2b94bb6559 2026-09-17T17:59:44+08:00 迁移(归属修正): 新建验收域模块并迁移ACC业务与跨模块契约",
+      "targetLastCommit": "b6b4dcabb603503d7e7c545ad32d0a2b94bb6559 2026-09-17T17:59:44+08:00 迁移(归属修正): 新建验收域模块并迁移ACC业务与跨模块契约",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "SOURCE_WORKING_CHANGE_ONLY"
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionTaskTodoProjectionService.java",
+      "sourceUncommitted": true,
+      "targetUncommitted": false,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": true,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "93d9695196e1531c0f958ff98eb7291d0eb69623 2026-09-22T09:20:12+08:00 feat(satisfaction): 支持手动发起与可视化问卷配置",
+      "targetLastCommit": "93d9695196e1531c0f958ff98eb7291d0eb69623 2026-09-22T09:20:12+08:00 feat(satisfaction): 支持手动发起与可视化问卷配置",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "SOURCE_WORKING_CHANGE_ONLY"
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionTaskTodoProjectionServiceTest.java",
+      "sourceUncommitted": true,
+      "targetUncommitted": false,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": true,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "b6b4dcabb603503d7e7c545ad32d0a2b94bb6559 2026-09-17T17:59:44+08:00 迁移(归属修正): 新建验收域模块并迁移ACC业务与跨模块契约",
+      "targetLastCommit": "b6b4dcabb603503d7e7c545ad32d0a2b94bb6559 2026-09-17T17:59:44+08:00 迁移(归属修正): 新建验收域模块并迁移ACC业务与跨模块契约",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "SOURCE_WORKING_CHANGE_ONLY"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/requirement/business/RequirementRevisionBusinessController.java",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": false,
+      "targetExists": true,
+      "sourceLastCommit": "",
+      "targetLastCommit": "231a53bc0284c390636bcf5ec2ec646a27fb93da 2026-10-07T18:15:18+08:00 feat(engineering): adopt requirement revision content through inherited defaults",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/requirement/RequirementAnalysisDO.java",
+      "sourceUncommitted": false,
+      "targetUncommitted": true,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "6654121c515f188e865e539cfa089fbeac95c20c 2026-10-14T15:21:35+08:00 feat(engineering): 完善实施事实与需求表单",
+      "targetLastCommit": "231a53bc0284c390636bcf5ec2ec646a27fb93da 2026-10-07T18:15:18+08:00 feat(engineering): adopt requirement revision content through inherited defaults",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/requirement/RequirementAnalysisRevisionDO.java",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "82d6317fd3a848a6aa5b42c0b3591eba5fe29834 2026-09-16T12:13:03+08:00 feat(entity): 分离业务实体并接入公共版本扩展能力",
+      "targetLastCommit": "231a53bc0284c390636bcf5ec2ec646a27fb93da 2026-10-07T18:15:18+08:00 feat(engineering): adopt requirement revision content through inherited defaults",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/requirement/RequirementAnalysisMapper.java",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "92129b4a2c8eaecf1c27c9d9b13c874361a32182 2026-10-16T13:07:34+08:00 fix(engineering): 校验实施方案必填与来源文件",
+      "targetLastCommit": "d1dcdfc3c63276c718d307517222c861332e902f 2026-10-23T10:24:30+08:00 chore(merge): 合入domain-migration并保留同步隔离",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "d1dcdfc3c chore(merge): 合入domain-migration并保留同步隔离",
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/requirement/business/RequirementRevisionBusinessMapper.java",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": false,
+      "targetExists": true,
+      "sourceLastCommit": "",
+      "targetLastCommit": "231a53bc0284c390636bcf5ec2ec646a27fb93da 2026-10-07T18:15:18+08:00 feat(engineering): adopt requirement revision content through inherited defaults",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisAccess.java",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "6654121c515f188e865e539cfa089fbeac95c20c 2026-10-14T15:21:35+08:00 feat(engineering): 完善实施事实与需求表单",
+      "targetLastCommit": "d1dcdfc3c63276c718d307517222c861332e902f 2026-10-23T10:24:30+08:00 chore(merge): 合入domain-migration并保留同步隔离",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "d1dcdfc3c chore(merge): 合入domain-migration并保留同步隔离",
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisEntityProvider.java",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "790e90e88eefb33cfd8998eabf680f76e4806193 2026-10-15T00:23:07+08:00 fix(project): 完善需求分析提示和项目任务办理体验",
+      "targetLastCommit": "d1dcdfc3c63276c718d307517222c861332e902f 2026-10-23T10:24:30+08:00 chore(merge): 合入domain-migration并保留同步隔离",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "d1dcdfc3c chore(merge): 合入domain-migration并保留同步隔离",
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/business/RequirementRevisionBusinessService.java",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": false,
+      "targetExists": true,
+      "sourceLastCommit": "",
+      "targetLastCommit": "6596bf4183a24a64c15044e2b530a570c3fc97e2 2026-10-07T21:07:31+08:00 feat(engineering): inherit requirement revision form and extension editing",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "6596bf418 feat(engineering): inherit requirement revision form and extension editing",
+        "8f2198c40 feat(engineering): inherit shared deliveries when copying requirement revisions",
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/requirement/RequirementAnalysisMapper.xml",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "92129b4a2c8eaecf1c27c9d9b13c874361a32182 2026-10-16T13:07:34+08:00 fix(engineering): 校验实施方案必填与来源文件",
+      "targetLastCommit": "d1dcdfc3c63276c718d307517222c861332e902f 2026-10-23T10:24:30+08:00 chore(merge): 合入domain-migration并保留同步隔离",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "d1dcdfc3c chore(merge): 合入domain-migration并保留同步隔离",
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisSpringPersistenceTest.java",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "fda3bb55b0fb8e1fbd6f44f44cf4dbc21d015721 2026-10-06T14:25:22+08:00 chore: checkpoint local worktree for cloud continuation",
+      "targetLastCommit": "231a53bc0284c390636bcf5ec2ec646a27fb93da 2026-10-07T18:15:18+08:00 feat(engineering): adopt requirement revision content through inherited defaults",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementInheritedBusinessTest.java",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": false,
+      "targetExists": true,
+      "sourceLastCommit": "",
+      "targetLastCommit": "6596bf4183a24a64c15044e2b530a570c3fc97e2 2026-10-07T21:07:31+08:00 feat(engineering): inherit requirement revision form and extension editing",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "6596bf418 feat(engineering): inherit requirement revision form and extension editing",
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementInheritedMySqlTest.java",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": false,
+      "targetExists": true,
+      "sourceLastCommit": "",
+      "targetLastCommit": "231a53bc0284c390636bcf5ec2ec646a27fb93da 2026-10-07T18:15:18+08:00 feat(engineering): adopt requirement revision content through inherited defaults",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/requirement-analysis/index.ts",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "b5599b9059f1916b2d16c8bb0bdefdb6055b3f86 2026-09-15T01:59:47+08:00 feat: 集成项目规则执行与业务数据接入",
+      "targetLastCommit": "9610d1ae72a31ba214992df6955f5db59273b725 2026-10-14T22:12:37+08:00 fix(types): 修复前端类型契约与服务器测试编译",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "9610d1ae7 fix(types): 修复前端类型契约与服务器测试编译"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/BusinessViewHost.vue",
+      "sourceUncommitted": true,
+      "targetUncommitted": false,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": true,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "7c7b1e56dfb74e2c7234ac241604a2a3e6e2a238 2026-10-22T02:29:38+08:00 fix(project): 完善任务准入与业务办理恢复",
+      "targetLastCommit": "7c7b1e56dfb74e2c7234ac241604a2a3e6e2a238 2026-10-22T02:29:38+08:00 fix(project): 完善任务准入与业务办理恢复",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "SOURCE_WORKING_CHANGE_ONLY"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/satisfaction/questionnaire.vue",
+      "sourceUncommitted": true,
+      "targetUncommitted": false,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": true,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "adaf442a367819aaeee7bc53962d5e57e671c71a 2026-10-14T15:23:28+08:00 feat(acceptance): 完善验收授权与成果归集",
+      "targetLastCommit": "adaf442a367819aaeee7bc53962d5e57e671c71a 2026-10-14T15:23:28+08:00 feat(acceptance): 完善验收授权与成果归集",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "SOURCE_WORKING_CHANGE_ONLY"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/business/requirement-analysis/index.vue",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": false,
+      "targetExists": true,
+      "sourceLastCommit": "",
+      "targetLastCommit": "f5a1d674b30e88e31a255412a7838d85dda2cce5 2026-10-07T18:52:47+08:00 feat(engineering): reflect requirement revision state in inherited page",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "f5a1d674b feat(engineering): reflect requirement revision state in inherited page",
+        "231a53bc0 feat(engineering): adopt requirement revision content through inherited defaults"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.runtime.spec.ts",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "0a02409a538c6caa838f123abf62b21720f46acb 2026-10-23T01:57:03+08:00 fix(file): 修复版本展示与保存归集一致性",
+      "targetLastCommit": "d1dcdfc3c63276c718d307517222c861332e902f 2026-10-23T10:24:30+08:00 chore(merge): 合入domain-migration并保留同步隔离",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "d1dcdfc3c chore(merge): 合入domain-migration并保留同步隔离",
+        "be007ec33 WIP: native delivery integration checkpoint; acceptance incomplete"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "0a02409a538c6caa838f123abf62b21720f46acb 2026-10-23T01:57:03+08:00 fix(file): 修复版本展示与保存归集一致性",
+      "targetLastCommit": "d1dcdfc3c63276c718d307517222c861332e902f 2026-10-23T10:24:30+08:00 chore(merge): 合入domain-migration并保留同步隔离",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "d1dcdfc3c chore(merge): 合入domain-migration并保留同步隔离",
+        "be007ec33 WIP: native delivery integration checkpoint; acceptance incomplete"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution-reviewed/saveSolutionScripts.ts",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "f7a289c8196aa409e9c2451a79c3b7c2c14a1e1e 2026-10-22T02:29:59+08:00 fix(solution): 完善图片脚本与流程访问权限",
+      "targetLastCommit": "d1dcdfc3c63276c718d307517222c861332e902f 2026-10-23T10:24:30+08:00 chore(merge): 合入domain-migration并保留同步隔离",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "d1dcdfc3c chore(merge): 合入domain-migration并保留同步隔离"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/SolutionChapterForm.vue",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "6654121c515f188e865e539cfa089fbeac95c20c 2026-10-14T15:21:35+08:00 feat(engineering): 完善实施事实与需求表单",
+      "targetLastCommit": "d1dcdfc3c63276c718d307517222c861332e902f 2026-10-23T10:24:30+08:00 chore(merge): 合入domain-migration并保留同步隔离",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "d1dcdfc3c chore(merge): 合入domain-migration并保留同步隔离",
+        "be007ec33 WIP: native delivery integration checkpoint; acceptance incomplete"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/index.vue",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "a9f9eb4a04485a562c4203ec479025c8eab84ea4 2026-09-30T10:48:32+08:00 feat(pms): 命名统一收尾、customInfo 透传贯通、阶段计划读路径修复与工程文档源能力",
+      "targetLastCommit": "be007ec3379b3c3f6951fe7a4f0052eec4c11097 2026-10-06T09:16:40+00:00 WIP: native delivery integration checkpoint; acceptance incomplete",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "be007ec33 WIP: native delivery integration checkpoint; acceptance incomplete"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/solutionWorkspace.runtime.spec.ts",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "6654121c515f188e865e539cfa089fbeac95c20c 2026-10-14T15:21:35+08:00 feat(engineering): 完善实施事实与需求表单",
+      "targetLastCommit": "d1dcdfc3c63276c718d307517222c861332e902f 2026-10-23T10:24:30+08:00 chore(merge): 合入domain-migration并保留同步隔离",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "d1dcdfc3c chore(merge): 合入domain-migration并保留同步隔离",
+        "be007ec33 WIP: native delivery integration checkpoint; acceptance incomplete"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/training/index.vue",
+      "sourceUncommitted": true,
+      "targetUncommitted": false,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": true,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "20c48c007a3189fd8006fbbc89988e04964ff5d2 2026-10-23T01:57:25+08:00 feat(training): 统一培训打印与模板只读选用",
+      "targetLastCommit": "20c48c007a3189fd8006fbbc89988e04964ff5d2 2026-10-23T01:57:25+08:00 feat(training): 统一培训打印与模板只读选用",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "SOURCE_WORKING_CHANGE_ONLY"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/training/public-confirm.vue",
+      "sourceUncommitted": true,
+      "targetUncommitted": false,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": true,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "4388f7a385d7b3531c1d3a0e9ddd97ccb13aef6f 2026-09-24T13:43:08+08:00 feat(pms): 外发确认单免确认人姓名与联系人采集（V348）",
+      "targetLastCommit": "4388f7a385d7b3531c1d3a0e9ddd97ccb13aef6f 2026-09-24T13:43:08+08:00 feat(pms): 外发确认单免确认人姓名与联系人采集（V348）",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "SOURCE_WORKING_CHANGE_ONLY"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/detail/TaskStateActions.vue",
+      "sourceUncommitted": true,
+      "targetUncommitted": false,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": true,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "03c0e580ab8b1832fae8350359715295471fcde7 2026-09-19T15:37:19+08:00 feat: 完成模板执行解耦P1~P9源码调整",
+      "targetLastCommit": "03c0e580ab8b1832fae8350359715295471fcde7 2026-09-19T15:37:19+08:00 feat: 完成模板执行解耦P1~P9源码调整",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "SOURCE_WORKING_CHANGE_ONLY"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectApprovalDrawer.vue",
+      "sourceUncommitted": true,
+      "targetUncommitted": false,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": true,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "aff8baece41fef169a6b5ebd58f9387dfb54c315 2026-10-11T22:59:40+08:00 feat(project): 内嵌审批记录详情抽屉",
+      "targetLastCommit": "aff8baece41fef169a6b5ebd58f9387dfb54c315 2026-10-11T22:59:40+08:00 feat(project): 内嵌审批记录详情抽屉",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "SOURCE_WORKING_CHANGE_ONLY"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectFlowPanel.vue",
+      "sourceUncommitted": true,
+      "targetUncommitted": true,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "6fa26979c713d428c5a2114d87739bfaea418a59 2026-10-23T01:57:42+08:00 fix(project): 完善模板初始化与阶段办理展示",
+      "targetLastCommit": "6fa26979c713d428c5a2114d87739bfaea418a59 2026-10-23T01:57:42+08:00 fix(project): 完善模板初始化与阶段办理展示",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectNormalClosurePanel.vue",
+      "sourceUncommitted": true,
+      "targetUncommitted": false,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": true,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "aff8baece41fef169a6b5ebd58f9387dfb54c315 2026-10-11T22:59:40+08:00 feat(project): 内嵌审批记录详情抽屉",
+      "targetLastCommit": "aff8baece41fef169a6b5ebd58f9387dfb54c315 2026-10-11T22:59:40+08:00 feat(project): 内嵌审批记录详情抽屉",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "SOURCE_WORKING_CHANGE_ONLY"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/RequirementAnalysisSectionCard.vue",
+      "sourceUncommitted": false,
+      "targetUncommitted": false,
+      "headEqual": false,
+      "targetMatchesSourceHEAD": false,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "6c135f68cf805ed01c232aacbf5e612d8b72a3b3 2026-09-21T00:57:43+08:00 fix(ui): 兼容非安全上下文的 UUID 生成",
+      "targetLastCommit": "9610d1ae72a31ba214992df6955f5db59273b725 2026-10-14T22:12:37+08:00 fix(types): 修复前端类型契约与服务器测试编译",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [
+        "9610d1ae7 fix(types): 修复前端类型契约与服务器测试编译"
+      ],
+      "provenance": "MIXED_OR_COMMITTED_DIVERGENCE"
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/StageGateResultsPanel.vue",
+      "sourceUncommitted": true,
+      "targetUncommitted": false,
+      "headEqual": true,
+      "targetMatchesSourceHEAD": true,
+      "sourceMatchesTargetHEAD": false,
+      "sourceExists": true,
+      "targetExists": true,
+      "sourceLastCommit": "6fa26979c713d428c5a2114d87739bfaea418a59 2026-10-23T01:57:42+08:00 fix(project): 完善模板初始化与阶段办理展示",
+      "targetLastCommit": "6fa26979c713d428c5a2114d87739bfaea418a59 2026-10-23T01:57:42+08:00 fix(project): 完善模板初始化与阶段办理展示",
+      "sourceExclusiveCommits": [],
+      "targetExclusiveCommits": [],
+      "provenance": "SOURCE_WORKING_CHANGE_ONLY"
+    }
+  ]
+}

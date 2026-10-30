@@ -1,0 +1,1129 @@
+{
+  "checks": [
+    {
+      "name": "preserved:proj_project_template",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_project_template_revision",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_project_template_stage_definition",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_project_template_task_definition",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_project_template_milestone_definition",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_project_template_deliverable_definition",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_project_template_gate_definition",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_project_template_gate_reference",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_task_state_machine_revision",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_task_state_transition",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:plt_collection_template",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:srv_inspection_rule_revision",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_delivery_definition_revision",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_delivery_definition_reference",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:acc_satisfaction_questionnaire_template",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:acc_satisfaction_questionnaire_template_revision",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:proj_stage_suggestion_rule",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:cut_cutover_checklist_item_definition_revision",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:cut_cutover_checklist_binding_rule_revision",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:all-other-dynamic-form-templates",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:all-other-dynamic-form-revisions",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preserved:all-existing-view-revisions",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "formal-template:51-published-binding-snapshots",
+      "passed": true,
+      "detail": [
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:PROJECT_ASSIGNMENT",
+          "viewId": "2101606320578084866",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:PRE_SURVEY",
+          "viewId": "2101604731582791681",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:PRE_REQUIREMENT",
+          "viewId": "2101606301384949762",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:PLAN_CONSTRUCTION",
+          "viewId": "2101606320578084867",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:PLAN_SOLUTION",
+          "viewId": "2101606320578084868",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:DEPLOY_ARRIVAL",
+          "viewId": "970000000000478001",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:DEPLOY_HARDWARE",
+          "viewId": "970000000000478002",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:DEPLOY_CUTOVER",
+          "viewId": "996610195020037",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:ACCEPT_TRAINING",
+          "viewId": "970000000000478003",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:ACCEPT_SATISFACTION",
+          "viewId": "970000000000504001",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:ACCEPT_INITIAL",
+          "viewId": "2101606320578084865",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-DIRECT",
+          "node": "task:ACCEPT_FINAL",
+          "viewId": "2101606320578084865",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:PROJECT_ASSIGNMENT",
+          "viewId": "2101606320578084866",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:PRE_SURVEY",
+          "viewId": "2101604731582791681",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:PRE_REQUIREMENT",
+          "viewId": "2101606301384949762",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:PLAN_CONSTRUCTION",
+          "viewId": "2101606320578084867",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:PLAN_SOLUTION",
+          "viewId": "2101606320578084868",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:DEPLOY_ARRIVAL",
+          "viewId": "970000000000478001",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:DEPLOY_HARDWARE",
+          "viewId": "970000000000478002",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:DEPLOY_CUTOVER",
+          "viewId": "996610195020037",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:ACCEPT_TRAINING",
+          "viewId": "970000000000478003",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:ACCEPT_SATISFACTION",
+          "viewId": "970000000000504001",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:ACCEPT_INITIAL",
+          "viewId": "2101606320578084865",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-DIRECT",
+          "node": "task:ACCEPT_FINAL",
+          "viewId": "2101606320578084865",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-CHANNEL",
+          "node": "task:PROJECT_ASSIGNMENT",
+          "viewId": "2101606320578084866",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-CHANNEL",
+          "node": "task:PRE_SURVEY",
+          "viewId": "2101604731582791681",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-CHANNEL",
+          "node": "task:PRE_REQUIREMENT",
+          "viewId": "2101606301384949762",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-CHANNEL",
+          "node": "task:PLAN_CONSTRUCTION",
+          "viewId": "2101606320578084867",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-CHANNEL",
+          "node": "task:PLAN_SOLUTION",
+          "viewId": "2101606320578084868",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-CHANNEL",
+          "node": "task:DEPLOY_HARDWARE",
+          "viewId": "970000000000478002",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-CHANNEL",
+          "node": "task:DEPLOY_CUTOVER",
+          "viewId": "996610195020037",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-CHANNEL",
+          "node": "task:ACCEPT_TRAINING",
+          "viewId": "970000000000478003",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-GENERAL-CHANNEL",
+          "node": "task:ACCEPT_SATISFACTION",
+          "viewId": "970000000000504001",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-CHANNEL",
+          "node": "task:PROJECT_ASSIGNMENT",
+          "viewId": "2101606320578084866",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-CHANNEL",
+          "node": "task:PRE_SURVEY",
+          "viewId": "2101604731582791681",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-CHANNEL",
+          "node": "task:PRE_REQUIREMENT",
+          "viewId": "2101606301384949762",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-CHANNEL",
+          "node": "task:PLAN_CONSTRUCTION",
+          "viewId": "2101606320578084867",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-CHANNEL",
+          "node": "task:PLAN_SOLUTION",
+          "viewId": "2101606320578084868",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-CHANNEL",
+          "node": "task:DEPLOY_HARDWARE",
+          "viewId": "970000000000478002",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-CHANNEL",
+          "node": "task:DEPLOY_CUTOVER",
+          "viewId": "996610195020037",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-CHANNEL",
+          "node": "task:ACCEPT_TRAINING",
+          "viewId": "970000000000478003",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-ENGINEERING-CHANNEL",
+          "node": "task:ACCEPT_SATISFACTION",
+          "viewId": "970000000000504001",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-CHANNEL-SUPERVISION",
+          "node": "task:PROJECT_ASSIGNMENT",
+          "viewId": "2101606320578084866",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-CHANNEL-SUPERVISION",
+          "node": "task:PRE_SURVEY",
+          "viewId": "2101604731582791681",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-CHANNEL-SUPERVISION",
+          "node": "task:PRE_REQUIREMENT",
+          "viewId": "2101606301384949762",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-CHANNEL-SUPERVISION",
+          "node": "task:PLAN_CONSTRUCTION",
+          "viewId": "2101606320578084867",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-CHANNEL-SUPERVISION",
+          "node": "task:PLAN_SOLUTION",
+          "viewId": "2101606320578084868",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-CHANNEL-SUPERVISION",
+          "node": "task:DEPLOY_HARDWARE",
+          "viewId": "970000000000478002",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-CHANNEL-SUPERVISION",
+          "node": "task:DEPLOY_CUTOVER",
+          "viewId": "996610195020037",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-CHANNEL-SUPERVISION",
+          "node": "task:ACCEPT_TRAINING",
+          "viewId": "970000000000478003",
+          "passed": true
+        },
+        {
+          "template": "TPL-CFG20261014-CHANNEL-SUPERVISION",
+          "node": "task:ACCEPT_SATISFACTION",
+          "viewId": "970000000000504001",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "dictionary:('pms_acceptance_status', '0')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_acceptance_status', '1')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_acceptance_status', '2')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_acceptance_status', '3')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_acceptance_type', 'FINAL')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_acceptance_type', 'PRELIMINARY')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_announcement_type', 'PATCH')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_announcement_type', 'SECURITY')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_announcement_type', 'TECHNICAL')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_authorization_type', 'OFFICIAL')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_authorization_type', 'TEMP')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_briefing_type', 'CUSTOM')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_briefing_type', 'EMERGENCY')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_briefing_type', 'SAFETY')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_briefing_type', 'STANDARD')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_briefing_type', 'TECHNICAL')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_completion_cert_status', '0')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_completion_cert_status', '1')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_completion_cert_status', '2')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_completion_cert_status', '3')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_completion_cert_status', '4')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_deliverable_status', '0')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_deliverable_status', '1')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_deliverable_status', '2')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_deliverable_status', '3')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_deliverable_type', 'CONDITIONAL')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_deliverable_type', 'OPTIONAL')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_deliverable_type', 'REQUIRED')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_document_type', 'ACCEPTANCE')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_document_type', 'DESIGN')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_document_type', 'IMPLEMENTATION')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_document_type', 'OTHER')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_document_type', 'REQUIREMENT')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_document_type', 'TRAINING')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_deliverable_status', '0')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_deliverable_status', '1')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_deliverable_status', '2')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_deliverable_type', 'COMPLETION')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_deliverable_type', 'CONFIG')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_deliverable_type', 'DAILY')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_deliverable_type', 'IMPLEMENTATION')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_deliverable_type', 'RECEIPT')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_deliverable_type', 'SERVICE')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_deliverable_type', 'TEST')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_deliverable_type', 'TRAINING')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_status', '0')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_status', '1')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_status', '2')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_eng_status', '3')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_form_instance_status', '0')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_form_instance_status', '1')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_form_instance_status', '2')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_form_instance_status', '3')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_form_instance_status', '4')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_form_template_status', '0')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_form_template_status', '1')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_form_template_status', '2')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_implementation_method', 'DIRECT_SUBCONTRACT')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_implementation_method', 'FACTORY_INTEGRATION')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_issue_severity', '1')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_issue_severity', '2')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_issue_severity', '3')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_issue_status', '0')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_issue_status', '1')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_issue_status', '2')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_issue_status', '3')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_issue_status', '4')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_portfolio_category', '专项')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_portfolio_category', '区域')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_portfolio_category', '客户')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_portfolio_category', '战略')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_portfolio_category', '计划')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_portfolio_rule_dimension', 'CUSTOMER')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_portfolio_rule_dimension', 'REGION')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_portfolio_rule_dimension', 'STATUS')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_portfolio_rule_dimension', 'TYPE')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_product_type', 'FIREWALL')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_product_type', 'IPS')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_product_type', 'ROUTER')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_product_type', 'SWITCH')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_product_type', 'WAF')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_project_type', '10')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_requirement_type', 'BUSINESS')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_requirement_type', 'INTERFACE')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_resource_type', 'APPROVAL')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_resource_type', 'PEOPLE')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_resource_type', 'SPARE')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_resource_type', 'TEST_ENV')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_resource_type', 'TOOL')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_resource_type', 'WINDOW')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_risk_level', 'A')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_risk_level', 'B')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_risk_level', 'C')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_risk_level', 'D')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_trigger_source', 'MANUAL')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_trigger_source', 'RESOURCE_READY')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_trigger_source', 'SITE_SURVEY')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "dictionary:('pms_trigger_source', 'SOLUTION')",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "training:TRAINING_FORM_20260920",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "training-design-preserved:TRAINING_FORM_20260920",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "training:TRAINING_PRINT_APPROVED",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "training-design-preserved:TRAINING_PRINT_APPROVED",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "document-template:DT-REQ-BASE-001",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "document-template:DT-REQ-DATA-001",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "document-template:DT-REQ-SEC-001",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "document-template:DT-SOL-BASE-001",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "document-template:DT-SOL-DATA-001",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "document-template:DT-SOL-SEC-001",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preparation-form:FT-2026-001",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preparation-form:FT-2026-002",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preparation-form:FT-2026-003",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preparation-form:FT-2026-005",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preparation-form:FT-2026-006",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preparation-form:FT-2026-007",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preparation-form:FT-2026-008",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "preparation-form:FT-2026-010",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cutover:published-selection",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "cutover:configuration-content",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "cutover:cut_cutover_checklist_item_definition_revision",
+      "passed": true,
+      "detail": {
+        "sourceCount": 133,
+        "targetCount": 133
+      }
+    },
+    {
+      "name": "cutover:cut_cutover_checklist_binding_rule_revision",
+      "passed": true,
+      "detail": {
+        "sourceCount": 133,
+        "targetCount": 133
+      }
+    },
+    {
+      "name": "cutover:binding-rule-exact-item-references",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "process:cutover-done-exact-form-dependency",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "excluded:no-extra-processes-deployed",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "process-bpmn:PMS_CUTOVER_APPROVAL",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "process-settings:PMS_CUTOVER_APPROVAL",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "process-bpmn:PMS_DELIVERY_CUTOVER_APPROVAL",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "process-settings:PMS_DELIVERY_CUTOVER_APPROVAL",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "process-bpmn:PMS_DELIVERY_SOLUTION_REVIEW",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "process-settings:PMS_DELIVERY_SOLUTION_REVIEW",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "process-bpmn:pms-cutover-done-approval",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "process-settings:pms-cutover-done-approval",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "process-bpmn:pms-sol-duration-change",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "process-settings:pms-sol-duration-change",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "process-bpmn:pms-sol-stage-plan",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "process-settings:pms-sol-stage-plan",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "process-bpmn:PMS_MINIMAL_NORMAL_CLOSURE",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "process-settings:PMS_MINIMAL_NORMAL_CLOSURE",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "new-view:VISIO_DELIVERY_20260922_CUTOVER_TASK",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "new-view:IT_DEFAULT_20261012_PROJ_PROJECT_ASSIGNMENT",
+      "passed": true,
+      "detail": null
+    }
+  ],
+  "passed": 162,
+  "failed": []
+}

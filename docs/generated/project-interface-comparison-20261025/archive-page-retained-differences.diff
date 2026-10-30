@@ -1,0 +1,121 @@
+diff --git a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/asset/device-log-archive/index.vue b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/asset/device-log-archive/index.vue
+index ee8cfa34f..b2baaf1be 100644
+--- a/yudao-ui/yudao-ui-admin-vue3/src/views/pms/asset/device-log-archive/index.vue
++++ b/yudao-ui/yudao-ui-admin-vue3/src/views/pms/asset/device-log-archive/index.vue
+@@ -72,7 +72,7 @@
+     <el-table
+       v-else
+       v-loading="loading"
+-      :data="filteredRows"
++      :data="pagedRows"
+       row-key="deviceId"
+       :empty-text="appliedFilters.serialNumber || appliedFilters.deviceName || appliedFilters.sourceType ? '暂无符合查询条件的设备日志' : '当前项目暂无已归档的设备日志'"
+     >
+@@ -86,7 +86,7 @@
+               parseStates[String(row.latest.id)].message || parseStates[String(row.latest.id)].state
+             }}</div>
+           </template>
+-          <span v-else>—</span>
++          <span v-else>{{ row.latest?.available ? '解析状态加载中…' : '—' }}</span>
+         </template></el-table-column
+       >
+       <el-table-column label="最新版本" width="110"
+@@ -126,6 +126,13 @@
+         </template></el-table-column
+       >
+     </el-table>
++    <Pagination
++      v-if="projectId"
++      v-model:page="pageNo"
++      v-model:limit="pageSize"
++      :total="filteredRows.length"
++      :page-sizes="[20, 50, 100, rows.length || 20]"
++    />
+   </ContentWrap>
+   <el-dialog v-model="historyVisible" :title="`${selectedSerial} · 文件历史`" width="900px">
+     <el-table v-loading="historyLoading" :data="historyRows" row-key="id">
+@@ -211,11 +218,16 @@ const filteredRows = computed(() => {
+     && (!query.deviceName || (row.deviceName || '').toLowerCase().includes(query.deviceName))
+     && (!query.sourceType || row.latest?.sourceType === query.sourceType))
+ })
+-const search = () => { appliedFilters.value = { serialNumber: filters.serialNumber.trim().toLowerCase(),
++const search = () => { pageNo.value = 1; appliedFilters.value = { serialNumber: filters.serialNumber.trim().toLowerCase(),
+   deviceName: filters.deviceName.trim().toLowerCase(), sourceType: filters.sourceType || '' } }
+ const resetSearch = () => {
+   filters.serialNumber = ''; filters.deviceName = ''; filters.sourceType = ''; search()
+ }
++const pageNo = ref(1)
++const pageSize = ref(20)
++const pagedRows = computed(() =>
++  filteredRows.value.slice((pageNo.value - 1) * pageSize.value, pageNo.value * pageSize.value)
++)
+ const loading = ref(false)
+ const loadFailed = ref(false)
+ const uploading = ref(false)
+@@ -251,15 +263,16 @@ const viewParsed = async (file: Api.LogFile) => {
+ const parseStates = ref<Record<string, Api.ParseState>>({})
+ let parseTimer: ReturnType<typeof setTimeout> | undefined
+ let parseAttempts = 0
++let parseSequence = 0
+ const refreshParses = async (currentRows: Api.DeviceLog[], sequence: number) => {
+   const files = currentRows.flatMap((row) => (row.latest?.available ? [row.latest] : []))
+   await Promise.all(
+     files.map(async (file) => {
+       try {
+         const state = await Api.parseState(file.id)
+-        if (sequence === loadSequence) parseStates.value[String(file.id)] = state
++        if (sequence === parseSequence) parseStates.value[String(file.id)] = state
+       } catch {
+-        if (sequence === loadSequence)
++        if (sequence === parseSequence)
+           parseStates.value[String(file.id)] = {
+             state: 'QUERY_FAILED',
+             message: '解析状态加载失败，请刷新重试'
+@@ -267,27 +280,36 @@ const refreshParses = async (currentRows: Api.DeviceLog[], sequence: number) =>
+       }
+     })
+   )
+-  if (sequence !== loadSequence) return
+-  const pending = Object.values(parseStates.value).some((v) =>
+-    ['SUBMITTING', 'QUEUED', 'RUNNING'].includes(v.state)
++  if (sequence !== parseSequence) return
++  const pending = files.some((file) =>
++    ['SUBMITTING', 'QUEUED', 'RUNNING'].includes(parseStates.value[String(file.id)]?.state)
+   )
+   if (pending && ++parseAttempts < 60)
+     parseTimer = setTimeout(() => refreshParses(currentRows, sequence), 2000)
+ }
+ onBeforeUnmount(() => {
+   ++loadSequence
++  ++parseSequence
+   ++parsedSequence
+   if (parseTimer) clearTimeout(parseTimer)
+ })
+ let loadSequence = 0
+ let historySequence = 0
++watch(pagedRows, (visibleRows) => {
++  const sequence = ++parseSequence
++  if (parseTimer) clearTimeout(parseTimer)
++  parseAttempts = 0
++  void refreshParses(visibleRows, sequence)
++})
+ const load = async () => {
+   const current = projectId.value
+   const sequence = ++loadSequence
++  ++parseSequence
+   if (parseTimer) clearTimeout(parseTimer)
+   parseAttempts = 0
+   parseStates.value = {}
+   rows.value = []
++  pageNo.value = 1
+   loadFailed.value = false
+   if (!current) {
+     loading.value = false
+@@ -298,7 +320,6 @@ const load = async () => {
+     const data = await Api.latest(current)
+     if (sequence === loadSequence) {
+       rows.value = data
+-      await refreshParses(data, sequence)
+     }
+   } catch {
+     if (sequence === loadSequence) loadFailed.value = true

@@ -1,0 +1,28 @@
+{
+  "pid": 25116,
+  "port": 59286,
+  "applicationSha256": "16207911052decc64180c33bff30542a7a94c7d64c446ff6658f6f29a56a2679",
+  "source": "9ad098eb746d25ae68ae2b8f4601cc4a5dc351b239a45efeecc03e97af0a0177",
+  "profiles": [
+    "local",
+    "dac"
+  ],
+  "mysqlConnectionVerified": true,
+  "automaticSchemaChangesDisabled": true,
+  "retiredRequirementEndpointAbsent": true,
+  "newSatisfactionRetryLogicPresent": true,
+  "draftHistoryCompatibilityPresent": true,
+  "history": {
+    "existingTables": 22,
+    "existingRows": 97,
+    "changedExistingRows": [],
+    "addedRows": {
+      "sol_eng_solution": 1,
+      "sol_requirement_analysis_revision": 1,
+      "imp_eng_training": 1,
+      "proj_project_plan_version": 1,
+      "proj_project_task": 16,
+      "proj_project_stage": 7
+    }
+  }
+}

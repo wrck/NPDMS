@@ -1,0 +1,848 @@
+[
+  {
+    "dictType": "pms_acceptance_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/acceptance/index.vue",
+        "line": 38
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/acceptance/index.vue",
+        "line": 65
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/archive-document/index.vue",
+        "line": 31
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/archive-document/index.vue",
+        "line": 57
+      }
+    ]
+  },
+  {
+    "dictType": "pms_acceptance_type",
+    "missingValues": [
+      "FINAL",
+      "PRELIMINARY"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/acceptance/index.vue",
+        "line": 28
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/acceptance/index.vue",
+        "line": 58
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/acceptance/index.vue",
+        "line": 150
+      }
+    ]
+  },
+  {
+    "dictType": "pms_announcement_type",
+    "missingValues": [
+      "PATCH",
+      "SECURITY",
+      "TECHNICAL"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/announcement/index.vue",
+        "line": 14
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/announcement/index.vue",
+        "line": 58
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/announcement/index.vue",
+        "line": 131
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/announcement/index.vue",
+        "line": 216
+      }
+    ]
+  },
+  {
+    "dictType": "pms_authorization_type",
+    "missingValues": [
+      "OFFICIAL",
+      "TEMP"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/authorization/index.vue",
+        "line": 25
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/authorization/index.vue",
+        "line": 61
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/authorization/index.vue",
+        "line": 162
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/authorization/index.vue",
+        "line": 224
+      }
+    ]
+  },
+  {
+    "dictType": "pms_briefing_type",
+    "missingValues": [
+      "CUSTOM",
+      "EMERGENCY",
+      "SAFETY",
+      "STANDARD",
+      "TECHNICAL"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/briefing/index.vue",
+        "line": 21
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/briefing/index.vue",
+        "line": 56
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/briefing/index.vue",
+        "line": 155
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/briefing/index.vue",
+        "line": 211
+      }
+    ]
+  },
+  {
+    "dictType": "pms_completion_cert_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/completion-certificate/index.vue",
+        "line": 21
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/completion-certificate/index.vue",
+        "line": 30
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/completion-certificate/index.vue",
+        "line": 38
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/completion-certificate/index.vue",
+        "line": 114
+      }
+    ]
+  },
+  {
+    "dictType": "pms_cutover_exec_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_cutover_observation_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_cutover_risk_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_deliverable_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/index.vue",
+        "line": 31
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/index.vue",
+        "line": 61
+      }
+    ]
+  },
+  {
+    "dictType": "pms_deliverable_type",
+    "missingValues": [
+      "CONDITIONAL",
+      "OPTIONAL",
+      "REQUIRED"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/index.vue",
+        "line": 21
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/index.vue",
+        "line": 55
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/index.vue",
+        "line": 130
+      }
+    ]
+  },
+  {
+    "dictType": "pms_document_type",
+    "missingValues": [
+      "ACCEPTANCE",
+      "DESIGN",
+      "IMPLEMENTATION",
+      "OTHER",
+      "REQUIREMENT",
+      "TRAINING"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/archive-document/index.vue",
+        "line": 21
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/archive-document/index.vue",
+        "line": 51
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/archive-document/index.vue",
+        "line": 118
+      }
+    ]
+  },
+  {
+    "dictType": "pms_eng_deliverable_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/deliverable/index.vue",
+        "line": 28
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/deliverable/index.vue",
+        "line": 60
+      }
+    ]
+  },
+  {
+    "dictType": "pms_eng_deliverable_type",
+    "missingValues": [
+      "COMPLETION",
+      "CONFIG",
+      "DAILY",
+      "IMPLEMENTATION",
+      "RECEIPT",
+      "SERVICE",
+      "TEST",
+      "TRAINING"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/deliverable/index.vue",
+        "line": 18
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/deliverable/index.vue",
+        "line": 53
+      }
+    ]
+  },
+  {
+    "dictType": "pms_eng_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/configuration/index.vue",
+        "line": 18
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/configuration/index.vue",
+        "line": 41
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/configuration/with-device-logs.vue",
+        "line": 18
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/configuration/with-device-logs.vue",
+        "line": 64
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/installation/ProjectInstallationWorkbench.vue",
+        "line": 33
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/installation/index.vue",
+        "line": 18
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/installation/index.vue",
+        "line": 56
+      }
+    ]
+  },
+  {
+    "dictType": "pms_form_instance_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/form-instance/index.vue",
+        "line": 29
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/form-instance/index.vue",
+        "line": 60
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/form-instance/index.vue",
+        "line": 191
+      }
+    ]
+  },
+  {
+    "dictType": "pms_form_template_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/form-template/index.vue",
+        "line": 23
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/form-template/index.vue",
+        "line": 51
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/form-template/index.vue",
+        "line": 168
+      }
+    ]
+  },
+  {
+    "dictType": "pms_governance_action_type",
+    "missingValues": [
+      "DIRECT_CLOSE",
+      "ROLLBACK"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_implementation_method",
+    "missingValues": [
+      "DIRECT_SUBCONTRACT",
+      "FACTORY_INTEGRATION"
+    ],
+    "consumers": [
+      {
+        "file": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/vo/ProjectCreateReqVO.java",
+        "line": 77
+      },
+      {
+        "file": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/dataobject/projectmanual/ProjectMasterDO.java",
+        "line": 147
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/detail/index.vue",
+        "line": 23
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/projects/index.vue",
+        "line": 82
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/projects/index.vue",
+        "line": 162
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/projects/index.vue",
+        "line": 419
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/projects/index.vue",
+        "line": 534
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/inheritance/projects/index.vue",
+        "line": 695
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectAttributePanel.vue",
+        "line": 33
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectAttributePanel.vue",
+        "line": 132
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectBaseInfo.vue",
+        "line": 171
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectCurrentPlanTag.vue",
+        "line": 26
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/index.vue",
+        "line": 38
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-templates/index.vue",
+        "line": 137
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue",
+        "line": 132
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue",
+        "line": 344
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue",
+        "line": 606
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue",
+        "line": 725
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/index.vue",
+        "line": 886
+      }
+    ]
+  },
+  {
+    "dictType": "pms_inspection_mode",
+    "missingValues": [
+      "OFFLINE",
+      "ONLINE"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_issue_severity",
+    "missingValues": [
+      "1",
+      "2",
+      "3"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/issue/index.vue",
+        "line": 28
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/issue/index.vue",
+        "line": 53
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/issue/index.vue",
+        "line": 161
+      }
+    ]
+  },
+  {
+    "dictType": "pms_issue_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/issue/index.vue",
+        "line": 18
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/issue/index.vue",
+        "line": 59
+      }
+    ]
+  },
+  {
+    "dictType": "pms_leftover_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_maint_transition_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_plan_change_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_portfolio_category",
+    "missingValues": [
+      "专项",
+      "区域",
+      "客户",
+      "战略",
+      "计划"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/portfolio/index.vue",
+        "line": 110
+      }
+    ]
+  },
+  {
+    "dictType": "pms_portfolio_rule_dimension",
+    "missingValues": [
+      "CUSTOMER",
+      "REGION",
+      "STATUS",
+      "TYPE"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/portfolio/index.vue",
+        "line": 178
+      }
+    ]
+  },
+  {
+    "dictType": "pms_product_type",
+    "missingValues": [
+      "FIREWALL",
+      "IPS",
+      "ROUTER",
+      "SWITCH",
+      "WAF"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/form-template/index.vue",
+        "line": 13
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/form-template/index.vue",
+        "line": 44
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/form-template/index.vue",
+        "line": 123
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/form-template/index.vue",
+        "line": 165
+      }
+    ]
+  },
+  {
+    "dictType": "pms_project_phase_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_project_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_project_type",
+    "missingValues": [
+      "10"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectBaseInfo.vue",
+        "line": 207
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/ProjectCreationSource.vue",
+        "line": 20
+      }
+    ]
+  },
+  {
+    "dictType": "pms_requirement_analysis_extension_demo",
+    "missingValues": [
+      "DISABLED_OPTION",
+      "ENHANCED",
+      "STANDARD"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_requirement_type",
+    "missingValues": [
+      "BUSINESS",
+      "INTERFACE"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/requirement/index.vue",
+        "line": 22
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/requirement/index.vue",
+        "line": 52
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/requirement/index.vue",
+        "line": 127
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/requirement/index.vue",
+        "line": 241
+      }
+    ]
+  },
+  {
+    "dictType": "pms_resource_type",
+    "missingValues": [
+      "APPROVAL",
+      "PEOPLE",
+      "SPARE",
+      "TEST_ENV",
+      "TOOL",
+      "WINDOW"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/resource/index.vue",
+        "line": 41
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/resource/index.vue",
+        "line": 117
+      }
+    ]
+  },
+  {
+    "dictType": "pms_risk_level",
+    "missingValues": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/configuration/index.vue",
+        "line": 190
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/configuration/index.vue",
+        "line": 224
+      }
+    ]
+  },
+  {
+    "dictType": "pms_srv_issue_severity",
+    "missingValues": [
+      "1",
+      "2",
+      "3"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_srv_issue_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_srv_level_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_srv_report_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_srv_report_type",
+    "missingValues": [
+      "DETAIL",
+      "EXCEPTION",
+      "STANDARD",
+      "SUMMARY"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_srv_rule_status",
+    "missingValues": [
+      "0",
+      "1"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_srv_rule_type",
+    "missingValues": [
+      "OFFLINE",
+      "ONLINE"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_srv_task_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_task_status",
+    "missingValues": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "consumers": []
+  },
+  {
+    "dictType": "pms_trigger_source",
+    "missingValues": [
+      "MANUAL",
+      "RESOURCE_READY",
+      "SITE_SURVEY",
+      "SOLUTION"
+    ],
+    "consumers": [
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/ext-proc/ExternalProcurementDetailDialog.vue",
+        "line": 34
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/ext-proc/ExternalProcurementFormDialog.vue",
+        "line": 163
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/ext-proc/index.vue",
+        "line": 44
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/material-req/MaterialRequisitionFormDialog.vue",
+        "line": 131
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/outsource/OutsourceRequestDetailDialog.vue",
+        "line": 26
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/outsource/OutsourceRequestFormDialog.vue",
+        "line": 142
+      },
+      {
+        "file": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/outsource/index.vue",
+        "line": 44
+      }
+    ]
+  }
+]

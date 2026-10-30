@@ -1,0 +1,202 @@
+{
+  "entries": [
+    {
+      "panel": "基本信息",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "客户信息",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "项目树",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "项目成员",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "设备清单",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "序列号详情",
+      "source": true,
+      "target": true,
+      "note": "源序列号首次同名定位失败，随后复开确认；仅入口快照，不等于加载完成"
+    },
+    {
+      "panel": "配置Log",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "工勘分工",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "需求分析",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "物料换货",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "施工计划",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "实施方案",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "到货签收",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "硬件安装",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "配置调试",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "业务联调",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "割接上线",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "现场培训",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "满意度调查",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "初验&终验",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "交付件汇总",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "交付件检查",
+      "source": true,
+      "target": true
+    },
+    {
+      "panel": "项目闭环",
+      "source": true,
+      "target": true
+    }
+  ],
+  "tasks": [
+    {
+      "task": "人员指派",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "用户信息录入",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "现场工勘",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "需求分析",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "施工计划",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "实施方案",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "到货签收",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "硬件实施",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "配置调试",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "业务联调",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "割接上线",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "现场培训",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "满意度调查",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "初验",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "终验",
+      "source": true,
+      "target": true
+    },
+    {
+      "task": "项目闭环",
+      "source": true,
+      "target": true
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "checks": [
+    {
+      "name": "cut_configuration_dimension",
+      "passed": true,
+      "detail": {
+        "sourceComparable": 13,
+        "target": 13,
+        "differences": []
+      }
+    },
+    {
+      "name": "cut_configuration_dictionary_value",
+      "passed": true,
+      "detail": {
+        "sourceComparable": 50,
+        "target": 50,
+        "differences": []
+      }
+    },
+    {
+      "name": "cut_configuration_plan_section",
+      "passed": true,
+      "detail": {
+        "sourceComparable": 13,
+        "target": 13,
+        "differences": []
+      }
+    },
+    {
+      "name": "cut_configuration_plan_section_scope",
+      "passed": true,
+      "detail": {
+        "sourceComparable": 164,
+        "target": 164,
+        "differences": []
+      }
+    },
+    {
+      "name": "all-existing-dictionary-rows-preserved",
+      "passed": true,
+      "detail": {
+        "existingRows": 2047,
+        "preExistingDuplicateKeys": [
+          {
+            "identity": [
+              "pms_network_mode",
+              "VSM"
+            ],
+            "ids": [
+              21230,
+              22910
+            ]
+          },
+          {
+            "identity": [
+              "pms_network_mode",
+              "CLUSTER"
+            ],
+            "ids": [
+              21232,
+              22914
+            ]
+          },
+          {
+            "identity": [
+              "pms_project_category",
+              "GENERAL"
+            ],
+            "ids": [
+              1061155,
+              992004020001
+            ]
+          },
+          {
+            "identity": [
+              "pms_project_category",
+              "ENGINEERING"
+            ],
+            "ids": [
+              1061156,
+              992004020002
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "all-existing-configuration-values-equal",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "pms-configuration-keys-present-and-equal",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "all-notification-templates-equal",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "runtime-sms-selection:user-sms-login",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "runtime-sms-selection:user-update-mobile",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "runtime-sms-selection:user-update-password",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "runtime-sms-selection:user-reset-password",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "runtime-sms-selection:admin-sms-login",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "runtime-sms-selection:admin-reset-password",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "four-bpm-sms-templates-still-enabled",
+      "passed": true,
+      "detail": null
+    }
+  ],
+  "passed": 15,
+  "failed": []
+}

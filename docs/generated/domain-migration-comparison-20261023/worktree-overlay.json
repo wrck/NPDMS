@@ -1,0 +1,67 @@
+[
+  {
+    "path": "pms-module-asset/src/main/resources/mapper/device/DeviceJoinedPageMapper.xml",
+    "state": "modified-uncommitted",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "pms-module-asset/src/test/java/cn/iocoder/yudao/module/pms/asset/dal/DeviceJoinedPageSqlTest.java",
+    "state": "modified-uncommitted",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/SalesOrderLineMapper.java",
+    "state": "modified-uncommitted",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessService.java",
+    "state": "modified-uncommitted",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeQueryService.java",
+    "state": "modified-uncommitted",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "pms-module-commerce/src/main/resources/mapper/contract/ProjectCommerceMapper.xml",
+    "state": "modified-uncommitted",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderLineMapper.xml",
+    "state": "modified-uncommitted",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/ProjectCommerceExecutionChainMySqlTest.java",
+    "state": "modified-uncommitted",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/contract/ContractAccessServiceTest.java",
+    "state": "modified-uncommitted",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/service/scope/CommerceDeliveryScopeQueryServiceTest.java",
+    "state": "modified-uncommitted",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "tasks/features/F-AST-001.md",
+    "state": "modified-uncommitted",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/query/SalesOrderLineProjectCandidateQuery.java",
+    "state": "untracked",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  },
+  {
+    "path": "pms-module-commerce/src/test/java/cn/iocoder/yudao/module/pms/commerce/dal/ProjectCommerceQuerySqlTest.java",
+    "state": "untracked",
+    "baseline": "c674a8a8793cd061056b5dbe85ba7afd6dd1ac9a"
+  }
+]
