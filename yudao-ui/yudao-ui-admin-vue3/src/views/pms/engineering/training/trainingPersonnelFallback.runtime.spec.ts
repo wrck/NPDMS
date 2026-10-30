@@ -4,7 +4,7 @@ import { defineComponent, h, nextTick } from 'vue'
 import Training from './index.vue'
 import { mount, textOf, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 const api = vi.hoisted(() => ({ users: vi.fn(), options: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn(), templates: vi.fn(), canQueryTemplates: false, admin: false, canManageTemplates: true, getTraining: vi.fn(), preview: vi.fn() }))
-vi.mock('@/api/pms/platform/user-selection', () => ({ searchPmsUserOptions: api.options }))
+vi.mock('@/api/pms/platform/user-selection', () => ({ searchPmsUserOptions: api.options, pmsUserSelectionSource: (key: string) => ({ key, resolve: vi.fn() }) }))
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 3, nickname: 'Self' } }) }))
 vi.mock('@/utils/permission', () => ({ checkRole: () => api.admin, checkPermi: (permissions: string[]) => !permissions.includes('system:user:query') && (!permissions.includes('pms:dynamic-form-instance:query') || api.canQueryTemplates) && (!permissions.includes('pms:dynamic-form-template:query') || api.canManageTemplates) }))
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }), useRouter: () => ({ getRoutes: () => [] }) }))
@@ -50,7 +50,7 @@ it('allows known Self training with built-in print layout and default confirmati
 })
 it('retains existing personnel and both template selections after a failed query and clears the personnel hint on retry', async () => {
   const view = render(); view.state.openForm({ id: 8, status: 0, projectId: 1, trainerUserId: 9, trainerName: 'Existing', printTemplateId: 77, confirmationTemplateId: 88, trainingTypes: 'EXISTING' }); await flush()
-  expect(await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 20 })).toEqual({ list: [{ id: 3, nickname: 'Self' }, { id: 9, nickname: 'Existing' }], total: 2 })
+  expect(await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 20 })).toEqual({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
   expect(view.state.trainerUsersError).toContain('保留原培训工程师')
   expect(view.state.form).toMatchObject({ trainerUserId: 9, printTemplateId: 77, confirmationTemplateId: 88 })
   api.options.mockResolvedValueOnce({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
@@ -59,12 +59,53 @@ it('retains existing personnel and both template selections after a failed query
   await view.state.save()
   expect(api.update).toHaveBeenCalledWith(expect.objectContaining({ trainerUserId: 9, printTemplateId: 77, confirmationTemplateId: 88 }))
 })
+it('keeps a departed trainer snapshot for display without adding that user to new candidates', async () => {
+  const view = render()
+  view.state.openForm({ id: 8, status: 0, projectId: 1, trainerUserId: '2112914651700375582', trainerName: '原培训姓名' })
+  await flush()
+  api.options.mockResolvedValueOnce({ list: [{ id: 8, nickname: '在职人员' }], total: 1 })
+  const result = await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 20 })
+  expect(result.list).toEqual([{ id: 8, nickname: '在职人员' }])
+  expect(await view.state.trainerSource.resolve(['2112914651700375582'])).toEqual([
+    { id: '2112914651700375582', nickname: '原培训姓名' }
+  ])
+  expect(view.state.selectedTrainer.nickname).toBe('原培训姓名')
+  expect(api.update).not.toHaveBeenCalled()
+})
+
+it('retains the historical trainer on directory failure without exposing it as a candidate', async () => {
+  const view = render()
+  view.state.openForm({ id: 8, status: 0, projectId: 1, trainerUserId: 9, trainerName: '离职工程师' })
+  await flush()
+  const result = await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 20 })
+  expect(result.list.some((user: { id: number }) => user.id === 9)).toBe(false)
+  expect(await view.state.trainerSource.resolve(['9'])).toEqual([{ id: 9, nickname: '离职工程师' }])
+  await view.state.save()
+  expect(api.update).toHaveBeenCalledWith(expect.objectContaining({ trainerUserId: 9 }))
+  expect(api.update.mock.calls.at(-1)![0]).not.toHaveProperty('trainerName')
+})
+
+it('prefers the recorded name and discards the previous historical label when another record opens', async () => {
+  const view = render()
+  view.state.openForm({ id: 8, status: 0, projectId: 1, trainerUserId: 3, trainerName: '当时姓名' })
+  await flush()
+  expect(await view.state.trainerSource.resolve(['3'])).toEqual([{ id: 3, nickname: '当时姓名' }])
+  view.state.openForm({ id: 9, status: 0, projectId: 1, trainerUserId: 9, trainerName: '另一名历史人员' })
+  await flush()
+  expect(await view.state.trainerSource.resolve([9])).toEqual([{ id: 9, nickname: '另一名历史人员' }])
+  expect(await view.state.trainerSource.resolve([3])).toEqual([])
+  view.state.openForm(); await flush()
+  expect(await view.state.trainerSource.resolve([3])).toEqual([{ id: 3, nickname: 'Self' }])
+  expect(await view.state.trainerSource.resolve([9])).toEqual([])
+})
+
 it('shows the current trainer name even when the permitted query page does not contain that user', async () => {
   const view = render(); view.state.openForm(); await flush()
   api.options.mockResolvedValueOnce({ list: [{ id: 8, nickname: 'Other' }], total: 1 })
   const params = { pageNo: 1, pageSize: 50, nickname: '' }
   const result = await view.state.queryTrainerUsers(params)
-  expect(result.list).toEqual([{ id: 3, nickname: 'Self' }, { id: 8, nickname: 'Other' }])
+  expect(result.list).toEqual([{ id: 8, nickname: 'Other' }])
+  expect(await view.state.trainerSource.resolve([3])).toEqual([{ id: 3, nickname: 'Self' }])
   expect(api.options).toHaveBeenLastCalledWith({ pageNo: 1, pageSize: 50, keyword: '' })
   expect(view.state.form.trainerUserId).toBe(3)
   expect(view.state.trainerUsersError).toBe('')
@@ -73,18 +114,20 @@ it('retains the saved trainer name outside the query page and resets it when ope
   const view = render()
   view.state.openForm({ id: 8, status: 0, projectId: 1, trainerUserId: 9, trainerName: 'Existing' }); await flush()
   api.options.mockResolvedValueOnce({ list: [], total: 0 })
-  expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toEqual([{ id: 9, nickname: 'Existing' }])
+  expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toEqual([])
+  expect(await view.state.trainerSource.resolve([9])).toEqual([{ id: 9, nickname: 'Existing' }])
   view.state.openForm(); await flush()
   api.options.mockResolvedValueOnce({ list: [], total: 0 })
-  expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toEqual([{ id: 3, nickname: 'Self' }])
+  expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toEqual([])
+  expect(await view.state.trainerSource.resolve([3])).toEqual([{ id: 3, nickname: 'Self' }])
 })
 it('keeps the name of a newly selected trainer without changing the submitted user ID', async () => {
   const view = render(); view.state.openForm(); await flush()
   view.state.form.trainerUserId = 8
   view.state.onTrainerChange({ id: 8, nickname: 'Chosen' })
   api.options.mockResolvedValueOnce({ list: [], total: 0 })
-  expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toEqual([{ id: 8, nickname: 'Chosen' }])
-  expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toContainEqual({ id: 8, nickname: 'Chosen' })
+  expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toEqual([])
+  expect(await view.state.trainerSource.resolve([8])).toEqual([{ id: 8, nickname: 'Chosen' }])
   await view.state.save()
   expect(api.create).toHaveBeenCalledWith(expect.objectContaining({ trainerUserId: 8 }))
   view.state.form.trainerUserId = undefined
@@ -138,7 +181,7 @@ it('preserves the enabled directory search page without system user management p
   const view = render(); view.state.openForm(); await flush()
   api.options.mockResolvedValueOnce({ list: [{ id: 9, nickname: 'Engineer B' }], total: 2 })
   const result = await view.state.queryTrainerUsers({ pageNo: 2, pageSize: 1, nickname: ' engineer ' })
-  expect(result).toEqual({ list: [{ id: 3, nickname: 'Self' }, { id: 9, nickname: 'Engineer B' }], total: 2 })
+  expect(result).toEqual({ list: [{ id: 9, nickname: 'Engineer B' }], total: 2 })
   expect(view.state.trainerUsersError).toBe('')
   expect(api.options).toHaveBeenLastCalledWith({ pageNo: 2, pageSize: 1, keyword: ' engineer ' })
 })
@@ -148,7 +191,7 @@ it('passes email search and server pagination through while preserving the selec
   api.options.mockResolvedValue({ list: [{ id: 8, nickname: '张三' }], total: 1 })
   const view = render(); view.state.openForm(); await flush()
   expect(await view.state.queryTrainerUsers({ pageNo: 2, pageSize: 1, nickname: 'zhangsan' })).toEqual({
-    list: [{ id: 3, nickname: 'Self' }, { id: 8, nickname: '张三' }], total: 1
+    list: [{ id: 8, nickname: '张三' }], total: 1
   })
   expect(api.options).toHaveBeenCalledWith({ pageNo: 2, pageSize: 1, keyword: 'zhangsan' })
   expect(api.users).not.toHaveBeenCalled()
