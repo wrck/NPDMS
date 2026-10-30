@@ -98,13 +98,15 @@ const selected = ref<Members.MemberRecord>(), rejoin = ref(false), dialogProject
 const managers = ref<Managers.ProjectManagers>()
 const removeReason = ref(''), removeError = ref(''), removing = ref(false)
 const replacementPrimaryUserId = ref<number>()
-const retainedManagers = computed(() => managers.value?.members.filter(member => member.userId !== selected.value?.userId) || [])
+const retainedManagers = computed(() => managers.value?.members.filter(member => member.userId != null
+  && String(member.userId) !== String(selected.value?.userId)) || [])
 const replacementSource = computed(() => systemUserSelection.fromCandidates(
   `project-manager-successor:${props.project.id}:${selected.value?.id}`,
   retainedManagers.value.map(manager => ({ id: manager.userId, nickname: manager.name }))
 ))
 const requiresReplacementPrimary = computed(() => selected.value?.memberRole === memberRoles.PROJECT_MANAGER
-  && selected.value.userId === managers.value?.primaryUserId && retainedManagers.value.length > 0)
+  && selected.value.userId != null && managers.value?.primaryUserId != null
+  && String(selected.value.userId) === String(managers.value.primaryUserId) && retainedManagers.value.length > 0)
 const mobile = useMediaQuery('(max-width: 767px)')
 const dialogWidth = computed(() => mobile.value ? '96%' : '680px')
 const editable = computed(() => !props.readonly && props.project.lifecycleStatus === 'ACTIVE' && !loading.value && !opening.value && !error.value)
@@ -118,7 +120,8 @@ const isCurrent = (row: Members.MemberRecord) => row.status === 'ACTIVE'
 const time = (value?: Date | null) => value ? formatDate(value) : '—'
 const primaryLabel = (row: Members.MemberRecord) => {
   if (row.memberRole === memberRoles.PROJECT_MANAGER) return isCurrent(row)
-    ? (String(row.userId) === String(managers.value?.primaryUserId) ? '是' : '否') : '—'
+    ? (row.userId != null && managers.value?.primaryUserId != null
+      && String(row.userId) === String(managers.value.primaryUserId) ? '是' : '否') : '—'
   return Members.logicalMemberRole(row.memberRole) === memberRoles.SERVICE_MANAGER
     ? (row.assignmentType === 'COLLABORATOR' ? '否' : '是') : '—'
 }

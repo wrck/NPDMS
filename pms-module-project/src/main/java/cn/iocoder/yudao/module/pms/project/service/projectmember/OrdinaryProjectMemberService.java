@@ -303,6 +303,12 @@ public class OrdinaryProjectMemberService {
             Command command, Actor actor, LocalDateTime now) {
         String role = previous == null ? command.member().memberRole() : logicalRole(previous.getMemberRole());
         if (command.action() == Action.REMOVE) {
+            if (previous.getUserId() == null) {
+                close(previous, command.reason(), now);
+                incrementVersion(project);
+                previous.setEffectiveTo(now);
+                return result(project, previous, true);
+            }
             var changed = projectManagers.update(new ProjectManagerMemberCommand(project.getId(), project.getVersion(),
                     Set.of(), Set.of(previous.getUserId()), command.replacementPrimaryUserId(), command.reason(),
                     command.idempotencyKey()), new ProjectManagerMemberApplicationService.Actor(
