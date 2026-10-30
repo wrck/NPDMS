@@ -126,6 +126,7 @@ export interface DeviceSummaryVO {
   productCode?: string
   productModel?: string
   productName?: string
+  productDesc?: string
   shipmentTime?: string
   packageNo?: string
   contractNo?: string

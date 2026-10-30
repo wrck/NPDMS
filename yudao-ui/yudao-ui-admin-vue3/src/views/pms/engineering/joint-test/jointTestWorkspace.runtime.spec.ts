@@ -12,16 +12,22 @@ vi.mock('@/components/DeviceCollection/CollectionWithDeviceLogsDialog.vue', () =
 vi.mock('@/components/DeviceCollection/ProjectDeviceLogArchiveDialog.vue', () => ({ default: { render: () => null } }))
 vi.mock('./resolveLogTask', () => ({ resolveJointLogTask: vi.fn() }))
 import * as JointTestApi from '@/api/pms/engineering/joint-test'
+import * as DeviceApi from '@/api/pms/asset/device'
 import { mount, passthrough, tableColumn, findByTestId, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const warning = vi.hoisted(() => vi.fn())
+vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('./resolveLogTask', () => ({ resolveJointLogTask: vi.fn() }))
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn() }))
-vi.mock('@/api/pms/asset/device/archive', () => ({ __v_isRef: false, getDeviceArchivePage: vi.fn() }))
+vi.mock('@/api/pms/asset/device/archive', () => ({ __v_isRef: false, getDeviceArchivePage: vi.fn(), getDeviceArchiveRecord: vi.fn().mockResolvedValue({ sn: 'RAW-SN', productModel: null }) }))
+vi.mock('@/api/pms/asset/device', () => ({ getDevice: vi.fn() }))
 // BusinessCollectionLogs 的设备采集 API 导入链会在导入期访问 window，按 API 模块边界 mock
 vi.mock('@/api/pms/platform/deviceCollection', () => ({ context: vi.fn(), page: vi.fn(), findByRequestKey: vi.fn() }))
 vi.mock('@/components/DeviceTag/index.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/api/pms/engineering/joint-test', () => ({ getJointTestPage: vi.fn(), getJointTest: vi.fn(), createJointTest: vi.fn(), updateJointTest: vi.fn(), deleteJointTest: vi.fn(), failJointTest: vi.fn() }))
+vi.mock('@/components/DeviceCollection/BusinessCollectionDialog.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/components/ProjectDeviceSelect/index.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_JOINT_TEST_STATUS: 'joint' }, getIntDictOptions: () => [] }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ warning, success: vi.fn(), delConfirm: vi.fn() }) }))
 const formStub = defineComponent({ setup(_, { slots, attrs, expose }) {
@@ -41,6 +47,25 @@ beforeEach(() => {
   vi.mocked(JointTestApi.createJointTest).mockResolvedValue(91)
   vi.mocked(JointTestApi.getJointTest).mockImplementation(async id => ({ id, projectId: 1, status: 0, version: 4, testCase: 'saved' }))
   vi.mocked(JointTestApi.getJointTestPage).mockResolvedValue({ list: [], total: 0 })
+  vi.mocked(DeviceApi.getDevice).mockResolvedValue({ summary: { sn: 'CURRENT-SN', productModel: 'MASTER-MODEL', productDesc: 'MASTER-DESC' } } as any)
+})
+
+it.each([['workspace', JointTest], ['with logs', JointTestWithDeviceLogs]])('%s reads the authorized current display without adding display fields to the saved record', async (_, component) => {
+  const mounted = render(component)
+  try {
+    const id = '970000000000090104'
+    mounted.state.openForm({ id: 9, projectId: 1, code: 'JT', equipmentId: id, testCase: 'check', status: 1, version: 2 })
+    await flush()
+    expect(DeviceApi.getDevice).toHaveBeenCalledWith(id)
+    expect(mounted.state.deviceInfo.productModel).toBe('MASTER-MODEL')
+    expect(mounted.state.deviceInfo.productDesc).toBe('MASTER-DESC')
+    await mounted.state.save()
+    const saved = vi.mocked(JointTestApi.updateJointTest).mock.calls[0][0]
+    expect(saved.equipmentId).toBe(id)
+    expect(saved).not.toHaveProperty('productModel')
+    expect(saved).not.toHaveProperty('productDesc')
+    expect(saved).not.toHaveProperty('sn')
+  } finally { mounted.app.unmount() }
 })
 
 it('shows the retained failure reason without allowing terminal result edits or deletion', async () => {

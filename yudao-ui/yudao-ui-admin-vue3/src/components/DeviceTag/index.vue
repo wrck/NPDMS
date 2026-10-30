@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
+import * as DeviceApi from '@/api/pms/asset/device'
 
 defineOptions({ name: 'DeviceTag' })
 
@@ -30,8 +30,8 @@ const loadDeviceName = async (id: number | string) => {
     return
   }
   try {
-    const res = await DeviceArchiveApi.getDeviceArchiveRecord(id)
-    const name = res?.name || res?.sn || `设备#${id}`
+    const res = (await DeviceApi.getDevice(id))?.summary
+    const name = res?.name || res?.productName || res?.sn || `设备#${id}`
     deviceCache.set(id, name)
     if (String(props.deviceId) !== String(id)) return
     displayName.value = name

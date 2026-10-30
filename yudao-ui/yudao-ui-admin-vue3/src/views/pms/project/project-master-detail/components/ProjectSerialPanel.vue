@@ -17,7 +17,7 @@
         <ProjectDeviceExportButton
           :project-id="projectId"
           kind="serials"
-          :filters="{ sn: sn.trim() || undefined, name: deviceName.trim() || undefined, productCode: productCode.trim() || undefined }"
+          :filters="{ sn: sn.trim() || undefined, name: deviceName.trim() || undefined, productCode: productCode || undefined }"
           :disabled="loading"
         />
       </el-form-item>
@@ -154,7 +154,7 @@ const load = async () => {
       projectId,
       sn: sn.value.trim() || undefined,
       name: deviceName.value.trim() || undefined,
-      productCode: productCode.value.trim() || undefined,
+      productCode: productCode.value || undefined,
       pageNo: pageNo.value,
       pageSize: pageSize.value
     })

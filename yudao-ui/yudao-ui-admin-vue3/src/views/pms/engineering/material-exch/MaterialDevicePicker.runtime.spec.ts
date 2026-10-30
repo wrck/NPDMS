@@ -1,7 +1,7 @@
-import { defineComponent, h, nextTick, ref } from 'vue'
+import { defineComponent, h, inject, nextTick, provide, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import MaterialDevicePicker from './MaterialDevicePicker.vue'
-import { mount, passthrough, tableColumn, findByTestId } from '../../platform/dynamic-form/components/runtimeTestHarness'
+import { mount, passthrough, tableColumn, findByTestId, textOf } from '../../platform/dynamic-form/components/runtimeTestHarness'
 import type { MaterialExchangeSerialVO } from '@/api/pms/engineering/material-exch'
 
 const api = vi.hoisted(() => ({ getDeliveryScopePage: vi.fn() }))
@@ -144,6 +144,41 @@ describe('换货设备清单选择', () => {
       await flush()
       expect(serials.value[0]).toEqual(expect.objectContaining({ scopeId: 60, quantity: 1, itemCode: '02051131', productCode: '02051131', productName: '防火墙主机' }))
     } finally { app.unmount() }
+  })
+
+  it('候选与已选清单的型号使用主档productModel，描述不能冒充型号', async () => {
+    api.getDeliveryScopePage.mockResolvedValue({ list: [
+      { id: 60, productCode: '02011299', productModel: 'QSFP28-LX2-SM1310-CWDM4', productDesc: '订单产品描述', allocatedQuantity: 2, details: [] },
+      { id: 61, productCode: '02010257', productModel: 'QSFP-LX10-SM1310', productDesc: '另一订单描述', details: [{ id: 7, productCode: '02010257', allocatedQuantity: 1 }] },
+      { id: 62, productCode: 'UNKNOWN', productDesc: '有描述无型号', allocatedQuantity: 1, details: [] }
+    ], total: 3 })
+    const scopedTable = defineComponent({
+      inheritAttrs: false,
+      setup(_, { attrs, slots, expose }) {
+        provide('material-model-rows', () => attrs.data as Array<Record<string, any>>)
+        expose({ toggleRowSelection: vi.fn() })
+        return () => h('table', attrs, slots.default?.())
+      }
+    })
+    const scopedColumn = defineComponent({
+      setup(_, { attrs, slots }) {
+        const values = inject<() => Array<Record<string, any>>>('material-model-rows')!
+        return () => h('td', attrs.label === '型号' ? values().flatMap(row => slots.default?.({ row })) : [])
+      }
+    })
+    const result = mount(MaterialDevicePicker, { projectId: 84499, modelValue: [{ scopeId: 60, quantity: 1 }] }, {
+      ElTable: scopedTable, ElTableColumn: scopedColumn, ElInputNumber: passthrough
+    })
+    try {
+      await flush()
+      expect(textOf(result.root)).toContain('QSFP28-LX2-SM1310-CWDM4')
+      expect(textOf(result.root)).toContain('QSFP-LX10-SM1310')
+      expect(textOf(result.root).match(/QSFP28-LX2-SM1310-CWDM4/g)).toHaveLength(2)
+      expect(textOf(result.root)).not.toContain('订单产品描述')
+      expect(textOf(result.root)).not.toContain('有描述无型号')
+      const state = (result.vm as any).$.setupState
+      expect(state.rows.find(row => row.scopeId === 62).productModel).toBe('')
+    } finally { result.app.unmount() }
   })
 
   it('订单产品名称和合同来自所选范围，不能使用换货目标产品快照冒充原订单产品', async () => {
