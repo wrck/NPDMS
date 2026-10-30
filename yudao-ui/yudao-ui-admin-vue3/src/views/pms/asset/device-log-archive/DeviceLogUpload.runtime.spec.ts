@@ -54,8 +54,8 @@ it('keeps service failures visible without reporting an archive and allows retry
   try {
     await flush()
     vi.mocked(Api.upload).mockRejectedValueOnce('日志拆分服务暂不可用，请启动本地 DAC；本次未归档')
-    await expect(m.state.uploadFile({ file: new File(['SN: SN001'], '设备.log') }))
-      .rejects.toBe('日志拆分服务暂不可用，请启动本地 DAC；本次未归档')
+    await m.state.uploadFile({ file: new File(['SN: SN001'], '设备.log') })
+    expect(m.state.uploadError).toContain('本次未归档')
     expect(m.state.result).toBeUndefined()
     expect(m.state.uploading).toBe(false)
     await m.state.uploadFile({ file: new File(['SN: SN001'], '设备.log') })
