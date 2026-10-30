@@ -35,13 +35,14 @@ class SolutionTieredReviewServiceTest {
     @Mock SolutionReviewMapper reviews;
     @Mock SolutionReviewBpmApi bpm;
     @Mock ProjectScopeApi scope;
-    @Mock ProjectParticipantFactApi participants;
+    @Mock ProjectManagementQualificationApi managementQualifications;
     @Mock PermissionApi permissions;
     @Mock EngineeringRuleReevaluationEvents events;
     @Mock PlatformDeliveryMaterialApi deliveryMaterials;
     @Mock SolutionService original;
     @Mock SolutionReviewPolicyService policies;
     @Mock SolutionSubmissionValidator submissionValidator;
+    @Mock cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi prerequisites;
     @InjectMocks SolutionTieredReviewService service;
     SolutionDO solution;
     SolutionReviewDO stored;
@@ -55,7 +56,7 @@ class SolutionTieredReviewServiceTest {
         when(permissions.hasAnyPermissions(eq(7L), any(String[].class))).thenReturn(true);
         when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
         var member = new ProjectParticipantFact(9L,7L,Set.of("PROJECT_MANAGER"),"PRIMARY","ACTIVE","S3",1L,1L);
-        when(participants.inspect(any())).thenReturn(member); when(participants.lockAndRevalidate(any())).thenReturn(member);
+        when(managementQualifications.inspect(any())).thenReturn(qualification(member));
         solution = new SolutionDO(); solution.setId(42L); solution.setTenantId(1L); solution.setProjectId(9L);
         solution.setVersion(0L); solution.setStatus(0); solution.setReviewLevel(1); solution.setSolutionType("IMPLEMENTATION");
         solution.setName("重大方案"); solution.setCode("SOL-42"); solution.setBackground("保留源正文");
@@ -69,6 +70,72 @@ class SolutionTieredReviewServiceTest {
                 Map.of("serviceManagerReview",8L,"engineeringManagementReview",10L)));
     }
     @AfterEach void cleanup() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
+    private ProjectManagementQualificationApi.Fact qualification(ProjectParticipantFact member) {
+        return new ProjectManagementQualificationApi.Fact(new ProjectManagementQualificationApi.Query(1L,9L,7L),
+                ProjectManagementQualificationApi.Source.PROJECT_MEMBER,member,null);
+    }
+    @Test void confirmedProjectServiceManagerSubmitsWithoutImpersonatingProjectManager() {
+        var observed = qualification(new ProjectParticipantFact(9L,7L,Set.of("SERVICE_MANAGER"),"PRIMARY","ACTIVE","S3",1L,1L));
+        when(managementQualifications.inspect(any())).thenReturn(observed);
+        when(bpm.start(any())).thenReturn(new SolutionReviewBpmApi.Started("instance-1","definition-1",Map.of("serviceManagerReview",7L)));
+        service.start(command(0));assertEquals(2,solution.getStatus());
+        verify(managementQualifications).lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(observed,1L,"ACTIVE",null));
+        assertEquals(7L,cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(stored.getCandidatesJson()).path("serviceManagerReview").asLong());
+    }
+    @Test void regionalQualificationIsLockedByTheSameOwnerBeforePrerequisitesAndBpm() {
+        var subject = new ProjectManagementQualificationApi.Query(1L,9L,7L);
+        var observed = new ProjectManagementQualificationApi.Fact(subject,ProjectManagementQualificationApi.Source.REGIONAL_MANAGER,null,
+                new ProjectRegionalManagerFactApi.Fact(9L,7L,5L));
+        when(managementQualifications.inspect(subject)).thenReturn(observed);
+        service.start(command(0));
+        var order=inOrder(managementQualifications,prerequisites,bpm);
+        order.verify(managementQualifications).inspect(subject);
+        order.verify(managementQualifications).lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(observed,5L,"ACTIVE",null));
+        order.verify(prerequisites).requireSatisfied(any());order.verify(bpm).start(any());
+    }
+    @Test void missingManagementQualificationCannotSubmit() {
+        when(managementQualifications.inspect(any())).thenReturn(null);
+        assertThrows(RuntimeException.class,()->service.start(command(0)));assertEquals(0,solution.getStatus());
+        verifyNoInteractions(bpm,prerequisites,policies,submissionValidator);
+        verify(managementQualifications,never()).lockAndRevalidate(any());
+    }
+    @Test void missingFunctionalPermissionOrFullProjectScopeNeverQueriesQualificationOwner() {
+        when(permissions.hasAnyPermissions(eq(7L),any(String[].class))).thenReturn(false);
+        assertThrows(RuntimeException.class,()->service.start(command(0)));verifyNoInteractions(managementQualifications,bpm);
+        when(permissions.hasAnyPermissions(eq(7L),any(String[].class))).thenReturn(true);
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        assertThrows(RuntimeException.class,()->service.start(command(0)));verifyNoInteractions(managementQualifications,bpm);
+    }
+    @Test void revokedAuthorityStopsBeforeSourceFreezeAndStateMutation() {
+        when(managementQualifications.lockAndRevalidate(any())).thenThrow(new SecurityException("revoked"));
+        assertThrows(SecurityException.class,()->service.start(command(0)));assertEquals(0,solution.getStatus());
+        verify(managementQualifications,times(1)).inspect(any());
+        verifyNoInteractions(bpm,prerequisites,policies,submissionValidator);verify(solutions,never()).updateById(any(SolutionDO.class));
+    }
+    @Test void unexpectedOwnerFailurePropagatesWithoutStartingApproval() {
+        when(managementQualifications.inspect(any())).thenThrow(new cn.iocoder.yudao.framework.common.exception.ServiceException(1014024002,"version conflict"));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.start(command(0)));
+        verify(managementQualifications,never()).lockAndRevalidate(any());verifyNoInteractions(bpm);
+    }
+    @Test void unfinishedPredecessorBlocksBeforeFreezingSourcesOrStartingApproval() {
+        doThrow(new IllegalArgumentException("前置任务尚未完成：现场勘察")).when(prerequisites).requireSatisfied(any());
+        assertThrows(IllegalArgumentException.class, () -> service.start(command(0)));
+        assertEquals(0, solution.getStatus());
+        assertEquals(0L, solution.getVersion());
+        verifyNoInteractions(submissionValidator, policies, bpm, deliveryMaterials, events);
+        verify(solutions, never()).updateById(any(SolutionDO.class));
+        verify(reviews, never()).insert(any(SolutionReviewDO.class));
+    }
+    @Test void approvedPredecessorsAreCheckedBeforeSourceFreezeAndReplayDoesNotRecheck() {
+        service.start(command(0));
+        var order = inOrder(prerequisites, submissionValidator, bpm);
+        order.verify(prerequisites).requireSatisfied(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi.Query(9L, "SOL", "IMPLEMENTATION_SOLUTION"));
+        order.verify(submissionValidator).validateAndFreezeSources(solution);
+        order.verify(bpm).start(any());
+        doThrow(new IllegalArgumentException("前置发生变化")).when(prerequisites).requireSatisfied(any());
+        assertSame(stored, service.start(command(0)));
+        verify(prerequisites, times(1)).requireSatisfied(any());
+    }
     @Test void incompleteSubmissionDoesNotChangeStatusOrStartApproval() {
         doThrow(new IllegalArgumentException("实施方案缺少必填项")).when(submissionValidator).validateAndFreezeSources(solution);
         assertThrows(IllegalArgumentException.class, () -> service.start(command(0)));
@@ -132,7 +199,7 @@ class SolutionTieredReviewServiceTest {
     }
     @Test void staleVersionMissingManagerAndEmptyScopeFailBeforeProcessStart() {
         assertThrows(IllegalArgumentException.class, () -> service.start(command(3)));
-        when(participants.inspect(any())).thenReturn(null);
+        when(managementQualifications.inspect(any())).thenReturn(null);
         assertThrows(RuntimeException.class, () -> service.start(command(0)));
         when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
         assertThrows(RuntimeException.class, () -> service.read(selection)); verifyNoInteractions(bpm);

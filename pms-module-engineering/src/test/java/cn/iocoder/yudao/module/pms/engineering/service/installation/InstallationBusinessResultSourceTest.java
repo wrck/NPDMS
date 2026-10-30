@@ -14,11 +14,13 @@ import static org.mockito.Mockito.*;
 class InstallationBusinessResultSourceTest {
  final InstallationMapper records=mock(InstallationMapper.class);
  final DeviceQueryApi devices=mock(DeviceQueryApi.class);
- final InstallationBusinessResultSource source=new InstallationBusinessResultSource(records,devices);
+ final InstallationAddressRequirementPolicy requirements=mock(InstallationAddressRequirementPolicy.class);
+ final InstallationBusinessResultSource source=new InstallationBusinessResultSource(records,devices,requirements);
  InstallationDO first,last;
  Query query=new Query(1L,9L,InstallationBusinessResultSource.TYPE,"31","31");
  @BeforeEach void setup(){
   TenantContextHolder.setTenantId(1L);first=row(30L,7L);last=row(31L,8L);
+  when(requirements.inspect(any())).thenReturn(new InstallationAddressRequirementPolicy.Decision(java.util.Set.of(),""));
   when(records.selectById(31L)).thenReturn(last);when(records.selectById(30L)).thenReturn(first);
   when(records.selectProjectAddressRecordsForUpdate(any())).thenReturn(List.of(last,first));
   when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(new ProjectDeviceInstallationFact(7L,"A",null),new ProjectDeviceInstallationFact(8L,"B",null)));
@@ -58,5 +60,43 @@ class InstallationBusinessResultSourceTest {
  @Test void addedProjectDeviceBlocksPreviouslyCompleteResult(){
   when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(new ProjectDeviceInstallationFact(7L,"A",null),new ProjectDeviceInstallationFact(8L,"B",null),new ProjectDeviceInstallationFact(9L,"C","旧地址")));
   assertEquals(Status.NOT_FORMED,source.inspect(query).status());
+ }
+ @Test void configuredAccessoryExemptionIsSharedWithResultFormationAndChangesObservationVersion(){
+  first.setInstallLocation(null);
+  assertEquals(Status.NOT_FORMED,source.inspect(query).status());
+  when(requirements.inspect(any())).thenReturn(new InstallationAddressRequirementPolicy.Decision(java.util.Set.of(7L),"rule-v1"));
+  var formed=source.inspect(query).result();assertEquals(Validity.CURRENT,formed.validity());
+  when(requirements.inspect(any())).thenReturn(new InstallationAddressRequirementPolicy.Decision(java.util.Set.of(7L),"rule-v2"));
+  assertNotEquals(formed.observationVersion(),source.inspect(query).result().observationVersion());
+  assertNull(first.getInstallLocation());assertEquals(2,first.getStatus());
+ }
+ @Test void allExemptDevicesNeverFabricateAnInstallationResult(){
+  first.setInstallLocation(null);last.setInstallLocation(null);
+  when(requirements.inspect(any())).thenReturn(new InstallationAddressRequirementPolicy.Decision(java.util.Set.of(7L,8L),"rule-v1"));
+  assertEquals(Status.NOT_FORMED,source.inspect(query).status());
+ }
+ @Test void inventoryReusesItsLockedRowsAndKeepsTheSameWholeProjectObservation(){
+  var expected=source.inspect(query);
+  clearInvocations(records,devices,requirements);
+  var page=source.inventory(new InventoryQuery(1L,9L,InstallationBusinessResultSource.TYPE,false,null,null,10));
+  assertEquals(List.of(expected),page.observations());
+  assertEquals("31",page.nextCursor());assertTrue(page.complete());
+  verify(devices,times(1)).lockProjectInstallationDevices(any());
+  verify(records,times(1)).selectProjectAddressRecordsForUpdate(any());
+  verify(records,times(1)).selectById(31L);
+  verify(requirements,times(1)).inspect(any());
+ }
+ @Test void inventoryStillReadsCurrentExemptionsAndDetectsAnAddedProjectDevice(){
+  var request=new InventoryQuery(1L,9L,InstallationBusinessResultSource.TYPE,false,null,null,10);
+  first.setInstallLocation(null);
+  assertEquals(Status.NOT_FORMED,source.inventory(request).observations().getFirst().status());
+  when(requirements.inspect(any())).thenReturn(new InstallationAddressRequirementPolicy.Decision(java.util.Set.of(7L),"rule-v1"));
+  var formed=source.inventory(request).observations().getFirst().result();
+  assertEquals(Validity.CURRENT,formed.validity());
+  when(requirements.inspect(any())).thenReturn(new InstallationAddressRequirementPolicy.Decision(java.util.Set.of(7L),"rule-v2"));
+  assertNotEquals(formed.observationVersion(),source.inventory(request).observations().getFirst().result().observationVersion());
+  when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(new ProjectDeviceInstallationFact(7L,"A",null),new ProjectDeviceInstallationFact(8L,"B",null),new ProjectDeviceInstallationFact(9L,"C",null)));
+  assertEquals(Status.NOT_FORMED,source.inventory(request).observations().getFirst().status());
+  assertNull(first.getInstallLocation());assertEquals(2,first.getStatus());
  }
 }

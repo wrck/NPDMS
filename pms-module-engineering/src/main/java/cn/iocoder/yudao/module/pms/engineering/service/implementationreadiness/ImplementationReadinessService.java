@@ -158,13 +158,8 @@ public class ImplementationReadinessService implements ImplementationReadinessAp
     private ImplementationReadinessContextFact context(ImplementationReadinessQuery query,
             ProjectBusinessContextApi.Context project, boolean lock) {
         var all = devices.lockProjectInstallationDevices(new ProjectDeviceInstallationQuery(query.tenantId(), query.projectId()))
-                .stream().map(value -> {
-                    var device = devices.getDevice(value.deviceId());
-                    if (device == null || !Objects.equals(query.tenantId(), device.tenantId())
-                            || !Objects.equals(query.projectId(), device.projectId()))
-                        throw failure(OWNER_DATA_CORRUPTED, "AST 当前项目设备事实不一致");
-                    return new DeviceFact(device.deviceId(), device.sn(), device.projectAssignmentVersion());
-                }).sorted(Comparator.comparing(DeviceFact::deviceId)).toList();
+                .stream().map(value -> new DeviceFact(value.deviceId(), value.sn(), value.projectAssignmentVersion()))
+                .sorted(Comparator.comparing(DeviceFact::deviceId)).toList();
         var policyQuery = new ProjectBusinessContextApi.Query(query.tenantId(), actor(), query.projectId(), project.scopeVersion());
         var requirements = lock ? projects.lockImplementationRequirements(
                 new ProjectBusinessContextApi.Revalidation(policyQuery, project.projectVersion())) : projects.implementationRequirements(policyQuery);

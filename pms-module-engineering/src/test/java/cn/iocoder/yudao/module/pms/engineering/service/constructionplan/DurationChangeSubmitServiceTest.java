@@ -20,6 +20,7 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
@@ -68,11 +69,13 @@ class DurationChangeSubmitServiceTest {
     @Mock FileArtifactApi fileArtifactApi;
     @Mock PermissionApi permissionApi;
     @Mock ProjectScopeApi projectScopeApi;
+    @Mock ProjectDurationOperatorApi durationOperatorApi;
     @Mock ProjectParticipantFactApi participantFactApi;
     @Mock DictDataApi dictDataApi;
     @Mock ConfigApi configApi;
     @Mock BpmProcessInstanceApi processInstanceApi;
     @Mock TransactionTemplate transactionTemplate;
+    @Mock cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
 
     private DurationChangeApplicationService service;
     private PlatformCommandExecutionApi.SuccessFacts recordedSuccessFacts;
@@ -83,8 +86,8 @@ class DurationChangeSubmitServiceTest {
         properties.setProcessDefinitionKey("pms-sol-duration-change");
         service = new DurationChangeApplicationService(planMapper, revisionMapper, changeMapper,
                 commandExecutionApi, operationAuditApi, fileArtifactApi, permissionApi, projectScopeApi,
-                participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
-                transactionTemplate, new MockEnvironment().withProperty("yudao.tenant.enable", "false"), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class));
+                durationOperatorApi, participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
+                transactionTemplate, new MockEnvironment().withProperty("yudao.tenant.enable", "false"), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class), executionGuard);
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(org.mockito.Mockito.mock(TransactionStatus.class));
@@ -337,6 +340,8 @@ class DurationChangeSubmitServiceTest {
     }
 
     private void stubAuthorizedFacts(Long approverId) {
+        when(durationOperatorApi.lockAndRevalidate(any())).thenReturn(
+                new ProjectDurationOperatorApi.Fact(100L,9L,"ACTIVE",3L,"REGIONAL_SERVICE_MANAGER"));
         when(permissionApi.hasAnyPermissions(9L,
                 ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
         when(planMapper.selectByLockQuery(any())).thenReturn(plan());
@@ -350,6 +355,25 @@ class DurationChangeSubmitServiceTest {
                     ? fact(9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))
                     : fact(approverId, Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1));
         });
+    }
+
+    @Test void readonlyTemplateExecutionBlocksDurationSubmissionBeforeBpmOrBusinessMutation() {
+        when(permissionApi.hasAnyPermissions(9L, ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
+        when(durationOperatorApi.lockAndRevalidate(any())).thenReturn(new ProjectDurationOperatorApi.Fact(100L,9L,"ACTIVE",3L,"REGIONAL_SERVICE_MANAGER"));
+        when(changeMapper.selectById(any())).thenReturn(notRequiredReasonWithoutEvidence());
+        stubReasonConfiguration();
+        when(commandExecutionApi.execute(any(),any(),any(),any(),any())).thenAnswer(invocation -> {
+            Supplier<?> operation = invocation.getArgument(3); return operation.get();
+        });
+        org.mockito.Mockito.doThrow(new IllegalStateException("CURRENT_PLANNING_EXECUTION_REQUIRED")).when(executionGuard).lockForWrite(any());
+        assertThrows(IllegalStateException.class, () -> service.submit(command(), actor()));
+        verify(executionGuard).lockForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                100L, "PLN", "CONSTRUCTION_PLAN", null));
+        verify(planMapper, never()).selectForUpdate(any());
+        verify(changeMapper, never()).updateVersionIfMatch(any());
+        org.mockito.Mockito.verifyNoInteractions(revisionMapper, participantFactApi, processInstanceApi);
     }
 
     private void stubRows(ConstructionPlanChangeDO change, ConstructionPlanDO plan) {

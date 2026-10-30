@@ -80,7 +80,7 @@ it('retains the saved trainer name outside the query page and resets it when ope
 it('keeps the name of a newly selected trainer without changing the submitted user ID', async () => {
   const view = render(); view.state.openForm(); await flush()
   view.state.form.trainerUserId = 8
-  view.state.onTrainerChange(8, { id: 8, nickname: 'Chosen' })
+  view.state.onTrainerChange({ id: 8, nickname: 'Chosen' })
   api.users.mockResolvedValueOnce([])
   expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toEqual([{ id: 8, nickname: 'Chosen' }])
   expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toContainEqual({ id: 8, nickname: 'Chosen' })

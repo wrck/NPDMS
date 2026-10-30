@@ -57,8 +57,19 @@ export const markAbnormalInstallation = (id: number) =>
 export interface InstallationAddressCompletion {
   totalDevices: number
   addressedDevices: number
+  requiredDevices?: number
+  exemptedDevices?: number
+  exemptDeviceIds?: (number | string)[]
   completed: boolean
 }
+export interface InstallationPlannedAddresses {
+  solutionId: number | string
+  solutionVersion: number
+  solutionName: string
+  addresses: Array<{ productCode: string; location: string }>
+}
+export const getPlannedInstallationAddresses = (projectId: number): Promise<InstallationPlannedAddresses | null> =>
+  request.get({ url: `/api/v1/pms/implementation/projects/${projectId}/planned-installation-addresses` })
 export const getProjectInstallationAddressCompletion = (projectId: number): Promise<InstallationAddressCompletion> =>
   request.get({ url: `/api/v1/pms/implementation/projects/${projectId}/installation-address-completion` })
 

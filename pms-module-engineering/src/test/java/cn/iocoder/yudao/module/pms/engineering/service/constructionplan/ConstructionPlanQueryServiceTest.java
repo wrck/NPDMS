@@ -11,6 +11,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.Constr
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangePageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanRevisionListQuery;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
@@ -42,13 +43,36 @@ class ConstructionPlanQueryServiceTest {
     @Mock ConstructionPlanChangeMapper changeMapper;
     @Mock PermissionApi permissionApi;
     @Mock ProjectScopeApi projectScopeApi;
-    @Mock ProjectParticipantFactApi participantFactApi;
+    @Mock ProjectDurationOperatorApi durationOperatorApi;
+    @Mock cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
     private ConstructionPlanQueryService service;
 
     @BeforeEach
     void setUp() {
         service = new ConstructionPlanQueryService(planMapper, revisionMapper, changeMapper,
-                permissionApi, projectScopeApi, participantFactApi);
+                permissionApi, projectScopeApi, durationOperatorApi, executionGuard);
+    }
+
+    @Test void schedulePermissionDoesNotRequireAnUnrelatedDurationPermissionForReadiness() {
+        when(permissionApi.hasAnyPermissions(org.mockito.ArgumentMatchers.eq(9L), org.mockito.ArgumentMatchers.any(String[].class))).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(9L, ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(false);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L,7L,Set.of(100L),Set.of()));
+        when(executionGuard.inspectForWrite(any())).thenReturn(true);
+        var result = service.entryReadiness(100L, actor());
+        assertFalse(result.durationWritable()); assertTrue(result.scheduleWritable());
+        org.mockito.Mockito.verifyNoInteractions(durationOperatorApi, planMapper, revisionMapper, changeMapper);
+        org.mockito.Mockito.verify(executionGuard).inspectForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                100L, "PLN", "STAGE_PLAN", null));
+    }
+
+    @Test void durationActionsDisappearWhenTheTemplateExecutionIsNoLongerWritable() {
+        when(permissionApi.hasAnyPermissions(org.mockito.ArgumentMatchers.eq(9L), org.mockito.ArgumentMatchers.any(String[].class))).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L,7L,Set.of(100L),Set.of()));
+        when(durationOperatorApi.inspect(any())).thenReturn(new ProjectDurationOperatorApi.Fact(100L,9L,"ACTIVE",3L,"REGIONAL_SERVICE_MANAGER"));
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
+        when(revisionMapper.selectById(any())).thenReturn(revision(701L,1));
+        when(executionGuard.inspectForWrite(any())).thenReturn(false);
+        assertEquals(List.of(), service.getById(501L, actor()).getAllowedActions());
     }
 
     @Test

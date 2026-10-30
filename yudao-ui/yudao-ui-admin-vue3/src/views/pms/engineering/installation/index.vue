@@ -132,20 +132,13 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="安装人员" prop="installerUserId">
-            <el-select
+            <UserSelect
               v-model="form.installerUserId"
-              filterable
+
               clearable
               class="!w-full"
               placeholder="默认当前用户，可下拉选择"
-            >
-              <el-option
-                v-for="user in users"
-                :key="user.id"
-                :value="user.id"
-                :label="user.nickname"
-              />
-            </el-select>
+             />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -182,6 +175,7 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
@@ -190,7 +184,6 @@ import * as InstallationApi from '@/api/pms/engineering/installation'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import type { InstallationVO } from '@/api/pms/engineering/installation'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import { useUserStore } from '@/store/modules/user'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import { checkPermi } from '@/utils/permission'
@@ -203,7 +196,6 @@ const loading = ref(false)
 const saving = ref(false)
 const rows = ref<InstallationVO[]>([])
 const total = ref(0)
-const users = ref<UserApi.UserVO[]>([])
 const query = reactive({ pageNo: 1, pageSize: 10, projectId: props.projectId ?? '', status: undefined })
 const formVisible = ref(false)
 const formRef = ref()
@@ -291,8 +283,5 @@ const handleAction = async (row: InstallationVO, action: 'start' | 'complete' | 
 }
 onMounted(() => {
   load()
-  UserApi.getSimpleUserList()
-    .then((result) => (users.value = result))
-    .catch(() => (users.value = []))
 })
 </script>

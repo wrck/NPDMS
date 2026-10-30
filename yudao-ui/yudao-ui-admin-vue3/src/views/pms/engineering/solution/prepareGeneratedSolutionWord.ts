@@ -1,7 +1,8 @@
 import { getDeliveryTypes } from '@/api/pms/platform/delivery'
 import { createDeliveryUploadAttempt, type DeliveryUploadAttempt } from '@/components/DeliveryArtifact/uploadDeliveryFile'
+import { formatSolutionInventoryWord } from './formatSolutionInventoryWord'
 
-export const prepareGeneratedSolutionWord = async (entityId: number, html: string, fileName: string,
+export const prepareGeneratedSolutionWord = async (entityId: string | number, html: string, fileName: string,
   previous?: DeliveryUploadAttempt): Promise<DeliveryUploadAttempt> => {
   if (!entityId) throw new Error('请先保存实施方案，再导出 Word')
   if (previous) return previous
@@ -22,6 +23,6 @@ export const prepareGeneratedSolutionWord = async (entityId: number, html: strin
     imageProcessing: { svgHandling: 'native' }
   })
   const binary = content instanceof Blob || content instanceof ArrayBuffer ? content : new Uint8Array(content).buffer
-  const file = new File([binary], fileName, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+  const file = new File([await formatSolutionInventoryWord(binary)], fileName, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
   return createDeliveryUploadAttempt({ ownerModule: 'SOL', entityType: 'solution', entityId }, type, file, fileName, 'GENERATED')
 }

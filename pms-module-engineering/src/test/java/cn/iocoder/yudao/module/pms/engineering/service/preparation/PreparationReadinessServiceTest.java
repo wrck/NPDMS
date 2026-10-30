@@ -67,6 +67,7 @@ class PreparationReadinessServiceTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "managementAccess", EngineeringManagementFixtures.confirmed(participantFactApi));
         when(transactionTemplate.execute(any())).thenAnswer(invocation ->
                 ((TransactionCallback<Object>) invocation.getArgument(0))
                         .doInTransaction(mock(TransactionStatus.class)));

@@ -954,6 +954,16 @@ class DurationChangeBpmMySqlIntegrationTest {
         public ProjectParticipantFact lockAndRevalidate(ProjectParticipantFactRevalidationQuery query) {
             return (useReal ? real : mock).lockAndRevalidate(query);
         }
+
+        @Override
+        public ProjectParticipantFact inspectAuthorization(ProjectParticipantFactQuery query) {
+            return (useReal ? real : mock).inspectAuthorization(query);
+        }
+
+        @Override
+        public ProjectParticipantFact lockAndRevalidateAuthorization(ProjectParticipantFactRevalidationQuery query) {
+            return (useReal ? real : mock).lockAndRevalidateAuthorization(query);
+        }
     }
 
     @SpringBootConfiguration

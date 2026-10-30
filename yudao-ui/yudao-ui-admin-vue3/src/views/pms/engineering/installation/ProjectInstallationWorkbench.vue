@@ -17,7 +17,8 @@
       <el-table-column prop="productCode" label="产品编码" min-width="140" />
       <el-table-column prop="productModel" label="产品型号" min-width="140" />
       <el-table-column prop="productName" label="产品名称" min-width="160" />
-      <el-table-column label="安装地址" min-width="200"><template #default="{ row }">{{ deviceAddress(row) || '未填写' }}</template></el-table-column>
+      <el-table-column label="安装地址" min-width="200"><template #default="{ row }">{{ deviceAddress(row) || (addressExempt(row) ? '免填' : '未填写') }}</template></el-table-column>
+      <el-table-column label="地址要求" width="100"><template #default="{ row }">{{ addressExempt(row) ? '免填' : '必填' }}</template></el-table-column>
       <el-table-column label="操作" width="230"><template #default="{ row }">
         <el-button v-if="!readonly" link type="primary" @click="openDevices([row])" v-hasPermi="['pms:imp-installation:create']">维护安装地址</el-button>
         <el-button link type="primary" @click="openHistory(row)" v-hasPermi="['pms:imp-installation:query']">安装历史</el-button>
@@ -62,14 +63,22 @@
           </el-form-item>
         </el-col>
         <el-col :span="24">
+          <el-form-item v-if="!readOnly && !form.id && targetDevices.length && checkPermi(['pms:sol-solution:query'])" label="方案地址">
+            <PlannedInstallationAddress
+:key="targetDevices.map(device => device.deviceId).join(',')"
+              :project-id="props.projectId" :product-codes="targetDevices.map(device => device.productCode)"
+              @select="usePlannedAddress" />
+          </el-form-item>
           <el-form-item label="安装位置" prop="installLocation">
             <span v-if="readOnly">{{ form.installLocation || '未填写' }}</span>
             <PmsLocationSelector
               v-else-if="formVisible"
+              ref="locationSelectorRef"
               :key="form.id ?? 'new'"
               v-model="form.locationMaintenance"
               :project-id="props.projectId"
               project-customer-sites-only
+              project-scoped
             />
           </el-form-item>
         </el-col>
@@ -87,12 +96,13 @@
     </el-form>
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
-      <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
+      <el-button v-if="!readOnly" type="primary" :loading="saving" :disabled="!!locationSelectorRef?.getValidationError()" @click="save">保存</el-button>
     </template>
   </Dialog>
 </template>
 
 <script setup lang="ts">
+import { systemUserSelection } from '@/api/system/user/selection'
 import { locationSnapshotText } from '@/utils/locationSnapshot'
 import PmsLocationSelector from '@/components/PmsLocationSelector/index.vue'
 import { computed, onMounted, ref, watch, onBeforeUnmount } from 'vue'
@@ -105,6 +115,7 @@ import type { InstallationVO } from '@/api/pms/engineering/installation'
 import * as UserApi from '@/api/system/user'
 import { useUserStore } from '@/store/modules/user'
 import { checkPermi } from '@/utils/permission'
+import PlannedInstallationAddress from './PlannedInstallationAddress.vue'
 
 defineOptions({ name: 'ProjectInstallationWorkbench' })
 const props = defineProps<{ projectId: number; /** 内嵌于未进入阶段的任务工作区时强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean }>()
@@ -141,6 +152,8 @@ const openHistory = (device: DeviceApi.DeviceListVO) => {
   historyVisible.value = true
 }
 const addressCompletion = ref<InstallationApi.InstallationAddressCompletion>()
+const exemptDeviceIds = computed(() => new Set((addressCompletion.value?.exemptDeviceIds ?? []).map(String)))
+const addressExempt = (device: DeviceApi.DeviceListVO) => exemptDeviceIds.value.has(String(device.deviceId))
 const errorText = ref('')
 const visibleDevices = computed(() => devices.value.filter(d =>
   d.sn.includes(sn.value.trim()) &&
@@ -158,11 +171,19 @@ const deviceAddress = (device: DeviceApi.DeviceListVO) => {
 }
 const addressedCount = computed(() => addressCompletion.value?.addressedDevices ?? 0)
 const completed = computed(() => !loading.value && !errorText.value && addressCompletion.value?.completed === true)
-const completionText = computed(() => loading.value ? '正在核对全部项目设备安装地址…' : errorText.value ? '安装地址核对失败，请刷新重试' : !devices.value.length ? '本项目暂无设备序列号，尚不能判定硬件安装完成' : `安装地址已填写 ${addressedCount.value}/${devices.value.length} 台${completed.value ? '，硬件安装完成条件已满足' : '，所有设备均有安装地址后完成'}`)
+const completionText = computed(() => {
+  if (loading.value) return '正在核对全部项目设备安装地址…'
+  if (errorText.value) return '安装地址核对失败，请刷新重试'
+  if (!devices.value.length) return '本项目暂无设备序列号，尚不能判定硬件安装完成'
+  const required = addressCompletion.value?.requiredDevices ?? devices.value.length
+  const exempted = addressCompletion.value?.exemptedDevices ?? 0
+  return `安装地址已填写 ${addressedCount.value}/${required} 台${exempted ? `，免填 ${exempted} 台` : ''}${completed.value ? '，硬件安装完成条件已满足' : '，必填设备均有安装地址后完成'}`
+})
 let loadSequence = 0
 const users = ref<UserApi.UserVO[]>([])
 const formVisible = ref(false)
 const formRef = ref()
+const locationSelectorRef = ref<InstanceType<typeof PmsLocationSelector>>()
 type InstallationForm = Omit<InstallationVO, 'installTime'> & { installTime?: string | number | null }
 const form = ref<InstallationForm>({ projectId: 0, status: 0 })
 const readOnly = computed(() => !!props.readonly || !!form.value.id || !checkPermi(['pms:imp-installation:create']))
@@ -232,6 +253,11 @@ const locationMaintenance = (row?: InstallationVO): NonNullable<InstallationVO['
   siteLocation: row.siteLocationId ? { id: row.siteLocationId, expectedVersion: row.siteLocationVersion } : undefined,
   fallbackLocation: row.installLocation
 } : { projectId: props.projectId, fallbackLocation: row?.installLocation }
+const usePlannedAddress = (location: string) => {
+  if (readOnly.value || form.value.id || !targetDevices.value.length) return
+  form.value.installLocation = location
+  form.value.locationMaintenance = { projectId: props.projectId, fallbackLocation: location }
+}
 const openForm = (row?: InstallationVO) => {
   if (saving.value) return
   targetDevices.value = []
@@ -272,6 +298,11 @@ const savePayload = () => {
 }
 const save = async () => {
   if (readOnly.value || saving.value) return
+  const locationError = locationSelectorRef.value?.getValidationError()
+  if (locationError) {
+    message.error(locationError)
+    return
+  }
   await formRef.value.validate()
   saving.value = true
   try {
@@ -298,7 +329,7 @@ const save = async () => {
 watch(() => props.projectId, () => { formVisible.value = false; historyVisible.value = false; historyDevice.value = undefined; sn.value = ''; productCode.value = ''; productModel.value = ''; void load() }, { immediate: true })
 onBeforeUnmount(() => { ++loadSequence })
 onMounted(() => {
-  UserApi.getSimpleUserList()
+  systemUserSelection.active()
     .then((result) => (users.value = result))
     .catch(() => (users.value = []))
 })

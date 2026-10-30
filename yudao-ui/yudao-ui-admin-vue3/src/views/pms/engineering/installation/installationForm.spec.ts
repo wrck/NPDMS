@@ -18,6 +18,6 @@ describe('installation form contract', () => {
 
   it('defaults the installer to the current user with a dropdown selection', () => {
     assert.match(source, /installerUserId: userStore\.getUser\.id/)
-    assert.match(source, /getSimpleUserList/)
+    assert.match(source, /UserSelect/)
   })
 })

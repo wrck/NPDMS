@@ -26,8 +26,12 @@ class InstallationTaskBusinessObjectProviderTest {
     final DeviceQueryApi devices = mock(DeviceQueryApi.class);
     final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     final PermissionApi permissions = mock(PermissionApi.class);
+    final cn.iocoder.yudao.module.pms.engineering.service.installation.InstallationAddressRequirementPolicy requirements =
+            new cn.iocoder.yudao.module.pms.engineering.service.installation.InstallationAddressRequirementPolicy(
+                    mock(cn.iocoder.yudao.module.infra.api.config.ConfigApi.class),
+                    devices);
     final InstallationTaskBusinessObjectProvider provider = new InstallationTaskBusinessObjectProvider(
-            new InstallationBusinessResultSource(records, devices), scopes, permissions, mock(ProjectNodeExecutionApi.class));
+            new InstallationBusinessResultSource(records, devices, requirements), scopes, permissions, mock(ProjectNodeExecutionApi.class));
     final Context context = new Context(1L,3L,9L,20L,"test");
     final InstallationDO record = new InstallationDO();
     @BeforeEach void setup() {
@@ -54,7 +58,7 @@ class InstallationTaskBusinessObjectProviderTest {
         };
         var advice = new org.springframework.transaction.interceptor.TransactionInterceptor(
                 transactions, new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource());
-        var resultProxy = new org.springframework.aop.framework.ProxyFactory(new InstallationBusinessResultSource(records, devices));
+        var resultProxy = new org.springframework.aop.framework.ProxyFactory(new InstallationBusinessResultSource(records, devices, requirements));
         resultProxy.setProxyTargetClass(true);
         resultProxy.addAdvice(advice);
         var owner = new InstallationTaskBusinessObjectProvider((InstallationBusinessResultSource) resultProxy.getProxy(),

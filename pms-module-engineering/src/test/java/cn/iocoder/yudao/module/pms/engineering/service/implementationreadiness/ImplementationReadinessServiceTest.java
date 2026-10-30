@@ -104,9 +104,7 @@ class ImplementationReadinessServiceTest {
                 .tenantId(7L).projectId(9L).projectVersion(5L).scopeVersion(41L).build());
         when(projects.implementationRequirements(any())).thenReturn(
                 new ProjectBusinessContextApi.ImplementationRequirements(21L, 3L, true, Set.of()));
-        when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(new ProjectDeviceInstallationFact(11L, "SN-11", "room")));
-        when(devices.getDevice(11L)).thenReturn(new DeviceSummaryDTO(11L, 7L, "SN-11", null, null, null,
-                null, null, null, null, 9L, 3L, null, null, null, null, null, null, null, null, null));
+        when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(new ProjectDeviceInstallationFact(11L, "SN-11", "room", 3L)));
         var solution = new SolutionDO(); solution.setId(31L); solution.setVersion(4L); solution.setReviewLevel(0);
         when(sources.approvedSolutions(any())).thenReturn(List.of(solution));
         when(snapshots.latest(any())).thenReturn(row);
@@ -115,11 +113,54 @@ class ImplementationReadinessServiceTest {
 
     @AfterEach void clear() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
 
+    @Test void reusesLockedDeviceFactsWithoutPerDeviceSummaryQueries() {
+        when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(
+                new ProjectDeviceInstallationFact(12L, "SN-12", "room", 4L),
+                new ProjectDeviceInstallationFact(11L, "SN-11", "room", 3L)));
+        var expected = context(21L, 3L, Set.of());
+        var current = new ImplementationReadinessContextFact(expected.projectScopeVersion(),
+                List.of(new DeviceFact(11L, "SN-11", 3L), new DeviceFact(12L, "SN-12", 4L)),
+                expected.approvedPlan(), expected.sourceFacts(), expected.planApplicability());
+        stored(current);
+        var request = new ImplementationReadinessQuery(7L, 9L, List.of(
+                new ImplementationReadinessQuery.ExpectedDevice(11L, "SN-11", 3L),
+                new ImplementationReadinessQuery.ExpectedDevice(12L, "SN-12", 4L)));
+
+        var result = service.inspect(request);
+
+        assertEquals(ImplementationReadinessResult.Decision.READY, result.decision());
+        assertEquals(current, result.currentContext());
+        verify(devices).lockProjectInstallationDevices(new ProjectDeviceInstallationQuery(7L, 9L));
+        verify(devices, never()).getDevice(any());
+        verify(snapshots, never()).insert(any(ImplementationReadinessSnapshotDO.class));
+    }
+
+    @Test void missingFullProjectScopeCannotReadLockedDevicesOrSnapshot() {
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L, 41L, Set.of(), Set.of(9L)));
+
+        assertThrows(SecurityException.class, () -> service.inspect(query));
+
+        verifyNoInteractions(devices, snapshots, store);
+        verify(projects, never()).inspect(any());
+    }
+
+    @Test void changedLockedAssignmentVersionIsRejectedWithoutReadingOtherDeviceFacts() {
+        when(devices.lockProjectInstallationDevices(any())).thenReturn(
+                List.of(new ProjectDeviceInstallationFact(11L, "SN-11", "room", 4L)));
+
+        var failure = assertThrows(ImplementationReadinessException.class, () -> service.inspect(query));
+
+        assertEquals(ImplementationReadinessException.Code.INVALID_REQUEST, failure.getCode());
+        verify(devices, never()).getDevice(any());
+        verify(sources, never()).approvedSolutions(any());
+        verify(snapshots, never()).insert(any(ImplementationReadinessSnapshotDO.class));
+    }
+
     @Test void explicitAllNotApplicableUsesNoArrivalInstallationConfigurationOrJointTestOwnerFacts() {
         var result = service.inspect(query);
         assertEquals(ImplementationReadinessResult.Decision.READY, result.decision());
         verify(sources, never()).installations(any()); verify(sources, never()).configurations(any()); verify(sources, never()).jointTests(any());
-        verifyNoInteractions(arrivals, delivery); verify(sources).approvedSolutions(any()); verify(devices).getDevice(11L);
+        verifyNoInteractions(arrivals, delivery); verify(sources).approvedSolutions(any()); verify(devices, never()).getDevice(any());
         assertTrue(result.currentContext().sourceFacts().stream().allMatch(f -> f.completionStatus() == CompletionStatus.NOT_APPLICABLE));
     }
 

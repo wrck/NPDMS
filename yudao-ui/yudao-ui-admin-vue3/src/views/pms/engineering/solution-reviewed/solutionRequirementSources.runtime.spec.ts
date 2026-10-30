@@ -4,9 +4,15 @@ import SolutionChapterForm from './SolutionReviewChapterForm.vue'
 import UploadFile from '@/components/UploadFile/src/UploadFile.vue'
 import { loadProjectEquipmentList } from '@/api/pms/commerce/projectEquipment'
 import * as RequirementApi from '@/api/pms/engineering/requirement-analysis/entity'
+import { requirementTopologyPurpose } from './requirementTopology'
 import { mount, passthrough, tableColumn, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
+vi.mock('@/config/axios', () => ({ default: {} }))
+vi.mock('@/config/axios/service', () => ({ service: {} }))
 vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ workspace: vi.fn(), read: vi.fn() }))
+vi.mock('@/components/PmsFileArtifact', () => ({ PmsFileReferenceList: defineComponent({
+  props: { artifactId: [String, Number], versionNo: [String, Number] }, setup: props => () => h('span', `拓扑附件 ${props.artifactId} V${props.versionNo}`)
+}) }))
 vi.mock('./saveSolutionScripts', () => ({ downloadSolutionScript: vi.fn() }))
 vi.mock('@/components/UploadFile/src/useUpload', () => ({ useUpload: () => ({ uploadUrl: '/unused', httpRequest: vi.fn() }) }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ error: vi.fn(), success: vi.fn() }) }))
@@ -47,6 +53,42 @@ const render = (projectId?: number, readOnly = false, script?: string) => {
 }
 
 describe('solution requirement analysis references', () => {
+  it.each([
+    { text: '', status: 'AVAILABLE', showsText: false },
+    { text: '<p>冻结拓扑说明</p>', status: 'AVAILABLE', showsText: true },
+    { text: '', status: 'UNAVAILABLE', showsText: false }
+  ])('不将已引用拓扑附件误报为空：$status，正文=$text', async ({ text, status, showsText }) => {
+    const source = overview({ networkTopology: text })
+    source.currentEffective.attachments = [{ key: { purposeCode: requirementTopologyPurpose }, activeFacts: [{
+      artifactId: '2114239727105122305', versionNo: 1, referenceKey: 'diagram',
+      referenceStatus: 'ACTIVE', availabilityStatus: status
+    }] }]
+    vi.mocked(RequirementApi.workspace).mockResolvedValue(source)
+    const mounted = render(1)
+    try {
+      await flush()
+      mounted.state.topology.toBeChanged = 'no'
+      await flush()
+      expect(textOf(mounted.root)).toContain('引用需求分析 V1 的拓扑附件')
+      expect(textOf(mounted.root)).not.toContain('需求分析暂无网络拓扑')
+      expect(textOf(mounted.root).includes('直接调用需求分析中的网络拓扑：冻结拓扑说明')).toBe(showsText)
+      expect(source.currentEffective.values.networkTopology).toBe(text)
+      expect(source.currentEffective.attachments[0].activeFacts[0].availabilityStatus).toBe(status)
+    } finally { mounted.app.unmount() }
+  })
+
+  it.each(['', '<p>冻结拓扑说明</p>'])('没有拓扑附件时保留正文或真实空值提示：%s', async text => {
+    vi.mocked(RequirementApi.workspace).mockResolvedValue(overview({ networkTopology: text }))
+    const mounted = render(1)
+    try {
+      await flush()
+      mounted.state.topology.toBeChanged = 'no'
+      await flush()
+      expect(textOf(mounted.root)).toContain(text ? '直接调用需求分析中的网络拓扑：冻结拓扑说明' : '需求分析暂无网络拓扑')
+      expect(textOf(mounted.root)).not.toContain('引用需求分析 V1 的拓扑附件')
+    } finally { mounted.app.unmount() }
+  })
+
   it('persists long chapter content outside the 500-character remark while preserving source and document metadata', async () => {
     const mounted = render(1)
     try {
@@ -292,7 +334,7 @@ describe('solution requirement analysis references', () => {
 
 
   it('serializes separate deployment and software chapters with order quantity and reopens saved content', async () => {
-    vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({ list: [{ productCode: 'P1', productName: '防火墙', productModel: 'FW', orderQty: 12, projectQty: 20, deviceCount: 3 }], scopes: [] })
+    vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({ list: [{ productCode: 'P1', productName: '防火墙', productModel: 'FW', orderQty: 12, projectQty: 20, deviceCount: 3 }], scopes: [], devices: [] })
     const mounted = render(1)
     try {
       await flush(); mounted.state.generateFromSources(); await flush()
@@ -312,6 +354,32 @@ describe('solution requirement analysis references', () => {
     } finally { mounted.app.unmount() }
   })
 
+  it('imports full project inventory from the equipment list and preserves unknown quantities', async () => {
+    vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({
+      list: [
+        { productCode: 'P1', productName: '防火墙', productModel: 'FW-100', projectQty: 4, deliveredQty: 1, openQty: 3, deviceCount: 2 },
+        { productCode: 'P2', productName: '软件许可', productModel: '', projectQty: 8, deliveredQty: 6, openQty: 2, deviceCount: 0 },
+        { productCode: 'P3', productName: '待核对产品', productModel: '', deviceCount: 0 }
+      ],
+      scopes: [],
+      devices: [{ productCode: 'P1', sn: 'SN-1' }, { productCode: 'P1', sn: 'SN-2' }] as any
+    } as any)
+    const mounted = render(1)
+    try {
+      await flush(); mounted.state.generateFromSources(); await flush()
+      expect(mounted.state.tables.inventory).toEqual([
+        { productCode: 'P1', model: 'FW-100', desc: '防火墙', projectQty: '4', shippedQty: '1', unshippedQty: '3', sn: 'SN-1、SN-2' },
+        { productCode: 'P2', model: '', desc: '软件许可', projectQty: '8', shippedQty: '6', unshippedQty: '2', sn: '' },
+        { productCode: 'P3', model: '', desc: '待核对产品', projectQty: '', shippedQty: '', unshippedQty: '', sn: '' }
+      ])
+      const saved = mounted.form.value.inventory
+      mounted.form.value = { id: 99, projectId: 1, inventory: saved }; await flush()
+      expect(mounted.state.tables.inventory[0].sn).toBe('SN-1、SN-2')
+      expect(mounted.state.buildSolutionHtml()).toContain('FW-100')
+      expect(mounted.state.buildSolutionHtml()).toContain('SN-1、SN-2')
+    } finally { mounted.app.unmount() }
+  })
+
   it('does not import into read-only records', async () => {
     vi.mocked(RequirementApi.workspace).mockResolvedValue(overview({ projectBackground: '来源背景' }))
     const mounted = render(1, true)
@@ -319,6 +387,22 @@ describe('solution requirement analysis references', () => {
       await flush(); mounted.state.generateFromSources()
       expect(mounted.form.value.background).toBeUndefined()
       expect(mounted.form.value.sectionData).toBeUndefined()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('exports topology images, keeps original drawing links and includes the existing company logo', async () => {
+    const mounted = render(1)
+    try {
+      await flush()
+      mounted.state.topology.asIsUrl = '/files/before.png,/files/original.vsdx'
+      mounted.state.topology.toBeChanged = 'yes'
+      mounted.state.topology.toBeUrl = '/files/after.jpg'
+      const html = mounted.state.buildSolutionHtml()
+      expect(html).toContain('<img src="/files/before.png"')
+      expect(html).toContain('<img src="/files/after.jpg"')
+      expect(html).toContain('href="/files/original.vsdx"')
+      expect(html).not.toContain('<img src="/files/original.vsdx"')
+      expect(html).toContain('alt="DPtech"')
     } finally { mounted.app.unmount() }
   })
 

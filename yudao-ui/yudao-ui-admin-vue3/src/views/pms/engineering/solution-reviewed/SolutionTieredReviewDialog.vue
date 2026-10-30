@@ -16,6 +16,9 @@
         </el-table>
       </template>
       <el-form v-else-if="definition" label-position="top">
+        <el-alert
+v-if="readiness && !readiness.allowed" type="warning" :closable="false"
+          :title="`暂不能提交审核：${readiness.blockers.join('、')}。仍可关闭此窗口维护并保存草稿。`" />
         <!-- 审批人由系统按节点职责自动路由，提交时不再手工指定 -->
         <p>提交后自动进入审批流：服务经理审核（本项目服务经理），重大项目由工程管理部复审（工程管理部方案复审授权持有人）。审批期间保留当前方案版本。</p>
         <el-form-item v-for="node in routedNodes" :key="node.key" :label="node.name">
@@ -24,9 +27,9 @@
       </el-form>
     </section>
     <template #footer>
-      <el-button v-if="!record && definition && !error" type="primary" :loading="saving" @click="submit" v-hasPermi="['pms:sol-solution:update']">提交审批</el-button>
-      <el-button v-if="record?.status === 'RUNNING'" :loading="saving" @click="refresh" v-hasPermi="['pms:sol-solution:update']">刷新审批结果</el-button>
-      <el-button v-if="record && record.status !== 'RUNNING'" type="primary" :loading="saving" @click="revise" v-hasPermi="['pms:sol-solution:create']">复制为新方案版本</el-button>
+      <el-button v-if="!props.readonly && !record && definition && !error" type="primary" :disabled="loading || readiness?.allowed !== true" :loading="saving" @click="submit" v-hasPermi="['pms:sol-solution:update']">提交审批</el-button>
+      <el-button v-if="!props.readonly && record?.status === 'RUNNING'" :loading="saving" @click="refresh" v-hasPermi="['pms:sol-solution:update']">刷新审批结果</el-button>
+      <el-button v-if="!props.readonly && record && record.status !== 'RUNNING'" type="primary" :loading="saving" @click="revise" v-hasPermi="['pms:sol-solution:create']">复制为新方案版本</el-button>
       <el-button @click="visible = false">关闭</el-button>
     </template>
   </component>
@@ -41,12 +44,14 @@ import type { SolutionVO } from '@/api/pms/engineering/solution'
 import { useMessage } from '@/hooks/web/useMessage'
 import { formatDate } from '@/utils/formatTime'
 import { checkPermi } from '@/utils/permission'
-const emit = defineEmits<{ changed: [] }>()
+const emit = defineEmits<{ changed: []; revised: [revision: { projectId: number; sourceSolutionId: string | number; solutionId: string | number }] }>()
+const props = defineProps<{ readonly?: boolean }>()
 const projectApproval = inject(projectApprovalDetailKey, null)
 const approvalContainer = projectApproval ? ElDrawer : Dialog
 const visible = ref(false), loading = ref(false), saving = ref(false), error = ref('')
 const solution = ref<SolutionVO>(), record = ref<ReviewApi.ReviewRecord | null>(null)
 const definition = ref<ReviewApi.ReviewDefinition>()
+const readiness = ref<ReviewApi.SubmissionReadiness>()
 const openApprovalDetail = useProjectApprovalDetail(), message = useMessage()
 const statusLabel = computed(() => ({ RUNNING: '审核中', APPROVE: '已通过', REJECT: '已驳回', CANCEL: '已撤回' })[record.value?.status || ''] || record.value?.status)
 const history = computed(() => record.value?.reviewsJson ? JSON.parse(record.value.reviewsJson) : [])
@@ -58,16 +63,18 @@ const routedNodes = computed(() => (definition.value?.nodes || []).filter(
 ))
 const open = async (row: SolutionVO) => {
   visible.value = true; loading.value = true; error.value = ''; solution.value = row
-  record.value = null; definition.value = undefined
+  record.value = null; definition.value = undefined; readiness.value = undefined
   try {
     record.value = await ReviewApi.read(row.projectId, row.id!)
     if (record.value?.status === 'RUNNING') await openProcess()
-    else if (!record.value) definition.value = await ReviewApi.definition()
+    else if (!record.value) [definition.value, readiness.value] = await Promise.all([
+      ReviewApi.definition(), ReviewApi.submissionReadiness(row.projectId)
+    ])
   } catch (failure: any) { error.value = failure?.message || '方案审批信息加载失败，请关闭后重试' }
   finally { loading.value = false }
 }
 const submit = async () => {
-  if (!solution.value || !definition.value) return
+  if (props.readonly || !solution.value || !definition.value || loading.value || readiness.value?.allowed !== true) return
   saving.value = true
   try {
     record.value = await ReviewApi.start({ projectId: solution.value.projectId, solutionId: solution.value.id!,
@@ -83,7 +90,7 @@ const openProcess = () => {
   return openApprovalDetail(record.value!.processInstanceId)
 }
 const refresh = async () => {
-  if (!solution.value) return
+  if (props.readonly || !solution.value) return
   saving.value = true
   try { record.value = await ReviewApi.refresh(solution.value.projectId, solution.value.id!); emit('changed') }
   catch {
@@ -92,9 +99,15 @@ const refresh = async () => {
   finally { saving.value = false }
 }
 const revise = async () => {
-  if (!solution.value) return
+  if (props.readonly || !solution.value) return
+  const source = solution.value
   saving.value = true
-  try { await ReviewApi.revise(solution.value.projectId, solution.value.id!); message.success('已生成新的方案草稿'); visible.value = false; emit('changed') }
+  try {
+    const solutionId = await ReviewApi.revise(source.projectId, source.id!)
+    message.success('已生成新的方案草稿')
+    if (solution.value === source) visible.value = false
+    emit('revised', { projectId: source.projectId, sourceSolutionId: source.id!, solutionId })
+  }
   catch {
     // 同 submit：拦截器已提示，仅阻止错误逃逸破坏业务办理区
   }

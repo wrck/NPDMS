@@ -1,7 +1,8 @@
 import request from '@/config/axios'
+type Id = string | number
 
 export interface SolutionVO {
-  id?: number
+  id?: Id
   projectId: number
   code?: string
   name: string
@@ -32,7 +33,7 @@ export interface SolutionVO {
 }
 
 export interface SolutionApproveVO {
-  id: number
+  id: Id
   approvalOpinion?: string
   version?: number
 }
@@ -47,25 +48,25 @@ const baseUrl = '/pms/sol-solution'
 
 export const getSolutionPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
-export const getSolution = (id: number) =>
+export const getSolution = (id: Id) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
 export const createSolution = (data: SolutionVO) =>
   request.post({ url: `${baseUrl}/create`, data })
 export const updateSolution = (data: SolutionVO) =>
   request.put({ url: `${baseUrl}/update`, data })
-export const deleteSolution = (id: number) =>
+export const deleteSolution = (id: Id) =>
   request.delete({ url: `${baseUrl}/delete`, params: { id } })
-export const submitSolution = (id: number) =>
+export const submitSolution = (id: Id) =>
   request.put({ url: `${baseUrl}/submit`, params: { id } })
-export const startReviewSolution = (id: number) =>
+export const startReviewSolution = (id: Id) =>
   request.put({ url: `${baseUrl}/start-review`, params: { id } })
 export const approveSolution = (data: SolutionApproveVO) =>
   request.put({ url: `${baseUrl}/approve`, data })
 export const rejectSolution = (data: SolutionApproveVO) =>
   request.put({ url: `${baseUrl}/reject`, data })
-export const withdrawSolution = (id: number) =>
+export const withdrawSolution = (id: Id) =>
   request.put({ url: `${baseUrl}/withdraw`, params: { id } })
-export const terminateSolution = (id: number) =>
+export const terminateSolution = (id: Id) =>
   request.put({ url: `${baseUrl}/terminate`, params: { id } })
 export const generateDraft = (data: SolutionGenerateDraftVO) =>
   request.post({ url: `${baseUrl}/generate-draft`, data })

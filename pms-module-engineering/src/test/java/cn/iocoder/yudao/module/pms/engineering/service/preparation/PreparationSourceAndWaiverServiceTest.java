@@ -42,7 +42,7 @@ class PreparationSourceAndWaiverServiceTest {
         ProjectParticipantFactApi participantApi = mock(ProjectParticipantFactApi.class);
         PermissionApi permissionApi = mock(PermissionApi.class);
         PreparationWaiverService service = new PreparationWaiverService(preparationMapper, itemMapper, waiverMapper,
-                scopeApi, participantApi, permissionApi, mock(PlatformCommandExecutionApi.class),
+                scopeApi, participantApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, mock(PlatformCommandExecutionApi.class),
                 mock(OperationAuditApi.class), immediateTransaction());
         PreparationDO preparation = preparation();
         PreparationItemDO item = item();
@@ -74,7 +74,7 @@ class PreparationSourceAndWaiverServiceTest {
         ProjectParticipantFactApi participantApi = mock(ProjectParticipantFactApi.class);
         PermissionApi permissionApi = mock(PermissionApi.class);
         PreparationWaiverService service = new PreparationWaiverService(preparationMapper, itemMapper, waiverMapper,
-                scopeApi, participantApi, permissionApi, mock(PlatformCommandExecutionApi.class),
+                scopeApi, participantApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, mock(PlatformCommandExecutionApi.class),
                 mock(OperationAuditApi.class), immediateTransaction());
         PreparationItemWaiverDO applicant = waiver();
         applicant.setId(41L);
@@ -94,7 +94,7 @@ class PreparationSourceAndWaiverServiceTest {
 
         var page = service.page(1L, 2L, null, 20, actor(7L));
 
-        assertTrue(page.items().getFirst().allowedActions().isEmpty());
+        assertEquals(List.of("WITHDRAW"), page.items().getFirst().allowedActions());
         assertEquals(List.of("APPROVE", "REJECT"), page.items().get(1).allowedActions());
 
         when(participantApi.inspect(any())).thenThrow(new IllegalStateException("participant unavailable"));
@@ -131,7 +131,7 @@ class PreparationSourceAndWaiverServiceTest {
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         TransactionTemplate transaction = immediateTransaction();
         PreparationSourceService service = new PreparationSourceService(preparationMapper, itemMapper, sourceMapper,
-                registry, scopeApi, participantApi, permissionApi, commandApi, auditApi, transaction);
+                registry, scopeApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, transaction);
         PreparationDO preparation = preparation();
         PreparationItemDO item = item();
         when(preparationMapper.selectById(any())).thenReturn(preparation);
@@ -177,7 +177,7 @@ class PreparationSourceAndWaiverServiceTest {
         PlatformCommandExecutionApi commandApi = mock(PlatformCommandExecutionApi.class);
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         PreparationSourceService service = new PreparationSourceService(preparationMapper, itemMapper, sourceMapper,
-                registry, scopeApi, participantApi, permissionApi, commandApi, auditApi, immediateTransaction());
+                registry, scopeApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, immediateTransaction());
         PreparationDO preparation = preparation();
         PreparationItemDO item = item();
         when(preparationMapper.selectById(any())).thenReturn(preparation);
@@ -228,7 +228,7 @@ class PreparationSourceAndWaiverServiceTest {
         PlatformCommandExecutionApi commandApi = mock(PlatformCommandExecutionApi.class);
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         PreparationSourceService service = new PreparationSourceService(preparationMapper, itemMapper, sourceMapper,
-                registry, scopeApi, participantApi, permissionApi, commandApi, auditApi, immediateTransaction());
+                registry, scopeApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, immediateTransaction());
         PreparationDO preparation = preparation();
         PreparationItemDO item = item();
         PreparationSourceReferenceDO existing = new PreparationSourceReferenceDO();
@@ -283,7 +283,7 @@ class PreparationSourceAndWaiverServiceTest {
         PlatformCommandExecutionApi commandApi = mock(PlatformCommandExecutionApi.class);
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         PreparationSourceService service = new PreparationSourceService(preparationMapper, itemMapper, sourceMapper,
-                registry, scopeApi, participantApi, permissionApi, commandApi, auditApi, immediateTransaction());
+                registry, scopeApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, immediateTransaction());
         when(preparationMapper.selectById(any())).thenReturn(preparation());
         when(permissionApi.hasAnyPermissions(7L, PreparationInitializationService.PERMISSION_MANAGE)).thenReturn(true);
         when(scopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L, 3L, Set.of(10L), Set.of()));
@@ -302,9 +302,10 @@ class PreparationSourceAndWaiverServiceTest {
         verifyNoInteractions(itemMapper, sourceMapper, registry);
     }
 
-    @Test
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
     @SuppressWarnings("unchecked")
-    void approvalUsesFrozenRoleAndWaiverVersionCas() {
+    void approvalUsesFrozenRoleAndWaiverVersionCas(boolean applicantIsApprover) {
         PreparationMapper preparationMapper = mock(PreparationMapper.class);
         PreparationItemMapper itemMapper = mock(PreparationItemMapper.class);
         PreparationItemWaiverMapper waiverMapper = mock(PreparationItemWaiverMapper.class);
@@ -314,10 +315,11 @@ class PreparationSourceAndWaiverServiceTest {
         PlatformCommandExecutionApi commandApi = mock(PlatformCommandExecutionApi.class);
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         PreparationWaiverService service = new PreparationWaiverService(preparationMapper, itemMapper, waiverMapper,
-                scopeApi, participantApi, permissionApi, commandApi, auditApi, immediateTransaction());
+                scopeApi, participantApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, immediateTransaction());
         PreparationDO preparation = preparation();
         PreparationItemDO item = item();
         PreparationItemWaiverDO waiver = waiver();
+        if (applicantIsApprover) waiver.setApplicantUserId(7L);
         when(preparationMapper.selectById(any())).thenReturn(preparation);
         when(preparationMapper.selectForUpdate(any())).thenReturn(preparation);
         when(itemMapper.selectForUpdate(any())).thenReturn(item);
@@ -338,6 +340,11 @@ class PreparationSourceAndWaiverServiceTest {
                 0, 0, 0, 0, 2, 3L, List.of(), null, null, null,
                 null, null, "accepted", "K2");
 
+        if (applicantIsApprover) {
+            assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class, () -> service.execute(command, actor(7L)));
+            verify(waiverMapper,never()).updateStatusIfMatch(any());
+            return;
+        }
         var result = service.execute(command, actor(7L));
 
         assertEquals("APPROVED", result.status());
@@ -363,7 +370,7 @@ class PreparationSourceAndWaiverServiceTest {
         PlatformCommandExecutionApi commandApi = mock(PlatformCommandExecutionApi.class);
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         PreparationWaiverService service = new PreparationWaiverService(preparationMapper, itemMapper, waiverMapper,
-                scopeApi, participantApi, permissionApi, commandApi, auditApi, immediateTransaction());
+                scopeApi, participantApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, immediateTransaction());
         when(preparationMapper.selectById(any())).thenReturn(preparation());
         when(permissionApi.hasAnyPermissions(7L, PreparationWaiverService.PERMISSION_APPROVE)).thenReturn(true);
         when(scopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L, 3L, Set.of(10L), Set.of()));

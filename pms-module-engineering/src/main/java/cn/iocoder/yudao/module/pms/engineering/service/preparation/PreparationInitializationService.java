@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.preparation;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.api.preparation.PreparationInitializationApi;
@@ -18,8 +19,6 @@ import cn.iocoder.yudao.module.pms.engineering.domain.preparation.FixedSurveyFor
 import cn.iocoder.yudao.module.pms.engineering.domain.preparation.PreparationTemplateRules;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
@@ -63,7 +62,7 @@ public class PreparationInitializationService {
     private final DynamicFormInstanceMapper formMapper;
     private final FixedSurveyFormCatalogProvider catalogProvider;
     private final ProjectWorkBindingFactApi workBindingFactApi;
-    private final ProjectParticipantFactApi participantFactApi;
+    private final ProjectManagementQualificationApi managementAccess;
     private final ProjectScopeApi projectScopeApi;
     private final PermissionApi permissionApi;
     private final PlatformCommandExecutionApi commandExecutionApi;
@@ -92,9 +91,9 @@ public class PreparationInitializationService {
                         command.expectedContractVersion(), command.expectedProjectVersion()));
         requireExactFact(command, fact);
         if (PreparationInitializationApi.TRIGGER_AUTHORIZED_RECOVERY.equals(command.triggerType())) {
-            participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                    command.projectId(), command.actorUserId(), command.expectedProjectVersion(),
-                    ACTIVE, null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+            var qualification = managementAccess.inspect(new ProjectManagementQualificationApi.Query(tenantId, command.projectId(), command.actorUserId()));
+            if (qualification == null) throw exception(FORBIDDEN);
+            managementAccess.lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(qualification, command.expectedProjectVersion(), ACTIVE, null));
         }
 
         PreparationDO existing = preparationMapper.selectBusinessVersionForUpdate(

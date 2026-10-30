@@ -91,7 +91,7 @@ describe('solution requirement analysis references', () => {
 
 
   it('serializes separate deployment and software chapters with order quantity and reopens saved content', async () => {
-    vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({ list: [{ productCode: 'P1', productName: '防火墙', productModel: 'FW', orderQty: 12, projectQty: 20, deviceCount: 3 }], scopes: [] })
+    vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({ list: [{ productCode: 'P1', productName: '防火墙', productModel: 'FW', orderQty: 12, projectQty: 20, deviceCount: 3 }], scopes: [], devices: [] })
     const mounted = render(1)
     try {
       await flush(); mounted.state.generateFromSources(); await flush()

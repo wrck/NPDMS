@@ -11,7 +11,7 @@ public interface SolutionCompletionMapper extends cn.iocoder.yudao.framework.myb
                 new cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX<SolutionDO>()
                         .eq(SolutionDO::getTenantId, query.tenantId()).eq(SolutionDO::getProjectId, query.projectId())
                         .gtIfPresent(SolutionDO::getId, query.afterId())
-                        .eq(SolutionDO::getSolutionType, "IMPLEMENTATION").notIn(SolutionDO::getStatus, 5, 6)
-                        .orderByAsc(SolutionDO::getId)).getRecords();
+                        .eq(SolutionDO::getSolutionType, "IMPLEMENTATION").eq(SolutionDO::getStatus, 3)
+                        .orderByAsc(SolutionDO::getId).select(SolutionDO::getId)).getRecords();
     }
 }

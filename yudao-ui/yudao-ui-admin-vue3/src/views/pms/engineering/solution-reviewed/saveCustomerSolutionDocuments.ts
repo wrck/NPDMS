@@ -3,7 +3,7 @@ import { getDeliveryTypes } from '@/api/pms/platform/delivery'
 import { initializeUpload,completeUpload } from '@/api/pms/platform/file'
 import { createDeliveryUploadAttempt,type DeliveryUploadAttempt } from '@/components/DeliveryArtifact/uploadDeliveryFile'
 export interface CustomerDocumentAttached {version:number;customerPlanUrl:string;materialIds:number[]}
-export const saveCustomerSolutionDocuments=async(root:{id:number;version:number},files:File[],previous:DeliveryUploadAttempt[]=[]):Promise<{attached:CustomerDocumentAttached;attempts:DeliveryUploadAttempt[]}>=>{
+export const saveCustomerSolutionDocuments=async(root:{id:string|number;version:number},files:File[],previous:DeliveryUploadAttempt[]=[]):Promise<{attached:CustomerDocumentAttached;attempts:DeliveryUploadAttempt[]}>=>{
   if(!root.id||root.version===undefined)throw new Error('请先保存真实方案草稿')
   const type=(await getDeliveryTypes(true)).find(item=>item.typeCode==='IMPLEMENTATION_PLAN')
   if(!type)throw new Error('实施方案交付类型不可用')

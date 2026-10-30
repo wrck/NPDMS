@@ -81,6 +81,8 @@ class StagePlanBatchServiceTest {
     private final Environment environment = mock(Environment.class);
     private final StagePlanProperties properties = new StagePlanProperties();
     private final StagePlanBatchServiceImpl service = new StagePlanBatchServiceImpl();
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard =
+            mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.class);
 
     private final cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi projectScopeApi = mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.class);
     private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi participants = mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi.class);
@@ -88,6 +90,7 @@ class StagePlanBatchServiceTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(service, "executionGuard", executionGuard);
         ReflectionTestUtils.setField(service, "completionEvents", mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents.class));
         ReflectionTestUtils.setField(service, "batchMapper", batchMapper);
         ReflectionTestUtils.setField(service, "itemMapper", itemMapper);
@@ -119,6 +122,26 @@ class StagePlanBatchServiceTest {
         when(batchMapper.selectByProcessInstanceId("PI-1")).thenReturn(batch);
         // 无工期基线默认场景
         when(constructionPlanMapper.selectByProjectId(any(), any())).thenReturn(null);
+    }
+
+    @Test
+    void readonlyPlanningExecutionRejectsEveryWriteBeforeAnyBusinessMutation() {
+        var rejected = new IllegalStateException("CURRENT_PLANNING_EXECUTION_REQUIRED");
+        doThrow(rejected).when(executionGuard).lockForWrite(any());
+        var request = new StagePlanItemUpdateReqVO();
+        request.setId(100L); request.setVersion(1);
+        assertSame(rejected, assertThrows(IllegalStateException.class, () -> service.createDraft(7L)));
+        assertSame(rejected, assertThrows(IllegalStateException.class, () -> service.autoEstimate(100L)));
+        assertSame(rejected, assertThrows(IllegalStateException.class, () -> service.updateItems(request)));
+        assertSame(rejected, assertThrows(IllegalStateException.class, () -> service.submit(100L, 99L, null)));
+        verify(executionGuard, times(4)).lockForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                7L, "PLN", "STAGE_PLAN", null));
+        verify(batchMapper, never()).insert(any(StagePlanBatchDO.class));
+        verify(batchMapper, never()).updateById(any(StagePlanBatchDO.class));
+        verifyNoInteractions(itemMapper, processInstanceApi);
+        verifyNoInteractions(stagePlanApi);
+        assertEquals(StagePlanBatchDO.STATUS_DRAFT, batch.getStatus());
+        assertEquals(1L, batch.getVersion());
     }
 
     @Test

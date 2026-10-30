@@ -14,6 +14,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolic
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
@@ -42,8 +44,6 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
     private static final Set<String> CATEGORIES = Set.of(PURPOSE_CODE);
     private static final Set<String> MEDIA_TYPES = Set.of(
             "application/pdf", "image/jpeg", "image/png");
-    private static final Set<String> PROJECT_MANAGER_ROLE =
-            Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
     private static final Set<String> FILE_READER_ROLES =
             cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES;
     private static final Set<String> MUTATING_ACTIONS = Set.of(
@@ -53,7 +53,9 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
     private final ConstructionPlanMapper planMapper;
     private final ConstructionPlanChangeMapper changeMapper;
     private final ProjectScopeApi projectScopeApi;
+    private final ProjectDurationOperatorApi durationOperatorApi;
     private final ProjectParticipantFactApi participantFactApi;
+    private final ProjectManagementQualificationApi qualifications;
 
     @Override
     public String ownerContext() {
@@ -111,7 +113,6 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
             return denied();
         }
         boolean mutating = MUTATING_ACTIONS.contains(requiredAction);
-        Set<String> roles = mutating ? PROJECT_MANAGER_ROLE : FILE_READER_ROLES;
         String scopeAction = mutating ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW;
         ProjectScopeResult lockedScope = projectScopeApi.lockAndRevalidate(
                 ProjectScopeRevalidationQuery.builder()
@@ -125,14 +126,23 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
             return policy(actionAllowed(requiredAction, located.change()),
                     lockedScope.treeVersion(), located.change());
         }
-        ProjectParticipantFact participant = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                located.plan().getProjectId(), actorUserId, roles, LocalDateTime.now()));
-        requireParticipant(participant, located.plan().getProjectId(), actorUserId, roles);
-        ProjectParticipantFact lockedParticipant = participantFactApi.lockAndRevalidate(
-                new ProjectParticipantFactRevalidationQuery(
-                located.plan().getProjectId(), actorUserId, participant.projectVersion(),
-                "ACTIVE", null, roles));
-        requireParticipant(lockedParticipant, located.plan().getProjectId(), actorUserId, roles);
+        if (mutating) {
+            var subject = new ProjectDurationOperatorApi.Query(tenantId, located.plan().getProjectId(), actorUserId);
+            var current = durationOperatorApi.inspect(subject);
+            durationOperatorApi.lockAndRevalidate(new ProjectDurationOperatorApi.RevalidationQuery(subject, current.projectVersion()));
+        } else {
+            var participant = readerFact(located.plan().getProjectId(), actorUserId);
+            if (participant != null) {
+                // A selected historical fact must revalidate successfully; revocation cannot select another source.
+                var lockedParticipant = participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
+                        located.plan().getProjectId(), actorUserId, participant.projectVersion(), "ACTIVE", null, FILE_READER_ROLES));
+                requireParticipant(lockedParticipant, located.plan().getProjectId(), actorUserId, FILE_READER_ROLES);
+            } else {
+                var observed = qualifications.inspect(new ProjectManagementQualificationApi.Query(tenantId,located.plan().getProjectId(),actorUserId));
+                if (observed == null) throw new IllegalStateException("SOL_FILE_PARTICIPANT_FORBIDDEN");
+                qualifications.lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(observed,observed.projectVersion(),"ACTIVE",null));
+            }
+        }
 
         ConstructionPlanDO lockedPlan = planMapper.selectForUpdate(
                 new ConstructionPlanLockQuery(tenantId, located.plan().getId()));
@@ -149,14 +159,29 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
 
     private FileBusinessObjectPolicyFact inspectCurrent(Long actorUserId, String action, Context context) {
         boolean mutating = MUTATING_ACTIONS.contains(action);
-        Set<String> roles = mutating ? PROJECT_MANAGER_ROLE : FILE_READER_ROLES;
         String scopeAction = mutating ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW;
         ProjectScopeResult scope = requireScope(context.change().getTenantId(), actorUserId,
                 context.plan().getProjectId(), scopeAction);
-        ProjectParticipantFact participant = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                context.plan().getProjectId(), actorUserId, roles, LocalDateTime.now()));
-        requireParticipant(participant, context.plan().getProjectId(), actorUserId, roles);
+        if (mutating) {
+            durationOperatorApi.inspect(new ProjectDurationOperatorApi.Query(context.change().getTenantId(),
+                    context.plan().getProjectId(), actorUserId));
+        } else if (readerFact(context.plan().getProjectId(),actorUserId) == null
+                && qualifications.inspect(new ProjectManagementQualificationApi.Query(context.change().getTenantId(),context.plan().getProjectId(),actorUserId)) == null) {
+            throw new IllegalStateException("SOL_FILE_PARTICIPANT_FORBIDDEN");
+        }
         return policy(actionAllowed(action, context.change()), scope.treeVersion(), context.change());
+    }
+
+    private ProjectParticipantFact readerFact(Long projectId, Long actorUserId) {
+        try {
+            var fact = participantFactApi.inspect(new ProjectParticipantFactQuery(projectId,actorUserId,FILE_READER_ROLES,LocalDateTime.now()));
+            if (fact == null) return null;
+            requireParticipant(fact,projectId,actorUserId,FILE_READER_ROLES);
+            return fact;
+        } catch (cn.iocoder.yudao.framework.common.exception.ServiceException denied) {
+            if (denied.getCode() != ProjectParticipantFactApi.SCOPE_DENIED_ERROR_CODE) throw denied;
+            return null;
+        }
     }
 
     private void requireParticipant(ProjectParticipantFact participant, Long projectId,

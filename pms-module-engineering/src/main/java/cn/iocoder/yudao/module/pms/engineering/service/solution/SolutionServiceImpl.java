@@ -54,6 +54,9 @@ public class SolutionServiceImpl implements SolutionService {
     private cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionSubmissionValidator submissionValidator;
 
     @Resource
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi prerequisites;
+
+    @Resource
     private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents completionEvents;
 
     @Override
@@ -127,7 +130,7 @@ public class SolutionServiceImpl implements SolutionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void submitSolution(Long id) {
-        SolutionDO solution = validateSolutionExists(id);
+        SolutionDO solution = validateSolutionForSubmission(id);
         validateStatus(solution, 0); // 草稿 → 已提交
         if ("IMPLEMENTATION".equals(solution.getSolutionType())) {
             reviewPolicies.freeze(solution, 0);
@@ -139,7 +142,7 @@ public class SolutionServiceImpl implements SolutionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void startReview(Long id) {
-        SolutionDO solution = validateSolutionExists(id);
+        SolutionDO solution = validateSolutionForSubmission(id);
         validateStatus(solution, 1); // 已提交 → 审批中
         updateStatus(solution, 2);
     }
@@ -224,6 +227,20 @@ public class SolutionServiceImpl implements SolutionService {
                 StringUtils.defaultIfBlank(solution.getName(), solution.getCode())
                         + "（基线v" + solution.getBaselineVersion() + "）",
                 solution.getProjectId());
+    }
+
+    private SolutionDO validateSolutionForSubmission(Long id) {
+        var source = solutionMapper.selectById(id);
+        if (source == null) throw exception(SOLUTION_NOT_EXISTS);
+        // Lock the project before the source solution, matching the tiered-review command.
+        if ("IMPLEMENTATION".equals(source.getSolutionType())) {
+            prerequisites.requireSatisfied(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi.Query(
+                    source.getProjectId(), "SOL", "IMPLEMENTATION_SOLUTION"));
+        }
+        var locked = validateSolutionExists(id);
+        if (!Objects.equals(source.getProjectId(), locked.getProjectId()) || !Objects.equals(source.getSolutionType(), locked.getSolutionType()))
+            throw exception(SOLUTION_VERSION_NOT_MATCH);
+        return locked;
     }
 
     private SolutionDO validateSolutionExists(Long id) {

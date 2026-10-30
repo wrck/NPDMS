@@ -4,6 +4,8 @@ export interface ReviewDefinition { id: string; key: string; nodes: { key: strin
 export interface ReviewRecord { id: Id; processDefinitionId: string; processInstanceId: string; status: string; sourceVersion: number; reviewsJson?: string; completedAt?: string }
 const base = '/api/v1/pms/solution-reviews'
 export interface ReviewPolicy { configured: boolean; reviewLevel: number | null; reason?: string; evidenceJson?: string }
+export interface SubmissionReadiness { allowed: boolean; blockers: string[] }
+export const submissionReadiness = (projectId: Id): Promise<SubmissionReadiness> => request.get({ url: `${base}/submission-readiness`, params: { projectId } })
 export const policy = (projectId: Id): Promise<ReviewPolicy> => request.get({ url: `${base}/policy`, params: { projectId } })
 export const definition = (): Promise<ReviewDefinition> => request.get({ url: `${base}/definition` })
 export const read = (projectId: Id, solutionId: Id): Promise<ReviewRecord | null> => request.get({ url: base, params: { projectId, solutionId } })

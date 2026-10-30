@@ -163,10 +163,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="调试人员" prop="debuggerUserId">
-            <PmsEntitySelect
-              v-if="!readOnly"
-              v-model="form.debuggerUserId" :api="queryDebuggerUsers"
-              label-field="nickname" value-field="id" query-field="nickname" placeholder="请选择调试人员" />
+            <UserSelect v-if="!readOnly" v-model="form.debuggerUserId" :scoped-source="debuggerSource" placeholder="请选择调试人员" />
             <UserTag v-else-if="form.debuggerUserId" :user-id="form.debuggerUserId" />
             <span v-else>—</span>
             <el-alert v-if="!readOnly && debuggerUsersError" :title="debuggerUsersError" type="warning" :closable="false" />
@@ -215,6 +212,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import NativeAttachments from '../attachment/NativeAttachments.vue'
 import ManualCollectionDialog from '@/components/DeviceCollection/CollectionWithDeviceLogsDialog.vue'
@@ -230,7 +229,6 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as ConfigurationApi from '@/api/pms/engineering/configuration'
 import type { ConfigurationVO } from '@/api/pms/engineering/configuration'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import UserTag from '@/components/UserTag/index.vue'
 import { useUserStore } from '@/store/modules/user'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
@@ -252,7 +250,7 @@ const debuggerUsersError = ref('')
 const userStore = useUserStore()
 const queryDebuggerUsers = async (params: PageParam & { nickname?: string }) => {
   try {
-    const users = await UserApi.getSimpleUserList()
+    const users = await systemUserSelection.active()
     const keyword = params.nickname?.trim().toLocaleLowerCase() || ''
     const matches = users.filter((user) => user.nickname?.toLocaleLowerCase().includes(keyword))
     const pageSize = params.pageSize ?? 10
@@ -270,6 +268,10 @@ const queryDebuggerUsers = async (params: PageParam & { nickname?: string }) => 
     return { list, total: list.length }
   }
 }
+const debuggerSource = computed(() => ({
+  key: `configuration-debugger:${form.value.projectId || 'none'}:${form.value.id || 'new'}`,
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => queryDebuggerUsers({ nickname: keyword, pageNo, pageSize })
+}))
 const downloadImported = async (row: ConfigurationVO) => {
   if (!row.importedLogFileId) return
   const url = await downloadArchivedLog(row.importedLogFileId)
