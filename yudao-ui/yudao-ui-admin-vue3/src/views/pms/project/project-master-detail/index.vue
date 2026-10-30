@@ -523,6 +523,7 @@
         <div v-if="detail?.id && visitedTabs.has('authorization')" v-show="activeTab === 'authorization'" class="min-w-0" data-testid="project-pane-authorization">
           <ProjectAuthorizationPanel
             :project-id="detail.id"
+            :user-source="projectAuthorizationUserSource"
           />
         </div>
         <div v-if="detail?.id && visitedTabs.has('governance')" v-show="activeTab === 'governance'" class="min-w-0" data-testid="project-pane-governance">
@@ -560,6 +561,7 @@ import ProjectBaseInfo from './components/ProjectBaseInfo.vue'
 import ProjectCurrentPlanTag from './components/ProjectCurrentPlanTag.vue'
 import BusinessFlowNav from './components/BusinessFlowNav.vue'
 import { computed, defineAsyncComponent, onMounted, provide, ref, type Component } from 'vue'
+import { pmsUserSelectionSource } from '@/api/pms/platform/user-selection'
 import { officeProjectReadContext } from '@/utils/officeProjectReadonly'
 import { useMediaQuery } from '@vueuse/core'
 import ProjectApprovalDrawer from './components/ProjectApprovalDrawer.vue'
@@ -637,6 +639,7 @@ provide(projectApprovalDetailKey, (id) => approvalDrawerRef.value?.open(id))
 
 const loading = ref(false)
 const detail = ref<ProjectMasterVO | null>(null)
+const projectAuthorizationUserSource = computed(() => pmsUserSelectionSource(`project-authorization:${detail.value?.id || ''}`))
 const parentProject = ref<ProjectMasterVO | null>(null)
 const parentProjectLoading = ref(false)
 const majorProjectLevelLabel = computed(() => detail.value?.majorProjectLevel

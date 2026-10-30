@@ -3,7 +3,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import Training from './index.vue'
 import { mount, textOf, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
-const api = vi.hoisted(() => ({ users: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn(), templates: vi.fn(), canQueryTemplates: false, admin: false, canManageTemplates: true, getTraining: vi.fn(), preview: vi.fn() }))
+const api = vi.hoisted(() => ({ users: vi.fn(), options: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn(), templates: vi.fn(), canQueryTemplates: false, admin: false, canManageTemplates: true, getTraining: vi.fn(), preview: vi.fn() }))
+vi.mock('@/api/pms/platform/user-selection', () => ({ searchPmsUserOptions: api.options }))
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 3, nickname: 'Self' } }) }))
 vi.mock('@/utils/permission', () => ({ checkRole: () => api.admin, checkPermi: (permissions: string[]) => !permissions.includes('system:user:query') && (!permissions.includes('pms:dynamic-form-instance:query') || api.canQueryTemplates) && (!permissions.includes('pms:dynamic-form-template:query') || api.canManageTemplates) }))
 vi.mock('vue-router', () => ({ useRoute: () => ({ query: {} }), useRouter: () => ({ getRoutes: () => [] }) }))
@@ -31,7 +32,7 @@ const render = () => {
 beforeEach(() => {
   vi.resetAllMocks(); api.canQueryTemplates = false; api.admin = false; api.canManageTemplates = true
   api.page.mockResolvedValue({ list: [], total: 0 }); api.templates.mockResolvedValue({ list: [], total: 0 })
-  api.users.mockRejectedValue(new Error('403'))
+  api.options.mockRejectedValue(new Error('403'))
   vi.stubGlobal('useRoute', () => ({ query: {} })); vi.stubGlobal('useRouter', () => ({ getRoutes: () => [] }))
 })
 afterEach(() => { apps.splice(0).forEach(app => app.unmount()); vi.unstubAllGlobals() })
@@ -52,7 +53,7 @@ it('retains existing personnel and both template selections after a failed query
   expect(await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 20 })).toEqual({ list: [{ id: 3, nickname: 'Self' }, { id: 9, nickname: 'Existing' }], total: 2 })
   expect(view.state.trainerUsersError).toContain('保留原培训工程师')
   expect(view.state.form).toMatchObject({ trainerUserId: 9, printTemplateId: 77, confirmationTemplateId: 88 })
-  api.users.mockResolvedValueOnce([{ id: 3, nickname: 'Self' }])
+  api.options.mockResolvedValueOnce({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
   await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 20 })
   expect(view.state.trainerUsersError).toBe('')
   await view.state.save()
@@ -60,35 +61,35 @@ it('retains existing personnel and both template selections after a failed query
 })
 it('shows the current trainer name even when the permitted query page does not contain that user', async () => {
   const view = render(); view.state.openForm(); await flush()
-  api.users.mockResolvedValueOnce([{ id: 8, nickname: 'Other' }])
+  api.options.mockResolvedValueOnce({ list: [{ id: 8, nickname: 'Other' }], total: 1 })
   const params = { pageNo: 1, pageSize: 50, nickname: '' }
   const result = await view.state.queryTrainerUsers(params)
   expect(result.list).toEqual([{ id: 3, nickname: 'Self' }, { id: 8, nickname: 'Other' }])
-  expect(api.users).toHaveBeenLastCalledWith()
+  expect(api.options).toHaveBeenLastCalledWith({ pageNo: 1, pageSize: 50, keyword: '' })
   expect(view.state.form.trainerUserId).toBe(3)
   expect(view.state.trainerUsersError).toBe('')
 })
 it('retains the saved trainer name outside the query page and resets it when opening a new record', async () => {
   const view = render()
   view.state.openForm({ id: 8, status: 0, projectId: 1, trainerUserId: 9, trainerName: 'Existing' }); await flush()
-  api.users.mockResolvedValueOnce([])
+  api.options.mockResolvedValueOnce({ list: [], total: 0 })
   expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toEqual([{ id: 9, nickname: 'Existing' }])
   view.state.openForm(); await flush()
-  api.users.mockResolvedValueOnce([])
+  api.options.mockResolvedValueOnce({ list: [], total: 0 })
   expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toEqual([{ id: 3, nickname: 'Self' }])
 })
 it('keeps the name of a newly selected trainer without changing the submitted user ID', async () => {
   const view = render(); view.state.openForm(); await flush()
   view.state.form.trainerUserId = 8
   view.state.onTrainerChange({ id: 8, nickname: 'Chosen' })
-  api.users.mockResolvedValueOnce([])
+  api.options.mockResolvedValueOnce({ list: [], total: 0 })
   expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toEqual([{ id: 8, nickname: 'Chosen' }])
   expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toContainEqual({ id: 8, nickname: 'Chosen' })
   await view.state.save()
   expect(api.create).toHaveBeenCalledWith(expect.objectContaining({ trainerUserId: 8 }))
   view.state.form.trainerUserId = undefined
   view.state.onTrainerChange(undefined)
-  api.users.mockResolvedValueOnce([])
+  api.options.mockResolvedValueOnce({ list: [], total: 0 })
   expect((await view.state.queryTrainerUsers({ pageNo: 1, pageSize: 50 })).list).toEqual([])
 })
 const hasTemplateField = (node: { props?: Record<string, unknown>; children: any[] }): boolean =>
@@ -133,11 +134,22 @@ it('opens current template selection for a legacy record without a print snapsho
   expect(api.preview).toHaveBeenCalledWith({ id: 8, projectId: 1, status: 2 }, 'Project', undefined)
 })
 
-it('searches and pages enabled simple user options without system user management permission', async () => {
+it('preserves the enabled directory search page without system user management permission', async () => {
   const view = render(); view.state.openForm(); await flush()
-  api.users.mockResolvedValueOnce([{ id: 8, nickname: 'Engineer A' }, { id: 9, nickname: 'Engineer B' }, { id: 10, nickname: 'Other' }])
+  api.options.mockResolvedValueOnce({ list: [{ id: 9, nickname: 'Engineer B' }], total: 2 })
   const result = await view.state.queryTrainerUsers({ pageNo: 2, pageSize: 1, nickname: ' engineer ' })
   expect(result).toEqual({ list: [{ id: 3, nickname: 'Self' }, { id: 9, nickname: 'Engineer B' }], total: 2 })
   expect(view.state.trainerUsersError).toBe('')
-  expect(api.users).toHaveBeenLastCalledWith()
+  expect(api.options).toHaveBeenLastCalledWith({ pageNo: 2, pageSize: 1, keyword: ' engineer ' })
+})
+
+it('passes email search and server pagination through while preserving the selected trainer', async () => {
+  api.users.mockResolvedValue([{ id: 8, nickname: '张三' }])
+  api.options.mockResolvedValue({ list: [{ id: 8, nickname: '张三' }], total: 1 })
+  const view = render(); view.state.openForm(); await flush()
+  expect(await view.state.queryTrainerUsers({ pageNo: 2, pageSize: 1, nickname: 'zhangsan' })).toEqual({
+    list: [{ id: 3, nickname: 'Self' }, { id: 8, nickname: '张三' }], total: 1
+  })
+  expect(api.options).toHaveBeenCalledWith({ pageNo: 2, pageSize: 1, keyword: 'zhangsan' })
+  expect(api.users).not.toHaveBeenCalled()
 })

@@ -264,7 +264,7 @@ it('invalidates old options before remote debounce while retaining the selected 
     .mockReturnValueOnce(new Promise(resolve => { finish = resolve }))
   const page = render(scope, { modelValue: 1 })
   await page.state.load(1)
-  const capture = page.root.children[0].props?.onInputCapture as (event: unknown) => void
+  const capture = page.root.children[0].props?.onInput as (event: unknown) => void
   capture?.({ target: { tagName: 'INPUT', value: '新词' } })
   expect(scope.search).toHaveBeenCalledTimes(1)
   expect(page.state.rows).toEqual([])
@@ -295,7 +295,7 @@ it('rejects a previous response arriving during the remote debounce window', asy
     .mockResolvedValue({ list: [{ id: 3, nickname: '新结果' }], total: 1 })
   const page = render(scope)
   page.state.open(true)
-  const capture = page.root.children[0].props?.onInputCapture as (event: unknown) => void
+  const capture = page.root.children[0].props?.onInput as (event: unknown) => void
   capture?.({ target: { tagName: 'INPUT', value: '新词' } })
   finish({ list: [{ id: 2, nickname: '旧请求' }], total: 1 })
   await flush()
@@ -309,7 +309,7 @@ it('keeps historical selections removable and rejects additions from invalidated
   scope.search.mockResolvedValue({ list: [{ id: 2, nickname: '旧候选' }], total: 1 })
   const page = render(scope, { modelValue: [9], multiple: true })
   await page.state.load(1)
-  const capture = page.root.children[0].props?.onInputCapture as (event: unknown) => void
+  const capture = page.root.children[0].props?.onInput as (event: unknown) => void
   capture?.({ target: { tagName: 'INPUT', value: '新词' } })
   page.state.update([9, 2])
   expect(page.update).not.toHaveBeenCalled()
@@ -326,7 +326,7 @@ it('reloads after typing away and back even if ElSelect suppresses its repeated 
   const page = render(scope)
   page.state.search('')
   await flush()
-  const capture = page.root.children[0].props?.onInputCapture as (event: unknown) => void
+  const capture = page.root.children[0].props?.onInput as (event: unknown) => void
   capture?.({ target: { tagName: 'INPUT', value: '临时输入' } })
   capture?.({ target: { tagName: 'INPUT', value: '' } })
   expect(page.state.rows).toEqual([])
@@ -343,11 +343,11 @@ it('waits for composition to end and resumes even when its final text is unchang
   const scope = source()
   const page = render(scope)
   await page.state.load(1)
-  const capture = page.root.children[0].props?.onInputCapture as (event: unknown) => void
+  const capture = page.root.children[0].props?.onInput as (event: unknown) => void
   capture?.({ target: { tagName: 'INPUT', value: '中文' }, isComposing: true })
   await vi.advanceTimersByTimeAsync(300)
   expect(scope.search).toHaveBeenCalledTimes(1)
-  const end = page.root.children[0].props?.onCompositionendCapture as (event: unknown) => void
+  const end = page.root.children[0].props?.onCompositionend as (event: unknown) => void
   end?.({ type: 'compositionend', target: { tagName: 'INPUT', value: '中文' } })
   await vi.advanceTimersByTimeAsync(300)
   expect(scope.search).toHaveBeenCalledTimes(2)

@@ -149,7 +149,7 @@
       :disabled="busy"
     >
       <el-form-item label="使用人" prop="userId"
-        ><UserSelect v-model="grantForm.userId" :clearable="false" class="!w-full" /></el-form-item>
+        ><UserSelect v-model="grantForm.userId" :scoped-source="grantUserSource" :clearable="false" class="!w-full" /></el-form-item>
       <el-form-item label="到期时间" prop="expiresAt"
         ><el-date-picker
           v-model="grantForm.expiresAt"
@@ -209,12 +209,14 @@
 <script setup lang="ts">
 import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { systemUserSelection } from '@/api/system/user/selection'
+import { pmsUserSelectionSource } from '@/api/pms/platform/user-selection'
 import * as Api from '@/api/pms/platform/deviceCollection'
 import * as UserApi from '@/api/system/user'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import { dateFormatter } from '@/utils/formatTime'
 import { generateUUID } from '@/utils'
 const props = defineProps<{ projectId: Api.Id }>()
+const grantUserSource = computed(() => pmsUserSelectionSource(`connection-grantee:${props.projectId}`))
 const message = useMessage()
 const loading = ref(false)
 const busy = ref(false)

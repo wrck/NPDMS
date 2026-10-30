@@ -154,7 +154,7 @@
           <el-form-item label="工勘人员" prop="surveyorUserId">
             <UserSelect
               v-model="form.surveyorUserId"
-
+              :scoped-source="surveyorSource"
               clearable
               placeholder="请选择工勘人员"
              />
@@ -296,6 +296,7 @@
 
 <script setup lang="ts">
 import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { pmsUserSelectionSource } from '@/api/pms/platform/user-selection'
 import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
@@ -320,6 +321,7 @@ import { resolveSurveyExecution, refreshSurveyExecution } from './siteSurveyExec
 import { positiveShortcutId } from './siteSurveyOutsource'
 
 defineOptions({ name: 'PmsSiteSurveyEntity' })
+const surveyorSource = pmsUserSelectionSource('site-survey-surveyor')
 const props = defineProps<{
   projectId?: number | string
   readonly?: boolean

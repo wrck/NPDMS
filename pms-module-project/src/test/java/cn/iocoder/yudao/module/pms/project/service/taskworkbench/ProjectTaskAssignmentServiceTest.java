@@ -23,6 +23,7 @@ import cn.iocoder.yudao.module.system.api.company.CompanyApi;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import org.junit.jupiter.api.Test;
@@ -58,6 +59,7 @@ class ProjectTaskAssignmentServiceTest {
     @Mock private CompanyApi companyApi;
     @Mock private DeptApi deptApi;
     @Mock private OrganizationScopeApi organizationScopeApi;
+    @Mock private OrganizationUserSelectionApi organizationUserSelectionApi;
     @Mock private AdminUserApi adminUserApi;
     @Mock private PlatformCommandExecutionApi commandExecutionApi;
     @Mock private OperationAuditApi operationAuditApi;
@@ -78,13 +80,13 @@ class ProjectTaskAssignmentServiceTest {
         candidate.setCompanyId(10L);
         candidate.setDepartmentId(20L);
         candidate.setDepartmentCode("DEP-01");
-        when(organizationScopeApi.pageActiveUsers(any())).thenReturn(new PageResult<>(List.of(candidate), 1L));
+        when(organizationUserSelectionApi.page(any())).thenReturn(new PageResult<>(List.of(candidate), 1L));
 
         var result = service.getAssigneeCandidates(100L, request(), actor());
 
         assertEquals(1L, result.getTotal());
         assertEquals(66L, result.getList().getFirst().getUserId());
-        verify(organizationScopeApi).pageActiveUsers(any());
+        verify(organizationUserSelectionApi).page(any());
     }
 
     @Test
@@ -94,7 +96,7 @@ class ProjectTaskAssignmentServiceTest {
         assertThrows(ServiceException.class,
                 () -> service.getAssigneeCandidates(100L, request(), actor()));
 
-        verify(organizationScopeApi, never()).pageActiveUsers(any());
+        verify(organizationUserSelectionApi, never()).page(any());
     }
 
     @Test void lostMemberAuthorityDoesNotFallbackToRegionalWriteAuthority() {
@@ -135,7 +137,7 @@ class ProjectTaskAssignmentServiceTest {
         when(managementAccess.permits(any())).thenReturn(true);
         var department = new DeptRespDTO(); department.setId(20L); department.setCode("DEP-01");
         when(deptApi.getDept(20L)).thenReturn(department);
-        when(organizationScopeApi.pageActiveUsers(any())).thenReturn(new PageResult<>(List.of(),0L));
+        when(organizationUserSelectionApi.page(any())).thenReturn(new PageResult<>(List.of(),0L));
         assertEquals(0L,service.getAssigneeCandidates(100L,request(),actor()).getTotal());
         verify(managementAccess, never()).lockCurrent(any());
         verify(memberMapper, never()).selectAuthorizedByUserForUpdate(any());

@@ -3,10 +3,11 @@ import { defineComponent, h, nextTick } from 'vue'
 import Configuration from './with-device-logs.vue'
 import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-const api = vi.hoisted(() => ({ users: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn(), get: vi.fn(), saveAttachments: vi.fn() }))
+const api = vi.hoisted(() => ({ users: vi.fn(), options: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn(), get: vi.fn(), saveAttachments: vi.fn() }))
 vi.mock('../attachment/NativeAttachments.vue', () => ({ default: defineComponent({ setup(_, { attrs, expose }) {
   expose({ savePending: api.saveAttachments }); return () => h('native-attachments', attrs)
 } }) }))
+vi.mock('@/api/pms/platform/user-selection', () => ({ searchPmsUserOptions: api.options }))
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 3, nickname: 'Self' } }) }))
 vi.mock('@/utils/permission', () => ({ checkPermi: (permissions: string[]) => !permissions.includes('system:user:query') }))
 vi.mock('@/api/system/user', () => ({ getSimpleUserList: api.users }))
@@ -23,11 +24,21 @@ vi.mock('@/components/DeviceCollection/ProjectDeviceLogArchiveDialog.vue', () =>
 vi.mock('@/components/DeviceCollection/BusinessCollectionLogs.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/components/ProjectDeviceSelect/index.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/components/DeviceTag/index.vue', () => ({ default: { render: () => null } }))
-vi.mock('@/components/UserTag/index.vue', () => ({ default: defineComponent({ props: ['userId'], setup: props => () => h('user-tag', { userId: props.userId }) }) }))
+vi.mock('@/components/UserTag/index.vue', () => ({ default: defineComponent({ props: { userId: [Number, String] }, setup: props => () => h('user-tag', { userId: props.userId }) }) }))
+vi.mock('@/views/system/user/components/UserSelect.vue', () => ({ default: defineComponent({
+  props: { scopedSource: { type: Object, required: true }, modelValue: [Number, String], placeholder: String }, emits: ['update:modelValue'],
+  setup(props, { emit }) {
+    return () => h('entity-picker', {
+      modelValue: props.modelValue, placeholder: props.placeholder,
+      api: (params: any) => props.scopedSource.search({ keyword: params.nickname || '', pageNo: params.pageNo, pageSize: params.pageSize }),
+      select: (id: number) => emit('update:modelValue', id)
+    })
+  }
+}) }))
 
 const apps: { unmount: () => void }[] = []
 const form = defineComponent({ setup(_, { slots, expose }) { expose({ validate: async () => true }); return () => h('form', slots.default?.()) } })
-const picker = defineComponent({ inheritAttrs: false, props: ['api', 'modelValue', 'placeholder'], emits: ['update:modelValue'], setup(props, { emit }) {
+const picker = defineComponent({ inheritAttrs: false, props: { api: Function, modelValue: [Number, String], placeholder: String }, emits: ['update:modelValue'], setup(props, { emit }) {
   return () => h('entity-picker', { api: props.api, modelValue: props.modelValue, placeholder: props.placeholder, select: (id: number) => emit('update:modelValue', id) })
 } })
 const nodes = (node: TestNode, type: string): TestNode[] => [...(node.type === type ? [node] : []), ...node.children.flatMap(child => nodes(child, type))]
@@ -41,6 +52,7 @@ const render = () => {
 const debuggerPicker = (root: TestNode) => nodes(root, 'entity-picker').find(node => node.props?.placeholder === '请选择调试人员')!
 beforeEach(() => {
   vi.resetAllMocks(); api.page.mockResolvedValue({ list: [], total: 0 }); api.users.mockResolvedValue([{ id: 3, nickname: 'Self' }])
+  api.options.mockResolvedValue({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
   api.create.mockResolvedValue(91); api.get.mockImplementation(async id => ({ id, projectId: 1, status: 0, version: 4 }))
   api.saveAttachments.mockResolvedValue(true)
 })
@@ -65,7 +77,8 @@ it('queries the authorized user API despite a missing menu permission snapshot a
   expect(select).toBeDefined()
   const params = { pageNo: 1, pageSize: 20, nickname: 'Self' }
   await expect((select.props!.api as Function)(params)).resolves.toEqual({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
-  expect(api.users).toHaveBeenCalledWith()
+  expect(api.options).toHaveBeenCalledWith({ pageNo: 1, pageSize: 20, keyword: 'Self' })
+  expect(api.users).not.toHaveBeenCalled()
   expect(select.props!.modelValue).toBe(3)
   Object.assign(view.state.form, { equipmentId: '123', code: 'CFG-USERS' })
   await view.state.save()
@@ -76,7 +89,7 @@ it('contains an actual user query rejection, displays its error, and recovers af
   const view = render(); view.state.openForm(); await flush()
   const select = debuggerPicker(view.root)
   expect(select).toBeDefined()
-  api.users.mockRejectedValueOnce(new Error('Forbidden'))
+  api.options.mockRejectedValueOnce(new Error('Forbidden'))
   await expect((select.props!.api as Function)({ pageNo: 1, pageSize: 20 })).resolves.toEqual({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
   await flush()
   expect(text(view.root)).toContain('其他人员暂时无法查询，可选择本人或保留已选人员；查询其他人员请重试或确认权限。')
@@ -90,7 +103,7 @@ it('keeps completed history read-only without querying personnel', async () => {
   expect(view.state.readOnly).toBe(true)
   expect(debuggerPicker(view.root)).toBeUndefined()
   expect(nodes(view.root, 'user-tag')[0].props?.userId).toBe(3)
-  expect(api.users).not.toHaveBeenCalled()
+  expect(api.options).not.toHaveBeenCalled()
   await view.state.save()
   expect(api.update).not.toHaveBeenCalled()
 })
@@ -98,7 +111,7 @@ it('keeps completed history read-only without querying personnel', async () => {
 
 it('saves the known Self user after a 403 without inventing any other user options', async () => {
   const view = render(); view.state.openForm(); await flush()
-  api.users.mockRejectedValueOnce(new Error('403'))
+  api.options.mockRejectedValueOnce(new Error('403'))
   const select = debuggerPicker(view.root)
   const result = await (select.props!.api as Function)({ pageNo: 1, pageSize: 20 })
   expect(result).toEqual({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
@@ -110,7 +123,7 @@ it('saves the known Self user after a 403 without inventing any other user optio
 
 it('retains an existing non-Self debugger after personnel query failure', async () => {
   const view = render(); view.state.openForm({ id: 8, projectId: 1, status: 0, version: 3, debuggerUserId: 9 }); await flush()
-  api.users.mockRejectedValueOnce(new Error('403'))
+  api.options.mockRejectedValueOnce(new Error('403'))
   const result = await (debuggerPicker(view.root).props!.api as Function)({ pageNo: 1, pageSize: 20 })
   expect(result.list.map((user: { id: number }) => user.id)).toEqual([3, 9])
   expect(view.state.form.debuggerUserId).toBe(9)
@@ -118,13 +131,19 @@ it('retains an existing non-Self debugger after personnel query failure', async 
   expect(api.update).toHaveBeenCalledWith(expect.objectContaining({ debuggerUserId: 9 }))
 })
 
-it('filters and pages the simple user list for the personnel picker', async () => {
-  api.users.mockResolvedValue([{ id: 3, nickname: 'Self' }, { id: 9, nickname: 'Other' }])
+it('preserves server filtering and pagination for the personnel picker', async () => {
+  api.options.mockResolvedValueOnce({ list: [{ id: 9, nickname: 'Other' }], total: 1 })
+    .mockResolvedValueOnce({ list: [{ id: 9, nickname: 'Other' }], total: 2 })
+    .mockResolvedValueOnce({ list: [], total: 0 })
   const view = render(); view.state.openForm(); await flush()
   const query = debuggerPicker(view.root).props!.api as Function
   await expect(query({ pageNo: 1, pageSize: 1, nickname: 'o' })).resolves.toEqual({ list: [{ id: 9, nickname: 'Other' }], total: 1 })
   await expect(query({ pageNo: 2, pageSize: 1 })).resolves.toEqual({ list: [{ id: 9, nickname: 'Other' }], total: 2 })
   await expect(query({ pageNo: 1, pageSize: 20, nickname: 'missing' })).resolves.toEqual({ list: [], total: 0 })
+  expect(api.options.mock.calls.map(call => call[0])).toEqual([
+    { pageNo: 1, pageSize: 1, keyword: 'o' }, { pageNo: 2, pageSize: 1, keyword: '' },
+    { pageNo: 1, pageSize: 20, keyword: 'missing' }
+  ])
 })
 
 it('preserves an empty historical debugger and resets a new form to Self', async () => {
@@ -133,4 +152,14 @@ it('preserves an empty historical debugger and resets a new form to Self', async
   expect(view.state.form.debuggerUserId).toBeUndefined()
   view.state.openForm(); await flush()
   expect(view.state.form.debuggerUserId).toBe(3)
+})
+
+it('uses server-side email search without requiring the email in returned debugger options', async () => {
+  api.users.mockResolvedValue([{ id: 8, nickname: '张三' }])
+  api.options.mockResolvedValue({ list: [{ id: 8, nickname: '张三' }], total: 1 })
+  const view = render(); view.state.openForm(); await flush()
+  const result = await view.state.queryDebuggerUsers({ pageNo: 2, pageSize: 1, nickname: 'zhangsan' })
+  expect(result).toEqual({ list: [{ id: 8, nickname: '张三' }], total: 1 })
+  expect(api.options).toHaveBeenCalledWith({ pageNo: 2, pageSize: 1, keyword: 'zhangsan' })
+  expect(api.users).not.toHaveBeenCalled()
 })

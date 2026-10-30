@@ -2,7 +2,8 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import Page from './index.vue'
 import { mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-const api = vi.hoisted(() => ({ project: vi.fn(), instances: vi.fn(), contacts: vi.fn(), risk: vi.fn(), navigation: vi.fn(), refresh: vi.fn(), route: { query: { projectId: '84577' } } }))
+const api = vi.hoisted(() => ({ project: vi.fn(), instances: vi.fn(), contacts: vi.fn(), risk: vi.fn(), navigation: vi.fn(), refresh: vi.fn(), authorizationSource: vi.fn(), route: { query: { projectId: '84577' } } }))
+vi.mock('@/config/axios', () => ({ default: { get: vi.fn() } }))
 vi.mock('@/api/pms/project/projects', () => ({ getProject: api.project, getProjectInstances: api.instances }))
 vi.mock('@/api/pms/customer/contacts', () => ({ getProjectPage: api.contacts }))
 vi.mock('@/api/pms/project/project-risk', () => ({ getProjectRiskListByProjectId: api.risk }))
@@ -23,6 +24,13 @@ vi.mock('./components/ProjectDeviceExportButton.vue', () => ({ default: { render
 vi.mock('./components/ProjectDeviceConfigLogDrawer.vue', () => ({ default: { render: () => null } }))
 vi.mock('./components/StageProgressRail.vue', () => ({ default: { render: () => null } }))
 vi.mock('./components/ProjectDeliverableDialog.vue', () => ({ default: { render: () => null } }))
+vi.mock('./components/ProjectAuthorizationPanel.vue', async () => {
+  const { defineComponent, watch } = await import('vue')
+  return { __esModule: true, default: defineComponent({ props: { projectId: [String, Number], userSource: Object }, setup(props) {
+    watch(() => props.userSource, value => api.authorizationSource(value), { immediate: true })
+    return () => null
+  } }) }
+})
 // The child contract loads on mount and revalidates on refreshToken. Observe the real parent's scheduling.
 vi.mock('./components/ProjectTaskTree.vue', async () => {
   const { defineComponent, onMounted, watch } = await import('vue')
@@ -112,5 +120,22 @@ it('still refreshes all existing stage trees after a subsequent business or manu
     expect(api.instances).toHaveBeenCalledTimes(2)
     expect(api.contacts).toHaveBeenCalledTimes(2)
     expect(api.risk).toHaveBeenCalledTimes(2)
+  } finally { view.app.unmount() }
+})
+
+it('passes the authorized directory only from the current detail and changes its key on project switch', async () => {
+  const view = render()
+  try {
+    await vi.waitFor(() => expect(stateOf(view).loading).toBe(false))
+    stateOf(view).visitedTabs.add('authorization')
+    stateOf(view).activeTab = 'authorization'
+    await vi.waitFor(() => expect(api.authorizationSource).toHaveBeenLastCalledWith(expect.objectContaining({ key: 'project-authorization:84577' })))
+    api.route.query.projectId = '84578'
+    api.project.mockResolvedValue({ id: 84578, lifecycleStatus: 'ACTIVE', version: 1 })
+    api.instances.mockResolvedValue({ ...instances(), projectId: 84578 })
+    await stateOf(view).loadAll()
+    stateOf(view).visitedTabs.add('authorization')
+    stateOf(view).activeTab = 'authorization'
+    await vi.waitFor(() => expect(api.authorizationSource).toHaveBeenLastCalledWith(expect.objectContaining({ key: 'project-authorization:84578' })))
   } finally { view.app.unmount() }
 })

@@ -1,5 +1,5 @@
 <template>
-  <div class="system-user-scoped" @input.capture="inputChanged" @compositionend.capture="inputChanged">
+  <div class="system-user-scoped" @input="inputChanged" @compositionend="inputChanged">
     <el-select
       ref="selectRef"
       :model-value="selectModel"
@@ -192,7 +192,8 @@ function inputChanged(event: Event) {
   const target = event.target as HTMLInputElement | null
   if (props.disabled || target?.tagName !== 'INPUT' || typeof target.value !== 'string') return
   if (target.value === keyword.value && event.type !== 'compositionend') return
-  // Invalidate before remote debounce and own the timer even when ElSelect suppresses a repeated query.
+  // Let ElSelect read the native value first, then invalidate before its remote debounce.
+  // Own the timer even when ElSelect suppresses a repeated query.
   if (target.value !== keyword.value) {
     clearTimeout(searchTimer)
     invalidateSearch(target.value)

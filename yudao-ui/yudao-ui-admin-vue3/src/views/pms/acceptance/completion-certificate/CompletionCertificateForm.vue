@@ -197,17 +197,12 @@ v-if="item.field === 'itemArrival' && model.itemArrival === '是' && model.arriv
 
 <script setup lang="ts">
 import UserSelect from '@/views/system/user/components/UserSelect.vue'
-import { systemUserSelection } from '@/api/system/user/selection'
+import { pmsUserSelectionSource } from '@/api/pms/platform/user-selection'
 import { arrivalServiceLabel } from './arrivalServiceLabel'
 import * as ProjectApi from '@/api/pms/project/projects'
 import type { CompletionCertificateVO } from '@/api/pms/acceptance/completion-certificate'
 import type { DynamicFormSelectionVO } from '@/api/pms/platform/dynamic-form'
 import { SignaturePad } from '@/components/FormCreate'
-
-// Picking an engineer uses the enabled-user directory, not the administration user page.
-const findEngineers = async (query: { nickname?: string }) => ({
-  list: (await systemUserSelection.active()).filter(user => !query.nickname || user.nickname?.includes(query.nickname))
-})
 
 const props = defineProps<{
   form: CompletionCertificateVO
@@ -224,14 +219,9 @@ const emit = defineEmits<{
   'remove-device': [index: number]
 }>()
 const model = props.form
-const engineerSource = computed(() => ({
-  key: `completion-engineer:${props.projectId || 'none'}:${model.id || 'new'}`,
-  search: async ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
-    const matches = await findEngineers({ nickname: keyword })
-    const start = (pageNo - 1) * pageSize
-    return { list: matches.list.slice(start, start + pageSize), total: matches.list.length }
-  }
-}))
+const engineerSource = computed(() => pmsUserSelectionSource(
+  `completion-engineer:${props.projectId || 'none'}:${model.id || 'new'}`
+))
 const vendorSignature = defineModel<string>('vendorSignature', { required: true })
 const formRef = ref()
 const rules = {

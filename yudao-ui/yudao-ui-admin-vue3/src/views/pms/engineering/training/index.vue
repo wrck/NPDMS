@@ -289,7 +289,7 @@
 
 <script setup lang="ts">
 import UserSelect from '@/views/system/user/components/UserSelect.vue'
-import { systemUserSelection } from '@/api/system/user/selection'
+import { searchPmsUserOptions } from '@/api/pms/platform/user-selection'
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import TrainingPrintTemplates from './TrainingPrintTemplates.vue'
 import TrainingPrintPreview from './TrainingPrintPreview.vue'
@@ -328,16 +328,13 @@ const trainerSource = computed(() => ({
 }))
 const queryTrainerUsers = async (params: PageParam & { nickname?: string }) => {
   try {
-    const users = await systemUserSelection.active()
-    const keyword = params.nickname?.trim().toLocaleLowerCase() || ''
-    const matches = users.filter(user => user.nickname?.toLocaleLowerCase().includes(keyword))
-    const pageSize = params.pageSize ?? 10
-    const start = ((params.pageNo ?? 1) - 1) * pageSize
-    const result = { list: matches.slice(start, start + pageSize), total: matches.length }
+    const result = await searchPmsUserOptions({
+      keyword: params.nickname || '', pageNo: params.pageNo ?? 1, pageSize: params.pageSize ?? 10
+    })
     trainerUsersError.value = ''
     // 查询页可能不含已选人员，保留登录信息或原记录中已知的姓名标签。
     const selected = selectedTrainer.value
-    if (selected && selected.id === form.trainerUserId && !result.list.some((user: { id: number }) => user.id === selected.id)) {
+    if (selected && selected.id === form.trainerUserId && !result.list.some((user) => user.id === selected.id)) {
       return { ...result, list: [selected, ...result.list] }
     }
     return result

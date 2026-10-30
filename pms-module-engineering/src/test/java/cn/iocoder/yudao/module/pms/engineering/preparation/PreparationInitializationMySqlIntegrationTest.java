@@ -1088,6 +1088,10 @@ class PreparationInitializationMySqlIntegrationTest {
 
         @Bean AdminUserApi adminUserApi() { return mock(AdminUserApi.class); }
 
+        @Bean cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi organizationUserSelectionApi() {
+            return mock(cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi.class);
+        }
+
         @Bean OrganizationScopeApi organizationScopeApi() { return mock(OrganizationScopeApi.class); }
 
         @Bean TestPreparationSourceProvider testPreparationSourceProvider() {

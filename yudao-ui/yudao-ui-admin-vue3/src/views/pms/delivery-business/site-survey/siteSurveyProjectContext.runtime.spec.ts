@@ -10,9 +10,15 @@ import { resolveStandaloneBusinessEntityView } from '@/components/BusinessView/r
 import { OperationRejected, OperationClient, routeSelection, selectionClient } from '@/components/BusinessView/operationClient'
 import { pinSurveySave } from './surveyReceiptIntent'
 import { getStageBusinessContext } from '@/api/pms/project/stage-business'
+import { searchPmsUserOptions } from '@/api/pms/platform/user-selection'
 
 const api = vi.hoisted(() => Object.fromEntries(['getSiteSurveyPage', 'getSiteSurvey', 'getDefaultFormSchema', 'saveSiteSurveyReceipt', 'siteSurveyActionReceipt', 'deleteSiteSurvey', 'updateSiteSurvey', 'createSiteSurvey', 'confirmSiteSurvey', 'rejectSiteSurvey', 'archiveSiteSurvey'].map(key => [key, vi.fn()])))
 const executionReads = vi.hoisted(() => ({ refresh: vi.fn() }))
+const people = vi.hoisted(() => ({ search: vi.fn(), resolve: vi.fn() }))
+vi.mock('@/api/pms/platform/user-selection', () => ({
+  searchPmsUserOptions: people.search,
+  pmsUserSelectionSource: (key: string) => ({ key, search: people.search, resolve: people.resolve })
+}))
 vi.mock('./siteSurveyExecutionShortcut', async original => ({ ...(await original<typeof import('./siteSurveyExecutionShortcut')>()), refreshSurveyExecution: executionReads.refresh }))
 const projects = vi.hoisted(() => ({ getProjectPage: vi.fn(), getProject: vi.fn() }))
 const message = vi.hoisted(() => ({ warning: vi.fn(), success: vi.fn(), error: vi.fn(), confirm: vi.fn(), delConfirm: vi.fn() }))
@@ -67,6 +73,8 @@ const makeReceipt = (row: any, state = '0', deleted = false) => ({ outcome: ['1'
   references: [{ kind: 'COMMAND', ownerModule: 'SOL', value: JSON.stringify({ id: String(row.id), projectId: String(row.projectId), version: row.version, state, deleted }) }] })
 beforeEach(() => {
   vi.resetAllMocks()
+  people.search.mockResolvedValue({ list: [], total: 0 })
+  people.resolve.mockResolvedValue([])
   navigation.query = {}
   executionReads.refresh.mockImplementation(async (query: any) => query.execution)
   api.getSiteSurveyPage.mockResolvedValue({ list: [], total: 0 })
@@ -90,6 +98,18 @@ beforeEach(() => {
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
 
 describe('SOL site-survey shared project and standalone context', () => {
+  it('uses the business user search for surveyors, retaining sparse options and paging', async () => {
+    const { state } = render({ projectId: 7 })
+    await state.openForm()
+    await flush()
+    people.search.mockResolvedValueOnce({ list: [{ id: '2115387679367467008', nickname: '张三' }], total: 2 })
+    expect(state.surveyorSource).toBeDefined()
+    const params = { pageNo: 2, pageSize: 1, keyword: 'zhangsan' }
+    expect(await state.surveyorSource.search(params)).toEqual({ list: [{ id: '2115387679367467008', nickname: '张三' }], total: 2 })
+    expect(people.search).toHaveBeenCalledWith(params)
+    expect(state.surveyorSource.search).toBe(searchPmsUserOptions)
+    expect(api.saveSiteSurveyReceipt).not.toHaveBeenCalled()
+  })
   it('refreshes a standalone stage deep link through the real helper for save and confirmation', async () => {
     const stage = { projectId: 7, stageId: 5, executionId: '2099999999999999999', executionVersion: 2,
       executionContractId: '2099999999999999998', contractVersion: 1, planVersionId: 100, roundNo: 1, writable: true }

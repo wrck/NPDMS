@@ -35,6 +35,7 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuer
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidatePageReqDTO;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
@@ -88,6 +89,7 @@ public class PreparationItemApplicationService {
     private final ProjectOrganizationFactApi organizationFactApi;
     private final AdminUserApi adminUserApi;
     private final OrganizationScopeApi organizationScopeApi;
+    private final OrganizationUserSelectionApi organizationUserSelectionApi;
     private final FileArtifactApi fileArtifactApi;
     private final OperationAuditApi operationAuditApi;
     private final TransactionTemplate transactionTemplate;
@@ -108,7 +110,7 @@ public class PreparationItemApplicationService {
         query.setKeyword(request == null ? null : request.getKeyword());
         query.setPageNo(request == null ? 1 : request.getPageNo());
         query.setPageSize(request == null ? 20 : request.getPageSize());
-        return organizationScopeApi.pageActiveUsers(query);
+        return organizationUserSelectionApi.page(query);
     }
 
     public PreparationItemPatchRespVO patch(PatchPreparationItemCommand command, Actor actor) {

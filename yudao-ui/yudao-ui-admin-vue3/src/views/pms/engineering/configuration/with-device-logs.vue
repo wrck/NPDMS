@@ -213,7 +213,7 @@
 
 <script setup lang="ts">
 import UserSelect from '@/views/system/user/components/UserSelect.vue'
-import { systemUserSelection } from '@/api/system/user/selection'
+import { searchPmsUserOptions } from '@/api/pms/platform/user-selection'
 import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import NativeAttachments from '../attachment/NativeAttachments.vue'
 import ManualCollectionDialog from '@/components/DeviceCollection/CollectionWithDeviceLogsDialog.vue'
@@ -250,13 +250,11 @@ const debuggerUsersError = ref('')
 const userStore = useUserStore()
 const queryDebuggerUsers = async (params: PageParam & { nickname?: string }) => {
   try {
-    const users = await systemUserSelection.active()
-    const keyword = params.nickname?.trim().toLocaleLowerCase() || ''
-    const matches = users.filter((user) => user.nickname?.toLocaleLowerCase().includes(keyword))
-    const pageSize = params.pageSize ?? 10
-    const start = ((params.pageNo ?? 1) - 1) * pageSize
+    const result = await searchPmsUserOptions({
+      keyword: params.nickname || '', pageNo: params.pageNo ?? 1, pageSize: params.pageSize ?? 10
+    })
     debuggerUsersError.value = ''
-    return { list: matches.slice(start, start + pageSize), total: matches.length }
+    return result
   } catch {
     debuggerUsersError.value = '其他人员暂时无法查询，可选择本人或保留已选人员；查询其他人员请重试或确认权限。'
     const self = userStore.getUser
