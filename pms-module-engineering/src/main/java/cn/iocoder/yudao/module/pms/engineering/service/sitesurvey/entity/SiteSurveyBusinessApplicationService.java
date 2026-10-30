@@ -187,7 +187,10 @@ public class SiteSurveyBusinessApplicationService extends DefaultBusinessApplica
         try { return JsonUtils.parseObject(JsonUtils.toJsonString(input),type); }
         catch(RuntimeException invalid) { throw invalid("OPERATION_INPUT_INVALID","工勘操作参数无效"); }
     }
-    static String permission(String code) { return "pms:sol-site-survey:"+("create".equals(code) ? "create" : "delete".equals(code) ? "delete" : "update"); }
+    static String[] permission(String code) {
+        return "delete".equals(code) ? new String[]{"pms:sol-site-survey:delete", "pms:sol-site-survey:update"}
+                : new String[]{"pms:sol-site-survey:" + ("create".equals(code) ? "create" : "update")};
+    }
     static String ownerOperation(String code) { return "SOL.SITE_SURVEY."+("save".equals(code) ? "UPDATE" : code.toUpperCase(Locale.ROOT)); }
     public static Result result(BusinessOperationReceipt receipt) {
         return receipt.references().stream().filter(r -> r.kind()==ResultReference.Kind.COMMAND && "SOL".equals(r.ownerModule()))

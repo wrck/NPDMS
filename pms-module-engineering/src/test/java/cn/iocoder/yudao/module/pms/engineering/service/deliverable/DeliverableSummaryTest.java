@@ -38,6 +38,28 @@ class DeliverableSummaryTest {
 
     @AfterEach void clearTenant() { TenantContextHolder.clear(); }
 
+    @Test void onlyActiveFilesCarryTheExactOwnerLocatorForAuthorizedPreview() {
+        when(material.materialKind()).thenReturn("FILE");
+        when(material.id()).thenReturn(91L);
+        when(material.fileArtifactId()).thenReturn(92L);
+        when(material.fileVersionNo()).thenReturn(2);
+        when(material.ownerModule()).thenReturn("SOL");
+        when(material.entityType()).thenReturn("requirementAnalysis");
+        when(material.entityId()).thenReturn(93L);
+        when(material.typeCode()).thenReturn("TOPOLOGY");
+        var locator = service.getProjectSummary(20L).getFirst().getMaterialLocator();
+        assertEquals(91L, locator.materialId());
+        assertEquals("SOL", locator.ownerModule());
+        assertEquals("requirementAnalysis", locator.entityType());
+        assertEquals(93L, locator.entityId());
+        assertEquals("TOPOLOGY", locator.typeCode());
+        when(material.status()).thenReturn("WITHDRAWN");
+        assertNull(service.getProjectSummary(20L).getFirst().getMaterialLocator());
+        when(material.status()).thenReturn("ACTIVE");
+        when(material.materialKind()).thenReturn("BUSINESS_RESULT");
+        assertNull(service.getProjectSummary(20L).getFirst().getMaterialLocator());
+    }
+
     @ParameterizedTest
     @CsvSource({
             "IMP,arrival,IMP.ARRIVAL_SIGN_DOCUMENT,RECEIPT",

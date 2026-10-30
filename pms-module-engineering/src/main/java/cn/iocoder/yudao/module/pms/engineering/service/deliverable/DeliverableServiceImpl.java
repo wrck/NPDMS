@@ -107,6 +107,13 @@ public class DeliverableServiceImpl implements DeliverableService {
 
     private DeliverableSummaryItemVO toUnifiedSummaryItem(DeliveryMaterialView material, String templateCategory) {
         DeliverableSummaryItemVO item = new DeliverableSummaryItemVO();
+        if ("FILE".equals(material.materialKind()) && "ACTIVE".equals(material.status())
+                && material.id() != null && material.fileArtifactId() != null && material.fileVersionNo() != null
+                && material.ownerModule() != null && material.entityType() != null
+                && material.entityId() != null && material.typeCode() != null) {
+            item.setMaterialLocator(new DeliverableSummaryItemVO.MaterialLocator(material.id(), material.ownerModule(),
+                    material.entityType(), material.entityId(), material.typeCode()));
+        }
         boolean solution = BUSINESS_TYPE_SOLUTION.equals(material.businessObjectType());
         boolean training = BUSINESS_TYPE_TRAINING.equals(material.businessObjectType());
         String sourceCategory = resolveNativeCategory(material);

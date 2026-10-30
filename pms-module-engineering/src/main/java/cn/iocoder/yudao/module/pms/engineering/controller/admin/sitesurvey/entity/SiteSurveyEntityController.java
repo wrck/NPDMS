@@ -71,7 +71,7 @@ public class SiteSurveyEntityController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除现场工勘")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:delete')")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:sol-site-survey:delete','pms:sol-site-survey:update')")
     public CommonResult<Boolean> deleteSiteSurveyEntity(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
         siteSurveyService.deleteSiteSurveyEntity(id, execution);
         return success(true);

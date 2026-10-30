@@ -32,6 +32,11 @@
       <el-table-column prop="archivedTime" label="归档/生效时间" min-width="160" :formatter="dateFormatter" />
       <el-table-column label="操作" width="160" fixed="right">
         <template #default="{ row }">
+          <el-button
+            v-if="row.materialLocator" v-hasPermi="['pms:file:preview']" link type="primary"
+            :loading="previewLoading === String(row.materialLocator.materialId)" @click="previewMaterial(row)"
+            >预览</el-button>
+          <el-button v-else-if="row.fileUrl" v-hasPermi="['pms:file:preview']" link type="primary" @click="previewLegacy(row)">预览</el-button>
           <el-link
             v-if="row.fileUrl"
             :href="row.fileUrl"
@@ -46,6 +51,7 @@
     </el-table>
     <div v-else class="text-13px text-gray-400 leading-22px">{{ group.emptyText }}</div>
   </ContentWrap>
+  <PmsFilePreviewDialog ref="previewDialog" />
   </div>
 </template>
 
@@ -55,6 +61,10 @@ import { dateFormatter } from '@/utils/formatTime'
 import * as DeliverableApi from '@/api/pms/engineering/deliverable'
 import type { DeliverableSummaryItemVO } from '@/api/pms/engineering/deliverable'
 import * as ProjectApi from '@/api/pms/project/projects'
+import * as FileApi from '@/api/pms/platform/file'
+import PmsFilePreviewDialog from '@/components/PmsFileArtifact/PmsFilePreviewDialog.vue'
+import { useMessage } from '@/hooks/web/useMessage'
+import { resolveSummaryPreview } from './resolveSummaryPreview'
 
 defineOptions({ name: 'PmsImpDeliverableSummary' })
 
@@ -82,6 +92,39 @@ const props = defineProps<{ projectId?: number }>()
 
 const projectId = ref<number | undefined>(props.projectId)
 const items = ref<DeliverableSummaryItemVO[]>([])
+const previewDialog = ref<InstanceType<typeof PmsFilePreviewDialog>>()
+const previewLoading = ref('')
+const message = useMessage()
+
+const previewLegacy = async (row: DeliverableSummaryItemVO) => {
+  if (!row.fileUrl) return
+  let url: URL
+  try { url = new URL(row.fileUrl, window.location.href) } catch { message.warning('文件地址不支持预览'); return }
+  if (!['http:', 'https:'].includes(url.protocol)) { message.warning('文件地址不支持预览'); return }
+  await previewDialog.value?.open({ title: row.name || '文件预览', loadContent: async () => {
+    const response = await fetch(url.href, { credentials: 'same-origin' })
+    if (!response.ok) throw new Error('FILE_PREVIEW_FAILED')
+    return response.blob()
+  } })
+}
+
+const previewMaterial = async (row: DeliverableSummaryItemVO) => {
+  const locator = row.materialLocator
+  if (!locator || previewLoading.value) return
+  const selectedProject = projectId.value
+  previewLoading.value = String(locator.materialId)
+  try {
+    const material = await resolveSummaryPreview(row)
+    if (String(projectId.value) !== String(selectedProject) || !items.value.includes(row)) return
+    const { fileArtifactId, fileVersionNo, fileBusinessKey } = material
+    await previewDialog.value?.open({ title: material.fileName || row.name || '文件预览',
+      loadContent: () => FileApi.getPreviewContent(fileArtifactId, fileVersionNo, fileBusinessKey) })
+  } catch {
+    message.warning('预览不可用，请检查文件状态和访问权限后重试')
+  } finally {
+    previewLoading.value = ''
+  }
+}
 
 
 const itemsOf = (category: string) => items.value.filter((item) => item.category === category)

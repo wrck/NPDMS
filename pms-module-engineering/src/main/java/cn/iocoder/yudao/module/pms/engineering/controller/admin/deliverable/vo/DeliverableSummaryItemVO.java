@@ -36,6 +36,11 @@ public class DeliverableSummaryItemVO {
     @Schema(description = "文件地址（无文件时为空，走详情页查看）")
     private String fileUrl;
 
+    @Schema(description = "统一文件材料的来源定位信息，仅用于经Owner授权查询材料")
+    private MaterialLocator materialLocator;
+
+    public record MaterialLocator(Long materialId, String ownerModule, String entityType, Long entityId, String typeCode) { }
+
     @Schema(description = "来源类型", example = "SOLUTION")
     private String sourceType;
 

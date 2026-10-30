@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity.*;
 import cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisBusinessPermissionPolicy;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import java.util.*;
@@ -29,6 +30,10 @@ class SiteSurveyPublicOperationPermissionTest {
     RequirementAnalysisBusinessPermissionPolicy requirementPolicy;
     BusinessModelDescriptor descriptor;
     @BeforeEach void setup() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
+        var login = new cn.iocoder.yudao.framework.security.core.LoginUser();
+        login.setId(1001L); login.setTenantId(1L);
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(login, new org.springframework.mock.web.MockHttpServletRequest());
         permissions=mock(PermissionApi.class); common=mock(PermissionCommonApi.class); routeGranted=true;
         when(permissions.hasAnyPermissions(eq(1001L),any(String[].class))).thenAnswer(call ->
                 Arrays.stream((String[])call.getRawArguments()[1]).anyMatch(grants::contains));
@@ -41,11 +46,24 @@ class SiteSurveyPublicOperationPermissionTest {
         descriptor=new BusinessModelDescriptor("SOL","siteSurvey","SOL_SITE_SURVEY",1,BusinessModelKind.AGGREGATE_ROOT,
                 "工勘","pms:sol-site-survey:query",List.of(),List.of(),SiteSurveyBusinessApplicationService.operations(),List.of(),"sol_site_survey");
     }
+    @AfterEach void clearIdentity() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();
+    }
     @Test void queryPermissionNeverMakesAllOwnerOperationsExecutable() {
         grants.add("pms:sol-site-survey:query");
         assertDoesNotThrow(() -> guard.requireReadable(descriptor,actor,"detail"));
         descriptor.operations().forEach(op -> assertThrows(BusinessContractException.class,
                 () -> guard.requireWritable(descriptor,actor,"operation:"+op.code())));
+    }
+    @Test void editorsCanDeleteDraftsAndExistingDeleteGrantRemainsValid() {
+        grants.add("pms:sol-site-survey:update");
+        assertTrue(surveyPolicy.executable(actor, "delete", 1));
+        grants.clear();
+        grants.add("pms:sol-site-survey:delete");
+        assertTrue(surveyPolicy.executable(actor, "delete", 1));
+        grants.clear();
+        assertFalse(surveyPolicy.executable(actor, "delete", 1));
     }
     @Test void eachOperationReflectsExactOwnerPermissionAndPublicRoutePermission() {
         grants.add("pms:sol-site-survey:create");
@@ -54,10 +72,11 @@ class SiteSurveyPublicOperationPermissionTest {
         grants.add("pms:sol-site-survey:update");
         for(String code:List.of("save","confirm","reject","archive"))
             assertDoesNotThrow(() -> guard.requireWritable(descriptor,actor,"operation:"+code));
-        assertThrows(BusinessContractException.class,()->guard.requireWritable(descriptor,actor,"operation:delete"));
+        assertDoesNotThrow(()->guard.requireWritable(descriptor,actor,"operation:delete"));
         grants.add("pms:sol-site-survey:delete");
         assertDoesNotThrow(() -> guard.requireWritable(descriptor,actor,"operation:delete"));
         grants.remove("pms:sol-site-survey:update");
+        assertDoesNotThrow(() -> guard.requireWritable(descriptor,actor,"operation:delete"));
         assertThrows(BusinessContractException.class,()->guard.requireWritable(descriptor,actor,"operation:confirm"));
         routeGranted=false;
         assertThrows(BusinessContractException.class,()->guard.requireWritable(descriptor,actor,"operation:create"));

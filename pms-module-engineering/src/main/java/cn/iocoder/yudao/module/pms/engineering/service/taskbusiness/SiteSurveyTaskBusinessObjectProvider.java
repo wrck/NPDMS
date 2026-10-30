@@ -133,7 +133,8 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
                 && hasScope(context.tenantId(), context.actorId(), context.projectId(), ProjectScopeApi.ACTION_MANAGE)) {
             if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:create")) actions.add("CREATE");
             if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:update")) actions.addAll(Set.of("UPDATE", "CONFIRM", "REJECT", "ARCHIVE"));
-            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:delete")) actions.add("DELETE");
+            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:update")
+                    || permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:delete")) actions.add("DELETE");
         }
         return new cn.iocoder.yudao.module.pms.project.api.stagebusiness.StageBusinessViewProvider.Result(actions);
     }
@@ -230,7 +231,8 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
         if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:update")) {
             permissions.add("UPDATE");
         }
-        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:delete")) {
+        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:update")
+                || permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:delete")) {
             permissions.add("DELETE");
         }
         return permissions;

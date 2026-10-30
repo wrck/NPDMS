@@ -61,6 +61,7 @@ const props = withDefaults(
       disabled?: boolean
       hideSubmit?: boolean
       autoSubmit?: boolean
+      prepareUpload?: () => Promise<void>
       ownerExecutionContext?: JsonObject
     }
   >(),
@@ -135,6 +136,7 @@ const submit = async () => {
   progress.value = 0
   stage.value = 'UPLOADING'
   try {
+    if (props.prepareUpload) await props.prepareUpload()
     attempt.value ||= { initKey: generateUUID(), completeKey: generateUUID(),
       ownerExecutionContext: selectedExecutionContext.value }
     const initialized =

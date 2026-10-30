@@ -14,6 +14,22 @@ import static org.mockito.Mockito.*;
 
 class SiteSurveyEntityWriteEntryTest {
     @org.junit.jupiter.api.Test
+    void deleteRejectsNonDraftAndDraftWithOutsourceBeforeAnyMutation() {
+        var mapper = mock(SiteSurveyEntityMapper.class);
+        var service = new SiteSurveyEntityDomainCommands();
+        ReflectionTestUtils.setField(service, "siteSurveyEntityMapper", mapper);
+        ReflectionTestUtils.setField(service, "writeAccess", mock(SiteSurveyEntityWriteAccess.class));
+        var row = new SiteSurveyEntityDO(); row.setId(11L); row.setProjectId(9L); row.setVersion(1L);
+        when(mapper.selectById(11L)).thenReturn(row);
+        for (int state : new int[]{1, 2, 3}) {
+            row.setStatus(state);
+            assertThrows(RuntimeException.class, () -> service.deleteSiteSurveyEntity(11L, null));
+        }
+        row.setStatus(0); row.setOutsourceRequestId(50L);
+        assertThrows(RuntimeException.class, () -> service.deleteSiteSurveyEntity(11L, null));
+        verify(mapper, never()).deleteDraft(any());
+    }
+    @org.junit.jupiter.api.Test
     void successfulDeleteClosesReferencesBeforePublishingRefreshAndFailedDeleteNeverDoes() {
         var mapper=mock(SiteSurveyEntityMapper.class);
         var access=mock(SiteSurveyEntityWriteAccess.class);

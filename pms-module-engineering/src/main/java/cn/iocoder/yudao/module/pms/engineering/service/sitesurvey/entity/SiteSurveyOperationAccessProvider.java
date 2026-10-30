@@ -47,7 +47,7 @@ public class SiteSurveyOperationAccessProvider implements ProjectBusinessOperati
             if (Integer.valueOf(1).equals(row.getStatus())) actions.add("SOL.SITE_SURVEY.ARCHIVE");
         }
         if (manage && Integer.valueOf(0).equals(row.getStatus()) && row.getOutsourceRequestId() == null
-                && permissions.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:delete"))
+                && permissions.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:delete", "pms:sol-site-survey:update"))
             actions.add("SOL.SITE_SURVEY.DELETE");
         return new Access(actions, "SOL:SITE_SURVEY:" + row.getId() + ":" + row.getVersion() + ":" + row.getStatus());
     }

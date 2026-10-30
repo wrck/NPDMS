@@ -192,7 +192,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:update")).thenReturn(true);
         when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:create")).thenReturn(true);
         when(mapper.selectTaskObject(objectQuery)).thenReturn(row(0));
-        assertEquals(Set.of("QUERY", "CREATE", "UPDATE", "CONFIRM", "REJECT", "LINK", "UNLINK"),
+        assertEquals(Set.of("QUERY", "CREATE", "UPDATE", "DELETE", "CONFIRM", "REJECT", "LINK", "UNLINK"),
                 provider.inspect(context, "42").allowedActions());
         when(mapper.selectTaskObject(objectQuery)).thenReturn(row(1));
         assertEquals(Set.of("QUERY", "CREATE", "ARCHIVE", "LINK", "UNLINK"),

@@ -99,6 +99,28 @@ it('keeps an unavailable historical reference visible and requires an explicit n
     noGlobalReads()
   } finally { m.app.unmount() }
 })
+it('refreshes project-scoped options after a new site is saved without trusting an arbitrary saved ID', async () => {
+  const m = render()
+  try {
+    await flush()
+    m.state.mode = 'new'
+    m.state.changeMode('new')
+    await flush()
+    const created = { id: 22, customerId: 200, addressId: 11, name: '新建工勘站点', version: 1 }
+    vi.mocked(Api.getProjectCustomerLocations).mockResolvedValue({ ...result(), sites: [...result().sites, created] })
+    m.props.modelValue = { projectId: '992203060198', site: { id: 22, expectedVersion: 1 } }
+    await flush()
+    expect(m.state.sites.find(site => site.id === 22)?.name).toBe('新建工勘站点')
+    expect(m.state.getValidationError()).toBe('')
+    expect(m.state.selectedSiteId).toBe(22)
+    noGlobalReads()
+    m.props.modelValue = { projectId: '992203060198', site: { id: 99, expectedVersion: 1 }, fallbackLocation: '不可选站点' }
+    await flush()
+    expect(m.state.getValidationError()).toContain('不在当前项目可选范围')
+    expect(m.state.sites.some(site => site.id === 99)).toBe(false)
+    expect(Api.getProjectCustomerLocations).not.toHaveBeenCalledWith('992203060198', 99)
+  } finally { m.app.unmount() }
+})
 it('keeps a failed project lookup blocking after changing location mode', async () => {
   vi.mocked(Api.getProjectCustomerLocations).mockRejectedValue(new Error('scope denied'))
   const m = render()
