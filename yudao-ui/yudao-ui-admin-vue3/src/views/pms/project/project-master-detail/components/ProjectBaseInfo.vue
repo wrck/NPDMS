@@ -71,9 +71,6 @@
         <ProjectAssociatedDataPanel v-if="project.id" :project-id="project.id" title="回款计划" :kinds="['plans']" />
       </template>
     </section>
-    <section v-if="project.id" class="fact-section">
-      <ProjectAssociatedDataPanel :project-id="project.id" title="设备许可" :kinds="['licenses']" />
-    </section>
     <section v-if="checkRole(['admin'])" class="fact-section">
       <h3>补充信息</h3>
       <dl class="fact-grid">

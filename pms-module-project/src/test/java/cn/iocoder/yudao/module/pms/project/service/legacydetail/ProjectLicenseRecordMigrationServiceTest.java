@@ -101,8 +101,9 @@ class ProjectLicenseRecordMigrationServiceTest {
             new ProjectLegacyNativeEvidenceService.RowStatus("NOT_MIGRATED",null,null,List.of())));
         when(owner.page(any())).thenAnswer(inv->{
             var query=inv.getArgument(0,Query.class);
+            assertEquals("SN-QUERY",query.sn());
             return query.recordIds().equals(List.of(55L))?new cn.iocoder.yudao.framework.common.pojo.PageResult<>(List.of(new Row(55L,Map.of("licenseCodeState","已加密保存"))),1L):cn.iocoder.yudao.framework.common.pojo.PageResult.empty();
         });
-        assertEquals(1,service.page(100L,1,20,actor).getTotal());
+        assertEquals(1,service.page(new ProjectLicenseRecordMigrationService.PageQuery(100L,1,20,"SN-QUERY",actor)).getTotal());
     }
 }

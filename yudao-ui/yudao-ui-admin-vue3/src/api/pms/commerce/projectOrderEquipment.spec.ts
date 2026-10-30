@@ -27,6 +27,18 @@ beforeEach(() => {
 })
 
 describe('project detail equipment uses assigned order lines', () => {
+  it('filters the complete grouped result without changing quantities or source scope', async () => {
+    for (const keyword of [' model-a ', '订单产品', 'so-a', 'a']) {
+      const result = await loadProjectOrderEquipmentList({ projectId: 84459, keyword })
+      expect(result?.list).toHaveLength(1)
+      expect(result?.list[0]).toMatchObject({ productCode: 'A', projectQty: 4, deliveredQty: 3, openQty: 5 })
+    }
+    expect((await loadProjectOrderEquipmentList({ projectId: 84459, keyword: 'does-not-match' }))?.list).toEqual([])
+    expect((await loadProjectOrderEquipmentList({ projectId: 84459, keyword: '  ' }))?.list).toHaveLength(1)
+    expect(commerceApi.getDeliveryScopePage).toHaveBeenLastCalledWith({ projectId: 84459, includeHistory: false, pageNo: 1, pageSize: 100 })
+    expect(deviceApi.getDevicePage).not.toHaveBeenCalled()
+  })
+
   it('loads every assigned page, ignores SN-only and detail products, and counts each exact order line once', async () => {
     commerceApi.getDeliveryScopePage.mockResolvedValueOnce({ total: 101, list:
       Array.from({ length: 100 }, (_, index) => scope({ id: `SCOPE-${index}`, allocatedQuantity: 1,

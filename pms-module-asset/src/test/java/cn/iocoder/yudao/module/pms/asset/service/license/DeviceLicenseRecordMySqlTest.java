@@ -52,8 +52,21 @@ class DeviceLicenseRecordMySqlTest {
         assertEquals("7",row.getCreator());assertEquals("7",row.getUpdater());assertEquals(row.getCreateTime(),row.getUpdateTime());
         assertEquals(DeviceLicenseRecordCipherTest.ORIGINAL.codeMac(),fixture.cipher.verifyStored(row.getLicenseCodeCiphertext(),1L));
         try(var sql=db.createStatement();var rs=sql.executeQuery("SHOW COLUMNS FROM ast_device_license_record")){int count=0;while(rs.next())count++;assertEquals(16,count);}
-        var page=service.page(new Query(1L,7L,100L,List.of(id),1,20));
+        var page=service.page(new Query(1L,7L,100L,List.of(id),1,20,null));
         assertEquals(1,page.getTotal());assertFalse(page.getList().getFirst().values().containsKey("licenseCodeCiphertext"));
+    }
+    @Test void serialFilterAppliesBeforeCountAndPaginationAndKeepsLiteralCharacters() throws Exception {
+        var result=tx.execute(status->service.apply(fixture.command));Long id=result.getFirst().id();
+        try(var statement=db.prepareStatement("UPDATE ast_device_license_record SET device_sn=? WHERE id=?")) {
+            statement.setString(1,"SN%_ABC");statement.setLong(2,id);statement.executeUpdate();
+        }
+        assertEquals(1,mapper.page(new DeviceLicenseRecordMapper.PageQuery(1L,List.of(id),0,20,"%_A")).getTotal());
+        assertEquals(1,service.page(new Query(1L,7L,100L,List.of(id),1,20,"  ABC  ")).getTotal());
+        assertEquals(0,mapper.page(new DeviceLicenseRecordMapper.PageQuery(1L,List.of(id),0,20,"missing")).getTotal());
+        var beyond=mapper.page(new DeviceLicenseRecordMapper.PageQuery(1L,List.of(id),20,20,"ABC"));
+        assertEquals(1,beyond.getTotal());assertTrue(beyond.getList().isEmpty());
+        assertEquals(0,mapper.page(new DeviceLicenseRecordMapper.PageQuery(2L,List.of(id),0,20,"ABC")).getTotal());
+        assertEquals(0,mapper.page(new DeviceLicenseRecordMapper.PageQuery(1L,List.of(),0,20,"ABC")).getTotal());
     }
     @Test void aFailureAfterSqlInsertRollsBackTheBusinessRecord() throws Exception {
         doThrow(new IllegalStateException("synthetic receipt failure")).when(fixture.evidence).appendSourceRecords(any());
@@ -63,8 +76,8 @@ class DeviceLicenseRecordMySqlTest {
     @Test void tenantFiltersAndEmptyIdsCannotBroadenThePage() {
         var result=tx.execute(status->service.apply(fixture.command));Long id=result.getFirst().id();
         TenantContextHolder.setTenantId(2L);
-        assertEquals(0,mapper.page(new DeviceLicenseRecordMapper.PageQuery(2L,List.of(id),0,20)).getTotal());
-        assertEquals(0,mapper.page(new DeviceLicenseRecordMapper.PageQuery(2L,List.of(),0,20)).getTotal());
+        assertEquals(0,mapper.page(new DeviceLicenseRecordMapper.PageQuery(2L,List.of(id),0,20,null)).getTotal());
+        assertEquals(0,mapper.page(new DeviceLicenseRecordMapper.PageQuery(2L,List.of(),0,20,null)).getTotal());
     }
     @Test void laterManualSqlChangeIsDetectedBeforeAnIdempotentReplay() {
         var result=tx.execute(status->service.apply(fixture.command));Long id=result.getFirst().id();

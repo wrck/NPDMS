@@ -185,7 +185,7 @@ public class DppmsLicenseRecordService implements DppmsLicenseRecordApi {
             || query.actorId()==null || query.actorId()<=0 || query.projectId()==null || query.projectId()<=0)fail("FORBIDDEN");
         var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(),query.actorId(),query.projectId(),ProjectScopeApi.ACTION_VIEW));
         if(scope==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(query.projectId()))fail("PROJECT_FORBIDDEN");
-        var page=records.page(new DeviceLicenseRecordMapper.PageQuery(query.tenantId(),query.recordIds(),Math.multiplyExact(query.pageNo()-1,query.pageSize()),query.pageSize()));
+        var page=records.page(new DeviceLicenseRecordMapper.PageQuery(query.tenantId(),query.recordIds(),Math.multiplyExact(query.pageNo()-1,query.pageSize()),query.pageSize(),query.sn()==null?null:query.sn().trim()));
         return new PageResult<>(page.getList().stream().map(row -> {
             var values=new LinkedHashMap<String,Object>();
             values.put("deviceId",row.getDeviceId());values.put("deviceSn",row.getDeviceSn());values.put("contractId",row.getContractId());

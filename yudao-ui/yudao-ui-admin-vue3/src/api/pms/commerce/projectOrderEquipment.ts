@@ -9,6 +9,7 @@ import type { ProjectEquipmentProduct } from './projectEquipment'
 export type ProjectOrderEquipmentProduct = Omit<ProjectEquipmentProduct, 'deviceCount'>
 interface ProjectOrderEquipmentQuery {
   projectId: number
+  keyword?: string
   isCurrent?: () => boolean
 }
 
@@ -27,7 +28,7 @@ const loadPages = async <T>({ load, isCurrent }: {
 
 /** 项目详情按当前已分配订单行汇总；设备/SN及范围拆分明细不构造产品行。 */
 export const loadProjectOrderEquipmentList = async ({
-  projectId, isCurrent = () => true
+  projectId, keyword, isCurrent = () => true
 }: ProjectOrderEquipmentQuery) => {
   const assigned = await loadPages<DeliveryScopeRespVO>({
     load: (pageNo) => getDeliveryScopePage({ projectId, pageNo, pageSize: 100, includeHistory: false }),
@@ -69,5 +70,8 @@ export const loadProjectOrderEquipmentList = async ({
       openQty: quantity('openQty')
     }
   })
-  return { list, scopes }
+  const term = keyword?.trim().toLocaleLowerCase()
+  const filtered = term ? list.filter(row => [row.productCode, row.productModel, row.productName, row.orderNo]
+    .some(value => value?.toLocaleLowerCase().includes(term))) : list
+  return { list: filtered, scopes }
 }

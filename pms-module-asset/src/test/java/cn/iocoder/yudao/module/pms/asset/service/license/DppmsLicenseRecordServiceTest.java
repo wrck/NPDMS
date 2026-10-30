@@ -114,14 +114,14 @@ class DppmsLicenseRecordServiceTest {
     }
     @Test void deniedProjectAndInvalidPageNeverExposeRecords() {
         doReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(100L,1L,Set.of(),Set.of())).when(scopes).resolveCurrent(any());
-        assertThrows(IllegalArgumentException.class,()->service.page(new Query(1L,7L,100L,List.of(1L),1,20)));
+        assertThrows(IllegalArgumentException.class,()->service.page(new Query(1L,7L,100L,List.of(1L),1,20,null)));
         verify(mapper,never()).page(any());
-        assertThrows(IllegalArgumentException.class,()->service.page(new Query(1L,7L,100L,List.of(),1,101)));
+        assertThrows(IllegalArgumentException.class,()->service.page(new Query(1L,7L,100L,List.of(),1,101,null)));
     }
     @Test void projectViewDoesNotRequireDeviceAssignmentPermission() {
         doReturn(new ProjectDeviceAssignmentGuardResult(100L,1L,null,100L,1L,false,"DENIED")).when(projects).validate(any());
         when(mapper.page(any())).thenReturn(cn.iocoder.yudao.framework.common.pojo.PageResult.empty());
-        assertEquals(0,service.page(new Query(1L,7L,100L,List.of(),1,20)).getTotal());
+        assertEquals(0,service.page(new Query(1L,7L,100L,List.of(),1,20,null)).getTotal());
         verify(projects,never()).validate(any());
         assertThrows(IllegalArgumentException.class,()->service.apply(command));
     }

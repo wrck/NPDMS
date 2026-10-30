@@ -885,9 +885,10 @@ export const getAssociatedData = (
   projectId: LegacyId,
   kind: AssociatedKind,
   pageNo: number,
-  pageSize: number
+  pageSize: number,
+  filters?: { sn?: string }
 ): Promise<{ list: AssociatedRow[]; total: number }> =>
   request.get({
     url: '/api/v1/pms/projects/' + projectId + '/associated-data/records',
-    params: { kind, pageNo, pageSize }
+    params: { kind, pageNo, pageSize, ...filters }
   })

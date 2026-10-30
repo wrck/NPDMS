@@ -1,8 +1,17 @@
-vi.mock('@/views/pms/asset/device/components/DeviceWarrantyRenewalTable.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/asset/device/components/DeviceWarrantyRenewalTable.vue', () => ({ default: {
+  props: ['projectId'],
+  setup: (props: { projectId: number }) => () => h('div', { 'data-testid': 'project-renewal-records', 'data-project-id': props.projectId })
+} }))
 import { beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import Panel from './ProjectSerialPanel.vue'
 import * as DeviceApi from '@/api/pms/asset/device'
+vi.mock('./ProjectAssociatedDataPanel.vue', () => ({ default: {
+  props: ['projectId', 'kinds'],
+  setup: (props: { projectId: number; kinds: string[] }) => () => h('div', {
+    'data-testid': 'serial-license-records', 'data-project-id': props.projectId, 'data-kinds': props.kinds.join(',')
+  })
+} }))
 import { findByTestId, mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 vi.mock('@/api/pms/asset/device', () => ({ getDevicePage: vi.fn(), getDevice: vi.fn(), getWarrantyRecords: vi.fn() }))
 vi.mock('./ProjectDeviceExportButton.vue', () => ({ default: defineComponent({
@@ -20,6 +29,37 @@ beforeEach(() => {
   vi.mocked(DeviceApi.getDevice).mockResolvedValue({ networkVersion: { syncStatus: 'NOT_AVAILABLE' } } as any)
   vi.mocked(DeviceApi.getWarrantyRecords).mockResolvedValue({ records: { list: [], total: 0 } })
 })
+it('opens renewals for the same project and keeps serial filters when returning', async () => {
+  const m = render()
+  try {
+    await flush()
+    m.state.sn = 'SN11'
+    m.state.activeSection = 'renewals'; await flush()
+    expect(findByTestId(m.root, 'project-renewal-records')?.props?.['data-project-id']).toBe(1002)
+    expect(findByTestId(m.root, 'serial-device-table')).toBeUndefined()
+    m.state.activeSection = 'devices'; await flush()
+    expect(findByTestId(m.root, 'serial-device-table')).toBeDefined()
+    expect(m.state.sn).toBe('SN11')
+    expect(findByTestId(m.root, 'serial-export-query')).toBeDefined()
+  } finally { m.app.unmount() }
+})
+
+it('opens only the same project license records and preserves serial filters on return', async () => {
+  const m = render()
+  try {
+    await flush()
+    m.state.sn = 'SN11'
+    m.state.activeSection = 'licenses'; await flush()
+    expect(findByTestId(m.root, 'serial-license-records')?.props).toMatchObject({
+      'data-project-id': 1002, 'data-kinds': 'licenses'
+    })
+    expect(findByTestId(m.root, 'serial-device-table')).toBeUndefined()
+    m.state.activeSection = 'devices'; await flush()
+    expect(m.state.sn).toBe('SN11')
+    expect(findByTestId(m.root, 'serial-export-query')).toBeDefined()
+  } finally { m.app.unmount() }
+})
+
 it('applies combined server filters from page one and clears them on reset', async () => {
   const m = render()
   try {

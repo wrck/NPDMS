@@ -9,6 +9,7 @@
         <choose><when test="query.ids != null and !query.ids.isEmpty()">
             AND id IN <foreach collection="query.ids" item="id" open="(" separator="," close=")">#{id}</foreach>
         </when><otherwise>AND 1=0</otherwise></choose>
+        <if test="query.sn != null and query.sn != ''">AND LOCATE(#{query.sn},device_sn)&gt;0</if>
     </sql>
     <select id="selectVisiblePage" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.license.DeviceLicenseRecordDO">
         SELECT id,tenant_id,device_id,device_sn,contract_id,contract_no,contract_type,product_code,product_model,

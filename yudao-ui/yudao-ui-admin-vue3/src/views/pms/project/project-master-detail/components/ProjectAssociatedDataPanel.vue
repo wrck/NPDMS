@@ -1,9 +1,16 @@
 <template>
   <section :aria-label="title" data-testid="project-associated-data">
-    <div class="associated-heading"
-      ><h4>{{ title }}</h4><el-button @click="refresh++">刷新</el-button></div
+    <el-form v-if="embedded && kind === 'licenses'" inline @submit.prevent="searchLicenses">
+      <el-form-item label="序列号"><el-input v-model="licenseSn" clearable placeholder="请输入设备序列号" /></el-form-item>
+      <el-form-item>
+        <el-button native-type="submit" type="primary" :loading="loading">查询</el-button>
+        <el-button :disabled="loading" @click="resetLicenseSearch">重置</el-button>
+      </el-form-item>
+    </el-form>
+    <div v-else class="associated-heading"
+      ><h4 v-if="!embedded">{{ title }}</h4><el-button @click="refresh++">刷新</el-button></div
     >
-    <el-tabs :model-value="kind" @tab-change="selectKind">
+    <el-tabs v-if="!embedded || visibleKinds.length > 1" :model-value="kind" @tab-change="selectKind">
       <el-tab-pane
         v-for="item in visibleKinds"
         :key="item.kind"
@@ -17,6 +24,8 @@
       </el-alert>
       <template v-else>
         <el-table
+          :border="embedded"
+          :stripe="embedded"
           :data="rows"
           row-key="id"
           :empty-text="`暂无${currentLabel || title}`"
@@ -83,7 +92,7 @@ const valueText = (value: unknown, field: string) => {
         : String(formatted)
   )
 }
-const props = withDefaults(defineProps<{ projectId: LegacyId; title?: string; kinds?: readonly AssociatedKind[] }>(), { title: '系统项目资料' })
+const props = withDefaults(defineProps<{ projectId: LegacyId; title?: string; kinds?: readonly AssociatedKind[]; embedded?: boolean }>(), { title: '系统项目资料', embedded: false })
 const visibleKinds = computed(() => associatedKinds.filter(item => !props.kinds || props.kinds.includes(item.kind)))
 const kind = ref<AssociatedKind>(props.kinds?.[0] ?? 'products')
 const rows = ref<AssociatedRow[]>([]),
@@ -91,6 +100,14 @@ const rows = ref<AssociatedRow[]>([]),
   pageNo = ref(1),
   refresh = ref(0)
 const pageSize = 20
+const licenseSn = ref('')
+const appliedLicenseSn = ref('')
+const searchLicenses = () => {
+  pageNo.value = 1
+  appliedLicenseSn.value = licenseSn.value.trim()
+  refresh.value++
+}
+const resetLicenseSearch = () => { licenseSn.value = ''; searchLicenses() }
 const loading = ref(false),
   error = ref(false),
   selected = ref<AssociatedRow>()
@@ -102,6 +119,11 @@ const selectKind = (name: string | number) => {
   pageNo.value = 1
   kind.value = name as AssociatedKind
 }
+watch(() => props.projectId, () => {
+  licenseSn.value = ''
+  appliedLicenseSn.value = ''
+  pageNo.value = 1
+})
 watch(
   [() => props.projectId, kind, pageNo, refresh],
   async ([projectId, category, page], _previous, onCleanup) => {
@@ -115,7 +137,9 @@ watch(
     if (projectId !== _previous?.[0] || category !== _previous?.[1]) total.value = 0
     selected.value = undefined
     try {
-      const result = await getAssociatedData(projectId, category, page, pageSize)
+      const result = appliedLicenseSn.value && category === 'licenses'
+        ? await getAssociatedData(projectId, category, page, pageSize, { sn: appliedLicenseSn.value })
+        : await getAssociatedData(projectId, category, page, pageSize)
       if (current) {
         rows.value = result.list
         total.value = result.total

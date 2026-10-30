@@ -225,13 +225,33 @@
           @changed="handleContactsChanged"
         />
 
-        <!-- ============ 项目概览：设备清单（与 pms-inheritance/project-detail 同一配置驱动表格） ============ -->
-        <div v-if="detail?.id && visitedTabs.has('equipment')" v-show="activeTab === 'equipment'" class="min-w-0" data-testid="project-pane-equipment">
-          <DeliveryModuleTable :config="deliveryModules['equipment']" :project-id="detail.id">
-            <template #header-actions>
-              <ProjectDeviceExportButton :project-id="detail.id" kind="equipment" />
-            </template>
-          </DeliveryModuleTable>
+        <div v-if="detail?.id && visitedTabs.has('product-lists')" v-show="activeTab === 'product-lists'" class="min-w-0" data-testid="project-pane-product-lists">
+          <ContentWrap>
+            <div class="panel-header">
+              <span class="panel-title"><Icon icon="ep:collection" /> 产品清单</span>
+            </div>
+            <el-tabs v-model="activeProductTab" aria-label="产品清单类别">
+              <el-tab-pane v-if="checkPermi(['pms:device:query'])" label="设备清单" name="equipment" lazy>
+                <el-form inline @submit.prevent="searchEquipment">
+                  <el-form-item label="关键词"><el-input v-model="equipmentSearchText" clearable placeholder="产品编码/型号/名称/订单号" /></el-form-item>
+                  <el-form-item>
+                    <el-button native-type="submit" type="primary">查询</el-button>
+                    <el-button @click="resetEquipmentSearch">重置</el-button>
+                  </el-form-item>
+                </el-form>
+                <DeliveryModuleTable :key="equipmentQueryRevision" :config="deliveryModules['equipment']" :project-id="detail.id" hide-title>
+                  <template #header-actions>
+                    <ProjectDeviceExportButton :project-id="detail.id" kind="equipment" />
+                  </template>
+                </DeliveryModuleTable>
+              </el-tab-pane>
+              <template v-if="checkPermi(['pms:project:query'])">
+                <el-tab-pane v-for="item in projectProductKinds" :key="item.kind" :label="item.label" :name="item.kind" lazy>
+                  <ProjectAssociatedDataPanel :project-id="detail.id" :title="item.label" :kinds="[item.kind]" embedded />
+                </el-tab-pane>
+              </template>
+            </el-tabs>
+          </ContentWrap>
         </div>
         <!-- 序列号详情（DemoV2 1.1.1 十八列明细：设备列表 + 档案位置关联 + 在网版本/维保逐台补齐） -->
         <div v-if="detail?.id && visitedTabs.has('sn-result')" v-show="activeTab === 'sn-result'" class="min-w-0" data-testid="project-pane-sn-result">
@@ -570,6 +590,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
+import ProjectAssociatedDataPanel from './components/ProjectAssociatedDataPanel.vue'
 import * as RiskApi from '@/api/pms/project/project-risk'
 import ProjectStatusTag from '../projects/ProjectStatusTag.vue'
 import type { DeliveryModuleConfig } from '@/views/pms/project/inheritance/detail/DeliveryModuleTable.vue'
@@ -674,6 +695,7 @@ const flowEmbedComponents: Record<string, Component> = {
 }
 const requestedTab = (
     {
+      equipment: 'product-lists',
       'stage-gates': 'stage-status',
       'completion-certificate': 'satisfaction',
       // 施工计划整合前的旧页签 key（3.1/3.2/3.4）统一落到整合工作台
@@ -689,7 +711,7 @@ const requestedTab = (
     'stage-status',
     'stage',
     'customer',
-    'equipment',
+    'product-lists',
     'sn-result',
     'config-log',
     'members',
@@ -705,6 +727,20 @@ const requestedTab = (
 const activeTab = ref(requestedTab)
 const visitedTabs = ref(new Set([requestedTab]))
 const projectTreeTab = ref('structure')
+const equipmentSearchText = ref('')
+const equipmentKeyword = ref('')
+const equipmentQueryRevision = ref(0)
+const searchEquipment = () => {
+  equipmentKeyword.value = equipmentSearchText.value.trim()
+  equipmentQueryRevision.value++
+}
+const resetEquipmentSearch = () => { equipmentSearchText.value = ''; searchEquipment() }
+const activeProductTab = ref(checkPermi(['pms:device:query']) ? 'equipment' : 'real-products')
+const projectProductKinds = [
+  { kind: 'real-products', label: '真实产品清单' },
+  { kind: 'lease-products', label: '租赁产品' },
+  { kind: 'configured-products', label: '产品配置层级' }
+] as const
 
 // 项目概览子项（设计稿 F-PROJ-007 §6 六类内容 + 既有扩展）；pending 项为规格未定义的占位卡片
 // permission 与 pms-inheritance/project-detail 的 overviewSteps 同口径，无权限时导航项隐藏
@@ -714,7 +750,7 @@ const overviewSteps: { key: string; label: string; icon: string; pending?: boole
   { key: 'customer', label: '客户信息', icon: 'ep:office-building' },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
-  { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:device:query'] },
+  { key: 'product-lists', label: '产品清单', icon: 'ep:collection', permission: ['pms:project:query', 'pms:device:query'] },
   { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'config-log', label: '配置Log', icon: 'ep:document-copy' }
   // 属性判定/匹配历史/生命周期实例三项按需求方 2026-09-30 要求从概览导航隐藏；对应内容面板保留，深链回退基本信息
@@ -732,7 +768,7 @@ const deliveryModules: Record<string, DeliveryModuleConfig> = {
     tableSize: 'default',
     icon: 'ep:cpu',
     load: async (pid, pageNo, pageSize) => {
-      const equipment = await loadProjectOrderEquipmentList({ projectId: pid })
+      const equipment = await loadProjectOrderEquipmentList({ projectId: pid, keyword: equipmentKeyword.value })
       if (!equipment) return { list: [], total: 0 }
       const rows = equipment.list
       return {
@@ -741,7 +777,7 @@ const deliveryModules: Record<string, DeliveryModuleConfig> = {
       }
     },
     columns: [
-      { prop: 'no', label: '序号', width: 46 },
+      { prop: 'no', label: '序号', width: 68 },
       { prop: 'productCode', label: '产品编码', minWidth: 92 },
       { prop: 'productModel', label: '产品型号', minWidth: 110 },
       { prop: 'productName', label: '产品名称', minWidth: 130 },

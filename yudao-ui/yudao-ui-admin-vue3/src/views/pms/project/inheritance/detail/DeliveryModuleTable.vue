@@ -1,7 +1,7 @@
 <template>
   <ContentWrap>
-    <div class="panel-header">
-      <span class="panel-title">
+    <div class="panel-header" :class="{ 'panel-header--actions-only': hideTitle }">
+      <span v-if="!hideTitle" class="panel-title">
         <Icon :icon="config.icon" /> {{ config.label }}
       </span>
       <div class="panel-header-actions">
@@ -182,7 +182,7 @@ export interface DeliveryModuleConfig {
   canDelete?: (row: any) => boolean
 }
 
-const props = defineProps<{ config: DeliveryModuleConfig; projectId: number; projectContext?: ProjectRouteContext }>()
+const props = defineProps<{ config: DeliveryModuleConfig; projectId: number; projectContext?: ProjectRouteContext; hideTitle?: boolean }>()
 
 const router = useRouter()
 const loading = ref(false)
@@ -361,6 +361,12 @@ const goPage = (path: string) => {
   border-bottom: 1px solid var(--el-border-color-lighter);
   align-items: center;
   justify-content: space-between;
+}
+
+.panel-header--actions-only {
+  padding-bottom: 0;
+  border-bottom: 0;
+  justify-content: flex-end;
 }
 
 .panel-title {

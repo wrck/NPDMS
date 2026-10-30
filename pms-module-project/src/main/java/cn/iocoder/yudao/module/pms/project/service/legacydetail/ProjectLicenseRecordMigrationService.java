@@ -98,7 +98,9 @@ public class ProjectLicenseRecordMigrationService {
         }).toList();
         return new Command(actor.tenantId(),actor.actorId(),projectId,loaded.snapshot().getId(),loaded.snapshot().getSourceReadAt(),licenses);
     }
-    public PageResult<ProjectAssociatedDataService.Row> page(Long projectId,int pageNo,int pageSize,ProjectAccessActor actor) {
+    public record PageQuery(Long projectId,int pageNo,int pageSize,String sn,ProjectAccessActor actor) {}
+    public PageResult<ProjectAssociatedDataService.Row> page(PageQuery query) {
+        var projectId=query.projectId();var actor=query.actor();
         access.getProject(projectId,actor);
         var ids=new LinkedHashSet<Long>();
         for(var source:sourceMapper.selectProjectSources(new ProjectSourcesQuery(actor.tenantId(),projectId))) {
@@ -122,7 +124,7 @@ public class ProjectLicenseRecordMigrationService {
                 if(!part.isEmpty())after=part.getLast().getId();
             } while(part.size()==500);
         }
-        var page=owner.page(new Query(actor.tenantId(),actor.actorId(),projectId,List.copyOf(ids),pageNo,pageSize));
+        var page=owner.page(new Query(actor.tenantId(),actor.actorId(),projectId,List.copyOf(ids),query.pageNo(),query.pageSize(),query.sn()));
         return new PageResult<>(page.getList().stream().map(row->new ProjectAssociatedDataService.Row(row.id(),String.valueOf(row.id()),row.values())).toList(),page.getTotal());
     }
     private static void fail(String code) {throw new IllegalArgumentException("DPPMS_LICENSE_"+code);}

@@ -29,10 +29,10 @@ it('puts cached panel visibility on native hosts, independent of component root 
   }
   visit(ast)
   expect(invalid).toEqual([])
-  // Two generic business hosts use dynamic test IDs; the 19 named hosts below
-  // include product/scope and must each retain their independent visibility.
+  // Equipment now belongs to product lists; the scope entry remains declined by the user.
+  // The remaining named hosts retain independent cached visibility.
   expect(hosts.map(node => node.props.find((prop: any) => prop.name === 'data-testid').value.content).sort()).toEqual([
-    'equipment', 'sn-result', 'product-lists', 'scope', 'tasks', 'stage-gates', 'stage-workspace',
+    'sn-result', 'product-lists', 'tasks', 'stage-gates', 'stage-workspace',
     'preparation', 'schedule', 'requirement-analysis', 'satisfaction', 'acceptance-reports', 'tree',
     'closure', 'authorization', 'governance', 'service-managers', 'deliverable-summary', 'training'
   ].map(key => `project-pane-${key}`).sort())

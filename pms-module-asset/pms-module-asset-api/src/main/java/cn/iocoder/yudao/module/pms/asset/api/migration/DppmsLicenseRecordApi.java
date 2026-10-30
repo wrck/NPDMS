@@ -18,6 +18,6 @@ public interface DppmsLicenseRecordApi {
     record Preview(String sourceKey, Long targetId, String action, List<String> pendingAssociations) {}
     record Target(String sourceKey, Long id) {}
     /** IDs originate exclusively from the authorized project's successful migration bindings. */
-    record Query(Long tenantId, Long actorId, Long projectId, List<Long> recordIds, int pageNo, int pageSize) {}
+    record Query(Long tenantId, Long actorId, Long projectId, List<Long> recordIds, int pageNo, int pageSize, String sn) {}
     record Row(Long id, Map<String,Object> values) {}
 }

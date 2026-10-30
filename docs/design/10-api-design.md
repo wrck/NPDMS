@@ -883,6 +883,8 @@ GET `/api/v1/pms/solution-reviews/policy?projectId=...` 只读预览服务器计
 
 ### 许可历史受控迁移（2026-10-11需求方整表批准）
 
+2026-10-31设备许可搜索补充：上述正式资料GET接口在`kind=licenses`时接收可选`sn`，去除首尾空白后按设备序列号字面子串筛选，先筛选再分页及计数；不搜索许可原码。仍受原项目来源绑定、租户及PROJECT_VIEW范围限制，空授权集合仍返回空结果，其他类别不使用该参数。
+
 许可历史迁移（2026-10-11需求方16列整表批准）：POST `/api/v1/pms/projects/{projectId}/legacy-detail/license-previews` 和 `/license-imports`复用项目来源快照身份；请求仅包含来源引用和AES-256-GCM密文封装，不接收许可明文。需要既有迁移执行及项目管理权限，AST加入迁移事务完整保存正式许可实体及来源绑定；相同来源重放只读回原ID，源变化、后续目标变化或密文认证失败阻断。缺少唯一设备/合同关系保留NULL并返回待关联原因，不创建对象或激活许可。GET `/api/v1/pms/projects/{projectId}/associated-data/records?kind=licenses`复用项目查询权限及PROJECT_VIEW范围，只返回正式非秘密字段及已加密状态，不返回密文、MAC、密钥版本或原码。历史缓存重建ID的持续同步不启用。
 
 ### 设备软件版本维护及具名历史（2026-10-10需求方整表批准）

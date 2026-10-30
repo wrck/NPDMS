@@ -39,6 +39,21 @@ afterEach(() => {
 })
 const render = () =>
   mount(Panel, { props: { projectId: '100' }, global: { plugins: [ElementPlus] } })
+it('submits a trimmed license serial filter from page one and clears it on reset', async () => {
+  wrapper = mount(Panel, { props: { projectId: '100', title: '设备许可', kinds: ['licenses'], embedded: true }, global: { plugins: [ElementPlus] } })
+  await flushPromises()
+  expect(wrapper.findAll('[role="tab"]')).toHaveLength(0)
+  const state = (wrapper.vm as any).$.setupState
+  state.pageNo = 2
+  await wrapper.find('input').setValue(' SN-01 ')
+  await wrapper.find('form').trigger('submit')
+  await flushPromises()
+  expect(getAssociatedData).toHaveBeenLastCalledWith('100', 'licenses', 1, 20, { sn: 'SN-01' })
+  await wrapper.findAll('button').find(button => button.text() === '重置')!.trigger('click')
+  await flushPromises()
+  expect(getAssociatedData).toHaveBeenLastCalledWith('100', 'licenses', 1, 20)
+})
+
 it('shows only the requested formal business categories', async () => {
   wrapper = mount(Panel, { props: { projectId: '100', title: '产品清单', kinds: ['real-products', 'lease-products', 'configured-products'] }, global: { plugins: [ElementPlus] } })
   await flushPromises()

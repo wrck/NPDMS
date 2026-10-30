@@ -17,8 +17,9 @@ public class ProjectAssociatedDataController {
     @GetMapping("/records")
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<PageResult<ProjectAssociatedDataService.Row>> page(@PathVariable Long projectId,
-            @RequestParam String kind,@RequestParam(defaultValue="1") int pageNo,@RequestParam(defaultValue="50") int pageSize) {
+            @RequestParam String kind,@RequestParam(defaultValue="1") int pageNo,@RequestParam(defaultValue="50") int pageSize,
+            @RequestParam(required=false) String sn) {
         var actor=new ProjectAccessActor(TenantContextHolder.getRequiredTenantId(),SecurityFrameworkUtils.getLoginUserId());
-        return success("licenses".equals(kind)?licenses.page(projectId,pageNo,pageSize,actor):service.page(projectId,kind,pageNo,pageSize,actor));
+        return success("licenses".equals(kind)?licenses.page(new cn.iocoder.yudao.module.pms.project.service.legacydetail.ProjectLicenseRecordMigrationService.PageQuery(projectId,pageNo,pageSize,sn,actor)):service.page(projectId,kind,pageNo,pageSize,actor));
     }
 }

@@ -8,6 +8,14 @@
       <span class="panel-title"><Icon icon="ep:cpu" /> 序列号详情</span>
       <span class="serial-total num">共 {{ total }} 台</span>
     </div>
+    <el-tabs v-model="activeSection">
+      <el-tab-pane label="设备序列号" name="devices" />
+      <el-tab-pane label="续保记录" name="renewals" />
+      <el-tab-pane label="设备许可" name="licenses" />
+    </el-tabs>
+    <DeviceWarrantyRenewalTable v-if="activeSection === 'renewals'" :project-id="projectId" />
+    <ProjectAssociatedDataPanel v-else-if="activeSection === 'licenses'" :project-id="projectId" title="设备许可" :kinds="['licenses']" embedded />
+    <template v-else>
     <el-form inline class="serial-filters" @submit.prevent="search">
       <el-form-item label="序列号"><el-input v-model="sn" clearable placeholder="请输入序列号" /></el-form-item>
       <el-form-item label="设备名称"><el-input v-model="deviceName" clearable placeholder="请输入设备名称" /></el-form-item>
@@ -99,6 +107,7 @@
       :total="total"
       @pagination="load"
     />
+    </template>
   </ContentWrap>
 </template>
 
@@ -107,6 +116,8 @@ import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import * as DeviceApi from '@/api/pms/asset/device'
 import ProjectDeviceExportButton from './ProjectDeviceExportButton.vue'
+import DeviceWarrantyRenewalTable from '@/views/pms/asset/device/components/DeviceWarrantyRenewalTable.vue'
+import ProjectAssociatedDataPanel from './ProjectAssociatedDataPanel.vue'
 
 defineOptions({ name: 'ProjectSerialPanel' })
 
@@ -114,6 +125,7 @@ const props = withDefaults(defineProps<{ projectId: number; active?: boolean }>(
 const emit = defineEmits<{ (e: 'open-config-log', deviceId: number, serialNumber: string): void }>()
 
 const NOT_INTEGRATED = '—'
+const activeSection = ref('devices')
 
 interface SerialRow {
   deviceId: number

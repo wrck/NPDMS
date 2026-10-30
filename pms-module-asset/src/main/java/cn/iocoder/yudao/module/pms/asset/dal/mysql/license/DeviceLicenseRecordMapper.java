@@ -10,7 +10,7 @@ import java.util.List;
 @Mapper
 public interface DeviceLicenseRecordMapper extends BaseMapperX<DeviceLicenseRecordDO> {
     record RecordQuery(Long tenantId, Long id) {}
-    record PageQuery(Long tenantId, List<Long> ids, int offset, int limit) {}
+    record PageQuery(Long tenantId, List<Long> ids, int offset, int limit, String sn) {}
     DeviceLicenseRecordDO selectRecordForUpdate(@Param("query") RecordQuery query);
     List<DeviceLicenseRecordDO> selectVisiblePage(@Param("query") PageQuery query);
     long countVisible(@Param("query") PageQuery query);
