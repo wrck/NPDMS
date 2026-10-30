@@ -90,9 +90,20 @@
         </div>
         <div class="rail-stage">
           <div class="rail-stage-title">交付准备</div>
-          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'customer-contacts' }"
+          <button
+class="rail-item" :class="{ 'rail-item--active': activeTab === 'customer-contacts' }"
             @click="switchTab('customer-contacts')" v-hasPermi="['pms:customer-contact:query']">
-            <Icon icon="ep:phone" class="rail-icon"/><span class="rail-label">用户联系人</span>
+            <Icon icon="ep:phone" class="rail-icon" /><span class="rail-label">用户联系人</span>
+          </button>
+          <!-- Demo 2.2.1 物料选择/换货协同（换货单分页，通过后推送CRM） -->
+          <button
+            class="rail-item"
+            :class="{ 'rail-item--active': activeTab === 'material-exch' }"
+            @click="switchTab('material-exch')"
+            v-hasPermi="['pms:imp-material-exch:query']"
+          >
+            <Icon icon="ep:sort" class="rail-icon" />
+            <span class="rail-label">物料换货</span>
           </button>
           <button
             class="rail-item"
@@ -107,7 +118,7 @@
             class="rail-item"
             :class="{ 'rail-item--active': activeTab === 'preparation' }"
             @click="switchTab('preparation')"
-            v-hasPermi="['pms:eng-site-survey:query']"
+            v-hasPermi="['pms:sol-site-survey:query']"
           >
             <Icon icon="ep:compass" class="rail-icon" />
             <span class="rail-label">工勘准备</span>
@@ -124,12 +135,14 @@
         </div>
         <div class="rail-stage">
           <div class="rail-stage-title">验收交维</div>
-          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'satisfaction' }"
+          <button
+class="rail-item" :class="{ 'rail-item--active': activeTab === 'satisfaction' }"
             @click="switchTab('satisfaction')" v-hasPermi="['pms:acceptance:satisfaction:query']">
             <Icon icon="ep:chat-dot-round" class="rail-icon" />
             <span class="rail-label">满意度</span>
           </button>
-          <button class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-reports' }"
+          <button
+class="rail-item" :class="{ 'rail-item--active': activeTab === 'acceptance-reports' }"
             @click="switchTab('acceptance-reports')" v-hasPermi="['pms:acceptance:report:query']">
             <Icon icon="ep:document-checked" class="rail-icon" />
             <span class="rail-label">验收报告</span>
@@ -312,6 +325,30 @@
                   >任务（{{ instTasks(stage.stageCode).length }}）</div
                 >
                 <el-table :data="instTasks(stage.stageCode)" size="small" border>
+                  <el-table-column type="expand">
+                    <template #default="{ row }">
+                      <div class="task-deliverable-expand">
+                        <template v-if="instTaskDeliverables(row.taskCode).length">
+                          <div
+                            v-for="d in instTaskDeliverables(row.taskCode)"
+                            :key="d.deliverableCode"
+                            class="preview-line"
+                          >
+                            <el-tag size="small" :type="d.required ? 'danger' : 'info'">{{
+                              d.required ? '必选' : '可选'
+                            }}</el-tag>
+                            {{ d.name }}
+                            <el-tag size="small" type="info">{{ d.deliverableCode }}</el-tag>
+                            <dict-tag
+                              :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS"
+                              :value="d.status"
+                            />
+                          </div>
+                        </template>
+                        <span v-else class="text-12px text-gray-400">本任务未定义交付件</span>
+                      </div>
+                    </template>
+                  </el-table-column>
                   <el-table-column prop="taskCode" label="任务码" width="120" />
                   <el-table-column prop="name" label="任务名称" min-width="140" />
                   <el-table-column label="状态" width="90">
@@ -344,9 +381,14 @@
                   class="preview-line"
                 >
                   <el-tag size="small" :type="d.required ? 'danger' : 'info'">{{
-                    d.deliverableCode
+                    d.required ? '必选' : '可选'
                   }}</el-tag>
                   {{ d.name }}
+                  <el-tag size="small" type="info">{{ d.deliverableCode }}</el-tag>
+                  <span v-if="d.taskCode" class="text-12px text-gray-400">
+                    归属任务：{{ instTaskName(d.taskCode) }}
+                  </span>
+                  <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="d.status" />
                 </div>
               </div>
               <div class="preview-block">
@@ -404,6 +446,14 @@
           />
         </div>
 
+        <!-- Demo 2.2.1 物料换货协同（配置驱动，消费换货单真实 API） -->
+        <DeliveryModuleTable
+          v-if="detail?.id && visitedTabs.has('material-exch')"
+          v-show="activeTab === 'material-exch'"
+          :config="deliveryModules['material-exch']"
+          :project-id="detail.id"
+        />
+
         <div v-if="detail?.id && visitedTabs.has('requirement-analysis')" v-show="activeTab === 'requirement-analysis'" class="min-w-0" data-testid="project-pane-requirement-analysis">
           <ProjectRequirementAnalysisPanel
             :project="detail"
@@ -442,17 +492,35 @@
           />
         </div>
         <div v-if="detail?.id && visitedTabs.has('equipment')" v-show="activeTab === 'equipment'" class="min-w-0" data-testid="project-pane-equipment">
-          <ProjectEquipmentPanel :key="`equipment-${detail.id}`" :project-id="detail.id" />
+          <!-- 设备清单 = 订单信息（交付范围明细）；序列号档案见"序列号详情"Tab -->
+          <DeliveryModuleTable
+            :config="deliveryModules['equipment']"
+            :project-id="detail.id"
+          />
         </div>
+        <!-- Demo 1.1.1 序列号详情 / Demo 1.1.1.1 配置Log（配置驱动，消费设备域真实 API） -->
+        <DeliveryModuleTable
+          v-if="detail?.id && visitedTabs.has('sn-result')"
+          v-show="activeTab === 'sn-result'"
+          :config="deliveryModules['sn-result']"
+          :project-id="detail.id"
+        />
+        <DeliveryModuleTable
+          v-if="detail?.id && visitedTabs.has('config-log')"
+          v-show="activeTab === 'config-log'"
+          :config="deliveryModules['config-log']"
+          :project-id="detail.id"
+        />
         <div v-if="detail?.id && visitedTabs.has('scope')" v-show="activeTab === 'scope'" class="min-w-0" data-testid="project-pane-scope">
           <ProjectDeliveryScopePanel :key="`scope-${detail.id}`" :project-context="scopeContext" />
         </div>
         <div v-if="detail?.id && visitedTabs.has('flow')" v-show="activeTab === 'flow'" class="min-w-0" data-testid="project-pane-flow">
-          <ProjectFlowPanel ref="flowPanelRef" :project-id="detail.id" :project="detail" :instances="instances" :selection="flowSelection" @changed="handleStageChanged" />
+          <ProjectFlowPanel ref="flowPanelRef" :project-id="detail.id" :project="detail" :instances="instances" :selection="flowSelection" @changed="handleStageChanged" @refreshed="handleStageChanged" />
         </div>
         <div v-if="detail?.id && visitedTabs.has('progress')" v-show="activeTab === 'progress'" class="min-w-0" data-testid="project-pane-progress">
           <ProjectProgressPanel
             :project-id="detail.id"
+            :refresh-token="treeRefreshKey"
             :tree-version="treeVersion"
           />
         </div>
@@ -481,19 +549,22 @@
       </div>
     </div>
   </div>
+  <ProjectApprovalDrawer ref="approvalDrawerRef" />
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, provide, ref, watch } from 'vue'
+import ProjectApprovalDrawer from '@/views/pms/project/project-master-detail/components/ProjectApprovalDrawer.vue'
+import { projectApprovalDetailKey } from '@/views/pms/project/project-master-detail/components/projectApprovalDetail'
 import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
 import { useMediaQuery } from '@vueuse/core'
 import { useRoute, useRouter } from 'vue-router'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
-import ProjectSplitWizard from '@/views/pms/project/project-master-detail/components/ProjectSplitWizard.vue'
+import ProjectSplitWizard from '@/views/pms/project/project-master-detail/components/ProjectSplitPanel.vue'
 import ProjectTreePanel from '@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'
-import ProjectProgressPanel from '@/views/pms/project/project-master-detail/components/ProjectProgressPanel.vue'
+import ProjectProgressPanel from '@/views/pms/project/project-master-detail/components/ProjectProgressSummaryPanel.vue'
 import ProjectClosureGuardPanel from '@/views/pms/project/project-master-detail/components/ProjectClosureGuardPanel.vue'
 import ProjectNormalClosurePanel from '@/views/pms/project/project-master-detail/components/ProjectNormalClosurePanel.vue'
 import ProjectStatusTag from '@/views/pms/project/projects/ProjectStatusTag.vue'
@@ -510,13 +581,21 @@ import ProjectStageStatusPanel from '@/views/pms/project/project-master-detail/c
 import ProjectDurationPanel from '@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue'
 import ProjectSiteSurveyPanel from '@/views/pms/delivery-business/site-survey/index.vue'
 import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'
-import SatisfactionWorkbench from '@/views/pms/project/satisfaction/index.vue'
-import AcceptanceReportWorkbench from '@/views/pms/project/acceptance-report/index.vue'
+import SatisfactionWorkbench from '@/views/pms/acceptance/satisfaction/index.vue'
+import AcceptanceReportWorkbench from '@/views/pms/acceptance/acceptance-report/index.vue'
 import * as ContactsApi from '@/api/pms/customer/contacts'
 import { checkPermi } from '@/utils/permission'
+// 设备序列号域（Demo 1.1.1 序列号详情 / 1.1.1.1 配置Log）
+import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
+import * as DeviceConfigLogApi from '@/api/pms/asset/device/archive'
+// 设备清单（订单信息：ERP销售订单→交付范围明细；序列号档案见 sn-result）
+import { getDeliveryScopePage } from '@/api/pms/commerce'
+// 物料换货协同（Demo 2.2.1 物料选择，通过后推送CRM）
+import * as MaterialExchangeApi from '@/api/pms/engineering/material-exch'
+import DeliveryModuleTable from './DeliveryModuleTable.vue'
+import type { DeliveryModuleConfig } from './DeliveryModuleTable.vue'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import ProjectCustomerOverview from '@/views/pms/project/project-master-detail/components/ProjectCustomerOverview.vue'
-import ProjectEquipmentPanel from '@/views/pms/asset/equipment/index.vue'
 import ProjectDeliveryScopePanel from '@/views/pms/commerce/delivery-scope/index.vue'
 import type { ProjectRouteContext } from '@/views/pms/commerce/commerceInteraction'
 import type {
@@ -529,6 +608,8 @@ defineOptions({ name: 'PmsProjectInheritanceDetail' })
 const route = useRoute()
 const projectId = () => isBusinessViewId(route.query.projectId) ? legacyOwnerId(route.query.projectId) : undefined
 const router = useRouter()
+const approvalDrawerRef = ref<InstanceType<typeof ProjectApprovalDrawer>>()
+provide(projectApprovalDetailKey, (id) => approvalDrawerRef.value?.open(id))
 const mobile = useMediaQuery('(max-width: 767px)')
 const descriptionColumns = computed(() => (mobile.value ? 1 : 2))
 
@@ -561,8 +642,9 @@ const TAB_KEYS = [
   'customer',
   'tree',
   'members',
-  'tasks',
   'equipment',
+  'sn-result',
+  'config-log',
   'scope',
   'flow',
   'attributes',
@@ -571,6 +653,7 @@ const TAB_KEYS = [
   'stage-gates',
   'duration',
   'preparation',
+  'material-exch',
   'customer-contacts',
   'requirement-analysis',
   'satisfaction',
@@ -594,10 +677,159 @@ const overviewSteps: { key: string; label: string; icon: string; permission?: st
   { key: 'customer', label: '客户与联系人', icon: 'ep:office-building' },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
-  { key: 'tasks', label: '项目任务', icon: 'ep:list' },
-  { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:equipment:query'] },
+  { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:commerce:scope:query'] },
+  // Demo 1.1.1 / 1.1.1.1（设备序列号域，消费 ast_device 真实数据）
+  { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:device:query'] },
+  { key: 'config-log', label: '配置Log', icon: 'ep:document', permission: ['pms:device:query'] },
   { key: 'scope', label: '实施范围', icon: 'ep:files', permission: ['pms:commerce:scope:query'] }
 ]
+
+// ============ 交付模块面板（配置驱动，全部消费既有真实 API） ============
+// 项目级配置Log：后端分页仅支持按设备过滤（无 projectId），先取项目设备再合并各设备日志（Demo 1.1.1.1）
+const loadProjectConfigLogs = async (pid: number, pageNo: number, pageSize: number) => {
+  const eqRes = await DeviceArchiveApi.getDeviceArchivePage({ projectId: pid, pageNo: 1, pageSize: 200 })
+  const equipments = eqRes.list || []
+  const serialMap = new Map<number, string>(equipments.map((e: any) => [e.id, e.sn]))
+  const logLists = await Promise.all(
+    equipments.map((e: any) =>
+      DeviceConfigLogApi.getDeviceConfigLogPage({ deviceId: e.id, pageNo: 1, pageSize: pageNo * pageSize })
+        .then((res: any) =>
+          (res.list || []).map((log: any) => ({ ...log, serialNumber: serialMap.get(log.deviceId) ?? log.deviceId }))
+        )
+        .catch(() => [] as any[])
+    )
+  )
+  const merged = logLists
+    .flat()
+    .sort((a: any, b: any) => String(b.collectedAt || b.createTime || '').localeCompare(String(a.collectedAt || a.createTime || '')))
+  return { list: merged.slice((pageNo - 1) * pageSize, pageNo * pageSize), total: merged.length }
+}
+
+const deliveryModules: Record<string, DeliveryModuleConfig> = {
+  // --- 设备清单（订单信息：ERP销售订单→交付范围→组合维度明细展平；无独立明细API，内存分页） ---
+  equipment: {
+    label: '设备清单',
+    icon: 'ep:cpu',
+    path: '/customer-asset/delivery-scopes',
+    load: async (pid, pageNo, pageSize) => {
+      const res = await getDeliveryScopePage({ projectId: pid, pageNo: 1, pageSize: 200, includeHistory: false })
+      const rows = (res.list || []).flatMap((scope: any) => {
+        const base = { orderNo: scope.orderNo, lineNo: scope.lineNo, itemCode: scope.itemCode }
+        const details = scope.details || []
+        if (!details.length) {
+          return [{ ...base, productCode: '', deviceTypeCode: '', allocatedQuantity: scope.allocatedQuantity, status: scope.scopeStatus }]
+        }
+        return details.map((d: any) => ({
+          ...base,
+          productCode: d.productCode || '',
+          deviceTypeCode: d.deviceTypeCode || '',
+          allocatedQuantity: d.allocatedQuantity,
+          status: d.status || scope.scopeStatus
+        }))
+      })
+      return { list: rows.slice((pageNo - 1) * pageSize, pageNo * pageSize), total: rows.length }
+    },
+    columns: [
+      { prop: 'orderNo', label: '订单号', minWidth: 160 },
+      { prop: 'lineNo', label: '行号', width: 140 },
+      { prop: 'itemCode', label: '物料编码', minWidth: 150 },
+      { prop: 'productCode', label: '产品编码', minWidth: 140 },
+      { prop: 'deviceTypeCode', label: '设备类型', width: 120 },
+      { prop: 'allocatedQuantity', label: '数量', width: 90 },
+      { prop: 'status', label: '状态', width: 110 }
+    ]
+  },
+  // --- Demo 1.1.1 序列号详情（ast_device 按项目过滤；在网版本口径见配置Log，无既有来源不造列） ---
+  'sn-result': {
+    label: '序列号详情',
+    icon: 'ep:cpu',
+    path: '/customer-asset/device-archive',
+    load: (pid, pageNo, pageSize) => DeviceArchiveApi.getDeviceArchivePage({ projectId: pid, pageNo, pageSize }),
+    columns: [
+      { prop: 'sn', label: '序列号', width: 150 },
+      { prop: 'name', label: '设备名称', minWidth: 150 },
+      { prop: 'productModel', label: '产品型号', width: 120 },
+      { prop: 'locationSnapshot', label: '位置快照', minWidth: 140 },
+      { prop: 'warrantyStartDate', label: '维保开始', width: 110, type: 'time' },
+      { prop: 'warrantyEndDate', label: '维保结束', width: 110, type: 'time' },
+      { prop: 'status', label: '状态', width: 90, type: 'status' }
+    ],
+    // 状态口径：ast_device String 值域（pms_device_status 字典）
+    statusMap: {
+      IN_STOCK: { label: '在库', tone: 'gray' },
+      IN_USE: { label: '在用', tone: 'blue' },
+      FAULT: { label: '故障', tone: 'yellow' },
+      REPAIRING: { label: '维修中', tone: 'yellow' },
+      RETIRED: { label: '已报废', tone: 'red' }
+    },
+    // Demo 1.1.1 跨页操作：从序列号行直达该设备的配置Log页签
+    actions: [
+      { label: '配置Log', type: 'primary', run: async () => { await switchTab('config-log') } }
+    ]
+  },
+  // --- Demo 1.1.1.1 配置Log（Demo：log 文件可支持点击下载） ---
+  'config-log': {
+    label: '配置Log',
+    icon: 'ep:document',
+    path: '/pms/asset/device-config-log',
+    load: loadProjectConfigLogs,
+    columns: [
+      { prop: 'serialNumber', label: '序列号', width: 150 },
+      { prop: 'configType', label: '配置类型', width: 120 },
+      { prop: 'configContent', label: '配置内容', minWidth: 160 },
+      { prop: 'sourceSystem', label: '来源系统', width: 110 },
+      { prop: 'collectedAt', label: '采集时间', width: 140, type: 'time' },
+      { prop: 'fileHash', label: '文件哈希', minWidth: 150 },
+      { prop: 'remark', label: '备注', minWidth: 120 }
+    ],
+    actions: [
+      { label: '下载', type: 'primary', show: (r) => !!r.fileUrl, run: async (r) => { window.open(r.fileUrl, '_blank') } }
+    ]
+  },
+  // --- Demo 2.2.1 物料选择/换货协同（提交审批，通过后推送CRM；推送状态 PENDING→SENT→RECEIVED） ---
+  'material-exch': {
+    label: '物料换货',
+    icon: 'ep:sort',
+    path: '/pms/engineering/procurement/imp-material-exch',
+    load: (pid, pageNo, pageSize) => MaterialExchangeApi.getMaterialExchangePage({ projectId: pid, pageNo, pageSize }),
+    columns: [
+      { prop: 'code', label: '编码', width: 140 },
+      { prop: 'name', label: '换货单名称', minWidth: 140 },
+      { prop: 'exchangeType', label: '换货类型', width: 100, type: 'enum', valueMap: {
+        INCOMPATIBLE: '不兼容',
+        DEFECTIVE: '缺陷',
+        DAMAGED: '损坏',
+        OTHER: '其他'
+      } },
+      { prop: 'productCode', label: '物料编码', minWidth: 130 },
+      { prop: 'productModel', label: '产品型号', width: 110 },
+      { prop: 'quantity', label: '数量', width: 70 },
+      { prop: 'unit', label: '单位', width: 70 },
+      { prop: 'reason', label: '不符合项说明', minWidth: 150, type: 'html' },
+      { prop: 'remark', label: '备注', minWidth: 110 },
+      { prop: 'crmPushStatus', label: 'CRM推送', width: 100, type: 'enum', valueMap: {
+        PENDING: '待推送',
+        SENT: '已推送',
+        RECEIVED: '已回执',
+        CLOSED: '已关闭'
+      } },
+      { prop: 'status', label: '状态', width: 90, type: 'status' }
+    ],
+    statusMap: {
+      0: { label: '草稿', tone: 'gray' },
+      1: { label: '已提交', tone: 'blue' },
+      2: { label: '审批中', tone: 'yellow' },
+      3: { label: '已通过', tone: 'green' },
+      4: { label: '已驳回', tone: 'red' },
+      5: { label: '已撤回', tone: 'gray' },
+      6: { label: '已终止', tone: 'gray' }
+    },
+    actions: [
+      { label: '提交', type: 'primary', show: (r) => r.status === 0, confirm: '提交该换货申请？', run: (r) => MaterialExchangeApi.submitMaterialExchange(r.id) },
+      { label: '推送CRM', type: 'success', show: (r) => r.status === 3 && r.crmPushStatus === 'PENDING', confirm: '推送该换货单到CRM？', run: (r) => MaterialExchangeApi.pushCrmMaterialExchange(r.id) }
+    ]
+  }
+}
 
 const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
   value ? getDictLabel(dict!, value) : '不限'
@@ -640,6 +872,10 @@ const instMilestones = (code: string) =>
   instances.value?.milestones.filter((m) => m.stageCode === code) || []
 const instDeliverables = (code: string) =>
   instances.value?.deliverables.filter((d) => d.stageCode === code) || []
+const instTaskDeliverables = (taskCode: string) =>
+  instances.value?.deliverables.filter((d) => d.taskCode === taskCode) || []
+const instTaskName = (taskCode: string) =>
+  instances.value?.tasks.find((t) => t.taskCode === taskCode)?.name || taskCode
 const instGates = (code: string) => instances.value?.gates.filter((g) => g.stageCode === code) || []
 
 // ============ 数据加载 ============
@@ -706,6 +942,10 @@ watch(() => [route.query.section, route.query.tab], () => {
 
 <style lang="scss" scoped>
 /* 顶部档案区 */
+.task-deliverable-expand {
+  padding: 4px 12px;
+}
+
 .project-header {
   display: flex;
   align-items: flex-start;

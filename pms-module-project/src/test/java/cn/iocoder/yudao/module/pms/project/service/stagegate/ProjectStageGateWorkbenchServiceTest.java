@@ -41,7 +41,7 @@ class ProjectStageGateWorkbenchServiceTest {
 
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
-        project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setVersion(4);
+        project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setVersion(4L);
         project.setActivePlanVersionId(51L); project.setLifecycleStatus("ACTIVE"); project.setCurrentStage("ANOTHER_ACTIVE_STAGE");
         when(access.getProject(9L, actor)).thenReturn(project);
         when(projects.selectProjectForCommandForUpdate(any())).thenReturn(project);
@@ -53,7 +53,7 @@ class ProjectStageGateWorkbenchServiceTest {
         round.setRoundNo(2); round.setContractId(71L);
         when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round));
         when(executions.selectCurrentStageContextForUpdate(any())).thenReturn(new ProjectStageExecutionRecord(
-                9L, 4, "ACTIVE", 11L, 0, "ACTIVE", 71L, 1, 51L, 61L, 0, 2, "ACTIVE"));
+                9L, 4L, "ACTIVE", 11L, 0, "ACTIVE", 71L, 1, 51L, 61L, 0, 2, "ACTIVE"));
         gate = gate(21L, "READY", "PREP");
         when(graph.selectGatesForUpdate(any())).thenReturn(List.of(gate));
         var reference = new ProjectGateReferenceInstanceDO(); reference.setId(31L); reference.setTenantId(7L);
@@ -101,7 +101,7 @@ class ProjectStageGateWorkbenchServiceTest {
     void onlyActiveOrPendingEntryWorkCanBeStarted(String gateType, String status, boolean allowed) {
         gate.setGateType(gateType);
         when(executions.selectCurrentStageContextForUpdate(any())).thenReturn(new ProjectStageExecutionRecord(
-                9L, 4, "ACTIVE", 11L, 0, status, 71L, 1, 51L, 61L, 0, 2, status));
+                9L, 4L, "ACTIVE", 11L, 0, status, 71L, 1, 51L, 61L, 0, 2, status));
         assertEquals(allowed, service.inspect(9L, "PREP", actor).gates().getFirst().references().getFirst().canStart());
         project.setLifecycleStatus("CLOSED");
         assertFalse(service.inspect(9L, "PREP", actor).gates().getFirst().references().getFirst().canStart());

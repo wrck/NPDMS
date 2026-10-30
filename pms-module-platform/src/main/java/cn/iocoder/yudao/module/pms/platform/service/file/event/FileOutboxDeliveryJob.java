@@ -57,7 +57,12 @@ public class FileOutboxDeliveryJob implements JobHandler {
         int retried = 0;
         for (PlatformOutboxMessageDTO message : messages) {
             try {
-                eventPublisher.publishEvent(toMessage(message));
+                var event = toMessage(message);
+                eventPublisher.publishEvent(event);
+                Long referenceId = event instanceof FileReferenceAttachedMessage attached ? attached.referenceId()
+                        : event instanceof FileReferenceDetachedMessage detached ? detached.referenceId() : null;
+                if (referenceId != null) eventPublisher.publishEvent(
+                        new cn.iocoder.yudao.module.pms.platform.api.file.FileReferenceChanged(message.eventId(), message.tenantId(), referenceId));
                 outboxDeliveryApi.markDelivered(message.eventId(), message.retryCount());
                 delivered++;
             } catch (RuntimeException exception) {

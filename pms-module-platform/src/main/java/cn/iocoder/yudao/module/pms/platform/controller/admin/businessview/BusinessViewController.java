@@ -81,7 +81,7 @@ public class BusinessViewController {
     @PutMapping("/{id}")
     @PreAuthorize("@ss.hasPermission('pms:business-view:manage')")
     public CommonResult<BusinessViewRevision> update(@PathVariable @Positive Long id,
-            @RequestHeader("If-Match") @Min(0) Integer version,
+            @RequestHeader("If-Match") @Min(0) Long version,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String key,
             @Valid @RequestBody SelectionRequest request) {
         return success(service.update(id, version, key, request.selection()));
@@ -90,7 +90,7 @@ public class BusinessViewController {
     @PostMapping("/{id}/actions/copy")
     @PreAuthorize("@ss.hasPermission('pms:business-view:manage')")
     public CommonResult<BusinessViewRevision> copy(@PathVariable @Positive Long id,
-            @RequestHeader("If-Match") @Min(0) Integer version,
+            @RequestHeader("If-Match") @Min(0) Long version,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String key) {
         return success(service.copy(id, version, key));
     }
@@ -104,7 +104,7 @@ public class BusinessViewController {
     @PostMapping("/{id}/actions/publish")
     @PreAuthorize("@ss.hasPermission('pms:business-view:publish')")
     public CommonResult<BusinessViewRevision> publish(@PathVariable @Positive Long id,
-            @RequestHeader("If-Match") @Min(0) Integer version,
+            @RequestHeader("If-Match") @Min(0) Long version,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String key) {
         return success(service.publish(id, version, key));
     }
@@ -112,7 +112,7 @@ public class BusinessViewController {
     @PostMapping("/{id}/actions/disable")
     @PreAuthorize("@ss.hasPermission('pms:business-view:disable')")
     public CommonResult<BusinessViewRevision> disable(@PathVariable @Positive Long id,
-            @RequestHeader("If-Match") @Min(0) Integer version,
+            @RequestHeader("If-Match") @Min(0) Long version,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String key) {
         return success(service.disable(id, version, key));
     }

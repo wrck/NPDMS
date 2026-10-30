@@ -42,7 +42,7 @@ public class MenuServiceImpl implements MenuService {
     @Resource
     private MenuMapper menuMapper;
     @Resource
-    private PermissionService permissionService;
+    private PermissionAssociationService permissionService;
     @Resource
     @Lazy // 延迟，避免循环依赖报错
     private TenantService tenantService;

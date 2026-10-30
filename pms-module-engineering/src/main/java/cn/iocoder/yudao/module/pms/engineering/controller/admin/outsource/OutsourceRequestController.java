@@ -30,12 +30,12 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - PMS 外包申请 Controller（FR-ENG-002）。
  * <p>
- * 路径前缀 {@code /pms/eng-outsource}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
- * 对应菜单权限 {@code pms:eng-outsource:*}。
+ * 路径前缀 {@code /pms/res-outsource}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
+ * 对应菜单权限 {@code pms:res-outsource:*}。
  */
 @Tag(name = "管理后台 - PMS 外包申请")
 @RestController
-@RequestMapping("/pms/eng-outsource")
+@RequestMapping("/pms/res-outsource")
 @Validated
 public class OutsourceRequestController {
 
@@ -44,14 +44,14 @@ public class OutsourceRequestController {
 
     @PostMapping("/create")
     @Operation(summary = "创建外包申请")
-    @PreAuthorize("@ss.hasPermission('pms:eng-outsource:create')")
+    @PreAuthorize("@ss.hasPermission('pms:res-outsource:create')")
     public CommonResult<Long> createOutsourceRequest(@Valid @RequestBody OutsourceRequestSaveReqVO createReqVO) {
         return success(outsourceRequestService.createOutsourceRequest(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新外包申请")
-    @PreAuthorize("@ss.hasPermission('pms:eng-outsource:update')")
+    @PreAuthorize("@ss.hasPermission('pms:res-outsource:update')")
     public CommonResult<Boolean> updateOutsourceRequest(@Valid @RequestBody OutsourceRequestSaveReqVO updateReqVO) {
         outsourceRequestService.updateOutsourceRequest(updateReqVO);
         return success(true);
@@ -60,7 +60,7 @@ public class OutsourceRequestController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除外包申请")
     @Parameter(name = "id", description = "外包申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-outsource:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:res-outsource:delete')")
     public CommonResult<Boolean> deleteOutsourceRequest(@RequestParam("id") Long id,
             @RequestBody(required = false) cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection siteSurveyExecution) {
         outsourceRequestService.deleteOutsourceRequest(id, siteSurveyExecution);
@@ -70,7 +70,7 @@ public class OutsourceRequestController {
     @GetMapping("/get")
     @Operation(summary = "查询外包申请详情")
     @Parameter(name = "id", description = "外包申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-outsource:query')")
+    @PreAuthorize("@ss.hasPermission('pms:res-outsource:query')")
     public CommonResult<OutsourceRequestRespVO> getOutsourceRequest(@RequestParam("id") Long id) {
         OutsourceRequestDO entity = outsourceRequestService.getOutsourceRequest(id);
         return success(BeanUtils.toBean(entity, OutsourceRequestRespVO.class));
@@ -78,7 +78,7 @@ public class OutsourceRequestController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询外包申请")
-    @PreAuthorize("@ss.hasPermission('pms:eng-outsource:query')")
+    @PreAuthorize("@ss.hasPermission('pms:res-outsource:query')")
     public CommonResult<PageResult<OutsourceRequestRespVO>> getOutsourceRequestPage(@Validated OutsourceRequestPageReqVO pageReqVO) {
         PageResult<OutsourceRequestDO> pageResult = outsourceRequestService.getOutsourceRequestPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, OutsourceRequestRespVO.class));
@@ -87,7 +87,7 @@ public class OutsourceRequestController {
     @PutMapping("/submit")
     @Operation(summary = "提交外包申请（0 草稿 / 4 已驳回 → 1 已提交）")
     @Parameter(name = "id", description = "外包申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-outsource:update')")
+    @PreAuthorize("@ss.hasPermission('pms:res-outsource:update')")
     public CommonResult<Boolean> submitOutsourceRequest(@RequestParam("id") Long id) {
         outsourceRequestService.submitOutsourceRequest(id);
         return success(true);
@@ -95,7 +95,7 @@ public class OutsourceRequestController {
 
     @PutMapping("/approve")
     @Operation(summary = "审批外包申请（1 已提交 / 2 审批中 → 3/4/0/2）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-outsource:update')")
+    @PreAuthorize("@ss.hasPermission('pms:res-outsource:update')")
     public CommonResult<Boolean> approveOutsourceRequest(@Valid @RequestBody OutsourceRequestApproveReqVO reqVO) {
         outsourceRequestService.approveOutsourceRequest(reqVO);
         return success(true);
@@ -104,7 +104,7 @@ public class OutsourceRequestController {
     @PutMapping("/withdraw")
     @Operation(summary = "撤回外包申请（1 已提交 / 2 审批中 → 5 已撤回）")
     @Parameter(name = "id", description = "外包申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-outsource:update')")
+    @PreAuthorize("@ss.hasPermission('pms:res-outsource:update')")
     public CommonResult<Boolean> withdrawOutsourceRequest(@RequestParam("id") Long id) {
         outsourceRequestService.withdrawOutsourceRequest(id);
         return success(true);
@@ -113,7 +113,7 @@ public class OutsourceRequestController {
     @PutMapping("/terminate")
     @Operation(summary = "终止外包申请（非 3 已通过 / 非 6 已终止 → 6 已终止）")
     @Parameter(name = "id", description = "外包申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-outsource:update')")
+    @PreAuthorize("@ss.hasPermission('pms:res-outsource:update')")
     public CommonResult<Boolean> terminateOutsourceRequest(@RequestParam("id") Long id) {
         outsourceRequestService.terminateOutsourceRequest(id);
         return success(true);

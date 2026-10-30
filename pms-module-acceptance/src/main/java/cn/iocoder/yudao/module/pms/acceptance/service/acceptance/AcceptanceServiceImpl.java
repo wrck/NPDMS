@@ -1,0 +1,272 @@
+package cn.iocoder.yudao.module.pms.acceptance.service.acceptance;
+
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
+import cn.iocoder.yudao.module.pms.acceptance.controller.admin.acceptance.vo.AcceptancePageReqVO;
+import cn.iocoder.yudao.module.pms.acceptance.controller.admin.acceptance.vo.AcceptanceSaveReqVO;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptance.AcceptanceDO;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.deliverablechecklist.DeliverableChecklistDO;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AcceptanceMapper;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.AcceptanceOwnerLockQuery;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.AcceptancePageQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.acceptance.service.AcceptanceRecordCodeGenerator;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.deliverablechecklist.DeliverableChecklistMapper;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.deliverablechecklist.query.DeliverableChecklistAcceptanceQuery;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
+
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.ACC_ACCEPTANCE_CODE_DUPLICATE;
+import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.ACC_ACCEPTANCE_DELIVERABLE_INCOMPLETE;
+import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.ACC_ACCEPTANCE_NOT_EXISTS;
+import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.ACC_ACCEPTANCE_STATUS_INVALID;
+import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.ACC_ACCEPTANCE_VERSION_CONFLICT;
+
+/**
+ * 初验/终验 Service 实现类
+ * <p>
+ * 状态机：0草稿 → 1待提交 → 2审批中 → 3已通过 → 4已驳回 → 5已归档
+ * 门禁：验收通过（pass 2→3）前校验交付件完整性（FR-ACC-005），必交交付件必须全部通过
+ *
+ * @deprecated 旧V17单行验收模型仅保留历史兼容；新实施使用F-ACC-001验收活动与报告版本服务。
+ */
+@Service
+@Validated
+@Deprecated(since = "F-ACC-001", forRemoval = false)
+public class AcceptanceServiceImpl implements AcceptanceService {
+
+    /**
+     * 状态：0草稿
+     */
+    private static final int STATUS_DRAFT = 0;
+    /**
+     * 状态：1待提交
+     */
+    private static final int STATUS_PENDING_SUBMIT = 1;
+    /**
+     * 状态：2审批中
+     */
+    private static final int STATUS_APPROVING = 2;
+    /**
+     * 状态：3已通过
+     */
+    private static final int STATUS_PASSED = 3;
+    /**
+     * 状态：4已驳回
+     */
+    private static final int STATUS_REJECTED = 4;
+    /**
+     * 状态：5已归档
+     */
+    private static final int STATUS_ARCHIVED = 5;
+
+    /**
+     * 交付件类型：必交
+     */
+    private static final String DELIVERABLE_TYPE_REQUIRED = "REQUIRED";
+    /**
+     * 交付件状态：已通过
+     */
+    private static final int DELIVERABLE_STATUS_PASSED = 2;
+
+    @Resource
+    private AcceptanceMapper acceptanceMapper;
+    @Resource
+    private AcceptanceRecordCodeGenerator recordCodeGenerator;
+    @Resource
+    private DeliverableChecklistMapper deliverableChecklistMapper;
+    @Resource
+    private NativeAcceptanceProjectAccess projectAccess;
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long createAcceptance(AcceptanceSaveReqVO createReqVO) {
+        if (createReqVO.getStatus() != null && createReqVO.getStatus() != STATUS_DRAFT) {
+            throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
+        }
+        projectAccess.requireWrite(createReqVO.getProjectId());
+        // 插入；编码由系统按项目编码自动生成
+        AcceptanceDO entity = BeanUtils.toBean(createReqVO, AcceptanceDO.class);
+        entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                AcceptanceRecordCodeGenerator.ACCEPTANCE, acceptanceMapper));
+        if (entity.getStatus() == null) {
+            entity.setStatus(STATUS_DRAFT);
+        }
+        if (entity.getAcceptanceType() == null) {
+            entity.setAcceptanceType("PRELIMINARY");
+        }
+        acceptanceMapper.insert(entity);
+        return entity.getId();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAcceptance(AcceptanceSaveReqVO updateReqVO) {
+        AcceptanceDO existing = validateExists(updateReqVO.getId());
+        // 仅草稿态允许修改核心字段（编码由系统生成不可改）
+        if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
+            throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
+        }
+        AcceptanceDO updateObj = BeanUtils.toBean(updateReqVO, AcceptanceDO.class);
+        projectAccess.requireWrite(updateReqVO.getProjectId());
+        if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())
+                && deliverableChecklistMapper.selectByAcceptance(new DeliverableChecklistAcceptanceQuery(
+                        TenantContextHolder.getRequiredTenantId(), existing.getId(), null)).stream()
+                .anyMatch(row -> !Objects.equals(row.getProjectId(), updateReqVO.getProjectId()))) {
+            throw exception(ACC_ACCEPTANCE_DELIVERABLE_INCOMPLETE);
+        }
+        // 保持状态不被前端覆盖
+        updateObj.setStatus(existing.getStatus());
+        updateRecord(updateObj);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteAcceptance(Long id) {
+        AcceptanceDO existing = validateExists(id);
+        // 仅草稿或已驳回状态允许删除
+        if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)
+                && !Objects.equals(existing.getStatus(), STATUS_REJECTED)) {
+            throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
+        }
+        acceptanceMapper.deleteById(id);
+    }
+
+    @Override
+    public PageResult<AcceptanceDO> getAcceptancePage(AcceptancePageReqVO pageReqVO) {
+        var query = BeanUtils.toBean(pageReqVO, AcceptancePageQuery.class);
+        query.setTenantId(TenantContextHolder.getRequiredTenantId());
+        query.setVisibleProjectIds(projectAccess.readableProjects());
+        return acceptanceMapper.selectPage(query);
+    }
+
+    @Override
+    public AcceptanceDO getAcceptance(Long id) {
+        var row = acceptanceMapper.selectById(id);
+        if (row != null) projectAccess.requireRead(row.getProjectId());
+        return row;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void submitAcceptance(Long id) {
+        AcceptanceDO entity = validateExists(id);
+        if (!Objects.equals(entity.getStatus(), STATUS_DRAFT)) {
+            throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
+        }
+        AcceptanceDO updateObj = new AcceptanceDO();
+        updateObj.setId(id);
+        updateObj.setStatus(STATUS_PENDING_SUBMIT);
+        updateObj.setApplyTime(LocalDateTime.now());
+        updateObj.setVersion(entity.getVersion());
+        updateRecord(updateObj);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void approveAcceptance(Long id) {
+        AcceptanceDO entity = validateExists(id);
+        if (!Objects.equals(entity.getStatus(), STATUS_PENDING_SUBMIT)) {
+            throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
+        }
+        AcceptanceDO updateObj = new AcceptanceDO();
+        updateObj.setId(id);
+        updateObj.setVersion(entity.getVersion());
+        updateObj.setStatus(STATUS_APPROVING);
+        updateRecord(updateObj);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void passAcceptance(Long id) {
+        AcceptanceDO entity = validateExists(id);
+        if (!Objects.equals(entity.getStatus(), STATUS_APPROVING)) {
+            throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
+        }
+        // FR-ACC-005 门禁：校验关联的必交交付件全部通过
+        validateDeliverableComplete(entity);
+        AcceptanceDO updateObj = new AcceptanceDO();
+        updateObj.setId(id);
+        updateObj.setStatus(STATUS_PASSED);
+        updateObj.setApproveTime(LocalDateTime.now());
+        updateObj.setVersion(entity.getVersion());
+        updateRecord(updateObj);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void rejectAcceptance(Long id) {
+        AcceptanceDO entity = validateExists(id);
+        if (!Objects.equals(entity.getStatus(), STATUS_APPROVING)) {
+            throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
+        }
+        AcceptanceDO updateObj = new AcceptanceDO();
+        updateObj.setId(id);
+        updateObj.setStatus(STATUS_REJECTED);
+        updateObj.setApproveTime(LocalDateTime.now());
+        updateObj.setVersion(entity.getVersion());
+        updateRecord(updateObj);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void archiveAcceptance(Long id) {
+        AcceptanceDO entity = validateExists(id);
+        if (!Objects.equals(entity.getStatus(), STATUS_PASSED)) {
+            throw exception(ACC_ACCEPTANCE_STATUS_INVALID);
+        }
+        AcceptanceDO updateObj = new AcceptanceDO();
+        updateObj.setId(id);
+        updateObj.setStatus(STATUS_ARCHIVED);
+        updateObj.setArchiveTime(LocalDateTime.now());
+        updateObj.setVersion(entity.getVersion());
+        updateRecord(updateObj);
+    }
+
+    /**
+     * FR-ACC-005 交付件完整性门禁：校验该验收关联的所有 REQUIRED 交付件均已通过
+     */
+    private void validateDeliverableComplete(AcceptanceDO acceptance) {
+        List<DeliverableChecklistDO> requiredList =
+                deliverableChecklistMapper.selectByAcceptance(new DeliverableChecklistAcceptanceQuery(
+                        TenantContextHolder.getRequiredTenantId(), acceptance.getId(), DELIVERABLE_TYPE_REQUIRED));
+        if (requiredList == null || requiredList.isEmpty()) {
+            // 无必交交付件时，门禁默认放行（由配置或上层规则决定必交清单）
+            return;
+        }
+        for (DeliverableChecklistDO deliverable : requiredList) {
+            if (!Objects.equals(deliverable.getProjectId(), acceptance.getProjectId())
+                    || !Objects.equals(deliverable.getStatus(), DELIVERABLE_STATUS_PASSED)) {
+                throw exception(ACC_ACCEPTANCE_DELIVERABLE_INCOMPLETE);
+            }
+        }
+    }
+
+    private void updateRecord(AcceptanceDO row) {
+        if (row.getVersion() == null || acceptanceMapper.updateById(row) != 1) {
+            throw exception(ACC_ACCEPTANCE_VERSION_CONFLICT);
+        }
+    }
+
+    private AcceptanceDO validateExists(Long id) {
+        if (id == null) {
+            throw exception(ACC_ACCEPTANCE_NOT_EXISTS);
+        }
+        AcceptanceDO entity = acceptanceMapper.selectOwnerForUpdate(new AcceptanceOwnerLockQuery(
+                TenantContextHolder.getRequiredTenantId(), id));
+        if (entity == null) {
+            throw exception(ACC_ACCEPTANCE_NOT_EXISTS);
+        }
+        projectAccess.requireWrite(entity.getProjectId());
+        return entity;
+    }
+
+
+}

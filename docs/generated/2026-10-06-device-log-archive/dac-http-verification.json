@@ -1,0 +1,13 @@
+{
+  "statuses": {
+    "positive": 200,
+    "execute_scope_missing": 403,
+    "namespace_denied": 403,
+    "project_denied": 403,
+    "serial_missing": 422
+  },
+  "devices": [
+    "SN001",
+    "SN002"
+  ]
+}

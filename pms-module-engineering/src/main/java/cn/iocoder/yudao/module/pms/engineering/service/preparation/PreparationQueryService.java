@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.preparation;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationCursorPageRespVO;
@@ -31,16 +32,12 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.Prepa
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationWaiverBusinessQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectWorkBindingFactQuery;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +69,7 @@ public class PreparationQueryService {
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectWorkBindingFactApi workBindingFactApi;
-    private final ProjectParticipantFactApi participantFactApi;
+    private final ProjectManagementQualificationApi managementAccess;
 
     public PreparationRespVO getCurrent(Long projectId, String type, Actor actor) {
         requireQuery(actor, projectId);
@@ -179,8 +176,11 @@ public class PreparationQueryService {
                 PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), checkedProjectId, ProjectScopeApi.ACTION_VIEW));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(checkedProjectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(checkedProjectId)) {
             throw exception(FORBIDDEN);
         }
@@ -290,18 +290,16 @@ public class PreparationQueryService {
             boolean manage = permissionApi.hasAnyPermissions(
                     actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE);
             if (!current || !manage) return new ActionContext(current, false, fill, preparation.getStatusCode());
-            var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.actorId(),
-                    preparation.getProjectId(), ProjectScopeApi.ACTION_MANAGE));
+            var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(preparation.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
             if (scope == null || scope.fullProjectIds() == null
                     || !scope.fullProjectIds().contains(preparation.getProjectId())) {
                 return new ActionContext(true, false, fill, preparation.getStatusCode());
             }
-            ProjectParticipantFact fact = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                    preparation.getProjectId(), actor.actorId(), Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                    LocalDateTime.now()));
-            boolean manager = fact != null && Objects.equals(fact.projectId(), preparation.getProjectId())
-                    && Objects.equals(fact.userId(), actor.actorId()) && "ACTIVE".equals(fact.lifecycleStatus())
-                    && fact.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
+            boolean manager = (managementAccess.inspect(new ProjectManagementQualificationApi.Query(actor.tenantId(), preparation.getProjectId(), actor.actorId())) != null);
             return new ActionContext(true, manager, fill, preparation.getStatusCode());
         } catch (RuntimeException unavailable) {
             return new ActionContext(current, false, false, preparation.getStatusCode());

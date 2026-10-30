@@ -6,10 +6,10 @@ import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverCl
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record CutoverClosureView(Long taskId, String taskStage, String taskStatus, Integer taskVersion,
-                                 Long closureId, Integer closureVersion, String closureStatus,
-                                 Long approvalInstanceId, Integer approvalVersion,
-                                 Long planRevisionId, Integer planRevisionNo, Integer planVersion,
+public record CutoverClosureView(Long taskId, String taskStage, String taskStatus, Long taskVersion,
+                                 Long closureId, Long closureVersion, String closureStatus,
+                                 Long approvalInstanceId, Long approvalVersion,
+                                 Long planRevisionId, Integer planRevisionNo, Long planVersion,
                                  ClosureContent content, List<CollectionEvidenceView> collectionEvidence,
                                  String resultRef, Long submittedBy, LocalDateTime submittedAt,
                                  LocalDateTime archivedAt, List<String> allowedActions) {

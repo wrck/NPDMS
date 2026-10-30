@@ -24,11 +24,11 @@ import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessEx
 /**
  * 管理后台 - 现场工勘 Controller（FR-ENG-001）。
  * <p>
- * 路径前缀 {@code /pms/eng-site-survey}。
+ * 路径前缀 {@code /pms/sol-site-survey}。
  */
 @Tag(name = "管理后台 - 现场工勘")
 // Retired HTTP entry: the independent survey controller owns all current business operations.
-@RequestMapping({"/pms/eng-site-survey", "/api/v1/pms/site-surveys"})
+@RequestMapping({"/pms/sol-site-survey", "/api/v1/pms/site-surveys"})
 @Validated
 public class SiteSurveyController {
 
@@ -39,28 +39,28 @@ public class SiteSurveyController {
     private cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.SiteSurveyFormService formService;
 
     @GetMapping("/form-schema")
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:query')")
     public CommonResult<SiteSurveyFormSchemaRespVO> formSchema(
             @RequestParam Long revisionId, @RequestParam Integer revisionVersion) {
         return success(SiteSurveyFormSchemaRespVO.from(formService.schema(revisionId, revisionVersion, false)));
     }
 
     @GetMapping("/default-form-schema")
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:query')")
     public CommonResult<SiteSurveyFormSchemaRespVO> defaultFormSchema() {
         return success(SiteSurveyFormSchemaRespVO.from(formService.defaultSchema()));
     }
 
     @PostMapping("/create")
     @Operation(summary = "创建现场工勘")
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:create')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:create')")
     public CommonResult<Long> createSiteSurvey(@Valid @RequestBody SiteSurveySaveReqVO createReqVO) {
         return success(siteSurveyService.createSiteSurvey(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新现场工勘")
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:update')")
     public CommonResult<Boolean> updateSiteSurvey(@Valid @RequestBody SiteSurveySaveReqVO updateReqVO) {
         siteSurveyService.updateSiteSurvey(updateReqVO);
         return success(true);
@@ -69,7 +69,7 @@ public class SiteSurveyController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除现场工勘")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:delete')")
     public CommonResult<Boolean> deleteSiteSurvey(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
         siteSurveyService.deleteSiteSurvey(id, execution);
         return success(true);
@@ -78,7 +78,7 @@ public class SiteSurveyController {
     @GetMapping("/get")
     @Operation(summary = "查询现场工勘详情")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:query')")
     public CommonResult<SiteSurveyRespVO> getSiteSurvey(@RequestParam("id") Long id) {
         SiteSurveyDO survey = siteSurveyService.getSiteSurvey(id);
         return success(BeanUtils.toBean(survey, SiteSurveyRespVO.class));
@@ -86,7 +86,7 @@ public class SiteSurveyController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询现场工勘")
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:query')")
     public CommonResult<PageResult<SiteSurveyRespVO>> getSiteSurveyPage(@Validated SiteSurveyPageReqVO pageReqVO) {
         PageResult<SiteSurveyDO> pageResult = siteSurveyService.getSiteSurveyPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, SiteSurveyRespVO.class));
@@ -95,7 +95,7 @@ public class SiteSurveyController {
     @PutMapping("/confirm")
     @Operation(summary = "确认工勘")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:update')")
     public CommonResult<Boolean> confirmSiteSurvey(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
         siteSurveyService.confirmSiteSurvey(id, execution);
         return success(true);
@@ -104,7 +104,7 @@ public class SiteSurveyController {
     @PutMapping("/reject")
     @Operation(summary = "驳回工勘")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:update')")
     public CommonResult<Boolean> rejectSiteSurvey(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
         siteSurveyService.rejectSiteSurvey(id, execution);
         return success(true);
@@ -113,7 +113,7 @@ public class SiteSurveyController {
     @PutMapping("/archive")
     @Operation(summary = "归档工勘")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-site-survey:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-site-survey:update')")
     public CommonResult<Boolean> archiveSiteSurvey(@RequestParam("id") Long id, @RequestBody(required = false) ProjectBusinessExecutionSelection execution) {
         siteSurveyService.archiveSiteSurvey(id, execution);
         return success(true);

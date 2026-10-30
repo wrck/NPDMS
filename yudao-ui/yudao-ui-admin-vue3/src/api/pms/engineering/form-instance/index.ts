@@ -19,7 +19,7 @@ export interface FormInstanceVO {
   createTime?: string
 }
 
-const baseUrl = '/pms/eng-form-instance'
+const baseUrl = '/pms/plt-form-instance'
 
 export const getFormInstancePage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

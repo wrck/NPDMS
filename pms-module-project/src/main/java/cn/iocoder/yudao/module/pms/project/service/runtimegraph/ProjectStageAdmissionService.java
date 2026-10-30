@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.runtimegraph;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
@@ -72,7 +73,7 @@ public class ProjectStageAdmissionService {
         var plan = plans.selectEffective(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery(tenantId, projectId));
         if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId()))
             return List.of(new StageAdmission(null, null, RuleEvaluation.Outcome.UNKNOWN, "PROJECT_PLAN_VERSION_UNAVAILABLE", false));
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var query = new ProjectRuntimeGraphQuery(tenantId, projectId);
         var nodes = graph.selectStagesForUpdate(query);
         var contracts = graph.selectContracts(query);
@@ -156,38 +157,98 @@ public class ProjectStageAdmissionService {
             cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO project,
             cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO task,
             cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO taskContract) {
+        var view = taskAdmissionView(project, task, taskContract);
+        return view.outcome() == RuleEvaluation.Outcome.UNKNOWN ? admissionUnavailable() : RuleFact.known(view.outcome() == RuleEvaluation.Outcome.MATCHED);
+    }
+
+    public record TaskAdmissionCondition(String label, RuleEvaluation.Outcome outcome) { }
+    public record TaskAdmissionView(RuleEvaluation.Outcome outcome, List<TaskAdmissionCondition> conditions) {
+        public TaskAdmissionView { conditions = List.copyOf(conditions); }
+        private static TaskAdmissionView unavailable() { return new TaskAdmissionView(RuleEvaluation.Outcome.UNKNOWN, List.of()); }
+    }
+
+    /** Keep the command's project-first lock order when previewing from an authorized workbench read. */
+    @Transactional(rollbackFor = Exception.class)
+    public TaskAdmissionView previewTaskAdmission(
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO project,
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO task,
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO taskContract) {
+        if (!Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId())) return TaskAdmissionView.unavailable();
+        var locked = projects.selectProjectForCommandForUpdate(new ProjectTaskProjectLockQuery(project.getTenantId(), project.getId()));
+        if (locked == null || !Objects.equals(locked.getVersion(), project.getVersion())
+                || !Objects.equals(locked.getActivePlanVersionId(), project.getActivePlanVersionId())) return TaskAdmissionView.unavailable();
+        return taskAdmissionView(locked, task, taskContract);
+    }
+
+    /** Read-only preview of the same frozen rule used by START; never activates or records a round. */
+    @Transactional(rollbackFor = Exception.class)
+    public TaskAdmissionView taskAdmissionView(
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO project,
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO task,
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO taskContract) {
+        return evaluateTaskAdmission(new TaskPrerequisiteQuery(project, task, taskContract), false);
+    }
+
+    public record TaskPrerequisiteQuery(
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO project,
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO task,
+            cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO contract) { }
+
+    /** Owner submission can follow a completed stage; this does not grant START or reopen that stage. */
+    @Transactional(rollbackFor = Exception.class)
+    public TaskAdmissionView submissionPrerequisites(TaskPrerequisiteQuery query) {
+        return evaluateTaskAdmission(query, true);
+    }
+
+    private TaskAdmissionView evaluateTaskAdmission(TaskPrerequisiteQuery request, boolean submission) {
+        var project = request.project();
+        var task = request.task();
+        var taskContract = request.contract();
         if (!"ACTIVE".equals(project.getLifecycleStatus()) || !Objects.equals(project.getId(), task.getProjectId())
-                || !Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId())) return admissionUnavailable();
+                || !Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId())) return TaskAdmissionView.unavailable();
         var query = new ProjectRuntimeGraphQuery(project.getTenantId(), project.getId());
         var parents = graph.selectStagesForUpdate(query).stream().filter(stage -> Objects.equals(stage.getCode(), task.getStageCode())).toList();
-        if (parents.size() != 1) return admissionUnavailable();
-        if (!"ACTIVE".equals(parents.getFirst().getStatus())) return RuleFact.known(false);
+        if (parents.size() != 1) return TaskAdmissionView.unavailable();
         var parent = parents.getFirst();
         var matching = graph.selectContracts(query).stream().filter(contract -> Objects.equals(contract.getStageId(), parent.getId())).toList();
-        if (matching.size() != 1 || taskContract.getSourceNodeKey() == null) return admissionUnavailable();
+        if (matching.size() != 1 || taskContract.getSourceNodeKey() == null) return TaskAdmissionView.unavailable();
         var contract = matching.getFirst();
         try {
-            if (!Objects.equals(contract.getGraphVersion(), parent.getGraphVersion()) || contract.getEffectiveTo() != null) return admissionUnavailable();
+            if (!Objects.equals(contract.getGraphVersion(), parent.getGraphVersion()) || contract.getEffectiveTo() != null) return TaskAdmissionView.unavailable();
             var plan = plans.selectEffective(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery(project.getTenantId(), project.getId()));
-            if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())) return admissionUnavailable();
-            var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+            if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())) return TaskAdmissionView.unavailable();
+            var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
             var definitions = snapshot.getTasks().stream().filter(node -> taskContract.getSourceNodeKey().equals(node.getNodeKey())
                     && task.getCode().equals(node.getCode()) && task.getStageCode().equals(node.getStageCode())).toList();
-            if (definitions.size() != 1) return admissionUnavailable();
+            if (definitions.size() != 1) return TaskAdmissionView.unavailable();
+            boolean stageAllowsWork = "ACTIVE".equals(parent.getStatus())
+                    || ("DONE".equals(parent.getStatus()) && (submission || Boolean.FALSE.equals(definitions.getFirst().getRequired())));
+            if (!stageAllowsWork) return new TaskAdmissionView(RuleEvaluation.Outcome.NOT_MATCHED,
+                    List.of(new TaskAdmissionCondition("所属阶段不允许办理此任务", RuleEvaluation.Outcome.NOT_MATCHED)));
             String key = definitions.getFirst().getAdmissionRuleKey();
-            if (key == null || key.isBlank()) return RuleFact.known(true);
+            if (key == null || key.isBlank()) return new TaskAdmissionView(RuleEvaluation.Outcome.MATCHED, List.of());
             var program = snapshot.getRulePrograms().get(key);
-            if (program == null) return admissionUnavailable();
+            if (program == null) return TaskAdmissionView.unavailable();
             var gates = graph.selectGatesForUpdate(query);
             var gateRefs = gates.isEmpty() ? List.<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO>of()
                     : references.selectOrderedForUpdate(new ProjectGateReferenceForUpdateQuery(project.getTenantId(),
                             gates.stream().map(gate -> gate.getId()).toList()));
             var result = evaluator.evaluate("plan:" + plan.getId() + ":task:" + task.getId() + ":admission",
                     program, new ProjectRuntimeRuleEvaluator.Facts(project, parent, graph.selectTasksForUpdate(query), gates, gateRefs, false));
-            return result.outcome() == RuleEvaluation.Outcome.UNKNOWN ? admissionUnavailable()
-                    : RuleFact.known(result.matched());
+            var conditions = result.conditions().stream().filter(condition -> condition.outcome() != RuleEvaluation.Outcome.MATCHED)
+                    .map(condition -> {
+                        var leaf = program.leaves().stream().filter(item -> item.key().equals(condition.key())).findFirst().orElse(null);
+                        String label = "准入条件";
+                        if (leaf != null && "TASK".equals(leaf.predicate())) {
+                            String refCode = leaf.parameters().path("refCode").asText();
+                            label = snapshot.getTasks().stream().filter(item -> refCode.equals(item.getCode()))
+                                    .map(item -> item.getName() == null ? item.getCode() : item.getName()).findFirst().orElse("前置任务");
+                        }
+                        return new TaskAdmissionCondition(label, condition.outcome());
+                    }).toList();
+            return new TaskAdmissionView(result.outcome(), conditions);
         } catch (RuntimeException unavailable) {
-            return admissionUnavailable();
+            return TaskAdmissionView.unavailable();
         }
     }
 

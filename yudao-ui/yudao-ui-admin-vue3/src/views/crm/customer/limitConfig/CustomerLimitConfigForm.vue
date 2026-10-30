@@ -8,14 +8,7 @@
       v-loading="formLoading"
     >
       <el-form-item label="规则适用人群" prop="userIds">
-        <el-select multiple filterable v-model="formData.userIds">
-          <el-option
-            v-for="item in userOptions"
-            :key="item.id"
-            :label="item.nickname"
-            :value="item.id"
-          />
-        </el-select>
+        <UserSelect multiple v-model="formData.userIds" :clearable="false" />
       </el-form-item>
       <el-form-item label="规则适用部门" prop="deptIds">
         <el-tree-select
@@ -54,10 +47,10 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as CustomerLimitConfigApi from '@/api/crm/customer/limitConfig'
 import * as DeptApi from '@/api/system/dept'
 import { defaultProps, handleTree } from '@/utils/tree'
-import * as UserApi from '@/api/system/user'
 import { LimitConfType } from '@/api/crm/customer/limitConfig'
 
 const { t } = useI18n() // 国际化
@@ -81,7 +74,6 @@ const formRules = reactive({
 })
 const formRef = ref() // 表单 Ref
 const deptTree = ref() // 部门树形结构
-const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 
 /** 打开弹窗 */
 const open = async (type: string, limitConfType: LimitConfType, id?: number) => {
@@ -103,7 +95,7 @@ const open = async (type: string, limitConfType: LimitConfType, id?: number) => 
   // 获得部门树
   deptTree.value = handleTree(await DeptApi.getSimpleDeptList())
   // 获得用户
-  userOptions.value = await UserApi.getSimpleUserList()
+
 }
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗
 

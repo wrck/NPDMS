@@ -11,7 +11,7 @@ public class ProjectSplitRequestRespVO {
     private Long parentProjectId;
     private String status;
     private Integer draftVersion;
-    private Integer parentVersion;
+    private Long parentVersion;
     private Long scopeVersion;
     private Long treeVersion;
     private Long templateRevisionId;
@@ -27,7 +27,7 @@ public class ProjectSplitRequestRespVO {
         private String projectName;
         private String businessLevelCode;
         private Integer treeSort;
-        private String officeDepartmentCode;
+        private String departmentCode;
         private Long templateRevisionId;
         private String templateSelectionReason;
         private String itemStatus;
@@ -38,7 +38,7 @@ public class ProjectSplitRequestRespVO {
         private Long id;
         private Long orderLineId;
         private BigDecimal allocatedQty;
-        private String officeDepartmentCode;
+        private String departmentCode;
         private String serialNo;
         private Long sourceScopeVersion;
     }

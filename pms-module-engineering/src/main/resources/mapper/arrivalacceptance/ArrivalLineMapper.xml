@@ -4,13 +4,13 @@
 <mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.ArrivalLineMapper">
     <sql id="columns">
         id, arrival_acceptance_id, line_no, line_revision, scope_type,
-        device_id, device_assignment_version, order_line_id, product_code, model_code,
+        device_id, device_assignment_version, order_line_id, product_code, product_model,
         expected_quantity, accepted_quantity, unit, status, current_marker, version,
         creator, create_time, updater, update_time, deleted, tenant_id
     </sql>
     <sql id="qualifiedColumns">
         l.id, l.arrival_acceptance_id, l.line_no, l.line_revision, l.scope_type,
-        l.device_id, l.device_assignment_version, l.order_line_id, l.product_code, l.model_code,
+        l.device_id, l.device_assignment_version, l.order_line_id, l.product_code, l.product_model,
         l.expected_quantity, l.accepted_quantity, l.unit, l.status, l.current_marker, l.version,
         l.creator, l.create_time, l.updater, l.update_time, l.deleted, l.tenant_id
     </sql>

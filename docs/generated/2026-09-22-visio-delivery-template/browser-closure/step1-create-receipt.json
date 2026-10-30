@@ -1,0 +1,54 @@
+{
+  "projectName": "视讯交付浏览器闭环-直签",
+  "projectId": 992203060035,
+  "match": [
+    {
+      "code": "xs",
+      "implementationMethod": null,
+      "latestRevisionNo": 2,
+      "majorProjectLevel": null,
+      "matchPriority": 1,
+      "name": "xs",
+      "projectCategory": null,
+      "ruleName": "不限",
+      "signingMethod": null,
+      "templateId": 993009900012,
+      "templateRevisionId": 993009900022
+    },
+    {
+      "code": "TPL-DELIVERY-FLOW-20260922",
+      "implementationMethod": null,
+      "latestRevisionNo": 9,
+      "majorProjectLevel": null,
+      "matchPriority": 1,
+      "name": "项目交付全流程模板（流程图2）",
+      "projectCategory": null,
+      "ruleName": "不限",
+      "signingMethod": null,
+      "templateId": 993009900014,
+      "templateRevisionId": 993009900034
+    }
+  ],
+  "createResponse": {
+    "assignmentStatus": "UNASSIGNED",
+    "currentStage": null,
+    "deliverableCount": 17,
+    "gateCount": 5,
+    "id": 992203060035,
+    "lifecycleStatus": "ACTIVE",
+    "lifecycleTemplateId": 993009900014,
+    "lifecycleTemplateRevisionNo": 9,
+    "matchDecisionMode": "EXPLICIT_SELECTION",
+    "matchOperationId": "PM07:INITIAL_CREATE:992203060035:df5d3169b8c8824d2c3042ce105634d89104b73a9e8815ca6aa6368907206f0e",
+    "matchResult": "MULTIPLE_MATCHES",
+    "milestoneCount": 0,
+    "projectCode": "PJT2026000028",
+    "serviceManagerAssigned": false,
+    "stageCount": 6,
+    "status": "ACTIVE",
+    "taskCount": 17,
+    "templateLoadMethod": "MANUAL_SELECTED",
+    "version": 0
+  },
+  "pageErrors": []
+}

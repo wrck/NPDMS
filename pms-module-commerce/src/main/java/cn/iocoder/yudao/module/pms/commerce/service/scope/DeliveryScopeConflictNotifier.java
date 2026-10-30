@@ -91,6 +91,6 @@ public class DeliveryScopeConflictNotifier {
         return UUID.nameUUIDFromBytes(key.getBytes(StandardCharsets.UTF_8)).toString();
     }
 
-    private record Recipient(Long userId, Integer projectVersion, Long factVersion) {
+    private record Recipient(Long userId, Long projectVersion, Long factVersion) {
     }
 }

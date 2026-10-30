@@ -22,7 +22,7 @@ class ProjectStageApprovalServiceTest {
     final ProjectNodeApprovalApi approvals = mock(ProjectNodeApprovalApi.class);
     final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class);
     final ProjectStageApprovalService service = new ProjectStageApprovalService(rounds, approvals, executions);
-    final ProjectStageExecutionContext execution = new ProjectStageExecutionContext(9L,1,11L,1,41L,1,21L,31L,2,3,true);
+    final ProjectStageExecutionContext execution = new ProjectStageExecutionContext(9L,1L,11L,1,41L,1,21L,31L,2,3,true);
     final BindingContract binding = new BindingContract();
     ProjectNodeExecutionDO round;
 
@@ -40,7 +40,7 @@ class ProjectStageApprovalServiceTest {
     View view() { return service.view(7L, execution, binding); }
 
     @Test void startsOnlyAfterRecordingRealHandlingAndUsesTheUpdatedExecutionVersion() {
-        var current = new ProjectStageExecutionContext(9L,1,11L,1,41L,1,21L,31L,3,3,true);
+        var current = new ProjectStageExecutionContext(9L,1L,11L,1,41L,1,21L,31L,3,3,true);
         when(executions.beginStageHandling(execution,1L)).thenAnswer(call -> { round.setVersion(3); return current; });
         var submission = new Submission(java.util.Map.of("note","private"),java.util.Map.of("review",List.of(12L)));
         service.start(7L,execution,new cn.iocoder.yudao.module.pms.project.domain.template.ApprovalWorkBindingSchema.Definition("review","review:1"),1L,"intent",submission);

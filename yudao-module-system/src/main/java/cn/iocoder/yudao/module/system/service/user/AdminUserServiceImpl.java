@@ -29,7 +29,7 @@ import cn.iocoder.yudao.module.system.mq.producer.user.AdminUserProducer;
 import cn.iocoder.yudao.module.system.service.dept.DeptService;
 import cn.iocoder.yudao.module.system.service.dept.PostService;
 import cn.iocoder.yudao.module.system.service.oauth2.OAuth2TokenService;
-import cn.iocoder.yudao.module.system.service.permission.PermissionService;
+import cn.iocoder.yudao.module.system.service.permission.PermissionAssociationService;
 import cn.iocoder.yudao.module.system.service.tenant.TenantService;
 import com.google.common.annotations.VisibleForTesting;
 import com.mzt.logapi.context.LogRecordContext;
@@ -73,7 +73,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     @Resource
     private PostService postService;
     @Resource
-    private PermissionService permissionService;
+    private PermissionAssociationService permissionService;
     @Resource
     private PasswordEncoder passwordEncoder;
     @Resource

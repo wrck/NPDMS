@@ -13,7 +13,8 @@ describe('complete site survey business form', () => {
       formExtraValues: { extra_powerTypes: ['AC', 'DC'], extra_powerEnvironments: ['CN'], extra_cabinetReady: false, extra_selectedMaterials: [] } }
     expect(mergeSurveyValues(survey, extractSurveyValues(survey))).toMatchObject(survey)
     const schema = decodeDynamicForm(config.formConfJson, config.formRulesJson as any)
-    expect(schema.rule.filter(rule => rule.field).map(rule => rule.field)).toEqual(expect.arrayContaining([...surveyFields, 'extra_materialMatches']))
+    expect(schema.rule.filter(rule => rule.field).map(rule => rule.field)).toEqual(expect.arrayContaining(['conclusion', 'remark', 'extra_materialMatches']))
+    expect(schema.rule.filter(rule => rule.field).map(rule => rule.field)).not.toEqual(expect.arrayContaining([surveyFields[0]]))
   })
   it('shows procurement shortcuts only for an explicit yes, preserving false/unknown distinction', async () => {
     const survey = reactive({ projectId: 1, code: 'S', name: 'survey', formExtraValues: {} as Record<string, any> })
@@ -26,6 +27,6 @@ describe('complete site survey business form', () => {
     app.app.unmount()
   })
   it('carries only source identities into existing workflow pages, not invented material data', () => {
-    expect(surveyProcurementRoute('exchange', 12, 'SN-1')).toEqual({ path: '/pms/engineering/procurement/eng-material-exch', query: { surveyId: '12', deviceSn: 'SN-1' } })
+    expect(surveyProcurementRoute('exchange', 12, 'SN-1')).toEqual({ path: '/pms/engineering/procurement/imp-material-exch', query: { surveyId: '12', deviceSn: 'SN-1' } })
   })
 })

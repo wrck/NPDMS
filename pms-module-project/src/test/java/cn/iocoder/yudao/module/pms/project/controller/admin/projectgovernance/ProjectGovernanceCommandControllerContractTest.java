@@ -37,7 +37,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -81,14 +80,9 @@ class ProjectGovernanceCommandControllerContractTest {
     }
 
     @Test
-    void legacyControllerNoLongerExposesWriteRoutes() {
-        for (Method method : ProjectGovernanceController.class.getDeclaredMethods()) {
-            assertFalse(method.isAnnotationPresent(PostMapping.class), method.getName());
-            assertFalse(method.isAnnotationPresent(org.springframework.web.bind.annotation.PutMapping.class),
-                    method.getName());
-            assertFalse(method.isAnnotationPresent(org.springframework.web.bind.annotation.DeleteMapping.class),
-                    method.getName());
-        }
+    void legacyControllerIsRetired() {
+        assertThrows(ClassNotFoundException.class, () -> Class.forName(
+                "cn.iocoder.yudao.module.pms.project.controller.admin.projectgovernance.ProjectGovernanceController"));
     }
 
     @Test
@@ -110,7 +104,7 @@ class ProjectGovernanceCommandControllerContractTest {
                         assertEquals(0L, TenantContextHolder.getRequiredTenantId());
                         ProjectGovernanceGuardService.Actor actor = invocation.getArgument(2);
                         assertEquals(0L, actor.tenantId());
-                        return new ProjectGovernanceGuardResult(11L, 3, "ACTIVE", "S3", "ASSIGNED",
+                        return new ProjectGovernanceGuardResult(11L, 3L, "ACTIVE", "S3", "ASSIGNED",
                                 10L, 5L, "ROLLBACK", true, "guard-token", List.of(), List.of(), operatedAt);
                     });
             when(applicationService.rollback(any(), any())).thenAnswer(invocation -> {
@@ -118,7 +112,7 @@ class ProjectGovernanceCommandControllerContractTest {
                 ProjectGovernanceGuardService.Actor actor = invocation.getArgument(1);
                 assertEquals(0L, actor.tenantId());
                 return new GovernanceActionResult(11L, "ROLLBACK", "ACTIVE", "S3", "ASSIGNED",
-                        "ACTIVE", "S0", "UNASSIGNED", 4, 101L, "op-1", operatedAt, false);
+                        "ACTIVE", "S0", "UNASSIGNED", 4L, 101L, "op-1", operatedAt, false);
             });
             MockMvc mvc = standaloneSetup(new ProjectGovernanceCommandController(
                     guardService, applicationService, historyService, environment)).build();

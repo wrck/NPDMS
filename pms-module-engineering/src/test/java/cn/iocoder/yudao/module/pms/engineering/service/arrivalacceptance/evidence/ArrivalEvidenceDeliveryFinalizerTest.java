@@ -105,7 +105,7 @@ class ArrivalEvidenceDeliveryFinalizerTest {
         root.setAccLastEventId(eventId);
         root.setAccCorrelationId("corr-1");
         root.setAccRetryCount(0);
-        root.setVersion(3);
+        root.setVersion(3L);
         return root;
     }
 

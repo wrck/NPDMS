@@ -98,7 +98,7 @@ class CommerceAuthorityCandidateMySqlTest {
                 TENANT_ID, ACTOR_OTHER, null, null, 1, 20)).isEmpty());
 
         var matched = service.reconcile(new CommerceAuthorityCandidateService.DecideCandidateCommand(
-                TENANT_ID, ACTOR_ACME, created.candidateId(), 0, ownerId,
+                TENANT_ID, ACTOR_ACME, created.candidateId(), 0L, ownerId,
                 "matched to confirmed ERP owner",
                 "IDEM-M-" + suffix, "CORR-M-" + suffix));
 
@@ -169,7 +169,7 @@ class CommerceAuthorityCandidateMySqlTest {
             ready.countDown();
             if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("start timeout");
             var command = new CommerceAuthorityCandidateService.DecideCandidateCommand(
-                    TENANT_ID, ACTOR_ACME, candidateId, 0, ownerId,
+                    TENANT_ID, ACTOR_ACME, candidateId, 0L, ownerId,
                     match ? "matched concurrently" : "rejected concurrently",
                     "IDEM-" + (match ? "M-" : "R-") + suffix,
                     "CORR-" + (match ? "M-" : "R-") + suffix);
@@ -242,6 +242,18 @@ class CommerceAuthorityCandidateMySqlTest {
         @Bean
         OrganizationScopeApi organizationScopeApi() {
             return new OrganizationScopeApi() {
+                @Override
+                public UserCompanyDepartmentScopeRespDTO inspectRoleScope(
+                        cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public UserCompanyDepartmentScopeRespDTO lockRoleScope(
+                        cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query) {
+                    throw new UnsupportedOperationException();
+                }
+
                 @Override
                 public List<UserCompanyDepartmentScopeRespDTO> getActiveScopes(Long userId) {
                     if (ACTOR_ACME == userId) return List.of(scope("ACME"));

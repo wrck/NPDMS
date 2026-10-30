@@ -16,6 +16,7 @@ import errorCode from './errorCode'
 import { resetRouter } from '@/router'
 import { deleteUserCache } from '@/hooks/web/useCache'
 import { ApiEncrypt } from '@/utils/encrypt'
+import { applyOfficeReadonlyRequest } from '@/utils/officeProjectReadonly'
 
 const tenantEnable = import.meta.env.VITE_APP_TENANT_ENABLE ?? 'true'
 const { result_code, base_url, request_timeout } = config
@@ -49,6 +50,7 @@ const service: AxiosInstance = axios.create({
 // request拦截器
 service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    applyOfficeReadonlyRequest(config)
     // 是否需要设置 token；命中白名单的接口（如 /login）不带 token
     let isToken = (config!.headers || {}).isToken !== false
     if (isToken && whiteList.some((v) => config.url?.includes(v))) {
@@ -60,7 +62,7 @@ service.interceptors.request.use(
     // 设置租户
     if (tenantEnable && tenantEnable === 'true') {
       const tenantId = getTenantId()
-      if (tenantId) config.headers['tenant-id'] = tenantId
+      if (tenantId && !config.headers['tenant-id']) config.headers['tenant-id'] = tenantId
       // 只有登录时，才设置 visit-tenant-id 访问租户
       const visitTenantId = getVisitTenantId()
       if (config.headers.Authorization && visitTenantId) {
@@ -212,8 +214,12 @@ service.interceptors.response.use(
         // hard coding：忽略这个提示，直接登出
         console.log(msg)
         return handleAuthorized()
-      } else {
+      } else if (!(config as any).silentError) {
         ElNotification.error({ title: msg })
+      }
+      // 割接需要区分明确业务拒绝与断网后的未知结果，保留实际响应及恢复指令。
+      if ((config as any).preserveBusinessError) {
+        return Promise.reject(new AxiosError(msg, String(code), config, response.request, { ...response, data }))
       }
       return Promise.reject('error')
     } else {
@@ -224,14 +230,20 @@ service.interceptors.response.use(
     console.log('err' + error) // for debug
     let { message } = error
     const { t } = useI18n()
-    if (message === 'Network Error') {
+    const serverMessage = (error.response?.data as { msg?: unknown } | undefined)?.msg
+    if (typeof serverMessage === 'string' && serverMessage.trim()) {
+      message = serverMessage.trim()
+    } else if (message === 'Network Error') {
       message = t('sys.api.errorMessage')
     } else if (message.includes('timeout')) {
       message = t('sys.api.apiTimeoutMessage')
     } else if (message.includes('Request failed with status code')) {
-      message = t('sys.api.apiRequestFailed') + message.substr(message.length - 3)
+      message = t('sys.api.apiRequestFailed')
     }
-    ElMessage.error(message)
+    // silentError：调用方自行按契约结果呈现（如办理页的并发冲突提示），不再弹全局错误。
+    if (!(error as any)?.config?.silentError) {
+      ElMessage.error(message)
+    }
     return Promise.reject(error)
   }
 )

@@ -14,6 +14,69 @@ class CutoverPlanContentCodecTest {
     private final CutoverPlanContentCodec codec = new CutoverPlanContentCodec();
 
     @Test
+    void incompleteRowsKeepExistingSaveRulesAndIdentifyTheirFieldInsteadOfInvalidContent() {
+        var body=(tools.jackson.databind.node.ObjectNode)JsonUtils.parseTree(standardJson());
+        var first=(tools.jackson.databind.node.ObjectNode)body.path("steps").get(0);
+        first.put("content", "");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> codec.decodeWritable(body,source("A")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("割接前操作清单第1行的操作内容");
+        first.put("sectionCode", "POST_CUTOVER_SUPPORT"); first.put("stepNo", 2);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> codec.decodeWritable(body,source("A")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("割接后保障第2行的时间");
+        var dated=(tools.jackson.databind.node.ObjectNode)JsonUtils.parseTree(standardJson());
+        var schedule=(tools.jackson.databind.node.ObjectNode)dated.path("overview").path("scheduleTable").get(0);
+        schedule.put("plannedAt", "2026-10-30 11:00");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> codec.decodeWritable(dated,source("A")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("项目割接计划第1行的日期");
+    }
+
+    @Test
+    void keepsSelectedPersonReferenceWhenReopeningAndDerivingDraft() {
+        var body=(tools.jackson.databind.node.ObjectNode)JsonUtils.parseTree(standardJson());
+        var row=(tools.jackson.databind.node.ObjectNode)body.path("supportArrangements").get(0);
+        row.putObject("personReference").put("sourceCode","SYSTEM_USER").put("id","2108559111685582849").put("version","1792460873037");
+        var draft=codec.decodeWritable(body,source("A"));
+        var selected=draft.supportArrangements().getFirst().personReference();
+        assertThat(selected.id()).isEqualTo(2108559111685582849L);
+        assertThat(codec.rebaseDerivedDraft(draft,source("A")).supportArrangements().getFirst().personReference()).isEqualTo(selected);
+        var stored=new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO();
+        stored.setId(1L);stored.setPersonSourceCode(selected.sourceCode());stored.setPersonSourceId(selected.id());stored.setPersonSourceVersion(selected.version());
+        assertThat(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanStorage.supportContent(stored).path("personReference").path("id").asText()).isEqualTo("2108559111685582849");
+    }
+
+    @Test
+    void supportRequiresCustomerAndFirstLineButAllowsSecondLineAndRndToBeAbsent() {
+        var customer = new CutoverPlanContentCodec.SupportArrangement(null, "CUSTOMER", "客户", "保障", "13800000001", 1L, null);
+        var firstLine = new CutoverPlanContentCodec.SupportArrangement(null, "DP_FIRST_LINE", "一线", "实施", "13800000002", 1L, null);
+        assertThat(CutoverPlanContentCodec.supportComplete(List.of(customer, firstLine))).isTrue();
+        assertThat(CutoverPlanContentCodec.supportComplete(List.of(customer))).isFalse();
+        assertThat(CutoverPlanContentCodec.supportComplete(List.of(firstLine))).isFalse();
+        var partialSecondLine = new CutoverPlanContentCodec.SupportArrangement(null, "DP_SECOND_LINE", "二线", "", "", 0L, null);
+        assertThat(CutoverPlanContentCodec.supportComplete(List.of(customer, firstLine, partialSecondLine))).isFalse();
+    }
+
+    @Test
+    void singlePlanTimeSurvivesEveryContentModeAndRejectsInvalidValues() {
+        var standard = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(standardJson());
+        standard.put("scheduledTime", 1793498400000L);
+        var simple = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree("{\"editMode\":\"ONLINE_TEMPLATE_SIMPLE_D\",\"steps\":[]}");
+        simple.put("scheduledTime", "1793498400000");
+        var upload = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree("""
+                {"editMode":"FULL_FILE_UPLOAD","fileArtifactFact":{"artifactId":91,"versionNo":2,
+                "referenceKey":"CUT/PLAN/91","fileFactVersion":{"artifactVersion":3,"referenceVersion":4,"availabilityVersion":5},
+                "scopeVersion":6,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"ownershipConfirmed":true,
+                "scheduledTime":1793498400000}
+                """);
+        for (var body : List.of(standard, simple, upload)) {
+            var facts = source(body.path("editMode").asText().equals("ONLINE_TEMPLATE_STANDARD") ? "A" : "D");
+            var decoded = codec.decodeWritable(body, facts);
+            assertThat(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanScheduleTime.value(decoded.rootSnapshot())).isEqualTo(1793498400000L);
+            body.put("scheduledTime", 0);
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> codec.decodeWritable(body, facts)).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test
     void assemblesAbcStandardContentAndKeepsChildrenOutsideRootSnapshot() {
         for (String grade : List.of("A", "B", "C")) {
             var decoded = codec.decodeWritable(JsonUtils.parseTree(standardJson()), source(grade));
@@ -23,7 +86,7 @@ class CutoverPlanContentCodecTest {
             assertThat(decoded.steps()).extracting(CutoverPlanContentCodec.PlanStep::sectionCode)
                     .containsExactlyElementsOf(CutoverPlanRules.STANDARD_SECTIONS);
             assertThat(decoded.supportArrangements()).extracting(CutoverPlanContentCodec.SupportArrangement::roleCode)
-                    .containsExactlyElementsOf(CutoverPlanRules.SUPPORT_ROLES);
+                    .containsExactly("DP_RND", "CUSTOMER", "DP_SECOND_LINE", "DP_FIRST_LINE");
             assertThat(decoded.rootSnapshot().path("overview").path("deviceSummary").get(0).path("serialNumber").asText())
                     .isEqualTo("Sn-001");
             assertThat(decoded.rootSnapshot().path("riskMitigations").get(0).path("riskFact").path("itemName").asText())
@@ -54,17 +117,27 @@ class CutoverPlanContentCodecTest {
                 "referenceKey":"CUT/PLAN/91","fileFactVersion":{"artifactVersion":3,"referenceVersion":4,"availabilityVersion":5},
                 "scopeVersion":6,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"ownershipConfirmed":true}
                 """), source("D"));
-        var portFact = new CutoverPlanFilePort.FileFact(91L, 2, "CUT/PLAN/91",
-                new CutoverPlanFilePort.FileFactVersion(3, 4, 5), 6L,
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        var portFact = CutoverPlanFilePort.FileFact.builder()
+                .artifactId(91L)
+                .versionNo(2)
+                .referenceKey("CUT/PLAN/91")
+                .fileFactVersion(new CutoverPlanFilePort.FileFactVersion(3, 4, 5))
+                .scopeVersion(6L)
+                .sha256("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+                .build();
         assertThat(decoded.fileFact()).isEqualTo(portFact);
         var controlledPort = new CutoverPlanControlledPorts.FilePort(portFact);
-        assertThat(controlledPort.inspect(1L, 2L, 40L, portFact.handle())).isEqualTo(portFact);
+        assertThat(controlledPort.inspect(CutoverPlanFilePort.FileQuery.builder()
+                .tenantId(1L)
+                .actorId(2L)
+                .projectId(40L)
+                .handle(portFact.handle())
+                .build())).isEqualTo(portFact);
         assertThat(controlledPort.inspections).isEqualTo(1);
     }
 
     @Test
-    void acceptsWireLongStringsAndAssemblesLegacyReadOnlyProjection() {
+    void acceptsWireLongStrings() {
         var decoded = codec.decodeWritable(JsonUtils.parseTree("""
                 {"editMode":"FULL_FILE_UPLOAD","fileArtifactFact":{"artifactId":"9007199254740991","versionNo":2,
                 "referenceKey":"CUT/PLAN/SAFE","fileFactVersion":{"artifactVersion":3,"referenceVersion":4,"availabilityVersion":5},
@@ -72,11 +145,6 @@ class CutoverPlanContentCodecTest {
                 """), source("D"));
         assertThat(decoded.fileFact().artifactId()).isEqualTo(9_007_199_254_740_991L);
         assertThat(decoded.fileFact().scopeVersion()).isEqualTo(9_007_199_254_740_992L);
-        var legacy = codec.assembleLegacy(List.of(
-                new CutoverPlanContentCodec.PlanStep("ROLLBACK", 1, "回退"),
-                new CutoverPlanContentCodec.PlanStep("PRE_OPERATION", 1, "检查")));
-        assertThat(legacy.path("editMode").asText()).isEqualTo("LEGACY_READ_ONLY");
-        assertThat(legacy.path("steps").get(0).path("sectionCode").asText()).isEqualTo("PRE_OPERATION");
     }
 
     @Test
@@ -145,8 +213,8 @@ class CutoverPlanContentCodecTest {
         List<CutoverPlanSourcePort.RiskFactSnapshot> risks = "D".equals(grade) ? List.of()
                 : List.of(new CutoverPlanSourcePort.RiskFactSnapshot(71L, "risk-1", 1,
                 "风险", "FAILED", "描述"));
-        var snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 10L, 2, 20L, 1, grade,
-                "D".equals(grade) ? null : 30L, "D".equals(grade) ? null : 1,
+        var snapshot = new CutoverPlanSourcePort.SourceSnapshot(1, 10L, 2L, 20L, 1L, grade,
+                "D".equals(grade) ? null : 30L, "D".equals(grade) ? null : 1L,
                 40L, 3, 4L, List.of(new CutoverPlanSourcePort.DeviceSnapshot(
                 50L, "Sn-001", 6L, "ROUTER", "ast-v1")), 60L, "DEFAULT", 1, sections, risks);
         var facts = new CutoverPlanSourcePort.SourceFacts(snapshot, risks);
@@ -162,7 +230,7 @@ class CutoverPlanContentCodecTest {
                 new CutoverPlanSourcePort.RiskFactSnapshot(73L, "risk-2", 1,
                         "新增风险", "FAILED", "待填写措施"));
         var snapshot = new CutoverPlanSourcePort.SourceSnapshot(2, old.taskId(), old.taskVersion(),
-                old.assessmentId(), old.assessmentVersion(), old.grade(), old.checklistId(), 2,
+                old.assessmentId(), old.assessmentVersion(), old.grade(), old.checklistId(), 2L,
                 old.projectId(), old.projectVersion(), old.projectScopeVersion(),
                 List.of(new CutoverPlanSourcePort.DeviceSnapshot(51L, "SN-NEW", 7L,
                         "SWITCH", "ast-v2")), old.configurationRevisionId(), old.configurationCode(),

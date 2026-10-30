@@ -6,7 +6,7 @@ public record ProjectAcceptanceStageEntryResult(
         Long projectId,
         String beforeStageCode,
         String acceptanceStageCode,
-        Integer projectVersion,
+        Long projectVersion,
         Long projectStageSnapshotId,
         int bindingCount,
         String operationId,

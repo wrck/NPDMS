@@ -42,9 +42,9 @@ class ProjectSystemQualificationFactApiImplTest {
 
     @Test
     void locksRootThenProjectThenCurrentTreeAndReturnsCurrentFact() {
-        ProjectMasterDO observed = project(20L, 10L, 7L, 200L, "ACTIVE", "S4", 8);
-        ProjectMasterDO root = project(10L, 10L, 7L, 100L, "ACTIVE", "S4", 3);
-        ProjectMasterDO locked = project(20L, 10L, 7L, 201L, "ACTIVE", "S4", 9);
+        ProjectMasterDO observed = project(20L, 10L, 7L, 200L, "ACTIVE", "S4", 8L);
+        ProjectMasterDO root = project(10L, 10L, 7L, 100L, "ACTIVE", "S4", 3L);
+        ProjectMasterDO locked = project(20L, 10L, 7L, 201L, "ACTIVE", "S4", 9L);
         ProjectTreeVersionDO tree = treeVersion(7L, 10L, 15L);
         when(projectMapper.selectById(20L)).thenReturn(observed);
         when(projectMapper.selectByIdForUpdate(10L)).thenReturn(root);
@@ -76,7 +76,7 @@ class ProjectSystemQualificationFactApiImplTest {
 
     @Test
     void parallelS4MustBeActiveEvenWhenSummaryIsS1() {
-        var locked = project(20L, 20L, 7L, 201L, "ACTIVE", "S1", 9);
+        var locked = project(20L, 20L, 7L, 201L, "ACTIVE", "S1", 9L);
         locked.setActivePlanVersionId(21L);
         when(projectMapper.selectById(20L)).thenReturn(locked);
         when(projectMapper.selectByIdForUpdate(20L)).thenReturn(locked);
@@ -91,16 +91,16 @@ class ProjectSystemQualificationFactApiImplTest {
 
     @Test
     void rejectsMissingManagerOrUnavailableTreeFact() {
-        when(projectMapper.selectById(20L)).thenReturn(project(20L, 20L, 7L, null, "ACTIVE", "S4", 8));
+        when(projectMapper.selectById(20L)).thenReturn(project(20L, 20L, 7L, null, "ACTIVE", "S4", 8L));
         when(projectMapper.selectByIdForUpdate(20L))
-                .thenReturn(project(20L, 20L, 7L, null, "ACTIVE", "S4", 8));
+                .thenReturn(project(20L, 20L, 7L, null, "ACTIVE", "S4", 8L));
         assertThrows(ServiceException.class, () -> api.lockCurrentForSystem(
                 new ProjectSystemQualificationLockQuery(20L, "ACTIVE", "S4")));
         verify(treeVersionMapper, never()).selectLatestActiveForUpdate(20L);
 
-        when(projectMapper.selectById(21L)).thenReturn(project(21L, 21L, 7L, 201L, "ACTIVE", "S4", 8));
+        when(projectMapper.selectById(21L)).thenReturn(project(21L, 21L, 7L, 201L, "ACTIVE", "S4", 8L));
         when(projectMapper.selectByIdForUpdate(21L))
-                .thenReturn(project(21L, 21L, 7L, 201L, "ACTIVE", "S4", 8));
+                .thenReturn(project(21L, 21L, 7L, 201L, "ACTIVE", "S4", 8L));
         when(treeVersionMapper.selectLatestActiveForUpdate(21L)).thenReturn(null);
         assertThrows(ServiceException.class, () -> api.lockCurrentForSystem(
                 new ProjectSystemQualificationLockQuery(21L, "ACTIVE", "S4")));
@@ -108,23 +108,23 @@ class ProjectSystemQualificationFactApiImplTest {
 
     @Test
     void rejectsTenantOrRootIdentityChangeUnderLock() {
-        when(projectMapper.selectById(20L)).thenReturn(project(20L, 10L, 7L, 200L, "ACTIVE", "S4", 8));
+        when(projectMapper.selectById(20L)).thenReturn(project(20L, 10L, 7L, 200L, "ACTIVE", "S4", 8L));
         when(projectMapper.selectByIdForUpdate(10L))
-                .thenReturn(project(10L, 10L, 8L, 100L, "ACTIVE", "S4", 3));
+                .thenReturn(project(10L, 10L, 8L, 100L, "ACTIVE", "S4", 3L));
         assertThrows(ServiceException.class, () -> api.lockCurrentForSystem(
                 new ProjectSystemQualificationLockQuery(20L, "ACTIVE", "S4")));
 
-        when(projectMapper.selectById(22L)).thenReturn(project(22L, 10L, 7L, 200L, "ACTIVE", "S4", 8));
+        when(projectMapper.selectById(22L)).thenReturn(project(22L, 10L, 7L, 200L, "ACTIVE", "S4", 8L));
         when(projectMapper.selectByIdForUpdate(10L))
-                .thenReturn(project(10L, 10L, 7L, 100L, "ACTIVE", "S4", 3));
+                .thenReturn(project(10L, 10L, 7L, 100L, "ACTIVE", "S4", 3L));
         when(projectMapper.selectByIdForUpdate(22L))
-                .thenReturn(project(22L, 11L, 7L, 200L, "ACTIVE", "S4", 8));
+                .thenReturn(project(22L, 11L, 7L, 200L, "ACTIVE", "S4", 8L));
         assertThrows(ServiceException.class, () -> api.lockCurrentForSystem(
                 new ProjectSystemQualificationLockQuery(22L, "ACTIVE", "S4")));
     }
 
     private static ProjectMasterDO project(Long id, Long rootId, Long tenantId, Long managerId,
-                                           String lifecycle, String stage, Integer version) {
+                                           String lifecycle, String stage, Long version) {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(id);
         project.setRootId(rootId);

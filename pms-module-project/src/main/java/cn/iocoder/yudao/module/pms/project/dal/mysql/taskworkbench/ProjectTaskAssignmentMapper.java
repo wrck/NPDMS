@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench;
 
+import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectTaskAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentCloseUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAssignmentLockQuery;
@@ -11,7 +12,7 @@ import java.util.List;
 
 /** 项目任务责任区间持久化入口。 */
 @Mapper
-public interface ProjectTaskAssignmentMapper {
+public interface ProjectTaskAssignmentMapper extends BaseMapperX<ProjectTaskAssignmentDO> {
 
     int insertAssignment(@Param("assignment") ProjectTaskAssignmentDO assignment);
 

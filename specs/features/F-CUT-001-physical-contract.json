@@ -36,7 +36,7 @@
     "pms:cutover-config:publish",
     "pms:cutover-config:disable"
   ],
-  "apiPrefix": "/api/v1/pms/cutover-config",
+  "apiPrefix": "/api/v1/pms/cutover-configurations",
   "matrixProjections": {
     "risk": ["RISK", "DUAL_MACHINE_CHECK"],
     "survey": ["BUSINESS_SURVEY"]
@@ -65,5 +65,11 @@
     "legacySources": [],
     "forbiddenSources": ["pms_cut_task", "pms_cut_risk", "pms_cut_plan"]
   },
-  "referencePolicy": "XLSX/HTML may inform names, fields, UI and ordering only; counts, rules, inconsistencies and completion are decided only by PRD/SDS/Feature Spec"
+  "referencePolicy": "XLSX/HTML may inform names, fields, UI and ordering only; counts, rules, inconsistencies and completion are decided only by PRD/SDS/Feature Spec",
+  "httpCommandContract": {
+    "revisionPath": "/revisions and /revisions/{revisionId}/actions/{copy|validate|publish|disable}",
+    "idempotency": "create/save/copy/publish/disable require Idempotency-Key; validate is read-only",
+    "version": "save/copy/publish/disable require If-Match for the revision version",
+    "errors": "CommonResult<CutoverErrorData{category,reasonCode,recoveryAction}> with HTTP 400/403/404/409/422; stale version asks REFRESH_AGGREGATE, conflicting intent asks START_NEW_INTENT and in-progress intent asks RETRY_SAME_KEY"
+  }
 }

@@ -8,7 +8,7 @@ public interface ProjectSystemQualificationPort {
     record CurrentProjectQualification(
             Long projectId,
             Long currentManagerUserId,
-            Integer projectVersion,
+            Long projectVersion,
             Long participantFactVersion,
             Long treeVersion) {
 

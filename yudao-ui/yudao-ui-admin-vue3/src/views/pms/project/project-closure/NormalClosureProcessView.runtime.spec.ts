@@ -1,10 +1,14 @@
-import { defineComponent, h, nextTick } from 'vue'
+import { computed, defineComponent, h, nextTick, provide } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import NormalClosureProcessView from './NormalClosureProcessView.vue'
 import {
+  approvalPeopleKey,
+  type ApprovalPeople
+} from '@/views/bpm/processInstance/detail/approvalPeople'
+import {
   getNormalClosureApplication,
   type ApplicationDetail
-} from '@/api/pms/project/normal-closure'
+} from '@/api/pms/acceptance/normal-closure'
 import {
   mount,
   passthrough,
@@ -12,7 +16,7 @@ import {
   type TestNode
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-vi.mock('@/api/pms/project/normal-closure', () => ({ getNormalClosureApplication: vi.fn() }))
+vi.mock('@/api/pms/acceptance/normal-closure', () => ({ getNormalClosureApplication: vi.fn() }))
 const ID = '2099999999999999999'
 const KEY = `PROJECT_NORMAL_CLOSURE:${ID}`
 const tables: unknown[] = []
@@ -24,10 +28,25 @@ const table = defineComponent({
   }
 })
 const apps: { unmount: () => void }[] = []
-const setup = async (id: string) => {
+const setup = async (
+  id: string,
+  people: ApprovalPeople = {
+    processInstanceId: 'process-actual',
+    businessKey: KEY,
+    names: { '9': '申请人甲', '17': '服务经理乙', '18': '材料审核丙' }
+  }
+) => {
   const page = mount(
-    NormalClosureProcessView,
-    { id },
+    defineComponent({
+      setup() {
+        provide(
+          approvalPeopleKey,
+          computed(() => people)
+        )
+        return () => h(NormalClosureProcessView, { id })
+      }
+    }),
+    {},
     {
       ElDescriptions: passthrough,
       ElDescriptionsItem: passthrough,
@@ -110,8 +129,35 @@ describe('NormalClosureProcessView', () => {
       '真实审核意见'
     ])
       expect(text).toContain(expected)
-    expect(tables).toContainEqual(checks)
-    expect(tables).toContainEqual(reviews)
+    expect(text).toContain('申请人甲')
+    expect(text).toContain('服务经理乙')
+    expect(text).toContain('材料审核丙')
+    expect(tables).toContainEqual([
+      expect.objectContaining({ code: 'ALL_TASKS_DONE', label: '必需任务均已完成', passed: true })
+    ])
+    expect(tables).toContainEqual([
+      expect.objectContaining({
+        taskId: 'task-31',
+        nodeName: '服务经理审核',
+        reviewerName: '服务经理乙'
+      })
+    ])
+    const findDetails = (node: TestNode): TestNode | undefined =>
+      node.type === 'details' ? node : node.children.map(findDetails).find(Boolean)
+    const technical = findDetails(page.root)!
+    expect(technical).toBeTruthy()
+    expect(technical.props?.open).toBeUndefined()
+    expect(textOf(technical)).toContain('task-31')
+    expect(textOf(technical)).toContain('ALL_TASKS_DONE')
+    expect(value.snapshot?.evidence).toBe(JSON.stringify(checks))
+    const unavailable = await setup(KEY, {
+      processInstanceId: 'foreign-process',
+      businessKey: KEY,
+      names: { '9': '其他实例人员' }
+    })
+    expect(textOf(unavailable.root)).toContain('姓名未获取')
+    expect(textOf(unavailable.root)).toContain('真实审核意见')
+    expect(textOf(unavailable.root)).not.toContain('其他实例人员')
     const hasButton = (node: TestNode): boolean =>
       node.type === 'button' || node.children.some(hasButton)
     expect(hasButton(page.root)).toBe(false)

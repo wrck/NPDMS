@@ -1,0 +1,341 @@
+[
+  {
+    "entityType": "ACCEPTANCE",
+    "ownerContext": "ACC",
+    "viewSource": "PAGE",
+    "componentKey": "ACC_ACCEPTANCE_REPORT",
+    "componentVersion": "1",
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      }
+    },
+    "supportedActions": [
+      "QUERY",
+      "MANAGE",
+      "UPDATE",
+      "REVOKE",
+      "LINK",
+      "UNLINK"
+    ],
+    "queryProviderKey": "ACC_ACCEPTANCE_REPORT_QUERY",
+    "commandProviderKey": "ACC_ACCEPTANCE_REPORT_COMMAND",
+    "permissionProviderKey": "ACC_ACCEPTANCE_REPORT_PERMISSION",
+    "displayName": "验收报告"
+  },
+  {
+    "entityType": "CUTOVER_TASK",
+    "ownerContext": "CUT",
+    "viewSource": "PAGE",
+    "componentKey": "CUT_CUTOVER_COMPLETION",
+    "componentVersion": "1",
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      }
+    },
+    "supportedActions": [
+      "QUERY"
+    ],
+    "queryProviderKey": "CUT_CUTOVER_COMPLETION_QUERY",
+    "commandProviderKey": "CUT_CUTOVER_COMPLETION_COMMAND",
+    "permissionProviderKey": "CUT_CUTOVER_COMPLETION_PERMISSION",
+    "displayName": "割接上线"
+  },
+  {
+    "entityType": "DYNAMIC_FORM_INSTANCE",
+    "ownerContext": "PLATFORM",
+    "viewSource": "DYNAMIC_FORM",
+    "componentKey": "PLATFORM_DYNAMIC_FORM",
+    "componentVersion": "1",
+    "contextSchema": {
+      "type": "object",
+      "properties": {
+        "instanceId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      },
+      "required": [
+        "instanceId"
+      ]
+    },
+    "supportedActions": [
+      "QUERY_INSTANCE",
+      "PATCH_INSTANCE"
+    ],
+    "queryProviderKey": "PLATFORM_DYNAMIC_FORM_QUERY",
+    "commandProviderKey": "PLATFORM_DYNAMIC_FORM_COMMAND",
+    "permissionProviderKey": "PLATFORM_DYNAMIC_FORM_PERMISSION",
+    "displayName": "动态表单"
+  },
+  {
+    "entityType": "CONSTRUCTION_PLAN",
+    "ownerContext": "PLN",
+    "viewSource": "PAGE",
+    "componentKey": "PLN_CONSTRUCTION_PLAN",
+    "componentVersion": "1",
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      }
+    },
+    "supportedActions": [
+      "QUERY",
+      "CREATE",
+      "UPDATE",
+      "LINK",
+      "UNLINK"
+    ],
+    "queryProviderKey": "PLN_CONSTRUCTION_PLAN_QUERY",
+    "commandProviderKey": "PLN_CONSTRUCTION_PLAN_COMMAND",
+    "permissionProviderKey": "PLN_CONSTRUCTION_PLAN_PERMISSION",
+    "displayName": "项目工期"
+  },
+  {
+    "entityType": "STAGE_PLAN",
+    "ownerContext": "PLN",
+    "viewSource": "PAGE",
+    "componentKey": "PLN_STAGE_PLAN_APPROVAL",
+    "componentVersion": "1",
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      }
+    },
+    "supportedActions": [
+      "QUERY"
+    ],
+    "queryProviderKey": "PLN_STAGE_PLAN_APPROVAL_QUERY",
+    "commandProviderKey": "PLN_STAGE_PLAN_APPROVAL_COMMAND",
+    "permissionProviderKey": "PLN_STAGE_PLAN_APPROVAL_PERMISSION",
+    "displayName": "施工计划审批"
+  },
+  {
+    "entityType": "PROJECT_ASSIGNMENT",
+    "ownerContext": "PROJ",
+    "viewSource": "PAGE",
+    "componentKey": "PROJ_PROJECT_ASSIGNMENT",
+    "componentVersion": "1",
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      }
+    },
+    "supportedActions": [
+      "QUERY"
+    ],
+    "queryProviderKey": "PROJ_PROJECT_ASSIGNMENT_QUERY",
+    "commandProviderKey": "PROJ_PROJECT_ASSIGNMENT_COMMAND",
+    "permissionProviderKey": "PROJ_PROJECT_ASSIGNMENT_PERMISSION",
+    "displayName": "人员指派"
+  },
+  {
+    "entityType": "REQUIREMENT_ANALYSIS",
+    "ownerContext": "SOL",
+    "viewSource": "PAGE",
+    "componentKey": "PROJ_REQUIREMENT_ANALYSIS",
+    "componentVersion": "1",
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "project"
+      ],
+      "properties": {
+        "project": {
+          "type": "object",
+          "required": [
+            "id",
+            "version"
+          ],
+          "properties": {
+            "id": {
+              "oneOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$"
+                }
+              ]
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "supportedActions": [
+      "CREATE_INITIAL_DRAFT",
+      "PATCH_FORM",
+      "COMPLETE",
+      "CREATE_DRAFT"
+    ],
+    "queryProviderKey": "SOL_REQUIREMENT_ANALYSIS_QUERY",
+    "commandProviderKey": "SOL_REQUIREMENT_ANALYSIS_COMMAND",
+    "permissionProviderKey": "SOL_REQUIREMENT_ANALYSIS_PERMISSION",
+    "displayName": "需求分析页面"
+  },
+  {
+    "entityType": "IMPLEMENTATION_SOLUTION",
+    "ownerContext": "SOL",
+    "viewSource": "PAGE",
+    "componentKey": "SOL_IMPLEMENTATION_SOLUTION",
+    "componentVersion": "1",
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      }
+    },
+    "supportedActions": [
+      "QUERY"
+    ],
+    "queryProviderKey": "SOL_IMPLEMENTATION_SOLUTION_QUERY",
+    "commandProviderKey": "SOL_IMPLEMENTATION_SOLUTION_COMMAND",
+    "permissionProviderKey": "SOL_IMPLEMENTATION_SOLUTION_PERMISSION",
+    "displayName": "实施方案审核"
+  },
+  {
+    "entityType": "SITE_SURVEY",
+    "ownerContext": "SOL",
+    "viewSource": "PAGE",
+    "componentKey": "SOL_SITE_SURVEY",
+    "componentVersion": "1",
+    "contextSchema": {
+      "type": "object",
+      "required": [
+        "projectId"
+      ],
+      "properties": {
+        "projectId": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]*$"
+            }
+          ]
+        }
+      }
+    },
+    "supportedActions": [
+      "QUERY",
+      "CREATE",
+      "UPDATE",
+      "CONFIRM",
+      "REJECT",
+      "ARCHIVE",
+      "LINK",
+      "UNLINK"
+    ],
+    "queryProviderKey": "SOL_SITE_SURVEY_QUERY",
+    "commandProviderKey": "SOL_SITE_SURVEY_COMMAND",
+    "permissionProviderKey": "SOL_SITE_SURVEY_PERMISSION",
+    "displayName": "现场工勘"
+  }
+]

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Source definitions are unpaged; the engine owns bounded keyset paging and committed cursors. */
+/** Source definitions stay unpaged; STREAMING_CURSOR executes each expensive SQL once and commits bounded chunks. */
 public final class DppmsOrderSyncTemplate {
     private DppmsOrderSyncTemplate() {}
 
@@ -12,7 +12,10 @@ public final class DppmsOrderSyncTemplate {
         return SyncDefinition.builder().adapter("DPPMS_ERP_ORDER").sourceSystem("DPPMS")
                 .connectionId(connectionId).mode("ONCE").loadingMode("UPSERT").missingPolicy("RETAIN")
                 .cron("0 0 2 * * ?").fullCron("0 0 2 ? * SUN").overlapSeconds(0)
-                .retryCount(0).retryIntervalSeconds(60).autoPaging(true).maxRows(2000).maxBytes(64L*1024*1024)
+                .retryCount(0).retryIntervalSeconds(60).autoPaging(false)
+                .readStrategy("STREAMING_CURSOR").fetchSize(2000).chunkSize(1000)
+                .restartPolicy("RESTART_ALL").queryTimeoutSeconds(0)
+                .maxRows(2000).maxBytes(64L*1024*1024)
                 .sources(List.of(source(false),source(true))).build();
     }
 
@@ -22,7 +25,7 @@ public final class DppmsOrderSyncTemplate {
         String groupKeys="source,compCode,"+type+",orderNumber"+(line?",lineNum":"");
         String fields=line
                 ? "itemCode,itemDesc,orderQuantity,openQuantity,bundleCode,warrantyMonth,profitCenter,realOrderExecNumber,customInfo"
-                : "orderCreateTime,customerRequireTime,customerCode,customerName,projectName,orderComment,salesType";
+                : "orderCreateTime,customerRequireTime,customerCode,customerName,projectName,orderComment,salesType,customInfo,contractNo,orderExecNumber";
         String join="r.source <=> g.source AND r.compCode <=> g.compCode AND r."+type+" <=> g."+type
                 +" AND r.orderNumber <=> g.orderNumber"+(line?" AND r.lineNum <=> g.lineNum":"");
         String parent=line?",EXISTS (SELECT 1 FROM pm_order_data_from_erp h WHERE h.source=r.source AND h.compCode=r.compCode "
@@ -40,16 +43,19 @@ public final class DppmsOrderSyncTemplate {
         mappings.add(map("sourceUpdatedAt","migrationVersion"));mappings.add(map("migrationIssue","migrationIssue"));
         if(line) {
             mappings.add(map("migrationParentExists","migrationParentExists"));
-            for(String[] pair:List.of(new String[]{"lineNo","lineNum"},new String[]{"itemCode","itemCode"},
-                    new String[]{"itemDescription","itemDesc"},new String[]{"orderQuantity","orderQuantity"},
+            for(String[] pair:List.of(new String[]{"lineNo","lineNum"},new String[]{"productCode","itemCode"},
+                    new String[]{"productDesc","itemDesc"},new String[]{"orderQuantity","orderQuantity"},
                     new String[]{"openQuantity","openQuantity"},new String[]{"bundleCode","bundleCode"},
                     new String[]{"warrantyMonth","warrantyMonth"},new String[]{"profitCenter","profitCenter"},
-                    new String[]{"realExecutionNo","realOrderExecNumber"}))mappings.add(map(pair[0],pair[1]));
+                    new String[]{"realExecutionNo","realOrderExecNumber"},
+                    new String[]{"customInfo","customInfo"}))mappings.add(map(pair[0],pair[1]));
         } else {
             for(String[] pair:List.of(new String[]{"customerCode","customerCode"},new String[]{"customerName","customerName"},
                     new String[]{"salesType","salesType"},new String[]{"sourceProjectName","projectName"},
                     new String[]{"orderComment","orderComment"},new String[]{"orderCreateTime","orderCreateTime"},
-                    new String[]{"customerRequiredTime","customerRequireTime"}))mappings.add(map(pair[0],pair[1]));
+                    new String[]{"customerRequiredTime","customerRequireTime"},
+                    new String[]{"customInfo","customInfo"},
+                    new String[]{"contractNo","contractNo"},new String[]{"executionNo","orderExecNumber"}))mappings.add(map(pair[0],pair[1]));
         }
         return SyncDefinition.Source.builder().object(line?"LINE":"ORDER").sourceObject(table)
                 .readMode("SQL").sql(sql).parameters(Map.of()).columns(List.of()).filters(List.of())

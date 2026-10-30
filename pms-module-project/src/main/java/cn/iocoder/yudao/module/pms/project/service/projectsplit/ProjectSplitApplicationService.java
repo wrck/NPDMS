@@ -111,13 +111,15 @@ public class ProjectSplitApplicationService {
         ProjectSplitDraftService.DraftResult draft = draftService.getDraft(request.getId(), actor);
         List<CreatedProject> created = new ArrayList<>();
         Map<String, Long> projectIds = new LinkedHashMap<>();
-        Map<String, Integer> projectVersions = new LinkedHashMap<>();
+        Map<String, Long> projectVersions = new LinkedHashMap<>();
         for (ProjectSplitItemDO item : draft.items()) {
             ProjectMasterDO child = childCreationService.create(parent, item, actor.tenantId(), request.getId(),
                     actor.actorId(), actor.correlationId());
             created.add(new CreatedProject(item.getClientItemKey(), child.getId(), child.getProjectCode()));
             projectIds.put(item.getClientItemKey(), child.getId());
-            projectVersions.put(item.getClientItemKey(), child.getVersion());
+            // Initial stage admission may advance the stored version after the creation draft was built.
+            ProjectMasterDO initializedChild = projectMapper.selectByIdForUpdate(child.getId());
+            projectVersions.put(item.getClientItemKey(), initializedChild.getVersion());
         }
         SplitScopeApplyResult scopeResult = deliveryScopeApi.applySplit(new SplitScopeApplyCommand(
                 actor.tenantId(), parent.getId(), parent.getVersion(), command.expectedScopeVersion(),
@@ -152,14 +154,14 @@ public class ProjectSplitApplicationService {
         for (ProjectSplitScopeDO scope : draft.scopes()) {
             ProjectSplitItemDO item = items.get(scope.getSplitItemId());
             String key = item.getClientItemKey() + "|" + scope.getOrderLineId() + "|"
-                    + scope.getOfficeDepartmentCode();
+                    + scope.getDepartmentCode();
             AllocationAccumulator value = grouped.computeIfAbsent(key, ignored -> new AllocationAccumulator(
-                    item.getClientItemKey(), scope.getOrderLineId(), scope.getOfficeDepartmentCode()));
+                    item.getClientItemKey(), scope.getOrderLineId(), scope.getDepartmentCode()));
             value.quantity = value.quantity.add(scope.getAllocatedQty());
             if (scope.getSerialNo() != null) value.serials.add(scope.getSerialNo());
         }
         return grouped.values().stream().map(value -> new SplitScopeApplyCommand.Allocation(
-                value.clientItemKey, value.orderLineId, value.quantity, value.officeCode,
+                value.clientItemKey, value.orderLineId, value.quantity, value.departmentCode,
                 List.copyOf(value.serials))).toList();
     }
 
@@ -175,7 +177,7 @@ public class ProjectSplitApplicationService {
             change.setProjectId(child.projectId()); change.setParentIdAfter(parent.getId());
             change.setBaseTreeVersion(baseVersion); change.setNewTreeVersion(newVersion);
             change.setActorId(actor.actorId()); change.setReason("PROJECT_SPLIT_APPLY");
-            change.setOccurredAt(now); change.setVersion(0);
+            change.setOccurredAt(now); change.setVersion(0L);
             treeChangeMapper.insert(change);
         }
     }
@@ -222,11 +224,11 @@ public class ProjectSplitApplicationService {
     private static final class AllocationAccumulator {
         private final String clientItemKey;
         private final Long orderLineId;
-        private final String officeCode;
+        private final String departmentCode;
         private BigDecimal quantity = BigDecimal.ZERO;
         private final List<String> serials = new ArrayList<>();
-        private AllocationAccumulator(String clientItemKey, Long orderLineId, String officeCode) {
-            this.clientItemKey = clientItemKey; this.orderLineId = orderLineId; this.officeCode = officeCode;
+        private AllocationAccumulator(String clientItemKey, Long orderLineId, String departmentCode) {
+            this.clientItemKey = clientItemKey; this.orderLineId = orderLineId; this.departmentCode = departmentCode;
         }
     }
 }

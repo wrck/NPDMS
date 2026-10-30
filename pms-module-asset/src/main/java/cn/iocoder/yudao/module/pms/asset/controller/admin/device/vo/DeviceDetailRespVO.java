@@ -9,5 +9,6 @@ public record DeviceDetailRespVO(
         DeviceSourceSliceRespVO networkVersion,
         DeviceSourceSliceRespVO technicalNotice,
         DeviceSourceSliceRespVO warranty,
-        DeviceSourceSliceRespVO configurationLog) {
+        DeviceSourceSliceRespVO configurationLog,
+        DeviceOrganizationRespVO organization) {
 }

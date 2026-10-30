@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper">
+    <select id="selectProjectDeviceIdsByProductFilter" resultType="java.lang.Long">
+        SELECT d.id FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId} AND d.project_id = #{query.projectId} AND d.deleted = 0
+        <choose>
+            <when test="query.productFilters != null and !query.productFilters.isEmpty()">
+                AND EXISTS (
+                    SELECT 1 FROM ast_product_official_info product
+                    WHERE product.tenant_id = d.tenant_id AND product.product_code = d.product_code AND product.deleted = 0
+                      AND <include refid="pms.asset.ProductFilters.groups"/>
+                    <choose>
+                        <when test="query.matchMode.name() == 'NOT_MATCHING'">IS FALSE</when>
+                        <otherwise>IS TRUE</otherwise>
+                    </choose>
+                )
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY d.id
+    </select>
+</mapper>

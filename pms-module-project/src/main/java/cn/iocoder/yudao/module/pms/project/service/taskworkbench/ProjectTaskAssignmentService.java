@@ -1,4 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
+
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
@@ -35,6 +37,7 @@ import cn.iocoder.yudao.module.pms.project.service.taskworkbench.event.TaskAssig
 import cn.iocoder.yudao.module.system.api.company.CompanyApi;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidatePageReqDTO;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -76,16 +79,18 @@ public class ProjectTaskAssignmentService {
     private final CompanyApi companyApi;
     private final DeptApi deptApi;
     private final OrganizationScopeApi organizationScopeApi;
+    private final OrganizationUserSelectionApi organizationUserSelectionApi;
     private final AdminUserApi adminUserApi;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final OperationAuditApi operationAuditApi;
+    private final ProjectManagementQualificationApi managementAccess;
 
     public PageResult<ProjectTaskAssigneeCandidateRespVO> getAssigneeCandidates(
             Long taskId, ProjectTaskAssigneeCandidateReqVO request, TaskWorkbenchActor actor) {
         validateCandidateRequest(taskId, request, actor);
         ProjectTaskInstanceDO task = requireTask(taskId, actor);
         ProjectMasterDO project = requireProject(task.getProjectId(), actor);
-        requireAssignmentActor(project, actor);
+        requireAssignmentActor(new AssignmentActorQuery(project, actor, false));
         validateProjectOrganization(project);
 
         OrganizationUserCandidatePageReqDTO systemRequest = new OrganizationUserCandidatePageReqDTO();
@@ -95,7 +100,7 @@ public class ProjectTaskAssignmentService {
         systemRequest.setKeyword(request.getKeyword());
         systemRequest.setPageNo(request.getPageNo());
         systemRequest.setPageSize(request.getPageSize());
-        var page = organizationScopeApi.pageActiveUsers(systemRequest);
+        var page = organizationUserSelectionApi.page(systemRequest);
         return new PageResult<>(BeanUtils.toBean(page.getList(), ProjectTaskAssigneeCandidateRespVO.class),
                 page.getTotal());
     }
@@ -138,7 +143,7 @@ public class ProjectTaskAssignmentService {
         ProjectTaskInstanceDO task = taskMapper.selectTaskForAssignmentForUpdate(
                 new TaskAssignmentCommandQuery(actor.tenantId(), project.getId(), command.taskId()));
         if (task == null) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
-        requireAssignmentActor(project, actor);
+        requireAssignmentActor(new AssignmentActorQuery(project, actor, true));
         if (!Objects.equals(task.getVersion(), command.expectedTaskVersion())) {
             throw exception(PROJECT_TASK_VERSION_CONFLICT);
         }
@@ -174,7 +179,7 @@ public class ProjectTaskAssignmentService {
         assignment.setEffectiveFrom(occurredAt);
         assignment.setAssignedBy(actor.actorId());
         assignment.setReason(command.reason().trim());
-        assignment.setVersion(0);
+        assignment.setVersion(0L);
         assignment.setCreator(String.valueOf(actor.actorId()));
         assignment.setUpdater(String.valueOf(actor.actorId()));
         if (assignmentMapper.insertAssignment(assignment) != 1) {
@@ -286,18 +291,31 @@ public class ProjectTaskAssignmentService {
         return project;
     }
 
-    void requireAssignmentActor(ProjectMasterDO project, TaskWorkbenchActor actor) {
+    record AssignmentActorQuery(ProjectMasterDO project, TaskWorkbenchActor actor, boolean locking) { }
+
+    void requireAssignmentActor(AssignmentActorQuery query) {
+        var project = query.project(); var actor = query.actor();
         long rootId = project.getRootId() == null ? project.getId() : project.getRootId();
         var version = treeVersionMapper.selectLatestActive(rootId);
         if (version == null) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         treeScopeService.assertFullAccess(new ProjectScopeQuery(actor.tenantId(), actor.actorId(), project.getId(),
                 ProjectScopeApi.ACTION_MANAGE, version.getTreeVersion()));
         if (treeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId())) return;
-        boolean allowedRole = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
+        var management = new ProjectManagementQualificationApi.Query(project.getTenantId(), project.getId(), actor.actorId());
+        if (query.locking() ? (managementAccess.lockCurrent(new ProjectManagementQualificationApi.CurrentRevalidation(management, project.getVersion(), "ACTIVE", null)) != null) : managementAccess.permits(management)) return;
+        // Existing explicitly scoped cross-project service-manager assignment authority is a separate source.
+        var source = memberMapper.selectAuthorizedByUser(new ActiveProjectMemberQuery(
                         actor.tenantId(), actor.actorId(), LocalDateTime.now())).stream()
-                .anyMatch(item -> (Objects.equals(item.getProjectId(), project.getId())
-                        && "PROJECT_MANAGER".equals(item.getMemberRole()))
-                        || SERVICE_MANAGER_ROLES.contains(item.getMemberRole()));
+                .filter(item -> !Objects.equals(item.getProjectId(), project.getId())
+                        && SERVICE_MANAGER_ROLES.contains(item.getMemberRole())).findFirst().orElse(null);
+        boolean allowedRole;
+        if (source != null) {
+            allowedRole = !query.locking() || memberMapper.selectAuthorizedByUserForUpdate(
+                    new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberForUpdateQuery(
+                        actor.tenantId(), source.getProjectId(), actor.actorId(), LocalDateTime.now())).stream()
+                    .anyMatch(row -> Objects.equals(source.getProjectId(), row.getProjectId())
+                            && Objects.equals(source.getMemberRole(), row.getMemberRole()));
+        } else allowedRole = false;
         if (!allowedRole) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
     }
 

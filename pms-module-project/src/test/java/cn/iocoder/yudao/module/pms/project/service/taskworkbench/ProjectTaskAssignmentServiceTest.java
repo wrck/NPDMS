@@ -23,6 +23,7 @@ import cn.iocoder.yudao.module.system.api.company.CompanyApi;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import org.junit.jupiter.api.Test;
@@ -58,9 +59,11 @@ class ProjectTaskAssignmentServiceTest {
     @Mock private CompanyApi companyApi;
     @Mock private DeptApi deptApi;
     @Mock private OrganizationScopeApi organizationScopeApi;
+    @Mock private OrganizationUserSelectionApi organizationUserSelectionApi;
     @Mock private AdminUserApi adminUserApi;
     @Mock private PlatformCommandExecutionApi commandExecutionApi;
     @Mock private OperationAuditApi operationAuditApi;
+    @Mock private cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi managementAccess;
 
     @InjectMocks private ProjectTaskAssignmentService service;
     private final AtomicReference<PlatformCommandExecutionApi.SuccessFacts> successFacts = new AtomicReference<>();
@@ -77,13 +80,13 @@ class ProjectTaskAssignmentServiceTest {
         candidate.setCompanyId(10L);
         candidate.setDepartmentId(20L);
         candidate.setDepartmentCode("DEP-01");
-        when(organizationScopeApi.pageActiveUsers(any())).thenReturn(new PageResult<>(List.of(candidate), 1L));
+        when(organizationUserSelectionApi.page(any())).thenReturn(new PageResult<>(List.of(candidate), 1L));
 
         var result = service.getAssigneeCandidates(100L, request(), actor());
 
         assertEquals(1L, result.getTotal());
         assertEquals(66L, result.getList().getFirst().getUserId());
-        verify(organizationScopeApi).pageActiveUsers(any());
+        verify(organizationUserSelectionApi).page(any());
     }
 
     @Test
@@ -93,7 +96,51 @@ class ProjectTaskAssignmentServiceTest {
         assertThrows(ServiceException.class,
                 () -> service.getAssigneeCandidates(100L, request(), actor()));
 
-        verify(organizationScopeApi, never()).pageActiveUsers(any());
+        verify(organizationUserSelectionApi, never()).page(any());
+    }
+
+    @Test void lostMemberAuthorityDoesNotFallbackToRegionalWriteAuthority() {
+        allowAssignment("PROJECT_MANAGER");
+        org.mockito.Mockito.reset(deptApi, organizationScopeApi);
+        when(managementAccess.lockCurrent(any())).thenThrow(new ServiceException(1_014_024_033,"revoked"));
+        assertThrows(ServiceException.class, () -> service.assign(command(66L,"撤权","revoked"),actor()));
+        verify(managementAccess).lockCurrent(any());
+        verify(memberMapper, never()).selectAuthorizedByUser(any());
+        verify(assignmentMapper, never()).insertAssignment(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={true,false})
+    void explicitlyScopedCrossProjectServiceManagerKeepsTheSelectedConfirmedSource(boolean sourceSurvives) {
+        allowAssignment("SERVICE_MANAGER_L1");
+        org.mockito.Mockito.doReturn(null).when(managementAccess).lockCurrent(any());
+        var source = new ProjectMemberAssignmentDO(); source.setTenantId(1L);source.setProjectId(22L);
+        source.setUserId(7L);source.setMemberRole("SERVICE_MANAGER_L1");
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(source));
+        when(memberMapper.selectAuthorizedByUserForUpdate(any())).thenReturn(sourceSurvives ? List.of(source) : List.of());
+        if (sourceSurvives) {
+            when(assignmentMapper.insertAssignment(any())).thenReturn(1);
+            when(taskMapper.assignTaskIfMatch(any())).thenReturn(1);
+            assertEquals("PENDING_START",service.assign(command(66L,"既有跨项目授权","cross-source"),actor()).status());
+        } else {
+            org.mockito.Mockito.reset(deptApi,organizationScopeApi);
+            assertThrows(ServiceException.class,()->service.assign(command(66L,"来源撤权","cross-revoked"),actor()));
+            verify(assignmentMapper,never()).insertAssignment(any());
+        }
+        verify(memberMapper).selectAuthorizedByUserForUpdate(org.mockito.ArgumentMatchers.argThat(query ->
+                query.projectId().equals(22L) && query.userId().equals(7L) && query.tenantId().equals(1L)));
+        verify(managementAccess).lockCurrent(any());
+    }
+
+    @Test void regionalCandidateReadDoesNotAcquireWriteLocks() {
+        allowCandidateProject("ENGINEER");
+        when(managementAccess.permits(any())).thenReturn(true);
+        var department = new DeptRespDTO(); department.setId(20L); department.setCode("DEP-01");
+        when(deptApi.getDept(20L)).thenReturn(department);
+        when(organizationUserSelectionApi.page(any())).thenReturn(new PageResult<>(List.of(),0L));
+        assertEquals(0L,service.getAssigneeCandidates(100L,request(),actor()).getTotal());
+        verify(managementAccess, never()).lockCurrent(any());
+        verify(memberMapper, never()).selectAuthorizedByUserForUpdate(any());
     }
 
     @Test
@@ -119,7 +166,7 @@ class ProjectTaskAssignmentServiceTest {
         ProjectTaskAssignmentDO current = new ProjectTaskAssignmentDO();
         current.setId(900L);
         current.setAssigneeUserId(55L);
-        current.setVersion(2);
+        current.setVersion(2L);
         allowAssignment("SERVICE_MANAGER_L1");
         when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(current);
         when(taskMapper.selectTaskForAssignmentForUpdate(any())).thenAnswer(invocation -> {
@@ -147,7 +194,7 @@ class ProjectTaskAssignmentServiceTest {
         ProjectTaskAssignmentDO current = new ProjectTaskAssignmentDO();
         current.setId(901L);
         current.setAssigneeUserId(55L);
-        current.setVersion(1);
+        current.setVersion(1L);
         allowAssignment("PROJECT_MANAGER");
         when(assignmentMapper.selectCurrentForUpdate(any())).thenReturn(current);
         when(taskMapper.selectTaskForAssignmentForUpdate(any())).thenAnswer(invocation -> {
@@ -232,6 +279,8 @@ class ProjectTaskAssignmentServiceTest {
     }
 
     private void allowProject(String role) {
+        org.mockito.Mockito.lenient().when(managementAccess.permits(any())).thenReturn(cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES.contains(role));
+        org.mockito.Mockito.lenient().when(managementAccess.lockCurrent(any())).thenAnswer(call -> cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES.contains(role) ? cn.iocoder.yudao.module.pms.project.api.participant.ManagementQualificationTestFacts.locked(call.getArgument(0)) : null);
         ProjectTaskInstanceDO task = task();
         when(taskMapper.selectTask(any())).thenReturn(task);
         ProjectTreeVersionDO version = new ProjectTreeVersionDO();
@@ -241,7 +290,8 @@ class ProjectTaskAssignmentServiceTest {
         assignment.setProjectId(1L);
         assignment.setUserId(7L);
         assignment.setMemberRole(role);
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(assignment));
+        org.mockito.Mockito.lenient().when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(assignment));
+        org.mockito.Mockito.lenient().when(memberMapper.selectAuthorizedByUserForUpdate(any())).thenReturn(List.of(assignment));
     }
 
     private void allowCandidateProject(String role) {

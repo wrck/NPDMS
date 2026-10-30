@@ -14,7 +14,7 @@ public record ProjectDeliveryScopeQualificationRevalidationQuery(
         Long actorId,
         String expectedLifecycleStatus,
         String expectedCurrentStage,
-        Integer expectedProjectVersion,
+        Long expectedProjectVersion,
         Long expectedParticipantFactVersion,
         Long expectedTreeVersion) {
 

@@ -55,7 +55,7 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         AnnouncementDO entity = BeanUtils.toBean(createReqVO, AnnouncementDO.class);
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         // 默认公告类型与严重等级
         if (StringUtils.isBlank(entity.getAnnouncementType())) {
@@ -129,7 +129,6 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         }
         // 4. 更新状态
         entity.setStatus(STATUS_PUBLISHED);
-        entity.setVersion(entity.getVersion() + 1);
         announcementMapper.updateById(entity);
     }
 
@@ -142,7 +141,6 @@ public class AnnouncementServiceImpl implements AnnouncementService {
         validateStatus(entity, STATUS_PUBLISHED);
         // 3. 更新状态
         entity.setStatus(STATUS_DISABLED);
-        entity.setVersion(entity.getVersion() + 1);
         announcementMapper.updateById(entity);
     }
 

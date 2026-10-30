@@ -19,11 +19,13 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLine
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.UserCompanyDepartmentScopeRespDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -32,7 +34,7 @@ import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeC
 
 @Service
 @RequiredArgsConstructor
-public class ContractAccessService {
+public class ContractAccessService implements cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi {
 
     private final OrganizationScopeApi organizationScopeApi;
     private final ProjectScopeApi projectScopeApi;
@@ -40,7 +42,71 @@ public class ContractAccessService {
     private final SalesOrderMapper orderMapper;
     private final SalesOrderLineMapper lineMapper;
     private final ProjectContractRelationMapper projectRelationMapper;
+    private final cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.CrmExecutionOrderMapper executionOrderMapper;
     private final OperationAuditApi operationAuditApi;
+
+    @Override
+    public ReadScope prepareReadScope(ReadScopeQuery query) {
+        if (query.tenantId() == null || query.subjectUserId() == null) return new ReadScope(List.of());
+        return new ReadScope(currentDeviceOrganizationGrants(query));
+    }
+
+    private List<OrganizationGrant> currentDeviceOrganizationGrants(ReadScopeQuery query) {
+        return currentScopes(query.tenantId(), query.subjectUserId(), "device-contract-visibility").stream()
+                .filter(s -> s != null && s.getId() != null && s.getVersion() != null && s.getCompanyId() != null)
+                .map(s -> new OrganizationGrant(s.getCompanyId(), s.getDepartmentId(), s.getDepartmentCode()))
+                .distinct().toList();
+    }
+
+    @Override
+    public Set<String> getOrganizationVisibleContractNumbers(Long tenantId, Long userId) {
+        if (tenantId == null || userId == null) return Set.of();
+        var grants = currentScopes(tenantId,userId,"device-organization-visibility").stream()
+                .filter(s -> s != null && s.getId()!=null && s.getVersion()!=null && s.getCompanyId()!=null)
+                .map(s -> new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery.Grant(
+                        s.getCompanyId(),s.getDepartmentId(),s.getDepartmentCode())).distinct().toList();
+        if (grants.isEmpty()) return Set.of();
+        return Set.copyOf(contractMapper.selectOrganizationVisibleContractNumbers(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery(tenantId,grants)));
+    }
+
+    @Override
+    public List<cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.Organization> getOrganizations(
+            Long tenantId, Set<String> contractNumbers) {
+        if (tenantId==null || contractNumbers==null || contractNumbers.isEmpty()) return List.of();
+        return contractMapper.selectDeviceOrganizations(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationListQuery(tenantId,contractNumbers));
+    }
+
+    @Override
+    public Set<String> getVisibleContractNumbers(Long tenantId, Long userId) {
+        return visibleContractNumbers(tenantId, userId, null);
+    }
+
+    @Override
+    public Set<String> getVisibleContractNumbers(Long tenantId, Long userId, Set<String> candidates) {
+        if (candidates == null || candidates.isEmpty()) return Set.of();
+        return visibleContractNumbers(tenantId, userId, candidates);
+    }
+
+    private Set<String> visibleContractNumbers(Long tenantId, Long userId, Set<String> candidates) {
+        if (tenantId == null || userId == null) return Set.of();
+        AccessScope scope = currentAccessScope(tenantId, userId, "device-contract-visibility");
+        if (scope.empty()) return Set.of();
+        Set<String> visible = new java.util.HashSet<>(contractMapper.selectVisibleDeviceContractNumbers(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractScopeQuery(
+                        tenantId, scope.companyCodes(), scope.projectIds(), candidates)));
+        if (visible.isEmpty()) return Set.of();
+        var grants = currentDeviceOrganizationGrants(new ReadScopeQuery(tenantId, userId)).stream()
+                .map(grant -> new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery.Grant(
+                        grant.companyId(), grant.departmentId(), grant.departmentCode())).toList();
+        if (grants.isEmpty()) return Set.of();
+        // 合同目录的公司范围不变；只有设备消费者额外重验同一行公司与部门。
+        visible.retainAll(contractMapper.selectOrganizationVisibleContractNumbers(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery(
+                        tenantId, grants, Set.copyOf(visible))));
+        return Set.copyOf(visible);
+    }
 
     public PageResult<ContractDO> pageContracts(Long tenantId, Long subjectUserId, String correlationId,
                                                  ContractSearch criteria) {
@@ -86,11 +152,22 @@ public class ContractAccessService {
                                                              SalesOrderLineSearch criteria) {
         AccessScope scope = currentAccessScope(tenantId, subjectUserId, correlationId);
         if (scope.empty()) return PageResult.empty();
+        int offset = checkedOffset(criteria.offset());
+        int limit = checkedLimit(criteria.limit());
+        List<Long> projectIds = scope.projectIds();
+        if (!projectIds.isEmpty() && (criteria.orderId() != null
+                || (criteria.orderNo() != null && !criteria.orderNo().isEmpty()))) {
+            // Candidate discovery only narrows the authoritative scope; the final SQL rechecks relations.
+            var candidates = new java.util.HashSet<>(lineMapper.selectProjectCandidatesByOrder(
+                    new cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineProjectCandidateQuery(
+                            tenantId, criteria.orderId(), criteria.orderNo())));
+            projectIds = projectIds.stream().filter(candidates::contains).toList();
+            if (scope.companyCodes().isEmpty() && projectIds.isEmpty()) return PageResult.empty();
+        }
         SalesOrderLineCompanyScopeQuery query = new SalesOrderLineCompanyScopeQuery(tenantId,
-                scope.companyCodes(), scope.projectIds(), criteria.orderId(), criteria.companyCode(),
-                criteria.orderType(), criteria.orderNo(), criteria.lineNo(), criteria.itemCode(),
-                criteria.productCode(), criteria.quantityStatus(), criteria.status(),
-                checkedOffset(criteria.offset()), checkedLimit(criteria.limit()));
+                scope.companyCodes(), projectIds, criteria.orderId(), criteria.companyCode(),
+                criteria.orderType(), criteria.orderNo(), criteria.lineNo(), criteria.productCode(), criteria.quantityStatus(), criteria.status(),
+                offset, limit);
         long total = lineMapper.selectCountByCompanyScope(query);
         return total == 0L ? PageResult.empty() : new PageResult<>(lineMapper.selectByCompanyScope(query), total);
     }
@@ -99,6 +176,74 @@ public class ContractAccessService {
         return new AccessScope(currentCompanyCodes(tenantId, subjectUserId, correlationId),
                 currentProjectIds(tenantId, subjectUserId));
     }
+
+    /** 项目清单导出复用订单行目录的公司/合同项目读取范围，分配关系本身不扩大订单行权限。 */
+    public AccessScope orderLineReadScope(OrderLineReadScopeQuery query) {
+        return currentAccessScope(query.tenantId(), query.subjectUserId(), "project-equipment-export");
+    }
+
+    public record OrderLineReadScopeQuery(Long tenantId, Long subjectUserId) { }
+
+    @Resource
+    private cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper projectCommerceMapper;
+
+    public ProjectCommerceDetail getProjectCommerceDetail(Long tenantId, Long userId, Long projectId) {
+        var scopeQuery = new ProjectCurrentScopeQuery(tenantId, userId, projectId, ProjectScopeApi.ACTION_VIEW);
+        if (!canReadProject(scopeQuery)) throw inaccessible();
+        var query = new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery(tenantId, projectId);
+        return new ProjectCommerceDetail(projectCommerceMapper.selectContracts(query),
+                projectCommerceMapper.selectOrders(query), projectCommerceMapper.selectExecutionOrders(query));
+    }
+
+    public record ProjectCommerceDetail(List<ContractDO> contracts, List<SalesOrderDO> orders,
+        List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders) {}
+
+    private boolean canReadProject(ProjectCurrentScopeQuery query) {
+        try {
+            var scope = projectScopeApi.resolveCurrent(query);
+            return scope != null && scope.fullProjectIds() != null
+                    && scope.fullProjectIds().contains(query.anchorProjectId());
+        } catch (ServiceException unavailableAnchor) {
+            // Preserve the original check for historical admin projects without an active tree.
+            return currentProjectIds(query.tenantId(), query.subjectUserId()).contains(query.anchorProjectId());
+        } catch (RuntimeException unavailableOwner) {
+            return false;
+        }
+    }
+
+    /**
+     * 合同主档单入口的项目创建取值解析：合同 → 订单（主导列业务键直连，排退货）→ 执行单（主执行单号直连）。
+     * 访问范围与合同详情一致（ADR-0038 公司范围）；空范围拒绝。
+     */
+    public CreationSourceDetail getCreationSource(Long tenantId, Long subjectUserId, String correlationId,
+                                                  Long contractId) {
+        AccessScope scope = currentAccessScope(tenantId, subjectUserId, correlationId);
+        if (scope.empty()) throw inaccessible();
+        ContractDO contract = contractMapper.selectDetailByCompanyScope(
+                new ContractDetailScopeQuery(tenantId, contractId, scope.companyCodes(), scope.projectIds()));
+        if (contract == null) throw inaccessible();
+        List<SalesOrderDO> orders = orderMapper.selectCreationOrdersByContract(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.ContractCreationOrderQuery(
+                        tenantId, contractId, contract.getContractNo(), contract.getCompanyCode()));
+        List<String> executionNos = orders.stream().map(SalesOrderDO::getExecutionNo)
+                .filter(value -> value != null && !value.isBlank()).distinct().toList();
+        List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executions =
+                executionNos.isEmpty() ? List.of()
+                        : executionOrderMapper.selectActiveByExecutionNos(
+                                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.query.ExecutionNoListQuery(
+                                        tenantId, executionNos));
+        List<String> lineExecutionNos = orders.isEmpty() ? List.of()
+                : lineMapper.selectDistinctRealExecutionNos(
+                        new cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.OrderLineExecutionNoQuery(
+                                tenantId, orders.stream().map(SalesOrderDO::getId).toList()));
+        return new CreationSourceDetail(contract, orders == null ? List.of() : List.copyOf(orders),
+                executions == null ? List.of() : List.copyOf(executions),
+                lineExecutionNos == null ? List.of() : List.copyOf(lineExecutionNos));
+    }
+
+    public record CreationSourceDetail(ContractDO contract, List<SalesOrderDO> orders,
+        List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders,
+        List<String> lineExecutionNos) {}
 
     private List<UserCompanyDepartmentScopeRespDTO> currentScopes(
             Long tenantId, Long subjectUserId, String correlationId) {
@@ -163,7 +308,7 @@ public class ContractAccessService {
     }
 
     public record SalesOrderLineSearch(Long orderId, String companyCode, String orderType, String orderNo,
-                                       String lineNo, String itemCode, String productCode,
+                                       String lineNo, String productCode,
                                        String quantityStatus, String status, int offset, int limit) {
     }
 
@@ -171,7 +316,7 @@ public class ContractAccessService {
                                  List<ProjectContractRelationDO> projectRelations) {
     }
 
-    private record AccessScope(List<String> companyCodes, List<Long> projectIds) {
+    public record AccessScope(List<String> companyCodes, List<Long> projectIds) {
         boolean empty() {
             return companyCodes.isEmpty() && projectIds.isEmpty();
         }

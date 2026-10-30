@@ -8,7 +8,7 @@ public record DeliveryScopeChangeCommand(
         Long subjectUserId,
         Long deliveryScopeId,
         Long projectId,
-        Integer expectedProjectVersion,
+        Long expectedProjectVersion,
         Long expectedProjectScopeVersion,
         Long expectedDeliveryScopeVersion,
         Long expectedAllocationVersion,

@@ -11,7 +11,7 @@ public record GovernanceActionResult(
         String lifecycleStatus,
         String currentStage,
         String assignmentStatus,
-        Integer projectVersion,
+        Long projectVersion,
         Long stageSnapshotId,
         String operationId,
         LocalDateTime operatedAt,

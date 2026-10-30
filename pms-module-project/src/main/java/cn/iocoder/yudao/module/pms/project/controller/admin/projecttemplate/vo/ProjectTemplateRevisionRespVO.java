@@ -42,6 +42,18 @@ public class ProjectTemplateRevisionRespVO {
     @Schema(description = "流程定义版本引用", example = "1")
     private String processDefinitionVersion;
 
+    @Schema(description = "设计器 schema 版本", example = "2")
+    private Integer designerSchemaVersion;
+
+    @Schema(description = "执行快照 schema 版本", example = "3")
+    private Integer executionSchemaVersion;
+
+    @Schema(description = "生成执行快照的 Compiler 版本", example = "template-version-3")
+    private String compilerVersion;
+
+    @Schema(description = "执行快照语义 SHA-256；历史空值保持为空")
+    private String snapshotHash;
+
     @Schema(description = "最近一次发布校验结果摘要（留痕）")
     private String validationSummary;
 

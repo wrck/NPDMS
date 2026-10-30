@@ -1,13 +1,20 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @TableName("cut_cutover_collection_evidence")
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CutoverCollectionEvidenceDO {
     @TableId
     private Long id;
@@ -27,7 +34,9 @@ public class CutoverCollectionEvidenceDO {
     private Integer dispatchMarker;
     private Integer callbackMarker;
     private Integer manualMarker;
+    @TableField(value = "occur_time")
     private LocalDateTime occurredAt;
+    @TableField(value = "record_user_id")
     private Long recordedBy;
     private String creator;
     private LocalDateTime createTime;

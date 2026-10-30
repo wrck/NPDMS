@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.Constr
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanChangeProcessQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanLockQuery;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
@@ -36,13 +37,12 @@ public class DurationChangeBpmAuthorizationGuard {
     private static final String ACTIVE = "ACTIVE";
     private static final Set<String> SERVICE_MANAGER_ROLES =
             cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES;
-    private static final Set<String> PROJECT_MANAGER_ROLE =
-            Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
 
     private final ConstructionPlanMapper planMapper;
     private final ConstructionPlanChangeMapper changeMapper;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
+    private final ProjectDurationOperatorApi durationOperatorApi;
     private final ProjectParticipantFactApi participantFactApi;
 
     AuthorizationContext authorize(String processInstanceId,
@@ -58,51 +58,59 @@ public class DurationChangeBpmAuthorizationGuard {
         if (change == null || !Objects.equals(change.getTenantId(), tenantId)) {
             throw exception(DURATION_CHANGE_BPM_ASSOCIATION_INVALID);
         }
-        ConstructionPlanDO plan = planMapper.selectById(
+        ConstructionPlanDO plan = planMapper.selectByLockQuery(
                 new ConstructionPlanLockQuery(tenantId, change.getPlanId()));
         if (plan == null || !Objects.equals(plan.getTenantId(), tenantId)) {
             throw exception(DURATION_CHANGE_BPM_ASSOCIATION_INVALID);
         }
 
-        Set<String> requiredRoles;
         String permission;
         if (result == DurationChangeBpmResultService.TerminalResult.CANCEL) {
             if (!Objects.equals(actorId, change.getApplicantUserId())) {
                 throw exception(FORBIDDEN);
             }
-            requiredRoles = PROJECT_MANAGER_ROLE;
             permission = ConstructionPlanApplicationService.PERMISSION_MANAGE;
         } else {
-            if (!Objects.equals(actorId, change.getApproverUserId())
-                    || Objects.equals(actorId, change.getApplicantUserId())) {
+            // 服务经理本人提交的变更由其自审，仅要求审批人就是提交时冻结的服务经理
+            if (!Objects.equals(actorId, change.getApproverUserId())) {
                 throw exception(FORBIDDEN);
             }
-            requiredRoles = SERVICE_MANAGER_ROLES;
             permission = PERMISSION_APPROVE;
         }
         if (!permissionApi.hasAnyPermissions(actorId, permission)) {
             throw exception(FORBIDDEN);
         }
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorId, plan.getProjectId(), ProjectScopeApi.ACTION_MANAGE));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(plan.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (scope == null || !scope.fullProjectIds().contains(plan.getProjectId())) {
             throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
         }
+        if (result == DurationChangeBpmResultService.TerminalResult.CANCEL) {
+            var subject = new ProjectDurationOperatorApi.Query(tenantId, plan.getProjectId(), actorId);
+            var current = durationOperatorApi.inspect(subject);
+            var locked = durationOperatorApi.lockAndRevalidate(
+                    new ProjectDurationOperatorApi.RevalidationQuery(subject, current.projectVersion()));
+            return new AuthorizationContext(tenantId, actorId, plan.getId(), plan.getProjectId(),
+                    change.getId(), locked.projectVersion());
+        }
         ProjectParticipantFact current = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                plan.getProjectId(), actorId, requiredRoles, LocalDateTime.now()));
+                plan.getProjectId(), actorId, SERVICE_MANAGER_ROLES, LocalDateTime.now()));
         if (current == null || !Objects.equals(current.projectId(), plan.getProjectId())
                 || !Objects.equals(current.userId(), actorId)
                 || current.projectVersion() == null) {
             throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
         }
         participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                plan.getProjectId(), actorId, current.projectVersion(), ACTIVE, null, requiredRoles));
+                plan.getProjectId(), actorId, current.projectVersion(), ACTIVE, null, SERVICE_MANAGER_ROLES));
         return new AuthorizationContext(tenantId, actorId, plan.getId(), plan.getProjectId(),
                 change.getId(), current.projectVersion());
     }
 
     record AuthorizationContext(Long tenantId, Long actorId, Long planId, Long projectId,
-                                Long changeId, Integer projectVersion) {
+                                Long changeId, Long projectVersion) {
     }
 
 }

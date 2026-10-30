@@ -31,7 +31,10 @@ class RequirementAnalysisEntityFactApiTest {
     private final ProjectWorkBindingFactApi bindings = mock(ProjectWorkBindingFactApi.class);
     private final RequirementAnalysisEntityQueryService queries = mock(RequirementAnalysisEntityQueryService.class);
     private final RequirementAnalysisRevisionFiles files = mock(RequirementAnalysisRevisionFiles.class);
-    private final RequirementAnalysisEntityFactApi api = new RequirementAnalysisEntityFactApiImpl(mapper, permissions, scopes, projects, bindings, queries, files);
+    private final RequirementAnalysisExecutionAccess executionAccess = new RequirementAnalysisExecutionAccess(
+            mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi.class), bindings,
+            mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.class));
+    private final RequirementAnalysisEntityFactApi api = new RequirementAnalysisEntityFactApiImpl(mapper, permissions, scopes, projects, queries, files, executionAccess);
     private final RequirementAnalysisEntityFactApi.Query query = new RequirementAnalysisEntityFactApi.Query(100L, 500L, 501L);
     private RequirementAnalysisRevisionDO row;
 
@@ -43,7 +46,7 @@ class RequirementAnalysisEntityFactApiTest {
         var scope = new ProjectScopeResult(100L, 8L, Set.of(100L), Set.of());
         when(scopes.resolveCurrent(any())).thenReturn(scope);
         when(scopes.lockAndRevalidate(any())).thenReturn(scope);
-        var project = new ProjectOrganizationFact(100L, 3, 10L, 20L, "D20");
+        var project = new ProjectOrganizationFact(100L, 3L, 10L, 20L, "D20");
         when(projects.inspect(any())).thenReturn(project);
         when(projects.lockAndRevalidate(any())).thenReturn(project);
         var binding = binding();
@@ -51,7 +54,7 @@ class RequirementAnalysisEntityFactApiTest {
         when(bindings.lockAndRevalidate(any())).thenReturn(binding);
         row = new RequirementAnalysisRevisionDO();
         row.setTenantId(1L); row.setId(501L); row.setEntityId(500L); row.setProjectId(100L);
-        row.setRevisionNo(1); row.setVersion(4); row.setRevisionState("FROZEN"); row.setEffectiveMarker(1);
+        row.setRevisionNo(1); row.setVersion(4L); row.setRevisionState("FROZEN"); row.setEffectiveMarker(1);
         row.setProjectTemplateId(401L); row.setProjectTemplateRevisionId(702L);
         row.setFrozenBy(9L); row.setFrozenAt(LocalDateTime.of(2026,9,16,0,0));
         row.setExecutionSnapshot(JsonUtils.toJsonString(new RequirementAnalysisExecutionAccess.Frozen(binding, null, null)));
@@ -98,15 +101,80 @@ class RequirementAnalysisEntityFactApiTest {
         verifyNoInteractions(bindings, queries);
     }
 
+    @Test void independentCompletedRevisionRevalidatesContentAndFilesWithoutANodeOrigin() {
+        independent(1L, 100L);
+        var fact = api.inspect(query);
+        assertNull(fact.workBinding());
+        assertEquals(fact, api.lockAndRevalidate(fact));
+        verify(files).lockForFreeze(eq(row.revisionRef()), any());
+        verifyNoInteractions(bindings);
+        when(queries.revision(any(), any())).thenReturn(view("changed"));
+        assertThrows(RuntimeException.class, () -> api.lockAndRevalidate(fact));
+    }
+
+    @Test void independentOriginCannotBorrowAnotherTenantProjectOrTemplate() {
+        independent(2L, 100L);
+        assertThrows(RuntimeException.class, () -> api.inspect(query));
+        independent(1L, 999L);
+        assertThrows(RuntimeException.class, () -> api.inspect(query));
+        independent(1L, 100L);
+        row.setProjectTemplateRevisionId(999L);
+        assertThrows(RuntimeException.class, () -> api.inspect(query));
+        verifyNoInteractions(queries, files, bindings);
+    }
+
+    @Test void independentResultDoesNotBypassUnavailableFiles() {
+        independent(1L, 100L);
+        var fact = api.inspect(query);
+        doThrow(new IllegalStateException("FILE_UNAVAILABLE")).when(files).lockForFreeze(any(), any());
+        assertThrows(IllegalStateException.class, () -> api.lockAndRevalidate(fact));
+        verifyNoInteractions(bindings);
+    }
+
+    @Test void moduleConfiguredResultCanBeConsumedWithoutProjectTemplateOrNode() {
+        row.setProjectTemplateId(null);
+        row.setProjectTemplateRevisionId(null);
+        row.setExecutionSnapshot("{\"moduleForm\":{\"tenantId\":1,\"projectId\":100,\"templateId\":16,\"revisionId\":17,\"revisionNo\":1,\"factVersion\":2}}");
+        var fact = api.inspect(query);
+        assertNull(fact.workBinding());
+        assertEquals(fact, api.lockAndRevalidate(fact));
+        verifyNoInteractions(bindings);
+        row.setExecutionSnapshot(row.getExecutionSnapshot().replace("\"tenantId\":1", "\"tenantId\":2"));
+        assertThrows(RuntimeException.class, () -> api.inspect(query));
+    }
+
+    @Test void completedBusinessFactSurvivesUnavailableOriginPresentationAndNode() {
+        when(bindings.inspectTask(any())).thenThrow(new IllegalStateException("origin retired"));
+        when(bindings.lockAndRevalidate(any())).thenThrow(new IllegalStateException("origin retired"));
+        var fact = api.inspect(query);
+        assertEquals(fact,api.lockAndRevalidate(fact));
+        verifyNoInteractions(bindings);
+    }
+
+    @Test void businessOriginHasNoTemplatePrerequisiteForConsumers() {
+        row.setProjectTemplateId(null); row.setProjectTemplateRevisionId(null);
+        row.setExecutionSnapshot(JsonUtils.toJsonString(RequirementAnalysisExecutionAccess.independent(1L,100L)));
+        var fact = api.inspect(query);
+        assertNull(fact.workBinding()); assertEquals(fact,api.lockAndRevalidate(fact));
+        verifyNoInteractions(bindings);
+    }
+
+    private void independent(Long tenantId, Long projectId) {
+        var configuration = new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessConfigurationApi.Configuration(
+                tenantId, projectId, 401L, 702L, 2, 17L,
+                "{\"schemaVersion\":2,\"dynamicFormTemplateId\":16,\"dynamicFormTemplateRevisionId\":17,\"dynamicFormRevisionNo\":1,\"dynamicFormRevisionFactVersion\":2}");
+        row.setExecutionSnapshot(JsonUtils.toJsonString(new RequirementAnalysisExecutionAccess.Frozen(null, null, null, configuration)));
+    }
+
     private RequirementAnalysisEntityQueryService.View view(String content) {
         Map<String,Object> values = new LinkedHashMap<>();
         values.put("projectBackground", content); values.put("networkTopology", null);
-        return new RequirementAnalysisEntityQueryService.View(100L, row.revisionMetadata(), 1, null, null, 0,
+        return new RequirementAnalysisEntityQueryService.View(100L, row.revisionMetadata(), 1L, null, null, 0,
                 values, List.of(), List.of(), 401L, 702L, RequirementAnalysisEntityProvider.FIELDS.fields());
     }
     private ProjectWorkBindingFact binding() {
         var target = ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS;
-        return new ProjectWorkBindingFact(100L, 3, 201L, 4, 301L, 5, 401L, 6,
+        return new ProjectWorkBindingFact(100L, 3L, 201L, 4, 301L, 5, 401L, 6,
                 target.workBindingTypeCode(), target.targetContextCode(), target.targetObjectType(), target.targetObjectKey(),
                 null, null, null, null, 702L, 2, "{}", 16L, 17L, 1, 2);
     }

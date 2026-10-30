@@ -17,7 +17,7 @@
 </template>
 <script setup lang="ts">
 import { ref } from 'vue'
-import Workbench from '@/views/pms/project/satisfaction/index.vue'
+import Workbench from '@/views/pms/acceptance/satisfaction/index.vue'
 import { calls } from './fixtureApi'
 const projectId = ref<number | undefined>(2)
 const readonly = ref(false)

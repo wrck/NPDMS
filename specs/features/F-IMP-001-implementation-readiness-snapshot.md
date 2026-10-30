@@ -114,6 +114,10 @@
 
 ## 8. Feature Ready Gate
 
+### 2026-10-24 批准补充：CUT当前角色审批内部重验
+
+依据Q-CUT-ROLE-FINAL-READINESS-20261024的需求方批准，当前合格角色审批节点可在原决定事务内使用`lockAndRevalidateForApproval`。CUT Owner锁定并验证受信租户、当前任务/审批实例/节点、角色资格、版本、项目、设备及精确快照；IMP通过PROJ/AST公开内部事实契约重验当前树版本、冻结计划适用性、设备归属版本、批准方案及EXE-01～04事实。返回仅含决定和绑定身份，不返回实时Owner资料，不授予通用项目/设备查看权，不继承发起人权限。失效、替换、暂停、已完成、非当前节点或资格变化失败关闭；P6原重验保持。普通查询仍要求当前用户项目范围。此补充不改变本节既有Feature Ready结论。
+
 当前结论：`NOT_READY / NO-GO`。
 
 已完成：SDS物理Owner冲突已纠正为`imp_implementation_readiness_snapshot`，生成投影和Phase 3验证通过。

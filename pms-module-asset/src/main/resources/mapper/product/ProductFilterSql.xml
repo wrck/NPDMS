@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pms.asset.ProductFilters">
+    <!-- Public SQL contract: caller aliases its product master as product. No dynamic columns or SQL strings. -->
+    <sql id="group">
+        <trim prefix="(" suffix=")" prefixOverrides="AND">
+            <if test="group.productCodeLike != null">
+                AND product.product_code LIKE #{group.productCodeLike}
+            </if>
+            <if test="group.productCodeIn != null">
+                AND product.product_code IN
+                <foreach collection="group.productCodeIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="group.productCodeNotIn != null">
+                AND product.product_code NOT IN
+                <foreach collection="group.productCodeNotIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="group.productModelLike != null">
+                AND product.product_model LIKE #{group.productModelLike}
+            </if>
+            <if test="group.productModelIn != null">
+                AND product.product_model IN
+                <foreach collection="group.productModelIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="group.productModelNotIn != null">
+                AND product.product_model NOT IN
+                <foreach collection="group.productModelNotIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="group.productDescLike != null">
+                AND product.product_desc LIKE #{group.productDescLike}
+            </if>
+            <if test="group.productDescIn != null">
+                AND product.product_desc IN
+                <foreach collection="group.productDescIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="group.productDescNotIn != null">
+                AND product.product_desc NOT IN
+                <foreach collection="group.productDescNotIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="group.productCategoryLike != null">
+                AND product.product_category LIKE #{group.productCategoryLike}
+            </if>
+            <if test="group.productCategoryIn != null">
+                AND product.product_category IN
+                <foreach collection="group.productCategoryIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="group.productCategoryNotIn != null">
+                AND product.product_category NOT IN
+                <foreach collection="group.productCategoryNotIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="group.productTypeLike != null">
+                AND product.product_type LIKE #{group.productTypeLike}
+            </if>
+            <if test="group.productTypeIn != null">
+                AND product.product_type IN
+                <foreach collection="group.productTypeIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="group.productTypeNotIn != null">
+                AND product.product_type NOT IN
+                <foreach collection="group.productTypeNotIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="group.alternativeGroups != null">
+                AND <foreach collection="group.alternativeGroups" item="alternative" open="(" separator=" AND " close=")">
+                    <include refid="pms.asset.ProductFilters.alternative"/>
+                </foreach>
+            </if>
+        </trim>
+    </sql>
+    <sql id="alternative">
+        <trim prefix="(" suffix=")" prefixOverrides="OR">
+            <if test="alternative.productCodeLike != null">
+                OR product.product_code LIKE #{alternative.productCodeLike}
+            </if>
+            <if test="alternative.productCodeIn != null">
+                OR product.product_code IN
+                <foreach collection="alternative.productCodeIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="alternative.productCodeNotIn != null">
+                OR product.product_code NOT IN
+                <foreach collection="alternative.productCodeNotIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="alternative.productModelLike != null">
+                OR product.product_model LIKE #{alternative.productModelLike}
+            </if>
+            <if test="alternative.productModelIn != null">
+                OR product.product_model IN
+                <foreach collection="alternative.productModelIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="alternative.productModelNotIn != null">
+                OR product.product_model NOT IN
+                <foreach collection="alternative.productModelNotIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="alternative.productDescLike != null">
+                OR product.product_desc LIKE #{alternative.productDescLike}
+            </if>
+            <if test="alternative.productDescIn != null">
+                OR product.product_desc IN
+                <foreach collection="alternative.productDescIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="alternative.productDescNotIn != null">
+                OR product.product_desc NOT IN
+                <foreach collection="alternative.productDescNotIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="alternative.productCategoryLike != null">
+                OR product.product_category LIKE #{alternative.productCategoryLike}
+            </if>
+            <if test="alternative.productCategoryIn != null">
+                OR product.product_category IN
+                <foreach collection="alternative.productCategoryIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="alternative.productCategoryNotIn != null">
+                OR product.product_category NOT IN
+                <foreach collection="alternative.productCategoryNotIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="alternative.productTypeLike != null">
+                OR product.product_type LIKE #{alternative.productTypeLike}
+            </if>
+            <if test="alternative.productTypeIn != null">
+                OR product.product_type IN
+                <foreach collection="alternative.productTypeIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+            <if test="alternative.productTypeNotIn != null">
+                OR product.product_type NOT IN
+                <foreach collection="alternative.productTypeNotIn" item="value" open="(" separator="," close=")">#{value}</foreach>
+            </if>
+        </trim>
+    </sql>
+    <sql id="groups">
+        <foreach collection="query.productFilters" item="group" open="(" separator=" OR " close=")">
+            <include refid="pms.asset.ProductFilters.group"/>
+        </foreach>
+    </sql>
+</mapper>

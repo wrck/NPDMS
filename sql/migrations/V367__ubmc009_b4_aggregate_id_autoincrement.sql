@@ -1,0 +1,21 @@
+-- P12-B4 统一业务模型：CUS/COM/AST 聚合主键切换为数据库自增（BaseBusinessEntity IdType.AUTO）
+-- 原主键由应用侧雪花分配（ASSIGN_ID）；既有行 id 保持不变，仅新生成 id 改由数据库自增。
+-- 子表外键引用这些主键，列类型不变（BIGINT→BIGINT），会话内关闭外键检查以允许列重建。
+SET FOREIGN_KEY_CHECKS = 0;
+ALTER TABLE cus_customer_master
+  MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT COMMENT '客户主数据编号';
+ALTER TABLE cus_customer_contact
+  MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT COMMENT '客户联系人编号';
+ALTER TABLE com_contract
+  MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT COMMENT '合同编号';
+ALTER TABLE com_sales_order
+  MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT COMMENT '销售订单编号';
+ALTER TABLE com_delivery_scope
+  MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT COMMENT '交付范围编号';
+ALTER TABLE com_authority_candidate
+  MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT COMMENT '权威候选编号';
+ALTER TABLE com_crm_execution_order
+  MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT COMMENT '执行单编号';
+ALTER TABLE ast_device
+  MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT COMMENT '设备编号';
+SET FOREIGN_KEY_CHECKS = 1;

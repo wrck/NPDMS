@@ -29,6 +29,8 @@ class EntityFormBindingTest {
     private final List<EntityExtensionApi.Definition> definitions = List.of(new EntityExtensionApi.Definition("tags", "tags", EntityField.Type.TEXT_LIST, false, null, List.of("A", "B")));
 
     @BeforeEach void prepare() {
+        when(registry.nativeRef(any(EntityDataRef.class))).thenAnswer(call->call.getArgument(0));
+        when(registry.nativeRef(any(EntityRef.class))).thenAnswer(call->call.getArgument(0));
         var provider = mock(EntityFieldProvider.class);
         when(registry.fields(any())).thenReturn(provider);
         when(provider.fields()).thenReturn(List.of(new EntityField("powerSupply", EntityField.Type.TEXT, false)));
@@ -49,17 +51,17 @@ class EntityFormBindingTest {
     }
 
     private EntityFormApi.Bind command() {
-        return new EntityFormApi.Bind(target, actor, 1, 0, 10L, null, Map.of("power", "powerSupply", "tags", "tags"));
+        return new EntityFormApi.Bind(target, actor, 1L, 0, 10L, null, Map.of("power", "powerSupply", "tags", "tags"));
     }
 
     @Test void firstBindingCreatesTypedDefinitionAndSaveAcceptsOnlyDeclaredValues() {
         var binding = service.bind(command());
         assertNotNull(binding.extensionDefinitionRevisionId());
         assertEquals(definitions, extensions.definition(binding.extensionDefinitionRevisionId(), target.entity(), actor).fields());
-        var saved = extensions.save(new EntityExtensionApi.Save(target, actor, 1, 0,
+        var saved = extensions.save(new EntityExtensionApi.Save(target, actor, 1L, 0,
                 binding.extensionDefinitionRevisionId(), Map.of("tags", List.of("A", "B"))));
         assertEquals(List.of("A", "B"), saved.fields().get("tags"));
-        assertThrows(RuntimeException.class, () -> extensions.save(new EntityExtensionApi.Save(target, actor, 1, 0,
+        assertThrows(RuntimeException.class, () -> extensions.save(new EntityExtensionApi.Save(target, actor, 1L, 0,
                 binding.extensionDefinitionRevisionId(), Map.of("tags", List.of("INVALID")))));
     }
 
@@ -76,9 +78,24 @@ class EntityFormBindingTest {
     }
 
     @Test void fixedOnlyFormDoesNotCreateExtensionDefinition() {
-        var binding = service.bind(new EntityFormApi.Bind(target, actor, 1, 0, 10L, null, Map.of("power", "powerSupply")));
+        var binding = service.bind(new EntityFormApi.Bind(target, actor, 1L, 0, 10L, null, Map.of("power", "powerSupply")));
         assertNull(binding.extensionDefinitionRevisionId());
         verify(mapper, never()).insertDefinition(any());
+    }
+
+    @Test void optInBindingPersistsAdditionalCheckboxAndBusinessDetailRows() {
+        revision.setFormRulesJson("[{\"type\":\"input\",\"field\":\"power\"},"
+                + "{\"type\":\"checkbox\",\"field\":\"tags\",\"options\":[{\"value\":\"A\"}]},"
+                + "{\"type\":\"group\",\"field\":\"devices\",\"props\":{\"rule\":[{\"type\":\"input\",\"field\":\"serial\"}]}},"
+                + "{\"type\":\"PmsFileArtifact\",\"field\":\"ATTACHMENT\"}]");
+        var binding = service.bind(new EntityFormApi.Bind(target, actor, 1L, 0, 10L, null,
+                Map.of("power", "powerSupply"), true));
+        assertEquals(Map.of("power", "powerSupply", "tags", "tags", "devices", "devices"), binding.fieldBindings());
+        var values = Map.<String, Object>of("tags", List.of("A"), "devices", List.of(Map.of("serial", "SN001")));
+        assertEquals(values, extensions.save(new EntityExtensionApi.Save(target, actor, 1L, 0,
+                binding.extensionDefinitionRevisionId(), values)).fields());
+        assertThrows(RuntimeException.class, () -> extensions.save(new EntityExtensionApi.Save(target, actor, 1L, 0,
+                binding.extensionDefinitionRevisionId(), Map.of("devices", List.of("wrong row type")))));
     }
 
     @Test void rejectedOwnerWriteAndUnpublishedTemplateCannotCreateDefinitions() {

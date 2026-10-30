@@ -1,15 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureAttachmentMapper">
-    <select id="selectListByClosure" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureAttachmentDO">
-        SELECT * FROM cut_cutover_closure_attachment
+    <resultMap id="structuredCutoverClosureAttachmentDO" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureAttachmentDO" autoMapping="false">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="closure_id" property="closureId"/>
+        <result column="purpose_code" property="purposeCode"/>
+        <result column="file_reference_key" property="referenceKey"/>
+        <result column="file_artifact_id" property="artifactId"/>
+        <result column="file_version_no" property="fileVersionNo"/>
+        <result column="file_scope_version" property="fileScopeVersion"/>
+        <result column="file_sha256" property="fileHash"/>
+        <result column="version" property="version"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="file_artifact_fact_version" property="fileArtifactFactVersion"/>
+        <result column="file_reference_fact_version" property="fileReferenceFactVersion"/>
+        <result column="file_availability_fact_version" property="fileAvailabilityFactVersion"/>
+    </resultMap>
+
+    <select id="selectListByClosure" resultMap="structuredCutoverClosureAttachmentDO">
+        SELECT id, tenant_id, closure_id, purpose_code, file_reference_key, file_artifact_id, file_version_no, file_scope_version, file_sha256, version, creator, create_time, updater, update_time, deleted, file_artifact_fact_version, file_reference_fact_version, file_availability_fact_version FROM cut_cutover_closure_attachment
         WHERE tenant_id = #{query.tenantId} AND closure_id = #{query.closureId} AND deleted = b'0'
-        ORDER BY purpose_code, reference_key, id
+        ORDER BY purpose_code, file_reference_key, id
     </select>
-    <select id="selectListByClosureForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureAttachmentDO">
-        SELECT * FROM cut_cutover_closure_attachment
+    <select id="selectListByClosureForUpdate" resultMap="structuredCutoverClosureAttachmentDO">
+        SELECT id, tenant_id, closure_id, purpose_code, file_reference_key, file_artifact_id, file_version_no, file_scope_version, file_sha256, version, creator, create_time, updater, update_time, deleted, file_artifact_fact_version, file_reference_fact_version, file_availability_fact_version FROM cut_cutover_closure_attachment
         WHERE tenant_id = #{query.tenantId} AND closure_id = #{query.closureId} AND deleted = b'0'
-        ORDER BY purpose_code, reference_key, id
+        ORDER BY purpose_code, file_reference_key, id
         FOR UPDATE
     </select>
     <delete id="deleteDraftRows">

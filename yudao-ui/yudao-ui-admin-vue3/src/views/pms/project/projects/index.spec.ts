@@ -83,15 +83,19 @@ describe('F-PROJ-001 creation submission state', () => {
 
   it('keeps legacy survey read-only, installation atomic and equipment location read-only', () => {
     const surveySource = readFileSync(
-      new URL('../../engineering/site-survey/index.vue', import.meta.url),
+      new URL('../../delivery-business/site-survey/index.vue', import.meta.url),
       'utf8'
     )
     const installationSource = readFileSync(
       new URL('../../engineering/installation/index.vue', import.meta.url),
       'utf8'
     )
-    const equipmentSource = readFileSync(
-      new URL('../../asset/equipment/index.vue', import.meta.url),
+    const deviceArchiveSource = readFileSync(
+      new URL('../../asset/device/components/DeviceLocationPanel.vue', import.meta.url),
+      'utf8'
+    )
+    const deviceArchiveFormSource = readFileSync(
+      new URL('../../asset/device/components/DeviceArchiveFormDialog.vue', import.meta.url),
       'utf8'
     )
 
@@ -99,14 +103,15 @@ describe('F-PROJ-001 creation submission state', () => {
     assert.match(surveySource, /router\.push\('\/pms\/customer-asset\/asset-site'\)/)
     assert.doesNotMatch(surveySource, /SiteSurveyApi\.(create|update|delete)/)
     assert.match(installationSource, /locationMaintenance/)
-    assert.match(installationSource, /getEquipmentVersionList/)
-    for (const source of [surveySource, installationSource, equipmentSource]) {
+    assert.match(installationSource, /getDeviceArchiveVersions/)
+    for (const source of [surveySource, installationSource, deviceArchiveFormSource]) {
       assert.match(source, /@\/api\/pms\/project\/projects/)
       assert.match(source, /label-field="projectName"/)
       assert.match(source, /query-field="projectName"/)
       assert.doesNotMatch(source, /@\/api\/pms\/project\/project'/)
     }
-    assert.doesNotMatch(equipmentSource, /v-model="form\.location"/)
-    assert.match(equipmentSource, /位置变更历史/)
+    assert.doesNotMatch(deviceArchiveSource, /v-model="form\.location"/)
+    assert.doesNotMatch(deviceArchiveFormSource, /v-model="form\.location"/)
+    assert.match(deviceArchiveSource, /位置变更历史/)
   })
 })

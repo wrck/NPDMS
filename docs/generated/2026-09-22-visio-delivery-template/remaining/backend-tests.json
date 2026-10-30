@@ -1,0 +1,79 @@
+[
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.preparationconfirmation.ProjectPreparationConfirmationTest",
+    "tests": "5",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTemplateV2MatchEligibilityTest",
+    "tests": "10",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCreationFactsTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFieldConfigurationTest",
+    "tests": "3",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionLocalLifecycleTest",
+    "tests": "8",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionTieredReviewServiceTest",
+    "tests": "8",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.SolutionApprovalCompletionProviderTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.platform.service.authorization.AuthorizationGrantServiceTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.bpm.service.solutionreview.SolutionReviewBpmGuardTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.project.api.rule.ProjectFieldRuleApiImplTest",
+    "tests": "9",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  },
+  {
+    "name": "cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewPolicyServiceTest",
+    "tests": "4",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0"
+  }
+]

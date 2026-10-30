@@ -57,13 +57,13 @@ class ProjectReworkServiceTest {
 
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
         var currentStages = mock(ProjectCurrentStageService.class);
-        when(currentStages.synchronize(100L)).thenReturn(4);
+        when(currentStages.synchronize(100L)).thenReturn(4L);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "currentStages", currentStages);
         TenantContextHolder.setTenantId(1L);
         when(permissions.hasAnyPermissions(9L,ProjectReworkService.PERMISSION)).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L,1L,Set.of(100L),Set.of()));
         project=new ProjectMasterDO(); project.setId(100L); project.setTenantId(1L); project.setLifecycleStatus("ACTIVE");
-        project.setActivePlanVersionId(50L); project.setVersion(3); project.setTaskProgressVersion(0L);
+        project.setActivePlanVersionId(50L); project.setVersion(3L); project.setTaskProgressVersion(0L);
         when(projectRows.selectById(100L)).thenReturn(project); when(tasks.selectProjectForCommandForUpdate(any())).thenReturn(project);
         snapshot=ProjectReworkPlannerTest.snapshot();
         var rule=JsonUtils.parseTree("{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
@@ -161,7 +161,7 @@ class ProjectReworkServiceTest {
         binding.setBindingVersion(3); binding.setVersion(2); binding.setPermissionSnapshot("{\"policyRef\":\"OLD_STAGE\"}");
         rounds.getFirst().setContractId(101L);
         when(graph.selectContracts(any())).thenReturn(List.of(binding)); when(stages.updateStatusIfMatch(any())).thenReturn(1);
-        var request=new ProjectReworkService.Apply(100L,50L,3,List.of("t1"),List.of(
+        var request=new ProjectReworkService.Apply(100L,50L,3L,List.of("t1"),List.of(
                 new ProjectReworkService.ExpectedExecution("s",1L,1),new ProjectReworkService.ExpectedExecution("t1",2L,1)),"必要阶段返工");
         var result=service.apply(request,9L,"with-parent");
         assertEquals(2,result.executions().size());
@@ -188,7 +188,7 @@ class ProjectReworkServiceTest {
     }
 
     @Test void replayDoesNotCreateAnotherRoundAndRevokedPermissionCannotReadReplay() {
-        var original=new ProjectReworkService.Result(100L,50L,4,List.of(new ProjectReworkService.NewExecution("t1",2L,88L,2)));
+        var original=new ProjectReworkService.Result(100L,50L,4L,List.of(new ProjectReworkService.NewExecution("t1",2L,88L,2)));
         doReturn(new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED,original))
                 .when(commands).execute(any(),any(),any(),any(),any());
         assertEquals(original,service.apply(command(3,2L),9L,"replay")); verifyNoInteractions(changes);
@@ -252,7 +252,7 @@ class ProjectReworkServiceTest {
         verifyNoInteractions(changes); verify(executions,never()).insert(any(ProjectNodeExecutionDO.class)); assertNull(facts);
     }
 
-    private ProjectReworkService.Apply command(int projectVersion,long executionId) {
+    private ProjectReworkService.Apply command(long projectVersion,long executionId) {
         return new ProjectReworkService.Apply(100L,50L,projectVersion,List.of("t1"),
                 List.of(new ProjectReworkService.ExpectedExecution("t1",executionId,1)),"返工原因");
     }

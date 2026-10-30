@@ -154,10 +154,10 @@ class CommercePublicContractTest {
                         List.of(), List.of(), List.of(), NOW, "chain"));
         assertThrows(CommerceAuthorityIngestException.class,
                 () -> new CommerceOrderLineFact("L-1", null, "1", "O-1", "10",
-                        null, null, BigDecimal.valueOf(-1), null,
+                        null, BigDecimal.valueOf(-1), null,
                         CommerceSourceLifecycleStatus.ACTIVE, NOW));
         CommerceOrderLineFact pendingAuthority = new CommerceOrderLineFact("L-2", null, "1", "O-1",
-                "20", null, null, null, "PCS", CommerceSourceLifecycleStatus.ACTIVE, NOW);
+                "20", null, null, "PCS", CommerceSourceLifecycleStatus.ACTIVE, NOW);
         assertNull(pendingAuthority.quantity());
     }
 
@@ -178,7 +178,7 @@ class CommercePublicContractTest {
     @Test
     void preservesSignedReturnQuantitiesAndUnknownUnitsWithoutConfirmingThem() {
         CommerceOrderLineFact returned = new CommerceOrderLineFact("L-return", null, "1", "O-return",
-                "10", null, null, null, null, new BigDecimal("-4"), new BigDecimal("-1"),
+                "10", null, null, null, new BigDecimal("-4"), new BigDecimal("-1"),
                 new BigDecimal("-3"), null, 0, "PENDING_AUTHORITY",
                 CommerceSourceLifecycleStatus.RETURNED, NOW);
         assertEquals(new BigDecimal("-4"), returned.orderQuantity());
@@ -186,11 +186,11 @@ class CommercePublicContractTest {
         assertEquals(new BigDecimal("-3"), returned.deliveredQuantity());
         assertNull(returned.unitCode());
         assertThrows(CommerceAuthorityIngestException.class, () -> new CommerceOrderLineFact(
-                "L", null, "1", "O", "10", null, null, null, null,
+                "L", null, "1", "O", "10", null, null, null,
                 BigDecimal.ONE, BigDecimal.ONE, BigDecimal.ZERO, null, 0,
                 "CONFIRMED", CommerceSourceLifecycleStatus.ACTIVE, NOW));
         assertThrows(CommerceAuthorityIngestException.class, () -> new CommerceOrderLineFact(
-                "L", null, "1", "O", "10", null, null, null, null,
+                "L", null, "1", "O", "10", null, null, null,
                 new BigDecimal("-1000000000000"), BigDecimal.ZERO, BigDecimal.ZERO, "EA", 0,
                 "CONFIRMED", CommerceSourceLifecycleStatus.RETURNED, NOW));
     }

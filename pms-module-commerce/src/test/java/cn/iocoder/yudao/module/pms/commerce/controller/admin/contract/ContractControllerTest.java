@@ -91,9 +91,19 @@ class ContractControllerTest {
     }
 
     private ContractDO contract() {
-        return new ContractDO().setId(992002390001L).setCompanyCode("DPTECH-DEMO")
-                .setCompanyName("迪普科技").setContractNo("CT-001").setContractType("SALES")
-                .setCustomerCode("CUSTOMER-001").setCustomerName("客户一").setContractName("合同一")
-                .setCurrencyCode("CNY").setMasterSourceVersion("1").setStatus("ENABLED").setVersion(0);
+        ContractDO contract = new ContractDO();
+        contract.setId(992002390001L);
+        contract.setCompanyCode("DPTECH-DEMO");
+        contract.setCompanyName("迪普科技");
+        contract.setContractNo("CT-001");
+        contract.setContractType("SALES");
+        contract.setCustomerCode("CUSTOMER-001");
+        contract.setCustomerName("客户一");
+        contract.setContractName("合同一");
+        contract.setCurrencyCode("CNY");
+        contract.setMasterSourceVersion("1");
+        contract.setStatus("ENABLED");
+        contract.setVersion(0L);
+        return contract;
     }
 }

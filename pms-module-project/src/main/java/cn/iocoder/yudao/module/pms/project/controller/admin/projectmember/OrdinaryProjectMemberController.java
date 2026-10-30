@@ -34,6 +34,12 @@ public class OrdinaryProjectMemberController {
     private final OrdinaryProjectMemberService members;
     private final cn.iocoder.yudao.module.system.api.user.AdminUserApi users;
 
+    @GetMapping("/{id}/members/primary-appointment-permission")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<Boolean> primaryAppointmentPermission(@PathVariable("id") @Positive Long id) {
+        return success(members.canAppointPrimaryProjectManager(id, actor()));
+    }
+
     @GetMapping("/{id}/members")
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<PageResult<ProjectMemberAssignmentRespVO>> page(@PathVariable("id") @Positive Long id,
@@ -42,10 +48,16 @@ public class OrdinaryProjectMemberController {
                 request.getState(), request.getRole(), request.getKeyword()), actor()), ProjectMemberAssignmentRespVO.class);
         // 先由项目服务完成范围授权，只读取本页成员的联系方式，不读取任意人员列表。
         if (!page.getList().isEmpty()) {
-            var people = users.getUserMap(page.getList().stream().map(ProjectMemberAssignmentRespVO::getUserId)
-                    .filter(java.util.Objects::nonNull).distinct().toList());
+            var userIds = page.getList().stream().map(ProjectMemberAssignmentRespVO::getUserId)
+                    .filter(java.util.Objects::nonNull).distinct().toList();
+            var people = userIds.isEmpty() ? java.util.Map.<Long, cn.iocoder.yudao.module.system.api.user.dto.AdminUserRespDTO>of()
+                    : users.getUserMap(userIds);
             page.getList().forEach(member -> {
-                var person = people.get(member.getUserId());
+                if ("END_USER".equals(member.getMemberRole())) {
+                    member.setMobile(member.getExternalMobile()); member.setEmail(member.getExternalEmail());
+                    return;
+                }
+                var person = member.getUserId() == null ? null : people.get(member.getUserId());
                 if (person != null) {
                     member.setMobile(person.getMobile());
                     member.setEmail(person.getEmail());
@@ -104,13 +116,13 @@ public class OrdinaryProjectMemberController {
 
     private Command command(Long id, Long assignmentId, Action action, MemberRequest request, String version, String key) {
         return new Command(id, version(version), action, assignmentId, new MemberValues(request.userId(),
-                request.memberRole(), request.responsibility(), request.remark(), request.primary(), request.scope()), request.reason(), key);
+                request.memberRole(), request.responsibility(), request.remark(), request.primary(), request.scope(), request.externalPerson()), request.reason(), key);
     }
     private static Actor actor() {
         return new Actor(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),
                 UUID.randomUUID().toString());
     }
-    private static int version(String header) {
+    private static long version(String header) {
         String value = header.trim();
         if (value.startsWith("W/")) value = value.substring(2).trim();
         if (value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")) value = value.substring(1, value.length() - 1);
@@ -141,8 +153,13 @@ public class OrdinaryProjectMemberController {
                     ? new ServiceScope(levelCode, assignmentType, siteId, departmentId, departmentCode) : null;
         }
     }
-    public record MemberRequest(@NotNull @Positive Long userId, @NotBlank @Size(max = 32) String memberRole,
+    public record MemberRequest(@Positive Long userId, @NotBlank @Size(max = 32) String memberRole,
             @Size(max = 500) String responsibility, @Size(max = 500) String remark,
-            @Size(max = 500) String reason, Boolean primary, ServiceScope scope) { }
+            @Size(max = 500) String reason, Boolean primary, ServiceScope scope, @Valid ExternalPerson externalPerson) {
+        public MemberRequest(Long userId, String memberRole, String responsibility, String remark,
+                             String reason, Boolean primary, ServiceScope scope) {
+            this(userId, memberRole, responsibility, remark, reason, primary, scope, null);
+        }
+    }
     public record ReasonRequest(@NotBlank @Size(max = 500) String reason, @Positive Long replacementPrimaryUserId) { }
 }

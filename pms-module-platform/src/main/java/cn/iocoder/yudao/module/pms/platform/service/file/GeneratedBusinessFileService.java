@@ -18,6 +18,8 @@ import cn.iocoder.yudao.module.pms.platform.service.file.command.BoundedFileCont
 import cn.iocoder.yudao.module.pms.platform.service.file.command.GeneratedBusinessFilePersistence;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.GeneratedBusinessFileReservation;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.ValidatedFileContent;
+import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
+import cn.iocoder.yudao.module.pms.platform.service.file.event.FileEventFactory;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -51,6 +53,8 @@ public class GeneratedBusinessFileService {
     private final FileVersionMapper versionMapper;
     private final FileReferenceMapper referenceMapper;
     private final PermissionApi permissionApi;
+    private final FileEventFactory eventFactory;
+    private final PlatformTransactionalOutboxWriter outboxWriter;
 
     public GeneratedBusinessFileService(
             GeneratedBusinessFileTransactionService transactions,
@@ -60,7 +64,9 @@ public class GeneratedBusinessFileService {
             FileArtifactMapper artifactMapper,
             FileVersionMapper versionMapper,
             FileReferenceMapper referenceMapper,
-            PermissionApi permissionApi) {
+            PermissionApi permissionApi,
+            FileEventFactory eventFactory,
+            PlatformTransactionalOutboxWriter outboxWriter) {
         this.transactions = transactions;
         this.policyRegistry = policyRegistry;
         this.contentPolicyService = contentPolicyService;
@@ -69,6 +75,8 @@ public class GeneratedBusinessFileService {
         this.versionMapper = versionMapper;
         this.referenceMapper = referenceMapper;
         this.permissionApi = permissionApi;
+        this.eventFactory = eventFactory;
+        this.outboxWriter = outboxWriter;
     }
 
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
@@ -179,6 +187,15 @@ public class GeneratedBusinessFileService {
                 command.tenantId(), artifact.getId(), 0)) != 1) {
             throw new IllegalStateException("GENERATED_FILE_REFERENCE_CREATE_FAILED");
         }
+        outboxWriter.write(command.tenantId(), eventFactory.versionCommitted(command.tenantId(),
+                        artifact.getId(), version.getVersionNo(), version.getSha256(),
+                        version.getScanStatusCode(), now, command.operationId()),
+                "FileArtifact", String.valueOf(artifact.getId()), now);
+        outboxWriter.write(command.tenantId(), eventFactory.referenceAttached(command.tenantId(),
+                        reference.getId(), artifact.getId(), version.getVersionNo(), reference.getOwnerContext(),
+                        reference.getObjectType(), reference.getObjectId(), reference.getPurposeCode(), now,
+                        command.operationId()),
+                "FileArtifact", String.valueOf(artifact.getId()), now);
         return new GeneratedBusinessFilePersistence(new FileArtifactVersionFact(
                 artifact.getId(), 1, referenceKey, PURPOSE, command.fileName(), content.sizeBytes(),
                 content.mediaType(), content.sha256(), "AVAILABLE", "ACTIVE",

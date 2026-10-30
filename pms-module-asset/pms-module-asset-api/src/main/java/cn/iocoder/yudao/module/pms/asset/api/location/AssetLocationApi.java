@@ -16,13 +16,15 @@ import java.util.List;
  */
 public interface AssetLocationApi {
 
+    List<SiteRespDTO> getCustomerSites(cn.iocoder.yudao.module.pms.asset.api.location.dto.CustomerSiteQuery query);
+
     LocationReferenceDTO maintain(LocationMaintenanceCommand command);
 
-    AddressRespDTO getAddress(Long addressId, Integer expectedVersion);
+    AddressRespDTO getAddress(Long addressId, Long expectedVersion);
 
-    SiteRespDTO getSite(Long siteId, Integer expectedVersion);
+    SiteRespDTO getSite(Long siteId, Long expectedVersion);
 
-    SiteLocationRespDTO getSiteLocation(Long locationId, Integer expectedVersion);
+    SiteLocationRespDTO getSiteLocation(Long locationId, Long expectedVersion);
 
     List<SiteLocationRespDTO> getLocationTree(Long siteId);
 

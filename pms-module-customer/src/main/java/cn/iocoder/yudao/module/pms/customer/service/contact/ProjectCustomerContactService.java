@@ -9,6 +9,10 @@ import cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact.*;
 import cn.iocoder.yudao.module.pms.customer.dal.mysql.contact.*;
 import cn.iocoder.yudao.module.pms.customer.dal.mysql.contact.query.*;
 import cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApi;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,17 +34,38 @@ public class ProjectCustomerContactService {
     private final PlatformCommandExecutionApi commands;
     private final cn.iocoder.yudao.module.pms.customer.service.query.CustomerQueryService customerQuery;
     private final cn.iocoder.yudao.module.pms.customer.service.security.CustomerScopeContextService customerScopes;
-    private final ContactDictionaryPolicy dictionaryPolicy;
+    private final ProjectContactRuleWakeup ruleWakeup;
+    @jakarta.annotation.Resource private CustomerQueryApi projectCustomers;
 
     @Transactional(rollbackFor = Exception.class)
     public ProjectContactContextApi.Context associateCustomer(CustomerContactMasterService.Actor actor, Long projectId, Integer version, Long customerId) {
         var customer = customerQuery.get(actor.tenantId(), customerId, customerScopes.resolve(actor.tenantId(), actor.userId()));
         if (customer == null || !"ENABLED".equals(customer.getLifecycleStatus())) throw exception(CUSTOMER_SCOPE_DENIED);
-        return projects.associateCustomer(new ProjectContactContextApi.AssociateQuery(actor.tenantId(), actor.userId(), projectId, version, customerId));
+        return projects.associateCustomer(new ProjectContactContextApi.AssociateQuery(actor.tenantId(), actor.userId(), projectId, toLong(version), customerId));
     }
 
     public ProjectContactContextApi.Context context(CustomerContactMasterService.Actor actor, Long projectId) {
         return projects.inspect(new ProjectContactContextApi.Query(actor.tenantId(), actor.userId(), projectId));
+    }
+
+    /** 已有项目联系记录可读不代表可引用客户通讯录或维护联系记录。 */
+    public record ReadContext(ProjectContactContextApi.Context project, boolean sensitiveReadEligible) {}
+
+    public ReadContext readContext(CustomerContactMasterService.Actor actor, Long projectId) {
+        var login = SecurityFrameworkUtils.getLoginUser();
+        if (actor == null || login == null || !Objects.equals(actor.userId(), login.getId())
+                || !Objects.equals(actor.tenantId(), login.getTenantId())
+                || !Objects.equals(actor.tenantId(), TenantContextHolder.getTenantId())) throw exception(CUSTOMER_SCOPE_DENIED);
+        try {
+            return new ReadContext(context(actor, projectId), true);
+        } catch (ServiceException unavailable) {
+            if (!Objects.equals(unavailable.getCode(), ProjectContactContextApi.CUSTOMER_UNAVAILABLE)) throw unavailable;
+            var binding = projectCustomers.getProjectCustomer(new CustomerQueryApi.ProjectQuery(actor.tenantId(), actor.userId(), projectId));
+            if (binding == null || !Objects.equals(binding.projectId(), projectId)
+                    || binding.projectVersion() == null || binding.lifecycleStatus() == null) throw exception(CUSTOMER_SCOPE_DENIED);
+            return new ReadContext(new ProjectContactContextApi.Context(binding.projectId(), binding.customer() == null ? null : binding.customer().id(),
+                    binding.projectVersion(), binding.lifecycleStatus(), false, false), false);
+        }
     }
 
     public PageResult<ContactHistoryDO> history(CustomerContactMasterService.Actor actor, Long projectId, PageParam page) {
@@ -62,9 +87,20 @@ public class ProjectCustomerContactService {
         return result;
     }
 
-    public PageResult<ProjectCustomerContactDO> page(CustomerContactMasterService.Actor actor, Long projectId, Integer status, String name, PageParam page) {
-        var context = context(actor, projectId);
-        return contacts.selectPage(new ProjectContactPageQuery(actor.tenantId(), projectId, context.canViewHistory() ? status : Integer.valueOf(0), name, page));
+    public record PageRead(PageResult<ProjectCustomerContactDO> page, ReadContext context) {}
+
+    public PageRead page(CustomerContactMasterService.Actor actor, Long projectId, Integer status, String name, PageParam page) {
+        var before = readContext(actor, projectId);
+        var result = contacts.selectPage(new ProjectContactPageQuery(actor.tenantId(), projectId,
+                before.project().canViewHistory() ? status : Integer.valueOf(0), name, page));
+        var after = readContext(actor, projectId);
+        if (!Objects.equals(before.project().customerId(), after.project().customerId())
+                || before.project().canViewHistory() && !after.project().canViewHistory()) throw exception(CUSTOMER_SCOPE_DENIED);
+        var current = after.project();
+        var effective = new ProjectContactContextApi.Context(current.projectId(), current.customerId(), current.projectVersion(),
+                current.lifecycleStatus(), before.project().canManage() && current.canManage(),
+                before.project().canViewHistory() && current.canViewHistory());
+        return new PageRead(result, new ReadContext(effective, before.sensitiveReadEligible() && after.sensitiveReadEligible()));
     }
 
     public PageResult<CustomerContactMasterDO> sources(CustomerContactMasterService.Actor actor, Long projectId, String name, PageParam page) {
@@ -92,7 +128,9 @@ public class ProjectCustomerContactService {
     }
 
     private ProjectCustomerContactDO createOnce(CustomerContactMasterService.Actor actor, ProjectContactContextApi.Context context, ProjectContactWrite command) {
-        requirePrimary(actor, command.projectId(), null, command.primary(), command.status());
+        var current = contacts.selectPrimaryForUpdate(new ProjectContactRowQuery(actor.tenantId(), command.projectId(), null));
+        boolean primary = command.primary() || (current == null && command.status() == 0);
+        if (primary) requireProjectPrimaryEnabled(command.status());
         CustomerContactMasterDO source;
         ContactValues values;
         if (command.sourceContactId() != null) {
@@ -101,12 +139,10 @@ public class ProjectCustomerContactService {
                 throw exception(CONTACT_VALUES_INVALID, "该来源已被项目引用，含停用或已删除记录；请维护原记录");
             }
             values = command.values() == null ? values(source) : normalize(command.values(), command.status());
-            dictionaryPolicy.validateChanges(values, values(source));
         } else {
             values = normalize(command.values(), command.status());
-            dictionaryPolicy.validateChanges(values, null);
             source = new CustomerContactMasterDO();
-            source.setCustomerId(context.customerId()); source.setTenantId(actor.tenantId()); source.setVersion(0);
+            source.setCustomerId(context.customerId()); source.setTenantId(actor.tenantId()); source.setVersion(0L);
             source.setName(values.name()); source.setDepartment(values.department()); source.setTitle(values.title());
             source.setMobile(values.mobile()); source.setPhone(values.phone()); source.setEmail(values.email());
             // Project primary/role/status are not customer-master primary/role/status.
@@ -115,7 +151,8 @@ public class ProjectCustomerContactService {
             sources.insert(source);
             appendHistory(actor, source.getId(), null, null, "CREATE", null, source);
         }
-        return insertRelation(actor, command.projectId(), source, values, command.primary(), command.status());
+        if (primary) demotePrimary(actor, command.projectId(), current, null);
+        return insertRelation(actor, command.projectId(), source, values, primary, command.status());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -124,10 +161,12 @@ public class ProjectCustomerContactService {
         var existing = requireRow(actor, command.projectId(), command.contactId(), command.expectedVersion());
         if (!Objects.equals(existing.getCustomerId(), context.customerId())) throw exception(CONTACT_VALUES_INVALID, "联系人不属于项目当前客户");
         ContactValues values = normalize(command.values(), command.status());
-        dictionaryPolicy.validateChanges(values, new ContactValues(existing.getName(), existing.getDepartment(), existing.getTitle(),
-                existing.getMobile(), existing.getPhone(), existing.getEmail(), existing.getRoleCode(), existing.getRemark()));
         if (command.status() == 0 || command.primary()) requireSource(actor, context.customerId(), existing.getCustomerContactId());
-        requirePrimary(actor, command.projectId(), existing.getId(), command.primary(), command.status());
+        if (command.primary()) {
+            requireProjectPrimaryEnabled(command.status());
+            demotePrimary(actor, command.projectId(), contacts.selectPrimaryForUpdate(
+                    new ProjectContactRowQuery(actor.tenantId(), command.projectId(), null)), existing.getId());
+        }
         if (Boolean.TRUE.equals(existing.getPrimaryFlag()) && command.status() != 0) {
             try { ContactRules.requireRemovalAllowed(true, command.confirmNoPrimary()); }
             catch (IllegalArgumentException invalid) { throw exception(CONTACT_VALUES_INVALID, invalid.getMessage()); }
@@ -159,7 +198,7 @@ public class ProjectCustomerContactService {
         if (!Objects.equals(existing.getCustomerId(), context.customerId())) throw exception(CONTACT_VALUES_INVALID, "联系人不属于项目当前客户");
         if (status == 0) requireSource(actor, context.customerId(), existing.getCustomerContactId());
         normalize(new ContactValues(existing.getName(), existing.getDepartment(), existing.getTitle(), existing.getMobile(),
-                existing.getPhone(), existing.getEmail(), existing.getRoleCode(), existing.getRemark()), status);
+                existing.getPhone(), existing.getEmail(), existing.getRemark()), status);
         if (contacts.restoreByVersion(new ProjectContactRestoreCommand(actor.tenantId(), projectId, id, expectedVersion, actor.userId(), status)) != 1) throw exception(CONTACT_VERSION_CONFLICT);
         var restored = BeanUtils.toBean(existing, ProjectCustomerContactDO.class);
         restored.setDeleted(false); restored.setStatus(status); restored.setPrimaryFlag(false); restored.setPrimarySetTime(null);
@@ -171,8 +210,13 @@ public class ProjectCustomerContactService {
         return lock(actor, projectId, version, true);
     }
 
+    /** 项目 API 的期望版本为 Long，customer 侧 VO 仍以 Integer 承载，跨界时转换。 */
+    private static Long toLong(Integer version) {
+        return version == null ? null : version.longValue();
+    }
+
     private ProjectContactContextApi.Context lock(CustomerContactMasterService.Actor actor, Long projectId, Integer version, boolean requireEnabledCustomer) {
-        var context = projects.lockForWrite(new ProjectContactContextApi.WriteQuery(actor.tenantId(), actor.userId(), projectId, version));
+        var context = projects.lockForWrite(new ProjectContactContextApi.WriteQuery(actor.tenantId(), actor.userId(), projectId, toLong(version)));
         if (context.customerId() == null) throw exception(CONTACT_VALUES_INVALID, "项目尚未关联客户，不能建立联系人");
         var customer = sources.selectCustomerForUpdate(new ContactCustomerReferenceQuery(actor.tenantId(), context.customerId()));
         if (customer == null || requireEnabledCustomer && !"ENABLED".equals(customer.getLifecycleStatus())) throw exception(CONTACT_VALUES_INVALID, "项目客户不可用");
@@ -192,11 +236,17 @@ public class ProjectCustomerContactService {
         return row;
     }
 
-    private void requirePrimary(CustomerContactMasterService.Actor actor, Long projectId, Long id, boolean primary, int status) {
-        if (!primary) return;
-        var current = contacts.selectPrimaryForUpdate(new ProjectContactRowQuery(actor.tenantId(), projectId, null));
-        try { ContactRules.requirePrimaryAllowed(status, primary, current == null ? null : current.getId(), id); }
+    private void requireProjectPrimaryEnabled(int status) {
+        try { ContactRules.requirePrimaryAllowed(status, true, null, null); }
         catch (IllegalArgumentException invalid) { throw exception(CONTACT_VALUES_INVALID, invalid.getMessage()); }
+    }
+
+    private void demotePrimary(CustomerContactMasterService.Actor actor, Long projectId, ProjectCustomerContactDO current, Long keepId) {
+        if (current == null || Objects.equals(current.getId(), keepId)) return;
+        var before = BeanUtils.toBean(current, ProjectCustomerContactDO.class);
+        current.setPrimaryFlag(false); current.setPrimarySetTime(null);
+        if (contacts.updateById(current) != 1) throw exception(CONTACT_VERSION_CONFLICT);
+        appendHistory(actor, current.getCustomerContactId(), projectId, current.getId(), "UPDATE", before, current);
     }
 
     private ProjectCustomerContactDO insertRelation(CustomerContactMasterService.Actor actor, Long projectId,
@@ -216,16 +266,17 @@ public class ProjectCustomerContactService {
         catch (IllegalArgumentException invalid) { throw exception(CONTACT_VALUES_INVALID, invalid.getMessage()); }
     }
     private ContactValues values(CustomerContactMasterDO source) {
-        return new ContactValues(source.getName(), source.getDepartment(), source.getTitle(), source.getMobile(), source.getPhone(), source.getEmail(), null, null);
+        return new ContactValues(source.getName(), source.getDepartment(), source.getTitle(), source.getMobile(), source.getPhone(), source.getEmail(), null);
     }
     private void apply(ProjectCustomerContactDO row, ContactValues values) {
         row.setName(values.name()); row.setDepartment(values.department()); row.setTitle(values.title()); row.setMobile(values.mobile());
-        row.setPhone(values.phone()); row.setEmail(values.email()); row.setRoleCode(values.roleCode()); row.setRemark(values.remark());
+        row.setPhone(values.phone()); row.setEmail(values.email()); row.setRemark(values.remark());
     }
     private void appendHistory(CustomerContactMasterService.Actor actor, Long sourceId, Long projectId, Long relationId, String action, Object before, Object after) {
         ContactHistoryDO entry = new ContactHistoryDO(); entry.setTenantId(actor.tenantId()); entry.setActorUserId(actor.userId());
         entry.setCustomerContactId(sourceId); entry.setProjectId(projectId); entry.setProjectRelationId(relationId); entry.setActionCode(action);
         entry.setBeforeValues(before == null ? null : JsonUtils.toJsonString(before)); entry.setAfterValues(after == null ? null : JsonUtils.toJsonString(after));
         entry.setOccurredAt(LocalDateTime.now()); history.insert(entry);
+        if (projectId != null) ruleWakeup.changed(actor.tenantId(), projectId, actor.userId());
     }
 }

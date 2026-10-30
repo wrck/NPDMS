@@ -23,7 +23,7 @@ export interface SiteSurveyVO {
   outsourceRequestId?: number
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   surveyDate?: string
   surveyorUserId?: number
@@ -56,7 +56,7 @@ export interface SiteSurveyVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-site-survey'
+const baseUrl = '/pms/sol-site-survey'
 
 export const getSiteSurveyPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

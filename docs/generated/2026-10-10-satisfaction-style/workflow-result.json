@@ -1,0 +1,57 @@
+{
+  "projectId": 992203060005,
+  "certificateId": 30027,
+  "draftHasNoManualSurvey": true,
+  "automaticTaskId": "2108761551454253057",
+  "reissueReusesSurvey": true,
+  "previousLinkRevoked": true,
+  "signatureUploadCount": 1,
+  "originalQuestionCount": 13,
+  "submission": {
+    "responseId": "2108761580071989249",
+    "resultId": "2108761580071989249",
+    "score": 80.0,
+    "threshold": 80.0,
+    "passed": true,
+    "responseReplayed": false,
+    "resultReplayed": false
+  },
+  "reopenedReadOnly": true,
+  "confirmedStatus": 2,
+  "certificateVersion": 3,
+  "sharedSignatureSaved": true,
+  "pageErrors": [],
+  "existingSignedHistoryUnchanged": true,
+  "originalCompletionViewHasSharedSignature": true,
+  "bothHtmlDocumentsVisible": true,
+  "pdfExports": [
+    {
+      "kind": "COMPLETION",
+      "registered": {
+        "materialId": "9100000000000000113",
+        "referenceId": 232,
+        "artifactId": "2108763437339160578",
+        "versionNo": 1,
+        "sha256": "f6a7e8a490b95db8692fbf3c2131ac783c2346f9c1baeef477a2b689208f7357",
+        "fileName": "PJT2026000003-WZ-002-COMPLETION.pdf"
+      },
+      "bytes": 114601,
+      "artifact": "workflow-completion-final.pdf"
+    },
+    {
+      "kind": "SATISFACTION",
+      "registered": {
+        "materialId": "9100000000000000121",
+        "referenceId": 240,
+        "artifactId": "2108766764525342722",
+        "versionNo": 1,
+        "sha256": "0fdd50e122dd13064d3f7e5008a0c6b6937226fdf51768e580dd4afd1c0b9a73",
+        "fileName": "PJT2026000003-WZ-002-SATISFACTION.pdf"
+      },
+      "bytes": 243643,
+      "artifact": "workflow-satisfaction-final.pdf"
+    }
+  ],
+  "bothPdfDocumentsVisibleAfterReopen": true,
+  "pdfPageErrors": []
+}

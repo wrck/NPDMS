@@ -38,7 +38,7 @@ class ProjectDecisionRuleIntegrationTest {
         assertNull(engine.getDmnEngineConfiguration().getDataSource());
         assertFalse(engine.getDmnEngineConfiguration().isUsingRelationalDatabase());
         decisions = new ProjectDecisionTableService(engine);
-        simulation = new ProjectRuleSimulationService(COMPILER, rules.evaluator(), decisions);
+        simulation = new ProjectRuleSimulationService(COMPILER, rules.evaluator(), decisions, new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
     }
 
     @AfterAll static void stop() {

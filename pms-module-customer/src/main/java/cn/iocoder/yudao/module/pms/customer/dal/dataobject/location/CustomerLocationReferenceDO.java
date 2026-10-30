@@ -18,7 +18,7 @@ public class CustomerLocationReferenceDO extends TenantBaseDO {
     private Long customerId;
     private String locationType;
     private Long locationId;
-    private Integer sourceVersion;
+    private Long sourceVersion;
     private LocalDateTime effectiveFrom;
     private LocalDateTime effectiveTo;
 }

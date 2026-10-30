@@ -65,7 +65,7 @@ class PmsNodeApprovalProcessOwnerTest {
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
         scope = new Scope(NodeKind.TASK, 7L, 9L, 21L, ids.incrementAndGet(), 91L, "task-approval", pinned, LocalDateTime.now().minusSeconds(1));
-        context = new ProjectTaskExecutionContext(9L, 1, 21L, 2, 91L, 1, 51L, scope.executionId(), 1, 1, 62L, 1, true, scope.startedAt());
+        context = new ProjectTaskExecutionContext(9L, 1L, 21L, 2, 91L, 1, 51L, scope.executionId(), 1, 1, 62L, 1, true, scope.startedAt());
         executions = mock(ProjectNodeExecutionApi.class);
         when(executions.lockAndRevalidate(context)).thenReturn(context);
         definitions = mock(BpmProcessDefinitionService.class);
@@ -94,7 +94,7 @@ class PmsNodeApprovalProcessOwnerTest {
 
     private StageStart stageCommand(Scope stage, String operation) {
         var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
-                9L,1,21L,2,91L,1,51L,stage.executionId(),1,1,true);
+                9L,1L,21L,2,91L,1,51L,stage.executionId(),1,1,true);
         when(executions.lockAndRevalidateStage(execution)).thenReturn(execution);
         return new StageStart(stage, execution, 1L, operation, Map.of("formText","stage-private"), Map.of());
     }

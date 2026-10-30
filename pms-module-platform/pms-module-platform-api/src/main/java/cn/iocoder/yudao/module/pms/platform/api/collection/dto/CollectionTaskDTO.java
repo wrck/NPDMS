@@ -27,5 +27,7 @@ public record CollectionTaskDTO(
         Long fileVersionId,
         String consumerContext,
         String consumerObjectType,
-        String consumerObjectId) {
+        String consumerObjectId,
+        String externalStatus,
+        String failureCategory) {
 }

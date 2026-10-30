@@ -29,11 +29,11 @@ public class ExternalProcurementRespVO {
     @Schema(description = "外采类型", example = "GOODS")
     private String procurementType;
 
-    @Schema(description = "物料名称", example = "核心交换机")
-    private String materialName;
+    @Schema(description = "产品名称/物料名称", example = "核心交换机")
+    private String productName;
 
-    @Schema(description = "物料编码", example = "MAT-S9300")
-    private String materialCode;
+    @Schema(description = "产品编码/物料编码", example = "MAT-S9300")
+    private String productCode;
 
     @Schema(description = "规格型号描述", example = "48口千兆光交换")
     private String specification;
@@ -41,8 +41,8 @@ public class ExternalProcurementRespVO {
     @Schema(description = "品牌", example = "华为")
     private String brand;
 
-    @Schema(description = "型号", example = "S9300")
-    private String model;
+    @Schema(description = "产品型号/物料型号", example = "S9300")
+    private String productModel;
 
     @Schema(description = "数量", example = "2.00")
     private BigDecimal quantity;

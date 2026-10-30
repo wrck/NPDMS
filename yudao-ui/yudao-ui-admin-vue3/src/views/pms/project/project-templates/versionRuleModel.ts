@@ -1,8 +1,11 @@
+import { generateUUID } from '@/utils'
 import type { JsonObject, TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import type { VersionRule } from '@/api/pms/project/project-templates/rules'
+import type { OperationWorkBindingSpec } from '@/api/pms/project/project-templates/operations'
 import type { ComputedRef, InjectionKey } from 'vue'
 
 export const ruleCreationOnlyKey: InjectionKey<ComputedRef<boolean>> = Symbol('rule-creation-only')
+export const ruleOperationPostKey: InjectionKey<ComputedRef<boolean>> = Symbol('rule-operation-post')
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 export const constantRule = (value: boolean): JsonObject => ({
@@ -16,7 +19,7 @@ export function createVersionRule(
   expression: JsonObject
 ): VersionRule {
   const rule: VersionRule = {
-    key: `rule_${crypto.randomUUID()}`,
+    key: `rule_${generateUUID()}`,
     name,
     kind: 'CONDITION',
     shared: false,
@@ -37,7 +40,7 @@ export function copyVersionRule(
     const source = document.rules?.find((rule) => rule.key === key)
     if (!source) throw new Error(`本版本不存在规则：${key}`)
     const result = clone(source)
-    result.key = `rule_${crypto.randomUUID()}`
+    result.key = `rule_${generateUUID()}`
     result.name = `${source.name}（独立）`
     result.shared = false
     copies.set(key, result)
@@ -98,6 +101,16 @@ export function ruleUses(document: TemplateDesignerDocument, key: string): strin
     reference(node.admissionRuleKey, `${label} · 准入`)
     reference(node.completionRuleKey, `${label} · 完成`)
     reference(node.exitRuleKey, `${label} · 退出`)
+    for (const operation of node.execution?.operations ?? []) {
+      const action = operation.operationCode ?? operation.permissionCode
+      if (operation.pre.mode === 'RULE') reference(operation.pre.ruleKey, `${label} · ${action} · 前置`)
+      if (operation.post.mode === 'RULE') reference(operation.post.ruleKey, `${label} · ${action} · 后置`)
+    }
+    const contract = (node.workBinding as OperationWorkBindingSpec | undefined)?.operationContract
+    if (Array.isArray(contract?.operations)) for (const operation of contract.operations) {
+      if (operation?.pre?.mode === 'RULE') reference(operation.pre.ruleKey, `${label} · ${operation.operationCode} · 前置`)
+      if (operation?.post?.mode === 'RULE') reference(operation.post.ruleKey, `${label} · ${operation.operationCode} · 后置`)
+    }
   }
   for (const edge of document.transitions)
     reference(edge.conditionRuleKey, `${edge.code} · 依赖条件`)

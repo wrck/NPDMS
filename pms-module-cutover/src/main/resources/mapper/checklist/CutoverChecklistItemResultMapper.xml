@@ -1,9 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemResultMapper">
+    <resultMap id="structuredCutoverChecklistItemResultDO" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemResultDO" autoMapping="false">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="checklist_item_id" property="checklistItemId"/>
+        <result column="result_version" property="resultVersion"/>
+        <result column="result_source_code" property="resultSourceCode"/>
+        <result column="fact_description" property="factDescription"/>
+        <result column="collection_task_id" property="collectionTaskId"/>
+        <result column="collection_result_reference_id" property="collectionResultReferenceId"/>
+        <result column="collection_result_version" property="collectionResultVersion"/>
+        <result column="external_source_code" property="externalSourceCode"/>
+        <result column="query_time" property="queriedAt"/>
+        <result column="load_failure_code" property="loadFailureCode"/>
+        <result column="selection_start_time" property="selectionStartedAt"/>
+        <result column="selection_end_time" property="selectionEndedAt"/>
+        <result column="select_user_id" property="selectedBy"/>
+        <result column="selection_reason_code" property="selectionReasonCode"/>
+        <result column="current_marker" property="currentMarker"/>
+        <result column="create_user_id" property="createdBy"/>
+        <result column="create_time" property="createdAt"/>
+        <result column="deleted" property="deleted"/>
+        <result column="field_definition_id" property="fieldDefinitionId"/>
+        <result column="base_checklist_result_id" property="baseChecklistResultId"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="command_template_id" property="commandTemplateId"/>
+        <result column="collection_log_id" property="collectionLogId"/>
+        <result column="collection_status_code" property="collectionStatusCode"/>
+        <result column="collection_failure_code" property="collectionFailureCode"/>
+        <result column="original_failed_collection_task_id" property="originalFailedCollectionTaskId"/>
+        <result column="original_failed_result_version" property="originalFailedResultVersion"/>
+        <result column="original_failure_code" property="originalFailureCode"/>
+    </resultMap>
+
     <select id="selectCurrentForUpdate"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemResultDO">
-        SELECT *
+            resultMap="structuredCutoverChecklistItemResultDO">
+        SELECT id, tenant_id, checklist_item_id, result_version, result_source_code, fact_description, collection_task_id, collection_result_reference_id, collection_result_version, external_source_code, query_time, load_failure_code, selection_start_time, selection_end_time, select_user_id, selection_reason_code, current_marker, create_user_id, create_time, deleted, field_definition_id, base_checklist_result_id, device_id, command_template_id, collection_log_id, collection_status_code, collection_failure_code, original_failed_collection_task_id, original_failed_result_version, original_failure_code
         FROM cut_cutover_checklist_item_result
         WHERE tenant_id = #{query.tenantId}
           AND checklist_item_id = #{query.checklistItemId}
@@ -13,8 +46,8 @@
     </select>
 
     <select id="selectCurrentByChecklist"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemResultDO">
-        SELECT r.*
+            resultMap="structuredCutoverChecklistItemResultDO">
+        SELECT r.id, r.tenant_id, r.checklist_item_id, r.result_version, r.result_source_code, r.fact_description, r.collection_task_id, r.collection_result_reference_id, r.collection_result_version, r.external_source_code, r.query_time, r.load_failure_code, r.selection_start_time, r.selection_end_time, r.select_user_id, r.selection_reason_code, r.current_marker, r.create_user_id, r.create_time, r.deleted, r.field_definition_id, r.base_checklist_result_id, r.device_id, r.command_template_id, r.collection_log_id, r.collection_status_code, r.collection_failure_code, r.original_failed_collection_task_id, r.original_failed_result_version, r.original_failure_code
         FROM cut_cutover_checklist_item_result r
         JOIN cut_cutover_checklist_item i
           ON i.tenant_id = r.tenant_id
@@ -36,8 +69,8 @@
     </select>
 
     <select id="selectCurrentByChecklistForUpdate"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemResultDO">
-        SELECT r.*
+            resultMap="structuredCutoverChecklistItemResultDO">
+        SELECT r.id, r.tenant_id, r.checklist_item_id, r.result_version, r.result_source_code, r.fact_description, r.collection_task_id, r.collection_result_reference_id, r.collection_result_version, r.external_source_code, r.query_time, r.load_failure_code, r.selection_start_time, r.selection_end_time, r.select_user_id, r.selection_reason_code, r.current_marker, r.create_user_id, r.create_time, r.deleted, r.field_definition_id, r.base_checklist_result_id, r.device_id, r.command_template_id, r.collection_log_id, r.collection_status_code, r.collection_failure_code, r.original_failed_collection_task_id, r.original_failed_result_version, r.original_failure_code
         FROM cut_cutover_checklist_item_result r
         JOIN cut_cutover_checklist_item i
           ON i.tenant_id = r.tenant_id
@@ -53,10 +86,10 @@
 
     <update id="closeCurrentIfMatch">
         UPDATE cut_cutover_checklist_item_result
-        SET selection_ended_at = #{query.endedAt}
+        SET selection_end_time = #{query.endedAt}
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.resultId}
-          AND selection_ended_at IS NULL
+          AND selection_end_time IS NULL
           AND deleted = b'0'
     </update>
 </mapper>

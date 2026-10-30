@@ -66,6 +66,7 @@ class PreparationReviewServiceTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "managementAccess", EngineeringManagementFixtures.confirmed(participantFactApi));
         when(transactionTemplate.execute(any())).thenAnswer(invocation ->
                 ((TransactionCallback<Object>) invocation.getArgument(0))
                         .doInTransaction(mock(TransactionStatus.class)));
@@ -289,7 +290,7 @@ class PreparationReviewServiceTest {
     private PreparationReviewCommand command(String action, Long itemId, Integer preparationVersion,
                                              Integer itemVersion, String reason) {
         return new PreparationReviewCommand(action, 1L, itemId, preparationVersion, itemVersion,
-                3, reason, "review-key-" + action);
+                3L, reason, "review-key-" + action);
     }
 
     private PreparationItemApplicationService.Actor actor() {

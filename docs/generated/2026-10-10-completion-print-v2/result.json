@@ -1,0 +1,72 @@
+{
+  "projectId": 992203060005,
+  "customerUnit": "本地Word打印验收-20261010-125738",
+  "certificateId": 30034,
+  "defaultBothWordV2Templates": true,
+  "oneJointSubmissionScore80": true,
+  "pdfExports": [
+    {
+      "kind": "COMPLETION",
+      "registered": {
+        "materialId": "9100000000000000142",
+        "referenceId": 258,
+        "artifactId": "2108784099072069634",
+        "versionNo": 1,
+        "sha256": "75d3dfb109442d1f920b28b4b804535127c73f44851c7b62fd01b4b99a285ab6",
+        "fileName": "PJT2026000003-WZ-008-COMPLETION.pdf"
+      },
+      "bytes": 247223
+    },
+    {
+      "kind": "SATISFACTION",
+      "registered": {
+        "materialId": "9100000000000000143",
+        "referenceId": 259,
+        "artifactId": "2108784124523106305",
+        "versionNo": 1,
+        "sha256": "29308caddc6c5aea7701d8a424629e7bc1aafdf79c0babc05f61b2df15a912cc",
+        "fileName": "PJT2026000003-WZ-008-SATISFACTION.pdf"
+      },
+      "bytes": 290880
+    },
+    {
+      "kind": "COMPLETION",
+      "registered": {
+        "materialId": "9100000000000000144",
+        "referenceId": 260,
+        "artifactId": "2108785199296729090",
+        "versionNo": 1,
+        "sha256": "098d48b6ed24b88797a094a1c61438121c9f6463247e91a294e5156246d5d971",
+        "fileName": "PJT2026000003-WZ-008-COMPLETION.pdf"
+      },
+      "bytes": 247224
+    },
+    {
+      "kind": "SATISFACTION",
+      "registered": {
+        "materialId": "9100000000000000145",
+        "referenceId": 261,
+        "artifactId": "2108785217789415425",
+        "versionNo": 1,
+        "sha256": "74c15f2f1998f059ccc47f11855676577b6b47e2e501e07a1307bb68c7d1eff9",
+        "fileName": "PJT2026000003-WZ-008-SATISFACTION.pdf"
+      },
+      "bytes": 281443
+    },
+    {
+      "kind": "COMPLETION",
+      "registered": {
+        "materialId": "9100000000000000146",
+        "referenceId": 262,
+        "artifactId": "2108788401257762818",
+        "versionNo": 1,
+        "sha256": "1889a682dee87bf77dd8288f585b3cd6f9cd0e464f276f16ff075a703b380929",
+        "fileName": "PJT2026000003-WZ-008-COMPLETION.pdf"
+      },
+      "bytes": 247430
+    }
+  ],
+  "bothPdfVisibleAfterReopen": true,
+  "pageErrors": [],
+  "oldProofsAndPublishedRevisionsUnchanged": true
+}

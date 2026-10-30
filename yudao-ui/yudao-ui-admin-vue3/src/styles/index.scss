@@ -3,6 +3,55 @@
 @use './theme.scss';
 @use 'element-plus/theme-chalk/dark/css-vars.css';
 
+// 弹窗只滚动内容区，标题和操作按钮始终保留在视窗内。
+.el-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  margin-top: 16px !important;
+  margin-bottom: 16px !important;
+  overflow: hidden;
+
+  &.is-fullscreen {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    margin: 0 !important;
+  }
+
+  > .el-dialog__header,
+  > .el-dialog__footer {
+    flex-shrink: 0;
+  }
+
+  > .el-dialog__body {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+.el-message-box {
+  display: inline-flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+
+  > .el-message-box__header,
+  > .el-message-box__btns {
+    flex-shrink: 0;
+  }
+
+  > .el-message-box__content {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+}
+
 .reset-margin [class*='el-icon'] + span {
   margin-left: 2px !important;
 }

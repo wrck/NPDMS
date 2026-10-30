@@ -7,13 +7,17 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileSecurityScanResult;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileContentValidationCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.BoundedFileContentValidationCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.ValidatedFileContent;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import org.apache.tika.Tika;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.MessageDigest;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
@@ -34,6 +38,8 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE
 public class FileContentPolicyService {
 
     private static final Tika TIKA = new Tika();
+    private static final JsonFactory JSON = JsonFactory.builder().streamReadConstraints(StreamReadConstraints.builder()
+            .maxStringLength((int) FileUploadApplicationService.PLATFORM_MAX_BYTES).build()).build();
 
     private final BoundedMultipartReader multipartReader;
     private final List<FileSecurityScanProvider> scanProviders;
@@ -79,14 +85,39 @@ public class FileContentPolicyService {
         }
 
         String declaredMediaType = normalizeMediaType(command.declaredMediaType());
-        String detectedMediaType = normalizeMediaType(TIKA.detect(content));
+        boolean checklistEvidence = policy.allowedCategoryCodes().contains("CUTOVER_CHECKLIST_MANUAL_EVIDENCE");
+        boolean opaqueLicense = checklistEvidence && "lic".equals(fileNameExtension(command.expectedFileName()))
+                && "application/octet-stream".equals(declaredMediaType)
+                && policy.allowedMediaTypes().contains("application/octet-stream");
+        if (checklistEvidence && "application/octet-stream".equals(declaredMediaType) && !opaqueLicense)
+            throw exception(FILE_MEDIA_TYPE_INVALID);
+        // LIC is an opaque attachment, not a document format to parse or identify by magic bytes.
+        String detectedMediaType = opaqueLicense ? "application/octet-stream" : detectContent(content);
+        if ("application/json".equals(declaredMediaType)
+                && Set.of("text/plain", "application/json").contains(detectedMediaType)) {
+            if (!isJsonDocument(content)) throw exception(FILE_MEDIA_TYPE_INVALID);
+            detectedMediaType = "application/json";
+        }
+        // A shell shebang is detected as x-sh even though the uploaded script is plain text.
+        if ("text/plain".equals(declaredMediaType) && "sh".equals(fileNameExtension(command.expectedFileName()))
+                && "application/x-sh".equals(detectedMediaType) && isUtf8Text(content)) {
+            detectedMediaType = "text/plain";
+        }
         String nameMediaType = normalizeMediaType(TIKA.detect(command.expectedFileName()));
         Set<String> allowedMediaTypes = command.policy().allowedMediaTypes().stream()
                 .map(FileContentPolicyService::normalizeMediaType)
                 .collect(Collectors.toUnmodifiableSet());
+        boolean plainTextName = "text/plain".equals(declaredMediaType) && "text/plain".equals(detectedMediaType)
+                && (Set.of("log", "cfg", "conf", "sh").contains(fileNameExtension(command.expectedFileName()))
+                    || "lic".equals(fileNameExtension(command.expectedFileName()))
+                        && policy.allowedCategoryCodes().contains("CUTOVER_CHECKLIST_MANUAL_EVIDENCE") && isUtf8Text(content));
+        // UMC emits Word 2003 XML using .doc. Only an explicitly allowed inspection-report policy accepts this alias.
+        boolean wordMlDoc = "application/vnd.ms-wordml".equals(declaredMediaType)
+                && declaredMediaType.equals(detectedMediaType) && "doc".equals(fileNameExtension(command.expectedFileName()))
+                && policy.allowedCategoryCodes().contains("INSPECTION_REPORT");
         if (!allowedMediaTypes.contains(declaredMediaType)
                 || !matchesDetectedMediaType(declaredMediaType, detectedMediaType)
-                || !declaredMediaType.equals(nameMediaType)) {
+                || (!declaredMediaType.equals(nameMediaType) && !plainTextName && !opaqueLicense && !wordMlDoc)) {
             throw exception(FILE_MEDIA_TYPE_INVALID);
         }
 
@@ -100,17 +131,56 @@ public class FileContentPolicyService {
 
         if (!scanEnabled) {
             return new ValidatedFileContent(content, content.length, sha256, detectedMediaType,
-                    extension(detectedMediaType), "SKIPPED", null, null);
+                    opaqueLicense ? "lic" : wordMlDoc ? "doc" : extension(detectedMediaType), "SKIPPED", null, null);
         }
         FileSecurityScanResult scan = scan(content, command.expectedFileName(), declaredMediaType,
                 detectedMediaType, sha256);
         return new ValidatedFileContent(content, content.length, sha256, detectedMediaType,
-                extension(detectedMediaType), scan.resultCode(), scan.providerCode(), scan.providerVersion());
+                opaqueLicense ? "lic" : wordMlDoc ? "doc" : extension(detectedMediaType), scan.resultCode(), scan.providerCode(), scan.providerVersion());
     }
 
     private static boolean matchesDetectedMediaType(String declaredMediaType, String detectedMediaType) {
         return declaredMediaType.equals(detectedMediaType)
                 || ("text/csv".equals(declaredMediaType) && "text/plain".equals(detectedMediaType));
+    }
+
+    private static String fileNameExtension(String name) {
+        int dot = name.lastIndexOf('.');
+        return dot < 0 ? "" : name.substring(dot + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean isUtf8Text(byte[] content) {
+        try {
+            var text = java.nio.charset.StandardCharsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(content));
+            while (text.hasRemaining()) {
+                char value = text.get();
+                if (Character.isISOControl(value) && value != '\n' && value != '\r' && value != '\t') return false;
+            }
+            return true;
+        } catch (java.nio.charset.CharacterCodingException invalid) {
+            return false;
+        }
+    }
+
+    private static String detectContent(byte[] content) {
+        // Container detection needs TikaInputStream; the filename must not override the actual bytes.
+        // https://tika.apache.org/3.3.1/detection.html#Container_Aware_Detection
+        try (var input = TikaInputStream.get(content)) {
+            return normalizeMediaType(TIKA.detect(input));
+        } catch (IOException ex) {
+            throw exception(FILE_MEDIA_TYPE_INVALID);
+        }
+    }
+
+    private static boolean isJsonDocument(byte[] content) {
+        // Text detection alone cannot establish JSON. Consume exactly one complete value, without building a tree.
+        try (var parser = JSON.createParser(content)) {
+            if (parser.nextToken() == null) return false;
+            parser.skipChildren();
+            return parser.nextToken() == null;
+        } catch (IOException invalid) {
+            return false;
+        }
     }
 
     private FileSecurityScanResult scan(byte[] content, String fileName, String declaredMediaType,

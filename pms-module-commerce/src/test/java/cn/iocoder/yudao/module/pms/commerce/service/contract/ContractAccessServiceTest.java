@@ -36,13 +36,113 @@ class ContractAccessServiceTest {
     @Mock private SalesOrderMapper orderMapper;
     @Mock private SalesOrderLineMapper lineMapper;
     @Mock private ProjectContractRelationMapper projectRelationMapper;
+    @Mock private cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.CrmExecutionOrderMapper executionOrderMapper;
     @Mock private OperationAuditApi operationAuditApi;
     private ContractAccessService service;
 
     @BeforeEach
     void setUp() {
         service = new ContractAccessService(organizationScopeApi, projectScopeApi, contractMapper,
-                orderMapper, lineMapper, projectRelationMapper, operationAuditApi);
+                orderMapper, lineMapper, projectRelationMapper, executionOrderMapper, operationAuditApi);
+    }
+
+    @Test
+    void deviceContractScopeRequiresPairedOrganizationAfterOriginalContractValidation() {
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "001", 1)));
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        var query = new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractScopeQuery(
+                1L, List.of("001"), List.of(10L));
+        when(contractMapper.selectVisibleDeviceContractNumbers(query)).thenReturn(List.of("C-1"));
+        when(contractMapper.selectOrganizationVisibleContractNumbers(any())).thenReturn(List.of("C-1"));
+        assertEquals(Set.of("C-1"), service.getVisibleContractNumbers(1L, 7L));
+    }
+
+    @Test
+    void departmentGrantDoesNotBecomeCompanyWideDeviceContractAuthorization() {
+        var grant = scope(1L, "001", 1);
+        grant.setDepartmentId(178L); grant.setDepartmentCode("162007");
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(grant));
+        when(contractMapper.selectVisibleDeviceContractNumbers(any())).thenReturn(List.of("HANGZHOU", "CHANGCHUN"));
+        when(contractMapper.selectOrganizationVisibleContractNumbers(any())).thenReturn(List.of("CHANGCHUN"));
+        assertEquals(Set.of("CHANGCHUN"), service.getVisibleContractNumbers(1L, 7L, Set.of("HANGZHOU", "CHANGCHUN")));
+        verify(contractMapper).selectOrganizationVisibleContractNumbers(argThat(query ->
+                query.grants().equals(List.of(new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery.Grant(1L,178L,"162007")))
+                        && query.contractNumbers().equals(Set.of("HANGZHOU", "CHANGCHUN"))));
+    }
+
+    @Test
+    void deviceReadScopeRetainsCompanyDepartmentPairsAndCompanyLevelNull() {
+        var department = scope(1L, "001", 1); department.setDepartmentId(178L); department.setDepartmentCode("162007");
+        var company = scope(2L, "002", 1); company.setCompanyId(4L);
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(department, company));
+        var scope = service.prepareReadScope(new cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.ReadScopeQuery(1L,7L));
+        assertEquals(List.of(
+                new cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.OrganizationGrant(1L,178L,"162007"),
+                new cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.OrganizationGrant(4L,null,null)), scope.organizationGrants());
+    }
+
+    @Test
+    void deviceContractScopeWithoutAuthorizationDoesNotReadContracts() {
+        assertTrue(service.getVisibleContractNumbers(1L, 7L).isEmpty());
+        assertTrue(service.getVisibleContractNumbers(null, 7L).isEmpty());
+        verifyNoInteractions(contractMapper);
+    }
+
+    @Test
+    void projectOverviewRejectsInvisibleProjectBeforeReadingCommerce() {
+        var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(
+                10L, 1L, Set.of(10L), Set.of(11L)));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.getProjectCommerceDetail(1L, 7L, 11L));
+        verifyNoInteractions(mapper);
+    }
+
+    @Test
+    void projectOverviewFailsClosedWhenScopeOwnerUnavailable() {
+        var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);
+        when(projectScopeApi.resolveCurrent(any())).thenThrow(new IllegalStateException("unavailable"));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.getProjectCommerceDetail(1L, 7L, 10L));
+        verifyNoInteractions(mapper);
+        verify(projectScopeApi, never()).resolveAllCurrent(any());
+    }
+
+    @Test
+    void projectOverviewPreservesAllContractsOrdersAndExecutionsWithinTenant() {
+        var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(
+                10L, 1L, Set.of(10L), Set.of()));
+        var query = new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery(2L, 10L);
+        when(mapper.selectContracts(query)).thenReturn(List.of(new ContractDO(), new ContractDO()));
+        when(mapper.selectOrders(query)).thenReturn(List.of(new SalesOrderDO()));
+        when(mapper.selectExecutionOrders(query)).thenReturn(List.of(
+                new cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO()));
+        var result = service.getProjectCommerceDetail(2L, 7L, 10L);
+        assertEquals(2, result.contracts().size());
+        assertEquals(1, result.orders().size());
+        assertEquals(1, result.executionOrders().size());
+        verify(projectScopeApi).resolveCurrent(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(
+                2L, 7L, 10L, ProjectScopeApi.ACTION_VIEW));
+        verify(projectScopeApi, never()).resolveAllCurrent(any());
+    }
+
+    @Test
+    void projectOverviewKeepsHistoricalAuthorizationWhenCurrentTreeIsUnavailable() {
+        var mapper = mock(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "projectCommerceMapper", mapper);
+        when(projectScopeApi.resolveCurrent(any())).thenThrow(new cn.iocoder.yudao.framework.common.exception.ServiceException(1, "no current tree"));
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        assertNotNull(service.getProjectCommerceDetail(1L, 7L, 10L));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.getProjectCommerceDetail(1L, 7L, 11L));
+        verify(mapper).selectContracts(new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery(1L, 10L));
+        verify(mapper).selectOrders(any());
+        verify(mapper).selectExecutionOrders(any());
+        verifyNoMoreInteractions(mapper);
     }
 
     @Test
@@ -142,11 +242,112 @@ class ContractAccessServiceTest {
         verifyNoInteractions(orderMapper);
     }
 
+    @Test
+    void creationSourceResolvesFullChainWithinCompanyScope() {
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "C01", 1)));
+        ContractDO contract = new ContractDO();
+        contract.setId(99L);
+        contract.setContractNo("CT-1");
+        contract.setCompanyCode("C01");
+        when(contractMapper.selectDetailByCompanyScope(any())).thenReturn(contract);
+        SalesOrderDO order = new SalesOrderDO();
+        order.setId(201L);
+        order.setExecutionNo("EX-1");
+        when(orderMapper.selectCreationOrdersByContract(any())).thenReturn(List.of(order));
+        when(executionOrderMapper.selectActiveByExecutionNos(any())).thenReturn(List.of(
+                new cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO()));
+        when(lineMapper.selectDistinctRealExecutionNos(any())).thenReturn(List.of("EX-2"));
+
+        ContractAccessService.CreationSourceDetail detail = service.getCreationSource(1L, 7L, "trace", 99L);
+
+        assertSame(contract, detail.contract());
+        assertEquals(1, detail.orders().size());
+        assertEquals(1, detail.executionOrders().size());
+        assertEquals(List.of("EX-2"), detail.lineExecutionNos());
+        ArgumentCaptor<cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.ContractCreationOrderQuery> orderCaptor =
+                ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.ContractCreationOrderQuery.class);
+        verify(orderMapper).selectCreationOrdersByContract(orderCaptor.capture());
+        assertEquals("CT-1", orderCaptor.getValue().contractNo());
+        assertEquals("C01", orderCaptor.getValue().companyCode());
+        verify(executionOrderMapper).selectActiveByExecutionNos(
+                argThat(query -> List.of("EX-1").equals(query.executionNos())));
+        verify(lineMapper).selectDistinctRealExecutionNos(
+                argThat(query -> List.of(201L).equals(query.orderIds())));
+    }
+
+    @Test
+    void creationSourceRejectsContractOutsideScopeBeforeReadingChain() {
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "C01", 1)));
+        when(contractMapper.selectDetailByCompanyScope(any())).thenReturn(null);
+
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.getCreationSource(1L, 7L, "trace", 99L));
+        verifyNoInteractions(orderMapper, executionOrderMapper, lineMapper);
+    }
+
+    @Test
+    void creationSourceWithoutOrdersSkipsExecutionAndLineQueries() {
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "C01", 1)));
+        ContractDO contract = new ContractDO();
+        contract.setId(99L);
+        contract.setContractNo("CT-1");
+        contract.setCompanyCode("C01");
+        when(contractMapper.selectDetailByCompanyScope(any())).thenReturn(contract);
+        when(orderMapper.selectCreationOrdersByContract(any())).thenReturn(List.of());
+
+        ContractAccessService.CreationSourceDetail detail = service.getCreationSource(1L, 7L, "trace", 99L);
+
+        assertEquals(List.of(), detail.orders());
+        assertEquals(List.of(), detail.executionOrders());
+        assertEquals(List.of(), detail.lineExecutionNos());
+        verifyNoInteractions(executionOrderMapper, lineMapper);
+    }
+
     static UserCompanyDepartmentScopeRespDTO scope(Long id, String companyCode, Integer version) {
         UserCompanyDepartmentScopeRespDTO value = new UserCompanyDepartmentScopeRespDTO();
         value.setId(id);
         value.setCompanyCode(companyCode);
+        value.setCompanyId(id);
         value.setVersion(version);
         return value;
+    }
+    @Test void orderLineCandidatesOnlyNarrowAuthorizedProjectsAndPreserveCompanyScope() {
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L, "001", 1)));
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L, 20L));
+        when(lineMapper.selectProjectCandidatesByOrder(any())).thenReturn(List.of(20L, 999L));
+        service.pageSalesOrderLines(1L, 7L, "trace", lineSearch("ORDER"));
+        var captor = ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineCompanyScopeQuery.class);
+        verify(lineMapper).selectCountByCompanyScope(captor.capture());
+        assertEquals(List.of(20L), captor.getValue().projectIds());
+        assertEquals(List.of("001"), captor.getValue().companyCodes());
+        assertEquals("ORDER", captor.getValue().orderNo());
+    }
+
+    @Test void orderLineWithoutOrderFilterKeepsFullAuthorizedScope() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L, 20L));
+        service.pageSalesOrderLines(1L, 7L, "trace", lineSearch(null));
+        verify(lineMapper, never()).selectProjectCandidatesByOrder(any());
+        var captor = ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineCompanyScopeQuery.class);
+        verify(lineMapper).selectCountByCompanyScope(captor.capture());
+        assertEquals(List.of(10L, 20L), captor.getValue().projectIds());
+    }
+
+    @Test void unrelatedOrderCandidatesCannotGrantAccess() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        when(lineMapper.selectProjectCandidatesByOrder(any())).thenReturn(List.of(999L));
+        assertEquals(0L, service.pageSalesOrderLines(1L, 7L, "trace", lineSearch("ORDER")).getTotal());
+        verify(lineMapper, never()).selectCountByCompanyScope(any());
+        verify(lineMapper, never()).selectByCompanyScope(any());
+    }
+
+    @Test void candidateReadFailureNeverFallsBackToUnrestrictedLines() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        when(lineMapper.selectProjectCandidatesByOrder(any())).thenThrow(new IllegalStateException("unavailable"));
+        assertThrows(IllegalStateException.class, () -> service.pageSalesOrderLines(1L, 7L, "trace", lineSearch("ORDER")));
+        verify(lineMapper, never()).selectCountByCompanyScope(any());
+    }
+
+    private ContractAccessService.SalesOrderLineSearch lineSearch(String orderNo) {
+        return new ContractAccessService.SalesOrderLineSearch(null, null, null, orderNo, null, null, null, null, 0, 20);
     }
 }

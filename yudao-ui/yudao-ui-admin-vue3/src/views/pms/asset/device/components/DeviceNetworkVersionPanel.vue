@@ -1,24 +1,32 @@
 <template>
   <DeviceSourceStatus :slice="slice" />
-  <el-descriptions :column="2" border>
-    <el-descriptions-item label="CONP原始版本">{{
-      version.conpVersion || '--'
-    }}</el-descriptions-item>
-    <el-descriptions-item label="CONP类型">{{ version.conpType || '--' }}</el-descriptions-item>
-    <el-descriptions-item label="CONP系列">{{ version.conpSeries || '--' }}</el-descriptions-item>
-    <el-descriptions-item label="CONP标记">{{ version.conpMark || '--' }}</el-descriptions-item>
-    <el-descriptions-item label="BOOT">{{ version.bootVersion || '--' }}</el-descriptions-item>
-    <el-descriptions-item label="CPLD">{{ version.cpldVersion || '--' }}</el-descriptions-item>
-    <el-descriptions-item label="PCB">{{ version.pcbVersion || '--' }}</el-descriptions-item>
-    <el-descriptions-item label="定制版本">{{
-      version.customized ? '是' : '否'
-    }}</el-descriptions-item>
-  </el-descriptions>
+  <p class="text-sm text-[var(--el-text-color-secondary)]"
+    >在网版本来自设备最新日志的有效解析结果。</p
+  >
+  <DeviceReadOnlyFields
+    title="在网版本"
+    :fields="[
+      { label: 'CONP原始版本', value: version.conpVersion },
+      { label: 'CONP类型', value: version.conpType },
+      { label: 'CONP系列', value: version.conpSeries },
+      { label: 'CONP标记', value: version.conpMark },
+      { label: 'BOOT', value: version.bootVersion },
+      { label: 'CPLD', value: version.cpldVersion },
+      { label: 'PCB', value: version.pcbVersion },
+      { label: '定制版本', value: version.customized }
+    ]"
+  />
+  <DeviceParsedLogRecords
+    v-if="deviceId && slice.sourceSystem === 'DEVICE_LOG'"
+    :device-id="deviceId"
+  />
 </template>
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { DeviceSourceSliceVO } from '@/api/pms/asset/device'
 import DeviceSourceStatus from './DeviceSourceStatus.vue'
-const props = defineProps<{ slice: DeviceSourceSliceVO }>()
+import DeviceReadOnlyFields from './DeviceReadOnlyFields.vue'
+import DeviceParsedLogRecords from './DeviceParsedLogRecords.vue'
+const props = defineProps<{ slice: DeviceSourceSliceVO; deviceId?: number | string }>()
 const version = computed(() => (props.slice.data || {}) as Record<string, unknown>)
 </script>

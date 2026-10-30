@@ -1,14 +1,15 @@
 package cn.iocoder.yudao.module.pms.cutover.service.plan.command;
 
+import cn.iocoder.yudao.module.pms.cutover.service.task.command.CutoverTaskMutation;
 import tools.jackson.databind.JsonNode;
 
 public record SaveCutoverPlanDraftCommand(Long tenantId, Long actorId, Long taskId,
-                                          Integer expectedTaskVersion, Integer expectedPlanVersion, JsonNode content,
-                                          String idempotencyKey, String correlationId) {
+                                          Long expectedTaskVersion, Long expectedPlanVersion, JsonNode content,
+                                          String idempotencyKey, String correlationId) implements CutoverTaskMutation {
     /** 仅保留既有测试夹具源码兼容；保存时使用草稿冻结范围水位。 */
     @Deprecated
-    public SaveCutoverPlanDraftCommand(Long tenantId, Long actorId, Long taskId, Integer expectedTaskVersion,
-                                       Integer expectedPlanVersion, Long ignoredProjectScopeVersion, JsonNode content,
+    public SaveCutoverPlanDraftCommand(Long tenantId, Long actorId, Long taskId, Long expectedTaskVersion,
+                                       Long expectedPlanVersion, Long ignoredProjectScopeVersion, JsonNode content,
                                        String idempotencyKey, String correlationId) {
         this(tenantId, actorId, taskId, expectedTaskVersion, expectedPlanVersion, content,
                 idempotencyKey, correlationId);

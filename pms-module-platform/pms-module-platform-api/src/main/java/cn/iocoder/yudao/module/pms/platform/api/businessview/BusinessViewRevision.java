@@ -10,7 +10,7 @@ public record BusinessViewRevision(Long id, String entityType, String viewKey, L
         String componentKey, String componentVersion, Long dynamicFormRevisionId,
         JsonNode contextSchema, JsonNode supportedActions, String queryProviderKey,
         String commandProviderKey, String permissionProviderKey, LocalDateTime publishedAt,
-        LocalDateTime disabledAt, Integer version, String status, Set<String> allowedActions) {
+        LocalDateTime disabledAt, Long version, String status, Set<String> allowedActions) {
     public BusinessViewRevision {
         contextSchema = contextSchema.deepCopy();
         supportedActions = supportedActions.deepCopy();

@@ -42,47 +42,47 @@ class ProjectOfficeFactApiImplTest {
 
     @Test
     void resolvesCurrentSystemOfficeFact() {
-        when(projectMapper.selectById(10L)).thenReturn(project(1L, 3, "ACTIVE", 20L, "OFF-20"));
+        when(projectMapper.selectById(10L)).thenReturn(project(1L, 3L, "ACTIVE", 20L, "OFF-20"));
         when(deptApi.getDept(20L)).thenReturn(dept(20L, "OFF-20", "杭州办事处", 7,
                 CommonStatusEnum.ENABLE.getStatus()));
 
-        var fact = api.resolve(new ProjectOfficeFactQuery(1L, 10L, 3));
+        var fact = api.resolve(new ProjectOfficeFactQuery(1L, 10L, 3L));
 
         assertEquals(ProjectFactOutcome.FOUND, fact.outcome());
         assertEquals("PROJ-10", fact.projectCode());
-        assertEquals(20L, fact.officeDepartmentId());
-        assertEquals("OFF-20", fact.officeDepartmentCode());
-        assertEquals("杭州办事处", fact.officeDepartmentName());
-        assertEquals(7, fact.officeDepartmentVersion());
+        assertEquals(20L, fact.departmentId());
+        assertEquals("OFF-20", fact.departmentCode());
+        assertEquals("杭州办事处", fact.departmentName());
+        assertEquals(7, fact.departmentVersion());
     }
 
     @Test
     void lockedReadReturnsVersionConflictWithoutUsingDepartmentFact() {
-        when(projectMapper.selectByIdForUpdate(10L)).thenReturn(project(1L, 4, "ACTIVE", 20L, "OFF-20"));
+        when(projectMapper.selectByIdForUpdate(10L)).thenReturn(project(1L, 4L, "ACTIVE", 20L, "OFF-20"));
 
-        var fact = api.lockAndRevalidate(new ProjectOfficeFactQuery(1L, 10L, 3));
+        var fact = api.lockAndRevalidate(new ProjectOfficeFactQuery(1L, 10L, 3L));
 
         assertEquals(ProjectFactOutcome.VERSION_CONFLICT, fact.outcome());
     }
 
     @Test
     void disabledDepartmentFailsClosedAsInactive() {
-        when(projectMapper.selectById(10L)).thenReturn(project(1L, 3, "ACTIVE", 20L, "OFF-20"));
+        when(projectMapper.selectById(10L)).thenReturn(project(1L, 3L, "ACTIVE", 20L, "OFF-20"));
         when(deptApi.getDept(20L)).thenReturn(dept(20L, "OFF-20", "杭州办事处", 7,
                 CommonStatusEnum.DISABLE.getStatus()));
 
-        var fact = api.resolve(new ProjectOfficeFactQuery(1L, 10L, 3));
+        var fact = api.resolve(new ProjectOfficeFactQuery(1L, 10L, 3L));
 
         assertEquals(ProjectFactOutcome.INACTIVE, fact.outcome());
     }
 
     @Test
     void blankProjectCodeFailsClosedBeforeUsingDepartmentFact() {
-        ProjectMasterDO project = project(1L, 3, "ACTIVE", 20L, "OFF-20");
+        ProjectMasterDO project = project(1L, 3L, "ACTIVE", 20L, "OFF-20");
         project.setProjectCode("  ");
         when(projectMapper.selectById(10L)).thenReturn(project);
 
-        var fact = api.resolve(new ProjectOfficeFactQuery(1L, 10L, 3));
+        var fact = api.resolve(new ProjectOfficeFactQuery(1L, 10L, 3L));
 
         assertEquals(ProjectFactOutcome.NOT_FOUND, fact.outcome());
         assertNull(fact.projectCode());
@@ -91,7 +91,7 @@ class ProjectOfficeFactApiImplTest {
     @Test
     void rejectsUntrustedTenant() {
         assertThrows(RuntimeException.class,
-                () -> api.resolve(new ProjectOfficeFactQuery(2L, 10L, 3)));
+                () -> api.resolve(new ProjectOfficeFactQuery(2L, 10L, 3L)));
     }
 
     @Test
@@ -103,7 +103,7 @@ class ProjectOfficeFactApiImplTest {
         assertEquals(Propagation.MANDATORY, transactional.propagation());
     }
 
-    private ProjectMasterDO project(Long tenantId, Integer version, String lifecycleStatus,
+    private ProjectMasterDO project(Long tenantId, Long version, String lifecycleStatus,
                                     Long departmentId, String departmentCode) {
         ProjectMasterDO row = new ProjectMasterDO();
         row.setId(10L);

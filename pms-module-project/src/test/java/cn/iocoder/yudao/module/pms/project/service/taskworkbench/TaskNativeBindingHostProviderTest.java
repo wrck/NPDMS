@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TaskNativeBindingHostProviderTest {
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi regional = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
 
     @Mock ProjectTaskRuntimeMapper taskMapper;
     @Mock ProjectTaskExecutionContractMapper contractMapper;
@@ -52,7 +53,7 @@ class TaskNativeBindingHostProviderTest {
     void setUp() {
         provider = new TaskNativeBindingHostProvider(taskMapper, contractMapper, assignmentMapper,
                 memberMapper, stateMachineMapper, permissionApi, projectMapper,
-                projectTreeVersionMapper, projectTreeScopeService);
+                projectTreeVersionMapper, projectTreeScopeService, regional);
         task = new ProjectTaskInstanceDO();
         task.setId(11L);
         task.setTenantId(0L);
@@ -79,9 +80,9 @@ class TaskNativeBindingHostProviderTest {
         ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();
         assignment.setProjectTaskId(11L);
         assignment.setAssigneeUserId(9L);
-        assignment.setVersion(1);
+        assignment.setVersion(1L);
         when(assignmentMapper.selectCurrent(any())).thenReturn(List.of(assignment));
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of());
         TaskStateTransitionDO transition = new TaskStateTransitionDO();
         transition.setFromStatusCode("PENDING_START");
         transition.setActionCode("START");
@@ -111,13 +112,32 @@ class TaskNativeBindingHostProviderTest {
         assertEquals("BINDING_CONTRACT_INVALID", result.recoverableError());
         assertTrue(result.allowedActions().isEmpty());
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void approvalClosureDoesNotOfferManualSubmissionButOrdinaryPageKeepsIt(boolean splitRule) {
+        allowProjectScope();task.setStatus("IN_PROGRESS");
+        contract.setWorkBindingTypeCode("PAGE");contract.setBindingParameterSnapshot("{\"routePath\":\"/pms/project/normal-closure\"}");
+        contract.setCompletionRuleSnapshot("{\"predicate\":\"NORMAL_CLOSURE_APPROVED\",\"parameters\":{}}");
+        if (splitRule) {
+            contract.setCompletionRuleTypeCode("NORMAL_CLOSURE_APPROVED");
+            contract.setCompletionRuleSnapshot("{}");
+        }
+        var assignment=new ProjectTaskAssignmentDO();assignment.setProjectTaskId(11L);assignment.setAssigneeUserId(9L);assignment.setVersion(1L);
+        when(assignmentMapper.selectCurrent(any())).thenReturn(List.of(assignment));when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of());
+        var submit=new TaskStateTransitionDO();submit.setFromStatusCode("IN_PROGRESS");submit.setActionCode("SUBMIT");submit.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
+        when(stateMachineMapper.selectTransitions(any())).thenReturn(List.of(submit));
+        when(permissionApi.hasAnyPermissions(9L,"pms:project-task:execute")).thenReturn(true);
+        assertTrue(provider.inspect(new TaskBindingInspectionQuery(0L,11L,9L,"closure")).allowedActions().isEmpty());
+        contract.setCompletionRuleSnapshot("{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
+        assertTrue(provider.inspect(new TaskBindingInspectionQuery(0L,11L,9L,"ordinary")).allowedActions().contains("SUBMIT"));
+    }
 
     @Test void unassignedTeamMemberGetsExecutionButNotApproval() {
         task.setStatus("PENDING_ASSIGN");
         allowProjectScope();
         var member = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO();
         member.setProjectId(100L); member.setMemberRole("TEAM_MEMBER");
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(member));
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(member));
         var start = new TaskStateTransitionDO(); start.setFromStatusCode("PENDING_START"); start.setActionCode("START"); start.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
         var complete = new TaskStateTransitionDO(); complete.setFromStatusCode("PENDING_START"); complete.setActionCode("COMPLETE"); complete.setAllowedRoleCode("CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER");
         when(stateMachineMapper.selectTransitions(any())).thenReturn(List.of(start,complete));
@@ -172,12 +192,13 @@ class TaskNativeBindingHostProviderTest {
         ProjectTaskAssignmentDO assignment = new ProjectTaskAssignmentDO();
         assignment.setProjectTaskId(11L);
         assignment.setAssigneeUserId(9L);
-        assignment.setVersion(1);
+        assignment.setVersion(1L);
         when(assignmentMapper.selectCurrent(any())).thenReturn(List.of(assignment));
         var membership = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO();
         membership.setProjectId(100L);
         membership.setMemberRole("PROJECT_MANAGER");
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(membership));
+        when(regional.permits(any())).thenReturn(true);
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(membership));
         TaskStateTransitionDO transition = new TaskStateTransitionDO();
         transition.setFromStatusCode("IN_PROGRESS");
         transition.setToStatusCode("PENDING_ACCEPT");

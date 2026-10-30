@@ -394,8 +394,8 @@ class ProjectTaskLifecycleMySqlIntegrationTest {
         @Bean TaskNativeBindingHostProvider nativeProvider() { return mock(TaskNativeBindingHostProvider.class); }
         @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
         @Bean ProjectTreeScopeService treeScopeService() { return mock(ProjectTreeScopeService.class); }
-        @Bean cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityCompletionFactApi acceptanceFacts() {
-            return mock(cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityCompletionFactApi.class);
+        @Bean cn.iocoder.yudao.module.pms.acceptance.api.acceptanceactivity.AcceptanceActivityCompletionFactApi acceptanceFacts() {
+            return mock(cn.iocoder.yudao.module.pms.acceptance.api.acceptanceactivity.AcceptanceActivityCompletionFactApi.class);
         }
         @Bean cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi projectScopeApi() {
             return mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.class);

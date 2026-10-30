@@ -7,7 +7,7 @@ public record DeliveryScopeAssignCommand(
         Long tenantId,
         Long subjectUserId,
         Long projectId,
-        Integer expectedProjectVersion,
+        Long expectedProjectVersion,
         Long expectedProjectScopeVersion,
         Long expectedDeliveryScopeVersion,
         Long orderLineId,

@@ -9,7 +9,7 @@ public record RequirementAnalysisFact(
         Integer businessVersion,
         String status,
         Integer contentVersion,
-        Integer projectVersion,
+        Long projectVersion,
         Long templateRevision,
         RequirementAnalysisWorkBindingFact workBindingFact,
         Long dynamicFormTemplateId,
@@ -35,7 +35,7 @@ public record RequirementAnalysisFact(
     }
 
     public RequirementAnalysisFact(Long projectId, Long preparationId, Integer businessVersion,
-                                   String status, Integer contentVersion, Integer projectVersion,
+                                   String status, Integer contentVersion, Long projectVersion,
                                    Long templateRevision, Long completedBy, LocalDateTime completedAt,
                                    boolean currentEffective, Long currentEffectivePreparationId,
                                    Integer currentEffectiveBusinessVersion,

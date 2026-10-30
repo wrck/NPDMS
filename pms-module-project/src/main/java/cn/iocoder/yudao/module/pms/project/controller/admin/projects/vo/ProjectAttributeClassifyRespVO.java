@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 public class ProjectAttributeClassifyRespVO {
     private Long projectId;
-    private Integer version;
+    private Long version;
     private String matchResult;
     private String impactResult;
     private String operationId;

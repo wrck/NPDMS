@@ -1,8 +1,8 @@
 package cn.iocoder.yudao.module.pms.cutover.service.checklist.result;
 
-public record CollectionRequestCommandResult(Long taskId, Integer taskVersion,
-                                             Long checklistId, Integer checklistBusinessVersion,
-                                             Integer checklistVersion, Long checklistItemId,
+public record CollectionRequestCommandResult(Long taskId, Long taskVersion,
+                                             Long checklistId, Long checklistBusinessVersion,
+                                             Long checklistVersion, Long checklistItemId,
                                              Integer itemVersion, String stableItemKey,
                                              Integer resultVersion, Long collectionTaskId,
                                              Long collectionResultReferenceId,

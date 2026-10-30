@@ -143,7 +143,7 @@ class ArrivalAcceptanceMapperContractTest {
                     configuration.getSqlFragments()).parse();
         }
         DeliveryEvidenceRetryUpdate query = new DeliveryEvidenceRetryUpdate(
-                1L, 50L, 1, 4, "ARCHIVE_PENDING_RETRY", "PUBLISHED_PENDING_ACC",
+                1L, 50L, 1, 4L, "ARCHIVE_PENDING_RETRY", "PUBLISHED_PENDING_ACC",
                 0, 1, LocalDateTime.of(2026, 8, 30, 10, 1), "evt-1",
                 LocalDateTime.of(2026, 8, 30, 10, 0));
         Map<String, Object> parameters = Map.of("query", query);
@@ -158,7 +158,7 @@ class ArrivalAcceptanceMapperContractTest {
         properties.forEach(property -> configuration.newMetaObject(parameters).getValue(property));
 
         DeliveryEvidenceAcceptedUpdate acceptedQuery = new DeliveryEvidenceAcceptedUpdate(
-                1L, 50L, 1, 4, "review-1", "evt-accepted", 0,
+                1L, 50L, 1, 4L, "review-1", "evt-accepted", 0,
                 LocalDateTime.of(2026, 8, 30, 10, 1));
         Map<String, Object> acceptedParameters = Map.of("query", acceptedQuery);
         BoundSql accepted = configuration.getMappedStatement(

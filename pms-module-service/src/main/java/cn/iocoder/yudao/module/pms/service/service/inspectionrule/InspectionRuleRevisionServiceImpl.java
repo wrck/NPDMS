@@ -79,11 +79,10 @@ public class InspectionRuleRevisionServiceImpl implements InspectionRuleRevision
             throw exception(INSPECTION_RULE_NAME_DUPLICATE, ruleName);
         }
         InspectionRuleDO rule = new InspectionRuleDO();
-        rule.setId(IdWorker.getId());
         rule.setTenantId(tenantId);
         rule.setDetectionId(detectionId);
         rule.setRuleName(ruleName);
-        rule.setVersion(0);
+        rule.setVersion(0L);
         try {
             if (ruleMapper.insert(rule) != 1) {
                 throw new IllegalStateException("INSPECTION_RULE_CREATE_WRITE_FAILED");

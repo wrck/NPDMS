@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.issue.vo.IssueSa
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.issue.vo.IssueVerifyReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.issue.IssueDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.issue.IssueMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import cn.iocoder.yudao.module.pms.engineering.domain.IssueStatusRules;
 import cn.iocoder.yudao.module.pms.engineering.enums.EngStatusEnum;
 import jakarta.annotation.Resource;
@@ -17,7 +18,6 @@ import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*;
@@ -35,11 +35,14 @@ public class IssueServiceImpl implements IssueService {
 
     @Resource
     private IssueMapper issueMapper;
+    @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
 
     @Override
     public Long createIssue(IssueSaveReqVO createReqVO) {
-        validateCodeUniqueInProject(null, createReqVO.getProjectId(), createReqVO.getCode());
         IssueDO entity = BeanUtils.toBean(createReqVO, IssueDO.class);
+        entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.ISSUE, issueMapper));
         entity.setStatus(EngStatusEnum.ISSUE_OPEN);
         issueMapper.insert(entity);
         return entity.getId();
@@ -48,10 +51,7 @@ public class IssueServiceImpl implements IssueService {
     @Override
     public void updateIssue(IssueSaveReqVO updateReqVO) {
         IssueDO existing = validateIssueExists(updateReqVO.getId());
-        if (!Objects.equals(existing.getCode(), updateReqVO.getCode())) {
-            throw exception(ISSUE_CODE_DUPLICATE, updateReqVO.getCode());
-        }
-        // 终态已关闭不允许修改
+        // 终态已关闭不允许修改（编码由系统生成不可改）
         if (IssueStatusRules.isClosed(existing.getStatus())) {
             throw exception(ISSUE_STATUS_INVALID);
         }
@@ -158,7 +158,7 @@ public class IssueServiceImpl implements IssueService {
         }
     }
 
-    private void updateStatus(Long id, IssueStatusRules.Action action, Integer version) {
+    private void updateStatus(Long id, IssueStatusRules.Action action, Long version) {
         IssueDO update = new IssueDO();
         update.setId(id);
         update.setStatus(IssueStatusRules.targetStatus(action));
@@ -166,16 +166,4 @@ public class IssueServiceImpl implements IssueService {
         issueMapper.updateById(update);
     }
 
-    private void validateCodeUniqueInProject(Long id, Long projectId, String code) {
-        if (StringUtils.isBlank(code) || projectId == null) {
-            return;
-        }
-        IssueDO existing = issueMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing == null) {
-            return;
-        }
-        if (id == null || !Objects.equals(existing.getId(), id)) {
-            throw exception(ISSUE_CODE_DUPLICATE, code);
-        }
-    }
 }

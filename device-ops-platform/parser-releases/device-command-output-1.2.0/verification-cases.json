@@ -1,0 +1,14 @@
+{
+  "cases": [
+    {
+      "caseId": "real-three-command",
+      "inputFile": "input-real-sanitized.json",
+      "expectedFile": "expected-real.json"
+    },
+    {
+      "caseId": "tech-only",
+      "inputFile": "input-tech-only-sanitized.json",
+      "expectedFile": "expected-tech-only.json"
+    }
+  ]
+}

@@ -8,11 +8,12 @@ import cn.iocoder.yudao.module.pms.project.controller.admin.portfolio.vo.Project
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.portfolio.ProjectPortfolioDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.portfolio.ProjectPortfolioMemberDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.portfolio.ProjectPortfolioRuleDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.project.ProjectDO;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.portfolio.ProjectPortfolioMemberMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.portfolio.ProjectPortfolioMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.portfolio.ProjectPortfolioRuleMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterLegacyConvert;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -41,8 +42,8 @@ public class ProjectPortfolioServiceImpl implements ProjectPortfolioService {
     private ProjectPortfolioMemberMapper memberMapper;
     @Resource
     private ProjectPortfolioRuleMapper ruleMapper;
-    @Resource
-    private ProjectMapper projectMapper;
+    @Resource(name = "projectMasterMapper")
+    private ProjectMasterMapper projectMapper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -181,12 +182,12 @@ public class ProjectPortfolioServiceImpl implements ProjectPortfolioService {
                 memberMapper.deleteById(member.getId());
             }
         }
-        // 根据规则查询匹配项目
-        List<ProjectDO> matchedProjects;
+        // 根据规则查询匹配项目（AI-MIG-000 口径A：组合领域已承接，规则查新权威主档）
+        List<ProjectMasterDO> matchedProjects;
         if (rules.isEmpty()) {
             matchedProjects = projectMapper.selectList(new QueryWrapper<>());
         } else {
-            QueryWrapper<ProjectDO> wrapper = new QueryWrapper<>();
+            QueryWrapper<ProjectMasterDO> wrapper = new QueryWrapper<>();
             for (ProjectPortfolioRuleDO rule : rules) {
                 applyRule(wrapper, rule);
             }
@@ -194,7 +195,7 @@ public class ProjectPortfolioServiceImpl implements ProjectPortfolioService {
         }
         // 生成动态成员记录
         String reason = buildInclusionReason(rules);
-        for (ProjectDO project : matchedProjects) {
+        for (ProjectMasterDO project : matchedProjects) {
             ProjectPortfolioMemberDO member = new ProjectPortfolioMemberDO();
             member.setPortfolioId(portfolioId);
             member.setProjectId(project.getId());
@@ -208,10 +209,14 @@ public class ProjectPortfolioServiceImpl implements ProjectPortfolioService {
     /**
      * 将单条规则应用到查询条件（AND 逻辑）
      */
-    private void applyRule(QueryWrapper<ProjectDO> wrapper, ProjectPortfolioRuleDO rule) {
+    private void applyRule(QueryWrapper<ProjectMasterDO> wrapper, ProjectPortfolioRuleDO rule) {
         String column = mapRuleColumn(rule.getRuleField());
         String operator = rule.getRuleOperator();
         String value = rule.getRuleValue();
+        if ("status".equals(column)) {
+            // 规则值按旧粗化口径录入，按 V260 契约前向映射到新阶段码（2,3 并入 S6）
+            value = remapLegacyStatusRuleValue(value);
+        }
         switch (operator) {
             case "EQ":
                 wrapper.eq(column, value);
@@ -238,8 +243,8 @@ public class ProjectPortfolioServiceImpl implements ProjectPortfolioService {
             case "CUSTOMER":
                 return "customer_id";
             case "REGION":
-                // ProjectDO 无 region 字段，REGION 规则映射到 industry（行业）
-                return "industry";
+                // 主档无 region 字段，REGION 规则映射到 industry_name（行业）
+                return "industry_name";
             case "TYPE":
                 return "project_type";
             case "STATUS":
@@ -289,4 +294,34 @@ public class ProjectPortfolioServiceImpl implements ProjectPortfolioService {
         }
     }
 
+
+    /**
+     * STATUS 规则值前向映射：旧 Integer 粗化值（"0"/"1"/"2"/"3"，支持 IN 逗号列表）
+     * 按转换器 V260 契约映射到新阶段码；非数值原值保留（兼容自定录入）。
+     */
+    private String remapLegacyStatusRuleValue(String rawValue) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return rawValue;
+        }
+        String[] items = rawValue.split(",");
+        StringBuilder mapped = new StringBuilder();
+        for (String item : items) {
+            if (mapped.length() > 0) {
+                mapped.append(',');
+            }
+            String trimmed = item.trim();
+            Integer legacy = parseLegacyStatus(trimmed);
+            mapped.append(legacy == null ? trimmed
+                    : ProjectMasterLegacyConvert.toMasterStatus(legacy));
+        }
+        return mapped.toString();
+    }
+
+    private Integer parseLegacyStatus(String raw) {
+        try {
+            return Integer.valueOf(raw);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
 }

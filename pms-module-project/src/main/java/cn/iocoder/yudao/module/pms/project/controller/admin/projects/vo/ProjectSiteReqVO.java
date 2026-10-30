@@ -10,6 +10,6 @@ public class ProjectSiteReqVO {
     @NotNull(message = "站点ID不能为空")
     private Long siteId;
     @NotNull(message = "站点版本不能为空")
-    private Integer siteVersion;
+    private Long siteVersion;
     private Boolean primarySite;
 }

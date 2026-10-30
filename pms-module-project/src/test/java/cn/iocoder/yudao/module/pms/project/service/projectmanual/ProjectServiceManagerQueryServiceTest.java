@@ -12,10 +12,12 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMember
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
+import cn.iocoder.yudao.module.pms.project.service.projectmember.ValidationInitialAssignmentPolicy;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.dept.dto.DeptRespDTO;
-import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -42,10 +44,17 @@ class ProjectServiceManagerQueryServiceTest {
     @Mock private ProjectTreeScopeService treeScopeService;
     @Mock private ProjectSiteApplicationService projectSiteService;
     @Mock private DeptApi deptApi;
-    @Mock private OrganizationScopeApi organizationScopeApi;
+    @Mock private OrganizationUserSelectionApi organizationUserSelectionApi;
+    @Mock private ValidationInitialAssignmentPolicy validationInitialAssignmentPolicy;
 
     @InjectMocks
     private ProjectServiceManagerQueryService service;
+
+    @BeforeEach
+    void injectExistingValidationPolicy() {
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                service, "validationInitialAssignmentPolicy", validationInitialAssignmentPolicy);
+    }
 
     @Test
     void candidateQueryUsesExactProjectCompanyAndDepartmentScope() {
@@ -59,13 +68,13 @@ class ProjectServiceManagerQueryServiceTest {
         candidate.setCompanyId(10L);
         candidate.setDepartmentId(20L);
         candidate.setDepartmentCode("DEP-01");
-        when(organizationScopeApi.pageActiveUsers(any())).thenReturn(new PageResult<>(List.of(candidate), 1L));
+        when(organizationUserSelectionApi.page(any())).thenReturn(new PageResult<>(List.of(candidate), 1L));
 
         var result = service.getCandidates(1L, candidateRequest(), actor());
 
         assertEquals(1L, result.getTotal());
         assertEquals(66L, result.getList().getFirst().getUserId());
-        verify(organizationScopeApi).pageActiveUsers(any());
+        verify(organizationUserSelectionApi).page(any());
     }
 
     @Test
@@ -77,7 +86,7 @@ class ProjectServiceManagerQueryServiceTest {
 
         assertThrows(ServiceException.class, () -> service.getCandidates(1L, request, actor()));
 
-        verify(organizationScopeApi, never()).pageActiveUsers(any());
+        verify(organizationUserSelectionApi, never()).page(any());
     }
 
     @Test

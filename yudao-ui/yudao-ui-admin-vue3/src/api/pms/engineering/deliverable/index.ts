@@ -4,7 +4,7 @@ export interface DeliverableVO {
   id?: number
   projectId: number
   phaseId?: number
-  code: string
+  code?: string
   name: string
   deliverableType: string
   sourceType?: string
@@ -20,19 +20,27 @@ export interface DeliverableVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-deliverable'
+const baseUrl = '/pms/imp-deliverable'
 
+// P06R 统一交付件后 imp-deliverable 只读：历史查询接口；新登记走统一交付件能力
 export const getDeliverablePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
 export const getDeliverable = (id: number) =>
   request.get({ url: `${baseUrl}/get`, params: { id } })
-export const createDeliverable = (data: DeliverableVO) =>
-  request.post({ url: `${baseUrl}/create`, data })
-export const updateDeliverable = (data: DeliverableVO) =>
-  request.put({ url: `${baseUrl}/update`, data })
-export const deleteDeliverable = (id: number) =>
-  request.delete({ url: `${baseUrl}/delete`, params: { id } })
-export const archiveDeliverable = (id: number, archivedBy?: number) =>
-  request.put({ url: `${baseUrl}/archive`, params: { id, archivedBy } })
-export const voidDeliverable = (id: number) =>
-  request.put({ url: `${baseUrl}/void`, params: { id } })
+
+export interface DeliverableSummaryItemVO {
+  category: string
+  code?: string
+  name?: string
+  sourceLabel?: string
+  status?: number
+  archivedTime?: Date
+  fileUrl?: string
+  materialLocator?: { materialId: string | number; ownerModule: string; entityType: string; entityId: string | number; typeCode: string }
+  sourceType?: string
+  sourceId?: number
+  remark?: string
+}
+
+export const getDeliverableProjectSummary = (projectId: number) =>
+  request.get({ url: `${baseUrl}/project-summary`, params: { projectId } })

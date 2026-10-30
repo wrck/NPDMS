@@ -400,7 +400,7 @@ class ArtifactCallbackHandlerTest {
         evidence.setCurrentRevisionNo(1);
         evidence.setAccSyncStatus(status);
         evidence.setAccAcceptedRecordId(acceptedRecordId);
-        evidence.setVersion(version);
+        evidence.setVersion((long) version);
         return evidence;
     }
 

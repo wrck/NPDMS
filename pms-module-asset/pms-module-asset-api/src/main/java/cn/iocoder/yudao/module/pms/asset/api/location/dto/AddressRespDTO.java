@@ -17,5 +17,5 @@ public record AddressRespDTO(
         BigDecimal longitude,
         BigDecimal latitude,
         Integer status,
-        Integer version) {
+        Long version) {
 }

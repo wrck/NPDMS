@@ -6,38 +6,82 @@ import cn.iocoder.yudao.module.pms.asset.api.location.dto.*;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.AddressDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.LocationSourceMappingDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteDO;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteLocationDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.AddressMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.LocationSourceMappingMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteMapper;
-import cn.iocoder.yudao.module.pms.asset.service.equipment.EquipmentLocationEffectiveService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AssetLocationApiImplTest {
 
+    @Test
+    void customerSitesRejectMissingIdentityAndCrossTenantBeforeQuery() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
+        try {
+            assertThrows(ServiceException.class, () -> api.getCustomerSites(null));
+            assertThrows(ServiceException.class, () -> api.getCustomerSites(new CustomerSiteQuery(1L, null)));
+            assertThrows(ServiceException.class, () -> api.getCustomerSites(new CustomerSiteQuery(2L, 200L)));
+            verifyNoInteractions(siteMapper);
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
+    @Test
+    void customerSitesPassOnlyTheTrustedTenantAndExactCustomerToMapper() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
+        try {
+            var query = new cn.iocoder.yudao.module.pms.asset.dal.mysql.location.query.CurrentCustomerSiteListQuery(1L, 200L);
+            when(siteMapper.selectCurrentCustomerSites(query)).thenReturn(List.of());
+            assertTrue(api.getCustomerSites(new CustomerSiteQuery(1L,200L)).isEmpty());
+            verify(siteMapper).selectCurrentCustomerSites(query);
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
+    @Mock private cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customerQueryApi;
+    @Mock private LocationCodeService locationCodeService;
     @Mock private AddressMapper addressMapper;
     @Mock private SiteMapper siteMapper;
     @Mock private LocationSourceMappingMapper sourceMappingMapper;
     @Mock private SiteLocationTreeService treeService;
     @Mock private AreaDepartmentMappingService mappingService;
-    @Mock private EquipmentLocationEffectiveService equipmentLocationEffectiveService;
+    @Mock private DeviceLocationEffectiveService deviceLocationEffectiveService;
 
     private AssetLocationApiImpl api;
 
     @BeforeEach
     void setUp() {
-        api = new AssetLocationApiImpl(addressMapper, siteMapper, sourceMappingMapper, treeService, mappingService,
-                equipmentLocationEffectiveService);
+        api = new AssetLocationApiImpl(customerQueryApi, locationCodeService, addressMapper, siteMapper, sourceMappingMapper, treeService, mappingService,
+                deviceLocationEffectiveService);
+    }
+
+    @Test
+    void shouldRejectIncompleteNewAddressBeforeWriting() {
+        for (String detail : new String[] {null, "", "   "}) {
+            ServiceException failure = assertThrows(ServiceException.class, () -> api.maintain(
+                    new LocationMaintenanceCommand(null,
+                            new AddressInput(null, null, "CN", "中国", null, null, null, null,
+                                    null, null, detail, "中国", null, null, null, null),
+                            null, null, null, null, null, null, null)));
+            assertEquals(cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants
+                    .AST_LOCATION_REFERENCE_INVALID.getCode(), failure.getCode());
+        }
+        assertThrows(ServiceException.class, () -> api.maintain(new LocationMaintenanceCommand(null,
+                new AddressInput(null, null, "CN", "中国", null, null, null, null,
+                        null, null, "文三路", null, null, null, null, null),
+                null, null, null, null, null, null, null)));
+        verifyNoInteractions(addressMapper, siteMapper, sourceMappingMapper);
     }
 
     @Test
@@ -60,12 +104,12 @@ class AssetLocationApiImplTest {
                 new AddressInput(null, null, "CN", "中国", "330000", "浙江省", "330100", "杭州市",
                         "330106", "西湖区", "文三路", "浙江省杭州市西湖区文三路", null, null, null, null),
                 new SiteInput(null, null, "SITE-A", "站点A", null, "CUSTOMER_SITE"),
-                null, null, null, null, null));
+                null, null, null, null, null, null));
         LocationReferenceDTO second = api.maintain(new LocationMaintenanceCommand(1L,
-                new AddressInput(11L, 0, null, null, null, null, null, null, null, null,
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null),
                 new SiteInput(null, null, "SITE-B", "站点B", null, "CUSTOMER_SITE"),
-                null, null, null, null, null));
+                null, null, null, null, null, null));
 
         assertEquals(11L, first.addressId());
         assertEquals(11L, second.addressId());
@@ -76,7 +120,7 @@ class AssetLocationApiImplTest {
     @Test
     void shouldRejectStaleAddressVersion() {
         when(addressMapper.selectById(11L)).thenReturn(address(11L, 2));
-        assertThrows(ServiceException.class, () -> api.getAddress(11L, 1));
+        assertThrows(ServiceException.class, () -> api.getAddress(11L, 1L));
     }
 
     @Test
@@ -90,7 +134,7 @@ class AssetLocationApiImplTest {
         LocationReferenceDTO result = api.maintain(new LocationMaintenanceCommand(null,
                 new AddressInput(null, null, "CN", "中国", "330000", "浙江省", "330100", "杭州市",
                         "330106", "西湖区", "文三路", "浙江省杭州市西湖区文三路", null, null, null, null),
-                null, null, null, null, null, null));
+                null, null, null, null, null, null, null));
 
         assertEquals("RESOLVED", result.locationResolutionStatus());
         assertEquals(12L, result.addressId());
@@ -113,22 +157,121 @@ class AssetLocationApiImplTest {
         site.setId(21L);
         site.setAddressId(11L);
         site.setStatus(0);
-        site.setVersion(0);
+        site.setVersion(0L);
         when(siteMapper.selectById(21L)).thenReturn(site);
 
         LocationReferenceDTO replay = api.maintain(new LocationMaintenanceCommand(1L,
-                new AddressInput(11L, 0, null, null, null, null, null, null, null, null,
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null),
-                new SiteInput(21L, 0, null, null, null, null), null, null, "SURVEY", "S-1", "v3"));
+                new SiteInput(21L, 0L, null, null, null, null), null, null, "SURVEY", "S-1", "v3", null));
         assertEquals(21L, replay.siteId());
 
         assertThrows(ServiceException.class, () -> api.maintain(new LocationMaintenanceCommand(1L,
-                new AddressInput(12L, 0, null, null, null, null, null, null, null, null,
+                new AddressInput(12L, 0L, null, null, null, null, null, null, null, null,
                         null, null, null, null, null, null),
-                new SiteInput(21L, 0, null, null, null, null), null, null, "SURVEY", "S-1", "v3")));
+                new SiteInput(21L, 0L, null, null, null, null), null, null, "SURVEY", "S-1", "v3", null)));
     }
 
-    private AddressDO address(Long id, int version) {
+    @Test
+    void shouldGenerateCustomerCodeAndKeepItWhenCustomerChanges() {
+        when(addressMapper.selectById(11L)).thenReturn(address(11L, 0));
+        when(customerQueryApi.getCustomer(7L)).thenReturn(
+                new cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO(
+                        7L, 1L, "CUS-7", "客户", null, "ACTIVE", "PLATFORM_CREATED", 0L, null));
+        when(locationCodeService.next("CUS-7-S-")).thenReturn("CUS-7-S-0001");
+        var captor = org.mockito.ArgumentCaptor.forClass(SiteDO.class);
+        api.maintain(new LocationMaintenanceCommand(null,
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
+                new SiteInput(null, null, null, "站点", 7L, "CUSTOMER_SITE"), null, null, null, null, null, null));
+        verify(siteMapper).insert(captor.capture());
+        SiteDO created = captor.getValue();
+        assertEquals("CUS-7-S-0001", created.getCode());
+        created.setId(21L);
+        when(siteMapper.selectById(21L)).thenReturn(created);
+        when(siteMapper.updateByIdAndVersion(any(), org.mockito.ArgumentMatchers.eq(0L))).thenReturn(1);
+        api.maintain(new LocationMaintenanceCommand(null, null,
+                new SiteInput(21L, 0L, null, "站点", 8L, "CUSTOMER_SITE"), null, null, null, null, null, null));
+        verify(siteMapper).updateByIdAndVersion(captor.capture(), org.mockito.ArgumentMatchers.eq(0L));
+        assertEquals("CUS-7-S-0001", captor.getValue().getCode());
+        assertThrows(ServiceException.class, () -> api.maintain(new LocationMaintenanceCommand(null, null,
+                new SiteInput(21L, 0L, "RECODE", "站点", 8L, "CUSTOMER_SITE"), null, null, null, null, null, null)));
+    }
+
+    @Test
+    void shouldAppendExtraSiteLocationsAsChainedChildren() {
+        when(addressMapper.selectById(11L)).thenReturn(address(11L, 0));
+        SiteDO site = new SiteDO();
+        site.setId(21L);
+        site.setAddressId(11L);
+        site.setStatus(0);
+        site.setVersion(0L);
+        when(siteMapper.selectById(21L)).thenReturn(site);
+        SiteLocationDO floor = siteLocation(31L);
+        SiteLocationDO room = siteLocation(32L);
+        SiteLocationDO rack = siteLocation(33L);
+        when(treeService.maintain(eq(21L),
+                eq(new SiteLocationInput(null, null, null, null, "3F", "FLOOR", 0)))).thenReturn(floor);
+        when(treeService.maintain(eq(21L),
+                eq(new SiteLocationInput(null, null, 31L, null, "机房A", "ROOM", 0)))).thenReturn(room);
+        when(treeService.maintain(eq(21L),
+                eq(new SiteLocationInput(null, null, 32L, null, "机柜01", "RACK", 0)))).thenReturn(rack);
+
+        LocationReferenceDTO result = api.maintain(new LocationMaintenanceCommand(1L,
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null,
+                        null, null, null, null, null, null),
+                new SiteInput(21L, 0L, null, null, null, null),
+                new SiteLocationInput(null, null, null, null, "3F", "FLOOR", 0),
+                null, null, null, null,
+                List.of(new SiteLocationInput(null, null, null, null, "机房A", "ROOM", 0),
+                        new SiteLocationInput(null, null, null, null, "机柜01", "RACK", 0))));
+
+        assertEquals(33L, result.siteLocationId());
+        verify(treeService).maintain(eq(21L),
+                eq(new SiteLocationInput(null, null, 31L, null, "机房A", "ROOM", 0)));
+        verify(treeService).maintain(eq(21L),
+                eq(new SiteLocationInput(null, null, 32L, null, "机柜01", "RACK", 0)));
+    }
+
+    @Test
+    void shouldKeepFirstLocationAsReferenceWithoutExtras() {
+        when(addressMapper.selectById(11L)).thenReturn(address(11L, 0));
+        SiteDO site = new SiteDO();
+        site.setId(21L);
+        site.setAddressId(11L);
+        site.setStatus(0);
+        site.setVersion(0L);
+        when(siteMapper.selectById(21L)).thenReturn(site);
+        when(treeService.maintain(eq(21L),
+                eq(new SiteLocationInput(null, null, null, null, "3F", "FLOOR", 0))))
+                        .thenReturn(siteLocation(31L));
+
+        LocationReferenceDTO result = api.maintain(new LocationMaintenanceCommand(1L,
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null,
+                        null, null, null, null, null, null),
+                new SiteInput(21L, 0L, null, null, null, null),
+                new SiteLocationInput(null, null, null, null, "3F", "FLOOR", 0),
+                null, null, null, null, null));
+
+        assertEquals(31L, result.siteLocationId());
+    }
+
+    @Test
+    void shouldRejectExtraSiteLocationsWithoutSite() {
+        assertThrows(ServiceException.class, () -> api.maintain(new LocationMaintenanceCommand(null,
+                new AddressInput(11L, 0L, null, null, null, null, null, null, null, null,
+                        null, null, null, null, null, null),
+                null, null, null, null, null, null,
+                List.of(new SiteLocationInput(null, null, null, null, "机房A", "ROOM", 0)))));
+    }
+
+    private SiteLocationDO siteLocation(Long id) {
+        SiteLocationDO entity = new SiteLocationDO();
+        entity.setId(id);
+        entity.setVersion(0L);
+        return entity;
+    }
+
+    private AddressDO address(Long id, long version) {
         AddressDO address = new AddressDO();
         address.setId(id);
         address.setStatus(0);

@@ -1,12 +1,12 @@
 package cn.iocoder.yudao.module.pms.cutover.service.closure;
 
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.context.CutoverClosureContext;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureAttachmentDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverCollectionEvidenceDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTaskQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureAttachmentMapper;
@@ -14,9 +14,9 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureMappe
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverCollectionEvidenceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureChildrenQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureRowQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanRevisionQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.AttachmentInput;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.ClosureContent;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules;
@@ -25,10 +25,14 @@ import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFi
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView.CollectionEvidenceView;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverOwnerFactException;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP6ActionPolicy;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 
 import java.util.List;
 import java.util.Objects;
@@ -38,8 +42,15 @@ import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosure
 import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationException.Code.OWNER_PROVIDER_UNAVAILABLE;
 import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationException.Reason.*;
 
-/** F-CUT-006 Task 3只读详情内核；生产依赖接通前不注册Bean。 */
+/** 割接闭环详情、证据与当前办理资格。 */
 public class CutoverClosureQueryService {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience approvalAudience;
+
+    @jakarta.annotation.Resource
+    private CutoverClosureStorage storage;
+    @jakarta.annotation.Resource
+    private FileArtifactApi fileArtifacts;
     private static final CutoverP6ActionPolicy ACTION_POLICY = new CutoverP6ActionPolicy();
     private final CutoverTaskMapper taskMapper;
     private final CutoverApprovalInstanceMapper approvalMapper;
@@ -65,13 +76,22 @@ public class CutoverClosureQueryService {
         this.projectScopePort = projectScopePort;
     }
 
-    public CutoverClosureView detail(Long tenantId, Long actorId, Long taskId, ClosureAccess access) {
+    public record ActionQuery(CutoverClosureContext context, Long taskId) { }
+    @lombok.Builder
+    private record ClosureRead(CutoverTaskDO task, CutoverClosureDO closure, CutoverPlanRevisionDO plan,
+                               CutoverApprovalInstanceDO approval, List<CutoverClosureAttachmentDO> attachments,
+                               List<CutoverCollectionEvidenceDO> evidence, boolean projectRead, boolean editAllowed) { }
+
+    private ClosureRead readActions(ActionQuery query) {
+        var context = query.context(); Long taskId = query.taskId();
+        Long tenantId = context.tenantId(); Long actorId = context.actorId();
         if (tenantId == null || tenantId <= 0 || actorId == null || actorId <= 0 || taskId == null || taskId <= 0
-                || access == null) throw notFound();
+                || context == null) throw notFound();
         CutoverTaskDO task = taskMapper.selectById(taskId);
         if (task == null || !Objects.equals(task.getTenantId(), tenantId)) throw notFound();
         CutoverProjectScopePort.ProjectScopeFact viewScope = inspectScope(actorId, task.getProjectId(), "ACTION_VIEW");
-        if (!viewScope.allowed()) throw notFound();
+        boolean projectRead = viewScope.allowed() && Objects.equals(viewScope.projectId(), task.getProjectId());
+        if (!projectRead && approvalAudience.inspectTask(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.Query(tenantId, actorId, taskId, null)) == null) throw notFound();
 
         CutoverClosureDO closure = closureMapper.selectByTask(new CutoverClosureRowQuery(tenantId, taskId));
         CutoverPlanRevisionDO plan;
@@ -88,8 +108,49 @@ public class CutoverClosureQueryService {
                 : attachmentMapper.selectListByClosure(new CutoverClosureChildrenQuery(tenantId, closure.getId()));
         List<CutoverCollectionEvidenceDO> evidence = closure == null ? List.of()
                 : evidenceMapper.selectListByClosure(new CutoverClosureChildrenQuery(tenantId, closure.getId()));
-        boolean editAllowed = inspectEdit(actorId, task.getProjectId());
-        List<String> actions = allowedActions(task, closure, attachments, evidence, access, editAllowed, actorId);
+        boolean editAllowed = projectRead && inspectEdit(actorId, task.getProjectId());
+        return ClosureRead.builder().task(task).closure(closure).plan(plan).approval(approval)
+                .attachments(attachments).evidence(evidence).projectRead(projectRead).editAllowed(editAllowed).build();
+    }
+
+    public boolean hasWorkbenchAction(ActionQuery query) {
+        var read = readActions(query);
+        return read.projectRead() && !allowedActions(read.task(), read.closure(), read.attachments(), read.evidence(),
+                query.context(), read.editAllowed()).isEmpty();
+    }
+
+    public List<AttachmentInput> availableAttachments(ActionQuery query) {
+        var read = readActions(query);
+        if (read.closure() == null || !"DRAFT".equals(read.closure().getStatusCode()) || !read.projectRead()
+                || !allowedActions(read.task(), read.closure(), read.attachments(), read.evidence(),
+                        query.context(), read.editAllowed()).contains("SAVE_CLOSURE")) {
+            throw failure(CutoverClosureApplicationException.Code.FUNCTION_OR_SCOPE_DENIED,
+                    PROJECT_OR_TASK_SCOPE_DENIED, "CUT", "当前用户不能恢复此闭环草稿的附件");
+        }
+        var keys = List.of(AttachmentPurpose.POST_COLLECTION_CHECKLIST, AttachmentPurpose.IMPLEMENTATION_COMMITMENT,
+                        AttachmentPurpose.OTHER_EVIDENCE).stream()
+                .map(purpose -> new FileReferenceSetKey("CUT", "CUTOVER_CLOSURE",
+                        read.closure().getId().toString(), purpose.name())).toList();
+        return fileArtifacts.inspectReferenceSets(new FileReferenceSetCollectionQuery(keys, FileActionCodes.READ))
+                .stream().flatMap(set -> {
+                    if (!keys.contains(set.key())) {
+                        throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED, "PLT", "闭环附件集合身份不一致");
+                    }
+                    return set.activeFacts().stream().filter(file -> "AVAILABLE".equals(file.availabilityStatus()))
+                            .map(file -> new AttachmentInput(AttachmentPurpose.valueOf(set.key().purposeCode()),
+                                    file.artifactId(), file.versionNo(), file.referenceKey(),
+                                    new FileFactVersion(file.fileFactVersion().artifactVersion(),
+                                            file.fileFactVersion().referenceVersion(), file.fileFactVersion().availabilityVersion()),
+                                    file.scopeVersion(), file.sha256()));
+                }).toList();
+    }
+
+    public CutoverClosureView detail(CutoverClosureContext context, Long taskId) {
+        var read = readActions(new ActionQuery(context, taskId));
+        var task = read.task(); var closure = read.closure(); var plan = read.plan(); var approval = read.approval();
+        var attachments = read.attachments(); var evidence = read.evidence();
+        boolean projectRead = read.projectRead(); boolean editAllowed = read.editAllowed();
+        List<String> actions = projectRead ? allowedActions(task, closure, attachments, evidence, context, editAllowed) : List.of();
         return new CutoverClosureView(taskId, task.getCurrentStage(), task.getTaskStatus(), task.getVersion(),
                 closure == null ? null : closure.getId(), closure == null ? null : closure.getVersion(),
                 closure == null ? null : closure.getStatusCode(), approval.getId(), approval.getVersion(),
@@ -104,19 +165,20 @@ public class CutoverClosureQueryService {
     private List<String> allowedActions(CutoverTaskDO task, CutoverClosureDO closure,
                                         List<CutoverClosureAttachmentDO> attachments,
                                         List<CutoverCollectionEvidenceDO> evidence,
-                                        ClosureAccess access, boolean editAllowed, Long actorId) {
+                                        CutoverClosureContext context, boolean editAllowed) {
+        Long actorId = context.actorId();
         CutoverDashboardCandidate candidate = new CutoverDashboardCandidate(task.getId(), task.getTaskOrigin(),
                 task.getCurrentStage(), task.getTaskStatus(), task.getOwnerUserId(), actorId, task.getManualGrade());
         boolean failedCollection = evidence.stream().anyMatch(value ->
                 "DISPATCH_FAILED".equals(value.getEvidenceTypeCode())
                         || "CALLBACK_FAILED".equals(value.getEvidenceTypeCode()));
         boolean closureComplete = closure != null && "DRAFT".equals(closure.getStatusCode())
-                && access.submit() && complete(closure, attachments, evidence);
+                && context.canSubmit() && complete(closure, attachments, evidence);
         var facts = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.ActionFacts
                 .p6(closure == null ? null : closure.getStatusCode(), editAllowed,
                         closureComplete, failedCollection);
         var permissions = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts
-                .p6(access.save(), access.requestCollection(), access.submit());
+                .p6(context.canSave(), context.canRequestCollection(), context.canSubmit());
         return List.copyOf(ACTION_POLICY.allowedActions(candidate, facts, permissions));
     }
 
@@ -131,7 +193,7 @@ public class CutoverClosureQueryService {
                     "POST_COLLECTION_CHECKLIST".equals(value.getPurposeCode())).count();
             long commitment = attachments.stream().filter(value ->
                     "IMPLEMENTATION_COMMITMENT".equals(value.getPurposeCode())).count();
-            if (checklist != 1 || commitment != 1) return false;
+            if (checklist < 1 || commitment < 1) return false;
             return evidence.stream().filter(value -> "DISPATCH_ACCEPTED".equals(value.getEvidenceTypeCode()))
                     .allMatch(dispatch -> evidence.stream().anyMatch(callback ->
                             Objects.equals(callback.getCollectionTaskId(), dispatch.getCollectionTaskId())
@@ -155,7 +217,9 @@ public class CutoverClosureQueryService {
     private static AttachmentInput attachment(CutoverClosureAttachmentDO row) {
         FileFactVersion version;
         try {
-            version = JsonUtils.parseObject(row.getFileFactVersion(), FileFactVersion.class);
+            version = new FileFactVersion(Math.toIntExact(row.getFileArtifactFactVersion()),
+                    Math.toIntExact(row.getFileReferenceFactVersion()),
+                    Math.toIntExact(row.getFileAvailabilityFactVersion()));
         } catch (RuntimeException ex) {
             throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED, "PLT", "闭环文件版本损坏");
         }
@@ -207,7 +271,7 @@ public class CutoverClosureQueryService {
         }
     }
 
-    private static void requireSource(CutoverTaskDO task, CutoverClosureDO closure,
+    private void requireSource(CutoverTaskDO task, CutoverClosureDO closure,
                                       CutoverPlanRevisionDO plan, CutoverApprovalInstanceDO approval) {
         if (plan == null || approval == null || !"SUBMITTED".equals(plan.getStatusCode())
                 || !"APPROVED".equals(approval.getStatusCode())
@@ -222,15 +286,16 @@ public class CutoverClosureQueryService {
         if (closure != null && (!Objects.equals(closure.getPlanRevisionId(), plan.getId())
                 || !Objects.equals(closure.getTaskId(), task.getId())
                 || !Objects.equals(closure.getProjectId(), task.getProjectId())
-                || !Objects.equals(closure.getTaskVersionAtP6(), task.getVersion())
+                || !Objects.equals(closure.getTaskVersionAtP6() == null ? null : closure.getTaskVersionAtP6()
+                        + ("ARCHIVED".equals(task.getTaskStatus()) && "SUBMITTED".equals(closure.getStatusCode()) ? 1L : 0L), task.getVersion())
                 || !Objects.equals(closure.getApprovalInstanceId(), approval.getId())
                 || !Objects.equals(closure.getApprovalVersion(), approval.getVersion())
                 || !Objects.equals(closure.getPlanRevisionNo(), plan.getRevisionNo())
-                || !Objects.equals(closure.getPlanVersion(), plan.getVersion())
-                || !Objects.equals(closure.getDeviceScopeWatermark(), task.getDeviceScopeWatermark()))) {
+                || !Objects.equals(closure.getPlanVersion(), plan.getVersion()))) {
             throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED,
                     "CUT", "闭环冻结来源损坏");
         }
+        if (closure != null) storage.requireSame(new CutoverClosureStorage.Source(closure, task));
     }
 
     private static CutoverClosureApplicationException notFound() {
@@ -243,6 +308,4 @@ public class CutoverClosureQueryService {
         return new CutoverClosureApplicationException(code, reason, ownerContext, null, null, message);
     }
 
-    public record ClosureAccess(boolean save, boolean requestCollection, boolean submit) {
-    }
 }

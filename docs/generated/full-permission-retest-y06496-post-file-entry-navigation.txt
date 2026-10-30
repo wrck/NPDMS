@@ -1,0 +1,79 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "项目交付":
+    - generic: 项目交付
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+- navigation "面包屑":
+  - link "首页":
+    - text: 首页
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button "杨凯添":
+  - generic: 杨凯添
+- button "首页":
+  - text: 首页
+- button:
+- generic: 你好 杨凯添 祝你开心每一天!
+- generic: 今日晴，欢迎使用 NPMS 项目实施交付管理平台
+- generic: 项目总数
+- text: "40"
+- separator
+- generic: 待办任务
+- text: "10"
+- separator
+- generic: 本月访问
+- text: 2,340
+- generic: 项目动态
+- generic "项目组合管理"
+- generic "项目组合与项目父子树独立建模"
+- generic "进行中"
+- generic: 2026-07-01
+- generic "项目主数据"
+- generic "项目分类、重大项、经理指派"
+- generic "进行中"
+- generic: 2026-07-10
+- generic "任务 WBS"
+- generic "工作分解结构与非固定层级"
+- generic "规划中"
+- generic: 2026-07-15
+- generic "单机风险"
+- generic "风险识别、确认、CRM 同步与关闭"
+- generic "进行中"
+- generic: 2026-07-20
+- generic "技术公告"
+- generic "公告发布、停产停维预检查"
+- generic "进行中"
+- generic: 2026-07-25
+- generic "授权管理"
+- generic "授权提交、审批、回执与终止"
+- generic "进行中"
+- generic: 2026-07-30
+- generic: 快捷入口
+- generic: 首页
+- generic: 项目主数据
+- generic: 单机风险
+- generic: 技术公告
+- generic: 授权管理
+- generic: 公告预检查
+- generic: 系统公告
+- generic: "版本发布 : NPMS V1 版本已通过验收，38 个 PMS 页面加载正常"
+- generic: 2026-07-30
+- separator
+- generic: "研发进展 : V2 工程交付阶段功能开发进行中"
+- generic: 2026-07-30
+- separator
+- generic: "环境配置 : 后端 58080、前端 18081 端口已固化"
+- generic: 2026-07-30
+- separator
+- generic: "部署规范 : Docker 仅承载基础设施，前后端在宿主机运行"
+- generic: 2026-07-30
+- separator
+- generic: Copyright ©2026 项目实施交付管理平台

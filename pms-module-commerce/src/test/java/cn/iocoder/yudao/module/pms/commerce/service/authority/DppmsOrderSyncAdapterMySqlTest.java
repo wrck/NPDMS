@@ -88,7 +88,7 @@ class DppmsOrderSyncAdapterMySqlTest {
         assertTrue(result.stream().allMatch(c -> "ISSUE".equals(c.action())));
         assertTrue(result.getFirst().message().contains("STALE_SOURCE_VERSION"));
         assertTrue(result.getLast().message().contains("SOURCE_VERSION_PAYLOAD_CONFLICT"));
-        assertEquals("ITEM-1",line().get("item_code"));
+        assertEquals("ITEM-1",line().get("product_code"));
     }
 
     @Test void issuesAreIsolatedAndTenantCannotSeeAnotherTenantsParent() {

@@ -132,17 +132,17 @@ class BusinessViewMySqlIntegrationTest {
         assertEquals(draft.id(), service.create(key("create"), selection("view")).id());
         assertEquals(1L, auditCount(key("create"))); assertEquals(1L, commandCount(key("create")));
         error(KEY_CONFLICT.getCode(), () -> service.create(key("create"), selection("different")));
-        var edited = service.update(draft.id(), 0, key("update"), selection("view"));
-        assertEquals(1, edited.version());
-        error(VERSION_CONFLICT.getCode(), () -> service.publish(draft.id(), 0, key("stale")));
+        var edited = service.update(draft.id(), 0L, key("update"), selection("view"));
+        assertEquals(1L, edited.version());
+        error(VERSION_CONFLICT.getCode(), () -> service.publish(draft.id(), 0L, key("stale")));
         assertEquals(0L, auditCount(key("stale"))); assertEquals(0L, commandCount(key("stale")));
-        var published = service.publish(draft.id(), 1, key("publish"));
-        assertEquals(2, published.version());
-        error(STATE_INVALID.getCode(), () -> service.update(draft.id(), 2, key("immutable"), selection("view")));
-        var copied = service.copy(draft.id(), 2, key("copy"));
+        var published = service.publish(draft.id(), 1L, key("publish"));
+        assertEquals(2L, published.version());
+        error(STATE_INVALID.getCode(), () -> service.update(draft.id(), 2L, key("immutable"), selection("view")));
+        var copied = service.copy(draft.id(), 2L, key("copy"));
         assertEquals(2L, copied.revisionNo()); assertEquals("DRAFT", copied.status());
-        error(DRAFT_EXISTS.getCode(), () -> service.copy(draft.id(), 2, key("copy_again")));
-        var disabled = service.disable(draft.id(), 2, key("disable"));
+        error(DRAFT_EXISTS.getCode(), () -> service.copy(draft.id(), 2L, key("copy_again")));
+        var disabled = service.disable(draft.id(), 2L, key("disable"));
         assertEquals(3, disabled.version()); assertEquals("DISABLED", disabled.status());
         assertEquals(published.contextSchema(), disabled.contextSchema());
         assertNotNull(service.getRevision(new BusinessViewQueryApi.Query(draft.id(), BusinessViewQueryApi.Purpose.HISTORICAL_REFERENCE)));
@@ -160,12 +160,12 @@ class BusinessViewMySqlIntegrationTest {
         var draft = service.create(key("create"), selection("rollback"));
         doThrow(new DataIntegrityViolationException("test-only audit insert failure"))
                 .when(auditMapper).insert(any(PlatformOperationAuditDO.class));
-        assertThrows(DataIntegrityViolationException.class, () -> service.publish(draft.id(), 0, key("publish_fail")));
+        assertThrows(DataIntegrityViolationException.class, () -> service.publish(draft.id(), 0L, key("publish_fail")));
         reset(auditMapper);
         var stored = service.get(draft.id());
-        assertEquals("DRAFT", stored.status()); assertEquals(0, stored.version()); assertNull(stored.publishedAt());
+        assertEquals("DRAFT", stored.status()); assertEquals(0L, stored.version()); assertNull(stored.publishedAt());
         assertEquals(0L, auditCount(key("publish_fail"))); assertEquals(0L, commandCount(key("publish_fail")));
-        assertEquals("PUBLISHED", service.publish(draft.id(), 0, key("publish_fail")).status());
+        assertEquals("PUBLISHED", service.publish(draft.id(), 0L, key("publish_fail")).status());
     }
 
     @Test void auditInsertFailureDuringCreationLeavesNoRegistrationOrIdempotentSuccess() {
@@ -195,7 +195,7 @@ class BusinessViewMySqlIntegrationTest {
         authenticate(TENANT);
         try {
             if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Start barrier timed out");
-            service.publish(id, 0, key); return true;
+            service.publish(id, 0L, key); return true;
         } catch (ServiceException failure) {
             assertEquals(VERSION_CONFLICT.getCode(), failure.getCode()); return false;
         } finally { SecurityContextHolder.clearContext(); TenantContextHolder.clear(); }
@@ -204,9 +204,9 @@ class BusinessViewMySqlIntegrationTest {
     @Test void internalBatchRequiresTransactionAndKeepsInputOrderAfterStableLocks() {
         var z = service.create(key("zcreate"), selection("z"));
         var a = service.create(key("acreate"), selection("a"));
-        service.publish(z.id(), 0, key("zpublish")); service.publish(a.id(), 0, key("apublish"));
-        var queries = List.of(new BusinessViewQueryApi.Query(z.id(), BusinessViewQueryApi.Purpose.NEW_REFERENCE, 1),
-                new BusinessViewQueryApi.Query(a.id(), BusinessViewQueryApi.Purpose.NEW_REFERENCE, 1));
+        service.publish(z.id(), 0L, key("zpublish")); service.publish(a.id(), 0L, key("apublish"));
+        var queries = List.of(new BusinessViewQueryApi.Query(z.id(), BusinessViewQueryApi.Purpose.NEW_REFERENCE, 1L),
+                new BusinessViewQueryApi.Query(a.id(), BusinessViewQueryApi.Purpose.NEW_REFERENCE, 1L));
         assertThrows(IllegalTransactionStateException.class, () -> service.lockAndRevalidateAll(queries));
         var result = transactions.execute(status -> service.lockAndRevalidateAll(queries));
         assertEquals(List.of(z.id(), a.id()), result.stream().map(BusinessViewRevision::id).toList());

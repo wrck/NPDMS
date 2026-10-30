@@ -22,6 +22,10 @@ class ProjectRuntimeGraphResolverTest {
     @AfterAll static void stopRules() { engine.close(); }
     ProjectRuntimeGraphMapper mapper;
     ProjectRuntimeGraphResolver resolver;
+    cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper plans;
+    ProjectNodeExecutionMapper executions;
+    cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO plan;
+    List<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO> rounds;
     ProjectMasterDO project;
     List<ProjectStageInstanceDO> stages;
     static final String SNAPSHOT = "[{\"definition\":{\"id\":100,\"definitionKind\":\"COMPLETION_RULE\",\"schemaVersion\":1,\"payload\":{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}}},{\"definition\":{\"id\":101,\"definitionKind\":\"COMPLETION_RULE\",\"schemaVersion\":1,\"payload\":{\"predicate\":\"PROCESS\",\"parameters\":{\"refCode\":\"unknown\"}}}}]";
@@ -29,12 +33,16 @@ class ProjectRuntimeGraphResolverTest {
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
         mapper = mock(ProjectRuntimeGraphMapper.class);
+        plans = mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper.class);
+        executions = mock(ProjectNodeExecutionMapper.class);
         resolver = new ProjectRuntimeGraphResolver(mapper, mock(ProjectGateReferenceInstanceMapper.class),
                 new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)),
                         new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler(), engine.evaluator(),
                         mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class),
-                        mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)));
+                        mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null)));
         project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L);
+        org.springframework.test.util.ReflectionTestUtils.setField(resolver, "plans", plans);
+        org.springframework.test.util.ReflectionTestUtils.setField(resolver, "executions", executions);
         project.setLifecycleStatus("ACTIVE"); project.setCurrentStage("S0");
         stages = List.of(stage(1L, "S0", 99, true, false), stage(2L, "S4", 0, false, false), stage(3L, "S6", 1, false, true));
         when(mapper.selectStagesForUpdate(any())).thenReturn(stages);
@@ -52,11 +60,142 @@ class ProjectRuntimeGraphResolverTest {
         stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("ACTIVE"); project.setCurrentStage("S4");
         assertEquals("S6", resolver.resolve(project).target().getCode());
     }
+    @Test void parallelAdmittedSiblingsRemainResolvable() {
+        // Rule-driven admission activates every sibling whose admission rule matched, so several
+        // nodes can be ACTIVE at once; ordinary resolution follows the current pointer instead of
+        // rejecting the multi-active state as stale.
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("ACTIVE"); stages.getLast().setStatus("ACTIVE");
+        project.setCurrentStage("S4");
+        when(mapper.selectTransitions(any())).thenReturn(List.of(edge(1L, 2L), edge(1L, 3L)));
+        var resolution = resolver.resolve(project);
+        assertEquals("S4", resolution.current().getCode());
+    }
+    @Test void closureIncludesEarlierExitGatesButNotUnvisitedBranchesOrEntryGates() {
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("SKIPPED"); stages.getLast().setStatus("ACTIVE");
+        var oldExit = new ProjectGateInstanceDO(); oldExit.setId(11L); oldExit.setStageCode("S0"); oldExit.setGateType("EXIT");
+        var skippedExit = new ProjectGateInstanceDO(); skippedExit.setId(12L); skippedExit.setStageCode("S4"); skippedExit.setGateType("EXIT");
+        var finalExit = new ProjectGateInstanceDO(); finalExit.setId(13L); finalExit.setStageCode("S6"); finalExit.setGateType("EXIT");
+        var entry = new ProjectGateInstanceDO(); entry.setId(14L); entry.setStageCode("S6"); entry.setGateType("ENTRY");
+        when(mapper.selectGatesForUpdate(any())).thenReturn(List.of(oldExit, skippedExit, finalExit, entry));
+        assertEquals(List.of(11L, 13L), resolver.lockClosureGates(project).gates().stream().map(ProjectGateInstanceDO::getId).toList());
+        assertEquals("DONE", stages.getFirst().getStatus());
+    }
     @Test void terminalIsOnlyAReadResultNotProjectClosure() {
         stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("DONE"); stages.getLast().setStatus("ACTIVE");
         project.setCurrentStage("S6");
         assertTrue(resolver.resolve(project).terminal()); assertEquals("ACTIVE", project.getLifecycleStatus());
         verify(mapper, never()).updateById(any(ProjectStageTransitionDO.class));
+    }
+    @Test void configuredClosureUsesFrozenTerminalMarkerWithoutRequiringS0() {
+        configuredStages();
+        assertFalse(resolver.resolveForClosure(project).terminal());
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("DONE"); stages.getLast().setStatus("ACTIVE");
+        project.setCurrentStage("S6");
+        assertTrue(resolver.resolveForClosure(project).terminal());
+        when(mapper.selectStages(any())).thenReturn(stages);
+        assertTrue(resolver.inspectForClosure(project).terminal());
+        assertEquals("ACTIVE", project.getLifecycleStatus());
+        assertEquals("ACTIVE", stages.getLast().getStatus());
+        // The original transition API retains its explicit legacy S0 contract.
+        assertEquals(StageTransitionTargetResolver.Status.INVALID_GRAPH, resolver.resolve(project).transition().status());
+    }
+    @Test void configuredClosureStillRequiresCurrentPlanAndTenantIdentity() {
+        configuredStages();
+        project.setActivePlanVersionId(null);
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_PLAN_UNAVAILABLE"));
+        project.setActivePlanVersionId(50L);
+        stages.getLast().setTenantId(8L);
+        assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project));
+    }
+    @Test void configuredClosureAcceptsCompletedTerminalGraphAndSkippedBranches() {
+        configuredStages();
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("SKIPPED"); stages.getLast().setStatus("DONE");
+        project.setCurrentStage("S6");
+        when(mapper.selectStages(any())).thenReturn(stages);
+
+        assertTrue(resolver.resolveForClosure(project).terminal());
+        assertTrue(resolver.inspectForClosure(project).terminal());
+    }
+    @Test void configuredClosureRejectsCompletedGraphWithActiveOrNonTerminalStage() {
+        configuredStages();
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("PENDING"); stages.getLast().setStatus("DONE");
+        project.setCurrentStage("S6");
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_NODE_STALE"));
+
+        stages.get(1).setStatus("ACTIVE");
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_NODE_STALE"));
+
+        stages.get(1).setStatus("DONE");
+        stages.getLast().setTerminalNode(false);
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_NODE_STALE"));
+    }
+    @Test void completedGraphIsStillRejectedByOrdinaryAndLegacyClosureResolution() {
+        stages.getFirst().setStatus("DONE"); stages.get(1).setStatus("DONE"); stages.getLast().setStatus("DONE");
+        project.setCurrentStage("S6");
+
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolve(project)).getMessage().contains("GRAPH_NODE_STALE"));
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_NODE_STALE"));
+    }
+    private void configuredStages() {
+        stages.getFirst().setCode("S1"); project.setCurrentStage("S1"); project.setActivePlanVersionId(50L);
+        when(mapper.selectContracts(any())).thenReturn(stages.stream().map(stage -> {
+            var contract = new ProjectStageExecutionContractDO(); contract.setTenantId(7L); contract.setProjectId(9L);
+            contract.setId(stage.getId() + 1000);
+            contract.setStageId(stage.getId()); contract.setGraphVersion(1L); contract.setSourceNodeKey("stage-" + stage.getId());
+            contract.setCompletionRuleSnapshot("{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
+            return contract;
+        }).toList());
+        var snapshot = new cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot();
+        snapshot.setStages(stages.stream().map(stage -> {
+            var node = new cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.StageContract();
+            node.setNodeKey("stage-" + stage.getId()); node.setCode(stage.getCode()); node.setCompletionRuleKey("CURRENT_DONE");
+            return node;
+        }).toList());
+        snapshot.setRulePrograms(Map.of("CURRENT_DONE", new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler()
+                .compile(JsonUtils.parseTree("{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}"))));
+        plan = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO();
+        plan.setId(50L); plan.setTenantId(7L); plan.setProjectId(9L); plan.setStatus("EFFECTIVE");
+        plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        when(plans.selectEffective(any())).thenReturn(plan);
+        rounds = stages.stream().map(stage -> {
+            var round = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO();
+            round.setTenantId(7L); round.setProjectId(9L); round.setPlanVersionId(50L);
+            round.setNodeKind("STAGE"); round.setNodeInstanceId(stage.getId()); round.setNodeKey("stage-" + stage.getId());
+            round.setContractId(stage.getId() + 1000); return round;
+        }).toList();
+        when(executions.selectCurrentForUpdate(any())).thenReturn(rounds);
+        when(executions.selectCurrent(any())).thenReturn(rounds);
+    }
+
+    @Test void configuredClosureUsesPlanRuleWhilePreservingOldBindingRule() {
+        configuredStages();
+        var contracts = mapper.selectContracts(new cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery(7L, 9L));
+        String historical = "{\"predicate\":\"TASK\",\"parameters\":{\"refCode\":\"REMOVED_TASK\"}}";
+        contracts.forEach(contract -> contract.setCompletionRuleSnapshot(historical));
+        var snapshot = cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
+        snapshot.setRulePrograms(Map.of("CURRENT_DONE", new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler()
+                .compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}"))));
+        plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        assertEquals(StageTransitionTargetResolver.ConditionStatus.SATISFIED, resolver.resolveForClosure(project).completion());
+        when(mapper.selectStages(any())).thenReturn(stages);
+        assertEquals(StageTransitionTargetResolver.ConditionStatus.SATISFIED, resolver.inspectForClosure(project).completion());
+        assertTrue(contracts.stream().allMatch(contract -> historical.equals(contract.getCompletionRuleSnapshot())));
+
+        snapshot.setRulePrograms(Map.of("CURRENT_DONE", new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler()
+                .compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}"))));
+        plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot));
+        stages.forEach(stage -> stage.setStatus("DONE")); project.setCurrentStage("S6");
+        assertEquals(StageTransitionTargetResolver.ConditionStatus.UNSATISFIED, resolver.resolveForClosure(project).completion());
+    }
+
+    @Test void configuredClosureRejectsMismatchedPlanRoundAndContract() {
+        configuredStages();
+        plan.setId(51L);
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_PLAN_UNAVAILABLE"));
+        plan.setId(50L); rounds.getFirst().setPlanVersionId(49L);
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_EXECUTION_STALE"));
+        rounds.getFirst().setPlanVersionId(50L); rounds.getFirst().setContractId(999L);
+        assertTrue(assertThrows(RuntimeException.class, () -> resolver.resolveForClosure(project)).getMessage().contains("GRAPH_EXECUTION_STALE"));
     }
     @Test void historyWithoutGraphFailsExplicitly() {
         stages.getFirst().setGraphVersion(null);
@@ -85,7 +224,7 @@ class ProjectRuntimeGraphResolverTest {
         var evaluator = new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)),
                 new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler(), engine.evaluator(),
                 mock(cn.iocoder.yudao.module.pms.project.service.rule.ProjectDecisionTableService.class),
-                mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class));
+                mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         var rule = JsonUtils.parseObject("{\"operator\":\"ANY\",\"rules\":[{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}},{\"predicate\":\"PROCESS\",\"parameters\":{\"refCode\":\"unknown\"}}]}", tools.jackson.databind.JsonNode.class);
         assertEquals(StageTransitionTargetResolver.ConditionStatus.UNAVAILABLE, evaluator.evaluate(rule,
                 new ProjectRuntimeRuleEvaluator.Facts(project, stages.getFirst(), List.of(), List.of(), List.of(), true)));

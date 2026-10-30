@@ -1,0 +1,323 @@
+package cn.iocoder.yudao.module.pms.engineering.service.solutionreview;
+
+import cn.iocoder.yudao.framework.security.core.LoginUser;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.bpm.api.solutionreview.*;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solutionreview.SolutionReviewDO;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
+import cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionService;
+import cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents;
+import cn.iocoder.yudao.module.pms.project.api.participant.*;
+import cn.iocoder.yudao.module.pms.project.api.participant.dto.*;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.core.context.SecurityContextHolder;
+import java.time.LocalDateTime;
+import java.util.*;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+@ExtendWith(MockitoExtension.class) @MockitoSettings(strictness = Strictness.LENIENT)
+class SolutionTieredReviewServiceTest {
+    @Mock SolutionMapper solutions;
+    @Mock SolutionReviewMapper reviews;
+    @Mock SolutionReviewBpmApi bpm;
+    @Mock ProjectScopeApi scope;
+    @Mock ProjectManagementQualificationApi managementQualifications;
+    @Mock PermissionApi permissions;
+    @Mock EngineeringRuleReevaluationEvents events;
+    @Mock PlatformDeliveryMaterialApi deliveryMaterials;
+    @Mock SolutionService original;
+    @Mock SolutionReviewPolicyService policies;
+    @Mock SolutionSubmissionValidator submissionValidator;
+    @Mock cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi prerequisites;
+    @InjectMocks SolutionTieredReviewService service;
+    SolutionDO solution;
+    SolutionReviewDO stored;
+    private final SolutionTieredReviewService.Selection selection = new SolutionTieredReviewService.Selection(9L, 42L);
+    private SolutionTieredReviewService.Start command(int version) {
+        return new SolutionTieredReviewService.Start(9L,42L,version,"definition-1");
+    }
+    @BeforeEach void setup() {
+        TenantContextHolder.setTenantId(1L);
+        SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(7L).setTenantId(1L), new MockHttpServletRequest());
+        when(permissions.hasAnyPermissions(eq(7L), any(String[].class))).thenReturn(true);
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
+        var member = new ProjectParticipantFact(9L,7L,Set.of("PROJECT_MANAGER"),"PRIMARY","ACTIVE","S3",1L,1L);
+        when(managementQualifications.inspect(any())).thenReturn(qualification(member));
+        solution = new SolutionDO(); solution.setId(42L); solution.setTenantId(1L); solution.setProjectId(9L);
+        solution.setVersion(0L); solution.setStatus(0); solution.setReviewLevel(1); solution.setSolutionType("IMPLEMENTATION");
+        solution.setName("重大方案"); solution.setCode("SOL-42"); solution.setBackground("保留源正文");
+        when(reviews.source(any())).thenReturn(solution);
+        when(reviews.bySolution(any())).thenAnswer(call -> stored);
+        when(reviews.insert(any(SolutionReviewDO.class))).thenAnswer(call -> { stored = call.getArgument(0); stored.setId(100L); return 1; });
+        when(reviews.updateById(any(SolutionReviewDO.class))).thenReturn(1);
+        when(reviews.selectById(100L)).thenAnswer(call -> stored);
+        when(solutions.updateById(any(SolutionDO.class))).thenAnswer(call -> { solution.setVersion(solution.getVersion()+1); return 1; });
+        when(bpm.start(any())).thenReturn(new SolutionReviewBpmApi.Started("instance-1","definition-1",
+                Map.of("serviceManagerReview",8L,"engineeringManagementReview",10L)));
+    }
+    @AfterEach void cleanup() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
+    private ProjectManagementQualificationApi.Fact qualification(ProjectParticipantFact member) {
+        return new ProjectManagementQualificationApi.Fact(new ProjectManagementQualificationApi.Query(1L,9L,7L),
+                ProjectManagementQualificationApi.Source.PROJECT_MEMBER,member,null);
+    }
+    @Test void confirmedProjectServiceManagerSubmitsWithoutImpersonatingProjectManager() {
+        var observed = qualification(new ProjectParticipantFact(9L,7L,Set.of("SERVICE_MANAGER"),"PRIMARY","ACTIVE","S3",1L,1L));
+        when(managementQualifications.inspect(any())).thenReturn(observed);
+        when(bpm.start(any())).thenReturn(new SolutionReviewBpmApi.Started("instance-1","definition-1",Map.of("serviceManagerReview",7L)));
+        service.start(command(0));assertEquals(2,solution.getStatus());
+        verify(managementQualifications).lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(observed,1L,"ACTIVE",null));
+        assertEquals(7L,cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(stored.getCandidatesJson()).path("serviceManagerReview").asLong());
+    }
+    @Test void regionalQualificationIsLockedByTheSameOwnerBeforePrerequisitesAndBpm() {
+        var subject = new ProjectManagementQualificationApi.Query(1L,9L,7L);
+        var observed = new ProjectManagementQualificationApi.Fact(subject,ProjectManagementQualificationApi.Source.REGIONAL_MANAGER,null,
+                new ProjectRegionalManagerFactApi.Fact(9L,7L,5L));
+        when(managementQualifications.inspect(subject)).thenReturn(observed);
+        service.start(command(0));
+        var order=inOrder(managementQualifications,prerequisites,bpm);
+        order.verify(managementQualifications).inspect(subject);
+        order.verify(managementQualifications).lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(observed,5L,"ACTIVE",null));
+        order.verify(prerequisites).requireSatisfied(any());order.verify(bpm).start(any());
+    }
+    @Test void missingManagementQualificationCannotSubmit() {
+        when(managementQualifications.inspect(any())).thenReturn(null);
+        assertThrows(RuntimeException.class,()->service.start(command(0)));assertEquals(0,solution.getStatus());
+        verifyNoInteractions(bpm,prerequisites,policies,submissionValidator);
+        verify(managementQualifications,never()).lockAndRevalidate(any());
+    }
+    @Test void missingFunctionalPermissionOrFullProjectScopeNeverQueriesQualificationOwner() {
+        when(permissions.hasAnyPermissions(eq(7L),any(String[].class))).thenReturn(false);
+        assertThrows(RuntimeException.class,()->service.start(command(0)));verifyNoInteractions(managementQualifications,bpm);
+        when(permissions.hasAnyPermissions(eq(7L),any(String[].class))).thenReturn(true);
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        assertThrows(RuntimeException.class,()->service.start(command(0)));verifyNoInteractions(managementQualifications,bpm);
+    }
+    @Test void revokedAuthorityStopsBeforeSourceFreezeAndStateMutation() {
+        when(managementQualifications.lockAndRevalidate(any())).thenThrow(new SecurityException("revoked"));
+        assertThrows(SecurityException.class,()->service.start(command(0)));assertEquals(0,solution.getStatus());
+        verify(managementQualifications,times(1)).inspect(any());
+        verifyNoInteractions(bpm,prerequisites,policies,submissionValidator);verify(solutions,never()).updateById(any(SolutionDO.class));
+    }
+    @Test void unexpectedOwnerFailurePropagatesWithoutStartingApproval() {
+        when(managementQualifications.inspect(any())).thenThrow(new cn.iocoder.yudao.framework.common.exception.ServiceException(1014024002,"version conflict"));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.start(command(0)));
+        verify(managementQualifications,never()).lockAndRevalidate(any());verifyNoInteractions(bpm);
+    }
+    @Test void unfinishedPredecessorBlocksBeforeFreezingSourcesOrStartingApproval() {
+        doThrow(new IllegalArgumentException("前置任务尚未完成：现场勘察")).when(prerequisites).requireSatisfied(any());
+        assertThrows(IllegalArgumentException.class, () -> service.start(command(0)));
+        assertEquals(0, solution.getStatus());
+        assertEquals(0L, solution.getVersion());
+        verifyNoInteractions(submissionValidator, policies, bpm, deliveryMaterials, events);
+        verify(solutions, never()).updateById(any(SolutionDO.class));
+        verify(reviews, never()).insert(any(SolutionReviewDO.class));
+    }
+    @Test void approvedPredecessorsAreCheckedBeforeSourceFreezeAndReplayDoesNotRecheck() {
+        service.start(command(0));
+        var order = inOrder(prerequisites, submissionValidator, bpm);
+        order.verify(prerequisites).requireSatisfied(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi.Query(9L, "SOL", "IMPLEMENTATION_SOLUTION"));
+        order.verify(submissionValidator).validateAndFreezeSources(solution);
+        order.verify(bpm).start(any());
+        doThrow(new IllegalArgumentException("前置发生变化")).when(prerequisites).requireSatisfied(any());
+        assertSame(stored, service.start(command(0)));
+        verify(prerequisites, times(1)).requireSatisfied(any());
+    }
+    @Test void incompleteSubmissionDoesNotChangeStatusOrStartApproval() {
+        doThrow(new IllegalArgumentException("实施方案缺少必填项")).when(submissionValidator).validateAndFreezeSources(solution);
+        assertThrows(IllegalArgumentException.class, () -> service.start(command(0)));
+        assertEquals(0, solution.getStatus());
+        verifyNoInteractions(bpm, policies);
+        verify(solutions, never()).updateById(any(SolutionDO.class));
+        verify(reviews, never()).insert(any(SolutionReviewDO.class));
+    }
+    @Test void projectManagerReadsRunningApprovalWithoutBpmQueryPermission() {
+        stored = new SolutionReviewDO();
+        stored.setStatus("RUNNING");
+        when(permissions.hasAnyPermissions(eq(7L), any(String[].class))).thenAnswer(call ->
+                java.util.Arrays.equals((String[]) call.getRawArguments()[1], new String[]{"pms:sol-solution:query"}));
+        assertSame(stored, service.read(selection));
+        verifyNoInteractions(bpm);
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        assertThrows(RuntimeException.class, () -> service.read(selection));
+    }
+    private void result(String status) {
+        when(bpm.result(1L,"instance-1")).thenReturn(new SolutionReviewBpmApi.Result("instance-1","definition-1",
+                "SOL_REVIEW:1:42",status,List.of(new SolutionReviewBpmApi.Review("manager",8L,"APPROVE","初审",LocalDateTime.now().minusMinutes(1)),
+                new SolutionReviewBpmApi.Review("engineering",10L,status,"复审",LocalDateTime.now()))));
+    }
+    @Test void freezesVersionAndIdenticalSubmissionReplaysWithoutSecondProcess() {
+        var request = command(0); service.start(request);
+        assertEquals(2, solution.getStatus()); assertEquals(2, stored.getSourceVersion()); assertEquals(0, stored.getRequestVersion());
+        // BPM 解析出的审批路由（节点→审批人）落库为审计，不再来自提交人手工指定
+        assertTrue(stored.getCandidatesJson().contains("serviceManagerReview"));
+        assertSame(stored, service.start(request)); verify(bpm,times(1)).start(any());
+        assertThrows(IllegalArgumentException.class, () -> service.start(command(9)));
+    }
+    @Test void firstApprovalDoesNotCompleteMajorSolution() {
+        service.start(command(0)); result("RUNNING"); service.refresh(selection);
+        assertEquals(2, solution.getStatus()); assertNull(solution.getBaselineVersion());
+        verifyNoInteractions(deliveryMaterials);
+    }
+    @Test void finalApprovalArchivesOnceAndProtectsApprovedVersion() {
+        service.start(command(0)); result("APPROVE"); service.refresh(selection);
+        assertEquals(3, solution.getStatus()); assertEquals(solution.getVersion().longValue(), solution.getBaselineVersion().longValue());
+        assertEquals(10L, solution.getApprovedBy()); assertEquals("APPROVE", stored.getStatus());
+        assertTrue(service.approved(solution, true));
+        // 复审通过统一登记交付件（P06R：业务结果型，锚定方案基线）；终态复审不重复登记（幂等在统一能力层）
+        service.refresh(selection);
+        verify(deliveryMaterials, times(1)).registerBusinessResultMaterial(eq("SOL"), eq("solution"), eq(42L),
+                eq("IMPLEMENTATION_PLAN"), eq("solution"), eq("42"), any(), anyString(), eq(9L));
+        solution.setVersion(solution.getVersion()+1); assertFalse(service.approved(solution,true));
+    }
+    @Test void rejectionKeepsOriginalAndOnlyCopiesToNewDraft() {
+        service.start(command(0)); result("REJECT"); service.refresh(selection);
+        assertEquals(4,solution.getStatus()); assertNull(solution.getBaselineVersion()); assertFalse(service.approved(solution,true));
+        when(original.createSolution(any())).thenReturn(43L);
+        assertEquals(43L,service.revise(selection));
+        var captured = ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionSaveReqVO.class);
+        verify(original).createSolution(captured.capture()); assertNull(captured.getValue().getId());
+        assertEquals("保留源正文",captured.getValue().getBackground()); assertEquals(4,solution.getStatus());
+    }
+    @Test void approvedCopyThroughActualCreationCanReadMaterialsWithoutChangingOriginal() {
+        service.start(command(0)); result("APPROVE"); service.refresh(selection);
+        var approved = solution;
+        var approvedVersion = approved.getVersion();
+        var approvedTime = approved.getApprovedTime();
+        var approvedReview = stored;
+        var creator = new cn.iocoder.yudao.module.pms.engineering.service.solution.SolutionServiceImpl();
+        var codes = mock(cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(creator,"solutionMapper",solutions);
+        org.springframework.test.util.ReflectionTestUtils.setField(creator,"recordCodeGenerator",codes);
+        org.springframework.test.util.ReflectionTestUtils.setField(creator,"completionEvents",events);
+        when(codes.next(eq(9L),anyString(),eq(solutions),isNull())).thenReturn("SOL-43");
+        when(solutions.insert(any(SolutionDO.class))).thenAnswer(call -> {
+            solution = call.getArgument(0); solution.setId(43L); solution.setTenantId(1L); return 1;
+        });
+        when(original.createSolution(any())).thenAnswer(call -> creator.createSolution(call.getArgument(0)));
+        assertEquals(43L,service.revise(selection));
+        assertEquals(0,solution.getStatus()); assertNull(solution.getApprovedBy());
+        assertTrue(solution.getRemark().startsWith("源方案 "));
+        stored = null;
+        when(reviews.source(any())).thenReturn(solution);
+        service.start(new SolutionTieredReviewService.Start(9L,43L,0,"definition-1"));
+        when(solutions.selectById(43L)).thenReturn(solution);
+        var sourceMapper = mock(cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionSourceMapper.class);
+        var requirementMapper = mock(cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper.class);
+        var evidence = mock(cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.class);
+        var contents = mock(org.springframework.beans.factory.ObjectProvider.class);
+        var reader = new SolutionReviewReadMaterials(service,sourceMapper,requirementMapper,deliveryMaterials,evidence,contents);
+        assertTrue(reader.read("SOL_REVIEW:1:43").attachments().isEmpty());
+        assertEquals(3,approved.getStatus()); assertEquals(approvedVersion,approved.getVersion());
+        assertEquals(approvedTime,approved.getApprovedTime()); assertEquals("APPROVE",approvedReview.getStatus());
+        verifyNoInteractions(sourceMapper,requirementMapper,evidence,contents);
+    }
+    @Test void currentSourceChangeRejectsTerminalResultWithoutOverwrite() {
+        service.start(command(0)); result("APPROVE"); solution.setVersion(99L);
+        assertThrows(IllegalStateException.class, () -> service.refresh(selection)); assertNull(solution.getBaselineVersion());
+        verifyNoInteractions(deliveryMaterials);
+    }
+    @Test void staleVersionMissingManagerAndEmptyScopeFailBeforeProcessStart() {
+        assertThrows(IllegalArgumentException.class, () -> service.start(command(3)));
+        when(managementQualifications.inspect(any())).thenReturn(null);
+        assertThrows(RuntimeException.class, () -> service.start(command(0)));
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        assertThrows(RuntimeException.class, () -> service.read(selection)); verifyNoInteractions(bpm);
+    }
+    @Test void mismatchedProcessIdentityNeverApprovesSource() {
+        service.start(command(0));
+        when(bpm.result(1L,"instance-1")).thenReturn(new SolutionReviewBpmApi.Result("instance-1","foreign","SOL_REVIEW:1:42","APPROVE",List.of()));
+        assertThrows(IllegalStateException.class, () -> service.refresh(selection)); assertNull(solution.getBaselineVersion());
+    }
+    @Test void reviewFormRequiresSameTenantExistingReviewAndCurrentProjectScope() {
+        when(solutions.selectById(42L)).thenReturn(solution);
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:2:42"));
+        verify(solutions, never()).selectById(anyLong());
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+        service.start(command(0));
+        assertSame(solution, service.sourceForReview("SOL_REVIEW:1:42"));
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+    }
+    @Test void ordinarySolutionsTakeTheSameSubmitEntryAndCarryFrozenLevel() {
+        solution.setReviewLevel(0);
+        service.start(command(0));
+        assertEquals(2, solution.getStatus());
+        var started = ArgumentCaptor.forClass(SolutionReviewBpmApi.Start.class);
+        verify(bpm).start(started.capture());
+        assertEquals(0, started.getValue().reviewLevel());
+    }
+    @Test void activeEngineeringTaskReadsOnlyItsFrozenSourceWithoutGrantingProjectView() {
+        when(solutions.selectById(42L)).thenReturn(solution);
+        service.start(command(0));
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        when(permissions.hasAnyPermissions(eq(7L), any(String[].class))).thenReturn(false);
+        when(bpm.readAccess(new SolutionReviewBpmApi.ReadQuery(1L,7L,"SOL_REVIEW:1:42")))
+                .thenReturn(new SolutionReviewBpmApi.ReadAccess("instance-1","task-1","engineeringManagementReview","SOL_REVIEW:1:42"));
+        assertSame(solution, service.sourceForReview("SOL_REVIEW:1:42"));
+        assertThrows(RuntimeException.class, () -> service.read(selection));
+        solution.setVersion(99L);
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+    }
+    @Test void finishedRevokedOrOtherInstanceTaskCannotReadSourceOutsideProjectScope() {
+        when(solutions.selectById(42L)).thenReturn(solution);
+        service.start(command(0));
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+        when(bpm.readAccess(any())).thenReturn(new SolutionReviewBpmApi.ReadAccess("foreign","task-1","engineeringManagementReview","SOL_REVIEW:1:42"));
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+        when(bpm.readAccess(any())).thenReturn(new SolutionReviewBpmApi.ReadAccess("instance-1","task-1","engineeringManagementReview","SOL_REVIEW:1:42"));
+        stored.setStatus("APPROVE");
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+    }
+    @Test void missingPolicyDecisionBlocksSubmitBeforeProcessStart() {
+        doThrow(new IllegalArgumentException("项目审核判定依据缺失或规则冲突，请由工程管理部补齐来源及规则")).when(policies).freeze(solution);
+        assertThrows(IllegalArgumentException.class, () -> service.start(command(0)));
+        verify(bpm, never()).start(any());
+        verify(reviews, never()).insert(any(SolutionReviewDO.class));
+    }
+    @Test void completedReviewerReadsOnlyTheFrozenApprovedVersionWithoutProjectOrWriteAccess() {
+        when(solutions.selectById(42L)).thenReturn(solution);
+        service.start(command(0));
+        when(bpm.result(1L,"instance-1")).thenReturn(new SolutionReviewBpmApi.Result("instance-1","definition-1","SOL_REVIEW:1:42",
+                "APPROVE",List.of(new SolutionReviewBpmApi.Review("engineeringManagementReview",7L,"APPROVE","同意",LocalDateTime.now()))));
+        service.refresh(selection);
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        when(permissions.hasAnyPermissions(eq(7L), any(String[].class))).thenReturn(false);
+        when(bpm.readAccess(any())).thenReturn(new SolutionReviewBpmApi.ReadAccess("instance-1","done-task","engineeringManagementReview","SOL_REVIEW:1:42",true));
+        assertSame(solution, service.sourceForReview("SOL_REVIEW:1:42"));
+        assertThrows(RuntimeException.class, () -> service.read(selection));
+        assertThrows(RuntimeException.class, () -> service.revise(selection));
+        solution.setVersion(solution.getVersion()+1);
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:2:42"));
+    }
+    @Test void completedReviewerCannotReadAnEditedRejectedSourceOrMissingVersionEvidence() {
+        when(solutions.selectById(42L)).thenReturn(solution);
+        service.start(command(0));
+        when(bpm.result(1L,"instance-1")).thenReturn(new SolutionReviewBpmApi.Result("instance-1","definition-1","SOL_REVIEW:1:42",
+                "REJECT",List.of(new SolutionReviewBpmApi.Review("engineeringManagementReview",7L,"REJECT","补充材料",LocalDateTime.now()))));
+        service.refresh(selection);
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        when(bpm.readAccess(any())).thenReturn(new SolutionReviewBpmApi.ReadAccess("instance-1","done-task","engineeringManagementReview","SOL_REVIEW:1:42",true));
+        assertSame(solution, service.sourceForReview("SOL_REVIEW:1:42"));
+        stored.setCompletedAt(null);
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+        stored.setCompletedAt(LocalDateTime.now());
+        solution.setVersion(solution.getVersion()+1);
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+    }
+}

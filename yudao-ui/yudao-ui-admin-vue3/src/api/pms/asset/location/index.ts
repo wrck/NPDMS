@@ -74,11 +74,15 @@ export interface AreaDepartmentMappingVO {
 }
 
 export interface LocationMaintainRequest {
-  projectId?: number
+  projectId?: number | string
   address?: AddressVO
   site?: SiteVO
   siteLocation?: SiteLocationInput
+  /** 依次追加在 siteLocation（未选位置时为站点根）之下的下级位置，编码由后端自动生成 */
+  extraSiteLocations?: SiteLocationInput[]
   fallbackLocation?: string
+  /** 仅前端展示：address.id 引用已有地址时携带完整地址文本；后端不识别该字段 */
+  addressText?: string
   sourceBusinessType?: string
   sourceBusinessId?: string
   sourceVersion?: string
@@ -86,14 +90,29 @@ export interface LocationMaintainRequest {
 
 const baseUrl = '/pms/asset-locations'
 
+export interface ProjectCustomerLocations {
+  customerId?: number
+  customerName?: string
+  sites: SiteVO[]
+  addresses: AddressVO[]
+  customerAddresses: AddressVO[]
+  siteLocations: SiteLocationVO[]
+}
+
+export const getProjectCustomerLocations = (projectId: number | string, siteId?: number) =>
+  request.get<ProjectCustomerLocations>({
+    url: `/api/v1/pms/projects/${projectId}/customer-overview/locations`, params: { siteId }
+  })
+
 export const maintainLocation = (data: LocationMaintainRequest) =>
   request.post({ url: `${baseUrl}/maintain`, data })
 export const getAddressPage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/addresses/page`, params })
 export const getAddress = (id: number, version?: number) =>
   request.get({ url: `${baseUrl}/addresses/get`, params: { id, version } })
-export const getSitePage = (params: PageParam) =>
-  request.get({ url: `${baseUrl}/sites/page`, params })
+export const getSitePage = (
+  params: PageParam & { code?: string; name?: string; customerId?: number; status?: number }
+) => request.get({ url: `${baseUrl}/sites/page`, params })
 export const getSite = (id: number, version?: number) =>
   request.get({ url: `${baseUrl}/sites/get`, params: { id, version } })
 export const getSiteLocationTree = (siteId: number): Promise<SiteLocationVO[]> =>

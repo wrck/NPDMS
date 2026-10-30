@@ -9,12 +9,19 @@ public interface EntityFormApi {
     Binding read(EntityDataRef target, EntityActor actor);
     Layout layout(EntityDataRef target, EntityActor actor);
     Binding bind(Bind command);
-    void copy(EntityDataRef source, EntityDataRef target, Integer expectedTargetVersion, EntityActor actor);
+    void copy(EntityDataRef source, EntityDataRef target, Long expectedTargetVersion, EntityActor actor);
 
     record Binding(Long formRevisionId, Long extensionDefinitionRevisionId, Map<String, String> fieldBindings, int version) {}
-    record Bind(EntityDataRef target, EntityActor actor, Integer expectedEntityVersion,
+    record Bind(EntityDataRef target, EntityActor actor, Long expectedEntityVersion,
                 int expectedBindingVersion, Long formRevisionId, Long extensionDefinitionRevisionId,
-                Map<String, String> fieldBindings) {}
+                Map<String, String> fieldBindings, boolean bindRemainingFields) {
+        public Bind(EntityDataRef target, EntityActor actor, Long expectedEntityVersion,
+                    int expectedBindingVersion, Long formRevisionId, Long extensionDefinitionRevisionId,
+                    Map<String, String> fieldBindings) {
+            this(target, actor, expectedEntityVersion, expectedBindingVersion, formRevisionId,
+                    extensionDefinitionRevisionId, fieldBindings, false);
+        }
+    }
     record Layout(Binding binding, Long templateId, int revisionNo, int formVersion,
                   String engineCode, String designerVersion, String rendererVersion,
                   String formConfJson, String formRulesJson, List<DynamicFormFieldDescriptor> fields) {}

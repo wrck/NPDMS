@@ -6,7 +6,7 @@
           <el-col :xl="12" :lg="12" :md="12" :sm="24" :xs="24">
             <div class="flex items-center">
               <el-avatar :src="avatar" :size="70" class="mr-16px">
-                <img src="@/assets/imgs/avatar.gif" alt="" />
+                <img src="@/assets/imgs/avatar.jpg" alt="" />
               </el-avatar>
               <div>
                 <div class="text-20px">
@@ -164,7 +164,7 @@
           <div v-for="(item, index) in notice" :key="`dynamics-${index}`">
             <div class="flex items-center">
               <el-avatar :src="avatar" :size="35" class="mr-16px">
-                <img src="@/assets/imgs/avatar.gif" alt="" />
+                <img src="@/assets/imgs/avatar.jpg" alt="" />
               </el-avatar>
               <div>
                 <div class="text-14px">
@@ -237,16 +237,16 @@ const getProject = async () => {
       status: '进行中',
       time: new Date('2026-07-10'),
       color: '#409EFF',
-      path: '/pms/project-management/project'
+      path: '/pms/project-management/projects'
     },
     {
       name: '任务 WBS',
       icon: 'ep:tickets',
-      personal: '工作分解结构与非固定层级',
+      personal: '选择项目后查看任务与工作分解结构',
       status: '规划中',
       time: new Date('2026-07-15'),
       color: '#ff4d4f',
-      path: '/pms/project-management/schedule/project-task'
+      path: '/pms/project-management/projects'
     },
     {
       name: '单机风险',
@@ -255,7 +255,7 @@ const getProject = async () => {
       status: '进行中',
       time: new Date('2026-07-20'),
       color: '#1890ff',
-      path: '/pms/engineering/safeguard/eng-risk'
+      path: '/pms/engineering/safeguard/imp-risk'
     },
     {
       name: '技术公告',
@@ -264,7 +264,7 @@ const getProject = async () => {
       status: '进行中',
       time: new Date('2026-07-25'),
       color: '#e18525',
-      path: '/pms/engineering/safeguard/eng-announcement'
+      path: '/pms/engineering/safeguard/kno-announcement'
     },
     {
       name: '授权管理',
@@ -273,7 +273,7 @@ const getProject = async () => {
       status: '进行中',
       time: new Date('2026-07-30'),
       color: '#2979ff',
-      path: '/pms/engineering/safeguard/eng-authorization'
+      path: '/pms/engineering/safeguard/plt-authorization'
     }
   ]
   projects = Object.assign(projects, data)
@@ -331,25 +331,25 @@ const getShortcut = async () => {
     {
       name: '单机风险',
       icon: 'ep:warning',
-      url: '/pms/engineering/safeguard/eng-risk',
+      url: '/pms/engineering/safeguard/imp-risk',
       color: '#7c3aed'
     },
     {
       name: '技术公告',
       icon: 'ep:bell',
-      url: '/pms/engineering/safeguard/eng-announcement',
+      url: '/pms/engineering/safeguard/kno-announcement',
       color: '#3fb27f'
     },
     {
       name: '授权管理',
       icon: 'ep:document-checked',
-      url: '/pms/engineering/safeguard/eng-authorization',
+      url: '/pms/engineering/safeguard/plt-authorization',
       color: '#4daf1bc9'
     },
     {
       name: '公告预检查',
       icon: 'ep:document',
-      url: '/pms/engineering/safeguard/eng-announcement-check',
+      url: '/pms/engineering/safeguard/kno-announcement-check',
       color: '#1a73e8'
     }
   ]

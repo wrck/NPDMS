@@ -12,7 +12,7 @@ import java.util.Set;
 /** 一个qualified范围明细，不聚合不同产品、型号或地点。 */
 public record AssignedDeliveryScopeLine(Long scopeId, Long scopeDetailId, Long orderLineId,
                                         BigDecimal quantity, String unitCode, String productCode,
-                                        String modelCode, List<String> serialNumbers) {
+                                        String productModel, List<String> serialNumbers) {
 
     public AssignedDeliveryScopeLine {
         requirePositive(scopeId, "scopeId");
@@ -23,9 +23,9 @@ public record AssignedDeliveryScopeLine(Long scopeId, Long scopeDetailId, Long o
         }
         unitCode = requireText(unitCode, 32, "unitCode");
         productCode = optionalText(productCode, 64, "productCode");
-        modelCode = optionalText(modelCode, 64, "modelCode");
-        if (productCode == null && modelCode == null) {
-            throw corrupted("productCode or modelCode is required");
+        productModel = optionalText(productModel, 64, "productModel");
+        if (productCode == null && productModel == null) {
+            throw corrupted("productCode or productModel is required");
         }
         if (serialNumbers == null || serialNumbers.stream().anyMatch(value -> value == null)) {
             throw corrupted("serialNumbers must be a complete list");

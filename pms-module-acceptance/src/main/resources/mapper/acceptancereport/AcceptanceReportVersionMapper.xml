@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.AcceptanceReportVersionMapper">
+
+    <select id="selectFileScope"
+            resultType="cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptancereport.projection.AcceptanceReportFileScope">
+        SELECT rv.id AS report_version_id,
+               rv.acceptance_id,
+               a.project_id,
+               a.project_task_id,
+               rv.report_status,
+               a.origin_kind,
+               rv.acceptance_rule_snapshot AS rule_snapshot
+        FROM acc_acceptance_report_version rv
+        JOIN acc_acceptance a
+          ON a.tenant_id = rv.tenant_id
+         AND a.id = rv.acceptance_id
+         AND a.deleted = b'0'
+        WHERE rv.tenant_id = #{query.tenantId}
+          AND rv.id = #{query.reportVersionId}
+          AND rv.deleted = b'0'
+    </select>
+
+    <select id="selectNextVersionNo" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(report_version_no), 0) + 1
+        FROM acc_acceptance_report_version
+        WHERE tenant_id = #{query.tenantId}
+          AND acceptance_id = #{query.acceptanceId}
+          AND deleted = b'0'
+    </select>
+
+    <select id="selectCurrentForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.AcceptanceReportVersionDO">
+        SELECT *
+        FROM acc_acceptance_report_version
+        WHERE tenant_id = #{query.tenantId}
+          AND acceptance_id = #{query.acceptanceId}
+          AND report_status = 'EFFECTIVE'
+          AND effective_to IS NULL
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+    <select id="selectByIdForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.acceptancereport.AcceptanceReportVersionDO">
+        SELECT *
+        FROM acc_acceptance_report_version
+        WHERE tenant_id = #{query.tenantId}
+          AND acceptance_id = #{query.acceptanceId}
+          AND id = #{query.reportVersionId}
+          AND deleted = b'0'
+        FOR UPDATE
+    </select>
+
+
+    <select id="selectResultInventory" resultType="java.lang.String">
+        SELECT r.id FROM acc_acceptance_report_version r JOIN acc_acceptance a ON a.id=r.acceptance_id AND a.tenant_id=r.tenant_id AND a.deleted=0
+        WHERE r.tenant_id=#{query.tenantId} AND a.project_id=#{query.projectId} AND r.deleted=0
+          AND r.report_status IN ('EFFECTIVE','SUPERSEDED','REVOKED')
+        <if test="!query.historical">AND r.report_status='EFFECTIVE'</if>
+        <if test="query.afterId != null">AND r.id &gt; #{query.afterId}</if>
+        <if test="query.objectIds != null">
+            <choose>
+                <when test="query.objectIds.size() > 0">
+                    AND r.acceptance_id IN <foreach collection="query.objectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+                </when>
+                <otherwise>AND 1=0</otherwise>
+            </choose>
+        </if>
+        ORDER BY r.id ASC LIMIT #{query.limit}
+    </select>
+</mapper>

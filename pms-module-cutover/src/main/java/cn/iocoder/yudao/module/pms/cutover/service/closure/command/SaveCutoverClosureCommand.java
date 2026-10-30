@@ -1,13 +1,14 @@
 package cn.iocoder.yudao.module.pms.cutover.service.closure.command;
 
+import cn.iocoder.yudao.module.pms.cutover.service.task.command.CutoverTaskMutation;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules.AttachmentPurpose;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFilePort.FileFactVersion;
 
 import java.util.List;
 
 public record SaveCutoverClosureCommand(Long tenantId, Long actorId, Long taskId,
-                                        Integer expectedTaskVersion, Integer expectedClosureVersion,
-                                        ClosureContent content, String idempotencyKey, String correlationId) {
+                                        Long expectedTaskVersion, Long expectedClosureVersion,
+                                        ClosureContent content, String idempotencyKey, String correlationId) implements CutoverTaskMutation {
 
     public record ClosureContent(Boolean preCheckNormal, String preCheckDetail,
                                  Boolean executionNormal, String executionDetail,

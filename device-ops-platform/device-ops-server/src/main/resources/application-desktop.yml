@@ -1,0 +1,25 @@
+server:
+  address: 127.0.0.1
+  port: 8280
+
+device-ops:
+  callback:
+    enabled: false
+  security:
+    mode: oauth2
+  runtime:
+    auth-mode: oauth2
+    telnet-enabled: true
+  telnet:
+    enabled: true
+  desktop:
+    server-url: ${NPDMS_SERVER_URL}
+    web-origin: ${NPDMS_WEB_ORIGIN}
+
+# The desktop installer supplies a DPAPI-protected local key through the host process.
+# Authentication is never replaced by the unrestricted local debugging profile.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

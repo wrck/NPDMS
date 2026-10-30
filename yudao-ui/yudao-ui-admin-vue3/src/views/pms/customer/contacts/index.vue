@@ -19,8 +19,8 @@
           <el-button v-if="context?.project.canViewHistory && projectId" @click="historyRef?.open(projectId)">变更历史</el-button>
         </div>
       </div>
-      <el-form ref="queryFormRef" :model="query" inline class="contact-filter -mb-15px">
-        <el-form-item v-if="showCustomerFilter" label="客户" prop="customerId">
+      <el-form :model="query" inline class="contact-filter -mb-15px">
+        <el-form-item v-if="showCustomerFilter || (projectId && context && !customerId)" label="客户" prop="customerId">
           <PmsEntitySelect
             v-if="!projectId || !customerId"
             v-model="query.customerId"
@@ -67,10 +67,7 @@
         </el-table-column>
         <el-table-column prop="name" label="姓名" min-width="100" />
         <el-table-column prop="department" label="部门" min-width="120" />
-        <el-table-column prop="title" label="职务" min-width="120"><template #default="{ row }">{{ getDictLabel('pms_contact_title', row.title) || row.title }}</template></el-table-column>
-        <el-table-column v-if="projectId" prop="roleCode" label="客户联系人角色" min-width="140">
-          <template #default="{ row }">{{ getDictLabel('pms_customer_contact_role', row.roleCode) || row.roleCode || '-' }}</template>
-        </el-table-column>
+        <el-table-column prop="title" label="职务" min-width="120"><template #default="{ row }">{{ row.title }}</template></el-table-column>
         <el-table-column prop="mobile" label="手机" min-width="130" />
         <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
         <el-table-column prop="primaryFlag" label="主联系人" width="90">
@@ -106,7 +103,8 @@
     <Dialog v-model="visible" :title="form.id ? '编辑联系人' : '新增联系人'" width="min(620px, 95vw)" :before-close="beforeClose">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="saving || !canEdit">
         <el-form-item label="客户" prop="customerId">
-          <PmsEntitySelect v-model="form.customerId" :api="CustomerApi.getCustomerPage" :label-field="['code', 'name']"
+          <PmsEntitySelect
+            v-model="form.customerId" :api="CustomerApi.getCustomerPage" :label-field="['code', 'name']"
             value-field="id" query-field="name" placeholder="请选择客户" :disabled="!!projectId || !!form.id" />
         </el-form-item>
         <el-form-item v-if="projectId && !form.id" label="来源">
@@ -115,7 +113,7 @@
         <el-form-item v-if="projectId && !form.id && createMode === 'reference'" label="客户联系人">
           <PmsEntitySelect v-model="form.sourceContactId" :api="sourcePage" label-field="name" value-field="id" query-field="name" placeholder="请选择联系人" @change="selectSource" />
         </el-form-item>
-        <ContactFields v-model="form" :project="!!projectId" />
+        <ContactFields v-model="form" />
       </el-form>
       <template #footer>
         <el-button @click="beforeClose(() => visible = false)">取消</el-button>
@@ -143,7 +141,7 @@
         <el-table-column prop="name" label="姓名" min-width="110" />
         <el-table-column prop="department" label="部门" min-width="120" />
         <el-table-column prop="title" label="职务" min-width="120">
-          <template #default="{ row }">{{ getDictLabel('pms_contact_title', row.title) || row.title || '-' }}</template>
+          <template #default="{ row }">{{ row.title || '-' }}</template>
         </el-table-column>
         <el-table-column prop="mobile" label="手机" min-width="130" />
         <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
@@ -160,6 +158,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, reactive, ref, watch } from 'vue'
 import * as ContactApi from '@/api/pms/customer/contacts'
 import * as CustomerApi from '@/api/pms/customer'
@@ -168,10 +167,11 @@ import { checkPermi } from '@/utils/permission'
 import { useMessage } from '@/hooks/web/useMessage'
 import ContactFields from './ContactFields.vue'
 import ContactHistoryDialog from './ContactHistoryDialog.vue'
-import { getDictLabel, getIntDictOptions } from '@/utils/dict'
+import { getIntDictOptions } from '@/utils/dict'
 
 defineOptions({ name: 'PmsCustomerContactsWorkbench' })
-const props = withDefaults(defineProps<{ projectId?: number; showCustomerFilter?: boolean; showSectionHeader?: boolean }>(), {
+const props = withDefaults(defineProps<{ projectId?: number; showCustomerFilter?: boolean; showSectionHeader?: boolean
+  /** 内嵌于未进入阶段的任务工作区时强制只读：业务写操作禁用，查看照常 */ readonly?: boolean }>(), {
   showCustomerFilter: true,
   showSectionHeader: false
 })
@@ -193,10 +193,9 @@ const contactRowClassName = ({ row }: { row: ContactVO }) =>
 const customerCodes = ref<Record<number, string>>({})
 const customerId = computed(() => props.projectId ? context.value?.project.customerId : query.customerId)
 const customerEnabled = computed(() => context.value?.customerStatus === 'ENABLED')
-const canEdit = computed(() => props.projectId ? !!context.value?.project.canManage : checkPermi(['pms:customer:sensitive-read']))
+const canEdit = computed(() => !props.readonly && (props.projectId ? !!context.value?.project.canManage : checkPermi(['pms:customer:sensitive-read'])))
 const form = ref<ContactVO>({ name: '', status: 0, primaryFlag: false })
 const formRef = ref()
-const queryFormRef = ref()
 const historyRef = ref<InstanceType<typeof ContactHistoryDialog>>()
 const createMode = ref<'new' | 'reference'>('new')
 let operationKey = '', baseline = '', initialPrimary = false, sequence = 0
@@ -227,10 +226,16 @@ const load = async () => {
       : await ContactApi.getMasterPage({ ...query, customerId: customerId.value })
     if (current !== sequence) return
     rows.value = page.list; total.value = page.total
+    if (!props.showCustomerFilter) { customerCodes.value = {}; return context.value }
     // Resolve the business code from CUS, once per customer on this page. The legacy
     // CustomerTag displays names and must not be used under a customer-code heading.
     const codes = await Promise.all([...new Set(page.list.map(row => row.customerId).filter((id): id is number => !!id))].map(async id => {
-      try { return [id, (await CustomerApi.getCustomer(id)).code] as const }
+      try {
+        const customer = props.projectId && String(id) === String(context.value?.project.customerId)
+          ? await CustomerApi.getProjectCustomerOverview(props.projectId)
+          : await CustomerApi.getCustomer(id)
+        return [id, customer?.code || ''] as const
+      }
       catch { return [id, ''] as const }
     }))
     if (current !== sequence) return
@@ -284,7 +289,7 @@ const addSelectedSources = async () => {
         expectedProjectVersion: context.value.project.projectVersion,
         primaryFlag: false,
         status: 0
-      }, crypto.randomUUID())
+      }, generateUUID())
       created++
     }
     sourceVisible.value = false
@@ -299,8 +304,8 @@ const addSelectedSources = async () => {
 const open = (row?: ContactVO) => {
   if (!canEdit.value || (props.projectId && !customerId.value)) return
   createMode.value = 'new'; sourceRows.clear()
-  form.value = { name: '', department: '', title: '', mobile: '', phone: '', email: '', remark: '', primaryFlag: false, status: 0, customerId: customerId.value, ...row }
-  operationKey = crypto.randomUUID(); initialPrimary = !!row?.primaryFlag
+  form.value = { name: '', department: '', title: '', mobile: '', phone: '', email: '', remark: '', primaryFlag: !!props.projectId && total.value === 0, status: 0, customerId: customerId.value, ...row }
+  operationKey = generateUUID(); initialPrimary = !!row?.primaryFlag
   baseline = JSON.stringify(form.value); visible.value = true
 }
 const beforeClose = async (done: () => void) => {

@@ -13,6 +13,46 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SiteSurveyEntityWriteEntryTest {
+    @org.junit.jupiter.api.Test
+    void deleteRejectsNonDraftAndDraftWithOutsourceBeforeAnyMutation() {
+        var mapper = mock(SiteSurveyEntityMapper.class);
+        var service = new SiteSurveyEntityDomainCommands();
+        ReflectionTestUtils.setField(service, "siteSurveyEntityMapper", mapper);
+        ReflectionTestUtils.setField(service, "writeAccess", mock(SiteSurveyEntityWriteAccess.class));
+        var row = new SiteSurveyEntityDO(); row.setId(11L); row.setProjectId(9L); row.setVersion(1L);
+        when(mapper.selectById(11L)).thenReturn(row);
+        for (int state : new int[]{1, 2, 3}) {
+            row.setStatus(state);
+            assertThrows(RuntimeException.class, () -> service.deleteSiteSurveyEntity(11L, null));
+        }
+        row.setStatus(0); row.setOutsourceRequestId(50L);
+        assertThrows(RuntimeException.class, () -> service.deleteSiteSurveyEntity(11L, null));
+        verify(mapper, never()).deleteDraft(any());
+    }
+    @org.junit.jupiter.api.Test
+    void successfulDeleteClosesReferencesBeforePublishingRefreshAndFailedDeleteNeverDoes() {
+        var mapper=mock(SiteSurveyEntityMapper.class);
+        var access=mock(SiteSurveyEntityWriteAccess.class);
+        var references=mock(cn.iocoder.yudao.module.pms.project.api.taskbusiness.ProjectBusinessObjectDeletionApi.class);
+        var events=mock(EngineeringRuleReevaluationEvents.class);
+        var service=new SiteSurveyEntityDomainCommands();
+        ReflectionTestUtils.setField(service,"siteSurveyEntityMapper",mapper);
+        ReflectionTestUtils.setField(service,"writeAccess",access);
+        ReflectionTestUtils.setField(service,"deletedObjectReferences",references);
+        ReflectionTestUtils.setField(service,"ruleEvents",events);
+        var row=new SiteSurveyEntityDO(); row.setId(11L); row.setProjectId(9L); row.setStatus(0); row.setVersion(1L);
+        when(mapper.selectById(11L)).thenReturn(row);
+        when(mapper.deleteDraft(any())).thenReturn(0);
+        assertThrows(RuntimeException.class,()->service.deleteSiteSurveyEntity(11L,null));
+        verifyNoInteractions(references,events);
+        when(mapper.deleteDraft(any())).thenReturn(1);
+        service.deleteSiteSurveyEntity(11L,null);
+        var order=inOrder(mapper,references,events);
+        order.verify(mapper,atLeastOnce()).selectById(11L);
+        order.verify(mapper,atLeastOnce()).deleteDraft(any());
+        order.verify(references).unlinkDeletedObject(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.ProjectBusinessObjectDeletionApi.DeletedObject(9L,"SOL","SITE_SURVEY","11"));
+        order.verify(events).changed(eq(9L),eq("SiteSurvey"),eq(11L),any(),anyString());
+    }
     @ParameterizedTest
     @ValueSource(strings={"create","update","delete","confirm","reject","archive","associate","release"})
     void everyOwnerWriteRejectsUnavailableExecutionBeforeAnyMutation(String action) {
@@ -21,16 +61,17 @@ class SiteSurveyEntityWriteEntryTest {
         var location = mock(EngineeringLocationFactService.class);
         var forms = mock(SiteSurveyEntityFormService.class);
         var events = mock(EngineeringRuleReevaluationEvents.class);
-        var service = new SiteSurveyEntityServiceImpl();
+        var service = new SiteSurveyEntityDomainCommands();
         ReflectionTestUtils.setField(service,"siteSurveyEntityMapper",mapper);
         ReflectionTestUtils.setField(service,"writeAccess",access);
         ReflectionTestUtils.setField(service,"locationFactService",location);
         ReflectionTestUtils.setField(service,"formService",forms);
         ReflectionTestUtils.setField(service,"ruleEvents",events);
-        var row = new SiteSurveyEntityDO(); row.setId(11L); row.setProjectId(9L); row.setStatus(0); row.setVersion(1);
+        var row = new SiteSurveyEntityDO(); row.setId(11L); row.setProjectId(9L); row.setStatus(0); row.setVersion(1L);
         when(mapper.selectById(11L)).thenReturn(row);
-        doThrow(new IllegalStateException("node denied")).when(access).lock(any(),any(),any());
-        var selection = new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(9L,1,21L,1,22L,1,23L,24L,1,2,true));
+        boolean legacyInternal = "associate".equals(action) || "release".equals(action);
+        doThrow(new IllegalStateException("node denied")).when(access).lock(any(),any(),any(),any(),any());
+        var selection = new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(9L,1L,21L,1,22L,1,23L,24L,1,2,true));
         var request = new SiteSurveyEntitySaveReqVO(); request.setId(11L); request.setProjectId(99L); request.setExecution(selection);
         Runnable write = switch(action) {
             case "create" -> () -> service.createSiteSurveyEntity(request);
@@ -44,10 +85,35 @@ class SiteSurveyEntityWriteEntryTest {
         };
         assertEquals("node denied", assertThrows(IllegalStateException.class,write::run).getMessage());
         String permission = "create".equals(action) ? "create" : "delete".equals(action) ? "delete" : "update";
-        verify(access).lock("create".equals(action) ? 99L : 9L,"pms:eng-site-survey:"+permission, selection);
+        verify(access).lock("create".equals(action) ? 99L : 9L,"pms:sol-site-survey:"+permission,selection,
+                "SOL.SITE_SURVEY." + (legacyInternal ? "UPDATE" : action.toUpperCase(java.util.Locale.ROOT)), "create".equals(action) ? null : 11L);
         if (!"create".equals(action)) verify(mapper).selectById(11L);
         verifyNoMoreInteractions(mapper);
         verifyNoInteractions(location,forms,events);
         assertEquals(0,row.getStatus()); assertEquals(1,row.getVersion());
+    }
+    @org.junit.jupiter.api.Test
+    void independentAssociationKeepsObjectIdentityAndRejectsDuplicateOrNonDraftWrites() {
+        var mapper = mock(SiteSurveyEntityMapper.class);
+        var access = mock(SiteSurveyEntityWriteAccess.class);
+        var events = mock(EngineeringRuleReevaluationEvents.class);
+        var service = new SiteSurveyEntityDomainCommands();
+        ReflectionTestUtils.setField(service, "siteSurveyEntityMapper", mapper);
+        ReflectionTestUtils.setField(service, "writeAccess", access);
+        ReflectionTestUtils.setField(service, "ruleEvents", events);
+        var row = new SiteSurveyEntityDO();
+        row.setId(11L); row.setProjectId(9L); row.setStatus(0); row.setVersion(1L); row.setOutsourceRequired(true);
+        when(mapper.selectById(11L)).thenReturn(row);
+        when(mapper.updateById(row)).thenReturn(1);
+        service.associateOutsourceRequest(11L, 9L, 30L, null);
+        verify(access).lock(9L, "pms:sol-site-survey:update", null, "SOL.SITE_SURVEY.UPDATE", 11L);
+        assertEquals(30L, row.getOutsourceRequestId());
+        assertEquals(0, row.getStatus());
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.associateOutsourceRequest(11L, 9L, 31L, null));
+        row.setOutsourceRequestId(null); row.setStatus(1);
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> service.associateOutsourceRequest(11L, 9L, 31L, null));
+        verify(mapper, times(1)).updateById(row);
     }
 }

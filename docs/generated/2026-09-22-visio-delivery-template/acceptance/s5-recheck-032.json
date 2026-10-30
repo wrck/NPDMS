@@ -1,0 +1,38 @@
+{
+  "capturedAt": "2026-09-24",
+  "projectId": 992203060032,
+  "projectCode": "PJT2026000025",
+  "templateRevisionNo": 9,
+  "signingMethod": "CHANNEL_SIGN",
+  "taskStatus": {
+    "PRE_SURVEY": "DONE",
+    "PLAN_CONSTRUCTION": "DONE",
+    "PLAN_SOLUTION": "DONE",
+    "DEPLOY_COORDINATE": "DONE",
+    "ACCEPT_COORDINATE": "DONE",
+    "PRE_REQUIREMENT": "DONE",
+    "DEPLOY_ARRIVAL": "PENDING_ASSIGN",
+    "ACCEPT_INITIAL": "PENDING_ASSIGN",
+    "PRE_DURATION": "DONE",
+    "DEPLOY_HARDWARE": "DONE",
+    "ACCEPT_FINAL": "PENDING_ASSIGN",
+    "PRE_CONTACT": "DONE",
+    "DEPLOY_CONFIG": "DONE",
+    "ACCEPT_TRAINING": "IN_PROGRESS",
+    "DEPLOY_JOINT": "DONE",
+    "ACCEPT_SATISFACTION": "PENDING_ASSIGN",
+    "DEPLOY_CUTOVER": "DONE"
+  },
+  "acceptanceActivities": [],
+  "stageAdvanceReadiness": {
+    "projectId": 992203060032,
+    "projectVersion": 9,
+    "treeVersion": 1,
+    "currentStage": "S5",
+    "nextStage": null,
+    "advanceAllowed": false,
+    "guidance": "TERMINAL",
+    "gates": []
+  },
+  "note": "S5 为模板终态节点且保持 ACTIVE（readiness=TERMINAL, nextStage=null, gates=[]）。DEPLOY_ARRIVAL/ACCEPT_INITIAL/ACCEPT_FINAL=PENDING_ASSIGN 为渠道签约分支的预期证据（仅直签任务）；ACCEPT_TRAINING=IN_PROGRESS 培训记录已确认（见 training-confirm-check.json）；ACCEPT_SATISFACTION=PENDING_ASSIGN 满意度业务结果已闭环（见 satisfaction-confirm-check.json），任务级收口链按验收口径不驱动。"
+}

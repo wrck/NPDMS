@@ -2,9 +2,6 @@
   <div class="min-w-0 w-full max-w-full">
     <ContentWrap>
       <el-form inline class="-mb-15px">
-        <el-form-item label="项目">
-          <el-input :model-value="project.projectName || String(project.id || '')" disabled class="!w-220px" />
-        </el-form-item>
         <el-form-item>
           <el-button :loading="loading" @click="refreshWorkspace"><Icon icon="ep:search" />查询</el-button>
           <el-button v-if="canCreateInitial" :loading="commandLoading" type="primary" @click="createInitial"><Icon icon="ep:plus" />创建需求分析草稿</el-button>

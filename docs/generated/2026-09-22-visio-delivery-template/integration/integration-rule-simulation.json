@@ -1,0 +1,77 @@
+[
+  {
+    "key": "FLOW_ASSIGNMENT_DONE",
+    "case": "all_true",
+    "outcome": "MATCHED"
+  },
+  {
+    "key": "FLOW_ASSIGNMENT_DONE",
+    "case": "business_false",
+    "outcome": "NOT_MATCHED"
+  },
+  {
+    "key": "FLOW_ASSIGNMENT_DONE",
+    "case": "missing",
+    "outcome": "UNKNOWN"
+  },
+  {
+    "key": "PLAN_CONSTRUCTION_DONE",
+    "case": "all_true",
+    "outcome": "MATCHED"
+  },
+  {
+    "key": "PLAN_CONSTRUCTION_DONE",
+    "case": "business_false",
+    "outcome": "NOT_MATCHED"
+  },
+  {
+    "key": "PLAN_CONSTRUCTION_DONE",
+    "case": "missing",
+    "outcome": "UNKNOWN"
+  },
+  {
+    "key": "PLAN_SOLUTION_APPROVAL_DONE",
+    "case": "all_true",
+    "outcome": "MATCHED"
+  },
+  {
+    "key": "PLAN_SOLUTION_APPROVAL_DONE",
+    "case": "business_false",
+    "outcome": "NOT_MATCHED"
+  },
+  {
+    "key": "PLAN_SOLUTION_APPROVAL_DONE",
+    "case": "missing",
+    "outcome": "UNKNOWN"
+  },
+  {
+    "key": "DEPLOY_CUTOVER_DONE",
+    "case": "all_true",
+    "outcome": "MATCHED"
+  },
+  {
+    "key": "DEPLOY_CUTOVER_DONE",
+    "case": "business_false",
+    "outcome": "NOT_MATCHED"
+  },
+  {
+    "key": "DEPLOY_CUTOVER_DONE",
+    "case": "missing",
+    "outcome": "UNKNOWN"
+  },
+  {
+    "key": "DYNAMIC_ENTITY_FIELD_TRIAL",
+    "case": "match",
+    "outcome": "MATCHED"
+  },
+  {
+    "key": "DYNAMIC_ENTITY_FIELD_TRIAL",
+    "case": "different",
+    "outcome": "NOT_MATCHED"
+  },
+  {
+    "key": "DYNAMIC_ENTITY_FIELD_TRIAL",
+    "case": "unknown",
+    "outcome": "UNKNOWN"
+  }
+]

@@ -1,6 +1,7 @@
 import request from '@/config/axios'
 import type { ValidationResult } from './definitions'
 import type { RuleResult, VersionRule } from './rules'
+import type { NodeExecutionConfiguration } from './execution'
 
 export type JsonValue = string | number | boolean | null | JsonObject | JsonValue[]
 export interface JsonObject { [key: string]: JsonValue | undefined }
@@ -49,6 +50,8 @@ export interface RuleSpec {
 }
 
 export interface DesignerStageNode {
+  schedulePercentage?: number
+  execution?: NodeExecutionConfiguration
   lifecycleStage?: string
   admissionRuleKey?: string
   completionRuleKey?: string
@@ -69,6 +72,8 @@ export interface DesignerStageNode {
 }
 
 export interface DesignerTaskNode {
+  required?: boolean
+  execution?: NodeExecutionConfiguration
   admissionRuleKey?: string
   completionRuleKey?: string
   exitRuleKey?: string
@@ -155,6 +160,7 @@ export interface TemplateDesignerDocument {
   match: TemplateMatch
   processDefinitionKey?: string
   closurePolicy?: TemplateClosurePolicy | null
+  implementationReadiness?: { sourceTaskCodes: Partial<Record<'EXE_01' | 'EXE_02' | 'EXE_03' | 'EXE_04', string>> }
   stages: DesignerStageNode[]
   tasks: DesignerTaskNode[]
   milestones: DesignerMilestoneNode[]
@@ -220,6 +226,7 @@ export interface StageDef extends ExecutionLinks {
   terminal?: boolean
 }
 export interface TaskDef extends ExecutionLinks {
+  required?: boolean
   taskCode: string
   name: string
   parentTaskCode?: string
@@ -326,6 +333,12 @@ export interface ProjectTemplateDetailVO extends ProjectTemplateVO {
 export interface ProjectTemplateRevisionDetailVO extends ProjectTemplateRevisionVO {
   content: TemplateDefinitionContent
 }
+export interface ProjectTemplateSummary {
+  match: TemplateMatch
+  stageCount: number
+  /** S0 is project initialization and is intentionally excluded from delivery-task totals. */
+  taskCount: number
+}
 export interface ProjectTemplateUpdateReqVO {
   name?: string
   matchPriority?: number
@@ -393,6 +406,33 @@ export const copyProjectTemplate = (id: number, version: number, data: TemplateC
   })
 export const getProjectTemplateRevision = (id: number, revisionNo: number) =>
   request.get<ProjectTemplateRevisionDetailVO>({ url: `${baseUrl}/${id}/revisions/${revisionNo}` })
+
+/** Frozen Designer of the newest PUBLISHED revision, read-only (templates without a draft). */
+export const getProjectTemplatePublishedDesigner = (id: number) =>
+  request.get<TemplateDesignerDocument>({ url: `${baseUrl}/${id}/published-designer` })
+
+/** Reads an existing authoring draft, or the newest published projection when historical templates have no draft. */
+export const getProjectTemplateSummary = async (id: number): Promise<ProjectTemplateSummary | undefined> => {
+  const template = await getProjectTemplate(id)
+  const draft = template.revisions.find((revision) => revision.status === 'DRAFT')
+  if (draft) return summaryOf(await getProjectTemplateDraft(id))
+  const published = template.revisions
+    .filter((revision) => revision.status === 'PUBLISHED')
+    .sort((left, right) => right.revisionNo - left.revisionNo)[0]
+  if (!published) return undefined
+  return summaryOf((await getProjectTemplateRevision(id, published.revisionNo)).content)
+}
+
+const summaryOf = (content: TemplateDesignerDocument | TemplateDefinitionContent): ProjectTemplateSummary => ({
+  match: 'match' in content ? content.match : {
+    signingMethod: content.signingMethod,
+    projectCategory: content.projectCategory,
+    implementationMethod: content.implementationMethod,
+    majorProjectLevel: content.majorProjectLevel
+  },
+  stageCount: content.stages.length,
+  taskCount: content.tasks.length
+})
 export const matchPreview = (data: MatchPreviewReqVO) =>
   request.post<MatchRespVO>({ url: `${baseUrl}/actions/match-preview`, data })
 export const getCompletionFactCatalog = () =>

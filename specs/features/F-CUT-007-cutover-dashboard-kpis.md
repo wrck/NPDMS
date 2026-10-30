@@ -19,7 +19,7 @@
 
 ### 2.1 包含
 
-- `GET /api/v1/pms/cutover-dashboard/kpis`只读接口；
+- `GET /api/v1/pms/cutover-tasks/statistics`只读接口；
 - 当前受信租户、`pms:cutover-task:query`功能权限与`ProjectScopeApi.ACTION_VIEW`可见项目交集；
 - 待办、已归档、审批中、驳回待修改四项任务数及服务端生成时间；
 - 待办按现有P2～P6真实写动作守卫求并集，并按`taskId`去重；

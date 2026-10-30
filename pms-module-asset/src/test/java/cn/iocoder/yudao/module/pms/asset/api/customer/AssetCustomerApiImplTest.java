@@ -4,8 +4,6 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.CustomerDeviceSummaryPageQuery;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentMapper;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.query.CustomerDeviceReferenceQuery;
 import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
 import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerReferenceGuardStatus;
 import cn.iocoder.yudao.module.pms.customer.api.guard.dto.CustomerReferenceGuardQuery;
@@ -26,8 +24,6 @@ import static org.mockito.Mockito.when;
 class AssetCustomerApiImplTest {
 
     @Mock
-    private EquipmentMapper equipmentMapper;
-    @Mock
     private DeviceMapper deviceMapper;
     @Mock
     private DeviceAccessScopeService accessScopeService;
@@ -39,9 +35,7 @@ class AssetCustomerApiImplTest {
     @Test
     void reportsReferencedDevices() {
         var query = new CustomerReferenceGuardQuery(1L, 100L);
-        when(equipmentMapper.selectCountByCustomer(
-                new CustomerDeviceReferenceQuery(1L, 100L)))
-                .thenReturn(3L);
+        when(deviceMapper.selectCountByCustomer(1L, 100L)).thenReturn(3L);
 
         var result = guardApi.check(query);
 

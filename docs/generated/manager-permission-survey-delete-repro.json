@@ -1,0 +1,11 @@
+{
+  "projectCode": "16200723052503N-0",
+  "projectId": "992203060197",
+  "taskId": "2107837711337496578",
+  "testObjectId": "2111369731665817601",
+  "deleteOutcome": "SAVED",
+  "contextRecoverableError": "OWNER_FACT_UNAVAILABLE",
+  "workbenchRecoverableError": "OWNER_FACT_UNAVAILABLE",
+  "testObjectWasIsolated": true,
+  "existingObjectUntouched": "2111369598907707393"
+}

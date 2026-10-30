@@ -1,6 +1,10 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
+
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskDetailRespVO;
@@ -31,6 +35,13 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskAnc
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskByIdQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskVisibilityQuery;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
+import cn.iocoder.yudao.module.pms.project.domain.rule.ProjectEndUserCompletionCondition;
+import cn.iocoder.yudao.module.pms.project.domain.rule.ProjectContactCompletionCondition;
+import cn.iocoder.yudao.module.pms.project.domain.rule.JointTestDeliverableCompletionCondition;
+import cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -53,6 +64,10 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 public class ProjectTaskQueryService {
     @jakarta.annotation.Resource
     private ProjectTaskApprovalService taskApprovals;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService stageAdmission;
+    @jakarta.annotation.Resource
+    private ProjectPlanVersionMapper plans;
 
     private static final List<String> OVERVIEW_TABS = List.of(
             "BASIC_INFO", "PROJECT_TREE", "TEAM_MEMBERS", "PROJECT_TASKS", "DEVICES", "IMPLEMENTATION_SCOPE");
@@ -66,7 +81,11 @@ public class ProjectTaskQueryService {
     private final ProjectTaskAssignmentMapper assignmentMapper;
     private final ProjectTaskExecutionContractMapper contractMapper;
     private final TaskBindingHostRegistry bindingRegistry;
+    private final cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery subscriptionObservations;
+    private final ProjectDeliverableInitializationApplicationService deliverableInitializationApplicationService;
     private final PermissionCommonApi permissionApi;
+    private final cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectOrganizationScopeService organizationScopes;
+    private final ProjectManagementQualificationApi managementAccess;
 
     public ProjectWorkspaceRespVO getWorkspace(Long projectId, TaskWorkbenchActor actor) {
         TaskAccess access = resolveAccess(projectId, actor, true);
@@ -153,6 +172,7 @@ public class ProjectTaskQueryService {
         ProjectTaskExecutionContractDO contract = contractMapper.selectCurrentByTaskId(taskId);
         ProjectTaskWorkbenchRespVO response = new ProjectTaskWorkbenchRespVO();
         response.setTask(taskDetail(value, actor));
+        response.setDeliverables(taskDeliverables(value.task()));
         if (contract == null || !Objects.equals(contract.getTenantId(), actor.tenantId())) {
             response.setAllowedActions(Set.of());
             response.setRecoverableError("BINDING_FACT_UNKNOWN");
@@ -164,14 +184,56 @@ public class ProjectTaskQueryService {
         response.setContractVersion(contract.getContractVersion());
         response.setBindingType(contract.getWorkBindingTypeCode());
         response.setTrustedTargetRef(trustedTargetRef(contract));
-        response.setAllowedActions(workbenchAllowedActions(value, inspection.allowedActions(), actor));
+        var actions = new HashSet<>(workbenchAllowedActions(value, inspection.allowedActions(), actor));
+        if (automaticallyCompleted(value, contract)) {
+            actions.removeAll(Set.of("SUBMIT", "COMPLETE", "UPDATE_PROGRESS"));
+        }
+        response.setAllowedActions(Set.copyOf(actions));
         response.setFactVersion(inspection.factVersion());
         response.setRecoverableError(inspection.recoverableError());
+        if ("RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode())) {
+            try {
+                response.setResultSubscriptions(subscriptionObservations.forNode(
+                        actor.tenantId(), value.task().getProjectId(), "TASK", taskId));
+            } catch (RuntimeException unavailable) {
+                response.setRecoverableError("RESULT_SUBSCRIPTION_FACT_UNAVAILABLE");
+            }
+        }
+        if (("APPROVAL".equals(contract.getWorkBindingTypeCode())
+                || TaskBusinessBindingHostProvider.TYPES.contains(contract.getWorkBindingTypeCode()))
+                && response.getAllowedActions().contains("START")) {
+            var admission = stageAdmission.previewTaskAdmission(value.access().project(), value.task(), contract);
+            response.setStartAdmission(value.access().fullProjectAccess() ? admission
+                    : new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionView(
+                            admission.outcome(), List.of()));
+            if (admission.outcome() != cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.MATCHED) {
+                var allowed = new HashSet<>(response.getAllowedActions());
+                allowed.remove("START");
+                response.setAllowedActions(Set.copyOf(allowed));
+            }
+        }
         if ("APPROVAL".equals(contract.getWorkBindingTypeCode())) {
             try { response.setApproval(taskApprovals.view(actor.tenantId(), value.task().getProjectId(), taskId, contract)); }
             catch (RuntimeException unavailable) { response.setRecoverableError("TASK_APPROVAL_FACT_UNAVAILABLE"); }
         }
         return response;
+    }
+
+    /** 交付件为模板冻结的应交清单：按任务码过滤，阶段级（无任务码）行不属于任何任务视图。 */
+    private java.util.List<ProjectTaskWorkbenchRespVO.TaskDeliverableItem> taskDeliverables(ProjectTaskInstanceDO task) {
+        if (task.getCode() == null) return List.of();
+        return deliverableInitializationApplicationService.getByProjectId(task.getProjectId()).stream()
+                .filter(row -> task.getCode().equals(row.taskCode()))
+                .map(row -> {
+                    var item = new ProjectTaskWorkbenchRespVO.TaskDeliverableItem();
+                    item.setId(row.id());
+                    item.setDeliverableCode(row.deliverableCode());
+                    item.setName(row.name());
+                    item.setRequired(row.required());
+                    item.setStatus(row.status());
+                    item.setAutomaticCollection(row.automaticCollection());
+                    return item;
+                }).toList();
     }
 
     private TaskAccess resolveAccess(Long projectId, TaskWorkbenchActor actor, boolean requireProject) {
@@ -193,12 +255,13 @@ public class ProjectTaskQueryService {
             if (requireProject) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
             return null;
         }
-        List<ProjectMemberAssignmentDO> memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
+        List<ProjectMemberAssignmentDO> memberships = memberMapper.selectAuthorizedByUser(new ActiveProjectMemberQuery(
                 actor.tenantId(), actor.actorId(), LocalDateTime.now()));
         boolean superAdmin = projectTreeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId());
-        boolean fullProjectAccess = superAdmin || TaskExecutionPolicy.isProjectMember(projectId, memberships);
-        boolean projectManager = superAdmin || memberships.stream().anyMatch(item -> Objects.equals(item.getProjectId(), projectId)
-                && "PROJECT_MANAGER".equals(item.getMemberRole()));
+        boolean fullProjectAccess = superAdmin || TaskExecutionPolicy.isProjectMember(projectId, memberships)
+                || organizationScopes.projectIds(new cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectOrganizationScopeService.Query(
+                    actor.tenantId(), actor.actorId(), ProjectScopeApi.ACTION_MANAGE, false, Set.of(projectId))).contains(projectId);
+        boolean projectManager = superAdmin || managementAccess.permits(new ProjectManagementQualificationApi.Query(project.getTenantId(), project.getId(), actor.actorId()));
         TaskVisibilityQuery visibilityQuery = new TaskVisibilityQuery(
                 actor.tenantId(), projectId, actor.actorId(), fullProjectAccess);
         Set<Long> full = fullProjectAccess
@@ -254,6 +317,7 @@ public class ProjectTaskQueryService {
         response.setTaskCode(task.getCode());
         response.setName(task.getName());
         response.setStageCode(task.getStageCode());
+        response.setRequiredTask(task.getRequiredTask());
         response.setBusinessLevelCode(task.getBusinessLevelCode());
         response.setStatus(task.getStatus());
         response.setPriority(task.getPriority());
@@ -278,6 +342,7 @@ public class ProjectTaskQueryService {
         response.setTreeDepth(task.getTreeDepth());
         response.setBusinessLevelCode(task.getBusinessLevelCode());
         response.setStageCode(task.getStageCode());
+        response.setRequiredTask(task.getRequiredTask());
         response.setStatus(task.getStatus());
         response.setPriority(task.getPriority());
         response.setSortOrder(task.getSortOrder());
@@ -301,6 +366,9 @@ public class ProjectTaskQueryService {
 
     private String trustedTargetRef(ProjectTaskExecutionContractDO contract) {
         if ("TASK_NATIVE".equals(contract.getWorkBindingTypeCode())) return null;
+        // PAGE 的可信目标即冻结的路由入口；仅用于导航，不产生任何完成事实。
+        if ("PAGE".equals(contract.getWorkBindingTypeCode()))
+            return JsonUtils.parseTree(contract.getBindingParameterSnapshot()).path("routePath").asText(null);
         if (contract.getTargetContextCode() == null || contract.getTargetObjectType() == null
                 || contract.getTargetObjectKey() == null) return null;
         return contract.getTargetContextCode() + ":" + contract.getTargetObjectType() + ":"
@@ -319,6 +387,37 @@ public class ProjectTaskQueryService {
         if (!activeProjectManagerWithManageScope(access, actor)
                 || !hasPermission(actor.actorId(), "pms:project-task:create")) return Set.of();
         return Set.of("CREATE");
+    }
+
+    /** Only the effective plan's exact automatic conditions replace native submission. */
+    private boolean automaticallyCompleted(TaskAndAccess value, ProjectTaskExecutionContractDO contract) {
+        String type = String.valueOf(contract.getWorkBindingTypeCode());
+        if (Set.of("BUSINESS_OBJECT", "BUSINESS_COMPONENT", "APPROVAL", "RESULT_SUBSCRIPTION").contains(type)) {
+            return true;
+        }
+        var project = value.access().project();
+        if (!"PAGE".equals(type) || project.getActivePlanVersionId() == null) return false;
+        var plan = plans.selectEffective(
+                new ProjectPlanScopeQuery(
+                        project.getTenantId(), project.getId()));
+        if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())) return false;
+        var snapshot = TemplateExecutionSnapshotReader.read(
+                plan.getExecutionSnapshot());
+        var definitions = snapshot.getTasks().stream().filter(node ->
+                Objects.equals(node.getNodeKey(), contract.getSourceNodeKey())
+                && Objects.equals(node.getCode(), value.task().getCode())
+                && Objects.equals(node.getStageCode(), value.task().getStageCode())).toList();
+        if (definitions.size() != 1) return false;
+        var completion = snapshot.getRulePrograms().get(definitions.getFirst().getCompletionRuleKey());
+        String parameters = contract.getBindingParameterSnapshot();
+        return ProjectEndUserCompletionCondition.memberPage(type, parameters)
+                && ProjectEndUserCompletionCondition.automatic(completion)
+                || ProjectContactCompletionCondition.contactPage(type, parameters)
+                && ProjectContactCompletionCondition.automatic(completion)
+                || JointTestDeliverableCompletionCondition.jointTestPage(type, parameters)
+                && JointTestDeliverableCompletionCondition.automatic(completion)
+                || NormalClosureTaskCondition.ROUTE.equals(trustedTargetRef(contract))
+                && NormalClosureTaskCondition.approvedOnly(completion);
     }
 
     private Set<String> workbenchAllowedActions(TaskAndAccess value, Set<String> bindingActions,

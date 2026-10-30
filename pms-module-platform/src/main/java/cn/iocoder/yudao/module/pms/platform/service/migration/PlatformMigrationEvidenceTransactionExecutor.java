@@ -94,7 +94,24 @@ public class PlatformMigrationEvidenceTransactionExecutor {
             else { row = sourceRow(record); created.add(row); }
             ordered.add(row);
         }
-        if (!created.isEmpty()) sourceMapper.insertBatch(created, 1000);
+        if (!created.isEmpty()) {
+            created.forEach(row -> row.setId(com.baomidou.mybatisplus.core.toolkit.IdWorker.getId()));
+            int start = 0;
+            long bytes = 0;
+            for (int index = 0; index < created.size(); index++) {
+                var row = created.get(index);
+                // Upper bound for UTF-8/SQL escaping; keep large payloads out of oversized multi-row packets.
+                long rowBytes = 3L * (row.getSourcePayload().length() + row.getSourceSystem().length()
+                        + row.getSourceTable().length() + row.getSourceRecordKey().length()
+                        + Objects.toString(row.getSourceBusinessKey(), "").length() + row.getSourceChecksum().length()) + 512;
+                if (index > start && bytes + rowBytes > 8L * 1024 * 1024) {
+                    sourceMapper.insertRows(created.subList(start, index));
+                    start = index; bytes = 0;
+                }
+                bytes += rowBytes;
+            }
+            sourceMapper.insertRows(created.subList(start, created.size()));
+        }
         return ordered.stream().map(row -> sourceFact(row, null)).toList();
     }
 
@@ -141,7 +158,9 @@ public class PlatformMigrationEvidenceTransactionExecutor {
             else for (var target : mapping.targets()) created.add(mappingRow(mapping, target));
         }
         created.forEach(this::initializeAuditFields);
-        if (!created.isEmpty()) mappingMapper.insertBatch(created, 1000);
+        created.forEach(row -> row.setId(com.baomidou.mybatisplus.core.toolkit.IdWorker.getId()));
+        for (int start = 0; start < created.size(); start += 1000)
+            mappingMapper.insertRows(created.subList(start, Math.min(start + 1000, created.size())));
         return new MigrationMappingPageResult(command.batchId(), command.mappings().size());
     }
 

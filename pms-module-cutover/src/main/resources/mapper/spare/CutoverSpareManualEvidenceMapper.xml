@@ -1,9 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.spare.CutoverSpareManualEvidenceMapper">
-    <select id="selectByTask" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareManualEvidenceDO">
-        SELECT * FROM cut_spare_manual_evidence
-        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.cutoverTaskId}
-        ORDER BY created_at ASC, id ASC
+    <resultMap id="structuredCutoverSpareManualEvidenceDO" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.CutoverSpareManualEvidenceDO" autoMapping="false">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="task_id" property="cutoverTaskId"/>
+        <result column="application_reference_id" property="applicationReferenceId"/>
+        <result column="file_artifact_id" property="fileArtifactId"/>
+        <result column="file_reference_key" property="fileReferenceKey"/>
+        <result column="file_version_no" property="fileVersionNo"/>
+        <result column="file_scope_version" property="fileScopeVersion"/>
+        <result column="description" property="description"/>
+        <result column="upload_user_id" property="uploadedBy"/>
+        <result column="create_time" property="createdAt"/>
+        <result column="file_artifact_fact_version" property="fileArtifactFactVersion"/>
+        <result column="file_reference_fact_version" property="fileReferenceFactVersion"/>
+        <result column="file_availability_fact_version" property="fileAvailabilityFactVersion"/>
+    </resultMap>
+
+    <select id="selectByTask" resultMap="structuredCutoverSpareManualEvidenceDO">
+        SELECT id, tenant_id, task_id, application_reference_id, file_artifact_id, file_reference_key, file_version_no, file_scope_version, description, upload_user_id, create_time, file_artifact_fact_version, file_reference_fact_version, file_availability_fact_version FROM cut_spare_manual_evidence
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.cutoverTaskId}
+        ORDER BY create_time ASC, id ASC
     </select>
 </mapper>

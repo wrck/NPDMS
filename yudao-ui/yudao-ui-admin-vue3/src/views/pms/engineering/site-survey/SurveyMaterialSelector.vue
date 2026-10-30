@@ -51,7 +51,7 @@
           ><el-button
             :disabled="readonly || !row.reason?.trim()"
             @click="launch?.('exchange', row.sn)"
-            v-hasPermi="['pms:eng-material-exch:create']"
+            v-hasPermi="['pms:imp-material-exch:create']"
             >保存并打开换货申请</el-button
           ></template
         ></el-table-column

@@ -51,7 +51,7 @@ public final class ArrivalAcceptanceReqVO {
     }
 
     public record QuantityScope(String scopeType, Long orderLineId, String productCode,
-                                String modelCode, BigDecimal quantity, String unitCode) implements Scope {
+                                String productModel, BigDecimal quantity, String unitCode) implements Scope {
     }
 
     @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY,
@@ -71,7 +71,7 @@ public final class ArrivalAcceptanceReqVO {
     }
 
     public record QuantityDraftLine(String scopeType, Long lineId, Integer expectedLineVersion,
-                                    Long orderLineId, String productCode, String modelCode,
+                                    Long orderLineId, String productCode, String productModel,
                                     BigDecimal acceptedQuantity, String unitCode) implements DraftLine {
     }
 
@@ -110,7 +110,7 @@ public final class ArrivalAcceptanceReqVO {
                         String reason, FileRevision evidenceRevision) implements Resolution {
     }
 
-    public record CorrectInformation(String resolutionType, Integer expectedSourceVersion,
+    public record CorrectInformation(String resolutionType, Long expectedSourceVersion,
                                      String reason, CorrectionPatch correctionPatch,
                                      FileRevision evidenceRevision) implements Resolution {
     }

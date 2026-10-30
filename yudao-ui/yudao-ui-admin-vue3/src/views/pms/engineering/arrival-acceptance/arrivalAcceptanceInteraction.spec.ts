@@ -98,7 +98,7 @@ describe('F-IMP-002 arrival acceptance interactions', () => {
           scopeType: 'ORDER_MODEL_QUANTITY',
           orderLineId: 10,
           productCode: 'P',
-          modelCode: null,
+          productModel: null,
           quantity: 1,
           unitCode: '台'
         },

@@ -122,14 +122,8 @@ jobs:
             sleep 2
           done
           test "${ready}" -eq 1
-          python3 - <<'PY' > "${RUNNER_TEMP}/migration-paths.txt"
-          from pathlib import Path
-          import re
-          paths = list(Path('sql/migrations').glob('V*__*.sql'))
-          paths.sort(key=lambda path: int(re.fullmatch(r'V(\d+)__.+\.sql', path.name).group(1)))
-          for path in paths:
-              print(path)
-          PY
+          find sql/migrations -maxdepth 1 -type f -name 'V*__*.sql' | sort -V > "${RUNNER_TEMP}/migration-paths.txt"
+          test -s "${RUNNER_TEMP}/migration-paths.txt"
           while IFS= read -r migration; do
             echo "Executing ${migration}" | tee -a "${RUNNER_TEMP}/mysql-migrations.log"
             docker exec -i -e MYSQL_PWD="${NPDMS_DB_PASSWORD}" npdms-regression-mysql \

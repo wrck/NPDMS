@@ -255,6 +255,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { onBeforeRouteLeave } from 'vue-router'
 import * as BusinessViewApi from '@/api/pms/platform/business-view'
 import type {
@@ -324,7 +325,7 @@ const statusLabel = (status: string) =>
 const intents = new Map<string, string>()
 const intentKey = (action: string, payload: unknown) => {
   const intent = JSON.stringify([action, payload])
-  if (!intents.has(intent)) intents.set(intent, crypto.randomUUID())
+  if (!intents.has(intent)) intents.set(intent, generateUUID())
   return intents.get(intent)!
 }
 let listSequence = 0

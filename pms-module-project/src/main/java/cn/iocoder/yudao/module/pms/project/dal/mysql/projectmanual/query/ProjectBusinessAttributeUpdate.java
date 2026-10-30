@@ -4,7 +4,7 @@ package cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query;
 public record ProjectBusinessAttributeUpdate(
         Long tenantId,
         Long projectId,
-        Integer expectedVersion,
+        Long expectedVersion,
         String signingMethod,
         String projectCategory,
         String implementationMode,

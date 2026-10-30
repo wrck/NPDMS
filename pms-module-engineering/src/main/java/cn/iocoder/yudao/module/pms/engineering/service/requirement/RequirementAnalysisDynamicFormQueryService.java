@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.requirement;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationCursorPageRespVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.preparation.vo.PreparationPageReqVO;
@@ -64,6 +65,7 @@ public class RequirementAnalysisDynamicFormQueryService {
     private final ProjectParticipantFactApi participantFactApi;
     private final ProjectWorkBindingFactApi workBindingFactApi;
     private final RequirementAnalysisExecutionBinding executionBinding;
+    private final ProjectManagementQualificationApi managementQualifications;
 
     public boolean owns(Long preparationId, Long tenantId) {
         return preparationId != null && tenantId != null
@@ -289,8 +291,11 @@ public class RequirementAnalysisDynamicFormQueryService {
                 RequirementAnalysisQueryService.PERMISSION_QUERY, RequirementAnalysisQueryService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_VIEW));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
             throw exception(FORBIDDEN);
         }
@@ -301,13 +306,25 @@ public class RequirementAnalysisDynamicFormQueryService {
             if (!permissionApi.hasAnyPermissions(actor.actorId(), RequirementAnalysisQueryService.PERMISSION_MANAGE)) {
                 return false;
             }
-            var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE));
-            ProjectParticipantFact participant = RequirementAnalysisManagerFacts.inspect(
-                    participantFactApi, permissionApi, projectId, actor.actorId());
-            return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(projectId)
-                    && participant != null && "ACTIVE".equals(participant.lifecycleStatus())
-                    && participant.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
+            var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+            if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) return false;
+            if (permissionApi.hasAnyRoles(actor.actorId(), cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) {
+                ProjectParticipantFact participant;
+                try {
+                    participant = RequirementAnalysisManagerFacts.inspect(participantFactApi, permissionApi, projectId, actor.actorId());
+                } catch (cn.iocoder.yudao.framework.common.exception.ServiceException denied) {
+                    if (denied.getCode() != ProjectParticipantFactApi.SCOPE_DENIED_ERROR_CODE) throw denied;
+                    participant = null;
+                }
+                if (participant != null && "ACTIVE".equals(participant.lifecycleStatus())
+                        && participant.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)) return true;
+            }
+            return managementQualifications.inspect(new ProjectManagementQualificationApi.Query(
+                    actor.tenantId(), projectId, actor.actorId())) != null;
         } catch (RuntimeException unavailable) {
             return false;
         }

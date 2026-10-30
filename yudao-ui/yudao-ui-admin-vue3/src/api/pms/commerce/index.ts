@@ -37,6 +37,7 @@ export interface ContractRespVO {
   customerCode?: string
   customerName?: string
   contractName?: string
+  contractAmount?: number
   currencyCode?: string
   sourceVersion: string
   sourceUpdatedAt?: string
@@ -77,7 +78,6 @@ export interface SalesOrderLinePageReqVO extends PageParam {
   orderType?: string
   orderNo?: string
   lineNo?: string
-  itemCode?: string
   productCode?: string
   quantityStatus?: string
   status?: string
@@ -92,9 +92,7 @@ export interface SalesOrderLineRespVO {
   orderType: string
   orderNo: string
   lineNo: string
-  itemCode: string
-  itemDesc?: string
-  productCode?: string
+  productCode: string
   orderQty: number
   openQty: number
   deliveredQty: number
@@ -109,8 +107,10 @@ export interface DeliveryScopeDetailRespVO {
   id: number
   sequence: number
   serialNo?: string
+  productName?: string
   productCode?: string
   deviceTypeCode?: string
+  deviceTypeName?: string
   allocatedQuantity: number
   status: string
 }
@@ -122,7 +122,10 @@ export interface DeliveryScopeRespVO {
   orderLineId: number
   orderNo: string
   lineNo: string
-  itemCode: string
+  productCode: string
+  productDesc?: string
+  productModel?: string
+  productName?: string
   allocatedQuantity: number
   scopeStatus: string
   allocationVersion: number
@@ -136,6 +139,7 @@ export interface DeliveryScopeRespVO {
   effectiveTo?: string
   version: number
   details: DeliveryScopeDetailRespVO[]
+  contractNo?: string
 }
 
 export interface DeliveryScopePageReqVO extends PageParam {
@@ -217,6 +221,73 @@ export const getContractPage = (params: ContractPageReqVO) =>
 
 export const getContract = (id: number) =>
   request.get<ContractDetailRespVO>({ url: `${baseUrl}/contracts/${id}` })
+
+/** 合同主档单入口的项目创建取值预览（合同→订单→执行单链 + 老系统规则建议值）。 */
+export interface ContractCreationSourceRespVO {
+  contract: ContractRespVO
+  orders: Array<{
+    id: number
+    orderNo: string
+    salesType?: string
+    orderAmount?: number
+    currencyCode?: string
+    orderCreateTime?: string
+    customerRequiredTime?: string
+    customerCode?: string
+    customerName?: string
+    executionNo?: string
+  }>
+  executionOrders: Array<{
+    id: number
+    executionNo: string
+    projectCode?: string
+    projectName?: string
+    customerProjectName?: string
+    majorProjectLevel?: string
+    projectType?: string
+    projectAmount?: number
+    marketCode?: string
+    marketName?: string
+    systemCode?: string
+    systemName?: string
+    expendCode?: string
+    expendName?: string
+    industryCode?: string
+    industryName?: string
+    departmentCode?: string
+    departmentName?: string
+    companyCode?: string
+    companyName?: string
+    salesRepCode?: string
+    salesRepName?: string
+    submitTime?: string
+  }>
+  lineExecutionNos: string[]
+  resolved: {
+    projectName?: string
+    customerCode?: string
+    customerName?: string
+    companyCode?: string
+    companyName?: string
+    orderCreateTime?: string
+    customerProjectName?: string
+    majorProjectLevel?: string
+    projectType?: string
+    marketCode?: string
+    marketName?: string
+    systemCode?: string
+    systemName?: string
+    expendCode?: string
+    expendName?: string
+    industryCode?: string
+    industryName?: string
+    executionOrderId?: number
+    executionNo?: string
+  }
+}
+
+export const getContractCreationSource = (id: number) =>
+  request.get<ContractCreationSourceRespVO>({ url: `${baseUrl}/contracts/${id}/creation-source` })
 
 export const relateContractProject = (
   contractId: number,

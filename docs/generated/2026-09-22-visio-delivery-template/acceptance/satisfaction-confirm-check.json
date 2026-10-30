@@ -1,0 +1,49 @@
+{
+  "project": 992203060032,
+  "acceptSatisfactionTaskStatus": "PENDING_ASSIGN",
+  "deliverable": {
+    "deliverableCode": "D_SATISFACTION",
+    "name": "满意度调查有效结果",
+    "status": "ACCEPTED"
+  },
+  "collectionTasks": [
+    {
+      "id": "2102823061109305345",
+      "projectId": 992203060032,
+      "projectTaskId": "2102811350734172177",
+      "collectionKey": "SAT-2102823061109305345",
+      "revisionNo": 1,
+      "priorTaskId": null,
+      "assignedToUserId": 1,
+      "assignedByUserId": null,
+      "status": "PENDING_ARCHIVE",
+      "questionnaireId": "2102823061109305346",
+      "resultId": "2102823061784588290",
+      "version": 2,
+      "questionnaireStatus": "ACTIVE",
+      "templateRevisionId": "2101717346254004226",
+      "frozenQuestions": "{\"scoring\": {\"scoreMax\": \"100.00\", \"scoreMin\": \"0.00\", \"strategy\": \"SUM_V1\", \"precision\": 2, \"threshold\": \"80.00\", \"ruleVersion\": \"SAT-RULE-V1\", \"roundingMode\": \"HALF_UP\"}, \"questions\": [{\"code\": \"Q1\", \"type\": \"RATING\", \"title\": \"新版项目交付满意度评价\", \"options\": [{\"code\": \"O1\", \"label\": \"非常满意\", \"score\": \"100.00\"}, {\"code\": \"O2\", \"label\": \"不满意\", \"score\": \"0.00\"}], \"required\": true}], \"schemaVersion\": 1}"
+    }
+  ],
+  "results": [
+    {
+      "resultId": "2102823061784588290",
+      "projectId": 992203060032,
+      "projectTaskId": "2102811350734172177",
+      "taskId": "2102823061109305345",
+      "taskRevisionNo": 1,
+      "questionnaireId": "2102823061109305346",
+      "responseId": "2102823061784588290",
+      "resultVersion": 1,
+      "factVersion": 1,
+      "score": 100.0,
+      "threshold": 80.0,
+      "passed": true,
+      "ruleVersion": "SAT-RULE-V1",
+      "resultStatus": "EFFECTIVE",
+      "archiveStatus": "ARCHIVED",
+      "effectiveFrom": 1790187061792,
+      "effectiveTo": null
+    }
+  ]
+}

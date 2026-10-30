@@ -1,19 +1,19 @@
 package cn.iocoder.yudao.module.pms.cutover.service.plan;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSubmitUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanInvalidationUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskPlanSubmitUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskSourceInvalidationUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanStepDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskStageHistoryDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanInvalidationUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskPlanSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskSourceInvalidationUpdate;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.DownloadCutoverPlanDraftCommand;
@@ -25,7 +25,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePo
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.DownloadCutoverPlanDraftResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.InvalidateCutoverPlanSourceResult;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.junit.jupiter.api.Test;
 
@@ -43,8 +43,9 @@ import static org.mockito.Mockito.*;
 
 class CutoverPlanSubmissionTest {
 
-    @Test
-    void downloadsCompleteSimpleDraftWithoutAdvancingTaskOrPlan() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"1,true", "0,true", "1,false"})
+    void downloadsSimpleDraftOrRejectsMissingTimeWithoutAdvancingTaskOrPlan(int boundRows, boolean scheduled) {
         CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
         CutoverPlanStepMapper stepMapper = mock(CutoverPlanStepMapper.class);
@@ -54,27 +55,71 @@ class CutoverPlanSubmissionTest {
         CutoverPlanFilePort filePort = mock(CutoverPlanFilePort.class);
         CutoverTaskDO task = task();
         CutoverPlanRevisionDO plan = simplePlan();
-        CutoverPlanSourcePort.SourceSnapshot snapshot = JsonUtils.parseObject(
-                plan.getSourceSnapshot(), CutoverPlanSourcePort.SourceSnapshot.class);
+        CutoverPlanSourcePort.SourceSnapshot snapshot = simpleSource();
         CutoverPlanSourcePort.SourceFacts facts = new CutoverPlanSourcePort.SourceFacts(
                 snapshot, snapshot.failedRiskFacts());
         when(taskMapper.selectById(50L)).thenReturn(task);
         when(projectScope.inspect(8L, 70L, "ACTION_VIEW"))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
         when(planMapper.selectCurrent(any())).thenReturn(plan);
-        when(sourcePort.lockAndRevalidate(1L, 8L, facts)).thenReturn(facts);
+        var generatedMapper = mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanGeneratedFileMapper.class);
+        var persisted = new AtomicReference<cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanGeneratedFileDO>();
+        when(generatedMapper.insertIfCurrentDraft(any())).thenAnswer(call -> {
+            persisted.set(call.getArgument(0)); return boundRows;
+        });
+        var currentTree = (tools.jackson.databind.node.ObjectNode) JsonUtils.getObjectMapper().valueToTree(snapshot);
+        currentTree.put("projectVersion", snapshot.projectVersion() + 1);
+        var currentSnapshot = JsonUtils.getObjectMapper().treeToValue(currentTree, CutoverPlanSourcePort.SourceSnapshot.class);
+        when(sourcePort.lockAndRevalidate(1L, 8L, facts)).thenReturn(new CutoverPlanSourcePort.SourceFacts(currentSnapshot, List.of()));
         when(stepMapper.selectListByPlan(any())).thenReturn(List.of(
                 step("OPERATION", 1, "执行割接"), step("ROLLBACK", 1, "执行回退")));
         CutoverPlanFilePort.FileFact generated = fileFact();
-        when(filePort.downloadDraft(1L, 8L, 70L, 80L)).thenReturn(generated);
+        when(filePort.downloadDraft(CutoverPlanFilePort.DraftQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .planRevisionId(80L)
+                .build())).thenReturn(generated);
         DirectPlatform platform = new DirectPlatform();
-        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper,
-                stepMapper, supportMapper, projectScope, sourcePort, filePort,
-                new CutoverPlanContentCodec(), platform,
-                Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
+        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper,
+                planMapper,
+                stepMapper,
+                supportMapper,
+                projectScope,
+                sourcePort,
+                filePort,
+                new CutoverPlanContentCodec(),
+                platform,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper.class),
+                Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
 
+        injectStorage(service, plan, facts.snapshot());
+        if (!scheduled) {
+            var storage = (CutoverPlanStorage) org.springframework.test.util.ReflectionTestUtils.getField(service, "storage");
+            ((tools.jackson.databind.node.ObjectNode) storage.content(plan)).remove("scheduledTime");
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.downloadDraft(
+                    new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-missing-time", "corr-missing-time")))
+                    .isInstanceOf(CutoverPlanApplicationException.class).hasMessage("请填写计划割接时间");
+            verifyNoInteractions(filePort);
+            verifyNoInteractions(generatedMapper);
+            verify(taskMapper, never()).submitPlanIfMatch(any());
+            return;
+        }
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "generatedFiles", new CutoverPlanGeneratedFiles(generatedMapper));
+        var documentAttachments = mock(CutoverPlanDocumentAttachments.class);
+        when(documentAttachments.usesCurrentRendering(any())).thenReturn(true);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "documentAttachments", documentAttachments);
+        if (boundRows == 0) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.downloadDraft(
+                    new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-stale", "corr-download-stale")))
+                    .isInstanceOf(CutoverPlanApplicationException.class).hasMessageContaining("草稿版本已变化");
+            assertThat(platform.lastFacts.get()).isNull();
+            return;
+        }
         DownloadCutoverPlanDraftResult result = service.downloadDraft(
-                new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3, "download-1", "corr-download-1"));
+                new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-1", "corr-download-1"));
 
         assertThat(result.planRevisionId()).isEqualTo(80L);
         assertThat(result.planVersion()).isEqualTo(3);
@@ -82,14 +127,41 @@ class CutoverPlanSubmissionTest {
         assertThat(result.downloadedAt()).isEqualTo(Instant.parse("2026-09-01T01:00:00Z").toEpochMilli());
         assertThat(task.getVersion()).isEqualTo(4);
         assertThat(plan.getVersion()).isEqualTo(3);
+        assertThat(plan.getFileArtifactId()).isNull();
+        verify(generatedMapper).insertIfCurrentDraft(argThat(row -> row.getArtifactId().equals(generated.artifactId())
+                && row.getPlanVersion().equals(3L) && row.getGeneratedAt().equals(result.downloadedAt())));
         assertThat(platform.lastFacts.get().correlationId()).isEqualTo("corr-download-1");
         assertThat(platform.lastFacts.get().detailSnapshot()).contains("fileArtifactFact", "downloadedAt", "actorId");
         verify(sourcePort).lockAndRevalidate(1L, 8L, facts);
-        verify(filePort).downloadDraft(1L, 8L, 70L, 80L);
+        verify(filePort).downloadDraft(CutoverPlanFilePort.DraftQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .planRevisionId(80L)
+                .build());
+        when(generatedMapper.selectLatest(any())).thenAnswer(ignored -> persisted.get());
+        when(filePort.inspect(any())).thenReturn(generated);
+        var repeated = service.downloadDraft(new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-2", "corr-download-2"));
+        assertThat(repeated).isEqualTo(result);
+        verify(filePort, times(1)).downloadDraft(any());
+        verify(generatedMapper, times(1)).insertIfCurrentDraft(any());
+        when(documentAttachments.usesCurrentRendering(any())).thenReturn(false);
+        var upgraded = service.downloadDraft(new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-images", "corr-download-images"));
+        assertThat(upgraded.planVersion()).isEqualTo(result.planVersion());
+        var records = org.mockito.ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanGeneratedFileDO.class);
+        verify(generatedMapper, times(2)).insertIfCurrentDraft(records.capture());
+        assertThat(records.getAllValues().get(0).getId()).isNotEqualTo(records.getAllValues().get(1).getId());
+        verify(filePort, times(2)).downloadDraft(any());
+        when(filePort.inspect(any())).thenReturn(null);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.downloadDraft(
+                new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-unavailable", "corr-download-unavailable")))
+                .isInstanceOf(CutoverPlanApplicationException.class);
+        verify(filePort, times(2)).downloadDraft(any());
     }
 
-    @Test
-    void submitsCompleteDraftAndAdvancesTaskToP5WithPendingApproval() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {0, 1})
+    void submitsCompleteDraftDespiteGeneralProjectEditsAndAdvancesToPendingApproval(int projectVersionDelta) {
         CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
         CutoverPlanStepMapper stepMapper = mock(CutoverPlanStepMapper.class);
@@ -101,15 +173,22 @@ class CutoverPlanSubmissionTest {
         CutoverPlanRevisionDO plan = simplePlan();
         List<CutoverPlanStepDO> steps = List.of(
                 step("OPERATION", 1, "执行割接"), step("ROLLBACK", 1, "执行回退"));
-        CutoverPlanSourcePort.SourceSnapshot snapshot = JsonUtils.parseObject(
-                plan.getSourceSnapshot(), CutoverPlanSourcePort.SourceSnapshot.class);
+        CutoverPlanSourcePort.SourceSnapshot snapshot = simpleSource();
         CutoverPlanSourcePort.SourceFacts facts = new CutoverPlanSourcePort.SourceFacts(snapshot, List.of());
         when(taskMapper.selectById(50L)).thenReturn(task);
         when(planMapper.selectCurrent(any())).thenReturn(plan);
         when(stepMapper.selectListByPlan(any())).thenReturn(steps);
-        when(projectScope.lockAndRevalidate(8L, 70L, "ACTION_EDIT", 30L))
+        when(projectScope.lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery.builder()
+                .actorId(8L)
+                .projectId(70L)
+                .action("ACTION_EDIT")
+                .expectedProjectScopeVersion(30L)
+                .build()))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
-        when(sourcePort.lockAndRevalidate(1L, 8L, facts)).thenReturn(facts);
+        var currentTree = (tools.jackson.databind.node.ObjectNode) JsonUtils.getObjectMapper().valueToTree(snapshot);
+        currentTree.put("projectVersion", snapshot.projectVersion() + projectVersionDelta);
+        var currentSnapshot = JsonUtils.getObjectMapper().treeToValue(currentTree, CutoverPlanSourcePort.SourceSnapshot.class);
+        when(sourcePort.lockAndRevalidate(1L, 8L, facts)).thenReturn(new CutoverPlanSourcePort.SourceFacts(currentSnapshot, List.of()));
         when(taskMapper.selectForUpdate(any())).thenReturn(task);
         when(planMapper.selectCurrentForUpdate(any())).thenReturn(plan);
         when(stepMapper.selectListByPlanForUpdate(any())).thenReturn(steps);
@@ -120,13 +199,23 @@ class CutoverPlanSubmissionTest {
         when(historyMapper.insert(any(CutoverTaskStageHistoryDO.class))).thenReturn(1);
         DirectPlatform platform = new DirectPlatform();
         ControlledApprovalApi approval = new ControlledApprovalApi();
-        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper,
-                stepMapper, supportMapper, projectScope, sourcePort, mock(CutoverPlanFilePort.class),
-                new CutoverPlanContentCodec(), platform, approval, historyMapper,
-                Clock.fixed(Instant.parse("2026-09-01T02:00:00Z"), ZoneOffset.UTC));
+        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper,
+                planMapper,
+                stepMapper,
+                supportMapper,
+                projectScope,
+                sourcePort,
+                mock(CutoverPlanFilePort.class),
+                new CutoverPlanContentCodec(),
+                platform,
+                approval,
+                historyMapper,
+                Clock.fixed(Instant.parse("2026-09-01T02:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
 
+        injectStorage(service, plan, facts.snapshot());
         SubmitCutoverPlanResult result = service.submit(
-                new SubmitCutoverPlanCommand(1L, 8L, 50L, 4, 3, "submit-1", "corr-submit-1"));
+                new SubmitCutoverPlanCommand(1L, 8L, 50L, 4L, 3L, "submit-1", "corr-submit-1"));
 
         assertThat(result.taskStage()).isEqualTo("P5");
         assertThat(result.taskVersion()).isEqualTo(5);
@@ -155,11 +244,11 @@ class CutoverPlanSubmissionTest {
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
         CutoverTaskStageHistoryMapper historyMapper = mock(CutoverTaskStageHistoryMapper.class);
         CutoverTaskDO task = task();
-        task.setCurrentStage("P5"); task.setTaskStatus("APPROVING"); task.setVersion(5);
+        task.setCurrentStage("P5"); task.setTaskStatus("APPROVING"); task.setVersion(5L);
         CutoverPlanRevisionDO plan = simplePlan();
         plan.setStatusCode("SUBMITTED"); plan.setSubmittedBy(8L);
         plan.setSubmittedAt(java.time.LocalDateTime.parse("2026-09-01T02:00:00"));
-        plan.setApprovalInstanceId(70001L); plan.setApprovalVersion(0); plan.setVersion(4);
+        plan.setApprovalInstanceId(70001L); plan.setApprovalVersion(0L); plan.setVersion(4L);
         when(taskMapper.selectForUpdate(any())).thenReturn(task);
         when(planMapper.selectCurrentForUpdate(any())).thenReturn(plan);
         when(planMapper.invalidateSubmittedIfMatch(any())).thenReturn(1);
@@ -169,14 +258,23 @@ class CutoverPlanSubmissionTest {
         ControlledApprovalApi approval = new ControlledApprovalApi();
         approval.seed(plan);
         DirectPlatform platform = new DirectPlatform();
-        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper,
-                mock(CutoverPlanStepMapper.class), mock(CutoverSupportArrangementMapper.class),
-                mock(CutoverProjectScopePort.class), mock(CutoverPlanSourcePort.class),
-                mock(CutoverPlanFilePort.class), new CutoverPlanContentCodec(), platform, approval, historyMapper,
-                Clock.fixed(Instant.parse("2026-09-01T03:00:00Z"), ZoneOffset.UTC));
+        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper,
+                planMapper,
+                mock(CutoverPlanStepMapper.class),
+                mock(CutoverSupportArrangementMapper.class),
+                mock(CutoverProjectScopePort.class),
+                mock(CutoverPlanSourcePort.class),
+                mock(CutoverPlanFilePort.class),
+                new CutoverPlanContentCodec(),
+                platform,
+                approval,
+                historyMapper,
+                Clock.fixed(Instant.parse("2026-09-01T03:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
 
+        injectStorage(service, plan, simpleSource());
         InvalidateCutoverPlanSourceResult result = service.invalidateSource(
-                new InvalidateCutoverPlanSourceCommand(1L, 9L, 50L, 5, 4,
+                new InvalidateCutoverPlanSourceCommand(1L, 9L, 50L, 5L, 4L,
                         "invalidate-1", "corr-invalidate-1"));
 
         assertThat(result.taskStage()).isEqualTo("P4");
@@ -189,9 +287,9 @@ class CutoverPlanSubmissionTest {
         assertThat(planUpdate.getValue()).extracting(CutoverPlanInvalidationUpdate::expectedApprovalVersion,
                         CutoverPlanInvalidationUpdate::newApprovalVersion,
                         CutoverPlanInvalidationUpdate::reasonCode)
-                .containsExactly(0, 1, "SOURCE_FACT_INVALIDATED");
+                .containsExactly(0L, 1L, "SOURCE_FACT_INVALIDATED");
         verify(taskMapper).returnToPlanForSourceInvalidation(
-                new CutoverTaskSourceInvalidationUpdate(1L, 50L, 5));
+                new CutoverTaskSourceInvalidationUpdate(1L, 50L, 5L));
         var history = org.mockito.ArgumentCaptor.forClass(CutoverTaskStageHistoryDO.class);
         verify(historyMapper).insert(history.capture());
         assertThat(history.getValue()).extracting(CutoverTaskStageHistoryDO::getFromStage,
@@ -204,24 +302,37 @@ class CutoverPlanSubmissionTest {
         CutoverTaskDO row = new CutoverTaskDO();
         row.setId(50L); row.setTenantId(1L); row.setProjectId(70L); row.setTaskOrigin("NEW_PLATFORM");
         row.setOwnerUserId(8L); row.setCurrentStage("P4"); row.setTaskStatus("PLAN_DRAFTING");
-        row.setVersion(4); return row;
+        row.setVersion(4L); return row;
     }
 
-    private static CutoverPlanRevisionDO simplePlan() {
-        CutoverPlanSourcePort.SourceSnapshot source = new CutoverPlanSourcePort.SourceSnapshot(1, 50L, 4,
-                60L, 2, "D", null, null, 70L, 5, 30L,
+    private static void injectStorage(CutoverPlanApplicationService service, CutoverPlanRevisionDO plan,
+                                      CutoverPlanSourcePort.SourceSnapshot source) {
+        var storage = mock(CutoverPlanStorage.class);
+        var body = JsonUtils.getObjectMapper().createObjectNode(); body.put("editMode", "ONLINE_TEMPLATE_SIMPLE_D"); body.put("scheduledTime", 1793498400000L);
+        when(storage.source(plan)).thenReturn(source); when(storage.content(plan)).thenReturn(body);
+        var prefill = mock(CutoverPlanSurveyPrefill.class);
+        when(prefill.fill(any())).thenAnswer(invocation -> ((CutoverPlanSurveyPrefill.Query) invocation.getArgument(0)).content());
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "surveyPrefill", prefill);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
+    }
+
+    private static CutoverPlanSourcePort.SourceSnapshot simpleSource() {
+        return new CutoverPlanSourcePort.SourceSnapshot(1, 50L, 4L,
+                60L, 2L, "D", null, null, 70L, 5, 30L,
                 List.of(new CutoverPlanSourcePort.DeviceSnapshot(90L, "SN-90", 3L, "SWITCH", "TYPE-V1")),
                 100L, "CFG-D", 1,
                 List.of(new CutoverPlanSourcePort.TemplateSectionSnapshot("OPERATION", "操作", 1,
                                 List.of("NETWORK_CUTOVER"), List.of("D"), true),
                         new CutoverPlanSourcePort.TemplateSectionSnapshot("ROLLBACK", "回退", 2,
                                 List.of("NETWORK_CUTOVER"), List.of("D"), true)), List.of());
+    }
+
+    private static CutoverPlanRevisionDO simplePlan() {
         CutoverPlanRevisionDO row = new CutoverPlanRevisionDO();
         row.setId(80L); row.setTenantId(1L); row.setCutoverTaskId(50L); row.setRevisionNo(1);
         row.setOriginCode("NEW_PLATFORM"); row.setEditModeCode("ONLINE_TEMPLATE_SIMPLE_D");
-        row.setGradeCode("D"); row.setSourceSnapshot(JsonUtils.toJsonString(source));
-        row.setContentSnapshot("{\"editMode\":\"ONLINE_TEMPLATE_SIMPLE_D\"}");
-        row.setStatusCode("DRAFT"); row.setCurrentMarker(1); row.setVersion(3); return row;
+        row.setGradeCode("D");
+        row.setStatusCode("DRAFT"); row.setCurrentMarker(1); row.setVersion(3L); return row;
     }
 
     private static CutoverPlanStepDO step(String section, int no, String content) {
@@ -230,8 +341,14 @@ class CutoverPlanSubmissionTest {
     }
 
     private static CutoverPlanFilePort.FileFact fileFact() {
-        return new CutoverPlanFilePort.FileFact(501L, 1, "cut-plan-draft-80",
-                new CutoverPlanFilePort.FileFactVersion(1, 1, 1), 1L, "a".repeat(64));
+        return CutoverPlanFilePort.FileFact.builder()
+                .artifactId(501L)
+                .versionNo(1)
+                .referenceKey("cut-plan-draft-80")
+                .fileFactVersion(new CutoverPlanFilePort.FileFactVersion(1, 1, 1))
+                .scopeVersion(1L)
+                .sha256("a".repeat(64))
+                .build();
     }
 
     private static final class ControlledApprovalApi implements CutoverApprovalFactApi {
@@ -241,15 +358,14 @@ class CutoverPlanSubmissionTest {
         @Override
         public CutoverApprovalStartResult start(CutoverApprovalStartCommand command) {
             this.command = command;
-            fact = new CutoverApprovalFact(70001L, 0, command.taskId(), command.planRevisionId(),
+            fact = new CutoverApprovalFact(70001L, 0L, command.taskId(), command.planRevisionId(),
                     command.planRevisionNo(), ApprovalStatus.PENDING,
                     command.sourceSnapshotVersion(), null, null, null);
             return new CutoverApprovalStartResult(StartOutcome.STARTED, fact);
         }
 
         void seed(CutoverPlanRevisionDO plan) {
-            CutoverPlanSourcePort.SourceSnapshot source = JsonUtils.parseObject(
-                    plan.getSourceSnapshot(), CutoverPlanSourcePort.SourceSnapshot.class);
+            CutoverPlanSourcePort.SourceSnapshot source = simpleSource();
             fact = new CutoverApprovalFact(plan.getApprovalInstanceId(), plan.getApprovalVersion(),
                     plan.getCutoverTaskId(), plan.getId(), plan.getRevisionNo(), ApprovalStatus.PENDING,
                     source.snapshotVersion(), null, null, null);

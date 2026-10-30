@@ -67,6 +67,18 @@ public class DynamicFormTemplateController {
         });
     }
 
+    @GetMapping("/dynamic-form-templates/training-print-selection")
+    @Operation(summary = "查询已启用培训打印表单（仅当前发布修订）")
+    @PreAuthorize("@ss.hasPermission('pms:imp-training:query')")
+    public CommonResult<PageResult<cn.iocoder.yudao.module.pms.platform.service.dynamicform.DynamicFormViews.TrainingPrint>> trainingPrints(
+            @Valid DynamicFormTemplatePageReqVO request) {
+        return trusted(() -> {
+            var result = queryService.pageTrainingPrints(new DynamicFormQueryService.TrainingPrintQuery(
+                    actor(), request.getPageNo(), request.getPageSize()));
+            return success(new PageResult<>(result.list(), result.total()));
+        });
+    }
+
     @PostMapping("/dynamic-form-templates")
     @Operation(summary = "创建动态表单模板及初始草稿")
     @PreAuthorize("@ss.hasPermission('pms:dynamic-form-template:manage')")

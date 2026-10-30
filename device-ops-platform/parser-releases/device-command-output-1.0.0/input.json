@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "collectionId": "dynamic-command-example",
+  "commandBlocks": [
+    {
+      "commandIndex": 1,
+      "commandText": "show version",
+      "status": "SUCCEEDED",
+      "stdout": "Software Version: TEST-2.3.4\nModel: LAB-9000\nSerial Number: SN-DYNAMIC-001\nSystem uptime is 2 days 3 hours",
+      "stderr": "",
+      "receivedBytes": 112,
+      "pageCount": 1,
+      "truncated": false,
+      "exitCode": 0
+    },
+    {
+      "commandIndex": 2,
+      "commandText": "show run",
+      "status": "SUCCEEDED",
+      "stdout": "hostname lab-edge\ninterface port1\n description uplink\n ip address 192.0.2.1/24\nrouter example\n network 192.0.2.0/24",
+      "stderr": "",
+      "receivedBytes": 121,
+      "pageCount": 4,
+      "truncated": false,
+      "exitCode": 0
+    },
+    {
+      "commandIndex": 3,
+      "commandText": "show tech",
+      "status": "SUCCEEDED",
+      "stdout": "SYSTEM INFORMATION\n Software Version: TEST-2.3.4\n Serial Number: SN-DYNAMIC-001\nHEALTH SUMMARY\n Temperature: normal\n Alarm Count: 0",
+      "stderr": "",
+      "receivedBytes": 140,
+      "pageCount": 8,
+      "truncated": false,
+      "exitCode": 0
+    },
+    {
+      "commandIndex": 4,
+      "commandText": "display custom operational state",
+      "status": "SUCCEEDED",
+      "stdout": "custom state is healthy",
+      "stderr": "",
+      "receivedBytes": 23,
+      "pageCount": 1,
+      "truncated": false,
+      "exitCode": 0
+    }
+  ]
+}

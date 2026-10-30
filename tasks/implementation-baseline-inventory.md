@@ -13,7 +13,7 @@
 | 对象 | 分类 | 当前结论 | Requirement |
 |---|---|---|---|
 | `CustomerMasterCurrentRuntime` | `ADAPTED` | F-CUS-001本地主档已完成；2026-08-28真实浏览器证据覆盖创建、删除/恢复与权限，8月26日局部验证的分类/数据阻断不再是当前结论。CRM同步及CUS-01/02/04仍不在该Feature完成范围 | `CUS-03` |
-| `LegacyCustomerHistoryReadOnly` | `REUSED` | 旧 project 客户入口只保留历史列表和详情，禁止创建、更新、删除、停用、恢复及地点写入，也不代理新 Owner 写操作 | `CUS-03` |
+| `LegacyCustomerHistoryReadOnly` | `RUNTIME_RETIRED_DATA_PENDING_EVIDENCE` | 清单键名保留追溯；ef1e6c0c8 已删除旧 project 客户入口并由 cus 主档承接，2026-10-17 核对运行文件均不存在。新空库排除旧表，已有库历史不作删除 | `CUS-03` |
 | `PlatformAuthorizationGrant` | `ADAPTED` | F-PROJ-003 已建立平台授权事实运行时，保留 `AuthorizationGrant` 当前实现及其正式授权边界 | `AUT-01`、`AUT-02`、`INT-06`、`INT-09` |
 | `PlatformCommandFacts` | `ADAPTED` | 平台共享命令设施保留幂等、操作审计和 Outbox 事实，作为已实现命令链的基础能力 | `NFR-01`、`PM-01` |
 | `CommerceCurrentRuntime` | `ADAPTED` | COM可信摄入、合同/订单副本与范围分配已有生产增量；F-COM-001及修订018消费者差量仍在途，ADAPTED不代表Requirement Done | `COM-01` |
@@ -34,7 +34,13 @@
 
 ## 未核实存量面
 
+2026-10-17 按需求方确认清理仓库与空库发布包：旧项目、阶段、任务树、团队、全景及计划变更运行入口已移除，机器清单中的旧项目、WBS和计划变更项标记为 `RUNTIME_REMOVED / FORBIDDEN`；倒排工期等仍声明保留的历史只读能力不在此移除范围。B498 空库发布包排除 V310 的 29 张退役表和 87 个触发器，此范围不等于删除已有数据库中的历史表或数据。证据见[发布与清理记录](../docs/generated/2026-10-17-flyway-test-v498-release.md)。
+
 机器清单对尚未被对应Feature认证可复用的聚合面保留历史枚举`BLOCKED_BY_SPEC`，具体已对齐对象由更长路径的`ADAPTED/REUSED`项覆盖。这不是“所有模块没有实现”或“所有业务规格缺失”的结论，也不是全项目阻断。本轮逐需求审查已区分生产实现、受控服务、旧CRUD和未见实现；没有据此批量放行旧模块复用。真实业务缺失/冲突仍按工程链另行登记，不从该旧枚举推导新Question。
+
+2026-10-18 补登验收、执行绑定及工程、集成、巡检前端的 75 个未覆盖生产文件，沿用上述待逐 Feature 审查的分类，不据此更改业务完成状态。运行面扫描排除前端测试和已删除文件；`pms:project:create/update/assign` 等被当前正式入口复用的权限码不独立作为退役入口证据，旧路径及其组合调用仍禁止。历史切换证据与当前 Feature 的增量状态分别维护：校验继续要求有效 Feature、Task、非空切换证据及实际存在的替代实现，不要求已有历史切换的 Feature 当前仍为 `Done`。逐项诊断及验证见[94 项诊断处理记录](../docs/generated/2026-10-18-implementation-inventory-diagnostics.md)。
+
+2026-10-18 继续逐项审查上述75个文件及其必要调用链，分类为61项可复用、9项需修复、5项应退役；确认的问题已作限定修复，退役项保留旧功能及历史边界。逐项依据和实际验证范围见[75项存量实现审查](../docs/generated/2026-10-18-legacy-75-implementation-review.md)。此文件级结论不替代对应Feature整体认证。
 
 旧SQL迁移包含多个业务对象，不能按文件整体继续沿用。后续前向迁移必须按当前领域表结构拆分，且不得通过重命名旧`pms_`表冒充模型对齐。
 

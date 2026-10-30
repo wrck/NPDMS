@@ -8,8 +8,15 @@ import { mount, passthrough, textOf, type TestNode } from '../../platform/dynami
 vi.mock('element-plus', () => ({ ElMessageBox: { confirm: vi.fn().mockResolvedValue(undefined) } }))
 vi.mock('@/config/axios', () => ({ default: {} }))
 vi.mock('@/directives/permission/hasPermi', () => ({ hasPermission: () => true }))
+vi.mock('./lifecycleStageOptions', () => ({ lifecycleStageOptions: () => [
+  { code: 'S0', name: '项目立项与指派' }, { code: 'S1', name: '工前准备' }, { code: 'S2', name: '施工计划' },
+  { code: 'S3', name: '实施方案编审' }, { code: 'S4', name: '实施部署' }, { code: 'S5', name: '验收交维' },
+  { code: 'S6', name: '项目闭环' }
+] }))
 vi.mock('@/api/pms/project/project-templates/directBinding', () => ({ createBindingSaveSession: () => new Map(), prepareTaskBinding: vi.fn() }))
 vi.mock('@/api/pms/project/project-templates/designerAssets', () => ({}))
+vi.mock('@/api/pms/project/project-templates/execution', () => ({ getBusinessResultCatalog: vi.fn(async () => []) }))
+vi.mock('@/api/pms/project/project-templates/operations', () => ({ getBusinessOperationCatalog: vi.fn(async () => []) }))
 vi.mock('./TemplateFlowCanvas.vue', () => ({ default: defineComponent({
   inheritAttrs: false, setup: (_, { attrs }) => () => h('canvas-probe', attrs)
 }) }))

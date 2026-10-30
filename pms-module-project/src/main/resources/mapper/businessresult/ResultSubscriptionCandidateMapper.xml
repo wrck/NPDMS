@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.businessresult.ResultSubscriptionCandidateMapper">
+    <select id="selectIdentityForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.businessresult.ResultSubscriptionCandidateDO">
+        SELECT * FROM proj_result_subscription_candidate WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND subscription_id=#{query.subscriptionId} AND object_id=#{query.objectId} AND result_id=#{query.resultId} FOR UPDATE
+    </select>
+    <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.businessresult.ResultSubscriptionCandidateDO">
+        SELECT * FROM proj_result_subscription_candidate WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND subscription_id=#{query.subscriptionId} AND id &gt; #{query.afterId} ORDER BY id LIMIT #{query.limit}
+    </select>
+    <insert id="insert">
+        INSERT INTO proj_result_subscription_candidate
+          (id,tenant_id,project_id,subscription_id,object_id,result_id,formation_sequence,observed_sequence,observation)
+        VALUES (#{row.id},#{row.tenantId},#{row.projectId},#{row.subscriptionId},#{row.objectId},#{row.resultId},
+                #{row.formationSequence},#{row.observedSequence},#{row.observation})
+    </insert>
+    <update id="observe">
+        UPDATE proj_result_subscription_candidate SET observed_sequence=#{query.observedSequence},
+          formation_sequence=COALESCE(formation_sequence,#{query.formationSequence}),observation=#{query.observation}
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND subscription_id=#{query.subscriptionId}
+          AND id=#{query.id} AND observed_sequence &lt;= #{query.observedSequence}
+    </update>
+    <update id="invalidate">
+        UPDATE proj_result_subscription_candidate SET observed_sequence=#{query.observedSequence},observation=#{query.observation}
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND subscription_id=#{query.subscriptionId}
+          AND observed_sequence &lt;= #{query.observedSequence}
+        <choose>
+            <when test="query.resultId != null">
+                AND result_id=#{query.resultId}
+                <if test="query.objectId != null">AND object_id=#{query.objectId}</if>
+            </when>
+            <when test="query.objectId != null">AND object_id=#{query.objectId}</when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+    </update>
+</mapper>

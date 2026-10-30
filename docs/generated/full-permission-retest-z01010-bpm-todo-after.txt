@@ -1,0 +1,108 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "项目交付":
+    - generic: 项目交付
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程" [expanded]:
+    - generic: 工作流程
+    - menu:
+      - menuitem "审批中心" [expanded]:
+        - generic: 审批中心
+        - menu:
+          - menuitem "待办任务" [active]:
+            - generic: 待办任务
+          - menuitem "已办任务":
+            - generic: 已办任务
+- navigation "面包屑":
+  - link "工作流程":
+    - text: 工作流程
+  - text: /
+  - link "审批中心":
+    - text: 审批中心
+  - text: /
+  - link "待办任务":
+    - text: 待办任务
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button "周文成":
+  - generic: 周文成
+- button "首页":
+  - text: 首页
+- button "巡检任务详情":
+  - generic: 巡检任务详情
+- button "待办任务":
+  - text: 待办任务
+- button "流程详情":
+  - generic: 流程详情
+- button "已办任务":
+  - text: 已办任务
+- button:
+- textbox "请输入任务名称"
+- button "搜索":
+  - text: 搜索
+- combobox
+- generic: 请选择流程分类
+- button "高级筛选":
+  - text: 高级筛选
+- table:
+  - rowgroup:
+    - row "流程 摘要 发起人 发起时间 当前任务 任务时间 流程编号 任务编号 操作":
+      - columnheader "流程":
+        - generic: 流程
+      - columnheader "摘要":
+        - generic: 摘要
+      - columnheader "发起人":
+        - generic: 发起人
+      - columnheader "发起时间":
+        - generic: 发起时间
+      - columnheader "当前任务":
+        - generic: 当前任务
+      - columnheader "任务时间":
+        - generic: 任务时间
+      - columnheader "流程编号":
+        - generic: 流程编号
+      - columnheader "任务编号":
+        - generic: 任务编号
+      - columnheader "操作":
+        - generic: 操作
+- table:
+  - rowgroup:
+    - 'row "默认业务独立审批验收 20261012 审批说明 : 管理员 2026-10-17 16:24:45 人工审核 2026-10-17 16:24:45 35e97c3e-ca04-11f1-af8b-00ff0b78abd7 35efe4e9-ca04-11f1-af8b-00ff0b78abd7 办理"':
+      - cell "默认业务独立审批验收 20261012":
+        - generic: 默认业务独立审批验收 20261012
+      - cell "审批说明 :":
+        - generic: "审批说明 :"
+      - cell "管理员":
+        - generic: 管理员
+      - cell "2026-10-17 16:24:45":
+        - generic: 2026-10-17 16:24:45
+      - cell "人工审核":
+        - generic: 人工审核
+      - cell "2026-10-17 16:24:45":
+        - generic: 2026-10-17 16:24:45
+      - cell "35e97c3e-ca04-11f1-af8b-00ff0b78abd7":
+        - generic: 35e97c3e-ca04-11f1-af8b-00ff0b78abd7
+      - cell "35efe4e9-ca04-11f1-af8b-00ff0b78abd7":
+        - generic: 35efe4e9-ca04-11f1-af8b-00ff0b78abd7
+      - cell "办理":
+        - button "办理":
+          - generic: 办理
+- combobox
+- generic: 10条/页
+- generic: 共 1 条
+- button "上一页" [disabled]:
+- list:
+  - listitem "第 1 页": "1"
+- button "下一页" [disabled]:
+- generic: 前往
+- spinbutton "页": "1"
+- generic: 页
+- generic: Copyright ©2026 项目实施交付管理平台

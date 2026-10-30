@@ -20,6 +20,16 @@ public class BusinessViewComponentRegistry {
     private record Entry(BusinessViewComponentProvider provider, BusinessViewComponentProvider.Component component) { }
     private final Map<Key, Entry> entries;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    public BusinessViewComponentRegistry(List<BusinessViewComponentProvider> providers,
+            org.springframework.beans.factory.ObjectProvider<DeclaredBusinessViewProviderFactory> defaults) {
+        this(withDefaults(providers,defaults.getIfAvailable()));
+    }
+    private static List<BusinessViewComponentProvider> withDefaults(List<BusinessViewComponentProvider> owners,DeclaredBusinessViewProviderFactory defaults) {
+        var providers=new ArrayList<>(owners);
+        if(defaults!=null) providers.addAll(defaults.providers());
+        return providers;
+    }
     public BusinessViewComponentRegistry(List<BusinessViewComponentProvider> providers) {
         List<Entry> candidates = new ArrayList<>();
         for (BusinessViewComponentProvider provider : providers) {

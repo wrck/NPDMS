@@ -1,0 +1,68 @@
+import { isBusinessViewId } from '@/api/pms/platform/business-view/ids'
+import { siteSurveyOperationActions } from '@/api/pms/engineering/site-survey/operationActions'
+import { requirementAnalysisOperationActions } from '@/api/pms/engineering/requirement-analysis/operationActions'
+import { acceptanceReportOperationActions } from '@/api/pms/acceptance/acceptance-report/operationActions'
+
+export interface PagePresentation { pageUrl: string; query: Readonly<Record<string, string>> }
+/** The single code-owned directory for embedded routes; the Vue registry adds only static components. */
+export const businessPageRoutes = {
+  CUT_CUTOVER_APPROVAL_WORKBENCH: { componentKey: 'CUT_CUTOVER_APPROVAL_WORKBENCH', componentVersion: '1', ownerContext: 'CUT', entityType: 'CUTOVER_APPROVAL', viewSource: 'PAGE', pageUrl: '/pms/cutover/approval-workbench', operationActions: { 'CUT.CUTOVER_APPROVAL.CREATE': ['CREATE'] } as Record<string, readonly string[]> },
+  IMP_ARRIVAL_RECEIPT: { componentKey: 'IMP_ARRIVAL_RECEIPT', componentVersion: '1', ownerContext: 'IMP', entityType: 'ARRIVAL', viewSource: 'PAGE', pageUrl: '/pms/engineering/execution/imp-arrival' },
+  IMP_PROJECT_INSTALLATION: { componentKey: 'IMP_PROJECT_INSTALLATION', componentVersion: '1', ownerContext: 'IMP', entityType: 'INSTALLATION', viewSource: 'PAGE', pageUrl: '/pms/engineering/execution/imp-installation' },
+  IMP_TRAINING_CONFIRMATION: { componentKey: 'IMP_TRAINING_CONFIRMATION', componentVersion: '1', ownerContext: 'IMP', entityType: 'TRAINING', viewSource: 'PAGE', pageUrl: '/pms/imp-training' },
+  CUT_CUTOVER_APPROVAL: { componentKey: 'CUT_CUTOVER_APPROVAL', componentVersion: '1', ownerContext: 'CUT', entityType: 'CUTOVER_APPROVAL', viewSource: 'PAGE', pageUrl: '/pms/cutover/approval-result' },
+  PROJ_PROJECT_ASSIGNMENT: { componentKey: 'PROJ_PROJECT_ASSIGNMENT', componentVersion: '1', ownerContext: 'PROJ', entityType: 'PROJECT_ASSIGNMENT', viewSource: 'PAGE', pageUrl: '/pms/project-management/project-master-detail' },
+  PLN_STAGE_PLAN_APPROVAL: { componentKey: 'PLN_STAGE_PLAN_APPROVAL', componentVersion: '1', ownerContext: 'PLN', entityType: 'STAGE_PLAN', viewSource: 'PAGE', pageUrl: '/pms/imp-stage-plan' },
+  SOL_IMPLEMENTATION_SOLUTION: { componentKey: 'SOL_IMPLEMENTATION_SOLUTION', componentVersion: '1', ownerContext: 'SOL', entityType: 'IMPLEMENTATION_SOLUTION', viewSource: 'PAGE', pageUrl: '/pms/engineering/preparation/sol-solution' },
+  CUT_CUTOVER_COMPLETION: { componentKey: 'CUT_CUTOVER_COMPLETION', componentVersion: '1', ownerContext: 'CUT', entityType: 'CUTOVER_TASK', viewSource: 'PAGE', pageUrl: '/pms/cutover/cutover-task' },
+  CUT_CUTOVER_WORKBENCH: { componentKey: 'CUT_CUTOVER_WORKBENCH', componentVersion: '1', ownerContext: 'CUT', entityType: 'CUTOVER_TASK', viewSource: 'PAGE', pageUrl: '/pms/cutover/workbench', operationActions: { 'CUT.CUTOVER_TASK.CREATE': ['CREATE'] } as Record<string, readonly string[]> },
+  IMP_CUTOVER_COVERAGE: { componentKey: 'IMP_CUTOVER_COVERAGE', componentVersion: '1', ownerContext: 'IMP', entityType: 'CUTOVER_COVERAGE', viewSource: 'PAGE', pageUrl: '/pms/cutover/project-coverage' },
+  ACC_SATISFACTION: { componentKey: 'ACC_SATISFACTION', componentVersion: '1', ownerContext: 'ACC', entityType: 'SATISFACTION', viewSource: 'PAGE', pageUrl: '/pms/project/satisfaction' },
+  ACC_ACCEPTANCE_REPORT: { componentKey: 'ACC_ACCEPTANCE_REPORT', componentVersion: '1', ownerContext: 'ACC', entityType: 'ACCEPTANCE', viewSource: 'PAGE', pageUrl: '/pms/project/acceptance-report', operationActions: acceptanceReportOperationActions },
+  SOL_SITE_SURVEY: { componentKey: 'SOL_SITE_SURVEY', componentVersion: '1', ownerContext: 'SOL', entityType: 'SITE_SURVEY', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/site-survey', operationActions: siteSurveyOperationActions },
+  PROJ_REQUIREMENT_ANALYSIS: { componentKey: 'PROJ_REQUIREMENT_ANALYSIS', componentVersion: '1', ownerContext: 'SOL', entityType: 'REQUIREMENT_ANALYSIS', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/requirement-analysis', operationActions: requirementAnalysisOperationActions },
+  PLN_CONSTRUCTION_PLAN: { componentKey: 'PLN_CONSTRUCTION_PLAN', componentVersion: '1', ownerContext: 'PLN', entityType: 'CONSTRUCTION_PLAN', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/duration' }
+} as const
+
+export interface PageIdentity { ownerContext: string; entityType: string; componentKey: string; componentVersion: string; viewSource: string }
+export interface PageContext { project?: { id?: string | number }; businessObjectId?: string | number }
+
+/** Only the exact code-owned view adapter supplies aliases; registration JSON cannot grant actions. */
+export function businessOperationAliases(view: PageIdentity, code: string): string[] {
+  const matches = Object.values(businessPageRoutes).filter(item => item.ownerContext === view.ownerContext
+    && item.entityType === view.entityType && item.componentKey === view.componentKey
+    && item.componentVersion === view.componentVersion && item.viewSource === view.viewSource)
+  if (matches.length !== 1 || !('operationActions' in matches[0])) return []
+  return [...(matches[0].operationActions[code] ?? [])]
+}
+
+/** Only echoes the selected Owner context. Never use these values to construct props or command input. */
+export function validatePagePresentation(value: PagePresentation, path: string | undefined, context: PageContext): string {
+  if (!path || value.pageUrl !== path || !value.query || typeof value.query !== 'object' || Array.isArray(value.query))
+    throw new Error('PRESENTATION_ROUTE_MISMATCH')
+  if (!isBusinessViewId(context.project?.id)) throw new Error('PRESENTATION_PROJECT_REQUIRED')
+  const expected: Record<string, string | undefined> = {
+    projectId: String(context.project.id),
+    objectId: context.businessObjectId == null ? undefined : String(context.businessObjectId)
+  }
+  if (context.businessObjectId != null && !isBusinessViewId(context.businessObjectId)) throw new Error('PRESENTATION_OBJECT_INVALID')
+  const parameters = Object.entries(value.query).map(([key, item]) => {
+    if (!Object.hasOwn(expected, key) || typeof item !== 'string' || item !== expected[key])
+      throw new Error('PRESENTATION_CONTEXT_MISMATCH')
+    return `${encodeURIComponent(key)}=${encodeURIComponent(item)}`
+  })
+  return path + (parameters.length ? `?${parameters.join('&')}` : '')
+}
+
+export function pagePresentationKey(value?: PagePresentation): string {
+  return value ? JSON.stringify([value.pageUrl, Object.entries(value.query).sort(([a], [b]) => a.localeCompare(b))]) : ''
+}
+
+export function validateBusinessPage(target: { registration: PageIdentity; resolvedContext: PageContext }, presentation: PagePresentation): void {
+  const view = target.registration
+  const matches = Object.values(businessPageRoutes).filter(item => item.componentKey === view.componentKey
+    && item.componentVersion === view.componentVersion && item.ownerContext === view.ownerContext
+    && item.entityType === view.entityType && item.viewSource === view.viewSource)
+  if (matches.length !== 1) throw new Error('PRESENTATION_ROUTE_NOT_INSTALLED')
+  validatePagePresentation(presentation, matches[0].pageUrl, target.resolvedContext)
+}

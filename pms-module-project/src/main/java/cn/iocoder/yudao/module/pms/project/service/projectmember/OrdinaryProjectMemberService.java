@@ -50,6 +50,14 @@ public class OrdinaryProjectMemberService {
     private final PlatformCommandExecutionApi commands;
     private final ProjectManagerMemberApplicationService projectManagers;
 
+    public boolean canAppointPrimaryProjectManager(Long projectId, Actor actor) {
+        validateActor(actor);
+        projects.getProject(projectId, accessActor(actor));
+        return permissions.hasAnyPermissions(actor.userId(), "pms:project:assign")
+                && authorization.canAppointPrimaryProjectManager(
+                new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()), projectId);
+    }
+
     public PageResult<ProjectMemberAssignmentDO> page(Long projectId, Filter filter, Actor actor) {
         validateActor(actor);
         if (filter == null || filter.pageNo() < 1 || filter.pageSize() < 1 || filter.pageSize() > 100
@@ -149,6 +157,7 @@ public class OrdinaryProjectMemberService {
             return result(project, previous, true);
         }
         MemberValues values = command.member();
+        if (END_USER.equals(role)) return externalMutation(project, previous, command, actor, now);
         if (previous != null && Objects.equals(previous.getUserId(), values.userId())
                 && Objects.equals(previous.getMemberRole(), values.memberRole())
                 && Objects.equals(normalized(previous.getResponsibility()), normalized(values.responsibility()))
@@ -187,6 +196,34 @@ public class OrdinaryProjectMemberService {
         return result(project, member, true);
     }
 
+    private Result externalMutation(ProjectMasterDO project, ProjectMemberAssignmentDO previous,
+                                    Command command, Actor actor, LocalDateTime now) {
+        var values = command.member();
+        var person = values.externalPerson();
+        if (previous != null && Objects.equals(previous.getMemberName(), normalized(person.name()))
+                && Objects.equals(previous.getCompanyName(), normalized(person.companyName()))
+                && Objects.equals(previous.getDepartmentName(), normalized(person.department()))
+                && Objects.equals(previous.getTitle(), normalized(person.title()))
+                && Objects.equals(previous.getExternalMobile(), normalized(person.mobile()))
+                && Objects.equals(previous.getExternalEmail(), normalized(person.email()))
+                && Objects.equals(normalized(previous.getResponsibility()), normalized(values.responsibility()))
+                && Objects.equals(normalized(previous.getRemark()), normalized(values.remark())))
+            return result(project, previous, false);
+        if (previous != null) close(previous, command.reason(), now);
+        var member = new ProjectMemberAssignmentDO();
+        member.setTenantId(actor.tenantId()); member.setProjectId(project.getId());
+        member.setMemberRole(END_USER); member.setMemberName(normalized(person.name()));
+        member.setAuthorizationConfirmed(false);
+        member.setCompanyName(normalized(person.companyName()));
+        member.setDepartmentName(normalized(person.department())); member.setTitle(normalized(person.title()));
+        member.setExternalMobile(normalized(person.mobile())); member.setExternalEmail(normalized(person.email()));
+        member.setResponsibility(normalized(values.responsibility())); member.setRemark(normalized(values.remark()));
+        member.setChangeReason(command.reason()); member.setEffectiveFrom(now); member.setStatus("ACTIVE"); member.setVersion(0);
+        if (memberMapper.insert(member) != 1) throw exception(PROJECT_VERSION_CONFLICT);
+        incrementVersion(project);
+        return result(project, member, true);
+    }
+
     private ActiveUserSelectionApi.Query selection(ProjectMasterDO project, String role, ServiceScope scope,
             int pageNo, int pageSize, String keyword, Set<Long> userIds) {
         String systemRole = switch (role) {
@@ -210,6 +247,8 @@ public class OrdinaryProjectMemberService {
 
     private Result serviceManagerMutation(ProjectMasterDO project, ProjectMemberAssignmentDO previous,
             Command command, Actor actor, LocalDateTime now) {
+        authorization.assertCanMaintainServiceManagers(
+                new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()), project);
         if (command.action() == Action.REMOVE) {
             close(previous, command.reason(), now);
             incrementVersion(project);
@@ -273,6 +312,12 @@ public class OrdinaryProjectMemberService {
             Command command, Actor actor, LocalDateTime now) {
         String role = previous == null ? command.member().memberRole() : logicalRole(previous.getMemberRole());
         if (command.action() == Action.REMOVE) {
+            if (previous.getUserId() == null) {
+                close(previous, command.reason(), now);
+                incrementVersion(project);
+                previous.setEffectiveTo(now);
+                return result(project, previous, true);
+            }
             var changed = projectManagers.update(new ProjectManagerMemberCommand(project.getId(), project.getVersion(),
                     Set.of(), Set.of(previous.getUserId()), command.replacementPrimaryUserId(), command.reason(),
                     command.idempotencyKey()), new ProjectManagerMemberApplicationService.Actor(
@@ -307,7 +352,7 @@ public class OrdinaryProjectMemberService {
                     ? values.userId() : null;
             var changed = projectManagers.update(new ProjectManagerMemberCommand(project.getId(), project.getVersion(),
                     samePerson ? Set.of() : Set.of(values.userId()),
-                    previous != null && !samePerson ? Set.of(previous.getUserId()) : Set.of(), primary,
+                    previous != null && previous.getUserId() != null && !samePerson ? Set.of(previous.getUserId()) : Set.of(), primary,
                     command.reason(), command.idempotencyKey()), new ProjectManagerMemberApplicationService.Actor(
                     actor.tenantId(), actor.userId(), actor.correlationId()));
             project.setVersion(changed.version());
@@ -316,7 +361,10 @@ public class OrdinaryProjectMemberService {
                 if (!changed.changed()) incrementVersion(project);
                 return result(project, created, true);
             }
-            if (previous != null) recordEndReason(previous.getId(), command.reason());
+            if (previous != null) {
+                if (previous.getUserId() == null) close(previous, command.reason(), now);
+                else recordEndReason(previous.getId(), command.reason());
+            }
             Long assignmentId = changed.members().stream().filter(member -> Objects.equals(member.userId(), values.userId()))
                     .map(ProjectManagerMemberResult.Member::assignmentId).findFirst().orElseThrow(() -> invalid("经理关系未生成"));
             created = memberMapper.selectById(assignmentId);
@@ -365,7 +413,7 @@ public class OrdinaryProjectMemberService {
         close.setId(member.getId());
         close.setEffectiveTo(now);
         close.setEndReason(reason.trim());
-        close.setVersion(member.getVersion() == null ? 1 : member.getVersion() + 1);
+        close.setVersion(member.getVersion());
         if (memberMapper.updateById(close) != 1) throw exception(PROJECT_VERSION_CONFLICT);
     }
 
@@ -385,6 +433,15 @@ public class OrdinaryProjectMemberService {
                 || actor.userId() == null || actor.userId() <= 0 || actor.correlationId() == null
                 || actor.correlationId().isBlank()) throw exception(PROJECT_AUTHORIZATION_FORBIDDEN);
     }
+    private static void validateExternalContact(ExternalPerson person) {
+        String mobile = normalized(person.mobile()), email = normalized(person.email());
+        // 国内手机号或区号+固话；允许既有 +86 (571) 8888-1234 展示格式。
+        if (mobile != null && !mobile.matches("(?:\\+86[ -]?)?(?:1[3-9][0-9]{9}|(?:0[1-9][0-9]{1,2}|\\(0?[1-9][0-9]{1,2}\\))[ -]?(?:[1-9][0-9]{6,7}|[1-9][0-9]{2,3}-[0-9]{4})(?:-[0-9]{1,6})?)"))
+            throw invalid("联系电话格式无效");
+        if (email != null && !email.matches("[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+[A-Za-z]{2,63}"))
+            throw invalid("邮箱格式无效");
+    }
+
     private static void validateCommand(Command command) {
         if (command == null || command.projectId() == null || command.projectId() <= 0 || command.action() == null
                 || command.expectedVersion() == null || command.expectedVersion() < 0
@@ -395,9 +452,22 @@ public class OrdinaryProjectMemberService {
             throw invalid("成员操作参数无效");
         if (command.action() != Action.REMOVE) {
             MemberValues values = command.member();
-            if (values == null || values.userId() == null || values.userId() <= 0
-                    || values.memberRole() == null || !ORDINARY_ROLES.contains(values.memberRole()) && !managerRole(values.memberRole()))
+            if (values == null || values.memberRole() == null || !ORDINARY_ROLES.contains(values.memberRole()) && !managerRole(values.memberRole()))
                 throw exception(PROJECT_MEMBER_ROLE_INVALID);
+            if (END_USER.equals(values.memberRole())) {
+                var person = values.externalPerson();
+                if (values.userId() != null || Boolean.TRUE.equals(values.primary()) || values.scope() != null
+                        || person == null || normalized(person.name()) == null || person.name().length() > 128
+                        || person.companyName() != null && person.companyName().length() > 255
+                        || person.department() != null && person.department().length() > 64
+                        || person.title() != null && person.title().length() > 64
+                        || person.mobile() != null && person.mobile().length() > 64
+                        || person.email() != null && person.email().length() > 255)
+                    throw invalid("最终用户资料无效");
+                validateExternalContact(person);
+            } else if (values.userId() == null || values.userId() <= 0 || values.externalPerson() != null) {
+                throw invalid("内部成员必须选择有效系统账号");
+            }
             if (values.responsibility() != null && values.responsibility().length() > 500
                     || values.remark() != null && values.remark().length() > 500) throw invalid("职责和备注不能超过500字");
         }
@@ -421,19 +491,25 @@ public class OrdinaryProjectMemberService {
     public record Filter(int pageNo, int pageSize, String state, String role, String keyword) { }
     public record CandidateFilter(int pageNo, int pageSize, String keyword, Long userId, String projectRole, ServiceScope scope) { }
     public record ServiceScope(String levelCode, String assignmentType, Long siteId, Long departmentId, String departmentCode) { }
-    public record MemberValues(Long userId, String memberRole, String responsibility, String remark, Boolean primary, ServiceScope scope) {
+    @lombok.Builder
+    public record ExternalPerson(String name, String companyName, String mobile, String email, String department, String title) { }
+    public record MemberValues(Long userId, String memberRole, String responsibility, String remark, Boolean primary,
+                               ServiceScope scope, ExternalPerson externalPerson) {
+        public MemberValues(Long userId, String memberRole, String responsibility, String remark, Boolean primary, ServiceScope scope) {
+            this(userId, memberRole, responsibility, remark, primary, scope, null);
+        }
         public MemberValues(Long userId, String memberRole, String responsibility, String remark) {
             this(userId, memberRole, responsibility, remark, false, null);
         }
     }
-    public record Command(Long projectId, Integer expectedVersion, Action action, Long assignmentId,
+    public record Command(Long projectId, Long expectedVersion, Action action, Long assignmentId,
                           MemberValues member, String reason, String idempotencyKey, Long replacementPrimaryUserId) {
         public Command { reason = reason == null ? "" : reason.trim(); }
-        public Command(Long projectId, Integer version, Action action, Long assignmentId, MemberValues member, String reason, String key) {
+        public Command(Long projectId, Long version, Action action, Long assignmentId, MemberValues member, String reason, String key) {
             this(projectId, version, action, assignmentId, member, reason, key, null);
         }
     }
-    public record Result(Long projectId, Integer version, Long assignmentId, Long userId, String memberRole,
+    public record Result(Long projectId, Long version, Long assignmentId, Long userId, String memberRole,
                          LocalDateTime effectiveFrom, LocalDateTime effectiveTo, boolean changed) { }
     private record Audit(Long previousAssignmentId, MemberValues member, String reason, Result result) { }
 }

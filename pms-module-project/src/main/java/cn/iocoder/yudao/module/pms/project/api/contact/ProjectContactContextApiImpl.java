@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.api.contact;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
+
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.AuthorizationGrantApi;
 import cn.iocoder.yudao.module.pms.platform.api.authorization.dto.AuthorizationGrantQuery;
@@ -19,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_TREE_SCOPE_FORBIDDEN;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_VERSION_CONFLICT;
@@ -34,6 +35,7 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
     private final AuthorizationGrantApi grants;
     private final cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customers;
     private final cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService projectRoles;
+    private final ProjectManagementQualificationApi managementAccess;
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
@@ -53,10 +55,14 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
     @Override
     public Context inspect(Query query) {
         validate(query);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(), query.actorUserId(), query.projectId(), ProjectScopeApi.ACTION_VIEW));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || !scope.fullProjectIds().contains(query.projectId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         var project = requireProject(query, projects.selectById(query.projectId()));
-        return context(query, project, scope.treeVersion());
+        return context(new ContextQuery(query, project, scope.treeVersion(), false));
     }
 
     @Override
@@ -64,21 +70,44 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
     public Context lockForWrite(WriteQuery write) {
         var query = new Query(write.tenantId(), write.actorUserId(), write.projectId());
         validate(query);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(), query.actorUserId(), query.projectId(), ProjectScopeApi.ACTION_MANAGE));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (scope == null || !scope.fullProjectIds().contains(query.projectId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
-        scope = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(query.tenantId(), query.actorUserId(), query.projectId(), ProjectScopeApi.ACTION_MANAGE, scope.treeVersion()));
+        scope = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if (scope == null || !scope.fullProjectIds().contains(query.projectId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         var project = requireProject(query, projects.selectByIdForUpdate(query.projectId()));
         if (write.expectedProjectVersion() == null || !Objects.equals(project.getVersion(), write.expectedProjectVersion())) throw exception(PROJECT_VERSION_CONFLICT);
-        var result = context(query, project, scope.treeVersion());
+        var result = context(new ContextQuery(query, project, scope.treeVersion(), true));
         if (!result.canManage()) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         return result;
     }
 
-    private Context context(Query query, ProjectMasterDO project, Long treeVersion) {
-        boolean manager = projectRoles.isTenantSuperAdmin(query.tenantId(), query.actorUserId())
-                || !members.selectParticipantFacts(new ProjectParticipantFactLookupQuery(
-                query.tenantId(), query.projectId(), query.actorUserId(), Set.of("PROJECT_MANAGER"), LocalDateTime.now())).isEmpty();
+    private record ContextQuery(Query subject, ProjectMasterDO project, Long treeVersion, boolean writing) { }
+
+    private Context context(ContextQuery contextQuery) {
+        var query = contextQuery.subject();
+        var project = contextQuery.project();
+        var treeVersion = contextQuery.treeVersion();
+        var managementRoles = cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES;
+        boolean manager = projectRoles.isTenantSuperAdmin(query.tenantId(), query.actorUserId());
+        if (!manager && "ACTIVE".equals(project.getLifecycleStatus())) {
+            var subject = new ProjectManagementQualificationApi.Query(
+                    query.tenantId(), query.projectId(), query.actorUserId());
+            manager = contextQuery.writing() ? (managementAccess.lockCurrent(new ProjectManagementQualificationApi.CurrentRevalidation(subject, project.getVersion(), "ACTIVE", null)) != null) : managementAccess.permits(subject);
+        } else if (!manager && !contextQuery.writing()) {
+            // Closed history is read-only membership evidence, not active management qualification.
+            manager = !members.selectAuthorizationParticipantFacts(ProjectParticipantFactLookupQuery.builder()
+                    .tenantId(query.tenantId()).projectId(query.projectId()).subjectUserId(query.actorUserId())
+                    .requiredRoleCodes(managementRoles).effectiveAt(LocalDateTime.now()).build()).isEmpty();
+        }
         if (!manager) {
             var ids = new HashSet<>(ancestors.getAncestors(new ProjectAncestorQuery(query.tenantId(), query.projectId(), treeVersion)).ancestorProjectIds());
             ids.add(query.projectId());
@@ -87,8 +116,17 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
                     .anyMatch(grant -> Objects.equals(grant.resourceId(), query.projectId())
                             || "PROJECT_AND_DESCENDANTS".equals(grant.scopeCode()));
         }
-        return new Context(project.getId(), project.getCustomerId(), project.getVersion(), project.getLifecycleStatus(),
-                manager, manager);
+        Long customerId = project.getCustomerId();
+        if (customerId == null && project.getCustomerCode() != null && !project.getCustomerCode().isBlank()) {
+            var customer = customers.getCustomerByCode(new cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerCodeQuery(
+                    project.getCustomerCode(), query.actorUserId()));
+            if (customer == null || !Objects.equals(customer.tenantId(), query.tenantId())) {
+                throw exception(cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJECT_CUSTOMER_UNAVAILABLE);
+            }
+            customerId = customer.id();
+        }
+        return new Context(project.getId(), customerId, project.getVersion(), project.getLifecycleStatus(),
+                manager && "ACTIVE".equals(project.getLifecycleStatus()), manager);
     }
 
     private void validate(Query query) {

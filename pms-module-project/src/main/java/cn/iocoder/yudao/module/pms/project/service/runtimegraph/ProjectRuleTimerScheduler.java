@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.runtimegraph;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO;
@@ -7,7 +8,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExec
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery;
 import cn.iocoder.yudao.module.pms.project.domain.rule.AbsoluteTimeCondition;
 import cn.iocoder.yudao.module.pms.project.domain.rule.RelativeTimeCondition;
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +30,7 @@ public class ProjectRuleTimerScheduler {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void schedule(Long projectId, Long planId, TemplateExecutionSnapshot snapshot, Set<Long> newRoundIds) {
+        TemplateExecutionSnapshotReader.validate(snapshot);
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         var rounds = executions.selectCurrent(new ProjectPlanScopeQuery(tenantId, projectId));
         schedule(tenantId, projectId, planId, snapshot, rounds, newRoundIds, null);
@@ -46,7 +47,7 @@ public class ProjectRuleTimerScheduler {
         var changed = rounds.stream().filter(round -> kind.equals(round.getNodeKind())
                 && nodeInstanceId.equals(round.getNodeInstanceId())).toList();
         if (changed.size() != 1) throw new IllegalStateException("TIMER_ANCHOR_UNAVAILABLE");
-        schedule(tenant, projectId, plan.getId(), JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class),
+        schedule(tenant, projectId, plan.getId(), TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot()),
                 rounds, null, changed.getFirst().getId());
     }
 

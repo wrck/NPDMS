@@ -8,8 +8,8 @@ export interface MaterialRequisitionVO {
   name: string
   requisitionType?: string
   equipmentId?: number
-  materialName: string
-  materialCode?: string
+  productName: string
+  productCode?: string
   specification?: string
   quantity: number
   unit?: string
@@ -33,7 +33,7 @@ export interface MaterialRequisitionVO {
   createTime?: string
 }
 
-const baseUrl = '/pms/eng-material-req'
+const baseUrl = '/pms/imp-material-req'
 
 export const getMaterialRequisitionPage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

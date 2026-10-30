@@ -23,7 +23,7 @@ public class ProjectReworkController {
     public record Selection(@NotEmpty List<@NotBlank String> selectedNodeKeys) { }
     public record Expected(@NotBlank String nodeKey, @NotNull @Positive Long executionId,
                            @NotNull @PositiveOrZero Integer version) { }
-    public record Apply(@NotNull @Positive Long planVersionId, @NotNull @PositiveOrZero Integer expectedProjectVersion,
+    public record Apply(@NotNull @Positive Long planVersionId, @NotNull @PositiveOrZero Long expectedProjectVersion,
                         @NotEmpty List<@NotBlank String> selectedNodeKeys, @NotEmpty List<@NotNull @Valid Expected> expectedExecutions,
                         @NotBlank @Size(max = 500) String reason) { }
 

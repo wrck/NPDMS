@@ -10,6 +10,7 @@ import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.bpm.controller.admin.task.vo.instance.BpmProcessInstanceCancelReqVO;
 import cn.iocoder.yudao.module.bpm.api.task.BpmProcessInstanceApiImpl;
+import cn.iocoder.yudao.module.bpm.service.durationchange.DurationChangeBpmService;
 import cn.iocoder.yudao.module.bpm.controller.admin.task.vo.task.BpmTaskApproveReqVO;
 import cn.iocoder.yudao.module.bpm.controller.admin.task.vo.task.BpmTaskRejectReqVO;
 import cn.iocoder.yudao.module.bpm.dal.dataobject.definition.BpmProcessDefinitionInfoDO;
@@ -213,6 +214,7 @@ class DurationChangeBpmMySqlIntegrationTest {
         bpmnModel = model();
         deploymentId = repositoryService.createDeployment()
                 .name(PROCESS_KEY)
+                .tenantId("0")
                 .addBpmnModel(PROCESS_KEY + ".bpmn20.xml", bpmnModel)
                 .deploy().getId();
         participantFactApi.useMock();
@@ -275,6 +277,9 @@ class DurationChangeBpmMySqlIntegrationTest {
         assertEquals(command == Command.APPROVE ? candidateRevisionId : baseRevisionId,
                 number("SELECT current_duration_revision_id FROM sol_construction_plan WHERE id=?", planId));
         assertNull(value("SELECT pending_change_id FROM sol_construction_plan WHERE id=?", planId));
+        if (command == Command.APPROVE) {
+            assertEquals("同意", value("SELECT approval_opinion FROM sol_construction_plan_change WHERE id=?", changeId));
+        }
         assertEquals(command == Command.APPROVE ? ConstructionPlanDO.RECALCULATION_PENDING : "RECALCULATED",
                 value("SELECT plan_recalculation_status_code FROM sol_construction_plan WHERE id=?", planId));
         assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
@@ -306,7 +311,7 @@ class DurationChangeBpmMySqlIntegrationTest {
         login(APPLICANT);
 
         var response = durationChangeService.submit(new SubmitDurationChangeCommand(
-                        planId, changeId, 0, 3, "task9-submit-" + changeId, "a".repeat(64)),
+                        planId, changeId, 0, 3L, "task9-submit-" + changeId, "a".repeat(64)),
                 new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
                         "task9-submit-" + changeId));
         processInstanceId = response.getProcessInstanceId();
@@ -333,7 +338,7 @@ class DurationChangeBpmMySqlIntegrationTest {
         login(APPLICANT);
 
         assertThrows(RuntimeException.class, () -> durationChangeService.submit(
-                new SubmitDurationChangeCommand(planId, changeId, 0, 3,
+                new SubmitDurationChangeCommand(planId, changeId, 0, 3L,
                         "task9-real-project-stale-" + changeId, "a".repeat(64)),
                 new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
                         "task9-real-project-stale-" + changeId)));
@@ -349,7 +354,7 @@ class DurationChangeBpmMySqlIntegrationTest {
 
         jdbcTemplate.update("UPDATE proj_project SET version=3 WHERE tenant_id=0 AND id=?", projectId);
         var response = durationChangeService.submit(new SubmitDurationChangeCommand(
-                        planId, changeId, 0, 3,
+                        planId, changeId, 0, 3L,
                         "task9-real-project-success-" + changeId, "b".repeat(64)),
                 new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
                         "task9-real-project-success-" + changeId));
@@ -369,7 +374,7 @@ class DurationChangeBpmMySqlIntegrationTest {
         login(APPLICANT);
 
         var response = durationChangeService.submit(new SubmitDurationChangeCommand(
-                        planId, changeId, 0, 3,
+                        planId, changeId, 0, 3L,
                         "task6-file-submit-" + changeId, "c".repeat(64)),
                 new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
                         "task6-file-submit-" + changeId));
@@ -397,7 +402,7 @@ class DurationChangeBpmMySqlIntegrationTest {
         prepareRequiredEvidenceSubmission();
         login(APPLICANT);
         var response = durationChangeService.submit(new SubmitDurationChangeCommand(
-                        planId, changeId, 0, 3,
+                        planId, changeId, 0, 3L,
                         "task6-file-conflict-" + changeId, "d".repeat(64)),
                 new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
                         "task6-file-conflict-" + changeId));
@@ -428,7 +433,7 @@ class DurationChangeBpmMySqlIntegrationTest {
         participantFactApi.useReal();
         login(APPLICANT);
         var response = durationChangeService.submit(new SubmitDurationChangeCommand(
-                        planId, changeId, 0, 3,
+                        planId, changeId, 0, 3L,
                         "task6-scope-submit-" + changeId, "f".repeat(64)),
                 new ConstructionPlanApplicationService.Actor(0L, APPLICANT,
                         "task6-scope-submit-" + changeId));
@@ -549,7 +554,7 @@ class DurationChangeBpmMySqlIntegrationTest {
                     ? Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)
                     : Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1);
             return new ProjectParticipantFact(projectId, userId, roles,
-                    "PRIMARY", "ACTIVE", "S1", 3, 3L);
+                    "PRIMARY", "ACTIVE", "S1", 3L, 3L);
         });
         when(participantFactApi.mock().lockAndRevalidate(any())).thenAnswer(invocation -> {
             var query = invocation.getArgument(0, ProjectParticipantFactRevalidationQuery.class);
@@ -558,7 +563,7 @@ class DurationChangeBpmMySqlIntegrationTest {
                     ? Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)
                     : Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1);
             return new ProjectParticipantFact(projectId, userId, roles, "PRIMARY",
-                    "ACTIVE", "S1", 3, 3L);
+                    "ACTIVE", "S1", 3L, 3L);
         });
         DictDataRespDTO internalReason = new DictDataRespDTO();
         internalReason.setDictType("pms_duration_change_reason_type");
@@ -614,7 +619,7 @@ class DurationChangeBpmMySqlIntegrationTest {
         login(APPLICANT);
         try {
             durationChangeService.submit(new SubmitDurationChangeCommand(
-                            planId, changeId, 0, 3, key, "a".repeat(64)),
+                            planId, changeId, 0, 3L, key, "a".repeat(64)),
                     new ConstructionPlanApplicationService.Actor(0L, APPLICANT, key));
         } finally {
             SecurityContextHolder.clearContext();
@@ -707,17 +712,17 @@ class DurationChangeBpmMySqlIntegrationTest {
                 ? Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)
                 : Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1);
         ProjectParticipantFact fact = new ProjectParticipantFact(projectId, actor, roles, "PRIMARY",
-                "ACTIVE", "S1", 3, 3L);
+                "ACTIVE", "S1", 3L, 3L);
         when(participantFactApi.mock().inspect(any())).thenReturn(failure == Failure.ROLE ? null : fact);
         when(participantFactApi.mock().lockAndRevalidate(any())).thenReturn(fact);
     }
 
     private void createPendingFacts() {
         identityService.setAuthenticatedUserId(String.valueOf(APPLICANT));
-        ProcessInstance instance = runtimeService.startProcessInstanceByKey(
-                PROCESS_KEY, "duration:" + changeId,
+        ProcessInstance instance = runtimeService.startProcessInstanceByKeyAndTenantId(
+                PROCESS_KEY, String.valueOf(changeId),
                 Map.of(BpmnVariableConstants.PROCESS_INSTANCE_VARIABLE_STATUS, 1,
-                        "projectId", projectId, "approverUserId", APPROVER));
+                        "projectId", projectId, "approverUserId", APPROVER), "0");
         identityService.setAuthenticatedUserId(null);
         processInstanceId = instance.getId();
         LocalDateTime now = LocalDateTime.now();
@@ -949,6 +954,16 @@ class DurationChangeBpmMySqlIntegrationTest {
         public ProjectParticipantFact lockAndRevalidate(ProjectParticipantFactRevalidationQuery query) {
             return (useReal ? real : mock).lockAndRevalidate(query);
         }
+
+        @Override
+        public ProjectParticipantFact inspectAuthorization(ProjectParticipantFactQuery query) {
+            return (useReal ? real : mock).inspectAuthorization(query);
+        }
+
+        @Override
+        public ProjectParticipantFact lockAndRevalidateAuthorization(ProjectParticipantFactRevalidationQuery query) {
+            return (useReal ? real : mock).lockAndRevalidateAuthorization(query);
+        }
     }
 
     @SpringBootConfiguration
@@ -972,7 +987,7 @@ class DurationChangeBpmMySqlIntegrationTest {
             cn.iocoder.yudao.module.pms.platform.service.file.event.FileEventFactory.class,
             ConstructionPlanChangeFilePolicyProvider.class,
             DurationChangeApplicationService.class,
-            DurationChangeProperties.class, DurationChangeBpmListener.class,
+            DurationChangeProperties.class, DurationChangeBpmListener.class, DurationChangeBpmService.class,
             DurationChangeBpmAuthorizationGuard.class, DurationChangeBpmResultService.class,
             ProjectTreeScopeService.class, ProjectTreeProjectionService.class, ProjectTreeMetrics.class})
     static class TestApplication {

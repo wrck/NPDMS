@@ -1,10 +1,10 @@
 package cn.iocoder.yudao.module.pms.project.service.stagegate;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
+
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
@@ -21,7 +21,6 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.Proj
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.ProjectStageSnapshotMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectStageSnapshotSequenceQuery;
@@ -33,7 +32,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageI
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectExitGateForUpdateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGateReferenceForUpdateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGateStatusUpdate;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectParticipantFactLockQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageAdvanceUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStagePairForUpdateQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate;
@@ -76,12 +74,10 @@ public class ProjectStageAdvanceApplicationService {
     public static final String START_PROCESS_SCOPE =
             "POST:/api/v1/pms/projects/{id}/stage-gates/{gateReferenceId}/actions/start-process";
     private static final String ACTIVE = "ACTIVE";
-    private static final String PROJECT_MANAGER = "PROJECT_MANAGER";
 
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
-    private final ProjectParticipantFactApi participantFactApi;
     private final ProjectStageGateProcessOwnerApi processOwnerApi;
     private final ProjectStageGateProviderRegistry providerRegistry;
     private final ProjectMasterMapper projectMapper;
@@ -93,6 +89,7 @@ public class ProjectStageAdvanceApplicationService {
     private final ProjectStageSnapshotRepository snapshotRepository;
     private final cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphResolver runtimeGraphResolver;
     private final ProjectStageGateProcessContextResolver processContexts;
+    private final ProjectManagementQualificationApi managementAccess;
 
     @Transactional(rollbackFor = Exception.class)
     public List<ProjectStageGateProcessDefinitionFact> listDefinitions(
@@ -107,7 +104,7 @@ public class ProjectStageAdvanceApplicationService {
 
     @Transactional(rollbackFor = Exception.class)
     public ProjectStageGateProcessStartFact startProcess(
-            Long projectId, Long gateReferenceId, Integer expectedProjectVersion,
+            Long projectId, Long gateReferenceId, Long expectedProjectVersion,
             String selectedProcessDefinitionId, Map<String, Object> variables, Map<String, List<Long>> selectedApprovers,
             String idempotencyKey, String requestDigest, Actor actor) {
         requireUpdatePermission(actor);
@@ -131,7 +128,7 @@ public class ProjectStageAdvanceApplicationService {
     }
 
     private ProjectStageGateProcessStartFact startProcessOnce(
-            Long projectId, Long gateReferenceId, Integer expectedProjectVersion,
+            Long projectId, Long gateReferenceId, Long expectedProjectVersion,
             String selectedProcessDefinitionId, Map<String, Object> variables, Map<String, List<Long>> selectedApprovers,
             String idempotencyKey, String requestDigest, Actor actor) {
         var context = lockManagedProject(projectId, expectedProjectVersion, null, actor);
@@ -257,16 +254,23 @@ public class ProjectStageAdvanceApplicationService {
 
     private record ManagedProject(ProjectMasterDO project, long treeVersion) { }
 
-    private ManagedProject lockManagedProject(Long projectId, Integer expectedProjectVersion,
+    private ManagedProject lockManagedProject(Long projectId, Long expectedProjectVersion,
                                                Long expectedTreeVersion, Actor actor) {
         ProjectMasterDO project = projectMapper.selectByIdForUpdate(projectId);
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())) throw exception(PROJECT_NOT_EXISTS);
         if (!Objects.equals(project.getVersion(), expectedProjectVersion)) throw exception(PROJECT_VERSION_CONFLICT);
-        ProjectScopeResult initial = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(),
-                actor.actorUserId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+        ProjectScopeResult initial = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorUserId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         long treeVersion = expectedTreeVersion == null ? initial.treeVersion() : expectedTreeVersion;
-        ProjectScopeResult locked = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                actor.tenantId(), actor.actorUserId(), projectId, ProjectScopeApi.ACTION_MANAGE, treeVersion));
+        ProjectScopeResult locked = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorUserId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(treeVersion).build());
         if (!Objects.equals(locked.treeVersion(), treeVersion) || !locked.fullProjectIds().contains(projectId)) {
             throw exception(PROJECT_TREE_VERSION_CONFLICT);
         }
@@ -274,7 +278,7 @@ public class ProjectStageAdvanceApplicationService {
         return new ManagedProject(project, treeVersion);
     }
 
-    private LockedContext lockContext(Long projectId, Integer expectedProjectVersion,
+    private LockedContext lockContext(Long projectId, Long expectedProjectVersion,
                                       Long expectedTreeVersion, Actor actor) {
         var managed = lockManagedProject(projectId, expectedProjectVersion, expectedTreeVersion, actor);
         var project = managed.project();
@@ -295,25 +299,23 @@ public class ProjectStageAdvanceApplicationService {
         if (!ACTIVE.equals(project.getLifecycleStatus())) {
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "项目当前阶段不可使用通用Gate流程");
         }
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(),
-                actor.actorUserId(), project.getId(), ProjectScopeApi.ACTION_MANAGE));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorUserId())
+                .anchorProjectId(project.getId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (!scope.fullProjectIds().contains(project.getId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         if (permissionApi.hasAnyRoles(actor.actorUserId(),
                 cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return;
-        try {
-            participantFactApi.inspect(new ProjectParticipantFactQuery(project.getId(), actor.actorUserId(),
-                    Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), LocalDateTime.now()));
-        } catch (RuntimeException ex) {
+        if (!managementAccess.permits(new ProjectManagementQualificationApi.Query(project.getTenantId(), project.getId(), actor.actorUserId())))
             throw exception(PROJECT_STAGE_ACTION_FORBIDDEN);
-        }
     }
 
     private void requireCurrentManager(ProjectMasterDO project, Actor actor) {
         if (permissionApi.hasAnyRoles(actor.actorUserId(),
                 cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return;
-        List<ProjectMemberAssignmentDO> managers = memberMapper.selectParticipantFactsForUpdate(
-                new ProjectParticipantFactLockQuery(actor.tenantId(), project.getId(), actor.actorUserId(), Set.of(PROJECT_MANAGER)));
-        if (managers.size() != 1) throw exception(PROJECT_STAGE_ACTION_FORBIDDEN);
+        if (!(managementAccess.lockCurrent(new ProjectManagementQualificationApi.CurrentRevalidation(new ProjectManagementQualificationApi.Query(project.getTenantId(), project.getId(), actor.actorUserId()), project.getVersion(), "ACTIVE", null)) != null))
+            throw exception(PROJECT_STAGE_ACTION_FORBIDDEN);
     }
 
     private ProjectStageGateFactQuery factQuery(LockedContext context, GateReferenceContext item) {

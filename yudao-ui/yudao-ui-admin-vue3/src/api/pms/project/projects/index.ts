@@ -1,3 +1,4 @@
+import type { ScopedUserSelectionSource } from '@/api/system/user/selection'
 import request from '@/config/axios'
 import type { TaskApprovalSubmission } from '../task-workbench'
 import type { TemplateMatchEvaluation } from '../project-templates'
@@ -6,11 +7,12 @@ import type { TemplateMatchEvaluation } from '../project-templates'
  * 新链项目 API（F-PM01 / PM-01，复数路由 /pms/projects）
  *
  * 承接全部项目写语义（创建/更新/指派）与主档查询；
- * 旧单数路由 /pms/project 已冻结只读（仅 get/page 供旧页面选择器过渡）。
+ * 旧单数路由 /pms/project 已退役，项目选择器统一使用本接口。
  */
 
 /** 项目主档（列表行与详情共用） */
 export interface ProjectMasterVO {
+  visibility?: 'FULL' | 'OFFICE_READONLY'
   id?: number
   projectCode?: string
   codeRootId?: number
@@ -35,6 +37,7 @@ export interface ProjectMasterVO {
   projectCategory?: string
   implementationMode?: string
   majorProjectLevel?: string | null
+  serviceLevelCode?: string | null
   contractNo?: string
   implementationLocation?: string
   locationResolutionStatus?: 'RESOLVED' | 'UNRESOLVED'
@@ -52,22 +55,50 @@ export interface ProjectMasterVO {
   serviceManagerAssigned?: boolean
   projectManagerAssigned?: boolean
   activeStageNames?: string[]
+  overdueNodes?: ProjectOverdueNode[]
+  completedOverdueNodes?: ProjectOverdueNode[]
   version?: number
   progress?: number
   aggregationWeight?: number
   weightSource?: string
+  parties?: { role: string; code?: string; name?: string }[]
+  projectType?: string
+  marketCode?: string
+  marketName?: string
+  systemCode?: string
+  systemName?: string
+  expendCode?: string
+  expendName?: string
+  industryCode?: string
+  industryName?: string
+  customerProjectName?: string
+  salesType?: string
+  businessType?: string
+  notTrackReason?: string
   projectStartTime?: Date
   projectEndDate?: string
   createTime?: Date
 }
 
-/** 手工创建请求（BR-2 必填：名称/三维/创建原因；parentId 非空=下挂子项目） */
+export interface ProjectOverdueNode {
+  nodeKind: 'STAGE' | 'TASK'
+  nodeId: number | string
+  nodeName?: string
+  planEndTime?: number
+  acceptanceTime?: number
+  completedAt?: number
+  workOverdue: boolean
+  acceptanceOverdue: boolean
+}
+
+/** 手工创建请求（BR-2 必填：名称/三维/创建原因；parentId 非空=下挂子项目；contractId 非空时服务端按合同链取CRM权威值并绑定） */
 export interface ProjectCreateReqVO {
   projectName: string
   parentId?: number
   customerCode?: string
   customerName?: string
   contractNo?: string
+  contractId?: number
   orderOfficeCompanyId: number
   orderOfficeDepartmentId: number
   sites?: ProjectSiteReqVO[]
@@ -216,6 +247,7 @@ export interface ProjectInstancesVO {
   lifecycleTemplateId?: number
   lifecycleTemplateRevisionNo?: number
   stages: {
+    id?: number | string
     stageCode: string
     name: string
     sortOrder: number
@@ -224,6 +256,7 @@ export interface ProjectInstancesVO {
     suggestedEndTime?: string
     planStartTime?: string
     planEndTime?: string
+    acceptanceTime?: string
     actualStartTime?: string
     actualEndTime?: string
     deviationReason?: string
@@ -238,6 +271,7 @@ export interface ProjectInstancesVO {
     priority?: number
     sortOrder?: number
     estimatedHours?: number
+    requiredTask?: boolean
     satisfactionTiming?: string
     status: string
   }[]
@@ -250,12 +284,15 @@ export interface ProjectInstancesVO {
     status: string
   }[]
   deliverables: {
+    /** 交付件实例ID（ACC应交根）。 */
+    id?: number
     deliverableCode: string
     name: string
     stageCode: string
     taskCode?: string | null
     required?: boolean
     status: string
+    automaticCollection?: boolean
   }[]
   gates: {
     gateCode: string
@@ -343,6 +380,7 @@ export type ProjectTreeQueryType =
   | 'ANCESTORS'
   | 'BUSINESS_LEVEL'
   | 'LOCATE'
+  | 'FULL'
 
 export interface ProjectTreeNodeVO {
   projectId: number
@@ -356,6 +394,7 @@ export interface ProjectTreeNodeVO {
   progressStatus?: 'READY' | 'PENDING' | 'STALE' | 'RESTRICTED'
   progressRecordedAt?: string | number
   visibility: 'FULL' | 'ROOT_SUMMARY' | 'PATH_PLACEHOLDER'
+  displayDetails?: { office?: string; serviceManager?: string; projectManager?: string }
 }
 
 export interface ProjectTreeQueryVO {
@@ -554,12 +593,61 @@ export interface ProjectMatchTemplatesReqVO {
 export const matchTemplates = (params: ProjectMatchTemplatesReqVO) =>
   request.get<ProjectMatchTemplatesRespVO>({ url: `${baseUrl}/actions/match-templates`, params })
 
-/** 分页查询（名称/编码/状态/三维过滤） */
-export const getProjectPage = (params: PageParam) =>
+/** 项目分页过滤参数（与 ProjectPageReqVO 对齐；时间范围左闭右开 [start, endExclusive)） */
+export type ProjectPageParams = PageParam & {
+  projectCode?: string
+  projectName?: string
+  customerCode?: string
+  overdueOnly?: boolean
+  hasShippedDevices?: boolean
+  status?: string
+  signingMethod?: string
+  projectCategory?: string
+  implementationMode?: string
+  managerId?: number | string
+  serviceManagerId?: number | string
+  salesId?: number | string
+  majorProjectLevel?: string
+  contractNo?: string
+  companyId?: number
+  departmentId?: number
+  agentServiceProviderKeyword?: string
+  deviceSn?: string
+  deviceProductModel?: string
+  deviceWarrantyStatus?: string
+  createTimeStart?: string
+  createTimeEnd?: string
+  closeTimeStart?: string
+  closeTimeEnd?: string
+  refreshTimeStart?: string
+  refreshTimeEnd?: string
+}
+
+/** 分页查询（名称/编码/状态/三维/成员/归属/时间/设备/当事方过滤） */
+export const getProjectPage = (params: ProjectPageParams) =>
   request.get<{ list: ProjectMasterVO[]; total: number }>({ url: `${baseUrl}/page`, params })
 
+export interface ProjectStatistics {
+  total: number
+  overdue: number
+  s0: number
+  s1: number
+  s2: number
+  s3: number
+  s4: number
+  s5: number
+  s6: number
+  normalClosed: number
+  noTrackingClosed: number
+  exceptionClosed: number
+}
+
+/** 全部可见项目的状态卡计数，与列表筛选条件独立。 */
+export const getProjectStatistics = () =>
+  request.get<ProjectStatistics>({ url: `${baseUrl}/statistics` })
+
 /** 项目详情（基本信息+四维+模板绑定） */
-export const getProject = (id: number) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
+export const getProject = (id: number | string) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
 
 export const classifyProject = (
   id: number,
@@ -646,7 +734,7 @@ export const advanceProjectStage = (
   })
 
 /** 成员区间列表（当前有效+历史） */
-export const getProjectMembers = (id: number) =>
+export const getProjectMembers = (id: number | string) =>
   request.get<ProjectMemberAssignmentVO[]>({ url: `${baseUrl}/${id}/members` })
 
 export interface ServiceManagerCandidateVO {
@@ -740,7 +828,7 @@ export const assignManager = (
   })
 
 export const queryTree = (
-  id: number,
+  id: string | number,
   params: {
     queryType: ProjectTreeQueryType
     businessLevelCode?: string
@@ -792,7 +880,7 @@ export const submitProgressPolicy = (
     headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
   })
 
-export const getClosureGuard = (projectId: number, treeVersion: number) =>
+export const getClosureGuard = (projectId: string | number, treeVersion: string | number) =>
   request.get<ProjectClosureGuardVO>({
     url: `/pms/closure-gates/${projectId}`,
     params: { treeVersion }
@@ -899,3 +987,29 @@ export const revokeProjectAuthorization = (
     data: { reason },
     headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
   })
+
+/** 主档合同号/名称逐字精确匹配；空条件禁止查询，双条件取交集。 */
+export const searchOfficeProjects = (params: { projectName?: string; contractNo?: string; pageNo: number; pageSize: number }) =>
+  request.get<{ list: ProjectMasterVO[]; total: number }>({ url: '/api/v1/pms/projects/office-readonly-search', params, baseURL: import.meta.env.VITE_BASE_URL || '/' })
+
+export type ProjectMemberFilterField = 'MANAGER' | 'SERVICE_MANAGER' | 'SALES'
+export interface ProjectMemberFilterOption { id: number | string; username: string; nickname: string; deptId?: number | string; deptName?: string }
+export const getProjectMemberFilterOptions = (params: { field: ProjectMemberFilterField; keyword?: string; pageNo: number; pageSize: number }) =>
+  request.get<{ list: ProjectMemberFilterOption[]; total: number }>({ url: '/api/v1/pms/projects/member-filter-options', params })
+
+/** Component-local source: only labels already returned by this authorized source can be resolved. */
+export const createProjectMemberFilterSource = (field: ProjectMemberFilterField): ScopedUserSelectionSource => {
+  const labels = new Map<string, ProjectMemberFilterOption>()
+  return {
+    key: `project-member-filter:${field}`,
+    search: async (query) => {
+      const result = await getProjectMemberFilterOptions({ ...query, field })
+      result.list.forEach((user) => labels.set(String(user.id), user))
+      return result
+    },
+    resolve: async (ids) => ids.flatMap((id) => {
+      const user = labels.get(String(id))
+      return user ? [user] : []
+    })
+  }
+}

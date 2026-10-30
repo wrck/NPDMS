@@ -20,9 +20,9 @@ public class ExternalDataSourceApiImpl implements ExternalDataSourceApi {
     }
 
     public Long save(Save c) {
-        if (c == null || c.url() == null || !c.url().startsWith("jdbc:mysql://")
-                || c.url().contains("@") || c.url().toLowerCase().matches(".*[?&](password|user|allowmultiqueries)=.*"))
-            throw new IllegalArgumentException("仅支持 MySQL URL，凭据必须通过独立字段传递");
+        if (c == null || c.url() == null || !supportedUrl(c.url())
+                || c.url().contains("@") || containsCredentialOrUnsafeOption(c.url()))
+            throw new IllegalArgumentException("仅支持 MySQL 或 SQL Server URL，凭据必须通过独立字段传递");
         if (c.id() != null && c.id() <= 0) throw new IllegalArgumentException("不能修改主数据源");
         String password = c.password();
         if ((password == null || password.isBlank()) && c.id() != null) {
@@ -40,10 +40,12 @@ public class ExternalDataSourceApiImpl implements ExternalDataSourceApi {
     public Connection openReadOnly(Long id) throws SQLException {
         if (id == null || id <= 0) throw new IllegalArgumentException("不能使用应用主数据源作为外部来源");
         var c = service.getDataSourceConfig(id);
-        if (c == null || !c.getUrl().startsWith("jdbc:mysql://")) throw new IllegalArgumentException("MySQL 数据源不存在");
+        if (c == null || !supportedUrl(c.getUrl())) throw new IllegalArgumentException("外部数据源不存在或类型不受支持");
         // Append after existing properties so URL settings cannot override the connector's read boundary.
-        String url = c.getUrl() + (c.getUrl().contains("?") ? "&" : "?")
-                + "allowMultiQueries=false&connectTimeout=10000&socketTimeout=60000&readOnlyPropagatesToServer=true";
+        String url = c.getUrl().startsWith("jdbc:mysql://")
+                ? c.getUrl() + (c.getUrl().contains("?") ? "&" : "?")
+                    + "allowMultiQueries=false&connectTimeout=10000&socketTimeout=60000&readOnlyPropagatesToServer=true"
+                : c.getUrl() + (c.getUrl().endsWith(";") ? "" : ";") + "loginTimeout=10;queryTimeout=60";
         Properties properties = new Properties();
         properties.setProperty("user", c.getUsername());
         properties.setProperty("password", c.getPassword());
@@ -57,6 +59,17 @@ public class ExternalDataSourceApiImpl implements ExternalDataSourceApi {
             connection.close();
             throw ex;
         }
+    }
+
+    static boolean supportedUrl(String url) {
+        return url != null && (url.startsWith("jdbc:mysql://") || url.startsWith("jdbc:sqlserver://"));
+    }
+
+    static boolean containsCredentialOrUnsafeOption(String url) {
+        String lower = url.toLowerCase();
+        if (lower.startsWith("jdbc:mysql://"))
+            return lower.matches(".*[?&](password|user|allowmultiqueries)=.*");
+        return lower.matches(".*;(password|user|username|integratedsecurity|authentication|accesstoken)\\s*=.*");
     }
 }
 

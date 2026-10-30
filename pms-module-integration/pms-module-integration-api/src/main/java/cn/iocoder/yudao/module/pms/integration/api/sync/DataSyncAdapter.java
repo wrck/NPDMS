@@ -7,24 +7,38 @@ import java.util.Map;
 public interface DataSyncAdapter {
     Descriptor descriptor();
     List<Change> preview(Batch batch);
+    /** Apply must not leave target writes committed when it returns a CONFLICT change. */
     List<Change> apply(Batch batch);
     void refreshCaches();
     /** Tree adapters need historical parents; flat page adapters resolve parents through their Owner. */
     default boolean requiresAllBindings() { return true; }
     /** Canonical business records may combine equivalent legacy rows; source identities stay distinct. */
     default boolean sharesTargetAcrossSources() { return false; }
+    /** Explicit opt-in: chunk apply must be transaction-bound, bounded, and safe to replay after a partial run. */
+    default boolean supportsStreaming() { return false; }
+    /** Facts required for identity/replay only; raw source evidence is stored separately. */
+    default Map<String, Object> bindingFields(Change change) { return change.after(); }
+    /** All tables written by this sink, including secondary targets, share tenant-scoped synchronization locks. */
+    default List<String> writeTables() {
+        return descriptor().objects().stream().map(ObjectDescriptor::targetTable).distinct().sorted().toList();
+    }
 
     record Field(String name, String label, String type, boolean required) {}
     record ObjectDescriptor(String name, String label, List<Field> fields,
                             String targetContext, String targetObjectType, String targetTable,
                             boolean supportsSourcePrimaryKey) {}
     record Descriptor(String key, String label, List<ObjectDescriptor> objects, List<String> missingPolicies,
-                      List<String> loadingModes,boolean supportsTargetClear) {}
+                      List<String> loadingModes, boolean supportsTargetClear, boolean supportsStreaming) {
+        public Descriptor(String key, String label, List<ObjectDescriptor> objects, List<String> missingPolicies,
+                          List<String> loadingModes, boolean supportsTargetClear) {
+            this(key, label, objects, missingPolicies, loadingModes, supportsTargetClear, false);
+        }
+    }
     /** fields._sourcePrimaryKey requests an exact target ID; targetId remains the established binding. */
     record Row(String object, String sourceKey, Map<String, Object> fields, Long targetId) {}
     record Binding(String object, String sourceKey, Long targetId, Map<String, Object> lastFields) {}
     record Batch(String owner, List<Row> rows, List<Binding> bindings, boolean full,
-                 String missingPolicy, boolean adoptExisting, String loadingMode,boolean clearBeforeLoad) {}
+                 String missingPolicy, boolean adoptExisting, String loadingMode, boolean clearBeforeLoad) {}
     record Change(String object, String sourceKey, Long targetId, String action,
                   Map<String, Object> before, Map<String, Object> after, String message) {}
 }

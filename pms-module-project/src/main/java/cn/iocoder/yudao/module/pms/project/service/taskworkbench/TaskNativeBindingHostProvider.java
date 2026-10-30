@@ -1,4 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
+
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 
 import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi;
@@ -32,12 +34,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/** 共用原项目任务授权；审批和订阅不提供人工提交/完成入口，不据此授予Owner业务权限。 */
 @Component
 @RequiredArgsConstructor
 public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
 
     private static final String BINDING_TYPE = "TASK_NATIVE";
-    private static final Set<String> MANAGER_ROLES = ProjectMemberRoles.MANAGEMENT_CODES;
     private static final Map<String, String> ACTION_PERMISSIONS = Map.of(
             "ASSIGN", "pms:project-task:assign",
             "START", "pms:project-task:execute",
@@ -56,13 +58,15 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
     private final ProjectMasterMapper projectMapper;
     private final ProjectTreeVersionMapper projectTreeVersionMapper;
     private final ProjectTreeScopeService projectTreeScopeService;
+    private final ProjectManagementQualificationApi managementAccess;
 
     @Override
     public String bindingType() {
         return BINDING_TYPE;
     }
 
-    @Override public Set<String> bindingTypes() { return Set.of(BINDING_TYPE, "APPROVAL"); }
+    // PAGE 任务沿用原生任务状态机（指派/启动/完成），路由仅作为额外导航入口冻结在绑定参数中。
+    @Override public Set<String> bindingTypes() { return Set.of(BINDING_TYPE, "APPROVAL", "RESULT_SUBSCRIPTION", "PAGE"); }
 
     @Override
     public TaskBindingInspection inspect(TaskBindingInspectionQuery query) {
@@ -80,6 +84,11 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         boolean approvalHandling = approval && "IN_PROGRESS".equals(task.getStatus());
         if (!bindingTypes().contains(contract.getWorkBindingTypeCode()) || hasExternalTarget(contract)) {
             return TaskBindingInspection.failed(BINDING_TYPE, "BINDING_CONTRACT_INVALID");
+        }
+        boolean resultOnly = "RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode());
+        if (resultOnly) {
+            try { cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.requireRuntime(contract); }
+            catch (RuntimeException invalid) { return TaskBindingInspection.failed(contract.getWorkBindingTypeCode(), "RESULT_SUBSCRIPTION_TASK_CONTRACT_INVALID"); }
         }
         if (approval) {
             try {
@@ -119,8 +128,11 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         }
         String factVersion = task.getVersion() + ":" + contract.getContractVersion() + ":"
                 + (assignment == null ? 0 : assignment.getVersion());
-        // Approval submission/completion belongs to BPM, never to the native manual-completion buttons.
+        // 完成取决于BPM或订阅证据，不能通过原生手工按钮制造完成事实。
         if (approval) allowedActions.retainAll(Set.of("START", "APPROVAL", "CANCEL", "ASSIGN"));
+        if (resultOnly) allowedActions.retainAll(Set.of("START", "CANCEL", "ASSIGN"));
+        if (cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.matches(contract))
+            allowedActions.retainAll(Set.of("START", "CANCEL", "ASSIGN"));
         return new TaskBindingInspection(contract.getWorkBindingTypeCode(), Set.copyOf(allowedActions), factVersion, null);
     }
 
@@ -135,21 +147,18 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
                     "CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER"));
             return roles;
         }
-        List<ProjectMemberAssignmentDO> memberships = memberMapper.selectActiveByUser(
+        List<ProjectMemberAssignmentDO> memberships = memberMapper.selectAuthorizedByUser(
                 new ActiveProjectMemberQuery(query.tenantId(), query.actorId(), LocalDateTime.now()));
         if (TaskExecutionPolicy.permits(task.getProjectId(), query.actorId(), assignment, memberships)) {
             roles.add("CURRENT_EFFECTIVE_ASSIGNEE");
         }
-        boolean projectManager = memberships.stream()
-                .anyMatch(item -> Objects.equals(item.getProjectId(), task.getProjectId())
-                        && "PROJECT_MANAGER".equals(item.getMemberRole()));
-        boolean manager = memberships.stream()
-                .anyMatch(item -> Objects.equals(item.getProjectId(), task.getProjectId())
-                        && MANAGER_ROLES.contains(item.getMemberRole()));
+        boolean manager = managementAccess.permits(new ProjectManagementQualificationApi.Query(
+                    query.tenantId(), task.getProjectId(), query.actorId()));
+        if (assignment == null && manager) roles.add("CURRENT_EFFECTIVE_ASSIGNEE");
         if (manager && hasManageScope(task, query)) {
             roles.add("CURRENT_PROJECT_MANAGER_OR_AUTHORIZED_SERVICE_MANAGER_FOR_CROSS_REGION");
         }
-        if (projectManager && hasManageScope(task, query)) {
+        if (manager && hasManageScope(task, query)) {
             roles.add("CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER");
         }
         return roles;

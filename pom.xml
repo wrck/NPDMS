@@ -25,16 +25,18 @@
         <module>pms-module-commerce/pms-module-commerce-api</module>
         <module>pms-module-engineering-api</module>
         <module>pms-module-cutover-api</module>
+        <module>pms-module-acceptance/pms-module-acceptance-api</module>
+        <module>pms-module-platform/pms-module-platform-support</module>
         <module>pms-module-platform</module>
+        <module>pms-module-execution-bindings</module>
         <module>pms-module-customer</module>
         <module>pms-module-project</module>
         <module>pms-module-engineering</module>
         <module>pms-module-cutover</module>
+        <module>pms-module-acceptance</module>
         <module>pms-module-service</module>
         <module>pms-module-asset</module>
         <module>pms-module-commerce</module>
-        <module>pms-module-outsourcing</module>
-        <module>pms-module-analytics</module>
         <module>pms-module-integration</module>
 <!--        <module>yudao-module-report</module>-->
 <!--        <module>yudao-module-mp</module>-->

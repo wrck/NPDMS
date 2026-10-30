@@ -12,7 +12,7 @@ const { chromium } = browserRequire('playwright')
 const { createServer } = await import(pathToFileURL(dependencies.resolve('vite')).href)
 const fixtureApi = resolve(browserRoot, 'fixtureApi.ts')
 const mocks = [
-  '@/api/pms/project/satisfaction',
+  '@/api/pms/acceptance/satisfaction',
   '@/api/pms/platform/file',
   '@/hooks/web/useMessage',
   '@/utils/auth',

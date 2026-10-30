@@ -48,11 +48,64 @@ class ProjectAuthorizationGuardTest {
                 versionMapper, pathMapper, projectScopeApi);
     }
 
+    @Test void projectManagerCannotUseExternalServiceRoleToAppointPrimaryOrMaintainServiceManagers() {
+        var project = new ProjectMasterDO(); project.setId(2L); project.setTenantId(0L);
+        project.setCurrentStage("S2"); project.setAssignmentStatus("ASSIGNED");
+        when(projectMapper.selectById(2L)).thenReturn(project);
+        var manager = new ProjectMemberAssignmentDO(); manager.setTenantId(0L); manager.setProjectId(2L);
+        manager.setUserId(7L); manager.setMemberRole("PROJECT_MANAGER");
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(manager));
+        when(memberMapper.selectAuthorizedByUserForUpdate(any())).thenReturn(List.of(manager));
+        org.junit.jupiter.api.Assertions.assertFalse(guard.canAppointPrimaryProjectManager(actor(), 2L));
+        assertThrows(ServiceException.class, () -> guard.assertCanAppointPrimaryProjectManager(actor(), project));
+        assertThrows(ServiceException.class, () -> guard.assertCanMaintainServiceManagers(actor(), project));
+        org.mockito.Mockito.verifyNoInteractions(permissionApi, projectScopeApi);
+    }
+
+    @Test void effectiveConfirmedProjectServiceManagerCanAppointAndIsLockedForMutation() {
+        var project = new ProjectMasterDO(); project.setId(2L); project.setTenantId(0L); project.setCurrentStage("S3");
+        when(projectMapper.selectById(2L)).thenReturn(project);
+        var manager = new ProjectMemberAssignmentDO(); manager.setTenantId(0L); manager.setProjectId(2L);
+        manager.setUserId(7L); manager.setMemberRole("SERVICE_MANAGER");
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(manager));
+        when(memberMapper.selectAuthorizedByUserForUpdate(any())).thenReturn(List.of(manager));
+        org.junit.jupiter.api.Assertions.assertTrue(guard.canAppointPrimaryProjectManager(actor(), 2L));
+        guard.assertCanAppointPrimaryProjectManager(actor(), project);
+        guard.assertCanMaintainServiceManagers(actor(), project);
+    }
+
+    @Test void emptyCurrentMembershipCannotReopenInitializationAfterServiceManagerHistory() {
+        var project = new ProjectMasterDO(); project.setId(2L); project.setTenantId(0L);
+        project.setCurrentStage("S0"); project.setAssignmentStatus("UNASSIGNED");
+        when(projectMapper.selectById(2L)).thenReturn(project);
+        org.junit.jupiter.api.Assertions.assertTrue(guard.canAppointPrimaryProjectManager(actor(), 2L));
+        when(memberMapper.hasServiceManagerHistory(any())).thenReturn(true);
+        org.junit.jupiter.api.Assertions.assertFalse(guard.canAppointPrimaryProjectManager(actor(), 2L));
+        assertThrows(ServiceException.class, () -> guard.assertCanMaintainServiceManagers(actor(), project));
+    }
+
+    @Test
+    void regionalServiceManagerMayMaintainGrantsOnlyInsideFullManageScope() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
+        try {
+            stubProjectAndTree();
+            when(permissionApi.hasAnyPermissions(7L,ProjectAuthorizationGuard.PERMISSION_MANAGE)).thenReturn(true);
+            when(permissionApi.hasAnyRoles(7L,"super_admin")).thenReturn(false);
+            when(permissionApi.hasAnyRoles(7L,cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES.toArray(String[]::new))).thenReturn(true);
+            when(projectScopeApi.resolve(any())).thenReturn(new ProjectScopeResult(1L,5L,Set.of(2L),Set.of()));
+            when(pathMapper.selectByAncestor(1L,5L,2L,null)).thenReturn(List.of(path(2L)));
+            guard.assertCanCreate(actor(),2L,"PROJECT_VIEW","CURRENT_PROJECT");
+            verify(memberMapper,never()).selectAuthorizedByUser(any());
+            when(projectScopeApi.resolve(any())).thenReturn(new ProjectScopeResult(1L,5L,Set.of(),Set.of()));
+            assertThrows(ServiceException.class,()->guard.assertCanCreate(actor(),2L,"PROJECT_VIEW","CURRENT_PROJECT"));
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
     @Test
     void serviceManagerWithFullManageScopeCanGrantDescendants() {
         stubProjectAndTree();
         when(permissionApi.hasAnyPermissions(7L, ProjectAuthorizationGuard.PERMISSION_MANAGE)).thenReturn(true);
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(assignment("SERVICE_MANAGER_L1")));
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(assignment("SERVICE_MANAGER_L1")));
         when(projectScopeApi.resolve(any())).thenReturn(new ProjectScopeResult(1L, 5L,
                 Set.of(1L, 2L, 3L), Set.of()));
         when(pathMapper.selectByAncestor(1L, 5L, 2L, null)).thenReturn(List.of(path(2L), path(3L)));
@@ -66,7 +119,7 @@ class ProjectAuthorizationGuardTest {
     void projectManagerRoleCannotGrantEvenWithManageScope() {
         stubProjectAndTree();
         when(permissionApi.hasAnyPermissions(7L, ProjectAuthorizationGuard.PERMISSION_MANAGE)).thenReturn(true);
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(assignment("PROJECT_MANAGER")));
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(assignment("PROJECT_MANAGER")));
 
         ServiceException failure = assertThrows(ServiceException.class,
                 () -> guard.assertCanCreate(actor(), 2L, "PROJECT_VIEW", "CURRENT_PROJECT"));
@@ -84,14 +137,14 @@ class ProjectAuthorizationGuardTest {
 
         guard.assertCanAssign(actor(), 2L);
 
-        verify(memberMapper, never()).selectActiveByUser(any());
+        verify(memberMapper, never()).selectAuthorizedByUser(any());
     }
 
     @Test
     void currentOnlyManageScopeCannotGrantDescendants() {
         stubProjectAndTree();
         when(permissionApi.hasAnyPermissions(7L, ProjectAuthorizationGuard.PERMISSION_MANAGE)).thenReturn(true);
-        when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(assignment("SERVICE_MANAGER_L2")));
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(assignment("SERVICE_MANAGER_L2")));
         when(projectScopeApi.resolve(any())).thenReturn(new ProjectScopeResult(1L, 5L, Set.of(2L), Set.of(1L)));
         when(pathMapper.selectByAncestor(1L, 5L, 2L, null)).thenReturn(List.of(path(2L), path(3L)));
 
@@ -149,7 +202,7 @@ class ProjectAuthorizationGuardTest {
                     Set.of(1L, 2L, 3L), Set.of()));
             when(pathMapper.selectByAncestor(1L, 5L, 2L, null)).thenReturn(List.of(path(2L), path(3L)));
             guard.assertCanCreate(actor(), 2L, "PROJECT_MANAGE", "PROJECT_AND_DESCENDANTS");
-            verify(memberMapper, never()).selectActiveByUser(any());
+            verify(memberMapper, never()).selectAuthorizedByUser(any());
             verify(projectMapper).selectByIdForUpdate(1L);
         } finally {
             cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();
@@ -189,7 +242,7 @@ class ProjectAuthorizationGuardTest {
     private AuthorizationGrantDTO grant() {
         return new AuthorizationGrantDTO(30L, 0L, "USER", 9L, "PROJ", "PROJECT", 2L,
                 "PROJECT_VIEW", "CURRENT_PROJECT", null, null, "ACTIVE", "PROJ",
-                "Project", "2", 7L, null, null, null, null, 0);
+                "Project", "2", 7L, null, null, null, null, 0L);
     }
 
     private ProjectAuthorizationGuard.Actor actor() {

@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.C
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanChangeMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.ConstructionPlanMapper;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
@@ -39,6 +40,7 @@ class DurationChangeBpmAuthorizationGuardTest {
     @Mock ConstructionPlanChangeMapper changeMapper;
     @Mock PermissionApi permissionApi;
     @Mock ProjectScopeApi projectScopeApi;
+    @Mock ProjectDurationOperatorApi durationOperatorApi;
     @Mock ProjectParticipantFactApi participantFactApi;
 
     private DurationChangeBpmAuthorizationGuard guard;
@@ -48,7 +50,7 @@ class DurationChangeBpmAuthorizationGuardTest {
         TenantContextHolder.setTenantId(0L);
         login(10L);
         guard = new DurationChangeBpmAuthorizationGuard(planMapper, changeMapper, permissionApi,
-                projectScopeApi, participantFactApi);
+                projectScopeApi, durationOperatorApi, participantFactApi);
     }
 
     @AfterEach
@@ -72,8 +74,24 @@ class DurationChangeBpmAuthorizationGuardTest {
 
         assertEquals(301L, result.projectId());
         verify(participantFactApi).lockAndRevalidate(eq(new ProjectParticipantFactRevalidationQuery(
-                301L, 10L, 3, "ACTIVE", null,
+                301L, 10L, 3L, "ACTIVE", null,
                 cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES)));
+    }
+
+    @Test
+    void shouldAuthorizeApplicantAsFrozenServiceManagerForSelfApproval() {
+        stubRows(10L, 10L);
+        when(permissionApi.hasAnyPermissions(10L,
+                DurationChangeBpmAuthorizationGuard.PERMISSION_APPROVE)).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(
+                new ProjectScopeResult(301L, 1L, Set.of(301L), Set.of()));
+        ProjectParticipantFact fact = fact(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1);
+        when(participantFactApi.inspect(any())).thenReturn(fact);
+        when(participantFactApi.lockAndRevalidate(any())).thenReturn(fact);
+
+        var result = guard.authorize("P-1", DurationChangeBpmResultService.TerminalResult.APPROVE);
+
+        assertEquals(301L, result.projectId());
     }
 
     @Test
@@ -83,15 +101,30 @@ class DurationChangeBpmAuthorizationGuardTest {
                 ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(
                 new ProjectScopeResult(301L, 1L, Set.of(301L), Set.of()));
-        ProjectParticipantFact fact = fact(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
-        when(participantFactApi.inspect(any())).thenReturn(fact);
-        when(participantFactApi.lockAndRevalidate(any())).thenReturn(fact);
+        var fact = new ProjectDurationOperatorApi.Fact(301L,10L,"ACTIVE",3L,"REGIONAL_SERVICE_MANAGER");
+        when(durationOperatorApi.inspect(any())).thenReturn(fact);
+        when(durationOperatorApi.lockAndRevalidate(any())).thenReturn(fact);
 
         guard.authorize("P-1", DurationChangeBpmResultService.TerminalResult.CANCEL);
 
-        verify(participantFactApi).lockAndRevalidate(eq(new ProjectParticipantFactRevalidationQuery(
-                301L, 10L, 3, "ACTIVE", null,
-                Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))));
+        verify(durationOperatorApi).lockAndRevalidate(eq(new ProjectDurationOperatorApi.RevalidationQuery(new ProjectDurationOperatorApi.Query(0L,301L,10L),3L)));
+    }
+
+    @Test
+    void regionalManagerCannotWithdrawAnotherApplicantsChange() {
+        stubRows(9L,10L);
+        assertThrows(ServiceException.class,()->guard.authorize("P-1",DurationChangeBpmResultService.TerminalResult.CANCEL));
+        org.mockito.Mockito.verifyNoInteractions(durationOperatorApi,participantFactApi);
+    }
+
+    @Test
+    void applicantOrganizationRevokedBetweenReadAndLockCannotWithdraw() {
+        stubRows(10L,11L);
+        when(permissionApi.hasAnyPermissions(10L,ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(301L,1L,Set.of(301L),Set.of()));
+        when(durationOperatorApi.inspect(any())).thenReturn(new ProjectDurationOperatorApi.Fact(301L,10L,"ACTIVE",3L,"REGIONAL_SERVICE_MANAGER"));
+        when(durationOperatorApi.lockAndRevalidate(any())).thenThrow(new ServiceException(403,"Revoked"));
+        assertThrows(ServiceException.class,()->guard.authorize("P-1",DurationChangeBpmResultService.TerminalResult.CANCEL));
     }
 
     @Test
@@ -114,12 +147,12 @@ class DurationChangeBpmAuthorizationGuardTest {
         plan.setId(501L);
         plan.setTenantId(0L);
         plan.setProjectId(301L);
-        when(planMapper.selectById(any())).thenReturn(plan);
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan);
     }
 
     private ProjectParticipantFact fact(String role) {
         return new ProjectParticipantFact(301L, 10L, Set.of(role), "PRIMARY",
-                "ACTIVE", "S2", 3, 3L);
+                "ACTIVE", "S2", 3L, 3L);
     }
 
     private void login(Long actorId) {

@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query;
 
 /** 项目当前阶段精确CAS。 */
-public record ProjectStageAdvanceUpdate(Long tenantId, Long projectId, Integer expectedVersion,
+public record ProjectStageAdvanceUpdate(Long tenantId, Long projectId, Long expectedVersion,
                                         String expectedCurrentStage, String targetStage, String updater) {
 }

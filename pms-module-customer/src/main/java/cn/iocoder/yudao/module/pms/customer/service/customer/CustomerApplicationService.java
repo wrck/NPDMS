@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.customer.service.customer.command.UpdateCusto
 
 public interface CustomerApplicationService {
 
+    CustomerCommandResult updateProjectExtension(cn.iocoder.yudao.module.pms.customer.service.customer.command.ProjectCustomerExtensionCommand command);
+
     CustomerCommandResult create(CreateCustomerCommand command);
 
     CustomerCommandResult update(UpdateCustomerCommand command);

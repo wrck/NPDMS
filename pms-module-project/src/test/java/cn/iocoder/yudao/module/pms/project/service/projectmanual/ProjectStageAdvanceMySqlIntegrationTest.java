@@ -109,9 +109,9 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
     @MockitoBean
     private cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi explicitPermissionApi;
     @MockitoBean
-    private cn.iocoder.yudao.module.pms.project.api.acceptanceactivity.AcceptanceActivityInitializationApi acceptanceActivityInitializationApi;
+    private cn.iocoder.yudao.module.pms.acceptance.api.acceptanceactivity.AcceptanceActivityInitializationApi acceptanceActivityInitializationApi;
     @MockitoBean
-    private cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionQuestionnaireTemplateApi;
+    private cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionQuestionnaireTemplateApi;
     private ProjectStageAdvanceApplicationService stageAdvanceService;
 
     @BeforeEach
@@ -132,11 +132,10 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
         reset(providerRegistry);
         satisfyEveryOwnerFact();
         doReturn(graphTemplate(false)).when(templateService).getRevisionContent(any(), any());
-        stageAdvanceService = new ProjectStageAdvanceApplicationService(commandExecutionApi, permissionApi, scopeApi,
-                mock(ProjectParticipantFactApi.class), mock(ProjectStageGateProcessOwnerApi.class), providerRegistry,
+        stageAdvanceService = new ProjectStageAdvanceApplicationService(commandExecutionApi, permissionApi, scopeApi, mock(ProjectStageGateProcessOwnerApi.class), providerRegistry,
                 projectMasterMapper, stageMapper, gateMapper, referenceMapper, memberMapper, snapshotMapper,
                 snapshotRepository, runtimeGraphResolver,
-                mock(cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateProcessContextResolver.class));
+                mock(cn.iocoder.yudao.module.pms.project.service.stagegate.ProjectStageGateProcessContextResolver.class), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class));
     }
 
     @org.junit.jupiter.api.AfterEach
@@ -160,7 +159,7 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
     void advancesS0ToS4ByFrozenEdgeWithOneAtomicFactSet() {
         var created = applicationService.create(newCommand(), newActor());
         assignPrimaryManagers(created.id());
-        int version = projectVersion(created.id());
+        long version = projectVersion(created.id());
         long treeVersion = currentTreeVersion(created.id());
         assertEquals("S0", currentStage(created.id()));
 
@@ -224,7 +223,7 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
     void ownerFailureAndVersionDriftWriteNothing() {
         var created = applicationService.create(newCommand(), newActor());
         assignPrimaryManagers(created.id());
-        int version = projectVersion(created.id());
+        long version = projectVersion(created.id());
         long treeVersion = currentTreeVersion(created.id());
         Map<String, Long> before = advanceFactCounts(created.id());
         doAnswer(invocation -> {
@@ -419,7 +418,7 @@ class ProjectStageAdvanceMySqlIntegrationTest extends ProjectManualCreationMySql
         });
     }
 
-    private ProjectStageAdvanceCommand command(Long projectId, int version, String stage, long treeVersion,
+    private ProjectStageAdvanceCommand command(Long projectId, long version, String stage, long treeVersion,
                                                 String suffix) {
         return new ProjectStageAdvanceCommand(projectId, version, stage, treeVersion,
                 KEY_PREFIX + "stage-advance-" + suffix + "-" + UUID.randomUUID(), sha256(UUID.randomUUID().toString()));

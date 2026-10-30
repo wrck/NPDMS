@@ -360,7 +360,7 @@ const setProcessStatus = (view: any) => {
   // 已完成节点
   if (Array.isArray(finishedSequenceFlowActivityIds)) {
     finishedSequenceFlowActivityIds.forEach((item: any) => {
-      if (item != null) {
+      if (item != null && elementRegistry.get(item)) {
         canvas.addMarker(item, 'success')
         const element = elementRegistry.get(item)
         const conditionExpression = element?.businessObject.conditionExpression
@@ -371,18 +371,20 @@ const setProcessStatus = (view: any) => {
     })
   }
   if (Array.isArray(finishedTaskActivityIds)) {
-    finishedTaskActivityIds.forEach((item: any) => canvas.addMarker(item, 'success'))
+    finishedTaskActivityIds.filter((item: any) => item != null && elementRegistry.get(item))
+      .forEach((item: any) => canvas.addMarker(item, 'success'))
   }
 
   // 未完成节点
   if (Array.isArray(unfinishedTaskActivityIds)) {
-    unfinishedTaskActivityIds.forEach((item: any) => canvas.addMarker(item, 'primary'))
+    unfinishedTaskActivityIds.filter((item: any) => item != null && elementRegistry.get(item))
+      .forEach((item: any) => canvas.addMarker(item, 'primary'))
   }
 
   // 被拒绝节点
   if (Array.isArray(rejectedTaskActivityIds)) {
     rejectedTaskActivityIds.forEach((item: any) => {
-      if (item != null) {
+      if (item != null && elementRegistry.get(item)) {
         canvas.addMarker(item, 'danger')
       }
     })

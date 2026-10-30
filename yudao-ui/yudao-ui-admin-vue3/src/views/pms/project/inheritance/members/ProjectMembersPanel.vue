@@ -3,8 +3,10 @@
     <header class="panel-header">
       <span class="panel-title"><Icon icon="ep:user" /> 项目成员</span>
       <div class="actions">
-        <el-button :disabled="opening" @click="load"><Icon icon="ep:refresh" />刷新</el-button>
+        <el-button v-if="!hasActionBar" :disabled="opening" @click="load"><Icon icon="ep:refresh" />刷新</el-button>
+        <Teleport :to="barTarget || 'body'" :disabled="!hasActionBar">
         <el-button v-hasPermi="['pms:project-team:create', 'pms:project:assign']" type="primary" :disabled="!editable" @click="openMember()"><Icon icon="ep:plus" />新增成员</el-button>
+        </Teleport>
       </div>
     </header>
     <el-alert v-if="error" :title="error" type="error" :closable="false" role="alert" />
@@ -26,6 +28,9 @@
       <el-table-column label="人员" min-width="110"><template #default="{ row }">
         {{ row.memberName || '姓名未记录' }}
       </template></el-table-column>
+      <el-table-column label="单位" min-width="130" show-overflow-tooltip><template #default="{ row }">{{ row.companyName || '—' }}</template></el-table-column>
+      <el-table-column label="部门" min-width="120" show-overflow-tooltip><template #default="{ row }">{{ row.departmentName || '—' }}</template></el-table-column>
+      <el-table-column label="职务" min-width="120" show-overflow-tooltip><template #default="{ row }">{{ row.title || '—' }}</template></el-table-column>
       <el-table-column label="角色" min-width="95"><template #default="{ row }">{{ roleLabel(row.memberRole) }}</template></el-table-column>
       <el-table-column label="联系电话" min-width="125"><template #default="{ row }">{{ row.mobile || '—' }}</template></el-table-column>
       <el-table-column label="邮箱" min-width="155" show-overflow-tooltip><template #default="{ row }">{{ row.email || '—' }}</template></el-table-column>
@@ -35,7 +40,7 @@
       <el-table-column label="操作" width="140" fixed="right"><template #default="{ row }">
         <template v-if="canMaintain(row)">
           <el-button v-if="isCurrent(row)" link type="primary" :disabled="!editable" @click="openMember(row)">编辑</el-button>
-          <el-button v-if="isCurrent(row)" link type="danger" :disabled="!editable" @click="openRemoval(row)">移出项目</el-button>
+          <el-button v-if="isCurrent(row)" link type="danger" :disabled="!editable || !canRemove(row)" @click="openRemoval(row)">移出项目</el-button>
           <el-button v-else link type="primary" :disabled="!editable" @click="openMember(row, true)">重新加入</el-button>
         </template>
         <span v-else>只读</span>
@@ -43,18 +48,18 @@
     </el-table>
     <Pagination v-model:page="query.pageNo" v-model:limit="query.pageSize" :total="total" @pagination="load" />
     <el-text v-if="project.lifecycleStatus !== 'ACTIVE'" type="info">项目已关闭，成员只读。</el-text>
-    <el-dialog v-model="memberVisible" :title="rejoin ? '重新加入项目' : selected ? '编辑项目成员' : '新增项目成员'"
-      :width="dialogWidth" :close-on-click-modal="false" destroy-on-close>
-      <UnifiedMemberForm v-if="memberVisible && dialogProject?.version != null" :project="dialogProject"
+    <el-dialog
+v-model="memberVisible" :title="rejoin ? '重新加入项目' : selected ? '编辑项目成员' : '新增项目成员'"
+      :width="dialogWidth" append-to-body :close-on-click-modal="false" destroy-on-close>
+      <UnifiedMemberForm
+v-if="memberVisible && dialogProject?.version != null" :project="dialogProject" :default-role="initialRole"
         :primary-user-id="managers?.primaryUserId ?? undefined" :member="selected" :rejoin="rejoin" @cancel="memberVisible = false" @saved="saved" />
     </el-dialog>
-    <el-dialog v-model="removeVisible" title="移出项目成员" :width="dialogWidth" :close-on-click-modal="false">
+    <el-dialog v-model="removeVisible" title="移出项目成员" :width="dialogWidth" append-to-body :close-on-click-modal="false">
       <el-form label-position="top" @submit.prevent="remove">
         <p>{{ selected?.memberName }} · {{ selected && roleLabel(selected.memberRole) }}；只结束当前区间，不删除历史。</p>
         <el-form-item v-if="requiresReplacementPrimary" label="接任主责项目经理" required>
-          <el-select v-model="replacementPrimaryUserId" aria-label="接任主责项目经理" placeholder="从保留的项目经理中选择">
-            <el-option v-for="manager in retainedManagers" :key="manager.userId" :value="manager.userId" :label="manager.name" />
-          </el-select>
+          <UserSelect v-model="replacementPrimaryUserId" aria-label="接任主责项目经理" :clearable="false" :scoped-source="replacementSource" placeholder="从保留的项目经理中选择" />
         </el-form-item>
         <el-form-item label="退出原因" required><el-input v-model="removeReason" aria-label="退出原因" type="textarea" maxlength="500" /></el-form-item>
         <el-alert v-if="removeError" :title="removeError" type="error" :closable="false" role="alert" />
@@ -65,6 +70,8 @@
   </ContentWrap>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { formatDate } from '@/utils/formatTime'
@@ -74,9 +81,12 @@ import * as Members from '@/api/pms/project/unified-members'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
 import UnifiedMemberForm from './OrdinaryMemberForm.vue'
 import { checkPermi } from '@/utils/permission'
+import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
+const { barTarget } = useBusinessActionBar()
+const hasActionBar = !!barTarget
 
 const memberRoles = Members.MEMBER_ROLE
-const props = defineProps<{ project: Projects.ProjectMasterVO }>()
+const props = defineProps<{ project: Projects.ProjectMasterVO; initialRole?: Members.ProjectMemberRole; readonly?: boolean }>()
 const emit = defineEmits<{ updated: [] }>()
 const roles: Record<string, string> = Object.fromEntries(Members.memberRoleOptions.map(role => [role.value, role.label]))
 const roleLabel = (role: string) => roles[Members.logicalMemberRole(role)] || role
@@ -86,25 +96,37 @@ const loading = ref(false), opening = ref(false), error = ref('')
 const memberVisible = ref(false), removeVisible = ref(false)
 const selected = ref<Members.MemberRecord>(), rejoin = ref(false), dialogProject = ref<Projects.ProjectMasterVO>()
 const managers = ref<Managers.ProjectManagers>()
+const canAppointPrimary = ref(false)
 const removeReason = ref(''), removeError = ref(''), removing = ref(false)
 const replacementPrimaryUserId = ref<number>()
-const retainedManagers = computed(() => managers.value?.members.filter(member => member.userId !== selected.value?.userId) || [])
+const retainedManagers = computed(() => managers.value?.members.filter(member => member.userId != null
+  && String(member.userId) !== String(selected.value?.userId)) || [])
+const replacementSource = computed(() => systemUserSelection.fromCandidates(
+  `project-manager-successor:${props.project.id}:${selected.value?.id}`,
+  retainedManagers.value.map(manager => ({ id: manager.userId, nickname: manager.name }))
+))
 const requiresReplacementPrimary = computed(() => selected.value?.memberRole === memberRoles.PROJECT_MANAGER
-  && selected.value.userId === managers.value?.primaryUserId && retainedManagers.value.length > 0)
+  && selected.value.userId != null && managers.value?.primaryUserId != null
+  && String(selected.value.userId) === String(managers.value.primaryUserId) && retainedManagers.value.length > 0)
 const mobile = useMediaQuery('(max-width: 767px)')
 const dialogWidth = computed(() => mobile.value ? '96%' : '680px')
-const editable = computed(() => props.project.lifecycleStatus === 'ACTIVE' && !loading.value && !opening.value && !error.value)
+const editable = computed(() => !props.readonly && props.project.lifecycleStatus === 'ACTIVE' && !loading.value && !opening.value && !error.value)
 const removalSubmission = createSubmissionIdempotencyState()
 let sequence = 0
 const canMaintain = (row: Members.MemberRecord) => Members.memberRoleOptions.some(role =>
   role.value === Members.logicalMemberRole(row.memberRole) && checkPermi([role.permission]))
+  && (Members.logicalMemberRole(row.memberRole) !== memberRoles.SERVICE_MANAGER || canAppointPrimary.value)
+const canRemove = (row: Members.MemberRecord) => canMaintain(row)
+  && (row.memberRole !== memberRoles.PROJECT_MANAGER || row.userId == null
+    || String(row.userId) !== String(managers.value?.primaryUserId) || canAppointPrimary.value)
 const isCurrent = (row: Members.MemberRecord) => row.status === 'ACTIVE'
   && (!row.effectiveFrom || new Date(row.effectiveFrom).getTime() <= Date.now())
   && (!row.effectiveTo || new Date(row.effectiveTo).getTime() > Date.now())
 const time = (value?: Date | null) => value ? formatDate(value) : '—'
 const primaryLabel = (row: Members.MemberRecord) => {
   if (row.memberRole === memberRoles.PROJECT_MANAGER) return isCurrent(row)
-    ? (String(row.userId) === String(managers.value?.primaryUserId) ? '是' : '否') : '—'
+    ? (row.userId != null && managers.value?.primaryUserId != null
+      && String(row.userId) === String(managers.value.primaryUserId) ? '是' : '否') : '—'
   return Members.logicalMemberRole(row.memberRole) === memberRoles.SERVICE_MANAGER
     ? (row.assignmentType === 'COLLABORATOR' ? '否' : '是') : '—'
 }
@@ -113,14 +135,16 @@ const load = async () => {
   loading.value = true
   error.value = ''
   try {
-    const [result, managerState] = await Promise.all([
+    const [result, managerState, appointmentPermission] = await Promise.all([
       Members.getMemberPage(projectId, { ...query, role: query.role || undefined, keyword: query.keyword || undefined }),
-      Managers.getProjectManagers(projectId)
+      Managers.getProjectManagers(projectId),
+      Members.canAppointPrimaryProjectManager(projectId).catch(() => false)
     ])
     if (request !== sequence) return
     rows.value = result.list
     total.value = result.total
     managers.value = managerState
+    canAppointPrimary.value = appointmentPermission
   } catch { if (request === sequence) error.value = '成员加载失败，当前数据可能未刷新。请重试后再操作。' }
   finally { if (request === sequence) loading.value = false }
 }
@@ -145,6 +169,7 @@ const openMember = async (row?: Members.MemberRecord, joining = false) => {
   memberVisible.value = true
 }
 const openRemoval = async (row: Members.MemberRecord) => {
+  if (!canRemove(row)) return
   if (!await prepare()) return
   selected.value = row
   removeReason.value = ''
@@ -158,7 +183,7 @@ const saved = async () => {
   emit('updated')
 }
 const remove = async () => {
-  if (removing.value || !selected.value || dialogProject.value?.version == null) return
+  if (props.readonly || removing.value || !selected.value || dialogProject.value?.version == null) return
   if (!removeReason.value.trim()) { removeError.value = '请填写退出原因'; return }
   if (requiresReplacementPrimary.value && !replacementPrimaryUserId.value) { removeError.value = '请选择接任主责项目经理'; return }
   removing.value = true
@@ -172,13 +197,18 @@ const remove = async () => {
   } catch { removeError.value = '移出未成功。网络异常可重试；版本冲突时取消并刷新成员。' }
   finally { removing.value = false }
 }
-watch(() => props.project.id, () => {
+watch(() => [props.project.id, props.initialRole], () => {
   memberVisible.value = removeVisible.value = false
   rows.value = []
   total.value = 0
+  query.role = props.initialRole || ''
   reload()
 }, { immediate: true })
+watch(() => props.readonly, value => {
+  if (value) memberVisible.value = removeVisible.value = false
+})
 onBeforeUnmount(() => sequence++)
+defineExpose({ refresh: load, requestLeave: async () => !opening.value && !memberVisible.value && !removeVisible.value })
 </script>
 <style scoped>
 .panel-header, .actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

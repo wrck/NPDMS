@@ -1,9 +1,8 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -12,16 +11,14 @@ import java.time.LocalDateTime;
 /**
  * PMS 实施方案 DO（FR-ENG-011 / FR-ENG-013）。
  * <p>
- * 对应表 {@code pms_eng_solution}。
+ * 对应表 {@code sol_eng_solution}。
  * 状态：0 草稿、1 已提交、2 审批中、3 已通过、4 已驳回、5 已撤回、6 已终止。
  */
-@TableName("pms_eng_solution")
+@TableName("sol_eng_solution")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class SolutionDO extends TenantBaseDO {
+public class SolutionDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -134,9 +131,4 @@ public class SolutionDO extends TenantBaseDO {
      * 备注
      */
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
 }

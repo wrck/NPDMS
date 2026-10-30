@@ -3,7 +3,6 @@ package cn.iocoder.yudao.module.pms.project.api.customer;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerReferenceGuardStatus;
 import cn.iocoder.yudao.module.pms.customer.api.guard.dto.CustomerReferenceGuardQuery;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectReferenceQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectSummaryPageQuery;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
@@ -24,8 +23,6 @@ import static org.mockito.Mockito.when;
 class ProjectCustomerApiImplTest {
 
     @Mock
-    private ProjectMapper projectMapper;
-    @Mock
     private cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper currentProjects;
     @Mock
     private ProjectTreeScopeService projectTreeScopeService;
@@ -37,7 +34,7 @@ class ProjectCustomerApiImplTest {
     @Test
     void reportsReferencedProjects() {
         var query = new CustomerReferenceGuardQuery(1L, 100L);
-        when(projectMapper.selectCountByCustomer(
+        when(currentProjects.selectCountCustomerReferences(
                 new CustomerProjectReferenceQuery(1L, 100L)))
                 .thenReturn(2L);
 

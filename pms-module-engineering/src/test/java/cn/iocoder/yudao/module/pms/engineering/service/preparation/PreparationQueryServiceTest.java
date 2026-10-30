@@ -59,19 +59,21 @@ class PreparationQueryServiceTest {
 
     @BeforeEach
     void authorizeQuery() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "managementAccess", EngineeringManagementFixtures.confirmed(participantFactApi));
         org.mockito.Mockito.lenient().when(permissionApi.hasAnyPermissions(7L, PreparationQueryService.PERMISSION_QUERY,
                 PreparationInitializationService.PERMISSION_MANAGE)).thenReturn(true);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(
                 new ProjectScopeResult(100L, 3L, Set.of(100L), Set.of()));
     }
 
-    @Test
-    void itemProjectionUsesStableCursorAndBatchedForms() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"PROJECT_MANAGER","SERVICE_MANAGER","SERVICE_MANAGER_L1","SERVICE_MANAGER_L2"})
+    void itemProjectionUsesStableCursorAndBatchedForms(String role) {
         when(permissionApi.hasAnyPermissions(7L, PreparationItemApplicationService.PERMISSION_FILL)).thenReturn(false);
         when(permissionApi.hasAnyPermissions(7L, PreparationInitializationService.PERMISSION_MANAGE)).thenReturn(true);
-        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
-                100L, 7L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), null,
-                "ACTIVE", "S1", 4, 9L));
+        when(participantFactApi.inspectAuthorization(any())).thenReturn(new ProjectParticipantFact(
+                100L, 7L, Set.of(role), null,
+                "ACTIVE", "S1", 4L, 9L));
         PreparationDO preparation = preparation();
         when(preparationMapper.selectById(any())).thenReturn(preparation);
         PreparationItemDO first = item(200L, "POWER", 1);
@@ -134,15 +136,15 @@ class PreparationQueryServiceTest {
     @Test
     void currentManagerReceivesPreparationActionsButUnavailableFactFailsClosed() {
         when(permissionApi.hasAnyPermissions(any(), any(String[].class))).thenReturn(true);
-        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+        when(participantFactApi.inspectAuthorization(any())).thenReturn(new ProjectParticipantFact(
                 100L, 7L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), null,
-                "ACTIVE", "S1", 4, 9L));
+                "ACTIVE", "S1", 4L, 9L));
         PreparationDO preparation = preparation();
         when(preparationMapper.selectCurrent(any())).thenReturn(preparation);
 
         assertEquals(List.of("SUBMIT"), service.getCurrent(100L, "PRE_02", actor).getAllowedActions());
 
-        when(participantFactApi.inspect(any())).thenThrow(new IllegalStateException("participant unavailable"));
+        when(participantFactApi.inspectAuthorization(any())).thenThrow(new IllegalStateException("participant unavailable"));
         assertTrue(service.getCurrent(100L, "PRE_02", actor).getAllowedActions().isEmpty());
     }
 
@@ -177,9 +179,9 @@ class PreparationQueryServiceTest {
     void managerReceivesExactConfirmAndReturnActionsAndProjectedReason() {
         when(permissionApi.hasAnyPermissions(7L, PreparationItemApplicationService.PERMISSION_FILL)).thenReturn(false);
         when(permissionApi.hasAnyPermissions(7L, PreparationInitializationService.PERMISSION_MANAGE)).thenReturn(true);
-        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
+        when(participantFactApi.inspectAuthorization(any())).thenReturn(new ProjectParticipantFact(
                 100L, 7L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), null,
-                "ACTIVE", "S1", 4, 9L));
+                "ACTIVE", "S1", 4L, 9L));
         PreparationDO preparation = preparation();
         preparation.setStatusCode("PENDING_CONFIRMATION");
         when(preparationMapper.selectById(any())).thenReturn(preparation);

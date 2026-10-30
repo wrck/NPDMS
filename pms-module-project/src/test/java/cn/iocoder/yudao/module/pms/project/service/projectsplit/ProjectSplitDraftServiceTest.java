@@ -60,7 +60,7 @@ class ProjectSplitDraftServiceTest {
     @Test
     void shouldReplaceEditableDetailsWhenUpdatingSameStableItemKey() {
         ProjectMasterDO parent = new ProjectMasterDO();
-        parent.setId(100L); parent.setTenantId(1L); parent.setRootId(100L); parent.setVersion(3);
+        parent.setId(100L); parent.setTenantId(1L); parent.setRootId(100L); parent.setVersion(3L);
         when(projectMapper.selectById(100L)).thenReturn(parent);
         ProjectCompanyDepartmentRelationDO relation = new ProjectCompanyDepartmentRelationDO();
         relation.setCompanyId(1L); relation.setDepartmentId(2L);
@@ -74,7 +74,7 @@ class ProjectSplitDraftServiceTest {
         existing.setId(20L); existing.setTenantId(1L); existing.setParentProjectId(100L);
         existing.setStatus("DRAFT"); existing.setDraftVersion(2);
         when(requestMapper.selectById(20L)).thenReturn(existing);
-        when(requestMapper.updateDraftIfMatch(20L, 2, null, 3, 5L, 7L)).thenReturn(1);
+        when(requestMapper.updateDraftIfMatch(20L, 2, null, 3L, 5L, 7L)).thenReturn(1);
         doAnswer(invocation -> { ((ProjectSplitItemDO) invocation.getArgument(0)).setId(30L); return 1; })
                 .when(itemMapper).insert(any(ProjectSplitItemDO.class));
 
@@ -94,7 +94,7 @@ class ProjectSplitDraftServiceTest {
     @Test
     void shouldKeepPreviousScopeVersionWhenCommerceAuthorityIsUnavailable() {
         ProjectMasterDO parent = new ProjectMasterDO();
-        parent.setId(100L); parent.setTenantId(1L); parent.setRootId(100L); parent.setVersion(3);
+        parent.setId(100L); parent.setTenantId(1L); parent.setRootId(100L); parent.setVersion(3L);
         when(projectMapper.selectById(100L)).thenReturn(parent);
         ProjectCompanyDepartmentRelationDO relation = new ProjectCompanyDepartmentRelationDO();
         relation.setCompanyId(1L); relation.setDepartmentId(2L);
@@ -107,7 +107,7 @@ class ProjectSplitDraftServiceTest {
         existing.setId(20L); existing.setTenantId(1L); existing.setParentProjectId(100L);
         existing.setStatus("DRAFT"); existing.setDraftVersion(2); existing.setScopeVersion(5L);
         when(requestMapper.selectById(20L)).thenReturn(existing);
-        when(requestMapper.updateDraftIfMatch(20L, 2, null, 3, 5L, 7L)).thenReturn(1);
+        when(requestMapper.updateDraftIfMatch(20L, 2, null, 3L, 5L, 7L)).thenReturn(1);
         doAnswer(invocation -> { ((ProjectSplitItemDO) invocation.getArgument(0)).setId(30L); return 1; })
                 .when(itemMapper).insert(any(ProjectSplitItemDO.class));
 
@@ -115,7 +115,7 @@ class ProjectSplitDraftServiceTest {
                 new ProjectSplitDraftService.Actor(1L, 9L, "corr-2"));
 
         assertEquals(5L, result.request().getScopeVersion());
-        verify(requestMapper).updateDraftIfMatch(20L, 2, null, 3, 5L, 7L);
+        verify(requestMapper).updateDraftIfMatch(20L, 2, null, 3L, 5L, 7L);
     }
 
     @Test
@@ -136,6 +136,51 @@ class ProjectSplitDraftServiceTest {
         when(treeVersionMapper.selectLatestActive(100L)).thenReturn(tree);
         assertSame(parent, service.requireTemplateSelectionParent(100L, actor));
         verify(treeScopeService).assertFullAccess(new ProjectScopeQuery(1L, 9L, 100L, "PROJECT_MANAGE", 7L));
+    }
+
+    @Test
+    void shouldReopenStaleDraftAndAppliedRequestUsingCurrentAuthorizationWithoutChangingWatermarks() {
+        var request = readableRequest();
+        doAnswer(invocation -> {
+            ProjectScopeQuery query = invocation.getArgument(0);
+            if (!Long.valueOf(8L).equals(query.expectedTreeVersion())) {
+                throw new IllegalStateException("historical tree version cannot authorize current access");
+            }
+            return null;
+        }).when(treeScopeService).assertFullAccess(any());
+
+        for (String status : List.of("DRAFT", "APPLIED")) {
+            request.setStatus(status);
+            var result = service.getDraft(20L, new ProjectSplitDraftService.Actor(1L, 9L, "reopen"));
+            assertSame(request, result.request());
+            assertEquals(7L, result.request().getTreeVersion());
+            assertEquals(status, result.request().getStatus());
+        }
+        verify(treeScopeService, times(2)).assertFullAccess(new ProjectScopeQuery(1L, 9L, 100L, "PROJECT_MANAGE", 8L));
+    }
+
+    @Test
+    void shouldNotRevealDraftDetailsWhenCurrentTreePermissionWasRevoked() {
+        readableRequest();
+        doThrow(new IllegalStateException("access revoked")).when(treeScopeService).assertFullAccess(any());
+
+        assertThrows(IllegalStateException.class,
+                () -> service.getDraft(20L, new ProjectSplitDraftService.Actor(1L, 9L, "reopen-denied")));
+        verifyNoInteractions(itemMapper, scopeMapper);
+    }
+
+    private ProjectSplitRequestDO readableRequest() {
+        var request = new ProjectSplitRequestDO();
+        request.setId(20L); request.setTenantId(1L); request.setParentProjectId(100L); request.setTreeVersion(7L);
+        when(requestMapper.selectById(20L)).thenReturn(request);
+        var parent = new ProjectMasterDO(); parent.setId(100L); parent.setTenantId(1L); parent.setRootId(100L);
+        when(projectMapper.selectById(100L)).thenReturn(parent);
+        var relation = new ProjectCompanyDepartmentRelationDO(); relation.setCompanyId(1L); relation.setDepartmentId(2L);
+        when(organizationMapper.selectPrimaryOrderOffice(100L)).thenReturn(relation);
+        when(organizationScopeApi.hasScope(9L, 1L, 2L)).thenReturn(true);
+        var tree = new ProjectTreeVersionDO(); tree.setTreeVersion(8L);
+        when(treeVersionMapper.selectLatestActive(100L)).thenReturn(tree);
+        return request;
     }
 
     private ProjectSplitDraftCommand command() {

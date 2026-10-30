@@ -4,7 +4,7 @@ public record DeliveryEvidenceArchivedUpdate(
         Long tenantId,
         Long evidenceId,
         Integer currentRevision,
-        Integer expectedVersion,
+        Long expectedVersion,
         String archiveRecordId,
         String eventId) {
 }

@@ -1,0 +1,39 @@
+{
+  "actor": "z01010",
+  "actorUserId": "2108539871029019646",
+  "foreignProcessInstanceId": "3633f2d3-ca04-11f1-af8b-00ff0b78abd7",
+  "checks": [
+    {
+      "case": "unrelated-process-detail",
+      "result": "denied-403"
+    },
+    {
+      "case": "unrelated-process-tasks",
+      "result": "denied-403"
+    },
+    {
+      "case": "unrelated-process-model",
+      "result": "denied-403"
+    },
+    {
+      "case": "unrelated-process-print",
+      "result": "denied-403"
+    },
+    {
+      "case": "other-assignee-task-approve",
+      "result": "denied-403"
+    },
+    {
+      "case": "generic-process-create",
+      "result": "denied-403"
+    },
+    {
+      "case": "all-tasks-management",
+      "result": "denied-403"
+    },
+    {
+      "case": "all-process-management",
+      "result": "denied-403"
+    }
+  ]
+}

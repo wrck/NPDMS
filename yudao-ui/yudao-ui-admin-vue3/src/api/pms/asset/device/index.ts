@@ -4,12 +4,38 @@ export type DeviceSyncStatus = 'FRESH' | 'STALE' | 'FAILED' | 'PENDING_MAPPING' 
 
 export interface DevicePageReqVO extends PageParam {
   sn?: string
+  name?: string
+  status?: string
   productCode?: string
-  projectId?: number
+  projectId?: number | string
   customerId?: number
+  projectName?: string
+  customerName?: string
+  departmentName?: string
+}
+
+export interface DeviceOrganizationVO {
+  companyId?: number
+  companyName?: string
+  departmentId?: number
+  departmentCode?: string
+  departmentName?: string
+  source: 'PROJECT' | 'CONTRACT' | 'UNRESOLVED'
 }
 
 export interface DeviceListVO {
+  warrantyMonths?: number
+  projectCode?: string
+  projectName?: string
+  customerName?: string
+  bootVersion?: string
+  cpldVersion?: string
+  extendedCount?: number
+  organization?: DeviceOrganizationVO
+  name?: string
+  status?: string
+  locationSnapshot?: string
+  locationResolutionStatus?: string
   deviceId: number
   sn: string
   productCode?: string
@@ -38,6 +64,7 @@ export interface DeviceSummaryVO {
   productCode?: string
   productModel?: string
   productName?: string
+  productDesc?: string
   shipmentTime?: string
   packageNo?: string
   contractNo?: string
@@ -53,6 +80,17 @@ export interface DeviceSummaryVO {
   conpType?: string
   conpSeries?: string
   conpMark?: string
+  name?: string
+  locationSnapshot?: string
+}
+
+/** Long标识保留服务端原始字符串，不经Number转换。 */
+export type DeviceCurrentSummaryVO = Omit<DeviceSummaryVO, 'deviceId' | 'tenantId' | 'projectId' | 'customerId' | 'shipmentRecordId'> & {
+  deviceId: number | string
+  tenantId: number | string
+  projectId?: number | string
+  customerId?: number | string
+  shipmentRecordId?: number | string
 }
 
 export interface DeviceSourceSliceVO<T = Record<string, unknown>> {
@@ -66,6 +104,7 @@ export interface DeviceSourceSliceVO<T = Record<string, unknown>> {
 }
 
 export interface DeviceDetailVO {
+  organization?: DeviceOrganizationVO
   summary: DeviceSummaryVO
   factory: DeviceSourceSliceVO
   official: DeviceSourceSliceVO
@@ -181,7 +220,10 @@ const baseUrl = '/pms/asset/devices'
 export const getDevicePage = (params: DevicePageReqVO) =>
   request.get<PageResult<DeviceListVO[]>>({ url: `${baseUrl}/page`, params })
 
-export const getDevice = (id: number) => request.get<DeviceDetailVO>({ url: `${baseUrl}/${id}` })
+export const getDevice = (id: number | string) => request.get<DeviceDetailVO>({ url: `${baseUrl}/${id}` })
+
+export const getCurrentDeviceSummaries = (deviceIds: (number | string)[], projectId?: number | string) =>
+  request.post<DeviceCurrentSummaryVO[]>({ url: `${baseUrl}/current-summaries`, data: { deviceIds, ...(projectId == null ? {} : { projectId }) } })
 
 export const getAssignmentHistory = (id: number, params: PageParam) =>
   request.get<PageResult<DeviceProjectRelationshipVO[]>>({

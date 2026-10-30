@@ -1,5 +1,5 @@
 <template>
-  <section class="task-business" aria-label="任务业务办理">
+  <section class="task-business" aria-label="任务业务办理" :inert="requirementAnalysis && loading" :aria-busy="loading">
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon />
     <template v-if="context">
       <el-alert
@@ -8,11 +8,18 @@
         type="warning"
         :closable="false"
       />
+      <ProjectMembersBusinessView
+        v-if="completedAssignment && project"
+        ref="membersRef"
+        :project="{ ...project, id: project.id == null ? undefined : legacyOwnerId(project.id) }"
+        :readonly="maintenanceReadonly"
+        @changed="ownerChanged"
+      />
       <BusinessViewHost
-        v-if="registration && project"
+        v-else-if="registration && project"
         ref="hostRef"
         :registration="registration"
-        :resolved-context="{ project, taskId: context.taskId, taskExecution: context.execution, businessObjectId: selectedObject }"
+        :resolved-context="{ project, taskId: independentMaintenance ? undefined : context.taskId, taskCode, taskExecution: independentMaintenance ? undefined : context.execution, businessObjectId: selectedObject }"
         :allowed-actions="ownerActions"
         :readonly="viewReadonly"
         @changed="ownerChanged"
@@ -25,7 +32,8 @@
         type="info"
         :closable="false"
       />
-      <section v-if="artifacts.length" class="artifact-sources" aria-label="来源交付件">
+      <!-- 来源交付件等业务视图首判定完成（内容挂载或明确报错）后再出现，避免先于内容渲染又被推走的跳变 -->
+      <section v-if="artifacts.length && hostSettled && !requirementAnalysis" class="artifact-sources" aria-label="来源交付件">
         <h4>来源交付件</h4>
         <p>以下引用来自关联业务的有效版本，文件下载和归档仍由原业务权限控制。</p>
         <ul
@@ -41,20 +49,30 @@
   </section>
 </template>
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
 import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'
+import ProjectMembersBusinessView from '@/components/BusinessView/ProjectMembersBusinessView.vue'
 import * as BusinessApi from '@/api/pms/project/task-business'
-import type { TaskBusinessContext } from '@/api/pms/project/task-business'
+import type { TaskBusinessContext, TaskBusinessObject } from '@/api/pms/project/task-business'
+import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
+import { acceptanceUploadIntentKey, type AcceptanceUploadIntent } from '@/views/pms/acceptance/acceptance-report/acceptanceUploadIntent'
 import {
   type BusinessViewId,
   type BusinessViewRegistrationVO
 } from '@/api/pms/platform/business-view'
 import { getProject, type ProjectMasterVO } from '@/api/pms/project/projects'
 import { legacyOwnerId } from '@/api/pms/platform/business-view/ids'
+import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
+import {
+  prefetchTaskView, takeTaskViewPrefetch, taskBusinessContextKey, requirementWorkspaceKey
+} from '../taskViewPrefetch'
 const props = defineProps<{
   taskId: BusinessViewId
+  taskCode?: string
   taskVersion: number
   readonly?: boolean
+  pending?: boolean
+  completed?: boolean
   initialProject?: ProjectMasterVO
 }>()
 const emit = defineEmits<{
@@ -66,8 +84,14 @@ const context = ref<TaskBusinessContext>()
 const project = ref<Omit<ProjectMasterVO, 'id'> & { id?: BusinessViewId }>()
 const registration = ref<BusinessViewRegistrationVO>()
 const hostRef = ref<InstanceType<typeof BusinessViewHost>>()
+const membersRef = ref<InstanceType<typeof ProjectMembersBusinessView>>()
+// 业务视图宿主的首判定完成状态（expose 的 viewSettled）：宿主未挂载或执行检查中视为未就绪
+const hostSettled = computed(() => hostRef.value?.viewSettled === true)
 const loading = ref(false), dirty = ref(false)
 const selectedObject = ref<string>()
+const reportCandidates = ref<TaskBusinessObject[]>([])
+const uploadIntent = ref<AcceptanceUploadIntent>()
+provide(acceptanceUploadIntentKey, uploadIntent)
 const error = ref('')
 let sequence = 0
 let generation = 0
@@ -80,16 +104,36 @@ const clearFactVersion = () => {
 const sameTask = (a: BusinessViewId | undefined, b: BusinessViewId) => String(a) === String(b)
 const currentTask = (epoch: number, taskId: BusinessViewId) =>
   !disposed && epoch === generation && sameTask(taskId, props.taskId)
-const viewReadonly = computed(() =>
-  Boolean(props.readonly || loading.value || error.value || context.value?.recoverableError ||
-    context.value?.executionAllowed === false ||
-    !sameTask(context.value?.taskId, props.taskId))
-)
+// 持续维护使用 Owner 的当前项目入口，不借用或恢复已结束的任务执行轮次。
+// 方案允许提前编写；提交是否满足前置条件由 SOL 服务在提交事务中重新校验。
+const independentMaintenance = computed(() => {
+  if (project.value?.lifecycleStatus !== 'ACTIVE' || registration.value?.status !== 'PUBLISHED'
+      || context.value?.instanceResolutionStrategy === 'READ_ONLY_AGGREGATE'
+      || !context.value?.ownerActions.includes('QUERY') || !sameTask(context.value?.taskId, props.taskId)) return false
+  return context.value.ownerContext === 'SOL' && context.value.objectType === 'IMPLEMENTATION_SOLUTION'
+      && registration.value.componentKey === 'SOL_IMPLEMENTATION_SOLUTION'
+    || props.completed && !props.pending && context.value.ownerContext === 'IMP' && context.value.objectType === 'INSTALLATION'
+      && registration.value.componentKey === 'IMP_PROJECT_INSTALLATION'
+})
+const viewReadonly = computed(() => Boolean(props.readonly || (loading.value && !requirementAnalysis.value)
+  || error.value || context.value?.recoverableError || !sameTask(context.value?.taskId, props.taskId)
+  || !independentMaintenance.value && (props.completed || props.pending || context.value?.executionAllowed === false)))
+// 已完成指派任务展示项目成员的持续维护入口；不恢复任务执行上下文。
+const completedAssignment = computed(() => props.completed &&
+  sameTask(context.value?.taskId, props.taskId) &&
+  context.value?.ownerContext === 'PROJ' && context.value?.objectType === 'PROJECT_ASSIGNMENT' &&
+  registration.value?.componentKey === 'PROJ_PROJECT_ASSIGNMENT' &&
+  context.value?.ownerActions.includes('QUERY'))
+const maintenanceReadonly = computed(() => Boolean(props.readonly || props.pending || loading.value || error.value ||
+  context.value?.recoverableError || !sameTask(context.value?.taskId, props.taskId)))
 // Owner pages enforce each row's state. Automatic links can lag behind a saved draft.
+// 只读（未进入阶段/已完成/执行不允许）只保留 QUERY：视图照常渲染，写操作由 Owner 页面隐藏
 const ownerActions = computed(() => {
-  if (viewReadonly.value) return []
   const actions = context.value?.ownerActions || []
+  if (viewReadonly.value) return actions.includes('QUERY') ? ['QUERY'] : []
+  if (independentMaintenance.value) return actions.filter(action => !['LINK', 'UNLINK'].includes(action))
   const record = context.value?.links.find((row) => row.objectId === selectedObject.value)
+    ?? reportCandidates.value.find(row => row.objectId === selectedObject.value)
   if (!actions.includes('QUERY')) return []
   return [...new Set([
     ...actions.filter((action) => !['LINK', 'UNLINK'].includes(action)),
@@ -97,9 +141,13 @@ const ownerActions = computed(() => {
   ])]
 })
 const artifacts = computed(() => context.value?.links.flatMap((row) => row.artifacts) || [])
+const requirementAnalysis = computed(() => context.value?.ownerContext === 'SOL'
+  && context.value?.objectType === 'REQUIREMENT_ANALYSIS')
+// Keep the authorized editor mounted during a read; block both its body and teleported actions.
+const interactionBlocked = computed(() => requirementAnalysis.value && loading.value)
 const snapshotTarget = () => ({
   context: context.value, project: project.value, registration: registration.value,
-  objectId: selectedObject.value
+  objectId: selectedObject.value, reportCandidates: reportCandidates.value
 })
 let previousTarget: ReturnType<typeof snapshotTarget> | undefined
 const restoreTarget = () => {
@@ -108,6 +156,7 @@ const restoreTarget = () => {
   project.value = previousTarget.project
   registration.value = previousTarget.registration
   selectedObject.value = previousTarget.objectId
+  reportCandidates.value = previousTarget.reportCandidates
   previousTarget = undefined
   error.value = '业务页面切换未完成，请先处理当前未保存的内容后重试。'
   clearFactVersion()
@@ -119,9 +168,32 @@ const load = async (useInitialProject = false) => {
   error.value = ''
   clearFactVersion()
   try {
-    const next = await BusinessApi.getTaskBusinessContext(taskId)
+    const next = await (takeTaskViewPrefetch<TaskBusinessContext>(taskBusinessContextKey(taskId))
+      ?? BusinessApi.getTaskBusinessContext(taskId))
     if (!isCurrent()) return
     if (!sameTask(next.taskId, taskId)) throw new Error('Task context mismatch')
+    let candidates: TaskBusinessObject[] = []
+    const reportType = props.taskCode === 'ACCEPT_INITIAL' ? 'PRELIMINARY' : props.taskCode === 'ACCEPT_FINAL' ? 'FINAL' : undefined
+    if (next.ownerContext === 'ACC' && next.objectType === 'ACCEPTANCE' && next.businessView?.componentKey === 'ACC_ACCEPTANCE_REPORT'
+        && !next.links.length && next.ownerActions.includes('QUERY') && reportType) {
+      const [eligible, reports] = await Promise.all([
+        BusinessApi.getTaskBusinessCandidates(taskId), ReportApi.getActivities(legacyOwnerId(next.projectId))
+      ])
+      if (!isCurrent()) return
+      const reportIds = new Set(reports.filter(row => sameTask(row.projectId, next.projectId) && row.acceptanceType === reportType).map(row => String(row.id)))
+      candidates = eligible.filter(row => reportIds.has(row.objectId))
+    }
+    // 需求分析：把工作区读取也提前到 Owner 项目解析与 BusinessViewHost 装载之前并行；
+    // 仅在进入/切换任务且 enclosing 项目与业务上下文一致时预取；同任务刷新由 Owner 权威回读，
+    // 键与 EntityPanel.workspace 的实参严格一致。未命中时 EntityPanel 照常直查。
+    const execution = next.execution
+    const initialProjectId = props.initialProject?.id
+    if (useInitialProject && next.businessView?.componentKey === 'PROJ_REQUIREMENT_ANALYSIS' && execution != null
+        && initialProjectId != null && String(initialProjectId) === String(next.projectId)) {
+      const workspaceProjectId = legacyOwnerId(initialProjectId)
+      prefetchTaskView(requirementWorkspaceKey(workspaceProjectId, undefined, execution.taskId),
+        () => RequirementAnalysisApi.workspace(workspaceProjectId, undefined, execution.taskId))
+    }
     // Reuse the enclosing project's authorized response only on entry and only
     // for the same project. Refreshes still query current Owner project facts.
     const initialProject = useInitialProject && props.initialProject?.id != null &&
@@ -134,16 +206,18 @@ const load = async (useInitialProject = false) => {
       throw new Error('Cannot unmount a dirty Owner page')
     }
     if (!dirty.value || !previousTarget) previousTarget = snapshotTarget()
+    const available = [...next.links, ...candidates]
     const switchingDirtyTarget = dirty.value && (
       !sameTask(context.value?.taskId, next.taskId) ||
       registration.value?.id !== next.businessView?.id ||
-      !next.links.some((row) => row.objectId === selectedObject.value)
+      !available.some((row) => row.objectId === selectedObject.value)
     )
     context.value = next
     project.value = detail
     registration.value = next.businessView
-    if (!next.links.some((row) => row.objectId === selectedObject.value))
-      selectedObject.value = next.links[0]?.objectId
+    reportCandidates.value = candidates
+    if (!available.some((row) => row.objectId === selectedObject.value))
+      selectedObject.value = available[0]?.objectId
     pendingFactVersion = !next.recoverableError && switchingDirtyTarget ? next.factVersion : undefined
     emit('fact-version', next.recoverableError || switchingDirtyTarget ? undefined : next.factVersion)
     // Outbox may complete the task without changing its already-confirmed Owner facts.
@@ -160,7 +234,7 @@ const load = async (useInitialProject = false) => {
 }
 const requestLeave = async () => {
   try {
-    const host = hostRef.value
+    const host = membersRef.value || hostRef.value
     if (!host) return !dirty.value
     return (await host.requestLeave()) !== false
   } catch {
@@ -168,8 +242,40 @@ const requestLeave = async () => {
   }
 }
 const refresh = async () => {
+  if (loading.value) return
   const epoch = generation, taskId = props.taskId
-  if (await requestLeave() && currentTask(epoch, taskId)) await load()
+  if (!await requestLeave() || !currentTask(epoch, taskId)) return
+  const current = context.value
+  if (!props.completed && !props.readonly && !props.pending && current?.allowedActions.includes('REFRESH_RESULTS')) {
+    loading.value = true
+    error.value = ''
+    clearFactVersion()
+    try {
+      const result = await BusinessApi.refreshTaskBusinessResults({
+        taskId, expectedTaskVersion: props.taskVersion, expectedContractVersion: current.contractVersion
+      })
+      if (!currentTask(epoch, taskId)) return
+      await load()
+      if (!currentTask(epoch, taskId)) return
+      await (membersRef.value || hostRef.value)?.refresh?.()
+      if (!currentTask(epoch, taskId)) return
+      emit('changed')
+      if (result.unknown) {
+        error.value = '业务完成依据暂不可用，任务未完成，请稍后刷新重试。'
+        clearFactVersion()
+      }
+    } catch {
+      if (currentTask(epoch, taskId)) {
+        error.value = '业务结果重新判定失败，请刷新任务后重试。'
+        clearFactVersion()
+      }
+    } finally {
+      if (currentTask(epoch, taskId)) loading.value = false
+    }
+    return
+  }
+  await load()
+  if (currentTask(epoch, taskId)) await (membersRef.value || hostRef.value)?.refresh?.()
 }
 const ownerChanged = () => {
   // A retained old Host may finish an Owner request after the parent selected another task.
@@ -179,6 +285,7 @@ watch(
   () => props.taskId,
   async () => {
     const epoch = ++generation, taskId = props.taskId
+    uploadIntent.value = undefined
     ++sequence
     loading.value = false
       clearFactVersion()
@@ -189,10 +296,21 @@ watch(
   },
   { immediate: true, flush: 'sync' }
 )
-watch(() => [props.readonly, props.taskVersion], () => {
+watch(() => [props.readonly, props.pending, props.completed, props.taskVersion, props.taskCode], () => {
+  if (props.readonly || props.pending) uploadIntent.value = undefined
   clearFactVersion()
   if (sameTask(context.value?.taskId, props.taskId)) void load()
 }, { flush: 'sync' })
+watch(() => props.initialProject, (next) => {
+  if (next?.id == null || !project.value ||
+    !sameTask(context.value?.taskId, props.taskId) ||
+    String(next.id) !== String(context.value?.projectId) ||
+    String(next.id) !== String(project.value.id)) return
+  // 同项目上下文更新不重载 Owner，保留其编辑缓冲；较旧的父级响应不能覆盖主动刷新结果。
+  if (project.value.version != null &&
+    (next.version == null || next.version < project.value.version)) return
+  project.value = next
+}, { deep: true, flush: 'sync' })
 watch(dirty, (value) => {
   if (value) previousTarget = snapshotTarget()
   else {
@@ -208,7 +326,7 @@ onBeforeUnmount(() => {
   ++sequence
   ++generation
 })
-defineExpose({ requestLeave, isDirty: () => dirty.value, refresh, loading })
+defineExpose({ requestLeave, isDirty: () => dirty.value, refresh, loading, interactionBlocked })
 </script>
 <style scoped>
 .task-business {

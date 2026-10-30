@@ -18,11 +18,11 @@
     {"api": "inherited P2-P6 action-guard Owner contracts", "action": "read-only eligibility evaluation", "owner": "PROJ|AST|CUS|IMP|PLT|SYSTEM|INT12", "failureRule": "preserve the failing physical Owner and inherited reason category; never relabel as CUT and never return partial counts"}
   ],
   "queryContract": {
-    "visibleProjectInput": "non-empty trusted ACTION_VIEW project id set; empty set short-circuits to all-zero",
+    "visibleProjectInput": "trusted ACTION_VIEW projects union current eligible approval task ids; both empty short-circuit to all-zero",
     "candidateQuery": "CUT-owned scenario Query objects and Mapper XML for joins or dynamic collections",
     "forbidden": ["SQL annotations", "Map query parameters", "unscoped query when visible project set is empty", "per-task HTTP or Controller calls", "N+1", "coarse stage/status/owner/permission approximation of TODO", "copied second action semantics"],
     "todoEvaluation": "batch candidate/projection reads followed by the same reusable P2-P6 action guards; distinct by taskId",
-    "approvalTodo": "existing P5 myTodos eligibility intersected with KPI visible projects",
+    "approvalTodo": "current P5 myTodos eligibility independently qualifies approval task ids; no ordinary task-detail authorization is added",
     "readOnly": true,
     "businessLocks": false,
     "writes": false
@@ -31,7 +31,7 @@
     "ARCHIVED": "task_status=ARCHIVED",
     "APPROVING": "current_stage=P5 AND task_status=APPROVING",
     "REJECTED_PENDING_MODIFICATION": "current_stage=P4 AND task_status=PLAN_DRAFTING AND current non-replaced approval instance status=REJECTED",
-    "TODO": "NEW_PLATFORM, non-archived, ACTION_VIEW visible, actor has at least one approved P2-P6 write action under the existing full guard"
+    "TODO": "NEW_PLATFORM, non-archived; authorized owner action from the existing P2-P6 guard OR eligible P5 approval todo; distinct task id"
   },
   "consistency": {
     "response": "all four counts are returned together from committed CUT facts",

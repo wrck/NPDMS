@@ -1,0 +1,81 @@
+/* Management-only layout, using the existing Element Plus / main.css tokens. */
+.management-page {
+  --management-gap: calc(var(--el-component-size-small) / 2);
+  --management-section-gap: var(--el-component-size-small);
+  color: var(--el-text-color-primary, var(--ink));
+}
+.management-page .console,
+.management-page .overview,
+.management-page .scripts,
+.management-page .detail {
+  display: grid;
+  gap: var(--management-gap);
+}
+.management-page .el-card__header h2 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: var(--ops-weight-heading);
+}
+.management-page .el-form--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--management-gap);
+}
+.management-page .el-form--inline .el-form-item {
+  margin-right: 0;
+  margin-bottom: var(--management-gap);
+}
+.management-page .el-form--inline .el-input,
+.management-page .el-form--inline .el-select {
+  width: calc(var(--el-component-size-large) * 4.5);
+}
+.management-page .el-pagination,
+.management-page .pagination {
+  margin-top: var(--management-gap);
+  flex-wrap: wrap;
+}
+.management-page .metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--management-section-gap);
+  padding-block: var(--management-section-gap);
+}
+.management-page .metrics a { text-decoration: none; }
+.management-page pre:not(.task-panel pre) {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  padding: var(--management-gap);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter, var(--line));
+  border-radius: var(--el-border-radius-base);
+  font-size: var(--el-font-size-small);
+}
+.management-page .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--management-gap);
+}
+.management-page .el-tabs { margin-top: var(--management-gap); }
+.management-page .el-textarea { margin-block: var(--management-gap); }
+.management-page .management-file-input { display: none; }
+.management-page .management-file-button { margin-bottom: var(--management-gap); }
+
+.management-page .el-table .cell,
+.management-page .el-descriptions__content,
+.management-page h3 {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.management-page h3 { font-size: var(--ops-fs-h3); font-weight: var(--ops-weight-heading); }
+.management-page .el-tag {
+  height: auto;
+  min-height: 24px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.management-page pre,
+.management-page code { font-family: var(--ops-font-mono); }
+.management-page .el-card { --el-card-padding: var(--ops-space-3); }

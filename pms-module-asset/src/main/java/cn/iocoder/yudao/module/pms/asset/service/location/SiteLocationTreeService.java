@@ -9,10 +9,10 @@ public interface SiteLocationTreeService {
 
     SiteLocationDO maintain(Long siteId, SiteLocationInput input);
 
-    SiteLocationDO get(Long locationId, Integer expectedVersion);
+    SiteLocationDO get(Long locationId, Long expectedVersion);
 
     List<SiteLocationDO> getTree(Long siteId);
 
-    void disable(Long locationId, Integer expectedVersion);
+    void disable(Long locationId, Long expectedVersion);
 
 }

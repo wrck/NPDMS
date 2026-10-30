@@ -37,6 +37,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
@@ -69,7 +70,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.C
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_BPM_CONFIG_INVALID;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_EVIDENCE_REQUIRED;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_PENDING_CONFLICT;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_SERVICE_MANAGER_MISSING;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_REASON_CONFIG_INVALID;
 
 @Service
@@ -98,6 +101,7 @@ public class DurationChangeApplicationService {
     private final FileArtifactApi fileArtifactApi;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
+    private final ProjectDurationOperatorApi durationOperatorApi;
     private final ProjectParticipantFactApi participantFactApi;
     private final DictDataApi dictDataApi;
     private final ConfigApi configApi;
@@ -106,6 +110,7 @@ public class DurationChangeApplicationService {
     private final TransactionTemplate transactionTemplate;
     private final Environment environment;
     private final cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi projectEndDateApi;
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
 
     public ConstructionPlanChangeRespVO createDraft(
             CreateDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
@@ -162,7 +167,7 @@ public class DurationChangeApplicationService {
             SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor,
             AtomicReference<Map<String, Object>> auditSnapshot) {
         FileArtifactVersionFact inspectedEvidence = inspectEvidenceBeforeLocks(command, actor);
-        ProjectParticipantFact applicant = requireManageAndProject(
+        ProjectDurationOperatorApi.Fact applicant = requireManageAndProject(
                 command.planId(), command.expectedProjectVersion(), actor);
         if (applicant == null || applicant.projectId() == null) {
             throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
@@ -191,7 +196,8 @@ public class DurationChangeApplicationService {
         projectEndDateApi.validatePlanningEndDate(new cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand(
                 actor.tenantId(), actor.actorId(), plan.getProjectId(), command.expectedProjectVersion(), candidate.getEndDate()));
         boolean evidenceRequired = resolveEvidenceRequired(change.getReasonTypeCode());
-        Evidence frozenEvidence = evidenceRequired
+        // 可选附件：未命中必填原因时，草稿已传附件仍冻结具体版本；未传则落空
+        Evidence frozenEvidence = evidenceRequired || change.getCustomerEvidenceFileId() != null
                 ? requireFileArtifact(change, inspectedEvidence)
                 : Evidence.empty();
         String processKey = normalizeProcessKey();
@@ -420,7 +426,7 @@ public class DurationChangeApplicationService {
 
     private ConstructionPlanDO lockPlan(Long planId, Integer expectedVersion, Long tenantId) {
         ConstructionPlanDO plan = lockPlan(planId, tenantId);
-        if (!plan.getVersion().equals(expectedVersion)) throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
+        if (!Objects.equals(plan.getVersion(), expectedVersion == null ? null : expectedVersion.longValue())) throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
         return plan;
     }
 
@@ -430,31 +436,36 @@ public class DurationChangeApplicationService {
         return plan;
     }
 
-    private ProjectParticipantFact requireManageAndProject(Long planId, Integer projectVersion,
+    private ProjectDurationOperatorApi.Fact requireManageAndProject(Long planId, Long projectVersion,
                                                            ConstructionPlanApplicationService.Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), ConstructionPlanApplicationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        ConstructionPlanDO plan = planMapper.selectById(new ConstructionPlanLockQuery(actor.tenantId(), planId));
+        ConstructionPlanDO plan = planMapper.selectByLockQuery(new ConstructionPlanLockQuery(actor.tenantId(), planId));
         if (plan == null) throw exception(CONSTRUCTION_PLAN_STATUS_INVALID);
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), plan.getProjectId(), ProjectScopeApi.ACTION_MANAGE));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(plan.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (!scope.fullProjectIds().contains(plan.getProjectId())) {
             throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
         }
-        return participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                plan.getProjectId(), actor.actorId(), projectVersion, "ACTIVE", null,
-                Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+        var operator = durationOperatorApi.lockAndRevalidate(new ProjectDurationOperatorApi.RevalidationQuery(
+                new ProjectDurationOperatorApi.Query(actor.tenantId(), plan.getProjectId(), actor.actorId()), projectVersion));
+        executionGuard.lockForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                plan.getProjectId(), "PLN", "CONSTRUCTION_PLAN", null));
+        return operator;
     }
 
     private ProjectParticipantFact requireUniqueServiceManager(
-            Long projectId, Integer projectVersion, ConstructionPlanApplicationService.Actor actor) {
+            Long projectId, Long projectVersion, ConstructionPlanApplicationService.Actor actor) {
         ProjectParticipantFact selected = participantFactApi.inspect(new ProjectParticipantFactQuery(
                 projectId, null, SERVICE_MANAGER_ROLES, LocalDateTime.now()));
-        if (selected == null || selected.userId() == null
-                || Objects.equals(selected.userId(), actor.actorId())) {
-            throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
+        if (selected == null || selected.userId() == null) {
+            throw exception(DURATION_CHANGE_SERVICE_MANAGER_MISSING);
         }
+        // 服务经理本人提交的变更由其自审；审批人只要求具备服务经理身份
         ProjectParticipantFact revalidated = participantFactApi.lockAndRevalidate(
                 new ProjectParticipantFactRevalidationQuery(
                 projectId, selected.userId(), projectVersion, "ACTIVE", null, SERVICE_MANAGER_ROLES));
@@ -495,13 +506,19 @@ public class DurationChangeApplicationService {
 
     private FileArtifactVersionFact inspectEvidenceBeforeLocks(
             SubmitDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
-        ConstructionPlanDO plan = planMapper.selectById(
+        ConstructionPlanDO plan = planMapper.selectByLockQuery(
                 new ConstructionPlanLockQuery(actor.tenantId(), command.planId()));
         if (plan == null) throw exception(CONSTRUCTION_PLAN_STATUS_INVALID);
         ConstructionPlanChangeDO change = changeMapper.selectById(new ConstructionPlanChangeLockQuery(
                 actor.tenantId(), plan.getId(), command.changeId()));
         if (change == null) throw exception(DURATION_CHANGE_NOT_EXISTS);
-        if (!resolveEvidenceRequired(change.getReasonTypeCode())) return null;
+        // 客户依据改可选附件：草稿已传附件时无论原因规则都需冻结版本
+        if (!resolveEvidenceRequired(change.getReasonTypeCode())
+                && change.getCustomerEvidenceFileId() == null) return null;
+        // 保留原因规则要求必传时，草稿未传附件给出明确提交前置错误
+        if (change.getCustomerEvidenceFileId() == null) {
+            throw exception(DURATION_CHANGE_EVIDENCE_REQUIRED);
+        }
         Evidence evidence = evidence(change.getCustomerEvidenceFileId(),
                 change.getCustomerEvidenceFileVersion(), change.getCustomerEvidenceReferenceKey());
         try {
@@ -676,7 +693,7 @@ public class DurationChangeApplicationService {
         }
     }
 
-    private boolean invalidVersion(Integer value) { return value == null || value < 0; }
+    private boolean invalidVersion(Number value) { return value == null || value.longValue() < 0; }
 
     private ConstructionPlanChangeRespVO response(
             ConstructionPlanChangeDO change, ConstructionPlanRevisionDO candidate) {

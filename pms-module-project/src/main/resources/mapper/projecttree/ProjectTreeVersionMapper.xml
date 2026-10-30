@@ -52,4 +52,23 @@
         LIMIT 1
         FOR UPDATE
     </select>
+    <select id="selectLatestActiveBatch"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO">
+        SELECT <include refid="columns"/>
+        FROM (
+            SELECT v.*, ROW_NUMBER() OVER (
+                PARTITION BY v.root_project_id ORDER BY v.tree_version DESC, v.id DESC
+            ) AS scope_rank
+            FROM proj_project_tree_version v
+            WHERE v.tenant_id = #{query.tenantId} AND v.deleted = b'0' AND v.status = 'ACTIVE'
+            <choose>
+                <when test="query.rootProjectIds != null and !query.rootProjectIds.isEmpty()">
+                    AND v.root_project_id IN
+                    <foreach collection="query.rootProjectIds" item="rootId" open="(" separator="," close=")">#{rootId}</foreach>
+                </when>
+                <otherwise>AND 1 = 0</otherwise>
+            </choose>
+        ) active_versions
+        WHERE scope_rank = 1
+    </select>
 </mapper>

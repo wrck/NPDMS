@@ -21,7 +21,6 @@ public class ProjectCustomerContactDO extends TenantBaseDO {
     @TableField(updateStrategy = FieldStrategy.ALWAYS) private String mobile;
     @TableField(updateStrategy = FieldStrategy.ALWAYS) private String phone;
     @TableField(updateStrategy = FieldStrategy.ALWAYS) private String email;
-    @TableField(updateStrategy = FieldStrategy.ALWAYS) private String roleCode;
     private Boolean primaryFlag;
     @TableField(updateStrategy = FieldStrategy.ALWAYS) private LocalDateTime primarySetTime;
     private Integer status;

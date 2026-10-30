@@ -1,0 +1,58 @@
+{
+  "capturedAt": "2026-09-24",
+  "projectId": 992203060028,
+  "projectCode": "PJT2026000021",
+  "templateRevisionNo": 7,
+  "signingMethod": "DIRECT_SIGN",
+  "taskStatus": {
+    "PRE_SURVEY": "DONE",
+    "PLAN_CONSTRUCTION": "DONE",
+    "PLAN_SOLUTION": "DONE",
+    "DEPLOY_COORDINATE": "DONE",
+    "ACCEPT_COORDINATE": "DONE",
+    "PRE_REQUIREMENT": "DONE",
+    "DEPLOY_ARRIVAL": "DONE",
+    "ACCEPT_INITIAL": "DONE",
+    "PRE_DURATION": "DONE",
+    "DEPLOY_HARDWARE": "DONE",
+    "ACCEPT_FINAL": "DONE",
+    "PRE_CONTACT": "DONE",
+    "DEPLOY_CONFIG": "DONE",
+    "ACCEPT_TRAINING": "DONE",
+    "DEPLOY_JOINT": "DONE",
+    "ACCEPT_SATISFACTION": "DONE",
+    "DEPLOY_CUTOVER": "DONE"
+  },
+  "acceptanceActivities": [
+    {
+      "id": "2102785841535057922",
+      "projectId": 992203060028,
+      "projectTaskId": null,
+      "executionContractId": null,
+      "acceptanceType": "PRELIMINARY",
+      "activityStatus": "COMPLETED",
+      "currentReportVersionId": "2102785841971265538",
+      "version": 1,
+      "deliverableId": null,
+      "originKind": "DIRECT"
+    },
+    {
+      "id": "2102786022435389441",
+      "projectId": 992203060028,
+      "projectTaskId": null,
+      "executionContractId": null,
+      "acceptanceType": "FINAL",
+      "activityStatus": "COMPLETED",
+      "currentReportVersionId": "2102786022745767938",
+      "version": 1,
+      "deliverableId": null,
+      "originKind": "DIRECT"
+    }
+  ],
+  "stageAdvanceReadiness": {
+    "code": 1014024048,
+    "msg": "项目阶段推进条件不合法：GRAPH_NODE_STALE"
+  },
+  "readinessObservation": "028 全链完成后 S5=DONE、零 ACTIVE 阶段，readiness 端点的单 ACTIVE 不变量无法表达『已完成无可推进』（仅配置闭环的 closureCheck 路径豁免，见 Q-TPL-FLOW-20260922-002 未配置 S6）。业务终态以任务与验收活动数据为准，不阻塞任何业务结果。",
+  "note": "直签路径全部 17 任务 DONE；PRELIMINARY/FINAL 验收活动 COMPLETED。DEPLOY_ARRIVAL/ACCEPT_INITIAL/ACCEPT_FINAL 在直签路径全部执行；满意度来源见 028 对照记录（satisfaction-projection-conflict.json comparison028）。"
+}

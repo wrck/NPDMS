@@ -12,7 +12,7 @@ public class CutoverDashboardCandidateRow {
     private String taskStatus;
     private Long ownerUserId;
     private String manualGrade;
-    private Integer taskVersion;
+    private Long taskVersion;
     private Long stageFactId;
     private Integer stageFactVersion;
     private String currentApprovalStatus;

@@ -58,15 +58,15 @@ public final class ArrivalAcceptanceRules {
         return quantities;
     }
 
-    static record QuantityKey(Long orderLineId, String productCode, String modelCode, String unitCode)
+    static record QuantityKey(Long orderLineId, String productCode, String productModel, String unitCode)
             implements Comparable<QuantityKey> {
 
         static QuantityKey from(ArrivalQuantityScopeFact scope) {
-            return new QuantityKey(scope.orderLineId(), scope.productCode(), scope.modelCode(), scope.unitCode());
+            return new QuantityKey(scope.orderLineId(), scope.productCode(), scope.productModel(), scope.unitCode());
         }
 
         ArrivalQuantityScopeFact quantity(BigDecimal value) {
-            return new ArrivalQuantityScopeFact(orderLineId, productCode, modelCode, value, unitCode);
+            return new ArrivalQuantityScopeFact(orderLineId, productCode, productModel, value, unitCode);
         }
 
         @Override
@@ -75,7 +75,7 @@ public final class ArrivalAcceptanceRules {
             if (compared != 0) return compared;
             compared = compareNullable(productCode, other.productCode);
             if (compared != 0) return compared;
-            compared = compareNullable(modelCode, other.modelCode);
+            compared = compareNullable(productModel, other.productModel);
             if (compared != 0) return compared;
             return unitCode.compareTo(other.unitCode);
         }

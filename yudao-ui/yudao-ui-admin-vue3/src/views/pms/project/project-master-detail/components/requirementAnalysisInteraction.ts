@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import type { FileArtifactVO, FileVersionVO } from '@/api/pms/platform/file'
 import type {
   PatchRequirementAnalysisSectionReqVO,
@@ -180,7 +181,7 @@ export const buildRequirementAttachment = (
   scopeVersion: artifact.reference.scopeVersion
 })
 
-export const createRequirementIntentStore = (factory: () => string = () => crypto.randomUUID()) => {
+export const createRequirementIntentStore = (factory: () => string = () => generateUUID()) => {
   const keys = new Map<string, string>()
   return {
     key(intent: string) {

@@ -29,9 +29,13 @@ class ProjectManagerMemberApplicationServiceTest {
         var scope = mock(ProjectAuthorizationGuard.class);
         var commands = mock(PlatformCommandExecutionApi.class);
         var service = new ProjectManagerMemberApplicationService(projects, members, users, authorization, scope, commands);
-        var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setVersion(0);
+        var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(7L); project.setVersion(0L);
         project.setCompanyId(8L); project.setLifecycleStatus("ACTIVE");
         var current = new ArrayList<ProjectMemberAssignmentDO>();
+        var unbound = new ProjectMemberAssignmentDO(); unbound.setId(70L); unbound.setMemberName("历史姓名");
+        current.add(unbound);
+        var retired = new ProjectMemberAssignmentDO(); retired.setId(71L); retired.setUserId(41L); retired.setMemberName("旧经理");
+        current.add(retired); project.setManagerId(41L);
         when(projects.selectByIdForUpdate(9L)).thenReturn(project);
         when(members.selectProjectManagersForUpdate(any())).thenReturn(current);
         when(members.insert(any(ProjectMemberAssignmentDO.class))).thenAnswer(call -> {
@@ -46,16 +50,20 @@ class ProjectManagerMemberApplicationServiceTest {
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, result);
         });
         var actor = new ProjectManagerMemberApplicationService.Actor(7L, 11L, "member-event");
-        var initial = new ProjectManagerMemberCommand(9L, 0, Set.of(42L), Set.of(), 42L, "指定经理", "first");
+        var initial = new ProjectManagerMemberCommand(9L, 0L, Set.of(42L), Set.of(), 42L, "指定经理", "first");
         var saved = service.update(initial, actor);
         assertTrue(saved.changed()); assertEquals(1, facts.getFirst().businessEvents().size());
+        assertEquals(2, saved.members().size());
+        assertNull(unbound.getUserId()); assertNull(unbound.getEffectiveTo());
+        assertNull(retired.getEffectiveTo());
+        verify(users).page(org.mockito.ArgumentMatchers.argThat(query -> query.userIds().equals(Set.of(42L))));
         assertEquals("ProjectManagersChanged", facts.getFirst().eventType());
         var event = facts.getFirst().businessEvents().getFirst();
         assertEquals("ProjectRuleReevaluationRequested", event.eventType());
         var context = JsonUtils.parseTree(event.eventPayload());
         assertEquals(7L, context.path("tenantId").asLong()); assertEquals(9L, context.path("projectId").asLong());
         assertEquals(11L, context.path("actorId").asLong()); assertEquals("member-event", context.path("correlationId").asText());
-        assertFalse(service.update(new ProjectManagerMemberCommand(9L, 1, Set.of(), Set.of(), 42L, "未变更", "noop"), actor).changed());
+        assertFalse(service.update(new ProjectManagerMemberCommand(9L, 1L, Set.of(), Set.of(), 42L, "未变更", "noop"), actor).changed());
         assertTrue(facts.getLast().businessEvents().isEmpty()); assertNull(facts.getLast().eventType());
         doReturn(new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, saved))
                 .when(commands).execute(any(), anyString(), eq(ProjectManagerMemberResult.class), any(), any());

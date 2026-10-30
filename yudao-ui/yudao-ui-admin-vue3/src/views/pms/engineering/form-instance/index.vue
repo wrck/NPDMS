@@ -5,9 +5,9 @@
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-220px"
         />
@@ -35,7 +35,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-form-instance:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:plt-form-instance:create']"
           ><Icon icon="ep:plus" />新建实例</el-button
         >
       </el-form-item>
@@ -70,7 +70,7 @@
       <el-table-column prop="createTime" label="创建时间" min-width="160" :formatter="dateFormatter" />
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-form-instance:query']"
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:plt-form-instance:query']"
             >明细</el-button
           >
           <el-button
@@ -78,7 +78,7 @@
             type="warning"
             v-if="row.status === 0 || row.status === 1 || row.status === 4"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-form-instance:update']"
+            v-hasPermi="['pms:plt-form-instance:update']"
             >编辑</el-button
           >
           <el-button
@@ -86,7 +86,7 @@
             type="success"
             v-if="row.status === 0 || row.status === 1 || row.status === 4"
             @click="handleSubmit(row)"
-            v-hasPermi="['pms:eng-form-instance:submit']"
+            v-hasPermi="['pms:plt-form-instance:submit']"
             >提交</el-button
           >
           <el-button
@@ -94,7 +94,7 @@
             type="primary"
             v-if="row.status === 2"
             @click="openApprove(row)"
-            v-hasPermi="['pms:eng-form-instance:audit']"
+            v-hasPermi="['pms:plt-form-instance:audit']"
             >审核</el-button
           >
           <el-button
@@ -102,7 +102,7 @@
             type="danger"
             v-if="row.status === 0 || row.status === 1 || row.status === 4"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-form-instance:delete']"
+            v-hasPermi="['pms:plt-form-instance:delete']"
             >删除</el-button
           >
         </template>
@@ -128,9 +128,9 @@
             <PmsEntitySelect
               v-model="form.projectId"
               :api="ProjectApi.getProjectPage"
-              label-field="name"
+              label-field="projectName"
               value-field="id"
-              query-field="name"
+              query-field="projectName"
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
@@ -145,12 +145,10 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="填报人" prop="fillerUserId">
-            <PmsEntitySelect
+            <UserSelect
               v-model="form.fillerUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
+              :scoped-source="managementUsers"
+              :page-size="50"
               placeholder="请选择填报人"
             />
           </el-form-item>
@@ -162,7 +160,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="填报数据" prop="formData">
-            <el-input v-model="form.formData" type="textarea" :rows="8" placeholder='请输入填报数据JSON，如 {"deviceModel":"NGFW-5000","deployMode":"transparent"}' />
+            <el-input v-model="form.formData" type="textarea" :rows="8" placeholder="请输入填报数据JSON，如 {&quot;deviceModel&quot;:&quot;NGFW-5000&quot;,&quot;deployMode&quot;:&quot;transparent&quot;}" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -222,12 +220,10 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item label="审核人" prop="approverUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="approveForm.approverUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择审核人"
         />
       </el-form-item>
@@ -243,18 +239,29 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import { onMounted, reactive, ref } from 'vue'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as FormInstanceApi from '@/api/pms/engineering/form-instance'
 import * as FormTemplateApi from '@/api/pms/engineering/form-template'
-import * as ProjectApi from '@/api/pms/project/project'
-import * as UserApi from '@/api/system/user'
+import * as ProjectApi from '@/api/pms/project/projects'
 import type { FormInstanceVO } from '@/api/pms/engineering/form-instance'
 import type { FormTemplateVO } from '@/api/pms/engineering/form-template'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import UserTag from '@/components/UserTag/index.vue'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/form-instance/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngFormInstance' })
 const message = useMessage()

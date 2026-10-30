@@ -6,6 +6,7 @@ import Drawer from './ProjectDurationFormDrawer.vue'
 
 const api = vi.hoisted(() => ({
   getByProjectId: vi.fn(),
+  getEntryReadiness: vi.fn(),
   getChanges: vi.fn(),
   getChange: vi.fn(),
   createInitial: vi.fn(),
@@ -82,8 +83,8 @@ const flush = async () => {
   }
 }
 const apps: { unmount: () => void }[] = []
-const render = (component: Component, readonly = false, id: number | undefined = 1) => {
-  const props = reactive({ project: { id, version: 7, projectName: '主线工期验收项目', projectEndDate: undefined as string | undefined }, readonly })
+const render = (component: Component, readonly = false, id: number | string | undefined = 1) => {
+  const props = reactive({ project: { id, version: 7, projectName: '主线工期验收项目', projectEndDate: undefined as string | undefined, projectManagerAssigned: true }, readonly })
   const child = ref<any>()
   const wrapper = defineComponent({ setup: () => () => h(component, { ...props, ref: child }) })
   const stubs = Object.fromEntries(
@@ -105,6 +106,7 @@ const render = (component: Component, readonly = false, id: number | undefined =
 
 beforeEach(() => {
   vi.clearAllMocks()
+  api.getEntryReadiness.mockResolvedValue({ durationWritable: true, scheduleWritable: false })
   api.getByProjectId.mockImplementation(async (id: number) => plan(id))
   api.getChanges.mockResolvedValue({ items: [], hasMore: false })
   api.getChange.mockResolvedValue(change())
@@ -116,7 +118,23 @@ it('shows the real current revision in the original-style table', async () => {
   const mounted = render(Panel)
   await flush()
   expect(findByTestId(mounted.root, 'duration-current-revision')?.props?.data).toEqual([revision])
-  expect(findByTestId(mounted.root, 'duration-project-name')?.props?.['model-value']).toBe('主线工期验收项目')
+  expect(findByTestId(mounted.root, 'duration-project-name')).toBeUndefined()
+})
+
+it.each(['denied', 'unavailable'])('keeps duration history readable but disables the nested editor when template readiness is %s', async status => {
+  if (status === 'denied') api.getEntryReadiness.mockResolvedValue({ durationWritable: false, scheduleWritable: true })
+  else api.getEntryReadiness.mockRejectedValue(new Error('readiness unavailable'))
+  const mounted = render(Panel)
+  await flush()
+  expect(findByTestId(mounted.root, 'duration-current-revision')?.props?.data).toEqual([revision])
+  expect(mounted.state().canWrite).toBe(false)
+  const drawer = mounted.state().formRef.$.setupState
+  expect(drawer.canWrite).toBe(false)
+  drawer.openInitial()
+  await drawer.save()
+  expect(api.createInitial).not.toHaveBeenCalled()
+  expect(api.createChange).not.toHaveBeenCalled()
+  expect(api.patchChange).not.toHaveBeenCalled()
 })
 
 it('uses the survey project deadline to derive the submitted initial date range', async () => {
@@ -131,9 +149,93 @@ it('uses the survey project deadline to derive the submitted initial date range'
   expect(view.state().durationPayload()).toEqual({ calculationBasis: 'DATE_RANGE', startDate: '2026-12-01', endDate: '2026-12-31' })
   expect(view.props.project.projectEndDate).toBe('2026-12-31')
 })
+
+it('re-runs backward calculation from the custom duration end date instead of the survey deadline', async () => {
+  const view = render(Drawer)
+  view.props.project.projectEndDate = '2026-12-31'
+  await flush()
+  view.child.value.openInitial()
+  await flush()
+  view.state().surveyEntryMode = 'DATE_RANGE'
+  view.state().onSurveyEntryModeChange()
+  Object.assign(view.state().form, { startDate: '2026-11-02', endDate: '2026-11-15' })
+  view.state().surveyEntryMode = 'SURVEY_BACKWARD'
+  view.state().onSurveyEntryModeChange()
+  view.state().form.durationDays = 14
+  await flush()
+  expect(view.state().form.endDate).toBe('2026-11-15')
+  expect(view.state().form.startDate).toBe('2026-11-02')
+  expect(view.state().durationPayload()).toEqual({ calculationBasis: 'DATE_RANGE', startDate: '2026-11-02', endDate: '2026-11-15' })
+})
+
+it('allows direct start/end entry for a survey project after switching off the backward basis', async () => {
+  const view = render(Drawer)
+  view.props.project.projectEndDate = '2026-12-31'
+  await flush()
+  view.child.value.openInitial()
+  await flush()
+  view.state().surveyEntryMode = 'DATE_RANGE'
+  view.state().onSurveyEntryModeChange()
+  await flush()
+  Object.assign(view.state().form, { startDate: '2026-11-02', endDate: '2026-11-15' })
+  expect(view.state().durationPayload()).toEqual({
+    calculationBasis: 'DATE_RANGE',
+    startDate: '2026-11-02',
+    endDate: '2026-11-15'
+  })
+})
+
+it('submits start plus duration without a derived end date for a survey project', async () => {
+  const view = render(Drawer)
+  view.props.project.projectEndDate = '2026-12-31'
+  await flush()
+  view.child.value.openInitial()
+  await flush()
+  view.state().surveyEntryMode = 'DURATION_FROM_START'
+  view.state().onSurveyEntryModeChange()
+  Object.assign(view.state().form, { startDate: '2026-11-02', durationDays: 14 })
+  await flush()
+  expect(view.state().durationPayload()).toEqual({
+    calculationBasis: 'DURATION_FROM_START',
+    startDate: '2026-11-02',
+    durationDays: 14
+  })
+})
 afterEach(() => apps.splice(0).forEach((app) => app.unmount()))
 
+it('explains missing project-manager assignment and prevents initial entry without a write request', async () => {
+  api.getByProjectId.mockResolvedValue(null)
+  const panel = render(Panel)
+  panel.props.project.projectManagerAssigned = false
+  const drawer = render(Drawer)
+  drawer.props.project.projectManagerAssigned = false
+  await flush()
+  expect(panel.state().initialEntryHint).toContain('项目尚未指派项目经理')
+  drawer.child.value.openInitial()
+  await drawer.state().save()
+  expect(drawer.state().visible).toBe(false)
+  expect(message.warning).toHaveBeenCalledWith(expect.stringContaining('完成项目经理指派'))
+  expect(api.createInitial).not.toHaveBeenCalled()
+  drawer.props.project.projectManagerAssigned = true
+  await flush()
+  drawer.child.value.openInitial()
+  expect(drawer.state().visible).toBe(true)
+})
+
 describe('PRE-01 existing duration components in project views', () => {
+  it('preserves a Snowflake project ID for querying and initial duration entry', async () => {
+    const id = '2110018733130579975'
+    api.getByProjectId.mockResolvedValue(null)
+    const panel = render(Panel, false, id)
+    const drawer = render(Drawer, false, id)
+    await flush()
+    expect(api.getByProjectId).toHaveBeenCalledWith(id)
+    expect(panel.state().canWrite).toBe(true)
+    drawer.child.value.openInitial()
+    expect(drawer.state().visible).toBe(true)
+    expect(drawer.state().canWrite).toBe(true)
+  })
+
   it('keeps the existing project prop and default writable behavior', async () => {
     const view = render(Panel)
     await flush()
@@ -142,7 +244,7 @@ describe('PRE-01 existing duration components in project views', () => {
     expect(view.state().canWrite).toBe(true)
   })
 
-  it.each([0, -1, NaN, Number.MAX_SAFE_INTEGER + 1])(
+  it.each([0, -1, NaN, Number.MAX_SAFE_INTEGER + 1, '', '0', '1e3', '9223372036854775808'])(
     'rejects invalid project %s without offering initial creation',
     async (id) => {
       const view = render(Panel, false, id)
@@ -239,15 +341,15 @@ describe('PRE-01 existing duration components in project views', () => {
     expect(cancel).not.toHaveBeenCalled()
   })
 
-  it('reuses the original initial-duration API and date payload', async () => {
-    const view = render(Drawer)
+  it.each([1, '2110018733130579975'])('preserves project %s in the initial-duration write payload', async (id) => {
+    const view = render(Drawer, false, id)
     view.child.value.openInitial()
     view.state().formRef = { validate: async () => true }
     Object.assign(view.state().form, { startDate: '2026-09-01', endDate: '2026-09-10' })
     await view.state().save()
     expect(api.createInitial).toHaveBeenCalledWith(
       {
-        projectId: 1,
+        projectId: id,
         expectedProjectVersion: 7,
         calculationBasis: 'DATE_RANGE',
         startDate: '2026-09-01',
@@ -268,6 +370,30 @@ describe('PRE-01 existing duration components in project views', () => {
     validation.resolve(true)
     await pending
     expect(api.createInitial).not.toHaveBeenCalled()
+  })
+
+  it('keeps initial-duration input after a version rejection and uses the refreshed project on retry', async () => {
+    const view = render(Drawer)
+    view.child.value.openInitial()
+    view.state().formRef = { validate: async () => true }
+    Object.assign(view.state().form, { startDate: '2026-09-01', endDate: '2026-09-10' })
+    api.createInitial.mockRejectedValueOnce(new Error('Project版本冲突，请重新加载后重试'))
+    await expect(view.state().save()).rejects.toThrow('Project版本冲突')
+    expect(view.state().visible).toBe(true)
+    expect(view.state().saving).toBe(false)
+    expect(view.child.value.isDirty()).toBe(true)
+    view.props.project = { ...view.props.project, version: 8 }
+    await flush()
+    expect(view.state().form.startDate).toBe('2026-09-01')
+    expect(view.state().form.endDate).toBe('2026-09-10')
+    expect(api.createInitial).toHaveBeenCalledTimes(1)
+    view.state().formRef = { validate: async () => true }
+    await view.state().save()
+    expect(api.createInitial).toHaveBeenLastCalledWith(
+      expect.objectContaining({ expectedProjectVersion: 8, startDate: '2026-09-01', endDate: '2026-09-10' }),
+      expect.any(String)
+    )
+    expect(view.state().visible).toBe(false)
   })
 
   it('rejects readonly form/file handlers and mismatched project plans', async () => {

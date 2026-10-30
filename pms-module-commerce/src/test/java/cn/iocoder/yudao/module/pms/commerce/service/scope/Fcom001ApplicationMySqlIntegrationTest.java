@@ -79,7 +79,7 @@ class Fcom001ApplicationMySqlIntegrationTest {
     @MockitoBean private AcceptanceScopeGuardApi acceptanceScopeGuardApi;
     @MockitoBean private OperationAuditApi operationAuditApi;
 
-    private int projectVersion;
+    private long projectVersion;
     private long deliveryScopeVersion;
 
     @DynamicPropertySource

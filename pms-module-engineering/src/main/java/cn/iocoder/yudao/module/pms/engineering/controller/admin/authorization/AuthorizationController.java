@@ -30,11 +30,11 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - PMS 授权与借货 Controller（FR-ENG-010）。
  * <p>
- * 路径前缀 {@code /pms/eng-authorization}，对应菜单权限 {@code pms:eng-authorization:*}。
+ * 路径前缀 {@code /pms/plt-authorization}，对应菜单权限 {@code pms:plt-authorization:*}。
  */
 @Tag(name = "管理后台 - PMS 授权与借货")
 @RestController
-@RequestMapping("/pms/eng-authorization")
+@RequestMapping("/pms/plt-authorization")
 @Validated
 public class AuthorizationController {
 
@@ -43,14 +43,14 @@ public class AuthorizationController {
 
     @PostMapping("/create")
     @Operation(summary = "创建授权")
-    @PreAuthorize("@ss.hasPermission('pms:eng-authorization:create')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-authorization:create')")
     public CommonResult<Long> createAuthorization(@Valid @RequestBody AuthorizationSaveReqVO createReqVO) {
         return success(authorizationService.createAuthorization(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新授权")
-    @PreAuthorize("@ss.hasPermission('pms:eng-authorization:update')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-authorization:update')")
     public CommonResult<Boolean> updateAuthorization(@Valid @RequestBody AuthorizationSaveReqVO updateReqVO) {
         authorizationService.updateAuthorization(updateReqVO);
         return success(true);
@@ -59,7 +59,7 @@ public class AuthorizationController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除授权")
     @Parameter(name = "id", description = "授权ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-authorization:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-authorization:delete')")
     public CommonResult<Boolean> deleteAuthorization(@RequestParam("id") Long id) {
         authorizationService.deleteAuthorization(id);
         return success(true);
@@ -68,7 +68,7 @@ public class AuthorizationController {
     @GetMapping("/get")
     @Operation(summary = "查询授权详情")
     @Parameter(name = "id", description = "授权ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-authorization:query')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-authorization:query')")
     public CommonResult<AuthorizationRespVO> getAuthorization(@RequestParam("id") Long id) {
         AuthorizationDO entity = authorizationService.getAuthorization(id);
         return success(BeanUtils.toBean(entity, AuthorizationRespVO.class));
@@ -76,7 +76,7 @@ public class AuthorizationController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询授权")
-    @PreAuthorize("@ss.hasPermission('pms:eng-authorization:query')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-authorization:query')")
     public CommonResult<PageResult<AuthorizationRespVO>> getAuthorizationPage(@Validated AuthorizationPageReqVO pageReqVO) {
         PageResult<AuthorizationDO> pageResult = authorizationService.getAuthorizationPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, AuthorizationRespVO.class));
@@ -85,7 +85,7 @@ public class AuthorizationController {
     @PutMapping("/submit")
     @Operation(summary = "提交授权（0 草稿 / 4 已驳回 / 5 已撤回 → 1 已提交 → 2 审批中）")
     @Parameter(name = "id", description = "授权ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-authorization:submit')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-authorization:submit')")
     public CommonResult<Boolean> submitAuthorization(@RequestParam("id") Long id) {
         authorizationService.submitAuthorization(id);
         return success(true);
@@ -93,7 +93,7 @@ public class AuthorizationController {
 
     @PutMapping("/approve")
     @Operation(summary = "审批授权（2 审批中 → 3 已通过 / 4 已驳回 / 6 已终止）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-authorization:audit')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-authorization:audit')")
     public CommonResult<Boolean> approveAuthorization(@Valid @RequestBody AuthorizationApproveReqVO reqVO) {
         authorizationService.approveAuthorization(reqVO);
         return success(true);
@@ -102,7 +102,7 @@ public class AuthorizationController {
     @PutMapping("/recall")
     @Operation(summary = "撤回授权（1 已提交 / 2 审批中 → 5 已撤回）")
     @Parameter(name = "id", description = "授权ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-authorization:recall')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-authorization:recall')")
     public CommonResult<Boolean> recallAuthorization(@RequestParam("id") Long id) {
         authorizationService.recallAuthorization(id);
         return success(true);
@@ -111,7 +111,7 @@ public class AuthorizationController {
     @PutMapping("/terminate")
     @Operation(summary = "终止授权（3 已通过 → 6 已终止）")
     @Parameter(name = "id", description = "授权ID", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-authorization:terminate')")
+    @PreAuthorize("@ss.hasPermission('pms:plt-authorization:terminate')")
     public CommonResult<Boolean> terminateAuthorization(@RequestParam("id") Long id) {
         authorizationService.terminateAuthorization(id);
         return success(true);

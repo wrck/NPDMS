@@ -23,14 +23,22 @@ public interface CutoverPlanSourcePort {
         }
     }
 
-    record SourceSnapshot(Integer snapshotVersion, Long taskId, Integer taskVersion,
-                          Long assessmentId, Integer assessmentVersion, String grade,
-                          Long checklistId, Integer checklistVersion, Long projectId,
+    record SourceSnapshot(Integer snapshotVersion, Long taskId, Long taskVersion,
+                          Long assessmentId, Long assessmentVersion, String grade,
+                          Long checklistId, Long checklistVersion, Long projectId,
                           Integer projectVersion, Long projectScopeVersion,
                           List<DeviceSnapshot> devices, Long configurationRevisionId,
                           String configurationCode, Integer configurationRevisionNo,
                           List<TemplateSectionSnapshot> templateSections,
                           List<RiskFactSnapshot> failedRiskFacts) {
+        /** Project version records when facts were read; it does not bind CUT progression. */
+        public boolean sameBusinessSource(SourceSnapshot other) {
+            return other != null && equals(new SourceSnapshot(other.snapshotVersion(), other.taskId(), other.taskVersion(),
+                    other.assessmentId(), other.assessmentVersion(), other.grade(), other.checklistId(), other.checklistVersion(),
+                    other.projectId(), projectVersion, other.projectScopeVersion(), other.devices(), other.configurationRevisionId(),
+                    other.configurationCode(), other.configurationRevisionNo(), other.templateSections(), other.failedRiskFacts()));
+        }
+
         public SourceSnapshot {
             require(snapshotVersion != null && snapshotVersion > 0, "snapshotVersion");
             require(taskId != null && taskId > 0 && taskVersion != null && taskVersion >= 0, "task");
@@ -54,6 +62,7 @@ public interface CutoverPlanSourcePort {
                     .thenComparing(TemplateSectionSnapshot::stableSectionKey)).toList();
             require(new HashSet<>(templateSections.stream().map(TemplateSectionSnapshot::stableSectionKey).toList()).size()
                     == templateSections.size(), "stableSectionKey");
+            if (!"D".equals(grade)) require(templateSections.stream().allMatch(section -> !section.cutoverTypeCodes().isEmpty()), "templateSection.cutoverTypeCodes");
             if ("D".equals(grade)) require(templateSections.size() == SIMPLE_SECTIONS.size()
                     && new HashSet<>(templateSections.stream().map(TemplateSectionSnapshot::stableSectionKey).toList())
                     .equals(new HashSet<>(SIMPLE_SECTIONS)), "D templateSections");
@@ -72,8 +81,12 @@ public interface CutoverPlanSourcePort {
             comparisonKey(serialNumber);
             require(serialNumber.length() <= 128, "serialNumber");
             require(projectAssignmentVersion != null && projectAssignmentVersion >= 0, "projectAssignmentVersion");
-            requireText(deviceTypeCode, 64, "deviceTypeCode");
-            requireText(deviceTypeSourceVersion, 128, "deviceTypeSourceVersion");
+            // Historical AST product references remain paired; new CUT tasks select their own type in P3.
+            require((deviceTypeCode == null) == (deviceTypeSourceVersion == null), "deviceTypeReference");
+            if (deviceTypeCode != null) {
+                requireText(deviceTypeCode, 64, "deviceTypeCode");
+                requireText(deviceTypeSourceVersion, 128, "deviceTypeSourceVersion");
+            }
         }
     }
     record TemplateSectionSnapshot(String stableSectionKey, String title, Integer sortOrder,
@@ -82,7 +95,7 @@ public interface CutoverPlanSourcePort {
             requireText(stableSectionKey, 64, "stableSectionKey");
             requireText(title, 128, "title");
             require(sortOrder != null && sortOrder >= 0 && required != null, "templateSection");
-            require(cutoverTypeCodes != null && !cutoverTypeCodes.isEmpty(), "cutoverTypeCodes");
+            require(cutoverTypeCodes != null && (!cutoverTypeCodes.isEmpty() || levelCodes != null && levelCodes.contains("D")), "cutoverTypeCodes");
             cutoverTypeCodes.forEach(v -> requireText(v, 64, "cutoverTypeCode"));
             require(new HashSet<>(cutoverTypeCodes).size() == cutoverTypeCodes.size(), "cutoverTypeCodes");
             cutoverTypeCodes = cutoverTypeCodes.stream().sorted().toList();

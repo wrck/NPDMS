@@ -9,23 +9,14 @@ import cn.iocoder.yudao.framework.common.exception.ErrorCode;
  */
 public interface ErrorCodeConstants {
 
-    // ========== 客户模块 1-014-001-000 ==========
-    ErrorCode CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_001_000, "客户不存在");
-    ErrorCode CUSTOMER_CODE_DUPLICATE = new ErrorCode(1_014_001_001, "客户编码已存在");
-    ErrorCode CUSTOMER_LEGACY_ROUTE_READ_ONLY = new ErrorCode(1_014_001_002,
-            "CUSTOMER_LEGACY_ROUTE_READ_ONLY：旧客户入口已退役为历史只读，请改用 /pms/customers");
+    // ========== 客户模块 1-014-001-000（客户/联系人旧链错误码已随旧链退役，段位保留不重用） ==========
     ErrorCode PROJECT_CUSTOMER_UNAVAILABLE = new ErrorCode(1_014_001_003,
             "所属客户不存在或不可用于新项目关系");
-
-    // ========== 客户联系人模块 1-014-002-000 ==========
-    ErrorCode CUSTOMER_CONTACT_NOT_EXISTS = new ErrorCode(1_014_002_000, "客户联系人不存在");
-    ErrorCode CUSTOMER_CONTACT_PRIMARY_DUPLICATE = new ErrorCode(1_014_002_001, "该客户已存在主联系人");
-    ErrorCode CUSTOMER_CONTACT_CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_002_002, "所属客户不存在");
 
     // ========== 项目主表模块 1-014-003-000 ==========
     ErrorCode PROJECT_NOT_EXISTS = new ErrorCode(1_014_003_000, "项目不存在");
     ErrorCode PROJECT_CODE_DUPLICATE = new ErrorCode(1_014_003_001, "项目编码已存在");
-    ErrorCode PROJECT_END_DATE_CONFLICT = new ErrorCode(1_014_003_020, "项目版本已变化或工期结束日期与工勘要求不一致，请刷新项目后重试");
+    ErrorCode PROJECT_END_DATE_CONFLICT = new ErrorCode(1_014_003_020, "项目版本已变化，请刷新项目后重试");
     ErrorCode PROJECT_END_DATE_NOT_ALLOWED = new ErrorCode(1_014_003_021, "当前主体无权维护该项目结束日期，或项目已关闭");
     ErrorCode PROJECT_CONTACT_CUSTOMER_ALREADY_BOUND = new ErrorCode(1_014_003_022, "项目已关联客户，联系人入口不能直接更换项目客户");
     ErrorCode PROJECT_CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_003_003, "项目客户不存在");
@@ -70,30 +61,18 @@ public interface ErrorCodeConstants {
     // ========== 验收闭环域 ACC 1-014-011-000 ~ 1-014-016-999 ==========
     // 注：任务规范 ACC 域使用 1-014-000-000 段、每实体 1000 段；为避免与现有 001-010 段冲突，
     //     ACC 域从 1-014-011-000 起按 1000 段递进分配。
+    //     archivedocument/completioncertificate/deliverablechecklist 已随 ACC 归属修正迁至
+    //     pms-module-acceptance 的 ErrorCodeConstants，本文件不再保留对应错误码。
 
-    // ========== 电子完工证明 1-014-011-000 ==========
-    ErrorCode ACC_COMPLETION_CERTIFICATE_NOT_EXISTS = new ErrorCode(1_014_011_000, "电子完工证明不存在");
-    ErrorCode ACC_COMPLETION_CERTIFICATE_CODE_DUPLICATE = new ErrorCode(1_014_011_001, "项目内完工证明编码已存在");
-    ErrorCode ACC_COMPLETION_CERTIFICATE_STATUS_INVALID = new ErrorCode(1_014_011_002, "完工证明状态流转不合法");
-
-    // ========== 初验/终验 1-014-012-000 ==========
-    ErrorCode ACC_ACCEPTANCE_NOT_EXISTS = new ErrorCode(1_014_012_000, "验收记录不存在");
-    ErrorCode ACC_ACCEPTANCE_CODE_DUPLICATE = new ErrorCode(1_014_012_001, "项目内验收编码已存在");
-    ErrorCode ACC_ACCEPTANCE_STATUS_INVALID = new ErrorCode(1_014_012_002, "验收状态流转不合法");
-    ErrorCode ACC_ACCEPTANCE_DELIVERABLE_INCOMPLETE = new ErrorCode(1_014_012_003, "交付件完整性校验未通过，存在未通过的必交交付件");
-    ErrorCode ACC_ACCEPTANCE_SCOPE_REQUEST_INVALID = new ErrorCode(1_014_012_004, "验收范围绑定请求不合法");
-    ErrorCode ACC_ACCEPTANCE_SCOPE_BINDING_CONFLICT = new ErrorCode(1_014_012_005, "验收范围绑定身份或状态冲突");
-    ErrorCode ACC_REPORT_NOT_EXISTS = new ErrorCode(1_014_012_006, "验收报告版本不存在");
-    ErrorCode ACC_REPORT_STATE_INVALID = new ErrorCode(1_014_012_007, "验收报告当前状态不允许该操作");
+    // ========== 验收闭环域 ACC 1-014-011-000 ~ 1-014-016-999 ==========
+    // 注：任务规范 ACC 域使用 1-014-000-000 段、每实体 1000 段；为避免与现有 001-010 段冲突，
+    //     ACC 域从 1-014-011-000 起按 1000 段递进分配。
+    //     验收相关错误码已随 ACC 归属修正迁至 pms-module-acceptance 的 ErrorCodeConstants；
+    //     taskworkbench 任务完成判定仍消费以下 3 个 ACC_REPORT 错误码，待 C2 契约批次收敛。
     ErrorCode ACC_REPORT_VERSION_CONFLICT = new ErrorCode(1_014_012_008, "验收报告或活动版本冲突");
     ErrorCode ACC_REPORT_INCOMPLETE = new ErrorCode(1_014_012_009, "验收报告时间、结论、验收人或附件不完整");
     ErrorCode ACC_REPORT_DEPENDENCY_UNAVAILABLE = new ErrorCode(1_014_012_010, "验收报告Owner事实暂不可用");
-    ErrorCode ACC_REPORT_SCOPE_FORBIDDEN = new ErrorCode(1_014_012_011, "无权访问该项目验收报告");
-
-    // ========== 交付件检查 1-014-013-000 ==========
-    ErrorCode ACC_DELIVERABLE_CHECKLIST_NOT_EXISTS = new ErrorCode(1_014_013_000, "交付件检查记录不存在");
-    ErrorCode ACC_DELIVERABLE_CHECKLIST_CODE_DUPLICATE = new ErrorCode(1_014_013_001, "项目内交付件编码已存在");
-    ErrorCode ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID = new ErrorCode(1_014_013_002, "交付件状态流转不合法");
+    //     ACC_PROJECT_CLOSURE 留待项目闭环（normalclosure）批次迁移。
 
     // ========== 项目闭环 1-014-014-000 ==========
     ErrorCode ACC_PROJECT_CLOSURE_NOT_EXISTS = new ErrorCode(1_014_014_000, "项目闭环记录不存在");
@@ -101,10 +80,7 @@ public interface ErrorCodeConstants {
     ErrorCode ACC_PROJECT_CLOSURE_STATUS_INVALID = new ErrorCode(1_014_014_002, "项目闭环状态流转不合法");
     ErrorCode ACC_PROJECT_CLOSURE_VALIDATION_FAILED = new ErrorCode(1_014_014_003, "项目闭环校验未通过：{}");
 
-    // ========== 归档文档 1-014-015-000 ==========
-    ErrorCode ACC_ARCHIVE_DOCUMENT_NOT_EXISTS = new ErrorCode(1_014_015_000, "归档文档不存在");
-    ErrorCode ACC_ARCHIVE_DOCUMENT_CODE_DUPLICATE = new ErrorCode(1_014_015_001, "项目内归档文档编码已存在");
-    ErrorCode ACC_ARCHIVE_DOCUMENT_STATUS_INVALID = new ErrorCode(1_014_015_002, "归档文档状态流转不合法");
+    // ========== 归档文档 1-014-015-000（已随 ACC 归属修正迁至 pms-module-acceptance）==========
 
     // ========== 项目组合模块 1-014-017-000 ==========
     ErrorCode PORTFOLIO_NOT_EXISTS = new ErrorCode(1_014_017_000, "项目组合不存在");
@@ -112,23 +88,13 @@ public interface ErrorCodeConstants {
     ErrorCode PORTFOLIO_STATUS_INVALID = new ErrorCode(1_014_017_002, "项目组合状态流转不合法");
     ErrorCode PORTFOLIO_PROJECT_NOT_EXISTS = new ErrorCode(1_014_017_003, "组合成员项目不存在");
 
-    // ========== 客户服务等级模块 1-014-018-000 ==========
-    ErrorCode CUSTOMER_SERVICE_LEVEL_NOT_EXISTS = new ErrorCode(1_014_018_000, "客户服务等级不存在");
-    ErrorCode CUSTOMER_SERVICE_LEVEL_CUSTOMER_NOT_EXISTS = new ErrorCode(1_014_018_001, "服务等级关联客户不存在");
-    ErrorCode CUSTOMER_SERVICE_LEVEL_STATUS_INVALID = new ErrorCode(1_014_018_002, "客户服务等级状态流转不合法");
-
     // ========== 团队批量变更模块 1-014-019-000 ==========
     ErrorCode TEAM_BATCH_CHANGE_NOT_EXISTS = new ErrorCode(1_014_019_000, "批量变更批次不存在");
     ErrorCode TEAM_BATCH_CHANGE_ITEM_NOT_EXISTS = new ErrorCode(1_014_019_001, "批量变更明细不存在");
     ErrorCode TEAM_BATCH_CHANGE_SOURCE_EQUALS_TARGET = new ErrorCode(1_014_019_002, "源用户与目标用户不能相同");
     ErrorCode TEAM_BATCH_CHANGE_NO_ITEMS = new ErrorCode(1_014_019_003, "未找到待变更的团队成员记录");
     ErrorCode TEAM_BATCH_CHANGE_STATUS_INVALID = new ErrorCode(1_014_019_004, "批量变更状态流转不合法");
-
-    // ========== 工期倒排模块 1-014-020-000 ==========
-    ErrorCode SCHEDULE_BACKWARD_NOT_EXISTS = new ErrorCode(1_014_020_000, "工期倒排记录不存在");
-    ErrorCode SCHEDULE_BACKWARD_NO_PHASES = new ErrorCode(1_014_020_001, "项目暂无阶段，无法倒排");
-    ErrorCode SCHEDULE_BACKWARD_HAS_CONFLICT = new ErrorCode(1_014_020_002, "工期倒排存在冲突，请先处理冲突后再应用");
-    ErrorCode SCHEDULE_BACKWARD_STATUS_INVALID = new ErrorCode(1_014_020_003, "工期倒排状态流转不合法");
+    // ========== 工期倒排模块 1-014-020-000（已随 SOL/PLN 归属迁至 pms-module-engineering）==========
 
     // ========== 计划变更审批模块 1-014-021-000 ==========
     ErrorCode PLAN_CHANGE_NOT_EXISTS = new ErrorCode(1_014_021_000, "计划变更记录不存在");
@@ -199,7 +165,7 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_TREE_VERSION_CONFLICT = new ErrorCode(1_014_024_030, "项目树版本冲突");
     ErrorCode PROJECT_TREE_PROJECTION_UNAVAILABLE = new ErrorCode(1_014_024_031, "项目树完整投影暂不可用");
     ErrorCode PROJECT_TREE_QUERY_INVALID = new ErrorCode(1_014_024_032, "项目树查询参数或游标无效");
-    ErrorCode PROJECT_TREE_SCOPE_FORBIDDEN = new ErrorCode(1_014_024_033, "无权访问该项目树范围");
+    ErrorCode PROJECT_TREE_SCOPE_FORBIDDEN = new ErrorCode(cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi.SCOPE_DENIED_ERROR_CODE, "无权访问该项目树范围");
     ErrorCode PROJECT_WEIGHT_SUM_INVALID = new ErrorCode(1_014_024_011, "直接子项目权重合计必须为100%：{}");
     ErrorCode PROJECT_SPLIT_REQUEST_NOT_EXISTS = new ErrorCode(1_014_024_018, "项目拆分草稿不存在");
     ErrorCode PROJECT_SPLIT_DRAFT_INVALID = new ErrorCode(1_014_024_019, "项目拆分草稿不合法：{}");
@@ -241,5 +207,10 @@ public interface ErrorCodeConstants {
     ErrorCode PROJECT_STAGE_ADVANCE_PERSISTENCE_FAILED = new ErrorCode(1_014_024_051, "项目阶段推进写入失败");
     ErrorCode PROJECT_STAGE_PROCESS_INVALID = new ErrorCode(1_014_024_052, "项目阶段Gate流程请求不合法");
     ErrorCode PROJECT_STAGE_ACTION_FORBIDDEN = new ErrorCode(1_014_024_053, "无权执行项目阶段Gate动作");
+
+    // ========== 施工计划建议规则 1-014-024-055（Demo 页面9 / Excel 3.1） ==========
+    ErrorCode STAGE_SUGGESTION_RULE_NOT_EXISTS = new ErrorCode(1_014_024_055, "施工计划建议规则不存在");
+    ErrorCode STAGE_SUGGESTION_RULE_DUPLICATE = new ErrorCode(1_014_024_056, "同一阶段与签约方式的建议规则已存在");
+    ErrorCode STAGE_SUGGESTION_RULE_INVALID = new ErrorCode(1_014_024_057, "施工计划建议规则不合法：{}");
 
 }

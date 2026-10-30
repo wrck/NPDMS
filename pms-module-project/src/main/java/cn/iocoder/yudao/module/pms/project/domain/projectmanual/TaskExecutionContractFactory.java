@@ -17,7 +17,7 @@ public class TaskExecutionContractFactory {
     public static final String TASK_NATIVE = TaskNativeCompletionPolicy.WORK_BINDING_TYPE;
 
     private static final Set<String> SUPPORTED_TYPES = Set.of(
-            TASK_NATIVE, "BUSINESS_OBJECT", "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE");
+            TASK_NATIVE, "PAGE", "BUSINESS_OBJECT", "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE", "RESULT_SUBSCRIPTION");
 
     public ProjectTaskExecutionContractDO create(Long projectTaskId, Long templateTaskDefinitionId,
                                                   TemplateDefinitionContent.TaskDef definition,
@@ -37,7 +37,9 @@ public class TaskExecutionContractFactory {
         contract.setTargetObjectKey(definition.getTargetObjectKey());
         contract.setComponentKey(definition.getComponentKey());
         contract.setDynamicFormRevisionId(definition.getDynamicFormRevisionId());
-        contract.setBindingParameterSnapshot("APPROVAL".equals(definition.getWorkBindingTypeCode())
+        contract.setBindingParameterSnapshot("RESULT_SUBSCRIPTION".equals(definition.getWorkBindingTypeCode())
+                ? cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.parameters()
+                : "APPROVAL".equals(definition.getWorkBindingTypeCode())
                 ? JsonUtils.toJsonString(ApprovalWorkBindingSchema.freeze(
                         definition.getApprovalDefinitionKey(), JsonUtils.parseTree(definition.getBindingConfig())))
                 : definition.getBindingConfig());
@@ -49,6 +51,9 @@ public class TaskExecutionContractFactory {
         contract.setCompletionRuleTypeCode(definition.getCompletionRuleTypeCode());
         contract.setCompletionRuleSnapshot(definition.getCompletionRuleConfig());
         contract.setGateRef(definition.getGateRef());
+        if (definition.getRequired() != null) {
+            contract.setDefinitionSnapshot(JsonUtils.toJsonString(java.util.Map.of("required", definition.getRequired())));
+        }
         contract.setSourceDefinitionVersion(definition.getDefinitionVersion());
         contract.setContractVersion(1);
         contract.setEffectiveFrom(effectiveFrom);
@@ -121,11 +126,15 @@ public class TaskExecutionContractFactory {
         if (definition.getDefinitionVersion() == null || definition.getDefinitionVersion() <= 0) {
             throw new IllegalArgumentException("任务定义版本无效");
         }
+        if ("RESULT_SUBSCRIPTION".equals(definition.getWorkBindingTypeCode()))
+            cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.requireDefinition(definition);
         validateBindingTarget(definition);
     }
 
     private void validateBindingTarget(TemplateDefinitionContent.TaskDef definition) {
-        if (TASK_NATIVE.equals(definition.getWorkBindingTypeCode())) {
+        // PAGE 路由保存在绑定配置参数中，不得占用Owner业务目标列。
+        if (TASK_NATIVE.equals(definition.getWorkBindingTypeCode())
+                || "PAGE".equals(definition.getWorkBindingTypeCode())) {
             if (StringUtils.isNotBlank(definition.getTargetContextCode())
                     || StringUtils.isNotBlank(definition.getTargetObjectType())
                     || StringUtils.isNotBlank(definition.getTargetObjectKey())
@@ -148,6 +157,7 @@ public class TaskExecutionContractFactory {
             case "APPROVAL" -> ApprovalWorkBindingSchema.read(
                     definition.getApprovalDefinitionKey(), JsonUtils.parseTree(definition.getBindingConfig()));
             case "COMPOSITE" -> { /* subviews are carried in validated bindingConfig */ }
+            case "RESULT_SUBSCRIPTION" -> { /* 专用投影已拒绝任何Owner/页面/表单目标。 */ }
             default -> throw new IllegalArgumentException("任务WorkBinding类型无效");
         }
     }

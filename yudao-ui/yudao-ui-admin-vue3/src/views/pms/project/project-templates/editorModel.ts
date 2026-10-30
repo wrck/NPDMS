@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import type {
   DesignerTransitionNode,
   TemplateDesignerDocument
@@ -33,7 +34,7 @@ export const addRelation = (
 ) => {
   const transitionCode = nextTransitionCode(content, code)
   const edge: DesignerTransitionNode = {
-    edgeKey: `transition:${crypto.randomUUID()}`,
+    edgeKey: `transition:${generateUUID()}`,
     code: transitionCode,
     fromStageCode: direction === 'from' ? code : '',
     toStageCode: direction === 'to' ? code : '',
@@ -139,7 +140,7 @@ export const commandIntent = () => {
       const next = JSON.stringify(intent)
       if (next !== signature || !key) {
         signature = next
-        key = crypto.randomUUID()
+        key = generateUUID()
       }
       return key
     },

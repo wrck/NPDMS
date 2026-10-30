@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.0.1",
+  "rules": [
+    {
+      "ruleId": "version-serial-number",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+version(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*(?:serial(?: number)?|system serial number|processor board id)\\s*[:#]?\\s*(.+)$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.identity.serialNumber", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "version-software-version",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+version(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*(?:software(?: release| version)?|system version|version)\\s*[:#]?\\s*(.+)$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.software.version", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "version-model",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+version(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*(?:model(?: number)?|product model)\\s*[:#]?\\s*(.+)$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.identity.model", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "version-model-from-uptime",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+version(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*(\\S(?:.*?\\S)?)\\s+uptime is\\s+.+$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.identity.model", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "version-uptime",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+version(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)(?:uptime is|up time)\\s*[:#]?\\s*(.+)$", "group": 1, "transforms": ["duration-to-seconds"]}],
+      "target": {"semanticKey": "device.identity.uptimeSeconds", "cardinality": "ONE", "dataType": "integer", "unit": "second", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "running-config-stanzas",
+      "blockRole": "RUNNING_CONFIG",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+(?:run|running(?:-config)?)(?:\\s+.*)?$"}],
+      "extractors": [{"type": "CONFIG_STANZA"}],
+      "target": {"semanticKey": "configuration.stanzas", "cardinality": "MANY", "dataType": "object", "conflictPolicy": "APPEND_DISTINCT"}
+    },
+    {
+      "ruleId": "technical-serial-number",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+tech(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*(?:serial(?: number)?|system serial number|processor board id)\\s*[:#]?\\s*(.+)$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.identity.serialNumber", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "technical-software-version",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+tech(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*(?:software(?: release| version)?|system version|version)\\s*[:#]?\\s*(.+)$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.software.version", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "technical-diagnostic-sections",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+tech(?:\\s+.*)?$"}],
+      "extractors": [{"type": "CONFIG_STANZA"}],
+      "target": {"semanticKey": "logs.technicalDiagnostics", "cardinality": "MANY", "dataType": "object", "conflictPolicy": "APPEND_DISTINCT"}
+    }
+  ]
+}

@@ -7,6 +7,10 @@ import cn.iocoder.yudao.module.bpm.api.event.BpmProcessInstanceStatusEventListen
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import cn.iocoder.yudao.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_BPM_ASSOCIATION_INVALID;
@@ -27,15 +31,27 @@ public class DurationChangeBpmListener extends BpmProcessInstanceStatusEventList
 
     @Override
     protected void onEvent(BpmProcessInstanceStatusEvent event) {
-        if (TenantContextHolder.getTenantId() != null) {
-            resultService.handle(event.getId(), event.getStatus(), event.getReason());
-            return;
-        }
-        if (environment.getProperty("yudao.tenant.enable", Boolean.class, true)) {
+        Long tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null && environment.getProperty("yudao.tenant.enable", Boolean.class, true)) {
             throw exception(DURATION_CHANGE_BPM_ASSOCIATION_INVALID);
         }
-        TenantUtils.execute(0L,
-                () -> resultService.handle(event.getId(), event.getStatus(), event.getReason()));
+        Long resultTenantId = tenantId == null ? 0L : tenantId;
+        if (BpmProcessInstanceStatusEnum.APPROVE.getStatus().equals(event.getStatus())) {
+            if (!TransactionSynchronizationManager.isActualTransactionActive()
+                    || !TransactionSynchronizationManager.isSynchronizationActive()) {
+                throw new IllegalStateException("工期审批结果必须与 BPM 原事务一致");
+            }
+            // Flowable completes/flushed task history after the process-ended event. Read the
+            // actual task opinion before the same transaction commits, so failures roll back both sides.
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void beforeCommit(boolean readOnly) {
+                    TenantUtils.execute(resultTenantId, () -> resultService.handle(event));
+                }
+            });
+        } else {
+            TenantUtils.execute(resultTenantId, () -> resultService.handle(event));
+        }
     }
 
 }

@@ -1,10 +1,8 @@
 package cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -13,11 +11,11 @@ import java.time.LocalDateTime;
 @TableName("cus_customer_master")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CustomerMasterDO extends TenantBaseDO {
+public class CustomerMasterDO extends BaseBusinessEntity {
 
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
     private String code;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
+    private String erpCustomerCode;
     private String name;
     private String shortName;
     private String customerLevel;
@@ -41,8 +39,6 @@ public class CustomerMasterDO extends TenantBaseDO {
     private String expendName;
     private String industryCode;
     private String industryName;
-    private String legacyAddressSnapshot;
+    private String address;
     private String remark;
-    @Version
-    private Integer version;
 }

@@ -82,8 +82,8 @@ class ArrivalAcceptanceFactContractTest {
     }
 
     private static ArrivalQuantityScopeFact quantity(Long orderLineId, String productCode,
-                                                     String modelCode, String quantity) {
-        return new ArrivalQuantityScopeFact(orderLineId, productCode, modelCode,
+                                                     String productModel, String quantity) {
+        return new ArrivalQuantityScopeFact(orderLineId, productCode, productModel,
                 new BigDecimal(quantity), "UNIT");
     }
 }

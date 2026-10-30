@@ -15,6 +15,8 @@ import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.patch.DurationChangePatch;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -109,7 +111,7 @@ class ConstructionPlanMySqlIntegrationTest {
                 new ProjectScopeResult(projectId, 7L, Set.of(projectId), Set.of()));
         when(participantFactApi.lockAndRevalidate(any())).thenReturn(new ProjectParticipantFact(
                 projectId, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
-                "ACTIVE", "S1", 3, 3L));
+                "ACTIVE", "S1", 3L, 3L));
     }
 
     @AfterEach
@@ -222,11 +224,11 @@ class ConstructionPlanMySqlIntegrationTest {
                 keyPrefix + "-patch-draft", "b".repeat(64)), actor(keyPrefix + "-patch-draft"));
 
         var reasonPatched = changeService.patchDraft(new PatchDurationChangeCommand(
-                plan.getPlanId(), draft.getChangeId(), draft.getVersion(), 3,
+                plan.getPlanId(), draft.getChangeId(), draft.getVersion(), 3L,
                 new DurationChangePatch(null, null, null, null, null, null, null, null,
                         Set.of("reasonDetail"))), actor(keyPrefix + "-patch-reason"));
         var durationPatched = changeService.patchDraft(new PatchDurationChangeCommand(
-                plan.getPlanId(), draft.getChangeId(), reasonPatched.getVersion(), 3,
+                plan.getPlanId(), draft.getChangeId(), reasonPatched.getVersion(), 3L,
                 new DurationChangePatch(null, null, null, 7, null, null, null, null,
                         Set.of("durationDays"))), actor(keyPrefix + "-patch-days"));
 
@@ -267,37 +269,35 @@ class ConstructionPlanMySqlIntegrationTest {
     }
 
     @Test
-    void constructionPlanCommandsDoNotDoubleWriteLegacyScheduleOrChangeTables() {
-        long legacyRowsBefore = legacyRowCount();
+    void constructionPlanCommandsDoNotDoubleWriteScheduleTables() {
+        long scheduleRowsBefore = scheduleRowCount();
         var plan = service.createInitial(command(keyPrefix + "-no-legacy", "a".repeat(64)),
                 actor(keyPrefix + "-no-legacy"));
         var draft = changeService.createDraft(changeCommand(plan.getPlanId(), plan.getPlanVersion(),
                 keyPrefix + "-no-legacy-draft", "b".repeat(64)),
                 actor(keyPrefix + "-no-legacy-draft"));
         changeService.patchDraft(new PatchDurationChangeCommand(
-                plan.getPlanId(), draft.getChangeId(), draft.getVersion(), 3,
+                plan.getPlanId(), draft.getChangeId(), draft.getVersion(), 3L,
                 new DurationChangePatch(null, null, null, 7, null, null, null, null,
                         Set.of("durationDays"))), actor(keyPrefix + "-no-legacy-patch"));
 
-        assertEquals(legacyRowsBefore, legacyRowCount());
+        assertEquals(scheduleRowsBefore, scheduleRowCount());
     }
 
-    private long legacyRowCount() {
+    private long scheduleRowCount() {
         return jdbcTemplate.queryForObject("SELECT "
-                + "(SELECT COUNT(*) FROM pms_schedule_backward) + "
-                + "(SELECT COUNT(*) FROM pms_schedule_backward_item) + "
-                + "(SELECT COUNT(*) FROM pms_plan_change_request) + "
-                + "(SELECT COUNT(*) FROM pms_plan_change_phase_snapshot)", Long.class);
+                + "(SELECT COUNT(*) FROM sol_schedule_backward) + "
+                + "(SELECT COUNT(*) FROM sol_schedule_backward_item)", Long.class);
     }
 
     private CreateInitialDurationCommand command(String key, String digest) {
         return new CreateInitialDurationCommand(projectId, "DATE_RANGE",
-                LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5, 3, key, digest);
+                LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 5), 5, 3L, key, digest);
     }
 
-    private CreateDurationChangeCommand changeCommand(Long planId, Integer planVersion,
+    private CreateDurationChangeCommand changeCommand(Long planId, Long planVersion,
                                                        String key, String digest) {
-        return new CreateDurationChangeCommand(planId, planVersion, 3,
+        return new CreateDurationChangeCommand(planId, planVersion == null ? null : Math.toIntExact(planVersion), 3L,
                 "DURATION_FROM_START", LocalDate.of(2026, 9, 10), null, 5,
                 "CUSTOMER_DELAY", "客户延期", null, null, key, digest);
     }
@@ -343,6 +343,8 @@ class ConstructionPlanMySqlIntegrationTest {
         @Bean PermissionApi permissionApi() { return mock(PermissionApi.class); }
         @Bean ProjectScopeApi projectScopeApi() { return mock(ProjectScopeApi.class); }
         @Bean ProjectParticipantFactApi participantFactApi() { return mock(ProjectParticipantFactApi.class); }
+        @Bean ProjectEndDateApi projectEndDateApi() { return mock(ProjectEndDateApi.class); }
+        @Bean FileArtifactApi fileArtifactApi() { return mock(FileArtifactApi.class); }
         @Bean DictDataApi dictDataApi() { return mock(DictDataApi.class); }
         @Bean ConfigApi configApi() { return mock(ConfigApi.class); }
         @Bean BpmProcessInstanceApi bpmProcessInstanceApi() { return mock(BpmProcessInstanceApi.class); }

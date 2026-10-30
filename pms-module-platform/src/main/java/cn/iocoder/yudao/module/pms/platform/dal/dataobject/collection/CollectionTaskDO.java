@@ -1,8 +1,6 @@
 package cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -10,10 +8,8 @@ import lombok.EqualsAndHashCode;
 @TableName("plt_collection_task")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class CollectionTaskDO extends TenantBaseDO {
+public class CollectionTaskDO extends BaseBusinessEntity {
 
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
     private Long batchId;
     private String platformTaskId;
     private String sourceContext;

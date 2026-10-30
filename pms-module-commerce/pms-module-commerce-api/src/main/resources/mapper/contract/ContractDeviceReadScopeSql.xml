@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceReadScopeSql">
+    <!-- COM公开的设备合同组织授权；保留同一行公司/部门，不以项目合同关系扩大该分支。 -->
+    <sql id="commonTables">
+        unique_device_contracts AS (
+            <choose><when test="query.hasDeviceFilters()">
+            SELECT c.id, c.tenant_id, c.contract_no, c.company_code, c.company_id, c.department_code
+            FROM com_contract c
+            JOIN device_filter_contract_keys k
+              ON c.contract_no = CONVERT(k.contract_key USING utf8mb4) COLLATE utf8mb4_0900_ai_ci
+             AND k.contract_key = CAST(c.contract_no AS BINARY)
+            WHERE c.tenant_id = #{query.tenantId} AND c.deleted = b'0'
+              <!-- 只裁剪原文候选；同号冲突仍按COM列排序规则在完整主表检查。 -->
+              AND NOT EXISTS (
+                  SELECT 1 FROM com_contract duplicate_contract
+                  WHERE duplicate_contract.tenant_id = c.tenant_id AND duplicate_contract.deleted = b'0'
+                    AND duplicate_contract.contract_no = c.contract_no AND duplicate_contract.id &lt;&gt; c.id
+              )
+            </when><otherwise>
+            SELECT MAX(id) AS id, MAX(tenant_id) AS tenant_id, contract_no, MAX(company_code) AS company_code,
+                   MAX(company_id) AS company_id, MAX(department_code) AS department_code
+            FROM com_contract
+            WHERE tenant_id = #{query.tenantId} AND deleted = b'0'
+            GROUP BY contract_no HAVING COUNT(*) = 1
+            </otherwise></choose>
+        ), device_contract_organization_rows AS (
+            SELECT c.contract_no, c.company_id, c.company_code, NULL AS department_id, c.department_code
+            FROM unique_device_contracts c
+            UNION ALL
+            SELECT s.contract_no, s.company_id, s.company_code, s.department_id, s.department_code
+            FROM com_shipment_contract_reference s
+            JOIN unique_device_contracts c ON c.contract_no = s.contract_no AND c.tenant_id = s.tenant_id
+            WHERE s.tenant_id = #{query.tenantId} AND s.deleted = b'0'
+        ), device_contract_organizations AS (
+            SELECT contract_no, MAX(company_id) AS company_id,
+                   CASE WHEN COUNT(DISTINCT NULLIF(department_code, '')) = 1 THEN MAX(department_id) END AS department_id,
+                   CASE WHEN COUNT(DISTINCT NULLIF(department_code, '')) = 1 THEN MAX(NULLIF(department_code, '')) END AS department_code
+            FROM device_contract_organization_rows
+            GROUP BY contract_no
+            HAVING COUNT(DISTINCT company_id) = 1 AND COUNT(DISTINCT NULLIF(company_code, '')) = 1
+              AND SUM(CASE WHEN company_code IS NULL OR company_code = '' THEN 1 ELSE 0 END) = 0
+        ), visible_device_contracts AS (
+            SELECT DISTINCT CAST(c.contract_no AS BINARY) AS contract_key
+            FROM unique_device_contracts c
+            JOIN device_contract_organizations organization ON organization.contract_no = c.contract_no
+            WHERE c.tenant_id = #{query.tenantId} AND c.contract_no IS NOT NULL AND c.contract_no &lt;&gt; ''
+              <if test="query.readScope.contractScope == null">AND 1 = 0</if>
+              AND NOT EXISTS (
+                  SELECT 1 FROM com_shipment_contract_reference shipment
+                  WHERE shipment.tenant_id = c.tenant_id AND shipment.deleted = b'0' AND shipment.contract_no = c.contract_no
+                    AND (shipment.company_code IS NULL OR shipment.company_code = ''
+                      OR CAST(shipment.company_code AS BINARY) &lt;&gt; CAST(c.company_code AS BINARY))
+              )
+              AND (
+                  <if test="query.readScope.contractScope != null and !query.readScope.contractScope.organizationGrants.isEmpty()">
+                      <foreach collection="query.readScope.contractScope.organizationGrants" item="grant" separator=" OR ">
+                          (organization.company_id = #{grant.companyId}
+                            <if test="grant.departmentId != null">
+                                AND (organization.department_id = #{grant.departmentId}
+                                  <if test="grant.departmentCode != null and grant.departmentCode != ''">
+                                    OR CAST(organization.department_code AS BINARY) = CAST(#{grant.departmentCode} AS BINARY)
+                                  </if>)
+                            </if>)
+                      </foreach> OR
+                  </if>
+                  1 = 0
+              )
+        )
+    </sql>
+</mapper>

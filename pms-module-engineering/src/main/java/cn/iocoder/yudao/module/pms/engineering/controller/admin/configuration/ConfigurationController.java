@@ -22,11 +22,11 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - 配置调试 Controller（FR-ENG-023）。
  * <p>
- * 路径前缀 {@code /pms/eng-configuration}。
+ * 路径前缀 {@code /pms/imp-configuration}。
  */
 @Tag(name = "管理后台 - 配置调试")
 @RestController
-@RequestMapping("/pms/eng-configuration")
+@RequestMapping("/pms/imp-configuration")
 @Validated
 public class ConfigurationController {
 
@@ -35,14 +35,14 @@ public class ConfigurationController {
 
     @PostMapping("/create")
     @Operation(summary = "创建配置调试记录")
-    @PreAuthorize("@ss.hasPermission('pms:eng-configuration:create')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-configuration:create')")
     public CommonResult<Long> createConfiguration(@Valid @RequestBody ConfigurationSaveReqVO createReqVO) {
         return success(configurationService.createConfiguration(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新配置调试记录")
-    @PreAuthorize("@ss.hasPermission('pms:eng-configuration:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-configuration:update')")
     public CommonResult<Boolean> updateConfiguration(@Valid @RequestBody ConfigurationSaveReqVO updateReqVO) {
         configurationService.updateConfiguration(updateReqVO);
         return success(true);
@@ -51,7 +51,7 @@ public class ConfigurationController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除配置调试记录")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-configuration:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-configuration:delete')")
     public CommonResult<Boolean> deleteConfiguration(@RequestParam("id") Long id) {
         configurationService.deleteConfiguration(id);
         return success(true);
@@ -60,7 +60,7 @@ public class ConfigurationController {
     @GetMapping("/get")
     @Operation(summary = "查询配置调试详情")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-configuration:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-configuration:query')")
     public CommonResult<ConfigurationRespVO> getConfiguration(@RequestParam("id") Long id) {
         ConfigurationDO configuration = configurationService.getConfiguration(id);
         return success(BeanUtils.toBean(configuration, ConfigurationRespVO.class));
@@ -68,7 +68,7 @@ public class ConfigurationController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询配置调试")
-    @PreAuthorize("@ss.hasPermission('pms:eng-configuration:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-configuration:query')")
     public CommonResult<PageResult<ConfigurationRespVO>> getConfigurationPage(@Validated ConfigurationPageReqVO pageReqVO) {
         PageResult<ConfigurationDO> pageResult = configurationService.getConfigurationPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, ConfigurationRespVO.class));
@@ -77,7 +77,7 @@ public class ConfigurationController {
     @PutMapping("/start")
     @Operation(summary = "开始调试")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-configuration:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-configuration:update')")
     public CommonResult<Boolean> startConfiguration(@RequestParam("id") Long id) {
         configurationService.startConfiguration(id);
         return success(true);
@@ -86,7 +86,7 @@ public class ConfigurationController {
     @PutMapping("/complete")
     @Operation(summary = "完成调试")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-configuration:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-configuration:update')")
     public CommonResult<Boolean> completeConfiguration(@RequestParam("id") Long id) {
         configurationService.completeConfiguration(id);
         return success(true);
@@ -95,7 +95,7 @@ public class ConfigurationController {
     @PutMapping("/mark-abnormal")
     @Operation(summary = "标记配置异常")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-configuration:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-configuration:update')")
     public CommonResult<Boolean> markAbnormal(@RequestParam("id") Long id) {
         configurationService.markAbnormal(id);
         return success(true);

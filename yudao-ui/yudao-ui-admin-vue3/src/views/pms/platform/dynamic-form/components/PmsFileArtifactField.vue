@@ -55,6 +55,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import {
   PmsFileReferenceList,
   PmsFileUploader,
@@ -88,7 +89,7 @@ const toVisibleFiles = (facts: DynamicFormFileFactVO[]): VisibleFile[] =>
     referenceVersion: fact.fileFactVersion?.referenceVersion
   }))
 const current = ref<VisibleFile[]>(toVisibleFiles(props.currentFacts))
-const uploadSlotKey = ref(crypto.randomUUID())
+const uploadSlotKey = ref(generateUUID())
 const purposeCode = computed(() => `FORM_FIELD_ATTACHMENT/${props.fieldKey || ''}`)
 const canWrite = computed(
   () => !!props.instanceId && !props.disabled && props.allowedActions.includes('PATCH_INSTANCE')
@@ -108,7 +109,7 @@ const handleCompleted = (selection: FileSelection) => {
       referenceKey: selection.referenceKey
     }
   ]
-  uploadSlotKey.value = crypto.randomUUID()
+  uploadSlotKey.value = generateUUID()
   syncRuntimeValue()
 }
 

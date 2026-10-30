@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 public record AddressInput(
         Long id,
-        Integer expectedVersion,
+        Long expectedVersion,
         String countryCode,
         String countryName,
         String provinceCode,

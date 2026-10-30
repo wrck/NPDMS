@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class ContactMasterSaveReqVO {
     @NotNull @Positive private Long customerId;
-    private Integer version;
+    private Long version;
     @NotBlank @Size(max=64) private String name;
     @Size(max=64) private String department;
     @Size(max=64) private String title;
@@ -21,7 +21,7 @@ public class ContactMasterSaveReqVO {
 
     public ContactMasterWrite command(Long contactId) {
         return new ContactMasterWrite(customerId, contactId, version,
-                new ContactValues(name, department, title, mobile, phone, email, null, remark),
+                new ContactValues(name, department, title, mobile, phone, email, remark),
                 Boolean.TRUE.equals(primaryFlag), status, false);
     }
 }

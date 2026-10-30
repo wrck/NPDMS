@@ -1,8 +1,8 @@
 import { isBusinessViewId, legacyOwnerId, businessViewIdKey } from '@/api/pms/platform/business-view/ids'
 import type { ProjectBusinessExecutionSelection as SiteSurveyExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
 
-const outsourcePath = '/pms/engineering/procurement/eng-outsource'
-export const surveyPath = '/pms/engineering/preparation/eng-site-survey'
+const outsourcePath = '/pms/engineering/procurement/res-outsource'
+export const surveyPath = '/pms/engineering/preparation/sol-site-survey'
 export const positiveShortcutId = (value: unknown): number | undefined => {
   return typeof value === 'string' && isBusinessViewId(value) ? legacyOwnerId(value) : undefined
 }

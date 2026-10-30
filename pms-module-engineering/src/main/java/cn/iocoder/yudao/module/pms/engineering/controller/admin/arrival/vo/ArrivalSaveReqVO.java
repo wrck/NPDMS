@@ -24,10 +24,6 @@ public class ArrivalSaveReqVO {
     @NotNull(message = "项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "签收编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "ARR-2026-001")
-    @NotBlank(message = "签收编码不能为空")
-    private String code;
-
     @Schema(description = "到货时间", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "到货时间不能为空")
     @DateTimeFormat(pattern = FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND)

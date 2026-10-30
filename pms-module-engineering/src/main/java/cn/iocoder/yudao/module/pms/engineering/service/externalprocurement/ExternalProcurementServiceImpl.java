@@ -97,7 +97,7 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
         ExternalProcurementDO entity = BeanUtils.toBean(createReqVO, ExternalProcurementDO.class);
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         externalProcurementMapper.insert(entity);
         return entity.getId();
@@ -228,7 +228,6 @@ public class ExternalProcurementServiceImpl implements ExternalProcurementServic
     private void updateStatus(ExternalProcurementDO entity, int newStatus,
                               Long approverUserId, String approveOpinion, String approveAction) {
         entity.setStatus(newStatus);
-        entity.setVersion(entity.getVersion() + 1);
         // 审批类操作（PASS / REJECT / RETURN / TRANSFER / COUNTERSIGN）记录审批信息
         if (approverUserId != null) {
             entity.setApproverUserId(approverUserId);

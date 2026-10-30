@@ -28,7 +28,7 @@ class DeviceShipmentServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new DeviceShipmentService(deviceMapper, shipmentMapper);
+        service = new DeviceShipmentService(deviceMapper, shipmentMapper, org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.class));
     }
 
     @Test

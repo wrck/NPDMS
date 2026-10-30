@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
@@ -19,15 +20,12 @@ public class SolutionSaveReqVO {
     @NotNull(message = "项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "方案编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "SOL-2026-001")
-    @NotBlank(message = "方案编码不能为空")
-    private String code;
-
     @Schema(description = "方案名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "核心交换机替换方案")
     @NotBlank(message = "方案名称不能为空")
     private String name;
 
     @Schema(description = "方案类型", example = "IMPLEMENTATION")
+    @Pattern(regexp = "IMPLEMENTATION", message = "方案类型仅支持 IMPLEMENTATION")
     private String solutionType;
 
     @Schema(description = "关联文档模板ID（V36 结构化文档模板）", example = "40005")

@@ -188,7 +188,6 @@ public class AnnouncementCheckServiceImpl implements AnnouncementCheckService {
         }
         // 7. 更新状态为已检查，记录检查时间
         entity.setStatus(STATUS_CHECKED);
-        entity.setVersion(entity.getVersion() + 1);
         entity.setCheckTime(LocalDateTime.now());
         announcementCheckMapper.updateById(entity);
     }
@@ -217,7 +216,6 @@ public class AnnouncementCheckServiceImpl implements AnnouncementCheckService {
         }
         // 5. 更新状态、处理意见、处理时间
         entity.setStatus(newStatus);
-        entity.setVersion(entity.getVersion() + 1);
         if (reqVO.getHandleOpinion() != null) {
             entity.setHandleOpinion(reqVO.getHandleOpinion());
         }

@@ -48,7 +48,7 @@ public class ProjectAcceptanceStageEntryController {
             @RequestHeader("If-Match") @NotBlank String ifMatch,
             @Valid @RequestBody ProjectAcceptanceStageEntryReqVO request) {
         return withTenant(() -> {
-            Integer expectedVersion = parseIfMatch(ifMatch);
+            Long expectedVersion = parseIfMatch(ifMatch);
             String digest = digest(projectId, expectedVersion, request);
             return success(service.enter(new ProjectAcceptanceStageEntryCommand(projectId, expectedVersion,
                     request.expectedTreeVersion(), idempotencyKey, digest), new ProjectAcceptanceStageEntryService.Actor(
@@ -56,7 +56,7 @@ public class ProjectAcceptanceStageEntryController {
         });
     }
 
-    private Integer parseIfMatch(String value) {
+    private Long parseIfMatch(String value) {
         String normalized = value.trim();
         if (normalized.startsWith("W/")) {
             normalized = normalized.substring(2).trim();
@@ -65,7 +65,7 @@ public class ProjectAcceptanceStageEntryController {
             normalized = normalized.substring(1, normalized.length() - 1);
         }
         try {
-            int version = Integer.parseInt(normalized);
+            long version = Long.parseLong(normalized);
             if (version < 0) {
                 throw new NumberFormatException();
             }
@@ -75,7 +75,7 @@ public class ProjectAcceptanceStageEntryController {
         }
     }
 
-    private String digest(Long projectId, Integer expectedVersion, Object request) {
+    private String digest(Long projectId, Long expectedVersion, Object request) {
         try {
             String value = projectId + ":" + expectedVersion + ":" + JsonUtils.toJsonString(request);
             return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")

@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonA
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskTreeQueryReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.taskworkbench.vo.ProjectTaskWorkbenchRespVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
@@ -42,6 +43,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectTaskQueryServiceTest {
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi management = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
 
     @Mock ProjectMasterMapper projectMapper;
     @Mock ProjectTreeVersionMapper projectTreeVersionMapper;
@@ -52,7 +54,10 @@ class ProjectTaskQueryServiceTest {
     @Mock ProjectTaskAssignmentMapper assignmentMapper;
     @Mock ProjectTaskExecutionContractMapper contractMapper;
     @Mock TaskBindingHostRegistry bindingRegistry;
+    @Mock cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionObservationQuery subscriptionObservations;
+    @Mock cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService deliverableInitializationApplicationService;
     @Mock PermissionCommonApi permissionApi;
+    @Mock cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper plans;
 
     private ProjectTaskQueryService service;
 
@@ -60,7 +65,52 @@ class ProjectTaskQueryServiceTest {
     void setUp() {
         service = new ProjectTaskQueryService(projectMapper, projectTreeVersionMapper,
                 projectTreeScopeService, memberMapper, stageMapper, taskMapper, assignmentMapper,
-                contractMapper, bindingRegistry, permissionApi);
+                contractMapper, bindingRegistry, subscriptionObservations,
+                deliverableInitializationApplicationService, permissionApi, org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectOrganizationScopeService.class), management);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "plans", plans);
+    }
+
+    @Test
+    void automaticMemberPageUsesEffectiveRuleAndKeepsManualSubmissionForOtherConditions() {
+        stubProjectScope(true);
+        var project = projectMapper.selectById(100L);
+        project.setActivePlanVersionId(50L);
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, null, 0));
+        var contract = new ProjectTaskExecutionContractDO();
+        contract.setId(91L); contract.setTenantId(0L); contract.setProjectTaskId(11L);
+        contract.setWorkBindingTypeCode("PAGE"); contract.setContractVersion(1);
+        contract.setSourceNodeKey("task:one");
+        contract.setBindingParameterSnapshot("{\"routePath\":\"/pms/project-management/project-master-detail\"}");
+        contract.setCompletionRuleSnapshot("obsolete binding condition must not decide the current plan");
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
+        var manualActions = Set.of("START", "SUBMIT", "COMPLETE", "UPDATE_PROGRESS", "CANCEL");
+        when(bindingRegistry.inspect(any(), any())).thenReturn(
+                new TaskBindingInspection("PAGE", manualActions, "v1", null));
+        var snapshot = new cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot();
+        var node = new cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.TaskContract();
+        node.setNodeKey("task:one"); node.setCode("T-11"); node.setStageCode("S1"); node.setCompletionRuleKey("done");
+        snapshot.setTasks(List.of(node));
+        var plan = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO();
+        plan.setId(50L);
+        when(plans.selectEffective(any())).thenAnswer(call -> {
+            plan.setExecutionSnapshot(cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader.canonicalJson(snapshot));
+            return plan;
+        });
+        var compiler = new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleCompiler();
+        snapshot.setRulePrograms(java.util.Map.of("done", compiler.compile(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
+                        "{\"predicate\":\"PROJECT_END_USER_EXISTS\",\"parameters\":{}}"))));
+        assertEquals(Set.of("START", "CANCEL"), service.getWorkbench(11L, actor()).getAllowedActions());
+        snapshot.setRulePrograms(java.util.Map.of("done", compiler.compile(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
+                        "{\"operator\":\"ALL\",\"rules\":[{\"predicate\":\"PROJECT_END_USER_EXISTS\",\"parameters\":{}}]}"))));
+        assertEquals(manualActions, service.getWorkbench(11L, actor()).getAllowedActions());
+        snapshot.setRulePrograms(java.util.Map.of("done", compiler.compile(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
+                        "{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}"))));
+        assertEquals(manualActions, service.getWorkbench(11L, actor()).getAllowedActions());
+        verify(plans, org.mockito.Mockito.times(3)).selectEffective(argThat(query ->
+                query.tenantId().equals(0L) && query.projectId().equals(100L)));
     }
 
     @Test
@@ -287,6 +337,23 @@ class ProjectTaskQueryServiceTest {
     }
 
     @Test
+    void workbenchExposesTemplateFrozenTaskDeliverablesFilteredByTaskCode() {
+        stubProjectScope(true);
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, null, 0));
+        when(assignmentMapper.selectCurrent(any())).thenReturn(List.of());
+        when(deliverableInitializationApplicationService.getByProjectId(100L)).thenReturn(List.of(
+                deliverable(1L, "PLAN", "T-11"), deliverable(2L, "REPORT", "T-11"),
+                deliverable(3L, "STAGE_ONLY", null), deliverable(4L, "OTHER_TASK", "T-12")));
+
+        var response = service.getWorkbench(11L, actor());
+        assertEquals(List.of("PLAN", "REPORT"), response.getDeliverables().stream()
+                .map(ProjectTaskWorkbenchRespVO.TaskDeliverableItem::getDeliverableCode).toList());
+        assertEquals("PENDING", response.getDeliverables().get(0).getStatus());
+        assertTrue(response.getDeliverables().get(0).getRequired());
+        assertTrue(response.getDeliverables().get(0).getAutomaticCollection());
+    }
+
+    @Test
     void shouldExposeOnlyServerApprovedWorkspaceAndWorkbenchActions() {
         stubProjectScope(true);
         when(permissionApi.hasAnyPermissions(9L, "pms:project-task:create")).thenReturn(true);
@@ -313,6 +380,7 @@ class ProjectTaskQueryServiceTest {
     }
 
     private void stubProjectScope(boolean manager) {
+        org.mockito.Mockito.lenient().when(management.permits(any())).thenReturn(manager);
         stubProjectRecord();
         when(projectTreeScopeService.resolve(any())).thenReturn(new ProjectTreeScopeService.ProjectTreeScope(
                 100L, 7L, Set.of(100L), Set.of(), Set.of()));
@@ -320,9 +388,9 @@ class ProjectTaskQueryServiceTest {
             ProjectMemberAssignmentDO membership = new ProjectMemberAssignmentDO();
             membership.setProjectId(100L);
             membership.setMemberRole("PROJECT_MANAGER");
-            when(memberMapper.selectActiveByUser(any())).thenReturn(List.of(membership));
+            when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(membership));
         } else {
-            when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
+            when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of());
         }
     }
 
@@ -369,6 +437,67 @@ class ProjectTaskQueryServiceTest {
         assertTrue(service.getWorkbench(11L, actor()).getAllowedActions().isEmpty());
     }
 
+    @Test void firstApprovalStartIsFilteredByAdmissionWhileOtherActionsAndRetryRemain() {
+        stubProjectScope(true);
+        var task = task(11L, null, 0); when(taskMapper.selectTask(any())).thenReturn(task);
+        var binding = new ProjectTaskExecutionContractDO(); binding.setId(91L); binding.setTenantId(0L);
+        binding.setProjectTaskId(11L); binding.setContractVersion(1); binding.setWorkBindingTypeCode("APPROVAL");
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(binding);
+        when(bindingRegistry.inspect(any(), any())).thenReturn(new TaskBindingInspection("APPROVAL", Set.of("START", "CANCEL"), "v1", null));
+        var admission = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "stageAdmission", admission);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "taskApprovals", org.mockito.Mockito.mock(ProjectTaskApprovalService.class));
+        for (var outcome : cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.values()) {
+            when(admission.previewTaskAdmission(any(), any(), any())).thenReturn(
+                    new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionView(outcome, List.of()));
+            var response = service.getWorkbench(11L, actor());
+            assertEquals(outcome, response.getStartAdmission().outcome());
+            assertEquals(outcome == cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.MATCHED,
+                    response.getAllowedActions().contains("START"));
+            assertTrue(response.getAllowedActions().contains("CANCEL"));
+        }
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of());
+        when(taskMapper.selectFullTaskIds(any())).thenReturn(List.of(11L));
+        when(admission.previewTaskAdmission(any(), any(), any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionView(
+                        cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.NOT_MATCHED,
+                        List.of(new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionCondition(
+                                "不可见的前置任务", cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.NOT_MATCHED))));
+        assertTrue(service.getWorkbench(11L, actor()).getStartAdmission().conditions().isEmpty());
+        org.mockito.Mockito.clearInvocations(admission);
+        when(bindingRegistry.inspect(any(), any())).thenReturn(new TaskBindingInspection("APPROVAL", Set.of("APPROVAL"), "v1", null));
+        assertEquals(Set.of("APPROVAL"), service.getWorkbench(11L, actor()).getAllowedActions());
+        verifyNoInteractions(admission);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"BUSINESS_OBJECT", "BUSINESS_COMPONENT"})
+    void businessTaskStartUsesFrozenAdmissionAndRedactsRestrictedPredecessors(String bindingType) {
+        stubProjectScope(true);
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, null, 0));
+        var contract = new ProjectTaskExecutionContractDO();
+        contract.setId(91L); contract.setTenantId(0L); contract.setProjectTaskId(11L);
+        contract.setContractVersion(1); contract.setWorkBindingTypeCode(bindingType);
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
+        when(bindingRegistry.inspect(any(), any())).thenReturn(
+                new TaskBindingInspection(bindingType, Set.of("START", "CANCEL"), "v1", null));
+        var admission = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "stageAdmission", admission);
+        for (var outcome : cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.values()) {
+            var view = new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionView(
+                    outcome, List.of(new cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.TaskAdmissionCondition("终验", outcome)));
+            when(admission.previewTaskAdmission(any(), any(), any())).thenReturn(view);
+            var response = service.getWorkbench(11L, actor());
+            assertEquals(view, response.getStartAdmission());
+            assertEquals(outcome == cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.MATCHED,
+                    response.getAllowedActions().contains("START"));
+            assertTrue(response.getAllowedActions().contains("CANCEL"));
+        }
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of());
+        when(taskMapper.selectFullTaskIds(any())).thenReturn(List.of(11L));
+        assertTrue(service.getWorkbench(11L, actor()).getStartAdmission().conditions().isEmpty());
+    }
+
     private void stubProjectRecord() {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(100L);
@@ -398,6 +527,12 @@ class ProjectTaskQueryServiceTest {
         task.setVersion(0);
         task.setStateMachineRevisionId(81L);
         return task;
+    }
+
+    private cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverableView deliverable(
+            Long id, String code, String taskCode) {
+        return new cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.DeliverableView(
+                id, 100L, code, "交付件" + id, "S1", taskCode, true, 55L, "PENDING", 0L, true);
     }
 
     private TaskWorkbenchActor actor() {

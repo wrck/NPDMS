@@ -151,9 +151,13 @@ const loadInitial = async () => {
 
 watch(
   () => props.modelValue,
-  (val) => {
-    if (val && resolvedOptions.value.length === 0) {
-      loadInitial()
+  async (val) => {
+    // 程序化赋值（如合同主档跟随带入客户）不在当前选项里时，先回查首页，未命中再按该值探测业务键，解析显示标签。
+    if (!props.multiple && val && !resolvedOptions.value.some((i) => i[props.valueField] === val)) {
+      await handleSearch('')
+      if (!resolvedOptions.value.some((i) => i[props.valueField] === val)) {
+        await handleSearch(String(val))
+      }
     }
   },
   { immediate: false }

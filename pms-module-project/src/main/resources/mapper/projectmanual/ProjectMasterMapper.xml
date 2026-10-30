@@ -2,6 +2,79 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper">
+    <select id="selectOfficeProjects" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT p.* FROM proj_project p
+        WHERE p.tenant_id=#{query.tenantId} AND p.deleted=b'0'
+        <choose>
+            <when test="query.organizations != null and !query.organizations.isEmpty()">
+                AND (
+                <foreach collection="query.organizations" item="scope" separator=" OR ">
+                    (p.company_id=#{scope.companyId}
+                    <if test="scope.departmentId != null">AND p.department_id=#{scope.departmentId}</if>)
+                </foreach>)
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        <choose>
+            <when test="query.exactProjectName != null or query.exactContractNo != null">
+                <if test="query.exactProjectName != null">AND CAST(p.project_name AS BINARY)=CAST(#{query.exactProjectName} AS BINARY)</if>
+                <if test="query.exactContractNo != null">
+                    AND (CAST(p.contract_no AS BINARY)=CAST(#{query.exactContractNo} AS BINARY)
+                    <if test="query.contractProjectIds != null and !query.contractProjectIds.isEmpty()">
+                        OR p.id IN
+                        <foreach collection="query.contractProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+                    </if>)
+                </if>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        <if test="query.projectId != null">AND p.id=#{query.projectId}</if>
+        ORDER BY p.id DESC
+    </select>
+    <select id="selectStatistics" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.projection.ProjectStatistics">
+        SELECT COUNT(*) AS total,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND (
+            <include refid="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectOverdueMapper.stageCurrentlyOverdue"/>
+            OR <include refid="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectOverdueMapper.taskCurrentlyOverdue"/>
+          ) THEN 1 END) AS overdue,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S0' THEN 1 END) AS s0,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S1' THEN 1 END) AS s1,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S2' THEN 1 END) AS s2,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S3' THEN 1 END) AS s3,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S4' THEN 1 END) AS s4,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S5' THEN 1 END) AS s5,
+          COUNT(CASE WHEN p.lifecycle_status = 'ACTIVE' AND p.current_stage = 'S6' THEN 1 END) AS s6,
+          COUNT(CASE WHEN p.lifecycle_status = 'NORMAL_CLOSED' THEN 1 END) AS normal_closed,
+          COUNT(CASE WHEN p.lifecycle_status = 'NO_TRACKING_CLOSED' THEN 1 END) AS no_tracking_closed,
+          COUNT(CASE WHEN p.lifecycle_status = 'EXCEPTION_CLOSED' THEN 1 END) AS exception_closed
+        FROM proj_project p
+        WHERE p.tenant_id = #{query.tenantId} AND p.deleted = b'0'
+        <choose>
+            <when test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+                AND p.id IN
+                <foreach collection="query.visibleProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+
+    <select id="selectBusinessOptions" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT p.id, p.project_code, p.project_name, p.customer_name
+        FROM proj_project p
+        WHERE p.tenant_id = #{query.tenantId} AND p.deleted = b'0'
+        <choose>
+            <when test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+                AND p.id IN
+                <foreach collection="query.visibleProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        <if test="query.keyword != null and query.keyword != ''">
+            AND INSTR(LOWER(CONCAT_WS(' ', p.project_code, p.project_name)), LOWER(#{query.keyword})) &gt; 0
+        </if>
+        ORDER BY p.project_name, p.id
+        LIMIT 100
+    </select>
     <update id="correctCustomerIfMatch">
         UPDATE proj_project SET customer_id=#{query.customerId}, customer_code=#{query.customerCode}, customer_name=#{query.customerName},
           version=version+1, updater=#{query.updater}, update_time=CURRENT_TIMESTAMP(3)
@@ -99,4 +172,123 @@
         WHERE id=#{query.projectId} AND tenant_id=#{query.tenantId}
           AND version=#{query.expectedVersion} AND lifecycle_status='ACTIVE' AND deleted=b'0'
     </update>
+
+    <select id="selectOrganizationProjectIds" resultType="java.lang.Long">
+        SELECT p.id FROM proj_project p
+        WHERE p.tenant_id=#{query.tenantId} AND p.deleted=b'0'
+        <if test="query.activeOnly">AND p.lifecycle_status='ACTIVE'</if>
+        <choose>
+            <when test="query.organizations != null and !query.organizations.isEmpty()">
+                AND (
+                <foreach collection="query.organizations" item="scope" separator=" OR ">
+                    (p.company_id=#{scope.companyId}
+                    <if test="scope.departmentId != null">AND p.department_id=#{scope.departmentId}</if>)
+                </foreach>
+                )
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        <if test="query.candidateProjectIds != null">
+            <choose>
+                <when test="!query.candidateProjectIds.isEmpty()">
+                    AND p.id IN
+                    <foreach collection="query.candidateProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+                </when>
+                <otherwise>AND 1=0</otherwise>
+            </choose>
+        </if>
+    </select>
+
+    <!-- 服务端已解析项目范围的项目分页；时间范围统一左闭右开，成员与设备条件由 Service 预先取交集 -->
+    <select id="selectVisiblePage"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT p.*
+        FROM proj_project p
+        WHERE p.tenant_id = #{query.tenantId}
+          AND p.deleted = b'0'
+          AND p.id IN
+          <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
+              #{projectId}
+          </foreach>
+          <if test="query.projectNameKeyword != null and query.projectNameKeyword != ''">
+              AND p.project_name LIKE CONCAT('%', #{query.projectNameKeyword}, '%')
+          </if>
+          <if test="query.projectCodePrefix != null and query.projectCodePrefix != ''">
+              AND p.project_code LIKE CONCAT(#{query.projectCodePrefix}, '%')
+          </if>
+          <if test="query.customerCode != null and query.customerCode != ''">
+              AND p.customer_code = #{query.customerCode}
+          </if>
+          <if test="query.overdueOnly != null">
+              AND <if test="query.overdueOnly == false">NOT</if>
+              (COALESCE(p.lifecycle_status, '') = 'ACTIVE'
+                AND (<include refid="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectOverdueMapper.stageCurrentlyOverdue"/>
+                  OR <include refid="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectOverdueMapper.taskCurrentlyOverdue"/>))
+          </if>
+          <choose>
+              <when test="query.status != null and query.status != '' and query.status.matches('S[0-6]')">
+                  AND p.current_stage = #{query.status}
+                  AND p.lifecycle_status = 'ACTIVE'
+              </when>
+              <otherwise>
+                  <if test="query.status != null and query.status != ''">
+                      AND p.lifecycle_status = #{query.status}
+                  </if>
+              </otherwise>
+          </choose>
+          <if test="query.signingMethod != null and query.signingMethod != ''">
+              AND p.signing_method = #{query.signingMethod}
+          </if>
+          <if test="query.projectCategory != null and query.projectCategory != ''">
+              AND p.project_category = #{query.projectCategory}
+          </if>
+          <if test="query.implementationMode != null and query.implementationMode != ''">
+              AND p.implementation_mode = #{query.implementationMode}
+          </if>
+          <if test="query.majorProjectLevel != null and query.majorProjectLevel != ''">
+              AND p.major_project_level = #{query.majorProjectLevel}
+          </if>
+          <if test="query.contractNoKeyword != null and query.contractNoKeyword != ''">
+              AND p.contract_no LIKE CONCAT('%', #{query.contractNoKeyword}, '%')
+          </if>
+          <if test="query.departmentId != null">
+              AND p.department_id = #{query.departmentId}
+          </if>
+          <if test="query.companyId != null">
+              AND p.company_id = #{query.companyId}
+          </if>
+          <if test="query.createTimeStart != null">
+              AND p.create_time &gt;= #{query.createTimeStart}
+          </if>
+          <if test="query.createTimeEnd != null">
+              AND p.create_time &lt; #{query.createTimeEnd}
+          </if>
+          <if test="query.closeTimeStart != null">
+              AND p.project_close_time &gt;= #{query.closeTimeStart}
+          </if>
+          <if test="query.closeTimeEnd != null">
+              AND p.project_close_time &lt; #{query.closeTimeEnd}
+          </if>
+          <if test="query.refreshTimeStart != null">
+              AND p.project_refresh_time &gt;= #{query.refreshTimeStart}
+          </if>
+          <if test="query.refreshTimeEnd != null">
+              AND p.project_refresh_time &lt; #{query.refreshTimeEnd}
+          </if>
+          <if test="query.agentServiceProviderKeyword != null and query.agentServiceProviderKeyword != ''">
+              AND EXISTS (
+                  SELECT 1 FROM proj_project_party pp
+                  WHERE pp.project_id = p.id
+                    AND pp.tenant_id = #{query.tenantId}
+                    AND pp.deleted = b'0'
+                    AND pp.status = 'ACTIVE'
+                    AND (pp.effective_from IS NULL OR pp.effective_from &lt;= #{query.effectiveAt})
+                    AND (pp.effective_to IS NULL OR pp.effective_to &gt; #{query.effectiveAt})
+                    AND pp.party_role IN ('AGENT', 'SERVICE_PROVIDER')
+                    AND (pp.party_name LIKE CONCAT('%', #{query.agentServiceProviderKeyword}, '%')
+                      OR pp.party_code LIKE CONCAT('%', #{query.agentServiceProviderKeyword}, '%'))
+              )
+          </if>
+        ORDER BY p.id DESC
+    </select>
 </mapper>

@@ -87,20 +87,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="项目经理" prop="managerId">
-          <el-select
+          <UserSelect
             v-model="query.managerId"
             placeholder="全部"
             clearable
-            filterable
+
             class="!w-180px"
-          >
-            <el-option
-              v-for="item in managerOptions"
-              :key="item.id"
-              :label="item.nickname || item.username"
-              :value="item.id!"
-            />
-          </el-select>
+           />
         </el-form-item>
         <el-form-item>
           <el-button @click="handleSearch"><Icon icon="ep:search" />查询</el-button>
@@ -221,12 +214,13 @@
             >
               编辑
             </el-button>
-            <el-button link type="primary" v-hasPermi="['pms:project:update']"
+            <el-button
+link type="primary" v-hasPermi="['pms:project:update']"
               @click="customerCorrectionRef?.open(row)">更正客户</el-button>
             <el-button
               link
               type="success"
-              @click="goMembers(row)"
+              @click="openMembers(row)"
               v-hasPermi="['pms:project:query']"
             >
               项目成员
@@ -267,7 +261,8 @@
             </el-col>
             <el-col :span="12">
               <el-form-item label="客户主档" prop="customerCode">
-                <PmsEntitySelect v-model="createForm.customerCode" :api="getSelectableCustomers"
+                <PmsEntitySelect
+v-model="createForm.customerCode" :api="getSelectableCustomers"
                   :label-field="['code', 'name']" value-field="code" query-field="keyword"
                   placeholder="按客户名称或编码选择" @change="selectCustomer" />
               </el-form-item>
@@ -280,8 +275,11 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="合同号" prop="contractNo">
-                <el-input v-model="createForm.contractNo" placeholder="HT-2026-001（手工登记）" />
+              <el-form-item label="合同主档" prop="contractNo">
+                <PmsEntitySelect
+v-model="createForm.contractNo" :api="getSelectableContracts"
+                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="contractNo"
+                  query-field="keyword" placeholder="按合同号选择" @change="selectContract" />
               </el-form-item>
             </el-col>
           </el-row>
@@ -872,6 +870,16 @@
       </div>
     </el-drawer>
 
+    <!-- ============ 项目成员抽屉（内嵌成员页，立项后直接指派） ============ -->
+    <el-drawer
+      v-model="membersVisible"
+      :title="`项目成员：${membersProject?.projectName || membersProject?.projectCode || ''}`"
+      :size="membersDrawerSize"
+      destroy-on-close
+    >
+      <ProjectMembersPanel v-if="membersProject" :project="membersProject" @updated="load" />
+    </el-drawer>
+
     <CustomerCorrectionDialog ref="customerCorrectionRef" @updated="load" />
     <!-- ============ 编辑弹窗（BR-7 可编辑属性） ============ -->
     <Dialog v-model="editVisible" title="编辑项目（可编辑属性）" width="520px">
@@ -905,6 +913,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreationTemplateMatch"
 /**
  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
@@ -928,7 +938,6 @@ import type {
 } from '@/api/pms/project/projects'
 import { getProjectTemplateRevision } from '@/api/pms/project/project-templates'
 import type { TemplateDefinitionContent } from '@/api/pms/project/project-templates'
-import * as UserApi from '@/api/system/user'
 import * as CompanyApi from '@/api/system/company'
 import type { CompanyVO } from '@/api/system/company'
 import * as DeptApi from '@/api/system/dept'
@@ -938,8 +947,10 @@ import type { SiteVO } from '@/api/pms/asset/location'
 import { getSelectableCustomers, type SelectedCustomer } from './customerSelection'
 import TemplateMatchDiagnostics from '@/views/pms/project/project-templates/TemplateMatchDiagnostics.vue'
 import CustomerCorrectionDialog from './CustomerCorrectionDialog.vue'
+import ProjectMembersPanel from '../members/ProjectMembersPanel.vue'
 import { matchCustomerSelectedTemplates, createCustomerSelectedProject, type CustomerSelectedProjectCreate } from '@/api/pms/project/customer-selected'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
+import { getSelectableContracts, type SelectedContract } from '@/views/pms/project/projects/contractSelection'
 import ProjectStatusTag from '@/views/pms/project/projects/ProjectStatusTag.vue'
 import { closedProjectStatuses } from '@/views/pms/project/projects/projectStatus'
 
@@ -966,14 +977,6 @@ const query = reactive({
   implementationMode: '',
   managerId: undefined as number | undefined
 })
-const managerOptions = ref<UserApi.UserVO[]>([])
-const loadManagerOptions = async () => {
-  try {
-    managerOptions.value = (await UserApi.getSimpleUserList()) || []
-  } catch {
-    managerOptions.value = []
-  }
-}
 
 // ============ 顶部状态卡（生命周期阶段统计，逐阶段全展开） ============
 const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: string }[] = [
@@ -1105,6 +1108,14 @@ const createForm = reactive({
 const selectCustomer = (code: unknown, customer?: SelectedCustomer) => {
   createForm.customerCode = customer && customer.code === code ? customer.code : ''
   createForm.customerName = customer && customer.code === code ? customer.name : ''
+}
+
+/** 选择合同主档后跟随合同带入客户主档信息；合同号即选择值本身。 */
+const selectContract = (no: unknown, contract?: SelectedContract) => {
+  if (!contract || contract.contractNo !== no) return
+  if (!contract.customerCode) return
+  createForm.customerCode = contract.customerCode
+  createForm.customerName = contract.customerName ?? contract.customerCode
 }
 
 const createRules = {
@@ -1288,6 +1299,7 @@ const submitCreate = async () => {
         `${created.matchDecisionMode || '-'}；operationId ${created.matchOperationId || '-'}`
     )
     wizardVisible.value = false
+    openMembers(created)
     await load()
   } catch (error: any) {
     createErrorMessage.value =
@@ -1312,9 +1324,15 @@ const goDetail = (row: ProjectMasterVO) => {
     query: { projectId: row.id }
   })
 }
-const goMembers = (row: ProjectMasterVO) => router.push({
-  path: '/pms-inheritance/project-detail', query: { projectId: row.id, section: 'members' }
-})
+
+/** 内嵌打开项目成员页（立项后直接指派，不跳转详情工作台） */
+const membersVisible = ref(false)
+const membersProject = ref<ProjectMasterVO>()
+const membersDrawerSize = computed(() => (mobile.value ? '100%' : 'min(1100px, 92%)'))
+const openMembers = (row: ProjectMasterVO) => {
+  membersProject.value = row
+  membersVisible.value = true
+}
 
 const openDetail = async (row: ProjectMasterVO) => {
   detailTab.value = 'base'
@@ -1352,7 +1370,7 @@ const loadUserNicknames = async (userIds: number[]) => {
   const missing = userIds.filter((id) => id && !userNicknames.value[id])
   if (!missing.length) return
   try {
-    const data = await UserApi.getUserPage({ pageNo: 1, pageSize: 100 })
+    const data = await systemUserSelection.page({ pageNo: 1, pageSize: 100 })
     const map: Record<number, string> = {}
     for (const u of data?.list || []) {
       if (u?.id != null) map[u.id] = u.nickname || u.username || ''
@@ -1425,7 +1443,7 @@ onMounted(() => {
   loadStats()
   load()
   loadOrganizationAndSites()
-  loadManagerOptions()
+
 })
 </script>
 

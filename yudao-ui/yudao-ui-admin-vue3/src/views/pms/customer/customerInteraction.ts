@@ -1,7 +1,8 @@
+import { generateUUID } from '@/utils'
 export const customerIntentOf = (action: string, payload: unknown) =>
   `${action}:${JSON.stringify(payload)}`
 
-export const createCustomerIntentStore = (keyFactory: () => string = () => crypto.randomUUID()) => {
+export const createCustomerIntentStore = (keyFactory: () => string = () => generateUUID()) => {
   const keys = new Map<string, string>()
 
   return {

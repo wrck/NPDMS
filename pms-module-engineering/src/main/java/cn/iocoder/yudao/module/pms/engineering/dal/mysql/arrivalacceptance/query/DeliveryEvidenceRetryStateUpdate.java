@@ -4,7 +4,7 @@ public record DeliveryEvidenceRetryStateUpdate(
         Long tenantId,
         Long evidenceId,
         Integer currentRevision,
-        Integer expectedVersion,
+        Long expectedVersion,
         String expectedStatus,
         String targetStatus) {
 }

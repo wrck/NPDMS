@@ -71,6 +71,7 @@ import {
   decodeDynamicForm,
   encodeDynamicForm,
   restoreDynamicFormDesigner,
+  releaseDynamicFormDesigner,
   sameDynamicFormPayload
 } from '../components/dynamicFormCodec'
 import { usePmsFileArtifactDesignerRule } from '../components/usePmsFileArtifactDesignerRule'
@@ -85,7 +86,6 @@ const designerConfig = {
   switchType: [],
   autoActive: true,
   useTemplate: false,
-  formOptions: { form: { labelWidth: '100px' } },
   fieldReadonly: false,
   hiddenDragMenu: false,
   hiddenDragBtn: false,
@@ -149,7 +149,7 @@ const applyRevision = async (data: DynamicFormRevisionVO) => {
   preview.option = decoded.option
   preview.rule = decoded.rule
   await nextTick()
-  if (designer.value) restoreDynamicFormDesigner(designer, data.formConfJson, data.formRulesJson)
+  if (designer.value) await restoreDynamicFormDesigner(designer, data.formConfJson, data.formRulesJson)
   if (data.status === 'PUBLISHED') mode.value = 'PREVIEW'
 }
 
@@ -187,8 +187,7 @@ const save = async () => {
       emit('changed')
       return
     }
-    revision.value = authoritative
-    message.warning('保存结果未知且权威版本未包含本次设计，请保留当前页面并再次保存。')
+    message.warning('保存未确认，当前编辑已保留。请核对权威修订；若版本已变化，重新读取并合并后再保存。')
     throw error
   } finally {
     saving.value = false
@@ -199,9 +198,11 @@ watch(
   () => [visible.value, props.revisionId],
   ([open]) => {
     if (open) load()
+    else releaseDynamicFormDesigner(designer)
   },
   { immediate: true }
 )
+onBeforeUnmount(() => releaseDynamicFormDesigner(designer))
 </script>
 
 <style scoped lang="scss">

@@ -15,11 +15,11 @@ public final class ArrivalAcceptanceRespVO {
 
     public record ListItem(Long id, Long projectId, String batchCode, String logisticsNo,
                            LocalDateTime arrivedAt, String signerName, String status,
-                           String evidenceSyncStatus, Integer version,
+                           String evidenceSyncStatus, Long version,
                            List<String> allowedActions, LocalDateTime createTime) {
     }
 
-    public record Command(Long id, Long projectId, String status, Integer version,
+    public record Command(Long id, Long projectId, String status, Long version,
                           Long deliveryScopeVersion, List<Long> changedLineIds,
                           Long evidenceId, Integer evidenceRevision, Long projectFactVersion,
                           String evidenceSyncStatus, String eventId, Long successorAcceptanceId,
@@ -32,14 +32,14 @@ public final class ArrivalAcceptanceRespVO {
                          Long evidenceId, Integer evidenceRevision, Long projectFactVersion,
                          Long predecessorAcceptanceId, String successorReason,
                          Long submittedBy, LocalDateTime submittedAt,
-                         Long confirmedBy, LocalDateTime confirmedAt, Integer version,
+                         Long confirmedBy, LocalDateTime confirmedAt, Long version,
                          List<String> allowedActions, List<Line> currentLines,
                          List<Difference> differences, Evidence evidence) {
     }
 
     public record Line(Long id, Integer lineNo, Integer lineRevision, String scopeType,
                        Long deviceId, Long deviceAssignmentVersion, Long orderLineId,
-                       String productCode, String modelCode, BigDecimal expectedQuantity,
+                       String productCode, String productModel, BigDecimal expectedQuantity,
                        BigDecimal acceptedQuantity, String unitCode, String status, Integer version) {
     }
 
@@ -59,7 +59,7 @@ public final class ArrivalAcceptanceRespVO {
     }
 
     public record QuantityScope(String scopeType, Long orderLineId, String productCode,
-                                String modelCode, BigDecimal quantity, String unitCode) implements Scope {
+                                String productModel, BigDecimal quantity, String unitCode) implements Scope {
     }
 
     public record Evidence(Long evidenceId, Integer currentRevision, Long artifactId,
@@ -83,13 +83,13 @@ public final class ArrivalAcceptanceRespVO {
     public record DifferenceCommand(Long arrivalAcceptanceId, Long differenceId,
                                     Integer differenceNo, Integer revisionNo,
                                     String resolutionStatus, String aggregateStatus,
-                                    Integer aggregateVersion, Long successorAcceptanceId,
+                                    Long aggregateVersion, Long successorAcceptanceId,
                                     Long projectFactVersion, String factImpactType,
                                     Scope remainingScope, List<String> allowedActions) {
     }
 
     public record ErrorData(String category, String reasonCode, String recoveryAction,
-                            Integer currentAggregateVersion, Integer currentLineVersion,
+                            Long currentAggregateVersion, Integer currentLineVersion,
                             Integer currentDifferenceRevision, Integer currentDifferenceVersion,
                             String ownerContext) {
     }

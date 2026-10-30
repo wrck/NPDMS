@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "source": {
+    "fileName": "synthetic.log",
+    "sha256": "fictional"
+  },
+  "session": {
+    "collectionId": "fixture-collection"
+  },
+  "stdout": {
+    "blockCount": 4,
+    "blocks": [
+      {
+        "blockIndex": 1,
+        "command": "display system facts",
+        "headerLine": 10,
+        "contentStartLine": 11,
+        "contentEndLine": 15,
+        "isEmpty": false,
+        "lines": [
+          "Software Release TEST-1.2.3",
+          "Conplat Version is PLATFORM-9",
+          "CPU type: Fictional CPU 1000",
+          "SDRAM: 1024M bytes",
+          "Serial Number: SYNTHETIC-SN-001"
+        ]
+      },
+      {
+        "blockIndex": 2,
+        "command": "display interface summary",
+        "headerLine": 20,
+        "contentStartLine": 21,
+        "contentEndLine": 22,
+        "isEmpty": false,
+        "lines": [
+          "Interface  Physical  Protocol  IP Address",
+          "port1      up        up        192.0.2.1/24"
+        ]
+      },
+      {
+        "blockIndex": 3,
+        "command": "display bgp summary",
+        "headerLine": 30,
+        "contentStartLine": null,
+        "contentEndLine": null,
+        "isEmpty": true,
+        "lines": []
+      },
+      {
+        "blockIndex": 4,
+        "command": "display time sync status",
+        "headerLine": 40,
+        "contentStartLine": 41,
+        "contentEndLine": 41,
+        "isEmpty": false,
+        "lines": ["NTP is not enabled."]
+      }
+    ]
+  },
+  "quality": {
+    "replacementCharacterLines": []
+  }
+}

@@ -8,6 +8,12 @@ import java.util.List;
 @Mapper
 public interface SyncRunMapper extends BaseMapperX<SyncRunDO> {
     List<SyncRunDO> selectMaintenance(SyncQueries.Due query);
+    int markCacheRefreshed(SyncQueries.Id query);
+    default SyncRunDO selectCacheState(SyncQueries.Id query) {
+        return selectOne(new LambdaQueryWrapperX<SyncRunDO>().eq(SyncRunDO::getTenantId,query.tenantId())
+            .eq(SyncRunDO::getId,query.id()).select(SyncRunDO::getId,SyncRunDO::getStatus,
+                    SyncRunDO::getConfigSnapshot,SyncRunDO::getCachePending));
+    }
     default SyncRunDO selectScoped(SyncQueries.Id query) {
         return selectOne(new LambdaQueryWrapperX<SyncRunDO>().eq(SyncRunDO::getTenantId,query.tenantId())
             .eq(SyncRunDO::getId,query.id()));

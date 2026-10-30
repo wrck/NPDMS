@@ -1,0 +1,281 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理" [expanded]:
+        - generic: 项目管理
+        - menu:
+          - menuitem "项目列表":
+            - generic: 项目列表
+          - menuitem "项目风险":
+            - generic: 项目风险
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "割接交付":
+        - generic: 割接交付
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "交付件汇总":
+        - generic: 交付件汇总
+      - menuitem "现场培训":
+        - generic: 现场培训
+      - menuitem "阶段施工计划":
+        - generic: 阶段施工计划
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button
+- button "首页":
+  - text: 首页
+- button "项目详情":
+  - text: 项目详情
+- button:
+- generic: 实施部署
+- heading "吉林移动互联互通系统防火墙建设项目" [level=2]
+- generic: 普通类
+- generic "当前执行计划":
+  - generic: 当前执行：项目独立配置 · 计划 v6
+- text: 编码
+- generic: 16200723010901N-0
+- text: 中国移动通信集团吉林有限公司
+- text: 主联系人 李四
+- text: 直签 / 原厂直服
+- text: 2023-02-27 09:11:19
+- generic: 进度 59%
+- generic: 任务 10/17
+- generic: 风险 0
+- button "返回列表":
+  - text: 返回列表
+- tablist "项目阶段推进轨":
+  - button "S0 项目立项与指派":
+    - generic: S0
+    - generic: 项目立项与指派
+  - button "S1 工前准备":
+    - generic: S1
+    - generic: 工前准备
+  - button "S2 施工计划制定与审批":
+    - generic: S2
+    - generic: 施工计划制定与审批
+  - button "S3 实施方案编制与审核":
+    - generic: S3
+    - generic: 实施方案编制与审核
+  - button "S4 实施部署":
+    - generic: S4
+    - generic: 实施部署
+  - button "S5 验收交维":
+    - generic: S5
+    - generic: 验收交维
+  - button "推进说明与图例":
+- generic "选择任务 · S4"
+- button "基本信息":
+  - generic: 基本信息
+- button "客户信息":
+  - generic: 客户信息
+- button "项目树":
+  - generic: 项目树
+- button "项目成员":
+  - generic: 项目成员
+- button "设备清单":
+  - generic: 设备清单
+- button "序列号详情":
+  - generic: 序列号详情
+- button "配置Log":
+  - generic: 配置Log
+- button "实施范围 待确认":
+  - generic: 实施范围
+  - generic: 待确认
+- button "阶段状态":
+  - generic: 阶段状态
+- button "S0 项目立项与指派 —":
+  - generic: S0 项目立项与指派
+  - generic: —
+- button "S1 工前准备 100%":
+  - generic: S1 工前准备
+  - generic: 100%
+- button "S2 施工计划制定与审批 100%":
+  - generic: S2 施工计划制定与审批
+  - generic: 100%
+- button "S3 实施方案编制与审核 100%":
+  - generic: S3 实施方案编制与审核
+  - generic: 100%
+- button "S4 实施部署 67%":
+  - generic: S4 实施部署
+  - generic: 67%
+- button "S5 验收交维 0%":
+  - generic: S5 验收交维
+  - generic: 0%
+- button "工勘分工":
+  - generic: 工勘分工
+- button "需求分析" [active]:
+  - generic: 需求分析
+- button "物料换货":
+  - generic: 物料换货
+- button "施工计划":
+  - generic: 施工计划
+- button "实施方案":
+  - generic: 实施方案
+- button "到货签收":
+  - generic: 到货签收
+- button "硬件安装":
+  - generic: 硬件安装
+- button "配置调试":
+  - generic: 配置调试
+- button "业务联调":
+  - generic: 业务联调
+- button "割接上线":
+  - generic: 割接上线
+- button "现场培训":
+  - generic: 现场培训
+- button "满意度调查":
+  - generic: 满意度调查
+- button "初验&终验":
+  - generic: 初验&终验
+- button "交付件汇总":
+  - generic: 交付件汇总
+- button "交付件检查":
+  - generic: 交付件检查
+- button "归档文档":
+  - generic: 归档文档
+- button "闭环记录":
+  - generic: 闭环记录
+- button "项目闭环":
+  - generic: 项目闭环
+- button "拆分方案":
+  - generic: 拆分方案
+- button "进度汇总":
+  - generic: 进度汇总
+- strong: 需求分析
+- paragraph: 维护项目需求与附件，按版本保存和确认。
+- button "刷新":
+  - text: 刷新
+- button "从查看版本创建草稿":
+  - generic: 从查看版本创建草稿
+- button "修订记录":
+  - generic: 修订记录
+- separator
+- generic "选择需求分析版本":
+  - button "查看有效完成版 V1 · 已完成 2026-10-09 19:22:02" [pressed]:
+    - strong: 查看有效完成版
+    - generic: V1 · 已完成
+    - generic: 2026-10-09 19:22:02
+- heading "项目需求分析" [level=3]
+- paragraph: 记录客户目标、网络现状和实施要求，作为实施方案的输入。
+- generic: 当前有效 · V1
+- region "需求分析动态表单":
+  - generic: 展示模板
+  - combobox "展示模板"
+  - generic: 基础业务表单
+  - group "*1、项目背景":
+    - generic: "*1、项目背景"
+    - paragraph:
+      - generic: cs
+  - group "*2、项目目标":
+    - generic: "*2、项目目标"
+    - paragraph:
+      - generic: cs
+  - group "3、网络拓扑（附件）":
+    - generic: 3、网络拓扑（附件）
+    - generic "网络拓扑附件 · 暂无文件"
+  - generic: 4、传输现状（多选）
+  - group "4、传输现状（多选）":
+    - checkbox "IPv6" [checked] [disabled]
+    - generic: IPv6
+    - checkbox "分片" [checked] [disabled]
+    - generic: 分片
+    - checkbox "MTU" [checked] [disabled]
+    - generic: MTU
+    - checkbox "Jumbo" [checked] [disabled]
+    - generic: Jumbo
+    - checkbox "隧道" [checked] [disabled]
+    - generic: 隧道
+  - group "5、流量现状":
+    - generic: 5、流量现状
+    - generic: 新建
+    - textbox "流量现状：新建" [disabled]:
+      - /placeholder: 填写现状及单位
+      - text: cs
+    - generic: 并发
+    - textbox "流量现状：并发" [disabled]:
+      - /placeholder: 填写现状及单位
+      - text: cs
+    - generic: 吞吐
+    - textbox "流量现状：吞吐" [disabled]:
+      - /placeholder: 填写现状及单位
+      - text: cs
+  - group "6、运行业务情况":
+    - generic: 6、运行业务情况
+    - table:
+      - rowgroup:
+        - row "设备名称 序列号 承载业务名称 业务网段 业务重要等级 出入接口 客户侧业务负责人 备注":
+          - columnheader "设备名称":
+            - generic: 设备名称
+          - columnheader "序列号":
+            - generic: 序列号
+          - columnheader "承载业务名称":
+            - generic: 承载业务名称
+          - columnheader "业务网段":
+            - generic: 业务网段
+          - columnheader "业务重要等级":
+            - generic: 业务重要等级
+          - columnheader "出入接口":
+            - generic: 出入接口
+          - columnheader "客户侧业务负责人":
+            - generic: 客户侧业务负责人
+          - columnheader "备注":
+            - generic: 备注
+    - table:
+      - rowgroup
+    - generic: 暂无数据
+  - group "7、IP资源情况":
+    - generic: 7、IP资源情况
+    - generic: 管理IP
+    - textbox "管理IP" [disabled]: cs
+    - generic: 公网IP资源
+    - textbox "公网IP资源" [disabled]: cs
+  - group "8、冗余备份要求":
+    - generic: 8、冗余备份要求
+    - paragraph:
+      - generic: cs
+  - group "9、本机防护要求":
+    - generic: 9、本机防护要求
+    - paragraph:
+      - generic: cs
+  - generic: 10、运维管理要求（多选）
+  - group "10、运维管理要求（多选）":
+    - checkbox "带内管理" [checked] [disabled]
+    - generic: 带内管理
+    - checkbox "带外管理" [checked] [disabled]
+    - generic: 带外管理
+    - checkbox "SNMP" [checked] [disabled]
+    - generic: SNMP
+    - checkbox "UMC" [disabled]
+    - generic: UMC
+    - checkbox "第三平台" [disabled]
+    - generic: 第三平台
+    - checkbox "堡垒机" [disabled]
+    - generic: 堡垒机
+  - generic: 11、业务日志留存方式
+  - group "11、业务日志留存方式":
+    - checkbox "UMC" [disabled]
+    - generic: UMC
+    - checkbox "第三方日志平台" [disabled]
+    - generic: 第三方日志平台
+    - checkbox "本机硬盘" [disabled]
+    - generic: 本机硬盘
+    - checkbox "不留存" [disabled]
+    - generic: 不留存
+    - checkbox "其他" [disabled]
+    - generic: 其他
+  - paragraph: 原有日志说明：<p>cs</p>
+  - generic: 该完成版本正文和附件已冻结，只能查看或对比。
+- generic: Copyright ©2026 项目实施交付管理平台

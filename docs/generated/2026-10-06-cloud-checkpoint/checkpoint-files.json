@@ -1,0 +1,2729 @@
+{
+  "status": "CHECKPOINT_NOT_ACCEPTANCE",
+  "baseHead": "faab7dd9564cb2d2d0dbee655538d140ae860c3d",
+  "branch": "fix/visio-template-followup",
+  "createdUtc": "2026-10-06T06:24:51.791484+00:00",
+  "stagedFiles": [
+    {
+      "path": "docs/generated/2026-10-06-cloud-checkpoint/handoff.md",
+      "gitBlob": "7febbf7d3f9177bdd71b380f8d72bfe42e488c52",
+      "stagedSha256": "79a10b39daeef1d8092e2d0b3cbb8ce9167bdfda60b4a387cdfe802626994b24",
+      "worktreeSha256": "0173039f1597861c68201376b3f8a557d89e7bb7fd6ab000eb51ed5eac0f5486",
+      "bytes": 8633
+    },
+    {
+      "path": "docs/generated/2026-10-06-cloud-checkpoint/owner-scope-inventory.json",
+      "gitBlob": "1914f9beefe94c1429c2dee8cc561b420902eb1e",
+      "stagedSha256": "b419ea877b6e3c2851a83958ff6c15dd8cc107433a5c55ebaca8fb816863515b",
+      "worktreeSha256": "4d68fc1634bae8315d31e7ea1d9e4594f9a707cc036acc96a2893117870b8258",
+      "bytes": 115463
+    },
+    {
+      "path": "docs/generated/2026-10-06-cloud-checkpoint/verification.json",
+      "gitBlob": "98c994aaaca00f94c73f3677689b1d339c8d5292",
+      "stagedSha256": "b022cfa7eba6a9f0fddb9ba0ed8659f617b39e5599cc0f863158ebc3fa1be326",
+      "worktreeSha256": "d3f40c7e67a6cd5cd753d35e4566d203568bd153c65ed9e676a233e4486cd9c1",
+      "bytes": 23588
+    },
+    {
+      "path": "docs/reference/unified-business-local-plans-20261006/README.md",
+      "gitBlob": "5f13081136322741801b5045c39763e921a8901c",
+      "stagedSha256": "e14bd25c9f2db7d922fd5d26eaa5cc9364c705aeb629464a2f6d60ff1ff09433",
+      "worktreeSha256": "180863ceda97925464a8a88726163e9d5fab2ed19b046a3b8913ed092999181e",
+      "bytes": 942
+    },
+    {
+      "path": "docs/reference/unified-business-local-plans-20261006/现状核对与设计方案.md",
+      "gitBlob": "0c75d29fad50581f5470709ab465da921449b930",
+      "stagedSha256": "7b9b22ec7d4bbd6691dd18c01e9d2562e81028d10102eb5d3900968a27982671",
+      "worktreeSha256": "7b9b22ec7d4bbd6691dd18c01e9d2562e81028d10102eb5d3900968a27982671",
+      "bytes": 39188
+    },
+    {
+      "path": "docs/reference/unified-business-local-plans-20261006/统一业务模型与公共能力执行计划.md",
+      "gitBlob": "501e0f4f77fb672dfcceb5d0f390e15de48419ca",
+      "stagedSha256": "053b1edee42884cc315480aee14b431f0fa211f88ada06f4b6320a2cb66d25d0",
+      "worktreeSha256": "053b1edee42884cc315480aee14b431f0fa211f88ada06f4b6320a2cb66d25d0",
+      "bytes": 69846
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/controller/admin/archivedocument/ArchiveDocumentFileController.java",
+      "gitBlob": "cd42002bb74d9dcc8a312ef1809acfcb2e24b4b9",
+      "stagedSha256": "f8e30420b42fbaa7366c9f2262ef07a5a631316c48edf34ac433aa8d56c92476",
+      "worktreeSha256": "b95cd33354b2c87e871c3cf38fa457d0997ae201df4a79a251a6906b7654e743",
+      "bytes": 1490
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/dal/mysql/archivedocument/ArchiveDocumentMapper.java",
+      "gitBlob": "9006fa5acfc2eac9f2a90169f33ff8d96a76b93b",
+      "stagedSha256": "d5eb071ffc7f0ae42d7a36321ed5f0b0b8cb3ffba9b41e381a5f1aeacb7da33b",
+      "worktreeSha256": "20b088de12637e92fcca258a4e2c8ebf1a55540490fcfff3676d23c34e4ce029",
+      "bytes": 1496
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/dal/mysql/archivedocument/query/ArchiveDocumentDeliveryLockQuery.java",
+      "gitBlob": "f26a475457819413f94713cce6323ed32f2a7940",
+      "stagedSha256": "b7bebaca7e8e0434b2769dbc6a85cc1cebcf71fa8d432114b83f27a54f5db76c",
+      "worktreeSha256": "b1dad4a40ad8227b1433bb2b29b84c3d81d48985b13af736cb1dda1da9b53d1d",
+      "bytes": 160
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/dal/mysql/completioncertificate/CompletionCertificateMapper.java",
+      "gitBlob": "9002143068f88e1eb8b0407e5e15f91ff4bb1c50",
+      "stagedSha256": "a43116666841acf3212930955a83dd1105205060729c7a5535f9c331b2239d4e",
+      "worktreeSha256": "580be52eba66c025b2ce4854111436b36b7e3532478c3df3b927738cd0b10611",
+      "bytes": 1711
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/dal/mysql/completioncertificate/query/CompletionCertificateDeliveryLockQuery.java",
+      "gitBlob": "7150e15b2bbbcfc05621e408c1ab1043d2d974b1",
+      "stagedSha256": "5264550cf91942da4da40f837343d455e3a7adadce48a90f2648e97e13e0a5e5",
+      "worktreeSha256": "5176931654c6d0eb51d311deeec2331b70e71b95a24fc428d738d2694a689dcf",
+      "bytes": 172
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/dal/mysql/deliverablechecklist/DeliverableChecklistMapper.java",
+      "gitBlob": "fdf68e070ab07e5a5dc83eb89667ccc9a2e16233",
+      "stagedSha256": "c398b24caf1094dedc4bc96af30013fe6b3b0f0dc9271df343bc7c88a57bb04a",
+      "worktreeSha256": "44f485ff09a403efce758346505362c29c04b6c8b72498de169f31d6e3b9592b",
+      "bytes": 2161
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/dal/mysql/deliverablechecklist/query/DeliverableChecklistOwnerLockQuery.java",
+      "gitBlob": "10f670e8616fdda093d9a10b178397911cf68f4e",
+      "stagedSha256": "57cb8ba45256380ddc37b128789223794951e70fdf0a8b5288a925b0b96ca258",
+      "worktreeSha256": "d7d4d012058a026469bfa2ecbfb30f3e3531f10cd983fe4d1ca70385119819c2",
+      "bytes": 169
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/enums/ErrorCodeConstants.java",
+      "gitBlob": "baf1081c26ddcec6c26483493bdfb56aea92ad68",
+      "stagedSha256": "ca0ed58c11795b7770bac27c36b4e03d418fd7e248d1996da1818746ad887ae7",
+      "worktreeSha256": "e811d2d941b44c26079203c4a78ed980d8698c9c8b53f556c866d3af2252815b",
+      "bytes": 4110
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/model/AcceptanceBusinessModelContributor.java",
+      "gitBlob": "77d23732add47b99eb0d8cc405239210000ad8ca",
+      "stagedSha256": "c8c1a6f386d87aaa2dff6ce6b89d3156344206f1b7aac8be0513f813705e84d6",
+      "worktreeSha256": "3498d7e886f5747ac4ee319a02047bd5663f77aad36f7835440169cde3a65c1b",
+      "bytes": 20530
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/AcceptanceDocumentSources.java",
+      "gitBlob": "d87954cc3ce672400dc553d014b09382619178c0",
+      "stagedSha256": "57c7d2471f7e697dded0db2f1a3f02de428344261479a828984ce94f02b04763",
+      "worktreeSha256": "73b0e9efa06e5e457f1ab1bce50053ea0bedbca02c8515813b1a25c5ad5b3cec",
+      "bytes": 3907
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/AcceptanceResultDeliveryAccess.java",
+      "gitBlob": "4f03c8491413318c630ea4b05b2274d13256611c",
+      "stagedSha256": "ed7313dafc45b06a55a4be55ad1397926fe7aa313b4e0cb9dcd892a99b5c58f4",
+      "worktreeSha256": "b262c80f4843d20ac5c8e6c68d73ea18e0c93982890e5b2de1e997fce603d557",
+      "bytes": 5321
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/NativeAcceptanceDeliveryAccess.java",
+      "gitBlob": "65c5f3c53ab87d8bf8f520a7e410d663d5498c7f",
+      "stagedSha256": "cdec67396790c532bb48e6f96ab29c768ce300fb2b768f84c923568a7bbcdf40",
+      "worktreeSha256": "e9804dc76bf619295406e56644fcca30fec90477199c189a1a38a819b8827b8f",
+      "bytes": 6262
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/ProjectDeliverableAccess.java",
+      "gitBlob": "b8eeb1eb9f6658eb2cb1dc10bd818e01266a4094",
+      "stagedSha256": "381462098888d366cf25f424803b847f24aabd4cef62542a468a8354286daf4a",
+      "worktreeSha256": "dcb7a73615c80a0fd4f45a30dc965768ad8d0df9abd2d5845a1e476689e8067d",
+      "bytes": 3364
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/ProjectDeliverableBusinessResultEvidenceProvider.java",
+      "gitBlob": "38edeb1b51942f92e314cd9cc194944629b67456",
+      "stagedSha256": "23b05f53e09f61c6c3f8ebf03e712fb37e29fcee5aca4726f8d7d86fde6b3995",
+      "worktreeSha256": "72d81be2c6a936fdd547bbcafd625f8156ab10024a612e2213ee349ad7abab62",
+      "bytes": 4772
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/ProjectDeliverableUploadPolicyValidator.java",
+      "gitBlob": "a08155216a0327f70bdda0a334198d10e3fe3d9d",
+      "stagedSha256": "e8e4b52a02536f3aac885116bb08dcab5df3c49c12b26cad0bfd2087dec59f11",
+      "worktreeSha256": "3b8aa5df8f61965bc3e771d7654ba0aaa1e317b702993426a615eb776b81ce59",
+      "bytes": 7766
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptancereport/AcceptanceReportArchiveCompensationJob.java",
+      "gitBlob": "ca9e7d3cb92c2e986acc56c7256d6d15014cff91",
+      "stagedSha256": "c1162ee84cdbee45f75c19e3c1583801ef2a1f60fa9ecb612653aed30c1fdd14",
+      "worktreeSha256": "9fa0bb5641536a3576fa14f98b939041f5593caaa017f9f2f552c6eca0606e87",
+      "bytes": 3160
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptancereport/AcceptanceReportArchiveCompensationService.java",
+      "gitBlob": "00e2f62025dc3b8abeb8ecc6ea1090e72b4af26d",
+      "stagedSha256": "f8e9700487aad0022bb3c060a2df48f94c58cb25b5bb395aeb737224a8c00288",
+      "worktreeSha256": "0579eb42b882ff5a322b3c13fd13e86240ec0d999545e2faf4872d9666d4ec57",
+      "bytes": 8629
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptancereport/AcceptanceReportCommandService.java",
+      "gitBlob": "e4eda91b35162803de8edc1be8f135df6a1123a9",
+      "stagedSha256": "dff336a4ccd4755d41630b93a4b42b8a4115c40361650b547cd15c4e28cedc49",
+      "worktreeSha256": "6c9483317e45bfb71bdbcff3644e1ce03a8c515e1c7ad8dbd8f926a3cc125d95",
+      "bytes": 25119
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptancereport/AcceptanceReportSourceProjectionService.java",
+      "gitBlob": "4ebea9e1ee6f96e6ebe01b35abcebc5987eb77a1",
+      "stagedSha256": "d3709678f0072e2571e37f6e59f8274d46368e08f9beefd73a46da3c8f101371",
+      "worktreeSha256": "6b0d8372ef3280e3dc5169bbb81ee38a3af2334a49b819e51b3f1ca945b4db31",
+      "bytes": 7350
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/archivedocument/ArchiveDocumentDeliveryEvidenceProvider.java",
+      "gitBlob": "9469a872a4a22498b82201006adbbcee489e5b86",
+      "stagedSha256": "018325e1cde04384c7caf7346b16c11fec5be1a79075c7d6177376af7d07676e",
+      "worktreeSha256": "a1264c52c69b218764eafd2892d6f82311ce8c9d70b72cdcc5c549ff99a629cb",
+      "bytes": 1552
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/archivedocument/ArchiveDocumentServiceImpl.java",
+      "gitBlob": "ec93888a6c3cbc521bc61eeee86b7e79b7942896",
+      "stagedSha256": "803d584efb38da26d6b48f86d4df2d3519670b34c0461ab37c60027d91306e51",
+      "worktreeSha256": "6b804d159f165c453d5ed76ec3569a5a31481df00ab362b2782fa8db49ee4360",
+      "bytes": 9924
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/completioncertificate/CompletionCertificateDeliveryEvidenceProvider.java",
+      "gitBlob": "6a9d9742117e2bd32b79ebdce55c01631ab579b1",
+      "stagedSha256": "a13db2c509e01045e00b023318bfcafa1e442470c584d4d644c8b11bb69bc356",
+      "worktreeSha256": "482982551aaeb4402ecb4e8fcb397d2415dcf6505723810331adaffe5acb4d25",
+      "bytes": 1654
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/completioncertificate/CompletionCertificateServiceImpl.java",
+      "gitBlob": "9db9ac84e14e026208f81c77a6fa399aac6044fa",
+      "stagedSha256": "73a70a6cf4e3ea45c009505f004d4125e5d1b2bc6c70d97b7c120a58d5211675",
+      "worktreeSha256": "206d9f052c672a9b822934f8fc1c4f5d65c50d61c111d7352ba245e691abc1c4",
+      "bytes": 12380
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/DeliverableChecklistDeliveryAccess.java",
+      "gitBlob": "8a3a9e3e01e374e57e576b1448172e098b4bc6ac",
+      "stagedSha256": "08d35aea376f819ea787d79119c6754c0351c37b7407c6b34b423afbb67a1c8b",
+      "worktreeSha256": "788a652ef3e47f16069ca3a7a0d0aa3860b3af392aa6a3a63f98367dc65bf13b",
+      "bytes": 2110
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/DeliverableChecklistDeliveryEvidenceProvider.java",
+      "gitBlob": "77e24c903244cd0c0d243a2cffc6412c47c1a307",
+      "stagedSha256": "bb54f3747bd2d6e97e6ff282301fdaa026becaed6902820799823eaf711b1977",
+      "worktreeSha256": "8f5f38172cd05b9d4c4f136fb6f46fd00cad1425d7113bb030bf91ea6d1aa5cc",
+      "bytes": 1407
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/DeliverableChecklistServiceImpl.java",
+      "gitBlob": "a58046293b516c162961d0af06aacb86d5effd21",
+      "stagedSha256": "e7ec407e3727f12a281b2ac823ee5cd1e3005db83cdf82d9fc2a9cda640d5530",
+      "worktreeSha256": "1af0b373edac01bd7ac802df530a53381fc3133343ca79be0243069c59129960",
+      "bytes": 8362
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionResultArchiveCompensationJob.java",
+      "gitBlob": "e349140dd40da0c183fe9e0702c80a74ccb88704",
+      "stagedSha256": "a3672377d45b89ea7652fbf7bb549a47774d9b301c91b2a6425631ac50918296",
+      "worktreeSha256": "9430f3c6dc434f0ef421a3462fa22934184f5584b5ab7ac907a848482395aac4",
+      "bytes": 3142
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionResultArchiveCompensationService.java",
+      "gitBlob": "d67ff336b718b1b40eef364b6939f2bf8e498f7b",
+      "stagedSha256": "ded743be8b2707cfcd1537ae6df44b4765d8a9712cb8d8a3a60ed73d4503c2d3",
+      "worktreeSha256": "12e0a01b35bc7eb3d459aaa14e522de489e9d9cd9b158d729408f6b5a3571e04",
+      "bytes": 13108
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionResultDecisionService.java",
+      "gitBlob": "a24c6a419923db44ebf48e34a41bf5d908370572",
+      "stagedSha256": "7cc37287b2b5bc79178f0566ba5a15e83256572ddc207cea3c4399b4397f9e46",
+      "worktreeSha256": "b2ebfc16dd4b5d6d8f0154fab179b55826474d4b34276e151a0586e28ae9383a",
+      "bytes": 22207
+    },
+    {
+      "path": "pms-module-acceptance/src/main/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionResultSourceProjectionService.java",
+      "gitBlob": "cf1c675cce07040c40ed63e792002ed21cf18692",
+      "stagedSha256": "b5fea60531e368f1b746841d3af25574749bfa6b324c02a49dbbbf40ca6a67db",
+      "worktreeSha256": "102117ca2c903d77d26f7730ec9a3fd2b153b7ad00dd469f6ea144754718a11a",
+      "bytes": 10061
+    },
+    {
+      "path": "pms-module-acceptance/src/main/resources/mapper/archivedocument/ArchiveDocumentMapper.xml",
+      "gitBlob": "adb27de44d6d9e79261d79be767cc085cba9480c",
+      "stagedSha256": "24f428e690fa6d21fb69293c8500055315391a0e1b5e3d295e957bb83c417b52",
+      "worktreeSha256": "574bdb929c1b2dd4dbd298f5a7a5c258d40d2cf5f1eb98010822a2af934e84ec",
+      "bytes": 912
+    },
+    {
+      "path": "pms-module-acceptance/src/main/resources/mapper/completioncertificate/CompletionCertificateMapper.xml",
+      "gitBlob": "7ab0e82cb521bc4ca8a3390ae4bce8994f68046b",
+      "stagedSha256": "33a9067092a6f7203841de19bc5e7a42cd422afa452bc67a5d950f32f4de3336",
+      "worktreeSha256": "24ee766d260b96e2151daf266c27b25c7612e5a5a33450414cc18fc4db24a437",
+      "bytes": 948
+    },
+    {
+      "path": "pms-module-acceptance/src/main/resources/mapper/deliverablechecklist/DeliverableChecklistMapper.xml",
+      "gitBlob": "43572183cc16a27e126f42eb7bdb843b299c86b7",
+      "stagedSha256": "6c4c9a5fc2d6e05a655956aaaa733ca9da0fcb6434d84685ec79bee342f1d368",
+      "worktreeSha256": "d0f9cf0f8c1f44b54630a133c589844bff3dcff22e683548cb353e3302c33127",
+      "bytes": 937
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/AcceptanceResultDeliveryAccessTest.java",
+      "gitBlob": "1814132488310dd1f2983b12dfc3803fb9e270f4",
+      "stagedSha256": "90bdb45a9875e34873f72895eba1c3f2f05911d2b15cb47908cc951b476e9ba7",
+      "worktreeSha256": "5d09b439bc410beb8a216f12e1affacba94b8dbfa80297a855f16a465b527cbc",
+      "bytes": 7679
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/DeliveryOwnerSpringAssemblyTest.java",
+      "gitBlob": "290df0aac54da8742f231ca163ccfd316724e134",
+      "stagedSha256": "559a1f4b896414f860edfdeb3c19961babf1d4fdf8fc510044b2dd1e29b4d95e",
+      "worktreeSha256": "b8d18ceb0a0fb89a7715a4310f4bb25ffc915b2cccf25db1cd70c0f2f61ec909",
+      "bytes": 4363
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/NativeAcceptanceDeliveryAccessTest.java",
+      "gitBlob": "966c2be90aae58fdfa82aed2371adf079b86fc1f",
+      "stagedSha256": "108429cee266c4237bb13400635e47913eb5dd5d2db3ec7f0341ea188cf07dde",
+      "worktreeSha256": "2e2e3e35f7ae225ae46f47798a9af95637abb1376c3bc2a9d3a8c7301fb78c38",
+      "bytes": 6639
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptance/ProjectDeliverableHistoricalAuthorizationTest.java",
+      "gitBlob": "0e217e5bc4f5ed01c7322627c58407f18db71a32",
+      "stagedSha256": "2912a80517e14885b7e7e51f9e57119cb7b1979b1ce78cf6cc7aefb0f8a50702",
+      "worktreeSha256": "3bb9a01a739b4b0437e55f8a13eb153bb814eb8ac00b33d09ba299a3671b1d33",
+      "bytes": 4805
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptancereport/AcceptanceReportCommandServiceTest.java",
+      "gitBlob": "7d6f0f56f3862e550e3d762f31ce0cb03a563f2a",
+      "stagedSha256": "a8c87d4b657cda880c79372cec7b8cf64387a287241cceaa1ad21257872698bc",
+      "worktreeSha256": "4c0f3da86bb64e6d58b70eb56eada98a714c8436532e3aaa483e05d9056d11fd",
+      "bytes": 9395
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptancereport/AcceptanceReportDraftDeliveryTest.java",
+      "gitBlob": "83409dcd761debd92a0c1d470853a876ee619d91",
+      "stagedSha256": "feefdb0974ef586682db8ff87e24bdb13c5c8403db038a7efda0b38b1a16909c",
+      "worktreeSha256": "7446d146bb6c387fdcf4883c0e198c5c3fb399500d2bbf09a3146dfc73dd37c8",
+      "bytes": 5726
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/acceptancereport/AcceptanceReportIndependentEntryTest.java",
+      "gitBlob": "246828a4a8f70fc8a1c8aeb738081e1839150118",
+      "stagedSha256": "187b81aa2dbbbed85f010e94bb05ccbf3b00f498b81f1477ba42a1f61cc649df",
+      "worktreeSha256": "0d90ece1f54c370f32f36d4d0f3b3638b0999466b4301babb1b7a692a04b5282",
+      "bytes": 16615
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/archivedocument/ArchiveDocumentNativeDeliveryTest.java",
+      "gitBlob": "4e1df376ff10ee31be8512c4c3ead793848e125c",
+      "stagedSha256": "62357b50cc266672acc9569242bc27b6bf45890fad50f665d06234d611d42646",
+      "worktreeSha256": "b4c95a2719460e7521d41806022713f77b20afbd7acd96703b66519c71a15e96",
+      "bytes": 5494
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/completioncertificate/CompletionCertificateServiceTest.java",
+      "gitBlob": "525139d32bf6473eb6d208625ef761d5e8ad72a2",
+      "stagedSha256": "79db1f1544c3a2b5f187c363b28cae3e5e9400d34b49ef577026bb10b0f647a4",
+      "worktreeSha256": "faa7ff1cc513763c73a79a02e7249d0240d5e4681800e8e41863ed970de7ff87",
+      "bytes": 11553
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/deliverablechecklist/DeliverableChecklistNativeDeliveryTest.java",
+      "gitBlob": "2faa17b30829d1f7627854423bc3264b000b1f59",
+      "stagedSha256": "0dc0b8c234cd68f62775ab82985e2348dce84690d305aeb215b812450093df7d",
+      "worktreeSha256": "83adefe0d0c241651ac92ca7485f026ff819f4c645b3c3676cd061db1a3e6661",
+      "bytes": 2840
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionResultArchiveCompensationServiceTest.java",
+      "gitBlob": "364da7c73a01a280b05628aad3ceb379e375e98f",
+      "stagedSha256": "1a530559ecfa840f3e77a3bf385cc7cad93f56379565ea7e7b78e2875b18d0aa",
+      "worktreeSha256": "3bec69c723fbbde42433f0e90021a919570a2d3d1ee59287a90c645dfd20dc7a",
+      "bytes": 12774
+    },
+    {
+      "path": "pms-module-acceptance/src/test/java/cn/iocoder/yudao/module/pms/acceptance/service/satisfaction/SatisfactionResultDecisionServiceTest.java",
+      "gitBlob": "5f3caad3372719e0d1d60e7370576ac0fb4d1465",
+      "stagedSha256": "2a225d1f72bee4376524a6dad253e69a455579caa2267d40c69b980f4fbfc251",
+      "worktreeSha256": "57037e3de0e3e1647813909b5545323a6e547b574a8fd03dc20704acba7c30fa",
+      "bytes": 10822
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/config/SiteSurveyPersistenceConfiguration.java",
+      "gitBlob": "0f7d784be6bfe3aede0ca8f041769ad703385c62",
+      "stagedSha256": "efef95e3902fc3c1c9c55cd7a6dcda7c04535a639d4a8f9478f9e650a209bbd2",
+      "worktreeSha256": "efef95e3902fc3c1c9c55cd7a6dcda7c04535a639d4a8f9478f9e650a209bbd2",
+      "bytes": 1893
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/briefing/BriefingGeneratedFileController.java",
+      "gitBlob": "015d3325357043359765875f22be8c5294ef5f90",
+      "stagedSha256": "778e2c45bba9dfec45256588a7aed5098b54884bda86e974b1e0d968eedce48e",
+      "worktreeSha256": "65b81dc1636e7c79df1f82197aca957989a990075785094eb340c52e7989447d",
+      "bytes": 865
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/solution/SolutionCustomerDocumentController.java",
+      "gitBlob": "03661573c9ff44d5ff7b08c1098b4cef1d30dbff",
+      "stagedSha256": "49385ba317bcfe3534540653fc6a0c855e9558a6290a991f35c4e4ec5d60c581",
+      "worktreeSha256": "8f811ad52d6c48ea04138ff14368fed6e9f8ef64c94f097c08496a4670f31eb6",
+      "bytes": 1224
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/training/TrainingPdfController.java",
+      "gitBlob": "61642b5fd97ebc6f1c082fd438c7481d728a5d96",
+      "stagedSha256": "0cbab7455a50fd41a943a11c0b5b7bb48e7073081c88d05d94a06d1ca435ec02",
+      "worktreeSha256": "c2824030c5a01b54bee8617860ee6e48d44346ec1c012cb10afabb04cb07cd47",
+      "bytes": 1696
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/requirement/RequirementAnalysisDO.java",
+      "gitBlob": "1e7aa3bd0bc976bddeae83d5e86b80a5aa4745f2",
+      "stagedSha256": "c43113ecbf04c5ccf2f6d94b1e05139dce2133eff874d4ed68d8db0ceb1ca8c2",
+      "worktreeSha256": "ec09d4ac6a05a16bd27f8b5a99174d17ecb65353a749cb527c3e905f137e58dd",
+      "bytes": 1840
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/sitesurvey/entity/SiteSurveyEntityDO.java",
+      "gitBlob": "71ff7fcec592c92085ce3cade15150d43ba259bc",
+      "stagedSha256": "d0274432b995062092c091f36461ba802ddee4fd5898a4128c73f75048645201",
+      "worktreeSha256": "8896de5f19089de5bcb839c3318a1a782f0f463779a4a0ba76abd5b6dff93b02",
+      "bytes": 5449
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/training/TrainingConfirmationGrantDO.java",
+      "gitBlob": "f5e460a5b4d1b9f4285a636384e9b42b240c12cc",
+      "stagedSha256": "95f4ea2661ffab67ee3ffedfa65e9d1e7368831c4d896652406c7c1a9bad1ef5",
+      "worktreeSha256": "2dcce5cfa2323ef00ac2af3a77a944590b1fba771354e5a92837736ed8a7145a",
+      "bytes": 801
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/arrival/ArrivalMapper.java",
+      "gitBlob": "ab6db4ec31898e7915cd5691dfa10b30f73cc969",
+      "stagedSha256": "b6eb063b920fa43dc28b742f154e3651895706bd36d0c0be603db3785aa3312e",
+      "worktreeSha256": "ad408ac29998693ca7423e692dd78501e03cf901bf46f29e6b928d755d4309e0",
+      "bytes": 1807
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/arrival/query/ArrivalDeliveryOwnerQuery.java",
+      "gitBlob": "b2c8dab7d43c9ed1c684f4204a087a483a3b62d9",
+      "stagedSha256": "e775e11db2f998c2515eb0bb76b268672a4c688618165a149a9eb9ecaedbd7d6",
+      "worktreeSha256": "5a0f0f3cf6cfc73c25076469facad271f367fc4966a50bc124dff7e4be4f8477",
+      "bytes": 146
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/briefing/BriefingMapper.java",
+      "gitBlob": "67ae12c599fe4c88f7ca75c78c918e9fb54672f7",
+      "stagedSha256": "c5c4f07e6386ed26594efee201a6b4e432ff3028373ba3872d78fa22a7e82cbf",
+      "worktreeSha256": "85f2ce2690e7387db436158223fbc71ba973d3f15b4feaa650d34f7f7692e5fd",
+      "bytes": 1821
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/briefing/query/BriefingFileOwnerQuery.java",
+      "gitBlob": "54e90fe24ddbe615384101088c1e3e9acfcdaf49",
+      "stagedSha256": "d481cd92b210b042727a504f171383956ceba90ffe935571e028b960bb5f976b",
+      "worktreeSha256": "0f88bf7d2b1d93e68c0e80ce90c7f4aea823216dc393f3d9ce86199d3535374e",
+      "bytes": 146
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/sitesurvey/entity/SiteSurveyEntityMapper.java",
+      "gitBlob": "f300121e605fceecb91beffaca3b601454973cb4",
+      "stagedSha256": "7076775b91a0d1214a6199a9afb8f6b8786129cca7ed7debc747c26cb4a03df8",
+      "worktreeSha256": "a7a71e5c097e5e4ddbbc6ffa143f7fb605c1b6ceac4f2a5c3ffb0ff6db6c2298",
+      "bytes": 3314
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/sitesurvey/entity/query/SiteSurveyOperationIdentityQuery.java",
+      "gitBlob": "f7d4b64f521814754c92730c75b7224e480d3987",
+      "stagedSha256": "6d5f9b6d92fa7006f3c19d4d2b9d198ddaf55789957e40aca99d502748f10689",
+      "worktreeSha256": "3862ecb56dcf762c86c1856b1f2a3879d611f8e504139ee102d1acd9aaf11952",
+      "bytes": 472
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/training/TrainingConfirmationGrantMapper.java",
+      "gitBlob": "847034513c537ba8853375c2affd58a47fa7a8e2",
+      "stagedSha256": "f2bfdf912c6f64a78d55f954b1780acbb8b43a3e01012fb9cd4bc0dbd1ed6316",
+      "worktreeSha256": "4630012e3461a5c3d040b323d8fe8ecc598223f96190cc083913bdb9eaba9866",
+      "bytes": 641
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/training/TrainingMapper.java",
+      "gitBlob": "9880bc388bfa3bec7a380e8545a2387a7d856f51",
+      "stagedSha256": "09b034794522c6b5ea940712a0fbdb09a8a82a01fdf2f46d4e835c31129480fb",
+      "worktreeSha256": "1befb21c655c25cb766d3155e79225452b949c6f810f7ad719bc2097f33dfb9a",
+      "bytes": 1873
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/training/query/TrainingConfirmationGrantQuery.java",
+      "gitBlob": "aab670d922c4b7d29c49338bbbbe16003297bca6",
+      "stagedSha256": "af2488dd1c07310100bc91421496003efa45faaaecdf910f9ba88f716256552e",
+      "worktreeSha256": "636c976accc2b23287fe70e816b60fbbde26e733b8925593368250cc38d4d9e9",
+      "bytes": 172
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/training/query/TrainingFileOwnerQuery.java",
+      "gitBlob": "4cf9b5ee8f251629560ca9d1715a33da771d8ddb",
+      "stagedSha256": "e6b96ab58c4ee2d58cb611a25d4129a0ace46fa88ea026ece5863a25ee35fc66",
+      "worktreeSha256": "86a434bc0337b3567367e803c2c9b8d615e2bc5070d66234bad36bed8b406f90",
+      "bytes": 145
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/training/query/TrainingGrantIssuanceQuery.java",
+      "gitBlob": "90068d5ec7b9b677d8cbeb4eff83b1c42cb18c9f",
+      "stagedSha256": "b43bebc5d0ad26ac0c66503efcfc90fc4fdbca2ea633cab9a96ea2c3eea3a3a8",
+      "worktreeSha256": "bfda53eba5988413703acfc477f5614e3bcfaec079d14944cc72d6977d5d07a5",
+      "bytes": 149
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/model/EngineeringBusinessModelContributor.java",
+      "gitBlob": "fa6e4f25dee262895fad2abbacc037b2f7906d43",
+      "stagedSha256": "b57579476708214e73daed5d0b188635ea7b39c8d4edafff8029002deef84a49",
+      "worktreeSha256": "3e2e546ffdd5ee4b19be200e8b83ae97f0a8f7b8adf7b2fafa35696278fe00ff",
+      "bytes": 50766
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalDeliveryEvidenceProvider.java",
+      "gitBlob": "d6af1a548521c47cc4b76d379a862b95b20d8932",
+      "stagedSha256": "11b361bb75a4b08ffa19caff1118593c3662c9a09e494b574a9605a2d51725c7",
+      "worktreeSha256": "651aaaf3e5563601cf1f93edc51ec2bc239660693e67a41b5cd6824d67da9735",
+      "bytes": 1285
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalDeliveryRegistration.java",
+      "gitBlob": "c57d1aad6bd2dcb775a13e39d3d2a045d2f30996",
+      "stagedSha256": "a5935bfd95321b6980aa45030ddf88401b65fa67f792bd829a43971f2e38cbdf",
+      "worktreeSha256": "cac3f746697a327946390d531a41bfe7fa1621a5011e17ff0aac568035453a5a",
+      "bytes": 3242
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalDocumentSources.java",
+      "gitBlob": "a48ef5b2b086a99cbecf147a559f60fa74fbb97f",
+      "stagedSha256": "9555f706037b324e45c86a4092b66534e3959f5c6c146871b741e75cd9593df4",
+      "worktreeSha256": "8bab11c3fe87a0fdb2b56883bed080207b9ff13ebcff556dcba6ee7a9d0b3e70",
+      "bytes": 1973
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalFilePolicyProvider.java",
+      "gitBlob": "9fac756141a98bfe1a85ae32226872322f6b5bdf",
+      "stagedSha256": "8146ce7ca29bf790329284a4779e6c2869bb253b5b5b34fbc3bf070a318db912",
+      "worktreeSha256": "ac15082e48fba28bb0338433fa83273e7dd0a23b2b82c4c7328a3a963b7a6c95",
+      "bytes": 8316
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalServiceImpl.java",
+      "gitBlob": "d025e57dff72aef2674f5c64f7ff4dc213513235",
+      "stagedSha256": "08b610830906d508f6cb7bde588b63886cb1c0b3094a3abd72499e6f2d9cd2c9",
+      "worktreeSha256": "7c2f56ee71b28f91bd56b582f52824d4573a234e45e331d52f2e59667a9590d1",
+      "bytes": 6463
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/briefing/BriefingGeneratedFilePolicy.java",
+      "gitBlob": "f99aa68a16f0ba2f7dea55ff1da92deb49269a29",
+      "stagedSha256": "2334aafe4528b6d55815fe4661693fec66c76bacca3b071e50fc32f94becef0b",
+      "worktreeSha256": "07d9ada5fd2e90a0461088aee828a9dbe8cccf42dda3d7c4895f456c8742f76a",
+      "bytes": 8087
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/briefing/BriefingService.java",
+      "gitBlob": "c9d177b74ce625c162ac07b87e805f6a9ff39fae",
+      "stagedSha256": "a462a1dcfc4f18f518529d978ee76b868cb48a9aeea1d127f4b9ec19a881ece2",
+      "worktreeSha256": "ddc79a001a83dc7badf2a809513eb39394b7489deeb8b0275f259b6065d4f8a6",
+      "bytes": 2838
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/briefing/BriefingServiceImpl.java",
+      "gitBlob": "fc0e2bcc38f7f4d10f96f74c7c7a69d0dd147226",
+      "stagedSha256": "065d4c3147e9d5f1e5d35a0e290c051108b0552f38375a098c3c0c16fc69eafc",
+      "worktreeSha256": "52e277e531aef1832ea76921050a6b7546ad52aadb08c7db181f5b8050728a52",
+      "bytes": 13189
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/delivery/SolutionDeliveryEvidenceProvider.java",
+      "gitBlob": "b45353d8878ef8b684a1cf5f060038690c234393",
+      "stagedSha256": "a91d47b20f8858b5fbb67fa39a538c811259b51b8814d4a1a2bcf0f26483959f",
+      "worktreeSha256": "d970424ab903ddf6faa720205e4b0ad0d914b9bd3dffc91489a47fca4f297568",
+      "bytes": 4473
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/delivery/TrainingDeliveryEvidenceProvider.java",
+      "gitBlob": "b4daf569295240364ff515c18027de6fda930ed4",
+      "stagedSha256": "b9cc554dfb75c8d075131a5348929e457177105d81aa7ceee30120a5ff822183",
+      "worktreeSha256": "69128986d8f4d5bbe7561199cc480bd76cc7346004cc9fd9e58a914e909fde81",
+      "bytes": 2194
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/outsource/OutsourceRequestServiceImpl.java",
+      "gitBlob": "14685b94101457aa96d30cf79d55ed61c942db8e",
+      "stagedSha256": "eb0d1d0966a5044a4efb5e27087109c4ff95418df46151170cb6930bde634891",
+      "worktreeSha256": "221b4bfa02125eda51d416e591d87c2cd6ae5d606a6b422ced72b533fb539568",
+      "bytes": 12720
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/EngineeringDocumentSources.java",
+      "gitBlob": "799c8da8a7348b4bda4ef3a1769e8a8e3983eed1",
+      "stagedSha256": "866ee6ca288db12706927c1f89c9f7a9fe6977be8d2dacd7d756456ea7f0a069",
+      "worktreeSha256": "f695415e1694b84a295bf70a30e808f4d4bac9ef53c7ec4ee9e016a24e15f4df",
+      "bytes": 1621
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisAccess.java",
+      "gitBlob": "40778ae839f532a71cce99199509848b1fdad931",
+      "stagedSha256": "38d998da2e8015396ef0c1ad9f4ce5725d31f0d3f99766934d2db5ac7e004dbe",
+      "worktreeSha256": "83faeef0ae05f60feea1ad8071c57a2754a6c99b3cf236dc0cc11aaabfd5559b",
+      "bytes": 9627
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisBusinessApplicationService.java",
+      "gitBlob": "bc5c1ae30a9576007e581daf036c1ae98bbd2655",
+      "stagedSha256": "6a74b8d68b55110474072e8587ee491c5a8a80fe30735312e4cfd41607b28503",
+      "worktreeSha256": "c9714d8cb2eaf9c1baaa5d058b97b1f707503d49a4e5484e83c8eeb0ccabe5a6",
+      "bytes": 14184
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisBusinessPermissionPolicy.java",
+      "gitBlob": "a4292ad30e397599b199a342addc6a0ef8a475bc",
+      "stagedSha256": "a982cf0b05da9f15d94414207ee8ec690635178bb9ae3e1563bd2ba1d7df3717",
+      "worktreeSha256": "83a7d94ce28d01a22c96c8faf7b539030285e5b9f06de7e9a2510c21502405b3",
+      "bytes": 1322
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisBusinessResultSource.java",
+      "gitBlob": "ac08bd7c390214fa033641041ca2a7beed3aa238",
+      "stagedSha256": "cd8f5622316161dbfa68033df25b4b7bc52f304fe1088e3516a915902eed97a4",
+      "worktreeSha256": "6bc4e59ed317ac1c0c390e4a03251e3a820bdb62788e6f4dae5e137f974350fb",
+      "bytes": 7364
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisBusinessScopePolicy.java",
+      "gitBlob": "ad038ecd3c5b55e9829bc8e231aad384cc608171",
+      "stagedSha256": "8de99c5eb6f01a43470f9e9de45cbfe6ea0e8feefb3ad08ef8f26efb674c0c5a",
+      "worktreeSha256": "02e78c2b9497c181d9bbfd8f52dbdd7d25a2a7ec605062a9c04179c3540c2a69",
+      "bytes": 1533
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisDeliveryAccess.java",
+      "gitBlob": "e7b4d5e3550e551434ae670784fc440e57c81e30",
+      "stagedSha256": "fd9ebce00a462a29a5b85b8bdebe304cc29a765e7627377907009e3a7315df4e",
+      "worktreeSha256": "bec1aa050466d832aeb331db5e0bd62ff08141de9985e08b7893645fec1a4e49",
+      "bytes": 3426
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisDeliveryEvidenceProvider.java",
+      "gitBlob": "fe17eece290db763335cfeb42dac9de1396b505d",
+      "stagedSha256": "ea0b524df628a83f8f7a99eac08e2b18af8d06a91258e738a0e60492c523ed73",
+      "worktreeSha256": "f55a55d5d8eb874fa8c43c408f66b2742b62a1762eefc13f5426db1562427c61",
+      "bytes": 2821
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisDomainCommands.java",
+      "gitBlob": "29c2689f6531560a532cb7dc2919e5b2d0fe4979",
+      "stagedSha256": "ff17c422abd30e38ee29c229c339282ad850b93dd375e4df7ba5c8ccee1955ef",
+      "worktreeSha256": "9fdcba7aed36190b2e4de0cb37d1a3ca4e15a178e8265e6232d9503bdd7082cb",
+      "bytes": 6098
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisEntityCommands.java",
+      "gitBlob": "f370b68ae74e3919d464e057c2086a6a801ac993",
+      "stagedSha256": "2c015de1432b9aa0c06c59a465c5b58d5744257c61d4fc9a43ec514c662f8677",
+      "worktreeSha256": "2a8e44b5d2ebb61e8b548810f4e356d4c0251d811a9694355800acfdb7ce4156",
+      "bytes": 3827
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisEntityProvider.java",
+      "gitBlob": "34a9a430863fe4de3dadd42735d63cba2abe8346",
+      "stagedSha256": "2ac634e6d7848dc9b1a01578791272852fe4b8194bdede4e4c2171560e6e286e",
+      "worktreeSha256": "05bb1e94fc8b9e2b6d157d2070a94e0fdc207ed6e4897e94abea49b87d33ddf8",
+      "bytes": 19185
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisOperationCommandAdapter.java",
+      "gitBlob": "3abbb8751b6fec6ce7a849044acf178b04f1fd88",
+      "stagedSha256": "a62f0a6a5bffa618ac8cbab384ab88a998c9263b70515fe1a9afcd6f7d7679a8",
+      "worktreeSha256": "77374247c8b1eb4440bcc0a6f128899cb29c8af4b9090c68879952fd95969ddb",
+      "bytes": 6270
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisRevisionFiles.java",
+      "gitBlob": "9298935026f0c61b6d9b404a353fca64219c1589",
+      "stagedSha256": "140c8f59bd25c853036bdb23a776d6a658859f17b6eb1baed8d9ee14ce3dddf1",
+      "worktreeSha256": "f9f80633b87a3eec88b5a9f1831b4f30bf48be1309a1270e0bb2c070f8e2fe2a",
+      "bytes": 4590
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyBusinessApplicationService.java",
+      "gitBlob": "a598461ca046d4d712c81841479cede4ccd4bb85",
+      "stagedSha256": "2e6876acfb96de56a5d92c33c91718cd92464987852038a2ade632bddbb28b53",
+      "worktreeSha256": "b2be4c0ce58d3721a43152109d966cbec024839d149468ced0551201be91cfa8",
+      "bytes": 15453
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyBusinessPermissionPolicy.java",
+      "gitBlob": "9b1dedb7c6f9e557ceb25e90669687beb01ce0ae",
+      "stagedSha256": "7c8bdc59e87f95c0b6dcb1923ecd9c6d36b240546b5e74d27b67904ac7ad2de4",
+      "worktreeSha256": "43318cc2533fcb5d14c22496b82d8d6f4862c690ab41f0cc1a5ad1acf20a382f",
+      "bytes": 1336
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyBusinessScopePolicy.java",
+      "gitBlob": "b306292cfc48c6343819ea8eb1985ad778e2ba15",
+      "stagedSha256": "fab0b822677bdc0aa460a00696862377270c89f94a3bf4884ca1f6f936a1bb24",
+      "worktreeSha256": "fab0b822677bdc0aa460a00696862377270c89f94a3bf4884ca1f6f936a1bb24",
+      "bytes": 1752
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyEntityCommands.java",
+      "gitBlob": "7b5a34af3df4b3b7a6839b90aba381ef8bebd6aa",
+      "stagedSha256": "bad1e3806ad4b4972eeb293f26d8d1d154cb093ac507d9e63fae13d6967bc636",
+      "worktreeSha256": "4e7ab929ff24f298b2155b1969e83a539eac259942dac149a9fd6a940c6eaeff",
+      "bytes": 2034
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyEntityDomainCommands.java",
+      "gitBlob": "d5a7360d5eddb498ace4b6506e606a69ff79deac",
+      "stagedSha256": "16c3fcdb02c4a62ed72d8bbcf75fcdf438b5afbb0f2ea36fabe31c560415056e",
+      "worktreeSha256": "88ae5236fbb860a664f8ef7b1a6b8d8e8392d1ba76d7a9da417c17c4e7a704ed",
+      "bytes": 15432
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyEntityProvider.java",
+      "gitBlob": "a3e0b600124b577cf17684395f0643ad9287bae0",
+      "stagedSha256": "4dbce33a75ce01817597135ace915101fb6f4321d59767821ae656d1fdcf846c",
+      "worktreeSha256": "993cf29c7b486069d601f0629c3025b1fc761d325bbe1fd4e06b8dae2b3c78e1",
+      "bytes": 7516
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyEntityServiceImpl.java",
+      "gitBlob": "3c9d83446a88ea472ab83655d6449fd6cce72b24",
+      "stagedSha256": "3d4bc1c23eebb24d78ea07e0ecbd3f0f8d9d783cfdb8ede1fedfb8daec7343b4",
+      "worktreeSha256": "f6b1f852979c5c3ee2ce97db1eb0aca3f41aaaf78d4326d9d89eb1d720d2e054",
+      "bytes": 4651
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyOperationCommandAdapter.java",
+      "gitBlob": "7205250009a1c48a254a9aaf2a832aebe2586edb",
+      "stagedSha256": "374e5ba8055bd607862acd157f8c1cc3905b85941ce19c9520036eff65863460",
+      "worktreeSha256": "653331e3b8f1a1c5a2bcb71bd18258c0328db6eb8e78f9ef6a66ca20899dae7c",
+      "bytes": 7702
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/solution/ImplementationSolutionBusinessResultSource.java",
+      "gitBlob": "bde637f1c459e223f0f057c8dded5f043b611c03",
+      "stagedSha256": "e7e411818fe89218e60a25148c043f8228c8df680a9096a22afbb306c83f9502",
+      "worktreeSha256": "f2d4ad8c9a060fe7ff7dab11851a905d92d08be50ba5f84fdffd815fd0da2d84",
+      "bytes": 6132
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/solution/SolutionCustomerDocumentService.java",
+      "gitBlob": "1d549f982c81a7eae61dc9ebb306f6228e2ce778",
+      "stagedSha256": "6336be293fc5c7d9f8cb10362ed6421acdea888b41659746ebba7ff712e2438c",
+      "worktreeSha256": "53e1e1d250ba1c0df8debb98f2a4a05124c3f1849ada63a2d8e62f887998ebcd",
+      "bytes": 8218
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/solution/SolutionServiceImpl.java",
+      "gitBlob": "e1f1586191edb3ef7066b102b626d9ff6010de7e",
+      "stagedSha256": "2d86b76c7ae52f746da93b003703a5ffbed92892ec97f270eee456b68b2b005c",
+      "worktreeSha256": "d12cde3af97a3ccdbe6e0d351dc3cee8d9af4587fc67e9e597acfd2c5f05a6f7",
+      "bytes": 12545
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/training/TrainingConfirmationGrantService.java",
+      "gitBlob": "9ca87a5037d0dbddcc1023fe47912f4c003611d2",
+      "stagedSha256": "6feb4281b42c53eb7dbca6283df20e3b3fd0ec5cd4f77e20db2c69efa231ad6d",
+      "worktreeSha256": "d215871b121fe45340c444f018bd45b7ce75e17c7ee77b9fbfa9f3f40ff42554",
+      "bytes": 7442
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/training/TrainingGeneratedFilePolicy.java",
+      "gitBlob": "018bbcb02a422c6fd2f07ba0aa641d8fda57e820",
+      "stagedSha256": "dba161e68f563fc3a0076e9ffb7dc5b30b741fbaec1c095c26094cd84f54acf8",
+      "worktreeSha256": "c53f1db2face3096640a377b516802796db7bcc729983cd7497fc121c536da71",
+      "bytes": 8092
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/training/TrainingService.java",
+      "gitBlob": "4b03037638afa43bc04962c96b4991ccef3eade4",
+      "stagedSha256": "f1c25187468eb3465f8135019ec7c2a33ba934a6998844d8e6de9fc59feec601",
+      "worktreeSha256": "d1ede9c58d261a152a325d34be9f443425a0bc2fc151fe78671c01344d71c518",
+      "bytes": 2253
+    },
+    {
+      "path": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/training/TrainingServiceImpl.java",
+      "gitBlob": "1c8f0fc8e7aac68826667b6028de7d030c3d97c7",
+      "stagedSha256": "60c2b767a7557be8134020e5abb050d66b32a2a9a6ef5ae6a52a115f53a94af3",
+      "worktreeSha256": "8dc2495509b2e0e0444c4251bac5d80cc8ea7c89b4c03045f0585cfd9e592e46",
+      "bytes": 32775
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/arrival/ArrivalMapper.xml",
+      "gitBlob": "5a4ecaae5ff0c1062d86e0a478469d5fc0afae91",
+      "stagedSha256": "474c4879ef8be961257ac2233abf6c52bb53aed7db114d345a543c29af9474ea",
+      "worktreeSha256": "1b26d1a321ae308b6bcd137fe8cac13cd9de26335196c1187ab20f70838af075",
+      "bytes": 873
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/briefing/BriefingMapper.xml",
+      "gitBlob": "2736b4670a95216e29eb59a5e8258633067a3cce",
+      "stagedSha256": "1408d69dba8b61aa59d7863df7fb43d2e26412766c818a17b9dd99fc812d5ae9",
+      "worktreeSha256": "5a00bf59254260de12e4c6c30176568ffd77eca7924b6bbe608346be2195ca13",
+      "bytes": 525
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/sitesurvey/entity/SiteSurveyEntityMapper.xml",
+      "gitBlob": "0af2400f79a0aa471890606a1f05f0aefa61ebd4",
+      "stagedSha256": "224b4cce069d7426d6c955337b63939b9ac404c8f85c969a01d606c724fbac1b",
+      "worktreeSha256": "a9c71a027bdc60e22135aef72e1e168adfa74bf134ee9f8b6e31a4496027d09d",
+      "bytes": 3740
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/training/TrainingConfirmationGrantMapper.xml",
+      "gitBlob": "0a3654932271384077c6c10407055bb97d446a28",
+      "stagedSha256": "68a7dfd60739fe85d0b0c122f800672a7035a49cd87260e3faa4fe64b9ecff7e",
+      "worktreeSha256": "5ed92d6a95eb22c467a0a31649c3ddff21b22d787be0dee36f3775da16a869ce",
+      "bytes": 899
+    },
+    {
+      "path": "pms-module-engineering/src/main/resources/mapper/training/TrainingMapper.xml",
+      "gitBlob": "3ab9644dff98cfd46b4a48083d5804a11d6ff199",
+      "stagedSha256": "2f8b271505db7f0639381827a084f3dfd37db31601cfd0a7d821605fd364d700",
+      "worktreeSha256": "71971934c9dc27ffef5880745590191cb0eef3fe0df6809d9516b36f65760180",
+      "bytes": 875
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/training/TrainingPdfControllerTest.java",
+      "gitBlob": "34e36d42c0f103ef5a098da61608c4ae668b62f0",
+      "stagedSha256": "744a2c7ae4d3eacb2998d2155e9d7cf597711216b229a2a18a5b5601f238e684",
+      "worktreeSha256": "a936ba6db3c650982e02cc2c2e78adf44745774e10598f37146e0f4c0a902720",
+      "bytes": 1391
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/framework/DeclaredBusinessRuntimePersistenceTest.java",
+      "gitBlob": "9c9683ce2aa3503cb8148ef08a740dc6bf7c872b",
+      "stagedSha256": "cc030c7959e0b8e14f2d4f2eee11b2781de3216a947d7e8141ba15551d447ea5",
+      "worktreeSha256": "cc030c7959e0b8e14f2d4f2eee11b2781de3216a947d7e8141ba15551d447ea5",
+      "bytes": 26090
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/model/SiteSurveyBusinessModelPersistenceTest.java",
+      "gitBlob": "61cc83273f435b4be2e273b48a28dcfe13d268fb",
+      "stagedSha256": "b5078de7e84beadff5036d131bbf01d81d9f5f99de517709eeb1480f02e90d92",
+      "worktreeSha256": "cc7dd8dbfe8af938a99364f3f3046f0a554e5c3df63b823d29adcaee9f3de43a",
+      "bytes": 17153
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/model/SiteSurveyBusinessModelSourceTest.java",
+      "gitBlob": "2c7e8d5fedee4d1a439af5ec3521e14ec4ac0540",
+      "stagedSha256": "14eb9bc66f947a0fe8dbc4d7c944824c486a36065664954842ca48826e9cfb95",
+      "worktreeSha256": "b068c1b5ef471ca50b0e30726dc7a2aa7e537fab7d94e9d302ff8806847bc49c",
+      "bytes": 2279
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/model/SiteSurveyPublicOperationPermissionTest.java",
+      "gitBlob": "12564ccca68b3e207bb68ccfb43baa6fa3429ec4",
+      "stagedSha256": "408e5836cce18689660c7c25925f840a5cda5f938400bb885ee3ebc42a374c18",
+      "worktreeSha256": "814827feedf176e7ba7fbbfc3eee6e27c08baf3aea873764a4df88f1dabd4bfb",
+      "bytes": 5457
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalDeliveryRegistrationTest.java",
+      "gitBlob": "7c78ef6254d0a5e98008b804ae45828e35dd57d6",
+      "stagedSha256": "3aaea3ca68ea47ca23c88924ee3dc9cb6368d3f714e063cfe9306cc9d3d943ce",
+      "worktreeSha256": "75394e2b82d79c51cf7c66b1a600e26343e8d7d26033d2d429635e489e83c56e",
+      "bytes": 3546
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalDocumentSourcesTest.java",
+      "gitBlob": "49f57dd415a87a58219cc90953945c756650a9b1",
+      "stagedSha256": "3b3012e6c6411eface169d095b18a8735bf2810715c833713a91feb871963e51",
+      "worktreeSha256": "06092c6db235de55b699e5842c48d98ea1c60ce09d97224acec820bd4ab34f36",
+      "bytes": 2971
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalFilePolicyProviderTest.java",
+      "gitBlob": "96903c395c0837101af48927f4d983016772f90c",
+      "stagedSha256": "6f1f7a1351100c04b0be59cdb226b3b6dfe61bac8a94f6066a0aec6757aecaf3",
+      "worktreeSha256": "9e1c7251593b2dae337869bced8f682c68328b6eacb91c033c9e2ab9d5359c49",
+      "bytes": 6825
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/arrival/ArrivalStatusUpdateTest.java",
+      "gitBlob": "665939edcadee55fa7f278a18aa0a131a15f4191",
+      "stagedSha256": "e87a1cae0339f60ecd82de7eefdc9d45a76b9eeba15f4e0b23e8f610d979ac9b",
+      "worktreeSha256": "6504f8daea34c8202da43533508798dd248e90d4523f6c15117674c82ef79db8",
+      "bytes": 6624
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/briefing/BriefingGenerateDocumentTest.java",
+      "gitBlob": "46ddef42808604f923e73bd26d20e2078e26719b",
+      "stagedSha256": "9fdbcbcb375689c3ea7bed3848edadd0a64ee0294584e7d263423089b533eede",
+      "worktreeSha256": "3281cbda42080f146f1624e8b74037709f78db3d41f02db178461bb2e04050d4",
+      "bytes": 4867
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/briefing/BriefingGeneratedFilePolicyTest.java",
+      "gitBlob": "fa4ea232808e33f69a8563cf894546afcd66b94f",
+      "stagedSha256": "5655822c30b42fe4dca34bd6b7ea359119b46ec69f6d90d912df2a448bd07369",
+      "worktreeSha256": "2c1edeb16fd987c561a8ba28c45bb75dc4c2036c7446cc66cbde0c895698434d",
+      "bytes": 2941
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/delivery/SolutionDeliveryEvidenceProviderTest.java",
+      "gitBlob": "8142aa5a362e40c97f4a2f80f7b370b0f6612f4a",
+      "stagedSha256": "112807c504697d643964bcd5b4e0d98aee21d19715588b3ead087fa86f57d8b7",
+      "worktreeSha256": "b895f1dec265c21ec7346b2d6cb916de0c7a68576ded33fea450a65f44c48d73",
+      "bytes": 1534
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/delivery/TrainingDeliveryEvidenceProviderTest.java",
+      "gitBlob": "365e7f06921c86b8caffab63f0396ecbdfc721d8",
+      "stagedSha256": "b4d7d97df983eca1a09d1db2d9d1ddcf7678174cb7e196ef2290c485b528b1bc",
+      "worktreeSha256": "4a75fdd1a6b984b5f2717d01cf0aecc4d5c1a59a4be21533e840f82a040738c4",
+      "bytes": 1973
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/outsource/OutsourceRequestVersionContractTest.java",
+      "gitBlob": "31ba7f60677cf51ac0e328d9f12f631f73ec20d7",
+      "stagedSha256": "31717e4caebe7590ec846904648d3a0804ba4b8ca2241bbdff76c3b38cd2fb03",
+      "worktreeSha256": "ddc6a7453ee5703bb3227c53769ebf29fd235f1e73878ec33f16ca36e1d6818b",
+      "bytes": 3239
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/outsource/OutsourceSurveyExecutionTest.java",
+      "gitBlob": "d4c83c82d8c1ebc597153187c64f4371ea0b9ad4",
+      "stagedSha256": "88174ec6b21269cf92ce77de96320322f7ab59fdc55f427338b9ed69e6cb0ab2",
+      "worktreeSha256": "31156418f3b19e5e6a4c18601f9c04430c04557d8c02ec85520d6617100012c1",
+      "bytes": 3721
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisDeliveryAccessTest.java",
+      "gitBlob": "753ab0d2f6bb5404cfe51aaf1e9b393d3f183ddb",
+      "stagedSha256": "588077121a7f93bcabd3f83f66ca180d89d06bdf8073f0b3388f4d35fe5b6d0e",
+      "worktreeSha256": "8df69098b73197b12a527f83b188291e592f64d539b8d189fa8871cbd83fcbf9",
+      "bytes": 2792
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisDeliveryEvidenceProviderTest.java",
+      "gitBlob": "82ce4d35d12e3fd4894d442c1ddd226e6bfd2bf3",
+      "stagedSha256": "c8037f20409a39582c8e759718ee4279e3076515d03d4dc513aac31e5c81b323",
+      "worktreeSha256": "6ef09c6e24de813161bc0972c5b8f490e4fb293a7570cb644a7053064b9eaa78",
+      "bytes": 3630
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisMysqlIsolatedTest.java",
+      "gitBlob": "990db13565c6feff57577b62384d4a47a4822e5e",
+      "stagedSha256": "05ca8480a4e24478a80395dff8dc29e5b7dccb3b9bcb31e11e2f23cd88cd3beb",
+      "worktreeSha256": "58698e8ae3444b2e43ab60b0302a766e0249c1f55efd180f1c4bbb6f77205991",
+      "bytes": 1735
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisOwnerOperationContextTest.java",
+      "gitBlob": "7598483235f2a19641e1623cc5f3d2564e517d43",
+      "stagedSha256": "9442f769088b4368c596ca6435b2d579463ccf634e18bff0630666f8d70d67a4",
+      "worktreeSha256": "c56461c6b88cebfd9c738cadc03dff167f9c5e7485a0248558152ad368cc1433",
+      "bytes": 28164
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisRevisionMaterialTest.java",
+      "gitBlob": "ad4c2ca425d1cc7d2d2a01ab6d2adca68a8e470e",
+      "stagedSha256": "912bbb92667cc74f4cb9ea60bc53038e8fce624e112b4cfea7c97ab2501f829e",
+      "worktreeSha256": "3d21026c958735c060632da83a1e5eb3fe5a95215aad31a0383be07fc5103d8a",
+      "bytes": 3412
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/requirement/RequirementAnalysisSpringPersistenceTest.java",
+      "gitBlob": "e9582578fa2c9c419e1e9e6cc003cd33cd7af30c",
+      "stagedSha256": "f736c2ec07eaf8e55a9407d8c8e5715fa154328e4bc2e0ea44bc77951f484849",
+      "worktreeSha256": "3d963eaf9a90554480b085a96bde58b64ec9749b5390a42becea2764972d9233",
+      "bytes": 25760
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyEntityFormServiceTest.java",
+      "gitBlob": "92effab9447bfc6870d7d10aeb9a80c68752102f",
+      "stagedSha256": "dbd079c0a07ca1b255fddf6b8e29e3f2348cb4a9f122ece1dc0bc652d5bffd0d",
+      "worktreeSha256": "7871dcaa8536d320e212e2bd76a12bc98721148f28fcd842688d44b7ed696e37",
+      "bytes": 10501
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyEntityWiringTest.java",
+      "gitBlob": "d9dc57d56dee4cea0d4179e70be0e440b7719eff",
+      "stagedSha256": "b5e7a5464e4788b70214480e2469a97de7454b992b52cedf1a2144be2b34c86b",
+      "worktreeSha256": "f344ae117bdd08385b9174f095e66f8de93dccdd5adb755ba8d1619899853b08",
+      "bytes": 1988
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyEntityWriteEntryTest.java",
+      "gitBlob": "fc5fcc6a8f34d86229a10d285c18fa535b60961f",
+      "stagedSha256": "c0bbdbbd555ce683e11a670dda1681c7a7ed60bbd37d975212fdeddf6037be22",
+      "worktreeSha256": "8ea1148324f46d9ea30f6dfeb67e79c69d881f541e4449d6ec683ff7e63e6c0d",
+      "bytes": 4169
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyMysqlIsolatedTest.java",
+      "gitBlob": "f329a85891db16b625dff1ea8fc34cd88b2528b7",
+      "stagedSha256": "e8fb1be2ad07462306ef8f9205c663aab58acaf9ef9ef3e68d9b77078a6ba4ea",
+      "worktreeSha256": "a547efe51ecb70f0606b53a0045d04d73a207ea89e4cc8237ec5ea3fc4928536",
+      "bytes": 1405
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveyOrdinaryRoleMysqlAcceptance.java",
+      "gitBlob": "cdb2d3a48b0ddab577d137f557b007f3fec50b82",
+      "stagedSha256": "c92c7bfa24f2be2eb59dd0b129d0e0642ef3f2a037652508d0efd18251200478",
+      "worktreeSha256": "a6d5d3f4556b0fe2f564349c095122b1aa7add44125c81b18804e9a4258e9984",
+      "bytes": 12930
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/SiteSurveySpringPersistenceTest.java",
+      "gitBlob": "1763f08a1ded12736ce87c9cd06bc90be50848fc",
+      "stagedSha256": "521fce879e669ec0387a64618280d84ead486e04930e299483ae663a277c57ee",
+      "worktreeSha256": "7f9293460bbf2e774e2fa2f456f2a17a828c1515212b7dc4ee7a4335d7989c6c",
+      "bytes": 36014
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/sitesurvey/entity/TemplateSiteSurveyOperationInputTest.java",
+      "gitBlob": "fd1b3324bbd07f045c0cef65c3a4600e77bc0cb0",
+      "stagedSha256": "c4294a3df897a384757599b52d265a7a3c0aa98e854e7742afb033cac7be239d",
+      "worktreeSha256": "5b9bea162797ed0325e53ea1193549786a2eece250b4304c94a5cd766d316b8d",
+      "bytes": 7731
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/solution/SolutionCustomerDocumentServiceTest.java",
+      "gitBlob": "e7231bfdb3ef9b4b21b87a57b33f5afbfa04f19c",
+      "stagedSha256": "b03227c89b97bf2a54ee6d1a34f22ed187b3ba38b0430d3bc5b28bd435c12d5d",
+      "worktreeSha256": "0319cfb4ea0cb268cc1f69024ebf34093768e19f2912ff43a6f8b3425bdce4ef",
+      "bytes": 8893
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/training/TrainingConfirmationGrantServiceTest.java",
+      "gitBlob": "85e2445cdff7508aca36fb040846eb2b114f5c34",
+      "stagedSha256": "cce7a5fee5091332a6da404618ad2ebda0fef8afef7bd168fcde9d5e9f52ebee",
+      "worktreeSha256": "885a01c34c56013a70cd49aed7acbb1607c75469dd6e44fa74f41291695b8d9e",
+      "bytes": 7317
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/training/TrainingGeneratedFilePolicyTest.java",
+      "gitBlob": "d49b45ffddf54e3c942668091085809cb07c38d8",
+      "stagedSha256": "afa02d543c3f9b8abc6e37a96afcb4f59e41f0cab3e3c35943cbb4cf2b5b3352",
+      "worktreeSha256": "8eae291c5ff26168f9042d6bf5e0853745d4efc29256506d3b5f5266a30dd63e",
+      "bytes": 2931
+    },
+    {
+      "path": "pms-module-engineering/src/test/java/cn/iocoder/yudao/module/pms/engineering/service/training/TrainingServiceTest.java",
+      "gitBlob": "1886d15e0d1620c75d96667e49380ab05e86c8b0",
+      "stagedSha256": "2a2b6cd2342fdefb71a46e3bfe36f1208450e43c233052fa967805f7ce3ad220",
+      "worktreeSha256": "c9404c29c4aaa3e6203b17c35d00c8d1f2ed1a8404a305f71798394f82e7915e",
+      "bytes": 15228
+    },
+    {
+      "path": "pms-module-engineering/src/test/resources/ra-isolated-mysql/V248__entity_capabilities_and_requirement_revision.sql",
+      "gitBlob": "75574f93ff49a822343564a0c7a78b42821305b2",
+      "stagedSha256": "5bfff6568a83d707d494110cceddcf8ac90cd42cacfafbafa3d762d70ac37bd0",
+      "worktreeSha256": "96199b78fba24f4f36e6d95eacb4ac86ad57bc4fbf30eb7bc78029185ada23e1",
+      "bytes": 5954
+    },
+    {
+      "path": "pms-module-engineering/src/test/resources/ra-isolated-mysql/V321__requirement_analysis_business_fields.sql",
+      "gitBlob": "83bfabbfd3799c5a2e662a9a1b478a95fe697c07",
+      "stagedSha256": "aeba1707093da6dccb51f2ffc54ae8c5b152ef5cd4b320721fb479464ec85f17",
+      "worktreeSha256": "861b126244b9bdd5fa7de7a5e6838a155e6544cb55b2f57d5e11e2cac60ea08b",
+      "bytes": 6102
+    },
+    {
+      "path": "pms-module-engineering/src/test/resources/ra-isolated-mysql/V63_platform_tables.sql",
+      "gitBlob": "ce4303dfdf0836e8e9c538c780c1bb6bf015bdd2",
+      "stagedSha256": "d7510ca84067ae3eaeee5c86e4979aeba4998c7ca5c49ea675240837e0954615",
+      "worktreeSha256": "e75c4ef6cc2a4c75e5ac2515f4692abbc3c39d85c8fd8cebce3586b1af8e0f53",
+      "bytes": 2851
+    },
+    {
+      "path": "pms-module-engineering/src/test/resources/site-survey-isolated-mysql/V1__isolated_system_permission_tables.sql",
+      "gitBlob": "eeada8ad4c021c6282a993ba563e92bc3e50b7c2",
+      "stagedSha256": "2918e8ec9247e95fad9d02612a5e1e7dacedbee6bc93be0231b18ae885c76f78",
+      "worktreeSha256": "addbb7564ef05a0e116496cc202527be2eb0154d2353d281737f66a6d64efd04",
+      "bytes": 5350
+    },
+    {
+      "path": "pms-module-engineering/src/test/resources/site-survey-isolated-mysql/V248_extension_tables.sql",
+      "gitBlob": "d58093972f7b256cae32c0a7d4908a82232bfb5c",
+      "stagedSha256": "0b6fa8c18d7dbe29349d469b90a16e7f9d2a35f81332b32c0f524e5f9cba01cb",
+      "worktreeSha256": "ee82133d0585a775c681db7457438f0bdcda6be01fbc56f566e5005eee11c27f",
+      "bytes": 2579
+    },
+    {
+      "path": "pms-module-engineering/src/test/resources/site-survey-isolated-mysql/V249__site_survey_typed_business_fields.sql",
+      "gitBlob": "666955051c0940491b564aeb1c9317945d4cb253",
+      "stagedSha256": "edb3c86559f9c0fa3f0e053a736939ef07fa9a5922d4edbd3b13011de1be2727",
+      "worktreeSha256": "04885700d7548cd14185da4841d800bef2afab9c5c477af006ad56781659ac91",
+      "bytes": 3357
+    },
+    {
+      "path": "pms-module-engineering/src/test/resources/site-survey-isolated-mysql/V391__unified_business_entry_permission_mapping.sql",
+      "gitBlob": "2654525e9bdd373abe87a0b4ebce37073b0062e4",
+      "stagedSha256": "8158540051d8b750d53d007fc5ba0e9f97b01bf8abf4e2b978d8a1d47ff663f4",
+      "worktreeSha256": "4529b9780eabfef8acdb3053e4db850c8f644851c4736697b3a228048888ee27",
+      "bytes": 3386
+    },
+    {
+      "path": "pms-module-engineering/src/test/resources/site-survey-isolated-mysql/V63_platform_tables.sql",
+      "gitBlob": "ce4303dfdf0836e8e9c538c780c1bb6bf015bdd2",
+      "stagedSha256": "d7510ca84067ae3eaeee5c86e4979aeba4998c7ca5c49ea675240837e0954615",
+      "worktreeSha256": "e75c4ef6cc2a4c75e5ac2515f4692abbc3c39d85c8fd8cebce3586b1af8e0f53",
+      "bytes": 2851
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/access/BusinessEntityContentReader.java",
+      "gitBlob": "007dde47a7c80cb10cdbf9d389ebbc33fb5c006b",
+      "stagedSha256": "7429d846830f7997807443bb7566f36ca25bb9c38c3c0dd607e16bb5b7e3fd11",
+      "worktreeSha256": "05233ea545620f1e5cac0a7b0a7915fa94a829c5906d20071247896fbe9e4c25",
+      "bytes": 414
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/access/BusinessEntityScopePolicy.java",
+      "gitBlob": "e156ca41a6bc84100017488d312906152d3b7c18",
+      "stagedSha256": "245a45aec0b70e9b8bc3e251364c93491765c27c70b4d90fabeab28eced3c747",
+      "worktreeSha256": "245a45aec0b70e9b8bc3e251364c93491765c27c70b4d90fabeab28eced3c747",
+      "bytes": 536
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/access/BusinessOwnerPermissionPolicy.java",
+      "gitBlob": "f9fb0f4e658cc77dc5c9a63ad5f60c10428acff9",
+      "stagedSha256": "0ac2cedb0f38f64b0c29c795f07d6ac96dd8f21795fed0edad833215f3c19a31",
+      "worktreeSha256": "064b21de67754f7e1011a742a66b6643b7cfba21ba6a7fa1719fe19baac70e45",
+      "bytes": 480
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/access/BusinessScopeAccess.java",
+      "gitBlob": "ebf886a6f40a7c07075eeafa36b6e87ba73d68a7",
+      "stagedSha256": "25f1e625f7454b97e8d1800eef5b8da6f5a973d34dce44d2522b9a21e610e488",
+      "worktreeSha256": "d81e6af8798fcf913cd84445e19e8dd9da1528121b8a8eebea187e9e228c3f56",
+      "bytes": 782
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/model/BusinessModelDeclaration.java",
+      "gitBlob": "b1eeca539d99ce1627e1b07ac4d6031cdfcffb02",
+      "stagedSha256": "74415ee147856e05d0e2da18b2cfe89ac688f4f431fd2f7911489f11044d56a2",
+      "worktreeSha256": "c6411f41801bb6ebea4452697ab6834cf8b7681117afc5b95823dffc05a908f9",
+      "bytes": 707
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/model/BusinessModelDescriptor.java",
+      "gitBlob": "5b9a61f0268c9b30052f9cc05e8cf097fdec8a87",
+      "stagedSha256": "2ba9ed69f737e3265620697ad5e517359fd17d0f1435ac6aeb9781cf6058d7a1",
+      "worktreeSha256": "2ba9ed69f737e3265620697ad5e517359fd17d0f1435ac6aeb9781cf6058d7a1",
+      "bytes": 1566
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/model/BusinessModelField.java",
+      "gitBlob": "aa6671f36bf755a18d6dfa0148c351093e5eb403",
+      "stagedSha256": "6bf166e795e04e2a247fe2ce2755bc5c7ec39b16205b3d28606b279b374df0e4",
+      "worktreeSha256": "6bf166e795e04e2a247fe2ce2755bc5c7ec39b16205b3d28606b279b374df0e4",
+      "bytes": 282
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/model/BusinessOperationDescriptor.java",
+      "gitBlob": "54241f22b22cda2e7fe8c28b307a68d73b121e19",
+      "stagedSha256": "3935361d9dd40ab736107770fb78a3ae89a6ad4258d8d9f7bbd7eaed5ebbb22d",
+      "worktreeSha256": "3935361d9dd40ab736107770fb78a3ae89a6ad4258d8d9f7bbd7eaed5ebbb22d",
+      "bytes": 754
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/model/BusinessScopeBinding.java",
+      "gitBlob": "e3d2d2480a8b56f358ccb80fa2a900fbf0ba767d",
+      "stagedSha256": "ce27c17fe2373448d64dbdbffbaebab9299280cadb48252e979669414a305a18",
+      "worktreeSha256": "ce27c17fe2373448d64dbdbffbaebab9299280cadb48252e979669414a305a18",
+      "bytes": 350
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/businessmodel/operation/BusinessOperationReceipt.java",
+      "gitBlob": "86bbdacd4bd53e4d2d2ea52814eb696a90dd3129",
+      "stagedSha256": "7ff7cd48b3d2c0d1ea8f2707d5a6096324de54bed2a1b21ea46376923085a700",
+      "worktreeSha256": "1038a5eabdd2b067bd8ad9ff7f9d9ad4e4631209df9f78889b157b81351f73d9",
+      "bytes": 1008
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/delivery/DeliveryBusinessObjectEvidenceProvider.java",
+      "gitBlob": "88d692c8e0a4bdbadf59d86bd68e953b209fed63",
+      "stagedSha256": "c2af7f00d455dd0aba5ffc9603c5bcfcc9f078e6bedf75246760a0ec0ec0b821",
+      "worktreeSha256": "961d000f90b72a2e24a3565c92ca639bb7fc7206ea3a3d54c5cd0de5d2dcba01",
+      "bytes": 1969
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/delivery/DeliveryMaterialUploadPolicyValidator.java",
+      "gitBlob": "eacdf58565c85b4f61ed0e2bf952e1c386cd8d30",
+      "stagedSha256": "fe0dc5c20a40e70bda12b6082971fc1cd10cc859d94282bb9d64b000f66593f0",
+      "worktreeSha256": "4a5d47e0c84562fce392d4e47cb0b8d6fa16b22e29ef81595c75a861c6644f34",
+      "bytes": 2824
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/delivery/PlatformDeliveryMaterialApi.java",
+      "gitBlob": "6aad4946c2a79087801767f599ba349d0a1e9643",
+      "stagedSha256": "a01dc6137726f5e353c42c052abb0839c4b41a80cd141ee5efe56fb062d23f6d",
+      "worktreeSha256": "0a554a3ab9ab6910eb037004046d8c1a81dcbdbba292b9ad7c593311ffb5c06a",
+      "bytes": 3704
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/delivery/PlatformDeliveryRequirementApi.java",
+      "gitBlob": "bc4596b21fcc68df133c4130886beb84ef99b708",
+      "stagedSha256": "9db4e9144bc829b4fe115c32899f897b6bdc602b2cbf1b0a10fcbe3d91d4835d",
+      "worktreeSha256": "bbdd7fdc33ebc59353f17437562b09f7b28ad1c68e360253c0822309f4abb5fa",
+      "bytes": 12682
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/delivery/PlatformDeliveryRequirementIdentityApi.java",
+      "gitBlob": "00c9e275efc9805bf235e98493b679c9a4112915",
+      "stagedSha256": "2b926c2e0b5cdd8380658322630c16bede9d03ff2fff3f2b4099216812e00ec7",
+      "worktreeSha256": "25cc2fcee5492de9d487734ef1ebe53bd2d96763b4498e10b912eb8f29978717",
+      "bytes": 373
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/entity/EntityExtensionApi.java",
+      "gitBlob": "52f5595e03d6ee27be90f2826d56a31025c0b168",
+      "stagedSha256": "b55c7979dad13b508623c1f3b748d15beb0eae6e349e9f93151f4c2f7b25ae92",
+      "worktreeSha256": "e445fee4540a8c6f1f4090c477424b928457a87de520ebb2b60828c188e8b5c3",
+      "bytes": 1759
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/entity/EntityFieldProvider.java",
+      "gitBlob": "38623a98d7d83746c5b96a29f5dfb97ea15bea35",
+      "stagedSha256": "696c5b6bf74c1ca44af8f0362099d9642cd81bb1008eaadff29126665de24e6c",
+      "worktreeSha256": "9691d4af77e55b5773f061d0dcf7a2195b35ce2f66b0382e140f023ccee78938",
+      "bytes": 1268
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/BusinessGrantGeneratedFileApi.java",
+      "gitBlob": "95e6b528016740bc6fddd85ec385d11b4b044dac",
+      "stagedSha256": "e21ab65e72f03b7d2481b73d5d0cb757d071daaadb44217b79ff482746d433db",
+      "worktreeSha256": "2c5c87b9adb32cfc9f791dc4874a20d51c3536856562ba228a480c11c90754c9",
+      "bytes": 587
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/BusinessGrantGeneratedFilePolicyProvider.java",
+      "gitBlob": "d8641a976a698eaf302087a0d785ca32265311fd",
+      "stagedSha256": "44dabd475a54b26171de4cc8ed5301731dbc9744d96938fe7e9cc66a2cf055f7",
+      "worktreeSha256": "7fa1e3360b813772127e237926eb1fcb6606383f9969d38a089813c4a1920290",
+      "bytes": 408
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/FileBusinessObjectPolicyProvider.java",
+      "gitBlob": "d98201202c22f6ebb318d463f91c9938406f4c40",
+      "stagedSha256": "034158e3b7c36e5e17152e8e19cdcdea63e0f24f68b933b4880e9b36515b3e55",
+      "worktreeSha256": "91007645c208f148c5bef9986ce8c774050d286c14213059937cd5b7f618f241",
+      "bytes": 4863
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/FileDocumentSourceProvider.java",
+      "gitBlob": "159e532478dba5a1ab9196c6be144abe7716e836",
+      "stagedSha256": "e2d1561896c83d93593d516e9c956b3a8a25bd0e90dac695e4fafd7bc5e0ca66",
+      "worktreeSha256": "6ba34dcd0f8c6735a807b5428bd30450d3fc55e89ee30abb4a3d331a110cd5f4",
+      "bytes": 894
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/NativeGeneratedFileApi.java",
+      "gitBlob": "c191f70482ab5ad841be67fd2784f0b91ab78ee4",
+      "stagedSha256": "37dc7593b882b5a6fb96d557ca1e51f4dfd398f7308ed4dc4e4245b9621facfc",
+      "worktreeSha256": "3e7f4427b5a476e13ec9ffe6cd8507e31c9cb1d41b7768b2174f60f715162b02",
+      "bytes": 470
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/dto/BusinessGrantGeneratedFileCommand.java",
+      "gitBlob": "287423d463150762ca3b13e31b170d002eb211c1",
+      "stagedSha256": "8219a117d43c4abf0193cbf4d247289dcad591b28858c62683132f8febfa5990",
+      "worktreeSha256": "da41071a1c9dd41e461b46a3125676843b0f3592d3de7e0709d46b8d385b823e",
+      "bytes": 1106
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/dto/BusinessGrantGeneratedFilePolicyQuery.java",
+      "gitBlob": "8a4408400e665ded570588105c333e521dbc9822",
+      "stagedSha256": "268a8c9da2ea8144c502a34f7e103bce36955e9d8fb1c2b8babdb65f8cb4150e",
+      "worktreeSha256": "63d93bcfe21363979cd93c6a6a94e4e6df23dc449ab62dadb516a1e469a156ac",
+      "bytes": 288
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/dto/NativeGeneratedFileCommand.java",
+      "gitBlob": "54dba6d0876ab1620d3ede1f8ac9ed7694432a62",
+      "stagedSha256": "93d748644196f12f60c3e2edc7687164793488578804813ff5b57a14044487bc",
+      "worktreeSha256": "98777aea03604a9a2d8c945115330757ff85dbef448a5ba4a2dfde9024e5c405",
+      "bytes": 613
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/file/dto/NativeGeneratedFilePolicyQuery.java",
+      "gitBlob": "882a87fbc73b2488f9bbabf5d901f0206c359df4",
+      "stagedSha256": "9991b482ff22d4a17fedb55a6b92f502496dd4e6469bf165cc8cd79250f8cab2",
+      "worktreeSha256": "1c0b05beb36571c867c956832593247446d3f4ab5b6b3a72f9eeef4ef03b2702",
+      "bytes": 271
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/DeclaredBusinessScopeSupport.java",
+      "gitBlob": "aff1e27c2ebf810efb14dbe7135e70faa69c6b5f",
+      "stagedSha256": "054ae0fdb11b054b7c08c6540cef495d4e3c70ec306c9eb9ecf983d872cb31d0",
+      "worktreeSha256": "9ca8fd4d3f089cea10f1a8affe1a4691e1fdfaaec4564c1701db76a2119a6db4",
+      "bytes": 3926
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/DefaultBusinessEntityAccess.java",
+      "gitBlob": "59d43617fb02491f20f4af318d3420929f1b90ad",
+      "stagedSha256": "81b913711888b6ccc68acf2edfe53411866350474774192ad9263ccb67fae1c3",
+      "worktreeSha256": "e507556e385e8d31281456bb7a9fd6a01dbe22cb9854ab63796d145634904694",
+      "bytes": 18871
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/OwnerParentReadScopePolicy.java",
+      "gitBlob": "be347803945b2943a490ea5e63c0daf4bb9074a3",
+      "stagedSha256": "56a1d536272774fb3781c74e57f68f25004cb97117e60f45eb5ba5a9fc8c8800",
+      "worktreeSha256": "9216d65ff9cf283ff6cf0c4e30fa0ae14e22f22402e773b0dba67efd733fb75a",
+      "bytes": 3882
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/OwnerProjectReadScopePolicy.java",
+      "gitBlob": "28c9880724c314d204d28bf8e7d9778f3d45f3c5",
+      "stagedSha256": "e098df3d627512ec9613c6fe2ee93b6b1e641283337ac407ad4304f343b32452",
+      "worktreeSha256": "956f0895dfb0e0faa9f23115daa803e6d1e0de45fc116137bcbbb5acca35cbfc",
+      "bytes": 2842
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/access/OwnerTenantReadScopePolicy.java",
+      "gitBlob": "bef2adf99d0b2877ad6b4cd0ab0205be12deec19",
+      "stagedSha256": "32031c30a96d60704a754933a22c318c39dda1452184e3314f59d4ed86ef1499",
+      "worktreeSha256": "76024d459699f6c591dda85b895c9793dc5788b722a5a7283efa339fe2f3c066",
+      "bytes": 2011
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/capability/DeclaredBusinessCapabilityAdapterFactory.java",
+      "gitBlob": "3ef3ea47577dee735a9cb45d925d5fc5712476c1",
+      "stagedSha256": "c431f83061e72ec663223156800a92bf0f8f1e379368e864a5b86f0217d4e9b8",
+      "worktreeSha256": "5777e4bb4f5e325ff019b8776cad88b5399fe0df1c66335879e7e4aed5dc1b58",
+      "bytes": 7812
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/model/BusinessModelIntrospector.java",
+      "gitBlob": "4628ef99a279c7c3a3049ae1a1de55b86542a408",
+      "stagedSha256": "08655cb98e410262547477ffbecd4f9a6592ea73d27098bff7a7f60468f25de5",
+      "worktreeSha256": "126f8ae258642c716d6eae6ed71cf43cc824cd7dddee0a3e9b0d21774e837dfa",
+      "bytes": 6762
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/model/DeclaredBusinessFieldValues.java",
+      "gitBlob": "69bc054f044db1c56caa1282d62b853999721a06",
+      "stagedSha256": "5c78b0faf68ffee1a11c1bd9b0a512ce48b02d89b287d46ba5b0353190bc168e",
+      "worktreeSha256": "3ffa33db1773f59571cbdd26d4269f1c0d28612d773e2812a7c25a323f8575d1",
+      "bytes": 3332
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/model/DeclaredBusinessModelDiagnostics.java",
+      "gitBlob": "3296a27264d549b4e76c8620600048e52bbb3b63",
+      "stagedSha256": "906eb7c0a484bdee01bc8613fd3c3acafcdbb0cd052a068c06b11b39e23d45dc",
+      "worktreeSha256": "d5c4f092202e2a57f46ebc00d1fd0e783b5b5b88d08b70b53297dd671e1a3ed4",
+      "bytes": 3160
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/persistence/BusinessEntityPersistenceRegistry.java",
+      "gitBlob": "0570e41e3f4961d4d47365338505c3d5da98bd8c",
+      "stagedSha256": "ae15842d39dad077d028f78f61d7278ffc3194ee2cbdd2300f7a503981b63917",
+      "worktreeSha256": "e49c2ba76fb606eb6c91771aea79e7fd888bb7d37ba351d74228463fbecc870e",
+      "bytes": 4380
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/persistence/DeclaredBusinessCurrentRows.java",
+      "gitBlob": "519be177e42817e4b9eacb57bc4bddfd02f06aa7",
+      "stagedSha256": "d0c93b7865a979b2641736b1eb5bdcf45dae9759e130432ed131c547702d6c52",
+      "worktreeSha256": "7d29c084c54656a17c81dac70d02d08fdb488cf2d11c0175ac08a05ed718b5c8",
+      "bytes": 4066
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/persistence/DeclaredBusinessEntityWriter.java",
+      "gitBlob": "3efd11f840a2c79ec7251d630f6fe3232f3c4bd8",
+      "stagedSha256": "e5b9f3da05f8367b5d05e1e806c9a264c793a00782621bacca60aced74811bc0",
+      "worktreeSha256": "1ac706e687017ce7c4d2b042665997cce5b701d05f8aae8067256c3b201397ae",
+      "bytes": 2145
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/persistence/DeclaredCurrentRowQuery.java",
+      "gitBlob": "08d9161b9e292d68431d723f35497f498e0124a4",
+      "stagedSha256": "0ccf2083d3e3e4afbe60d47958eecd389181667572475b2894692a5996b46c87",
+      "worktreeSha256": "106fb354b7ae335aeb3376eca18d006b0b3dd782a6edd30e211088f9abc4e787",
+      "bytes": 226
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/AbstractBusinessApplicationService.java",
+      "gitBlob": "8d60efaa2262117a17033448aaff8e257c1d7f4e",
+      "stagedSha256": "10bcbca0acb5d3338008b37f288ae4da412b73ae3c6a262e12a158bdfc42d854",
+      "worktreeSha256": "ae334555348bcd07dd1f8297de3a7bfd2884c913aa79e0e0c236e218b9a16dce",
+      "bytes": 6091
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessEntityIdentityResolver.java",
+      "gitBlob": "cf202137bb77d41037b00cd1d2eecd51b7affcfb",
+      "stagedSha256": "0085956ac2b79c4b3ba349d52db6404059ae6bab05be46e71e6eeca19a80ba04",
+      "worktreeSha256": "3e115a370618fa3ab9fe3d5137c8038ac43c533bbd18ceb28bb17dc570a19525",
+      "bytes": 4280
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessEntitySaveSupport.java",
+      "gitBlob": "70f66366c9045a9dc290e39ddc130cb45a7ddade",
+      "stagedSha256": "ed9cc3d41c2ddf4f23e77834fdc70bc03a63046ca6bc0d39e0618391fc50e3c4",
+      "worktreeSha256": "34a7484180e737ee7bd836d7c2753ebd0e4f8f17c4d4cbd5bebb90832f2c29cc",
+      "bytes": 1701
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessEntityService.java",
+      "gitBlob": "a55ca1767a6a65783da5971af742652e3aeed24f",
+      "stagedSha256": "8a2850b68339bc0cbe845dd546f3c27a3942c87cad7596f674000b59246e586a",
+      "worktreeSha256": "27f5d59ead32bf0c9195375c84c1de9a94b4f20b63e5a5439963488c9a538163",
+      "bytes": 644
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessOperationDispatcher.java",
+      "gitBlob": "7a16649b1654053ef3a000760c73d6ee85b9d014",
+      "stagedSha256": "fab242413d2cce89ff99a13a9edf25924585fe336553ab3552c51bcf7c4129ea",
+      "worktreeSha256": "087a38cc94bfb631b66c11bcc5351194f819508f70eb0f9ff9405e6410c3b327",
+      "bytes": 4375
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/DefaultBusinessApplicationService.java",
+      "gitBlob": "d9321a020e48a5e63fd58d4222420c7497d3e4d7",
+      "stagedSha256": "6719853a5b1f3ad252c7d4d77f9cc0c8564611338a697dbe4422bf972c40bf22",
+      "worktreeSha256": "c78c19223399613f745cf743ae288e15811f59b68660396b514448673578da69",
+      "bytes": 39071
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/ExtensibleBusinessApplicationService.java",
+      "gitBlob": "59f5601b24d64ffc5a9212e9eed1794018bd9f72",
+      "stagedSha256": "0ac9a04f48edf6e85d9879769645ec89598773af380ccd4321b86ea8aeddaaa3",
+      "worktreeSha256": "98e9f8e9f722b708586c80475410bfa73ed6c4d55c6797b2130d4ce665139d4a",
+      "bytes": 5487
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/java/cn/iocoder/yudao/module/pms/platform/support/service/OperationExecutionStore.java",
+      "gitBlob": "4320cc3a2053b46fa357f195ce5998b00bfd48dd",
+      "stagedSha256": "d8dcf7ae221905d1d03f0626be06b0bd158b1072921157cca70b475681efb207",
+      "worktreeSha256": "7dfe544cb2c2400bf9d89fccf1673489d23d30bf59ba1b1e2382b4c9a00cbba7",
+      "bytes": 2279
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/main/resources/cn/iocoder/yudao/module/pms/platform/support/persistence/declared-current-row.xml",
+      "gitBlob": "5204b541ecbf948f98346f64f1eb109a7ca47634",
+      "stagedSha256": "9adb6e95a76af816ae635cc018d4e7eb87910ca8bc39a6695cbfa6879d03446c",
+      "worktreeSha256": "5cf68e681dc02ada5305f8d3810e4046ef9669af2ea99dd0d5ced0d5ac1ff83e",
+      "bytes": 669
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/test/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessEntityIdentityResolverTest.java",
+      "gitBlob": "626d0dd784ed4252221c12d3d9b2a03dd04c8264",
+      "stagedSha256": "525a17fb6ad8ee48fd36024c993e5b4299bd1e6585221b96b94dcfcfa800de25",
+      "worktreeSha256": "41ce9386bc85db7de7bef8d87532d55334dbad08ee5e058d4be147cf2f16b188",
+      "bytes": 2611
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/test/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessEntitySaveSupportTest.java",
+      "gitBlob": "2cd9cffa639345c0993d1023dd75bc6cbc3e50c8",
+      "stagedSha256": "e5b9f1232e848fd374c91998fe025e7828f0b8595962abd5ebf1db260f9e6944",
+      "worktreeSha256": "ed41458f56eed031dfb8cb832a4d75d8a74adfab1c7c03f371813cd79250c2e4",
+      "bytes": 1194
+    },
+    {
+      "path": "pms-module-platform/pms-module-platform-support/src/test/java/cn/iocoder/yudao/module/pms/platform/support/service/BusinessOperationDispatcherDiscoveryTest.java",
+      "gitBlob": "57c80e7969b6d765f2e34624eec3800f268d98be",
+      "stagedSha256": "47a1c9a9a2caf6a5d30357f2ed870aec35ec5f407fa1ff45ee01888bdd30c407",
+      "worktreeSha256": "9faf2b04b868d653197673d37f63b3a6ff19e09442bec8c139086d31ff467a3c",
+      "bytes": 4188
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/businessmodel/BusinessEntityFormController.java",
+      "gitBlob": "48faaecd9a15ea727f9bd2403e10fbf134d50edd",
+      "stagedSha256": "c20c24521172d2d57f8329263b165c046d76846d404a5896f024883ad21df53c",
+      "worktreeSha256": "8e98f01421deaa74e61035fe515d17dea0fd7d579a1de1b96d0584e39bb11891",
+      "bytes": 3775
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/businessmodel/BusinessModelController.java",
+      "gitBlob": "52609891447ec70ca0745c89305673d1482c66c0",
+      "stagedSha256": "c01e873c06f02b307261d37a37e4035a1f194301e46fec1398833da7f6c68a60",
+      "worktreeSha256": "f44bb6d2576fbc946f29ce87953e78bdedd2fc69f239a9dffbf98bf434078c4a",
+      "bytes": 13448
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/businessmodel/BusinessOperationRecoveryController.java",
+      "gitBlob": "2f098b86488fc13e54dffce952e68d68de56c4c6",
+      "stagedSha256": "326947fcc5889dbd1c7d5f45e467d05b287f7a37e350c9f0f7e62a28e365c32d",
+      "worktreeSha256": "2d8d63c89e6d8ca2702ef77bf56a9b7ce14a9edcea83183631bad9855f37c966",
+      "bytes": 1610
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/controller/admin/delivery/DeliveryController.java",
+      "gitBlob": "7061e0a7545259097d94e98dcae44165035f5674",
+      "stagedSha256": "95ed56c3e3af20948b727ddae91b4c36be153c88e9be61946cf9b4fc76093a73",
+      "worktreeSha256": "0ec7791c0c27c8d86e0ebbbc10a9c417a55fd4c41e8d7884997d3dcd60f0caac",
+      "bytes": 19972
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/delivery/DeliveryFulfillmentDO.java",
+      "gitBlob": "ede17b22c93e1660a9f790e897b5d2076cffa4bd",
+      "stagedSha256": "3b9c8389f2ee3b662efb69f914c67b1ab6de8a8241dab567329638748f9863a2",
+      "worktreeSha256": "7d19393b9e4b7145ceab8545800c6f91f5631215b4638471ed32da889a9bf90b",
+      "bytes": 758
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/delivery/DeliveryMaterialDO.java",
+      "gitBlob": "dbd8861b7535f3af3623e6694451b1d8bbea1ff3",
+      "stagedSha256": "bbd1b85b7499d2cd04bdbdb275be72ce9ee6ce1f4b3f17d7036233fda82db9d5",
+      "worktreeSha256": "73f346caf0618879f750b95a69f5c8a3a64a9f1ebdf8e90b82cb395aa5479a13",
+      "bytes": 3604
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/dataobject/delivery/DeliverySubmissionDO.java",
+      "gitBlob": "36c2214cd912b90e89478b26152b564f1c4590b4",
+      "stagedSha256": "f03a657a54926ab9a9498a85c3f92ed43e4b1f5f18a5c08d4450ec159bc9cda4",
+      "worktreeSha256": "8523b5fa2fa41282f95180cf037787cd4a1d3fe338613928b32fce16433d3d72",
+      "bytes": 2263
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/command/PlatformIdempotencyRecordMapper.java",
+      "gitBlob": "52de550fe1d46adfcf8052829eccd54a75f3a051",
+      "stagedSha256": "751ecce2b19893c8294d71135de3bcf8459b81dd97948bb634120a22f938a1f9",
+      "worktreeSha256": "42a86c4a2f06d0c3997c9f437e797277fa628ffd41c0856edeac3139949366d1",
+      "bytes": 876
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/DeliveryFulfillmentMapper.java",
+      "gitBlob": "7252c646334567655a6c70159f9bcd722c19fb1c",
+      "stagedSha256": "e0f87d8cf0e5e857189d9ae41172a0a20dfb0686c6da4f893a12476aa37b2515",
+      "worktreeSha256": "5e893cc2bb99c23e53e721ae45b6c129924bc727359e17e7ba145cefe756f208",
+      "bytes": 853
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/DeliveryMaterialMapper.java",
+      "gitBlob": "06095d348c8782eaccb444ac43c079b97efc19fd",
+      "stagedSha256": "6cad9ef80c1a77c69d803cfd245ced9f208d9f7a6f6d189aab5a0270cfc53712",
+      "worktreeSha256": "6f438787ae1403462b2c1e77233d5b55807d6f453663689ad2b45298b8642db4",
+      "bytes": 7171
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/DeliveryRequirementMapper.java",
+      "gitBlob": "19d1e86a7e956a38dbd19408bb9fdbc1302e2388",
+      "stagedSha256": "039bfe32fd121e3aac93bb181c9938172e9d394952d2c8cdb7462333f7e82f82",
+      "worktreeSha256": "509dbc49513bc09a6a1ce2926858fbfae7b4f51c005c7c3df18d8fbb7706cd52",
+      "bytes": 3023
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/DeliverySubmissionMapper.java",
+      "gitBlob": "77f05ed5ed72081eec4c1d4e65e136e9a78b47da",
+      "stagedSha256": "23741e438aa76fe55797bfbf524da88c13da3290f574f068a2b5708f6f8b167a",
+      "worktreeSha256": "1a6bef428182d2ba1618e97b6cc96a6310bb575cd8c198674a18b3d71b566d91",
+      "bytes": 2762
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/DeliveryTypeMapper.java",
+      "gitBlob": "1f50a7621a836a106220207d69e50ce508e33709",
+      "stagedSha256": "c3a1c022d3949b276145bb3cdfb4ba04e6b4b92d5b872ac0c9bc203fca52fe32",
+      "worktreeSha256": "2c3ab1255a147ea2855fa3d4bb92694c9f47a1b0d407ea5d531749437cab8e8b",
+      "bytes": 1072
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryArchiveQueueQuery.java",
+      "gitBlob": "d4e91fd141645e426e72155177803dd3c84374de",
+      "stagedSha256": "e61fff8c5a2360a7d57b2b6c857a9890ab52c880969e9169ca9b20bcb274e490",
+      "worktreeSha256": "22131b3d5770236343ff343691fd2f153878b60168faf2b8273ea13125f19b5e",
+      "bytes": 130
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryArchiveSubmissionQuery.java",
+      "gitBlob": "7527985eadbf75eea47a6548bea6ed9a4cc5e347",
+      "stagedSha256": "ba7bbdf58cc90f6e3d249074a92473c4c3cf3b15c0935156ed584df49c94b1b5",
+      "worktreeSha256": "3563888f84b044b314ea16a2a1b92b97e6cde902646e9efd1ea2f74ad9acfebd",
+      "bytes": 154
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryArchiveSubmissionStateQuery.java",
+      "gitBlob": "065eee76e26b898440d57c1878d33ca7224df748",
+      "stagedSha256": "d8597568a48d098c4a6e235ac733d6123b1d65fbd4f48269708a55ed2a13b3c9",
+      "worktreeSha256": "c83734c930385f611d89c5756108a398e0985a553a902749b18e2c41e1ed317c",
+      "bytes": 201
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryFulfillmentIdentityQuery.java",
+      "gitBlob": "9ec5b3b4660a5075f6ce9637eaf74a84a58436b5",
+      "stagedSha256": "2a002fba86d95d5b4831710edc0149467172a3355797163eb8eb637632ee4b89",
+      "worktreeSha256": "8711b0c8b480649f097e230182e16d15c8145b20caf2717d17e032138df2a3bd",
+      "bytes": 173
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryMaterialArchiveObligationQuery.java",
+      "gitBlob": "825564947ae485a30e93fcc81045297cd69d2cb5",
+      "stagedSha256": "0d2557726a32d92ca6efc721b04c71d3023275eba7d22255d67f10f4f9760e23",
+      "worktreeSha256": "9bc679f16bb0bd0e85d93fbbe45d922d6bc8720eeaa37da8aee8648eff695146",
+      "bytes": 254
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryMaterialOriginUpdate.java",
+      "gitBlob": "e4a2e534958e002b76bc469925dc4d742e4972fd",
+      "stagedSha256": "49ac5cf9a28ab24753592e8b83130ee32539c98e855f5493e313455287d648a3",
+      "worktreeSha256": "a3b2c069f7eb77df2716844053ff613fe507cba606b500d085ea7db15a0286b0",
+      "bytes": 253
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryMaterialOwnerQuery.java",
+      "gitBlob": "0d196fb62a77b21cd4b2fd0cbf45b775a9728d00",
+      "stagedSha256": "b56449ac1f1a8960237a95f8a00af08bbddab6a157342b3a1fe7ca7d958eb9d9",
+      "worktreeSha256": "e388d5a4445b433a1cce8e0db380bae9fdc527028d9e0caf8fd47468e5ad1dbb",
+      "bytes": 201
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryMaterialSubmissionQuery.java",
+      "gitBlob": "d86c5f32d975c281ead95dd6f96edfc7ef0ccf6b",
+      "stagedSha256": "7570d55abc5b8a279a968b1d08c771d2a5264830e343ed4909f45399e2d64b3a",
+      "worktreeSha256": "4bd7ab4d4bc164b2f2da3092cf348121bcf590f3ffa20bef9a3170000934a61c",
+      "bytes": 152
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryRequirementIdentityQuery.java",
+      "gitBlob": "88321482dbbb0df61df3088c955d919e49e5fe5f",
+      "stagedSha256": "6874aec5531851978a20e7ad42d99d6271defcba32c62bcaad5b0b0cc5d50daf",
+      "worktreeSha256": "c11a87e2871bdf606e0c92af92511f967844b1d9f8a4ad38bec00168ad003322",
+      "bytes": 310
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryRequirementMaterialQuery.java",
+      "gitBlob": "d0d1d8b4c6ef39da8b703104affeef4603d3a9f9",
+      "stagedSha256": "08e5714f6e4e262115cc05b2424db45610acc331f0536999095b376c1c1efd50",
+      "worktreeSha256": "ce31b95ddce5dadff0f9ac7e5da8d34824c43eeb97032ac38f01b5e4ed6d5aef",
+      "bytes": 157
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliverySourceBusinessQuery.java",
+      "gitBlob": "aa2d3568763f0d4ad1820066ccacfa432a58fa43",
+      "stagedSha256": "063f1c45b8c958fbd99f6b9ad5fccb3127b8c4b90d0c66d64af95c78252357d9",
+      "worktreeSha256": "8f14b3f880dd58f82fe49e02681f689274d178c061ce8416fa2a760e2fc56c49",
+      "bytes": 242
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliverySourceFileQuery.java",
+      "gitBlob": "0421d9fa776b03de30706b6b232dff6b37964d50",
+      "stagedSha256": "f962d4cd49fb43910f196024a46072ff2aae80ffe410371c45e6a324e2c4939a",
+      "worktreeSha256": "5480694e936ec5f2bb1cda35cf84f9787ff99d80506af67765dec6410002f189",
+      "bytes": 180
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliverySourceIdentityAssignment.java",
+      "gitBlob": "bedbc1d34c0915ecd99ca1dad8493a77be17b483",
+      "stagedSha256": "a20c839f44f78039ec0969d8e8f49e03baf124f3249a11d4d00b852519bdd9b8",
+      "worktreeSha256": "b07a8e67cef7f9bdb59dd2629c1f7f4424a4822cfee3b557de2fd9740098cc2e",
+      "bytes": 177
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliverySourceIdentityQuery.java",
+      "gitBlob": "a5f1345c88f221961688d7142385ec80ee0862af",
+      "stagedSha256": "9e7bbc1996a8e08589ab1ec559b112961bb8f12451eb1df85c474c2068b7b832",
+      "worktreeSha256": "85a09c22c13f58002d55fd070434312f1246c7b09af6a049c087d7eef0788a6c",
+      "bytes": 157
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/dal/mysql/delivery/query/DeliveryTypeCodeLockQuery.java",
+      "gitBlob": "daccd17e9491b83c6a653897efc1d7b55d6c1939",
+      "stagedSha256": "7a23a0ca5e40f6cf3d8218dda0fa8f0a0fe8a29542e052f7e93c1bb3f27e8bcb",
+      "worktreeSha256": "ba2e1071b185ba094f5738f239713d4386e72567d2c62d5e9b46cdaaff00a61b",
+      "bytes": 229
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/BusinessModelAccessConfiguration.java",
+      "gitBlob": "f058a1293a11e6ce35df52c730b6b7ece015edd2",
+      "stagedSha256": "275d26057ad503944c4091f1c923848912f4ccdc68755974d1694cc32e5bdb4f",
+      "worktreeSha256": "275d26057ad503944c4091f1c923848912f4ccdc68755974d1694cc32e5bdb4f",
+      "bytes": 5396
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyProjectReadBindings.java",
+      "gitBlob": "6bfc13291a4bf45a63bc7ad129d50297895679e6",
+      "stagedSha256": "47e91c7b7cb7d81474c5e59b157c9da0be5917851d8386c088b8644ca8d3b032",
+      "worktreeSha256": "3994e039ff8f6fac71cfabdeebdc61ba888396da8090f85a2264caa891fe31f5",
+      "bytes": 4384
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/LegacyTenantReadBindings.java",
+      "gitBlob": "936c397788e0b5f25fa8262ef1d89c8acfb8ef15",
+      "stagedSha256": "58a2e809dae57851979d9be8e93e470460ea303b7305f9d758d4559bfdccfe49",
+      "worktreeSha256": "8e4db235ebd3f347a776f3e00e87914965ff7dd6a34911e75fce03b218bd6eab",
+      "bytes": 1412
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/PermissionBusinessAccessGuard.java",
+      "gitBlob": "1ca1acc5b06c6c8481afd5a3bc77cf1066825937",
+      "stagedSha256": "d74d10c9f3b099f3fb8ead03739e84d08dc89fcb0f892f41a04c6c5dadaae4e3",
+      "worktreeSha256": "33b49cd83cbae6d8cd7f67fd0c00c8fe296b04c950fa24b05bd5d9213a491164",
+      "bytes": 6014
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/PlatformOperationExecutionStore.java",
+      "gitBlob": "30adf734fbab4fec50f27ed59e2d2de50484a60d",
+      "stagedSha256": "73858ec009dbd2c22b90f45fb25d6880c14bbe4cd5769f49721eaea4579d487e",
+      "worktreeSha256": "9593927f3584614b93faf016579930477deac9e6972b79a02e4ca5feb4552087",
+      "bytes": 4878
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/ProjectBusinessScopeAccess.java",
+      "gitBlob": "820705b565d5a6186b965e3f2781eed274adfebd",
+      "stagedSha256": "d03190d089d33aacb1e6c3e70ee33bd699f02cf3a05dcd563b5976389cc7dae6",
+      "worktreeSha256": "66f57aaad2b2b111a70fa74dee4525916a94ae574050e67d0cc2e3634079c4fc",
+      "bytes": 3249
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/TenantCallerContext.java",
+      "gitBlob": "e6b9dc1d3746d6f1eed5ee352a42d024165878fb",
+      "stagedSha256": "baa713c81a26fa8566ad561fd11629b41d1d156316262b5544a69fb9daa664ba",
+      "worktreeSha256": "6e88d6ce5541ca50175750f887ad9473bb36a3e8e88dde8de58b3052bc6df991",
+      "bytes": 1646
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessview/BusinessViewComponentRegistry.java",
+      "gitBlob": "c85a77a7662437a4d576d4b65bfb8ad605e9f623",
+      "stagedSha256": "1b3197e35c5fc907450cea861edf8707d51dda4e18f0699db6fef3a773468f8a",
+      "worktreeSha256": "2b6589c7d5784a09edc09f0a339ad475a235af8e53f6cd3aaef4f2e3c6d770f0",
+      "bytes": 9256
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/businessview/DeclaredBusinessViewProviderFactory.java",
+      "gitBlob": "958b17ba52061e4612231435b9c63ffa85fcee21",
+      "stagedSha256": "3a54d7a4d9f47c7bff7bbc73044cafbaaa9f53c57b4b9bd17eef9d9833473b13",
+      "worktreeSha256": "add4b03b3ad1d3dcec4c6ce610216760506130c1adc9af3b3f563766e7380efc",
+      "bytes": 2975
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/command/OperationAuditApiImpl.java",
+      "gitBlob": "427815e3edb34e4202ad8de9853339282ec77244",
+      "stagedSha256": "0d766410e3c42357cd6838403964f4f2091f97b75b2897045625d0c9d2559b7f",
+      "worktreeSha256": "11f61953d03665417f13c3ebf139d5fea058294d6b5fc80322b3a95d18a7dedb",
+      "bytes": 2870
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeclaredBusinessDeliveryBridge.java",
+      "gitBlob": "51e05a949eb3d111689a3be7621acc0d42b55d0c",
+      "stagedSha256": "90e9bf67a8a61a9177c728fcf1cc64670bf243bc4977de0eeb527e1b125c6fb7",
+      "worktreeSha256": "032545b1425f8de7d08ad7e2b016786ee6b2030fea64653836245f818e0ceef2",
+      "bytes": 5201
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryCatalogService.java",
+      "gitBlob": "19933765778ae855f9bca79e10e578a0d8f336b9",
+      "stagedSha256": "2e6caf2f57c43baca102546515a210b73cf19a0621808eb9e9691c6a034dd9d7",
+      "worktreeSha256": "0933c6d0d67da896303e9edbf83ed7b9d7913bdbe1e708a93341c24a3cb5bc85",
+      "bytes": 7973
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryCounting.java",
+      "gitBlob": "b56044e4652a1eaf5fadbf2d65da515e37d1b477",
+      "stagedSha256": "32531fbffadac43d425bdf3f0e31fb36c526a0ceeedc9750d2752a192882ff2b",
+      "worktreeSha256": "44c3cdaf7123f1745a5b825224182da395d6bf894cf98bb29b449469380bf644",
+      "bytes": 3360
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryDocumentOriginResolver.java",
+      "gitBlob": "dbcb446b86fe343f32166388fadf0ffecd9b2f93",
+      "stagedSha256": "8f4af18335e2548da1d6f5943e772b235e34ce286a77863114208f601c17fd12",
+      "worktreeSha256": "b65406577109693e1bcb4528d4ed6282825ecee3d740ddf97d54a471c1c047b8",
+      "bytes": 2113
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryFilePolicyProvider.java",
+      "gitBlob": "3f07c584da5c22e983fbf19b88f9d87a31208234",
+      "stagedSha256": "54a4ee43b6a2ff50db9c1a6482869b9fc2c02edb3d1bc2c4c1afcd204484d854",
+      "worktreeSha256": "ce198301378caee57758c7175245d2b8cf7146a7a70dc2750a430d99c9121760",
+      "bytes": 8950
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryFulfillmentService.java",
+      "gitBlob": "a21d1bd418820a0c5e8f08f5cf623d836ac306a1",
+      "stagedSha256": "cc71ff628ea198c9d5ed3fcf11f054c701fcab31d8e24eb30224f04e24c85793",
+      "worktreeSha256": "9ac19af8ce626f5c495c6cd9025d1767f78a0fb5490a357058dd541727b5889e",
+      "bytes": 3942
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryMaterialService.java",
+      "gitBlob": "5e119e9317dd856116d6c759118e3d785e3d7bcc",
+      "stagedSha256": "bf9e27bf6dfa3c81bf8f2818943059bf4aec10c26795714e1a9249950fc1a212",
+      "worktreeSha256": "f57896db59bfb5024cf280aea5d8b3d743c2c1ef344955761ef6595d536f5bb6",
+      "bytes": 41222
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryOwnerAccess.java",
+      "gitBlob": "ed70b86d599d0fba7450e54b3b32f171f7ed5779",
+      "stagedSha256": "bb83b36440bc2af669b04acc51b03adaad8ff304537b64a657a70a9bab75813e",
+      "worktreeSha256": "7bde43837c6fe094aab1ed0ff40f77bfe6f3718c09876c796a89cdf213bbf075",
+      "bytes": 8604
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryRequirementIdentityApiImpl.java",
+      "gitBlob": "edb5c8dec14c9e718b730d861fc1903ee5488032",
+      "stagedSha256": "8630f3ffd5262c42d312972e82a9c277c857518c54248108a1e53afafb7daf18",
+      "worktreeSha256": "0916cfca41e83e88bef33372acc3e4e43b61d96fade740b0144884a0f3687a44",
+      "bytes": 1849
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryRequirementService.java",
+      "gitBlob": "97998199c060aaa376d1748b99d679776bc99ff7",
+      "stagedSha256": "9f4c171142525a9c4fcf514c127dc9d22892c1b8665c590fe57dabe8793bffd6",
+      "worktreeSha256": "71f714103341f438787ddb48a64ffec283ad7ff755613445b1f722f93ed59bae",
+      "bytes": 20045
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryTemplateFrozenService.java",
+      "gitBlob": "32881552b042568e84727cc1a0f4ddb5ba7d735b",
+      "stagedSha256": "3e4ea24f4ce38c9fc59067e20792952ab3e74f7da445c0b75120ae708173be4a",
+      "worktreeSha256": "b5eb6fd6f15ed764ccf29d850a6c48ecec72829ffe4b15aa84da596c15ac051f",
+      "bytes": 27306
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/delivery/PlatformDeliveryMaterialApiImpl.java",
+      "gitBlob": "ca32518a410f3f6c75516e27291a0c15ecf8b272",
+      "stagedSha256": "50311140980b1f4dfcb325c7d3d8a27c5c6adfe00aedaa5ae9561aec301b6f5e",
+      "worktreeSha256": "c6bd7949cbd543f6c783e3a2113e81c03acb36bd7f49cfd881e8719fc9c082cc",
+      "bytes": 3918
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/dynamicform/DynamicFormBusinessObjectPolicyProviderRegistry.java",
+      "gitBlob": "b083c195193534b1d0675645ad852bea318339fa",
+      "stagedSha256": "695c852fd6de16ee0fb9b5d411749caa7c4bc9830684a4d4f6a110d0908840db",
+      "worktreeSha256": "b8b8c48b898a0b295bf69da25fa9abca1c364058ffcf86a96e8510fcb2df0217",
+      "bytes": 12603
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/entity/EntityExtensionService.java",
+      "gitBlob": "91664fe0526f6d642e37867cd72a9058e5650b30",
+      "stagedSha256": "5dba9f35df8c4c56815047cbeae5c81bfab53169c0e225c08e6c38986fbd350b",
+      "worktreeSha256": "31c7162986643dfa20aa65967178f4920a3f4f523bc9d9c0aa7b741c506b71f6",
+      "bytes": 11002
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/entity/EntityFormService.java",
+      "gitBlob": "f95fc2e178fa3704244e898b303fda82c991f51e",
+      "stagedSha256": "598563f5f82ae85f8073446789f7f3c89ec3fc88396f4656e5e9f9a703c84574",
+      "worktreeSha256": "0b69f6024c5577f95acdbe132de13b07853ca63bc76c1988731e3bfd8674e478",
+      "bytes": 11739
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/entity/EntityProviderRegistry.java",
+      "gitBlob": "cd5b5f6b3054137eeb4a4104b21901a03932d7cf",
+      "stagedSha256": "8c75a9c130c2487db0ab709958ea96aec13eeb5c10924ea934bdaa2440b3150c",
+      "worktreeSha256": "daf4791f12ddcd1306513ea9e71feb7e36ca7e53adbf2004579e49d392957d29",
+      "bytes": 5937
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/entity/EntityVersionService.java",
+      "gitBlob": "058a48c164392c0e8bf1b765f0f89199096444de",
+      "stagedSha256": "61d1b228b79662f2e77452e964592a907c1e43fa5b110684952a3e3b2cac9b99",
+      "worktreeSha256": "f6b9d960374e64ce51030c22df48d202cd90e1b4a73bbe0368f780e4b449ad62",
+      "bytes": 4430
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/entity/ProviderBusinessEntityContentReader.java",
+      "gitBlob": "c21b5b360c6e0803d5005dde0af949f174119507",
+      "stagedSha256": "e3afdb6640dfa9fa3ccb52e5ed0c09fdd088320dcba1f7a0738c029b2e434bb4",
+      "worktreeSha256": "860bc6d7638abc227ed123c612ab749f124a5c474880db587dab7fe60ef81ddc",
+      "bytes": 2245
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/BusinessGrantGeneratedFileService.java",
+      "gitBlob": "29984cff4bac8620b9e7b659ae90246eb53b80fc",
+      "stagedSha256": "1802fb87b64b1366dedeb88015b0b7c9cca0ef36f9d4fba937b59b5a2907e667",
+      "worktreeSha256": "dd8768110bf6dd8528fa1d89f82ba1745c285a5d8772796fcac47bbe2ab6ccdd",
+      "bytes": 3947
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/FileBusinessObjectPolicyRegistry.java",
+      "gitBlob": "241bb002716f4fe555f292adb2277b162772df4c",
+      "stagedSha256": "67ab010026d84ed8a67b1f1213cfc641d269ac0e53e46b3843b8e875acc68c57",
+      "worktreeSha256": "364635acc2a7d06fa82a79511c8c3780251e597854ff55471ab3062f1acf5da9",
+      "bytes": 16667
+    },
+    {
+      "path": "pms-module-platform/src/main/java/cn/iocoder/yudao/module/pms/platform/service/file/NativeGeneratedFileService.java",
+      "gitBlob": "b8c96e56558484c41b34a7c46ffc573d4519bdad",
+      "stagedSha256": "aa036bc6acfaa537a0c55514ba2f8c8b999a027f21d6985e723a7896bd00c45c",
+      "worktreeSha256": "0281a5d5ed413f22dc97271ad5103f3403230166c9af5fe74f9871c0833882d1",
+      "bytes": 5283
+    },
+    {
+      "path": "pms-module-platform/src/main/resources/mapper/command/PlatformIdempotencyRecordMapper.xml",
+      "gitBlob": "862ca2f6bcb954a3b725b5935d616b3f79d4b3d4",
+      "stagedSha256": "85342495b176322cd12dc59df90c003dd31df8a74504156c66b3a638465f9af1",
+      "worktreeSha256": "6eb5e7c2abc6edd0264732fca9e5f0a8202e2e52f0d57f504f81cd679ad42fce",
+      "bytes": 1935
+    },
+    {
+      "path": "pms-module-platform/src/main/resources/mapper/delivery/DeliveryFulfillmentMapper.xml",
+      "gitBlob": "64c373e60110e3611fd57d7a5f12f2e670261cc4",
+      "stagedSha256": "9d35c4763a8bbfc8c574e728deb4be9bb5b3d0298957b13071c8028566dc2204",
+      "worktreeSha256": "7a568770567f8849aa3f09ebaa67d59ecd0fc70d1bcf23a5de0a76cfdfc8bc9d",
+      "bytes": 931
+    },
+    {
+      "path": "pms-module-platform/src/main/resources/mapper/delivery/DeliveryMaterialMapper.xml",
+      "gitBlob": "e7488e81b5ca5ba993a4d6734f7f165caeb2d9bf",
+      "stagedSha256": "2b0ff77d7c49675fa371ee0702c39b5463f8e176320569942b8758b94917b517",
+      "worktreeSha256": "11a4569e09180e545285a5c8d8f495532bb63febb49e8b1f95ca6d3fcb8bb0bd",
+      "bytes": 6791
+    },
+    {
+      "path": "pms-module-platform/src/main/resources/mapper/delivery/DeliveryRequirementMapper.xml",
+      "gitBlob": "336d2ede0306f407c7840be1458276f3eac81543",
+      "stagedSha256": "33f00d1120f24f95f92ca1efc46a3669de228406e9155a18fa6ade2abd33de3c",
+      "worktreeSha256": "a64a78c8744cfe497480cb56a084efcc5ad8fe630343d4fa0b677ba1ff6ab5ad",
+      "bytes": 3101
+    },
+    {
+      "path": "pms-module-platform/src/main/resources/mapper/delivery/DeliverySubmissionMapper.xml",
+      "gitBlob": "ca6dfc28aa1272ce9e704c3fa4cef12aa9fc3d75",
+      "stagedSha256": "8862fe5527d6a6748190fa1fffd4f27921e4b0d4bcc96cec425b9a3a3e4df4ba",
+      "worktreeSha256": "1cafbfcf28a3e2e5b83ae67a2d46e3747b6e2d2a86cba791f660793e61dfa3cb",
+      "bytes": 3221
+    },
+    {
+      "path": "pms-module-platform/src/main/resources/mapper/delivery/DeliveryTypeMapper.xml",
+      "gitBlob": "885bf97da8ee305c370b8622a4010b4bc60705bd",
+      "stagedSha256": "d2ae069b660d10855bcb9c74cba60e71f938f8e02fc4df9bcb732544bd13e438",
+      "worktreeSha256": "95f79fe741ecbb5c9aea27c6601a422c819face2851c63f789564e892cd5a106",
+      "bytes": 648
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/controller/admin/businessmodel/BusinessModelDetailContractTest.java",
+      "gitBlob": "cabc99213a05701b289fae16c5fdb57b182581e2",
+      "stagedSha256": "38ce5d740609faad2132b20efaf3900f50f9016152d212f2a57615a3bc3d27c6",
+      "worktreeSha256": "9e12d70dc12a35ac8865c4e0f1cc9b3b6232f9462eb17e7cac9374aa998b7674",
+      "bytes": 3741
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/controller/admin/delivery/DeliveryControllerAuthorizationTest.java",
+      "gitBlob": "41e7cf058867139fd67771e1f6ecadda4d883a63",
+      "stagedSha256": "0cb4290e80c4e87fc7ba1a379574b4db841137210fe4abc7392c031d9029ec96",
+      "worktreeSha256": "8c44cfb1e00df8f7d3ed4a499a149a345dfb1f3e6122df5cb04a26081aea9fa0",
+      "bytes": 5612
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/controller/admin/delivery/DeliveryControllerSpringTransactionMySqlTest.java",
+      "gitBlob": "5e69b80ac091f6853c2c16cb31cf6321cab7dcae",
+      "stagedSha256": "8de698cecc9f25cf95ee3c784713c6059772974e8411c99a86fd90ecef54513b",
+      "worktreeSha256": "31b10467aa83dff9d2ec41cd1d7af47a36eebcae80a78a919a8ea8153455bb5b",
+      "bytes": 13882
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/DeclaredBusinessRuntimePersistenceTest.java",
+      "gitBlob": "2924c92835c7199d80b98e4e3313a3fffab68ab4",
+      "stagedSha256": "95492556bf859a9b670485a984810a352f7399bc6c5bca56e9b39f88de2bc0ac",
+      "worktreeSha256": "56aa6fc431f5659d95e9b594396273d9155a552778d4b0227d1a431fbc997aa0",
+      "bytes": 55593
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/DeclaredCapabilitiesRuntimePersistenceTest.java",
+      "gitBlob": "3b894a30916d3b90c71e08e4fa456d13e8501413",
+      "stagedSha256": "c1ca12047039a22b1a92b9dd7069bb13d22603314d95bd33b3bab22296b8cf8a",
+      "worktreeSha256": "3bbeb57f6a691b3419b7cfd9df12d895ad9e689a968b36706a33aa6b43968326",
+      "bytes": 16505
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/DeclaredLoginRuntimePersistenceTest.java",
+      "gitBlob": "ee117de61f07f49b3a9cd3328f742d71c6d71bfe",
+      "stagedSha256": "40949389e382620f4462db9c53a65e1a0f1274196a9161c354921992305a55e4",
+      "worktreeSha256": "5da2e9ba084738439e00f4fe5d8454450710fbd056e63d4658a67b089d6cbcc2",
+      "bytes": 23455
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/DeclaredNoteDO.java",
+      "gitBlob": "ed4edd150ff371a3e945428c6210488867fc3354",
+      "stagedSha256": "08548ecd64390963664a9e644475c65f4a9fbcc5288dd12150704e64ac97ca09",
+      "worktreeSha256": "8e632acaed3c0cfde017ed4d10da7280aab914b6cbbc6c007d844faa9e79526b",
+      "bytes": 931
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/DeclaredNoteDeclaration.java",
+      "gitBlob": "b42b929c2cd13e53d9801f4e95641eef94981a97",
+      "stagedSha256": "5913741f6a800f97a45e6511c7846ea0dd49547e08a6cdcfb6e63381efbe5816",
+      "worktreeSha256": "af08866ced1c4b133ad870c44b92da4fe654e2ca57bb6f4283bd54a11efa2bc2",
+      "bytes": 2628
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/DeclaredNoteMapper.java",
+      "gitBlob": "dd6786a0cc8fb23bc35b2fc262e4dd9a805bba41",
+      "stagedSha256": "50d877eee8384261451a8170986b06dc4ac3e827c8d78c738a1ae44d70499a03",
+      "worktreeSha256": "c8c3964e51a2a0e931c59780b24ce1080526bd880fbdd680b4b43fa755535793",
+      "bytes": 210
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/DeclaredNoteService.java",
+      "gitBlob": "4133462d0dfec92597a135c42a1a66615a5ac9b9",
+      "stagedSha256": "00d8de8909aff37ed1b8370d479a2bfbf9e3b98fc460e893f59acc446fd68fa0",
+      "worktreeSha256": "6c820270d09dacdc962b7cc56c5444baef2aa38a4772e01527f1da5e0c42fc7d",
+      "bytes": 1140
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/DeclaredOperationRecoveryRuntimePersistenceTest.java",
+      "gitBlob": "044a1152d2f336a2ad08d445a92ff53f64ebc3db",
+      "stagedSha256": "e01aed3c9f2a8fee392d3daa3a33ae91cc48cdc51ae4377bcd0956bac795f804",
+      "worktreeSha256": "5edf36f1f3e1da6c258749a1d59839a687342f81e5aea8d7f4cb86f8b7c0d14e",
+      "bytes": 4890
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/DeclaredOwnerReadCompatibilityRuntimeTest.java",
+      "gitBlob": "bdc55488da18e0f4afe644952bb44d37eacfb492",
+      "stagedSha256": "030a34b357f72e0be3522897cbb0557529d45804b215b4f095a27ca251fbe554",
+      "worktreeSha256": "ca1e47568ea3b198a7bb5c97d1bfcb7cfca480e01f1b9b71bd9670a954b79f3b",
+      "bytes": 5870
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/DeclaredViewDeliveryRuntimePersistenceTest.java",
+      "gitBlob": "90b364c055b096ce5cc68b59c1384b26b09efcfa",
+      "stagedSha256": "e3452ffe429dc84ea47f688fcdbc33cce2cf03c7b9245d0d9d2469ef12effff2",
+      "worktreeSha256": "821cf65d3cd8578f22ea953cfdfb45e613743e4d5679fdc88b3b6535def8c5a5",
+      "bytes": 8460
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/PlainDeclaredNoteDO.java",
+      "gitBlob": "de641e86953c848d962990de7fd6404a7ba245fa",
+      "stagedSha256": "f5fd571d55094e05e5b5bd26762544046fe5cf4c17539928694e1f576b382e0c",
+      "worktreeSha256": "4bf1273b437a5fe4e944a532220a8d3262a47835bf6bac6710ed91c18babfe44",
+      "bytes": 668
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/businessmodel/declared/PlainDeclaredNoteMapper.java",
+      "gitBlob": "5b3bd408d9044f867de1499eed7b0e5ad31517a2",
+      "stagedSha256": "6e3ed2099f114ac7b5ce49bf45c800b144ef37502fb75f9db00e0a318318f302",
+      "worktreeSha256": "c48248c560dcab2b232b976ee8c5c23bfbbae5b2629c3fcd8220b13ca7cb3d17",
+      "bytes": 232
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryCatalogFileAuthorizationTest.java",
+      "gitBlob": "269ce191fbb0e305ee8390dbe79bc7f9439e1bb9",
+      "stagedSha256": "f0e7ab11ce6fdc67c06a026b5da422857f11c7678d6e52b6f925fd5d92ae105a",
+      "worktreeSha256": "c5b4237e9c14bef74d9fd4aecf7e402414b89f64724ea41c6adec35e55dfd65a",
+      "bytes": 4065
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryCatalogLockTest.java",
+      "gitBlob": "16b4ec097a83f93d4aebdc34ce688df25e328775",
+      "stagedSha256": "1f705495ef8de25caef158c3ff96332a5f2011b0c71c81e48bec0c48e6be0565",
+      "worktreeSha256": "a32d518087aa4628991faca382c1fbef3362b089036d1c5d4d2bacdb02d780e7",
+      "bytes": 2976
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryFilePolicyProviderAuthorizationTest.java",
+      "gitBlob": "67665a7f1dcae1d13e16b3ab14cddece553b3af5",
+      "stagedSha256": "80c04b90e2647bf4cf334c7d15c43d398c49d74d423741c1d75835dbdae977d5",
+      "worktreeSha256": "6de8bc300d01d3e7592d26e90a0f9e7e8403efbefbf9aa31af76eb0a60c30af5",
+      "bytes": 3306
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryFulfillmentMySqlTest.java",
+      "gitBlob": "aeed10f41f594ffa3178ad24f72a1caab2837c11",
+      "stagedSha256": "ab9289930141f152759f5a3dce3575d59e4e29aad98a85380079fb4626dd61ba",
+      "worktreeSha256": "ed0a621e06adecadc3d46ef35f9d43fd70a3d2638251a49c16967c18d676f897",
+      "bytes": 11715
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryMaterialServiceAuthorizationTest.java",
+      "gitBlob": "c9221322a7182cf9b9c6b8f6e5de1a63c5ca567e",
+      "stagedSha256": "b32e51f85a25ceb58c0d496c179e0bcf6c5edcbf177d7df8f59960a364ecfe94",
+      "worktreeSha256": "775d2ab731f539232697ad8a09ff69931f95045d7baa8d899ce0d00e0e67e307",
+      "bytes": 1593
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryMaterialServiceTest.java",
+      "gitBlob": "4e7d77a331ae5a6bd4e0835bceaffae427d2f8c7",
+      "stagedSha256": "30d2abed1b2eb4ea8d359dc0cff293a48016f4c81ac6d81bf062092d08728fa2",
+      "worktreeSha256": "42e62c17416a62a22d9ec8a93d15bb2eb923c178d616dbf5a9d9086b1f9542d8",
+      "bytes": 7391
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryOwnerAccessTest.java",
+      "gitBlob": "d318072ef9d3e20142241bf83ca158f2e5803d3d",
+      "stagedSha256": "3a5c1dd9dd91c50b3fde20a3182ada26b7ff7db426d5ee45814c8087a433daba",
+      "worktreeSha256": "6547a23b15e29cee8abfe6a1b8978085c1661fe8eb37707cf63a284f86079a31",
+      "bytes": 7481
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliveryRequirementServiceTest.java",
+      "gitBlob": "617a1de26859dcb2a0532d38968a9e64be7cf0b4",
+      "stagedSha256": "a9d0cfa88758da2d0b39a2d19eacfd152ab11c8ce0fd6ca97524e9b85a76ab89",
+      "worktreeSha256": "912c2b5e0cfd83a56b385d4e457f517b99b0ffaed680bc116e4fcd5320a8f325",
+      "bytes": 22857
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/delivery/DeliverySourceReuseTest.java",
+      "gitBlob": "7ec59f0eab4b36f494f8ed5856c29572c28b2c34",
+      "stagedSha256": "9d6da749d6cc86e6260d5f60ceb53a2d2abd207e1dc4776758e5e6aadbdfc72d",
+      "worktreeSha256": "ed20405bb5033e7046699e54f8e83f2d6cde7f23f0114905d685972a19138df3",
+      "bytes": 22026
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/entity/EntityFormBindingTest.java",
+      "gitBlob": "7b22800f1b11fbc64d9b3e49c3933a0e77a6fcca",
+      "stagedSha256": "322420b5f8daff744a0cd837bc358e29619ec2fb2086b1e6e65e43eb456c7756",
+      "worktreeSha256": "ac424d54e973b4022b1a22ab87a3b87feeffee7246c5484aebbf045fe1fdbd1d",
+      "bytes": 7537
+    },
+    {
+      "path": "pms-module-platform/src/test/java/cn/iocoder/yudao/module/pms/platform/service/entity/ProviderBusinessEntityContentReaderTest.java",
+      "gitBlob": "67be06e1fba6ac8d084245a4a1573a8acfc831cc",
+      "stagedSha256": "8fbddeae097719a8c4a0be3cde917e7e80cd2620846bb2c1dacb7d405072ee0c",
+      "worktreeSha256": "e9c02eccb21b0767a221a35a270e953188351ee214204642c567be44c7687163",
+      "bytes": 3521
+    },
+    {
+      "path": "pms-module-platform/src/test/resources/declared/declared-note-schema.sql",
+      "gitBlob": "3f8b3652418bb7d3f7dca16e152923a45830d766",
+      "stagedSha256": "30a167664c7dffcced98f1434e436b256734a7530fec9448c57e21cfba47ad5b",
+      "worktreeSha256": "6529e2d225cb7ab7088f061ebd32150ca162882eb30d0da77a8e6da68fdd5bfc",
+      "bytes": 534
+    },
+    {
+      "path": "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/workbinding/result/BusinessResultSource.java",
+      "gitBlob": "558be549ffacdfa3aa35bc6dd9f3cad8d49f0145",
+      "stagedSha256": "b47ed447de0ad5403e4afd3deacf284db52eb74473e533430fe6386e6a815e7f",
+      "worktreeSha256": "f1cecac9d04bc7a1293e3fd7f5216872546b79c06590dee61928f9141adc3e2a",
+      "bytes": 4552
+    },
+    {
+      "path": "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/workbinding/result/ProjectBusinessResultEvidenceApi.java",
+      "gitBlob": "8f7a0d7c7c628f3baf8bc1c799cc157ec821a827",
+      "stagedSha256": "7c5a4adad70324a5cd561f6266f854806bd27cf64a559b97990a5b2f3b243859",
+      "worktreeSha256": "039e2d1d94251bb491b6d0d5d065d4583af0af61c8c48adb75b8baf8810e48d7",
+      "bytes": 604
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/operation/ProjectBusinessResultEvidenceService.java",
+      "gitBlob": "fc4623cf1ed229a5f0eeda8e451675928be1a664",
+      "stagedSha256": "5f55a94ceb66323c799a46d257d82879355d70261d68b66577b9cc13ccb1bab3",
+      "worktreeSha256": "bba4868ab5361f021eb75828584f7f933bc2c98f97ec4aa618e3d81fc1f83ca3",
+      "bytes": 1258
+    },
+    {
+      "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/operation/ProjectBusinessResultSources.java",
+      "gitBlob": "c1e544c28fd154aed978907a8cbd54972fbb1a50",
+      "stagedSha256": "f06c4259f41cbc6395d10a25cc03782d32d30f52547e1f721d8d3634d8021b46",
+      "worktreeSha256": "bb322e0fad26c1575d90e2beda8a4fb23c9c755ec611df5c0e65b372f9429c35",
+      "bytes": 8224
+    },
+    {
+      "path": "sql/migrations/V388__delivery_material_fulfillment.sql",
+      "gitBlob": "e89a7ab855bd2bf14c5c4bc0e21dd82096a4baa7",
+      "stagedSha256": "55ea742dea296e01d4b6e412894e5c200f16b0a4e77e907cc4f71a398003de61",
+      "worktreeSha256": "63228de4070dd38e3ba256af17c732649ca980bd22a2ba424bdf91abf554cc7a",
+      "bytes": 1677
+    },
+    {
+      "path": "sql/migrations/V389__delivery_native_source_identity.sql",
+      "gitBlob": "abce8cbf16fae0e0c1f7d20900f51c0b735a9382",
+      "stagedSha256": "d04a70621aede153201510aa6d46d56a6bc0b3689963a2318aaf3cbfd29a4e2a",
+      "worktreeSha256": "2aab5782d9deac476da8420b1e5645bdc67586ef53f19fc1a1d92ae8449d449e",
+      "bytes": 987
+    },
+    {
+      "path": "sql/migrations/V390__delivery_submission_archive_obligation.sql",
+      "gitBlob": "3cd09e5aff750d686e14b42cbda6dd2d22513b24",
+      "stagedSha256": "fd1a7169c3c66906553eafd463b08d6cc5e1fb409cf0d2b452167399b716b91a",
+      "worktreeSha256": "f0ea637f26c1fb42c90cec8be4ef903a67695c452e97ad169035ff6a4808a41d",
+      "bytes": 873
+    },
+    {
+      "path": "sql/migrations/V391__unified_business_entry_permission_mapping.sql",
+      "gitBlob": "2654525e9bdd373abe87a0b4ebce37073b0062e4",
+      "stagedSha256": "8158540051d8b750d53d007fc5ba0e9f97b01bf8abf4e2b978d8a1d47ff663f4",
+      "worktreeSha256": "4529b9780eabfef8acdb3053e4db850c8f644851c4736697b3a228048888ee27",
+      "bytes": 3386
+    },
+    {
+      "path": "sql/migrations/V392__native_formal_document_types.sql",
+      "gitBlob": "d15bd033cc5e5d3e41472edbfdc1afac3bf24fe3",
+      "stagedSha256": "0a2a89bcfdc7a0c3f8451440916d4a5a6d993e4830a0669e5495c4e8346f0aa0",
+      "worktreeSha256": "489a0b372019982393b649ce4c80b0899d801600bf8495829da91d86cbf166d7",
+      "bytes": 1119
+    },
+    {
+      "path": "sql/migrations/V393__native_acceptance_formal_document_types.sql",
+      "gitBlob": "1fc862d318e06e4c58812f6f4e6f19642a5cf172",
+      "stagedSha256": "5138637e4c2202f36475e7beddfe5d3835c6480b09ac2be8c4197fd5de8129ed",
+      "worktreeSha256": "0b4b63d959437f611b40c849c5d55a59da0c405f52feb9edea2eac60f555ed8c",
+      "bytes": 1128
+    },
+    {
+      "path": "sql/migrations/V394__training_confirmation_issuance_grant.sql",
+      "gitBlob": "b57e95e0e84cd83d271ad6ce931d71f17cd8ba09",
+      "stagedSha256": "ad75e6318ec3e99c1585302a5e913fe8f72cbb078b1540edd34a396c475ec997",
+      "worktreeSha256": "a1c7ad1760f03e01e9eafd5057beb31c2714623f5a101a41a3d13dea815a6a84",
+      "bytes": 1090
+    },
+    {
+      "path": "sql/migrations/V395__native_receipt_checklist_types.sql",
+      "gitBlob": "ee5c67fdbab5336357227d9d1b2872a3ede7dcbf",
+      "stagedSha256": "ead42222c4ec951f082a5045ddb77e183381ad4bb1602716764b995d58fb219f",
+      "worktreeSha256": "380bed2746844d465eec1f60efcd17e5ead4e42e584efa1fcf8f7eb34a0b25e3",
+      "bytes": 846
+    },
+    {
+      "path": "sql/migrations/V396__customer_solution_revision_delivery_types.sql",
+      "gitBlob": "fabcf31ab7de017d3a2af2b644679b07bd84dbf5",
+      "stagedSha256": "9e0c8219a1c9015e4e119260a40390bacb2a8256fe2fd3382b827410de8debf4",
+      "worktreeSha256": "d5fd4405fb650b11f5f325bade676e7758a28a325052ac0f11af8819874784ad",
+      "bytes": 2970
+    },
+    {
+      "path": "sql/migrations/V397__delivery_entry_permission_mapping.sql",
+      "gitBlob": "7d278d54f16383ceae5f5da698b4cd93f3292cb3",
+      "stagedSha256": "e0eb660196af0a04f2f33ceac92a1f7f275565664ab9f014166ed147d1ff4498",
+      "worktreeSha256": "3457fa5fd77209ac4efe74f9803a6be8bf2b96449671acf65a771248f81606fa",
+      "bytes": 3879
+    },
+    {
+      "path": "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/api/file/FileStorageReceiptApiImpl.java",
+      "gitBlob": "ffd5cd45f9ad3a5cca22a00ec7f0263962bacc2e",
+      "stagedSha256": "304ce7c7772cf9c245b5826a9a40ffc2373daac048f841cebec942ef06257883",
+      "worktreeSha256": "6037fc1c647b6d0267a2bccf20595576949fe604cafbd1e87d557af770774e4f",
+      "bytes": 9775
+    },
+    {
+      "path": "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/dal/mysql/file/FileMapper.java",
+      "gitBlob": "af98ed8dfb6529531dbe51ee96944285d09e3255",
+      "stagedSha256": "12d714bf350a60aecbdc4ae59d1431d91c627524bcea12906d885db59ba8d234",
+      "worktreeSha256": "e8f4afea7ae1cbe9c81a41cc44b6a8770fa08b3693d4c5e28370b6b8c71505f4",
+      "bytes": 1725
+    },
+    {
+      "path": "yudao-module-infra/src/main/java/cn/iocoder/yudao/module/infra/service/file/FileStorageReceiptAccessService.java",
+      "gitBlob": "8bd449fb632607aed893e2bdfc9c0be1c80d8889",
+      "stagedSha256": "f8b4c121f9ed372b95365988e5e8ead4d5598eb8f3ae27b42c9e6a9a4a04dc47",
+      "worktreeSha256": "b13be00728cfa559fd5e4863584737ba07bf3423578f65e9e1cead685265fd96",
+      "bytes": 7724
+    },
+    {
+      "path": "yudao-module-infra/src/main/resources/mapper/file/FileMapper.xml",
+      "gitBlob": "1c081d055b53f2d981cab875b20f1fbe54049f00",
+      "stagedSha256": "97a6c697491d1c43c05b762fe904b4b5d70d56ec557618dc73cd0fc3f469de1d",
+      "worktreeSha256": "f7fe41932cce67663fd9a6e5298f18656595bee324f8cef4b4b5be365d46ebbc",
+      "bytes": 1007
+    },
+    {
+      "path": "yudao-module-infra/src/test/java/cn/iocoder/yudao/module/infra/api/file/FileStorageReceiptApiImplTest.java",
+      "gitBlob": "f4d7059c047ddaf7ff6aa702b1eb9eb15b3bf890",
+      "stagedSha256": "d1228e682e965fcc8dab1e9a7985d0735391d9e2206417bbb978088902345ee3",
+      "worktreeSha256": "5e57e6240e89180421ee6519a52bd824d6351de4376e12f96ed3772434ff55bd",
+      "bytes": 14833
+    },
+    {
+      "path": "yudao-module-infra/src/test/java/cn/iocoder/yudao/module/infra/service/file/FileStorageReceiptAccessServiceTest.java",
+      "gitBlob": "a4316f38a922b5f7544a8f67bf8bd09646e633d2",
+      "stagedSha256": "ae949a6fa48086b32ae768bba012af499079ad35ed7ecc346a6742f984e7aefe",
+      "worktreeSha256": "2591cd0bf9823368c3ccedc56d3c48fdcabfce168a05272e0fe33b7fb2ad7344",
+      "bytes": 8253
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/dict/DictTypeServiceImpl.java",
+      "gitBlob": "56cb11284b1520da07ba46509424dd1d60b01425",
+      "stagedSha256": "613270a3f07d1dc385e52097d9de48d854b58f486dd1242217c45f999258bf0a",
+      "worktreeSha256": "1e52769578fd61b4f4f0edfe48119c2ee57a8f895c655112d3cd014d66a527e0",
+      "bytes": 5281
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/MenuServiceImpl.java",
+      "gitBlob": "6560fc7cd72cd5bafb2bcfb7dd85b0b8f12935b8",
+      "stagedSha256": "19962f10b85461f5672c6f385eb8c7db0dd6a16384373bbb144f9170bcd57612",
+      "worktreeSha256": "e9e438c7e88791df0e8b0f9e8405a5cd3804cd76479411fe1d31bfe38c97257c",
+      "bytes": 11308
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/PermissionAssociationService.java",
+      "gitBlob": "8374134e259e4c329e479f48deae9f46188d4c09",
+      "stagedSha256": "4f2c953ce9dd548b8d216b2b71c0685a5e4298efeeafb49940ab3a1707ac9737",
+      "worktreeSha256": "ea51626c91b421491a5fef85f80d2db51a12db9ef3b62d127ea4ab540063b1dd",
+      "bytes": 1802
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/PermissionServiceImpl.java",
+      "gitBlob": "e7e311f11c2aebc3fdaab619e917a05459d38ab2",
+      "stagedSha256": "2118ef8b4a5e7ab1ad8fedf8789ea23d7a77d834c66d5a821d173b6d0fa3a1f5",
+      "worktreeSha256": "e1d8eb932773734fe5c39756f9ca92551a1db5b4b5791f89c4ad939009b73ba7",
+      "bytes": 14519
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/RoleServiceImpl.java",
+      "gitBlob": "4669d6ddd0c44d323ae0303c02f1348ffb738229",
+      "stagedSha256": "ace50b0b1970ac7f335198fae35810d685f68040650614cb6a1c4725a0ac2bc9",
+      "worktreeSha256": "be6ee976d00efbe3a1e83bbf005ec25ed72e49c5680c166b06a54f27f996dd69",
+      "bytes": 9933
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/sms/SmsChannelServiceImpl.java",
+      "gitBlob": "4b09e729f110817f671434dca942488d55d44503",
+      "stagedSha256": "2dc6dbb149db4cc338383d88374ba28affcd73b837b10dfcbc74078b338dea58",
+      "worktreeSha256": "7c74090ee3d3e03c8cf4326507821509fa51d07a204ac7eb08af4deea45a3a17",
+      "bytes": 3934
+    },
+    {
+      "path": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/user/AdminUserServiceImpl.java",
+      "gitBlob": "6931d622d9f06ef91eb409022e164bf3fb0be803",
+      "stagedSha256": "14c1b33f1e1e7aabb6b222cbd9f7d0e6f62d9a982067ece3533b47916696fd46",
+      "worktreeSha256": "8cddac381ebcb76c1f98d946bb2c776dbffa6e442375ff814386a2b4bc08cada",
+      "bytes": 23409
+    },
+    {
+      "path": "yudao-module-system/src/test/java/cn/iocoder/yudao/module/system/service/permission/MenuServiceImplTest.java",
+      "gitBlob": "34714a3288798a79f4af9ae964168ca73331055d",
+      "stagedSha256": "e099f2c906489dc782f5542cba6f3e91b4aecefb0ddedee42af7c342975e010c",
+      "worktreeSha256": "0afb320d87d19060bd953c8c4e292044068e0cef27fbbef544394c667f05e01f",
+      "bytes": 5707
+    },
+    {
+      "path": "yudao-module-system/src/test/java/cn/iocoder/yudao/module/system/service/permission/PermissionAssociationRedisProtectionTest.java",
+      "gitBlob": "7331a89e2b55fd73c3286b10f76863c038263a25",
+      "stagedSha256": "a753f277c24d917f7c0a6911dd9a87c4dce124840af9e1782fd0822f0a420397",
+      "worktreeSha256": "8243ab40e6cc1677fd4f4e2a34dda69eceea97c1472d29804dd8c82fe7028fc3",
+      "bytes": 20373
+    },
+    {
+      "path": "yudao-module-system/src/test/java/cn/iocoder/yudao/module/system/service/permission/PermissionAssociationSpringProtectionTest.java",
+      "gitBlob": "8b490c1669b52564abc4844f522771599748b370",
+      "stagedSha256": "0deb79b4df92d6e4beac9392d94c25d98ae09b8d99d85baf5d9d58d6c80da2ff",
+      "worktreeSha256": "6e59592e2a1f8c250ba3f6164aacfdfd7c1f2a4c85edd4bb2f4be3651037f42c",
+      "bytes": 9312
+    },
+    {
+      "path": "yudao-module-system/src/test/java/cn/iocoder/yudao/module/system/service/permission/PermissionServiceImplTest.java",
+      "gitBlob": "05106665ba4ab2cedef3ca0a359e25f4d4ec3cb5",
+      "stagedSha256": "72afb5384c1fc3748cdb3fe01447ac9dd71032928b73d5987d484e0f1b5500e1",
+      "worktreeSha256": "b1634d6a4d478035a5464e5cc5cbb713c703da48f4a67e3b49cf052939c4c855",
+      "bytes": 12962
+    },
+    {
+      "path": "yudao-module-system/src/test/java/cn/iocoder/yudao/module/system/service/permission/RoleServiceImplTest.java",
+      "gitBlob": "9d04d1b2beafdebd6f2333b05c79f12b44721464",
+      "stagedSha256": "6962686440d68d8e5585cc46991cf5498d9d4280e4f257573eb6941033ac726f",
+      "worktreeSha256": "e7e568646c73474147596983b2ccf0aeaa1e7872e1c6a06f42281517cc175ca9",
+      "bytes": 4922
+    },
+    {
+      "path": "yudao-module-system/src/test/java/cn/iocoder/yudao/module/system/service/permission/SystemPresenceQueryBoundaryTest.java",
+      "gitBlob": "790d109531d2cb31f3533a43132e32924507beaf",
+      "stagedSha256": "bc9cdbe020d0ead98bd3fb372a581f7717b8c48f9db6dbcc5c40e0bc5c3503ff",
+      "worktreeSha256": "185724d5830ebeae8d89efa68e00f2e46876f43e6f1f1cf856c2144f57b65694",
+      "bytes": 2673
+    },
+    {
+      "path": "yudao-module-system/src/test/java/cn/iocoder/yudao/module/system/service/user/AdminUserDeliveryDependencyRegressionTest.java",
+      "gitBlob": "5f10880093803457672a15235aee1c64fdb07302",
+      "stagedSha256": "ca56d3608d58ced78689c6b4ec7f11dd8edd81ee772cdb6d442eacdda285ad67",
+      "worktreeSha256": "4976d72060f2e36f8ce1fd099ebd36e09bacfcaa46f052a7ac85f5a9cae77982",
+      "bytes": 4710
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/acceptance/archive-document/archiveDocumentContract.runtime.spec.ts",
+      "gitBlob": "ecfe36215fb0cf063327a231f110b682271096f3",
+      "stagedSha256": "8d4067d1c5602675e2de0db700f0522c626e1af2b89288a8446b1e93c062f841",
+      "worktreeSha256": "c3c7c54fa20f15ad4b94615b066084f11c3a06f25a28dab7113f0274bd5c1dce",
+      "bytes": 1499
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/acceptance/archive-document/index.ts",
+      "gitBlob": "463ccb2def045901ac1a5578e84a89dc4c69fbd7",
+      "stagedSha256": "3d424c0485b19679a692f51bfdb6ffa4c302f109264a0f280fbf7590b14d7b82",
+      "worktreeSha256": "b0a03548dc563c85beef85b14a23bcb6e946ac4878e2599904a2911d7f610afb",
+      "bytes": 2287
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/briefing/index.ts",
+      "gitBlob": "3fdb823bb260936d7aa86278eec4394b016683fb",
+      "stagedSha256": "17228676322fd586b0423d269d6882307c249e66c55a7e352adc92dad35a535e",
+      "worktreeSha256": "59395c1ed725b2082af1bddfba2e7dc3cb7518b13153f60631dfd0e51fbbe165",
+      "bytes": 1813
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/requirement-analysis/entity.spec.ts",
+      "gitBlob": "23b372692aef63b67153d0715fb9e36d8394a8f1",
+      "stagedSha256": "77d8d8878287779fa797df8c2fdbea3db196e0a445b48dac50e20bd75b4db84e",
+      "worktreeSha256": "c9ee75656bf174318fa84e0c6729558aaeeeb251da6dbf6198da9a76bd2e995c",
+      "bytes": 2329
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/requirement-analysis/entity.ts",
+      "gitBlob": "64ed1c0f4f805f658c804e8921742211bc5fccf2",
+      "stagedSha256": "1f45dd512189fe2ee93dfb5887d4d724f011b31c9e91834dd1e9dd567557a277",
+      "worktreeSha256": "3572cd35d604debb51de3a1f77c16d06509ff6419bdfd143273af37fb9b2efab",
+      "bytes": 6734
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/site-survey/entity-api.spec.ts",
+      "gitBlob": "2602e9f2b9b0c4668924a86ebd75c2ed05aa9d53",
+      "stagedSha256": "1c472758e6a801efd415a58266cca7f03ae36d52f8411d7582161d402cca0ad6",
+      "worktreeSha256": "2b0a7e2295745ef8fdb73c1167d10ab741debe09988da74cd25691640b86c044",
+      "bytes": 5652
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/site-survey/entity.ts",
+      "gitBlob": "12eea92de88dc472568fd169f9bd4047b2ca3757",
+      "stagedSha256": "0ba490ec5bfc52de03adee6e368c2043b73877f931fae00ae58ea4ce9e873a26",
+      "worktreeSha256": "e92013f66e450578a4cd83f5de2061ecff29f6e3a38a3386861fc9d795673c9c",
+      "bytes": 9024
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/site-survey/operationInput.node.test.mjs",
+      "gitBlob": "ae18b37563777a45d193289edca420d7e36a2439",
+      "stagedSha256": "5d65ee042fbf9b8ddb4c534902c9f3a3038a6712fd5a5e08488d18992b9975c3",
+      "worktreeSha256": "0b8ef7900a32a5ff8c7afca84d2a03c52805012f1d02b5d97eb649baf72bf573",
+      "bytes": 1620
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/site-survey/operationInput.ts",
+      "gitBlob": "818ddd07d5aa9f21cc3488ceb35fe8d208c8fe89",
+      "stagedSha256": "898b0011b7f8925e4ff89be223a8702431a898124654f4e1bd33c80f4fd81d2e",
+      "worktreeSha256": "fecba06cc632d8d8ca1bc09e0d3f5dea19c2e04812d7e03bd0ef68e966abd452",
+      "bytes": 834
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/training/index.ts",
+      "gitBlob": "c14672728ac3f5067dca2d6a387bd7359988ec9e",
+      "stagedSha256": "e8486348722cd3c8fda1df82c93de8c805a792d0e786d5a161fe4e9a5433ea19",
+      "worktreeSha256": "54ee755c3b55816ddcd5835a1d9c4a92025e826d9a1e17e2bf63871685976222",
+      "bytes": 3834
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/platform/businessmodel/index.ts",
+      "gitBlob": "8ece180b1f5d4859b36b9cc3695980f7f37db2d5",
+      "stagedSha256": "b35df4ab9f25225081e8af8a577bd5bab74869fca66a9e835ea6cb4779f08fb5",
+      "worktreeSha256": "b1275ead63122e424cf647e8059c3c9894ce1bfebbbf752dad68109142f6f33f",
+      "bytes": 5539
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/api/pms/platform/delivery/index.ts",
+      "gitBlob": "5bda5f5d4d68071ba9ee96be0ee4583c61658e37",
+      "stagedSha256": "603344c51b705eaaaf737d42098ab4e18ae7a9a4fbbf854aec3c7dbc5203e130",
+      "worktreeSha256": "a913ccbf298539fbe702fb31fe699bf46254461acc6d20332a4e7aac25576b68",
+      "bytes": 5021
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/BusinessEntityForm.runtime.spec.ts",
+      "gitBlob": "d14779d502e9fe4dc4099df64e884e45986ab585",
+      "stagedSha256": "a41f7e67b7f2912790cef3520ca508295686bac5ace85066b9c027124e4184e8",
+      "worktreeSha256": "669b329cbac5013912f1e993d71f7c899303cd390a26293ce87b2b3673639e29",
+      "bytes": 1471
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/BusinessEntityForm.vue",
+      "gitBlob": "be9ea3a2f54853e1d88df11ce2ea1e2070e3c9fb",
+      "stagedSha256": "cad72480faa2c300d57147f800eb6537e0b228609e405a161e87097b6a1e50ae",
+      "worktreeSha256": "3df0831b086bd89d6ab1bc0a6f040a287b09d08ba951843406ae3999e26ce77c",
+      "bytes": 4623
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/BusinessEntityHost.delivery.runtime.spec.ts",
+      "gitBlob": "9da33557abd537b97af4d1cb00c96f7621101715",
+      "stagedSha256": "5d6cfb89aa8d33cd04bdfb4d57e82cb7220124d3743fa1008b35fe7b74bc80c1",
+      "worktreeSha256": "9cee14ac7a08ae0d5bf9f518ee409461ed2ff1515bbd5b2eb67cb6494007af1c",
+      "bytes": 3408
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/BusinessEntityHost.runtime.spec.ts",
+      "gitBlob": "9724427bb45d7e9bbbacb6159890e84d2b8c9e33",
+      "stagedSha256": "af2bb4982a5c3e4714f61115ed8bb4d9d7e8fab63db30b09b85666b547c6c2a4",
+      "worktreeSha256": "3934dc74c32f75a6e2fd61aa0f06aa9c471ad05019432b869e6052dacca18860",
+      "bytes": 3607
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/BusinessEntityHost.vue",
+      "gitBlob": "182305c69c0255e6b368cab9507eb62453a64ff6",
+      "stagedSha256": "c5aaffb2a9f5232cfc6d0f90e036b9ea09c121433cc9d3b3e2daa64abca2376c",
+      "worktreeSha256": "ee2f5b547b62016b31017f794722ce42245162cd5e5424e07163e1969cfd1065",
+      "bytes": 16890
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/DeclaredBusinessFormLayout.vue",
+      "gitBlob": "d1dba42e3f43496b1c5e11bbc4129d74d03a2393",
+      "stagedSha256": "fa69ec02086b7d0aa57b2e166299429e8bf563a4584d46b1d06b70e7dbd3ede2",
+      "worktreeSha256": "a5b0967a764640fdc8e8610273a6553abf63f90ad0be775160110b2907745c76",
+      "bytes": 1573
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/DeliveryPanel.runtime.spec.ts",
+      "gitBlob": "752cc9da27bb367e1f9124494f241a27ec5f8eda",
+      "stagedSha256": "85f57c1386495d5c63e60960aac59ef21484f5dc0b6abac47b516294c94ac8f1",
+      "worktreeSha256": "6836ee9ea89f156d9cfa0f61c9264dbe59512adb025fae435eade2bdf8666382",
+      "bytes": 4999
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/DeliveryPanel.vue",
+      "gitBlob": "d689cc048d261c5f5f8b2dd6a5ff7396d6e4468e",
+      "stagedSha256": "dfdeabb1a09d88fdcd53f3ea09bf80fdc7ff44844eb32c7f6707a885d2e9cd92",
+      "worktreeSha256": "b63145d4d81cc2d1068c7a41b158eafe7fb62a15767a619f049ffd14ac669c15",
+      "bytes": 13769
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/businessOperationIntent.ts",
+      "gitBlob": "319b4928a05c4b01345d0a8b68ff2e2a827bc921",
+      "stagedSha256": "542d055a4b5ab1077ad0f20082719f17d33ba6382a7f8a9f0a6bd16b85bf35ac",
+      "worktreeSha256": "e3750fff095209298489974ea265cb8bfeb7ebe33ea3698015c260ac15a7d2f7",
+      "bytes": 2174
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/declaredFormPresentation.runtime.spec.ts",
+      "gitBlob": "79b103234f6e22873173e81f26833b1dbbc04a40",
+      "stagedSha256": "22dea42523b274950c2a2228cf082c286dc44b4b6570c5cb08b057f334f1fe21",
+      "worktreeSha256": "ed27c3d185e02b91fac75827edaea1f46d5774963e108001d17082243318290a",
+      "bytes": 2812
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/declaredFormPresentation.ts",
+      "gitBlob": "0afee015076a11e2ad88f31ba3ce0bcccdd31b50",
+      "stagedSha256": "addd4f3a50a81b8a0e0efd2fd98c0b1a0c9ad8d1df8fad6845b59447524d7326",
+      "worktreeSha256": "3dbefb1b4b17bb448425e6905927568d398c5bb6ce3b66d0c4b13fc455b0aa75",
+      "bytes": 2782
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/useBusinessEntity.runtime.spec.ts",
+      "gitBlob": "94cb54a9e3cef187a8b28b4dd83f0c172d8718ac",
+      "stagedSha256": "b24f8a1af6b117a70ccd14787059a13e7cbf773b9088241d7618bf27304c42e1",
+      "worktreeSha256": "e67487a5a93433e9538182b000a1f1694e43e072f6baeba04c9c35251a46c791",
+      "bytes": 9585
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessEntity/useBusinessEntity.ts",
+      "gitBlob": "049fff7c5f0da7f69ea91f5a47be4bf6b558732c",
+      "stagedSha256": "279622024fd9ec6e4dd3ede51914d15193176ccf0448f3a67979d17cad2a2a70",
+      "worktreeSha256": "1485ff7bc7e444287a04f172e926e4e4e76d56df72f4ae52414903ec50c0c8d9",
+      "bytes": 8199
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/BusinessView.runtime.spec.ts",
+      "gitBlob": "cb7bd1ccc34604f850938ed30d27ad89f63a192c",
+      "stagedSha256": "0e97510d192e57bf8d4aa04ef1a9c214ff19b31cdbd59b778c999d1e1e8f4c09",
+      "worktreeSha256": "673d44cc0316c6165cfc012c1ba4840fcfa47eebb62337aa51ed3c47f33626cf",
+      "bytes": 37996
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/DeclaredBusinessView.vue",
+      "gitBlob": "316e0134dcc552d9ecd0796ac784c55848230080",
+      "stagedSha256": "66a78b45ce09d76af920eb69684702f7c5f758a5f0d4570fd8de352434ac97b0",
+      "worktreeSha256": "cd8ffdff33649ed34a435127a2edd35d48ce4386d162182b54247a921232f3e8",
+      "bytes": 567
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/presentationHost.runtime.spec.ts",
+      "gitBlob": "eeb0643cc2332b13f07e2edbde11e34173018a1e",
+      "stagedSha256": "f4762c1b6d677a71514790f14e5292152127037b74ee82568e80e05543e3ce3b",
+      "worktreeSha256": "26d6876e6a4b1b6ed54fa824ae5b1c8c6f31119db6e39aead8c0530585f2483a",
+      "bytes": 6322
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/BusinessView/registry.ts",
+      "gitBlob": "dbd58785250d7e30a7193ce5d16cf07fa5a85a95",
+      "stagedSha256": "2129e4e1c189c36607710ea141b9e04aa24b21f2b7c0044cf0d108e81c5db63a",
+      "worktreeSha256": "cb70b8c71835e399cbdcdad437e9ca7b825be3d980244b37e6a1c328e54dbd68",
+      "bytes": 12257
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/DeliveryArtifact/DeliveryUploader.runtime.spec.ts",
+      "gitBlob": "5533958f9b5f5b5af9475645b105ebf5740f7b3d",
+      "stagedSha256": "a8cb5a86929074c393d86ad8e005b30527a0773bb3b163f70d42359ddf13341a",
+      "worktreeSha256": "0b93b66753c2732629985ebbf7f10b19116d9467b67c843233a050bd1811acba",
+      "bytes": 3818
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/DeliveryArtifact/DeliveryUploader.vue",
+      "gitBlob": "fca339dda8fc66e69f6512867adc36fbf48df024",
+      "stagedSha256": "46e1d6d16625c65df315b3488552ae439f2b1f31cee247873ea417daf5fc3bbd",
+      "worktreeSha256": "9c8dd3373dbb97a3773b50c463c34ff42220e128616c8abc1d8e356e64fe8d52",
+      "bytes": 2558
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/components/DeliveryArtifact/uploadDeliveryFile.ts",
+      "gitBlob": "98ffe931db6146f1aec7d53ecb0568ff58b2bd09",
+      "stagedSha256": "ce8695e47c28b9fa4263828713fc41669230d24e6f028a708bda79642f1b79ba",
+      "worktreeSha256": "d052ce806e787768206796d5b7fce0f90cb39227972428cb3fb2ed7d4ac95e34",
+      "bytes": 2235
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/archive-document/index.vue",
+      "gitBlob": "4cac553442964c4c0bcb177c822768bab04e109c",
+      "stagedSha256": "e05c1df477515c8853f6842f6f2fe63f0232d0ba37ac69862eaa9f561593e0b6",
+      "worktreeSha256": "5e21676f1b0b7b0b36dcae01785ae99930e452589878183db8420735259447a3",
+      "bytes": 10584
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/completion-certificate/index.vue",
+      "gitBlob": "eb660d56344e6461035b753bcdadfacae33fc5e3",
+      "stagedSha256": "0edf837e7f7c010a9024baf6ac5c05fb0b31c02b4b4567f1536703b9ef061816",
+      "worktreeSha256": "45849277e4b74dc08025528eccddda0a94cfef69c9802c1fb8260728c7e48386",
+      "bytes": 22290
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/acceptance/deliverable-checklist/index.vue",
+      "gitBlob": "a23e5ca86acca4da574a65906e69c2596acb8076",
+      "stagedSha256": "d426abbdd822d020efdd39558079da965ed2ce534f4acbe58fa406bb06367211",
+      "worktreeSha256": "1da8278a4b7871dff8465c1cdd1bc9e403fb0f4ae37477bbdab359f5f2f0b6d8",
+      "bytes": 10691
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/entity/EntityForm.vue",
+      "gitBlob": "546210e0e346fec5079d47910f6a0bf341f5183f",
+      "stagedSha256": "272d8d95b32539a8e3c57e223da001df39fe8e29c2cd8aa22a7ea53f84101d59",
+      "worktreeSha256": "341f82672122965811cdbd50cc9b4ea39b55cc69cfec43176487651d363cdcb5",
+      "bytes": 16794
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.runtime.spec.ts",
+      "gitBlob": "db59545283b5fd50f109b4d98773fc7d2c29b031",
+      "stagedSha256": "72eb61d51880f2ed89bcc4306fdde673ff1eac4e27c28a34ca2c7bc39f1a6ddf",
+      "worktreeSha256": "aea25aef072c6cddc3db8554af69f64c5eeeba3024fa25bb004eedbee8372008",
+      "bytes": 6884
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue",
+      "gitBlob": "1617b989b28a97c9c457660468cbe2a5e2c9054e",
+      "stagedSha256": "7e237fe646044ac4d8df01444d708e8fc8aff6fa834547601d88bbba1ae88605",
+      "worktreeSha256": "0c4e176fc038d6e1a9a4ed3d669b21144dfcbde4c916493cec97e751d9d9c2f6",
+      "bytes": 23374
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/site-survey/index.vue",
+      "gitBlob": "a545df90136a25d96b81b2620bc245a36265c680",
+      "stagedSha256": "4eb1ea6fe47af3c835902648dc086158eecfe51c13bb2d34145d93d53c79ad7c",
+      "worktreeSha256": "b0c95765865eb876b57ae3779eeacbb28e38432a1fac94526599e730c7ff500a",
+      "bytes": 37966
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/site-survey/siteSurveyProjectContext.runtime.spec.ts",
+      "gitBlob": "0fcc91987ce7ca000ed0388f2f34538eb52ae5e9",
+      "stagedSha256": "fd975a70e1661fa02ac68ebd0488da354aba8d4427a290236a583e401c0e7d4b",
+      "worktreeSha256": "6d2ca3a9a22428ccc064a589b322e50ea37bbd5c4b45480b417d532b80d6d5cb",
+      "bytes": 35510
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/delivery-business/site-survey/surveyReceiptIntent.ts",
+      "gitBlob": "61e8c1e71d830bccf17ccae6257b7936185398ec",
+      "stagedSha256": "bcfd00ecd2b30b85f678be2c46bbefcd6ad4ca9f01c49655e4f10d4ee15a4532",
+      "worktreeSha256": "ed1b5565f37ff40fc456fd0059d3134eb2b84bf8ab687751733cfab0435a0eee",
+      "bytes": 3612
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/arrival/index.vue",
+      "gitBlob": "f76770c16a382353882b26b65f983d3aeae5402b",
+      "stagedSha256": "cec3438b41e4f131fb81e2598f9964d4bbd1d0ba9e7e4deff7eab7f3b46572f2",
+      "worktreeSha256": "dd8bfd9636325fdb26cd1ca7fb030a16d3e16e1b0228c5e390824f503beb186c",
+      "bytes": 12650
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/briefing/index.vue",
+      "gitBlob": "24db2fdbfa82b4f5cbba48698be75da2046f0c76",
+      "stagedSha256": "c3eb0ddc6ae3ed3ab2d62e08f6277268b4296795a0923d67763e5eba7ebc9cba",
+      "worktreeSha256": "c60eecd717223edf8483b9f278da47739baf3b3ef23bd65561b9442b1b7cdb82",
+      "bytes": 17443
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution-reviewed/CustomerSolutionDocumentPicker.vue",
+      "gitBlob": "903e324405ce51b870e22ca52b028bf500cdbc91",
+      "stagedSha256": "5f756f914a9011896c126f21327393d9909525c2214154d0201e498dd4828465",
+      "worktreeSha256": "78f8a681d913bbb17a8ee4147f95b6f56633ad8a1be411f4d4b2d75dd794b46d",
+      "bytes": 1556
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution-reviewed/SolutionDocMetaForm.vue",
+      "gitBlob": "53157dade06808aa845125c188c1ffa54b022e52",
+      "stagedSha256": "150781fac7c9f367e9103ad0e0d50c57f470b9f1ccfdffc06c6dac9fb7eea183",
+      "worktreeSha256": "43da342abaa13403a4c5490a21cf789b9cc2251cf354cdb2e3a21e3b41741889",
+      "bytes": 3499
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution-reviewed/SolutionReviewChapterForm.vue",
+      "gitBlob": "d21052998726cb488fbdc74aa7c2f7a345f78c41",
+      "stagedSha256": "1d73ada7d46969c2bc5d1c9b4dbb3ee1e64bed7cfeefe588a45ec614248441ce",
+      "worktreeSha256": "7abce151726d79aca1284164511b79712bbe661181c1c63a5f935432978de3dc",
+      "bytes": 55303
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution-reviewed/index.vue",
+      "gitBlob": "239db9a7cc33b33a44a9508e24f2095c2113c8de",
+      "stagedSha256": "b3e5fff7fcd26bbe169c3b28d87b91cd3c34e3dbc99e7b7f1b5887fe60a43242",
+      "worktreeSha256": "2192266d7b532ad4dd9c4e6013fbbde02e3adb720bd448460001c562dfc4d2b1",
+      "bytes": 23017
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution-reviewed/saveCustomerSolutionDocuments.runtime.spec.ts",
+      "gitBlob": "7f323949005d2824195a2a46cb5c3b15b0aff6aa",
+      "stagedSha256": "f4eebb382c2a4ad421e1df11d63de6b038a6e89a638b24a85761efd192a22bf0",
+      "worktreeSha256": "7aa26c65b21a8f983c0d1ffa02f7b6e92c96f519d9dfb61dc4c8202fee155645",
+      "bytes": 5649
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution-reviewed/saveCustomerSolutionDocuments.ts",
+      "gitBlob": "fa7f56c6930e3c0e77fa416008b0c36e443d54e4",
+      "stagedSha256": "d5a0b9692cb50060be891aa3d61ca903c2963f2154df03c9170a255dfc4dbdbc",
+      "worktreeSha256": "9613a4f0d967091c1fd335538ca9cef96f5e75cb0c714c15cbe076191202a265",
+      "bytes": 3362
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/SolutionChapterForm.vue",
+      "gitBlob": "2f311d367b1d96b52144a19b35263331ce907487",
+      "stagedSha256": "ae832fd26b7e99dc6cddbc28403289ceed02818f460b8f8c40fad04d3f6cfb49",
+      "worktreeSha256": "0ac5518a866c56e4c2d5cb493003041ef333239a8d319031cbea6a7f2eec82fa",
+      "bytes": 51143
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/saveGeneratedSolutionHtml.runtime.spec.ts",
+      "gitBlob": "1bcc10ad09f4b71558cc4282a12dca634210c332",
+      "stagedSha256": "c7220ed421444f894924d8440b140a419a6de221ba10a1a0aa52acde8d695297",
+      "worktreeSha256": "3f2e017aa63f0f3ce8978d231427ca6036ff4186bd909e20fbc4791bca7d5a0f",
+      "bytes": 1757
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/solution/saveGeneratedSolutionHtml.ts",
+      "gitBlob": "279f54f53367a8395e495972f2ff25d49231f503",
+      "stagedSha256": "8756e27e90983222fae49da5c0dcbf3720dec6706ff0983aae52f78c69dc6616",
+      "worktreeSha256": "766cc5ed2c8480cc4eb2212fbaa970c8564738cfeb684d96dbc1e4ceafc6f2c0",
+      "bytes": 928
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/training/TrainingPrintPreview.delivery.runtime.spec.ts",
+      "gitBlob": "73f96fcd99df51b99220eace86c48f3e69e2a6aa",
+      "stagedSha256": "5c31c1c349f6ef36ea49522eae329a93bf09fecfb27032b4d306b53ef61476ab",
+      "worktreeSha256": "e5c5cd04c4d158f32e2d64489cbbef85377f1c5a44bfeb2a0267e6a37384ec76",
+      "bytes": 6141
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/training/TrainingPrintPreview.vue",
+      "gitBlob": "7ac6ea204989fdd5df46e152bea5010e55f82453",
+      "stagedSha256": "b30d019bc10eef1d5e1a11edf0b08fba11cea5a35821e3bef23054879b17ae04",
+      "worktreeSha256": "e6a1c8fb4074fa20c5b765c81e4a4a8029d91987494385cd5f5d48704f7a4aea",
+      "bytes": 14773
+    },
+    {
+      "path": "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/training/index.vue",
+      "gitBlob": "fbd9b61947fa623552b656f67dd8cef7559d9bc7",
+      "stagedSha256": "31e92e4915a3e6e42bf5909911e24e1d2df6bc5a9c3d1932e91de3e28dd6b1bf",
+      "worktreeSha256": "0d8eeb0c3d5675aae19b9b412f7f7827806f417e9491fba22d21b9d8e855c711",
+      "bytes": 29282
+    }
+  ],
+  "excluded": [
+    {
+      "path": "LOG_FILE_IS_UNDEFINED",
+      "reason": "Spring runtime logging output; retained locally, excluded from upload.",
+      "sha256": "60eef8cffc53e7c1e293975eb3a548f8574ee2237e45e9555676f679e896b38d"
+    },
+    {
+      "path": "docs/generated/2026-09-27-fullflow-test/browser/tmp-training.png",
+      "reason": "Temporary browser screenshot without acceptance provenance; retained locally.",
+      "sha256": "a498cb976d7f89f37f88abd2b41521f27535e583b5d4b645be61a1edfd09bf00"
+    },
+    {
+      "path": "docs/generated/2026-09-27-fullflow-test/browser/tmp-view.png",
+      "reason": "Temporary browser screenshot without acceptance provenance; retained locally.",
+      "sha256": "24d66e1f050160e071d499e23fc570c1c4edddecbfce8e2e39c2f4d79b04572a"
+    }
+  ],
+  "securityScan": "All staged text blobs scanned; no high-confidence private key/token pattern. Literal DO_NOT_PERSIST is a synthetic test sentinel.",
+  "selfExcludedFromHashes": "checkpoint-files.json"
+}

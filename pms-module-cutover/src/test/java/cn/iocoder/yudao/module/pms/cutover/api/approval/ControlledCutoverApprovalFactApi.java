@@ -39,7 +39,7 @@ public final class ControlledCutoverApprovalFactApi implements CutoverApprovalFa
         }
         long approvalInstanceId = nextApprovalInstanceId++;
         CutoverApprovalFact fact = new CutoverApprovalFact(
-                approvalInstanceId, 0, command.taskId(), command.planRevisionId(), command.planRevisionNo(),
+                approvalInstanceId, 0L, command.taskId(), command.planRevisionId(), command.planRevisionNo(),
                 ApprovalStatus.PENDING, command.sourceSnapshotVersion(), null, null, null);
         facts.put(approvalInstanceId, fact);
         planIndex.put(new PlanKey(command.tenantId(), command.taskId(), command.planRevisionId()), approvalInstanceId);

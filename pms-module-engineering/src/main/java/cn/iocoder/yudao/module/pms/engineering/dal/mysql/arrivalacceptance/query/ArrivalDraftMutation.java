@@ -2,7 +2,7 @@ package cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrivalacceptance.quer
 
 import java.time.LocalDateTime;
 
-public record ArrivalDraftMutation(Long tenantId, Long arrivalAcceptanceId, Integer expectedVersion,
+public record ArrivalDraftMutation(Long tenantId, Long arrivalAcceptanceId, Long expectedVersion,
                                    String logisticsNo, LocalDateTime arrivedAt, String signerSnapshot,
                                    Long actorUserId) {
 }

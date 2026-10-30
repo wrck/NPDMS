@@ -10,7 +10,7 @@ public record ProjectParticipantFact(
         String assignmentType,
         String lifecycleStatus,
         String currentStage,
-        Integer projectVersion,
+        Long projectVersion,
         Long factVersion) {
 
     public ProjectParticipantFact {

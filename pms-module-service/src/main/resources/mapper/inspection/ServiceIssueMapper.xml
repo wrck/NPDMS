@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.ServiceIssueMapper">
+    <select id="selectForTaskForUpdate" resultType="cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.ServiceIssueDO">
+        SELECT * FROM srv_service_issue
+        WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId} AND deleted=b'0'
+        ORDER BY id FOR UPDATE
+    </select>
+    <select id="selectForGovernance" resultType="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.InspectionIssueGovernanceFact">
+        SELECT i.*,t.project_id FROM srv_service_issue i
+        JOIN srv_inspection_task t ON t.tenant_id=i.tenant_id AND t.id=i.task_id
+        WHERE i.tenant_id=#{query.tenantId} AND i.deleted=b'0' AND t.deleted=b'0'
+        <choose>
+            <when test="query.projectIds != null and !query.projectIds.isEmpty()">
+                AND t.project_id IN
+                <foreach collection="query.projectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        ORDER BY t.project_id,i.task_id,i.id
+    </select>
+    <select id="selectWorkbench" resultType="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.ServiceIssueSummary">
+        SELECT i.*,t.task_code,t.task_name FROM srv_service_issue i
+        JOIN srv_inspection_task t ON t.tenant_id=i.tenant_id AND t.id=i.task_id AND t.deleted=b'0'
+        WHERE i.tenant_id=#{query.tenantId} AND i.responsible_user_id=#{query.actorId}
+          AND i.deleted=b'0' AND i.status_code!='CLOSED'
+        <choose>
+            <when test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+                AND t.project_id IN <foreach collection="query.visibleProjectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        ORDER BY i.due_at,i.id LIMIT #{query.limit}
+    </select>
+</mapper>

@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface JointTestVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   testCase: string
   equipmentId?: number | string
   participants?: string
@@ -18,7 +18,7 @@ export interface JointTestVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-joint-test'
+const baseUrl = '/pms/imp-joint-test'
 
 export const getJointTestPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

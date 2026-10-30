@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.installation.vo.InstallationPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.installation.InstallationDO;
@@ -11,7 +11,13 @@ import org.apache.ibatis.annotations.Mapper;
  * PMS 硬件安装 Mapper（FR-ENG-022）。
  */
 @Mapper
-public interface InstallationMapper extends BaseMapperX<InstallationDO> {
+public interface InstallationMapper extends ProjectScopedCodeMapper<InstallationDO> {
+
+    java.util.List<InstallationDO> selectProjectAddressRecordsForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.ProjectInstallationAddressQuery query);
+
+    java.util.List<cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.projection.InstallationCurrentAddressProjection> selectCurrentAddresses(
+            @org.apache.ibatis.annotations.Param("query") cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.InstallationCurrentAddressesQuery query);
 
     default PageResult<InstallationDO> selectPage(InstallationPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<InstallationDO>()
@@ -21,10 +27,6 @@ public interface InstallationMapper extends BaseMapperX<InstallationDO> {
                 .eqIfPresent(InstallationDO::getEquipmentId, reqVO.getEquipmentId())
                 .eqIfPresent(InstallationDO::getInstallerUserId, reqVO.getInstallerUserId())
                 .orderByDesc(InstallationDO::getId));
-    }
-
-    default InstallationDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(InstallationDO::getProjectId, projectId, InstallationDO::getCode, code);
     }
 
     default InstallationDO selectCurrentByEquipmentId(Long equipmentId) {

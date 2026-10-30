@@ -24,7 +24,7 @@ class MaterialExchangeReservedIntegrationTest {
     @Test void reservedEndpointDoesNotSimulateSendingOrReceivingAnOrder() {
         for (String claimedOrder : new String[]{null, "CRM-CALLER-SUPPLIED"}) {
             MaterialExchangeDO row = new MaterialExchangeDO();
-            row.setId(1L); row.setStatus(3); row.setVersion(7); row.setCrmPushStatus("PENDING");
+            row.setId(1L); row.setStatus(3); row.setVersion(7L); row.setCrmPushStatus("PENDING");
             when(mapper.selectById(1L)).thenReturn(row);
 
             ServiceException error = assertThrows(ServiceException.class, () -> service.pushToCrm(1L, claimedOrder));
@@ -44,7 +44,7 @@ class MaterialExchangeReservedIntegrationTest {
         MaterialExchangeDO row = new MaterialExchangeDO();
         row.setId(2L); row.setCrmPushStatus("RECEIVED"); row.setCrmOrderNo("CRM-HISTORICAL");
         LocalDateTime sentAt = LocalDateTime.of(2026, 1, 1, 9, 0);
-        row.setCrmPushTime(sentAt); row.setVersion(4);
+        row.setCrmPushTime(sentAt); row.setVersion(4L);
         when(mapper.selectById(2L)).thenReturn(row);
 
         ServiceException error = assertThrows(ServiceException.class, () -> service.pushToCrm(2L, "OTHER"));

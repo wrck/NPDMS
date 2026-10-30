@@ -12,13 +12,13 @@
             AND preparation_type_code = 'PRE_04_REQUIREMENT_ANALYSIS'
         ORDER BY business_version, id FOR UPDATE
     </select>
-    <select id="lockTargets" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO">
+    <select id="lockTargets" resultMap="cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper.revision">
         SELECT <include refid="cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper.historyColumns"/>
         FROM sol_requirement_analysis_revision
         WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
         ORDER BY revision_no, id FOR UPDATE
     </select>
-    <select id="lockCurrent" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisDO">
+    <select id="lockCurrent" resultMap="cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper.current">
         SELECT <include refid="cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper.currentColumns"/>
         FROM sol_requirement_analysis
         WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} FOR UPDATE

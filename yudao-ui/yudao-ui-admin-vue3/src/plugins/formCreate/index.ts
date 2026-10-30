@@ -65,19 +65,14 @@ import install from '@form-create/element-ui/auto-import'
 
 //======================= 自定义组件 =======================
 import { UploadFile, UploadImg, UploadImgs } from '@/components/UploadFile'
-import { useApiSelect } from '@/components/FormCreate'
+import { useApiSelect, registerSignaturePad } from '@/components/FormCreate'
 import { Editor } from '@/components/Editor'
 import DictSelect from '@/components/FormCreate/src/components/DictSelect.vue'
 import DeptSelect from '@/components/FormCreate/src/components/DeptSelect.vue'
 import IframeComponent from '@/components/FormCreate/src/components/IframeComponent.vue'
 import AreaSelect from '@/components/FormCreate/src/components/AreaSelect.vue'
+import UserSelect from '@/components/SystemUserSelect/FormCreateUserSelect.vue'
 
-const UserSelect = useApiSelect({
-  name: 'UserSelect',
-  labelField: 'nickname',
-  valueField: 'id',
-  url: '/system/user/simple-list'
-})
 const ApiSelect = useApiSelect({
   name: 'ApiSelect'
 })
@@ -131,4 +126,5 @@ export const setupFormCreate = (app: App<Element>) => {
   formCreate.use(install)
   app.use(formCreate)
   app.use(FcDesigner)
+  registerSignaturePad()
 }

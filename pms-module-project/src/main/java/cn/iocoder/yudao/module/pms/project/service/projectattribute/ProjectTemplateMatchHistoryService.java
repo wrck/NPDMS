@@ -36,9 +36,10 @@ public class ProjectTemplateMatchHistoryService {
                 || !Set.of(INPUT_MANUAL, INPUT_SOURCE).contains(command.inputOrigin())) {
             throw new IllegalArgumentException("首次模板匹配历史命令不完整");
         }
-        ProjectAttributeSnapshot attributes = INPUT_MANUAL.equals(command.inputOrigin())
-                ? TemplateMatchDecisionRules.requireManualCreationAttributes(command.attributes())
-                : TemplateMatchDecisionRules.requireCommonAttributes(command.attributes());
+        // 历史只负责记录决策时点的真实属性：客户端级别注入已在创建入口校验拒绝（validate/previewMatching/
+        // resolveInitial），合同主档链创建经服务端按CRM执行单回填重大项目级别后，此处不得再按纯手工口径误拒。
+        ProjectAttributeSnapshot attributes = TemplateMatchDecisionRules
+                .requireCommonAttributes(command.attributes());
         TemplateMatchDecisionRules.requireOwners(command.attributeOwners());
         TemplateMatchDecisionRules.validateInitialDecision(command.decision());
         if (!command.frozenTemplateRevisionId().equals(command.decision().matchedTemplateRevisionId())) {

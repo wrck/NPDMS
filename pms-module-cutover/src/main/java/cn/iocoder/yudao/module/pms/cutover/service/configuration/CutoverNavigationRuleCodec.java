@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.configuration;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
-import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationSaveReqVO;
+import cn.iocoder.yudao.module.pms.cutover.controller.business.configuration.vo.CutoverConfigurationSaveReqVO;
 import tools.jackson.databind.JsonNode;
 
 import java.util.HashSet;

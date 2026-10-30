@@ -1,0 +1,21 @@
+name: npdms-test-release
+
+services:
+  migrate:
+    image: flyway/flyway:11.10.5-alpine
+    restart: "no"
+    environment:
+      FLYWAY_URL: ${NPDMS_RELEASE_JDBC_URL:?Set the explicit target database JDBC URL}
+      FLYWAY_USER: ${NPDMS_RELEASE_DB_USER:?Set the migration database user}
+      FLYWAY_PASSWORD: ${NPDMS_RELEASE_DB_PASSWORD:?Set the migration database password}
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+      FLYWAY_CONNECT_RETRIES: "10"
+      FLYWAY_CLEAN_DISABLED: "true"
+      FLYWAY_BASELINE_ON_MIGRATE: "false"
+      FLYWAY_VALIDATE_ON_MIGRATE: "true"
+      FLYWAY_VALIDATE_MIGRATION_NAMING: "true"
+      # Form/print definitions can contain literal ${...}; these are not deployment placeholders.
+      FLYWAY_PLACEHOLDER_REPLACEMENT: "false"
+    command: ["migrate"]
+    volumes:
+      - ./migrations:/flyway/sql:ro

@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFi
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadCompletePolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadInitializePolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadPolicyFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FrozenFileVersionAccessQuery;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -38,6 +39,14 @@ public class FileBusinessObjectPolicyRegistry {
 
     public FileBusinessObjectPolicyRegistry(List<FileBusinessObjectPolicyProvider> providers) {
         this.providers = List.copyOf(providers);
+    }
+
+    public FileBusinessObjectPolicyFact lockNativeGeneratedFile(cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFilePolicyQuery query) {
+        var provider=requireUniqueProvider(query.ownerContext(),query.objectType());
+        var fact=requireUsableFact(provider.lockAndRevalidateNativeGeneratedFile(query));
+        if(query.expectedScopeVersion()!=null && !query.expectedScopeVersion().equals(fact.scopeVersion()))
+            throw exception(FILE_SCOPE_VERSION_CONFLICT);
+        return fact;
     }
 
     public FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query) {
@@ -79,6 +88,29 @@ public class FileBusinessObjectPolicyRegistry {
             throw exception(FILE_PROVIDER_UNAVAILABLE);
         }
         return requireUsableFact(fact);
+    }
+
+    public FileBusinessObjectPolicyFact inspectFrozenFileVersion(FrozenFileVersionAccessQuery query) {
+        return frozenFileVersion(query, false);
+    }
+
+    public FileBusinessObjectPolicyFact lockAndRevalidateFrozenFileVersion(FrozenFileVersionAccessQuery query) {
+        return frozenFileVersion(query, true);
+    }
+
+    private FileBusinessObjectPolicyFact frozenFileVersion(FrozenFileVersionAccessQuery query, boolean lock) {
+        var provider = requireUniqueProvider(query.scope().ownerContext(), query.scope().objectType());
+        FileBusinessObjectPolicyFact fact;
+        try {
+            fact = lock ? provider.lockAndRevalidateFrozenFileVersion(query) : provider.inspectFrozenFileVersion(query);
+        } catch (RuntimeException ex) {
+            throw exception(FILE_PROVIDER_UNAVAILABLE);
+        }
+        fact = requireUsableFact(fact);
+        if (!query.expectedScopeVersion().equals(fact.scopeVersion())) {
+            throw exception(FILE_SCOPE_VERSION_CONFLICT);
+        }
+        return fact;
     }
 
     public FileBusinessObjectPolicyFact lockAndRevalidateReferenceSet(

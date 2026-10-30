@@ -56,7 +56,7 @@ class ProjectReworkMapperTest {
                 assertEquals(1,mapper.resetTaskProjection(new ProjectReworkTaskReset(1L,9L,2L,5,"DONE","PENDING_ASSIGN","9")));
                 assertEquals(1,mapper.retireEndedExecution(new ProjectExecutionRetire(1L,9L,20L,1)));
                 jdbc.execute("INSERT INTO proj_project_node_execution VALUES (21,1,9,'t1',0,1,'PENDING',0,NULL,NULL)");
-                assertEquals(1,mapper.advanceProjectVersion(new ProjectReworkVersionUpdate(1L,9L,50L,3,"9")));
+                assertEquals(1,mapper.advanceProjectVersion(new ProjectReworkVersionUpdate(1L,9L,50L,3L,"9")));
             };
             assertThrows(IllegalStateException.class,()->transaction.executeWithoutResult(status->{ change.run(); throw new IllegalStateException("later write failed"); }));
             assertEquals("DONE",jdbc.queryForObject("SELECT status FROM proj_project_task WHERE id=2",String.class));
@@ -83,7 +83,7 @@ class ProjectReworkMapperTest {
             assertEquals("old stage binding",jdbc.queryForObject("SELECT binding_snapshot FROM proj_project_stage_execution_contract WHERE id=40",String.class));
             assertEquals("old stage permission",jdbc.queryForObject("SELECT permission_snapshot FROM proj_project_stage_execution_contract WHERE id=40",String.class));
             assertEquals(41L,jdbc.queryForObject("SELECT id FROM proj_project_stage_execution_contract WHERE effective_to IS NULL",Long.class));
-            assertEquals(0,mapper.advanceProjectVersion(new ProjectReworkVersionUpdate(2L,9L,50L,4,"9")));
+            assertEquals(0,mapper.advanceProjectVersion(new ProjectReworkVersionUpdate(2L,9L,50L,4L,"9")));
             assertEquals(0,mapper.retireEndedExecution(new ProjectExecutionRetire(1L,9L,21L,0)));
         } finally { database.shutdown(); }
     }

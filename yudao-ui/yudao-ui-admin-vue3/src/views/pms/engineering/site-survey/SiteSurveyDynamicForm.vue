@@ -23,7 +23,7 @@ import formCreateEngine from '@form-create/element-ui'
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey'
 import { getFormSchema } from '@/api/pms/engineering/site-survey'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
-import { extractSurveyValues, mergeSurveyValues } from './siteSurveyForm'
+import { currentSurveyRules, extractSurveyValues, mergeSurveyValues } from './siteSurveyForm'
 import SurveyOutsourceShortcut from './SurveyOutsourceShortcut.vue'
 import SurveyProcurementLinks from './SurveyProcurementLinks.vue'
 import SurveyMaterialSelector from './SurveyMaterialSelector.vue'
@@ -65,12 +65,22 @@ const load = async () => {
     )
     if (sequence !== loadSequence) return
     const decoded = decodeDynamicForm(schema.formConfJson, schema.formRulesJson)
+    decoded.rule = currentSurveyRules(decoded.rule)
     let integratedOutsource = false
     const visit = (items: any[]) =>
       items.forEach((rule) => {
         if (!rule || typeof rule !== 'object') return
         if (rule.type in businessComponents) {
-          if (rule.type === 'SurveyOutsourceShortcut') integratedOutsource = true
+          if (rule.type === 'SurveyOutsourceShortcut') {
+            integratedOutsource = true
+            // Demo 2.2 第8项联动：模板含第8项时才启用 是→显示/否→隐藏清空 的可见性契约
+            rule.props = {
+              ...rule.props,
+              hasManufacturerQuestion: decoded.rule.some(
+                (item: any) => item?.field === 'extra_manufacturerInstallation'
+              )
+            }
+          }
           rule.props = {
             ...rule.props,
             getSurvey: () => props.modelValue,

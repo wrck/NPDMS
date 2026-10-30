@@ -97,7 +97,7 @@ public class CommerceAuthorityCandidateService {
                     row.setCandidateStatus(PENDING);
                     row.setSubmittedBy(command.actorId());
                     row.setSubmittedAt(now);
-                    row.setVersion(0);
+                    row.setVersion(0L);
                     auditBase(row, command.actorId(), now);
                     requireWrite(candidateMapper.insert(row), "候选创建失败");
                     return view(row);
@@ -322,7 +322,7 @@ public class CommerceAuthorityCandidateService {
                                          String evidenceReference, String idempotencyKey, String correlationId) {
     }
 
-    public record DecideCandidateCommand(Long tenantId, Long actorId, Long candidateId, Integer expectedVersion,
+    public record DecideCandidateCommand(Long tenantId, Long actorId, Long candidateId, Long expectedVersion,
                                          Long ownerId, String decisionReason,
                                          String idempotencyKey, String correlationId) {
     }
@@ -333,7 +333,7 @@ public class CommerceAuthorityCandidateService {
 
     public record CandidateResult(Long candidateId, String objectType, String sourceKey, String candidateVersion,
                                   String candidateStatus, String matchedOwnerType, Long matchedOwnerId,
-                                  String matchedOwnerSourceVersion, String decisionReason, Integer version) {
+                                  String matchedOwnerSourceVersion, String decisionReason, Long version) {
     }
 
     public enum Code {

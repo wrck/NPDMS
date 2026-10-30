@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.mysql.outbox.query.OutboxDeliver
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.outbox.query.OutboxRetryUpdateQuery;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -21,18 +22,27 @@ import java.util.Set;
 public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi {
 
     static final Set<String> SUPPORTED_EVENT_TYPES = Set.of(
+            "CollectionResultAvailable", "CollectionFailed", "CollectionCancelled",
             "ProjectServiceManagerAssigned", "TaskAssigned", "TaskCompleted", "ProjectRuleReevaluationRequested", "ProjectRuleTimerRequested",
             "ProjectChildClosureChanged",
             "FileVersionCommitted", "FileReferenceAttached", "FileReferenceDetached", "FileArchived",
             "DeviceAssigned", "AcceptanceReportVersionChanged", "SatisfactionTaskCreated",
-            "SatisfactionResultVersionChanged", "ImplementationEvidencePublished");
+            "SatisfactionResultVersionChanged", "ImplementationEvidencePublished", "CutoverCompleted",
+            // S5 业务结果接收管道：ProjectRuleOutboxDeliveryJob 恢复领取时会一并纳入 claim 集合，
+            // 取值与 pms-module-project 的 BusinessOperationResultEvent/ProjectResultTargetEvent/
+            // ProjectResultSubscriptionDelivery.eventTypes() 保持一致（platform 不依赖 project，故为字面量）。
+            "PMS.BusinessOperationResultCommitted.v1", "PMS.ProjectBusinessResultTarget.v1",
+            "PMS.BusinessResultChangeCommitted.v1", "PMS.ResultSubscriptionWakeup.v1",
+            "PMS.ResultSubscriptionFanout.v1", "PMS.ResultEvidenceScan.v1", "PMS.ResultEvidenceEvaluated.v1");
     static final int MAX_BATCH_SIZE = 100;
 
     @Resource
     private PlatformOutboxDeliveryMapper mapper;
 
     @Override
-    @Transactional
+    // Release locks on scanned rows that do not match this consumer's event types.
+    // REPEATABLE_READ retains them and can starve other SKIP LOCKED consumers.
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public List<PlatformOutboxMessageDTO> claimDue(PlatformOutboxClaimQuery query) {
         if (query == null || query.dueAt() == null || query.limit() <= 0 || query.limit() > MAX_BATCH_SIZE
                 || query.eventTypes() == null || query.eventTypes().isEmpty()

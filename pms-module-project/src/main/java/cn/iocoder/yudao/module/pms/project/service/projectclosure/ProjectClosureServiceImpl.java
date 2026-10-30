@@ -1,15 +1,24 @@
 package cn.iocoder.yudao.module.pms.project.service.projectclosure;
 
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectclosure.query.ProjectClosurePageQuery;
+import java.util.Set;
+import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.pms.acceptance.api.acceptance.ProjectAcceptanceFactApi;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosurePageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.projectclosure.vo.ProjectClosureSaveReqVO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.acceptance.AcceptanceDO;
-import cn.iocoder.yudao.module.pms.project.dal.dataobject.phase.ProjectPhaseDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure.ProjectClosureDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.acceptance.AcceptanceMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.phase.ProjectPhaseMapper;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageInstanceMapper;
+import cn.iocoder.yudao.module.pms.project.api.reference.ProjectScopedCodes;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectclosure.ProjectClosureMapper;
 import cn.iocoder.yudao.module.pms.project.service.projectclosureguard.ProjectClosureGuardResult;
 import cn.iocoder.yudao.module.pms.project.service.projectclosureguard.ProjectClosureGuardService;
@@ -43,6 +52,9 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_P
 @Validated
 public class ProjectClosureServiceImpl implements ProjectClosureService {
 
+    @Resource
+    private ProjectScopeApi projectScopeApi;
+
     /**
      * 状态：0草稿
      */
@@ -69,13 +81,9 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     private static final int STATUS_ARCHIVED = 5;
 
     /**
-     * 项目阶段状态：2已完成
+     * 阶段实例终态：DONE（proj_project_stage 承载；新域无"已跳过"，仅 DONE 视为完成）
      */
-    private static final int PHASE_STATUS_COMPLETED = 2;
-    /**
-     * 项目阶段状态：3已跳过
-     */
-    private static final int PHASE_STATUS_SKIPPED = 3;
+    private static final String STAGE_STATUS_DONE = "DONE";
     /**
      * 验收类型：终验
      */
@@ -96,18 +104,22 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     @Resource
     private ProjectClosureMapper projectClosureMapper;
     @Resource
-    private ProjectPhaseMapper projectPhaseMapper;
+    private ProjectMasterMapper projectMasterMapper;
     @Resource
-    private AcceptanceMapper acceptanceMapper;
+    private ProjectStageInstanceMapper stageInstanceMapper;
+    @Resource
+    private ProjectAcceptanceFactApi projectAcceptanceFactApi;
     @Resource
     private ProjectClosureGuardService projectClosureGuardService;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public Long createProjectClosure(ProjectClosureSaveReqVO createReqVO) {
-        // 校验项目内编码唯一
-        validateCodeUnique(null, createReqVO.getProjectId(), createReqVO.getCode());
-        // 插入
+        requireManage(createReqVO.getProjectId());
+        if (createReqVO.getStatus() != null && createReqVO.getStatus() != STATUS_DRAFT) throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
+        // 插入；编码由系统按项目编码自动生成
         ProjectClosureDO entity = BeanUtils.toBean(createReqVO, ProjectClosureDO.class);
+        entity.setCode(nextClosureCode(createReqVO.getProjectId()));
         if (entity.getStatus() == null) {
             entity.setStatus(STATUS_DRAFT);
         }
@@ -119,11 +131,13 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void updateProjectClosure(ProjectClosureSaveReqVO updateReqVO) {
         ProjectClosureDO existing = validateExists(updateReqVO.getId());
-        // 校验项目内编码唯一
-        validateCodeUnique(updateReqVO.getId(), updateReqVO.getProjectId(), updateReqVO.getCode());
-        // 仅草稿态允许修改核心字段
+        requireManage(existing.getProjectId());
+        if (updateReqVO.getProjectId() != null && !Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())) throw exception(FORBIDDEN);
+        updateReqVO.setProjectId(existing.getProjectId());
+        // 仅草稿态允许修改核心字段（编码由系统生成不可改）
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -134,8 +148,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void deleteProjectClosure(Long id) {
         ProjectClosureDO existing = validateExists(id);
+        requireManage(existing.getProjectId());
         // 仅草稿或已驳回状态允许删除
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)
                 && !Objects.equals(existing.getStatus(), STATUS_REJECTED)) {
@@ -146,18 +162,26 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
 
     @Override
     public PageResult<ProjectClosureDO> getProjectClosurePage(ProjectClosurePageReqVO pageReqVO) {
-        return projectClosureMapper.selectPage(pageReqVO);
+        Set<Long> visible = projectScopeApi.resolveAllCurrent(new ProjectAllScopeQuery(
+                TenantContextHolder.getRequiredTenantId(), actorId(), ProjectScopeApi.ACTION_VIEW));
+        if (visible == null || visible.isEmpty() || pageReqVO.getProjectId() != null && !visible.contains(pageReqVO.getProjectId())) return PageResult.empty();
+        ProjectClosurePageQuery query = BeanUtils.toBean(pageReqVO, ProjectClosurePageQuery.class);
+        query.setVisibleProjectIds(Set.copyOf(visible));
+        return projectClosureMapper.selectPage(query);
     }
 
     @Override
     public ProjectClosureDO getProjectClosure(Long id) {
-        return projectClosureMapper.selectById(id);
+        ProjectClosureDO entity = validateExists(id);
+        requireView(entity.getProjectId());
+        return entity;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void submitProjectClosure(Long id, long expectedTreeVersion, ProjectClosureGuardService.Actor actor) {
         ProjectClosureDO entity = validateExists(id);
+        requireManage(entity.getProjectId());
         if (!Objects.equals(entity.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -176,8 +200,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void startApprove(Long id) {
         ProjectClosureDO entity = validateExists(id);
+        requireManage(entity.getProjectId());
         if (!Objects.equals(entity.getStatus(), STATUS_PENDING_APPROVE)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -185,8 +211,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void passProjectClosure(Long id) {
         ProjectClosureDO entity = validateExists(id);
+        requireManage(entity.getProjectId());
         if (!Objects.equals(entity.getStatus(), STATUS_APPROVING)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -200,8 +228,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void rejectProjectClosure(Long id) {
         ProjectClosureDO entity = validateExists(id);
+        requireManage(entity.getProjectId());
         if (!Objects.equals(entity.getStatus(), STATUS_APPROVING)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -213,8 +243,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void archiveProjectClosure(Long id) {
         ProjectClosureDO entity = validateExists(id);
+        requireManage(entity.getProjectId());
         if (!Objects.equals(entity.getStatus(), STATUS_PASSED)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -231,23 +263,20 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
      * 问题关闭、审批完成涉及跨模块，受领域边界约束留作占位。
      */
     private void validateClosureReadiness(ProjectClosureDO entity) {
-        // 1. 阶段完成：项目所有阶段必须为已完成或已跳过
-        List<ProjectPhaseDO> phases = projectPhaseMapper.selectListByProjectId(entity.getProjectId());
-        if (phases != null && !phases.isEmpty()) {
-            for (ProjectPhaseDO phase : phases) {
-                if (!Objects.equals(phase.getStatus(), PHASE_STATUS_COMPLETED)
-                        && !Objects.equals(phase.getStatus(), PHASE_STATUS_SKIPPED)) {
+        // 1. 阶段完成：项目所有阶段实例必须为 DONE（proj_project_stage 承载，新域无"已跳过"）
+        List<ProjectStageInstanceDO> stages = stageInstanceMapper.selectListByProjectId(entity.getProjectId());
+        if (stages != null && !stages.isEmpty()) {
+            for (ProjectStageInstanceDO stage : stages) {
+                if (!Objects.equals(stage.getStatus(), STAGE_STATUS_DONE)) {
                     throw exception(ACC_PROJECT_CLOSURE_VALIDATION_FAILED,
-                            "阶段[" + phase.getName() + "]尚未完成");
+                            "阶段[" + stage.getName() + "]尚未完成");
                 }
             }
         }
-        // 2. 验收通过：项目内须存在终验且状态为已通过或已归档
-        List<AcceptanceDO> finalAcceptances = acceptanceMapper.selectList(new LambdaQueryWrapperX<AcceptanceDO>()
-                .eq(AcceptanceDO::getProjectId, entity.getProjectId())
-                .eq(AcceptanceDO::getAcceptanceType, ACCEPTANCE_TYPE_FINAL)
-                .in(AcceptanceDO::getStatus, Arrays.asList(ACCEPTANCE_STATUS_PASSED, ACCEPTANCE_STATUS_ARCHIVED)));
-        if (finalAcceptances == null || finalAcceptances.isEmpty()) {
+        // 2. 验收通过：项目内须存在终验且状态为已通过或已归档（通过 ACC 契约消费验收事实，不直接访问 ACC 数据层）
+        Long tenantId = cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId();
+        boolean finalAcceptancePassed = projectAcceptanceFactApi.existsPassedFinalAcceptance(tenantId, entity.getProjectId());
+        if (!finalAcceptancePassed) {
             throw exception(ACC_PROJECT_CLOSURE_VALIDATION_FAILED, "终验尚未通过");
         }
         // 3. 问题关闭、4. 审批完成：跨模块（巡检问题 pms-module-service、BPM），受领域边界约束留作占位
@@ -266,22 +295,56 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
             throw exception(ACC_PROJECT_CLOSURE_NOT_EXISTS);
         }
         ProjectClosureDO entity = projectClosureMapper.selectById(id);
-        if (entity == null) {
+        if (entity == null || !Objects.equals(entity.getTenantId(), TenantContextHolder.getRequiredTenantId())) {
             throw exception(ACC_PROJECT_CLOSURE_NOT_EXISTS);
         }
         return entity;
     }
 
-    private void validateCodeUnique(Long id, Long projectId, String code) {
-        if (projectId == null || code == null) {
-            return;
+    /**
+     * 生成项目内唯一的下一条闭环记录编码（"{项目编码}-BH-三位序号"），作为系统内部关联。
+     */
+    private String nextClosureCode(Long projectId) {
+        ProjectMasterDO project = projectMasterMapper.selectById(projectId);
+        if (project == null) {
+            throw new IllegalArgumentException("PROJECT_NOT_FOUND");
         }
-        ProjectClosureDO existing = projectClosureMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing == null) {
-            return;
+        if (project.getProjectCode() == null || project.getProjectCode().isBlank()) {
+            throw new IllegalArgumentException("PROJECT_CODE_MISSING");
         }
-        if (id == null || !id.equals(existing.getId())) {
-            throw exception(ACC_PROJECT_CLOSURE_CODE_DUPLICATE, code);
+        List<String> existing = projectClosureMapper.selectList(new LambdaQueryWrapperX<ProjectClosureDO>()
+                        .eq(ProjectClosureDO::getProjectId, projectId))
+                .stream().map(ProjectClosureDO::getCode).filter(Objects::nonNull).toList();
+        return ProjectScopedCodes.next(project.getProjectCode(), "BH", existing);
+    }
+
+    private Long actorId() {
+        Long actor = SecurityFrameworkUtils.getLoginUserId();
+        if (actor == null || actor <= 0) throw exception(FORBIDDEN);
+        return actor;
+    }
+
+    private void requireView(Long projectId) {
+        requireScope(ProjectCurrentScopeQuery.builder().tenantId(TenantContextHolder.getRequiredTenantId())
+                .subjectUserId(actorId()).anchorProjectId(projectId).actionCode(ProjectScopeApi.ACTION_VIEW).build());
+    }
+
+    private void requireManage(Long projectId) {
+        requireScope(ProjectCurrentScopeQuery.builder().tenantId(TenantContextHolder.getRequiredTenantId())
+                .subjectUserId(actorId()).anchorProjectId(projectId).actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+    }
+
+    private void requireScope(ProjectCurrentScopeQuery query) {
+        if (query.anchorProjectId() == null) throw exception(FORBIDDEN);
+        var scope = projectScopeApi.resolveCurrent(query);
+        if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
+                || !scope.fullProjectIds().contains(query.anchorProjectId())) throw exception(FORBIDDEN);
+        if (ProjectScopeApi.ACTION_MANAGE.equals(query.actionCode())) {
+            var locked = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                    .tenantId(query.tenantId()).subjectUserId(query.subjectUserId()).anchorProjectId(query.anchorProjectId())
+                    .actionCode(query.actionCode()).expectedScopeVersion(scope.treeVersion()).build());
+            if (locked == null || !Objects.equals(scope.treeVersion(), locked.treeVersion()) || locked.fullProjectIds() == null
+                    || !locked.fullProjectIds().contains(query.anchorProjectId())) throw exception(FORBIDDEN);
         }
     }
 

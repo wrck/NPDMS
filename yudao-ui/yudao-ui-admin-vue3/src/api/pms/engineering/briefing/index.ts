@@ -2,7 +2,7 @@ import request from '@/config/axios'
 
 export interface BriefingVO {
   id?: number
-  code: string
+  code?: string
   projectId: number
   name: string
   briefingType?: string
@@ -26,7 +26,7 @@ export interface BriefingVO {
   createTime?: string
 }
 
-const baseUrl = '/pms/eng-briefing'
+const baseUrl = '/pms/sol-briefing'
 
 export const getBriefingPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })
@@ -46,3 +46,5 @@ export const publishBriefing = (id: number) =>
   request.put({ url: `${baseUrl}/publish`, params: { id } })
 export const terminateBriefing = (id: number) =>
   request.put({ url: `${baseUrl}/terminate`, params: { id } })
+
+export const getGeneratedBriefingFileTicket = (url: string) => request.get<string>({ url })

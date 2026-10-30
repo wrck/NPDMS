@@ -1,0 +1,88 @@
+[
+  {
+    "values": {
+      "materialEnvironmentFit": "YES",
+      "manufacturerProvidesAccessories": "YES",
+      "bomRequisitionAvailable": "YES"
+    },
+    "branches": [
+      "物料申领（独立流程）"
+    ],
+    "recordId": 3
+  },
+  {
+    "values": {
+      "materialEnvironmentFit": "YES",
+      "manufacturerProvidesAccessories": "YES",
+      "bomRequisitionAvailable": "NO"
+    },
+    "branches": [
+      "外采事前申请（独立流程）"
+    ],
+    "recordId": 4
+  },
+  {
+    "values": {
+      "materialEnvironmentFit": "YES",
+      "manufacturerProvidesAccessories": "NO",
+      "bomRequisitionAvailable": "YES"
+    },
+    "branches": [],
+    "recordId": 5
+  },
+  {
+    "values": {
+      "materialEnvironmentFit": "YES",
+      "manufacturerProvidesAccessories": "NO",
+      "bomRequisitionAvailable": "NO"
+    },
+    "branches": [],
+    "recordId": 6
+  },
+  {
+    "values": {
+      "materialEnvironmentFit": "NO",
+      "manufacturerProvidesAccessories": "YES",
+      "bomRequisitionAvailable": "YES"
+    },
+    "branches": [
+      "CRM 改单（独立流程）",
+      "物料申领（独立流程）"
+    ],
+    "recordId": 7
+  },
+  {
+    "values": {
+      "materialEnvironmentFit": "NO",
+      "manufacturerProvidesAccessories": "YES",
+      "bomRequisitionAvailable": "NO"
+    },
+    "branches": [
+      "CRM 改单（独立流程）",
+      "外采事前申请（独立流程）"
+    ],
+    "recordId": 8
+  },
+  {
+    "values": {
+      "materialEnvironmentFit": "NO",
+      "manufacturerProvidesAccessories": "NO",
+      "bomRequisitionAvailable": "YES"
+    },
+    "branches": [
+      "CRM 改单（独立流程）"
+    ],
+    "recordId": 9
+  },
+  {
+    "values": {
+      "materialEnvironmentFit": "NO",
+      "manufacturerProvidesAccessories": "NO",
+      "bomRequisitionAvailable": "NO"
+    },
+    "branches": [
+      "CRM 改单（独立流程）"
+    ],
+    "recordId": 10
+  }
+]

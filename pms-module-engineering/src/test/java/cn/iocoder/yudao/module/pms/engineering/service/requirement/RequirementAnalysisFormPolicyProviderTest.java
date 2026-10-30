@@ -44,7 +44,7 @@ class RequirementAnalysisFormPolicyProviderTest {
         verifyNoInteractions(access,mapper);
     }
     @Test void oldReferenceReadUsesMigratedRevisionIdentityAndCurrentAuthorization() {
-        var row = new RequirementAnalysisRevisionDO(); row.setId(42L); row.setVersion(3); row.setRevisionState("FROZEN");
+        var row = new RequirementAnalysisRevisionDO(); row.setId(42L); row.setVersion(3L); row.setRevisionState("FROZEN");
         when(access.read(eq(42L),any())).thenReturn(row);
         assertTrue(provider.inspectInstanceOwnerPolicy(query(DynamicFormBusinessAction.FILE_READ)).allowed());
         when(access.read(eq(42L),any())).thenThrow(new IllegalStateException("permission revoked"));

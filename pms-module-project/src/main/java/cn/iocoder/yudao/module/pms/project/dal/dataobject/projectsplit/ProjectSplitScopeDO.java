@@ -16,7 +16,7 @@ public class ProjectSplitScopeDO extends TenantBaseDO {
     private Long splitItemId;
     private Long orderLineId;
     private BigDecimal allocatedQty;
-    private String officeDepartmentCode;
+    private String departmentCode;
     private String serialNo;
     private Long sourceScopeVersion;
     private String sourceSnapshot;

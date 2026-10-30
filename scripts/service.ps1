@@ -59,6 +59,14 @@ function Get-Env {
   return $map
 }
 
+# 端口约定：默认与 compose.yaml / development.md 一致；分支可在 .env 覆盖
+# NPDMS_BACKEND_PORT / NPDMS_FRONTEND_PORT（该文件不入库，仅当前分支有效）。
+if (Test-Path (Join-Path $root '.env')) {
+  $branchEnv = Get-Env
+  if ($branchEnv['NPDMS_BACKEND_PORT'])  { $bkPort = [int]$branchEnv['NPDMS_BACKEND_PORT'] }
+  if ($branchEnv['NPDMS_FRONTEND_PORT']) { $frPort = [int]$branchEnv['NPDMS_FRONTEND_PORT'] }
+}
+
 # ---------- PID 读写与存活 ----------
 function Get-RecordedPid([string]$file) {
   if (Test-Path $file) {
@@ -137,11 +145,20 @@ function Start-Backend {
     $env:JAVA_HOME = $javaHome
     Push-Location $root
     try {
-      & 'mvn' -pl yudao-server -am package -DskipTests -q
+      & (Join-Path $root 'scripts/worktree-build.ps1') -Target backend -MavenArguments @('-DskipTests', '-q')
       if ($LASTEXITCODE -ne 0) { throw 'mvn package 失败' }
     } finally { Pop-Location }
   }
   $env = Get-Env
+  # Reuse the local DPAPI-protected datasource key when no explicit key was supplied.
+  $syncKeyFile = Join-Path $root '.run/sync-encryptor-key.clixml'
+  if (-not $env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD -and (Test-Path -LiteralPath $syncKeyFile)) {
+    $syncKey = Import-Clixml -LiteralPath $syncKeyFile
+    $env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD = [System.Net.NetworkCredential]::new('', $syncKey).Password
+    if ([System.Text.Encoding]::UTF8.GetByteCount($env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD) -notin @(16, 24, 32)) {
+      throw '本地数据源加密密钥长度无效，停止启动。'
+    }
+  }
   $java = Join-Path (Get-Java25) 'bin\java.exe'
   $dsUrl = "jdbc:mysql://127.0.0.1:$($env['NPDMS_MYSQL_PORT'])/$($env['NPDMS_DB_NAME'])?" +
     'useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true' +

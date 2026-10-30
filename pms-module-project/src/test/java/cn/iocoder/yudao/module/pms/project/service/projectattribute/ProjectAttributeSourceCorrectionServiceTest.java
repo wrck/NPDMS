@@ -81,7 +81,7 @@ class ProjectAttributeSourceCorrectionServiceTest {
     }
 
     private ProjectAttributeSourceCorrectionCommand command() {
-        return new ProjectAttributeSourceCorrectionCommand(100L, 4, "CRM_SIGN", "CRM_MODE", "A",
+        return new ProjectAttributeSourceCorrectionCommand(100L, 4L, "CRM_SIGN", "CRM_MODE", "A",
                 "CRM", "CRM", "CRM-PROJ-1", "event-2", "v2",
                 LocalDateTime.of(2026, 8, 25, 12, 0), "b".repeat(64), "map-v2",
                 " 来源修正 ", "source-key-1", "c".repeat(64), "int-crm-sync");
@@ -91,7 +91,7 @@ class ProjectAttributeSourceCorrectionServiceTest {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(100L);
         project.setTenantId(1L);
-        project.setVersion(4);
+        project.setVersion(4L);
         project.setSigningMethod("DIRECT");
         project.setProjectCategory("GENERAL");
         project.setImplementationMode("DIRECT_SERVICE");

@@ -43,6 +43,7 @@ public class RequirementAnalysisFormPolicyProvider implements DynamicFormBusines
             if (field == null || field.fieldKey() == null || !keys.add(field.fieldKey())) return false;
         }
         for (var businessField : RequirementAnalysisEntityProvider.FIELDS.fields()) {
+            if (RequirementAnalysisFields.STRUCTURED.contains(businessField.code())) continue;
             String core = cn.hutool.core.util.StrUtil.toUnderlineCase(businessField.code()).toUpperCase(Locale.ROOT);
             DynamicFormFieldDescriptor text = field(fields, core);
             DynamicFormFieldDescriptor attachment = field(fields, core + "__ATTACHMENTS");

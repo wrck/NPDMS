@@ -16,6 +16,12 @@ public class DeviceDetailService {
 
     private final DeviceQueryApi deviceQueryApi;
     private final DeviceNetworkVersionMapper networkVersionMapper;
+    private final DeviceOrganizationService organizationService;
+
+    public java.util.List<DeviceSummaryDTO> getCurrentSummaries(
+            cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery query) {
+        return deviceQueryApi.getVisibleDeviceSummaries(query);
+    }
 
     public DeviceDetailRespVO getDetail(Long deviceId) {
         DeviceSummaryDTO summary = deviceQueryApi.getDevice(deviceId);
@@ -29,13 +35,15 @@ public class DeviceDetailService {
                 networkVersion(summary),
                 DeviceSourceSliceRespVO.notAvailable("KNO"),
                 DeviceSourceSliceRespVO.notAvailable("AST"),
-                DeviceSourceSliceRespVO.notAvailable("AST"));
+                DeviceSourceSliceRespVO.notAvailable("AST"),
+                organizationService.resolve(summary.tenantId(), java.util.List.of(new DeviceOrganizationService.Device(
+                        deviceId,summary.projectId(),summary.contractNo()))).get(deviceId));
     }
 
     private DeviceSourceSliceRespVO networkVersion(DeviceSummaryDTO summary) {
         DeviceNetworkVersionDO version = networkVersionMapper.selectByTenantAndSn(summary.tenantId(), summary.sn());
-        if (version == null) {
-            return DeviceSourceSliceRespVO.notAvailable("ITR");
+        if (version == null || !"DEVICE_LOG".equals(version.getSourceSystem())) {
+            return DeviceSourceSliceRespVO.notAvailable("DEVICE_LOG");
         }
         NetworkSoftwareVersion data = new NetworkSoftwareVersion(
                 version.getConpVersion(), version.getConpType(), version.getConpSeries(), version.getConpMark(),

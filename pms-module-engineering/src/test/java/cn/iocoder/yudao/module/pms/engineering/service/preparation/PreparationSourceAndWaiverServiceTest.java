@@ -42,7 +42,7 @@ class PreparationSourceAndWaiverServiceTest {
         ProjectParticipantFactApi participantApi = mock(ProjectParticipantFactApi.class);
         PermissionApi permissionApi = mock(PermissionApi.class);
         PreparationWaiverService service = new PreparationWaiverService(preparationMapper, itemMapper, waiverMapper,
-                scopeApi, participantApi, permissionApi, mock(PlatformCommandExecutionApi.class),
+                scopeApi, participantApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, mock(PlatformCommandExecutionApi.class),
                 mock(OperationAuditApi.class), immediateTransaction());
         PreparationDO preparation = preparation();
         PreparationItemDO item = item();
@@ -57,7 +57,7 @@ class PreparationSourceAndWaiverServiceTest {
         when(scopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L, 3L, Set.of(10L), Set.of()));
         when(participantApi.inspect(any())).thenReturn(new ProjectParticipantFact(
                 10L, 7L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), null,
-                "ACTIVE", "S1", 3, 4L));
+                "ACTIVE", "S1", 3L, 4L));
 
         var page = service.page(1L, 2L, null, 20, actor(7L));
 
@@ -74,7 +74,7 @@ class PreparationSourceAndWaiverServiceTest {
         ProjectParticipantFactApi participantApi = mock(ProjectParticipantFactApi.class);
         PermissionApi permissionApi = mock(PermissionApi.class);
         PreparationWaiverService service = new PreparationWaiverService(preparationMapper, itemMapper, waiverMapper,
-                scopeApi, participantApi, permissionApi, mock(PlatformCommandExecutionApi.class),
+                scopeApi, participantApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, mock(PlatformCommandExecutionApi.class),
                 mock(OperationAuditApi.class), immediateTransaction());
         PreparationItemWaiverDO applicant = waiver();
         applicant.setId(41L);
@@ -90,11 +90,11 @@ class PreparationSourceAndWaiverServiceTest {
         when(scopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L, 3L, Set.of(10L), Set.of()));
         when(participantApi.inspect(any())).thenReturn(new ProjectParticipantFact(
                 10L, 7L, Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1), null,
-                "ACTIVE", "S1", 3, 4L));
+                "ACTIVE", "S1", 3L, 4L));
 
         var page = service.page(1L, 2L, null, 20, actor(7L));
 
-        assertTrue(page.items().getFirst().allowedActions().isEmpty());
+        assertEquals(List.of("WITHDRAW"), page.items().getFirst().allowedActions());
         assertEquals(List.of("APPROVE", "REJECT"), page.items().get(1).allowedActions());
 
         when(participantApi.inspect(any())).thenThrow(new IllegalStateException("participant unavailable"));
@@ -131,7 +131,7 @@ class PreparationSourceAndWaiverServiceTest {
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         TransactionTemplate transaction = immediateTransaction();
         PreparationSourceService service = new PreparationSourceService(preparationMapper, itemMapper, sourceMapper,
-                registry, scopeApi, participantApi, permissionApi, commandApi, auditApi, transaction);
+                registry, scopeApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, transaction);
         PreparationDO preparation = preparation();
         PreparationItemDO item = item();
         when(preparationMapper.selectById(any())).thenReturn(preparation);
@@ -152,7 +152,7 @@ class PreparationSourceAndWaiverServiceTest {
         });
 
         var command = new PreparationSourceService.SourceRefreshCommand(1L, 2L, 0, 0, 0, 0,
-                null, 3, "OA", "REQUEST", "OA-1", "REF-1", "K1");
+                null, 3L, "OA", "REQUEST", "OA-1", "REF-1", "K1");
         assertThrows(ServiceException.class, () -> service.refresh(command, actor(7L)));
 
         ArgumentCaptor<PreparationSourceReferenceDO> inserted = ArgumentCaptor.forClass(PreparationSourceReferenceDO.class);
@@ -177,7 +177,7 @@ class PreparationSourceAndWaiverServiceTest {
         PlatformCommandExecutionApi commandApi = mock(PlatformCommandExecutionApi.class);
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         PreparationSourceService service = new PreparationSourceService(preparationMapper, itemMapper, sourceMapper,
-                registry, scopeApi, participantApi, permissionApi, commandApi, auditApi, immediateTransaction());
+                registry, scopeApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, immediateTransaction());
         PreparationDO preparation = preparation();
         PreparationItemDO item = item();
         when(preparationMapper.selectById(any())).thenReturn(preparation);
@@ -202,7 +202,7 @@ class PreparationSourceAndWaiverServiceTest {
         });
 
         var result = service.refresh(new PreparationSourceService.SourceRefreshCommand(1L, 2L, 0, 0, 0, 0,
-                null, 3, "OA", "REQUEST", "OA-1", "REF-1", "K1"), actor(7L));
+                null, 3L, "OA", "REQUEST", "OA-1", "REF-1", "K1"), actor(7L));
 
         assertTrue(result.succeeded());
         ArgumentCaptor<PreparationSourceReferenceDO> inserted = ArgumentCaptor.forClass(PreparationSourceReferenceDO.class);
@@ -228,7 +228,7 @@ class PreparationSourceAndWaiverServiceTest {
         PlatformCommandExecutionApi commandApi = mock(PlatformCommandExecutionApi.class);
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         PreparationSourceService service = new PreparationSourceService(preparationMapper, itemMapper, sourceMapper,
-                registry, scopeApi, participantApi, permissionApi, commandApi, auditApi, immediateTransaction());
+                registry, scopeApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, immediateTransaction());
         PreparationDO preparation = preparation();
         PreparationItemDO item = item();
         PreparationSourceReferenceDO existing = new PreparationSourceReferenceDO();
@@ -256,7 +256,7 @@ class PreparationSourceAndWaiverServiceTest {
         });
 
         var command = new PreparationSourceService.SourceRefreshCommand(1L, 2L, 0, 0, 0, 0,
-                4, 3, "OA", "REQUEST", "OA-1", "REF-1", "K1");
+                4, 3L, "OA", "REQUEST", "OA-1", "REF-1", "K1");
         assertThrows(ServiceException.class, () -> service.refresh(command, actor(7L)));
 
         ArgumentCaptor<cn.iocoder.yudao.module.pms.engineering.dal.mysql.preparation.query.PreparationSourceSyncUpdate> update =
@@ -283,7 +283,7 @@ class PreparationSourceAndWaiverServiceTest {
         PlatformCommandExecutionApi commandApi = mock(PlatformCommandExecutionApi.class);
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         PreparationSourceService service = new PreparationSourceService(preparationMapper, itemMapper, sourceMapper,
-                registry, scopeApi, participantApi, permissionApi, commandApi, auditApi, immediateTransaction());
+                registry, scopeApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, immediateTransaction());
         when(preparationMapper.selectById(any())).thenReturn(preparation());
         when(permissionApi.hasAnyPermissions(7L, PreparationInitializationService.PERMISSION_MANAGE)).thenReturn(true);
         when(scopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L, 3L, Set.of(10L), Set.of()));
@@ -295,16 +295,17 @@ class PreparationSourceAndWaiverServiceTest {
                         PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, replay));
 
         var command = new PreparationSourceService.SourceRefreshCommand(1L, 2L, 0, 0, 0, 0,
-                null, 3, "OA", "REQUEST", "OA-1", "REF-1", "K1");
+                null, 3L, "OA", "REQUEST", "OA-1", "REF-1", "K1");
 
         assertEquals(replay, service.refresh(command, actor(7L)));
         verify(preparationMapper, never()).selectForUpdate(any());
         verifyNoInteractions(itemMapper, sourceMapper, registry);
     }
 
-    @Test
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
     @SuppressWarnings("unchecked")
-    void approvalUsesFrozenRoleAndWaiverVersionCas() {
+    void approvalUsesFrozenRoleAndWaiverVersionCas(boolean applicantIsApprover) {
         PreparationMapper preparationMapper = mock(PreparationMapper.class);
         PreparationItemMapper itemMapper = mock(PreparationItemMapper.class);
         PreparationItemWaiverMapper waiverMapper = mock(PreparationItemWaiverMapper.class);
@@ -314,10 +315,11 @@ class PreparationSourceAndWaiverServiceTest {
         PlatformCommandExecutionApi commandApi = mock(PlatformCommandExecutionApi.class);
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         PreparationWaiverService service = new PreparationWaiverService(preparationMapper, itemMapper, waiverMapper,
-                scopeApi, participantApi, permissionApi, commandApi, auditApi, immediateTransaction());
+                scopeApi, participantApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, immediateTransaction());
         PreparationDO preparation = preparation();
         PreparationItemDO item = item();
         PreparationItemWaiverDO waiver = waiver();
+        if (applicantIsApprover) waiver.setApplicantUserId(7L);
         when(preparationMapper.selectById(any())).thenReturn(preparation);
         when(preparationMapper.selectForUpdate(any())).thenReturn(preparation);
         when(itemMapper.selectForUpdate(any())).thenReturn(item);
@@ -335,9 +337,14 @@ class PreparationSourceAndWaiverServiceTest {
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, response);
         });
         var command = new PreparationWaiverService.WaiverCommand("APPROVE", 1L, 2L, 41L,
-                0, 0, 0, 0, 2, 3, List.of(), null, null, null,
+                0, 0, 0, 0, 2, 3L, List.of(), null, null, null,
                 null, null, "accepted", "K2");
 
+        if (applicantIsApprover) {
+            assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class, () -> service.execute(command, actor(7L)));
+            verify(waiverMapper,never()).updateStatusIfMatch(any());
+            return;
+        }
         var result = service.execute(command, actor(7L));
 
         assertEquals("APPROVED", result.status());
@@ -363,7 +370,7 @@ class PreparationSourceAndWaiverServiceTest {
         PlatformCommandExecutionApi commandApi = mock(PlatformCommandExecutionApi.class);
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
         PreparationWaiverService service = new PreparationWaiverService(preparationMapper, itemMapper, waiverMapper,
-                scopeApi, participantApi, permissionApi, commandApi, auditApi, immediateTransaction());
+                scopeApi, participantApi, EngineeringManagementFixtures.confirmed(participantApi), permissionApi, commandApi, auditApi, immediateTransaction());
         when(preparationMapper.selectById(any())).thenReturn(preparation());
         when(permissionApi.hasAnyPermissions(7L, PreparationWaiverService.PERMISSION_APPROVE)).thenReturn(true);
         when(scopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L, 3L, Set.of(10L), Set.of()));
@@ -373,7 +380,7 @@ class PreparationSourceAndWaiverServiceTest {
                 new PlatformCommandExecutionApi.ExecutionResult<>(
                         PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, replay));
         var command = new PreparationWaiverService.WaiverCommand("APPROVE", 1L, 2L, 41L,
-                0, 0, 0, 0, 2, 3, List.of(), null, null, null,
+                0, 0, 0, 0, 2, 3L, List.of(), null, null, null,
                 null, null, "accepted", "K2");
 
         assertEquals(replay, service.execute(command, actor(7L)));

@@ -8,14 +8,7 @@
       label-width="100px"
     >
       <el-form-item label="负责人" prop="ownerUserId">
-        <el-select v-model="formData.ownerUserId" class="w-1/1">
-          <el-option
-            v-for="item in userOptions"
-            :key="item.id"
-            :label="item.nickname"
-            :value="item.id"
-          />
-        </el-select>
+        <UserSelect v-model="formData.ownerUserId" class="w-1/1" :clearable="false" />
       </el-form-item>
     </el-form>
     <template #footer>
@@ -25,14 +18,13 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as CustomerApi from '@/api/crm/customer'
-import * as UserApi from '@/api/system/user'
 
 const message = useMessage() // 消息弹窗
 
 const dialogVisible = ref(false) // 弹窗的是否展示
 const formLoading = ref(false) // 表单的加载中：1）修改时的数据加载；2）提交的按钮禁用
-const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 const formData = ref({
   id: undefined as number | undefined,
   ownerUserId: undefined as number | undefined
@@ -48,7 +40,7 @@ const open = async (id: number) => {
   resetForm()
   formData.value.id = id
   // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
+
 }
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗
 

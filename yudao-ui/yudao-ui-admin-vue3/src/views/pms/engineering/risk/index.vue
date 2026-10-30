@@ -6,9 +6,9 @@
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-220px"
         />
@@ -51,7 +51,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-risk:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:imp-risk:create']"
           ><Icon icon="ep:plus" />新建风险</el-button
         >
       </el-form-item>
@@ -91,13 +91,13 @@
       </el-table-column>
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-risk:query']">明细</el-button>
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:imp-risk:query']">明细</el-button>
           <el-button
             link
             type="warning"
             v-if="row.status === 0 || row.status === 1"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-risk:update']"
+            v-hasPermi="['pms:imp-risk:update']"
             >编辑</el-button
           >
           <el-button
@@ -105,7 +105,7 @@
             type="primary"
             v-if="row.status === 0 || row.status === 1"
             @click="openConfirm(row)"
-            v-hasPermi="['pms:eng-risk:confirm']"
+            v-hasPermi="['pms:imp-risk:confirm']"
             >确认</el-button
           >
           <el-button
@@ -113,7 +113,7 @@
             type="success"
             v-if="row.status === 2"
             @click="handleSyncCrm(row)"
-            v-hasPermi="['pms:eng-risk:sync']"
+            v-hasPermi="['pms:imp-risk:sync']"
             >同步CRM</el-button
           >
           <el-button
@@ -121,7 +121,7 @@
             type="success"
             v-if="row.status === 3"
             @click="openClose(row)"
-            v-hasPermi="['pms:eng-risk:close']"
+            v-hasPermi="['pms:imp-risk:close']"
             >关闭</el-button
           >
           <el-button
@@ -129,7 +129,7 @@
             type="danger"
             v-if="row.status === 0"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-risk:delete']"
+            v-hasPermi="['pms:imp-risk:delete']"
             >删除</el-button
           >
         </template>
@@ -147,9 +147,9 @@
             <PmsEntitySelect
               v-model="form.projectId"
               :api="ProjectApi.getProjectPage"
-              label-field="name"
+              label-field="projectName"
               value-field="id"
-              query-field="name"
+              query-field="projectName"
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
@@ -195,12 +195,10 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="处理人" prop="handlerUserId">
-            <PmsEntitySelect
+            <UserSelect
               v-model="form.handlerUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
+              :scoped-source="managementUsers"
+              :page-size="50"
               placeholder="请选择处理人"
             />
           </el-form-item>
@@ -269,12 +267,10 @@
     <el-form :model="handleForm" label-width="100px">
       <el-form-item label="风险编号">{{ handleForm.code }}</el-form-item>
       <el-form-item label="处理人" prop="handlerUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="handleForm.handlerUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择处理人"
         />
       </el-form-item>
@@ -291,15 +287,26 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as RiskApi from '@/api/pms/engineering/risk'
-import * as ProjectApi from '@/api/pms/project/project'
-import * as UserApi from '@/api/system/user'
+import * as ProjectApi from '@/api/pms/project/projects'
 import type { RiskVO } from '@/api/pms/engineering/risk'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import UserTag from '@/components/UserTag/index.vue'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/risk/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngRisk' })
 const message = useMessage()

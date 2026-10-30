@@ -1,4 +1,5 @@
-import { defineComponent, h, nextTick, ref } from 'vue'
+// @vitest-environment happy-dom
+import { defineComponent, h, nextTick, ref, type PropType } from 'vue'
 import { afterEach, expect, it, vi } from 'vitest'
 import formCreateEngine from '@form-create/element-ui'
 import { getFormSchema } from '@/api/pms/engineering/site-survey/entity'
@@ -10,11 +11,14 @@ vi.mock('@/api/pms/engineering/site-survey/entity', () => ({ getFormSchema: vi.f
 vi.mock('@/views/pms/platform/dynamic-form/components/dynamicFormCodec', () => ({ decodeDynamicForm: (option: any, rule: any) => ({ option, rule }) }))
 vi.mock('./SurveyMaterialSelector.vue', () => ({ default: defineComponent(() => () => null) }))
 vi.mock('./SurveyProjectEndDate.vue', () => ({ default: defineComponent(() => () => null) }))
+vi.mock('./SurveyOutsourceShortcut.vue', () => ({ default: defineComponent(() => () => null) }))
+vi.mock('./SurveyProcurementLinks.vue', () => ({ default: defineComponent(() => () => null) }))
+vi.mock('./SurveyPreparationBranches.vue', () => ({ default: defineComponent(() => () => null) }))
 const flush = async () => { for (let i = 0; i < 15; i++) { await nextTick(); await Promise.resolve() } }
 afterEach(() => vi.unstubAllGlobals())
 
 // Keep the actual FormCreate engine and checkbox adapter; replace only DOM controls.
-const checkboxGroup = defineComponent({ props: ['modelValue'], emits: ['update:modelValue'],
+const checkboxGroup = defineComponent({ props: { modelValue: { type: Array as PropType<string[]>, required: true } }, emits: ['update:modelValue'],
   setup(props, { emit, slots }) { return () => h('button', { 'data-testid': 'choices',
     onClick: () => emit('update:modelValue', props.modelValue.includes('AC') ? [] : ['AC', 'DC']) }, slots.default?.()) } })
 const formItem = defineComponent({ setup(_, { slots, expose }) {

@@ -1,0 +1,35 @@
+package cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction;
+
+import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionCollectionTaskDO;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionTaskTriggerLockQuery;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionFirstTaskQuery;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionTaskDecisionUpdate;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionTaskResultUpdate;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionTaskScopeQuery;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionTaskAssignmentUpdate;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+@Mapper
+public interface SatisfactionCollectionTaskMapper extends BaseMapperX<SatisfactionCollectionTaskDO> {
+    java.util.List<SatisfactionCollectionTaskDO> selectAssociationCandidates(
+            @Param("query") cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionAssociationQuery query);
+
+    default java.util.List<SatisfactionCollectionTaskDO> selectByCollection(
+            cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.CompletionSatisfactionBundleQuery query) {
+        return selectList(new cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX<SatisfactionCollectionTaskDO>()
+                .eq(SatisfactionCollectionTaskDO::getTenantId,query.tenantId())
+                .eq(SatisfactionCollectionTaskDO::getCollectionKey,query.collectionKey())
+                .orderByDesc(SatisfactionCollectionTaskDO::getTaskRevisionNo));
+    }
+    SatisfactionCollectionTaskDO selectFirstByProjectForUpdate(
+            @Param("query") SatisfactionFirstTaskQuery query);
+    java.util.List<SatisfactionCollectionTaskDO> selectByScope(
+            @Param("query") SatisfactionTaskScopeQuery query);
+    SatisfactionCollectionTaskDO selectByTriggerForUpdate(@Param("query") SatisfactionTaskTriggerLockQuery query);
+    SatisfactionCollectionTaskDO selectByIdForUpdate(@Param("tenantId") Long tenantId, @Param("id") Long id);
+    int moveToPendingDecision(@Param("query") SatisfactionTaskDecisionUpdate query);
+    int completeDecision(@Param("query") SatisfactionTaskResultUpdate query);
+    int assign(@Param("query") SatisfactionTaskAssignmentUpdate query);
+}

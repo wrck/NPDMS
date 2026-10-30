@@ -9,7 +9,7 @@ public record CreateInitialDurationCommand(
         LocalDate startDate,
         LocalDate endDate,
         Integer durationDays,
-        Integer expectedProjectVersion,
+        Long expectedProjectVersion,
         String idempotencyKey,
         String requestDigest) {
 }

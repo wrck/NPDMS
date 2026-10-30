@@ -52,6 +52,7 @@ class ProjectTaskBusinessServiceTest {
         contract.setBindingParameterSnapshot("{\"bindingType\":\"BUSINESS_COMPONENT\",\"businessViewRevisionId\":40,\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\",\"contextMapping\":{\"project\":\"project\"}}");
         when(access.read(10L, 1L, 5L)).thenReturn(task); when(access.project(20L)).thenReturn(project);
         when(access.writable(any(), any(), any())).thenReturn(true);
+        when(access.writableLocked(any(), any(), any())).thenReturn(true);
         when(executionApi.inspect(any())).thenReturn(execution(true));
         when(links.selectCurrentContract(any())).thenReturn(contract);
         when(links.selectActive(any())).thenReturn(List.of()); when(links.selectActiveForUpdate(any())).thenReturn(List.of());
@@ -67,9 +68,30 @@ class ProjectTaskBusinessServiceTest {
         when(views.getRevision(any())).thenReturn(new BusinessViewRevision(40L, "SiteSurvey", "survey", 1L,
                 "PRE", BusinessViewComponentProvider.ViewSource.PAGE, "survey-list", "1", null,
                 JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"), "query", "command", "permission", null, null,
-                1, "PUBLISHED", Set.of("UPDATE")));
+                1L, "PUBLISHED", Set.of("UPDATE")));
         executeOperations();
     }
+    @Test void approvedClosureLocksExactLinkedFactsAndRejectsChangedVersionsWithoutMutations() {
+        when(links.selectActive(any())).thenReturn(List.of(row(51L,"x")));
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(row(51L,"x")));
+        var before=service.inspectLinkedFactsSnapshot(10L,1L,5L,"BPM_NORMAL_CLOSURE:process-1");
+        var approval=new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand(
+                1L,20L,3L,1L,8L,"BPM_NORMAL_CLOSURE:process-1",101L,102L,5L,"S6",9L,"digest-1","process-1",0L);
+        when(provider.lockForApprovedClosure(any())).thenAnswer(i -> fact("x",i.<ClosureRevalidation>getArgument(0).expectedVersion()));
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        var locked=service.lockForApprovedClosure(new ApprovedClosureQuery(approval,10L,before.factVersion()));
+        assertEquals(before.factVersion(),locked.factVersion());
+        verify(provider).lockForApprovedClosure(new ClosureRevalidation(new Context(1L,5L,20L,10L,approval.correlationId()),approval,"x","v1"));
+        verify(provider,never()).lockAndRevalidate(any(),any(),any());
+        doReturn(fact("x","changed")).when(provider).lockForApprovedClosure(any());
+        assertThrows(RuntimeException.class,()->service.lockForApprovedClosure(new ApprovedClosureQuery(approval,10L,before.factVersion())));
+        assertThrows(RuntimeException.class,()->service.lockForApprovedClosure(new ApprovedClosureQuery(approval,10L,"stale-aggregate")));
+        project.setLifecycleStatus("NORMAL_CLOSED");
+        assertThrows(RuntimeException.class,()->service.lockForApprovedClosure(new ApprovedClosureQuery(approval,10L,before.factVersion())));
+        verify(links,never()).insertLink(any());verify(links,never()).unlinkIfMatch(any());
+        verify(tasks,never()).incrementTaskVersionIfMatch(any());
+    }
+
     @Test void permissionDeclarationDoesNotReplaceOwnerActionAuthorization() {
         contract.setPermissionSnapshot("{\"requiredActions\":[\"QUERY\",\"DELETE\"]}");
 
@@ -83,13 +105,65 @@ class ProjectTaskBusinessServiceTest {
                 service.getContext(10L, 1L, 5L, "permission-denied").recoverableError());
     }
 
+    @Test void refreshActionRequiresExecutionPermissionCurrentRoundAndActiveTask() {
+        when(access.executable(any(), any(), any())).thenReturn(true);
+        assertEquals(Set.of("REFRESH_RESULTS"), service.getContext(10L, 1L, 5L, "refresh").allowedActions());
+        when(access.executable(any(), any(), any())).thenReturn(false);
+        assertTrue(service.getContext(10L, 1L, 5L, "refresh").allowedActions().isEmpty());
+        when(access.executable(any(), any(), any())).thenReturn(true);
+        when(executionApi.inspect(any())).thenReturn(execution(false));
+        assertTrue(service.getContext(10L, 1L, 5L, "refresh").allowedActions().isEmpty());
+        when(executionApi.inspect(any())).thenReturn(execution(true));
+        task.setStatus("DONE");
+        assertTrue(service.getContext(10L, 1L, 5L, "refresh").allowedActions().isEmpty());
+    }
+
+    @Test void assignmentOwnerMaintenanceDoesNotRequireTaskMetadataOrExecutionAuthority() {
+        assignmentHost();
+        when(access.writable(any(), any(), any())).thenReturn(false);
+        when(access.writableLocked(any(), any(), any())).thenReturn(false);
+        when(access.assignmentOperationAllowed(any())).thenReturn(true);
+
+        var result = service.getContext(10L, 1L, 5L, "assignment-owner");
+        assertNull(result.recoverableError());
+        assertTrue(result.executionAllowed());
+        assertTrue(service.getContext(10L, 1L, 5L, "assignment-owner").allowedActions().isEmpty());
+        when(access.assignmentOperationAllowed(any())).thenReturn(false);
+        assertFalse(service.getContext(10L, 1L, 5L, "assignment-owner-denied").executionAllowed());
+    }
+
+    @Test void assignmentOwnerMaintenanceCannotMakeAnUnwritableRoundOrAggregateWritable() {
+        assignmentHost();
+        when(access.writable(any(), any(), any())).thenReturn(false);
+        when(access.writableLocked(any(), any(), any())).thenReturn(false);
+        when(access.assignmentOperationAllowed(any())).thenReturn(true);
+        when(executionApi.inspect(any())).thenReturn(execution(false));
+        assertFalse(service.getContext(10L, 1L, 5L, "inactive-round").executionAllowed());
+        when(executionApi.inspect(any())).thenReturn(execution(true));
+        contract.setBindingParameterSnapshot("{\"businessViewRevisionId\":40,\"instanceResolutionStrategy\":\"READ_ONLY_AGGREGATE\"}");
+        assertFalse(service.getContext(10L, 1L, 5L, "aggregate").executionAllowed());
+    }
+
+    private void assignmentHost() {
+        when(provider.ownerContext()).thenReturn("PROJ"); when(provider.objectType()).thenReturn("PROJECT_ASSIGNMENT");
+        contract.setTargetContextCode("PROJ"); contract.setTargetObjectType("PROJECT_ASSIGNMENT");
+        contract.setTargetObjectKey("PROJECT_ASSIGNMENT"); contract.setComponentKey("PROJ_PROJECT_ASSIGNMENT");
+        contract.setWorkBindingTypeCode("BUSINESS_OBJECT");
+        contract.setBindingParameterSnapshot("{\"businessViewRevisionId\":40,\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\"}");
+        when(views.getRevision(any())).thenReturn(new BusinessViewRevision(40L, "PROJECT_ASSIGNMENT", "assignment", 1L,
+                "PROJ", BusinessViewComponentProvider.ViewSource.PAGE, "PROJ_PROJECT_ASSIGNMENT", "1", null,
+                JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"), "query", "command", "permission", null, null,
+                1L, "PUBLISHED", Set.of("UPDATE")));
+        service = service(List.of(provider));
+    }
+
     ProjectTaskBusinessService service(List<TaskBusinessObjectProvider> providers) {
         return new ProjectTaskBusinessService(access, new TaskBusinessProviderRegistry(providers), links, tasks,
                 contracts, commands, audit, views, executionApi);
     }
     cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution(boolean writable) {
         return new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                20L,1,10L,3,30L,2,60L,61L,1,1,62L,1,writable,LocalDateTime.of(2026,9,14,10,0));
+                20L,1L,10L,3,30L,2,60L,61L,1,1,62L,1,writable,LocalDateTime.of(2026,9,14,10,0));
     }
     @SuppressWarnings({"rawtypes", "unchecked"})
     void executeOperations() {
@@ -114,6 +188,61 @@ class ProjectTaskBusinessServiceTest {
     }
     LinkCommand command() { return new LinkCommand(10L, "x", 3, 2, "key"); }
 
+    private ProjectTaskBusinessLinkDO reopenAssignment() {
+        when(provider.ownerContext()).thenReturn("PROJ"); when(provider.objectType()).thenReturn("PROJECT_ASSIGNMENT");
+        contract.setTargetContextCode("PROJ"); contract.setTargetObjectType("PROJECT_ASSIGNMENT");
+        service = new ProjectTaskBusinessService(access, new TaskBusinessProviderRegistry(List.of(provider)), links, tasks,
+                contracts, commands, audit, views, executionApi);
+        var link = row(51L, "20"); link.setOwnerContext("PROJ"); link.setObjectType("PROJECT_ASSIGNMENT");
+        link.setNodeExecutionId(61L); link.setLinkedBy(0L);
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(link));
+        return link;
+    }
+
+    @Test void reopenedAssignmentUsesCurrentOwnerCompletionWithoutConfirmationAndKeepsRoundGuard() {
+        var link = reopenAssignment();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        when(provider.lockCompletionFact(any(), eq("20"))).thenReturn(
+                new CompletionFact("20", "current-owner-version", true, Map.of("COMPLETED", true)));
+        var result = service.lockCompletionFacts(1L, execution(true), contract);
+        assertTrue(result.hasCompletedHandling());
+        assertEquals(true, result.facts().links().getFirst().completionFacts().get("COMPLETED"));
+        when(provider.lockCompletionFact(any(), eq("20"))).thenReturn(
+                new CompletionFact("20", "changed-owner-version", false, Map.of("COMPLETED", false)));
+        assertFalse(service.lockCompletionFacts(1L, execution(true), contract).hasCompletedHandling());
+        link.setNodeExecutionId(60L);
+        assertThrows(RuntimeException.class, () -> service.lockCompletionFacts(1L, execution(true), contract));
+        verify(tasks, never()).incrementTaskVersionIfMatch(any());
+        verify(links, never()).insertLink(any());
+    }
+
+    @Test void confirmedTrainingAfterReopenUsesOwnerFactsWithoutAnExtraCreationTimeGate() {
+        when(provider.ownerContext()).thenReturn("IMP"); when(provider.objectType()).thenReturn("TRAINING");
+        contract.setTargetContextCode("IMP"); contract.setTargetObjectType("TRAINING");
+        contract.setTargetObjectKey("PROJECT_TRAINING");
+        service = new ProjectTaskBusinessService(access, new TaskBusinessProviderRegistry(List.of(provider)), links, tasks,
+                contracts, commands, audit, views, executionApi);
+        var current = row(51L, "37"); current.setOwnerContext("IMP"); current.setObjectType("TRAINING");
+        current.setNodeExecutionId(61L);
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(current));
+        when(provider.lockCompletionFact(any(), eq("37"))).thenReturn(
+                new CompletionFact("37", "TRAINING:37:2:2", true, Map.of("TRAINING_CONFIRMED", true)));
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+
+        var result = service.lockCompletionFacts(1L, execution(true), contract);
+
+        assertTrue(result.hasCompletedHandling());
+        assertEquals(true, result.facts().links().getFirst().completionFacts().get("TRAINING_CONFIRMED"));
+        when(provider.lockCompletionFact(any(), eq("37"))).thenReturn(
+                new CompletionFact("37", "TRAINING:37:3:3", false, Map.of("TRAINING_CONFIRMED", false)));
+        assertFalse(service.lockCompletionFacts(1L, execution(true), contract).hasCompletedHandling());
+        current.setNodeExecutionId(60L);
+        assertThrows(RuntimeException.class, () -> service.lockCompletionFacts(1L, execution(true), contract));
+        verify(provider, never()).handlingCreatedAt(any(), any());
+        verify(links, never()).insertLink(any());
+        verify(tasks, never()).updateLifecycleIfMatch(any());
+    }
+
     @Test void contextUsesOneOwnerInspectionAndRejectsMissingForeignOrDuplicateFacts() {
         when(links.selectActive(any())).thenReturn(List.of(row(51, "x")));
         var current = new BusinessObjectFact("x", "record", "v1", Set.of("QUERY"), Map.of(), List.of());
@@ -137,7 +266,7 @@ class ProjectTaskBusinessServiceTest {
 
     cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext stageExecution() {
         return new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
-                20L, 1, 90L, 3, 30L, 2, 60L, 71L, 1, 2, true);
+                20L, 1L, 90L, 3, 30L, 2, 60L, 71L, 1, 2, true);
     }
     cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.BindingContract stageBinding() {
         var binding = new cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.BindingContract();
@@ -422,7 +551,7 @@ class ProjectTaskBusinessServiceTest {
         when(views.getRevision(any())).thenReturn(new BusinessViewRevision(largeId, "SiteSurvey", "survey", 1L,
                 "PRE", BusinessViewComponentProvider.ViewSource.PAGE, "survey-list", "1", null,
                 JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"), "query", "command", "permission", null, null,
-                1, "PUBLISHED", Set.of()));
+                1L, "PUBLISHED", Set.of()));
         var context = service.getContext(10L, 1L, 5L, "c");
         assertNull(context.recoverableError());
         assertEquals(largeId, context.businessViewRevisionId());
@@ -440,7 +569,7 @@ class ProjectTaskBusinessServiceTest {
         when(views.getRevision(any())).thenReturn(new BusinessViewRevision(original.id(), original.entityType(), original.viewKey(),
                 original.revisionNo(), original.ownerContext(), original.viewSource(), original.componentKey(), original.componentVersion(),
                 null, original.contextSchema(), original.supportedActions(), "q", "c", "p", LocalDateTime.now().minusDays(2),
-                LocalDateTime.now(), 2, "DISABLED", Set.of("ENABLE")));
+                LocalDateTime.now(), 2L, "DISABLED", Set.of("ENABLE")));
         var result = service.getContext(10L, 1L, 5L, "c");
         assertNull(result.recoverableError()); assertEquals("DISABLED", result.businessView().status());
         assertTrue(result.businessView().allowedActions().isEmpty());

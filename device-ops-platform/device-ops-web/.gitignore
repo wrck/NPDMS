@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+.tmp-mock/
+.env
+.env.*
+!.env.example
+*.local
+*.log
+*.pem
+*.key
+.DS_Store
+.idea/
+.vscode/

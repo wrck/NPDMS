@@ -1,0 +1,177 @@
+{
+  "oldSurveyFormUnchanged": true,
+  "retiredFormDisabled": true,
+  "confirmedSurveyWriteRejected": {
+    "code": 1011001002,
+    "data": null,
+    "msg": "工勘当前状态不允许该操作"
+  },
+  "confirmedSurveyUnchanged": true,
+  "surveyBrowser": {
+    "projectId": 992203060019,
+    "pageErrors": [],
+    "apiErrors": [],
+    "combinations": [
+      {
+        "fit": true,
+        "factory": true,
+        "rails": true,
+        "matches": [
+          false,
+          true,
+          false
+        ]
+      },
+      {
+        "fit": true,
+        "factory": true,
+        "rails": false,
+        "matches": [
+          false,
+          false,
+          true
+        ]
+      },
+      {
+        "fit": true,
+        "factory": false,
+        "rails": true,
+        "matches": [
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "fit": true,
+        "factory": false,
+        "rails": false,
+        "matches": [
+          false,
+          false,
+          false
+        ]
+      },
+      {
+        "fit": false,
+        "factory": true,
+        "rails": true,
+        "matches": [
+          true,
+          true,
+          false
+        ]
+      },
+      {
+        "fit": false,
+        "factory": true,
+        "rails": false,
+        "matches": [
+          true,
+          false,
+          true
+        ]
+      },
+      {
+        "fit": false,
+        "factory": false,
+        "rails": true,
+        "matches": [
+          true,
+          false,
+          false
+        ]
+      },
+      {
+        "fit": false,
+        "factory": false,
+        "rails": false,
+        "matches": [
+          true,
+          false,
+          false
+        ]
+      }
+    ],
+    "historyReadOnly": true,
+    "surveyId": "2102387388929748993",
+    "savedAndReopenedSameSurvey": true,
+    "ownerConfirmed": true,
+    "savedBusinessValues": {
+      "materialMatches": true,
+      "manufacturerInstallation": true,
+      "railTrayRequired": false
+    },
+    "noDuplicateConfirmationCreated": true
+  },
+  "backendTests": [
+    {
+      "name": "ProjectPreparationConfirmationTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "ProjectFieldRuleApiImplTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "frontendTests": 16,
+  "typecheck": "PASS",
+  "migration": {
+    "version": 344,
+    "validated": 289,
+    "applied": 1,
+    "repeatApplied": 0
+  },
+  "backendHealth": {
+    "groups": [
+      "liveness",
+      "readiness"
+    ],
+    "status": "UP"
+  },
+  "templateBrowser": {
+    "pageErrors": [],
+    "apiErrors": [
+      {
+        "path": "/admin-api/api/v1/pms/project-templates/910003/draft",
+        "code": 1014040004,
+        "msg": "交付定义引用无效：exact definitionRevisionId required"
+      },
+      {
+        "path": "/admin-api/api/v1/pms/project-templates/910002/draft",
+        "code": 1014040004,
+        "msg": "交付定义引用无效：exact definitionRevisionId required"
+      },
+      {
+        "path": "/admin-api/api/v1/pms/project-templates/910001/draft",
+        "code": 1014040004,
+        "msg": "交付定义引用无效：exact definitionRevisionId required"
+      }
+    ],
+    "reopened": true,
+    "precheck": {
+      "valid": true,
+      "issues": []
+    },
+    "s1TaskRefs": [
+      "PRE_SURVEY",
+      "PRE_REQUIREMENT",
+      "PRE_DURATION",
+      "PRE_CONTACT"
+    ]
+  },
+  "template": {
+    "id": 993009900014,
+    "code": "TPL-DELIVERY-FLOW-20260922",
+    "name": "项目交付全流程模板（流程图2）",
+    "version": 16,
+    "status": "DRAFT",
+    "matchPriority": 100
+  }
+}

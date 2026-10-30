@@ -2,6 +2,8 @@ package cn.iocoder.yudao.module.pms.engineering.service.constructionplan;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
+import cn.iocoder.yudao.module.bpm.api.durationchange.DurationChangeBpmApi;
+import cn.iocoder.yudao.module.bpm.api.event.BpmProcessInstanceStatusEvent;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanRevisionDO;
@@ -28,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,26 +42,31 @@ class DurationChangeBpmResultServiceTest {
     @Mock DurationChangeBpmAuthorizationGuard authorizationGuard;
     @Mock OperationAuditApi operationAuditApi;
     @Mock FileArtifactApi fileArtifactApi;
+    @Mock DurationChangeBpmApi durationChangeBpmApi;
 
     private DurationChangeBpmResultService service;
 
     @BeforeEach
     void setUp() {
         service = new DurationChangeBpmResultService(planMapper, revisionMapper, changeMapper,
-                authorizationGuard, operationAuditApi, fileArtifactApi);
+                authorizationGuard, operationAuditApi, fileArtifactApi, durationChangeBpmApi);
     }
 
     @Test
     void shouldApproveAndSwitchCurrentRevision() {
         stubPending(false);
+        stubSuccessfulWrites();
+        when(durationChangeBpmApi.getApprovalOpinion(new DurationChangeBpmApi.ApprovalOpinionQuery(
+                0L, "P-1", "pms-sol-duration-change", "801", 10L))).thenReturn("服务经理任务意见");
 
-        service.handle("P-1", BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "同意");
+        service.handle(event(BpmProcessInstanceStatusEnum.APPROVE, null));
 
         ArgumentCaptor<ConstructionPlanChangeVersionUpdate> changeUpdate =
                 ArgumentCaptor.forClass(ConstructionPlanChangeVersionUpdate.class);
         verify(changeMapper).updateVersionIfMatch(changeUpdate.capture());
         assertEquals(ConstructionPlanChangeDO.STATUS_APPROVED,
                 changeUpdate.getValue().statusCode());
+        assertEquals("服务经理任务意见", changeUpdate.getValue().approvalOpinion());
         ArgumentCaptor<ConstructionPlanVersionUpdate> planUpdate =
                 ArgumentCaptor.forClass(ConstructionPlanVersionUpdate.class);
         verify(planMapper).updateVersionIfMatch(planUpdate.capture());
@@ -73,8 +81,9 @@ class DurationChangeBpmResultServiceTest {
     @Test
     void shouldRejectAndKeepCurrentRevision() {
         stubPending(false);
+        stubSuccessfulWrites();
 
-        service.handle("P-1", BpmProcessInstanceStatusEnum.REJECT.getStatus(), "资料不完整");
+        service.handle(event(BpmProcessInstanceStatusEnum.REJECT, "资料不完整"));
 
         ArgumentCaptor<ConstructionPlanChangeVersionUpdate> changeUpdate =
                 ArgumentCaptor.forClass(ConstructionPlanChangeVersionUpdate.class);
@@ -88,18 +97,22 @@ class DurationChangeBpmResultServiceTest {
         assertEquals(701L, planUpdate.getValue().currentDurationRevisionId());
         assertEquals("RECALCULATED", planUpdate.getValue().planRecalculationStatusCode());
         assertEquals(701L, planUpdate.getValue().planRecalculationSourceRevisionId());
+        verifyNoInteractions(durationChangeBpmApi);
     }
 
     @Test
     void shouldWithdrawAndKeepCurrentRevision() {
         stubPending(false);
+        stubSuccessfulWrites();
 
-        service.handle("P-1", BpmProcessInstanceStatusEnum.CANCEL.getStatus(), "申请人撤回");
+        service.handle(event(BpmProcessInstanceStatusEnum.CANCEL, "申请人撤回"));
 
         ArgumentCaptor<ConstructionPlanChangeVersionUpdate> update =
                 ArgumentCaptor.forClass(ConstructionPlanChangeVersionUpdate.class);
         verify(changeMapper).updateVersionIfMatch(update.capture());
         assertEquals(ConstructionPlanChangeDO.STATUS_WITHDRAWN, update.getValue().statusCode());
+        assertEquals("申请人撤回", update.getValue().approvalOpinion());
+        verifyNoInteractions(durationChangeBpmApi);
     }
 
     @Test
@@ -111,16 +124,17 @@ class DurationChangeBpmResultServiceTest {
         when(planMapper.selectForUpdate(any())).thenReturn(plan);
         when(changeMapper.selectForUpdate(any())).thenReturn(change);
 
-        service.handle("P-1", BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "重放");
+        service.handle(event(BpmProcessInstanceStatusEnum.APPROVE, "重放"));
 
         verify(changeMapper, never()).updateVersionIfMatch(any());
         verify(planMapper, never()).updateVersionIfMatch(any());
         verify(operationAuditApi, never()).record(any(), any(), any(), any(), any(), any(), any(), any());
+        verifyNoInteractions(durationChangeBpmApi);
     }
 
     @Test
     void shouldIgnoreNonTerminalStatus() {
-        service.handle("P-1", BpmProcessInstanceStatusEnum.RUNNING.getStatus(), null);
+        service.handle(event(BpmProcessInstanceStatusEnum.RUNNING, null));
         verify(authorizationGuard, never()).authorize(any(), any());
     }
 
@@ -128,8 +142,7 @@ class DurationChangeBpmResultServiceTest {
     void shouldFailClosedWhenFrozenFileFactCannotBeRevalidated() {
         stubPending(true);
 
-        assertThrows(ServiceException.class, () -> service.handle(
-                "P-1", BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "同意"));
+        assertThrows(ServiceException.class, () -> service.handle(event(BpmProcessInstanceStatusEnum.APPROVE, "同意")));
         verify(changeMapper, never()).updateVersionIfMatch(any());
         verify(planMapper, never()).updateVersionIfMatch(any());
     }
@@ -145,11 +158,34 @@ class DurationChangeBpmResultServiceTest {
         when(changeMapper.updateVersionIfMatch(any())).thenReturn(1);
         when(planMapper.updateVersionIfMatch(any())).thenReturn(1);
 
-        service.handle("P-1", BpmProcessInstanceStatusEnum.APPROVE.getStatus(), "同意");
+        service.handle(event(BpmProcessInstanceStatusEnum.APPROVE, "同意"));
 
         verify(fileArtifactApi).lockAndRevalidate(any());
         verify(changeMapper).updateVersionIfMatch(any());
         verify(planMapper).updateVersionIfMatch(any());
+    }
+
+    @Test
+    void shouldNotApplyResultWhenBpmOpinionCannotBeAssociated() {
+        stubPending(false);
+        when(durationChangeBpmApi.getApprovalOpinion(any())).thenThrow(new IllegalStateException("任务关联不匹配"));
+
+        assertThrows(IllegalStateException.class,
+                () -> service.handle(event(BpmProcessInstanceStatusEnum.APPROVE, "不能作为任务意见兜底")));
+
+        verify(changeMapper, never()).updateVersionIfMatch(any());
+        verify(planMapper, never()).updateVersionIfMatch(any());
+        verifyNoInteractions(operationAuditApi);
+    }
+
+    private BpmProcessInstanceStatusEvent event(BpmProcessInstanceStatusEnum status, String reason) {
+        return new BpmProcessInstanceStatusEvent(this).setId("P-1")
+                .setProcessDefinitionKey("pms-sol-duration-change").setStatus(status.getStatus()).setReason(reason);
+    }
+
+    private void stubSuccessfulWrites() {
+        when(changeMapper.updateVersionIfMatch(any())).thenReturn(1);
+        when(planMapper.updateVersionIfMatch(any())).thenReturn(1);
     }
 
     private void stubPending(boolean evidenceRequired) {
@@ -159,16 +195,12 @@ class DurationChangeBpmResultServiceTest {
         change.setCustomerEvidenceRequired(evidenceRequired);
         when(changeMapper.selectForUpdate(any())).thenReturn(change);
         when(revisionMapper.selectForUpdate(any())).thenReturn(candidate());
-        if (!evidenceRequired) {
-            when(changeMapper.updateVersionIfMatch(any())).thenReturn(1);
-            when(planMapper.updateVersionIfMatch(any())).thenReturn(1);
-        }
     }
 
     private void stubAuthorization() {
         when(authorizationGuard.authorize(any(), any())).thenReturn(
                 new DurationChangeBpmAuthorizationGuard.AuthorizationContext(
-                        0L, 10L, 501L, 301L, 801L, 3));
+                        0L, 10L, 501L, 301L, 801L, 3L));
     }
 
     private ConstructionPlanDO plan() {
@@ -180,7 +212,7 @@ class DurationChangeBpmResultServiceTest {
         plan.setPendingChangeId(801L);
         plan.setPlanRecalculationStatusCode("RECALCULATED");
         plan.setPlanRecalculationSourceRevisionId(701L);
-        plan.setVersion(4);
+        plan.setVersion(4L);
         return plan;
     }
 

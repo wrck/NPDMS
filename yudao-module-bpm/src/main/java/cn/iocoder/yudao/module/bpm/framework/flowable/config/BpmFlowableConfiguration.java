@@ -73,7 +73,7 @@ public class BpmFlowableConfiguration {
 
     @Bean
     public BpmActivityBehaviorFactory bpmActivityBehaviorFactory(BpmTaskCandidateInvoker bpmTaskCandidateInvoker) {
-        BpmActivityBehaviorFactory bpmActivityBehaviorFactory = new BpmActivityBehaviorFactory();
+        BpmActivityBehaviorFactory bpmActivityBehaviorFactory = new cn.iocoder.yudao.module.bpm.framework.flowable.core.behavior.BpmCutoverActivityBehaviorFactory();
         bpmActivityBehaviorFactory.setTaskCandidateInvoker(bpmTaskCandidateInvoker);
         return bpmActivityBehaviorFactory;
     }

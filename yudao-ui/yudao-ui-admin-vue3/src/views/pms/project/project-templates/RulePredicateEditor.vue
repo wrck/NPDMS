@@ -16,7 +16,16 @@
     </el-select>
     <span v-if="!predicateAllowed(predicate)" role="alert" class="condition-hint"
       >此条件不适用于当前规则的办理绑定或引用位置，请修改条件或复制为独立规则；原条件已保留。</span>
-    <template v-if="predicate === 'FIELD'">
+    <template v-if="predicate === 'PROJECT_CONTACT_EXISTS'">
+      <span class="condition-hint">本项目存在启用且未删除的有效客户联系人时自动完成，无需手工提交。</span>
+    </template>
+    <template v-else-if="predicate === 'PROJECT_END_USER_EXISTS'">
+      <span class="condition-hint">项目成员中存在当前有效的最终用户时自动完成；外部人员无需系统账号。</span>
+    </template>
+    <template v-else-if="predicate === 'NORMAL_CLOSURE_APPROVED'">
+      <span class="condition-hint">正常闭环审批通过后完成此任务；申请前仍检查其他任务、交付件和业务结果。</span>
+    </template>
+    <template v-else-if="predicate === 'FIELD'">
       <span v-if="unavailableField" role="alert" class="condition-hint"
         >原字段已保留，但不在当前可用目录中，请重新选择。{{ creationOnly ? '适用条件只能使用创建时字段。' : '' }}</span>
       <el-select
@@ -203,6 +212,7 @@ const availableFields = computed(() => props.fields.filter(field => !creationOnl
 const unavailableField = computed(() => !!props.parameters.fieldCode && !availableFields.value.some(field => field.code === props.parameters.fieldCode))
 const predicateAllowed = (predicate: string) => {
   if (creationOnly.value && !['FIELD', 'CONSTANT', 'DECISION'].includes(predicate)) return false
+  if (['PROJECT_CONTACT_EXISTS', 'PROJECT_END_USER_EXISTS', 'NORMAL_CLOSURE_APPROVED'].includes(predicate)) return allowedNative.value?.includes(predicate) ?? true
   if (predicate === 'WAIT_ELAPSED' || predicate === 'CHILD_PROJECT_WAIT') return waitOptions.value?.available ?? true
   return !predicate.endsWith('_NATIVE_STATUS') || allowedNative.value === undefined || allowedNative.value.includes(predicate)
 }
@@ -243,6 +253,9 @@ const labels = {
   MILESTONE: '里程碑',
   DELIVERABLE: '交付件',
   TASK_NATIVE_STATUS: '任务自身办理',
+  PROJECT_CONTACT_EXISTS: '存在有效项目联系人',
+  PROJECT_END_USER_EXISTS: '存在有效最终用户成员',
+  NORMAL_CLOSURE_APPROVED: '正常闭环审批通过',
   STAGE_NATIVE_STATUS: '阶段自身办理',
   CONSTANT: '固定条件',
   DECISION: '决策表输出'
@@ -300,6 +313,10 @@ const selectField = (code: string) => {
 }
 const selectPredicate = (value: string) => {
   if (props.disabled || !predicateAllowed(value)) return
+  if (['PROJECT_CONTACT_EXISTS', 'PROJECT_END_USER_EXISTS', 'NORMAL_CLOSURE_APPROVED'].includes(value)) {
+    emit('change', value, {})
+    return
+  }
   if (value === 'CHILD_PROJECT_WAIT') {
     emit('change', value, { scope: 'DIRECT', acceptedClosureTypes: ['NORMAL_CLOSED', 'EXCEPTION_CLOSED'], quantifier: 'ALL', emptyResult: true })
     return

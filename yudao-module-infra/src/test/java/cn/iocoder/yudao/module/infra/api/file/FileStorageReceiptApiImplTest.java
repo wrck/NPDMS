@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.infra.api.file.dto.FileStorageStoreCommand;
 import cn.iocoder.yudao.module.infra.dal.dataobject.file.FileDO;
 import cn.iocoder.yudao.module.infra.dal.mysql.file.FileMapper;
 import cn.iocoder.yudao.module.infra.framework.file.core.client.FileClient;
+import cn.iocoder.yudao.module.infra.framework.file.core.client.db.DBFileClient;
 import cn.iocoder.yudao.module.infra.service.file.FileConfigService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,8 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,6 +39,7 @@ class FileStorageReceiptApiImplTest {
     @Mock private FileMapper fileMapper;
     @Mock private FileClient masterClient;
     @Mock private FileClient frozenClient;
+    @Mock private cn.iocoder.yudao.module.infra.service.file.FileStorageReceiptAccessService receiptDownloads;
 
     private FileStorageReceiptApiImpl api;
 
@@ -44,6 +48,65 @@ class FileStorageReceiptApiImplTest {
         api = new FileStorageReceiptApiImpl();
         ReflectionTestUtils.setField(api, "fileConfigService", fileConfigService);
         ReflectionTestUtils.setField(api, "fileMapper", fileMapper);
+        ReflectionTestUtils.setField(api, "receiptDownloads", receiptDownloads);
+    }
+
+    @Test void localStorageUsesTheSameAuthorizedExpiringReceiptEndpoint() {
+        var stored=file(901L,36L,"op-901","log.txt","text/plain",3L);
+        var local=mock(cn.iocoder.yudao.module.infra.framework.file.core.client.local.LocalFileClient.class);
+        when(fileMapper.selectById(901L)).thenReturn(stored);
+        when(fileConfigService.getFileClient(36L)).thenReturn(local);
+        when(receiptDownloads.issue(stored,60)).thenReturn("http://server/ticket");
+        assertEquals("http://server/ticket",api.presignGet(901L,60).shortLivedUrl());
+        verify(local,never()).presignGetUrl(any(),any());
+    }
+    @Test void outerRollbackDeletesOnlyTheNewUncommittedPhysicalObject() throws Exception {
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+        org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(true);
+        try {
+            when(fileMapper.selectListByStorageOperation(any())).thenReturn(List.of());
+            when(fileConfigService.getMasterFileClient()).thenReturn(masterClient);
+            when(masterClient.getId()).thenReturn(11L);
+            when(masterClient.upload(any(),any(),any())).thenReturn("https://private/receipt");
+            when(fileMapper.insert(any(FileDO.class))).thenAnswer(call->{((FileDO)call.getArgument(0)).setId(101L);return 1;});
+            api.store(command("rollback-new","evidence.pdf","application/pdf"));
+            for(var sync:org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations())
+                sync.afterCompletion(org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK);
+            verify(masterClient).delete("pms-storage-receipts/rollback-new");
+        } finally {
+            org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+            org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(false);
+        }
+    }
+    @Test void rollbackCannotDeleteACommittedReceiptUsingTheSamePath() throws Exception {
+        org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+        org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(true);
+        try {
+            when(fileMapper.selectListByStorageOperation(any())).thenReturn(List.of());
+            when(fileConfigService.getMasterFileClient()).thenReturn(masterClient);
+            when(masterClient.getId()).thenReturn(11L);
+            when(masterClient.upload(any(),any(),any())).thenReturn("https://private/receipt");
+            when(fileMapper.insert(any(FileDO.class))).thenAnswer(call->{((FileDO)call.getArgument(0)).setId(101L);return 1;});
+            when(fileMapper.selectCommittedReceiptForRollback(any())).thenReturn(List.of(file(201L,11L,"protected","evidence.pdf","application/pdf",3L)));
+            api.store(command("protected","evidence.pdf","application/pdf"));
+            for(var sync:org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations())
+                sync.afterCompletion(org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK);
+            verify(masterClient,never()).delete(any());
+        } finally {
+            org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+            org.springframework.transaction.support.TransactionSynchronizationManager.setActualTransactionActive(false);
+        }
+    }
+
+    @Test void databaseStorageUsesAuthorizedExpiringReceiptAccess() {
+        var stored=file(901L,36L,"op-901","log.txt","text/plain",3L);
+        var database=org.mockito.Mockito.mock(cn.iocoder.yudao.module.infra.framework.file.core.client.db.DBFileClient.class);
+        when(fileMapper.selectById(901L)).thenReturn(stored);
+        when(fileConfigService.getFileClient(36L)).thenReturn(database);
+        when(receiptDownloads.issue(stored,60)).thenReturn("http://server/ticket");
+        assertEquals("http://server/ticket",api.presignGet(901L,60).shortLivedUrl());
+        verify(database,never()).presignGetUrl(any(),any());
+        assertThrows(IllegalArgumentException.class,()->api.presignGet(901L,0));
     }
 
     @Test
@@ -52,7 +115,7 @@ class FileStorageReceiptApiImplTest {
         when(fileConfigService.getMasterFileClient()).thenReturn(masterClient);
         when(masterClient.getId()).thenReturn(11L);
         when(masterClient.upload(any(), eq("pms-storage-receipts/op-101"), eq("application/pdf")))
-                .thenReturn("https://private/files/op-101");
+                .thenReturn("https://private/files/op-101?X-Amz-Signature=synthetic-token#fragment");
         when(fileMapper.insert(any(FileDO.class))).thenAnswer(invocation -> {
             FileDO file = invocation.getArgument(0);
             file.setId(101L);
@@ -66,6 +129,9 @@ class FileStorageReceiptApiImplTest {
         assertEquals("evidence.pdf", receipt.name());
         assertEquals(3L, receipt.sizeBytes());
         verify(masterClient).upload(any(), eq("pms-storage-receipts/op-101"), eq("application/pdf"));
+        var stored = org.mockito.ArgumentCaptor.forClass(FileDO.class);
+        verify(fileMapper).insert(stored.capture());
+        assertEquals("https://private/files/op-101", stored.getValue().getUrl());
     }
 
     @Test
@@ -143,6 +209,32 @@ class FileStorageReceiptApiImplTest {
         assertEquals("https://private/signed", receipt.shortLivedUrl());
         assertTrue(receipt.expiresAt().isAfter(before));
         verify(fileConfigService, never()).getMasterFileClient();
+    }
+
+    @Test
+    void fallsBackOnlyForTheDbClientAndKeepsTheFrozenReceiptMetadata() {
+        FileDO existing = file(551L, 51L, "op-551", "a.pdf", "application/pdf", 3L);
+        DBFileClient dbClient = mock(DBFileClient.class);
+        when(fileMapper.selectById(551L)).thenReturn(existing);
+        when(fileConfigService.getFileClient(51L)).thenReturn(dbClient);
+        when(receiptDownloads.issue(existing, 60)).thenReturn(
+                "https://server/admin-api/infra/file-storage-receipts/content?ticket=opaque");
+
+        FileStorageAccessReceipt receipt = api.presignGet(551L, 60);
+
+        assertEquals("https://server/admin-api/infra/file-storage-receipts/content?ticket=opaque", receipt.shortLivedUrl());
+        verify(receiptDownloads).issue(existing, 60);
+    }
+
+    @Test
+    void keepsS3StylePresignedUrlsOnTheirExistingPath() {
+        FileDO existing = file(561L, 51L, "op-561", "a.pdf", "application/pdf", 3L);
+        when(fileMapper.selectById(561L)).thenReturn(existing);
+        when(fileConfigService.getFileClient(51L)).thenReturn(frozenClient);
+        when(frozenClient.presignGetUrl("pms-storage-receipts/op-561", 60)).thenReturn("https://private/signed");
+
+        assertEquals("https://private/signed", api.presignGet(561L, 60).shortLivedUrl());
+        verifyNoInteractions(receiptDownloads);
     }
 
     @Test

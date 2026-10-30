@@ -72,10 +72,17 @@ public class ProjectCustomerCorrectionService {
     }
 
     private Result correctOnce(Command command, Actor actor) {
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(),
-                command.projectId(), ProjectScopeApi.ACTION_MANAGE));
-        var locked = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.userId(),
-                command.projectId(), ProjectScopeApi.ACTION_MANAGE, scope.treeVersion()));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+        var locked = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if (!locked.fullProjectIds().contains(command.projectId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         var project = mapper.selectByIdForUpdate(command.projectId());
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())
@@ -130,11 +137,11 @@ public class ProjectCustomerCorrectionService {
                 project.getCustomerCode(), project.getCustomerName(), customerId, code, name, changed, reason);
     }
     public record Actor(Long tenantId, Long userId, String correlationId) { }
-    public record Command(Long projectId, Integer expectedVersion, String customerCode, String reason, String key) { }
+    public record Command(Long projectId, Long expectedVersion, String customerCode, String reason, String key) { }
     public record Reference(String source, String label, long count) { }
-    public record Inspection(Long projectId, Integer version, String customerCode, String customerName,
+    public record Inspection(Long projectId, Long version, String customerCode, String customerName,
                              boolean canCorrect, List<Reference> references) { }
-    public record Result(Long projectId, Integer version, Long previousCustomerId, String previousCustomerCode,
+    public record Result(Long projectId, Long version, Long previousCustomerId, String previousCustomerCode,
                          String previousCustomerName, Long customerId, String customerCode, String customerName,
                          boolean changed, String reason) { }
 }

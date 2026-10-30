@@ -26,6 +26,8 @@ public class ConfigurationRespVO {
 
     @Schema(description = "配置 Log 文件")
     private String configLogUrl;
+    private Long importedLogFileId;
+    private Long importedLogBatchId;
 
     @Schema(description = "调试结果")
     private String debugResult;

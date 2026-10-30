@@ -113,31 +113,34 @@ class CommerceAuthorityIngestMySqlTest {
         var order = new CommerceSalesOrderFact("O-" + suffix, null, "V1", "ACME", "ON-" + suffix,
                 "NORMAL", "CUS-01", "ERP customer", new BigDecimal("10"), "CNY",
                 CommerceSourceLifecycleStatus.ACTIVE, time(), "DIRECT", "ERP project", "ERP comment",
-                time().minusDays(1), time().plusDays(1));
+                time().minusDays(1), time().plusDays(1), null, "CT-1", "EXEC-H");
         var line = new CommerceOrderLineFact("L-" + suffix, null, "V1", "O-" + suffix,
-                "1", "ITEM-1", "ERP item", "PRODUCT-1", "MODEL-1",
+                "1", "ITEM-1", "ERP item", "PRODUCT-1",
                 BigDecimal.TEN, BigDecimal.TEN, BigDecimal.ZERO, "SET", 0, "CONFIRMED",
-                CommerceSourceLifecycleStatus.ACTIVE, time(), "STANDARD", "BUNDLE-1", "PC-1", "EXEC-1", 12);
+                CommerceSourceLifecycleStatus.ACTIVE, time(), "STANDARD", "BUNDLE-1", "PC-1", "EXEC-1", 12,
+                "{\"originNote\":\"verbatim\"}");
         var command = new CommerceAuthorityBatchCommand(TENANT_ID, "EV-FIELDS-" + suffix,
                 "B-FIELDS-" + suffix, "ERP", "WM-1", List.of(), List.of(order), List.of(line),
                 List.of(), time(), "CORR-FIELDS-" + suffix);
         assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, service.ingest(command).decision());
-        assertEquals("DIRECT|ERP project|ERP comment|ENABLED", jdbcTemplate.queryForObject(
-                "SELECT CONCAT_WS('|',sales_type,source_project_name,order_comment,status) "
+        assertEquals("DIRECT|ERP project|ERP comment|ENABLED|CT-1|EXEC-H", jdbcTemplate.queryForObject(
+                "SELECT CONCAT_WS('|',sales_type,source_project_name,order_comment,status,contract_no,execution_no) "
                         + "FROM com_sales_order WHERE tenant_id=? AND source_record_key=?", String.class,
                 TENANT_ID, order.sourceKey()));
-        assertEquals("STANDARD|BUNDLE-1|PC-1|EXEC-1|12|PRODUCT-1|ITEM-1|ENABLED", jdbcTemplate.queryForObject(
+        assertEquals("STANDARD|BUNDLE-1|PC-1|EXEC-1|12|ITEM-1|verbatim|ENABLED", jdbcTemplate.queryForObject(
                 "SELECT CONCAT_WS('|',line_type,bundle_code,profit_center,real_execution_no,warranty_month,"
-                        + "product_code,item_code,status) FROM com_sales_order_line WHERE tenant_id=? AND source_record_key=?",
+                        + "product_code,IFNULL(custom_info->>'$.originNote','<MISSING>'),status) "
+                        + "FROM com_sales_order_line WHERE tenant_id=? AND source_record_key=?",
                 String.class, TENANT_ID, line.sourceKey()));
         var replay = new CommerceAuthorityBatchCommand(TENANT_ID, "EV-FIELDS-REPLAY-" + suffix,
                 "B-REPLAY-" + suffix, "ERP", "WM-1", List.of(), List.of(order), List.of(line),
                 List.of(), time(), "CORR-REPLAY-" + suffix);
         assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED_NO_CHANGE, service.ingest(replay).decision());
         var changed = new CommerceOrderLineFact(line.sourceKey(), null, "V1", order.sourceKey(),
-                "1", "ITEM-1", "ERP item", "PRODUCT-1", "MODEL-1",
+                "1", "ITEM-1", "ERP item", "PRODUCT-1",
                 BigDecimal.TEN, BigDecimal.TEN, BigDecimal.ZERO, "SET", 0, "CONFIRMED",
-                CommerceSourceLifecycleStatus.ACTIVE, time(), "STANDARD", "BUNDLE-1", "PC-1", "EXEC-2", 12);
+                CommerceSourceLifecycleStatus.ACTIVE, time(), "STANDARD", "BUNDLE-1", "PC-1", "EXEC-2", 12,
+                "{\"originNote\":\"verbatim\"}");
         var conflict = new CommerceAuthorityBatchCommand(TENANT_ID, "EV-FIELDS-CONFLICT-" + suffix,
                 "B-CONFLICT-" + suffix, "ERP", "WM-1", List.of(), List.of(), List.of(changed),
                 List.of(), time(), "CORR-CONFLICT-" + suffix);
@@ -174,7 +177,7 @@ class CommerceAuthorityIngestMySqlTest {
         jdbcTemplate.update("INSERT INTO com_delivery_scope "
                         + "(id,project_id,project_code,order_line_id,order_source_system,order_company_code,order_type,"
                         + "order_no,line_no,allocated_qty,scope_status,allocation_version,allocation_source,"
-                        + "office_department_id,office_department_code,office_department_name,office_department_version,"
+                        + "department_id,department_code,department_name,department_version,"
                         + "source_evidence,effective_from,version,creator,create_time,updater,update_time,deleted,tenant_id) "
                         + "VALUES (?,?,?,?,'ERP','ACME','NORMAL',?,'10',8,'ACTIVE',1,'ERP',1,'D-1','Office',1,"
                         + "'BASE',NOW(3),0,'0',NOW(3),'0',NOW(3),b'0',?)",
@@ -271,7 +274,7 @@ class CommerceAuthorityIngestMySqlTest {
     }
 
     private CommerceOrderLineFact line(String key, String previous, String version, String quantity) {
-        return new CommerceOrderLineFact(key, previous, version, "O-" + suffix, "10", "ITEM-1", null,
+        return new CommerceOrderLineFact(key, previous, version, "O-" + suffix, "10", "ITEM-1",
                 new BigDecimal(quantity), "PCS", CommerceSourceLifecycleStatus.ACTIVE, time());
     }
 
@@ -318,6 +321,11 @@ class CommerceAuthorityIngestMySqlTest {
         @Bean
         DeliveryScopeConflictNotifier deliveryScopeConflictNotifier() {
             return org.mockito.Mockito.mock(DeliveryScopeConflictNotifier.class);
+        }
+
+        @Bean
+        cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi deviceOrganizationProjectionApi() {
+            return org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.class);
         }
     }
 }

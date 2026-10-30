@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import type { FileArtifactVO, FileVersionVO } from '@/api/pms/platform/file'
 import type {
   EvidenceReference,
@@ -34,7 +35,7 @@ export const buildEvidenceReference = (
   scopeVersion: artifact.reference.scopeVersion
 })
 
-export const createIntentKeyStore = (factory: () => string = () => crypto.randomUUID()) => {
+export const createIntentKeyStore = (factory: () => string = () => generateUUID()) => {
   const keys = new Map<string, string>()
   return {
     key(intent: string) {

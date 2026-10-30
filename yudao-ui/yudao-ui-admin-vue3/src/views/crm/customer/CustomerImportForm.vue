@@ -3,14 +3,7 @@
   <Dialog v-model="dialogVisible" title="客户导入" width="400">
     <div class="flex items-center my-10px">
       <span class="mr-10px">负责人</span>
-      <el-select v-model="ownerUserId" class="!w-240px" clearable>
-        <el-option
-          v-for="item in userOptions"
-          :key="item.id"
-          :label="item.nickname"
-          :value="item.id"
-        />
-      </el-select>
+      <UserSelect v-model="ownerUserId" class="!w-240px" clearable />
     </div>
     <el-upload
       ref="uploadRef"
@@ -50,10 +43,10 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as CustomerApi from '@/api/crm/customer'
 import download from '@/utils/download'
 import type { UploadUserFile } from 'element-plus'
-import * as UserApi from '@/api/system/user'
 import { getCurrentUserId } from '@/utils/auth'
 
 defineOptions({ name: 'CrmCustomerImportForm' })
@@ -66,14 +59,13 @@ const uploadRef = ref()
 const fileList = ref<UploadUserFile[]>([]) // 文件列表
 const updateSupport = ref(false) // 是否更新已经存在的客户数据
 const ownerUserId = ref<undefined | number>() // 负责人编号
-const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 
 /** 打开弹窗 */
 const open = async () => {
   dialogVisible.value = true
   await resetForm()
   // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
+
   ownerUserId.value = getCurrentUserId()
 }
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗

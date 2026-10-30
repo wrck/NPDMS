@@ -1,5 +1,5 @@
 <template>
-  <div class="controlled-file-field">
+  <section class="controlled-file-field" aria-label="需求分析附件">
     <div v-for="fact in current" :key="fact.referenceKey" class="file-slot">
       <PmsFileReferenceList
         owner-context="SOL"
@@ -15,7 +15,10 @@
         @detached="handleDetached(fact.referenceKey)"
       />
       <PmsFileUploader
+        ref="versionUploaders"
         v-if="canWrite"
+        auto-submit
+        hide-submit
         owner-context="SOL"
         object-type="REQUIREMENT_ANALYSIS_REVISION"
         :object-id="String(revisionId)"
@@ -27,12 +30,19 @@
           fact.referenceVersion ?? fact.fileFactVersion?.referenceVersion
         "
         category-code="DYNAMIC_FORM_ATTACHMENT"
-        accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+        :accept="acceptedFiles"
         @completed="handleCompleted"
       />
     </div>
+    <TopologyMultiUpload
+      v-if="canWrite && fieldKey === 'NETWORK_TOPOLOGY__ATTACHMENTS'"
+      :key="String(revisionId)" :revision-id="String(revisionId)" :disabled="!canWrite" :accept="acceptedFiles"
+      :owner-execution-context="ownerExecutionContext" @completed="handleCompleted" @busy="multiBusy = $event" />
     <PmsFileUploader
-      v-if="canWrite"
+      ref="newUploader"
+      v-if="canWrite && fieldKey !== 'NETWORK_TOPOLOGY__ATTACHMENTS'"
+        auto-submit
+        hide-submit
       owner-context="SOL"
       object-type="REQUIREMENT_ANALYSIS_REVISION"
       :object-id="String(revisionId)"
@@ -40,14 +50,15 @@
       :reference-key="uploadSlotKey"
       :owner-execution-context="ownerExecutionContext"
       category-code="DYNAMIC_FORM_ATTACHMENT"
-      accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+      :accept="acceptedFiles"
       @completed="handleCompleted"
     />
     <el-empty v-else-if="!current.length" description="暂无文件材料" :image-size="56" />
-  </div>
+  </section>
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import {
   PmsFileReferenceList,
   PmsFileUploader,
@@ -55,6 +66,7 @@ import {
 } from '@/components/PmsFileArtifact'
 import type { DynamicFormFileFactVO, JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { FileArtifactVO } from '@/api/pms/platform/file'
+import TopologyMultiUpload from './TopologyMultiUpload.vue'
 
 defineOptions({ name: 'RequirementRevisionFiles' })
 
@@ -70,7 +82,17 @@ const props = withDefaults(
   }>(),
   { currentFacts: () => [], allowedActions: () => [], disabled: false }
 )
-const emit = defineEmits<{ 'update:modelValue': [value: string[]] }>()
+const emit = defineEmits<{
+  'update:modelValue': [value: string[]]
+  'upload-busy-change': [busy: boolean]
+}>()
+const versionUploaders = ref<InstanceType<typeof PmsFileUploader>[]>([])
+const newUploader = ref<InstanceType<typeof PmsFileUploader>>()
+const multiBusy = ref(false)
+const uploadBusy = computed(() => multiBusy.value || !!newUploader.value?.isBusy()
+  || versionUploaders.value.some(uploader => uploader.isBusy()))
+watch(uploadBusy, busy => emit('upload-busy-change', busy), { flush: 'sync' })
+onBeforeUnmount(() => emit('upload-busy-change', false))
 
 type VisibleFile = Pick<DynamicFormFileFactVO, 'artifactId' | 'versionNo' | 'referenceKey'> &
   Partial<Pick<DynamicFormFileFactVO, 'fileFactVersion'>> & { referenceVersion?: number }
@@ -80,8 +102,10 @@ const toVisibleFiles = (facts: DynamicFormFileFactVO[]): VisibleFile[] =>
     referenceVersion: fact.fileFactVersion?.referenceVersion
   }))
 const current = ref<VisibleFile[]>(toVisibleFiles(props.currentFacts))
-const uploadSlotKey = ref(crypto.randomUUID())
+const uploadSlotKey = ref(generateUUID())
 const purposeCode = computed(() => `FORM_FIELD_ATTACHMENT/${props.fieldKey || ''}`)
+const acceptedFiles = computed(() => '.pdf,.png,.jpg,.jpeg,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx'
+  + (props.fieldKey === 'NETWORK_TOPOLOGY__ATTACHMENTS' ? ',.vsd,.vsdx' : ''))
 const canWrite = computed(
   () => !!props.revisionId && !props.disabled && props.allowedActions.includes('PATCH_FORM')
 )
@@ -100,7 +124,7 @@ const handleCompleted = (selection: FileSelection) => {
       referenceKey: selection.referenceKey
     }
   ]
-  uploadSlotKey.value = crypto.randomUUID()
+  uploadSlotKey.value = generateUUID()
   syncRuntimeValue()
 }
 

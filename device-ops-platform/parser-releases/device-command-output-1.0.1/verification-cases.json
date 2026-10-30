@@ -1,0 +1,9 @@
+{
+  "cases": [
+    {
+      "caseId": "mixed-dynamic-commands-with-indented-labels",
+      "inputFile": "input.json",
+      "expectedFile": "expected-result.json"
+    }
+  ]
+}

@@ -1,0 +1,698 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理" [expanded]:
+        - generic: 项目管理
+        - menu:
+          - menuitem "项目列表":
+            - generic: 项目列表
+          - menuitem "计划进度":
+            - generic: 计划进度
+          - menuitem "项目风险":
+            - generic: 项目风险
+          - menuitem "组合与治理":
+            - generic: 组合与治理
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "割接交付":
+        - generic: 割接交付
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "巡检服务":
+        - generic: 巡检服务
+      - menuitem "项目模板管理":
+        - generic: 项目模板管理
+      - menuitem "交付件汇总（6.4）":
+        - generic: 交付件汇总（6.4）
+      - menuitem "现场培训（6.1）":
+        - generic: 现场培训（6.1）
+      - menuitem "阶段施工计划（3.1）":
+        - generic: 阶段施工计划（3.1）
+      - menuitem "施工计划建议规则":
+        - generic: 施工计划建议规则
+      - menuitem "设备连接与采集":
+        - generic: 设备连接与采集
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "项目交付（新功能暂停）":
+    - generic: 项目交付（新功能暂停）
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- superscript
+- button "管理员":
+  - generic: 管理员
+- button "首页":
+  - text: 首页
+- button "项目详情":
+  - text: 项目详情
+- button:
+- generic: 施工计划
+- heading "工程直签16任务内嵌验收20261016" [level=2]
+- generic: 工程类
+- generic: "模板 #993009900016 v3"
+- text: 编码
+- generic: PJT2026000065
+- text: FAST001客户设备空摘要验收
+- text: 直签 / 原厂直服
+- text: 2026-10-16 03:13:41
+- generic: 进度 25%
+- generic: 任务 4/16
+- generic: 风险 0
+- button "返回列表":
+  - text: 返回列表
+- tablist "项目阶段推进轨":
+  - button "S0 项目立项":
+    - generic: S0
+    - generic: 项目立项
+  - button "S1 工前准备":
+    - generic: S1
+    - generic: 工前准备
+  - button "S2 施工计划":
+    - generic: S2
+    - generic: 施工计划
+  - button "S3 实施方案":
+    - generic: S3
+    - generic: 实施方案
+  - button "S4 实施部署":
+    - generic: S4
+    - generic: 实施部署
+  - button "S5 验收交维":
+    - generic: S5
+    - generic: 验收交维
+  - button "S6 项目闭环":
+    - generic: S6
+    - generic: 项目闭环
+  - button "推进说明与图例":
+- generic: 项目概览
+- button "基本信息":
+  - generic: 基本信息
+- button "客户信息":
+  - generic: 客户信息
+- button "项目树":
+  - generic: 项目树
+- button "项目成员":
+  - generic: 项目成员
+- button "设备清单":
+  - generic: 设备清单
+- button "序列号详情":
+  - generic: 序列号详情
+- button "配置Log":
+  - generic: 配置Log
+- button "实施范围 待确认":
+  - generic: 实施范围
+  - generic: 待确认
+- generic: 阶段和任务
+- button "阶段状态":
+  - generic: 阶段状态
+- button "S0 项目立项 100%":
+  - generic: S0 项目立项
+  - generic: 100%
+- button "S1 工前准备 100%":
+  - generic: S1 工前准备
+  - generic: 100%
+- button "S2 施工计划 0%":
+  - generic: S2 施工计划
+  - generic: 0%
+- button "S3 实施方案 0%":
+  - generic: S3 实施方案
+  - generic: 0%
+- button "S4 实施部署 0%":
+  - generic: S4 实施部署
+  - generic: 0%
+- button "S5 验收交维 0%":
+  - generic: S5 验收交维
+  - generic: 0%
+- button "S6 项目闭环 0%":
+  - generic: S6 项目闭环
+  - generic: 0%
+- generic: 全流程业务
+- generic: 工前准备
+- button "工勘分工 2.2":
+  - generic: 工勘分工
+  - generic: "2.2"
+- button "需求分析 2.3":
+  - generic: 需求分析
+  - generic: "2.3"
+- button "物料换货 2.2.1":
+  - generic: 物料换货
+  - generic: 2.2.1
+- button "工程交底 2.4":
+  - generic: 工程交底
+  - generic: "2.4"
+- generic: 制定施工计划
+- button "施工计划 3.1-3.4":
+  - generic: 施工计划
+  - generic: 3.1-3.4
+- generic: 实施方案
+- button "实施方案 4.1":
+  - generic: 实施方案
+  - generic: "4.1"
+- generic: 实施部署
+- button "到货签收 5.1":
+  - generic: 到货签收
+  - generic: "5.1"
+- button "硬件安装 5.2":
+  - generic: 硬件安装
+  - generic: "5.2"
+- button "配置调试 5.3":
+  - generic: 配置调试
+  - generic: "5.3"
+- button "业务联调 5.4":
+  - generic: 业务联调
+  - generic: "5.4"
+- button "割接上线 5.5":
+  - generic: 割接上线
+  - generic: "5.5"
+- generic: 验收交维
+- button "现场培训 6.1":
+  - generic: 现场培训
+  - generic: "6.1"
+- button "满意度调查 6.2":
+  - generic: 满意度调查
+  - generic: "6.2"
+- button "初验&终验 6.3":
+  - generic: 初验&终验
+  - generic: "6.3"
+- button "交付件汇总 6.5":
+  - generic: 交付件汇总
+  - generic: "6.5"
+- button "交付件检查 6.6":
+  - generic: 交付件检查
+  - generic: "6.6"
+- button "归档文档 6.7":
+  - generic: 归档文档
+  - generic: "6.7"
+- button "闭环记录 6.8":
+  - generic: 闭环记录
+  - generic: "6.8"
+- button "项目闭环 6.9":
+  - generic: 项目闭环
+  - generic: "6.9"
+- generic: 项目拆分
+- button "拆分方案":
+  - generic: 拆分方案
+- generic: 进度汇总
+- button "进度汇总":
+  - generic: 进度汇总
+- generic: 异常治理
+- button "异常治理":
+  - generic: 异常治理
+- generic: 项目权限
+- button "项目授权":
+  - generic: 项目授权
+- generic: 服务经理
+- button "责任分布":
+  - generic: 责任分布
+- heading "施工计划" [level=3]
+- paragraph: 从工期要求倒排阶段，在阶段内安排任务，确认后提交服务经理审核。
+- button "刷新":
+  - generic: 刷新
+- button "管理工期":
+  - generic: 管理工期
+- term: 签约方式
+- definition: 直签
+- generic: 尚未关联合同
+- term: 工勘要求结束日期
+- definition: 2026-10-30
+- generic: 来自工前准备
+- term: 当前生效工期
+- definition: 15 天
+- generic: 2026-10-16 至 2026-10-30
+- term: 本版倒排截止日期
+- definition: 尚未推算
+- generic: 来自回款节点计划验收时间
+- alert:
+  - generic: 距本版本计划截止日还有 14 天，不足3个日历月，请落实前序任务并确认发货安排。
+- combobox "施工计划版本"
+- generic: "计划 #38 · 草稿"
+- button "制定施工计划" [disabled]:
+  - generic: 制定施工计划
+- generic: 草稿
+- text: 本版计划区间
+- strong: 2026-10-16 至 2026-10-30
+- generic: 16 / 16 项任务已安排
+- progressbar
+- generic: 任务日期已就绪
+- generic "计划视图":
+  - radiogroup "radio-group":
+    - radio "日期安排" [checked]
+    - generic: 日期安排
+    - radio "时间轴"
+    - generic: 时间轴
+  - generic: 7 个阶段 / 16 项任务
+- textbox "查找阶段或任务"
+- table:
+  - rowgroup:
+    - row "阶段 / 任务 计划开始 计划结束 天数 倒排建议 / 计划验收 安排检查 备注 / 操作":
+      - columnheader "阶段 / 任务":
+        - generic: 阶段 / 任务
+      - columnheader "计划开始":
+        - generic: 计划开始
+      - columnheader "计划结束":
+        - generic: 计划结束
+      - columnheader "天数":
+        - generic: 天数
+      - columnheader "倒排建议 / 计划验收":
+        - generic: 倒排建议 / 计划验收
+      - columnheader "安排检查":
+        - generic: 安排检查
+      - columnheader "备注 / 操作":
+        - generic: 备注 / 操作
+- table:
+  - rowgroup:
+    - row "收起当前行 阶段 项目立项 2026-10-16 2026-10-16 1 暂无建议 已安排":
+      - cell "收起当前行 阶段 项目立项":
+        - button "收起当前行" [expanded]:
+        - generic: 阶段
+        - strong: 项目立项
+      - cell "2026-10-16":
+        - combobox "项目立项计划开始": 2026-10-16
+      - cell "2026-10-16":
+        - combobox "项目立项计划结束": 2026-10-16
+      - cell "1":
+        - generic: "1"
+      - cell "暂无建议":
+        - generic: 暂无建议
+      - cell "已安排":
+        - generic: 已安排
+      - cell:
+        - textbox "项目立项备注":
+          - /placeholder: 填写备注
+    - row "任务 人员指派 2026-10-16 2026-10-16 1 随所属阶段安排 已安排 任务详情":
+      - cell "任务 人员指派":
+        - generic: 任务
+        - text: 人员指派
+      - cell "2026-10-16":
+        - combobox "人员指派计划开始": 2026-10-16
+      - cell "2026-10-16":
+        - combobox "人员指派计划结束": 2026-10-16
+      - cell "1":
+        - generic: "1"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "任务 用户信息录入 2026-10-16 2026-10-16 1 随所属阶段安排 已安排 任务详情":
+      - cell "任务 用户信息录入":
+        - generic: 任务
+        - text: 用户信息录入
+      - cell "2026-10-16":
+        - combobox "用户信息录入计划开始": 2026-10-16
+      - cell "2026-10-16":
+        - combobox "用户信息录入计划结束": 2026-10-16
+      - cell "1":
+        - generic: "1"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "收起当前行 阶段 工前准备 2026-10-17 2026-10-17 1 2026-07-02 晚于建议最迟完成时间":
+      - cell "收起当前行 阶段 工前准备":
+        - button "收起当前行" [expanded]:
+        - generic: 阶段
+        - strong: 工前准备
+      - cell "2026-10-17":
+        - combobox "工前准备计划开始": 2026-10-17
+      - cell "2026-10-17":
+        - combobox "工前准备计划结束": 2026-10-17
+      - cell "1":
+        - generic: "1"
+      - cell "2026-07-02":
+        - generic: 2026-07-02
+      - cell "晚于建议最迟完成时间":
+        - generic: 晚于建议最迟完成时间
+      - cell:
+        - textbox "工前准备备注":
+          - /placeholder: 填写备注
+    - row "任务 现场工勘 2026-10-17 2026-10-17 1 随所属阶段安排 已安排 任务详情":
+      - cell "任务 现场工勘":
+        - generic: 任务
+        - text: 现场工勘
+      - cell "2026-10-17":
+        - combobox "现场工勘计划开始": 2026-10-17
+      - cell "2026-10-17":
+        - combobox "现场工勘计划结束": 2026-10-17
+      - cell "1":
+        - generic: "1"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "任务 需求分析 2026-10-17 2026-10-17 1 随所属阶段安排 已安排 任务详情":
+      - cell "任务 需求分析":
+        - generic: 任务
+        - text: 需求分析
+      - cell "2026-10-17":
+        - combobox "需求分析计划开始": 2026-10-17
+      - cell "2026-10-17":
+        - combobox "需求分析计划结束": 2026-10-17
+      - cell "1":
+        - generic: "1"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "收起当前行 阶段 施工计划 2026-10-18 2026-10-18 1 暂无建议 已安排":
+      - cell "收起当前行 阶段 施工计划":
+        - button "收起当前行" [expanded]:
+        - generic: 阶段
+        - strong: 施工计划
+      - cell "2026-10-18":
+        - combobox "施工计划计划开始": 2026-10-18
+      - cell "2026-10-18":
+        - combobox "施工计划计划结束": 2026-10-18
+      - cell "1":
+        - generic: "1"
+      - cell "暂无建议":
+        - generic: 暂无建议
+      - cell "已安排":
+        - generic: 已安排
+      - cell:
+        - textbox "施工计划备注":
+          - /placeholder: 填写备注
+    - row "任务 施工计划 2026-10-18 2026-10-18 1 随所属阶段安排 已安排 任务详情":
+      - cell "任务 施工计划":
+        - generic: 任务
+        - text: 施工计划
+      - cell "2026-10-18":
+        - combobox "施工计划计划开始": 2026-10-18
+      - cell "2026-10-18":
+        - combobox "施工计划计划结束": 2026-10-18
+      - cell "1":
+        - generic: "1"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "收起当前行 阶段 实施方案 2026-10-19 2026-10-19 1 暂无建议 已安排":
+      - cell "收起当前行 阶段 实施方案":
+        - button "收起当前行" [expanded]:
+        - generic: 阶段
+        - strong: 实施方案
+      - cell "2026-10-19":
+        - combobox "实施方案计划开始": 2026-10-19
+      - cell "2026-10-19":
+        - combobox "实施方案计划结束": 2026-10-19
+      - cell "1":
+        - generic: "1"
+      - cell "暂无建议":
+        - generic: 暂无建议
+      - cell "已安排":
+        - generic: 已安排
+      - cell:
+        - textbox "实施方案备注":
+          - /placeholder: 填写备注
+    - row "任务 实施方案 2026-10-19 2026-10-19 1 随所属阶段安排 已安排 任务详情":
+      - cell "任务 实施方案":
+        - generic: 任务
+        - text: 实施方案
+      - cell "2026-10-19":
+        - combobox "实施方案计划开始": 2026-10-19
+      - cell "2026-10-19":
+        - combobox "实施方案计划结束": 2026-10-19
+      - cell "1":
+        - generic: "1"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "收起当前行 阶段 实施部署 2026-10-20 2026-10-23 4 2026-07-16 晚于建议最迟完成时间":
+      - cell "收起当前行 阶段 实施部署":
+        - button "收起当前行" [expanded]:
+        - generic: 阶段
+        - strong: 实施部署
+      - cell "2026-10-20":
+        - combobox "实施部署计划开始": 2026-10-20
+      - cell "2026-10-23":
+        - combobox "实施部署计划结束": 2026-10-23
+      - cell "4":
+        - generic: "4"
+      - cell "2026-07-16":
+        - generic: 2026-07-16
+      - cell "晚于建议最迟完成时间":
+        - generic: 晚于建议最迟完成时间
+      - cell:
+        - textbox "实施部署备注":
+          - /placeholder: 填写备注
+    - row "任务 到货签收 2026-10-20 2026-10-23 4 随所属阶段安排 已安排 任务详情":
+      - cell "任务 到货签收":
+        - generic: 任务
+        - text: 到货签收
+      - cell "2026-10-20":
+        - combobox "到货签收计划开始": 2026-10-20
+      - cell "2026-10-23":
+        - combobox "到货签收计划结束": 2026-10-23
+      - cell "4":
+        - generic: "4"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "任务 硬件实施 2026-10-20 2026-10-23 4 随所属阶段安排 已安排 任务详情":
+      - cell "任务 硬件实施":
+        - generic: 任务
+        - text: 硬件实施
+      - cell "2026-10-20":
+        - combobox "硬件实施计划开始": 2026-10-20
+      - cell "2026-10-23":
+        - combobox "硬件实施计划结束": 2026-10-23
+      - cell "4":
+        - generic: "4"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "任务 配置调试 2026-10-20 2026-10-23 4 随所属阶段安排 已安排 任务详情":
+      - cell "任务 配置调试":
+        - generic: 任务
+        - text: 配置调试
+      - cell "2026-10-20":
+        - combobox "配置调试计划开始": 2026-10-20
+      - cell "2026-10-23":
+        - combobox "配置调试计划结束": 2026-10-23
+      - cell "4":
+        - generic: "4"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "任务 业务联调 2026-10-20 2026-10-23 4 随所属阶段安排 已安排 任务详情":
+      - cell "任务 业务联调":
+        - generic: 任务
+        - text: 业务联调
+      - cell "2026-10-20":
+        - combobox "业务联调计划开始": 2026-10-20
+      - cell "2026-10-23":
+        - combobox "业务联调计划结束": 2026-10-23
+      - cell "4":
+        - generic: "4"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "任务 割接上线 2026-10-20 2026-10-23 4 随所属阶段安排 已安排 任务详情":
+      - cell "任务 割接上线":
+        - generic: 任务
+        - text: 割接上线
+      - cell "2026-10-20":
+        - combobox "割接上线计划开始": 2026-10-20
+      - cell "2026-10-23":
+        - combobox "割接上线计划结束": 2026-10-23
+      - cell "4":
+        - generic: "4"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "收起当前行 阶段 验收交维 2026-10-24 2026-10-29 6 2026-10-30 已安排":
+      - cell "收起当前行 阶段 验收交维":
+        - button "收起当前行" [expanded]:
+        - generic: 阶段
+        - strong: 验收交维
+      - cell "2026-10-24":
+        - combobox "验收交维计划开始": 2026-10-24
+      - cell "2026-10-29":
+        - combobox "验收交维计划结束": 2026-10-29
+      - cell "6":
+        - generic: "6"
+      - cell "2026-10-30":
+        - generic: 2026-10-30
+      - cell "已安排":
+        - generic: 已安排
+      - cell:
+        - textbox "验收交维备注":
+          - /placeholder: 填写备注
+    - row "任务 现场培训 2026-10-24 2026-10-29 6 随所属阶段安排 已安排 任务详情":
+      - cell "任务 现场培训":
+        - generic: 任务
+        - text: 现场培训
+      - cell "2026-10-24":
+        - combobox "现场培训计划开始": 2026-10-24
+      - cell "2026-10-29":
+        - combobox "现场培训计划结束": 2026-10-29
+      - cell "6":
+        - generic: "6"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "任务 满意度调查 2026-10-24 2026-10-29 6 随所属阶段安排 已安排 任务详情":
+      - cell "任务 满意度调查":
+        - generic: 任务
+        - text: 满意度调查
+      - cell "2026-10-24":
+        - combobox "满意度调查计划开始": 2026-10-24
+      - cell "2026-10-29":
+        - combobox "满意度调查计划结束": 2026-10-29
+      - cell "6":
+        - generic: "6"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "任务 初验 2026-10-24 2026-10-29 6 随所属阶段安排 已安排 任务详情":
+      - cell "任务 初验":
+        - generic: 任务
+        - text: 初验
+      - cell "2026-10-24":
+        - combobox "初验计划开始": 2026-10-24
+      - cell "2026-10-29":
+        - combobox "初验计划结束": 2026-10-29
+      - cell "6":
+        - generic: "6"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "任务 终验 2026-10-24 2026-10-29 6 随所属阶段安排 已安排 任务详情":
+      - cell "任务 终验":
+        - generic: 任务
+        - text: 终验
+      - cell "2026-10-24":
+        - combobox "终验计划开始": 2026-10-24
+      - cell "2026-10-29":
+        - combobox "终验计划结束": 2026-10-29
+      - cell "6":
+        - generic: "6"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+    - row "收起当前行 阶段 项目闭环 2026-10-30 2026-10-30 1 暂无建议 已安排":
+      - cell "收起当前行 阶段 项目闭环":
+        - button "收起当前行" [expanded]:
+        - generic: 阶段
+        - strong: 项目闭环
+      - cell "2026-10-30":
+        - combobox "项目闭环计划开始": 2026-10-30
+      - cell "2026-10-30":
+        - combobox "项目闭环计划结束": 2026-10-30
+      - cell "1":
+        - generic: "1"
+      - cell "暂无建议":
+        - generic: 暂无建议
+      - cell "已安排":
+        - generic: 已安排
+      - cell:
+        - textbox "项目闭环备注":
+          - /placeholder: 填写备注
+    - row "任务 项目闭环 2026-10-30 2026-10-30 1 随所属阶段安排 已安排 任务详情":
+      - cell "任务 项目闭环":
+        - generic: 任务
+        - text: 项目闭环
+      - cell "2026-10-30":
+        - combobox "项目闭环计划开始": 2026-10-30
+      - cell "2026-10-30":
+        - combobox "项目闭环计划结束": 2026-10-30
+      - cell "1":
+        - generic: "1"
+      - cell "随所属阶段安排":
+        - generic: 随所属阶段安排
+      - cell "已安排":
+        - generic: 已安排
+      - cell "任务详情":
+        - button "任务详情":
+          - generic: 任务详情
+- paragraph: 展开阶段可安排任务及子任务。任务日期在所属阶段内安排，保存后随整份计划提交审核。
+- button "重新倒排":
+  - generic: 重新倒排
+- generic: 审批通过后，阶段和任务计划统一生效
+- button "保存调整" [disabled]:
+  - generic: 保存调整
+- button "提交审核":
+  - generic: 提交审核
+- dialog "提交施工计划审核":
+  - heading "提交施工计划审核" [level=2]
+  - button "关闭此对话框":
+  - paragraph: 提交当前阶段及任务的全部计划日期，由本项目服务经理审核。
+  - generic: "*服务经理审批人"
+  - combobox "*服务经理审批人"
+  - generic: 管理员
+  - button "取消":
+    - generic: 取消
+  - button "发起审批" [active]:
+    - generic: 发起审批
+- generic: Copyright ©2026 项目实施交付管理平台

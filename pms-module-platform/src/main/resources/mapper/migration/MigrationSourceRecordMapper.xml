@@ -2,6 +2,16 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper">
+    <insert id="insertRows">
+        INSERT INTO plt_migration_source_record
+        (id,tenant_id,batch_id,source_system,source_table,source_record_key,source_business_key,
+         source_payload,source_checksum,extracted_at,creator,updater,create_time,update_time,deleted)
+        VALUES
+        <foreach collection="rows" item="r" separator=",">
+            (#{r.id},#{r.tenantId},#{r.batchId},#{r.sourceSystem},#{r.sourceTable},#{r.sourceRecordKey},#{r.sourceBusinessKey},
+             #{r.sourcePayload},#{r.sourceChecksum},#{r.extractedAt},#{r.creator},#{r.updater},#{r.createTime},#{r.updateTime},FALSE)
+        </foreach>
+    </insert>
 
     <select id="selectByBatchAndIdForUpdate"
             resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationSourceRecordDO">

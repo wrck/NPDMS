@@ -11,7 +11,15 @@ import lombok.EqualsAndHashCode;
 public class DevicePageReqVO extends PageParam {
 
     private String sn;
+    private String name;
+    private String status;
     private String productCode;
     private Long projectId;
     private Long customerId;
+    @jakarta.validation.constraints.Size(max = 128)
+    private String projectName;
+    @jakarta.validation.constraints.Size(max = 128)
+    private String customerName;
+    @jakarta.validation.constraints.Size(max = 128)
+    private String departmentName;
 }

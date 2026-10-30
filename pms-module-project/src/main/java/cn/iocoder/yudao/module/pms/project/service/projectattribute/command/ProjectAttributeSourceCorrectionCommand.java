@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 /** 已完成项目定位的受信任来源属性修正命令。 */
 public record ProjectAttributeSourceCorrectionCommand(
         Long projectId,
-        Integer expectedVersion,
+        Long expectedVersion,
         String signingMethod,
         String implementationMode,
         String majorProjectLevel,

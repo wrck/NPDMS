@@ -8,8 +8,16 @@
       class="form-alert"
     />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" :disabled="!canWrite">
-      <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="form-alert"
-        title="按工勘登记的项目结束日期倒排。自然日包含首尾两天；此处不会回写项目结束日期。" />
+      <el-alert
+        v-if="project.projectEndDate" type="info" :closable="false" class="form-alert"
+        title="默认按工期结束日期锁定结束并倒排开始（初始取工勘要求日期，切换起止日期口径后可修改结束日期再倒排）。自然日包含首尾两天；此处不会回写项目结束日期。" />
+      <el-form-item v-if="project.projectEndDate" label="计算口径">
+        <el-radio-group v-model="surveyEntryMode" @change="onSurveyEntryModeChange">
+          <el-radio-button value="SURVEY_BACKWARD">按工期倒排</el-radio-button>
+          <el-radio-button value="DATE_RANGE">起止日期</el-radio-button>
+          <el-radio-button value="DURATION_FROM_START">起点 + 天数</el-radio-button>
+        </el-radio-group>
+      </el-form-item>
       <el-form-item v-if="!project.projectEndDate" label="计算口径" prop="calculationBasis">
         <el-radio-group v-model="form.calculationBasis" @change="resetDerivedField">
           <el-radio-button value="DATE_RANGE">起止日期</el-radio-button>
@@ -17,15 +25,33 @@
         </el-radio-group>
       </el-form-item>
       <div v-if="project.projectEndDate" class="date-grid">
-        <el-form-item label="工勘结束日期">
-          <el-input :model-value="project.projectEndDate" readonly />
+        <el-form-item v-if="surveyEntryMode === 'SURVEY_BACKWARD'" label="工期结束日期">
+          <el-input :model-value="form.endDate || project.projectEndDate" readonly />
         </el-form-item>
-        <el-form-item label="自然日天数" prop="durationDays">
-          <el-input-number v-model="form.durationDays" :min="1" :max="36500" controls-position="right" />
-        </el-form-item>
-        <el-form-item label="倒排开始日期" prop="startDate">
-          <el-input :model-value="form.startDate" readonly placeholder="填写天数后自动倒排" />
-        </el-form-item>
+        <template v-if="surveyEntryMode === 'SURVEY_BACKWARD'">
+          <el-form-item label="自然日天数" prop="durationDays">
+            <el-input-number v-model="form.durationDays" :min="1" :max="36500" controls-position="right" />
+          </el-form-item>
+          <el-form-item label="倒排开始日期" prop="startDate">
+            <el-input :model-value="form.startDate" readonly placeholder="填写天数后自动倒排" />
+          </el-form-item>
+        </template>
+        <template v-else-if="surveyEntryMode === 'DATE_RANGE'">
+          <el-form-item label="开始日期" prop="startDate">
+            <el-date-picker v-model="form.startDate" type="date" value-format="YYYY-MM-DD" />
+          </el-form-item>
+          <el-form-item label="结束日期" prop="endDate">
+            <el-date-picker v-model="form.endDate" type="date" value-format="YYYY-MM-DD" />
+          </el-form-item>
+        </template>
+        <template v-else>
+          <el-form-item label="开始日期" prop="startDate">
+            <el-date-picker v-model="form.startDate" type="date" value-format="YYYY-MM-DD" />
+          </el-form-item>
+          <el-form-item label="自然日天数" prop="durationDays">
+            <el-input-number v-model="form.durationDays" :min="1" :max="36500" controls-position="right" />
+          </el-form-item>
+        </template>
       </div>
       <div v-else class="date-grid">
         <el-form-item label="开始日期" prop="startDate">
@@ -44,36 +70,26 @@
         </el-form-item>
       </div>
       <template v-if="mode !== 'INITIAL'">
-        <el-form-item label="变更原因" prop="reasonType">
-          <el-select v-model="form.reasonType" placeholder="请选择变更原因">
-            <el-option
-              v-for="item in reasonOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="原因说明" prop="reasonDetail">
+        <el-form-item label="变更原因" prop="reasonDetail">
           <el-input
             v-model="form.reasonDetail"
             type="textarea"
             :rows="4"
             maxlength="1000"
             show-word-limit
+            placeholder="请填写变更原因"
           />
         </el-form-item>
-        <section v-if="form.reasonType === 'CUSTOMER_DELAY'" class="evidence-section">
+        <section class="evidence-section">
           <div class="evidence-heading">
             <div>
-              <strong>客户延期依据</strong>
-              <span>文件上传完成后仍需服务端执行适用校验，审批冻结具体版本。</span>
+              <strong>附件</strong>
+              <span>可上传变更依据等支持文件（可选）；服务端执行适用校验，审批冻结具体版本。</span>
             </div>
-            <el-tag v-if="draft?.customerEvidenceRequired" type="danger">必填</el-tag>
           </div>
           <el-alert
             v-if="mode === 'CREATE'"
-            title="先保存工期变更草稿，随后即可在当前抽屉上传客户依据。"
+            title="先保存工期变更草稿，随后即可在当前抽屉上传附件。"
             type="info"
             :closable="false"
           />
@@ -122,16 +138,18 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, reactive, ref, toRaw, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useMediaQuery } from '@vueuse/core'
-import { getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import { backwardDuration } from './backwardDuration'
+import { initialDurationHint } from './durationEntry'
 import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtifact'
 import { useFileSlotState } from '@/components/PmsFileArtifact/useFileSlotState'
 import type { DetachedFileSlot, FileSelection } from '@/components/PmsFileArtifact/types'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
+import { isBusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import type {
   ConstructionPlanChangeVO,
@@ -147,7 +165,7 @@ import {
 const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
 const emit = defineEmits<{ saved: []; 'dirty-change': [value: boolean] }>()
 const canWrite = computed(
-  () => !props.readonly && Number.isSafeInteger(props.project.id) && props.project.id! > 0
+  () => !props.readonly && isBusinessViewId(props.project.id)
 )
 let contextVersion = 0
 const message = useMessage()
@@ -160,6 +178,9 @@ const mode = ref<'INITIAL' | 'CREATE' | 'EDIT'>('INITIAL')
 const plan = ref<ConstructionPlanVO>()
 const draft = ref<ConstructionPlanChangeVO>()
 const original = ref<FormModel>()
+type SurveyEntryMode = 'SURVEY_BACKWARD' | 'DATE_RANGE' | 'DURATION_FROM_START'
+// 有工勘结束日期时的录入口径：默认保留结束锁定+天数倒排（锚点为当前工期结束日期），另放开两种已批准口径手工填写
+const surveyEntryMode = ref<SurveyEntryMode>('SURVEY_BACKWARD')
 const title = computed(() =>
   mode.value === 'INITIAL'
     ? '录入项目工期'
@@ -167,16 +188,14 @@ const title = computed(() =>
       ? '新建工期变更'
       : '编辑工期变更草稿'
 )
-const reasonOptions = computed(() => getStrDictOptions('pms_duration_change_reason_type'))
-
 type FormModel = DurationChangeFormState
-
 const emptyForm = (): FormModel => ({
   calculationBasis: 'DATE_RANGE',
   startDate: '',
   endDate: '',
   durationDays: undefined,
-  reasonType: '',
+  // 原因改自由文本填写，原因码固定落"其它"，不再选择原因
+  reasonType: 'OTHER',
   reasonDetail: '',
   customerEvidenceFileId: undefined,
   customerEvidenceFileVersion: undefined,
@@ -184,16 +203,30 @@ const emptyForm = (): FormModel => ({
 })
 const form = reactive<FormModel>(emptyForm())
 watch(
-  () => [visible.value, props.project.projectEndDate, form.durationDays] as const,
+  () =>
+    [visible.value, props.project.projectEndDate, form.durationDays, surveyEntryMode.value] as const,
   () => {
     if (!visible.value || !props.project.projectEndDate) return
+    if (surveyEntryMode.value !== 'SURVEY_BACKWARD') return
     // Reuse the existing date-range revision and approval workflow after calculating its interval.
     form.calculationBasis = 'DATE_RANGE'
-    form.endDate = props.project.projectEndDate
-    form.startDate = backwardDuration(props.project.projectEndDate, form.durationDays)
+    // 倒排锚点取当前工期结束日期：变更草稿或用户在起止口径改过的结束日期保持不变，未设置时才回退工勘要求日期。
+    const anchor = form.endDate || props.project.projectEndDate
+    form.endDate = anchor
+    form.startDate = backwardDuration(anchor, form.durationDays)
   },
   { flush: 'sync' }
 )
+const onSurveyEntryModeChange = () => {
+  if (surveyEntryMode.value === 'SURVEY_BACKWARD') return
+  form.calculationBasis = surveyEntryMode.value
+  if (surveyEntryMode.value === 'DATE_RANGE') {
+    form.durationDays = undefined
+    form.endDate = form.endDate || props.project.projectEndDate || undefined
+  } else {
+    form.endDate = undefined
+  }
+}
 const evidenceReferenceKey = 'customer-delay'
 const evidenceListRef = ref<InstanceType<typeof PmsFileReferenceList>>()
 const evidenceSlot = useFileSlotState()
@@ -205,7 +238,7 @@ const rules: FormRules<FormModel> = {
   startDate: [{ required: true, message: '请选择开始日期' }],
   endDate: [{ required: true, message: '请选择结束日期' }],
   durationDays: [{ required: true, message: '请输入自然日天数' }],
-  reasonType: [{ required: true, message: '请选择变更原因' }]
+  reasonDetail: [{ required: true, message: '请填写变更原因' }]
 }
 
 const assign = (value: Partial<FormModel>) => Object.assign(form, emptyForm(), value)
@@ -223,12 +256,15 @@ const durationPayload = () => ({
 
 const openInitial = () => {
   if (!canWrite.value || saving.value) return
+  const hint = initialDurationHint(props.project)
+  if (hint) return message.warning(hint)
   mode.value = 'INITIAL'
   plan.value = undefined
   draft.value = undefined
   original.value = undefined
   evidenceSlot.reset()
   assign({})
+  surveyEntryMode.value = 'SURVEY_BACKWARD'
   visible.value = true
 }
 const openCreate = (value: ConstructionPlanVO) => {
@@ -238,7 +274,8 @@ const openCreate = (value: ConstructionPlanVO) => {
   draft.value = undefined
   original.value = undefined
   evidenceSlot.reset()
-  assign({ ...value.currentRevision, reasonType: '', reasonDetail: '' })
+  assign({ ...value.currentRevision, reasonType: 'OTHER', reasonDetail: '' })
+  surveyEntryMode.value = 'SURVEY_BACKWARD'
   visible.value = true
 }
 const openEdit = (value: ConstructionPlanVO, change: ConstructionPlanChangeVO) => {
@@ -250,6 +287,7 @@ const openEdit = (value: ConstructionPlanVO, change: ConstructionPlanChangeVO) =
   assign(snapshot)
   original.value = structuredClone(snapshot)
   evidenceSlot.reset(change.customerEvidenceFileId, change.customerEvidenceReferenceKey)
+  surveyEntryMode.value = 'SURVEY_BACKWARD'
   visible.value = true
 }
 
@@ -380,6 +418,10 @@ const recoverDraftAfterPatchLoss = async () => {
 
 const save = async () => {
   if (!canWrite.value || saving.value) return
+  if (mode.value === 'INITIAL' && initialDurationHint(props.project)) {
+    message.warning(initialDurationHint(props.project))
+    return
+  }
   const version = contextVersion
   if (!(await formRef.value?.validate())) return
   if (!canWrite.value || version !== contextVersion) return
@@ -392,7 +434,7 @@ const save = async () => {
           expectedProjectVersion: props.project.version || 0,
           ...durationPayload()
         },
-        crypto.randomUUID()
+        generateUUID()
       )
       if (version !== contextVersion) return
       message.success('项目工期已生效')
@@ -406,20 +448,19 @@ const save = async () => {
           reasonDetail: form.reasonDetail || undefined
         },
         plan.value!.planVersion,
-        crypto.randomUUID()
+        generateUUID()
       )
       if (version !== contextVersion) return
       message.success('工期变更草稿已保存')
-      if (form.reasonType === 'CUSTOMER_DELAY') {
-        mode.value = 'EDIT'
-        draft.value = created
-        const snapshot = formStateFromChange(created)
-        assign(snapshot)
-        original.value = structuredClone(snapshot)
-        evidenceSlot.reset(created.customerEvidenceFileId, created.customerEvidenceReferenceKey)
-        emit('saved')
-        return
-      }
+      // 附件（可选）在草稿创建后才可上传，统一停留在编辑态
+      mode.value = 'EDIT'
+      draft.value = created
+      const snapshot = formStateFromChange(created)
+      assign(snapshot)
+      original.value = structuredClone(snapshot)
+      evidenceSlot.reset(created.customerEvidenceFileId, created.customerEvidenceReferenceKey)
+      emit('saved')
+      return
     } else {
       const patch = patchPayload()
       if (Object.keys(patch).length === 1) return message.warning('没有需要保存的变化')

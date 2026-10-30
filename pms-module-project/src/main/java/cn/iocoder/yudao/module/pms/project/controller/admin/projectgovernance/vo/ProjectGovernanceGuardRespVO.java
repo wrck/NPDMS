@@ -11,7 +11,7 @@ import java.util.List;
 public class ProjectGovernanceGuardRespVO {
 
     private Long projectId;
-    private Integer projectVersion;
+    private Long projectVersion;
     private String lifecycleStatus;
     private String currentStage;
     private String assignmentStatus;

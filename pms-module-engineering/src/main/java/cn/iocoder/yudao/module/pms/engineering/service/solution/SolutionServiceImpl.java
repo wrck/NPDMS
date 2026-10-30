@@ -9,7 +9,10 @@ import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.Solu
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
 import jakarta.annotation.Resource;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -30,16 +33,39 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 @Validated
 public class SolutionServiceImpl implements SolutionService {
 
+    /** 交付件来源类型：批准实施方案（4.1→6.4 自动归集）。 */
+    public static final String SOURCE_TYPE_SOLUTION = "SOLUTION";
+
     @Resource
     private SolutionMapper solutionMapper;
+    @Resource private SolutionCustomerDocumentService customerDocuments;
+    @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
+    @Resource
+    private PlatformDeliveryMaterialApi deliveryMaterialApi;
+
+    @Resource
+    private cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper tieredReviewMapper;
+
+    @Resource
+    private cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewPolicyService reviewPolicies;
+
+    @Resource
+    private cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionSubmissionValidator submissionValidator;
+
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi prerequisites;
+
+    @Resource
+    private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents completionEvents;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createSolution(SolutionSaveReqVO createReqVO) {
-        validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
+        if(SolutionCustomerDocumentService.hasNativePointer(createReqVO.getRemark()))customerDocuments.validatePointer(null,createReqVO.getRemark());
         SolutionDO solution = BeanUtils.toBean(createReqVO, SolutionDO.class);
         solution.setStatus(0);
-        solution.setVersion(0);
+        solution.setVersion(0L);
         solution.setBaselineVersion(null);
         solution.setApprovedBy(null);
         solution.setApprovedTime(null);
@@ -47,8 +73,22 @@ public class SolutionServiceImpl implements SolutionService {
         if (solution.getReviewLevel() == null) {
             solution.setReviewLevel(0);
         }
-        solutionMapper.insert(solution);
-        return solution.getId();
+        // 软删除行仍占用唯一键 (project_id, code) 而推号查询不可见：冲突时让位下一序号重试
+        String failedCode = null;
+        org.springframework.dao.DuplicateKeyException lastConflict = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            solution.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                    EngineeringRecordCodeGenerator.SOLUTION, solutionMapper, failedCode));
+            try {
+                solutionMapper.insert(solution);
+                completionChanged(solution);
+                return solution.getId();
+            } catch (org.springframework.dao.DuplicateKeyException conflict) {
+                lastConflict = conflict;
+                failedCode = solution.getCode();
+            }
+        }
+        throw lastConflict;
     }
 
     @Override
@@ -56,8 +96,8 @@ public class SolutionServiceImpl implements SolutionService {
     public void updateSolution(SolutionSaveReqVO updateReqVO) {
         SolutionDO existing = validateSolutionExists(updateReqVO.getId());
         validateStatus(existing, 0);
-        validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
-        validateVersion(existing, updateReqVO.getVersion());
+        validateVersion(existing, updateReqVO.getVersion() == null ? null : updateReqVO.getVersion().longValue());
+        if(SolutionCustomerDocumentService.hasNativePointer(updateReqVO.getRemark()))customerDocuments.validatePointer(existing.getId(),updateReqVO.getRemark());
         SolutionDO update = BeanUtils.toBean(updateReqVO, SolutionDO.class);
         update.setStatus(existing.getStatus());
         update.setVersion(existing.getVersion());
@@ -74,6 +114,7 @@ public class SolutionServiceImpl implements SolutionService {
         SolutionDO existing = validateSolutionExists(id);
         validateStatus(existing, 0);
         solutionMapper.deleteById(id);
+        completionChanged(existing);
     }
 
     @Override
@@ -89,15 +130,19 @@ public class SolutionServiceImpl implements SolutionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void submitSolution(Long id) {
-        SolutionDO solution = validateSolutionExists(id);
+        SolutionDO solution = validateSolutionForSubmission(id);
         validateStatus(solution, 0); // 草稿 → 已提交
+        if ("IMPLEMENTATION".equals(solution.getSolutionType())) {
+            reviewPolicies.freeze(solution, 0);
+            submissionValidator.validateAndFreezeSources(solution);
+        }
         updateStatus(solution, 1);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void startReview(Long id) {
-        SolutionDO solution = validateSolutionExists(id);
+        SolutionDO solution = validateSolutionForSubmission(id);
         validateStatus(solution, 1); // 已提交 → 审批中
         updateStatus(solution, 2);
     }
@@ -106,24 +151,27 @@ public class SolutionServiceImpl implements SolutionService {
     @Transactional(rollbackFor = Exception.class)
     public void approveSolution(SolutionApproveReqVO reqVO) {
         SolutionDO solution = validateSolutionExists(reqVO.getId());
-        validateVersion(solution, reqVO.getVersion());
+        validateVersion(solution, reqVO.getVersion() == null ? null : reqVO.getVersion().longValue());
         validateStatus(solution, 2); // 审批中 → 已通过
+        if ("IMPLEMENTATION".equals(solution.getSolutionType())) reviewPolicies.requireOrdinaryApproval(solution);
         if (!Objects.equals(solution.getReviewLevel(), 0)) {
             throw exception(SOLUTION_REVIEW_NOT_CONNECTED);
         }
         solution.setStatus(3);
         solution.setApprovalOpinion(reqVO.getApprovalOpinion());
-        solution.setApprovedBy(SecurityFrameworkUtils.getLoginUserId());
+        Long approverId = SecurityFrameworkUtils.getLoginUserId();
+        solution.setApprovedBy(approverId);
         solution.setApprovedTime(LocalDateTime.now());
-        solution.setBaselineVersion(solution.getVersion() + 1); // 冻结基线版本
+        solution.setBaselineVersion(Math.toIntExact(solution.getVersion() + 1)); // 冻结基线版本
         updateRecord(solution);
+        archiveApprovedSolution(solution, approverId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void rejectSolution(SolutionApproveReqVO reqVO) {
         SolutionDO solution = validateSolutionExists(reqVO.getId());
-        validateVersion(solution, reqVO.getVersion());
+        validateVersion(solution, reqVO.getVersion() == null ? null : reqVO.getVersion().longValue());
         validateStatus(solution, 2); // 审批中 → 已驳回
         solution.setStatus(4);
         solution.setApprovalOpinion(reqVO.getApprovalOpinion());
@@ -151,39 +199,69 @@ public class SolutionServiceImpl implements SolutionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long generateDraft(SolutionGenerateDraftReqVO reqVO) {
-        // 1. 校验项目内方案编码唯一
-        validateCodeUnique(reqVO.getProjectId(), reqVO.getSolutionCode(), null);
-        // 2. 生成方案草稿
+        // 生成方案草稿，编码由系统按项目编码自动生成
         SolutionDO solution = new SolutionDO();
         solution.setProjectId(reqVO.getProjectId());
-        solution.setCode(reqVO.getSolutionCode());
-        solution.setName(reqVO.getSolutionName() != null ? reqVO.getSolutionName() : reqVO.getSolutionCode());
+        solution.setCode(recordCodeGenerator.next(reqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.SOLUTION, solutionMapper));
+        solution.setName(reqVO.getSolutionName() != null ? reqVO.getSolutionName() : solution.getCode());
         solution.setSolutionType("IMPLEMENTATION");
         solution.setReviewLevel(0);
         solution.setStatus(0); // 草稿
-        solution.setVersion(0);
+        solution.setVersion(0L);
         solutionMapper.insert(solution);
+        completionChanged(solution);
         return solution.getId();
     }
 
     // ==================== 内部工具方法 ====================
+
+    /**
+     * 批准方案同步登记统一交付材料（4.1→6.4，P06R）：同一方案同一基线幂等，不重复登记。
+     * 业务成果证据锚 = 方案ID + 冻结基线版本；失败随当前事务回滚。
+     */
+    private void archiveApprovedSolution(SolutionDO solution, Long approverId) {
+        deliveryMaterialApi.registerBusinessResultMaterial("SOL", "solution", solution.getId(),
+                "IMPLEMENTATION_PLAN", "solution", String.valueOf(solution.getId()),
+                solution.getBaselineVersion() == null ? null : solution.getBaselineVersion().longValue(),
+                StringUtils.defaultIfBlank(solution.getName(), solution.getCode())
+                        + "（基线v" + solution.getBaselineVersion() + "）",
+                solution.getProjectId());
+    }
+
+    private SolutionDO validateSolutionForSubmission(Long id) {
+        var source = solutionMapper.selectById(id);
+        if (source == null) throw exception(SOLUTION_NOT_EXISTS);
+        // Lock the project before the source solution, matching the tiered-review command.
+        if ("IMPLEMENTATION".equals(source.getSolutionType())) {
+            prerequisites.requireSatisfied(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi.Query(
+                    source.getProjectId(), "SOL", "IMPLEMENTATION_SOLUTION"));
+        }
+        var locked = validateSolutionExists(id);
+        if (!Objects.equals(source.getProjectId(), locked.getProjectId()) || !Objects.equals(source.getSolutionType(), locked.getSolutionType()))
+            throw exception(SOLUTION_VERSION_NOT_MATCH);
+        return locked;
+    }
 
     private SolutionDO validateSolutionExists(Long id) {
         SolutionDO solution = solutionMapper.selectById(id);
         if (solution == null) {
             throw exception(SOLUTION_NOT_EXISTS);
         }
+        if ("IMPLEMENTATION".equals(solution.getSolutionType())) {
+            var query = new cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper.SolutionReviewQuery(
+                    solution.getTenantId(), solution.getProjectId(), solution.getId(), true);
+            var locked = tieredReviewMapper.source(query);
+            if (locked == null || !Objects.equals(locked.getVersion(), solution.getVersion())) throw exception(SOLUTION_VERSION_NOT_MATCH);
+            var review = tieredReviewMapper.bySolution(query);
+            if (review != null && "RUNNING".equals(review.getStatus()))
+                throw new IllegalStateException("此方案正在分级审批，请在关联的 BPM 流程中处理");
+            solution = locked;
+        }
         return solution;
     }
 
-    private void validateCodeUnique(Long projectId, String code, Long excludeId) {
-        SolutionDO existing = solutionMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing != null && !Objects.equals(existing.getId(), excludeId)) {
-            throw exception(SOLUTION_CODE_DUPLICATE);
-        }
-    }
-
-    private void validateVersion(SolutionDO solution, Integer version) {
+    private void validateVersion(SolutionDO solution, Long version) {
         if (version != null && !Objects.equals(solution.getVersion(), version)) {
             throw exception(SOLUTION_VERSION_NOT_MATCH);
         }
@@ -207,5 +285,11 @@ public class SolutionServiceImpl implements SolutionService {
         if (solutionMapper.updateById(solution) != 1) {
             throw exception(SOLUTION_VERSION_NOT_MATCH);
         }
+        completionChanged(solution);
+    }
+
+    private void completionChanged(SolutionDO solution) {
+        completionEvents.changed(solution.getProjectId(), "ImplementationSolution", solution.getId(),
+                SecurityFrameworkUtils.getLoginUserId(), "solution:" + solution.getId() + ":" + solution.getVersion());
     }
 }

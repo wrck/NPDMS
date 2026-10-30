@@ -10,11 +10,17 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.Cutover
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationPageQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverEffectiveConfigurationListQuery;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationStorageQuery;
 
 import java.util.List;
 
 @Mapper
 public interface CutoverConfigurationRevisionMapper extends BaseMapperX<CutoverConfigurationRevisionDO> {
+
+    CutoverConfigurationRevisionDO selectForUpdate(@Param("query") CutoverConfigurationStorageQuery query);
+
+    int updateDraftIfMatch(@Param("row") CutoverConfigurationRevisionDO row);
 
     default PageResult<CutoverConfigurationRevisionDO> selectPage(CutoverConfigurationPageQuery query) {
         return selectPage(query, new LambdaQueryWrapperX<CutoverConfigurationRevisionDO>()
@@ -25,12 +31,12 @@ public interface CutoverConfigurationRevisionMapper extends BaseMapperX<CutoverC
                 .orderByDesc(CutoverConfigurationRevisionDO::getId));
     }
 
-    CutoverConfigurationRevisionDO selectLatestByCode(CutoverConfigurationByCodeQuery query);
+    CutoverConfigurationRevisionDO selectLatestByCode(@Param("query") CutoverConfigurationByCodeQuery query);
 
-    CutoverConfigurationRevisionDO selectFrozen(CutoverFrozenConfigurationQuery query);
+    CutoverConfigurationRevisionDO selectFrozen(@Param("query") CutoverFrozenConfigurationQuery query);
 
-    CutoverConfigurationRevisionDO selectEffectivePublished(CutoverEffectivePublishedConfigurationQuery query);
+    CutoverConfigurationRevisionDO selectEffectivePublished(@Param("query") CutoverEffectivePublishedConfigurationQuery query);
 
     List<CutoverConfigurationRevisionDO> selectEffectivePublishedList(
-            CutoverEffectiveConfigurationListQuery query);
+            @Param("query") CutoverEffectiveConfigurationListQuery query);
 }

@@ -56,6 +56,9 @@ public class PermissionServiceImplTest extends BaseMockitoUnitTest {
     @Mock
     private AdminUserService userService;
 
+    @org.junit.jupiter.api.BeforeEach
+    void actualAssociationLeaf(){org.springframework.test.util.ReflectionTestUtils.setField(permissionService,"associations",new PermissionAssociationService(roleMenuMapper,userRoleMapper));}
+
     @Test
     public void testHasAnyPermissions_empty() {
         // 调用，空权限直接返回 true

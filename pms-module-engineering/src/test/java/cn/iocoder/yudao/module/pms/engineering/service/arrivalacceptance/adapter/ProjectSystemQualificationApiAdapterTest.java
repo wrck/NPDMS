@@ -28,7 +28,7 @@ class ProjectSystemQualificationApiAdapterTest {
         ProjectSystemQualificationFactApi api = mock(ProjectSystemQualificationFactApi.class);
         when(api.lockCurrentForSystem(new ProjectSystemQualificationLockQuery(100L, "ACTIVE", "S4")))
                 .thenReturn(new ProjectSystemQualificationFact(
-                        100L, 8L, "ACTIVE", "S4", 11, 12L, 13L));
+                        100L, 8L, "ACTIVE", "S4", 11L, 12L, 13L));
 
         var fact = new ProjectSystemQualificationApiAdapter(api).lockCurrent(7L, 100L);
 
@@ -61,7 +61,7 @@ class ProjectSystemQualificationApiAdapterTest {
         TenantContextHolder.setTenantId(7L);
         var api = mock(ProjectSystemQualificationFactApi.class);
         when(api.lockCurrentForSystem(new ProjectSystemQualificationLockQuery(100L, "ACTIVE", "S4")))
-                .thenReturn(new ProjectSystemQualificationFact(100L, 8L, "ACTIVE", "S1", 11, 12L, 13L));
+                .thenReturn(new ProjectSystemQualificationFact(100L, 8L, "ACTIVE", "S1", 11L, 12L, 13L));
         assertEquals(11, new ProjectSystemQualificationApiAdapter(api).lockCurrent(7L, 100L).projectVersion());
     }
 
@@ -71,7 +71,7 @@ class ProjectSystemQualificationApiAdapterTest {
         ProjectSystemQualificationFactApi api = mock(ProjectSystemQualificationFactApi.class);
         ProjectSystemQualificationLockQuery query = new ProjectSystemQualificationLockQuery(100L, "ACTIVE", "S4");
         when(api.lockCurrentForSystem(query)).thenReturn(new ProjectSystemQualificationFact(
-                101L, 8L, "ACTIVE", "S4", 11, 12L, 13L));
+                101L, 8L, "ACTIVE", "S4", 11L, 12L, 13L));
 
         assertThrows(IllegalStateException.class,
                 () -> new ProjectSystemQualificationApiAdapter(api).lockCurrent(7L, 100L));

@@ -37,6 +37,16 @@
         </el-form-item>
       </template>
 
+      <el-form-item v-if="selectedMetadata?.ownerContext === 'ACC' && selectedMetadata?.entityType === 'ACCEPTANCE'" label="关联验收类型">
+        <el-select :model-value="modelValue?.acceptanceType ?? task.workBinding.parameters?.acceptanceType ?? ''"
+          :disabled="!modelValue || readonly || !canBind" @update:model-value="changeAcceptanceType">
+          <el-option value="" label="全部验收类型" />
+          <el-option value="PRELIMINARY" label="初验" />
+          <el-option value="FINAL" label="终验" />
+        </el-select>
+        <p class="help">按项目和验收类型关联业务，初终验前置条件由模板规则配置。</p>
+      </el-form-item>
+
       <el-form-item v-if="needsRequirementSource(selectedMetadata)" label="需求分析表单" required>
         <el-select :model-value="requirementSourceId" filterable placeholder="选择已发布需求分析表单"
           :disabled="readonly || !canBind" @update:model-value="chooseRequirementSource">
@@ -160,8 +170,15 @@ const completionOptions = computed(() => {
     .map((fact) => ({ code: fact.factCode, label: fact.label, ownerContext: fact.ownerContext }))
 })
 const chooseCompletion = (factCode: string) => {
-  if (props.modelValue && !props.readonly && completionOptions.value.some((option) => option.code === factCode))
-    emit('update:modelValue', { ...props.modelValue, completion: { factCode, quantifier: 'ALL' } })
+  if (props.modelValue && !props.readonly && completionOptions.value.some((option) => option.code === factCode)) {
+    const acceptanceType = factCode === 'PRELIMINARY_ACCEPTANCE_PASSED' ? 'PRELIMINARY'
+      : factCode === 'FINAL_ACCEPTANCE_PASSED' ? 'FINAL' : props.modelValue.acceptanceType
+    emit('update:modelValue', { ...props.modelValue, acceptanceType, completion: { factCode, quantifier: 'ALL' } })
+  }
+}
+const changeAcceptanceType = (acceptanceType: '' | 'PRELIMINARY' | 'FINAL') => {
+  if (props.modelValue && !props.readonly && canBind.value)
+    emit('update:modelValue', { ...props.modelValue, acceptanceType: acceptanceType || undefined })
 }
 const changeQuantifier = (quantifier: 'ALL' | 'ANY') => {
   if (props.modelValue?.completion && !props.readonly)
@@ -221,7 +238,9 @@ const chooseView = (id: BusinessViewId) => {
   if (!view || props.readonly || !canBind.value) return
   try {
     bindingContextMapping(view)
-    emit('update:modelValue', { view, strategy: 'REFERENCE_EXISTING', requirementFormRevisionId: savedRequirementSource(props.task) })
+    const acceptanceType = props.task.workBinding.parameters?.acceptanceType
+    emit('update:modelValue', { view, strategy: 'REFERENCE_EXISTING', requirementFormRevisionId: savedRequirementSource(props.task),
+      acceptanceType: acceptanceType === 'PRELIMINARY' || acceptanceType === 'FINAL' ? acceptanceType : undefined })
     failure.value = ''
   } catch (error) { failure.value = errorText(error) }
 }

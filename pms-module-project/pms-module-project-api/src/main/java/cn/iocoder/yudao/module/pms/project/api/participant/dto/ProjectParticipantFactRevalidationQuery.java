@@ -8,7 +8,7 @@ import java.util.Set;
 public record ProjectParticipantFactRevalidationQuery(
         Long projectId,
         Long userId,
-        Integer expectedProjectVersion,
+        Long expectedProjectVersion,
         String requiredLifecycleStatus,
         String requiredCurrentStage,
         Set<String> requiredRoleCodes) {

@@ -1,10 +1,9 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 /**
  * 项目模板 DO（模板身份/状态/优先级，F-PM03 / V52）
@@ -15,15 +14,12 @@ import lombok.EqualsAndHashCode;
 @TableName("proj_project_template")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectTemplateDO extends TenantBaseDO {
-    private Integer version;
+public class ProjectTemplateDO extends BaseBusinessEntity {
 
 
     /**
      * 模板ID
      */
-    @TableId
-    private Long id;
     /**
      * 模板编码（租户内唯一，创建后不可修改）
      */

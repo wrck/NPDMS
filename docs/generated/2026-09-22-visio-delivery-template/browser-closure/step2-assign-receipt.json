@@ -1,0 +1,82 @@
+{
+  "assigned": [
+    {
+      "role": "服务经理",
+      "response": {
+        "projectId": 992203060035,
+        "version": 2,
+        "assignmentId": 992203069999,
+        "userId": 1,
+        "memberRole": "SERVICE_MANAGER",
+        "effectiveFrom": 1790214788732,
+        "effectiveTo": null,
+        "changed": true
+      }
+    },
+    {
+      "role": "项目经理",
+      "response": {
+        "projectId": 992203060035,
+        "version": 3,
+        "assignmentId": 992203070000,
+        "userId": 1,
+        "memberRole": "PROJECT_MANAGER",
+        "effectiveFrom": 1790214793233,
+        "effectiveTo": null,
+        "changed": true
+      }
+    }
+  ],
+  "pageErrors": [],
+  "taskStatusAfter": {
+    "PRE_SURVEY": "IN_PROGRESS",
+    "PLAN_CONSTRUCTION": "PENDING_ASSIGN",
+    "PLAN_SOLUTION": "PENDING_ASSIGN",
+    "DEPLOY_COORDINATE": "PENDING_ASSIGN",
+    "ACCEPT_COORDINATE": "PENDING_ASSIGN",
+    "PRE_REQUIREMENT": "IN_PROGRESS",
+    "DEPLOY_ARRIVAL": "PENDING_ASSIGN",
+    "ACCEPT_INITIAL": "PENDING_ASSIGN",
+    "PRE_DURATION": "IN_PROGRESS",
+    "DEPLOY_HARDWARE": "PENDING_ASSIGN",
+    "ACCEPT_FINAL": "PENDING_ASSIGN",
+    "PRE_CONTACT": "IN_PROGRESS",
+    "DEPLOY_CONFIG": "PENDING_ASSIGN",
+    "ACCEPT_TRAINING": "PENDING_ASSIGN",
+    "DEPLOY_JOINT": "PENDING_ASSIGN",
+    "ACCEPT_SATISFACTION": "PENDING_ASSIGN",
+    "DEPLOY_CUTOVER": "PENDING_ASSIGN"
+  },
+  "readiness": {
+    "currentStage": "S1",
+    "nextStage": "S2",
+    "advanceAllowed": false,
+    "guidance": "STAGE_COMPLETION_UNSATISFIED",
+    "gates": [
+      {
+        "gateId": 198,
+        "gateCode": "S2_ENTRY",
+        "name": "施工计划制定与审批准入",
+        "status": "PENDING",
+        "satisfied": false,
+        "references": [
+          {
+            "gateReferenceId": 308,
+            "refType": "STATE",
+            "refCode": "S1_COMPLETED",
+            "fact": {
+              "providerKey": "PROJ_STATE",
+              "refType": "STATE",
+              "ownerObjectKey": "994009100780",
+              "ownerBusinessVersion": "ACTIVE",
+              "factVersion": "1",
+              "outcome": "UNSATISFIED",
+              "unmetCode": "STATE_NOT_DONE"
+            },
+            "allowedActions": []
+          }
+        ]
+      }
+    ]
+  }
+}

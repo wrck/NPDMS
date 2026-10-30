@@ -56,6 +56,9 @@ public interface JobService {
     /** 将唯一启用的指定处理器任务同步到既有 Quartz。 */
     void syncEnabledJobByHandlerName(String handlerName) throws SchedulerException;
 
+    /** 将唯一的既有任务同步到 Quartz，保留启用或暂停状态；不修改任务记录。 */
+    void syncJobByHandlerName(String handlerName) throws SchedulerException;
+
     /**
      * 删除定时任务
      *

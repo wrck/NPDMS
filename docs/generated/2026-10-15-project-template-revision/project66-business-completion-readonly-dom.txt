@@ -1,0 +1,664 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理" [expanded]:
+        - generic: 项目管理
+        - menu:
+          - menuitem "项目列表":
+            - generic: 项目列表
+          - menuitem "计划进度":
+            - generic: 计划进度
+          - menuitem "项目风险":
+            - generic: 项目风险
+          - menuitem "组合与治理":
+            - generic: 组合与治理
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "割接交付":
+        - generic: 割接交付
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "巡检服务":
+        - generic: 巡检服务
+      - menuitem "项目模板管理":
+        - generic: 项目模板管理
+      - menuitem "交付件汇总（6.4）":
+        - generic: 交付件汇总（6.4）
+      - menuitem "现场培训（6.1）":
+        - generic: 现场培训（6.1）
+      - menuitem "阶段施工计划（3.1）":
+        - generic: 阶段施工计划（3.1）
+      - menuitem "施工计划建议规则":
+        - generic: 施工计划建议规则
+      - menuitem "设备连接与采集":
+        - generic: 设备连接与采集
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "项目交付（新功能暂停）":
+    - generic: 项目交付（新功能暂停）
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- superscript
+- button "管理员":
+  - generic: 管理员
+- button "首页":
+  - text: 首页
+- button "项目详情":
+  - text: 项目详情
+- button "项目模板管理":
+  - text: 项目模板管理
+- button:
+- generic: 项目闭环
+- heading "工程直签全浏览器16任务验收20261016" [level=2]
+- generic: 工程类
+- generic: "模板 #993009900016 v3"
+- text: 编码
+- generic: PJT2026000066
+- text: FAST001客户设备空摘要验收
+- text: 直签 / 原厂直服
+- text: 2026-10-16 04:43:04
+- generic: 进度 94%
+- generic: 任务 15/16
+- generic: 风险 0
+- button "返回列表":
+  - text: 返回列表
+- tablist "项目阶段推进轨":
+  - button "S0 项目立项":
+    - generic: S0
+    - generic: 项目立项
+  - button "S1 工前准备":
+    - generic: S1
+    - generic: 工前准备
+  - button "S2 施工计划":
+    - generic: S2
+    - generic: 施工计划
+  - button "S3 实施方案":
+    - generic: S3
+    - generic: 实施方案
+  - button "S4 实施部署":
+    - generic: S4
+    - generic: 实施部署
+  - button "S5 验收交维":
+    - generic: S5
+    - generic: 验收交维
+  - button "S6 项目闭环":
+    - generic: S6
+    - generic: 项目闭环
+  - button "推进说明与图例":
+- generic: 项目概览
+- button "基本信息":
+  - generic: 基本信息
+- button "客户信息":
+  - generic: 客户信息
+- button "项目树":
+  - generic: 项目树
+- button "项目成员":
+  - generic: 项目成员
+- button "设备清单":
+  - generic: 设备清单
+- button "序列号详情":
+  - generic: 序列号详情
+- button "配置Log":
+  - generic: 配置Log
+- button "实施范围 待确认":
+  - generic: 实施范围
+  - generic: 待确认
+- generic: 阶段和任务
+- button "阶段状态":
+  - generic: 阶段状态
+- button "S0 项目立项 100%":
+  - generic: S0 项目立项
+  - generic: 100%
+- button "S1 工前准备 100%":
+  - generic: S1 工前准备
+  - generic: 100%
+- button "S2 施工计划 100%":
+  - generic: S2 施工计划
+  - generic: 100%
+- button "S3 实施方案 100%":
+  - generic: S3 实施方案
+  - generic: 100%
+- button "S4 实施部署 100%":
+  - generic: S4 实施部署
+  - generic: 100%
+- tree:
+  - treeitem "到货签收DEPLOY_ARRIVAL 完成 100%":
+    - generic: 到货签收DEPLOY_ARRIVAL
+    - generic: 完成
+    - generic: 100%
+  - treeitem "硬件实施DEPLOY_HARDWARE 完成 100%" [expanded]:
+    - generic: 硬件实施DEPLOY_HARDWARE
+    - generic: 完成
+    - generic: 100%
+  - treeitem "配置调试DEPLOY_CONFIG 完成 100%":
+    - generic: 配置调试DEPLOY_CONFIG
+    - generic: 完成
+    - generic: 100%
+  - treeitem "业务联调DEPLOY_JOINT 完成 100%":
+    - generic: 业务联调DEPLOY_JOINT
+    - generic: 完成
+    - generic: 100%
+  - treeitem "割接上线DEPLOY_CUTOVER 完成 100%":
+    - generic: 割接上线DEPLOY_CUTOVER
+    - generic: 完成
+    - generic: 100%
+- button "S5 验收交维 100%":
+  - generic: S5 验收交维
+  - generic: 100%
+- button "S6 项目闭环 0%":
+  - generic: S6 项目闭环
+  - generic: 0%
+- generic: 全流程业务
+- generic: 工前准备
+- button "工勘分工 2.2":
+  - generic: 工勘分工
+  - generic: "2.2"
+- button "需求分析 2.3":
+  - generic: 需求分析
+  - generic: "2.3"
+- button "物料换货 2.2.1":
+  - generic: 物料换货
+  - generic: 2.2.1
+- button "工程交底 2.4":
+  - generic: 工程交底
+  - generic: "2.4"
+- generic: 制定施工计划
+- button "施工计划 3.1-3.4":
+  - generic: 施工计划
+  - generic: 3.1-3.4
+- generic: 实施方案
+- button "实施方案 4.1":
+  - generic: 实施方案
+  - generic: "4.1"
+- generic: 实施部署
+- button "到货签收 5.1":
+  - generic: 到货签收
+  - generic: "5.1"
+- button "硬件安装 5.2":
+  - generic: 硬件安装
+  - generic: "5.2"
+- button "配置调试 5.3":
+  - generic: 配置调试
+  - generic: "5.3"
+- button "业务联调 5.4":
+  - generic: 业务联调
+  - generic: "5.4"
+- button "割接上线 5.5":
+  - generic: 割接上线
+  - generic: "5.5"
+- generic: 验收交维
+- button "现场培训 6.1":
+  - generic: 现场培训
+  - generic: "6.1"
+- button "满意度调查 6.2":
+  - generic: 满意度调查
+  - generic: "6.2"
+- button "初验&终验 6.3":
+  - generic: 初验&终验
+  - generic: "6.3"
+- button "交付件汇总 6.5":
+  - generic: 交付件汇总
+  - generic: "6.5"
+- button "交付件检查 6.6":
+  - generic: 交付件检查
+  - generic: "6.6"
+- button "归档文档 6.7":
+  - generic: 归档文档
+  - generic: "6.7"
+- button "闭环记录 6.8":
+  - generic: 闭环记录
+  - generic: "6.8"
+- button "项目闭环 6.9":
+  - generic: 项目闭环
+  - generic: "6.9"
+- generic: 项目拆分
+- button "拆分方案":
+  - generic: 拆分方案
+- generic: 进度汇总
+- button "进度汇总":
+  - generic: 进度汇总
+- generic: 异常治理
+- button "异常治理":
+  - generic: 异常治理
+- generic: 项目权限
+- button "项目授权":
+  - generic: 项目授权
+- generic: 服务经理
+- button "责任分布":
+  - generic: 责任分布
+- text: "* *"
+- heading "满意度调查" [level=2]
+- paragraph: 先完善完工证明，再发起调查，客户一次签字确认完工内容与服务评价。
+- button "新增完工证明":
+  - text: 新增完工证明
+- button "配置与历史":
+  - text: 配置与历史
+- list "办理顺序":
+  - text: 完善完工证明
+  - text: 发起并推送调查
+  - text: 客户统一签字确认
+- generic: 项目名称
+- textbox "项目名称":
+  - /placeholder: 搜索项目名称
+- generic: 办理状态
+- combobox "办理状态"
+- generic: 全部状态
+- button "查询":
+  - text: 查询
+- table:
+  - rowgroup:
+    - row "项目名称 客户单位 完工信息 办理状态 客户确认 操作":
+      - columnheader "项目名称":
+        - generic: 项目名称
+      - columnheader "客户单位":
+        - generic: 客户单位
+      - columnheader "完工信息":
+        - generic: 完工信息
+      - columnheader "办理状态":
+        - generic: 办理状态
+      - columnheader "客户确认":
+        - generic: 客户确认
+      - columnheader "操作":
+        - generic: 操作
+- table:
+  - rowgroup:
+    - row "工程直签全浏览器16任务验收20261016 FAST001客户设备空摘要验收 2026-10-16 工程师 管理员 客户已确认 已确认 · 2026-10-16 查看 更多操作":
+      - cell "工程直签全浏览器16任务验收20261016":
+        - generic: 工程直签全浏览器16任务验收20261016
+      - cell "FAST001客户设备空摘要验收":
+        - generic: FAST001客户设备空摘要验收
+      - cell "2026-10-16 工程师 管理员":
+        - generic: 2026-10-16
+        - text: 工程师 管理员
+      - cell "客户已确认":
+        - generic: 客户已确认
+      - cell "已确认 · 2026-10-16":
+        - generic: 已确认 · 2026-10-16
+      - cell "查看 更多操作":
+        - button "查看":
+          - generic: 查看
+        - button "更多操作":
+          - text: 更多
+- combobox
+- generic: 10条/页
+- generic: 共 1 条
+- button "上一页" [disabled]:
+- list:
+  - listitem "第 1 页": "1"
+- button "下一页" [disabled]:
+- generic: 前往
+- spinbutton "页": "1"
+- generic: 页
+- dialog "完工证明与满意度调查":
+  - heading "完工证明与满意度调查" [level=2]
+  - button "关闭此对话框":
+  - region "完工证明":
+    - generic "完工证明及设备明细，可横向滚动":
+      - table:
+        - rowgroup:
+          - row "项目名称 工程直签全浏览器16任务验收20261016":
+            - rowheader "项目名称"
+            - cell "工程直签全浏览器16任务验收20261016"
+          - row "客户单位 FAST001客户设备空摘要验收":
+            - rowheader "客户单位"
+            - cell "FAST001客户设备空摘要验收"
+          - row "合同号 — 工程服务类型 工程实施":
+            - rowheader "合同号"
+            - cell "—"
+            - rowheader "工程服务类型"
+            - cell "工程实施"
+          - row "迪普工程师 管理员 联系方式 18818260272":
+            - rowheader "迪普工程师"
+            - cell "管理员"
+            - rowheader "联系方式"
+            - cell "18818260272"
+          - row "工程服务内容 完成到货验收 是":
+            - rowheader "工程服务内容"
+            - cell "完成到货验收"
+            - cell "是"
+          - row "完成设备硬件安装和软件调测 是":
+            - cell "完成设备硬件安装和软件调测"
+            - cell "是"
+          - row "完成业务上线/割接且业务测试正常 是":
+            - cell "完成业务上线/割接且业务测试正常"
+            - cell "是"
+          - row "完成产品维护现场讲解和培训 是":
+            - cell "完成产品维护现场讲解和培训"
+            - cell "是"
+          - row "工程文档、帐号密码已移交并协助修改 不涉及":
+            - cell "工程文档、帐号密码已移交并协助修改"
+            - cell "不涉及"
+          - row "设备名称和数量 项目66合成样机，非实物与真实交付；所有完成项指模拟演练 1":
+            - rowheader "设备名称和数量"
+            - cell "项目66合成样机，非实物与真实交付；所有完成项指模拟演练"
+            - cell "1"
+          - row "完工时间 2026-10-16":
+            - rowheader "完工时间"
+            - cell "2026-10-16"
+  - generic: 客户已确认
+  - heading "满意度调查表" [level=3]
+  - tablist:
+    - tab "第1轮评价" [selected]
+  - tabpanel "第1轮评价":
+    - paragraph: 提交时间 2026-10-16 05:05:27 · 满意度 100 分 · 达标
+    - paragraph:
+      - text: 尊敬的客户：
+      - text: 非常感谢您对本次工程实施的大力支持！为进一步提升我们的服务水平，请您对本次工程实施情况给予评价，谢谢。
+    - generic "满意度调查表，可横向滚动":
+      - table "满意度调查表":
+        - caption: 满意度调查表
+        - rowgroup:
+          - row "评价类别 调查项目 很满意100 满意80 一般60 不满意40 很不满意0 备注":
+            - columnheader "评价类别"
+            - columnheader "调查项目"
+            - columnheader "很满意100"
+            - columnheader "满意80"
+            - columnheader "一般60"
+            - columnheader "不满意40"
+            - columnheader "很不满意0"
+            - columnheader "备注"
+        - rowgroup:
+          - row "工程质量 总体工程质量 * 总体工程质量：很满意100 总体工程质量：满意80 总体工程质量：一般60 总体工程质量：不满意40 总体工程质量：很不满意0 —":
+            - rowheader "工程质量"
+            - rowheader "总体工程质量 *"
+            - cell "总体工程质量：很满意100":
+              - radio "总体工程质量：很满意100" [checked] [disabled]
+            - cell "总体工程质量：满意80":
+              - radio "总体工程质量：满意80" [disabled]
+            - cell "总体工程质量：一般60":
+              - radio "总体工程质量：一般60" [disabled]
+            - cell "总体工程质量：不满意40":
+              - radio "总体工程质量：不满意40" [disabled]
+            - cell "总体工程质量：很不满意0":
+              - radio "总体工程质量：很不满意0" [disabled]
+            - cell "—"
+          - row "设备安装规范 * 设备安装规范：很满意100 设备安装规范：满意80 设备安装规范：一般60 设备安装规范：不满意40 设备安装规范：很不满意0 —":
+            - rowheader "设备安装规范 *"
+            - cell "设备安装规范：很满意100":
+              - radio "设备安装规范：很满意100" [checked] [disabled]
+            - cell "设备安装规范：满意80":
+              - radio "设备安装规范：满意80" [disabled]
+            - cell "设备安装规范：一般60":
+              - radio "设备安装规范：一般60" [disabled]
+            - cell "设备安装规范：不满意40":
+              - radio "设备安装规范：不满意40" [disabled]
+            - cell "设备安装规范：很不满意0":
+              - radio "设备安装规范：很不满意0" [disabled]
+            - cell "—"
+          - row "工程交付及时性 * 工程交付及时性：很满意100 工程交付及时性：满意80 工程交付及时性：一般60 工程交付及时性：不满意40 工程交付及时性：很不满意0 —":
+            - rowheader "工程交付及时性 *"
+            - cell "工程交付及时性：很满意100":
+              - radio "工程交付及时性：很满意100" [checked] [disabled]
+            - cell "工程交付及时性：满意80":
+              - radio "工程交付及时性：满意80" [disabled]
+            - cell "工程交付及时性：一般60":
+              - radio "工程交付及时性：一般60" [disabled]
+            - cell "工程交付及时性：不满意40":
+              - radio "工程交付及时性：不满意40" [disabled]
+            - cell "工程交付及时性：很不满意0":
+              - radio "工程交付及时性：很不满意0" [disabled]
+            - cell "—"
+          - row "产品质量 功能完善性 * 功能完善性：很满意100 功能完善性：满意80 功能完善性：一般60 功能完善性：不满意40 功能完善性：很不满意0 —":
+            - rowheader "产品质量"
+            - rowheader "功能完善性 *"
+            - cell "功能完善性：很满意100":
+              - radio "功能完善性：很满意100" [checked] [disabled]
+            - cell "功能完善性：满意80":
+              - radio "功能完善性：满意80" [disabled]
+            - cell "功能完善性：一般60":
+              - radio "功能完善性：一般60" [disabled]
+            - cell "功能完善性：不满意40":
+              - radio "功能完善性：不满意40" [disabled]
+            - cell "功能完善性：很不满意0":
+              - radio "功能完善性：很不满意0" [disabled]
+            - cell "—"
+          - row "稳定、可靠性 * 稳定、可靠性：很满意100 稳定、可靠性：满意80 稳定、可靠性：一般60 稳定、可靠性：不满意40 稳定、可靠性：很不满意0 —":
+            - rowheader "稳定、可靠性 *"
+            - cell "稳定、可靠性：很满意100":
+              - radio "稳定、可靠性：很满意100" [checked] [disabled]
+            - cell "稳定、可靠性：满意80":
+              - radio "稳定、可靠性：满意80" [disabled]
+            - cell "稳定、可靠性：一般60":
+              - radio "稳定、可靠性：一般60" [disabled]
+            - cell "稳定、可靠性：不满意40":
+              - radio "稳定、可靠性：不满意40" [disabled]
+            - cell "稳定、可靠性：很不满意0":
+              - radio "稳定、可靠性：很不满意0" [disabled]
+            - cell "—"
+          - row "服务质量 实施人员服务意识及配合度 * 实施人员服务意识及配合度：很满意100 实施人员服务意识及配合度：满意80 实施人员服务意识及配合度：一般60 实施人员服务意识及配合度：不满意40 实施人员服务意识及配合度：很不满意0 —":
+            - rowheader "服务质量"
+            - rowheader "实施人员服务意识及配合度 *"
+            - cell "实施人员服务意识及配合度：很满意100":
+              - radio "实施人员服务意识及配合度：很满意100" [checked] [disabled]
+            - cell "实施人员服务意识及配合度：满意80":
+              - radio "实施人员服务意识及配合度：满意80" [disabled]
+            - cell "实施人员服务意识及配合度：一般60":
+              - radio "实施人员服务意识及配合度：一般60" [disabled]
+            - cell "实施人员服务意识及配合度：不满意40":
+              - radio "实施人员服务意识及配合度：不满意40" [disabled]
+            - cell "实施人员服务意识及配合度：很不满意0":
+              - radio "实施人员服务意识及配合度：很不满意0" [disabled]
+            - cell "—"
+          - row "问题响应及时性 * 问题响应及时性：很满意100 问题响应及时性：满意80 问题响应及时性：一般60 问题响应及时性：不满意40 问题响应及时性：很不满意0 —":
+            - rowheader "问题响应及时性 *"
+            - cell "问题响应及时性：很满意100":
+              - radio "问题响应及时性：很满意100" [checked] [disabled]
+            - cell "问题响应及时性：满意80":
+              - radio "问题响应及时性：满意80" [disabled]
+            - cell "问题响应及时性：一般60":
+              - radio "问题响应及时性：一般60" [disabled]
+            - cell "问题响应及时性：不满意40":
+              - radio "问题响应及时性：不满意40" [disabled]
+            - cell "问题响应及时性：很不满意0":
+              - radio "问题响应及时性：很不满意0" [disabled]
+            - cell "—"
+          - row "实施人员技术水平 * 实施人员技术水平：很满意100 实施人员技术水平：满意80 实施人员技术水平：一般60 实施人员技术水平：不满意40 实施人员技术水平：很不满意0 —":
+            - rowheader "实施人员技术水平 *"
+            - cell "实施人员技术水平：很满意100":
+              - radio "实施人员技术水平：很满意100" [checked] [disabled]
+            - cell "实施人员技术水平：满意80":
+              - radio "实施人员技术水平：满意80" [disabled]
+            - cell "实施人员技术水平：一般60":
+              - radio "实施人员技术水平：一般60" [disabled]
+            - cell "实施人员技术水平：不满意40":
+              - radio "实施人员技术水平：不满意40" [disabled]
+            - cell "实施人员技术水平：很不满意0":
+              - radio "实施人员技术水平：很不满意0" [disabled]
+            - cell "—"
+          - row "工程培训讲解效果 * 工程培训讲解效果：很满意100 工程培训讲解效果：满意80 工程培训讲解效果：一般60 工程培训讲解效果：不满意40 工程培训讲解效果：很不满意0 —":
+            - rowheader "工程培训讲解效果 *"
+            - cell "工程培训讲解效果：很满意100":
+              - radio "工程培训讲解效果：很满意100" [checked] [disabled]
+            - cell "工程培训讲解效果：满意80":
+              - radio "工程培训讲解效果：满意80" [disabled]
+            - cell "工程培训讲解效果：一般60":
+              - radio "工程培训讲解效果：一般60" [disabled]
+            - cell "工程培训讲解效果：不满意40":
+              - radio "工程培训讲解效果：不满意40" [disabled]
+            - cell "工程培训讲解效果：很不满意0":
+              - radio "工程培训讲解效果：很不满意0" [disabled]
+            - cell "—"
+          - row "工程文档完整性 * 工程文档完整性：很满意100 工程文档完整性：满意80 工程文档完整性：一般60 工程文档完整性：不满意40 工程文档完整性：很不满意0 —":
+            - rowheader "工程文档完整性 *"
+            - cell "工程文档完整性：很满意100":
+              - radio "工程文档完整性：很满意100" [checked] [disabled]
+            - cell "工程文档完整性：满意80":
+              - radio "工程文档完整性：满意80" [disabled]
+            - cell "工程文档完整性：一般60":
+              - radio "工程文档完整性：一般60" [disabled]
+            - cell "工程文档完整性：不满意40":
+              - radio "工程文档完整性：不满意40" [disabled]
+            - cell "工程文档完整性：很不满意0":
+              - radio "工程文档完整性：很不满意0" [disabled]
+            - cell "—"
+          - row "是否有意愿再次购买我司设备 radio-group":
+            - rowheader "是否有意愿再次购买我司设备"
+            - cell "radio-group":
+              - radiogroup "radio-group":
+                - radio "是" [disabled]
+                - generic: 是
+                - radio "否" [disabled]
+                - generic: 否
+                - radio "其他" [checked] [disabled]
+                - generic: 其他
+              - textbox "其他购买意愿" [disabled]:
+                - /placeholder: 请填写
+          - row "对产品质量的意见 项目66合成隔离验收评价，非真实客户反馈。":
+            - rowheader "对产品质量的意见"
+            - cell "项目66合成隔离验收评价，非真实客户反馈。":
+              - textbox "对产品质量的意见" [disabled]: 项目66合成隔离验收评价，非真实客户反馈。
+          - row "对服务质量的意见 本地模拟操作与签名，仅验证系统闭环，无真实客户签署。":
+            - rowheader "对服务质量的意见"
+            - cell "本地模拟操作与签名，仅验证系统闭环，无真实客户签署。":
+              - textbox "对服务质量的意见" [disabled]: 本地模拟操作与签名，仅验证系统闭环，无真实客户签署。
+  - heading "客户确认" [level=3]
+  - paragraph: 已签字确认 · 2026-10-16 05:05:27 · 满意度 100 分 · 达标
+  - heading "客户统一签字" [level=3]
+  - img "客户手写签字"
+  - link "保存签字图片":
+    - /url: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAlgAAAEOCAYAAABVWWmrAAAQAElEQVR4AezdCdgsV1kn8MawLzooYSQjBAcGkZFFEAedYSaAzvPogDo6jgoqiIoICqgQRWSTTVRAUERZREAkgsQF0AcVBVFQxAXcUFAUWSOyE0Ig6v9Nukjlu9/SS3XX9uM5b5/q6qpT5/zqcu+bqurTn7TwPwIECBAgQIAAgU4FJFidcmqMAAECBLoR0AqBcQtIsMZ9/vSeAAECBAgQGKCABGuAJ0WXCHQhoA0CBAgQ6E9AgtWfvSMTIECAAAECExWQYB15Yn1AgAABAgQIENhMQIK1mZu9CBAgQIBAPwKOOgoBCdYoTpNOEiBAgAABAmMSkGCN6WzpKwECXQhogwABAjsXkGDtnNgBCBAgQIAAgbkJSLDmdsa7GK82CBAgQIAAgWMFJFjH8viQAAECBAgQGIvAkPopwRrS2dAXAgQIECBAYBICEqxJnEaDIECAQBcC2iBAoCsBCVZXktohQIAAAQIECCwFJFhLCBWBLgS0QYAAAQIESkCCVQqCAAECBAgQINChwMASrA5HpikCBAgQIECAQE8CEqye4B2WAAECBEYkoKsE1hSQYK0JZnMCBAgQIECAwEkCEqyThHxOgEAXAtogQIDArAQkWLM63QZLgAABAgQI7ENAgrUP5S6OoQ0CBAgQIEBgNAISrNGcKh0lQIAAAQLDE9CjwwUkWIe7WEuAAAECBAgQ2FhAgrUxnR0JECDQhYA2CBCYooAEa4pn1ZgIECBAgACBXgUkWL3yO3gXAtogQIAAAQJDE5BgDe2M6A8BAgQIECAweoFPWixGPwYDIECAAAECBAgMSsAVrEGdDp0hQIAAgU8IWCAwYgEJ1ohPnq4TIECAAAECwxSQYA3zvOgVgS4EtEGAAAECPQlIsHqCd1gCBAgQIEBgugISrOPOrc8IECBAgAABAhsISLA2QLMLAQIECBDoU8Cxhy8gwRr+OdJDAgQIECBAYGQCEqyRnTDdJUCgCwFtECBAYLcCEqzd+mqdAAECBAgQmKGABGuGJ72LIWuDAAECBAgQOFpAgnW0jU8IECBAgACBcQkMprcSrMGcCh0hQIAAAQIEpiIgwZrKmTQOAgQIdCGgDQIEOhGQYHXCqBECBAgQIECAwKUCEqxLLSwR6EJAGwQIECBAYCHB8oeAAAECBAgQINCxwPASrI4HqDkCBAgQIECAwL4FJFj7Fnc8AgQIEBilgE4TWEdAgrWOlm0JECBAgAABAisISLBWQLIJAQJdCGiDAAEC8xGQYM3nXBspAQIECBAgsCcBCdaeoLs4jDYIECBAgACBcQhIsMZxnvSSAAECBAgMVUC/DhGQYB2CYhUBAgQIECBAYBsBCdY2evYlQIBAFwLaIEBgcgISrMmdUgMiQIAAAQIE+haQYPV9Bhy/CwFtECBAgACBQQlIsAZ1OnSGAAECBAgQmILAJQnWFEZiDAQIECBAgACBgQhIsAZyInSDAAECBE4VsIbAWAUkWGM9c/pNgAABAgQIDFZAgjXYU6NjBLoQ0AYBAgQI9CEgwepD3TEJECBAgACBSQtIsE44vT4mQIAAAQIECKwrIMFaV8z2BAgQIECgfwE9GLiABGvgJ0j3CBAgQIAAgfEJSLDGd870mACBLgS0QYAAgR0KSLB2iKtpAgQIECBAYJ4CEqx5nvcuRq0NAgQIECBA4AgBCdYRMFYTIECAAAECYxQYRp8lWMM4D3pBgAABAgQITEhAgjWhk2koBAgQ6EJAGwQIbC8gwdreUAsECBAgQIAAgcsISLAuw+ENgS4EtEGAAAECcxeQYM39T4DxEyBAgAABAp0LDDLB6nyUGiRAgAABAgQI7FFAgrUd9sOz+0WJdyUUAmMWOCud/9fEvyXqz3TV+4g61oU55qrH+ki2/XDi44lV9zlqu7ekjTcm3pNo2vtYlg9uf37WfXFCIUCAwMoCEqyVqQ7d8F5ZW4bXTv28hEJgrAIPSMcvl6hSf6ar3kfUsa6wxoGunG2vmjgtsW25bhq4YeKaiaa9y2f5YLlKVtwuoRAgQGBlgfrLbeWNbXiKwJOzpv6rP9Xia/PyRQmFwBgFXnJCp/8pn79iGbX8uuVys+5g/Y58XlemUrXK4Yt1xejwTy67dtXt2nvVlalXZsXB/v1e1tU4/jD1wc8Ovv+lbPPzCYUAAQIrC0iwVqY6dMO6RfiEfNL8Q/L0LJ+eUAiMTeAfWh1+fJbralY7rpd1dRuxopZv0Xpf6w7GGfn8Sol2G0ct199DR33WXr/qdu196urY/0w/DvbvtllX47hN6oOfHXz/ldnmLxIKAQIEVhaov7BW3tiGpwjUf1E/JmtflahyZl6emdhV0S6BfQhUgrKP4zgGAQIEJisgwdr+1P5Lmnhkom6JpFr8n7zcL6EQIECAAIGZCBjmQQEJ1kGRzd6/LLvVQ8LvT12lEq6b14IgMBKBupXWdLW93KxTEyBAgMAaAhKsNbBO2PRF+fwZifra+dVS14OxV0ytEBiDQDupcouwhzPmkAQITEtAgtXd+fxAmnpaonke6zOz/JSEQmAMAu3/GDhsqoIxjEEfCRAgMBgBCVa3p+INae5BiXcnqtw9L1+RUHYu4AAdCjRzQnXYpKYIECAwLwEJVvfnu+bcqeexLlg2/dTUn5FQCAxZoH2LsKZXGHJf9Y0AAQKDF/hEgjX4no6rgy9Md5uJG2terJqk0FWBoCiDFbh6q2c1U3rrrUUCBAgQWFdAgrWu2GrbfzCbPTRRs12nWtSkht9ZC4LAQAXaV63q52gG2k3dmqGAIRMYpYAEa3en7S/T9LMSTXl0Fm6ZUAgMUaB9hbW+CTvEPuoTAQIERiMgwdrtqfqxNH9uokr9YOzvZqF+WDaVMlGB62dcdVs41UDKat24aWszc7i1MCwSIEBgEwEJ1iZqq+9TP6Vzn2z+kUSVmh/rgbUgJilwk4zqzYm/TYxtLqnmSxnp+uJj9SIIECBAYHMBCdbJdttu8bY0cM9E8w9YfcPwi/NemZ5AkzzXdB1jS7De2Tod7eXWaosECBAgsKqABGtVqe22Oye7PzvRPNtS76+V98p0BCpp/voMpxLp+kLDv2Z5TOXCVmddwWphWCQwXAE9G7KABGs/Z6f+8XpEDtV8q/BTs/y8BP8gTKDU1aofzDjqlvCTUr82MbbSnqZhbH3XXwIECAxOwD/w+zslb82hzk68N1Hli/Ly7Qll/AJfniHcJnFe4omJMZb6j4Ax9nurPtuZAAECuxKQYO1K9vB2X5bVNT/WR1NXqX+Mb1ALYrQCNb3BD6X3dVvtfqnfnhhjaf9d4LcIx3gG9ZkAgUEJtP9SHVTHJtyZ+umcuj1Yt5PqH+f6aZ26ZTjCIetyBO6a+KzEqxM1g3+qUZb2Fax6jmyUg9BpAgQIDEVAgrX/M1FXrx6Vw74+UeU6eXlmQhmfQM1t9pB0+/zEExJ1FSvVKMvHW72uxL/11iIBAgRGJjCA7kqw+jkJb8ph75L4x0SVL8vLNyWUcQnUlBtnpsu/nfjlxJhLOzlsX80a85j0nQABAr0JSLB6o1/UT+nUN8+aHtTzWPWPdfNePWyBM9K97058IHHfxNjLh1oD+HBr2eI8BYyaAIEtBSRYWwJuuXvdGnzuso1rpH5BQhmHwMPSzU9JPD7x94mxl+bXBmocnsEqBUGAAIEtBCRYW+B1sGs96F6TUtYtw2ru1nm5d0IZtsAXpnvfmvjnRM17lepAGd/b9sSo7eexxjcSPSZAgMAABCRY/Z+EmhfrHulG1akWP5KXGyWU4Qr8RLpWScg3p27OWxZHXT7Y6r1bhC0MiwQIENhEYKgJ1iZjGfM+v5POPzhRpb6Z9vwsXDGhDE/gO9Klz028dBmpJlHqz10zkOs1C2oCBAgQ2ExAgrWZ2y72quex/nrZ8M1T11QOqZQBCTTPXFWXnpKXKX3b7v0ZT1P82HMjoSZwioAVBFYTkGCt5rSPrWoupTvkQDVhZarF/fNyp4QyHIF6oP0K6c45iZckplTaD7m/bUoDMxYCBAj0ISDB6kP96GO+Ix/dM9HMj3Vulm+RUPoXuHG6cPdEJR8PSj21cuXWgK7WWu58UYMECBCYg4AEa3hnuWZ4r9nB60Hj+k24X0gXr5VQ+hV4+vLwlfROYVqG5XAOrerbrYd+YCUBAgQIrCYgwVrNad9bPTsHbCYhrW8U/mTeL4uqB4FvzzH/e+LNiSlevcqwFAIECBDoUkCC1aVmt239dJr7uUSVr85LzZeVStmzwOk53g8nap6os1O3pzPIW4UAAQIELhbwchkBCdZlOAb1pr7VVVexXrXs1WNT/7eEsl+Bcr96DvnaRN0eTDXJUvN6NQNzi7CRUBMgQGBDAQnWhnB72u2NOc7jEu9L1DxF9VM6NVVA3ip7EPi8HKN+hLumY6jfHayrWFk1ydJOqtrLkxzsQAelWwQITEhAgjX8k1lXTWpyy/pH77rpbt02PC21snuB5tm3mgi2uZK4+6P2c4TLtQ5bf9Zaby0SIECAwLoCEqx1xfrZ/tdy2HrwPdXijnmpn2hJpVxGoNs39fNFt06TNT/UM1JPPelo3yK8KONVCBAgQGALAQnWFnh73LV+7+6HcryawiHVoh6Av20tiJ0I1JxQj1i2/LOp69ZsqkmX9sP77eVJD9rgCBAgsCuBdoK1q2NotxuBN6SZByYq2Uq1+KW8/JeE0r3Ao9PktROVaPxM6jmU9uSiV53DgI2RAAECuxSQYO1St/u261Zh/Sh0PWz9aWn+xYn2szN5q2wpUPOO1bxX1cyz8lLfHkw1q1LP+s1qwAY7dAH9IzA+AQnW+M5ZPXj9ymW3Kxm473JZ1Y3Aw9JM3SKsn8R5aJbnUupZs2as5zULagIECBDYTECCtZlbn3vVw9Z3SQf+JFGlbmfdvhbE1gK3SQtfkyjjmv/qPVmeRFlhEBe0tnlna9kiAQIECGwgIMHaAG0Au9TVlfulH+9K1PxYz0n96QllO4HHZ/f6/0T91mB9czBvZ1Paz2DVxKqzGbiBEiBAYBcC9Y/JLtqdWJuDHE7dJnxievaxxBmJ+mZhKmVDgS/Lfl+QqOfbvj/1+QmFAAECBAhsJCDB2ohtMDvV1A018Wh1qBKE76oFsbZAPXP1I8u9Xp26vqGZSiFAgMDABXRvsAISrMGempU6Vs8KPSRb/k2iSj2PdZNaEGsJfH22ri8M1IPe9ZB7XRXMKoUAAQIECGwmIMHazG1Ie701namrV/VAdl2JqakcrpF1ymoCZdVcvXpRdnl5Yo6lkvU5jtuYCRAgsBMBCdZOWPfe6N/miI9JXJg4M9EkDFlUThC4Tz7/D4maVLRut7Z/MiarFQIECBAgsL6ABGt9s6HuUd+A+81l574tdV3VSrXjMu7ma7LWs5dDeEnquoKVapbFhLWzPO0GTYDArgQkWLuS3X+79e23u+Wwf5Co8vS81NWsVMoRAg/P+k9OfCjhql8QlsXtwiWEigCB8Qr03XMJxiPo1QAAEABJREFUVt9noNvjvzvN1TcL6/cKT8/y4xLK4QI3z+p7J6o8Py/NxK1ZnH2RYM3+jwAAAgS2FZBgbSs4vP1/NV16ZqLKV+XljgnlVIH6TcdaW18OqCtZtSwIEPiEgAUCBLYRkGBtozfMfevqww+ma29KVHlWXq6fUC4VuEMWK/ksq7ri95a8n3upKSoag/+VhZqu4h7Lupbr+bS/y/vfTvzOMmpy21quuvm86lpXUeub+mezz58nyvy4eEe2OTdR/5HQ7NvUz8761yVem6h1v5+6ll+fumbf/8fUL0s8N1FfWPiJ1D+WqOX6dm3V35v310ooBAgQ2KmABGunvL01/v4c+Z6JixKfmqiH3z3EHIhlqX94a/GNeTknsZMyska/sNXf/53lhyYqQaq6oq6E/uesu13irGVUAlbLVTefV13rKmp9U981+3xO4qRSP/n0f7NRPU/Y7NvU35D1N0vcKlHrqs+1fNO8/8zE9RK3T9w5cZdE3QK+b+pa/pJlXQl1fQkkbxUCBAjsTkCCtTvbvluu/5Kv/2qvftwwL/WPU6rZl/oH+MZLhboC8k/L5blXH5gRQPtq3YyGbagECOxTYMAJ1j4ZJnusuhJQt1JqgE/Ky+cm5l7qCkYZnJeXH0golwi84pLq4tdfyWs9l1ZXeqp+at6/OFG34erPU03GWlHrm7r5vOpaV9H+vG5V/2na+ItEHeuwqNt/dRuxfqqobjUebOM52be2Oa6Npt06dvX9YNSs/fUbnmlKIUCAwO4EJFi7sx1Cy3WLsKYfqAlIPyUdqmdYaubyLM6y1NWrW2fkH03UQ+5vT61cIvAfL6kufv3dvNZzV5WkVF2J1p2y7gaJMqzbhBW1vqmbz6uudRXtz+uW3y2zf93Oq9t7h8Ut8nndAvzK1DWP28E2vjHra5vj2mjarWNX3w9GPZ9V/79IUwqBDQXsRmAFAQnWCkgj3+TX0//6r/b6R6WegXlk3s+1NFes6nbYC+aKcMS427+/WAn5EZtZTYAAAQKrCEiwVlEa/za/mCHU7ZVUi/ppmLpCUMtziubKSiUP9S3LmitsTuNfZ6xXXGfjDba1CwECBCYvIMGa/Cm+eID1tfhKKur5lFpR36Krb2vV8lziscuB1lf5Xb1aYrSqK7SWLRIgQIDAlgISrC0Be9l9s4O+ObvVA7/1cPd1slwPMqeaRalvUH52RlrPXn1/6ncllMsKVBLerLmgWVATIECAwGYCEqzN3Ma6V30DrCZerN8t/PwM4oGJqZe6MlNX72qc9XM4c0osa8yCAAECexNwoEsFJFiXWsxlqb5V+PTlYGsCyZqscfl2klVNdlkz2dcVmrqC136Ye5ID3nBQ7YloPYO1IaLdCBAg0AhIsBqJ+dQfz1CfkqhZzK+UuqZuuGbqKZarZFAPSFT5rbzUjPaplEME6vbpIaut2q+AoxEgMBUBCdZUzuR64/izbP7diQ8mam6jH0/dvoKRt5Mo35JRnJn4cKImGK1bo1lUDhE4rbXu8q1liwQIECCwgYAEawO0iexSV3NeuBxL/VbbvZbLo65ana+Esbl69fqsf01COVqgfevU1ayjnXxCgACBlQQkWCsxTXKj+kf0+zKymrU71aKezbpJLUwkaq6v62YsNc4a24eyrBwtUAlp82n7alazTk2AAAECawgcSLDW2NOmUxCo6QoqyTo/g6nnlWpC0in8mahbXPXbixnWon4/r34fr5bF0QL1JYDmU7dSGwk1AQIENhSYwj+mGw7dbkuBV6euH9ZNtai5on6mFkYe9ZM4ZyzHULdC27e/lqtVBwTaRvWzSgc+9pZAzwIOT2BkAhKskZ2wHXW3fqvwpcu2a1LO2y+Xx1jVbcEHLTv+ptQPTignC7STqnaydfKetiBAgACBUwQkWKeQzHJFTd3wdRl5Td1Qfyaem+XTE2MsP5VO1y3CuuV1tyzXDzunmn05CaDt1F4+aT+fEyBAgMAhAvWP6SGrrZqhwHsz5ockakqD+p3CX85yzZOVajTlDunplyaq1LxXv18LYiWBmvF+pQ1tRIAAAQInC0iwTja6ZIt5vJ6TYT4tUQ851wzvj8nyWEolg/UzQNXft+fl3glldYH6okOzdXu5WacmQIAAgTUEJFhrYM1k05qA9AXLsX5X6pruINXgy53Tw89JVDk3L3W7M5WyokA7qbpwxX1sRoDAAAR0YZgCEqxhnpc+e1XPLlWSVVM4VD+el5f6dmGqwZarpmc1U3uqxVvz8qiEsp5AXbVsHnSXYK1nZ2sCBAicIiDBOoXEigjULba6clUPO9cP/9atwyE/o1M/Wn3t9LvKs/LyzoSynkB90aGi9ppZglVDFgQIEOhWQILVreeUWntVBnN24oLEzRIPTwyx1LQMdSuz+vZ3eXlkQllfoK5cNn8fNFey1m/FHgQIECBwsUDzF+rFb7wQOCBQ0zX8xnLdA1PfKXFK6XnFE3L8urpWczd9b5YrIUylbCDwkeU+Tb18qyJAgACBdQUkWOuKzWv7+v2+u2bI9XMzqRZPzcv1E0MpZ6UjX5Wo8pd5qakZUikbCtQt4dq1puqoWhAgQGDMAr32XYLVK/8oDv6+9LImIa2rGjU/1pPz/nKJvkv92a1JRasf9YD2vbLw/oSyuUDdJqy9m7qWBQECBAhsIFD/SG2wm11mJvCajLcmIa3bcDWRZ/1AdFb1Wu6Xo39WopKBn0v9RwllO4FKoqsFV7BKQSwWDAgQ2FhAgrUx3ex2fE5G3MyM/rAs3yrRV7lODtxMy3Belh+faL4Bl0VlQ4FPW+5XifRyUUWAAAECmwhIsDZRm+c+NS/Wl2fob0vU1A01HcI1stxHuX8OWg+2p1q8fLFYvC4xxDK2Pv3DssO+KLCEUBEgQGBTAQnWpnLz3K8egv7mDL2edfqvqfuYEuFGOe53JqrUfF01KWoti+0Frr5sohLo5aKKAAECBDYRGHaCtcmI7LNrgZfmAI9LVLlPXuqZrFR7K4/NkZqrV3WbsJKsrFI6EGhuDTZ1B01qggABAvMUkGDN87xvO+pHpIF6sDzVon4cuplFvd7vMm6fxr8iUaV+Eqemjahl0Y1Ac+WqqbtpVSsEJihgSAROEpBgnSTk86MEviMf/FXijMQzErsup+UAT0o05UFZ+GhC6U6gvpFZrfl7oRQEAQIEthDwF+kWeDPftZ7DulsMag6qO6ZunovK4k7KvdNqPfeValGTip5bC6JTgebK1VU6bfXQxqwkQIDAtAUkWNM+v7seXc09deccpKZIqAfeb5zlXZTLp9F2AveovK9Z5lMpHQo0fx+Ud4fNaooAAQLzE2j+Qp3fyEc+4gF1/xfSl+cnPjnx3MSVE12X+ubiDZeN1pQMdczlW1WHAs2XB5orWR02rSkCBAjMS0CCNa/zvavR3j0Nvypxy8SDE12WmjrgMcsG62d7agb3ui25XKXqUOBqy7Z2kSQvm1YRIDBxAcNbCkiwlhCqrQTqYfNvSQv/knhAor7tl6qTUr8xeM1lSzVFxB8ul1XdC9QXCarVIfzWZPVDECBAYLQCEqzRnrrBdfyv06P6ZmGqxfPy0sWD0tdKO83vHtYs4w/N++b38rKodChQfxfU1cJqsvnJnFoW+xZwPAIEJiFQf6lOYiAGMQiBc9KL+l3AmhfrKVnettSD83X1qm4JviKNvSmh7EagnRA3z2Lt5khaJUCAwAwEJFgzOMl7HmJdZfrjHPOsxDblptn5Hokq787LkxMXJU4qPt9MoG7z1k8h1d51q7dqQYAAAQIbCkiwNoSz25EC9Q/15+XT6ye2KffPzs2zQO/Ick0JkUrZkUBNtVHf1PzstP+ahEKAAAECWwicmmBt0ZhdCXQkcJu0842JKu/Ny10Syu4F/jmHeENCIUCAAIEtBSRYWwLafScCzfNbdTWsfh6nZm7fyYE0SoDAeAT0lMCYBCRYYzpb8+hrXbm6xXKolVg9bbmsIkCAAAECoxGQYI3mVM2io1fNKB+XqHJ+XupbhG9LrXQioBECBAgQ2JeABGtf0o6zisDZ2ajmvkq1qJ/f+ZVaEAQIECBAYGwCEqw1zphNdypwg7TenlT0h/O+5r9KpRAgQIAAgXEJSLDGdb6m3NtHZ3BXSlRS9ezUNTN8KoUAAQIEThDw8QAFJFgDPCkz7FJNy/D/l+N+WermOawsKgQIECBAYHwCEqzxnbMp9vinl4P6YOp69qqZUTxvFQJ7EHAIAgQIdCwgweoYVHNrC9SVq5st9/qb1C9OKAQIECBAYNQCEqxRn77BdH7TjlwlO/5oosq78/I9iXcmFAIECBAgMGoBCdaoT9/oO/+KjOC6iSqvzssfJ5R+BE7PYeuncupLBvW7hP+W94fFh7P+7ct4a+qjtq3t3pXP35OoW76HtVXr6ngXZptaXiUuyLa1fe23yvbtbT6Sfasv9duW9SWKP8v7ZyTqtvSvpa54Zer2Pufl/UsS9RuNqRQCBMYl0F9vJVj92TvyYnHrFsITs1z/KKdSehD4phyz5iC7XOrTEkeVmgz2Ovmw4j+lPmrb2u7a+fyaiWskjip1vCsc9eEh6+ubprV97XfIx8euunI+rb58euobJ26euHviqxNfsoz/kbpdKvH80qz4fwmFAAECKwtIsFamsuEOBN64bPN1qevbg6mUngRelOPWbz+mOrGsut3HTmypvw3el0O/JfEHibqS2o6Dvx5Qzwa+MNvNshg0AQKbCUiwNnOzVzcCN0ozdSWi+e3BvFV6EqhbZnWFp87HSbHqdlfMWI5r65b5/HaJWyWqPik+f8Xtqp3bZtvLJ446fl1ZOzOff0HirAPxGXnf3q+udv1V1ikECBBYWUCCtTKVDQlsImCfYwT+NJ+9PPEniapPij9acbtq5/ey7UUJhQABAr0ISLB6YXdQAgQIECBAYMoCg0+wpoxvbAQIECBAgMA0BSRY0zyvRkWAAAECuxXQOoFjBSRYx/L4kAABAgQIECCwvoAEa30zexAg0IWANggQIDBhAQnWhE+uoREgQIAAAQL9CEiw+nHv4qjaIECAAAECBAYqIMEa6InRLQIECBAgME4BvS4BCVYpCAIECBAgQIBAhwISrA4xNUWAAIEuBLRBgMD4BSRY4z+HRkCAAAECBAgMTECCNbATojtdCGiDAAECBAj0KyDB6tff0QkQIECAAIEJChyaYE1wnIZEgAABAgQIENibgARrb9QORIAAAQJbCtidwGgEJFijOVU6SoAAAQIECIxFQII1ljOlnwS6ENAGAQIECOxFQIK1F2YHIUCAAAECBOYkIMFa72zbmgABAgQIECBwooAE60QiGxAgQIAAgaEL6N/QBCRYQzsj+kOAAAECBAiMXkCCNfpTaAAECHQhoA0CBAh0KSDB6lJTWwQIECBAgACBCEiwgqB0IaANAgQIECBAoBGQYDUSagIECBAgQGB6Aj2NSILVE7zDEiBAgAABAtMVkGBN99waGQECBGqFkV0AAAN4SURBVLoQ0AYBAhsISLA2QLMLAQIECBAgQOA4AQnWcTo+I9CFgDYIECBAYHYCEqzZnXIDJkCAAAECBHYtMIYEa9cG2idAgAABAgQIdCogweqUU2MECBAgMB8BIyVwtIAE62gbnxAgQIAAAQIENhKQYG3EZicCBLoQ0AYBAgSmKiDBmuqZNS4CBAgQIECgNwEJVm/0XRxYGwQIECBAgMAQBSRYQzwr+kSAAAECBMYsoO8LCZY/BAQIECBAgACBjgUkWB2Dao4AAQIdCGiCAIGRC0iwRn4CdZ8AAQIECBAYnoAEa3jnRI+6ENAGAQIECBDoUUCC1SO+QxMgQIAAAQLTFDgqwZrmaI2KAAECBAgQILAHAQnWHpAdggABAgS6EtAOgXEISLDGcZ70kgABAgQIEBiRgARrRCdLVwl0IaANAgQIENi9gARr98aOQIAAAQIECMxMQIK19gm3AwECBAgQIEDgeAEJ1vE+PiVAgAABAuMQ0MtBCUiwBnU6dIYAAQIECBCYgoAEawpn0RgIEOhCQBsECBDoTECC1RmlhggQIECAAAEClwhIsC5x8NqFgDYIECBAgACBiwUkWBczeCFAgAABAgSmKtDHuCRYfag7JgECBAgQIDBpAQnWpE+vwREgQKALAW0QILCugARrXTHbEyBAgAABAgROEJBgnQDkYwJdCGiDAAECBOYlIMGa1/k2WgIECBAgQGAPAiNJsPYg4RAECBAgQIAAgY4EJFgdQWqGAAECBGYoYMgEjhCQYB0BYzUBAgQIECBAYFMBCdamcvYjQKALAW0QIEBgkgISrEmeVoMiQIAAAQIE+hSQYPWp38WxtUGAAAECBAgMTkCCNbhTokMECBAgQGD8AnMfgQRr7n8CjJ8AAQIECBDoXECC1TmpBgkQINCFgDYIEBizgARrzGdP3wkQIECAAIFBCkiwBnladKoLAW0QIECAAIG+BCRYfck7LgECBAgQIDBZgWMSrMmO2cAIECBAgAABAjsVkGDtlFfjBAgQINC5gAYJjEBAgjWCk6SLBAgQIECAwLgEJFjjOl96S6ALAW0QIECAwI4FJFg7BtY8AQIECBAgMD8BCdYm59w+BAgQIECAAIFjBCRYx+D4iAABAgQIjElAX4cjIMEazrnQEwIECBAgQGAiAhKsiZxIwyBAoAsBbRAgQKAbgX8HAAD//xr0AygAAAAGSURBVAMA6n+TSpxolAgAAAAASUVORK5CYII=
+    - generic: 保存签字图片
+  - generic: 交付件（统一交付能力）
+  - button "刷新":
+    - generic: 刷新
+  - heading "交付材料" [level=4]
+  - table:
+    - rowgroup:
+      - row "选择所有行 类型 标题 文件或业务成果 版本 来源 状态 文件访问 操作":
+        - columnheader "选择所有行":
+          - generic "选择所有行":
+            - checkbox "选择所有行"
+        - columnheader "类型":
+          - generic: 类型
+        - columnheader "标题":
+          - generic: 标题
+        - columnheader "文件或业务成果":
+          - generic: 文件或业务成果
+        - columnheader "版本":
+          - generic: 版本
+        - columnheader "来源":
+          - generic: 来源
+        - columnheader "状态":
+          - generic: 状态
+        - columnheader "文件访问":
+          - generic: 文件访问
+        - columnheader "操作":
+          - generic: 操作
+  - table:
+    - rowgroup:
+      - row "选择当前行 COMPLETION_CERTIFICATE PJT2026000066-WZ-001-SATISFACTION.html PJT2026000066-WZ-001-SATISFACTION.html 文件 v1 GENERATED 有效 PJT2026000066-WZ-001-SATISFACTION.html 已绑定 V1 COMPLETION_CERTIFICATE 版本历史 下载":
+        - cell "选择当前行":
+          - generic "选择当前行":
+            - checkbox "选择当前行"
+        - cell "COMPLETION_CERTIFICATE":
+          - generic: COMPLETION_CERTIFICATE
+        - cell "PJT2026000066-WZ-001-SATISFACTION.html":
+          - generic: PJT2026000066-WZ-001-SATISFACTION.html
+        - cell "PJT2026000066-WZ-001-SATISFACTION.html":
+          - generic: PJT2026000066-WZ-001-SATISFACTION.html
+        - cell "文件 v1":
+          - generic: 文件 v1
+        - cell "GENERATED":
+          - generic: GENERATED
+        - cell "有效":
+          - generic: 有效
+        - cell "PJT2026000066-WZ-001-SATISFACTION.html 已绑定 V1 COMPLETION_CERTIFICATE 版本历史 下载":
+          - generic "PJT2026000066-WZ-001-SATISFACTION.html"
+          - generic: 已绑定
+          - generic: V1
+          - generic: COMPLETION_CERTIFICATE
+          - button "版本历史":
+            - generic: 版本历史
+          - button "下载":
+            - generic: 下载
+        - cell
+      - row "选择当前行 COMPLETION_CERTIFICATE PJT2026000066-WZ-001-COMPLETION.html PJT2026000066-WZ-001-COMPLETION.html 文件 v1 GENERATED 有效 PJT2026000066-WZ-001-COMPLETION.html 已绑定 V1 COMPLETION_CERTIFICATE 版本历史 下载":
+        - cell "选择当前行":
+          - generic "选择当前行":
+            - checkbox "选择当前行"
+        - cell "COMPLETION_CERTIFICATE":
+          - generic: COMPLETION_CERTIFICATE
+        - cell "PJT2026000066-WZ-001-COMPLETION.html":
+          - generic: PJT2026000066-WZ-001-COMPLETION.html
+        - cell "PJT2026000066-WZ-001-COMPLETION.html":
+          - generic: PJT2026000066-WZ-001-COMPLETION.html
+        - cell "文件 v1":
+          - generic: 文件 v1
+        - cell "GENERATED":
+          - generic: GENERATED
+        - cell "有效":
+          - generic: 有效
+        - cell "PJT2026000066-WZ-001-COMPLETION.html 已绑定 V1 COMPLETION_CERTIFICATE 版本历史 下载":
+          - generic "PJT2026000066-WZ-001-COMPLETION.html"
+          - generic: 已绑定
+          - generic: V1
+          - generic: COMPLETION_CERTIFICATE
+          - button "版本历史":
+            - generic: 版本历史
+          - button "下载":
+            - generic: 下载
+        - cell
+      - row "选择当前行 COMPLETION_CERTIFICATE 工程直签全浏览器16任务验收20261016 completionCertificate · 30053 — ASSOCIATED 有效":
+        - cell "选择当前行":
+          - generic "选择当前行":
+            - checkbox "选择当前行"
+        - cell "COMPLETION_CERTIFICATE":
+          - generic: COMPLETION_CERTIFICATE
+        - cell "工程直签全浏览器16任务验收20261016":
+          - generic: 工程直签全浏览器16任务验收20261016
+        - cell "completionCertificate · 30053":
+          - generic: completionCertificate · 30053
+        - cell "—":
+          - generic: —
+        - cell "ASSOCIATED":
+          - generic: ASSOCIATED
+        - cell "有效":
+          - generic: 有效
+        - cell
+        - cell
+  - heading "交付要求" [level=4]
+  - table:
+    - rowgroup:
+      - row "类型 性质 计数口径 数量 状态 当前提交 操作":
+        - columnheader "类型":
+          - generic: 类型
+        - columnheader "性质":
+          - generic: 性质
+        - columnheader "计数口径":
+          - generic: 计数口径
+        - columnheader "数量":
+          - generic: 数量
+        - columnheader "状态":
+          - generic: 状态
+        - columnheader "当前提交":
+          - generic: 当前提交
+        - columnheader "操作":
+          - generic: 操作
+  - table:
+    - rowgroup
+  - generic: 暂无数据
+  - button "关闭":
+    - generic: 关闭
+  - button "下载满意度 PDF":
+    - generic: 下载满意度 PDF
+  - button "下载完工证明 PDF":
+    - generic: 下载完工证明 PDF
+- generic: Copyright ©2026 项目实施交付管理平台

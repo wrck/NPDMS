@@ -102,8 +102,8 @@ public class CommerceDeliveryScopeCommandService {
                         scope.getAllocatedQty(), scope.getAllocationVersion(), scope.getScopeStatus()))
                 .toList();
         return new DeliveryScopePreviewResult(project.projectId(), project.projectVersion(), project.projectCode(),
-                project.officeDepartmentId(), project.officeDepartmentCode(), project.officeDepartmentName(),
-                project.officeDepartmentVersion(), line.getId(), line.getSourceVersion(), line.getOrderQty(),
+                project.departmentId(), project.departmentCode(), project.departmentName(),
+                project.departmentVersion(), line.getId(), line.getSourceVersion(), line.getOrderQty(),
                 allocated, available, command.proposedQuantity(), errors.isEmpty(), List.copyOf(errors), occupied);
     }
 
@@ -249,9 +249,13 @@ public class CommerceDeliveryScopeCommandService {
     }
 
     private ProjectOfficeFact lockProject(Long tenantId, Long subjectUserId, Long projectId,
-                                          Integer projectVersion, Long projectScopeVersion) {
-        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                tenantId, subjectUserId, projectId, ProjectScopeApi.ACTION_MANAGE, projectScopeVersion));
+                                          Long projectVersion, Long projectScopeVersion) {
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(subjectUserId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(projectScopeVersion).build());
         if (scope == null || !Objects.equals(scope.treeVersion(), projectScopeVersion)
                 || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
             throw conflict("PROJECT_SCOPE_FORBIDDEN");
@@ -261,9 +265,9 @@ public class CommerceDeliveryScopeCommandService {
         if (fact == null || fact.outcome() != ProjectFactOutcome.FOUND
                 || !Objects.equals(fact.projectId(), projectId)
                 || !Objects.equals(fact.projectVersion(), projectVersion)
-                || blank(fact.projectCode()) || fact.officeDepartmentId() == null
-                || blank(fact.officeDepartmentCode()) || blank(fact.officeDepartmentName())
-                || fact.officeDepartmentVersion() == null || fact.officeDepartmentVersion() < 0) {
+                || blank(fact.projectCode()) || fact.departmentId() == null
+                || blank(fact.departmentCode()) || blank(fact.departmentName())
+                || fact.departmentVersion() == null || fact.departmentVersion() < 0) {
             throw conflict("PROJECT_OFFICE_FACT_INVALID");
         }
         return fact;
@@ -433,21 +437,21 @@ public class CommerceDeliveryScopeCommandService {
         scope.setOrderType(line.getOrderType());
         scope.setOrderNo(line.getOrderNo());
         scope.setLineNo(line.getLineNo());
-        scope.setItemCode(line.getItemCode());
-        scope.setItemDesc(line.getItemDesc());
+        scope.setProductCode(line.getProductCode());
+        scope.setProductDesc(line.getProductDesc());
         scope.setAllocatedQty(quantity);
         scope.setScopeStatus("ACTIVE");
         scope.setAllocationVersion(version);
         scope.setAllocationSource(source);
         scope.setChangeReason(reason);
-        scope.setOfficeDepartmentId(project.officeDepartmentId());
-        scope.setOfficeDepartmentCode(project.officeDepartmentCode());
-        scope.setOfficeDepartmentName(project.officeDepartmentName());
-        scope.setOfficeDepartmentVersion(project.officeDepartmentVersion());
+        scope.setDepartmentId(project.departmentId());
+        scope.setDepartmentCode(project.departmentCode());
+        scope.setDepartmentName(project.departmentName());
+        scope.setDepartmentVersion(project.departmentVersion());
         scope.setSourceEvidence(operationId);
         scope.setEffectiveFrom(now);
         scope.setStatus("ENABLED");
-        scope.setVersion(0);
+        scope.setVersion(0L);
         scopeMapper.insert(scope);
         return scope;
     }
@@ -559,7 +563,7 @@ public class CommerceDeliveryScopeCommandService {
     }
 
     private boolean invalidIdentity(Long tenantId, Long subjectUserId, Long projectId,
-                                    Integer projectVersion, Long projectScopeVersion) {
+                                    Long projectVersion, Long projectScopeVersion) {
         return tenantId == null || tenantId < 0 || subjectUserId == null || subjectUserId <= 0
                 || projectId == null || projectId <= 0 || projectVersion == null || projectVersion < 0
                 || projectScopeVersion == null || projectScopeVersion < 0

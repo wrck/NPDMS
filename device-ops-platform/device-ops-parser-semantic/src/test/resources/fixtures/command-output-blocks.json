@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0.0",
+  "collectionId": "synthetic-collection",
+  "commandBlocks": [
+    {
+      "commandIndex": 1,
+      "commandText": "show version",
+      "status": "SUCCEEDED",
+      "stdout": "Software Release TEST-1.2.3\nConplat Version is PLATFORM-9\nCPU type: Fictional CPU 1000\nSDRAM: 1024M bytes\nSerial Number: SYNTHETIC-SN-001",
+      "stderr": "",
+      "receivedBytes": 151,
+      "pageCount": 1,
+      "truncated": false,
+      "exitCode": 0,
+      "outcome": "completed"
+    },
+    {
+      "commandIndex": 2,
+      "commandText": "show ip interface brief",
+      "status": "SUCCEEDED",
+      "stdout": "Interface  Physical  Protocol  IP Address\nport1      up        up        192.0.2.1/24",
+      "stderr": "",
+      "receivedBytes": 88,
+      "pageCount": 4,
+      "truncated": false,
+      "exitCode": 0
+    },
+    {
+      "commandIndex": 3,
+      "commandText": "show ntp status",
+      "status": "SUCCEEDED",
+      "stdout": "NTP is not enabled.",
+      "stderr": "",
+      "receivedBytes": 19,
+      "pageCount": 1,
+      "truncated": false,
+      "exitCode": 0
+    }
+  ]
+}

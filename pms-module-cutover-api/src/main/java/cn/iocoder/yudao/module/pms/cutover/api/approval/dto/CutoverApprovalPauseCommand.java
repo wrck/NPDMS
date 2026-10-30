@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.api.approval.dto;
 public record CutoverApprovalPauseCommand(
         Long tenantId,
         Long approvalInstanceId,
-        Integer expectedApprovalVersion,
+        Long expectedApprovalVersion,
         Long planRevisionId,
         Integer expectedSourceSnapshotVersion,
         String reasonCode,

@@ -110,11 +110,12 @@ class ProjectTemplateV2MatchEligibilityTest {
         when(templates.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE)).thenReturn(List.of(template(2L, "V2")));
         when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(latest));
         var draft = draft();
-        var preview = service.matchPreview(ProjectRuleFields.manualCreationFacts(draft));
+        var preview = service.matchPreview(new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).manualCreationFacts(draft));
         assertEquals(22L, preview.getMatched().getTemplateRevisionId());
         assertEquals("适用条件", preview.getMatched().getRuleName());
         assertEquals(RuleEvaluation.Outcome.MATCHED, preview.getEvaluations().getFirst().result().outcome());
         var creation = new ProjectAttributeResolutionService();
+        ReflectionTestUtils.setField(creation, "projectRuleFields", new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         ReflectionTestUtils.setField(creation, "projectTemplateService", service);
         var decision = creation.resolveInitial(draft,
                 22L, preview.getCandidateWatermark());
@@ -122,6 +123,7 @@ class ProjectTemplateV2MatchEligibilityTest {
         assertEquals(preview.getCandidateWatermark(), decision.candidateDigest());
         var controller = new cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.ProjectTemplateController();
         ReflectionTestUtils.setField(controller, "projectTemplateService", service);
+        ReflectionTestUtils.setField(controller, "projectRuleFields", new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         var request = new cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateMatchPreviewReqVO();
         request.setFacts(Map.of("project.signingMethod", JsonUtils.parseObject("\"DIRECT_SIGN\"", tools.jackson.databind.JsonNode.class),
                 "project.projectCategory", JsonUtils.parseObject("\"GENERAL\"", tools.jackson.databind.JsonNode.class),
@@ -151,6 +153,34 @@ class ProjectTemplateV2MatchEligibilityTest {
         assertEquals(2, result.getEvaluations().size());
         assertEquals(RuleEvaluation.Outcome.UNKNOWN, result.getEvaluations().getFirst().result().outcome());
         assertEquals("MATCH_FIELD_UNAVAILABLE", result.getEvaluations().getFirst().result().conditions().getFirst().reasonCode());
+    }
+
+    @Test
+    void creationDefaultsDoNotInvalidatePreviewButChangesToReadFactsDo() {
+        var templates = mock(ProjectTemplateMapper.class);
+        var revisions = mock(ProjectTemplateRevisionMapper.class);
+        var service = service(templates, revisions);
+        when(templates.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE)).thenReturn(List.of(template(2L, "V2")));
+        when(revisions.selectPublishedListByTemplateId(2L)).thenReturn(List.of(ruleRevision(22L, 2, """
+                {"predicate":"FIELD","parameters":{"fieldCode":"project.signingMethod","valueType":"TEXT","operator":"!=","value":"EXCLUDED"}}
+                """)));
+        var fields = new ProjectRuleFields(key -> null);
+        var draft = draft();
+        var preview = service.matchPreview(fields.manualCreationFacts(draft));
+        draft.setCustomerName("创建时补齐的客户");
+        draft.setCreationReason("INTERNAL");
+        draft.setLocationResolutionStatus("PENDING");
+        var creation = new ProjectAttributeResolutionService();
+        ReflectionTestUtils.setField(creation, "projectRuleFields", fields);
+        ReflectionTestUtils.setField(creation, "projectTemplateService", service);
+        assertEquals(22L, creation.resolveInitial(draft, 22L, preview.getCandidateWatermark()).matchedTemplateRevisionId());
+
+        draft.setSigningMethod("NON_DIRECT");
+        var changed = service.matchPreview(fields.manualCreationFacts(draft));
+        assertEquals(22L, changed.getMatched().getTemplateRevisionId());
+        org.junit.jupiter.api.Assertions.assertNotEquals(preview.getCandidateWatermark(), changed.getCandidateWatermark());
+        org.junit.jupiter.api.Assertions.assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                () -> creation.resolveInitial(draft, 22L, preview.getCandidateWatermark()));
     }
 
     @Test
@@ -185,6 +215,7 @@ class ProjectTemplateV2MatchEligibilityTest {
         assertEquals(TemplateMatchResult.Outcome.NO_MATCH, after.getOutcome());
         org.junit.jupiter.api.Assertions.assertNotEquals(before.getCandidateWatermark(), after.getCandidateWatermark());
         var creation = new ProjectAttributeResolutionService();
+        ReflectionTestUtils.setField(creation, "projectRuleFields", new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         ReflectionTestUtils.setField(creation, "projectTemplateService", service);
         org.junit.jupiter.api.Assertions.assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
                 () -> creation.resolveInitial(draft(), 22L, before.getCandidateWatermark()));
@@ -217,9 +248,9 @@ class ProjectTemplateV2MatchEligibilityTest {
                   {"predicate":"FIELD","parameters":{"fieldCode":"project.isChild","valueType":"BOOLEAN","operator":"=","value":true}}]}
                 """)));
         var child = draft(); child.setParentId(100L); child.setDepartmentCode("OFFICE");
-        assertEquals(TemplateMatchResult.Outcome.MATCHED, service.matchPreview(ProjectRuleFields.manualCreationFacts(child)).getOutcome());
+        assertEquals(TemplateMatchResult.Outcome.MATCHED, service.matchPreview(new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).manualCreationFacts(child)).getOutcome());
         child.setProjectName("需求分析");
-        assertEquals(TemplateMatchResult.Outcome.NO_MATCH, service.matchPreview(ProjectRuleFields.manualCreationFacts(child)).getOutcome());
+        assertEquals(TemplateMatchResult.Outcome.NO_MATCH, service.matchPreview(new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).manualCreationFacts(child)).getOutcome());
         var missing = service.matchPreview(partialFacts());
         assertEquals(RuleEvaluation.Outcome.UNKNOWN, missing.getEvaluations().getFirst().result().outcome());
     }

@@ -1,7 +1,8 @@
 <template>
   <section aria-label="任务状态操作" class="task-state-actions">
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
-    <el-button v-for="action in actions" :key="action" :type="action === 'CANCEL' ? 'danger' : 'primary'"
+    <el-button
+v-for="action in actions" :key="action" :type="action === 'CANCEL' ? 'danger' : 'primary'"
       :loading="busy" :disabled="busy" @click="execute(action)">{{ labels[action] }}</el-button>
     <slot></slot>
   </section>
@@ -15,7 +16,8 @@ const props = defineProps<{ workbench: TaskWorkbench; businessBound: boolean; bu
 const emit = defineEmits<{ changed: [result: TaskCommandResult] }>()
 const labels: Record<TaskAction, string> = { START: '开始任务', SUBMIT: '提交任务', COMPLETE: '校验并完成任务', CANCEL: '关闭任务' }
 const actions = computed(() => (Object.keys(labels) as TaskAction[]).filter(action => props.workbench.allowedActions?.includes(action)
-  && !(props.workbench.bindingType === 'APPROVAL' && ['START', 'SUBMIT', 'COMPLETE'].includes(action))))
+  && !(props.workbench.bindingType === 'APPROVAL' && ['START', 'SUBMIT', 'COMPLETE'].includes(action))
+  && !(props.workbench.bindingType === 'RESULT_SUBSCRIPTION' && ['SUBMIT', 'COMPLETE'].includes(action))))
 const message = useMessage(), busy = ref(false), error = ref('')
 const intent = createSubmissionIdempotencyState()
 const execute = async (action: TaskAction) => {
@@ -41,10 +43,13 @@ const execute = async (action: TaskAction) => {
   busy.value = true; error.value = ''
   try {
     const result = await executeTaskAction(taskId, action, body, version, intent.keyFor({ taskId, action, version, body }))
-    if (action === 'COMPLETE' && result.status !== 'DONE') message.warning('完成条件尚未满足，任务状态未改变')
+    if (action === 'COMPLETE' && result.status !== 'DONE') {
+      error.value = '完成条件尚未满足，任务状态未改变。请核对本任务要求的交付件、业务结果及完成条件。'
+      message.warning(error.value)
+    }
     else message.success('任务操作已保存')
     emit('changed', result)
-  } catch (failure: any) { error.value = failure?.message || '任务操作未成功，可刷新核对或重试' }
+  } catch (failure: any) { error.value = (typeof failure === 'string' ? failure : failure?.message) || '任务操作未成功，可刷新核对或重试' }
   finally { busy.value = false }
 }
 defineExpose({ isBusy: () => busy.value })

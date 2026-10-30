@@ -14,7 +14,7 @@ public interface ProjectQualificationPort {
             Long projectId,
             Long subjectUserId,
             Long actorUserId,
-            Integer expectedProjectVersion,
+            Long expectedProjectVersion,
             Long expectedFactVersion,
             Long expectedScopeVersion,
             boolean requireActorAsProjectManager) {
@@ -38,7 +38,7 @@ public interface ProjectQualificationPort {
             Set<String> effectiveRoleCodes,
             String lifecycleStatus,
             String currentStage,
-            Integer projectVersion,
+            Long projectVersion,
             Long factVersion,
             Long scopeVersion) {
 

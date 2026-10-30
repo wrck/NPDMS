@@ -1,0 +1,57 @@
+{
+  "testRoleId": "970000000000090005",
+  "solr22sm": {
+    "id": "970000000000091005",
+    "username": "solr22sm",
+    "nickname": "流程验收服务经理"
+  },
+  "solr22em": {
+    "id": "970000000000091006",
+    "username": "solr22em",
+    "nickname": "流程验收工程复审"
+  },
+  "projectId": 992203060019,
+  "projectCreate": {
+    "assignmentStatus": "UNASSIGNED",
+    "currentStage": null,
+    "deliverableCount": 3,
+    "gateCount": 0,
+    "id": 992203060019,
+    "lifecycleStatus": "ACTIVE",
+    "lifecycleTemplateId": 993009900012,
+    "lifecycleTemplateRevisionNo": 2,
+    "matchDecisionMode": "EXPLICIT_SELECTION",
+    "matchOperationId": "PM07:INITIAL_CREATE:992203060019:6cb2fa0dfe3f2efedcade74728a4e061a80fc862ea8e907651f9d2bcdf12a8df",
+    "matchResult": "UNIQUE",
+    "milestoneCount": 0,
+    "projectCode": "PJT2026000013",
+    "serviceManagerAssigned": false,
+    "stageCount": 2,
+    "status": "ACTIVE",
+    "taskCount": 2,
+    "templateLoadMethod": "MANUAL_SELECTED",
+    "version": 0
+  },
+  "engineeringViewGrant": {
+    "actionCode": "PROJECT_VIEW",
+    "effectiveFrom": 1790073940000,
+    "effectiveTo": null,
+    "grantedAt": 1790073940417,
+    "grantedBy": 1,
+    "id": "2102348599087796225",
+    "projectId": 992203060019,
+    "revokeReason": null,
+    "revokedAt": null,
+    "revokedBy": null,
+    "scopeCode": "CURRENT_PROJECT",
+    "statusCode": "ACTIVE",
+    "subjectUserId": "970000000000091006",
+    "version": 0
+  },
+  "solutionId": 30014,
+  "instanceId": "1cf9e814-b673-11f1-b369-00ff0b78abd7",
+  "rejectSolutionId": 30015,
+  "rejectInstanceId": "3464555e-b677-11f1-8a56-00ff0b78abd7",
+  "revisedSolutionId": 30016,
+  "acceptanceUsersDisabled": true
+}

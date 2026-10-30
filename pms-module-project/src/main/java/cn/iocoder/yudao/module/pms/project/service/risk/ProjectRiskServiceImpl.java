@@ -5,7 +5,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.risk.vo.ProjectRiskPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.risk.vo.ProjectRiskSaveReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.risk.ProjectRiskDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.risk.ProjectRiskMapper;
 import cn.iocoder.yudao.module.pms.project.domain.risk.RiskStatusRules;
 import jakarta.annotation.Resource;
@@ -30,6 +30,7 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
  * <p>
  * 风险状态机：已识别→处理中→已关闭/已发生；已发生→已关闭。
  * 创建时默认状态为已识别并写入 identified_at；迁入已关闭时写入 closed_at。
+ * 项目归属校验使用新域项目主档，风险记录保存在 proj_project_risk。
  */
 @Service
 @Validated
@@ -42,10 +43,10 @@ public class ProjectRiskServiceImpl implements ProjectRiskService {
     @Resource
     private ProjectRiskMapper projectRiskMapper;
     @Resource
-    private ProjectMapper projectMapper;
+    private ProjectMasterMapper projectMapper;
 
     @Override
-    public Long createRisk(ProjectRiskSaveReqVO createReqVO) {
+    public Long createRiskRetired(ProjectRiskSaveReqVO createReqVO) {
         // 1. 校验项目存在
         if (projectMapper.selectById(createReqVO.getProjectId()) == null) {
             throw exception(PROJECT_RISK_PROJECT_NOT_EXISTS);
@@ -65,9 +66,9 @@ public class ProjectRiskServiceImpl implements ProjectRiskService {
     }
 
     @Override
-    public void updateRisk(ProjectRiskSaveReqVO updateReqVO) {
+    public void updateRiskRetired(ProjectRiskSaveReqVO updateReqVO) {
         // 1. 校验存在
-        ProjectRiskDO existing = validateRiskExists(updateReqVO.getId());
+        ProjectRiskDO existing = validateRiskExistsRetired(updateReqVO.getId());
         // 2. 项目不可变
         if (!Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())) {
             throw exception(PROJECT_RISK_NOT_EXISTS);
@@ -87,27 +88,27 @@ public class ProjectRiskServiceImpl implements ProjectRiskService {
     }
 
     @Override
-    public void deleteRisk(Long id) {
+    public void deleteRiskRetired(Long id) {
         // 1. 校验存在
-        validateRiskExists(id);
+        validateRiskExistsRetired(id);
         // 2. 删除
         projectRiskMapper.deleteById(id);
     }
 
     @Override
-    public void deleteRiskList(Collection<Long> ids) {
+    public void deleteRiskListRetired(Collection<Long> ids) {
         for (Long id : ids) {
-            deleteRisk(id);
+            deleteRiskRetired(id);
         }
     }
 
     @Override
-    public ProjectRiskDO getRisk(Long id) {
+    public ProjectRiskDO getRiskRetired(Long id) {
         return projectRiskMapper.selectById(id);
     }
 
     @Override
-    public ProjectRiskDO validateRiskExists(Long id) {
+    public ProjectRiskDO validateRiskExistsRetired(Long id) {
         ProjectRiskDO risk = projectRiskMapper.selectById(id);
         if (risk == null) {
             throw exception(PROJECT_RISK_NOT_EXISTS);
@@ -116,19 +117,19 @@ public class ProjectRiskServiceImpl implements ProjectRiskService {
     }
 
     @Override
-    public PageResult<ProjectRiskDO> getRiskPage(ProjectRiskPageReqVO pageReqVO) {
+    public PageResult<ProjectRiskDO> getRiskPageRetired(ProjectRiskPageReqVO pageReqVO) {
         return projectRiskMapper.selectPage(pageReqVO);
     }
 
     @Override
-    public List<ProjectRiskDO> getRiskListByProjectId(Long projectId) {
+    public List<ProjectRiskDO> getRiskListByProjectIdRetired(Long projectId) {
         return projectRiskMapper.selectListByProjectId(projectId);
     }
 
     @Override
-    public void transitionStatus(Long riskId, int targetStatus, Integer version) {
+    public void transitionStatusRetired(Long riskId, int targetStatus, Long version) {
         // 1. 校验存在
-        ProjectRiskDO existing = validateRiskExists(riskId);
+        ProjectRiskDO existing = validateRiskExistsRetired(riskId);
         // 2. 校验状态迁移合法性
         int from = existing.getStatus() != null ? existing.getStatus() : RiskStatusRules.IDENTIFIED;
         if (!RiskStatusRules.canTransition(from, targetStatus)) {

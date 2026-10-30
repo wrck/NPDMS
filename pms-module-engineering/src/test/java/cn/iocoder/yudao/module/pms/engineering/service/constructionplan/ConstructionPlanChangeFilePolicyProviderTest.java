@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolic
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectReferenceSetRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -33,14 +34,105 @@ class ConstructionPlanChangeFilePolicyProviderTest {
     @Mock ConstructionPlanMapper planMapper;
     @Mock ConstructionPlanChangeMapper changeMapper;
     @Mock ProjectScopeApi projectScopeApi;
+    @Mock ProjectDurationOperatorApi durationOperatorApi;
     @Mock ProjectParticipantFactApi participantFactApi;
 
-    private ConstructionPlanChangeFilePolicyProvider provider;
+    @Mock cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi qualifications;
+    @org.mockito.InjectMocks private ConstructionPlanChangeFilePolicyProvider provider;
 
     @BeforeEach
     void setUp() {
-        provider = new ConstructionPlanChangeFilePolicyProvider(
-                planMapper, changeMapper, projectScopeApi, participantFactApi);
+        org.mockito.Mockito.lenient().when(durationOperatorApi.inspect(any())).thenReturn(new ProjectDurationOperatorApi.Fact(100L,9L,"ACTIVE",3L,"REGIONAL_SERVICE_MANAGER"));
+        org.mockito.Mockito.lenient().when(durationOperatorApi.lockAndRevalidate(any())).thenReturn(new ProjectDurationOperatorApi.Fact(100L,9L,"ACTIVE",3L,"REGIONAL_SERVICE_MANAGER"));
+
+    }
+
+    private cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Fact managementFact() {
+        return new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Fact(
+                new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Query(0L,100L,9L),
+                cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Source.PROJECT_MEMBER,
+                new ProjectParticipantFact(100L,9L,Set.of("SERVICE_MANAGER"),"PRIMARY","ACTIVE","S1",3L,3L),null);
+    }
+    @Test void confirmedProjectSmWithoutRawReaderFactUsesUnifiedOwner() {
+        stubCurrent(ConstructionPlanChangeDO.STATUS_DRAFT,"SERVICE_MANAGER");
+        when(participantFactApi.inspect(any())).thenReturn(null);
+        org.mockito.Mockito.lenient().when(qualifications.inspect(any())).thenReturn(managementFact());
+        org.mockito.Mockito.lenient().when(durationOperatorApi.inspect(any())).thenThrow(new IllegalStateException("legacy PM/region path rejected"));
+        assertTrue(provider.inspect(query(FileActionCodes.READ)).allowed());
+        org.mockito.Mockito.verify(qualifications).inspect(any());
+    }
+    @Test void unknownRawFactFailureDoesNotBecomeAnotherQualification() {
+        stubCurrent(ConstructionPlanChangeDO.STATUS_DRAFT,"PROJECT_MANAGER");
+        when(participantFactApi.inspect(any())).thenThrow(new IllegalStateException("provider unavailable"));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,()->provider.inspect(query(FileActionCodes.READ)));
+        org.mockito.Mockito.verifyNoInteractions(qualifications);
+    }
+    @Test void selectedRawReaderLockRevocationCannotFallBackToManagement() {
+        stubCurrent(ConstructionPlanChangeDO.STATUS_DRAFT,"PROJECT_MANAGER");
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(100L,7L,Set.of(100L),Set.of()));
+        org.mockito.Mockito.lenient().when(planMapper.selectForUpdate(any())).thenReturn(plan());
+        org.mockito.Mockito.lenient().when(changeMapper.selectForUpdate(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
+        when(participantFactApi.lockAndRevalidate(any())).thenThrow(new cn.iocoder.yudao.framework.common.exception.ServiceException(
+                ProjectParticipantFactApi.SCOPE_DENIED_ERROR_CODE,"revoked"));
+        org.junit.jupiter.api.Assertions.assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                ()->provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(0L,9L,"SOL","CONSTRUCTION_PLAN_CHANGE","801",
+                        "CUSTOMER_DELAY_EVIDENCE","customer-delay",FileActionCodes.READ,7L)));
+        org.mockito.Mockito.verifyNoInteractions(qualifications,durationOperatorApi);
+    }
+    @Test void fallbackReaderRevalidatesTheExactUnifiedSource() {
+        when(changeMapper.selectByObjectId(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
+        when(planMapper.selectForUpdate(any())).thenReturn(plan());
+        when(changeMapper.selectForUpdate(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
+        when(projectScopeApi.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(100L,7L,Set.of(100L),Set.of()));
+        var observed = managementFact();
+        when(qualifications.inspect(any())).thenReturn(observed);
+        assertTrue(provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(0L,9L,"SOL","CONSTRUCTION_PLAN_CHANGE","801",
+                "CUSTOMER_DELAY_EVIDENCE","customer-delay",FileActionCodes.READ,7L)).allowed());
+        org.mockito.Mockito.verify(qualifications).lockAndRevalidate(new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Revalidation(
+                observed,3L,"ACTIVE",null));
+        org.mockito.Mockito.verify(participantFactApi,org.mockito.Mockito.never()).lockAndRevalidate(any());
+        org.mockito.Mockito.verifyNoInteractions(durationOperatorApi);
+    }
+    @Test void closedHistoricalReaderKeepsOriginalFactPath() {
+        stubCurrent(ConstructionPlanChangeDO.STATUS_PENDING_APPROVAL,"PROJECT_MANAGER");
+        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(100L,9L,Set.of("PROJECT_MANAGER"),"PRIMARY","NORMAL_CLOSED","S6",3L,3L));
+        assertTrue(provider.inspect(query(FileActionCodes.READ)).allowed());
+        org.mockito.Mockito.verifyNoInteractions(qualifications,durationOperatorApi);
+    }
+
+    @Test
+    void regionalManagerMayReadEvidenceAfterUploadingWithoutBecomingAProjectMember() {
+        when(changeMapper.selectByObjectId(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L,7L,Set.of(100L),Set.of()));
+        when(participantFactApi.inspect(any())).thenThrow(new cn.iocoder.yudao.framework.common.exception.ServiceException(ProjectParticipantFactApi.SCOPE_DENIED_ERROR_CODE,"No project membership"));
+        org.mockito.Mockito.lenient().when(qualifications.inspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Fact(
+                new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Query(0L,100L,9L),
+                cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Source.REGIONAL_MANAGER,null,
+                new cn.iocoder.yudao.module.pms.project.api.participant.ProjectRegionalManagerFactApi.Fact(100L,9L,3L)));
+        assertTrue(provider.inspect(query(FileActionCodes.READ)).allowed());
+        org.mockito.Mockito.verify(qualifications).inspect(any());
+    }
+
+    @Test
+    void crossRegionCannotUploadOrReadEvidence() {
+        when(changeMapper.selectByObjectId(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L,7L,Set.of(100L),Set.of()));
+        when(durationOperatorApi.inspect(any())).thenThrow(new cn.iocoder.yudao.framework.common.exception.ServiceException(403,"Not in region"));
+        org.mockito.Mockito.lenient().when(qualifications.inspect(any())).thenThrow(new cn.iocoder.yudao.framework.common.exception.ServiceException(403,"Not in region"));
+        org.mockito.Mockito.lenient().when(participantFactApi.inspect(any())).thenThrow(new cn.iocoder.yudao.framework.common.exception.ServiceException(ProjectParticipantFactApi.SCOPE_DENIED_ERROR_CODE,"No project membership"));
+        org.junit.jupiter.api.Assertions.assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->provider.inspect(query(FileActionCodes.UPLOAD)));
+        org.junit.jupiter.api.Assertions.assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->provider.inspect(query(FileActionCodes.READ)));
+    }
+
+    @Test
+    void regionalManagerCannotReplaceFrozenPendingEvidence() {
+        when(changeMapper.selectByObjectId(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_PENDING_APPROVAL));
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L,7L,Set.of(100L),Set.of()));
+        assertFalse(provider.inspect(query(FileActionCodes.REPLACE)).allowed());
     }
 
     @Test
@@ -60,17 +152,11 @@ class ConstructionPlanChangeFilePolicyProviderTest {
     @Test
     void locksProjectFactsAndReturnsSameScopeForReference() {
         when(changeMapper.selectByObjectId(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
-        when(planMapper.selectById(any())).thenReturn(plan());
-        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
-                100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 3L));
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         when(planMapper.selectForUpdate(any())).thenReturn(plan());
         when(changeMapper.selectForUpdate(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
                 new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
-        when(participantFactApi.lockAndRevalidate(any())).thenReturn(new ProjectParticipantFact(
-                100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 3L));
 
         var fact = provider.lockAndRevalidate(new FileBusinessObjectPolicyRevalidationQuery(
                 0L, 9L, "SOL", "CONSTRUCTION_PLAN_CHANGE", "801",
@@ -83,17 +169,11 @@ class ConstructionPlanChangeFilePolicyProviderTest {
     @Test
     void uploadCompletionAndArchiveCanLockTheChangeNamespace() {
         when(changeMapper.selectByObjectId(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
-        when(planMapper.selectById(any())).thenReturn(plan());
-        when(participantFactApi.inspect(any())).thenReturn(new ProjectParticipantFact(
-                100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 3L));
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         when(planMapper.selectForUpdate(any())).thenReturn(plan());
         when(changeMapper.selectForUpdate(any())).thenReturn(change(ConstructionPlanChangeDO.STATUS_DRAFT));
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
                 new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
-        when(participantFactApi.lockAndRevalidate(any())).thenReturn(new ProjectParticipantFact(
-                100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 3L));
 
         for (String action : java.util.List.of(FileActionCodes.UPLOAD, FileActionCodes.ARCHIVE)) {
             var fact = provider.lockAndRevalidateReferenceSet(
@@ -119,12 +199,12 @@ class ConstructionPlanChangeFilePolicyProviderTest {
 
     private void stubCurrent(String status, String role) {
         when(changeMapper.selectByObjectId(any())).thenReturn(change(status));
-        when(planMapper.selectById(any())).thenReturn(plan());
-        when(projectScopeApi.resolveCurrent(any())).thenReturn(
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
+        org.mockito.Mockito.lenient().when(projectScopeApi.resolveCurrent(any())).thenReturn(
                 new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         ProjectParticipantFact participant = new ProjectParticipantFact(
-                100L, 9L, Set.of(role), "PRIMARY", "ACTIVE", "S1", 3, 3L);
-        when(participantFactApi.inspect(any())).thenReturn(participant);
+                100L, 9L, Set.of(role), "PRIMARY", "ACTIVE", "S1", 3L, 3L);
+        org.mockito.Mockito.lenient().when(participantFactApi.inspect(any())).thenReturn(participant);
     }
 
     private FileBusinessObjectPolicyQuery query(String action) {

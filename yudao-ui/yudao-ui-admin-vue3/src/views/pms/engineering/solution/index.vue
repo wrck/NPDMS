@@ -1,19 +1,16 @@
 <template>
   <ContentWrap>
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
-      <el-form-item label="项目编号" prop="projectId">
+      <el-form-item v-if="!props.projectId" label="项目编号" prop="projectId">
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-180px"
         />
-      </el-form-item>
-      <el-form-item label="方案编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
       <el-form-item label="方案名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
@@ -30,19 +27,15 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-solution:create']"
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:sol-solution:create']"
           ><Icon icon="ep:plus" />新增方案</el-button
-        >
-        <el-button type="success" disabled title="工勘与需求的自动汇总尚未接入，请先使用新增方案进行本地编制。" v-hasPermi="['pms:eng-solution:create']"
-          ><Icon icon="ep:magic-stick" />自动汇总未接入</el-button
         >
       </el-form-item>
     </el-form>
-    <el-alert title="本页面办理现有本地方案记录；自动汇总和重大方案复审未接入，本地状态不等同于新项目方案门禁事实。" type="info" :closable="false" />
+    <el-alert title="编辑界面按项目交付 Demo 4.1 组织：第 1~8 章为方案内容，底部为页面功能按钮（保存草稿/生成方案/下载方案/提交审核）；重大方案复审未接入，本地状态不等同于新项目方案门禁事实。" type="info" :closable="false" />
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="方案编码" min-width="140" />
       <el-table-column prop="name" label="方案名称" min-width="180" />
       <el-table-column prop="reviewLevel" label="审核级别" width="100">
         <template #default="{ row }">
@@ -58,7 +51,7 @@
       </el-table-column>
       <el-table-column label="操作" width="420" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-solution:query']"
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:sol-solution:query']"
             >{{ editableDraft(row) ? '编辑' : '查看' }}</el-button
           >
           <el-button
@@ -66,7 +59,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleSimpleAction(row, 'submit')"
-            v-hasPermi="['pms:eng-solution:update']"
+            v-hasPermi="['pms:sol-solution:update']"
             >提交</el-button
           >
           <el-button
@@ -74,7 +67,7 @@
             type="primary"
             v-if="row.status === 1"
             @click="handleSimpleAction(row, 'startReview')"
-            v-hasPermi="['pms:eng-solution:update']"
+            v-hasPermi="['pms:sol-solution:update']"
             >开始审核</el-button
           >
           <el-button
@@ -84,7 +77,7 @@
             :disabled="row.reviewLevel !== 0"
             :title="row.reviewLevel !== 0 ? '重大方案复审尚未接入，不能直接通过' : undefined"
             @click="openApprove(row, 'approve')"
-            v-hasPermi="['pms:eng-solution:audit']"
+            v-hasPermi="['pms:sol-solution:audit']"
             >{{ row.reviewLevel === 0 ? '通过' : '复审待接入' }}</el-button
           >
           <el-button
@@ -92,7 +85,7 @@
             type="warning"
             v-if="row.status === 2"
             @click="openApprove(row, 'reject')"
-            v-hasPermi="['pms:eng-solution:audit']"
+            v-hasPermi="['pms:sol-solution:audit']"
             >驳回</el-button
           >
           <el-button
@@ -100,7 +93,7 @@
             type="info"
             v-if="row.status === 2"
             @click="handleSimpleAction(row, 'withdraw')"
-            v-hasPermi="['pms:eng-solution:update']"
+            v-hasPermi="['pms:sol-solution:update']"
             >撤回</el-button
           >
           <el-button
@@ -108,10 +101,10 @@
             type="danger"
             v-if="row.status === 2"
             @click="handleSimpleAction(row, 'terminate')"
-            v-hasPermi="['pms:eng-solution:update']"
+            v-hasPermi="['pms:sol-solution:update']"
             >终止</el-button
           >
-          <el-button v-if="row.status === 0" link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-solution:delete']"
+          <el-button v-if="row.status === 0" link type="danger" @click="remove(row)" v-hasPermi="['pms:sol-solution:delete']"
             >删除</el-button
           >
         </template>
@@ -125,7 +118,7 @@
     />
   </ContentWrap>
 
-  <Dialog v-model="formVisible" :title="form.id ? (readOnly ? '查看方案' : '编辑方案') : '新增方案'" :loading="detailLoading" width="min(860px, 95vw)">
+  <Dialog v-model="formVisible" :title="form.id ? (readOnly ? '查看方案' : '编辑方案') : '新增方案'" :loading="detailLoading" width="min(1080px, 96vw)">
     <el-alert v-if="detailError" :title="detailError" type="error" :closable="false">
       <el-button @click="openForm(form)">重新加载</el-button>
     </el-alert>
@@ -138,112 +131,27 @@
       <el-descriptions-item label="审核意见" :span="2"><span class="whitespace-pre-wrap break-words">{{ form.approvalOpinion || '—' }}</span></el-descriptions-item>
     </el-descriptions>
     <el-form v-if="!detailError" ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readOnly">
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="项目编号" prop="projectId">
-            <PmsEntitySelect
-              v-model="form.projectId"
-              :api="ProjectApi.getProjectPage"
-              label-field="name"
-              value-field="id"
-              query-field="name"
-              placeholder="请选择项目"
-              :disabled="!!form.id"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="方案编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="方案名称" prop="name"><el-input v-model="form.name" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="方案类型" prop="solutionType"><el-input v-model="form.solutionType" /></el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="方案背景" prop="background">
-            <Editor v-model="form.background" height="200px" :readonly="readOnly" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="实施目标" prop="target">
-            <Editor v-model="form.target" height="200px" :readonly="readOnly" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="实施团队" prop="team"><el-input v-model="form.team" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="版本标签" prop="versionLabel"><el-input v-model="form.versionLabel" /></el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="物料清单" prop="inventory">
-            <Editor v-model="form.inventory" height="200px" :readonly="readOnly" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="实施计划" prop="plan">
-            <Editor v-model="form.plan" height="200px" :readonly="readOnly" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="拓扑描述" prop="topology">
-            <Editor v-model="form.topology" height="200px" :readonly="readOnly" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="接口规划" prop="interfacePlan"><el-input v-model="form.interfacePlan" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="IP 规划" prop="ipPlan"><el-input v-model="form.ipPlan" /></el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="实施脚本" prop="script">
-            <Editor v-model="form.script" height="200px" :readonly="readOnly" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="质量保障" prop="quality"><el-input v-model="form.quality" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="风险控制" prop="risk"><el-input v-model="form.risk" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="运维要求" prop="oAndM"><el-input v-model="form.oAndM" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="审核级别" prop="reviewLevel">
-            <el-select v-model="form.reviewLevel" class="!w-full">
-              <el-option
-                v-for="dict in getIntDictOptions(DICT_TYPE.PMS_REVIEW_LEVEL)"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" />
-          </el-form-item>
-        </el-col>
-      </el-row>
+      <el-form-item v-if="!props.projectId" label="项目编号" prop="projectId">
+        <PmsEntitySelect
+          v-model="form.projectId"
+          :api="ProjectApi.getProjectPage"
+          label-field="projectName"
+          value-field="id"
+          query-field="projectName"
+          placeholder="请选择项目"
+          :disabled="!!form.id"
+        />
+      </el-form-item>
+      <SolutionChapterForm v-model="form" :read-only="readOnly" :saving="saving" @save="save" @submit-review="submitReview" />
     </el-form>
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
-      <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
+      <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存草稿</el-button>
     </template>
   </Dialog>
 
   <Dialog v-model="approveVisible" :title="approveAction === 'approve' ? '审核通过' : '审核驳回'" width="520px">
     <el-form :model="approveForm" label-width="100px">
-      <el-form-item label="方案编码">
-        <span>{{ approveForm.code }}</span>
-      </el-form-item>
       <el-form-item label="审核意见">
         <el-input v-model="approveForm.approvalOpinion" type="textarea" :rows="4" />
       </el-form-item>
@@ -264,37 +172,69 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as SolutionApi from '@/api/pms/engineering/solution'
 import type { SolutionApproveVO, SolutionVO } from '@/api/pms/engineering/solution'
-import * as ProjectApi from '@/api/pms/project/project'
+import * as ProjectApi from '@/api/pms/project/projects'
+import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import { checkPermi } from '@/utils/permission'
+import { buildRecordName } from '../recordNaming'
 import { formatDate } from '@/utils/formatTime'
+import SolutionChapterForm from './SolutionChapterForm.vue'
 
 defineOptions({ name: 'PmsEngSolution' })
+const props = defineProps<{ projectId?: number }>()
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<SolutionVO[]>([])
 const total = ref(0)
-const query = reactive({ pageNo: 1, pageSize: 10, projectId: '', code: '', name: '', status: undefined })
+const query = reactive({ pageNo: 1, pageSize: 10, projectId: props.projectId ?? '', name: '', status: undefined })
 const formVisible = ref(false)
 const detailLoading = ref(false)
 const detailError = ref('')
 let detailSequence = 0
 const formRef = ref()
-const form = ref<SolutionVO>({ projectId: 0, code: '', name: '', reviewLevel: 0, status: 0 })
-const editableDraft = (row: SolutionVO) => row.status === 0 && checkPermi(['pms:eng-solution:update'])
-const readOnly = computed(() => detailLoading.value || !!detailError.value || (form.value.id ? !editableDraft(form.value) : !checkPermi(['pms:eng-solution:create'])))
+const form = ref<SolutionVO>({ projectId: 0, name: '', reviewLevel: 0, status: 0 })
+const editableDraft = (row: SolutionVO) => row.status === 0 && checkPermi(['pms:sol-solution:update'])
+const readOnly = computed(() => detailLoading.value || !!detailError.value || (form.value.id ? !editableDraft(form.value) : !checkPermi(['pms:sol-solution:create'])))
 const rules = {
   projectId: [
     { required: true, message: '请选择项目' },
     { validator: (_rule: unknown, value: number | string, callback: (error?: Error) => void) => callback(Number(value) > 0 ? undefined : new Error('请选择项目')) }
   ],
-  code: [{ required: true, message: '请输入方案编码' }],
   name: [{ required: true, message: '请输入方案名称' }]
 }
 
+// 新建草稿时方案名称按“项目编码_项目名称_实施方案_(版本标签|年月日时分秒)”自动生成；编辑中或用户已改名称时不覆盖
+const lastAutoName = ref('')
+const projectInfoCache = new Map<number, ProjectMasterVO>()
+const autoFillName = async (projectId: number | string) => {
+  const pid = Number(projectId)
+  if (!pid || pid <= 0 || form.value.id) return
+  if (form.value.name && form.value.name !== lastAutoName.value) return
+  let project = projectInfoCache.get(pid)
+  if (!project) {
+    try {
+      project = await ProjectApi.getProject(pid)
+      projectInfoCache.set(pid, project)
+    } catch {
+      return // 项目信息获取失败时保持手输
+    }
+  }
+  if (Number(form.value.projectId) !== pid || form.value.id) return
+  if (form.value.name && form.value.name !== lastAutoName.value) return
+  form.value.name = buildRecordName({
+    projectCode: project.projectCode,
+    projectName: project.projectName,
+    typeLabel: '实施方案',
+    version: form.value.versionLabel
+  })
+  lastAutoName.value = form.value.name
+}
+watch(() => form.value.projectId, pid => { autoFillName(pid) })
+watch(() => form.value.versionLabel, () => { autoFillName(form.value.projectId) })
+
 const approveVisible = ref(false)
 const approveAction = ref<'approve' | 'reject'>('approve')
-const approveForm = reactive<SolutionApproveVO & { code?: string }>({ id: 0, approvalOpinion: '', version: undefined })
+const approveForm = reactive<SolutionApproveVO>({ id: 0, approvalOpinion: '', version: undefined })
 
 const load = async () => {
   loading.value = true
@@ -313,10 +253,9 @@ const openForm = async (row?: SolutionVO) => {
   // Replace the whole object so a previous reviewed record cannot leak its
   // status, baseline or approval metadata into a newly created draft.
   form.value = {
-      projectId: 0,
-      code: '',
+      projectId: props.projectId ?? 0,
       name: '',
-      solutionType: '',
+      solutionType: 'IMPLEMENTATION',
       background: '',
       target: '',
       team: '',
@@ -337,7 +276,10 @@ const openForm = async (row?: SolutionVO) => {
       id: row?.id
   }
   formVisible.value = true
-  if (!row?.id) return
+  if (!row?.id) {
+    autoFillName(form.value.projectId)
+    return
+  }
   try {
     const detail: SolutionVO | null = await SolutionApi.getSolution(row.id)
     if (sequence !== detailSequence) return
@@ -367,6 +309,22 @@ const save = async () => {
     saving.value = false
   }
 }
+// Demo 4.1 提交审核：保存后提交，服务经理进行审核，重大项目自动推送总部复审
+const submitReview = async () => {
+  if (readOnly.value) return
+  await formRef.value.validate()
+  saving.value = true
+  try {
+    if (!form.value.id) form.value.id = (await SolutionApi.createSolution(form.value)) as unknown as number
+    else await SolutionApi.updateSolution(form.value)
+    await SolutionApi.submitSolution(form.value.id!)
+    message.success('已提交审核；等待服务经理进行审核')
+    formVisible.value = false
+    await load()
+  } finally {
+    saving.value = false
+  }
+}
 const remove = async (row: SolutionVO) => {
   if (row.status !== 0) return
   await message.delConfirm()
@@ -379,7 +337,7 @@ const handleSimpleAction = async (
   action: 'submit' | 'startReview' | 'withdraw' | 'terminate'
 ) => {
   const actionText = { submit: '提交', startReview: '开始审核', withdraw: '撤回', terminate: '终止' }[action]
-  await message.confirm(`确认${actionText}方案【${row.code}】？`)
+  await message.confirm(`确认${actionText}方案【${row.name}】？`)
   if (action === 'submit') await SolutionApi.submitSolution(row.id!)
   if (action === 'startReview') await SolutionApi.startReviewSolution(row.id!)
   if (action === 'withdraw') await SolutionApi.withdrawSolution(row.id!)
@@ -393,7 +351,7 @@ const openApprove = (row: SolutionVO, action: 'approve' | 'reject') => {
     return
   }
   approveAction.value = action
-  Object.assign(approveForm, { id: row.id, code: row.code, approvalOpinion: '', version: row.version })
+  Object.assign(approveForm, { id: row.id, approvalOpinion: '', version: row.version })
   approveVisible.value = true
 }
 const submitApprove = async () => {

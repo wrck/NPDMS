@@ -11,7 +11,7 @@ public class PreparationSourceRefreshReqVO {
     @NotNull private Integer expectedReadinessVersion;
     @NotNull private Integer expectedItemVersion;
     private Integer expectedSourceVersion;
-    @NotNull private Integer expectedProjectVersion;
+    @NotNull private Long expectedProjectVersion;
     @NotBlank private String sourceTypeCode;
     @NotBlank private String sourceObjectType;
     @NotBlank private String sourceObjectId;

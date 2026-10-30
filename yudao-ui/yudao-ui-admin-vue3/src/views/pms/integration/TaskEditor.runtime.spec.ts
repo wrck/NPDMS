@@ -165,7 +165,17 @@ describe('task configuration groups preserve the existing save contract', () => 
     await state.save()
     expect(api.saveTask).toHaveBeenCalledWith({
       ...task,
-      definition: { ...task.definition, loadingMode: 'UPSERT', retryCount: 2 }
+      definition: {
+        ...task.definition,
+        loadingMode: 'UPSERT',
+        retryCount: 2,
+        autoPaging: false,
+        readStrategy: 'SNAPSHOT',
+        fetchSize: 2000,
+        chunkSize: 1000,
+        restartPolicy: 'RESTART_ALL',
+        queryTimeoutSeconds: 0
+      }
     })
     expect(state.visible).toBe(false)
   })

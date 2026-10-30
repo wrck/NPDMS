@@ -53,6 +53,7 @@ export interface CustomerLifecycleReqVO {
 export interface CustomerRespVO {
   id: number
   code: string
+  erpCustomerCode?: string
   name: string
   shortName?: string
   customerLevel?: string
@@ -76,6 +77,7 @@ export interface CustomerRespVO {
   expendName?: string
   industryCode: string
   industryName?: string
+  address?: string
   remark?: string
   version: number
   creator?: string
@@ -152,6 +154,13 @@ export const getCustomer = (id: number) => request.get({ url: `${baseUrl}/${id}`
 
 export const getCustomerByCode = (code: string) =>
   request.get<CustomerDetailRespVO>({ url: '/api/v1/pms/customers/by-code', params: { code } })
+
+export const getProjectCustomerOverview = (projectId: number | string) =>
+  request.get<CustomerRespVO | null>({ url: `/api/v1/pms/projects/${projectId}/customer-overview` })
+
+export const updateProjectCustomerExtension = (projectId: number | string, data: { remark: string }, expectedVersion: number, idempotencyKey: string) =>
+  request.put({ url: `/api/v1/pms/projects/${projectId}/customer-overview`, data,
+    headers: { 'If-Match': String(expectedVersion), 'Idempotency-Key': idempotencyKey } })
 
 export const getClassificationOptions = () =>
   request.get<CustomerClassificationOption[]>({ url: `${baseUrl}/classification-options` })

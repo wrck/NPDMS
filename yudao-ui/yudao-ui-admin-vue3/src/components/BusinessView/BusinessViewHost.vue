@@ -1,121 +1,157 @@
 <template>
-  <section class="business-view-host" aria-label="业务视图">
-    <el-alert
-      v-if="loadError || resolved.error"
-      :title="loadError || resolved.error"
-      type="error"
-      :closable="false"
-      show-icon
-    >
-      <template #default
-        ><el-button link type="primary" @click="retry">重新装载</el-button></template
-      >
+  <section class="business-view-host" aria-label="业务视图" :data-page-url="resolved.pageUrl">
+    <section v-if="operation.routingPresentation.value || operation.observation.value?.presentation?.pageUrl || operation.requiresReopen.value || operation.mode.value !== 'INDEPENDENT' && operation.mode.value !== 'LEGACY'" aria-label="项目执行规则">
+      <el-alert
+v-if="operation.failure.value || operation.observation.value?.reason && operation.observation.value.reason !== 'LEGACY_BINDING'"
+        :title="operation.failure.value || operation.observation.value?.reason || ''" type="warning" :closable="false" />
+      <el-alert
+v-if="operation.presentationReason.value" :title="operation.presentationReason.value"
+        type="warning" :closable="false" />
+      <el-alert
+v-if="operation.receipt.value"
+        :title="`业务已提交：${operation.receipt.value.resultCode}；节点当前状态：${operation.observation.value?.node.status || '待刷新'}。业务提交不等于节点完成。`"
+        type="info" :closable="false" />
+      <el-alert v-if="operation.uncertain.value" title="上次操作响应未确认，请先用原请求确认结果；不要重新填写并重复提交。" type="warning" :closable="false" />
+      <!-- 执行状态操作收口到工作区底部吸附操作栏（businessActionBar 协议）；无操作栏的独立渲染原地保留 -->
+      <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+        <el-button v-if="operation.uncertain.value" :loading="operation.recovering.value" @click="operation.recover()">用原请求确认提交结果</el-button>
+        <el-button v-if="operation.requiresReopen.value" @click="retry">处理未保存内容并重新进入</el-button>
+        <el-button v-if="!hasActionBar" :loading="operation.checking.value" @click="operation.refresh()">刷新</el-button>
+      </Teleport>
+      <el-table v-if="visibleActions.length" :data="visibleActions" size="small" aria-label="操作权限与规则">
+        <el-table-column prop="label" label="业务操作" min-width="120" />
+        <el-table-column label="业务权限" width="120"><template #default="{ row }">{{ row.ownerPermitted ? '允许' : active.resolvedContext.businessObjectId == null ? '选择对象后校验' : '未获授权' }}</template></el-table-column>
+        <el-table-column label="项目执行" width="100"><template #default="{ row }">{{ row.executionPermitted ? '允许' : '不可办理' }}</template></el-table-column>
+        <el-table-column label="前置判定" width="160"><template #default="{ row }">{{ ({ MATCHED: '满足', NO_ADDITIONAL_RULE: '无附加条件', NOT_MATCHED: '未满足', UNKNOWN: '暂无法判定' })[row.pre.outcome] || row.pre.outcome }}</template></el-table-column>
+        <el-table-column label="操作说明" min-width="180"><template #default="{ row }"><span :title="row.reason">{{ operationReason(row) }}</span></template></el-table-column>
+      </el-table>
+    </section>
+    <el-alert v-if="operationError" :title="operationError" type="error" :closable="false" show-icon />
+    <el-alert v-if="loadError || resolved.error" :title="loadError || resolved.error" type="error" :closable="false" show-icon>
+      <template #default><el-button link type="primary" @click="retry">重新装载</el-button></template>
     </el-alert>
     <component
-      :is="resolved.component"
-      v-else
-      :key="`${activeKey}:${retryNo}`"
-      ref="contentRef"
-      v-bind="resolved.props"
-      @changed="emit('changed')"
-      @dirty-change="setDirty"
-    />
+:is="resolved.component" v-else-if="operation.mode.value !== 'CHECKING'" :key="`${activeKey}:${retryNo}`" ref="contentRef" v-bind="resolved.props"
+      @changed="ownerChanged" @dirty-change="setDirty" />
+    <!-- 执行能力检查中不裸露空白框架：单次加载占位，避免框架→默认页→最终内容多次跳变 -->
+    <div v-else v-loading="true" class="business-view-loading"></div>
   </section>
 </template>
-
 <script setup lang="ts">
+import { computed, ErrorCodes, onErrorCaptured, provide, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
-import { businessViewTargetKey, resolveBusinessView, type BusinessViewTarget } from './registry'
+import { resolveBusinessView, type BusinessViewTarget } from './registry'
+import { editingTargetKey, operationClientKey, operationCheckKey, useOperationHost } from './operationHost'
+import { useBusinessActionBar } from './businessActionBar'
+import { officeProjectReadContext } from '@/utils/officeProjectReadonly'
 
-// PM-03. Do not key this Host by node/id: callers must await requestLeave before unmounting it.
 defineOptions({ name: 'BusinessViewHost' })
 const props = defineProps<BusinessViewTarget>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean]; 'switch-blocked': [] }>()
 const message = useMessage()
-const capture = (): BusinessViewTarget => ({
-  registration: { ...props.registration },
-  resolvedContext: { ...props.resolvedContext },
-  allowedActions: [...(props.allowedActions || [])],
-  readonly: props.readonly
-})
+const { barTarget } = useBusinessActionBar()
+const hasActionBar = !!barTarget
+const capture = (): BusinessViewTarget => ({ registration: { ...props.registration }, resolvedContext: { ...props.resolvedContext },
+  allowedActions: officeProjectReadContext() ? ['QUERY'] : [...(props.allowedActions || [])], readonly: !!officeProjectReadContext() || props.readonly })
 const active = shallowRef(capture())
-const activeKey = computed(() => businessViewTargetKey(active.value))
-const resolved = computed(() => resolveBusinessView(active.value))
-const contentRef = ref<{
-  requestLeave?: () => Promise<boolean>
-  discardChanges?: () => boolean
-  isDirty?: () => boolean
-}>()
+const operationReason = (row: { operationCode: string; reason?: string }) => {
+  return ({ OWNER_OPERATION_FORBIDDEN: '当前用户未获此操作授权', NODE_EXECUTION_FORBIDDEN: '当前节点不可再办理',
+    OPERATION_PRECONDITION_NOT_MATCHED: '操作前置条件未满足', OPERATION_RUNTIME_NOT_INSTALLED: '操作服务暂不可用' })[row.reason || ''] || row.reason || '无'
+}
+const operation = useOperationHost(active, () => emit('changed'))
+const visibleActions = computed(() => (operation.observation.value?.actions || []).filter(row =>
+  !(active.value.registration.ownerContext === 'CUT' && active.value.resolvedContext.businessObjectId != null &&
+    ['CUT.CUTOVER_TASK.CREATE', 'CUT.CUTOVER_APPROVAL.CREATE'].includes(row.operationCode))))
+provide(operationClientKey, operation.client)
+provide(operationCheckKey, operation.waitForCheck)
+const activeKey = computed(() => editingTargetKey(active.value))
+const resolved = computed(() => resolveBusinessView({ ...active.value, presentation: operation.routingPresentation.value, resolvedContext: operation.decorated.value,
+  allowedActions: operation.allowedActions.value, readonly: active.value.readonly || operation.requiresReopen.value || operation.presentationReadonly.value }))
+const contentRef = ref<{ refresh?: () => Promise<unknown>; requestLeave?: () => Promise<boolean>; discardChanges?: () => boolean; isDirty?: () => boolean }>()
 const dirty = ref(false)
 const loadError = ref('')
+const operationError = ref('')
 const retryNo = ref(0)
-const setDirty = (value: boolean) => {
-  dirty.value = value
-  emit('dirty-change', value)
-}
+const setDirty = (value: boolean) => { dirty.value = value; emit('dirty-change', value) }
+const ownerChanged = () => { operationError.value = ''; emit('changed'); void operation.refresh(true) }
+// 业务内容一旦卸载（装载失败、上下文缺失或执行检查中），其未保存缓冲已不存在；
+// 脏标记必须随之复位，否则切换与重新装载会被永久阻断。
+const contentMounted = computed(() => !loadError.value && !resolved.value.error && operation.mode.value !== 'CHECKING')
+watch(contentMounted, (mounted) => { if (!mounted) setDirty(false) })
+// 首判定是否完成（内容挂载或明确报错）：宿主用它对齐外围区块（如来源交付件）的出现时机，
+// 避免交付件先于业务内容渲染造成布局跳变
+const viewSettled = computed(() => contentMounted.value || !!loadError.value || !!resolved.value.error)
 let leaving: Promise<boolean> | undefined
 const requestLeave = (): Promise<boolean> => {
+  if (operation.client.value?.isBusy()) return Promise.resolve(false)
+  if (operation.client.value?.hasUncertain()) {
+    message.warning('上次操作响应未确认，请先用原请求确认提交结果，再切换或重新进入。')
+    return Promise.resolve(false)
+  }
   if (leaving) return leaving
   leaving = (async () => {
     if (contentRef.value?.requestLeave) return await contentRef.value.requestLeave()
     if (!dirty.value) return true
+    // 内容暴露 discardChanges 即其声明的放弃协议（如工期抽屉关闭），放行给第二阶段执行。
+    if (contentRef.value?.discardChanges) return true
     message.warning('当前视图尚未保存且无法安全关闭，请先处理当前修改。')
     return false
-  })().finally(() => {
-    leaving = undefined
-  })
+  })().finally(() => { leaving = undefined })
   return leaving
 }
 let switchSequence = 0
-watch(
-  () => [
-    businessViewTargetKey(props),
-    props.registration,
-    props.resolvedContext,
-    props.allowedActions,
-    props.readonly
-  ],
-  async () => {
-    const sequence = ++switchSequence
-    const next = capture()
-    if (businessViewTargetKey(next) !== activeKey.value) {
-      if (!(await requestLeave())) {
-        if (sequence === switchSequence) emit('switch-blocked')
-        return
-      }
-      if (
-        sequence !== switchSequence ||
-        businessViewTargetKey(next) !== businessViewTargetKey(props)
-      )
-        return
-      if (contentRef.value?.discardChanges?.() === false) {
-        emit('switch-blocked')
-        return
-      }
-      loadError.value = ''
-      setDirty(false)
+watch(() => [editingTargetKey(props), props.registration, props.resolvedContext, props.allowedActions, props.readonly], async () => {
+  const sequence = ++switchSequence, next = capture()
+  if (editingTargetKey(next) !== activeKey.value) {
+    if (!(await requestLeave())) { if (sequence === switchSequence) emit('switch-blocked'); return }
+    if (sequence !== switchSequence || editingTargetKey(next) !== editingTargetKey(props)) return
+    if (contentRef.value?.discardChanges?.() === false) {
+      message.warning('当前视图尚未保存且无法安全关闭，请先处理当前修改。')
+      emit('switch-blocked'); return
     }
-    active.value = next
-  },
-  { deep: true }
-)
+    loadError.value = ''; operationError.value = ''; setDirty(false)
+  } else if (loadError.value) {
+    // 同目标上下文重载：已崩溃的装载没有可保存缓冲，直接重建以恢复业务视图显示。
+    loadError.value = ''; retryNo.value++
+  }
+  active.value = next
+}, { deep: true })
+const refresh = async () => {
+  if (!await requestLeave()) return
+  await operation.refresh()
+  await contentRef.value?.refresh?.()
+}
 const retry = async () => {
   const sequence = ++switchSequence
   if (!(await requestLeave()) || sequence !== switchSequence) return
-  if (contentRef.value?.discardChanges?.() === false) return
-  loadError.value = ''
-  retryNo.value++
+  if (contentRef.value?.discardChanges?.() === false) {
+    message.warning('当前视图尚未保存且无法安全关闭，请先处理当前修改。')
+    return
+  }
+  loadError.value = ''; operationError.value = ''; retryNo.value++
+  await operation.reopen()
 }
-onErrorCaptured(() => {
-  loadError.value = '业务组件暂不可用；未创建对象或改变业务状态，请重试。'
+onErrorCaptured((_error, _instance, info) => {
+  // 保存等事件失败不代表组件无法渲染，不能卸载其未保存输入。
+  // Vue 生产构建使用错误参考 URL，开发构建使用描述。
+  const eventFailure = info === 'native event handler' || info === 'component event handler' ||
+    [ErrorCodes.NATIVE_EVENT_HANDLER, ErrorCodes.COMPONENT_EVENT_HANDLER]
+      .some((code) => info === `https://vuejs.org/error-reference/#runtime-${code}`)
+  if (eventFailure) {
+    operationError.value = '本次操作未确认成功，未保存内容已保留；请确认操作结果后重试。'
+  } else {
+    loadError.value = '业务组件暂不可用；请先确认已提交操作的结果，再重试装载。'
+  }
   return false
 })
 onBeforeRouteLeave(requestLeave)
-defineExpose({ requestLeave, isDirty: () => dirty.value })
+defineExpose({ requestLeave, refresh, isDirty: () => dirty.value || !!operation.client.value?.isBusy() || !!operation.client.value?.hasUncertain(), viewSettled })
 </script>
-
 <style scoped>
-.business-view-host {
-  min-width: 0;
+.business-view-host { min-width: 0; }
+/* v-loading 掩罩绝对定位：宿主需自 relative，转圈才落在占位区内 */
+.business-view-loading {
+  position: relative;
+  min-height: 200px;
 }
 </style>

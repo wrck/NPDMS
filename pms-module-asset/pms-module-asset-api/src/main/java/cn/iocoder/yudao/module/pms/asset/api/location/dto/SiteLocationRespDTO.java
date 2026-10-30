@@ -11,5 +11,5 @@ public record SiteLocationRespDTO(
         Integer treeDepth,
         Integer treeSort,
         Integer status,
-        Integer version) {
+        Long version) {
 }

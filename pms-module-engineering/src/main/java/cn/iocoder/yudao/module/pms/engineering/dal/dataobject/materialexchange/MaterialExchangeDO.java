@@ -1,11 +1,9 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.materialexchange;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -13,20 +11,15 @@ import java.time.LocalDateTime;
 /**
  * PMS 物料换货协同 DO（FR-ENG-003）。
  * <p>
- * 对应表 {@code pms_eng_material_exchange}。
+ * 对应表 {@code imp_eng_material_exchange}。
  * 单据状态：0 草稿、1 已提交、2 审批中、3 已通过、4 已驳回、5 已撤回、6 已终止。
  * CRM 推送状态：PENDING 待推送 / SENT 已推送 / RECEIVED 已接收。
  */
-@TableName("pms_eng_material_exchange")
+@TableName("imp_eng_material_exchange")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class MaterialExchangeDO extends TenantBaseDO {
+public class MaterialExchangeDO extends BaseBusinessEntity {
 
-    /**
-     * 主键
-     */
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -44,21 +37,25 @@ public class MaterialExchangeDO extends TenantBaseDO {
      */
     private String exchangeType;
     /**
-     * 原设备编号
+     * 原设备编号（设备表引用）
      */
-    private Long equipmentId;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
+    private Long deviceId;
     /**
-     * 物料名称
+     * 产品名称；清单行分流保存，申报退出写入
      */
-    private String materialName;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
+    private String productName;
     /**
-     * 物料编码
+     * 产品编码（订单行去重拼接）
      */
-    private String materialCode;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
+    private String productCode;
     /**
-     * 规格型号描述
+     * 产品型号；清单行分流保存，申报退出写入
      */
-    private String specification;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
+    private String productModel;
     /**
      * 数量
      */
@@ -68,8 +65,9 @@ public class MaterialExchangeDO extends TenantBaseDO {
      */
     private String unit;
     /**
-     * 原订单号
+     * 原订单号；清单行分流保存，申报退出写入
      */
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
     private String originalOrderNo;
     /**
      * 换货原因
@@ -92,9 +90,9 @@ public class MaterialExchangeDO extends TenantBaseDO {
      */
     private String crmOrderNo;
     /**
-     * 新设备编号（换货后设备）
+     * 新设备编号（换货后设备，设备表引用）
      */
-    private Long newEquipmentId;
+    private Long newDeviceId;
     /**
      * 换货进度描述
      */
@@ -131,10 +129,5 @@ public class MaterialExchangeDO extends TenantBaseDO {
      * 备注
      */
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
 
 }

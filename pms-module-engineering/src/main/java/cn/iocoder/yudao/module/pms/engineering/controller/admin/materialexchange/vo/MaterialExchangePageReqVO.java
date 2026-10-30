@@ -30,8 +30,8 @@ public class MaterialExchangePageReqVO extends PageParam {
     @Schema(description = "换货类型：INCOMPATIBLE 不兼容 / DEFECTIVE 缺陷 / DAMAGED 损坏 / OTHER 其他", example = "INCOMPATIBLE")
     private String exchangeType;
 
-    @Schema(description = "原设备编号", example = "1024")
-    private Long equipmentId;
+    @Schema(description = "原设备编号（设备表引用）", example = "1024")
+    private Long deviceId;
 
     @Schema(description = "CRM 推送状态：PENDING 待推送 / SENT 已推送 / RECEIVED 已接收", example = "PENDING")
     private String crmPushStatus;

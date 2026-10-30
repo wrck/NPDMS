@@ -1,5 +1,10 @@
 package cn.iocoder.yudao.module.pms.customer.service.customer;
 
+import cn.iocoder.yudao.module.pms.customer.service.customer.command.ProjectCustomerExtensionCommand;
+import cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
@@ -77,11 +82,18 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
     private CustomerClassificationAccessService classificationAccessService;
     @Resource
     private CustomerScopeContextService scopeContextService;
+    @Resource private ProjectScopeApi projectScopes;
+    @Resource private ProjectContactContextApi projectCustomers;
+    @Resource
+    private cn.iocoder.yudao.module.system.api.permission.PermissionApi permissionApi;
 
     @Override
     public CustomerCommandResult create(CreateCustomerCommand command) {
         Actor actor = actor(command == null ? null : command.tenantId());
         validateCreate(command);
+        if (command.sourceType() == CustomerSourceType.CRM_SYNC
+                && permissionApi.hasAnyRoles(actor.actorId(), "PROJECT_MANAGER", "SERVICE_MANAGER")
+                && !permissionApi.hasAnyRoles(actor.actorId(), "super_admin", "tenant_admin", "crm_admin")) throw exception(CUSTOMER_SCOPE_DENIED);
         CustomerRules.validateTemporaryCustomer(command.sourceType(), command.sourceKey(), command.sourceVersion(),
                 command.temporaryReason(), command.reconciliationPending());
         String requestDigest = digestCreate(command);
@@ -104,6 +116,40 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
                 () -> updateOnce(command, actor),
                 result -> updateFacts(command, actor, result));
         return result(execution);
+    }
+
+    @Override
+    public CustomerCommandResult updateProjectExtension(ProjectCustomerExtensionCommand request) {
+        Actor actor = actor(request == null ? null : request.tenantId());
+        if (request.projectId() == null || request.expectedVersion() == null || isBlank(request.idempotencyKey())) throw new IllegalArgumentException("项目客户维护请求不完整");
+        var scope = projectScopes.resolveCurrent(ProjectCurrentScopeQuery.builder().tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId()).anchorProjectId(request.projectId()).actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+        if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(request.projectId())) throw exception(CUSTOMER_SCOPE_DENIED);
+        var project = projectCustomers.inspect(new ProjectContactContextApi.Query(actor.tenantId(),actor.actorId(),request.projectId()));
+        if (project == null || !Objects.equals(project.projectId(),request.projectId()) || project.customerId() == null || !"ACTIVE".equals(project.lifecycleStatus())) throw exception(CUSTOMER_SCOPE_DENIED);
+        var command = new UpdateCustomerCommand(actor.tenantId(),project.customerId(),null,null,request.remark(),Set.of("remark"),request.expectedVersion(),request.idempotencyKey());
+        validateUpdate(command);
+        var write = new ProjectExtensionWrite(request.projectId(),scope.treeVersion(),command,actor);
+        var execution = platformCommandExecutionApi.execute(
+                new IdempotencyScope(actor.tenantId(),"PUT:/pms/projects/"+request.projectId()+"/customer-overview",actor.actorId(),request.idempotencyKey()),
+                digestUpdate(command),CustomerCommandResult.class,() -> updateProjectOnce(write),
+                result -> updateFacts(command,actor,result));
+        return result(execution);
+    }
+
+    private record ProjectExtensionWrite(Long projectId,Long treeVersion,UpdateCustomerCommand command,Actor actor) { }
+
+    private CustomerCommandResult updateProjectOnce(ProjectExtensionWrite write) {
+        var actor = write.actor();
+        var locked = projectScopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder().tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId()).anchorProjectId(write.projectId()).actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(write.treeVersion()).build());
+        if (locked == null || !Objects.equals(locked.treeVersion(),write.treeVersion()) || locked.fullProjectIds() == null || !locked.fullProjectIds().contains(write.projectId())) throw exception(CUSTOMER_SCOPE_DENIED);
+        var project = projectCustomers.inspect(new ProjectContactContextApi.Query(actor.tenantId(),actor.actorId(),write.projectId()));
+        if (project == null || !Objects.equals(project.projectId(),write.projectId()) || !Objects.equals(project.customerId(),write.command().customerId()) || !"ACTIVE".equals(project.lifecycleStatus())) throw exception(CUSTOMER_SCOPE_DENIED);
+        var customer = customerMasterMapper.selectById(project.customerId());
+        if (customer == null || !Objects.equals(customer.getTenantId(),actor.tenantId())) throw exception(CUSTOMER_NOT_EXISTS);
+        return updateAuthorizedCustomer(write.command(),actor,customer);
     }
 
     @Override
@@ -164,7 +210,7 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
         customer.setIndustryCode(classification.industryCode());
         customer.setIndustryName(classification.industryName());
         customer.setRemark(command.remark());
-        customer.setVersion(0);
+        customer.setVersion(0L);
         customerMasterMapper.insert(customer);
         if (hasSourceIdentity(command)) {
             insertMapping(customer, command);
@@ -178,6 +224,18 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
         if (current == null || !Objects.equals(current.getTenantId(), actor.tenantId())) {
             throw exception(CUSTOMER_NOT_EXISTS);
         }
+        CustomerVisibleScope currentScope = scopeContextService.resolve(actor.tenantId(), actor.actorId());
+        if (hasClassification(current)) {
+            classificationAccessService.validate(actor.tenantId(),
+                    new CustomerClassificationInput(current.getDepartmentCode(), current.getMarketCode(),
+                            current.getSystemCode(), current.getExpendCode(), current.getIndustryCode()), currentScope);
+        } else if (!currentScope.all()) {
+            throw exception(CUSTOMER_SCOPE_DENIED);
+        }
+        return updateAuthorizedCustomer(command, actor, current);
+    }
+
+    private CustomerCommandResult updateAuthorizedCustomer(UpdateCustomerCommand command, Actor actor, CustomerMasterDO current) {
         boolean crmMapped = customerExternalMappingMapper.selectCurrentByCustomerId(
                 actor.tenantId(), command.customerId()) != null;
         CustomerFieldOwnershipRules.validateBusinessUpdate(command.changedFields(), crmMapped);
@@ -315,7 +373,7 @@ public class CustomerApplicationServiceImpl implements CustomerApplicationServic
     private CustomerMasterDO eventCustomer(CustomerCommandResult result, String sourceType) {
         CustomerMasterDO customer = new CustomerMasterDO();
         customer.setId(result.customerId());
-        customer.setVersion(Math.toIntExact(result.version()));
+        customer.setVersion(result.version());
         customer.setSourceType(sourceType);
         return customer;
     }

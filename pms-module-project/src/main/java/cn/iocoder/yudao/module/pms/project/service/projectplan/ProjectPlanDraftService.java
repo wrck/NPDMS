@@ -21,9 +21,10 @@ import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.Deliver
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateCompiler;
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateDesignerDependencyValidator;
 import cn.iocoder.yudao.module.pms.project.service.rule.ProjectRulePublicationValidator;
-import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
@@ -32,6 +33,7 @@ import java.util.function.Supplier;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProjectPlanDraftService {
@@ -53,12 +55,14 @@ public class ProjectPlanDraftService {
     private final ProjectPlanDeliverablePlanner deliverablePlanner;
     private final ProjectPlanMilestoneInstaller milestones;
     private final ProjectPlanGateInstaller gates;
+    private final ProjectPlanTemplateBindingReader templateBindings;
 
-    public record Definition(Long id, Integer revisionNo, Integer version, Long basePlanVersionId, TemplateDesignerDocument designer) { }
-    public record State(Definition effective, Definition draft, boolean editable, Integer projectVersion) { }
+    public record Definition(Long id, Integer revisionNo, Long version, Long basePlanVersionId,
+                             TemplateDesignerDocument designer, ProjectPlanTemplateBindingReader.Binding templateBinding) { }
+    public record State(Definition effective, Definition draft, boolean editable, Long projectVersion) { }
     public record Create(Long projectId, Long expectedPlanVersionId) { }
-    public record Save(Long projectId, Long draftId, Integer expectedVersion, TemplateDesignerDocument designer) { }
-    public record Preview(Long basePlanVersionId, Long draftId, Integer draftVersion, Integer projectVersion,
+    public record Save(Long projectId, Long draftId, Long expectedVersion, TemplateDesignerDocument designer) { }
+    public record Preview(Long basePlanVersionId, Long draftId, Long draftVersion, Long projectVersion,
                           List<ProjectPlanImpactAnalyzer.Change> changes, List<String> changedRuleKeys,
                           List<ProjectPlanExecutionPlanner.Change> executionChanges,
                           List<ProjectPlanDeliverablePlanner.Change> deliverableChanges,
@@ -95,7 +99,7 @@ public class ProjectPlanDraftService {
             }
             draft = new ProjectPlanVersionDO();
             draft.setTenantId(scope.tenantId()); draft.setProjectId(scope.projectId()); draft.setStatus("DRAFT");
-            draft.setRevisionNo(plans.selectNextRevisionNo(scope)); draft.setVersion(0);
+            draft.setRevisionNo(plans.selectNextRevisionNo(scope)); draft.setVersion(0L);
             draft.setBasePlanVersionId(effective.getId()); draft.setSourceTemplateRevisionId(effective.getSourceTemplateRevisionId());
             draft.setDesignerDocument(effective.getDesignerDocument());
             if (plans.insert(draft) != 1) throw exception(PROJECT_PLAN_VERSION_CONFLICT);
@@ -124,20 +128,30 @@ public class ProjectPlanDraftService {
 
     /** Locks provide one observation of the runtime. No audit, Outbox, workflow or rule evaluation is triggered. */
     @Transactional(rollbackFor = Exception.class)
-    public Preview preview(Long projectId, Long draftId, Integer expectedVersion, Long actorId) {
+    public Preview preview(Long projectId, Long draftId, Long expectedVersion, Long actorId) {
         return prepare(projectId,draftId,expectedVersion,actorId,false).preview();
     }
 
     /** Shared observation for preview and activation; activation's command transaction retains all locks. */
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY, rollbackFor = Exception.class)
-    Prepared prepare(Long projectId, Long draftId, Integer expectedVersion, Long actorId, boolean publishing) {
+    Prepared prepare(Long projectId, Long draftId, Long expectedVersion, Long actorId, boolean publishing) {
         var scope = authorize(projectId, actorId);
         var project = lockActive(scope);
         var draft = requireDraft(scope, draftId, expectedVersion, project.getActivePlanVersionId());
         var effective = plans.selectEffective(scope);
-        if (effective == null) throw exception(PROJECT_PLAN_VERSION_CONFLICT);
+        if (effective == null || !Objects.equals(effective.getId(), project.getActivePlanVersionId())
+                || !Objects.equals(effective.getTenantId(), scope.tenantId())
+                || !Objects.equals(effective.getProjectId(), projectId)
+                || !"EFFECTIVE".equals(effective.getStatus())) throw exception(PROJECT_PLAN_VERSION_CONFLICT);
+        TemplateExecutionSnapshot before;
+        try {
+            before = TemplateExecutionSnapshotReader.read(effective.getExecutionSnapshot());
+        } catch (RuntimeException invalidSnapshot) {
+            log.warn("[planPreview] effective snapshot read failed: {}", invalidSnapshot.toString(), invalidSnapshot);
+            throw exception(PROJECT_PLAN_CHANGE_INVALID);
+        }
         var designer = definition(draft).designer();
-        var compilation = compiler.compile(designer);
+        var compilation = compiler.compileVersioned(designer);
         List<Issue> issues = new ArrayList<>(compilation.issues());
         issues.addAll(dependencies.validateProjectChanges(definition(effective).designer(), designer, publishing));
         issues.addAll(ruleValidator.validate(designer));
@@ -146,13 +160,11 @@ public class ProjectPlanDraftService {
         var ownerPlan = new ProjectPlanDeliverablePlanner.Plan(List.of(), List.of(), List.of());
         var milestonePlan = new ProjectPlanMilestoneInstaller.Plan(List.of(), List.of(), List.of());
         var gatePlan = new ProjectPlanGateInstaller.Plan(List.of(), List.of(), List.of());
-        TemplateExecutionSnapshot before = null;
         List<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectNodeExecutionDO> rounds = List.of();
         List<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectStageInstanceDO> stageRows = List.of();
         List<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO> taskRows = List.of();
         if (compilation.valid()) {
             var query = new ProjectRuntimeGraphQuery(scope.tenantId(), projectId);
-            before = JsonUtils.parseObject(effective.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
             rounds = executions.selectCurrentForUpdate(scope);
             stageRows = graph.selectStagesForUpdate(query);
             taskRows = graph.selectTasksForUpdate(query);
@@ -195,7 +207,11 @@ public class ProjectPlanDraftService {
     ProjectPlanScopeQuery authorize(Long projectId, Long actorId) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         if (!permissions.hasAnyPermissions(actorId, MANAGE_PERMISSION)) throw exception(PROJECT_PLAN_CHANGE_FORBIDDEN);
-        var result = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, ProjectScopeApi.ACTION_EDIT));
+        var result = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (result == null || result.fullProjectIds() == null || !result.fullProjectIds().contains(projectId)) throw exception(PROJECT_PLAN_CHANGE_FORBIDDEN);
         return new ProjectPlanScopeQuery(tenantId, projectId);
     }
@@ -205,7 +221,7 @@ public class ProjectPlanDraftService {
             throw exception(PROJECT_PLAN_CHANGE_INVALID);
         return project;
     }
-    private ProjectPlanVersionDO requireDraft(ProjectPlanScopeQuery scope, Long id, Integer version, Long baseId) {
+    private ProjectPlanVersionDO requireDraft(ProjectPlanScopeQuery scope, Long id, Long version, Long baseId) {
         var draft = plans.selectDraft(scope);
         if (draft == null || !Objects.equals(id, draft.getId()) || !Objects.equals(version, draft.getVersion())
                 || !Objects.equals(baseId, draft.getBasePlanVersionId())) throw exception(PROJECT_PLAN_VERSION_CONFLICT);
@@ -213,7 +229,8 @@ public class ProjectPlanDraftService {
     }
     private Definition definition(ProjectPlanVersionDO plan) {
         return plan == null ? null : new Definition(plan.getId(), plan.getRevisionNo(), plan.getVersion(), plan.getBasePlanVersionId(),
-                JsonUtils.parseObject(plan.getDesignerDocument(), TemplateDesignerDocument.class));
+                JsonUtils.parseObject(plan.getDesignerDocument(), TemplateDesignerDocument.class),
+                templateBindings.read(plan.getSourceTemplateRevisionId()));
     }
     private Definition execute(String action, ProjectPlanScopeQuery scope, Long actorId, String key, Object intent, Supplier<Definition> body) {
         if (key == null || key.isBlank()) throw exception(PROJECT_PLAN_CHANGE_INVALID);

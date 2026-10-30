@@ -8,7 +8,8 @@
         class="status-card"
         :class="[
           `status-card--${card.tone}`,
-          { 'status-card--active': activeStatus === card.value }
+          { 'status-card--active': card.key === 'overdue' ? query.overdueOnly === true :
+            activeStatus === card.value && (card.key !== 'total' || query.overdueOnly == null) }
         ]"
         @click="toggleStatusFilter(card.value)"
       >
@@ -41,6 +42,24 @@
             @keyup.enter="handleSearch"
           />
         </el-form-item>
+        <el-form-item label="客户" prop="customerCode">
+          <PmsEntitySelect
+v-model="query.customerCode" :api="getCustomerPage"
+            :label-field="['code', 'name']" value-field="code" query-field="name"
+            placeholder="按客户名称选择" class="!w-200px" />
+        </el-form-item>
+        <el-form-item label="超期项目" prop="overdueOnly">
+          <el-select v-model="query.overdueOnly" placeholder="全部" clearable class="!w-140px" @change="handleOverdueFilterChange">
+            <el-option label="是" :value="true" />
+            <el-option label="否" :value="false" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="发货状态" prop="hasShippedDevices">
+          <el-select v-model="query.hasShippedDevices" placeholder="全部" clearable class="!w-140px" @change="handleShipmentFilterChange">
+            <el-option label="是" :value="true" />
+            <el-option label="否" :value="false" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="query.status" placeholder="全部" clearable class="!w-140px">
             <el-option
@@ -51,44 +70,203 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="签约方式" prop="signingMethod">
-          <el-select v-model="query.signingMethod" placeholder="全部" clearable class="!w-140px">
-            <el-option
-              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_SIGNING_METHOD)"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="项目类别" prop="projectCategory">
-          <el-select v-model="query.projectCategory" placeholder="全部" clearable class="!w-140px">
-            <el-option
-              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_PROJECT_CATEGORY)"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="实施方式" prop="implementationMode">
-          <el-select
-            v-model="query.implementationMode"
+        <el-form-item label="项目经理" prop="managerId">
+          <UserSelect
+            v-model="query.managerId" :scoped-source="memberFilterSources.MANAGER"
             placeholder="全部"
             clearable
-            class="!w-150px"
-          >
-            <el-option
-              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_IMPLEMENTATION_METHOD)"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
-            />
-          </el-select>
+
+            class="!w-130px"
+           />
         </el-form-item>
+        <el-form-item label="创建时间" prop="createTimeRange">
+          <el-date-picker
+            v-model="query.createTimeRange"
+            type="daterange"
+            value-format="YYYY-MM-DD"
+            range-separator="-"
+            start-placeholder="开始"
+            end-placeholder="结束"
+            clearable
+            class="!w-230px"
+          />
+        </el-form-item>
+
+        <!-- 折叠区：归属/成员/时间/设备/当事方等高级筛选 -->
+        <template v-if="showMoreFilters">
+          <el-form-item label="签约方式" prop="signingMethod">
+            <el-select v-model="query.signingMethod" placeholder="全部" clearable class="!w-130px">
+              <el-option
+                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_SIGNING_METHOD)"
+                :key="dict.value"
+                :label="dict.label"
+                :value="dict.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="项目类别" prop="projectCategory">
+            <el-select v-model="query.projectCategory" placeholder="全部" clearable class="!w-130px">
+              <el-option
+                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_PROJECT_CATEGORY)"
+                :key="dict.value"
+                :label="dict.label"
+                :value="dict.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="实施方式" prop="implementationMode">
+            <el-select
+              v-model="query.implementationMode"
+              placeholder="全部"
+              clearable
+              class="!w-140px"
+            >
+              <el-option
+                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_IMPLEMENTATION_METHOD)"
+                :key="dict.value"
+                :label="dict.label"
+                :value="dict.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="重点项目级别" prop="majorProjectLevel">
+            <el-select
+              v-model="query.majorProjectLevel"
+              placeholder="全部"
+              clearable
+              class="!w-140px"
+            >
+              <el-option
+                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL)"
+                :key="dict.value"
+                :label="dict.label"
+                :value="dict.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="合同号" prop="contractNo">
+            <el-input
+              v-model="query.contractNo"
+              placeholder="包含匹配"
+              clearable
+              class="!w-160px"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+          <el-form-item label="所属公司" prop="companyId">
+            <el-select
+              v-model="query.companyId"
+              placeholder="全部"
+              clearable
+              filterable
+              class="!w-160px"
+            >
+              <el-option
+                v-for="item in companies"
+                :key="item.id"
+                :label="`${item.code} ${item.name}`"
+                :value="item.id ?? 0"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="办事处" prop="departmentId">
+            <el-select
+              v-model="query.departmentId"
+              placeholder="全部"
+              clearable
+              filterable
+              class="!w-160px"
+            >
+              <el-option
+                v-for="item in departments"
+                :key="item.id"
+                :label="`${item.code} ${item.name}`"
+                :value="item.id ?? 0"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="服务经理" prop="serviceManagerId">
+            <UserSelect
+              v-model="query.serviceManagerId" :scoped-source="memberFilterSources.SERVICE_MANAGER"
+              placeholder="全部"
+              clearable
+
+              class="!w-130px"
+             />
+          </el-form-item>
+          <el-form-item label="销售人员" prop="salesId">
+            <UserSelect v-model="query.salesId" :scoped-source="memberFilterSources.SALES" placeholder="全部" clearable class="!w-130px" />
+          </el-form-item>
+          <el-form-item label="闭环时间" prop="closeTimeRange">
+            <el-date-picker
+              v-model="query.closeTimeRange"
+              type="daterange"
+              value-format="YYYY-MM-DD"
+              range-separator="-"
+              start-placeholder="开始"
+              end-placeholder="结束"
+              clearable
+              class="!w-230px"
+            />
+          </el-form-item>
+          <el-form-item label="刷新时间" prop="refreshTimeRange">
+            <el-date-picker
+              v-model="query.refreshTimeRange"
+              type="daterange"
+              value-format="YYYY-MM-DD"
+              range-separator="-"
+              start-placeholder="开始"
+              end-placeholder="结束"
+              clearable
+              class="!w-230px"
+            />
+          </el-form-item>
+          <el-form-item label="序列号" prop="deviceSn">
+            <el-input
+              v-model="query.deviceSn"
+              placeholder="包含匹配"
+              clearable
+              class="!w-160px"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+          <el-form-item label="产品型号" prop="deviceProductModel">
+            <el-input
+              v-model="query.deviceProductModel"
+              placeholder="包含匹配"
+              clearable
+              class="!w-160px"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+          <el-form-item label="维保状态" prop="deviceWarrantyStatus">
+            <el-input
+              v-model="query.deviceWarrantyStatus"
+              placeholder="CRM同步原文（等值）"
+              clearable
+              class="!w-170px"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+          <el-form-item label="代理商/服务商" prop="agentServiceProviderKeyword">
+            <el-input
+              v-model="query.agentServiceProviderKeyword"
+              placeholder="名称或编码，包含匹配"
+              clearable
+              class="!w-180px"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+        </template>
+
         <el-form-item>
           <el-button @click="handleSearch"><Icon icon="ep:search" />查询</el-button>
           <el-button @click="handleReset"><Icon icon="ep:refresh-left" />重置</el-button>
+          <el-button @click="officeVisible = true">办事处精确查询</el-button>
+          <el-button link type="primary" @click="showMoreFilters = !showMoreFilters">
+            <Icon :icon="showMoreFilters ? 'ep:arrow-up' : 'ep:arrow-down'" />
+            {{ showMoreFilters ? '收起筛选' : `更多筛选${moreFilterCount ? `(${moreFilterCount})` : ''}` }}
+          </el-button>
           <el-button type="primary" @click="openWizard" v-hasPermi="['pms:project:create']">
             <Icon icon="ep:plus" />创建项目
           </el-button>
@@ -159,10 +337,13 @@
             <span v-else class="text-gray-400">不限</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column label="状态" min-width="160" align="center" show-overflow-tooltip>
           <template #default="{ row }">
             <ProjectStatusTag :project="row" />
           </template>
+        </el-table-column>
+        <el-table-column label="超期情况" min-width="180">
+          <template #default="{ row }"><ProjectOverdueTags :project="row" /></template>
         </el-table-column>
         <el-table-column label="模板绑定" width="170">
           <template #default="{ row }">
@@ -187,7 +368,7 @@
           width="170"
           :formatter="dateFormatter"
         />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="275" fixed="right">
           <template #default="{ row }">
             <el-button
               link
@@ -198,20 +379,15 @@
               详情
             </el-button>
             <el-button
-              link
-              type="warning"
-              @click="openEdit(row)"
-              v-hasPermi="['pms:project:update']"
-            >
-              编辑
-            </el-button>
+link type="primary" v-hasPermi="['pms:project:update']"
+              @click="customerCorrectionRef?.open(row)">更正客户</el-button>
             <el-button
               link
               type="success"
-              @click="openAssign(row)"
-              v-hasPermi="['pms:project:assign']"
+              @click="goMembers(row)"
+              v-hasPermi="['pms:project:query']"
             >
-              指派服务经理
+              项目成员
             </el-button>
           </template>
         </el-table-column>
@@ -248,21 +424,90 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="客户名称" prop="customerName">
-                <el-input v-model="createForm.customerName" placeholder="某公司" />
+              <el-form-item label="客户主档" prop="customerCode">
+                <PmsEntitySelect
+v-model="createForm.customerCode" :api="getSelectableCustomers"
+                  :label-field="['code', 'name']" value-field="code" query-field="keyword"
+                  placeholder="按客户名称或编码选择" @change="selectCustomer" />
               </el-form-item>
             </el-col>
           </el-row>
           <el-row :gutter="16">
             <el-col :span="12">
               <el-form-item label="客户编码" prop="customerCode">
-                <el-input v-model="createForm.customerCode" placeholder="CUS-001" />
+                <el-input :model-value="createForm.customerCode" readonly placeholder="选择客户后自动带入" />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="合同号" prop="contractNo">
-                <el-input v-model="createForm.contractNo" placeholder="HT-2026-001（手工登记）" />
+              <el-form-item label="合同主档" prop="contractNo">
+                <PmsEntitySelect
+v-model="createForm.contractNo" :api="getSelectableContracts"
+                  :label-field="['contractNo', 'customerName', 'companyName']" value-field="contractNo"
+                  query-field="keyword" placeholder="按合同号选择" @change="selectContract" />
               </el-form-item>
+            </el-col>
+            <el-col v-if="createForm.contractId" :span="24">
+              <div v-loading="creationSourceLoading" class="creation-source">
+                <template v-if="creationSource">
+                  <el-descriptions
+                    title="合同链取值预览（CRM权威值提交后由服务端落库）"
+                    :column="mobile ? 1 : 4"
+                    size="small"
+                    border
+                  >
+                    <el-descriptions-item label="客户项目名称">
+                      {{ creationSource.resolved?.customerProjectName || '—' }}
+                    </el-descriptions-item>
+                    <el-descriptions-item label="重大项目级别">{{ majorLevelText }}</el-descriptions-item>
+                    <el-descriptions-item label="项目类型">
+                      {{ dictText(creationSource.resolved?.projectType, DICT_TYPE.PMS_PROJECT_TYPE) }}
+                    </el-descriptions-item>
+                    <el-descriptions-item label="下单时间">
+                      {{ timeText(creationSource.resolved?.orderCreateTime) }}
+                    </el-descriptions-item>
+                    <el-descriptions-item label="市场">
+                      {{ creationSource.resolved?.marketName || creationSource.resolved?.marketCode || '—' }}
+                    </el-descriptions-item>
+                    <el-descriptions-item label="系统">
+                      {{ creationSource.resolved?.systemName || creationSource.resolved?.systemCode || '—' }}
+                    </el-descriptions-item>
+                    <el-descriptions-item label="拓展">
+                      {{ creationSource.resolved?.expendName || creationSource.resolved?.expendCode || '—' }}
+                    </el-descriptions-item>
+                    <el-descriptions-item label="行业">
+                      {{ creationSource.resolved?.industryName || creationSource.resolved?.industryCode || '—' }}
+                    </el-descriptions-item>
+                  </el-descriptions>
+                  <div v-if="creationSource.orders?.length" class="source-block">
+                    <div class="source-title">关联销售订单</div>
+                    <el-table :data="creationSource.orders" size="small" max-height="180">
+                      <el-table-column prop="orderNo" label="订单号" min-width="150" />
+                      <el-table-column prop="salesType" label="销售类型" width="90" />
+                      <el-table-column label="订单金额" width="150">
+                        <template #default="{ row }">{{ amountText(row.orderAmount, row.currencyCode) }}</template>
+                      </el-table-column>
+                      <el-table-column label="下单时间" width="170">
+                        <template #default="{ row }">{{ timeText(row.orderCreateTime) }}</template>
+                      </el-table-column>
+                      <el-table-column prop="executionNo" label="主执行单号" min-width="130" />
+                    </el-table>
+                  </div>
+                  <div v-if="creationSource.executionOrders?.length" class="source-block">
+                    <div class="source-title">关联执行单</div>
+                    <el-table :data="creationSource.executionOrders" size="small" max-height="180">
+                      <el-table-column prop="executionNo" label="执行单号" min-width="140" />
+                      <el-table-column prop="projectName" label="CRM项目名称" min-width="160" show-overflow-tooltip />
+                      <el-table-column prop="departmentName" label="办事处" width="120" show-overflow-tooltip />
+                      <el-table-column label="项目金额" width="140">
+                        <template #default="{ row }">{{ row.projectAmount == null ? '—' : row.projectAmount }}</template>
+                      </el-table-column>
+                      <el-table-column label="提交时间" width="170">
+                        <template #default="{ row }">{{ timeText(row.submitTime) }}</template>
+                      </el-table-column>
+                    </el-table>
+                  </div>
+                </template>
+              </div>
             </el-col>
           </el-row>
           <el-row :gutter="16">
@@ -400,8 +645,9 @@
             </el-col>
           </el-row>
           <el-alert
+            v-if="!createForm.contractId"
             title="CRM重大项目级别：不适用"
-            description="手工创建不维护该CRM权威属性，系统按空值参与模板匹配。"
+            description="手工创建不维护该CRM权威属性，系统按空值参与模板匹配；选择合同主档后按执行单带入CRM权威值。"
             type="info"
             :closable="false"
             show-icon
@@ -498,6 +744,9 @@
           <el-descriptions-item label="客户">{{
             createForm.customerName || '-'
           }}</el-descriptions-item>
+          <el-descriptions-item label="合同号">{{
+            createForm.contractNo || '-'
+          }}</el-descriptions-item>
           <el-descriptions-item label="签约方式">
             {{ dimLabel(createForm.signingMethod, DICT_TYPE.PMS_SIGNING_METHOD) }}
           </el-descriptions-item>
@@ -560,6 +809,25 @@
     </Dialog>
 
     <!-- ============ 模板预览抽屉 ============ -->
+    <el-dialog v-model="officeVisible" title="办事处项目精确查询" width="min(900px, 94vw)">
+      <p>至少填写完整项目名称或合同号；两项填写时须同时匹配。仅查询有效授权办事处，结果只读，不能办理或下载。</p>
+      <el-form :model="officeQuery" label-position="top" @submit.prevent="searchOffice(1)">
+        <el-form-item label="完整项目名称"><el-input v-model="officeQuery.projectName" clearable @keyup.enter="searchOffice(1)" /></el-form-item>
+        <el-form-item label="完整合同号"><el-input v-model="officeQuery.contractNo" clearable @keyup.enter="searchOffice(1)" /></el-form-item>
+        <el-button type="primary" :loading="officeLoading" @click="searchOffice(1)">精确查询</el-button>
+      </el-form>
+      <el-table v-loading="officeLoading" :data="officeRows" empty-text="暂无匹配项目">
+        <el-table-column prop="projectCode" label="项目编码" min-width="150" />
+        <el-table-column prop="projectName" label="项目名称" min-width="200" />
+        <el-table-column prop="contractNo" label="合同号" min-width="140" />
+        <el-table-column label="操作" width="120"><template #default="{ row }">
+          <el-button link type="primary" @click="openOfficeProject(row)">只读查看</el-button>
+        </template></el-table-column>
+      </el-table>
+      <el-pagination
+v-if="officeTotal > 0" v-model:current-page="officePage" :page-size="10" :total="officeTotal"
+        layout="total, prev, pager, next" class="mt-12px" @current-change="searchOffice(officePage)" />
+    </el-dialog>
     <el-drawer v-model="previewVisible" :title="`模板预览：${previewTitle}`" size="620px">
       <div v-loading="previewLoading">
         <el-descriptions v-if="previewContent" :column="2" border size="small" class="mb-12px">
@@ -880,137 +1148,28 @@
       </template>
     </Dialog>
 
-    <!-- ============ 指派服务经理弹窗 ============ -->
-    <Dialog v-model="assignVisible" title="指派服务经理" :width="assignDialogWidth">
-      <el-form
-        ref="assignFormRef"
-        :model="assignForm"
-        :rules="assignRules"
-        :label-position="mobile ? 'top' : 'right'"
-        label-width="110px"
-      >
-        <el-form-item label="项目">
-          <el-input
-            :model-value="`${assignTarget?.projectCode} ${assignTarget?.projectName}`"
-            disabled
-          />
-        </el-form-item>
-        <el-alert type="info" :closable="false" show-icon class="mb-12px">
-          下单办事处：{{ assignTarget?.departmentCode || '-' }}
-          {{ assignTarget?.departmentName || '未记录名称' }}；所属公司：
-          {{ assignTarget?.companyName || assignTarget?.companyCode || '-' }}
-        </el-alert>
-        <el-form-item label="服务层级" prop="levelCode">
-          <el-select v-model="assignForm.levelCode" class="!w-full">
-            <el-option label="一级服务经理（L1）" value="L1" />
-            <el-option label="二级服务经理（L2）" value="L2" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="责任类型" prop="assignmentType">
-          <el-radio-group v-model="assignForm.assignmentType">
-            <el-radio-button value="PRIMARY">主责</el-radio-button>
-            <el-radio-button value="COLLABORATOR">协同</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item v-if="assignSites.length" label="实施站点" prop="siteId">
-          <el-select
-            v-model="assignForm.siteId"
-            class="!w-full"
-            placeholder="请选择项目实施站点"
-            @change="suggestDepartment"
-          >
-            <el-option
-              v-for="item in assignSites"
-              :key="item.siteId"
-              :label="`${item.siteCodeSnapshot || ''} ${item.siteNameSnapshot || ''}`"
-              :value="item.siteId"
-            />
-          </el-select>
-        </el-form-item>
-        <el-alert
-          v-else
-          type="warning"
-          :closable="false"
-          show-icon
-          class="mb-12px"
-          title="站点待维护：本次仅按项目和办事处范围人工确认，不进行地点自动解析。"
-        />
-        <el-form-item label="服务办事处" prop="departmentCode">
-          <el-select
-            v-model="assignForm.departmentCode"
-            filterable
-            class="!w-full"
-            placeholder="选择或人工确认办事处"
-            @change="handleAssignDepartmentChange"
-          >
-            <el-option
-              v-for="item in assignDepartments"
-              :key="item.id"
-              :label="`${item.code} ${item.name}`"
-              :value="item.code"
-            />
-          </el-select>
-        </el-form-item>
-        <el-alert
-          :type="assignSuggestion ? 'success' : 'info'"
-          :closable="false"
-          show-icon
-          class="mb-12px"
-        >
-          {{ assignSuggestion || '当前站点无区划映射建议，请人工选择服务办事处。' }}
-        </el-alert>
-        <el-form-item label="服务经理" prop="managerId">
-          <el-select
-            v-model="assignForm.managerId"
-            filterable
-            remote
-            clearable
-            class="!w-full"
-            placeholder="请先确认办事处，再搜索精确候选"
-            :remote-method="searchAssignCandidates"
-            :loading="assignCandidateLoading"
-          >
-            <el-option
-              v-for="item in assignCandidates"
-              :key="item.userId"
-              :label="`${item.nickname || item.username}（${item.employeeNo || item.username}）· ${item.departmentCode}`"
-              :value="item.userId"
-            />
-          </el-select>
-          <div class="form-helper">
-            候选仅来自当前项目公司与确认办事处的有效人员；提交时会再次刷新。
-          </div>
-        </el-form-item>
-        <el-form-item label="指派原因" prop="changeReason">
-          <el-input
-            v-model="assignForm.changeReason"
-            type="textarea"
-            :maxlength="500"
-            show-word-limit
-            placeholder="请填写指派或改派原因"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="assignVisible = false">取消</el-button>
-        <el-button type="primary" :loading="saving" @click="submitAssign">确认指派</el-button>
-      </template>
-    </Dialog>
+    <!-- ============ 更正客户弹窗（与 inheritance 列表共用组件） ============ -->
+    <CustomerCorrectionDialog ref="customerCorrectionRef" @updated="load" />
   </div>
 </template>
 
 <script setup lang="ts">
+import { createProjectMemberFilterSource } from '@/api/pms/project/projects'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreationTemplateMatch"
 /**
  * F-PM01 项目手工创建（PM-01）—— 新链页面（复数路由 /pms/projects）
  *
- * 列表（四维/状态/名称过滤）→ 创建向导（基本信息 → 实时模板匹配 → 确认+可选指派）
- * → 详情抽屉（基本信息/生命周期实例五要素/成员区间）→ 编辑（BR-7 可编辑属性）/ 指派服务经理。
+ * 列表（四维/状态/名称过滤）→ 创建向导（基本信息 → 实时模板匹配 → 确认提交）
+ * → 详情抽屉（基本信息/生命周期实例五要素/成员区间）→ 编辑（BR-7 可编辑属性）
+ * / 更正客户 / 项目成员（列表样式与按钮对齐 inheritance 项目列表）。
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
+import { hasPermission } from '@/directives/permission/hasPermi'
 import { DICT_TYPE, getStrDictOptions, getDictLabel } from '@/utils/dict'
 import { dateFormatter, formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
@@ -1019,13 +1178,10 @@ import type {
   ProjectInstancesVO,
   ProjectMemberAssignmentVO,
   ProjectSiteReqVO,
-  ProjectSiteVO,
-  ServiceManagerCandidateVO,
   TemplateCandidateVO
 } from '@/api/pms/project/projects'
 import { getProjectTemplateRevision } from '@/api/pms/project/project-templates'
 import type { TemplateDefinitionContent } from '@/api/pms/project/project-templates'
-import * as UserApi from '@/api/system/user'
 import * as CompanyApi from '@/api/system/company'
 import type { CompanyVO } from '@/api/system/company'
 import * as DeptApi from '@/api/system/dept'
@@ -1034,6 +1190,12 @@ import * as LocationApi from '@/api/pms/asset/location'
 import type { SiteVO } from '@/api/pms/asset/location'
 import { createSubmissionIdempotencyState } from './submissionIdempotency'
 import ProjectStatusTag from './ProjectStatusTag.vue'
+import CustomerCorrectionDialog from '../inheritance/projects/CustomerCorrectionDialog.vue'
+import { getSelectableCustomers, type SelectedCustomer } from '../inheritance/projects/customerSelection'
+import { getCustomerPage } from '@/api/pms/customer'
+import ProjectOverdueTags from './ProjectOverdueTags.vue'
+import { getSelectableContracts, type SelectedContract } from './contractSelection'
+import { getContractCreationSource, type ContractCreationSourceRespVO } from '@/api/pms/commerce'
 import TemplateMatchDiagnostics from '../project-templates/TemplateMatchDiagnostics.vue'
 import { closedProjectStatuses } from './projectStatus'
 
@@ -1043,22 +1205,86 @@ const message = useMessage()
 const router = useRouter()
 const mobile = useMediaQuery('(max-width: 767px)')
 const wizardWidth = computed(() => (mobile.value ? '96%' : '880px'))
-const assignDialogWidth = computed(() => (mobile.value ? '96%' : '560px'))
 
 // ============ 列表 ============
 const loading = ref(false)
 const rows = ref<ProjectMasterVO[]>([])
 const total = ref(0)
+const memberFilterSources = {
+  MANAGER: createProjectMemberFilterSource('MANAGER'),
+  SERVICE_MANAGER: createProjectMemberFilterSource('SERVICE_MANAGER'),
+  SALES: createProjectMemberFilterSource('SALES')
+}
 const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectCode: '',
   projectName: '',
+  customerCode: undefined as string | undefined,
+  overdueOnly: undefined as boolean | undefined,
+  hasShippedDevices: undefined as boolean | undefined,
   status: '',
+  managerId: undefined as number | string | undefined,
+  createTimeRange: null as string[] | null,
   signingMethod: '',
   projectCategory: '',
-  implementationMode: ''
+  implementationMode: '',
+  majorProjectLevel: '',
+  contractNo: '',
+  companyId: undefined as number | undefined,
+  departmentId: undefined as number | undefined,
+  serviceManagerId: undefined as number | string | undefined,
+  salesId: undefined as number | string | undefined,
+  closeTimeRange: null as string[] | null,
+  refreshTimeRange: null as string[] | null,
+  deviceSn: '',
+  deviceProductModel: '',
+  deviceWarrantyStatus: '',
+  agentServiceProviderKeyword: ''
 })
+
+// ============ 筛选折叠 ============
+const showMoreFilters = ref(false)
+
+/** 折叠区已填写的筛选项数量（收起时提示仍有生效条件） */
+const moreFilterCount = computed(() => {
+  const filled = (value: unknown) =>
+    !!value && value !== '' && !(Array.isArray(value) && value.length !== 2)
+  return [
+    query.signingMethod,
+    query.projectCategory,
+    query.implementationMode,
+    query.majorProjectLevel,
+    query.contractNo,
+    query.companyId,
+    query.departmentId,
+    query.serviceManagerId,
+    query.salesId,
+    query.closeTimeRange,
+    query.refreshTimeRange,
+    query.deviceSn,
+    query.deviceProductModel,
+    query.deviceWarrantyStatus,
+    query.agentServiceProviderKeyword
+  ].filter(filled).length
+})
+
+// ============ 成员下拉（项目经理/服务经理/销售人员共用） ============
+
+/** daterange 选取值按左闭右开换算：start=起始日 00:00:00，endExclusive=结束日次日 00:00:00（含结束日整天） */
+const rangeToParams = (range: string[] | null | undefined, prefix: string) => {
+  const params: Record<string, string> = {}
+  if (!range || range.length !== 2 || !range[0] || !range[1]) return params
+  const midnight = (date: Date) => {
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} 00:00:00`
+  }
+  const start = new Date(`${range[0]}T00:00:00`)
+  const end = new Date(`${range[1]}T00:00:00`)
+  params[`${prefix}Start`] = midnight(start)
+  params[`${prefix}End`] = midnight(new Date(end.getTime() + 24 * 60 * 60 * 1000))
+  return params
+}
 
 // ============ 顶部状态卡（生命周期阶段统计，逐阶段全展开） ============
 const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: string }[] = [
@@ -1072,7 +1298,7 @@ const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: stri
   ...closedProjectStatuses
 ]
 
-const stats = reactive<Record<string, number>>({ total: 0 })
+const stats = reactive<Record<string, number>>({ total: 0, overdue: 0 })
 for (const stage of LIFECYCLE_STAGES) stats[stage.value] = 0
 
 /** 当前选中的状态卡（'' = 全部） */
@@ -1087,6 +1313,14 @@ const statusCards = computed(() => [
     tone: 'blue',
     icon: 'ep:folder-opened'
   },
+  {
+    key: 'overdue',
+    label: '超期项目',
+    value: 'OVERDUE',
+    count: stats.overdue,
+    tone: 'yellow',
+    icon: 'ep:warning'
+  },
   ...LIFECYCLE_STAGES.map((stage) => ({
     key: stage.value,
     label: stage.label,
@@ -1097,19 +1331,17 @@ const statusCards = computed(() => [
   }))
 ])
 
-/** 状态卡计数：总数 pageSize=1 取 total，各阶段按 status 精确筛选取 total */
+/** 状态卡计数独立于列表筛选，一次读取全部可见项目的聚合结果。 */
 const loadStats = async () => {
   try {
-    const totalRes = await ProjectsApi.getProjectPage({ pageNo: 1, pageSize: 1 })
-    stats.total = totalRes.total
-    const stageRes = await Promise.all(
-      LIFECYCLE_STAGES.map((stage) => {
-        const params = { pageNo: 1, pageSize: 1, status: stage.value }
-        return ProjectsApi.getProjectPage(params)
-      })
-    )
-    LIFECYCLE_STAGES.forEach((stage, index) => {
-      stats[stage.value] = stageRes[index].total
+    const data = await ProjectsApi.getProjectStatistics()
+    Object.assign(stats, {
+      total: data.total, overdue: data.overdue,
+      S0: data.s0, S1: data.s1, S2: data.s2, S3: data.s3,
+      S4: data.s4, S5: data.s5, S6: data.s6,
+      NORMAL_CLOSED: data.normalClosed,
+      NO_TRACKING_CLOSED: data.noTrackingClosed,
+      EXCEPTION_CLOSED: data.exceptionClosed
     })
   } catch {
     // 统计失败不阻断列表
@@ -1118,15 +1350,45 @@ const loadStats = async () => {
 
 /** 点击状态卡：选中/取消该阶段筛选；再次点击同一卡回到全部 */
 const toggleStatusFilter = (value: string) => {
-  activeStatus.value = activeStatus.value === value ? '' : value
-  query.status = activeStatus.value
+  if (value === 'OVERDUE') {
+    query.overdueOnly = query.overdueOnly === true ? undefined : true
+    activeStatus.value = query.overdueOnly ? 'OVERDUE' : ''
+    query.status = ''
+  } else {
+    activeStatus.value = activeStatus.value === value ? '' : value
+    query.status = activeStatus.value
+    query.overdueOnly = undefined
+  }
+  handleSearch()
+}
+
+const handleOverdueFilterChange = () => {
+  if (query.overdueOnly !== true && query.overdueOnly !== false) query.overdueOnly = undefined
+  activeStatus.value = query.overdueOnly ? 'OVERDUE' : query.status
+  handleSearch()
+}
+
+const handleShipmentFilterChange = () => {
+  if (query.hasShippedDevices !== true && query.hasShippedDevices !== false) query.hasShippedDevices = undefined
   handleSearch()
 }
 
 const load = async () => {
   loading.value = true
   try {
-    const data = await ProjectsApi.getProjectPage(query)
+    const {
+      createTimeRange,
+      closeTimeRange,
+      refreshTimeRange,
+      ...filters
+    } = query
+    const params: ProjectsApi.ProjectPageParams = {
+      ...filters,
+      ...rangeToParams(createTimeRange, 'createTime'),
+      ...rangeToParams(closeTimeRange, 'closeTime'),
+      ...rangeToParams(refreshTimeRange, 'refreshTime')
+    }
+    const data = await ProjectsApi.getProjectPage(params)
     rows.value = data.list
     total.value = data.total
   } finally {
@@ -1142,10 +1404,27 @@ const handleSearch = () => {
 const handleReset = () => {
   query.projectCode = ''
   query.projectName = ''
+  query.customerCode = undefined
+  query.overdueOnly = undefined
+  query.hasShippedDevices = undefined
   query.status = ''
+  query.managerId = undefined
+  query.createTimeRange = null
   query.signingMethod = ''
   query.projectCategory = ''
   query.implementationMode = ''
+  query.majorProjectLevel = ''
+  query.contractNo = ''
+  query.companyId = undefined
+  query.departmentId = undefined
+  query.serviceManagerId = undefined
+  query.salesId = undefined
+  query.closeTimeRange = null
+  query.refreshTimeRange = null
+  query.deviceSn = ''
+  query.deviceProductModel = ''
+  query.deviceWarrantyStatus = ''
+  query.agentServiceProviderKeyword = ''
   activeStatus.value = ''
   handleSearch()
 }
@@ -1164,8 +1443,10 @@ const createIdempotency = createSubmissionIdempotencyState()
 const createErrorMessage = ref('')
 const companies = ref<CompanyVO[]>([])
 const departments = ref<DeptVO[]>([])
-const assignDepartments = computed(() => departments.value.filter((item) => item.id && item.code))
 const availableSites = ref<SiteVO[]>([])
+/** 合同链取值预览（合同→订单→执行单，CRM权威建议值） */
+const creationSource = ref<ContractCreationSourceRespVO | null>(null)
+const creationSourceLoading = ref(false)
 const primarySiteIndex = ref(0)
 
 const createForm = reactive({
@@ -1173,6 +1454,7 @@ const createForm = reactive({
   customerCode: '',
   customerName: '',
   contractNo: '',
+  contractId: undefined as number | undefined,
   orderOfficeCompanyId: undefined as number | undefined,
   orderOfficeDepartmentId: undefined as number | undefined,
   locationMode: 'sites' as 'sites' | 'fallback',
@@ -1187,7 +1469,65 @@ const createForm = reactive({
   creationReason: ''
 })
 
+const selectCustomer = (code: unknown, customer?: SelectedCustomer) => {
+  createForm.customerCode = customer && customer.code === code ? customer.code : ''
+  createForm.customerName = customer && customer.code === code ? customer.name : ''
+}
+
+/** 选择合同主档后带入合同号与合同客户，并按合同→订单→执行单链预览取值、带入建议字段。 */
+const selectContract = async (no: unknown, contract?: SelectedContract) => {
+  const selected = contract && contract.contractNo === no ? contract : undefined
+  creationSource.value = null
+  createForm.contractId = selected?.id
+  createForm.contractNo = selected?.contractNo ?? ''
+  if (!selected?.customerCode) return
+  createForm.customerCode = selected.customerCode
+  createForm.customerName = selected.customerName ?? selected.customerCode
+  if (!selected.id) return
+  creationSourceLoading.value = true
+  try {
+    const source = await getContractCreationSource(selected.id)
+    creationSource.value = source
+    applyCreationSource(source)
+  } catch {
+    // 预览失败保持既有手工录入值，不阻断创建
+  } finally {
+    creationSourceLoading.value = false
+  }
+}
+
+/** 按解析链建议带入可编辑字段；CRM权威四维/客户项目名称/重大级别由服务端按执行单落库，页面仅预览。 */
+const applyCreationSource = (source: ContractCreationSourceRespVO) => {
+  const resolved = source.resolved
+  if (!resolved) return
+  if (resolved.projectName) createForm.projectName = resolved.projectName
+  if (resolved.customerCode) {
+    createForm.customerCode = resolved.customerCode
+    createForm.customerName = resolved.customerName ?? resolved.customerCode
+  }
+  const company = companies.value.find((item) => item.code === resolved.companyCode)
+  if (company?.id != null) createForm.orderOfficeCompanyId = company.id
+  const execution =
+    source.executionOrders?.find((item) => item.id === resolved.executionOrderId) ??
+    source.executionOrders?.[0]
+  const department = departments.value.find((item) => item.code === execution?.departmentCode)
+  if (department?.id != null) createForm.orderOfficeDepartmentId = department.id
+  // 命中CRM重大项目级别时按工程类预填项目类别（模板匹配维度，可改）
+  if (resolved.majorProjectLevel) createForm.projectCategory = 'ENGINEERING'
+}
+
+const majorLevelText = computed(() => {
+  const level = creationSource.value?.resolved?.majorProjectLevel
+  return level ? getDictLabel(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL, level) || level : '空值'
+})
+const dictText = (value: string | null | undefined, dict: DICT_TYPE) =>
+  value ? getDictLabel(dict, value) || value : '—'
+const timeText = (value?: string | null) => (value ? formatDate(value) : '—')
+const amountText = (value?: number | null, currency?: string | null) =>
+  value == null ? '—' : `${currency || ''} ${value}`.trim()
+
 const createRules = {
+  customerCode: [{ required: true, message: '请选择客户主档', trigger: 'change' }],
   projectName: [{ required: true, message: '项目名称不能为空', trigger: 'blur' }],
   orderOfficeCompanyId: [{ required: true, message: '请选择下单公司', trigger: 'change' }],
   orderOfficeDepartmentId: [{ required: true, message: '请选择下单办事处', trigger: 'change' }],
@@ -1210,24 +1550,24 @@ const removeSiteRow = (index: number) => {
   if (primarySiteIndex.value >= createForm.sites.length) primarySiteIndex.value = 0
 }
 
-const loadOrganizationAndSites = async () => {
-  const [companyList, deptList, sitePage] = await Promise.all([
+const loadOrganizations = async () => {
+  const [companyList, deptList] = await Promise.all([
     CompanyApi.getSimpleCompanyList(),
-    DeptApi.getSimpleDeptList(),
-    LocationApi.getSitePage({ pageNo: 1, pageSize: 100 })
+    DeptApi.getSimpleDeptList()
   ])
   companies.value = companyList || []
   departments.value = deptList || []
-  availableSites.value = sitePage.list || []
 }
 
-const openWizard = () => {
+const openWizard = async () => {
+  if (!hasPermission(['pms:project:create'])) return
   wizardStep.value = 0
   Object.assign(createForm, {
     projectName: '',
     customerCode: '',
     customerName: '',
     contractNo: '',
+    contractId: undefined,
     orderOfficeCompanyId: undefined,
     orderOfficeDepartmentId: undefined,
     locationMode: 'sites',
@@ -1238,12 +1578,18 @@ const openWizard = () => {
     implementationMode: '',
     creationReason: ''
   })
+  creationSource.value = null
   primarySiteIndex.value = 0
   selectedTemplateRevisionId.value = undefined
   matchResult.value = null
   createErrorMessage.value = ''
   createIdempotency.reset()
+  availableSites.value = []
   wizardVisible.value = true
+  if (hasPermission(['pms:asset-location:query'])) {
+    const sitePage = await LocationApi.getSitePage({ pageNo: 1, pageSize: 100 })
+    availableSites.value = sitePage.list || []
+  }
 }
 
 const wizardNext0 = async () => {
@@ -1346,6 +1692,7 @@ const submitCreate = async () => {
     customerCode: createForm.customerCode || undefined,
     customerName: createForm.customerName || undefined,
     contractNo: createForm.contractNo || undefined,
+    contractId: createForm.contractId,
     orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
     orderOfficeDepartmentId: createForm.orderOfficeDepartmentId!,
     sites,
@@ -1379,6 +1726,36 @@ const submitCreate = async () => {
 
 // ============ 详情抽屉 ============
 const detailVisible = ref(false)
+const officeVisible = ref(false)
+const officeLoading = ref(false)
+const officeQuery = reactive({ projectName: '', contractNo: '' })
+const officeRows = ref<ProjectMasterVO[]>([])
+const officeTotal = ref(0)
+const officePage = ref(1)
+let officeMatchedCriteria = { projectName: '', contractNo: '' }
+const searchOffice = async (pageNo = 1) => {
+  officeRows.value = []
+  officeTotal.value = 0
+  if (!officeQuery.projectName.trim() && !officeQuery.contractNo.trim()) {
+    message.error('请至少填写完整项目名称或合同号')
+    return
+  }
+  officeLoading.value = true
+  try {
+    const criteria = { ...officeQuery }
+    const result = await ProjectsApi.searchOfficeProjects({ ...criteria, pageNo, pageSize: 10 })
+    officeMatchedCriteria = criteria
+    officePage.value = pageNo
+    officeRows.value = result.list
+    officeTotal.value = result.total
+  } finally {
+    officeLoading.value = false
+  }
+}
+const openOfficeProject = (row: ProjectMasterVO) => {
+  officeVisible.value = false
+  router.push({ path: '/pms/project/office-readonly', query: { projectId: String(row.id), ...officeMatchedCriteria } })
+}
 const detailLoading = ref(false)
 const detailTab = ref('base')
 const detail = ref<ProjectMasterVO | null>(null)
@@ -1392,6 +1769,16 @@ const goDetail = (row: ProjectMasterVO) => {
     query: { projectId: row.id }
   })
 }
+
+/** 项目成员：工作台成员页签 */
+const goMembers = (row: ProjectMasterVO) => {
+  router.push({
+    path: '/pms/project-management/project-master-detail',
+    query: { projectId: row.id, tab: 'members' }
+  })
+}
+
+const customerCorrectionRef = ref<InstanceType<typeof CustomerCorrectionDialog>>()
 
 const openDetail = async (row: ProjectMasterVO) => {
   detailTab.value = 'base'
@@ -1429,7 +1816,7 @@ const loadUserNicknames = async (userIds: number[]) => {
   const missing = userIds.filter((id) => id && !userNicknames.value[id])
   if (!missing.length) return
   try {
-    const data = await UserApi.getUserPage({ pageNo: 1, pageSize: 100 })
+    const data = await systemUserSelection.page({ pageNo: 1, pageSize: 100 })
     const map: Record<number, string> = {}
     for (const u of data?.list || []) {
       if (u?.id != null) map[u.id] = u.nickname || u.username || ''
@@ -1460,19 +1847,6 @@ const editForm = reactive({
   implementationLocation: ''
 })
 
-const openEdit = (row: ProjectMasterVO) => {
-  Object.assign(editForm, {
-    id: row.id,
-    projectCode: row.projectCode,
-    projectName: row.projectName || '',
-    customerCode: row.customerCode || '',
-    customerName: row.customerName || '',
-    contractNo: row.contractNo || '',
-    implementationLocation: row.implementationLocation || ''
-  })
-  editVisible.value = true
-}
-
 const submitEdit = async () => {
   saving.value = true
   try {
@@ -1492,190 +1866,10 @@ const submitEdit = async () => {
   }
 }
 
-// ============ 指派服务经理 ============
-const assignVisible = ref(false)
-const assignFormRef = ref()
-const assignTarget = ref<ProjectMasterVO | null>(null)
-const assignSites = ref<ProjectSiteVO[]>([])
-const assignSuggestion = ref('')
-const assignCandidates = ref<ServiceManagerCandidateVO[]>([])
-const assignCandidateLoading = ref(false)
-const assignForm = reactive({
-  managerId: undefined as number | undefined,
-  levelCode: 'L1' as 'L1' | 'L2',
-  assignmentType: 'PRIMARY' as 'PRIMARY' | 'COLLABORATOR',
-  siteId: undefined as number | undefined,
-  departmentCode: '',
-  changeReason: ''
-})
-const assignRules = {
-  managerId: [{ required: true, message: '请选择精确候选服务经理', trigger: 'change' }],
-  levelCode: [{ required: true, message: '请选择服务层级', trigger: 'change' }],
-  siteId: [
-    {
-      validator: (_rule: unknown, value: number | undefined, callback: (error?: Error) => void) => {
-        if (assignForm.levelCode === 'L2' && !value)
-          callback(new Error('L2服务经理必须选择实施站点'))
-        else callback()
-      },
-      trigger: 'change'
-    }
-  ],
-  departmentCode: [{ required: true, message: '请选择服务办事处', trigger: 'change' }],
-  assignmentType: [{ required: true, message: '请选择责任类型', trigger: 'change' }],
-  changeReason: [{ required: true, message: '请填写指派原因', trigger: 'blur' }]
-}
-const PROJECT_VERSION_CONFLICT_CODE = 1014024014
-const assignIdempotency = createSubmissionIdempotencyState()
-
-const openAssign = async (row: ProjectMasterVO) => {
-  const [project, sites] = await Promise.all([
-    ProjectsApi.getProject(row.id!),
-    ProjectsApi.getProjectSites(row.id!)
-  ])
-  assignTarget.value = project
-  assignSites.value = sites || []
-  Object.assign(assignForm, {
-    managerId: undefined,
-    levelCode: 'L1',
-    assignmentType: 'PRIMARY',
-    siteId: assignSites.value.find((item) => item.primarySite)?.siteId,
-    departmentCode: project.departmentCode || '',
-    changeReason: ''
-  })
-  assignIdempotency.reset()
-  assignVisible.value = true
-  await suggestDepartment(assignForm.siteId)
-}
-
-const suggestDepartment = async (siteId?: number) => {
-  assignSuggestion.value = ''
-  assignForm.managerId = undefined
-  assignCandidates.value = []
-  const site = assignSites.value.find((item) => item.siteId === siteId)
-  if (!site?.addressSnapshot) {
-    await loadAssignCandidates()
-    return
-  }
-  try {
-    const address = JSON.parse(site.addressSnapshot) as { districtCode?: string }
-    if (address.districtCode) {
-      const mapping = await LocationApi.resolveAreaDepartment(address.districtCode, 'DISTRICT')
-      if (mapping?.departmentCode) {
-        assignForm.departmentCode = mapping.departmentCode
-        assignSuggestion.value = `已按区县 ${address.districtCode} 精确建议 ${mapping.departmentName || mapping.departmentCode}，可手动调整。`
-      }
-    }
-  } catch {
-    // 快照不可解析或无有效映射时保留人工指派。
-  }
-  await loadAssignCandidates()
-}
-
-const selectedAssignDepartment = () =>
-  assignDepartments.value.find((item) => item.code === assignForm.departmentCode)
-
-const loadAssignCandidates = async (keyword = '') => {
-  const projectId = assignTarget.value?.id
-  const department = selectedAssignDepartment()
-  if (!projectId || !department?.id || !assignForm.departmentCode) {
-    assignCandidates.value = []
-    return []
-  }
-  assignCandidateLoading.value = true
-  try {
-    const page = await ProjectsApi.getServiceManagerCandidates(projectId, {
-      siteId: assignForm.siteId,
-      departmentId: department.id,
-      departmentCode: assignForm.departmentCode,
-      keyword: keyword.trim() || undefined,
-      pageNo: 1,
-      pageSize: 100
-    })
-    assignCandidates.value = page.list || []
-    return assignCandidates.value
-  } finally {
-    assignCandidateLoading.value = false
-  }
-}
-
-const searchAssignCandidates = (keyword: string) => loadAssignCandidates(keyword)
-
-const handleAssignDepartmentChange = async () => {
-  assignForm.managerId = undefined
-  await loadAssignCandidates()
-}
-
-const submitAssign = async () => {
-  await assignFormRef.value?.validate()
-  if (assignTarget.value?.version === undefined) {
-    message.error('Project版本缺失，请重新加载项目后再指派')
-    return
-  }
-  const department = selectedAssignDepartment()
-  if (!department?.id) {
-    message.error('办事处部门数据已变化，请重新选择')
-    return
-  }
-  const selectedCandidate = assignCandidates.value.find(
-    (item) => item.userId === assignForm.managerId
-  )
-  if (!selectedCandidate) {
-    message.error('候选数据已变化，请重新选择服务经理')
-    return
-  }
-  const refreshedCandidates = await loadAssignCandidates(
-    selectedCandidate.employeeNo || selectedCandidate.username || selectedCandidate.nickname
-  )
-  if (!refreshedCandidates.some((item) => item.userId === assignForm.managerId)) {
-    assignForm.managerId = undefined
-    message.error('该人员已不在当前公司与办事处的有效候选中，请重新选择')
-    return
-  }
-  const payload = {
-    levelCode: assignForm.levelCode,
-    managerId: assignForm.managerId!,
-    siteId: assignForm.siteId,
-    assignmentType: assignForm.assignmentType,
-    departmentId: department.id,
-    departmentCode: assignForm.departmentCode,
-    changeReason: assignForm.changeReason
-  }
-  const requestIdentity = {
-    projectId: assignTarget.value.id,
-    expectedVersion: assignTarget.value.version,
-    payload
-  }
-  saving.value = true
-  try {
-    const result = await ProjectsApi.assignManager(
-      assignTarget.value.id!,
-      payload,
-      assignTarget.value.version,
-      assignIdempotency.keyFor(requestIdentity)
-    )
-    assignTarget.value.version = result.version
-    message.success('指派成功（旧区间已关闭，新区间生效）')
-    assignVisible.value = false
-    await load()
-    if (detailVisible.value && detail.value?.id === assignTarget.value?.id) {
-      members.value = await ProjectsApi.getProjectMembers(assignTarget.value!.id!)
-    }
-  } catch (error: any) {
-    if (error?.response?.data?.code === PROJECT_VERSION_CONFLICT_CODE && assignTarget.value?.id) {
-      assignTarget.value = await ProjectsApi.getProject(assignTarget.value.id)
-      assignIdempotency.reset()
-      message.warning('Project版本已变化，已重新加载，请确认后再次提交')
-    }
-  } finally {
-    saving.value = false
-  }
-}
-
 onMounted(() => {
   loadStats()
   load()
-  loadOrganizationAndSites()
+  loadOrganizations()
 })
 </script>
 
@@ -1844,6 +2038,24 @@ onMounted(() => {
 .stage-title {
   margin-right: 8px;
   font-weight: 600;
+}
+
+.creation-source {
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--el-fill-color-extra-light);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: var(--el-border-radius-base);
+}
+
+.source-block {
+  margin-top: 10px;
+}
+
+.source-title {
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 
 .preview-block {

@@ -30,12 +30,12 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - PMS OA领料申请 Controller（FR-ENG-002）。
  * <p>
- * 路径前缀 {@code /pms/eng-material-req}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
- * 对应菜单权限 {@code pms:eng-material-req:*}。
+ * 路径前缀 {@code /pms/imp-material-req}，由 Yudao 全局配置追加 {@code /admin-api} 前缀。
+ * 对应菜单权限 {@code pms:imp-material-req:*}。
  */
 @Tag(name = "管理后台 - PMS OA领料申请")
 @RestController
-@RequestMapping("/pms/eng-material-req")
+@RequestMapping("/pms/imp-material-req")
 @Validated
 public class MaterialRequisitionController {
 
@@ -44,14 +44,14 @@ public class MaterialRequisitionController {
 
     @PostMapping("/create")
     @Operation(summary = "创建领料申请")
-    @PreAuthorize("@ss.hasPermission('pms:eng-material-req:create')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-material-req:create')")
     public CommonResult<Long> createMaterialRequisition(@Valid @RequestBody MaterialRequisitionSaveReqVO createReqVO) {
         return success(materialRequisitionService.createMaterialRequisition(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新领料申请")
-    @PreAuthorize("@ss.hasPermission('pms:eng-material-req:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-material-req:update')")
     public CommonResult<Boolean> updateMaterialRequisition(@Valid @RequestBody MaterialRequisitionSaveReqVO updateReqVO) {
         materialRequisitionService.updateMaterialRequisition(updateReqVO);
         return success(true);
@@ -60,7 +60,7 @@ public class MaterialRequisitionController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除领料申请")
     @Parameter(name = "id", description = "领料申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-material-req:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-material-req:delete')")
     public CommonResult<Boolean> deleteMaterialRequisition(@RequestParam("id") Long id) {
         materialRequisitionService.deleteMaterialRequisition(id);
         return success(true);
@@ -69,7 +69,7 @@ public class MaterialRequisitionController {
     @GetMapping("/get")
     @Operation(summary = "查询领料申请详情")
     @Parameter(name = "id", description = "领料申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-material-req:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-material-req:query')")
     public CommonResult<MaterialRequisitionRespVO> getMaterialRequisition(@RequestParam("id") Long id) {
         MaterialRequisitionDO entity = materialRequisitionService.getMaterialRequisition(id);
         return success(BeanUtils.toBean(entity, MaterialRequisitionRespVO.class));
@@ -77,7 +77,7 @@ public class MaterialRequisitionController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询领料申请")
-    @PreAuthorize("@ss.hasPermission('pms:eng-material-req:query')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-material-req:query')")
     public CommonResult<PageResult<MaterialRequisitionRespVO>> getMaterialRequisitionPage(@Validated MaterialRequisitionPageReqVO pageReqVO) {
         PageResult<MaterialRequisitionDO> pageResult = materialRequisitionService.getMaterialRequisitionPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, MaterialRequisitionRespVO.class));
@@ -86,7 +86,7 @@ public class MaterialRequisitionController {
     @PutMapping("/submit")
     @Operation(summary = "提交领料申请（0 草稿 / 4 已驳回 → 1 已提交）")
     @Parameter(name = "id", description = "领料申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-material-req:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-material-req:update')")
     public CommonResult<Boolean> submitMaterialRequisition(@RequestParam("id") Long id) {
         materialRequisitionService.submitMaterialRequisition(id);
         return success(true);
@@ -94,7 +94,7 @@ public class MaterialRequisitionController {
 
     @PutMapping("/approve")
     @Operation(summary = "审批领料申请（1 已提交 / 2 审批中 → 3/4/0/2）")
-    @PreAuthorize("@ss.hasPermission('pms:eng-material-req:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-material-req:update')")
     public CommonResult<Boolean> approveMaterialRequisition(@Valid @RequestBody MaterialRequisitionApproveReqVO reqVO) {
         materialRequisitionService.approveMaterialRequisition(reqVO);
         return success(true);
@@ -103,7 +103,7 @@ public class MaterialRequisitionController {
     @PutMapping("/withdraw")
     @Operation(summary = "撤回领料申请（1 已提交 / 2 审批中 → 5 已撤回）")
     @Parameter(name = "id", description = "领料申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-material-req:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-material-req:update')")
     public CommonResult<Boolean> withdrawMaterialRequisition(@RequestParam("id") Long id) {
         materialRequisitionService.withdrawMaterialRequisition(id);
         return success(true);
@@ -112,7 +112,7 @@ public class MaterialRequisitionController {
     @PutMapping("/terminate")
     @Operation(summary = "终止领料申请（非 3 已通过 / 非 6 已终止 → 6 已终止）")
     @Parameter(name = "id", description = "领料申请编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-material-req:update')")
+    @PreAuthorize("@ss.hasPermission('pms:imp-material-req:update')")
     public CommonResult<Boolean> terminateMaterialRequisition(@RequestParam("id") Long id) {
         materialRequisitionService.terminateMaterialRequisition(id);
         return success(true);

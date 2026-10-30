@@ -1,0 +1,62 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "项目交付":
+    - generic: 项目交付
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程" [expanded]:
+    - generic: 工作流程
+    - menu:
+      - menuitem "审批中心" [expanded]:
+        - generic: 审批中心
+        - menu:
+          - menuitem "待办任务":
+            - generic: 待办任务
+          - menuitem "已办任务":
+            - generic: 已办任务
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button
+- button "首页":
+  - text: 首页
+- button "已办任务":
+  - text: 已办任务
+- button "流程详情":
+  - generic: 流程详情
+- button:
+- generic: 编号：1776131e-c9df-11f1-9092-00ff0b78abd7
+- separator
+- generic: 默认业务独立审批验收 20261012
+- generic: 审批通过
+- generic: 管
+- text: 管理员
+- generic: 2026-10-17 11:59:03 提交
+- tablist:
+  - tab "审批详情" [selected]
+  - tab "流程图"
+  - tab "流转记录"
+  - tab "流程评论"
+- tabpanel "审批详情":
+  - generic: 审批说明
+  - textbox "审批说明" [disabled]
+  - list:
+    - generic: 发起人
+    - generic: 2026-10-17 11:59:03
+    - generic: 管
+    - text: 管理员
+    - generic: 人工审核
+    - generic: 2026-10-17 11:59:27
+    - generic: 周
+    - text: 周文成
+    - generic: 审批意见：manager-permission-20261017 isolated approval acceptance
+    - generic: 结束
+    - generic: 2026-10-17 11:59:27
+- generic: Copyright ©2026 项目实施交付管理平台

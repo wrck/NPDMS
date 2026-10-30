@@ -78,8 +78,8 @@ public class SelectedCustomerProjectController {
                         site.getSiteId(), site.getSiteVersion(), site.getPrimarySite())).toList();
         var command = new ManualProjectCreateCommand(draft, request.getOrderOfficeCompanyId(),
                 request.getOrderOfficeDepartmentId(), sites, request.getTemplateRevisionId(),
-                request.getCandidateWatermark(), request.getServiceManagerUserId(), idempotencyKey,
-                DigestUtil.sha256Hex(JsonUtils.toJsonString(request)));
+                request.getCandidateWatermark(), request.getServiceManagerUserId(), request.getContractId(),
+                idempotencyKey, DigestUtil.sha256Hex(JsonUtils.toJsonString(request)));
         return success(creationService.createWithSelectedCustomer(command,
                 new ProjectManualCreationApplicationService.Actor(
                         TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(),

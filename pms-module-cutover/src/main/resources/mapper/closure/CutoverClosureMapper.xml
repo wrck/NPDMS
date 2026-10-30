@@ -1,21 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureMapper">
-    <select id="selectByTask" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO">
-        SELECT * FROM cut_cutover_closure
+    <resultMap id="structuredCutoverClosureDO" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO" autoMapping="false">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="task_id" property="taskId"/>
+        <result column="project_id" property="projectId"/>
+        <result column="approval_instance_id" property="approvalInstanceId"/>
+        <result column="approval_version" property="approvalVersion"/>
+        <result column="plan_revision_id" property="planRevisionId"/>
+        <result column="plan_revision_no" property="planRevisionNo"/>
+        <result column="plan_version" property="planVersion"/>
+        <result column="task_version_at_p6" property="taskVersionAtP6"/>
+        <result column="status_code" property="statusCode"/>
+        <result column="pre_check_normal_flag" property="preCheckNormal"/>
+        <result column="pre_check_detail" property="preCheckDetail"/>
+        <result column="execution_normal_flag" property="executionNormal"/>
+        <result column="execution_detail" property="executionDetail"/>
+        <result column="test_normal_flag" property="testNormal"/>
+        <result column="test_detail" property="testDetail"/>
+        <result column="rollback_occurred_flag" property="rollbackOccurred"/>
+        <result column="rollback_successful_flag" property="rollbackSuccessful"/>
+        <result column="rollback_reason" property="rollbackReason"/>
+        <result column="legacy_items" property="legacyItems"/>
+        <result column="final_result_code" property="finalResultCode"/>
+        <result column="result_ref" property="resultRef"/>
+        <result column="submit_user_id" property="submittedBy"/>
+        <result column="submit_time" property="submittedAt"/>
+        <result column="archive_time" property="archivedAt"/>
+        <result column="version" property="version"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <select id="selectByTask" resultMap="structuredCutoverClosureDO">
+        SELECT id, tenant_id, task_id, project_id, approval_instance_id, approval_version, plan_revision_id, plan_revision_no, plan_version, task_version_at_p6, status_code, pre_check_normal_flag, pre_check_detail, execution_normal_flag, execution_detail, test_normal_flag, test_detail, rollback_occurred_flag, rollback_successful_flag, rollback_reason, legacy_items, final_result_code, result_ref, submit_user_id, submit_time, archive_time, version, creator, create_time, updater, update_time, deleted FROM cut_cutover_closure
         WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId} AND deleted = b'0'
     </select>
-    <select id="selectByTaskForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO">
-        SELECT * FROM cut_cutover_closure
+    <select id="selectByTaskForUpdate" resultMap="structuredCutoverClosureDO">
+        SELECT id, tenant_id, task_id, project_id, approval_instance_id, approval_version, plan_revision_id, plan_revision_no, plan_version, task_version_at_p6, status_code, pre_check_normal_flag, pre_check_detail, execution_normal_flag, execution_detail, test_normal_flag, test_detail, rollback_occurred_flag, rollback_successful_flag, rollback_reason, legacy_items, final_result_code, result_ref, submit_user_id, submit_time, archive_time, version, creator, create_time, updater, update_time, deleted FROM cut_cutover_closure
         WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId} AND deleted = b'0'
         FOR UPDATE
     </select>
     <update id="updateDraftIfMatch">
         UPDATE cut_cutover_closure
-        SET pre_check_normal = #{query.preCheckNormal}, pre_check_detail = #{query.preCheckDetail},
-            execution_normal = #{query.executionNormal}, execution_detail = #{query.executionDetail},
-            test_normal = #{query.testNormal}, test_detail = #{query.testDetail},
-            rollback_occurred = #{query.rollbackOccurred}, rollback_successful = #{query.rollbackSuccessful},
+        SET pre_check_normal_flag = #{query.preCheckNormal}, pre_check_detail = #{query.preCheckDetail},
+            execution_normal_flag = #{query.executionNormal}, execution_detail = #{query.executionDetail},
+            test_normal_flag = #{query.testNormal}, test_detail = #{query.testDetail},
+            rollback_occurred_flag = #{query.rollbackOccurred}, rollback_successful_flag = #{query.rollbackSuccessful},
             rollback_reason = #{query.rollbackReason}, legacy_items = #{query.legacyItems},
             version = version + 1,
             updater = #{query.updater}, update_time = #{query.updateTime}
@@ -25,8 +60,8 @@
     <update id="submitIfMatch">
         UPDATE cut_cutover_closure
         SET status_code = 'SUBMITTED', final_result_code = #{query.finalResultCode},
-            result_ref = #{query.resultRef}, submitted_by = #{query.submittedBy},
-            submitted_at = #{query.submittedAt}, archived_at = #{query.submittedAt},
+            result_ref = #{query.resultRef}, submit_user_id = #{query.submittedBy},
+            submit_time = #{query.submittedAt}, archive_time = #{query.submittedAt},
             version = version + 1, update_time = NOW(3)
         WHERE tenant_id = #{query.tenantId} AND id = #{query.closureId}
           AND version = #{query.expectedVersion} AND status_code = 'DRAFT' AND deleted = b'0'

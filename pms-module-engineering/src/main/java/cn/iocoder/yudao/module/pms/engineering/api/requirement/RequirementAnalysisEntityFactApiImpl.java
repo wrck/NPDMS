@@ -14,7 +14,6 @@ import cn.iocoder.yudao.module.pms.project.api.organization.ProjectOrganizationF
 import cn.iocoder.yudao.module.pms.project.api.organization.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.*;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
@@ -28,14 +27,13 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 @Service
 @RequiredArgsConstructor
 public class RequirementAnalysisEntityFactApiImpl implements RequirementAnalysisEntityFactApi {
-    private static final ProjectWorkBindingTarget WORK_BINDING_TARGET = ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS;
     private final RequirementAnalysisMapper mapper;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectOrganizationFactApi organizationFactApi;
-    private final ProjectWorkBindingFactApi workBindingFactApi;
     private final RequirementAnalysisEntityQueryService queries;
     private final RequirementAnalysisRevisionFiles files;
+    private final cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisExecutionAccess executionAccess;
 
     @Override
     @Transactional(readOnly = true)
@@ -43,8 +41,11 @@ public class RequirementAnalysisEntityFactApiImpl implements RequirementAnalysis
         requireQuery(query);
         var actor = trustedActor();
         requireQueryPermission(actor);
-        requireScope(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.actorId(),
-                query.projectId(), ProjectScopeApi.ACTION_VIEW)), query.projectId());
+        requireScope(projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()), query.projectId());
         var project = organizationFactApi.inspect(new ProjectOrganizationFactQuery(query.projectId()));
         requireProject(project, query.projectId());
         var selected = query.revisionId() == null
@@ -52,11 +53,8 @@ public class RequirementAnalysisEntityFactApiImpl implements RequirementAnalysis
                 : mapper.selectRevision(new RequirementRevisionQuery(actor.tenantId(), query.revisionId()));
         if (selected == null && query.revisionId() == null) return null;
         requireCompleted(selected, query);
-        var origin = originBinding(selected);
-        var binding = requireBinding(origin.projectStageId() != null
-                ? workBindingFactApi.inspectStage(new ProjectWorkBindingStageFactQuery(query.projectId(), origin.projectStageId(), WORK_BINDING_TARGET))
-                : workBindingFactApi.inspectTask(new ProjectWorkBindingTaskFactQuery(query.projectId(), origin.projectTaskId(), WORK_BINDING_TARGET)), project);
-        requireOriginNode(selected, binding);
+        if (independentOrigin(selected) != null) return fact(selected, project, null, actor);
+        var binding = originBinding(selected);
         return fact(selected, project, binding, actor);
     }
 
@@ -66,26 +64,24 @@ public class RequirementAnalysisEntityFactApiImpl implements RequirementAnalysis
         requireQuery(expected);
         var actor = trustedActor();
         requireQueryPermission(actor);
-        var scope = requireScope(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.actorId(),
-                expected.projectId(), ProjectScopeApi.ACTION_VIEW)), expected.projectId());
-        requireScope(projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.actorId(),
-                expected.projectId(), ProjectScopeApi.ACTION_VIEW, scope.treeVersion())), expected.projectId());
+        var scope = requireScope(projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(expected.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()), expected.projectId());
+        requireScope(projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(expected.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(scope.treeVersion()).build()), expected.projectId());
         var project = organizationFactApi.lockAndRevalidate(new ProjectOrganizationFactRevalidationQuery(
                 expected.projectId(), expected.projectVersion()));
         requireProject(project, expected.projectId());
-        var prior = expected.workBinding();
-        if (prior == null) throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
-        var binding = requireBinding(prior.projectStageId() != null
-                ? workBindingFactApi.lockAndRevalidateStage(new ProjectWorkBindingStageFactRevalidationQuery(expected.projectId(),
-                    prior.projectStageId(), prior.executionContractId(), prior.projectStageVersion(), prior.executionContractVersion(),
-                    expected.projectVersion(), WORK_BINDING_TARGET))
-                : workBindingFactApi.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(expected.projectId(),
-                    prior.projectTaskId(), prior.executionContractId(), prior.projectTaskVersion(), prior.executionContractVersion(),
-                    expected.projectVersion(), WORK_BINDING_TARGET)), project);
         mapper.lockCurrent(new RequirementEntityQuery(actor.tenantId(), expected.entityId()));
         var selected = mapper.lockRevision(new RequirementRevisionQuery(actor.tenantId(), expected.revisionId()));
         requireCompleted(selected, new Query(expected.projectId(), expected.entityId(), expected.revisionId()));
-        requireOriginNode(selected, binding);
+        var binding = independentOrigin(selected) == null ? originBinding(selected) : null;
         files.lockForFreeze(selected.revisionRef(), new EntityActor(actor.tenantId(), actor.actorId(), null));
         var current = fact(selected, project, binding, actor);
         if (!Objects.equals(expected, current)) throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
@@ -97,17 +93,19 @@ public class RequirementAnalysisEntityFactApiImpl implements RequirementAnalysis
         var view = queries.revision(selected.getId(), new EntityActor(actor.tenantId(), actor.actorId(), null));
         var effective = mapper.selectEffective(new RequirementProjectQuery(actor.tenantId(), selected.getProjectId()));
         var form = view.form();
-        if (!Objects.equals(selected.getProjectTemplateId(), binding.projectTemplateId())
-                || !Objects.equals(selected.getProjectTemplateRevisionId(), binding.templateRevisionId())
-                || selected.effective() && form != null && (!Objects.equals(form.templateId(), binding.dynamicFormTemplateId())
-                || !Objects.equals(form.binding().formRevisionId(), binding.dynamicFormTemplateRevisionId())))
+        var independent = binding == null ? independentOrigin(selected) : null;
+        if (binding == null && independent == null) throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
+        Long templateId = binding == null ? independent.projectTemplateId() : binding.projectTemplateId();
+        Long templateRevisionId = binding == null ? independent.templateRevisionId() : binding.templateRevisionId();
+        if (!Objects.equals(selected.getProjectTemplateId(), templateId)
+                || !Objects.equals(selected.getProjectTemplateRevisionId(), templateRevisionId))
             throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
         var fileFacts = view.attachments().stream().flatMap(set -> set.activeFacts().stream())
                 .sorted(Comparator.comparing(f -> f.referenceKey())).map(f -> new RequirementAnalysisFileFact(
                     f.artifactId(), f.versionNo(), f.referenceKey(), f.fileFactVersion().artifactVersion(),
                     f.fileFactVersion().referenceVersion(), f.fileFactVersion().availabilityVersion(), f.scopeVersion())).toList();
         return new Fact(selected.getProjectId(), selected.getEntityId(), selected.getId(), selected.getRevisionNo(),
-                selected.getVersion(), project.projectVersion(), selected.getProjectTemplateRevisionId(), workBindingFact(binding),
+                selected.getVersion(), project.projectVersion(), selected.getProjectTemplateRevisionId(), binding == null ? null : workBindingFact(binding),
                 form == null ? null : new Form(form.binding().formRevisionId(), form.binding().version(),
                     form.binding().extensionDefinitionRevisionId(), form.binding().fieldBindings()),
                 view.extensionDefinitionRevisionId(), view.extensionValueVersion(), view.values(), fileFacts,
@@ -120,24 +118,6 @@ public class RequirementAnalysisEntityFactApiImpl implements RequirementAnalysis
                 || !"FROZEN".equals(selected.getRevisionState()) || selected.getRevisionNo() == null
                 || selected.getVersion() == null || selected.getFrozenBy() == null || selected.getFrozenAt() == null)
             throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
-    }
-
-    private ProjectWorkBindingFact requireBinding(ProjectWorkBindingFact binding, ProjectOrganizationFact project) {
-        if (binding == null || !Objects.equals(binding.projectId(), project.projectId())
-                || !Objects.equals(binding.projectVersion(), project.projectVersion())
-                || (binding.projectTaskId() == null) == (binding.projectStageId() == null)
-                || (binding.projectStageId() != null ? binding.projectStageVersion() == null : binding.projectTaskVersion() == null)
-                || binding.executionContractId() == null || binding.contractVersion() == null
-                || binding.projectTemplateId() == null
-                || !Objects.equals(binding.workBindingTypeCode(), WORK_BINDING_TARGET.workBindingTypeCode())
-                || !Objects.equals(binding.targetContextCode(), WORK_BINDING_TARGET.targetContextCode())
-                || !Objects.equals(binding.targetObjectType(), WORK_BINDING_TARGET.targetObjectType())
-                || !Objects.equals(binding.targetObjectKey(), WORK_BINDING_TARGET.targetObjectKey())
-                || binding.dynamicFormTemplateId() == null || binding.dynamicFormTemplateRevisionId() == null
-                || binding.dynamicFormRevisionNo() == null || binding.dynamicFormRevisionFactVersion() == null) {
-            throw exception(REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID);
-        }
-        return binding;
     }
 
     private RequirementAnalysisWorkBindingFact workBindingFact(ProjectWorkBindingFact binding) {
@@ -154,17 +134,31 @@ public class RequirementAnalysisEntityFactApiImpl implements RequirementAnalysis
         var frozen = root.getExecutionSnapshot() == null ? null : JsonUtils.parseObject(root.getExecutionSnapshot(),
                 cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisExecutionAccess.Frozen.class);
         var origin = frozen == null ? null : frozen.binding();
+        var target = ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS;
         if (origin == null || !Objects.equals(root.getProjectId(), origin.projectId())
-                || (origin.projectTaskId() == null) == (origin.projectStageId() == null))
+                || (origin.projectTaskId() == null) == (origin.projectStageId() == null)
+                || !Objects.equals(target.workBindingTypeCode(), origin.workBindingTypeCode())
+                || !Objects.equals(target.targetContextCode(), origin.targetContextCode())
+                || !Objects.equals(target.targetObjectType(), origin.targetObjectType())
+                || !Objects.equals(target.targetObjectKey(), origin.targetObjectKey())
+                || origin.executionContractId() == null || origin.contractVersion() == null)
             throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
         return origin;
     }
 
-    private void requireOriginNode(RequirementAnalysisRevisionDO root, ProjectWorkBindingFact current) {
-        var origin = originBinding(root);
-        if (!Objects.equals(origin.projectTaskId(), current.projectTaskId())
-                || !Objects.equals(origin.projectStageId(), current.projectStageId()))
+    /** Independent results freeze Owner configuration without inventing a task/stage origin. */
+    private cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisExecutionAccess.Frozen independentOrigin(
+            RequirementAnalysisRevisionDO root) {
+        var frozen = root.getExecutionSnapshot() == null ? null : JsonUtils.parseObject(root.getExecutionSnapshot(),
+                cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisExecutionAccess.Frozen.class);
+        if (frozen == null || !frozen.independent()) return null;
+        frozen = executionAccess.frozen(root.getProjectId(), root.getExecutionSnapshot());
+        if (!Objects.equals(root.getTenantId(), TenantContextHolder.getRequiredTenantId())
+                || !Objects.equals(root.getTenantId(), frozen.configurationTenantId())
+                || !Objects.equals(root.getProjectTemplateId(), frozen.projectTemplateId())
+                || !Objects.equals(root.getProjectTemplateRevisionId(), frozen.templateRevisionId()))
             throw exception(REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE);
+        return frozen;
     }
 
     private ProjectScopeResult requireScope(ProjectScopeResult scope, Long projectId) {

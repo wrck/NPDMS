@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class TaskBusinessBindingHostProviderTest {
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi regional = mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
     private final ProjectTaskBusinessService business = mock(ProjectTaskBusinessService.class);
     private final ProjectTaskRuntimeMapper tasks = mock(ProjectTaskRuntimeMapper.class);
     private final ProjectTaskAssignmentMapper assignments = mock(ProjectTaskAssignmentMapper.class);
@@ -31,7 +32,7 @@ class TaskBusinessBindingHostProviderTest {
     private final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
     private final TaskBusinessBindingHostProvider host = new TaskBusinessBindingHostProvider(
-            business, tasks, assignments, members, states, scopes, permissions);
+            business, tasks, assignments, members, states, scopes, permissions, regional);
     private final TaskBindingInspectionQuery query = new TaskBindingInspectionQuery(1L, 10L, 5L, "corr");
 
     @BeforeEach void setup() {
@@ -42,7 +43,8 @@ class TaskBusinessBindingHostProviderTest {
         when(tasks.selectTask(any())).thenReturn(task);
         var manager = new ProjectMemberAssignmentDO();
         manager.setProjectId(20L); manager.setMemberRole("PROJECT_MANAGER");
-        when(members.selectActiveByUser(any())).thenReturn(List.of(manager));
+        when(members.selectAuthorizedByUser(any())).thenReturn(List.of(manager));
+        when(regional.permits(any())).thenReturn(true);
         var transition = new TaskStateTransitionDO();
         transition.setFromStatusCode("PENDING_ACCEPT"); transition.setActionCode("CANCEL");
         transition.setAllowedRoleCode("CURRENT_PROJECT_MANAGER_OR_RULE_APPROVER");
@@ -71,7 +73,41 @@ class TaskBusinessBindingHostProviderTest {
     }
 
     @Test void ownerActionsNeverGrantMissingManagerRole() {
-        when(members.selectActiveByUser(any())).thenReturn(List.of());
+        when(regional.permits(any())).thenReturn(false);
+        when(members.selectAuthorizedByUser(any())).thenReturn(List.of());
+        assertTrue(host.inspect(query).allowedActions().isEmpty());
+    }
+
+    @Test void currentServiceManagerHasSameCancelAuthorityAsProjectManager() {
+        var manager = new ProjectMemberAssignmentDO();
+        manager.setProjectId(20L); manager.setMemberRole("SERVICE_MANAGER");
+        when(members.selectAuthorizedByUser(any())).thenReturn(List.of(manager));
+        when(regional.permits(any())).thenReturn(true);
+        assertEquals(Set.of("CANCEL"), host.inspect(query).allowedActions());
+    }
+
+    @Test void regionalManagerCanCancelWithoutAMemberButKeepsPermissionAndScopeChecks() {
+        when(members.selectAuthorizedByUser(any())).thenReturn(List.of());
+        when(regional.permits(any())).thenReturn(true);
+        assertEquals(Set.of("CANCEL"), host.inspect(query).allowedActions());
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L, 1L, Set.of(), Set.of()));
+        assertTrue(host.inspect(query).allowedActions().isEmpty());
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L, 1L, Set.of(20L), Set.of()));
+        when(permissions.hasAnyPermissions(5L, "pms:project-task:complete")).thenReturn(false);
+        assertTrue(host.inspect(query).allowedActions().isEmpty());
+    }
+
+    @Test void regionalManagerMayStartUnassignedTaskButCannotTakeAnotherAssigneesTask() {
+        when(members.selectAuthorizedByUser(any())).thenReturn(List.of());
+        when(regional.permits(any())).thenReturn(true);
+        var task = tasks.selectTask(null); task.setStatus("PENDING_START");
+        var start = new TaskStateTransitionDO(); start.setFromStatusCode("PENDING_START");
+        start.setActionCode("START"); start.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
+        when(states.selectTransitions(any())).thenReturn(List.of(start));
+        when(permissions.hasAnyPermissions(5L,"pms:project-task:execute")).thenReturn(true);
+        assertEquals(Set.of("START"), host.inspect(query).allowedActions());
+        var assigned = new cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectTaskAssignmentDO();
+        assigned.setAssigneeUserId(6L); when(assignments.selectCurrent(any())).thenReturn(List.of(assigned));
         assertTrue(host.inspect(query).allowedActions().isEmpty());
     }
 
@@ -95,7 +131,7 @@ class TaskBusinessBindingHostProviderTest {
     @Test void unassignedPendingTaskCanStartButDesignationAndScopeRemainEffective() {
         var task = tasks.selectTask(null); task.setStatus("PENDING_ASSIGN");
         var member = new ProjectMemberAssignmentDO(); member.setProjectId(20L); member.setMemberRole("TEAM_MEMBER");
-        when(members.selectActiveByUser(any())).thenReturn(List.of(member));
+        when(members.selectAuthorizedByUser(any())).thenReturn(List.of(member));
         var start = new TaskStateTransitionDO(); start.setFromStatusCode("PENDING_START"); start.setActionCode("START");
         start.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
         when(states.selectTransitions(any())).thenReturn(List.of(start));

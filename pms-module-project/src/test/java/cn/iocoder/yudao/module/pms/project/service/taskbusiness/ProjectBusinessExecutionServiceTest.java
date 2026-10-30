@@ -42,8 +42,8 @@ class ProjectBusinessExecutionServiceTest {
     final ProjectPlanVersionDO plan = new ProjectPlanVersionDO();
     final TemplateExecutionSnapshot snapshot = new TemplateExecutionSnapshot();
     final ProjectNodeExecutionDO node = new ProjectNodeExecutionDO();
-    final ProjectTaskExecutionContext task = new ProjectTaskExecutionContext(9L, 1, 11L, 1, 12L, 1, 21L, 31L, 1, 2, 32L, 1, true, null);
-    final ProjectStageExecutionContext stage = new ProjectStageExecutionContext(9L, 1, 11L, 1, 12L, 1, 21L, 31L, 1, 2, true);
+    final ProjectTaskExecutionContext task = new ProjectTaskExecutionContext(9L, 1L, 11L, 1, 12L, 1, 21L, 31L, 1, 2, 32L, 1, true, null);
+    final ProjectStageExecutionContext stage = new ProjectStageExecutionContext(9L, 1L, 11L, 1, 12L, 1, 21L, 31L, 1, 2, true);
 
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
@@ -51,6 +51,7 @@ class ProjectBusinessExecutionServiceTest {
         SecurityFrameworkUtils.setLoginUser(login, new MockHttpServletRequest());
         project.setId(9L); project.setTenantId(7L); project.setLifecycleStatus("ACTIVE"); project.setActivePlanVersionId(21L);
         when(projects.selectByIdForUpdate(9L)).thenReturn(project);
+        when(projects.selectById(9L)).thenReturn(project);
         plan.setId(21L); when(plans.selectEffective(any())).thenReturn(plan);
         node.setId(31L); node.setNodeInstanceId(11L); node.setContractId(12L); node.setPlanVersionId(21L);
         node.setNodeKind("TASK"); node.setNodeKey("task:survey"); node.setStatus("ACTIVE");
@@ -61,6 +62,7 @@ class ProjectBusinessExecutionServiceTest {
         when(executions.inspectStage(any())).thenReturn(stage);
         var row = new ProjectTaskInstanceDO(); row.setId(11L);
         when(access.read(11L,7L,8L)).thenReturn(row); when(access.writable(eq(row),eq(project),any())).thenReturn(true);
+        when(access.writableLocked(eq(row),eq(project),any())).thenReturn(true);
         when(views.getRevision(any())).thenReturn(view("PUBLISHED"));
         when(permissions.hasAnyPermissions(8L,"pms:project-task:execute")).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
@@ -94,7 +96,7 @@ class ProjectBusinessExecutionServiceTest {
     }
     BusinessViewRevision view(String status) {
         return new BusinessViewRevision(40L,"SITE_SURVEY","survey",1L,"SOL",BusinessViewComponentProvider.ViewSource.PAGE,
-                "SOL_SITE_SURVEY","1",null,JsonUtils.parseTree("{}"),JsonUtils.parseTree("[]"),"query","command","permission",null,null,1,status,Set.of());
+                "SOL_SITE_SURVEY","1",null,JsonUtils.parseTree("{}"),JsonUtils.parseTree("[]"),"query","command","permission",null,null,1L,status,Set.of());
     }
     TemplateExecutionSnapshot.BindingContract binding() {
         var b = new TemplateExecutionSnapshot.BindingContract(); b.setType("BUSINESS_COMPONENT"); b.setTargetContextCode("SOL");
@@ -116,7 +118,7 @@ class ProjectBusinessExecutionServiceTest {
         verify(access).read(11L,7L,8L);
     }
     @Test void explicitStaleContextNeverFallsBackToCurrentRound() {
-        var stale = new ProjectTaskExecutionContext(9L,1,11L,0,12L,1,21L,31L,0,2,32L,1,true,null);
+        var stale = new ProjectTaskExecutionContext(9L,1L,11L,0,12L,1,21L,31L,0,2,32L,1,true,null);
         when(executions.lockAndRevalidate(stale)).thenThrow(new IllegalStateException("stale"));
         assertThrows(IllegalStateException.class, () -> service.lockForWrite(request(new ProjectBusinessExecutionSelection(stale,null))));
         verify(executions,never()).inspect(any()); verify(executions).lockAndRevalidate(stale);
@@ -141,7 +143,7 @@ class ProjectBusinessExecutionServiceTest {
                 """));
         var registered = new BusinessViewRevision(40L,"REQUIREMENT_ANALYSIS","requirement",1L,"SOL",
                 BusinessViewComponentProvider.ViewSource.PAGE,"PROJ_REQUIREMENT_ANALYSIS","1",801L,
-                JsonUtils.parseTree("{}"),JsonUtils.parseTree("[]"),"query","command","permission",null,null,1,"PUBLISHED",Set.of());
+                JsonUtils.parseTree("{}"),JsonUtils.parseTree("[]"),"query","command","permission",null,null,1L,"PUBLISHED",Set.of());
         definition.setBusinessViewSnapshot(JsonUtils.parseTree(JsonUtils.toJsonString(registered)));
         freeze();
         when(views.getRevision(any())).thenReturn(registered);
@@ -191,6 +193,7 @@ class ProjectBusinessExecutionServiceTest {
     }
     @Test void taskAndStagePermissionsRemainEnforced() {
         when(access.writable(any(),any(),any())).thenReturn(false);
+        when(access.writableLocked(any(),any(),any())).thenReturn(false);
         assertThrows(ServiceException.class, () -> service.lockForWrite(request(null)));
         useStage(); when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
         assertThrows(ServiceException.class, () -> service.lockForWrite(request(null)));
@@ -207,5 +210,100 @@ class ProjectBusinessExecutionServiceTest {
         project.setTenantId(99L); assertThrows(ServiceException.class, () -> service.lockForWrite(request(null)));
         assertThrows(ServiceException.class, () -> service.lockForWrite(request(new ProjectBusinessExecutionSelection(task,stage))));
         verifyNoInteractions(executions);
+    }
+
+    private ProjectBusinessExecutionApi.WriteRequest planningRequest(String stageStatus) {
+        var binding = snapshot.getTasks().getFirst().getBinding();
+        binding.setType("BUSINESS_OBJECT"); binding.setTargetContextCode("PLN");
+        binding.setTargetObjectType("STAGE_PLAN"); binding.setTargetObjectKey("STAGE_PLAN");
+        binding.setComponentKey("PLN_STAGE_PLAN_APPROVAL");
+        var registered = new BusinessViewRevision(40L,"STAGE_PLAN","plan",1L,"PLN",BusinessViewComponentProvider.ViewSource.PAGE,
+                "PLN_STAGE_PLAN_APPROVAL","1",null,JsonUtils.parseTree("{}"),JsonUtils.parseTree("[]"),
+                "query","command","permission",null,null,1L,"PUBLISHED",Set.of());
+        binding.setBusinessViewSnapshot(JsonUtils.parseTree(JsonUtils.toJsonString(registered))); freeze();
+        when(views.getRevision(any())).thenReturn(registered);
+        var stageNode = new ProjectNodeExecutionDO(); stageNode.setId(32L); stageNode.setNodeKind("STAGE");
+        stageNode.setNodeKey("stage:planning"); stageNode.setPlanVersionId(21L); stageNode.setStatus(stageStatus); stageNode.setVersion(1);
+        var stageDefinition = new TemplateExecutionSnapshot.StageContract(); stageDefinition.setNodeKey(stageNode.getNodeKey());
+        snapshot.setStages(List.of(stageDefinition)); freeze();
+        when(nodes.selectCurrent(any())).thenReturn(List.of(node, stageNode));
+        return new ProjectBusinessExecutionApi.WriteRequest(9L,"PLN","STAGE_PLAN",null);
+    }
+
+    @ParameterizedTest @ValueSource(strings={"PENDING","DONE","CLOSED"})
+    void evenWritableOptionalPlanningTaskCannotWriteOutsideItsActiveStage(String status) {
+        var request = planningRequest(status);
+        // NodeExecutionApi intentionally allows unfinished optional work after its stage is DONE.
+        // Planning operations must not inherit that broader business-maintenance permission.
+        assertThrows(ServiceException.class, () -> service.lockForWrite(request));
+    }
+
+    @Test void regionalPlanningManagerUsesTheExistingExactOwnerQualificationInAnActiveStage() {
+        var request = planningRequest("ACTIVE");
+        when(access.writable(any(),any(),any())).thenReturn(false);
+        when(access.writableLocked(any(),any(),any())).thenReturn(false);
+        when(access.planningOperationAllowed(any())).thenReturn(true);
+        assertDoesNotThrow(() -> service.lockForWrite(request));
+        verify(executions).lockAndRevalidate(task);
+    }
+
+    @Test void durationUsesThePlanningTaskOnlyWhenNoIndependentDurationBindingExists() {
+        planningRequest("ACTIVE");
+        var request = new ProjectBusinessExecutionApi.WriteRequest(9L,"PLN","CONSTRUCTION_PLAN",null);
+        assertTrue(service.inspectForWrite(request));
+        verify(executions, never()).lockAndRevalidate(any());
+        verify(executions, never()).beginStageHandling(any(), any());
+        assertDoesNotThrow(() -> service.lockForWrite(request));
+        var independent = new TemplateExecutionSnapshot.TaskContract(); independent.setNodeKey("task:duration");
+        var binding = binding(); binding.setTargetContextCode("PLN"); binding.setTargetObjectType("CONSTRUCTION_PLAN");
+        independent.setBinding(binding);
+        snapshot.setTasks(List.of(snapshot.getTasks().getFirst(), independent)); freeze();
+        clearInvocations(executions);
+        assertFalse(service.inspectForWrite(request));
+        assertThrows(ServiceException.class, () -> service.lockForWrite(request));
+        verify(executions, never()).lockAndRevalidate(any());
+        binding.setType("UNKNOWN"); freeze();
+        assertFalse(service.inspectForWrite(request));
+        assertThrows(ServiceException.class, () -> service.lockForWrite(request));
+    }
+
+    @Test void missingTemplateAndMissingPlanningBindingFailClosedForPlanningCommands() {
+        var request = new ProjectBusinessExecutionApi.WriteRequest(9L,"PLN","CONSTRUCTION_PLAN",null);
+        project.setActivePlanVersionId(null);
+        assertFalse(service.inspectForWrite(request));
+        assertThrows(ServiceException.class, () -> service.lockForWrite(request));
+        project.setActivePlanVersionId(21L);
+        assertFalse(service.inspectForWrite(request));
+        assertThrows(ServiceException.class, () -> service.lockForWrite(request));
+    }
+
+    @Test void multipleWritablePlanningBindingsCannotBeSilentlyChosenForDurationEntry() {
+        planningRequest("ACTIVE");
+        var other = new ProjectNodeExecutionDO(); other.setId(99L); other.setNodeKind("TASK"); other.setNodeKey(node.getNodeKey());
+        other.setNodeInstanceId(13L); other.setContractId(14L); other.setPlanVersionId(21L); other.setStatus("ACTIVE");
+        when(nodes.selectCurrent(any())).thenReturn(List.of(node, other));
+        var request = new ProjectBusinessExecutionApi.WriteRequest(9L,"PLN","CONSTRUCTION_PLAN",null);
+        assertFalse(service.inspectForWrite(request));
+        assertThrows(ServiceException.class, () -> service.lockForWrite(request));
+        verify(executions, never()).lockAndRevalidate(any());
+    }
+
+    @Test void independentDurationBindingRetainsItsOwnWritableStageAndRegionalQualification() {
+        planningRequest("ACTIVE");
+        var binding = snapshot.getTasks().getFirst().getBinding();
+        binding.setTargetObjectType("CONSTRUCTION_PLAN"); binding.setTargetObjectKey("CONSTRUCTION_PLAN");
+        binding.setComponentKey("PLN_CONSTRUCTION_PLAN");
+        var registered = new BusinessViewRevision(40L,"CONSTRUCTION_PLAN","duration",1L,"PLN",BusinessViewComponentProvider.ViewSource.PAGE,
+                "PLN_CONSTRUCTION_PLAN","1",null,JsonUtils.parseTree("{}"),JsonUtils.parseTree("[]"),
+                "query","command","permission",null,null,1L,"PUBLISHED",Set.of());
+        binding.setBusinessViewSnapshot(JsonUtils.parseTree(JsonUtils.toJsonString(registered))); freeze();
+        when(views.getRevision(any())).thenReturn(registered);
+        when(access.writable(any(),any(),any())).thenReturn(false);
+        when(access.writableLocked(any(),any(),any())).thenReturn(false);
+        when(access.planningOperationAllowed(any())).thenReturn(true);
+        var request = new ProjectBusinessExecutionApi.WriteRequest(9L,"PLN","CONSTRUCTION_PLAN",null);
+        assertTrue(service.inspectForWrite(request));
+        assertDoesNotThrow(() -> service.lockForWrite(request));
+        verify(executions).lockAndRevalidate(task);
     }
 }

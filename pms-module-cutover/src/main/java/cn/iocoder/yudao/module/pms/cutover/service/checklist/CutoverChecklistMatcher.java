@@ -43,7 +43,9 @@ public final class CutoverChecklistMatcher {
                 });
         List<MatchedItem> ready = new ArrayList<>();
         List<Conflict> conflicts = new ArrayList<>();
-        matchesByKey.forEach((stableItemKey, matches) -> {
+        matchesByKey.forEach((stableItemKey, allMatches) -> {
+            Integer winningPriority = allMatches.getFirst().rule().priority();
+            List<RuleMatch> matches = allMatches.stream().filter(m -> java.util.Objects.equals(winningPriority, m.rule().priority())).toList();
             Map<String, List<RuleMatch>> byDefinition = matches.stream().collect(java.util.stream.Collectors.groupingBy(
                     match -> match.item().id() + ":" + match.item().itemDefinitionVersion(),
                     LinkedHashMap::new, java.util.stream.Collectors.toList()));
@@ -62,7 +64,8 @@ public final class CutoverChecklistMatcher {
                         Comparator.nullsLast(Integer::compareTo))
                 .thenComparing(value -> value.item().stableItemKey()));
         conflicts.sort(Comparator.comparing(Conflict::stableItemKey));
-        return new MatchResult(List.copyOf(ready), List.copyOf(conflicts), ready.isEmpty() && conflicts.isEmpty());
+        return new MatchResult(List.copyOf(ready), List.copyOf(conflicts), ready.isEmpty() && conflicts.isEmpty(),
+                matchesByKey.values().stream().flatMap(List::stream).map(m -> m.rule().id()).distinct().sorted().toList());
     }
 
     private Candidate candidate(CutoverFrozenConfiguration.ItemDefinition item, List<RuleMatch> matches) {
@@ -127,7 +130,8 @@ public final class CutoverChecklistMatcher {
     public record MatchInput(Map<String, ? extends Collection<String>> dimensions) {
     }
 
-    public record MatchResult(List<MatchedItem> readyItems, List<Conflict> conflicts, boolean gap) {
+    public record MatchResult(List<MatchedItem> readyItems, List<Conflict> conflicts, boolean gap,
+                              List<Long> matchedRuleIds) {
     }
 
     public record MatchedItem(CutoverFrozenConfiguration.ItemDefinition item,

@@ -18,11 +18,6 @@ public class BriefingSaveReqVO {
     @Schema(description = "主键，更新时必填", example = "1024")
     private Long id;
 
-    @Schema(description = "交底书编号，全局唯一且创建后不可变", requiredMode = Schema.RequiredMode.REQUIRED, example = "BR-2026-001")
-    @NotBlank(message = "交底书编号不能为空")
-    @Size(max = 64, message = "交底书编号长度不能超过 64 个字符")
-    private String code;
-
     @Schema(description = "项目编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "2048")
     @NotNull(message = "项目编号不能为空")
     private Long projectId;

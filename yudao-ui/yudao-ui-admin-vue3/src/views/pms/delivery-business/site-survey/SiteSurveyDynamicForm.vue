@@ -23,11 +23,12 @@ import formCreateEngine from '@form-create/element-ui'
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey/entity'
 import { getFormSchema } from '@/api/pms/engineering/site-survey/entity'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
-import { extractSurveyValues, mergeSurveyValues } from './siteSurveyForm'
+import { currentSurveyRules, extractSurveyValues, mergeSurveyValues } from './siteSurveyForm'
 import SurveyOutsourceShortcut from './SurveyOutsourceShortcut.vue'
 import SurveyProcurementLinks from './SurveyProcurementLinks.vue'
 import SurveyMaterialSelector from './SurveyMaterialSelector.vue'
 import SurveyProjectEndDate from './SurveyProjectEndDate.vue'
+import SurveyPreparationBranches from './SurveyPreparationBranches.vue'
 
 // Domain components follow FormCreate's modelValue/update:modelValue contract.
 // https://www.form-create.com/v3/guide/custom-form-component
@@ -35,13 +36,14 @@ const businessComponents = {
   SurveyOutsourceShortcut,
   SurveyProcurementLinks,
   SurveyMaterialSelector,
-  SurveyProjectEndDate
+  SurveyProjectEndDate,
+  SurveyPreparationBranches
 }
 Object.entries(businessComponents).forEach(([name, component]) =>
   formCreateEngine.component(`Entity${name}`, component)
 )
 
-const props = defineProps<{ modelValue: SiteSurveyVO; readonly: boolean }>()
+const props = defineProps<{ modelValue: SiteSurveyVO; readonly: boolean; applicationRevision?: number }>()
 const emit = defineEmits<{
   'update:modelValue': [value: SiteSurveyVO]
   action: [kind: string, sn?: string]
@@ -65,11 +67,13 @@ const load = async () => {
     )
     if (sequence !== loadSequence) return
     const decoded = decodeDynamicForm(schema.formConfJson, schema.formRulesJson)
+    decoded.rule = currentSurveyRules(decoded.rule)
     const model = { ...props.modelValue, fieldCatalog: schema.fieldCatalog,
       fieldBindings: props.modelValue.id ? props.modelValue.fieldBindings : schema.fieldBindings }
     const initialValues = extractSurveyValues(model)
     if (!props.readonly) emit('update:modelValue', model)
     let integratedOutsource = false
+    const inBranches = decoded.rule.some((rule: any) => rule?.type === 'SurveyPreparationBranches')
     const visit = (items: any[]) =>
       items.forEach((rule) => {
         if (!rule || typeof rule !== 'object') return
@@ -77,12 +81,23 @@ const load = async () => {
         if (rule.type === 'checkbox' && rule.field in initialValues && initialValues[rule.field] == null)
           initialValues[rule.field] = []
         if (rule.type in businessComponents) {
-          if (rule.type === 'SurveyOutsourceShortcut') integratedOutsource = true
+          if (rule.type === 'SurveyOutsourceShortcut') {
+            integratedOutsource = true
+            // Demo 2.2 第8项联动：模板含第8项时才启用 是→显示/否→隐藏清空 的可见性契约
+            rule.props = {
+              ...rule.props,
+              hasManufacturerQuestion: decoded.rule.some(
+                (item: any) => item?.field === 'extra_manufacturerInstallation'
+              )
+            }
+          }
           rule.type = `Entity${rule.type}`
           rule.props = {
             ...rule.props,
-            getSurvey: () => props.modelValue,
+            getSurvey: () => mergeSurveyValues(props.modelValue, values.value),
             readonly: props.readonly,
+            inBranches,
+            getApplicationRevision: () => props.applicationRevision ?? 0,
             updateProjectVersion: (version: number, needsInitialSync: boolean) => {
               if (!props.readonly)
                 emit('update:modelValue', {
@@ -103,6 +118,7 @@ const load = async () => {
           }
         }
         if (rule.type === 'Editor') {
+          rule.style = { ...rule.style, width: '100%', minWidth: '0' }
           const readonly =
             props.readonly ||
             rule.props?.readonly === true ||

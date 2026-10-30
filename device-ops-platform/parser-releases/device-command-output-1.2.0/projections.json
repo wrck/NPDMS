@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.2.0",
+  "profiles": [
+    {
+      "projectionId": "deviceBasic",
+      "description": "设备身份、软件和硬件基础信息",
+      "missingValuePolicy": "OMIT",
+      "fields": {
+        "model": "device.identity.model",
+        "sn": "device.identity.serialNumber",
+        "softVersion": "device.software.version",
+        "platformVersion": "device.software.platformVersion",
+        "compiledAt": "device.software.compiledAt",
+        "uptimeSeconds": "device.identity.uptimeSeconds",
+        "cpuModel": "device.hardware.cpuModel",
+        "memoryBytes": "device.hardware.memoryBytes",
+        "flashBytes": "device.hardware.flashBytes",
+        "emmcBytes": "device.hardware.emmcBytes",
+        "pcbVersion": "device.hardware.pcbVersion",
+        "cpldVersion": "device.hardware.cpldVersion",
+        "basicBootloaderVersion": "device.hardware.bootloader.basicVersion",
+        "extendedBootloaderVersion": "device.hardware.bootloader.extendedVersion",
+        "modules": "device.hardware.modules"
+      }
+    },
+    {
+      "projectionId": "runningConfiguration",
+      "description": "配置类命令的稳定配置段",
+      "missingValuePolicy": "OMIT",
+      "fields": {"stanzas": "configuration.stanzas"}
+    },
+    {
+      "projectionId": "technicalDiagnostics",
+      "description": "综合诊断命令中的子命令段",
+      "missingValuePolicy": "OMIT",
+      "fields": {"sections": "technicalDiagnostics.sections"}
+    }
+  ]
+}

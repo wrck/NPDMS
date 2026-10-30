@@ -104,6 +104,14 @@
                 aria-label="筛选字段"
                 placeholder="字段"
               />
+              <el-select
+                v-model="filter.function"
+                clearable
+                class="!w-32"
+                aria-label="筛选函数"
+                placeholder="函数（可选）"
+                ><el-option v-for="fn in filterFunctions" :key="fn" :value="fn" :label="fn"
+              /></el-select>
               <el-select v-model="filter.operator" class="!w-36" aria-label="筛选操作符"
                 ><el-option v-for="op in operators" :key="op" :value="op" :label="op"
               /></el-select>
@@ -168,6 +176,7 @@ const expanded = ref(model.value.sources[0]?.object || '')
 const tables = ref<{ name: string; type: string }[]>([])
 const columns = reactive<Record<string, string[]>>({})
 const operators = ['=', '<>', '>', '>=', '<', '<=', 'LIKE', 'IN', 'IS NULL', 'IS NOT NULL']
+const filterFunctions = ['LENGTH', 'CHAR_LENGTH', 'UPPER', 'LOWER', 'TRIM', 'ABS']
 const objectLabel = (name: string) =>
   props.adapter.objects.find((o) => o.name === name)?.label || name
 const loadColumns = async (source: api.Source) => {

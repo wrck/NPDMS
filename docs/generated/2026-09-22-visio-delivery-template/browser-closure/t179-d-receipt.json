@@ -1,0 +1,264 @@
+{
+  "batches_before": [],
+  "drawer_head": "任务办理\n施工计划制定与审批\nPLAN_CONSTRUCTION\n进行中\nS2 施工计划制定与审批 / PLAN_CONSTRUCTION\n状态\t\n进行中\n\t计划开始\t-\n计划结束\t-\t进度\t0%\n任务版本\t1\t业务层级\t-\n实际开始\t2026-09-24 10:50:59\t实际结束\t-\n任务说明\t\n编辑说明\n来源：制定施工计划页72、149、299、110、188、173。直签引用合同验收时间，其他项目引用工前准备有效工期；项目经理制定、服务经理审核，驳回在原计划修改重提。需求方确认188按“审核施工计划”配置。与S3并行，DURATION_EFFECTIVE仅为输入，不能替代计划审批。【待接入完成依据】已部署阶段施工计划审批流程pms-sol-stage-plan，但模板目录未提供该计划精确版本审批通过的完成事实；当前保留空完成规则，发布预检应阻止投用。\n交付件清单\n必选\n经审批施工计划\nD_CONSTRUCTION_PLAN\n待提交\n提交与查看\n\n文件或业务成果有效且模板条件满足时，自动满足交付要求。\n\n关闭任务\n编辑任务资料\n任务业务办理\n刷新业务结果\n施工计划\n\n从工期要求倒",
+  "embedded_schedule_toolbar": 1,
+  "create_btn_count": 2,
+  "create_response": {
+    "code": 0,
+    "data": {
+      "baselineEnd": "2026-11-23",
+      "baselineStart": "2026-09-24",
+      "bpmProcessInstanceId": null,
+      "calculatedEnd": "2026-11-23",
+      "calculatedStart": "2026-09-24",
+      "createTime": 1790246395000,
+      "durationRevisionId": "2102939248321323011",
+      "effectiveAt": null,
+      "id": 24,
+      "inputSnapshot": "{\"sourcePlanVersionId\":\"2102939027864510465\",\"signingMethod\":\"DIRECT_SIGN\",\"durationStart\":\"2026-09-24\",\"durationEnd\":\"2026-11-23\",\"stages\":[{\"stageId\":994009100779,\"stageCode\":\"S0\",\"acceptanceTime\":null,\"tasks\":[]},{\"stageId\":994009100780,\"stageCode\":\"S1\",\"acceptanceTime\":null,\"tasks\":[{\"taskId\":\"2102939027000483841\",\"taskCode\":\"PRE_SURVEY\",\"acceptanceTime\":null,\"version\":2},{\"taskId\":\"2102939027000483842\",\"taskCode\":\"PRE_REQUIREMENT\",\"acceptanceTime\":null,\"version\":2},{\"taskId\":\"2102939027000483843\",\"taskCode\":\"PRE_DURATION\",\"acceptanceTime\":null,\"version\":2},{\"taskId\":\"2102939027000483844\",\"taskCode\":\"PRE_CONTACT\",\"acceptanceTime\":null,\"version\":3}]},{\"stageId\":994009100781,\"stageCode\":\"S2\",\"acceptanceTime\":null,\"tasks\":[{\"taskId\":\"2102939027000483845\",\"taskCode\":\"PLAN_CONSTRUCTION\",\"acceptanceTime\":null,\"version\":1}]},{\"stageId\":994009100783,\"stageCode\":\"S4\",\"acceptanceTime\":null,\"tasks\":[{\"taskId\":\"2102939027000483847\",\"taskCode\":\"DEPLOY_COORDINATE\",\"acceptanceTime\":null,\"version\":0},{\"taskId\":\"2102939027000483848\",\"taskCode\":\"DEPLOY_ARRIVAL\",\"acceptanceTime\":null,\"version\":0},{\"taskId\":\"2102939027000483849\",\"taskCode\":\"DEPLOY_HARDWARE\",\"acceptanceTime\":null,\"version\":0},{\"taskId\":\"2102939027000483850\",\"taskCode\":\"DEPLOY_CONFIG\",\"acceptanceTime\":null,\"version\":0},{\"taskId\":\"2102939027000483851\",\"taskCode\":\"DEPLOY_JOINT\",\"acceptanceTime\":null,\"version\":0},{\"taskId\":\"2102939027000483852\",\"taskCode\":\"DEPLOY_CUTOVER\",\"acceptanceTime\":null,\"version\":0}]},{\"stageId\":994009100784,\"stageCode\":\"S5\",\"acceptanceTime\":\"2026-11-20T00:00\",\"tasks\":[{\"taskId\":\"2102939027000483853\",\"taskCode\":\"ACCEPT_COORDINATE\",\"acceptanceTime\":null,\"version\":0},{\"taskId\":\"2102939027000483854\",\"taskCode\":\"ACCEPT_INITIAL\",\"acceptanceTime\":null,\"version\":0},{\"taskId\":\"2102939027000483855\",\"taskCode\":\"ACCEPT_FINAL\",\"acceptanceTime\":null,\"version\":0},{\"taskId\":\"2102939027000483856\",\"taskCode\":\"ACCEPT_TRAINING\",\"acceptanceTime\":null,\"version\":0},{\"taskId\":\"2102939027000483857\",\"taskCode\":\"ACCEPT_SATISFACTION\",\"acceptanceTime\":null,\"version\":0}]}],\"pathConditions\":[]}",
+      "items": [
+        {
+          "id": 88,
+          "phaseCode": "S0",
+          "phaseId": 994009100779,
+          "phaseName": "项目立项与指派",
+          "planEnd": null,
+          "planStart": null,
+          "remark": null,
+          "sort": 0,
+          "suggestedEnd": null,
+          "suggestedStart": null
+        },
+        {
+          "id": 89,
+          "phaseCode": "S1",
+          "phaseId": 994009100780,
+          "phaseName": "工前准备",
+          "planEnd": "2027-01-23",
+          "planStart": null,
+          "remark": null,
+          "sort": 1,
+          "suggestedEnd": "2027-01-23",
+          "suggestedStart": null
+        },
+        {
+          "id": 90,
+          "phaseCode": "S2",
+          "phaseId": 994009100781,
+          "phaseName": "施工计划制定与审批",
+          "planEnd": null,
+          "planStart": null,
+          "remark": null,
+          "sort": 2,
+          "suggestedEnd": null,
+          "suggestedStart": null
+        },
+        {
+          "id": 91,
+          "phaseCode": "S4",
+          "phaseId": 994009100783,
+          "phaseName": "实施部署",
+          "planEnd": "2027-02-06",
+          "planStart": null,
+          "remark": null,
+          "sort": 3,
+          "suggestedEnd": "2027-02-06",
+          "suggestedStart": null
+        },
+        {
+          "id": 92,
+          "phaseCode": "S5",
+          "phaseId": 994009100784,
+          "phaseName": "验收交维",
+          "planEnd": "2026-11-20",
+          "planStart": null,
+          "remark": null,
+          "sort": 4,
+          "suggestedEnd": "2026-11-20",
+          "suggestedStart": null
+        }
+      ],
+      "projectId": 992203060035,
+      "rejectReason": null,
+      "remark": null,
+      "status": 0,
+      "submittedAt": null,
+      "tasks": [
+        {
+          "taskId": "2102939027000483841",
+          "parentTaskId": null,
+          "stageCode": "S1",
+          "name": "现场工勘与环境适配核对",
+          "version": 2,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483845",
+          "parentTaskId": null,
+          "stageCode": "S2",
+          "name": "施工计划制定与审批",
+          "version": 1,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483847",
+          "parentTaskId": null,
+          "stageCode": "S4",
+          "name": "客户到货及实施协调",
+          "version": 0,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483853",
+          "parentTaskId": null,
+          "stageCode": "S5",
+          "name": "客户验收交维协调",
+          "version": 0,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483842",
+          "parentTaskId": null,
+          "stageCode": "S1",
+          "name": "需求分析",
+          "version": 2,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483848",
+          "parentTaskId": null,
+          "stageCode": "S4",
+          "name": "到货验收与签收",
+          "version": 0,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483854",
+          "parentTaskId": null,
+          "stageCode": "S5",
+          "name": "项目初验",
+          "version": 0,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483843",
+          "parentTaskId": null,
+          "stageCode": "S1",
+          "name": "工期与分工界面确认",
+          "version": 2,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483849",
+          "parentTaskId": null,
+          "stageCode": "S4",
+          "name": "硬件实施",
+          "version": 0,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483855",
+          "parentTaskId": null,
+          "stageCode": "S5",
+          "name": "项目终验",
+          "version": 0,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483844",
+          "parentTaskId": null,
+          "stageCode": "S1",
+          "name": "用户联系人获取",
+          "version": 3,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483850",
+          "parentTaskId": null,
+          "stageCode": "S4",
+          "name": "配置调试",
+          "version": 0,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483856",
+          "parentTaskId": null,
+          "stageCode": "S5",
+          "name": "现场培训",
+          "version": 0,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483851",
+          "parentTaskId": null,
+          "stageCode": "S4",
+          "name": "业务联调",
+          "version": 0,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483857",
+          "parentTaskId": null,
+          "stageCode": "S5",
+          "name": "满意度调查",
+          "version": 0,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        },
+        {
+          "taskId": "2102939027000483852",
+          "parentTaskId": null,
+          "stageCode": "S4",
+          "name": "割接上线",
+          "version": 0,
+          "planStart": null,
+          "planEnd": null,
+          "acceptanceTime": null
+        }
+      ],
+      "version": 0
+    },
+    "msg": ""
+  },
+  "drawer_after_create": "任务办理\n施工计划制定与审批\nPLAN_CONSTRUCTION\n进行中\nS2 施工计划制定与审批 / PLAN_CONSTRUCTION\n状态\t\n进行中\n\t计划开始\t-\n计划结束\t-\t进度\t0%\n任务版本\t1\t业务层级\t-\n实际开始\t2026-09-24 10:50:59\t实际结束\t-\n任务说明\t\n编辑说明\n来源：制定施工计划页72、149、299、110、188、173。直签引用合同验收时间，其他项目引用工前准备有效工期；项目经理制定、服务经理审核，驳回在原计划修改重提。需求方确认188按“审核施工计划”配置。与S3并行，DURATION_EFFECTIVE仅为输入，不能替代计划审批。【待接入完成依据】已部署阶段施工计划审批流程pms-sol-stage-plan，但模板目录未提供该计划精确版本审批通过的完成事实；当前保留空完成规则，发布预检应阻止投用。\n交付件清单\n必选\n经审批施工计划\nD_CONSTRUCTION_PLAN\n待提交\n提交与查看\n\n文件或业务成果有效且模板条件满足时，自动满足交付要求。\n\n关闭任务\n编辑任务资料\n任务业务办理\n刷新业务结果\n施工计划\n\n从工期要求倒排阶段，在阶段内安排任务，确认后提交服务经理审核。\n\n刷新\n管理工期\n签约方式\n直签\nVISIO-FLOW-035-20260924\n工勘要求结束日期\n未登记\n来自工前准备\n当前生效工期\n61 天\n2026-09-24 至 2026-11-23\n本版倒排截止日期\n尚未推算\n来自回款节点计划验收时间\n距本版本计划截止日还有 60 天，不足3个日历月，请落实前序任务并确认发货安排。\n计划 #24 · 草稿\n制定施工计划\n草稿\n本版计划区间 2026-09-24 至 2026-11-23\n0 / 16 项任务已安排\n16 项待处理\n推算依据与任务安排检查\n日期安排\n时间轴\n5 个阶段 / 16 项任务\n阶段 / 任务\n\t\n计划开始\n\t\n计划结束\n\t\n天数\n\t\n倒排建议 / 计划验收\n\t\n安排检查\n\t\n备注 / 操作\n阶段项目立项与指派\n\t\n\t\n\t\n—\n\t\n暂无建议\n\t\n待安排日期\n\t\n\n\n阶段工前准备\n\t\n\t\n\t\n—\n\t\n2027-01-23\n\t\n请同时填写开始和结束日期\n\t\n\n\n任务现场工勘与环境适配核对\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n任务需求分析\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n任务工期与分工界面确认\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n任务用户联系人获取\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n阶段施工计划制定与审批\n\t\n\t\n\t\n—\n\t\n暂无建议\n\t\n待安排日期\n\t\n\n\n任务施工计划制定与审批\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安",
+  "drawer_after_estimate": "任务办理\n施工计划制定与审批\nPLAN_CONSTRUCTION\n进行中\nS2 施工计划制定与审批 / PLAN_CONSTRUCTION\n状态\t\n进行中\n\t计划开始\t-\n计划结束\t-\t进度\t0%\n任务版本\t1\t业务层级\t-\n实际开始\t2026-09-24 10:50:59\t实际结束\t-\n任务说明\t\n编辑说明\n来源：制定施工计划页72、149、299、110、188、173。直签引用合同验收时间，其他项目引用工前准备有效工期；项目经理制定、服务经理审核，驳回在原计划修改重提。需求方确认188按“审核施工计划”配置。与S3并行，DURATION_EFFECTIVE仅为输入，不能替代计划审批。【待接入完成依据】已部署阶段施工计划审批流程pms-sol-stage-plan，但模板目录未提供该计划精确版本审批通过的完成事实；当前保留空完成规则，发布预检应阻止投用。\n交付件清单\n必选\n经审批施工计划\nD_CONSTRUCTION_PLAN\n待提交\n提交与查看\n\n文件或业务成果有效且模板条件满足时，自动满足交付要求。\n\n关闭任务\n编辑任务资料\n任务业务办理\n刷新业务结果\n施工计划\n\n从工期要求倒排阶段，在阶段内安排任务，确认后提交服务经理审核。\n\n刷新\n管理工期\n签约方式\n直签\nVISIO-FLOW-035-20260924\n工勘要求结束日期\n未登记\n来自工前准备\n当前生效工期\n61 天\n2026-09-24 至 2026-11-23\n本版倒排截止日期\n尚未推算\n来自回款节点计划验收时间\n距本版本计划截止日还有 60 天，不足3个日历月，请落实前序任务并确认发货安排。\n计划 #24 · 草稿\n制定施工计划\n草稿\n本版计划区间 2026-09-24 至 2026-11-23\n0 / 16 项任务已安排\n16 项待处理\n推算依据与任务安排检查\n日期安排\n时间轴\n5 个阶段 / 16 项任务\n阶段 / 任务\n\t\n计划开始\n\t\n计划结束\n\t\n天数\n\t\n倒排建议 / 计划验收\n\t\n安排检查\n\t\n备注 / 操作\n阶段项目立项与指派\n\t\n\t\n\t\n—\n\t\n暂无建议\n\t\n待安排日期\n\t\n\n\n阶段工前准备\n\t\n\t\n\t\n—\n\t\n2027-01-23\n\t\n请同时填写开始和结束日期\n\t\n\n\n任务现场工勘与环境适配核对\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n任务需求分析\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n任务工期与分工界面确认\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n任务用户联系人获取\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n阶段施工计划制定与审批\n\t\n\t\n\t\n—\n\t\n暂无建议\n\t\n待安排日期\n\t\n\n\n任务施工计划制定与审批\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n阶段实施部署\n\t\n\t\n\t\n—\n\t\n2027-02-06\n\t\n请同时填写开始和结束日期\n\t\n\n\n任务客户到货及实施协调\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n任务到货验收与签收\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n任务硬件实施\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n任务配置调试\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n任务业务联调\n\t\n\t\n\t\n—\n\t\n随所属阶段安排\n\t\n待安排日期\n\t\n任务详情\n\n\n任务割接上线\n\t\n\t\n\t\n—\n\t\n随所属阶段",
+  "submit_enabled": false,
+  "batches_after": [
+    {
+      "id": 24,
+      "status": 0,
+      "version": 1,
+      "calculatedStart": "2026-09-24",
+      "calculatedEnd": "2026-11-23"
+    }
+  ]
+}

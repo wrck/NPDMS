@@ -1,0 +1,40 @@
+{
+  "unit": "工程交底",
+  "source_commit": "d13798671f1ce0ca44f5d17a88c92fe579f92eb9",
+  "source_branch": "codex/liteflow-remediation",
+  "target_branch": "codex/s1-s6-business-entity-migration",
+  "status": "独立实体承接代码；全链路接入及运行验收未完成",
+  "original_blobs": {
+    "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/dataobject/briefing/BriefingDO.java": "9b0e0bbe492db0a355b73b895b7c2c939fcd89b0",
+    "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/dal/mysql/briefing/BriefingMapper.java": "e78bcb54642b6d92a5c2ed851094c0ba2300b03a",
+    "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/briefing/BriefingService.java": "6cf9f6ba4293e6b94e443c3e795bfda6a35ca48b",
+    "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/briefing/BriefingServiceImpl.java": "86e848ac50e5bdba168cf27243a1880cf254c4f5",
+    "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/briefing/BriefingController.java": "db95e48bacccb9d8878461c9521e64c1ecca79c2",
+    "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/briefing/vo/BriefingSaveReqVO.java": "585f42b743ef05e12e16e0544e374be20402aeed",
+    "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/briefing/vo/BriefingPageReqVO.java": "0930f448f0536e023438bff18f44a35be4a66247",
+    "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/briefing/vo/BriefingRespVO.java": "4ec1a87fc292df0c894fbfbe3c724f563c02efe4",
+    "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/briefing/vo/BriefingApproveReqVO.java": "f591de232f204765bc7205409278c44c089dc260",
+    "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/controller/admin/briefing/vo/BriefingGenerateReqVO.java": "ba168effce5e7166dee58f686d1c423af1a55abf",
+    "yudao-ui/yudao-ui-admin-vue3/src/views/pms/engineering/briefing/index.vue": "4975af095d59b1530af4f680d2ff65b04d78b87a",
+    "yudao-ui/yudao-ui-admin-vue3/src/api/pms/engineering/briefing/index.ts": "cb62d5f9ead48f06b88b54a8ee4bb8fa75710539",
+    "sql/migrations/V27__pms_engineering_briefing_and_form.sql": "940d0f63172642e34622da0e292a68fc3b111a32",
+    "sql/migrations/V218__briefing_legacy_type_dictionary_values.sql": "9d6c4b0c17e8a0da5e42cc32aa511e184b77ee3e"
+  },
+  "executed": {
+    "state_policy_assertions": 46,
+    "api_scenarios": 10,
+    "structure_check": "passed"
+  },
+  "not_executed": [
+    "JUnit/Mockito 13项",
+    "JDK25/Maven全量编译",
+    "MySQL及事务",
+    "Vue构建和完整类型检查",
+    "真实API与浏览器"
+  ],
+  "not_completed": [
+    "模板/任务/阶段新消费者",
+    "完成事实及执行上下文适配",
+    "其余S1-S6模块逐项迁移"
+  ]
+}

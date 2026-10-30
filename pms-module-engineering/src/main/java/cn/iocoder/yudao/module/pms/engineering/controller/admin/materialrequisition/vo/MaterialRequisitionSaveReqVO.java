@@ -41,14 +41,14 @@ public class MaterialRequisitionSaveReqVO {
     @Schema(description = "关联设备编号", example = "1024")
     private Long equipmentId;
 
-    @Schema(description = "物料名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "10G 光模块")
-    @NotBlank(message = "物料名称不能为空")
-    @Size(max = 200, message = "物料名称长度不能超过 200 个字符")
-    private String materialName;
+    @Schema(description = "产品名称/物料名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "10G 光模块")
+    @NotBlank(message = "产品名称/物料名称不能为空")
+    @Size(max = 200, message = "产品名称/物料名称长度不能超过 200 个字符")
+    private String productName;
 
-    @Schema(description = "物料编码", example = "MAT-001")
-    @Size(max = 64, message = "物料编码长度不能超过 64 个字符")
-    private String materialCode;
+    @Schema(description = "产品编码/物料编码", example = "MAT-001")
+    @Size(max = 64, message = "产品编码/物料编码长度不能超过 64 个字符")
+    private String productCode;
 
     @Schema(description = "规格型号", example = "SFP+ 10G LR")
     @Size(max = 200, message = "规格型号长度不能超过 200 个字符")

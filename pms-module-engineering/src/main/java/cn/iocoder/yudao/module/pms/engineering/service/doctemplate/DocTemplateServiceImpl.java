@@ -93,7 +93,7 @@ public class DocTemplateServiceImpl implements DocTemplateService {
         DocTemplateDO entity = BeanUtils.toBean(createReqVO, DocTemplateDO.class);
         entity.setStatus(STATUS_DRAFT);
         if (entity.getVersion() == null) {
-            entity.setVersion(0);
+            entity.setVersion(0L);
         }
         docTemplateMapper.insert(entity);
         return entity.getId();
@@ -168,7 +168,6 @@ public class DocTemplateServiceImpl implements DocTemplateService {
         // 4. 更新模板状态与当前版本
         entity.setStatus(STATUS_PUBLISHED);
         entity.setCurrentVersionId(publishedVersion.getId());
-        entity.setVersion(entity.getVersion() + 1);
         docTemplateMapper.updateById(entity);
     }
 
@@ -181,7 +180,6 @@ public class DocTemplateServiceImpl implements DocTemplateService {
         validateStatus(entity, STATUS_PUBLISHED);
         // 3. 更新状态
         entity.setStatus(STATUS_DISABLED);
-        entity.setVersion(entity.getVersion() + 1);
         docTemplateMapper.updateById(entity);
     }
 
@@ -244,7 +242,6 @@ public class DocTemplateServiceImpl implements DocTemplateService {
         DocTemplateDO template = validateDocTemplateExists(version.getTemplateId());
         template.setCurrentVersionId(version.getId());
         template.setStatus(STATUS_PUBLISHED);
-        template.setVersion(template.getVersion() + 1);
         docTemplateMapper.updateById(template);
     }
 

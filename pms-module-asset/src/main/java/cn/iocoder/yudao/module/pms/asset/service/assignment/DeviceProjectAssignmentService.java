@@ -32,6 +32,7 @@ public class DeviceProjectAssignmentService {
     private final ProjectDeviceAssignmentGuardApi projectGuardApi;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final DeviceAssignmentMapper assignmentMapper;
+    private final cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi organizations;
 
     public DeviceProjectAssignmentResult assign(AssignDeviceProjectCommand command) {
         validate(command);
@@ -90,6 +91,8 @@ public class DeviceProjectAssignmentService {
                 command.expectedAssignmentVersion(), newVersion)) != 1) {
             throw new IllegalStateException("VERSION_CONFLICT");
         }
+        organizations.refresh(new cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.Refresh(
+                command.tenantId(),java.util.Set.of(command.deviceId()),java.util.Set.of(),java.util.Set.of()));
         if (guard.customerId() != null && device.getCustomerId() != null
                 && !Objects.equals(guard.customerId(), device.getCustomerId())) {
             assignmentMapper.insertReconciliation(reconciliation(command, device, guard));

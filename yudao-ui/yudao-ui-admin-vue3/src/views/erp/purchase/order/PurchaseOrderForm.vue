@@ -135,6 +135,7 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import { systemUserSelection } from '@/api/system/user/selection'
 import { PurchaseOrderApi, PurchaseOrderItemVO, PurchaseOrderVO } from '@/api/erp/purchase/order'
 import PurchaseOrderItemForm from './components/PurchaseOrderItemForm.vue'
 import { SupplierApi, SupplierVO } from '@/api/erp/purchase/supplier'
@@ -216,7 +217,7 @@ const open = async (type: string, id?: number) => {
   // 加载供应商列表
   supplierList.value = await SupplierApi.getSupplierSimpleList()
   // 加载用户列表
-  userList.value = await UserApi.getSimpleUserList()
+  userList.value = await systemUserSelection.active()
   // 加载账户列表
   accountList.value = await AccountApi.getAccountSimpleList()
   const defaultAccount = accountList.value.find((item) => item.defaultStatus)

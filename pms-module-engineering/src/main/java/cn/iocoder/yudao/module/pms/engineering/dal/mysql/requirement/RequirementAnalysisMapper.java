@@ -2,18 +2,23 @@ package cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement;
 
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.*;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.*;
+import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 @Mapper
-public interface RequirementAnalysisMapper {
+public interface RequirementAnalysisMapper extends BaseMapperX<cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisDO> {
+    java.util.List<String> selectResultInventory(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.RequirementResultInventoryQuery query);
+
     RequirementAnalysisDO selectCurrent(@Param("query") RequirementEntityQuery query);
     RequirementAnalysisDO lockCurrent(@Param("query") RequirementEntityQuery query);
     RequirementAnalysisRevisionDO selectRevision(@Param("query") RequirementRevisionQuery query);
     RequirementAnalysisRevisionDO lockRevision(@Param("query") RequirementRevisionQuery query);
     RequirementAnalysisRevisionDO selectDraft(@Param("query") RequirementProjectQuery query);
     RequirementAnalysisRevisionDO selectEffective(@Param("query") RequirementProjectQuery query);
+    RequirementAnalysisRevisionDO lockEffective(@Param("query") RequirementProjectQuery query);
     RequirementAnalysisRevisionDO selectLatest(@Param("query") RequirementProjectQuery query);
     RequirementAnalysisRevisionDO selectLatestForEntity(@Param("query") RequirementEntityQuery query);
     int maxRevisionNo(@Param("query") RequirementEntityQuery query);
@@ -25,4 +30,7 @@ public interface RequirementAnalysisMapper {
     int freeze(@Param("update") RequirementFreezeUpdate update);
     int clearEffective(@Param("update") RequirementActivationUpdate update);
     int makeEffective(@Param("update") RequirementActivationUpdate update);
+
+    /** 放弃未冻结草稿：先把修订号改写为行内唯一负值占位释放唯一键，再逻辑删除。 */
+    int discardDraft(@Param("query") RequirementRevisionQuery query);
 }

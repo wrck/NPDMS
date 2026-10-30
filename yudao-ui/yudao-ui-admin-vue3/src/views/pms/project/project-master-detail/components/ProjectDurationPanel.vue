@@ -1,9 +1,6 @@
 <template>
   <ContentWrap>
     <el-form inline class="-mb-15px duration-query">
-      <el-form-item label="项目">
-        <el-input :model-value="project.projectName || `项目 #${project.id}`" disabled class="!w-220px" data-testid="duration-project-name" />
-      </el-form-item>
       <el-form-item>
         <el-button :loading="loading" @click="load"><Icon icon="ep:search" />查询</el-button>
         <el-button v-if="plan" @click="historyRef?.open(plan.planId)">查看历史</el-button>
@@ -11,9 +8,12 @@
     </el-form>
   </ContentWrap>
   <ContentWrap>
-    <el-alert v-if="project.projectEndDate" type="info" :closable="false" class="status-alert"
-      :title="`工勘要求的项目结束日期：${project.projectEndDate}；录入工期时据此倒排开始日期。`" />
-    <el-alert v-if="project.projectEndDate && plan && plan.currentRevision.endDate !== project.projectEndDate"
+    <el-alert v-if="!loading && !canWrite" title="当前工期仅可查看。" type="info" :closable="false" class="status-alert" />
+    <el-alert
+      v-if="project.projectEndDate" type="info" :closable="false" class="status-alert"
+      :title="`工勘要求的项目结束日期：${project.projectEndDate}；录入工期默认据此倒排开始日期，也可切换计算口径手工填写起止。`" />
+    <el-alert
+      v-if="project.projectEndDate && plan && plan.currentRevision.endDate !== project.projectEndDate"
       type="warning" :closable="false" class="status-alert"
       title="工勘结束日期与当前生效工期不同，请新建工期变更重新倒排；原生效版本及审批记录保留。" />
     <el-alert
@@ -132,9 +132,10 @@
         >
       </div>
     </template>
-    <el-empty v-else description="尚未录入项目工期">
+    <el-empty v-else :description="initialEntryHint || '尚未录入项目工期'">
       <el-button
         v-if="canWrite"
+        :disabled="!!initialEntryHint"
         type="primary"
         v-hasPermi="['pms:construction-plan:duration-manage']"
         @click="formRef?.openInitial()"
@@ -146,7 +147,7 @@
   <ProjectDurationFormDrawer
     ref="formRef"
     :project="project"
-    :readonly="props.readonly"
+    :readonly="!canWrite"
     @saved="onSaved"
     @dirty-change="drawerDirty = $event"
   />
@@ -154,13 +155,15 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { useMessage } from '@/hooks/web/useMessage'
 import { useUserStore } from '@/store/modules/user'
 import { PmsFileReferenceList } from '@/components/PmsFileArtifact'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
+import { isBusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import type {
   ConstructionPlanChangeVO,
@@ -169,16 +172,19 @@ import type {
 } from '@/api/pms/engineering/construction-plan'
 import ProjectDurationFormDrawer from './ProjectDurationFormDrawer.vue'
 import ProjectDurationHistoryDrawer from './ProjectDurationHistoryDrawer.vue'
+import { initialDurationHint } from './durationEntry'
 
 const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
 const emit = defineEmits<{ 'dirty-change': [value: boolean]; changed: [] }>()
-const validProject = computed(() => Number.isSafeInteger(props.project.id) && props.project.id! > 0)
-const canWrite = computed(() => validProject.value && !props.readonly)
+const validProject = computed(() => isBusinessViewId(props.project.id))
+const durationWritable = ref(false)
+const canWrite = computed(() => validProject.value && !props.readonly && durationWritable.value)
+const initialEntryHint = computed(() => initialDurationHint(props.project))
 const drawerDirty = ref(false)
 const errorText = ref('')
 let loadSequence = 0
 let contextVersion = 0
-const router = useRouter()
+const openApprovalDetail = useProjectApprovalDetail()
 const message = useMessage()
 const userStore = useUserStore()
 const loading = ref(false)
@@ -202,6 +208,7 @@ const load = async () => {
   const projectId = props.project.id!
   plan.value = null
   draft.value = undefined
+  durationWritable.value = false
   errorText.value = ''
   if (!validProject.value) {
     loading.value = false
@@ -209,8 +216,12 @@ const load = async () => {
   }
   loading.value = true
   try {
-    const current = await DurationApi.getByProjectId(projectId)
+    const [current, readiness] = await Promise.all([
+      DurationApi.getByProjectId(projectId),
+      DurationApi.getEntryReadiness(projectId).catch(() => ({ durationWritable: false, scheduleWritable: false }))
+    ])
     if (sequence !== loadSequence) return
+    durationWritable.value = readiness.durationWritable
     let currentDraft: ConstructionPlanChangeVO | undefined
     if (current) {
       const page = await DurationApi.getChanges(current.planId, { pageSize: 20 })
@@ -231,9 +242,6 @@ const load = async () => {
 }
 const submitDraft = async () => {
   if (!canWrite.value || !plan.value || !draft.value) return
-  if (draft.value.customerEvidenceRequired && !draft.value.customerEvidenceFileId) {
-    return message.warning('请先在编辑草稿中上传客户延期依据')
-  }
   const version = contextVersion
   const currentPlan = plan.value
   const currentDraft = draft.value
@@ -247,7 +255,7 @@ const submitDraft = async () => {
       currentDraft.changeId,
       projectVersion,
       currentDraft.version,
-      crypto.randomUUID()
+      generateUUID()
     )
     if (version !== contextVersion) return
     emit('changed')
@@ -259,7 +267,7 @@ const submitDraft = async () => {
 }
 const openBpm = (processInstanceId: string) => {
   if (!canWrite.value) return
-  return router.push({ name: 'BpmProcessInstanceDetail', query: { id: processInstanceId } })
+  return openApprovalDetail(processInstanceId)
 }
 const withdraw = async () => {
   const instanceId = plan.value?.pendingChangeSummary?.processInstanceId

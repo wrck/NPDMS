@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.0.0",
+  "profiles": [
+    {
+      "projectionId": "deviceBasic",
+      "description": "命令输出中可确认的设备身份和软件信息",
+      "missingValuePolicy": "NULL",
+      "fields": {
+        "sn": "device.identity.serialNumber",
+        "model": "device.identity.model",
+        "softVersion": "device.software.version",
+        "uptimeSeconds": "device.identity.uptimeSeconds"
+      }
+    },
+    {
+      "projectionId": "runningConfiguration",
+      "description": "配置类命令中识别的配置段",
+      "missingValuePolicy": "NULL",
+      "fields": {
+        "stanzas": "configuration.stanzas"
+      }
+    },
+    {
+      "projectionId": "technicalDiagnostics",
+      "description": "综合诊断命令中识别的诊断段",
+      "missingValuePolicy": "NULL",
+      "fields": {
+        "sections": "logs.technicalDiagnostics"
+      }
+    }
+  ]
+}

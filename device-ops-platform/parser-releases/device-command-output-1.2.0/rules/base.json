@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.2.0",
+  "rules": [
+    {
+      "ruleId": "version-model-from-uptime",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+version(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*(\\S(?:.*?\\S)?)\\s+uptime is\\s+.+$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.identity.model", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "version-software",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+version(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*software(?: release| version)?\\s*[:#]?\\s*(.+)$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.software.version", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "version-serial",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+version(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*serial(?: number)?\\s*[:#]?\\s*(.+)$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.identity.serialNumber", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "version-uptime",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+version(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)uptime is\\s+(.+)$", "group": 1, "transforms": ["duration-to-seconds"]}],
+      "target": {"semanticKey": "device.identity.uptimeSeconds", "cardinality": "ONE", "dataType": "integer", "unit": "second", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "running-configuration-stanzas",
+      "blockRole": "RUNNING_CONFIGURATION",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+(?:run|running(?:-config)?)(?:\\s+.*)?$"}],
+      "extractors": [{"type": "CONFIG_STANZA"}],
+      "target": {"semanticKey": "configuration.stanzas", "cardinality": "MANY", "dataType": "object", "conflictPolicy": "APPEND_DISTINCT"}
+    },
+    {
+      "ruleId": "technical-model-from-uptime",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+tech(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*(\\S(?:.*?\\S)?)\\s+uptime is\\s+.+$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.identity.model", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "technical-software",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+tech(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*software(?: release| version)?\\s*[:#]?\\s*(.+)$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.software.version", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "technical-serial",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+tech(?:\\s+.*)?$"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "(?i)^\\s*serial(?: number)?\\s*[:#]?\\s*(.+)$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.identity.serialNumber", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "technical-diagnostic-sections",
+      "blockRole": "TECHNICAL_DIAGNOSTICS",
+      "roleSelectors": [{"type": "COMMAND_REGEX", "value": "^show\\s+tech(?:\\s+.*)?$"}],
+      "extractors": [{"type": "DELIMITED_SECTION", "startPattern": "^\\s*\\*{8,}\\s*(?<command>.+?)\\s*\\*{8,}\\s*$", "headerGroup": "command", "emitNestedUnits": true}],
+      "target": {"semanticKey": "technicalDiagnostics.sections", "cardinality": "MANY", "dataType": "object", "conflictPolicy": "APPEND_DISTINCT"}
+    }
+  ]
+}

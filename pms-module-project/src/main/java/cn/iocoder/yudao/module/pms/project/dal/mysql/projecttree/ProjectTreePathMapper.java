@@ -13,6 +13,9 @@ import java.util.Set;
 
 @Mapper
 public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
+    List<ProjectMasterDO> selectFullTree(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectFullTreeQuery query);
+
 
     default List<ProjectTreePathDO> selectByAncestor(Long rootId, Long treeVersion,
                                                      Long ancestorId, Integer distance) {
@@ -23,6 +26,12 @@ public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
                 .eqIfPresent(ProjectTreePathDO::getDistance, distance)
                 .orderByAsc(ProjectTreePathDO::getDistance, ProjectTreePathDO::getDescendantProjectId));
     }
+
+    List<ProjectTreePathDO> selectScopeRootPaths(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectScopeRootPathsQuery query);
+
+    List<ProjectTreePathDO> selectScopeDescendants(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectScopeDescendantsQuery query);
 
     default List<ProjectTreePathDO> selectByAncestors(Long rootId, Long treeVersion,
                                                        Collection<Long> ancestorIds) {

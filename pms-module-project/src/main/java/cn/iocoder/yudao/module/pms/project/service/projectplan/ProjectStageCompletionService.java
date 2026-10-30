@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.ProjectStageGateProcessOwnerApi;
 import cn.iocoder.yudao.module.pms.project.api.stagegate.dto.ProjectStageGateRunningProcessQuery;
 
@@ -31,6 +32,7 @@ import cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusin
 import cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessLinkFact;
 import cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskBusinessCompletionEvaluator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +42,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProjectStageCompletionService {
@@ -47,6 +50,8 @@ public class ProjectStageCompletionService {
     private ProjectCurrentStageService currentStages;
     @jakarta.annotation.Resource
     private cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler timers;
+    @jakarta.annotation.Resource
+    private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultEvidenceGuard> resultEvidence;
     private final ProjectTaskRuntimeMapper projects;
     private final ProjectPlanVersionMapper plans;
     private final ProjectNodeExecutionMapper executions;
@@ -72,7 +77,7 @@ public class ProjectStageCompletionService {
         var scope = new ProjectPlanScopeQuery(tenantId, projectId);
         var plan = plans.selectEffective(scope);
         if (plan == null || !Objects.equals(plan.getId(),project.getActivePlanVersionId())) return new Completion(0, true);
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var query = new ProjectRuntimeGraphQuery(tenantId, projectId);
         var stageRows = graph.selectStagesForUpdate(query).stream().filter(stage -> Objects.equals(stageId,stage.getId())).toList();
         if (stageRows.size()!=1) return new Completion(0,true);
@@ -91,10 +96,17 @@ public class ProjectStageCompletionService {
             var definitions = snapshot.getStages().stream().filter(node -> stage.getCode().equals(node.getCode())).toList();
             var current = rounds.stream().filter(round -> "STAGE".equals(round.getNodeKind())
                     && stage.getId().equals(round.getNodeInstanceId()) && plan.getId().equals(round.getPlanVersionId())).toList();
-            if (definitions.size() != 1 || current.size() != 1 || !"ACTIVE".equals(current.getFirst().getStatus())) { unknown = true; continue; }
+            if (definitions.size() != 1 || current.size() != 1 || !"ACTIVE".equals(current.getFirst().getStatus())) {
+                log.warn("stage completion skipped: projectId={}, stage={}, definitions={}, rounds={}, roundStatus={}",
+                        projectId, stage.getCode(), definitions.size(), current.size(),
+                        current.isEmpty() ? "none" : current.getFirst().getStatus());
+                unknown = true; continue; }
             var definition = definitions.getFirst();
             var round = current.getFirst();
-            if (!Objects.equals(definition.getNodeKey(), round.getNodeKey())) { unknown = true; continue; }
+            if (!Objects.equals(definition.getNodeKey(), round.getNodeKey())) {
+                log.warn("stage completion skipped: nodeKey mismatch, stage={}, definitionKey={}, roundKey={}",
+                        stage.getCode(), definition.getNodeKey(), round.getNodeKey());
+                unknown = true; continue; }
             // Native submission and Owner completion are distinct forms of real handling evidence.
             var binding = definition.getBinding();
             boolean nativeWork = binding == null || "STAGE_NATIVE".equals(binding.getType());
@@ -120,10 +132,14 @@ public class ProjectStageCompletionService {
                     ownerLinks = owner.facts().links();
                 }
             }
-            boolean unfinishedWork = tasks.stream().filter(task -> stage.getCode().equals(task.getStageCode()))
+            boolean unfinishedWork = tasks.stream().filter(cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy::required)
+                    .filter(task -> stage.getCode().equals(task.getStageCode()))
                     .anyMatch(task -> (task.getActualStartTime() != null || startedTasks.contains(task.getId()) || Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus()))
                             && !Set.of("DONE", "CLOSED").contains(task.getStatus()));
-            if (unfinishedWork) continue;
+            if (unfinishedWork) {
+                log.info("stage completion waiting for unfinished tasks: projectId={}, stage={}", projectId, stage.getCode());
+                continue;
+            }
             var processRefs = gateRefs.stream().filter(ref -> "PROCESS".equals(ref.getRefType()) || "APPROVAL".equals(ref.getRefType()))
                     .filter(ref -> gates.stream().anyMatch(gate -> Objects.equals(gate.getId(), ref.getGateId())
                             && Objects.equals(gate.getStageCode(), stage.getCode())))
@@ -142,14 +158,29 @@ public class ProjectStageCompletionService {
             try {
                 completion = evaluate(snapshot, plan.getId(), definition.getCompletionRuleKey(), false, round, context, nativeWork, ownerLinks);
                 exit = evaluate(snapshot, plan.getId(), definition.getExitRuleKey(), true, round, context, nativeWork, ownerLinks);
-            } catch (RuntimeException invalidDefinition) { unknown = true; continue; }
+            } catch (RuntimeException invalidDefinition) {
+                log.warn("stage completion rule unavailable: projectId={}, stage={}, completionKey={}, exitKey={}, reason={}",
+                        projectId, stage.getCode(), definition.getCompletionRuleKey(), definition.getExitRuleKey(),
+                        invalidDefinition.getMessage());
+                unknown = true; continue; }
             unknown |= completion.outcome() == RuleEvaluation.Outcome.UNKNOWN || exit.outcome() == RuleEvaluation.Outcome.UNKNOWN;
-            if (!completion.matched() || !exit.matched()) continue;
+            if (!completion.matched() || !exit.matched()) {
+                log.info("stage completion not matched: projectId={}, stage={}, completion={}, exit={}",
+                        projectId, stage.getCode(), completion.outcome() + "/" + completion.reasonCode(),
+                        exit.outcome() + "/" + exit.reasonCode());
+                continue;
+            }
+            java.util.List<cn.iocoder.yudao.module.pms.project.domain.rule.ResultEvidenceReceipt> subscriptionEvidence = null;
+            if (cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultEvidenceGuard.configured(definition.getExecution())) {
+                var proof=resultEvidence.getObject().lock(snapshot,plan,round);
+                if (!proof.ready()) continue;
+                subscriptionEvidence=proof.receipts();
+            }
             var now = LocalDateTime.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
             String evidence = JsonUtils.toJsonString(new StageCompletionEvidence(round.getId(), plan.getId(), completion, exit,
                     ownerLinks.stream().map(link -> new StageCompletionEvidence.BusinessResult(link.id(),binding.getTargetContextCode(),
                             binding.getTargetObjectType(),link.objectId(),link.factVersion())).toList(),
-                    cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.freeze(round, ownerLinks), approval));
+                    cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.freeze(round, ownerLinks), approval, subscriptionEvidence));
             if (stages.updateStatusIfMatch(new ProjectStageStatusUpdate(tenantId, projectId, stage.getId(), stage.getVersion(),
                     "ACTIVE", "DONE", actorId == null ? "project-rules" : actorId.toString(), now)) != 1
                     || executions.finishIfActive(new ProjectNodeExecutionMapper.Finish(tenantId, projectId, round.getId(),

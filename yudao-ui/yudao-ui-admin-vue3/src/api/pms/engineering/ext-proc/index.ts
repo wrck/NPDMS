@@ -7,11 +7,11 @@ export interface ExternalProcurementVO {
   code: string
   name: string
   procurementType?: string
-  materialName: string
-  materialCode?: string
+  productName: string
+  productCode?: string
   specification?: string
   brand?: string
-  model?: string
+  productModel?: string
   quantity: number
   unit?: string
   unitPrice?: number
@@ -38,7 +38,7 @@ export interface ExternalProcurementVO {
   createTime?: string
 }
 
-const baseUrl = '/pms/eng-ext-proc'
+const baseUrl = '/pms/imp-ext-proc'
 
 export const getExternalProcurementPage = (params: PageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

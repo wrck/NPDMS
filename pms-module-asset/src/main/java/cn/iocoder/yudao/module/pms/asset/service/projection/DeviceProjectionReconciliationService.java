@@ -35,6 +35,7 @@ public class DeviceProjectionReconciliationService {
     private final DeviceWarrantyMapper warrantyMapper;
     private final DeviceNetworkVersionMapper versionMapper;
     private final OperationAuditApi auditApi;
+    private final cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi organizations;
 
     public DeviceProjectionReconciliationService(
             DeviceMapper deviceMapper,
@@ -43,7 +44,9 @@ public class DeviceProjectionReconciliationService {
             DeviceLocationMapper locationMapper,
             DeviceWarrantyMapper warrantyMapper,
             DeviceNetworkVersionMapper versionMapper,
-            OperationAuditApi auditApi) {
+            OperationAuditApi auditApi,
+            cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi organizations) {
+        this.organizations = organizations;
         this.deviceMapper = deviceMapper;
         this.shipmentMapper = shipmentMapper;
         this.assignmentMapper = assignmentMapper;
@@ -66,6 +69,8 @@ public class DeviceProjectionReconciliationService {
         if (!drifts.isEmpty()) {
             deviceMapper.updateById(toUpdate(device, sources, drifts));
         }
+        organizations.refresh(new cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.Refresh(
+                command.tenantId(),java.util.Set.of(device.getId()),java.util.Set.of(),java.util.Set.of()));
         audit(command, drifts, missingSources);
         return new DeviceProjectionReconciliationResult(
                 !drifts.isEmpty(),

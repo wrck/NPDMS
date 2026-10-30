@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.hutool.crypto.digest.DigestUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
@@ -38,6 +39,8 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 @RequiredArgsConstructor
 public class ProjectReworkService {
     @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultSubscriptionInstaller resultSubscriptions;
+    @jakarta.annotation.Resource
     private ProjectCurrentStageService currentStages;
     public static final String PERMISSION = "pms:project-plan:rework";
     private final ProjectScopeApi scopes;
@@ -63,13 +66,13 @@ public class ProjectReworkService {
 
     public record Candidate(ProjectReworkPlanner.Node node, Long executionId, Integer executionVersion,
                             Integer roundNo, String status) { }
-    public record State(Long planVersionId, Integer projectVersion, List<Candidate> nodes) { }
-    public record Preview(Long planVersionId, Integer projectVersion, ProjectReworkPlanner.Plan plan) { }
+    public record State(Long planVersionId, Long projectVersion, List<Candidate> nodes) { }
+    public record Preview(Long planVersionId, Long projectVersion, ProjectReworkPlanner.Plan plan) { }
     public record ExpectedExecution(String nodeKey, Long executionId, Integer version) { }
-    public record Apply(Long projectId, Long planVersionId, Integer expectedProjectVersion,
+    public record Apply(Long projectId, Long planVersionId, Long expectedProjectVersion,
                         List<String> selectedNodeKeys, List<ExpectedExecution> expectedExecutions, String reason) { }
     public record NewExecution(String nodeKey, Long previousExecutionId, Long executionId, Integer roundNo) { }
-    public record Result(Long projectId, Long planVersionId, Integer projectVersion, List<NewExecution> executions) { }
+    public record Result(Long projectId, Long planVersionId, Long projectVersion, List<NewExecution> executions) { }
     private record Runtime(ProjectMasterDO project, TemplateExecutionSnapshot snapshot, List<ProjectNodeExecutionDO> rounds,
                            List<ProjectTaskInstanceDO> tasks, List<ProjectStageInstanceDO> stages) { }
 
@@ -137,6 +140,8 @@ public class ProjectReworkService {
                 command.expectedProjectVersion(), actorId.toString())) != 1) throw exception(PROJECT_REWORK_VERSION_CONFLICT);
         if (plan.targets().stream().anyMatch(target -> "TASK".equals(target.node().nodeKind())))
             progress.recompute(scope.tenantId(), scope.projectId(), runtime.project().getTaskProgressVersion(), now);
+        if (cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionContract.present(runtime.snapshot()))
+            resultSubscriptions.synchronize(scope.projectId(), command.planVersionId(), runtime.snapshot());
         timers.schedule(scope.projectId(), command.planVersionId(), runtime.snapshot(),
                 result.stream().map(NewExecution::executionId).collect(java.util.stream.Collectors.toSet()));
         return new Result(scope.projectId(), command.planVersionId(), currentStages.synchronize(scope.projectId()), List.copyOf(result));
@@ -194,7 +199,11 @@ public class ProjectReworkService {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         if (projectId == null || projectId <= 0 || actorId == null || !permissions.hasAnyPermissions(actorId, PERMISSION))
             throw exception(PROJECT_REWORK_FORBIDDEN);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, ProjectScopeApi.ACTION_EDIT));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) throw exception(PROJECT_REWORK_FORBIDDEN);
         return new ProjectPlanScopeQuery(tenantId, projectId);
     }
@@ -207,7 +216,7 @@ public class ProjectReworkService {
         var plan = plans.selectEffective(scope);
         if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())) throw exception(PROJECT_REWORK_VERSION_CONFLICT);
         var query = new ProjectRuntimeGraphQuery(scope.tenantId(), scope.projectId());
-        return new Runtime(project, JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class),
+        return new Runtime(project, TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot()),
                 lock ? executions.selectCurrentForUpdate(scope) : executions.selectCurrent(scope),
                 lock ? graph.selectTasksForUpdate(query) : graph.selectTasks(query),
                 lock ? graph.selectStagesForUpdate(query) : graph.selectStages(query));

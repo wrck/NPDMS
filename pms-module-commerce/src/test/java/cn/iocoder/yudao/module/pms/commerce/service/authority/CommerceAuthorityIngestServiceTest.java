@@ -28,6 +28,8 @@ import java.util.function.Supplier;
 import static cn.iocoder.yudao.module.pms.commerce.api.authority.CommerceAuthorityIngestException.Code.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,6 +52,7 @@ class CommerceAuthorityIngestServiceTest {
                 contractMapper, salesOrderMapper, orderLineMapper, relationMapper, scopeImpactMapper,
                 conflictNotifier,
                 Clock.fixed(Instant.parse("2026-08-30T12:00:00Z"), ZoneOffset.UTC));
+        org.springframework.test.util.ReflectionTestUtils.setField(service,"deviceOrganizations",org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.class));
     }
 
     @Test
@@ -124,7 +127,7 @@ class CommerceAuthorityIngestServiceTest {
     void mixedBatchReplayAndUpdateReturnsAccepted() {
         when(contractMapper.selectBySourceForUpdate(any())).thenReturn(contractRow("C-1", "V2", "ACME"));
         SalesOrderDO order = orderRow("O-1", "V1");
-        when(salesOrderMapper.selectBySourceForUpdate(any())).thenReturn(order);
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(order));
         when(salesOrderMapper.updateOwnerByVersion(any())).thenReturn(1);
 
         CommerceAuthorityBatchResult result = service.ingest(batch("EV-6", "B-6",
@@ -134,6 +137,100 @@ class CommerceAuthorityIngestServiceTest {
         assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
         verify(contractMapper, never()).updateOwnerByVersion(any());
         verify(salesOrderMapper).updateOwnerByVersion(any());
+        verify(salesOrderMapper, never()).selectBySourceForUpdate(any());
+    }
+
+    @Test
+    void createsSalesOrdersWithOneBatchLockAndOneBatchInsert() {
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of());
+        when(salesOrderMapper.insertBatch(anyCollection(), eq(1000))).thenReturn(true);
+
+        CommerceAuthorityBatchResult result = service.ingest(batch("EV-BULK-O", "B-BULK-O", List.of(),
+                List.of(order("O-1", null, "V1"), order("O-2", null, "V1")), List.of()));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
+        verify(salesOrderMapper, times(1)).selectBySourcesForUpdate(any());
+        verify(salesOrderMapper, times(1)).insertBatch(argThat(rows -> rows.size() == 2), eq(1000));
+        verify(salesOrderMapper, never()).insert(any(SalesOrderDO.class));
+        verify(salesOrderMapper, never()).selectBySourceForUpdate(any());
+    }
+
+    @Test
+    void orderCreateCarriesContractAndExecutionNoPhysicalColumns() {
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of());
+        when(salesOrderMapper.insertBatch(anyCollection(), eq(1000))).thenReturn(true);
+
+        CommerceAuthorityBatchResult result = service.ingest(batch("EV-O-CREATE", "B-O-CREATE", List.of(),
+                List.of(orderWithChain("O-1", null, "V1", "CT-1", "EX-1")), List.of()));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
+        verify(salesOrderMapper).insertBatch(argThat(rows -> {
+            SalesOrderDO row = rows.iterator().next();
+            return "CT-1".equals(row.getContractNo()) && "EX-1".equals(row.getExecutionNo());
+        }), eq(1000));
+    }
+
+    @Test
+    void versionAdvanceRewritesOrderChainColumns() {
+        SalesOrderDO current = orderRow("O-1", "V1");
+        current.setContractNo("CT-OLD");
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        when(salesOrderMapper.updateOwnerByVersion(any())).thenReturn(1);
+
+        CommerceAuthorityBatchResult result = service.ingest(batch("EV-O-UPD", "B-O-UPD", List.of(),
+                List.of(orderWithChain("O-1", "V1", "V2", "CT-1", "EX-1")), List.of()));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
+        verify(salesOrderMapper).updateOwnerByVersion(argThat(update -> {
+            SalesOrderDO row = ((cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.query.SalesOrderAuthorityUpdate) update).row();
+            return "CT-1".equals(row.getContractNo()) && "EX-1".equals(row.getExecutionNo());
+        }));
+    }
+
+    @Test
+    void replaySkipsChainColumnDriftUntilVersionAdvance() {
+        // 链路列(contractNo/executionNo)不参与同版本载荷判定：版本未推进的存量行在首轮同步不得
+        // 被误判为同版本载荷冲突，新列只随下一次来源版本推进全量重写。
+        SalesOrderDO current = orderRowWithChain("O-1", "V2");
+        current.setContractNo("CT-2");
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+
+        CommerceAuthorityBatchResult result = service.ingest(batch("EV-O-CONF", "B-O-CONF", List.of(),
+                List.of(orderWithChain("O-1", "V1", "V2", "CT-1", "EX-1")), List.of()));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED_NO_CHANGE, result.decision());
+        verify(salesOrderMapper, never()).updateOwnerByVersion(any());
+    }
+
+    @Test
+    void acceptsOrderReplayWithMatchingChainColumns() {
+        SalesOrderDO current = orderRowWithChain("O-1", "V2");
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+
+        CommerceAuthorityBatchResult result = service.ingest(batch("EV-O-REPLAY", "B-O-REPLAY", List.of(),
+                List.of(orderWithChain("O-1", "V1", "V2", "CT-1", "EX-1")), List.of()));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED_NO_CHANGE, result.decision());
+        verify(salesOrderMapper, never()).updateOwnerByVersion(any());
+    }
+
+    @Test
+    void createsOrderLinesWithOneParentLockOneLineLockAndOneBatchInsert() {
+        SalesOrderDO parent = orderRow("O-1", "V1");
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(parent));
+        when(orderLineMapper.selectBySourcesForUpdate(any())).thenReturn(List.of());
+        when(orderLineMapper.insertBatch(anyCollection(), eq(1000))).thenReturn(true);
+
+        CommerceAuthorityBatchResult result = service.ingest(batch("EV-BULK-L", "B-BULK-L", List.of(), List.of(),
+                List.of(line("L-1", null, "V1", "O-1", "5"),
+                        line("L-2", null, "V1", "O-1", "7"))));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
+        verify(salesOrderMapper, times(1)).selectBySourcesForUpdate(any());
+        verify(orderLineMapper, times(1)).selectBySourcesForUpdate(any());
+        verify(orderLineMapper, times(1)).insertBatch(argThat(rows -> rows.size() == 2), eq(1000));
+        verify(orderLineMapper, never()).insert(any(SalesOrderLineDO.class));
+        verify(orderLineMapper, never()).selectBySourceForUpdate(any());
     }
 
     @org.junit.jupiter.params.ParameterizedTest
@@ -144,8 +241,8 @@ class CommerceAuthorityIngestServiceTest {
         DeliveryScopeDO active = activeScope(line.getId(), 701L, 901L, "8");
         DeliveryScopeDetailDO detail = activeDetail(active.getId(), "8");
         DeliveryScopeProjectVersionDO watermark = watermark(901L, 4L);
-        when(salesOrderMapper.selectBySourceForUpdate(any())).thenReturn(order);
-        when(orderLineMapper.selectBySourceForUpdate(any())).thenReturn(line);
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(order));
+        when(orderLineMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(line));
         when(orderLineMapper.updateOwnerByVersion(any())).thenReturn(1);
         when(scopeImpactMapper.selectActiveScopesForUpdate(any())).thenReturn(List.of(active));
         when(scopeImpactMapper.selectDetailsForUpdate(any())).thenReturn(List.of(detail));
@@ -160,7 +257,7 @@ class CommerceAuthorityIngestServiceTest {
 
         CommerceOrderLineFact incoming = line("L-1", "V1", "V2", "O-1", "5");
         if (!"DECREASE".equals(scenario)) {
-            incoming = new CommerceOrderLineFact("L-1", "V1", "V2", "O-1", "10", null, null, null, null,
+            incoming = new CommerceOrderLineFact("L-1", "V1", "V2", "O-1", "10", null, null, null,
                     new BigDecimal("RETURN".equals(scenario) ? "-4" : "12"), BigDecimal.ZERO, BigDecimal.ZERO,
                     null, 0, "PENDING_AUTHORITY", "RETURN".equals(scenario)
                     ? CommerceSourceLifecycleStatus.RETURNED : CommerceSourceLifecycleStatus.ACTIVE,
@@ -195,9 +292,17 @@ class CommerceAuthorityIngestServiceTest {
                 CommerceSourceLifecycleStatus.ACTIVE, time());
     }
 
+    private CommerceSalesOrderFact orderWithChain(String key, String previous, String version,
+                                                  String contractNo, String executionNo) {
+        return new CommerceSalesOrderFact(key, previous, version, "ACME", "ON-1", "NORMAL",
+                "CU-1", "Customer", new BigDecimal("100"), "CNY",
+                CommerceSourceLifecycleStatus.ACTIVE, time(),
+                "01", "源项目名", null, time(), time(), null, contractNo, executionNo);
+    }
+
     private CommerceOrderLineFact line(String key, String previous, String version,
                                        String orderKey, String quantity) {
-        return new CommerceOrderLineFact(key, previous, version, orderKey, "10", "ITEM-1", null,
+        return new CommerceOrderLineFact(key, previous, version, orderKey, "10", "ITEM-1",
                 new BigDecimal(quantity), "PCS", CommerceSourceLifecycleStatus.ACTIVE, time());
     }
 
@@ -209,7 +314,7 @@ class CommerceAuthorityIngestServiceTest {
         row.setCustomerCode(fact.customerCode()); row.setCustomerName(fact.customerName());
         row.setContractAmount(fact.amount()); row.setCurrencyCode(fact.currencyCode());
         row.setSourceLifecycleStatus(fact.lifecycleStatus().name()); row.setSourceUpdatedAt(fact.sourceUpdatedAt());
-        row.setVersion(0);
+        row.setVersion(0L);
         return row;
     }
 
@@ -221,16 +326,30 @@ class CommerceAuthorityIngestServiceTest {
         row.setOrderType(fact.orderType()); row.setCustomerCode(fact.customerCode());
         row.setCustomerName(fact.customerName()); row.setOrderAmount(fact.amount());
         row.setCurrencyCode(fact.currencyCode()); row.setSourceLifecycleStatus(fact.lifecycleStatus().name());
-        row.setSourceUpdatedAt(fact.sourceUpdatedAt()); row.setVersion(0);
+        row.setSourceUpdatedAt(fact.sourceUpdatedAt()); row.setVersion(0L);
         row.setAuthorityStatus("CONFIRMED");
         row.setStatus("ENABLED");
+        return row;
+    }
+
+    /** 与 orderWithChain 载荷镜像的存量行；回放比较要求逐字段一致。 */
+    private SalesOrderDO orderRowWithChain(String key, String version) {
+        CommerceSalesOrderFact fact = orderWithChain(key, null, version, "CT-1", "EX-1");
+        SalesOrderDO row = orderRow(key, version);
+        row.setSalesType(fact.salesType());
+        row.setContractNo(fact.contractNo());
+        row.setExecutionNo(fact.executionNo());
+        row.setSourceProjectName(fact.sourceProjectName());
+        row.setOrderComment(fact.orderComment());
+        row.setOrderCreateTime(fact.orderCreateTime());
+        row.setCustomerRequiredTime(fact.customerRequiredTime());
         return row;
     }
 
     private SalesOrderLineDO lineRow(Long orderId, String key, String version, String quantity) {
         SalesOrderLineDO row = new SalesOrderLineDO();
         row.setId(301L); row.setTenantId(1L); row.setOrderId(orderId); row.setSourceSystem("ERP");
-        row.setSourceKey(key); row.setSourceVersion(version); row.setLineCode("10"); row.setItemCode("ITEM-1");
+        row.setSourceKey(key); row.setSourceVersion(version); row.setLineCode("10"); row.setProductCode("ITEM-1");
         row.setQuantity(new BigDecimal(quantity)); row.setUnitCode("PCS"); row.setSourceLifecycleStatus("ACTIVE");
         row.setSourceUpdatedAt(time()); row.setVersion(0);
         return row;
@@ -240,7 +359,7 @@ class CommerceAuthorityIngestServiceTest {
         DeliveryScopeDO row = new DeliveryScopeDO();
         row.setId(id); row.setTenantId(1L); row.setOrderLineId(lineId); row.setProjectId(projectId);
         row.setAllocatedQty(new BigDecimal(quantity)); row.setScopeStatus("ACTIVE");
-        row.setAllocationVersion(1L); row.setSourceEvidence("SRC"); row.setEffectiveFrom(time()); row.setVersion(0);
+        row.setAllocationVersion(1L); row.setSourceEvidence("SRC"); row.setEffectiveFrom(time()); row.setVersion(0L);
         return row;
     }
 

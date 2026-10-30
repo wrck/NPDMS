@@ -27,7 +27,7 @@ class ProjectCurrentStageServiceTest {
     final List<ProjectStageInstanceDO> stages = new ArrayList<>();
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
-        project.setId(9L); project.setTenantId(7L); project.setVersion(3);
+        project.setId(9L); project.setTenantId(7L); project.setVersion(3L);
         project.setLifecycleStatus("ACTIVE"); project.setCurrentStage("S0"); project.setActivePlanVersionId(21L);
         when(projects.selectByIdForUpdate(9L)).thenReturn(project);
         when(projects.selectById(9L)).thenReturn(project);
@@ -78,8 +78,8 @@ class ProjectCurrentStageServiceTest {
     }
     @Test void closureRetainsHistoryAndReadFactChecksVersionWithoutWrites() {
         add("A", "S4", "ACTIVE");
-        assertTrue(service.isActive(new ProjectCurrentStageService.Query(9L, 3, "S4")));
-        assertThrows(IllegalStateException.class, () -> service.isActive(new ProjectCurrentStageService.Query(9L, 2, "S4")));
+        assertTrue(service.isActive(new ProjectCurrentStageService.Query(9L, 3L, "S4")));
+        assertThrows(IllegalStateException.class, () -> service.isActive(new ProjectCurrentStageService.Query(9L, 2L, "S4")));
         project.setLifecycleStatus("NORMAL_CLOSED"); assertEquals(3, service.synchronize(9L));
         verifyNoInteractions(projections);
     }

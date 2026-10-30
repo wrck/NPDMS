@@ -1,0 +1,15 @@
+package cn.iocoder.yudao.module.pms.acceptance.service.normalclosure;
+
+import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.*;
+import java.util.List;
+
+public final class NormalClosureViews {
+    private NormalClosureViews() {}
+    public record Check(String code, boolean passed, String reason, Long subjectId) {}
+    public record Overview(Long projectId, Long version, Long treeVersion, String currentStage,
+                           String lifecycleStatus, boolean policyAvailable, List<Check> checks,
+                           NormalClosureSnapshotDO latestSnapshot, NormalClosureApplicationDO latestApplication,
+                           List<String> allowedActions) {}
+    public record ApplicationDetail(Long projectId, NormalClosureApplicationDO application,
+                                    NormalClosureSnapshotDO snapshot, List<NormalClosureReviewDO> reviews) {}
+}

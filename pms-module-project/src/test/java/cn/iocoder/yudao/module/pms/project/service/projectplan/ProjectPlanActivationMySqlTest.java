@@ -60,7 +60,7 @@ class ProjectPlanActivationMySqlTest {
                         ((Number)row.get("contract_id")).longValue(),((Number)row.get("contract_id")).longValue(),"plan_sql_acceptance")).toList();
                 String snapshot = jdbc.queryForObject("SELECT execution_snapshot FROM proj_project_plan_version WHERE tenant_id=1 AND project_id=? AND id=?",String.class,projectId,oldId);
                 persistence.activate(new ProjectPlanVersionMapper.Activation(1L,projectId,oldId,newId,
-                        ((Number)draft.get("version")).intValue(),((Number)project.get("version")).intValue(),snapshot,
+                        ((Number)draft.get("version")).longValue(),((Number)project.get("version")).longValue(),snapshot,
                         LocalDateTime.now(),"plan_sql_acceptance"),changes,List.of());
                 assertEquals(newId,jdbc.queryForObject("SELECT active_plan_version_id FROM proj_project WHERE tenant_id=1 AND id=?",Long.class,projectId));
                 assertEquals(rounds.size(),jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_node_execution WHERE tenant_id=1 AND project_id=? AND plan_version_id=? AND current_marker=1",Integer.class,projectId,newId));

@@ -1,0 +1,19 @@
+{
+ "requests": [
+  "POST http://localhost:59291/admin-api/system/auth/login",
+  "POST http://localhost:59291/admin-api/api/v1/pms/project-execution/capabilities/inspect"
+ ],
+ "responses": [
+  {
+   "url": "http://localhost:59291/admin-api/system/auth/login",
+   "status": 200
+  },
+  {
+   "url": "http://localhost:59291/admin-api/api/v1/pms/project-execution/capabilities/inspect",
+   "status": 200
+  }
+ ],
+ "requestfailed": [],
+ "console": [],
+ "pageerror": []
+}

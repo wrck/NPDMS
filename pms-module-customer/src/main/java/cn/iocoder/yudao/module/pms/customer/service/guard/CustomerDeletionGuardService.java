@@ -21,6 +21,8 @@ public class CustomerDeletionGuardService {
     private AssetCustomerReferenceGuardApi assetGuardApi;
     @Resource
     private cn.iocoder.yudao.module.pms.customer.dal.mysql.contact.CustomerContactMasterMapper contactMapper;
+    @Resource
+    private cn.iocoder.yudao.module.pms.customer.dal.mysql.inspection.CustomerInspectionHistoryMapper inspectionHistoryMapper;
 
     public CustomerDeletionGuardResult check(Long tenantId, Long customerId) {
         if (tenantId == null || customerId == null) {
@@ -30,7 +32,8 @@ public class CustomerDeletionGuardService {
         List<CustomerReferenceGuardResult> results = List.of(
                 checkProvider("PROJ", query, projectGuardApi::check),
                 checkProvider("AST", query, assetGuardApi::check),
-                checkProvider("CUS_CONTACT", query, this::contactReferences));
+                checkProvider("CUS_CONTACT", query, this::contactReferences),
+                checkProvider("CUS_INSPECTION", query, this::inspectionReferences));
         long referenceCount = results.stream().mapToLong(CustomerReferenceGuardResult::referenceCount).sum();
         CustomerReferenceGuardStatus status = aggregate(results);
         return new CustomerDeletionGuardResult(status == CustomerReferenceGuardStatus.CLEAR,
@@ -57,6 +60,12 @@ public class CustomerDeletionGuardService {
                 query.tenantId(), query.customerId()));
         return new CustomerReferenceGuardResult((count == 0 ? CustomerReferenceGuardStatus.CLEAR : CustomerReferenceGuardStatus.REFERENCED).name(),
                 "CUS_CONTACT", count, LocalDateTime.now());
+    }
+
+    private CustomerReferenceGuardResult inspectionReferences(CustomerReferenceGuardQuery query) {
+        long count = inspectionHistoryMapper.countReferences(query);
+        return new CustomerReferenceGuardResult((count == 0 ? CustomerReferenceGuardStatus.CLEAR : CustomerReferenceGuardStatus.REFERENCED).name(),
+                "CUS_INSPECTION", count, LocalDateTime.now());
     }
 
     private CustomerReferenceGuardStatus aggregate(List<CustomerReferenceGuardResult> results) {

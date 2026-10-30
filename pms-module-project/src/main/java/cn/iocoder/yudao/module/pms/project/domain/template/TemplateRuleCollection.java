@@ -24,8 +24,10 @@ public final class TemplateRuleCollection {
                 throw new IllegalArgumentException("规则需要有效的局部key和结果类型");
             if (result.putIfAbsent(rule.key(), rule) != null) throw new IllegalArgumentException("规则key重复: " + rule.key());
             boolean condition = rule.kind() == VersionRule.Kind.CONDITION;
-            if (condition ? rule.expression() == null || rule.decision() != null
-                    : rule.decision() == null || rule.expression() != null)
+            // HTTP/JSON往返的显式null不是另一份可编辑条件来源。
+            boolean hasExpression = rule.expression() != null && !rule.expression().isNull();
+            if (condition ? !hasExpression || rule.decision() != null
+                    : rule.decision() == null || hasExpression)
                 throw new IllegalArgumentException("规则必须只有一种可编辑来源: " + rule.key());
         }
         return result;
@@ -125,11 +127,15 @@ public final class TemplateRuleCollection {
             if (node == null) continue;
             for (String key : new String[]{node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey()})
                 use(rules, owners, key, "stage:" + node.getNodeKey());
+            operationUses(node.getWorkBinding(), rules, owners, "stage:" + node.getNodeKey());
+            executionUses(node.getExecution(), node.getWorkBinding(), rules, owners, "stage:" + node.getNodeKey());
         }
         if (document.getTasks() != null) for (var node : document.getTasks()) {
             if (node == null) continue;
             for (String key : new String[]{node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey()})
                 use(rules, owners, key, "task:" + node.getNodeKey());
+            operationUses(node.getWorkBinding(), rules, owners, "task:" + node.getNodeKey());
+            executionUses(node.getExecution(), node.getWorkBinding(), rules, owners, "task:" + node.getNodeKey());
         }
         if (document.getTransitions() != null) for (var edge : document.getTransitions())
             if (edge != null) use(rules, owners, edge.getConditionRuleKey(), "edge:" + edge.getEdgeKey());
@@ -137,6 +143,32 @@ public final class TemplateRuleCollection {
             if (users.size() > 1 && !rules.get(key).shared())
                 throw new IllegalArgumentException("多个节点使用同一规则必须显式共享: " + key + " " + users);
         });
+    }
+
+    private static void executionUses(JsonNode value, TemplateDesignerDocument.WorkBindingSpec binding,
+            Map<String, VersionRule> rules, Map<String, Set<String>> owners, String owner) {
+        if (value == null) return;
+        var config = TemplateExecutionConfiguration.read(value);
+        if (!config.operations().isEmpty() && binding != null && binding.getOperationContract() != null)
+            throw new IllegalArgumentException("执行配置和旧操作子契约不能同时编辑: " + owner);
+        for (var operation : config.operations()) {
+            for (var check : List.of(operation.pre(), operation.post())) {
+                if (!"RULE".equals(check.mode())) continue;
+                condition(rules, check.ruleKey());
+                use(rules, owners, check.ruleKey(), owner);
+            }
+        }
+    }
+
+    private static void operationUses(TemplateDesignerDocument.WorkBindingSpec binding,
+            Map<String, VersionRule> rules, Map<String, Set<String>> owners, String owner) {
+        if (binding == null || binding.getOperationContract() == null) return;
+        var contract = cn.iocoder.yudao.module.pms.project.domain.template.operation.TemplateOperationContractJson
+                .readAuthoring(binding.getOperationContract());
+        for (var operation : contract.operations()) {
+            if ("RULE".equals(operation.pre().mode())) use(rules, owners, operation.pre().ruleKey(), owner);
+            if ("RULE".equals(operation.post().mode())) use(rules, owners, operation.post().ruleKey(), owner);
+        }
     }
 
     private static void use(Map<String, VersionRule> rules, Map<String, Set<String>> owners, String key, String owner) {

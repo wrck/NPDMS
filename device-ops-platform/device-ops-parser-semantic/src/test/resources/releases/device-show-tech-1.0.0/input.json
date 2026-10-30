@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "collectionId": "release-fixture",
+  "commandBlocks": [
+    {
+      "commandIndex": 1,
+      "commandText": "version information",
+      "status": "SUCCEEDED",
+      "stdout": "Software Release TEST-2.3.4\nSerial Number: SN-RELEASE-001",
+      "stderr": "",
+      "receivedBytes": 59,
+      "pageCount": 1,
+      "truncated": false,
+      "exitCode": 0
+    }
+  ]
+}

@@ -1,13 +1,13 @@
 <template>
   <ContentWrap>
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
-      <el-form-item label="项目" prop="projectId">
+      <el-form-item v-if="!props.projectId" label="项目" prop="projectId">
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-220px"
         />
@@ -50,7 +50,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-material-exch:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:imp-material-exch:create']"
           ><Icon icon="ep:plus" />新建换货申请</el-button
         >
       </el-form-item>
@@ -60,24 +60,31 @@
   <ContentWrap>
     <el-table v-loading="loading" :data="rows" empty-text="暂无物料换货数据">
       <el-table-column prop="code" label="单号" width="160" />
-      <el-table-column prop="projectId" label="项目" min-width="180">
+      <el-table-column v-if="!props.projectId" prop="projectId" label="项目" min-width="180">
         <template #default="{ row }">
           <ProjectTag :project-id="row.projectId" />
         </template>
       </el-table-column>
-      <el-table-column prop="name" label="名称" min-width="180" show-overflow-tooltip />
       <el-table-column prop="exchangeType" label="换货类型" width="110">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_MATERIAL_EXCH_TYPE" :value="row.exchangeType" />
         </template>
       </el-table-column>
-      <el-table-column prop="materialName" label="物料名称" min-width="140" />
+      <el-table-column label="物料编码" min-width="160">
+        <template #default="{ row }">
+          <template v-if="row.productCode">
+            <el-tag
+              v-for="code in row.productCode.split(',').filter(Boolean)" :key="code" size="small"
+              class="mr-4px">{{ code }}</el-tag>
+          </template>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
       <el-table-column label="数量" width="100">
         <template #default="{ row }">
           {{ row.quantity ?? '-' }} {{ row.unit || '' }}
         </template>
       </el-table-column>
-      <el-table-column prop="originalOrderNo" label="原订单号" width="140" />
       <el-table-column prop="crmPushStatus" label="CRM状态" width="100">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_CRM_SYNC_STATUS" :value="row.crmPushStatus" />
@@ -91,7 +98,7 @@
       <el-table-column prop="applyTime" label="申请时间" min-width="160" :formatter="dateFormatter" />
       <el-table-column label="操作" width="420" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-material-exch:query']"
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:imp-material-exch:query']"
             >明细</el-button
           >
           <el-button
@@ -99,7 +106,7 @@
             type="warning"
             v-if="row.status === 0 || row.status === 4"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-material-exch:update']"
+            v-hasPermi="['pms:imp-material-exch:update']"
             >编辑</el-button
           >
           <el-button
@@ -107,7 +114,7 @@
             type="success"
             v-if="row.status === 0 || row.status === 4"
             @click="handleSubmit(row)"
-            v-hasPermi="['pms:eng-material-exch:submit']"
+            v-hasPermi="['pms:imp-material-exch:submit']"
             >提交</el-button
           >
           <el-button
@@ -115,7 +122,7 @@
             type="primary"
             v-if="row.status === 1 || row.status === 2"
             @click="openApprove(row)"
-            v-hasPermi="['pms:eng-material-exch:audit']"
+            v-hasPermi="['pms:imp-material-exch:audit']"
             >审批</el-button
           >
           <el-button
@@ -123,7 +130,7 @@
             type="info"
             v-if="row.status === 1 || row.status === 2"
             @click="handleWithdraw(row)"
-            v-hasPermi="['pms:eng-material-exch:submit']"
+            v-hasPermi="['pms:imp-material-exch:submit']"
             >撤回</el-button
           >
           <el-button
@@ -132,7 +139,7 @@
             v-if="row.crmPushStatus === 'PENDING' && row.status === 3"
             disabled
             title="CRM外部接口仅预留扩展入口，当前不执行推送"
-            v-hasPermi="['pms:eng-material-exch:push-crm']"
+            v-hasPermi="['pms:imp-material-exch:push-crm']"
             >CRM未接入</el-button
           >
           <el-button
@@ -140,7 +147,7 @@
             type="danger"
             v-if="row.status !== 3 && row.status !== 6"
             @click="handleTerminate(row)"
-            v-hasPermi="['pms:eng-material-exch:audit']"
+            v-hasPermi="['pms:imp-material-exch:audit']"
             >终止</el-button
           >
           <el-button
@@ -148,7 +155,7 @@
             type="danger"
             v-if="row.status === 0 || row.status === 4"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-material-exch:delete']"
+            v-hasPermi="['pms:imp-material-exch:delete']"
             >删除</el-button
           >
         </template>
@@ -161,17 +168,23 @@
   <Dialog v-model="formVisible" :title="form.id ? '编辑换货申请' : '新建换货申请'" width="min(960px, 95vw)">
     <el-alert v-if="sourceSurveyId" title="此入口只创建内部换货申请草稿；CRM推送尚未接入，不会自动推送。" type="warning" :closable="false" />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
+      <el-form-item label="物料选择">
+        <MaterialDevicePicker
+          v-if="formVisible" :key="pickerKey" :project-id="form.projectId"
+          :model-value="form.serials || []" @update:model-value="updateSerials" />
+      </el-form-item>
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="项目" prop="projectId">
-            <el-input v-if="sourceSurveyId" :model-value="`工勘所属项目 #${form.projectId}`" disabled />
+            <el-input v-if="sourceSurveyId || props.projectId" :model-value="sourceSurveyId ? `工勘所属项目 #${form.projectId}` : projectLabel" disabled />
             <PmsEntitySelect
               v-else
               v-model="form.projectId"
               :api="ProjectApi.getProjectPage"
-              label-field="name"
+              label-field="projectName"
               value-field="id"
-              query-field="name"
+              query-field="projectName"
+              @change="changeProject"
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
@@ -179,102 +192,22 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="单号" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" placeholder="如 ME-2026-001" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="换货类型" prop="exchangeType">
-            <el-select v-model="form.exchangeType" class="!w-full">
-              <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_MATERIAL_EXCH_TYPE)"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="关联设备" prop="equipmentId">
-            <PmsEntitySelect
-              v-model="form.equipmentId"
-              :api="EquipmentApi.getEquipmentPage"
-              :label-field="['serialNumber', 'name']"
-              value-field="id"
-              query-field="serialNumber"
-              placeholder="请选择关联设备"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="物料名称" prop="materialName">
-            <el-input v-model="form.materialName" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="物料编码" prop="materialCode">
-            <el-input v-model="form.materialCode" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="规格型号" prop="specification">
-            <el-input v-model="form.specification" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="数量" prop="quantity">
-            <el-input-number v-model="form.quantity" :min="0" :precision="2" class="!w-full" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="单位" prop="unit">
-            <el-input v-model="form.unit" placeholder="如 个/台/套" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="原订单号" prop="originalOrderNo">
-            <el-input v-model="form.originalOrderNo" />
+            <el-input v-model="form.code" disabled placeholder="保存时自动生成" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="申请人" prop="applicantUserId">
-            <PmsEntitySelect
-              v-model="form.applicantUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
-              placeholder="请选择申请人"
-            />
+            <span>{{ form.applicantUserId === userStore.getUser.id ? userStore.getUser.nickname || form.applicantUserId : form.applicantUserId }}</span>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="申请时间" prop="applyTime">
-            <el-date-picker
-              v-model="form.applyTime"
-              type="datetime"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              placeholder="选择申请时间"
-              class="!w-full"
-            />
+          <el-form-item label="申请时间">
+            <span>{{ form.id ? (form.applyTime ? formatDate(form.applyTime) : '-') : '保存时自动记录' }}</span>
           </el-form-item>
         </el-col>
         <el-col :span="24">
           <el-form-item label="换货原因" prop="reason">
             <Editor v-model="form.reason" height="180px" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="原因附件" prop="reasonFiles">
-            <UploadFile v-model="form.reasonFiles!" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" :rows="2" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -286,39 +219,7 @@
   </Dialog>
 
   <!-- 明细对话框 -->
-  <Dialog v-model="detailVisible" title="换货申请明细" width="min(960px, 95vw)">
-    <el-descriptions :column="2" border class="mb-15px">
-      <el-descriptions-item label="单号">{{ current.code }}</el-descriptions-item>
-      <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
-      <el-descriptions-item label="项目"><ProjectTag :project-id="current.projectId" /></el-descriptions-item>
-      <el-descriptions-item label="换货类型">
-        <dict-tag :type="DICT_TYPE.PMS_MATERIAL_EXCH_TYPE" :value="current.exchangeType ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="关联设备"><EquipmentTag :equipment-id="current.equipmentId" /></el-descriptions-item>
-      <el-descriptions-item label="物料名称">{{ current.materialName }}</el-descriptions-item>
-      <el-descriptions-item label="物料编码">{{ current.materialCode }}</el-descriptions-item>
-      <el-descriptions-item label="规格型号">{{ current.specification }}</el-descriptions-item>
-      <el-descriptions-item label="数量">{{ current.quantity }} {{ current.unit }}</el-descriptions-item>
-      <el-descriptions-item label="原订单号">{{ current.originalOrderNo }}</el-descriptions-item>
-      <el-descriptions-item label="申请人">{{ current.applicantUserId }}</el-descriptions-item>
-      <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
-      <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="CRM推送状态">
-        <dict-tag :type="DICT_TYPE.PMS_CRM_SYNC_STATUS" :value="current.crmPushStatus ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="CRM推送时间">{{ current.crmPushTime }}</el-descriptions-item>
-      <el-descriptions-item label="CRM订单号">{{ current.crmOrderNo }}</el-descriptions-item>
-      <el-descriptions-item label="换货原因" :span="2">
-        <div v-html="current.reason"></div>
-      </el-descriptions-item>
-      <el-descriptions-item label="备注" :span="2">{{ current.remark }}</el-descriptions-item>
-      <el-descriptions-item v-if="current.approveOpinion" label="审批意见" :span="2">
-        {{ current.approveOpinion }}
-      </el-descriptions-item>
-    </el-descriptions>
-  </Dialog>
+  <MaterialExchangeDetailDialog v-model="detailVisible" :current="current" />
 
   <!-- 审批对话框 -->
   <Dialog v-model="approveVisible" title="审批换货申请" width="560px">
@@ -333,12 +234,10 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item label="审批人" prop="approverUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="approveForm.approverUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择审批人"
         />
       </el-form-item>
@@ -354,23 +253,36 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
+import MaterialExchangeDetailDialog from './MaterialExchangeDetailDialog.vue'
+import { onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
 import { positiveShortcutId, surveyPath } from '@/views/pms/delivery-business/site-survey/siteSurveyOutsource'
 import { loadSurveyActionContext } from '@/views/pms/delivery-business/site-survey/surveyActionContext'
-import { dateFormatter } from '@/utils/formatTime'
+import { dateFormatter, formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as MaterialExchApi from '@/api/pms/engineering/material-exch'
-import * as ProjectApi from '@/api/pms/project/project'
-import * as EquipmentApi from '@/api/pms/asset/equipment'
-import * as UserApi from '@/api/system/user'
-import type { MaterialExchangeVO } from '@/api/pms/engineering/material-exch'
+import * as ProjectApi from '@/api/pms/project/projects'
+import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
+import MaterialDevicePicker from './MaterialDevicePicker.vue'
+import type { MaterialExchangeVO, MaterialExchangeSerialVO } from '@/api/pms/engineering/material-exch'
 import ProjectTag from '@/components/ProjectTag/index.vue'
-import EquipmentTag from '@/components/EquipmentTag/index.vue'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/material-exch/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngMaterialExch' })
+const props = defineProps<{ projectId?: number }>()
 const message = useMessage()
 const route = useRoute()
 const router = useRouter()
@@ -383,13 +295,51 @@ const total = ref(0)
 const query = reactive({
   pageNo: 1,
   pageSize: 10,
-  projectId: undefined as number | undefined,
+  projectId: props.projectId as number | undefined,
   code: '',
   name: '',
   exchangeType: '',
   crmPushStatus: '',
   status: undefined as number | undefined
 })
+
+const projectLabel = ref('')
+const pickerKey = ref(0)
+/** 换货数量 = 各勾选设备行换货数量之和 */
+const serialQuantityTotal = (serials: MaterialExchangeSerialVO[]) =>
+  serials.reduce((sum, row) => sum + (row.quantity ?? 1), 0)
+/** 项目编码、名称按当前项目自动填充；用户已录入时不覆盖 */
+const prefillProjectFields = (project?: { projectCode?: string; projectName?: string }) => {
+  if (project?.projectName) form.name ||= project.projectName
+  if (project?.projectCode) form.code ||= `ME-${project.projectCode}-${Date.now()}`
+}
+const changeProject = (_val: number, selected?: { projectCode?: string; projectName?: string }) => {
+  if (!form.id) { form.name = ''; form.code = '' }
+  form.serials = []
+  form.deviceId = undefined
+  form.quantity = undefined!
+  prefillProjectFields(selected)
+}
+const updateSerials = (serials: MaterialExchangeSerialVO[]) => {
+  form.serials = serials
+  form.deviceId = serials.find(row => row.deviceId)?.deviceId
+  if (serials.length) {
+    form.quantity = serialQuantityTotal(serials)
+    form.unit = '台'
+  }
+}
+const loadProjectLabel = async () => {
+  if (!props.projectId) return
+  try {
+    const detail = await ProjectApi.getProject(props.projectId)
+    projectLabel.value = detail?.projectName
+      ? `${detail.projectName}（${detail.projectCode || `#${props.projectId}`}）`
+      : `#${props.projectId}`
+    prefillProjectFields(detail)
+  } catch {
+    projectLabel.value = `#${props.projectId}`
+  }
+}
 
 const load = async () => {
   loading.value = true
@@ -410,13 +360,10 @@ const form = reactive<MaterialExchangeVO>({
   code: '',
   name: '',
   exchangeType: 'INCOMPATIBLE',
-  equipmentId: undefined,
-  materialName: '',
-  materialCode: '',
-  specification: '',
+  deviceId: undefined,
+  serials: [],
   quantity: undefined!,
   unit: '个',
-  originalOrderNo: '',
   reason: '',
   reasonFiles: '',
   applicantUserId: undefined!,
@@ -425,14 +372,8 @@ const form = reactive<MaterialExchangeVO>({
 })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入单号' }],
   name: [{ required: true, message: '请输入名称' }],
-  exchangeType: [{ required: true, message: '请选择换货类型' }],
-  materialName: [{ required: true, message: '请输入物料名称' }],
-  quantity: [{ required: true, message: '请输入数量' }],
-  reason: [{ required: true, message: '请输入换货原因' }],
-  applicantUserId: [{ required: true, message: '请选择申请人' }],
-  applyTime: [{ required: true, message: '请选择申请时间' }]
+  reason: [{ required: true, message: '请输入换货原因' }]
 }
 
 const openCreate = () => {
@@ -440,33 +381,56 @@ const openCreate = () => {
   form.version = undefined
   Object.assign(form, {
     id: undefined,
-    projectId: undefined,
+    projectId: props.projectId,
     code: '',
     name: '',
     exchangeType: 'INCOMPATIBLE',
-    equipmentId: undefined,
-    materialName: '',
-    materialCode: '',
-    specification: '',
+    deviceId: undefined,
+  serials: [],
     quantity: undefined,
     unit: '个',
-    originalOrderNo: '',
     reason: '',
     reasonFiles: '',
-    applicantUserId: undefined,
+    applicantUserId: userStore.getUser.id,
     applyTime: '',
     remark: ''
   })
+  if (props.projectId) {
+    loadProjectLabel()
+
+  }
+  pickerKey.value++
   formVisible.value = true
 }
 const openEdit = async (row: MaterialExchangeVO) => {
   const detail = await MaterialExchApi.getMaterialExchange(row.id!)
-  Object.assign(form, detail)
+  Object.assign(form, detail, { serials: detail.serials || [] })
+  if (props.projectId) await loadProjectLabel()
+  // 旧申请没有子表时保留原设备；下一次显式保存才生成快照。
+  if (!form.serials?.length && detail.deviceId) {
+    const device = await DeviceArchiveApi.getDeviceArchiveRecord(detail.deviceId)
+    form.serials = [{ deviceId: detail.deviceId, quantity: 1, sn: device.sn, productName: device.name,
+      productCode: device.productCode, productModel: device.productModel, contractNo: device.contractNo }]
+  }
+  pickerKey.value++
   formVisible.value = true
 }
 const save = async () => {
   if (saving.value) return
+  // 单号自动生成：编号只读展示，创建时无项目前缀也按规则生成
+  if (!form.id && !form.code) form.code = `ME-${Date.now()}`
+  if (!form.id && !form.serials?.length) {
+    message.warning('请选择物料并填写换货数量')
+    return
+  }
   await formRef.value.validate()
+  // 数量由物料选择派生；申请人和申请时间由服务端记录，编辑保留原申请事实。
+  if (form.serials?.length) form.quantity = serialQuantityTotal(form.serials)
+  if (!form.id) {
+    form.exchangeType = 'INCOMPATIBLE'
+    form.applicantUserId = userStore.getUser.id
+    form.applyTime = undefined
+  }
   saving.value = true
   try {
     if (form.id) {
@@ -562,7 +526,20 @@ watch(() => [route.query.surveyId, route.query.deviceSn], async ([value, sn]) =>
     const context = await loadSurveyActionContext(surveyId, 'exchange', typeof sn === 'string' ? sn : undefined)
     openCreate()
     sourceSurveyId.value = surveyId
-    Object.assign(form, context, { applicantUserId: userStore.getUser.id, applyTime: Date.now() })
+    Object.assign(form, context, { applicantUserId: userStore.getUser.id })
   } catch(error) { message.warning(error instanceof Error ? error.message : '工勘来源读取失败') }
 }, { immediate: true })
 </script>
+
+<style lang="scss" scoped>
+.material-pick {
+  width: 100%;
+}
+
+.material-pick-tip {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+</style>

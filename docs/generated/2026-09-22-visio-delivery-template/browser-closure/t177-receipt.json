@@ -1,0 +1,107 @@
+{
+  "before": {
+    "tasks": {
+      "PRE_SURVEY": "DONE",
+      "PLAN_CONSTRUCTION": "PENDING_ASSIGN",
+      "PLAN_SOLUTION": "PENDING_ASSIGN",
+      "DEPLOY_COORDINATE": "PENDING_ASSIGN",
+      "ACCEPT_COORDINATE": "PENDING_ASSIGN",
+      "PRE_REQUIREMENT": "IN_PROGRESS",
+      "DEPLOY_ARRIVAL": "PENDING_ASSIGN",
+      "ACCEPT_INITIAL": "PENDING_ASSIGN",
+      "PRE_DURATION": "IN_PROGRESS",
+      "DEPLOY_HARDWARE": "PENDING_ASSIGN",
+      "ACCEPT_FINAL": "PENDING_ASSIGN",
+      "PRE_CONTACT": "IN_PROGRESS",
+      "DEPLOY_CONFIG": "PENDING_ASSIGN",
+      "ACCEPT_TRAINING": "PENDING_ASSIGN",
+      "DEPLOY_JOINT": "PENDING_ASSIGN",
+      "ACCEPT_SATISFACTION": "PENDING_ASSIGN",
+      "DEPLOY_CUTOVER": "PENDING_ASSIGN"
+    },
+    "deliverable": {
+      "status": "PENDING",
+      "version": 0,
+      "history_len": 0
+    }
+  },
+  "drawer_before": "任务办理\n需求分析\nPRE_REQUIREMENT\n进行中\nS1 工前准备 / PRE_REQUIREMENT\n状态\t\n进行中\n\t计划开始\t-\n计划结束\t-\t进度\t0%\n任务版本\t1\t业务层级\t-\n实际开始\t2026-09-24 09:53:15\t实际结束\t-\n任务说明\t\n编辑说明\n来源：工前准备页317、536。引用已完成需求分析版本及对应需求分析文档。\n交付件清单\n必选\n需求分析表\nD_REQUIREMENT\n待提交\n提交与查看\n\n文件或业务成果有效且模板条件满足时，自动满足交付要求。\n\n关闭任务\n编辑任务资料\n任务业务办理\n刷新业务结果\n需求分析\n\n维护项目需求与附件，按版本保存和确认。\n\n刷新\n从查看版本创建草稿\n修订记录\n查看有效完成版\nV1 · 已完成\n2026-09-24 10:09:19\n项目需求分析\n\n记录客户目标、网络现状和实施要求，作为实施方案与工程交底的输入。\n\n当前有效 · V1\n展示模板\n基础业务表单\n1、项目背景\n\n客户机房已完成土建与供电改造，计划本次完成核心交换设备上线。\n\n项目背景附件\n附件 · 暂无文件\n2、项目目标\n\n完成两台核心交换机安装上线与业务割接，验收标准以初验终验报告为准。\n\n项目目标附件\n附件 · 暂无文件\n3、网络拓扑\n\n两台核心交换机双机堆叠部署，下联接入交换机，上联出口防火墙；管理网独立。\n\n网络拓扑附件\n附件 · 暂无文件",
+  "dlg_initial": "交付件提交与判定\n需求分析表\n\n状态：待满足 · 至少 1 项有效材料\n\n提交后按模板条件自动判定。文件或成果有效且配置条件满足时，交付件满足门禁。\n\n业务页面上传的匹配文档会自动归集；归集完成后刷新查看，无需重复上传。\n材料来源\n上传文件\n关联业务成果\n拖放文件到这里，或点击选择\n单文件不超过 50MB；上传完成后由服务端执行适用校验，是否执行安全扫描由部署配置决定。\n上传并绑定\n提交材料\n重新检测\n提交历史\n\n尚无提交记录\n\n关闭",
+  "type_options": [
+    "REPORT_VERSION_PUBLISHED",
+    "SATISFACTION_PASSED",
+    "需求分析成果",
+    "工勘确认成果"
+  ],
+  "candidates": [
+    "业务对象 2102942473917259777 · 成果 2102942473917259778 · V1"
+  ],
+  "submit_response": {
+    "code": 0,
+    "data": {
+      "submissionId": "2102949443042762753",
+      "sourceVersionId": "2102949443042762754",
+      "status": "ACCEPTED",
+      "version": 1,
+      "evaluation": {
+        "satisfied": true,
+        "reason": "DELIVERABLE_RULE_SATISFIED",
+        "evidence": "{\"kind\":\"CONDITION\",\"ruleVersionRef\":\"plan:2102939027864510465:deliverable:D_REQUIREMENT\",\"outcome\":\"MATCHED\",\"reasonCode\":null,\"conditions\":[{\"key\":\"condition0\",\"path\":\"rule\",\"component\":\"pmsRulePredicate\",\"outcome\":\"MATCHED\",\"reasonCode\":null}],\"steps\":[\"pmsRulePrepare\",\"pmsRulePredicate\",\"pmsRuleMatched\"],\"diagnostics\":[]}"
+      }
+    },
+    "msg": ""
+  },
+  "dlg_after_submit": "交付件提交与判定\n需求分析表\n\n状态：已满足 · 至少 1 项有效材料\n\n提交后按模板条件自动判定。文件或成果有效且配置条件满足时，交付件满足门禁。\n\n业务页面上传的匹配文档会自动归集；归集完成后刷新查看，无需重复上传。\n文件或业务成果有效，模板条件已满足\n材料来源\n上传文件\n关联业务成果\n业务成果类型\n需求分析成果\n有效成果\n选择当前项目的有效成果\n提交材料\n重新检测\n提交历史\n业务成果关联 · 2026-09-24 10:33:12\n关闭",
+  "poll_tasks": {
+    "PRE_SURVEY": "DONE",
+    "PLAN_CONSTRUCTION": "PENDING_ASSIGN",
+    "PLAN_SOLUTION": "PENDING_ASSIGN",
+    "DEPLOY_COORDINATE": "PENDING_ASSIGN",
+    "ACCEPT_COORDINATE": "PENDING_ASSIGN",
+    "PRE_REQUIREMENT": "DONE",
+    "DEPLOY_ARRIVAL": "PENDING_ASSIGN",
+    "ACCEPT_INITIAL": "PENDING_ASSIGN",
+    "PRE_DURATION": "IN_PROGRESS",
+    "DEPLOY_HARDWARE": "PENDING_ASSIGN",
+    "ACCEPT_FINAL": "PENDING_ASSIGN",
+    "PRE_CONTACT": "IN_PROGRESS",
+    "DEPLOY_CONFIG": "PENDING_ASSIGN",
+    "ACCEPT_TRAINING": "PENDING_ASSIGN",
+    "DEPLOY_JOINT": "PENDING_ASSIGN",
+    "ACCEPT_SATISFACTION": "PENDING_ASSIGN",
+    "DEPLOY_CUTOVER": "PENDING_ASSIGN"
+  },
+  "poll_deliverable": {
+    "status": "ACCEPTED",
+    "version": 1,
+    "history_len": 1
+  },
+  "node_text_after": "需求分析PRE_REQUIREMENT\n完成\n100%",
+  "drawer_after": "任务办理\n需求分析\nPRE_REQUIREMENT\n完成\nS1 工前准备 / PRE_REQUIREMENT\n状态\t\n完成\n\t计划开始\t-\n计划结束\t-\t进度\t100%\n任务版本\t2\t业务层级\t-\n实际开始\t2026-09-24 09:53:15\t实际结束\t2026-09-24 10:33:13\n任务说明\t\n来源：工前准备页317、536。引用已完成需求分析版本及对应需求分析文档。\n交付件清单\n必选\n需求分析表\nD_REQUIREMENT\n已验收\n提交与查看\n\n文件或业务成果有效且模板条件满足时，自动满足交付要求。\n\n任务业务办理\n刷新业务结果\n需求分析\n\n维护项目需求与附件，按版本保存和确认。\n\n刷新\n修订记录\n查看有效完成版\nV1 · 已完成\n2026-09-24 10:09:19\n项目需求分析\n\n记录客户目标、网络现状和实施要求，作为实施方案与工程交底的输入。\n\n当前有效 · V1\n展示模板\n基础业务表单\n1、项目背景\n\n客户机房已完成土建与供电改造，计划本次完成核心交换设备上线。\n\n项目背景附件\n附件 · 暂无文件\n2、项目目标\n\n完成两台核心交换机安装上线与业务割接，验收标准以初验终验报告为准。\n\n项目目标附件\n附件 · 暂无文件\n3、网络拓扑\n\n两台核心交换机双机堆叠部署，下联接入交换机，上联出口防火墙；管理网独立。\n\n网络拓扑附件\n附件 · 暂无文件\n4、传输现状（多选）\nIPv6\n分片\nMTU\nJumbo\n隧道\n传输需求说明\n\n﻿\n\n\n请输入内容...\n传输需求附件\n附件 · 暂无文件\n5、流量现状 · 新建\n流量现状 · 并发\n流量现状 · 吞吐\n流量需求说明\n\n﻿\n\n\n请输入内容...\n流量需求附件\n附件 · 暂无文件\n6、运行业务情况\n业务需求说明\n\n﻿\n\n\n请输入内容...\n业务需求附件\n附件 · 暂无文件\n7、IP资源情况 · 管理IP\nIP资源情",
+  "after": {
+    "tasks": {
+      "PRE_SURVEY": "DONE",
+      "PLAN_CONSTRUCTION": "PENDING_ASSIGN",
+      "PLAN_SOLUTION": "PENDING_ASSIGN",
+      "DEPLOY_COORDINATE": "PENDING_ASSIGN",
+      "ACCEPT_COORDINATE": "PENDING_ASSIGN",
+      "PRE_REQUIREMENT": "DONE",
+      "DEPLOY_ARRIVAL": "PENDING_ASSIGN",
+      "ACCEPT_INITIAL": "PENDING_ASSIGN",
+      "PRE_DURATION": "IN_PROGRESS",
+      "DEPLOY_HARDWARE": "PENDING_ASSIGN",
+      "ACCEPT_FINAL": "PENDING_ASSIGN",
+      "PRE_CONTACT": "IN_PROGRESS",
+      "DEPLOY_CONFIG": "PENDING_ASSIGN",
+      "ACCEPT_TRAINING": "PENDING_ASSIGN",
+      "DEPLOY_JOINT": "PENDING_ASSIGN",
+      "ACCEPT_SATISFACTION": "PENDING_ASSIGN",
+      "DEPLOY_CUTOVER": "PENDING_ASSIGN"
+    },
+    "deliverable": {
+      "status": "ACCEPTED",
+      "version": 1,
+      "history_len": 1
+    }
+  }
+}

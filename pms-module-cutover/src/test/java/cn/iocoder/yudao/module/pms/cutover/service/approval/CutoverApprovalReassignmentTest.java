@@ -1,9 +1,10 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
+import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.ReassignCutoverApprovalCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
@@ -43,9 +44,14 @@ class CutoverApprovalReassignmentTest {
         when(reassignments.insert(any(CutoverApprovalReassignmentDO.class))).thenReturn(1);
         when(instances.updateAfterReassignmentIfMatch(any())).thenReturn(1);
         when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
-        when(nodes.selectList(any())).thenAnswer(ignored -> List.of(node));
+        when(nodes.open(any())).thenAnswer(ignored -> List.of(node));
         var scope = new CutoverApprovalProjectScopePort.ProjectScopeFact(1L, 20L, 44L, "ACTION_EDIT", true, 8L);
-        when(scopes.inspect(1L, 20L, 44L, "ACTION_EDIT")).thenReturn(scope);
+        when(scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L)
+                .projectId(20L)
+                .subjectUserId(44L)
+                .requiredAction("ACTION_EDIT")
+                .build())).thenReturn(scope);
         when(scopes.lockAndRevalidate(scope)).thenReturn(new CutoverApprovalProjectScopePort.ProjectScopeRevalidation(
                 CutoverApprovalProjectScopePort.Revalidation.VALID, scope));
         when(platform.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
@@ -53,11 +59,24 @@ class CutoverApprovalReassignmentTest {
             Object response = operation.get();
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, response);
         });
-        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(null, instances, nodes,
-                notifications, reviews, reassignments, tasks, histories, managers, candidates, scopes, platform,
-                () -> 99L, clock);
+        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(null,
+                instances,
+                nodes,
+                notifications,
+                reviews,
+                reassignments,
+                tasks,
+                histories,
+                managers,
+                candidates,
+                scopes,
+                platform,
+                () -> 99L,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverWorkflowCoordinator.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
 
-        var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+        var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3L, 100L, 0L,
                 1, 44L, "转交当前项目负责人", "key-r1", "corr-r1"));
 
         assertThat(result.approvalVersion()).isEqualTo(1);
@@ -80,7 +99,7 @@ class CutoverApprovalReassignmentTest {
     }
 
     @Test
-    void reassigningLastFutureNodeClearsRouteCandidateHold() {
+    void rejectsUnqualifiedAdminAndReassigningLastFutureNodeClearsRouteCandidateHold() {
         CutoverApprovalInstanceMapper instances = mock(CutoverApprovalInstanceMapper.class);
         CutoverApprovalNodeMapper nodes = mock(CutoverApprovalNodeMapper.class);
         CutoverApprovalReassignmentMapper reassignments = mock(CutoverApprovalReassignmentMapper.class);
@@ -101,7 +120,7 @@ class CutoverApprovalReassignmentTest {
         when(reassignments.selectMaxReassignmentNo(any())).thenReturn(0);
         when(reassignments.insert(any(CutoverApprovalReassignmentDO.class))).thenReturn(1);
         when(instances.updateAfterReassignmentIfMatch(any())).thenReturn(1);
-        when(nodes.selectList(any())).thenAnswer(ignored -> List.of(current, future));
+        when(nodes.open(any())).thenAnswer(ignored -> List.of(current, future));
         var manager = new ProjectCutoverServiceManagerPort.ServiceManagerFact(
                 ProjectCutoverServiceManagerPort.Outcome.FOUND, 1L, 20L, 44L,
                 "SERVICE_MANAGER_L1", 3, 4L, java.time.LocalDateTime.now());
@@ -113,13 +132,32 @@ class CutoverApprovalReassignmentTest {
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, operation.get());
         });
         CutoverApprovalNotificationMapper notifications = mock(CutoverApprovalNotificationMapper.class);
-        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(null, instances, nodes,
-                notifications, mock(CutoverApprovalReviewItemMapper.class),
-                reassignments, tasks, mock(CutoverTaskStageHistoryMapper.class), managers,
-                mock(CutoverApprovalRoleCandidatePort.class), scopes, platform, () -> 99L,
-                Clock.fixed(Instant.parse("2026-09-02T01:00:00Z"), ZoneOffset.UTC));
+        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(null,
+                instances,
+                nodes,
+                notifications,
+                mock(CutoverApprovalReviewItemMapper.class),
+                reassignments,
+                tasks,
+                mock(CutoverTaskStageHistoryMapper.class),
+                managers,
+                mock(CutoverApprovalRoleCandidatePort.class),
+                scopes,
+                platform,
+                () -> 99L,
+                Clock.fixed(Instant.parse("2026-09-02T01:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverWorkflowCoordinator.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
 
-        var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3, 100L, 0,
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.reassign(new ReassignCutoverApprovalCommand(
+                1L, 10L, 3L, 100L, 0L, 2, 1L, "管理员代办", "key-rejected-admin", "corr-rejected-admin")))
+                .isInstanceOfSatisfying(CutoverApprovalApplicationException.class,
+                        ex -> assertThat(ex.reasonCode()).isEqualTo("REASSIGN_TARGET_NOT_OPEN"));
+        assertThat(future.getCurrentApproverUserId()).isNull();
+        assertThat(root.getVersion()).isZero();
+        verify(reassignments, never()).insert(any(CutoverApprovalReassignmentDO.class));
+        verify(nodes, never()).updateStatusIfMatch(any());
+        var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3L, 100L, 0L,
                 2, 44L, "补齐后续服务经理", "key-r2", "corr-r2"));
 
         assertThat(result.holdReason()).isNull();
@@ -128,14 +166,14 @@ class CutoverApprovalReassignmentTest {
     }
 
     private static CutoverTaskDO task() {
-        CutoverTaskDO row = new CutoverTaskDO(); row.setId(10L); row.setTenantId(1L); row.setVersion(3);
+        CutoverTaskDO row = new CutoverTaskDO(); row.setId(10L); row.setTenantId(1L); row.setVersion(3L);
         row.setTaskNo("CUT-10"); row.setTaskName("割接任务"); row.setCurrentStage("P5"); row.setTaskStatus("APPROVING");
         return row;
     }
     private static CutoverApprovalInstanceDO root() {
         CutoverApprovalInstanceDO row = new CutoverApprovalInstanceDO(); row.setId(100L); row.setTenantId(1L);
         row.setTaskId(10L); row.setProjectId(20L); row.setGradeCode("A"); row.setStatusCode("PENDING");
-        row.setHoldReasonCode("APPROVER_UNAVAILABLE"); row.setCurrentNodeNo(1); row.setVersion(0); return row;
+        row.setHoldReasonCode("APPROVER_UNAVAILABLE"); row.setCurrentNodeNo(1); row.setVersion(0L); return row;
     }
     private static CutoverApprovalNodeDO node() {
         CutoverApprovalNodeDO row = new CutoverApprovalNodeDO(); row.setId(101L); row.setTenantId(1L);

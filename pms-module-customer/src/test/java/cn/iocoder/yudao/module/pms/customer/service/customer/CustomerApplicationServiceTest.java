@@ -42,6 +42,7 @@ import static cn.iocoder.yudao.module.pms.customer.enums.ErrorCodeConstants.CUST
 import static cn.iocoder.yudao.module.pms.customer.enums.ErrorCodeConstants.CUSTOMER_VERSION_CONFLICT;
 import static cn.iocoder.yudao.module.pms.customer.enums.ErrorCodeConstants.PMS_IDEMPOTENCY_KEY_CONFLICT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -72,6 +73,12 @@ class CustomerApplicationServiceTest {
 
     @org.mockito.Spy
     private CustomerOutboxPayloadFactory outboxPayloadFactory = new CustomerOutboxPayloadFactory();
+
+    @Mock
+    private cn.iocoder.yudao.module.system.api.permission.PermissionApi permissionApi;
+
+    @Mock private cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi projectScopes;
+    @Mock private cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApi projectCustomers;
 
     @InjectMocks
     private CustomerApplicationServiceImpl service;
@@ -149,7 +156,7 @@ class CustomerApplicationServiceTest {
         CreateCustomerCommand command = new CreateCustomerCommand(
                 1L, "CUS-TEMP", "临时客户", null, null,
                 CustomerSourceType.PLATFORM_TEMPORARY, null, null,
-                "CRM 暂不可用", true, "D01", "M01", "S01", "E01", "I01", "key-temp");
+                "CRM 暂不可用", true, "D01", "M01", "S01", "E01", "I01", "LEVEL1", "key-temp");
 
         CustomerCommandResult result = service.create(command);
 
@@ -372,14 +379,14 @@ class CustomerApplicationServiceTest {
         return new CreateCustomerCommand(
                 1L, "CUS-001", "客户甲", "甲", "交付备注",
                 CustomerSourceType.PLATFORM_CREATED, null, null,
-                null, false, "D01", "M01", "S01", "E01", "I01", "key-create");
+                null, false, "D01", "M01", "S01", "E01", "I01", "LEVEL1", "key-create");
     }
 
     private CreateCustomerCommand crmCreate() {
         return new CreateCustomerCommand(
                 1L, "CUS-CRM", "CRM 客户", null, null,
                 CustomerSourceType.CRM_SYNC, "CRM-100", "v1",
-                null, false, "D01", "M01", "S01", "E01", "I01", "key-crm");
+                null, false, "D01", "M01", "S01", "E01", "I01", "LEVEL1", "key-crm");
     }
 
     private CustomerClassificationSnapshot classification() {
@@ -395,7 +402,98 @@ class CustomerApplicationServiceTest {
                 Set.of("classification"), expectedVersion, "key-update-classification");
     }
 
-    private CustomerMasterDO customer(Long id, int version) {
+    @Test
+    void extensionUpdateCannotBypassTheOriginalCustomerScope() {
+        executeAsNew();
+        CustomerMasterDO current = customer(100L, 2);
+        current.setDepartmentCode("OUTSIDE"); current.setMarketCode("M01"); current.setSystemCode("S01");
+        current.setExpendCode("E01"); current.setIndustryCode("I01");
+        when(customerMasterMapper.selectById(100L)).thenReturn(current);
+        when(classificationAccessService.validate(any(), any(CustomerClassificationInput.class), any()))
+                .thenThrow(new ServiceException(cn.iocoder.yudao.module.pms.customer.enums.ErrorCodeConstants.CUSTOMER_SCOPE_DENIED));
+        var command = new UpdateCustomerCommand(1L, 100L, null, null, "outside remark", Set.of("remark"), 2L, "scope-denial");
+        assertThrows(ServiceException.class, () -> service.update(command));
+        verify(customerMasterMapper, never()).updatePlatformFieldsByVersion(any());
+        verifyNoInteractions(customerHistoryService);
+    }
+
+    @Test
+    void managerCannotCreateACustomerWithForgedCrmSource() {
+        when(permissionApi.hasAnyRoles(7L,"PROJECT_MANAGER","SERVICE_MANAGER")).thenReturn(true);
+        var command = new CreateCustomerCommand(1L,"CUS-CRM","CRM",null,null,CustomerSourceType.CRM_SYNC,
+                "CRM-FAKE","1",null,false,"D01","M01","S01","E01","I01","LEVEL1","forged-crm");
+        assertThrows(ServiceException.class, () -> service.create(command));
+        verifyNoInteractions(platformCommandExecutionApi,customerMasterMapper);
+    }
+
+    private cn.iocoder.yudao.module.pms.customer.service.customer.command.ProjectCustomerExtensionCommand projectUpdate() {
+        return new cn.iocoder.yudao.module.pms.customer.service.customer.command.ProjectCustomerExtensionCommand(1L,77L,"project remark",2L,"project-key");
+    }
+
+    private void projectAccess() {
+        lenient().when(platformCommandExecutionApi.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {
+            Supplier<CustomerCommandResult> operation = invocation.getArgument(3);
+            return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, operation.get());
+        });
+        var allowed = new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(77L,5L,Set.of(77L),Set.of());
+        lenient().when(projectScopes.resolveCurrent(any())).thenReturn(allowed);
+        lenient().when(projectScopes.lockAndRevalidate(any())).thenReturn(allowed);
+        lenient().when(projectCustomers.inspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApi.Context(77L,100L,1L,"ACTIVE",true));
+        lenient().when(customerMasterMapper.selectById(100L)).thenReturn(customer(100L,2));
+        lenient().when(customerMasterMapper.updatePlatformFieldsByVersion(any())).thenReturn(1);
+    }
+
+    @Test void projectRemarkUsesOnlyServerDerivedCustomerAndPreservesGlobalScope() {
+        projectAccess();
+        when(customerExternalMappingMapper.selectCurrentByCustomerId(1L,100L)).thenReturn(new CustomerExternalMappingDO());
+        assertEquals(3L,service.updateProjectExtension(projectUpdate()).version());
+        var update=ArgumentCaptor.forClass(CustomerPlatformUpdate.class);
+        verify(customerMasterMapper).updatePlatformFieldsByVersion(update.capture());
+        assertEquals(100L,update.getValue().customerId());
+        assertTrue(update.getValue().updateRemark());assertFalse(update.getValue().updateName());assertFalse(update.getValue().updateClassification());
+        verifyNoInteractions(scopeContextService);
+        verify(customerHistoryService).appendUpdate(any(),any(),eq(7L),eq("project-key"));
+    }
+
+    @Test void projectWithoutManageCannotMaintainCustomer() {
+        projectAccess();when(projectScopes.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(77L,5L,Set.of(),Set.of(77L)));
+        assertThrows(ServiceException.class,()->service.updateProjectExtension(projectUpdate()));
+        verifyNoInteractions(projectCustomers,customerHistoryService);verify(customerMasterMapper,never()).updatePlatformFieldsByVersion(any());
+    }
+
+    @Test void revokedProjectScopeCannotWriteCustomerRemark() {
+        projectAccess();when(projectScopes.lockAndRevalidate(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(77L,6L,Set.of(),Set.of()));
+        assertThrows(ServiceException.class,()->service.updateProjectExtension(projectUpdate()));
+        verify(customerMasterMapper,never()).updatePlatformFieldsByVersion(any());verifyNoInteractions(customerHistoryService);
+    }
+
+    @Test void changedProjectCustomerCannotRedirectRemarkUpdate() {
+        projectAccess();when(projectCustomers.inspect(any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApi.Context(77L,100L,1L,"ACTIVE",true),
+                new cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApi.Context(77L,101L,2L,"ACTIVE",true));
+        assertThrows(ServiceException.class,()->service.updateProjectExtension(projectUpdate()));
+        verify(customerMasterMapper,never()).updatePlatformFieldsByVersion(any());verifyNoInteractions(customerHistoryService);
+    }
+
+    @Test void closedProjectDoesNotPermitCustomerMaintenance() {
+        projectAccess();when(projectCustomers.inspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.contact.ProjectContactContextApi.Context(77L,100L,1L,"NORMAL_CLOSED",true));
+        assertThrows(ServiceException.class,()->service.updateProjectExtension(projectUpdate()));
+        verify(customerMasterMapper,never()).updatePlatformFieldsByVersion(any());
+    }
+
+    @Test void staleCustomerVersionCannotBeOverwrittenViaProject() {
+        projectAccess();when(customerMasterMapper.selectById(100L)).thenReturn(customer(100L,3));
+        assertThrows(ServiceException.class,()->service.updateProjectExtension(projectUpdate()));
+        verify(customerMasterMapper,never()).updatePlatformFieldsByVersion(any());verifyNoInteractions(customerHistoryService);
+    }
+
+    @Test void projectCustomerFromOtherTenantIsDenied() {
+        projectAccess();var row=customer(100L,2);row.setTenantId(2L);when(customerMasterMapper.selectById(100L)).thenReturn(row);
+        assertThrows(ServiceException.class,()->service.updateProjectExtension(projectUpdate()));
+        verify(customerMasterMapper,never()).updatePlatformFieldsByVersion(any());
+    }
+
+    private CustomerMasterDO customer(Long id, long version) {
         CustomerMasterDO customer = new CustomerMasterDO();
         customer.setId(id);
         customer.setTenantId(1L);

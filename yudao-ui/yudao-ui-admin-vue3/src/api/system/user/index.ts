@@ -42,7 +42,7 @@ export const getUserPage = (params: PageParam) => {
 }
 
 // 查询用户管理列表
-export const getUserList = (ids: number[]) => {
+export const getUserList = (ids: (number | string)[]) => {
   return request.get({ url: '/system/user/list', params: { ids: ids.join(',') } })
 }
 

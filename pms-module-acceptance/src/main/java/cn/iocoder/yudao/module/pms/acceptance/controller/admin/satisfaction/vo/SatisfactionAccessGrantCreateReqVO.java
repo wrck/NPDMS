@@ -1,0 +1,17 @@
+package cn.iocoder.yudao.module.pms.acceptance.controller.admin.satisfaction.vo;
+
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+@Data
+public class SatisfactionAccessGrantCreateReqVO {
+    @NotNull
+    @jakarta.validation.constraints.Positive
+    private Long completionCertificateId;
+    @NotNull
+    @Future
+    private LocalDateTime expiresAt;
+}

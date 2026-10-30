@@ -14,7 +14,7 @@ public interface EntityRevision {
     Long getSourceRevisionId();
     Long getBaseEffectiveRevisionId();
     Integer getBaseEntityVersion();
-    Integer getVersion();
+    Long getVersion();
     String getChangeReason();
     Long getFrozenBy();
     LocalDateTime getFrozenAt();
@@ -34,6 +34,7 @@ public interface EntityRevision {
     default EntityVersionProvider.Revision revisionMetadata() {
         return new EntityVersionProvider.Revision(revisionRef(), getRevisionNo(), getSourceRevisionId(),
                 getBaseEffectiveRevisionId(), getBaseEntityVersion(), revisionState(), effective(),
-                getVersion(), getChangeReason(), getFrozenBy(), getFrozenAt());
+                getVersion() == null ? 0 : Math.toIntExact(getVersion()), getChangeReason(), getFrozenBy(),
+                getFrozenAt());
     }
 }

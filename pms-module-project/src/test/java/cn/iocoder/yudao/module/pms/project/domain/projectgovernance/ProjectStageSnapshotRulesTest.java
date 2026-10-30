@@ -64,6 +64,21 @@ class ProjectStageSnapshotRulesTest {
         assertDoesNotThrow(() -> ProjectStageSnapshotRules.validateGovernanceAction(snapshot));
     }
 
+    @Test void templateReopenRequiresS0AndOldEvidenceRatherThanAProjectWhitelistOrDateReason() {
+        var snapshot = common(ProjectStageSnapshotRules.REOPEN);
+        snapshot.setTenantId(77L); snapshot.setProjectId(88L);
+        snapshot.setReasonCode("AUTHORIZED_TEMPLATE_CHANGE");
+        snapshot.setBeforeLifecycleStatus("NORMAL_CLOSED");
+        assertThrows(IllegalArgumentException.class, () -> ProjectStageSnapshotRules.validateGovernanceAction(snapshot));
+        snapshot.setGuardSnapshotJson("{}"); snapshot.setTreeVersion(3L);
+        snapshot.setProviderFactsJson("{}"); snapshot.setBusinessBasis("已确认重新办理");
+        assertDoesNotThrow(() -> ProjectStageSnapshotRules.validateGovernanceAction(snapshot));
+        snapshot.setAfterStage("S1");
+        assertThrows(IllegalArgumentException.class, () -> ProjectStageSnapshotRules.validateGovernanceAction(snapshot));
+        snapshot.setAfterStage("S0"); snapshot.setRelatedSnapshotId(99L);
+        assertThrows(IllegalArgumentException.class, () -> ProjectStageSnapshotRules.validateGovernanceAction(snapshot));
+    }
+
     private static ProjectStageSnapshotDO common(String operationType) {
         ProjectStageSnapshotDO snapshot = new ProjectStageSnapshotDO();
         snapshot.setOperationType(operationType);

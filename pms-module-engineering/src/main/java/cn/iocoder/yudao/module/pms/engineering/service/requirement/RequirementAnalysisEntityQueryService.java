@@ -36,11 +36,12 @@ public class RequirementAnalysisEntityQueryService {
         var draft = mapper.selectDraft(project);
         boolean manager = access.isManager(projectId, actor);
         ProjectBusinessExecutionSelection selected = null;
-        boolean canCreate = false;
-        try {
+        boolean explicitEntry = stageId != null || taskId != null;
+        boolean existing = effective != null || draft != null;
+        boolean canCreate = !explicitEntry;
+        if (explicitEntry) try {
             var binding = stageId != null ? bindings.inspectStage(new ProjectWorkBindingStageFactQuery(projectId, stageId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS))
-                    : taskId != null ? bindings.inspectTask(new ProjectWorkBindingTaskFactQuery(projectId, taskId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS))
-                    : bindings.inspect(new ProjectWorkBindingFactQuery(projectId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
+                    : bindings.inspectTask(new ProjectWorkBindingTaskFactQuery(projectId, taskId, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
             if (binding != null) {
                 selected = executions.observeCurrent(binding);
                 canCreate = executions.canCreate(binding);
@@ -48,12 +49,12 @@ public class RequirementAnalysisEntityQueryService {
         } catch (RuntimeException unavailable) {
             // Existing content remains readable when its execution node is unavailable.
         }
-        boolean nodeWritable = selected != null;
+        boolean nodeWritable = !explicitEntry && existing || selected != null;
         return new Workspace(projectId,
                 effective == null ? null : view(effective, EntityDataRef.current(effective.entityRef()), actor, selected, nodeWritable),
                 draft == null || !manager ? null : view(draft, EntityDataRef.revision(draft.revisionRef()), actor, selected, nodeWritable),
                 manager && canCreate && draft == null ? mapper.selectLatest(project) == null
-                        ? List.of("CREATE_INITIAL_DRAFT") : effective != null && executions.canWrite(effective.getProjectId(), effective.getExecutionSnapshot(), selected)
+                        ? List.of("CREATE_INITIAL_DRAFT") : effective != null && canWrite(effective, selected)
                         ? List.of("CREATE_DRAFT") : List.of() : List.of());
     }
 
@@ -67,17 +68,22 @@ public class RequirementAnalysisEntityQueryService {
         Map<String, Object> values = new LinkedHashMap<>();
         provider.read(target, actor).forEach((code, fact) -> { if (fact.readable()) values.put(code, fact.value()); });
         var extra = extensions.read(target, actor);
-        values.putAll(extra.fields());
-        var form = forms.layout(target, actor);
+        values.putAll(RequirementAnalysisFields.extensions(extra.fields()));
+        var form = RequirementAnalysisFields.layout(forms.layout(target, actor));
         var entity = mapper.selectCurrent(new RequirementEntityQuery(actor.tenantId(), row.getEntityId()));
         boolean manager = access.isManager(row.getProjectId(), actor);
         boolean draft = "DRAFT".equals(row.getRevisionState());
-        List<String> actions = manager && nodeWritable && executions.canWrite(row.getProjectId(), row.getExecutionSnapshot(), selected) ? draft ? List.of("PATCH_FORM", "COMPLETE")
+        List<String> actions = manager && nodeWritable && canWrite(row, selected) ? draft ? List.of("PATCH_FORM", "COMPLETE")
                 : mapper.selectDraft(new RequirementProjectQuery(actor.tenantId(), row.getProjectId())) == null ? List.of("CREATE_DRAFT") : List.of()
                 : List.of();
         return new View(row.getProjectId(), row.revisionMetadata(), entity == null ? null : entity.getVersion(), form,
                 extra.definitionRevisionId(), extra.version(), values, files.inspect(row.revisionRef(), actor), actions,
                 row.getProjectTemplateId(), row.getProjectTemplateRevisionId(), RequirementAnalysisEntityProvider.FIELDS.fields());
+    }
+
+    private boolean canWrite(RequirementAnalysisRevisionDO row, ProjectBusinessExecutionSelection selected) {
+        return selected == null ? executions.canUseFrozenConfiguration(row.getProjectId(), row.getExecutionSnapshot())
+                : executions.canWrite(row.getProjectId(), row.getExecutionSnapshot(), selected);
     }
 
     public List<EntityVersionApi.FieldDifference> attachmentDifferences(RevisionRef left, RevisionRef right, EntityActor actor) {
@@ -100,8 +106,8 @@ public class RequirementAnalysisEntityQueryService {
     }
     public record AttachmentValue(Long artifactId, Integer versionNo) {}
 
-    public record Workspace(Long projectId, View currentEffective, View draft, List<String> allowedActions) {}
-    public record View(Long projectId, EntityVersionProvider.Revision revision, Integer entityVersion,
+    public record Workspace(Long projectId, View currentEffective, View draft, List<String> allowedActions) { }
+    public record View(Long projectId, EntityVersionProvider.Revision revision, Long entityVersion,
                        EntityFormApi.Layout form, Long extensionDefinitionRevisionId, int extensionValueVersion,
                        Map<String, Object> values, List<FileReferenceSetFact> attachments, List<String> allowedActions,
                        Long projectTemplateId, Long projectTemplateRevisionId, List<EntityField> fieldCatalog) {}

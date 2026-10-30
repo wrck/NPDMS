@@ -1,0 +1,316 @@
+package cn.iocoder.yudao.module.pms.cutover.service.checklist;
+
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistItemDefinitionRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverChecklistItemDefinitionRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.query.*;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveChecklistDeviceVersionsCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveExternalChecklistFeedbackCommand.Feedback;
+import cn.iocoder.yudao.module.pms.cutover.service.configuration.*;
+import org.junit.jupiter.api.*;
+
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class CutoverExternalBulletinStoreTest {
+    private final cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi deviceSource = mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi.class);
+    private final CutoverChecklistMapper checklists = mock(CutoverChecklistMapper.class);
+    private final cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper tasks = mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper.class);
+    private final CutoverChecklistDO root = new CutoverChecklistDO();
+    private final CutoverChecklistDeviceContextMapper devices = mock(CutoverChecklistDeviceContextMapper.class);
+    private final CutoverChecklistItemDefinitionRevisionMapper definitions = mock(CutoverChecklistItemDefinitionRevisionMapper.class);
+    private final CutoverChecklistExternalQueryMapper queries = mock(CutoverChecklistExternalQueryMapper.class);
+    private final CutoverChecklistResultQueryReferenceMapper references = mock(CutoverChecklistResultQueryReferenceMapper.class);
+    private final CutoverResultTechnicalBulletinMapper bulletins = mock(CutoverResultTechnicalBulletinMapper.class);
+    private final CutoverResultBulletinSummaryMapper summaries = mock(CutoverResultBulletinSummaryMapper.class);
+    private final CutoverChecklistItemResultMapper results = mock(CutoverChecklistItemResultMapper.class);
+    private final CutoverExternalChecklistMapper mutations = mock(CutoverExternalChecklistMapper.class);
+    private final CutoverFieldDefinitionStore fields = mock(CutoverFieldDefinitionStore.class);
+    private final CutoverExternalBulletinStore store = new CutoverExternalBulletinStore(deviceSource, checklists, tasks, devices, definitions, queries, references, bulletins, summaries, results, mutations, fields);
+    private final List<CutoverChecklistDeviceContextDO> context = new ArrayList<>();
+    private final List<CutoverChecklistExternalQueryDO> queryRows = new ArrayList<>();
+    private final List<CutoverChecklistResultQueryReferenceDO> refRows = new ArrayList<>();
+    private final List<CutoverResultTechnicalBulletinDO> bulletinRows = new ArrayList<>();
+    private final List<CutoverResultBulletinSummaryDO> summaryRows = new ArrayList<>();
+    private final AtomicLong ids = new AtomicLong(1000);
+    private final CutoverChecklistItemDO item = new CutoverChecklistItemDO();
+    private final CutoverChecklistItemDefinitionRevisionDO definition = new CutoverChecklistItemDefinitionRevisionDO();
+    private final LocalDateTime time = LocalDateTime.of(2026, 10, 14, 0, 30);
+
+    @BeforeEach void setup() {
+        TenantContextHolder.setTenantId(1L);
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(
+                new cn.iocoder.yudao.framework.security.core.LoginUser().setId(90L).setTenantId(1L),
+                new org.springframework.mock.web.MockHttpServletRequest());
+        root.setId(20L); root.setTenantId(1L); root.setStatusCode("DRAFT"); root.setCutoverTaskId(30L);
+        var task = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO();
+        task.setId(30L); task.setTenantId(1L); task.setProjectId(9L);
+        when(tasks.selectById(30L)).thenReturn(task);
+        when(checklists.selectById(20L)).thenReturn(root);
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenAnswer(call -> context.stream()
+                .map(source -> summary(source.getDeviceId(), source.getCurrentSoftwareVersion())).toList());
+        item.setId(10L); item.setTenantId(1L); item.setChecklistId(20L); item.setItemDefinitionId(30L);
+        item.setItemDefinitionVersion(2); item.setWorkModeCode("EXTERNAL"); item.setStableItemKey("RISK_CURRENT_VERSION_BULLETIN");
+        definition.setId(30L); definition.setTenantId(1L); definition.setItemDefinitionVersion(2);
+        definition.setWorkModeCode("EXTERNAL"); definition.setBusinessCategoryCode("CURRENT_VERSION_BULLETIN");
+        definition.setExternalInterfaceCode("FORMAL_BULLETIN"); definition.setExternalManualFallbackFlag(true);
+        context.add(device(40L, "v1", "v2"));
+        when(devices.selectListByParents(any())).thenAnswer(call -> List.copyOf(context));
+        when(definitions.selectById(30L)).thenReturn(definition);
+        when(queries.selectListByParents(any())).thenAnswer(call -> List.copyOf(queryRows));
+        when(references.selectListByParents(any())).thenAnswer(call -> {
+            var query = (CutoverChecklistResultQueryReferenceListQuery) call.getArgument(0);
+            return refRows.stream().filter(row -> query.checklistResultIds().contains(row.getChecklistResultId())).toList();
+        });
+        when(references.insert(any(CutoverChecklistResultQueryReferenceDO.class))).thenAnswer(call -> { refRows.add(call.getArgument(0)); return 1; });
+        when(bulletins.selectListByParents(any())).thenAnswer(call -> {
+            var query = (CutoverResultTechnicalBulletinListQuery) call.getArgument(0);
+            return bulletinRows.stream().filter(row -> query.checklistResultIds().contains(row.getChecklistResultId())).toList();
+        });
+        when(bulletins.selectByIds(anyCollection())).thenAnswer(call -> {
+            Collection<?> selected = call.getArgument(0); return bulletinRows.stream().filter(row -> selected.contains(row.getId())).toList();
+        });
+        when(bulletins.insert(any(CutoverResultTechnicalBulletinDO.class))).thenAnswer(call -> {
+            CutoverResultTechnicalBulletinDO row = call.getArgument(0); row.setId(ids.incrementAndGet()); bulletinRows.add(row); return 1;
+        });
+        when(summaries.insert(any(CutoverResultBulletinSummaryDO.class))).thenAnswer(call -> { summaryRows.add(call.getArgument(0)); return 1; });
+        when(results.insert(any(CutoverChecklistItemResultDO.class))).thenReturn(1);
+        var root = CutoverChecklistFieldDefinitionDO.builder().id(500L).builtinFieldCode("CURRENT_VERSION_BULLETIN").build();
+        var table = CutoverChecklistFieldDefinitionDO.builder().id(501L).parentFieldId(500L).fieldCode("bulletins").dataTypeCode("TABLE").build();
+        when(fields.forResult(any())).thenReturn(new CutoverFieldSchemaCodec.Definition(List.of(root, table), List.of()));
+    }
+    @AfterEach void clear() {
+        TenantContextHolder.clear();
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+    }
+
+    @Test void successfulZeroRowsRetainsQueryAndStillRequiresAnExplicitFeedbackSave() {
+        var loaded = result(60L, "EXTERNAL_LOAD"); var query = query(70L, 40L, "v1", true, 0, loaded.getId());
+        queryRows.add(query);
+        store.insertLoaded(new CutoverExternalBulletinStore.Loaded(item, loaded, List.of(query), List.of()));
+        assertEquals(false, summaryRows.getFirst().getHasBulletinsFlag());
+        assertEquals(70L, refRows.getFirst().getExternalQueryId());
+        assertThrows(CutoverChecklistException.class, () -> store.validateSubmission(read(loaded)));
+        var feedback = result(61L, "EXTERNAL_FEEDBACK"); feedback.setBaseChecklistResultId(60L);
+        store.insertFeedback(new CutoverExternalBulletinStore.FeedbackWrite(read(loaded), feedback, List.of()));
+        assertDoesNotThrow(() -> store.validateSubmission(read(feedback)));
+        assertTrue(bulletinRows.isEmpty()); assertNull(loaded.getAnswerSnapshot());
+    }
+
+    @Test void failureNeverBecomesNoBulletinsAndManualFallbackRetainsFailedQuery() {
+        var loaded = result(60L, "EXTERNAL_LOAD"); var query = query(70L, 40L, "v1", false, null, loaded.getId());
+        queryRows.add(query); store.insertLoaded(new CutoverExternalBulletinStore.Loaded(item, loaded, List.of(query), List.of()));
+        assertNull(summaryRows.getFirst().getHasBulletinsFlag()); assertEquals("EXTERNAL_LOAD_FAILED", loaded.getLoadFailureCode());
+        definition.setExternalManualFallbackFlag(false);
+        assertThrows(CutoverChecklistException.class, () -> store.requireManual(read(loaded)));
+        definition.setExternalManualFallbackFlag(true);
+        var manual = result(61L, "MANUAL_EVIDENCE_SELECTED"); manual.setResultSourceCode("MANUAL");
+        store.referenceManual(new CutoverExternalBulletinStore.ManualWrite(read(loaded), manual));
+        assertEquals("FAILED_FALLBACK", refRows.getLast().getReferencePurposeCode());
+        assertDoesNotThrow(() -> store.validateSubmission(read(manual)));
+        context.getFirst().setCurrentSoftwareVersion("v3");
+        assertThrows(CutoverChecklistException.class, () -> store.validateSubmission(read(manual)));
+    }
+
+    @Test void feedbackOnlyReferencesRawRowAndHistoryKeepsOriginalValues() {
+        var loaded = loadBulletin(); var original = bulletinRows.getFirst();
+        var feedback = result(61L, "EXTERNAL_FEEDBACK"); feedback.setBaseChecklistResultId(60L);
+        store.insertFeedback(new CutoverExternalBulletinStore.FeedbackWrite(read(loaded), feedback,
+                List.of(new Feedback(original.getId(), true, "已安排升级前检查"))));
+        var saved = bulletinRows.getLast();
+        assertEquals(original.getId(), saved.getSourceBulletinRowId());
+        assertNull(saved.getBulletinNumber()); assertNull(saved.getBulletinSubject()); assertNull(saved.getExternalQueryId());
+        var history = store.resolvedRows(read(feedback)).getFirst();
+        assertEquals("TB-1", history.getBulletinNumber()); assertEquals("原始主题", history.getBulletinSubject());
+        assertEquals("已安排升级前检查", history.getMeasures()); assertNull(original.getInvolvedFlag());
+        assertDoesNotThrow(() -> store.validateSubmission(read(feedback)));
+        context.getFirst().setCurrentSoftwareVersion("changed");
+        assertThrows(CutoverChecklistException.class, () -> store.validateSubmission(read(feedback)));
+        assertEquals("原始主题", store.resolvedRows(read(feedback)).getFirst().getBulletinSubject());
+    }
+
+    @Test void foreignOrChainedOriginalAndMissingMeasuresAreRejected() {
+        var loaded = loadBulletin(); var original = bulletinRows.getFirst(); var feedback = result(61L, "EXTERNAL_FEEDBACK");
+        assertThrows(CutoverChecklistException.class, () -> store.insertFeedback(new CutoverExternalBulletinStore.FeedbackWrite(
+                read(loaded), feedback, List.of(new Feedback(999L, false, null)))));
+        verify(results, times(1)).insert(any(CutoverChecklistItemResultDO.class));
+        store.insertFeedback(new CutoverExternalBulletinStore.FeedbackWrite(read(loaded), feedback, List.of(new Feedback(original.getId(), true, null))));
+        assertThrows(CutoverChecklistException.class, () -> store.validateSubmission(read(feedback)));
+        original.setSourceBulletinRowId(999L);
+        assertThrows(CutoverChecklistException.class, () -> store.resolvedRows(read(feedback)));
+        original.setSourceBulletinRowId(null); original.setTenantId(2L);
+        assertThrows(CutoverChecklistException.class, () -> store.resolvedRows(read(feedback)));
+    }
+
+    @Test void multipleDevicesAndCurrentTargetVersionsCannotBeMixed() {
+        context.add(device(41L, "other-current", "other-target")); definition.setBusinessCategoryCode("TARGET_VERSION_BULLETIN");
+        var loaded = result(60L, "EXTERNAL_LOAD");
+        var one = query(70L, 40L, "v2", true, 0, 60L); one.setVersionContextCode("TARGET");
+        var two = query(71L, 41L, "other-target", true, 0, 60L); two.setVersionContextCode("TARGET");
+        queryRows.addAll(List.of(one, two));
+        store.insertLoaded(new CutoverExternalBulletinStore.Loaded(item, loaded, queryRows, List.of()));
+        assertDoesNotThrow(() -> store.requireCurrent(read(loaded)));
+        two.setQueriedSoftwareVersion("v2");
+        assertThrows(CutoverChecklistException.class, () -> store.requireCurrent(read(loaded)));
+        two.setQueriedSoftwareVersion("other-target"); two.setVersionContextCode("CURRENT");
+        assertThrows(CutoverChecklistException.class, () -> store.requireCurrent(read(loaded)));
+        two.setVersionContextCode("TARGET"); two.setTenantId(2L);
+        assertThrows(CutoverChecklistException.class, () -> store.requireCurrent(read(loaded)));
+    }
+
+    @Test void contextsRejectForeignTenantAndPartialDeviceReplacement() {
+        TenantContextHolder.setTenantId(2L);
+        assertThrows(CutoverChecklistException.class, () -> store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)));
+        TenantContextHolder.setTenantId(1L);
+        assertThrows(CutoverChecklistException.class, () -> store.saveVersions(new SaveChecklistDeviceVersionsCommand(1L,
+                90L,
+                100L,
+                1L,
+                20L,
+                1L,
+                1L,
+                List.of(new SaveChecklistDeviceVersionsCommand.Device(999L, null, "v1", "v2")),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
+        verify(mutations, never()).updateDevice(any());
+    }
+
+    @Test void draftContextPrefetchesTheWholeDeviceBatchWithoutReadingEachDeviceAgain() {
+        context.add(device(41L, "other-current", "other-target"));
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(
+                summary(40L, "current-40"), summary(41L, "current-41")));
+        when(deviceSource.getDevice(40L)).thenReturn(summary(40L, "current-40"));
+        when(deviceSource.getDevice(41L)).thenReturn(summary(41L, "current-41"));
+
+        var rows = store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L));
+
+        assertEquals(List.of("current-40", "current-41"), rows.stream()
+                .map(CutoverChecklistDeviceContextDO::getCurrentSoftwareVersion).toList());
+        verify(deviceSource).getVisibleDeviceSummaries(
+                new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery(1L, 90L, Set.of(40L, 41L), 9L));
+        verify(deviceSource, never()).getDevice(anyLong());
+        assertEquals("v1", context.getFirst().getCurrentSoftwareVersion());
+    }
+
+    @Test void missingPrefetchedDeviceRetainsItsOriginalAuthorizationFailure() {
+        context.add(device(41L, "other-current", "other-target"));
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(summary(40L, "current-40")));
+        var denied = new org.springframework.security.access.AccessDeniedException("denied");
+        when(deviceSource.getDevice(41L)).thenThrow(denied);
+
+        assertSame(denied, assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L))));
+        verify(deviceSource, never()).getDevice(40L);
+        verify(mutations, never()).updateDevice(any());
+    }
+
+    @Test void submittedContextNeverRequestsCurrentDeviceFacts() {
+        root.setStatusCode("SUBMITTED");
+
+        assertEquals(context, store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)));
+        verifyNoInteractions(tasks);
+
+        verifyNoInteractions(deviceSource);
+    }
+
+    @Test void draftProjectHintCannotComeFromAnotherTenantsParentTask() {
+        var foreign = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO();
+        foreign.setId(30L); foreign.setTenantId(2L); foreign.setProjectId(99L);
+        when(tasks.selectById(30L)).thenReturn(foreign);
+
+        assertEquals(CutoverChecklistException.Code.NOT_FOUND, assertThrows(CutoverChecklistException.class,
+                () -> store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L))).getCode());
+
+        verifyNoInteractions(deviceSource);
+    }
+
+    @Test void submissionRevalidatesOneCurrentContextAndANewCallReadsAgain() {
+        var loaded = result(60L, "EXTERNAL_LOAD");
+        var query = query(70L, 40L, "v1", true, 0, loaded.getId());
+        queryRows.add(query);
+        store.insertLoaded(new CutoverExternalBulletinStore.Loaded(item, loaded, List.of(query), List.of()));
+        var feedback = result(61L, "EXTERNAL_FEEDBACK");
+        store.insertFeedback(new CutoverExternalBulletinStore.FeedbackWrite(read(loaded), feedback, List.of()));
+        clearInvocations(deviceSource);
+
+        store.validateSubmission(read(feedback));
+        verify(deviceSource, times(1)).getVisibleDeviceSummaries(any());
+
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(summary(40L, "changed")));
+        assertThrows(CutoverChecklistException.class, () -> store.validateSubmission(read(feedback)));
+        verify(deviceSource, times(2)).getVisibleDeviceSummaries(any());
+    }
+
+    @Test void draftReadsCurrentDeviceVersionButSubmittedHistoryKeepsSnapshot() {
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(summary(40L, "device-v3")));
+        var current = store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)).getFirst();
+        assertEquals("device-v3", current.getCurrentSoftwareVersion());
+        assertEquals("v1", context.getFirst().getCurrentSoftwareVersion());
+        root.setStatusCode("SUBMITTED");
+        assertEquals("v1", store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)).getFirst().getCurrentSoftwareVersion());
+    }
+
+    @Test void deviceVersionChangeInvalidatesPreviouslyLoadedBulletins() {
+        var result = loadBulletin();
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(summary(40L, "new-version")));
+        assertThrows(CutoverChecklistException.class, () -> store.requireCurrent(read(result)));
+    }
+
+    @Test void missingDeviceSourceDoesNotFallBackToManuallyEnteredVersion() {
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of());
+        when(deviceSource.getDevice(40L)).thenReturn(null);
+        assertThrows(CutoverChecklistException.class, () -> store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)));
+    }
+
+    @Test void cannotSaveAnInventedCurrentVersion() {
+        assertThrows(CutoverChecklistException.class, () -> store.saveVersions(new SaveChecklistDeviceVersionsCommand(
+                1L, 90L, 100L, 1L, 20L, 1L, 1L,
+                List.of(new SaveChecklistDeviceVersionsCommand.Device(40L, null, "invented", "v2")),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
+        verify(mutations, never()).updateDevice(any());
+    }
+
+    @Test void submissionFreezesSourceAndKeepsTargetWithoutMutatingReadRows() {
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(summary(40L, "device-v3")));
+        when(mutations.updateDevice(any())).thenReturn(1);
+        store.freezeVersions(new CutoverExternalBulletinStore.Freeze(root, 90L, time));
+        verify(mutations).updateDevice(argThat(command -> "device-v3".equals(command.currentSoftwareVersion())
+                && "v2".equals(command.targetSoftwareVersion()) && command.actorId().equals(90L)));
+        assertEquals("v1", context.getFirst().getCurrentSoftwareVersion());
+    }
+
+    private cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO summary(Long id, String version) {
+        return new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO(id, 1L, "SN-" + id,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                version, null, null, null, null, null, null);
+    }
+
+    private CutoverChecklistItemResultDO loadBulletin() {
+        var result = result(60L, "EXTERNAL_LOAD"); var query = query(70L, 40L, "v1", true, 1, result.getId()); queryRows.add(query);
+        store.insertLoaded(new CutoverExternalBulletinStore.Loaded(item, result, List.of(query), List.of(
+                new CutoverExternalBulletinStore.RawBulletin(70L, "source-1", "source-v1", "TB-1", "原始主题", "描述", "方案"))));
+        return result;
+    }
+    private CutoverExternalBulletinStore.Read read(CutoverChecklistItemResultDO result) { return new CutoverExternalBulletinStore.Read(item, result); }
+    private CutoverChecklistItemResultDO result(Long id, String reason) {
+        return CutoverChecklistItemResultDO.builder().id(id).tenantId(1L).checklistItemId(10L).fieldDefinitionId(500L)
+                .resultSourceCode("EXTERNAL").selectionReasonCode(reason).createdBy(90L).createdAt(time).build();
+    }
+    private CutoverChecklistDeviceContextDO device(Long id, String current, String target) {
+        var row = CutoverChecklistDeviceContextDO.builder().deviceId(id).checklistId(20L).currentSoftwareVersion(current).targetSoftwareVersion(target).build();
+        row.setTenantId(1L); return row;
+    }
+    private CutoverChecklistExternalQueryDO query(Long id, Long device, String version, boolean succeeded, Integer count, Long resultId) {
+        return CutoverChecklistExternalQueryDO.builder().id(id).tenantId(1L).checklistItemId(10L).itemDefinitionRevisionId(30L)
+                .deviceId(device).interfaceCode("FORMAL_BULLETIN").versionContextCode("CURRENT").queriedSoftwareVersion(version)
+                .succeededFlag(succeeded).returnedRowCount(count).failureCode(succeeded ? null : "PROVIDER_UNAVAILABLE")
+                .loadedChecklistResultId(resultId).startTime(time).finishTime(time.plusSeconds(1)).build();
+    }
+}

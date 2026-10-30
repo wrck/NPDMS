@@ -25,12 +25,40 @@ class DppmsOrderSyncAdapterTest {
     @BeforeEach void setup() { TenantContextHolder.setTenantId(1L); }
     @AfterEach void cleanup() { TenantContextHolder.clear(); }
 
+    @Test void descriptorExposesStreamingCapability() {
+        assertTrue(adapter.supportsStreaming());
+        assertTrue(adapter.descriptor().supportsStreaming());
+    }
+
+    @Test void descriptorExposesOrderChainColumns() {
+        // 定义校验器按descriptor目标字段拒绝未知映射：链路列缺失会让含 contractNo/executionNo
+        // 的任务定义无法保存，同步回填永远无法激活（2026-09-29 真实数据验收实测缺陷）。
+        var order = adapter.descriptor().objects().stream()
+                .filter(o -> "ORDER".equals(o.name())).findFirst().orElseThrow();
+        var names = order.fields().stream().map(Field::name).toList();
+        assertTrue(names.contains("contractNo"));
+        assertTrue(names.contains("executionNo"));
+    }
+
     @Test void previewGroupsIdenticalHeadsAndDoesNotWrite() {
         var changes=adapter.preview(batch(row("LINE","3"),row("ORDER","1"),row("ORDER","2")));
         assertEquals(3,changes.size());
         assertTrue(changes.stream().allMatch(c->"CREATED".equals(c.action())));
         verifyNoInteractions(authority);
         verify(mapper).selectOrders(argThat(q->q.tenantId()==1 && q.orderNumbers().equals(List.of("R-1"))));
+    }
+
+    @Test void orderOnlyChunkNeverQueriesOrderLines() {
+        when(mapper.selectOrders(any())).thenReturn(List.of(),List.of(order()));
+        when(authority.ingestBatch(any())).thenAnswer(inv->{
+            CommerceAuthorityBatchCommand command=inv.getArgument(0);
+            return new CommerceAuthorityBatchResult(command.eventId(),command.batchId(),CommerceAuthorityBatchResult.Decision.ACCEPTED);
+        });
+
+        var changes=adapter.apply(batch(row("ORDER","1")));
+
+        assertEquals(101L,changes.getFirst().targetId());
+        verify(mapper,never()).selectLines(any());
     }
 
     @Test void applyUsesAuthorityApiForSignedReturnsAndMapsEveryOriginalId() {

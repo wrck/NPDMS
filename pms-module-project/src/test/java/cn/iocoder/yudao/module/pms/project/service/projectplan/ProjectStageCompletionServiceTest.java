@@ -62,12 +62,46 @@ class ProjectStageCompletionServiceTest {
         snapshot.getRulePrograms().put("complete", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}")));
         plan = new ProjectPlanVersionDO(); plan.setId(21L); refreshSnapshot(); when(plans.selectEffective(any())).thenReturn(plan);
         service = new ProjectStageCompletionService(projects, plans, executions, graph, stages, references, engine.evaluator(), compiler,
-                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class)), audit, nodeContexts, business, processes,
+                new ProjectRuntimeRuleEvaluator(new ProjectStageGateProviderRegistry(List.of(), mock(ProjectRuntimeGraphMapper.class), mock(ProjectNodeExecutionMapper.class)), compiler, engine.evaluator(), mock(ProjectDecisionTableService.class), mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectBusinessFactSourceService.class), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null)), audit, nodeContexts, business, processes,
                 new ProjectStageApprovalService(executions, approvals, nodeContexts));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "timers", mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuleTimerScheduler.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "currentStages", mock(ProjectCurrentStageService.class));
     }
     void refreshSnapshot() { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); }
+
+    @Test void optionalStartedTaskDoesNotBlockNativeStageOrProspectiveStageRule() {
+        var task = new ProjectTaskInstanceDO().setId(71L).setStageCode("DISCOVERY").setStatus("IN_PROGRESS");
+        task.setRequiredTask(false); task.setActualStartTime(LocalDateTime.now().minusHours(1));
+        when(graph.selectTasksForUpdate(any())).thenReturn(List.of(task));
+        var taskRound = new ProjectNodeExecutionDO(); taskRound.setNodeKind("TASK"); taskRound.setNodeInstanceId(71L);
+        taskRound.setStartedAt(LocalDateTime.now().minusHours(1)); taskRound.setStatus("ACTIVE");
+        when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round, taskRound));
+        var runtime = (ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "facts");
+        var project = projects.selectProjectForCommandForUpdate(null);
+        var prospective = runtime.evaluate(JsonUtils.parseTree("{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}"),
+                new ProjectRuntimeRuleEvaluator.Facts(project, stage, List.of(task), List.of(), List.of(), true));
+        assertEquals(cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionTargetResolver.ConditionStatus.SATISFIED, prospective);
+        round.setSubmittedAt(LocalDateTime.now());
+        when(stages.updateStatusIfMatch(any())).thenReturn(1); when(executions.finishIfActive(any())).thenReturn(1);
+        assertEquals(1, service.completeStage(9L, 11L, 1L, "optional-started").completed());
+        assertEquals("IN_PROGRESS", task.getStatus()); assertEquals("ACTIVE", taskRound.getStatus());
+    }
+
+    @Test void absentOrTrueRequirementStillBlocksStartedWorkAndProspectiveStageRule() {
+        var runtime = (ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "facts");
+        var project = projects.selectProjectForCommandForUpdate(null);
+        for (Boolean required : new Boolean[]{null, true}) {
+            var task = new ProjectTaskInstanceDO().setId(71L).setStageCode("DISCOVERY").setStatus("IN_PROGRESS");
+            task.setRequiredTask(required); task.setActualStartTime(LocalDateTime.now().minusHours(1));
+            when(graph.selectTasksForUpdate(any())).thenReturn(List.of(task));
+            var prospective = runtime.evaluate(JsonUtils.parseTree("{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}"),
+                    new ProjectRuntimeRuleEvaluator.Facts(project, stage, List.of(task), List.of(), List.of(), true));
+            assertEquals(cn.iocoder.yudao.module.pms.project.domain.deliveryconfiguration.StageTransitionTargetResolver.ConditionStatus.UNSATISFIED, prospective);
+            round.setSubmittedAt(LocalDateTime.now());
+            assertEquals(0, service.completeStage(9L, 11L, 1L, "required-started").completed());
+        }
+        verifyNoInteractions(stages, audit);
+    }
 
     @Test void stageOwnActivationWaitUsesCurrentRoundAndRegistersDependentsOnlyAfterRealCompletion() {
         var evaluator = (ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "facts");
@@ -99,7 +133,7 @@ class ProjectStageCompletionServiceTest {
         snapshot.getRulePrograms().put("complete", compiler.compile(JsonUtils.parseTree("{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}")));
         refreshSnapshot();
         when(nodeContexts.inspectStage(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
-                9L,1,11L,1,41L,1,21L,31L,1,1,true));
+                9L,1L,11L,1,41L,1,21L,31L,1,1,true));
     }
 
     @Test void directApprovalRequiresActualCurrentRoundResultBeforeConstantRules() {
@@ -251,7 +285,7 @@ class ProjectStageCompletionServiceTest {
         node.getBinding().setType("BUSINESS_OBJECT"); node.getBinding().setTargetContextCode("SOL"); node.getBinding().setTargetObjectType("REQUIREMENT_ANALYSIS");
         snapshot.getRulePrograms().put("complete",compiler.compile(JsonUtils.parseTree("{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"factCode\":\"OWNER_COMPLETED\",\"quantifier\":\"ALL\"}}")));
         round.setContractId(41L); refreshSnapshot();
-        var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(9L,1,11L,1,41L,1,21L,31L,1,1,true);
+        var execution = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(9L,1L,11L,1,41L,1,21L,31L,1,1,true);
         when(nodeContexts.inspectStage(any())).thenReturn(execution);
         var link = new cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessLinkFact(51L,"61","业务完成事实","owner-result-2",facts,List.of(),java.util.Set.of());
         when(business.lockStageCompletionFacts(eq(7L),eq(execution),any())).thenReturn(

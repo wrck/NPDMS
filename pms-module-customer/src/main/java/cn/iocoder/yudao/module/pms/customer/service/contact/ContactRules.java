@@ -10,7 +10,7 @@ public final class ContactRules {
         if (values == null || status < 0 || status > 1) throw new IllegalArgumentException("联系人状态无效");
         var normalized = new ContactValues(text(values.name(), 64), text(values.department(), 64),
                 text(values.title(), 64), text(values.mobile(), 32), text(values.phone(), 32),
-                text(values.email(), 128), text(values.roleCode(), 64), text(values.remark(), 500));
+                text(values.email(), 128), text(values.remark(), 500));
         if (normalized.name() == null) throw new IllegalArgumentException("联系人姓名不能为空");
         validatePhone(normalized.mobile());
         validatePhone(normalized.phone());

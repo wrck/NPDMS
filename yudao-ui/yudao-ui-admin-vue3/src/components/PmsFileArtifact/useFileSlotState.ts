@@ -8,7 +8,7 @@ export interface FileSlotState {
   referenceVersion?: number
 }
 
-export const resolveFileUploadMode = (artifactId?: number): FileUploadMode =>
+export const resolveFileUploadMode = (artifactId?: number | string): FileUploadMode =>
   artifactId ? 'ADD_VERSION' : 'CREATE_ARTIFACT'
 
 export const useFileSlotState = () => {

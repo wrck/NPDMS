@@ -1,0 +1,96 @@
+package cn.iocoder.yudao.module.pms.engineering.service.taskbusiness;
+
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.SiteSurveyEntityMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.RequirementRevisionQuery;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.OwnerOperationResultSource;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOperationResult;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.stereotype.Component;
+import java.util.Objects;
+
+/** Reads the result just written in the Owner transaction; never invents a success event for a missing record. */
+@Component
+@RequiredArgsConstructor
+public class EngineeringOperationResultSource implements OwnerOperationResultSource {
+    private final ObjectProvider<SiteSurveyEntityMapper> surveys;
+    private final ObjectProvider<RequirementAnalysisMapper> requirements;
+    private final ObjectProvider<SolutionMapper> solutions;
+    private final ObjectProvider<cn.iocoder.yudao.module.pms.engineering.dal.mysql.stageplan.StagePlanBatchMapper> stagePlans;
+    private final ObjectProvider<cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.InstallationMapper> installations;
+    @Override public boolean supports(String aggregate) {
+        return "SiteSurvey".equals(aggregate) || "RequirementAnalysis".equals(aggregate)
+                || "ImplementationSolution".equals(aggregate) || "StagePlanBatch".equals(aggregate) || "Installation".equals(aggregate);
+    }
+    @Override public ProjectOperationResult current(Long tenant, Long project, String aggregate, Long objectId) {
+        if (!Objects.equals(tenant,TenantContextHolder.getRequiredTenantId()) || project == null || objectId == null)
+            throw new IllegalArgumentException("OWNER_RESULT_CONTEXT_INVALID");
+        if ("Installation".equals(aggregate)) {
+            var row = installations.getObject().selectById(objectId);
+            if (row == null || Boolean.TRUE.equals(row.getDeleted())) return null;
+            if (!Objects.equals(row.getTenantId(), tenant) || !Objects.equals(row.getProjectId(), project)
+                    || row.getVersion() == null || row.getStatus() == null)
+                throw new IllegalArgumentException("OWNER_RESULT_IDENTITY_INVALID");
+            return new ProjectOperationResult("IMP", "INSTALLATION", objectId.toString(), null, row.getVersion(),
+                    "IMP:INSTALLATION:" + objectId + ":" + row.getVersion(),
+                    Integer.valueOf(2).equals(row.getStatus()) ? "INSTALLATION_COMPLETED" : "INSTALLATION_NOT_COMPLETED", null, false);
+        }
+        if ("StagePlanBatch".equals(aggregate)) {
+            var row = stagePlans.getObject().selectById(objectId);
+            if (row == null || Boolean.TRUE.equals(row.getDeleted())) return null;
+            if (!Objects.equals(row.getTenantId(), tenant) || !Objects.equals(row.getProjectId(), project)
+                    || row.getVersion() == null || row.getStatus() == null)
+                throw new IllegalArgumentException("OWNER_RESULT_IDENTITY_INVALID");
+            String code = Integer.valueOf(2).equals(row.getStatus()) ? "CONSTRUCTION_PLAN_APPROVED" : "CONSTRUCTION_PLAN_NOT_APPROVED";
+            return new ProjectOperationResult("PLN", "STAGE_PLAN", objectId.toString(), null, row.getVersion(),
+                    "PLN:STAGE_PLAN:" + objectId + ":" + row.getVersion() + ":" + row.getStatus(), code, null, false);
+        }
+        if ("SiteSurvey".equals(aggregate)) {
+            var row = surveys.getObject().selectById(objectId);
+            if (row == null || Boolean.TRUE.equals(row.getDeleted())) return null;
+            if (!Objects.equals(row.getTenantId(),tenant) || !Objects.equals(row.getProjectId(),project)
+                    || row.getVersion() == null || row.getStatus() == null || row.getStatus() < 0 || row.getStatus() > 3)
+                throw new IllegalArgumentException("OWNER_RESULT_IDENTITY_INVALID");
+            String code = switch (row.getStatus()) {
+                case 1 -> "SURVEY_CONFIRMED";
+                case 2 -> "SURVEY_REJECTED";
+                case 3 -> "SURVEY_ARCHIVED";
+                default -> "SURVEY_DRAFT_SAVED";
+            };
+            return new ProjectOperationResult("SOL","SITE_SURVEY",objectId.toString(),null,row.getVersion(),
+                    "SOL:SITE_SURVEY:" + objectId + ":" + row.getVersion() + ":" + row.getStatus(),code,null,false);
+        }
+        if ("RequirementAnalysis".equals(aggregate)) {
+            var row = requirements.getObject().selectRevision(new RequirementRevisionQuery(tenant,objectId));
+            if (row == null) return null;
+            if (!Objects.equals(row.getTenantId(),tenant) || !Objects.equals(row.getProjectId(),project)
+                    || row.getVersion() == null || !java.util.Set.of("DRAFT","FROZEN").contains(String.valueOf(row.getRevisionState())))
+                throw new IllegalArgumentException("OWNER_RESULT_IDENTITY_INVALID");
+            return new ProjectOperationResult("SOL","REQUIREMENT_ANALYSIS",objectId.toString(),objectId.toString(),row.getVersion(),
+                    "SOL:REQUIREMENT_ANALYSIS_REVISION:" + objectId + ":" + row.getVersion() + ":" + row.getRevisionState(),
+                    "FROZEN".equals(row.getRevisionState()) ? "REQUIREMENT_ANALYSIS_COMPLETED" : "REQUIREMENT_ANALYSIS_DRAFT_SAVED",null,false);
+        }
+        if ("ImplementationSolution".equals(aggregate)) {
+            var row = solutions.getObject().selectById(objectId);
+            if (row == null || Boolean.TRUE.equals(row.getDeleted())) return null;
+            if (!Objects.equals(row.getTenantId(),tenant) || !Objects.equals(row.getProjectId(),project)
+                    || row.getVersion() == null || row.getStatus() == null || row.getStatus() < 0 || row.getStatus() > 6)
+                throw new IllegalArgumentException("OWNER_RESULT_IDENTITY_INVALID");
+            String code = switch (row.getStatus()) {
+                case 1 -> "IMPLEMENTATION_PLAN_SUBMITTED";
+                case 2 -> "IMPLEMENTATION_PLAN_REVIEWING";
+                case 3 -> "IMPLEMENTATION_PLAN_APPROVED";
+                case 4 -> "IMPLEMENTATION_PLAN_REJECTED";
+                case 5 -> "IMPLEMENTATION_PLAN_WITHDRAWN";
+                case 6 -> "IMPLEMENTATION_PLAN_TERMINATED";
+                default -> "IMPLEMENTATION_PLAN_DRAFT_SAVED";
+            };
+            return new ProjectOperationResult("SOL","IMPLEMENTATION_SOLUTION",objectId.toString(),null,row.getVersion(),
+                    "SOL:IMPLEMENTATION_SOLUTION:" + objectId + ":" + row.getVersion() + ":" + row.getStatus(),code,null,false);
+        }
+        return null;
+    }
+}

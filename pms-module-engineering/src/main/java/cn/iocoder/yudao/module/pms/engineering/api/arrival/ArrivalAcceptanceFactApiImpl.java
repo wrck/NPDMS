@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.api.arrival;
 
+import cn.iocoder.yudao.module.pms.engineering.api.arrival.dto.ArrivalAcceptanceScopeQuery;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.api.arrival.dto.ArrivalAcceptanceFact;
 import cn.iocoder.yudao.module.pms.engineering.api.arrival.dto.ArrivalAcceptanceFactQuery;
@@ -77,29 +78,26 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
     @Transactional(readOnly = true)
     public ArrivalAcceptanceFact inspect(ArrivalAcceptanceFactQuery query) {
         requireTenant(query == null ? null : query.tenantId());
-        CurrentScope scope = inspectScope(query.tenantId(), query.projectId(),
-                query.deviceIds(), query.quantityScopes());
-        return readFact(query.tenantId(), query.projectId(), scope, false);
+        CurrentScope scope = inspectScope(query);
+        return readFact(query, scope, false);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ArrivalAcceptanceFact lockAndRevalidate(ArrivalAcceptanceFactRevalidationQuery query) {
         requireTenant(query == null ? null : query.tenantId());
-        CurrentScope inspected = inspectScope(query.tenantId(), query.projectId(),
-                query.deviceIds(), query.quantityScopes());
+        CurrentScope inspected = inspectScope(query);
         if (!Objects.equals(query.expectedScopeWatermark(), inspected.watermark())) {
-            return stale(readFact(query.tenantId(), query.projectId(), inspected, false));
+            return stale(readFact(query, inspected, false));
         }
         CurrentScope locked;
         try {
             locked = lockScope(query, inspected);
         } catch (OwnerFactVersionMismatchException ex) {
-            CurrentScope current = inspectScope(query.tenantId(), query.projectId(),
-                    query.deviceIds(), query.quantityScopes());
-            return stale(readFact(query.tenantId(), query.projectId(), current, false));
+            CurrentScope current = inspectScope(query);
+            return stale(readFact(query, current, false));
         }
-        ArrivalAcceptanceFact current = readFact(query.tenantId(), query.projectId(), locked, true);
+        ArrivalAcceptanceFact current = readFact(query, locked, true);
         if (!Objects.equals(query.expectedFactVersion(), current.factVersion())
                 || !Objects.equals(query.expectedScopeWatermark(), current.scopeWatermark())) {
             return stale(current);
@@ -132,22 +130,22 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
                 lockDeviceScope(query.tenantId(), query.projectId(), expected),
                 query.projectId(), expected.stream().map(DeviceScopeFactPort.ExpectedDeviceFact::serialNumber)
                         .collect(java.util.stream.Collectors.toCollection(TreeSet::new)));
-        CurrentScope locked = requestedScope(query.deviceIds(), query.quantityScopes(),
-                delivery, deliveryComposition, lockedDevices);
+        CurrentScope locked = requestedScope(query, delivery, deliveryComposition, lockedDevices);
         if (!Objects.equals(inspected.watermark(), locked.watermark())) {
             throw new OwnerFactVersionMismatchException("arrival scope changed while locking");
         }
         return locked;
     }
 
-    private CurrentScope inspectScope(Long tenantId, Long projectId, Set<Long> deviceIds,
-                                      List<ArrivalQuantityScopeFact> quantities) {
+    private CurrentScope inspectScope(ArrivalAcceptanceScopeQuery query) {
+        Long tenantId = query.tenantId();
+        Long projectId = query.projectId();
         DeliveryScopePort.AssignedScope delivery = deliveryScopePort.inspectAssignedScope(projectId);
         ScopeComposition composition = requireDeliveryScope(delivery, projectId);
         DeviceScopeFactPort.DeviceScopeFact devices = requireDeviceScope(
                 resolveDeviceScope(tenantId, projectId, composition.serialNumbers()),
                 projectId, composition.serialNumbers());
-        return requestedScope(deviceIds, quantities, delivery, composition, devices);
+        return requestedScope(query, delivery, composition, devices);
     }
 
     private DeviceScopeFactPort.DeviceScopeFact resolveDeviceScope(
@@ -167,11 +165,12 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
         return deviceScopeFactPort.lockAndRevalidate(tenantId, projectId, expectedDevices);
     }
 
-    private CurrentScope requestedScope(Set<Long> requestedDeviceIds,
-                                        List<ArrivalQuantityScopeFact> requestedQuantities,
+    private CurrentScope requestedScope(ArrivalAcceptanceScopeQuery query,
                                         DeliveryScopePort.AssignedScope delivery,
                                         ScopeComposition composition,
                                         DeviceScopeFactPort.DeviceScopeFact devices) {
+        Set<Long> requestedDeviceIds = query.deviceIds();
+        List<ArrivalQuantityScopeFact> requestedQuantities = query.quantityScopes();
         Map<Long, DeviceScopeFactPort.DeviceFact> byId = indexDevices(devices.devices());
         if (!byId.keySet().containsAll(requestedDeviceIds)) {
             throw new IllegalStateException("requested device is outside current delivery scope");
@@ -193,8 +192,10 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
                 new ArrivalScopeWatermark(delivery.scopeVersion(), versions));
     }
 
-    private ArrivalAcceptanceFact readFact(Long tenantId, Long projectId,
-                                           CurrentScope scope, boolean locked) {
+    private ArrivalAcceptanceFact readFact(ArrivalAcceptanceScopeQuery query,
+                                  CurrentScope scope, boolean locked) {
+        Long tenantId = query.tenantId();
+        Long projectId = query.projectId();
         LocalDateTime checkedAt = LocalDateTime.now(clock);
         ArrivalProjectFactQuery factQuery = new ArrivalProjectFactQuery(tenantId, projectId, checkedAt);
         List<ArrivalLineDO> lines = locked
@@ -207,7 +208,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
                 ? differenceMapper.selectEffectiveExemptionsByProjectForUpdate(factQuery)
                 : differenceMapper.selectEffectiveExemptionsByProject(factQuery);
         requireLists(lines, differences, roots);
-        FactVersion factVersion = factVersion(tenantId, projectId, roots, locked);
+        FactVersion factVersion = factVersion(query, roots, locked);
         Contributions allContributions = contributions(lines, differences, checkedAt);
         calculator.calculate(new ArrivalFactCalculator.CalculationInput(
                 scope.assignedDeviceIds(), scope.assignedQuantities(),
@@ -225,8 +226,10 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
                 calculated.exemptedQuantityScopes(), calculated.unmetQuantityScopes());
     }
 
-    private FactVersion factVersion(Long tenantId, Long projectId,
-                                    List<ArrivalAcceptanceDO> roots, boolean locked) {
+    private FactVersion factVersion(ArrivalAcceptanceScopeQuery scopeQuery,
+                                  List<ArrivalAcceptanceDO> roots, boolean locked) {
+        Long tenantId = scopeQuery.tenantId();
+        Long projectId = scopeQuery.projectId();
         for (ArrivalAcceptanceDO root : roots) {
             if (root == null || !Objects.equals(projectId, root.getProjectId())
                     || !"CONFIRMED".equals(root.getStatus()) || root.getProjectFactVersion() == null) {
@@ -374,7 +377,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
 
     private static ArrivalQuantityScopeFact quantityFact(ArrivalLineDO line) {
         return new ArrivalQuantityScopeFact(line.getOrderLineId(), line.getProductCode(),
-                line.getModelCode(), line.getAcceptedQuantity(), line.getUnit());
+                line.getProductModel(), line.getAcceptedQuantity(), line.getUnit());
     }
 
     private static ArrivalFactCalculator.DeviceExemption deviceExemption(
@@ -390,7 +393,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
             ArrivalDifferenceDO difference, ArrivalDifferenceScopeCodec.QuantityScope quantity) {
         return new ArrivalFactCalculator.QuantityExemption(
                 difference.getArrivalAcceptanceId(), new ArrivalQuantityScopeFact(quantity.orderLineId(),
-                quantity.productCode(), quantity.modelCode(), quantity.quantity(), quantity.unitCode()),
+                quantity.productCode(), quantity.productModel(), quantity.quantity(), quantity.unitCode()),
                 difference.getReason(), difference.getRiskDescription(), difference.getApprovedBy(),
                 difference.getApprovedAt(), difference.getEvidenceId(), difference.getEvidenceRevision(),
                 difference.getExemptionExpiresAt());
@@ -422,7 +425,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
             }
             if (line.serialNumbers().isEmpty()) {
                 QuantityKey key = new QuantityKey(line.orderLineId(), line.productCode(),
-                        line.modelCode(), line.unitCode());
+                        line.productModel(), line.unitCode());
                 if (quantities.put(key, line.assignedQuantity()) != null) {
                     throw new IllegalStateException("assigned delivery quantity is duplicated");
                 }
@@ -535,16 +538,16 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
             List<ArrivalFactCalculator.QuantityExemption> quantityExemptions) {
     }
 
-    private record QuantityKey(Long orderLineId, String productCode, String modelCode,
+    private record QuantityKey(Long orderLineId, String productCode, String productModel,
                                String unitCode) implements Comparable<QuantityKey> {
 
         private static QuantityKey from(ArrivalQuantityScopeFact scope) {
             return new QuantityKey(scope.orderLineId(), scope.productCode(),
-                    scope.modelCode(), scope.unitCode());
+                    scope.productModel(), scope.unitCode());
         }
 
         private ArrivalQuantityScopeFact scope(BigDecimal quantity) {
-            return new ArrivalQuantityScopeFact(orderLineId, productCode, modelCode, quantity, unitCode);
+            return new ArrivalQuantityScopeFact(orderLineId, productCode, productModel, quantity, unitCode);
         }
 
         @Override
@@ -553,7 +556,7 @@ public class ArrivalAcceptanceFactApiImpl implements ArrivalAcceptanceFactApi {
             if (compared != 0) return compared;
             compared = compareNullable(productCode, other.productCode);
             if (compared != 0) return compared;
-            compared = compareNullable(modelCode, other.modelCode);
+            compared = compareNullable(productModel, other.productModel);
             if (compared != 0) return compared;
             return unitCode.compareTo(other.unitCode);
         }

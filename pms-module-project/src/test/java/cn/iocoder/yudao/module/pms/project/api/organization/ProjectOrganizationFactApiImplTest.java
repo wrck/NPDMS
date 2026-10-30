@@ -33,7 +33,7 @@ class ProjectOrganizationFactApiImplTest {
 
     @Test
     void inspectReturnsTrustedProjectOrganization() {
-        when(projectMapper.selectById(10L)).thenReturn(project(0L, 3, 20L, 30L, " D-30 "));
+        when(projectMapper.selectById(10L)).thenReturn(project(0L, 3L, 20L, 30L, " D-30 "));
 
         var fact = api.inspect(new ProjectOrganizationFactQuery(10L));
 
@@ -46,22 +46,22 @@ class ProjectOrganizationFactApiImplTest {
 
     @Test
     void lockAndRevalidateRejectsChangedVersion() {
-        when(projectMapper.selectByIdForUpdate(10L)).thenReturn(project(0L, 4, 20L, 30L, "D-30"));
+        when(projectMapper.selectByIdForUpdate(10L)).thenReturn(project(0L, 4L, 20L, 30L, "D-30"));
 
         assertThrows(RuntimeException.class, () -> api.lockAndRevalidate(
-                new ProjectOrganizationFactRevalidationQuery(10L, 3)));
+                new ProjectOrganizationFactRevalidationQuery(10L, 3L)));
     }
 
     @Test
     void rejectsCrossTenantOrIncompleteOrganization() {
-        when(projectMapper.selectById(10L)).thenReturn(project(1L, 3, 20L, 30L, "D-30"));
+        when(projectMapper.selectById(10L)).thenReturn(project(1L, 3L, 20L, 30L, "D-30"));
         assertThrows(RuntimeException.class, () -> api.inspect(new ProjectOrganizationFactQuery(10L)));
 
-        when(projectMapper.selectById(11L)).thenReturn(project(0L, 3, 20L, null, "D-30"));
+        when(projectMapper.selectById(11L)).thenReturn(project(0L, 3L, 20L, null, "D-30"));
         assertThrows(RuntimeException.class, () -> api.inspect(new ProjectOrganizationFactQuery(11L)));
     }
 
-    private ProjectMasterDO project(Long tenantId, Integer version, Long companyId,
+    private ProjectMasterDO project(Long tenantId, Long version, Long companyId,
                                     Long departmentId, String departmentCode) {
         ProjectMasterDO row = new ProjectMasterDO();
         row.setId(10L);

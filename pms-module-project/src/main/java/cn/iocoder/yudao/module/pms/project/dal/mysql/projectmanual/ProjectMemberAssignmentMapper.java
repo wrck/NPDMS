@@ -27,6 +27,51 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMemberAssignmentDO> {
+    default boolean hasServiceManagerHistory(
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectServiceManagerHistoryQuery query) {
+        return selectCount(new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
+                .eq(ProjectMemberAssignmentDO::getTenantId, query.tenantId())
+                .eq(ProjectMemberAssignmentDO::getProjectId, query.projectId())
+                .in(ProjectMemberAssignmentDO::getMemberRole,
+                        cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES)) > 0;
+    }
+    List<ProjectMemberAssignmentDO> selectCurrentDurationProjectManagersForUpdate(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.DurationCurrentProjectManagerQuery query);
+    default List<ProjectMemberAssignmentDO> selectDurationProjectManagers(
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.DurationProjectManagerQuery query) {
+        return selectList(new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
+                .eq(ProjectMemberAssignmentDO::getTenantId, query.tenantId())
+                .eq(ProjectMemberAssignmentDO::getProjectId, query.projectId())
+                .eq(ProjectMemberAssignmentDO::getUserId, query.userId())
+                .eq(ProjectMemberAssignmentDO::getMemberRole, "PROJECT_MANAGER")
+                .eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, true)
+                .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
+                .and(q -> q.isNull(ProjectMemberAssignmentDO::getEffectiveFrom).or().le(ProjectMemberAssignmentDO::getEffectiveFrom, query.effectiveAt()))
+                .and(q -> q.isNull(ProjectMemberAssignmentDO::getEffectiveTo).or().gt(ProjectMemberAssignmentDO::getEffectiveTo, query.effectiveAt())));
+    }
+
+    List<ProjectMemberAssignmentDO> selectDurationProjectManagersForUpdate(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.DurationProjectManagerQuery query);
+
+    java.util.Set<Long> selectMemberFilterUserIds(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectMemberFilterUsersQuery query);
+
+    ProjectMemberAssignmentDO selectMemberSelectionForUpdate(@Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectMemberSelectionQuery query);
+    default List<ProjectMemberAssignmentDO> selectTreeManagers(
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectTreeManagersQuery query) {
+        if (query.projectIds().isEmpty()) return List.of();
+        return selectList(new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
+                .eq(ProjectMemberAssignmentDO::getTenantId, query.tenantId())
+                .in(ProjectMemberAssignmentDO::getProjectId, query.projectIds())
+                .in(ProjectMemberAssignmentDO::getMemberRole,
+                        cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES)
+                .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
+                .and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
+                        .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, query.effectiveAt()))
+                .and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveTo)
+                        .or().gt(ProjectMemberAssignmentDO::getEffectiveTo, query.effectiveAt()))
+                .orderByAsc(ProjectMemberAssignmentDO::getId));
+    }
 
     default List<ProjectMemberAssignmentDO> selectStatusAssignments(
             cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery query) {
@@ -85,6 +130,9 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
 
     List<ProjectMemberAssignmentDO> selectProjectManagersForUpdate(@Param("query") ProjectManagerMemberQuery query);
 
+    List<ProjectMemberAssignmentDO> selectAuthorizedByUserForUpdate(
+            @Param("query") ActiveProjectMemberForUpdateQuery query);
+
     List<ProjectMemberAssignmentDO> selectActiveByUserForUpdate(
             @Param("query") ActiveProjectMemberForUpdateQuery query);
 
@@ -116,15 +164,32 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
                 .orderByAsc(ProjectMemberAssignmentDO::getMemberRole, ProjectMemberAssignmentDO::getId));
     }
 
+    /** Effective member facts for display/business filters; confirmation does not hide their existence. */
     default List<ProjectMemberAssignmentDO> selectActiveByUser(ActiveProjectMemberQuery query) {
-        return selectList(new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
+        if (query != null && query.projectIds() != null && query.projectIds().isEmpty()) return List.of();
+        return selectList(activeUserConditions(query));
+    }
+
+    /** Only confirmed members in the same active interval can contribute authorization. */
+    default List<ProjectMemberAssignmentDO> selectAuthorizedByUser(ActiveProjectMemberQuery query) {
+        if (query == null || query.tenantId() == null || query.userId() == null || query.userId() <= 0 || query.effectiveAt() == null
+                || query.projectIds() != null && query.projectIds().isEmpty()) return List.of();
+        return selectList(activeUserConditions(query).eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, true));
+    }
+
+    private com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ProjectMemberAssignmentDO> activeUserConditions(ActiveProjectMemberQuery query) {
+        var conditions = new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
                 .eq(ProjectMemberAssignmentDO::getTenantId, query.tenantId())
                 .eq(ProjectMemberAssignmentDO::getUserId, query.userId())
                 .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
                 .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
                         .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, query.effectiveAt()))
                 .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveTo)
-                        .or().gt(ProjectMemberAssignmentDO::getEffectiveTo, query.effectiveAt()))
-                .orderByAsc(ProjectMemberAssignmentDO::getProjectId, ProjectMemberAssignmentDO::getId));
+                        .or().gt(ProjectMemberAssignmentDO::getEffectiveTo, query.effectiveAt()));
+        if (query.projectIds() != null) conditions.in(ProjectMemberAssignmentDO::getProjectId, query.projectIds());
+        return conditions.orderByAsc(ProjectMemberAssignmentDO::getProjectId, ProjectMemberAssignmentDO::getId);
     }
+    List<ProjectMemberAssignmentDO> selectAuthorizationParticipantFacts(@Param("query") ProjectParticipantFactLookupQuery query);
+
+    List<ProjectMemberAssignmentDO> selectAuthorizationParticipantFactsForUpdate(@Param("query") ProjectParticipantFactLockQuery query);
 }

@@ -8,5 +8,5 @@ public record SiteRespDTO(
         Long addressId,
         String siteType,
         Integer status,
-        Integer version) {
+        Long version) {
 }

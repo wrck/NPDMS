@@ -60,20 +60,13 @@
           node-key="id"
           placeholder="请选择部门"
         />
-        <el-select
+        <UserSelect
           v-else
           v-model="formData.objectId"
           class="!w-100%"
-          filterable
+
           placeholder="请选择员工"
-        >
-          <el-option
-            v-for="user in userList"
-            :key="user.id"
-            :label="user.nickname"
-            :value="user.id"
-          />
-        </el-select>
+         :clearable="false" />
       </el-form-item>
       <el-divider />
       <el-row :gutter="16">
@@ -102,8 +95,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as DeptApi from '@/api/system/dept'
-import * as UserApi from '@/api/system/user'
 import {
   PerformanceConfigObjectTypeEnum,
   PerformanceConfigApi,
@@ -150,7 +143,6 @@ const formLoading = ref(false) // 表单加载中
 const formType = ref('') // 表单类型
 const formRef = ref() // 表单 Ref
 const deptList = ref<Tree[]>([]) // 部门树形结构
-const userList = ref<UserApi.UserVO[]>([]) // 全量用户清单
 const formData = ref<any>({
   id: undefined,
   objectId: undefined,
@@ -241,9 +233,6 @@ const handleObjectTypeChange = () => {
 const loadOptions = async () => {
   if (!deptList.value.length) {
     deptList.value = handleTree(await DeptApi.getSimpleDeptList())
-  }
-  if (!userList.value.length) {
-    userList.value = await UserApi.getSimpleUserList()
   }
 }
 

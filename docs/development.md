@@ -78,19 +78,25 @@ docker compose --profile security-scan up -d clamav
 
 ### 2. 启动后端（宿主机）
 
-后端连接 Docker 中的 MySQL（`localhost:13306`）与 Redis（`localhost:16379`）。
+后端连接 Docker 中的 MySQL（`10.210.0.11:13306`）与 Redis（`10.210.0.11:16379`）。
 请确保 `yudao-server` 的本地配置（`application-local.yaml` 或对应 profile）
 指向上述宿主机端口，并监听 `58080`。
 
 ```powershell
 # 构建后端（宿主机 JDK 25）
-mvn -pl yudao-server -am package -DskipTests
-# 启动后端（宿主机）
+  powershell.exe -NoProfile -File scripts/worktree-build.ps1 -Target backend -MavenArguments '-DskipTests'
+  # 默认58080环境启动（59191验收环境请使用下述统一入口）
 java -jar yudao-server/target/yudao-server.jar --server.port=58080
 ```
 
-- 后端健康检查：<http://localhost:58080/actuator/health>
-- 后端接口文档：<http://localhost:58080/doc.html>
+当前工作树59191验收环境采用 `scripts/worktree-backend.ps1 -Manifest <发布清单> -ValidateOnly` 检查发布产物、当前运行基线及 `local,dac` 配置；取得本次明确重启批准后，改用 `-ApprovedRestart` 部署。构建入口输出 `.run/build/releases/<ID>/manifest.json`，不自动部署，也不自动选择其他会话的“最新target”。同一工作树各会话使用同一工具链、`.run/build/m2` 及独占锁；编译期间源码变动、产物改动或准备后运行包被其他部署替换均阻止继续部署。新的已授权功能可通过新发布清单及时部署；若修改受保护的已验证类，应先复核差异并更新批准基线，不能删减校验绕过。
+
+源码一致性按构建目标的Maven工程分别检查：`backend`覆盖根POM声明的模块及共享框架，`dac`覆盖`device-ops-platform`声明的模块及其实际打入JAR的`device-ops-web/dist`。各模块POM、源码、资源、Maven配置及共享构建工具均纳入对应指纹；独立DAC工程、平台前端依赖清单的变更不阻止平台后端冻结，平台适配代码的变更仍阻止平台后端冻结。共享工具链、独占锁、冻结产物及已验证修复校验保持不变。
+
+后端已退出时，修复包可通过构建入口显式传入`-AllowOfflineRuntime`冻结；仅当原PID已不存在且59191没有其他监听者时生成离线清单，仍执行全部已验证修复校验。该清单只用于已批准的`worktree-backend.ps1 -StartIfOffline -ApprovedRestart`启动；若已有新进程运行，必须重新核对运行基线，不能用离线清单覆盖。
+
+- 后端健康检查：<http://10.210.0.11:58080/actuator/health>
+- 后端接口文档：<http://10.210.0.11:58080/doc.html>
 
 ### 3. 启动前端（宿主机）
 
@@ -101,9 +107,17 @@ pnpm dev
 ```
 
 前端 Vite dev server 默认监听 `18081`，通过同源 `/admin-api` 代理到后端
-`58080`。管理端访问地址：<http://localhost:18081>
+`58080`。管理端访问地址：<http://10.210.0.11:18081>
 
 ## 迁移校验与重复启动
+
+### 当前59191测试库限制（2026-10-25）
+
+用户要求将当前工作树59191连接切换到 `172.17.90.178:13306/npdms`。固定后端脚本从被Git忽略的 `.run/backend-test-database.json` 读取Windows当前用户DPAPI加密凭据，不在命令行或日志输出明文。Redis改用本地DB14隔离原库缓存。重启仍须单独明确批准。
+
+该测试库禁止运行Flyway、Liquibase、SQL初始化及任何迁移或表结构变更；固定入口关闭上述初始化，以及Flowable、Hibernate、Quartz和Batch自动建表，并启用Druid Wall拦截建表、改表、删表、重命名、清空、其他非基础语句和存储过程调用。该拦截仅覆盖本应用连接，不改变数据库账号权限。下方迁移命令仅适用于另行明确授权的本地数据库，**不得对178测试库执行**。缺表、缺列或版本不一致应报告，不执行DDL修复。切换不搬迁、覆盖或删除原库历史。
+
+2026-10-25经用户明确批准，以冻结清单 `e23c8046-4ea7-4e65-8eff-f1d8aecfaf5a` 通过固定脚本启动59191，PID `45968`、`local,dac`，健康检查 `UP`。进程TCP连接与数据库会话匹配，确认实际连接178的 `npdms`；运行进程配置与Actuator有效属性来源交叉核对，确认禁迁移、禁自动建表及Wall配置生效。启动前后520张表、9490列、4218条索引元数据、241个触发器及22条Flyway历史指纹一致；校验仅执行SELECT及本地配置/健康读取，不执行迁移或DDL。证据：`.run/test178-switch-20261025/{start.log,runtime-settings.json,before.json,after.json,result.json}`。本次未启动或重启前端、DAC。
 
 ```powershell
 docker compose run --rm migrate info
@@ -153,9 +167,9 @@ Redis，再重新启动原 Flyway 容器执行迁移。运行宿主机集成测�
 .\tests\infrastructure\verify-docker-baseline.ps1
 docker compose exec mysql sh -c 'mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SELECT installed_rank, version, description, success FROM flyway_schema_history;"'
 docker compose exec redis sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping'
-Invoke-WebRequest http://localhost:58080/actuator/health
-Invoke-WebRequest http://localhost:18081
-Invoke-WebRequest http://localhost:18081/admin-api/system/auth/get-permission-info
+Invoke-WebRequest http://10.210.0.11:58080/actuator/health
+Invoke-WebRequest http://10.210.0.11:18081
+Invoke-WebRequest http://10.210.0.11:18081/admin-api/system/auth/get-permission-info
 ```
 
 ## 停止与清理
@@ -179,3 +193,16 @@ docker compose up -d mysql redis migrate
 仅包含八张 `bpm_*` 业务表 DDL，已通过 Flyway 迁移纳入空库启动流程。
 不得依据数据对象猜造生产表结构；后续 BPM 表结构变更必须增加新的
 `V<版本>__<说明>.sql` 迁移，不得修改历史文件或手工改库。
+
+
+## Windows 本机 DAC
+
+现场安装方式与配置见 [DAC 客户端说明](../device-ops-platform/packaging/windows/README.md)。客户端包自带 Java，使用独立 `desktop` 配置并监听 `127.0.0.1:48182`；NPDMS 服务器地址（含端口）和网页来源由安装向导或“DAC 设置”指定。服务端需包含本次接口并经 Compose/Flyway 应用 V511。1.0.2 同时支持 HTTP/HTTPS，新安装默认后端 `http://10.210.0.11:59191`、网页 `http://10.210.0.11:19191`；内网 HTTP 由安装器为该网页来源配置 Chrome/Edge 本地网络访问授权，并维护自己新增条目的清理。此客户端不替代既有59191宿主机后端或服务器DAC的受控启停入口。
+
+客户端编译与打包依次执行 `scripts/worktree-build.ps1 -Target dac`、`scripts/package-dac-desktop.ps1 -Manifest <冻结清单>`。后者只生成 MSI 和证据，不执行安装或服务操作。Windows 安装/升级会管理 NpdmsDac 服务，变更当前运行环境前仍须确认影响并取得本次授权。运行数据、主密钥和各服务器环境队列保存在 ProgramData，卸载不删除；不能用切换环境将旧任务改投新服务器。
+
+## Word方案在线预览运行依赖
+
+Windows本地环境执行 `./scripts/setup-office-preview.ps1`，将校验官方签名及固定校验值的LibreOffice 26.2.6解包至当前用户 `.cache/npdms/office-preview/26.2.6/runtime`，不安装全局Office或服务。工具缓存约需2GiB可用空间。后端默认从该目录调用program/soffice.com；其他运行环境通过 `pms.file.office-executable` 指向本机LibreOffice命令。无需对59191与48182改变既有启动方式；后端仍通过冻结发布脚本部署，转换工具不构成DAC就绪条件。
+
+Word由本机Writer导出PDF，使用独立临时配置，宏安全级别Very High，链接更新Never。字体由服务器提供，应安装文档使用的字体以减少重排；转换失败不替换原文件，调用方可重试。参考官方[CLI参数](https://help.libreoffice.org/latest/en-US/text/shared/guide/start_parameters.html)与[PDF导出](https://help.libreoffice.org/latest/en-US/text/shared/guide/pdf_params.html)。

@@ -1,4 +1,4 @@
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, ref } from 'vue'
 import { beforeEach, expect, it, vi } from 'vitest'
 import Panel from './EntityPanel.vue'
 import * as api from '@/api/pms/engineering/requirement-analysis/entity'
@@ -9,12 +9,19 @@ vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn() }))
 vi.mock('@vueuse/core', () => ({ useWindowSize: () => ({ width: { value: 1280 } }) }))
 vi.mock('./RevisionDrawer.vue', () => ({ default: { render: () => null } }))
 vi.mock('./CompareDrawer.vue', () => ({ default: { render: () => null } }))
-vi.mock('./EntityForm.vue', () => ({ default: defineComponent({ props: ['detail'], setup(props, { expose }) { expose({ isSaving: () => false, discardChanges: () => true }); return () => h('div', `revision:${props.detail.revision.ref.revisionId}`) } }) }))
+vi.mock('./RequirementBriefingSection.vue', () => ({ default: { render: () => null } }))
+vi.mock('./EntityForm.vue', () => ({ default: defineComponent({ props: { detail: { type: Object, required: true } }, setup(props, { expose }) { expose({ validateCompletion: async () => true, isSaving: () => false, discardChanges: () => true }); return () => h('div', `revision:${props.detail.revision.ref.revisionId}`) } }) }))
+const businessBar = vi.hoisted(() => ({ embedded: false }))
+vi.mock('@/components/BusinessView/businessActionBar', async () => {
+  const { ref } = await import('vue')
+  return { useBusinessActionBar: () => ({ barTarget: businessBar.embedded ? ref(null) : undefined }) }
+})
 const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
 const findButton = (root: TestNode, text: string): TestNode | undefined => root.type === 'button' && textOf(root).includes(text) ? root : root.children.map(child => findButton(child,text)).find(Boolean)
 const render = (props: any = { project: { id: 7 } }) => mount(defineComponent({ setup: () => () => h(Panel,props) }), {}, { ElSkeleton: passthrough, ElTable: passthrough, ElTableColumn: tableColumn, ElDescriptions: passthrough, ElDescriptionsItem: passthrough, ElInput: passthrough })
 const view = () => ({ projectId: '7', revision: { ref: { entity: { entityId: '20' }, revisionId: '31' }, revisionNo: 2, state: 'DRAFT', version: 6, effective: false }, extensionValueVersion: 0, allowedActions: ['PATCH_FORM','COMPLETE'], values: {}, fieldCatalog: [], attachments: [] }) as any
 beforeEach(() => {
+  businessBar.embedded = false
   vi.clearAllMocks()
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
   const values = new Map<string,string>()
@@ -25,6 +32,16 @@ it('opens current draft from workspace without reading old preparation detail', 
   const mounted = render(); await flush()
   expect(textOf(mounted.root)).toContain('revision:31'); expect(api.read).not.toHaveBeenCalled()
   expect(findButton(mounted.root,'完成并冻结')).toBeDefined()
+  mounted.app.unmount()
+})
+it('retains the draft and shows the Owner validation message instead of only its code', async () => {
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: view(), currentEffective: null, allowedActions: [] })
+  vi.mocked(api.complete).mockRejectedValue({ code: 1011002006, message: '需求分析未完成：请在“网络拓扑”上传至少一个有效附件' })
+  const mounted = render(); await flush()
+  await (findButton(mounted.root, '完成并冻结')!.props!.onClick as Function)(); await flush()
+  expect(textOf(mounted.root)).toContain('请在“网络拓扑”上传至少一个有效附件')
+  expect(textOf(mounted.root)).toContain('revision:31')
+  expect(api.read).not.toHaveBeenCalled()
   mounted.app.unmount()
 })
 it('loads explicit historical revision and exposes copy only when owner permits it', async () => {
@@ -43,4 +60,66 @@ it('creates first draft only through the new endpoint', async () => {
   await (findButton(mounted.root,'创建需求分析草稿')!.props!.onClick as Function)(); await flush()
   expect(api.create).toHaveBeenCalledWith(7,expect.any(String),undefined)
   mounted.app.unmount()
+})
+it('keeps creation governed by business actions', async () => {
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: null, currentEffective: null, allowedActions: [] })
+  const mounted = render(); await flush()
+  expect(findButton(mounted.root, '创建需求分析草稿')).toBeUndefined()
+  mounted.app.unmount()
+})
+
+it('reopens the exact receipt revision even when workspace defaults to another revision', async () => {
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: view(), currentEffective: null, allowedActions: [] })
+  const target = { ...view(), revision: { ...view().revision, ref: { entity: { entityId: '20' }, revisionId: '9007199254740994' }, state: 'FROZEN' } }
+  vi.mocked(api.complete).mockResolvedValue(target.revision)
+  vi.mocked(api.read).mockResolvedValue(target)
+  const mounted = render(); await flush()
+  await (findButton(mounted.root,'完成并冻结')!.props!.onClick as Function)(); await flush()
+  expect(api.read).toHaveBeenCalledWith('9007199254740994')
+  expect(textOf(mounted.root)).toContain('revision:9007199254740994')
+  expect(textOf(mounted.root)).not.toContain('revision:31')
+  mounted.app.unmount()
+})
+it('shows permission failure after command success without selecting the default revision', async () => {
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: view(), currentEffective: null, allowedActions: [] })
+  vi.mocked(api.complete).mockResolvedValue(view().revision)
+  vi.mocked(api.read).mockRejectedValue({ code: 'OWNER_PERMISSION_DENIED' })
+  const mounted = render(); await flush()
+  await (findButton(mounted.root,'完成并冻结')!.props!.onClick as Function)(); await flush()
+  expect(textOf(mounted.root)).toContain('操作已完成，但回执修订重开失败：OWNER_PERMISSION_DENIED')
+  expect(textOf(mounted.root)).not.toContain('revision:31')
+  mounted.app.unmount()
+})
+it('rejects a reopened native revision belonging to a different logical entity', async () => {
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: view(), currentEffective: null, allowedActions: [] })
+  vi.mocked(api.complete).mockResolvedValue(view().revision)
+  vi.mocked(api.read).mockResolvedValue({ ...view(), revision: { ...view().revision, ref: { entity: { entityId: '999' }, revisionId: '31' } } })
+  const mounted = render(); await flush()
+  await (findButton(mounted.root,'完成并冻结')!.props!.onClick as Function)(); await flush()
+  expect(textOf(mounted.root)).toContain('回执实体与重开修订不匹配')
+  expect(textOf(mounted.root)).not.toContain('revision:31')
+  mounted.app.unmount()
+})
+
+it.each([false, true])('keeps its refresh only outside the unified workspace (embedded=%s)', async embedded => {
+  businessBar.embedded = embedded
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: view(), currentEffective: null, allowedActions: [] })
+  const mounted = render(); await flush()
+  expect(Boolean(findButton(mounted.root, '刷新'))).toBe(!embedded)
+  mounted.app.unmount()
+})
+
+it('exposes an authoritative Owner refresh to the unified workspace', async () => {
+  businessBar.embedded = true
+  const panel = ref<any>()
+  const changed = vi.fn()
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: view(), currentEffective: null, allowedActions: [] })
+  const mounted = mount(defineComponent({ setup: () => () => h(Panel, { project: { id: 7 }, ref: panel, onChanged: changed }) }), {}, { ElSkeleton: passthrough })
+  try {
+    await flush()
+    expect(panel.value.refresh).toBeTypeOf('function')
+    await panel.value.refresh(); await flush()
+    expect(api.workspace).toHaveBeenCalledTimes(2)
+    expect(changed).not.toHaveBeenCalled()
+  } finally { mounted.app.unmount() }
 })

@@ -42,6 +42,30 @@ class SiteSurveyEntityFormServiceTest {
         verifyNoInteractions(forms, bindings, extensions, details);
     }
 
+    @Test void otherPortChoicePreservesManualDescriptionAndStillRejectsUnknownCodes() {
+        var row = new SiteSurveyEntityDO(); row.setProjectId(7L);
+        var request = new SiteSurveyEntitySaveReqVO();
+        request.setBusinessValues(Map.of("networkPortTypes", List.of("10GE_FIBER", "100GE_FIBER", "OTHER"), "networkPort", "其他网口"));
+        service.prepare(row, request);
+        assertEquals(List.of("10GE_FIBER", "100GE_FIBER", "OTHER"), row.getNetworkPortTypes());
+        assertEquals("其他网口", row.getNetworkPort());
+        request.setBusinessValues(Map.of("networkPortTypes", List.of("INVENTED")));
+        assertThrows(RuntimeException.class, () -> service.prepare(row, request));
+    }
+
+    @Test void acceptsMaterialLongIdsFromTheBrowserWithoutPrecisionLoss() {
+        var row = new SiteSurveyEntityDO(); row.setProjectId(2108606819783868418L);
+        var request = new SiteSurveyEntitySaveReqVO();
+        request.setBusinessValues(Map.of("selectedMaterials", List.of(Map.of(
+                "projectId", "2108606819783868418", "deviceId", "2108606819783868419", "sn", "SN-1"))));
+        service.prepare(row, request);
+        assertEquals(2108606819783868418L, row.getSelectedMaterials().getFirst().getProjectId());
+        assertEquals(2108606819783868419L, row.getSelectedMaterials().getFirst().getDeviceId());
+        request.setBusinessValues(Map.of("selectedMaterials", List.of(Map.of(
+                "projectId", "2108606819783868418", "deviceId", "invalid", "sn", "SN-1"))));
+        assertThrows(RuntimeException.class, () -> service.prepare(row, request));
+    }
+
     @Test void rejectsForgedManagementFieldsAndFixedValuesInExtensionPayload() {
         var row = new SiteSurveyEntityDO(); row.setProjectId(7L);
         var request = new SiteSurveyEntitySaveReqVO(); request.setBusinessValues(Map.of("status", 3));
@@ -91,7 +115,7 @@ class SiteSurveyEntityFormServiceTest {
         var access = mock(SiteSurveyEntityWriteAccess.class);
         var deadlines = mock(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class);
         var events = mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents.class);
-        var owner = new SiteSurveyEntityServiceImpl();
+        var owner = new SiteSurveyEntityDomainCommands();
         org.springframework.test.util.ReflectionTestUtils.setField(owner, "siteSurveyEntityMapper", mapper);
         org.springframework.test.util.ReflectionTestUtils.setField(owner, "writeAccess", access);
         org.springframework.test.util.ReflectionTestUtils.setField(owner, "formService", service);
@@ -100,7 +124,7 @@ class SiteSurveyEntityFormServiceTest {
         var row = saved(); row.setCode("S"); row.setStatus(0); row.setRequiredEndDate(java.time.LocalDate.of(2026, 9, 20));
         when(mapper.selectById(5L)).thenReturn(row);
         var request = new SiteSurveyEntitySaveReqVO(); request.setId(5L); request.setProjectId(7L);
-        request.setCode("S"); request.setVersion(1); request.setLocation("机房"); request.setProjectEndDateVersion(6);
+        request.setVersion(1L); request.setLocation("机房"); request.setProjectEndDateVersion(6L);
         request.setBusinessValues(Map.of("requiredEndDate", "2026-09-21"));
         doThrow(new IllegalStateException("project conflict")).when(deadlines).updateFromSurvey(any());
         assertEquals("project conflict", assertThrows(IllegalStateException.class, () -> owner.updateSiteSurveyEntity(request)).getMessage());
@@ -108,13 +132,13 @@ class SiteSurveyEntityFormServiceTest {
         verify(deadlines).updateFromSurvey(command.capture());
         assertEquals(java.time.LocalDate.of(2026, 9, 21), command.getValue().endDate());
         assertEquals(6, command.getValue().expectedProjectVersion());
-        verify(access).lock(7L, "pms:eng-site-survey:update", null);
+        verify(access).lock(7L, "pms:sol-site-survey:update", null, "SOL.SITE_SURVEY.UPDATE", 5L);
         verify(mapper, never()).updateById(any(SiteSurveyEntityDO.class));
         verifyNoInteractions(events, extensions, details);
     }
 
     private SiteSurveyEntityDO saved() {
-        var row = new SiteSurveyEntityDO(); row.setId(5L); row.setProjectId(7L); row.setTenantId(3L); row.setVersion(1); return row;
+        var row = new SiteSurveyEntityDO(); row.setId(5L); row.setProjectId(7L); row.setTenantId(3L); row.setVersion(1L); return row;
     }
 
     @Test void newSurveyResolvesExtensionDefinitionBeforeSavingValues() {

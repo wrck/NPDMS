@@ -74,7 +74,7 @@ public class ProjectSplitDraftService {
             request.setScopeVersion(scopeVersion);
             request.setTreeVersion(activeTree == null ? 0L : activeTree.getTreeVersion());
             request.setTemplateRevisionId(command.templateRevisionId());
-            request.setVersion(0);
+            request.setVersion(0L);
             requestMapper.insert(request);
         } else {
             request = requireRequest(command.requestId(), actor);
@@ -115,8 +115,8 @@ public class ProjectSplitDraftService {
     public DraftResult getDraft(Long requestId, Actor actor) {
         validateActor(actor);
         ProjectSplitRequestDO request = requireRequest(requestId, actor);
-        requireProjectScope(request.getParentProjectId(), actor.actorId());
-        assertManageScope(actor, request.getParentProjectId(), request.getTreeVersion());
+        // 读取和幂等重放按当前权限授权；草稿水位仍保留给预览及应用阶段做冲突校验。
+        requireTemplateSelectionParent(request.getParentProjectId(), actor);
         return loadDraft(request);
     }
 
@@ -134,7 +134,7 @@ public class ProjectSplitDraftService {
             item.setProjectName(source.projectName());
             item.setBusinessLevelCode(source.businessLevelCode());
             item.setTreeSort(source.treeSort() == null ? 0 : source.treeSort());
-            item.setOfficeDepartmentCode(source.officeDepartmentCode());
+            item.setDepartmentCode(source.departmentCode());
             item.setTemplateRevisionId(source.templateRevisionId());
             item.setTemplateSelectionReason(source.templateSelectionReason());
             item.setItemStatus("DRAFT");
@@ -145,22 +145,22 @@ public class ProjectSplitDraftService {
                         .filter(Objects::nonNull).map(String::trim).filter(value -> !value.isEmpty()).toList();
                 if (serials.isEmpty()) {
                     insertScope(item.getId(), sourceScope.orderLineId(), sourceScope.quantity(),
-                            sourceScope.officeDepartmentCode(), null, scopeVersion);
+                            sourceScope.departmentCode(), null, scopeVersion);
                 } else {
                     serials.forEach(serial -> insertScope(item.getId(), sourceScope.orderLineId(), BigDecimal.ONE,
-                            sourceScope.officeDepartmentCode(), serial, scopeVersion));
+                            sourceScope.departmentCode(), serial, scopeVersion));
                 }
             }
         }
     }
 
-    private void insertScope(Long itemId, Long orderLineId, BigDecimal quantity, String officeCode,
+    private void insertScope(Long itemId, Long orderLineId, BigDecimal quantity, String departmentCode,
                              String serial, Long scopeVersion) {
         ProjectSplitScopeDO scope = new ProjectSplitScopeDO();
         scope.setSplitItemId(itemId);
         scope.setOrderLineId(orderLineId);
         scope.setAllocatedQty(quantity);
-        scope.setOfficeDepartmentCode(officeCode);
+        scope.setDepartmentCode(departmentCode);
         scope.setSerialNo(serial);
         scope.setSourceScopeVersion(scopeVersion);
         scope.setVersion(0);

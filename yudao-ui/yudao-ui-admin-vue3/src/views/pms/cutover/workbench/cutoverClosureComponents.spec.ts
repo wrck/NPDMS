@@ -1,0 +1,355 @@
+import { defineComponent, h, nextTick, ref } from 'vue'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CutoverClosureContent } from '@/api/pms/cutover/types'
+import CutoverClosureEvidencePanel from '../components/CutoverClosureEvidencePanel.vue'
+import CutoverClosureForm from '../components/CutoverClosureForm.vue'
+import CutoverClosurePanel from '../components/CutoverClosurePanel.vue'
+import { findByTestId, mount, passthrough, textOf } from '../cutoverTestHarness'
+
+const api = vi.hoisted(() => ({
+  getCutoverClosure: vi.fn(), getAvailableClosureAttachments: vi.fn(), saveCutoverClosure: vi.fn(),
+  linkClosureExecution: vi.fn(), linkCutoverClosureManualResult: vi.fn(), submitCutoverClosure: vi.fn()
+}))
+const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn(), getCurrentReference: vi.fn() }))
+vi.mock('@/api/pms/cutover', () => api)
+vi.mock('@/api/pms/platform/file/version-reference', () => fileApi)
+vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn() }) }))
+vi.mock('@/components/DeviceCollection/BusinessCollectionDialog.vue', () => ({
+  default: defineComponent({
+    props: { readonly: Boolean },
+    emits: ['observed'],
+    setup(props, { emit, expose }) {
+      expose({ open: vi.fn() })
+      return () => h('button', { 'data-testid': 'observe-platform-execution', 'data-readonly': props.readonly, onClick: () => emit('observed', [{
+        id: '9007199254740993', task: { status: 'COMPLETED', resultVersion: '2', fileVersionId: '3' }
+      }]) }, '读取平台采集执行')
+    }
+  })
+}))
+vi.mock('@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/components/PmsFileArtifact', () => ({
+  PmsFileUploader: defineComponent({
+    inheritAttrs: false,
+    emits: ['completed'],
+    setup(_, { attrs, emit, expose }) {
+      expose({ isBusy: () => false, hasPendingFile: () => false })
+      return () => h('button', {
+        ...attrs,
+        onClick: async () => { const prepare = attrs.prepareUpload ?? attrs['prepare-upload']; if (prepare) await (prepare as () => Promise<void>)(); emit('completed', {
+          artifactId: '9007199254740993', versionNo: 4,
+          referenceKey: String(attrs.referenceKey ?? attrs['reference-key'])
+        }) }
+      }, 'upload')
+    }
+  })
+}))
+
+const controls = {
+  ElInput: passthrough, ElRadioGroup: passthrough, ElRadioButton: passthrough,
+  ElCheckbox: passthrough, ElSelect: passthrough, ElOption: passthrough,
+  ElDialog: defineComponent({ setup(_, { slots }) { return () => h('section', [slots.default?.(), slots.footer?.()]) } }),
+  ElTable: passthrough, ElTableColumn: passthrough,
+  ElDescriptions: passthrough, ElDescriptionsItem: passthrough
+}
+
+describe('F-CUT-006 mounted P6 closure workbench', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    api.getAvailableClosureAttachments.mockResolvedValue([])
+    fileApi.getCurrentReference.mockResolvedValue(null)
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
+    fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'a'.repeat(64) }] })
+  })
+
+  it('creates the closure automatically on the first attachment and retains entered fields', async () => {
+    api.getCutoverClosure.mockReset().mockResolvedValueOnce(view(['CREATE_CLOSURE']))
+      .mockResolvedValue(view(['SAVE_CLOSURE', 'SUBMIT_CLOSURE'], 1))
+    api.saveCutoverClosure.mockResolvedValue(view(['SAVE_CLOSURE'], 1))
+    const mounted = mount(CutoverClosurePanel, { taskId: '101', devices: [] }, controls)
+    try {
+      await flush()
+      await setValue(mounted.root, 'closure-precheck-normal', true)
+      await click(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST'); await flush()
+      expect(api.saveCutoverClosure).toHaveBeenCalledTimes(1)
+      expect(api.saveCutoverClosure.mock.calls[0][0].data.preCheckNormal).toBe(true)
+      expect(fileApi.getArtifact).toHaveBeenCalledWith('9007199254740993', expect.objectContaining({ objectId: '501' }))
+    } finally { mounted.app.unmount() }
+  })
+
+  it('creates a DRAFT with three result groups, rollback facts and both required PLT files', async () => {
+    api.getCutoverClosure
+      .mockResolvedValueOnce(view(['CREATE_CLOSURE']))
+      .mockResolvedValue(view(['SAVE_CLOSURE', 'SUBMIT_CLOSURE'], 1))
+    api.saveCutoverClosure.mockResolvedValue(view(['SAVE_CLOSURE'], 1))
+    const mounted = mount(CutoverClosurePanel, { taskId: '9007199254740995', devices: [] }, controls)
+    await flush()
+
+    await click(mounted.root, 'save-closure')
+    await flush()
+
+    expect(api.saveCutoverClosure).toHaveBeenNthCalledWith(
+      1, { taskId: '9007199254740995', taskVersion: 7, closureVersion: null,
+        data: expect.objectContaining({ attachments: [] }), idempotencyKey: expect.any(String) }
+    )
+    await setValue(mounted.root, 'closure-precheck-normal', true)
+    await setValue(mounted.root, 'closure-execution-normal', true)
+    await setValue(mounted.root, 'closure-test-normal', true)
+    await setValue(mounted.root, 'closure-rollback-occurred', false)
+    await click(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')
+    await click(mounted.root, 'closure-file-IMPLEMENTATION_COMMITMENT')
+    await click(mounted.root, 'save-closure')
+    await flush()
+
+    expect(api.saveCutoverClosure).toHaveBeenNthCalledWith(
+      2, { taskId: '9007199254740995', taskVersion: 7, closureVersion: 1,
+      data: expect.objectContaining({
+        preCheckNormal: true, executionNormal: true, testNormal: true, rollbackOccurred: false,
+        finalResult: null,
+        attachments: expect.arrayContaining([
+          expect.objectContaining({ purposeCode: 'POST_COLLECTION_CHECKLIST', artifactId: '9007199254740993' }),
+          expect.objectContaining({ purposeCode: 'IMPLEMENTATION_COMMITMENT', artifactId: '9007199254740993' })
+        ])
+      }), idempotencyKey: expect.any(String) }
+    )
+    expect(fileApi.getArtifact).toHaveBeenCalledWith(
+      '9007199254740993', expect.objectContaining({ objectId: '501' })
+    )
+    expect(typeof api.saveCutoverClosure.mock.calls[1][0].data.attachments[0].artifactId).toBe('string')
+    mounted.app.unmount()
+  })
+
+  it.each([false,true])('forwards readonly to the collection dialog when canRequest=%s', canRequest => {
+    const mounted=mount(CutoverClosureEvidencePanel,{
+      taskId:'101',closureId:'501',evidence:[],canRequest,canLinkManual:false,devices:[]
+    },controls)
+    try { expect(findByTestId(mounted.root,'observe-platform-execution')?.props?.['data-readonly']).toBe(!canRequest) }
+    finally { mounted.app.unmount() }
+  })
+
+  it('keeps two uploads for the same purpose as independent references in the saved draft', async () => {
+    api.getCutoverClosure.mockReset().mockResolvedValue(view(['SAVE_CLOSURE'], 1))
+    api.saveCutoverClosure.mockResolvedValue({})
+    const mounted = mount(CutoverClosurePanel, { taskId: '101', devices: [] }, controls)
+    try {
+      await flush()
+      const first = uploadReference(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')
+      await click(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST'); await flush()
+      const second = uploadReference(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')
+      await click(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST'); await flush()
+      await click(mounted.root, 'save-closure'); await flush()
+      const files = api.saveCutoverClosure.mock.calls[0][0].data.attachments
+      expect(first).not.toBe(second)
+      expect(files).toHaveLength(2)
+      expect(files.map((file: any) => file.referenceKey)).toEqual([first, second].sort())
+      expect(files.every((file: any) => file.purposeCode === 'POST_COLLECTION_CHECKLIST')).toBe(true)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('cancels only the selected draft association and keeps the other file and its version', async () => {
+    const draft = view(['SAVE_CLOSURE'], 1)
+    draft.content!.attachments = [attachment('first-photo'), attachment('second-photo')]
+    api.getCutoverClosure.mockReset().mockResolvedValue(draft)
+    api.saveCutoverClosure.mockResolvedValue({})
+    const mounted = mount(CutoverClosurePanel, { taskId: '101', devices: [] }, controls)
+    try {
+      await flush()
+      await click(mounted.root, 'closure-remove-first-photo'); await flush()
+      expect(api.saveCutoverClosure).not.toHaveBeenCalled()
+      await click(mounted.root, 'save-closure'); await flush()
+      expect(api.saveCutoverClosure.mock.calls[0][0].data.attachments).toEqual([attachment('second-photo')])
+      expect(api.submitCutoverClosure).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('keeps archived attachments read-only without upload or cancellation actions', async () => {
+    const archived = content()
+    archived.attachments = [attachment('first-photo'), attachment('second-photo')]
+    const mounted = mount(CutoverClosureForm, { modelValue: archived, taskId: '101', closureId: '501', editable: false }, controls)
+    try {
+      await flush()
+      expect(findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')).toBeUndefined()
+      expect(findByTestId(mounted.root, 'closure-remove-first-photo')).toBeUndefined()
+      expect(findByTestId(mounted.root, 'closure-remove-second-photo')).toBeUndefined()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('finds uploaded files after remount and associates only the explicitly selected file', async () => {
+    api.getCutoverClosure.mockReset().mockResolvedValue(view(['SAVE_CLOSURE'], 1))
+    const first = mount(CutoverClosurePanel, { taskId: '101', devices: [] }, controls)
+    await flush()
+    const uploadedKey = uploadReference(first.root, 'closure-file-POST_COLLECTION_CHECKLIST')
+    await click(first.root, 'closure-file-POST_COLLECTION_CHECKLIST'); await flush()
+    first.app.unmount()
+    const recovered = attachment(uploadedKey)
+    const previouslyCancelled = attachment('cancelled-earlier')
+    api.getAvailableClosureAttachments.mockResolvedValue([recovered, previouslyCancelled])
+    api.saveCutoverClosure.mockResolvedValue({})
+    const reopened = mount(CutoverClosurePanel, { taskId: '101', devices: [] }, controls)
+    try {
+      await flush()
+      expect(uploadReference(reopened.root, 'closure-file-POST_COLLECTION_CHECKLIST')).not.toBe(uploadedKey)
+      await click(reopened.root, 'closure-restore-POST_COLLECTION_CHECKLIST'); await flush()
+      expect(api.getAvailableClosureAttachments).toHaveBeenCalledWith('101')
+      expect(api.saveCutoverClosure).not.toHaveBeenCalled()
+      expect(findByTestId(reopened.root, 'closure-remove-' + uploadedKey)).toBeUndefined()
+      expect(findByTestId(reopened.root, 'closure-recover-cancelled-earlier')).toBeDefined()
+      await click(reopened.root, 'closure-recover-' + uploadedKey); await flush()
+      await click(reopened.root, 'save-closure'); await flush()
+      expect(api.saveCutoverClosure.mock.calls[0][0].data.attachments).toEqual([recovered])
+      expect(api.submitCutoverClosure).not.toHaveBeenCalled()
+    } finally { reopened.app.unmount() }
+  })
+
+  it('links formal platform execution ids and keeps the same intent after an uncertain response', async () => {
+    api.getCutoverClosure.mockReset().mockResolvedValue(view(['REQUEST_COLLECTION'], 2))
+    api.linkClosureExecution.mockRejectedValueOnce(new Error('response lost')).mockResolvedValue({})
+    const mounted = mount(CutoverClosureEvidencePanel, {
+      taskId: '101', closureId: '501', evidence: [], canRequest: true, canLinkManual: false, devices: []
+    }, controls)
+    await click(mounted.root, 'observe-platform-execution')
+    await flush()
+    await vi.waitFor(() => expect(api.linkClosureExecution).toHaveBeenCalledOnce())
+    await click(mounted.root, 'observe-platform-execution')
+    await flush()
+    await vi.waitFor(() => expect(api.linkClosureExecution).toHaveBeenCalledTimes(2))
+    expect(api.linkClosureExecution.mock.calls[0][0]).toEqual({
+      taskId: '101', taskVersion: 7, closureVersion: 2, entry: 'cutover-pre-check',
+      executionId: '9007199254740993', idempotencyKey: expect.any(String)
+    })
+    expect(api.linkClosureExecution.mock.calls[1][0]).toEqual(api.linkClosureExecution.mock.calls[0][0])
+    expect(api.getCutoverClosure).toHaveBeenCalledOnce()
+    mounted.app.unmount()
+  })
+
+  it('links a manual file only to a failed collection and preserves its Snowflake identity', async () => {
+    const results: unknown[] = []
+    const evidence = [{
+      evidenceId: '700', deviceId: '9007199254740994', collectionStage: 'TEST', evidenceType: 'CALLBACK_FAILED',
+      collectionTaskId: 'collect-1', callbackEventId: 'event-1', resultRef: 'failed', resultVersion: '1',
+      originalFailedCollectionTaskId: null, manualFile: null, occurredAt: 1788220800000
+    }]
+    const mounted = mount(CutoverClosureEvidencePanel, {
+      taskId: '101', closureId: '501', devices: [], evidence, 'can-request': false, 'can-link-manual': true,
+      onManual: (value: unknown) => results.push(value)
+    }, controls)
+    await click(mounted.root, 'open-manual-result')
+    await setValue(mounted.root, 'manual-failed-task', 'collect-1')
+    await click(mounted.root, 'manual-result-uploader')
+    await flush()
+    await click(mounted.root, 'link-manual-result')
+
+    expect(results[0]).toMatchObject({
+      originalFailedCollectionTaskId: 'collect-1',
+      file: { purposeCode: 'MANUAL_COLLECTION_RESULT', artifactId: '9007199254740993' }
+    })
+    expect(fileApi.getArtifact).toHaveBeenCalledWith(
+      '9007199254740993', expect.objectContaining({ objectId: '501' })
+    )
+    mounted.app.unmount()
+  })
+
+  it('submits either SUCCESS or FAILED only when the server exposes the action and then renders archived read-only state', async () => {
+    api.getCutoverClosure
+      .mockResolvedValueOnce(view(['SUBMIT_CLOSURE'], 2))
+      .mockResolvedValue(view([], 3, 'SUBMITTED', 'ARCHIVED'))
+    api.submitCutoverClosure.mockResolvedValue(view([], 3, 'SUBMITTED', 'ARCHIVED'))
+    const mounted = mount(CutoverClosurePanel, { taskId: '101' }, controls)
+    await flush()
+    await setValue(mounted.root, 'closure-final-result', 'SUCCESS')
+    await click(mounted.root, 'submit-closure')
+    await flush()
+
+    expect(api.submitCutoverClosure).toHaveBeenCalledWith({ taskId: '101', taskVersion: 7, closureVersion: 2, finalResult: 'SUCCESS', idempotencyKey: expect.any(String) })
+    expect(findByTestId(mounted.root, 'save-closure')).toBeUndefined()
+    expect(textOf(mounted.root)).toContain('已归档')
+    mounted.app.unmount()
+  })
+
+  it('loads the current reference before appending a version and advances it after upload', async () => {
+    fileApi.getCurrentReference.mockImplementation(async (key) => key.referenceKey === 'existing-key'
+      ? { artifactId: '9007199254740993', referenceVersion: 7, versionNo: 3, status: 'ACTIVE' } : null)
+    const model = ref(content())
+    model.value.attachments.push({ purposeCode: 'POST_COLLECTION_CHECKLIST', artifactId: '9007199254740993', versionNo: 2,
+      referenceKey: 'existing-key', scopeVersion: 17, sha256: 'a'.repeat(64),
+      fileFactVersion: { artifactVersion: 1, referenceVersion: 3, availabilityVersion: 1 } })
+    fileApi.getArtifact.mockResolvedValue({ artifactVersion: 9, reference: { scopeVersion: 17, referenceVersion: 8 } })
+    const mounted = mount(defineComponent({ setup: () => () => h(CutoverClosureForm, { modelValue: model.value, taskId: '101', closureId: '501', editable: true,
+      'onAttachment-completed': (fact: any) => { model.value = { ...model.value, attachments: [fact] } } }) }), {}, controls)
+    await flush()
+    let uploader = findByTestId(mounted.root, 'closure-replace-existing-key')!
+    expect((uploader.props?.artifactId ?? uploader.props?.['artifact-id'])).toBe('9007199254740993')
+    expect((uploader.props?.expectedReferenceVersion ?? uploader.props?.['expected-reference-version'])).toBe(7)
+    expect((uploader.props?.referenceKey ?? uploader.props?.['reference-key'])).toBe('existing-key')
+    await click(mounted.root, 'closure-replace-existing-key'); await flush()
+    uploader = findByTestId(mounted.root, 'closure-replace-existing-key')!
+    expect((uploader.props?.expectedReferenceVersion ?? uploader.props?.['expected-reference-version'])).toBe(8)
+    expect(api.saveCutoverClosure).not.toHaveBeenCalled()
+    mounted.app.unmount()
+  })
+
+  it('blocks upload on failed reference read and retries without replacing the form', async () => {
+    fileApi.getCurrentReference.mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue(null)
+    const mounted = mount(CutoverClosureForm, { modelValue: content(), taskId: '101', closureId: '501', editable: true }, controls)
+    await flush()
+    expect(findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')!.props?.disabled).toBe(true)
+    expect(textOf(mounted.root)).toContain('当前材料引用读取失败')
+    const originalForm = findByTestId(mounted.root, 'closure-precheck-normal')
+    await click(mounted.root, 'closure-reference-retry-POST_COLLECTION_CHECKLIST')
+    await flush()
+    expect(findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')!.props?.disabled).toBe(false)
+    expect(textOf(mounted.root)).not.toContain('当前材料引用读取失败')
+    expect(findByTestId(mounted.root, 'closure-precheck-normal')).toBe(originalForm)
+    expect(api.saveCutoverClosure).not.toHaveBeenCalled()
+    mounted.app.unmount()
+  })
+
+  it('keeps the form and stage navigation responsive at the locked 320/768/1024/1440 breakpoints', () => {
+    const mounted = mount(CutoverClosureForm, { modelValue: content(), taskId: '101', closureId: '501', editable: false }, controls)
+    expect(textOf(mounted.root)).toContain('割接前检查')
+    expect(textOf(mounted.root)).toContain('割接后信息采集清单')
+    expect(textOf(mounted.root)).toContain('实施承诺')
+    mounted.app.unmount()
+  })
+})
+
+const content = (): CutoverClosureContent => ({
+  preCheckNormal: null, preCheckDetail: null, executionNormal: null, executionDetail: null,
+  testNormal: null, testDetail: null, rollbackOccurred: null, rollbackSuccessful: null,
+  rollbackReason: null, legacyItems: null, finalResult: null, attachments: []
+})
+const attachment = (referenceKey: string) => ({
+  purposeCode: 'POST_COLLECTION_CHECKLIST' as const, artifactId: '9007199254740993', versionNo: 4,
+  referenceKey, scopeVersion: 17, sha256: 'a'.repeat(64),
+  fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 }
+})
+const view = (
+  allowedActions: string[], closureVersion: number | null = null,
+  closureStatus: 'DRAFT' | 'SUBMITTED' | null = closureVersion === null ? null : 'DRAFT',
+  taskStatus: 'CLOSURE_IN_PROGRESS' | 'ARCHIVED' = 'CLOSURE_IN_PROGRESS'
+) => ({
+  taskId: '101', taskStage: 'P6', taskStatus, taskVersion: 7,
+  closureId: closureVersion === null ? null : '501', closureVersion, closureStatus,
+  approvalInstanceId: '301', approvalVersion: 2, planRevisionId: '401', planRevisionNo: 1, planVersion: 4,
+  content: closureVersion === null ? null : content(), collectionEvidence: [],
+  resultRef: closureStatus === 'SUBMITTED' && taskStatus === 'ARCHIVED' ? 'CUTOVER_CLOSURE:501:3' : null,
+  submittedBy: closureStatus === 'SUBMITTED' ? '9' : null,
+  submittedAt: closureStatus === 'SUBMITTED' ? 1788220800000 : null,
+  archivedAt: taskStatus === 'ARCHIVED' ? 1788220800000 : null,
+  allowedActions
+})
+const flush = async () => { await Promise.resolve(); await Promise.resolve(); await nextTick() }
+const uploadReference = (root: any, id: string) => {
+  const props = findByTestId(root, id)!.props!
+  return String(props.referenceKey ?? props['reference-key'])
+}
+const click = async (root: any, id: string) => {
+  await vi.waitFor(() => expect(findByTestId(root, id)?.props?.disabled).not.toBe(true))
+  const target = findByTestId(root, id)
+  if (!target) throw new Error(`missing ${id}: ${textOf(root)}`)
+  await (target.props?.onClick as () => void | Promise<void>)()
+  await nextTick()
+}
+const setValue = async (root: any, id: string, value: unknown) => {
+  await (findByTestId(root, id)!.props?.['onUpdate:modelValue'] as (value: unknown) => void)(value)
+  await nextTick()
+}

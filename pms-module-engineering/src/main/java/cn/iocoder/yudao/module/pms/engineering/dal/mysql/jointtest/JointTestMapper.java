@@ -1,9 +1,9 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.mysql.jointtest;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
-import cn.iocoder.yudao.module.pms.engineering.controller.admin.jointtest.vo.JointTestPageReqVO;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.jointtest.query.JointTestPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.jointtest.JointTestDO;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -11,10 +11,12 @@ import org.apache.ibatis.annotations.Mapper;
  * PMS 业务联调 Mapper（FR-ENG-024）。
  */
 @Mapper
-public interface JointTestMapper extends BaseMapperX<JointTestDO> {
+public interface JointTestMapper extends ProjectScopedCodeMapper<JointTestDO> {
 
-    default PageResult<JointTestDO> selectPage(JointTestPageReqVO reqVO) {
+    default PageResult<JointTestDO> selectPage(JointTestPageQuery reqVO) {
+        if (reqVO.getVisibleProjectIds() == null || reqVO.getVisibleProjectIds().isEmpty()) return PageResult.empty();
         return selectPage(reqVO, new LambdaQueryWrapperX<JointTestDO>()
+                .in(JointTestDO::getProjectId, reqVO.getVisibleProjectIds())
                 .eqIfPresent(JointTestDO::getProjectId, reqVO.getProjectId())
                 .likeIfPresent(JointTestDO::getCode, reqVO.getCode())
                 .likeIfPresent(JointTestDO::getTestCase, reqVO.getTestCase())
@@ -24,7 +26,4 @@ public interface JointTestMapper extends BaseMapperX<JointTestDO> {
                 .orderByDesc(JointTestDO::getId));
     }
 
-    default JointTestDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(JointTestDO::getProjectId, projectId, JointTestDO::getCode, code);
-    }
 }

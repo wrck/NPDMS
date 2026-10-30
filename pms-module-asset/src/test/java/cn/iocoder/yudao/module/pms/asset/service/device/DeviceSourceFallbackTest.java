@@ -22,7 +22,7 @@ class DeviceSourceFallbackTest {
     void shouldKeepLastSuccessfulNetworkVersionWhenCurrentSyncFailed() {
         DeviceQueryApi deviceQueryApi = mock(DeviceQueryApi.class);
         DeviceNetworkVersionMapper versionMapper = mock(DeviceNetworkVersionMapper.class);
-        DeviceDetailService service = new DeviceDetailService(deviceQueryApi, versionMapper);
+        DeviceDetailService service = new DeviceDetailService(deviceQueryApi, versionMapper, org.mockito.Mockito.mock(DeviceOrganizationService.class));
         when(deviceQueryApi.getDevice(8L)).thenReturn(summary());
         DeviceNetworkVersionDO version = new DeviceNetworkVersionDO();
         version.setDeviceSn("SN-8");
@@ -31,7 +31,7 @@ class DeviceSourceFallbackTest {
         version.setConpSeries("S3");
         version.setConpMark("3.2.1");
         version.setBootVersion("B1");
-        version.setSourceSystem("ITR");
+        version.setSourceSystem("DEVICE_LOG");
         version.setSourceKey("source-device-8");
         version.setSourceVersion("2");
         version.setSourceUpdatedAt(LocalDateTime.of(2026, 8, 26, 20, 0));
@@ -67,6 +67,6 @@ class DeviceSourceFallbackTest {
                 null, null, null, null,
                 null, null, null, null,
                 null, null, null,
-                "V3.2.1", "CONP", "S3", "3.2.1");
+                "V3.2.1", "CONP", "S3", "3.2.1", null, null, null);
     }
 }

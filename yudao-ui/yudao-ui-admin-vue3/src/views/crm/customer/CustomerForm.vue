@@ -34,18 +34,11 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="负责人" prop="ownerUserId">
-            <el-select
+            <UserSelect
               v-model="formData.ownerUserId"
               :disabled="formType !== 'create'"
               class="w-1/1"
-            >
-              <el-option
-                v-for="item in userOptions"
-                :key="item.id"
-                :label="item.nickname"
-                :value="item.id"
-              />
-            </el-select>
+             :clearable="false" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -145,11 +138,11 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as CustomerApi from '@/api/crm/customer'
 import * as AreaApi from '@/api/system/area'
 import { defaultProps } from '@/utils/tree'
-import * as UserApi from '@/api/system/user'
 import { getCurrentUserId } from '@/utils/auth'
 
 const { t } = useI18n() // 国际化
@@ -160,7 +153,6 @@ const dialogTitle = ref('') // 弹窗的标题
 const formLoading = ref(false) // 表单的加载中：1）修改时的数据加载；2）提交的按钮禁用
 const formType = ref('') // 表单的类型：create - 新增；update - 修改
 const areaList = ref([]) // 地区列表
-const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 const formData = ref({
   id: undefined,
   name: undefined,
@@ -202,7 +194,7 @@ const open = async (type: string, id?: number) => {
   // 获得地区列表
   areaList.value = await AreaApi.getAreaTree()
   // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
+
   // 默认新建时选中自己
   if (formType.value === 'create') {
     formData.value.ownerUserId = getCurrentUserId()

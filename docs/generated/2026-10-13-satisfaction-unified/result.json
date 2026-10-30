@@ -1,0 +1,70 @@
+{
+  "projectId": 992203060198,
+  "oldCompletionLinkOpensUnifiedSatisfaction": true,
+  "certificateId": 30045,
+  "completionDraftBeforeSurvey": true,
+  "draftSaveAndReopenInUnifiedEntry": true,
+  "sameManagementActionsOnMobile": true,
+  "issueAutomaticallyCreatesAndReusesOneSurvey": true,
+  "resendRevokesPreviousLink": true,
+  "missingConsentAndRequiredRatingsBlockUploads": true,
+  "missingSignatureBlocksUploads": true,
+  "responsiveChecks": [
+    {
+      "width": 320,
+      "height": 568,
+      "singlePage": true,
+      "singleSignature": true,
+      "noSignatureInCompletion": true,
+      "answersPreserved": true,
+      "noHorizontalOverflow": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "singlePage": true,
+      "singleSignature": true,
+      "noSignatureInCompletion": true,
+      "answersPreserved": true,
+      "noHorizontalOverflow": true
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "singlePage": true,
+      "singleSignature": true,
+      "noSignatureInCompletion": true,
+      "answersPreserved": true,
+      "noHorizontalOverflow": true
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "singlePage": true,
+      "singleSignature": true,
+      "noSignatureInCompletion": true,
+      "answersPreserved": true,
+      "noHorizontalOverflow": true
+    },
+    {
+      "width": 1440,
+      "height": 1000,
+      "singlePage": true,
+      "singleSignature": true,
+      "noSignatureInCompletion": true,
+      "answersPreserved": true,
+      "noHorizontalOverflow": true
+    }
+  ],
+  "oneSignatureAndOneJointSubmission": true,
+  "outcome": {
+    "score": 80.0,
+    "threshold": 80.0,
+    "passed": true
+  },
+  "finalCertificateStatus": 2,
+  "submittedSinglePageReadonly": true,
+  "unifiedDetailShowsBothFormsAndBothPrintPreviews": true,
+  "protectedRecordsReadonlyRecheckUnchanged": true,
+  "managementPageErrors": []
+}

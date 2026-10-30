@@ -75,6 +75,7 @@ class PreparationInitializationServiceTest {
     @BeforeEach
     @SuppressWarnings("unchecked")
     void setUp() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "managementAccess", EngineeringManagementFixtures.confirmed(participantFactApi));
         TenantContextHolder.setTenantId(1L);
         when(transactionTemplate.execute(any())).thenAnswer(invocation ->
                 ((TransactionCallback<Object>) invocation.getArgument(0))
@@ -154,7 +155,7 @@ class PreparationInitializationServiceTest {
                 PreparationInitializationApi.TRIGGER_AUTHORIZED_RECOVERY));
 
         assertEquals(created, recovered);
-        verify(participantFactApi).lockAndRevalidate(any());
+        verify(participantFactApi).lockAndRevalidateAuthorization(any());
         verify(commandExecutionApi).execute(any(), any(), any(), any(), any());
         verify(operationAuditApi).record(eq(1L), eq(8L), eq("PRE02-OP-8"),
                 eq("PREPARATION_INITIALIZATION_RECOVERY"), eq("Preparation"), eq("1000"),
@@ -190,18 +191,18 @@ class PreparationInitializationServiceTest {
         assertEquals(first, replay);
         verify(preparationMapper).insert(any());
         verify(commandExecutionApi, times(2)).execute(any(), any(), any(), any(), any());
-        verify(participantFactApi, times(2)).lockAndRevalidate(any());
+        verify(participantFactApi, times(2)).lockAndRevalidateAuthorization(any());
         verifyNoInteractions(operationAuditApi);
     }
 
     private PreparationInitializationCommand command(Long actorId, String trigger) {
         return new PreparationInitializationCommand(100L, 200L, 300L,
-                2, 4, 6, trigger, "PRE02-KEY-" + actorId,
+                2L, 4, 6, trigger, "PRE02-KEY-" + actorId,
                 "PRE02-OP-" + actorId, actorId);
     }
 
     private ProjectWorkBindingFact fact() {
-        return new ProjectWorkBindingFact(100L, 2, 200L, 4, 300L, 6,
+        return new ProjectWorkBindingFact(100L, 2L, 200L, 4, 300L, 6,
                 400L, 5, "BUSINESS_OBJECT", "SOL", "SITE_SURVEY_PREPARATION",
                 "PRE_02_SITE_SURVEY", "PRE_02_SITE_SURVEY", 1, 1,
                 "[{\"itemCode\":\"POWER\",\"itemName\":\"供电\",\"enabled\":true,"

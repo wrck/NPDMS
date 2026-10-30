@@ -51,8 +51,45 @@ public class ProjectRuntimeRuleEvaluator {
         return evaluator.evaluate(ruleVersionReference, program, leaf -> resolveFact(leaf, facts));
     }
 
+    /** Only closure readiness may project its designated approval task as complete. */
+    public ConditionStatus evaluateForClosure(JsonNode rule, Facts facts,
+            cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection pending) {
+        if (pending == null) return evaluate(rule, facts);
+        try {
+            return evaluateForClosure(compiler.compile(rule), facts, pending);
+        } catch (RuntimeException unavailable) {
+            return ConditionStatus.UNAVAILABLE;
+        }
+    }
+
+    public ConditionStatus evaluateForClosure(RuleProgram program, Facts facts,
+            cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection pending) {
+        try {
+            var tasks = facts.tasks().stream().map(task -> {
+                if (pending == null || !pending.includes(task)) return task;
+                var copy = cn.iocoder.yudao.framework.common.util.object.BeanUtils.toBean(task, ProjectTaskInstanceDO.class);
+                copy.setStatus("DONE");
+                return copy;
+            }).toList();
+            var projected = new Facts(facts.project(), facts.stage(), tasks, facts.gates(), facts.references(), facts.stageCompletion());
+            var result = evaluator.evaluate("closure:" + facts.project().getId() + ":stage:" + facts.stage().getId(),
+                    program, leaf -> pending != null && "TASK".equals(leaf.predicate())
+                            && pending.taskCode().equals(leaf.parameters().path("refCode").asText())
+                            ? RuleFact.known(true) : resolveFact(leaf, projected));
+            return switch (result.outcome()) {
+                case MATCHED -> ConditionStatus.SATISFIED;
+                case NOT_MATCHED -> ConditionStatus.UNSATISFIED;
+                case UNKNOWN -> ConditionStatus.UNAVAILABLE;
+            };
+        } catch (RuntimeException unavailable) {
+            return ConditionStatus.UNAVAILABLE;
+        }
+    }
+
     public RuleFact resolveFact(RuleProgram.Leaf leaf, Facts facts) {
         String predicate = leaf.predicate();
+        if (cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.PREDICATE.equals(predicate))
+            return RuleFact.unknown("NORMAL_CLOSURE_APPROVAL_REQUIRED");
         if ("CHILD_PROJECT_WAIT".equals(predicate)) return childWait.resolve(facts.project(), leaf.parameters());
         if ("WAIT_ELAPSED".equals(predicate)) return resolveRelativeTime(leaf, facts, null);
         if ("TIME_REACHED".equals(predicate))
@@ -61,15 +98,16 @@ public class ProjectRuntimeRuleEvaluator {
         if ("DECISION".equals(predicate))
             return decisions.resolve(facts.project().getTenantId(), "project:" + facts.project().getId()
                     + ":plan:" + facts.project().getActivePlanVersionId(), leaf,
-                    code -> cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields.read(facts.project(), code));
+                    code -> projectRuleFields.read(facts.project(), code));
         if ("FIELD".equals(predicate))
-            return cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields.read(
+            return projectRuleFields.read(
                     facts.project(), leaf.parameters().path("fieldCode").asText());
         if ("STAGE_NATIVE_STATUS".equals(predicate)) {
             if (facts.stage() == null) return RuleFact.unknown("STAGE_CONTEXT_REQUIRED");
             if (!facts.stageCompletion()) return RuleFact.known("DONE".equals(facts.stage().getStatus()));
             // Native readiness is prospective completion, never a pre-write of the stage status.
-            return RuleFact.known(facts.tasks().stream().filter(t -> Objects.equals(t.getStageCode(), facts.stage().getCode()))
+            return RuleFact.known(facts.tasks().stream().filter(cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy::required)
+                    .filter(t -> Objects.equals(t.getStageCode(), facts.stage().getCode()))
                     .allMatch(t -> "DONE".equals(t.getStatus())));
         }
         if ("TASK_NATIVE_STATUS".equals(predicate)) return RuleFact.unknown("TASK_CONTEXT_REQUIRED");
@@ -102,4 +140,5 @@ public class ProjectRuntimeRuleEvaluator {
     public RuleFact resolveRelativeTime(RuleProgram.Leaf leaf, Facts facts, Long executionId) {
         return relativeTime.resolve(facts.project().getTenantId(), facts.project().getId(), executionId, leaf.parameters());
     }
+    private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields;
 }

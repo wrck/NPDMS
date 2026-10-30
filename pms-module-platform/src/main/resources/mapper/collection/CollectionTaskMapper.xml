@@ -3,6 +3,16 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.CollectionTaskMapper">
 
+    <select id="selectReconciliationDue"
+            resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionTaskDO">
+        SELECT * FROM plt_collection_task
+        WHERE tenant_id = #{query.tenantId} AND id &gt; #{query.afterId}
+          AND technical_stage IN ('ACCEPTED', 'DISPATCHED', 'DISPATCHING', 'RUNNING', 'RECONCILING')
+          AND status NOT IN ('RESULT_AVAILABLE', 'COMPLETED', 'FAILED', 'CANCELLED', 'SECURITY_EXCEPTION')
+          AND deleted = b'0'
+        ORDER BY id LIMIT #{query.limit}
+    </select>
+
     <select id="selectByTenantAndPlatformTaskId"
             resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionTaskDO">
         SELECT *
@@ -32,6 +42,18 @@
         WHERE tenant_id = #{update.tenantId}
           AND platform_task_id = #{update.platformTaskId}
           AND technical_stage = #{update.expectedTechnicalStage}
+          AND deleted = b'0'
+    </update>
+
+    <update id="updateUndispatchedCancellation">
+        UPDATE plt_collection_task
+        SET status = 'CANCELLED', technical_stage = 'CANCELLED_BEFORE_DISPATCH',
+            external_status = 'CANCELLED', failure_category = 'CANCELLED_BEFORE_DISPATCH'
+        WHERE tenant_id = #{update.tenantId} AND platform_task_id = #{update.platformTaskId}
+          AND status = #{update.expectedStatus} AND technical_stage = #{update.expectedTechnicalStage}
+          AND status IN ('CREATED', 'AUTHORIZED')
+          AND technical_stage IN ('PENDING_DISPATCH', 'DISPATCHING', 'RECONCILING')
+          AND external_task_id IS NULL AND result_version IS NULL AND file_version_id IS NULL
           AND deleted = b'0'
     </update>
 
@@ -82,4 +104,15 @@
           AND deleted = b'0'
         ORDER BY id
     </select>
+    <update id="updateReconciliationObservation">
+        UPDATE plt_collection_task
+        SET technical_stage = 'RECONCILING',
+            external_status = #{update.externalStatus}
+        WHERE tenant_id = #{update.tenantId}
+          AND platform_task_id = #{update.platformTaskId}
+          AND status = #{update.expectedStatus}
+          AND technical_stage = #{update.expectedTechnicalStage}
+          AND deleted = b'0'
+    </update>
+
 </mapper>

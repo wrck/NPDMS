@@ -1,7 +1,8 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
+const exists = (path: string) => existsSync(new URL(path, import.meta.url))
 const panel = read('./ProjectPreparationPanel.vue')
 const item = read('./PreparationItemDrawer.vue')
 const waiver = read('./PreparationWaiverDrawer.vue')
@@ -10,7 +11,6 @@ const detail = read('../index.vue')
 const api = read('../../../../../api/pms/engineering/preparation/index.ts')
 const oldApi = read('../../../../../api/pms/engineering/site-survey/index.ts')
 const oldPage = read('../../../delivery-business/site-survey/index.vue')
-const legacyDetail = read('../../project-detail/index.vue')
 
 describe('F-SOL-002 project preparation panel', () => {
   it('uses the locked PRE-02 routes and concurrency headers', () => {
@@ -27,7 +27,9 @@ describe('F-SOL-002 project preparation panel', () => {
   it('mounts the shared survey page while preserving legacy PRE-02 allowed-action handling', () => {
     expect(detail).toContain("activeTab === 'preparation'")
     expect(detail).toContain('<ProjectSiteSurveyPanel')
-    expect(detail).toContain("import ProjectSiteSurveyPanel from '@/views/pms/delivery-business/site-survey/index.vue'")
+    expect(detail).toMatch(
+      /const ProjectSiteSurveyPanel = defineAsyncComponent\(\(\) =>\s*import\('@\/views\/pms\/delivery-business\/site-survey\/index.vue'\)/
+    )
     expect(detail).toContain(':project-id="detail.id"')
     expect(detail).not.toContain('<ProjectPreparationPanel')
     expect(panel).toContain("preparation.allowedActions.includes('SUBMIT')")
@@ -92,7 +94,8 @@ describe('F-SOL-002 project preparation panel', () => {
     expect(oldPage).toContain('PmsLocationSelector')
     expect(oldPage).toContain('SiteSurveyDynamicForm')
     expect(oldPage).not.toContain("from '@/api/pms/engineering/preparation'")
-    expect(legacyDetail).not.toMatch(
+    expect(exists('../../project-detail/index.vue')).toBe(false)
+    expect(detail).not.toMatch(
       /SiteSurveyApi\.(?:create|update|delete|confirm|reject|archive)SiteSurvey/
     )
   })

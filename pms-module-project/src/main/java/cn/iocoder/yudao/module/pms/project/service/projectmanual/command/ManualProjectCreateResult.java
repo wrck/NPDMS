@@ -8,7 +8,7 @@ public record ManualProjectCreateResult(
         String lifecycleStatus,
         String currentStage,
         String assignmentStatus,
-        Integer version,
+        Long version,
         Long lifecycleTemplateId,
         Integer lifecycleTemplateRevisionNo,
         String templateLoadMethod,

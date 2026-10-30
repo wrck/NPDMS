@@ -10,19 +10,12 @@
       label-width="68px"
     >
       <el-form-item label="用户编号" prop="userId">
-        <el-select
+        <UserSelect
           v-model="queryParams.userId"
           clearable
           placeholder="请输入用户编号"
           class="!w-240px"
-        >
-          <el-option
-            v-for="item in userList"
-            :key="item.id"
-            :label="item.nickname"
-            :value="item.id"
-          />
-        </el-select>
+         />
       </el-form-item>
       <el-form-item label="提示词" prop="prompt">
         <el-input
@@ -107,6 +100,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { dateFormatter } from '@/utils/formatTime'
 import { AiMindMapApi, MindMapVO } from '@/api/ai/mindmap'
 import * as UserApi from '@/api/system/user'
@@ -185,6 +180,6 @@ const openPreview = async (row: MindMapVO) => {
 onMounted(async () => {
   getList()
   // 获得用户列表
-  userList.value = await UserApi.getSimpleUserList()
+  userList.value = await systemUserSelection.active()
 })
 </script>

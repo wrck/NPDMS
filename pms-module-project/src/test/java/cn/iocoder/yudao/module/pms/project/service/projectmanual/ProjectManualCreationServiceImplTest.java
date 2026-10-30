@@ -15,12 +15,14 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectS
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.TaskStateMachineRevisionDO;
-import cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi;
-import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateFact;
-import cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateResolveQuery;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionQuestionnaireTemplateApi;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionTemplateFact;
+import cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionTemplateResolveQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttemplate.ProjectTemplateRevisionDO;
+import cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectPageReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectCompanyDepartmentRelationMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectDeliverableInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectGateInstanceMapper;
@@ -48,7 +50,7 @@ import cn.iocoder.yudao.module.pms.project.service.projecttemplate.ProjectTempla
 import cn.iocoder.yudao.module.pms.project.service.projecttemplate.TemplateCompiler;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphFreezer;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
-import cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerCommand;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.command.AssignServiceManagerResult;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
@@ -160,6 +162,10 @@ class ProjectManualCreationServiceImplTest {
     private ProjectGateReferenceInstanceMapper gateReferenceInstanceMapper;
     @Mock
     private ProjectMemberAssignmentMapper memberAssignmentMapper;
+    @Mock
+    private DeviceQueryApi deviceQueryApi;
+    @Mock
+    private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi projectDeviceShipments;
     @Mock
     private ProjectCompanyDepartmentRelationMapper companyDepartmentRelationMapper;
     @Mock
@@ -542,7 +548,7 @@ class ProjectManualCreationServiceImplTest {
     @Test
     void assignServiceManagerRejectsStaleProjectVersion() {
         when(projectMasterMapper.selectById(1L)).thenReturn(persistedProject());
-        when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(0);
+        when(projectMasterMapper.incrementVersionIfMatch(1L, 0L)).thenReturn(0);
 
         ServiceException exception = assertThrows(ServiceException.class,
                 () -> service.assignServiceManager(assignCommand()));
@@ -556,7 +562,7 @@ class ProjectManualCreationServiceImplTest {
         ProjectMasterDO project = persistedProject();
         project.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_UNASSIGNED);
         when(projectMasterMapper.selectById(1L)).thenReturn(project);
-        when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(1);
+        when(projectMasterMapper.incrementVersionIfMatch(1L, 0L)).thenReturn(1);
         ProjectMemberAssignmentDO previous = new ProjectMemberAssignmentDO();
         previous.setId(7L);
         previous.setUserId(55L);
@@ -610,7 +616,7 @@ class ProjectManualCreationServiceImplTest {
         ProjectMasterDO project = persistedProject();
         project.setAssignmentStatus(ProjectRules.ASSIGNMENT_STATUS_ASSIGNED);
         when(projectMasterMapper.selectById(1L)).thenReturn(project);
-        when(projectMasterMapper.incrementVersionIfMatch(1L, 0)).thenReturn(1);
+        when(projectMasterMapper.incrementVersionIfMatch(1L, 0L)).thenReturn(1);
         ProjectMemberAssignmentDO primary = assignment(
                 55L, ProjectRules.MEMBER_ROLE_SERVICE_MANAGER_L1, ProjectRules.ASSIGNMENT_TYPE_PRIMARY);
         ProjectMemberAssignmentDO projectManager = assignment(
@@ -628,7 +634,7 @@ class ProjectManualCreationServiceImplTest {
         }).when(memberAssignmentMapper).insert(any(ProjectMemberAssignmentDO.class));
 
         AssignServiceManagerCommand command = new AssignServiceManagerCommand(
-                1L, 0, "L1", 66L, 30L, "COLLABORATOR", 20L, "DEP-01",
+                1L, 0L, "L1", 66L, 30L, "COLLABORATOR", 20L, "DEP-01",
                 "协同支持", "collaborator-key", "c".repeat(64));
         AssignServiceManagerResult result = service.assignServiceManager(command);
 
@@ -780,20 +786,19 @@ class ProjectManualCreationServiceImplTest {
                 .thenReturn(Set.of());
         when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class)))
                 .thenReturn(PageResult.empty());
-        PageParam page = new PageParam();
-        page.setPageNo(1);
-        page.setPageSize(20);
 
-        PageResult<ProjectMasterDO> result = service.getProjectPage(
-                page, "名称", "PJT", "ACTIVE", null, null, null, null, actor);
+        ProjectPageReqVO filters = pageReqVO("名称", "PJT", "ACTIVE", null, null, null, null);
+        filters.setCustomerCode("CRM-CUSTOMER-001");
+        PageResult<ProjectMasterDO> result = service.getProjectPage(filters, actor);
 
         assertEquals(0L, result.getTotal());
         ArgumentCaptor<VisibleProjectPageQuery> query =
                 ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
         verify(projectMasterMapper).selectPage(query.capture());
-        assertEquals(Set.of(), query.getValue().visibleProjectIds());
-        assertEquals("名称", query.getValue().projectNameKeyword());
-        assertEquals("PJT", query.getValue().projectCodePrefix());
+        assertEquals(Set.of(), query.getValue().getVisibleProjectIds());
+        assertEquals("名称", query.getValue().getProjectNameKeyword());
+        assertEquals("PJT", query.getValue().getProjectCodePrefix());
+        assertEquals("CRM-CUSTOMER-001", query.getValue().getCustomerCode());
     }
 
     @Test
@@ -815,16 +820,105 @@ class ProjectManualCreationServiceImplTest {
                 .thenReturn(List.of(primary, collaborator, ordinary));
         when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class)))
                 .thenReturn(PageResult.empty());
-        PageParam page = new PageParam();
-        page.setPageNo(1);
-        page.setPageSize(20);
 
-        service.getProjectPage(page, null, null, null, null, null, null, 9001L, actor);
+        ProjectPageReqVO pageReqVO = pageReqVO(null, null, null, null, null, null, 9001L);
+        service.getProjectPage(pageReqVO, actor);
 
         ArgumentCaptor<VisibleProjectPageQuery> query =
                 ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
         verify(projectMasterMapper).selectPage(query.capture());
-        assertEquals(Set.of(100L, 200L), query.getValue().visibleProjectIds());
+        assertEquals(Set.of(100L, 200L), query.getValue().getVisibleProjectIds());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"MANAGER", "SERVICE_MANAGER", "SALES"})
+    void projectPageGlobalRoleCandidateNeverAddsItsOutOfScopeProjects(String field) {
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L, 7L, "PROJECT_VIEW"))
+                .thenReturn(Set.of(100L));
+        var outside = new ProjectMemberAssignmentDO();
+        outside.setProjectId(999L);
+        outside.setMemberRole("SALES".equals(field) ? "SALES_REPRESENTATIVE" : "SERVICE_MANAGER");
+        when(memberAssignmentMapper.selectActiveByUser(any())).thenReturn(List.of(outside));
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        var filters = pageReqVO(null, null, null, null, null, null, null);
+        switch (field) {
+            case "MANAGER" -> filters.setManagerId(9001L);
+            case "SERVICE_MANAGER" -> filters.setServiceManagerId(9001L);
+            case "SALES" -> filters.setSalesId(9001L);
+        }
+
+        service.getProjectPage(filters, new ProjectManualCreationService.ProjectAccessActor(0L, 7L));
+
+        var captured = ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertTrue(captured.getValue().getVisibleProjectIds().isEmpty());
+    }
+
+    @Test
+    void projectPageShipmentYesKeepsOnlyShippedVisibleProjects() {
+        var filters=pageReqVO(null,null,null,null,null,null,null);
+        filters.setHasShippedDevices(true);
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L,7L,"PROJECT_VIEW")).thenReturn(Set.of(100L,200L));
+        when(projectDeviceShipments.resolveShippedProjectIds(any())).thenReturn(Set.of(100L,999L));
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        var captured=ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertEquals(Set.of(100L),captured.getValue().getVisibleProjectIds());
+    }
+
+    @Test
+    void projectPageShipmentNoKeepsUnshippedAndPreservesOtherFilters() {
+        var filters=pageReqVO("名称","PJT","S3",null,null,null,null);
+        filters.setHasShippedDevices(false); filters.setCustomerCode("CUSTOMER"); filters.setOverdueOnly(false);
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L,7L,"PROJECT_VIEW")).thenReturn(Set.of(100L,200L));
+        when(projectDeviceShipments.resolveShippedProjectIds(any())).thenReturn(Set.of(100L));
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        var captured=ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        var query=captured.getValue();
+        assertEquals(Set.of(200L),query.getVisibleProjectIds());
+        assertEquals("CUSTOMER",query.getCustomerCode()); assertEquals("S3",query.getStatus());
+        assertEquals(false,query.getOverdueOnly()); assertEquals("名称",query.getProjectNameKeyword());
+    }
+
+    @Test
+    void projectPageEmptyShipmentScopeDoesNotExpandOrCallAssetApi() {
+        var filters=pageReqVO(null,null,null,null,null,null,null); filters.setHasShippedDevices(false);
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L,7L,"PROJECT_VIEW")).thenReturn(Set.of());
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        var captured=ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertEquals(Set.of(),captured.getValue().getVisibleProjectIds()); verifyNoInteractions(projectDeviceShipments);
+    }
+
+    @Test
+    void projectPageAbsentShipmentFilterDoesNotQueryAssets() {
+        var filters=pageReqVO(null,null,null,null,null,null,null);
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L,7L,"PROJECT_VIEW")).thenReturn(Set.of(100L,200L));
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        var captured=ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertEquals(Set.of(100L,200L),captured.getValue().getVisibleProjectIds()); verifyNoInteractions(projectDeviceShipments);
+    }
+
+    @Test
+    void defaultListAndPrivateFiltersNeverAddOfficeOverviewProjects() {
+        when(projectTreeScopeService.resolveAllFullProjectIds(0L,7L,"PROJECT_VIEW")).thenReturn(Set.of(100L));
+        when(projectMasterMapper.selectPage(any(VisibleProjectPageQuery.class))).thenReturn(PageResult.empty());
+        var filters=pageReqVO(null,null,null,null,null,null,null);
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        var captured=ArgumentCaptor.forClass(VisibleProjectPageQuery.class);
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertEquals(Set.of(100L),captured.getValue().getVisibleProjectIds());
+        org.mockito.Mockito.clearInvocations(projectMasterMapper);
+        filters.setContractNo("PRIVATE");
+        service.getProjectPage(filters,new ProjectManualCreationService.ProjectAccessActor(0L,7L));
+        verify(projectMasterMapper).selectPage(captured.capture());
+        assertEquals(Set.of(100L),captured.getValue().getVisibleProjectIds());
     }
 
     @Test
@@ -846,6 +940,22 @@ class ProjectManualCreationServiceImplTest {
     }
 
     // ========== 辅助 ==========
+
+    private static ProjectPageReqVO pageReqVO(String projectName, String projectCode, String status,
+                                              String signingMethod, String projectCategory,
+                                              String implementationMode, Long managerId) {
+        ProjectPageReqVO reqVO = new ProjectPageReqVO();
+        reqVO.setPageNo(1);
+        reqVO.setPageSize(20);
+        reqVO.setProjectName(projectName);
+        reqVO.setProjectCode(projectCode);
+        reqVO.setStatus(status);
+        reqVO.setSigningMethod(signingMethod);
+        reqVO.setProjectCategory(projectCategory);
+        reqVO.setImplementationMode(implementationMode);
+        reqVO.setManagerId(managerId);
+        return reqVO;
+    }
 
     private ProjectMasterDO validDraft() {
         ProjectMasterDO draft = new ProjectMasterDO();
@@ -916,7 +1026,7 @@ class ProjectManualCreationServiceImplTest {
     }
 
     private AssignServiceManagerCommand assignCommand() {
-        return new AssignServiceManagerCommand(1L, 0, "L1", 66L, 30L,
+        return new AssignServiceManagerCommand(1L, 0L, "L1", 66L, 30L,
                 "PRIMARY", 20L, "DEP-01", "人工指派", "assign-key", "b".repeat(64));
     }
 
@@ -933,6 +1043,7 @@ class ProjectManualCreationServiceImplTest {
     private TemplateExecutionSnapshot snapshotOf(TemplateDefinitionContent content) {
         var designer = TemplateDesignerDocument.fromResolvedLegacy(content);
         for (var stage : designer.getStages()) {
+            stage.setLifecycleStage("S0");
             var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType("STAGE_NATIVE");
             binding.setParameters(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{}"));
             stage.setWorkBinding(binding);
@@ -942,6 +1053,12 @@ class ProjectManualCreationServiceImplTest {
             completion.setExpression(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
                     "{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}"));
             stage.setCompletionRule(completion);
+        }
+        for (var deliverable : designer.getDeliverables()) {
+            deliverable.setConfiguration(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("""
+                    {"scope":"STAGE","deliverableType":"DOCUMENT","required":true,"minimumQuantity":1,
+                     "allowedSources":["UPLOAD"],"outputType":"FILE","confirmationRule":{"predicate":"TASK","parameters":{"refCode":"T1"}}}
+                    """));
         }
         var compilation = new TemplateCompiler().compile(designer);
         org.junit.jupiter.api.Assertions.assertTrue(compilation.valid(), () -> compilation.issues().toString());

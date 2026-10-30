@@ -38,11 +38,11 @@ public final class CutoverClosureApplicationException extends RuntimeException {
     private final Code code;
     private final Reason reason;
     private final String ownerContext;
-    private final Integer currentTaskVersion;
-    private final Integer currentClosureVersion;
+    private final Long currentTaskVersion;
+    private final Long currentClosureVersion;
 
     public CutoverClosureApplicationException(Code code, Reason reason, String ownerContext,
-                                              Integer currentTaskVersion, Integer currentClosureVersion,
+                                              Long currentTaskVersion, Long currentClosureVersion,
                                               String message) {
         super(message);
         this.code = code;
@@ -58,6 +58,6 @@ public final class CutoverClosureApplicationException extends RuntimeException {
 
     public Reason reason() { return reason; }
     public String ownerContext() { return ownerContext; }
-    public Integer currentTaskVersion() { return currentTaskVersion; }
-    public Integer currentClosureVersion() { return currentClosureVersion; }
+    public Long currentTaskVersion() { return currentTaskVersion; }
+    public Long currentClosureVersion() { return currentClosureVersion; }
 }

@@ -40,7 +40,7 @@ public class CustomerContactMasterApiImpl implements CustomerContactMasterApi {
     }
     @Override public Long create(Save command, String key) { return service.create(actor(), write(command), key).getId(); }
     @Override public void update(Save command) { service.update(actor(), write(command)); }
-    @Override public void delete(Long id, Integer version) {
+    @Override public void delete(Long id, Long version) {
         var row = mapper.selectById(id);
         if (row == null) throw exception(CONTACT_NOT_EXISTS);
         service.delete(actor(), row.getCustomerId(), id, version);
@@ -50,7 +50,7 @@ public class CustomerContactMasterApiImpl implements CustomerContactMasterApi {
         var values = command.details();
         if (values == null || command.status() == null) throw exception(CONTACT_VALUES_INVALID, "联系人内容或状态缺失");
         return new ContactMasterWrite(command.customerId(), command.id(), command.version(),
-                new ContactValues(values.name(), values.department(), values.title(), values.mobile(), values.phone(), values.email(), null, values.remark()),
+                new ContactValues(values.name(), values.department(), values.title(), values.mobile(), values.phone(), values.email(), values.remark()),
                 Boolean.TRUE.equals(command.primaryFlag()), command.status(), false);
     }
     private Contact response(CustomerContactMasterDO row) {

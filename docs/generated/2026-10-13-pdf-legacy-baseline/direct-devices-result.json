@@ -1,0 +1,46 @@
+{
+  "projectId": 992203060198,
+  "certificateId": 30039,
+  "reusedMaterialIds": [
+    9100000000000000275,
+    9100000000000000277
+  ],
+  "downloads": 6,
+  "registrations": 0,
+  "newMaterials": 0,
+  "sameBytesAfterReopening": true,
+  "rasterCalls": [
+    {
+      "kind": "完工证明",
+      "download": 1,
+      "rasterCalls": 0
+    },
+    {
+      "kind": "完工证明",
+      "download": 2,
+      "rasterCalls": 0
+    },
+    {
+      "kind": "完工证明",
+      "download": "reopened-different-viewport",
+      "rasterCalls": 0
+    },
+    {
+      "kind": "满意度",
+      "download": 1,
+      "rasterCalls": 0
+    },
+    {
+      "kind": "满意度",
+      "download": 2,
+      "rasterCalls": 0
+    },
+    {
+      "kind": "满意度",
+      "download": "reopened-different-viewport",
+      "rasterCalls": 0
+    }
+  ],
+  "signedRecordsUnchanged": true,
+  "pageErrors": []
+}

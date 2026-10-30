@@ -62,7 +62,6 @@ public class OrderController {
             @RequestParam(required = false) String orderType,
             @RequestParam(required = false) String orderNo,
             @RequestParam(required = false) String lineNo,
-            @RequestParam(required = false) String itemCode,
             @RequestParam(required = false) String productCode,
             @RequestParam(required = false) String quantityStatus,
             @RequestParam(required = false) String status,
@@ -71,7 +70,7 @@ public class OrderController {
         return withTenant(() -> {
             PageResult<SalesOrderLineDO> page = accessService.pageSalesOrderLines(currentTenantId(), currentUserId(),
                     UUID.randomUUID().toString(), new ContractAccessService.SalesOrderLineSearch(
-                            orderId, companyCode, orderType, orderNo, lineNo, itemCode, productCode,
+                            orderId, companyCode, orderType, orderNo, lineNo, productCode,
                             quantityStatus, status, (pageNo - 1) * pageSize, pageSize));
             return success(new PageResult<>(page.getList().stream().map(this::toLine).toList(), page.getTotal()));
         });
@@ -86,7 +85,7 @@ public class OrderController {
     private SalesOrderLineRespVO toLine(SalesOrderLineDO value) {
         return new SalesOrderLineRespVO(value.getId(), value.getOrderId(), value.getSourceSystem(),
                 value.getSourceVersion(), value.getCompanyCode(), value.getOrderType(), value.getOrderNo(),
-                value.getLineNo(), value.getItemCode(), value.getItemDesc(), value.getProductCode(),
+                value.getLineNo(), value.getProductCode(),
                 value.getOrderQty(), value.getOpenQty(), value.getDeliveredQty(), value.getUnitCode(),
                 value.getUnitScale(), value.getQuantityStatus(), value.getStatus(), value.getVersion());
     }

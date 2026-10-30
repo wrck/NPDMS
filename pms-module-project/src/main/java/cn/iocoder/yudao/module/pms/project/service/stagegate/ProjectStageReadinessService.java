@@ -1,8 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.service.stagegate;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
+
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
@@ -54,9 +54,9 @@ public class ProjectStageReadinessService {
     private final ProjectGateReferenceInstanceMapper referenceMapper;
     private final ProjectStageGateProviderRegistry providerRegistry;
     private final ProjectScopeApi projectScopeApi;
-    private final ProjectParticipantFactApi participantFactApi;
     private final PermissionApi permissionApi;
     private final ProjectMemberAssignmentMapper memberMapper;
+    private final ProjectManagementQualificationApi managementAccess;
 
     @Transactional(rollbackFor = Exception.class)
     public ProjectStageReadinessResult evaluate(Long projectId, Long actorUserId) {
@@ -65,12 +65,26 @@ public class ProjectStageReadinessService {
         if (project == null || !Objects.equals(project.getTenantId(), tenantId)) {
             throw exception(PROJECT_NOT_EXISTS);
         }
-        ProjectScopeResult viewScope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorUserId, projectId, ProjectScopeApi.ACTION_VIEW));
+        ProjectScopeResult viewScope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (!viewScope.fullProjectIds().contains(projectId)) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         }
-        var graph = runtimeGraphResolver.inspect(project);
+        cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeGraphResolver.Resolution graph;
+        try {
+            graph = runtimeGraphResolver.inspect(project);
+        } catch (cn.iocoder.yudao.framework.common.exception.ServiceException ex) {
+            // A retained target execution blocks legacy advancement, but is a readable readiness result.
+            // The command continues to use the unchanged graph guard and rejects this target.
+            if (!Objects.equals(ex.getCode(), PROJECT_STAGE_ADVANCE_INVALID.getCode())
+                    || !Objects.equals(ex.getMessage(), PROJECT_STAGE_ADVANCE_INVALID.getMsg()
+                        .replace("{}", "GRAPH_TARGET_STALE"))) throw ex;
+            return new ProjectStageReadinessResult(projectId, project.getVersion(), viewScope.treeVersion(),
+                    project.getCurrentStage(), null, false, "GRAPH_TARGET_STALE", List.of());
+        }
         List<ProjectGateInstanceDO> gates = graph.gates();
         List<ProjectGateReferenceInstanceDO> references = graph.references();
         Map<Long, List<ProjectGateReferenceInstanceDO>> byGate = references.stream()
@@ -164,14 +178,15 @@ public class ProjectStageReadinessService {
             return false;
         }
         try {
-            ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    tenantId, actorUserId, project.getId(), ProjectScopeApi.ACTION_MANAGE));
+            ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(project.getId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
             if (!scope.fullProjectIds().contains(project.getId())) return false;
             if (permissionApi.hasAnyRoles(actorUserId,
                     cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return true;
-            var manager = participantFactApi.inspect(new ProjectParticipantFactQuery(project.getId(), actorUserId,
-                    Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), LocalDateTime.now()));
-            return Objects.equals(manager.userId(), actorUserId);
+            return managementAccess.permits(new ProjectManagementQualificationApi.Query(project.getTenantId(), project.getId(), actorUserId));
         } catch (RuntimeException ex) {
             return false;
         }

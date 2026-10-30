@@ -25,7 +25,7 @@ public interface AddressMapper extends BaseMapperX<AddressDO> {
         return selectList(AddressDO::getAddressFingerprint, fingerprint);
     }
 
-    default int updateByIdAndVersion(AddressDO update, Integer expectedVersion) {
+    default int updateByIdAndVersion(AddressDO update, Long expectedVersion) {
         return update(update, new LambdaUpdateWrapper<AddressDO>()
                 .eq(AddressDO::getId, update.getId())
                 .eq(AddressDO::getVersion, expectedVersion));

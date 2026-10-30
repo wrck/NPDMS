@@ -13,9 +13,14 @@ public interface EntityFieldProvider {
     default String formUsage() { return entityType(); }
     List<EntityField> fields();
     Map<String, EntityFieldValue> read(EntityDataRef target, EntityActor actor);
+    /** Optional Owner concurrency metadata when native scene queries replace generic persistence reads. */
+    default Long concurrencyBasis(EntityDataRef target, EntityActor actor) { return null; }
+
+    /** Ordinary defaults save a validated patch; native draft Owners retain their snapshot semantics. */
+    default boolean usesValidatedExtensionPatch() { return false; }
 
     /** Lock the Owner object first, verify identity, permissions, lifecycle and concurrency. */
-    void lockForWrite(EntityDataRef target, EntityActor actor, Integer expectedVersion);
+    void lockForWrite(EntityDataRef target, EntityActor actor, Long expectedVersion);
 
     /** Verify current read permission and, for a revision, its membership in this entity. */
     void requireReadable(EntityDataRef target, EntityActor actor);

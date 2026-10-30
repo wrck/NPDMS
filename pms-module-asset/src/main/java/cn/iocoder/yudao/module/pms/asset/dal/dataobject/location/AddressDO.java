@@ -30,6 +30,6 @@ public class AddressDO extends TenantBaseDO {
     private String normalizedAddress;
     private String addressFingerprint;
     private Integer status;
-    private Integer version;
+    private Long version;
 
 }

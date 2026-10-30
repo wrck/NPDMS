@@ -34,7 +34,7 @@ export interface DocTemplateSelectReqVO {
   implementMode?: string
 }
 
-const baseUrl = '/pms/eng-doc-template'
+const baseUrl = '/pms/imp-doc-template'
 
 // 模板 CRUD
 export const getDocTemplatePage = (params: PageParam) =>

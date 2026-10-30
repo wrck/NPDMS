@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface RequirementVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   requirementType: string
   background?: string
@@ -23,7 +23,7 @@ export interface RequirementVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-requirement'
+const baseUrl = '/pms/sol-requirement'
 
 export const getRequirementPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

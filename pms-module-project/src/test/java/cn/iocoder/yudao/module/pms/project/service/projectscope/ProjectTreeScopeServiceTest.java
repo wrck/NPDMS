@@ -49,26 +49,67 @@ class ProjectTreeScopeServiceTest {
     @Mock ProjectTreeVersionMapper versionMapper;
     @Mock AuthorizationGrantApi authorizationGrantApi;
     @Mock cn.iocoder.yudao.module.system.api.permission.PermissionApi permissionApi;
+    @Mock ProjectOrganizationScopeService organizationScope;
     private ProjectTreeScopeService service;
 
     @BeforeEach
     void setUp() {
         TenantContextHolder.setTenantId(0L);
         service = new ProjectTreeScopeService(
-                projectMapper, memberMapper, pathMapper, versionMapper, authorizationGrantApi, permissionApi);
+                projectMapper, memberMapper, pathMapper, versionMapper, authorizationGrantApi, permissionApi, organizationScope);
         lenient().when(projectMapper.selectListCreatedBy(any(CreatedProjectScopeQuery.class)))
                 .thenReturn(List.of());
     }
 
     @AfterEach
     void tearDown() {
+        OfficeProjectReadContext.clear();
         TenantContextHolder.clear();
+    }
+
+    @Test
+    void exactLookupOnlyAddsTheMatchedNodeToViewAndNeverEditManageOrOtherSubjects() {
+        stubRootProjection();
+        OfficeProjectReadContext.set(new OfficeProjectReadContext.Scope(0L, query("PROJECT_VIEW").subjectUserId(), 2L));
+        assertEquals(Set.of(2L), service.resolve(query("PROJECT_VIEW")).fullProjectIds());
+        assertEquals(Set.of(), service.resolve(query("PROJECT_EDIT")).fullProjectIds());
+        assertEquals(Set.of(), service.resolve(query("PROJECT_MANAGE")).fullProjectIds());
+        assertEquals(Set.of(), service.resolve(query("PROJECT_VIEW")).placeholderProjectIds());
+        OfficeProjectReadContext.set(new OfficeProjectReadContext.Scope(0L, 999L, 2L));
+        assertEquals(Set.of(), service.resolve(query("PROJECT_VIEW")).fullProjectIds());
+    }
+
+    @Test
+    void organizationManagerGetsFullScopeWithoutMembershipButNeverUnmatchedDescendants() {
+        stubRootProjection();
+        when(organizationScope.projectIds(any())).thenAnswer(invocation -> {
+            ProjectOrganizationScopeService.Query q = invocation.getArgument(0);
+            return q.summaryOnly() ? Set.of() : Set.of(2L);
+        });
+        var scope = service.resolve(query("PROJECT_MANAGE"));
+        assertEquals(Set.of(2L),scope.fullProjectIds());
+        assertEquals(ProjectTreeScopeService.Visibility.NONE,scope.visibility(3L));
+    }
+
+    @Test
+    void officeRoleNeverCreatesDefaultTreeOverviewOrEditAccess() {
+        stubRootProjection();
+        when(organizationScope.projectIds(any())).thenAnswer(invocation -> {
+            ProjectOrganizationScopeService.Query q = invocation.getArgument(0);
+            return q.summaryOnly() ? Set.of(2L) : Set.of();
+        });
+        var overview = service.resolve(query("PROJECT_VIEW"));
+        assertEquals(ProjectTreeScopeService.Visibility.NONE,overview.visibility(2L));
+        assertEquals(Set.of(),overview.fullProjectIds());
+        assertEquals(ProjectTreeScopeService.Visibility.NONE,service.resolve(query("PROJECT_EDIT")).visibility(2L));
+        org.mockito.Mockito.doReturn(Set.of()).when(organizationScope).projectIds(any());
+        assertEquals(ProjectTreeScopeService.Visibility.NONE,service.resolve(query("PROJECT_VIEW")).visibility(2L));
     }
 
     @Test
     void managerRoleDoesNotExpandDescendantsWithoutExplicitGrant() {
         stubRootProjection();
-        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
+        when(memberMapper.selectAuthorizedByUser(any(ActiveProjectMemberQuery.class)))
                 .thenReturn(List.of(assignment(2L, "PROJECT_MANAGER")));
         when(pathMapper.selectByDescendants(1L, 7L, Set.of(2L)))
                 .thenReturn(List.of(path(1L, 2L), path(2L, 2L)));
@@ -84,13 +125,16 @@ class ProjectTreeScopeServiceTest {
     @Test
     void currentScopeSelectsLatestTreeVersionInsideProj() {
         stubRootProjection();
-        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
+        when(memberMapper.selectAuthorizedByUser(any(ActiveProjectMemberQuery.class)))
                 .thenReturn(List.of(assignment(3L, "PROJECT_MANAGER")));
         when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
                 .thenReturn(List.of(path(1L, 3L), path(3L, 3L)));
 
-        var scope = service.resolveCurrent(new ProjectCurrentScopeQuery(
-                0L, 9L, 3L, "PROJECT_VIEW"));
+        var scope = service.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(0L)
+                .subjectUserId(9L)
+                .anchorProjectId(3L)
+                .actionCode("PROJECT_VIEW").build());
 
         assertEquals(7L, scope.treeVersion());
         assertEquals(ProjectTreeScopeService.Visibility.FULL, scope.visibility(3L));
@@ -110,13 +154,17 @@ class ProjectTreeScopeServiceTest {
         when(versionMapper.selectLatestActiveForUpdate(1L)).thenReturn(lockedVersion);
         when(pathMapper.selectByAncestor(1L, 7L, 1L, null)).thenReturn(List.of(
                 path(1L, 1L), path(1L, 3L)));
-        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
+        when(memberMapper.selectAuthorizedByUser(any(ActiveProjectMemberQuery.class)))
                 .thenReturn(List.of(assignment(3L, "PROJECT_MANAGER")));
         when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
                 .thenReturn(List.of(path(1L, 3L), path(3L, 3L)));
 
-        var scope = service.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                0L, 9L, 3L, "PROJECT_VIEW", 6L));
+        var scope = service.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(0L)
+                .subjectUserId(9L)
+                .anchorProjectId(3L)
+                .actionCode("PROJECT_VIEW")
+                .expectedScopeVersion(6L).build());
 
         assertEquals(7L, scope.treeVersion());
         assertEquals(Set.of(3L), scope.fullProjectIds());
@@ -170,7 +218,7 @@ class ProjectTreeScopeServiceTest {
     void ordinaryMemberCannotManageCurrentProject() {
         stubRootProjection();
         for (String role : List.of("ENGINEER", "OUTSOURCED_ENGINEER")) {
-            when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
+            when(memberMapper.selectAuthorizedByUser(any(ActiveProjectMemberQuery.class)))
                     .thenReturn(List.of(assignment(3L, role)));
             var scope = service.resolve(query("PROJECT_MANAGE"));
             assertEquals(Set.of(), scope.fullProjectIds());
@@ -181,7 +229,7 @@ class ProjectTreeScopeServiceTest {
     @Test
     void ordinaryMemberCanEditCurrentProjectWithoutManageScope() {
         stubRootProjection();
-        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class)))
+        when(memberMapper.selectAuthorizedByUser(any(ActiveProjectMemberQuery.class)))
                 .thenReturn(List.of(assignment(3L, "ENGINEER")));
         when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
                 .thenReturn(List.of(path(1L, 3L), path(2L, 3L), path(3L, 3L)));
@@ -208,7 +256,7 @@ class ProjectTreeScopeServiceTest {
 
         assertEquals(Set.of(3L), scope.fullProjectIds());
         assertEquals(Set.of(1L, 2L), scope.placeholderProjectIds());
-        verify(memberMapper).selectActiveByUser(any(ActiveProjectMemberQuery.class));
+        verify(memberMapper).selectAuthorizedByUser(any(ActiveProjectMemberQuery.class));
     }
 
     @Test
@@ -240,14 +288,22 @@ class ProjectTreeScopeServiceTest {
 
         ArgumentCaptor<ActiveProjectMemberQuery> captor =
                 ArgumentCaptor.forClass(ActiveProjectMemberQuery.class);
-        verify(memberMapper).selectActiveByUser(captor.capture());
+        verify(memberMapper).selectAuthorizedByUser(captor.capture());
         assertEquals(0L, captor.getValue().tenantId());
         assertEquals(9L, captor.getValue().userId());
+        assertEquals(Set.of(1L, 2L, 3L, 4L), captor.getValue().projectIds());
+    }
+
+    @Test void emptyCurrentTreeNeverLoadsTheUserGlobalMemberships() {
+        stubRootProjection();
+        when(pathMapper.selectByAncestor(1L, 7L, 1L, null)).thenReturn(List.of());
+        assertEquals(Set.of(), service.resolve(query("PROJECT_VIEW")).fullProjectIds());
+        verify(memberMapper, never()).selectAuthorizedByUser(any());
     }
 
     @Test
     void globalScopeReturnsEmptyWithoutMemberOrGrantAnchors() {
-        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class))).thenReturn(List.of());
+        when(memberMapper.selectAuthorizedByUser(any(ActiveProjectMemberQuery.class))).thenReturn(List.of());
         when(authorizationGrantApi.page(any(AuthorizationGrantPageQuery.class)))
                 .thenReturn(new AuthorizationGrantPageResult(List.of(), 0));
 
@@ -258,7 +314,7 @@ class ProjectTreeScopeServiceTest {
 
     @Test
     void globalScopeDiscoversGrantOnlyTreeAndReusesUnifiedResolution() {
-        when(memberMapper.selectActiveByUser(any(ActiveProjectMemberQuery.class))).thenReturn(List.of());
+        when(memberMapper.selectAuthorizedByUser(any(ActiveProjectMemberQuery.class))).thenReturn(List.of());
         when(authorizationGrantApi.page(any(AuthorizationGrantPageQuery.class))).thenAnswer(invocation -> {
             AuthorizationGrantPageQuery query = invocation.getArgument(0);
             return "PROJECT_VIEW".equals(query.actionCode())
@@ -268,19 +324,18 @@ class ProjectTreeScopeServiceTest {
         });
         ProjectMasterDO granted = project(3L, 1L);
         when(projectMapper.selectBatchIds(Set.of(3L))).thenReturn(List.of(granted));
-        when(projectMapper.selectById(1L)).thenReturn(project(1L, 1L));
+        when(projectMapper.selectBatchIds(Set.of(1L))).thenReturn(List.of(project(1L, 1L)));
         ProjectTreeVersionDO version = new ProjectTreeVersionDO();
         version.setTreeVersion(7L);
-        when(versionMapper.selectLatestActive(1L)).thenReturn(version);
-        when(pathMapper.selectByAncestor(1L, 7L, 1L, null)).thenReturn(List.of(
-                path(1L, 1L), path(1L, 2L), path(1L, 3L)));
+        version.setRootProjectId(1L);
+        when(versionMapper.selectLatestActiveBatch(any())).thenReturn(List.of(version));
+        when(pathMapper.selectScopeRootPaths(any())).thenReturn(List.of(
+                globalPath(1L), globalPath(2L), globalPath(3L)));
         when(authorizationGrantApi.listEffective(any(AuthorizationGrantQuery.class))).thenAnswer(invocation -> {
             AuthorizationGrantQuery query = invocation.getArgument(0);
             return "PROJECT_VIEW".equals(query.actionCode())
                     ? List.of(grant(3L, "PROJECT_VIEW", "CURRENT_PROJECT")) : List.of();
         });
-        when(pathMapper.selectByDescendants(1L, 7L, Set.of(3L)))
-                .thenReturn(List.of(path(1L, 3L), path(3L, 3L)));
 
         assertEquals(Set.of(3L), service.resolveAllFullProjectIds(0L, 9L, "PROJECT_VIEW"));
     }
@@ -309,7 +364,7 @@ class ProjectTreeScopeServiceTest {
         for (String action : List.of("PROJECT_VIEW", "PROJECT_EDIT", "PROJECT_MANAGE")) {
             assertEquals(Set.of(1L, 2L, 3L, 4L), service.resolve(query(action)).fullProjectIds());
         }
-        verify(memberMapper, never()).selectActiveByUser(any());
+        verify(memberMapper, never()).selectAuthorizedByUser(any());
         verify(authorizationGrantApi, never()).listEffective(any());
     }
 
@@ -320,7 +375,54 @@ class ProjectTreeScopeServiceTest {
         when(projectMapper.selectTenantProjectIds(tenantQuery)).thenReturn(List.of(1L, 2L));
         assertEquals(Set.of(1L, 2L), service.resolveAllFullProjectIds(0L, 9L, "PROJECT_VIEW"));
         verify(projectMapper).selectTenantProjectIds(tenantQuery);
-        verify(memberMapper, never()).selectActiveByUser(any());
+        verify(memberMapper, never()).selectAuthorizedByUser(any());
+    }
+
+    @Test
+    void joinedViewScopeKeepsAdministratorAuthorityWithoutEnumeratingAnyProjectIds() {
+        when(permissionApi.hasAnyRoles(9L, "super_admin")).thenReturn(true);
+        var scope = service.prepareViewReadScope(
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(0L, 9L, "PROJECT_VIEW"));
+        assertEquals(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.Mode.TENANT_ADMIN, scope.mode());
+        assertEquals(0L, scope.tenantId());
+        assertEquals(9L, scope.subjectUserId());
+        assertEquals(List.of(), scope.trees());
+        verify(projectMapper, never()).selectTenantProjectIds(any());
+        verify(memberMapper, never()).selectAuthorizedByUser(any());
+    }
+
+    @Test
+    void joinedViewScopeRetainsDiscoveryAndVersionRevalidationWithoutReadingFinalNodeIds() {
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(assignment(3L, "PROJECT_MANAGER")));
+        when(authorizationGrantApi.page(any())).thenReturn(new AuthorizationGrantPageResult(List.of(), 0));
+        when(projectMapper.selectBatchIds(Set.of(3L))).thenReturn(List.of(project(3L, 1L)));
+        when(projectMapper.selectBatchIds(Set.of(1L))).thenReturn(List.of(project(1L, 1L)));
+        var version = new ProjectTreeVersionDO(); version.setRootProjectId(1L); version.setTreeVersion(7L);
+        when(versionMapper.selectLatestActiveBatch(any())).thenReturn(List.of(version));
+        var scope = service.prepareViewReadScope(
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(0L, 9L, "PROJECT_VIEW"));
+        assertEquals(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.Mode.SCOPED, scope.mode());
+        assertEquals(List.of(new cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.Tree(1L, 7L)), scope.trees());
+        org.mockito.Mockito.verify(versionMapper, org.mockito.Mockito.times(2)).selectLatestActiveBatch(any());
+        verify(pathMapper, never()).selectScopeRootPaths(any());
+        verify(authorizationGrantApi, never()).listEffective(any());
+    }
+
+    @Test
+    void joinedViewScopeStillRejectsAChangedTreeVersionAndForeignTenant() {
+        assertThrows(ServiceException.class, () -> service.prepareViewReadScope(
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(1L, 9L, "PROJECT_VIEW")));
+        assertThrows(ServiceException.class, () -> service.prepareViewReadScope(
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(0L, 9L, "PROJECT_MANAGE")));
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(assignment(3L, "PROJECT_MANAGER")));
+        when(authorizationGrantApi.page(any())).thenReturn(new AuthorizationGrantPageResult(List.of(), 0));
+        when(projectMapper.selectBatchIds(Set.of(3L))).thenReturn(List.of(project(3L, 1L)));
+        when(projectMapper.selectBatchIds(Set.of(1L))).thenReturn(List.of(project(1L, 1L)));
+        var before = new ProjectTreeVersionDO(); before.setRootProjectId(1L); before.setTreeVersion(7L);
+        var after = new ProjectTreeVersionDO(); after.setRootProjectId(1L); after.setTreeVersion(8L);
+        when(versionMapper.selectLatestActiveBatch(any())).thenReturn(List.of(before), List.of(after));
+        assertThrows(ServiceException.class, () -> service.prepareViewReadScope(
+                new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(0L, 9L, "PROJECT_VIEW")));
     }
 
     @Test
@@ -378,7 +480,11 @@ class ProjectTreeScopeServiceTest {
         return new AuthorizationGrantDTO(
                 100L + resourceId, 0L, "USER", 9L, "PROJ", "PROJECT", resourceId,
                 actionCode, scopeCode, null, null, "ACTIVE", "PROJ", null, null,
-                7L, null, null, null, null, 0);
+                7L, null, null, null, null, 0L);
+    }
+
+    private ProjectTreePathDO globalPath(Long id) {
+        var value=path(1L,id);value.setRootProjectId(1L);value.setTreeVersion(7L);return value;
     }
 
     private ProjectTreePathDO path(Long ancestorId, Long descendantId) {

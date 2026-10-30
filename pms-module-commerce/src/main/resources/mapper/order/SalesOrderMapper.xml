@@ -91,4 +91,24 @@
         WHERE o.tenant_id = #{query.tenantId} AND r.contract_id = #{query.contractId} AND o.deleted = 0
         ORDER BY o.order_no, o.id
     </select>
+    <select id="selectCreationOrdersByContract"
+            resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO">
+        SELECT o.* FROM com_sales_order o
+        WHERE o.tenant_id = #{query.tenantId} AND o.deleted = 0
+          AND o.status = 'ENABLED' AND o.order_type = '0'
+          AND (
+          <if test="query.contractNo != null and query.contractNo != '' and query.companyCode != null and query.companyCode != ''">
+            (o.contract_no IS NOT NULL
+            AND CAST(o.contract_no AS BINARY) = CAST(#{query.contractNo} AS BINARY)
+            AND CAST(o.company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY))
+          </if>
+          <if test="query.contractNo != null and query.contractNo != '' and query.companyCode != null and query.companyCode != ''"> OR </if>
+          EXISTS (SELECT 1 FROM com_order_contract_relation r
+                  WHERE r.tenant_id = o.tenant_id AND r.order_id = o.id AND r.deleted = 0
+                    AND r.contract_id = #{query.contractId}
+                    AND r.effective_from &lt;= CURRENT_TIMESTAMP
+                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP))
+          )
+        ORDER BY o.order_create_time, o.order_no, o.id
+    </select>
 </mapper>

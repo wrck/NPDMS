@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.stagegate;
 
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectGateReferenceInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -13,7 +13,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPl
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectStageExecutionLookupQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -44,7 +43,7 @@ public class ProjectStageGateProcessContextResolver {
         var plan = plans.selectEffective(scope);
         if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId()))
             throw exception(PROJECT_STAGE_PROCESS_INVALID);
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var query = new ProjectRuntimeGraphQuery(project.getTenantId(), project.getId());
         var stages = graph.selectStagesForUpdate(query);
         var gates = graph.selectGatesForUpdate(query);

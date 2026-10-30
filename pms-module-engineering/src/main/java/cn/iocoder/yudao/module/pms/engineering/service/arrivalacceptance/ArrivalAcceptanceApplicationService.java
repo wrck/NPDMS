@@ -143,7 +143,7 @@ public class ArrivalAcceptanceApplicationService {
         row.setScopeWatermark(JsonUtils.toJsonString(new ArrivalScopeWatermark(
                 deliveryScope.scopeVersion(), assignmentVersions(deviceScope.devices()))));
         row.setMigrationResolutionStatus("NOT_APPLICABLE");
-        row.setVersion(0);
+        row.setVersion(0L);
         row.setCreator(String.valueOf(command.actorUserId()));
         row.setUpdater(String.valueOf(command.actorUserId()));
         if (acceptanceMapper.insert(row) != 1 || row.getId() == null) {
@@ -368,7 +368,7 @@ public class ArrivalAcceptanceApplicationService {
         List<ArrivalQuantityScopeFact> expectedQuantities = expected.deliveryLines().stream()
                 .filter(line -> line.serialNumbers().isEmpty())
                 .map(line -> new ArrivalQuantityScopeFact(line.orderLineId(), line.productCode(),
-                        line.modelCode(), line.assignedQuantity(), line.unitCode()))
+                        line.productModel(), line.assignedQuantity(), line.unitCode()))
                 .toList();
         Set<Long> acceptedDevices = new HashSet<>();
         List<ArrivalQuantityScopeFact> acceptedQuantities = new java.util.ArrayList<>();
@@ -383,7 +383,7 @@ public class ArrivalAcceptanceApplicationService {
                 }
             } else if ("ORDER_MODEL_QUANTITY".equals(line.getScopeType())) {
                 acceptedQuantities.add(new ArrivalQuantityScopeFact(
-                        line.getOrderLineId(), line.getProductCode(), line.getModelCode(),
+                        line.getOrderLineId(), line.getProductCode(), line.getProductModel(),
                         line.getAcceptedQuantity(), line.getUnit()));
             } else {
                 throw new IllegalStateException("arrival line scope type is unsupported");
@@ -420,7 +420,7 @@ public class ArrivalAcceptanceApplicationService {
             } else if ("ORDER_MODEL_QUANTITY".equals(line.getScopeType())) {
                 quantities.add(new ArrivalFactCalculator.QuantityContribution(
                         line.getArrivalAcceptanceId(), new ArrivalQuantityScopeFact(
-                        line.getOrderLineId(), line.getProductCode(), line.getModelCode(),
+                        line.getOrderLineId(), line.getProductCode(), line.getProductModel(),
                         line.getAcceptedQuantity(), line.getUnit())));
             } else {
                 throw new IllegalStateException("confirmed arrival line scope type is unsupported");
@@ -447,7 +447,7 @@ public class ArrivalAcceptanceApplicationService {
             } else if (scope instanceof ArrivalDifferenceScopeCodec.QuantityScope quantity) {
                 quantities.add(new ArrivalFactCalculator.QuantityExemption(
                         difference.getArrivalAcceptanceId(), new ArrivalQuantityScopeFact(
-                        quantity.orderLineId(), quantity.productCode(), quantity.modelCode(),
+                        quantity.orderLineId(), quantity.productCode(), quantity.productModel(),
                         quantity.quantity(), quantity.unitCode()),
                         difference.getReason(), difference.getRiskDescription(),
                         difference.getApprovedBy(), difference.getApprovedAt(),
@@ -689,23 +689,23 @@ public class ArrivalAcceptanceApplicationService {
     }
 
     public record SubmitCommand(Long tenantId, Long arrivalAcceptanceId,
-                                Long actorUserId, Integer expectedVersion, String idempotencyKey,
+                                Long actorUserId, Long expectedVersion, String idempotencyKey,
                                 String correlationId) {
     }
 
     public record ConfirmCommand(Long tenantId, Long arrivalAcceptanceId,
-                                 Long actorUserId, Integer expectedVersion,
+                                 Long actorUserId, Long expectedVersion,
                                  String idempotencyKey, String correlationId) {
     }
 
-    public record SubmissionResult(Long arrivalAcceptanceId, String status, Integer version,
+    public record SubmissionResult(Long arrivalAcceptanceId, String status, Long version,
                                    Long evidenceId, Integer evidenceRevision) {
     }
 
     public record ConfirmationResult(
             Long arrivalAcceptanceId,
             String status,
-            Integer version,
+            Long version,
             Long projectFactVersion,
             Long evidenceId,
             Integer evidenceRevision,

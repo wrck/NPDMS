@@ -22,11 +22,11 @@ class Fcut004LegacyPlanMigrationContractTest {
     @Test
     void productionMapperNeverReadsLegacyPlanTable() throws Exception {
         String mapper = Files.readString(Path.of(
-                "src/main/resources/mapper/planv2/LegacyCutoverPlanReconciliationMapper.xml"));
+                "src/main/resources/mapper/plan/LegacyCutoverPlanReconciliationMapper.xml"));
 
         assertThat(mapper).contains("FROM cut_task", "FROM cut_plan_revision")
                 .contains("legacy_task_id = #{query.legacyTaskId}")
                 .contains("legacy_mapping_version = 'F-CUT-002-PMS-CUT-TASK-V1'")
-                .doesNotContain("FROM pms_cut_plan", "JOIN pms_cut_plan");
+                .doesNotContain("FROM pms_cut_plan_retired", "JOIN pms_cut_plan_retired");
     }
 }

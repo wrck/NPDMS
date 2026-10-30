@@ -5,7 +5,7 @@ import java.util.List;
 
 public record RequirementAnalysisFactVector(
         Long projectId,
-        Integer projectVersion,
+        Long projectVersion,
         RequirementAnalysisWorkBindingFact workBindingFact,
         Long preparationId,
         Integer businessVersion,

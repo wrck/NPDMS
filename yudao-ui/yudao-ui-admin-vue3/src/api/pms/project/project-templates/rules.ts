@@ -53,6 +53,8 @@ export interface RuleSimulation {
 }
 export const getRuleFields = (): Promise<RuleField[]> =>
   request.get({ url: '/api/v1/pms/project-templates/rules/fields' })
+export const getOperationResultFields = (): Promise<RuleField[]> =>
+  request.get({ url: '/api/v1/pms/project-templates/rules/operation-result-fields' })
 export const simulateRule = (
   rules: VersionRule[],
   ruleKey: string,

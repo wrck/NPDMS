@@ -46,7 +46,7 @@ class RelativeTimeConditionTest {
     }
 
     @Test void simulationRequiresDatesAndUsesSameElapsedComparisonWithIndependentSourceInputs() {
-        var service = new ProjectRuleSimulationService(compiler, engine.evaluator(), null);
+        var service = new ProjectRuleSimulationService(compiler, engine.evaluator(), null, new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
         var expression = waitRule("NODE_COMPLETED", "PT30M", "task:survey");
         var rule = new VersionRule("wait", "工勘完成后等待", VersionRule.Kind.CONDITION, false, expression, null);
         var values = Map.of("clock.now", JsonUtils.parseTree("\"2026-09-15T01:30:00Z\""),

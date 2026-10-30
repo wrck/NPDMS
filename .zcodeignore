@@ -1,0 +1,79 @@
+# Codex local analysis and extraction intermediates
+._codex_work/
+.zcode/
+
+# Local agent runtime, review packets, tokens, logs, and process state
+.superpowers/
+
+# Generated review/export artifacts; Markdown under specs/ is authoritative
+交付成果/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+yudao-server/src/main/resources/application-npdms-dev.yaml
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Runtime PID/log working dir for scripts/service.ps1
+.run/
+
+# Common build and dependency outputs
+node_modules/
+dist/
+target/
+.flattened-pom.xml
+coverage/
+*.log
+
+# Python validation caches
+__pycache__/
+*.py[cod]
+
+# Local Maven repository (should never be committed)
+DMavenRepository/
+.m2-cache/
+
+# Local test database artifacts
+*.h2.*
+device-ops-platform/data/
+device-ops-platform/device-ops-web/.tmp-mock/
+DMavenRepository
+DMavenRepository
+.m2
+.m2-cache
+
+# ===== ↑ 以上同步自 .gitignore（「从 .gitignore 同步」只重写以上部分）=====
+.git/
+.hg/
+.svn/
+bower_components/
+jspm_packages/
+site-packages/
+venv/
+htmlcov/
+lcov-report/
+cmakefiles/
+cmake-build-*/
+bazel-*/
+pods/
+deriveddata/
+storybook-static/
+playwright-report/
+test-results/
+allure-results/
+allure-report/
+cdk.out/
+*.egg-info/
+*.dist-info/
+eggs/
+pip-wheel-metadata/
+wheels/
+# ----- ↑ 以上为 ZCode 默认排除规则（自定义规则请写在本行下方，不会被同步/恢复改动）-----
+# 自定义规则写在下方（本行提示可删除）

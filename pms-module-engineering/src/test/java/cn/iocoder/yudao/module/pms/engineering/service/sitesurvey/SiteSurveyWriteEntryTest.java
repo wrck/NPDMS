@@ -27,10 +27,10 @@ class SiteSurveyWriteEntryTest {
         ReflectionTestUtils.setField(service,"locationFactService",location);
         ReflectionTestUtils.setField(service,"formService",forms);
         ReflectionTestUtils.setField(service,"ruleEvents",events);
-        var row = new SiteSurveyDO(); row.setId(11L); row.setProjectId(9L); row.setStatus(0); row.setVersion(1);
+        var row = new SiteSurveyDO(); row.setId(11L); row.setProjectId(9L); row.setStatus(0); row.setVersion(1L);
         when(mapper.selectById(11L)).thenReturn(row);
         doThrow(new IllegalStateException("node denied")).when(access).lock(any(),any(),any());
-        var selection = new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(9L,1,21L,1,22L,1,23L,24L,1,2,true));
+        var selection = new ProjectBusinessExecutionSelection(null,new ProjectStageExecutionContext(9L,1L,21L,1,22L,1,23L,24L,1,2,true));
         var request = new SiteSurveySaveReqVO(); request.setId(11L); request.setProjectId(99L); request.setExecution(selection);
         Runnable write = switch(action) {
             case "create" -> () -> service.createSiteSurvey(request);
@@ -44,7 +44,7 @@ class SiteSurveyWriteEntryTest {
         };
         assertEquals("node denied", assertThrows(IllegalStateException.class,write::run).getMessage());
         String permission = "create".equals(action) ? "create" : "delete".equals(action) ? "delete" : "update";
-        verify(access).lock("create".equals(action) ? 99L : 9L,"pms:eng-site-survey:"+permission, selection);
+        verify(access).lock("create".equals(action) ? 99L : 9L,"pms:sol-site-survey:"+permission, selection);
         if (!"create".equals(action)) verify(mapper).selectById(11L);
         verifyNoMoreInteractions(mapper);
         verifyNoInteractions(location,forms,events);

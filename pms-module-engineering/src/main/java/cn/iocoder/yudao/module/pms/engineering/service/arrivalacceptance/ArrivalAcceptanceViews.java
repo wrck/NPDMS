@@ -43,7 +43,7 @@ public final class ArrivalAcceptanceViews {
 
     public record ArrivalListItem(Long id, Long projectId, String batchCode, String logisticsNo,
                                   LocalDateTime arrivedAt, String signerName, String status,
-                                  String evidenceSyncStatus, Integer version,
+                                  String evidenceSyncStatus, Long version,
                                   List<String> allowedActions, LocalDateTime createTime) {
     }
 
@@ -53,14 +53,14 @@ public final class ArrivalAcceptanceViews {
                                 Long evidenceId, Integer evidenceRevision, Long projectFactVersion,
                                 Long predecessorAcceptanceId, String successorReason,
                                 Long submittedBy, LocalDateTime submittedAt,
-                                Long confirmedBy, LocalDateTime confirmedAt, Integer version,
+                                Long confirmedBy, LocalDateTime confirmedAt, Long version,
                                 List<String> allowedActions, List<ArrivalLineData> currentLines,
                                 List<ArrivalDifferenceData> differences, DeliveryEvidenceData evidence) {
     }
 
     public record ArrivalLineData(Long id, Integer lineNo, Integer lineRevision, String scopeType,
                                   Long deviceId, Long deviceAssignmentVersion, Long orderLineId,
-                                  String productCode, String modelCode, BigDecimal expectedQuantity,
+                                  String productCode, String productModel, BigDecimal expectedQuantity,
                                   BigDecimal acceptedQuantity, String unitCode, String status,
                                   Integer version) {
     }

@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface IssueVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   description?: string
   source?: string
@@ -30,7 +30,7 @@ export interface IssueVerifyVO {
   action: 'close' | 'reject'
 }
 
-const baseUrl = '/pms/eng-issue'
+const baseUrl = '/pms/imp-issue'
 
 export const getIssuePage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

@@ -7,7 +7,7 @@ import java.util.List;
 
 public record DeliveryScopeAdjustReqVO(
         @NotNull @Positive Long projectId,
-        @NotNull @PositiveOrZero Integer expectedProjectVersion,
+        @NotNull @PositiveOrZero Long expectedProjectVersion,
         @NotNull @PositiveOrZero Long expectedProjectScopeVersion,
         @NotNull @PositiveOrZero Long expectedDeliveryScopeVersion,
         @NotBlank @Size(max = 128) String expectedOrderLineSourceVersion,

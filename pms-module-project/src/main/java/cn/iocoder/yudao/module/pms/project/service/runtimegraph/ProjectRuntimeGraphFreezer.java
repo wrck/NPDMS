@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntime
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectStageExecutionContractMapper;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDefinitionContent;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
 /**
  * PM-01/PM-03 runtime graph freezer for newly created projects.
  *
- * <p>New writes are interpreted only from the immutable V2 {@link TemplateExecutionSnapshot}.
+ * <p>New writes use only explicitly supported immutable {@link TemplateExecutionSnapshot} formats.
  * The TemplateDefinitionContent overloads are temporary in-process adapters for unchanged Project
  * instantiation code and only unwrap the embedded execution snapshot; they never read legacy
  * DefinitionRevision/definitionSnapshot data. Historical legacy projects are read from their
@@ -42,16 +43,14 @@ public class ProjectRuntimeGraphFreezer {
     private final ProjectRuntimeGraphMapper graphMapper;
     private final ProjectStageExecutionContractMapper contractMapper;
 
-    /** Compatibility overload: accepts only a V2 runtime projection carrying the full immutable snapshot. */
+    /** Compatibility overload: accepts only a supported projection carrying the full immutable snapshot. */
     public void validate(TemplateDefinitionContent content) {
         validate(requireExecutionSnapshot(content));
     }
 
     public void validate(TemplateExecutionSnapshot snapshot) {
-        if (snapshot == null || snapshot.getExecutionSchemaVersion() == null
-                || snapshot.getExecutionSchemaVersion() < TemplateExecutionSnapshot.SCHEMA_VERSION) {
-            throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
-        }
+        if (snapshot == null) throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
+        TemplateExecutionSnapshotReader.validate(snapshot);
         if (snapshot.getStages() == null || snapshot.getTasks() == null || snapshot.getTransitions() == null) {
             throw new IllegalArgumentException("COMPILED_TEMPLATE_COLLECTION_REQUIRED");
         }
@@ -75,10 +74,12 @@ public class ProjectRuntimeGraphFreezer {
                 throw new IllegalArgumentException("V2模板不得使用旧验收任务保留码：" + task.getCode()
                         + "；请用ACC WorkBinding/CompletionRule显式表达验收");
             }
-            if (task.getBinding() == null || blank(task.getBinding().getType())) {
+            boolean resultOnly = Integer.valueOf(cn.iocoder.yudao.module.pms.project.domain.template.TemplateVersionSnapshot.SCHEMA_VERSION)
+                    .equals(snapshot.getExecutionSchemaVersion()) && task.getBinding() == null
+                    && cn.iocoder.yudao.module.pms.project.domain.template.ResultSubscriptionTaskContract.pure(task.getExecution());
+            if (!resultOnly && (task.getBinding() == null || blank(task.getBinding().getType())))
                 throw new IllegalArgumentException("COMPILED_TASK_BINDING_REQUIRED");
-            }
-            if (task.getPermission() == null) throw new IllegalArgumentException("COMPILED_TASK_PERMISSION_REQUIRED");
+            if (!resultOnly && task.getPermission() == null) throw new IllegalArgumentException("COMPILED_TASK_PERMISSION_REQUIRED");
             requireObject(task.getCompletionRule(), "COMPILED_TASK_COMPLETION_RULE_REQUIRED");
         }
 
@@ -92,7 +93,7 @@ public class ProjectRuntimeGraphFreezer {
         }
     }
 
-    /** Compatibility overload: unwraps the embedded V2 snapshot and delegates to the native freezer. */
+    /** Compatibility overload: verifies the stored schema before unwrapping and freezing the snapshot. */
     @Transactional(propagation = Propagation.MANDATORY)
     public List<ProjectStageExecutionContractDO> freeze(Long tenantId, Long projectId, Long templateRevisionId, TemplateDefinitionContent content,
                        List<ProjectStageInstanceDO> stages, LocalDateTime now) {
@@ -105,7 +106,7 @@ public class ProjectRuntimeGraphFreezer {
         validate(snapshot);
         Map<String, ProjectStageInstanceDO> byCode = stages.stream()
                 .collect(Collectors.toMap(ProjectStageInstanceDO::getCode, stage -> stage));
-        String executionSnapshot = JsonUtils.toJsonString(snapshot);
+        String executionSnapshot = TemplateExecutionSnapshot.freezeJson(snapshot);
         List<ProjectStageExecutionContractDO> contracts = new java.util.ArrayList<>();
         for (TemplateExecutionSnapshot.StageContract definition : snapshot.getStages()) {
             ProjectStageInstanceDO stage = requireStage(byCode, projectId, definition.getCode());
@@ -166,10 +167,7 @@ public class ProjectRuntimeGraphFreezer {
         if (content == null || content.getExecutionSnapshot() == null) {
             throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
         }
-        TemplateExecutionSnapshot snapshot = JsonUtils.parseObject(
-                JsonUtils.toJsonString(content.getExecutionSnapshot()), TemplateExecutionSnapshot.class);
-        if (snapshot == null) throw new IllegalArgumentException("EXECUTION_SNAPSHOT_V2_REQUIRED");
-        return snapshot;
+        return TemplateExecutionSnapshotReader.read(content.getExecutionSnapshot());
     }
 
     private ProjectStageInstanceDO requireStage(Map<String, ProjectStageInstanceDO> byCode,

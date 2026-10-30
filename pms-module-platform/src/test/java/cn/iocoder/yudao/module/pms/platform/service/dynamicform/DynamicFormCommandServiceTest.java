@@ -94,6 +94,57 @@ class DynamicFormCommandServiceTest {
     }
 
     @Test
+    void printConfigurationRejectsNonAdministratorsBeforeAnyTemplateOrRevisionWrite() {
+        var permissions = org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class);
+        when(permissions.hasAnyPermissions(eq(ACTOR.userId()), any(String[].class))).thenReturn(true);
+        var access = new DynamicFormActionProjection(permissions);
+        service = new DynamicFormCommandService(templateMapper, revisionMapper, instanceMapper, schemaService,
+                access, queryService, commandExecutionApi, operationAuditApi, transactionTemplate);
+        var row = template(11L, 3, "DISABLED", 21L);
+        when(templateMapper.selectForUpdate(any())).thenReturn(row);
+        when(revisionMapper.selectByRow(any())).thenReturn(draftRevision(22L, 11L, 2, 5));
+        for (String category : List.of("COMPLETION_PRINT", "SATISFACTION_PRINT")) {
+            row.setCategoryCode(category);
+            assertEquals(FORBIDDEN.getCode(), assertThrows(ServiceException.class, () -> service.createTemplate(
+                    new DynamicFormCommands.CreateTemplate(ACTOR, "new-print", "PRINT", "打印", category, null))).getCode());
+            assertEquals(FORBIDDEN.getCode(), assertThrows(ServiceException.class, () -> service.createRevision(
+                    new DynamicFormCommands.CreateRevision(ACTOR, 11L, 3, "new-print-revision"))).getCode());
+            assertEquals(FORBIDDEN.getCode(), assertThrows(ServiceException.class, () -> service.patchRevision(
+                    new DynamicFormCommands.PatchRevision(ACTOR, 22L, 5, JsonUtils.parseTree(CONF), JsonUtils.parseTree(RULES),
+                            "FORM_CREATE_ELEMENT_PLUS", "3.4.0", "3.2.38", "patch-print"))).getCode());
+            assertEquals(FORBIDDEN.getCode(), assertThrows(ServiceException.class, () -> service.publishRevision(
+                    new DynamicFormCommands.PublishRevision(ACTOR, 22L, 5, "publish-print"))).getCode());
+            assertEquals(FORBIDDEN.getCode(), assertThrows(ServiceException.class, () -> service.setAvailability(
+                    new DynamicFormCommands.SetAvailability(ACTOR, 11L, 3, "ENABLED", "enable-print"))).getCode());
+            // Neither moving an existing print template out nor recategorizing a generic template bypasses the guard.
+            var patch = new DynamicFormCommands.PatchTemplate(ACTOR, 11L, 3,
+                    DynamicFormCommands.FieldPatch.absent(), DynamicFormCommands.FieldPatch.present("GENERAL"),
+                    DynamicFormCommands.FieldPatch.absent(), "move-print");
+            assertThrows(ServiceException.class, () -> service.patchTemplate(patch));
+            row.setCategoryCode("GENERAL");
+            assertThrows(ServiceException.class, () -> service.patchTemplate(new DynamicFormCommands.PatchTemplate(
+                    ACTOR, 11L, 3, DynamicFormCommands.FieldPatch.absent(), DynamicFormCommands.FieldPatch.present(category),
+                    DynamicFormCommands.FieldPatch.absent(), "move-to-print")));
+        }
+        verify(templateMapper, never()).insert(any());
+        verify(templateMapper, never()).updateIfMatch(any());
+        verify(revisionMapper, never()).insert(any());
+        verify(revisionMapper, never()).updateDraftIfMatch(any());
+        verify(revisionMapper, never()).publishIfMatch(any());
+    }
+
+    @Test
+    void printConfigurationAllowsAdministratorsWithoutRestrictingOtherTemplateCategories() {
+        var permissions = org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class);
+        var access = new DynamicFormActionProjection(permissions);
+        access.requireConfiguration(ACTOR.userId(), "GENERAL");
+        when(permissions.hasAnyRoles(ACTOR.userId(), "super_admin")).thenReturn(true);
+        access.requireConfiguration(ACTOR.userId(), "COMPLETION_PRINT");
+        access.requireConfiguration(ACTOR.userId(), "SATISFACTION_PRINT");
+        assertThrows(ServiceException.class, () -> access.require(ACTOR.userId(), DynamicFormActionProjection.TEMPLATE_MANAGE));
+    }
+
+    @Test
     void createTemplateCreatesDisabledIdentityAndRevisionOneDraftInOneExecution() {
         AtomicReference<DynamicFormTemplateDO> template = new AtomicReference<>();
         AtomicReference<DynamicFormTemplateRevisionDO> revision = new AtomicReference<>();

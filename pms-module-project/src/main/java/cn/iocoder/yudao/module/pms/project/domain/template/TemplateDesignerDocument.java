@@ -29,6 +29,8 @@ public class TemplateDesignerDocument {
     private Match match = new Match();
     private String processDefinitionKey;
     private JsonNode closurePolicy;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private TemplateImplementationReadiness implementationReadiness;
     private List<StageNode> stages = new ArrayList<>();
     private List<TaskNode> tasks = new ArrayList<>();
     private List<MilestoneNode> milestones = new ArrayList<>();
@@ -51,11 +53,17 @@ public class TemplateDesignerDocument {
 
     @Data
     public static class StageNode {
+        /** PLN-01: optional participation percentage; absent stages are not auto-scheduled. */
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private java.math.BigDecimal schedulePercentage;
         /** Standard lifecycle classification, independent of the custom stage identity. */
         private String lifecycleStage;
         private String admissionRuleKey;
         private String completionRuleKey;
         private String exitRuleKey;
+        /** 独立操作、订阅与呈现；缺失时保持原绑定语义。 */
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private JsonNode execution;
         private String nodeKey;
         private String code;
         private String name;
@@ -75,6 +83,9 @@ public class TemplateDesignerDocument {
         private String admissionRuleKey;
         private String completionRuleKey;
         private String exitRuleKey;
+        /** 独立操作、订阅与呈现；缺失时保持原绑定语义。 */
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private JsonNode execution;
         private String nodeKey;
         private String code;
         private String name;
@@ -83,6 +94,8 @@ public class TemplateDesignerDocument {
         private Integer priority;
         private Integer sortOrder;
         private java.math.BigDecimal estimatedHours;
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private Boolean required;
         private String satisfactionTiming;
         private String description;
         private WorkBindingSpec workBinding;
@@ -160,6 +173,9 @@ public class TemplateDesignerDocument {
         private String approvalDefinitionKey;
         private JsonNode parameters;
         private JsonNode businessViewSnapshot;
+        /** Optional operation sub-contract; absent legacy snapshots remain byte-compatible. */
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private JsonNode operationContract;
         private Long sourceRevisionId;
     }
 
@@ -213,6 +229,7 @@ public class TemplateDesignerDocument {
         result.getMatch().setMajorProjectLevel(content.getMajorProjectLevel());
         result.setProcessDefinitionKey(content.getProcessDefinitionKey());
         result.setClosurePolicy(content.getClosurePolicy() == null ? null : content.getClosurePolicy().toJson());
+        result.setImplementationReadiness(content.getImplementationReadiness());
         result.setSourceEvidence(content.getDefinitionSnapshot());
 
         DefinitionSnapshotIndex definitions = new DefinitionSnapshotIndex(content.getDefinitionSnapshot());
@@ -249,6 +266,7 @@ public class TemplateDesignerDocument {
                 task.setSortOrder(source.getSortOrder());
                 task.setEstimatedHours(source.getEstimatedHours());
                 task.setSatisfactionTiming(source.getSatisfactionTiming());
+                task.setRequired(source.getRequired());
                 task.setDescription(source.getDescription());
                 task.setWorkBinding(binding(source));
                 task.setPermission(permission(source, definitions));

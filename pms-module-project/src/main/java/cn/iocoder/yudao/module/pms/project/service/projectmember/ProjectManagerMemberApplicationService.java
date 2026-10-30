@@ -60,6 +60,12 @@ public class ProjectManagerMemberApplicationService {
 
     /** 仅供同包联合命令在已授权、已持有根锁的事务内使用；独立入口不得跳过上面的授权。 */
     ProjectManagerMemberResult updateAuthorized(ProjectManagerMemberCommand command, Actor actor) {
+        return updateAuthorized(command, new AuthorizedUpdateContext(actor, false));
+    }
+
+    /** 联合首次初始化在新增服务经理前，已在原授权根锁内固定初始化事实。 */
+    ProjectManagerMemberResult updateAuthorized(ProjectManagerMemberCommand command, AuthorizedUpdateContext context) {
+        Actor actor = context.actor();
         validate(command, actor);
         Map<String, Object> audit = new LinkedHashMap<>();
         String digest = DigestUtil.sha256Hex(JsonUtils.toJsonString(new Object[]{command.projectId(),
@@ -67,7 +73,7 @@ public class ProjectManagerMemberApplicationService {
                 command.primaryUserId(), command.reason().trim()}));
         var result = commandApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
                         actor.tenantId(), SCOPE, actor.userId(), command.idempotencyKey()), digest,
-                ProjectManagerMemberResult.class, () -> updateOnce(command, actor, audit),
+                ProjectManagerMemberResult.class, () -> updateOnce(command, context, audit),
                 changed -> new PlatformCommandExecutionApi.SuccessFacts("PROJECT_MANAGERS_UPDATE", "Project",
                         String.valueOf(command.projectId()), actor.correlationId(), JsonUtils.toJsonString(audit),
                         changed.changed() ? "ProjectManagersChanged" : null,
@@ -79,8 +85,9 @@ public class ProjectManagerMemberApplicationService {
         return result.response();
     }
 
-    private ProjectManagerMemberResult updateOnce(ProjectManagerMemberCommand command, Actor actor,
+    private ProjectManagerMemberResult updateOnce(ProjectManagerMemberCommand command, AuthorizedUpdateContext context,
                                                    Map<String, Object> audit) {
+        Actor actor = context.actor();
         ProjectMasterDO project = projectMapper.selectByIdForUpdate(command.projectId());
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())
                 || !"ACTIVE".equals(project.getLifecycleStatus())) throw exception(PROJECT_AUTHORIZATION_FORBIDDEN);
@@ -89,6 +96,8 @@ public class ProjectManagerMemberApplicationService {
         var query = new ProjectManagerMemberQuery(actor.tenantId(), project.getId(), now);
         Map<Long, ProjectMemberAssignmentDO> members = new TreeMap<>();
         for (var member : memberMapper.selectProjectManagersForUpdate(query)) {
+            // 旧系统存在仅有姓名、未绑定系统用户的历史责任；不能作为可任命用户，也不能阻断有效经理接任。
+            if (member.getUserId() == null) continue;
             if (members.put(member.getUserId(), member) != null) throw invalid("同一经理存在重叠责任区间");
         }
         audit.put("beforeUserIds", new ArrayList<>(members.keySet()));
@@ -110,6 +119,9 @@ public class ProjectManagerMemberApplicationService {
         removals.removeAll(next);
         boolean changed = !additions.isEmpty() || !removals.isEmpty() || !Objects.equals(primary, project.getManagerId());
         if (!changed) return result(project, members, false);
+        if (!context.initializing() && !Objects.equals(primary, project.getManagerId()))
+            projectAuthorization.assertCanAppointPrimaryProjectManager(
+                    new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()), project);
         Set<Long> toValidate = new TreeSet<>(additions);
         if (primary != null && !Objects.equals(primary, project.getManagerId())) toValidate.add(primary);
         Map<Long, ActiveUserSelectionApi.User> qualified = qualify(project.getCompanyId(), toValidate);
@@ -119,7 +131,7 @@ public class ProjectManagerMemberApplicationService {
             var close = new ProjectMemberAssignmentDO();
             close.setId(old.getId());
             close.setEffectiveTo(now);
-            close.setVersion(old.getVersion() == null ? 1 : old.getVersion() + 1);
+            close.setVersion(old.getVersion());
             if (memberMapper.updateById(close) != 1) throw exception(PROJECT_VERSION_CONFLICT);
         }
         for (Long id : additions) {
@@ -199,4 +211,5 @@ public class ProjectManagerMemberApplicationService {
 
     private static RuntimeException invalid(String reason) { return exception(PROJECT_ASSIGNMENT_REQUEST_INVALID, reason); }
     public record Actor(Long tenantId, Long userId, String correlationId) { }
+    record AuthorizedUpdateContext(Actor actor, boolean initializing) { }
 }

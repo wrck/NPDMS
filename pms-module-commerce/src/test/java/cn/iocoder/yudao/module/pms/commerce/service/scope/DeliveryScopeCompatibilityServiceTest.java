@@ -4,12 +4,14 @@ import cn.iocoder.yudao.module.pms.asset.api.device.AssetDeviceScopeApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.SerialScopeValidationResult;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopeApplyCommand;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopeApplyResult;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopePreviewCommand;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.outbox.CommerceOutboxEventDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineIdsQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.outbox.CommerceOutboxEventMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
@@ -72,6 +74,94 @@ class DeliveryScopeCompatibilityServiceTest {
     }
 
     @Test
+    void shouldPreviewDifferentOrderLinesForTheSameChild() {
+        SalesOrderLineDO first = line("SAME-PRODUCT");
+        SalesOrderLineDO second = line("SAME-PRODUCT");
+        second.setId(20L);
+        second.setOrderNo("SO-2");
+        DeliveryScopeDO secondParent = parentScope("5", 4L);
+        secondParent.setOrderLineId(20L);
+        when(orderLineMapper.selectByIds(any(SalesOrderLineIdsQuery.class))).thenReturn(List.of(first, second));
+        when(scopeMapper.selectActiveByProjectId(100L)).thenReturn(List.of(parentScope("5", 4L), secondParent));
+
+        SplitScopeApplyResult result = service.previewSplit(new SplitScopePreviewCommand(1L, 100L, 4L,
+                List.of(new SplitScopePreviewCommand.Allocation("A", 10L, new BigDecimal("2"), null, List.of()),
+                        new SplitScopePreviewCommand.Allocation("A", 20L, BigDecimal.ONE, null, List.of()))));
+
+        assertTrue(result.valid(), result.errors().toString());
+        assertEquals(2, result.scopes().size());
+        verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
+    }
+
+    @Test
+    void shouldApplyAndReplayMultipleOrderLinesWithoutAdvancingAChildTwice() {
+        stubProjectFacts();
+        SalesOrderLineDO first = line("SAME-PRODUCT");
+        SalesOrderLineDO second = line("SAME-PRODUCT");
+        second.setId(20L);
+        second.setOrderNo("SO-2");
+        DeliveryScopeDO firstParent = parentScope("5", 4L);
+        DeliveryScopeDO secondParent = parentScope("5", 4L);
+        secondParent.setId(401L);
+        secondParent.setOrderLineId(20L);
+        when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(first, second));
+        when(scopeMapper.selectActiveByProjectIdForUpdate(any())).thenReturn(List.of(firstParent, secondParent));
+        AtomicLong ids = new AtomicLong(500L);
+        doAnswer(invocation -> { invocation.<DeliveryScopeDO>getArgument(0).setId(ids.getAndIncrement()); return 1; })
+                .when(scopeMapper).insert(any(DeliveryScopeDO.class));
+        SplitScopeApplyCommand command = new SplitScopeApplyCommand(1L, 100L, 3L, 4L, "idem",
+                Map.of("A", 101L), Map.of("A", 0L), List.of(allocation("A", "2", List.of()),
+                new SplitScopeApplyCommand.Allocation("A", 20L, BigDecimal.ONE, null, List.of())));
+
+        SplitScopeApplyResult result = service.applySplit(command);
+
+        assertTrue(result.valid(), result.errors().toString());
+        assertEquals(2, result.scopes().size());
+        ArgumentCaptor<DeliveryScopeDO> created = ArgumentCaptor.forClass(DeliveryScopeDO.class);
+        verify(scopeMapper, times(4)).insert(created.capture());
+        List<DeliveryScopeDO> children = created.getAllValues().stream().filter(scope -> scope.getProjectId() == 101L).toList();
+        assertEquals(List.of(10L, 20L), children.stream().map(DeliveryScopeDO::getOrderLineId).toList());
+        assertEquals(List.of(new BigDecimal("2"), BigDecimal.ONE), children.stream().map(DeliveryScopeDO::getAllocatedQty).toList());
+        assertTrue(children.stream().allMatch(scope -> scope.getAllocationVersion() == 1L));
+        verify(projectVersionService, times(1)).advance(argThat(row -> row.getProjectId() == 101L), anyString(), anyString(), any());
+        assertEquals(new BigDecimal("5"), firstParent.getAllocatedQty());
+        assertEquals(new BigDecimal("5"), secondParent.getAllocatedQty());
+        assertEquals("RELEASED", firstParent.getScopeStatus());
+        assertEquals("RELEASED", secondParent.getScopeStatus());
+
+        CommerceOutboxEventDO replay = new CommerceOutboxEventDO();
+        replay.setScopeVersion(5L);
+        when(outboxMapper.selectByEventId(anyString())).thenReturn(replay);
+        when(scopeMapper.selectBySourceEvidencePrefix(1L, "F-PROJ-002:idem:")).thenReturn(created.getAllValues());
+        SplitScopeApplyResult replayed = service.applySplit(command);
+        assertTrue(replayed.replayed());
+        assertEquals(result.scopes(), replayed.scopes());
+        verify(scopeMapper, times(4)).insert(any(DeliveryScopeDO.class));
+        verify(scopeMapper, times(2)).updateById(any(DeliveryScopeDO.class));
+        verify(outboxMapper, times(4)).insert(any(CommerceOutboxEventDO.class));
+    }
+
+    @Test
+    void shouldStillRejectRepeatedChildAndOrderLineBeforeWrites() {
+        SplitScopeApplyCommand command = new SplitScopeApplyCommand(1L, 100L, 3L, 4L, "idem",
+                Map.of("A", 101L), Map.of("A", 0L), List.of(allocation("A", "2", List.of()), allocation("A", "1", List.of())));
+        SplitScopeApplyResult result = service.applySplit(command);
+        assertFalse(result.valid());
+        assertTrue(result.errors().contains("DUPLICATE_ALLOCATION:A"));
+        verifyNoInteractions(orderLineMapper, scopeMapper, detailMapper, outboxMapper, projectOfficeFactApi);
+    }
+
+    @Test
+    void shouldStillRejectTheSameSerialAcrossDifferentOrderLines() {
+        SplitScopeApplyResult result = service.previewSplit(new SplitScopePreviewCommand(1L, 100L, 4L,
+                List.of(new SplitScopePreviewCommand.Allocation("A", 10L, BigDecimal.ONE, null, List.of("SN-1")),
+                        new SplitScopePreviewCommand.Allocation("A", 20L, BigDecimal.ONE, null, List.of("SN-1")))));
+        assertFalse(result.valid());
+        assertTrue(result.errors().contains("DUPLICATE_SERIAL:SN-1"));
+        verifyNoInteractions(orderLineMapper, scopeMapper, detailMapper, outboxMapper, assetDeviceScopeApi);
+    }
+
+    @Test
     void shouldRejectMissingProjectVersionsBeforeReadingOwnerOrCommerceFacts() {
         SplitScopeApplyCommand command = new SplitScopeApplyCommand(1L, 100L, null, 4L, "idem",
                 Map.of("A", 101L), Map.of(), List.of(allocation("A", "2", List.of())));
@@ -103,9 +193,9 @@ class DeliveryScopeCompatibilityServiceTest {
         assertEquals(5L, result.scopeVersion());
         InOrder ownerOrder = inOrder(projectOfficeFactApi);
         ownerOrder.verify(projectOfficeFactApi).lockAndRevalidate(argThat(query ->
-                query.projectId().equals(100L) && query.expectedProjectVersion().equals(3)));
+                query.projectId().equals(100L) && query.expectedProjectVersion().equals(3L)));
         ownerOrder.verify(projectOfficeFactApi).lockAndRevalidate(argThat(query ->
-                query.projectId().equals(101L) && query.expectedProjectVersion().equals(0)));
+                query.projectId().equals(101L) && query.expectedProjectVersion().equals(0L)));
 
         ArgumentCaptor<DeliveryScopeDO> scopeCaptor = ArgumentCaptor.forClass(DeliveryScopeDO.class);
         verify(scopeMapper, times(2)).insert(scopeCaptor.capture());
@@ -134,10 +224,10 @@ class DeliveryScopeCompatibilityServiceTest {
     @Test
     void shouldBindEachNewVersionReportedInAcceptanceStage() {
         stubProjectFacts();
-        var parentStage = new AcceptanceStageBindingCoordinator.StageContext(1L, 100L, 3, 700L, true);
-        var childStage = new AcceptanceStageBindingCoordinator.StageContext(1L, 101L, 0, 701L, true);
-        when(acceptanceBindingCoordinator.lockAndRead(1L, 100L, 3, "idem")).thenReturn(parentStage);
-        when(acceptanceBindingCoordinator.lockAndRead(1L, 101L, 0, "idem")).thenReturn(childStage);
+        var parentStage = new AcceptanceStageBindingCoordinator.StageContext(1L, 100L, 3L, 700L, true);
+        var childStage = new AcceptanceStageBindingCoordinator.StageContext(1L, 101L, 0L, 701L, true);
+        when(acceptanceBindingCoordinator.lockAndRead(1L, 100L, 3L, "idem")).thenReturn(parentStage);
+        when(acceptanceBindingCoordinator.lockAndRead(1L, 101L, 0L, "idem")).thenReturn(childStage);
         when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line("ERP-PRODUCT-1")));
         when(scopeMapper.selectActiveByProjectIdForUpdate(any())).thenReturn(List.of(parentScope("5", 4L)));
         AtomicLong ids = new AtomicLong(500L);
@@ -214,7 +304,7 @@ class DeliveryScopeCompatibilityServiceTest {
     @Test
     void shouldRejectWrongOwnerIdentityBeforeLockingCommerceFacts() {
         when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(
-                fact(999L, 3, "WRONG"));
+                fact(999L, 3L, "WRONG"));
 
         SplitScopeApplyResult result = service.applySplit(command("2", List.of()));
 
@@ -231,19 +321,19 @@ class DeliveryScopeCompatibilityServiceTest {
             return fact(query.projectId(), query.expectedProjectVersion(),
                     query.projectId().equals(100L) ? "PARENT" : "CHILD");
         });
-        when(acceptanceBindingCoordinator.lockAndRead(eq(1L), anyLong(), anyInt(), eq("idem")))
+        when(acceptanceBindingCoordinator.lockAndRead(eq(1L), anyLong(), anyLong(), eq("idem")))
                 .thenAnswer(invocation -> new AcceptanceStageBindingCoordinator.StageContext(1L,
                         invocation.getArgument(1), invocation.getArgument(2), null, false));
     }
 
-    private ProjectOfficeFact fact(Long projectId, Integer version, String projectCode) {
+    private ProjectOfficeFact fact(Long projectId, Long version, String projectCode) {
         return new ProjectOfficeFact(ProjectFactOutcome.FOUND, projectId, version, projectCode,
                 projectId + 1000, "OFF-" + projectId, "办事处" + projectId, 7);
     }
 
     private SplitScopeApplyCommand command(String quantity, List<String> serials) {
-        return new SplitScopeApplyCommand(1L, 100L, 3, 4L, "idem",
-                Map.of("A", 101L), Map.of("A", 0), List.of(allocation("A", quantity, serials)));
+        return new SplitScopeApplyCommand(1L, 100L, 3L, 4L, "idem",
+                Map.of("A", 101L), Map.of("A", 0L), List.of(allocation("A", quantity, serials)));
     }
 
     private SplitScopeApplyCommand.Allocation allocation(String key, String quantity, List<String> serials) {
@@ -261,9 +351,8 @@ class DeliveryScopeCompatibilityServiceTest {
         line.setOrderType("NORMAL");
         line.setOrderNo("SO-1");
         line.setLineNo("10");
-        line.setItemCode("ITEM-1");
-        line.setItemDesc("设备");
         line.setProductCode(productCode);
+        line.setProductDesc("设备");
         line.setOrderQty(new BigDecimal("5"));
         line.setUnitCode("EA");
         line.setUnitScale(0);

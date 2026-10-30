@@ -22,11 +22,6 @@ public class IssueSaveReqVO {
     @NotNull(message = "项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "问题编码，项目内唯一且创建后不可变", requiredMode = Schema.RequiredMode.REQUIRED, example = "IS20260101001")
-    @NotBlank(message = "问题编码不能为空")
-    @Size(max = 64, message = "问题编码长度不能超过 64 个字符")
-    private String code;
-
     @Schema(description = "问题名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "联调阶段业务流量切换超时")
     @NotBlank(message = "问题名称不能为空")
     @Size(max = 255, message = "问题名称长度不能超过 255 个字符")

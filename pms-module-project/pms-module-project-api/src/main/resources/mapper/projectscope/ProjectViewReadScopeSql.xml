@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeSql">
+    <!-- 固定公开的CTE契约。只接收PROJ.prepare返回的当前树范围，完整授权由PROJ维护。 -->
+    <sql id="commonTables">
+        project_scope_nodes AS (
+            SELECT t.root_project_id, t.tree_version, t.descendant_project_id AS project_id
+            FROM proj_project_tree_path t
+            WHERE t.tenant_id = #{query.tenantId} AND t.deleted = b'0'
+              AND t.ancestor_project_id = t.root_project_id
+            <choose>
+                <when test="query.readScope.projectScope != null and query.readScope.projectScope.tenantId == query.tenantId and !query.readScope.projectScope.trees.isEmpty()">
+                    AND (t.root_project_id, t.tree_version) IN
+                    <foreach collection="query.readScope.projectScope.trees" item="tree" open="(" separator="," close=")">
+                        (#{tree.rootProjectId}, #{tree.treeVersion})
+                    </foreach>
+                </when>
+                <otherwise>AND 1 = 0</otherwise>
+            </choose>
+        ), project_scope_grants AS (
+            <choose>
+                <when test="query.readScope.projectScope != null and query.readScope.projectScope.tenantId == query.tenantId and query.readScope.projectScope.mode.name() == 'SCOPED' and !query.readScope.projectScope.trees.isEmpty()">
+                    <include refid="cn.iocoder.yudao.module.pms.platform.api.authorization.ProjectViewGrantReadSql.effectiveGrants"/>
+                </when>
+                <otherwise>SELECT NULL AS resource_id, NULL AS scope_code WHERE 1 = 0</otherwise>
+            </choose>
+        ), visible_projects AS (
+            <choose>
+                <when test="query.readScope.projectScope != null and query.readScope.projectScope.tenantId == query.tenantId and query.readScope.projectScope.mode.name() == 'TENANT_ADMIN'">
+                    SELECT DISTINCT p.id AS project_id
+                    FROM proj_project p
+                    WHERE p.tenant_id = #{query.tenantId} AND p.deleted = b'0'
+                </when>
+                <when test="query.readScope.projectScope != null and query.readScope.projectScope.tenantId == query.tenantId and query.readScope.projectScope.officeReadonlyProjectId != null">
+                    SELECT DISTINCT n.project_id FROM project_scope_nodes n
+                    WHERE n.project_id = #{query.readScope.projectScope.officeReadonlyProjectId}
+                </when>
+                <when test="query.readScope.projectScope != null and query.readScope.projectScope.tenantId == query.tenantId and !query.readScope.projectScope.trees.isEmpty()">
+                    SELECT DISTINCT n.project_id
+                    FROM project_scope_nodes n
+                    <if test="query.readScope.projectScope.mode.name() != 'TREE_ADMIN'">
+                        WHERE EXISTS (
+                            SELECT 1 FROM proj_project_member_assignment m
+                            WHERE m.tenant_id = #{query.tenantId} AND m.deleted = b'0'
+                              AND m.project_id = n.project_id
+                              AND m.user_id = #{query.readScope.projectScope.subjectUserId}
+                              AND m.status = 'ACTIVE' AND m.authorization_confirmed = b'1'
+                              AND (m.effective_from IS NULL OR m.effective_from &lt;= #{query.readScope.projectScope.effectiveAt})
+                              AND (m.effective_to IS NULL OR m.effective_to &gt; #{query.readScope.projectScope.effectiveAt})
+                        ) OR EXISTS (
+                            SELECT 1 FROM proj_project p
+                            WHERE p.tenant_id = #{query.tenantId} AND p.deleted = b'0' AND p.id = n.project_id
+                            <choose>
+                                <when test="!query.readScope.projectScope.organizations.isEmpty()">
+                                    AND (
+                                    <foreach collection="query.readScope.projectScope.organizations" item="scope" separator=" OR ">
+                                        (p.company_id=#{scope.companyId}
+                                        <if test="scope.departmentId != null">AND p.department_id=#{scope.departmentId}</if>)
+                                    </foreach>
+                                    )
+                                </when>
+                                <otherwise>AND 1=0</otherwise>
+                            </choose>
+                        ) OR EXISTS (
+                            SELECT 1 FROM proj_project p
+                            WHERE p.tenant_id = #{query.tenantId} AND p.deleted = b'0'
+                              AND p.id = n.project_id AND p.creator = #{query.readScope.projectScope.creator}
+                        ) OR EXISTS (
+                            SELECT 1 FROM project_scope_grants g
+                            WHERE g.scope_code = 'CURRENT_PROJECT' AND g.resource_id = n.project_id
+                        ) OR EXISTS (
+                            SELECT 1 FROM project_scope_grants g
+                            JOIN project_scope_nodes a ON a.project_id = g.resource_id
+                              AND a.root_project_id = n.root_project_id AND a.tree_version = n.tree_version
+                            JOIN proj_project_tree_path t ON t.tenant_id = #{query.tenantId}
+                              AND t.root_project_id = n.root_project_id AND t.tree_version = n.tree_version
+                              AND t.ancestor_project_id = a.project_id AND t.descendant_project_id = n.project_id
+                              AND t.deleted = b'0'
+                            WHERE g.scope_code = 'PROJECT_AND_DESCENDANTS'
+                        )
+                    </if>
+                </when>
+                <otherwise>SELECT NULL AS project_id WHERE 1 = 0</otherwise>
+            </choose>
+        )
+    </sql>
+</mapper>

@@ -88,7 +88,8 @@ public class AdminUserApiImpl implements AdminUserApi {
 
     @Override
     public void validateUserList(Collection<Long> ids) {
-        userService.validateUserList(ids);
+        // 指定账号的有效性与用户列表可见范围无关；仍保留租户过滤及不存在、停用校验。
+        DataPermissionUtils.executeIgnore(() -> userService.validateUserList(ids));
     }
 
 }

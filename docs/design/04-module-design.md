@@ -48,6 +48,6 @@ PROJ统一配置及执行StageTransitionDefinition和Stage/Task WorkBinding（05
 
 修订018补充：ACC独立拥有验收活动，终验不与S5或任务码强制绑定；PROJ配置受控触发及结果引用，PLT只托管业务视图注册。先完成模板和ACC基础业务闭环，再接入动态适配，不另建Template、任务、导航或通用工作流。
 
-ACC项目级活动/报告继续由pms-module-project承载，语义Owner不因与PROJ共用模块而合并；COM的数量/范围真值仍在pms-module-commerce，受管审批事实适配在pms-module-integration，文件/归档/命令幂等/Outbox复用PLT。阶段、任务和业务视图不建立第二套验收Service真值；具体-api类型依赖及方法在Phase 2回写，不通过新空模块或-biz互依绕过公开边界。
+ACC项目级活动/报告由`pms-module-acceptance`承载（含满意度、归档文档、竣工证书、交付件清单与正常闭环应用/查询/策略/BPM证据）；正常闭环唯一终态Writer与PROJ五表访问留守`pms-module-project`，工期倒排承载于`pms-module-engineering`；COM的数量/范围真值仍在pms-module-commerce，受管审批事实适配在pms-module-integration，文件/归档/命令幂等/Outbox复用PLT。阶段、任务和业务视图不建立第二套验收Service真值；跨模块访问经`pms-module-project-api`/`pms-module-acceptance-api`公开契约承载（`ProjectAcceptanceFactApi`、`ProjectParticipantFactApi`、`ProjectDeliverableInitializationApplicationService`、`ProjectClosureContextApi`/`ProjectClosureCheckApi`/`ProjectClosureExitApi`、`ProjectStagePlanApi`及共享契约类型`ClosurePolicy`），不通过新空模块或-biz互依绕过公开边界。`pms-module-outsourcing`/`pms-module-analytics`空壳模块已移除，Supplier与Analytics领域语义保留，待真实Feature实施时再建物理模块。前端投影按同一领域归位：验收与工期倒排的api/views目录迁至`api/pms/acceptance`、`views/pms/acceptance`、`api/pms/engineering/schedule-backward`、`views/pms/engineering/schedule-backward`，菜单component由V252前向迁移对齐。
 
 对应PRD审查项、派生覆盖和验证结果见`docs/engineering/gates/phase-1/prd-revision-016-alignment.md`。本文不能替代Feature物理合同重验证、独立复审或运行测试。

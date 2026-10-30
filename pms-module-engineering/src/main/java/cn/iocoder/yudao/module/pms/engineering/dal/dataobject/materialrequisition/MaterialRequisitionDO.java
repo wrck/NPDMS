@@ -1,11 +1,9 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.materialrequisition;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,19 +12,14 @@ import java.time.LocalDateTime;
 /**
  * PMS OA 领料申请 DO（FR-ENG-002）。
  * <p>
- * 对应表 {@code pms_eng_material_requisition}。
+ * 对应表 {@code imp_eng_material_requisition}。
  * 状态：0 草稿、1 已提交、2 审批中、3 已通过、4 已驳回、5 已撤回、6 已终止。
  */
-@TableName("pms_eng_material_requisition")
+@TableName("imp_eng_material_requisition")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class MaterialRequisitionDO extends TenantBaseDO {
+public class MaterialRequisitionDO extends BaseBusinessEntity {
 
-    /**
-     * 主键
-     */
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -48,13 +41,13 @@ public class MaterialRequisitionDO extends TenantBaseDO {
      */
     private Long equipmentId;
     /**
-     * 物料名称
+     * 产品名称/物料名称
      */
-    private String materialName;
+    private String productName;
     /**
-     * 物料编码
+     * 产品编码/物料编码
      */
-    private String materialCode;
+    private String productCode;
     /**
      * 规格型号
      */
@@ -131,10 +124,5 @@ public class MaterialRequisitionDO extends TenantBaseDO {
      * 备注
      */
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
 
 }

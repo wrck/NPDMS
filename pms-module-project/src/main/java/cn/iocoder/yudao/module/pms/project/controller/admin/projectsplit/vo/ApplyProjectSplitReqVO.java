@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 public class ApplyProjectSplitReqVO {
-    @NotNull private Integer expectedParentVersion;
+    @NotNull private Long expectedParentVersion;
     @NotNull private Long expectedScopeVersion;
     @NotNull private Long expectedTreeVersion;
 }

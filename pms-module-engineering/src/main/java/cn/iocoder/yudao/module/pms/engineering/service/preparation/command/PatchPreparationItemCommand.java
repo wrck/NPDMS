@@ -8,7 +8,7 @@ import java.util.Set;
 public record PatchPreparationItemCommand(Long preparationId, Long itemId,
         Integer expectedItemVersion, Integer expectedPreparationVersion,
         Integer expectedInputVersion, Integer expectedReadinessVersion,
-        Integer expectedFormVersion, Integer expectedProjectVersion,
+        Integer expectedFormVersion, Long expectedProjectVersion,
         Set<String> submittedFields, String applicabilityCode, Boolean outsourced,
         Long assigneeUserId, String notApplicableReason, String siteResultCode, String siteResultDetail,
         String formValueSnapshot, List<EvidenceReference> evidenceReferences) {

@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import type {
   DynamicFormAction,
   DynamicFormFileFactVO,
@@ -101,7 +102,7 @@ export const stableCommandIntent = (scope: string, payload: unknown) => {
       return { key: parsed.key, clear: () => sessionStorage.removeItem(storageKey) }
     }
   }
-  const key = crypto.randomUUID()
+  const key = generateUUID()
   sessionStorage.setItem(storageKey, JSON.stringify({ payload: serialized, key }))
   return { key, clear: () => sessionStorage.removeItem(storageKey) }
 }

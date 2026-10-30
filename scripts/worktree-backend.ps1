@@ -1,0 +1,105 @@
+param([Parameter(Mandatory=$true)][string]$Manifest,[switch]$ApprovedRestart,[switch]$ValidateOnly,[switch]$StartIfOffline)
+. (Join-Path $PSScriptRoot 'worktree-toolchain.ps1')
+. (Join-Path $PSScriptRoot 'worktree-umc-profile.ps1')
+$taskLock=Enter-WorktreeBuildLock
+$taskPreviousNodeCa=[Environment]::GetEnvironmentVariable('NODE_EXTRA_CA_CERTS','Process')
+try {
+    $taskResult = & $taskPython (Join-Path $PSScriptRoot 'worktree-artifact.py') verify $taskWorkspace $Manifest
+    if ($LASTEXITCODE -ne 0) { throw 'Release verification failed; no service changed' }
+    $taskArtifact = $taskResult[-1]
+    $taskPidFile=Join-Path $taskWorkspace '.run/backend-domain-test.pid'
+    $taskPid=(Get-Content -LiteralPath $taskPidFile -Raw).Trim()
+    if ($taskPid -notmatch '^\d+$') { throw 'Invalid backend PID' }
+    $taskProcess=Get-CimInstance Win32_Process -Filter "ProcessId=$taskPid"
+    $taskRootPrefix=[IO.Path]::GetFullPath((Join-Path $taskWorkspace '.run'))+[IO.Path]::DirectorySeparatorChar
+    $taskManifestData=Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
+    $taskOffline = !$taskProcess
+    if ($taskOffline) {
+        if (!$StartIfOffline) { throw 'Backend is offline; use -StartIfOffline after explicit approval.' }
+        if (@(netstat -ano -p tcp | Select-String '^\s*TCP\s+.*:59191\s+.*LISTENING').Count -gt 0) { throw 'Port 59191 is occupied by an untracked process.' }
+    } else {
+        if ($taskProcess.CommandLine -notmatch '--server.port=59191(?:\s|$)') { throw 'Backend listener identity changed' }
+        $taskMatch=[regex]::Match($taskProcess.CommandLine,'-jar\s+(?:"([^"]+)"|(\S+))')
+        $taskCurrentJar=if ($taskMatch.Groups[1].Success) { $taskMatch.Groups[1].Value } else { $taskMatch.Groups[2].Value }
+        if (![IO.Path]::GetFullPath($taskCurrentJar).StartsWith($taskRootPrefix,[StringComparison]::OrdinalIgnoreCase)) { throw 'Running artifact is outside this worktree runtime' }
+        if ((Get-FileHash -LiteralPath $taskCurrentJar -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskManifestData.runningArtifactSha256) { throw 'Another deployment changed the running artifact after this release was frozen; prepare against the latest runtime.' }
+        & $taskPython (Join-Path $taskWorkspace '.run/dac-host/verify-deployed-repairs.py') backend $taskCurrentJar
+        if ($LASTEXITCODE -ne 0) { throw 'Running repairs changed; review before deployment' }
+    }
+    # Never print or persist decrypted credentials from the local protected profile.
+    $taskDatabaseProfile=Get-Content -LiteralPath (Join-Path $taskWorkspace '.run/backend-test-database.json') -Raw | ConvertFrom-Json
+    if ($taskDatabaseProfile.host -ne '172.17.90.178' -or $taskDatabaseProfile.port -ne 13306 -or $taskDatabaseProfile.database -ne 'npdms') { throw 'Unexpected test database target; no service changed.' }
+    Add-Type -AssemblyName System.Security
+    $taskDatabasePassword=[Text.Encoding]::UTF8.GetString([Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($taskDatabaseProfile.encryptedPassword),$null,[Security.Cryptography.DataProtectionScope]::CurrentUser))
+    if ([string]::IsNullOrWhiteSpace($taskDatabaseProfile.username) -or [string]::IsNullOrWhiteSpace($taskDatabasePassword)) { throw 'Missing protected test database credentials; no service changed.' }
+    $taskUmcConfiguration=Get-WorktreeUmcConfiguration -Path (Join-Path $taskWorkspace '.run/backend-umc.json')
+    if ($ValidateOnly) {
+        Write-Output 'Frozen release, local,dac and protected test database configuration validated; no service changed. Automatic migrations and schema updates are disabled.'
+        if ($taskUmcConfiguration) { Write-Output 'Protected UMC configuration validated; no secret values were printed and no service changed.' }
+        return
+    }
+    if (!$ApprovedRestart) { throw 'Explicit per-deployment restart approval is required' }
+    . (Join-Path $taskWorkspace '.run/dac-host/environment.ps1')
+    $taskSettings=@{}
+    foreach ($taskLine in Get-Content (Join-Path $taskWorkspace '.env')) {
+        if ($taskLine -match '^\s*([^#=]+)=(.*)$') { $taskSettings[$matches[1].Trim()]=$matches[2].Trim().Trim('"') }
+    }
+    $taskDestination=Join-Path $taskWorkspace '.run/dac-route-server.jar'
+    if ($taskOffline) {
+        $taskDestination=$taskArtifact
+    } else {
+        $taskBackupDirectory=Join-Path $taskWorkspace ('.run/build/backups/'+[guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $taskBackupDirectory | Out-Null
+        Copy-Item -LiteralPath $taskCurrentJar -Destination (Join-Path $taskBackupDirectory 'application.jar')
+        Stop-Process -Id $taskProcess.ProcessId
+        Wait-Process -Id $taskProcess.ProcessId -Timeout 30 -ErrorAction SilentlyContinue
+        Copy-Item -LiteralPath $taskArtifact -Destination $taskDestination -Force
+    }
+    $env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD=$taskSettings['NPDMS_MYBATIS_ENCRYPTOR_PASSWORD']
+    $taskApplicationSettings=@{
+        'spring.datasource.dynamic.datasource.master.url'='jdbc:mysql://172.17.90.178:13306/npdms?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true'
+        'spring.datasource.dynamic.datasource.master.username'=$taskDatabaseProfile.username
+        'spring.datasource.dynamic.datasource.master.password'=$taskDatabasePassword
+        'spring.datasource.dynamic.datasource.slave.url'='jdbc:mysql://172.17.90.178:13306/npdms?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true'
+        'spring.datasource.dynamic.datasource.slave.username'=$taskDatabaseProfile.username
+        'spring.datasource.dynamic.datasource.slave.password'=$taskDatabasePassword
+        'spring.flyway.enabled'=$false
+        'spring.liquibase.enabled'=$false
+        'spring.sql.init.mode'='never'
+        'spring.jpa.hibernate.ddl-auto'='none'
+        'spring.quartz.jdbc.initialize-schema'='never'
+        'spring.batch.jdbc.initialize-schema'='never'
+        'flowable.database-schema-update'='false'
+        'spring.datasource.dynamic.druid.filters'='wall'
+        'spring.datasource.dynamic.druid.wall.create-table-allow'=$false
+        'spring.datasource.dynamic.druid.wall.alter-table-allow'=$false
+        'spring.datasource.dynamic.druid.wall.drop-table-allow'=$false
+        'spring.datasource.dynamic.druid.wall.rename-table-allow'=$false
+        'spring.datasource.dynamic.druid.wall.truncate-allow'=$false
+        'spring.datasource.dynamic.druid.wall.none-base-statement-allow'=$false
+        'spring.datasource.dynamic.druid.wall.call-allow'=$false
+        # Empty authorized/filter sets intentionally render AND 1=0; they must return no rows.
+        'spring.datasource.dynamic.druid.wall.condition-and-alway-false-allow'=$true
+        'spring.data.redis.host'='127.0.0.1';'spring.data.redis.port'=24379
+        'spring.data.redis.database'=14
+        'spring.data.redis.password'=$taskSettings['NPDMS_REDIS_PASSWORD']
+    }
+    if ($taskUmcConfiguration) {
+        foreach ($taskUmcKey in $taskUmcConfiguration.Settings.Keys) { $taskApplicationSettings[$taskUmcKey]=$taskUmcConfiguration.Settings[$taskUmcKey] }
+        if ($taskUmcConfiguration.ExtraCaCertificatePath) { $env:NODE_EXTRA_CA_CERTS=$taskUmcConfiguration.ExtraCaCertificatePath }
+    }
+    $env:SPRING_APPLICATION_JSON=($taskApplicationSettings | ConvertTo-Json -Compress)
+    $taskStarted=Start-Process -FilePath "$taskJavaHome/bin/java.exe" -ArgumentList @('-jar',$taskDestination,'--server.port=59191','--spring.profiles.active=local,dac') -WorkingDirectory $taskWorkspace -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $taskWorkspace '.run/logs/satisfaction-manual-backend.log') -RedirectStandardError (Join-Path $taskWorkspace '.run/logs/satisfaction-manual-backend.err.log')
+    $taskStarted.Id | Set-Content -LiteralPath $taskPidFile
+    & $taskPython (Join-Path $taskWorkspace '.run/dac-host/check-ready.py') backend
+    if ($LASTEXITCODE -ne 0) { throw 'Backend readiness failed.' }
+    if ($taskOffline) { Write-Output "Backend started from frozen local,dac artifact; PID $($taskStarted.Id)." }
+    else { Write-Output "Backend deployed with local,dac; PID $($taskStarted.Id)." }
+} finally {
+    Remove-Item Env:SPRING_APPLICATION_JSON -ErrorAction SilentlyContinue
+    Remove-Item Env:NPDMS_DEVICE_OPS_BEARER_TOKEN -ErrorAction SilentlyContinue
+    [Environment]::SetEnvironmentVariable('NODE_EXTRA_CA_CERTS',$taskPreviousNodeCa,'Process')
+    $taskUmcConfiguration=$null
+    $taskApplicationSettings=$null
+    $taskLock.Dispose()
+}

@@ -7,11 +7,17 @@ import cn.iocoder.yudao.module.pms.asset.api.location.AssetLocationApi;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.EquipmentLocationEffectiveCommand;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.LocationMaintenanceCommand;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.SiteLocationRespDTO;
+import cn.iocoder.yudao.module.pms.asset.api.location.dto.SiteInput;
+import cn.iocoder.yudao.module.pms.asset.api.location.dto.SiteLocationInput;
+import cn.iocoder.yudao.module.pms.engineering.controller.admin.installation.vo.InstallationBatchCreateReqVO;
+import java.util.List;
+import java.util.ArrayList;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.installation.vo.InstallationPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.installation.vo.InstallationSaveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.installation.InstallationDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.InstallationMapper;
 import cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,32 +39,94 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 public class InstallationServiceImpl implements InstallationService {
 
     @Resource
+    private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi deviceSelectionApi;
+
+    @Resource
     private InstallationMapper installationMapper;
     @Resource
     private EngineeringLocationFactService locationFactService;
     @Resource
     private AssetLocationApi assetLocationApi;
+    @Resource
+    private EngineeringRecordCodeGenerator recordCodeGenerator;
+    @Resource
+    private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents completionEvents;
+
+    @Override
+    public java.util.List<cn.iocoder.yudao.module.pms.engineering.controller.admin.installation.vo.InstallationCurrentAddressRespVO> getCurrentAddresses(Long projectId, java.util.List<Long> equipmentIds) {
+        if (equipmentIds == null || equipmentIds.isEmpty()) return java.util.List.of();
+        return installationMapper.selectCurrentAddresses(new cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.InstallationCurrentAddressesQuery(
+                cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(), projectId, equipmentIds))
+                .stream().map(row -> new cn.iocoder.yudao.module.pms.engineering.controller.admin.installation.vo.InstallationCurrentAddressRespVO(row.equipmentId(), row.installLocation())).toList();
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createInstallation(InstallationSaveReqVO createReqVO) {
-        validateCodeUnique(createReqVO.getProjectId(), createReqVO.getCode(), null);
+        if (createReqVO.getEquipmentId() != null) {
+            deviceSelectionApi.validateSelection(createReqVO.getProjectId(), java.util.List.of(createReqVO.getEquipmentId()));
+        }
+        return createRecord(createReqVO).getId();
+    }
+
+    private InstallationDO createRecord(InstallationSaveReqVO createReqVO) {
         InstallationDO installation = BeanUtils.toBean(createReqVO, InstallationDO.class);
+        installation.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
+                EngineeringRecordCodeGenerator.INSTALLATION, installationMapper));
         installation.setStatus(0); // 状态只能通过动作接口流转
+        if (installation.getInstallTime() == null) {
+            installation.setInstallTime(LocalDateTime.now()); // 界面不录入安装时间，统一取提交时间
+        }
         if (installation.getVersion() == null) {
-            installation.setVersion(0);
+            installation.setVersion(0L);
         }
         installationMapper.insert(installation);
-        applyLocation(installation, createReqVO.getInstallLocation(), createReqVO.getLocationMaintenance(), 0);
+        applyLocation(installation, createReqVO.getInstallLocation(), createReqVO.getLocationMaintenance(), 0L);
         updateRecord(installation);
-        return installation.getId();
+        return installation;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public List<Long> createInstallationBatch(InstallationBatchCreateReqVO request) {
+        Long installerUserId = cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId();
+        if (installerUserId == null) {
+            throw exception(cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.UNAUTHORIZED);
+        }
+        deviceSelectionApi.validateSelection(request.getProjectId(), request.getEquipmentIds());
+        LocalDateTime savedAt = LocalDateTime.now();
+        List<Long> ids = new ArrayList<>();
+        LocationMaintenanceCommand sharedLocation = request.getLocationMaintenance();
+        for (Long deviceId : request.getEquipmentIds()) {
+            InstallationSaveReqVO item = BeanUtils.toBean(request, InstallationSaveReqVO.class);
+            item.setEquipmentId(deviceId);
+            item.setInstallerUserId(installerUserId);
+            item.setInstallTime(savedAt);
+            item.setLocationMaintenance(sharedLocation);
+            InstallationDO saved = createRecord(item);
+            startInstallation(saved.getId());
+            completeInstallation(saved.getId());
+            ids.add(saved.getId());
+            if (sharedLocation != null && saved.getSiteId() != null) {
+                // 后续记录只引用已保存的站点及链路末端，不再次创建地址、站点或附加位置。
+                sharedLocation = new LocationMaintenanceCommand(request.getProjectId(), null,
+                        new SiteInput(saved.getSiteId(), saved.getSiteVersion(), null, null, null, null),
+                        saved.getSiteLocationId() == null ? null : new SiteLocationInput(saved.getSiteLocationId(),
+                                saved.getSiteLocationVersion(), null, null, null, null, null),
+                        request.getInstallLocation(), null, null, null, List.of());
+            }
+        }
+        return ids;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateInstallation(InstallationSaveReqVO updateReqVO) {
         InstallationDO existing = validateInstallationExists(updateReqVO.getId());
-        validateCodeUnique(existing.getProjectId(), updateReqVO.getCode(), updateReqVO.getId());
+        Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
+        if (equipmentId != null) {
+            deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
+        }
         validateVersion(existing, updateReqVO.getVersion());
         if (Objects.equals(existing.getStatus(), 2)) {
             throw exception(INSTALLATION_STATUS_INVALID);
@@ -67,7 +135,7 @@ public class InstallationServiceImpl implements InstallationService {
         update.setStatus(existing.getStatus());
         update.setVersion(existing.getVersion());
         applyLocation(update, updateReqVO.getInstallLocation(), updateReqVO.getLocationMaintenance(),
-                existing.getVersion() + 1);
+                existing.getVersion() + 1L);
         updateRecord(update);
     }
 
@@ -125,6 +193,8 @@ public class InstallationServiceImpl implements InstallationService {
                 installation.getEquipmentId(), installation.getId(), installation.getSiteId(),
                 installation.getSiteLocationId(), installation.getInstallLocation(),
                 installation.getLocationResolutionStatus(), installation.getLocationSnapshot(), effectiveFrom));
+        completionEvents.changed(installation.getProjectId(), "Installation", installation.getId(),
+                cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(), "installation-result:" + installation.getId() + ":" + installation.getVersion());
     }
 
     @Override
@@ -145,15 +215,8 @@ public class InstallationServiceImpl implements InstallationService {
         return installation;
     }
 
-    private void validateCodeUnique(Long projectId, String code, Long excludeId) {
-        InstallationDO existing = installationMapper.selectByProjectIdAndCode(projectId, code);
-        if (existing != null && !Objects.equals(existing.getId(), excludeId)) {
-            throw exception(INSTALLATION_CODE_DUPLICATE);
-        }
-    }
-
     private void validateVersion(InstallationDO installation, Integer version) {
-        if (version != null && !Objects.equals(installation.getVersion(), version)) {
+        if (version != null && !Objects.equals(installation.getVersion(), version.longValue())) {
             throw exception(INSTALLATION_VERSION_NOT_MATCH);
         }
     }
@@ -179,7 +242,7 @@ public class InstallationServiceImpl implements InstallationService {
     }
 
     private void applyLocation(InstallationDO installation, String fallbackLocation,
-                               LocationMaintenanceCommand command, Integer sourceVersion) {
+                               LocationMaintenanceCommand command, Long sourceVersion) {
         if (command == null) {
             if (fallbackLocation == null || fallbackLocation.isBlank()) {
                 throw exception(INSTALLATION_LOCATION_REQUIRED);

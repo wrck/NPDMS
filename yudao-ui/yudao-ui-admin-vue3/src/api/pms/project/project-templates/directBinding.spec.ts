@@ -59,6 +59,17 @@ beforeEach(() => {
 })
 
 describe('PM-03 Designer V2 direct binding', () => {
+  it('freezes the acceptance type independently of project instance and task identity', async () => {
+    const acceptance = { ...view, ownerContext: 'ACC', entityType: 'ACCEPTANCE', componentKey: 'ACC_ACCEPTANCE_REPORT' }
+    vi.mocked(Views.getBusinessView).mockResolvedValue(acceptance)
+    const prepared = await prepareTaskBinding(task(), { view: acceptance, strategy: 'REFERENCE_EXISTING', acceptanceType: 'FINAL',
+      completion: { factCode: 'FINAL_ACCEPTANCE_PASSED', quantifier: 'ALL' } }, createBindingSaveSession())
+    expect(prepared.workBinding.parameters?.acceptanceType).toBe('FINAL')
+    expect(prepared.workBinding.targetObjectKey).toBe('PROJECT_ACCEPTANCE')
+    expect(prepared.completionRule.expression).toEqual({ predicate: 'BUSINESS_FACT', parameters: { factCode: 'FINAL_ACCEPTANCE_PASSED', quantifier: 'ALL' } })
+    expect(prepared.workBinding.parameters).not.toHaveProperty('taskId')
+    expect(prepared.workBinding.parameters).not.toHaveProperty('projectId')
+  })
   it('never registers a global view while preparing a project plan draft', async () => {
     await expect(
       prepareTaskBinding(

@@ -1,0 +1,26 @@
+-- Frozen configuration and recovery checkpoints only; no business status or historical result is backfilled.
+CREATE TABLE proj_result_subscription (
+    id BIGINT NOT NULL,
+    tenant_id BIGINT NOT NULL,
+    project_id BIGINT NOT NULL,
+    plan_version_id BIGINT NOT NULL,
+    execution_id BIGINT NOT NULL,
+    node_kind VARCHAR(16) NOT NULL,
+    node_id BIGINT NOT NULL,
+    node_key VARCHAR(128) COLLATE utf8mb4_0900_bin NOT NULL,
+    contract_id BIGINT NOT NULL,
+    subscription_key VARCHAR(128) COLLATE utf8mb4_0900_bin NOT NULL,
+    channel_id BIGINT NOT NULL,
+    configuration LONGTEXT NOT NULL,
+    baseline_sequence BIGINT NOT NULL,
+    phase VARCHAR(20) NOT NULL,
+    inventory_cursor VARCHAR(128) COLLATE utf8mb4_0900_bin NULL,
+    processed_sequence BIGINT NOT NULL,
+    through_sequence BIGINT NULL,
+    version INT NOT NULL DEFAULT 0,
+    deleted BIT NOT NULL DEFAULT b'0',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_result_subscription_round (tenant_id,plan_version_id,execution_id,subscription_key),
+    KEY ix_result_subscription_channel (tenant_id,channel_id,id),
+    KEY ix_result_subscription_execution (tenant_id,project_id,execution_id,subscription_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin;

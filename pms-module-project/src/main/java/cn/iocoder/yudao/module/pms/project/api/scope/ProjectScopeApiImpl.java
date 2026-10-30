@@ -14,9 +14,14 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
-public class ProjectScopeApiImpl implements ProjectScopeApi {
+public class ProjectScopeApiImpl implements ProjectScopeApi, ProjectViewReadScopeApi {
 
     private final ProjectTreeScopeService scopeService;
+
+    @Override
+    public ReadScope prepare(ProjectAllScopeQuery query) {
+        return scopeService.prepareViewReadScope(query);
+    }
 
     @Override
     public ProjectScopeResult resolve(ProjectScopeQuery query) {
@@ -34,9 +39,16 @@ public class ProjectScopeApiImpl implements ProjectScopeApi {
 
     @Override
     public Set<Long> resolveAllCurrent(ProjectAllScopeQuery query) {
-        return scopeService.resolveAllFullProjectIds(
-                query.tenantId(), query.subjectUserId(), query.actionCode());
+        return cn.iocoder.yudao.framework.common.util.authorization.AuthorizationReadScope.read(
+                new AllScopeReadKey(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId(),
+                        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.isIgnore(), query,
+                        cn.iocoder.yudao.module.pms.project.service.projectscope.OfficeProjectReadContext.current()),
+                () -> scopeService.resolveAllFullProjectIds(
+                        query.tenantId(), query.subjectUserId(), query.actionCode()));
     }
+
+    private record AllScopeReadKey(Long contextTenantId, boolean tenantIgnored, ProjectAllScopeQuery query,
+            cn.iocoder.yudao.module.pms.project.service.projectscope.OfficeProjectReadContext.Scope officeReadScope) {}
 
     @Override
     @Transactional(rollbackFor = Exception.class)

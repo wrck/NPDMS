@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.adapter;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.port.ProjectQualificationPort;
 import cn.iocoder.yudao.module.pms.engineering.service.arrivalacceptance.ArrivalAcceptanceContractException;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
@@ -14,6 +15,9 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidatio
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -31,6 +35,7 @@ public class ProjectQualificationApiAdapter implements ProjectQualificationPort 
 
     private final ProjectParticipantFactApi participantFactApi;
     private final ProjectScopeApi projectScopeApi;
+    private final ProjectManagementQualificationApi managementAccess;
 
     @Override
     @Transactional(readOnly = true)
@@ -41,8 +46,11 @@ public class ProjectQualificationApiAdapter implements ProjectQualificationPort 
                     projectId, null, REQUIRED_PROJECT_ROLES, LocalDateTime.now()));
             requireParticipantIdentity(participant, projectId, null);
             requireEligibleArrivalProject(participant, null, null);
-            ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    tenantId, actorUserId, projectId, ProjectScopeApi.ACTION_EDIT));
+            ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
             requireEditableScope(scope, projectId, null);
             return toFact(participant, scope.treeVersion());
         } catch (ArrivalAcceptanceContractException exception) {
@@ -62,15 +70,27 @@ public class ProjectQualificationApiAdapter implements ProjectQualificationPort 
                     "PROJECT_SUBJECT_NOT_ELIGIBLE", "actor is not the frozen project manager");
         }
         try {
+            if (command.requireActorAsProjectManager()) {
+                var qualification = managementAccess.inspect(new ProjectManagementQualificationApi.Query(command.tenantId(), command.projectId(), command.actorUserId()));
+                if (qualification == null) throw exception(FORBIDDEN);
+                managementAccess.lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(qualification, command.expectedProjectVersion(), ACTIVE, null));
+            }
+            // The batch freezes the real responsible PM, independently of the actor's management authority.
+            ProjectParticipantFact responsible = participantFactApi.inspect(new ProjectParticipantFactQuery(
+                    command.projectId(), null, REQUIRED_PROJECT_ROLES, LocalDateTime.now()));
+            requireParticipantIdentity(responsible, command.projectId(), null);
             ProjectParticipantFact participant = participantFactApi.lockAndRevalidate(
                     new ProjectParticipantFactRevalidationQuery(
-                            command.projectId(), command.subjectUserId(), command.expectedProjectVersion(),
+                            command.projectId(), responsible.userId(), command.expectedProjectVersion(),
                             ACTIVE, null, REQUIRED_PROJECT_ROLES));
-            requireParticipantIdentity(participant, command.projectId(), command.subjectUserId());
+            requireParticipantIdentity(participant, command.projectId(), responsible.userId());
             requireEligibleArrivalProject(participant, command.expectedProjectVersion(), command.expectedFactVersion());
-            ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                    command.tenantId(), command.actorUserId(), command.projectId(),
-                    ProjectScopeApi.ACTION_EDIT, command.expectedScopeVersion()));
+            ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(command.tenantId())
+                .subjectUserId(command.actorUserId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(command.expectedScopeVersion()).build());
             requireEditableScope(scope, command.projectId(), command.expectedScopeVersion());
             return toFact(participant, scope.treeVersion());
         } catch (ArrivalAcceptanceContractException exception) {
@@ -106,7 +126,7 @@ public class ProjectQualificationApiAdapter implements ProjectQualificationPort 
     }
 
     private void requireEligibleArrivalProject(ProjectParticipantFact participant,
-                                                      Integer expectedProjectVersion,
+                                                      Long expectedProjectVersion,
                                                       Long expectedFactVersion) {
         if (!ACTIVE.equals(participant.lifecycleStatus())) throw ArrivalAcceptanceContractException.simple(
                 "BUSINESS_GATE_INVALID", "PROJECT_NOT_ACTIVE", "project is not active");

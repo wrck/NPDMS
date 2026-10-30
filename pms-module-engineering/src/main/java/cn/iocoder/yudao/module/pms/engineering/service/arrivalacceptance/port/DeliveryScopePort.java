@@ -27,15 +27,15 @@ public interface DeliveryScopePort {
     }
 
     record AssignedLine(Long orderLineId, BigDecimal assignedQuantity, String unitCode,
-                        String productCode, String modelCode, Set<String> serialNumbers) {
+                        String productCode, String productModel, Set<String> serialNumbers) {
 
         public AssignedLine {
             unitCode = trimToNull(unitCode);
             productCode = trimToNull(productCode);
-            modelCode = trimToNull(modelCode);
+            productModel = trimToNull(productModel);
             if (orderLineId == null || orderLineId <= 0 || assignedQuantity == null
                     || assignedQuantity.signum() <= 0 || unitCode == null
-                    || productCode == null && modelCode == null || serialNumbers == null) {
+                    || productCode == null && productModel == null || serialNumbers == null) {
                 throw new IllegalArgumentException("invalid assigned delivery line");
             }
             TreeSet<String> normalizedSerials = new TreeSet<>();

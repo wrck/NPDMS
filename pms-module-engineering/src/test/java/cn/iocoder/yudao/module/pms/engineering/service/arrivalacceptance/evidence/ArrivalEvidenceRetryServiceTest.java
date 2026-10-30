@@ -261,7 +261,7 @@ class ArrivalEvidenceRetryServiceTest {
         root.setAccRetryCount(retryCount);
         root.setAccNextRetryAt(LocalDateTime.of(2026, 8, 30, 1, 59));
         root.setAccCorrelationId("corr-original");
-        root.setVersion(4);
+        root.setVersion(4L);
         return root;
     }
 

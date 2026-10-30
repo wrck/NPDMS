@@ -4,12 +4,13 @@
       <div>
         <h3>阶段状态</h3>
         <p>阶段按各自准入条件激活，可以同时进行；刷新只读取状态。</p>
+        <ProjectOverdueTags :project="project" />
       </div>
       <div>
         <el-button v-hasPermi="['pms:project-plan:manage']" @click="planVisible = true"
           >项目计划</el-button
         >
-        <el-button @click="historyVisible = true">执行历史与规则结果</el-button>
+        <el-button @click="historyVisible = true">阶段状态查看</el-button>
         <el-button v-hasPermi="['pms:project-plan:rework']" @click="reworkVisible = true">选择性返工</el-button>
         <el-button :loading="loading" @click="refresh">刷新阶段状态</el-button>
       </div>
@@ -30,6 +31,17 @@
           </el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="计划结束日期">
+        <template #default="{ row }">{{ deadlineDate(row.planEndTime) }}</template>
+      </el-table-column>
+      <el-table-column label="计划验收日期">
+        <template #default="{ row }">{{ deadlineDate(row.acceptanceTime) }}</template>
+      </el-table-column>
+      <el-table-column label="超期情况" min-width="180">
+        <template #default="{ row }">
+          <ProjectOverdueTags :project="stageOverdue(row.id)" />
+        </template>
+      </el-table-column>
       <el-table-column label="本轮办理">
         <template #default="{ row }">
           <el-button
@@ -42,6 +54,9 @@
           <span v-else-if="executionFor(row.stageCode)"
             >第 {{ executionFor(row.stageCode)?.roundNo }} 轮</span
           >
+          <div v-if="executionFor(row.stageCode)?.subscriptions" class="subscription-badge">
+            {{ subscriptionSummary(executionFor(row.stageCode)?.subscriptions) }}
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -85,12 +100,14 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { ref, watch } from 'vue'
 import { getProjectInstances, type ProjectInstancesVO, type ProjectMasterVO } from '@/api/pms/project/projects'
 import {
   getNodeExecutions,
   submitStageExecution,
-  type NodeExecution
+  type NodeExecution,
+  type NodeSubscriptionRound
 } from '@/api/pms/project/projects/nodeExecutions'
 import { useMessage } from '@/hooks/web/useMessage'
 import ProjectExecutionHistory from './ProjectExecutionHistory.vue'
@@ -98,9 +115,18 @@ import ProjectPlanEditor from './ProjectPlanEditor.vue'
 import ProjectReworkPanel from './ProjectReworkPanel.vue'
 import ProjectNodeWorkbenchDrawer from './ProjectNodeWorkbenchDrawer.vue'
 import type { ProjectFlowSelection } from './project-flow'
+import ProjectOverdueTags from '../../projects/ProjectOverdueTags.vue'
+import { formatDate } from '@/utils/formatTime'
 
-const props = defineProps<{ projectId: number; project: ProjectMasterVO }>()
+const props = defineProps<{ projectId: number; project: ProjectMasterVO; refreshToken?: number }>()
 const emit = defineEmits<{ changed: [] }>()
+const deadlineDate = (value?: string) => value ? formatDate(new Date(value), 'YYYY-MM-DD') : '—'
+const stageOverdue = (id?: number | string): ProjectMasterVO => ({
+  overdueNodes: (props.project.overdueNodes || []).filter(node =>
+    node.nodeKind === 'STAGE' && id != null && String(node.nodeId) === String(id)),
+  completedOverdueNodes: (props.project.completedOverdueNodes || []).filter(node =>
+    node.nodeKind === 'STAGE' && id != null && String(node.nodeId) === String(id))
+})
 const stages = ref<ProjectInstancesVO['stages']>([])
 const loading = ref(false)
 const error = ref('')
@@ -123,7 +149,7 @@ const openWorkbench = (stageCode: string) => {
 const message = useMessage()
 let submissionKey = ''
 watch(note, () => {
-  if (!submitting.value) submissionKey = crypto.randomUUID()
+  if (!submitting.value) submissionKey = generateUUID()
 })
 const executionFor = (code: string) =>
   executions.value.find((item) => item.nodeKind === 'STAGE' && item.nodeCode === code)
@@ -133,7 +159,7 @@ const openSubmission = (code: string) => {
   selected.value = execution
   submissionError.value = ''
   note.value = ''
-  submissionKey = crypto.randomUUID()
+  submissionKey = generateUUID()
   submissionVisible.value = true
 }
 const submit = async () => {
@@ -156,6 +182,25 @@ let requestSequence = 0
 const statusLabel = (status: string) =>
   ({ PENDING: '等待准入', ACTIVE: '进行中', DONE: '已完成', TERMINATED: '已终止' })[status] ??
   status
+// 订阅阶段的只读等待摘要；等待原因来自后端已登记的评估记录，刷新不产生业务写入。
+const WAIT_REASON_LABELS: Record<string, string> = {
+  EVALUATION_PENDING: '待评估',
+  EVALUATION_OUTDATED: '评估待更新',
+  EVALUATION_SCANNING: '正在扫描',
+  NO_QUALIFIED_RESULT: '尚无合格结果',
+  EXPECTED_OBJECTS_MISSING: '缺少预期结果',
+  RESULT_AMBIGUOUS: '结果歧义',
+  RESULT_SOURCE_UNAVAILABLE: '来源不可用',
+  EVIDENCE_SATISFIED: '证据已满足'
+}
+const subscriptionSummary = (round?: NodeSubscriptionRound) => {
+  if (!round?.subscriptions?.length) return '订阅：待评估'
+  if (round.roundEnded) return '订阅：本轮已结束，复核中'
+  const waiting = round.subscriptions.filter((item) => item.waitReason !== 'EVIDENCE_SATISFIED')
+  if (!waiting.length) return '订阅：证据已满足'
+  const reason = waiting[0].waitReason
+  return `订阅：${WAIT_REASON_LABELS[reason] ?? reason}`
+}
 const load = async () => {
   const request = ++requestSequence
   loading.value = true
@@ -179,7 +224,7 @@ const refresh = async () => {
   await load()
   if (!error.value) emit('changed')
 }
-watch([() => props.projectId, () => props.project.version], load, { immediate: true })
+watch([() => props.projectId, () => props.project.version, () => props.refreshToken], load, { immediate: true })
 </script>
 
 <style scoped>
@@ -194,6 +239,11 @@ watch([() => props.projectId, () => props.project.version], load, { immediate: t
   margin: 0;
 }
 .stage-status-header p {
+  color: var(--el-text-color-secondary);
+}
+.subscription-badge {
+  margin-top: 2px;
+  font-size: 12px;
   color: var(--el-text-color-secondary);
 }
 </style>

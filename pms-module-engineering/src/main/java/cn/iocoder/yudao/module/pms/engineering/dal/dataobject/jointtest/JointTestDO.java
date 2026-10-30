@@ -1,27 +1,23 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.jointtest;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 import java.time.LocalDateTime;
 
 /**
  * PMS 业务联调记录 DO（FR-ENG-024）。
  * <p>
- * 对应表 {@code pms_eng_joint_test}。
+ * 对应表 {@code imp_eng_joint_test}。
  * 状态：0 待联调、1 进行中、2 通过、3 失败。
  */
-@TableName("pms_eng_joint_test")
+@TableName("imp_eng_joint_test")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class JointTestDO extends TenantBaseDO {
+public class JointTestDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -70,9 +66,4 @@ public class JointTestDO extends TenantBaseDO {
      * 备注
      */
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
 }

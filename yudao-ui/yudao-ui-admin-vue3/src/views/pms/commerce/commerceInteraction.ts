@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 export const splitSerialNumbers = (value: string) => [
   ...new Set(
     value
@@ -10,7 +11,7 @@ export const splitSerialNumbers = (value: string) => [
 export const commerceIntentOf = (action: string, payload: unknown) =>
   `${action}:${JSON.stringify(payload)}`
 
-export const createCommerceIntentStore = (keyFactory: () => string = () => crypto.randomUUID()) => {
+export const createCommerceIntentStore = (keyFactory: () => string = () => generateUUID()) => {
   const keys = new Map<string, string>()
   return {
     key(intent: string) {

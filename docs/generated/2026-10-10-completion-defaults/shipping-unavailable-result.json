@@ -1,0 +1,16 @@
+{
+  "projectId": 992203060190,
+  "sourceOrderLineTotal": 10,
+  "sourceProductRows": 9,
+  "sourceProjectQuantity": 200.0,
+  "sourceSnRecordTotal": 264,
+  "equipmentListMatchesSource": true,
+  "shipmentFieldsRemainUnknown": true,
+  "serialPaneRetainsFullSnRecords": true,
+  "defaultDeviceTotal": 200,
+  "defaultRowsMatchEquipment": true,
+  "engineerMatchesCurrentProfile": true,
+  "contactMatchesCurrentProfile": true,
+  "pageErrors": [],
+  "existingSignedCertificateUnchanged": true
+}

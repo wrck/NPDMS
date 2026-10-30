@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.project.controller.admin.projects;
 
 import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectMatchTemplatesReqVO;
+import cn.iocoder.yudao.module.pms.project.controller.admin.projects.vo.ProjectStatisticsRespVO;
+import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStatisticsService;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
@@ -104,6 +106,8 @@ public class ProjectMasterController {
     @Resource
     private ProjectManualCreationService projectManualCreationService;
     @Resource
+    private ProjectStatisticsService projectStatisticsService;
+    @Resource
     private cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectStatusPresentationService projectStatusPresentationService;
     @Resource
     private ProjectTemplateService projectTemplateService;
@@ -124,6 +128,8 @@ public class ProjectMasterController {
     @Resource
     private ProjectServiceManagerQueryService projectServiceManagerQueryService;
     @Resource
+    private cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectPartyMapper projectPartyMapper;
+    @Resource
     private Environment environment;
 
     @PostMapping
@@ -140,7 +146,7 @@ public class ProjectMasterController {
                         .map(site -> new ProjectSiteCommand(site.getSiteId(), site.getSiteVersion(),
                                 site.getPrimarySite())).toList(),
                 createReqVO.getTemplateRevisionId(), createReqVO.getCandidateWatermark(),
-                createReqVO.getServiceManagerUserId(),
+                createReqVO.getServiceManagerUserId(), createReqVO.getContractId(),
                 idempotencyKey, sha256Digest(JsonUtils.toJsonString(createReqVO)));
         ManualProjectCreateResult result = withTrustedTenant(() ->
                 projectManualCreationApplicationService.create(command,
@@ -176,16 +182,23 @@ public class ProjectMasterController {
         }
     }
 
+    @GetMapping("/statistics")
+    @Operation(summary = "查询全部可见项目状态卡统计")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<ProjectStatisticsRespVO> getProjectStatistics() {
+        return success(BeanUtils.toBean(projectStatisticsService.getStatistics(accessActor()),
+                ProjectStatisticsRespVO.class));
+    }
+
     @GetMapping("/page")
-    @Operation(summary = "分页查询项目（名称/编码/状态/三维过滤）")
+    @Operation(summary = "分页查询项目（名称/编码/状态/三维/级别/合同/归属/责任成员/时间/设备条件过滤）")
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<PageResult<ProjectRespVO>> getProjectPage(@Valid ProjectPageReqVO pageReqVO) {
-        PageResult<ProjectMasterDO> pageResult = projectManualCreationService.getProjectPage(
-                pageReqVO, pageReqVO.getProjectName(), pageReqVO.getProjectCode(), pageReqVO.getStatus(),
-                pageReqVO.getSigningMethod(), pageReqVO.getProjectCategory(), pageReqVO.getImplementationMode(),
-                pageReqVO.getManagerId(), accessActor());
+        PageResult<ProjectMasterDO> pageResult =
+                projectManualCreationService.getProjectPage(pageReqVO, accessActor());
         PageResult<ProjectRespVO> response = BeanUtils.toBean(pageResult, ProjectRespVO.class);
         projectStatusPresentationService.populate(response.getList());
+        response.setList(response.getList().stream().map(ProjectOverviewSanitizer::sanitize).toList());
         return success(response);
     }
 
@@ -196,6 +209,11 @@ public class ProjectMasterController {
     public CommonResult<ProjectRespVO> getProject(@PathVariable("id") Long id) {
         ProjectMasterDO project = projectManualCreationService.getProject(id, accessActor());
         ProjectRespVO response = BeanUtils.toBean(project, ProjectRespVO.class);
+        response.setParties(projectPartyMapper.selectCurrent(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectPartyQuery(
+                        currentTenantId(), id, java.time.LocalDateTime.now())).stream()
+                .map(party -> new ProjectRespVO.Party(party.getPartyRole(), party.getPartyCode(), party.getPartyName()))
+                .toList());
         projectStatusPresentationService.populate(List.of(response));
         return success(response);
     }
@@ -228,7 +246,7 @@ public class ProjectMasterController {
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @RequestHeader("If-Match") @NotBlank String ifMatch,
             @Valid @RequestBody ProjectAttributeClassifyReqVO reqVO) {
-        Integer expectedVersion = parseIfMatch(ifMatch);
+        Long expectedVersion = parseIfMatch(ifMatch);
         String requestDigest = sha256Digest(id + ":" + expectedVersion + ":" + JsonUtils.toJsonString(reqVO));
         var result = projectAttributeClassificationApplicationService.adjust(
                 new ManualProjectAttributeAdjustmentCommand(id, expectedVersion,
@@ -305,7 +323,7 @@ public class ProjectMasterController {
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @RequestHeader("If-Match") @NotBlank String ifMatch,
             @Valid @RequestBody ProjectAssignManagerReqVO assignReqVO) {
-        Integer expectedVersion = parseIfMatch(ifMatch);
+        Long expectedVersion = parseIfMatch(ifMatch);
         String requestDigest = sha256Digest(id + ":" + expectedVersion + ":"
                 + JsonUtils.toJsonString(assignReqVO));
         AssignServiceManagerCommand command = new AssignServiceManagerCommand(
@@ -437,7 +455,7 @@ public class ProjectMasterController {
         return new ProjectAccessActor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId());
     }
 
-    private Integer parseIfMatch(String value) {
+    private Long parseIfMatch(String value) {
         String normalized = value == null ? "" : value.trim();
         if (normalized.startsWith("W/")) {
             normalized = normalized.substring(2).trim();
@@ -446,7 +464,7 @@ public class ProjectMasterController {
             normalized = normalized.substring(1, normalized.length() - 1);
         }
         try {
-            int version = Integer.parseInt(normalized);
+            long version = Long.parseLong(normalized);
             if (version < 0) {
                 throw new NumberFormatException("negative version");
             }

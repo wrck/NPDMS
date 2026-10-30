@@ -3,6 +3,8 @@ package cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.framework.mybatis.core.util.MyBatisUtils;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CreatedProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.TenantProjectScopeQuery;
@@ -12,6 +14,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.Project
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectGovernanceStateUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageAdvanceUpdate;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatisticsQuery;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.projection.ProjectStatistics;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -22,6 +26,24 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
+    default PageResult<ProjectMasterDO> selectOfficeProjectPage(
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.OfficeProjectSearchQuery query) {
+        if (query.getOrganizations() == null || query.getOrganizations().isEmpty()) return PageResult.empty();
+        IPage<ProjectMasterDO> page = MyBatisUtils.buildPage(query.getPageParam());
+        selectOfficeProjects(page, query);
+        return new PageResult<>(page.getRecords(), page.getTotal());
+    }
+
+    IPage<ProjectMasterDO> selectOfficeProjects(IPage<ProjectMasterDO> page, @Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.OfficeProjectSearchQuery query);
+
+    List<Long> selectOrganizationProjectIds(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.OrganizationProjectScopeQuery query);
+    ProjectStatistics selectStatistics(@Param("query") ProjectStatisticsQuery query);
+
+    List<ProjectMasterDO> selectBusinessOptions(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectBusinessOptionsQuery query);
+
     default Long selectCountCustomerReferences(cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectReferenceQuery query) {
         return selectCount(new LambdaQueryWrapperX<ProjectMasterDO>()
                 .eq(ProjectMasterDO::getTenantId, query.tenantId()).eq(ProjectMasterDO::getCustomerId, query.customerId()));
@@ -67,7 +89,7 @@ public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
     }
 
     int incrementVersionIfMatch(@Param("projectId") Long projectId,
-                                @Param("expectedVersion") Integer expectedVersion);
+                                @Param("expectedVersion") Long expectedVersion);
 
     int updateAssignmentStatusIfVersion(@Param("query") ProjectAssignmentStatusUpdate query);
 
@@ -93,24 +115,17 @@ public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
 
     /** 服务端范围过滤后的项目分页；空权限集合必须返回空页。 */
     default PageResult<ProjectMasterDO> selectPage(VisibleProjectPageQuery query) {
-        if (query.visibleProjectIds() == null || query.visibleProjectIds().isEmpty()) {
+        if (query.getVisibleProjectIds() == null || query.getVisibleProjectIds().isEmpty()) {
             return PageResult.empty();
         }
-        boolean stageFilter = query.status() != null && query.status().matches("S[0-6]");
-        return selectPage(query.pageParam(), new LambdaQueryWrapperX<ProjectMasterDO>()
-                .eq(ProjectMasterDO::getTenantId, query.tenantId())
-                .in(ProjectMasterDO::getId, query.visibleProjectIds())
-                .likeIfPresent(ProjectMasterDO::getProjectName, query.projectNameKeyword())
-                .likeRightIfPresent(ProjectMasterDO::getProjectCode, query.projectCodePrefix())
-                .eq(stageFilter, ProjectMasterDO::getCurrentStage, query.status())
-                .eq(stageFilter, ProjectMasterDO::getLifecycleStatus, "ACTIVE")
-                .eq(!stageFilter && query.status() != null && !query.status().isBlank(),
-                        ProjectMasterDO::getLifecycleStatus, query.status())
-                .eqIfPresent(ProjectMasterDO::getSigningMethod, query.signingMethod())
-                .eqIfPresent(ProjectMasterDO::getProjectCategory, query.projectCategory())
-                .eqIfPresent(ProjectMasterDO::getImplementationMode, query.implementationMode())
-                .orderByDesc(ProjectMasterDO::getId));
+        IPage<ProjectMasterDO> mpPage = MyBatisUtils.buildPage(query.getPageParam());
+        selectVisiblePage(mpPage, query);
+        return new PageResult<>(mpPage.getRecords(), mpPage.getTotal());
     }
+
+    /** 范围内项目分页条件 SQL（状态阶段/三维/级别/合同/归属/当事方/时间范围）见 ProjectMasterMapper.xml。 */
+    IPage<ProjectMasterDO> selectVisiblePage(IPage<ProjectMasterDO> page,
+                                             @Param("query") VisibleProjectPageQuery query);
 
     /**
      * 直接下级（按 tree_sort、id 升序；按需加载）

@@ -12,12 +12,12 @@ import cn.iocoder.yudao.module.pms.engineering.domain.constructionplan.DurationR
 import cn.iocoder.yudao.module.pms.engineering.service.constructionplan.command.CreateInitialDurationCommand;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi;
 import cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,7 +27,6 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
@@ -42,18 +41,17 @@ public class ConstructionPlanApplicationService {
 
     public static final String PERMISSION_MANAGE = "pms:construction-plan:duration-manage";
     private static final String SCOPE_INITIAL_CREATE = "POST:/api/v1/pms/construction-plans";
-    private static final String ACTIVE = "ACTIVE";
-    private static final String INITIAL_STAGE = "S1";
 
     private final ConstructionPlanMapper planMapper;
     private final ConstructionPlanRevisionMapper revisionMapper;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
-    private final ProjectParticipantFactApi participantFactApi;
+    private final ProjectDurationOperatorApi durationOperatorApi;
     private final OperationAuditApi operationAuditApi;
     private final TransactionTemplate transactionTemplate;
     private final ProjectEndDateApi projectEndDateApi;
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
 
     public ConstructionPlanRespVO createInitial(CreateInitialDurationCommand command, Actor actor) {
         try {
@@ -71,9 +69,11 @@ public class ConstructionPlanApplicationService {
             throw exception(FORBIDDEN);
         }
         assertProjectScope(actor, command.projectId(), ProjectScopeApi.ACTION_MANAGE);
-        participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
-                command.projectId(), actor.actorId(), command.expectedProjectVersion(), ACTIVE,
-                INITIAL_STAGE, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+        durationOperatorApi.lockInitialAndRevalidate(new ProjectDurationOperatorApi.RevalidationQuery(
+                new ProjectDurationOperatorApi.Query(actor.tenantId(), command.projectId(), actor.actorId()),
+                command.expectedProjectVersion()));
+        executionGuard.lockForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                command.projectId(), "PLN", "CONSTRUCTION_PLAN", null));
 
         DurationRules.ResolvedDuration duration;
         try {
@@ -142,10 +142,10 @@ public class ConstructionPlanApplicationService {
         plan.setTenantId(actor.tenantId());
         plan.setProjectId(projectId);
         plan.setPlanRecalculationStatusCode(ConstructionPlanDO.RECALCULATION_PENDING);
-        plan.setVersion(0);
+        plan.setVersion(0L);
         plan.setCreator(String.valueOf(actor.actorId()));
         plan.setUpdater(String.valueOf(actor.actorId()));
-        if (planMapper.insert(plan) != 1 || plan.getId() == null) {
+        if (planMapper.insertRow(plan) != 1 || plan.getId() == null) {
             throw new IllegalStateException("项目工期根创建失败");
         }
 
@@ -166,7 +166,7 @@ public class ConstructionPlanApplicationService {
             throw new IllegalStateException("项目工期首个版本创建失败");
         }
         if (planMapper.updateVersionIfMatch(new ConstructionPlanVersionUpdate(
-                actor.tenantId(), plan.getId(), 0, revision.getId(), null,
+                actor.tenantId(), plan.getId(), 0L, revision.getId(), null,
                 ConstructionPlanDO.RECALCULATION_PENDING, revision.getId(),
                 String.valueOf(actor.actorId()))) != 1) {
             throw exception(CONSTRUCTION_PLAN_VERSION_NOT_MATCH);
@@ -195,7 +195,7 @@ public class ConstructionPlanApplicationService {
         response.setCurrentRevision(revisionResponse);
         response.setPlanRecalculationStatus(ConstructionPlanDO.RECALCULATION_PENDING);
         response.setPlanRecalculationSourceRevisionId(revision.getId());
-        response.setPlanVersion(1);
+        response.setPlanVersion(1L);
         response.setAllowedActions(List.of("CREATE_CHANGE"));
         return response;
     }
@@ -212,15 +212,21 @@ public class ConstructionPlanApplicationService {
         detail.put("planRecalculationStatusBefore", null);
         detail.put("planRecalculationStatusAfter", response.getPlanRecalculationStatus());
         detail.put("projectVersion", command.expectedProjectVersion());
+        var event = ProjectRuleReevaluationRequested.create(actor.tenantId(), command.projectId(), actor.actorId(),
+                "construction-plan-initial:" + response.getCurrentRevision().getRevisionId());
         return new PlatformCommandExecutionApi.SuccessFacts(
                 "CONSTRUCTION_PLAN_INITIAL_DURATION_CREATE", "ConstructionPlan",
                 String.valueOf(response.getPlanId()), actor.correlationId(),
-                JsonUtils.toJsonString(detail), null, null);
+                JsonUtils.toJsonString(detail), List.of(new PlatformCommandExecutionApi.BusinessEvent(
+                        event.eventId(), ProjectRuleReevaluationRequested.EVENT_TYPE, JsonUtils.toJsonString(event))));
     }
 
     private void assertProjectScope(Actor actor, Long projectId, String action) {
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, action));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         if (!scope.fullProjectIds().contains(projectId)) {
             throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
         }

@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper">
+    <select id="selectMemberSelectionForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        SELECT * FROM proj_project_member_assignment
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.assignmentId}
+          AND deleted=b'0' AND status='ACTIVE'
+          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
+          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt}) FOR UPDATE
+    </select>
 
     <select id="selectCurrentResponsibilityForUpdate"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
@@ -36,6 +43,27 @@
           AND deleted = b'0'
           AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
           AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
+        ORDER BY id
+        FOR UPDATE
+    </select>
+
+    <select id="selectAuthorizedByUserForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        SELECT *
+        FROM proj_project_member_assignment
+        <choose>
+            <when test="query != null and query.tenantId != null and query.projectId != null and query.projectId > 0 and query.userId != null and query.userId > 0 and query.effectiveAt != null">
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND user_id = #{query.userId}
+          AND authorization_confirmed = b'1'
+          AND status = 'ACTIVE'
+          AND deleted = b'0'
+          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
+          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
+            </when>
+            <otherwise>WHERE 1 = 0</otherwise>
+        </choose>
         ORDER BY id
         FOR UPDATE
     </select>
@@ -88,8 +116,7 @@
                  id
     </select>
 
-    <select id="selectParticipantFacts"
-            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+    <sql id="participantFactRows">
         SELECT id, project_id, user_id, member_role, assignment_type, version, tenant_id
         FROM proj_project_member_assignment
         WHERE tenant_id = #{query.tenantId}
@@ -108,16 +135,26 @@
                   AND 1 = 0
               </otherwise>
           </choose>
-          AND (member_role = 'PROJECT_MANAGER' OR assignment_type = 'PRIMARY' OR assignment_type IS NULL)
           AND status = 'ACTIVE'
           AND deleted = b'0'
           AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
           AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
+    </sql>
+    <select id="selectParticipantFacts"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        <include refid="participantFactRows"/>
+        AND (member_role = 'PROJECT_MANAGER' OR assignment_type = 'PRIMARY' OR assignment_type IS NULL)
         ORDER BY user_id, member_role, id
     </select>
 
-    <select id="selectParticipantFactsForUpdate"
+    <select id="selectAuthorizationParticipantFacts"
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        <include refid="participantFactRows"/>
+        AND authorization_confirmed = b'1'
+        ORDER BY user_id, member_role, id
+    </select>
+
+    <sql id="participantFactLockRows">
         SELECT id, project_id, user_id, member_role, assignment_type, version, tenant_id
         FROM proj_project_member_assignment
         WHERE tenant_id = #{query.tenantId}
@@ -134,11 +171,23 @@
                   AND 1 = 0
               </otherwise>
           </choose>
-          AND (member_role = 'PROJECT_MANAGER' OR assignment_type = 'PRIMARY' OR assignment_type IS NULL)
           AND status = 'ACTIVE'
           AND deleted = b'0'
           AND (effective_from IS NULL OR effective_from &lt;= CURRENT_TIMESTAMP(3))
           AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP(3))
+    </sql>
+    <select id="selectParticipantFactsForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        <include refid="participantFactLockRows"/>
+        AND (member_role = 'PROJECT_MANAGER' OR assignment_type = 'PRIMARY' OR assignment_type IS NULL)
+        ORDER BY user_id, member_role, id
+        FOR UPDATE
+    </select>
+
+    <select id="selectAuthorizationParticipantFactsForUpdate"
+            resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        <include refid="participantFactLockRows"/>
+        AND authorization_confirmed = b'1'
         ORDER BY user_id, member_role, id
         FOR UPDATE
     </select>
@@ -164,7 +213,7 @@
             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
         SELECT * FROM proj_project_member_assignment
         WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
-          AND member_role='PROJECT_MANAGER' AND status='ACTIVE' AND deleted=b'0'
+          AND member_role='PROJECT_MANAGER' AND user_id IS NOT NULL AND status='ACTIVE' AND deleted=b'0'
           AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
           AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
         ORDER BY id FOR UPDATE
@@ -179,6 +228,62 @@
           AND status = 'ACTIVE' AND deleted = b'0'
           AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})
           AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})
+        ORDER BY id FOR UPDATE
+    </select>
+    <sql id="memberFilterEligibility">
+        m.tenant_id = #{query.tenantId} AND m.user_id IS NOT NULL AND m.user_id &gt; 0
+        AND m.deleted = b'0' AND m.status = 'ACTIVE'
+        AND (m.effective_from IS NULL OR m.effective_from &lt;= #{query.effectiveAt})
+        AND (m.effective_to IS NULL OR m.effective_to &gt; #{query.effectiveAt})
+        <choose><when test="query.roleCodes != null and !query.roleCodes.isEmpty()">
+            AND m.member_role IN <foreach collection="query.roleCodes" item="role" open="(" separator="," close=")">#{role}</foreach>
+        </when><otherwise>AND 1 = 0</otherwise></choose>
+    </sql>
+    <select id="selectMemberFilterUserIds" resultType="java.lang.Long">
+        WITH <include refid="cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeSql.commonTables"/>
+        <choose>
+        <when test="query.readScope.projectScope != null and query.readScope.projectScope.officeReadonlyProjectId != null">
+            SELECT project_id FROM visible_projects WHERE 1 = 0
+        </when>
+        <when test="query.readScope.projectScope != null and query.readScope.projectScope.mode.name() == 'TENANT_ADMIN'">
+            , candidate_members AS (
+                SELECT DISTINCT user_id FROM proj_project_member_assignment
+                WHERE tenant_id = #{query.tenantId} AND user_id IS NOT NULL AND user_id &gt; 0
+            )
+            SELECT candidate.user_id FROM candidate_members candidate
+            WHERE (
+                SELECT 1 FROM proj_project_member_assignment m
+                JOIN visible_projects scope ON scope.project_id = m.project_id
+                JOIN proj_project project ON project.tenant_id = m.tenant_id AND project.id = m.project_id AND project.deleted = b'0'
+                WHERE m.user_id = candidate.user_id AND <include refid="memberFilterEligibility"/>
+                LIMIT 1
+            ) IS NOT NULL
+            ORDER BY candidate.user_id
+        </when>
+        <otherwise>
+            SELECT DISTINCT m.user_id
+            FROM visible_projects scope
+            JOIN proj_project_member_assignment m ON m.project_id = scope.project_id AND m.tenant_id = #{query.tenantId}
+            JOIN proj_project project ON project.tenant_id = m.tenant_id AND project.id = m.project_id AND project.deleted = b'0'
+            WHERE <include refid="memberFilterEligibility"/>
+            ORDER BY m.user_id
+        </otherwise>
+        </choose>
+    </select>
+    <select id="selectDurationProjectManagersForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        SELECT * FROM proj_project_member_assignment
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND user_id=#{query.userId}
+          AND member_role='PROJECT_MANAGER' AND authorization_confirmed=1 AND status='ACTIVE' AND deleted=0
+          AND (effective_from IS NULL OR effective_from &lt;= CURRENT_TIMESTAMP(3))
+          AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP(3))
+        ORDER BY id FOR UPDATE
+    </select>
+    <select id="selectCurrentDurationProjectManagersForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
+        SELECT * FROM proj_project_member_assignment
+        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND member_role='PROJECT_MANAGER' AND authorization_confirmed=1 AND status='ACTIVE' AND deleted=0
+          AND (effective_from IS NULL OR effective_from &lt;= CURRENT_TIMESTAMP(3))
+          AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP(3))
         ORDER BY id FOR UPDATE
     </select>
 </mapper>

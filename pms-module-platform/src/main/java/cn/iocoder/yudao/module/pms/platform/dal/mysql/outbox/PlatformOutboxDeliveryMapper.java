@@ -15,6 +15,11 @@ public interface PlatformOutboxDeliveryMapper extends BaseMapperX<PlatformOutbox
 
     List<PlatformOutboxEventDO> selectDueForUpdate(@Param("query") DueOutboxListQuery query);
 
+    /** 统一业务事件受控读取：按事件类型读待处理事件，跨租户、只读、不改事件状态；afterId 为消费游标。 */
+    List<PlatformOutboxEventDO> selectPendingByEventType(@Param("eventType") String eventType,
+                                                         @Param("limit") int limit,
+                                                         @Param("afterId") long afterId);
+
     int markDeliveredIfPending(@Param("query") OutboxDeliveryUpdateQuery query);
 
     int scheduleRetryIfPending(@Param("query") OutboxRetryUpdateQuery query);

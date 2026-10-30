@@ -151,7 +151,7 @@ class RequirementAnalysisFactApiImplTest {
         when(dynamicFormApi.lockAndRevalidateInstance(any())).thenReturn(form(selected));
 
         RequirementAnalysisFact locked = api.lockAndRevalidate(new RequirementAnalysisFactRevalidationQuery(
-                100L, 501L, 1, 5, 3, 702L, inspected.factVector()));
+                100L, 501L, 1, 5, 3L, 702L, inspected.factVector()));
 
         assertEquals(inspected.factVector(), locked.factVector());
         InOrder order = inOrder(projectScopeApi, organizationFactApi, workBindingFactApi, rootMapper, dynamicFormApi);
@@ -183,7 +183,7 @@ class RequirementAnalysisFactApiImplTest {
         when(dynamicFormApi.lockAndRevalidateInstance(any())).thenReturn(form(selected));
 
         assertThrows(RuntimeException.class, () -> api.lockAndRevalidate(
-                new RequirementAnalysisFactRevalidationQuery(100L, 501L, 1, 5, 3, 702L,
+                new RequirementAnalysisFactRevalidationQuery(100L, 501L, 1, 5, 3L, 702L,
                         inspected.factVector())));
         verify(dynamicFormApi).lockAndRevalidateInstance(any());
     }
@@ -214,7 +214,7 @@ class RequirementAnalysisFactApiImplTest {
         when(rootMapper.selectForUpdate(any())).thenReturn(selected);
         when(rootMapper.selectEffectiveForUpdate(any())).thenReturn(selected);
         when(dynamicFormApi.lockAndRevalidateInstance(any())).thenReturn(form(selected));
-        var query = new RequirementAnalysisFactRevalidationQuery(100L, 501L, 1, 5, 3, 702L, inspected.factVector());
+        var query = new RequirementAnalysisFactRevalidationQuery(100L, 501L, 1, 5, 3L, 702L, inspected.factVector());
         assertEquals(inspected.factVector(), api.lockAndRevalidate(query).factVector());
         verify(workBindingFactApi).lockAndRevalidateStage(argThat(expected -> expected.projectStageId().equals(202L)
                 && expected.expectedProjectStageVersion() == 4 && expected.executionContractId().equals(301L)));
@@ -270,7 +270,7 @@ class RequirementAnalysisFactApiImplTest {
     }
 
     private ProjectOrganizationFact project() {
-        return new ProjectOrganizationFact(100L, 3, 10L, 20L, "D20");
+        return new ProjectOrganizationFact(100L, 3L, 10L, 20L, "D20");
     }
 
     private ProjectWorkBindingFact binding() {
@@ -280,7 +280,7 @@ class RequirementAnalysisFactApiImplTest {
     private ProjectWorkBindingFact binding(Long dynamicRevisionId, Integer dynamicRevisionNo,
                                            Integer dynamicRevisionFactVersion) {
         ProjectWorkBindingTarget target = ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS;
-        return new ProjectWorkBindingFact(100L, 3, 201L, 4, 301L, 5,
+        return new ProjectWorkBindingFact(100L, 3L, 201L, 4, 301L, 5,
                 401L, 6, target.workBindingTypeCode(), target.targetContextCode(),
                 target.targetObjectType(), target.targetObjectKey(), null, null, null,
                 null, 702L, 2, "{}", 16L, dynamicRevisionId, dynamicRevisionNo,
@@ -308,10 +308,10 @@ class RequirementAnalysisFactApiImplTest {
 
     private void freezeOrigin(PreparationDO row, ProjectWorkBindingFact binding) {
         var task = binding.projectTaskId() == null ? null : new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
-                100L, 3, binding.projectTaskId(), binding.projectTaskVersion(), 301L, 5, 702L,
+                100L, 3L, binding.projectTaskId(), binding.projectTaskVersion(), 301L, 5, 702L,
                 801L, 1, 1, 802L, 1, true, LocalDateTime.now());
         var stage = binding.projectStageId() == null ? null : new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext(
-                100L, 3, binding.projectStageId(), binding.projectStageVersion(), 301L, 5, 702L, 802L, 1, 1, true);
+                100L, 3L, binding.projectStageId(), binding.projectStageVersion(), 301L, 5, 702L, 802L, 1, 1, true);
         row.setTemplateSnapshot(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(
                 new cn.iocoder.yudao.module.pms.engineering.service.requirement.RequirementAnalysisExecutionBinding.Frozen(binding, task, stage)));
     }

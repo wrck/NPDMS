@@ -15,7 +15,7 @@ final class EntityExtensionValidation {
 
     static Definition fromForm(cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.DynamicFormFieldDescriptor field,
                                String code) {
-        var type = switch (field.valueType()) {
+        var type = "group".equals(field.componentType()) ? EntityField.Type.OBJECT_LIST : switch (field.valueType()) {
             case "boolean" -> EntityField.Type.BOOLEAN;
             case "number" -> EntityField.Type.NUMBER;
             case "array" -> EntityField.Type.TEXT_LIST;

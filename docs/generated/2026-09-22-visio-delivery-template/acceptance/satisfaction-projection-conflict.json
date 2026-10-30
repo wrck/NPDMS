@@ -1,0 +1,19 @@
+{
+  "finding": "满意度结果来源投影与业务文档自动收集在 D_SATISFACTION 上发生 CURRENT 归属竞态",
+  "project": 992203060032,
+  "deliverable": {"id": "2101716952857628907", "code": "D_SATISFACTION", "status": "ACCEPTED", "currentSourceVersionId": "2102823437560672258", "archiveStatus": "NOT_REQUIRED"},
+  "satisfactionBusinessResult": {"resultId": "2102823061784588290", "score": 100.0, "threshold": 80.0, "passed": true, "resultStatus": "EFFECTIVE", "archiveStatus": "PENDING_COMPENSATION"},
+  "timeline": [
+    "02:11:01.820 outbox 事件 sat-result:2102823061784588290:result-recorded (SatisfactionResultVersionChanged) 产生",
+    "02:11:01.776 FileReferenceAttached f90e428f (satisfaction-result-2102823061784588290.pdf) 产生并投递",
+    "02:12:30.743 file-collection 消费 PDF 文件事件，在 D_SATISFACTION 记录 ProjectDeliverableSubmission 来源 (PM-03, BUSINESS_DOCUMENT) 并置为 CURRENT，交付件转 ACCEPTED",
+    "02:16:00 起 SatisfactionResultOutboxDeliveryJob 投影该结果事件，mayBecomeCurrent 命中 SATISFACTION_SOURCE_TYPE_CONFLICT (SatisfactionResultSourceProjectionService.java:123)，每分钟重试，ACC-04 来源行始终未落库"
+  ],
+  "asymmetry": [
+    "收集侧让位：ProjectDeliverableSubmissionService.java:268 遇非本类型 CURRENT 直接 return（028 即结果来源先占、收集静默跳过，终态 CURRENT=SatisfactionResult 且 ARCHIVED）",
+    "结果侧冲突：SatisfactionResultSourceProjectionService.java:123 遇非本类型 CURRENT 抛异常无限重试（032 即收集先占、结果投影卡死）"
+  ],
+  "comparison028": {"deliverableId": "2101716952857628839", "currentSource": "SatisfactionResult/2102791369787113473 (ACC-04, ARCHIVED)", "submissionRows": 0},
+  "impact": "032 满意度业务结果真实有效且交付件 ACCEPTED，但 ACC-04 结构化来源版本投影无法落库，outbox 持续重试形成与已知 05afac02 同类的常驻噪音",
+  "decisionNeeded": "结果来源投影遇外来 CURRENT 时改为让位落库(SUPERSEDED+归档)还是维持冲突重试并作为缺陷披露，涉及 D_SATISFACTION 证据归属语义，需规格裁决"
+}

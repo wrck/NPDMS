@@ -1,0 +1,25 @@
+{
+  "url": "http://localhost:19191/pms/project-templates",
+  "templateId": 993009900014,
+  "login": true,
+  "openedDesigner": true,
+  "savedThroughUI": true,
+  "reopenedThroughUI": true,
+  "precheck": "Compiler 发布预检\n未通过：没有生成发布快照，也没有修改历史\n字段 / 关系\n\t\n错误码\n\t\n原因\nstages[1].completionRule\n\t\nREQUIRED\n\t\n阶段必须配置完成规则\n\n\nstages[3].completionRule\n\t\nREQUIRED\n\t\n阶段必须配置完成规则",
+  "validation": {
+    "valid": false,
+    "issues": [
+      {
+        "field": "stages[1].completionRule",
+        "code": "REQUIRED",
+        "message": "阶段必须配置完成规则"
+      },
+      {
+        "field": "stages[3].completionRule",
+        "code": "REQUIRED",
+        "message": "阶段必须配置完成规则"
+      }
+    ]
+  },
+  "pageErrors": []
+}

@@ -94,7 +94,7 @@ class AuthorizationGrantServiceTest {
         grant.setActionCode("PROJECT_VIEW");
         grant.setScopeCode("CURRENT_PROJECT");
         grant.setStatusCode("ACTIVE");
-        grant.setVersion(0);
+        grant.setVersion(0L);
         when(grantMapper.selectListEffective(any(EffectiveAuthorizationGrantQuery.class)))
                 .thenReturn(List.of(grant));
         AuthorizationGrantQuery query = new AuthorizationGrantQuery(

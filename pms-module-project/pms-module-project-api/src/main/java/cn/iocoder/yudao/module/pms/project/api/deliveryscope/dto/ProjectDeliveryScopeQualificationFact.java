@@ -14,7 +14,7 @@ public record ProjectDeliveryScopeQualificationFact(
         Long currentManagerUserId,
         String lifecycleStatus,
         String currentStage,
-        Integer projectVersion,
+        Long projectVersion,
         Long participantFactVersion,
         Long treeVersion) {
 

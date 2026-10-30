@@ -1,0 +1,25 @@
+{
+  "id": 993009900014,
+  "code": "TPL-DELIVERY-FLOW-20260922",
+  "name": "项目交付全流程模板（流程图2）",
+  "version": 9,
+  "status": "DRAFT",
+  "publishedRevisionCount": 0,
+  "port": 59191,
+  "fieldCount": 56,
+  "validation": {
+    "valid": false,
+    "issues": [
+      {
+        "field": "stages[1].completionRule",
+        "code": "REQUIRED",
+        "message": "阶段必须配置完成规则"
+      },
+      {
+        "field": "stages[3].completionRule",
+        "code": "REQUIRED",
+        "message": "阶段必须配置完成规则"
+      }
+    ]
+  }
+}

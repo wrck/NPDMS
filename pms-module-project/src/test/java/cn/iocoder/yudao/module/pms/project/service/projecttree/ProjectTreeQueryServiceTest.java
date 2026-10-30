@@ -42,6 +42,7 @@ class ProjectTreeQueryServiceTest {
     @Mock ProjectTreeScopeService scopeService;
     @Mock cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeHierarchyMapper hierarchyMapper;
     @Mock cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressMapper progressMapper;
+    @Mock cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper memberMapper;
 
     private ProjectTreeQueryService service;
     private final ProjectTreeQueryService.Actor actor = new ProjectTreeQueryService.Actor(1L, 9L);
@@ -49,7 +50,67 @@ class ProjectTreeQueryServiceTest {
     @BeforeEach
     void setUp() {
         service = new ProjectTreeQueryService(projectMapper, versionMapper, pathMapper, metrics,
-                scopeService, new ProjectTreeViewSanitizer(), hierarchyMapper, progressMapper);
+                scopeService, new ProjectTreeViewSanitizer(), hierarchyMapper, progressMapper, memberMapper);
+    }
+
+    @Test
+    void fullTreeIncludesSiblingBranchesAndMoreThanFiveHundredNodesWithoutPaging() {
+        var projects = java.util.stream.LongStream.rangeClosed(1, 601)
+                .mapToObj(id -> project(id, id == 1 ? null : 1L, 1L, (int) id, null)).toList();
+        var ids = projects.stream().map(ProjectMasterDO::getId).collect(java.util.stream.Collectors.toSet());
+        when(projectMapper.selectById(3L)).thenReturn(projects.get(2));
+        when(versionMapper.selectLatestActive(1L)).thenReturn(version(7L, "ACTIVE"));
+        when(versionMapper.selectLatest(1L)).thenReturn(version(8L, "BUILDING"));
+        when(scopeService.resolve(any(ProjectScopeQuery.class))).thenReturn(
+                new ProjectTreeScopeService.ProjectTreeScope(1L, 7L, ids, Set.of(), Set.of()));
+        var query = new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectFullTreeQuery(1L, 1L, 7L, ids);
+        when(pathMapper.selectFullTree(query)).thenReturn(projects);
+        var result = service.query(new ProjectTreeQuery(3L, ProjectTreeQuery.QueryType.FULL, null, 1, null), actor);
+        assertEquals(601, result.items().size());
+        assertEquals(null, result.nextCursor());
+        assertEquals(7L, result.treeVersion());
+        assertTrue(result.updating());
+        assertTrue(result.items().stream().anyMatch(node -> node.projectId() == 2L));
+        verify(pathMapper).selectFullTree(query);
+        verify(memberMapper).selectTreeManagers(any());
+    }
+
+    @Test
+    void fullTreeEnrichesOnlyFullNodesAndDoesNotExposeRestrictedOfficeOrManagers() {
+        when(projectMapper.selectById(3L)).thenReturn(project(3L, 1L, 1L, 0, null));
+        when(versionMapper.selectLatestActive(1L)).thenReturn(version(7L, "ACTIVE"));
+        when(versionMapper.selectLatest(1L)).thenReturn(version(7L, "ACTIVE"));
+        when(scopeService.resolve(any(ProjectScopeQuery.class))).thenReturn(
+                new ProjectTreeScopeService.ProjectTreeScope(1L, 7L, Set.of(3L), Set.of(2L), Set.of(1L)));
+        var root = project(1L, null, 1L, 0, null);
+        var hidden = project(2L, 1L, 1L, 0, null);
+        var full = project(3L, 1L, 1L, 0, null);
+        root.setDepartmentName("受限根办事处"); hidden.setDepartmentName("受限办事处"); full.setDepartmentName("可见办事处");
+        when(pathMapper.selectFullTree(any())).thenReturn(List.of(root, hidden, full));
+        var manager = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO();
+        manager.setProjectId(3L); manager.setMemberRole("SERVICE_MANAGER_L1"); manager.setMemberName("服务经理甲");
+        when(memberMapper.selectTreeManagers(any())).thenReturn(List.of(manager));
+        var result = service.query(new ProjectTreeQuery(3L, ProjectTreeQuery.QueryType.FULL, null, null, null), actor);
+        assertEquals(null, result.items().get(0).displayDetails());
+        assertEquals(null, result.items().get(1).projectName());
+        assertEquals(null, result.items().get(1).displayDetails());
+        assertEquals("可见办事处", result.items().get(2).displayDetails().office());
+        assertEquals("服务经理甲", result.items().get(2).displayDetails().serviceManager());
+        assertEquals("", result.items().get(2).displayDetails().projectManager());
+        var captor = org.mockito.ArgumentCaptor.forClass(
+                cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectTreeManagersQuery.class);
+        verify(memberMapper).selectTreeManagers(captor.capture());
+        assertEquals(Set.of(3L), captor.getValue().projectIds());
+        assertEquals(1L, captor.getValue().tenantId());
+    }
+
+    @Test
+    void fullTreeRejectsCursorAndLevelBeforeAnyDatabaseRead() {
+        assertThrows(ServiceException.class, () -> service.query(
+                new ProjectTreeQuery(1L, ProjectTreeQuery.QueryType.FULL, null, null, "cursor"), actor));
+        assertThrows(ServiceException.class, () -> service.query(
+                new ProjectTreeQuery(1L, ProjectTreeQuery.QueryType.FULL, "SITE", null, null), actor));
+        verifyNoInteractions(projectMapper, pathMapper, memberMapper, scopeService);
     }
 
     @Test

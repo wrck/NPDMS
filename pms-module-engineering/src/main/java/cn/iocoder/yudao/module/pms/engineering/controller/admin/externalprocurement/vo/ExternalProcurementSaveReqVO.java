@@ -38,14 +38,14 @@ public class ExternalProcurementSaveReqVO {
     @Size(max = 32, message = "外采类型长度不能超过 32 个字符")
     private String procurementType;
 
-    @Schema(description = "物料名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "核心交换机")
-    @NotBlank(message = "物料名称不能为空")
-    @Size(max = 200, message = "物料名称长度不能超过 200 个字符")
-    private String materialName;
+    @Schema(description = "产品名称/物料名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "核心交换机")
+    @NotBlank(message = "产品名称/物料名称不能为空")
+    @Size(max = 200, message = "产品名称/物料名称长度不能超过 200 个字符")
+    private String productName;
 
-    @Schema(description = "物料编码", example = "MAT-S9300")
-    @Size(max = 64, message = "物料编码长度不能超过 64 个字符")
-    private String materialCode;
+    @Schema(description = "产品编码/物料编码", example = "MAT-S9300")
+    @Size(max = 64, message = "产品编码/物料编码长度不能超过 64 个字符")
+    private String productCode;
 
     @Schema(description = "规格型号描述", example = "48口千兆光交换")
     @Size(max = 200, message = "规格长度不能超过 200 个字符")
@@ -55,9 +55,9 @@ public class ExternalProcurementSaveReqVO {
     @Size(max = 100, message = "品牌长度不能超过 100 个字符")
     private String brand;
 
-    @Schema(description = "型号", example = "S9300")
-    @Size(max = 100, message = "型号长度不能超过 100 个字符")
-    private String model;
+    @Schema(description = "产品型号/物料型号", example = "S9300")
+    @Size(max = 100, message = "产品型号/物料型号长度不能超过 100 个字符")
+    private String productModel;
 
     @Schema(description = "数量", requiredMode = Schema.RequiredMode.REQUIRED, example = "2.00")
     @NotNull(message = "数量不能为空")

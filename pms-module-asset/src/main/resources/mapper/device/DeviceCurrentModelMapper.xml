@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper">
+    <!-- 当前读取投影；产品主档以 UNIQUE(tenant_id, product_code) 直接关联，不改写设备或历史。 -->
+    <sql id="currentProductJoin">
+        LEFT JOIN ast_product_official_info product
+          ON product.tenant_id = d.tenant_id AND product.product_code = d.product_code AND product.deleted = 0
+    </sql>
+    <sql id="currentProductModel">
+        CASE WHEN d.product_model IS NOT NULL AND d.product_model &lt;&gt; '' THEN d.product_model
+        ELSE product.product_model
+        END
+    </sql>
+    <sql id="currentProductName">
+        CASE WHEN d.product_name IS NOT NULL AND d.product_name &lt;&gt; '' THEN d.product_name
+        ELSE product.product_name
+        END
+    </sql>
+    <sql id="currentProductDescription">
+        CASE WHEN d.product_desc IS NOT NULL AND d.product_desc &lt;&gt; '' THEN d.product_desc
+        ELSE product.product_desc
+        END
+    </sql>
+    <sql id="currentDeviceColumns">
+        d.id, d.tenant_id, d.sn, d.name, d.product_code,
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductModel"/> AS product_model,
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductName"/> AS product_name,
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductDescription"/> AS product_desc,
+        d.shipment_time, d.package_no, d.contract_no, d.shipment_record_id,
+        d.project_id, d.project_assignment_version, d.customer_id, d.customer_assignment_version,
+        d.company_id, d.company_name, d.department_id, d.department_code, d.department_name,
+        d.organization_source, d.organization_updated_at, d.site_id, d.site_location_id,
+        d.location_resolution_status, d.location_snapshot, d.location_effective_from, d.location_record_id,
+        d.warranty_start_date, d.warranty_end_date, d.warranty_status,
+        d.conp_version, d.conp_type, d.conp_series, d.conp_mark, d.status, d.remark,
+        d.source_system, d.source_key, d.source_version, d.source_updated_at, d.synced_at, d.sync_status,
+        d.version, d.creator, d.create_time, d.updater, d.update_time, d.deleted
+    </sql>
+    <select id="selectCurrentModels" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper$Model">
+        SELECT d.id AS device_id, <include refid="currentProductModel"/> AS product_model
+        FROM ast_device d
+        <include refid="currentProductJoin"/>
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = 0
+        <choose>
+            <when test="query.deviceIds != null and !query.deviceIds.isEmpty()">
+                AND d.id IN
+                <foreach collection="query.deviceIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
+</mapper>

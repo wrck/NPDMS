@@ -147,7 +147,7 @@ class RequirementAnalysisFilePolicyProviderTest {
 
     private ProjectParticipantFact manager() {
         return new ProjectParticipantFact(100L, 9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 11L);
+                "PRIMARY", "ACTIVE", "S1", 3L, 11L);
     }
 
     private PreparationDO root(String status) {

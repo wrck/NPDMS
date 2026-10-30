@@ -1,0 +1,356 @@
+{
+  "form": [
+    {
+      "label": "项目编号",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "text",
+          "disabled": true
+        }
+      ]
+    },
+    {
+      "label": "工勘名称",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "text",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "工勘日期",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "text",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "工勘人员",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "text",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "工勘地点",
+      "inputs": [
+        {
+          "ph": "填写现场地点说明，或使用下方结构化地点维护",
+          "type": "text",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "text",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "填写表单",
+      "inputs": []
+    },
+    {
+      "label": "工期要求（项目结束时间）",
+      "inputs": [
+        {
+          "ph": "填写项目要求结束日期",
+          "type": "text",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "1、机房供电确认（多选）",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "checkbox",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "checkbox",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "checkbox",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "2、供电方式（多选）",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "checkbox",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "checkbox",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "checkbox",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "3、网口类型确认（多选）",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "checkbox",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "checkbox",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "checkbox",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "checkbox",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "4、机柜资源是否具备",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "5、网线资源是否具备",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "6、光模块资源是否具备",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "7、是否使用原厂光模块",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "8、上架加电是否需要原厂实施",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "9、是否需要导轨、托盘",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "10、发货物料是否符合现场施工环境",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        },
+        {
+          "ph": "",
+          "type": "radio",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "",
+      "inputs": []
+    },
+    {
+      "label": "供电补充说明",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "textarea",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "机柜补充说明",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "textarea",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "网口补充说明",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "textarea",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "光纤情况",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "textarea",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "光模块补充说明",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "textarea",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "线缆补充说明",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "textarea",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "接地情况",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "textarea",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "施工资源",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "textarea",
+          "disabled": false
+        }
+      ]
+    },
+    {
+      "label": "工勘结论",
+      "inputs": []
+    },
+    {
+      "label": "备注",
+      "inputs": [
+        {
+          "ph": "",
+          "type": "textarea",
+          "disabled": false
+        }
+      ]
+    }
+  ]
+}

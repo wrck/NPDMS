@@ -88,14 +88,14 @@ public class CommerceAuthorityCandidateController {
         return actor;
     }
 
-    private Integer version(String value) {
+    private Long version(String value) {
         String normalized = value.trim();
         if (normalized.startsWith("W/")) normalized = normalized.substring(2).trim();
         if (normalized.length() >= 2 && normalized.startsWith("\"") && normalized.endsWith("\"")) {
             normalized = normalized.substring(1, normalized.length() - 1);
         }
         try {
-            int version = Integer.parseInt(normalized);
+            long version = Long.parseLong(normalized);
             if (version < 0) throw new NumberFormatException();
             return version;
         } catch (NumberFormatException exception) {

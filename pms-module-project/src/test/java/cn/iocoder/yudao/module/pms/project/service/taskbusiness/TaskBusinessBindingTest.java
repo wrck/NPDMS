@@ -17,6 +17,7 @@ class TaskBusinessBindingTest {
         var c = contract(); String parameters = c.getBindingParameterSnapshot();
         var binding = TaskBusinessBinding.parse(c);
         assertEquals(88L, binding.businessViewRevisionId()); assertEquals("REFERENCE_EXISTING", binding.instanceResolutionStrategy());
+        assertTrue(binding.referencesExistingObjects());
         assertEquals(parameters, c.getBindingParameterSnapshot()); assertNull(binding.unavailableReason());
     }
     @Test void explicitViewConflictCannotOverrideFrozenDefinition() {
@@ -26,5 +27,20 @@ class TaskBusinessBindingTest {
     @Test void missingClosureIsNotAReasonToReadLatestOrGuessAView() {
         var c = contract(); c.setDefinitionSnapshot(null);
         assertThrows(RuntimeException.class, () -> TaskBusinessBinding.parse(c));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"REFERENCE_EXISTING,true", "READ_ONLY_AGGREGATE,true",
+            "CREATE_ON_ENTER,false", "CREATE_ON_FIRST_ACTION,false"})
+    void onlyFrozenReferenceStrategiesAllowObjectReuse(String strategy, boolean expected) {
+        var parameters = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
+                "{\"instanceResolutionStrategy\":\"" + strategy + "\"}");
+        assertEquals(expected, TaskBusinessBinding.referencesExistingObjects(parameters));
+    }
+
+    @Test void missingAndInvalidStrategiesDoNotGrantObjectReuse() {
+        assertFalse(TaskBusinessBinding.referencesExistingObjects(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{}")));
+        assertThrows(RuntimeException.class, () -> TaskBusinessBinding.referencesExistingObjects(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{\"instanceResolutionStrategy\":true}")));
     }
 }

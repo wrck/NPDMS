@@ -41,7 +41,7 @@ public class AssetLocationController {
     @Operation(summary = "查询地址")
     @PreAuthorize("@ss.hasPermission('pms:asset-location:query')")
     public CommonResult<AddressRespDTO> getAddress(@RequestParam("id") Long id,
-                                                    @RequestParam(value = "version", required = false) Integer version) {
+                                                    @RequestParam(value = "version", required = false) Long version) {
         return success(assetLocationApi.getAddress(id, version));
     }
 
@@ -56,7 +56,7 @@ public class AssetLocationController {
     @Operation(summary = "查询站点")
     @PreAuthorize("@ss.hasPermission('pms:asset-location:query')")
     public CommonResult<SiteRespDTO> getSite(@RequestParam("id") Long id,
-                                              @RequestParam(value = "version", required = false) Integer version) {
+                                              @RequestParam(value = "version", required = false) Long version) {
         return success(assetLocationApi.getSite(id, version));
     }
 

@@ -17,16 +17,18 @@ import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.*;
 
 class ProjectContactContextApiImplTest {
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi regional = mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
     private final ProjectMasterMapper projects = mock(ProjectMasterMapper.class);
     private final ProjectMemberAssignmentMapper members = mock(ProjectMemberAssignmentMapper.class);
     private final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     private final ProjectAncestorQueryApi ancestors = mock(ProjectAncestorQueryApi.class);
     private final AuthorizationGrantApi grants = mock(AuthorizationGrantApi.class);
     private final cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService projectRoles = mock(cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService.class);
-    private final ProjectContactContextApiImpl api = new ProjectContactContextApiImpl(projects,members,scopes,ancestors,grants,mock(CustomerQueryApi.class),projectRoles);
+    private final CustomerQueryApi customers = mock(CustomerQueryApi.class);
+    private final ProjectContactContextApiImpl api = new ProjectContactContextApiImpl(projects,members,scopes,ancestors,grants,customers,projectRoles, regional);
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
-        var row = new ProjectMasterDO(); row.setId(7L); row.setTenantId(1L); row.setCustomerId(8L); row.setVersion(2); row.setLifecycleStatus("ACTIVE");
+        var row = new ProjectMasterDO(); row.setId(7L); row.setTenantId(1L); row.setCustomerId(8L); row.setVersion(2L); row.setLifecycleStatus("ACTIVE");
         when(projects.selectById(7L)).thenReturn(row); when(projects.selectByIdForUpdate(7L)).thenReturn(row);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(7L,1L,Set.of(7L),Set.of()));
         when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(7L,1L,Set.of(7L),Set.of()));
@@ -36,29 +38,81 @@ class ProjectContactContextApiImplTest {
     @AfterEach void clear() { TenantContextHolder.clear(); }
     @Test void superAdminCanMaintainContactsWithoutPretendingToBeAProjectManager() {
         when(projectRoles.isTenantSuperAdmin(1L, 3L)).thenReturn(true);
-        assertTrue(api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2)).canManage());
-        verify(members, never()).selectParticipantFacts(any());
-        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,1)));
+        assertTrue(api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)).canManage());
+        verify(members, never()).selectAuthorizationParticipantFacts(any());
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,1L)));
     }
     @Test void visibleServiceRoleAloneDoesNotGrantContactMaintenance() {
-        when(members.selectParticipantFacts(any())).thenReturn(List.of());
+        when(members.selectAuthorizationParticipantFacts(any())).thenReturn(List.of());
         assertFalse(api.inspect(new ProjectContactContextApi.Query(1L,3L,7L)).canManage());
-        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2)));
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)));
+    }
+
+    @Test void unconfirmedMembershipDoesNotAdvertiseOrAcquireContactWriteAuthority() {
+        when(members.selectParticipantFacts(any())).thenReturn(List.of(new ProjectMemberAssignmentDO()));
+        assertFalse(api.inspect(new ProjectContactContextApi.Query(1L,3L,7L)).canManage());
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)));
+        verify(members, never()).selectParticipantFacts(any());
     }
     @Test void managerCanMaintainOnlyWithCurrentProjectVersion() {
-        when(members.selectParticipantFacts(any())).thenReturn(List.of(new ProjectMemberAssignmentDO()));
-        var context = api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2));
+        when(regional.lockCurrent(any())).thenAnswer(call -> cn.iocoder.yudao.module.pms.project.api.participant.ManagementQualificationTestFacts.locked(call.getArgument(0)));
+        when(members.selectAuthorizationParticipantFacts(any())).thenReturn(List.of(new ProjectMemberAssignmentDO()));
+        when(members.selectAuthorizationParticipantFactsForUpdate(any())).thenReturn(List.of(new ProjectMemberAssignmentDO()));
+        var context = api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L));
         assertTrue(context.canManage()); assertEquals(8L, context.customerId());
-        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,1)));
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,1L)));
         assertThrows(RuntimeException.class, () -> api.inspect(new ProjectContactContextApi.Query(2L,3L,7L)));
     }
 
+    @Test void regionalManagerWriteLocksItsSourceAndRejectsRevocation() {
+        when(regional.permits(any())).thenReturn(true);
+        assertTrue(api.inspect(new ProjectContactContextApi.Query(1L,3L,7L)).canManage());
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)));
+        when(regional.lockCurrent(any())).thenAnswer(call -> cn.iocoder.yudao.module.pms.project.api.participant.ManagementQualificationTestFacts.locked(call.getArgument(0)));
+        assertTrue(api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)).canManage());
+        verify(regional, times(2)).lockCurrent(any());
+    }
+
     @Test void closedProjectManagerKeepsHistoryReadButCannotWrite() {
-        when(members.selectParticipantFacts(any())).thenReturn(List.of(new ProjectMemberAssignmentDO()));
-        var closed = new ProjectMasterDO(); closed.setId(7L); closed.setTenantId(1L); closed.setCustomerId(8L); closed.setVersion(2); closed.setLifecycleStatus("NORMAL_CLOSED");
+        when(members.selectAuthorizationParticipantFacts(any())).thenReturn(List.of(new ProjectMemberAssignmentDO()));
+        when(members.selectAuthorizationParticipantFactsForUpdate(any())).thenReturn(List.of(new ProjectMemberAssignmentDO()));
+        var closed = new ProjectMasterDO(); closed.setId(7L); closed.setTenantId(1L); closed.setCustomerId(8L); closed.setVersion(2L); closed.setLifecycleStatus("NORMAL_CLOSED");
         when(projects.selectById(7L)).thenReturn(closed); when(projects.selectByIdForUpdate(7L)).thenReturn(closed);
         var context = api.inspect(new ProjectContactContextApi.Query(1L,3L,7L));
         assertFalse(context.canManage()); assertTrue(context.canViewHistory());
-        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2)));
+        assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)));
+    }
+
+    @Test void resolvesCodeOnlyCustomerForContactReadAndWriteWithoutChangingProject() {
+        var row = projects.selectById(7L);
+        row.setCustomerId(null); row.setCustomerCode("CUS-8");
+        when(projectRoles.isTenantSuperAdmin(1L, 3L)).thenReturn(true);
+        when(customers.getCustomerByCode(any())).thenReturn(new cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerSummaryDTO(
+                8L, 1L, "CUS-8", "客户", null, "ENABLED", "CRM_SYNC", 0L, null));
+        assertEquals(8L, api.inspect(new ProjectContactContextApi.Query(1L, 3L, 7L)).customerId());
+        assertEquals(8L, api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L, 3L, 7L, 2L)).customerId());
+        verify(customers, times(2)).getCustomerByCode(new cn.iocoder.yudao.module.pms.customer.api.query.dto.CustomerCodeQuery("CUS-8", 3L));
+        assertNull(row.getCustomerId());
+        verify(projects, never()).associateCustomerIfMissing(any());
+    }
+
+    @Test void doesNotGuessMissingCustomerOrBypassCustomerScope() {
+        var row = projects.selectById(7L);
+        row.setCustomerId(null); row.setCustomerCode("CUS-8");
+        assertThrows(RuntimeException.class, () -> api.inspect(new ProjectContactContextApi.Query(1L, 3L, 7L)));
+        when(customers.getCustomerByCode(any())).thenThrow(new IllegalStateException("scope denied"));
+        assertThrows(IllegalStateException.class, () -> api.inspect(new ProjectContactContextApi.Query(1L, 3L, 7L)));
+        verify(projects, never()).associateCustomerIfMissing(any());
+    }
+
+    @Test void preservesStoredCustomerIdentityWithoutLookingUpCode() {
+        assertEquals(8L, api.inspect(new ProjectContactContextApi.Query(1L, 3L, 7L)).customerId());
+        verifyNoInteractions(customers);
+    }
+
+    @Test void keepsTrulyUnassociatedProjectAvailableForExplicitAssociation() {
+        var row = projects.selectById(7L); row.setCustomerId(null);
+        assertNull(api.inspect(new ProjectContactContextApi.Query(1L, 3L, 7L)).customerId());
+        verifyNoInteractions(customers);
     }
 }

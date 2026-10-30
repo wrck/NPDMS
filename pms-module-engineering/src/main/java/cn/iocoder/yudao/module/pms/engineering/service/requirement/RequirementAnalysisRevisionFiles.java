@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception0;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_CONTENT_INVALID;
+
 /** Current views resolve the effective revision's immutable file references. */
 @Service
 @RequiredArgsConstructor
@@ -14,23 +17,52 @@ public class RequirementAnalysisRevisionFiles {
     private final FileArtifactApi files;
     private final RequirementAnalysisAccess access;
     private final EntityFormApi forms;
+    @org.springframework.beans.factory.annotation.Autowired
+    private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi materials;
 
     public List<FileReferenceSetFact> inspect(RevisionRef revision, EntityActor actor) {
         var row = access.read(revision.revisionId(), actor);
         if (!row.entityRef().equals(revision.entity())) throw new IllegalArgumentException("File revision identity mismatch");
         var layout = forms.layout(EntityDataRef.revision(revision), actor);
-        if (layout == null) return List.of();
-        var keys = layout.fields().stream().filter(field -> field.controlledFile()).map(field -> key(revision,
-                FormAttachmentPolicy.PURPOSE_PREFIX + field.fieldKey())).toList();
+        Set<String> purposes = new LinkedHashSet<>(RequirementAnalysisFields.attachmentKeys());
+        // Existing extra file slots remain part of the original business evidence.
+        if (layout != null) layout.fields().stream().filter(field -> field.controlledFile()).forEach(field -> purposes.add(field.fieldKey()));
+        var keys = purposes.stream().map(field -> key(revision, FormAttachmentPolicy.PURPOSE_PREFIX + field)).toList();
         if (keys.isEmpty()) return List.of();
         return files.inspectReferenceSets(new FileReferenceSetCollectionQuery(keys, FileActionCodes.READ));
     }
 
     public void lockForFreeze(RevisionRef revision, EntityActor actor) {
-        var facts = inspect(revision, actor);
-        if (facts.isEmpty()) return;
-        files.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(facts.stream()
+        lockReferenceSets(inspect(revision, actor)).forEach(set -> set.activeFacts().forEach(materials::registerNativeSourceFile));
+    }
+
+    /** New completion requires topology evidence; reading old frozen results does not add requirements retroactively. */
+    public void lockForCompletion(RevisionRef revision, EntityActor actor) {
+        var locked = lockReferenceSets(inspect(revision, actor));
+        boolean topologyPresent = locked.stream().filter(set -> set.key().purposeCode().equals(
+                FormAttachmentPolicy.PURPOSE_PREFIX + "NETWORK_TOPOLOGY__ATTACHMENTS"))
+                .flatMap(set -> set.activeFacts().stream())
+                .anyMatch(file -> "AVAILABLE".equals(file.availabilityStatus()) && "ACTIVE".equals(file.referenceStatus()));
+        if (!topologyPresent) throw exception0(REQUIREMENT_ANALYSIS_CONTENT_INVALID.getCode(),
+                "需求分析未完成：请在“网络拓扑”上传至少一个有效附件");
+        locked.forEach(set -> set.activeFacts().forEach(materials::registerNativeSourceFile));
+    }
+
+    private List<FileReferenceSetFact> lockReferenceSets(List<FileReferenceSetFact> facts) {
+        if (facts.isEmpty()) return List.of();
+        return files.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(facts.stream()
                 .map(fact -> new FileReferenceSetExpectation(fact.key(), fact.scopeVersion(), fact.activeFacts())).toList(), FileActionCodes.READ));
+    }
+
+    /** Explicit business save: optional files become materials even without template requirements. */
+    public void registerSaved(RevisionRef revision, EntityActor actor) {
+        lockForFreeze(revision, actor);
+    }
+
+    public void registerActivated(cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO row) {
+        materials.registerBusinessResultMaterial("SOL","requirementAnalysis",row.getEntityId(),
+                RequirementAnalysisDeliveryEvidenceProvider.CODE,RequirementAnalysisDeliveryEvidenceProvider.TYPE,
+                String.valueOf(row.getId()),row.getRevisionNo().longValue(),"需求分析完成修订 v"+row.getRevisionNo(),row.getProjectId());
     }
 
     public void copy(RevisionRef source, RevisionRef target, EntityActor actor) {
@@ -44,7 +76,7 @@ public class RequirementAnalysisRevisionFiles {
                         FileActionCodes.READ, file.fileFactVersion(), file.scopeVersion()),
                 new ExistingFileReferenceTarget(RequirementAnalysisRevisionFilePolicy.OWNER, RequirementAnalysisRevisionFilePolicy.TYPE,
                         target.revisionId().toString(), set.key().purposeCode(), file.referenceKey(), targetRow.getId())))));
-        if (!items.isEmpty()) files.attachExistingVersions(new AttachExistingFileVersionsCommand("RA-REVISION-COPY-" + target.revisionId(), items));
+        if (!items.isEmpty()) files.attachExistingVersions(new AttachExistingFileVersionsCommand("RA-REVISION-COPY-" + target.revisionId(), items)).forEach(materials::registerNativeSourceFile);
     }
 
     private FileReferenceSetKey key(RevisionRef revision, String purpose) {

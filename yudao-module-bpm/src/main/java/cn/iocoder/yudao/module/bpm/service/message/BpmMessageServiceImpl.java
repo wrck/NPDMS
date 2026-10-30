@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.bpm.service.message;
 
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.web.config.WebProperties;
 import cn.iocoder.yudao.module.bpm.convert.message.BpmMessageConvert;
 import cn.iocoder.yudao.module.bpm.enums.message.BpmMessageEnum;
@@ -8,6 +9,7 @@ import cn.iocoder.yudao.module.bpm.service.message.dto.BpmMessageSendWhenProcess
 import cn.iocoder.yudao.module.bpm.service.message.dto.BpmMessageSendWhenTaskCreatedReqDTO;
 import cn.iocoder.yudao.module.bpm.service.message.dto.BpmMessageSendWhenTaskTimeoutReqDTO;
 import cn.iocoder.yudao.module.system.api.sms.SmsSendApi;
+import cn.iocoder.yudao.module.system.api.sms.dto.send.SmsSendSingleToUserReqDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -15,6 +17,8 @@ import org.springframework.validation.annotation.Validated;
 import jakarta.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
+
+import static cn.iocoder.yudao.module.system.enums.ErrorCodeConstants.SMS_SEND_MOBILE_NOT_EXISTS;
 
 /**
  * BPM 消息 Service 实现类
@@ -37,7 +41,7 @@ public class BpmMessageServiceImpl implements BpmMessageService {
         Map<String, Object> templateParams = new HashMap<>();
         templateParams.put("processInstanceName", reqDTO.getProcessInstanceName());
         templateParams.put("detailUrl", getProcessInstanceDetailUrl(reqDTO.getProcessInstanceId()));
-        smsSendApi.sendSingleSmsToAdmin(BpmMessageConvert.INSTANCE.convert(reqDTO.getStartUserId(),
+        sendSmsNotification(BpmMessageConvert.INSTANCE.convert(reqDTO.getStartUserId(),
                 BpmMessageEnum.PROCESS_INSTANCE_APPROVE.getSmsTemplateCode(), templateParams));
     }
 
@@ -47,7 +51,7 @@ public class BpmMessageServiceImpl implements BpmMessageService {
         templateParams.put("processInstanceName", reqDTO.getProcessInstanceName());
         templateParams.put("reason", reqDTO.getReason());
         templateParams.put("detailUrl", getProcessInstanceDetailUrl(reqDTO.getProcessInstanceId()));
-        smsSendApi.sendSingleSmsToAdmin(BpmMessageConvert.INSTANCE.convert(reqDTO.getStartUserId(),
+        sendSmsNotification(BpmMessageConvert.INSTANCE.convert(reqDTO.getStartUserId(),
                 BpmMessageEnum.PROCESS_INSTANCE_REJECT.getSmsTemplateCode(), templateParams));
     }
 
@@ -58,7 +62,7 @@ public class BpmMessageServiceImpl implements BpmMessageService {
         templateParams.put("taskName", reqDTO.getTaskName());
         templateParams.put("startUserNickname", reqDTO.getStartUserNickname());
         templateParams.put("detailUrl", getProcessInstanceDetailUrl(reqDTO.getProcessInstanceId()));
-        smsSendApi.sendSingleSmsToAdmin(BpmMessageConvert.INSTANCE.convert(reqDTO.getAssigneeUserId(),
+        sendSmsNotification(BpmMessageConvert.INSTANCE.convert(reqDTO.getAssigneeUserId(),
                 BpmMessageEnum.TASK_ASSIGNED.getSmsTemplateCode(), templateParams));
     }
 
@@ -68,8 +72,21 @@ public class BpmMessageServiceImpl implements BpmMessageService {
         templateParams.put("processInstanceName", reqDTO.getProcessInstanceName());
         templateParams.put("taskName", reqDTO.getTaskName());
         templateParams.put("detailUrl", getProcessInstanceDetailUrl(reqDTO.getProcessInstanceId()));
-        smsSendApi.sendSingleSmsToAdmin(BpmMessageConvert.INSTANCE.convert(reqDTO.getAssigneeUserId(),
+        sendSmsNotification(BpmMessageConvert.INSTANCE.convert(reqDTO.getAssigneeUserId(),
                 BpmMessageEnum.TASK_TIMEOUT.getSmsTemplateCode(), templateParams));
+    }
+
+    private void sendSmsNotification(SmsSendSingleToUserReqDTO request) {
+        try {
+            smsSendApi.sendSingleSmsToAdmin(request);
+        } catch (ServiceException failure) {
+            if (!SMS_SEND_MOBILE_NOT_EXISTS.getCode().equals(failure.getCode())) {
+                throw failure;
+            }
+            // A missing notification address must not roll back approval or suppress its Owner result event.
+            log.warn("[sendSmsNotification][BPM SMS skipped: recipient mobile missing, userId={}, templateCode={}]",
+                    request.getUserId(), request.getTemplateCode());
+        }
     }
 
     private String getProcessInstanceDetailUrl(String taskId) {

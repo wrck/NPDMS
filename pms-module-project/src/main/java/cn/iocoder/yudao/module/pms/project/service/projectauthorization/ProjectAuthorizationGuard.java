@@ -81,6 +81,48 @@ public class ProjectAuthorizationGuard {
     @Resource
     private ValidationInitialAssignmentPolicy validationInitialAssignmentPolicy;
 
+    /** 主责任命以当前项目内有效且已确认的服务经理成员角色为准。 */
+    public boolean canAppointPrimaryProjectManager(Actor actor, Long projectId) {
+        requireActor(actor);
+        var project = requireProject(actor.tenantId(), projectId);
+        if (firstManagerInitialization(project)) return true;
+        return memberMapper.selectAuthorizedByUser(new ActiveProjectMemberQuery(
+                actor.tenantId(), actor.actorId(), LocalDateTime.now(), Set.of(projectId))).stream()
+                .anyMatch(member -> Objects.equals(member.getTenantId(), actor.tenantId())
+                        && Objects.equals(member.getProjectId(), projectId)
+                        && Objects.equals(member.getUserId(), actor.actorId())
+                        && SERVICE_MANAGER_ROLES.contains(member.getMemberRole()));
+    }
+
+    public void assertCanAppointPrimaryProjectManager(Actor actor, ProjectMasterDO project) {
+        requireActor(actor);
+        if (project != null && Objects.equals(project.getTenantId(), actor.tenantId())
+                && firstManagerInitialization(project)) return;
+        if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())
+                || memberMapper.selectAuthorizedByUserForUpdate(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberForUpdateQuery(
+                        actor.tenantId(), project.getId(), actor.actorId(), LocalDateTime.now())).stream()
+                .noneMatch(member -> SERVICE_MANAGER_ROLES.contains(member.getMemberRole())))
+            throw exception(PROJECT_AUTHORIZATION_FORBIDDEN);
+    }
+
+    /** 首次仍须先通过调用方既有的功能授权与项目指派授权，不新增放行路径。 */
+    public void assertCanMaintainServiceManagers(Actor actor, ProjectMasterDO project) {
+        assertCanAppointPrimaryProjectManager(actor, project);
+    }
+
+    public boolean isFirstManagerInitialization(Actor actor, Long projectId) {
+        requireActor(actor);
+        return firstManagerInitialization(requireProject(actor.tenantId(), projectId));
+    }
+
+    private boolean firstManagerInitialization(ProjectMasterDO project) {
+        return "S0".equals(project.getCurrentStage()) && "UNASSIGNED".equals(project.getAssignmentStatus())
+                && !memberMapper.hasServiceManagerHistory(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectServiceManagerHistoryQuery(
+                        project.getTenantId(), project.getId()));
+    }
+
     public void assertCanAssign(Actor actor, Long projectId) {
         resolveBounds(actor, projectId, true, false);
     }
@@ -156,7 +198,10 @@ public class ProjectAuthorizationGuard {
     private void requireServiceManagerRole(Actor actor) {
         if (Objects.equals(actor.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
                 && permissionApi.hasAnyRoles(actor.actorId(), cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) return;
-        boolean matches = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
+        // The target's MANAGE scope is checked independently by resolveBounds; global role alone grants nothing.
+        if (Objects.equals(actor.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
+                && permissionApi.hasAnyRoles(actor.actorId(), SERVICE_MANAGER_ROLES.toArray(String[]::new))) return;
+        boolean matches = memberMapper.selectAuthorizedByUser(new ActiveProjectMemberQuery(
                         actor.tenantId(), actor.actorId(), LocalDateTime.now())).stream()
                 .map(ProjectMemberAssignmentDO::getMemberRole)
                 .anyMatch(SERVICE_MANAGER_ROLES::contains);

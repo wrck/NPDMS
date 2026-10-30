@@ -22,11 +22,11 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - 需求分析 Controller（FR-ENG-004）。
  * <p>
- * 路径前缀 {@code /pms/eng-requirement}。
+ * 路径前缀 {@code /pms/sol-requirement}。
  */
 @Tag(name = "管理后台 - 需求分析")
 @RestController
-@RequestMapping("/pms/eng-requirement")
+@RequestMapping("/pms/sol-requirement")
 @Validated
 public class RequirementController {
 
@@ -35,14 +35,14 @@ public class RequirementController {
 
     @PostMapping("/create")
     @Operation(summary = "创建需求分析")
-    @PreAuthorize("@ss.hasPermission('pms:eng-requirement:create')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-requirement:create')")
     public CommonResult<Long> createRequirement(@Valid @RequestBody RequirementSaveReqVO createReqVO) {
         return success(requirementService.createRequirement(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新需求分析")
-    @PreAuthorize("@ss.hasPermission('pms:eng-requirement:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-requirement:update')")
     public CommonResult<Boolean> updateRequirement(@Valid @RequestBody RequirementSaveReqVO updateReqVO) {
         requirementService.updateRequirement(updateReqVO);
         return success(true);
@@ -51,7 +51,7 @@ public class RequirementController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除需求分析")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-requirement:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-requirement:delete')")
     public CommonResult<Boolean> deleteRequirement(@RequestParam("id") Long id) {
         requirementService.deleteRequirement(id);
         return success(true);
@@ -60,7 +60,7 @@ public class RequirementController {
     @GetMapping("/get")
     @Operation(summary = "查询需求分析详情")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-requirement:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-requirement:query')")
     public CommonResult<RequirementRespVO> getRequirement(@RequestParam("id") Long id) {
         RequirementDO requirement = requirementService.getRequirement(id);
         return success(BeanUtils.toBean(requirement, RequirementRespVO.class));
@@ -68,7 +68,7 @@ public class RequirementController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询需求分析")
-    @PreAuthorize("@ss.hasPermission('pms:eng-requirement:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-requirement:query')")
     public CommonResult<PageResult<RequirementRespVO>> getRequirementPage(@Validated RequirementPageReqVO pageReqVO) {
         PageResult<RequirementDO> pageResult = requirementService.getRequirementPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, RequirementRespVO.class));
@@ -77,7 +77,7 @@ public class RequirementController {
     @PutMapping("/submit")
     @Operation(summary = "提交需求")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-requirement:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-requirement:update')")
     public CommonResult<Boolean> submitRequirement(@RequestParam("id") Long id) {
         requirementService.submitRequirement(id);
         return success(true);
@@ -86,7 +86,7 @@ public class RequirementController {
     @PutMapping("/mark-effective")
     @Operation(summary = "标记需求生效")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-requirement:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-requirement:update')")
     public CommonResult<Boolean> markEffective(@RequestParam("id") Long id) {
         requirementService.markEffective(id);
         return success(true);
@@ -95,7 +95,7 @@ public class RequirementController {
     @PutMapping("/archive")
     @Operation(summary = "归档需求")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-requirement:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-requirement:update')")
     public CommonResult<Boolean> archiveRequirement(@RequestParam("id") Long id) {
         requirementService.archiveRequirement(id);
         return success(true);

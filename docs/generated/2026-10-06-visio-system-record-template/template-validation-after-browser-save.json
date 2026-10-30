@@ -1,0 +1,35 @@
+{
+  "valid": false,
+  "issues": [
+    {
+      "field": "deliverables[1].configuration",
+      "code": "INVALID_DELIVERABLE_CONFIGURATION",
+      "message": "rule: object required"
+    },
+    {
+      "field": "tasks[3].completionRule",
+      "code": "REQUIRED",
+      "message": "任务必须配置完成规则"
+    },
+    {
+      "field": "tasks[8].completionRule",
+      "code": "REQUIRED",
+      "message": "任务必须配置完成规则"
+    },
+    {
+      "field": "tasks[9].completionRule",
+      "code": "REQUIRED",
+      "message": "任务必须配置完成规则"
+    },
+    {
+      "field": "tasks[10].completionRule",
+      "code": "REQUIRED",
+      "message": "任务必须配置完成规则"
+    },
+    {
+      "field": "tasks[15].completionRule",
+      "code": "REQUIRED",
+      "message": "任务必须配置完成规则"
+    }
+  ]
+}

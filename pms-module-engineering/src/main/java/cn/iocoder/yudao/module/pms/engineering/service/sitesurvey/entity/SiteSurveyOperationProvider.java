@@ -1,0 +1,50 @@
+package cn.iocoder.yudao.module.pms.engineering.service.sitesurvey.entity;
+
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectBusinessOperationDescriptor;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectBusinessOperationProvider;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOperationControlScope;
+import org.springframework.stereotype.Component;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/** Authoring metadata for the existing Owner commands; does not enable all-entry execution control. */
+@Component
+public class SiteSurveyOperationProvider implements ProjectBusinessOperationProvider {
+    @Override
+    public List<ProjectBusinessOperationDescriptor> operations() {
+        return List.of(
+                new ProjectBusinessOperationDescriptor("SOL.SITE_SURVEY.CREATE", 1, "SOL", "SITE_SURVEY", "创建工勘", "CREATE",
+                        Set.of("PRE", "POST"), SiteSurveyEntityService.class, "createSiteSurveyEntity"),
+                new ProjectBusinessOperationDescriptor("SOL.SITE_SURVEY.UPDATE", 1, "SOL", "SITE_SURVEY", "保存工勘", "UPDATE",
+                        Set.of("PRE", "POST"), SiteSurveyEntityService.class, "updateSiteSurveyEntity"),
+                new ProjectBusinessOperationDescriptor("SOL.SITE_SURVEY.DELETE", 1, "SOL", "SITE_SURVEY", "删除草稿", "DELETE",
+                        Set.of("PRE", "POST"), SiteSurveyEntityService.class, "deleteSiteSurveyEntity"),
+                new ProjectBusinessOperationDescriptor("SOL.SITE_SURVEY.CONFIRM", 1, "SOL", "SITE_SURVEY", "确认工勘", "CONFIRM",
+                        Set.of("PRE", "POST"), SiteSurveyEntityService.class, "confirmSiteSurveyEntity"),
+                new ProjectBusinessOperationDescriptor("SOL.SITE_SURVEY.REJECT", 1, "SOL", "SITE_SURVEY", "驳回工勘", "REJECT",
+                        Set.of("PRE", "POST"), SiteSurveyEntityService.class, "rejectSiteSurveyEntity"),
+                new ProjectBusinessOperationDescriptor("SOL.SITE_SURVEY.ARCHIVE", 1, "SOL", "SITE_SURVEY", "归档工勘", "ARCHIVE",
+                        Set.of("PRE", "POST"), SiteSurveyEntityService.class, "archiveSiteSurveyEntity"));
+    }
+
+    @Override
+    public Map<String, ProjectOperationControlScope> controlScopes() {
+        var independent = ProjectOperationControlScope.PROJECT_ENTRY_ONLY;
+        return Map.of("SOL.SITE_SURVEY.CREATE", independent, "SOL.SITE_SURVEY.UPDATE", independent,
+                "SOL.SITE_SURVEY.DELETE", independent, "SOL.SITE_SURVEY.CONFIRM", independent,
+                "SOL.SITE_SURVEY.REJECT", independent, "SOL.SITE_SURVEY.ARCHIVE", independent);
+    }
+
+    /** Native functional permissions; actual Owner methods still authorize every command. */
+    @Override
+    public java.util.Map<String, String> permissionCodes() {
+        return java.util.Map.of(
+                "SOL.SITE_SURVEY.CREATE", "pms:sol-site-survey:create",
+                "SOL.SITE_SURVEY.UPDATE", "pms:sol-site-survey:update",
+                "SOL.SITE_SURVEY.DELETE", "pms:sol-site-survey:delete",
+                "SOL.SITE_SURVEY.CONFIRM", "pms:sol-site-survey:update",
+                "SOL.SITE_SURVEY.REJECT", "pms:sol-site-survey:update",
+                "SOL.SITE_SURVEY.ARCHIVE", "pms:sol-site-survey:update");
+    }
+}

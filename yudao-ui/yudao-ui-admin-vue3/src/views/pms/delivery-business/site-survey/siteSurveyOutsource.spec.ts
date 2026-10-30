@@ -9,10 +9,10 @@ import { mergeSurveyValues } from './siteSurveyForm'
 describe('one outsourcing shortcut for a whole site survey', () => {
   it('carries only the saved survey identity into the original outsourcing route', () => {
     expect(outsourceShortcutRoute(30011)).toEqual({
-      path: '/pms/engineering/procurement/eng-outsource',
+      path: '/pms/engineering/procurement/res-outsource',
       query: { siteSurveyId: '30011' }
     })
-    expect(outsourceDetailUrl(44)).toBe('/pms/engineering/procurement/eng-outsource?requestId=44')
+    expect(outsourceDetailUrl(44)).toBe('/pms/engineering/procurement/res-outsource?requestId=44')
   })
   it('rejects absent, repeated and malformed route identities', () => {
     expect(positiveShortcutId('30011')).toBe('30011')

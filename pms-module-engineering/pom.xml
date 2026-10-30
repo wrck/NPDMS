@@ -15,6 +15,16 @@
     <dependencies>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-cutover-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.8</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-engineering-api</artifactId>
             <version>${revision}</version>
         </dependency>
@@ -30,7 +40,22 @@
         </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-platform-support</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-asset-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-commerce-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-acceptance-api</artifactId>
             <version>${revision}</version>
         </dependency>
         <dependency>
@@ -71,6 +96,12 @@
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
             <artifactId>yudao-spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-acceptance</artifactId>
+            <version>${revision}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

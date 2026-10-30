@@ -50,14 +50,14 @@ public class EhrOrganizationAdapter implements DataSyncAdapter {
         for(Row r:rows.values()) {
             if(!Set.of("COMPANY","DEPARTMENT").contains(r.object())) throw new IllegalArgumentException("未知组织对象");
             String company=reference(r.fields().get("companyKey"));
-            if(company!=null&&!rows.containsKey(key("COMPANY",company))) throw new IllegalArgumentException("所属公司来源未映射");
+            if(company!=null&&!rows.containsKey(key("COMPANY",company))) throw new IllegalArgumentException("所属公司来源未映射: "+company);
             String parent=reference(r.fields().get("parentKey"));
             String parentKey=parent==null?null:key("DEPARTMENT",parent);
-            if(parentKey!=null&&!rows.containsKey(parentKey)) throw new IllegalArgumentException("父部门来源未映射");
+            if(parentKey!=null&&!rows.containsKey(parentKey)) throw new IllegalArgumentException("父部门来源未映射: "+parent);
             if(batch.full()&&seen.contains(key(r.object(),r.sourceKey())) && parentKey!=null&&!seen.contains(parentKey))
-                throw new IllegalArgumentException("完整来源快照中父部门缺失");
+                throw new IllegalArgumentException("完整来源快照中父部门缺失: "+parent);
             if(batch.full()&&seen.contains(key(r.object(),r.sourceKey())) && company!=null&&!seen.contains(key("COMPANY",company)))
-                throw new IllegalArgumentException("完整来源快照中所属公司缺失");
+                throw new IllegalArgumentException("完整来源快照中所属公司缺失: "+company);
             ManagedOrganizationApi.Node entity;
             Long targetId=r.targetId();
             Object requested=r.fields().get("_sourcePrimaryKey");

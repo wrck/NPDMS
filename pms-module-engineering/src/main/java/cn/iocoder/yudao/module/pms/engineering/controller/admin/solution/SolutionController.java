@@ -24,11 +24,11 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 /**
  * 管理后台 - 实施方案 Controller（FR-ENG-011 / FR-ENG-013）。
  * <p>
- * 路径前缀 {@code /pms/eng-solution}。
+ * 路径前缀 {@code /pms/sol-solution}。
  */
 @Tag(name = "管理后台 - 实施方案")
 @RestController
-@RequestMapping("/pms/eng-solution")
+@RequestMapping("/pms/sol-solution")
 @Validated
 public class SolutionController {
 
@@ -37,14 +37,14 @@ public class SolutionController {
 
     @PostMapping("/create")
     @Operation(summary = "创建实施方案")
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:create')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:create')")
     public CommonResult<Long> createSolution(@Valid @RequestBody SolutionSaveReqVO createReqVO) {
         return success(solutionService.createSolution(createReqVO));
     }
 
     @PutMapping("/update")
     @Operation(summary = "更新实施方案")
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:update')")
     public CommonResult<Boolean> updateSolution(@Valid @RequestBody SolutionSaveReqVO updateReqVO) {
         solutionService.updateSolution(updateReqVO);
         return success(true);
@@ -53,7 +53,7 @@ public class SolutionController {
     @DeleteMapping("/delete")
     @Operation(summary = "删除实施方案")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:delete')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:delete')")
     public CommonResult<Boolean> deleteSolution(@RequestParam("id") Long id) {
         solutionService.deleteSolution(id);
         return success(true);
@@ -62,7 +62,7 @@ public class SolutionController {
     @GetMapping("/get")
     @Operation(summary = "查询实施方案详情")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:query')")
     public CommonResult<SolutionRespVO> getSolution(@RequestParam("id") Long id) {
         SolutionDO solution = solutionService.getSolution(id);
         return success(BeanUtils.toBean(solution, SolutionRespVO.class));
@@ -70,7 +70,7 @@ public class SolutionController {
 
     @GetMapping("/page")
     @Operation(summary = "分页查询实施方案")
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:query')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:query')")
     public CommonResult<PageResult<SolutionRespVO>> getSolutionPage(@Validated SolutionPageReqVO pageReqVO) {
         PageResult<SolutionDO> pageResult = solutionService.getSolutionPage(pageReqVO);
         return success(BeanUtils.toBean(pageResult, SolutionRespVO.class));
@@ -79,7 +79,7 @@ public class SolutionController {
     @PutMapping("/submit")
     @Operation(summary = "提交方案")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:update')")
     public CommonResult<Boolean> submitSolution(@RequestParam("id") Long id) {
         solutionService.submitSolution(id);
         return success(true);
@@ -88,7 +88,7 @@ public class SolutionController {
     @PutMapping("/start-review")
     @Operation(summary = "开始评审")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:update')")
     public CommonResult<Boolean> startReview(@RequestParam("id") Long id) {
         solutionService.startReview(id);
         return success(true);
@@ -96,7 +96,7 @@ public class SolutionController {
 
     @PutMapping("/approve")
     @Operation(summary = "审批通过")
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:update')")
     public CommonResult<Boolean> approveSolution(@Valid @RequestBody SolutionApproveReqVO reqVO) {
         solutionService.approveSolution(reqVO);
         return success(true);
@@ -104,7 +104,7 @@ public class SolutionController {
 
     @PutMapping("/reject")
     @Operation(summary = "审批驳回")
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:update')")
     public CommonResult<Boolean> rejectSolution(@Valid @RequestBody SolutionApproveReqVO reqVO) {
         solutionService.rejectSolution(reqVO);
         return success(true);
@@ -113,7 +113,7 @@ public class SolutionController {
     @PutMapping("/withdraw")
     @Operation(summary = "撤回方案")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:update')")
     public CommonResult<Boolean> withdrawSolution(@RequestParam("id") Long id) {
         solutionService.withdrawSolution(id);
         return success(true);
@@ -122,7 +122,7 @@ public class SolutionController {
     @PutMapping("/terminate")
     @Operation(summary = "终止方案")
     @Parameter(name = "id", description = "编号", required = true)
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:update')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:update')")
     public CommonResult<Boolean> terminateSolution(@RequestParam("id") Long id) {
         solutionService.terminateSolution(id);
         return success(true);
@@ -130,7 +130,7 @@ public class SolutionController {
 
     @PostMapping("/generate-draft")
     @Operation(summary = "生成方案草稿")
-    @PreAuthorize("@ss.hasPermission('pms:eng-solution:create')")
+    @PreAuthorize("@ss.hasPermission('pms:sol-solution:create')")
     public CommonResult<Long> generateDraft(@Valid @RequestBody SolutionGenerateDraftReqVO reqVO) {
         return success(solutionService.generateDraft(reqVO));
     }

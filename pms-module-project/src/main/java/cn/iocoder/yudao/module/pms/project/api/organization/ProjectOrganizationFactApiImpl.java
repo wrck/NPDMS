@@ -40,7 +40,7 @@ public class ProjectOrganizationFactApiImpl implements ProjectOrganizationFactAp
         return fact(project);
     }
 
-    private void validate(Long projectId, Integer expectedVersion, boolean revalidate) {
+    private void validate(Long projectId, Long expectedVersion, boolean revalidate) {
         if (projectId == null || projectId <= 0
                 || revalidate && (expectedVersion == null || expectedVersion < 0)) {
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);

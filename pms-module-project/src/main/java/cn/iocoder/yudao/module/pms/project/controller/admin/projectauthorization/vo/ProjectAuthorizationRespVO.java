@@ -22,5 +22,5 @@ public class ProjectAuthorizationRespVO {
     private Long revokedBy;
     private LocalDateTime revokedAt;
     private String revokeReason;
-    private Integer version;
+    private Long version;
 }

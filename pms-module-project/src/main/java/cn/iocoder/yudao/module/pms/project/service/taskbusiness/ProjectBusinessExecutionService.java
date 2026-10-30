@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.taskbusiness;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
@@ -50,6 +51,17 @@ public class ProjectBusinessExecutionService implements ProjectBusinessExecution
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void lockForWrite(WriteRequest request) {
+        check(request, true);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean inspectForWrite(WriteRequest request) {
+        try { check(request, false); return true; }
+        catch (RuntimeException unavailable) { return false; }
+    }
+
+    private void check(WriteRequest request, boolean write) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         Long actorId = SecurityFrameworkUtils.getLoginUserId();
         if (actorId == null || request == null || request.projectId() == null || request.projectId() <= 0
@@ -61,9 +73,10 @@ public class ProjectBusinessExecutionService implements ProjectBusinessExecution
                 ? selection.task().projectId() : selection.stage().projectId())))
             throw exception(PROJECT_TASK_QUERY_INVALID);
         // The same project-first lock order as plan changes, rework and completion.
-        var project = projects.selectByIdForUpdate(request.projectId());
+        var project = write ? projects.selectByIdForUpdate(request.projectId()) : projects.selectById(request.projectId());
         if (project == null || !Objects.equals(project.getTenantId(), tenantId)) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         if (project.getActivePlanVersionId() == null && project.getLifecycleTemplateId() == null) {
+            if (planning(request)) throw exception(PROJECT_BUSINESS_EXECUTION_REQUIRED);
             if (selection != null) throw exception(PROJECT_TASK_QUERY_INVALID);
             return; // An unmanaged project remains governed by the Owner's ordinary business permissions.
         }
@@ -71,15 +84,17 @@ public class ProjectBusinessExecutionService implements ProjectBusinessExecution
         var plan = plans.selectEffective(scope);
         if (!"ACTIVE".equals(project.getLifecycleStatus()) || plan == null
                 || !Objects.equals(project.getActivePlanVersionId(), plan.getId())) throw exception(PROJECT_TASK_COMMAND_INVALID);
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
+        var target = durationTarget(snapshot, request);
         var candidates = new ArrayList<ProjectNodeExecutionDO>();
-        for (var node : nodes.selectCurrent(scope)) {
+        var currentNodes = nodes.selectCurrent(scope);
+        for (var node : currentNodes) {
             if (!Objects.equals(node.getPlanVersionId(), plan.getId()) || !"ACTIVE".equals(node.getStatus())) continue;
             if (selection != null && !(selection.task() != null
                     ? "TASK".equals(node.getNodeKind()) && Objects.equals(node.getId(), selection.task().executionId())
                     : "STAGE".equals(node.getNodeKind()) && Objects.equals(node.getId(), selection.stage().executionId()))) continue;
             var binding = binding(snapshot, node);
-            if (!matches(binding, request)) continue;
+            if (!matches(binding, target)) continue;
             // Standalone menus may resolve only a single actually writable node, never the first matching record.
             if (selection == null && !writable(project.getId(), node)) continue;
             candidates.add(node);
@@ -89,19 +104,52 @@ public class ProjectBusinessExecutionService implements ProjectBusinessExecution
         requireWritableView(binding(snapshot, node));
         if ("TASK".equals(node.getNodeKind())) {
             var task = taskAccess.read(node.getNodeInstanceId(), tenantId, actorId);
-            if (!taskAccess.writable(task, project, new Context(tenantId, actorId, project.getId(), task.getId(), null)))
+            var context = new Context(tenantId, actorId, project.getId(), task.getId(), null);
+            if (!(write ? taskAccess.writableLocked(task, project, context) : taskAccess.writable(task, project, context))
+                    && !taskAccess.planningOperationAllowed(new TaskBusinessAccess.PlanningOperationQuery(
+                            task, project, context, binding(snapshot, node))))
                 throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
             var expected = selection == null ? executions.inspect(taskQuery(project.getId(), node)) : selection.task();
-            executions.lockAndRevalidate(expected);
+            // Optional tasks may remain writable after their stage ends. Planning is limited to
+            // the actual active stage round without changing that broader optional-work contract.
+            if (planning(request)
+                    && currentNodes.stream().noneMatch(stage -> "STAGE".equals(stage.getNodeKind())
+                        && Objects.equals(stage.getId(), expected.stageExecutionId())
+                        && Objects.equals(stage.getPlanVersionId(), plan.getId())
+                        && Objects.equals(stage.getVersion(), expected.stageExecutionVersion()) && "ACTIVE".equals(stage.getStatus())))
+                throw exception(PROJECT_BUSINESS_EXECUTION_REQUIRED);
+            if (!expected.writable()) throw exception(PROJECT_BUSINESS_EXECUTION_REQUIRED);
+            if (write) executions.lockAndRevalidate(expected);
         } else {
-            var allowed = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, project.getId(), ProjectScopeApi.ACTION_EDIT));
+            var allowed = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(project.getId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
             if (!permissions.hasAnyPermissions(actorId, "pms:project-task:execute") || allowed == null
                     || allowed.fullProjectIds() == null || !allowed.fullProjectIds().contains(project.getId()))
                 throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
             var expected = selection == null ? executions.inspectStage(stageQuery(project.getId(), node)) : selection.stage();
             // Mark real stage work in this same Owner transaction; failure rolls it back with the Owner record.
-            executions.beginStageHandling(expected, actorId);
+            if (!expected.writable()) throw exception(PROJECT_BUSINESS_EXECUTION_REQUIRED);
+            if (write) executions.beginStageHandling(expected, actorId);
         }
+    }
+
+    private static boolean planning(WriteRequest request) {
+        return "PLN".equals(request.ownerContext()) && Set.of("CONSTRUCTION_PLAN", "STAGE_PLAN").contains(request.objectType());
+    }
+
+    /** Independent duration bindings own their complete lifecycle, including inactive rounds.
+     * Only a template with no such binding may embed duration entry in its construction-plan task. */
+    private WriteRequest durationTarget(TemplateExecutionSnapshot snapshot, WriteRequest request) {
+        if (!"PLN".equals(request.ownerContext()) || !"CONSTRUCTION_PLAN".equals(request.objectType())) return request;
+        boolean independent = java.util.stream.Stream.concat(
+                snapshot.getTasks().stream().map(TemplateExecutionSnapshot.TaskContract::getBinding),
+                snapshot.getStages().stream().map(TemplateExecutionSnapshot.StageContract::getBinding))
+                .anyMatch(binding -> binding != null && Objects.equals(request.ownerContext(), binding.getTargetContextCode())
+                        && Objects.equals(request.objectType(), binding.getTargetObjectType()));
+        return independent ? request : new WriteRequest(request.projectId(), "PLN", "STAGE_PLAN", request.selection());
     }
 
     private BindingContract binding(TemplateExecutionSnapshot snapshot, ProjectNodeExecutionDO node) {

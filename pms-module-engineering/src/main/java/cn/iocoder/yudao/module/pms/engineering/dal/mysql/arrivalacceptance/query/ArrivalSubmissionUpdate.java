@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 public record ArrivalSubmissionUpdate(
         Long tenantId,
         Long arrivalAcceptanceId,
-        Integer expectedVersion,
+        Long expectedVersion,
         String submittedStatus,
         Long evidenceId,
         Integer evidenceRevision,

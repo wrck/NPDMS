@@ -29,7 +29,7 @@ public interface ProjectSplitRequestMapper extends BaseMapperX<ProjectSplitReque
             """)
     int updateDraftIfMatch(@Param("id") Long id, @Param("expectedDraftVersion") Integer expectedDraftVersion,
                            @Param("templateRevisionId") Long templateRevisionId,
-                           @Param("parentVersion") Integer parentVersion, @Param("scopeVersion") Long scopeVersion,
+                           @Param("parentVersion") Long parentVersion, @Param("scopeVersion") Long scopeVersion,
                            @Param("treeVersion") Long treeVersion);
 
     @Update("""

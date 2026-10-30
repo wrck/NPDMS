@@ -44,10 +44,10 @@ class ProjectAcceptanceStageFactApiImplTest {
 
     @Test
     void returnsConfiguredAcceptanceStageWithoutSnapshotBeforeEntry() {
-        when(projectMapper.selectByIdForUpdate(10L)).thenReturn(project(3, "ACTIVE", "S4"));
+        when(projectMapper.selectByIdForUpdate(10L)).thenReturn(project(3L, "ACTIVE", "S4"));
         when(stageMapper.selectByProjectIdAndStageCode(10L, "S5")).thenReturn(stage("S5", "PENDING"));
 
-        var fact = api.lockAndRead(new ProjectAcceptanceStageFactQuery(1L, 10L, 3, "op-1"));
+        var fact = api.lockAndRead(new ProjectAcceptanceStageFactQuery(1L, 10L, 3L, "op-1"));
 
         assertEquals(ProjectFactOutcome.FOUND, fact.outcome());
         assertEquals("S4", fact.currentStageCode());
@@ -57,7 +57,7 @@ class ProjectAcceptanceStageFactApiImplTest {
 
     @Test
     void returnsImmutableEntrySnapshotWhenAlreadyInAcceptanceStage() {
-        when(projectMapper.selectByIdForUpdate(10L)).thenReturn(project(3, "ACTIVE", "S5"));
+        when(projectMapper.selectByIdForUpdate(10L)).thenReturn(project(3L, "ACTIVE", "S5"));
         when(stageMapper.selectByProjectIdAndStageCode(10L, "S5")).thenReturn(stage("S5", "ACTIVE"));
         ProjectStageSnapshotDO snapshot = new ProjectStageSnapshotDO();
         snapshot.setId(99L);
@@ -69,7 +69,7 @@ class ProjectAcceptanceStageFactApiImplTest {
         when(snapshotMapper.selectLatestStageEntry(new ProjectStageEntrySnapshotQuery(1L, 10L, "S5")))
                 .thenReturn(snapshot);
 
-        var fact = api.lockAndRead(new ProjectAcceptanceStageFactQuery(1L, 10L, 3, "op-2"));
+        var fact = api.lockAndRead(new ProjectAcceptanceStageFactQuery(1L, 10L, 3L, "op-2"));
 
         assertEquals(ProjectFactOutcome.FOUND, fact.outcome());
         assertEquals(99L, fact.projectStageSnapshotId());
@@ -77,9 +77,9 @@ class ProjectAcceptanceStageFactApiImplTest {
 
     @Test
     void returnsVersionConflictBeforeReadingStageFacts() {
-        when(projectMapper.selectByIdForUpdate(10L)).thenReturn(project(4, "ACTIVE", "S4"));
+        when(projectMapper.selectByIdForUpdate(10L)).thenReturn(project(4L, "ACTIVE", "S4"));
 
-        var fact = api.lockAndRead(new ProjectAcceptanceStageFactQuery(1L, 10L, 3, "op-3"));
+        var fact = api.lockAndRead(new ProjectAcceptanceStageFactQuery(1L, 10L, 3L, "op-3"));
 
         assertEquals(ProjectFactOutcome.VERSION_CONFLICT, fact.outcome());
     }
@@ -93,7 +93,7 @@ class ProjectAcceptanceStageFactApiImplTest {
         assertEquals(Propagation.MANDATORY, transactional.propagation());
     }
 
-    private ProjectMasterDO project(Integer version, String lifecycleStatus, String currentStage) {
+    private ProjectMasterDO project(Long version, String lifecycleStatus, String currentStage) {
         ProjectMasterDO row = new ProjectMasterDO();
         row.setId(10L);
         row.setTenantId(1L);

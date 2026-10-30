@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
+@lombok.extern.slf4j.Slf4j
 public class ProjectRuntimeCoordinator {
     private final ProjectStageAdmissionService admission;
     private final ProjectStageCompletionService completion;
@@ -52,6 +53,7 @@ public class ProjectRuntimeCoordinator {
                     admissionUnknown |= admitted.stream().anyMatch(item -> item.outcome() == RuleEvaluation.Outcome.UNKNOWN);
                 } catch (RuntimeException unavailable) {
                     // The single-stage command has rolled back before the next independent stage is evaluated.
+                    logFailure("STAGE_ADMISSION", projectId, stage.getId(), unavailable);
                     admissionUnknown = true;
                 }
             }
@@ -64,6 +66,7 @@ public class ProjectRuntimeCoordinator {
                     gateUnknown |= gates.evaluate(projectId, gate.getGateCode(), actorId, correlationId).evaluation().outcome() == RuleEvaluation.Outcome.UNKNOWN;
                 } catch (RuntimeException unavailable) {
                     // The proxied gate transaction has rolled back; independent nodes may still advance.
+                    logFailure("GATE", projectId, gate.getId(), unavailable);
                     gateUnknown = true;
                 }
             }
@@ -83,6 +86,7 @@ public class ProjectRuntimeCoordinator {
                     stageUnknown |= result.unknown();
                 } catch (RuntimeException unavailable) {
                     // The failed stage transaction has rolled back; independent stages can still finish.
+                    logFailure("STAGE_COMPLETION", projectId, stage.getId(), unavailable);
                     stageUnknown = true;
                 }
             }
@@ -93,5 +97,13 @@ public class ProjectRuntimeCoordinator {
         var closed = closure.closeIfSatisfied(projectId, actorId, correlationId);
         // Successful formal closure ends reevaluation even if an optional, unstarted branch had unavailable facts.
         return new Result(!closed.closed() && (closed.unknown() || unknown), activated, completed);
+    }
+
+    static void logFailure(String operation, Long projectId, Long nodeId, RuntimeException failure) {
+        // Exception messages can contain SQL parameters or business evidence. Log only code locations.
+        var cause = org.springframework.core.NestedExceptionUtils.getMostSpecificCause(failure);
+        log.warn("Project node failed: operation={}, projectId={}, nodeId={}, type={}, locations={}",
+                operation, projectId, nodeId, cause.getClass().getName(),
+                java.util.Arrays.stream(cause.getStackTrace()).limit(6).toList());
     }
 }

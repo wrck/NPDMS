@@ -1,3 +1,4 @@
+import { generateUUID } from '@/utils'
 import request from '@/config/axios'
 export type Id = string | number
 export interface Page<T> {
@@ -29,10 +30,14 @@ export interface Source {
   syncPrimaryKey?: boolean
   updatedAt?: string
   columns: string[]
-  filters: { column: string; operator: string; value?: unknown }[]
+  filters: { column: string; operator: string; value?: unknown; function?: string | null }[]
   mappings: Mapping[]
+  targets?: GenericTargetStep[]
+  issueField?: string
+  primaryTarget?: string
 }
 export interface Definition {
+  taskKey?: string
   adapter: string
   sourceSystem: string
   connectionId: Id
@@ -49,6 +54,11 @@ export interface Definition {
   maxRows: number
   autoPaging?: boolean
   maxBytes: number
+  readStrategy?: 'SNAPSHOT' | 'KEYSET_PAGING' | 'STREAMING_CURSOR'
+  fetchSize?: number
+  chunkSize?: number
+  restartPolicy?: 'RESTART_ALL' | 'CHECKPOINT_KEY' | 'NO_RESTART'
+  queryTimeoutSeconds?: number
   sources: Source[]
 }
 export interface Task {
@@ -68,6 +78,7 @@ export interface Adapter {
   missingPolicies: string[]
   loadingModes: string[]
   supportsTargetClear: boolean
+  supportsStreaming: boolean
   objects: {
     name: string
     label: string
@@ -108,6 +119,7 @@ export interface Binding {
   sourceKey: string
   targetId: Id
   fieldsJson: string
+  lastRunId?: Id
 }
 const base = '/api/v1/pms/integration'
 export const getConnections = (params = { pageNo: 1, pageSize: 100 }) =>
@@ -130,6 +142,16 @@ export const getEhrTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/ehr', params: { connectionId } })
 export const getDppmsOrderTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/dppms-orders', params: { connectionId } })
+export const getDppmsExecutionOrderTemplate = (connectionId: Id) =>
+  request.get<Definition>({
+    url: base + '/templates/dppms-execution-orders',
+    params: { connectionId }
+  })
+export const getPaymentAcceptanceTemplate = (connectionId: Id) =>
+  request.get<Definition>({
+    url: base + '/templates/payment-plan-acceptance',
+    params: { connectionId }
+  })
 export const getTasks = (params = { pageNo: 1, pageSize: 20 }) =>
   request.get<Page<Task>>({ url: base + '/tasks', params })
 export const getTask = (id: Id) => request.get<Task>({ url: base + '/tasks/' + id })
@@ -177,7 +199,7 @@ export const startRun = (
     data: {
       taskId: task.id,
       expectedVersion: task.version,
-      requestKey: crypto.randomUUID(),
+      requestKey: generateUUID(),
       preview,
       full,
       adoptExisting,
@@ -216,3 +238,41 @@ export const changeLabels: Record<string, string> = {
   ISSUE: '待处理问题',
   SKIPPED: '跳过'
 }
+
+export interface GenericTargetStep {
+  name: string
+  table: string
+  keys: string[]
+  mode: 'UPSERT' | 'INSERT_ONLY' | 'INSERT_IGNORE' | 'UPDATE_ONLY'
+  nullPolicy: 'IGNORE' | 'OVERWRITE'
+  updateColumns: string[]
+  whenField?: string | null
+  newerBy?: string | null
+  tieBreaker?: string | null
+  mappings: Mapping[]
+  lookups: {
+    table: string
+    match: Record<string, string>
+    outputs: Record<string, string>
+    onMissing: string
+  }[]
+}
+export interface GenericTarget {
+  table: string
+  label: string
+  writable: boolean
+  immutable: boolean
+  columns: string[]
+  updateColumns: string[]
+  keys: string[][]
+  insertDefaults: Record<string, unknown>
+}
+export interface GenericTemplate {
+  key: string
+  name: string
+  definition: Definition
+}
+export const getGenericTargets = () =>
+  request.get<GenericTarget[]>({ url: base + '/generic-targets' })
+export const getGenericTemplates = (connectionId: Id) =>
+  request.get<GenericTemplate[]>({ url: base + '/templates/generic', params: { connectionId } })

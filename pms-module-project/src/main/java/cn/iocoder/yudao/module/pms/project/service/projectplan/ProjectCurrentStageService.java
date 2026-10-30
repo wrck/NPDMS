@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
@@ -9,7 +9,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVers
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.ProjectRuntimeGraphMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectRuntimeGraphQuery;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectLifecycleStageFactApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,7 +30,7 @@ public class ProjectCurrentStageService implements ProjectLifecycleStageFactApi 
 
     /** Joins the stage/plan/round transition transaction; no read endpoint repairs state. */
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
-    public Integer synchronize(Long projectId) {
+    public Long synchronize(Long projectId) {
         var project = projects.selectByIdForUpdate(projectId);
         if (project == null || !Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId()))
             throw new IllegalArgumentException("PROJECT_NOT_FOUND");
@@ -68,7 +67,7 @@ public class ProjectCurrentStageService implements ProjectLifecycleStageFactApi 
         var plan = plans.selectEffective(new ProjectPlanScopeQuery(project.getTenantId(), project.getId()));
         if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId()))
             throw new IllegalStateException("PROJECT_PLAN_VERSION_UNAVAILABLE");
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         var result = new TreeSet<String>();
         for (var stage : graph.selectStages(new ProjectRuntimeGraphQuery(project.getTenantId(), project.getId()))) {
             if (!"ACTIVE".equals(stage.getStatus())) continue;

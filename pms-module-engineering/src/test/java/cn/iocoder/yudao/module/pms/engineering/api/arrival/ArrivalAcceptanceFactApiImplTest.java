@@ -500,7 +500,7 @@ class ArrivalAcceptanceFactApiImplTest {
         line.setScopeType("ORDER_MODEL_QUANTITY");
         line.setOrderLineId(2L);
         line.setProductCode("P-2");
-        line.setModelCode("M-2");
+        line.setProductModel("M-2");
         line.setAcceptedQuantity(new BigDecimal(quantity));
         line.setUnit("EA");
         return line;

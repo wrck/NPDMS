@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 public record DeviceListProjection(
         Long deviceId,
         String sn,
+        String name,
+        String status,
         String productCode,
         String productModel,
         String productName,
@@ -22,5 +24,16 @@ public record DeviceListProjection(
         String conpType,
         String conpSeries,
         String conpMark,
-        String syncStatus) {
+        String syncStatus,
+        String locationSnapshot,
+        String locationResolutionStatus,
+        Long companyId,
+        String companyName,
+        Long departmentId,
+        String departmentCode,
+        String departmentName,
+        String organizationSource,
+        String bootVersion,
+        String cpldVersion,
+        Long extendedCount) {
 }

@@ -28,7 +28,7 @@ public class CollectionTaskService implements CollectionTaskApi {
 
     private static final Set<String> COMPLETION_MODES = Set.of("BUSINESS_CONSUMPTION", "CALLBACK_TERMINAL");
     private static final Set<String> PROTOCOLS = Set.of("SSH", "TELNET");
-    private static final Set<String> CREDENTIAL_MODES = Set.of("SAVED_CREDENTIAL", "TEMPORARY_SECRET");
+    private static final Set<String> CREDENTIAL_MODES = Set.of("SAVED_CREDENTIAL", "TEMPORARY_SECRET", "LOCAL_TEMPORARY", "LOCAL_SAVED");
 
     private final CollectionBatchMapper batchMapper;
     private final CollectionTaskMapper taskMapper;
@@ -105,6 +105,7 @@ public class CollectionTaskService implements CollectionTaskApi {
                                     CollectionTaskCreateItem item) {
         CollectionTaskDO task = new CollectionTaskDO();
         task.setTenantId(command.tenantId());
+        task.setCreator(String.valueOf(command.actorId()));
         task.setBatchId(batchId);
         task.setPlatformTaskId(UUID.randomUUID().toString());
         task.setSourceContext(command.sourceContext());
@@ -165,7 +166,7 @@ public class CollectionTaskService implements CollectionTaskApi {
                 && (task.credentialId() == null || task.grantSnapshotId() == null)) {
             throw new IllegalArgumentException("已保存凭证任务缺少凭证授权快照");
         }
-        if ("TEMPORARY_SECRET".equals(task.credentialMode())
+        if (("TEMPORARY_SECRET".equals(task.credentialMode()) || task.credentialMode().startsWith("LOCAL_"))
                 && (task.credentialId() != null || task.grantSnapshotId() != null)) {
             throw new IllegalArgumentException("临时凭证任务不得引用已保存凭证");
         }
@@ -178,7 +179,8 @@ public class CollectionTaskService implements CollectionTaskApi {
                 task.getTemplateId(), task.getTemplateVersion(), task.getTemplateHash(), task.getCredentialMode(),
                 task.getCredentialId(), task.getGrantSnapshotId(), task.getIdempotencyKey(), task.getCompletionMode(),
                 task.getStatus(), task.getTechnicalStage(), task.getResultVersion(), task.getFileVersionId(),
-                task.getConsumerContext(), task.getConsumerObjectType(), task.getConsumerObjectId());
+                task.getConsumerContext(), task.getConsumerObjectType(), task.getConsumerObjectId(),
+                task.getExternalStatus(), task.getFailureCategory());
     }
 
     private static boolean blank(String value) {

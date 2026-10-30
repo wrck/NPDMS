@@ -22,6 +22,9 @@ public interface EntityVersionProvider {
     /** Revalidate the creation baseline, copy to current data and switch effective metadata atomically. */
     Revision activate(RevisionRef ref, Integer expectedVersion, EntityActor actor);
 
+    /** Abandon an unfrozen draft workspace; frozen revisions are immutable history and cannot be discarded. */
+    void discard(RevisionRef ref, EntityActor actor);
+
     record Revision(RevisionRef ref, int revisionNo, Long sourceRevisionId,
                     Long baseEffectiveRevisionId, Integer baseEntityVersion,
                     State state, boolean effective, int version, String reason,

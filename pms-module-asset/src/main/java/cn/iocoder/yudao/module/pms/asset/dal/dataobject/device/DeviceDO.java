@@ -1,9 +1,8 @@
 package cn.iocoder.yudao.module.pms.asset.dal.dataobject.device;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -13,10 +12,8 @@ import java.time.LocalDateTime;
 @TableName("ast_device")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class DeviceDO extends TenantBaseDO {
+public class DeviceDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     private String sn;
     private String name;
     private String productCode;
@@ -28,6 +25,13 @@ public class DeviceDO extends TenantBaseDO {
     private String contractNo;
     private Long shipmentRecordId;
     private Long projectId;
+    private Long companyId;
+    private String companyName;
+    private Long departmentId;
+    private String departmentCode;
+    private String departmentName;
+    private String organizationSource;
+    private LocalDateTime organizationUpdatedAt;
     private Long projectAssignmentVersion;
     private Long customerId;
     private Long customerAssignmentVersion;
@@ -52,6 +56,4 @@ public class DeviceDO extends TenantBaseDO {
     private LocalDateTime sourceUpdatedAt;
     private LocalDateTime syncedAt;
     private String syncStatus;
-    @Version
-    private Integer version;
 }

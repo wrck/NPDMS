@@ -7,6 +7,6 @@ public record SplitScopePreviewCommand(Long tenantId, Long parentProjectId, Long
                                        List<Allocation> allocations) {
 
     public record Allocation(String clientItemKey, Long orderLineId, BigDecimal quantity,
-                             String officeDepartmentCode, List<String> serialNumbers) {
+                             String departmentCode, List<String> serialNumbers) {
     }
 }

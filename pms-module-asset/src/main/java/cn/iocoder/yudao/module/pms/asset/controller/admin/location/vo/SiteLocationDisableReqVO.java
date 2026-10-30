@@ -9,6 +9,6 @@ public class SiteLocationDisableReqVO {
     @NotNull
     private Long id;
     @NotNull
-    private Integer version;
+    private Long version;
 
 }

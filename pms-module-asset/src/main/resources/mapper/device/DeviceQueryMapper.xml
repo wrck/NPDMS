@@ -2,12 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper">
 
-    <sql id="visibleDeviceConditions">
-        FROM ast_device d
-        WHERE d.tenant_id = #{query.tenantId}
-          AND d.deleted = b'0'
-        <if test="query.visibleProjectIds != null">
-          AND (
+    <sql id="deviceVisibility">
+        AND (
+          <!-- 先判定设备上的组织投影，避免已获组织授权的设备逐台查询项目关系。 -->
+          <include refid="deviceOrganizationVisibility"/> OR
+          <if test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+            (
             d.project_id IN
             <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
               #{projectId}
@@ -25,10 +25,122 @@
                 AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
                 AND r.deleted = b'0'
             )
-          )
+            ) OR
+          </if>
+          <if test="query.visibleContractNumbers != null and !query.visibleContractNumbers.isEmpty()">
+            CAST(d.contract_no AS BINARY) IN
+            <foreach collection="query.visibleContractNumbers" item="contractNo" open="(" separator="," close=")">CAST(#{contractNo} AS BINARY)</foreach> OR
+          </if>
+          1 = 0
+        )
+    </sql>
+
+    <sql id="deviceOrganizationVisibility">
+          <if test="query.organizationGrants != null and !query.organizationGrants.isEmpty()">
+            <foreach collection="query.organizationGrants" item="grant" separator=" OR ">
+              (d.company_id=#{grant.companyId}
+                <if test="grant.departmentId != null">
+                  AND (d.department_id=#{grant.departmentId}
+                    <if test="grant.departmentCode != null and grant.departmentCode != ''">
+                      OR (d.organization_source='CONTRACT' AND CAST(d.department_code AS BINARY)=CAST(#{grant.departmentCode} AS BINARY))
+                    </if>)
+                </if>)
+            </foreach> OR
+          </if>
+          1 = 0
+    </sql>
+
+    <sql id="visibleDeviceConditions">
+        FROM ast_device d
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.deleted = b'0'
+        <include refid="deviceVisibility"/>
+        <include refid="deviceSearchFilters"/>
+        <include refid="deviceListNameFilters"/>
+    </sql>
+
+    <sql id="deviceListNameFilters">
+        <if test="query.matchingProjectIds != null">
+            <choose><when test="!query.matchingProjectIds.isEmpty()">
+                AND d.project_id IN <foreach collection="query.matchingProjectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+            </when><otherwise>AND 1=0</otherwise></choose>
         </if>
+        <if test="query.matchingCustomerIds != null">
+            <choose><when test="!query.matchingCustomerIds.isEmpty()">
+                AND d.customer_id IN <foreach collection="query.matchingCustomerIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+            </when><otherwise>AND 1=0</otherwise></choose>
+        </if>
+        <if test="query.departmentName != null and query.departmentName != ''">
+            AND d.department_name LIKE CONCAT('%',#{query.departmentName},'%')
+        </if>
+    </sql>
+
+    <!-- 无业务筛选时只读取权限覆盖索引；精确筛选保留优化器选择专用索引。 -->
+    <sql id="unfilteredVisibilityIndex">
+        <if test="(query.sn == null or query.sn == '') and (query.name == null or query.name == '') and (query.status == null or query.status == '') and (query.productCode == null or query.productCode == '') and query.projectId == null and query.customerId == null and query.matchingProjectIds == null and query.matchingCustomerIds == null and (query.departmentName == null or query.departmentName == '')">
+            FORCE INDEX (idx_ast_device_visibility_cover)
+        </if>
+    </sql>
+
+    <select id="selectListProjectIdsByMatch" resultType="java.lang.Long">
+        SELECT DISTINCT d.project_id
+        FROM ast_device d
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = 0
+          AND d.project_id IS NOT NULL
+        <if test="query.deviceSnKeyword != null and query.deviceSnKeyword != ''">
+            AND d.sn LIKE CONCAT('%', #{query.deviceSnKeyword}, '%')
+        </if>
+        <if test="query.deviceProductModelKeyword != null and query.deviceProductModelKeyword != ''">
+            AND (<include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductModel"/>)
+                LIKE CONCAT('%', #{query.deviceProductModelKeyword}, '%')
+        </if>
+        <if test="query.deviceWarrantyStatus != null and query.deviceWarrantyStatus != ''">
+            AND d.warranty_status = #{query.deviceWarrantyStatus}
+        </if>
+    </select>
+
+    <select id="selectProjectCandidates" resultType="java.lang.Long">
+        SELECT DISTINCT d.project_id
+        FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+          AND d.project_id IS NOT NULL
+        UNION
+        SELECT DISTINCT r.project_id
+        FROM ast_device_project_relationship r
+        WHERE r.tenant_id = #{query.tenantId} AND r.deleted = b'0'
+          AND r.project_id IS NOT NULL
+        <!-- 候选保留未来/过期关系，最终可见查询仍独立校验有效期，避免候选与分页时点差。 -->
+    </select>
+
+    <select id="selectContractCandidates" resultType="java.lang.String">
+        SELECT DISTINCT CAST(d.contract_no AS BINARY)
+        FROM ast_device d
+        <if test="query.deviceId == null and query.authorizedContractNumbers == null"><include refid="unfilteredVisibilityIndex"/></if>
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+          AND d.contract_no IS NOT NULL AND d.contract_no &lt;&gt; ''
+          AND NOT COALESCE((<include refid="deviceOrganizationVisibility"/>), FALSE)
+        <if test="query.authorizedContractNumbers != null">
+            <choose><when test="!query.authorizedContractNumbers.isEmpty()">
+                AND d.contract_no IN
+                <foreach collection="query.authorizedContractNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
+            </when><otherwise>AND 1=0</otherwise></choose>
+        </if>
+        <if test="query.deviceId != null">AND d.id = #{query.deviceId}</if>
+        <include refid="deviceSearchFilters"/>
+        <include refid="deviceListNameFilters"/>
+    </select>
+
+    <sql id="deviceSearchFilters">
         <if test="query.sn != null and query.sn != ''">
           AND d.sn = #{query.sn}
+        </if>
+        <if test="query.name != null and query.name != ''">
+          AND d.name LIKE CONCAT('%', #{query.name}, '%')
+        </if>
+        <if test="query.status != null and query.status != ''">
+          AND d.status = #{query.status}
         </if>
         <if test="query.productCode != null and query.productCode != ''">
           AND d.product_code = #{query.productCode}
@@ -41,10 +153,8 @@
         </if>
     </sql>
 
-    <sql id="customerSummaryConditions">
-        FROM ast_device d
-        WHERE d.tenant_id = #{query.tenantId}
-          AND d.deleted = b'0'
+    <!-- 客户维度可见性的项目侧条件，两个汇总分支共用；调用方保证 visibleProjectIds 非空 -->
+    <sql id="customerSummaryProjectVisibility">
           AND (
               d.project_id IN
               <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
@@ -64,64 +174,160 @@
                     AND pr.deleted = b'0'
               )
           )
-          AND (
-              d.customer_id = #{query.customerId}
-              OR EXISTS (
-                  SELECT 1
-                  FROM ast_device_customer_relationship r
-                  WHERE r.tenant_id = d.tenant_id
-                    AND r.device_sn = d.sn
-                    AND r.customer_id = #{query.customerId}
-                    AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
-                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
-                    AND r.deleted = b'0'
-              )
-          )
+    </sql>
+
+    <!-- 分支一：设备直挂该客户，走 idx_ast_device_customer 索引驱动，避免全租户扫描 -->
+    <sql id="customerSummaryDirectBranch">
+        SELECT d.id, d.sn, d.name, d.status
+        FROM ast_device d
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.deleted = b'0'
+          AND d.customer_id = #{query.customerId}
+        <include refid="customerSummaryProjectVisibility"/>
+    </sql>
+
+    <!-- 分支二：经客户关系表挂接的设备；按 customer_id 条件与分支一互斥，UNION ALL 不重不漏 -->
+    <sql id="customerSummaryRelationshipBranch">
+        SELECT d.id, d.sn, d.name, d.status
+        FROM ast_device d
+        JOIN (
+            SELECT DISTINCT device_sn
+            FROM ast_device_customer_relationship
+            WHERE tenant_id = #{query.tenantId}
+              AND deleted = b'0'
+              AND customer_id = #{query.customerId}
+              AND effective_from &lt;= CURRENT_TIMESTAMP(3)
+              AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP(3))
+        ) cr ON cr.device_sn = d.sn
+        WHERE d.tenant_id = #{query.tenantId}
+          AND d.deleted = b'0'
+          AND (d.customer_id IS NULL OR d.customer_id &lt;&gt; #{query.customerId})
+        <include refid="customerSummaryProjectVisibility"/>
     </sql>
 
     <select id="selectCustomerSummaryList" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
-        SELECT d.id,
-               d.sn,
-               d.name,
-               d.status
-        <include refid="customerSummaryConditions"/>
-        ORDER BY d.id DESC
+        SELECT u.id, u.sn, u.name, u.status
+        FROM (
+            <include refid="customerSummaryDirectBranch"/>
+            UNION ALL
+            <include refid="customerSummaryRelationshipBranch"/>
+        ) u
+        ORDER BY u.id DESC
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
 
     <select id="selectCustomerSummaryCount" resultType="long">
         SELECT COUNT(*)
-        <include refid="customerSummaryConditions"/>
+        FROM (
+            <include refid="customerSummaryDirectBranch"/>
+            UNION ALL
+            <include refid="customerSummaryRelationshipBranch"/>
+        ) u
     </select>
 
-    <select id="selectVisibleDeviceList" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection">
-        SELECT d.id AS device_id,
-               d.sn,
-               d.product_code,
-               d.product_model,
-               d.product_name,
-               d.shipment_time,
-               d.package_no,
-               d.contract_no,
-               d.shipment_record_id,
-               d.project_id,
-               d.customer_id,
-               d.warranty_start_date,
-               d.warranty_end_date,
-               d.warranty_status,
-               d.conp_version,
-               d.conp_type,
-               d.conp_series,
-               d.conp_mark,
-               d.sync_status
+    <select id="selectVisibleArchiveList" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentDeviceColumns"/>
         <include refid="visibleDeviceConditions"/>
         ORDER BY d.id DESC
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
 
+    <sql id="deviceListColumns">
+        d.id AS device_id,
+                   d.sn,
+                   d.name,
+                   d.status,
+                   d.product_code,
+                   <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductModel"/> AS product_model,
+                   <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductName"/> AS product_name,
+                   d.shipment_time,
+                   d.package_no,
+                   d.contract_no,
+                   d.shipment_record_id,
+                   d.project_id,
+                   d.customer_id,
+                   d.warranty_start_date,
+                   d.warranty_end_date,
+                   d.warranty_status,
+                   d.conp_version,
+                   d.conp_type,
+                   d.conp_series,
+                   d.conp_mark,
+                   d.sync_status,
+                   d.location_snapshot,
+                   d.location_resolution_status,
+                   d.company_id,
+                   d.company_name,
+                   d.department_id,
+                   d.department_code,
+                   d.department_name,
+                   d.organization_source,
+                   nv.boot_version,
+                   nv.cpld_version
+    </sql>
+
+    <select id="selectVisibleDeviceList" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DeviceListProjection">
+        WITH device_page AS (
+            SELECT <include refid="deviceListColumns"/>
+            FROM ast_device d
+            <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
+            LEFT JOIN ast_device_network_version nv ON nv.tenant_id = d.tenant_id
+              AND nv.device_sn = d.sn AND nv.deleted = b'0' AND nv.source_system = 'DEVICE_LOG'
+              AND (nv.sync_status IS NULL OR nv.sync_status &lt;&gt; 'NOT_AVAILABLE')
+            WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+            <include refid="deviceVisibility"/>
+            <include refid="deviceSearchFilters"/>
+            <include refid="deviceListNameFilters"/>
+            ORDER BY d.id DESC
+            LIMIT #{query.offset}, #{query.pageSize}
+        ), page_device_keys AS (
+            SELECT DISTINCT sn
+            FROM device_page
+        ), renewal_counts AS (
+            SELECT wr.tenant_id, wr.device_sn, COUNT(*) AS extended_count
+            FROM page_device_keys k
+            JOIN ast_device_warranty_record wr
+              ON wr.tenant_id = #{query.tenantId} AND wr.device_sn = k.sn
+            WHERE wr.deleted = b'0' AND wr.extended = b'1'
+            GROUP BY wr.tenant_id, wr.device_sn
+        )
+        SELECT p.*, COALESCE(rc.extended_count, 0) AS extended_count
+        FROM device_page p
+        LEFT JOIN renewal_counts rc
+          ON rc.tenant_id = #{query.tenantId} AND rc.device_sn = p.sn
+        ORDER BY p.device_id DESC
+    </select>
+
     <select id="selectVisibleDeviceCount" resultType="long">
         SELECT COUNT(*)
-        <include refid="visibleDeviceConditions"/>
+        FROM ast_device d
+        <!-- 计数允许优化器选择更窄的合同/项目索引，不强制扫描组织覆盖索引。 -->
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
+        <include refid="deviceVisibility"/>
+        <include refid="deviceSearchFilters"/>
+        <include refid="deviceListNameFilters"/>
+    </select>
+
+    <select id="selectCurrentProjectDevicesByIds" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentDeviceColumns"/>
+        FROM ast_device d
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
+        WHERE d.tenant_id = #{query.tenantId} AND d.project_id = #{query.projectId} AND d.deleted = b'0'
+        <choose>
+            <when test="query.deviceIds != null and !query.deviceIds.isEmpty()">
+                AND d.id IN <foreach collection="query.deviceIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY d.id
+    </select>
+
+    <select id="selectCurrentProjectDevices" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentDeviceColumns"/>
+        FROM ast_device d
+        <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
+        WHERE d.tenant_id = #{query.tenantId} AND d.project_id = #{query.projectId} AND d.deleted = b'0'
+        ORDER BY d.id
     </select>
 
     <select id="existsVisibleDevice" resultType="boolean">
@@ -131,25 +337,7 @@
             WHERE d.tenant_id = #{query.tenantId}
               AND d.id = #{query.deviceId}
               AND d.deleted = b'0'
-              AND (
-                d.project_id IN
-                <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
-                  #{projectId}
-                </foreach>
-                OR EXISTS (
-                  SELECT 1
-                  FROM ast_device_project_relationship r
-                  WHERE r.tenant_id = d.tenant_id
-                    AND r.device_sn = d.sn
-                    AND r.project_id IN
-                    <foreach collection="query.visibleProjectIds" item="projectId" open="(" separator="," close=")">
-                      #{projectId}
-                    </foreach>
-                    AND r.effective_from &lt;= CURRENT_TIMESTAMP(3)
-                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
-                    AND r.deleted = b'0'
-                )
-              )
+              <include refid="deviceVisibility"/>
         )
     </select>
 
@@ -171,4 +359,9 @@
         ORDER BY d.id
     </select>
 
+    <select id="selectProjectInstallationDevicesForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact">
+        SELECT id AS device_id, sn, location_snapshot, project_assignment_version FROM ast_device
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND deleted = 0
+        ORDER BY id FOR UPDATE
+    </select>
 </mapper>

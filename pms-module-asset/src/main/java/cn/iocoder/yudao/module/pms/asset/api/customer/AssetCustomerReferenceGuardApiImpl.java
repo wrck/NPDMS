@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.pms.asset.api.customer;
 
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentMapper;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.query.CustomerDeviceReferenceQuery;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import cn.iocoder.yudao.module.pms.customer.api.enums.CustomerReferenceGuardStatus;
 import cn.iocoder.yudao.module.pms.customer.api.guard.dto.CustomerReferenceGuardQuery;
 import cn.iocoder.yudao.module.pms.customer.api.guard.dto.CustomerReferenceGuardResult;
@@ -14,12 +13,11 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AssetCustomerReferenceGuardApiImpl implements AssetCustomerReferenceGuardApi {
 
-    private final EquipmentMapper equipmentMapper;
+    private final DeviceMapper deviceMapper;
 
     @Override
     public CustomerReferenceGuardResult check(CustomerReferenceGuardQuery query) {
-        long count = equipmentMapper.selectCountByCustomer(
-                new CustomerDeviceReferenceQuery(query.tenantId(), query.customerId()));
+        long count = deviceMapper.selectCountByCustomer(query.tenantId(), query.customerId());
         String status = count == 0
                 ? CustomerReferenceGuardStatus.CLEAR.name()
                 : CustomerReferenceGuardStatus.REFERENCED.name();

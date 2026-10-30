@@ -2,7 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.api.approval.dto;
 
 public record ExpectedCutoverApprovalFact(
         Long approvalInstanceId,
-        Integer approvalVersion,
+        Long approvalVersion,
         Long taskId,
         Long planRevisionId,
         Integer planRevisionNo,
@@ -17,7 +17,7 @@ public record ExpectedCutoverApprovalFact(
                 sourceSnapshotVersion, replacementApprovalInstanceId, rejectionReason);
     }
 
-    static void validate(Long approvalInstanceId, Integer approvalVersion, Long taskId, Long planRevisionId,
+    static void validate(Long approvalInstanceId, Long approvalVersion, Long taskId, Long planRevisionId,
                          Integer planRevisionNo, ApprovalStatus status, Integer sourceSnapshotVersion,
                          Long replacementApprovalInstanceId, String rejectionReason) {
         ApprovalContractRules.positive(approvalInstanceId, "approvalInstanceId");

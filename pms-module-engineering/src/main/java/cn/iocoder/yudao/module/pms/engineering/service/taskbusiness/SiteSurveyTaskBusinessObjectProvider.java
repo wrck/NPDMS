@@ -38,6 +38,16 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     private final PermissionApi permissionApi;
     private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi executions;
 
+    @Override public HandlingTime historicalHandlingTime(HandlingTimeQuery request) {
+        requireProjectQuery(request.context().tenantId(),request.context().actorId(),request.context().projectId());
+        var query = objectQuery(request.context(),request.objectId());
+        var row = requireObject(mapper.selectTaskObject(query),query);
+        if (!Objects.equals(row.getTenantId(),request.context().tenantId()) || !Objects.equals(row.getProjectId(),request.context().projectId())
+                || Boolean.TRUE.equals(row.getDeleted()) || !Objects.equals("SOL_SITE_SURVEY_RESULT:" + row.getVersion() + ":" + row.getStatus(),request.factVersion())) return null;
+        if (request.satisfiedFacts().contains("SURVEY_ARCHIVED")) return new HandlingTime(row.getArchivedAt(),"BUSINESS_END","工勘归档时间");
+        return request.satisfiedFacts().contains("SURVEY_CONFIRMED") ? new HandlingTime(row.getConfirmedAt(),"BUSINESS_END","工勘确认时间") : null;
+    }
+
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public CompletionFact lockCompletionFact(CompletionContext context, String objectId) {
@@ -87,6 +97,13 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     public String ownerContext() { return "SOL"; }
 
     @Override
+    public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())) throw exception(FORBIDDEN);
+        var query = objectQuery(context.tenantId(), context.projectId(), objectId);
+        return requireObject(mapper.selectTaskObject(query), query).getCreateTime();
+    }
+
+    @Override
     public String objectType() { return "SITE_SURVEY"; }
 
     @Override
@@ -114,9 +131,10 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
                 && permissionApi.hasAnyPermissions(context.actorId(), "pms:project-task:execute")
                 && hasScope(context.tenantId(), context.actorId(), context.projectId(), ProjectScopeApi.ACTION_EDIT)
                 && hasScope(context.tenantId(), context.actorId(), context.projectId(), ProjectScopeApi.ACTION_MANAGE)) {
-            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:create")) actions.add("CREATE");
-            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:update")) actions.addAll(Set.of("UPDATE", "CONFIRM", "REJECT", "ARCHIVE"));
-            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:delete")) actions.add("DELETE");
+            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:create")) actions.add("CREATE");
+            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:update")) actions.addAll(Set.of("UPDATE", "CONFIRM", "REJECT", "ARCHIVE"));
+            if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:update")
+                    || permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:delete")) actions.add("DELETE");
         }
         return new cn.iocoder.yudao.module.pms.project.api.stagebusiness.StageBusinessViewProvider.Result(actions);
     }
@@ -149,6 +167,17 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     }
 
     @Override
+    public BusinessObjectInspection inspectContextAndObjects(TaskBusinessObjectProvider.Context context, List<String> objectIds) {
+        // Reuse Owner authorization only within this read; each object still validates its current identity and facts.
+        var allowed = inspectContext(context);
+        var objects = objectIds.stream().map(id -> {
+            var query = objectQuery(context, id);
+            return toFact(context, requireObject(mapper.selectTaskObject(query), query), allowed);
+        }).toList();
+        return new BusinessObjectInspection(allowed, objects);
+    }
+
+    @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public BusinessObjectFact lockAndRevalidate(TaskBusinessObjectProvider.Context context, String objectId, String expectedVersion) {
         requireQuery(context);
@@ -174,7 +203,7 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
             throw exception(FORBIDDEN);
         }
         if (!hasScope(tenantId, actorId, projectId, ProjectScopeApi.ACTION_VIEW)
-                || !permissionApi.hasAnyPermissions(actorId, "pms:eng-site-survey:query")) {
+                || !permissionApi.hasAnyPermissions(actorId, "pms:sol-site-survey:query")) {
             throw exception(FORBIDDEN);
         }
     }
@@ -184,8 +213,11 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     }
 
     private boolean hasScope(Long tenantId, Long actorId, Long projectId, String action) {
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorId, projectId, action));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         return scope != null && scope.fullProjectIds() != null
                 && scope.fullProjectIds().contains(projectId);
     }
@@ -193,13 +225,14 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     private Set<String> writePermissions(TaskBusinessObjectProvider.Context context) {
         if (!hasScope(context, ProjectScopeApi.ACTION_MANAGE)) return Set.of();
         Set<String> permissions = new LinkedHashSet<>();
-        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:create")) {
+        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:create")) {
             permissions.add("CREATE");
         }
-        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:update")) {
+        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:update")) {
             permissions.add("UPDATE");
         }
-        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:eng-site-survey:delete")) {
+        if (permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:update")
+                || permissionApi.hasAnyPermissions(context.actorId(), "pms:sol-site-survey:delete")) {
             permissions.add("DELETE");
         }
         return permissions;

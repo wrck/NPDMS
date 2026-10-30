@@ -142,7 +142,7 @@ class ArrivalAcceptanceControllerContractTest {
                 9L, 88L, "corr-query", access()));
         when(query.page(any())).thenReturn(new cn.iocoder.yudao.framework.common.pojo.PageResult<>(
                 List.of(new ArrivalAcceptanceViews.ArrivalListItem(101L, 20L, "ARR-001", "LOG-001",
-                        LocalDateTime.of(2026, 8, 30, 10, 0), "张三", "DRAFT", null, 0,
+                        LocalDateTime.of(2026, 8, 30, 10, 0), "张三", "DRAFT", null, 0L,
                         List.of("EDIT_DRAFT"), LocalDateTime.of(2026, 8, 30, 9, 0))), 1L));
         var controller = new TestArrivalAcceptanceController(application, command, query, context);
 
@@ -255,7 +255,7 @@ class ArrivalAcceptanceControllerContractTest {
         ArrivalAcceptanceRespVO.Detail detail = new ArrivalAcceptanceRespVO.Detail(
                 snowflake, 20L, "ARR-001", "LOG-001", LocalDateTime.of(2026, 8, 30, 10, 0),
                 "张三", "DRAFT", 7L, new ArrivalAcceptanceRespVO.ScopeWatermark(7L, List.of()),
-                null, null, null, null, null, null, null, null, null, 0,
+                null, null, null, null, null, null, null, null, null, 0L,
                 List.of("EDIT_DRAFT"), List.of(), List.of(), null);
 
         var module = new YudaoJacksonAutoConfiguration().timestampSupportModuleBean();
@@ -417,8 +417,8 @@ class ArrivalAcceptanceControllerContractTest {
         root.setProjectId(20L);
         root.setStatus(status);
         root.setCreator(creator);
-        root.setVersion(version);
-        root.setProjectVersion(5);
+        root.setVersion((long) version);
+        root.setProjectVersion(5L);
         root.setProjectParticipantFactVersion(6L);
         root.setProjectScopeVersion(7L);
         return root;
@@ -434,7 +434,7 @@ class ArrivalAcceptanceControllerContractTest {
         return new ArrivalAcceptanceViews.ArrivalDetail(id, 20L, "ARR-001", "LOG-001",
                 LocalDateTime.of(2026, 8, 30, 10, 0), "张三", "DRAFT", 7L,
                 new ArrivalAcceptanceViews.ScopeWatermarkData(7L, List.of()),
-                null, null, null, null, null, null, null, null, null, 0,
+                null, null, null, null, null, null, null, null, null, 0L,
                 List.of("EDIT_DRAFT", "SUBMIT"), List.of(), List.of(), null);
     }
 

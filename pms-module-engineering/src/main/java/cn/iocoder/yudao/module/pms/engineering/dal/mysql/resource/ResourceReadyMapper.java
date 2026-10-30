@@ -1,14 +1,14 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.mysql.resource;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.resource.vo.ResourceReadyPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.resource.ResourceReadyDO;
 import org.apache.ibatis.annotations.Mapper;
 
 @Mapper
-public interface ResourceReadyMapper extends BaseMapperX<ResourceReadyDO> {
+public interface ResourceReadyMapper extends ProjectScopedCodeMapper<ResourceReadyDO> {
 
     default PageResult<ResourceReadyDO> selectPage(ResourceReadyPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<ResourceReadyDO>()
@@ -21,9 +21,6 @@ public interface ResourceReadyMapper extends BaseMapperX<ResourceReadyDO> {
                 .orderByDesc(ResourceReadyDO::getId));
     }
 
-    default ResourceReadyDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(ResourceReadyDO::getProjectId, projectId, ResourceReadyDO::getCode, code);
-    }
 
     /**
      * 统计项目下未就绪（ready_status != 1）的资源数量，用于实施动作门禁校验。

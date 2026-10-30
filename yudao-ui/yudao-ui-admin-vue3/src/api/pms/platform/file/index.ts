@@ -15,7 +15,7 @@ export interface FileBusinessKey {
 export interface FileUploadInitReqVO extends FileBusinessKey {
   ownerExecutionContext?: JsonObject
   modeCode: FileUploadMode
-  artifactId?: number
+  artifactId?: number | string
   expectedReferenceVersion?: number
   fileName: string
   categoryCode: string
@@ -52,6 +52,7 @@ export interface FileReferenceVO extends FileBusinessKey {
 export interface FileArtifactVO {
   artifactId: number
   name: string
+  currentVersionFileName?: string
   categoryCode: string
   ownerContext: string
   lifecycleStatus: string
@@ -64,6 +65,7 @@ export interface FileArtifactVO {
 export interface FileVersionVO {
   id: number
   versionNo: number
+  fileName?: string
   sha256: string
   sizeBytes: number
   mediaType: string
@@ -164,3 +166,7 @@ export const detachReference = (
     data: { ...key, reason, ...(ownerExecutionContext ? { ownerExecutionContext } : {}) },
     headers: { 'If-Match': String(referenceVersion), 'Idempotency-Key': idempotencyKey }
   })
+
+export const getPreviewContent = (artifactId: string | number, versionNo: number, key: FileBusinessKey) =>
+  request.postOriginal({ url: `/api/v1/pms/files/${artifactId}/preview-content`, responseType: 'blob', timeout: 150000,
+    data: { versionNo, operationCode: 'PREVIEW', ...key } }) as unknown as Promise<Blob>

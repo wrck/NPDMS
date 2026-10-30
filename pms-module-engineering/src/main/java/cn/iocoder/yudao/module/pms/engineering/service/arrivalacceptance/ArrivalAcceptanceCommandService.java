@@ -221,7 +221,7 @@ public class ArrivalAcceptanceCommandService {
             throw new IllegalStateException("exemption invalidation insert failed");
         }
         return new ArrivalAcceptanceCommands.CommandResult(source.getId(), invalidation.getId(),
-                invalidation.getDifferenceNo(), invalidation.getRevisionNo(), "OPEN", "DRAFT", 0,
+                invalidation.getDifferenceNo(), invalidation.getRevisionNo(), "OPEN", "DRAFT", 0L,
                 successor.root().getId(), factVersion, "EXEMPTION_INVALIDATION",
                 ArrivalDifferenceScopeCodec.parse(invalidation.getScopeSnapshot()));
     }
@@ -421,12 +421,12 @@ public class ArrivalAcceptanceCommandService {
         }
         if (differenceMapper.insert(inserted) != 1) throw new IllegalStateException("resolution insert failed");
         if (acceptanceMapper.mutateDraftIfMatch(new ArrivalDraftMutation(command.tenantId(),
-                successor.root().getId(), 0, null, null, null, command.actorUserId())) != 1) {
+                successor.root().getId(), 0L, null, null, null, command.actorUserId())) != 1) {
             throw new VersionConflictException();
         }
         return new ArrivalAcceptanceCommands.CommandResult(source.getId(), inserted.getId(),
                 inserted.getDifferenceNo(), inserted.getRevisionNo(), inserted.getResolutionStatus(), "DRAFT",
-                1, successor.root().getId(), null, null, outcome.remaining());
+                1L, successor.root().getId(), null, null, outcome.remaining());
     }
 
     private ArrivalAcceptanceCommands.CommandResult correctInformation(
@@ -455,12 +455,12 @@ public class ArrivalAcceptanceCommandService {
         String signer = patch.signerName() == null ? null
                 : JsonUtils.toJsonString(new ArrivalAcceptanceViews.SignerSnapshot(patch.signerName()));
         if (acceptanceMapper.mutateDraftIfMatch(new ArrivalDraftMutation(command.tenantId(),
-                successor.root().getId(), 0, patch.logisticsNo(), patch.arrivedAt(), signer,
+                successor.root().getId(), 0L, patch.logisticsNo(), patch.arrivedAt(), signer,
                 command.actorUserId())) != 1) {
             throw new VersionConflictException();
         }
         return new ArrivalAcceptanceCommands.CommandResult(source.getId(), null, null, null, null,
-                "DRAFT", 1, successor.root().getId(), null, null, null);
+                "DRAFT", 1L, successor.root().getId(), null, null, null);
     }
 
     private static ArrivalAcceptanceCommands.DraftLine translateCorrectionLine(
@@ -477,7 +477,7 @@ public class ArrivalAcceptanceCommandService {
         ArrivalAcceptanceCommands.QuantityDraftLine quantity =
                 (ArrivalAcceptanceCommands.QuantityDraftLine) requested;
         return new ArrivalAcceptanceCommands.QuantityDraftLine(copied.getId(), copied.getVersion(),
-                quantity.orderLineId(), quantity.productCode(), quantity.modelCode(),
+                quantity.orderLineId(), quantity.productCode(), quantity.productModel(),
                 quantity.acceptedQuantity(), quantity.unitCode());
     }
 
@@ -539,7 +539,7 @@ public class ArrivalAcceptanceCommandService {
         successor.setMigrationResolutionStatus("NOT_APPLICABLE");
         successor.setPredecessorAcceptanceId(source.getId());
         successor.setSuccessorReason(reason);
-        successor.setVersion(0);
+        successor.setVersion(0L);
         successor.setCreator(String.valueOf(actorUserId));
         successor.setUpdater(String.valueOf(actorUserId));
         if (acceptanceMapper.insert(successor) != 1 || successor.getId() == null) {
@@ -634,7 +634,7 @@ public class ArrivalAcceptanceCommandService {
         java.math.BigDecimal remaining = quantity.quantity().subtract(supplement.quantity());
         ArrivalDifferenceScopeCodec.Scope remainingScope = remaining.signum() == 0 ? null
                 : new ArrivalDifferenceScopeCodec.QuantityScope(quantity.orderLineId(), quantity.productCode(),
-                        quantity.modelCode(), remaining, quantity.unitCode());
+                        quantity.productModel(), remaining, quantity.unitCode());
         return new SupplementOutcome(appended, remainingScope);
     }
 
@@ -688,7 +688,7 @@ public class ArrivalAcceptanceCommandService {
             DeliveryScopePort.AssignedLine fact = frozen.lines().stream()
                     .filter(value -> value.orderLineId().equals(quantity.orderLineId())
                             && Objects.equals(value.productCode(), quantity.productCode())
-                            && Objects.equals(value.modelCode(), quantity.modelCode())
+                            && Objects.equals(value.productModel(), quantity.productModel())
                             && value.unitCode().equals(quantity.unitCode()) && value.serialNumbers().isEmpty())
                     .findFirst().orElseThrow(() -> new IllegalArgumentException("quantity is outside frozen scope"));
             if (quantity.acceptedQuantity().compareTo(fact.assignedQuantity()) > 0) {
@@ -697,7 +697,7 @@ public class ArrivalAcceptanceCommandService {
             line.setScopeType("ORDER_MODEL_QUANTITY");
             line.setOrderLineId(quantity.orderLineId());
             line.setProductCode(quantity.productCode());
-            line.setModelCode(quantity.modelCode());
+            line.setProductModel(quantity.productModel());
             line.setExpectedQuantity(fact.assignedQuantity());
             line.setAcceptedQuantity(quantity.acceptedQuantity());
             line.setUnit(quantity.unitCode());
@@ -756,7 +756,7 @@ public class ArrivalAcceptanceCommandService {
             evidence.setCurrentRevisionNo(1);
             evidence.setAccSyncStatus("NOT_PUBLISHED");
             evidence.setAccRetryCount(0);
-            evidence.setVersion(0);
+            evidence.setVersion(0L);
             evidence.setCreator(String.valueOf(actorUserId));
             evidence.setUpdater(String.valueOf(actorUserId));
             if (evidenceMapper.insert(evidence) != 1 || evidence.getId() == null) {
@@ -848,7 +848,7 @@ public class ArrivalAcceptanceCommandService {
                 && Objects.equals(observed.getScopeWatermark(), locked.getScopeWatermark());
     }
 
-    private ArrivalAcceptanceDO lockOwnedDraft(Long tenantId, Long id, Long actor, Integer version) {
+    private ArrivalAcceptanceDO lockOwnedDraft(Long tenantId, Long id, Long actor, Long version) {
         ArrivalAcceptanceDO root = acceptanceMapper.selectForUpdate(new ArrivalRowQuery(tenantId, id));
         if (root == null || !String.valueOf(actor).equals(root.getCreator())) {
             throw ArrivalAcceptanceContractException.notVisible("arrival acceptance draft is not visible or does not exist");
@@ -873,7 +873,7 @@ public class ArrivalAcceptanceCommandService {
             if (!"ORDER_MODEL_QUANTITY".equals(line.getScopeType())
                     || !quantity.orderLineId().equals(line.getOrderLineId())
                     || !Objects.equals(quantity.productCode(), line.getProductCode())
-                    || !Objects.equals(quantity.modelCode(), line.getModelCode())
+                    || !Objects.equals(quantity.productModel(), line.getProductModel())
                     || !quantity.unitCode().equals(line.getUnit())
                     || quantity.quantity().compareTo(line.getExpectedQuantity()) > 0) {
                 throw new IllegalArgumentException("difference quantity is outside line");
@@ -938,7 +938,7 @@ public class ArrivalAcceptanceCommandService {
                     && "ORDER_MODEL_QUANTITY".equals(line.getScopeType())
                     && quantity.orderLineId().equals(line.getOrderLineId())
                     && Objects.equals(quantity.productCode(), line.getProductCode())
-                    && Objects.equals(quantity.modelCode(), line.getModelCode())
+                    && Objects.equals(quantity.productModel(), line.getProductModel())
                     && quantity.unitCode().equals(line.getUnit())) {
                 covered = covered.add(quantity.quantity());
             }
@@ -963,7 +963,7 @@ public class ArrivalAcceptanceCommandService {
                                                 ArrivalDifferenceScopeCodec.QuantityScope right) {
         return left.orderLineId().equals(right.orderLineId())
                 && Objects.equals(left.productCode(), right.productCode())
-                && Objects.equals(left.modelCode(), right.modelCode())
+                && Objects.equals(left.productModel(), right.productModel())
                 && left.unitCode().equals(right.unitCode());
     }
 
@@ -986,7 +986,7 @@ public class ArrivalAcceptanceCommandService {
         return "ORDER_MODEL_QUANTITY".equals(line.getScopeType())
                 && quantity.orderLineId().equals(line.getOrderLineId())
                 && Objects.equals(quantity.productCode(), line.getProductCode())
-                && Objects.equals(quantity.modelCode(), line.getModelCode())
+                && Objects.equals(quantity.productModel(), line.getProductModel())
                 && quantity.unitCode().equals(line.getUnit());
     }
 

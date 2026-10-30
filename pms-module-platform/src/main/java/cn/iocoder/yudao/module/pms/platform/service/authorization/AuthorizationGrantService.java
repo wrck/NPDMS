@@ -147,7 +147,7 @@ public class AuthorizationGrantService implements AuthorizationGrantApi {
         grant.setSourceObjectId(blankToNull(command.sourceObjectId()));
         grant.setGrantedBy(command.actorId());
         grant.setGrantedAt(now);
-        grant.setVersion(0);
+        grant.setVersion(0L);
         grant.setCurrentMarker(1);
         try {
             if (grantMapper.insert(grant) != 1) {

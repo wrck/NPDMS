@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { defineComponent, h, nextTick, reactive, ref } from 'vue'
+import { defineComponent, h, nextTick, provide, reactive, ref } from 'vue'
+import { projectApprovalDetailKey } from '@/views/pms/project/project-master-detail/components/projectApprovalDetail'
 import Panel from './TaskApprovalPanel.vue'
 import { mount, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 const api = vi.hoisted(() => ({ executeTaskAction: vi.fn() }))
@@ -10,13 +11,16 @@ vi.mock('./TaskApprovalForm.vue', () => ({ default: defineComponent({
   setup(_, { expose }) { expose({ requestLeave: navigation.leave }); return () => h('div', '原审批表单') }
 }) }))
 const apps: { unmount: () => void }[] = []
-const render = async (status = 'NOT_STARTED', allowedActions = ['START']) => {
+const render = async (status = 'NOT_STARTED', allowedActions = ['START'], openDrawer?: (id: string) => void) => {
   const child = ref<any>(), changed = vi.fn()
   const workbench = reactive({ task: { taskId: '2098262374805766146', version: 3, status: status === 'NOT_STARTED' ? 'PENDING_START' : 'IN_PROGRESS' },
     bindingType: 'APPROVAL', executionContractId: 91, contractVersion: 2, allowedActions,
     approval: { definitionKey: 'review', definitionId: 'review:1', executionId: '61',
       current: { status, outcome: 'NOT_SATISFIED', processInstanceId: status === 'NOT_STARTED' ? undefined : 'attempt-1' } } })
-  const view = mount(defineComponent({ setup: () => () => h(Panel, { ref: child, workbench, onChanged: changed } as any) }))
+  const view = mount(defineComponent({ setup() {
+    if (openDrawer) provide(projectApprovalDetailKey, openDrawer)
+    return () => h(Panel, { ref: child, workbench, onChanged: changed } as any)
+  } }))
   apps.push(view.app); await nextTick()
   return { ...view, workbench, changed, state: () => child.value.$.setupState }
 }
@@ -57,4 +61,17 @@ it('opens the original BPM details only after the dirty form allows leaving', as
   await view.state().openDetail()
   expect(navigation.push).toHaveBeenCalledWith({ name: 'BpmProcessInstanceDetail', query: { id: 'attempt-1' } })
   expect(navigation.leave).toHaveBeenCalledTimes(2)
+})
+it('opens the current task instance in the project drawer while retaining the unsaved form', async () => {
+  const openDrawer = vi.fn()
+  const view = await render('REJECTED', ['APPROVAL'], openDrawer)
+  navigation.leave.mockResolvedValue(false)
+  await view.state().openDetail()
+  expect(openDrawer).toHaveBeenCalledWith('attempt-1')
+  expect(navigation.push).not.toHaveBeenCalled()
+  expect(navigation.leave).not.toHaveBeenCalled()
+  expect(textOf(view.root)).toContain('原审批表单')
+  view.state().busy = true
+  await view.state().openDetail()
+  expect(openDrawer).toHaveBeenCalledTimes(1)
 })

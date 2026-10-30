@@ -10,17 +10,17 @@ public final class CutoverPlanApplicationException extends RuntimeException {
     private final Code code;
     private final String reasonCode;
     private final String ownerContext;
-    private final Integer currentTaskVersion;
-    private final Integer currentPlanVersion;
-    private final Integer currentApprovalVersion;
+    private final Long currentTaskVersion;
+    private final Long currentPlanVersion;
+    private final Long currentApprovalVersion;
 
     public CutoverPlanApplicationException(Code code, String message) {
         this(code, defaultReason(code), defaultOwner(code), null, null, null, message);
     }
 
     public CutoverPlanApplicationException(Code code, String reasonCode, String ownerContext,
-                                           Integer currentTaskVersion, Integer currentPlanVersion,
-                                           Integer currentApprovalVersion, String message) {
+                                           Long currentTaskVersion, Long currentPlanVersion,
+                                           Long currentApprovalVersion, String message) {
         super(message);
         this.code = code;
         this.reasonCode = reasonCode;
@@ -33,9 +33,9 @@ public final class CutoverPlanApplicationException extends RuntimeException {
     public Code code() { return code; }
     public String reasonCode() { return reasonCode; }
     public String ownerContext() { return ownerContext; }
-    public Integer currentTaskVersion() { return currentTaskVersion; }
-    public Integer currentPlanVersion() { return currentPlanVersion; }
-    public Integer currentApprovalVersion() { return currentApprovalVersion; }
+    public Long currentTaskVersion() { return currentTaskVersion; }
+    public Long currentPlanVersion() { return currentPlanVersion; }
+    public Long currentApprovalVersion() { return currentApprovalVersion; }
 
     private static String defaultReason(Code code) {
         return switch (code) {

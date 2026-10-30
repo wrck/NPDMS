@@ -20,6 +20,7 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectDurationOperatorApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
@@ -48,6 +49,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.DURATION_CHANGE_EVIDENCE_REQUIRED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -67,11 +69,13 @@ class DurationChangeSubmitServiceTest {
     @Mock FileArtifactApi fileArtifactApi;
     @Mock PermissionApi permissionApi;
     @Mock ProjectScopeApi projectScopeApi;
+    @Mock ProjectDurationOperatorApi durationOperatorApi;
     @Mock ProjectParticipantFactApi participantFactApi;
     @Mock DictDataApi dictDataApi;
     @Mock ConfigApi configApi;
     @Mock BpmProcessInstanceApi processInstanceApi;
     @Mock TransactionTemplate transactionTemplate;
+    @Mock cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
 
     private DurationChangeApplicationService service;
     private PlatformCommandExecutionApi.SuccessFacts recordedSuccessFacts;
@@ -82,8 +86,8 @@ class DurationChangeSubmitServiceTest {
         properties.setProcessDefinitionKey("pms-sol-duration-change");
         service = new DurationChangeApplicationService(planMapper, revisionMapper, changeMapper,
                 commandExecutionApi, operationAuditApi, fileArtifactApi, permissionApi, projectScopeApi,
-                participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
-                transactionTemplate, new MockEnvironment().withProperty("yudao.tenant.enable", "false"), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class));
+                durationOperatorApi, participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
+                transactionTemplate, new MockEnvironment().withProperty("yudao.tenant.enable", "false"), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class), executionGuard);
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(org.mockito.Mockito.mock(TransactionStatus.class));
@@ -99,7 +103,7 @@ class DurationChangeSubmitServiceTest {
     void submitsNonEvidenceChangeWithFrozenApproverAndStandardVariables() {
         stubCommandExecution();
         stubAuthorizedFacts(10L);
-        stubRows(change("INTERNAL_ADJUSTMENT"), plan());
+        stubRows(notRequiredReasonWithoutEvidence(), plan());
         stubReasonConfiguration();
         TenantContextHolder.setTenantId(0L);
         when(processInstanceApi.createProcessInstance(any(), any())).thenAnswer(invocation -> {
@@ -129,6 +133,7 @@ class DurationChangeSubmitServiceTest {
         verify(changeMapper).updateVersionIfMatch(update.capture());
         assertEquals(false, update.getValue().customerEvidenceRequired());
         assertEquals(null, update.getValue().customerEvidenceFileId());
+        verify(fileArtifactApi, never()).inspect(any());
         assertEquals(10L, update.getValue().approverUserId());
         String audit = recordedSuccessFacts.detailSnapshot();
         assertEquals("DURATION_CHANGE_SUBMIT", recordedSuccessFacts.operationCode());
@@ -174,6 +179,27 @@ class DurationChangeSubmitServiceTest {
     }
 
     @Test
+    void requiredReasonWithoutAttachmentFailsWithClearEvidenceError() {
+        stubCommandExecution();
+        ConstructionPlanChangeDO change = change("CUSTOMER_DELAY");
+        change.setCustomerEvidenceFileId(null);
+        change.setCustomerEvidenceFileVersion(null);
+        change.setCustomerEvidenceReferenceKey(null);
+        when(changeMapper.selectById(any())).thenReturn(change);
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
+        stubReasonConfiguration();
+
+        ServiceException failure = assertThrows(ServiceException.class,
+                () -> service.submit(command(), actor()));
+
+        assertEquals(DURATION_CHANGE_EVIDENCE_REQUIRED.getCode(), failure.getCode());
+        verify(fileArtifactApi, never()).inspect(any());
+        verify(processInstanceApi, never()).createProcessInstance(any(), any());
+        verify(changeMapper, never()).updateVersionIfMatch(any());
+        verify(planMapper, never()).selectForUpdate(any());
+    }
+
+    @Test
     void freezesRequiredFileArtifactFactsBeforeCreatingBpm() {
         stubCommandExecution();
         stubAuthorizedFacts(10L);
@@ -206,23 +232,66 @@ class DurationChangeSubmitServiceTest {
     }
 
     @Test
-    void rejectsApplicantAsTheFrozenServiceManager() {
+    void acceptsApplicantAsTheFrozenServiceManagerForSelfApproval() {
         stubCommandExecution();
         stubAuthorizedFacts(9L);
-        when(changeMapper.selectById(any())).thenReturn(change("INTERNAL_ADJUSTMENT"));
+        stubRows(notRequiredReasonWithoutEvidence(), plan());
         stubReasonConfiguration();
+        TenantContextHolder.setTenantId(0L);
+        when(processInstanceApi.createProcessInstance(any(), any())).thenReturn("bpm-901");
+        when(revisionMapper.freezeForSubmitIfMatch(any())).thenReturn(1);
+        when(changeMapper.updateVersionIfMatch(any())).thenReturn(1);
+        when(planMapper.updateVersionIfMatch(any())).thenReturn(1);
 
-        assertThrows(ServiceException.class, () -> service.submit(command(), actor()));
+        DurationChangeSubmitRespVO response = service.submit(command(), actor());
 
-        verify(planMapper, never()).selectForUpdate(any());
-        verify(processInstanceApi, never()).createProcessInstance(any(), any());
+        assertEquals("bpm-901", response.getProcessInstanceId());
+        ArgumentCaptor<BpmProcessInstanceCreateReqDTO> bpm = ArgumentCaptor.forClass(
+                BpmProcessInstanceCreateReqDTO.class);
+        verify(processInstanceApi).createProcessInstance(org.mockito.ArgumentMatchers.eq(9L), bpm.capture());
+        // 服务经理本人提交的变更由其自审：审批人即申请人
+        assertEquals(List.of(9L), bpm.getValue().getStartUserSelectAssignees()
+                .get("serviceManagerApprove"));
+        ArgumentCaptor<ConstructionPlanChangeVersionUpdate> update = ArgumentCaptor.forClass(
+                ConstructionPlanChangeVersionUpdate.class);
+        verify(changeMapper).updateVersionIfMatch(update.capture());
+        assertEquals(9L, update.getValue().approverUserId());
+    }
+
+    @Test
+    void freezesOptionalAttachmentFactsWhenReasonRuleDoesNotRequireEvidence() {
+        stubCommandExecution();
+        stubAuthorizedFacts(10L);
+        stubRows(change("INTERNAL_ADJUSTMENT"), plan());
+        stubReasonConfiguration();
+        FileArtifactVersionFact fileFact = fileFact();
+        when(fileArtifactApi.inspect(any())).thenReturn(fileFact);
+        when(fileArtifactApi.lockAndRevalidate(any())).thenReturn(fileFact);
+        TenantContextHolder.setTenantId(0L);
+        when(processInstanceApi.createProcessInstance(any(), any())).thenReturn("bpm-801");
+        when(revisionMapper.freezeForSubmitIfMatch(any())).thenReturn(1);
+        when(changeMapper.updateVersionIfMatch(any())).thenReturn(1);
+        when(planMapper.updateVersionIfMatch(any())).thenReturn(1);
+
+        service.submit(command(), actor());
+
+        ArgumentCaptor<ConstructionPlanChangeVersionUpdate> update = ArgumentCaptor.forClass(
+                ConstructionPlanChangeVersionUpdate.class);
+        verify(changeMapper).updateVersionIfMatch(update.capture());
+        // 可选附件：未命中必填原因，草稿已传附件仍冻结具体版本
+        assertEquals(false, update.getValue().customerEvidenceRequired());
+        assertEquals(901L, update.getValue().customerEvidenceFileId());
+        assertEquals(2, update.getValue().customerEvidenceFileVersion());
+        assertEquals(4, update.getValue().customerEvidenceArtifactVersion());
+        verify(fileArtifactApi).inspect(any());
+        verify(fileArtifactApi).lockAndRevalidate(any());
     }
 
     @Test
     void rollsBackBusinessWritesWhenBpmReturnsBlankInstanceId() {
         stubCommandExecution();
         stubAuthorizedFacts(10L);
-        stubRows(change("INTERNAL_ADJUSTMENT"), plan());
+        stubRows(notRequiredReasonWithoutEvidence(), plan());
         stubReasonConfiguration();
         when(processInstanceApi.createProcessInstance(any(), any())).thenReturn(" ");
 
@@ -240,7 +309,7 @@ class DurationChangeSubmitServiceTest {
         ConstructionPlanDO plan = plan();
         plan.setPendingChangeId(800L);
         when(planMapper.selectForUpdate(any())).thenReturn(plan);
-        ConstructionPlanChangeDO change = change("INTERNAL_ADJUSTMENT");
+        ConstructionPlanChangeDO change = notRequiredReasonWithoutEvidence();
         when(changeMapper.selectById(any())).thenReturn(change);
         when(changeMapper.selectForUpdate(any())).thenReturn(change);
         stubReasonConfiguration();
@@ -248,6 +317,14 @@ class DurationChangeSubmitServiceTest {
         assertThrows(ServiceException.class, () -> service.submit(command(), actor()));
 
         verify(processInstanceApi, never()).createProcessInstance(any(), any());
+    }
+
+    private ConstructionPlanChangeDO notRequiredReasonWithoutEvidence() {
+        ConstructionPlanChangeDO row = change("INTERNAL_ADJUSTMENT");
+        row.setCustomerEvidenceFileId(null);
+        row.setCustomerEvidenceFileVersion(null);
+        row.setCustomerEvidenceReferenceKey(null);
+        return row;
     }
 
     private void stubCommandExecution() {
@@ -263,9 +340,11 @@ class DurationChangeSubmitServiceTest {
     }
 
     private void stubAuthorizedFacts(Long approverId) {
+        when(durationOperatorApi.lockAndRevalidate(any())).thenReturn(
+                new ProjectDurationOperatorApi.Fact(100L,9L,"ACTIVE",3L,"REGIONAL_SERVICE_MANAGER"));
         when(permissionApi.hasAnyPermissions(9L,
                 ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
-        when(planMapper.selectById(any())).thenReturn(plan());
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
         when(projectScopeApi.resolveCurrent(any())).thenReturn(
                 new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(participantFactApi.inspect(any())).thenReturn(fact(approverId,
@@ -276,6 +355,25 @@ class DurationChangeSubmitServiceTest {
                     ? fact(9L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER))
                     : fact(approverId, Set.of(ProjectParticipantFactApi.ROLE_SERVICE_MANAGER_L1));
         });
+    }
+
+    @Test void readonlyTemplateExecutionBlocksDurationSubmissionBeforeBpmOrBusinessMutation() {
+        when(permissionApi.hasAnyPermissions(9L, ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
+        when(planMapper.selectByLockQuery(any())).thenReturn(plan());
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
+        when(durationOperatorApi.lockAndRevalidate(any())).thenReturn(new ProjectDurationOperatorApi.Fact(100L,9L,"ACTIVE",3L,"REGIONAL_SERVICE_MANAGER"));
+        when(changeMapper.selectById(any())).thenReturn(notRequiredReasonWithoutEvidence());
+        stubReasonConfiguration();
+        when(commandExecutionApi.execute(any(),any(),any(),any(),any())).thenAnswer(invocation -> {
+            Supplier<?> operation = invocation.getArgument(3); return operation.get();
+        });
+        org.mockito.Mockito.doThrow(new IllegalStateException("CURRENT_PLANNING_EXECUTION_REQUIRED")).when(executionGuard).lockForWrite(any());
+        assertThrows(IllegalStateException.class, () -> service.submit(command(), actor()));
+        verify(executionGuard).lockForWrite(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi.WriteRequest(
+                100L, "PLN", "CONSTRUCTION_PLAN", null));
+        verify(planMapper, never()).selectForUpdate(any());
+        verify(changeMapper, never()).updateVersionIfMatch(any());
+        org.mockito.Mockito.verifyNoInteractions(revisionMapper, participantFactApi, processInstanceApi);
     }
 
     private void stubRows(ConstructionPlanChangeDO change, ConstructionPlanDO plan) {
@@ -303,7 +401,7 @@ class DurationChangeSubmitServiceTest {
 
     private ProjectParticipantFact fact(Long userId, Set<String> roles) {
         return new ProjectParticipantFact(100L, userId, roles, "PRIMARY",
-                "ACTIVE", "S1", 3, 3L);
+                "ACTIVE", "S1", 3L, 3L);
     }
 
     private ConstructionPlanDO plan() {
@@ -313,7 +411,7 @@ class DurationChangeSubmitServiceTest {
         row.setCurrentDurationRevisionId(701L);
         row.setPlanRecalculationStatusCode(ConstructionPlanDO.RECALCULATION_PENDING);
         row.setPlanRecalculationSourceRevisionId(701L);
-        row.setVersion(1);
+        row.setVersion(1L);
         row.setTenantId(0L);
         return row;
     }
@@ -353,7 +451,7 @@ class DurationChangeSubmitServiceTest {
     }
 
     private SubmitDurationChangeCommand command() {
-        return new SubmitDurationChangeCommand(501L, 801L, 0, 3,
+        return new SubmitDurationChangeCommand(501L, 801L, 0, 3L,
                 "submit-801", "a".repeat(64));
     }
 

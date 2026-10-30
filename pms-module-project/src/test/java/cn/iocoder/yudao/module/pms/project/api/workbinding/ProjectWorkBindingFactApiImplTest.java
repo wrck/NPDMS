@@ -116,7 +116,7 @@ class ProjectWorkBindingFactApiImplTest {
         when(factMapper.selectProjectTaskForUpdate(any())).thenReturn(task(0L, 7));
         when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(contract(0L, 3, BINDING_WITH_EXTENSION));
         assertEquals(7, JsonUtils.parseObject(api.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(
-                100L, 101L, 102L, 7, 3, 11)).itemConfigurationSnapshot(), List.class).size());
+                100L, 101L, 102L, 7, 3, 11L)).itemConfigurationSnapshot(), List.class).size());
     }
 
     @Test
@@ -141,7 +141,7 @@ class ProjectWorkBindingFactApiImplTest {
         when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(contract(0L, 3, BINDING));
 
         var fact = api.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(
-                100L, 101L, 102L, 7, 3, 11));
+                100L, 101L, 102L, 7, 3, 11L));
 
         assertEquals(7, fact.projectTaskVersion());
         assertEquals(3, fact.contractVersion());
@@ -184,7 +184,7 @@ class ProjectWorkBindingFactApiImplTest {
         when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(requirementAnalysisContract());
 
         var fact = api.lockAndRevalidate(new ProjectWorkBindingFactRevalidationQuery(
-                100L, 101L, 102L, 7, 3, 11, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
+                100L, 101L, 102L, 7, 3, 11L, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS));
 
         assertEquals(REQUIREMENT_ANALYSIS_BINDING, fact.bindingParameterSnapshot());
         assertEquals("PRE_04_REQUIREMENT_ANALYSIS", fact.targetObjectKey());
@@ -196,13 +196,13 @@ class ProjectWorkBindingFactApiImplTest {
     void lockAndRevalidateRejectsVersionChangesBeforeLaterLocks() {
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project(0L, 12));
         assertThrows(ServiceException.class, () -> api.lockAndRevalidate(
-                new ProjectWorkBindingFactRevalidationQuery(100L, 101L, 102L, 7, 3, 11)));
+                new ProjectWorkBindingFactRevalidationQuery(100L, 101L, 102L, 7, 3, 11L)));
         verify(factMapper, never()).selectProjectTaskForUpdate(any());
 
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project(0L, 11));
         when(factMapper.selectProjectTaskForUpdate(any())).thenReturn(task(0L, 8));
         assertThrows(ServiceException.class, () -> api.lockAndRevalidate(
-                new ProjectWorkBindingFactRevalidationQuery(100L, 101L, 102L, 7, 3, 11)));
+                new ProjectWorkBindingFactRevalidationQuery(100L, 101L, 102L, 7, 3, 11L)));
         verify(factMapper, never()).selectCurrentContractForUpdate(any());
     }
 
@@ -216,7 +216,7 @@ class ProjectWorkBindingFactApiImplTest {
         when(factMapper.selectProjectTaskForUpdate(any())).thenReturn(task);
         when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(contract);
         var query = new ProjectWorkBindingFactRevalidationQuery(
-                100L, 101L, 102L, 7, 3, 11, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS);
+                100L, 101L, 102L, 7, 3, 11L, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS);
 
         assertEquals(501L, api.lockAndRevalidate(query).projectTemplateId());
         task.setSourceDefinitionId(999L);
@@ -234,7 +234,7 @@ class ProjectWorkBindingFactApiImplTest {
         when(projectMapper.selectByIdForUpdate(100L)).thenReturn(project);
 
         assertThrows(ServiceException.class, () -> api.lockAndRevalidate(
-                new ProjectWorkBindingFactRevalidationQuery(100L, 101L, 102L, 7, 3, 11)));
+                new ProjectWorkBindingFactRevalidationQuery(100L, 101L, 102L, 7, 3, 11L)));
         verify(factMapper, never()).selectProjectTaskForUpdate(any());
     }
 
@@ -250,7 +250,7 @@ class ProjectWorkBindingFactApiImplTest {
         nativeContract.setWorkBindingTypeCode("TASK_NATIVE");
         when(factMapper.selectCurrentContractForUpdate(any())).thenReturn(nativeContract);
         assertThrows(ServiceException.class, () -> api.lockAndRevalidate(
-                new ProjectWorkBindingFactRevalidationQuery(100L, 101L, 102L, 7, 3, 11)));
+                new ProjectWorkBindingFactRevalidationQuery(100L, 101L, 102L, 7, 3, 11L)));
     }
 
     @Test
@@ -290,13 +290,13 @@ class ProjectWorkBindingFactApiImplTest {
     }
 
     private static ProjectWorkBindingFactRecord record(long tenantId, String binding) {
-        return new ProjectWorkBindingFactRecord(tenantId, 100L, 11, 101L, 7, 501L,
+        return new ProjectWorkBindingFactRecord(tenantId, 100L, 11L, 101L, 7, 501L,
                 102L, "BUSINESS_OBJECT", "SOL", "SITE_SURVEY_PREPARATION",
                 "PRE_02_SITE_SURVEY", binding, 2, 3, 900L, 2);
     }
 
     private static ProjectWorkBindingFactRecord requirementAnalysisRecord() {
-        return new ProjectWorkBindingFactRecord(0L, 100L, 11, 101L, 7, 501L,
+        return new ProjectWorkBindingFactRecord(0L, 100L, 11L, 101L, 7, 501L,
                 102L, "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS",
                 "PRE_04_REQUIREMENT_ANALYSIS", REQUIREMENT_ANALYSIS_BINDING, 2, 3, 900L, 2);
     }
@@ -306,7 +306,7 @@ class ProjectWorkBindingFactApiImplTest {
         String parameters = REQUIREMENT_ANALYSIS_BINDING.replace("}",
                 ",\"businessViewRevisionId\":\"2098289231424929793\","
                 + "\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\",\"contextMapping\":{\"project\":\"project\"}}");
-        var record = new ProjectWorkBindingFactRecord(0L, 100L, 11, 101L, 7, 501L, 102L,
+        var record = new ProjectWorkBindingFactRecord(0L, 100L, 11L, 101L, 7, 501L, 102L,
                 "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS", "PRE_04_REQUIREMENT_ANALYSIS",
                 parameters, 2, 3, 900L, 2);
         when(factMapper.selectCurrentFacts(any())).thenReturn(List.of(record));
@@ -314,7 +314,7 @@ class ProjectWorkBindingFactApiImplTest {
         assertEquals(701L, fact.dynamicFormTemplateRevisionId());
         assertEquals(parameters, fact.bindingParameterSnapshot());
 
-        var invalid = new ProjectWorkBindingFactRecord(0L, 100L, 11, 101L, 7, 501L, 102L,
+        var invalid = new ProjectWorkBindingFactRecord(0L, 100L, 11L, 101L, 7, 501L, 102L,
                 "BUSINESS_OBJECT", "SOL", "REQUIREMENT_ANALYSIS", "PRE_04_REQUIREMENT_ANALYSIS",
                 parameters.replace("\"schemaVersion\":2", "\"schemaVersion\":2,\"unknownOwnerField\":true"),
                 2, 3, 900L, 2);
@@ -323,7 +323,7 @@ class ProjectWorkBindingFactApiImplTest {
                 new ProjectWorkBindingFactQuery(100L, ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS)));
     }
 
-    private static ProjectMasterDO project(long tenantId, int version) {
+    private static ProjectMasterDO project(long tenantId, long version) {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(100L);
         project.setTenantId(tenantId);

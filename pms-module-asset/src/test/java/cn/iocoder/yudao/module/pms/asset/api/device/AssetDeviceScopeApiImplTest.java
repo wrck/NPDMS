@@ -1,8 +1,8 @@
 package cn.iocoder.yudao.module.pms.asset.api.device;
 
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.SerialScopeValidationResult;
-import cn.iocoder.yudao.module.pms.asset.dal.dataobject.equipment.EquipmentDO;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,15 +17,15 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AssetDeviceScopeApiImplTest {
-    @Mock private EquipmentMapper equipmentMapper;
+    @Mock private DeviceMapper deviceMapper;
     @InjectMocks private AssetDeviceScopeApiImpl api;
 
     @Test
     void shouldReturnOnlyClassificationWithoutSensitiveDeviceDetails() {
-        when(equipmentMapper.selectListBySerialNumbers(anyCollection())).thenReturn(List.of(
-                equipment("SN-1", 1L, 100L, 0),
-                equipment("SN-2", 1L, 999L, 1),
-                equipment("SN-3", 1L, 100L, 4)));
+        when(deviceMapper.selectListBySns(anyCollection())).thenReturn(List.of(
+                device("SN-1", 1L, 100L, "IN_STOCK"),
+                device("SN-2", 1L, 999L, "IN_USE"),
+                device("SN-3", 1L, 100L, "RETIRED")));
 
         SerialScopeValidationResult result = api.validateAssignableSerials(1L, 100L,
                 List.of("SN-1", "SN-2", "SN-3", "SN-4", "SN-1"));
@@ -36,12 +36,12 @@ class AssetDeviceScopeApiImplTest {
         assertEquals(List.of("SN-1"), result.duplicateSerialNumbers());
     }
 
-    private EquipmentDO equipment(String serial, Long tenantId, Long projectId, Integer status) {
-        EquipmentDO equipment = new EquipmentDO();
-        equipment.setSerialNumber(serial);
-        equipment.setTenantId(tenantId);
-        equipment.setProjectId(projectId);
-        equipment.setStatus(status);
-        return equipment;
+    private DeviceDO device(String sn, Long tenantId, Long projectId, String status) {
+        DeviceDO device = new DeviceDO();
+        device.setSn(sn);
+        device.setTenantId(tenantId);
+        device.setProjectId(projectId);
+        device.setStatus(status);
+        return device;
     }
 }

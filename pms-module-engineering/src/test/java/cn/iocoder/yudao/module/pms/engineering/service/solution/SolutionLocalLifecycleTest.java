@@ -3,10 +3,13 @@ package cn.iocoder.yudao.module.pms.engineering.service.solution;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionApproveReqVO;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionSaveReqVO;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solution.SolutionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.solution.SolutionMapper;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*;
@@ -15,11 +18,22 @@ import static org.mockito.Mockito.*;
 
 class SolutionLocalLifecycleTest {
     private final SolutionMapper mapper = mock(SolutionMapper.class);
+    private final PlatformDeliveryMaterialApi deliveryMaterialApi = mock(PlatformDeliveryMaterialApi.class);
+    private final EngineeringRecordCodeGenerator recordCodeGenerator = mock(EngineeringRecordCodeGenerator.class);
     private final SolutionServiceImpl service = new SolutionServiceImpl();
+    private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi prerequisites = mock(cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi.class);
+    private final cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper tiered = mock(cn.iocoder.yudao.module.pms.engineering.dal.mysql.solutionreview.SolutionReviewMapper.class);
     private SolutionDO row;
     @BeforeEach void setUp() {
+        ReflectionTestUtils.setField(service, "prerequisites", prerequisites);
+        ReflectionTestUtils.setField(service, "reviewPolicies", mock(cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewPolicyService.class));
+        ReflectionTestUtils.setField(service, "tieredReviewMapper", tiered);
+        ReflectionTestUtils.setField(service, "completionEvents", mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents.class));
         ReflectionTestUtils.setField(service, "solutionMapper", mapper);
-        row = new SolutionDO(); row.setId(1L); row.setProjectId(7L); row.setCode("SOL-TEST"); row.setStatus(0); row.setReviewLevel(0); row.setVersion(6);
+        ReflectionTestUtils.setField(service, "deliveryMaterialApi", deliveryMaterialApi);
+        doReturn("PROJ-FA-001").when(recordCodeGenerator).next(any(), eq(EngineeringRecordCodeGenerator.SOLUTION), any());
+        ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
+        row = new SolutionDO(); row.setId(1L); row.setProjectId(7L); row.setCode("SOL-TEST"); row.setStatus(0); row.setReviewLevel(0); row.setVersion(6L);
         when(mapper.selectById(1L)).thenReturn(row);
     }
 
@@ -28,7 +42,7 @@ class SolutionLocalLifecycleTest {
         when(mapper.updateById(any(SolutionDO.class))).thenAnswer(call -> {
             SolutionDO update = call.getArgument(0);
             assertEquals(storedVersion[0], update.getVersion());
-            update.setVersion(++storedVersion[0]);
+            update.setVersion((long) ++storedVersion[0]);
             return 1;
         });
         service.submitSolution(1L);
@@ -39,6 +53,33 @@ class SolutionLocalLifecycleTest {
         assertEquals(9, row.getVersion());
         assertEquals(9, row.getBaselineVersion());
         assertNotNull(row.getApprovedTime());
+        // 批准方案统一登记交付件（P06R：业务结果型，锚定方案基线）
+        ArgumentCaptor<Long> revision = ArgumentCaptor.forClass(Long.class);
+        verify(deliveryMaterialApi).registerBusinessResultMaterial(eq("SOL"), eq("solution"), eq(1L),
+                eq("IMPLEMENTATION_PLAN"), eq("solution"), eq("1"), revision.capture(), anyString(), eq(7L));
+        assertEquals(9L, revision.getValue());
+    }
+
+    @Test void implementationCannotSkipMandatoryChecksThroughLegacySubmit() {
+        row.setSolutionType("IMPLEMENTATION"); when(tiered.source(any())).thenReturn(row);
+        var validator = mock(cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionSubmissionValidator.class);
+        ReflectionTestUtils.setField(service, "submissionValidator", validator);
+        doThrow(new IllegalArgumentException("缺少配置脚本文件")).when(validator).validateAndFreezeSources(row);
+        assertThrows(IllegalArgumentException.class, () -> service.submitSolution(1L));
+        assertEquals(0, row.getStatus());
+        verify(mapper, never()).updateById(any(SolutionDO.class));
+    }
+
+    @Test void legacySubmitAndStartReviewCannotBypassTaskPrerequisites() {
+        row.setSolutionType("IMPLEMENTATION");
+        doThrow(new IllegalArgumentException("前置任务未完成")).when(prerequisites).requireSatisfied(any());
+        assertThrows(IllegalArgumentException.class, () -> service.submitSolution(1L));
+        assertEquals(0, row.getStatus());
+        row.setStatus(1);
+        assertThrows(IllegalArgumentException.class, () -> service.startReview(1L));
+        assertEquals(1, row.getStatus());
+        verify(mapper, never()).updateById(any(SolutionDO.class));
+        verifyNoInteractions(tiered, deliveryMaterialApi);
     }
 
     @Test void majorReviewCannotBeSimulatedAsApproved() {
@@ -47,6 +88,32 @@ class SolutionLocalLifecycleTest {
         assertEquals(SOLUTION_REVIEW_NOT_CONNECTED.getCode(), assertThrows(ServiceException.class, () -> service.approveSolution(approval)).getCode());
         assertEquals(2, row.getStatus());
         assertNull(row.getBaselineVersion());
+        verify(mapper, never()).updateById(any(SolutionDO.class));
+    }
+
+    @Test void configuredProjectCannotUseLegacyOrdinaryCommandsToSkipReview() {
+        row.setSolutionType("IMPLEMENTATION"); when(tiered.source(any())).thenReturn(row);
+        var policies = mock(cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewPolicyService.class);
+        ReflectionTestUtils.setField(service, "reviewPolicies", policies);
+        doThrow(new IllegalArgumentException("需要复审")).when(policies).freeze(row, 0);
+        assertThrows(IllegalArgumentException.class, () -> service.submitSolution(1L));
+        assertEquals(0, row.getStatus());
+        row.setStatus(2);
+        doThrow(new IllegalArgumentException("缺少判定")).when(policies).requireOrdinaryApproval(row);
+        assertThrows(IllegalArgumentException.class, () -> service.approveSolution(new SolutionApproveReqVO() {{ setId(1L); }}));
+        assertEquals(2, row.getStatus()); assertNull(row.getBaselineVersion());
+        verify(mapper, never()).updateById(any(SolutionDO.class)); verifyNoInteractions(deliveryMaterialApi);
+    }
+
+    @Test void originalActionsCannotBypassAnActiveTieredProcess() {
+        row.setStatus(2); row.setReviewLevel(1); row.setSolutionType("IMPLEMENTATION");
+        when(tiered.source(any())).thenReturn(row);
+        var review = new cn.iocoder.yudao.module.pms.engineering.dal.dataobject.solutionreview.SolutionReviewDO();
+        review.setStatus("RUNNING"); when(tiered.bySolution(any())).thenReturn(review);
+        var rejection = new SolutionApproveReqVO(); rejection.setId(1L); rejection.setVersion(6);
+        assertThrows(IllegalStateException.class, () -> service.rejectSolution(rejection));
+        assertThrows(IllegalStateException.class, () -> service.withdrawSolution(1L));
+        assertThrows(IllegalStateException.class, () -> service.terminateSolution(1L));
         verify(mapper, never()).updateById(any(SolutionDO.class));
     }
 
@@ -65,7 +132,7 @@ class SolutionLocalLifecycleTest {
     }
 
     @Test void newDraftCannotImportApprovalMetadataFromTheCaller() {
-        SolutionSaveReqVO request = new SolutionSaveReqVO(); request.setProjectId(7L); request.setCode("NEW");
+        SolutionSaveReqVO request = new SolutionSaveReqVO(); request.setProjectId(7L);
         request.setStatus(3); request.setVersion(50); request.setBaselineVersion(50); request.setApprovedBy(99L); request.setApprovalOpinion("not authoritative");
         when(mapper.insert(any(SolutionDO.class))).thenAnswer(call -> {
             SolutionDO inserted = call.getArgument(0);

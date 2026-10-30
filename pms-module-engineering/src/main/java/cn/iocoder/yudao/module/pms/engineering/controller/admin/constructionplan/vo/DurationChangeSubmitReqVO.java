@@ -14,6 +14,6 @@ public class DurationChangeSubmitReqVO {
 
     @NotNull
     @PositiveOrZero
-    private Integer expectedProjectVersion;
+    private Long expectedProjectVersion;
 
 }

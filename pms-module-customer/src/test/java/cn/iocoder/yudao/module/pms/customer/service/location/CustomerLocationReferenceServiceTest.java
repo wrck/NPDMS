@@ -35,39 +35,58 @@ class CustomerLocationReferenceServiceTest {
     @Test
     void replacesCurrentAddressReferenceAfterAstValidation() {
         when(customerMasterMapper.selectById(100L)).thenReturn(customer());
-        when(assetLocationApi.getAddress(200L, 3)).thenReturn(new AddressRespDTO(
-                200L, null, null, null, null, null, null, null, null, null, null,
-                null, null, 0, 3));
+        when(assetLocationApi.getAddress(200L, 3L)).thenReturn(address("浙江省杭州市西湖区文三路100号"));
         CustomerLocationReferenceDO current = reference("ADDRESS", 199L, 2);
         when(locationReferenceMapper.selectCurrent(any())).thenReturn(current);
 
         CustomerLocationReferenceDO result = service.maintain(
-                new CustomerLocationCommand(1L, 100L, "ADDRESS", 200L, 3, "location-key"));
+                new CustomerLocationCommand(1L, 100L, "ADDRESS", 200L, 3L, "location-key"));
 
         verify(locationReferenceMapper).updateById(current);
         ArgumentCaptor<CustomerLocationReferenceDO> inserted = ArgumentCaptor.forClass(CustomerLocationReferenceDO.class);
         verify(locationReferenceMapper).insert(inserted.capture());
         assertEquals(200L, result.getLocationId());
         assertEquals(3, result.getSourceVersion());
+        ArgumentCaptor<CustomerMasterDO> saved = ArgumentCaptor.forClass(CustomerMasterDO.class);
+        verify(customerMasterMapper).updateById(saved.capture());
+        assertEquals("浙江省杭州市西湖区文三路100号", saved.getValue().getAddress());
     }
 
     @Test
     void acceptsSiteReference() {
         when(customerMasterMapper.selectById(100L)).thenReturn(customer());
-        when(assetLocationApi.getSite(300L, 4)).thenReturn(new SiteRespDTO(
-                300L, "SITE-1", "现场", 100L, 200L, "DELIVERY", 0, 4));
+        when(assetLocationApi.getSite(300L, 4L)).thenReturn(new SiteRespDTO(
+                300L, "SITE-1", "现场", 100L, 200L, "DELIVERY", 0, 4L));
+        when(assetLocationApi.getAddress(200L, null)).thenReturn(address("浙江省杭州市西湖区文三路100号"));
 
         CustomerLocationReferenceDO result = service.maintain(
-                new CustomerLocationCommand(1L, 100L, "SITE", 300L, 4, "location-key"));
+                new CustomerLocationCommand(1L, 100L, "SITE", 300L, 4L, "location-key"));
 
         assertEquals("SITE", result.getLocationType());
         verify(locationReferenceMapper).insert(any(CustomerLocationReferenceDO.class));
+        ArgumentCaptor<CustomerMasterDO> saved = ArgumentCaptor.forClass(CustomerMasterDO.class);
+        verify(customerMasterMapper).updateById(saved.capture());
+        assertEquals("现场（浙江省杭州市西湖区文三路100号）", saved.getValue().getAddress());
+    }
+
+    @Test
+    void siteWithoutAddressFallsBackToSiteName() {
+        when(customerMasterMapper.selectById(100L)).thenReturn(customer());
+        when(assetLocationApi.getSite(300L, 4L)).thenReturn(new SiteRespDTO(
+                300L, "SITE-1", "现场", 100L, null, "DELIVERY", 0, 4L));
+
+        service.maintain(new CustomerLocationCommand(1L, 100L, "SITE", 300L, 4L, "location-key"));
+
+        ArgumentCaptor<CustomerMasterDO> saved = ArgumentCaptor.forClass(CustomerMasterDO.class);
+        verify(customerMasterMapper).updateById(saved.capture());
+        assertEquals("现场", saved.getValue().getAddress());
+        verify(assetLocationApi, never()).getAddress(any(), any());
     }
 
     @Test
     void rejectsSiteLocationTypeWithoutCallingAst() {
         assertThrows(IllegalArgumentException.class, () -> service.maintain(
-                new CustomerLocationCommand(1L, 100L, "SITE_LOCATION", 400L, 1, "location-key")));
+                new CustomerLocationCommand(1L, 100L, "SITE_LOCATION", 400L, 1L, "location-key")));
 
         verify(assetLocationApi, never()).getSiteLocation(any(), any());
     }
@@ -79,7 +98,7 @@ class CustomerLocationReferenceServiceTest {
         when(customerMasterMapper.selectById(100L)).thenReturn(customer);
 
         assertThrows(IllegalArgumentException.class, () -> service.maintain(
-                new CustomerLocationCommand(1L, 100L, "ADDRESS", 200L, 3, "location-key")));
+                new CustomerLocationCommand(1L, 100L, "ADDRESS", 200L, 3L, "location-key")));
 
         verify(assetLocationApi, never()).getAddress(any(), any());
     }
@@ -88,10 +107,16 @@ class CustomerLocationReferenceServiceTest {
         CustomerMasterDO customer = new CustomerMasterDO();
         customer.setId(100L);
         customer.setTenantId(1L);
+        customer.setVersion(0L);
         return customer;
     }
 
-    private CustomerLocationReferenceDO reference(String type, Long id, int version) {
+    private AddressRespDTO address(String fullAddress) {
+        return new AddressRespDTO(200L, null, "中国", null, "浙江省", null, "杭州市",
+                null, "西湖区", "文三路100号", fullAddress, null, null, 0, 3L);
+    }
+
+    private CustomerLocationReferenceDO reference(String type, Long id, long version) {
         CustomerLocationReferenceDO reference = new CustomerLocationReferenceDO();
         reference.setId(10L);
         reference.setTenantId(1L);

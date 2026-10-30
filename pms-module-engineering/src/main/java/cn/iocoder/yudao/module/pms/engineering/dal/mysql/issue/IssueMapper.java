@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.mysql.issue;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.issue.vo.IssuePageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.issue.IssueDO;
@@ -10,7 +10,7 @@ import org.apache.ibatis.annotations.Mapper;
 import java.util.List;
 
 @Mapper
-public interface IssueMapper extends BaseMapperX<IssueDO> {
+public interface IssueMapper extends ProjectScopedCodeMapper<IssueDO> {
 
     default PageResult<IssueDO> selectPage(IssuePageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<IssueDO>()
@@ -23,10 +23,6 @@ public interface IssueMapper extends BaseMapperX<IssueDO> {
                 .eqIfPresent(IssueDO::getStatus, reqVO.getStatus())
                 .betweenIfPresent(IssueDO::getDeadline, reqVO.getDeadline())
                 .orderByDesc(IssueDO::getId));
-    }
-
-    default IssueDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(IssueDO::getProjectId, projectId, IssueDO::getCode, code);
     }
 
     default Long selectOpenCountByProjectId(Long projectId) {

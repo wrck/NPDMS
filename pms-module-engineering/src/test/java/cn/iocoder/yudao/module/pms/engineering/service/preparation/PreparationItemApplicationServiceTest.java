@@ -20,6 +20,7 @@ import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,10 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class PreparationItemApplicationServiceTest {
 
+    @org.junit.jupiter.api.BeforeEach void managementQualification() {
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "managementAccess", EngineeringManagementFixtures.confirmed(participantFactApi));
+    }
+
     @Mock private PreparationMapper preparationMapper;
     @Mock private PreparationItemMapper itemMapper;
     @Mock private DynamicFormInstanceMapper formMapper;
@@ -55,6 +60,7 @@ class PreparationItemApplicationServiceTest {
     @Mock private ProjectOrganizationFactApi organizationFactApi;
     @Mock private AdminUserApi adminUserApi;
     @Mock private OrganizationScopeApi organizationScopeApi;
+    @Mock private OrganizationUserSelectionApi organizationUserSelectionApi;
     @Mock private FileArtifactApi fileArtifactApi;
     @Mock private OperationAuditApi operationAuditApi;
     @Mock private TransactionTemplate transactionTemplate;
@@ -75,9 +81,9 @@ class PreparationItemApplicationServiceTest {
                 .thenReturn(true);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
-        when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
+        when(participantFactApi.lockAndRevalidateAuthorization(any())).thenReturn(manager());
         when(organizationFactApi.lockAndRevalidate(any()))
-                .thenReturn(new ProjectOrganizationFact(10L, 3, 20L, 30L, "D30"));
+                .thenReturn(new ProjectOrganizationFact(10L, 3L, 20L, 30L, "D30"));
         when(organizationScopeApi.hasScope(200L, 20L, 30L)).thenReturn(true);
         when(itemMapper.updateDraftIfMatch(any())).thenReturn(1);
         when(preparationMapper.invalidateReadinessIfMatch(any())).thenReturn(1);
@@ -99,9 +105,9 @@ class PreparationItemApplicationServiceTest {
                 .thenReturn(true);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(scope());
-        when(participantFactApi.lockAndRevalidate(any())).thenReturn(manager());
+        when(participantFactApi.lockAndRevalidateAuthorization(any())).thenReturn(manager());
         when(organizationFactApi.lockAndRevalidate(any()))
-                .thenReturn(new ProjectOrganizationFact(10L, 3, 20L, 30L, "D30"));
+                .thenReturn(new ProjectOrganizationFact(10L, 3L, 20L, 30L, "D30"));
         doThrow(new IllegalArgumentException("disabled")).when(adminUserApi).validateUser(200L);
 
         assertThrows(RuntimeException.class,
@@ -148,15 +154,15 @@ class PreparationItemApplicationServiceTest {
         when(permissionApi.hasAnyPermissions(100L, PreparationInitializationService.PERMISSION_MANAGE))
                 .thenReturn(true);
         when(projectScopeApi.resolveCurrent(any())).thenReturn(scope());
-        when(participantFactApi.inspect(any())).thenReturn(manager());
+        when(participantFactApi.inspectAuthorization(any())).thenReturn(manager());
         when(organizationFactApi.inspect(any()))
-                .thenReturn(new ProjectOrganizationFact(10L, 3, 20L, 30L, "D30"));
-        when(organizationScopeApi.pageActiveUsers(any())).thenReturn(new PageResult<>(List.of(), 0L));
+                .thenReturn(new ProjectOrganizationFact(10L, 3L, 20L, 30L, "D30"));
+        when(organizationUserSelectionApi.page(any())).thenReturn(new PageResult<>(List.of(), 0L));
 
         var page = service.getCandidates(1L, new PreparationCandidatePageReqVO(), actor(100L));
 
         assertEquals(0L, page.getTotal());
-        verify(organizationScopeApi).pageActiveUsers(any());
+        verify(organizationUserSelectionApi).page(any());
     }
 
     @Test
@@ -176,7 +182,7 @@ class PreparationItemApplicationServiceTest {
 
     private PatchPreparationItemCommand command(Set<String> fields, Long assigneeId,
             String formValue, List<PatchPreparationItemCommand.EvidenceReference> evidence) {
-        return new PatchPreparationItemCommand(1L, 2L, 1, 1, 1, 1, 1, 3,
+        return new PatchPreparationItemCommand(1L, 2L, 1, 1, 1, 1, 1, 3L,
                 fields, null, null, assigneeId, null, null, null, formValue, evidence);
     }
 
@@ -208,7 +214,7 @@ class PreparationItemApplicationServiceTest {
     private ProjectScopeResult scope() { return new ProjectScopeResult(10L, 9L, Set.of(10L), Set.of()); }
     private ProjectParticipantFact manager() {
         return new ProjectParticipantFact(10L, 100L, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                "PRIMARY", "ACTIVE", "S1", 3, 3L);
+                "PRIMARY", "ACTIVE", "S1", 3L, 3L);
     }
     private PreparationItemApplicationService.Actor actor(Long id) {
         return new PreparationItemApplicationService.Actor(0L, id, "corr");

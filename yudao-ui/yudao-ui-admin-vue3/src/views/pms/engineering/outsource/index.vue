@@ -5,9 +5,9 @@
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-220px"
         />
@@ -50,7 +50,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-outsource:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:res-outsource:create']"
           ><Icon icon="ep:plus" />新建外包申请</el-button
         >
       </el-form-item>
@@ -90,7 +90,7 @@
       <el-table-column prop="applyTime" label="申请时间" min-width="160" :formatter="dateFormatter" />
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-outsource:query']"
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:res-outsource:query']"
             >明细</el-button
           >
           <el-button
@@ -98,7 +98,7 @@
             type="warning"
             v-if="row.status === 0 || row.status === 4"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-outsource:update']"
+            v-hasPermi="['pms:res-outsource:update']"
             >编辑</el-button
           >
           <el-button
@@ -106,7 +106,7 @@
             type="success"
             v-if="row.status === 0 || row.status === 4"
             @click="handleSubmit(row)"
-            v-hasPermi="['pms:eng-outsource:submit']"
+            v-hasPermi="['pms:res-outsource:submit']"
             >提交</el-button
           >
           <el-button
@@ -114,7 +114,7 @@
             type="primary"
             v-if="row.status === 1 || row.status === 2"
             @click="openApprove(row)"
-            v-hasPermi="['pms:eng-outsource:audit']"
+            v-hasPermi="['pms:res-outsource:audit']"
             >审批</el-button
           >
           <el-button
@@ -122,7 +122,7 @@
             type="info"
             v-if="row.status === 1 || row.status === 2"
             @click="handleWithdraw(row)"
-            v-hasPermi="['pms:eng-outsource:submit']"
+            v-hasPermi="['pms:res-outsource:submit']"
             >撤回</el-button
           >
           <el-button
@@ -130,7 +130,7 @@
             type="danger"
             v-if="row.status !== 3 && row.status !== 6"
             @click="handleTerminate(row)"
-            v-hasPermi="['pms:eng-outsource:audit']"
+            v-hasPermi="['pms:res-outsource:audit']"
             >终止</el-button
           >
           <el-button
@@ -138,7 +138,7 @@
             type="danger"
             v-if="row.status === 0 || row.status === 4"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-outsource:delete']"
+            v-hasPermi="['pms:res-outsource:delete']"
             >删除</el-button
           >
         </template>
@@ -148,202 +148,12 @@
   </ContentWrap>
 
   <!-- 新建/编辑对话框 -->
-  <Dialog v-model="formVisible" :title="form.id ? '编辑外包申请' : '新建外包申请'" width="min(960px, 95vw)">
-    <el-form ref="formRef" class="outsource-input-form" :model="form" :rules="rules" label-width="120px">
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="项目" prop="projectId">
-            <el-input v-if="sourceSurveyId" :model-value="`工勘所属项目 #${form.projectId}`" disabled />
-            <PmsEntitySelect
-              v-else
-              v-model="form.projectId"
-              :api="ProjectApi.getProjectPage"
-              label-field="name"
-              value-field="id"
-              query-field="name"
-              placeholder="请选择项目"
-              :disabled="!!form.id"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="单号" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" placeholder="如 OS-2026-001" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="类型" prop="outsourceType">
-            <el-select v-model="form.outsourceType" class="!w-full">
-              <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_OUTSOURCE_TYPE)"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="工作量" prop="workQuantity">
-            <el-input-number v-model="form.workQuantity" :min="0" class="!w-full" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="工作单位" prop="workUnit">
-            <el-input v-model="form.workUnit" placeholder="如 人天/人月/项" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="计划开始日期" prop="plannedStartDate">
-            <el-date-picker
-              v-model="form.plannedStartDate"
-              type="date"
-              value-format="YYYY-MM-DD"
-              placeholder="选择开始日期"
-              class="!w-full"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="计划结束日期" prop="plannedEndDate">
-            <el-date-picker
-              v-model="form.plannedEndDate"
-              type="date"
-              value-format="YYYY-MM-DD"
-              placeholder="选择结束日期"
-              class="!w-full"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="预估费用" prop="estimatedCost">
-            <el-input-number v-model="form.estimatedCost" :min="0" :precision="2" class="!w-full" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="实际费用" prop="actualCost">
-            <el-input-number v-model="form.actualCost" :min="0" :precision="2" class="!w-full" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="币种" prop="currency">
-            <el-select v-model="form.currency" class="!w-full">
-              <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_CURRENCY)"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="服务商名称" prop="vendorName">
-            <el-input v-model="form.vendorName" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="联系电话" prop="contactPhone">
-            <el-input v-model="form.contactPhone" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="申请人" prop="applicantUserId">
-            <PmsEntitySelect
-              v-model="form.applicantUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
-              placeholder="请选择申请人"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="申请时间" prop="applyTime">
-            <el-date-picker
-              v-model="form.applyTime"
-              type="datetime"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              placeholder="选择申请时间"
-              class="!w-full"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="工作内容" prop="workContent">
-            <Editor v-model="form.workContent" height="180px" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="附件" prop="attachmentFiles">
-            <UploadFile v-model="form.attachmentFiles!" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" :rows="2" />
-          </el-form-item>
-        </el-col>
-        <el-col v-if="form.id" :span="12">
-          <el-form-item label="触发来源" prop="triggerSource">
-            <el-select v-model="form.triggerSource" class="!w-full">
-              <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_TRIGGER_SOURCE)"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
-    <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存</el-button>
-    </template>
-  </Dialog>
+  <OutsourceRequestFormDialog
+ref="formRef" v-model="formVisible" :form="form"
+    :source-survey-id="sourceSurveyId" :saving="saving" @save="save" />
 
   <!-- 明细对话框 -->
-  <Dialog v-model="detailVisible" title="外包申请明细" width="min(960px, 95vw)">
-    <el-descriptions :column="2" border class="mb-15px">
-      <el-descriptions-item label="单号">{{ current.code }}</el-descriptions-item>
-      <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
-      <el-descriptions-item label="项目">{{ current.projectId }}</el-descriptions-item>
-      <el-descriptions-item label="类型">
-        <dict-tag :type="DICT_TYPE.PMS_OUTSOURCE_TYPE" :value="current.outsourceType ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="工作量">{{ current.workQuantity }} {{ current.workUnit }}</el-descriptions-item>
-      <el-descriptions-item label="币种">
-        <dict-tag :type="DICT_TYPE.PMS_CURRENCY" :value="current.currency ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="预估费用">{{ current.estimatedCost }}</el-descriptions-item>
-      <el-descriptions-item label="实际费用">{{ current.actualCost }}</el-descriptions-item>
-      <el-descriptions-item label="计划开始">{{ current.plannedStartDate }}</el-descriptions-item>
-      <el-descriptions-item label="计划结束">{{ current.plannedEndDate }}</el-descriptions-item>
-      <el-descriptions-item label="服务商名称">{{ current.vendorName }}</el-descriptions-item>
-      <el-descriptions-item label="联系电话">{{ current.contactPhone }}</el-descriptions-item>
-      <el-descriptions-item label="申请人"><UserTag :user-id="current.applicantUserId" /></el-descriptions-item>
-      <el-descriptions-item label="申请时间">{{ current.applyTime ? formatDate(current.applyTime) : '-' }}</el-descriptions-item>
-      <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="触发来源">
-        <dict-tag :type="DICT_TYPE.PMS_TRIGGER_SOURCE" :value="current.triggerSource ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="工作内容" :span="2">
-        <div v-html="current.workContent"></div>
-      </el-descriptions-item>
-      <el-descriptions-item label="备注" :span="2">{{ current.remark }}</el-descriptions-item>
-      <el-descriptions-item v-if="current.approveOpinion" label="审批意见" :span="2">
-        {{ current.approveOpinion }}
-      </el-descriptions-item>
-    </el-descriptions>
-  </Dialog>
+  <OutsourceRequestDetailDialog v-model="detailVisible" :current="current" />
 
   <!-- 审批对话框 -->
   <Dialog v-model="approveVisible" title="审批外包申请" width="560px">
@@ -358,12 +168,10 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item label="审批人" prop="approverUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="approveForm.approverUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择审批人"
         />
       </el-form-item>
@@ -379,21 +187,33 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
+import OutsourceRequestFormDialog from './OutsourceRequestFormDialog.vue'
+import OutsourceRequestDetailDialog from './OutsourceRequestDetailDialog.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { dateFormatter, formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as OutsourceApi from '@/api/pms/engineering/outsource'
-import * as ProjectApi from '@/api/pms/project/project'
-import * as UserApi from '@/api/system/user'
+import * as ProjectApi from '@/api/pms/project/projects'
 import type { OutsourceRequestVO } from '@/api/pms/engineering/outsource'
 import ProjectTag from '@/components/ProjectTag/index.vue'
-import UserTag from '@/components/UserTag/index.vue'
 import * as SiteSurveyApi from '@/api/pms/engineering/site-survey/entity'
 import { positiveShortcutId, surveyPath, surveyExecutionQuery } from '@/views/pms/delivery-business/site-survey/siteSurveyOutsource'
 import { resolveSurveyExecution } from '@/views/pms/delivery-business/site-survey/siteSurveyExecutionShortcut'
 import { useUserStore } from '@/store/modules/user'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/outsource/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngOutsource' })
 const message = useMessage()
@@ -451,15 +271,6 @@ const form = reactive<OutsourceRequestVO>({
   applyTime: '',
   remark: ''
 })
-const rules = {
-  projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入单号' }],
-  name: [{ required: true, message: '请输入名称' }],
-  outsourceType: [{ required: true, message: '请选择类型' }],
-  workContent: [{ required: true, message: '请输入工作内容' }],
-  applicantUserId: [{ required: true, message: '请选择申请人' }],
-  applyTime: [{ required: true, message: '请选择申请时间' }]
-}
 
 const openCreate = () => {
   sourceSurveyId.value = undefined

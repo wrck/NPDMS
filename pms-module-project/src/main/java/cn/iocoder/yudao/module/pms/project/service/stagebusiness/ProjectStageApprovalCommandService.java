@@ -77,7 +77,11 @@ public class ProjectStageApprovalCommandService {
 
     private void authorize(Long tenantId, Long projectId, Long actorId) {
         if (actorId == null || actorId <= 0 || !permissions.hasAnyPermissions(actorId,"pms:project:update")) throw exception(FORBIDDEN);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId,actorId,projectId,ProjectScopeApi.ACTION_EDIT));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId))
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
     }

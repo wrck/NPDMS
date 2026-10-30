@@ -2,7 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.plan.result;
 
 import java.time.LocalDateTime;
 
-public record PatchApprovedContactResult(Long taskId, Long planRevisionId, Integer planVersion,
+public record PatchApprovedContactResult(Long taskId, Long planRevisionId, Long planVersion,
                                          Long arrangementId, ContactSnapshot before, ContactSnapshot after,
                                          Long changedBy, String reasonCode, LocalDateTime changedAt, boolean replayed) {
 

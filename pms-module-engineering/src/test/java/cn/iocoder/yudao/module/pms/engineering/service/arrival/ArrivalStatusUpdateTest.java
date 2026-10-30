@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrival.ArrivalDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.ArrivalMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.ArrivalEditableDeleteQuery;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrival.vo.ArrivalSaveReqVO;
+import cn.iocoder.yudao.module.pms.engineering.service.EngineeringRecordCodeGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -15,30 +16,74 @@ import static org.mockito.Mockito.*;
 
 class ArrivalStatusUpdateTest {
     private final ArrivalMapper mapper = mock(ArrivalMapper.class);
+    private final EngineeringRecordCodeGenerator recordCodeGenerator = mock(EngineeringRecordCodeGenerator.class);
     private final ArrivalServiceImpl service = new ArrivalServiceImpl();
     private ArrivalDO row;
 
     @BeforeEach void setUp() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        ReflectionTestUtils.setField(service,"deliveryRegistration",mock(ArrivalDeliveryRegistration.class));
+        ReflectionTestUtils.setField(service,"taskFactEvents",mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringTaskFactEvents.class));
         ReflectionTestUtils.setField(service, "arrivalMapper", mapper);
-        row = new ArrivalDO(); row.setId(1L); row.setStatus(0); row.setVersion(6);
-        when(mapper.selectById(1L)).thenReturn(row);
+        doReturn("PROJ-ARR-001").when(recordCodeGenerator).next(any(), anyString(), any());
+        ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
+        row = new ArrivalDO(); row.setId(1L); row.setStatus(0); row.setVersion(6L);
+        when(mapper.selectDeliveryOwnerForUpdate(any())).thenReturn(row);
     }
 
+    @org.junit.jupiter.api.AfterEach void clearTenant(){cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();}
     @Test void signUsesTheLoadedVersionRatherThanIncrementingTheLockPredicate() {
         when(mapper.updateById(any(ArrivalDO.class))).thenAnswer(invocation -> {
             ArrivalDO update = invocation.getArgument(0);
-            assertEquals(6, update.getVersion());
+            assertEquals(6L, update.getVersion());
             assertEquals(1, update.getStatus());
             return 1;
         });
         service.signArrival(1L);
         verify(mapper).updateById(row);
+        verify((cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringTaskFactEvents) ReflectionTestUtils.getField(service,"taskFactEvents")).arrivalSigned(row);
+    }
+
+    @Test void savingNewEvidenceSignsThroughTheExistingCommand() {
+        var request = new ArrivalSaveReqVO(); request.setProjectId(20L); request.setAttachmentUrl("/test/receipt.pdf");
+        when(mapper.insert(any(ArrivalDO.class))).thenAnswer(call -> { ((ArrivalDO)call.getArgument(0)).setId(1L); return 1; });
+        when(mapper.updateById(any(ArrivalDO.class))).thenReturn(1);
+        assertEquals(1L, service.createArrival(request));
+        assertEquals(1,row.getStatus());
+        var registration=(ArrivalDeliveryRegistration)ReflectionTestUtils.getField(service,"deliveryRegistration");
+        verify(registration).requireWrite(row);
+        verify(registration).registerSigned(row);
+    }
+
+    @Test void savingExistingEvidenceKeepsUploadTimeAndCompletesPendingReceipt() {
+        var request = new ArrivalSaveReqVO(); request.setId(1L); request.setVersion(6);
+        request.setAttachmentUrl("/test/latest.pdf"); request.setArrivalTime(java.time.LocalDateTime.of(2026,10,9,17,0));
+        when(mapper.updateById(any(ArrivalDO.class))).thenAnswer(call -> {
+            var update=(ArrivalDO)call.getArgument(0);
+            if(update!=row) assertEquals(request.getArrivalTime(),update.getArrivalTime());
+            return 1;
+        });
+        service.updateArrival(request);
+        assertEquals(1,row.getStatus());
+        verify(mapper,times(2)).updateById(any(ArrivalDO.class));
+    }
+
+    @Test void saveCannotBypassSignatureAuthorizationOrChangeAbnormalState() {
+        var request = new ArrivalSaveReqVO(); request.setProjectId(20L); request.setAttachmentUrl("/test/receipt.pdf");
+        when(mapper.insert(any(ArrivalDO.class))).thenAnswer(call -> { ((ArrivalDO)call.getArgument(0)).setId(1L); return 1; });
+        var registration=(ArrivalDeliveryRegistration)ReflectionTestUtils.getField(service,"deliveryRegistration");
+        doThrow(new IllegalStateException("write denied")).when(registration).requireWrite(row);
+        assertThrows(IllegalStateException.class,()->service.createArrival(request));
+        assertEquals(0,row.getStatus());verify(mapper,never()).updateById(any(ArrivalDO.class));
+        reset(registration); row.setStatus(2); request.setId(1L);request.setVersion(6);
+        when(mapper.updateById(any(ArrivalDO.class))).thenReturn(1);
+        service.updateArrival(request); assertEquals(2,row.getStatus());verify(registration,never()).registerSigned(any());
     }
 
     @Test void abnormalTransitionAlsoKeepsTheExpectedVersion() {
         when(mapper.updateById(any(ArrivalDO.class))).thenAnswer(invocation -> {
             ArrivalDO update = invocation.getArgument(0);
-            assertEquals(6, update.getVersion());
+            assertEquals(6L, update.getVersion());
             assertEquals(2, update.getStatus());
             return 1;
         });
@@ -70,10 +115,10 @@ class ArrivalStatusUpdateTest {
     }
 
     @Test void createAlwaysStartsPendingWithoutImportingAStatusOrLockVersion() {
-        ArrivalSaveReqVO request = new ArrivalSaveReqVO(); request.setProjectId(7L); request.setCode("ARR-NEW"); request.setStatus(1); request.setVersion(80);
+        ArrivalSaveReqVO request = new ArrivalSaveReqVO(); request.setProjectId(7L); request.setStatus(1); request.setVersion(80);
         when(mapper.insert(any(ArrivalDO.class))).thenAnswer(call -> {
             ArrivalDO inserted = call.getArgument(0);
-            assertEquals(0, inserted.getStatus()); assertEquals(0, inserted.getVersion());
+            assertEquals(0, inserted.getStatus()); assertEquals(0L, inserted.getVersion());
             inserted.setId(2L); return 1;
         });
         assertEquals(2L, service.createArrival(request));
@@ -82,10 +127,10 @@ class ArrivalStatusUpdateTest {
     @Test void editingPreservesPendingOrAbnormalStatusAndUsesTheLoadedLockVersion() {
         for (int status : new int[]{0, 2}) {
             row.setStatus(status);
-            ArrivalSaveReqVO request = new ArrivalSaveReqVO(); request.setId(1L); request.setStatus(1); request.setRemark("updated");
+            ArrivalSaveReqVO request = new ArrivalSaveReqVO(); request.setId(1L); request.setStatus(1); request.setVersion(6); request.setRemark("updated");
             when(mapper.updateById(any(ArrivalDO.class))).thenAnswer(call -> {
                 ArrivalDO update = call.getArgument(0);
-                assertEquals(status, update.getStatus()); assertEquals(6, update.getVersion());
+                assertEquals(status, update.getStatus()); assertEquals(6L, update.getVersion());
                 assertEquals("updated", update.getRemark()); return 1;
             });
             service.updateArrival(request);
@@ -102,7 +147,7 @@ class ArrivalStatusUpdateTest {
     }
 
     @Test void deleteUsesAnEditableVersionPredicateAndReportsAConcurrentChange() {
-        ArrivalEditableDeleteQuery query = new ArrivalEditableDeleteQuery(1L, 6);
+        ArrivalEditableDeleteQuery query = new ArrivalEditableDeleteQuery(1L, 6L);
         when(mapper.deleteEditable(query)).thenReturn(0);
         assertEquals(ARRIVAL_VERSION_NOT_MATCH.getCode(), assertThrows(ServiceException.class, () -> service.deleteArrival(1L)).getCode());
         verify(mapper, never()).deleteById(anyLong());

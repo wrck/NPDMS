@@ -73,11 +73,12 @@ public class ProjectTemplateSelectionService {
     }
 
     private Set<Long> recommended(ProjectMasterDO source) {
-        var result = templates.matchPreview(ProjectRuleFields.manualCreationFacts(source));
+        var result = templates.matchPreview(projectRuleFields.manualCreationFacts(source));
         return result.getCandidates().stream().map(candidate -> candidate.getTemplateRevisionId()).collect(Collectors.toSet());
     }
 
     public record Selection(ProjectTemplateRevisionDO revision, boolean override) { }
     public record Option(Long templateId, String name, Long revisionId, Integer revisionNo,
                          boolean recommended, boolean selectable) { }
+    private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields;
 }

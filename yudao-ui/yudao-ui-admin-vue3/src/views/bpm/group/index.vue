@@ -113,10 +113,10 @@
 </template>
 
 <script lang="ts" setup>
+import { systemUserSelection } from '@/api/system/user/selection'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { dateFormatter } from '@/utils/formatTime'
 import * as UserGroupApi from '@/api/bpm/userGroup'
-import * as UserApi from '@/api/system/user'
 import UserGroupForm from './UserGroupForm.vue'
 import { UserVO } from '@/api/system/user'
 
@@ -185,6 +185,6 @@ const handleDelete = async (id: number) => {
 onMounted(async () => {
   await getList()
   // 加载用户列表
-  userList.value = await UserApi.getSimpleUserList()
+  userList.value = await systemUserSelection.active()
 })
 </script>

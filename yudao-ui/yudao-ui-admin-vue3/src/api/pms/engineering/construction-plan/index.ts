@@ -1,5 +1,13 @@
 import request from '@/config/axios'
 
+export interface PlanningEntryReadiness {
+  durationWritable: boolean
+  scheduleWritable: boolean
+}
+
+export const getEntryReadiness = (projectId: number) =>
+  request.get<PlanningEntryReadiness>({ url: '/api/v1/pms/construction-plans/entry-readiness', params: { projectId } })
+
 export type DurationCalculationBasis = 'DATE_RANGE' | 'DURATION_FROM_START'
 export type DurationChangeStatus =
   | 'DRAFT'
@@ -128,6 +136,9 @@ export const getChanges = (planId: number, params: { cursor?: string; pageSize?:
 
 export const getChange = (planId: number, changeId: number) =>
   request.get<ConstructionPlanChangeVO>({ url: `${baseUrl}/${planId}/changes/${changeId}` })
+
+export const getChangeById = (changeId: number | string) =>
+  request.get<ConstructionPlanChangeVO>({ url: `${baseUrl}/changes/${changeId}` })
 
 export const createInitial = (data: CreateConstructionPlanReqVO, idempotencyKey: string) =>
   request.post<ConstructionPlanVO>({

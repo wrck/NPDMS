@@ -9,6 +9,6 @@ public class DurationChangeSubmitRespVO {
     private String status;
     private String processInstanceId;
     private Integer changeVersion;
-    private Integer planVersion;
+    private Long planVersion;
 
 }

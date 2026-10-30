@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.preparation;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.preparation.*;
@@ -44,6 +45,7 @@ public class PreparationWaiverService {
     private final PreparationItemWaiverMapper waiverMapper;
     private final ProjectScopeApi projectScopeApi;
     private final ProjectParticipantFactApi participantFactApi;
+    private final ProjectManagementQualificationApi managementAccess;
     private final PermissionApi permissionApi;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final OperationAuditApi operationAuditApi;
@@ -58,8 +60,11 @@ public class PreparationWaiverService {
         PreparationItemDO item = itemMapper.selectList(new PreparationChildrenQuery(actor.tenantId(), preparationId))
                 .stream().filter(row -> Objects.equals(row.getId(), itemId)).findFirst().orElse(null);
         if (preparation == null || item == null) throw exception(PREPARATION_NOT_EXISTS);
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(),
-                actor.actorId(), preparation.getProjectId(), ProjectScopeApi.ACTION_VIEW));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(preparation.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null
                 || !scope.fullProjectIds().contains(preparation.getProjectId())) throw exception(FORBIDDEN);
         WaiverCursor parsed = parseCursor(cursor);
@@ -199,16 +204,29 @@ public class PreparationWaiverService {
         String permission = decision ? PERMISSION_APPROVE : PreparationInitializationService.PERMISSION_MANAGE;
         String action = decision ? ProjectScopeApi.ACTION_VIEW : ProjectScopeApi.ACTION_MANAGE;
         if (!permissionApi.hasAnyPermissions(actor.actorId(), permission)) throw exception(FORBIDDEN);
-        ProjectScopeResult current = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, action));
+        ProjectScopeResult current = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         if (current == null || current.fullProjectIds() == null || !current.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
-        projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.actorId(),
-                projectId, action, current.treeVersion()));
+        projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(action)
+                .expectedScopeVersion(current.treeVersion()).build());
     }
 
-    private void authorizeParticipant(Long projectId, Integer projectVersion,
+    private void authorizeParticipant(Long projectId, Long projectVersion,
             PreparationItemApplicationService.Actor actor, String roleCode) {
         if (blank(roleCode)) throw exception(PREPARATION_WAIVER_INVALID);
+        if (ProjectParticipantFactApi.ROLE_PROJECT_MANAGER.equals(roleCode)) {
+            var qualification = managementAccess.inspect(new ProjectManagementQualificationApi.Query(actor.tenantId(), projectId, actor.actorId()));
+            if (qualification == null) throw exception(FORBIDDEN);
+            managementAccess.lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(qualification, projectVersion, "ACTIVE", null));
+            return;
+        }
         participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(projectId, actor.actorId(),
                 projectVersion, "ACTIVE", null, Set.of(roleCode)));
     }
@@ -304,9 +322,13 @@ public class PreparationWaiverService {
             String permission, String scopeAction) {
         try {
             if (!permissionApi.hasAnyPermissions(actor.actorId(), permission)) return false;
-            ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    actor.tenantId(), actor.actorId(), projectId, scopeAction));
+            ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(scopeAction).build());
             if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) return false;
+            if (ProjectParticipantFactApi.ROLE_PROJECT_MANAGER.equals(roleCode)) return (managementAccess.inspect(new ProjectManagementQualificationApi.Query(actor.tenantId(), projectId, actor.actorId())) != null);
             ProjectParticipantFact fact = participantFactApi.inspect(new ProjectParticipantFactQuery(
                     projectId, actor.actorId(), Set.of(roleCode), LocalDateTime.now()));
             return fact != null && Objects.equals(fact.projectId(), projectId)
@@ -346,7 +368,7 @@ public class PreparationWaiverService {
 
     public record WaiverCommand(String action, Long preparationId, Long itemId, Long waiverId,
             Integer expectedPreparationVersion, Integer expectedInputVersion, Integer expectedReadinessVersion,
-            Integer expectedItemVersion, Integer expectedWaiverVersion, Integer expectedProjectVersion,
+            Integer expectedItemVersion, Integer expectedWaiverVersion, Long expectedProjectVersion,
             List<String> blockerCodes, String reason, String risk, String compensation,
             LocalDateTime validFrom, LocalDateTime validUntil, String opinion, String idempotencyKey) {
         public WaiverCommand { blockerCodes = blockerCodes == null ? List.of() : List.copyOf(blockerCodes); }

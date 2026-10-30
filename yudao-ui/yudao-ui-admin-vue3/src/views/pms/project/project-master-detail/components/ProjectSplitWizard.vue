@@ -87,6 +87,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as SplitApi from '@/api/pms/project/project-splits'
@@ -110,7 +111,7 @@ const dirty = computed(() => editVersion.value !== savedEditVersion.value)
 let workspaceGeneration = 0
 watch([items, serialInputs], () => { editVersion.value++; preview.value = undefined }, { deep: true, flush: 'sync' })
 const storageKey = () => `fproj002:split-request:${props.projectId}`
-const key = () => crypto.randomUUID()
+const key = () => generateUUID()
 const selectTemplate = (item: ProjectSplitItemInput, revisionId: LongId) => {
   item.templateRevisionId = revisionId
   item.templateSelectionReason = ''

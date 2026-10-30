@@ -1,17 +1,15 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
 @TableName("proj_project_plan_version")
-public class ProjectPlanVersionDO extends TenantBaseDO {
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+public class ProjectPlanVersionDO extends BaseBusinessEntity {
     private Long projectId;
     private Integer revisionNo;
     private String status;
@@ -22,5 +20,4 @@ public class ProjectPlanVersionDO extends TenantBaseDO {
     private LocalDateTime effectiveAt;
     private LocalDateTime closedAt;
     private String closureResult;
-    private Integer version;
 }

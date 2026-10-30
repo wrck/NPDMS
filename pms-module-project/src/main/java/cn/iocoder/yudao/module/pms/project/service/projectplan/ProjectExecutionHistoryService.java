@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
@@ -27,6 +28,7 @@ public class ProjectExecutionHistoryService {
     private final PermissionApi permissions;
     private final ProjectPlanVersionMapper plans;
     private final ProjectNodeExecutionMapper executions;
+    private final ProjectExecutionTimeProjection times;
 
     public record History(List<Plan> plans, List<Round> rounds) { }
     public record Plan(Long id, Integer revisionNo, String status, LocalDateTime effectiveAt,
@@ -36,16 +38,24 @@ public class ProjectExecutionHistoryService {
                         String nodeCode, String name, Integer roundNo, boolean current, String status,
                         LocalDateTime admittedAt, LocalDateTime startedAt, Long startedPlanVersionId,
                         LocalDateTime submittedAt, Long submittedBy, String submissionNote,
-                        boolean canViewSubmissionNote, LocalDateTime endedAt, List<Evaluation> evaluations) { }
+                        boolean canViewSubmissionNote, LocalDateTime endedAt, List<Evaluation> evaluations, String stageCode, ProjectExecutionTimeProjection.Time submissionTime) { }
 
     public History get(Long projectId, Long actorId) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, ProjectScopeApi.ACTION_VIEW));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId))
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         boolean canViewNote = permissions.hasAnyPermissions(actorId, "pms:project-task:execute");
         if (canViewNote) {
-            var handlingScope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, ProjectScopeApi.ACTION_EDIT));
+            var handlingScope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
             canViewNote = handlingScope != null && handlingScope.fullProjectIds() != null && handlingScope.fullProjectIds().contains(projectId);
         }
         final boolean showSubmissionNote = canViewNote;
@@ -54,27 +64,29 @@ public class ProjectExecutionHistoryService {
         Map<Long, TemplateExecutionSnapshot> snapshots = new HashMap<>();
         Map<Long, Integer> revisions = new HashMap<>();
         var history = versions.stream().map(plan -> {
-            snapshots.put(plan.getId(), JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class));
+            snapshots.put(plan.getId(), TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot()));
             revisions.put(plan.getId(), plan.getRevisionNo());
             return new Plan(plan.getId(), plan.getRevisionNo(), plan.getStatus(), plan.getEffectiveAt(), plan.getClosedAt(),
                     plan.getClosureResult() == null ? null : JsonUtils.parseObject(plan.getClosureResult(), RuleEvaluation.class));
         }).toList();
-        var rounds = executions.selectHistory(query).stream().map(round -> {
+        var recordedRounds = executions.selectHistory(query);
+        var rounds = recordedRounds.stream().map(round -> {
             var snapshot = snapshots.get(round.getPlanVersionId());
             String code = round.getNodeKey();
             String name = round.getNodeKey();
+            String stageCode = null;
             Map<String, String> ruleKeys = new LinkedHashMap<>();
             Map<String, String> slotNames = new HashMap<>();
             if (snapshot != null && "STAGE".equals(round.getNodeKind())) {
                 var node = snapshot.getStages().stream().filter(item -> round.getNodeKey().equals(item.getNodeKey())).findFirst().orElse(null);
                 if (node != null) {
-                    code = node.getCode(); name = node.getName();
+                    code = node.getCode(); name = node.getName(); stageCode = node.getCode();
                     ruleKeys.put("completion", node.getCompletionRuleKey()); ruleKeys.put("exit", node.getExitRuleKey());
                 }
             } else if (snapshot != null && "TASK".equals(round.getNodeKind())) {
                 var node = snapshot.getTasks().stream().filter(item -> round.getNodeKey().equals(item.getNodeKey())).findFirst().orElse(null);
                 if (node != null) {
-                    code = node.getCode(); name = node.getName();
+                    code = node.getCode(); name = node.getName(); stageCode = node.getStageCode();
                     ruleKeys.put("completion",node.getCompletionRuleKey()); ruleKeys.put("exit",node.getExitRuleKey());
                     snapshot.getGates().stream().filter(gate -> Objects.equals(node.getGateRef(), gate.getCode()))
                             .findFirst().ifPresent(gate -> {
@@ -100,7 +112,8 @@ public class ProjectExecutionHistoryService {
                     round.getNodeKind(), code, name, round.getRoundNo(), Integer.valueOf(1).equals(round.getCurrentMarker()),
                     round.getStatus(), round.getAdmittedAt(), round.getStartedAt(), round.getStartedPlanVersionId(),
                     round.getSubmittedAt(), round.getSubmittedBy(), showSubmissionNote ? round.getSubmissionNote() : null,
-                    showSubmissionNote, round.getEndedAt(), List.copyOf(evaluations));
+                    showSubmissionNote, round.getEndedAt(), List.copyOf(evaluations), stageCode,
+                    times.project(new ProjectExecutionTimeProjection.Query(tenantId, projectId, actorId, round, snapshot, recordedRounds)));
         }).toList();
         return new History(history, rounds);
     }

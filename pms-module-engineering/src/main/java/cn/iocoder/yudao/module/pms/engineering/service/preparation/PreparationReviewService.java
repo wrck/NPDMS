@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.preparation;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.api.source.dto.PreparationSourceFactRevalidationQuery;
@@ -17,8 +18,6 @@ import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
@@ -54,7 +53,7 @@ public class PreparationReviewService {
     private final PreparationSourceReferenceMapper sourceMapper;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
-    private final ProjectParticipantFactApi participantFactApi;
+    private final ProjectManagementQualificationApi managementAccess;
     private final FileArtifactApi fileArtifactApi;
     private final PreparationSourceProviderRegistry sourceProviderRegistry;
     private final PlatformCommandExecutionApi commandExecutionApi;
@@ -313,23 +312,30 @@ public class PreparationReviewService {
         }
     }
 
-    private void authorizeManager(Long projectId, Integer expectedProjectVersion,
+    private void authorizeManager(Long projectId, Long expectedProjectVersion,
             PreparationItemApplicationService.Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        ProjectScopeResult current = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(),
-                actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+        ProjectScopeResult current = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (current == null || current.treeVersion() == null || current.fullProjectIds() == null
                 || !current.fullProjectIds().contains(projectId)) throw exception(PREPARATION_PROJECT_FACT_INVALID);
-        ProjectScopeResult locked = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(),
-                actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE, current.treeVersion()));
+        ProjectScopeResult locked = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(current.treeVersion()).build());
         if (locked == null || locked.fullProjectIds() == null || !locked.fullProjectIds().contains(projectId)) {
             throw exception(PREPARATION_PROJECT_FACT_INVALID);
         }
-        participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(projectId,
-                actor.actorId(), expectedProjectVersion, "ACTIVE", null,
-                Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+        var qualification = managementAccess.inspect(new ProjectManagementQualificationApi.Query(actor.tenantId(), projectId, actor.actorId()));
+        if (qualification == null) throw exception(FORBIDDEN);
+        managementAccess.lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(qualification, expectedProjectVersion, "ACTIVE", null));
     }
 
     private Long evidenceObjectItemId(PreparationItemDO item) {

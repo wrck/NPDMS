@@ -10,7 +10,7 @@ public record ArrivalAcceptanceFactQuery(
         Long tenantId,
         Long projectId,
         Set<Long> deviceIds,
-        List<ArrivalQuantityScopeFact> quantityScopes) {
+        List<ArrivalQuantityScopeFact> quantityScopes) implements ArrivalAcceptanceScopeQuery {
 
     public ArrivalAcceptanceFactQuery {
         if (tenantId == null || tenantId < 0 || projectId == null || projectId <= 0

@@ -13,6 +13,42 @@ class SyncConfigurationTest {
         var actual=JsonUtils.parseObject(json,SyncDefinition.class);
         assertEquals(expected,actual);
         assertEquals("compID",actual.sources().getFirst().sourceKey());
+        assertEquals("SNAPSHOT",actual.effectiveReadStrategy());
+        assertEquals(2000,actual.effectiveFetchSize());
+        assertEquals(1000,actual.effectiveChunkSize());
+    }
+    @Test void legacyJsonWithoutStreamingFieldsKeepsCompatibilityDefaults() {
+        var json=JsonUtils.toJsonString(EhrSyncTemplate.create(1L))
+                .replaceAll(",\"readStrategy\":\"[^\"]+\"","")
+                .replaceAll(",\"fetchSize\":\\d+","")
+                .replaceAll(",\"chunkSize\":\\d+","")
+                .replaceAll(",\"restartPolicy\":\"[^\"]+\"","")
+                .replaceAll(",\"queryTimeoutSeconds\":\\d+","");
+        var actual=JsonUtils.parseObject(json,SyncDefinition.class);
+        assertEquals("SNAPSHOT",actual.effectiveReadStrategy());
+        assertEquals(2000,actual.effectiveFetchSize());
+        assertEquals(1000,actual.effectiveChunkSize());
+        assertEquals("RESTART_ALL",actual.effectiveRestartPolicy());
+        assertEquals(0,actual.queryTimeoutSeconds());
+    }
+    @Test void dppmsTemplateUsesSingleQueryStreamingByDefault() {
+        var definition=DppmsOrderSyncTemplate.create(1L);
+        assertEquals("STREAMING_CURSOR",definition.effectiveReadStrategy());
+        assertEquals("RESTART_ALL",definition.effectiveRestartPolicy());
+        assertFalse(definition.autoPaging());
+        assertEquals(2000,definition.effectiveFetchSize());
+        assertEquals(1000,definition.effectiveChunkSize());
+        assertEquals(0,definition.queryTimeoutSeconds());
+    }
+    @Test void legacyAutoPagingStillSelectsKeysetStrategy() {
+        var definition=EhrSyncTemplate.create(1L).toBuilder().autoPaging(true).readStrategy("SNAPSHOT").build();
+        assertEquals("KEYSET_PAGING",definition.effectiveReadStrategy());
+    }
+    @Test void streamingStateAdvancesOnlyCommittedBoundaries() {
+        var upper=java.time.LocalDateTime.of(2026,9,17,12,0);
+        var state=SyncStreamingState.start(upper).committed(100L,25);
+        assertEquals(0,state.sourceIndex());assertEquals(100L,state.lastKey());assertEquals(25,state.committedRows());
+        var next=state.nextSource();assertEquals(1,next.sourceIndex());assertNull(next.lastKey());assertEquals(upper,next.upper());
     }
     @Test void rejectsWriteAndMultiStatementSql() {
         for(String sql:List.of("DELETE FROM company","SELECT 1; DELETE FROM company",
@@ -56,6 +92,26 @@ class SyncConfigurationTest {
         var source=SyncDefinition.Source.builder().readMode("TABLE").table("company").sourceKey("id")
                 .columns(List.of("id")).filters(List.of(new SyncDefinition.Filter("id","OR","x"))).build();
         assertThrows(IllegalArgumentException.class,()->MysqlSyncReader.compile(source));
+    }
+    @Test void compilesWhitelistedFunctionFiltersWithBoundValues() {
+        var source=SyncDefinition.Source.builder().readMode("TABLE").table("ehr_department").sourceKey("depID")
+                .columns(List.of("depID","depCode","depGrade"))
+                .filters(List.of(new SyncDefinition.Filter("depCode","=",6,"LENGTH"),
+                        new SyncDefinition.Filter("depGrade","<=",2),
+                        new SyncDefinition.Filter("depName","IS NULL",null,"TRIM")))
+                .build();
+        var result=MysqlSyncReader.compile(source);
+        assertTrue(result.sql().contains("LENGTH(`depCode`) = ?"));
+        assertTrue(result.sql().contains("`depGrade` <= ?"));
+        assertTrue(result.sql().contains("TRIM(`depName`) IS NULL"));
+        assertEquals(List.of(6,2),result.values());
+    }
+    @Test void rejectsUnknownFilterFunctions() {
+        for(String function:List.of("SLEEP","LENGTHB","concat")) {
+            var source=SyncDefinition.Source.builder().readMode("TABLE").table("company").sourceKey("id")
+                    .columns(List.of("id")).filters(List.of(new SyncDefinition.Filter("id","=",1,function))).build();
+            assertThrows(IllegalArgumentException.class,()->MysqlSyncReader.compile(source),function);
+        }
     }
     @Test void integerConversionDoesNotTruncate() {
         assertEquals(7L,SyncFieldMapper.convert("7","LONG"));

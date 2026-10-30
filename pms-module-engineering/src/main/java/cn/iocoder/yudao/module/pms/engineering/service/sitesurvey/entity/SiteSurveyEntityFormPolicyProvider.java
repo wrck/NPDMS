@@ -5,7 +5,7 @@ import cn.iocoder.yudao.module.pms.platform.api.dynamicform.dto.*;
 import org.springframework.stereotype.Component;
 import java.util.Set;
 
-/** The independent survey Owner retains the original published-schema compatibility rules. */
+/** Legacy supplement columns remain allowed for historical schemas, but are optional in current forms. */
 @Component
 public class SiteSurveyEntityFormPolicyProvider implements DynamicFormBusinessObjectPolicyProvider {
     public static final DynamicFormProviderKey KEY = new DynamicFormProviderKey("SOL", "SITE_SURVEY");
@@ -13,6 +13,7 @@ public class SiteSurveyEntityFormPolicyProvider implements DynamicFormBusinessOb
             .filter(field -> field.type() == cn.iocoder.yudao.module.pms.platform.api.entity.EntityField.Type.TEXT)
             .map(cn.iocoder.yudao.module.pms.platform.api.entity.EntityField::code)
             .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    private static final Set<String> REQUIRED_FIELDS = Set.of("conclusion", "remark");
 
     @Override public DynamicFormProviderKey providerKey() { return KEY; }
 
@@ -22,7 +23,7 @@ public class SiteSurveyEntityFormPolicyProvider implements DynamicFormBusinessOb
             present.add(field.fieldKey());
             return !field.controlledFile() && (FIELDS.contains(field.fieldKey())
                     || field.fieldKey().startsWith("extra_"));
-        }) && present.containsAll(FIELDS);
+        }) && present.containsAll(REQUIRED_FIELDS);
         return new DynamicFormPolicyFact(query.action(), compatible,
                 compatible ? null : "SITE_SURVEY_SCHEMA_INCOMPATIBLE", query.revisionFactVersion().longValue(),
                 "SITE_SURVEY_ENTITY_FIELDS");

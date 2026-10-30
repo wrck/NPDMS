@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.arrival.vo.ArrivalPageReqVO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrival.ArrivalDO;
@@ -12,7 +12,10 @@ import org.apache.ibatis.annotations.Mapper;
  * PMS 到货签收 Mapper（FR-ENG-021）。
  */
 @Mapper
-public interface ArrivalMapper extends BaseMapperX<ArrivalDO> {
+public interface ArrivalMapper extends ProjectScopedCodeMapper<ArrivalDO> {
+    java.time.LocalDateTime selectLatestSignedArrivalTime(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.LatestSignedArrivalQuery query);
+    ArrivalDO selectDeliveryOwnerForUpdate(@org.apache.ibatis.annotations.Param("query") cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.query.ArrivalDeliveryOwnerQuery query);
 
     default int deleteEditable(ArrivalEditableDeleteQuery query) {
         return delete(new LambdaQueryWrapperX<ArrivalDO>()
@@ -31,7 +34,4 @@ public interface ArrivalMapper extends BaseMapperX<ArrivalDO> {
                 .orderByDesc(ArrivalDO::getId));
     }
 
-    default ArrivalDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(ArrivalDO::getProjectId, projectId, ArrivalDO::getCode, code);
-    }
 }

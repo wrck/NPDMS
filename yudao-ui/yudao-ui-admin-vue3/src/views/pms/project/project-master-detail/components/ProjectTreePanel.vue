@@ -75,6 +75,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { computed, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -164,7 +165,7 @@ const submitMove = async () => {
     await ProjectsApi.moveSubtree(props.projectId, {
       newParentId: moveForm.value.newParentId,
       reason: moveForm.value.reason
-    }, treeVersion.value, crypto.randomUUID())
+    }, treeVersion.value, generateUUID())
     message.success('项目树移动成功')
     moveVisible.value = false
     await load()

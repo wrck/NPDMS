@@ -372,9 +372,14 @@ public class GlobalExceptionHandler {
         errorLog.setTraceId(TracerUtils.getTraceId());
         errorLog.setApplicationName(applicationName);
         errorLog.setRequestUrl(request.getRequestURI());
+        Object handler = request.getAttribute(
+                cn.iocoder.yudao.framework.apilog.core.interceptor.ApiAccessLogInterceptor.ATTRIBUTE_HANDLER_METHOD);
+        var accessLog = handler instanceof org.springframework.web.method.HandlerMethod method
+                ? method.getMethodAnnotation(cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog.class) : null;
+        boolean includeParameters = accessLog == null || (accessLog.enable() && accessLog.requestEnable());
         Map<String, Object> requestParams = MapUtil.<String, Object>builder()
-                .put("query", ServletUtils.getParamMap(request))
-                .put("body", ServletUtils.getBody(request)).build();
+                .put("query", includeParameters ? ServletUtils.getParamMap(request) : Map.of())
+                .put("body", includeParameters ? ServletUtils.getBody(request) : null).build();
         errorLog.setRequestParams(JsonUtils.toJsonString(requestParams));
         errorLog.setRequestMethod(request.getMethod());
         errorLog.setUserAgent(ServletUtils.getUserAgent(request));

@@ -13,6 +13,9 @@ import java.util.List;
 
 @Mapper
 public interface ContractMapper extends BaseMapperX<ContractDO> {
+    List<String> selectOrganizationVisibleContractNumbers(@Param("query") cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery query);
+    List<cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.Organization> selectDeviceOrganizations(@Param("query") cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationListQuery query);
+    List<String> selectVisibleDeviceContractNumbers(@Param("query") cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractScopeQuery query);
     ContractDO selectBySourceForUpdate(@Param("query") AuthoritySourceLockQuery query);
     List<ContractDO> selectByCompanyScope(@Param("query") ContractCompanyScopeQuery query);
     Long selectCountByCompanyScope(@Param("query") ContractCompanyScopeQuery query);

@@ -36,7 +36,7 @@ export interface OutsourceRequestVO {
   createTime?: string
 }
 
-const baseUrl = '/pms/eng-outsource'
+const baseUrl = '/pms/res-outsource'
 
 // LocalDateTime REST input uses epoch milliseconds; date-picker values are local date strings.
 export const outsourceSavePayload = (data: OutsourceRequestVO) => {

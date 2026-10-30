@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface ArrivalVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   arrivalTime?: number
   receiverUserId?: number
   equipmentId?: number
@@ -11,13 +11,16 @@ export interface ArrivalVO {
   inspectionResult?: string
   exceptionRecord?: string
   attachmentUrl?: string
+  signDocumentArtifactId?: number
+  signDocumentVersionNo?: number
+  signDocumentReferenceVersion?: number
   status?: number
   remark?: string
   version?: number
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-arrival'
+const baseUrl = '/pms/imp-arrival'
 
 export const getArrivalPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

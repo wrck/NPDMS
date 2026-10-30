@@ -39,6 +39,7 @@ public class ProjectBusinessTaskCompletionService {
                 unknown |= result.unknown();
             } catch (RuntimeException unavailable) {
                 // The proxied node command has rolled back before continuing; Outbox owns the only retry loop.
+                ProjectRuntimeCoordinator.logFailure("TASK", projectId, task.getId(), unavailable);
                 unknown = true;
             }
         }

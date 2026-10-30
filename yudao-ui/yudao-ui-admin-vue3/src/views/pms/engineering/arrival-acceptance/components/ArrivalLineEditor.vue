@@ -56,11 +56,11 @@
             @update:model-value="updateQuantityLine(index, 'productCode', $event)"
           />
           <el-input
-            :model-value="line.modelCode || ''"
+            :model-value="line.productModel || ''"
             :disabled="!editable || Boolean(line.lineId)"
             aria-label="型号编码"
             placeholder="型号编码"
-            @update:model-value="updateQuantityLine(index, 'modelCode', $event)"
+            @update:model-value="updateQuantityLine(index, 'productModel', $event)"
           />
           <el-input-number
             :model-value="line.acceptedQuantity"
@@ -133,7 +133,7 @@ const changeType = (index: number, scopeType: string) => {
           expectedLineVersion: null,
           orderLineId: '',
           productCode: null,
-          modelCode: null,
+          productModel: null,
           acceptedQuantity: 0,
           unitCode: ''
         }

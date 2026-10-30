@@ -124,7 +124,7 @@ class ProjectAuthorizationApplicationServiceTest {
 
         ServiceException failure = assertThrows(ServiceException.class,
                 () -> service.revoke(new ProjectAuthorizationApplicationService.RevokeCommand(
-                        30L, 2, "范围调整", "revoke-key", "b".repeat(64)), actor()));
+                        30L, 2L, "范围调整", "revoke-key", "b".repeat(64)), actor()));
 
         assertEquals(PROJECT_AUTHORIZATION_VERSION_CONFLICT.getCode(), failure.getCode());
         verify(guard).assertCanRevoke(actor(), grant);
@@ -136,7 +136,7 @@ class ProjectAuthorizationApplicationServiceTest {
                 LocalDateTime.now().plusDays(1), "联合交付", "create-key", "a".repeat(64));
     }
 
-    private AuthorizationGrantDTO grant(Long resourceId, String scopeCode, String statusCode, int version) {
+    private AuthorizationGrantDTO grant(Long resourceId, String scopeCode, String statusCode, long version) {
         return new AuthorizationGrantDTO(30L, 0L, "USER", 9L, "PROJ", "PROJECT", resourceId,
                 "PROJECT_VIEW", scopeCode, LocalDateTime.now().minusHours(1),
                 LocalDateTime.now().plusDays(1), statusCode, "PROJ", "Project",

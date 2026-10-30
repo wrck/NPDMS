@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 public record AuthorizationGrantRevokeUpdate(
         Long tenantId,
         Long grantId,
-        Integer expectedVersion,
+        Long expectedVersion,
         Long revokedBy,
         LocalDateTime revokedAt,
         String revokeReason) {

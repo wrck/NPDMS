@@ -5,15 +5,12 @@
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-180px"
         />
-      </el-form-item>
-      <el-form-item label="问题编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="query.status" clearable class="!w-160px">
@@ -37,7 +34,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-issue:create']"
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:imp-issue:create']"
           ><Icon icon="ep:plus" />新增问题</el-button
         >
       </el-form-item>
@@ -45,7 +42,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="问题编码" min-width="140" />
       <el-table-column prop="name" label="问题名称" min-width="200" show-overflow-tooltip />
       <el-table-column prop="source" label="来源" width="110">
         <template #default="{ row }">
@@ -65,7 +61,7 @@
       </el-table-column>
       <el-table-column label="操作" width="460" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-issue:update']"
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:imp-issue:update']"
             >编辑</el-button
           >
           <el-button
@@ -73,7 +69,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleAction(row, 'startRectify')"
-            v-hasPermi="['pms:eng-issue:update']"
+            v-hasPermi="['pms:imp-issue:update']"
             >开始整改</el-button
           >
           <el-button
@@ -81,7 +77,7 @@
             type="success"
             v-if="row.status === 1"
             @click="handleAction(row, 'submitForVerify')"
-            v-hasPermi="['pms:eng-issue:update']"
+            v-hasPermi="['pms:imp-issue:update']"
             >提交验证</el-button
           >
           <el-button
@@ -89,7 +85,7 @@
             type="success"
             v-if="row.status === 2"
             @click="openVerify(row, 'close')"
-            v-hasPermi="['pms:eng-issue:verify']"
+            v-hasPermi="['pms:imp-issue:verify']"
             >关闭</el-button
           >
           <el-button
@@ -97,7 +93,7 @@
             type="warning"
             v-if="row.status === 2"
             @click="openVerify(row, 'reject')"
-            v-hasPermi="['pms:eng-issue:verify']"
+            v-hasPermi="['pms:imp-issue:verify']"
             >驳回</el-button
           >
           <el-button
@@ -105,7 +101,7 @@
             type="warning"
             v-if="row.status !== 3 && row.status !== 4"
             @click="handleAction(row, 'suspend')"
-            v-hasPermi="['pms:eng-issue:update']"
+            v-hasPermi="['pms:imp-issue:update']"
             >挂起</el-button
           >
           <el-button
@@ -113,10 +109,10 @@
             type="success"
             v-if="row.status === 4"
             @click="handleAction(row, 'resume')"
-            v-hasPermi="['pms:eng-issue:update']"
+            v-hasPermi="['pms:imp-issue:update']"
             >恢复</el-button
           >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-issue:delete']"
+          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:imp-issue:delete']"
             >删除</el-button
           >
         </template>
@@ -138,17 +134,12 @@
             <PmsEntitySelect
               v-model="form.projectId"
               :api="ProjectApi.getProjectPage"
-              label-field="name"
+              label-field="projectName"
               value-field="id"
-              query-field="name"
+              query-field="projectName"
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="问题编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -185,12 +176,10 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="责任人" prop="ownerUserId">
-            <PmsEntitySelect
+            <UserSelect
               v-model="form.ownerUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
+              :scoped-source="managementUsers"
+              :page-size="50"
               placeholder="请选择责任人"
             />
           </el-form-item>
@@ -240,13 +229,24 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as IssueApi from '@/api/pms/engineering/issue'
 import type { IssueVO } from '@/api/pms/engineering/issue'
-import * as ProjectApi from '@/api/pms/project/project'
-import * as UserApi from '@/api/system/user'
+import * as ProjectApi from '@/api/pms/project/projects'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/issue/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngIssue' })
 const message = useMessage()
@@ -258,16 +258,14 @@ const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectId: '',
-  code: '',
   status: undefined,
   severity: undefined
 })
 const formVisible = ref(false)
 const formRef = ref()
-const form = reactive<IssueVO>({ projectId: 0, code: '', name: '', severity: 1 })
+const form = reactive<IssueVO>({ projectId: 0, name: '', severity: 1 })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入问题编码' }],
   name: [{ required: true, message: '请输入问题名称' }],
   severity: [{ required: true, message: '请选择严重等级' }]
 }
@@ -288,7 +286,6 @@ const openForm = (row?: IssueVO) => {
     {
       id: undefined,
       projectId: 0,
-      code: '',
       name: '',
       description: '',
       source: 'OTHER',
@@ -329,7 +326,7 @@ const handleAction = async (row: IssueVO, action: 'startRectify' | 'submitForVer
     suspend: '挂起',
     resume: '恢复'
   }[action]
-  await message.confirm(`确认${actionText}问题【${row.code}】？`)
+  await message.confirm(`确认${actionText}问题【${row.name}】？`)
   if (action === 'startRectify') await IssueApi.startRectifyIssue(row.id!)
   if (action === 'submitForVerify') await IssueApi.submitForVerifyIssue(row.id!)
   if (action === 'suspend') await IssueApi.suspendIssue(row.id!)

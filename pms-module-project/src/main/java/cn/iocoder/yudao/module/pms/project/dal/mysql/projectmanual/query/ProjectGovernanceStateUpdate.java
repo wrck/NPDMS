@@ -4,7 +4,7 @@ package cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query;
 public record ProjectGovernanceStateUpdate(
         Long tenantId,
         Long projectId,
-        Integer expectedVersion,
+        Long expectedVersion,
         String expectedLifecycleStatus,
         String currentStage,
         String lifecycleStatus,

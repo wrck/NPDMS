@@ -27,11 +27,6 @@ public class SiteSurveyEntitySaveReqVO {
     @jakarta.validation.constraints.Positive(message = "请选择有效项目")
     private Long projectId;
 
-    @Schema(description = "工勘编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "SUR-2026-001")
-    @NotBlank(message = "工勘编码不能为空")
-    @jakarta.validation.constraints.Size(max = 64)
-    private String code;
-
     @Schema(description = "工勘名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "核心机房工勘")
     @NotBlank(message = "工勘名称不能为空")
     @jakarta.validation.constraints.Size(max = 128)
@@ -94,7 +89,7 @@ public class SiteSurveyEntitySaveReqVO {
     private String remark;
 
     @Schema(description = "乐观锁版本号", example = "0")
-    private Integer version;
+    private Long version;
 
     private Long formRevisionId;
     private Long extensionDefinitionRevisionId;
@@ -102,6 +97,6 @@ public class SiteSurveyEntitySaveReqVO {
     private java.util.Map<String, Object> businessValues;
     private java.util.Map<String, Object> extensionValues;
     private Boolean outsourceRequired;
-    private Integer projectEndDateVersion;
+    private Long projectEndDateVersion;
     private Boolean projectEndDateChanged;
 }

@@ -1,13 +1,11 @@
 package cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 /**
  * 项目闭环审批 DO
@@ -17,16 +15,14 @@ import java.time.LocalDateTime;
  * 门禁：闭环通过（pass 2→3）前校验 阶段完成 + 验收通过 + 问题关闭 + 审批完成
  * 【待确认：遗留问题闭环规则】允许带条件移交（CONDITIONAL），具体移交条件由业务规则补充，本实现承载流程数据。
  */
-@TableName("pms_acc_project_closure")
+@TableName("acc_project_closure_record")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ProjectClosureDO extends TenantBaseDO {
+public class ProjectClosureDO extends BaseBusinessEntity {
 
     /**
      * 主键编号
      */
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -82,7 +78,4 @@ public class ProjectClosureDO extends TenantBaseDO {
     /**
      * 乐观锁版本号
      */
-    @Version
-    private Integer version;
-
 }

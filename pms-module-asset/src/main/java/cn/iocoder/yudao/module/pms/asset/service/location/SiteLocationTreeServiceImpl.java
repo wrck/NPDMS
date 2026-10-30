@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.SiteLocationInput;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteLocationDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteLocationMapper;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +22,9 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
     private static final String ROOT_PATH = "/";
 
     private final SiteLocationMapper siteLocationMapper;
-    private final EquipmentMapper equipmentMapper;
+    private final DeviceMapper deviceMapper;
+    private final cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteMapper siteMapper;
+    private final LocationCodeService locationCodeService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -31,11 +33,20 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
             throw exception(AST_LOCATION_REFERENCE_INVALID);
         }
         if (input.id() == null) {
-            validateCodeUnique(siteId, null, input.code());
             SiteLocationDO parent = validateParent(siteId, null, input.parentId());
             SiteLocationDO entity = buildEntity(siteId, input, parent);
+            if (input.code() == null || input.code().isBlank()) {
+                var site = siteMapper.selectById(siteId);
+                if (site == null) throw exception(AST_SITE_NOT_EXISTS);
+                String code;
+                do {
+                    code = locationCodeService.next(site.getCode() + "-L-");
+                } while (siteLocationMapper.selectBySiteIdAndCode(siteId, code) != null);
+                entity.setCode(code);
+            }
+            validateCodeUnique(siteId, null, entity.getCode());
             entity.setStatus(CommonStatusEnum.ENABLE.getStatus());
-            entity.setVersion(0);
+            entity.setVersion(0L);
             siteLocationMapper.insert(entity);
             return entity;
         }
@@ -47,15 +58,18 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
         if (isReferenceOnly(input)) {
             return existing;
         }
-        validateCodeUnique(siteId, existing.getId(), input.code());
+        if (input.code() != null && !input.code().isBlank() && !Objects.equals(input.code(), existing.getCode())) {
+            throw exception(AST_LOCATION_REFERENCE_INVALID);
+        }
         SiteLocationDO parent = validateParent(siteId, existing.getId(), input.parentId());
         validateNoCycle(existing, parent);
 
         String oldPath = existing.getTreePath();
         Integer oldDepth = existing.getTreeDepth();
         SiteLocationDO update = buildEntity(siteId, input, parent);
+        update.setCode(existing.getCode());
         update.setId(existing.getId());
-        update.setVersion(existing.getVersion() + 1);
+        update.setVersion(existing.getVersion() + 1L);
         if (siteLocationMapper.updateByIdAndVersion(update, existing.getVersion()) == 0) {
             throw exception(AST_LOCATION_VERSION_CONFLICT);
         }
@@ -65,7 +79,7 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
     }
 
     @Override
-    public SiteLocationDO get(Long locationId, Integer expectedVersion) {
+    public SiteLocationDO get(Long locationId, Long expectedVersion) {
         SiteLocationDO entity = siteLocationMapper.selectById(locationId);
         if (entity == null) {
             throw exception(AST_SITE_LOCATION_NOT_EXISTS);
@@ -83,7 +97,7 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void disable(Long locationId, Integer expectedVersion) {
+    public void disable(Long locationId, Long expectedVersion) {
         SiteLocationDO entity = get(locationId, expectedVersion);
         String descendantPrefix = entity.getTreePath() + entity.getId() + "/";
         boolean hasActiveChildren = getTree(entity.getSiteId()).stream()
@@ -93,13 +107,13 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
         if (hasActiveChildren) {
             throw exception(AST_SITE_LOCATION_HAS_ACTIVE_CHILDREN);
         }
-        if (equipmentMapper.selectCountBySiteLocationId(locationId) > 0) {
+        if (deviceMapper.selectCountBySiteLocationId(locationId) > 0) {
             throw exception(AST_SITE_LOCATION_IN_USE);
         }
         SiteLocationDO update = new SiteLocationDO();
         update.setId(entity.getId());
         update.setStatus(CommonStatusEnum.DISABLE.getStatus());
-        update.setVersion(entity.getVersion() + 1);
+        update.setVersion(entity.getVersion() + 1L);
         if (siteLocationMapper.updateByIdAndVersion(update, entity.getVersion()) == 0) {
             throw exception(AST_LOCATION_VERSION_CONFLICT);
         }
@@ -167,7 +181,7 @@ public class SiteLocationTreeServiceImpl implements SiteLocationTreeService {
             update.setId(descendant.getId());
             update.setTreePath(newPrefix + descendant.getTreePath().substring(oldPrefix.length()));
             update.setTreeDepth(descendant.getTreeDepth() + depthDelta);
-            update.setVersion(descendant.getVersion() + 1);
+            update.setVersion(descendant.getVersion() + 1L);
             if (siteLocationMapper.updateByIdAndVersion(update, descendant.getVersion()) == 0) {
                 throw exception(AST_LOCATION_VERSION_CONFLICT);
             }

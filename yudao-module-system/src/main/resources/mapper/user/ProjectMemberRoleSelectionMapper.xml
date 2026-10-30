@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.system.dal.mysql.user.ProjectMemberRoleSelectionMapper">
+    <!-- Copy the enabled user/role qualification used by ActiveUserSelectionApi; no project/company qualification. -->
+    <sql id="activeRoleUsers">
+        FROM system_users u
+        WHERE u.tenant_id = #{query.tenantId} AND u.status = 0 AND u.deleted = b'0'
+          AND EXISTS (
+            SELECT 1 FROM system_user_role ur JOIN system_role r ON r.id = ur.role_id
+            WHERE ur.user_id = u.id AND ur.tenant_id = u.tenant_id AND ur.deleted = b'0'
+              AND r.tenant_id = u.tenant_id AND r.status = 0 AND r.deleted = b'0'
+            <choose>
+                <when test="query.roleCodes != null and !query.roleCodes.isEmpty()">
+                    AND r.code IN
+                    <foreach collection="query.roleCodes" item="role" open="(" separator="," close=")">#{role}</foreach>
+                </when>
+                <otherwise>AND 1 = 0</otherwise>
+            </choose>
+          )
+    </sql>
+    <sql id="matchingRoleUsers">
+        <include refid="activeRoleUsers"/>
+        <if test="query.keyword != null">
+            AND (u.username LIKE CONCAT('%', #{query.keyword}, '%')
+                 OR u.nickname LIKE CONCAT('%', #{query.keyword}, '%')
+                 OR u.email LIKE CONCAT('%', #{query.keyword}, '%')
+                <if test="query.matchedDepartmentIds != null and !query.matchedDepartmentIds.isEmpty()">
+                    OR u.dept_id IN
+                    <foreach collection="query.matchedDepartmentIds" item="dept" open="(" separator="," close=")">#{dept}</foreach>
+                </if>
+            )
+        </if>
+    </sql>
+    <select id="selectCount" resultType="long">
+        SELECT COUNT(*) <include refid="matchingRoleUsers"/>
+    </select>
+    <select id="selectPage" resultType="cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO">
+        SELECT u.id, u.username, u.nickname, u.dept_id <include refid="matchingRoleUsers"/>
+        ORDER BY u.id LIMIT #{query.offset}, #{query.pageSize}
+    </select>
+    <select id="selectDepartmentIds" resultType="java.lang.Long">
+        SELECT DISTINCT u.dept_id <include refid="activeRoleUsers"/> AND u.dept_id IS NOT NULL
+    </select>
+</mapper>

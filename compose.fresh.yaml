@@ -1,0 +1,7 @@
+# Only for databases initialized from this fresh lineage. Existing databases use compose.yaml.
+# Generate first: python scripts/prepare_fresh_project_template_migrations.py
+# Keep this override for subsequent upgrades of that database; do not switch lineage.
+services:
+  migrate:
+    volumes:
+      - ./.run/fresh-project-migrations:/flyway/sql:ro

@@ -24,10 +24,6 @@ public class ConfigurationSaveReqVO {
     @NotNull(message = "项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "配置编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "CFG-2026-001")
-    @NotBlank(message = "配置编码不能为空")
-    private String code;
-
     @Schema(description = "设备编号", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")
     @NotNull(message = "设备编号不能为空")
     private Long equipmentId;

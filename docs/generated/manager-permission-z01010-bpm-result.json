@@ -1,0 +1,10 @@
+{
+  "approvedProcess": "1776131e-c9df-11f1-9092-00ff0b78abd7",
+  "approvedTask": "177ca2d9-c9df-11f1-9092-00ff0b78abd7",
+  "approvedStatus": 2,
+  "approvedAssigneeUserId": "2108539871029019646",
+  "foreignProcess": "17d12b83-c9df-11f1-9092-00ff0b78abd7",
+  "foreignFinalStatus": 4,
+  "allBusinessKeys": null,
+  "historyRetained": true
+}

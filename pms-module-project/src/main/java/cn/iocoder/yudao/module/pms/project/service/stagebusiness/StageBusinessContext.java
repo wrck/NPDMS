@@ -4,7 +4,7 @@ import cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewRevisio
 import java.util.Set;
 
 public record StageBusinessContext(Long projectId, Long stageId, String stageCode,
-        Long executionContractId, Integer contractVersion, String bindingType,
+        Long executionContractId, Integer contractVersion, String bindingType, String routePath,
         String instanceResolutionStrategy, BusinessViewRevision businessView,
         Set<String> ownerActions, boolean readonly, String recoverableError,
         cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext execution,

@@ -5,15 +5,12 @@
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-180px"
         />
-      </el-form-item>
-      <el-form-item label="资源编码" prop="code">
-        <el-input v-model="query.code" clearable class="!w-200px" @keyup.enter="load" />
       </el-form-item>
       <el-form-item label="资源名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-200px" @keyup.enter="load" />
@@ -30,7 +27,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:eng-resource:create']"
+        <el-button type="primary" @click="openForm()" v-hasPermi="['pms:sol-resource:create']"
           ><Icon icon="ep:plus" />新增资源</el-button
         >
       </el-form-item>
@@ -38,7 +35,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows">
-      <el-table-column prop="code" label="资源编码" min-width="140" />
       <el-table-column prop="name" label="资源名称" min-width="180" />
       <el-table-column prop="resourceType" label="资源类型" width="120">
         <template #default="{ row }">
@@ -53,7 +49,7 @@
       </el-table-column>
       <el-table-column label="操作" width="360" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:eng-resource:update']"
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:sol-resource:update']"
             >编辑</el-button
           >
           <el-button
@@ -61,7 +57,7 @@
             type="success"
             v-if="row.readyStatus === 0"
             @click="handleAction(row, 'markReady')"
-            v-hasPermi="['pms:eng-resource:update']"
+            v-hasPermi="['pms:sol-resource:update']"
             >标记就绪</el-button
           >
           <el-button
@@ -69,7 +65,7 @@
             type="warning"
             v-if="row.readyStatus === 0 || row.readyStatus === 1"
             @click="handleAction(row, 'markAbnormal')"
-            v-hasPermi="['pms:eng-resource:update']"
+            v-hasPermi="['pms:sol-resource:update']"
             >标记异常</el-button
           >
           <el-button
@@ -77,10 +73,10 @@
             type="info"
             v-if="row.readyStatus === 1 || row.readyStatus === 2"
             @click="handleAction(row, 'resetToNotReady')"
-            v-hasPermi="['pms:eng-resource:update']"
+            v-hasPermi="['pms:sol-resource:update']"
             >重置未就绪</el-button
           >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:eng-resource:delete']"
+          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:sol-resource:delete']"
             >删除</el-button
           >
         </template>
@@ -101,18 +97,14 @@
           <el-form-item label="项目编号" prop="projectId">
             <PmsEntitySelect
               v-model="form.projectId"
+              @change="form.equipmentId = undefined"
               :api="ProjectApi.getProjectPage"
-              label-field="name"
+              label-field="projectName"
               value-field="id"
-              query-field="name"
+              query-field="projectName"
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="资源编码" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -132,14 +124,7 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="关联设备" prop="equipmentId">
-            <PmsEntitySelect
-              v-model="form.equipmentId"
-              :api="EquipmentApi.getEquipmentPage"
-              :label-field="['serialNumber', 'name']"
-              value-field="id"
-              query-field="serialNumber"
-              placeholder="请选择设备"
-            />
+            <ProjectDeviceSelect v-model="form.equipmentId" :project-id="form.projectId" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -165,8 +150,8 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as ResourceApi from '@/api/pms/engineering/resource'
 import type { ResourceReadyVO } from '@/api/pms/engineering/resource'
-import * as ProjectApi from '@/api/pms/project/project'
-import * as EquipmentApi from '@/api/pms/asset/equipment'
+import * as ProjectApi from '@/api/pms/project/projects'
+import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 
 defineOptions({ name: 'PmsEngResource' })
 const message = useMessage()
@@ -180,7 +165,6 @@ const formRef = ref()
 const form = reactive<ResourceReadyVO>({ projectId: 0, code: '', name: '' })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入资源编码' }],
   name: [{ required: true, message: '请输入资源名称' }]
 }
 
@@ -232,7 +216,7 @@ const remove = async (row: ResourceReadyVO) => {
 }
 const handleAction = async (row: ResourceReadyVO, action: 'markReady' | 'markAbnormal' | 'resetToNotReady') => {
   const actionText = { markReady: '标记就绪', markAbnormal: '标记异常', resetToNotReady: '重置未就绪' }[action]
-  await message.confirm(`确认${actionText}资源【${row.code}】？`)
+  await message.confirm(`确认${actionText}资源【${row.name}】？`)
   if (action === 'markReady') await ResourceApi.markReady(row.id!)
   if (action === 'markAbnormal') await ResourceApi.markAbnormal(row.id!)
   if (action === 'resetToNotReady') await ResourceApi.resetToNotReady(row.id!)

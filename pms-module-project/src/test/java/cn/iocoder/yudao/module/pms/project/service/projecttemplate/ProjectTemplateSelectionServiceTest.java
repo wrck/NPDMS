@@ -19,12 +19,12 @@ import static org.mockito.Mockito.*;
 class ProjectTemplateSelectionServiceTest {
     private final ProjectTemplateService templates = mock(ProjectTemplateService.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
-    private final ProjectTemplateSelectionService service = new ProjectTemplateSelectionService(templates, permissions);
+    private final ProjectTemplateSelectionService service = new ProjectTemplateSelectionService(templates, permissions, new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
 
     @Test void acceptsRecommendedChildRevisionWithoutInheritingParentOrRequiringOverride() {
         var parent = parent(); var revision = available();
         var candidate = new TemplateMatchCandidate(); candidate.setTemplateRevisionId(201L);
-        when(templates.matchPreview(cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields.manualCreationFacts(parent()))).thenReturn(TemplateMatchResult.matched(candidate));
+        when(templates.matchPreview(new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).manualCreationFacts(parent()))).thenReturn(TemplateMatchResult.matched(candidate));
         var result = service.select(parent, 201L, null, 9L);
         assertSame(revision, result.revision()); assertFalse(result.override());
         assertEquals(100L, parent.getLifecycleTemplateRevisionId());
@@ -34,7 +34,7 @@ class ProjectTemplateSelectionServiceTest {
 
     @Test void overrideRequiresSeparatePermissionAndReasonAndUsesExactPublishedVersion() {
         var revision = available();
-        when(templates.matchPreview(cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields.manualCreationFacts(parent()))).thenReturn(TemplateMatchResult.noMatch("none"));
+        when(templates.matchPreview(new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).manualCreationFacts(parent()))).thenReturn(TemplateMatchResult.noMatch("none"));
         assertThrows(ServiceException.class, () -> service.select(parent(), 201L, "工勘独立交付", 9L));
         when(permissions.hasAnyPermissions(9L, ProjectTemplateSelectionService.OVERRIDE_PERMISSION)).thenReturn(true);
         assertThrows(ServiceException.class, () -> service.select(parent(), 201L, " ", 9L));
@@ -69,7 +69,7 @@ class ProjectTemplateSelectionServiceTest {
         var template = templates.getProjectTemplate(20L);
         when(templates.getProjectTemplatePage(page)).thenReturn(new PageResult<>(List.of(template), 21L));
         when(templates.getRevisionList(20L)).thenReturn(List.of(revision));
-        when(templates.matchPreview(cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields.manualCreationFacts(parent()))).thenReturn(TemplateMatchResult.noMatch("none"));
+        when(templates.matchPreview(new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null).manualCreationFacts(parent()))).thenReturn(TemplateMatchResult.noMatch("none"));
         var result = service.options(parent(), page, 9L);
         assertEquals(21L, result.getTotal()); assertEquals(2, page.getPageNo());
         assertEquals("ACTIVE", page.getStatus()); assertFalse(result.getList().getFirst().selectable());

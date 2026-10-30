@@ -4,10 +4,10 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.infra.api.file.FileApi;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.configurationlog.DeviceDownloadGrantDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
-import cn.iocoder.yudao.module.pms.asset.dal.dataobject.equipmentconfiglog.EquipmentConfigLogDO;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.configurationlog.DeviceConfigLogDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.DeviceDownloadGrantMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipmentconfiglog.EquipmentConfigLogMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.DeviceConfigLogMapper;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +37,7 @@ public class DeviceConfigurationLogDownloadService {
     private static final int PRESIGNED_URL_TTL_SECONDS = 60;
 
     private final DeviceMapper deviceMapper;
-    private final EquipmentConfigLogMapper configurationLogMapper;
+    private final DeviceConfigLogMapper configurationLogMapper;
     private final DeviceDownloadGrantMapper grantMapper;
     private final PermissionApi permissionApi;
     private final FileApi fileApi;
@@ -49,7 +49,7 @@ public class DeviceConfigurationLogDownloadService {
     @Autowired
     public DeviceConfigurationLogDownloadService(
             DeviceMapper deviceMapper,
-            EquipmentConfigLogMapper configurationLogMapper,
+            DeviceConfigLogMapper configurationLogMapper,
             DeviceDownloadGrantMapper grantMapper,
             PermissionApi permissionApi,
             FileApi fileApi,
@@ -61,7 +61,7 @@ public class DeviceConfigurationLogDownloadService {
 
     DeviceConfigurationLogDownloadService(
             DeviceMapper deviceMapper,
-            EquipmentConfigLogMapper configurationLogMapper,
+            DeviceConfigLogMapper configurationLogMapper,
             DeviceDownloadGrantMapper grantMapper,
             PermissionApi permissionApi,
             FileApi fileApi,
@@ -84,7 +84,7 @@ public class DeviceConfigurationLogDownloadService {
         assertDownloadPermission(userId);
         accessScopeService.assertVisible(tenantId, userId, deviceId);
         DeviceDO device = requireDevice(tenantId, deviceId);
-        EquipmentConfigLogDO log = requireLog(tenantId, deviceId, logId);
+        DeviceConfigLogDO log = requireLog(tenantId, deviceId, logId);
         requireFile(log);
         String rawToken = generateToken();
         LocalDateTime expiresAt = now().plusSeconds(GRANT_TTL_SECONDS);
@@ -117,7 +117,7 @@ public class DeviceConfigurationLogDownloadService {
         if (!device.getSn().equals(grant.getDeviceSn())) {
             throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID);
         }
-        EquipmentConfigLogDO log = requireLog(tenantId, deviceId, grant.getConfigurationLogId());
+        DeviceConfigLogDO log = requireLog(tenantId, deviceId, grant.getConfigurationLogId());
         requireFile(log);
         if (grantMapper.consume(tenantId, tokenDigest, userId, now) != 1) {
             throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID);
@@ -160,15 +160,15 @@ public class DeviceConfigurationLogDownloadService {
         return device;
     }
 
-    private EquipmentConfigLogDO requireLog(Long tenantId, Long deviceId, Long logId) {
-        EquipmentConfigLogDO log = configurationLogMapper.selectById(logId);
-        if (log == null || !tenantId.equals(log.getTenantId()) || !deviceId.equals(log.getEquipmentId())) {
+    private DeviceConfigLogDO requireLog(Long tenantId, Long deviceId, Long logId) {
+        DeviceConfigLogDO log = configurationLogMapper.selectById(logId);
+        if (log == null || !tenantId.equals(log.getTenantId()) || !deviceId.equals(log.getDeviceId())) {
             throw exception(AST_EQUIPMENT_CONFIG_LOG_NOT_EXISTS);
         }
         return log;
     }
 
-    private void requireFile(EquipmentConfigLogDO log) {
+    private void requireFile(DeviceConfigLogDO log) {
         if (log.getFileUrl() == null || log.getFileUrl().isBlank()) {
             throw exception(AST_EQUIPMENT_CONFIG_LOG_NOT_EXISTS);
         }

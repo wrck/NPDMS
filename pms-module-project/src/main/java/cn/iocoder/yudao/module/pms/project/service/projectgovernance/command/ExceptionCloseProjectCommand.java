@@ -4,7 +4,7 @@ import java.util.List;
 
 public record ExceptionCloseProjectCommand(
         Long projectId,
-        Integer expectedVersion,
+        Long expectedVersion,
         String guardToken,
         String reasonCode,
         String reasonDetail,

@@ -9,7 +9,7 @@
   "javaPackage": "cn.iocoder.yudao.module.pms.cutover.api.approval",
   "api": "CutoverApprovalFactApi",
   "trustedTenant": "every query/command carries positive tenantId and must equal TenantContextHolder.getRequiredTenantId before platform idempotency, locks or business reads; mismatch is TENANT_CONTEXT_MISMATCH",
-  "initiatorRule": "start resolves the trusted current user from the enclosing F-CUT-004 submit transaction, locks ProjectScopeApi ACTION_EDIT for the task project, and freezes userId/projectId/ACTION_EDIT/treeVersion as the real first INITIATOR node; P4 submit never auto-approves that node",
+  "initiatorRule": "start resolves the trusted current user from the enclosing F-CUT-004 submit transaction, locks ProjectScopeApi ACTION_EDIT for the task project, and records initiatorUserId/projectId/ACTION_EDIT/scopeVersion as the submission fact; newly started routes begin with SERVICE_MANAGER without an INITIATOR review task; existing INITIATOR nodes and decisions remain unchanged",
   "types": {
     "CutoverApprovalStartCommand": {
       "exactFields": {

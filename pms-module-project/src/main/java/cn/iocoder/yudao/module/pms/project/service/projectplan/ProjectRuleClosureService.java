@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.project.service.projectplan;
 
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
@@ -15,7 +16,6 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.runtimegraph.query.ProjectR
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskProjectLockQuery;
 import cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation;
-import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot;
 import cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectRuntimeRuleEvaluator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,7 +48,7 @@ public class ProjectRuleClosureService {
         var scope = new ProjectPlanScopeQuery(tenantId, projectId);
         var plan = plans.selectEffective(scope);
         if (plan == null) return new Closure(false, true);
-        var snapshot = JsonUtils.parseObject(plan.getExecutionSnapshot(), TemplateExecutionSnapshot.class);
+        var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
         String key = snapshot.getClosureRuleKey();
         if (key == null || key.isBlank()) return new Closure(false, false); // No implicit terminal-stage closure or approval.
         var query = new ProjectRuntimeGraphQuery(tenantId, projectId);
@@ -56,9 +56,15 @@ public class ProjectRuleClosureService {
         if (stages.stream().anyMatch(stage -> !Set.of("PENDING", "DONE", "TERMINATED").contains(stage.getStatus())))
             return new Closure(false, false);
         var tasks = graph.selectTasksForUpdate(query);
-        if (tasks.stream().anyMatch(task -> (task.getActualStartTime() != null || Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus()))
+        if (tasks.stream().filter(cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy::required)
+                .anyMatch(task -> (task.getActualStartTime() != null || Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus()))
                 && !Set.of("DONE", "CLOSED").contains(task.getStatus()))) return new Closure(false, false);
-        if (executions.selectCurrentForUpdate(scope).stream().anyMatch(round -> round.getStartedAt() != null
+        var optionalTaskIds = tasks.stream().filter(task -> !cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy.required(task))
+                .map(cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO::getId)
+                .collect(java.util.stream.Collectors.toSet());
+        if (executions.selectCurrentForUpdate(scope).stream()
+                .filter(round -> !"TASK".equals(round.getNodeKind()) || !optionalTaskIds.contains(round.getNodeInstanceId()))
+                .anyMatch(round -> round.getStartedAt() != null
                 && !Set.of("DONE", "TERMINATED").contains(round.getStatus()))) return new Closure(false, false);
         var program = snapshot.getRulePrograms().get(key);
         if (program == null) return new Closure(false, true);

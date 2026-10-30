@@ -9,7 +9,7 @@
         <div v-if="customerLoading" class="customer-skeleton" role="status" aria-label="正在加载客户信息">
           <el-skeleton :rows="5" animated />
         </div>
-        <template v-else-if="project.customerCode">
+        <template v-else-if="customer">
           <div class="customer-dossier">
             <aside class="customer-identity">
               <div class="customer-monogram" aria-hidden="true">{{ customerInitial }}</div>
@@ -31,7 +31,7 @@
                 type="primary"
                 plain
                 v-hasPermi="['pms:customer:update']"
-                @click="customerFormRef?.open(customer)"
+                @click="openCustomerForm"
               >
                 <Icon icon="ep:edit" />维护客户信息
               </el-button>
@@ -63,24 +63,14 @@
               <section class="dossier-group dossier-group--extension">
                 <h3><Icon icon="ep:connection" />拓展信息</h3>
                 <dl class="field-grid">
-                  <div class="field-item"><dt>CRM 客户ID</dt><dd>{{ customer?.sourceType === 'CRM_SYNC' ? customer.sourceKey || '-' : '不适用' }}</dd></div>
-                  <div class="field-item"><dt>来源版本</dt><dd>{{ customer?.sourceVersion || '-' }}</dd></div>
-                  <div class="field-item"><dt>同步状态</dt><dd>{{ customer?.syncStatus || '-' }}</dd></div>
-                  <div class="field-item"><dt>数据时间</dt><dd>{{ formatNullableDate(customer?.dataAsOf) }}</dd></div>
-                  <div class="field-item"><dt>数据版本</dt><dd>{{ customer?.version ?? '-' }}</dd></div>
-                  <div class="field-item"><dt>对账状态</dt><dd><el-tag :type="customer?.reconciliationPending ? 'warning' : 'success'" size="small">{{ customer?.reconciliationPending ? '待对账' : '无需对账' }}</el-tag></dd></div>
                   <div v-if="customer?.sourceType === 'PLATFORM_TEMPORARY'" class="field-item"><dt>临时客户原因</dt><dd>{{ customer.temporaryReason || '-' }}</dd></div>
-                  <div class="field-item"><dt>创建人</dt><dd>{{ customer?.creator || '-' }}</dd></div>
-                  <div class="field-item"><dt>创建时间</dt><dd>{{ formatNullableDate(customer?.createTime) }}</dd></div>
-                  <div class="field-item"><dt>更新人</dt><dd>{{ customer?.updater || '-' }}</dd></div>
-                  <div class="field-item"><dt>更新时间</dt><dd>{{ formatNullableDate(customer?.updateTime) }}</dd></div>
                   <div class="field-item field-item--wide"><dt>备注</dt><dd class="remark-value">{{ customer?.remark || '-' }}</dd></div>
                 </dl>
               </section>
             </div>
           </div>
         </template>
-        <el-empty v-else description="当前项目尚未关联客户" />
+        <el-empty v-else-if="!customerError" description="当前项目尚未关联客户" />
       </section>
     </ContentWrap>
 
@@ -92,26 +82,25 @@
       show-section-header
       @changed="emit('changed')"
     />
-    <CustomerFormDrawer ref="customerFormRef" @success="load" />
+    <ProjectCustomerExtensionDrawer v-if="project.id" ref="customerFormRef" :project-id="project.id" @success="load" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import * as CustomerApi from '@/api/pms/customer'
-import * as ServiceLevelApi from '@/api/pms/project/service-level'
-import type { CustomerDetailRespVO } from '@/api/pms/customer'
+import * as ServiceLevelApi from '@/api/pms/customer/service-level'
+import type { CustomerRespVO } from '@/api/pms/customer'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'
-import CustomerFormDrawer from '@/views/pms/customer/components/CustomerFormDrawer.vue'
-import { formatNullableDate } from '@/utils/formatTime'
+import ProjectCustomerExtensionDrawer from './ProjectCustomerExtensionDrawer.vue'
 import { checkPermi } from '@/utils/permission'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 const emit = defineEmits<{ changed: [] }>()
-const customer = ref<CustomerDetailRespVO>()
+const customer = ref<CustomerRespVO>()
 const serviceLevel = ref('')
-const customerFormRef = ref<InstanceType<typeof CustomerFormDrawer>>()
+const customerFormRef = ref<InstanceType<typeof ProjectCustomerExtensionDrawer>>()
 const customerError = ref('')
 const customerLoading = ref(false)
 let loadSequence = 0
@@ -140,19 +129,23 @@ const customerSource = computed(
     '-'
 )
 
+const openCustomerForm = async () => {
+  if (customer.value) await customerFormRef.value?.open()
+}
+
 const load = async () => {
   const sequence = ++loadSequence
   customer.value = undefined
   serviceLevel.value = ''
   customerError.value = ''
-  customerLoading.value = !!props.project.customerCode
+  customerLoading.value = !!props.project.id
 
-  if (props.project.customerCode) {
+  if (props.project.id) {
     try {
-      const result = await CustomerApi.getCustomerByCode(props.project.customerCode)
+      const result = await CustomerApi.getProjectCustomerOverview(props.project.id)
       if (sequence === loadSequence) {
-        customer.value = result
-        if (checkPermi(['pms:service-level:query'])) try {
+        customer.value = result ?? undefined
+        if (result && checkPermi(['pms:service-level:query'])) try {
           const levels = await ServiceLevelApi.getServiceLevelPage({
             pageNo: 1,
             pageSize: 10,

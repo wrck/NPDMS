@@ -70,7 +70,7 @@ public class ProjectGovernanceGuardService {
     }
 
     public VerifiedGuard verifyAndRevalidate(String guardToken, Long projectId,
-                                             GovernanceAction action, Integer expectedProjectVersion,
+                                             GovernanceAction action, Long expectedProjectVersion,
                                              Actor actor) {
         validate(projectId, action, actor);
         if (expectedProjectVersion == null || expectedProjectVersion < 0) {

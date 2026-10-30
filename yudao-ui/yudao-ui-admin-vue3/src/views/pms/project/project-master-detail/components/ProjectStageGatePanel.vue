@@ -32,7 +32,8 @@
         class="guidance"
       />
 
-      <el-empty v-if="!readiness.gates.length" description="当前阶段没有准出门禁" />
+      <el-empty v-if="!readiness.gates.length" :description="readiness.guidance === 'GRAPH_TARGET_STALE'
+        ? '推进目标不可用，未评估准出门禁' : '当前阶段没有准出门禁'" />
       <div v-else class="gate-list">
         <el-card v-for="gate in readiness.gates" :key="gate.gateId" shadow="never">
           <template #header>
@@ -99,6 +100,7 @@
 </template>
 
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { onMounted, reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as ProjectsApi from '@/api/pms/project/projects'
@@ -114,6 +116,7 @@ const props = defineProps<{ projectId: number }>()
 const emit = defineEmits<{ changed: [] }>()
 const message = useMessage()
 const guidanceLabel = (code: string) => ({
+  GRAPH_TARGET_STALE: '目标阶段已有执行状态，不能按相邻阶段推进。请查看当前轮次与冻结规则。',
   S0_PRIMARY_MANAGERS_REQUIRED: '请先完成主责服务经理和主责项目经理指派，S0不能直接准出。',
   S0_PRIMARY_SERVICE_MANAGER_REQUIRED: '尚未指派有效主责服务经理，请先完成服务经理指派。',
   S0_PRIMARY_PROJECT_MANAGER_REQUIRED: '尚未指派有效主责项目经理，请先完成项目经理指派。',
@@ -161,7 +164,7 @@ const recheckProgress = async () => {
   try {
     await loadReadiness()
     if (!readiness.value?.advanceAllowed || !readiness.value.nextStage) return
-    await ProjectsApi.advanceProjectStage(props.projectId, readiness.value, crypto.randomUUID())
+    await ProjectsApi.advanceProjectStage(props.projectId, readiness.value, generateUUID())
     message.success('阶段已按冻结关系推进')
     emit('changed')
     await loadReadiness()
@@ -182,7 +185,7 @@ const startProcess = async (gateReferenceId: number) => {
       props.projectId,
       gateReferenceId,
       readiness.value.projectVersion,
-      crypto.randomUUID()
+      generateUUID()
     )
     message.success('审批流程已发起，请在流程工作台完成审批')
     await loadReadiness()

@@ -1,0 +1,39 @@
+package cn.iocoder.yudao.module.pms.project.api.stageplan;
+
+import java.time.LocalDate;
+import java.util.List;
+
+/** SOL 施工计划倒排消费的 PROJ 阶段计划契约：阶段事实只读与计划起止日期受控写入。 */
+public interface ProjectStagePlanApi {
+    /** 可编辑施工计划的只读默认来源；只含DONE节点，不推测缺失的实际日期。 */
+    CompletedDates readCompletedDates(CompletedDatesQuery query);
+    record CompletedDatesQuery(Long tenantId, Long projectId) { }
+    record NodeActualDates(Long nodeId, LocalDate actualStart, LocalDate actualEnd) { }
+    record CompletedDates(List<NodeActualDates> stages, List<NodeActualDates> tasks) { }
+
+    /** Calculate from the project's frozen plan and current planned acceptance times. No writes. */
+    ScheduleCalculation calculateSchedule(Long tenantId, Long projectId, LocalDate start, LocalDate end);
+    List<TaskPlan> listTaskPlans(Long tenantId, Long projectId);
+    int applyTaskPlanDates(Long tenantId, Long projectId, List<TaskPlan> tasks);
+
+    record TaskPlan(Long taskId, Long parentTaskId, String stageCode, String name, Integer version,
+                    LocalDate planStart, LocalDate planEnd, LocalDate acceptanceTime) { }
+
+    record ScheduleCalculation(Long sourcePlanVersionId, LocalDate start, LocalDate end,
+                               List<StagePlanDate> stages, String inputSnapshot) { }
+
+    /** 项目下阶段计划事实（按原排序返回）；含建议起止与计划起止日期、状态与版本。 */
+    List<StagePlanFact> listStages(Long tenantId, Long projectId);
+
+    /** 校验项目存在后按阶段ID写入计划起止日期；不修改状态与版本。返回更新行数。 */
+    int applyPlanDates(Long tenantId, Long projectId, List<StagePlanDate> dates);
+
+    record StagePlanFact(Long stageId, String code, String name, Integer sort,
+                         LocalDate suggestedStartTime, LocalDate suggestedEndTime,
+                         LocalDate planStartTime, LocalDate planEndTime,
+                         String status, Integer version) {
+    }
+
+    record StagePlanDate(Long stageId, LocalDate planStartTime, LocalDate planEndTime) {
+    }
+}

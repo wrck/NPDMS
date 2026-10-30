@@ -4,7 +4,7 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectM
 
 import java.util.List;
 
-/** 正式手工创建项目命令。 */
+/** 正式手工创建项目命令。contractId 非空时服务端按合同主档链解析CRM权威字段并绑定商务来源。 */
 public record ManualProjectCreateCommand(
         ProjectMasterDO draft,
         Long orderOfficeCompanyId,
@@ -13,6 +13,7 @@ public record ManualProjectCreateCommand(
         Long templateRevisionId,
         String candidateWatermark,
         Long serviceManagerUserId,
+        Long contractId,
         String idempotencyKey,
         String requestDigest) {
 }

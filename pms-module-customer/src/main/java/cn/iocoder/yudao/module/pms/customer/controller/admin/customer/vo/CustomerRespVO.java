@@ -9,6 +9,7 @@ public class CustomerRespVO {
 
     private Long id;
     private String code;
+    private String erpCustomerCode;
     private String name;
     private String shortName;
     private String customerLevel;
@@ -32,6 +33,7 @@ public class CustomerRespVO {
     private String expendName;
     private String industryCode;
     private String industryName;
+    private String address;
     private String remark;
     private Integer version;
     private String creator;

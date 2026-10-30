@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 @Schema(description = "管理后台 - 项目 Response VO")
 @Data
 public class ProjectRespVO {
+    @Schema(description = "列表可见级别：FULL完整访问、OFFICE_READONLY精确查询只读；不构成办理授权")
+    private String visibility;
 
     @Schema(description = "项目ID")
     private Long id;
@@ -75,6 +77,9 @@ public class ProjectRespVO {
     @Schema(description = "重大项目级别（NULL=不限）")
     private String majorProjectLevel;
 
+    @Schema(description = "服务等级编码（金/银/铜，pms_service_level 字典）")
+    private String serviceLevelCode;
+
     @Schema(description = "手工登记合同号")
     private String contractNo;
 
@@ -125,7 +130,7 @@ public class ProjectRespVO {
     private java.util.List<String> activeStageNames;
 
     @Schema(description = "Project乐观锁版本")
-    private Integer version;
+    private Long version;
 
     @Schema(description = "项目开始时间")
     private LocalDateTime projectStartTime;
@@ -134,4 +139,58 @@ public class ProjectRespVO {
 
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
+    @Schema(description = "项目数据类型（保留来源编码）")
+    private String projectType;
+
+    @Schema(description = "市场编码")
+    private String marketCode;
+
+    @Schema(description = "市场名称")
+    private String marketName;
+
+    @Schema(description = "系统编码")
+    private String systemCode;
+
+    @Schema(description = "系统名称")
+    private String systemName;
+
+    @Schema(description = "拓展编码")
+    private String expendCode;
+
+    @Schema(description = "拓展名称")
+    private String expendName;
+
+    @Schema(description = "行业编码")
+    private String industryCode;
+
+    @Schema(description = "行业名称")
+    private String industryName;
+
+    @Schema(description = "客户项目名称")
+    private String customerProjectName;
+
+    @Schema(description = "销售类型")
+    private String salesType;
+
+    @Schema(description = "业务类型")
+    private String businessType;
+
+    @Schema(description = "不予跟踪原因")
+    private String notTrackReason;
+
+    @Schema(description = "业务层级编码")
+    private String businessLevelCode;
+
+    @Schema(description = "业务层级名称")
+    private String businessLevelName;
+
+    private java.util.List<Party> parties;
+    @Schema(description = "当前超期阶段/任务及两类超期标识，计划截止当日不算超期")
+    private java.util.List<OverdueNode> overdueNodes;
+    @Schema(description = "节点完成时冻结的历史超期事实；历史记录不回填")
+    private java.util.List<OverdueNode> completedOverdueNodes;
+    public record OverdueNode(String nodeKind, Long nodeId, String nodeName, LocalDateTime planEndTime,
+                              LocalDateTime acceptanceTime, LocalDateTime completedAt,
+                              Boolean workOverdue, Boolean acceptanceOverdue) {}
+    public record Party(String role, String code, String name) {}
 }

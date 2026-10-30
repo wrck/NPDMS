@@ -94,6 +94,8 @@ public class ProjectTaskBusinessService {
             if (!Objects.equals(row.getNodeExecutionId(),receiver.executionId())) throw failure("CURRENT_AUTOMATIC_ASSOCIATION_REQUIRED");
             var result = reader.apply(row.getObjectId());
             if (result==null) throw failure("OWNER_COMPLETION_FACT_UNAVAILABLE");
+            // Owner facts keep their business meaning across rounds. The normal completion writer
+            // additionally enforces any frozen NEW_RESULT / PINNED_RESULT subscription and all gates.
             var fact = validateFact(new BusinessObjectFact(result.objectId(),"业务完成事实",result.factVersion(),
                     Set.of(),result.completionFacts(),List.of()),row.getObjectId());
             facts.add(new TaskBusinessLinkFact(row.getId(),fact.objectId(),fact.displayName(),fact.factVersion(),fact.completionFacts(),List.of(),Set.of()));
@@ -127,9 +129,19 @@ public class ProjectTaskBusinessService {
             String reason = binding.unavailableReason();
             var execution = executionContext(ctx, contract);
             boolean writable = reason == null && !"READ_ONLY_AGGREGATE".equals(binding.instanceResolutionStrategy())
-                    && access.writable(task, access.project(task.getProjectId()), ctx) && execution != null && execution.writable();
+                    && (access.writable(task, access.project(task.getProjectId()), ctx)
+                        || access.planningOperationAllowed(TaskBusinessAccess.PlanningOperationQuery.fromContract(
+                            task, access.project(task.getProjectId()), ctx, contract))
+                        || access.assignmentOperationAllowed(TaskBusinessAccess.PlanningOperationQuery.fromContract(
+                            task, access.project(task.getProjectId()), ctx, contract)))
+                    && execution != null && execution.writable();
             Set<String> actions = Set.of();
             Set<String> ownerActions = inspection.allowedActions();
+            if (reason == null && !"READ_ONLY_AGGREGATE".equals(binding.instanceResolutionStrategy())
+                    && ownerActions.contains("QUERY") && execution != null && execution.writable()
+                    && Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus())
+                    && access.executable(task, access.project(task.getProjectId()), ctx))
+                actions = Set.of("REFRESH_RESULTS");
             BusinessViewRevision view = null;
             if (reason == null) {
                 if (!ownerActions.contains("QUERY")) throw failure("OWNER_CONTEXT_FORBIDDEN");
@@ -174,6 +186,37 @@ public class ProjectTaskBusinessService {
         if (!expectedFactVersion.equals(before.factVersion())) throw failure("FACT_VERSION_CONFLICT");
         var result = inspectRows(ctx, locked.contract(), rows, provider, true);
         if (!expectedFactVersion.equals(result.factVersion())) throw failure("FACT_VERSION_CONFLICT");
+        return result;
+    }
+
+    public record ApprovedClosureQuery(
+            cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand approval,
+            Long taskId, String expectedFactVersion) { }
+
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public TaskBusinessLinkedFacts lockForApprovedClosure(ApprovedClosureQuery query) {
+        requireTransaction();
+        var approval = query.approval();
+        if (blank(query.expectedFactVersion()) || approval == null) throw failure("FACT_VERSION_REQUIRED");
+        var task = access.read(query.taskId(), approval.tenantId(), approval.expectedReviewerUserId());
+        if (!Objects.equals(task.getProjectId(), approval.projectId())) throw failure("OWNER_FACT_INVALID");
+        var ctx = new Context(approval.tenantId(), approval.expectedReviewerUserId(), approval.projectId(),
+                query.taskId(), approval.correlationId());
+        var locked = lock(ctx);
+        if (!"ACTIVE".equals(locked.project().getLifecycleStatus())) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        var binding = TaskBusinessBinding.parse(locked.contract());
+        var provider = registry.require(binding.ownerContext(), binding.objectType());
+        var rows = linkMapper.selectActiveForUpdate(query(ctx));
+        var before = inspectRows(ctx, locked.contract(), rows, provider, false);
+        if (!query.expectedFactVersion().equals(before.factVersion())) throw failure("FACT_VERSION_CONFLICT");
+        var result = inspectRows(ctx, locked.contract(), rows, row -> {
+            var fact = validateFact(provider.inspect(ctx, row.getObjectId()), row.getObjectId());
+            var revalidated = validateFact(provider.lockForApprovedClosure(
+                    new TaskBusinessObjectProvider.ClosureRevalidation(ctx, approval, row.getObjectId(), fact.factVersion())), row.getObjectId());
+            if (!fact.factVersion().equals(revalidated.factVersion())) throw failure("FACT_VERSION_CONFLICT");
+            return revalidated;
+        });
+        if (!query.expectedFactVersion().equals(result.factVersion())) throw failure("FACT_VERSION_CONFLICT");
         return result;
     }
 
@@ -230,7 +273,7 @@ public class ProjectTaskBusinessService {
 
     private LinkCommandResult mutate(Context ctx, String objectId, Long linkId, Integer taskVersion, Integer contractVersion) {
         var locked = lock(ctx);
-        if (!access.writable(locked.task(), locked.project(), ctx)) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        if (!access.writableLocked(locked.task(), locked.project(), ctx)) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         if (!Objects.equals(taskVersion, locked.task().getVersion())
                 || !Objects.equals(contractVersion, locked.contract().getContractVersion()))
             throw exception(PROJECT_TASK_VERSION_CONFLICT);

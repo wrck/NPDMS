@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.cutover.service.plan.command;
 
-public record ReviseCutoverPlanCommand(Long tenantId, Long actorId, Long taskId, Integer expectedTaskVersion,
+import cn.iocoder.yudao.module.pms.cutover.service.task.command.CutoverTaskMutation;
+
+public record ReviseCutoverPlanCommand(Long tenantId, Long actorId, Long taskId, Long expectedTaskVersion,
                                        Long sourcePlanRevisionId, String reason, String idempotencyKey,
-                                       String correlationId) {
+                                       String correlationId) implements CutoverTaskMutation {
 }

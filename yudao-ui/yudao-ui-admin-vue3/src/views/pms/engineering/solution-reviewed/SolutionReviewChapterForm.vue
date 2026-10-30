@@ -1,0 +1,1181 @@
+<template>
+  <div class="solution-chapter-form">
+    <!-- 视图级操作（保存/提交为编写动作）收口到工作区底部吸附操作栏（businessActionBar 协议）；
+         登记客户文档的版本正文即客户文档，九章编写动作（生成/下载）不再出现；
+         独立弹窗与审核详情无操作栏提供方，原地渲染 -->
+    <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+      <el-button v-if="!readOnly" type="primary" :loading="saving" @click="emit('save')">保存草稿</el-button>
+      <el-button v-if="!readOnly && !customerDocUrl" @click="generateFromSources">生成方案（引用前序数据）</el-button>
+      <!-- 原生按钮不继承 ElForm 的编辑禁用状态；下载仍经过服务端文件与Owner授权。 -->
+      <button v-if="!customerDocUrl && !reviewContext" type="button" class="el-button" :disabled="solutionDownloadBusy || !form.id" :aria-busy="solutionDownloadBusy" @click="downloadSolution">
+        <span>{{ solutionDownloadBusy ? '正在生成…' : '下载方案' }}</span>
+      </button>
+      <el-button v-if="!readOnly" type="warning" :loading="saving" @click="emit('submitReview')">提交审核</el-button>
+    </Teleport>
+
+    <!-- 客户方案文档：登记客户文档的版本正文即该文档，直接内嵌展示且不再渲染九章手工文本；
+         文件端点以 attachment 下发，直接内嵌 src 会被浏览器拦为下载，故经取流转 Blob 预览 -->
+    <p v-if="customerDocUrl && reviewContext">客户方案正文请从下方“本次审批附件”读取。</p>
+    <section v-if="customerDocUrl && !reviewContext" class="customer-doc">
+      <div class="customer-doc-head">
+        <span class="customer-doc-title">客户方案文档</span>
+        <el-link v-for="(url,index) in customerDocUrls" :key="url" type="primary" @click="downloadCustomerSolutionDocument(url)">下载/查看{{ customerSolutionDocumentName(url)||`文件${customerDocUrls.length>1?` ${index+1}`:''}` }}</el-link>
+      </div>
+      <iframe
+        v-if="customerDocPreviewSrc"
+        :src="customerDocPreviewSrc"
+        class="customer-doc-frame"
+        title="客户方案文档预览"
+      ></iframe>
+      <div v-else-if="customerDocPreviewable" class="customer-doc-fallback">客户文档预览加载中，若长时间未显示请通过「下载/查看文件」打开。</div>
+      <div v-else class="customer-doc-fallback">
+        该文档格式（doc/xls/ppt）浏览器不支持内嵌预览，请通过「下载/查看文件」打开查看。
+      </div>
+    </section>
+
+    <template v-if="!customerDocUrl">
+    <el-alert v-if="solutionDownloadError" :title="solutionDownloadError" type="error" :closable="false" class="mb-12px" />
+    <el-alert v-if="requirementError" :title="requirementError" type="error" :closable="false" class="mb-12px">
+      <el-button link type="primary" :disabled="readOnly || requirementLoading" @click="loadRequirement()">重新加载需求分析</el-button>
+    </el-alert>
+    <div v-else-if="requirementLoading" role="status" class="mb-12px">正在加载需求分析引用内容…</div>
+    <div v-if="requirementInput.revisionId && inputChanged" class="mb-12px">
+      <el-alert v-if="inputChanged" title="需求输入已变化，请确认处理方式后再提交" type="warning" :closable="false">
+        <el-button :disabled="readOnly" @click="refreshRequirementInput">刷新需求引用（保留人工修改）</el-button>
+        <el-input v-model="differenceReason" :disabled="readOnly" placeholder="保留原需求版本时，请说明差异及处理理由" aria-label="需求输入差异说明" />
+        <el-button :disabled="readOnly || !differenceReason.trim()" @click="keepRequirementInput">保留原版本并确认差异</el-button>
+      </el-alert>
+    </div>
+    <header class="solution-document-heading">
+      <h1>{{ form.name || '实施方案' }}</h1>
+      <p v-if="form.versionLabel">版本：{{ form.versionLabel }}</p>
+    </header>
+    <!-- 第1章 项目概述 -->
+    <section class="chapter">
+      <div class="chapter-title">1. 项目概述</div>
+      <el-form-item label="1.1 项目背景" label-width="140px">
+        <div class="editor-block">
+          <Editor v-model="form.background" height="180px" :readonly="readOnly" />
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqBackground" @click="form.background = reqBackground">从需求分析引用</el-button>
+        </div>
+      </el-form-item>
+      <el-form-item label="1.2 项目目标" label-width="140px">
+        <div class="editor-block">
+          <Editor v-model="form.target" height="180px" :readonly="readOnly" />
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqObjective" @click="form.target = reqObjective">从需求分析引用</el-button>
+        </div>
+      </el-form-item>
+
+      <el-form-item label="1.3 项目团队" label-width="140px">
+        <div class="table-editor">
+          <el-table :data="tables.team" size="small" border>
+            <el-table-column label="角色" min-width="130"><template #default="{ row }"><el-input v-model="row.role" :disabled="readOnly" placeholder="如：项目经理" /></template></el-table-column>
+            <el-table-column label="姓名" min-width="110"><template #default="{ row }"><el-input v-model="row.name" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="联系方式" min-width="130"><template #default="{ row }"><el-input v-model="row.contact" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="邮箱" min-width="180"><template #default="{ row }"><el-input v-model="row.email" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="备注" min-width="120"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="操作" width="70" fixed="right">
+              <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.team.splice($index, 1)">删除</el-button></template>
+            </el-table-column>
+          </el-table>
+          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.team.push({ role: '', name: '', contact: '', email: '', remark: '' })">添加成员</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !teamRefRows.length" @click="tables.team = memberRows()">从项目成员与客户联系人引用</el-button>
+        </div>
+      </el-form-item>
+
+      <el-form-item label="1.4 项目清单" label-width="140px">
+        <div class="table-editor">
+          <el-table :data="tables.inventory" size="small" border>
+            <el-table-column label="序号" type="index" width="55" />
+            <el-table-column label="产品编码" min-width="130"><template #default="{ row }"><el-input v-model="row.productCode" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="产品型号" min-width="110"><template #default="{ row }"><el-input v-model="row.model" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="产品描述" min-width="140"><template #default="{ row }"><el-input v-model="row.desc" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="项目数量" width="90"><template #default="{ row }"><el-input v-model="row.projectQty" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="发货数量" width="90"><template #default="{ row }"><el-input v-model="row.shippedQty" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="未发货数量" width="95"><template #default="{ row }"><el-input v-model="row.unshippedQty" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="序列号" min-width="120"><template #default="{ row }"><el-input v-model="row.sn" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="操作" width="70" fixed="right">
+              <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.inventory.splice($index, 1)">删除</el-button></template>
+            </el-table-column>
+          </el-table>
+          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.inventory.push(emptyInventoryRow())">添加行</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !equipmentProducts.length" @click="tables.inventory = equipmentInventoryRows()">从产品信息清单引用</el-button>
+        </div>
+      </el-form-item>
+
+      <el-form-item v-if="readOnly && tables.plan.length" label="1.5 进度计划" label-width="140px">
+        <div class="table-editor">
+          <el-table :data="tables.plan" size="small" border>
+            <el-table-column label="项目阶段" min-width="110"><template #default="{ row }"><el-input v-model="row.stage" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="计划开始" min-width="150"><template #default="{ row }"><el-input v-model="row.start" :disabled="readOnly" placeholder="yyyy-MM-dd HH:mm" /></template></el-table-column>
+            <el-table-column label="计划结束" min-width="150"><template #default="{ row }"><el-input v-model="row.end" :disabled="readOnly" placeholder="yyyy-MM-dd HH:mm" /></template></el-table-column>
+            <el-table-column label="工期建议" min-width="120"><template #default="{ row }"><el-input v-model="row.suggest" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="备注" min-width="110"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="操作" width="70" fixed="right">
+              <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.plan.splice($index, 1)">删除</el-button></template>
+            </el-table-column>
+          </el-table>
+          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.plan.push({ stage: '', start: '', end: '', suggest: '', remark: '' })">添加行</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !stagePlanItems.length" @click="tables.plan = stagePlanRows()">从 3.1 施工计划引用</el-button>
+        </div>
+      </el-form-item>
+    </section>
+
+    <!-- 第2章 现网现状分析 -->
+    <section class="chapter">
+      <div class="chapter-title">2. 现网现状分析</div>
+      <el-form-item label="2.1 现网拓扑图" label-width="140px">
+        <RequirementTopologyFiles v-if="!reviewContext && !topology.asIsUrl && requirementSource" :source="requirementSource" />
+        <UploadFile v-model="topology.asIsUrl" :disabled="readOnly" :file-type="topologyFileTypes" />
+      </el-form-item>
+      <el-form-item label="2.2 现网资源确认" label-width="140px">
+        <ResourceConfirmationEditor v-model="topology.resourceConfirmation" :project-id="form.projectId" :read-only="readOnly" :requirement-values="reqValues" />
+      </el-form-item>
+    </section>
+
+    <!-- 第3章 总体方案设计 -->
+    <section class="chapter">
+      <div class="chapter-title">3. 总体方案设计</div>
+      <el-form-item label="3.1 建设后拓扑" label-width="140px">
+        <el-radio-group v-model="topology.toBeChanged" :disabled="readOnly">
+          <el-radio value="no">与需求分析无变化</el-radio>
+          <el-radio value="yes">有变化</el-radio>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item v-if="topology.toBeChanged === 'no'" label-width="140px">
+        <div v-if="stripHtml(reqTopology) || !requirementTopologyFiles(requirementSource).length" class="ref-body standalone">直接调用需求分析中的网络拓扑：{{ stripHtml(reqTopology) || '需求分析暂无网络拓扑' }}</div>
+        <p v-if="reviewContext">引用需求的拓扑文件见下方“本次审批附件”。</p>
+        <RequirementTopologyFiles v-else :source="requirementSource" />
+      </el-form-item>
+      <el-form-item v-if="topology.toBeChanged === 'yes'" label="上传最新拓扑" label-width="140px">
+        <UploadFile v-model="topology.toBeUrl" :disabled="readOnly" :file-type="topologyFileTypes" />
+      </el-form-item>
+
+      <el-form-item label="3.2 部署位置规划" label-width="140px">
+        <SolutionEquipmentTable v-model="tables.deploy" section="deploy" :products="equipmentProducts" :read-only="readOnly" />
+        <el-alert v-if="equipmentError" :title="equipmentError" type="error" :closable="false">
+          <el-button link @click="loadEquipment">重新加载设备清单</el-button>
+        </el-alert>
+      </el-form-item>
+
+      <el-form-item label="3.3 接口互联规划" label-width="140px">
+        <div class="table-editor">
+          <el-table :data="tables.interface" size="small" border>
+            <el-table-column label="本端设备" min-width="120"><template #default="{ row }"><el-input v-model="row.localDevice" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="本端接口" min-width="110"><template #default="{ row }"><el-input v-model="row.localPort" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="对端接口" min-width="110"><template #default="{ row }"><el-input v-model="row.peerPort" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="接口类型" min-width="100"><template #default="{ row }"><el-input v-model="row.portType" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="线缆/光模块型号" min-width="140"><template #default="{ row }"><el-input v-model="row.cableModel" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="备注" min-width="100"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="操作" width="70" fixed="right">
+              <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.interface.splice($index, 1)">删除</el-button></template>
+            </el-table-column>
+          </el-table>
+          <div class="planning-actions">
+            <el-button size="small" :disabled="readOnly" @click="tables.interface.push({ localDevice: '', localPort: '', peerPort: '', portType: '', cableModel: '', remark: '' })">添加行</el-button>
+            <SolutionPlanningImport section="interface" :read-only="readOnly" @imported="tables.interface.push(...$event)" />
+          </div>
+        </div>
+      </el-form-item>
+
+      <el-form-item label="3.4 IP与vlan规划" label-width="140px">
+        <div class="table-editor">
+          <el-table :data="tables.ip" size="small" border>
+            <el-table-column label="设备名称" min-width="120"><template #default="{ row }"><el-input v-model="row.deviceName" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="接口" min-width="100"><template #default="{ row }"><el-input v-model="row.port" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="IP地址" min-width="130"><template #default="{ row }"><el-input v-model="row.ip" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="掩码" min-width="110"><template #default="{ row }"><el-input v-model="row.mask" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="VRRP地址" min-width="120"><template #default="{ row }"><el-input v-model="row.vrrp" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="网关" min-width="110"><template #default="{ row }"><el-input v-model="row.gateway" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="备注" min-width="100"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="操作" width="70" fixed="right">
+              <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.ip.splice($index, 1)">删除</el-button></template>
+            </el-table-column>
+          </el-table>
+          <div class="planning-actions">
+            <el-button size="small" :disabled="readOnly" @click="tables.ip.push({ deviceName: '', port: '', ip: '', mask: '', vrrp: '', gateway: '', remark: '' })">添加行</el-button>
+            <SolutionPlanningImport section="ip" :read-only="readOnly" @imported="tables.ip.push(...$event)" />
+          </div>
+        </div>
+      </el-form-item>
+
+      <el-form-item label="3.5 软件版本" label-width="140px">
+        <SolutionEquipmentTable v-model="tables.software" section="software" :products="equipmentProducts" :read-only="readOnly" />
+      </el-form-item>
+    </section>
+
+    <!-- 第4章 配置脚本 -->
+    <section class="chapter">
+      <div class="chapter-title">4. 配置脚本</div>
+      <el-alert v-if="scriptUploadError" :title="scriptUploadError" type="error" :closable="false" />
+      <el-form-item v-for="item in scriptItems" :key="item.key" :label="item.label" label-width="140px">
+        <div class="script-editor">
+          <el-input
+            v-model="scripts[item.key]"
+            type="textarea"
+            :rows="5"
+            :disabled="readOnly"
+            class="script-input"
+            :placeholder="item.placeholder"
+          />
+          <el-upload
+            :show-file-list="false"
+            :disabled="readOnly"
+            accept=".txt,.cfg,.conf,.sh,.log"
+            :auto-upload="false"
+            class="script-upload"
+            @change="(uploadFile: any) => readScript(item.key, uploadFile)"
+          >
+            <el-button size="small" :disabled="readOnly">上传脚本</el-button>
+          </el-upload>
+          <div class="form-tip">可手动录入，或上传 TXT、CFG、CONF、SH、LOG 文件解析后继续编辑；上传文件保留原件，非必填。</div>
+          <div v-if="scriptFileName(item.key)" class="form-tip">{{ scriptFileName(item.key) }}</div>
+          <el-link v-if="!reviewContext && storedScript(item.key) && !pendingScripts.some(pending => pending.section === item.key)" type="primary" @click="downloadScript(item.key)">下载原始脚本文件</el-link>
+        </div>
+      </el-form-item>
+    </section>
+
+    <!-- 第5章 实施步骤 -->
+    <section class="chapter">
+      <div class="chapter-title">5. 实施步骤</div>
+      <el-form-item label="5.1 硬件实施" label-width="140px">
+        <el-radio-group v-model="meta.hardwareInvolved" :disabled="readOnly">
+          <el-radio value="yes">涉及硬件实施</el-radio>
+          <el-radio value="no">不涉及</el-radio>
+        </el-radio-group>
+      </el-form-item>
+      <div v-if="meta.hardwareInvolved === 'yes'" class="doc-content">
+        <h4>施工环境检查规范（按照实际情况填写）</h4>
+        <p>机房环境、承重、供电、空调、接地等施工条件逐项检查确认。</p>
+        <h4>产品安装规范</h4>
+        <p>设备上架、光模块/线缆插拔、标签标识按产品安装手册执行。</p>
+        <h4>设备供电规范</h4>
+        <p>双电源分路供电，电源线缆规格与空开容量满足设备功耗要求。</p>
+      </div>
+      <el-form-item label="5.2 软件调试" label-width="140px">
+        <el-input v-model="meta.softwareDebug" type="textarea" :rows="3" :disabled="readOnly" placeholder="软件调试步骤说明" />
+      </el-form-item>
+      <el-form-item label="5.3 业务配置" label-width="140px">
+        <div class="table-editor">
+          <el-table :data="tables.business" size="small" border>
+            <el-table-column label="设备名称" min-width="110"><template #default="{ row }"><el-input v-model="row.deviceName" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="序列号" min-width="120"><template #default="{ row }"><el-input v-model="row.sn" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="承载业务名称" min-width="120"><template #default="{ row }"><el-input v-model="row.businessName" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="业务网段" min-width="120"><template #default="{ row }"><el-input v-model="row.network" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="业务重要等级" min-width="105"><template #default="{ row }"><el-input v-model="row.level" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="出入接口" min-width="100"><template #default="{ row }"><el-input v-model="row.ports" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="客户侧负责人" min-width="110"><template #default="{ row }"><el-input v-model="row.owner" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="备注" min-width="95"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
+            <el-table-column label="操作" width="70" fixed="right">
+              <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.business.splice($index, 1)">删除</el-button></template>
+            </el-table-column>
+          </el-table>
+          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.business.push(emptyBusinessRow())">添加行</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqBusinessRows.length" @click="tables.business = reqBusinessRows.map((r) => ({ ...r }))">从需求分析引用</el-button>
+        </div>
+      </el-form-item>
+    </section>
+
+    <!-- 第6章 可选方案模块 -->
+    <section class="chapter">
+      <div class="chapter-title">6. 可选方案模块</div>
+      <el-checkbox-group v-model="modules" :disabled="readOnly">
+        <el-checkbox value="quality">6.1 质量保障方案</el-checkbox>
+        <el-checkbox value="risk">6.2 风险管控与应急预案</el-checkbox>
+        <el-checkbox value="oAndM">6.3 运维交付与售后服务</el-checkbox>
+        <el-checkbox value="archive">6.4 项目问题闭环与文档归档</el-checkbox>
+      </el-checkbox-group>
+      <template v-if="modules.includes('quality')">
+        <div class="doc-content">
+          <h4>质量保障方案模板</h4>
+          <p>前期物资质量管控 / 现场施工过程质量管控 / 调试与测试质量管控 / 验收交付质量管控 / 售后长效质量保障。</p>
+        </div>
+        <el-form-item label="6.1 质量保障" label-width="140px">
+          <Editor v-model="form.quality" height="160px" :readonly="readOnly" />
+        </el-form-item>
+        <el-button size="small" :disabled="readOnly" @click="appendTemplate('quality', TEMPLATE_QUALITY)">添加到实施方案</el-button>
+      </template>
+      <template v-if="modules.includes('risk')">
+        <div class="doc-content">
+          <h4>风险管控与应急预案模板</h4>
+          <p>风险管控措施；应急处置预案：物资供货 / 现场环境 / 设备故障 / 施工安全 / 系统运行应急。</p>
+        </div>
+        <el-form-item label="6.2 风险应急" label-width="140px">
+          <Editor v-model="form.risk" height="160px" :readonly="readOnly" />
+        </el-form-item>
+        <el-button size="small" :disabled="readOnly" @click="appendTemplate('risk', TEMPLATE_RISK)">添加到实施方案</el-button>
+      </template>
+      <template v-if="modules.includes('oAndM')">
+        <div class="doc-content">
+          <h4>运维交付与售后服务模板</h4>
+          <p>资料移交 / 专属对接人 / 分级响应 / 巡检与增值服务；项目问题台账闭环机制与文档标准化归档。</p>
+        </div>
+        <el-form-item label="6.3 运维售后" label-width="140px">
+          <Editor v-model="form.oAndM" height="160px" :readonly="readOnly" />
+        </el-form-item>
+        <el-button size="small" :disabled="readOnly" @click="appendTemplate('oAndM', TEMPLATE_OANDM)">添加到实施方案</el-button>
+      </template>
+      <template v-if="modules.includes('archive')">
+        <div class="doc-content">
+          <h4>项目问题闭环与文档归档模板</h4>
+          <p>问题台账闭环机制：问题登记—责任分派—处理跟踪—验证关闭；文档标准化归档：方案、配置、报告按目录归档。</p>
+        </div>
+        <el-form-item label="6.4 问题闭环归档" label-width="140px">
+          <Editor v-model="archiveModule" height="160px" :readonly="readOnly" />
+        </el-form-item>
+        <el-button size="small" :disabled="readOnly" @click="appendTemplate('archive', TEMPLATE_ARCHIVE)">添加到实施方案</el-button>
+      </template>
+    </section>
+
+    <!-- 第7章 项目培训及资料移交 -->
+    <section class="chapter">
+      <div class="chapter-title">7. 项目培训及资料移交</div>
+      <el-form-item label="7.1 培训目的" label-width="140px">
+        <el-input v-model="meta.trainingPurpose" type="textarea" :rows="3" :disabled="readOnly" placeholder="按照实际情况填写" />
+      </el-form-item>
+      <el-form-item label="7.2 培训内容" label-width="140px">
+        <el-input v-model="meta.trainingContent" type="textarea" :rows="4" :disabled="readOnly" />
+        <div class="form-tip">模板要点：项目整体架构讲解 / 设备基础操作 / 日常运维与巡检 / 业务配置实操 / 常见故障处理 / 安全规范与账号管理</div>
+      </el-form-item>
+    </section>
+
+    <!-- 第8章 售后服务（只读模板） -->
+    <section class="chapter">
+      <div class="chapter-title">8. 售后服务</div>
+      <div class="doc-content standalone">
+        <h4>8.1 400热线</h4>
+        <p>迪普科技设有7×24小时客户服务热线，受理故障申报与技术咨询。客户服务热线：400-610-0598。</p>
+        <h4>8.2 现场服务</h4>
+        <p>重大故障按服务等级约定安排工程师现场支持。</p>
+        <h4>8.3 软件更新</h4>
+        <p>在维保期内提供软件版本升级与补丁服务，License 授权变更按合同约定执行。</p>
+        <h4>8.4 网站论坛</h4>
+        <p>官网：http://www.dptech.com，提供产品资料与知识库查询。</p>
+      </div>
+    </section>
+    </template>
+  </div>
+  <DeliveryPanel v-if="form.id && !reviewContext" owner-module="SOL" entity-type="solution" :entity-id="form.id" />
+</template>
+
+<script setup lang="ts">
+import { resolveCustomerSolutionDocument,downloadCustomerSolutionDocument,customerSolutionDocumentUrls,customerSolutionDocumentName } from './saveCustomerSolutionDocuments'
+import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
+import { ElMessage } from 'element-plus'
+import { uploadDeliveryFile } from '@/components/DeliveryArtifact/uploadDeliveryFile'
+import { prepareGeneratedSolutionWord } from '@/views/pms/engineering/solution/prepareGeneratedSolutionWord'
+import { prepareDocumentImages } from './documentImages'
+import { getFileNameFromUrl, isImage } from '@/utils/file'
+import companyLogo from '@/views/pms/acceptance/completion-certificate/dptech-print-v2.png'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { loadProjectOrderEquipmentList, type ProjectOrderEquipmentProduct } from '@/api/pms/commerce/projectOrderEquipment'
+import ResourceConfirmationEditor from '@/views/pms/engineering/solution/ResourceConfirmationEditor.vue'
+import SolutionEquipmentTable from '@/views/pms/engineering/solution/SolutionEquipmentTable.vue'
+import SolutionPlanningImport from './SolutionPlanningImport.vue'
+import { equipmentRow, readSolutionEquipment } from '@/views/pms/engineering/solution/solutionEquipment'
+import type { SolutionVO } from '@/api/pms/engineering/solution'
+import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
+import RequirementTopologyFiles from './RequirementTopologyFiles.vue'
+import { requirementTopologyFiles, requirementTopologyImages } from './requirementTopology'
+import { downloadSolutionScript, type PendingScript, type ScriptSection, type ScriptReference } from './saveSolutionScripts'
+import { getMemberPage, logicalMemberRole, type MemberRecord } from '@/api/pms/project/unified-members'
+import * as ContactApi from '@/api/pms/customer/contacts'
+import * as StagePlanApi from '@/api/pms/engineering/stage-plan'
+import { DICT_TYPE, getDictLabel } from '@/utils/dict'
+import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
+
+defineOptions({ name: 'SolutionChapterForm' })
+
+const props = defineProps<{ readOnly: boolean; saving?: boolean; reviewContext?: boolean; reviewRequirement?: Record<string, unknown> }>()
+const emit = defineEmits<{ save: []; submitReview: []; initialized: [id: unknown, projectId: unknown] }>()
+const form = defineModel<SolutionVO>({ required: true })
+const pendingScripts = defineModel<PendingScript[]>('pendingScripts', { default: () => [] })
+const { barTarget } = useBusinessActionBar()
+
+// ---------- JSON 信封映射说明 ----------
+// 九章正文映射到既有 sol_solution 文本列（后端未拆列前的序列化边界，后续拆列仅需调整此处）：
+//   background/target = 1.1/1.2 正文；team/inventory/plan/interfacePlan/ipPlan = 对应章节行 JSON；
+//   topology = {asIsUrl,toBeChanged,toBeUrl,deploy[],software[]}（2.1/3.1/3.2/3.5）；
+//   script = {network,businessModule,ha,full}（4.x）；quality/risk/oAndM = 6.x 正文；
+//   sectionData 的章节编码保存 5.1/5.2/5.3/6.4/7.1/7.2；remark 只保留原备注及客户文档元信息。
+// 已有 remark 章节只作兼容读取；只读/批准版本不改写。
+const chapterCodes = {
+  hardwareInvolved: '5.1', softwareDebug: '5.2', business: '5.3',
+  archive: '6.4', trainingPurpose: '7.1', trainingContent: '7.2'
+} as const
+type Row = Record<string, string>
+const parseRows = (raw: unknown): Row[] => (Array.isArray(raw) ? (raw as Row[]) : [])
+const parseObject = (raw: string | undefined | null): Record<string, unknown> => {
+  try {
+    const v = raw ? JSON.parse(raw) : null
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {}
+  } catch {
+    return {}
+  }
+}
+
+// ---------- 引用数据（前序阶段真实来源） ----------
+const requirementLoading = ref(false)
+const requirementError = ref('')
+const reqValues = ref<Record<string, unknown>>({})
+const members = ref<MemberRecord[]>([])
+const contacts = ref<ContactApi.ContactVO[]>([])
+const stagePlanItems = ref<StagePlanApi.StagePlanItemVO[]>([])
+const equipmentProducts = ref<ProjectOrderEquipmentProduct[]>([])
+const equipmentSerials = ref<Record<string, string[]>>({})
+const equipmentError = ref('')
+let equipmentRequest = 0
+const loadEquipment = async () => {
+  const requestId = ++equipmentRequest
+  const projectId = form.value.projectId
+  equipmentProducts.value = []
+  equipmentSerials.value = {}
+  equipmentError.value = ''
+  if (!projectId || props.readOnly) return
+  try {
+    const equipment = await loadProjectOrderEquipmentList({ projectId, isCurrent: () => requestId === equipmentRequest })
+    if (requestId === equipmentRequest) {
+      equipmentProducts.value = equipment?.list || []
+      const serials = new Map<string, Set<string>>()
+      for (const scope of equipment?.scopes || []) {
+        for (const detail of scope.details || []) {
+          if (detail.productCode && detail.productCode !== scope.productCode) continue
+          if (!detail.serialNo?.trim()) continue
+          const values = serials.get(scope.productCode) || new Set<string>()
+          values.add(detail.serialNo.trim())
+          serials.set(scope.productCode, values)
+        }
+      }
+      equipmentSerials.value = Object.fromEntries([...serials].map(([code, values]) => [code, [...values]]))
+    }
+  } catch {
+    if (requestId === equipmentRequest) equipmentError.value = '项目设备清单加载失败，请重新加载'
+  }
+}
+watch(() => [props.readOnly, form.value.projectId], () => { void loadEquipment() }, { immediate: true })
+
+const stripHtml = (v: unknown) => String(v ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+const isEmptyEditorContent = (value: unknown) =>
+  !stripHtml(value).replace(/&nbsp;/gi, ' ').trim() &&
+  !/<(?:img|video|audio|iframe|table|hr)\b/i.test(String(value ?? ''))
+const reqBackground = computed(() => String(reqValues.value['projectBackground'] ?? ''))
+const reqObjective = computed(() => String(reqValues.value['projectObjective'] ?? ''))
+const reqTopology = computed(() => String(reqValues.value['networkTopology'] ?? ''))
+const reqBusinessRows = computed<Row[]>(() => {
+  const v = reqValues.value['businessDeviceDetails']
+  if (!Array.isArray(v)) return []
+  return v.map((item) => {
+    const r = (item ?? {}) as Record<string, unknown>
+    return {
+      deviceName: String(r['deviceName'] ?? r['设备名称'] ?? ''),
+      sn: String(r['serialNumber'] ?? r['序列号'] ?? ''),
+      businessName: String(r['businessName'] ?? r['承载业务名称'] ?? ''),
+      network: String(r['businessSubnet'] ?? r['业务网段'] ?? ''),
+      level: String(r['businessImportance'] ?? r['业务重要等级'] ?? ''),
+      ports: String(r['interfaces'] ?? r['出入接口'] ?? ''),
+      owner: String(r['customerBusinessOwner'] ?? r['客户侧业务负责人'] ?? ''),
+      remark: String(r['remark'] ?? r['备注'] ?? '')
+    }
+  })
+})
+
+const memberRoleLabel = (role: string) => {
+  const label = getDictLabel(DICT_TYPE.PMS_PROJECT_MEMBER_ROLE, logicalMemberRole(role))
+  return label || role || '—'
+}
+// 1.3 项目团队汇总：当前项目成员在前，项目客户联系人随后。
+const contactRows = computed<Row[]>(() =>
+  contacts.value.map((c) => ({
+    role: c.primaryFlag && c.status === 0 ? '主联系人' : '客户联系人',
+    name: c.name || '',
+    contact: c.mobile || c.phone || '',
+    email: c.email || '',
+    remark: c.remark || ''
+  }))
+)
+const teamRefRows = computed<Row[]>(() => [
+  ...members.value.map((m) => ({ role: memberRoleLabel(m.memberRole), name: m.memberName || '', contact: m.mobile || '', email: m.email || '', remark: m.remark || '' })),
+  ...contactRows.value
+])
+const memberRows = (): Row[] => teamRefRows.value.map((row) => ({ ...row }))
+const equipmentInventoryRows = (): Row[] =>
+  equipmentProducts.value.map((s) => ({
+    productCode: s.productCode || '',
+    model: s.productModel || '',
+    desc: s.productName || '',
+    projectQty: String(s.projectQty ?? ''),
+    shippedQty: String(s.deliveredQty ?? ''),
+    unshippedQty: String(s.openQty ?? ''),
+    sn: (equipmentSerials.value[s.productCode] || []).join('、')
+  }))
+const stagePlanRows = (): Row[] =>
+  stagePlanItems.value.map((i) => ({
+    stage: i.phaseName || i.phaseCode || '',
+    start: i.planStart || i.suggestedStart || '',
+    end: i.planEnd || i.suggestedEnd || '',
+    suggest: '',
+    remark: i.remark || ''
+  }))
+const emptyInventoryRow = (): Row => ({ productCode: '', model: '', desc: '', projectQty: '', shippedQty: '', unshippedQty: '', sn: '' })
+const emptyBusinessRow = (): Row => ({ deviceName: '', sn: '', businessName: '', network: '', level: '', ports: '', owner: '', remark: '' })
+
+// ---------- 章节本地态（写回 form 字段） ----------
+const tables = reactive({
+  team: [] as Row[],
+  inventory: [] as Row[],
+  plan: [] as Row[],
+  deploy: [] as Row[],
+  interface: [] as Row[],
+  ip: [] as Row[],
+  software: [] as Row[],
+  business: [] as Row[]
+})
+const topologyFileTypes = ['ppt', 'pptx', 'vsd', 'vsdx', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp']
+const scripts = reactive({ network: '', businessModule: '', ha: '', full: '' })
+const topology = reactive({ asIsUrl: '', toBeChanged: '', toBeUrl: '', resourceConfirmation: '' })
+// hasCustomerPlan/customerPlanUrl 两键归方案信息组件（SolutionDocMetaForm）读写；
+// customerPlanUrl 本组件仅读取，用于正文区直接展示客户文档
+const meta = reactive({
+  hardwareInvolved: '',
+  softwareDebug: '',
+  trainingPurpose: '',
+  trainingContent: ''
+})
+const modules = ref<string[]>([])
+// 6.4 问题闭环与文档归档：随 sectionData 章节数据保存。
+const archiveModule = ref('')
+
+const scriptItems = [
+  { key: 'network', label: '4.1 网络配置脚本', placeholder: '网络配置脚本' },
+  { key: 'businessModule', label: '4.2 业务模块功能配置脚本', placeholder: '业务模块功能配置脚本' },
+  { key: 'ha', label: '4.3 高可用配置脚本', placeholder: '高可用配置脚本' },
+  { key: 'full', label: '4.4 全量配置脚本', placeholder: '全量配置脚本' }
+] as const
+
+const syncFromForm = () => {
+  tables.team = parseRows(safeParse(form.value.team))
+  tables.inventory = parseRows(safeParse(form.value.inventory))
+  // 已提交版本保留原文；可编辑草稿不再携带已取消的进度计划章节。
+  tables.plan = props.readOnly ? parseRows(safeParse(form.value.plan)) : []
+  tables.interface = parseRows(safeParse(form.value.interfacePlan))
+  tables.ip = parseRows(safeParse(form.value.ipPlan))
+  const topo = parseObject(form.value.topology)
+  topology.asIsUrl = String(topo['asIsUrl'] ?? '')
+  topology.resourceConfirmation = String(topo['resourceConfirmation'] ?? '')
+  topology.toBeChanged = String(topo['toBeChanged'] ?? '')
+  topology.toBeUrl = String(topo['toBeUrl'] ?? '')
+  tables.deploy = readSolutionEquipment({ topology: topo, section: 'deploy' })
+  tables.software = readSolutionEquipment({ topology: topo, section: 'software' })
+  const scriptObj = parseObject(form.value.script)
+  scripts.network = String(scriptObj['network'] ?? '')
+  scripts.businessModule = String(scriptObj['businessModule'] ?? '')
+  scripts.ha = String(scriptObj['ha'] ?? '')
+  scripts.full = String(scriptObj['full'] ?? '')
+  const metaObj = parseObject(form.value.remark)
+  const chapters = parseObject(form.value.sectionData)
+  Object.entries(chapterCodes).forEach(([field, code]) => {
+    if (Object.hasOwn(chapters, code)) metaObj[field] = chapters[code]
+  })
+  meta.hardwareInvolved = String(metaObj['hardwareInvolved'] ?? '')
+  meta.softwareDebug = String(metaObj['softwareDebug'] ?? '')
+  meta.trainingPurpose = String(metaObj['trainingPurpose'] ?? '')
+  meta.trainingContent = String(metaObj['trainingContent'] ?? '')
+  tables.business = parseRows(metaObj['business'])
+  archiveModule.value = String(metaObj['archive'] ?? '')
+  modules.value = [
+    ...(['quality', 'risk', 'oAndM'] as const).filter((k) => String(form.value[k] ?? '').trim()),
+    ...(String(metaObj['archive'] ?? '').trim() ? ['archive' as const] : [])
+  ]
+}
+// 兼容 JSON 数组或 {rows:[]} 两种历史包装
+const safeParse = (raw: string | undefined | null): unknown => {
+  try {
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+watch(tables, () => {
+  form.value.team = JSON.stringify(tables.team)
+  form.value.inventory = JSON.stringify(tables.inventory)
+  form.value.plan = JSON.stringify(tables.plan)
+  form.value.interfacePlan = JSON.stringify(tables.interface)
+  form.value.ipPlan = JSON.stringify(tables.ip)
+}, { deep: true })
+watch(
+  [topology, () => tables.deploy, () => tables.software],
+  () => {
+    if (props.readOnly) return
+    form.value.topology = JSON.stringify({
+      asIsUrl: topology.asIsUrl,
+      resourceConfirmation: topology.resourceConfirmation,
+      toBeChanged: topology.toBeChanged,
+      toBeUrl: topology.toBeUrl,
+      deploy: tables.deploy,
+      software: tables.software
+    })
+  },
+  { deep: true }
+)
+watch(scripts, () => { if (!props.readOnly) form.value.script = JSON.stringify({ ...parseObject(form.value.script), ...scripts }) }, { deep: true })
+watch(
+  [meta, archiveModule, () => tables.business],
+  () => {
+    if (props.readOnly) return
+    const chapters = parseObject(form.value.sectionData)
+    const values = { ...meta, archive: archiveModule.value, business: tables.business }
+    for (const field of Object.keys(chapterCodes) as (keyof typeof chapterCodes)[]) {
+      chapters[chapterCodes[field]] = values[field]
+    }
+    form.value.sectionData = JSON.stringify(chapters)
+    // Only remove the migrated chapter keys from an explicitly edited draft.
+    // Preserve customer document pointers, unrelated metadata and plain-text remarks.
+    const legacy = parseObject(form.value.remark)
+    if (Object.keys(chapterCodes).some(field => Object.hasOwn(legacy, field))) {
+      Object.keys(chapterCodes).forEach(field => { delete legacy[field] })
+      form.value.remark = JSON.stringify(legacy)
+    }
+  },
+  { deep: true }
+)
+
+watch(
+  () => [form.value.id, form.value.projectId],
+  () => syncFromForm(),
+  { immediate: true }
+)
+
+// 客户文档直显：读取信封中的 customerPlanUrl（仅读，不写回）。监听 remark 而非仅在 id 变化时同步，
+// 覆盖新增弹窗确定后（id 不变）客户方案登记即时生效的场景
+const customerDocUrl = ref('')
+watch(
+  () => String(parseObject(form.value.remark)['customerPlanUrl'] ?? ''),
+  (url) => { customerDocUrl.value = url },
+  { immediate: true }
+)
+// 浏览器可内嵌预览的格式；doc/xls/ppt 无法内嵌渲染，保留显式下载入口
+const customerDocUrls=computed(()=>customerSolutionDocumentUrls(customerDocUrl.value))
+const customerDocPreviewable = computed(() => /\.(pdf|txt)(\?|#|$)/i.test(customerDocUrls.value[0]||''))
+// 文件端点以 attachment 下发（iframe 直挂 src 会被浏览器拦为下载），优先取字节转 Blob 内嵌。
+// 与后端存储类型无关：平台文件端点（/admin-api/...）按当前 API 基址重写 origin（登记域名可能失效），
+// 其余存储按原始地址取流；全部取流失败回退原始地址内嵌（对象存储等内联下发的直链）
+const customerDocPreviewSrc = ref('')
+const customerDocLoadSeq = ref(0)
+let customerDocBlobUrl = ''
+const releaseCustomerDocBlob = () => {
+  if (customerDocBlobUrl) {
+    URL.revokeObjectURL(customerDocBlobUrl)
+    customerDocBlobUrl = ''
+  }
+}
+watch(
+  [customerDocUrl, customerDocPreviewable],
+  ([url, previewable]) => {
+    const seq = ++customerDocLoadSeq.value
+    releaseCustomerDocBlob()
+    customerDocPreviewSrc.value = ''
+    if (!url || !previewable || props.reviewContext) return
+    const primary=customerDocUrls.value[0]
+    const candidates = [primary]
+    const pathIndex = primary.indexOf('/admin-api/')
+    if (pathIndex >= 0) candidates.unshift(import.meta.env.VITE_BASE_URL + primary.slice(pathIndex))
+    const tryFetch = (index: number): void => {
+      if (seq !== customerDocLoadSeq.value) return
+      if (index >= candidates.length) {
+        customerDocPreviewSrc.value = primary
+        return
+      }
+      fetch(candidates[index])
+        .then((res) => (res.ok ? res.blob() : Promise.reject(new Error(String(res.status)))))
+        .then((blob) => {
+          if (seq !== customerDocLoadSeq.value) return
+          customerDocBlobUrl = URL.createObjectURL(blob)
+          customerDocPreviewSrc.value = customerDocBlobUrl
+        })
+        .catch(() => tryFetch(index + 1))
+    }
+    if(primary.startsWith('/api/v1/pms/solutions/')){resolveCustomerSolutionDocument(primary).then(resolved=>{if(seq!==customerDocLoadSeq.value)return;candidates.splice(0,candidates.length,resolved);tryFetch(0)}).catch(()=>{if(seq===customerDocLoadSeq.value)customerDocPreviewSrc.value=''})}else tryFetch(0)
+  },
+  { immediate: true }
+)
+onBeforeUnmount(() => {
+  customerDocLoadSeq.value++
+  releaseCustomerDocBlob()
+})
+
+// 需求分析使用当前实体业务字段，独立加载并提供失败重试。
+let requirementRequest = 0
+const latestRequirement = ref<RequirementAnalysisApi.View | null>(null)
+const requirementSource = ref<RequirementAnalysisApi.View | null>(null)
+const differenceReason = ref('')
+const requirementInput = computed(() => (parseObject(form.value.sectionData).requirementInput || {}) as Record<string, any>)
+const inputChanged = computed(() => !!latestRequirement.value && !!requirementInput.value.revisionId &&
+  String(requirementInput.value.revisionId) !== String(latestRequirement.value.revision.ref.revisionId))
+const writeRequirementInput = (input: Record<string, unknown>) => {
+  form.value.sectionData = JSON.stringify({ ...parseObject(form.value.sectionData), requirementInput: input })
+}
+const refreshRequirementInput = () => {
+  const source = latestRequirement.value
+  if (!source || props.readOnly) return
+  if (isEmptyEditorContent(form.value.background) || form.value.background === reqValues.value.projectBackground)
+    form.value.background = String(source.values.projectBackground || '')
+  if (isEmptyEditorContent(form.value.target) || form.value.target === reqValues.value.projectObjective)
+    form.value.target = String(source.values.projectObjective || '')
+  writeRequirementInput({ revisionId: source.revision.ref.revisionId, revisionNo: source.revision.revisionNo })
+  reqValues.value = source.values
+  requirementSource.value = source
+}
+const keepRequirementInput = () => {
+  if (!latestRequirement.value || props.readOnly || !differenceReason.value.trim()) return
+  writeRequirementInput({ ...requirementInput.value, acknowledgedRevisionId: latestRequirement.value.revision.ref.revisionId,
+    differenceReason: differenceReason.value.trim() })
+}
+const loadRequirement = async () => {
+  const requestId = ++requirementRequest
+  const projectId = form.value.projectId
+  reqValues.value = {}
+  requirementSource.value = null
+  latestRequirement.value = null
+  requirementError.value = ''
+  requirementLoading.value = false
+  if (props.reviewContext) { reqValues.value = props.reviewRequirement || {}; return }
+  if (!projectId) return
+  requirementLoading.value = true
+  try {
+    const overview = await RequirementAnalysisApi.workspace(projectId)
+    if (requestId !== requirementRequest) return
+    latestRequirement.value = overview.currentEffective
+    if (requirementInput.value.revisionId) {
+      const source = await RequirementAnalysisApi.read(requirementInput.value.revisionId)
+      if (requestId !== requirementRequest) return
+      reqValues.value = source.values
+      requirementSource.value = source
+    } else if (!props.readOnly && overview.currentEffective) {
+      refreshRequirementInput()
+    }
+  } catch {
+    if (requestId === requirementRequest) requirementError.value = '需求分析引用内容加载失败，请重新加载'
+  } finally {
+    if (requestId === requirementRequest) requirementLoading.value = false
+  }
+}
+let initializationSequence = 0
+watch(() => [props.readOnly, props.reviewContext, props.reviewRequirement, form.value.projectId, form.value.id], async () => {
+  const sequence = ++initializationSequence
+  const id = form.value.id, projectId = form.value.projectId
+  await loadRequirement()
+  await nextTick()
+  if (sequence === initializationSequence) emit('initialized', id, projectId)
+}, { immediate: true })
+
+// 引用数据按项目加载；工作台自动选中时 projectId 晚于挂载到达，须响应式触发
+let referencesProjectId = 0
+const loadCurrentMembers = async (projectId: number): Promise<MemberRecord[]> => {
+  const rows: MemberRecord[] = []
+  let pageNo = 1
+  let total = 0
+  do {
+    const page = await getMemberPage(projectId, { pageNo, pageSize: 100, state: 'CURRENT' })
+    rows.push(...page.list)
+    total = page.total
+    if (!page.list.length) break
+    pageNo++
+  } while (rows.length < total)
+  return rows
+}
+const loadReferences = async () => {
+  const projectId = form.value.projectId
+  if (props.readOnly || !projectId || referencesProjectId === projectId) return
+  referencesProjectId = projectId
+  const [memberList, planPage, contactPage] = await Promise.all([
+    loadCurrentMembers(projectId).catch(() => []),
+    StagePlanApi.getStagePlanBatchPage({ projectId, pageNo: 1, pageSize: 10 }).catch(() => ({ list: [] })),
+    ContactApi.getProjectPage(projectId, { pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] }))
+  ])
+  members.value = memberList
+  contacts.value = ((contactPage as any).list || []) as ContactApi.ContactVO[]
+  stagePlanItems.value = (planPage as any).list?.[0]?.items || []
+}
+watch(() => [props.readOnly, form.value.projectId], () => { loadReferences() }, { immediate: true })
+
+// ---------- 生成方案（引用前序数据，只填空字段） ----------
+const generateFromSources = () => {
+  if (props.readOnly) return
+  if (reqBackground.value && isEmptyEditorContent(form.value.background)) form.value.background = reqBackground.value
+  if (reqObjective.value && isEmptyEditorContent(form.value.target)) form.value.target = reqObjective.value
+  if (teamRefRows.value.length && !tables.team.length) tables.team = memberRows()
+  if (equipmentProducts.value.length && !tables.inventory.length) tables.inventory = equipmentInventoryRows()
+  if (equipmentProducts.value.length && !tables.deploy.length) tables.deploy = equipmentProducts.value.map(product => equipmentRow(product))
+  if (equipmentProducts.value.length && !tables.software.length) tables.software = equipmentProducts.value.map(product => equipmentRow(product))
+  if (reqBusinessRows.value.length && !tables.business.length) tables.business = reqBusinessRows.value.map((r) => ({ ...r }))
+}
+
+// ---------- 配置脚本上传（读取本地脚本文件展示在文本框中） ----------
+type ScriptKey = (typeof scriptItems)[number]['key']
+const scriptUploadError = ref('')
+const readScript = (key: ScriptKey, uploadFile: { raw?: File }) => {
+  const raw = uploadFile?.raw
+  if (!raw) return
+  scriptUploadError.value = ''
+  if (!/\.(txt|cfg|conf|sh|log)$/i.test(raw.name) || !raw.size) {
+    scriptUploadError.value = '请上传非空 TXT、CFG、CONF、SH、LOG 脚本文件'
+    return
+  }
+  const targetForm = form.value
+  const reader = new FileReader()
+  reader.onload = () => {
+    if (form.value !== targetForm || props.readOnly) return
+    scripts[key] = String(reader.result ?? '')
+    pendingScripts.value = [...pendingScripts.value.filter(item => item.section !== key), { section: key, file: raw }]
+    const stored = parseObject(form.value.script)
+    form.value.script = JSON.stringify({ ...stored, references: ((stored.references || []) as ScriptReference[]).filter(item => item.section !== key) })
+  }
+  reader.onerror = () => { scriptUploadError.value = '脚本读取失败，请重新选择文件' }
+  reader.readAsText(raw)
+}
+const scriptFileName = (section: ScriptSection) => {
+  const pending = pendingScripts.value.find(item => item.section === section)
+  if (pending) return `${pending.file.name}（待保存）`
+  const stored = ((parseObject(form.value.script).references || []) as ScriptReference[]).find(item => item.section === section)
+  return stored ? `${stored.name} · v${stored.versionNo} · 已保存` : ''
+}
+const storedScript = (section: ScriptSection) => ((parseObject(form.value.script).references || []) as ScriptReference[]).find(item => item.section === section)
+const downloadScript = async (section: ScriptSection) => {
+  const reference = storedScript(section)
+  if (!reference || !form.value.id) return
+  try { await downloadSolutionScript({ solutionId: form.value.id, reference }) }
+  catch (failure: any) { scriptUploadError.value = failure?.message || '脚本文件下载失败' }
+}
+
+// ---------- 下载方案（章节及图片导出为 Word） ----------
+const escapeHtml = (v: unknown) =>
+  String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+const htmlField = (title: string, value: string) =>
+  String(value ?? '').trim() ? `<h3>${escapeHtml(title)}</h3>${value}` : ''
+const htmlTable = (rows: Row[], cols: [string, string][]) => {
+  if (!rows.length) return '<p>（未填写）</p>'
+  const head = cols.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join('')
+  const body = rows
+    .map((r) => `<tr>${cols.map(([key]) => `<td>${escapeHtml(r[key] ?? '')}</td>`).join('')}</tr>`)
+    .join('')
+  return `<table border="1" cellspacing="0" cellpadding="4"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`
+}
+const topologyUrls = (value: string) => value.split(',').map(url => url.trim()).filter(Boolean)
+const topologyHtml = (value: string, images: Record<string, string>) => {
+  const urls = topologyUrls(value)
+  if (!urls.length) return '<p>（未上传）</p>'
+  return urls.map(url => {
+    const name = escapeHtml(getFileNameFromUrl(url))
+    if (!/^(https?:\/\/|\/(?!\/))/i.test(url)) return `<p>${name}</p>`
+    return isImage(url)
+      ? `<p><img src="${escapeHtml(images[url] || url)}" alt="${name}" width="520" style="max-width:100%;height:auto" /></p><p>${name}</p>`
+      : `<p>拓扑原文件：<a href="${escapeHtml(url)}">${name}</a></p>`
+  }).join('')
+}
+const buildSolutionHtml = (images: Record<string, string> = {}, requirementImages: string[] = []) => {
+  const sourceTopologyHtml = requirementImages.map((src, index) =>
+    `<p><img src="${escapeHtml(src)}" alt="需求拓扑第${index + 1}页" width="520" style="max-width:100%;height:auto" /></p>`).join('')
+  const chapter1 = [
+    htmlField('1.1 项目背景', form.value.background ?? ''),
+    htmlField('1.2 项目目标', form.value.target ?? ''),
+    htmlField('1.3 项目团队', htmlTable(tables.team, [['role', '角色'], ['name', '姓名'], ['contact', '联系方式'], ['email', '邮箱'], ['remark', '备注']])),
+    htmlField('1.4 项目清单', htmlTable(tables.inventory, [['productCode', '产品编码'], ['model', '产品型号'], ['desc', '产品描述'], ['projectQty', '项目数量'], ['shippedQty', '发货数量'], ['unshippedQty', '未发货数量'], ['sn', '序列号']])),
+    props.readOnly && tables.plan.length ? htmlField('1.5 项目进度计划', htmlTable(tables.plan, [['stage', '项目阶段'], ['start', '计划开始'], ['end', '计划结束'], ['suggest', '工期建议'], ['remark', '备注']])) : ''
+  ].join('')
+  const chapter2 = [
+    htmlField('2.1 现网拓扑图', topology.asIsUrl ? topologyHtml(topology.asIsUrl, images) : sourceTopologyHtml || '<p>（未上传）</p>'),
+    htmlField('2.2 现网资源确认', topology.resourceConfirmation)
+  ].join('')
+  const chapter3 = [
+    htmlField('3.1 建设后拓扑图', topology.toBeChanged === 'yes' ? `<p>与需求分析有变化</p>${topologyHtml(topology.toBeUrl, images)}` : `<p>与需求分析无变化，调用需求分析网络拓扑</p>${sourceTopologyHtml}`),
+    htmlField('3.2 部署位置规划', htmlTable(tables.deploy, [['productCode', '产品编码'], ['deviceName', '设备名称'], ['quantity', '数量（订单数量）'], ['location', '安装位置（机房/机柜/U数）'], ['remark', '备注']])),
+    htmlField('3.3 设备接口互联规划', htmlTable(tables.interface, [['localDevice', '本端设备'], ['localPort', '本端接口'], ['peerPort', '对端接口'], ['portType', '接口类型'], ['cableModel', '线缆/光模块型号'], ['remark', '备注']])),
+    htmlField('3.4 设备IP地址与vlan规划', htmlTable(tables.ip, [['deviceName', '设备名称'], ['port', '接口'], ['ip', 'IP地址'], ['mask', '掩码'], ['vrrp', 'VRRP地址'], ['gateway', '网关'], ['remark', '备注']])),
+    htmlField('3.5 软件版本', htmlTable(tables.software, [['productCode', '产品编码'], ['deviceName', '设备名称'], ['quantity', '数量（订单数量）'], ['version', '软件版本'], ['remark', '备注']]))
+  ].join('')
+  const chapter4 = scriptItems
+    .map((item) => htmlField(item.label, `<pre>${escapeHtml(scripts[item.key] || '（未填写）')}</pre>`))
+    .join('')
+  const chapter5 = [
+    htmlField('5.1 硬件实施', meta.hardwareInvolved === 'yes' ? '<p>涉及硬件实施，按施工环境检查规范、产品安装规范、设备供电规范执行（按照实际情况填写）。</p>' : '<p>不涉及硬件实施</p>'),
+    htmlField('5.2 软件调试', `<pre>${escapeHtml(meta.softwareDebug || '（未填写）')}</pre>`),
+    htmlField('5.3 业务配置', htmlTable(tables.business, [['deviceName', '设备名称'], ['sn', '序列号'], ['businessName', '承载业务名称'], ['network', '业务网段'], ['level', '业务重要等级'], ['ports', '出入接口'], ['owner', '客户侧业务负责人'], ['remark', '备注']]))
+  ].join('')
+  const optional = [
+    ['6.1 质量保障方案', form.value.quality ?? ''],
+    ['6.2 风险管控与应急预案', form.value.risk ?? ''],
+    ['6.3 运维交付与售后服务', form.value.oAndM ?? ''],
+    ['6.4 项目问题闭环与文档归档', archiveModule.value]
+  ]
+  const chapter6 = optional
+    .filter(([, value]) => String(value).trim())
+    .map(([title, value]) => htmlField(title, value))
+    .join('')
+  const chapter7 = [
+    htmlField('7.1 培训目的', `<pre>${escapeHtml(meta.trainingPurpose || '（按照实际情况填写）')}</pre>`),
+    htmlField('7.2 培训内容', `<pre>${escapeHtml(meta.trainingContent || '（按照实际情况填写）')}</pre>`)
+  ].join('')
+  const chapter8 = '<p>8.1 400热线：迪普科技设有7×24小时客户服务热线，客户服务热线：400-610-0598。</p><p>8.2 现场服务：按故障级别安排工程师赴现场支持，包括故障诊断、配置调试、紧急备件现场更换。</p><p>8.3 软件更新：服务有效期内提供主机软件更新或补丁；License 控制产品只提供补丁。</p><p>8.4 网站论坛：官网 http://www.dptech.com 提供产品资料与知识库。</p>'
+  const html = [
+    '<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><title>',
+    escapeHtml(form.value.name || '实施方案'),
+    '</title><style>body{font-family:SimSun,sans-serif;margin:24px;line-height:1.7}h1{font-size:20px}h2{font-size:17px;border-bottom:1px solid #ddd;padding-bottom:4px}h3{font-size:15px}table{border-collapse:collapse;font-size:13px;margin:6px 0}th{background:#f0f0f0}pre{white-space:pre-wrap;font-family:Consolas,monospace;background:#f7f7f7;padding:8px}</style></head><body>',
+    `<p><img src="${escapeHtml(images[companyLogo] || companyLogo)}" alt="DPtech" width="150" height="60" /></p>`,
+    `<h1>实施方案：${escapeHtml(form.value.name || '')}</h1>`,
+    form.value.versionLabel ? `<p>版本：${escapeHtml(form.value.versionLabel)}</p>` : '',
+    `<h2>1. 项目概述</h2>${chapter1}`,
+    `<h2>2. 现网现状分析</h2>${chapter2}`,
+    `<h2>3. 总体方案设计</h2>${chapter3}`,
+    `<h2>4. 配置脚本</h2>${chapter4}`,
+    `<h2>5. 实施步骤</h2>${chapter5}`,
+    chapter6 ? `<h2>6. 可选方案模块</h2>${chapter6}` : '',
+    `<h2>7. 项目培训及资料移交</h2>${chapter7}`,
+    '<h2>8. 售后服务</h2>',
+    chapter8,
+    '</body></html>'
+  ].join('')
+  return html
+}
+const solutionDownloadBusy = ref(false)
+const solutionDownloadError = ref('')
+let solutionDownloadAttempt: import('@/components/DeliveryArtifact/uploadDeliveryFile').DeliveryUploadAttempt | undefined
+let solutionDownloadContent = ''
+let solutionExportActive = true
+onBeforeUnmount(() => { solutionExportActive = false })
+const exportIdentity = () => JSON.stringify({ form: form.value, topology, tables, scripts, meta,
+  requirementSource: requirementSource.value })
+const downloadSolution = async () => {
+  if (props.reviewContext || solutionDownloadBusy.value) return
+  solutionDownloadBusy.value = true
+  solutionDownloadError.value = ''
+  try {
+    const identity = exportIdentity()
+    const solutionId = form.value.id!
+    const fileName = `${(form.value.name || '实施方案').replace(/[\\/:*?"<>|]/g, '_')}${form.value.versionLabel ? `-${form.value.versionLabel}` : ''}.docx`
+    const requireSameSource = () => {
+      if (!solutionExportActive || exportIdentity() !== identity)
+        throw new Error('生成期间方案或引用内容已变化，请重新导出当前方案。')
+    }
+    const imageUrls = [companyLogo, ...topologyUrls(topology.asIsUrl).filter(isImage),
+      ...(topology.toBeChanged === 'yes' ? topologyUrls(topology.toBeUrl).filter(isImage) : [])]
+    const images = await prepareDocumentImages(imageUrls)
+    requireSameSource()
+    const needsRequirementTopology = !!requirementInput.value.revisionId &&
+      (!topology.asIsUrl || topology.toBeChanged === 'no')
+    if (needsRequirementTopology && !requirementSource.value)
+      throw new Error('请先加载所引用的需求分析拓扑附件')
+    const requirementImages = needsRequirementTopology ? await requirementTopologyImages(requirementSource.value!) : []
+    requireSameSource()
+    const html = buildSolutionHtml(images, requirementImages)
+    const contentKey = html
+    if (solutionDownloadContent !== contentKey || solutionDownloadAttempt?.owner.entityId !== solutionId)
+      solutionDownloadAttempt = undefined
+    solutionDownloadContent = contentKey
+    solutionDownloadAttempt = await prepareGeneratedSolutionWord(solutionId, html, fileName, solutionDownloadAttempt)
+    requireSameSource()
+    await uploadDeliveryFile(solutionDownloadAttempt)
+    requireSameSource()
+    const anchor = document.createElement('a')
+    anchor.href = URL.createObjectURL(solutionDownloadAttempt.file)
+    anchor.download = fileName
+    anchor.click()
+    URL.revokeObjectURL(anchor.href)
+  } catch (failure: any) {
+    solutionDownloadError.value = failure?.response?.data?.msg || failure?.message || (typeof failure === 'string' && failure !== 'error' ? failure : '实施方案交付件保存失败')
+    ElMessage.error(solutionDownloadError.value)
+  } finally {
+    solutionDownloadBusy.value = false
+  }
+}
+
+// ---------- 可选模块模板 ----------
+const TEMPLATE_QUALITY = '<p>1. 前期物资质量管控：到货开箱验收、物料一致性核对。</p><p>2. 现场施工过程质量管控：安装工艺、布线规范、标签标识。</p><p>3. 调试与测试质量管控：配置基线核对、业务验证。</p><p>4. 验收交付质量管控：按验收标准逐项交付。</p><p>5. 售后长效质量保障：定期巡检与问题闭环。</p>'
+const TEMPLATE_RISK = '<p>风险管控措施：开工前风险识别与交底、施工过程双人复核。</p><p>应急处置预案：</p><p>1. 物资供货应急；2. 现场环境应急；3. 设备故障应急；4. 施工安全应急；5. 系统运行应急。</p>'
+const TEMPLATE_OANDM = '<p>1. 资料移交：竣工文档、配置备份、账号清单。</p><p>2. 专属对接人：明确售后对接人与升级路径。</p><p>3. 分级响应：按故障等级约定响应与恢复时限。</p><p>4. 巡检与增值服务：定期巡检与优化建议。</p>'
+const TEMPLATE_ARCHIVE = '<p>1. 问题台账闭环机制：问题登记—责任分派—处理跟踪—验证关闭，台账定期复盘。</p><p>2. 文档标准化归档：方案、配置脚本、测试与验收报告按目录规范归档并同步交付件。</p>'
+const appendTemplate = (field: 'quality' | 'risk' | 'oAndM' | 'archive', template: string) => {
+  if (field === 'archive') {
+    const current = archiveModule.value.trim()
+    archiveModule.value = current ? `${current}${template}` : template
+    return
+  }
+  const current = String(form.value[field] ?? '').trim()
+  form.value[field] = current ? `${current}${template}` : template
+}
+</script>
+
+<style lang="scss" scoped>
+.planning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+}
+.planning-actions :deep(.planning-import) {
+  flex: 1;
+  margin-bottom: 0;
+}
+/* 文档层级：标题、章节、子章节和正文纵向排列，沿用平台主题。 */
+.solution-document-heading {
+  margin: 4px 0 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--el-border-color);
+  h1 { margin: 0; font-size: 22px; line-height: 1.6; font-weight: 600; overflow-wrap: anywhere; }
+  p { margin: 8px 0 0; color: var(--el-text-color-secondary); font-size: 13px; }
+}
+.solution-chapter-form :deep(.el-form-item) { display: block; }
+.solution-chapter-form :deep(.el-form-item__label) {
+  display: block;
+  float: none;
+  width: 100% !important;
+  height: auto;
+  margin-bottom: 8px;
+  padding: 0;
+  text-align: left;
+  font-weight: 600;
+  line-height: 1.7;
+}
+.solution-chapter-form :deep(.el-form-item__content) { min-width: 0; margin-left: 0 !important; }
+.solution-chapter-form .doc-content,
+.solution-chapter-form .ref-block { margin-left: 0; }
+/* 正文不设最大高度、不建内嵌滚动容器，随工作区页面自然伸展，仅保留页面级滚动 */
+.chapter {
+  padding: 12px 0 4px;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed var(--el-border-color-lighter);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.chapter-title {
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.ref-block {
+  padding: 8px 10px;
+  margin: 0 0 10px 140px;
+  background: var(--el-fill-color-light);
+  border-radius: 4px;
+}
+
+.ref-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ref-body {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--el-text-color-secondary);
+  white-space: pre-wrap;
+  word-break: break-all;
+
+  &.standalone {
+    margin: 0;
+  }
+}
+
+.table-editor {
+  width: 100%;
+}
+
+.editor-block {
+  width: 100%;
+}
+
+.script-input {
+  :deep(textarea) {
+    font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  }
+}
+
+.script-editor {
+  width: 100%;
+}
+
+.script-upload {
+  margin-top: 4px;
+}
+
+/* 无操作栏提供方时的原地回退（台账编辑弹窗/审核详情）：按钮与首章之间留距；收口进操作栏后不命中 */
+.solution-chapter-form > .el-button {
+  margin: 0 0 10px;
+}
+
+/* 客户方案文档直显区：正文顶部对照来源，宽幅内嵌预览 */
+.customer-doc {
+  margin-bottom: 12px;
+}
+
+.customer-doc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.customer-doc-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.customer-doc-frame {
+  width: 100%;
+  height: 480px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+  background: var(--el-fill-color-lighter);
+}
+
+.customer-doc-fallback {
+  padding: 14px 12px;
+  font-size: 12.5px;
+  color: var(--el-text-color-secondary);
+  background: var(--el-fill-color-light);
+  border: 1px dashed var(--el-border-color);
+  border-radius: 4px;
+}
+
+.doc-content {
+  padding: 10px 12px;
+  margin: 0 0 10px 140px;
+  font-size: 13px;
+  line-height: 1.8;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 4px;
+
+  h4 {
+    margin: 6px 0 2px;
+    font-size: 13px;
+  }
+
+  p {
+    margin: 2px 0;
+    color: var(--el-text-color-regular);
+  }
+
+  &.standalone {
+    margin-left: 0;
+  }
+}
+
+.form-tip {
+  width: 100%;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+</style>

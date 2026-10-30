@@ -67,6 +67,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class DeviceController {
 
     private final DeviceQueryService deviceQueryService;
+    private final cn.iocoder.yudao.module.pms.asset.service.device.DeviceListNameService listNames;
     private final DeviceDetailService deviceDetailService;
     private final DeviceProjectAssignmentService projectAssignmentService;
     private final DeviceCustomerAssignmentService customerAssignmentService;
@@ -80,11 +81,25 @@ public class DeviceController {
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
     public CommonResult<PageResult<DeviceListRespVO>> getDevicePage(@Valid DevicePageReqVO reqVO) {
-        VisibleDevicePageQuery query = new VisibleDevicePageQuery(
-                TenantContextHolder.getTenantId(), null, reqVO.getSn(), reqVO.getProductCode(),
-                reqVO.getProjectId(), reqVO.getCustomerId(), reqVO.getPageNo(), reqVO.getPageSize());
+        VisibleDevicePageQuery query = VisibleDevicePageQuery.builder()
+                .tenantId(TenantContextHolder.getTenantId())
+                .sn(reqVO.getSn())
+                .productCode(reqVO.getProductCode())
+                .projectId(reqVO.getProjectId())
+                .customerId(reqVO.getCustomerId())
+                .projectName(reqVO.getProjectName())
+                .customerName(reqVO.getCustomerName())
+                .departmentName(reqVO.getDepartmentName())
+                .pageNo(reqVO.getPageNo())
+                .pageSize(reqVO.getPageSize())
+                .name(reqVO.getName())
+                .status(reqVO.getStatus())
+                .visibleContractNumbers(java.util.Set.of())
+                .organizationGrants(java.util.List.of()).build();
         PageResult<DeviceListProjection> page = deviceQueryService.getPage(query);
-        List<DeviceListRespVO> list = page.getList().stream().map(DeviceController::toListResp).toList();
+        var names = listNames.resolve(new cn.iocoder.yudao.module.pms.asset.service.device.DeviceListNameService.Query(currentTenantId(), page.getList()));
+        List<DeviceListRespVO> list = page.getList().stream().map(item -> toListResp(item,
+                names.get(item.deviceId()))).toList();
         return success(new PageResult<>(list, page.getTotal()));
     }
 
@@ -92,6 +107,15 @@ public class DeviceController {
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
     public CommonResult<DeviceDetailRespVO> getDevice(@PathVariable("id") Long id) {
         return success(deviceDetailService.getDetail(id));
+    }
+
+    @PostMapping("/current-summaries")
+    @PreAuthorize("@ss.hasPermission('pms:device:query')")
+    public CommonResult<List<cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO>> getCurrentSummaries(
+            @Valid @RequestBody cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceSummaryBatchReqVO request) {
+        return success(deviceDetailService.getCurrentSummaries(
+                new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery(
+                        currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), request.getDeviceIds(), request.getProjectId())));
     }
 
     @GetMapping("/{id}/archive")
@@ -202,13 +226,20 @@ public class DeviceController {
         return success(new DeviceAssignmentRespVO(result.assignmentVersion(), result.operationId()));
     }
 
-    private static DeviceListRespVO toListResp(DeviceListProjection item) {
+    private static DeviceListRespVO toListResp(DeviceListProjection item,
+            cn.iocoder.yudao.module.pms.asset.service.device.DeviceListNameService.Names names) {
         return new DeviceListRespVO(
-                item.deviceId(), item.sn(), item.productCode(), item.productModel(), item.productName(),
+                item.deviceId(), item.sn(), item.name(), item.status(), item.productCode(),
+                item.productModel(), item.productName(),
                 item.shipmentTime(), item.packageNo(), item.contractNo(), item.shipmentRecordId(),
                 item.projectId(), item.customerId(), item.warrantyStartDate(), item.warrantyEndDate(),
                 item.warrantyStatus(), item.conpVersion(), item.conpType(), item.conpSeries(),
-                item.conpMark(), item.syncStatus());
+                item.conpMark(), item.syncStatus(), item.locationSnapshot(), item.locationResolutionStatus(),
+                new cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceOrganizationRespVO(
+                        item.companyId(), item.companyName(), item.departmentId(), item.departmentCode(),
+                        item.departmentName(), item.organizationSource()),
+                item.bootVersion(), item.cpldVersion(), item.extendedCount(),
+                names.projectName(), names.customerName(), names.projectCode());
     }
 
     private Long currentTenantId() {

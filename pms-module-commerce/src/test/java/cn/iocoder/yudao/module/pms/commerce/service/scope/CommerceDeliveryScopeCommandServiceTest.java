@@ -89,7 +89,7 @@ class CommerceDeliveryScopeCommandServiceTest {
         ArgumentCaptor<DeliveryScopeDO> scope = ArgumentCaptor.forClass(DeliveryScopeDO.class);
         verify(scopeMapper).insert(scope.capture());
         assertEquals("P-501", scope.getValue().getProjectCode());
-        assertEquals("OFF-1", scope.getValue().getOfficeDepartmentCode());
+        assertEquals("OFF-1", scope.getValue().getDepartmentCode());
         ArgumentCaptor<DeliveryScopeDetailDO> detail = ArgumentCaptor.forClass(DeliveryScopeDetailDO.class);
         verify(detailMapper).insert(detail.capture());
         assertEquals("ERP-PRODUCT-1", detail.getValue().getProductCode());
@@ -105,7 +105,7 @@ class CommerceDeliveryScopeCommandServiceTest {
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
                 new ProjectScopeResult(501L, 12L, Set.of(501L), Set.of()));
         when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(new ProjectOfficeFact(
-                ProjectFactOutcome.FOUND, 501L, 3, "P-501", 601L, "OFF-1", "杭州办", 4));
+                ProjectFactOutcome.FOUND, 501L, 3L, "P-501", 601L, "OFF-1", "杭州办", 4));
         when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
         when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of());
         when(projectVersionService.lock(eq(1L), eq(501L), anyString(), any()))
@@ -131,18 +131,18 @@ class CommerceDeliveryScopeCommandServiceTest {
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
                 new ProjectScopeResult(501L, 12L, Set.of(501L), Set.of()));
         when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(new ProjectOfficeFact(
-                ProjectFactOutcome.FOUND, 501L, 3, "P-501", 601L, "OFF-1", "杭州办", 4));
+                ProjectFactOutcome.FOUND, 501L, 3L, "P-501", 601L, "OFF-1", "杭州办", 4));
         when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
         DeliveryScopeDO occupied = currentScope();
         occupied.setProjectId(502L);
         when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of(occupied));
 
         DeliveryScopePreviewResult result = service.preview(new DeliveryScopePreviewCommand(
-                1L, 99L, 501L, 3, 12L, 7L, 301L, "erp-v2", new BigDecimal("15"), List.of(), null, null));
+                1L, 99L, 501L, 3L, 12L, 7L, 301L, "erp-v2", new BigDecimal("15"), List.of(), null, null));
 
         assertTrue(result.allowed());
         assertEquals(new BigDecimal("90"), result.availableQuantity());
-        assertEquals("OFF-1", result.officeDepartmentCode());
+        assertEquals("OFF-1", result.departmentCode());
         assertEquals(List.of(401L), result.occupiedScopes().stream()
                 .map(DeliveryScopePreviewResult.OccupiedScope::deliveryScopeId).toList());
         verifyNoInteractions(detailMapper, acceptanceScopeGuardApi, operationAuditApi);
@@ -206,21 +206,21 @@ class CommerceDeliveryScopeCommandServiceTest {
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
                 new ProjectScopeResult(501L, 12L, Set.of(501L), Set.of()));
         when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(new ProjectOfficeFact(
-                ProjectFactOutcome.FOUND, 501L, 3, "P-501", 601L, "OFF-1", "杭州办", 4));
+                ProjectFactOutcome.FOUND, 501L, 3L, "P-501", 601L, "OFF-1", "杭州办", 4));
         when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
         when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of(scopes));
     }
 
     private DeliveryScopePreviewCommand previewCommand(String quantity, Long scopeId, Long version) {
-        return new DeliveryScopePreviewCommand(1L, 99L, 501L, 3, 12L, 7L, 301L, "erp-v2",
+        return new DeliveryScopePreviewCommand(1L, 99L, 501L, 3L, 12L, 7L, 301L, "erp-v2",
                 new BigDecimal(quantity), List.of(), scopeId, version);
     }
 
     @Test
     void shouldBindNewScopeWhenOwnerReportsAcceptanceStage() {
         allowProject();
-        var stage = new AcceptanceStageBindingCoordinator.StageContext(1L, 501L, 3, 701L, true);
-        when(acceptanceBindingCoordinator.lockAndRead(1L, 501L, 3, "op-assign")).thenReturn(stage);
+        var stage = new AcceptanceStageBindingCoordinator.StageContext(1L, 501L, 3L, 701L, true);
+        when(acceptanceBindingCoordinator.lockAndRead(1L, 501L, 3L, "op-assign")).thenReturn(stage);
         when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(line()));
         when(scopeMapper.selectCurrentByOrderLineIdsForUpdate(any())).thenReturn(List.of());
         doAnswer(invocation -> {
@@ -420,7 +420,7 @@ class CommerceDeliveryScopeCommandServiceTest {
                 new cn.iocoder.yudao.module.pms.asset.api.device.dto.SerialScopeValidationResult(
                         false, List.of("SN-NOT-FOUND"), List.of(), List.of()));
 
-        DeliveryScopeAssignCommand command = new DeliveryScopeAssignCommand(1L, 99L, 501L, 3, 12L, 7L, 301L,
+        DeliveryScopeAssignCommand command = new DeliveryScopeAssignCommand(1L, 99L, 501L, 3L, 12L, 7L, 301L,
                 "erp-v2", BigDecimal.ONE, List.of("SN-NOT-FOUND"), "序列号校验", "op-invalid-sn");
         ServiceException error = assertThrows(ServiceException.class, () -> service.assign(command));
 
@@ -434,18 +434,18 @@ class CommerceDeliveryScopeCommandServiceTest {
         when(projectScopeApi.lockAndRevalidate(any())).thenReturn(
                 new ProjectScopeResult(501L, 12L, Set.of(501L), Set.of()));
         when(projectOfficeFactApi.lockAndRevalidate(any())).thenReturn(new ProjectOfficeFact(
-                ProjectFactOutcome.FOUND, 501L, 3, "P-501", 601L, "OFF-1", "杭州办", 4));
-        when(acceptanceBindingCoordinator.lockAndRead(eq(1L), eq(501L), eq(3), any())).thenReturn(
-                new AcceptanceStageBindingCoordinator.StageContext(1L, 501L, 3, null, false));
+                ProjectFactOutcome.FOUND, 501L, 3L, "P-501", 601L, "OFF-1", "杭州办", 4));
+        when(acceptanceBindingCoordinator.lockAndRead(eq(1L), eq(501L), eq(3L), any())).thenReturn(
+                new AcceptanceStageBindingCoordinator.StageContext(1L, 501L, 3L, null, false));
     }
 
     private DeliveryScopeAssignCommand assignCommand() {
-        return new DeliveryScopeAssignCommand(1L, 99L, 501L, 3, 12L, 7L, 301L,
+        return new DeliveryScopeAssignCommand(1L, 99L, 501L, 3L, 12L, 7L, 301L,
                 "erp-v2", new BigDecimal("10"), List.of(), "首次分配", "op-assign");
     }
 
     private DeliveryScopeChangeCommand changeCommand(BigDecimal proposed, String operationId) {
-        return new DeliveryScopeChangeCommand(1L, 99L, 401L, 501L, 3, 12L, 7L, 7L,
+        return new DeliveryScopeChangeCommand(1L, 99L, 401L, 501L, 3L, 12L, 7L, 7L,
                 "erp-v2", proposed, List.of(), "范围调整", operationId);
     }
 
@@ -470,9 +470,8 @@ class CommerceDeliveryScopeCommandServiceTest {
         line.setOrderType("NORMAL");
         line.setOrderNo("SO-1");
         line.setLineNo("10");
-        line.setItemCode("ITEM-1");
-        line.setItemDesc("设备");
         line.setProductCode("ERP-PRODUCT-1");
+        line.setProductDesc("设备");
         line.setOrderQty(new BigDecimal("100"));
         line.setUnitCode("EA");
         line.setUnitScale(0);
@@ -491,7 +490,7 @@ class CommerceDeliveryScopeCommandServiceTest {
         scope.setAllocatedQty(new BigDecimal("10"));
         scope.setAllocationVersion(7L);
         scope.setScopeStatus("ACTIVE");
-        scope.setVersion(0);
+        scope.setVersion(0L);
         return scope;
     }
 }

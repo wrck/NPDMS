@@ -10,16 +10,16 @@ import java.util.TreeSet;
 public record ArrivalQuantityScopeFact(
         Long orderLineId,
         String productCode,
-        String modelCode,
+        String productModel,
         BigDecimal quantity,
         String unitCode) implements Comparable<ArrivalQuantityScopeFact> {
 
     public ArrivalQuantityScopeFact {
         productCode = trimToNull(productCode);
-        modelCode = trimToNull(modelCode);
+        productModel = trimToNull(productModel);
         unitCode = trimToNull(unitCode);
         if (orderLineId == null || orderLineId <= 0
-                || productCode == null && modelCode == null
+                || productCode == null && productModel == null
                 || quantity == null || quantity.signum() <= 0
                 || unitCode == null) {
             throw new IllegalArgumentException("invalid arrival quantity scope fact");
@@ -32,7 +32,7 @@ public record ArrivalQuantityScopeFact(
         if (compared != 0) return compared;
         compared = compareNullable(productCode, other.productCode);
         if (compared != 0) return compared;
-        compared = compareNullable(modelCode, other.modelCode);
+        compared = compareNullable(productModel, other.productModel);
         if (compared != 0) return compared;
         compared = unitCode.compareTo(other.unitCode);
         if (compared != 0) return compared;

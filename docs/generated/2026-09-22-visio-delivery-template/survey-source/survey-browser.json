@@ -1,0 +1,97 @@
+{
+  "projectId": 992203060019,
+  "pageErrors": [],
+  "apiErrors": [],
+  "combinations": [
+    {
+      "fit": true,
+      "factory": true,
+      "rails": true,
+      "matches": [
+        false,
+        true,
+        false
+      ]
+    },
+    {
+      "fit": true,
+      "factory": true,
+      "rails": false,
+      "matches": [
+        false,
+        false,
+        true
+      ]
+    },
+    {
+      "fit": true,
+      "factory": false,
+      "rails": true,
+      "matches": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "fit": true,
+      "factory": false,
+      "rails": false,
+      "matches": [
+        false,
+        false,
+        false
+      ]
+    },
+    {
+      "fit": false,
+      "factory": true,
+      "rails": true,
+      "matches": [
+        true,
+        true,
+        false
+      ]
+    },
+    {
+      "fit": false,
+      "factory": true,
+      "rails": false,
+      "matches": [
+        true,
+        false,
+        true
+      ]
+    },
+    {
+      "fit": false,
+      "factory": false,
+      "rails": true,
+      "matches": [
+        true,
+        false,
+        false
+      ]
+    },
+    {
+      "fit": false,
+      "factory": false,
+      "rails": false,
+      "matches": [
+        true,
+        false,
+        false
+      ]
+    }
+  ],
+  "historyReadOnly": true,
+  "surveyId": "2102387388929748993",
+  "savedAndReopenedSameSurvey": true,
+  "ownerConfirmed": true,
+  "savedBusinessValues": {
+    "materialMatches": true,
+    "manufacturerInstallation": true,
+    "railTrayRequired": false
+  },
+  "noDuplicateConfirmationCreated": true
+}

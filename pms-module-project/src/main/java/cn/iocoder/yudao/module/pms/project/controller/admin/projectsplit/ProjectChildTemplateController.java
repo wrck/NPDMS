@@ -29,13 +29,13 @@ public class ProjectChildTemplateController {
             @RequestParam Long parentProjectId, @Valid ProjectTemplatePageReqVO page,
             @RequestParam(required = false) String projectName,
             @RequestParam(required = false) String businessLevelCode,
-            @RequestParam(required = false) String officeDepartmentCode) {
+            @RequestParam(required = false) String departmentCode) {
         try {
             var actor = new ProjectSplitDraftService.Actor(TenantContextHolder.getRequiredTenantId(),
                     SecurityFrameworkUtils.getLoginUserId(), java.util.UUID.randomUUID().toString());
             var parent = drafts.requireTemplateSelectionParent(parentProjectId, actor);
             var item = new ProjectSplitItemDO();
-            item.setProjectName(projectName); item.setBusinessLevelCode(businessLevelCode); item.setOfficeDepartmentCode(officeDepartmentCode);
+            item.setProjectName(projectName); item.setBusinessLevelCode(businessLevelCode); item.setDepartmentCode(departmentCode);
             return CommonResult.success(templates.options(childDrafts.create(parent, item), page, actor.actorId()));
         } catch (cn.iocoder.yudao.framework.common.exception.ServiceException
                  | org.springframework.security.access.AccessDeniedException denied) {

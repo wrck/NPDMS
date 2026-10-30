@@ -1,34 +1,40 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
+import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanStorage;
+import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverCustomResultStore;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistResultStore;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistEvidenceRules;
+import jakarta.annotation.Resource;
+import cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskSnapshotStore;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalStartCommand;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemResultDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverAssessmentDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemResultMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistItemsQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistResultsQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRowQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChildrenQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverAssessmentRowQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanChildrenQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanRevisionQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverAssessmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverAssessmentRowQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec.*;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverAssessmentAnswers;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectContextPort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverAssessmentAnswers;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -44,6 +50,17 @@ import static cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprov
 /** 从同一CUT事务内已锁定的P2/P3/P4事实组装审批不可变来源。 */
 public class CutoverApprovalSourceAssembler {
     private static final long MAX_SAFE_WIRE_LONG = 9_007_199_254_740_991L;
+    @Resource
+    private CutoverPlanStorage planStorage;
+    @Resource
+    private CutoverChecklistResultStore checklistResults;
+    @Resource
+    private CutoverCustomResultStore customResults;
+    @Resource
+    private CutoverFieldDefinitionStore fieldDefinitions;
+    @Resource
+    private CutoverProjectContextPort projectContext;
+
     private final CutoverTaskMapper taskMapper;
     private final CutoverAssessmentMapper assessmentMapper;
     private final CutoverChecklistMapper checklistMapper;
@@ -65,6 +82,20 @@ public class CutoverApprovalSourceAssembler {
     }
 
     public LockedSource lockAndAssemble(CutoverApprovalStartCommand command) {
+        CutoverPlanRevisionDO inspectedPlan = planMapper.selectById(command.planRevisionId());
+        require(inspectedPlan != null && Objects.equals(inspectedPlan.getTenantId(), command.tenantId())
+                        && Objects.equals(inspectedPlan.getCutoverTaskId(), command.taskId())
+                        && inspectedPlan.getSourceProjectId() != null && inspectedPlan.getSourceProjectVersion() != null
+                        && inspectedPlan.getSourceProjectScopeVersion() != null,
+                SOURCE_STALE, "P4方案事实已变化");
+        var inspectedProject = projectContext.inspect(CutoverProjectContextPort.Inspection.builder()
+                .tenantId(command.tenantId()).projectId(inspectedPlan.getSourceProjectId())
+                .expectedProjectScopeVersion(inspectedPlan.getSourceProjectScopeVersion()).build());
+        requirePlanProject(inspectedPlan, inspectedProject);
+        // P4已按相同顺序锁定来源；单独组装时也先锁项目，再锁CUT事实。
+        CutoverProjectContextPort.ProjectContextFact project = projectContext.lockAndRevalidate(inspectedProject);
+        require(Objects.equals(inspectedProject, project), SOURCE_STALE, "项目读取期间已变化，请重试当前操作");
+        requirePlanProject(inspectedPlan, project);
         CutoverTaskDO task = taskMapper.selectForUpdate(new CutoverTaskRowQuery(command.tenantId(), command.taskId()));
         require(task != null && Objects.equals(task.getVersion(), command.expectedTaskVersion())
                 && "P4".equals(task.getCurrentStage()) && "PLAN_DRAFTING".equals(task.getTaskStatus()),
@@ -95,6 +126,8 @@ public class CutoverApprovalSourceAssembler {
                 if (!Boolean.TRUE.equals(item.getApplicableFlag())) continue;
                 CutoverChecklistItemResultDO result = resultByItem.get(item.getId());
                 require(result != null, BUSINESS_INCOMPLETE, "清单存在未完成项");
+                require(!"MANUAL".equals(result.getResultSourceCode()) || CutoverChecklistEvidenceRules.allowsManual(item),
+                        BUSINESS_INCOMPLETE, "当前清单项工作方式不支持人工证据，请修订清单：" + item.getItemName());
                 ChecklistResultSnapshot row = snapshot(item, result);
                 if ("BUSINESS_SURVEY".equals(item.getItemTypeCode())) surveyRows.add(row);
                 else if (List.of("RISK", "DUAL_MACHINE_CHECK").contains(item.getItemTypeCode())) riskRows.add(row);
@@ -107,19 +140,22 @@ public class CutoverApprovalSourceAssembler {
                 && Objects.equals(plan.getRevisionNo(), command.planRevisionNo())
                 && Objects.equals(plan.getGradeCode(), command.grade()), SOURCE_STALE, "P4方案事实已变化");
 
-        CutoverProjectContextPort.ProjectContextFact project = JsonUtils.parseObject(
-                task.getProjectContextSnapshot(), CutoverProjectContextPort.ProjectContextFact.class);
-        CutoverAssessmentAnswers answers = JsonUtils.parseObject(assessment.getAnswerSnapshot(), CutoverAssessmentAnswers.class);
-        JsonNode context = JsonUtils.parseTree(assessment.getContextSnapshot());
-        String serviceLevel = context.path("customerServiceLevel").path("serviceLevelCode").asText();
+        requirePlanProject(plan, project);
+        CutoverAssessmentAnswers answers = CutoverTaskSnapshotStore.answers(assessment);
+        String serviceLevel = cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskSnapshotStore.effectiveCustomerServiceLevel(assessment);
+        JsonNode planContent = completePlanContent(command.tenantId(), plan);
+        Long scheduledTime = cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanScheduleTime.value(planContent);
+        require(scheduledTime != null, BUSINESS_INCOMPLETE, "请在方案页填写计划割接时间");
+        // PROJ uses an empty code for no customer association; the new approval snapshot uses null.
+        String customerCode = "".equals(project.customerCode()) ? null : project.customerCode();
         ApprovalSourceSnapshot snapshot = new ApprovalSourceSnapshot(command.sourceSnapshotVersion(), task.getId(),
                 task.getVersion(), command.checklistId(), command.checklistVersion(),
                 new ProjectApprovalSnapshot(project.projectId(), project.projectVersion(), project.projectCode(),
-                        project.projectName(), project.customerId(), project.customerCode(), project.customerName(),
+                        project.projectName(), project.customerId(), customerCode, project.customerName(),
                         project.departmentId(), project.departmentCode(), project.departmentName(),
                         project.projectScopeVersion()),
                 new CollectionAnalysisSnapshot(task.getCutoverType(), task.getNetworkMode(),
-                        task.getScheduledTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()),
+                        scheduledTime),
                 risks, surveys,
                 new AssessmentApprovalSnapshot(assessment.getId(), assessment.getAssessmentVersion(),
                         assessment.getQuestionnaireTemplateVersion(), answers.businessImportanceLevel(),
@@ -127,12 +163,19 @@ public class CutoverApprovalSourceAssembler {
                         serviceLevel, assessment.getManualGrade(), assessment.getSubmittedBy(),
                         assessment.getSubmittedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()),
                 new PlanApprovalSnapshot(plan.getId(), plan.getRevisionNo(), plan.getVersion(),
-                        normalizedPlanSource(plan.getSourceSnapshot()), completePlanContent(task.getTenantId(), plan)));
+                        normalizedPlanSource(plan), planContent));
         return new LockedSource(task, assessment, checklist, plan, codec.encode(snapshot));
     }
 
-    private JsonNode normalizedPlanSource(String sourceSnapshot) {
-        ObjectNode source = (ObjectNode) JsonUtils.parseTree(sourceSnapshot);
+    private static void requirePlanProject(CutoverPlanRevisionDO plan, CutoverProjectContextPort.ProjectContextFact project) {
+        require(project != null && Objects.equals(plan.getTenantId(), project.tenantId())
+                        && Objects.equals(plan.getSourceProjectId(), project.projectId())
+                        && Objects.equals(plan.getSourceProjectScopeVersion(), project.projectScopeVersion()),
+                SOURCE_STALE, "方案项目来源已变化，请修订后重新提交");
+    }
+
+    private JsonNode normalizedPlanSource(CutoverPlanRevisionDO plan) {
+        ObjectNode source = (ObjectNode) planStorage.sourceView(plan);
         if (!source.has("checklistId")) source.putNull("checklistId");
         if (!source.has("checklistVersion")) source.putNull("checklistVersion");
         return source;
@@ -142,23 +185,21 @@ public class CutoverApprovalSourceAssembler {
         if ("FULL_FILE_UPLOAD".equals(plan.getEditModeCode())) {
             ObjectNode content = JsonUtils.getObjectMapper().createObjectNode();
             content.put("editMode", plan.getEditModeCode());
+            CutoverPlanStorage.appendScheduledTime(content, plan);
             ObjectNode file = content.putObject("fileArtifactFact");
             putWireLong(file, "artifactId", plan.getFileArtifactId());
             file.put("versionNo", plan.getFileVersionNo());
             file.put("referenceKey", plan.getFileReferenceKey());
-            file.set("fileFactVersion", JsonUtils.parseTree(plan.getFileFactVersion()));
+            file.set("fileFactVersion", JsonUtils.getObjectMapper().valueToTree(CutoverPlanStorage.fileVersion(plan)));
             putWireLong(file, "scopeVersion", plan.getFileScopeVersion());
             file.put("sha256", plan.getFileSha256());
             content.put("ownershipConfirmed", Boolean.TRUE.equals(plan.getOwnershipConfirmed()));
             return content;
         }
-        ObjectNode content = (ObjectNode) JsonUtils.parseTree(plan.getContentSnapshot());
         CutoverPlanChildrenQuery query = new CutoverPlanChildrenQuery(tenantId, plan.getId());
-        var steps = content.putArray("steps");
-        for (CutoverPlanStepDO row : stepMapper.selectListByPlanForUpdate(query)) {
-            steps.addObject().put("sectionCode", row.getSectionCode()).put("stepNo", row.getStepNo())
-                    .put("content", row.getContent());
-        }
+        ObjectNode content = new cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec()
+                .assembleStored(new cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec.StoredPlanContent(
+                        planStorage.content(plan), stepMapper.selectListByPlanForUpdate(query)));
         if ("ONLINE_TEMPLATE_STANDARD".equals(plan.getEditModeCode())) {
             var supports = content.putArray("supportArrangements");
             for (CutoverSupportArrangementDO row : supportMapper.selectListByPlanForUpdate(query)) {
@@ -177,13 +218,17 @@ public class CutoverApprovalSourceAssembler {
         else node.put(field, Long.toString(value));
     }
 
-    private static ChecklistResultSnapshot snapshot(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result) {
+    private ChecklistResultSnapshot snapshot(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result) {
+        var manualFiles = "MANUAL".equals(result.getResultSourceCode()) ? customResults.manualFiles(result) : List.<cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverChecklistFilePort.FileFact>of();
+        require(!"MANUAL".equals(result.getResultSourceCode()) || !manualFiles.isEmpty(),
+                BUSINESS_INCOMPLETE, "人工证据缺少有效附件，请修订清单：" + item.getItemName());
+        item = fieldDefinitions.withSchema(item);
         return new ChecklistResultSnapshot(item.getId(), item.getStableItemKey(), item.getItemDefinitionId(),
                 item.getItemDefinitionVersion(), item.getItemTypeCode(), item.getItemName(),
                 Boolean.TRUE.equals(item.getRequiredFlag()), result.getResultVersion(), result.getResultSourceCode(),
-                result.getAnswerSnapshot(), result.getFactDescription(), result.getCollectionTaskId(),
+                checklistResults.answer(new CutoverChecklistResultStore.Read(item, result)), result.getFactDescription(), result.getCollectionTaskId(),
                 result.getCollectionResultReferenceId(), result.getCollectionResultVersion(),
-                result.getExternalSourceCode(), result.getManualEvidenceFileReference());
+                result.getExternalSourceCode(), manualFiles.isEmpty() ? null : manualFiles.getFirst().referenceKey());
     }
 
     private static void require(boolean condition, CutoverApprovalApplicationException.Code code, String message) {

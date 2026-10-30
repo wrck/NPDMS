@@ -15,7 +15,7 @@ class OutsourceSurveyExecutionTest {
     final SiteSurveyEntityService surveys = mock(SiteSurveyEntityService.class);
     final OutsourceRequestServiceImpl service = new OutsourceRequestServiceImpl();
     final ProjectBusinessExecutionSelection selection = new ProjectBusinessExecutionSelection(null,
-            new ProjectStageExecutionContext(9L,1,11L,1,12L,1,21L,31L,1,2,true));
+            new ProjectStageExecutionContext(9L,1L,11L,1,12L,1,21L,31L,1,2,true));
     @BeforeEach void setup() {
         ReflectionTestUtils.setField(service,"outsourceRequestMapper",mapper);
         ReflectionTestUtils.setField(service,"siteSurveyService",surveys);
@@ -38,6 +38,7 @@ class OutsourceSurveyExecutionTest {
     @Test void deletionRevalidatesTheSameExecutionBeforeRemovingTheRequest() {
         var row = new OutsourceRequestDO(); row.setId(41L); row.setTriggerSource("SITE_SURVEY"); row.setTriggerRefId(51L); row.setStatus(0);
         when(mapper.selectById(41L)).thenReturn(row);
+        when(mapper.deleteById(41L)).thenReturn(1);
         service.deleteOutsourceRequest(41L,selection);
         var order = inOrder(mapper,surveys);
         order.verify(mapper).selectById(41L);
@@ -47,6 +48,7 @@ class OutsourceSurveyExecutionTest {
     @Test void staleExecutionPreventsDeletionAndPreservesTheSourceRelationship() {
         var row = new OutsourceRequestDO(); row.setId(41L); row.setTriggerSource("SITE_SURVEY"); row.setTriggerRefId(51L); row.setStatus(0);
         when(mapper.selectById(41L)).thenReturn(row);
+        when(mapper.deleteById(41L)).thenReturn(1);
         doThrow(new IllegalStateException("stale stage")).when(surveys).releaseDeletedOutsourceRequest(51L,41L,selection);
         assertThrows(IllegalStateException.class, () -> service.deleteOutsourceRequest(41L,selection));
         verify(mapper,never()).deleteById(anyLong());

@@ -23,7 +23,7 @@ export interface RiskVO {
   createTime?: string
 }
 
-const baseUrl = '/pms/eng-risk'
+const baseUrl = '/pms/imp-risk'
 
 export const getRiskPage = (params: PmsProjectPageParam) => request.get({ url: `${baseUrl}/page`, params })
 export const getRisk = (id: number) => request.get({ url: `${baseUrl}/get`, params: { id } })

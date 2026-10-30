@@ -380,7 +380,9 @@ export enum DICT_TYPE {
   PMS_RISK_LEVEL = 'pms_risk_level', // 项目风险等级
   PMS_PLAN_CHANGE_STATUS = 'pms_plan_change_status', // 计划变更状态
   PMS_DELIVERABLE_TYPE = 'pms_deliverable_type', // 交付件类型
-  PMS_DELIVERABLE_STATUS = 'pms_deliverable_status', // 交付件状态
+  PMS_DELIVERABLE_STATUS = 'pms_deliverable_status', // 交付件状态（验收侧交付件检查）
+  PMS_ENG_DELIVERABLE_TYPE = 'pms_eng_deliverable_type', // 交付件归集类型（工程归集件，FR-ENG-027）
+  PMS_ENG_DELIVERABLE_STATUS = 'pms_eng_deliverable_status', // 交付件归集状态（0待归集/1已归集/2已作废）
   PMS_ANNOUNCEMENT_TYPE = 'pms_announcement_type', // 公告类型
   PMS_AUTHORIZATION_TYPE = 'pms_authorization_type', // 授权类型
   PMS_BRIEFING_TYPE = 'pms_briefing_type', // 交底类型
@@ -402,19 +404,19 @@ export enum DICT_TYPE {
   PMS_LEFTOVER_STATUS = 'pms_leftover_status', // 遗留状态
   PMS_ACCEPTANCE_TYPE = 'pms_acceptance_type', // 验收类型
   PMS_DOCUMENT_TYPE = 'pms_document_type', // 文档类型
+  PMS_TRAINING_TYPE = 'pms_training_type', // 培训类型
   PMS_ACCEPTANCE_STATUS = 'pms_acceptance_status', // 验收状态
-  PMS_INSPECTION_MODE = 'pms_inspection_mode', // 巡检模式
-  PMS_SRV_TASK_STATUS = 'pms_srv_task_status', // 巡检任务状态
-  PMS_SRV_RULE_TYPE = 'pms_srv_rule_type', // 巡检规则类型
-  PMS_SRV_RULE_STATUS = 'pms_srv_rule_status', // 巡检规则状态
-  PMS_SRV_REPORT_TYPE = 'pms_srv_report_type', // 巡检报告类型
-  PMS_SRV_REPORT_STATUS = 'pms_srv_report_status', // 巡检报告状态
-  PMS_SRV_ISSUE_SEVERITY = 'pms_srv_issue_severity', // 巡检问题严重等级
-  PMS_SRV_ISSUE_STATUS = 'pms_srv_issue_status', // 巡检问题状态
   PMS_SRV_MAINTENANCE_STATUS = 'pms_srv_maintenance_status', // 维保状态
   PMS_SERVICE_LEVEL = 'pms_service_level', // 服务等级
   PMS_SRV_LEVEL_STATUS = 'pms_srv_level_status', // 服务等级状态
-  PMS_EQUIPMENT_STATUS = 'pms_equipment_status', // 设备状态
+  PMS_SITE_TYPE = 'pms_site_type', // 站点类型
+  PMS_SITE_LOCATION_TYPE = 'pms_site_location_type', // 站点内位置类型
+  /**
+   * @deprecated pms_equipment 旧链 Integer 状态字典，已由 PMS_DEVICE_STATUS（String 值域）承接，
+   * 仅历史数据展示使用，后续清理时连同字典数据一并删除。
+   */
+  PMS_EQUIPMENT_STATUS = 'pms_equipment_status',
+  PMS_DEVICE_STATUS = 'pms_device_status', // 设备档案状态（ast_device 承载）
   PMS_BATCH_CHANGE_STATUS = 'pms_batch_change_status', // 批量变更状态
   PMS_APPROVAL_STATUS = 'pms_approval_status', // 审批状态(通用7态)
   PMS_REVIEW_LEVEL = 'pms_review_level', // 评审级别

@@ -60,8 +60,12 @@ public class ProjectDeviceAssignmentGuardApiImpl implements ProjectDeviceAssignm
                     currentTreeVersion, "PROJECT_MANAGE_FORBIDDEN");
         }
         // 与客户更正使用相同项目锁；设备写事务不能沿用更正前的客户身份。
-        var lockedScope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                query.tenantId(), query.actorId(), query.projectId(), ProjectScopeApi.ACTION_MANAGE, currentTreeVersion));
+        var lockedScope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(currentTreeVersion).build());
         if (lockedScope == null || !Objects.equals(lockedScope.treeVersion(), currentTreeVersion)
                 || !lockedScope.fullProjectIds().contains(query.projectId()))
             return rejected(query, null, rootProjectId, currentTreeVersion, "PROJECT_MANAGE_FORBIDDEN");

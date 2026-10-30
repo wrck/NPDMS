@@ -58,7 +58,7 @@ public class CustomerContactMasterController {
     @DeleteMapping("/{id}")
     @PreAuthorize("@ss.hasPermission('pms:customer-contact:delete')")
     public CommonResult<Boolean> delete(@PathVariable Long id, @RequestParam Long customerId,
-            @RequestHeader("If-Match") Integer version) {
+            @RequestHeader("If-Match") Long version) {
         service.delete(actor(), customerId, id, version);
         return success(true);
     }

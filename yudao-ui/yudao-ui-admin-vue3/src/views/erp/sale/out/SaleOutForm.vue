@@ -57,20 +57,13 @@
         </el-col>
         <el-col :span="8">
           <el-form-item label="销售人员" prop="saleUserId">
-            <el-select
+            <UserSelect
               v-model="formData.saleUserId"
               clearable
-              filterable
+
               placeholder="请选择销售人员"
               class="!w-1/1"
-            >
-              <el-option
-                v-for="item in userList"
-                :key="item.id"
-                :label="item.nickname"
-                :value="item.id"
-              />
-            </el-select>
+             />
           </el-form-item>
         </el-col>
         <el-col :span="16">
@@ -177,6 +170,7 @@
   <SaleOrderOutEnableList ref="saleOrderOutEnableListRef" @success="handleSaleOrderChange" />
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { SaleOutApi, SaleOutVO } from '@/api/erp/sale/out'
 import SaleOutItemForm from './components/SaleOutItemForm.vue'
 import { CustomerApi, CustomerVO } from '@/api/erp/sale/customer'
@@ -184,7 +178,6 @@ import { AccountApi, AccountVO } from '@/api/erp/finance/account'
 import { erpPriceInputFormatter, erpPriceMultiply } from '@/utils'
 import SaleOrderOutEnableList from '@/views/erp/sale/order/components/SaleOrderOutEnableList.vue'
 import { SaleOrderItemVO, SaleOrderVO } from '@/api/erp/sale/order'
-import * as UserApi from '@/api/system/user'
 
 /** ERP 销售出库表单 */
 defineOptions({ name: 'SaleOutForm' })
@@ -221,7 +214,6 @@ const disabled = computed(() => formType.value === 'detail')
 const formRef = ref() // 表单 Ref
 const customerList = ref<CustomerVO[]>([]) // 客户列表
 const accountList = ref<AccountVO[]>([]) // 账户列表
-const userList = ref<UserApi.UserVO[]>([]) // 用户列表
 
 /** 子表的表单 */
 const subTabsName = ref('item')
@@ -264,7 +256,7 @@ const open = async (type: string, id?: number) => {
   // 加载客户列表
   customerList.value = await CustomerApi.getCustomerSimpleList()
   // 加载用户列表
-  userList.value = await UserApi.getSimpleUserList()
+
   // 加载账户列表
   accountList.value = await AccountApi.getAccountSimpleList()
   const defaultAccount = accountList.value.find((item) => item.defaultStatus)

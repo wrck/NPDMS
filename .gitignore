@@ -40,6 +40,10 @@ __pycache__/
 DMavenRepository/
 .m2-cache/
 
+# Local jar-extraction and scratch outputs
+/BOOT-INF/
+/output/
+
 # Local test database artifacts
 *.h2.*
 device-ops-platform/data/

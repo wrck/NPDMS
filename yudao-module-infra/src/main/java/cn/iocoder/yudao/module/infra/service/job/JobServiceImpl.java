@@ -168,12 +168,39 @@ public class JobServiceImpl implements JobService {
             throw new IllegalStateException("JOB_ENABLED_HANDLER_NOT_UNIQUE");
         }
         JobDO job = jobs.getFirst();
+        syncSchedulerJob(job);
+        log.info("[syncEnabledJobByHandlerName][id({}) handlerName({}) 同步完成]", job.getId(), job.getHandlerName());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void syncJobByHandlerName(String handlerName) throws SchedulerException {
+        if (handlerName == null || handlerName.isBlank()) {
+            throw new IllegalArgumentException("handlerName不能为空");
+        }
+        List<JobDO> jobs = jobMapper.selectListByHandlerName(handlerName.trim());
+        if (jobs.size() != 1) {
+            throw new IllegalStateException("JOB_HANDLER_NOT_UNIQUE");
+        }
+        JobDO job = jobs.getFirst();
+        if (!JobStatusEnum.NORMAL.getStatus().equals(job.getStatus())
+                && !JobStatusEnum.STOP.getStatus().equals(job.getStatus())) {
+            throw new IllegalStateException("JOB_SYNC_STATUS_UNSUPPORTED");
+        }
+        syncSchedulerJob(job);
+        log.info("[syncJobByHandlerName][id({}) handlerName({}) status({}) 同步完成]",
+                job.getId(), job.getHandlerName(), job.getStatus());
+    }
+
+    private void syncSchedulerJob(JobDO job) throws SchedulerException {
         validateCronExpression(job.getCronExpression());
         validateJobHandlerExists(job.getHandlerName());
         schedulerManager.deleteJob(job.getHandlerName());
         schedulerManager.addJob(job.getId(), job.getHandlerName(), job.getHandlerParam(), job.getCronExpression(),
                 job.getRetryCount(), job.getRetryInterval());
-        log.info("[syncEnabledJobByHandlerName][id({}) handlerName({}) 同步完成]", job.getId(), job.getHandlerName());
+        if (JobStatusEnum.STOP.getStatus().equals(job.getStatus())) {
+            schedulerManager.pauseJob(job.getHandlerName());
+        }
     }
 
     @Override

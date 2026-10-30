@@ -18,6 +18,25 @@ import java.util.List;
 
 @Mapper
 public interface DeviceMapper extends BaseMapperX<DeviceDO> {
+    List<DeviceDO> selectCurrentProjectDevicesByIds(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.CurrentProjectDeviceIdsQuery query);
+    List<DeviceDO> selectJoinedDeviceIds(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDeviceIdsQuery query);
+
+    List<Long> selectProjectDeviceIdsByProductFilter(
+            @Param("query") cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceProductQuery query);
+
+    List<DeviceDO> selectCurrentProjectDevices(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query);
+
+    List<cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact> selectProjectInstallationDevicesForUpdate(
+            @Param("query") cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query);
+
+    java.util.Set<String> selectContractCandidates(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery query);
+
+    java.util.Set<Long> selectProjectCandidates(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceProjectCandidatesQuery query);
 
     default DeviceDO selectByTenantAndSn(Long tenantId, String sn) {
         return selectOne(new LambdaQueryWrapperX<DeviceDO>()
@@ -30,6 +49,50 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
                 .eq(DeviceDO::getTenantId, tenantId)
                 .eq(DeviceDO::getId, id));
     }
+
+    /** 按租户+项目查询设备编号集合（配置日志项目维度筛选）。 */
+    default List<Long> selectIdsByTenantAndProject(Long tenantId, Long projectId) {
+        return selectList(new LambdaQueryWrapperX<DeviceDO>()
+                .select(DeviceDO::getId)
+                .eq(DeviceDO::getTenantId, tenantId)
+                .eq(DeviceDO::getProjectId, projectId))
+                .stream().map(DeviceDO::getId).toList();
+    }
+
+    /** 客户删除守卫：按租户+客户统计设备引用数。 */
+    default Long selectCountByCustomer(Long tenantId, Long customerId) {
+        return selectCount(new LambdaQueryWrapperX<DeviceDO>()
+                .eq(DeviceDO::getTenantId, tenantId)
+                .eq(DeviceDO::getCustomerId, customerId));
+    }
+
+    /** 站点内部位置删除守卫：统计挂在该位置的设备数。 */
+    default Long selectCountBySiteLocationId(Long siteLocationId) {
+        return selectCount(new LambdaQueryWrapperX<DeviceDO>()
+                .eq(DeviceDO::getSiteLocationId, siteLocationId));
+    }
+
+    /** 按 SN 集合批量查询（序列号范围校验）。 */
+    default List<DeviceDO> selectListBySns(java.util.Collection<String> sns) {
+        return selectList(new LambdaQueryWrapperX<DeviceDO>()
+                .in(DeviceDO::getSn, sns));
+    }
+
+    /** 按设备条件解析当前归属项目ID集合（project_id 非空，去重）；无命中返回空集合。 */
+    List<Long> selectListProjectIdsByMatch(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceProjectFilterQuery query);
+
+    /** 与设备工作台共用当前用户的项目数据范围。 */
+    default PageResult<DeviceDO> selectArchivePage(VisibleDevicePageQuery query) {
+        if ((query.visibleProjectIds() == null || query.visibleProjectIds().isEmpty())
+                && (query.visibleContractNumbers() == null || query.visibleContractNumbers().isEmpty())
+                && (query.organizationGrants() == null || query.organizationGrants().isEmpty())) {
+            return PageResult.empty();
+        }
+        return new PageResult<>(selectVisibleArchiveList(query), selectVisibleDeviceCount(query));
+    }
+
+    List<DeviceDO> selectVisibleArchiveList(@Param("query") VisibleDevicePageQuery query);
 
     DeviceDO selectByTenantAndIdForUpdate(
             @Param("tenantId") Long tenantId,
@@ -49,8 +112,22 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
         return new PageResult<>(selectVisibleDeviceList(query), selectVisibleDeviceCount(query));
     }
 
+    default PageResult<DeviceListProjection> selectJoinedDevicePage(VisibleDevicePageQuery query) {
+        if (query.readScope() == null) return PageResult.empty();
+        var rows = selectJoinedDevicePageRows(query);
+        if (rows.isEmpty()) return PageResult.empty();
+        var devices = rows.stream().map(cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DevicePageProjection::getDevice)
+                .filter(java.util.Objects::nonNull).toList();
+        return new PageResult<>(devices, rows.getFirst().getTotal());
+    }
+
+    List<cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.DevicePageProjection> selectJoinedDevicePageRows(
+            @Param("query") VisibleDevicePageQuery query);
+
     static PageResult<DeviceListProjection> emptyWhenInvisible(VisibleDevicePageQuery query) {
-        if (query.visibleProjectIds() != null && query.visibleProjectIds().isEmpty()) {
+        if ((query.visibleProjectIds() == null || query.visibleProjectIds().isEmpty())
+                && (query.visibleContractNumbers() == null || query.visibleContractNumbers().isEmpty())
+                && (query.organizationGrants() == null || query.organizationGrants().isEmpty())) {
             return PageResult.empty();
         }
         return null;
@@ -73,4 +150,5 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
     long selectVisibleDeviceCount(@Param("query") VisibleDevicePageQuery query);
 
     boolean existsVisibleDevice(@Param("query") DeviceVisibilityQuery query);
+    DeviceDO selectLogDeviceForUpdate(@Param("query") cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceLogDeviceLockQuery query);
 }

@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 public record TaskAssignmentCloseUpdate(
         Long tenantId,
         Long assignmentId,
-        Integer expectedVersion,
+        Long expectedVersion,
         LocalDateTime effectiveTo,
         String updater) {
 }

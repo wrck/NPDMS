@@ -335,11 +335,11 @@ class ProjectManagerMemberMySqlTest {
         finally { TenantContextHolder.clear(); }
     }
 
-    private ProjectManagerMemberCommand command(int version, Set<Long> add, Set<Long> remove, Long primary, String key) {
+    private ProjectManagerMemberCommand command(long version, Set<Long> add, Set<Long> remove, Long primary, String key) {
         return new ProjectManagerMemberCommand(projectId, version, add, remove, primary, "人员调整", marker + "-" + key);
     }
     private ProjectManagerMemberApplicationService.Actor actor() { return new ProjectManagerMemberApplicationService.Actor(0L, 7L, marker); }
-    private int version() { return jdbc.queryForObject("SELECT version FROM proj_project WHERE id=?", Integer.class, projectId); }
+    private long version() { return jdbc.queryForObject("SELECT version FROM proj_project WHERE id=?", Integer.class, projectId); }
     private long managerCount() { return jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment WHERE project_id=? AND member_role='PROJECT_MANAGER'", Long.class, projectId); }
     private long count(String table) { return jdbc.queryForObject("SELECT COUNT(*) FROM " + table + " WHERE aggregate_type='Project' AND aggregate_key=?", Long.class, String.valueOf(projectId)); }
     private long user(String name) { return insert("INSERT INTO system_users (tenant_id,username,password,nickname,status,creator) VALUES (0,?,'',?,0,?)", marker + name, name, marker); }

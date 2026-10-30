@@ -6,24 +6,24 @@ import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationRespVO;
-import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationSaveReqVO;
+import cn.iocoder.yudao.module.pms.cutover.controller.business.configuration.vo.CutoverConfigurationRespVO;
+import cn.iocoder.yudao.module.pms.cutover.controller.business.configuration.vo.CutoverConfigurationSaveReqVO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistBindingRuleRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistItemDefinitionRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverAssessmentDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDeviceScopeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemResultMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverChecklistBindingRuleRevisionMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverChecklistItemDefinitionRevisionMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverAssessmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskDeviceScopeMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SelectManualResultCommand;
@@ -36,7 +36,7 @@ import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverRiskMatri
 import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverSurveyMatrixRules;
 import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationService;
 import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationServiceImpl;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.OperationAuditApiImpl;
@@ -160,24 +160,51 @@ class CutoverChecklistPositiveLoopMySqlTest {
 
     @Test
     void completesP3GenerateDirectManualAndSubmitIntoP4WithRealTransactionAndMyBatis() {
-        ChecklistCommandResult generated = service.generate(new GenerateChecklistCommand(
-                tenantId, ACTOR_ID, taskId, 2, 1, 7L, Map.of(), "generate-loop", "corr-generate-loop"));
-        ChecklistCommandResult saved = service.save(new SaveChecklistCommand(
-                tenantId, ACTOR_ID, taskId, 2, generated.checklistId(), 0, 7L,
-                List.of(new SaveChecklistCommand.DirectAnswer("SYS-IP", "{\"value\":\"10.0.0.1\"}"))));
+        ChecklistCommandResult generated = service.generate(GenerateChecklistCommand.builder()
+                .tenantId(tenantId)
+                .actorId(ACTOR_ID)
+                .taskId(taskId)
+                .expectedTaskVersion(2L)
+                .expectedAssessmentVersion(1L)
+                .expectedProjectScopeVersion(7L)
+                .matchingInput(new cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput("配置变更", "普通双机", List.of()))
+                .selectedConflictDefinitions(Map.of())
+                .idempotencyKey("generate-loop")
+                .correlationId("corr-generate-loop").build());
+        ChecklistCommandResult saved = service.save(new SaveChecklistCommand(tenantId,
+                ACTOR_ID,
+                taskId,
+                2L,
+                generated.checklistId(),
+                0L,
+                7L,
+                List.of(new SaveChecklistCommand.DirectAnswer("SYS-IP", "{\"value\":\"10.0.0.1\"}")),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
         CutoverChecklistFilePort.FileFactVersion fileVersion =
                 new CutoverChecklistFilePort.FileFactVersion(3, 4, 5);
-        ChecklistItemCommandResult manual = service.selectManual(new SelectManualResultCommand(
-                tenantId, ACTOR_ID, taskId, 2, generated.checklistId(), saved.checklistFactVersion(), 7L,
-                "SYS-EVIDENCE", new CutoverChecklistFilePort.FileHandle(90L, 2, "ref-90", fileVersion, 7L),
-                "现场回执"));
-        SubmitChecklistCommand submit = new SubmitChecklistCommand(tenantId, ACTOR_ID, taskId, 2, 1,
+        ChecklistItemCommandResult manual = service.selectManual(new SelectManualResultCommand(tenantId,
+                ACTOR_ID,
+                taskId,
+                2L,
+                generated.checklistId(),
+                saved.checklistFactVersion(),
+                7L,
+                "SYS-EVIDENCE",
+                CutoverChecklistFilePort.FileHandle.builder()
+                        .artifactId(90L)
+                        .versionNo(2)
+                        .referenceKey("ref-90")
+                        .fileFactVersion(fileVersion)
+                        .scopeVersion(7L)
+                        .build(),
+                "现场回执",
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
+        SubmitChecklistCommand submit = new SubmitChecklistCommand(tenantId, ACTOR_ID, taskId, 2L, 1L,
                 generated.checklistId(), manual.checklistVersion(), 7L, "submit-loop", "corr-submit-loop");
 
         ChecklistCommandResult submitted = service.submit(submit);
         ChecklistCommandResult replayed = service.submit(submit);
-        var exported = exportService.export(tenantId, ACTOR_ID, taskId,
-                submitted.checklistVersion(), "corr-export-loop");
+        var exported = exportService.export(new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(tenantId, ACTOR_ID, "corr-export-loop"), taskId, submitted.checklistVersion());
 
         assertEquals("SUBMITTED", submitted.checklistStatus());
         assertEquals("P4", submitted.taskStage());
@@ -201,10 +228,10 @@ class CutoverChecklistPositiveLoopMySqlTest {
         assertEquals(2, exported.businessSurveyRowCount());
         assertEquals(0, exported.riskRowCount());
         try (XSSFWorkbook workbook = new XSSFWorkbook(new ByteArrayInputStream(exported.content()))) {
-            assertEquals("业务调研", workbook.getSheetName(0));
-            assertEquals("风险考察", workbook.getSheetName(1));
+            assertEquals("调研清单", workbook.getSheetName(0));
+            assertEquals(1, workbook.getNumberOfSheets());
             assertEquals(3, workbook.getSheetAt(0).getPhysicalNumberOfRows());
-            assertEquals(1, workbook.getSheetAt(1).getPhysicalNumberOfRows());
+            assertEquals(3, workbook.getSheetAt(0).getRow(0).getPhysicalNumberOfCells());
         } catch (Exception exception) {
             throw new AssertionError(exception);
         }
@@ -224,13 +251,12 @@ class CutoverChecklistPositiveLoopMySqlTest {
 
         try (MockedStatic<SecurityFrameworkUtils> security = mockStatic(SecurityFrameworkUtils.class)) {
             security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(ACTOR_ID);
-            Long createdId = configurationApplicationService.create(request);
+            Long createdId = configurationApplicationService.create(new cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationCommands.Create(request, cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
             CutoverConfigurationRespVO created = configurationApplicationService.get(createdId);
 
-            Long copiedId = configurationApplicationService.copyRevision(createdId, created.getVersion());
+            Long copiedId = configurationApplicationService.copyRevision(new cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationCommands.RevisionAction(createdId, created.getVersion(), cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
             CutoverConfigurationRespVO copied = configurationApplicationService.get(copiedId);
-            CutoverConfigurationRespVO published = configurationApplicationService.publish(
-                    copiedId, copied.getVersion());
+            CutoverConfigurationRespVO published = configurationApplicationService.publish(new cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationCommands.RevisionAction(copiedId, copied.getVersion(), cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
 
             assertEquals("TASK_OVERVIEW", created.getNavigationRule().getTarget());
             assertEquals("TASK_OVERVIEW", copied.getNavigationRule().getTarget());
@@ -388,7 +414,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
         revision.setPlanTemplateSectionSnapshot("[]"); revision.setValidationResultSnapshot("[]");
         revision.setNavigationRuleSnapshot("{\"target\":\"TASK_OVERVIEW\"}");
         revision.setPublishedBy(ACTOR_ID); revision.setPublishedAt(LocalDateTime.of(2026, 8, 1, 0, 0));
-        revision.setVersion(0); revision.setCreator("8"); revision.setUpdater("8");
+        revision.setVersion(0L); revision.setCreator("8"); revision.setUpdater("8");
         assertEquals(1, configurationMapper.insert(revision));
 
         insertDefinition(configurationId + 1, "SYS-IP", "管理地址", "DIRECT", 10);
@@ -430,7 +456,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
         task.setImplementationReadinessSnapshotVersion(4L); task.setProjectScopeVersion(7L);
         task.setProjectContextSnapshot("{}"); task.setDeviceScopeWatermark("{}");
         task.setCustomerContextSnapshot("{}"); task.setReadinessContextSnapshot("{}");
-        task.setManualGrade("A"); task.setCurrentAssessmentId(assessmentId); task.setVersion(2);
+        task.setManualGrade("A"); task.setCurrentAssessmentId(assessmentId); task.setVersion(2L);
         task.setCreator("8"); task.setUpdater("8"); task.setCreateTime(now); task.setUpdateTime(now);
         assertEquals(1, taskMapper.insert(task));
 
@@ -444,7 +470,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
 
         CutoverAssessmentDO assessment = new CutoverAssessmentDO();
         assessment.setId(assessmentId); assessment.setTenantId(tenantId); assessment.setCutoverTaskId(taskId);
-        assessment.setAssessmentVersion(1); assessment.setAssessmentStatus("SUBMITTED");
+        assessment.setAssessmentVersion(1L); assessment.setAssessmentStatus("SUBMITTED");
         assessment.setQuestionnaireTemplateCode("CUT_P2_MANUAL_ASSESSMENT");
         assessment.setQuestionnaireTemplateVersion(1L);
         assessment.setAnswerSnapshot("{\"businessImportanceLevel\":\"HIGH\","
@@ -455,7 +481,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
                 + "\"serviceLevelCode\":\"GOLD\"}}");
         assessment.setManualGrade("A"); assessment.setSimpleFlow(false);
         assessment.setSubmittedBy(ACTOR_ID); assessment.setSubmittedAt(now); assessment.setCurrentMarker(1);
-        assessment.setVersion(1); assessment.setCreator("8"); assessment.setUpdater("8");
+        assessment.setVersion(1L); assessment.setCreator("8"); assessment.setUpdater("8");
         assertEquals(1, assessmentMapper.insert(assessment));
     }
 
@@ -470,7 +496,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
 
     @SpringBootConfiguration
     @EnableTransactionManagement(proxyTargetClass = true)
-    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2",
+    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage", "cn.iocoder.yudao.module.pms.cutover.dal.mysql.task",
             "cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist",
             "cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
@@ -478,6 +504,9 @@ class CutoverChecklistPositiveLoopMySqlTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
+            cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationMetadataStore.class,
+            cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore.class,
+            cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverExternalMappingStore.class,
             PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class,
             OperationAuditApiImpl.class,
             CutoverConfigurationServiceImpl.class})
@@ -496,17 +525,29 @@ class CutoverChecklistPositiveLoopMySqlTest {
                 @Override public ProjectScopeFact inspect(Long actorId, Long projectId, String action) {
                     return new ProjectScopeFact(projectId, 7L, true);
                 }
-                @Override public ProjectScopeFact lockAndRevalidate(Long actorId, Long projectId, String action,
-                                                                     long expectedProjectScopeVersion) {
+                @Override public ProjectScopeFact lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery query) {
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        String action = query.action();
+        long expectedProjectScopeVersion = query.expectedProjectScopeVersion();
+
                     return new ProjectScopeFact(projectId, 7L, true);
                 }
                 @Override public Set<Long> resolveAllCurrent(Long actorId, String action) { return Set.of(PROJECT_ID); }
             };
         }
         @Bean CutoverChecklistFilePort filePort() {
-            return (tenantId, actorId, projectId, checklistItemId, expectedScopeVersion, handle) ->
-                    new CutoverChecklistFilePort.FileFact(handle.artifactId(), handle.versionNo(),
-                            handle.referenceKey(), handle.fileFactVersion(), handle.scopeVersion(), "a".repeat(64));
+            return query -> {
+                var handle = query.handle();
+                return CutoverChecklistFilePort.FileFact.builder()
+                        .artifactId(handle.artifactId())
+                        .versionNo(handle.versionNo())
+                        .referenceKey(handle.referenceKey())
+                        .fileFactVersion(handle.fileFactVersion())
+                        .scopeVersion(handle.scopeVersion())
+                        .sha256("a".repeat(64))
+                        .build();
+            };
         }
         @Bean CutoverCollectionPort collectionPort() {
             return new CutoverCollectionPort() {
@@ -517,8 +558,10 @@ class CutoverChecklistPositiveLoopMySqlTest {
         @Bean CutoverChecklistConfigurationQueryService configurationService(
                 CutoverConfigurationRevisionMapper revisionMapper,
                 CutoverChecklistItemDefinitionRevisionMapper itemMapper,
-                CutoverChecklistBindingRuleRevisionMapper ruleMapper) {
-            return new CutoverChecklistConfigurationQueryService(revisionMapper, itemMapper, ruleMapper);
+                CutoverChecklistBindingRuleRevisionMapper ruleMapper,
+                cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationMetadataStore metadata,
+                cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore fields) {
+            return new CutoverChecklistConfigurationQueryService(revisionMapper, itemMapper, ruleMapper, metadata, fields);
         }
         @Bean CutoverNavigationDecisionQueryService navigationDecisionQueryService(
                 CutoverTaskMapper taskMapper, CutoverConfigurationRevisionMapper revisionMapper) {
@@ -545,7 +588,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
         }
         @Bean CutoverChecklistExportService exportService(CutoverChecklistApplicationService service,
                                                             OperationAuditApi auditApi) {
-            return new CutoverChecklistExportService(service, new CutoverChecklistWorkbookWriter(), auditApi);
+            return new CutoverChecklistExportService(service, new CutoverChecklistSummaryWorkbookWriter(), auditApi);
         }
     }
 }

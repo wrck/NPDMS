@@ -10,6 +10,8 @@ import cn.iocoder.yudao.module.infra.dal.mysql.file.query.FileStorageOperationLo
 import cn.iocoder.yudao.module.infra.framework.file.core.client.FileClient;
 import cn.iocoder.yudao.module.infra.framework.file.core.utils.FilePathUtils;
 import cn.iocoder.yudao.module.infra.service.file.FileConfigService;
+import cn.iocoder.yudao.module.infra.service.file.FileStorageReceiptAccessService;
+import cn.iocoder.yudao.module.infra.framework.file.core.client.db.DBFileClient;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +36,7 @@ import static cn.iocoder.yudao.module.infra.enums.ErrorCodeConstants.FILE_STORAG
 public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
 
     static final int MAX_CONTENT_BYTES = 50 * 1024 * 1024;
-    static final String STORAGE_DIRECTORY = "pms-storage-receipts";
+    public static final String STORAGE_DIRECTORY = "pms-storage-receipts";
 
     private static final Pattern STORAGE_OPERATION_ID_PATTERN =
             Pattern.compile("[A-Za-z0-9][A-Za-z0-9_-]{0,63}");
@@ -44,6 +46,9 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
 
     @Resource
     private FileMapper fileMapper;
+
+    @Resource
+    private FileStorageReceiptAccessService receiptDownloads;
 
     @Override
     @SneakyThrows
@@ -71,6 +76,9 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
         FileClient client = fileConfigService.getMasterFileClient();
         Assert.notNull(client, "客户端(master) 不能为空");
         String url = client.upload(content, storagePath, mediaType);
+        // Receipts identify stored objects. Short-lived access credentials are issued only by presignGet.
+        // Some private S3 clients return a signed URL from upload; never persist its bearer query.
+        url = url.split("[?#]", 2)[0];
         FileDO file = new FileDO().setConfigId(client.getId())
                 .setName(name).setPath(storagePath).setUrl(url)
                 .setType(mediaType).setSize((long) content.length);
@@ -80,11 +88,15 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
             compensateUnregisteredObject(client, storagePath, operationId, persistenceFailure);
             throw persistenceFailure;
         }
+        registerRollbackCleanup(client,storagePath,operationId);
         return toReceipt(operationId, file);
     }
 
     @Override
     public FileStorageAccessReceipt presignGet(Long infraFileId, Integer expirationSeconds) {
+        if (expirationSeconds == null || expirationSeconds <= 0) {
+            throw new IllegalArgumentException("FILE_ACCESS_EXPIRATION_INVALID");
+        }
         FileDO file = fileMapper.selectById(infraFileId);
         if (file == null) {
             throw exception(FILE_NOT_EXISTS);
@@ -92,7 +104,9 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
         FilePathUtils.validatePath(file.getPath());
         FileClient client = fileConfigService.getFileClient(file.getConfigId());
         Assert.notNull(client, "客户端({}) 不能为空", file.getConfigId());
-        String url = client.presignGetUrl(file.getPath(), expirationSeconds);
+        String url = client instanceof DBFileClient || client instanceof cn.iocoder.yudao.module.infra.framework.file.core.client.local.LocalFileClient
+                ? receiptDownloads.issue(file, expirationSeconds)
+                : client.presignGetUrl(file.getPath(), expirationSeconds);
         return new FileStorageAccessReceipt(url, LocalDateTime.now().plusSeconds(expirationSeconds));
     }
 
@@ -146,6 +160,25 @@ public class FileStorageReceiptApiImpl implements FileStorageReceiptApi {
     private FileStorageReceipt toReceipt(String operationId, FileDO file) {
         return new FileStorageReceipt(operationId, file.getId(), file.getName(),
                 file.getType(), file.getSize());
+    }
+
+    private void registerRollbackCleanup(FileClient client,String storagePath,String operationId) {
+        if(!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive()
+                || !org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive())return;
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override public void afterCompletion(int status) {
+                        if(status!=STATUS_ROLLED_BACK)return;
+                        try {
+                            // A replay/committed receipt owns this path; never delete its immutable bytes.
+                            if(!fileMapper.selectCommittedReceiptForRollback(new FileStorageOperationLookupQuery(storagePath)).isEmpty())return;
+                            client.delete(storagePath);
+                        } catch(Exception cleanupFailure) {
+                            log.error("file_storage_rollback_cleanup_failed operationId={} configId={} path={}",
+                                    operationId,client.getId(),storagePath,cleanupFailure);
+                        }
+                    }
+                });
     }
 
     private void compensateUnregisteredObject(FileClient client, String storagePath,

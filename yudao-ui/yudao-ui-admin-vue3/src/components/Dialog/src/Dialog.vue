@@ -74,6 +74,7 @@ function closedHandler() {
 <template>
   <ElDialog
     v-bind="getBindValue"
+    append-to-body
     :close-on-click-modal="true"
     :fullscreen="isFullscreen"
     :width="width"

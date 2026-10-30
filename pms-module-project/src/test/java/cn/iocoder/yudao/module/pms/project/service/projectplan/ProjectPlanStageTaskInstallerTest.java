@@ -31,7 +31,7 @@ class ProjectPlanStageTaskInstallerTest {
     final ProjectNodeExecutionMapper executions = mock(ProjectNodeExecutionMapper.class);
     final TaskExecutionContractFactory taskFactory = new TaskExecutionContractFactory();
     final ProjectRuntimeGraphFreezer stageFactory = new ProjectRuntimeGraphFreezer(graph,stageContracts);
-    final cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionTemplates = mock(cn.iocoder.yudao.module.pms.project.api.satisfaction.SatisfactionQuestionnaireTemplateApi.class);
+    final cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionQuestionnaireTemplateApi satisfactionTemplates = mock(cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.SatisfactionQuestionnaireTemplateApi.class);
     final ProjectPlanStageTaskInstaller installer = new ProjectPlanStageTaskInstaller(projections,stages,tasks,paths,contracts,stageContracts,graph,executions,taskFactory,stageFactory,satisfactionTemplates);
     final LocalDateTime now = LocalDateTime.of(2026,9,14,15,0);
     TemplateExecutionSnapshot before;
@@ -75,6 +75,17 @@ class ProjectPlanStageTaskInstallerTest {
         when(projections.advanceTaskTreeVersion(any())).thenReturn(1); when(projections.retireUnstartedTask(any())).thenReturn(1);
         when(projections.retireUnstartedStage(any())).thenReturn(1); when(projections.closeTaskContract(any())).thenReturn(1); when(projections.closeStageContract(any())).thenReturn(1);
     }
+    @Test void changingTaskRequirementUpdatesProjectionAndFreezesNewContract() {
+        taskContract.setDefinitionSnapshot("{\"sourceEvidence\":\"retained\"}");
+        var after = copy(); after.getTasks().getFirst().setRequired(false);
+        assertTrue(install(after, 73L).tasksChanged());
+        verify(projections).updateTaskDefinition(argThat(update -> Boolean.FALSE.equals(update.definition().getRequiredTask())));
+        verify(contracts).insert(argThat((ProjectTaskExecutionContractDO contract) -> contract.getDefinitionSnapshot() != null
+                && !JsonUtils.parseTree(contract.getDefinitionSnapshot()).path("required").asBoolean()
+                && "retained".equals(JsonUtils.parseTree(contract.getDefinitionSnapshot()).path("sourceEvidence").asText())));
+        assertTrue(actual.getTasks().getFirst().getRequiredTask());
+    }
+
     @Test void addsCustomStageAndNestedTasksWhilePreservingExistingIdentitiesWorkAndContracts() {
         var after = copy();
         var stage = new TemplateExecutionSnapshot.StageContract(); stage.setNodeKey("stage:c"); stage.setCode("CUSTOM"); stage.setName("自定义交付"); stage.setCompletionRule(before.getStages().getFirst().getCompletionRule()); after.getStages().add(stage);
@@ -177,7 +188,7 @@ class ProjectPlanStageTaskInstallerTest {
     }
     @Test void newlyAddedSatisfactionTaskFreezesTheOwnerQuestionnaireContract() {
         var after = withNewSatisfactionTask();
-        when(satisfactionTemplates.resolvePublished(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.satisfaction.dto.SatisfactionTemplateFact(
+        when(satisfactionTemplates.resolvePublished(any())).thenReturn(new cn.iocoder.yudao.module.pms.acceptance.api.satisfaction.dto.SatisfactionTemplateFact(
                 "FOUND",81L,82L,3,"rule-v2",new java.math.BigDecimal("90")));
         install(after);
         verify(tasks).insert(argThat((ProjectTaskInstanceDO row) -> "SATISFACTION".equals(row.getCode())

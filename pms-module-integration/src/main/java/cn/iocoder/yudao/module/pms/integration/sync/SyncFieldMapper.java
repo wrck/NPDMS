@@ -17,12 +17,15 @@ public class SyncFieldMapper {
             var source=d.sources().stream().filter(s->s.object().equals(object.object())).findFirst().orElseThrow();
             for(var row:object.rows()) {
                 Map<String,Object> fields=new LinkedHashMap<>();
-                for(var mapping:source.mappings()) {
+                if("TABLE_MAPPING".equals(d.adapter())) {fields.putAll(row);fields.put("_syncSourcePayload",new LinkedHashMap<>(row));}
+                for(var mapping:"TABLE_MAPPING".equals(d.adapter()) ? List.<SyncDefinition.Mapping>of() : source.mappings()) {
                     if(!"CONSTANT".equals(mapping.conversion()) && !row.containsKey(mapping.source()))
                         throw new IllegalArgumentException("来源缺少映射列: "+mapping.source());
                     Object value="CONSTANT".equals(mapping.conversion())?mapping.constant():row.get(mapping.source());
                     if(value==null) value=mapping.defaultValue();
-                    if("ENUM".equals(mapping.conversion())) {
+                    if("LOOKUP".equals(mapping.conversion())) {
+                        value = mapping.values() == null ? null : mapping.values().get(value == null ? "NULL" : value.toString());
+                    } else if("ENUM".equals(mapping.conversion())) {
                         String key=value==null?"NULL":value.toString();
                         if(mapping.values()==null||!mapping.values().containsKey(key))
                             throw new IllegalArgumentException("枚举没有映射值: "+mapping.target());

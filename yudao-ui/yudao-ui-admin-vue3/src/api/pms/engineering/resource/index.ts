@@ -3,7 +3,7 @@ import request from '@/config/axios'
 export interface ResourceReadyVO {
   id?: number
   projectId: number
-  code: string
+  code?: string
   name: string
   resourceType?: string
   equipmentId?: number
@@ -16,7 +16,7 @@ export interface ResourceReadyVO {
   createTime?: Date
 }
 
-const baseUrl = '/pms/eng-resource'
+const baseUrl = '/pms/sol-resource'
 
 export const getResourceReadyPage = (params: PmsProjectPageParam) =>
   request.get({ url: `${baseUrl}/page`, params })

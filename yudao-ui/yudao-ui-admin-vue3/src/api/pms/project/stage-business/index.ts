@@ -23,6 +23,8 @@ export interface StageBusinessContext {
   executionContractId?: BusinessViewId
   contractVersion?: number
   bindingType?: string
+  /** PAGE 绑定冻结的应用内路由入口，仅用于导航。 */
+  routePath?: string
   instanceResolutionStrategy?: string
   businessView?: BusinessViewRegistrationVO
   ownerActions: string[]

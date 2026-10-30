@@ -33,7 +33,7 @@ class ProjectRulePublicationValidatorTest {
         rules = new RuleEngineTestFixture();
         decisions = new ProjectDecisionEngineConfiguration().projectDecisionEngine();
         validator = new ProjectRulePublicationValidator(new ProjectRuleCompiler(), new ProjectDecisionTableService(decisions),
-                new cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry(List.of()));
+                new cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry(List.of()), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
     }
     @AfterAll static void stop() { if (decisions != null) decisions.close(); if (rules != null) rules.close(); }
 
@@ -237,6 +237,8 @@ class ProjectRulePublicationValidatorTest {
             assertTrue(validator.validate(source).isEmpty());
             var binding = kind == DeliveryDefinitionKind.STAGE ? source.getStages().getFirst().getWorkBinding()
                     : source.getTasks().getFirst().getWorkBinding();
+            binding.setType("PAGE");
+            assertTrue(validator.validate(source).isEmpty(), "Page navigation retains the node's real native submission rule");
             String path = kind == DeliveryDefinitionKind.STAGE ? "stages[0]" : "tasks[0]";
             for (String type : List.of("BUSINESS_OBJECT", "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE")) {
                 binding.setType(type);
@@ -261,6 +263,22 @@ class ProjectRulePublicationValidatorTest {
             assertEquals("RULE_NATIVE_ADMISSION_UNAVAILABLE", issues.getFirst().code());
             assertTrue(issues.getFirst().field().contains("admissionRuleKey.rule.rules[0]"));
         }
+    }
+
+    @Test void typedAcceptanceCompletionRequiresItsMatchingAssociationFilter() {
+        var provider = businessProvider("ACC", "ACCEPTANCE", false, Set.of("FINAL_ACCEPTANCE_PASSED"));
+        var checks = businessValidator(provider);
+        var source = document(condition("""
+                {"predicate":"BUSINESS_FACT","parameters":{"factCode":"FINAL_ACCEPTANCE_PASSED","quantifier":"ALL"}}
+                """));
+        var task = new TemplateDesignerDocument.TaskNode(); task.setNodeKey("task:final"); task.setCompletionRuleKey("rule");
+        var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType("BUSINESS_COMPONENT");
+        binding.setTargetContextCode("ACC"); binding.setTargetObjectType("ACCEPTANCE"); task.setWorkBinding(binding); source.setTasks(List.of(task));
+        assertTrue(checks.validate(source).stream().anyMatch(issue -> issue.code().equals("RULE_ACCEPTANCE_TYPE_REQUIRED")));
+        binding.setParameters(JsonUtils.parseTree("{\"acceptanceType\":\"PRELIMINARY\"}"));
+        assertTrue(checks.validate(source).stream().anyMatch(issue -> issue.code().equals("RULE_ACCEPTANCE_TYPE_REQUIRED")));
+        binding.setParameters(JsonUtils.parseTree("{\"acceptanceType\":\"FINAL\"}"));
+        assertTrue(checks.validate(source).isEmpty());
     }
 
     @Test void aSharedNativeRuleIsValidatedPerConsumerWithoutChangingItsDefinition() {
@@ -323,7 +341,7 @@ class ProjectRulePublicationValidatorTest {
 
     private static ProjectRulePublicationValidator businessValidator(TaskBusinessObjectProvider... providers) {
         return new ProjectRulePublicationValidator(new ProjectRuleCompiler(), new ProjectDecisionTableService(decisions),
-                new TaskBusinessProviderRegistry(List.of(providers)));
+                new TaskBusinessProviderRegistry(List.of(providers)), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
     }
 
     private static TaskBusinessObjectProvider businessProvider(String owner, String type, boolean stages, Set<String> codes) {
@@ -343,6 +361,31 @@ class ProjectRulePublicationValidatorTest {
 
     private static VersionRule condition(String expression) {
         return condition(JsonUtils.parseTree(expression));
+    }
+
+    @Test void endUserConditionRejectsOtherPagesAdmissionAndCombinedSubmissionBypass() {
+        var doc = document(condition("{\"predicate\":\"PROJECT_END_USER_EXISTS\",\"parameters\":{}}"));
+        var task = new TemplateDesignerDocument.TaskNode(); task.setNodeKey("task:end-users"); task.setCompletionRuleKey("rule");
+        var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType("PAGE");
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/pms/project-management/project-master-detail\"}"));
+        task.setWorkBinding(binding); doc.setTasks(List.of(task)); assertTrue(validator.validate(doc).isEmpty());
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/customer-asset/customer-contact\"}"));
+        assertFalse(validator.validate(doc).isEmpty());
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/pms/project-management/project-master-detail\"}"));
+        task.setCompletionRuleKey(null); task.setAdmissionRuleKey("rule"); assertFalse(validator.validate(doc).isEmpty());
+        task.setAdmissionRuleKey(null); task.setCompletionRuleKey("rule");
+        doc.setRules(List.of(condition("{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"PROJECT_END_USER_EXISTS\",\"parameters\":{}}]}")));
+        assertFalse(validator.validate(doc).isEmpty());
+    }
+    @Test void projectContactConditionRequiresIndependentContactPageCompletion() {
+        var doc = document(condition("{\"predicate\":\"PROJECT_CONTACT_EXISTS\",\"parameters\":{}}"));
+        var task = new TemplateDesignerDocument.TaskNode(); task.setNodeKey("task:contacts"); task.setCompletionRuleKey("rule");
+        var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType("PAGE");
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/customer-asset/customer-contact\"}")); task.setWorkBinding(binding);
+        doc.setTasks(List.of(task)); assertTrue(validator.validate(doc).isEmpty());
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/other\"}")); assertFalse(validator.validate(doc).isEmpty());
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/customer-asset/customer-contact\"}"));
+        task.setCompletionRuleKey(null); task.setAdmissionRuleKey("rule"); assertFalse(validator.validate(doc).isEmpty());
     }
 
     @Test void relativeWaitValidatesVersionSourcesAndEveryConsumerWithoutPublishingASecondRule() {

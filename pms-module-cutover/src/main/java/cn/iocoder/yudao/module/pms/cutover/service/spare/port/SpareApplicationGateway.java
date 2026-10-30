@@ -18,7 +18,7 @@ public interface SpareApplicationGateway {
     SpareStatusProviderResult queryStatus(SpareStatusQuery query);
 
     record SpareInitiationCommand(Long tenantId, String platformRequestId, Long taskId, String taskNo,
-                                  Integer taskVersion, Long projectId, List<SpareDeviceContext> devices,
+                                  Long taskVersion, Long projectId, List<SpareDeviceContext> devices,
                                   SpareNeedSnapshot need, String correlationId) {
         public SpareInitiationCommand {
             positive(tenantId, "tenantId");

@@ -6,6 +6,10 @@ import cn.iocoder.yudao.module.pms.project.domain.rule.RuleProgram;
 import cn.iocoder.yudao.module.pms.project.domain.rule.VersionRule;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateDesignerDocument;
 import cn.iocoder.yudao.module.pms.project.domain.template.TemplateRuleCollection;
+import cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionConfiguration;
+import cn.iocoder.yudao.module.pms.project.domain.template.operation.TemplateOperationContract;
+import cn.iocoder.yudao.module.pms.project.domain.template.operation.TemplateOperationContractJson;
+import cn.iocoder.yudao.module.pms.project.service.operation.ProjectOperationResultFields;
 import cn.iocoder.yudao.module.pms.project.service.deliveryconfiguration.DeliveryDefinitionModels.Issue;
 import cn.iocoder.yudao.module.pms.project.domain.template.DeliveryDefinitionKind;
 import cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessProviderRegistry;
@@ -34,7 +38,7 @@ public class ProjectRulePublicationValidator {
         List<Issue> issues = new ArrayList<>();
         try {
             var program = compiler.compile(expression);
-            validateProgram("rule", program, ProjectRuleFields.codes(), false, issues);
+            validateProgram("rule", program, projectRuleFields.codes(), false, issues);
             for (var leaf : program.leaves()) if (leaf.parameters().has("sourceNodeKey"))
                 issues.add(new Issue("rule." + leaf.path(), "RULE_SOURCE_REQUIRES_VERSION", "来源节点属于模板或项目计划版本，请在节点侧栏配置"));
         } catch (RuntimeException invalid) {
@@ -52,19 +56,25 @@ public class ProjectRulePublicationValidator {
             return List.of(new Issue("rules", "RULE_REFERENCES_INVALID", "规则集合、独立/共享声明或版本内引用无效"));
         }
         var rules = TemplateRuleCollection.index(document.getRules());
+        final Map<String, Set<RuleUse>> uses;
+        try { uses = ruleUses(document, rules); }
+        catch (IllegalArgumentException invalid) {
+            return List.of(new Issue("rules", "RULE_REFERENCES_INVALID", "规则引用或操作检查点无效"));
+        }
         Map<String, TaskBusinessProviderRegistry.CompletionBinding> bindings = new LinkedHashMap<>();
         if (document.getStages() != null) document.getStages().stream().filter(Objects::nonNull).forEach(node ->
                 bindings.put(node.getNodeKey(), binding(DeliveryDefinitionKind.STAGE, node.getWorkBinding())));
         if (document.getTasks() != null) document.getTasks().stream().filter(Objects::nonNull).forEach(node ->
                 bindings.put(node.getNodeKey(), binding(DeliveryDefinitionKind.TASK, node.getWorkBinding())));
         Map<String, RuleProgram> programs = new LinkedHashMap<>();
-        Set<String> creationFields = ProjectRuleFields.catalog().stream()
+        Set<String> creationFields = projectRuleFields.catalog().stream()
                 .filter(ProjectRuleFields.Field::availableAtCreation).map(ProjectRuleFields.Field::code)
                 .collect(Collectors.toUnmodifiableSet());
         for (VersionRule rule : rules.values()) {
             String path = "rules." + rule.key();
-            boolean matching = Objects.equals(rule.key(), document.getMatchRuleKey());
-            Set<String> fields = matching ? creationFields : ProjectRuleFields.codes();
+            boolean matching = uses.get(rule.key()).contains(RuleUse.MATCHING);
+            Set<String> fields = new java.util.HashSet<>(matching ? creationFields : projectRuleFields.codes());
+            if (uses.get(rule.key()).equals(Set.of(RuleUse.POST))) fields.addAll(ProjectOperationResultFields.codes());
             try {
                 RuleProgram program = rule.kind() == VersionRule.Kind.CONDITION
                         ? compiler.compile(TemplateRuleCollection.condition(rules, rule.key())) : compiler.compileDecision(rule);
@@ -147,6 +157,35 @@ public class ProjectRulePublicationValidator {
             RuleProgram program = programs.get(keys[i]);
             if (program == null) continue; // Missing/invalid rules are reported by reference and compilation validation.
             for (RuleProgram.Leaf leaf : program.leaves()) {
+                if ("NORMAL_CLOSURE_APPROVED".equals(leaf.predicate())) {
+                    if (kind != DeliveryDefinitionKind.TASK || i != 1 || binding == null
+                            || !"PAGE".equals(binding.getType()) || binding.getParameters() == null
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.ROUTE
+                                    .equals(binding.getParameters().path("routePath").asText(null))
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.approvedOnly(program))
+                        issues.add(new Issue(path + "." + slots[i], "RULE_CLOSURE_COMPLETION_BINDING_REQUIRED",
+                                "闭环审批通过条件只能独立用于正常闭环PAGE任务的完成规则"));
+                    continue;
+                }
+                if ("PROJECT_END_USER_EXISTS".equals(leaf.predicate())) {
+                    if (kind != DeliveryDefinitionKind.TASK || i != 1 || binding == null
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectEndUserCompletionCondition.memberPage(
+                                    binding.getType(), String.valueOf(binding.getParameters()))
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectEndUserCompletionCondition.automatic(program))
+                        issues.add(new Issue(path + "." + slots[i], "RULE_END_USER_COMPLETION_BINDING_REQUIRED",
+                                "最终用户完成条件只能独立用于项目成员PAGE任务的完成规则"));
+                    continue;
+                }
+                if ("PROJECT_CONTACT_EXISTS".equals(leaf.predicate())) {
+                    if (kind != DeliveryDefinitionKind.TASK || i != 1 || binding == null
+                            || !"PAGE".equals(binding.getType()) || binding.getParameters() == null
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectContactCompletionCondition.ROUTE
+                                    .equals(binding.getParameters().path("routePath").asText(null))
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectContactCompletionCondition.automatic(program))
+                        issues.add(new Issue(path + "." + slots[i], "RULE_CONTACT_COMPLETION_BINDING_REQUIRED",
+                                "项目联系人自动完成条件只能独立用于联系人PAGE任务的完成规则"));
+                    continue;
+                }
                 if ("WAIT_ELAPSED".equals(leaf.predicate())) {
                     String source = leaf.parameters().path("sourceNodeKey").asText();
                     if ((i == 0 && source.isBlank()) || nodeKey.equals(source))
@@ -160,7 +199,7 @@ public class ProjectRulePublicationValidator {
                     if (i == 0)
                         issues.add(new Issue(field, "RULE_NATIVE_ADMISSION_UNAVAILABLE",
                                 "准入不能依赖本节点尚未发生的手工提交，请改为来源节点状态或业务条件"));
-                    else if (binding == null || !nativeBinding.equals(binding.getType())
+                    else if (binding == null || !(nativeBinding.equals(binding.getType()) || "PAGE".equals(binding.getType()))
                             || !(nativeBinding + "_STATUS").equals(leaf.predicate()))
                         issues.add(new Issue(field, "RULE_NATIVE_BINDING_UNAVAILABLE",
                                 "手工提交条件只适用于同类型节点的原生办理，不能代替业务或审批结果"));
@@ -172,6 +211,12 @@ public class ProjectRulePublicationValidator {
                     issues.add(new Issue(path + "." + slots[i] + "." + leaf.path(), "RULE_BUSINESS_SOURCE_REQUIRED",
                             "准入业务条件必须选择其他来源节点，不能依赖尚未准入的本轮办理结果"));
                 if (!source.isBlank()) continue; // Explicit sources are validated once against their own binding above.
+                String factCode = leaf.parameters().path("factCode").asText();
+                if (Set.of("PRELIMINARY_ACCEPTANCE_PASSED", "FINAL_ACCEPTANCE_PASSED").contains(factCode)
+                        && (binding == null || binding.getParameters() == null
+                        || !factCode.substring(0, factCode.indexOf('_')).equals(binding.getParameters().path("acceptanceType").asText())))
+                    issues.add(new Issue(path + "." + slots[i] + "." + leaf.path(), "RULE_ACCEPTANCE_TYPE_REQUIRED",
+                            "验收通过条件必须关联对应的初验或终验类型"));
                 if (!businessProviders.supportsBoundCompletionFact(receiver, leaf.parameters().path("factCode").asText()))
                     issues.add(new Issue(path + "." + slots[i] + "." + leaf.path(), "RULE_BUSINESS_BINDING_UNAVAILABLE",
                             "规则所需业务事实与当前节点办理绑定或原模块节点能力不匹配"));
@@ -189,7 +234,8 @@ public class ProjectRulePublicationValidator {
                     issues.add(new Issue(path, "RULE_FIELD_UNAVAILABLE", "字段未开放或创建时不可用"));
                     return;
                 }
-                var field = ProjectRuleFields.catalog().stream().filter(item -> item.code().equals(fieldCode)).findFirst().orElseThrow();
+                var field = java.util.stream.Stream.concat(projectRuleFields.catalog().stream(), ProjectOperationResultFields.catalog().stream())
+                        .filter(item -> item.code().equals(fieldCode)).findFirst().orElseThrow();
                 if (!field.valueType().equals(leaf.parameters().path("valueType").asText()))
                     issues.add(new Issue(path, "RULE_FIELD_TYPE_MISMATCH", "条件字段类型与开放字段目录不一致"));
             }
@@ -209,4 +255,67 @@ public class ProjectRulePublicationValidator {
             }
         }
     }
+
+    private enum RuleUse { MATCHING, ORDINARY, PRE, POST }
+
+    /** A shared decision inherits every consuming slot; POST use never widens another slot's capabilities. */
+    private Map<String, Set<RuleUse>> ruleUses(TemplateDesignerDocument document, Map<String, VersionRule> rules) {
+        Map<String, Set<RuleUse>> uses = new LinkedHashMap<>();
+        use(document.getMatchRuleKey(), RuleUse.MATCHING, rules, uses);
+        use(document.getClosureRuleKey(), RuleUse.ORDINARY, rules, uses);
+        if (document.getStages() != null) for (var node : document.getStages()) {
+            if (node == null) continue;
+            for (String key : new String[]{node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey()})
+                use(key, RuleUse.ORDINARY, rules, uses);
+            operationUses(node.getExecution(), node.getWorkBinding(), rules, uses);
+        }
+        if (document.getTasks() != null) for (var node : document.getTasks()) {
+            if (node == null) continue;
+            for (String key : new String[]{node.getAdmissionRuleKey(), node.getCompletionRuleKey(), node.getExitRuleKey()})
+                use(key, RuleUse.ORDINARY, rules, uses);
+            operationUses(node.getExecution(), node.getWorkBinding(), rules, uses);
+        }
+        if (document.getTransitions() != null) for (var edge : document.getTransitions())
+            if (edge != null) use(edge.getConditionRuleKey(), RuleUse.ORDINARY, rules, uses);
+        // Unreferenced authoring rules retain their existing project-only validation, including their decisions.
+        var unreferenced = rules.keySet().stream().filter(key -> !uses.containsKey(key)).toList();
+        for (String key : unreferenced) use(key, RuleUse.ORDINARY, rules, uses);
+        return uses;
+    }
+
+    private void operationUses(tools.jackson.databind.JsonNode execution, TemplateDesignerDocument.WorkBindingSpec binding,
+                              Map<String, VersionRule> rules, Map<String, Set<RuleUse>> uses) {
+        if (execution != null) for (var operation : TemplateExecutionConfiguration.read(execution).operations()) {
+            checkUse(operation.pre(), RuleUse.PRE, rules, uses);
+            checkUse(operation.post(), RuleUse.POST, rules, uses);
+        }
+        if (binding != null && binding.getOperationContract() != null)
+            for (var operation : TemplateOperationContractJson.readAuthoring(binding.getOperationContract()).operations()) {
+                checkUse(operation.pre(), RuleUse.PRE, rules, uses);
+                checkUse(operation.post(), RuleUse.POST, rules, uses);
+            }
+    }
+
+    private void checkUse(TemplateOperationContract.Check check, RuleUse checkpoint,
+                          Map<String, VersionRule> rules, Map<String, Set<RuleUse>> uses) {
+        if ("RULE".equals(check.mode())) use(check.ruleKey(), checkpoint, rules, uses);
+    }
+
+    private void use(String key, RuleUse checkpoint, Map<String, VersionRule> rules, Map<String, Set<RuleUse>> uses) {
+        if (key == null || key.isBlank()) return;
+        var rule = rules.get(key);
+        if (rule == null) throw new IllegalArgumentException("RULE_REFERENCE_UNAVAILABLE");
+        if (!uses.computeIfAbsent(key, ignored -> java.util.EnumSet.noneOf(RuleUse.class)).add(checkpoint)) return;
+        if (rule.expression() != null) decisionUses(rule.expression(), checkpoint, rules, uses);
+    }
+
+    private void decisionUses(tools.jackson.databind.JsonNode expression, RuleUse checkpoint,
+                              Map<String, VersionRule> rules, Map<String, Set<RuleUse>> uses) {
+        if (expression.has("operator")) {
+            for (var child : expression.path("rules")) decisionUses(child, checkpoint, rules, uses);
+        } else if ("DECISION".equals(expression.path("predicate").asText())) {
+            use(expression.path("parameters").path("ruleKey").asText(null), checkpoint, rules, uses);
+        }
+    }
+    private final cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields projectRuleFields;
 }

@@ -27,8 +27,9 @@ public class DataSyncController {
     private final SyncTaskService tasks;
     private final SyncRunService runner;
     private final SyncRunMapper runs;
-    private final SyncBindingMapper bindings;
     private final cn.iocoder.yudao.module.system.api.permission.PermissionApi permissions;
+    private final cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetCatalog genericTargets;
+    private final cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncTemplates genericTemplates;
     public record Schedule(Integer version,boolean enabled) {}
 
     @GetMapping("/connections")
@@ -67,6 +68,16 @@ public class DataSyncController {
     @GetMapping("/adapters")
     @PreAuthorize("@ss.hasPermission('pms:integration:view')")
     public CommonResult<List<DataSyncAdapter.Descriptor>> adapters(){return success(definitions.descriptors());}
+    @GetMapping("/generic-targets")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<List<cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetCatalog.Table>> genericTargets() {
+        return success(genericTargets.tables());
+    }
+    @GetMapping("/templates/generic")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<List<cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncTemplates.Template>> genericTemplates(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(genericTemplates.list(connectionId));
+    }
     @GetMapping("/templates/ehr")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> template(@RequestParam Long connectionId){
@@ -79,6 +90,16 @@ public class DataSyncController {
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> orderTemplate(@RequestParam Long connectionId){
         connections.required(connectionId);return success(DppmsOrderSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-execution-orders")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> executionOrderTemplate(@RequestParam Long connectionId){
+        connections.required(connectionId);return success(DppmsExecutionOrderSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/payment-plan-acceptance")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> paymentAcceptanceTemplate(@RequestParam Long connectionId){
+        connections.required(connectionId);return success(PaymentPlanSyncTemplate.create(connectionId));
     }
     @GetMapping("/tasks/{id}")
     @PreAuthorize("@ss.hasPermission('pms:integration:view')")
@@ -134,7 +155,7 @@ public class DataSyncController {
     @GetMapping("/mappings")
     @PreAuthorize("@ss.hasPermission('pms:integration:view')")
     public CommonResult<PageResult<SyncBindingDO>> mappings(@Valid SyncQueries.Page q){
-        tasks.required(q.getTaskId());q.setTenantId(SyncTaskService.tenant());return success(bindings.selectPage(q));
+        return success(runner.mappings(q));
     }
     private void requireSqlPermission(){
         if(!permissions.hasAnyPermissions(cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),

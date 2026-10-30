@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
+import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort;
 import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
@@ -9,13 +11,13 @@ import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApiImpl;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactTransactionExecutor;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverAssessmentDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalRules;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
@@ -35,9 +37,9 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanRules;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverAssessmentAnswers;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectContextPort;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverAssessmentAnswers;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
@@ -222,21 +224,29 @@ class CutoverApprovalPositiveLoopMySqlTest {
     void rejectedRevisionIsImmutableAndReplacementStartsNewApproval() {
         SubmittedRoute first = submit("D", "reject");
         actor.use(8L);
-        approvalService.reject(new RejectCutoverApprovalCommand(tenantId, taskId, 5, 0,
-                noItems(), null, "回退步骤需修订", "reject-d", "corr-reject-d"));
+        approvalService.reject(new RejectCutoverApprovalCommand(tenantId,
+                taskId,
+                first.approvalInstanceId(),
+                5L,
+                0L,
+                noItems(),
+                null,
+                "回退步骤需修订",
+                "reject-d",
+                "corr-reject-d"));
         String frozen = jdbc.queryForObject("SELECT source_snapshot FROM cut_approval_instance WHERE tenant_id=? AND id=?",
                 String.class, tenantId, first.approvalInstanceId());
 
         owners.advanceTaskVersion(6);
         CutoverPlanCommandResult replacement = planService.revise(new ReviseCutoverPlanCommand(
-                tenantId, 8L, taskId, 6, first.planRevisionId(), "APPROVAL_REJECTED",
+                tenantId, 8L, taskId, 6L, first.planRevisionId(), "APPROVAL_REJECTED",
                 "revise-d", "corr-revise-d"));
         var content = simpleContent();
         CutoverPlanCommandResult saved = planService.saveDraft(new SaveCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 6, replacement.planVersion(), 30L, content,
+                tenantId, 8L, taskId, 6L, replacement.planVersion(), 30L, content,
                 "save-d-r2", "corr-save-d-r2"));
         SubmitCutoverPlanResult second = planService.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 6, saved.planVersion(), "submit-d-r2", "corr-submit-d-r2"));
+                tenantId, 8L, taskId, 6L, saved.planVersion(), "submit-d-r2", "corr-submit-d-r2"));
 
         assertNotEquals(first.approvalInstanceId(), second.approvalInstanceId());
         assertEquals(frozen, jdbc.queryForObject("SELECT source_snapshot FROM cut_approval_instance " +
@@ -257,10 +267,10 @@ class CutoverApprovalPositiveLoopMySqlTest {
         owners.reset(taskId, projectId(), assessmentId(), checklistId("A"), "A");
         CutoverPlanFilePort.FileFact file = owners.fileFact();
         CutoverPlanCommandResult created = planService.createDraft(new CreateCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 4, 30L, "FULL_FILE_UPLOAD", file, true,
+                tenantId, 8L, taskId, 4L, 30L, "FULL_FILE_UPLOAD", file, true,
                 "create-upload", "corr-create-upload"));
         SubmitCutoverPlanResult submitted = planService.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 4, created.planVersion(), "submit-upload", "corr-submit-upload"));
+                tenantId, 8L, taskId, 4L, created.planVersion(), "submit-upload", "corr-submit-upload"));
         SubmittedRoute route = new SubmittedRoute(submitted.planRevisionId(), submitted.approvalInstanceId());
         approveAll(route, 4);
 
@@ -284,17 +294,17 @@ class CutoverApprovalPositiveLoopMySqlTest {
         insertP4Facts(grade, scheduledTime);
         owners.reset(taskId, projectId(), assessmentId(), checklistId(grade), grade);
         CutoverPlanCommandResult created = planService.createDraft(new CreateCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 4, 30L, "D".equals(grade)
+                tenantId, 8L, taskId, 4L, 30L, "D".equals(grade)
                 ? "ONLINE_TEMPLATE_SIMPLE_D" : "ONLINE_TEMPLATE_STANDARD", null, null,
                 "create-" + key, "corr-create-" + key));
         CutoverPlanCommandResult saved = planService.saveDraft(new SaveCutoverPlanDraftCommand(
-                tenantId, 8L, taskId, 4, created.planVersion(), 30L,
+                tenantId, 8L, taskId, 4L, created.planVersion(), 30L,
                 "D".equals(grade) ? simpleContent() : standardContent(),
                 "save-" + key, "corr-save-" + key));
         String submitCorrelationId = "positive-A".equals(key) ? "A".repeat(128)
                 : "positive-B".equals(key) ? "B" : "corr-submit-" + key;
         SubmitCutoverPlanResult result = planService.submit(new SubmitCutoverPlanCommand(
-                tenantId, 8L, taskId, 4, saved.planVersion(), "submit-" + key, submitCorrelationId));
+                tenantId, 8L, taskId, 4L, saved.planVersion(), "submit-" + key, submitCorrelationId));
         assertEquals("P5", result.taskStage());
         if (List.of("A", "B").contains(grade)) {
             LocalDateTime submittedAt = jdbc.queryForObject("SELECT submitted_at FROM cut_plan_revision " +
@@ -316,11 +326,17 @@ class CutoverApprovalPositiveLoopMySqlTest {
             Map<String, Object> node = nodes.get(index);
             actor.use(((Number) node.get("current_approver_user_id")).longValue());
             String code = String.valueOf(node.get("node_code"));
-            approvalService.approve(new ApproveCutoverApprovalCommand(tenantId, taskId, 5, index,
-                    yesItems(), "SERVICE_MANAGER".equals(code)
+            approvalService.approve(new ApproveCutoverApprovalCommand(tenantId,
+                taskId,
+                route.approvalInstanceId(),
+                5L,
+                (long) index,
+                yesItems(),
+                "SERVICE_MANAGER".equals(code)
                     ? new AssessmentReviewInput("CONFIRMED", null) : null,
-                    "节点审批通过", "approve-" + route.approvalInstanceId() + "-" + (index + 1),
-                    "corr-approve-" + route.approvalInstanceId() + "-" + (index + 1)));
+                "节点审批通过",
+                "approve-" + route.approvalInstanceId() + "-" + (index + 1),
+                "corr-approve-" + route.approvalInstanceId() + "-" + (index + 1)));
         }
     }
 
@@ -338,36 +354,47 @@ class CutoverApprovalPositiveLoopMySqlTest {
         task.setIntakeSourceType("SELF_CREATED"); task.setCurrentStage("P4"); task.setTaskStatus("PLAN_DRAFTING");
         task.setOwnerUserId(8L); task.setCustomerId(99L); task.setImplementationReadinessSnapshotId(7L);
         task.setImplementationReadinessSnapshotVersion(1L); task.setProjectScopeVersion(30L);
-        task.setProjectContextSnapshot(JsonUtils.toJsonString(new CutoverProjectContextPort.ProjectContextFact(
-                tenantId, projectId(), 6, "PRJ-1", "割接项目", 99L, "CUS-1", "客户",
-                88L, "OFF-1", "交付部", 30L)));
+        task.setProjectContextSnapshot(JsonUtils.toJsonString(CutoverProjectContextPort.ProjectContextFact.builder()
+                .tenantId(tenantId)
+                .projectId(projectId())
+                .projectVersion(6)
+                .projectCode("PRJ-1")
+                .projectName("割接项目")
+                .customerId(99L)
+                .customerCode("CUS-1")
+                .customerName("客户")
+                .departmentId(88L)
+                .departmentCode("OFF-1")
+                .departmentName("交付部")
+                .projectScopeVersion(30L)
+                .build()));
         task.setDeviceScopeWatermark("{}"); task.setCustomerContextSnapshot("{}");
         task.setReadinessContextSnapshot("{}"); task.setManualGrade(grade); task.setConfigurationRevisionId(401L);
-        task.setConfigurationCode("CFG-1"); task.setConfigurationRevisionNo(1); task.setVersion(4);
+        task.setConfigurationCode("CFG-1"); task.setConfigurationRevisionNo(1); task.setVersion(4L);
         task.setCreator("8"); task.setUpdater("8"); task.setCreateTime(now); task.setUpdateTime(now);
         assertEquals(1, taskMapper.insert(task));
 
         CutoverAssessmentDO assessment = new CutoverAssessmentDO();
         assessment.setId(assessmentId()); assessment.setTenantId(tenantId); assessment.setCutoverTaskId(taskId);
-        assessment.setAssessmentVersion(2); assessment.setAssessmentStatus("SUBMITTED");
+        assessment.setAssessmentVersion(2L); assessment.setAssessmentStatus("SUBMITTED");
         assessment.setQuestionnaireTemplateCode("CUT_P2_MANUAL_ASSESSMENT");
         assessment.setQuestionnaireTemplateVersion(1L);
         assessment.setAnswerSnapshot(JsonUtils.toJsonString(new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true)));
         assessment.setContextSnapshot("{\"implementationReadiness\":{\"decision\":\"READY\",\"unmetCodes\":[]},"
                 + "\"customerServiceLevel\":{\"status\":\"AVAILABLE\",\"serviceLevelCode\":\"GOLD\"}}");
         assessment.setManualGrade(grade); assessment.setSimpleFlow("D".equals(grade)); assessment.setSubmittedBy(8L);
-        assessment.setSubmittedAt(now); assessment.setCurrentMarker(1); assessment.setVersion(0);
+        assessment.setSubmittedAt(now); assessment.setCurrentMarker(1); assessment.setVersion(0L);
         assessment.setCreator("8"); assessment.setUpdater("8"); assessment.setCreateTime(now); assessment.setUpdateTime(now);
         assertEquals(1, assessmentMapper.insert(assessment));
 
         if (!"D".equals(grade)) {
             CutoverChecklistDO checklist = new CutoverChecklistDO();
             checklist.setId(checklistId(grade)); checklist.setTenantId(tenantId); checklist.setCutoverTaskId(taskId);
-            checklist.setAssessmentId(assessmentId()); checklist.setAssessmentVersion(2); checklist.setChecklistVersion(3);
+            checklist.setAssessmentId(assessmentId()); checklist.setAssessmentVersion(2L); checklist.setChecklistVersion(3L);
             checklist.setStatusCode("SUBMITTED"); checklist.setInputSnapshot("{}");
             checklist.setInputSnapshotHash("a".repeat(64)); checklist.setConfigRevisionSnapshot("{}");
             checklist.setMatchTrace("{}"); checklist.setConfigGapSnapshot("{}"); checklist.setSubmittedBy(8L);
-            checklist.setSubmittedAt(now); checklist.setVersion(0);
+            checklist.setSubmittedAt(now); checklist.setVersion(0L);
             checklist.setCreator("8"); checklist.setUpdater("8"); checklist.setCreateTime(now); checklist.setUpdateTime(now);
             assertEquals(1, checklistMapper.insert(checklist));
         }
@@ -432,41 +459,67 @@ class CutoverApprovalPositiveLoopMySqlTest {
             List<String> sectionCodes = "D".equals(grade) ? CutoverPlanRules.SIMPLE_SECTIONS : CutoverPlanRules.STANDARD_SECTIONS;
             List<TemplateSectionSnapshot> sections = sectionCodes.stream().map(key -> new TemplateSectionSnapshot(
                     key, key, sectionCodes.indexOf(key) + 1, List.of("NETWORK_CUTOVER"), List.of(grade), true)).toList();
-            facts = new SourceFacts(new SourceSnapshot(1, taskId, 4, assessmentId, 2, grade, checklistId,
-                    checklistId == null ? null : 3, projectId, 6, 30L,
+            facts = new SourceFacts(new SourceSnapshot(1, taskId, 4L, assessmentId, 2L, grade, checklistId,
+                    checklistId == null ? null : 3L, projectId, 6, 30L,
                     List.of(new DeviceSnapshot(301L, "SN-1", 9L, "ROUTER", "type-v1")),
                     401L, "CFG-1", 1, sections, List.of()), List.of());
         }
-        void advanceTaskVersion(int version) {
+        void advanceTaskVersion(long version) {
             SourceSnapshot s = facts.snapshot(); facts = new SourceFacts(new SourceSnapshot(s.snapshotVersion(), s.taskId(),
                     version, s.assessmentId(), s.assessmentVersion(), s.grade(), s.checklistId(), s.checklistVersion(),
                     s.projectId(), s.projectVersion(), s.projectScopeVersion(), s.devices(), s.configurationRevisionId(),
                     s.configurationCode(), s.configurationRevisionNo(), s.templateSections(), s.failedRiskFacts()), List.of());
         }
         @Override public ProjectScopeFact inspect(Long actorId, Long projectId, String action) { return new ProjectScopeFact(projectId, 30L, true); }
-        @Override public ProjectScopeFact lockAndRevalidate(Long actorId, Long projectId, String action, long expected) { return new ProjectScopeFact(projectId, 30L, true); }
+        @Override public ProjectScopeFact lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery query) {
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        String action = query.action();
+        long expected = query.expectedProjectScopeVersion();
+ return new ProjectScopeFact(projectId, 30L, true); }
         @Override public Set<Long> resolveAllCurrent(Long actorId, String action) { return Set.of(projectId); }
         @Override public SourceFacts inspect(Long tenantId, Long actorId, Long taskId) { return facts; }
         @Override public SourceFacts lockAndRevalidate(Long tenantId, Long actorId, SourceFacts expected) { return facts; }
         FileFact fileFact() {
-            return new FileFact(501L, 1, "cut-plan-upload-1", new FileFactVersion(1, 1, 1),
-                    1L, "a".repeat(64));
+            return FileFact.builder()
+                    .artifactId(501L)
+                    .versionNo(1)
+                    .referenceKey("cut-plan-upload-1")
+                    .fileFactVersion(new FileFactVersion(1, 1, 1))
+                    .scopeVersion(1L)
+                    .sha256("a".repeat(64))
+                    .build();
         }
-        @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) {
+        @Override public FileFact inspect(CutoverPlanFilePort.FileQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        FileHandle handle = query.handle();
+
             return fileFact();
         }
-        @Override public FileFact lockAndRevalidate(Long tenantId, Long actorId, Long projectId, FileHandle handle) {
+        @Override public FileFact lockAndRevalidate(CutoverPlanFilePort.FileQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        FileHandle handle = query.handle();
+
             return fileFact();
         }
-        @Override public FileFact downloadDraft(Long tenantId, Long actorId, Long projectId, Long planRevisionId) {
+        @Override public FileFact downloadDraft(CutoverPlanFilePort.DraftQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        Long planRevisionId = query.planRevisionId();
+
             return fileFact();
         }
     }
 
     @SpringBootConfiguration
     @EnableTransactionManagement(proxyTargetClass = true)
-    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2",
-            "cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2",
+    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.task",
+            "cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan",
             "cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist",
             "cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
@@ -480,11 +533,28 @@ class CutoverApprovalPositiveLoopMySqlTest {
         @Bean Clock clock() { return Clock.fixed(Instant.parse("2026-09-01T00:00:00Z"), ZoneOffset.UTC); }
         @Bean CurrentActor actor() { return new CurrentActor(); }
         @Bean ControlledOwners owners() { return new ControlledOwners(); }
+        @Bean CutoverProjectContextPort projectContext(ControlledOwners owners) {
+            return new CutoverProjectContextPort() {
+                public ProjectContextFact inspect(Inspection query) {
+                    var source = owners.facts.snapshot();
+                    return ProjectContextFact.builder().tenantId(query.tenantId()).projectId(source.projectId())
+                            .projectVersion(source.projectVersion()).projectScopeVersion(source.projectScopeVersion())
+                            .projectCode("PRJ-1").projectName("割接项目").customerId(99L).customerCode("CUS-1")
+                            .customerName("客户").departmentId(88L).departmentCode("OFF-1").departmentName("交付部").build();
+                }
+                public ProjectContextFact lockAndRevalidate(ProjectContextFact expected) { return expected; }
+            };
+        }
         @Bean ProjectCutoverServiceManagerPort manager() { return CutoverApprovalControlledPorts.serviceManager(301L); }
         @Bean CutoverApprovalRoleCandidatePort candidates() { return CutoverApprovalControlledPorts.roleCandidates(); }
         @Bean CutoverApprovalProjectScopePort approvalScope() {
             return new CutoverApprovalProjectScopePort() {
-                public ProjectScopeFact inspect(long tenant, long project, long user, String action) {
+                public ProjectScopeFact inspect(CutoverApprovalProjectScopePort.ScopeQuery query) {
+        long tenant = query.tenantId();
+        long project = query.projectId();
+        long user = query.subjectUserId();
+        String action = query.requiredAction();
+
                     boolean allowed = (user == 8L && "ACTION_EDIT".equals(action))
                             || (user == 202L && "ACTION_VIEW".equals(action));
                     return new ProjectScopeFact(tenant, project, user, action, allowed, 11L);
@@ -510,8 +580,22 @@ class CutoverApprovalPositiveLoopMySqlTest {
                 CutoverTaskStageHistoryMapper history, ProjectCutoverServiceManagerPort manager,
                 CutoverApprovalRoleCandidatePort candidates, CutoverApprovalProjectScopePort scope,
                 PlatformCommandExecutionApi platform, CurrentActor actor, Clock clock) {
-            return new CutoverApprovalApplicationService(assembler, instances, nodes, notifications, reviews,
-                    reassignments, tasks, history, manager, candidates, scope, platform, actor::current, clock);
+            return new CutoverApprovalApplicationService(assembler,
+                instances,
+                nodes,
+                notifications,
+                reviews,
+                reassignments,
+                tasks,
+                history,
+                manager,
+                candidates,
+                scope,
+                platform,
+                actor::current,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverWorkflowCoordinator.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
         }
         @Bean CutoverApprovalFactTransactionExecutor approvalTransactions(CutoverApprovalApplicationService service,
                 CutoverApprovalInstanceMapper instances) { return new CutoverApprovalFactTransactionExecutor(service, instances); }
@@ -522,8 +606,19 @@ class CutoverApprovalPositiveLoopMySqlTest {
                 CutoverPlanStepMapper steps, CutoverSupportArrangementMapper supports,
                 CutoverTaskStageHistoryMapper history, ControlledOwners owners, CutoverApprovalFactApi approvals,
                 PlatformCommandExecutionApi platform, Clock clock) {
-            return new CutoverPlanApplicationService(tasks, plans, steps, supports, owners, owners, owners,
-                    new CutoverPlanContentCodec(), platform, approvals, history, clock);
+            return new CutoverPlanApplicationService(tasks,
+                plans,
+                steps,
+                supports,
+                owners,
+                owners,
+                owners,
+                new CutoverPlanContentCodec(),
+                platform,
+                approvals,
+                history,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
         }
         @Bean NotifyMessageSendApi notifyApi() {
             return new NotifyMessageSendApi() {

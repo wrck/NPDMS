@@ -11,6 +11,14 @@ import java.util.List;
 
 public interface OrganizationScopeApi {
 
+    UserCompanyDepartmentScopeRespDTO inspectRoleScope(
+            cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query);
+
+    /** 当前锁定读；要求已有事务，锁住实际授权行及用户/角色事实直到业务事务结束。 */
+    UserCompanyDepartmentScopeRespDTO lockRoleScope(
+            cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query);
+
+
     List<UserCompanyDepartmentScopeRespDTO> getActiveScopes(Long userId);
 
     boolean hasScope(Long userId, Long companyId, Long departmentId);

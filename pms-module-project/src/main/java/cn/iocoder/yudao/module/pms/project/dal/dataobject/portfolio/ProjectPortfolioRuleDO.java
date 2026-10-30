@@ -10,7 +10,7 @@ import lombok.EqualsAndHashCode;
 /**
  * PMS 项目组合动态规则 DO
  */
-@TableName("pms_project_portfolio_rule")
+@TableName("proj_project_portfolio_rule")
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ProjectPortfolioRuleDO extends TenantBaseDO {

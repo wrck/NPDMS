@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityPageQuery;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.sitesurvey.entity.SiteSurveyEntityDO;
@@ -11,7 +11,10 @@ import org.apache.ibatis.annotations.Mapper;
  * PMS 现场工勘 Mapper（FR-ENG-001）。
  */
 @Mapper
-public interface SiteSurveyEntityMapper extends BaseMapperX<SiteSurveyEntityDO> {
+public interface SiteSurveyEntityMapper extends ProjectScopedCodeMapper<SiteSurveyEntityDO> {
+    java.util.List<String> selectResultInventory(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SurveyResultInventoryQuery query);
+
     java.util.List<SiteSurveyEntityDO> selectAssociationPage(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityAssociationPageQuery query);
     java.util.List<SiteSurveyEntityDO> selectTaskCandidates(@org.apache.ibatis.annotations.Param("query")
@@ -22,6 +25,10 @@ public interface SiteSurveyEntityMapper extends BaseMapperX<SiteSurveyEntityDO> 
 
     SiteSurveyEntityDO selectTaskObjectForUpdate(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityTaskObjectQuery query);
+
+    /** Only tenant/project identity is read for replay authorization, including a soft-deleted target. */
+    SiteSurveyEntityDO selectOperationIdentity(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyOperationIdentityQuery query);
 
     int deleteDraft(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity.query.SiteSurveyEntityMutation query);
@@ -41,7 +48,4 @@ public interface SiteSurveyEntityMapper extends BaseMapperX<SiteSurveyEntityDO> 
                 .orderByDesc(SiteSurveyEntityDO::getId));
     }
 
-    default SiteSurveyEntityDO selectByProjectIdAndCode(Long projectId, String code) {
-        return selectOne(SiteSurveyEntityDO::getProjectId, projectId, SiteSurveyEntityDO::getCode, code);
-    }
 }

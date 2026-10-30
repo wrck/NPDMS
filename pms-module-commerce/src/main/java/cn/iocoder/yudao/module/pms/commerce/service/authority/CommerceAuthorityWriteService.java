@@ -62,8 +62,8 @@ public class CommerceAuthorityWriteService implements CommerceAuthorityWriteApi 
                     command.tenantId(), sourceSystem, source.sourceRecordKey()));
             lines.add(new CommerceOrderLineFact(source.sourceRecordKey(),
                     current == null ? null : current.getSourceVersion(), source.sourceVersion(),
-                    source.orderSourceRecordKey(), source.lineNo(), source.itemCode(), source.itemDescription(),
-                    source.productCode(), null, source.orderQuantity(), source.openQuantity(),
+                    source.orderSourceRecordKey(), source.lineNo(), source.productCode(), source.productDesc(),
+                    source.productModel(), source.orderQuantity(), source.openQuantity(),
                     source.deliveredQuantity(), source.unitCode(), source.unitScale(), source.quantityStatus(),
                     lifecycle(source.status()), source.sourceUpdatedAt()));
         }

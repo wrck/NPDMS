@@ -24,7 +24,7 @@ class ProjectRuleSimulationServiceTest {
     @BeforeAll static void start() {
         rules = new RuleEngineTestFixture();
         decisions = new ProjectDecisionEngineConfiguration().projectDecisionEngine();
-        service = new ProjectRuleSimulationService(new ProjectRuleCompiler(), rules.evaluator(), new ProjectDecisionTableService(decisions));
+        service = new ProjectRuleSimulationService(new ProjectRuleCompiler(), rules.evaluator(), new ProjectDecisionTableService(decisions), new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null));
     }
     @AfterAll static void stop() { if (decisions != null) decisions.close(); if (rules != null) rules.close(); }
 

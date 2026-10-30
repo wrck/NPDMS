@@ -6,9 +6,9 @@
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-220px"
         />
@@ -57,7 +57,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-announcement-check:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:kno-announcement-check:create']"
           ><Icon icon="ep:plus" />新建检查</el-button
         >
       </el-form-item>
@@ -97,7 +97,7 @@
       </el-table-column>
       <el-table-column label="操作" width="320" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-announcement-check:query']"
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:kno-announcement-check:query']"
             >明细</el-button
           >
           <el-button
@@ -105,7 +105,7 @@
             type="warning"
             v-if="row.status === 0"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-announcement-check:update']"
+            v-hasPermi="['pms:kno-announcement-check:update']"
             >编辑</el-button
           >
           <el-button
@@ -113,7 +113,7 @@
             type="primary"
             v-if="row.status === 0"
             @click="handlePerformCheck(row)"
-            v-hasPermi="['pms:eng-announcement-check:update']"
+            v-hasPermi="['pms:kno-announcement-check:update']"
             >执行检查</el-button
           >
           <el-button
@@ -121,7 +121,7 @@
             type="success"
             v-if="row.status === 1"
             @click="openHandle(row, 'HANDLE')"
-            v-hasPermi="['pms:eng-announcement-check:handle']"
+            v-hasPermi="['pms:kno-announcement-check:handle']"
             >处置</el-button
           >
           <el-button
@@ -129,7 +129,7 @@
             type="info"
             v-if="row.status === 1"
             @click="openHandle(row, 'IGNORE')"
-            v-hasPermi="['pms:eng-announcement-check:handle']"
+            v-hasPermi="['pms:kno-announcement-check:handle']"
             >忽略</el-button
           >
           <el-button
@@ -137,7 +137,7 @@
             type="danger"
             v-if="row.status === 0"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-announcement-check:delete']"
+            v-hasPermi="['pms:kno-announcement-check:delete']"
             >删除</el-button
           >
         </template>
@@ -160,9 +160,9 @@
             <PmsEntitySelect
               v-model="form.projectId"
               :api="ProjectApi.getProjectPage"
-              label-field="name"
+              label-field="projectName"
               value-field="id"
-              query-field="name"
+              query-field="projectName"
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
@@ -192,12 +192,10 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="检查人" prop="checkerUserId">
-            <PmsEntitySelect
+            <UserSelect
               v-model="form.checkerUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
+              :scoped-source="managementUsers"
+              :page-size="50"
               placeholder="请选择检查人"
             />
           </el-form-item>
@@ -273,17 +271,28 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
 import { onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as AnnouncementCheckApi from '@/api/pms/engineering/announcement-check'
 import * as AnnouncementApi from '@/api/pms/engineering/announcement'
-import * as ProjectApi from '@/api/pms/project/project'
-import * as UserApi from '@/api/system/user'
+import * as ProjectApi from '@/api/pms/project/projects'
 import type { AnnouncementCheckVO } from '@/api/pms/engineering/announcement-check'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import UserTag from '@/components/UserTag/index.vue'
 import AnnouncementTag from '@/components/AnnouncementTag/index.vue'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/announcement-check/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngAnnouncementCheck' })
 const message = useMessage()

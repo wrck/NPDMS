@@ -29,6 +29,7 @@ export interface ProjectWorkspace {
 }
 
 export interface TaskNode {
+  requiredTask?: boolean
   taskId: number
   projectId?: number
   parentTaskId?: number
@@ -78,6 +79,38 @@ export interface TaskDetail extends TaskNode {
   actualEndTime?: string
 }
 
+export interface TaskSubscriptionObservation {
+  subscriptionKey: string
+  resultType: string
+  waitReason: string
+  scanStatus?: string
+  scanCurrent: boolean
+  examined: number
+  eligible: number
+  missingObjects: string[]
+  reasons: string[]
+}
+
+export interface TaskSubscriptionRound {
+  executionId: number | string
+  planVersionId: number | string
+  nodeKey: string
+  nodeKind: 'STAGE' | 'TASK'
+  roundStatus: string
+  roundEnded: boolean
+  subscriptions: TaskSubscriptionObservation[]
+}
+
+/** 模板冻结的本任务交付件（ACC应交根行），只读展示；满足状态由满足/验收链维护。 */
+export interface TaskWorkbenchDeliverable {
+  id: number
+  deliverableCode: string
+  name: string
+  required?: boolean
+  status?: string
+  automaticCollection?: boolean
+}
+
 export interface TaskWorkbench {
   task: TaskDetail
   executionContractId?: number
@@ -88,6 +121,12 @@ export interface TaskWorkbench {
   factVersion?: string
   recoverableError?: string
   approval?: TaskApprovalView
+  startAdmission?: {
+    outcome: 'MATCHED' | 'NOT_MATCHED' | 'UNKNOWN'
+    conditions: { label: string; outcome: 'MATCHED' | 'NOT_MATCHED' | 'UNKNOWN' }[]
+  }
+  resultSubscriptions?: TaskSubscriptionRound[]
+  deliverables?: TaskWorkbenchDeliverable[]
 }
 
 export interface TaskApprovalSubmission {
@@ -187,7 +226,7 @@ const patchTask = async <T>(url: string, data: unknown, version: number) => {
 export const getProjectWorkspace = (projectId: number) =>
   request.get<ProjectWorkspace>({ url: `${baseUrl}/projects/${projectId}/workspace` })
 
-export const getProjectTasks = (projectId: number, params: TaskTreeQuery) =>
+export const getProjectTasks = (projectId: number | string, params: TaskTreeQuery) =>
   request.get<CursorResult<TaskNode>>({ url: `${baseUrl}/projects/${projectId}/tasks`, params })
 
 export const getTaskWorkbench = (taskId: number | string) =>

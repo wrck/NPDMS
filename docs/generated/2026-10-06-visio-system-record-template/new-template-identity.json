@@ -1,0 +1,32 @@
+{
+  "code": "TPL-DELIVERY-RECORD-20261006",
+  "createTime": 1791278942000,
+  "description": "按流程图区分系统记录和文件。工程交底书暂不处理；计划与方案只看系统记录及审批。配置Log按设备跨入口取最新文件，多设备大日志先拆分关联各设备，保留全部文件记录。S0至S5，计划与方案并行；完成依据和日志接入缺口保留，未发布。",
+  "id": 993009900029,
+  "matchPriority": 100,
+  "name": "项目交付流程模板（系统记录版）",
+  "revisions": [
+    {
+      "compilerVersion": null,
+      "designerSchemaVersion": 2,
+      "executionSchemaVersion": null,
+      "id": 993009900051,
+      "implementationMethod": null,
+      "majorProjectLevel": null,
+      "processDefinitionKey": null,
+      "processDefinitionVersion": "",
+      "projectCategory": null,
+      "publishedBy": null,
+      "publishedTime": null,
+      "revisionNo": 0,
+      "signingMethod": null,
+      "snapshotHash": null,
+      "status": "DRAFT",
+      "templateId": 993009900029,
+      "validationSummary": null
+    }
+  ],
+  "status": "DRAFT",
+  "systemReserved": false,
+  "version": 6
+}

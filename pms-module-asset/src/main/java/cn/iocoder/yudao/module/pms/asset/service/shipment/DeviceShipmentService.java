@@ -19,6 +19,7 @@ public class DeviceShipmentService {
 
     private final DeviceMapper deviceMapper;
     private final DeviceShipmentMapper shipmentMapper;
+    private final cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi organizations;
 
     @Transactional(rollbackFor = Exception.class)
     public void apply(ApplyDeviceShipmentCommand command) {
@@ -60,5 +61,7 @@ public class DeviceShipmentService {
         projection.setContractNo(latest.getContractNo());
         projection.setShipmentRecordId(latest.getId());
         deviceMapper.updateById(projection);
+        organizations.refresh(new cn.iocoder.yudao.module.pms.asset.api.device.DeviceOrganizationProjectionApi.Refresh(
+                command.tenantId(),java.util.Set.of(device.getId()),java.util.Set.of(),java.util.Set.of()));
     }
 }

@@ -20,11 +20,6 @@ public class ResourceReadySaveReqVO {
     @NotNull(message = "项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "资源编码，项目内唯一且创建后不可变", requiredMode = Schema.RequiredMode.REQUIRED, example = "R20260101001")
-    @NotBlank(message = "资源编码不能为空")
-    @Size(max = 64, message = "资源编码长度不能超过 64 个字符")
-    private String code;
-
     @Schema(description = "资源名称", requiredMode = Schema.RequiredMode.REQUIRED, example = "核心交换机备件")
     @NotBlank(message = "资源名称不能为空")
     @Size(max = 128, message = "资源名称长度不能超过 128 个字符")

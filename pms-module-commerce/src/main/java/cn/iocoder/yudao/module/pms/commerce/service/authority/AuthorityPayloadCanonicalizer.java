@@ -17,7 +17,7 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** ERP权威事实的稳定载荷表示；expectedPreviousSourceVersion不属于Owner载荷。 */
+/** ERP权威事实的稳定载荷表示；expectedPreviousSourceVersion不属于Owner载荷。customInfo原样透传，不入载荷。 */
 @Component
 public class AuthorityPayloadCanonicalizer {
 
@@ -85,10 +85,9 @@ public class AuthorityPayloadCanonicalizer {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("salesOrderSourceKey", salesOrderSourceKey);
         value.put("lineCode", row.getLineCode());
-        value.put("itemCode", row.getItemCode());
-        value.put("itemDescription", row.getItemDesc());
         value.put("productCode", row.getProductCode());
-        value.put("modelCode", row.getModelCode());
+        value.put("productModel", row.getProductModel());
+        value.put("productDesc", row.getProductDesc());
         value.put("orderQuantity", decimal(row.getOrderQty()));
         value.put("openQuantity", decimal(row.getOpenQty()));
         value.put("deliveredQuantity", decimal(row.getDeliveredQty()));
@@ -181,10 +180,9 @@ public class AuthorityPayloadCanonicalizer {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("salesOrderSourceKey", fact.salesOrderSourceKey());
         value.put("lineCode", fact.lineCode());
-        value.put("itemCode", fact.itemCode());
-        value.put("itemDescription", fact.itemDescription());
         value.put("productCode", fact.productCode());
-        value.put("modelCode", fact.modelCode());
+        value.put("productModel", fact.productModel());
+        value.put("productDesc", fact.productDesc());
         value.put("orderQuantity", decimal(fact.orderQuantity()));
         value.put("openQuantity", decimal(fact.openQuantity()));
         value.put("deliveredQuantity", decimal(fact.deliveredQuantity()));

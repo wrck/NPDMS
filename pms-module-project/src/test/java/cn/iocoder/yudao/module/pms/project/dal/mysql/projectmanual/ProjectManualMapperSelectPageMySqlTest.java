@@ -1,0 +1,438 @@
+package cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual;
+
+import cn.iocoder.yudao.framework.common.pojo.PageParam;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.VisibleProjectPageQuery;
+import jakarta.annotation.Resource;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/** 真实 MySQL 验证 XML selectVisiblePage 语义（状态阶段/时间左闭右开/合同/归属/当事方）。 */
+@EnabledIfSystemProperty(named = "skipITs", matches = "false")
+@SpringBootTest(classes = ProjectManualMySqlTestApplication.class,
+        webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@org.springframework.transaction.annotation.Transactional
+class ProjectManualMapperSelectPageMySqlTest {
+
+    private static final long TENANT = 0L;
+    private static final LocalDateTime EFFECTIVE_AT = LocalDateTime.now();
+
+    @Resource
+    private ProjectMasterMapper projectMasterMapper;
+    @Resource
+    private JdbcTemplate jdbcTemplate;
+    @Resource
+    private ProjectOverdueMapper overdueMapper;
+    @Resource
+    private ProjectStageInstanceMapper stageMapper;
+    @Resource
+    private org.springframework.transaction.PlatformTransactionManager transactions;
+    @Resource
+    private org.mybatis.spring.SqlSessionTemplate sqlSession;
+
+    private final Set<Long> fixtureProjectIds = new HashSet<>();
+
+    @DynamicPropertySource
+    static void mysqlProperties(DynamicPropertyRegistry registry) {
+        Map<String, String> environment = System.getenv();
+        String database = environment.getOrDefault("NPDMS_DB_NAME", "npdms");
+        String port = environment.getOrDefault("NPDMS_MYSQL_PORT", "13306");
+        registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
+                + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
+        registry.add("spring.datasource.username", () -> required(environment, "NPDMS_DB_USER"));
+        registry.add("spring.datasource.password", () -> required(environment, "NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
+        registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
+        registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");
+        registry.add("yudao.info.base-package", () -> "cn.iocoder.yudao.module.pms.project");
+        registry.add("mybatis-plus.global-config.db-config.id-type", () -> "ASSIGN_ID");
+    }
+
+    @AfterEach
+    void cleanupFixture() {
+        // Spring rolls back the fixture and its trigger facts together; self-referencing task FKs remain enabled.
+        fixtureProjectIds.clear();
+    }
+
+    @Test
+    void overdueFactsSupportEmptyProjectsAndMixedSchemaCollations() throws Exception {
+        long project = insertProject("S1", "ACTIVE", "OVERDUE-COLLATION");
+        // Production tenant/data-permission interceptors parse this SQL before MySQL receives it.
+        var statement = sqlSession.getConfiguration().getMappedStatement(
+                ProjectOverdueMapper.class.getName() + ".selectStatusFacts");
+        com.baomidou.mybatisplus.extension.parser.JsqlParserGlobal.parse(
+                statement.getBoundSql(Map.of("query", statusQuery())).getSql());
+        assertTrue(overdueMapper.selectStatusFacts(statusQuery()).isEmpty());
+        long stage = insertStage(project, EFFECTIVE_AT.minusDays(1), null);
+        jdbcTemplate.update("UPDATE proj_project_stage SET name=? WHERE tenant_id=? AND id=?",
+                "阶段兼容🙂", TENANT, stage);
+        assertEquals("阶段兼容🙂", overdueMapper.selectStatusFacts(statusQuery()).getFirst().getNodeName());
+        stageMapper.updateStatusIfMatch(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate(
+                TENANT, project, stage, 0, "ACTIVE", "DONE", "it-overdue", EFFECTIVE_AT));
+        var completed = overdueMapper.selectStatusFacts(statusQuery()).getFirst();
+        assertEquals("阶段兼容🙂", completed.getNodeName());
+        assertTrue(completed.getCompletedAt() != null);
+        assertTrue(overdueMapper.selectStatusFacts(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery(
+                        TENANT, Set.of(), EFFECTIVE_AT)).isEmpty());
+    }
+
+    @Test
+    void statisticsMatchPageTotalsAndRespectTenantDeletionAndEmptyScope() throws Exception {
+        for (int i = 0; i <= 6; i++) insertProject("S" + i, "ACTIVE", "STAT-S" + i);
+        long normal = insertProject("S1", "NORMAL_CLOSED", "STAT-NORMAL");
+        insertProject("S2", "NO_TRACKING_CLOSED", "STAT-NO-TRACKING");
+        insertProject("S3", "EXCEPTION_CLOSED", "STAT-EXCEPTION");
+        long hidden = insertProject("S1", "ACTIVE", "STAT-HIDDEN");
+        long deleted = insertProject("S1", "ACTIVE", "STAT-DELETED");
+        jdbcTemplate.update("UPDATE proj_project SET deleted=b'1' WHERE id=?", deleted);
+        var visible = new HashSet<>(fixtureProjectIds); visible.remove(hidden);
+        long overdueProject = selectPageIds(builder().status("S1").visibleProjectIds(visible).build()).getFirst();
+        insertStage(overdueProject, EFFECTIVE_AT.minusDays(1), null);
+        insertTask(overdueProject, null, EFFECTIVE_AT.minusDays(1));
+        insertStage(normal, EFFECTIVE_AT.minusDays(1), null);
+        sqlSession.clearCache();
+        var q = new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatisticsQuery(TENANT, visible, EFFECTIVE_AT);
+        var statement = sqlSession.getConfiguration().getMappedStatement(ProjectMasterMapper.class.getName() + ".selectStatistics");
+        com.baomidou.mybatisplus.extension.parser.JsqlParserGlobal.parse(statement.getBoundSql(Map.of("query", q)).getSql());
+        var result = projectMasterMapper.selectStatistics(q);
+        assertEquals(10, result.getTotal());
+        assertEquals(projectMasterMapper.selectPage(builder().visibleProjectIds(visible).build()).getTotal(), result.getTotal());
+        assertEquals(projectMasterMapper.selectPage(builder().visibleProjectIds(visible).overdueOnly(true).build()).getTotal(), result.getOverdue());
+        assertEquals(1, result.getOverdue()); // Two overdue nodes still count as one project; closed rows do not count.
+        long[] counts = { result.getS0(), result.getS1(), result.getS2(), result.getS3(), result.getS4(), result.getS5(), result.getS6(),
+                result.getNormalClosed(), result.getNoTrackingClosed(), result.getExceptionClosed() };
+        String[] statuses = { "S0", "S1", "S2", "S3", "S4", "S5", "S6", "NORMAL_CLOSED", "NO_TRACKING_CLOSED", "EXCEPTION_CLOSED" };
+        for (int i = 0; i < statuses.length; i++) {
+            assertEquals(1, counts[i], statuses[i]);
+            assertEquals(projectMasterMapper.selectPage(builder().visibleProjectIds(visible).status(statuses[i]).build()).getTotal(), counts[i], statuses[i]);
+        }
+        assertEquals(0, projectMasterMapper.selectStatistics(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatisticsQuery(TENANT + 1, visible, EFFECTIVE_AT)).getTotal());
+        assertEquals(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.projection.ProjectStatistics(),
+                projectMasterMapper.selectStatistics(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatisticsQuery(TENANT, Set.of(), EFFECTIVE_AT)));
+        assertEquals(0, projectMasterMapper.selectStatistics(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatisticsQuery(TENANT, null, EFFECTIVE_AT)).getTotal());
+    }
+
+    @Test
+    void stageStatusFiltersCurrentStageWithActiveLifecycle() {
+        long stageProject = insertProject("S1", "ACTIVE", "S1-ACTIVE");
+        long closedAtS1 = insertProject("S1", "NORMAL_CLOSED", "CLOSED-AT-S1");
+
+        List<Long> ids = selectPageIds(builder().status("S1").build());
+
+        assertTrue(ids.contains(stageProject));
+        assertFalse(ids.contains(closedAtS1));
+    }
+
+    @Test
+    void closureStatusMatchesLifecycleWithoutStage() {
+        long activeS1 = insertProject("S1", "ACTIVE", "ACTIVE-S1");
+        long normalClosed = insertProject("S1", "NORMAL_CLOSED", "NORMAL-CLOSED");
+
+        List<Long> ids = selectPageIds(builder().status("NORMAL_CLOSED").build());
+
+        assertTrue(ids.contains(normalClosed));
+        assertFalse(ids.contains(activeS1));
+    }
+
+    @Test
+    void blankStatusKeepsActiveAndClosedRows() {
+        long active = insertProject("S2", "ACTIVE", "BLANK-ACTIVE");
+        long closed = insertProject("S2", "NORMAL_CLOSED", "BLANK-CLOSED");
+
+        List<Long> ids = selectPageIds(builder().build());
+
+        assertTrue(ids.contains(active));
+        assertTrue(ids.contains(closed));
+    }
+
+    @Test
+    void timeRangesUseLeftClosedRightOpen() {
+        long created = insertProject("S0", "ACTIVE", "TIME");
+        jdbcTemplate.update("UPDATE proj_project SET create_time=? WHERE tenant_id=? AND id=?",
+                LocalDateTime.of(2026, 9, 1, 0, 0), TENANT, created);
+        jdbcTemplate.update("UPDATE proj_project SET project_close_time=? WHERE tenant_id=? AND id=?",
+                LocalDateTime.of(2026, 9, 10, 0, 0), TENANT, created);
+
+        // [9-01 00:00, 9-02 00:00) 命中创建时间
+        assertTrue(selectPageIds(builder()
+                .createTimeStart(LocalDateTime.of(2026, 9, 1, 0, 0))
+                .createTimeEnd(LocalDateTime.of(2026, 9, 2, 0, 0)).build()).contains(created));
+        // 右开：9-01 00:00 作为 endExclusive 不命中
+        assertFalse(selectPageIds(builder()
+                .createTimeEnd(LocalDateTime.of(2026, 9, 1, 0, 0)).build()).contains(created));
+        // 闭环时间右开边界
+        assertTrue(selectPageIds(builder()
+                .closeTimeStart(LocalDateTime.of(2026, 9, 10, 0, 0))
+                .closeTimeEnd(LocalDateTime.of(2026, 9, 11, 0, 0)).build()).contains(created));
+        assertFalse(selectPageIds(builder()
+                .closeTimeEnd(LocalDateTime.of(2026, 9, 10, 0, 0)).build()).contains(created));
+    }
+
+    @Test
+    void contractAndOwnershipFiltersMatch() {
+        long project = insertProject("S0", "ACTIVE", "ATTR");
+        jdbcTemplate.update("UPDATE proj_project SET contract_no=?, company_id=?, department_id=?, "
+                        + "major_project_level=? WHERE tenant_id=? AND id=?",
+                "HT-XML-2026-001", 88001L, 88002L, "OFFICE_MAJOR", TENANT, project);
+
+        assertTrue(selectPageIds(builder().contractNoKeyword("XML-2026").build()).contains(project));
+        assertTrue(selectPageIds(builder().companyId(88001L).build()).contains(project));
+        assertTrue(selectPageIds(builder().departmentId(88002L).build()).contains(project));
+        assertTrue(selectPageIds(builder().majorProjectLevel("OFFICE_MAJOR").build()).contains(project));
+        assertFalse(selectPageIds(builder().contractNoKeyword("XML-NONE").build()).contains(project));
+        assertFalse(selectPageIds(builder().companyId(99999L).build()).contains(project));
+    }
+
+    @Test
+    void customerFilterIsExactAndIntersectsNameAndVisibleScope() {
+        long matching = insertProject("S0", "ACTIVE", "CUSTOMER-A");
+        long sameCustomer = insertProject("S0", "ACTIVE", "CUSTOMER-B");
+        long otherCustomer = insertProject("S0", "ACTIVE", "CUSTOMER-C");
+        jdbcTemplate.update("UPDATE proj_project SET customer_code=? WHERE tenant_id=? AND id IN (?,?)",
+                "IT-CRM-001", TENANT, matching, sameCustomer);
+        jdbcTemplate.update("UPDATE proj_project SET customer_code=? WHERE tenant_id=? AND id=?",
+                "IT-CRM-001-OTHER", TENANT, otherCustomer);
+
+        assertEquals(Set.of(matching, sameCustomer), new HashSet<>(
+                selectPageIds(builder().customerCode("IT-CRM-001").build())));
+        assertEquals(List.of(matching), selectPageIds(builder().customerCode("IT-CRM-001")
+                .projectNameKeyword("CUSTOMER-A").build()));
+        assertEquals(List.of(sameCustomer), selectPageIds(builder().customerCode("IT-CRM-001")
+                .visibleProjectIds(Set.of(sameCustomer, otherCustomer)).build()));
+        assertTrue(selectPageIds(builder().customerCode("IT-CRM").build()).isEmpty());
+        assertTrue(selectPageIds(builder().customerCode("IT-CRM-001")
+                .visibleProjectIds(Set.of()).build()).isEmpty());
+        assertEquals(3, selectPageIds(builder().customerCode("").build()).size());
+        assertTrue(selectPageIds(builder().customerCode("IT-CRM-001").tenantId(TENANT + 1).build()).isEmpty());
+    }
+
+    @Test
+    void agentServiceProviderKeywordMatchesCurrentPartyOnly() {
+        long project = insertProject("S0", "ACTIVE", "PARTY");
+        jdbcTemplate.update("INSERT INTO proj_project_party "
+                        + "(id, tenant_id, project_id, party_role, party_code, party_name, status, "
+                        + "source_system, source_table, source_record_key, creator, updater, version, deleted) "
+                        + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,0,b'0')",
+                project + 1, TENANT, project, "AGENT", "AG-XML-001", "IT-XML-代理商科技", "ACTIVE",
+                "IT-XML-TEST", "proj_project_party", String.valueOf(project), "it", "it");
+        // 已闭合历史区间不参与匹配
+        jdbcTemplate.update("INSERT INTO proj_project_party "
+                        + "(id, tenant_id, project_id, party_role, party_code, party_name, status, effective_from, effective_to, "
+                        + "source_system, source_table, source_record_key, creator, updater, version, deleted) "
+                        + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,b'0')",
+                project + 2, TENANT, project, "SERVICE_PROVIDER", "SP-XML-OLD", "IT-XML-旧服务商", "ACTIVE",
+                EFFECTIVE_AT.minusDays(10), EFFECTIVE_AT.minusDays(1),
+                "IT-XML-TEST", "proj_project_party", String.valueOf(project), "it", "it");
+
+        assertTrue(selectPageIds(builder().agentServiceProviderKeyword("代理商科技").build()).contains(project));
+        assertTrue(selectPageIds(builder().agentServiceProviderKeyword("AG-XML-001").build()).contains(project));
+        assertFalse(selectPageIds(builder().agentServiceProviderKeyword("旧服务商").build()).contains(project));
+        assertFalse(selectPageIds(builder().agentServiceProviderKeyword("XML-NONE").build()).contains(project));
+    }
+
+    @Test
+    void emptyPermissionSetReturnsEmptyPageWithoutQuery() {
+        PageResult<ProjectMasterDO> result = projectMasterMapper.selectPage(
+                builder().visibleProjectIds(Set.of()).build());
+        assertEquals(0L, result.getTotal());
+        assertTrue(result.getList().isEmpty());
+    }
+
+    private VisibleProjectPageQuery.VisibleProjectPageQueryBuilder builder() {
+        PageParam pageParam = new PageParam();
+        pageParam.setPageNo(1);
+        pageParam.setPageSize(100);
+        return VisibleProjectPageQuery.builder()
+                .tenantId(TENANT)
+                .visibleProjectIds(new HashSet<>(fixtureProjectIds))
+                .pageParam(pageParam)
+                .effectiveAt(EFFECTIVE_AT);
+    }
+
+    @Test
+    void overdueDatesUseNodePlansAndDoNotCountDeadlineDay() {
+        long stageProject = insertProject("S1", "ACTIVE", "OVERDUE-STAGE");
+        long taskProject = insertProject("S4", "ACTIVE", "OVERDUE-TASK");
+        LocalDateTime day = EFFECTIVE_AT.toLocalDate().atStartOfDay();
+        long stage = insertStage(stageProject, day.minusDays(1), day.plusDays(1));
+        long task = insertTask(taskProject, day.plusDays(1), day.minusDays(1));
+        assertEquals(Set.of(stageProject, taskProject), new HashSet<>(selectPageIds(builder().overdueOnly(true).build())));
+        var facts = overdueMapper.selectStatusFacts(statusQuery());
+        assertEquals(2, facts.size());
+        var stageFact = facts.stream().filter(row -> row.getNodeId().equals(stage)).findFirst().orElseThrow();
+        assertTrue(stageFact.getWorkOverdue()); assertFalse(stageFact.getAcceptanceOverdue());
+        var taskFact = facts.stream().filter(row -> row.getNodeId().equals(task)).findFirst().orElseThrow();
+        assertFalse(taskFact.getWorkOverdue()); assertTrue(taskFact.getAcceptanceOverdue());
+
+        jdbcTemplate.update("UPDATE proj_project_stage SET plan_end_time=?,acceptance_time=? WHERE tenant_id=? AND id=?", day, day, TENANT, stage);
+        jdbcTemplate.update("UPDATE proj_project_task SET plan_end_time=?,acceptance_time=? WHERE tenant_id=? AND id=?", day, day, TENANT, task);
+        assertTrue(selectPageIds(builder().overdueOnly(true).build()).isEmpty());
+        assertTrue(overdueMapper.selectStatusFacts(statusQuery()).isEmpty());
+        jdbcTemplate.update("UPDATE proj_project_task SET plan_end_time=?,acceptance_time=? WHERE tenant_id=? AND id=?", day.minusDays(1), day.minusDays(1), TENANT, task);
+        taskFact = overdueMapper.selectStatusFacts(statusQuery()).getFirst();
+        assertTrue(taskFact.getWorkOverdue()); assertTrue(taskFact.getAcceptanceOverdue());
+    }
+
+    @Test
+    void overdueYesAndNoPartitionAllVisibleProjects() {
+        LocalDateTime day = EFFECTIVE_AT.toLocalDate().atStartOfDay();
+        long stageLate = insertProject("S1", "ACTIVE", "FILTER-STAGE-LATE");
+        long taskLate = insertProject("S4", "ACTIVE", "FILTER-TASK-LATE");
+        long today = insertProject("S1", "ACTIVE", "FILTER-TODAY");
+        long noDates = insertProject("S0", "ACTIVE", "FILTER-NO-DATES");
+        long completed = insertProject("S1", "ACTIVE", "FILTER-COMPLETED");
+        long closed = insertProject("S1", "NORMAL_CLOSED", "FILTER-CLOSED");
+        insertStage(stageLate, day.minusDays(1), null);
+        insertTask(taskLate, null, day.minusDays(1));
+        insertStage(today, day, day);
+        insertTask(noDates, null, null);
+        long completedStage = insertStage(completed, day.minusDays(1), day.minusDays(1));
+        stageMapper.updateStatusIfMatch(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate(
+                TENANT, completed, completedStage, 0, "ACTIVE", "DONE", "it-overdue", EFFECTIVE_AT));
+        insertStage(closed, day.minusDays(1), day.minusDays(1));
+
+        Set<Long> yes = new HashSet<>(selectPageIds(builder().overdueOnly(true).build()));
+        Set<Long> no = new HashSet<>(selectPageIds(builder().overdueOnly(false).build()));
+        assertEquals(Set.of(stageLate, taskLate), yes);
+        assertEquals(Set.of(today, noDates, completed, closed), no);
+        assertTrue(java.util.Collections.disjoint(yes, no));
+        yes.addAll(no);
+        assertEquals(new HashSet<>(selectPageIds(builder().build())), yes);
+    }
+
+    @Test
+    void notOverdueFilterKeepsCustomerStageTenantAndPermissionIntersection() {
+        long visible = insertProject("S1", "ACTIVE", "NO-SCOPE-VISIBLE");
+        long wrongCustomer = insertProject("S1", "ACTIVE", "NO-SCOPE-CUSTOMER");
+        long wrongStage = insertProject("S2", "ACTIVE", "NO-SCOPE-STAGE");
+        long wrongTenant = insertProject("S1", "ACTIVE", "NO-SCOPE-TENANT");
+        long hidden = insertProject("S1", "ACTIVE", "NO-SCOPE-HIDDEN");
+        for (long id : List.of(visible, wrongStage, wrongTenant, hidden)) {
+            jdbcTemplate.update("UPDATE proj_project SET customer_code='IT-OVERDUE-FILTER' WHERE id=? AND tenant_id=?", id, TENANT);
+        }
+        jdbcTemplate.update("UPDATE proj_project SET tenant_id=? WHERE id=? AND tenant_id=?", TENANT + 1, wrongTenant, TENANT);
+        Set<Long> scope = Set.of(visible, wrongCustomer, wrongStage, wrongTenant);
+        assertEquals(List.of(visible), selectPageIds(builder().overdueOnly(false)
+                .customerCode("IT-OVERDUE-FILTER").status("S1").visibleProjectIds(scope).build()));
+        assertTrue(selectPageIds(builder().overdueOnly(false).visibleProjectIds(Set.of()).build()).isEmpty());
+    }
+
+    @Test
+    void completionStopsBothFlagsAndPreservesCompletionSnapshotWhenPlansChange() {
+        long project = insertProject("S4", "ACTIVE", "OVERDUE-COMPLETE");
+        LocalDateTime day = EFFECTIVE_AT.toLocalDate().atStartOfDay();
+        long stage = insertStage(project, day.minusDays(1), day.minusDays(2));
+        long task = insertTask(project, null, day.minusDays(1));
+        assertEquals(1, stageMapper.updateStatusIfMatch(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate(
+                TENANT, project, stage, 0, "ACTIVE", "DONE", "it-overdue", EFFECTIVE_AT)));
+        assertEquals(0, stageMapper.updateStatusIfMatch(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate(
+                TENANT, project, stage, 0, "ACTIVE", "DONE", "it-overdue", EFFECTIVE_AT)));
+        var saved = overdueMapper.selectStatusFacts(statusQuery()).stream().filter(row -> row.getCompletedAt() != null).findFirst().orElseThrow();
+        assertTrue(saved.getWorkOverdue()); assertTrue(saved.getAcceptanceOverdue());
+        assertEquals(day.minusDays(1), saved.getPlanEndTime());
+        assertEquals(List.of(project), selectPageIds(builder().overdueOnly(true).build()));
+        jdbcTemplate.update("UPDATE proj_project_stage SET plan_end_time=?,acceptance_time=?,version=version+1 WHERE tenant_id=? AND id=?", day.plusDays(5), day.plusDays(5), TENANT, stage);
+        var retained = overdueMapper.selectStatusFacts(statusQuery()).stream().filter(row -> row.getCompletedAt() != null).findFirst().orElseThrow();
+        assertEquals(saved, retained);
+        // This statement operates only on the explicit IT fixture, never an application task.
+        jdbcTemplate.update("UPDATE proj_project_task SET status='DONE',actual_end_time=?,version=version+1 WHERE tenant_id=? AND id=?", EFFECTIVE_AT, TENANT, task);
+        assertTrue(selectPageIds(builder().overdueOnly(true).build()).isEmpty());
+        var completed = overdueMapper.selectStatusFacts(statusQuery());
+        assertEquals(2, completed.size()); assertTrue(completed.stream().allMatch(row -> row.getCompletedAt() != null));
+        assertEquals(2, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM proj_node_overdue_completion WHERE tenant_id=? AND project_id=?", Integer.class, TENANT, project));
+    }
+
+    @Test
+    void overdueScopeExcludesDeletedClosedAndCancelledNodesAndEmptyPermissions() {
+        long project = insertProject("S1", "ACTIVE", "OVERDUE-SCOPE");
+        LocalDateTime day = EFFECTIVE_AT.toLocalDate().atStartOfDay().minusDays(1);
+        long stage = insertStage(project, day, day);
+        var empty = new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery(TENANT, Set.of(), EFFECTIVE_AT);
+        assertTrue(overdueMapper.selectStatusFacts(empty).isEmpty());
+        assertTrue(overdueMapper.selectStatusFacts(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery(TENANT + 1, Set.of(project), EFFECTIVE_AT)).isEmpty());
+        jdbcTemplate.update("UPDATE proj_project SET lifecycle_status='NORMAL_CLOSED' WHERE tenant_id=? AND id=?", TENANT, project);
+        assertTrue(selectPageIds(builder().overdueOnly(true).build()).isEmpty());
+        jdbcTemplate.update("UPDATE proj_project SET lifecycle_status='ACTIVE' WHERE tenant_id=? AND id=?", TENANT, project);
+        jdbcTemplate.update("UPDATE proj_project_stage SET deleted=b'1' WHERE tenant_id=? AND id=?", TENANT, stage);
+        assertTrue(overdueMapper.selectStatusFacts(statusQuery()).isEmpty());
+        jdbcTemplate.update("UPDATE proj_project_stage SET deleted=b'0',status='TERMINATED' WHERE tenant_id=? AND id=?", TENANT, stage);
+        assertTrue(selectPageIds(builder().overdueOnly(true).build()).isEmpty());
+    }
+
+    @Test
+    void failedStageTransactionRollsBackCompletionAndItsSnapshot() {
+        long project = insertProject("S1", "ACTIVE", "OVERDUE-ROLLBACK");
+        LocalDateTime day = EFFECTIVE_AT.toLocalDate().atStartOfDay().minusDays(1);
+        long stage = insertStage(project, day, day);
+        var nested = new org.springframework.transaction.support.TransactionTemplate(transactions);
+        nested.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_NESTED);
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () ->
+                nested.execute(status -> {
+                    assertEquals(1, stageMapper.updateStatusIfMatch(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate(
+                            TENANT, project, stage, 0, "ACTIVE", "DONE", "it-overdue", EFFECTIVE_AT)));
+                    throw new IllegalStateException("fixture failure after stage completion");
+                }));
+        assertEquals("ACTIVE", jdbcTemplate.queryForObject("SELECT status FROM proj_project_stage WHERE tenant_id=? AND id=?", String.class, TENANT, stage));
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM proj_node_overdue_completion WHERE tenant_id=? AND project_id=?", Integer.class, TENANT, project));
+    }
+
+    private cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery statusQuery() {
+        // Fixture changes use JdbcTemplate rather than a MyBatis write, so invalidate only this test session cache.
+        sqlSession.clearCache();
+        return new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery(TENANT, Set.copyOf(fixtureProjectIds), EFFECTIVE_AT);
+    }
+    private long insertStage(long project, LocalDateTime end, LocalDateTime acceptance) {
+        long id = project + 10;
+        jdbcTemplate.update("INSERT INTO proj_project_stage (id,project_id,stage_code,name,status,plan_end_time,acceptance_time,tenant_id,creator) VALUES (?,?,'IT-OVERDUE','IT overdue stage','ACTIVE',?,?,?,'it-feedback-overdue')", id, project, end, acceptance, TENANT);
+        return id;
+    }
+    private long insertTask(long project, LocalDateTime end, LocalDateTime acceptance) {
+        long id = project + 20;
+        jdbcTemplate.update("INSERT INTO proj_project_task (id,project_id,task_code,name,root_task_id,state_machine_revision_id,stage_code,status,plan_end_time,acceptance_time,tenant_id,creator) VALUES (?,?,'IT-OVERDUE','IT overdue task',?,1,'IT-OVERDUE','IN_PROGRESS',?,?,?,'it-feedback-overdue')", id, project, id, end, acceptance, TENANT);
+        return id;
+    }
+
+    private List<Long> selectPageIds(VisibleProjectPageQuery query) {
+        sqlSession.clearCache();
+        return projectMasterMapper.selectPage(query).getList()
+                .stream().map(ProjectMasterDO::getId).toList();
+    }
+
+    private long insertProject(String currentStage, String lifecycleStatus, String codeSuffix) {
+        long seed = Math.abs(UUID.randomUUID().getLeastSignificantBits() % 1_000_000L);
+        long id = 976_000_000_000L + seed * 100L;
+        jdbcTemplate.update("INSERT INTO proj_project "
+                        + "(id, project_code, code_root_id, project_sequence, project_name, root_id, tree_path, "
+                        + "tree_depth, tree_sort, status, lifecycle_status, current_stage, assignment_status, "
+                        + "task_tree_version, task_progress_version, version, tenant_id) "
+                        + "VALUES (?,?,?,?,?,?,?,?,?, 'ACTIVE', ?, ?, 'UNASSIGNED', 0, 0, 0, ?)",
+                id, "IT-XML-" + codeSuffix + "-" + id, id, 0, "IT-XML " + codeSuffix, id, "/", 0, 0,
+                lifecycleStatus, currentStage, TENANT);
+        fixtureProjectIds.add(id);
+        return id;
+    }
+
+    private static String required(Map<String, String> environment, String name) {
+        String value = environment.get(name);
+        if (value == null || value.isBlank()) throw new IllegalStateException("缺少环境变量：" + name);
+        return value;
+    }
+}

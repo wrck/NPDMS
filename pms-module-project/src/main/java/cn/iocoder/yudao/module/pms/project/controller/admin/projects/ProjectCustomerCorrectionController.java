@@ -28,7 +28,7 @@ public class ProjectCustomerCorrectionController {
     @PutMapping
     @PreAuthorize("@ss.hasPermission('pms:project:update')")
     public CommonResult<Result> correct(@PathVariable @Positive Long projectId,
-            @RequestHeader("If-Match") @Min(0) Integer expectedVersion,
+            @RequestHeader("If-Match") @Min(0) Long expectedVersion,
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max=128) String key,
             @Valid @RequestBody Request request) {
         return success(service.correct(new Command(projectId, expectedVersion, request.customerCode(), request.reason(), key), actor()));

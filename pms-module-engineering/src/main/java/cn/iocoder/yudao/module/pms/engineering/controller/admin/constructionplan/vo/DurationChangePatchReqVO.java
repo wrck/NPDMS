@@ -12,7 +12,7 @@ import java.util.Set;
 
 @Getter
 public class DurationChangePatchReqVO {
-    @NotNull @Min(0) private Integer expectedProjectVersion;
+    @NotNull @Min(0) private Long expectedProjectVersion;
     @Size(max = 32) private String calculationBasis;
     private LocalDate startDate;
     private LocalDate endDate;
@@ -24,7 +24,7 @@ public class DurationChangePatchReqVO {
     @Size(max = 128) private String customerEvidenceReferenceKey;
     @JsonIgnore private final Set<String> submittedFields = new LinkedHashSet<>();
 
-    public void setExpectedProjectVersion(Integer value) { expectedProjectVersion = value; }
+    public void setExpectedProjectVersion(Long value) { expectedProjectVersion = value; }
     public void setCalculationBasis(String value) { calculationBasis = value; submittedFields.add("calculationBasis"); }
     public void setStartDate(LocalDate value) { startDate = value; submittedFields.add("startDate"); }
     public void setEndDate(LocalDate value) { endDate = value; submittedFields.add("endDate"); }

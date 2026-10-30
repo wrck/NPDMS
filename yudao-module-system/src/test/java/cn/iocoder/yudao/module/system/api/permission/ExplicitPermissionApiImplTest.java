@@ -1,8 +1,14 @@
 package cn.iocoder.yudao.module.system.api.permission;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.datapermission.core.aop.DataPermissionContextHolder;
+import cn.iocoder.yudao.framework.datapermission.core.db.DataPermissionRuleHandler;
+import cn.iocoder.yudao.framework.datapermission.core.rule.DataPermissionRule;
+import cn.iocoder.yudao.framework.datapermission.core.rule.DataPermissionRuleFactoryImpl;
 import cn.iocoder.yudao.module.system.dal.mysql.permission.ExplicitPermissionMapper;
+import cn.iocoder.yudao.module.system.dal.mysql.permission.query.ExplicitPermissionQuery;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.DataPermissionInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
 import net.sf.jsqlparser.expression.Expression;
@@ -32,7 +38,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -66,6 +75,7 @@ class ExplicitPermissionApiImplTest {
 
     @AfterEach
     void tearDown() {
+        DataPermissionContextHolder.clear();
         TenantContextHolder.clear();
         if (jdbc != null) {
             jdbc.execute("SHUTDOWN");
@@ -73,6 +83,37 @@ class ExplicitPermissionApiImplTest {
         if (context != null) {
             context.close();
         }
+    }
+
+    @Test
+    void explicitGrantIsIndependentOfCallersUserListScopeAndRestoresThatScope() {
+        context.getBean(AtomicBoolean.class).set(true);
+        var mapper = context.getBean(ExplicitPermissionMapper.class);
+        var query = ExplicitPermissionQuery.builder().tenantId(1L).userId(101L)
+                .permission(PERMISSION).enabledStatus(0).build();
+        assertFalse(mapper.existsExplicitPermission(query), "ordinary query is limited to caller 999");
+        assertBoth(true, PERMISSION);
+        assertNull(DataPermissionContextHolder.get());
+        assertFalse(mapper.existsExplicitPermission(query), "internal check must not widen later queries");
+        jdbc.update("UPDATE system_role_menu SET deleted = TRUE WHERE id = 501");
+        assertBoth(false, PERMISSION);
+        assertNull(DataPermissionContextHolder.get());
+    }
+
+    @Test
+    void restrictedCallerStillRejectsDisabledAndCrossTenantReviewersAndRestoresScopeOnFailure() {
+        context.getBean(AtomicBoolean.class).set(true);
+        jdbc.update("UPDATE system_users SET status = 1 WHERE id = 101");
+        assertBoth(false, PERMISSION);
+        jdbc.update("UPDATE system_users SET status = 0, tenant_id = 2 WHERE id = 101");
+        assertBoth(false, PERMISSION);
+        jdbc.update("UPDATE system_users SET tenant_id = 1 WHERE id = 101");
+        jdbc.execute("DROP TABLE system_role_menu");
+        assertThrows(DataAccessException.class,
+                () -> transaction.execute(s -> api.lockAndCheck(1L, 101L, PERMISSION)));
+        assertNull(DataPermissionContextHolder.get());
+        assertFalse(TenantContextHolder.isIgnore());
+        assertEquals(1L, TenantContextHolder.getTenantId());
     }
 
     @Test
@@ -218,9 +259,19 @@ class ExplicitPermissionApiImplTest {
                 () -> transaction.execute(s -> api.lockAndCheck(1L, 101L, PERMISSION)));
     }
 
+    @Test
+    void listsEveryCurrentGrantHolderOrdered() {
+        jdbc.update("INSERT INTO system_users(id, username, nickname, status, tenant_id) VALUES (102, 'explicit-test-2', 'test2', 0, 1)");
+        jdbc.update("INSERT INTO system_user_role(id, user_id, role_id, tenant_id) VALUES (303, 102, 201, 1)");
+        assertEquals(List.of(101L, 102L), api.listUsersWithPermission(1L, PERMISSION));
+        jdbc.update("UPDATE system_users SET status = 1 WHERE id = 102");
+        assertEquals(List.of(101L), api.listUsersWithPermission(1L, PERMISSION));
+    }
+
     private void assertBoth(boolean expected, String permission) {
         assertEquals(expected, api.hasExplicitPermission(1L, 101L, permission));
         assertEquals(expected, Boolean.TRUE.equals(transaction.execute(s -> api.lockAndCheck(1L, 101L, permission))));
+        assertEquals(expected ? List.of(101L) : List.of(), api.listUsersWithPermission(1L, permission));
     }
 
     @Configuration(proxyBeanMethods = false)
@@ -240,7 +291,10 @@ class ExplicitPermissionApiImplTest {
         }
 
         @Bean
-        SqlSessionFactory sqlSessionFactory(DataSource dataSource) throws Exception {
+        AtomicBoolean callerSelfScope() { return new AtomicBoolean(); }
+
+        @Bean
+        SqlSessionFactory sqlSessionFactory(DataSource dataSource, AtomicBoolean callerSelfScope) throws Exception {
             SqlSessionFactoryBean factory = new SqlSessionFactoryBean();
             factory.setDataSource(dataSource);
             factory.setMapperLocations(new ClassPathResource("mapper/permission/ExplicitPermissionMapper.xml"));
@@ -256,6 +310,18 @@ class ExplicitPermissionApiImplTest {
                     return TenantContextHolder.isIgnore() || "system_menu".equalsIgnoreCase(tableName);
                 }
             }));
+            // Exercise production SQL rewriting and context restoration, not a mocked permission result.
+            DataPermissionRule selfRule = new DataPermissionRule() {
+                @Override public Set<String> getTableNames() { return Set.of("system_users"); }
+                @Override public Expression getExpression(String tableName, net.sf.jsqlparser.expression.Alias alias) {
+                    if (!callerSelfScope.get()) return null;
+                    return new net.sf.jsqlparser.expression.operators.relational.EqualsTo(
+                            new net.sf.jsqlparser.schema.Column((alias == null ? tableName : alias.getName()) + ".id"),
+                            new LongValue(999));
+                }
+            };
+            interceptor.addInnerInterceptor(new DataPermissionInterceptor(
+                    new DataPermissionRuleHandler(new DataPermissionRuleFactoryImpl(List.of(selfRule)))));
             factory.setPlugins(interceptor);
             return factory.getObject();
         }

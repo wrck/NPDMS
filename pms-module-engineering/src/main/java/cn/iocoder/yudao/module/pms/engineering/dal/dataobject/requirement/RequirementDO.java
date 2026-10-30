@@ -1,25 +1,22 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
  * PMS 需求分析与接口规划 DO（FR-ENG-004）。
  * <p>
- * 对应表 {@code pms_eng_requirement}。
+ * 对应表 {@code sol_eng_requirement}。
  * 状态：0 草稿、1 已提交、2 已生效、3 已归档。
  */
-@TableName("pms_eng_requirement")
+@TableName("sol_eng_requirement")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class RequirementDO extends TenantBaseDO {
+public class RequirementDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -104,9 +101,4 @@ public class RequirementDO extends TenantBaseDO {
      * 备注
      */
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
 }

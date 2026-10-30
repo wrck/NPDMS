@@ -3,6 +3,9 @@ package cn.iocoder.yudao.module.pms.project.service.projectgovernance;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.AcceptanceScopeBindingApi;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingCloseCommand;
+import cn.iocoder.yudao.module.pms.project.api.acceptancescope.dto.AcceptanceScopeBindingCloseResult;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeQuery;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectgovernance.ProjectStageSnapshotDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
@@ -63,7 +66,7 @@ class ProjectGovernanceApplicationServiceTest {
     private static final Long PROJECT_ID = 11L;
     private static final Long ROOT_ID = 10L;
     private static final Long ACTOR_ID = 9L;
-    private static final Integer VERSION = 5;
+    private static final Long VERSION = 5L;
 
     private PlatformCommandExecutionApi commandExecutionApi;
     private PermissionApi permissionApi;
@@ -74,6 +77,7 @@ class ProjectGovernanceApplicationServiceTest {
     private ProjectTreeVersionMapper treeVersionMapper;
     private ProjectStageSnapshotMapper snapshotMapper;
     private ProjectStageSnapshotRepository snapshotRepository;
+    private AcceptanceScopeBindingApi acceptanceScopeBindingApi;
     private ProjectGovernanceApplicationService service;
     private AtomicReference<PlatformCommandExecutionApi.SuccessFacts> successFacts;
 
@@ -89,9 +93,12 @@ class ProjectGovernanceApplicationServiceTest {
         treeVersionMapper = mock(ProjectTreeVersionMapper.class);
         snapshotMapper = mock(ProjectStageSnapshotMapper.class);
         snapshotRepository = mock(ProjectStageSnapshotRepository.class);
+        acceptanceScopeBindingApi = mock(AcceptanceScopeBindingApi.class);
+        when(acceptanceScopeBindingApi.closeProjectBindings(any()))
+                .thenReturn(new AcceptanceScopeBindingCloseResult(0, true));
         service = new ProjectGovernanceApplicationService(commandExecutionApi, permissionApi,
                 treeScopeService, guardService, projectMapper, memberMapper, treeVersionMapper,
-                snapshotMapper, snapshotRepository);
+                snapshotMapper, snapshotRepository, acceptanceScopeBindingApi);
         successFacts = new AtomicReference<>();
         org.springframework.test.util.ReflectionTestUtils.setField(service, "childWaitEvents",
                 mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectChildWaitEvents.class));
@@ -121,6 +128,56 @@ class ProjectGovernanceApplicationServiceTest {
     @AfterEach
     void tearDown() {
         TenantContextHolder.clear();
+    }
+
+    @Test void templateReopenUsesExistingSnapshotAndPlanWithCallerSuppliedIdentities() {
+        var project = project(); project.setLifecycleStatus("NORMAL_CLOSED");
+        when(projectMapper.selectByIdForUpdate(PROJECT_ID)).thenReturn(project);
+        var plans = mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanActivationService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "plans", plans);
+        var prepared = mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanActivationService.PreparedTemplateReopen.class);
+        var previous = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO(); previous.setId(100L);
+        when(prepared.previousPlan()).thenReturn(previous); when(prepared.previousEvidence()).thenReturn("{\"oldResults\":\"retained\"}");
+        when(plans.prepareTemplateReopen(any())).thenReturn(prepared);
+        when(plans.installTemplateReopen(any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanActivationService.Applied(PROJECT_ID, 101L, 2, 7L));
+        var result = service.reopen(new ReopenProjectCommand(PROJECT_ID, VERSION, "NEW_TEMPLATE", "重新办理", null,
+                "template-reopen", "a".repeat(64), 200L), actor());
+        assertEquals("ACTIVE", result.lifecycleStatus()); assertEquals("S0", result.currentStage()); assertEquals(7L, result.projectVersion());
+        var snapshot = ArgumentCaptor.forClass(ProjectStageSnapshotDO.class);
+        var order = org.mockito.Mockito.inOrder(plans, snapshotRepository, projectMapper);
+        order.verify(plans).prepareTemplateReopen(any());
+        order.verify(snapshotRepository).append(snapshot.capture());
+        order.verify(projectMapper).updateGovernanceStateIfMatch(any());
+        order.verify(plans).installTemplateReopen(any());
+        assertEquals(1, successFacts.get().businessEvents().size());
+        assertEquals("ProjectRuleReevaluationRequested", successFacts.get().businessEvents().getFirst().eventType());
+        assertEquals("NORMAL_CLOSED", snapshot.getValue().getBeforeLifecycleStatus());
+        assertEquals("{\"oldResults\":\"retained\"}", snapshot.getValue().getProviderFactsJson());
+        assertEquals(null, snapshot.getValue().getRelatedSnapshotId());
+        verify(snapshotRepository, never()).selectLatestReusableExceptionCloseForUpdate(any());
+        verify(memberMapper, never()).closeEffectiveServiceManagerAssignments(any());
+    }
+
+    @Test void templateReopenRejectsActiveProjectBeforePlanOrSnapshotWrites() {
+        assertThrows(ServiceException.class, () -> service.reopen(new ReopenProjectCommand(PROJECT_ID, VERSION,
+                "NEW_TEMPLATE", "重新办理", null, "active", "b".repeat(64), 200L), actor()));
+        verify(snapshotRepository, never()).append(any());
+        verify(projectMapper, never()).updateGovernanceStateIfMatch(any());
+    }
+
+    @Test
+    void shouldCloseAcceptanceScopeBindingsOnRollback() {
+        service.rollback(command("f".repeat(64)), actor());
+
+        ArgumentCaptor<AcceptanceScopeBindingCloseCommand> close =
+                ArgumentCaptor.forClass(AcceptanceScopeBindingCloseCommand.class);
+        verify(acceptanceScopeBindingApi).closeProjectBindings(close.capture());
+        assertEquals(TENANT_ID, close.getValue().tenantId());
+        assertEquals(PROJECT_ID, close.getValue().projectId());
+        ArgumentCaptor<ProjectStageSnapshotDO> snapshot = ArgumentCaptor.forClass(ProjectStageSnapshotDO.class);
+        verify(snapshotRepository).append(snapshot.capture());
+        assertEquals(snapshot.getValue().getOperationId(), close.getValue().operationId());
     }
 
     @Test
@@ -358,7 +415,7 @@ class ProjectGovernanceApplicationServiceTest {
     void shouldReplayOriginalResultWithoutDuplicatingBusinessWrites() {
         GovernanceActionResult original = new GovernanceActionResult(PROJECT_ID, "ROLLBACK",
                 "ACTIVE", "S3", "ASSIGNED", "ACTIVE", "S0", "UNASSIGNED",
-                6, 91L, "operation-1", LocalDateTime.now(), false);
+                6L, 91L, "operation-1", LocalDateTime.now(), false);
         when(commandExecutionApi.execute(any(), anyString(), eq(GovernanceActionResult.class), any(), any()))
                 .thenReturn(new PlatformCommandExecutionApi.ExecutionResult<>(
                         PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, original));

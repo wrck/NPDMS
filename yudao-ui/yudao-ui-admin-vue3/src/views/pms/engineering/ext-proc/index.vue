@@ -5,9 +5,9 @@
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-220px"
         />
@@ -50,7 +50,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-ext-proc:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:imp-ext-proc:create']"
           ><Icon icon="ep:plus" />新建外采申请</el-button
         >
       </el-form-item>
@@ -70,7 +70,7 @@
           <dict-tag :type="DICT_TYPE.PMS_EXT_PROC_TYPE" :value="row.procurementType" />
         </template>
       </el-table-column>
-      <el-table-column prop="materialName" label="物料名称" min-width="140" />
+      <el-table-column prop="productName" label="产品名称/物料名称" min-width="140" />
       <el-table-column prop="specification" label="规格型号" min-width="140" />
       <el-table-column label="数量" width="110">
         <template #default="{ row }">
@@ -91,7 +91,7 @@
       <el-table-column prop="applyTime" label="申请时间" min-width="160" :formatter="dateFormatter" />
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-ext-proc:query']"
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:imp-ext-proc:query']"
             >明细</el-button
           >
           <el-button
@@ -99,7 +99,7 @@
             type="warning"
             v-if="row.status === 0 || row.status === 4"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-ext-proc:update']"
+            v-hasPermi="['pms:imp-ext-proc:update']"
             >编辑</el-button
           >
           <el-button
@@ -107,7 +107,7 @@
             type="success"
             v-if="row.status === 0 || row.status === 4"
             @click="handleSubmit(row)"
-            v-hasPermi="['pms:eng-ext-proc:submit']"
+            v-hasPermi="['pms:imp-ext-proc:submit']"
             >提交</el-button
           >
           <el-button
@@ -115,7 +115,7 @@
             type="primary"
             v-if="row.status === 1 || row.status === 2"
             @click="openApprove(row)"
-            v-hasPermi="['pms:eng-ext-proc:audit']"
+            v-hasPermi="['pms:imp-ext-proc:audit']"
             >审批</el-button
           >
           <el-button
@@ -123,7 +123,7 @@
             type="info"
             v-if="row.status === 1 || row.status === 2"
             @click="handleWithdraw(row)"
-            v-hasPermi="['pms:eng-ext-proc:submit']"
+            v-hasPermi="['pms:imp-ext-proc:submit']"
             >撤回</el-button
           >
           <el-button
@@ -131,7 +131,7 @@
             type="danger"
             v-if="row.status !== 3 && row.status !== 6"
             @click="handleTerminate(row)"
-            v-hasPermi="['pms:eng-ext-proc:audit']"
+            v-hasPermi="['pms:imp-ext-proc:audit']"
             >终止</el-button
           >
           <el-button
@@ -139,7 +139,7 @@
             type="danger"
             v-if="row.status === 0 || row.status === 4"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-ext-proc:delete']"
+            v-hasPermi="['pms:imp-ext-proc:delete']"
             >删除</el-button
           >
         </template>
@@ -149,228 +149,12 @@
   </ContentWrap>
 
   <!-- 新建/编辑对话框 -->
-  <Dialog v-model="formVisible" :title="form.id ? '编辑外采申请' : '新建外采申请'" width="min(960px, 95vw)">
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
-      <el-row :gutter="16">
-        <el-col :span="12">
-          <el-form-item label="项目" prop="projectId">
-            <el-input v-if="sourceSurveyId" :model-value="`工勘所属项目 #${form.projectId}`" disabled />
-            <PmsEntitySelect
-              v-else
-              v-model="form.projectId"
-              :api="ProjectApi.getProjectPage"
-              label-field="name"
-              value-field="id"
-              query-field="name"
-              placeholder="请选择项目"
-              :disabled="!!form.id"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="单号" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" placeholder="如 EP-2026-001" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="名称" prop="name"><el-input v-model="form.name" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="类型" prop="procurementType">
-            <el-select v-model="form.procurementType" class="!w-full">
-              <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_EXT_PROC_TYPE)"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="物料名称" prop="materialName">
-            <el-input v-model="form.materialName" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="物料编码" prop="materialCode">
-            <el-input v-model="form.materialCode" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="规格型号" prop="specification">
-            <el-input v-model="form.specification" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="品牌" prop="brand"><el-input v-model="form.brand" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="型号" prop="model"><el-input v-model="form.model" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="数量" prop="quantity">
-            <el-input-number v-model="form.quantity" :min="0" :precision="2" class="!w-full" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="单位" prop="unit">
-            <el-input v-model="form.unit" placeholder="如 个/台/套" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="单价" prop="unitPrice">
-            <el-input-number v-model="form.unitPrice" :min="0" :precision="2" class="!w-full" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="总价" prop="totalPrice">
-            <el-input-number v-model="form.totalPrice" :min="0" :precision="2" class="!w-full" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="币种" prop="currency">
-            <el-select v-model="form.currency" class="!w-full">
-              <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_CURRENCY)"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="供应商名称" prop="supplierName">
-            <el-input v-model="form.supplierName" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="供应商联系人" prop="supplierContact">
-            <el-input v-model="form.supplierContact" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="供应商电话" prop="supplierPhone">
-            <el-input v-model="form.supplierPhone" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="需求日期" prop="neededDate">
-            <el-date-picker
-              v-model="form.neededDate"
-              type="date"
-              value-format="YYYY-MM-DD"
-              placeholder="选择需求日期"
-              class="!w-full"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="预计到货日期" prop="expectedDeliveryDate">
-            <el-date-picker
-              v-model="form.expectedDeliveryDate"
-              type="date"
-              value-format="YYYY-MM-DD"
-              placeholder="选择预计到货日期"
-              class="!w-full"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="申请人" prop="applicantUserId">
-            <PmsEntitySelect
-              v-model="form.applicantUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
-              placeholder="请选择申请人"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="申请时间" prop="applyTime">
-            <el-date-picker
-              v-model="form.applyTime"
-              type="datetime"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              placeholder="选择申请时间"
-              class="!w-full"
-            />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="附件" prop="attachmentFiles">
-            <UploadFile v-model="form.attachmentFiles!" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="备注" prop="remark">
-            <el-input v-model="form.remark" type="textarea" :rows="2" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="触发来源" prop="triggerSource">
-            <el-select v-model="form.triggerSource" class="!w-full">
-              <el-option
-                v-for="dict in getStrDictOptions(DICT_TYPE.PMS_TRIGGER_SOURCE)"
-                :key="dict.value"
-                :label="dict.label"
-                :value="dict.value"
-              />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
-    <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存</el-button>
-    </template>
-  </Dialog>
+  <ExternalProcurementFormDialog
+ref="formRef" v-model="formVisible" :form="form"
+    :source-survey-id="sourceSurveyId" :saving="saving" @save="save" />
 
   <!-- 明细对话框 -->
-  <Dialog v-model="detailVisible" title="外采申请明细" width="min(960px, 95vw)">
-    <el-descriptions :column="2" border class="mb-15px">
-      <el-descriptions-item label="单号">{{ current.code }}</el-descriptions-item>
-      <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
-      <el-descriptions-item label="项目">{{ current.projectId }}</el-descriptions-item>
-      <el-descriptions-item label="类型">
-        <dict-tag :type="DICT_TYPE.PMS_EXT_PROC_TYPE" :value="current.procurementType ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="物料名称">{{ current.materialName }}</el-descriptions-item>
-      <el-descriptions-item label="物料编码">{{ current.materialCode }}</el-descriptions-item>
-      <el-descriptions-item label="规格型号">{{ current.specification }}</el-descriptions-item>
-      <el-descriptions-item label="品牌">{{ current.brand }}</el-descriptions-item>
-      <el-descriptions-item label="型号">{{ current.model }}</el-descriptions-item>
-      <el-descriptions-item label="数量">{{ current.quantity }} {{ current.unit }}</el-descriptions-item>
-      <el-descriptions-item label="单价">{{ current.unitPrice }}</el-descriptions-item>
-      <el-descriptions-item label="总价">{{ current.totalPrice }}
-        <dict-tag :type="DICT_TYPE.PMS_CURRENCY" :value="current.currency ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="币种">
-        <dict-tag :type="DICT_TYPE.PMS_CURRENCY" :value="current.currency ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="供应商名称">{{ current.supplierName }}</el-descriptions-item>
-      <el-descriptions-item label="供应商联系人">{{ current.supplierContact }}</el-descriptions-item>
-      <el-descriptions-item label="供应商电话">{{ current.supplierPhone }}</el-descriptions-item>
-      <el-descriptions-item label="需求日期">{{ current.neededDate }}</el-descriptions-item>
-      <el-descriptions-item label="预计到货日期">{{ current.expectedDeliveryDate }}</el-descriptions-item>
-      <el-descriptions-item label="申请人"><UserTag :user-id="current.applicantUserId" /></el-descriptions-item>
-      <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
-      <el-descriptions-item label="状态">
-        <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="触发来源">
-        <dict-tag :type="DICT_TYPE.PMS_TRIGGER_SOURCE" :value="current.triggerSource ?? ''" />
-      </el-descriptions-item>
-      <el-descriptions-item label="备注" :span="2">{{ current.remark }}</el-descriptions-item>
-      <el-descriptions-item v-if="current.approveOpinion" label="审批意见" :span="2">
-        {{ current.approveOpinion }}
-      </el-descriptions-item>
-    </el-descriptions>
-  </Dialog>
+  <ExternalProcurementDetailDialog v-model="detailVisible" :current="current" />
 
   <!-- 审批对话框 -->
   <Dialog v-model="approveVisible" title="审批外采申请" width="560px">
@@ -385,12 +169,10 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item label="审批人" prop="approverUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="approveForm.approverUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择审批人"
         />
       </el-form-item>
@@ -406,6 +188,11 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
+import ExternalProcurementFormDialog from './ExternalProcurementFormDialog.vue'
+import ExternalProcurementDetailDialog from './ExternalProcurementDetailDialog.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
@@ -415,11 +202,18 @@ import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as ExtProcApi from '@/api/pms/engineering/ext-proc'
-import * as ProjectApi from '@/api/pms/project/project'
-import * as UserApi from '@/api/system/user'
+import * as ProjectApi from '@/api/pms/project/projects'
 import ProjectTag from '@/components/ProjectTag/index.vue'
-import UserTag from '@/components/UserTag/index.vue'
 import type { ExternalProcurementVO } from '@/api/pms/engineering/ext-proc'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/ext-proc/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngExtProc' })
 const message = useMessage()
@@ -461,11 +255,11 @@ const form = reactive<ExternalProcurementVO>({
   code: '',
   name: '',
   procurementType: 'GOODS',
-  materialName: '',
-  materialCode: '',
+  productName: '',
+  productCode: '',
   specification: '',
   brand: '',
-  model: '',
+  productModel: '',
   quantity: undefined!,
   unit: '个',
   unitPrice: undefined,
@@ -482,16 +276,6 @@ const form = reactive<ExternalProcurementVO>({
   applyTime: '',
   remark: ''
 })
-const rules = {
-  projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入单号' }],
-  name: [{ required: true, message: '请输入名称' }],
-  procurementType: [{ required: true, message: '请选择类型' }],
-  materialName: [{ required: true, message: '请输入物料名称' }],
-  quantity: [{ required: true, message: '请输入数量' }],
-  applicantUserId: [{ required: true, message: '请选择申请人' }],
-  applyTime: [{ required: true, message: '请选择申请时间' }]
-}
 
 const openCreate = () => {
   sourceSurveyId.value = undefined
@@ -503,11 +287,11 @@ const openCreate = () => {
     code: '',
     name: '',
     procurementType: 'GOODS',
-    materialName: '',
-    materialCode: '',
+    productName: '',
+    productCode: '',
     specification: '',
     brand: '',
-    model: '',
+    productModel: '',
     quantity: undefined,
     unit: '个',
     unitPrice: undefined,

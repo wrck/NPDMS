@@ -16,7 +16,7 @@ public class PreparationItemPatchReqVO {
     @NotNull private Integer expectedInputVersion;
     @NotNull private Integer expectedReadinessVersion;
     @NotNull private Integer expectedFormVersion;
-    @NotNull private Integer expectedProjectVersion;
+    @NotNull private Long expectedProjectVersion;
     private String applicabilityCode;
     private Boolean outsourced;
     private Long assigneeUserId;
@@ -31,7 +31,7 @@ public class PreparationItemPatchReqVO {
     public void setExpectedInputVersion(Integer value) { expectedInputVersion = value; }
     public void setExpectedReadinessVersion(Integer value) { expectedReadinessVersion = value; }
     public void setExpectedFormVersion(Integer value) { expectedFormVersion = value; }
-    public void setExpectedProjectVersion(Integer value) { expectedProjectVersion = value; }
+    public void setExpectedProjectVersion(Long value) { expectedProjectVersion = value; }
     public void setApplicabilityCode(String value) { applicabilityCode = value; submittedFields.add("applicabilityCode"); }
     public void setOutsourced(Boolean value) { outsourced = value; submittedFields.add("outsourced"); }
     public void setAssigneeUserId(Long value) { assigneeUserId = value; submittedFields.add("assignee"); }

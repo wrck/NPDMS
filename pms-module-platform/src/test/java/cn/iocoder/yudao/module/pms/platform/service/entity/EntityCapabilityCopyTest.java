@@ -32,9 +32,9 @@ class EntityCapabilityCopyTest {
         values.setVersion(2);
         when(mapper.lockValues(EntityValueQuery.of(current))).thenReturn(values);
         when(mapper.deleteValues(values)).thenReturn(1);
-        extensions.copy(source, current, 3, actor);
+        extensions.copy(source, current, 3L, actor);
         var order = inOrder(registry, mapper);
-        order.verify(registry).lockForWrite(current, actor, 3);
+        order.verify(registry).lockForWrite(current, actor, 3L);
         order.verify(mapper).lockValues(EntityValueQuery.of(current));
         order.verify(mapper).deleteValues(values);
         verify(mapper, never()).deleteValues(argThat(row -> row != values));
@@ -42,8 +42,8 @@ class EntityCapabilityCopyTest {
 
     @Test void emptySourceCannotBypassFrozenTargetProtection() {
         var frozen = EntityDataRef.revision(new RevisionRef(entity, 31L));
-        doThrow(new IllegalStateException("frozen")).when(registry).lockForWrite(frozen, actor, 3);
-        assertThrows(IllegalStateException.class, () -> extensions.copy(source, frozen, 3, actor));
+        doThrow(new IllegalStateException("frozen")).when(registry).lockForWrite(frozen, actor, 3L);
+        assertThrows(IllegalStateException.class, () -> extensions.copy(source, frozen, 3L, actor));
         verify(mapper, never()).lockValues(EntityValueQuery.of(frozen));
         verify(mapper, never()).deleteValues(any());
     }
@@ -67,8 +67,8 @@ class EntityCapabilityCopyTest {
         when(mapper.deleteBinding(binding)).thenReturn(1);
         var forms = new EntityFormService(mapper, registry, extensions, mock(DynamicFormTemplateRevisionMapper.class),
                 mock(DynamicFormSchemaService.class), mock(DynamicFormBusinessInstanceApi.class), audit);
-        forms.copy(source, current, 3, actor);
-        verify(registry).lockForWrite(current, actor, 3);
+        forms.copy(source, current, 3L, actor);
+        verify(registry).lockForWrite(current, actor, 3L);
         verify(mapper).deleteBinding(binding);
     }
 }

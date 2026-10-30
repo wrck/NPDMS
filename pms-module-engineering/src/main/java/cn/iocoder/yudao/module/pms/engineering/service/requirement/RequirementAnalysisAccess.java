@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.requirement;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.query.RequirementRevisionQuery;
@@ -11,11 +12,12 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidatio
 import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectWorkBindingFactApi;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.*;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOwnerOperationScope;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectVerifiedOperationScope;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.Objects;
-import java.util.Set;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
@@ -31,6 +33,7 @@ public class RequirementAnalysisAccess {
     private final PermissionApi permissions;
     private final ProjectWorkBindingFactApi bindings;
     private final RequirementAnalysisExecutionAccess executions;
+    private final ProjectManagementQualificationApi managementQualifications;
 
     public RequirementAnalysisRevisionDO read(Long revisionId, EntityActor actor) {
         var row = mapper.selectRevision(new RequirementRevisionQuery(actor.tenantId(), revisionId));
@@ -40,8 +43,14 @@ public class RequirementAnalysisAccess {
     }
 
     public void requireRead(Long projectId, EntityActor actor, boolean draft) {
+        // Preserve the common fact port's reserved observer contract; HTTP actors cannot inject this identity.
+        if (actor.isSystemObserver()) return;
         if (!permissions.hasAnyPermissions(actor.userId(), "pms:requirement-analysis:query", "pms:requirement-analysis:manage")) throw exception(FORBIDDEN);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), projectId, ProjectScopeApi.ACTION_VIEW));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
         if (draft && !isManager(projectId, actor)) throw exception(FORBIDDEN);
     }
@@ -49,11 +58,18 @@ public class RequirementAnalysisAccess {
     public boolean isManager(Long projectId, EntityActor actor) {
         try {
             if (!permissions.hasAnyPermissions(actor.userId(), "pms:requirement-analysis:manage")) return false;
-            var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), projectId, ProjectScopeApi.ACTION_MANAGE));
-            var participant = RequirementAnalysisManagerFacts.inspect(participants, permissions, projectId, actor.userId());
-            return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(projectId)
-                    && participant != null && "ACTIVE".equals(participant.lifecycleStatus())
-                    && participant.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER);
+            var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+            if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) return false;
+            if (administrator(actor)) {
+                var participant = currentManager(projectId, actor);
+                if (participant != null && "ACTIVE".equals(participant.lifecycleStatus())
+                        && participant.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)) return true;
+            }
+            return managementQualifications.inspect(managementSubject(projectId, actor)) != null;
         } catch (RuntimeException unavailable) {
             // Preserve the original query behavior: unavailable manager facts disable editing only.
             return false;
@@ -63,19 +79,83 @@ public class RequirementAnalysisAccess {
     /** Original authorization and project-first lock order, retained by this business Owner. */
     public void lockScope(Long projectId, EntityActor actor) {
         if (!permissions.hasAnyPermissions(actor.userId(), "pms:requirement-analysis:manage")) throw exception(FORBIDDEN);
-        var observed = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+        var observed = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (observed == null || observed.treeVersion() == null) throw exception(REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID);
-        var locked = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.userId(), projectId,
-                ProjectScopeApi.ACTION_MANAGE, observed.treeVersion()));
+        var locked = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(observed.treeVersion()).build());
         if (locked.fullProjectIds() == null || !locked.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
-        var manager = RequirementAnalysisManagerFacts.inspect(participants, permissions, projectId, actor.userId());
-        if (manager == null) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
-        participants.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(projectId, manager.userId(), manager.projectVersion(),
-                "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+        if (administrator(actor)) {
+            var manager = currentManager(projectId, actor);
+            if (manager != null && "ACTIVE".equals(manager.lifecycleStatus())
+                    && manager.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)) {
+                participants.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(projectId, manager.userId(), manager.projectVersion(),
+                        "ACTIVE", null, java.util.Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+                return;
+            }
+        }
+        var qualification = managementQualifications.inspect(managementSubject(projectId, actor));
+        if (qualification == null) throw exception(FORBIDDEN);
+        managementQualifications.lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(
+                qualification, qualification.projectVersion(), "ACTIVE", null));
+    }
+
+    private boolean administrator(EntityActor actor) {
+        return permissions.hasAnyRoles(actor.userId(), cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode());
+    }
+
+    private ProjectManagementQualificationApi.Query managementSubject(Long projectId, EntityActor actor) {
+        return new ProjectManagementQualificationApi.Query(actor.tenantId(), projectId, actor.userId());
+    }
+
+    private cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact currentManager(Long projectId, EntityActor actor) {
+        try {
+            return RequirementAnalysisManagerFacts.inspect(participants, permissions, projectId, actor.userId());
+        } catch (cn.iocoder.yudao.framework.common.exception.ServiceException denied) {
+            if (denied.getCode() != ProjectParticipantFactApi.SCOPE_DENIED_ERROR_CODE) throw denied;
+            return null;
+        }
     }
 
     public RequirementAnalysisExecutionAccess.Frozen lockExecution(Long projectId, String snapshot,
                                                                    ProjectBusinessExecutionSelection selection) {
+        return lockExecution(projectId, snapshot, selection, null, null);
+    }
+
+    public RequirementAnalysisExecutionAccess.Frozen lockExecution(Long projectId, String snapshot,
+            ProjectBusinessExecutionSelection selection, EntityActor actor, Long targetRevisionId) {
+        var frame = ProjectVerifiedOperationScope.current();
+        if (actor == null && frame != null && "SOL".equals(frame.ownerContext())
+                && "REQUIREMENT_ANALYSIS".equals(frame.objectType()))
+            throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+        if (actor != null) selection = ProjectOwnerOperationScope.executionFor(actor.tenantId(), actor.userId(), projectId,
+                "SOL", "REQUIREMENT_ANALYSIS", targetRevisionId == null ? null : targetRevisionId.toString(), selection);
+        // Owner authorization and row concurrency are enforced by the caller; the source round is only provenance.
+        if (selection == null && snapshot != null) {
+            var frozen = executions.frozen(projectId, snapshot);
+            if (frozen.businessOrigin() != null && (actor == null || !Objects.equals(actor.tenantId(), frozen.businessOrigin().tenantId())))
+                throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+            if (frozen.moduleForm() != null) {
+                if (actor == null) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+                RequirementAnalysisConfiguration.require(frozen.moduleForm(), actor.tenantId(), projectId);
+            }
+            if (frozen.configuration() != null) {
+                if (actor == null) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
+                RequirementAnalysisConfiguration.require(frozen.configuration(), actor.tenantId(), projectId);
+            }
+            return frozen;
+        }
+        if (selection == null && actor != null) {
+            requireRead(projectId, actor, false);
+            return RequirementAnalysisExecutionAccess.independent(actor.tenantId(), projectId);
+        }
         ProjectWorkBindingFact binding;
         if (selection != null) {
             binding = executions.lockRequested(projectId, selection);
@@ -85,7 +165,9 @@ public class RequirementAnalysisAccess {
                     : executions.currentBinding(projectId, snapshot, null);
         }
         if (binding == null) throw exception(REQUIREMENT_ANALYSIS_WORK_BINDING_INVALID);
-        return executions.lockCurrent(executions.lockBinding(binding));
+        var lockedBinding = executions.lockBinding(binding);
+        return actor == null ? executions.lockCurrent(lockedBinding)
+                : executions.lockCurrent(lockedBinding, actor, targetRevisionId);
     }
 
     public RequirementAnalysisRevisionDO lock(Long revisionId, Integer expectedVersion, EntityActor actor,
@@ -93,9 +175,9 @@ public class RequirementAnalysisAccess {
         var observed = mapper.selectRevision(new RequirementRevisionQuery(actor.tenantId(), revisionId));
         if (observed == null) throw exception(REQUIREMENT_STATUS_INVALID);
         lockScope(observed.getProjectId(), actor);
-        lockExecution(observed.getProjectId(), observed.getExecutionSnapshot(), selection);
+        lockExecution(observed.getProjectId(), observed.getExecutionSnapshot(), selection, actor, revisionId);
         var locked = mapper.lockRevision(new RequirementRevisionQuery(actor.tenantId(), revisionId));
-        if (locked == null || !Objects.equals(expectedVersion, locked.getVersion())
+        if (locked == null || !Objects.equals(expectedVersion == null ? null : expectedVersion.longValue(), locked.getVersion())
                 || draftOnly && !"DRAFT".equals(locked.getRevisionState())) throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         return locked;
     }

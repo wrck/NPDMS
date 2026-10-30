@@ -31,7 +31,7 @@ public record ExternalApprovalNotificationRequest(
         require(nodeNo != null && nodeNo > 0, "nodeNo invalid");
         require(validDeliveryKey(deliveryKey, approvalInstanceId, nodeNo, channel), "deliveryKey invalid");
         require(normalized(taskLink, 256)
-                        && taskLink.equals("/pms/cutover/cutover-task?taskId=" + taskId),
+                        && taskLink.equals("/pms/cutover/approvals/" + approvalInstanceId),
                 "taskLink invalid");
         require(variables != null && variables.keySet().equals(VARIABLE_KEYS)
                 && variables.values().stream().allMatch(value -> normalized(value, 128)), "variables invalid");

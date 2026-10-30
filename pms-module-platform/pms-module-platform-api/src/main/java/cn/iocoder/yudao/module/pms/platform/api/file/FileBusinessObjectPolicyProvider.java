@@ -14,12 +14,18 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedFi
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadCompletePolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadInitializePolicyQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.AuthenticatedAssistedUploadPolicyFact;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FrozenFileVersionAccessQuery;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public interface FileBusinessObjectPolicyProvider {
+
+    default FileBusinessObjectPolicyFact lockAndRevalidateNativeGeneratedFile(
+            cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFilePolicyQuery query) {
+        throw new UnsupportedOperationException("native generated file policy is not implemented");
+    }
 
     String ownerContext();
 
@@ -28,6 +34,16 @@ public interface FileBusinessObjectPolicyProvider {
     FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query);
 
     FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query);
+
+    /** Defaults to denial; a current object grant does not authorize arbitrary historical versions. */
+    default FileBusinessObjectPolicyFact inspectFrozenFileVersion(FrozenFileVersionAccessQuery query) {
+        return new FileBusinessObjectPolicyFact(false, null, null, null, null, null, null, null);
+    }
+
+    /** Recheck both current authorization and the exact immutable source under owner locks. */
+    default FileBusinessObjectPolicyFact lockAndRevalidateFrozenFileVersion(FrozenFileVersionAccessQuery query) {
+        return new FileBusinessObjectPolicyFact(false, null, null, null, null, null, null, null);
+    }
 
     default FileBusinessObjectPolicyFact inspectReferenceSet(FileBusinessObjectReferenceSetQuery query) {
         throw new UnsupportedOperationException("reference set inspection is not implemented");

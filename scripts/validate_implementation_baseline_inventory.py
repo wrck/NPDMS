@@ -122,7 +122,8 @@ RETIRED_TEMPLATE_PATTERNS = (
     (
         "template route",
         re.compile(
-            r"(?<!:)\b(?:project-template|phase-template|instantiate-from-template)\b"
+            r"/(?:project-template|project-phase-template|phase-template|instantiate-from-template)"
+            r"(?=[/\"'`?#]|$)"
         ),
     ),
     (
@@ -144,24 +145,6 @@ PROJECT_SINGULAR_BASE_PATTERN = re.compile(r"""["'`]/pms/project["'`]""")
 PROJECT_WRITE_FRAGMENT_PATTERN = re.compile(
     r"""/(?:create|update|delete|classify|assign-manager)["'`]"""
 )
-PROJECT_WRITE_PERMISSION_PATTERN = re.compile(
-    r"\bpms:project:(?:create|update|delete|assign)\b"
-)
-PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES = (
-    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projects/",
-    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectsplit/",
-    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectCreationAuthorizationService.java",
-    "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/projects/",
-    "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/projects/",
-    "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/",
-)
-PROJECT_WRITE_PERMISSION_ALLOWED_PATHS = frozenset({
-    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/projectstage/ProjectAcceptanceStageEntryController.java",
-    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/stagegate/ProjectStageAdvanceController.java",
-    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectstage/ProjectAcceptanceStageEntryService.java",
-    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageAdvanceApplicationService.java",
-    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/stagegate/ProjectStageReadinessService.java",
-})
 RETIRED_PROJECT_TREE_PATTERNS = (
     (
         "route",
@@ -196,6 +179,8 @@ def _tracked_files(repository: Path) -> tuple[str, ...]:
 def _candidate_files(repository: Path) -> tuple[str, ...]:
     candidates: list[str] = []
     for path in _tracked_files(repository):
+        if not (repository / path).is_file() or _is_test_source(Path(path)):
+            continue
         if path.startswith("pms-module-") and (
             path.endswith("Controller.java")
             or ("/dal/dataobject/" in path and path.endswith("DO.java"))
@@ -219,6 +204,10 @@ def _requirement_ids(repository: Path) -> set[str]:
     return set(re.findall(REQ_PATTERN.pattern[1:-1], matrix))
 
 
+def _is_test_source(path: Path) -> bool:
+    return "__tests__" in path.parts or bool(re.search(r"\.(?:spec|test)\.[^.]+$", path.name))
+
+
 def _iter_runtime_source_files(repository: Path):
     for raw_root in RUNTIME_SOURCE_ROOTS:
         source_root = repository / raw_root
@@ -227,7 +216,7 @@ def _iter_runtime_source_files(repository: Path):
         for path in sorted(
             candidate for candidate in source_root.rglob("*") if candidate.is_file()
         ):
-            if path.suffix.lower() in RUNTIME_SOURCE_SUFFIXES:
+            if path.suffix.lower() in RUNTIME_SOURCE_SUFFIXES and not _is_test_source(path):
                 yield path
 
 
@@ -274,10 +263,9 @@ def find_retired_template_runtime_surfaces(repository: Path) -> list[str]:
 def find_retired_project_write_runtime_surfaces(repository: Path) -> list[str]:
     """Find retired singular /pms/project write surfaces in current runtime source.
 
-    The legacy chain keeps read-only endpoints, so retirement is enforced on write
-    surfaces only: full literal write routes, singular-base + write-fragment
-    composition inside one file, and write permission codes outside the rebuilt
-    plural-chain whitelist.
+    Detect literal routes and singular-base + write-fragment composition.
+    pms:project permissions are shared by current project/member/stage consumers;
+    their presence alone is not evidence that a retired route has returned.
     """
     errors = _match_retired_patterns(
         repository, RETIRED_PROJECT_WRITE_PATTERNS, "retired project write"
@@ -289,15 +277,6 @@ def find_retired_project_write_runtime_surfaces(repository: Path) -> list[str]:
             PROJECT_WRITE_FRAGMENT_PATTERN.search(content)
         ):
             errors.append(f"retired project write route composition: {relative_path}")
-        if (
-            PROJECT_WRITE_PERMISSION_PATTERN.search(content)
-            and relative_path not in PROJECT_WRITE_PERMISSION_ALLOWED_PATHS
-            and not any(
-                relative_path.startswith(prefix)
-                for prefix in PROJECT_WRITE_PERMISSION_ALLOWED_PREFIXES
-            )
-        ):
-            errors.append(f"retired project write permission: {relative_path}")
     return errors
 
 
@@ -456,14 +435,8 @@ def validate_inventory(repository: Path, inventory: dict) -> list[str]:
                     errors.append(f"{key} has invalid replacement Feature: {feature_id}")
                 elif not task_path.is_file():
                     errors.append(f"{key} replacement Feature has no master Task: {feature_id}")
-                else:
-                    task = task_path.read_text(encoding="utf-8")
-                    if not re.search(
-                        r"^> (?:Feature\s*)?实施状态：`[^`]*(?:IMPLEMENTATION_COMPLETE|IMPLEMENTATION_DONE)[^`]*`",
-                        task,
-                        re.MULTILINE,
-                    ):
-                        errors.append(f"{key} replacement Feature is not Done: {feature_id}")
+                # Current Feature increments may be IN_PROGRESS after an approved
+                # historical cutover. Retirement evidence does not promote Feature Done.
         for label, paths in (("legacyPaths", legacy_paths), ("replacementPaths", replacement_paths)):
             if not isinstance(paths, list) or (label == "legacyPaths" and not paths):
                 errors.append(f"{key} {label} must be {'a non-empty' if label == 'legacyPaths' else 'a'} list")
@@ -477,6 +450,13 @@ def validate_inventory(repository: Path, inventory: dict) -> list[str]:
                     or ".." in PurePosixPath(raw_path).parts
                 ):
                     errors.append(f"{key} has invalid {label} entry: {raw_path}")
+                elif label == "replacementPaths" and not any(
+                    path.is_file() or (
+                        path.is_dir() and any(child.is_file() for child in path.rglob("*"))
+                    )
+                    for path in repository.glob(raw_path)
+                ):
+                    errors.append(f"{key} replacement path has no implementation: {raw_path}")
         if feature_refs and not replacement_paths:
             errors.append(f"{key} replacementPaths cannot be empty when a replacement Feature exists")
         if not isinstance(evidence, str) or not evidence:

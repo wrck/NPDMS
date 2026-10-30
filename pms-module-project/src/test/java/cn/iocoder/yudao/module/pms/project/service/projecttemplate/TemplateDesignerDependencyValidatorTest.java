@@ -72,7 +72,7 @@ class TemplateDesignerDependencyValidatorTest {
         var validator = new TemplateDesignerDependencyValidator(api, processes);
         assertTrue(validator.validateProjectChanges(active,submitted,false).stream()
                 .anyMatch(issue -> issue.code().equals("BUSINESS_VIEW_UNAVAILABLE")));
-        verify(api).getRevision(new BusinessViewQueryApi.Query(91L,BusinessViewQueryApi.Purpose.NEW_REFERENCE,7));
+        verify(api).getRevision(new BusinessViewQueryApi.Query(91L,BusinessViewQueryApi.Purpose.NEW_REFERENCE,7L));
     }
 
     @Test
@@ -83,7 +83,7 @@ class TemplateDesignerDependencyValidatorTest {
 
         assertTrue(validator.validate(designer(), false).isEmpty());
         verify(api).getRevision(new BusinessViewQueryApi.Query(91L,
-                BusinessViewQueryApi.Purpose.NEW_REFERENCE, 7));
+                BusinessViewQueryApi.Purpose.NEW_REFERENCE, 7L));
         verify(api, never()).lockAndRevalidateAll(any());
     }
 
@@ -94,7 +94,7 @@ class TemplateDesignerDependencyValidatorTest {
                 "SOL", BusinessViewComponentProvider.ViewSource.PAGE,
                 "SOL_SITE_SURVEY_V2", "2", null,
                 JsonUtils.parseTree("{\"required\":[\"project\"]}"), JsonUtils.parseTree("[\"VIEW\"]"),
-                "Q", "C", "P", LocalDateTime.now(), null, 7, "PUBLISHED", Set.of());
+                "Q", "C", "P", LocalDateTime.now(), null, 7L, "PUBLISHED", Set.of());
         when(api.lockAndRevalidateAll(any())).thenReturn(List.of(changed));
         var validator = new TemplateDesignerDependencyValidator(api, processes);
 
@@ -102,7 +102,7 @@ class TemplateDesignerDependencyValidatorTest {
 
         assertTrue(issues.stream().anyMatch(issue -> "BUSINESS_VIEW_SNAPSHOT_MISMATCH".equals(issue.code())));
         verify(api).lockAndRevalidateAll(List.of(new BusinessViewQueryApi.Query(91L,
-                BusinessViewQueryApi.Purpose.NEW_REFERENCE, 7)));
+                BusinessViewQueryApi.Purpose.NEW_REFERENCE, 7L)));
         verify(api, never()).getRevision(any());
     }
 
@@ -202,6 +202,6 @@ class TemplateDesignerDependencyValidatorTest {
                 "SOL", BusinessViewComponentProvider.ViewSource.PAGE,
                 "SOL_SITE_SURVEY", "1", null,
                 JsonUtils.parseTree("{\"required\":[\"project\"]}"), JsonUtils.parseTree("[\"VIEW\"]"),
-                "Q", "C", "P", LocalDateTime.now(), null, 7, "PUBLISHED", Set.of());
+                "Q", "C", "P", LocalDateTime.now(), null, 7L, "PUBLISHED", Set.of());
     }
 }

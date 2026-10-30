@@ -8,6 +8,11 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverCheckl
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationRevisionMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverConfigurationChildrenQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverFrozenConfigurationQuery;
+import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationMetadataStore;
+import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore;
+import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldSchemaCodec;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +34,8 @@ public class CutoverChecklistConfigurationQueryService {
     private final CutoverConfigurationRevisionMapper revisionMapper;
     private final CutoverChecklistItemDefinitionRevisionMapper itemMapper;
     private final CutoverChecklistBindingRuleRevisionMapper ruleMapper;
+    private final CutoverConfigurationMetadataStore metadata;
+    private final CutoverFieldDefinitionStore fields;
 
     public CutoverFrozenConfiguration resolveFrozen(CutoverFrozenConfigurationQuery query) {
         validate(query);
@@ -55,10 +62,19 @@ public class CutoverChecklistConfigurationQueryService {
         if (brokenReference) {
             throw new CutoverChecklistException(FROZEN_CONFIGURATION_INVALID, "冻结配置规则引用的采集项定义不完整");
         }
+        var schemas = fields.definitions(itemsById.keySet());
+        var conditions = metadata.conditionViews(new CutoverConfigurationMetadataStore.ConditionRead(revision.getId(),
+                ruleRows.stream().map(CutoverChecklistBindingRuleRevisionDO::getId).collect(Collectors.toSet())));
         return new CutoverFrozenConfiguration(revision.getId(), revision.getConfigurationCode(),
-                revision.getRevisionNo(), revision.getStatusCode(), revision.getDictionarySnapshot(),
-                revision.getDimensionDefinitionSnapshot(), itemRows.stream().map(this::item).toList(),
-                ruleRows.stream().map(this::rule).toList());
+                revision.getRevisionNo(), revision.getStatusCode(), JsonUtils.toJsonString(metadata.dictionaryView(revision.getId())),
+                JsonUtils.toJsonString(metadata.dimensionViews(revision.getId())), itemRows.stream().map(row ->
+                new CutoverFrozenConfiguration.ItemDefinition(row.getId(), row.getStableItemKey(),
+                        row.getItemDefinitionVersion(), row.getItemTypeCode(), row.getItemName(), row.getItemDescription(),
+                        row.getInterfaceFormatCode(), JsonUtils.toJsonString(CutoverFieldSchemaCodec.decode(schemas.get(row.getId()))),
+                        row.getWorkModeCode(), Boolean.TRUE.equals(row.getRequiredFlag()), row.getSortOrder())).toList(),
+                ruleRows.stream().map(row -> new CutoverFrozenConfiguration.BindingRule(row.getId(), row.getStableRuleKey(),
+                        row.getItemDefinitionId(), row.getItemDefinitionVersion(), JsonUtils.toJsonString(conditions.get(row.getId())),
+                        row.getPriority(), Boolean.TRUE.equals(row.getRequiredResult()), row.getVersion())).toList());
     }
 
     private void validate(CutoverFrozenConfigurationQuery query) {
@@ -66,21 +82,10 @@ public class CutoverChecklistConfigurationQueryService {
                 || query.configurationRevisionId() == null || query.configurationRevisionId() <= 0
                 || query.configurationCode() == null || query.configurationCode().isBlank()
                 || !query.configurationCode().equals(query.configurationCode().trim())
-                || query.configurationRevisionNo() == null || query.configurationRevisionNo() <= 0) {
+                || query.configurationRevisionNo() == null || query.configurationRevisionNo() <= 0
+                || TenantContextHolder.isIgnore() || !java.util.Objects.equals(query.tenantId(), TenantContextHolder.getTenantId())) {
             throw new CutoverChecklistException(INVALID_REQUEST, "冻结配置身份不完整");
         }
     }
 
-    private CutoverFrozenConfiguration.ItemDefinition item(CutoverChecklistItemDefinitionRevisionDO row) {
-        return new CutoverFrozenConfiguration.ItemDefinition(row.getId(), row.getStableItemKey(),
-                row.getItemDefinitionVersion(), row.getItemTypeCode(), row.getItemName(), row.getItemDescription(),
-                row.getInterfaceFormatCode(), row.getInterfaceSchema(), row.getWorkModeCode(),
-                Boolean.TRUE.equals(row.getRequiredFlag()), row.getSortOrder());
-    }
-
-    private CutoverFrozenConfiguration.BindingRule rule(CutoverChecklistBindingRuleRevisionDO row) {
-        return new CutoverFrozenConfiguration.BindingRule(row.getId(), row.getStableRuleKey(),
-                row.getItemDefinitionId(), row.getItemDefinitionVersion(), row.getDimensionConditionSnapshot(),
-                row.getPriority(), Boolean.TRUE.equals(row.getRequiredResult()), row.getVersion());
-    }
 }

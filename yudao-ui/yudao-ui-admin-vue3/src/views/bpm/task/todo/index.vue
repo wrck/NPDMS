@@ -163,10 +163,12 @@ import { dateFormatter } from '@/utils/formatTime'
 import * as TaskApi from '@/api/bpm/task'
 import { CategoryApi, CategoryVO } from '@/api/bpm/category'
 import * as DefinitionApi from '@/api/bpm/definition'
+import { getTodoHandlingRoute } from './handlingRoute'
 
 defineOptions({ name: 'BpmTodoTask' })
 
 const { push } = useRouter() // 路由
+const message = useMessage()
 
 const loading = ref(true) // 列表的加载中
 const total = ref(0) // 列表的总页数
@@ -209,14 +211,12 @@ const resetQuery = () => {
 }
 
 /** 处理审批按钮 */
-const handleAudit = (row: any) => {
-  push({
-    name: 'BpmProcessInstanceDetail',
-    query: {
-      id: row.processInstance.id,
-      taskId: row.id
-    }
-  })
+const handleAudit = async (row: any) => {
+  try {
+    await push(await getTodoHandlingRoute(row))
+  } catch {
+    message.error('无法打开办理页面，请确认项目查看与闭环查询权限，或稍后重试。')
+  }
 }
 
 /** 初始化 **/

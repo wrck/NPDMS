@@ -1,10 +1,10 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
+const exists = (path: string) => existsSync(new URL(path, import.meta.url))
 const panel = read('./ProjectGovernancePanel.vue')
 const detail = read('../index.vue')
-const legacy = read('../../project-governance/index.vue')
 const api = read('../../../../../api/pms/project/projects/index.ts')
 
 describe('F-PROJ-006 project governance panel', () => {
@@ -57,15 +57,8 @@ describe('F-PROJ-006 project governance panel', () => {
     expect(panel).not.toMatch(/#[0-9a-f]{3,8}\b/i)
   })
 
-  it('retires all V1.7 writes while preserving historical read access', () => {
-    expect(legacy).toContain('仅保留 V1.7 治理动作历史查询')
-    expect(legacy).toContain('getGovernanceActionPage')
-    expect(legacy).toContain('getGovernanceAction')
-    expect(legacy).not.toMatch(
-      /createGovernanceAction|updateGovernanceAction|submitGovernanceAction/
-    )
-    expect(legacy).not.toMatch(
-      /approveGovernanceAction|withdrawGovernanceAction|deleteGovernanceAction/
-    )
+  it('removes the V1.7 page and API while retaining the current governance panel', () => {
+    expect(exists('../../project-governance/index.vue')).toBe(false)
+    expect(exists('../../../../../api/pms/project/project-governance/index.ts')).toBe(false)
   })
 })

@@ -1,16 +1,14 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
+const exists = (path: string) => existsSync(new URL(path, import.meta.url))
 const panel = read('./ProjectDurationPanel.vue')
 const form = read('./ProjectDurationFormDrawer.vue')
 const history = read('./ProjectDurationHistoryDrawer.vue')
+const schedule = read('./ProjectSchedulePanel.vue')
 const detail = read('../index.vue')
 const api = read('../../../../../api/pms/engineering/construction-plan/index.ts')
-const oldBackwardApi = read('../../../../../api/pms/project/schedule-backward/index.ts')
-const oldChangeApi = read('../../../../../api/pms/project/plan-change/index.ts')
-const oldBackwardPage = read('../../schedule-backward/index.vue')
-const oldChangePage = read('../../plan-change/index.vue')
 
 describe('F-SOL-001 project duration panel', () => {
   it('reuses native query and table presentation instead of custom summary cards', () => {
@@ -30,8 +28,9 @@ describe('F-SOL-001 project duration panel', () => {
   })
 
   it('connects the project detail mainline and obeys server allowed actions', () => {
-    expect(detail).toContain("activeTab === 'duration'")
-    expect(detail).toContain('<ProjectDurationPanel')
+    // 主详情页将旧 duration 页签深链落到 schedule 工作台，工期面板由 ProjectSchedulePanel 内嵌
+    expect(detail).toContain("duration: 'schedule'")
+    expect(schedule).toContain('<ProjectDurationPanel')
     expect(panel).toContain("plan.allowedActions.includes('CREATE_CHANGE')")
     expect(form).toContain('createInitial')
     expect(form).toContain('createChange')
@@ -49,18 +48,20 @@ describe('F-SOL-001 project duration panel', () => {
     expect(form).toContain('Object.keys(patch).length === 1')
   })
 
-  it('connects customer-delay evidence without treating a URL as file identity', () => {
-    expect(form).toContain("form.reasonType === 'CUSTOMER_DELAY'")
+  it('fills the reason as required text and keeps the change attachment optional', () => {
+    expect(form).toContain('label="变更原因" prop="reasonDetail"')
+    expect(form).toContain("reasonDetail: [{ required: true, message: '请填写变更原因' }]")
+    expect(form).not.toContain("form.reasonType === 'CUSTOMER_DELAY'")
+    expect(panel).not.toContain('customerEvidenceRequired && !draft.value.customerEvidenceFileId')
     expect(form).toContain('customerEvidenceFileId')
     expect(form).toContain('customerEvidenceFileVersion')
     expect(form).toContain('customerEvidenceReferenceKey')
-    expect(panel).toContain('customerEvidenceRequired && !draft.value.customerEvidenceFileId')
     expect(form).not.toMatch(/customerEvidenceUrl|storagePath/)
     expect(form.match(/emit\('saved'\)/g)?.length).toBeGreaterThanOrEqual(4)
   })
 
   it('uses platform BPM for approval and applicant cancellation without SOL terminal writes', () => {
-    expect(panel).toContain("name: 'BpmProcessInstanceDetail'")
+    expect(panel).toContain('openApprovalDetail(processInstanceId)')
     expect(panel).toContain('cancelProcessInstanceByStartUser')
     expect(panel).not.toMatch(/approveChange|rejectChange|withdrawChange/)
     expect(api).not.toMatch(/actions\/(?:approve|reject|cancel)/)
@@ -91,18 +92,10 @@ describe('F-SOL-001 project duration panel', () => {
     expect(form).toContain("narrow.value ? '100%' : '560px'")
   })
 
-  it('retires V1.7 PRE-01 writes while preserving historical reads', () => {
-    expect(oldBackwardApi).toContain('getScheduleBackwardPage')
-    expect(oldBackwardApi).toContain('getScheduleBackwardItems')
-    expect(oldBackwardApi).not.toMatch(
-      /createScheduleBackward|calculateScheduleBackward|applyScheduleBackward|deleteScheduleBackward/
-    )
-    expect(oldChangeApi).toContain('getPlanChangePage')
-    expect(oldChangeApi).toContain('getPlanChangeSnapshots')
-    expect(oldChangeApi).not.toMatch(
-      /createPlanChange|submitPlanChange|approvePlanChange|withdrawPlanChange|deletePlanChange/
-    )
-    expect(oldBackwardPage).toContain('仅保留历史查询')
-    expect(oldChangePage).toContain('仅保留历史查询')
+  it('removes retired backward calculation and plan-change entry points', () => {
+    expect(exists('../../../../../api/pms/engineering/schedule-backward/index.ts')).toBe(false)
+    expect(exists('../../../engineering/schedule-backward/index.vue')).toBe(false)
+    expect(exists('../../plan-change/index.vue')).toBe(false)
+    expect(exists('../../../../../api/pms/project/plan-change/index.ts')).toBe(false)
   })
 })

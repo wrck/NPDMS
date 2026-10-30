@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 public record DeviceListRespVO(
         Long deviceId,
         String sn,
+        String name,
+        String status,
         String productCode,
         String productModel,
         String productName,
@@ -22,5 +24,14 @@ public record DeviceListRespVO(
         String conpType,
         String conpSeries,
         String conpMark,
-        String syncStatus) {
+        String syncStatus,
+        String locationSnapshot,
+        String locationResolutionStatus,
+        DeviceOrganizationRespVO organization,
+        String bootVersion,
+        String cpldVersion,
+        Long extendedCount,
+        String projectName,
+        String customerName,
+        String projectCode) {
 }

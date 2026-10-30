@@ -1,0 +1,312 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理" [expanded]:
+        - generic: 项目管理
+        - menu:
+          - menuitem "项目列表":
+            - generic: 项目列表
+          - menuitem "计划进度":
+            - generic: 计划进度
+          - menuitem "项目风险":
+            - generic: 项目风险
+          - menuitem "组合与治理":
+            - generic: 组合与治理
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "割接交付":
+        - generic: 割接交付
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "巡检服务":
+        - generic: 巡检服务
+      - menuitem "项目模板管理":
+        - generic: 项目模板管理
+      - menuitem "交付件汇总（6.4）":
+        - generic: 交付件汇总（6.4）
+      - menuitem "现场培训（6.1）":
+        - generic: 现场培训（6.1）
+      - menuitem "阶段施工计划（3.1）":
+        - generic: 阶段施工计划（3.1）
+      - menuitem "施工计划建议规则":
+        - generic: 施工计划建议规则
+      - menuitem "设备连接与采集":
+        - generic: 设备连接与采集
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "项目交付（新功能暂停）":
+    - generic: 项目交付（新功能暂停）
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- superscript
+- button "管理员":
+  - generic: 管理员
+- button "首页":
+  - text: 首页
+- button "项目详情":
+  - text: 项目详情
+- button:
+- generic: 待指派服务经理
+- heading "工程直签16任务内嵌验收20261016" [level=2]
+- generic: 工程类
+- generic: "模板 #993009900016 v3"
+- text: 编码
+- generic: PJT2026000065
+- text: FAST001客户设备空摘要验收
+- text: 直签 / 原厂直服
+- text: 2026-10-16 03:13:41
+- generic: 进度 0%
+- generic: 任务 0/16
+- generic: 风险 0
+- button "返回列表":
+  - text: 返回列表
+- tablist "项目阶段推进轨":
+  - button "S0 项目立项":
+    - generic: S0
+    - generic: 项目立项
+  - button "S1 工前准备":
+    - generic: S1
+    - generic: 工前准备
+  - button "S2 施工计划":
+    - generic: S2
+    - generic: 施工计划
+  - button "S3 实施方案":
+    - generic: S3
+    - generic: 实施方案
+  - button "S4 实施部署":
+    - generic: S4
+    - generic: 实施部署
+  - button "S5 验收交维":
+    - generic: S5
+    - generic: 验收交维
+  - button "S6 项目闭环":
+    - generic: S6
+    - generic: 项目闭环
+  - button "推进说明与图例":
+- generic: 项目概览
+- button "基本信息":
+  - generic: 基本信息
+- button "客户信息":
+  - generic: 客户信息
+- button "项目树":
+  - generic: 项目树
+- button "项目成员":
+  - generic: 项目成员
+- button "设备清单":
+  - generic: 设备清单
+- button "序列号详情":
+  - generic: 序列号详情
+- button "配置Log":
+  - generic: 配置Log
+- button "实施范围 待确认":
+  - generic: 实施范围
+  - generic: 待确认
+- generic: 阶段和任务
+- button "阶段状态":
+  - generic: 阶段状态
+- button "S0 项目立项 0%":
+  - generic: S0 项目立项
+  - generic: 0%
+- button "S1 工前准备 0%":
+  - generic: S1 工前准备
+  - generic: 0%
+- button "S2 施工计划 0%":
+  - generic: S2 施工计划
+  - generic: 0%
+- button "S3 实施方案 0%":
+  - generic: S3 实施方案
+  - generic: 0%
+- button "S4 实施部署 0%":
+  - generic: S4 实施部署
+  - generic: 0%
+- tree:
+  - treeitem "到货签收DEPLOY_ARRIVAL 待分配 0%" [expanded]:
+    - generic: 到货签收DEPLOY_ARRIVAL
+    - generic: 待分配
+    - generic: 0%
+  - treeitem "硬件实施DEPLOY_HARDWARE 待分配 0%" [expanded]:
+    - generic: 硬件实施DEPLOY_HARDWARE
+    - generic: 待分配
+    - generic: 0%
+  - treeitem "配置调试DEPLOY_CONFIG 待分配 0%" [expanded] [active]:
+    - generic: 配置调试DEPLOY_CONFIG
+    - generic: 待分配
+    - generic: 0%
+  - treeitem "业务联调DEPLOY_JOINT 待分配 0%":
+    - generic: 业务联调DEPLOY_JOINT
+    - generic: 待分配
+    - generic: 0%
+  - treeitem "割接上线DEPLOY_CUTOVER 待分配 0%":
+    - generic: 割接上线DEPLOY_CUTOVER
+    - generic: 待分配
+    - generic: 0%
+- button "S5 验收交维 0%":
+  - generic: S5 验收交维
+  - generic: 0%
+- button "S6 项目闭环 0%":
+  - generic: S6 项目闭环
+  - generic: 0%
+- generic: 全流程业务
+- generic: 工前准备
+- button "工勘分工 2.2":
+  - generic: 工勘分工
+  - generic: "2.2"
+- button "需求分析 2.3":
+  - generic: 需求分析
+  - generic: "2.3"
+- button "物料换货 2.2.1":
+  - generic: 物料换货
+  - generic: 2.2.1
+- button "工程交底 2.4":
+  - generic: 工程交底
+  - generic: "2.4"
+- generic: 制定施工计划
+- button "施工计划 3.1-3.4":
+  - generic: 施工计划
+  - generic: 3.1-3.4
+- generic: 实施方案
+- button "实施方案 4.1":
+  - generic: 实施方案
+  - generic: "4.1"
+- generic: 实施部署
+- button "到货签收 5.1":
+  - generic: 到货签收
+  - generic: "5.1"
+- button "硬件安装 5.2":
+  - generic: 硬件安装
+  - generic: "5.2"
+- button "配置调试 5.3":
+  - generic: 配置调试
+  - generic: "5.3"
+- button "业务联调 5.4":
+  - generic: 业务联调
+  - generic: "5.4"
+- button "割接上线 5.5":
+  - generic: 割接上线
+  - generic: "5.5"
+- generic: 验收交维
+- button "现场培训 6.1":
+  - generic: 现场培训
+  - generic: "6.1"
+- button "满意度调查 6.2":
+  - generic: 满意度调查
+  - generic: "6.2"
+- button "初验&终验 6.3":
+  - generic: 初验&终验
+  - generic: "6.3"
+- button "交付件汇总 6.5":
+  - generic: 交付件汇总
+  - generic: "6.5"
+- button "交付件检查 6.6":
+  - generic: 交付件检查
+  - generic: "6.6"
+- button "归档文档 6.7":
+  - generic: 归档文档
+  - generic: "6.7"
+- button "闭环记录 6.8":
+  - generic: 闭环记录
+  - generic: "6.8"
+- button "项目闭环 6.9":
+  - generic: 项目闭环
+  - generic: "6.9"
+- generic: 项目拆分
+- button "拆分方案":
+  - generic: 拆分方案
+- generic: 进度汇总
+- button "进度汇总":
+  - generic: 进度汇总
+- generic: 异常治理
+- button "异常治理":
+  - generic: 异常治理
+- generic: 项目权限
+- button "项目授权":
+  - generic: 项目授权
+- generic: 服务经理
+- button "责任分布":
+  - generic: 责任分布
+- generic: 配置调试
+- generic: 待分配
+- generic: 进度 0%
+- generic: 计划 — ~ —
+- generic: 任务业务办理
+- paragraph: 本任务业务在下方工作区直接办理，不跳离当前任务；办理完成后使用任务状态操作推进状态。
+- generic: 状态
+- combobox "状态"
+- generic: 请选择
+- button "查询":
+  - text: 查询
+- button "上传日志 / 文件历史":
+  - generic: 上传日志 / 文件历史
+- alert:
+  - generic: 支持手工日志上传与设备命令采集；采集日志自动回传到配置记录，调试完成仍由原业务动作确认。
+- table:
+  - rowgroup:
+    - row "设备 调试时间 调试结果 状态 配置日志 操作":
+      - columnheader "设备":
+        - generic: 设备
+      - columnheader "调试时间":
+        - generic: 调试时间
+      - columnheader "调试结果":
+        - generic: 调试结果
+      - columnheader "状态":
+        - generic: 状态
+      - columnheader "配置日志":
+        - generic: 配置日志
+      - columnheader "操作":
+        - generic: 操作
+- table:
+  - rowgroup
+- generic: 暂无数据
+- generic: 交付件清单
+- generic: 必选
+- generic: 启用功能与配置Log
+- generic: D_CONFIGURATION
+- generic: 待提交
+- paragraph: 文件或业务成果有效且模板条件满足时，自动满足交付要求。
+- button "刷新工作区":
+  - generic: 刷新工作区
+- complementary "完成条件与阶段历史":
+  - region "完成条件":
+    - generic: 完成条件
+    - button "刷新门禁结果":
+      - generic: 刷新门禁结果
+    - paragraph: 第 1 轮 · 当前规则结果；刷新不会推进阶段或发起审批。
+    - generic: 准入条件
+    - article "实施部署准入":
+      - generic: 实施部署准入
+      - generic: 不满足
+      - generic: 阶段完成
+      - generic: 施工计划
+      - generic: 不满足
+      - generic: 阶段完成
+      - generic: 实施方案
+    - generic: 交付件
+    - generic: 当前任务交付件
+    - generic: 必选
+    - generic: 启用功能与配置Log
+    - generic: 待提交
+  - text: 阶段历史
+  - button "执行历史与规则结果":
+    - generic: 执行历史与规则结果
+  - generic: 2026-10-16 03:13:40
+  - text: 进入 S0 项目立项
+  - generic: 进行中
+- generic: Copyright ©2026 项目实施交付管理平台

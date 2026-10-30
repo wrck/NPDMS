@@ -1,0 +1,22 @@
+[
+  {
+    "code": "ACC.FINAL_REPORT",
+    "name": "终验报告附件"
+  },
+  {
+    "code": "ACC.PRELIMINARY_REPORT",
+    "name": "初验报告附件"
+  },
+  {
+    "code": "ACC.SATISFACTION_DOCUMENT",
+    "name": "满意度结果文档"
+  },
+  {
+    "code": "IMP.ARRIVAL_SIGN_DOCUMENT",
+    "name": "到货签收单附件"
+  },
+  {
+    "code": "SOL.REQUIREMENT_DOCUMENT",
+    "name": "需求分析表单附件"
+  }
+]

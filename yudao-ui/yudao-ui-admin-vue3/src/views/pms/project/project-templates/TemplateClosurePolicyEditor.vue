@@ -10,33 +10,25 @@
       <p class="policy-hint">人工审批顺序：当前主责服务经理 → 显式材料审核人。全部审批通过后正常闭环。</p>
       <el-form label-position="top" :disabled="readonly">
         <el-form-item label="材料审核人（必选，无默认值）" :error="reviewerError">
-          <el-select :model-value="reviewerUserId" filterable clearable :loading="loading" placeholder="请选择材料审核人" @update:model-value="setReviewer" @visible-change="loadOnOpen">
-            <el-option v-if="selectedMissing && reviewerUserId !== undefined" :value="reviewerUserId" :label="`已选用户 ${reviewerUserId}（发布时核验资格）`" />
-            <el-option v-for="user in users" :key="user.id" :value="user.id" :label="`${user.nickname}（${user.id}）`" />
-          </el-select>
+          <UserSelect :model-value="reviewerUserId" :disabled="readonly" clearable placeholder="请选择材料审核人" @update:model-value="setReviewer" />
         </el-form-item>
       </el-form>
-      <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" />
+
       <p class="policy-hint">用户列表只提供身份选择。最终资格与 BPM 定义由服务端发布时重新校验。</p>
       <p class="policy-hint">规则版本 1 · PMS_MINIMAL_NORMAL_CLOSURE。项目创建时冻结发布快照；后续模板调整不改变既有项目。</p>
     </template>
   </section>
 </template>
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { getSimpleUserList } from '@/api/system/user'
+import { computed } from 'vue'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import type { TemplateDesignerDocument, TemplateClosurePolicy } from '@/api/pms/project/project-templates'
-import { errorText } from './editorModel'
 
 const props = defineProps<{ content: Pick<TemplateDesignerDocument, 'closurePolicy'>; readonly?: boolean }>()
-const users = ref<Array<{ id: number | string; nickname: string }>>([])
-const loading = ref(false)
-const loadError = ref('')
 const policy = computed(() => props.content.closurePolicy as TemplateClosurePolicy | null | undefined)
 const enabled = computed(() => policy.value != null)
 const reviewerUserId = computed(() => policy.value?.reviewerUserId)
 const reviewerError = computed(() => enabled.value && !reviewerUserId.value ? '请选择材料审核人后保存；不会自动指定审核人。' : '')
-const selectedMissing = computed(() => !!reviewerUserId.value && !users.value.some((user) => String(user.id) === String(reviewerUserId.value)))
 const setEnabled = (value: unknown) => {
   if (props.readonly) return
   if (value !== true) { props.content.closurePolicy = null; return }
@@ -50,13 +42,6 @@ const setEnabled = (value: unknown) => {
 const setReviewer = (value: number | string | undefined) => {
   if (props.readonly || !policy.value) return
   policy.value.reviewerUserId = value ?? ''
-}
-const loadOnOpen = async (open: boolean) => {
-  if (!open || props.readonly || loading.value) return
-  loading.value = true; loadError.value = ''
-  try { users.value = (await getSimpleUserList()).filter((user) => user.status == null || user.status === 0) }
-  catch (error) { loadError.value = `${errorText(error)} 已选审核人保持不变。` }
-  finally { loading.value = false }
 }
 </script>
 <style scoped>

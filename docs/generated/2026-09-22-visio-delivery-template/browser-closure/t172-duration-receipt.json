@@ -1,0 +1,79 @@
+{
+  "before_plan": null,
+  "pane_text": "施工计划\n\n从工期要求倒排阶段，在阶段内安排任务，确认后提交服务经理审核。\n\n刷新\n录入工期\n签约方式\n直签\n尚未关联合同\n工勘要求结束日期\n未登记\n来自工前准备\n当前生效工期\n未录入\n录入后可制定施工计划\n本版倒排截止日期\n尚未推算\n创建计划后读取权威输入\n选择计划版本\n制定施工计划\n\n先录入项目工期，再倒排阶段并安排任务。\n\n录入项目工期",
+  "drawer_text": "项目工期\n项目\n查询\n\n尚未录入项目工期\n\n录入首次工期",
+  "form_drawer_text": "录入项目工期\n计算口径\n起止日期\n起点 + 天数\n开始日期\n结束日期\n取消\n保存并生效",
+  "dates": {
+    "start": "2026-09-24",
+    "end": "2026-11-23"
+  },
+  "save_response": {
+    "code": 0,
+    "data": {
+      "allowedActions": [
+        "CREATE_CHANGE"
+      ],
+      "currentRevision": {
+        "calculationBasis": "DATE_RANGE",
+        "createdAt": 1790218043700,
+        "createdBy": 1,
+        "current": true,
+        "durationDays": 61,
+        "effectiveAt": 1790218043700,
+        "endDate": "2026-11-23",
+        "frozenAt": 1790218043700,
+        "revisionId": "2102939248321323011",
+        "revisionNo": 1,
+        "sourceChangeId": null,
+        "startDate": "2026-09-24",
+        "version": 0
+      },
+      "pendingChangeSummary": null,
+      "planId": 20,
+      "planRecalculationSourceRevisionId": "2102939248321323011",
+      "planRecalculationStatus": "PENDING_RECALCULATION",
+      "planVersion": 1,
+      "projectId": 992203060035
+    },
+    "msg": ""
+  },
+  "after_plan": {
+    "planId": 20,
+    "planVersion": 1,
+    "status": null,
+    "currentRevision": {
+      "calculationBasis": "DATE_RANGE",
+      "createdAt": 1790218043700,
+      "createdBy": 1,
+      "current": true,
+      "durationDays": 61,
+      "effectiveAt": 1790218043700,
+      "endDate": "2026-11-23",
+      "frozenAt": 1790218043700,
+      "revisionId": "2102939248321323011",
+      "revisionNo": 1,
+      "sourceChangeId": null,
+      "startDate": "2026-09-24",
+      "version": 0
+    }
+  },
+  "tasks": {
+    "PRE_SURVEY": "DONE",
+    "PLAN_CONSTRUCTION": "PENDING_ASSIGN",
+    "PLAN_SOLUTION": "PENDING_ASSIGN",
+    "DEPLOY_COORDINATE": "PENDING_ASSIGN",
+    "ACCEPT_COORDINATE": "PENDING_ASSIGN",
+    "PRE_REQUIREMENT": "DONE",
+    "DEPLOY_ARRIVAL": "PENDING_ASSIGN",
+    "ACCEPT_INITIAL": "PENDING_ASSIGN",
+    "PRE_DURATION": "IN_PROGRESS",
+    "DEPLOY_HARDWARE": "PENDING_ASSIGN",
+    "ACCEPT_FINAL": "PENDING_ASSIGN",
+    "PRE_CONTACT": "IN_PROGRESS",
+    "DEPLOY_CONFIG": "PENDING_ASSIGN",
+    "ACCEPT_TRAINING": "PENDING_ASSIGN",
+    "DEPLOY_JOINT": "PENDING_ASSIGN",
+    "ACCEPT_SATISFACTION": "PENDING_ASSIGN",
+    "DEPLOY_CUTOVER": "PENDING_ASSIGN"
+  }
+}

@@ -2,6 +2,84 @@
 
 用于记录 PRD 无法支持、互相冲突或必须由业务/架构负责人确认的问题。
 
+## Q-COLLATION-EXACT-IDENTITY-20261030 — unicode_ci 全库统一与精确来源身份
+
+- Status: PARTIALLY_RESOLVED（2026-10-30需求方已裁决普通字段unicode_ci、精确身份字段保留大小写敏感例外；原单一ci与精确身份冲突的方向已解决，字段边界、准确执行矩阵及实施验证尚未完成）。
+- Confirmed scope: 需求方先选 `utf8mb4 / utf8mb4_unicode_ci`，后明确采用普通字段unicode_ci、精确身份字段保留大小写敏感例外；该最新裁决替代“所有字符列只能一个collation”的原候选前提。保持原字段类型及属性、不以查询 CAST/CONVERT/COLLATE/TRIM 或程序二次反查规避产品关联、准备完成后执行数据库调整的授权继续有效；不增加辅助身份结构或更改来源原值来绕过规则。
+- Evidence: 原单一ci候选涉及1491个字符列、184个表默认值、194张表；其中538个binary族字符列改变大小写比较，992个NO PAD列改变尾空格比较。这些数量是原候选证据，不是最新分族方案的执行范围。[ADR-0023第2节](0023-p3-e09-key-collation-and-state-guard-policy.md#2-外部不透明键与摘要精确比较)要求外部不透明键及摘要精确比较，实施负向测试要求大小写不同来源键可共存。`com_contract` 的来源唯一键和原生等号查询说明，仅Java检查原值不能补偿ci唯一键禁止两个来源身份共存；最新裁决保留此类精确身份，不批准合并业务对象。
+- Decision: 普通字段统一 `utf8mb4_unicode_ci`，精确身份字段保留区分大小写的受控例外；来源键、幂等、流程身份及安全摘要继续遵循各自既定精确比较契约，不删改真实失败测试。例外不得仅凭字段名推断；需按既有契约、真实查询、索引和引用链列出具体字段及目标，区分大小写与PAD属性。Flowable原引擎整体语义、字符外键双方、复合唯一键每个键位、ASCII摘要/密文值域及授权Provider引用必须一并审核。
+- Boundary: 自研来源键的辅助身份设计不能直接推广为Flowable的451个引擎字符列已兼容；保留binary唯一索引也不能修复引擎普通等号查询的身份混淆。不得为使迁移通过而降低授权、幂等、状态机或历史保护，不改写ADR旧决策和已执行迁移原件；最终实现裁决须可追溯，并保留精确身份失败测试。
+- Current action: 按最新裁决重算受影响列、默认值、唯一键、字符外键和逻辑关联，更新准确DDL及恢复依赖；全库例外边界审计、隔离预演、备份恢复、维护写入边界及实际业务验收仍待完成。原单一ci目标153个风险唯一键中152个有各自查询快照无碰撞证据，来源绑定WARRANTY、DEVICE_BASE两组未证明；这些结果只保留原范围，最新方案若保留其原binary排序，则不能继续把旧目标下两组未证明当作变更该列的前置。任何历史零碰撞证据均不构成全库同一写入边界证明。独立的五个产品编码列已于2026-10-30按另行授权统一，见[执行收据](../generated/2026-10-30-feedback-followup/product-code5-execution-result.json)及[调整后原生关联核验](../generated/2026-10-30-feedback-followup/product-code5-post-native-joins-readonly.json)；TF-024的1267为调整前历史证据，不再作为当前阻塞。该局部结果不表示全库统一、恢复演练或业务页面验收完成，也不授权本轮执行DDL、迁移或部署。
+- Evidence paths: [全库统一原方案](../generated/2026-10-30-feedback-followup/database-charset-collation-unification-plan.md)、[完整字段矩阵](../generated/2026-10-30-feedback-followup/database-collation-single-target-plan.json)、[剩余绑定碰撞及隔离完成条件](../generated/2026-10-30-feedback-followup/database-unicode-ci-binding-completion-readonly.md)、[原反馈跟进TF-024](../generated/2026-10-26-test-feedback-triage/问题跟进.md#tf-024产品清单引用仅带出部分字段)。
+- Decision owner: 需求方已作上述分族目标裁决；按该裁决形成具体字段矩阵、可执行方案及适用决策回写，不将目标裁决写成字段清单全部审完、数据库已调整或业务验收通过。
+
+## Q-INS-UMC-CONTRACT-20261027 — UMC 离线巡检输入与报告接入契约
+
+- Status: PARTIALLY_RESOLVED（2026-10-27需求方明确先完成UMC日志上传、DOC出具及结构化结果接回；后置的规则替换、平台三格式和业务归档问题不阻断该独立协议能力）。
+- Evidence: 已按2026-10-27需求方后续授权实际登录UMC、创建任务69～72和报告683～687。尖括号命令提示符文本识别出设备及2项规则，直接JSON/ZIP内容未形成有效检测；已实际下载Word 2003 XML `.doc`，配置pdf=true仍未生成PDF，PDF/XML/DOCX下载均失败。另发现并实测 `GET /umc-api/dev/inspection/report?id=...` 结构化详情及正常注销。现有SRV要求生成PDF/DOCX/XML，DOC校验为二进制Word；SDS12的外部回调与附件轮询契约仍待对齐。证据见 `docs/generated/2026-10-27-umc-acceptance/report.md`，分析见 `docs/reference/2026-10-27-umc-inspection-integration-analysis.md`。
+- Questions:
+  - 本样本已验证尖括号提示符文本和多文件一次上传；生产设备IP/SN权威来源、更多型号格式及同IP/重复SN/结果缺失的多设备组合规则如何确定？不能将本次合成样本推广为全量兼容，也不补造生产IP。
+  - 已取得WordML和结构化JSON，UMC本环境PDF为何未生成、是否需要独立环境修复？如何通过明确的受控转换/组合方案满足现有PDF/DOCX/XML要求，WordML是否只作为外部证据？不能改后缀伪装格式或降低校验。
+  - NPDMS 冻结规则与 UMC 默认规则如何映射及处理差异？UMC 分析是否仅作为外部材料，还是需纳入经明确版本映射的报告内容？不得覆盖平台结果和冻结历史。
+  - 是否将 SDS12 的外部回调契约调整为受控出向轮询，由适配器形成可信内部结果？外部任务身份、结果版本与恢复核对仍需明确，不能将普通 HTTP 成功等同业务完成。
+- Recommendation: SRV 保留报告及状态 Owner，INTEGRATION 复用脚本协议建立可恢复适配；INT-12/DAC 继续负责采集和脱敏；平台冻结结果维持既有业务判定，UMC 文件先经格式、内容和完整性验证，失败沿用基础报告或人工路径。
+- Follow-up evidence (2026-10-27): 新增仅PDF任务73/报告688，doc=false/pdf=true配置下分析完成而无文档；apiversion=2亦未恢复，下载日志定位InspectionController第1085行文件缺失检查，内部生成原因仍未证实。已用当前Renderer源码和报告685真实结构化数据生成PDF/DOCX/XML，三格式内容及文件校验通过，DOCX视觉检查暴露列宽需增强。规则1指标定义272～278和规则85指标180已核对，报告运行行ID不能作为稳定映射；当前无自动启用的平台业务绑定。详见 `docs/generated/2026-10-27-umc-acceptance/pdf-diagnosis/report.md`。
+- Prior proposal: 此前平台三格式和规则补充方案已按需求方后续指令后置，不作为首轮UMC DOC与结构化结果接入的前置或当前计划。相关业务判定/归档问题保留待确认；当前范围与状态以下述Scope correction及收敛后的实施记录为准。
+- Scope correction (2026-10-27): 需求方要求先完成UMC自身的日志上传、UMC DOC及结构化结果对接，平台三格式生成及规则映射后置。当前计划已收敛；`UmcInspectionApi`及其生产提供方已实现，两项外部产物通过同一调用返回。Java提供方实测任务75/报告690取得DOC、原JSON及类型化层次结果，同意图恢复不重复创建；9项Node及6项Java定向回归通过。此处不将内部接口交付写成巡检页面、业务归档或整个INS-05完成；后置问题保持待确认。结果见 `docs/generated/2026-10-27-umc-acceptance/provider-live/report.md`。
+- Persistence correction (2026-10-27): 需求方继续授权巡检页面和PLT闭环，并明确获取后保存本地、结构化结果不能以文件保存、仅报告结果入库。当前收敛为DOC走PLT，按后续“原表承接”纠正，既有`srv_inspection_report_revision`用数据库JSON字段保存本次报告结果及必要恢复上下文，DOC由现有报告附件表关联PLT；不复制UMC设备/规则/指标模型。详情、刷新、下载和已完成重试只读本地，不回源UMC。V520新表方案已删除，改为原报告增三个可空字段及UMC来源CHECK，脚本仅准备，178测试库禁止DDL约束未解除。92项归档/原报告Mapper与事务/权限/文件定向检查通过，新增Node恢复场景后10项协议测试通过；业务页面尚未通过真实浏览器验收。
+- Current action: 巡检业务API、页面上传/结果展示及PLT DOC归档代码已接入，前端定向类型检查、ESLint及构建通过；原表承接方案通过92项定向检查、完整后端构建、22项修复基线和新冻结入口ValidateOnly，前版新表产物不用于部署。浏览器现已可连接，但后端/前端服务、本地Docker及Redis未运行。未执行NPDMS迁移、服务启动/重启、提交或推送；实际业务持久化与浏览器闭环待运行环境允许后验收。上述延期问题不因内部接口联通自动关闭。
+- Decision owner: 需求方与 UMC 接口提供方。
+
+## Q-NORMAL-CLOSURE-SATISFACTION-REVALIDATION-20261025 — 结项回调与采集待办受派边界
+
+- Status: RESOLVED（2026-10-25需求方明确采用受控内部重验；实施及浏览器复验状态见F-PROJ-001，不代表已结项）
+- Area: 项目44637的正常闭环申请2114146990853451777；满意度结果已有签字、达标及归档事实，材料审核人不是采集待办受派人。
+- Evidence: 服务经理审核已完成；材料审核通过触发SatisfactionTaskBusinessObjectProvider.lockAndRevalidate中的queries.get，报SATISFACTION_TASK_NOT_FOUND并回滚。只读inspect已按项目可见范围提供结果，采集工作队列get及既有锁定命令测试明确只允许受派人。不能为完成验收直接删除这项限制。
+- Proposed decision: 保留采集待办查询/写入权限及通用锁定命令限制，仅为当前合格结项审批实例提供服务端内部重验，绑定租户、项目、冻结快照、关联对象及结果版本；验证原审批身份与项目结项上下文，不向审核人增加采集待办权限，不修改受派人或历史。
+- Decision: 需求方确认“采用受控内部重验，保留满意度采集待办的受派人限制，不增加权限、不改历史”。通过既有公开跨模块Provider契约新增内部结项专用入口，ACC核验原申请/快照及BPM双人工审批证据，PROJ保留关联锁与结果版本/完整摘要检查；原通用入口不放宽。契约归`docs/design/10-api-design.md`正常闭环节。
+- Evidence path: `.run/project-16200721122903N-20261025/59-closure-material-failure-rollback.json`；申请IN_REVIEW，工程材料任务END_TIME为空。
+
+## Q-PROJECT-JOINT-DELIVERY-SOURCE-20261025 — 联调文件交付件的自动归集来源
+
+- Status: RESOLVED（2026-10-25按需求方要求从联调任务重新上传日志，既有归集规则和文件有效性校验通过，无需新增业务规则）
+- Area: 项目16200721122903N-0（178测试库ID44637）的D_JOINT联调交付件；不改冻结门禁、历史附件或既有批准版本。
+- Evidence: 初查时联调记录通过、任务待验收99%，交付件30为FILE且历史为空；仅据automaticSource=null判断来源缺失并不充分。后续审计ProjectDeliverableRuleService确认冻结PAGE联调任务可通过originTaskId限定AST.DEVICE_CONFIGURATION_LOG来源。真实浏览器在业务联调任务的“上传日志 / 文件历史”重新上传同一合成日志，归档为v2，交付件自动归集99020573D222000007-v2.txt。点击重新检测并刷新后，交付件已验收、联调任务完成100%，项目10/16。
+- Decision: 复用既有任务来源日志归集，不新增联调附件映射，不以状态通过替代有效文件，不改冻结门禁。此次追加v2，保留v1及原联调、审批历史。
+- Decision owner: 需求方要求“再上传一次日志”；已按既有浏览器业务入口验证。
+- Evidence path: `.run/project-16200721122903N-20261025/`；浏览器交付件30判定响应及联调记录见本轮验收证据。
+
+## Q-CUT-BPM-ACTION-EXTENSION-20261020 — 原生 BPM 操作栏与割接办理接入边界
+
+- Status: RESOLVED（2026-10-20需求方确认不得修改 BPM 模块功能，可以修改流程定义文件）
+- Area: 恢复 BPM 通用操作栏；割接通过/驳回仍须完整五项评审，人员调整走 CUT 改派，其他流程保持原有办理方式。
+- Evidence: `BpmProcessInstanceDetail` 仅通过 `formCustomViewPath` 嵌入业务表单；`ProcessInstanceOperationButton` 的 `handleAudit/handleTransfer/handleDelegate` 直接调用原 BPM API，没有业务操作委托回调。CUT 现有服务端守卫阻止通用接口绕过五项评审及改派授权，不得为接入而移除守卫或扩大 `bpm:task:update` 权限。
+- Decision: 不增加 BPM 业务操作扩展点，不修改通用办理组件、接口或授权。使用现有 BPMN `buttonsSetting` 为割接四个节点关闭原生通过、驳回、转办、委派、加签和退回；通过/驳回继续使用割接五项评审，人员调整复用 CUT 改派表单及接口。原生操作栏恢复原实现，评论、抄送继续遵循原 BPM 权限及行为；其他流程不受割接定义配置影响。
+- Current action: 前次整栏隐藏及临时按钮代理修改均已撤回，通用 BPM 两个页面文件无内容差异。割接定义文件和 CUT 改派入口已调整，未移除服务端守卫或扩大权限。经需求方明确批准，通过原生模型编辑页导入并发布v4，新实例 `2112495949790027776` 已绑定v4；浏览器验证改派及恢复、发起人、服务经理和技术支持五项评审提交成功，待办列表仅剩研发审核，无残留二线待办。Flowable定向14项通过；后续人员自动回填和改派表单调整后的相关前端78项通过。旧节点和评审内容保持不变；被替代旧实例仅由正常重提链追加替代实例指针并递增版本，不覆盖旧决定。
+
+## Q-PROJECT-RESTART-RESULT-20261020 — 已结项项目新轮次的原对象重新办理证据
+
+- Status: RESOLVED（2026-10-20需求方确认原字段保留供参考，必须重新办理确认；可独立建单的业务新建记录）
+- Area: 六个指定存量项目回到S0并匹配最新发布模板；不包含需求方已暂缓的16200722010404N。
+- Confirmed: 新一轮不得沿用旧完成结果；原业务、审批、结项历史保留；五套目标模板已获准发布。
+- Question: 联系人、人员指派等复用同一项目对象的业务，是否保留原字段供参考、要求重新办理并确认后才产生本轮完成证据；可独立建单业务采用新记录？仅任意字段更新或项目版本递增不能自行解释为重新完成。
+- Evidence: 当前六项目的生命周期均为NORMAL_CLOSED，但五项目仍各有1个ACTIVE阶段轮次及22个PENDING轮次；另一项目有10个DONE、2个ACTIVE和11个PENDING轮次。`ProjectReworkPlanner`只接收已结束节点，`ProjectReworkService`只接收ACTIVE项目；现有异常重开只接收EXCEPTION_CLOSED。`ProjectTaskBusinessAssociationService`排除旧轮次已关联对象，但这并未定义原项目对象重新办理的完成证据，也不能覆盖目标新绑定首次发现的旧对象。
+- Decision: 同一项目对象保留原字段供参考，必须重新办理并确认后才计入本轮完成；可独立建单的业务新建记录；历史审批、结项记录只读保留。不得仅因任意字段变化或版本递增就认定本轮已完成。
+- Scope decision: 2026-10-20需求方确认仅对六个指定项目执行一次，并进一步明确禁止项目白名单、固定模板映射、日期标记等功能硬编码。六项目范围由本次执行输入控制；复用现有受控重开、快照和计划能力，不新增日常重置页面或独立机制。保留旧执行、审批、结项与交付历史，并阻断旧成果自动计入新轮。
+- Correction（2026-10-20后续需求方指令）: “重新办理并确认”不得解释为新增独立人工核对步骤。移除人员指派、安装的额外确认按钮、接口及凭证门槛；按当前执行轮次使用既有 Owner 事实和原完成校验，不继承旧任务状态，保留旧成果及历史隔离。上述 Decision 中的确认口径以本条纠正为准。
+- Correction（2026-10-22需求方确认）: 整体重开与选择性返工共用业务对象关联和完成判定，不强制所有业务结果绑定新轮次。冻结绑定的 `REFERENCE_EXISTING` / `READ_ONLY_AGGREGATE` 允许本轮重新引用既有对象；这是对象解析策略，不替代结果证据策略。完成仍读取 Owner 当前事实及冻结规则；配置了结果订阅的节点继续执行 `REUSE_EXISTING` / `NEW_RESULT` / `PINNED_RESULT` 和有效性策略，其中新结果使用可信形成基线，指定结果不能自动替换。移除按整体重开时间统一筛选及人员指派/安装专用例外，不继承旧任务完成状态，不修改旧业务、审批、轮次证据和已发布配置。没有声明对象复用的创建类绑定保留既有旧关联隔离。此口径替代此前将“可独立建单”一概解释为必须新建的处理。
+- Current action: 六项目新轮次已执行；2026-10-22按上述更正统一关联与完成判定并修复培训事实读取，随后经批准部署`05a0b906`，在项目`992203060191`通过真实浏览器受控刷新验证培训自动完成及历史保留。未直接写任务或生命周期状态、未覆盖既有历史，详见`docs/generated/2026-10-22-rework-result-policy.md`。
+
+## Q-INS-AUTHORITATIVE-PRODUCT-DATA-20261015 — 巡检适配示例与验收的权威产品输入
+
+- Status: OPEN（正式权威源数据待提供；2026-10-15用户已明确批准创建模拟记录，模拟业务链验收继续）
+- Requirement IDs: EQP-01、INS-03、INS-09
+- Area: 本次巡检专项的任务创建/保存重开、产品适配/不适配、发布/停用和完整业务验收样例。
+- Question: 请提供可使用的CRM或其他权威产品类型清单及设备映射来源，或已有受控导入文件的位置。
+- Evidence: F-AST-002规定巡检只消费AST受控产品类型契约；2026-10-15本次部署后只读核验 `24306/npdms_domain_test` 的 `ast_product_type`、`ast_product_type_source_mapping`、`ast_device_current_product_type` 总数及未删除数均为0。`InspectionTaskService.create`在创建事务内即核验并冻结设备产品类型，因此该缺口也阻断建单成功及后续保存重开，不仅影响执行。用户已询问“受控产品类型是什么”，主任务已解释其为权威类型编码及名称的受控副本，尚未收到来源输入；不能以设备型号、旧字典或 `conpType` 自行替代。
+- Update: 用户随后明确答复“创建模拟记录进行验收”。已通过AST正式设备维护及产品类型受控导入接口新增两台`ACCEPT-INS-20261015-A/B`设备、两个`MOCK_INS_20261015_A/B`类型及各自映射，来源系统为`INSPECTION_MOCK_ACCEPTANCE`；当时三表各2条，仅绑定这两台新设备。读回设备、来源、有效映射及两条成功审计已核对，见`.run/build/inspection-deployment/mock-data-db-check.json`。用户进一步要求复用割接模拟项目和设备后，为既有`NATIVE-UI-20261012-DEVICE-02/03`通过同一Owner接口新增`MOCK_INS_CUT_REUSE_20261015`类型及两条映射；当前类型/来源/映射总数为3/3/4，既有项目、成员、设备和CUT记录核对不变，见`.run/build/inspection-deployment/cut-reuse-after-check.json`。这些是获准模拟来源，不是CRM或正式生产产品清单。
+- Current action: V477.7十类未发布示例保持原样；另创建仅适配上述模拟类型的明确标识规则和合成离线日志，按正式校验、安全审核、发布及任务流程开展模拟数据验收。不得把合成日志称为真实设备采集、把模拟判定称为DPtech生产规则。原真实SQL验证仍是事务回滚的技术fixture。缺少的《DPtech设备巡检判定信息表》仍是正式生产规则包的来源缺口，不阻断已授权的模拟验收。
+- Decision owner: 需求方/权威产品资料提供方。
+
 ## 状态
 
 - OPEN
@@ -29,7 +107,7 @@
 
 ### Q-TASK-BUSINESS-AUTO-LINK-001
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED（需求方 2026-09-30 裁决归属口径；Owner 接入契约落字与跨会话分工仍须执行，见 Resolution 2026-09-30）
 - Requirement IDs: PM-03、PM-11
 - Area: 任务业务记录自动归属
 - Question: 2026-09-14需求方要求取消手动建立/解除关联并直接展示业务操作页；同项目存在多条业务记录时，哪些记录自动归属当前任务并进入完成判定？
@@ -39,6 +117,8 @@
 - Decision owner: 需求方；PROJ与相应业务Owner落实契约
 - Resolution: 2026-09-14需求方已确认统一方向：所有业务模块共用“业务完成→自动关联对应任务→按任务完成规则自动完成”，无需人工建立/解除关联或点击完成任务。此确认不是同项目全部记录无差别纳入；具体任务/业务范围解析及各Owner接入契约仍须统一落字，暂不关闭本问题。
 - Implementation coordination: 本任务11:21后只读复核发现，上一轮结束后同工作树已出现其他来源的`TaskBusinessObjectProvider.lockCompletionFact`、`ProjectTaskBusinessService.lockCompletionFacts`、`ProjectTaskLifecycleService.completeFromBusinessResult`及需求分析Outbox接线（核心文件修改时间11:15～11:19）。现有自动完成仍读取已保存活动关联，且本轮检索仅发现需求分析实现无人值守完成事实接口，不等于统一能力已交付。master相关DU未定位到本增量的当前写入责任；须先明确接管/分工，不能并行改写同一接口或重复建设。
+- Resolution 2026-09-30: 需求方裁决——采用A并附加纳入资格限定：同项目同类业务记录中"已确认或审批通过、归档通过"的记录全部纳入任务业务范围与完成判定（统一业务模型应有统一的业务定义），完成事实取最新完成的记录；草稿、已撤销等未定格记录不纳入。既有关系与完成历史不自动重写。各业务Owner接入契约仍须按此口径统一落字，跨会话并行实现的接管/分工按Implementation coordination执行，属实施协调不改变本语义裁决。
+- 现状核对 2026-09-30（只读，不改共享接口；契约已落字 docs/design/04a-template-compilation-runtime.md §17）：自动归属唯一写入路径为 `ProjectTaskBusinessAssociationService.reconcile` 按 `associationCandidates` 分页同步。各 Owner 候选口径与裁决差异——SOL 工勘 `SiteSurveyEntityMapper.selectAssociationPage` status IN (0,1,3) 含草稿(0)；SOL 实施方案 `SolutionCompletionMapper.page` status NOT IN (5,6) 含未审批通过状态；ACC 验收报告按项目+类型全量、CUT cut_task 全量，均未按状态限定；PLN 阶段计划仅 status=2 生效批次（符合）。"完成事实取最新完成的记录"当前实现为逐活动关联读取并按规则聚合，未实现最新完成记录选取。以上差异为实施缺口，按 Implementation coordination 的接管/分工处理，本语义裁决不再变更。
 
 ## Phase 2历史资料承载决策
 
@@ -657,13 +737,15 @@
 
 ### Q-FCOM-002
 
-- Status: BLOCKED_BY_SPEC
+- Status: RESOLVED（需求方 2026-09-30 裁决：A 回退即关闭解锁）
 - Requirement IDs: COM-01、ACC-03、PM-10
 - Area: 退出/回退验收阶段后的范围绑定关闭或解锁
 - Question: 退出或回退验收阶段时，既有AcceptanceScopeBinding的关闭和解锁规则仍待业务明确。
 - Blocking scope: 仅退出/回退时的绑定关闭或解锁设计；确认前不得自动写effective_to、关闭、解锁或改写既有绑定。阶段进入绑定与验收阶段内新版本绑定规则继续有效，不阻断报告版本、满意度或当前范围的既有正向路径。
 - Evidence: 当前统一F-COM-001规格BR-FCOM001-005及第13节；ADR-0038/0039，恢复原有窄问题登记，不新增业务Gate。
 - Business decision required: 是。
+- Resolution: 需求方2026-09-30裁决采用A——退出或回退验收阶段即关闭既有AcceptanceScopeBinding并解锁（落effective_to至回退时点、解除资源绑定锁定）；回退路径的关闭与解锁写入自此获得授权实现，原"确认前不得自动写"限制针对本裁决情形解除；阶段进入绑定与验收阶段内新版本绑定正向规则不变。Decision date: 2026-09-30。
+- Implementation 2026-09-30: 已实现回退路径关闭解锁——`AcceptanceScopeBindingApi.closeProjectBindings`（新增命令/结果 DTO，MANDATORY 事务，逐条落 effective_to 至调用时点，无活跃锁幂等返回）；权威回退路径 `ProjectGovernanceApplicationService.rollbackOnce` 在同事务调用（operationId 与阶段快照一致）。V385 放开 V160 的 `chk_acceptance_scope_effective`（binding_status 仍恒 LOCKED，活跃判定不变）。既有治理动作审批流 `approveGovernanceAction` 无任何调用方，未接线。
 
 ## CUT/IMP来源裁决补登
 
@@ -780,6 +862,12 @@
 - Decision owner: PROJ、ACC、COM设计Owner；涉及新增业务语义时返回需求方
 - Decision date: 未关闭；2026-09-07登记
 
+#### 2026-09-20 专项业务判定确认
+
+需求方在本次专项代码修复中确认：初验、终验任务分别以“报告已生效且结论为通过，并满足模板配置条件”判定；不新增人工审批，初终验前置关系由模板决定。本次按既定 `tenant+project+acceptanceType` 身份提供项目独立创建入口，保留旧任务来源及报告历史；独立报告使用固定的有效报告通过判定，节点附加条件使用项目已冻结模板规则。交付件通过既有项目交付件提交接口关联报告成果，不为独立验收伪造阶段、任务、执行契约或自动交付目标。
+
+本确认消除本次“有效报告是否等于验收通过”的业务歧义；实现、权限、前向迁移及浏览器闭环证据仍需逐项验证。本记录不关闭此前 COM 范围、多目标归档及 BPM 扩展合同的剩余事项，不改写历史 NO-GO，也不宣布 Feature Ready/Done。
+
 #### 2026-09-08 契约候选进展
 
 需求方已确认书面逻辑设计，并补充“验收主要是项目层面的验收”。候选保持`tenant+project+acceptanceType`身份，节点和视图只引用项目验收；COM范围只在已发布规则要求时参与，不成为所有项目验收创建的统一前置。
@@ -809,3 +897,926 @@
 #### 2026-09-08 变更级审查政策生效后的阻断范围
 
 需求方已批准取消Phase 1/2阶段全量阻断。上文中的纯阶段顺序、整阶段批准和PRD全文身份联动不再作为本Q的关闭前置；原审阅/失败记录保留历史，不能称已修复。当前只需针对独立验收这项变更，将已审契约落实到其实际权威API/物理设计及直接消费者，完成真正受影响的Schema/一致性检查并取得对应范围审阅结论；无需修改无关分册状态或重签全阶段。本Q不自动关闭，仍限制尚未明确或验证的实质契约及其依赖实现。
+
+## 领域模块物理组织与跨域交互形态
+
+### Q-ARCH-001
+
+- Status: OPEN
+- Requirement IDs: 无单一Requirement绑定；不改变PRD业务语义的工程结构问题，影响全部`pms-module-*`模块与跨域契约演进
+- Area: 多领域模块物理组织与跨域交互形态
+- Question: 跨域交互的接入税（跨域Fact API层、Provider接入数组、DTO映射及api模块维护成本）应通过物理合并领域模块降低，还是通过按交互性质分流交互形态降低？
+- Evidence: 当前12个`pms-module-*`业务/公共模块与9个`pms-module-*-api`模块；`pms-module-platform`已具备幂等、审计、Outbox与业务授权；engineering已运行`PreparationSourceProviderRegistry`端口注册表模式，并已定义`ArtifactAcceptedMessage`、`ImplementationEvidencePublishedMessage`等事件消息；analytics为纯只读分析域。
+- Options:
+  - A. 维持现状：每域api+biz双模块，跨域交互继续按同步FactApi/Provider形态扩展。
+  - B. 物理合并（2026-09-17讨论的8模块方向）：高频执行环领域合并为单一承载模块（如`pms-module-delivery`），域内跨域调用退化为模块内调用；逻辑领域保留，以包结构纪律补偿边界。
+  - C. 三旋钮组合：把模块化拆为物理边界（Maven模块划分）、契约形态（接口由提供方api发布或由消费方端口定义）、运行时耦合（同步调用/事件/本地投影）三个可独立调节维度；物理边界维持多域不合并，只调节后两者——强一致命令（如`lockAndRevalidate`行锁重验）保留同步api；只读事实快照按消费频率与陈旧容忍度在FactApi与事件物化/本地投影间选择（analytics为天然试点）；多源适配推广端口+注册表既有模式；跨域长流程（五步检查、异步重评链等PRD既有流程）归编排层+LiteFlow，依赖图从网状收敛为星型；全域公共概念收敛共享内核platform。
+- Recommended technical default: C。B一次性降低接入税但牺牲域边界与演进隔离，合并后难以回退；C复用既有基础设施（platform Outbox、Provider注册表、事件消息），按交互逐项演进、分阶段实施且单项可回退。
+- Cost/risk note: C的事件物化新增投影维护、重建与对账成本，仅对高频且可容忍短暂陈旧的读启用；编排层不得拥有业务事实，防止演变为上帝模块；共享内核严格准入，只收全域真正共用概念，防止退化为公共堆积区。
+- Why it blocks design/implementation: 不阻断当前Feature实施与验收；裁决前新跨域交互仍按现状同步FactApi/Provider形态实施，不得擅自切换事件物化、本地投影或新建编排层。
+- Blocking scope: 后续新跨域交互的形态选择与模块结构演进；既有已实现api契约不因本Q变更。
+- Business decision required: 是；需需求方裁决方向，架构负责人与各领域Owner参与影响分析。
+- Resolution: 待定
+- Decision owner: 需求方（方向）；架构负责人、各领域Owner（影响分析与落实）
+- Decision date: 未关闭；2026-09-17登记
+
+## 四级维度字段库内命名统一
+
+### Q-MIG-DIM-001
+
+- Status: CLOSED（2026-09-18裁决并落实，见末节落实回执）
+- Requirement IDs: COM-01（合同回款/发货合同归属列）、PM-03/PM-10（CRM执行单列）；主数据治理事项，不改变PRD业务语义
+- Area: dppms迁移目标库四级"市场-系统-拓展-行业"维度字段命名统一
+- Question: 主档`cus_market_relation`与业务表（`com_crm_execution_order`、`com_contract_receivable`、`com_shipment_contract_reference`）对同一维度概念使用不同列名，统一到哪套命名、`*_department_source_key`血缘列是否保留？
+- Evidence: 规格DDL（`project-order-physical-schema.mysql.sql`）内部分歧：主档用`market_code/system_code/expend_code/industry_code`（行业一致）；三张业务表用`marketing_department_code`、`system_department_code`（另有`system_department_source_key`）、`expansion_department_code`（另有`expansion_department_source_key`）。需求方2026-09-18指令：四级维度主档为`cus_market_relation`（dppms同步副本`pm_project_market_relations_from_sms`，529行），且这些字段在数据库内必须保持统一。
+- Why it blocks design/implementation: 不阻断迁移映射梳理（报告按各表实际DDL列名如实记录）；阻断CRM执行单6张未建表的最终DDL定稿，及已建表（V258）列名演进。
+- Options:
+  - A. 业务表对齐主档命名：`marketing_department_*→market_department_*`或`market_*`、`expansion_department_*→expend_department_*`或`expend_*`，系统部对齐`system_*`；`*_department_source_key`作为CRM原始键血缘列保留。
+  - B. 主档改为业务表命名（`marketing_department_code`等）；主档是CRM同步目录，改名偏离CRM来源字段语义。
+- Recommended technical default: A。主档是权威来源且`industry_code`已一致，业务表向主档语义对齐改动面最小；`*_department_source_key`保留原值血缘符合既有裁定。
+- Business decision required: 是；统一后目标列名（含`_id/_name`伴生列）需需求方确认，随后修订规格DDL并复核证据哈希，V258已建表以前向迁移落列名变更。
+- Resolution: 业务表对齐主档命名（方向A）；行业划分四维列名按`cus_market_relation`（`market_/system_/expend_/industry_`），办事处取`department_`，创建时原值合并`original_division_values` JSON；2026-09-18落实于规格DDL修订与前向迁移（原V294/V295，后按需求方指令并入合并迁移V294，见Q-MIG-DIM-005回执后合并记录）。
+- Decision owner: 需求方（目标命名）；F-COM-001/AI-MIG Owner（DDL修订与迁移落实）
+- Decision date: 2026-09-18登记
+
+#### 2026-09-18 需求方裁决
+
+需求方裁决按`cus_market_relation`主档列名统一（方向A）：`market_code/market_name`、`system_code/system_name`、`expend_code/expend_name`、`industry_code/industry_name`；伴生解析列`<root>_department_id`、血缘列`<root>_source_key`（原值列`original_<root>_source_key`）；`office_department_*`与行业列维持现状。现行业务表DDL列名（`marketing_department_*`/`system_department_*`/`expansion_department_*`）定性为实现偏差，偏差对照见`docs/generated/dppms-core-data-mapping-2026-09-18.md`第0节。落实：CRM执行单6张未建表按裁定列名定稿；`com_contract_receivable`、`com_shipment_contract_reference`（V258已建表）以前向迁移更正列名并复核证据哈希。实施完成前本Q保持OPEN。
+
+#### 2026-09-18 补充裁决（办事处对齐）
+
+办事处是部门维度而非行业，编码/名称同样对齐主档风格：`office_department_code/name→office_code/office_name`；`office_department_id`已指向平台共享部门主档（`system_dept`），保持不变。行业列`industry_code/industry_name`维持现状。偏差对照已更新至`docs/generated/dppms-core-data-mapping-2026-09-18.md`第0节。
+
+#### 2026-09-18 更正（办事处命名保留department）
+
+办事处是部门而非四级组合成员，"部门是department"：`office_department_code/office_department_name/office_department_id`命名保留，不随`cus_market_relation`四级表（`market_code/system_code/expend_code/industry_code`）改名，现DDL无偏差。上一条"补充裁决（办事处对齐）"中`office_department_code/name→office_code/office_name`的更正作废。四级组合维度偏差对照（市场/系统/拓展/原值列）维持不变。
+
+#### 2026-09-18 再更正（办事处编码/名称去重）
+
+`office_`与`department_`语义重复：办事处编码/名称列裁定为`office_code/office_name`，现DDL`office_department_code/name`为实现偏差；`office_department_id`保留（指向平台共享部门主档`system_dept`，`department`在此有实义）。上一条"更正（办事处命名保留department）"中关于编码/名称列的部分作废，ID列结论不变。最终命名体系：编码/名称列一律`<root>_code/<root>_name`（市场/系统/拓展/办事处/行业），ID列一律`<root>_department_id`，血缘列`<root>_source_key`。偏差对照已更新至`docs/generated/dppms-core-data-mapping-2026-09-18.md`第0节。
+
+#### 2026-09-18 最终命名裁定（部门列保留department后缀）
+
+部门维度（市场/系统/拓展/办事处）编码/名称列统一为`<root>_department_code/<root>_department_name`，根名取主档`cus_market_relation`的`market/system/expend`（办事处根名`office`）；ID列`<root>_department_id`、血缘列`<root>_department_source_key`（原值列`original_<root>_department_source_key`）。行业不是部门：仅`industry_code/industry_name`，无`industry_department_id`。据此实际偏差收敛为两组根名错误：`marketing_department_*→market_department_*`（3列）、`expansion_department_*→expend_department_*`（4列及`original_expansion_department_source_key`）；`system_department_*`、`office_department_*`、`industry_*`、`original_system_department_source_key`与现DDL一致。此前关于`market_code/system_code/expend_code/office_code`命名的中间结论作废。偏差对照见`docs/generated/dppms-core-data-mapping-2026-09-18.md`第0节。
+
+#### 2026-09-18 概念澄清与最终口径（行业划分非部门）
+
+"行业划分"是市场/系统/拓展/行业四个维度的统称（不单指industry维度），四个维度都不是部门、与部门主档（`system_dept`）无关：列名一律按主档`cus_market_relation`——`market_code/market_name`、`system_code/system_name`、`expend_code/expend_name`、`industry_code/industry_name`，全部经组合目录解析，无`*_department_id`；CRM原始键血缘列`system_source_key`/`expend_source_key`（原值列`original_*_source_key`）。办事处是部门维度：列名`department_code/department_name/department_id`（`office_`与`department_`语义重复取`department_`），`department_id`解析到`system_dept`。据此现DDL偏差为：`marketing_department_code/name→market_code/market_name`、`system_department_*→system_code/name/source_key`、`expansion_department_*→expend_code/name/source_key`、`original_*_department_source_key→original_*_source_key`、`office_department_code/name/id→department_code/name/id`；`marketing_department_id`/`system_department_id`/`expansion_department_id`三列应删除（行业划分维度无部门主档ID）；`industry_code/name`一致。此前所有含`_department_`中缀的中间命名结论作废。偏差对照见`docs/generated/dppms-core-data-mapping-2026-09-18.md`第0节。
+
+#### 2026-09-18 裁决（行业划分原值合并JSON字段）
+
+行业划分创建时原值（回款源表`sms_ofst_contract_head_sap`的`systemid_o`/`expendid_o`/`industry_name_o`，当前81,547行全空）不再设`original_system_source_key`/`original_expend_source_key`/`original_industry_name`独立列，合并为单个JSON字段`original_division_values`统一存储：`{"systemSourceKey":...,"expendSourceKey":...,"industryName":...}`，按来源原值保留、不参与解析。现DDL`com_contract_receivable`的三个`original_*`列在规格DDL修订时以此JSON字段替代。背景：`_o`字段为回款记录创建时的行业划分归属原值，当前字段被调整后保留初始归属用于追溯。
+
+#### 2026-09-18 落实回执（规格DDL修订+前向迁移，迁移文件现为合并V294第1段）
+
+按上述裁决完成库内统一：(1) 规格权威DDL `specs/001-project-delivery-platform/appendices/project-order-physical-schema.mysql.sql` 修订`com_contract_receivable`、`com_shipment_contract_reference`、`com_crm_execution_order`三表列名——行业划分四维改`market_code/market_name`、`system_source_key/system_code/system_name`、`expend_source_key/expend_code/expend_name`（industry两列原本一致），删除行业划分维度的三个`*_department_id`列，办事处改`department_id/department_code/department_name`（含执行单两个索引`idx_crm_execution_company_office(_code)`列引用），三个`original_*`列合并为`original_division_values JSON`；修订后SHA-256 `AF8C3BA5D44BDE9809E9F10AC70A60E0CA4DA43E9BFE7E6B1714759294BBB3D0`（修订前基线`6B203BF3B4CC860DFAEF1221977F2B48A620C0077638D857582FF7BB033E275B`）；同日按需求方要求将上述列注释精简为界面显示字段口径（市场部编码/系统部编码/拓展部编码/办事处编码等），语义不变。(2) 前向迁移（列名更正，现并入合并迁移`V294__migration_field_naming_and_comment_alignment.sql`第1段）对V258已建的`com_contract_receivable`、`com_shipment_contract_reference`执行同等更正（两表经核查均0行，合并不丢数据），2026-09-18经Flyway实际应用成功，实库列状态及注释已复核（注释精简亦在合并迁移第3段）。(3) 修订后规格DDL已在隔离MySQL 8.4容器完整执行验证，66张表全部建成、索引列正确。`com_crm_execution_order`等6张执行单表未在实库建表，建表时直接采用修订后规格DDL，无需迁移。本Q裁决均已落实，Q关闭。
+
+## 办事处维度字段库内命名统一（续）
+
+### Q-MIG-DIM-002
+
+- Status: CLOSED（2026-09-18裁决并当日落实，见末节落实回执）
+- Requirement IDs: COM-01（履约范围/拆分承接列）、PM-03/PM-10（项目拆分列）、CUT（快照键）
+- Area: 办事处（部门维度）字段在履约范围、项目拆分与切换快照中的命名统一
+- Question: Q-MIG-DIM-001裁决"办事处是部门维度取`department_`"后，实库仍有4张表带`office_department_*`列，对应Java字段、跨模块API契约`ProjectOfficeFact`及cutover审批快照JSON键是否一并统一？
+- Evidence: 实库`com_delivery_scope`（office_department_id/code/name/version）、`fcom001_v70_com_delivery_scope_detail`、`proj_project_split_item`、`proj_project_split_scope`（各office_department_code）；代码引用横跨pms-module-commerce（履约范围DO/VO/服务/测试）、pms-module-project（拆分DO/服务/VO、`ProjectOfficeFact` API契约）、pms-module-cutover（审批快照编解码器、请求编解码器、VO/视图）；`CutoverProjectContextPort.ProjectContextFact`已提交为`departmentId/departmentCode/departmentName`，控制器等仍用旧名（分支处于改名中途）。
+- Options:
+  - A. 全部统一为`department*`：DB列、Java字段、API契约、快照新写键；历史快照旧键只读兼容。
+  - B. 仅统一DB列，代码与快照键保留office命名——列与代码脱节，违背库内统一裁决。
+- Recommended technical default: A。
+- Business decision required: 是；已由需求方2026-09-18确认（含历史快照"新写新键、旧键只读兼容"方案）。
+- Resolution: 采用A。4张表DB列`office_department_*→department_*`（原V296，现为合并V294第2段）；三模块代码与`ProjectOfficeFact`组件同步改名；cutover审批快照写入`departmentId/departmentCode/departmentName`新键，读取同时接受旧键`officeDepartmentId/officeCode/officeName`，不重写历史快照。`pms_project.office_id`（项目所属办公室，40行）同属办事处概念但属核心项目表既有约定，不在本次确认范围，保留并在此标记。
+- Decision owner: 需求方（命名与兼容方案）；F-COM-001/FPROJ-002/CUT Owner（落实）
+- Decision date: 2026-09-18登记并确认
+
+#### 2026-09-18 落实回执
+
+- DB：原`sql/migrations/V296__office_department_column_alignment.sql`（已并入合并迁移`V294__migration_field_naming_and_comment_alignment.sql`）完成4张表`office_department_*→department_*`（`com_delivery_scope`四列、`fcom001_v70_com_delivery_scope_detail`/`proj_project_split_item`/`proj_project_split_scope`各一列），并按界面显示口径补注（办事处ID/办事处编码/办事处名称/办事处版本），2026-09-18经Flyway应用成功（库版本v296），实库列名与注释已复核；列上无索引/外键引用。
+- 代码：pms-module-commerce（`DeliveryScopeDO`、`DeliveryScopeDetailDO`遗留占位字段、`DeliveryScopeRespVO`、`DeliveryScopePreviewResult`、三个scope服务、`DeliveryScopeController`、`SplitScope*Command`、`CommerceAuthorityIngestService`及相关测试）；pms-module-project（`ProjectSplitItemDO`/`ProjectSplitScopeDO`、拆分草稿/预览/应用服务、拆分VO与控制器、`ProjectChildDraftFactory`、`ProjectOfficeFact`四组件改为`departmentId/departmentCode/departmentName/departmentVersion`及ApiImpl/测试）；pms-module-cutover（`CutoverTaskReqVO`、`CutoverCreateContextRespVO`、`CutoverTaskRequestCodec`请求键、`CutoverTaskViews.Summary`、`CutoverTaskController`，本分支`CutoverProjectContextPort`既有新名由此收口可编译）。
+- 快照兼容：`CutoverApprovalSourceSnapshotCodec`写入新键`departmentId/departmentCode/departmentName`；解码按世代识别，旧键`officeDepartmentId/officeCode/officeName`只读兼容，新旧键混用拒绝，历史快照不重写。
+- 验证：三模块`mvn compile`通过；聚焦测试通过——cutover 11/11（快照编解码5含2个新旧键兼容用例、控制器契约3、查询服务3）、commerce 18/18（范围命令服务16、公共API契约2）、project 8/8（ProjectOfficeFactApiImpl 6、公共API契约2）。`CommerceAuthorityIngestMySqlTest`未执行：需`npdms-50eb-test`隔离库凭据（既往核实1045不可用）。
+- 范围保留：`orderOfficeDepartment*`（项目创建/手动建项目请求的订单办事处入参）与`pms_project.office_id`不在本裁决确认范围，维持原名，后续如需统一须需求方另行确认。
+
+## 迁移目标列名跟源字段与来源系统前缀
+
+### Q-MIG-DIM-003
+
+- Status: CLOSED（2026-09-18裁决并当日落实，见末节落实回执）
+- Requirement IDs: PM-03/PM-10（CRM执行单/配置列）
+- Area: 迁移目标列名与源字段名及来源系统前缀的口径
+- Question: 目标列名何时跟源字段原名、何时加来源系统前缀？（需求方2026-09-18指令：`applyType→application_type→apply_type`；`com_crm_execution_config.crm_project_code`直接用`project_code`；跨表同名时才追加来源系统前缀）
+- Evidence: `core-field-mapping.jsonl`裁定`pm_project_property_from_sms.applyType→application_type`、`projectCode/Name→crm_project_code/name`、`pm_project_property_af_from_sms.projectType→crm_project_type`、`pm_project_product_af_from_sms/real_product_line.projectCode→com_crm_execution_config.crm_project_code`；规格DDL同名。执行单两表未在实库建表。
+- Options:
+  - A. 本表内列名直接跟源字段（蛇形），不加来源系统前缀；仅当目标表内与其他来源同名冲突时加前缀。
+  - B. 维持`application_type`/`crm_project_*`语义化改写命名。
+- Recommended technical default: A（需求方裁决）。
+- Business decision required: 是；已裁决。
+- Resolution: 采用A。`com_crm_execution_order`：`application_type→apply_type`、`crm_project_code→project_code`、`crm_project_name→project_name`、`crm_project_type→project_type`（源字段applyType/projectCode/projectName/projectType）；`com_crm_execution_config`：`crm_project_code→project_code`。两表内均无同名冲突，无需前缀；索引`idx_crm_execution_crm_project`随列更名为`idx_crm_execution_source_project`（`idx_crm_execution_project`已被同表`primary_project_id`既有索引占用，不能复用）。实库`imp_eng_*`表的`crm_*`列属集成推送域，不适用本口径。
+- Decision owner: 需求方；AI-MIG实施Owner（落实）
+- Decision date: 2026-09-18登记并落实
+
+#### 2026-09-18 落实回执
+
+规格DDL修订上述5列与索引（修订后SHA-256 `E425A2678D9A2EB7516709322A938996D6BB2EB79E4789BD8FEF91319C812412`），隔离MySQL 8.4容器复验66张表建成、新列名与`idx_crm_execution_source_project`索引到位、无`crm_project_code`/`application_type`残留；报告第1节字段表同步。执行单两表未建库，无需迁移；`core-field-mapping.jsonl`作为基线证据不回写，本Q为准。
+
+### Q-MIG-DIM-004
+
+- Status: CLOSED（2026-09-18裁决并当日落实，见末节落实回执）
+- Requirement IDs: PM-10（CRM执行单配置列）；涉及平台血缘字段口径
+- Area: 各表"本行来源系统"字段的统一命名
+- Question: 行级来源系统字段存在`source_system`（约30张实库表及`plt_migration_source_record`既定口径）、`config_source`（仅`com_crm_execution_config`）与源字段`dataSource`（dppms各SMS源表，值'SMS'/'CRM'）三种命名，需统一（需求方2026-09-18指令）。
+- Evidence: 规格`project-order-physical-schema.mysql.sql`中`source_system`约20处；实库`ast_*`/`com_*`/`cus_*`/`cut_task`/`pms_project`/`proj_*`/`fcom001_v70_*`均用`source_system`；jsonl将`dataSource` direct映射到`source_system`/`config_source`。限定语变体`master_source_system`/`order_source_system`/`candidate_source_system`语义为引用另一对象的来源系统，不属于本行来源，不在统一范围。
+- Options:
+  - A. 统一到`source_system`：仅改未建表的`com_crm_execution_config.config_source`，零迁移、零代码改动。
+  - B. 统一到`data_source`（严格跟源字段名）：需重命名约30张已建实库表的`source_system`及全部消费代码与索引。
+- Recommended technical default: A。
+- Business decision required: 是；需求方已裁决选A。
+- Resolution: 采用A。行级来源系统字段统一为`source_system`（平台血缘既定口径，语义"来源系统编码"而非镜像业务字段，不适用Q-MIG-DIM-003的源字段名口径）；`com_crm_execution_config.config_source→source_system`，唯一键`uk_crm_execution_config`第二列随之改为`source_system`。限定语变体保留。实库未建该表，无需迁移；`core-field-mapping.jsonl`不回写，本Q为准。
+- Decision owner: 需求方；AI-MIG实施Owner（落实）
+- Decision date: 2026-09-18登记并落实
+
+#### 2026-09-18 落实回执
+
+规格DDL修订上述1列及唯一键（修订后SHA-256 `B58870683C9C213D406740193D6E2072F093179C69D2CBB1B61B68DC213ADF51`），隔离MySQL 8.4容器复验66张表建成、`uk_crm_execution_config`列为`(tenant_id, source_system, source_config_key)`、无`config_source`残留；报告第1节字段表3处同步。Java代码无`configSource`引用，无需改码。
+
+### Q-MIG-DIM-005
+
+- Status: CLOSED（2026-09-18裁决并当日落实，见末节落实回执）
+- Requirement IDs: 全域（迁移域所有表）
+- Area: 此前裁决（列名统一、字段注释精简为界面显示口径）对全部表的适用
+- Question: 需求方2026-09-18指令——此前裁决内容需对所有表适用，尤其是字段描述精简、字段名称统一。
+- Evidence: 规格DDL 66张表1166条列注释中存在解释性尾缀（空值语义/时区/字典约束/单位/币种口径等）与表语境前缀（`CRM执行单镜像的`/`X主档的`/`合同回款的`等）两类冗长写法；列名口径经盘点已无`marketing_department_*`/`expansion_department_*`/`office_department_*`/`crm_project_*`/`application_type`/`config_source`残留。
+- Options:
+  - A. 按Q-MIG-DIM-001已确认的界面显示口径机械扩展到全部66张表：剥尾缀、剥表语境前缀、保留`：0否，1是`类值图例，不改变任何业务语义。
+  - B. 逐表人工重写（不必要，口径已裁决）。
+- Recommended technical default: A。
+- Business decision required: 是；需求方已裁决适用全部表。
+- Resolution: 采用A。字段名称统一：全部表已符合此前各裁决口径（市场/系统/拓展/行业四维、`department_`、源字段名蛇形、`source_system`），无残留。字段描述精简：规格DDL共410条注释精简（剥解释性尾缀与表语境前缀，保留值图例），SHA-256更新为`AC2D3C6E8F862A9A8DCF8632B3F495E7F57E085C9874674F2835C70A9ADC4833`。
+- Decision owner: 需求方；AI-MIG实施Owner（落实）
+- Decision date: 2026-09-18登记并落实
+
+#### 2026-09-18 落实回执
+
+规格DDL 410条注释精简，隔离MySQL 8.4容器复验66张表建成、无冗长尾缀/前缀残留；已建实库35张表464列经注释同步迁移（原V297，现为合并V294第3段；仅MODIFY注释，保留类型/字符集/排序/默认值/ON UPDATE；FK引用列以会话级`FOREIGN_KEY_CHECKS=0`执行，列定义不变），复验实库与规格注释差异0条。未建表（设备域`ast_device_sn`系、文档/组合/交付件等）随建表迁移自然落地。`core-field-mapping.jsonl`不回写，本Q为准。
+
+#### 2026-09-18 迁移合并记录（需求方指令：正式执行前合并）
+
+Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未正式执行，按需求方指令合并为单个`sql/migrations/V294__migration_field_naming_and_comment_alignment.sql`（净效果三段：列名更正与原值合并、办事处列名统一、全量注释精简），原四个文件删除。开发库经`flyway repair`对齐：合并V294校验和已更新，V295/296/297标记DELETE；validate全部通过。全新环境仅执行合并V294。上文各回执中的原迁移编号均指其并入合并V294的对应段落。
+
+### Q-MIG-DIM-006
+
+- Status: CLOSED（2026-09-18裁决并当日落实，见末节落实回执）
+- Requirement IDs: COM-01@V1（F-COM-001合同主档）
+- Area: 合同主档com_contract与回款/发货归属来源表的字段归并方式
+- Question: 需求方2026-09-18两次指令——先要求com_contract_receivable与com_shipment_contract_reference合并字段、去除重复含义的内容形成合同主档；随后明确改判：主档com_contract直接包含全部信息，数据同步时更新对应业务最新值，不创建com_contract_summary视图。
+- Evidence: F-COM-001第6章2026-09-17检查点曾批准只读视图com_contract_summary（主档优先、来源仅补缺、冲突不任选、source_conflict标记），并因"合同主档生成方式重新选择"暂停主档汇总规格与实现；本次指令解除暂停并废止视图方案。
+- Options:
+  - A. 只读视图com_contract_summary按2026-09-17契约实现（被需求方改判否决）。
+  - B. 主档com_contract扩列直含全部合并字段，来源同步时以最新值更新主档列，不建视图（需求方裁决）。
+- Resolution: B。com_contract新增17列：currency_name、contract_create_time、project_name、project_code、market_code、market_name、department_code、department_name、system_code、system_name、expend_code、expend_name、industry_code、industry_name、marketing_representative_code、marketing_representative_name、secondary_representative_code（类型与来源表同名列一致）。客户、合同类型、合同名称、合同金额、币种编码、生效/失效日期等ERP Owner既有列不重复增设。规格DDL SHA-256更新为`F9B29ED5D9EE651453AA11DBFFC771E9346D2F5B3B45374F9CEF21F075E996D6`。
+- Decision owner: 需求方；AI-MIG实施Owner（落实）
+- Decision date: 2026-09-18登记并落实
+
+#### 2026-09-18 落实回执
+
+前向迁移`sql/migrations/V300__contract_master_field_consolidation.sql`（17条ADD COLUMN，含AFTER锚定）已应用于开发库，validate 271个迁移通过。语义契约：来源表保持不变继续作为来源证据；"去除重复含义"指消费以主档列为唯一权威，不在主档外另建汇总视图；回款/发货归属同步入库时以该来源行非空值更新主档对应列（最新同步覆盖，两来源共用同义主档列）；ERP Owner字段仍由ERP主档同步负责，来源同步不覆盖。同步实现代码随后续接入任务交付，本Q不宣称同步已实现。
+
+### Q-DEL-UI-001
+
+- Status: OPEN（业务判定已确认；跟踪实现与运行验收）
+- Requirement IDs: F-PROJ-009（模板配置中心与阶段/任务执行界面）；F-ACC-001、F-ACC-002（交付件满足与同步链）
+- Area: 模板交付件在阶段/任务办理界面的上传与满足入口
+- Question: 需求方2026-09-20指令要求模板定义的交付件在阶段/任务"直接展示、上传，业务相关的直接引用"。展示已按只读落地（实例视图阶段交付件块与任务展开行、任务工作台`ProjectTaskWorkbenchRespVO.deliverables`清单），但办理界面"直接上传"缺契约：交付件根状态`PENDING→ACCEPTED`目前由满足/验收链唯一驱动（满足任务/回执/结果服务与验收报告投影`acc_project_deliverable_source_*`，门禁事实提供方以`ACCEPTED`判定满足）。是否允许阶段/任务办理界面新增直接上传入口（上传→文件工件→满足事实→状态回写），还是维持满足/验收链为唯一满足来源？业务相关交付件"直接引用"（按`sourceObjectType/sourceObjectId`深链业务对象）的入口形态同样待定义。
+- Evidence: `acc_project_deliverable`根status初始化为`PENDING`；`ProjectDeliverableStageGateFactProvider`以`"ACCEPTED".equals(row.getStatus())`作为门禁满足判定；满足链已有完整任务/回执/结果/归档/补偿服务；任务工作台当前仅透出只读清单，未提供上传或满足写入端点。
+- Options:
+  - A. 维持满足/验收链为唯一满足来源；办理界面仅展示应交清单与深链引用，不新增上传入口（最小改动，不动交付件状态机）。
+  - B. 新增办理界面直接上传：需完整定义上传→文件工件→满足事实→状态回写契约（Owner、授权、幂等、与满足链的冲突裁决、审计），扩展F-ACC-002或立新Feature。
+- Recommended technical default: A。在满足写入契约确认前不渲染上传按钮，避免不可用入口和绕过满足链的状态写入。
+- Business decision required: 否；2026-09-20需求方已确认下述自动判定口径
+- Decision owner: 需求方
+
+## Q-CUT-ROLE-APPROVAL-20261013 — 二线与研发按角色办理
+
+- Status: RESOLVED
+- Confirmed scope: 需求方指定既有 `probSupporter`、`probRD`，随后明确“定义角色不指定具体人员，审批按角色进行”。新运行审批的二线与研发节点使用一个角色共享待办；审批前不指定人员，具备资格的成员办理后记录实际审批人。
+- Resolution: 同一节点由符合冻结角色候选及当前授权范围的一名成员决定，不因候选人数大于1暂停；无有效候选仍暂停，不自动跳过。并发、版本、五项评审、服务经理等级复核、BPM受控办理、授权和租户校验保持。旧个人节点按原冻结角色和选定人员办理，已有批准版本与历史不改。
+- Evidence: 当前会话2026-10-13两次明确答复；运行快照新增 `approvalMode=ROLE`、角色编码与候选范围，决定保存实际办理人；前向权限种子仅授予既有角色必要入口及审批读取/办理权限，不分配用户或修改项目范围。
+- Decision owner: 需求方
+
+## Q-CUT-ROLE-PROJECT-SCOPE-20261013 — 角色审批是否改变项目范围
+
+- Status: RESOLVED
+- Confirmed scope: 需求方先确认“按角色覆盖本租户全部割接审批”，随后收紧“角色审批有代办任务时只能拥有当前审批项目的查看权限。不扩大到所有范围”，并明确仅“只读割接审批页及冻结资料（最小范围）”。角色招募按本租户既有 `probSupporter`、`probRD`，读取资格只来自当前有效审批待办。
+- Resolution: 只有未暂停、未替换的PENDING审批根及其当前PENDING角色待办，才临时授予该待办的审批页、冻结来源和明确引用文件的只读访问。未轮到、已决定、取消或暂停的节点不授予临时读取；不凭角色成员身份读取其他审批或完整项目详情。普通项目查询/创建、P4方案编制、P6归档及文件写操作保留原项目授权，不修改PROJ范围、项目成员或用户角色分配。需求方进一步纠正人员池设计：角色节点只保存候选角色/组引用，当前成员资格由SYSTEM提供，待办由BPM原生候选组维护，不保存或冻结整组候选人员；决定时记录实际办理人与其当时资格来源。既有不可变历史原件保留。
+- Evidence: 当前会话2026-10-13需求方对角色范围的原答复、收紧指示及最小只读范围确认。
+- Decision owner: 需求方
+- Decision date: 2026-10-13
+
+## Q-CUT-STRUCTURED-STORAGE-20261013 — 割接固定业务结构的持久化
+
+- Status: RESOLVED
+- Confirmed scope: 需求方明确“除了拓展字段不得使用json进行保存”，并确认整改整个割接模块的非拓展JSON存储。
+- Resolution: 固定业务字段和关系使用明确的列或关联表；配置、任务、评估、清单、方案、审批、采集、备件及闭环均在范围内。复用已有设备、步骤、保障安排、评审及附件明细，不建立存储JSON路径和值的通用替代表，也不把固定业务结构命名为拓展字段。接口JSON传输格式与数据库JSON存储分别处理；既有不可变历史保留原件，通过前向迁移增加结构化事实，不能修改已执行迁移或丢失授权、版本、状态、失败和历史保护。角色候选语义按本页Q-CUT-ROLE-PROJECT-SCOPE-20261013。
+- Evidence: 当前会话2026-10-13需求方对人员池设计的纠正及“整个割接模块的非拓展 JSON 存储”范围确认。
+- Decision owner: 需求方
+- Decision date: 2026-10-13
+
+## Q-CUT-STORAGE-EXTENSION-20261013 — 动态字段定义的拓展边界
+
+- Status: RESOLVED（方案与命名已批准，实施及验证进行中）
+- Implementation authorization: 需求方已明确“表字段的名称请统一规范，然后开始实施”。按ADR-0019规范同义字段、时间、业务编码、布尔值和文件事实命名，前向DDL、DO映射及SQL同步调整。服务重启仍按现有规则另行批准；未执行的迁移、运行和业务验收不得写成完成。
+- Approved design: 采用同一份[完整表结构方案](../superpowers/specs/2026-10-13-cutover-structured-storage.md)：统一采集项主数据、统一结果主表，按固定业务结构拆分答案子表；复用28张、新增47张，共75张。统一字段名称后，现有表中22张结构化调整、4张仅命名调整、2张直接复用。
+- Resolution: 字段定义直接从属于现有采集项修订或任务自定义项；结果子表通过checklist_result_id复用统一结果版本，不新增独立修订。8张固定对象/单值表、5张固定业务表格行表及2张真正自定义值表承接实际答案；每条表格业务记录对应一行，各单元格值保存在具名业务列。只有真正自定义值可进入7处extension_values，固定业务、角色人员池、路由、文件和来源关系不得进入。41个既有固定JSON列保留历史原件、停止新业务写入；外部配置及当前/目标版本查询纳入实施，正式Provider缺失时保留真实失败和人工替代，不伪造接通。
+- Evidence: 当前会话2026-10-13需求方最新要求“按统一主数据、统一结果主表、按固定业务结构拆分结果明细子表，重新调整完整表结构方案。复用现有修订，逐表列出全部字段、实际填写值的存放位置及需求对应，重新统计新增和复用表数量，确认后再实施。”
+- Decision owner: 需求方
+
+- Decision date: 2026-10-13；本会话最新实施授权。
+
+#### 2026-09-20 专项修复决策与审查更正
+
+需求方明确批准业务代码修复，并选择：“按模板规则自动判定：文件或业务成果有效且配置条件满足，即满足门禁，不新增人工审批”。阶段/任务办理界面可提交文件或关联本项目业务成果；PROJ提供当前生效计划冻结的交付件配置与条件求值，ACC保存来源/提交历史并判定，PLT核验文件。门禁重新核验当前证据，不以缓存的`ACCEPTED`或文件上传成功替代模板条件。项目权限、当前项目经理、计划/版本冲突、幂等、来源失效和不可变提交历史继续生效。
+
+原登记中“满足链已有完整任务/回执/结果服务”的表述不准确：`Satisfaction*`是满意度业务，不是通用交付件满足审批链。保留其与验收报告既有自动来源及版本历史；通用入口不能覆盖这些业务拥有的来源关系。实际代码和浏览器验收证据按本次专项结果记录，本条不宣称项目全流程验收已通过。
+
+### Q-SAT-DIRECT-001
+
+- Status: OPEN（业务规则已裁决，跟踪实现与真实浏览器验收）
+- Requirement IDs: F-ACC-002 / BR-FACC002-001；F-PROJ-009（业务操作与模板执行解耦）
+- Question: 传统满意度仅在项目创建时冻结问卷、初验完成后初始化；未配置该任务的项目能否从满意度业务入口独立发起并关联结果？
+- Decision owner / date: 需求方 / 2026-09-20。
+- Resolution: 需求方明确选择“允许独立发起，复用现有评分、签字和权限”。已有任务触发路径继续有效；新增路径由具备满意度管理和项目编辑权限的用户选择当前已发布问卷，冻结题目、规则、阈值与项目权限版本，创建独立采集，不伪造项目任务或交付件绑定，不新增人工审批。评分、签字、结果文档、失效及整改重收复用既有能力；达标的当前有效结果可作为模板配置的业务成果，关联提交后仍执行交付件条件和门禁复验。
+- Implementation boundary: 独立采集在项目 ACTIVE 时办理，达标使用既有 PASSED 状态；尚未关联交付件的结果不进入自动归档补偿。结果来源精确绑定采集轮次、结果版本及真实文件，不能以问卷页面访问或提交成功替代有效通过。项目关闭后保留历史查询，拒绝继续写入。
+- Evidence: 本专项用户裁决与 `docs/generated/2026-09-20-project-template-special-repair.md`。本条不晋级工程 Feature/Task 状态。
+
+### Q-TPL-FLOW-20260922-001
+
+- Status: CLOSED（本会话流程图解释已裁决；各次配置、接入和验收边界见下方续记）
+- Requirement IDs: PM-03 / F-PROJ-009（项目模板配置）；本次外部输入为 `需求/项目交付/项目交付流程 (2).vsdx`。
+- Scope: 仅限新模板 `TPL-DELIVERY-FLOW-20260922`（ID `993009900014`），不改写其他模板、既有项目计划或 PRD 全局业务语义。
+- Decision owner / date: 需求方 / 2026-09-22 当前会话。
+- Resolution:
+  1. 工前准备完成后，施工计划与实施方案并行办理；两者都完成后进入实施部署。
+  2. “制定施工计划”页的“审核实施方案”按“审核施工计划”配置。
+  3. 本模板严格按图，非直签项目跳过初验和终验，进入现场培训；该模板例外不外推为其他模板的验收规则。
+  4. CRM 改单、物料申领、外采事前申请按独立流程处理，不设置统一回流，也不新增等待三条支线审批完成的汇合条件。
+- Implementation boundary: 新模板已保存为 DRAFT。指派、工前分支判断、计划审批、方案审核、割接完成的模板可读依据仍有接入缺口；不能以手工提交、页面跳转、文件上传或外部请求成功代替相应业务完成。此处关闭的是已裁决的业务问题，不代表发布预检或项目全流程验收通过。
+- Evidence: [配置与验证记录](../generated/2026-09-22-visio-delivery-template/README.md)；新模板 Designer 的 `sourceEvidence` 保留原图节点、四项用户裁决及映射。
+
+2026-09-22 接入续记：按需求方后续授权，指派、施工计划审批、普通方案审核及割接成功归档已接入模板，规则字段名称从项目实体/公开响应元数据自动发现并支持参数管理。当前预检剩 S1 工前分支依据、S3 配置检查和重大项目适用复审；保留阶段缺失规则以阻止发布，未把普通方案批准解释为全部方案工作完成。证据见 [接入增量](../generated/2026-09-22-visio-delivery-template/integration/README.md)。
+
+2026-09-22 后续裁决及落实：需求方确认忽略“配置工具自动检查”；工程管理部承担重大复审；项目经理填写并留痕的工前确认表提供三个物料判断；重大项目按 CRM 级别“办事处级重大项目”“市场部级重大项目”“公司级重大项目”命中。级别缺失继续遵守 SCH-05 的依据缺失阻断，不推定普通、不伪造 CRM 值。工前条件与复审路径已接入，独立支线仅配置判断和办理提示，不代表已启动外部流程。模板保持 DRAFT，源图 S0～S5 范围内配置预检通过；实际验证范围及当前版本见 [剩余内容交付记录](../generated/2026-09-22-visio-delivery-template/remaining/README.md)。以上续记替代前述“仍待来源/工具接入”的当前结论，保留原阶段记录作为历史。
+
+2026-09-22 更正（审核分级对 NULL 手工项目的语义）：需求方当日在 S3 验收推进中明确改判——`SOLUTION_ORDINARY_REVIEW_ALLOWED` 不得以 `notNull` 叶子排除 NULL：手工项目按 PM-01 永久保存 `majorProjectLevel=NULL`（界面“不适用”），其审核分级按普通审核（服务经理一级审核）处理；模板规则改为 `OR(field=null, AND(field!='', NOT(field in 三类重大值)))`，空字符串仍保持阻断。原续记“级别缺失继续遵守 SCH-05 的依据缺失阻断，不推定普通”自本更正起废止；SCH-05“命中依据不完整→阻止”继续适用于规则冲突、字段不可用（UNKNOWN）与空字符串，不适用于 PM-01 定义的 NULL“不适用”语义。已发布修订（rev1～rev3）冻结快照不回改，修正随新修订发布；已冻结旧修订的项目不换绑（存量项目重建承接，历史项目 992203060021 停在 S3 保留为 S0～S2 证据）。
+
+2026-10-29 后续已批准裁决（TF-032 / SCH-05重大方案复审）：需求方明确只指定现有“工程管理部”`engineeManager`角色，不指定个人；同租户任一当前有效角色成员均可复审，发起人属于该角色时允许本人复审。未获项目普通VIEW的角色成员，仅可查看及办理当前复审待办所需资料，不扩大普通项目列表、项目详情或其他业务资料可见范围。此裁决替换重大复审“唯一权限持有人”“申请人与审批人必须分离”及普通项目VIEW前置的旧要求，不改变其他节点的审批资格、重大判定或阶段完成条件。新角色审批只保存角色或候选组引用及实际办理审计，不冻结整组候选人员；每次读取、办理继续重验当前租户、有效角色成员和当前待办关联，字段及文件保护保持。
+
+本次裁决原位回写[当前源PRD SCH-05](../../需求/PRD-项目实施交付管理平台.md#625-sch-05-方案审核与重大复审)、[API契约](../design/10-api-design.md)及[F-PROJ-009](../../specs/features/F-PROJ-009-project-delivery-template-configuration-center.md)。历史基线快照及旧实例保留原件和旧值，不覆盖不可变来源、批准版本、身份链接或人工历史；该重大复审事项的当前实施以2026-10-29裁决优先，不宣称旧快照与源PRD哈希一致，也不通过本次文档同步改绑或迁移存量实例。此处确认的是业务规则，不代表代码已部署或浏览器验收通过。
+
+### Q-TPL-FLOW-20260922-002
+
+- Status: RESOLVED（需求方 2026-09-30 裁决：不扩展，维持 S0～S5）
+- Requirement IDs: PM-03 / F-PROJ-009；正常项目闭环。
+- Question: 原图六页止于验收交维，是否另行补充既有 S6 项目闭环？当前会话已提出可选问题，尚未获得需求方答复。
+- Implementation boundary: 当前按图配置 S0～S5；S5 终点不等于项目自动关闭。未配置额外闭环审批、归档或回款阈值；此问题只阻止超出原图的 S6 扩展，不阻止已确认部分的配置。
+- Decision owner: 需求方。
+- Evidence: [配置与验证记录](../generated/2026-09-22-visio-delivery-template/README.md)。
+- Resolution: 需求方2026-09-30裁决不扩展S6，模板阶段域维持S0～S5，不新增闭环审批、归档或回款阈值配置。Decision date: 2026-09-30。
+
+### Q-TPL-FLOW-20260922-003 — 工前判断并回原工勘来源
+
+- 状态：CLOSED（需求方 2026-09-22 当前会话明确更正）。
+- 更正：“工前确认表已经包含在工勘记录中，不需要单独填写”。取消先前独立工前表的输入与额外门禁，历史只读保留。
+- 字段裁决：“8 上架加电是否需要原厂实施，9 是否需要导轨、托盘，就是”。按需求方指定分别作为原厂与领料/BOM 分支依据；物料环境项复用同份工勘原字段。不把这一映射推定为其他业务的普遍等价关系。
+- 落实：工勘表单新修订通过配置维护条件，不新增输入字段、不硬编码字段名；S1 复用原四任务，三个独立支线不设统一回流。验证见 [工勘来源更正回执](../generated/2026-09-22-visio-delivery-template/survey-source/README.md)。
+
+2026-09-22 Q-TPL-FLOW-20260922-003 后续明确：需求方要求“历史工前确认记录从代码中剔除”。删除该功能页面、专用接口及全部服务/数据访问/表单策略/规则兼容代码；此前的应用只读保留口径由本次要求替代，数据库历史与已执行迁移仅作归档。工勘原字段与支线配置继续沿用。
+
+### Q-TPL-FLOW-20260922-004 — S4 割接任务完成依据运行时不可达
+
+- Status: RESOLVED（需求方 2026-09-30 裁决：以最新模板过渡方案为准结案，历史项目不回刷）
+- Requirement IDs: PM-03 / F-PROJ-009（模板规则已配置）；F-CUT-002（taskv2 入口未注册生产 Bean）
+- Area: 交付模板 S4「割接上线」（DEPLOY_CUTOVER）完成事实的产生入口
+- Question: rev6 模板（revision 993009900031）已把 `DEPLOY_CUTOVER_DONE` 冻结为 `BUSINESS_FACT(CUTOVER_COMPLETED)`，但当前运行系统没有任何合法入口能产生该事实——rev6 项目（含手工 NULL 项目）全部卡死在 S4，无法推进 S5。这是配置与运行时能力不匹配的接入边界缺口，如何处置？
+- Evidence（2026-09-22 验收实测，项目 992203060026）:
+  - 完成事实判定：`CutoverCompletionProvider.load` 要求 `cut_task.task_status=ARCHIVED` 且 `current_stage=P6`，并存在 `cut_closure` 行 `status_code=ARCHIVED`、`final_result_code=SUCCESS`、`submitted_at/archived_at/result_ref` 齐全。
+  - 新域 `cut_task` 唯一写入点是 taskv2 `CutoverTaskApplicationService.create`；其 REST 入口 `CutoverTaskController`/`CutoverClosureController` 等无 `@RestController/@Component`，注释明确“正式Owner齐备前不注册生产Bean”，契约测试断言非组件。实测 `GET/POST /admin-api/api/v1/pms/cutover-tasks*` 全部 404。
+  - 旧版 `POST /admin-api/pms/cut-task/create` 已 `@Deprecated` 退役（写退役表，不产生新域事实），按废弃路径约束不得承接新 Feature 业务。
+  - 同任务模板描述文案仍是“【待接入完成依据】……当前保留空完成规则”，与 rev6 已配置的完成规则相互矛盾（文案未随规则接入更新）。
+- Why it blocks: S5_ENTRY gate 引用 `S4_COMPLETED`；割接完成事实不可达则所有按模板创建的项目无法进入验收交维阶段，“根据流程图配置一个完整的项目模板”目标在 S4→S5 边界被阻塞。直接写库产生事实违反“不得绕过状态机”约束，验收中未采用。
+- Options:
+  - A. 授权注册 taskv2 REST 生产入口（代码变更，需按 Feature/Task 流程走）后走完整 P1～P6 割接闭环。
+  - B. 修订模板规则，在割接 Owner 正式接入前为 DEPLOY_CUTOVER 配置可替代的合法完成依据（需需求方裁决语义）。
+  - C. 维持现状，接受 S4→S5 为当前模板已知阻塞点并明确披露。
+- Recommended technical default: A（与新平台演进方向一致）；短期验收按 C 披露。
+- Business decision required: 是
+- Decision owner: 需求方；CUT Owner（入口注册）、模板配置负责人（规则修订）参与
+- Decision date: 2026-09-22 登记
+
+2026-09-24 验收续记（不改变本问题状态）：rev7 起模板为 DEPLOY_CUTOVER 配置门禁 BPM 引用，部署过渡流程定义 `PMS_DELIVERY_CUTOVER_APPROVAL`（描述明示"割接完成外接接入前，审批通过即视为割接完成；后续替换为割接系统业务事实"）。验收项目 992203060028（直签）与 992203060032（渠道）均按"BPM 审批通过 → 事实 APPROVED → 任务完成 → S5 激活"走通，未绕过状态机或直写业务事实；正式处置（taskv2 生产入口注册或规则语义裁决）仍待需求方，过渡定义替换为真实割接业务事实前本问题保持 BLOCKED_BY_SPEC。证据见 [发布与全链验收记录](../generated/2026-09-22-visio-delivery-template/acceptance/README.md)。
+
+2026-09-26 纯界面驱动复核（不改变本问题状态）：fresh 库（npdms_domain_test）rev10 模板项目 PJT2026000001 在"全部操作限于项目详情界面、不用脚本推进"的约束下复核本边界。S4 前五任务（DEPLOY_COORDINATE/ARRIVAL/HARDWARE/CONFIG/JOINT）全部经任务办理抽屉界面完成；DEPLOY_CUTOVER 确认无任何合法界面发起入口：①任务办理抽屉审批面板对 formType=20（业务表单）定义按设计拒绝渲染发起表单（`TaskApprovalForm.load` 拦截，提示"该审批使用原模块业务表单，请通过业务页面绑定办理"；自 9141716e2 起存在）；②rev10 模板 DEPLOY_CUTOVER 绑定仅 APPROVAL、无业务视图快照（工作台 businessView=null），项目详情内"割接上线 5.5"视图渲染 taskv2 界面但其 REST 生产 Bean 按契约测试刻意未注册，实测 `GET/POST /admin-api/api/v1/pms/cutover-tasks*` 仍全部 404；③旧版 `POST /admin-api/pms/cut-task/create` 维持退役，不承接新流程；④BPM 手工发起 `PMS_DELIVERY_CUTOVER_APPROVAL`（BPMN 无启动表单、节点 candidateStrategy=35 发起人自选）无法携带 `pmsTaskProjectId/pmsTaskId/pmsTaskExecutionId/pmsTaskContractId` 等身份变量，实例与任务作用域必然 IDENTITY_MISMATCH→UNKNOWN，不能作为完成依据。结论：在界面约束下 S4→S5 为当前模板已知阻塞点（选项 C 形态），项目停于 S4（5/6 任务 DONE）；不采用脚本/API 直推审批，正式处置仍待需求方。证据见 [2026-09-26 复制模板闭环验证记录](../generated/2026-09-26-visio-copy-closure/README.md)。
+
+2026-09-30 查证与结案（需求方当前会话裁决）：最新模板修订 rev3（id 993009900015，template 993009900011，2026-09-30 00:51 发布）中 `DEPLOY_CUTOVER_DONE` 规则名为"割接审批通过即完成"，表达式 `CONSTANT true`，任务绑定 `pms-cutover-done-approval` 审批流——不再冻结 `BUSINESS_FACT(CUTOVER_COMPLETED)`，S4 经审批通过正常闭环；模板描述自述为过渡方案（"当前为割接完成外接接入前的临时依据，后续将替换为割接系统业务事实（CUTOVER_COMPLETED）"），定义快照缺口清单仍登记 `task:DEPLOY_CUTOVER` 缺业务完成事实；taskv2 REST 五个 Controller（Task/Plan/Approval/Checklist/Closure）经查证仍无 `@RestController/@Component`，未注册生产 Bean。需求方裁决采用过渡方案为准结案（选项 B 形态的当前落点），历史项目不回刷；"替换为割接系统业务事实 CUTOVER_COMPLETED + taskv2 REST 生产入口注册"登记为同一割接系统 Owner 的后续待办，不再作为本问题阻塞项。
+
+### Q-TPL-FLOW-20260922-005 — 满意度结果来源投影与业务文档收集的 CURRENT 归属竞态
+
+- Status: OPEN（技术让位已按需求方 2026-09-24 会话确认实施；证据归属语义待规格裁决）
+- Requirement IDs: ACC-04；交叉 ACC-02、PM-03（交付件证据归档）
+- Area: D_SATISFACTION 交付件 CURRENT 来源版本的双自动投影归属
+- Question: 满意度结构化结果（ACC-04 SatisfactionResult 来源）与结果 PDF 业务文档自动收集（PM-03 ProjectDeliverableSubmission 来源）都会写 D_SATISFACTION 的 CURRENT 来源版本；两者调度无固定先后，最终 CURRENT 应归谁、落败方以什么关系状态留痕？
+- Evidence（2026-09-24 验收实测，项目 992203060032 与 992203060028 对照）:
+  - 028：结果投影先到（00:06:00 占 CURRENT），PDF 收集后到被收集侧让位跳过（`ProjectDeliverableSubmissionService.java:268` 对非本类型 CURRENT 直接 return），终态 CURRENT=SatisfactionResult 且 ARCHIVED。
+  - 032：PDF 收集先到（02:12:30 占 CURRENT，交付件转 ACCEPTED），结果投影后到命中 `SATISFACTION_SOURCE_TYPE_CONFLICT`（修复前 `SatisfactionResultSourceProjectionService.java:123` 抛异常），outbox 事件 `sat-result:2102823061784588290:result-recorded` 每分钟无限重试，ACC-04 来源行不落库、结果归档停留在 PENDING_COMPENSATION。
+  - 已知同类历史噪音：outbox 事件 `05afac02`（SatisfactionTaskCreated，09-21）重试 1300+ 次常驻。
+- 已实施的技术修复（2026-09-24，需求方确认"修复为让位落库"）：`mayBecomeCurrent` 遇非 SatisfactionResult 类型 CURRENT 不再抛异常，按既有 SUPERSEDED 语义落库留痕并归档，不抢占 CURRENT；与收集侧让位行为对齐。单测 `foreignCurrentSourceDefersAndRecordsHistoryOnly` 覆盖。
+- Why it remains open: 让位落库消除了互斥冲突和重试噪音，但"结构化结果与收集文档并存时谁应拥有 CURRENT"仍是业务语义问题——032 终态 CURRENT=PDF 提交行（NOT_REQUIRED 归档），028 终态 CURRENT=结构化结果（ARCHIVED 归档），两项目同类业务最终证据形态不一致。
+- Options: A. 结构化结果优先（收集侧已让位，结果侧恢复抢占语义需处理已在途的收集行）；B. 先到先得+落败方 SUPERSEDED 留痕（当前实现）；C. 双来源并存、CURRENT 指向结构化结果并把 PDF 作为其附件。
+- Recommended technical default: 待需求方裁决；当前实现为 B（最小对齐、不改既有归属）。
+- Business decision required: 是（归属语义）；技术让位行为已按需求方本轮确认完成。
+- Decision owner: 需求方；ACC Owner、PM 交付件 Owner 参与影响分析
+- Decision date: 2026-09-24 登记
+
+### Q-TPL-FLOW-20260922-006 — RA 有效版是否应自动满足 D_REQUIREMENT 交付件
+
+- Status: RESOLVED（2026-09-24 裁决选 B；引擎能力、模板 rev10 发布与真实浏览器验收均已完成）
+- Requirement IDs: PM-03 / F-PROJ-009（模板完成条件与交付件配置）；ACC-04（交付件满足链）
+- Area: rev9 模板 S1「需求分析」任务（PRE_REQUIREMENT）完成条件中 DELIVERABLE(D_REQUIREMENT) 的自动满足来源
+- Question: 需求方 2026-09-24 报告"需求分析已 FROZEN effective=true，但任务 PRE_REQUIREMENT 仍 IN_PROGRESS、交付件 D_REQUIREMENT 仍 PENDING，有效版未自动关联交付件/任务结果"。rev9（revision 993009900014，项目 992203060035）冻结契约：PRE_REQUIREMENT 完成条件 = `BUSINESS_FACT(REQUIREMENT_ANALYSIS_COMPLETED, ALL)` **AND** `DELIVERABLE(D_REQUIREMENT)`；D_REQUIREMENT 的 automaticSources 仅 `SOL.REQUIREMENT_DOCUMENT`（RA 表单附件文档），RA 冻结产生的 `REQUIREMENT_ANALYSIS_COMPLETED` 业务成果不在自动归集范围内。是否应把"RA 有效版成立"配置为 D_REQUIREMENT 的自动满足来源，或调整任务完成条件？
+- Evidence（2026-09-24 浏览器实测，项目 992203060035）:
+  - 设计内路径已走通：任务抽屉「提交与查看」→ 材料来源「关联业务成果」→ 业务成果类型「需求分析成果」→ 有效成果唯一候选（业务对象 2102942473917259777 · 成果 2102942473917259778 · V1，即 RA 当前有效版）→ 提交材料。响应 `satisfied=true, reason=DELIVERABLE_RULE_SATISFIED`，D_REQUIREMENT `PENDING→ACCEPTED`（version 1），PRE_REQUIREMENT 经 reevaluate 异步自动 `IN_PROGRESS→DONE`，UI 复核任务节点"完成 100%"、交付件"已验收"。截图与回执见 `docs/generated/2026-09-22-visio-delivery-template/browser-closure/t177-*`。
+  - 后端 journal（通道 76 formation seq1 + 变更 seq2）、BusinessResultChannel outbox、交付件评估、任务重评链路均按设计工作，无投影缺陷。RA revision `execution_snapshot.execution=null`（创建时未带任务绑定）不影响 journal 按 projectId 路由的投影链路。
+- Options:
+  - A. 维持现状：RA 冻结不自动满足 D_REQUIREMENT，用户在任务抽屉关联业务成果或上传文件（当前 rev9 行为，已验证可用）。
+  - B. 修订模板：把 `REQUIREMENT_ANALYSIS_COMPLETED` 业务成果加入 D_REQUIREMENT 的 automaticSources（需模板配置能力支持业务成果类型自动归集，当前 automaticSources 仅支持文档类来源）。
+  - C. 修订模板：PRE_REQUIREMENT 完成条件去掉 `DELIVERABLE(D_REQUIREMENT)` 项，任务完成仅依赖业务事实。
+- Recommended technical default: 待需求方裁决。A 不动模板且路径可用；B/C 均为模板冻结语义变更，需新修订发布，且 rev9 已有项目（035）不换绑。
+- Resolution（2026-09-24 需求方裁决）: 采用 B。将 RA 冻结产生的 `REQUIREMENT_ANALYSIS_COMPLETED` 业务成果配置为 D_REQUIREMENT 的自动满足来源（rev9 现值 automaticSources 仅 `SOL.REQUIREMENT_DOCUMENT`，allowedSources 已含 BUSINESS_RESULT）。当前自动归集仅支持文档类来源，需先扩展业务成果类型的自动归集能力，再随模板新修订发布；rev9 存量项目（035）不换绑，维持手动关联路径。
+- 2026-09-24 落实回执：引擎能力已扩展——`ProjectResultSubscriptionDelivery` BusinessResultChange 分支在同一持久投递内 `publisher.publishEvent(event)`；新增 `ProjectBusinessResultCollectionService`（formation 事件监听，Type 三点串 `ownerContext.entityType.resultType` 匹配 `rules.documentTargets` 后逐交付件归集）；`ProjectDeliverableSubmissionService.collectBusinessResult`（MANDATORY 传播、幂等键 `result-change:{eventId}`、sourceType=BUSINESS_RESULT、supersede 旧来源、revalidate 后冻结 decisionEvidence 并唤醒门禁/任务重评）。测试：`ProjectResultSubscriptionRecoveryTest` 24/24（新增已提交成果投递扇出用例）、`ProjectDeliverableSubmissionServiceTest` 19/19（新增 3 用例）、`ProjectBusinessResultCollectionServiceTest` 2/2。模板 rev10 已发布（revision 993009900037）：D_REQUIREMENT `automaticSources` 追加 `SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED`，与 rev9 全量叶子差异仅此配置及 PRE_CONTACT routePath（见 Q-007）。
+- 2026-09-24 真实浏览器验收回执（验证项目 992203060038，rev10 实例化）：RA 冻结首轮被 `REQUIREMENT_ANALYSIS_CONTENT_INVALID` 拒绝，根因为 RA 表单必填字段项目目标/网络拓扑未填（`RequirementAnalysisEntityProvider.validateComplete` 去标签非空白校验），浏览器补填后冻结成功（非本次引擎改动引入）。浏览器「从查看版本创建草稿 → 保存 → 完成并冻结」触发 V3 冻结后：`PMS.BusinessResultChangeCommitted.v1`（formation=true）由载有新代码的后端投递，D_REQUIREMENT `PENDING→ACCEPTED`（version=2，submission `source_type=BUSINESS_RESULT`，request_key=`result-change:1c197af0-…`），PRE_REQUIREMENT「需求分析」同刻自动 `IN_PROGRESS→DONE`；交付件面板显示「已满足」，弹窗提交历史含「业务成果关联」条目。截图与回执：`browser-closure/rev10-25~32-*`、`rev10-step5~7-receipt.json`。
+- 部署注意事项：验证环境中首轮冻结（V1/V2）由未含 `publishEvent` 的旧 jar 实例处理，事件被标记 DELIVERED 但归集未触发；重建部署后由新冻结周期验证全链。生产/测试环境发布本引擎改动时，存量未归集成果需按重放或新业务动作补齐，不影响引擎设计。
+- rev10 模板杂项披露：相对 rev9 第三处叶子差异为 S0 `schedulePercentage` 0.01→None（rev4 孤立值，发布草稿中被清空；后端无运行时消费方，仅模板设计器展示），无业务影响，rev10 保持现值。
+- Business decision required: 是；已裁决（选 B）。
+- Decision owner: 需求方；PROJ 模板 Owner、ACC 交付件 Owner 参与影响分析
+- Decision date: 2026-09-24 登记；2026-09-24 裁决
+
+### Q-TPL-FLOW-20260922-007 — PRE_CONTACT 页面路由指向项目列表页，无法承接任务业务办理
+
+- Status: RESOLVED（2026-09-24 裁决选 A；模板 rev10 路由更正与任务抽屉嵌入映射均已落实并完成真实浏览器验收）
+- Requirement IDs: F-PROJ-009（模板任务定义）；PM-01（任务工作区 PAGE 绑定）
+- Area: rev9 模板 S1「客户需求沟通」任务（PRE_CONTACT）的 PAGE 绑定 routePath
+- Question: rev9 冻结的 PRE_CONTACT routePath 指向项目列表页而非工前业务页面（business_custom_create_path 同样指向项目列表），任务抽屉内嵌区无法落到实际业务界面，只能展示兜底提示。PAGE 路由应指向哪个工前业务工作台？
+- Evidence（2026-09-24 浏览器实测，项目 992203060035）:
+  - 任务抽屉渲染 PAGE 绑定兜底 alert（"本任务通过专用页面办理业务…"），显示 routePath 为项目列表页路径；内嵌映射表中无该路径对应组件。
+  - PRE_CONTACT 任务最终按 TASK_NATIVE 状态操作提交完成（模板完成条件未依赖该页面业务事实），闭环未受阻；但"业务在工作区直接办理"的产品规则在该任务上不可满足。
+- Options: A. 模板修订将 routePath 指向实际工前业务页面（需明确目标页面）；B. 改为 TASK_NATIVE 绑定（与当前实际完成方式一致）；C. 维持现状并在文档披露。
+- Recommended technical default: 待需求方裁决（A 需先明确工前业务目标页面；B 语义最简）。
+- Resolution（2026-09-24 需求方裁决）: 采用 A，需求方明确"用户联系人就是客户联系人界面"——PRE_CONTACT（客户需求沟通）的 PAGE routePath 应指向客户联系人工作台：菜单 18010（component `pms/customer/contacts/index`，父级 path `/customer-asset`），完整路由 `/customer-asset/customer-contact`。rev9 冻结现值 `routePath=/pms/project-management/projects`（项目列表页，已从 rev9 execution_snapshot 实证）确认为模板配置错误，随模板新修订发布更正；任务抽屉 pageEmbedComponents 需同步接入该路径的嵌入组件。
+- 2026-09-24 落实回执：模板 rev10（revision 993009900037）已发布，`tasks[PRE_CONTACT].workBinding.parameters.routePath=/customer-asset/customer-contact`；前端 `ProjectFlowPanel.vue` pageEmbedComponents 接入该路径映射 `CustomerContactsWorkbench`（`pms/customer/contacts/index` 原生支持 `projectId` prop，零改动复用）。真实浏览器验收（项目 992203060038）：打开 S1「用户联系人获取」（PRE_CONTACT）任务抽屉，内嵌工作区渲染客户联系人工作台本体（客户/姓名/状态筛选与查询、重置、新增联系人、载入客户联系人、关联项目客户、变更历史），不再是项目列表页或兜底提示。截图与回执：`browser-closure/rev10-33/34-*`、`rev10-step8-receipt.json`。
+- Business decision required: 是；已裁决（选 A，目标页面=客户联系人工作台 `/customer-asset/customer-contact`）。
+- Decision owner: 需求方；PROJ 模板 Owner 参与影响分析
+- Decision date: 2026-09-24 登记；2026-09-24 裁决
+
+### Q-TPL-FLOW-20260922-008 — 验收报告嵌入视图缺 FILE_WRITE 动作，任务内附件上传永久禁用
+
+- Status: OPEN（2026-09-24 需求方裁决选 A；动作集与前端契约改动已落地，嵌入上传的真实浏览器验收待有进行中验收活动的项目验证）
+- Requirement IDs: ACC-02（验收报告版本与附件）；PM-01（任务工作区业务内嵌）
+- Area: ACC_ACCEPTANCE_REPORT BusinessView 嵌入任务抽屉时的 allowedActions 与前端 canUpload 的契约
+- Question: `AcceptanceTaskBusinessObjectProvider` 明确注释 FILE_WRITE 不是 ACC 动作集成员（附件走 PLT 独立权限），而前端 `ReportDraftEditor.canUpload` 要求 allowedActions 含 FILE_WRITE——嵌入视图内「上传并绑定」按钮永久 disabled；报告发布条件又要求附件非空，导致任务内嵌路径只能改稿、无法补附件，必须跳到「初验&终验」独立面板（非嵌入 allowedActions 限制路径）完成。这是缺陷还是"嵌入视图只读、办理走独立入口"的设计意图？
+- Evidence（2026-09-24 浏览器实测，项目 992203060035）:
+  - 任务抽屉内嵌报告编辑器：创建草稿成功（UPDATE/PUBLISH 在动作集）、附件「上传并绑定」disabled（`canUpload=false`，FILE_WRITE 不在 ownerActions）。
+  - 同一活动在项目详情「初验&终验」独立面板：上传并绑定成功、发布成功（code=0），活动转 COMPLETED，D_INITIAL 自动归集 ACCEPTED。
+  - 后端 `AcceptanceTaskBusinessObjectProvider.java:217` 注释："FILE_WRITE is not an existing ACC action; PLT retains its separate upload/reference policy."
+- Options: A. 嵌入动作集补 FILE_WRITE（前端契约对齐，服务端仍按 PLT 权限校验）；B. 维持嵌入只读+独立入口办理（补文档与 UI 提示）；C. 前端嵌入视图隐藏上传区并提示"从独立入口上传"。
+- Recommended technical default: 待需求方裁决（A 体验最顺；B/C 均为披露现状）。
+- Resolution（2026-09-24 需求方裁决）: 采用 A。验收报告 BusinessView 嵌入任务抽屉的 allowedActions 补充 FILE_WRITE，使前端 `canUpload` 契约成立、任务内可直接「上传并绑定」；服务端附件上传仍按 PLT 独立权限校验，不降低授权边界。`AcceptanceTaskBusinessObjectProvider` 中 "FILE_WRITE is not an existing ACC action" 的契约注释同步更新为新裁决口径（嵌入动作集含 FILE_WRITE，文件操作授权仍归 PLT）。
+- 2026-09-24 落实回执：`AcceptanceTaskBusinessObjectProvider` 任务绑定草稿命令分支随 `UPDATE` 同条件授予 `FILE_WRITE`，前端 `operationHost` 既有透传逻辑与 `ReportDraftEditor.canUpload`（`allowed('FILE_WRITE') && checkPermi(['pms:file:upload'])`）零改动即成立——文件操作仍由 PLT 端点按 `pms:file:upload` 鉴权。后端 `AcceptanceTaskBusinessObjectProviderTest` 25/25 通过（动作集断言按新契约更新，PUBLISH 仍仅限直接发起）；前端 `AcceptanceReportEmbedding.runtime.spec.ts` 14/14 通过（新增 Owner 授 FILE_WRITE 且 PLT 上传权限有效方可嵌入上传用例；既有 fail-closed 与"UPDATE 不隐含 upload"断言保持）。全量 `pnpm ts:check` 仅 3 个既有无关文件报错（`delivery-business/site-survey`、`engineering/installation`、`engineering/site-survey` 的 maintenance 可空告警），本次涉及文件无类型错误。
+- Business decision required: 是；已裁决（选 A，嵌入补 FILE_WRITE）。
+- Decision owner: 需求方；ACC Owner、前端 Owner 参与影响分析
+- Decision date: 2026-09-24 登记；2026-09-24 裁决
+## 项目列表筛选维度口径（2026-09-24 界面整治项）
+
+### Q-LIST-FILTER-20260924-001
+
+- Status: RESOLVED（需求方 2026-09-30 裁决：按推荐默认落地）
+- Requirement IDs: 项目管理→项目列表（新链 `/pms/projects/page`）；本次界面整治项，未关联独立 Feature 编号
+- Area: 项目列表筛选维度口径
+- Question: 用户2026-09-24要求项目列表增加筛选维度：项目编号、项目名称、合同号、办事处、销售人员、项目状态、实施状态、流程状态、发货状态、重点项目级别、服务经理、项目经理、创建时间&闭环时间&刷新时间、实施方式、产品型号、所属公司、代理商/服务商、序列号、维保状态。其中"实施状态、流程状态、发货状态"三个维度在现链无已定义字段或派生口径，"维保状态"取值域未受控，如何定义？
+- Evidence:
+  - 实施状态：`proj_project`无独立字段；候选为`assignment_status`（UNASSIGNED/ASSIGNED 指派状态）或阶段任务进度，语义未定义。
+  - 流程状态：BPM 审批流程状态无项目级单一取值；项目级闭环审批仅存在流程实例，列表无口径。
+  - 发货状态：现链未定义；候选为按`ast_device.shipment_time`按项目派生（未发货/部分发货/全部发货，见`需求/项目交付/项目交付页面数据DemoV2.html`三态表述），需规格确认。
+  - 维保状态：`ast_device.warranty_status`为 CRM 同步值（如`FAST001_WARRANTY_ACTIVE`），本地无字典与受控取值域（受权威来源映射约束，不得臆造取值）。
+- Recommended technical default: 前三个维度不渲染筛选控件；维保状态按原文等值文本过滤临时实现（设备列表页同为原文展示），取值域待规格定义。
+- Blocking scope: 仅阻止上述四个维度的最终口径；不阻断其余可解析维度的实现（项目编号/名称/状态/实施方式/项目经理/合同号/办事处/所属公司/销售人员/服务经理/重点项目级别/创建&闭环&刷新时间/产品型号/序列号/代理商服务商）。
+- Decision owner: 需求方
+- Resolution: 需求方2026-09-30裁决按推荐技术默认落地：实施状态、流程状态、发货状态三维度不渲染筛选控件（派生口径待规格定义后再纳入）；维保状态按`ast_device.warranty_status`原文等值文本过滤，取值域维持CRM同步原文展示，不臆造字典。其余已定义维度照常实现。Decision date: 2026-09-30。
+- Updated resolution (2026-10-09, FB-03): 需求方当前会话明确“实施状态是当前的状态，流程状态当前不需要，发货状态是项目有没有已发货的序列号”。实施状态复用现有项目状态，流程状态不增加筛选；发货状态采用有/无已发货序列号的项目级口径，由资产Owner提供归属与发货事实，项目模块保留可见范围。该最新裁决替代此前“三个状态独立”及暂不渲染发货条件的反馈口径，未定义三态或发货比例。
+
+### Q-SYNC-DEVICE-20260928-001 — 设备序列号同步任务的设备侧三步去留
+
+- Status: RESOLVED（需求方 2026-09-28 当前会话裁决："直接纯复制，当前的速度太慢了"）
+- Requirement IDs: DPPMS 迁移·设备序列号同步（int_sync_task 2102825819916980226）
+- Area: 同步任务范围口径
+- Question: 任务定义含三个更早存在的 ast_device 侧步骤——deviceMaster（主档 product_code/internal_serial_no 维护）、secondaryMaster（barcode2 附加SN建档）、deviceShipment（该SN最新发货投影 shipment_record_id/shipment_time/package_no/contract_no/secondary_sn/secondary_item）。用户 2026-09-28 质询"为啥还在这双写"，即该任务是否应只写两张承接表（ast_device_shipment/ast_device_relationship），设备侧步骤摘除或另立任务。
+- Evidence:
+  - event 步已是纯复制（updateColumns=[]、无 lookup、源字段直填），27 行×23 列抽查全一致。
+  - `DeviceQueryMapper.xml` 设备列表直接 SELECT d.shipment_time/package_no/contract_no/shipment_record_id，为 deviceShipment 投影的消费方。
+  - 2026-09-28 全清复制删除 64.6 万 data_sync 行后设备旧 shipment_record_id 全部悬空，deviceShipment 是唯一重建机制（运行中 10 分钟内更新 14.4 万台，全库 893,518 台设备、876,594 台挂引用）。
+  - 吞吐对比：含设备更新综合 ~630/s；纯承接表单表 ~1000/s。
+- Decision: 摘除 deviceMaster/secondaryMaster/deviceShipment 三步，任务与 device-sn 模板均改为只写两张承接表（ast_device_shipment/ast_device_relationship）。设备列表的发货投影列（shipment_record_id/shipment_time/package_no/contract_no）自本次裁决起不再由该任务维护，存量悬空引用与后续维护去向由需求方另行安排。
+- Blocking scope: 仅阻止设备侧三步的长期去留；不阻断本次全清复制与承接表正确性验证。
+- Decision owner: 需求方。
+
+### Q-MIG-V331-20260929-001 — V331 交付件绑定修复迁移不支持全新空库构建
+
+- Status: RESOLVED（需求方 2026-09-30 裁决：迁出主链）
+- Requirement IDs: F-PROJ-009（V331__fproj009_deliverable_binding_restore.sql 为该需求的历史数据修复）；本次发现于"项目创建取值(合同单入口)"V361 验证环境搭建
+- Area: 数据库迁移 / 全新环境供给
+- Question: V331 是按生产库实况捕获快照生成的一次性外科修复迁移（restore_fproj009_deliverable_binding.py），其 before-guard 逐行比对 six DRAFT 模板 designer_document 的修复前状态；全新空库按 V1..V361 顺序构建时，guard 前置查询返回空/不一致，迁移在 V331 失败，导致全新环境（含 CI、新同事本地、演示环境）无法用完整迁移链初始化。
+- Evidence:
+  - 新建 Docker 卷执行 `flyway migrate`（./sql/migrations 全量 301 个）在 V331 报 before-guard 失败；同一文件集在持有历史数据的既有卷上通过。
+  - V331 头部声明"只补本库仍缺失的表结构/修复指定环境数据"，未声明支持全新构建；V1..V330 无任何迁移产生其 guard 期望的 designer_document 状态。
+  - 当前本地验证库改用排除 V331 的过滤目录（.run/flyway-no-v331）构建成功到 V361；未修改任何迁移文件、未削弱 guard。
+- Recommended technical default: 若需求方确认 V331 仅面向特定既有环境，则把它改为条件执行（guard 不满足时跳过并留审计记录）或迁出主迁移链（移入一次性运维脚本目录+登记执行环境清单）；两者都会改动已执行环境的 flyway_schema_history 语义，需要明确决策。
+- Blocking scope: 仅阻止"单一迁移链支持全新空库构建"这一能力；不阻断本机既有库、工作区库的升级，也不阻断当前 V361 业务验证（本地验证库已可构建）。
+- Decision owner: 需求方（涉及迁移历史治理，非单一代码决定）。
+- Resolution: 需求方2026-09-30裁决迁出主链——V331移入一次性运维脚本目录并登记已执行环境清单，主迁移链恢复全新空库可构建；已执行库的`flyway_schema_history`V331记录保留不动，文件迁出后的missing-migration处理随迁出实施一并配置。迁出实施（目录、清单、迁移链验证）为后续工程工作。Decision date: 2026-09-30。
+- Implementation 2026-09-30: 迁出已执行——V331移入`sql/oneoff/`（README登记compose主库与fresh库两环境success=1及重放方式）；compose.yaml migrate服务加`FLYWAY_IGNORE_MIGRATION_PATTERNS: "*:missing"`；fresh lineage构建脚本移除331豁免并再生成（326文件含V384/V385）。主链空库构建验证（compose同版mysql:8.4+collation参数）：V1～V373全部成功，V331缺位不再阻断；构建现止于V374的既有跨表collation冲突，见下方新登记Q-MIG-COLLATION-20260930-001，与本次迁出无关（V331无DDL，不参与该比较）。
+
+### Q-MIG-COLLATION-20260930-001 — 主链全新空库构建在 V374 因跨表 collation 混用失败（迁出 V331 验证时发现）
+
+- Status: OPEN（BLOCKED_BY_SPEC：统一到哪个 collation 与整链对齐策略需需求方/DBA裁决）
+- Requirement IDs: 无单一代码归属；发现于 Q-MIG-V331-20260929-001 迁出实施的"主迁移链验证"
+- Area: 数据库迁移 / 全新空库构建 / 字符集治理
+- Question: 主迁移链在 compose 同版 mysql:8.4.10（--collation-server=utf8mb4_unicode_ci）全新空库构建时，V1～V373 全部成功，V374 p06r 统一交付数据迁移的 INSERT…SELECT 跨表 JOIN 报 1267 Illegal mix of collations (utf8mb4_unicode_ci,IMPLICIT) 和 (utf8mb4_0900_ai_ci,IMPLICIT)。根源是链内建表语句的 collation 声明不一致：`DEFAULT CHARSET=utf8mb4` 不带 COLLATE（如 V166 acc_* 族）在 MySQL 8 落 charset 默认 utf8mb4_0900_ai_ci，不带 charset（如 V361 plt_delivery_* 族）落库默认 unicode_ci，V92 plt_file_reference 显式 unicode_ci；V374 的 acc_*×plt_file_reference/plt_delivery_* 比较触发混用。
+- Evidence:
+  - 2026-09-30 临时容器复现：全链 flyway migrate 于 V374 失败；同机实测 `CREATE TABLE … DEFAULT CHARSET=utf8mb4`（无 COLLATE）→ utf8mb4_0900_ai_ci，与库默认 unicode_ci 无关。
+  - compose 主库（npdms_domain_test）447 张有 collation 的表 0 张 0900_ai_ci（历史成因未深究），故既有库不受影响、V374 在主库曾成功；fresh 库从未执行过 V372～V374，其下次升级到该区间将同样失败。
+  - V166/V374 均已在既有库执行（success=1），按"不重写历史迁移文件"约束不能就地修补；collation 对齐迁移若编号新于 V374，全新构建仍会在 V374 先行失败（前向修复无法解锁链中段）。
+- Options: A. 以既有主库为基准统一 utf8mb4_unicode_ci：新增插入在 V373 与 V374 之间的编号（如 V373.5）COLLATE 对齐迁移，既有主库无需执行（已统一）、fresh 构建按序执行后 V374 可通过；B. 统一到 utf8mb4_0900_ai_ci（方向相反，需同步处理 V92 显式 unicode_ci 与库默认），影响面更大；C. 只改 V374 语句加 COLLATE——需重写已执行迁移文件，违反迁移不可变约束，不可行。
+- Recommended technical default: A（与既有库实况一致，既有库零动作）。
+- Blocking scope: 阻断"单一主链支持全新空库构建"最终达成与 fresh lineage 后续升级到 V372～V374 区间；不阻断既有库日常升级、不回退 Q-MIG-V331-20260929-001 的迁出结论。
+- Decision owner: 需求方（涉及整链字符集治理基线）。
+
+## 施工计划批次再审批与已完成任务历史链接的解析口径（2026-09-29 S2 工作区 OWNER_FACT_UNAVAILABLE）
+
+### Q-TASKBIZ-20260929-001
+
+- Status: RESOLVED（需求方 2026-09-30 裁决：A 维持现状为最终口径）
+- Requirement IDs: PLN-01/04（阶段施工计划 3.1）；PM-01（任务工作区业务内嵌）
+- Area: 施工计划批次生命周期 × 任务业务链接（proj_task_business_link 冻结 object_id）的解析口径
+- Question: 项目进入 S3 后，经 3.1「阶段施工计划」页面再次创建并审批新批次（2026-09-29 项目 992004000014 批次 12 于 15:58 生效，S2 已于 10:41 完成）——该再审批路径当前无阶段门槛校验。由此：(a) S2 关闭后是否允许不经门槛重开即再审批新批次？(b) 允许时，已完成 S2 任务的冻结链接（批次 11）在新批次引入不同工期基线后，其完成事实（CONSTRUCTION_PLAN_APPROVED）按历史批次评估可能转 false，工作区应展示历史真相还是当前基线结论？
+- Evidence:
+  - `StagePlanApprovalCompletionProvider.load` 原实现仅解析 `mapper.current`（最新生效批次）并要求等于链接 id，被顶替后抛原始 IllegalArgumentException，被 `ProjectTaskBusinessService.getContext` 吞为 OWNER_FACT_UNAVAILABLE，S2 工作区执行区整体不可用（2026-09-29 浏览器实测 + API 复现：task 2104517608604786693 链接批次 11，current 返回批次 12）。
+  - 同构 `SolutionApprovalCompletionProvider` 读路径按链接 id 直接解析，历史方案链接不因新增方案失效——StagePlan provider 原实现偏离该契约。
+  - 既有测试 `supersededBatchCannotBeReused` 钉住锁路径语义：完成依据锁定仅接受当前生效批次，防止用被顶替批次完成门禁。
+- Applied technical default（已落实，2026-09-29）: 读路径（inspect）改为按链接 id 解析（`StagePlanCompletionMapper.byId`，保持 deleted=0 且 status=2 的"审批批次"资格），被顶替批次可只读回放；锁路径（lockCompletionFact/lockStageCompletionFact/lockAndRevalidate）维持仅当前生效批次语义不变。测试 6/6 通过（新增 readOnlyInspectResolvesTheLinkedBatchEvenAfterSupersession）。
+- Options: A. 维持现状（3.1 再审批不受阶段门槛限制，历史链接只读回放）；B. S2 完成后再审批新批次须重开 S2 门槛/走变更流程（需定义重开机制）；C. 再审批允许但完成后自动把进行中/已完成任务的链接迁移到新批次（违反链接不可变历史，不建议）。
+- Recommended technical default: A 为当前已实现口径；若需求方认为 S2 后再审批应受控，则 B，需补充规格定义重开与变更流程。
+- Blocking scope: 仅阻止 (a)(b) 的最终裁决；不阻断读路径显示修复（已落地）与其他独立工作。
+- Decision owner: 需求方；PLN Owner、工程实施 Owner 参与影响分析
+- Resolution: 需求方2026-09-30裁决采用A为最终口径：(a) 3.1再审批不受阶段门槛限制，S2关闭后允许不经门槛重开即再审批新批次；(b) 已完成任务冻结链接按链接id只读回放历史批次（展示历史真相），锁路径维持仅当前生效批次语义。2026-09-29已落地的读路径修复即为该口径实现，测试6/6通过，无需额外实现。Decision date: 2026-09-30。
+## 全库命名统一中设备型号字段族的归属口径（2026-09-29 产品/物料双读法全库统一裁决外溢）
+
+### Q-NAMING-20260929-001
+
+- Status: RESOLVED（需求方 2026-09-30 裁决：A 保留现名）
+- Requirement IDs: 无独立 Feature 编号；衍生自 2026-09-29 "全库所有同含义的字段，都用统一的命名" 裁决（V378/V379 产品/物料双读法统一）
+- Area: 数据库字段命名规范 × 设备维度快照字段
+- Question: 产品/物料双读法规范名已定为 `product_code`/`product_name`/`product_model`/`product_desc`（V378/V379 已统一订单行、交付范围、到货行、领料、外采）。设备维度记录上的型号快照列——`imp_eng_risk.device_model`（设备型号）、`kno_announcement_check.device_model`（设备型号）、`plt_authorization.device_model`（设备型号）、`plt_collection_template.device_model`（无注释）、`pms_equipment_retired.model`（设备型号）——是否视为与 `product_model` 同含义一并更名？
+- Evidence:
+  - 设备主档 `ast_device` 已用规范名（`product_code`/`product_name`/`product_model`/`product_desc`），即设备的产品型号在主档即 `product_model`。
+  - 上述 5 列均挂在业务记录上且与同表其他设备维度字段成族（如 risk 的设备关联字段族），只更名 `device_model` 一列会破坏同表字段族命名一致性；全部更名则波及 4 个模块的 DO/VO/前端。
+  - 裁决原文只定义了产品/物料双读法，未提及"设备"读法；`imp_eng_material_exchange_serial.item_code` 先例表明同表不同事实可保留差异命名。
+- Options: A. 保留 `device_model`/`model`（设备维度字段族命名，与产品/物料身份区分）；B. 全部更名 `product_model`（与 `ast_device` 主档对齐，接受字段族内命名不一致）；C. 更名且同步重命名同表设备字段族（`device_*`→`product_*`，波及面最大）。
+- Recommended technical default: A（V379 未动这些列，仅登记）；若裁决为 B/C，另出迁移版本执行。
+- Blocking scope: 仅阻止这 5 列的最终命名；不阻断已完成的四表统一（V379）与相关代码链。
+- Decision owner: 需求方
+- Resolution: 需求方2026-09-30裁决采用A——`imp_eng_risk.device_model`、`kno_announcement_check.device_model`、`plt_authorization.device_model`、`plt_collection_template.device_model`、`pms_equipment_retired.model`保留现名，定性为设备维度字段族命名，与产品/物料身份字段（product_*）区分；不另出更名迁移。产品/物料双读法统一（V378/V379）范围不变。Decision date: 2026-09-30。
+
+## DPPMS 同步来源空主键（2026-10-05 专项）
+
+### Q-SYNC-SOURCEKEY-20261005-001
+
+- Status: RESOLVED（需求方 2026-10-05 当前会话确认异常保留并跳过）
+- Area: DPPMS 合同、装箱单与发货记录同步专项；不走工程实施链。
+- Question: `fb_contract` 有 1 行 `contract_id` 为空字符串，是否保留该行原始异常证据、跳过业务写入并继续其余数据，或先由来源方修正主键？不得为该行补造业务主键。
+- Evidence: 2026-10-05 对已配置 DPPMS 数据源只读查询，`fb_contract` 总数 120,639、NULL 主键 0、空字符串主键 1；`fb_shipment` 总数 156,368、NULL/空主键均为 0。运行 `2107037032293396481` 在 `SHIPMENT_CONTRACT` 来源校验失败，未执行业务写入。
+- Resolution: 需求方选择“保留原始异常证据并跳过该行，其余数据继续同步”。原始 `contract_id` 保持为空，仅以原始行内容生成独立证据标识，并走既有来源问题机制；该行不得生成业务记录或目标绑定。
+- Blocking scope: 空主键处理策略已解除阻塞；完整任务仍须按实际运行结果区分技术完成与全部业务落库，已有合同客户冲突规则保持生效。
+- Decision owner: 需求方。
+
+## 2026-10-06 流程图系统记录与文件要求澄清
+
+### Q-TPL-FLOW-20261006-001 — 新模板中计划、方案与配置 Log 的文件要求
+
+- Status: RESOLVED（2026-10-06 需求方已确认文件要求和配置 Log 最新范围；实现接入缺口另行保留）
+- Requirement IDs: F-PROJ-009 配置实例；不修改 PRD、通用模板模型或既有已发布模板。
+- Source: `需求/项目交付/项目交付流程 (2).vsdx` 六页及需求方 2026-10-06 当前会话：图中标注可能是系统记录，不应全部解释为文件交付件；重新梳理后新建模板。
+- Confirmed: 工程交底书暂不处理；新模板不设置该项交付件或完成门槛。施工计划、实施方案“以系统记录和审批为准，不要求额外上传同名文件”。客户提供方案仍是原业务入口的条件输入。
+- Resolution: 配置 Log 是设备日志文件，允许手动上传及设备采集回传多个入口；每次文件记录保留。需求方追加确认按同一设备跨入口取最新文件，“大日志文件需要按设备拆分成对应的小日志关联会对应的设备”。到货签收单和客户签署验收单仍单独识别为文件；审批、系统报告、培训记录和满意度结果保持系统记录/业务结果属性。
+- Remaining implementation boundary: 文件业务口径已澄清，不再标为 BLOCKED_BY_SPEC。新草稿 `993009900029` 中联系人、安装、配置、联调、培训完成事实尚未接入；配置日志的多设备拆分、设备关联、跨入口最新文件校验及模板来源接入也未实现。完成规则及日志确认规则明确留空，Compiler 预检阻止发布；这些是实现缺口，不以任意文件上传、任务手工结束或采集技术成功填补。
+- Evidence: `docs/generated/2026-10-06-visio-system-record-template/`；记录以本次运行采集的旧模板最新已发布 rev10 为来源，早期 rev9 记录不充当当前草稿真值。
+- Implementation follow-up（2026-10-07）: 后续授权的DAC拆分、AST设备关联及跨入口最新文件代码已实施，见`docs/generated/2026-10-06-device-log-archive/README.md`；原文的“未实现”为模板创建时边界。V409迁移、实际MySQL与NPDMS浏览器验收仍未执行，模板日志确认规则及五项Owner完成依据仍未接通，草稿保持未发布。
+- Decision owner: 需求方。
+
+## Q-PROJECT66-LOG-DELIVERY-20261016 — 配置与联调日志自动交付归属
+
+- Status: `RESOLVED`
+- Area: 项目66真实业务验收，配置调试与业务联调日志自动形成交付件。
+- Confirmed: 用户要求通过“上传日志 / 文件历史”上传包含软件版本的日志，并验证自动形成交付件；不能以新增业务记录中上传PDF再手工提交交付件代替。
+- Question: 两个入口目前共用项目设备日志档案。同一份日志应仅归集到发起上传的当前任务交付件，还是允许同时归集配置及联调两个交付件？
+- Evidence: `ProjectDeliverableRuleService.documentTargets`对`AST.DEVICE_CONFIGURATION_LOG`仅匹配配置调试路由；本项目联调交付件未设置`automaticSources`。通用上传请求目前不区分任务入口。
+- Blocking scope: 自动交付归属变更；硬件查看错误和既定闭环契约识别修复独立继续。保留既有记录，不补写完成事实。
+- Decision owner: 需求方，已在当前会话提问。
+- Decision (2026-10-16): 需求方确认“按当前任务入口区分，仅形成对应交付件”。上传来源必须保留任务归属并由服务端核验；配置日志不同时形成联调交付件，反之亦然。此决定不改写既有不可变日志和批准历史。
+
+## Q-DEVICE-LOG-VERSION-20261007-001 — 日志解析结果关联设备及在网版本来源
+
+- Status: `RESOLVED`
+- Requirement IDs: `F-INT-012` 直接日志解析增量、`F-IMP-004` 已授权日志归档增量、`F-AST-001`
+- Area: 多设备日志归档、按SN关联结构化解析记录、在网软件版本投影
+- Question: 需求方2026-10-07指出多设备上传拆解未做真实验收，解析结果未回传设备序列号且软件版本未更新。是否批准把设备日志增加为独立在网版本来源？可信采集时间缺失或旧于当前版本时是否仅保留解析候选、由人工确认而不自动覆盖？
+- Evidence: `DeviceLogParsingService.observed`仅更新PLT技术任务状态并返回结果；`DeviceLogArchiveService`只拆分、关联SN和归档文件；现有`DeviceNetworkVersionService`没有日志解析调用方。`F-AST-001`当前将ITR在网版本列为ITR来源只读消费，不能伪造ITR来源身份。
+- Runtime evidence: 当前59191归档latest接口500，日志显示`npdms_domain_test.ast_device_log_file`不存在；既有归档记录要求的V409尚未在本实例生效。真实三命令样本解析出SN `02051250D227000005`和软件版本`B311CM005D025P02PATCH75`，当前调用者可见设备查询及项目1002精确SN查询均为0，不能擅自新建设备或改写其他SN。
+- Proposed scope: DAC只负责拆分/解析与证据；AST负责唯一SN、当前租户/项目鉴权、解析事实和当前在网版本；PLT/INT通过稳定API衔接，不跨模块写表。以设备最新日志的有效解析结果为来源，保留历史与幂等；日志接收时间用于排序证据，不冒充设备配置生效时间。
+- Blocking scope: 业务来源规则已解决；多设备真实验收仍需原始文件和验收实例信息，不再以缺少设备采集时间阻止最新日志版本投影。
+- Decision owner: 需求方
+- Resolution: 需求方2026-10-07明确裁决“在网版本就是最新日志解析的结果，并不是来自ITR”。按此修正`F-AST-001`、`F-INT-012`和`F-IMP-004`对应契约并实施；不伪造ITR来源，不将旧日志重开或迟到解析回退成当前版本。多设备真实日志路径和验收实例仍待提供，本裁决本身不代表数据库迁移或真实设备档案已更新。
+
+## Q-FEEDBACK-ACCEPTANCE-20261009-024 — 只上传报告与验收通过的边界
+
+- Status: RESOLVED
+- Area: FB-24 初验/终验简化，仅限制依赖该问题的验收完成规则修改。
+- Question: 用户已确认“只上传、自动时间/操作人；保存即完成验收”。上传报告不再人工填写结论后，任何报告保存均完成验收，还是不通过报告仍不能完成？验收完成是否继续等同通过并参与后续闭环？
+- Evidence: `IndependentAcceptancePolicy.SNAPSHOT`冻结`EFFECTIVE_REPORT_PASS`及`passingConclusion=PASS`；`reportPublished`仅PASS使活动COMPLETED，其余PENDING。`AcceptanceReportCommandService.requireCompleteContent`要求验收时间、结论及验收人。不能默认把未判定报告标PASS，也不能覆盖历史活动的规则快照。
+- Decision owner: 需求方
+- Current action: 已取得当前会话明确裁决；按新独立报告规则实施，保留不可变报告和历史规则快照。
+- Tracking evidence: `.run/test-feedback-20261009/项目管理新系统测试反馈跟踪清单.md`，R2原失败保留，R3仅依据实际浏览器结果更新状态。
+
+- Resolution: 需求方在当前会话确认“上传保存即完成，验收完成不再代表结论通过”。新独立报告采用上传完成规则，不默认PASS；既有不可变报告及冻结历史保留。`F-ACC-001`记录该批准差量，本问题不再阻断实施；运行部署和浏览器验收仍须实际完成。
+
+## Q-FEEDBACK-OVERDUE-DATE-20261009-002 — 超期判断的权威日期映射
+
+- Status: RESOLVED
+- Area: FB-02 超期清单的节点范围、日期来源与完成边界。
+- Question: 工期超期取工勘的项目结束日期还是已批准工期的完工日期？验收超期取指定阶段/任务的计划验收时间，还是新增项目级计划验收截止日期？
+- Evidence: 当前项目主档`ProjectMasterDO.projectEndDate`由工勘提供，SOL施工计划保存版本化工期；`ProjectExecutionNodeDO.acceptanceTime`位于阶段/任务，`ProjectPaymentAcceptanceApiImpl`按合同和显式节点映射刷新。当前项目主档未承载项目级计划验收截止日期，不能自行选某个节点或取最大日期。
+- Confirmed rules: 工期及验收分别按计划日期判定；分别在项目完工和终验完成时停止并保留各自完成时的超期情况；未完成另一类仍可出现在当前清单；同时命中显示两个标识。
+- Decision owner: 需求方
+- Current action: 节点范围、完成与日期边界已逐项确认，按明确口径实施并验证，不改变原有状态机和权限。
+- Tracking evidence: `.run/test-feedback-20261009/项目管理新系统测试反馈跟踪清单.md`；本问题未解决前不登记FB-02回归通过。
+- Resolution: 需求方2026-10-09确认“只要阶段和任务超期未完成，未验收，就属于超期”“节点完成即停止两类超期”，并要求集成现有阶段状态展示，追加计划结束及计划验收时间，阶段任务推进和施工计划更新同步刷新。当前规则按节点计划日期计算两类超期，完成停止两类，不新增项目级截止字段；同项目其他未完成超期节点仍列出，双标识保留。新完成事实随既有状态更新追加冻结；旧记录不回填或篡改。前述项目完工/终验分别停止的口径由此次明确节点级裁决细化替代；测试与部署仍需真实完成。
+- Date boundary: 需求方同日明确“按日期，次日开始超期”，以当前日期零点和节点计划日期比较，截止当日不超期；不能将NULL计划日期推断为超期。
+
+
+## Q-FEEDBACK-MATERIAL-EXCHANGE-20261009-005 — 换货分类与申请字段简化
+
+- Status: RESOLVED
+- Area: FB-05，旧功能范围：现有换货申请表和申请事实记录，不新增审批或CRM调用。
+- Question: “产品类型”是否指现有换货类型，申请区简化后分类应如何处理？
+- Resolution: 用户澄清“页面上没有这一项”，未授权删除既有子表换货产品选择；针对当前实际存在的“换货类型”，明确“隐藏，保留当前默认分类”。新申请沿用INCOMPATIBLE默认分类，界面不提供修改；历史原分类保留。申请区仅填写原因，物料选择仍单独保留；申请人和申请时间由系统自动记录。
+- History boundary: 编辑草稿不能更换原申请人和申请时间；既有申请、快照、审批状态及历史记录保留，不把保存等同提交或审批通过。
+- Evidence: 当前会话逐项确认，`.run/test-feedback-20261009/regression/repair-r8/`。运行部署和真实保存重开仍须完成，不能凭单测登记全项通过。
+
+
+## Q-FEEDBACK-MATERIAL-PRODUCT-TYPE-20261009-005 — 物料选择的产品类型
+
+- Status: RESOLVED
+- Area: 仅FB-05物料选择的产品类型显示，不阻断已确认申请区修复和订单合同显示。
+- Question: 原反馈“产品类型”表示订单产品名称/型号，还是设备类别（防火墙、交换机等）？用户此前只澄清当前页面没有该项，尚未裁决其业务口径。
+- Evidence: 当前范围响应有产品编码/描述，明细设备类型可为空；不能将缺失值猜为某一设备类别。
+- Current action: 用户已在当前会话确认“订单产品名称/型号”，按原订单描述展示，保持现有目标产品可选能力。代码与9项后端、7项前端验证完成，合同读取增量包待本次明确批准部署并完成真实浏览器回归。
+- Decision owner: 需求方
+
+- Resolution: 需求方明确“订单产品名称/型号”，不按防火墙、交换机等设备类别推断。合同号按每个所选订单实际合同展示，不能用项目主合同替代所有订单的合同。
+
+
+## Q-ACC-COMPLETION-SATISFACTION-20261010 — 完工证明与满意度调查成套推送
+
+- Status: RESOLVED
+- Confirmed scope: 需求方明确一次完工对应一份满意度调查，完工证明和满意度调查两个页面一起推送给客户。不能仅按项目寻找任意证明或仅推送问卷。
+- Question: 同一客户入口中，两个页面分别签字提交，还是一次签字统一确认完工证明并提交满意度？
+- Recommendation: 同一受控入口呈现两个页面，分别保留完工确认与满意度答卷的签字、提交事实；送达不代表任一业务完成。一次签字统一提交须由需求方明确其适用对象与事务边界。
+- Evidence: 当前满意度 `SatisfactionAccessGrantService.inspect` 仅返回冻结问卷与到期时间；旧完工证明具有独立客户确认状态机。既有 F-ACC-002 计划明确旧完工证明独立保留，故本次关系和成套入口须显式补充契约，不直接改写旧历史。
+- Decision owner: 需求方
+
+- Resolution（2026-10-10，Q-ACC-COMPLETION-SATISFACTION-20261010）: 需求方明确“一次签字统一提交两份表单”。同一受控入口展示本次完工证明及冻结满意度调查，签字共同适用于两份表单；答卷保存、签字事实关联和完工证明客户确认同事务成功或回滚。结果评分/生成沿用既有提交后判定及可重试机制，不把推送或低分等同未提交。
+
+## Q-ACC-COMPLETION-ORIGINAL-SURVEY-20261010 — 自动生成的原表与评分规则
+
+- Status: RESOLVED
+- Confirmed scope: 完工证明界面保留原样；满意度填写使用需求方前面给定的DemoV2原表，自动推送不得随机选择已有示例问卷。
+- Question: 本地已有两份已发布示例，均非原表；原表还未确定总分算法和达标阈值。
+- Resolution: 需求方在当前会话先选择“使用原表，并补充评分规则”，随后明确“10项取平均分，满分100，80分及以上达标”。原表的10项评分等权平均，购买意愿与两项意见不计分。新增独立发布原表模板用于默认外发；不修改已有示例或任何冻结历史。
+- Evidence: 当前会话两次明确回答；V430前向种子与原生问卷解析/评分验证；真实浏览器验收记录见 `docs/generated/2026-10-10-satisfaction-style/`。
+- Decision owner: 需求方
+
+## Q-ACC-COMPLETION-EQUIPMENT-20261010 — 保留原设备清单与新建证明数量
+
+- Status: RESOLVED
+- Question: 项目 `992203060198` 原设备清单有7类产品，但当前订单范围仅有主机4件、光模块16件；其余5类在完工证明中应按原清单设备数量回填，还是等待其他订单或配置清单来源？
+- Resolution: 需求方明确“按原清单设备数量回填全部7类”。保留原完整产品集合，证明类型、型号和数量与原清单的设备数量一致；不再仅筛选当前有订单范围的产品。需求方同时指出订单号、项目数量、发货数量和未发货数量缺失，保留这四列及实际可读的订单数据。
+- Evidence: 当前会话明确答复；原生项目设备API返回7类共40条记录，当前交付范围及订单行均为2行、20件。其余5类缺少订单数量来源，展示未知值；不将设备数量写回或推导成订单分配/发货数量。真实页面与保存重开证据见 `docs/generated/2026-10-10-completion-equipment-restore/`。
+- Decision owner: 需求方
+
+## Q-PROJ-SPLIT-SCOPE-OFFICE-20261012 — 同子项目同订单行的范围办事处
+
+- Status: BLOCKED_BY_SPEC
+- Area: 仅同一子项目、同一订单行按不同范围办事处再次细分的语义；不阻断合同多订单初始化、父范围同步和按订单行拆分。
+- Question: F-PROJ-002 的“订单行、数量、办事处部门编码和序列号可任意组合”是否允许同一子项目、同一订单行形成多个范围办事处？
+- Evidence: `specs/features/F-PROJ-002-project-split-tree-and-progress-aggregation.md` BR-FPROJ002-002 保留任意组合描述；`specs/features/F-COM-001-contract-order-association-and-delivery-scope-allocation.md` BR-FCOM001-002/003 同时规定一项目一订单行最多一条当前主范围、办事处取目标项目的 SYSTEM 权威快照。现行 PROJ 旧入参可带范围部门，但 COM 不接受其覆盖项目 Owner。
+- Current action: 多订单行拆分按 `(clientItemKey, orderLineId)` 去重，保留同项目同订单行唯一约束及跨行 SN 去重；新面板只在子项目层选择办事处，移除无效的范围办事处控件。既有 DTO、草稿字段、已分配范围及历史不改。未决组合不自行放开、不修改 PRD。
+- Decision owner: 需求方
+
+## Q-TEMPLATE-S6-CLOSURE-TASK-20261014 — S6闭环任务完成与闭环申请前置条件
+
+- Status: RESOLVED（业务口径已确认，接入已部署，项目实例全流程验收未执行）
+- Area: 20261014清单中新建的四类常规模板S6“项目闭环”任务；不修改既有项目冻结模板或原厂督导S5闭环路径。
+- Question: 现行正常闭环申请要求全部任务及末阶段完成。如果S6任务等待同一次闭环审批通过，申请前置检查与任务完成将形成循环依赖；该任务应记录闭环准备还是最终审批结果？
+- Evidence: `NormalClosureCheckService`检查`STAGE_COMPLETION`与`ALL_TASKS_DONE`；来源模板`993009900016`的已发布V2/V3均无S6。既有模板`993009900000`的S6为手动完成的页面绑定，不能证明正常闭环审批完成。
+- Resolution: 需求方在2026-10-14本次配置会话明确选择“审批通过后完成该任务，需要补齐闭环接入”。不能改为先手动完成S6，再申请闭环；也不能直接写项目终态或伪造审批结果。
+- Current action: 已实现精确冻结闭环任务的申请前检查预判，以及正式审批通过事务中的任务状态机、末阶段和项目闭环接入，未通过审批不能完成该任务。经批准部署59191后，四类常规草稿已绑定`NORMAL_CLOSURE_APPROVED`，五类草稿全部通过Compiler且保持未发布；项目实例全流程验收尚未执行。
+- Decision owner: 需求方。
+
+
+## Q-TEMPLATE-OWNER-FACTS-20261014 — 相同任务的实体来源与多记录完成口径
+
+- Status: RESOLVED
+- Area: 本次五类未发布草稿的到货签收实体选择，以及到货、培训、割接任务的多记录完成量词；不阻断全设备安装和S6审批接入。
+- Question: 到货复用当前到货签收实体的正式“已签收”结果，还是接入未生产装配的到货验收批次；同项目多条关联到货、培训、割接实体时要求全部达到对应条件还是至少一条？
+- Evidence: 现行ArrivalServiceImpl通过签收命令形成status=1；ArrivalAcceptanceController仍为未启用的完整验收候选。清单明确割接任务审批通过、培训确认与所有设备安装完成，但未明确前三者的多记录量词。
+- Decision: 需求方本轮明确选择复用当前到货签收实体，以正式“已签收”为准；到货、培训、割接均为至少一条关联记录达到对应条件（ANY）。硬件实施仍为当前范围内全部设备完成安装，S6仍为正常闭环审批通过后完成。
+- Current action: 已按该口径新增Owner只读事实适配、正式完成点重评事件和S6审批事务接入。构建及定向失败保护通过，经批准部署59191；五类模板草稿已更新并全部通过在线Compiler预检，未发布。
+- Decision owner: 需求方。
+
+## Q-CUTOVER-ACTIVE-REVISION-20261015 — 推进后的主动修订与审批撤回边界
+
+- Status: RESOLVED
+- Area: 本次割接七项问题中的第1项，仅阻断主动修订涉及的状态转换；不阻断字段、匹配、上传入口及弹窗问题核查。
+- Question: 审批中的任务是否允许任务负责人主动撤回后修订等级、采集清单或方案并重新审批；是否还包含审批通过、尚未执行的主动修订？
+- Evidence: PRD CUT-03 核心规则5明确提交后修改须生成新清单版本并使下游未审批方案失效；CUT-04 核心规则5/6、CUT-05 核心规则5明确不可覆盖提交/审批历史及驳回后重新审批，但未定义发起人主动撤回当前审批的命令与适用阶段。真实浏览器确认已提交清单只读，当前缺少主动修订入口。
+- Recommendation: 审批前允许受控修订；审批中由任务负责人撤回当前审批后生成新版本并重新审批；已批准内容沿用正式变更规则。所有旧版本及原审批意见保留。
+- Resolution: 需求方2026-10-15确认“审批前可修订；审批中可由任务负责人撤回后修订、重新审批；批准后沿用正式变更规则”。修订保留已提交历史，修改等级或采集清单后受影响的下游内容须重新确认。
+- Current action: 按本次明确裁决实现受控修订及撤回，不增加批准后自由修改入口。
+- Decision owner: 需求方。
+
+## Q-CUTOVER-MATCHING-SOURCE-20261015 — 风险项适用范围与原始0807明细差异
+
+- Status: RESOLVED
+- Area: 本次割接问题第3项的规则校正与全组合预期；不阻断匹配引擎、字段展示、上传入口和弹窗问题核查。
+- Question: 动态表项、MTU、FEC、长连接、二次过设备、STP、F5及Adware共8项，应按0807原始逐项明细还是现行PRD概括后的适用范围验收？
+- Evidence: `需求/售后平台（割接+巡检）/1、割接平台/4、割接平台设计-数据整理（0807).xlsx` 的 `3.调研及风险考察（清单+结果填写格式）` 第76～83行包含配置变更、不包含原厂新旧板卡替换，第82/83行只适用ADX。PRD CUT-09表17～24项概括为设备替换/版本升级/灾备演练，遗漏上述限定。2026-10-15只读接口核实任务2110205784723779584冻结的CUTOVER_STANDARD_V1修订1：8项均包含板卡替换、不包含配置变更，F5/Adware无DEVICE_TYPE限定。
+- Resolution: 需求方2026-10-15明确“按0807原始明细校正，不同步修订PRD，给出差异清单”。本次实施和验收按该原始逐项明细；PRD原文保持不动，差异单独登记，不将未修订PRD误称为已同步。
+- Current action: 编制差异清单，校正规则配置并补全组合核验；已提交及审批历史保留。配置生效和在途修订按正式服务执行，不能原位覆盖已发布配置。
+- Decision owner: 需求方。
+
+## Q-CUTOVER-MAJOR-PROJECT-20261015 — 重大项目备件匹配来源
+
+- Status: RESOLVED
+- Area: 0807原始明细第69行“重大项目备件申请”。
+- Question: 重大项目由割接等级推断，还是读取项目主数据重大项目级别？
+- Resolution: 需求方2026-10-15明确选择项目重大项目级别。通过PROJ正式接口读取`majorProjectLevel`，沿CRM字典映射；当前正式值为无、办事处级、市场级、公司级，后三者匹配，空值和无不匹配，未映射值不猜测归类。
+- Current action: 新配置增加该维度，P3生成/重匹配锁定并冻结项目版本；提交时来源版本变化须重新匹配。既有配置和历史事实不覆盖。
+- Decision owner: 需求方。
+
+## Q-CUTOVER-CREATE-MINIMAL-FIELDS-20261016 — 新建卡片删除后的配置及补录位置
+
+- Status: RESOLVED
+- Area: 新建割接任务第一步“割接等级确认”。
+- Confirmed: 需求方2026-10-16确认删除“割接任务信息”卡片，新建只保留项目信息、设备和等级评估问卷；原卡片字段不再要求在创建时填写，后续需要时补充。
+- Confirmed placement: 需求方进一步明确：割接类型、组网模式、设备类型放到调研；计划割接时间在方案页使用单个输入框（以需求方随后纠正为准）；割接背景沿用已有结构化数据，不在等级确认重复填写。
+- Resolution: 需求方明确：D级不需要割接类型、组网模式、设备类型；新任务自动采用唯一有效已发布配置，多个时停止并提示明确配置；需求方随后纠正：所有方案页使用单个计划割接时间输入框，审批直接采用该输入值，不取明细计划最早时间。
+- Evidence: 创建服务当前冻结配置并要求类型、背景；调研匹配已有类型/组网更新入口；审批源组装和时限计算仍依赖任务计划时间，直接置空会破坏后续办理。
+- Current action: 同步调整创建接口及存储约束，创建时允许调研字段及背景、时间为空；复用调研选择与结构化背景，D级不生成这三个字段；审批读取方案单个计划割接时间。既有任务字段与历史快照保留，不补造业务值。完整上传方案同样使用方案页单个时间框，补录方式已确认。
+- Decision owner: 需求方。
+
+## Q-CUTOVER-CONFIGURATION-ADOPTION-20261015 — 既有任务采用校正配置
+
+- Status: RESOLVED
+- Area: 既有任务主动修订时的配置采用策略。
+- Question: 校正配置发布后，既有任务是否允许负责人主动修订时选择新配置，还是仅新建任务采用？
+- Evidence: 既有任务保存精确configurationRevisionId，不能通过原位更改已发布定义让已提交清单隐式变化。
+- Resolution: 需求方2026-10-15选择“负责人主动修订时可选择新配置，保留旧版本”。
+- Current action: P2/P3修订入口提供同一配置当前有效的已发布版本，默认沿用原配置；选择新版本后重新匹配，仅沿用字段定义一致的填报与受权材料引用。旧评估、清单、方案及其配置保留历史；配置发布仍由正式发布操作完成。
+- Decision owner: 需求方。
+
+## Q-SUPERVISION-REQUIREMENT-SOLUTION-20261019 — 督导模板按需需求分析与必做实施方案
+
+- Status: RESOLVED
+- Area: 未发布督导模板993009900036的需求分析与实施方案依赖；不阻断已授权的割接入口及到货、初验、终验实体页面配置。
+- Question: 需求分析按需、实施方案必做时，是否按方案办理方式决定需求分析的前置要求？
+- Evidence: 当前草稿PRE_REQUIREMENT为按需，PLAN_SOLUTION为必做。SolutionSubmissionValidator的在线编制分支要求本项目有效FROZEN需求分析；完整客户方案分支先由SolutionCustomerDocumentService核验原件引用，再按既有上传路径办理。
+- Recommendation: 保留需求分析按需。在线编制实施方案时先完成需求分析并引用有效版本；已有完整客户方案时沿用原件校验及既有提交审批路径。明确提示条件依赖，不自动补造需求分析、不降低在线提交校验。
+- Current action: 已按2026-10-22裁决调整实施方案可选引用逻辑，保留需求分析任务按需属性；不改写已发布模板与既有项目历史。
+- Decision owner: 需求方。
+
+- Decision (2026-10-22): 需求方确认需求分析保持按需；有有效已完成需求分析时实施方案自动引入，没有时独立编制并允许正常提交。此裁决替代上述前置要求建议。已有引用保留项目归属、有效完成版本、版本变化及差异说明校验；其他提交校验和不可变来源历史不变。
+- Validation (2026-10-22): 后端SolutionSubmissionValidatorTest、SolutionTieredReviewServiceTest共38项通过；前端solutionRequirementSources.runtime.spec.ts共16项通过。覆盖无引用独立提交、有有效版自动引入、草稿不引入、已有引用归属/有效性/版本差异及不可变来源保护。通过worktree-build.ps1构建并冻结7abffcbc-6f8d-408d-88e3-93b7caee46db，经批准使用worktree-backend.ps1部署59191（local,dac，PID 30916），保留22项既有部署修复基线。真实浏览器以杨凯添提交项目992203060196的隔离方案30057并重开审批详情，显示审批中；只读回查确认该项目需求版本数为0、方案无需求引用、审批记录RUNNING。另以正式草稿API准备项目992203060198的隔离方案30058，真实浏览器显示需求版本变化提示，提交时拒绝“PRE-04 尚未形成有效的已完成需求分析版本”，重开仍为草稿且无审批记录；原方案30055及既有需求版本保持不变。证据见.run/optional-requirement-browser/，本次仅验证提交，不代行审批通过。
+
+## Q-DAC-DESKTOP-AUTH-20261021 — 本机 DAC 复用的浏览器认证入口
+
+- Status: RESOLVED
+- Area: F-INT-012 浏览器直连本机 DAC 的认证适配；不阻断已授权的 Windows 安装、自启动、环境配置及服务发现。
+- Confirmed: 需求方要求客户端不绑定、不注册、不设独立账号，沿用现有浏览器认证和通信方式。
+- Evidence: NPDMS 统一采集当前由服务端 Gateway 携带服务 JWT 与任务 HMAC 访问 DAC；DAC 独立网页另有 OIDC Authorization Code + PKCE 登录。两者并非同一浏览器登录态。
+- Question: 复用 NPDMS 网页当前登录态，还是 DAC 独立页面现有 OIDC 登录？
+- Recommendation: 复用 NPDMS 当前登录态，并保留服务端业务权限、项目范围和任务授权；服务级 JWT、HMAC 密钥不下发浏览器或安装包。
+- Resolution: 需求方2026-10-21选择复用 NPDMS 网页当前登录态，随后补充现有 OIDC 也可使用。本次网页接入采用 NPDMS 当前登录态，既有独立 DAC 的 OIDC 能力保留；不增加客户端绑定或独立身份。
+- Current action: NPDMS 在现有来源、权限和项目范围校验后签发任务/操作限定的短期票据；本机 DAC 向配置的 NPDMS 解析票据。完整登录 Token 与服务级共享密钥不交给本机浏览器端点，业务状态仍经原状态机和结果接收处理。
+- Decision owner: 需求方。
+
+
+## Q-ACC-COMPLETION-ARRIVAL-DATE-20261022 — 完工证明到货日期来源与显示
+
+- Status: RESOLVED（2026-10-22，需求方确认）。
+- Decision: 到货日期从当前项目已签收的到货记录取实际到货日期；多条可用记录取最新到货日期；无可用记录且选择“是”时允许手填到货日期，也可留空。不取登记、更新或完工日期，不跨项目/租户取值，不将到货验收批次替代当前到货签收实体。
+- Display: 填写、查看、客户核对和打印保持一致。仅“完成到货验收”选“是”时显示“于……年……月……日”；选“否”“不涉及”或未选择时隐藏整个日期前缀。选“是”且无可用日期时保留空白日期位，不阻止原有提交。
+- History: 草稿优先自动带出当前业务日期；无可用记录时允许手填并保存，有记录时自动日期只读且服务端不接受手填覆盖。填写、查看和打印采用同一有效日期；外发时与完工证明一起冻结。已外发/已签署的旧快照和已生成文件不回填、不改写。
+- Supersedes: F-ACC-002 于2026-10-10 Word打印样张裁决中“未采集的到货日期保持空白，不推导或补造”的到货日期取值部分；客户联系方式、服务方签章及其他历史保护口径保持。
+
+- 2026-10-22补充确认：无实际签收日期时开放手填，允许留空；新增可空手填日期列，不回填既有历史。
+
+## Q-AST-DEVICE-CONTRACT-SCOPE-20261024 — 设备合同分支扩大部门级组织范围
+
+- Status: RESOLVED（2026-10-24需求方选择保留公司部门约束，裁决见本条Resolution）。
+- Evidence: 2026-10-24需求方指定账号z01010。只读核查当前有效范围为公司001/002与部门178/470/94的组合，无公司级空部门授权；用户同时具有pms:device:query和pms:commerce:contract:query。真实浏览器默认设备列表1042435条，办事处“杭州”筛选79428条；设备02010502N224800206（ID 2104569064506609672）无直接项目，固化组织为company=1、department=253/162022，组织分支不命中，列表与详情均可读。其唯一正式合同31020220510A04所属公司001，与发货合同公司一致；当前ContractAccessService.currentCompanyCodes丢弃部门维度，并由设备授权OR分支放行。
+- Existing contract: F-AST-001 2026-09-21批准组织/项目/合同独立OR；ADR-0038将合同管理员的合同目录范围定义为当前scope公司编码集合，部门不收窄。z01010实际拥有合同查询权限，不能通过删除功能权限或假定角色缺失修复，也不能把本现象误判为前端筛选失效。
+- Question: 设备的合同分支是否仍需满足同一有效组织范围行的公司与部门，或完全取消设备通过合同授权？合同目录本身是否保持ADR-0038既定公司范围？
+- Recommendation: 设备仍保留组织与明确项目授权；合同分支保留公司部门组合限制，公司级范围仍覆盖公司；不改变COM合同目录范围、不修改实际用户授权，不删除历史或设备归属。
+- Current action: 已复现并保存证据.run/user-org-scope/z01010-device-detail.png及.txt；按本条Resolution实现设备专用范围收敛，验证记录归F-AST-001 Task，未再次部署。
+
+- Resolution (2026-10-24): 需求方选择“采用建议，保留公司部门约束”。设备保留组织范围或明确项目授权；合同分支必须命中同一当前有效组织范围行的公司及可选部门，公司级范围仍覆盖公司。收敛仅适用于设备授权，不改变COM合同目录的既定公司范围，不靠修改实际用户角色/授权修复。
+
+## Q-PLN-MANAGEMENT-MENU-20261024 — 施工计划独立菜单开放范围
+
+- Status: RESOLVED（2026-10-24，需求方确认四类现有角色）。
+- Resolution: 独立“阶段施工计划”菜单仅对super_admin、admin、engineeManager、engineeManagerLeader展示；多角色用户命中任一上述角色即可保留。项目经理、服务经理单独持有角色时隐藏入口。需求方同时要求检查隐藏入口对施工计划重排的影响。
+- Boundary: 菜单展示收敛不撤销既有施工计划query/create/update/submit权限，不移除路由，不改变项目详情内重新倒排的项目范围、草稿状态、日期校验和批准历史保护。仅给现有三个管理角色补齐独立页面及父目录的菜单初始化授权，不创建新角色或自动授予项目范围。
+- Evidence: 当前验收库原显式菜单角色为PROJECT_MANAGER/SERVICE_MANAGER，super_admin默认全菜单；三个管理角色原无该页面授权。实现及验证见docs/generated/2026-10-24-stage-plan-menu-visibility.md。
+
+## Q-CUT-ROLE-FINAL-READINESS-20261024 — 角色共享终审的内部就绪重验授权
+
+- Status: RESOLVED（2026-10-24，需求方选择“采用受控内部重验”）。
+- Evidence: 项目74原割接任务CUT-2113678637070770176在真实浏览器完成发起人、服务经理及二线审批后，当前合格研发角色账号提交终审，服务端403，业务码1011005603，“无权读取该项目就绪快照”。该决定未写入，原三节点通过历史保留。终审调用CutoverExecutionReadinessPolicy.requireCurrent，ImplementationReadinessService.readSnapshot仍以当前审批人的通用项目查看范围校验。
+- Existing contract: F-CUT-005当前角色共享审批不要求项目成员交集，只授予当前审批实例冻结资料及文件的临时只读范围；F-IMP-001要求CUT内部消费按受信租户、明确业务动作、项目/设备范围及快照版本校验，不能继承项目经理发起权限。现有内部就绪API尚未声明角色审批动作的受控重验授权。
+- Question: 是否允许在保留P5/P6就绪门禁的前提下，为当前合格审批节点提供仅绑定审批实例、项目、设备和精确快照的服务端内部重验，不授予审批人通用项目查看权、不返回实时Owner资料？
+- Resolution: 保留P5/P6就绪门禁；当前合格审批节点可在原决定事务内，对绑定本审批实例、任务、项目、设备及精确快照执行服务端内部重验。不得增加审批人的通用项目查看权限、继承发起人权限或向其返回实时Owner资料。租户、节点资格、版本、来源变化及设备归属校验继续失败关闭。
+- Current action: 内部契约、实现及70项相关测试已完成，固定清单ca889a29-5e21-474c-9649-a815474c7e4c已部署；74原研发节点与78研发节点、75二线终审均浏览器通过，原历史保留。五项目最终正常闭环，证据见docs/generated/2026-10-23-five-template-browser-acceptance.md。
+
+## Q-CUT-NO-CUSTOMER-LEVEL-20261025（已裁决）
+
+- 来源：需求方在工作台新建入口反馈16200720111902N-0不能手选。真实浏览器读取项目2109733000842969090，客户未关联，customerId/customerCode均空，原响应UNAVAILABLE；同入口关联客户但未维护等级的隔离项目79可手选，不能混为同一已验场景。
+- 裁决：2026-10-25需求方明确选择“允许无关联客户时手选”。仅当PROJ已确认客户ID及编码均空时，允许在本次评估中显式选择已启用字典等级；不写客户主档、不补客户关联、不伪造CUS读取成功。存在客户编码但无法解析、真实读取失败或冲突仍不允许手选。
+- 落位：F-CUT-002客户等级手选差量。保留任务/评估版本、项目/设备范围、租户与权限、选择人/时间、提交冻结和不可变历史；不回填已提交记录。
+
+## Q-CUT-CLOSURE-MULTI-FILE-20261026 — 割接闭环必需材料的多文件诉求
+
+- Status: RESOLVED（2026-10-26，需求方确认推荐方案并补充取消关联）。
+- Evidence: 测试反馈原表B47截图为“割接后信息采集清单”，第二次上传显示同一文件V2。当前前端复用材料引用并追加版本；F-CUT-006 BR-FCUT006-002要求`POST_COLLECTION_CHECKLIST`与`IMPLEMENTATION_COMMITMENT`各有一个当前revision，服务端提交按每类恰好一份校验。旧版本保留，未发现历史文件被物理覆盖的证据。
+- Question: 是否将两类必需材料改为每类至少一份、允许多个独立文件，并分别保留版本；或保留单文件规则，仅明确“上传新版本”的含义？
+- Recommendation: 按反馈允许多文件，保留逐文件版本、授权、有效性和归档冻结校验；已归档历史不改写。
+- Resolution: 两类必需材料均至少一份，允许同类多文件并逐份保留版本；支持取消当前草稿中的附件关联，保存后生效。取消关联不删除PLT文件或版本，已归档记录和人工采集证据保持只读。
+- Current action: 同步F-CUT-006规格与机器契约，复用既有草稿保存和逐文件事实校验，实现多文件呈现、独立版本上传及草稿取消关联；验证缺失必需材料、同类多文件、取消后保存、版本和归档保护。
+- Decision owner: 需求方。
+
+## Q-TEST-FEEDBACK-RULES-20261027 — 测试反馈中的新增字段、替代证据与材料删减
+
+- Status: RESOLVED / SCOPED_OUT（2026-10-28需求方已批准TF-040通用分组配置能力；其他增量按下列裁决处理，不代表部署或验收完成）。
+- Evidence: `docs/generated/2026-10-26-test-feedback-triage/问题跟进.md`保留原始来源行、当前代码路径和验证边界；原Excel不回写。
+- Questions（追加裁决前的历史核实记录；TF-040以本节最后的追加裁决为准）:
+  - TF-040：DPPMS旧参数值与转换语义已查明，不再待确认：178登记有效行id 52（`project.product.item.filters`，优先）及id 46（`prob.product.item.filters`，回退）只读取得；仅`filterItem=true`读取，project非空时不回退。project实际四OR前缀为`0201%`、`0205%`、`990201%`、`990205%`；锁定Hutool 5.8.34离线验证确认`itemCodeNotIn2`未知字段被静默忽略，`itemCodeLike`保留，prob值的组内`itemCodeNotIn`会转换；旧查询只消费`itemFilters`，顶层NotIn不进入过滤。178官方产品表确认`02010502`是电源模块（`PSU-AC150`，type `LSW`，category 网络）、`02011769`是光模块（`SFPP-SX-MM850-C`，type 光模块，category 公用模块），两者都在`0201%`内；`53012929`是授权产品（`LIS-FW1000-GA-GF-A-1Y`），在四个前缀外。由此可见旧软件版本查询的实际范围与反馈中“省略光模块、授权、电源等配件填写地址”的说法有差异；旧查询过滤不定义安装地址豁免。仍`BLOCKED_BY_SPEC`：需需求方确认是沿用旧实际范围，还是按配件免填另定清单，并明确豁免适用的产品编码/类型组合或权威来源。证据：`.run/feedback-20261027/acceptance/tf040-dppms-active-filters-readonly-20261028.json`、`.run/feedback-20261027/acceptance/tf040-ast-product-exact-20261028.json`、`.run/tf040-maputil-probe-20261028`、`.run/tf040-legacy-source/`。
+
+  - TF-042：2026-10-27需求方明确暂不调整，移出本轮实施；保留现有证据校验，替代规则不自行补造。
+- Current action: TF-040按需求方2026-10-28追加裁决实施旧式可配置分组过滤，不等待具体产品清单，不导入旧软件版本范围作为固定默认。分类、类型、编码、型号、描述均可维护，组间OR/组内AND，类型不硬编码；未配置保持全部必填、错误配置拒绝完成判定。具体契约归F-IMP-003旧功能差量。TF-028需求拓扑引用已有PRE-04/SCH-01版本规则，不列为规则缺失；TF-037继续遵守SDS12掩码及授权系统Owner边界。
+- 2026-10-27后续确认：TF-030空内容暂不处理；TF-065仅维护设备类型字典，待各产线提供具体编码、名称及适用映射，不增加报备功能；TF-053已明确LIC按不透明文件开放，取消前次文本限定和等待样本条件。需求方要求数据库迁移、服务重启先不执行，准备好后统一确认。
+- 2026-10-27补充裁决：需求方明确TF-063、TF-064不处理，且TF-065不属于功能问题、不需要处理；TF-030早已defer。以上四项移出本问题待确认范围，历史沟通与原反馈记录保留，不实施对应改动。
+- Resolution: TF-063、TF-064、TF-065无需处理；TF-030已defer，本轮不处理，TF-042暂不调整。TF-027按需求方2026-10-28裁定忽略、不再跟进（范围取消，不表示实现或验收完成）；TF-040配置能力经同日追加裁决解除规格阻断，具体类型/编码清单由参数维护，不再作为实施前置。
+- 2026-10-28核实：TF-040从当前178登记的DPPMS源读取有效`fnd_sys_arg`行id 52/46；旧代码在`filterItem=true`时优先project值、按Hutool 5.8.34构建`itemFilters`，`itemCodeNotIn2`被忽略。178官方产品表已核对指定电源、光模块和授权产品；其中电源及光模块属于project的`0201%`前缀，授权产品在四个前缀外。旧软件版本查询过滤与安装地址免填不是同一契约。配件豁免是沿旧实际范围还是另定清单，以及适用的产品编码/类型组合或权威来源，仍待需求方裁定；证据见TF-040问题记录。
+- 2026-10-28追加裁决（替代上述当时待确认结论）：需求方明确要求参照旧实现的分组过滤，产品分类、类型、编码、型号等条件均可配置调整，不限于举例的光模块、电源或两个字段；不能因配置数据差异停做功能。按此完成配置能力，数据库迁移继续不执行。旧参数值作为来源证据保留，不自动转成当前地址规则。
+- 2026-10-28实施纠正：需求方要求条件为可公共复用的AST能力，在SQL执行，不读取产品行后用Java匹配；主档不新增分组、MAX/COUNT/CAST等无用防御，不默认限制来源或产品状态。只复用旧分组逻辑，使用当前`productCode/productModel/productDesc/productCategory/productType`及`productFilters/alternativeGroups`命名；具体契约已回写Feature Spec与SDS10，通用查询规范补充在`docs/coding/database-query-interface.md`。本轮仍不执行迁移，旧c8冻结候选未获部署批准并已被修订替代。
+- TF-040验收关闭（2026-10-28）：项目84459详情→S4硬件实施阶段任务真实Chrome/admin按四组配置依次观察到必填/免填124/6、32/98、130/0、118/12（每组总数130）；删除临时配置后活动记录为空，刷新恢复130/0，未保存安装或提交任务。项目74199阶段任务入口批准方案V4唯一地址32U带入后取消，安装历史仍为原1条。只读数据库核对配置活动记录0、保留软删除记录992209220346/992209220347；实证`.run/feedback-20261028/acceptance/tf040-stage-config-c3-browser-20261028.json`及`.run/feedback-20261028/acceptance/tf040-stage-task-address-reference-browser-20261028.json`。本条关闭本轮TF-040验收跟进，不扩大到未观察的其他入口或角色。
+- Decision owner: 需求方。
+
+## 2026-10-27 办事处项目精确查询的合同号来源
+
+- 状态：`RESOLVED`（需求方已裁决合同号来源；不代表业务验收或部署完成）。
+- 背景：需求方已确认名称或合同号任一项精确匹配、双条件取交集，以及完整详情/业务页签只读、禁止办理下载。当前实现沿原项目列表使用PROJ主档`contract_no`；对y06496有效授权办事处的只读实查未找到非空主档合同号，COM另有当前有效关联合同号事实API。
+- 裁决：需求方确认主档登记号和商务当前有效关联合同号均支持；项目名称或合同号任选一项完整精确匹配，两项都提供时名称与合同号条件取交集。两种合同号来源均须落在同一条当前有效公司部门范围行中。
+- 处理边界：商务合同关联由COM Owner负责，PROJ通过公开`ProjectContractQueryApi.findProjectIdsByExactContractNo(ExactContractQuery)`取得当前租户有效关系的候选项目ID；候选ID不构成授权，PROJ每次读取仍须重验同一有效组织范围、名称/合同精确条件和目标，失败关闭。消费者不直接读取COM业务表；不补造合同或授权数据。正向合同号业务验收仍待真实来源与样本确认。
+
+## Q-TF039-EXPORT-AUTHORIZATION-20261027 — 项目设备清单与序列号导出权限
+
+- Status: CLOSED / APPROVED（2026-10-27需求方确认）。
+- Evidence: TF-039请求导出项目设备清单和序列号表；当前两个视图仅有查询入口，未找到对应独立导出权限。PRD权限判定要求查询权不自动产生导出权；办事处只读查询明确不允许下载/导出。
+- Question: 独立导出操作应授权给项目经理和服务经理、仅服务经理，还是指定账号？已向需求方发出选择问题。
+- Recommendation: 以独立导出权限授权项目经理和服务经理，仍受现有租户、项目和字段范围约束；办事处只读入口不得导出，不通过前端拼文件绕过授权。
+- Decision: 需求方确认“项目经理、服务经理”；新增独立导出权限，数据仍限于各自获授权项目，办事处只读入口不得导出。
+- Current action: 按已确认边界实施并验证完整导出及服务端授权；服务部署、权限种子执行另按实际操作授权，不复用此前重启批准。
+- Decision owner: 需求方。
+
+## Q-TF048-DEVICE-MODEL-SOURCE-20261027 — 空设备型号是否采用唯一CRM产品型号
+
+- Status: CLOSED / APPROVED（2026-10-27需求方确认）。
+- Evidence: 原项目57302共318台设备，productModel均为空；按4个非空productCode精确核对CRM产品副本，每个编码均只对应1条非空型号。只读证据为.run/feedback-20261026/acceptance/tf048-product-code-crm-diagnostics.json。当前设备SN同步仅映射产品编码，CRM产品同步另把itemCode/itemModel映射到ast_product_official_info；割接查询只读取ast_device.product_model。
+- Question: 是否允许设备型号为空时，在当前展示及检索中按产品编码补充唯一有效CRM产品型号？现有契约未冻结设备与CRM产品型号的回退关系，不能把本次4个编码的无冲突样本推定为所有编码的取值优先级。
+- Recommendation: 仅在同租户、精确产品编码唯一匹配有效CRM产品且型号非空时用于当前展示和检索；无匹配或多记录继续留空，不挑选任意记录。保留设备原有非空型号，不写回设备来源字段、不改写批准方案或历史快照；查询与计数使用相同条件，保证一个设备只出现一行。
+- Decision: 需求方确认“采用唯一CRM型号补充”；按上述Recommendation实施仅用于当前展示与检索的型号补充。
+- Current action: 在AST只读查询实现统一型号表达式及当前详情读取，验证唯一、缺失、冲突、停用、跨租户、已有型号优先与历史保护；不写回设备，不执行同步。
+- 核验补充（2026-10-27）：此前4个编码诊断输出已trim，仅证明业务编码一致。原始数据库和真实API随后确认318台设备编码含8个右侧填充空格、CRM编码不含空格；因此不能把原文二进制比较当作已批准的业务编码匹配。按既有产品引用trim惯例修正只读键比较，原始编码继续保留；归一后多记录仍阻止补充，详见tf048-current-model-database-diagnostics.json。
+- Decision owner: 需求方。
+
+## Q-UMC-OFFLINE-RESULT-OWNER-20261028 — UMC离线结果如何承接原正式流程
+
+- Status: CLOSED / APPROVED（2026-10-28需求方明确裁决）。
+- Evidence: 任务3的UMC报告4/5已AVAILABLE，但原执行3/4仍PENDING、平台检测结果为0；真实浏览器点击complete-execution返回409“仍有设备或检测项未形成完整结果”。原完成校验依赖冻结平台规则，标注、待办及闭环依赖原检测结果/报告关联；目前不存在UMC外部规则到平台规则修订的已定义映射。先前报告回传及下载验收不能证明流程可继续。
+- Question: 离线巡检是否以UMC完整结果作为正式判定来源，接通原报告、问题确认及闭环；还是仍要求平台冻结规则同时形成判定，UMC仅作为补充结果与DOC？
+- Recommendation: 离线以UMC正式结果承接，在线保留现有规则；沿用原表及状态机，保留外部结果来源身份，不伪造平台规则ID，不把不支持、错误或缺失结果视为通过。具体完整性、报告覆盖和异常标注引用随来源裁决确定，不能只放开完成按钮。
+- Decision: 在线、离线均以UMC作为正式判定来源，承接报告、问题确认和闭环；在线由DAC采集日志，后端提交UMC判定。保留现用逻辑，增加UMC集成接口，以当前界面为基础生成适配界面。实施顺序明确为先完成离线，再接入在线。
+- Current action: 先实施UMC离线适配。原尝试冻结provider_code，历史平台逻辑和快照保留；新UMC尝试不要求平台规则修订。完整明细继续保存在原报告表，原结果表保存UMC正式判定引用；全设备报告采用后仍通过原状态机进入标注、待办、闭环及归档。具体Schema执行和运行包切换沿用已授权范围及受保护运行入口。
+- Decision owner: 需求方。
+
+## Q-TF011-MEMBER-AUTHORIZATION-CONFIRMATION-20261028 — 未确认内部成员是否产生普通项目完整可见范围
+
+- 状态：`CLOSED / MERGED`（2026-10-29）；后续需求方裁决见下节`Q-TF011-MEMBER-AUTHORIZATION-CONFIRMED-20261028`，不再作为当前规格阻断。
+- 背景：待裁决对象为非 `END_USER` 成员，成员区间处于有效期内、`user_id` 有值且 `authorization_confirmed=0`。该组合是否应产生普通项目 `FULL` 可见范围？
+- 证据：旧项目列表 `ProjectTreeScopeService.resolveAllFullProjectIds` 通过 `memberMapper.selectActiveByUser` 汇集有效成员项目，过滤角色权限，但不检查 `authorizationConfirmed`；`pms-module-project/pms-module-project-api/src/main/resources/mapper/projectscope/ProjectViewReadScopeSql.xml:47` 的成员范围则要求 `m.authorization_confirmed = b'1'`。`sql/migrations/V484__external_end_user_authorization_boundary.sql` 只将 `END_USER` 限定为无系统用户且确认位为0，没有定义其他角色在确认位为0时的授权语义。当前真实数据中该组合0条，只说明无样本，不能证明两条路径规则等价。
+- 问题：上述非 `END_USER` 的有效内部成员，在 `authorization_confirmed=0` 时，是否应取得该普通项目的 `FULL` 可见范围？
+- 待裁决方向：
+  1. 未确认不产生 `FULL`；确认旧项目列表及所有共享旧Java计算的消费者是否须统一收紧为确认位为1。
+  2. 有效内部成员即使确认位为0仍产生 `FULL`；确认公开Owner范围SQL及所有共享消费者是否须统一纳入同一条件。
+- 登记时边界（历史）：未作裁决，未改授权代码。TF-011候选查询保留现有CTE校验，仅供评审，未应用。受限角色的真实浏览器验收及人员搜索1秒目标均未验证。此历史记录不代表后续裁决及实现状态，当前证据见下节与TF-011主跟进。
+- Decision owner：需求方。
+
+## Q-TF011-MEMBER-AUTHORIZATION-CONFIRMED-20261028 — 内部成员未确认时的授权语义
+
+- Status: CLOSED / APPROVED（2026-10-29；规则裁决已生效）。
+- Conflict: 旧Java FULL使用当前成员事实且未筛确认位，公开Owner SQL要求authorization_confirmed=1；物理结构允许非END_USER的有效user_id+确认位0，不能凭当前分布判定等价。
+- Decision: 用户明确“未确认不授予，正常情况，这里的有效期应该和参与授权保持一致”。成员产生授权须同时满足确认位与同一有效区间，未确认不得形成普通FULL或任务成员资格；事实展示/筛选及阶段责任存在不变。
+- Implementation boundary: 专项授权成员查询与事实查询分开，保留租户/Office/状态/锁/历史和原独立权限来源；不删除公共Owner确认条件，不改角色/权限配置，不做DDL或数据修补。登记时隔离候选尚未应用；后续运行与验收进展见[TF-011主跟进](../generated/2026-10-26-test-feedback-triage/问题跟进.md#tf-011人员选择只能检索当前登录人)，部分本人浏览器已复验，全量范围与性能仍待验。
+- Decision owner: 需求方；依据本次直接裁决，不以数据巧合或测试夹具代替。
+
+## Q-INS-OPTIONAL-CUSTOMER-20261029 — 巡检无客户关联创建与名称快照（已裁决）
+
+- Status: RESOLVED（2026-10-29，需求方明确批准需求变更）。
+- 来源：设备02010075T236001288所属已正常关闭项目53999缺客户ID、编码和名称，原INS-01及创建服务因此拒绝新建。需求方明确要求客户不存在不限制创建、名称为空时允许手填，并指定无客户ID使用0；名称允许留空。
+- 裁决：项目、设备归属/发货、巡检背景、租户和操作权限门禁保持。客户名称优先采用关联项目已有非空名称（即使本地客户ID缺失）；名称缺失时允许选填不超过300字符的巡检名称快照。有编码但无名称也可手填。客户ID/编码只取项目权威信息，未关联客户ID以0为巡检内的未关联哨兵；空名称存空字符串，不建立客户实体、不回填项目或客户主档。
+- 领域边界：准备、执行、报告、问题标注和闭环不因客户未关联而阻断；报告按名称快照展示，缺失明确留空。客户资产归档仍需真实正数客户ID及客户编码，并继续执行客户域授权和精确关联重验；归档申请与确认均在跨客户域调用前拒绝未关联哨兵，给出明确原因。手填名称不能授权或替代客户档案关联。
+- 历史与结构：不修改已关闭项目、既有巡检及不可变历史；178只读核验原表客户ID/名称为NOT NULL，无客户外键或正ID CHECK，0不是该租户客户实体。保留原结构，不新增或执行DDL/迁移。
+- 落位：主PRD INS-01核心规则1；巡检创建接口和快照、前端可选名称输入/只读回显及客户资产归档保护。历史基线与原验收证据保留，不改写旧结论。
+
+## Q-INS-PRODUCT-TYPE-OPTIONAL-20261029 — 巡检取消产品类型强制前置（已裁决）
+
+- Status: RESOLVED（2026-10-29，需求方明确批准需求变更）。
+- 来源：用户授权项目53999/设备02010075T236001288的新建QA请求因原创建产品类型校验HTTP400被拒绝，未产生任务且原资料未改。官方产品副本有SFPP-SX-MM850、“光模块”文本，但AST当前类型引用及可复用受控映射均无。需求方明确要求巡检去掉产品类型强制校验，不只限于客户缺失处理。
+- 裁决：取消创建任务时对产品类型已解析/启用/完整名称的强制前置。已有类型只按AST公开API事实保存快照；未知编码/名称在原NOT NULL任务设备快照列保存空字符串，展示“未提供”，不造类型、不导入或更改AST事实、不改已关闭项目或设备。原发货、设备项目归属、租户及操作权限校验保留。
+- 适用链路：准备保存未选平台规则时、UMC离线开始/上传/正式判定/完成/采用报告、标注及问题闭环不增加类型前置；UMC原有精确设备、SN、规则、报告和日志来源校验保留。原平台规则及UMC在线采集命令的已发布规则适用性确实依赖产品类型，仍按当前权威类型/启用事实和规则适用范围匹配；未知不能推断为匹配，不宣称所有执行路径都能无类型办理。发布规则的AST类型权威边界不变。
+- 结构与历史：178只读核验task_device类型编码varchar128/名称varchar300均NOT NULL，但无类型外键和非空CHECK；使用空串表达缺失，保留结构和不可变设备快照，不新增或执行DDL/迁移。
+- 落位：主PRD INS-01核心规则4；创建与设备快照最小实现、未知类型展示及新建/平台适用性/UMC链路定向回归。用户授权唯一QA巡检仍按正式页面创建；原HTTP400证据保留，修复验证后才重试，不重复生成任务或执行/归档。
+
+## Q-INS-UMC-REPORT-COMPLETION-20261029 — UMC报告成功与规则支持状态（已裁决）
+
+- Status: RESOLVED（2026-10-29，需求方明确批准需求变更）。
+- 裁决来源：需求方明确“设备不支持的命令不认为异常，只要报告获取成功就是成功的”；进一步明确成功指完整报告已获取并本地保存，有效规则空数组同样允许完成。
+- 完成口径：逐设备取得可用的UMC DOC原件及完整结果快照后，规则的不支持、真实执行错误或未判定不再作为执行完成与报告采用的否决条件。规则集合缺失/null/格式错误、设备/SN或报告/尝试/日志来源不一致、实际返回规则未全部正式登记仍是完整性错误；有效空数组是零结果，不制造占位通过结果。
+- 存储与展示：既有正式结果outcome值域及不可变UMC原始support/error/result保持。support=false单独展示“不支持”，不计异常也不标为通过；真实错误、未判定如实显示。不支持不产生异常标注，只有真实ABNORMAL项沿用INS-06及问题闭环。零结果正式报告保留真实源报告ID和DOC，resultIds可为空，不能用空集合掩盖来源报告的非空规则。
+- 历史边界：不批量更新旧执行/结果/报告；完成办理可对旧PARTIAL/FAILED记录核验已保存报告及规则精确集合后继续，不重取UMC、不将旧规则改为PASS。原平台独立规则引擎、设备归属/SN验证、授权、预检、采集安全与客户归档规则保持。
+- 落位：主PRD INS-02核心规则4；UMC正式结果登记、执行完成、报告采用、零异常闭环事实及UMC展示统计。原Q-INS-UMC正式来源裁决与历史验收证据保留，本条替代其将“不支持/错误/空规则”统称执行不完整的旧门禁解释。
+
+## Q-PROD-FOUR-HOSTS-20261030 — 四机生产部署待决项
+
+- Status: BLOCKED_BY_SPEC（只阻止依赖事项的生产启用，不阻止部署材料准备）。
+- 用户已确认：四机分别承载员工前端、客户外链前端、后端/Redis/MinIO、数据库；前端可复用，外网只需要满意度问卷和培训确认页面，也允许独立拆包。交付先采用同制品外网路由/API白名单，不等同独立双页面构建。
+- 用户后续已明确：后端HTTPS 443；DAC同在后端机器，最终使用HTTPS 8443（替代此前8080建议），独立服务及签名回调；部署材料已据此补齐。
+- 用户进一步明确：正式服务器禁用Docker，全部宿主机原生安装；第三版材料采用原生MySQL/Redis/MinIO、Flyway CLI和systemd服务，替代前两版生产容器方案，不更改仓库既有本地开发Compose入口。
+- 待裁决：四机单节点数据服务与ADR-0004托管HA方向的差异、HA/恢复实际承载；设备凭证KMS、OIDC及外部设备/UMC网络参数；文件S3密钥的受控引用接入。尚未提供域名、证书、主机存量数据和秘密管理实例，部署时按ADR-0018补齐，不猜测Owner。
+- 代码证据：`S3FileClientConfig.accessKey/accessSecret`经`FileConfigDO.FileClientConfigTypeHandler.toJson()`直接JSON序列化；本次未找到密钥引用解析，不能以填写环境变量占位符或写入明文AK/SK完成生产MinIO接入。需要明确并实现安全存取契约后才能启用，不修改平台业务接口或写真实Secret来绕过。
+- 独立工作：四机文档、配置渲染、发布/迁移/加密备份操作入口；见`docs/engineering/deployments/npdms-production-four-hosts.md`。不执行服务器连接、DDL、部署或业务写入，不将材料交付标记为生产放行。
+
+## Q-INS-REPORT-INPUT-SERVICE-GUARD-20261029 — 报告输入校验归服务层（已裁决，单条退役已执行）
+
+- Status: RESOLVED / SINGLE AUTHORIZED DROP EXECUTED（2026-10-30）。需求方明确禁止通过新增或改造数据库触发器解决本次问题，改由服务校验并最小退役既有阻断项。
+- 证据：任务26第三次尝试18的源报告85已保存44条真实规则；采用报告在关联写入时被既有`trg_ins_report_result_bi`的PASS/ABNORMAL限制以`INS_REPORT_INPUT_INVALID`拒绝。事务回滚，任务仍REPORT_PENDING/currentReportId空，未留下半份集合报告；三份源报告、结果和日志历史保持。
+- 裁决：`InspectionReportService.create`与`InspectionUmcWorkflow.adopt`写关联前明确校验GENERATING报告、tenant/task/attempt、来源、结果身份及去重。原平台/人工报告仍限原平台PASS/ABNORMAL；UMC完整真实报告保留PASS/ABNORMAL/UNJUDGED/ERROR全部实际结果，零规则报告保留源报告而不造关联。现有设备/规则/日志/SN完整性、鉴权、状态机和来源快照核验继续执行。
+- 最小迁移：V524只删除插入阻断触发器`trg_ins_report_result_bi`，不创建触发器、不改行数据、FK、CHECK或唯一键；既有`trg_inspection_report_result_bu`/`bd`仅保护历史关联不可UPDATE/DELETE，本次保留，不扩大为全库或全巡检触发器删除。未来退役这些历史保护须另行审计全部写入口并证明服务侧等价保护，不能顺带删除。
+- 执行边界：最初登记时未获178单条DROP及本会话重启授权，未执行。需求方随后明确批准仅59191重启及仅删除`npdms.trg_ins_report_result_bi`，其余禁止迁移/DDL规则保持。2026-10-30 00:25:40，在固定入口部署冻结5fcab7be、核实PID31044健康及两服务守卫字节一致后，仅执行一次该DROP；未运行Flyway、其他DDL或业务DML。前后核验其余240个触发器、FK/唯一键及任务26历史摘要不变，BU/BD保留；回执见`docs/generated/2026-10-29-umc-offline-acceptance/task26-authorized-drop-after-20261030.json`。此结构变更不代表报告已采用，真实页面业务验收另记。
+- 回滚边界：DROP不修改历史行，无数据回滚；不提供重建触发器回滚。应用回滚或前向修复必须保留等价服务校验，不回退为缺保护的业务写入口。
+
+
+### Q-FPROJ-20261030 项目内经理任命权限（RESOLVED / APPROVED）
+
+- 2026-10-30需求方先提出“主责项目经理也只能由本区域服务经理指定”，随后明确“在项目中的以项目内的项目成员角色为准”，并确认“保留首次初始化入口，后续按项目角色控制”。后条限定前条，不将外部全局角色或其他区域组织角色直接带入本项目。
+- 裁决：首次初始化保留原功能授权、项目范围与既有初始化入口；后续主责项目经理任命及服务经理成员维护要求本项目当前有效、授权已确认的服务经理成员身份。本项目仅为项目经理的人员，即使在外部其他区域是服务经理，也不能自设主责或维护服务经理。
+- 候选人的系统角色、公司资格、租户与有效期要求保留；角色失效历史不删除、不重写，也不重新开启首次初始化。正式业务语义回写 F-PROJ-001 的成员指派规则。
+
+### Q-CUT-HISTORICAL-EARLY-COMPLETION-20261030（BLOCKED_BY_SPEC）
+
+- 来源：2026-10-30复测表及需求方反馈，割接审批通过后项目任务提前完成、项目已进入验收交维，无法从原入口继续结果与闭环。
+- 已明确的前向修复：割接上线任务必须核对同一办理的审批通过及P6成功归档事实，不能只凭审批通过完成；保留冻结绑定、旧审批实例与审计历史。
+- 待裁决：对已经提前完成任务并推进阶段的既有项目，采用何种受控补办/前向纠正流程及具体项目范围。当前规格未授权回滚阶段、撤销已完成任务或改写冻结历史，不推断修复路径。
+- 本轮只完成前向校验修复；未直接写生命周期状态、回滚任务或修改既有审计证据。该问题不阻止其他独立修复与验证。
+
+### Q-SITE-SURVEY-DRAFT-DELETE-20261030（RESOLVED / APPROVED）
+
+- 需求方明确“工勘草稿能编辑就可以删除”，针对项目详情“工勘分工”入口；w02127 的编辑权限存在而独立删除权限缺失，导致原按钮隐藏。
+- 裁决：拥有工勘编辑或原独立删除功能权限的用户均可请求删除草稿；保留既有项目范围、租户、阶段和任务上下文、并发版本、审计及状态校验。有关联转包申请的草稿仍须先处理关联；已确认、已归档及其他非草稿不得删除。已有仅持删除权限的授权不因此撤销。

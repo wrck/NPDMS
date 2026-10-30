@@ -1,10 +1,8 @@
 package cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order;
 
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -14,9 +12,7 @@ import java.time.LocalDateTime;
 @TableName("com_sales_order")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class SalesOrderDO extends TenantBaseDO {
-    @TableId(type = IdType.ASSIGN_ID)
-    private Long id;
+public class SalesOrderDO extends BaseBusinessEntity {
     private String sourceSystem;
     private String sourceRecordKey;
     private String sourceVersion;
@@ -26,6 +22,8 @@ public class SalesOrderDO extends TenantBaseDO {
     private String orderType;
     private String orderNo;
     private String salesType;
+    private String contractNo;
+    private String executionNo;
     private Long customerId;
     private String customerCode;
     private String customerName;
@@ -40,8 +38,7 @@ public class SalesOrderDO extends TenantBaseDO {
     private String status;
     private LocalDateTime orderCreateTime;
     private LocalDateTime customerRequiredTime;
-    @Version
-    private Integer version;
+    private String customInfo;
 
     public String getSourceKey() {
         return sourceRecordKey;

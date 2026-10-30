@@ -9,11 +9,33 @@ import static cn.iocoder.yudao.module.pms.cutover.service.approval.domain.Cutove
 
 public interface CutoverApprovalRoleCandidatePort {
 
-    CandidateSet inspectCandidates(long tenantId, String roleGroupCode);
+    void requireActiveUser(ActorQuery query);
+
+    CandidateSet inspectCandidates(RoleQuery query);
 
     CandidateRevalidation lockAndRevalidate(CandidateSet expected);
 
-    ExplicitCandidate lockExplicitCandidate(long tenantId, String roleGroupCode, long subjectUserId);
+    RoleReference inspectRole(RoleQuery query);
+
+    List<ActorMembership> inspectActor(ActorQuery query);
+
+    List<ActorMembership> lockAndInspectActor(ActorQuery query);
+
+    record RoleQuery(long tenantId, String roleGroupCode) { }
+    record ActorQuery(long tenantId, long actorId) { }
+
+    record RoleReference(long tenantId, long roleId, String roleGroupCode) {
+        public RoleReference {
+            require(tenantId > 0 && roleId > 0 && ROLE_GROUP_CODES.contains(roleGroupCode), "roleReference");
+        }
+        public String candidateGroupKey() { return "ROLE:" + roleId; }
+    }
+
+    record ActorMembership(RoleReference role, Candidate candidate) {
+        public ActorMembership {
+            require(role != null && candidate != null && role.roleId() == candidate.roleGroupId(), "actorMembership");
+        }
+    }
 
     record CandidateSet(long tenantId, String roleGroupCode, List<Candidate> candidates) {
         public CandidateSet {

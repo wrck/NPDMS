@@ -39,12 +39,38 @@ import static org.mockito.Mockito.when;
 class ArrivalAcceptanceOwnerAdapterTest {
 
     @Test
+    void serviceManagerActsWithIndependentQualificationWhileFrozenResponsiblePmRemainsUnchanged() {
+        var participants = mock(ProjectParticipantFactApi.class);
+        var scopes = mock(ProjectScopeApi.class);
+        when(participants.inspect(any())).thenReturn(participant("S4", 5, 5L));
+        when(participants.lockAndRevalidate(any())).thenReturn(participant("S4", 5, 5L));
+        var qualifications = mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
+        var subject = new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Query(1L,100L,8L);
+        var qualification = new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Fact(subject,
+                cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Source.PROJECT_MEMBER,
+                new ProjectParticipantFact(100L,8L,Set.of("SERVICE_MANAGER"),"PRIMARY","ACTIVE","S4",5L,5L),null);
+        when(qualifications.inspect(any())).thenReturn(qualification);
+        when(scopes.lockAndRevalidate(any())).thenReturn(scope(9L, Set.of(100L)));
+        var adapter = new ProjectQualificationApiAdapter(query -> true, participants, scopes,
+                qualifications);
+        var fact = adapter.lockAndRevalidate(new ProjectQualificationPort.RevalidationCommand(
+                1L,100L,8L,8L,5L,5L,9L,true));
+        assertEquals(7L, fact.subjectUserId());
+        assertEquals(Set.of("PROJECT_MANAGER"), fact.effectiveRoleCodes());
+        verify(qualifications).lockAndRevalidate(new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Revalidation(
+                qualification,5L,"ACTIVE",null));
+        verify(participants).lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(
+                100L,7L,5L,"ACTIVE",null,Set.of("PROJECT_MANAGER")));
+    }
+
+    @Test
     void inspectsParticipantAndEditScopeWithoutTreatingScopeAsProjectRole() {
         ProjectParticipantFactApi participantApi = mock(ProjectParticipantFactApi.class);
         ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
         when(participantApi.inspect(any())).thenReturn(participant("S4", 5, 5L));
         when(scopeApi.resolveCurrent(any())).thenReturn(scope(9L, Set.of(100L)));
-        ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(query -> true, participantApi, scopeApi);
+        var management = permittedManagement();
+        ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(query -> true, participantApi, scopeApi, management);
 
         ProjectQualificationPort.ProjectQualificationFact fact = adapter.inspect(1L, 100L, 8L);
 
@@ -63,6 +89,7 @@ class ArrivalAcceptanceOwnerAdapterTest {
         verify(scopeApi).resolveCurrent(scopeQuery.capture());
         assertEquals(8L, scopeQuery.getValue().subjectUserId());
         assertEquals(ProjectScopeApi.ACTION_EDIT, scopeQuery.getValue().actionCode());
+        org.mockito.Mockito.verifyNoInteractions(management);
     }
 
     @Test
@@ -70,12 +97,13 @@ class ArrivalAcceptanceOwnerAdapterTest {
         ProjectParticipantFactApi participantApi = mock(ProjectParticipantFactApi.class);
         ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
         when(participantApi.lockAndRevalidate(any())).thenReturn(participant("S4", 5, 5L));
+        when(participantApi.inspect(any())).thenReturn(participant("S4", 5, 5L));
         when(scopeApi.lockAndRevalidate(any())).thenReturn(scope(9L, Set.of(100L)));
-        ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(query -> true, participantApi, scopeApi);
+        ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(query -> true, participantApi, scopeApi, permittedManagement());
 
         ProjectQualificationPort.ProjectQualificationFact fact = adapter.lockAndRevalidate(
                 new ProjectQualificationPort.RevalidationCommand(
-                        1L, 100L, 7L, 7L, 5, 5L, 9L, true));
+                        1L, 100L, 7L, 7L, 5L, 5L, 9L, true));
 
         assertEquals(5L, fact.factVersion());
         ArgumentCaptor<ProjectParticipantFactRevalidationQuery> participantQuery =
@@ -98,16 +126,19 @@ class ArrivalAcceptanceOwnerAdapterTest {
         ProjectParticipantFactApi participantApi = mock(ProjectParticipantFactApi.class);
         ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
         when(participantApi.lockAndRevalidate(any())).thenReturn(participant("S3", 5, 6L));
-        ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(query -> false, participantApi, scopeApi);
+        when(participantApi.inspect(any())).thenReturn(participant("S3", 5, 6L));
+        var management = permittedManagement();
+        ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(query -> false, participantApi, scopeApi, management);
 
         ArrivalAcceptanceContractException stale = assertThrows(ArrivalAcceptanceContractException.class,
                 () -> adapter.lockAndRevalidate(
                 new ProjectQualificationPort.RevalidationCommand(
-                        1L, 100L, null, 8L, 5, 5L, 9L, false)));
+                        1L, 100L, null, 8L, 5L, 5L, 9L, false)));
         assertEquals("BUSINESS_GATE_INVALID", stale.category());
         assertEquals("PROJECT_STAGE_NOT_S4", stale.reasonCode());
 
         verify(scopeApi, never()).lockAndRevalidate(any());
+        org.mockito.Mockito.verifyNoInteractions(management);
     }
 
     @Test
@@ -116,7 +147,7 @@ class ArrivalAcceptanceOwnerAdapterTest {
         ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
         when(participantApi.inspect(any())).thenReturn(participant("S4", 5, 5L));
         when(scopeApi.resolveCurrent(any())).thenReturn(scope(9L, Set.of(200L)));
-        ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(query -> true, participantApi, scopeApi);
+        ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(query -> true, participantApi, scopeApi, permittedManagement());
 
         ArrivalAcceptanceContractException forbidden = assertThrows(ArrivalAcceptanceContractException.class,
                 () -> adapter.inspect(1L, 100L, 7L));
@@ -129,7 +160,7 @@ class ArrivalAcceptanceOwnerAdapterTest {
         ProjectParticipantFactApi participantApi = mock(ProjectParticipantFactApi.class);
         ProjectScopeApi scopeApi = mock(ProjectScopeApi.class);
         when(participantApi.inspect(any())).thenThrow(new IllegalStateException("provider down"));
-        ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(query -> true, participantApi, scopeApi);
+        ProjectQualificationPort adapter = new ProjectQualificationApiAdapter(query -> true, participantApi, scopeApi, permittedManagement());
 
         ArrivalAcceptanceContractException unavailable = assertThrows(ArrivalAcceptanceContractException.class,
                 () -> adapter.inspect(1L, 100L, 7L));
@@ -201,17 +232,27 @@ class ArrivalAcceptanceOwnerAdapterTest {
         when(participants.inspect(any())).thenReturn(participant("S1", 5, 5L));
         when(scopes.resolveCurrent(any())).thenReturn(scope(9L, Set.of(100L)));
         var stages = mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectLifecycleStageFactApi.class);
-        when(stages.isActive(new cn.iocoder.yudao.module.pms.project.api.participant.ProjectLifecycleStageFactApi.Query(100L, 5, "S4"))).thenReturn(true);
-        var adapter = new ProjectQualificationApiAdapter(stages, participants, scopes);
+        when(stages.isActive(new cn.iocoder.yudao.module.pms.project.api.participant.ProjectLifecycleStageFactApi.Query(100L, 5L, "S4"))).thenReturn(true);
+        var adapter = new ProjectQualificationApiAdapter(stages, participants, scopes, permittedManagement());
         assertEquals("S1", adapter.inspect(1L, 100L, 8L).currentStage());
         when(stages.isActive(any())).thenReturn(false);
         assertThrows(ArrivalAcceptanceContractException.class, () -> adapter.inspect(1L, 100L, 8L));
     }
 
-    private static ProjectParticipantFact participant(String stage, Integer projectVersion, Long factVersion) {
+    private static ProjectParticipantFact participant(String stage, long projectVersion, Long factVersion) {
         return new ProjectParticipantFact(100L, 7L,
                 Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY",
                 "ACTIVE", stage, projectVersion, factVersion);
+    }
+
+    private static cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi permittedManagement() {
+        var access = mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
+        when(access.inspect(any())).thenAnswer(call -> {
+            cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Query query = call.getArgument(0);
+            return new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Fact(query,
+                    cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Source.PROJECT_MEMBER,participant("S4",5,5L),null);
+        });
+        return access;
     }
 
     private static ProjectScopeResult scope(Long version, Set<Long> fullProjectIds) {

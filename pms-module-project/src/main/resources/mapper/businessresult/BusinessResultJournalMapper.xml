@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.businessresult.BusinessResultJournalMapper">
+    <sql id="channelScope">
+        tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+        AND owner_context=#{query.ownerContext} AND entity_type=#{query.entityType} AND result_type=#{query.resultType}
+        AND deleted=0
+    </sql>
+    <insert id="ensureChannel">
+        INSERT INTO proj_business_result_channel (tenant_id,project_id,owner_context,entity_type,result_type,committed_sequence)
+        VALUES (#{query.tenantId},#{query.projectId},#{query.ownerContext},#{query.entityType},#{query.resultType},0)
+        ON DUPLICATE KEY UPDATE committed_sequence=committed_sequence
+    </insert>
+    <select id="selectChannelForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.businessresult.BusinessResultChannelDO">
+        SELECT * FROM proj_business_result_channel WHERE <include refid="channelScope"/> FOR UPDATE
+    </select>
+    <select id="selectChannel" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.businessresult.BusinessResultChannelDO">
+        SELECT * FROM proj_business_result_channel WHERE <include refid="channelScope"/>
+    </select>
+    <select id="selectEvent" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.businessresult.BusinessResultChangeDO">
+        SELECT * FROM proj_business_result_change
+        WHERE tenant_id=#{query.tenantId} AND channel_id=#{query.channelId} AND source_event_id=#{query.sourceEventId} AND deleted=0
+    </select>
+    <select id="selectFormation" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.businessresult.BusinessResultChangeDO">
+        SELECT * FROM proj_business_result_change WHERE tenant_id=#{query.tenantId} AND channel_id=#{query.channelId}
+        AND object_id=#{query.objectId} AND result_id=#{query.resultId} AND formation_marker=1 AND deleted=0
+    </select>
+    <update id="advanceSequence">
+        UPDATE proj_business_result_channel SET committed_sequence=#{query.nextSequence}
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.channelId} AND committed_sequence=#{query.expectedSequence} AND deleted=0
+    </update>
+    <insert id="insertChange">
+        INSERT INTO proj_business_result_change
+            (tenant_id,channel_id,sequence_no,source_event_id,notification_id,object_id,result_id,formation_marker,payload)
+        VALUES (#{row.tenantId},#{row.channelId},#{row.sequenceNo},#{row.sourceEventId},#{row.notificationId},
+                #{row.objectId},#{row.resultId},#{row.formationMarker},#{row.payload})
+    </insert>
+    <select id="selectChanges" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.businessresult.BusinessResultChangeDO">
+        SELECT * FROM proj_business_result_change WHERE tenant_id=#{query.tenantId} AND channel_id=#{query.channelId}
+        AND sequence_no &gt; #{query.afterSequence} AND sequence_no &lt;= #{query.throughSequence} AND deleted=0
+        ORDER BY sequence_no ASC LIMIT #{query.limit}
+    </select>
+</mapper>

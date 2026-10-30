@@ -1,6 +1,9 @@
 import request from '@/config/axios'
+import { executeEntityOperation, type BusinessOperationReceipt } from '@/api/pms/platform/businessmodel'
 import type { DynamicFormFileFactVO, JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
+import { selectionClient } from '@/components/BusinessView/operationClient'
+import { requirementAnalysisResult } from './operationResults'
 
 export type EntityId = string | number
 export interface Revision {
@@ -15,11 +18,12 @@ export interface Revision {
   reason?: string
   frozenBy?: EntityId
   frozenAt?: string
+  operationReceipt?: BusinessOperationReceipt
 }
 export interface Field { code: string; type: string; required: boolean }
 export interface FormLayout {
-  binding: { formRevisionId: EntityId; extensionDefinitionRevisionId?: EntityId; fieldBindings: Record<string, string>; version: number }
-  templateId: EntityId
+  binding: { formRevisionId?: EntityId; extensionDefinitionRevisionId?: EntityId; fieldBindings: Record<string, string>; version: number }
+  templateId?: EntityId
   revisionNo: number
   formVersion: number
   engineCode: string
@@ -27,7 +31,7 @@ export interface FormLayout {
   rendererVersion: string
   formConfJson: string
   formRulesJson: string
-  fields: Array<{ fieldKey: string; controlledFile: boolean; required: boolean }>
+  fields: Array<{ fieldKey: string; componentType?: string; controlledFile: boolean; required: boolean }>
 }
 export interface View {
   projectId: EntityId
@@ -37,7 +41,7 @@ export interface View {
   extensionDefinitionRevisionId?: EntityId
   extensionValueVersion: number
   values: JsonObject
-  attachments: Array<{ key: { purposeCode: string }; scopeVersion: EntityId; activeFacts: DynamicFormFileFactVO[] }>
+  attachments: Array<{ key: { purposeCode: string }; scopeVersion: EntityId; activeFacts: Array<DynamicFormFileFactVO & { availabilityStatus: string; referenceStatus: string }> }>
   allowedActions: string[]
   projectTemplateId?: EntityId
   projectTemplateRevisionId?: EntityId
@@ -54,20 +58,54 @@ export interface Patch {
   execution?: ProjectBusinessExecutionSelection
 }
 const baseUrl = '/api/v1/pms/requirement-analyses'
-const revisionUrl = (revision: Revision) => `${baseUrl}/${revision.ref.entity.entityId}/revisions/${revision.ref.revisionId}`
-const headers = (revision: Revision, key: string) => ({ 'If-Match': String(revision.version), 'Idempotency-Key': key })
+const publicCommand = async (code: string, input: Record<string, unknown>, key: string, revision?: Revision): Promise<Revision> => {
+  const receipt = await executeEntityOperation('SOL', 'requirementAnalysis', code, revision?.ref.entity.entityId, {
+    idempotencyKey: key, concurrencyBasis: revision?.version, revisionId: revision?.ref.revisionId,
+    entryKind: 'INDEPENDENT', input
+  })
+  if (receipt.outcome !== 'SAVED' && receipt.outcome !== 'EFFECTED') throw new Error(receipt.failureReason || '需求分析办理未完成')
+  const reference = receipt.references?.find(value => value.kind === 'COMMAND' && value.ownerModule === 'SOL')
+  if (!reference) throw new Error('回执缺少可重开的修订身份')
+  const response = JSON.parse(reference.value) as Revision
+  if (response.ref?.entity?.ownerModule !== 'SOL' || response.ref.entity.entityType !== 'REQUIREMENT_ANALYSIS'
+    || !response.ref.revisionId || !Number.isInteger(response.version)) throw new Error('回执修订身份无效')
+  return { ...response, operationReceipt: receipt }
+}
 export const workspace = (projectId: EntityId, stageId?: EntityId, taskId?: EntityId) =>
   request.get<Workspace>({ url: baseUrl, params: { projectId, stageId, taskId } })
 export const read = (revisionId: EntityId) => request.get<View>({ url: `${baseUrl}/revisions/${revisionId}` })
-export const create = (projectId: EntityId, key: string, execution?: ProjectBusinessExecutionSelection) =>
-  request.post<Revision>({ url: baseUrl, data: { projectId, execution }, headers: { 'Idempotency-Key': key } })
-export const save = (revision: Revision, data: Patch, key: string) =>
-  request.put<Revision>({ method: 'PATCH', url: revisionUrl(revision), data, headers: headers(revision, key) })
-export const complete = (revision: Revision, key: string, execution?: ProjectBusinessExecutionSelection) =>
-  request.post<Revision>({ url: `${revisionUrl(revision)}/complete`, data: { execution }, headers: headers(revision, key) })
-export const copy = (revision: Revision, key: string, execution?: ProjectBusinessExecutionSelection, reason?: string) =>
-  request.post<Revision>({ url: `${revisionUrl(revision)}/copy`, data: { reason, execution }, headers: headers(revision, key) })
+export const create = async (projectId: EntityId, key: string, execution?: ProjectBusinessExecutionSelection) => {
+  const client = selectionClient(execution)
+  if (!client) return publicCommand('create', { projectId, execution }, key)
+  if (String(projectId) !== String(client.target.projectId)) throw new Error('BUSINESS_PROJECT_MISMATCH')
+  return (await client.execute({ operationCode: 'SOL.REQUIREMENT_ANALYSIS.CREATE', input: {}, key, validateResult: requirementAnalysisResult('CREATE') })).response as Revision
+}
+export const save = async (revision: Revision, data: Patch, key: string) => {
+  const client = selectionClient(data.execution)
+  if (!client) return publicCommand('save', { ...data }, key, revision)
+  const { execution: _execution, ...input } = data
+  return (await client.execute({ operationCode: 'SOL.REQUIREMENT_ANALYSIS.SAVE', objectId: revision.ref.revisionId,
+    expectedBusinessVersion: revision.version, input, key, validateResult: requirementAnalysisResult('SAVE') })).response as Revision
+}
+export const complete = async (revision: Revision, key: string, execution?: ProjectBusinessExecutionSelection) => {
+  const client = selectionClient(execution)
+  if (!client) return publicCommand('complete', { execution }, key, revision)
+  return (await client.execute({ operationCode: 'SOL.REQUIREMENT_ANALYSIS.COMPLETE', objectId: revision.ref.revisionId,
+    expectedBusinessVersion: revision.version, input: {}, key, validateResult: requirementAnalysisResult('COMPLETE') })).response as Revision
+}
+export const copy = async (revision: Revision, key: string, execution?: ProjectBusinessExecutionSelection, reason?: string) => {
+  const client = selectionClient(execution)
+  if (!client) return publicCommand('copy', { reason, execution }, key, revision)
+  return (await client.execute({ operationCode: 'SOL.REQUIREMENT_ANALYSIS.COPY', objectId: revision.ref.revisionId,
+    expectedBusinessVersion: revision.version, input: { reason }, key, validateResult: requirementAnalysisResult('COPY') })).response as Revision
+}
 export const revisions = (entityId: EntityId, beforeId?: EntityId, limit = 20) =>
   request.get<Revision[]>({ url: `${baseUrl}/${entityId}/revisions`, params: { beforeId, limit } })
 export const compare = (entityId: EntityId, leftRevisionId: EntityId, rightRevisionId: EntityId) =>
   request.get<Difference[]>({ url: `${baseUrl}/${entityId}/compare`, params: { leftRevisionId, rightRevisionId } })
+
+export interface PresentationOption { name: string; layout: FormLayout }
+export interface Presentations { defaultTemplateId?: EntityId; defaultRevisionId?: EntityId; options: PresentationOption[] }
+export const presentations = (revisionId: EntityId, execution?: ProjectBusinessExecutionSelection) =>
+  request.get<Presentations>({ url: `${baseUrl}/revisions/${revisionId}/presentations`,
+    params: { stageId: execution?.stage?.stageId, taskId: execution?.task?.taskId } })

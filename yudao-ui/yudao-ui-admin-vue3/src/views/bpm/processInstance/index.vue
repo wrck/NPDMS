@@ -224,6 +224,7 @@ import { CategoryApi, CategoryVO } from '@/api/bpm/category'
 import { ProcessInstanceVO } from '@/api/bpm/processInstance'
 import * as DefinitionApi from '@/api/bpm/definition'
 import { BpmProcessInstanceStatus } from '@/utils/constants'
+import { getCustomStartRoute } from './customStartRoute'
 
 defineOptions({ name: 'BpmProcessInstanceMy' })
 
@@ -280,12 +281,16 @@ const handleCreate = async (row?: ProcessInstanceVO) => {
     )
     // 如果是【业务表单】，跳转到对应的发起界面
     if (processDefinitionDetail.formType === 20) {
-      await router.push({
-        path: processDefinitionDetail.formCustomCreatePath,
-        query: {
-          id: row.businessKey
-        }
-      })
+      try {
+        await router.push(await getCustomStartRoute({
+          processInstanceId: String(row.id),
+          processDefinitionId: row.processDefinitionId,
+          businessKey: row.businessKey,
+          formCustomCreatePath: processDefinitionDetail.formCustomCreatePath
+        }))
+      } catch (error) {
+        message.error(error instanceof Error ? error.message : '无法打开流程发起入口，请刷新后重试。')
+      }
     } else if (processDefinitionDetail.formType === 10) {
       //如果是【流程表单】，跳转到流程发起界面
       await router.push({

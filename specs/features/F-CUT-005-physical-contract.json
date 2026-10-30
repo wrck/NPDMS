@@ -66,7 +66,7 @@
       "checks": ["SENT requires message_id/sent_at and clears retry fields","PENDING_RETRY requires next_retry_at/last_error_code","PENDING has no provider result"]
     }
   ],
-  "routeMatrix": {"A":["INITIATOR","SERVICE_MANAGER","SECOND_LINE","RND"],"B":["INITIATOR","SERVICE_MANAGER","SECOND_LINE"],"C":["INITIATOR","SERVICE_MANAGER"],"D":["INITIATOR","SERVICE_MANAGER"]},
+  "routeMatrix": {"A":["SERVICE_MANAGER","SECOND_LINE","RND"],"B":["SERVICE_MANAGER","SECOND_LINE"],"C":["SERVICE_MANAGER"],"D":["SERVICE_MANAGER"]},
   "jsonContracts": {
     "source_snapshot": "exact immutable ApprovalSourceSnapshot from F-CUT-005-api-contract.json: exact eleven-field project fact, collectionAnalysis{cutoverType,networkMode,scheduledTime} with networkMode preserving legal JSON null, stable ordered submitted risk/business-survey ChecklistResultSnapshot arrays, exact five-dimension AssessmentApprovalSnapshot plus manualGrade, and exact submitted F-CUT-004 PlanSourceSnapshot+PlanContentUnion; no missing/extra keys, no default inference and no current Owner refresh",
     "route_snapshot": "exact grade, ordered nodeCode array and each node frozen candidate identity/fact versions; unresolved candidates use explicit null identities and stable reason",
@@ -74,7 +74,7 @@
   },
   "lockOrder": ["cut_task by tenant+taskId","cut_plan_revision by tenant+planRevisionId","cut_approval_instance by tenant+id","cut_approval_node by tenant+instance+nodeNo","PROJ then SYSTEM then ProjectScope Owner locks","platform idempotency/audit/outbox in the same outer transaction"],
   "stateTransitions": {
-    "start": "lock and freeze the trusted initiator ProjectScope ACTION_EDIT fact, then create PENDING instance and complete frozen route; INITIATOR=PENDING and later nodes=WAITING; any unresolved candidate sets root holdReason and suppresses all executable todos until correction/reassignment clears it",
+    "start": "lock and freeze the trusted initiator ProjectScope ACTION_EDIT fact, then create PENDING instance and complete frozen route; SERVICE_MANAGER=PENDING and later nodes=WAITING; new instances do not create INITIATOR review nodes, while historic instances retain their original routes; any unresolved candidate sets root holdReason and suppresses all executable todos until correction/reassignment clears it",
     "approveIntermediate": "current PENDING->APPROVED and next WAITING->PENDING; instance remains PENDING and version increments once",
     "reject": "current PENDING->REJECTED, future WAITING->CANCELLED, instance->REJECTED and task P5/APPROVING->P4/PLAN_DRAFTING atomically",
     "approveFinal": "current PENDING->APPROVED, instance->APPROVED, task P5/APPROVING->P6/CLOSURE_IN_PROGRESS and one CutoverApproved outbox atomically",

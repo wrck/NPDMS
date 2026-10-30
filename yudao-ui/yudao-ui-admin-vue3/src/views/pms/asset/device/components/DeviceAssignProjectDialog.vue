@@ -2,9 +2,16 @@
   <Dialog v-model="visible" title="调整项目归属" width="520px">
     <el-form :model="form" label-width="100px">
       <el-form-item label="当前项目">{{ summary?.projectId || '--' }}</el-form-item>
-      <el-form-item label="目标项目"
-        ><el-input-number v-model="form.projectId" :min="1"
-      /></el-form-item>
+      <el-form-item label="目标项目">
+        <PmsEntitySelect
+          v-model="form.projectId"
+          :api="ProjectApi.getProjectPage"
+          label-field="projectName"
+          value-field="id"
+          query-field="projectName"
+          placeholder="请选择目标项目"
+        />
+      </el-form-item>
       <el-form-item label="变更原因"
         ><el-input v-model="form.reason" type="textarea"
       /></el-form-item>
@@ -17,9 +24,11 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { reactive, ref } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as DeviceApi from '@/api/pms/asset/device'
+import * as ProjectApi from '@/api/pms/project/projects'
 import type { DeviceSummaryVO } from '@/api/pms/asset/device'
 const emit = defineEmits<{ success: [] }>()
 const message = useMessage()
@@ -42,7 +51,7 @@ const submit = async () => {
       summary.value.deviceId,
       { projectId: form.projectId, reason: form.reason },
       summary.value.projectAssignmentVersion,
-      crypto.randomUUID()
+      generateUUID()
     )
     message.success('项目归属已更新')
     visible.value = false

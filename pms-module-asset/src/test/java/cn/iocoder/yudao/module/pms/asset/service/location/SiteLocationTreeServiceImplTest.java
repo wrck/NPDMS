@@ -4,7 +4,7 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.asset.api.location.dto.SiteLocationInput;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.location.SiteLocationDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteLocationMapper;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipment.EquipmentMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +23,9 @@ import static org.mockito.Mockito.*;
 class SiteLocationTreeServiceImplTest {
 
     @Mock private SiteLocationMapper mapper;
-    @Mock private EquipmentMapper equipmentMapper;
+    @Mock private DeviceMapper deviceMapper;
+    @Mock private cn.iocoder.yudao.module.pms.asset.dal.mysql.location.SiteMapper siteMapper;
+    @Mock private LocationCodeService locationCodeService;
 
     private final Map<Long, SiteLocationDO> records = new LinkedHashMap<>();
     private final AtomicLong ids = new AtomicLong(100L);
@@ -31,7 +33,7 @@ class SiteLocationTreeServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new SiteLocationTreeServiceImpl(mapper, equipmentMapper);
+        service = new SiteLocationTreeServiceImpl(mapper, deviceMapper, siteMapper, locationCodeService);
         when(mapper.selectById(anyLong())).thenAnswer(invocation -> records.get(invocation.getArgument(0)));
         when(mapper.selectBySiteIdAndCode(anyLong(), anyString())).thenAnswer(invocation -> records.values().stream()
                 .filter(item -> item.getSiteId().equals(invocation.getArgument(0))
@@ -61,7 +63,7 @@ class SiteLocationTreeServiceImplTest {
         SiteLocationDO finalRoot = root;
         SiteLocationDO finalLeaf = parent;
         assertThrows(ServiceException.class, () -> service.maintain(9L,
-                new SiteLocationInput(finalRoot.getId(), 0, finalLeaf.getId(), finalRoot.getCode(),
+                new SiteLocationInput(finalRoot.getId(), 0L, finalLeaf.getId(), finalRoot.getCode(),
                         finalRoot.getName(), finalRoot.getLocationType(), finalRoot.getTreeSort())));
     }
 
@@ -76,7 +78,7 @@ class SiteLocationTreeServiceImplTest {
 
         assertThrows(ServiceException.class, () -> service.maintain(1L,
                 new SiteLocationInput(null, null, siteTwoRoot.getId(), "BAD", "错误", "SPACE", 0)));
-        assertThrows(ServiceException.class, () -> service.disable(siteOneRoot.getId(), 0));
+        assertThrows(ServiceException.class, () -> service.disable(siteOneRoot.getId(), 0L));
         assertEquals(1, child.getTreeDepth());
     }
 
@@ -86,10 +88,10 @@ class SiteLocationTreeServiceImplTest {
                 new SiteLocationInput(null, null, null, "ROOM-1", "机房1", "ROOM", 0));
 
         SiteLocationDO referenced = service.maintain(1L,
-                new SiteLocationInput(location.getId(), 0, null, null, null, null, null));
+                new SiteLocationInput(location.getId(), 0L, null, null, null, null, null));
 
         assertSame(location, referenced);
-        verify(mapper, never()).updateByIdAndVersion(any(), anyInt());
+        verify(mapper, never()).updateByIdAndVersion(any(), anyLong());
     }
 
 }

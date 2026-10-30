@@ -1,0 +1,7 @@
+{
+  "internal_domain": "SET_INTERNAL_DOMAIN",
+  "external_domain": "SET_EXTERNAL_DOMAIN",
+  "backend_tls_name": "SET_BACKEND_CERT_DNS_NAME",
+  "db_tls_name": "SET_DB_CERT_DNS_NAME",
+  "db_name": "npdms"
+}

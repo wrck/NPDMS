@@ -10,19 +10,12 @@
       label-width="68px"
     >
       <el-form-item label="用户编号" prop="userId">
-        <el-select
+        <UserSelect
           v-model="queryParams.userId"
           clearable
           placeholder="请输入用户编号"
           class="!w-240px"
-        >
-          <el-option
-            v-for="item in userList"
-            :key="item.id"
-            :label="item.nickname"
-            :value="item.id"
-          />
-        </el-select>
+         />
       </el-form-item>
       <el-form-item label="写作类型" prop="type">
         <el-select
@@ -153,6 +146,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import { dateFormatter } from '@/utils/formatTime'
 import { WriteApi, AiWritePageReqVO, AiWriteRespVo } from '@/api/ai/write'
@@ -219,6 +214,6 @@ const handleDelete = async (id: number) => {
 onMounted(async () => {
   getList()
   // 获得用户列表
-  userList.value = await UserApi.getSimpleUserList()
+  userList.value = await systemUserSelection.active()
 })
 </script>

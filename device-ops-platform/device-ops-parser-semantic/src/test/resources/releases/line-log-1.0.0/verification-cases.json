@@ -1,0 +1,5 @@
+{
+  "cases": [
+    {"caseId": "event-severity", "inputFile": "input.log", "expectedFile": "expected-result.json"}
+  ]
+}

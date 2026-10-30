@@ -1,29 +1,25 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.installation;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 import java.time.LocalDateTime;
 
 /**
  * PMS 硬件安装记录 DO（FR-ENG-022）。
  * <p>
- * 对应表 {@code pms_eng_installation}。
+ * 对应表 {@code imp_eng_installation}。
  * 状态：0 待安装、1 进行中、2 已完成、3 异常。
  */
-@TableName("pms_eng_installation")
+@TableName("imp_eng_installation")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class InstallationDO extends TenantBaseDO {
+public class InstallationDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     /**
      * 所属项目编号
      */
@@ -43,15 +39,15 @@ public class InstallationDO extends TenantBaseDO {
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long addressId;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    private Integer addressVersion;
+    private Long addressVersion;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long siteId;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    private Integer siteVersion;
+    private Long siteVersion;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private Long siteLocationId;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
-    private Integer siteLocationVersion;
+    private Long siteLocationVersion;
     private String locationResolutionStatus;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String addressSnapshot;
@@ -91,9 +87,4 @@ public class InstallationDO extends TenantBaseDO {
      * 备注
      */
     private String remark;
-    /**
-     * 乐观锁版本号
-     */
-    @Version
-    private Integer version;
 }

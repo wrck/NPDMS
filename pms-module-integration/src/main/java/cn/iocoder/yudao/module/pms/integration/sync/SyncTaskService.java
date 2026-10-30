@@ -27,7 +27,7 @@ public class SyncTaskService {
     public ConfigurationCheck checkConfiguration(Save command) {
         validator.validate(command.definition());
         var d=command.definition();
-        var existing=tasks.selectIdentity(new SyncQueries.TaskIdentity(tenant(),d.sourceSystem(),d.adapter()));
+        var existing=tasks.selectIdentity(new SyncQueries.TaskIdentity(tenant(),d.sourceSystem(),SyncDefinitionValidator.taskIdentity(d)));
         if(existing!=null&&!Objects.equals(existing.getId(),command.id()))
             return new ConfigurationCheck(false,existing.getId(),existing.getName(),
                     "同一来源系统和适配器已有任务，请打开已有任务修改；更改任务名称不能创建第二个相同来源任务");
@@ -36,11 +36,11 @@ public class SyncTaskService {
             if(!Objects.equals(current.getVersion(),command.expectedVersion()))
                 return new ConfigurationCheck(false,current.getId(),current.getName(),"配置版本冲突，请重新打开任务");
             var previous=definition(current);
-            boolean needsHistory=validator.adapter(previous.adapter()).requiresAllBindings()
+            boolean needsHistory=validator.adapter(previous).requiresAllBindings()
                     ||d.sources().stream().anyMatch(SyncDefinition.Source::syncPrimaryKey);
             List<SyncBindingDO> mapped=needsHistory?bindings.selectTask(new SyncQueries.Task(tenant(),current.getId())):List.of();
             boolean hasMapped=needsHistory?!mapped.isEmpty():bindings.hasTaskBindings(new SyncQueries.Task(tenant(),current.getId()));
-            if(hasMapped&&(!previous.sourceSystem().equals(d.sourceSystem())||!previous.adapter().equals(d.adapter())
+            if(hasMapped&&(!previous.sourceSystem().equals(d.sourceSystem())||!SyncDefinitionValidator.taskIdentity(previous).equals(SyncDefinitionValidator.taskIdentity(d))
                     ||!previous.connectionId().equals(d.connectionId())||!identities(previous).equals(identities(d))))
                 return new ConfigurationCheck(false,null,null,"已建立映射，不能替换来源身份。请沿用原连接、来源系统、来源对象及源主键列");
             for(var source:d.sources()) if(source.syncPrimaryKey()&&!d.clearBeforeLoad()&&!d.resetMappingsBeforeLoad()) {
@@ -71,7 +71,7 @@ public class SyncTaskService {
         connections.required(command.definition().connectionId());
         var d=command.definition();var t=current==null?new SyncTaskDO():current;
         t.setTenantId(tenant());t.setName(command.name());t.setDefinition(JsonUtils.toJsonString(d));
-        t.setAdapter(d.adapter());t.setSourceSystem(d.sourceSystem());t.setConnectionId(d.connectionId());
+        t.setAdapter(SyncDefinitionValidator.taskIdentity(d));t.setSourceSystem(d.sourceSystem());t.setConnectionId(d.connectionId());
         t.setVersion(current==null?0:current.getVersion()+1);t.setValidatedVersion(null);
         t.setEnabled(false);t.setRetryAttempt(0);t.setNextRunAt(next(d.cron()));t.setNextFullAt(next(d.fullCron()));
         try { if(current==null)tasks.insert(t);else tasks.updateById(t); }
@@ -116,6 +116,6 @@ public class SyncTaskService {
         }catch(java.text.ParseException ex){throw new IllegalArgumentException("Cron 无效");}
     }
     private static List<String> identities(SyncDefinition d) {
-        return d.sources().stream().map(s->s.object()+":"+s.sourceObject()+":"+s.sourceKey()).sorted().toList();
+        return d.sources().stream().map(s->s.object()+":"+s.sourceObject()+":"+s.sourceKey()+ (s.targets()==null?"":":"+JsonUtils.toJsonString(s.targets().stream().map(t->List.of(t.name(),t.table(),t.keys())).toList()))).sorted().toList();
     }
 }

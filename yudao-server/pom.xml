@@ -93,17 +93,17 @@
         </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
-            <artifactId>pms-module-outsourcing</artifactId>
-            <version>${revision}</version>
-        </dependency>
-        <dependency>
-            <groupId>cn.iocoder.boot</groupId>
-            <artifactId>pms-module-analytics</artifactId>
+            <artifactId>pms-module-acceptance</artifactId>
             <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-integration</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-execution-bindings</artifactId>
             <version>${revision}</version>
         </dependency>
         <!-- 支付服务。默认注释，保证编译速度 -->
@@ -204,6 +204,11 @@
             <artifactId>yudao-spring-boot-starter-protection</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>yudao-spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -1,0 +1,23 @@
+{
+  "project": 992203060032,
+  "records": [
+    {
+      "id": 23,
+      "code": "PJT2026000025-PX-001",
+      "name": "设备操作与运维交接现场培训",
+      "status": 2,
+      "statusText": "CONFIRMED",
+      "confirmationRevisionId": 992209200003,
+      "signConfirmerName": "李雷",
+      "signTime": 1790186309000,
+      "skillRating": "很好",
+      "effectRating": "良好",
+      "satisfactionRating": "非常满意",
+      "signOpinion": "培训内容完整，实操到位，同意进入后续环节。",
+      "hasSignatureImage": true,
+      "hasFile": true,
+      "fileUrl": "http://127.0.0.1:59191/admin-api/infra/file/36/get/training/20260924/PJT20260000",
+      "confirmationValues": "{\"skillRating\":\"很好\",\"effectRating\":\"良好\",\"satisfactionRating\":\"非常满意\",\"signOpinion\":\"培训内容完整，实操到位，同意进入后续环节。\"}"
+    }
+  ]
+}

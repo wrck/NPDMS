@@ -78,12 +78,14 @@ import { constantRule, copyVersionRule, createVersionRule, ruleCreationOnlyKey, 
 import { businessSources, ruleBusinessSourcesKey } from './ruleBusinessSources'
 import { nativeOptions, ruleNativeOptionsKey } from './ruleNativeOptions'
 import { relativeTimeOptions, relativeTimeOptionsKey } from './relativeTimeModel'
+import { ruleOperationPostKey } from './versionRuleModel'
 const props = withDefaults(
   defineProps<{
     document: TemplateDesignerDocument
     modelValue?: string
     label: string
     readonly?: boolean
+    operationPost?: boolean
     required?: boolean
     initialExpression?: JsonObject
     emptyText?: string
@@ -97,6 +99,7 @@ provide(ruleBusinessSourcesKey, computed(() => businessSources(props.document)))
 provide(ruleNativeOptionsKey, computed(() => nativeOptions(props.document, props.modelValue)))
 provide(relativeTimeOptionsKey, computed(() => relativeTimeOptions(props.document, props.modelValue)))
 provide(ruleCreationOnlyKey, computed(() => ruleUsedForMatching(props.document, props.modelValue)))
+provide(ruleOperationPostKey, computed(() => props.operationPost === true))
 const rule = computed(() => props.document.rules?.find((item) => item.key === props.modelValue))
 const candidates = computed(
   () => props.document.rules?.filter((item) => item.kind === 'CONDITION') ?? []

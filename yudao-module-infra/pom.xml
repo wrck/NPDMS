@@ -45,6 +45,10 @@
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-generator</artifactId> <!-- 代码生成器，使用它解析表结构 -->
         </dependency>
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId> <!-- 外部 CRM SQL Server 只读数据源 -->
+        </dependency>
 
         <dependency>
             <groupId>cn.iocoder.boot</groupId>

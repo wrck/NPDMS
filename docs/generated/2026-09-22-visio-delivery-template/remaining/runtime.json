@@ -1,0 +1,22 @@
+{
+  "backendPort": 59191,
+  "frontendPort": 19191,
+  "composeProject": "npdms-domain-test",
+  "database": "npdms_domain_test",
+  "health": "UP",
+  "frontendStatus": 200,
+  "disabledAcceptanceUsers": [
+    {
+      "id": "970000000000091005",
+      "username": "solr22sm",
+      "status": 1
+    },
+    {
+      "id": "970000000000091006",
+      "username": "solr22em",
+      "status": 1
+    }
+  ],
+  "backendPid": 19076,
+  "finalReadAfterLegacyCompatibilityFix": true
+}

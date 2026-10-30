@@ -1,0 +1,555 @@
+package cn.iocoder.yudao.module.pms.service.service.inspection;
+
+import cn.hutool.crypto.digest.DigestUtil;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.module.pms.asset.api.device.DeviceLogSemanticFacts;
+import cn.iocoder.yudao.module.pms.integration.api.deviceops.DeviceLogParsingApi;
+import cn.iocoder.yudao.module.pms.integration.api.deviceops.DeviceOpsLogSplitApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.*;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.*;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.*;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.*;
+import cn.iocoder.yudao.module.pms.service.domain.inspection.InspectionResultEvaluator;
+import cn.iocoder.yudao.module.pms.service.domain.inspection.InspectionTaskStateMachine;
+import cn.iocoder.yudao.module.pms.service.service.inspection.log.*;
+import cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host;
+import cn.iocoder.yudao.module.pms.service.service.inspection.umc.UmcLogDocument;
+import cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleQueryService;
+import lombok.Builder;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static cn.iocoder.yudao.module.pms.service.service.inspection.InspectionException.require;
+
+@Service
+@RequiredArgsConstructor
+public class InspectionExecutionService {
+    private final InspectionAccessService access;
+    private final InspectionTaskService tasks;
+    private final InspectionAttemptMapper attempts;
+    private final InspectionTaskDeviceMapper devices;
+    private final InspectionTaskRuleSnapshotMapper snapshots;
+    private final InspectionExecutionMapper executions;
+    private final InspectionParsePartMapper parts;
+    private final InspectionDetectionResultMapper results;
+    private final InspectionRuleQueryService rules;
+    private final DeviceLogParsingApi parser;
+    private final DeviceOpsLogSplitApi splitter;
+    private final NativeGeneratedFileApi generatedFiles;
+    private final FileEvidenceApi fileEvidence;
+    private final AuthenticatedFileContentApi fileContent;
+    private final InspectionResultEvaluator evaluator = new InspectionResultEvaluator();
+
+    @Builder public record Upload(InspectionRequestContext context, Long taskId, Long attemptId, Long deviceId,
+                                   String fileName, byte[] content, String commandHint) { }
+    public record BatchUpload(InspectionRequestContext context, Long taskId, Long attemptId, String fileName, byte[] content,
+                              List<cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host> sourceHosts) {
+        public BatchUpload(InspectionRequestContext context, Long taskId, Long attemptId, String fileName, byte[] content) {
+            this(context, taskId, attemptId, fileName, content, null);
+        }
+    }
+    public record UploadFile(String fileName, byte[] content) { }
+    public record BatchFiles(InspectionRequestContext context, Long taskId, Long attemptId, List<UploadFile> files,
+                             List<cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host> sourceHosts) { }
+    /** Flat task-summary shape keeps existing idempotency receipts readable after the upload enhancement. */
+    @lombok.Getter @lombok.Setter
+    public static class BatchRegistration extends InspectionViews.TaskSummary {
+        private List<Host> sourceHosts;
+        @com.fasterxml.jackson.annotation.JsonCreator
+        public BatchRegistration() { }
+        @com.fasterxml.jackson.annotation.JsonCreator(mode = com.fasterxml.jackson.annotation.JsonCreator.Mode.DISABLED)
+        public BatchRegistration(InspectionViews.TaskSummary summary, List<Host> sourceHosts) {
+            org.springframework.beans.BeanUtils.copyProperties(summary, this);
+            this.sourceHosts = sourceHosts;
+        }
+        public InspectionViews.TaskSummary summary() {
+            var summary = new InspectionViews.TaskSummary();
+            org.springframework.beans.BeanUtils.copyProperties(this, summary);
+            return summary;
+        }
+        public List<Host> sourceHosts() { return sourceHosts; }
+    }
+    private record FileIdentity(String fileName, String sha256) { }
+    public static String batchDigest(List<UploadFile> files) {
+        require(files != null && !files.isEmpty() && files.stream().allMatch(f -> f != null && f.content() != null), "日志文件不能为空");
+        return DigestUtil.sha256Hex(JsonUtils.toJsonString(files.stream()
+                .map(f -> new FileIdentity(f.fileName(), DigestUtil.sha256Hex(f.content()))).toList()));
+    }
+    private record PreparedUpload(Scope scope, List<InspectionParserDocuments.Block> blocks,
+                                  Set<String> serials, String fileName, String digest, String commandHint) { }
+    public record Refresh(InspectionRequestContext context, Long taskId, Long executionId) { }
+    public record Finish(InspectionRequestContext context, Long taskId) { }
+    public record Abandon(InspectionRequestContext context, Long taskId, Long executionId, String reason) { }
+    public record CommandList(InspectionRequestContext context, Long taskId, Long deviceId) { }
+    public record Ingest(InspectionRequestContext context, Long taskId, Long executionId, byte[] collectionLog) { }
+    public record CommandView(Long ruleRevisionId, String detectionId, String inspectionItem, Integer revisionNo,
+                              String stableCommandKey, String content, Integer executionOrder, Integer timeoutSeconds,
+                              Boolean continueOnTimeout, String expectedRegex, String expectedThreshold, Integer sequenceNo) { }
+    private record Scope(InspectionRequestContext context, InspectionTaskDO task, InspectionAttemptDO attempt,
+                         InspectionTaskDeviceDO device) { }
+    private record Normalized(Scope scope, InspectionExecutionDO execution, List<InspectionParserDocuments.Block> blocks,
+                              Set<String> serials, String fileName) { }
+
+    public List<CommandView> commands(CommandList query) {
+        var task = access.task(new InspectionAccessService.TaskAccess(query.context(), query.taskId(),
+                "pms:inspection-task:query", false, false));
+        require(task.getCurrentAttemptId() != null, "请先开始执行并冻结规则版本");
+        List<CommandView> ordered = new ArrayList<>();
+        for (var row : frozen(new InspectionTaskRows(query.context().tenantId(), task.getId())).stream()
+                .filter(r -> Objects.equals(r.getAttemptId(), task.getCurrentAttemptId()) && Objects.equals(r.getDeviceId(), query.deviceId()))
+                .sorted(Comparator.comparing(InspectionTaskRuleSnapshotDO::getId)).toList()) {
+            var rule = rules.detail(row.getRuleRevisionId());
+            for (var command : rule.getCommands().stream().sorted(Comparator.comparingInt(c -> c.executionOrder())).toList()) {
+                for (var line : command.commandContent().replace('\r', '\n').lines().map(String::strip).filter(s -> !s.isEmpty()).toList())
+                    ordered.add(new CommandView(rule.getRevisionId(), rule.getDetectionId(), rule.getInspectionItem(), rule.getRevisionNo(),
+                            command.stableCommandKey(), line, command.executionOrder(), command.timeoutSeconds(), command.continueOnTimeout(),
+                            rule.getExpectedResultRegex(), rule.getThresholdOperator() + rule.getThresholdValue() + rule.getThresholdUnit(), ordered.size() + 1));
+            }
+        }
+        return List.copyOf(ordered);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public InspectionViews.TaskSummary upload(Upload command) {
+        var task = writable(command.context(), command.taskId());
+        var scope = scope(new Scope(command.context(), task, attempts.selectById(command.attemptId()),
+                device(new InspectionTaskRows(task.getTenantId(), task.getId()), command.deviceId())));
+        require("OFFLINE".equals(scope.attempt().getMode()), "当前尝试不是离线巡检，请显式新建离线执行尝试");
+        require(command.content() != null && command.content().length > 0 && command.content().length <= 52_428_800,
+                "日志文件不能为空且不得超过50MB");
+        require(command.fileName() != null && command.fileName().length() <= 300, "日志文件名过长");
+        String originalDigest = DigestUtil.sha256Hex(command.content());
+        var existing = executions.selectForTask(new InspectionTaskRows(task.getTenantId(), task.getId())).stream()
+                .filter(row -> Objects.equals(row.getAttemptId(), scope.attempt().getId()) && Objects.equals(row.getDeviceId(), command.deviceId())
+                        && !"CANCELLED".equals(row.getStatusCode())
+                        && Objects.equals(row.getOriginalFileSha256(), originalDigest)
+                        && Objects.equals(row.getCommandHint(), command.commandHint())).findFirst();
+        if (existing.isPresent()) return InspectionTaskService.summary(task);
+        List<InspectionLogArchiveReader.LogEntry> entries;
+        try { entries = new InspectionLogArchiveReader().read(new InspectionLogArchiveReader.Input(command.fileName(), command.content(),
+                "UMC".equals(scope.attempt().getProviderCode()))); }
+        catch (IllegalArgumentException invalid) { throw new InspectionException(InspectionException.Reason.FILE_INVALID, invalid.getMessage()); }
+        var availableCommands = commands(new CommandList(command.context(), task.getId(), command.deviceId()));
+        if (command.commandHint() != null && !command.commandHint().isBlank()) {
+            require(availableCommands.stream().anyMatch(c -> InspectionParserDocuments.normalizeCommand(c.content())
+                    .equals(InspectionParserDocuments.normalizeCommand(command.commandHint()))), "命令提示必须来自本设备冻结的巡检命令");
+        }
+        List<InspectionParserDocuments.Block> blocks = new ArrayList<>(); Set<String> serials = new LinkedHashSet<>();
+        try {
+            for (var entry : entries) {
+                var normalized = parser.normalize(new DeviceLogParsingApi.LogInput(task.getProjectId().toString(), entry.text(), command.commandHint()));
+                require(normalized != null && normalized.commandBlocks() != null, "日志脱敏服务没有返回可用内容");
+                if (normalized.serialNumbers() != null) normalized.serialNumbers().stream().filter(s -> s != null && !s.isBlank()).forEach(serials::add);
+                for (var block : normalized.commandBlocks()) blocks.add(InspectionParserDocuments.block(block, blocks.size() + 1));
+                require(blocks.size() <= 4096, "日志命令块超过本次上传的资源限制，请按设备拆分文件");
+            }
+        } catch (DeviceLogParsingApi.InvalidInputException invalid) {
+            throw new InspectionException(InspectionException.Reason.FILE_INVALID, "日志格式无效或超过解析限制，请检查文件后重新上传");
+        } catch (DeviceLogParsingApi.ParsingException unavailable) {
+            throw new InspectionException(InspectionException.Reason.DEPENDENCY_UNAVAILABLE, "日志脱敏服务不可用，原文件未存储，请稍后重试");
+        }
+        require(!blocks.isEmpty(), "日志没有可读取的命令输出");
+        registerUpload(new PreparedUpload(scope, blocks, serials, command.fileName(), originalDigest, command.commandHint()));
+        return InspectionTaskService.summary(task);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public InspectionViews.TaskSummary uploadBatch(BatchUpload command) {
+        require(command.content() != null && command.content().length > 0, "多设备日志不能为空且不得超过20MB");
+        return uploadBatchFiles(new BatchFiles(command.context(), command.taskId(), command.attemptId(),
+                List.of(new UploadFile(command.fileName(), command.content())), command.sourceHosts()),
+                DigestUtil.sha256Hex(command.content()), false).summary();
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public BatchRegistration uploadFiles(BatchFiles command) {
+        return uploadBatchFiles(command, batchDigest(command.files()), true);
+    }
+
+    private BatchRegistration uploadBatchFiles(BatchFiles command, String digest, boolean multipleInput) {
+        var task = writable(command.context(), command.taskId());
+        var attempt = attempts.selectById(command.attemptId());
+        scope(new Scope(command.context(), task, attempt, null));
+        require("OFFLINE".equals(attempt.getMode()), "当前尝试不是离线巡检，请显式新建离线执行尝试");
+        if (multipleInput) require("UMC".equals(attempt.getProviderCode()), "多文件入口仅支持UMC巡检尝试");
+        require(command.files() != null && !command.files().isEmpty() && command.files().size() <= 1024, "请选择1至1024份巡检日志");
+        List<InspectionLogArchiveReader.LogEntry> entries = new ArrayList<>();
+        long inputBytes = 0, expandedBytes = 0;
+        for (var file : command.files()) {
+            require(file != null && file.content() != null && file.content().length > 0, "日志文件不能为空");
+            inputBytes += file.content().length;
+            require(inputBytes <= 20 * 1024 * 1024, "本次巡检日志总量不得超过20MB");
+            require(file.fileName() != null && file.fileName().length() <= 300, "日志文件名过长");
+            try {
+                var read = new InspectionLogArchiveReader().read(new InspectionLogArchiveReader.Input(file.fileName(), file.content(),
+                        multipleInput && "UMC".equals(attempt.getProviderCode())));
+                for (var entry : read) {
+                    expandedBytes += entry.text().getBytes(StandardCharsets.UTF_8).length;
+                    require(expandedBytes <= 50 * 1024 * 1024 && entries.size() < 1024, "展开后的日志总量或条目数超过资源限制");
+                    entries.add(entry);
+                }
+            } catch (IllegalArgumentException invalid) { throw new InspectionException(InspectionException.Reason.FILE_INVALID, invalid.getMessage()); }
+        }
+        String fileName = command.files().size() == 1 ? command.files().getFirst().fileName() : "多份巡检日志（" + command.files().size() + "份）";
+        var bySerial = new HashMap<String, InspectionTaskDeviceDO>();
+        var ambiguous = new HashSet<String>();
+        for (var device : devices.selectForTask(new InspectionTaskRows(task.getTenantId(), task.getId()))) {
+            if (device.getSerialNumber() == null || device.getSerialNumber().isBlank()) continue;
+            String serial = device.getSerialNumber().toUpperCase(Locale.ROOT);
+            if (bySerial.putIfAbsent(serial, device) != null) ambiguous.add(serial);
+        }
+        var blocksBySerial = new LinkedHashMap<String, List<InspectionParserDocuments.Block>>();
+        var filenameHosts = new LinkedHashMap<String, String>();
+        var needsManualHost = new HashSet<String>();
+        long totalBytes = 0;
+        try {
+            for (var entry : entries) {
+                require(entry.text().getBytes(StandardCharsets.UTF_8).length <= 20 * 1024 * 1024, "解压后的单份多设备日志不得超过20MB");
+                var split = splitter.split(new DeviceOpsLogSplitApi.Command(task.getTenantId(), task.getProjectId(), "TERMINAL_TEXT", entry.text()));
+                require(split != null && !split.devices().isEmpty(), "日志拆分未返回设备日志");
+                String entryName = entry.fileName().replace('\\', '/');
+                String filenameHost = multipleInput ? UmcLogDocument.sourceHostFromFileName(entryName.substring(entryName.lastIndexOf('/') + 1)) : null;
+                var entrySerials = new HashSet<String>();
+                for (var log : split.devices()) {
+                    require(log != null && log.serialNumber() != null && !log.serialNumber().isBlank()
+                            && log.content() != null && !log.content().isBlank(), "日志拆分返回了无效设备日志");
+                    String serial = log.serialNumber().toUpperCase(Locale.ROOT);
+                    require(entrySerials.add(serial), "日志拆分返回了重复设备序列号");
+                    require(bySerial.containsKey(serial) && !ambiguous.contains(serial), "日志设备序列号不能唯一对应本巡检任务设备");
+                    if (filenameHost != null && split.devices().size() == 1) {
+                        String previousHost = filenameHosts.putIfAbsent(serial, filenameHost);
+                        require(previousHost == null || previousHost.equals(filenameHost), "同一设备的不同日志文件名包含冲突的来源IP，请核对并分别上传，未登记本批日志");
+                    } else if (multipleInput) needsManualHost.add(serial);
+                    totalBytes += log.content().getBytes(StandardCharsets.UTF_8).length;
+                    require(totalBytes <= 50 * 1024 * 1024, "拆分后的日志总量超过50MB，请拆分上传");
+                    var normalized = parser.normalize(new DeviceLogParsingApi.LogInput(task.getProjectId().toString(), log.content(), null));
+                    require(normalized != null && normalized.commandBlocks() != null && !normalized.commandBlocks().isEmpty(), "设备日志没有可读取的命令输出");
+                    require(normalized.serialNumbers() != null && normalized.serialNumbers().stream()
+                            .allMatch(sn -> sn != null && serial.equals(sn.toUpperCase(Locale.ROOT))), "拆分日志内识别的序列号与设备不一致");
+                    var blocks = blocksBySerial.computeIfAbsent(serial, key -> new ArrayList<>());
+                    for (var block : normalized.commandBlocks()) blocks.add(InspectionParserDocuments.block(block, blocks.size() + 1));
+                    require(blocks.size() <= 4096, "设备日志命令块超过资源限制，请拆分上传");
+                }
+            }
+        } catch (DeviceOpsLogSplitApi.Rejected | DeviceLogParsingApi.InvalidInputException invalid) {
+            throw new InspectionException(InspectionException.Reason.FILE_INVALID, "多设备日志无法拆分或解析，请检查序列号与文件格式");
+        } catch (DeviceLogParsingApi.ParsingException unavailable) {
+            throw new InspectionException(InspectionException.Reason.DEPENDENCY_UNAVAILABLE, "日志脱敏服务不可用，原文件未存储，请稍后重试");
+        } catch (IllegalStateException unavailable) {
+            throw new InspectionException(InspectionException.Reason.DEPENDENCY_UNAVAILABLE, "日志拆分服务不可用，原文件未存储，请稍后重试");
+        }
+        // Prepare every device before registering any file or execution. Only sanitized command blocks are stored.
+        var prepared = new ArrayList<PreparedUpload>();
+        List<Host> resolvedHosts = command.sourceHosts();
+        if (multipleInput) {
+            var supplied = command.sourceHosts() == null ? List.<Host>of() : command.sourceHosts();
+            require(supplied.size() <= 100 && supplied.stream().allMatch(h -> h != null && h.deviceId() != null)
+                    && supplied.stream().map(Host::deviceId).distinct().count() == supplied.size(), "设备来源IP对应关系无效");
+            supplied.forEach(h -> UmcLogDocument.requireIpv4(h.host()));
+            resolvedHosts = new ArrayList<>();
+            for (String serial : blocksBySerial.keySet()) {
+                Long deviceId = bySerial.get(serial).getDeviceId();
+                var manual = supplied.stream().filter(h -> deviceId.equals(h.deviceId())).findFirst();
+                String inferred = filenameHosts.get(serial);
+                if (needsManualHost.contains(serial)) require(manual.isPresent(), "文件名无法唯一确定每台设备来源IP（含同文件多设备），请为涉及设备填写来源IP，未登记本批日志");
+                String host = inferred != null ? inferred : manual.map(Host::host).orElse(null);
+                require(host != null, "未从文件名识别到设备来源IPv4，请填写来源IP后上传，未登记本批日志");
+                resolvedHosts.add(new Host(deviceId, host));
+            }
+            resolvedHosts = List.copyOf(resolvedHosts);
+        } else if (command.sourceHosts() != null) {
+            var mapped = command.sourceHosts().stream().map(cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService.Host::deviceId).collect(Collectors.toSet());
+            require(blocksBySerial.keySet().stream().allMatch(serial -> mapped.contains(bySerial.get(serial).getDeviceId())), "请为日志中每台设备填写来源IP，未登记本批日志");
+        }
+        for (var entry : blocksBySerial.entrySet()) {
+            var device = bySerial.get(entry.getKey());
+            require(InspectionParserDocuments.encode(entry.getValue()).length <= 52_428_800, "脱敏设备日志超过50MB，请拆分上传");
+            prepared.add(new PreparedUpload(new Scope(command.context(), task, attempt, device), entry.getValue(),
+                    Set.of(device.getSerialNumber()), fileName, digest, null));
+        }
+        var previous = executions.selectForTask(new InspectionTaskRows(task.getTenantId(), task.getId()));
+        for (var input : prepared) {
+            boolean existing = previous.stream().anyMatch(row -> Objects.equals(row.getAttemptId(), attempt.getId())
+                    && Objects.equals(row.getDeviceId(), input.scope().device().getDeviceId()) && !"CANCELLED".equals(row.getStatusCode())
+                    && Objects.equals(row.getOriginalFileSha256(), digest) && row.getCommandHint() == null
+                    && input.scope().device().getSerialNumber().equalsIgnoreCase(row.getRecognizedSerial()));
+            if (!existing) registerUpload(input);
+        }
+        return new BatchRegistration(InspectionTaskService.summary(task), resolvedHosts);
+    }
+
+    private void registerUpload(PreparedUpload input) {
+        var scope = input.scope(); var task = scope.task();
+        var execution = new InspectionExecutionDO(); execution.setTenantId(task.getTenantId()); execution.setVersion(1L);
+        execution.setTaskId(task.getId()); execution.setAttemptId(scope.attempt().getId()); execution.setDeviceId(scope.device().getDeviceId());
+        execution.setPurposeCode("OFFLINE"); execution.setStatusCode("PENDING"); execution.setOriginalFileSha256(input.digest());
+        execution.setCommandHint(input.commandHint());
+        execution.setSubmittedBy(scope.context().actorId()); execution.setSubmittedAt(LocalDateTime.now());
+        execution.setRecognizedSerial(input.serials().size() == 1 ? input.serials().iterator().next() : null);
+        executions.insert(execution);
+        storeNormalized(new Normalized(scope, execution, input.blocks(), input.serials(), input.fileName()));
+        tasks.save(new InspectionTaskService.Save(scope.context(), task, "OFFLINE_LOG_UPLOAD", task.getStatusCode(),
+                "登记离线日志，执行记录" + execution.getId()));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public InspectionViews.TaskSummary ingestCollection(Ingest command) {
+        var task = writable(command.context(), command.taskId());
+        var row = executions.selectById(command.executionId());
+        require(row != null && Objects.equals(row.getTenantId(), task.getTenantId()) && Objects.equals(row.getTaskId(), task.getId())
+                && Objects.equals(row.getAttemptId(), task.getCurrentAttemptId()) && "COLLECT".equals(row.getPurposeCode())
+                && row.getCollectionResultVersion() != null && row.getCollectionFileVersionId() != null,
+                "采集结果未与当前巡检尝试绑定");
+        if (row.getArtifactId() != null) return InspectionTaskService.summary(task);
+        require(command.collectionLog() != null && command.collectionLog().length > 0 && command.collectionLog().length <= 20 * 1024 * 1024,
+                "采集日志内容无效");
+        var scope = scope(new Scope(command.context(), task, attempts.selectById(row.getAttemptId()),
+                device(new InspectionTaskRows(task.getTenantId(), task.getId()), row.getDeviceId())));
+        require("ONLINE".equals(scope.attempt().getMode()), "采集结果不是在线巡检尝试");
+        DeviceLogParsingApi.NormalizedLog normalized;
+        try { normalized = parser.normalize(new DeviceLogParsingApi.LogInput(task.getProjectId().toString(),
+                InspectionParserDocuments.collectionInput(command.collectionLog()), null)); }
+        catch (DeviceLogParsingApi.InvalidInputException invalid) {
+            throw new InspectionException(InspectionException.Reason.FILE_INVALID, "采集日志内容无效或超过解析限制，请核对采集输出");
+        }
+        catch (DeviceLogParsingApi.ParsingException unavailable) {
+            throw new InspectionException(InspectionException.Reason.DEPENDENCY_UNAVAILABLE, "采集日志解析服务暂不可用，可稍后继续刷新");
+        }
+        require(normalized != null && normalized.commandBlocks() != null && !normalized.commandBlocks().isEmpty(), "采集日志缺少命令输出");
+        List<InspectionParserDocuments.Block> blocks = new ArrayList<>();
+        normalized.commandBlocks().stream().sorted(Comparator.comparingInt(DeviceLogParsingApi.LogBlock::commandIndex))
+                .forEach(block -> blocks.add(InspectionParserDocuments.block(block, block.commandIndex())));
+        require(blocks.size() <= 4096, "采集命令块超过解析资源限制");
+        Set<String> serials = new LinkedHashSet<>();
+        if (normalized.serialNumbers() != null) normalized.serialNumbers().stream().filter(s -> s != null && !s.isBlank()).forEach(serials::add);
+        row.setOriginalFileSha256(DigestUtil.sha256Hex(command.collectionLog())); row.setStatusCode("PENDING");
+        row.setRecognizedSerial(serials.size() == 1 ? serials.iterator().next() : null);
+        storeNormalized(new Normalized(scope, row, blocks, serials, "collection-" + row.getCollectionTaskId() + ".json"));
+        tasks.save(new InspectionTaskService.Save(command.context(), task, "COLLECTION_LOG_IMPORTED", task.getStatusCode(),
+                "登记已绑定的在线采集日志，执行记录" + row.getId()));
+        return InspectionTaskService.summary(task);
+    }
+
+    private void storeNormalized(Normalized input) {
+        var scope = input.scope(); var task = scope.task(); var execution = input.execution();
+        var blocks = input.blocks(); var serials = input.serials();
+        byte[] safeContent = InspectionParserDocuments.encode(blocks);
+        require(safeContent.length <= 52_428_800, "脱敏日志内容超过50MB，请拆分后上传");
+        // Only DAC-redacted content crosses the platform storage boundary. The original bytes never enter audit/idempotency data.
+        var stored = generatedFiles.create(new NativeGeneratedFileCommand(task.getTenantId(), scope.context().actorId(),
+                "inspection-log-" + execution.getId(), "SRV", "INSPECTION_TASK", task.getId(), task.getVersion(),
+                "LOG", "INSPECTION_LOG", "inspection-" + execution.getId() + ".json", "application/json", safeContent));
+        var reference = fileEvidence.inspectDocument(task.getTenantId(), stored.referenceId());
+        require(reference != null && reference.available(), "日志文件引用不可用");
+        execution.setArtifactId(stored.artifactId()); execution.setFileVersionNo(stored.versionNo());
+        execution.setFileReferenceKey(reference.referenceKey()); execution.setFileSha256(stored.sha256());
+        execution.setFileName(input.fileName());
+        if (serials.size() > 1 || !serials.isEmpty() && !serials.contains(scope.device().getSerialNumber())) {
+            execution.setStatusCode("FAILED"); execution.setFailureCode("DEVICE_SERIAL_MISMATCH");
+            execution.setFailureMessage("日志中识别的设备序列号与所选设备不一致，请核对来源后重新执行或上传");
+            execution.setCompletedAt(LocalDateTime.now());
+        } else if (!"UMC".equals(scope.attempt().getProviderCode())) {
+            int partNo = 0;
+            for (var segment : InspectionParserDocuments.parts(blocks)) {
+                var row = new InspectionParsePartDO(); row.setTenantId(task.getTenantId()); row.setVersion(1L);
+                row.setTaskId(task.getId()); row.setExecutionId(execution.getId()); row.setPartNo(++partNo);
+                row.setFirstCommandIndex(segment.firstIndex()); row.setLastCommandIndex(segment.lastIndex());
+                row.setRequestId(UUID.randomUUID().toString()); row.setStatusCode(segment.oversized() ? "FAILED" : "PENDING");
+                if (segment.oversized()) { row.setFailureCode("COMMAND_OUTPUT_TOO_LARGE"); row.setCompletedAt(LocalDateTime.now()); }
+                parts.insert(row);
+            }
+        }
+        executions.updateById(execution);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public InspectionViews.TaskSummary refresh(Refresh command) {
+        var task = writable(command.context(), command.taskId());
+        var execution = executions.selectById(command.executionId());
+        require(execution != null && Objects.equals(execution.getTenantId(), task.getTenantId())
+                && Objects.equals(execution.getTaskId(), task.getId()) && Objects.equals(execution.getAttemptId(), task.getCurrentAttemptId()),
+                "执行记录不属于当前尝试");
+        if (Set.of("COMPLETE", "PARTIAL", "FAILED", "CANCELLED").contains(execution.getStatusCode())) return InspectionTaskService.summary(task);
+        require(Set.of("OFFLINE", "COLLECT").contains(execution.getPurposeCode()) && execution.getArtifactId() != null,
+                "请先登记离线日志或接收在线采集日志");
+        var document = InspectionParserDocuments.decode(fileContent.read(new AuthenticatedFileContentApi.ReadCommand(
+                new FileArtifactVersionQuery(execution.getArtifactId(), execution.getFileVersionNo(), "SRV", "INSPECTION_TASK",
+                        task.getId().toString(), "LOG", execution.getFileReferenceKey(), FileActionCodes.DOWNLOAD), 52_428_800L)));
+        var jobs = parts.selectForExecution(new InspectionExecutionRows(task.getTenantId(), execution.getId()));
+        require(!jobs.isEmpty(), "执行记录缺少解析分片");
+        Map<Integer, InspectionResultEvaluator.CommandOutput> outputs = new HashMap<>();
+        Set<String> parserSerials = new HashSet<>();
+        int submitted = 0; boolean unavailable = false;
+        for (var job : jobs) {
+            boolean alreadySucceeded = "SUCCEEDED".equals(job.getStatusCode());
+            var selected = document.commandBlocks().stream().filter(b -> b.commandIndex() >= job.getFirstCommandIndex()
+                    && b.commandIndex() <= job.getLastCommandIndex()).toList();
+            if ("FAILED".equals(job.getStatusCode())) { failedOutputs(selected, outputs); continue; }
+            try {
+                var remote = parser.find(job.getRequestId(), task.getProjectId().toString(), null);
+                if (remote == null && "PENDING".equals(job.getStatusCode()) && submitted++ < 16) {
+                    remote = parser.submit(new DeviceLogParsingApi.Submission(job.getRequestId(), task.getProjectId().toString(), null,
+                            new String(InspectionParserDocuments.encodeForParsing(selected), StandardCharsets.UTF_8), null));
+                }
+                if (remote == null) {
+                    if (alreadySucceeded) { unavailable = true; continue; }
+                    if (!"PENDING".equals(job.getStatusCode())) {
+                        job.setStatusCode("FAILED"); job.setFailureCode("PARSER_RESULT_UNAVAILABLE");
+                        job.setCompletedAt(LocalDateTime.now()); parts.updateById(job); failedOutputs(selected, outputs);
+                    }
+                    continue;
+                }
+                require(job.getParserTaskId() == null || job.getParserTaskId().equals(remote.taskId()), "解析任务身份发生变化，已拒绝消费结果");
+                require(!alreadySucceeded || "SUCCEEDED".equals(remote.state()) && Objects.equals(job.getParserRelease(), remote.releaseVersion()),
+                        "已完成解析的状态或发布版本发生变化，原记录保留，已拒绝消费结果");
+                job.setParserTaskId(remote.taskId()); job.setParserRelease(remote.releaseVersion());
+                if ("SUCCEEDED".equals(remote.state())) {
+                    require(remote.result() != null, "解析任务成功但缺少结果证据");
+                    if (!alreadySucceeded) { job.setStatusCode("SUCCEEDED"); job.setCompletedAt(LocalDateTime.now()); }
+                    var facts = DeviceLogSemanticFacts.from(remote.result());
+                    if (facts.serialNumber() != null) parserSerials.add(facts.serialNumber());
+                    if (facts.conpVersion() != null) execution.setSoftwareVersion(facts.conpVersion());
+                    var units = JsonUtils.parseTree(JsonUtils.toJsonString(remote.result())).path("semanticResult").path("genericContent").path("units");
+                    for (var block : selected) outputs.put(block.commandIndex(), InspectionParserDocuments.output(
+                            new InspectionParserDocuments.Observation(block, units)));
+                } else if (Set.of("FAILED", "CANCELLED", "REJECTED").contains(remote.state())) {
+                    job.setStatusCode("FAILED"); job.setFailureCode("PARSER_" + remote.state());
+                    job.setCompletedAt(LocalDateTime.now()); failedOutputs(selected, outputs);
+                } else job.setStatusCode("RUNNING");
+                if (!alreadySucceeded) parts.updateById(job);
+            } catch (DeviceLogParsingApi.InvalidInputException invalid) {
+                if (alreadySucceeded) { unavailable = true; continue; }
+                job.setStatusCode("FAILED"); job.setFailureCode("PARSER_INPUT_INVALID");
+                job.setCompletedAt(LocalDateTime.now()); parts.updateById(job); failedOutputs(selected, outputs);
+                execution.setFailureCode("PARSER_INPUT_INVALID");
+                execution.setFailureMessage("日志解析输入被拒绝，原证据已保留，请核对日志格式后补传");
+            } catch (DeviceLogParsingApi.ParsingException dependency) { unavailable = true; }
+        }
+        execution.setParserRelease(jobs.stream().map(InspectionParsePartDO::getParserRelease).filter(Objects::nonNull)
+                .distinct().collect(Collectors.joining(",")));
+        boolean terminal = jobs.stream().allMatch(j -> Set.of("SUCCEEDED", "FAILED").contains(j.getStatusCode()));
+        var device = device(new InspectionTaskRows(task.getTenantId(), task.getId()), execution.getDeviceId());
+        if (parserSerials.size() > 1 || !parserSerials.isEmpty() && !parserSerials.contains(device.getSerialNumber())) {
+            execution.setStatusCode("FAILED"); execution.setFailureCode("DEVICE_SERIAL_MISMATCH");
+            execution.setFailureMessage("解析结果设备序列号不匹配，拒绝用于检测判定"); execution.setCompletedAt(LocalDateTime.now());
+        } else if (terminal && !unavailable) {
+            if (execution.getRecognizedSerial() == null && parserSerials.size() == 1) execution.setRecognizedSerial(parserSerials.iterator().next());
+            evaluate(new EvaluationInput(task, execution, Map.copyOf(outputs)));
+            execution.setStatusCode(jobs.stream().anyMatch(j -> "FAILED".equals(j.getStatusCode())) ? "PARTIAL" : "COMPLETE");
+            execution.setCompletedAt(LocalDateTime.now());
+        } else execution.setStatusCode("RUNNING");
+        executions.updateById(execution);
+        tasks.save(new InspectionTaskService.Save(command.context(), task, "REFRESH_LOG_PARSE", task.getStatusCode(),
+                unavailable ? "解析服务暂不可用，已保留请求身份，可继续刷新" : "读取巡检日志解析任务结果"));
+        return InspectionTaskService.summary(task);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public InspectionViews.TaskSummary abandon(Abandon command) {
+        var task = writable(command.context(), command.taskId());
+        InspectionTaskService.validateText(command.reason(), 2000, "停止采用原因");
+        var row = executions.selectById(command.executionId());
+        require(row != null && Objects.equals(row.getTenantId(), task.getTenantId()) && Objects.equals(row.getTaskId(), task.getId())
+                && Objects.equals(row.getAttemptId(), task.getCurrentAttemptId())
+                && Set.of("OFFLINE", "COLLECT").contains(row.getPurposeCode()) && row.getArtifactId() != null,
+                "日志记录不属于当前尝试或尚未结束采集");
+        require(Set.of("PENDING", "RUNNING").contains(row.getStatusCode()), "该日志已结束，无需停止采用");
+        // 本地停止采用解析结果；DAC的既有任务及原分片状态保留，不声称远端取消成功。
+        row.setStatusCode("CANCELLED"); row.setFailureCode("CONSUMPTION_CANCELLED");
+        row.setFailureMessage(command.reason()); row.setCompletedAt(LocalDateTime.now()); executions.updateById(row);
+        tasks.save(new InspectionTaskService.Save(command.context(), task, "ABANDON_LOG_PARSE", task.getStatusCode(),
+                "停止采用日志" + row.getId() + "：" + command.reason()));
+        return InspectionTaskService.summary(task);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public InspectionViews.TaskSummary finish(Finish command) {
+        var task = writable(command.context(), command.taskId());
+        require(!"UMC".equals(attempts.selectById(task.getCurrentAttemptId()).getProviderCode()), "UMC正式尝试请通过UMC完成执行接口办理");
+        var frozen = frozen(new InspectionTaskRows(task.getTenantId(), task.getId())).stream()
+                .filter(r -> Objects.equals(r.getAttemptId(), task.getCurrentAttemptId())).toList();
+        var current = results.selectCurrent(new InspectionAttemptRows(task.getTenantId(), task.getCurrentAttemptId()));
+        boolean complete = !frozen.isEmpty() && current.size() == frozen.size()
+                && current.stream().allMatch(r -> Set.of("PASS", "ABNORMAL").contains(r.getOutcome()))
+                && executions.selectForTask(new InspectionTaskRows(task.getTenantId(), task.getId())).stream()
+                .noneMatch(e -> Objects.equals(e.getAttemptId(), task.getCurrentAttemptId()) && Set.of("PENDING", "RUNNING", "COLLECTED", "CANCEL_REQUESTED").contains(e.getStatusCode()));
+        tasks.transition(new InspectionTaskService.Change(command.context(), task, new InspectionTaskStateMachine.Transition(task.getStatusCode(),
+                InspectionTaskStateMachine.Action.EXECUTION_COMPLETE, complete, false, false, 0, false, false), "完成执行并进入报告阶段"));
+        var attempt = attempts.selectById(task.getCurrentAttemptId()); attempt.setStatusCode("COMPLETED");
+        attempt.setFinishedAt(LocalDateTime.now()); attempts.updateById(attempt);
+        return InspectionTaskService.summary(task);
+    }
+
+    private record EvaluationInput(InspectionTaskDO task, InspectionExecutionDO execution, Map<Integer, InspectionResultEvaluator.CommandOutput> outputs) { }
+    private void evaluate(EvaluationInput input) {
+        var execution = input.execution();
+        var current = results.selectCurrent(new InspectionAttemptRows(execution.getTenantId(), execution.getAttemptId()));
+        int commandIndex = 0;
+        for (var snapshot : frozen(new InspectionTaskRows(execution.getTenantId(), execution.getTaskId())).stream()
+                .sorted(Comparator.comparing(InspectionTaskRuleSnapshotDO::getId)).toList()) {
+            if (!Objects.equals(snapshot.getAttemptId(), execution.getAttemptId()) || !Objects.equals(snapshot.getDeviceId(), execution.getDeviceId())) continue;
+            var rule = rules.detail(snapshot.getRuleRevisionId()); List<InspectionResultEvaluator.CommandOutput> selected = new ArrayList<>();
+            boolean anyMatch = false;
+            for (var commandText : rule.getCommands().stream().sorted(Comparator.comparingInt(c -> c.executionOrder()))
+                    .flatMap(c -> c.commandContent().replace('\r', '\n').lines()).map(String::strip).filter(s -> !s.isEmpty()).toList()) {
+                commandIndex++;
+                var indexed = input.outputs().get(commandIndex);
+                var candidates = "COLLECT".equals(execution.getPurposeCode()) ? (indexed == null ? List.<InspectionResultEvaluator.CommandOutput>of() : List.of(indexed))
+                        : input.outputs().values();
+                var matching = candidates.stream().filter(o -> InspectionParserDocuments.normalizeCommand(o.commandText())
+                        .equals(InspectionParserDocuments.normalizeCommand(commandText))).distinct().toList();
+                anyMatch |= !matching.isEmpty();
+                if (matching.size() == 1) selected.add(matching.getFirst());
+                else selected.add(new InspectionResultEvaluator.CommandOutput(commandText, "SUCCEEDED",
+                        matching.isEmpty() ? "EMPTY" : "LIMITED", "", List.of(), false));
+            }
+            if (!anyMatch && current.stream().anyMatch(r -> Objects.equals(r.getRuleSnapshotId(), snapshot.getId()))) continue;
+            var value = evaluator.evaluate(InspectionResultEvaluator.Input.builder().expectedRegex(rule.getExpectedResultRegex())
+                    .thresholdOperator(rule.getThresholdOperator()).thresholdValue(rule.getThresholdValue()).thresholdUnit(rule.getThresholdUnit())
+                    .commands(selected).build());
+            if ("COLLECT".equals(execution.getPurposeCode()) && !Set.of("SUCCESS", "SUCCEEDED").contains(execution.getCollectionStatus()))
+                value = new InspectionResultEvaluator.Evaluation("ERROR", null, null, null, "COLLECTION_NOT_SUCCEEDED",
+                        "平台采集未成功，保留原始输出用于核查，请重新执行或显式创建离线尝试");
+            if (value.measuredValue() != null) {
+                var number = value.measuredValue().stripTrailingZeros();
+                if (number.scale() > 10 || number.precision() - number.scale() > 20)
+                    value = new InspectionResultEvaluator.Evaluation("UNJUDGED", null, value.measuredUnit(), value.regexMatched(),
+                            "VALUE_STORAGE_LIMIT", "数值超出精确结果存储范围，未舍入或判为通过");
+            }
+            var row = new InspectionDetectionResultDO(); row.setTenantId(execution.getTenantId()); row.setVersion(1L);
+            row.setTaskId(execution.getTaskId()); row.setAttemptId(execution.getAttemptId()); row.setExecutionId(execution.getId());
+            row.setRuleSnapshotId(snapshot.getId()); row.setDeviceId(execution.getDeviceId()); row.setRuleRevisionId(rule.getRevisionId());
+            row.setOutcome(value.outcome()); row.setMeasuredValue(value.measuredValue()); row.setMeasuredUnit(value.measuredUnit());
+            row.setRegexMatched(value.regexMatched()); row.setDetailCode(value.detailCode()); row.setDetailMessage(value.detailMessage());
+            String summary = selected.stream().map(InspectionResultEvaluator.CommandOutput::output).filter(Objects::nonNull).collect(Collectors.joining("\n"));
+            row.setOutputSummary(summary.length() <= 8000 ? summary : summary.substring(0, 8000) + "\n[展示摘要已截断，完整证据见冻结日志]");
+            results.insert(row);
+        }
+    }
+    private static void failedOutputs(List<InspectionParserDocuments.Block> selected, Map<Integer, InspectionResultEvaluator.CommandOutput> outputs) {
+        for (var block : selected) outputs.put(block.commandIndex(), new InspectionResultEvaluator.CommandOutput(
+                block.commandText(), "FAILED", "LIMITED", block.stdout(), List.of(), true));
+    }
+    private InspectionTaskDO writable(InspectionRequestContext context, Long taskId) {
+        var task = access.task(new InspectionAccessService.TaskAccess(context, taskId, "pms:inspection-task:execute", true, false));
+        require("EXECUTING".equals(task.getStatusCode()), "任务当前不在执行阶段"); return task;
+    }
+    private InspectionTaskDeviceDO device(InspectionTaskRows query, Long deviceId) {
+        return devices.selectForTask(query).stream().filter(d -> Objects.equals(d.getDeviceId(), deviceId)).findFirst()
+                .orElseThrow(() -> new InspectionException(InspectionException.Reason.INVALID_REQUEST, "设备不属于本巡检任务"));
+    }
+    private Scope scope(Scope scope) {
+        var attempt = scope.attempt(); var task = scope.task();
+        require(attempt != null && Objects.equals(attempt.getTenantId(), task.getTenantId()) && Objects.equals(attempt.getTaskId(), task.getId())
+                && Objects.equals(attempt.getId(), task.getCurrentAttemptId()) && "ACTIVE".equals(attempt.getStatusCode()), "执行尝试已变化，请刷新");
+        return scope;
+    }
+    private List<InspectionTaskRuleSnapshotDO> frozen(InspectionTaskRows query) { return snapshots.selectForTask(query); }
+}

@@ -6,12 +6,12 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import static cn.iocoder.yudao.module.pms.project.service.acceptance.application.ProjectDeliverableInitializationApplicationService.*;
+import static cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService.*;
 
 /** Maps version-local node identities to current Owner instances; no business-table access or state transitions. */
 @Component
 public class ProjectPlanDeliverablePlanner {
-    public record Change(String nodeKey, String action, Long instanceId, Integer expectedVersion,
+    public record Change(String nodeKey, String action, Long instanceId, Long expectedVersion,
                          String fromCode, String toCode) { }
     public record Plan(List<Change> changes, List<DeliverablePlanChange> writes, List<Issue> issues) { }
 

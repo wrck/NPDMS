@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.preparation;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -29,15 +30,12 @@ import cn.iocoder.yudao.module.pms.project.api.organization.ProjectOrganizationF
 import cn.iocoder.yudao.module.pms.project.api.organization.dto.ProjectOrganizationFact;
 import cn.iocoder.yudao.module.pms.project.api.organization.dto.ProjectOrganizationFactQuery;
 import cn.iocoder.yudao.module.pms.project.api.organization.dto.ProjectOrganizationFactRevalidationQuery;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFact;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactQuery;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidatePageReqDTO;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidateRespDTO;
@@ -87,10 +85,11 @@ public class PreparationItemApplicationService {
     private final DynamicFormInstanceMapper formMapper;
     private final PermissionApi permissionApi;
     private final ProjectScopeApi projectScopeApi;
-    private final ProjectParticipantFactApi participantFactApi;
+    private final ProjectManagementQualificationApi managementAccess;
     private final ProjectOrganizationFactApi organizationFactApi;
     private final AdminUserApi adminUserApi;
     private final OrganizationScopeApi organizationScopeApi;
+    private final OrganizationUserSelectionApi organizationUserSelectionApi;
     private final FileArtifactApi fileArtifactApi;
     private final OperationAuditApi operationAuditApi;
     private final TransactionTemplate transactionTemplate;
@@ -111,7 +110,7 @@ public class PreparationItemApplicationService {
         query.setKeyword(request == null ? null : request.getKeyword());
         query.setPageNo(request == null ? 1 : request.getPageNo());
         query.setPageSize(request == null ? 20 : request.getPageSize());
-        return organizationScopeApi.pageActiveUsers(query);
+        return organizationUserSelectionApi.page(query);
     }
 
     public PreparationItemPatchRespVO patch(PatchPreparationItemCommand command, Actor actor) {
@@ -131,14 +130,18 @@ public class PreparationItemApplicationService {
         boolean managerWrite = command.submittedFields().stream().anyMatch(MANAGER_FIELDS::contains);
         boolean assigneeWrite = command.submittedFields().stream().anyMatch(ASSIGNEE_FIELDS::contains);
 
-        ProjectScopeResult currentScope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), located.getProjectId(),
-                managerWrite ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW));
+        ProjectScopeResult currentScope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(located.getProjectId())
+                .actionCode(managerWrite ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW).build());
         requireScope(currentScope, located.getProjectId());
-        ProjectScopeResult lockedScope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                actor.tenantId(), actor.actorId(), located.getProjectId(),
-                managerWrite ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW,
-                currentScope.treeVersion()));
+        ProjectScopeResult lockedScope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(located.getProjectId())
+                .actionCode(managerWrite ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(currentScope.treeVersion()).build());
         requireScope(lockedScope, located.getProjectId());
 
         if (managerWrite) requireManagerLocked(located.getProjectId(), command.expectedProjectVersion(), actor);
@@ -287,31 +290,23 @@ public class PreparationItemApplicationService {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         requireScope(scope, projectId);
-        ProjectParticipantFact manager = participantFactApi.inspect(new ProjectParticipantFactQuery(
-                projectId, actor.actorId(), Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER),
-                LocalDateTime.now()));
-        requireManager(manager, projectId, actor.actorId());
+        boolean manager = (managementAccess.inspect(new ProjectManagementQualificationApi.Query(actor.tenantId(), projectId, actor.actorId())) != null);
+        if (!manager) throw exception(PREPARATION_PROJECT_FACT_INVALID);
     }
 
-    private void requireManagerLocked(Long projectId, Integer expectedProjectVersion, Actor actor) {
+    private void requireManagerLocked(Long projectId, Long expectedProjectVersion, Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        ProjectParticipantFact manager = participantFactApi.lockAndRevalidate(
-                new ProjectParticipantFactRevalidationQuery(projectId, actor.actorId(), expectedProjectVersion,
-                        "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
-        requireManager(manager, projectId, actor.actorId());
-    }
-
-    private void requireManager(ProjectParticipantFact fact, Long projectId, Long actorId) {
-        if (fact == null || !Objects.equals(fact.projectId(), projectId)
-                || !Objects.equals(fact.userId(), actorId)
-                || !fact.effectiveRoleCodes().contains(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)) {
-            throw exception(PREPARATION_PROJECT_FACT_INVALID);
-        }
+        var qualification = managementAccess.inspect(new ProjectManagementQualificationApi.Query(actor.tenantId(), projectId, actor.actorId()));
+        if (qualification == null) throw exception(FORBIDDEN);
+        managementAccess.lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(qualification, expectedProjectVersion, "ACTIVE", null));
     }
 
     private void requireAssignee(PreparationItemDO item, Actor actor) {
@@ -403,7 +398,7 @@ public class PreparationItemApplicationService {
         }
     }
 
-    private boolean invalidVersion(Integer value) { return value == null || value < 0; }
+    private boolean invalidVersion(Number value) { return value == null || value.longValue() < 0; }
     private long positive(Long value) {
         if (value == null || value <= 0) throw exception(PREPARATION_COMMAND_INVALID);
         return value;

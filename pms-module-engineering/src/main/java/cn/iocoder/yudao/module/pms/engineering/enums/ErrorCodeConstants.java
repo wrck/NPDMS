@@ -56,6 +56,7 @@ public interface ErrorCodeConstants {
     ErrorCode REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID = new ErrorCode(1_011_002_008, "需求分析项目资格或主体事实无效");
     ErrorCode REQUIREMENT_ANALYSIS_COMMAND_INVALID = new ErrorCode(1_011_002_009, "需求分析命令参数无效");
     ErrorCode REQUIREMENT_ANALYSIS_FACT_NOT_AVAILABLE = new ErrorCode(1_011_002_010, "已完成需求分析事实不可用");
+    ErrorCode REQUIREMENT_LEGACY_BUSINESS_READ_ONLY = new ErrorCode(1_011_002_011, "旧需求分析仅供历史查看，请在项目需求分析中新增或修改");
 
     // ========== 实施方案 solution 1-011-003-000 ==========
     ErrorCode SOLUTION_NOT_EXISTS = new ErrorCode(1_011_003_000, "实施方案不存在");
@@ -64,6 +65,7 @@ public interface ErrorCodeConstants {
     ErrorCode SOLUTION_VERSION_NOT_MATCH = new ErrorCode(1_011_003_003, "方案版本号已变更，请刷新后重试");
     ErrorCode SOLUTION_PROJECT_NOT_EXISTS = new ErrorCode(1_011_003_004, "所属项目不存在");
     ErrorCode SOLUTION_REVIEW_NOT_CONNECTED = new ErrorCode(1_011_003_005, "重大方案复审尚未接入，不能在当前入口直接通过");
+    ErrorCode SOLUTION_REVIEW_POLICY_INVALID = new ErrorCode(1_011_003_006, "{}");
 
     // ========== 到货签收 arrival 1-011-004-000 ==========
     ErrorCode ARRIVAL_NOT_EXISTS = new ErrorCode(1_011_004_000, "到货签收不存在");
@@ -96,6 +98,7 @@ public interface ErrorCodeConstants {
     ErrorCode CONFIGURATION_CODE_DUPLICATE = new ErrorCode(1_011_006_001, "配置编码已存在");
     ErrorCode CONFIGURATION_STATUS_INVALID = new ErrorCode(1_011_006_002, "配置当前状态不允许该操作");
     ErrorCode CONFIGURATION_VERSION_NOT_MATCH = new ErrorCode(1_011_006_003, "配置版本号已变更，请刷新后重试");
+    ErrorCode CONFIGURATION_COLLECTION_REJECTED = new ErrorCode(1_011_006_004, "{}");
 
     // ========== 业务联调 joint-test 1-011-007-000 ==========
     ErrorCode JOINT_TEST_NOT_EXISTS = new ErrorCode(1_011_007_000, "业务联调记录不存在");
@@ -151,6 +154,9 @@ public interface ErrorCodeConstants {
     ErrorCode MATERIAL_EXCH_PROJECT_NOT_EXISTS = new ErrorCode(1_011_014_004, "所属项目不存在");
     ErrorCode MATERIAL_EXCH_CRM_ALREADY_PUSHED = new ErrorCode(1_011_014_005, "换货协同单已推送CRM，无法重复推送");
     ErrorCode MATERIAL_EXCH_CRM_NOT_CONNECTED = new ErrorCode(1_011_014_006, "CRM外部接口未接入，当前仅保留扩展入口，不执行推送");
+    ErrorCode MATERIAL_EXCH_SERIAL_QUANTITY_INVALID = new ErrorCode(1_011_014_007, "换货数量必须与各勾选清单行换货数量之和一致");
+    ErrorCode MATERIAL_EXCH_SCOPE_LINE_INVALID = new ErrorCode(1_011_014_008, "设备清单行无效或不属于当前项目");
+    ErrorCode MATERIAL_EXCH_PRODUCT_INVALID = new ErrorCode(1_011_014_009, "换货产品无效或已停用，请重新选择");
 
     // ========== 工程交底书 briefing 1-011-015-000 ==========
     ErrorCode BRIEFING_NOT_EXISTS = new ErrorCode(1_011_015_000, "工程交底书不存在");
@@ -219,7 +225,7 @@ public interface ErrorCodeConstants {
     ErrorCode CONSTRUCTION_PLAN_ARGUMENT_INVALID = new ErrorCode(1_011_023_001, "项目工期参数无效");
     ErrorCode CONSTRUCTION_PLAN_STATUS_INVALID = new ErrorCode(1_011_023_002, "项目工期当前状态不允许该操作");
     ErrorCode CONSTRUCTION_PLAN_VERSION_NOT_MATCH = new ErrorCode(1_011_023_003, "项目工期版本号已变更，请刷新后重试");
-    ErrorCode CONSTRUCTION_PLAN_PROJECT_FACT_INVALID = new ErrorCode(1_011_023_004, "项目资格或当前参与人事实无效");
+    ErrorCode CONSTRUCTION_PLAN_PROJECT_FACT_INVALID = new ErrorCode(1_011_023_004, "您在本项目的管理身份已发生变化或项目成员配置不完整，请刷新页面重试");
     ErrorCode DURATION_CHANGE_NOT_EXISTS = new ErrorCode(1_011_023_005, "工期变更不存在");
     ErrorCode DURATION_CHANGE_PENDING_CONFLICT = new ErrorCode(1_011_023_006, "项目已存在待审批的工期变更");
     ErrorCode DURATION_CHANGE_BPM_CONFIG_INVALID = new ErrorCode(1_011_023_007, "工期变更审批流程配置无效");
@@ -227,6 +233,8 @@ public interface ErrorCodeConstants {
     ErrorCode DURATION_CHANGE_REASON_CONFIG_INVALID = new ErrorCode(1_011_023_009, "工期变更原因或客户依据配置无效");
     ErrorCode DURATION_CHANGE_FILE_ARTIFACT_UNAVAILABLE = new ErrorCode(1_011_023_010, "客户依据文件事实暂不可用");
     ErrorCode DURATION_CHANGE_FILE_ARTIFACT_FORBIDDEN = new ErrorCode(1_011_023_011, "无权使用客户依据文件");
+    ErrorCode DURATION_CHANGE_EVIDENCE_REQUIRED = new ErrorCode(1_011_023_012, "该变更原因按规则仍需客户依据，请先上传附件后再提交");
+    ErrorCode DURATION_CHANGE_SERVICE_MANAGER_MISSING = new ErrorCode(1_011_023_013, "项目还没有指派服务经理，无法提交审批；请先在项目成员中指派服务经理");
 
     // ========== 工勘准备 preparation 1-011-024-000 ==========
     ErrorCode PREPARATION_NOT_EXISTS = new ErrorCode(1_011_024_000, "工勘准备不存在");
@@ -243,5 +251,30 @@ public interface ErrorCodeConstants {
     ErrorCode PREPARATION_READINESS_VERSION_CONFLICT = new ErrorCode(1_011_024_011, "工勘就绪事实已变更，请刷新后重试");
     ErrorCode PREPARATION_COMMAND_INVALID = new ErrorCode(1_011_024_012, "工勘准备命令参数无效");
     ErrorCode PREPARATION_PROJECT_FACT_INVALID = new ErrorCode(1_011_024_013, "工勘准备项目资格或主体事实无效");
+    // ========== 现场培训 training 1-011-025-000（ACC-01）==========
+    ErrorCode TRAINING_NOT_EXISTS = new ErrorCode(1_011_025_000, "现场培训记录不存在");
+    ErrorCode TRAINING_CODE_DUPLICATE = new ErrorCode(1_011_025_001, "培训记录编码已存在: {}");
+    ErrorCode TRAINING_STATUS_INVALID = new ErrorCode(1_011_025_002, "现场培训记录当前状态不允许该操作");
+    ErrorCode TRAINING_VERSION_NOT_MATCH = new ErrorCode(1_011_025_003, "现场培训记录版本号已变更，请刷新后重试");
+    ErrorCode TRAINING_TOKEN_INVALID = new ErrorCode(1_011_025_004, "培训确认链接无效、已过期或已使用");
+    ErrorCode TRAINING_ARGUMENT_INVALID = new ErrorCode(1_011_025_005, "现场培训参数无效");
 
+    // ========== 阶段施工计划 stage plan 1-011-026-000（PLN-01/04）==========
+    ErrorCode STAGE_PLAN_BATCH_NOT_EXISTS = new ErrorCode(1_011_026_000, "阶段施工计划批次不存在");
+    ErrorCode STAGE_PLAN_ACTIVE_BATCH_EXISTS = new ErrorCode(1_011_026_001, "项目已存在进行中的阶段施工计划批次，不可重复创建");
+    ErrorCode STAGE_PLAN_STATUS_INVALID = new ErrorCode(1_011_026_002, "阶段施工计划批次当前状态不允许该操作");
+    ErrorCode STAGE_PLAN_VERSION_NOT_MATCH = new ErrorCode(1_011_026_003, "阶段施工计划批次已变更，请刷新后重试");
+    ErrorCode STAGE_PLAN_NO_STAGES = new ErrorCode(1_011_026_004, "项目下无阶段事实，无法制定阶段施工计划");
+    ErrorCode STAGE_PLAN_DATE_INVALID = new ErrorCode(1_011_026_005, "阶段计划日期无效：{}");
+    ErrorCode STAGE_PLAN_BPM_CONFIG_INVALID = new ErrorCode(1_011_026_006, "阶段施工计划审批流程未配置或发起失败");
+    ErrorCode STAGE_PLAN_BPM_ASSOCIATION_INVALID = new ErrorCode(1_011_026_007, "阶段施工计划审批回执与批次不匹配");
+    ErrorCode STAGE_PLAN_ARGUMENT_INVALID = new ErrorCode(1_011_026_008, "阶段施工计划参数无效：{}");
+
+    // ========== 工期倒排 1-014-020-000（自 project 模块随 SOL/PLN 归属迁入，数值不变）==========
+    ErrorCode SCHEDULE_BACKWARD_NOT_EXISTS = new ErrorCode(1_014_020_000, "工期倒排记录不存在");
+    ErrorCode SCHEDULE_BACKWARD_NO_PHASES = new ErrorCode(1_014_020_001, "项目暂无阶段，无法倒排");
+    ErrorCode SCHEDULE_BACKWARD_HAS_CONFLICT = new ErrorCode(1_014_020_002, "工期倒排存在冲突，请先处理冲突后再应用");
+    ErrorCode SCHEDULE_BACKWARD_STATUS_INVALID = new ErrorCode(1_014_020_003, "工期倒排状态流转不合法");
+    // 迁移期沿用的 PROJ 段通用错误码（同号同文案，行为保持）
+    ErrorCode PROJECT_NOT_EXISTS = new ErrorCode(1_014_003_000, "项目不存在");
 }

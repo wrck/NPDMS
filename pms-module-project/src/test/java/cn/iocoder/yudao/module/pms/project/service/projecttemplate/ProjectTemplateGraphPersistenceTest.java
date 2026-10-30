@@ -31,7 +31,7 @@ class ProjectTemplateGraphPersistenceTest {
         ReflectionTestUtils.setField(service,"deliverableDefinitionMapper",mock(ProjectTemplateDeliverableDefinitionMapper.class));
         ReflectionTestUtils.setField(service,"gateDefinitionMapper",mock(ProjectTemplateGateDefinitionMapper.class));
         ReflectionTestUtils.setField(service,"gateReferenceMapper",mock(ProjectTemplateGateReferenceMapper.class));
-        var root = new ProjectTemplateDO(); root.setId(1L); root.setTenantId(7L); root.setStatus("DRAFT"); root.setVersion(0);
+        var root = new ProjectTemplateDO(); root.setId(1L); root.setTenantId(7L); root.setStatus("DRAFT"); root.setVersion(0L);
         when(templates.lockTemplate(any())).thenReturn(root); when(templates.incrementVersion(any())).thenReturn(1);
         var draft = new ProjectTemplateRevisionDO(); draft.setId(10L); draft.setTemplateId(1L); draft.setTenantId(7L);
         draft.setStatus("DRAFT"); draft.setRevisionNo(0);
@@ -65,9 +65,9 @@ class ProjectTemplateGraphPersistenceTest {
         when(commands.execute(anyString(),anyString(),any(),eq(Long.class),any())).thenAnswer(call -> {
             java.util.function.Supplier<Long> operation = call.getArgument(4); return operation.get();
         });
-        var source = new ProjectTemplateDO(); source.setId(1L); source.setTenantId(7L); source.setVersion(4);
+        var source = new ProjectTemplateDO(); source.setId(1L); source.setTenantId(7L); source.setVersion(4L);
         source.setMatchPriority(17); source.setStatus("ACTIVE"); source.setDescription("source description");
-        var target = new ProjectTemplateDO(); target.setId(2L); target.setTenantId(7L); target.setVersion(0); target.setStatus("DRAFT");
+        var target = new ProjectTemplateDO(); target.setId(2L); target.setTenantId(7L); target.setVersion(0L); target.setStatus("DRAFT");
         when(templates.lockTemplate(any())).thenAnswer(call -> {
             var query = (cn.iocoder.yudao.module.pms.project.dal.mysql.projecttemplate.query.TemplateIdentityQuery)call.getArgument(0);
             return query.templateId() == 1L ? source : target;
@@ -84,8 +84,8 @@ class ProjectTemplateGraphPersistenceTest {
         var body = new cn.iocoder.yudao.module.pms.project.controller.admin.projecttemplate.vo.ProjectTemplateCopyReqVO();
         body.setCode("COPY"); body.setName("copy"); body.setSourceRevisionNo(2);
         assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
-                () -> service.copyProjectTemplate(1L,3,body,"stale"));
-        assertEquals(2L,service.copyProjectTemplate(1L,4,body,"copy"));
+                () -> service.copyProjectTemplate(1L,3L,body,"stale"));
+        assertEquals(2L,service.copyProjectTemplate(1L,4L,body,"copy"));
         assertEquals("ACTIVE",source.getStatus()); assertEquals("PUBLISHED",sourceRevision.getStatus());
     }
 

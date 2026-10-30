@@ -1,0 +1,15 @@
+{
+  "valid": false,
+  "issues": [
+    {
+      "field": "stages[1].completionRule",
+      "code": "REQUIRED",
+      "message": "阶段必须配置完成规则"
+    },
+    {
+      "field": "stages[3].completionRule",
+      "code": "REQUIRED",
+      "message": "阶段必须配置完成规则"
+    }
+  ]
+}

@@ -14,6 +14,9 @@ import java.util.List;
 @Mapper
 public interface ProjectStageSnapshotMapper {
 
+    ProjectStageSnapshotDO selectTemplateReopen(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectTemplateReopenQuery query);
+
     /** 仅供Repository在动作规则校验后追加；本Mapper不暴露更新或删除能力。 */
     int insertAppendOnly(ProjectStageSnapshotDO snapshot);
 

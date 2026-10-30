@@ -37,7 +37,7 @@ class ProjectManagerCandidateServiceTest {
     }
 
     @Test void currentReturnsOnlyEffectiveManagersAndKeepsProjectPrimaryReference() {
-        var project = new ProjectMasterDO(); project.setManagerId(8L); project.setVersion(3);
+        var project = new ProjectMasterDO(); project.setManagerId(8L); project.setVersion(3L);
         when(projects.getProject(9L, actor)).thenReturn(project);
         var active = member(8L); active.setAssignmentType("COLLABORATOR");
         var ended = member(7L); ended.setEffectiveTo(LocalDateTime.now().minusMinutes(1));

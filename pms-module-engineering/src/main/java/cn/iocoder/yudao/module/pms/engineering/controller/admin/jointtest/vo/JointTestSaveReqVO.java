@@ -24,10 +24,6 @@ public class JointTestSaveReqVO {
     @NotNull(message = "项目编号不能为空")
     private Long projectId;
 
-    @Schema(description = "联调编码", requiredMode = Schema.RequiredMode.REQUIRED, example = "JT-2026-001")
-    @NotBlank(message = "联调编码不能为空")
-    private String code;
-
     @Schema(description = "联调用例", requiredMode = Schema.RequiredMode.REQUIRED, example = "核心交换机连通性测试")
     @NotBlank(message = "联调用例不能为空")
     private String testCase;

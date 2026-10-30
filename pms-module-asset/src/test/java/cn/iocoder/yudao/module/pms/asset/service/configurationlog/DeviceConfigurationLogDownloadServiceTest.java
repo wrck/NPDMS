@@ -5,10 +5,10 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.infra.api.file.FileApi;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.configurationlog.DeviceDownloadGrantDO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
-import cn.iocoder.yudao.module.pms.asset.dal.dataobject.equipmentconfiglog.EquipmentConfigLogDO;
+import cn.iocoder.yudao.module.pms.asset.dal.dataobject.configurationlog.DeviceConfigLogDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.DeviceDownloadGrantMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMapper;
-import cn.iocoder.yudao.module.pms.asset.dal.mysql.equipmentconfiglog.EquipmentConfigLogMapper;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.DeviceConfigLogMapper;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService;
 import org.junit.jupiter.api.AfterEach;
@@ -50,7 +50,7 @@ class DeviceConfigurationLogDownloadServiceTest {
     private static final Instant NOW = Instant.parse("2026-08-27T10:00:00Z");
 
     @Mock private DeviceMapper deviceMapper;
-    @Mock private EquipmentConfigLogMapper configurationLogMapper;
+    @Mock private DeviceConfigLogMapper configurationLogMapper;
     @Mock private DeviceDownloadGrantMapper grantMapper;
     @Mock private PermissionApi permissionApi;
     @Mock private FileApi fileApi;
@@ -75,7 +75,7 @@ class DeviceConfigurationLogDownloadServiceTest {
     @Test
     void shouldDeclareProductionConstructorForSpringInjection() throws NoSuchMethodException {
         assertTrue(DeviceConfigurationLogDownloadService.class.getConstructor(
-                DeviceMapper.class, EquipmentConfigLogMapper.class, DeviceDownloadGrantMapper.class,
+                DeviceMapper.class, DeviceConfigLogMapper.class, DeviceDownloadGrantMapper.class,
                 PermissionApi.class, FileApi.class, DeviceConfigurationFileContentClient.class,
                 DeviceAccessScopeService.class)
                 .isAnnotationPresent(Autowired.class));
@@ -132,8 +132,8 @@ class DeviceConfigurationLogDownloadServiceTest {
     void shouldRejectLogThatDoesNotBelongToDevice() {
         allowDownload();
         when(deviceMapper.selectByTenantAndId(1L, 8L)).thenReturn(device());
-        EquipmentConfigLogDO log = configurationLog();
-        log.setEquipmentId(9L);
+        DeviceConfigLogDO log = configurationLog();
+        log.setDeviceId(9L);
         when(configurationLogMapper.selectById(21L)).thenReturn(log);
 
         ServiceException error = assertThrows(ServiceException.class,
@@ -147,7 +147,7 @@ class DeviceConfigurationLogDownloadServiceTest {
     void shouldRejectLogWithoutFile() {
         allowDownload();
         when(deviceMapper.selectByTenantAndId(1L, 8L)).thenReturn(device());
-        EquipmentConfigLogDO log = configurationLog();
+        DeviceConfigLogDO log = configurationLog();
         log.setFileUrl(" ");
         when(configurationLogMapper.selectById(21L)).thenReturn(log);
 
@@ -284,10 +284,10 @@ class DeviceConfigurationLogDownloadServiceTest {
         return device;
     }
 
-    private EquipmentConfigLogDO configurationLog() {
-        EquipmentConfigLogDO log = new EquipmentConfigLogDO();
+    private DeviceConfigLogDO configurationLog() {
+        DeviceConfigLogDO log = new DeviceConfigLogDO();
         log.setId(21L);
-        log.setEquipmentId(8L);
+        log.setDeviceId(8L);
         log.setFileUrl("https://storage.example/config/21.txt");
         log.setTenantId(1L);
         return log;

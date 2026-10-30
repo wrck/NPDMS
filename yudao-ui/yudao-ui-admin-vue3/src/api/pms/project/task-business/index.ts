@@ -58,6 +58,15 @@ export interface TaskBusinessContext {
 const base = (id: BusinessViewId) => `/api/v1/pms/project-tasks/${businessViewIdKey(id)}/business`
 export const getTaskBusinessContext = (id: BusinessViewId) =>
   request.get<TaskBusinessContext>({ url: `${base(id)}/context` })
+export const refreshTaskBusinessResults = (input: {
+  taskId: BusinessViewId
+  expectedTaskVersion: number
+  expectedContractVersion: number
+}) => request.post<{ completed: boolean; unknown: boolean }>({
+  url: `${base(input.taskId)}/refresh`,
+  data: { expectedTaskVersion: input.expectedTaskVersion, expectedContractVersion: input.expectedContractVersion },
+  headers: { 'If-Match': String(input.expectedContractVersion) }
+})
 export const getTaskBusinessCandidates = (id: BusinessViewId) =>
   request.get<TaskBusinessObject[]>({ url: `${base(id)}/candidates` })
 export const linkTaskBusinessObject = (

@@ -10,6 +10,8 @@ import java.util.List;
 
 @Mapper
 public interface ProjectTaskBusinessLinkMapper {
+    List<ProjectTaskBusinessLinkDO> selectDeletedObjectLiveLinksForUpdate(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.taskbusiness.query.DeletedBusinessObjectLinksQuery query);
     List<String> selectPreviouslyAssociatedObjectIds(@Param("query")
             cn.iocoder.yudao.module.pms.project.dal.mysql.taskbusiness.query.PreviousBusinessAssociationsQuery query);
     List<ProjectTaskBusinessLinkDO> selectActive(@Param("query") TaskBusinessLinksQuery query);

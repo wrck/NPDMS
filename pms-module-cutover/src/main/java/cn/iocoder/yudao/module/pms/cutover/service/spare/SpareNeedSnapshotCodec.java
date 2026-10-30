@@ -61,7 +61,7 @@ public final class SpareNeedSnapshotCodec {
                     exact(node, ASSESSMENT_KEYS, "assessment source");
                     if (!node.path("sparePartApplied").isBoolean()) throw invalid("sparePartApplied");
                     sources.add(new AssessmentNeedSource(positiveWireLong(node.path("sourceId"), "sourceId"),
-                            positiveInt(node.path("sourceVersion"), "sourceVersion"),
+                            positiveVersion(node.path("sourceVersion"), "sourceVersion"),
                             node.path("sparePartApplied").asBoolean()));
                 }
                 case "CHECKLIST_RISK" -> {
@@ -70,7 +70,7 @@ public final class SpareNeedSnapshotCodec {
                         throw invalid("checklist source");
                     }
                     sources.add(new ChecklistRiskNeedSource(positiveWireLong(node.path("sourceId"), "sourceId"),
-                            nonNegativeInt(node.path("sourceVersion"), "sourceVersion"),
+                            nonNegativeVersion(node.path("sourceVersion"), "sourceVersion"),
                             node.path("stableItemKey").asText(), node.path("applicable").asBoolean()));
                 }
                 default -> throw invalid("sourceType");
@@ -95,6 +95,16 @@ public final class SpareNeedSnapshotCodec {
     private static int nonNegativeInt(JsonNode node, String field) {
         if (node == null || !node.isInt() || node.asInt() < 0) throw invalid(field);
         return node.asInt();
+    }
+
+    private static long positiveVersion(JsonNode node, String field) {
+        if (node == null || !node.isNumber() || node.asLong() <= 0) throw invalid(field);
+        return node.asLong();
+    }
+
+    private static long nonNegativeVersion(JsonNode node, String field) {
+        if (node == null || !node.isNumber() || node.asLong() < 0) throw invalid(field);
+        return node.asLong();
     }
 
     private static long positiveWireLong(JsonNode node, String field) {

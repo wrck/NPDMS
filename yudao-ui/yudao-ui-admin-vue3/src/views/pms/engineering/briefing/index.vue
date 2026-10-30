@@ -5,15 +5,12 @@
         <PmsEntitySelect
           v-model="query.projectId"
           :api="ProjectApi.getProjectPage"
-          label-field="name"
+          label-field="projectName"
           value-field="id"
-          query-field="name"
+          query-field="projectName"
           placeholder="请选择项目"
           class="!w-220px"
         />
-      </el-form-item>
-      <el-form-item label="编号" prop="code">
-        <el-input v-model="query.code" clearable class="!w-180px" @keyup.enter="load" />
       </el-form-item>
       <el-form-item label="名称" prop="name">
         <el-input v-model="query.name" clearable class="!w-180px" @keyup.enter="load" />
@@ -40,7 +37,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:eng-briefing:create']"
+        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:sol-briefing:create']"
           ><Icon icon="ep:plus" />新建交底书</el-button
         >
       </el-form-item>
@@ -48,7 +45,6 @@
   </ContentWrap>
   <ContentWrap>
     <el-table v-loading="loading" :data="rows" empty-text="暂无交底书数据">
-      <el-table-column prop="code" label="编号" width="160" />
       <el-table-column prop="projectId" label="项目" min-width="180">
         <template #default="{ row }">
           <ProjectTag :project-id="row.projectId" />
@@ -75,7 +71,7 @@
       <el-table-column prop="publishTime" label="发布时间" width="160" :formatter="dateFormatter" />
       <el-table-column label="操作" width="380" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:eng-briefing:query']"
+          <el-button link type="primary" @click="openDetail(row)" v-hasPermi="['pms:sol-briefing:query']"
             >明细</el-button
           >
           <el-button
@@ -83,7 +79,7 @@
             type="warning"
             v-if="row.status === 0"
             @click="openEdit(row)"
-            v-hasPermi="['pms:eng-briefing:update']"
+            v-hasPermi="['pms:sol-briefing:update']"
             >编辑</el-button
           >
           <el-button
@@ -91,7 +87,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleGenerate(row)"
-            v-hasPermi="['pms:eng-briefing:generate']"
+            v-hasPermi="['pms:sol-briefing:generate']"
             >生成</el-button
           >
           <el-button
@@ -99,7 +95,7 @@
             type="primary"
             v-if="row.status === 1"
             @click="openApprove(row)"
-            v-hasPermi="['pms:eng-briefing:audit']"
+            v-hasPermi="['pms:sol-briefing:audit']"
             >审核</el-button
           >
           <el-button
@@ -107,7 +103,7 @@
             type="success"
             v-if="row.status === 2"
             @click="handlePublish(row)"
-            v-hasPermi="['pms:eng-briefing:publish']"
+            v-hasPermi="['pms:sol-briefing:publish']"
             >发布</el-button
           >
           <el-button
@@ -115,7 +111,7 @@
             type="danger"
             v-if="row.status !== 3 && row.status !== 4"
             @click="handleTerminate(row)"
-            v-hasPermi="['pms:eng-briefing:update']"
+            v-hasPermi="['pms:sol-briefing:update']"
             >作废</el-button
           >
           <el-button
@@ -123,7 +119,7 @@
             type="danger"
             v-if="row.status === 0"
             @click="remove(row)"
-            v-hasPermi="['pms:eng-briefing:delete']"
+            v-hasPermi="['pms:sol-briefing:delete']"
             >删除</el-button
           >
         </template>
@@ -141,17 +137,12 @@
             <PmsEntitySelect
               v-model="form.projectId"
               :api="ProjectApi.getProjectPage"
-              label-field="name"
+              label-field="projectName"
               value-field="id"
-              query-field="name"
+              query-field="projectName"
               placeholder="请选择项目"
               :disabled="!!form.id"
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="编号" prop="code">
-            <el-input v-model="form.code" :disabled="!!form.id" placeholder="如 BR-2026-001" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -171,12 +162,10 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="编制人" prop="creatorUserId">
-            <PmsEntitySelect
+            <UserSelect
               v-model="form.creatorUserId"
-              :api="UserApi.getUserPage"
-              label-field="nickname"
-              value-field="id"
-              query-field="nickname"
+              :scoped-source="managementUsers"
+              :page-size="50"
               placeholder="请选择编制人"
             />
           </el-form-item>
@@ -212,7 +201,6 @@
   <!-- 明细对话框 -->
   <Dialog v-model="detailVisible" title="交底书明细" width="960px">
     <el-descriptions :column="2" border class="mb-15px">
-      <el-descriptions-item label="编号">{{ current.code }}</el-descriptions-item>
       <el-descriptions-item label="名称">{{ current.name }}</el-descriptions-item>
       <el-descriptions-item label="项目">
         <ProjectTag v-if="current.projectId" :project-id="current.projectId" />
@@ -234,7 +222,15 @@
       <el-descriptions-item label="发布时间">{{ current.publishTime || '-' }}</el-descriptions-item>
       <el-descriptions-item label="文件" :span="2">
         <span v-if="current.fileName">{{ current.fileName }}（{{ current.fileSize }} 字节）</span>
-        <span v-else>-</span>
+        <el-link
+          v-if="current.fileUrl"
+          @click="downloadBriefingFile(current.fileUrl)"
+          target="_blank"
+          type="primary"
+          class="ml-10px"
+          >下载</el-link
+        >
+        <span v-if="!current.fileName && !current.fileUrl">-</span>
       </el-descriptions-item>
       <el-descriptions-item label="交底内容" :span="2">
         <div v-html="current.content"></div>
@@ -244,12 +240,12 @@
         {{ current.approveOpinion }}
       </el-descriptions-item>
     </el-descriptions>
+    <DeliveryPanel v-if="current?.id" owner-module="SOL" entity-type="briefing" :entity-id="current.id" />
   </Dialog>
 
   <!-- 生成对话框 -->
   <Dialog v-model="generateVisible" title="生成交底书" width="560px">
     <el-form :model="generateForm" label-width="120px">
-      <el-form-item label="交底书">{{ generateForm.code }}</el-form-item>
       <el-form-item label="模板ID" prop="templateId">
         <el-input-number v-model="generateForm.templateId" :min="0" class="!w-full" placeholder="可选，关联交底书模板ID" />
       </el-form-item>
@@ -273,12 +269,10 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item label="审核人" prop="approverUserId">
-        <PmsEntitySelect
+        <UserSelect
           v-model="approveForm.approverUserId"
-          :api="UserApi.getUserPage"
-          label-field="nickname"
-          value-field="id"
-          query-field="nickname"
+          :scoped-source="managementUsers"
+              :page-size="50"
           placeholder="请选择审核人"
         />
       </el-form-item>
@@ -294,16 +288,35 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
+
+import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
+import { getGeneratedBriefingFileTicket } from '@/api/pms/engineering/briefing'
+const downloadBriefingFile = async (url: string) => {
+  const ticket = /^\/api\/v1\/pms\/briefings\/\d+\/files\/\d+$/.test(url)
+    ? await getGeneratedBriefingFileTicket(url) : url
+  window.open(ticket, '_blank', 'noopener')
+}
+
 import { onMounted, reactive, ref } from 'vue'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
 import * as BriefingApi from '@/api/pms/engineering/briefing'
-import * as ProjectApi from '@/api/pms/project/project'
-import * as UserApi from '@/api/system/user'
+import * as ProjectApi from '@/api/pms/project/projects'
 import type { BriefingVO } from '@/api/pms/engineering/briefing'
 import ProjectTag from '@/components/ProjectTag/index.vue'
 import UserTag from '@/components/UserTag/index.vue'
+
+const managementUsers = {
+  key: 'system-users-management:views/pms/engineering/briefing/index.vue',
+  search: ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const query = { nickname: keyword, pageNo, pageSize }
+    return systemUserSelection.page(query)
+  },
+  resolve: systemUserSelection.resolve
+}
 
 defineOptions({ name: 'PmsEngBriefing' })
 const message = useMessage()
@@ -315,7 +328,6 @@ const query = reactive({
   pageNo: 1,
   pageSize: 10,
   projectId: undefined as number | undefined,
-  code: '',
   name: '',
   briefingType: '',
   status: undefined as number | undefined
@@ -337,7 +349,6 @@ const formVisible = ref(false)
 const formRef = ref()
 const form = reactive<BriefingVO>({
   projectId: undefined!,
-  code: '',
   name: '',
   briefingType: 'STANDARD',
   content: '',
@@ -347,7 +358,6 @@ const form = reactive<BriefingVO>({
 })
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
-  code: [{ required: true, message: '请输入编号' }],
   name: [{ required: true, message: '请输入名称' }],
   briefingType: [{ required: true, message: '请选择类型' }]
 }
@@ -356,7 +366,6 @@ const openCreate = () => {
   Object.assign(form, {
     id: undefined,
     projectId: undefined,
-    code: '',
     name: '',
     briefingType: 'STANDARD',
     content: '',
@@ -402,7 +411,6 @@ const openDetail = async (row: BriefingVO) => {
 const generateVisible = ref(false)
 const generateForm = reactive({
   id: undefined as number | undefined,
-  code: '',
   templateId: undefined as number | undefined,
   sourceSnapshot: '',
   version: 0
@@ -410,7 +418,6 @@ const generateForm = reactive({
 const handleGenerate = (row: BriefingVO) => {
   Object.assign(generateForm, {
     id: row.id,
-    code: row.code,
     templateId: row.templateId,
     sourceSnapshot: row.sourceSnapshot || '',
     version: row.version

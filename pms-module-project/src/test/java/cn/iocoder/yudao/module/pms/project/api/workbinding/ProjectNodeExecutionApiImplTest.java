@@ -76,8 +76,31 @@ class ProjectNodeExecutionApiImplTest {
         verifyNoInteractions(mapper);
     }
 
+    @Test void optionalTaskRemainsWritableAfterStageCompletionButRetainsRoundAndProjectGuards() {
+        var optional = new ProjectTaskExecutionRecord(100L, 1L, "ACTIVE", 200L, 2, "IN_PROGRESS", 300L, 1, 400L,
+                500L, 1, 1, "ACTIVE", 600L, 2, "DONE", "DONE", java.time.LocalDateTime.of(2026,9,14,9,0), false);
+        when(mapper.selectCurrent(any())).thenReturn(optional);
+        var observed = api.inspect(query);
+        assertTrue(observed.writable());
+        var project = new ProjectMasterDO(); project.setId(100L); project.setTenantId(0L);
+        when(projects.selectByIdForUpdate(100L)).thenReturn(project);
+        when(mapper.selectCurrentForUpdate(any())).thenReturn(optional);
+        assertEquals(observed, api.lockAndRevalidate(observed));
+        when(mapper.selectCurrentForUpdate(any())).thenReturn(row("NORMAL_CLOSED", "DONE", "ACTIVE", "IN_PROGRESS", 500L, 1));
+        assertThrows(ServiceException.class, () -> api.lockAndRevalidate(observed));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"ACTIVE,PENDING,PENDING,ACTIVE", "ACTIVE,SKIPPED,DONE,ACTIVE",
+            "ACTIVE,DONE,TERMINATED,ACTIVE", "ACTIVE,DONE,DONE,DONE", "NORMAL_CLOSED,DONE,DONE,ACTIVE"})
+    void optionalTaskDoesNotBypassInactiveProjectStageOrTaskRound(String project, String stage, String stageRound, String round) {
+        when(mapper.selectCurrent(any())).thenReturn(new ProjectTaskExecutionRecord(100L, 1L, project, 200L, 2,
+                "IN_PROGRESS", 300L, 1, 400L, 500L, 1, 1, round, 600L, 2, stageRound, stage, null, false));
+        assertFalse(api.inspect(query).writable());
+    }
+
     private ProjectTaskExecutionRecord row(String project, String stage, String round, String task, long execution, int version) {
-        return new ProjectTaskExecutionRecord(100L, 1, project, 200L, 2, task, 300L, 1, 400L,
-                execution, version, 1, round, 600L, 1, stage, stage, java.time.LocalDateTime.of(2026,9,14,9,0));
+        return new ProjectTaskExecutionRecord(100L, 1L, project, 200L, 2, task, 300L, 1, 400L,
+                execution, version, 1, round, 600L, 1, stage, stage, java.time.LocalDateTime.of(2026,9,14,9,0), null);
     }
 }

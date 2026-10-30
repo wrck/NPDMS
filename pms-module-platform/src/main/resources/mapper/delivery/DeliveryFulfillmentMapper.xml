@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.DeliveryFulfillmentMapper">
+    <select id="selectIdentity" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryFulfillmentDO">
+        SELECT * FROM plt_delivery_fulfillment
+        WHERE tenant_id = #{query.tenantId} AND requirement_id = #{query.requirementId} AND material_id = #{query.materialId} AND deleted = b'0'
+    </select>
+    <select id="selectListForRequirement" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryFulfillmentDO">
+        SELECT * FROM plt_delivery_fulfillment
+        WHERE tenant_id = #{query.tenantId} AND requirement_id = #{query.requirementId} AND deleted = b'0'
+        ORDER BY material_id
+    </select>
+</mapper>

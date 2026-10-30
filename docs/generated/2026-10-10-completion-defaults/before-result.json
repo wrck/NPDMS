@@ -1,0 +1,11 @@
+{
+  "projectId": 992203060191,
+  "sourceDeviceTotal": 123,
+  "sourceProductRows": 8,
+  "equipmentListMatchesSource": true,
+  "defaultDeviceTotal": 100,
+  "defaultRowsMatchEquipment": false,
+  "engineerMatchesCurrentProfile": false,
+  "contactMatchesCurrentProfile": false,
+  "pageErrors": []
+}

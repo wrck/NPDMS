@@ -91,7 +91,7 @@ class ConstructionPlanMapperTest {
         ConstructionPlanDO plan = new ConstructionPlanDO();
         plan.setProjectId(projectId);
         plan.setPlanRecalculationStatusCode(ConstructionPlanDO.RECALCULATION_PENDING);
-        plan.setVersion(0);
+        plan.setVersion(0L);
         plan.setCreator("fsol001-task3-test");
         plan.setUpdater("fsol001-task3-test");
         plan.setDeleted(false);
@@ -116,10 +116,10 @@ class ConstructionPlanMapperTest {
         assertEquals(planId, planMapper.selectByProjectId(0L, projectId).getId());
         assertNull(planMapper.selectByProjectId(1L, projectId));
         assertEquals(1, planMapper.updateVersionIfMatch(new ConstructionPlanVersionUpdate(
-                0L, planId, 0, revision.getId(), null,
+                0L, planId, 0L, revision.getId(), null,
                 ConstructionPlanDO.RECALCULATION_PENDING, revision.getId(), "fsol001-task3-test")));
         assertEquals(0, planMapper.updateVersionIfMatch(new ConstructionPlanVersionUpdate(
-                0L, planId, 0, revision.getId(), null,
+                0L, planId, 0L, revision.getId(), null,
                 ConstructionPlanDO.RECALCULATION_PENDING, revision.getId(), "fsol001-task3-test")));
 
         ConstructionPlanDO locked = transactionTemplate.execute(status ->
@@ -131,7 +131,7 @@ class ConstructionPlanMapperTest {
         ConstructionPlanDO duplicate = new ConstructionPlanDO();
         duplicate.setProjectId(projectId);
         duplicate.setPlanRecalculationStatusCode(ConstructionPlanDO.RECALCULATION_PENDING);
-        duplicate.setVersion(0);
+        duplicate.setVersion(0L);
         duplicate.setDeleted(true);
         duplicate.setTenantId(0L);
         assertThrows(DataIntegrityViolationException.class, () -> planMapper.insert(duplicate));

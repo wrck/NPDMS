@@ -8,6 +8,9 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface ProjectTreeVersionMapper extends BaseMapperX<ProjectTreeVersionDO> {
 
+    java.util.List<ProjectTreeVersionDO> selectLatestActiveBatch(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ActiveProjectTreeVersionsQuery query);
+
     ProjectTreeVersionDO selectLatestActive(Long rootProjectId);
 
     ProjectTreeVersionDO selectLatest(Long rootProjectId);

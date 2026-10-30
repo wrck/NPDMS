@@ -14,21 +14,21 @@ public final class SpareApplicationQueries {
     public record StatusByEvent(Long tenantId, String eventId) { }
     public record EvidenceByTask(Long tenantId, Long cutoverTaskId) { }
 
-    public record StoreInitiateResult(Long tenantId, Long applicationReferenceId, Integer expectedVersion,
+    public record StoreInitiateResult(Long tenantId, Long applicationReferenceId, Long expectedVersion,
                                       String expectedStatus, String integrationStatus, String externalRequestId,
                                       String externalApplicationNo, String launchUrl, LocalDateTime lastAttemptAt,
                                       String updater, LocalDateTime updateTime) { }
 
-    public record StoreFailure(Long tenantId, Long applicationReferenceId, Integer expectedVersion,
+    public record StoreFailure(Long tenantId, Long applicationReferenceId, Long expectedVersion,
                                String integrationStatus, Integer retryCount, String failureCode,
                                String failureDetail, LocalDateTime lastAttemptAt,
                                String updater, LocalDateTime updateTime) { }
 
-    public record BindExternalReference(Long tenantId, Long applicationReferenceId, Integer expectedVersion,
+    public record BindExternalReference(Long tenantId, Long applicationReferenceId, Long expectedVersion,
                                         String externalRequestId, String externalApplicationNo,
                                         String updater, LocalDateTime updateTime) { }
 
-    public record MoveCurrentStatus(Long tenantId, Long applicationReferenceId, Integer expectedVersion,
+    public record MoveCurrentStatus(Long tenantId, Long applicationReferenceId, Long expectedVersion,
                                     Long currentStatusRevisionId, String updater, LocalDateTime updateTime) { }
 
     public record ClearCurrentStatus(Long tenantId, Long applicationReferenceId, Long expectedRevisionId) { }

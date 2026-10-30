@@ -35,7 +35,7 @@
           <el-form-item label="来源系统标识"
             ><el-input v-model="draft.definition.sourceSystem" placeholder="例如 DPPMS"
           /></el-form-item>
-          <el-form-item label="业务适配器"
+          <el-form-item label="同步方式"
             ><el-select v-model="draft.definition.adapter" @change="changeAdapter"
               ><el-option
                 v-for="a in adapters"
@@ -60,9 +60,15 @@
         </el-form>
       </el-tab-pane>
       <el-tab-pane label="来源与字段映射" name="sources">
+        <GenericMappingEditor
+          v-if="draft.definition.adapter === 'TABLE_MAPPING'"
+          ref="genericEditor"
+          v-model="draft.definition"
+          @template-name="draft.name = $event"
+        />
         <SourceEditor
           ref="sourceEditor"
-          v-if="selectedAdapter"
+          v-if="selectedAdapter && draft.definition.adapter !== 'TABLE_MAPPING'"
           :key="String(draft.definition.connectionId) + draft.definition.adapter"
           v-model="draft.definition"
           :adapter="selectedAdapter"
@@ -107,7 +113,7 @@
             type="warning"
             :closable="false"
           />
-          <el-form-item label="加载方式">
+          <el-form-item v-if="draft.definition.adapter !== 'TABLE_MAPPING'" label="加载方式">
             <el-select v-model="draft.definition.loadingMode" aria-label="加载方式">
               <el-option
                 v-for="mode in selectedAdapter?.loadingModes"
@@ -118,11 +124,14 @@
             </el-select>
           </el-form-item>
           <el-alert
-            title="同步前：检查连接与配置 → 完整读取及转换 → 业务预检；通过后才开启目标写事务。"
+            title="同步前：检查连接与配置 → 来源读取及转换 → 业务预检；正式执行按读取策略进入整批、分页或流式分块事务。"
             type="info"
             :closable="false"
           />
-          <p class="integration-note"
+          <p v-if="draft.definition.adapter === 'TABLE_MAPPING'" class="integration-note"
+            >按各目标步骤的写入方式执行：更新覆盖仅更新所选字段，存在则跳过保留已有记录；空值按该步骤的空值策略处理。</p
+          >
+          <p v-else class="integration-note"
             >追加遇到已存在记录会整批失败；跳过保留已存在记录；更新只覆盖适配器声明的同步字段。所有方式均保留租户、归属和关联校验。</p
           >
           <p class="integration-note"
@@ -131,10 +140,10 @@
           >
         </el-form>
       </el-tab-pane>
-      <el-tab-pane label="调度与限额" name="schedule">
+      <el-tab-pane label="调度与性能" name="schedule">
         <el-form
           :model="draft.definition"
-          label-width="144px"
+          label-width="156px"
           class="integration-form"
           @submit.prevent
         >
@@ -153,18 +162,76 @@
           <el-form-item label="重试间隔（秒）"
             ><el-input-number v-model="draft.definition.retryIntervalSeconds" :min="1"
           /></el-form-item>
-          <el-form-item label="单批最大行数"
-            ><el-input-number v-model="draft.definition.maxRows" :min="1" :max="10000"
-          /></el-form-item>
-          <el-form-item v-if="draft.definition.adapter === 'DPPMS_ERP_ORDER'" label="自动分页">
-            <el-switch v-model="draft.definition.autoPaging" aria-label="自动分页" />
+          <el-form-item label="来源读取策略">
+            <el-select v-model="draft.definition.readStrategy" @change="syncLegacyPaging">
+              <el-option label="整批快照（兼容模式）" value="SNAPSHOT" />
+              <el-option label="主键游标分页" value="KEYSET_PAGING" />
+              <el-option
+                label="JDBC 流式游标（单次 SQL）"
+                value="STREAMING_CURSOR"
+                :disabled="!selectedAdapter?.supportsStreaming"
+              />
+            </el-select>
           </el-form-item>
           <el-alert
-            v-if="draft.definition.autoPaging"
+            v-if="selectedAdapter && !selectedAdapter.supportsStreaming"
             type="info"
             :closable="false"
-            title="按单批最大行数自动分页，先处理订单再处理订单行。每页独立提交；失败后从主运行创建关联重试，继续未提交页。"
+            title="当前业务适配器需要整批上下文，不支持流式分块执行。"
           />
+          <template v-if="draft.definition.readStrategy === 'STREAMING_CURSOR'">
+            <el-form-item label="JDBC Fetch Size">
+              <el-input-number v-model="draft.definition.fetchSize" :min="1" :max="10000" />
+            </el-form-item>
+            <el-form-item label="提交 Chunk Size">
+              <el-input-number v-model="draft.definition.chunkSize" :min="1" :max="5000" />
+            </el-form-item>
+            <el-form-item label="失败恢复策略">
+              <el-select v-model="draft.definition.restartPolicy">
+                <el-option label="重新执行整条 SQL（幂等写入）" value="RESTART_ALL" />
+                <el-option label="按来源主键从已提交断点继续" value="CHECKPOINT_KEY" />
+                <el-option label="失败后禁止关联重试" value="NO_RESTART" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="SQL 超时（秒）">
+              <el-input-number
+                v-model="draft.definition.queryTimeoutSeconds"
+                :min="0"
+                :max="3600"
+              />
+            </el-form-item>
+            <el-form-item label="预览样本上限">
+              <el-input-number v-model="draft.definition.maxRows" :min="1" :max="10000" />
+            </el-form-item>
+            <el-alert
+              type="info"
+              :closable="false"
+              title="流式模式每个来源 SQL 正常执行只打开一次 ResultSet，边读边按 Chunk 提交；Fetch Size 只控制来源拉取，Chunk Size 控制目标事务及多值批插语句行数。SQL 超时为 0 时使用驱动默认/不主动限制。CHECKPOINT_KEY 仅在恢复时追加 sourceKey > 已提交断点。"
+            />
+          </template>
+          <template v-else-if="draft.definition.readStrategy === 'KEYSET_PAGING'">
+            <el-form-item label="单页最大行数">
+              <el-input-number v-model="draft.definition.maxRows" :min="1" :max="10000" />
+            </el-form-item>
+            <el-alert
+              type="info"
+              :closable="false"
+              title="按来源主键分段重复执行查询，每页独立提交并可从未提交页继续。复杂 SQL 若重复执行代价高，请改用 JDBC 流式游标。"
+            />
+          </template>
+          <template v-else>
+            <el-form-item label="整批最大行数">
+              <el-input-number v-model="draft.definition.maxRows" :min="1" :max="10000" />
+            </el-form-item>
+          </template>
+          <el-form-item label="单批最大字节">
+            <el-input-number
+              v-model="draft.definition.maxBytes"
+              :min="1048576"
+              :max="67108864"
+              :step="1048576"
+            />
+          </el-form-item>
         </el-form>
       </el-tab-pane>
     </el-tabs>
@@ -197,6 +264,8 @@
 <script setup lang="ts">
 import * as api from '@/api/pms/integration'
 import SourceEditor from './SourceEditor.vue'
+import GenericMappingEditor from './GenericMappingEditor.vue'
+const genericEditor = ref<InstanceType<typeof GenericMappingEditor>>()
 import type { FormInstance } from 'element-plus'
 const emit = defineEmits<{ saved: []; closed: []; openExisting: [id: api.Id] }>()
 const configurationCheck = ref<api.ConfigurationCheck>()
@@ -217,6 +286,24 @@ const connections = ref<api.Connection[]>([]),
 const selectedAdapter = computed(() =>
   adapters.value.find((a) => a.key === draft.value?.definition.adapter)
 )
+const normalizePerformance = () => {
+  if (!draft.value) return
+  const definition = draft.value.definition
+  if (definition.autoPaging) definition.readStrategy = 'KEYSET_PAGING'
+  definition.readStrategy ??= 'SNAPSHOT'
+  definition.fetchSize ??= 2000
+  definition.chunkSize ??= 1000
+  definition.restartPolicy ??= 'RESTART_ALL'
+  definition.queryTimeoutSeconds ??= 0
+  definition.autoPaging = definition.readStrategy === 'KEYSET_PAGING'
+}
+const syncLegacyPaging = () => {
+  if (!draft.value) return
+  draft.value.definition.autoPaging = draft.value.definition.readStrategy === 'KEYSET_PAGING'
+  if (draft.value.definition.readStrategy !== 'STREAMING_CURSOR') {
+    draft.value.definition.restartPolicy ??= 'RESTART_ALL'
+  }
+}
 const open = async (id?: api.Id) => {
   configurationCheck.value = undefined
   section.value = 'basic'
@@ -236,16 +323,50 @@ const open = async (id?: api.Id) => {
         definition: await api.getEhrTemplate(connections.value[0].id)
       }
   draft.value.definition.loadingMode ??= 'UPSERT'
+  normalizePerformance()
   visible.value = true
 }
 const changeAdapter = async () => {
   if (!draft.value || !selectedAdapter.value) return
+  if (selectedAdapter.value.key === 'TABLE_MAPPING') {
+    const templates = await api.getGenericTemplates(draft.value.definition.connectionId)
+    draft.value.definition = templates[0].definition
+    draft.value.name = templates[0].name
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_CRM_EXECUTION_ORDER') {
+    draft.value.definition = await api.getDppmsExecutionOrderTemplate(
+      draft.value.definition.connectionId
+    )
+    draft.value.name = 'DPPMS 项目执行单常规头同步'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'PAYMENT_PLAN_ACCEPTANCE') {
+    draft.value.definition = await api.getPaymentAcceptanceTemplate(
+      draft.value.definition.connectionId
+    )
+    draft.value.name = '回款节点计划验收时间同步'
+    normalizePerformance()
+    message.info(
+      '请核对来源主键，并配置参考事件到目标类型、阶段或任务编码的映射；未配置的节点将记录异常。'
+    )
+    return
+  }
   if (selectedAdapter.value.key === 'DPPMS_ERP_ORDER') {
     draft.value.definition = await api.getDppmsOrderTemplate(draft.value.definition.connectionId)
+    normalizePerformance()
     if (draft.value.name === 'EHR 公司与部门同步') draft.value.name = 'DPPMS 销售订单与订单行迁移'
     return
   }
   draft.value.definition.loadingMode = selectedAdapter.value.loadingModes[0]
+  draft.value.definition.readStrategy = 'SNAPSHOT'
+  draft.value.definition.autoPaging = false
+  draft.value.definition.fetchSize = 2000
+  draft.value.definition.chunkSize = 1000
+  draft.value.definition.restartPolicy = 'RESTART_ALL'
+  draft.value.definition.queryTimeoutSeconds = 0
   draft.value.definition.sources = selectedAdapter.value.objects.map((o) => ({
     object: o.name,
     sourceObject: o.name,
@@ -266,15 +387,22 @@ const selectMappingReset = () => {
   if (!draft.value?.definition.resetMappingsBeforeLoad) return
   draft.value.definition.clearBeforeLoad = false
   draft.value.definition.loadingMode = 'UPSERT'
+  draft.value.definition.readStrategy = 'SNAPSHOT'
+  draft.value.definition.autoPaging = false
   draft.value.definition.sources.forEach((source) => (source.syncPrimaryKey = true))
 }
 const save = async () => {
   if (!draft.value) return
+  normalizePerformance()
   if (!(await form.value?.validate().catch(() => false))) {
     section.value = 'basic'
     return
   }
-  if (!sourceEditor.value?.validate()) {
+  if (
+    !(draft.value.definition.adapter === 'TABLE_MAPPING'
+      ? genericEditor.value?.validate()
+      : sourceEditor.value?.validate())
+  ) {
     section.value = 'sources'
     return
   }

@@ -1,7 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval.result;
 
-public record CutoverApprovalDecisionResult(Long tenantId, Long approvalInstanceId, Integer approvalVersion,
-                                             Long taskId, Integer taskVersion, Long planRevisionId,
+public record CutoverApprovalDecisionResult(Long tenantId, Long approvalInstanceId, Long approvalVersion,
+                                             Long taskId, Long taskVersion, Long planRevisionId,
                                              Integer sourceSnapshotVersion, String approvalStatus,
                                              String holdReason, Integer decidedNodeNo, Integer currentNodeNo,
                                              String taskStage, String taskStatus,

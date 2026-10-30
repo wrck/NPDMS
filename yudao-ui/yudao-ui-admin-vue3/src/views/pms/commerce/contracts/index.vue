@@ -15,7 +15,7 @@
           <el-input v-model="query.status" clearable @keyup.enter="search" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="search"><Icon icon="ep:search" />查询</el-button>
+          <el-button @click="search"><Icon icon="ep:search" />查询</el-button>
           <el-button @click="reset">重置</el-button>
         </el-form-item>
       </el-form>
@@ -59,6 +59,15 @@
     <ContentWrap>
       <el-tabs v-model="activeOrderTab" @tab-change="loadOrders">
         <el-tab-pane label="销售订单" name="orders">
+          <el-form inline :model="orderQuery" class="query-form" @submit.prevent="searchOrders">
+            <el-form-item label="订单号">
+              <el-input v-model="orderQuery.orderNo" clearable @keyup.enter="searchOrders" />
+            </el-form-item>
+            <el-form-item>
+              <el-button @click="searchOrders">查询订单</el-button>
+              <el-button @click="resetOrders">重置</el-button>
+            </el-form-item>
+          </el-form>
           <el-table v-loading="orderLoading" :data="orders" empty-text="没有可见销售订单">
             <el-table-column prop="orderNo" label="订单号" min-width="150" />
             <el-table-column prop="orderType" label="类型" min-width="100" />
@@ -71,6 +80,12 @@
               </template>
             </el-table-column>
           </el-table>
+          <Pagination
+            :total="orderTotal"
+            v-model:page="orderQuery.pageNo"
+            v-model:limit="orderQuery.pageSize"
+            @pagination="loadOrders()"
+          />
         </el-tab-pane>
         <el-tab-pane
           :label="selectedOrder ? `订单行 · ${selectedOrder.orderNo}` : '订单行'"
@@ -82,10 +97,21 @@
             type="info"
             :closable="false"
           />
-          <el-table v-else v-loading="lineLoading" :data="lines" empty-text="该订单没有订单行">
+          <div v-if="selectedOrder" class="order-context">
+            <el-button @click="activeOrderTab = 'orders'">返回销售订单</el-button>
+            <span
+              >{{ selectedOrder.orderNo }} ·
+              {{ selectedOrder.customerName || '未提供客户名称' }}</span
+            >
+          </div>
+          <el-table
+            v-if="selectedOrder"
+            v-loading="lineLoading"
+            :data="lines"
+            empty-text="该订单没有订单行"
+          >
             <el-table-column prop="lineNo" label="行号" min-width="90" />
-            <el-table-column prop="itemCode" label="物料编码" min-width="140" />
-            <el-table-column prop="productCode" label="ERP 产品编码" min-width="150">
+            <el-table-column prop="productCode" label="产品编码" min-width="150">
               <template #default="{ row }">{{ row.productCode || '未提供' }}</template>
             </el-table-column>
             <el-table-column prop="orderQty" label="订单数量" min-width="110" />
@@ -93,6 +119,13 @@
             <el-table-column prop="unitCode" label="单位" min-width="90" />
             <el-table-column prop="quantityStatus" label="数量状态" min-width="120" />
           </el-table>
+          <Pagination
+            v-if="selectedOrder"
+            :total="lineTotal"
+            v-model:page="lineQuery.pageNo"
+            v-model:limit="lineQuery.pageSize"
+            @pagination="loadLines"
+          />
         </el-tab-pane>
       </el-tabs>
     </ContentWrap>
@@ -125,6 +158,10 @@ const rows = ref<ContractRespVO[]>([])
 const orders = ref<SalesOrderRespVO[]>([])
 const lines = ref<SalesOrderLineRespVO[]>([])
 const total = ref(0)
+const orderTotal = ref(0)
+const lineTotal = ref(0)
+const orderQuery = reactive({ pageNo: 1, pageSize: 10, orderNo: '' })
+const lineQuery = reactive({ pageNo: 1, pageSize: 10 })
 const activeOrderTab = ref('orders')
 const selectedOrder = ref<SalesOrderRespVO>()
 const detailRef = ref<InstanceType<typeof ContractDetail>>()
@@ -150,28 +187,48 @@ const reset = () => {
   search()
 }
 const loadOrders = async (tab?: string | number) => {
-  if ((tab || activeOrderTab.value) !== 'orders' || orders.value.length) return
+  if ((tab || activeOrderTab.value) !== 'orders') return
   orderLoading.value = true
   try {
-    const data = await CommerceApi.getSalesOrderPage({ pageNo: 1, pageSize: 100 })
+    const data = await CommerceApi.getSalesOrderPage(orderQuery)
     orders.value = data.list
+    orderTotal.value = data.total
   } finally {
     orderLoading.value = false
   }
 }
+const searchOrders = () => {
+  orderQuery.pageNo = 1
+  loadOrders()
+}
+const resetOrders = () => {
+  orderQuery.orderNo = ''
+  searchOrders()
+}
+let lineRequest = 0
 const showLines = async (order: SalesOrderRespVO) => {
   selectedOrder.value = order
   activeOrderTab.value = 'lines'
+  lineQuery.pageNo = 1
+  lines.value = []
+  lineTotal.value = 0
+  await loadLines()
+}
+const loadLines = async () => {
+  if (!selectedOrder.value) return
+  const request = ++lineRequest
   lineLoading.value = true
   try {
     const data = await CommerceApi.getSalesOrderLinePage({
-      pageNo: 1,
-      pageSize: 200,
-      orderId: order.id
+      ...lineQuery,
+      orderId: selectedOrder.value.id
     })
-    lines.value = data.list
+    if (request === lineRequest) {
+      lines.value = data.list
+      lineTotal.value = data.total
+    }
   } finally {
-    lineLoading.value = false
+    if (request === lineRequest) lineLoading.value = false
   }
 }
 
@@ -190,6 +247,15 @@ onMounted(() => Promise.all([load(), loadOrders()]))
 
 .page-heading p {
   margin: 8px 0 20px;
+  color: var(--el-text-color-secondary);
+}
+
+.order-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
   color: var(--el-text-color-secondary);
 }
 

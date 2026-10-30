@@ -9,6 +9,7 @@ vi.mock('@form-create/element-ui', () => ({ default: { component: vi.fn() } }))
 vi.mock('@/views/pms/platform/dynamic-form/components/dynamicFormCodec', () => ({ decodeDynamicForm: (option: any, rule: any) => ({ option, rule }) }))
 vi.mock('./SurveyMaterialSelector.vue', () => ({ default: defineComponent(() => () => null) }))
 vi.mock('./SurveyProjectEndDate.vue', () => ({ default: defineComponent(() => () => null) }))
+vi.mock('./SurveyPreparationBranches.vue', () => ({ default: defineComponent(() => () => null) }))
 const renderer = defineComponent({ props: ['modelValue', 'rule', 'disabled'], emits: ['update:modelValue'],
   setup(props, { emit }) { return () => h('button', { 'data-testid': 'edit', onClick: () => emit('update:modelValue', { ...props.modelValue, customCabinet: false, count: 0 }) }, JSON.stringify(props.modelValue)) } })
 const flush = async () => { for (let i = 0; i < 10; i++) { await nextTick(); await Promise.resolve() } }

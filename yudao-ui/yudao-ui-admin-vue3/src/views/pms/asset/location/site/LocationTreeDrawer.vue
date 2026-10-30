@@ -64,15 +64,23 @@
             placeholder="空表示根位置"
           />
         </el-form-item>
-        <el-form-item label="位置编码" prop="code"
-          ><el-input v-model="nodeForm.code"
-        /></el-form-item>
         <el-form-item label="位置名称" prop="name"
           ><el-input v-model="nodeForm.name"
         /></el-form-item>
-        <el-form-item label="位置类型" prop="locationType"
-          ><el-input v-model="nodeForm.locationType" placeholder="例如：ROOM / RACK / U_POSITION"
-        /></el-form-item>
+        <el-form-item label="位置类型" prop="locationType">
+          <el-select
+            v-model="nodeForm.locationType"
+            class="!w-100%"
+            placeholder="请选择位置类型"
+          >
+            <el-option
+              v-for="dict in getStrDictOptions(DICT_TYPE.PMS_SITE_LOCATION_TYPE)"
+              :key="dict.value"
+              :label="dict.label"
+              :value="dict.value"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="同级排序" prop="treeSort"
           ><el-input-number v-model="nodeForm.treeSort" :min="0"
         /></el-form-item>
@@ -87,6 +95,7 @@
 
 <script lang="ts" setup>
 import { handleTree } from '@/utils/tree'
+import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import * as LocationApi from '@/api/pms/asset/location'
 
 const emit = defineEmits(['changed'])
@@ -105,9 +114,8 @@ const emptyNode = (): LocationApi.SiteLocationVO => ({
 })
 const nodeForm = ref<LocationApi.SiteLocationVO>(emptyNode())
 const nodeRules = {
-  code: [{ required: true, message: '位置编码不能为空', trigger: 'blur' }],
   name: [{ required: true, message: '位置名称不能为空', trigger: 'blur' }],
-  locationType: [{ required: true, message: '位置类型不能为空', trigger: 'blur' }]
+  locationType: [{ required: true, message: '位置类型不能为空', trigger: 'change' }]
 }
 
 const loadTree = async () => {
@@ -138,7 +146,7 @@ const saveNode = async () => {
       id: nodeForm.value.id,
       expectedVersion: nodeForm.value.version,
       parentId: nodeForm.value.parentId,
-      code: nodeForm.value.code,
+      code: undefined,
       name: nodeForm.value.name,
       locationType: nodeForm.value.locationType,
       treeSort: nodeForm.value.treeSort

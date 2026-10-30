@@ -1,55 +1,56 @@
 <template>
   <div class="min-w-0 w-full max-w-full">
-    <ContentWrap>
-      <el-form inline class="-mb-15px">
-        <el-form-item label="项目">
-          <el-input :model-value="project.projectName || String(project.id || '')" disabled class="!w-220px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button :loading="loading" @click="refreshWorkspace"><Icon icon="ep:search" />查询</el-button>
-          <el-button v-if="canCreateInitial" :loading="commandLoading" type="primary" @click="createInitial"><Icon icon="ep:plus" />创建需求分析草稿</el-button>
-          <el-button v-if="canRevise" :loading="commandLoading" type="primary" @click="createRevision">从查看版本创建草稿</el-button>
-          <el-button :disabled="!detail" @click="openHistory">修订记录</el-button>
-        </el-form-item>
-      </el-form>
-    </ContentWrap>
-    <ContentWrap>
+    <ContentWrap :body-style="{ padding: '20px' }">
+      <div class="requirement-toolbar">
+        <div><strong>需求分析</strong><p class="requirement-caption">维护项目需求与附件，按版本保存和确认。</p></div>
+        <div class="requirement-actions">
+          <!-- 视图级操作收口到工作区底部吸附操作栏（businessActionBar 协议）；独立页签（需求分析）原地渲染 -->
+          <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+            <el-button v-if="!hasActionBar" :loading="loading" @click="refreshWorkspace"><Icon icon="ep:refresh" />刷新</el-button>
+            <el-button v-if="canCreateInitial" :loading="commandLoading" type="primary" @click="createInitial">创建需求分析草稿</el-button>
+            <el-button v-if="canRevise" :loading="commandLoading" type="primary" @click="createRevision">从查看版本创建草稿</el-button>
+            <el-button :disabled="!detail" @click="openHistory">修订记录</el-button>
+          </Teleport>
+        </div>
+      </div>
+      <el-divider />
       <el-skeleton v-if="loading && !overview" :rows="7" animated />
       <el-alert v-else-if="errorText" :title="errorText" type="error" show-icon :closable="false">
         <template #default><el-button link type="primary" @click="load">重新加载</el-button></template>
       </el-alert>
       <template v-else-if="overview">
-        <el-table :data="currentVersions" data-testid="requirement-version-table" :row-key="row => String(row.revision.ref.revisionId)" empty-text="当前项目尚未创建需求分析">
-          <el-table-column prop="revision.revisionNo" label="业务版本" width="110" :formatter="(_row, _column, value) => 'V' + value" />
-          <el-table-column label="版本类型" min-width="160" :formatter="row => row.revision.state === 'DRAFT' ? '当前草稿' : '当前有效完成版'" />
-          <el-table-column prop="revision.state" label="状态" width="100" :formatter="row => statusLabel(row.revision.state)" />
-          <el-table-column prop="revision.frozenAt" label="完成时间" width="170" :formatter="row => formatDateTime(row.revision.frozenAt)" />
-          <el-table-column label="操作" width="100" fixed="right">
-            <template #default="{ row }"><el-button link type="primary" @click="selectVersion(row.revision.ref.revisionId)">{{ row.revision.state === 'DRAFT' ? '编辑' : '查看' }}</el-button></template>
-          </el-table-column>
-        </el-table>
-        <el-alert v-if="commandError" :title="commandError" type="warning" show-icon closable @close="commandError = ''" />
+        <div class="revision-options" data-testid="requirement-version-table" aria-label="选择需求分析版本">
+          <button
+            v-for="item in currentVersions" :key="String(item.revision.ref.revisionId)"
+            class="revision-option" :class="{ 'is-selected': item.revision.ref.revisionId === selectedRevisionId }"
+            :aria-pressed="item.revision.ref.revisionId === selectedRevisionId"
+            @click="selectVersion(item.revision.ref.revisionId)">
+            <strong>{{ item.revision.state === 'DRAFT' ? '编辑当前草稿' : '查看有效完成版' }}</strong>
+            <span>V{{ item.revision.revisionNo }} · {{ statusLabel(item.revision.state) }}</span>
+            <small v-if="item.revision.frozenAt">{{ formatDateTime(item.revision.frozenAt) }}</small>
+          </button>
+        </div>
+
       </template>
+        <el-alert v-if="commandError" :title="commandError" type="warning" show-icon closable @close="commandError = ''" />
     </ContentWrap>
-    <ContentWrap v-if="overview">
-      <el-empty v-if="!selectedRevisionId" description="创建草稿后可填写11项核心内容及项目模板扩展项" />
+    <ContentWrap v-if="overview" :body-style="{ padding: '20px' }">
+      <el-empty v-if="!selectedRevisionId" description="创建草稿后可填写11项核心内容及表单扩展项" />
       <el-skeleton v-else-if="detailLoading" :rows="8" animated />
       <template v-else-if="detail">
-        <el-descriptions :column="descriptionColumns" border aria-label="当前查看版本" class="mb-15px">
-          <el-descriptions-item label="业务版本">V{{ detail.revision.revisionNo }}</el-descriptions-item>
-          <el-descriptions-item label="状态">{{ statusLabel(detail.revision.state) }}</el-descriptions-item>
-          <el-descriptions-item label="版本关系">{{ relationLabel }}</el-descriptions-item>
-
-          <el-descriptions-item label="模板修订">R{{ detail.form?.revisionNo }}</el-descriptions-item>
-          <el-descriptions-item label="完成时间">{{ formatDateTime(detail.revision.frozenAt) }}</el-descriptions-item>
-        </el-descriptions>
+        <div class="analysis-heading">
+          <div><h3>项目需求分析</h3><p>记录客户目标、网络现状和实施要求，作为实施方案的输入。</p></div>
+          <el-tag :type="detail.revision.state === 'DRAFT' ? 'warning' : 'success'">{{ relationLabel }} · V{{ detail.revision.revisionNo }}</el-tag>
+        </div>
         <EntityForm
           ref="dynamicFormRef"
           :key="`${detail.revision.ref.revisionId}-${detail.extensionValueVersion}`"
           :detail="detail" :allowed-actions="detailActions" :reload="reloadSelectedDetail" :execution="loadedExecution"
-          @dirty-change="formDirty = $event" @saved="emit('changed')"
+          @dirty-change="formDirty = $event" @saved="emit('changed')" @receipt="operationReceipt = $event"
         />
-        <el-button v-if="canComplete" :loading="commandLoading" type="success" class="mt-15px" @click="complete">完成并冻结当前草稿</el-button>
+        <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
+          <el-button v-if="canComplete" :loading="commandLoading" type="success" class="mt-15px" @click="complete">完成并冻结当前草稿</el-button>
+        </Teleport>
       </template>
     </ContentWrap>
   </div>
@@ -59,23 +60,27 @@
 
 <script setup lang="ts">
 import { formatDate } from '@/utils/formatTime'
-import { useWindowSize } from '@vueuse/core'
+import type { BusinessOperationReceipt } from '@/api/pms/platform/businessmodel'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import type { StageExecutionContext } from '@/api/pms/project/stage-business'
 import type { TaskExecutionContext } from '@/api/pms/project/task-business'
 import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
 import { type BusinessViewId } from '@/api/pms/platform/business-view/ids'
-import type { EntityId, View, Workspace } from '@/api/pms/engineering/requirement-analysis/entity'
+import type { EntityId, Revision, View, Workspace } from '@/api/pms/engineering/requirement-analysis/entity'
 import { useMessage } from '@/hooks/web/useMessage'
 import { onBeforeRouteLeave } from 'vue-router'
 import EntityForm from './EntityForm.vue'
 import RevisionDrawer from './RevisionDrawer.vue'
 import CompareDrawer from './CompareDrawer.vue'
 import { stableCommandIntent } from '@/views/pms/platform/dynamic-form/components/dynamicFormRuntime'
+import { takeTaskViewPrefetch, requirementWorkspaceKey } from '@/views/pms/project/project-master-detail/taskViewPrefetch'
+import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
 const props = defineProps<{ project: ProjectMasterVO; revisionId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean }>()
+const { barTarget } = useBusinessActionBar()
+const hasActionBar = !!barTarget
 const selectedExecution = (): ProjectBusinessExecutionSelection | undefined =>
   props.taskExecution || props.stageExecution ? {
     ...(props.taskExecution ? { task: { ...props.taskExecution } } : {}),
@@ -86,14 +91,13 @@ const emit = defineEmits<{ changed: []; 'dirty-change': [dirty: boolean] }>()
 const restrictActions = <T extends string>(actions: T[]): T[] => props.readonly ? [] : actions.filter(
   (action) => props.allowedActions === undefined || props.allowedActions.includes(action)
 )
-const { width } = useWindowSize()
-const descriptionColumns = computed(() => width.value <= 767 ? 1 : width.value <= 1023 ? 2 : 3)
 const message = useMessage()
 const loading = ref(false)
 const detailLoading = ref(false)
 const commandLoading = ref(false)
 const errorText = ref('')
 const commandError = ref('')
+const operationReceipt = shallowRef<BusinessOperationReceipt>()
 const overview = ref<Workspace>()
 const currentVersions = computed(() => [overview.value?.draft, overview.value?.currentEffective].filter((item) => !!item))
 const detail = ref<View>()
@@ -102,6 +106,7 @@ const historyRef = ref<InstanceType<typeof RevisionDrawer>>()
 const compareRef = ref<InstanceType<typeof CompareDrawer>>()
 const dynamicFormRef = ref<{
   save: () => Promise<boolean>
+  validateCompletion: () => Promise<boolean>
   discardChanges: () => void
   isSaving: () => boolean
 }>()
@@ -135,8 +140,9 @@ const canRevise = computed(
 const formatDateTime = (value?: string) => (value ? formatDate(value) : '-')
 const statusLabel = (status: string) => ({ DRAFT: '草稿', FROZEN: '已完成' })[status] || status
 const commandErrorText = (error: any) => {
-  const code = error?.data?.code || error?.code || error?.message
-  return code ? `操作未完成：${String(code)}` : '操作未完成，请刷新权威事实后重试。'
+  if (error?.message?.startsWith('操作已完成，但回执修订重开失败')) return error.message
+  const reason = error?.data?.msg || error?.message || error?.msg || error?.data?.code || error?.code
+  return reason ? `操作未完成：${String(reason)}` : '操作未完成，请按错误提示检查填写内容和附件后重试。'
 }
 let loadSequence = 0
 const readDetail = async (revisionId: EntityId, projectId = props.project.id) => {
@@ -211,7 +217,11 @@ const load = async () => {
   detailLoading.value = true
   errorText.value = ''
   try {
-    const current = await RequirementAnalysisApi.workspace(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId)
+    // 命中任务办理路径的点击时刻预取（键与本 workspace 实参严格一致）；未命中照常直查。
+    const prefetched = takeTaskViewPrefetch<Workspace>(
+      requirementWorkspaceKey(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId))
+    const current = await (prefetched
+      ?? RequirementAnalysisApi.workspace(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId))
     if (sequence !== loadSequence) return
     const value = await readWorkspaceDetail(current, revisionId, projectId)
     if (sequence !== loadSequence) return
@@ -232,9 +242,56 @@ const load = async () => {
     }
   }
 }
+// Reopen only the authoritative command target; a failed read must not select a default revision.
+const reopenReceipt = async (result: Revision | undefined) => {
+  const sequence = ++loadSequence
+  const projectId = props.project.id
+  const execution = selectedExecution()
+  loading.value = true
+  detailLoading.value = true
+  detail.value = undefined
+  selectedRevisionId.value = undefined
+  try {
+    if (!projectId) throw new Error('当前项目身份缺失')
+    if (!result?.ref.revisionId || !result.ref.entity.entityId) throw new Error('回执缺少修订身份')
+    const current = await RequirementAnalysisApi.workspace(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId)
+    if (sequence !== loadSequence) return
+    if (String(current.projectId) !== String(projectId)) throw new Error('需求分析项目不匹配')
+    const value = await readDetail(result.ref.revisionId, projectId)
+    if (sequence !== loadSequence) return
+    if (!(['tenantId', 'ownerModule', 'entityType', 'entityId'] as const).every(
+      key => String(value.revision.ref.entity[key]) === String(result.ref.entity[key])))
+      throw new Error('回执实体与重开修订不匹配')
+    overview.value = current
+    detail.value = value
+    selectedRevisionId.value = result.ref.revisionId
+    loadedExecution.value = execution
+    formDirty.value = false
+    emit('changed')
+  } catch (error: any) {
+    if (sequence === loadSequence) {
+      overview.value = undefined
+      throw new Error(`操作已完成，但回执修订重开失败：${error?.response?.data?.msg || error?.data?.code || error?.code || error?.message || '读取被拒绝'}`)
+    }
+  } finally {
+    if (sequence === loadSequence) { loading.value = false; detailLoading.value = false }
+  }
+}
 const refreshWorkspace = async () => {
   if (!(await guardCurrentForm('刷新'))) return
-  await load()
+  if (!detail.value || !selectedRevisionId.value) return await load()
+  loading.value = true
+  try {
+    const value = await reloadSelectedDetail()
+    dynamicFormRef.value?.discardChanges()
+    formDirty.value = false
+    commandError.value = ''
+    return value
+  } catch {
+    commandError.value = '需求分析刷新失败，当前内容已保留，请稍后重试。'
+  } finally {
+    loading.value = false
+  }
 }
 const openHistory = async () => {
   if (!detail.value || !(await guardCurrentForm('查看修订记录'))) return
@@ -252,10 +309,11 @@ const createInitial = async () => {
   commandLoading.value = true
   commandError.value = ''
   try {
-    await RequirementAnalysisApi.create(payload.projectId, intent.key, payload.execution)
+    const result = await RequirementAnalysisApi.create(payload.projectId, intent.key, payload.execution)
+    operationReceipt.value = result?.operationReceipt
     intent.clear()
     message.success('需求分析草稿已创建')
-    await load()
+    await reopenReceipt(result)
   } catch (error) {
     commandError.value = commandErrorText(error)
   } finally {
@@ -266,15 +324,17 @@ const complete = async () => {
   if (!detail.value) return
   const payload = { revision: detail.value.revision, execution: loadedExecution.value }
   if (!(await guardCurrentForm('完成草稿'))) return
+  if (dynamicFormRef.value && !(await dynamicFormRef.value.validateCompletion())) return
   await message.confirm('完成后正文与附件将永久冻结，是否继续？')
   const intent = stableCommandIntent('requirement-complete', payload)
   commandLoading.value = true
   commandError.value = ''
   try {
-    await RequirementAnalysisApi.complete(payload.revision, intent.key, payload.execution)
+    const result = await RequirementAnalysisApi.complete(payload.revision, intent.key, payload.execution)
+    operationReceipt.value = result?.operationReceipt
     intent.clear()
     message.success('需求分析已完成并冻结为当前有效版本')
-    await load()
+    await reopenReceipt(result)
   } catch (error) {
     commandError.value = commandErrorText(error)
   } finally {
@@ -290,10 +350,11 @@ const createRevision = async () => {
   commandLoading.value = true
   commandError.value = ''
   try {
-    await RequirementAnalysisApi.copy(payload.revision, intent.key, payload.execution)
+    const result = await RequirementAnalysisApi.copy(payload.revision, intent.key, payload.execution)
+    operationReceipt.value = result?.operationReceipt
     intent.clear()
     message.success('修订草稿已创建，原完成版本保持不变')
-    await load()
+    await reopenReceipt(result)
   } catch (error) {
     commandError.value = commandErrorText(error)
   } finally {
@@ -363,10 +424,7 @@ watch([() => props.project.id, missingCreationActions], async ([projectId, missi
     if (!cancelled) errorText.value = '业务操作状态刷新失败，请点击查询重试；当前正文未改变。'
   }
 })
-watch(() => overview.value, (value, previous) => {
-  if (previous && value) emit('changed')
-})
-defineExpose({ requestLeave, isDirty: () => formDirty.value })
+defineExpose({ requestLeave, refresh: refreshWorkspace, isDirty: () => formDirty.value })
 const beforeUnload = (event: BeforeUnloadEvent) => {
   if (!formDirty.value) return
   event.preventDefault()
@@ -386,6 +444,21 @@ onBeforeRouteLeave(async () => props.allowedActions === undefined
 </script>
 
 <style scoped lang="scss">
+.requirement-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.requirement-toolbar strong { font-size: 16px; color: var(--el-text-color-primary); }
+.requirement-caption { margin: 8px 0 0; font-size: 13px; color: var(--el-text-color-secondary); }
+.requirement-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.requirement-actions .el-button { margin-left: 0; }
+
+.revision-options { display: flex; flex-wrap: wrap; gap: 12px; }
+.revision-option { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px 14px; text-align: left; color: var(--el-text-color-primary); background: var(--el-bg-color); border: 1px solid var(--el-border-color); border-radius: 4px; cursor: pointer; }
+.revision-option.is-selected { border-color: var(--el-color-primary); background: var(--el-color-primary-light-9); }
+.revision-option:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 3px; }
+.revision-option span, .revision-option small, .analysis-heading p { color: var(--el-text-color-secondary); }
+.analysis-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.analysis-heading h3 { margin: 0 0 8px; font-size: 16px; }
+.analysis-heading p { margin: 0; line-height: 1.6; }
+
 @media (width <= 1023px) {
   :deep(.el-descriptions__body) { overflow-x: auto; }
 }

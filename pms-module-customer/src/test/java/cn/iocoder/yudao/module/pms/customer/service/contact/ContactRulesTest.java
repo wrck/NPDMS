@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ContactRulesTest {
     private ContactValues values(String mobile, String phone, String email) {
-        return new ContactValues(" 客户测试联系人 ", "运维部", null, mobile, phone, email, null, null);
+        return new ContactValues(" 客户测试联系人 ", "运维部", null, mobile, phone, email, null);
     }
 
     @Test void enabledContactRequiresARealContactChannelAndNormalizesBlanks() {

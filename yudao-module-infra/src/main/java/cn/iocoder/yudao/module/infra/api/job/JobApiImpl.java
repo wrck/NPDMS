@@ -21,4 +21,13 @@ public class JobApiImpl implements JobApi {
             throw new IllegalStateException("JOB_SYNC_FAILED", exception);
         }
     }
+
+    @Override
+    public void syncJobByHandlerName(String handlerName) {
+        try {
+            jobService.syncJobByHandlerName(handlerName);
+        } catch (SchedulerException exception) {
+            throw new IllegalStateException("JOB_SYNC_FAILED", exception);
+        }
+    }
 }

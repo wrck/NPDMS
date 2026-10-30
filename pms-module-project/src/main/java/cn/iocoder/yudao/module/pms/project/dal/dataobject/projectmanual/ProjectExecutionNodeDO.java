@@ -20,7 +20,7 @@ public abstract class ProjectExecutionNodeDO<T extends ProjectExecutionNodeDO<T>
     private LocalDateTime suggestedStartTime;
     /** 实例建议结束时间，不由模板配置。 */
     private LocalDateTime suggestedEndTime;
-    /** 实例验收时间，与实际结束时间独立；未验收时为空。 */
+    /** 计划验收时间；可由回款计划节点同步刷新，与实际结束时间独立。 */
     private LocalDateTime acceptanceTime;
     private LocalDateTime planStartTime;
     private LocalDateTime planEndTime;

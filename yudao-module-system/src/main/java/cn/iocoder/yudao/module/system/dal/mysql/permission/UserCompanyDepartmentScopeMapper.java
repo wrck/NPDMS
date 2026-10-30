@@ -8,6 +8,8 @@ import cn.iocoder.yudao.module.system.dal.dataobject.permission.UserCompanyDepar
 import cn.iocoder.yudao.module.system.dal.mysql.permission.query.ActiveUserScopeListQuery;
 import cn.iocoder.yudao.module.system.dal.mysql.permission.query.CompanyRoleUserPageQuery;
 import cn.iocoder.yudao.module.system.dal.mysql.permission.query.OrganizationUserCandidatePageQuery;
+import cn.iocoder.yudao.module.system.dal.mysql.permission.query.UserOrganizationScopePageQuery;
+import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -15,6 +17,21 @@ import java.util.List;
 
 @Mapper
 public interface UserCompanyDepartmentScopeMapper extends BaseMapperX<UserCompanyDepartmentScopeDO> {
+
+    default PageResult<UserCompanyDepartmentScopeDO> selectMaintenancePage(UserOrganizationScopePageQuery query) {
+        return selectPage(query, new LambdaQueryWrapperX<UserCompanyDepartmentScopeDO>()
+                .eq(UserCompanyDepartmentScopeDO::getUserId, query.getUserId())
+                .eqIfPresent(UserCompanyDepartmentScopeDO::getStatus, query.getStatus())
+                .orderByDesc(UserCompanyDepartmentScopeDO::getId));
+    }
+
+    UserCompanyDepartmentScopeDO selectRoleScope(@Param("query")
+            cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query);
+
+    UserCompanyDepartmentScopeDO selectRoleScopeForUpdate(@Param("query")
+            cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query);
+
+    int disableByVersion(@Param("scope") UserCompanyDepartmentScopeDO scope);
 
     default List<UserCompanyDepartmentScopeDO> selectActiveListByUserId(ActiveUserScopeListQuery query) {
         return selectList(new LambdaQueryWrapperX<UserCompanyDepartmentScopeDO>()

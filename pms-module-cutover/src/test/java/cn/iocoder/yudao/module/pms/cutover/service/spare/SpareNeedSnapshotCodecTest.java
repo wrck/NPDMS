@@ -24,9 +24,9 @@ class SpareNeedSnapshotCodecTest {
     @Test
     void roundTripsTheStableDiscriminatedNeedSnapshot() {
         SpareNeedSnapshot snapshot = new SpareNeedSnapshot(true, List.of(
-                new ChecklistRiskNeedSource(9_007_199_254_740_992L, 0,
+                new ChecklistRiskNeedSource(9_007_199_254_740_992L, 0L,
                         "MAJOR_PROJECT_SPARES", true),
-                new AssessmentNeedSource(11L, 3, true)));
+                new AssessmentNeedSource(11L, 3L, true)));
 
         String json = codec.encode(snapshot);
         SpareNeedSnapshot decoded = codec.decode(json);
@@ -49,8 +49,8 @@ class SpareNeedSnapshotCodecTest {
     @Test
     void carriesFrozenDeviceAndFileFactsWithoutProvidingAnImplementation() {
         SpareNeedSnapshot need = new SpareNeedSnapshot(true,
-                List.of(new AssessmentNeedSource(11L, 3, true)));
-        SpareInitiationCommand command = new SpareInitiationCommand(1L, "request-1", 20L, "CUT-20", 4,
+                List.of(new AssessmentNeedSource(11L, 3L, true)));
+        SpareInitiationCommand command = new SpareInitiationCommand(1L, "request-1", 20L, "CUT-20", 4L,
                 30L, List.of(new SpareDeviceContext(42L, "SN-42", 7L),
                 new SpareDeviceContext(41L, "SN-41", 6L)), need, "correlation-1");
         SpareInitiationProviderResult result = new SpareInitiationProviderResult(

@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { extractSurveyValues, mergeSurveyValues, hasStructuredSurveyLocation } from './siteSurveyForm'
+import { currentSurveyRules, extractSurveyValues, mergeSurveyValues, hasStructuredSurveyLocation } from './siteSurveyForm'
 
 describe('site survey entity binding', () => {
+  it('shows 100G and displays the bound other-port field only when selected without changing the source', () => {
+    const source = [{ type: 'checkbox', field: 'extra_networkPortTypes', options: [{ label: '100G光口', value: '100GE_FIBER' }, { label: '其他', value: 'OTHER' }] },
+      { type: 'input', field: 'networkPort', title: '其他网口说明' }]
+    const rules = currentSurveyRules(source)
+    expect(rules[0].options.map((option: any) => option.value)).toEqual(['100GE_FIBER', 'OTHER'])
+    expect(rules[0].control[0].handle([])).toBe(false)
+    expect(rules[0].control[0].handle(['OTHER'])).toBe(true)
+    expect(rules[0].control[0].rule[0].field).toBe('networkPort')
+    expect(source).toHaveLength(2)
+  })
   const entity = { id: 1, projectId: 2, code: 'SUR-1', name: '完整工勘', status: 0, version: 3,
     fieldCatalog: [{ code: 'cabinetReady', type: 'BOOLEAN', required: false }, { code: 'powerTypes', type: 'TEXT_LIST', required: false }],
     fieldBindings: { extra_cabinetReady: 'cabinetReady', power: 'powerTypes', count: 'count', labels: 'labels' },

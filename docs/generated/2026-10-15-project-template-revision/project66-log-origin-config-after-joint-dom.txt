@@ -1,0 +1,79 @@
+ "交付件提交与判定":
+  - heading "交付件提交与判定" [level=2]
+  - button "关闭此对话框":
+  - heading "启用功能与配置Log" [level=3]
+  - paragraph: 状态：已满足 · 至少 1 项有效材料
+  - paragraph: 提交后按模板条件自动判定。文件或成果有效且配置条件满足时，交付件满足门禁。
+  - generic: 材料来源
+  - radiogroup "材料来源":
+    - radio "上传文件" [checked]
+    - generic: 上传文件
+    - radio "关联业务成果"
+    - generic: 关联业务成果
+  - button "拖放文件到这里，或点击选择":
+    - text: 拖放文件到这里，或
+    - emphasis: 点击选择
+  - generic: 单文件不超过 50MB；上传完成后由服务端执行适用校验，是否执行安全扫描由部署配置决定。
+  - list
+  - button "上传并绑定" [disabled]:
+    - generic: 上传并绑定
+  - button "提交材料" [disabled]:
+    - generic: 提交材料
+  - button "重新检测":
+    - generic: 重新检测
+  - separator:
+    - generic: 提交历史
+  - button "业务文档自动归集 · 2026-10-16 10:31:00":
+    - generic: 业务文档自动归集 · 2026-10-16 10:31:00
+  - button "文件提交 · 2026-10-16 04:58:09":
+    - generic: 文件提交 · 2026-10-16 04:58:09
+  - button "关闭":
+    - generic: 关闭
+- complementary "完成条件与阶段历史":
+  - region "完成条件":
+    - generic: 完成条件
+    - button "刷新门禁结果":
+      - generic: 刷新门禁结果
+    - paragraph: 第 1 轮 · 当前规则结果；刷新不会推进阶段或发起审批。
+    - generic: 准入条件
+    - article "实施部署准入":
+      - generic: 实施部署准入
+      - generic: 满足
+      - generic: 阶段完成
+      - generic: 施工计划
+      - generic: 满足
+      - generic: 阶段完成
+      - generic: 实施方案
+      - generic: 满足
+    - generic: 交付件
+    - generic: 当前任务交付件
+    - generic: 必选
+    - generic: 启用功能与配置Log
+    - generic: 已验收
+    - button "提交与查看":
+      - generic: 提交与查看
+  - text: 阶段历史
+  - button "执行历史与规则结果":
+    - generic: 执行历史与规则结果
+  - generic: 2026-10-16 05:06:13
+  - text: 进入 S6 项目闭环
+  - generic: 进行中
+  - generic: 2026-10-16 05:01:08
+  - text: 进入 S5 验收交维
+  - generic: 已完成
+  - generic: 2026-10-16 04:55:57
+  - text: 进入 S4 实施部署
+  - generic: 已完成
+  - generic: 2026-10-16 04:54:41
+  - text: 进入 S3 实施方案
+  - generic: 已完成
+  - generic: 2026-10-16 04:53:18
+  - text: 进入 S2 施工计划
+  - generic: 已完成
+  - generic: 2026-10-16 04:49:56
+  - text: 进入 S1 工前准备
+  - generic: 已完成
+  - generic: 2026-10-16 04:43:04
+  - text: 进入 S0 项目立项
+  - generic: 已完成
+- generic: Copyright ©2026 项目实施交付管理平台

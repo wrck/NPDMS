@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.location.LocationCodeSequenceMapper">
+    <insert id="initialize">
+        INSERT INTO ast_location_code_sequence (tenant_id, code_namespace, next_value)
+        VALUES (#{tenantId}, #{namespace}, 1)
+        ON DUPLICATE KEY UPDATE next_value = next_value
+    </insert>
+    <select id="lockValue" resultType="java.lang.Long">
+        SELECT next_value FROM ast_location_code_sequence
+        WHERE tenant_id = #{tenantId} AND code_namespace = #{namespace} FOR UPDATE
+    </select>
+    <update id="advance">
+        UPDATE ast_location_code_sequence SET next_value = next_value + 1
+        WHERE tenant_id = #{tenantId} AND code_namespace = #{namespace}
+    </update>
+</mapper>

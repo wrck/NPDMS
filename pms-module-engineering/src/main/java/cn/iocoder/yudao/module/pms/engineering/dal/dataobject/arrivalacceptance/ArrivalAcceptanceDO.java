@@ -1,21 +1,17 @@
 package cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrivalacceptance;
 
-import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 
 import java.time.LocalDateTime;
 
 @TableName("imp_arrival_acceptance")
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class ArrivalAcceptanceDO extends TenantBaseDO {
+public class ArrivalAcceptanceDO extends BaseBusinessEntity {
 
-    @TableId
-    private Long id;
     private Long projectId;
     private String batchCode;
     private Integer batchRootMarker;
@@ -23,7 +19,7 @@ public class ArrivalAcceptanceDO extends TenantBaseDO {
     private LocalDateTime arrivedAt;
     private String signerSnapshot;
     private String status;
-    private Integer projectVersion;
+    private Long projectVersion;
     private Long projectParticipantFactVersion;
     private Long projectScopeVersion;
     private Long deliveryScopeVersion;
@@ -41,6 +37,4 @@ public class ArrivalAcceptanceDO extends TenantBaseDO {
     private LocalDateTime submittedAt;
     private Long confirmedBy;
     private LocalDateTime confirmedAt;
-    @Version
-    private Integer version;
 }

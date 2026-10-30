@@ -459,12 +459,12 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
     private String correlationPrefix() { return "F-SOL003-DYNAMIC-IT-" + projectId + "-"; }
     private ProjectScopeResult scope() { return new ProjectScopeResult(projectId, 7L, Set.of(projectId), Set.of()); }
     private ProjectParticipantFact manager() { return new ProjectParticipantFact(projectId, ACTOR,
-            Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY", "ACTIVE", "S1", 3, 11L); }
+            Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER), "PRIMARY", "ACTIVE", "S1", 3L, 11L); }
     private ProjectWorkBindingFact binding() {
         String snapshot = "{\"schemaVersion\":2,\"dynamicFormTemplateId\":" + TEMPLATE
                 + ",\"dynamicFormTemplateRevisionId\":" + REVISION
                 + ",\"dynamicFormRevisionNo\":1,\"dynamicFormRevisionFactVersion\":1}";
-        return new ProjectWorkBindingFact(projectId, 3, 201L, 1, 301L, 1, 401L, 1,
+        return new ProjectWorkBindingFact(projectId, 3L, 201L, 1, 301L, 1, 401L, 1,
                 ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS.workBindingTypeCode(),
                 ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS.targetContextCode(),
                 ProjectWorkBindingTarget.REQUIREMENT_ANALYSIS.targetObjectType(),

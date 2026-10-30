@@ -7,25 +7,26 @@ import static cn.iocoder.yudao.module.pms.commerce.api.authority.dto.CommerceAut
 
 public record CommerceOrderLineFact(String sourceKey, String expectedPreviousSourceVersion,
                                     String sourceVersion, String salesOrderSourceKey,
-                                    String lineCode, String itemCode, String itemDescription,
-                                    String productCode, String modelCode,
+                                    String lineCode, String productCode, String productDesc,
+                                    String productModel,
                                     BigDecimal orderQuantity, BigDecimal openQuantity,
                                     BigDecimal deliveredQuantity, String unitCode, Integer unitScale,
                                     String quantityStatus,
                                     CommerceSourceLifecycleStatus lifecycleStatus,
                                     LocalDateTime sourceUpdatedAt,
-                                     String lineType, String bundleCode, String profitCenter, String realExecutionNo, Integer warrantyMonth) {
+                                     String lineType, String bundleCode, String profitCenter, String realExecutionNo, Integer warrantyMonth,
+                                     String customInfo) {
 
     public CommerceOrderLineFact(String sourceKey, String expectedPreviousSourceVersion,
                                     String sourceVersion, String salesOrderSourceKey,
-                                    String lineCode, String itemCode, String itemDescription,
-                                    String productCode, String modelCode,
+                                    String lineCode, String productCode, String productDesc,
+                                    String productModel,
                                     BigDecimal orderQuantity, BigDecimal openQuantity,
                                     BigDecimal deliveredQuantity, String unitCode, Integer unitScale,
                                     String quantityStatus,
                                     CommerceSourceLifecycleStatus lifecycleStatus,
                                     LocalDateTime sourceUpdatedAt) {
-        this(sourceKey, expectedPreviousSourceVersion, sourceVersion, salesOrderSourceKey, lineCode, itemCode, itemDescription, productCode, modelCode, orderQuantity, openQuantity, deliveredQuantity, unitCode, unitScale, quantityStatus, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null);
+        this(sourceKey, expectedPreviousSourceVersion, sourceVersion, salesOrderSourceKey, lineCode, productCode, productDesc, productModel, orderQuantity, openQuantity, deliveredQuantity, unitCode, unitScale, quantityStatus, lifecycleStatus, sourceUpdatedAt, null, null, null, null, null, null);
     }
 
     public CommerceOrderLineFact {
@@ -34,10 +35,11 @@ public record CommerceOrderLineFact(String sourceKey, String expectedPreviousSou
         sourceVersion = version(sourceVersion, "sourceVersion");
         salesOrderSourceKey = text(salesOrderSourceKey, 128, "salesOrderSourceKey");
         lineCode = text(lineCode, 32, "lineCode");
-        itemCode = optionalText(itemCode, 64, "itemCode");
-        itemDescription = optionalText(itemDescription, 512, "itemDescription");
         productCode = optionalText(productCode, 64, "productCode");
-        modelCode = optionalText(modelCode, 64, "modelCode");
+        productDesc = optionalText(productDesc, 512, "productDesc");
+        productModel = optionalText(productModel, 64, "productModel");
+        // customInfo 为来源自定义载荷原样透传：不截断、不参与Owner载荷裁决（见 AuthorityPayloadCanonicalizer）。
+        customInfo = passthrough(customInfo);
         orderQuantity = quantity(orderQuantity, "orderQuantity", lifecycleStatus);
         openQuantity = quantity(openQuantity, "openQuantity", lifecycleStatus);
         deliveredQuantity = quantity(deliveredQuantity, "deliveredQuantity", lifecycleStatus);
@@ -70,12 +72,12 @@ public record CommerceOrderLineFact(String sourceKey, String expectedPreviousSou
 
     public CommerceOrderLineFact(String sourceKey, String expectedPreviousSourceVersion,
                                  String sourceVersion, String salesOrderSourceKey,
-                                 String lineCode, String itemCode, String modelCode,
+                                 String lineCode, String productCode,
                                  BigDecimal quantity, String unitCode,
                                  CommerceSourceLifecycleStatus lifecycleStatus,
                                  LocalDateTime sourceUpdatedAt) {
         this(sourceKey, expectedPreviousSourceVersion, sourceVersion, salesOrderSourceKey,
-                lineCode, itemCode, null, null, modelCode, quantity, quantity, BigDecimal.ZERO,
+                lineCode, productCode, null, null, quantity, quantity, BigDecimal.ZERO,
                 unitCode, quantity == null ? 0 : Math.max(0, quantity.stripTrailingZeros().scale()),
                 quantity == null ? "PENDING_AUTHORITY" : "CONFIRMED", lifecycleStatus, sourceUpdatedAt);
     }

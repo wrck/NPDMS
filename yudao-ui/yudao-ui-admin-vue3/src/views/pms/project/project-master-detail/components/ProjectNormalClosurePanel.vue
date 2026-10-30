@@ -52,17 +52,19 @@
   </ContentWrap>
 </template>
 <script setup lang="ts">
+import { generateUUID } from '@/utils'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
+import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { useMessage } from '@/hooks/web/useMessage'
 import { formatDate } from '@/utils/formatTime'
-import * as ClosureApi from '@/api/pms/project/normal-closure'
-import type { ClosureOverview } from '@/api/pms/project/normal-closure'
+import * as ClosureApi from '@/api/pms/acceptance/normal-closure'
+import type { ClosureOverview } from '@/api/pms/acceptance/normal-closure'
 import type { BusinessViewId } from '@/api/pms/platform/business-view/ids'
 const props = defineProps<{ projectId: BusinessViewId; readonly?: boolean }>()
 const emit = defineEmits<{ updated: [] }>()
-const router = useRouter(),
+const openApprovalDetail = useProjectApprovalDetail(),
   route = useRoute(),
   message = useMessage(),
   mobile = useMediaQuery('(max-width: 767px)')
@@ -77,7 +79,7 @@ let generation = 0,
 // Keep the key even after success: the same submit payload is still the same intent.
 const keys = new Map<string, string>()
 const key = (value: string) => {
-  if (!keys.has(value)) keys.set(value, crypto.randomUUID())
+  if (!keys.has(value)) keys.set(value, generateUUID())
   return keys.get(value)!
 }
 const eligible = (action: string) => {
@@ -164,6 +166,7 @@ const load = async () => {
 const refresh = () => {
   if (!busy.value && !disposed) return load()
 }
+defineExpose({ refresh })
 const check = async () => {
   if (!overview.value || !allowed('CHECK')) return
   const value = { ...overview.value },
@@ -229,7 +232,7 @@ const submit = async () => {
 }
 const openProcess = () => {
   const id = overview.value?.latestApplication?.processInstanceId
-  if (id) return router.push({ name: 'BpmProcessInstanceDetail', query: { id } })
+  if (id) return openApprovalDetail(id)
 }
 watch(
   () => [props.projectId, route.fullPath],

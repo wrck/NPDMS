@@ -1,0 +1,211 @@
+import { generateUUID } from '@/utils'
+import { computed, inject, markRaw, onBeforeUnmount, shallowRef, watch, type InjectionKey, type ShallowRef } from 'vue'
+import { inspectOperationCapabilities, type OperationCapabilities, type CapabilityQuery } from '@/api/pms/project/execution-operations'
+import request from '@/config/axios'
+import { service } from '@/config/axios/service'
+import { OperationClient, routeSelection, captureOperationResponse, type Result, type Selection } from './operationClient'
+import type { BusinessViewTarget } from './registry'
+import { validateBusinessPage, pagePresentationKey, businessOperationAliases, type PagePresentation } from './presentationRoute'
+import { operationPresentation } from './operationPresentation'
+import { officeProjectReadContext } from '@/utils/officeProjectReadonly'
+
+export const operationClientKey: InjectionKey<ShallowRef<OperationClient | undefined>> = Symbol('operation-client')
+export const useOperationClient = () => inject(operationClientKey, shallowRef<OperationClient>())
+export const operationCheckKey: InjectionKey<() => Promise<boolean>> = Symbol('operation-check')
+export const useOperationCheck = () => inject(operationCheckKey, async () => true)
+export function editingTargetKey(target: BusinessViewTarget): string {
+  const view = target.registration, context = target.resolvedContext
+  // Execution versions and registry enable/disable updates do not change an Owner editing buffer.
+  return JSON.stringify([view.id, view.componentKey, view.componentVersion, view.ownerContext, view.entityType,
+    view.viewSource, view.dynamicFormRevisionId, context.project?.id, context.instanceId, context.businessObjectId, context.taskId, context.stageExecution?.stageId])
+}
+export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed: () => void) {
+  const observation = shallowRef<OperationCapabilities>()
+  const client = shallowRef<OperationClient>()
+  const routingExecution = shallowRef<Selection>()
+  const routingPresentation = shallowRef<PagePresentation>()
+  let presentationObserved = false
+  const uncertain = shallowRef(false)
+  const recovering = shallowRef(false)
+  const receipt = shallowRef<Result>()
+  const failure = shallowRef('')
+  const checking = shallowRef(false)
+  const requiresReopen = shallowRef(false)
+  const mode = shallowRef<'INDEPENDENT' | 'CHECKING' | 'LEGACY' | 'CONTROLLED'>('CHECKING')
+  let generation = 0, disposed = false, timer: ReturnType<typeof setTimeout> | undefined, poll = 0
+  const checkWaiters = new Set<(available: boolean) => void>()
+  const waitForCheck = () => disposed ? Promise.resolve(false) : !checking.value ? Promise.resolve(true)
+    : new Promise<boolean>(resolve => checkWaiters.add(resolve))
+  const settleChecks = (available: boolean) => {
+    for (const resolve of checkWaiters) resolve(available)
+    checkWaiters.clear()
+  }
+  const query = (): CapabilityQuery | undefined => {
+    const context = active.value.resolvedContext
+    const projectId = context.project?.id
+    const nodeId = context.taskExecution?.taskId ?? context.taskId ?? context.stageExecution?.stageId
+    if (projectId == null || nodeId == null) return undefined
+    return { projectId, nodeKind: context.taskId != null || context.taskExecution ? 'TASK' : 'STAGE', nodeId,
+      objectId: context.businessObjectId }
+  }
+  const submitted = (result: Result) => {
+    if (disposed) return
+    receipt.value = result
+    poll = 0
+    if (timer) clearTimeout(timer)
+    // Let the Owner finish updating its saved buffer before refreshing metadata.
+    timer = setTimeout(() => { if (!disposed) void refresh(true) }, 0)
+  }
+  const refresh = async (follow = false) => {
+    const target = query(), sequence = ++generation
+    if (officeProjectReadContext()) {
+      client.value?.invalidate(); client.value = undefined; observation.value = undefined
+      mode.value = 'INDEPENDENT'; checking.value = false; settleChecks(true); return
+    }
+    if (!target) {
+      client.value?.invalidate(); client.value = undefined; observation.value = undefined
+      mode.value = 'INDEPENDENT'; checking.value = false; settleChecks(true); return
+    }
+    checking.value = true
+    try {
+      const value = await inspectOperationCapabilities(target)
+      if (disposed || sequence !== generation) return
+      if (String(value.node.projectId) !== String(target.projectId) || String(value.node.id) !== String(target.nodeId)
+        || value.node.kind !== target.nodeKind) throw new Error('EXECUTION_CONTEXT_MISMATCH')
+      const previous = observation.value
+      observation.value = value
+      failure.value = ''
+      const nextMode = value.reason === 'LEGACY_BINDING' ? 'LEGACY' : 'CONTROLLED'
+      if (mode.value !== 'CHECKING' && mode.value !== nextMode) {
+        requiresReopen.value = true
+        client.value?.invalidate()
+        throw new Error('EXECUTION_CONTRACT_CHANGED_REOPEN_REQUIRED')
+      }
+      if (requiresReopen.value) throw new Error('EXECUTION_CONTRACT_CHANGED_REOPEN_REQUIRED')
+      const page = value.presentation
+      if (page?.pageUrl != null && (page.status === 'UNAVAILABLE' || page.query == null)) {
+        if (presentationObserved && routingPresentation.value?.pageUrl !== page.pageUrl) {
+          requiresReopen.value = true; client.value?.invalidate()
+        }
+        throw new Error(page.reason || 'PRESENTATION_ROUTE_UNAVAILABLE')
+      }
+      let candidate: PagePresentation | undefined
+      if (page?.pageUrl != null) {
+        candidate = { pageUrl: page.pageUrl, query: { ...page.query! } }
+        validateBusinessPage(active.value, candidate)
+        const actual = page.registration, expected = active.value.registration
+        if (!actual || String(actual.id) !== String(expected.id) || actual.ownerContext !== expected.ownerContext
+          || actual.entityType !== expected.entityType || actual.componentKey !== expected.componentKey
+          || actual.componentVersion !== expected.componentVersion || actual.viewSource !== expected.viewSource)
+          throw new Error('PRESENTATION_REGISTRATION_MISMATCH')
+      }
+      if (presentationObserved && pagePresentationKey(candidate) !== pagePresentationKey(routingPresentation.value)) {
+        requiresReopen.value = true; client.value?.invalidate()
+        throw new Error('PRESENTATION_CHANGED_REOPEN_REQUIRED')
+      }
+      if (nextMode === 'LEGACY') {
+        client.value?.invalidate(); client.value = undefined; mode.value = 'LEGACY'
+      } else {
+        mode.value = 'CONTROLLED'
+        if (client.value && !client.value.matches(value.execution)) {
+          // Keep the old client for response recovery, but never route an existing form into a new round.
+          client.value.invalidate(); requiresReopen.value = true
+          throw new Error('EXECUTION_CONTEXT_CHANGED_REOPEN_REQUIRED')
+        }
+        if (value.execution && !client.value) {
+          const created: OperationClient = markRaw(new OperationClient(target, value.execution, {
+            resultIdentity: { ownerContext: active.value.registration.ownerContext, objectType: active.value.registration.entityType },
+            inspect: input => inspectOperationCapabilities(input),
+            submit: (code, command, key) => request.post<Result>({ url: `/api/v1/pms/project-execution/operations/${encodeURIComponent(code)}`,
+              data: command, headers: { 'Idempotency-Key': key },
+              transformResponse: [...(Array.isArray(service.defaults.transformResponse) ? service.defaults.transformResponse
+                : service.defaults.transformResponse ? [service.defaults.transformResponse] : []), captureOperationResponse] }),
+            newKey: () => generateUUID(), submitted,
+            pendingChanged: pending => { if (!disposed && client.value === created) uncertain.value = pending }
+          }))
+          client.value = created
+        }
+        if (value.execution) routingExecution.value = value.execution as Selection
+      }
+      routingPresentation.value = candidate
+      presentationObserved = true
+      if (previous && previous.node.status !== value.node.status) changed()
+      if (follow && ++poll < 6 && !['DONE', 'CLOSED', 'COMPLETED'].includes(value.node.status)) {
+        timer = setTimeout(() => void refresh(true), Math.min(1000 * 2 ** poll, 8000))
+      }
+    } catch (error) {
+      if (!disposed && sequence === generation) {
+        failure.value = error instanceof Error ? error.message : 'EXECUTION_CAPABILITY_UNAVAILABLE'
+        // Never fall back to an unguarded API after a new-contract request fails.
+      }
+    } finally { if (!disposed && sequence === generation) { checking.value = false; settleChecks(true) } }
+  }
+  const decorated = computed(() => {
+    const context = active.value.resolvedContext
+    if (mode.value !== 'CONTROLLED' || !client.value || !routingExecution.value) return context
+    const selected = routeSelection(routingExecution.value, client.value)
+    return { ...context, ...(selected.task ? { taskExecution: selected.task } : { stageExecution: selected.stage }) } as typeof context
+  })
+  // Presentation can restrict this view without changing Owner command authorization or the recovery client.
+  const configuredPresentation = computed(() => !!routingPresentation.value || observation.value?.presentation?.pageUrl != null)
+  const presentation = computed(() => operationPresentation(configuredPresentation.value ? 'CONTROLLED' : mode.value, observation.value?.presentation))
+  const presentationReadonly = computed(() => presentation.value.readonly || configuredPresentation.value && !!failure.value)
+  const presentationReason = computed(() => presentation.value.reason)
+  const allowedActions = computed(() => {
+    const target = active.value
+    if (officeProjectReadContext()) return target.allowedActions.includes('QUERY') ? ['QUERY'] : []
+    if (requiresReopen.value) return target.allowedActions.includes('QUERY') ? ['QUERY'] : []
+    if (mode.value === 'INDEPENDENT' || mode.value === 'LEGACY') return configuredPresentation.value && (presentationReadonly.value || checking.value || failure.value)
+      ? target.allowedActions.includes('QUERY') ? ['QUERY'] : [] : target.allowedActions
+    const readable = target.allowedActions.includes('QUERY') ? ['QUERY'] : []
+    if (presentationReadonly.value || checking.value || uncertain.value || recovering.value || failure.value || observation.value?.reason || !client.value) return readable
+    const selectedObject = target.resolvedContext.businessObjectId != null
+    const ownerAliases = new Set(target.allowedActions)
+    const result = new Set(readable)
+    for (const action of observation.value?.actions || []) {
+      const candidates = businessOperationAliases(target.registration, action.operationCode)
+      // A list has no selected object: preserve only Owner-provided list actions. The command inspects its actual row.
+      const permitted = selectedObject ? action.allowed : action.executionPermitted && action.runtimeAvailable
+        && ['MATCHED', 'NO_ADDITIONAL_RULE'].includes(action.pre.outcome)
+        && (action.ownerPermitted || candidates.some(alias => ownerAliases.has(alias)) || ownerAliases.has('MANAGE'))
+      if (permitted) candidates.forEach(alias => result.add(alias))
+    }
+    // File permissions are not implied by report publication or a business command.
+    if (ownerAliases.has('FILE_WRITE')) result.add('FILE_WRITE')
+    return [...result]
+  })
+  const recover = async () => {
+    if (!client.value || recovering.value) return
+    recovering.value = true
+    try { await client.value.retryPending() }
+    catch (error) { failure.value = error instanceof Error ? error.message : 'OPERATION_RESULT_UNCERTAIN' }
+    finally { recovering.value = false; uncertain.value = client.value?.hasUncertain() ?? false }
+  }
+  const reopen = async () => {
+    if (client.value?.isBusy() || client.value?.hasUncertain()) {
+      failure.value = 'OPERATION_RESULT_UNCERTAIN_RETRY_REQUIRED'; return
+    }
+    client.value?.invalidate(); client.value = undefined; routingExecution.value = undefined; uncertain.value = false
+    requiresReopen.value = false; mode.value = 'CHECKING'; failure.value = ''
+    receipt.value = undefined; routingPresentation.value = undefined; presentationObserved = false
+    await refresh()
+  }
+  let previousTarget = ''
+  watch(() => {
+    const target = query()
+    return JSON.stringify([editingTargetKey(active.value), target, active.value.resolvedContext.taskExecution, active.value.resolvedContext.stageExecution])
+  }, () => {
+    // BusinessViewHost changes this only after its original dirty/pending-command leave guard succeeds.
+    const identity = editingTargetKey(active.value)
+    if (identity !== previousTarget) {
+      client.value?.invalidate(); client.value = undefined
+      routingExecution.value = undefined; uncertain.value = false
+      mode.value = 'CHECKING'; requiresReopen.value = false; receipt.value = undefined
+      routingPresentation.value = undefined; presentationObserved = false
+      previousTarget = identity
+    }
+    poll = 0; if (timer) clearTimeout(timer); void refresh()
+  }, { immediate: true })
+  onBeforeUnmount(() => { disposed = true; generation++; settleChecks(false); client.value?.invalidate(); if (timer) clearTimeout(timer) })
+  return { observation, client, routingPresentation, receipt, failure, checking, mode, decorated, allowedActions, presentationReadonly, presentationReason, requiresReopen, uncertain, recovering, recover, refresh, reopen, waitForCheck }
+}

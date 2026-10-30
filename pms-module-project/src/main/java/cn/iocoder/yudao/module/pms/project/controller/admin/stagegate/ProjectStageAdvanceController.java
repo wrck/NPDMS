@@ -24,6 +24,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -65,16 +66,16 @@ public class ProjectStageAdvanceController {
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<ProjectStageGateWorkbench> gateWorkbench(@PathVariable("id") Long projectId,
             @PathVariable("stageCode") @NotBlank @Size(max = 32) String stageCode) {
-        return withTrustedTenant(() -> success(workbenchService.inspect(projectId, stageCode,
-                new ProjectAccessActor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId()))));
+        return withTrustedTenant(() -> success(withDeadlockRetry(() -> workbenchService.inspect(projectId, stageCode,
+                new ProjectAccessActor(currentTenantId(), SecurityFrameworkUtils.getLoginUserId())))));
     }
 
     @GetMapping("/{id}/stage-advance-readiness")
     @Operation(summary = "查询当前阶段准出门禁")
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<ProjectStageAdvanceReadinessRespVO> readiness(@PathVariable("id") Long projectId) {
-        return withTrustedTenant(() -> success(ProjectStageAdvanceReadinessRespVO.from(
-                readinessService.evaluate(projectId, SecurityFrameworkUtils.getLoginUserId()))));
+        return withTrustedTenant(() -> success(ProjectStageAdvanceReadinessRespVO.from(withDeadlockRetry(() ->
+                readinessService.evaluate(projectId, SecurityFrameworkUtils.getLoginUserId())))));
     }
 
     @GetMapping("/{id}/stage-gates/{gateReferenceId}/process-definitions")
@@ -109,7 +110,7 @@ public class ProjectStageAdvanceController {
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String idempotencyKey,
             @Valid @RequestBody ProjectStageAdvanceReqVO request) {
         return withTrustedTenant(() -> {
-            Integer expectedVersion = parseIfMatch(ifMatch);
+            Long expectedVersion = parseIfMatch(ifMatch);
             return success(applicationService.advance(new ProjectStageAdvanceCommand(projectId, expectedVersion,
                     request.getExpectedCurrentStage(), request.getExpectedTreeVersion(), idempotencyKey,
                     digest(projectId, expectedVersion, request)), actor()));
@@ -136,14 +137,36 @@ public class ProjectStageAdvanceController {
         return result.get();
     }
 
-    private Integer parseIfMatch(String value) {
+    /** 只读门禁重验与并发命令在 proj_project_stage 行锁上可能死锁；死锁时事务已回滚，按 MySQL
+     * "try restarting transaction" 原参重读。写命令路径不适用（自动重试写操作超出本层职责）。 */
+    private <T> T withDeadlockRetry(Supplier<T> action) {
+        DeadlockLoserDataAccessException last = null;
+        for (int attempt = 0; attempt < 3; attempt++) {
+            if (attempt > 0) {
+                try {
+                    Thread.sleep(40L * attempt);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+            try {
+                return action.get();
+            } catch (DeadlockLoserDataAccessException ex) {
+                last = ex;
+            }
+        }
+        throw last;
+    }
+
+    private Long parseIfMatch(String value) {
         String normalized = value == null ? "" : value.trim();
         if (normalized.startsWith("W/")) normalized = normalized.substring(2).trim();
         if (normalized.length() >= 2 && normalized.startsWith("\"") && normalized.endsWith("\"")) {
             normalized = normalized.substring(1, normalized.length() - 1);
         }
         try {
-            int parsed = Integer.parseInt(normalized);
+            long parsed = Long.parseLong(normalized);
             if (parsed < 0) throw new NumberFormatException("negative version");
             return parsed;
         } catch (NumberFormatException ex) {

@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 /**
  * F-PM03 T4：项目模板 API 契约测试。
  * <p>
- * 逐端点校验技术计划第3节契约：HTTP 方法 + 路径 + 权限注解（与 V52 菜单 18060~18066 权限串一致）。
+ * 逐端点校验 HTTP 方法、路径及权限；只读事实目录同时供模板配置与项目计划管理消费。
  */
 class ProjectTemplateControllerContractTest {
 
@@ -85,21 +85,51 @@ class ProjectTemplateControllerContractTest {
 
     @Test
     void completionFactCatalogEndpoint() {
-        assertEndpoint("completionFactCatalog", GetMapping.class, "/actions/completion-fact-catalog",
-                "pms:project-template:query");
+        assertEndpointExpression("completionFactCatalog", GetMapping.class, "/actions/completion-fact-catalog",
+                "@ss.hasAnyPermissions('pms:project-template:query', 'pms:project-plan:manage')");
+    }
+
+    @Test
+    void catalogPermissionAllowsEitherConsumerButNotUnrelatedPermissions() {
+        String expression = findMethod("completionFactCatalog").getAnnotation(PreAuthorize.class).value();
+        var parser = new org.springframework.expression.spel.standard.SpelExpressionParser();
+        for (String granted : java.util.List.of("pms:project-template:query", "pms:project-plan:manage",
+                "pms:project-template:publish", "pms:project-template:update", "")) {
+            var security = org.mockito.Mockito.mock(
+                    cn.iocoder.yudao.framework.security.core.service.SecurityFrameworkService.class);
+            org.mockito.Mockito.when(security.hasAnyPermissions(
+                    "pms:project-template:query", "pms:project-plan:manage"))
+                    .thenReturn(granted.equals("pms:project-template:query") || granted.equals("pms:project-plan:manage"));
+            var context = new org.springframework.expression.spel.support.StandardEvaluationContext();
+            context.setBeanResolver((evaluation, name) -> {
+                assertEquals("ss", name);
+                return security;
+            });
+            assertEquals(granted.equals("pms:project-template:query") || granted.equals("pms:project-plan:manage"),
+                    parser.parseExpression(expression).getValue(context, Boolean.class), granted);
+            org.mockito.Mockito.verify(security).hasAnyPermissions(
+                    "pms:project-template:query", "pms:project-plan:manage");
+            org.mockito.Mockito.verifyNoMoreInteractions(security);
+        }
     }
 
     // ========== 断言辅助 ==========
 
     private static void assertEndpoint(String methodName, Class<? extends Annotation> httpAnnotation,
                                        String expectedPath, String expectedPermission) {
+        assertEndpointExpression(methodName, httpAnnotation, expectedPath,
+                "@ss.hasPermission('" + expectedPermission + "')");
+    }
+
+    private static void assertEndpointExpression(String methodName, Class<? extends Annotation> httpAnnotation,
+                                                String expectedPath, String expectedExpression) {
         Method method = findMethod(methodName);
         Annotation mapping = method.getAnnotation(httpAnnotation);
         assertNotNull(mapping, methodName + " 缺少 " + httpAnnotation.getSimpleName());
         assertEquals(expectedPath, extractPath(mapping), methodName + " 路径不符合契约");
         PreAuthorize preAuthorize = method.getAnnotation(PreAuthorize.class);
         assertNotNull(preAuthorize, methodName + " 缺少 @PreAuthorize");
-        assertEquals("@ss.hasPermission('" + expectedPermission + "')", preAuthorize.value(),
+        assertEquals(expectedExpression, preAuthorize.value(),
                 methodName + " 权限串不符合契约");
     }
 

@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.project.service.taskworkbench;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
+
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
@@ -10,12 +12,10 @@ import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectM
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskExecutionContractDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.taskworkbench.ProjectTaskDependencyDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMilestoneInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectStageInstanceMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskExecutionContractMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskInstanceMapper;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskDependencyMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
@@ -77,7 +77,6 @@ public class ProjectTaskCommandService {
     private final TaskStateMachineMapper stateMachineMapper;
     private final ProjectStageInstanceMapper stageMapper;
     private final ProjectMilestoneInstanceMapper milestoneMapper;
-    private final ProjectMemberAssignmentMapper memberMapper;
     private final ProjectTreeVersionMapper projectTreeVersionMapper;
     private final ProjectTreeScopeService treeScopeService;
     private final PlatformCommandExecutionApi commandExecutionApi;
@@ -85,6 +84,7 @@ public class ProjectTaskCommandService {
     private final ProjectTaskProgressService progressService;
     private final PermissionApi permissionApi;
     private final cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi ruleEvents;
+    private final ProjectManagementQualificationApi managementAccess;
 
     public TaskCommandResult create(CreateTaskCommand command, TaskWorkbenchActor actor) {
         AtomicReference<Map<String, ?>> auditDetail = new AtomicReference<>(Map.of());
@@ -184,6 +184,7 @@ public class ProjectTaskCommandService {
         task.setDescriptionFormat(command.descriptionFormat());
         task.setProgress(BigDecimal.ZERO);
         task.setStateMachineRevisionId(stateMachine.getId());
+        task.setRequiredTask(true);
         task.setStatus("PENDING_ASSIGN");
         task.setVersion(0);
         if (taskMapper.insert(task) != 1 || taskMapper.insertNewTaskPaths(new NewTaskTreePathInsert(
@@ -348,10 +349,7 @@ public class ProjectTaskCommandService {
         treeScopeService.assertFullAccess(new ProjectScopeQuery(actor.tenantId(), actor.actorId(), project.getId(),
                 ProjectScopeApi.ACTION_MANAGE, version.getTreeVersion()));
         if (treeScopeService.isTenantSuperAdmin(actor.tenantId(), actor.actorId())) return;
-        boolean manager = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(
-                        actor.tenantId(), actor.actorId(), LocalDateTime.now())).stream()
-                .anyMatch(item -> Objects.equals(item.getProjectId(), project.getId())
-                        && "PROJECT_MANAGER".equals(item.getMemberRole()));
+        boolean manager = (managementAccess.lockCurrent(new ProjectManagementQualificationApi.CurrentRevalidation(new ProjectManagementQualificationApi.Query(project.getTenantId(), project.getId(), actor.actorId()), project.getVersion(), "ACTIVE", null)) != null);
         if (!manager) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
     }
 

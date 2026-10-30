@@ -33,7 +33,7 @@ class TemplateDraftBindingResolutionTest {
         var view = new BusinessViewRevision(2097373775105802242L, "REQUIREMENT_ANALYSIS", "ANALYSIS", 1L, "SOL",
                 BusinessViewComponentProvider.ViewSource.PAGE, "PROJ_REQUIREMENT_ANALYSIS", "1", null,
                 JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"), "QUERY", "COMMAND", "PERMISSION",
-                LocalDateTime.now(), null, 1, "PUBLISHED", Set.of());
+                LocalDateTime.now(), null, 1L, "PUBLISHED", Set.of());
         Map<Long, Snapshot> closure = Map.of(1L, new Snapshot(taskDefinition, null), 2L, new Snapshot(binding, view),
                 3L, new Snapshot(permission, null), 4L, new Snapshot(rule, null));
         when(resolver.resolve(anyList(), isNull(), eq(true))).thenReturn(closure);

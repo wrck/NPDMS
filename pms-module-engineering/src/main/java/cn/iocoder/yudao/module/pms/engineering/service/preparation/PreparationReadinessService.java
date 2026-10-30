@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.engineering.service.preparation;
 
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.engineering.api.readiness.dto.*;
@@ -17,8 +18,6 @@ import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecution
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
-import cn.iocoder.yudao.module.pms.project.api.participant.ProjectParticipantFactApi;
-import cn.iocoder.yudao.module.pms.project.api.participant.dto.ProjectParticipantFactRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
@@ -54,7 +53,7 @@ public class PreparationReadinessService {
     private final PreparationItemWaiverMapper waiverMapper;
     private final PreparationReadinessSnapshotMapper snapshotMapper;
     private final ProjectScopeApi projectScopeApi;
-    private final ProjectParticipantFactApi participantFactApi;
+    private final ProjectManagementQualificationApi managementAccess;
     private final PermissionApi permissionApi;
     private final FileArtifactApi fileArtifactApi;
     private final PreparationSourceProviderRegistry sourceProviderRegistry;
@@ -144,8 +143,11 @@ public class PreparationReadinessService {
     public SiteSurveyReadinessFact inspect(SiteSurveyReadinessQuery query, Long tenantId, Long actorId) {
         requireTrusted(tenantId, actorId);
         PreparationDO preparation = locate(query, tenantId, false);
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorId, query.projectId(), ProjectScopeApi.ACTION_VIEW));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         requireScope(scope, query.projectId());
         UnlockedFacts facts = loadUnlocked(tenantId, preparation.getId());
         Evaluation evaluation = calculate(preparation, facts.items(), facts.forms(), facts.sources(),
@@ -160,9 +162,12 @@ public class PreparationReadinessService {
     public SiteSurveyReadinessFact lockAndRevalidate(SiteSurveyReadinessRevalidationQuery query,
                                                       Long tenantId, Long actorId) {
         requireTrusted(tenantId, actorId);
-        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                tenantId, actorId, query.projectId(), ProjectScopeApi.ACTION_VIEW,
-                query.expectedProjectScopeVersion()));
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(query.expectedProjectScopeVersion()).build());
         requireScope(scope, query.projectId());
         LockedFacts facts = loadLocked(tenantId, query.preparationId());
         PreparationDO preparation = facts.preparation();
@@ -187,20 +192,27 @@ public class PreparationReadinessService {
         return response(preparation, latest, scope.treeVersion(), evaluation, true);
     }
 
-    private ProjectScopeResult authorizeAndLock(Long projectId, Integer projectVersion,
+    private ProjectScopeResult authorizeAndLock(Long projectId, Long projectVersion,
             PreparationItemApplicationService.Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        ProjectScopeResult current = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+        ProjectScopeResult current = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         requireScope(current, projectId);
-        ProjectScopeResult locked = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE, current.treeVersion()));
+        ProjectScopeResult locked = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(current.treeVersion()).build());
         requireScope(locked, projectId);
-        participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(projectId,
-                actor.actorId(), projectVersion, "ACTIVE", null,
-                Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+        var qualification = managementAccess.inspect(new ProjectManagementQualificationApi.Query(actor.tenantId(), projectId, actor.actorId()));
+        if (qualification == null) throw exception(FORBIDDEN);
+        managementAccess.lockAndRevalidate(new ProjectManagementQualificationApi.Revalidation(qualification, projectVersion, "ACTIVE", null));
         return locked;
     }
 

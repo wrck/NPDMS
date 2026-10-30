@@ -34,11 +34,11 @@ class ProjectCustomerCorrectionServiceTest {
     ProjectCustomerCorrectionService service;
     PlatformCommandExecutionApi.SuccessFacts successFacts;
     final ProjectCustomerCorrectionService.Actor actor = new ProjectCustomerCorrectionService.Actor(1L, 7L, "test");
-    final ProjectCustomerCorrectionService.Command command = new ProjectCustomerCorrectionService.Command(10L, 3, "CUS-NEW", "录入更正", "key");
+    final ProjectCustomerCorrectionService.Command command = new ProjectCustomerCorrectionService.Command(10L, 3L, "CUS-NEW", "录入更正", "key");
 
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
         TenantContextHolder.setTenantId(1L);
-        project = new ProjectMasterDO(); project.setId(10L); project.setTenantId(1L); project.setVersion(3);
+        project = new ProjectMasterDO(); project.setId(10L); project.setTenantId(1L); project.setVersion(3L);
         project.setLifecycleStatus("ACTIVE"); project.setCustomerId(101L); project.setCustomerCode("CUS-OLD"); project.setCustomerName("原客户");
         when(permissions.hasAnyPermissions(7L, ProjectCustomerCorrectionService.PERMISSION)).thenReturn(true);
         when(projects.getProjectForManage(eq(10L), any())).thenReturn(project);
@@ -66,7 +66,7 @@ class ProjectCustomerCorrectionServiceTest {
         var result = service.correct(command, actor);
         assertTrue(result.changed()); assertEquals(4, result.version());
         assertEquals("CUS-OLD", result.previousCustomerCode()); assertEquals("CUS-NEW", result.customerCode());
-        verify(mapper).correctCustomerIfMatch(new ProjectContactCustomerUpdate(1L, 10L, 3, 102L, "CUS-NEW", "新客户", "7"));
+        verify(mapper).correctCustomerIfMatch(new ProjectContactCustomerUpdate(1L, 10L, 3L, 102L, "CUS-NEW", "新客户", "7"));
         assertEquals("CUS-OLD", project.getCustomerCode());
         assertEquals(1, successFacts.businessEvents().size());
         var event = successFacts.businessEvents().getFirst();
@@ -77,7 +77,7 @@ class ProjectCustomerCorrectionServiceTest {
         assertEquals(7L, context.path("actorId").asLong());
     }
     @Test void unchangedCustomerDoesNotProduceAReevaluationEvent() {
-        var same = new ProjectCustomerCorrectionService.Command(10L, 3, "CUS-OLD", "未更改", "same");
+        var same = new ProjectCustomerCorrectionService.Command(10L, 3L, "CUS-OLD", "未更改", "same");
         assertFalse(service.correct(same, actor).changed());
         assertTrue(successFacts.businessEvents().isEmpty());
         verify(mapper, never()).correctCustomerIfMatch(any());
@@ -100,10 +100,10 @@ class ProjectCustomerCorrectionServiceTest {
         verify(mapper, never()).correctCustomerIfMatch(any());
     }
     @Test void staleVersionAndClosedProjectCannotWrite() {
-        project.setVersion(4);
+        project.setVersion(4L);
         assertEquals(PROJECT_VERSION_CONFLICT.getCode(), assertThrows(ServiceException.class,
                 () -> service.correct(command, actor)).getCode());
-        project.setVersion(3); project.setLifecycleStatus("NORMAL_CLOSED");
+        project.setVersion(3L); project.setLifecycleStatus("NORMAL_CLOSED");
         assertThrows(ServiceException.class, () -> service.correct(command, actor));
         verify(mapper, never()).correctCustomerIfMatch(any());
     }
@@ -123,7 +123,7 @@ class ProjectCustomerCorrectionServiceTest {
         verifyNoInteractions(commands, customers);
     }
     @Test void replayDoesNotChangeProjectOrReadCustomersAgain() {
-        var saved = new ProjectCustomerCorrectionService.Result(10L, 4, 101L, "CUS-OLD", "原客户", 102L,
+        var saved = new ProjectCustomerCorrectionService.Result(10L, 4L, 101L, "CUS-OLD", "原客户", 102L,
                 "CUS-NEW", "新客户", true, "录入更正");
         doReturn(new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, saved))
                 .when(commands).execute(any(), anyString(), eq(ProjectCustomerCorrectionService.Result.class), any(), any());

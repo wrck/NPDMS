@@ -1,0 +1,65 @@
+{
+  "fields": {
+    "project.projectName": {
+      "availableAtCreation": true
+    },
+    "project.projectType": {
+      "availableAtCreation": true
+    },
+    "project.signingMethod": {
+      "availableAtCreation": true
+    },
+    "project.projectCategory": {
+      "availableAtCreation": true
+    },
+    "project.implementationMethod": {
+      "availableAtCreation": true
+    },
+    "project.majorProjectLevel": {
+      "availableAtCreation": true
+    },
+    "project.businessType": {
+      "availableAtCreation": true
+    },
+    "project.salesType": {
+      "availableAtCreation": true
+    },
+    "project.industryCode": {
+      "availableAtCreation": true
+    },
+    "project.serviceLevelCode": {
+      "availableAtCreation": true
+    },
+    "project.sourceType": {
+      "availableAtCreation": true
+    },
+    "project.businessLevelCode": {
+      "availableAtCreation": true
+    },
+    "project.implementationLocation": {
+      "availableAtCreation": true
+    },
+    "project.companyCode": {
+      "availableAtCreation": true
+    },
+    "project.departmentCode": {
+      "availableAtCreation": true
+    },
+    "project.customerCode": {
+      "availableAtCreation": true
+    },
+    "project.isChild": {
+      "availableAtCreation": true
+    }
+  },
+  "aliases": {
+    "project.implementationMethod": {
+      "property": "implementationMode"
+    },
+    "project.isChild": {
+      "property": "parentId",
+      "transform": "PRESENT",
+      "label": "是否子项目"
+    }
+  }
+}

@@ -7,10 +7,18 @@ import { findByTestId, mount, passthrough, textOf } from '@/views/pms/platform/d
 
 const messages = vi.hoisted(() => ({ confirm: vi.fn() }))
 const permission = vi.hoisted(() => ({ hasPermission: vi.fn() }))
+vi.mock('@/config/axios', () => ({ default: {} }))
 vi.mock('element-plus', () => ({ ElMessageBox: messages }))
 vi.mock('@/directives/permission/hasPermi', () => permission)
+vi.mock('./lifecycleStageOptions', () => ({ lifecycleStageOptions: () => [
+  { code: 'S0', name: '项目立项与指派' }, { code: 'S1', name: '工前准备' }, { code: 'S2', name: '施工计划' },
+  { code: 'S3', name: '实施方案编审' }, { code: 'S4', name: '实施部署' }, { code: 'S5', name: '验收交维' },
+  { code: 'S6', name: '项目闭环' }
+] }))
 vi.mock('@/api/pms/project/project-templates/directBinding', () => ({ createBindingSaveSession: () => new Map(), prepareTaskBinding: vi.fn() }))
 vi.mock('@/api/pms/project/project-templates/designerAssets', () => ({}))
+vi.mock('@/api/pms/project/project-templates/execution', () => ({ getBusinessResultCatalog: vi.fn(async () => []) }))
+vi.mock('@/api/pms/project/project-templates/operations', () => ({ getBusinessOperationCatalog: vi.fn(async () => []) }))
 vi.mock('./TemplateFlowCanvas.vue', () => ({ default: { render: () => null } }))
 vi.mock('./RuleSlotEditor.vue', () => ({ default: { render: () => null } }))
 vi.mock('./RuleSimulationPanel.vue', () => ({ default: { render: () => null } }))

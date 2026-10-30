@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "1.0.0",
+  "rules": [
+    {
+      "ruleId": "device-serial-number",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [{"type": "CONTENT_REGEX", "value": "Serial Number"}],
+      "extractors": [{"type": "KEY_VALUE", "key": "Serial Number", "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.identity.serialNumber", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    },
+    {
+      "ruleId": "device-software-version",
+      "blockRole": "DEVICE_VERSION",
+      "roleSelectors": [{"type": "CONTENT_REGEX", "value": "Software Release"}],
+      "extractors": [{"type": "LINE_REGEX", "pattern": "^Software Release\\s+(.+)$", "group": 1, "transforms": ["trim"]}],
+      "target": {"semanticKey": "device.software.version", "cardinality": "ONE", "dataType": "string", "conflictPolicy": "HIGHEST_CONFIDENCE"}
+    }
+  ]
+}
