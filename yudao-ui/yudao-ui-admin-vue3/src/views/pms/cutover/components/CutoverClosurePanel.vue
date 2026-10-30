@@ -6,8 +6,8 @@
         <summary class="cut-card__header"><h3><Icon icon="ep:circle-check" />割接结果与闭环</h3><small>{{ closure.closureStatus === 'SUBMITTED' ? '已归档，只读' : '草稿，保存不推进流程' }}</small></summary>
         <div class="cut-card__body">
           <CutoverClosureForm
-ref="closureFormRef" v-model="content" :closure-id="closure.closureId" :editable="canSave && !writing"
-            @upload-pending="attachmentPending = $event" @attachment-completed="onAttachmentCompleted" />
+ref="closureFormRef" v-model="content" :task-id="taskId" :closure-id="closure.closureId" :editable="canSave && !writing"
+            @upload-pending="attachmentPending = $event" @attachment-completed="onAttachmentCompleted" @attachment-removed="onAttachmentRemoved" />
           <h4 class="cut-section-title">8. 割接结果<span class="cut-required"> *</span></h4>
           <p v-if="closure.closureStatus === 'SUBMITTED'" data-testid="closure-final-summary">{{ selectedResult === 'SUCCESS' ? '割接成功' : selectedResult === 'FAILED' ? '割接失败' : '未记录' }}</p>
           <el-radio-group v-else :model-value="selectedResult ?? undefined" :disabled="!canAttemptSubmit || writing" data-testid="closure-final-result" aria-label="割接最终结果" @update:model-value="selectedResult = $event as 'SUCCESS' | 'FAILED'">
@@ -85,10 +85,16 @@ const loadProgress = async () => {
 }
 const content = ref<CutoverClosureContent>(emptyContent())
 const onAttachmentCompleted = (fact: CutoverClosureFileFact) => {
-  const attachments = content.value.attachments.filter(row => row.purposeCode !== fact.purposeCode)
+  if (!canSave.value || writing.value) return
+  const attachments = content.value.attachments.filter(row => row.purposeCode !== fact.purposeCode || row.referenceKey !== fact.referenceKey)
   attachments.push(fact)
   attachments.sort((a, b) => a.purposeCode.localeCompare(b.purposeCode) || a.referenceKey.localeCompare(b.referenceKey))
   content.value = { ...content.value, attachments }
+}
+const onAttachmentRemoved = (fact: CutoverClosureFileFact) => {
+  if (!canSave.value || writing.value || attachmentPending.value || fact.purposeCode === 'MANUAL_COLLECTION_RESULT') return
+  content.value = { ...content.value, attachments: content.value.attachments.filter(row =>
+    row.purposeCode !== fact.purposeCode || row.referenceKey !== fact.referenceKey) }
 }
 const intents = createCutoverPlanIntentStore()
 const barrier = createCutoverPlanWriteBarrier()

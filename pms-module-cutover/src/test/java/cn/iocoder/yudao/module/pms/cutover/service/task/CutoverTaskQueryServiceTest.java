@@ -147,6 +147,61 @@ class CutoverTaskQueryServiceTest {
         });
     }
 
+    @Test void projectBoundCreationUsesOneScopedSerialSetAndReusesItsEditScope() {
+        var second = new CutoverDeviceScopePort.DeviceFact(402L, "SN-402", 101L, 6L);
+        when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        var ownerQuery = new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(
+                1L, 101L, List.of("SN-401", "SN-402"));
+        when(deviceScopePort.resolveBySerials(ownerQuery)).thenReturn(List.of(device, second));
+        when(projectContextPort.inspect(any())).thenReturn(project);
+        when(customerLevelPort.inspect(201L)).thenReturn(customer);
+        when(configurationMapper.selectEffectivePublishedList(any())).thenReturn(List.of(configuration()));
+
+        var result = service.resolveCreateContext(new CutoverTaskQueryService.CreateContextQuery(
+                new CutoverTaskContext(1L, 9L, "bound-create", true, true, false, false, false),
+                101L, List.of("SN-401", "SN-402")));
+
+        assertThat(result.selectionRequired()).isFalse();
+        assertThat(result.candidates()).singleElement().satisfies(candidate -> {
+            assertThat(candidate.project()).isEqualTo(project);
+            assertThat(candidate.devices()).containsExactly(device, second);
+        });
+        org.mockito.Mockito.verify(projectScopePort).inspect(9L, 101L, "ACTION_EDIT");
+        org.mockito.Mockito.verify(deviceScopePort).resolveBySerials(ownerQuery);
+        org.mockito.Mockito.verify(deviceScopePort, org.mockito.Mockito.never()).resolveBySerials(org.mockito.ArgumentMatchers.anyList());
+    }
+
+    @Test void projectBoundCreationRejectsReadOnlyScopeBeforeResolvingAnyDevice() {
+        when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, false));
+
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                () -> service.resolveCreateContext(new CutoverTaskQueryService.CreateContextQuery(
+                        new CutoverTaskContext(1L, 9L, "denied-create", true, true, false, false, false), 101L, List.of("SN-401"))));
+
+        assertThat(failure.code()).isEqualTo(CutoverTaskApplicationException.Code.DATA_SCOPE_FORBIDDEN);
+        org.mockito.Mockito.verifyNoInteractions(deviceScopePort, projectContextPort, customerLevelPort, configurationMapper);
+    }
+
+    @Test void projectBoundCreationKeepsTheOriginalIncompleteSerialFailureBeforeOtherSources() {
+        when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        var ownerQuery = new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(
+                1L, 101L, List.of("SN-401", "SN-402"));
+        for (var current : List.of(List.<CutoverDeviceScopePort.DeviceFact>of(), List.of(device))) {
+            when(deviceScopePort.resolveBySerials(ownerQuery)).thenReturn(current);
+            var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                    () -> service.resolveCreateContext(new CutoverTaskQueryService.CreateContextQuery(
+                            new CutoverTaskContext(1L, 9L, "incomplete-create", true, true, false, false, false),
+                            101L, List.of("SN-401", "SN-402"))));
+            assertThat(failure.code()).isEqualTo(CutoverTaskApplicationException.Code.AST_PROVIDER_UNAVAILABLE);
+            assertThat(failure.getMessage()).isEqualTo("设备事实不完整");
+        }
+        org.mockito.Mockito.verifyNoInteractions(projectContextPort, customerLevelPort, configurationMapper);
+        org.mockito.Mockito.verify(deviceScopePort, org.mockito.Mockito.never()).resolveBySerials(org.mockito.ArgumentMatchers.anyList());
+    }
+
     @Test
     void returnsAuthorizedP2Detail() {
         CutoverTaskDO task = task();
@@ -161,13 +216,15 @@ class CutoverTaskQueryServiceTest {
                 .projectId(101L)
                 .expectedProjectScopeVersion(7L)
                 .build())).thenReturn(project);
-        when(deviceScopePort.resolveBySerials(List.of("SN-401"))).thenReturn(List.of(device));
+        when(deviceScopePort.resolveBySerials(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(1L, 101L, List.of("SN-401")))).thenReturn(List.of(device));
         when(frozenDevices.byTask(any())).thenReturn(List.of(deviceRow()));
         when(assessmentMapper.selectById(801L)).thenReturn(assessment());
 
         CutoverTaskViews.Detail detail = service.detail(new CutoverTaskContext(1L, 9L, "query-test", true, true, false, false, false), 701L);
 
         assertThat(detail.devices()).containsExactly(device);
+        org.mockito.Mockito.verify(deviceScopePort, org.mockito.Mockito.never())
+                .resolveBySerials(org.mockito.ArgumentMatchers.anyList());
         assertThat(detail.allowedActions()).containsExactly("SAVE_ASSESSMENT", "SUBMIT_ASSESSMENT");
         assertThat(service.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(
                 new CutoverTaskContext(1L, 9L, "p2-equivalence", true, true, false, false, false), 701L))).isTrue();
@@ -217,7 +274,7 @@ class CutoverTaskQueryServiceTest {
         when(frozenDevices.byTask(any())).thenReturn(List.of(deviceRow()));
         when(assessmentMapper.selectById(801L)).thenReturn(assessment());
         var current = new CutoverDeviceScopePort.DeviceFact(401L, "SN-401", 101L, 6L);
-        when(deviceScopePort.resolveBySerials(List.of("SN-401"))).thenReturn(List.of(current));
+        when(deviceScopePort.resolveBySerials(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(1L, 101L, List.of("SN-401")))).thenReturn(List.of(current));
         var context = new CutoverTaskContext(1L, 9L, "latest-device", true, true, false, false, false);
         var detail = service.detail(context, 701L);
         assertThat(detail.devices()).containsExactly(current);
@@ -225,7 +282,7 @@ class CutoverTaskQueryServiceTest {
         var denied = service.detail(new CutoverTaskContext(1L, 9L, "no-submit", true, false, false, false, false), 701L);
         assertThat(denied.allowedActions()).doesNotContain("SUBMIT_ASSESSMENT");
         assertThat(denied.assessmentSubmissionBlockReason()).contains("无提交割接评估权限");
-        when(deviceScopePort.resolveBySerials(List.of("SN-401")))
+        when(deviceScopePort.resolveBySerials(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(1L, 101L, List.of("SN-401"))))
                 .thenReturn(List.of(new CutoverDeviceScopePort.DeviceFact(401L, "SN-401", 999L, 6L)));
         var foreign = service.detail(context, 701L);
         assertThat(foreign.allowedActions()).doesNotContain("SUBMIT_ASSESSMENT");
@@ -313,6 +370,106 @@ class CutoverTaskQueryServiceTest {
         when(audience.inspectTask(any())).thenReturn(null);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(context, 701L)))
                 .isInstanceOf(CutoverTaskApplicationException.class);
+    }
+
+    @Test
+    void p2WorkbenchSaveMembershipDoesNotLoadSubmissionSources() {
+        var task = task();
+        org.mockito.Mockito.reset(snapshots);
+        when(taskMapper.selectById(701L)).thenReturn(task);
+        when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(assessmentMapper.selectById(801L)).thenReturn(assessment());
+        var context = new CutoverTaskContext(1L, 9L, "p2-save-membership", true, true, false, false, false);
+
+        assertThat(service.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(context, 701L))).isTrue();
+
+        org.mockito.Mockito.verifyNoInteractions(snapshots, frozenDevices, projectContextPort,
+                deviceScopePort, customerLevelPort, readinessPort);
+    }
+
+    @Test
+    void p2WorkbenchMembershipMatchesDetailWithoutReadingDisplaySnapshots() {
+        var task = task();
+        var assessment = assessment();
+        when(taskMapper.selectById(701L)).thenReturn(task);
+        when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(projectContextPort.inspect(any())).thenReturn(project);
+        when(frozenDevices.byTask(any())).thenReturn(List.of(deviceRow()));
+        when(assessmentMapper.selectById(801L)).thenReturn(assessment);
+        when(readinessPort.inspect(101L, List.of(401L))).thenReturn(readiness);
+
+        for (var source : List.of("SELF_CREATED", "PROJECT_EVENT")) {
+            task.setIntakeSourceType(source);
+            for (var scope : List.of(
+                    new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true),
+                    new CutoverProjectScopePort.ProjectScopeFact(101L, 8L, true),
+                    new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, false))) {
+                when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT")).thenReturn(scope);
+                for (var currentDevice : List.of(device,
+                        new CutoverDeviceScopePort.DeviceFact(401L, "SN-401", 999L, 5L))) {
+                    if (scope.allowed() && scope.projectScopeVersion() == 7L) {
+                        when(deviceScopePort.resolveBySerials(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(1L, 101L, List.of("SN-401")))).thenReturn(List.of(currentDevice));
+                    }
+                    for (var status : List.of("DRAFT", "SUBMITTED")) {
+                        assessment.setAssessmentStatus(status);
+                        for (int permissions = 0; permissions < 4; permissions++) {
+                            var context = new CutoverTaskContext(1L, 9L, "p2-membership",
+                                    (permissions & 1) != 0, (permissions & 2) != 0, false, false, false);
+                            var expected = !service.detail(context, 701L).allowedActions().isEmpty();
+                            org.mockito.Mockito.clearInvocations(snapshots, readinessPort);
+
+                            var actual = service.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(context, 701L));
+
+                            assertThat(actual).isEqualTo(expected);
+                            org.mockito.Mockito.verifyNoInteractions(snapshots);
+                            if (!scope.allowed() || scope.projectScopeVersion() != 7L || "SUBMITTED".equals(status)) {
+                                assertThat(actual).isFalse();
+                            }
+                            if ("PROJECT_EVENT".equals(source) && scope.allowed() && scope.projectScopeVersion() == 7L
+                                    && currentDevice.projectId().equals(101L) && "DRAFT".equals(status)
+                                    && permissions == 2) {
+                                org.mockito.Mockito.verify(readinessPort).inspect(101L, List.of(401L));
+                            } else {
+                                org.mockito.Mockito.verifyNoInteractions(readinessPort);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"READY,true", "NOT_READY,false", "UNAVAILABLE,false"})
+    void p2WorkbenchStillRequiresCurrentImplementationReadinessForSubmitOnly(String decision, boolean actionable) {
+        var task = task();
+        task.setIntakeSourceType("PROJECT_EVENT");
+        when(taskMapper.selectById(701L)).thenReturn(task);
+        when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(projectContextPort.inspect(any())).thenReturn(project);
+        when(frozenDevices.byTask(any())).thenReturn(List.of(deviceRow()));
+        when(assessmentMapper.selectById(801L)).thenReturn(assessment());
+        when(deviceScopePort.resolveBySerials(new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery(1L, 101L, List.of("SN-401")))).thenReturn(List.of(device));
+        var currentReadiness = "UNAVAILABLE".equals(decision) ? null
+                : new CutoverReadinessPort.ReadinessFact(601L, 4L, decision, 101L,
+                        List.of(401L), List.of("W-1"), "READY".equals(decision) ? List.of() : List.of("TEST_UNMET"));
+        when(readinessPort.inspect(101L, List.of(401L))).thenReturn(currentReadiness);
+        var context = new CutoverTaskContext(1L, 9L, "p2-readiness", false, true, false, false, false);
+        assertThat(!service.detail(context, 701L).allowedActions().isEmpty()).isEqualTo(actionable);
+        org.mockito.Mockito.clearInvocations(snapshots, readinessPort);
+
+        assertThat(service.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(context, 701L)))
+                .isEqualTo(actionable);
+
+        org.mockito.Mockito.verifyNoInteractions(snapshots);
+        org.mockito.Mockito.verify(readinessPort).inspect(101L, List.of(401L));
     }
 
     private CutoverTaskDO task() {

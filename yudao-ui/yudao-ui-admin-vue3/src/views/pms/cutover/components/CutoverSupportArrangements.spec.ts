@@ -1,7 +1,7 @@
 import { defineComponent, h, inject, nextTick, provide, ref, type PropType, type InjectionKey } from 'vue'
 import { describe, expect, it } from 'vitest'
 import type { CutoverPlanSupportArrangement } from '@/api/pms/cutover'
-import { findByTestId, mount, passthrough } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { findByTestId, mount, passthrough, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 import Support from './CutoverSupportArrangements.vue'
 
 const rowKey: InjectionKey<{ row: CutoverPlanSupportArrangement; $index: number }> = Symbol('row')
@@ -82,11 +82,21 @@ describe('保障人员明细', () => {
     const page = mount(defineComponent({ setup: () => () => h(Support, {
       modelValue: rows.value, personChoices: choices, 'onUpdate:modelValue': value => { rows.value = value }
     }) }), {}, controls)
+    const nested = (node: TestNode): TestNode | undefined => {
+      if (typeof node.props?.['remote-method'] === 'function') return node
+      for (const child of node.children) { const found = nested(child); if (found) return found }
+    }
     const select = async (id: string, value: string) => {
-      await (findByTestId(page.root, id)!.props!['onUpdate:modelValue'] as (value: string) => void)(value)
+      let control = findByTestId(page.root, id)!
+      if (id === 'support-system-0') {
+        control = nested(control)!
+        ;(control.props!.onVisibleChange as (opened: boolean) => void)(true)
+        for (let i = 0; i < 8; i++) { await nextTick(); await Promise.resolve() }
+      }
+      await (control.props!['onUpdate:modelValue'] as (value: string) => void)(value)
       await nextTick()
     }
-    expect(findByTestId(page.root, 'support-system-0')!.props!['allow-create']).toBe(false)
+    expect(nested(findByTestId(page.root, 'support-system-0')!)?.props?.['allow-create']).not.toBe(true)
     await select('support-system-0', '手填工程师')
     expect(rows.value[0].personName).toBe('')
     await select('support-system-0', 'SYSTEM_USER:2108559111685582849:1792460873037')
@@ -159,4 +169,42 @@ describe('保障人员明细', () => {
     expect(findByTestId(page.root, 'support-role-0')?.props?.disabled).toBe(true)
     page.app.unmount()
   })
+  it('同ID的新版本改名后保留原引用和姓名，明确提示重选后才更新', async () => {
+    const previous = { sourceCode: 'SYSTEM_USER' as const, id: '2108559111685582849', version: '100' }
+    const current = { sourceCode: 'SYSTEM_USER' as const, id: previous.id, version: '101' }
+    const rows = ref<CutoverPlanSupportArrangement[]>([{ arrangementId: '1', roleCode: 'DP_FIRST_LINE',
+      personName: '原工程师姓名', personReference: previous, dutyDescription: '原职责', phone: '原电话', arrivalTime: 1 }])
+    const changes: CutoverPlanSupportArrangement[][] = []
+    const choices = { DP_FIRST_LINE: [{ reference: current, name: '更新后的工程师姓名', phone: '新电话' }] }
+    const page = mount(defineComponent({ setup: () => () => h(Support, {
+      modelValue: rows.value, personChoices: choices, 'onUpdate:modelValue': value => { changes.push(value); rows.value = value }
+    }) }), {}, controls)
+    const find = (node: TestNode, predicate: (item: TestNode) => boolean): TestNode | undefined => {
+      if (predicate(node)) return node
+      for (const child of node.children) { const result = find(child, predicate); if (result) return result }
+    }
+    const settle = async () => { for (let i = 0; i < 8; i++) { await nextTick(); await Promise.resolve() } }
+    try {
+      const wrapper = findByTestId(page.root, 'support-system-0')!
+      const control = find(wrapper, item => typeof item.props?.['remote-method'] === 'function')!
+      ;(control.props!.onVisibleChange as (opened: boolean) => void)(true)
+      await settle()
+      expect(control.props!['model-value']).toBe('SYSTEM_USER:2108559111685582849:100')
+      const historical = find(wrapper, item => item.props?.value === 'SYSTEM_USER:2108559111685582849:100')
+      expect(historical?.props?.label).toBe('原工程师姓名（原选择，请重新选择）')
+      expect(historical?.props).toHaveProperty('disabled', '')
+      expect(rows.value[0]).toMatchObject({ personName: '原工程师姓名', personReference: previous, phone: '原电话' })
+      // A stale option cannot update the payload even if its old key is emitted directly.
+      ;(control.props!['onUpdate:modelValue'] as (value: string) => void)('SYSTEM_USER:2108559111685582849:100')
+      await settle()
+      expect(changes).toHaveLength(0)
+      expect(rows.value[0]).toMatchObject({ personName: '原工程师姓名', personReference: previous, phone: '原电话' })
+      ;(control.props!['onUpdate:modelValue'] as (value: string) => void)('SYSTEM_USER:2108559111685582849:101')
+      await settle()
+      expect(changes).toHaveLength(1)
+      expect(changes[0][0].personReference).toEqual(current)
+      expect(rows.value[0]).toMatchObject({ personName: '更新后的工程师姓名', personReference: current, phone: '新电话', dutyDescription: '原职责' })
+    } finally { page.app.unmount() }
+  })
+
 })

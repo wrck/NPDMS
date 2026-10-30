@@ -1,8 +1,11 @@
 import request, { baseUrl } from './request'
-import type { WireLong, CutoverClosureContent, CutoverClosureView, LinkCutoverClosureManualResultRequest, CutoverResultProgress } from './types'
+import type { WireLong, CutoverClosureContent, CutoverClosureFileFact, CutoverClosureView, LinkCutoverClosureManualResultRequest, CutoverResultProgress } from './types'
 
 export const getCutoverClosure = (taskId: WireLong) =>
   request.get<CutoverClosureView>({ url: `${baseUrl}/${taskId}/closure` })
+
+export const getAvailableClosureAttachments = (taskId: WireLong) =>
+  request.get<CutoverClosureFileFact[]>({ url: `${baseUrl}/${taskId}/closure/available-attachments` })
 
 export const saveCutoverClosure = (command: { taskId: WireLong; taskVersion: WireLong; closureVersion: WireLong | null; data: CutoverClosureContent; idempotencyKey: string }) =>
   request.put<CutoverClosureView>({

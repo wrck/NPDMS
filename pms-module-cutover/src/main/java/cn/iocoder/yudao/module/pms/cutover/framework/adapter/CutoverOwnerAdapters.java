@@ -134,6 +134,11 @@ public class CutoverOwnerAdapters {
                 }
                 return found.values().stream().sorted(Comparator.comparing(DeviceFact::deviceId)).toList();
             }
+            public List<DeviceFact> resolveBySerials(DeviceScopeResolveQuery query) {
+                var result = api.resolveBySerials(query);
+                return result.decision() == DeviceScopeResolutionResult.Decision.RESOLVED
+                        ? map(result.fact()).stream().sorted(Comparator.comparing(DeviceFact::deviceId)).toList() : List.of();
+            }
             public List<DeviceFact> lockAndRevalidate(Long project, List<DeviceFact> expected) {
                 var entries = expected.stream().map(value -> new DeviceScopeRevalidationQuery.ExpectedDevice(
                         value.deviceId(), value.serialNumber(), value.projectAssignmentVersion())).toList();
@@ -217,8 +222,14 @@ public class CutoverOwnerAdapters {
                 return api;
             }
             private List<ImplementationReadinessQuery.ExpectedDevice> expectedDevices(Long project, List<Long> ids) {
+                if (ids.isEmpty()) return List.of();
+                var current = devices.getVisibleDeviceSummaries(new DeviceSummaryBatchQuery(
+                        tenant(), actor(), new HashSet<>(ids), project)).stream()
+                        .collect(java.util.stream.Collectors.toMap(DeviceSummaryDTO::deviceId,
+                                java.util.function.Function.identity()));
                 return ids.stream().map(id -> {
-                    var device = devices.getDevice(id);
+                    var device = current.get(id);
+                    if (device == null) device = devices.getDevice(id);
                     if (device == null || !Objects.equals(device.tenantId(), tenant()) || !Objects.equals(device.projectId(), project)) {
                         throw new CutoverOwnerFactException(STALE, "实施就绪检查的设备范围已变化");
                     }

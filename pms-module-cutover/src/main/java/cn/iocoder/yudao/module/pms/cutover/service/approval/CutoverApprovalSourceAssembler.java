@@ -146,10 +146,12 @@ public class CutoverApprovalSourceAssembler {
         JsonNode planContent = completePlanContent(command.tenantId(), plan);
         Long scheduledTime = cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanScheduleTime.value(planContent);
         require(scheduledTime != null, BUSINESS_INCOMPLETE, "请在方案页填写计划割接时间");
+        // PROJ uses an empty code for no customer association; the new approval snapshot uses null.
+        String customerCode = "".equals(project.customerCode()) ? null : project.customerCode();
         ApprovalSourceSnapshot snapshot = new ApprovalSourceSnapshot(command.sourceSnapshotVersion(), task.getId(),
                 task.getVersion(), command.checklistId(), command.checklistVersion(),
                 new ProjectApprovalSnapshot(project.projectId(), project.projectVersion(), project.projectCode(),
-                        project.projectName(), project.customerId(), project.customerCode(), project.customerName(),
+                        project.projectName(), project.customerId(), customerCode, project.customerName(),
                         project.departmentId(), project.departmentCode(), project.departmentName(),
                         project.projectScopeVersion()),
                 new CollectionAnalysisSnapshot(task.getCutoverType(), task.getNetworkMode(),
@@ -217,8 +219,8 @@ public class CutoverApprovalSourceAssembler {
     }
 
     private ChecklistResultSnapshot snapshot(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result) {
-        var manualFile = "MANUAL".equals(result.getResultSourceCode()) ? customResults.manualFile(result) : null;
-        require(!"MANUAL".equals(result.getResultSourceCode()) || manualFile != null,
+        var manualFiles = "MANUAL".equals(result.getResultSourceCode()) ? customResults.manualFiles(result) : List.<cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverChecklistFilePort.FileFact>of();
+        require(!"MANUAL".equals(result.getResultSourceCode()) || !manualFiles.isEmpty(),
                 BUSINESS_INCOMPLETE, "人工证据缺少有效附件，请修订清单：" + item.getItemName());
         item = fieldDefinitions.withSchema(item);
         return new ChecklistResultSnapshot(item.getId(), item.getStableItemKey(), item.getItemDefinitionId(),
@@ -226,7 +228,7 @@ public class CutoverApprovalSourceAssembler {
                 Boolean.TRUE.equals(item.getRequiredFlag()), result.getResultVersion(), result.getResultSourceCode(),
                 checklistResults.answer(new CutoverChecklistResultStore.Read(item, result)), result.getFactDescription(), result.getCollectionTaskId(),
                 result.getCollectionResultReferenceId(), result.getCollectionResultVersion(),
-                result.getExternalSourceCode(), manualFile == null ? null : manualFile.referenceKey());
+                result.getExternalSourceCode(), manualFiles.isEmpty() ? null : manualFiles.getFirst().referenceKey());
     }
 
     private static void require(boolean condition, CutoverApprovalApplicationException.Code code, String message) {

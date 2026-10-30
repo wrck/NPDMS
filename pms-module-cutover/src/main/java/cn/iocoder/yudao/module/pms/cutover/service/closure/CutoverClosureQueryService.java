@@ -29,6 +29,10 @@ import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScope
 import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP6ActionPolicy;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
 
 import java.util.List;
 import java.util.Objects;
@@ -45,6 +49,8 @@ public class CutoverClosureQueryService {
 
     @jakarta.annotation.Resource
     private CutoverClosureStorage storage;
+    @jakarta.annotation.Resource
+    private FileArtifactApi fileArtifacts;
     private static final CutoverP6ActionPolicy ACTION_POLICY = new CutoverP6ActionPolicy();
     private final CutoverTaskMapper taskMapper;
     private final CutoverApprovalInstanceMapper approvalMapper;
@@ -113,6 +119,32 @@ public class CutoverClosureQueryService {
                 query.context(), read.editAllowed()).isEmpty();
     }
 
+    public List<AttachmentInput> availableAttachments(ActionQuery query) {
+        var read = readActions(query);
+        if (read.closure() == null || !"DRAFT".equals(read.closure().getStatusCode()) || !read.projectRead()
+                || !allowedActions(read.task(), read.closure(), read.attachments(), read.evidence(),
+                        query.context(), read.editAllowed()).contains("SAVE_CLOSURE")) {
+            throw failure(CutoverClosureApplicationException.Code.FUNCTION_OR_SCOPE_DENIED,
+                    PROJECT_OR_TASK_SCOPE_DENIED, "CUT", "当前用户不能恢复此闭环草稿的附件");
+        }
+        var keys = List.of(AttachmentPurpose.POST_COLLECTION_CHECKLIST, AttachmentPurpose.IMPLEMENTATION_COMMITMENT,
+                        AttachmentPurpose.OTHER_EVIDENCE).stream()
+                .map(purpose -> new FileReferenceSetKey("CUT", "CUTOVER_CLOSURE",
+                        read.closure().getId().toString(), purpose.name())).toList();
+        return fileArtifacts.inspectReferenceSets(new FileReferenceSetCollectionQuery(keys, FileActionCodes.READ))
+                .stream().flatMap(set -> {
+                    if (!keys.contains(set.key())) {
+                        throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED, "PLT", "闭环附件集合身份不一致");
+                    }
+                    return set.activeFacts().stream().filter(file -> "AVAILABLE".equals(file.availabilityStatus()))
+                            .map(file -> new AttachmentInput(AttachmentPurpose.valueOf(set.key().purposeCode()),
+                                    file.artifactId(), file.versionNo(), file.referenceKey(),
+                                    new FileFactVersion(file.fileFactVersion().artifactVersion(),
+                                            file.fileFactVersion().referenceVersion(), file.fileFactVersion().availabilityVersion()),
+                                    file.scopeVersion(), file.sha256()));
+                }).toList();
+    }
+
     public CutoverClosureView detail(CutoverClosureContext context, Long taskId) {
         var read = readActions(new ActionQuery(context, taskId));
         var task = read.task(); var closure = read.closure(); var plan = read.plan(); var approval = read.approval();
@@ -161,7 +193,7 @@ public class CutoverClosureQueryService {
                     "POST_COLLECTION_CHECKLIST".equals(value.getPurposeCode())).count();
             long commitment = attachments.stream().filter(value ->
                     "IMPLEMENTATION_COMMITMENT".equals(value.getPurposeCode())).count();
-            if (checklist != 1 || commitment != 1) return false;
+            if (checklist < 1 || commitment < 1) return false;
             return evidence.stream().filter(value -> "DISPATCH_ACCEPTED".equals(value.getEvidenceTypeCode()))
                     .allMatch(dispatch -> evidence.stream().anyMatch(callback ->
                             Objects.equals(callback.getCollectionTaskId(), dispatch.getCollectionTaskId())

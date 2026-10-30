@@ -30,6 +30,7 @@ import static cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverCheck
 public class CutoverExternalBulletinStore {
     private final cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi deviceSource;
     private final CutoverChecklistMapper checklists;
+    private final cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper tasks;
     private final CutoverChecklistDeviceContextMapper devices;
     private final CutoverChecklistItemDefinitionRevisionMapper definitions;
     private final CutoverChecklistExternalQueryMapper queries;
@@ -42,7 +43,13 @@ public class CutoverExternalBulletinStore {
 
     public record ContextKey(Long tenantId, Long checklistId) { }
     public record Freeze(CutoverChecklistDO checklist, Long actorId, LocalDateTime time) { }
-    public record Read(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result) { }
+    public record Read(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result,
+                       List<CutoverChecklistDeviceContextDO> deviceContexts) {
+        public Read(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result) {
+            this(item, result, null);
+        }
+        public Read { if (deviceContexts != null) deviceContexts = List.copyOf(deviceContexts); }
+    }
     public record ResultCreate(CutoverChecklistItemDO item, Long actorId, LocalDateTime time,
                                String reason, Long baseResultId, boolean selected) { }
     public record Loaded(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result,
@@ -58,9 +65,18 @@ public class CutoverExternalBulletinStore {
         require(root != null && Objects.equals(root.getTenantId(), key.tenantId()), NOT_FOUND, "清单不存在");
         var rows = devices.selectListByParents(CutoverChecklistDeviceContextListQuery.builder()
                 .tenantId(key.tenantId()).checklistIds(Set.of(key.checklistId())).build());
-        if (!"DRAFT".equals(root.getStatusCode())) return rows;
+        if (!"DRAFT".equals(root.getStatusCode()) || rows.isEmpty()) return rows;
+        var task = tasks.selectById(root.getCutoverTaskId());
+        require(task != null && Objects.equals(task.getTenantId(), key.tenantId()), NOT_FOUND, "割接任务不存在");
+        var currentDevices = deviceSource.getVisibleDeviceSummaries(
+                new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery(key.tenantId(),
+                        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),
+                        rows.stream().map(CutoverChecklistDeviceContextDO::getDeviceId).collect(Collectors.toSet()), task.getProjectId()))
+                .stream().collect(Collectors.toMap(
+                        cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO::deviceId, Function.identity()));
         return rows.stream().map(row -> {
-            var source = deviceSource.getDevice(row.getDeviceId());
+            var source = currentDevices.get(row.getDeviceId());
+            if (source == null) source = deviceSource.getDevice(row.getDeviceId());
             require(source != null && Objects.equals(source.tenantId(), key.tenantId())
                     && Objects.equals(source.deviceId(), row.getDeviceId()), STATE_CONFLICT, "设备当前版本来源不可用，请刷新设备序列号清单");
             var current = new CutoverChecklistDeviceContextDO();
@@ -155,7 +171,9 @@ public class CutoverExternalBulletinStore {
     /** 提交及反馈复验：旧结果保留，但不能用于已改变的设备版本条件。 */
     public List<CutoverChecklistExternalQueryDO> requireCurrent(Read read) {
         var definition = definition(read.item());
-        var context = contexts(new ContextKey(read.item().getTenantId(), read.item().getChecklistId()));
+        // Only a single authorized state read supplies this list; commands use fresh contexts.
+        var context = read.deviceContexts() == null
+                ? contexts(new ContextKey(read.item().getTenantId(), read.item().getChecklistId())) : read.deviceContexts();
         var selected = selectedQueries(read);
         require(!context.isEmpty() && selected.size() == context.size(), STATE_CONFLICT, "外部查询未覆盖完整设备范围");
         Map<Long, CutoverChecklistDeviceContextDO> byDevice = context.stream()
@@ -325,11 +343,13 @@ public class CutoverExternalBulletinStore {
     public void validateSubmission(Read read) {
         if ("MANUAL".equals(read.result().getResultSourceCode())) { requireManual(read); return; }
         require("EXTERNAL".equals(read.result().getResultSourceCode())
-                        && "EXTERNAL_FEEDBACK".equals(read.result().getSelectionReasonCode())
-                        && requireCurrent(read).stream().allMatch(query -> Boolean.TRUE.equals(query.getSucceededFlag())),
+                        && "EXTERNAL_FEEDBACK".equals(read.result().getSelectionReasonCode()),
+                STATE_CONFLICT, "外部加载成功后仍须保存本次风险反馈");
+        var selected = requireCurrent(read);
+        require(selected.stream().allMatch(query -> Boolean.TRUE.equals(query.getSucceededFlag())),
                 STATE_CONFLICT, "外部加载成功后仍须保存本次风险反馈");
         var rows = resolvedRows(read);
-        require(requireCurrent(read).stream().mapToInt(query -> query.getReturnedRowCount()).sum() == rows.size(),
+        require(selected.stream().mapToInt(query -> query.getReturnedRowCount()).sum() == rows.size(),
                 STATE_CONFLICT, "公告行数与原始查询事实不一致");
         for (var row : rows) {
             require(row.getInvolvedFlag() != null && (!row.getInvolvedFlag() || present(row.getMeasures())),

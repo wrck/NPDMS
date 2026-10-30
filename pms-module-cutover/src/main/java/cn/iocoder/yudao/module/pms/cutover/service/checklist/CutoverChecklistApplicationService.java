@@ -581,6 +581,14 @@ public class CutoverChecklistApplicationService {
                 .handle(command.fileHandle())
                 .build());
         requireFileFact(command.fileHandle(), fact);
+        var selectedFiles = new ArrayList<CutoverChecklistFilePort.FileFact>();
+        if (prior != null && "MANUAL".equals(prior.getResultSourceCode())) {
+            for (var stored : customResultStorage.manualFiles(prior)) {
+                if (Objects.equals(stored.referenceKey(), fact.referenceKey())) continue;
+                selectedFiles.add(revalidateManualFile(new ManualFileRead(command, locked.task(), item, stored)));
+            }
+        }
+        selectedFiles.add(fact);
         if ("EXTERNAL".equals(item.getWorkModeCode())) {
             externalBulletins.requireManual(new CutoverExternalBulletinStore.Read(item, prior));
         }
@@ -601,7 +609,7 @@ public class CutoverChecklistApplicationService {
                         : prior == null ? null : prior.getOriginalFailureCode())
                 .factDescription(command.factDescription())
                 .selectionReasonCode("MANUAL_EVIDENCE_SELECTED")
-                .build(), null, fact));
+                .build(), null, selectedFiles));
         require(checklistMapper.touchDraftIfMatch(new CutoverChecklistDraftTouchUpdate(command.tenantId(),
                 command.checklistId(), command.expectedChecklistVersion())) == 1,
                 VERSION_CONFLICT, "清单版本已变化");
@@ -1201,8 +1209,8 @@ public class CutoverChecklistApplicationService {
         row.setDeleted(false);
         require(resultMapper.insert(row) == 1, STATE_CONFLICT, "清单结果保存失败");
         if (write.answer() != null) resultStorage.insertAnswer(new CutoverChecklistResultStore.Write(write.item(), row, write.answer()));
-        if (write.file() != null) customResultStorage.insertManual(new CutoverCustomResultStore.Manual(row,
-                CutoverChecklistResultStore.root(fieldDefinitions.forItem(write.item())).getId(), write.file()));
+        if (write.files() != null) customResultStorage.insertManual(new CutoverCustomResultStore.Manual(row,
+                CutoverChecklistResultStore.root(fieldDefinitions.forItem(write.item())).getId(), write.files()));
         if ("EXTERNAL".equals(write.item().getWorkModeCode()) && "MANUAL".equals(row.getResultSourceCode())) {
             externalBulletins.referenceManual(new CutoverExternalBulletinStore.ManualWrite(
                     new CutoverExternalBulletinStore.Read(write.item(), current), row));
@@ -1265,22 +1273,31 @@ public class CutoverChecklistApplicationService {
 
     private void appendManualAnalysis(ManualAnalysisWrite write) {
         var command = write.command(); var prior = write.prior();
-        var stored = customResultStorage.manualFile(prior);
-        require(stored != null, STATE_CONFLICT, "人工证据缺少有效附件，请重新上传：" + write.item().getItemName());
-        var handle = new CutoverChecklistFilePort.FileHandle(stored.artifactId(), stored.versionNo(),
-                stored.referenceKey(), stored.fileFactVersion(), stored.scopeVersion());
-        var fact = filePort.lockAndRevalidate(CutoverChecklistFilePort.FileQuery.builder()
-                .tenantId(command.tenantId()).actorId(command.actorId()).projectId(write.task().getProjectId())
-                .checklistItemId(write.item().getId()).expectedScopeVersion(command.expectedProjectScopeVersion())
-                .handle(handle).build());
-        requireFileFact(handle, fact);
+        var stored = customResultStorage.manualFiles(prior);
+        require(!stored.isEmpty(), STATE_CONFLICT, "人工证据缺少有效附件，请重新上传：" + write.item().getItemName());
+        var files = stored.stream().map(file -> revalidateManualFile(
+                new ManualFileRead(command, write.task(), write.item(), file))).toList();
         appendResult(new ResultWrite(write.item(), CutoverChecklistItemResultDO.builder()
                 .tenantId(command.tenantId()).selectedBy(command.actorId()).createdBy(command.actorId())
                 .checklistItemId(write.item().getId()).resultSourceCode("MANUAL").baseChecklistResultId(prior.getId())
                 .originalFailedCollectionTaskId(prior.getOriginalFailedCollectionTaskId())
                 .originalFailedResultVersion(prior.getOriginalFailedResultVersion()).originalFailureCode(prior.getOriginalFailureCode())
                 .factDescription(prior.getFactDescription()).selectionReasonCode("MANUAL_ANALYSIS_SAVED")
-                .build(), write.answer().answerSnapshot(), fact));
+                .build(), write.answer().answerSnapshot(), files));
+    }
+
+    private record ManualFileRead(CutoverChecklistDraftMutation command, CutoverTaskDO task,
+                                  CutoverChecklistItemDO item, CutoverChecklistFilePort.FileFact file) { }
+    private CutoverChecklistFilePort.FileFact revalidateManualFile(ManualFileRead read) {
+        var stored = read.file(); var command = read.command();
+        var handle = new CutoverChecklistFilePort.FileHandle(stored.artifactId(), stored.versionNo(),
+                stored.referenceKey(), stored.fileFactVersion(), stored.scopeVersion());
+        var fact = filePort.lockAndRevalidate(CutoverChecklistFilePort.FileQuery.builder()
+                .tenantId(command.tenantId()).actorId(command.actorId()).projectId(read.task().getProjectId())
+                .checklistItemId(read.item().getId()).expectedScopeVersion(command.expectedProjectScopeVersion())
+                .handle(handle).build());
+        requireFileFact(handle, fact);
+        return fact;
     }
 
     private void appendCollectionAnalysis(SaveChecklistCommand command, CutoverChecklistItemDO item,
@@ -1545,7 +1562,7 @@ public class CutoverChecklistApplicationService {
     }
 
     private record ResultWrite(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result,
-                               String answer, CutoverChecklistFilePort.FileFact file) { }
+                               String answer, List<CutoverChecklistFilePort.FileFact> files) { }
 
     private List<CutoverChecklistItemDO> withSchemas(List<CutoverChecklistItemDO> rows) {
         return rows.stream().map(fieldDefinitions::withSchema).toList();
@@ -1553,8 +1570,8 @@ public class CutoverChecklistApplicationService {
 
     private String manualReference(CutoverChecklistItemResultDO result) {
         if (!"MANUAL".equals(result.getResultSourceCode())) return null;
-        var file = customResultStorage.manualFile(result);
-        return file == null ? null : file.referenceKey();
+        var files = customResultStorage.manualFiles(result);
+        return files.isEmpty() ? null : files.getFirst().referenceKey();
     }
 
     private static boolean present(String value) {

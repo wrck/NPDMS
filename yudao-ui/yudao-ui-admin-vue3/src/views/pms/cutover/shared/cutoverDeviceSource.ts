@@ -1,5 +1,5 @@
 import type { CutoverChecklistItem, DeviceScopeEntry } from '@/api/pms/cutover'
-import type { DeviceListVO } from '@/api/pms/asset/device'
+import type { DeviceCurrentSummaryVO } from '@/api/pms/asset/device'
 import { locationSnapshotText } from '@/utils/locationSnapshot'
 
 export const hasTaskDeviceRows = (item: CutoverChecklistItem) =>
@@ -9,7 +9,7 @@ const nameFields: Record<string, string> = {
   SURVEY_INTERFACE_INTERCONNECT_PLAN: 'localDevice',
   SURVEY_IP_VLAN_PLAN: 'deviceName'
 }
-const deviceFields = (device?: DeviceListVO): Record<string, string | undefined> => ({
+const deviceFields = (device?: DeviceCurrentSummaryVO): Record<string, string | undefined> => ({
   deviceName: device?.name,
   localDevice: device?.name,
   location: locationSnapshotText(device?.locationSnapshot),
@@ -41,7 +41,7 @@ export const rebuildTaskDeviceAnswer = (input: {
   item: CutoverChecklistItem
   value?: string
   devices: DeviceScopeEntry[]
-  deviceList?: Record<string, DeviceListVO>
+  deviceList?: Record<string, DeviceCurrentSummaryVO>
 }) => {
   if (!input.item.applicable || input.item.workModeCode !== 'DIRECT'
     || (input.item.currentResult && input.item.currentResult.resultSourceCode !== 'DIRECT')) return input.value

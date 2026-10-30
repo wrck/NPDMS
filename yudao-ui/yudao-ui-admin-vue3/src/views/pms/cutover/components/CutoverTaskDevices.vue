@@ -14,12 +14,12 @@
   </details>
 </template>
 <script setup lang="ts">
-import { getDevice, type DeviceDetailVO } from '@/api/pms/asset/device'
+import { getCurrentDeviceSummaries, type DeviceCurrentSummaryVO } from '@/api/pms/asset/device'
 import type { CutoverTaskDetail } from '@/api/pms/cutover'
 import { checkPermi } from '@/utils/permission'
 
 const props = defineProps<{ detail: CutoverTaskDetail }>()
-const products = ref<Record<string, DeviceDetailVO['summary']>>({})
+const products = ref<Record<string, DeviceCurrentSummaryVO>>({})
 const loading = ref(false)
 const errorText = ref('')
 const rows = computed(() => props.detail.devices.map(device => ({
@@ -35,16 +35,20 @@ watch(() => props.detail, async () => {
   products.value = {}
   errorText.value = ''
   loading.value = false
-  if (!checkPermi(['pms:device:query'])) return
+  if (!checkPermi(['pms:device:query']) || !props.detail.devices.length) return
   loading.value = true
   const devices = props.detail.devices
   try {
-    const results = await Promise.allSettled(devices.map(device => getDevice(device.deviceId)))
+    const summaries = await getCurrentDeviceSummaries(devices.map(device => device.deviceId), props.detail.task.projectId)
     if (request !== sequence) return
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') products.value[String(devices[index].deviceId)] = result.value.summary
-    })
-    if (results.some(result => result.status === 'rejected')) errorText.value = '部分产品信息暂时无法读取，可刷新后重试。'
+    const byId = new Map(summaries.map(summary => [String(summary.deviceId), summary]))
+    for (const device of devices) {
+      const summary = byId.get(String(device.deviceId))
+      if (summary && summary.sn === device.serialNumber) products.value[String(device.deviceId)] = summary
+      else errorText.value = '部分产品信息暂时无法读取，可刷新后重试。'
+    }
+  } catch {
+    if (request === sequence) errorText.value = '部分产品信息暂时无法读取，可刷新后重试。'
   } finally { if (request === sequence) loading.value = false }
 }, { immediate: true })
 onBeforeUnmount(() => { ++sequence })

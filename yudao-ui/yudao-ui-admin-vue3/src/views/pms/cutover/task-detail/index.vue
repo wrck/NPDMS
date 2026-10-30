@@ -35,7 +35,7 @@ v-if="detail.task.currentStage === 'P2' && detail.assessmentSubmissionBlockReaso
           ref="planPanel"
           :actions-target="stageActions"
           v-else-if="activeStagePanel === 'PLAN'" :readonly="readonly || !!detailError" :task-id="detail.task.id"
-          :task-version="detail.task.version" :manual-grade="detail.task.manualGrade" @changed="handleTaskChanged" />
+          :project-id="detail.task.projectId" :task-version="detail.task.version" :manual-grade="detail.task.manualGrade" @changed="handleTaskChanged" />
         <CutoverApprovalPanel
           ref="approvalPanel" :actions-target="stageActions"
           v-else-if="activeStagePanel === 'APPROVAL'" :readonly="readonly || !!detailError" :task-id="detail.task.id"

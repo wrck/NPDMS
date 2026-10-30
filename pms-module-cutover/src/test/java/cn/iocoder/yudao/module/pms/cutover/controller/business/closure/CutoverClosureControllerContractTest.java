@@ -54,6 +54,9 @@ class CutoverClosureControllerContractTest {
         mvc.perform(get("/api/v1/pms/cutover-tasks/50/closure"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.taskId").value(50))
                 .andExpect(jsonPath("$.data.closureId").value(70));
+        when(query.availableAttachments(any())).thenReturn(List.of());
+        mvc.perform(get("/api/v1/pms/cutover-tasks/50/closure/available-attachments"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data").isArray());
         mvc.perform(put("/api/v1/pms/cutover-tasks/50/closure")
                 .header("If-Match", "1").header("X-Task-Version", "7").header("Idempotency-Key", "save-1")
                 .contentType("application/json").content(content()))

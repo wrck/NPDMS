@@ -23,6 +23,7 @@ import static org.mockito.Mockito.*;
 class CutoverExternalBulletinStoreTest {
     private final cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi deviceSource = mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi.class);
     private final CutoverChecklistMapper checklists = mock(CutoverChecklistMapper.class);
+    private final cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper tasks = mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper.class);
     private final CutoverChecklistDO root = new CutoverChecklistDO();
     private final CutoverChecklistDeviceContextMapper devices = mock(CutoverChecklistDeviceContextMapper.class);
     private final CutoverChecklistItemDefinitionRevisionMapper definitions = mock(CutoverChecklistItemDefinitionRevisionMapper.class);
@@ -33,7 +34,7 @@ class CutoverExternalBulletinStoreTest {
     private final CutoverChecklistItemResultMapper results = mock(CutoverChecklistItemResultMapper.class);
     private final CutoverExternalChecklistMapper mutations = mock(CutoverExternalChecklistMapper.class);
     private final CutoverFieldDefinitionStore fields = mock(CutoverFieldDefinitionStore.class);
-    private final CutoverExternalBulletinStore store = new CutoverExternalBulletinStore(deviceSource, checklists, devices, definitions, queries, references, bulletins, summaries, results, mutations, fields);
+    private final CutoverExternalBulletinStore store = new CutoverExternalBulletinStore(deviceSource, checklists, tasks, devices, definitions, queries, references, bulletins, summaries, results, mutations, fields);
     private final List<CutoverChecklistDeviceContextDO> context = new ArrayList<>();
     private final List<CutoverChecklistExternalQueryDO> queryRows = new ArrayList<>();
     private final List<CutoverChecklistResultQueryReferenceDO> refRows = new ArrayList<>();
@@ -46,13 +47,16 @@ class CutoverExternalBulletinStoreTest {
 
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
-        root.setId(20L); root.setTenantId(1L); root.setStatusCode("DRAFT");
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(
+                new cn.iocoder.yudao.framework.security.core.LoginUser().setId(90L).setTenantId(1L),
+                new org.springframework.mock.web.MockHttpServletRequest());
+        root.setId(20L); root.setTenantId(1L); root.setStatusCode("DRAFT"); root.setCutoverTaskId(30L);
+        var task = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO();
+        task.setId(30L); task.setTenantId(1L); task.setProjectId(9L);
+        when(tasks.selectById(30L)).thenReturn(task);
         when(checklists.selectById(20L)).thenReturn(root);
-        when(deviceSource.getDevice(anyLong())).thenAnswer(call -> {
-            Long id = call.getArgument(0);
-            var source = context.stream().filter(row -> row.getDeviceId().equals(id)).findFirst().orElseThrow();
-            return summary(id, source.getCurrentSoftwareVersion());
-        });
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenAnswer(call -> context.stream()
+                .map(source -> summary(source.getDeviceId(), source.getCurrentSoftwareVersion())).toList());
         item.setId(10L); item.setTenantId(1L); item.setChecklistId(20L); item.setItemDefinitionId(30L);
         item.setItemDefinitionVersion(2); item.setWorkModeCode("EXTERNAL"); item.setStableItemKey("RISK_CURRENT_VERSION_BULLETIN");
         definition.setId(30L); definition.setTenantId(1L); definition.setItemDefinitionVersion(2);
@@ -83,7 +87,10 @@ class CutoverExternalBulletinStoreTest {
         var table = CutoverChecklistFieldDefinitionDO.builder().id(501L).parentFieldId(500L).fieldCode("bulletins").dataTypeCode("TABLE").build();
         when(fields.forResult(any())).thenReturn(new CutoverFieldSchemaCodec.Definition(List.of(root, table), List.of()));
     }
-    @AfterEach void clear() { TenantContextHolder.clear(); }
+    @AfterEach void clear() {
+        TenantContextHolder.clear();
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+    }
 
     @Test void successfulZeroRowsRetainsQueryAndStillRequiresAnExplicitFeedbackSave() {
         var loaded = result(60L, "EXTERNAL_LOAD"); var query = query(70L, 40L, "v1", true, 0, loaded.getId());
@@ -175,8 +182,74 @@ class CutoverExternalBulletinStoreTest {
         verify(mutations, never()).updateDevice(any());
     }
 
+    @Test void draftContextPrefetchesTheWholeDeviceBatchWithoutReadingEachDeviceAgain() {
+        context.add(device(41L, "other-current", "other-target"));
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(
+                summary(40L, "current-40"), summary(41L, "current-41")));
+        when(deviceSource.getDevice(40L)).thenReturn(summary(40L, "current-40"));
+        when(deviceSource.getDevice(41L)).thenReturn(summary(41L, "current-41"));
+
+        var rows = store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L));
+
+        assertEquals(List.of("current-40", "current-41"), rows.stream()
+                .map(CutoverChecklistDeviceContextDO::getCurrentSoftwareVersion).toList());
+        verify(deviceSource).getVisibleDeviceSummaries(
+                new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery(1L, 90L, Set.of(40L, 41L), 9L));
+        verify(deviceSource, never()).getDevice(anyLong());
+        assertEquals("v1", context.getFirst().getCurrentSoftwareVersion());
+    }
+
+    @Test void missingPrefetchedDeviceRetainsItsOriginalAuthorizationFailure() {
+        context.add(device(41L, "other-current", "other-target"));
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(summary(40L, "current-40")));
+        var denied = new org.springframework.security.access.AccessDeniedException("denied");
+        when(deviceSource.getDevice(41L)).thenThrow(denied);
+
+        assertSame(denied, assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L))));
+        verify(deviceSource, never()).getDevice(40L);
+        verify(mutations, never()).updateDevice(any());
+    }
+
+    @Test void submittedContextNeverRequestsCurrentDeviceFacts() {
+        root.setStatusCode("SUBMITTED");
+
+        assertEquals(context, store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)));
+        verifyNoInteractions(tasks);
+
+        verifyNoInteractions(deviceSource);
+    }
+
+    @Test void draftProjectHintCannotComeFromAnotherTenantsParentTask() {
+        var foreign = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO();
+        foreign.setId(30L); foreign.setTenantId(2L); foreign.setProjectId(99L);
+        when(tasks.selectById(30L)).thenReturn(foreign);
+
+        assertEquals(CutoverChecklistException.Code.NOT_FOUND, assertThrows(CutoverChecklistException.class,
+                () -> store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L))).getCode());
+
+        verifyNoInteractions(deviceSource);
+    }
+
+    @Test void submissionRevalidatesOneCurrentContextAndANewCallReadsAgain() {
+        var loaded = result(60L, "EXTERNAL_LOAD");
+        var query = query(70L, 40L, "v1", true, 0, loaded.getId());
+        queryRows.add(query);
+        store.insertLoaded(new CutoverExternalBulletinStore.Loaded(item, loaded, List.of(query), List.of()));
+        var feedback = result(61L, "EXTERNAL_FEEDBACK");
+        store.insertFeedback(new CutoverExternalBulletinStore.FeedbackWrite(read(loaded), feedback, List.of()));
+        clearInvocations(deviceSource);
+
+        store.validateSubmission(read(feedback));
+        verify(deviceSource, times(1)).getVisibleDeviceSummaries(any());
+
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(summary(40L, "changed")));
+        assertThrows(CutoverChecklistException.class, () -> store.validateSubmission(read(feedback)));
+        verify(deviceSource, times(2)).getVisibleDeviceSummaries(any());
+    }
+
     @Test void draftReadsCurrentDeviceVersionButSubmittedHistoryKeepsSnapshot() {
-        when(deviceSource.getDevice(40L)).thenReturn(summary(40L, "device-v3"));
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(summary(40L, "device-v3")));
         var current = store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)).getFirst();
         assertEquals("device-v3", current.getCurrentSoftwareVersion());
         assertEquals("v1", context.getFirst().getCurrentSoftwareVersion());
@@ -186,11 +259,12 @@ class CutoverExternalBulletinStoreTest {
 
     @Test void deviceVersionChangeInvalidatesPreviouslyLoadedBulletins() {
         var result = loadBulletin();
-        when(deviceSource.getDevice(40L)).thenReturn(summary(40L, "new-version"));
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(summary(40L, "new-version")));
         assertThrows(CutoverChecklistException.class, () -> store.requireCurrent(read(result)));
     }
 
     @Test void missingDeviceSourceDoesNotFallBackToManuallyEnteredVersion() {
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of());
         when(deviceSource.getDevice(40L)).thenReturn(null);
         assertThrows(CutoverChecklistException.class, () -> store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)));
     }
@@ -204,7 +278,7 @@ class CutoverExternalBulletinStoreTest {
     }
 
     @Test void submissionFreezesSourceAndKeepsTargetWithoutMutatingReadRows() {
-        when(deviceSource.getDevice(40L)).thenReturn(summary(40L, "device-v3"));
+        when(deviceSource.getVisibleDeviceSummaries(any())).thenReturn(List.of(summary(40L, "device-v3")));
         when(mutations.updateDevice(any())).thenReturn(1);
         store.freezeVersions(new CutoverExternalBulletinStore.Freeze(root, 90L, time));
         verify(mutations).updateDevice(argThat(command -> "device-v3".equals(command.currentSoftwareVersion())
@@ -215,7 +289,7 @@ class CutoverExternalBulletinStoreTest {
     private cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO summary(Long id, String version) {
         return new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO(id, 1L, "SN-" + id,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                version, null, null, null);
+                version, null, null, null, null, null);
     }
 
     private CutoverChecklistItemResultDO loadBulletin() {

@@ -94,6 +94,26 @@ class CutoverApprovalSourceAssemblerTest {
         assertEquals(plan.getScheduledTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(), source.collectionAnalysis().scheduledTime());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    void unassociatedProjectKeepsAbsentCustomerCodeInNewApprovalSnapshot(String customerCode) {
+        var unassociated = CutoverProjectContextPort.ProjectContextFact.builder()
+                .tenantId(1L).projectId(3001L).projectVersion(10).projectCode("P-001").projectName("Current project")
+                .customerId(null).customerCode(customerCode).customerName("项目来源显示名称")
+                .departmentId(5001L).departmentCode("OFF-01").departmentName("Office")
+                .projectScopeVersion(12L).build();
+        when(projects.inspect(any())).thenReturn(unassociated);
+        when(projects.lockAndRevalidate(any())).thenReturn(unassociated);
+
+        var source = codec.decode(service.lockAndAssemble(command("D")).sourceSnapshot());
+
+        assertNull(source.project().customerId());
+        assertNull(source.project().customerCode());
+        assertEquals("项目来源显示名称", source.project().customerName());
+        assertEquals("GOLD", source.assessment().customerServiceLevelCode());
+        assertEquals(customerCode, unassociated.customerCode());
+    }
+
     @Test
     void rejectsMissingPlanTimeRatherThanFallingBackToTaskTime() {
         plan.setScheduledTime(null);

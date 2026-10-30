@@ -40,7 +40,7 @@
             <h4 class="cut-section-title">{{ group.label }}</h4>
             <el-table :data="group.items" empty-text="本次割接无此类检查记录">
               <el-table-column prop="itemName" label="调研／风险项" min-width="260" />
-              <el-table-column label="结果" min-width="460"><template #default="{ row }"><CutoverFrozenAnswer :snapshot="row.answerSnapshot" :schema="answerSchemas[String(row.checklistItemId)]" /><PmsFileVersionReferenceList v-if="manualFile(row)" owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(row.checklistItemId)" purpose-code="MANUAL_EVIDENCE" :reference-key="manualFile(row)!.referenceKey" :artifact-id="manualFile(row)!.artifactId" :version-no="manualFile(row)!.versionNo" /></template></el-table-column>
+              <el-table-column label="结果" min-width="460"><template #default="{ row }"><CutoverFrozenAnswer :snapshot="row.answerSnapshot" :schema="answerSchemas[String(row.checklistItemId)]" /><PmsFileVersionReferenceList v-for="file in manualFiles(row)" :key="file.referenceKey" owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(row.checklistItemId)" purpose-code="MANUAL_EVIDENCE" :reference-key="file.referenceKey" :artifact-id="file.artifactId" :version-no="file.versionNo" /></template></el-table-column>
               <el-table-column label="事实说明" min-width="180"><template #default="{ row }">{{ row.factDescription || '—' }}</template></el-table-column>
             </el-table>
           </template>
@@ -114,9 +114,10 @@
 </template>
 
 <script setup lang="ts">
+import { systemUserSelection } from '@/api/system/user/selection'
+import { manualEvidenceFiles } from '../shared/manualEvidenceFiles'
 import { useMessage } from '@/hooks/web/useMessage'
 import * as CutoverApi from '@/api/pms/cutover'
-import { getSimpleUserList } from '@/api/system/user'
 import { getDictLabel, DICT_TYPE } from '@/utils/dict'
 import { checkPermi } from '@/utils/permission'
 import type {
@@ -195,10 +196,7 @@ const frozenGroups = computed(() => {
     { label: '业务调研项', items: current.sourceSnapshot.businessSurveyItems }
   ].filter(group => group.items.length || current.grade !== 'D') : []
 })
-const manualFile = (item: CutoverApprovalChecklistResultSnapshot) => {
-  if (item.resultSourceCode !== 'MANUAL') return null
-  try { const data = JSON.parse(item.answerSnapshot); return data.file || data } catch { return null }
-}
+const manualFiles = (item: CutoverApprovalChecklistResultSnapshot) => manualEvidenceFiles(item)
 const currentNode = computed(() => {
   const current = view.value
   return current?.viewMode === 'FULL'
@@ -396,7 +394,7 @@ const loadUsers = async () => {
   usersLoading.value = true
   usersError.value = ''
   try {
-    const users = await getSimpleUserList()
+    const users = await systemUserSelection.active()
     userNames.value = Object.fromEntries(users.map(user => [String(user.id), user.nickname]))
   } catch {
     userNames.value = {}

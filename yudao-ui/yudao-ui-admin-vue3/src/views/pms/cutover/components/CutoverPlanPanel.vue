@@ -170,7 +170,7 @@ owner-context="CUT" object-type="CUTOVER_PLAN" :object-id="String(taskId)"
 <script setup lang="ts">
 import * as CutoverApi from '@/api/pms/cutover'
 import * as FileApi from '@/api/pms/platform/file/version-reference'
-import { getDevice } from '@/api/pms/asset/device'
+import { getCurrentDeviceSummaries, type DeviceCurrentSummaryVO } from '@/api/pms/asset/device'
 import { checkPermi } from '@/utils/permission'
 import type {
   CutoverPlanFileFact,
@@ -200,7 +200,7 @@ import { planSupportValidationMessage } from '../shared/cutoverPlanValidation'
 import { initialOnlinePlan, type CutoverPlanDraftContent } from '../shared/cutoverPlanDraft'
 import { surveyPlanDescription, surveyPlanFile } from '../shared/cutoverPlanSurvey'
 
-const props = defineProps<{ taskId: string | number; taskVersion: number; manualGrade: ManualGrade | null; readonly?: boolean; actionsTarget?: HTMLElement }>()
+const props = defineProps<{ taskId: string | number; projectId: string | number; taskVersion: number; manualGrade: ManualGrade | null; readonly?: boolean; actionsTarget?: HTMLElement }>()
 const emit = defineEmits<{ changed: [] }>()
 const message = useMessage()
 const uploads = useDraftUploads()
@@ -252,14 +252,22 @@ const switchEditMode = async (mode: string | number | boolean | undefined) => {
     deviceFillError.value = ''
     draftContent.value = { ...(uploadedContent.value || { editMode: 'FULL_FILE_UPLOAD', fileArtifactFact: null, ownershipConfirmed: false }), scheduledTime: current.scheduledTime }
   } else if (mode === onlineMode.value && sourceSnapshot.value) {
+    const taskId = props.taskId
+    const currentPlan = plan.value
     loading.value = true
     try {
-      draftContent.value = await fillPlanFromSources({ ...(onlineContent.value || initialOnlinePlan(sourceSnapshot.value)), scheduledTime: current.scheduledTime })
-    } finally { loading.value = false }
+      const filled = await fillPlanFromSources({ ...(onlineContent.value || initialOnlinePlan(sourceSnapshot.value)), scheduledTime: current.scheduledTime })
+      if (String(taskId) === String(props.taskId) && currentPlan === plan.value) draftContent.value = filled
+    } finally { if (String(taskId) === String(props.taskId) && currentPlan === plan.value) loading.value = false }
   }
 }
 
+let sourceSequence = 0
 const fillPlanFromSources = async (content: CutoverPlanDraftContent): Promise<CutoverPlanDraftContent> => {
+  const sequence = ++sourceSequence
+  const taskId = props.taskId
+  const currentPlan = plan.value
+  let sourceError = ''
   deviceFillError.value = ''
   surveyItems.value = []
   if (content.editMode !== 'ONLINE_TEMPLATE_STANDARD' || props.readonly || plan.value?.status !== 'DRAFT'
@@ -278,7 +286,7 @@ const fillPlanFromSources = async (content: CutoverPlanDraftContent): Promise<Cu
       if (String(state.checklistId) !== String(checklistId)) throw new Error('调研清单版本不匹配')
       return state
     } catch {
-      deviceFillError.value = '调研目标版本暂时无法读取，可手动补充或刷新重试。'
+      sourceError = '调研目标版本暂时无法读取，可手动补充或刷新重试。'
       return null
     }
   }
@@ -291,18 +299,21 @@ const fillPlanFromSources = async (content: CutoverPlanDraftContent): Promise<Cu
         || survey.checklistVersion !== source.checklistVersion || survey.status !== 'SUBMITTED') throw new Error('调研来源不匹配')
       return survey
     } catch {
-      deviceFillError.value = '调研资料暂时无法读取，已有填写保留，可刷新重试。'
+      sourceError = '调研资料暂时无法读取，已有填写保留，可刷新重试。'
       return null
     }
   }
   const [results, targetState, survey] = await Promise.all([
-    Promise.allSettled(missing.map(device => getDevice(device.deviceId))), readTargetVersions(), readSurvey()
+    missing.length ? getCurrentDeviceSummaries(missing.map(device => device.deviceId), props.projectId).catch(() => []) : [], readTargetVersions(), readSurvey()
   ])
+  if (sequence !== sourceSequence || String(taskId) !== String(props.taskId) || currentPlan !== plan.value
+    || props.readonly || plan.value?.status !== 'DRAFT' || !plan.value.allowedActions.includes('SAVE_DRAFT')) return content
+  deviceFillError.value = sourceError
   surveyItems.value = survey?.items || []
   let changed = false
-  results.forEach((result, index) => {
-    const device = missing[index]
-    const summary = result.status === 'fulfilled' ? result.value?.summary : null
+  const byId = new Map<string, DeviceCurrentSummaryVO>(results.map(summary => [String(summary.deviceId), summary] as const))
+  missing.forEach(device => {
+    const summary = byId.get(String(device.deviceId))
     if (!summary || String(summary.deviceId) !== String(device.deviceId) || summary.sn !== device.serialNumber) {
       deviceFillError.value = '部分设备信息暂时无法读取，可手动补充或刷新重试。'
       return
@@ -349,12 +360,16 @@ const approvalTone = computed(() => plan.value?.approvalFact?.status === 'APPROV
     ? 'danger'
     : 'warning')
 
+let refreshSequence = 0
 const refresh = async (options: { preserveDraft?: boolean } = {}) => {
+  const sequence = ++refreshSequence
+  const taskId = props.taskId
   const retained = options.preserveDraft && draftContent.value
     ? JSON.parse(JSON.stringify(draftContent.value)) as CutoverPlanDraftContent : null
   loading.value = true
   try {
     const current = await CutoverApi.getCutoverPlan(props.taskId)
+    if (sequence !== refreshSequence || String(taskId) !== String(props.taskId)) return
     if (retained && plan.value && (String(current.planRevisionId) !== String(plan.value.planRevisionId)
       || current.planVersion !== plan.value.planVersion || current.status !== 'DRAFT')) {
       message.warning('方案已被其他操作更新，当前填写已保留；请先核对新版本，不能直接覆盖。')
@@ -367,12 +382,14 @@ const refresh = async (options: { preserveDraft?: boolean } = {}) => {
     const nextContent = retained || (content
       ? JSON.parse(JSON.stringify(content)) as CutoverPlanDraftContent
       : null)
-    draftContent.value = nextContent ? await fillPlanFromSources(nextContent) : null
+    const filled = nextContent ? await fillPlanFromSources(nextContent) : null
+    if (sequence !== refreshSequence || String(taskId) !== String(props.taskId)) return
+    draftContent.value = filled
     if (draftContent.value?.editMode === 'FULL_FILE_UPLOAD') uploadedContent.value = draftContent.value
     else if (draftContent.value) onlineContent.value = draftContent.value
     if (!props.readonly && current.allowedActions.includes('SAVE_DRAFT')) await readUploadedPlan()
   } finally {
-    loading.value = false
+    if (sequence === refreshSequence) loading.value = false
   }
 }
 
@@ -408,12 +425,15 @@ const runIntent = async <T,>(intent: string, call: (key: string) => Promise<T>) 
     const response = (error as { response?: { data?: { msg?: string; data?: { reasonCode?: string } } } })?.response
     if (recovery !== 'RETRY_SAME_KEY') {
       const reasonCode = response?.data?.data?.reasonCode
-      if (['PLAN_SECTION_INCOMPLETE', 'SUPPORT_ARRANGEMENT_INCOMPLETE'].includes(reasonCode || '')) {
+      const serverMessage = response?.data?.msg
+      const genericPlanRejection = reasonCode === 'PLAN_SECTION_INCOMPLETE'
+        && (!serverMessage || serverMessage === '方案内容尚未完整')
+      if (reasonCode === 'SUPPORT_ARRANGEMENT_INCOMPLETE' || genericPlanRejection) {
         supportValidationMessage.value = planSupportValidationMessage(draftContent.value?.editMode === 'FULL_FILE_UPLOAD' ? null : draftContent.value)
       }
-      message.error(supportValidationMessage.value || (reasonCode === 'PLAN_SECTION_INCOMPLETE'
+      message.error(supportValidationMessage.value || (genericPlanRejection
         ? '方案内容尚未完整，请补充方案各章节及步骤后再生成或提交。'
-        : response?.data?.msg || '方案操作失败，请检查填写内容后重试。'))
+        : serverMessage || '方案操作失败，请检查填写内容后重试。'))
     }
     if (recovery === 'START_NEW_INTENT') intents.complete(intent)
     if (recovery === 'REFRESH_AGGREGATE' || recovery === 'REFRESH_OWNER_FACTS') {
@@ -644,7 +664,8 @@ const completeCreateUpload = async (selection: FileSelection) => {
   } finally { createFileReads.value-- }
 }
 
-onMounted(refresh)
+watch(() => props.taskId, () => { void refresh() }, { immediate: true })
+onBeforeUnmount(() => { ++sourceSequence; ++refreshSequence })
 </script>
 
 <style scoped>

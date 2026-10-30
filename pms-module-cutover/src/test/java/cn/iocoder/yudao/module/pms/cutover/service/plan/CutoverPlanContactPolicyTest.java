@@ -33,12 +33,29 @@ class CutoverPlanContactPolicyTest {
 
     @Test void manualCustomerStillRequiresNameAndPhoneOnSubmission() {
         var query = new ProjectContactReferenceApi.Query(1L, 2L, 30L);
-        assertThrows(IllegalArgumentException.class, () -> policy.validate(query, content("", false), true));
+        var missingName = assertThrows(CutoverPlanApplicationException.class,
+                () -> policy.validate(query, content("", false), true));
+        assertEquals(CutoverPlanApplicationException.Code.SUPPORT_ARRANGEMENT_INCOMPLETE, missingName.code());
         var original = content("手填客户", false);
         var blankPhone = new CutoverPlanContentCodec.DecodedContent(original.rootSnapshot(), List.of(), List.of(
                 new CutoverPlanContentCodec.SupportArrangement(null, "CUSTOMER", "手填客户", "保障", "", 1L, null)), null, false);
         assertDoesNotThrow(() -> policy.validate(query, blankPhone, false));
-        assertThrows(IllegalArgumentException.class, () -> policy.validate(query, blankPhone, true));
+        var missingPhone = assertThrows(CutoverPlanApplicationException.class,
+                () -> policy.validate(query, blankPhone, true));
+        assertEquals("SUPPORT_ARRANGEMENT_INCOMPLETE", missingPhone.reasonCode());
+        assertEquals("请填写客户姓名和联系电话", missingPhone.getMessage());
+        verifyNoInteractions(contacts);
+    }
+
+    @Test void missingCustomerArrangementUsesTheSupportCompletenessContractWhileDraftsRemainWritable() {
+        var original = content("张工", false);
+        var empty = new CutoverPlanContentCodec.DecodedContent(original.rootSnapshot(), List.of(), List.of(), null, false);
+        var query = new ProjectContactReferenceApi.Query(1L, 2L, 30L);
+        assertDoesNotThrow(() -> policy.validate(query, empty, false));
+        var failure = assertThrows(CutoverPlanApplicationException.class, () -> policy.validate(query, empty, true));
+        assertEquals(CutoverPlanApplicationException.Code.SUPPORT_ARRANGEMENT_INCOMPLETE, failure.code());
+        assertEquals("SUPPORT_ARRANGEMENT_INCOMPLETE", failure.reasonCode());
+        assertEquals("客户保障安排尚未填写", failure.getMessage());
         verifyNoInteractions(contacts);
     }
 

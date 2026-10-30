@@ -23,9 +23,7 @@
         <el-button link type="primary" data-testid="retry-service-manager-candidate" :loading="serviceManagerLoading" @click="loadServiceManager">重试</el-button>
       </el-alert>
       <el-form-item label="新审批人" required>
-        <el-select v-model="newApproverUserId" data-testid="new-approver-id" filterable clearable :placeholder="selectedNode?.nodeCode === 'SERVICE_MANAGER' && !serviceManagerLoading && !Object.keys(eligibleUsers).length ? '当前无可改派的服务经理' : '搜索并选择新审批人'" :loading="usersLoading || serviceManagerLoading" :disabled="busy || usersLoading || !!usersError || serviceManagerLoading || serviceManagerError || !selectedNode">
-          <el-option v-for="(name, id) in eligibleUsers" :key="id" :data-testid="'reassignment-assignee-' + id" :label="name" :value="String(id)" :disabled="String(id) === String(selectedNode?.currentApproverUserId)" />
-        </el-select>
+        <UserSelect v-model="newApproverUserId" data-testid="new-approver-id" :scoped-source="approverSource" :disabled-ids="selectedNode?.currentApproverUserId == null ? [] : [selectedNode.currentApproverUserId]" :placeholder="selectedNode?.nodeCode === 'SERVICE_MANAGER' && !serviceManagerLoading && !Object.keys(eligibleUsers).length ? '当前无可改派的服务经理' : '搜索并选择新审批人'" :disabled="busy || usersLoading || !!usersError || serviceManagerLoading || serviceManagerError || !selectedNode" />
       </el-form-item>
       <el-form-item label="改派原因" required>
         <el-input v-model="reason" data-testid="reassignment-reason" type="textarea" :rows="3" maxlength="1000" show-word-limit placeholder="请说明人员调整的原因" :disabled="busy" />
@@ -41,6 +39,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { getCutoverServiceManagerReassignmentCandidate } from '@/api/pms/cutover'
 import type {
   CutoverApprovalNodeCode,
@@ -75,6 +75,10 @@ let candidateSequence = 0
 const eligibleUsers = computed(() => selectedNode.value?.nodeCode === 'SERVICE_MANAGER'
   ? Object.fromEntries(Object.entries(userNames.value).filter(([id]) => id === String(serviceManagerId.value)))
   : userNames.value)
+const approverSource = computed(() => systemUserSelection.fromCandidates(
+  `cutover-reassign:${props.view.approvalInstanceId}:${props.view.approvalVersion}:${selectedNode.value?.nodeNo}:${serviceManagerId.value ?? ''}`,
+  Object.entries(eligibleUsers.value).map(([id, nickname]) => ({ id, nickname }))
+))
 const loadServiceManager = async () => {
   const sequence = ++candidateSequence
   serviceManagerId.value = null

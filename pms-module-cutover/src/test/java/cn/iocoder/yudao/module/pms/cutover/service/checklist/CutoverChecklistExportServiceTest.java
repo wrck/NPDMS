@@ -27,7 +27,7 @@ class CutoverChecklistExportServiceTest {
                         CutoverChecklistView.CurrentResult.builder().resultVersion(1).resultSourceCode("DIRECT")
                                 .answerSnapshot("answer").build()))));
         CutoverChecklistExportService service = new CutoverChecklistExportService(checklistService,
-                new CutoverChecklistWorkbookWriter(), auditApi);
+                new CutoverChecklistSummaryWorkbookWriter(), auditApi);
 
         CutoverChecklistExportResult result = service.export(new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(9L, 12L, "corr-export-1"), 31L, 3L);
 

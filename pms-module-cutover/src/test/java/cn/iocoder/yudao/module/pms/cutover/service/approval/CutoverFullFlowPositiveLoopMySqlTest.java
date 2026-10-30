@@ -499,6 +499,9 @@ class CutoverFullFlowPositiveLoopMySqlTest {
                 @Override public List<DeviceFact> resolveBySerials(List<String> serialNumbers) {
                     return List.of(deviceFact());
                 }
+                @Override public List<DeviceFact> resolveBySerials(cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceScopeResolveQuery query) {
+                    return List.of(deviceFact());
+                }
                 @Override public List<DeviceFact> lockAndRevalidate(Long projectId,
                                                                     List<DeviceFact> expectedDevices) {
                     return List.copyOf(expectedDevices);

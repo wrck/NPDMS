@@ -143,6 +143,19 @@ class CutoverPlanControllerContractTest {
     }
 
     @Test
+    void mapsMissingCustomerSupportToTheBusinessCompletenessContract() throws Exception {
+        when(application.submit(any())).thenThrow(new CutoverPlanApplicationException(
+                CutoverPlanApplicationException.Code.SUPPORT_ARRANGEMENT_INCOMPLETE, "客户保障安排尚未填写"));
+        mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/submit")
+                .header("If-Match", "3").header("X-Task-Version", "4").header("Idempotency-Key", "missing-customer"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.msg").value("客户保障安排尚未填写"))
+                .andExpect(jsonPath("$.data.category").value("BUSINESS_INCOMPLETE"))
+                .andExpect(jsonPath("$.data.reasonCode").value("SUPPORT_ARRANGEMENT_INCOMPLETE"))
+                .andExpect(jsonPath("$.data.recoveryAction").value("FIX_REQUEST"));
+    }
+
+    @Test
     void mapsPermissionAndFileOwnershipFailuresWithoutMessageInspection() throws Exception {
         when(query.detail(any(), any())).thenThrow(new org.springframework.security.access.AccessDeniedException(
                 "denied"));

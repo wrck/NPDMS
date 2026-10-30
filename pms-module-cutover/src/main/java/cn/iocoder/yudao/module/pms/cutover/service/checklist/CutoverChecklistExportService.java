@@ -20,11 +20,11 @@ public final class CutoverChecklistExportService {
     private static final Set<String> EXPORTABLE_STATUSES = Set.of("DRAFT", "SUBMITTED");
 
     private final CutoverChecklistApplicationService checklistService;
-    private final CutoverChecklistWorkbookWriter workbookWriter;
+    private final CutoverChecklistSummaryWorkbookWriter workbookWriter;
     private final OperationAuditApi operationAuditApi;
 
     public CutoverChecklistExportService(CutoverChecklistApplicationService checklistService,
-                                         CutoverChecklistWorkbookWriter workbookWriter,
+                                         CutoverChecklistSummaryWorkbookWriter workbookWriter,
                                          OperationAuditApi operationAuditApi) {
         this.checklistService = Objects.requireNonNull(checklistService);
         this.workbookWriter = Objects.requireNonNull(workbookWriter);

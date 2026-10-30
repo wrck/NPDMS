@@ -8,7 +8,7 @@ import CutoverChecklistField from '../components/CutoverChecklistField.vue'
 import CutoverChecklistPanel from '../components/CutoverChecklistPanel.vue'
 import CutoverSchemaInput from '../components/CutoverSchemaInput.vue'
 import CutoverFrozenAnswer from '../components/CutoverFrozenAnswer.vue'
-import { getDevicePage } from '@/api/pms/asset/device'
+import { getCurrentDeviceSummaries } from '@/api/pms/asset/device'
 import { checkPermi } from '@/utils/permission'
 import {
   findByTestId,
@@ -99,7 +99,7 @@ const item = {
 }
 
 describe('F-CUT-003 mounted checklist field', () => {
-  beforeEach(() => { vi.clearAllMocks(); fileApi.getCurrentReference.mockReset().mockResolvedValue(null); acceptedTemplate.value = '9007199254740992'; vi.mocked(getDevicePage).mockReset().mockResolvedValue({ list: [], total: 0 }); vi.mocked(checkPermi).mockReturnValue(true) })
+  beforeEach(() => { vi.clearAllMocks(); fileApi.getCurrentReference.mockReset().mockResolvedValue(null); acceptedTemplate.value = '9007199254740992'; vi.mocked(getCurrentDeviceSummaries).mockReset().mockResolvedValue([]); vi.mocked(checkPermi).mockReturnValue(true) })
   it('uses the same server field descriptions in survey and approval without rewriting the frozen answer', () => {
     const schema = { fields: [{ code: 'executed', type: 'BOOLEAN', label: '服务端检查结论', required: true },
       { code: 'remark', type: 'TEXT', label: '服务端事实说明' }] }
@@ -193,7 +193,7 @@ describe('F-CUT-003 mounted checklist field', () => {
   })
   it('fills available device-list facts without blocking the survey or overwriting input entered while the source loads', async () => {
     let resolveList!: (value: any) => void
-    vi.mocked(getDevicePage).mockImplementation(() => new Promise(resolve => { resolveList = resolve }))
+    vi.mocked(getCurrentDeviceSummaries).mockImplementation(() => new Promise(resolve => { resolveList = resolve }))
     const current = checklistView(null)
     current.items[0] = { ...current.items[0], stableItemKey: 'SURVEY_DEVICE_LOCATION_PLAN', interfaceFormatCode: 'TABLE',
       interfaceSchemaSnapshot: JSON.stringify({ columns: [{ code: 'serialNumber', label: '设备序列号' },
@@ -204,10 +204,10 @@ describe('F-CUT-003 mounted checklist field', () => {
     await flush()
     try {
       expect(findByTestId(page.root, 'checklist-save')).toBeDefined()
-      expect(getDevicePage).toHaveBeenCalledWith({ sn: 'SN-001', pageNo: 1, pageSize: 100 })
+      expect(getCurrentDeviceSummaries).toHaveBeenCalledWith([taskDetail.devices[0].deviceId], taskDetail.task.projectId)
       findInput(page.root, '请填写核查事实').props['onUpdate:modelValue']('现场填写名称')
       await flush()
-      resolveList({ list: [{ deviceId: taskDetail.devices[0].deviceId, sn: 'SN-001', name: '来源名称', locationSnapshot: '设备清单位置' }], total: 1 })
+      resolveList([{ deviceId: taskDetail.devices[0].deviceId, sn: 'SN-001', name: '来源名称', locationSnapshot: '设备清单位置' }])
       await flush()
       checklistApi.saveCutoverChecklist.mockResolvedValue(undefined)
       await (findByTestId(page.root, 'checklist-save')!.props!.onClick as Function)()
@@ -224,11 +224,61 @@ describe('F-CUT-003 mounted checklist field', () => {
     checklistApi.getCutoverExternalState.mockResolvedValue(null)
     const historical = mount(CutoverChecklistPanel, { detail: taskDetail, readonly: true }, controls)
     await flush(); historical.app.unmount()
-    expect(getDevicePage).not.toHaveBeenCalled()
+    expect(getCurrentDeviceSummaries).not.toHaveBeenCalled()
     vi.mocked(checkPermi).mockReturnValue(false)
     const denied = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
     await flush(); denied.app.unmount()
-    expect(getDevicePage).not.toHaveBeenCalled()
+    expect(getCurrentDeviceSummaries).not.toHaveBeenCalled()
+  })
+
+  it('uses one batch for large device IDs and retains task rows when the visible subset is partial', async () => {
+    const current = checklistView(null)
+    current.items[0] = { ...current.items[0], stableItemKey: 'SURVEY_DEVICE_LOCATION_PLAN', interfaceFormatCode: 'TABLE',
+      interfaceSchemaSnapshot: '{"columns":[{"code":"serialNumber"},{"code":"deviceName"}]}' }
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(current)
+    checklistApi.getCutoverExternalState.mockResolvedValue(null)
+    const projectId = '9007199254741999'
+    const detail = { ...taskDetail, task: { ...taskDetail.task, projectId }, devices: [
+      { ...taskDetail.devices[0], deviceId: '9007199254740995' },
+      { ...taskDetail.devices[0], deviceId: '9007199254740996', serialNumber: 'SN-002' }
+    ] }
+    vi.mocked(getCurrentDeviceSummaries).mockResolvedValue([{ deviceId: '9007199254740996', sn: 'SN-002', projectId, name: '第二台名称' }] as any)
+    const page = mount(CutoverChecklistPanel, { detail }, controls)
+    try {
+      await vi.waitFor(() => expect(textOf(page.root)).toContain('部分设备资料暂时无法读取'))
+      expect(getCurrentDeviceSummaries).toHaveBeenCalledExactlyOnceWith(['9007199254740995', '9007199254740996'], projectId)
+      const state = (page.vm as any).$.setupState
+      expect(JSON.parse(state.answers.SURVEY_DEVICE_LOCATION_PLAN)).toEqual([
+        { serialNumber: 'SN-001' }, { serialNumber: 'SN-002', deviceName: '第二台名称' }
+      ])
+    } finally { page.app.unmount() }
+  })
+
+  it('ignores an old summary batch after switching tasks', async () => {
+    const current = checklistView(null)
+    current.items[0] = { ...current.items[0], stableItemKey: 'SURVEY_DEVICE_LOCATION_PLAN', interfaceFormatCode: 'TABLE',
+      interfaceSchemaSnapshot: '{"columns":[{"code":"serialNumber"},{"code":"deviceName"}]}' }
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(current)
+    checklistApi.getCutoverExternalState.mockResolvedValue(null)
+    let resolveOld!: (value: any) => void
+    vi.mocked(getCurrentDeviceSummaries).mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve }))
+      .mockResolvedValueOnce([{ deviceId: '9007199254740996', sn: 'SN-002', name: '当前名称' }] as any)
+    const detail = ref(taskDetail)
+    const page = mount(defineComponent({ setup: () => () => h(CutoverChecklistPanel, { detail: detail.value }) }), {}, controls)
+    try {
+      await vi.waitFor(() => expect(getCurrentDeviceSummaries).toHaveBeenCalledOnce())
+      detail.value = { ...taskDetail, task: { ...taskDetail.task, id: '102' }, devices: [
+        { ...taskDetail.devices[0], deviceId: '9007199254740996', serialNumber: 'SN-002' }
+      ] }
+      await vi.waitFor(() => expect(getCurrentDeviceSummaries).toHaveBeenCalledTimes(2))
+      await flush()
+      resolveOld([{ deviceId: taskDetail.devices[0].deviceId, sn: 'SN-001', name: '过期名称' }]); await flush()
+      const values: unknown[] = []
+      const collect = (node: any) => { if (node.props?.placeholder === '请填写核查事实') values.push(node.props['model-value']); for (const child of node.children || []) collect(child) }
+      collect(page.root)
+      expect(values).toContain('当前名称')
+      expect(values).not.toContain('过期名称')
+    } finally { page.app.unmount() }
   })
 
   it('keeps existing facts when the device-list lookup fails or its current project no longer matches', async () => {
@@ -239,9 +289,9 @@ describe('F-CUT-003 mounted checklist field', () => {
     checklistApi.getCutoverExternalState.mockResolvedValue(null)
     const detail = { ...taskDetail, task: { ...taskDetail.task, projectId: '101' } }
     for (const failed of [true, false]) {
-      if (failed) vi.mocked(getDevicePage).mockRejectedValueOnce(new Error('unavailable'))
-      else vi.mocked(getDevicePage).mockResolvedValueOnce({ list: [{ deviceId: taskDetail.devices[0].deviceId, sn: 'SN-001',
-        projectId: 'OTHER-PROJECT', name: '外部名称', locationSnapshot: '外部位置' } as any], total: 1 })
+      if (failed) vi.mocked(getCurrentDeviceSummaries).mockRejectedValueOnce(new Error('unavailable'))
+      else vi.mocked(getCurrentDeviceSummaries).mockResolvedValueOnce([{ deviceId: taskDetail.devices[0].deviceId, sn: 'SN-001',
+        projectId: 'OTHER-PROJECT', name: '外部名称', locationSnapshot: '外部位置' } as any])
       const page = mount(CutoverChecklistPanel, { detail }, controls)
       await flush()
       try {

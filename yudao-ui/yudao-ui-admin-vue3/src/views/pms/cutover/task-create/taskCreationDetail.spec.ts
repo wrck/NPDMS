@@ -9,7 +9,7 @@ const selectionApi = vi.hoisted(() => ({ searchProjectOptions: vi.fn(), getProje
 const api = vi.hoisted(() => ({ getCreationProject: vi.fn(), resolveCreationDevices: vi.fn(), getCreationOptions: vi.fn(), createCutoverTask: vi.fn(), getCutoverTaskPage: vi.fn(), getCutoverTaskDetail: vi.fn(), saveCutoverAssessment: vi.fn() }))
 const feedback = vi.hoisted(() => ({ confirm: vi.fn(), warning: vi.fn(), success: vi.fn(), error: vi.fn() }))
 const operation = vi.hoisted(() => ({ execute: vi.fn(), enabled: false }))
-const assets = vi.hoisted(() => ({ getDevice: vi.fn() }))
+const assets = vi.hoisted(() => ({ getCurrentDeviceSummaries: vi.fn() }))
 vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/api/pms/project/selection', () => selectionApi)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => feedback }))
@@ -41,7 +41,7 @@ beforeEach(() => {
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
   validate.mockReset().mockResolvedValue(true)
   Object.values(api).forEach(value => value.mockReset()); Object.values(selectionApi).forEach(value => value.mockReset()); Object.values(feedback).forEach(value => value.mockReset())
-  operation.enabled = false; operation.execute.mockReset(); assets.getDevice.mockReset()
+  operation.enabled = false; operation.execute.mockReset(); assets.getCurrentDeviceSummaries.mockReset()
   feedback.confirm.mockResolvedValue(true)
   selectionApi.searchProjectOptions.mockResolvedValue([{ id: '101', code: 'P-101', name: '项目101', customerName: '真实客户' }])
   selectionApi.getProjectContext.mockImplementation(async id => project(id))
@@ -57,6 +57,43 @@ beforeEach(() => {
 })
 
 describe('详情式新建割接任务', () => {
+  it.each(['device watcher', 'serial resolver', 'submit validation'])('passes a bound project WireLong from %s', async source => {
+    const projectId = '9007199254741999'
+    operation.enabled = true
+    operation.execute.mockResolvedValue({ objectId: '701' })
+    api.resolveCreationDevices.mockImplementation(async serials => resolution(projectId, serials.map((serial: string) => serial.replace('SN-', ''))))
+    const view = mount(TaskCreate, { projectId, createAllowed: true }, controls)
+    await flush()
+    try {
+      if (source === 'serial resolver') {
+        await update(view.root, 'create-serials', 'SN-401')
+        await click(view.root, 'resolve-create-serials')
+      } else {
+        ;(view.vm as any).$.setupState.selectedDevices = [device()]
+        await flush()
+        if (source === 'submit validation') {
+          api.resolveCreationDevices.mockClear()
+          await click(view.root, 'submit-create-detail')
+        }
+      }
+      expect(api.resolveCreationDevices).toHaveBeenCalledExactlyOnceWith(['SN-401'], projectId)
+    } finally { view.app.unmount() }
+  })
+
+  it('does not add a project hint to independent creation after a project is selected', async () => {
+    const projectId = '9007199254741999'
+    api.resolveCreationDevices.mockImplementation(async serials => resolution(projectId, serials.map((serial: string) => serial.replace('SN-', ''))))
+    const view = mount(TaskCreate, {}, controls)
+    await flush()
+    try {
+      await update(view.root, 'create-project-select', projectId)
+      await update(view.root, 'create-serials', 'SN-401')
+      await click(view.root, 'resolve-create-serials')
+      expect(api.resolveCreationDevices).toHaveBeenCalledExactlyOnceWith(['SN-401'], undefined)
+      expect(selectedCount(view.root)).toBe(1)
+    } finally { view.app.unmount() }
+  })
+
   it('keeps the original intent when a retry is rejected after an earlier response was lost', async () => {
     operation.enabled = true
     operation.execute.mockRejectedValueOnce(new Error('Network Error'))
@@ -310,14 +347,14 @@ describe('详情式新建割接任务', () => {
   })
 
   it('refreshes product details when the same task receives updated source information', async () => {
-    assets.getDevice.mockResolvedValueOnce({ summary: { productCode: 'OLD', productModel: 'OLD' } })
-      .mockResolvedValueOnce({ summary: { productCode: 'LATEST', productModel: 'LATEST', conpVersion: 'V2' } })
+    assets.getCurrentDeviceSummaries.mockResolvedValueOnce([{ deviceId: '401', sn: 'SN-401', productCode: 'OLD', productModel: 'OLD' }])
+      .mockResolvedValueOnce([{ deviceId: '401', sn: 'SN-401', productCode: 'LATEST', productModel: 'LATEST', conpVersion: 'V2' }])
     const input = ref({ task: { id: '701' }, devices: [device()] })
     const host = defineComponent({ setup: () => () => h(TaskDevices, { detail: input.value as any }) })
     const view = mount(host, {}, controls); await flush()
     input.value = { task: { id: '701' }, devices: [device()] }
     await flush()
-    expect(assets.getDevice).toHaveBeenCalledTimes(2)
+    expect(assets.getCurrentDeviceSummaries).toHaveBeenCalledTimes(2)
     expect(textOf(view.root)).toContain('LATEST')
     view.app.unmount()
   })
@@ -335,7 +372,7 @@ describe('详情式新建割接任务', () => {
   })
 
   it('shows frozen serials in a readonly device table even if one current product lookup fails', async () => {
-    assets.getDevice.mockResolvedValueOnce({ summary: { productCode: 'CODE-401', productModel: 'MODEL-401' } }).mockRejectedValueOnce(new Error('unavailable'))
+    assets.getCurrentDeviceSummaries.mockResolvedValueOnce([{ deviceId: '401', sn: 'SN-401', productCode: 'CODE-401', productModel: 'MODEL-401' }])
     const view = mount(TaskDevices, { detail: { task: { id: '701' }, devices: [device(), device('402')] } }, controls); await flush()
     expect(textOf(view.root)).toContain('SN-401'); expect(textOf(view.root)).toContain('SN-402'); expect(textOf(view.root)).toContain('CODE-401')
     expect(textOf(view.root)).toContain('部分产品信息暂时无法读取'); expect(findByTestId(view.root, 'remove-create-device-401')).toBeUndefined(); view.app.unmount()

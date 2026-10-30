@@ -24,6 +24,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import tools.jackson.databind.JsonNode;
 
 import java.util.Objects;
+import java.util.List;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.AttachmentInput;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 
@@ -52,6 +54,12 @@ public class CutoverClosureController {
     public CommonResult<CutoverClosureResponse> detail(@PathVariable Long taskId) {
         var trusted = trusted(taskId);
         return success(view(trusted, taskId));
+    }
+
+    @GetMapping("/available-attachments")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-closure')")
+    public CommonResult<List<AttachmentInput>> availableAttachments(@PathVariable Long taskId) {
+        return success(queryService.availableAttachments(new CutoverClosureQueryService.ActionQuery(trusted(taskId), taskId)));
     }
 
     @PutMapping

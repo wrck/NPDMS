@@ -12,14 +12,16 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverCollectionEv
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class CutoverClosureQueryServiceTest {
 
@@ -74,6 +76,40 @@ class CutoverClosureQueryServiceTest {
             assertThat(service.hasWorkbenchAction(new CutoverClosureQueryService.ActionQuery(context, 100L)))
                     .isEqualTo(!service.detail(context, 100L).allowedActions().isEmpty());
         }
+
+        FileArtifactApi files = mock(FileArtifactApi.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "fileArtifacts", files);
+        var checklistKey = new FileReferenceSetKey("CUT", "CUTOVER_CLOSURE", "400", "POST_COLLECTION_CHECKLIST");
+        when(files.inspectReferenceSets(any())).thenReturn(List.of(new FileReferenceSetFact(checklistKey, 17L,
+                List.of(new FileArtifactVersionFact(9007199254740993L, 4, "unsaved-upload-uuid", "CUTOVER_CLOSURE",
+                        "photo.png", 10L, "image/png", "a".repeat(64), "AVAILABLE", "ACTIVE",
+                        new FileFactVersion(2, 3, 5), 17L)))));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.closure.context.CutoverClosureContext(
+                1L, 9L, "recover-files", true, true, true);
+        var query = new CutoverClosureQueryService.ActionQuery(context, 100L);
+        var available = service.availableAttachments(query);
+        assertThat(available).hasSize(1);
+        assertThat(available.getFirst().artifactId()).isEqualTo(9007199254740993L);
+        assertThat(available.getFirst().referenceKey()).isEqualTo("unsaved-upload-uuid");
+        assertThat(available.getFirst().fileFactVersion().referenceVersion()).isEqualTo(3);
+        verify(files).inspectReferenceSets(new FileReferenceSetCollectionQuery(List.of(checklistKey,
+                new FileReferenceSetKey("CUT", "CUTOVER_CLOSURE", "400", "IMPLEMENTATION_COMMITMENT"),
+                new FileReferenceSetKey("CUT", "CUTOVER_CLOSURE", "400", "OTHER_EVIDENCE")), "READ"));
+
+        clearInvocations(files);
+        var withoutSave = new cn.iocoder.yudao.module.pms.cutover.service.closure.context.CutoverClosureContext(
+                1L, 9L, "read-only", false, true, true);
+        assertThatThrownBy(() -> service.availableAttachments(new CutoverClosureQueryService.ActionQuery(withoutSave, 100L)))
+                .isInstanceOf(CutoverClosureApplicationException.class);
+        task.setOwnerUserId(8L);
+        assertThatThrownBy(() -> service.availableAttachments(query)).isInstanceOf(CutoverClosureApplicationException.class);
+        task.setOwnerUserId(9L);
+        task.setTenantId(2L);
+        assertThatThrownBy(() -> service.availableAttachments(query)).isInstanceOf(CutoverClosureApplicationException.class);
+        task.setTenantId(1L);
+        task.setTaskStatus("ARCHIVED"); task.setVersion(8L); closure.setStatusCode("SUBMITTED");
+        assertThatThrownBy(() -> service.availableAttachments(query)).isInstanceOf(CutoverClosureApplicationException.class);
+        verifyNoInteractions(files);
     }
 
     private static CutoverClosureAttachmentDO attachment(long id, String purpose, String reference) {

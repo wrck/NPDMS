@@ -706,7 +706,7 @@ describe('F-CUT-005 mounted approval workbench', () => {
     await flush()
     expect(findByTestId(mounted.root, 'reassignment-reason')).toBeUndefined()
     await click(mounted.root, 'open-cutover-reassignment')
-    expect(findByTestId(mounted.root, 'new-approver-id')?.props?.modelValue).toBe('')
+    expect(field(mounted.root, 'new-approver-id')?.props?.['model-value']).toBe('')
     expect(findByTestId(mounted.root, 'reassignment-reason')?.props?.modelValue).toBe('')
     mounted.app.unmount()
   })
@@ -721,7 +721,7 @@ describe('F-CUT-005 mounted approval workbench', () => {
     expect(findByTestId(mounted.root, 'reassignment-node')).toBeDefined()
     expect(textOf(mounted.root)).toContain('原审批人')
     expect(textOf(mounted.root)).not.toContain('当前审批人ID')
-    expect(findByTestId(mounted.root, 'new-approver-id')?.props?.filterable).toBeDefined()
+    expect(field(mounted.root, 'new-approver-id')?.props?.filterable).toBeDefined()
     expect(findByTestId(mounted.root, 'reassignment-reason')?.props?.type).toBe('textarea')
     await update(mounted.root, 'reassignment-reason', '人员变更')
     await update(mounted.root, 'new-approver-id', String(original))
@@ -768,8 +768,9 @@ describe('F-CUT-005 mounted approval workbench', () => {
     }, controls)
     await flush()
     expect(api.getCutoverServiceManagerReassignmentCandidate).toHaveBeenCalledWith(view.approvalInstanceId)
-    expect(findByTestId(mounted.root, 'reassignment-assignee-1')).toBeUndefined()
-    expect(findByTestId(mounted.root, 'reassignment-assignee-44')?.props?.label).toBe('当前服务经理')
+    await openPeople(mounted.root)
+    expect(nested(mounted.root, item => item.props?.value === '1')).toBeUndefined()
+    expect(nested(mounted.root, item => item.props?.value === '44')?.props?.label).toBe('当前服务经理')
     await update(mounted.root, 'new-approver-id', '1')
     await update(mounted.root, 'reassignment-reason', '人员调整')
     await click(mounted.root, 'submit-reassignment')
@@ -793,7 +794,7 @@ describe('F-CUT-005 mounted approval workbench', () => {
     await flush()
     expect(api.getCutoverServiceManagerReassignmentCandidate).toHaveBeenCalledTimes(2)
     expect(textOf(mounted.root)).not.toContain('服务经理候选读取失败')
-    expect(findByTestId(mounted.root, 'new-approver-id')?.props?.placeholder).toBe('当前无可改派的服务经理')
+    expect(field(mounted.root, 'new-approver-id')?.props?.placeholder).toBe('当前无可改派的服务经理')
     expect(findByTestId(mounted.root, 'submit-reassignment')?.props?.disabled).toBe(true)
     mounted.app.unmount()
   })
@@ -1012,17 +1013,28 @@ const click = async (root: any, id: string) => {
   expect(node, id).toBeDefined()
   await (node!.props?.onClick as () => Promise<void>)()
 }
+const nested = (node: any, predicate: (item: any) => boolean): any => {
+  if (predicate(node)) return node
+  for (const child of node.children || []) { const result = nested(child, predicate); if (result) return result }
+}
+const field = (root: any, id: string) => {
+  const wrapper = findByTestId(root, id)
+  return wrapper && nested(wrapper, item => typeof item.props?.['onUpdate:modelValue'] === 'function')
+}
+const openPeople = async (root: any) => {
+  const select = field(root, 'new-approver-id')
+  ;(select.props.onVisibleChange as (value: boolean) => void)(true)
+  await flush()
+}
 const update = async (root: any, id: string, value: unknown) => {
-  const node = findByTestId(root, id)
+  let node = field(root, id)
   expect(node, id).toBeDefined()
+  if (id === 'new-approver-id') { await openPeople(root); node = field(root, id) }
   await (node!.props?.['onUpdate:modelValue'] as (value: unknown) => void)(value)
-  await nextTick()
+  await flush()
 }
 const flush = async () => {
-  await Promise.resolve()
-  await nextTick()
-  await Promise.resolve()
-  await nextTick()
+  for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() }
 }
 const findLatestByTestId = (root: any, id: string) => {
   const matches: any[] = []
