@@ -1522,3 +1522,16 @@ COM ContractDeviceVisibilityApi.ReadScope在设备专用只读上下文携带同
 ### 2026-10-25 已关联成果的闭环锁定读取
 
 TaskBusinessObjectProvider.lockLinkedFact(Context, objectId, expectedVersion)仅供已校验项目任务、当前契约及活动关联的完成/闭环事实复核：沿用inspect的当前用户、租户、项目查看范围，锁定范围、业务对象及成果并核对版本，不创建或修改业务对象、关联或权限。默认沿用lockAndRevalidate的更严格限制；ACC满意度按项目可见性复核既有关联成果，不借用仅调查经办人工作队列查询。关联命令仍调用原lockAndRevalidate，工作队列经办人限制及命令授权保持不变。
+
+### 2026-10-23 用户公司部门范围维护（需求方本次会话批准）
+
+SYSTEM继续拥有既有`UserCompanyDepartmentScope`，用户管理新增“公司部门范围”入口。该补齐不改变`OrganizationScopeApi`、公司部门匹配、合同公司范围、项目资格及设备组织授权的既定含义，不由部门树推导公司。
+
+| PMS Business API（统一admin-api前缀） | 方法 | 契约 |
+| --- | --- | --- |
+| `/api/v1/pms/user-organization-scopes` | GET | `userId`必填，`status`可选0/1；PageParam/PageResult，稳定按ID倒序，含停用历史。查看权限`system:user-scope:query`或维护权限`system:user-scope:manage`；目标用户须通过SYSTEM既有用户数据权限。 |
+| 同上 | POST | 需维护权限；公司必选、部门可空；提交组织ID、既定scopeRole、isPrimary、生效及可空到期时间。组织编码/名称由SYSTEM回源，新增启用范围并返回ID。不得接受客户端租户、组织快照或状态。 |
+| `/{id}/actions/revise` | POST | 需维护权限及完整保存体、expectedVersion；范围必须属于userId。事务内按版本停用原行并新增修订行，返回新ID；不覆盖原组织、角色、主标记、时间区间，失败整体回滚。 |
+| `/{id}/actions/disable` | POST | 需维护权限，提交userId、expectedVersion；按版本停用并递增版本，保留历史。已停用或陈旧版本返回明确冲突；主数据停用不阻止撤权。 |
+
+新增及修订要求用户/公司启用，部门存在时启用且具有非空统一编码；部门ID/编码同源保存。生效区间为左闭右开，到期须晚于生效；不新增范围角色枚举或主范围唯一性规则。角色编码为已有资格接口使用的稳定scopeRole（非空、最长32），维护不授予全局功能角色。租户由框架上下文隔离，用户/部门数据范围继续生效；越权/跨租户不可读写，不提供删除接口。业务写入沿用SYSTEM操作日志，记录操作者、时间、用户、原范围与修订范围ID；范围原行持续保留。
