@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import SolutionChapterForm from './SolutionReviewChapterForm.vue'
 import UploadFile from '@/components/UploadFile/src/UploadFile.vue'
-import { loadProjectEquipmentList } from '@/api/pms/commerce/projectEquipment'
+import { loadProjectOrderEquipmentList } from '@/api/pms/commerce/projectOrderEquipment'
 import * as RequirementApi from '@/api/pms/engineering/requirement-analysis/entity'
 import { requirementTopologyPurpose } from './requirementTopology'
 import { mount, passthrough, tableColumn, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
@@ -20,7 +20,7 @@ vi.mock('@/api/pms/project/unified-members', () => ({ getMemberPage: vi.fn(async
 vi.mock('@/api/pms/customer/contacts', () => ({ getProjectPage: vi.fn(async () => ({ list: [] })) }))
 vi.mock('@/api/pms/asset/device/archive', () => ({ getDeviceArchivePage: vi.fn(async () => ({ list: [] })) }))
 vi.mock('@/api/pms/engineering/site-survey/entity', () => ({ getSiteSurveyPage: vi.fn(async () => ({ list: [], total: 0 })), getSiteSurvey: vi.fn() }))
-vi.mock('@/api/pms/commerce/projectEquipment', () => ({ loadProjectEquipmentList: vi.fn(async () => ({ list: [], scopes: [] })) }))
+vi.mock('@/api/pms/commerce/projectOrderEquipment', () => ({ loadProjectOrderEquipmentList: vi.fn(async () => ({ list: [], scopes: [] })) }))
 vi.mock('@/api/pms/commerce', () => ({ getDeliveryScopePage: vi.fn(async () => ({ list: [] })) }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getDictLabel: () => '', getIntDictOptions: () => [] }))
 vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({ default: { render: () => null } }))
@@ -334,7 +334,7 @@ describe('solution requirement analysis references', () => {
 
 
   it('serializes separate deployment and software chapters with order quantity and reopens saved content', async () => {
-    vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({ list: [{ productCode: 'P1', productName: '防火墙', productModel: 'FW', orderQty: 12, projectQty: 20, deviceCount: 3 }], scopes: [], devices: [] })
+    vi.mocked(loadProjectOrderEquipmentList).mockResolvedValueOnce({ list: [{ productCode: 'P1', productName: '防火墙', productModel: 'FW', orderQty: 12, projectQty: 20 }], scopes: [] })
     const mounted = render(1)
     try {
       await flush(); mounted.state.generateFromSources(); await flush()
@@ -354,15 +354,14 @@ describe('solution requirement analysis references', () => {
     } finally { mounted.app.unmount() }
   })
 
-  it('imports full project inventory from the equipment list and preserves unknown quantities', async () => {
-    vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({
+  it('imports the same active assigned products as project detail and preserves unknown quantities', async () => {
+    vi.mocked(loadProjectOrderEquipmentList).mockResolvedValueOnce({
       list: [
-        { productCode: 'P1', productName: '防火墙', productModel: 'FW-100', projectQty: 4, deliveredQty: 1, openQty: 3, deviceCount: 2 },
-        { productCode: 'P2', productName: '软件许可', productModel: '', projectQty: 8, deliveredQty: 6, openQty: 2, deviceCount: 0 },
-        { productCode: 'P3', productName: '待核对产品', productModel: '', deviceCount: 0 }
+        { productCode: 'P1', productName: '防火墙', productModel: 'FW-100', projectQty: 4, deliveredQty: 1, openQty: 3 },
+        { productCode: 'P2', productName: '软件许可', productModel: '', projectQty: 8, deliveredQty: 6, openQty: 2 },
+        { productCode: 'P3', productName: '待核对产品', productModel: '' }
       ],
-      scopes: [],
-      devices: [{ productCode: 'P1', sn: 'SN-1' }, { productCode: 'P1', sn: 'SN-2' }] as any
+      scopes: [{ productCode: 'P1', details: [{ productCode: 'P1', serialNo: 'SN-1' }, { productCode: 'P1', serialNo: 'SN-2' }, { productCode: 'OTHER', serialNo: 'WRONG-SN' }] }] as any
     } as any)
     const mounted = render(1)
     try {
@@ -381,16 +380,16 @@ describe('solution requirement analysis references', () => {
   })
 
   it('shows product-source failure and offers retry without presenting an empty import as success', async () => {
-    vi.mocked(loadProjectEquipmentList).mockRejectedValueOnce(new Error('product owner unavailable'))
+    vi.mocked(loadProjectOrderEquipmentList).mockRejectedValueOnce(new Error('product owner unavailable'))
     const mounted = render(84499)
     try {
       await flush()
       expect(mounted.state.equipmentError).toBe('项目设备清单加载失败，请重新加载')
       expect(mounted.state.equipmentProducts).toEqual([])
       expect(textOf(mounted.root)).toContain('重新加载设备清单')
-      vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({
-        list: [{ productCode: '02011299', productModel: 'QSFP28-LX2-SM1310-CWDM4', productName: '', deviceCount: 0 }],
-        scopes: [], devices: []
+      vi.mocked(loadProjectOrderEquipmentList).mockResolvedValueOnce({
+        list: [{ productCode: '02011299', productModel: 'QSFP28-LX2-SM1310-CWDM4', productName: '' }],
+        scopes: []
       })
       await mounted.state.loadEquipment(); await flush()
       expect(mounted.state.equipmentError).toBe('')
@@ -399,9 +398,9 @@ describe('solution requirement analysis references', () => {
   })
 
   it('keeps the exact product-code key when associating serials with imported inventory', async () => {
-    vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({
-      list: [{ productCode: ' A ', productModel: 'MASTER', productName: '', deviceCount: 1 }],
-      scopes: [], devices: [{ productCode: ' A ', sn: 'SN-EXACT' }] as any
+    vi.mocked(loadProjectOrderEquipmentList).mockResolvedValueOnce({
+      list: [{ productCode: ' A ', productModel: 'MASTER', productName: '' }],
+      scopes: [{ productCode: ' A ', details: [{ productCode: ' A ', serialNo: 'SN-EXACT' }] }] as any
     })
     const mounted = render(84499)
     try {

@@ -367,8 +367,8 @@ import { prepareGeneratedSolutionWord } from '@/views/pms/engineering/solution/p
 import { prepareDocumentImages } from './documentImages'
 import { getFileNameFromUrl, isImage } from '@/utils/file'
 import companyLogo from '@/views/pms/acceptance/completion-certificate/dptech-print-v2.png'
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
-import { loadProjectEquipmentList, type ProjectEquipmentProduct } from '@/api/pms/commerce/projectEquipment'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { loadProjectOrderEquipmentList, type ProjectOrderEquipmentProduct } from '@/api/pms/commerce/projectOrderEquipment'
 import ResourceConfirmationEditor from '@/views/pms/engineering/solution/ResourceConfirmationEditor.vue'
 import SolutionEquipmentTable from '@/views/pms/engineering/solution/SolutionEquipmentTable.vue'
 import SolutionPlanningImport from './SolutionPlanningImport.vue'
@@ -387,7 +387,7 @@ import { useBusinessActionBar } from '@/components/BusinessView/businessActionBa
 defineOptions({ name: 'SolutionChapterForm' })
 
 const props = defineProps<{ readOnly: boolean; saving?: boolean; reviewContext?: boolean; reviewRequirement?: Record<string, unknown> }>()
-const emit = defineEmits<{ save: []; submitReview: [] }>()
+const emit = defineEmits<{ save: []; submitReview: []; initialized: [id: unknown, projectId: unknown] }>()
 const form = defineModel<SolutionVO>({ required: true })
 const pendingScripts = defineModel<PendingScript[]>('pendingScripts', { default: () => [] })
 const { barTarget } = useBusinessActionBar()
@@ -421,7 +421,7 @@ const reqValues = ref<Record<string, unknown>>({})
 const members = ref<MemberRecord[]>([])
 const contacts = ref<ContactApi.ContactVO[]>([])
 const stagePlanItems = ref<StagePlanApi.StagePlanItemVO[]>([])
-const equipmentProducts = ref<ProjectEquipmentProduct[]>([])
+const equipmentProducts = ref<ProjectOrderEquipmentProduct[]>([])
 const equipmentSerials = ref<Record<string, string[]>>({})
 const equipmentError = ref('')
 let equipmentRequest = 0
@@ -433,16 +433,18 @@ const loadEquipment = async () => {
   equipmentError.value = ''
   if (!projectId || props.readOnly) return
   try {
-    const equipment = await loadProjectEquipmentList(projectId, () => requestId === equipmentRequest)
+    const equipment = await loadProjectOrderEquipmentList({ projectId, isCurrent: () => requestId === equipmentRequest })
     if (requestId === equipmentRequest) {
       equipmentProducts.value = equipment?.list || []
       const serials = new Map<string, Set<string>>()
-      for (const device of equipment?.devices || []) {
-        const code = device.productCode || device.productModel || '—'
-        if (!device.sn?.trim()) continue
-        const values = serials.get(code) || new Set<string>()
-        values.add(device.sn.trim())
-        serials.set(code, values)
+      for (const scope of equipment?.scopes || []) {
+        for (const detail of scope.details || []) {
+          if (detail.productCode && detail.productCode !== scope.productCode) continue
+          if (!detail.serialNo?.trim()) continue
+          const values = serials.get(scope.productCode) || new Set<string>()
+          values.add(detail.serialNo.trim())
+          serials.set(scope.productCode, values)
+        }
       }
       equipmentSerials.value = Object.fromEntries([...serials].map(([code, values]) => [code, [...values]]))
     }
@@ -758,7 +760,14 @@ const loadRequirement = async () => {
     if (requestId === requirementRequest) requirementLoading.value = false
   }
 }
-watch(() => [props.readOnly, props.reviewContext, props.reviewRequirement, form.value.projectId, form.value.id], () => { void loadRequirement() }, { immediate: true })
+let initializationSequence = 0
+watch(() => [props.readOnly, props.reviewContext, props.reviewRequirement, form.value.projectId, form.value.id], async () => {
+  const sequence = ++initializationSequence
+  const id = form.value.id, projectId = form.value.projectId
+  await loadRequirement()
+  await nextTick()
+  if (sequence === initializationSequence) emit('initialized', id, projectId)
+}, { immediate: true })
 
 // 引用数据按项目加载；工作台自动选中时 projectId 晚于挂载到达，须响应式触发
 let referencesProjectId = 0

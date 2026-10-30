@@ -78,7 +78,7 @@ class SolutionReviewBpmnFlowableTest {
         Map<Object, Object> beans = new HashMap<>();
         config.setBeans(beans);
         engine = config.buildProcessEngine();
-        roleTasks = new SolutionReviewRoleTasks(roles, permissions, engine.getRuntimeService(), engine.getTaskService());
+        roleTasks = new SolutionReviewRoleTasks(roles, permissions, engine.getRuntimeService(), engine.getTaskService(), engine.getHistoryService());
         guard = new SolutionReviewBpmGuard(engine.getRuntimeService(), engine.getRepositoryService(),
                 scope, participants, permissions, mock(AdminUserApi.class), roleTasks);
         beans.put("solutionReviewBpmGuard", guard);
@@ -163,6 +163,9 @@ class SolutionReviewBpmnFlowableTest {
         approve(second);
         assertEquals(0, engine.getRuntimeService().createProcessInstanceQuery().processInstanceId(started.instanceId()).count());
         assertEquals(2, engine.getHistoryService().createHistoricTaskInstanceQuery().processInstanceId(started.instanceId()).finished().count());
+        login(8L);
+        assertNull(service.readAccess(new SolutionReviewBpmApi.ReadQuery(1L, 8L, command.businessKey())),
+                "旧个人审批实例继续沿用既有项目读取契约，不转成角色历史授权");
     }
 
     @Test void newMajorReviewCannotSelectLegacyPersonalDefinition() {
@@ -213,7 +216,22 @@ class SolutionReviewBpmnFlowableTest {
             engine.getRuntimeService().setVariable(started.instanceId(), "PROCESS_STATUS", 2);
             engine.getTaskService().complete(second.getId());
         });
-        assertNull(service.readAccess(new SolutionReviewBpmApi.ReadQuery(1L, 8L, businessKey)));
+        var historyRead = service.readAccess(new SolutionReviewBpmApi.ReadQuery(1L, 8L, businessKey));
+        assertNotNull(historyRead, "本人实际复审通过后仍可只读回看本流程");
+        assertTrue(historyRead.historical());
+        assertEquals(second.getId(), historyRead.taskId());
+        assertFalse(roleTasks.canReadTask(new SolutionReviewRoleTasks.DecisionActor(1L, 8L, second.getId())),
+                "历史读取不能作为审批写入资格");
+        doReturn(List.of()).when(roles).inspectActor(any());
+        when(permissions.hasExplicitPermission(1L, 8L, SolutionReviewBpmApi.ENGINEERING_REVIEW_PERMISSION)).thenReturn(false);
+        assertNotNull(service.readAccess(new SolutionReviewBpmApi.ReadQuery(1L, 8L, businessKey)), "历史实际办理不依赖当前候选组成员资格");
+        assertNull(service.readAccess(new SolutionReviewBpmApi.ReadQuery(1L, 10L, businessKey)), "不得伪造读取人");
+        login(10L);
+        assertNull(service.readAccess(new SolutionReviewBpmApi.ReadQuery(1L, 10L, businessKey)), "同角色未实际办理者不能读取整组历史");
+        login(8L);
+        TenantContextHolder.setTenantId(2L);
+        assertNull(service.readAccess(new SolutionReviewBpmApi.ReadQuery(2L, 8L, businessKey)), "相同用户ID不能跨租户读取");
+        TenantContextHolder.setTenantId(1L);
         assertEquals("8", engine.getHistoryService().createHistoricTaskInstanceQuery().taskId(second.getId()).singleResult().getAssignee());
         assertEquals(80L, engine.getHistoryService().createHistoricVariableInstanceQuery().taskId(second.getId())
                 .variableName("solutionReviewRoleId").singleResult().getValue());
@@ -233,6 +251,21 @@ class SolutionReviewBpmnFlowableTest {
         doReturn(List.of()).when(roles).inspectActor(any());
         assertNull(service.readAccess(new SolutionReviewBpmApi.ReadQuery(1L, 8L, businessKey)));
         assertNull(service.readAccess(new SolutionReviewBpmApi.ReadQuery(1L, 10L, businessKey)), "不得伪造读取人");
+    }
+
+    @Test void claimedButCanceledRoleTaskDoesNotGrantCompletedDecisionHistory() {
+        var started = startRole(6L);
+        approve(currentTask(started.instanceId(), "serviceManagerReview"));
+        var second = currentTask(started.instanceId(), "engineeringManagementReview");
+        var businessKey = engine.getRuntimeService().createProcessInstanceQuery().processInstanceId(started.instanceId()).singleResult().getBusinessKey();
+        login(8L);
+        tx.executeWithoutResult(ignored -> {
+            roleTasks.claimForDecision(new SolutionReviewRoleTasks.DecisionActor(1L, 8L, second.getId()));
+            engine.getTaskService().setVariableLocal(second.getId(), TASK_VARIABLE_STATUS, BpmTaskStatusEnum.CANCEL.getStatus());
+            engine.getRuntimeService().deleteProcessInstance(started.instanceId(), "TEST_ONLY canceled before decision");
+        });
+        assertNull(service.readAccess(new SolutionReviewBpmApi.ReadQuery(1L, 8L, businessKey)),
+                "候选身份或领取痕迹不能代替本人已完成审批");
     }
 
     @Test void revokedMembershipCannotClaimOrCompleteAndTaskRemainsPending() {

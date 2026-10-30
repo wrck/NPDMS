@@ -90,6 +90,26 @@ class BpmServiceManagerAccessTest {
         assertDoesNotThrow(()->access.requireProcess("p1"));
         verifyNoInteractions(projectScope);
     }
+    @Test void actualCompletedSharedSolutionReviewerCanReadHistoryButCannotApproveAnotherTask(){
+        actorRoles.clear();actorRoles.add("engineeManager");
+        when(process.getBusinessKey()).thenReturn("SOL_REVIEW:1:42");
+        var roleLink=mock(org.flowable.identitylink.api.history.HistoricIdentityLink.class);
+        when(roleLink.getType()).thenReturn("solutionReview:role:engineeringManagementReview");
+        when(history.getHistoricIdentityLinksForProcessInstance("p1")).thenReturn(java.util.List.of(roleLink));
+        when(solutionRoles.read(any())).thenReturn(new cn.iocoder.yudao.module.bpm.api.solutionreview.SolutionReviewBpmApi.ReadAccess(
+                "p1","completed-task","engineeringManagementReview","SOL_REVIEW:1:42",true));
+        assertDoesNotThrow(()->access.requireProcess("p1"));
+        when(task.getAssignee()).thenReturn(null);
+        assertThrows(ServiceException.class,()->access.requireAssignedTask("t1"));
+        assertThrows(ServiceException.class,access::requireAdvancedAction);
+        when(solutionRoles.read(any())).thenReturn(new cn.iocoder.yudao.module.bpm.api.solutionreview.SolutionReviewBpmApi.ReadAccess(
+                "another-process","completed-task","engineeringManagementReview","SOL_REVIEW:1:42",true));
+        assertThrows(ServiceException.class,()->access.requireProcess("p1"));
+        when(solutionRoles.read(any())).thenReturn(null);
+        assertThrows(ServiceException.class,()->access.requireProcess("p1"));
+        when(processQuery.singleResult()).thenReturn(null);
+        assertThrows(ServiceException.class,()->access.requireProcess("other-tenant"));
+    }
     @Test void projectManagerReadsOnlyVisibleSolutionProcesses(){
         actorRoles.clear();actorRoles.add("PROJECT_MANAGER");
         when(process.getBusinessKey()).thenReturn("SOL_REVIEW:1:42");

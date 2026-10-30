@@ -59,12 +59,14 @@
         <el-alert v-if="detailError" :title="detailError" type="error" :closable="false">
           <el-button @click="openForm(form)">重新加载</el-button>
         </el-alert>
-        <el-form v-else ref="formRef" :model="form" label-width="100px" :disabled="readOnly">
+        <el-form v-else ref="formRef" :model="form" label-width="100px" :disabled="readOnly || initializing" :inert="initializing || undefined">
           <SolutionChapterForm
+            :key="detailSequence"
             v-model="form"
             v-model:pending-scripts="pendingScripts"
             :read-only="readOnly"
             :saving="saving"
+            @initialized="chapterInitialized"
             @save="save"
             @submit-review="submitReview"
           />
@@ -161,6 +163,7 @@
     v-model="formVisible"
     :title="form.id ? (readOnly ? '查看方案' : '编辑方案') : '新增方案'"
     :loading="detailLoading"
+    :before-close="beforeClose"
     width="min(1080px, 96vw)"
   >
     <el-alert v-if="detailError" :title="detailError" type="error" :closable="false">
@@ -174,7 +177,7 @@
       <el-descriptions-item label="审核人编号">{{ form.approvedBy ?? '—' }}</el-descriptions-item>
       <el-descriptions-item label="审核意见" :span="2"><span class="whitespace-pre-wrap break-words">{{ form.approvalOpinion || '—' }}</span></el-descriptions-item>
     </el-descriptions>
-    <el-form v-if="!detailError" ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readOnly">
+    <el-form v-if="!detailError" ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readOnly || initializing" :inert="initializing || undefined">
       <el-form-item label="项目编号" prop="projectId">
         <PmsEntitySelect
           v-model="form.projectId"
@@ -188,16 +191,18 @@
       </el-form-item>
       <SolutionDocMetaForm v-model="form" v-model:pending-files="pendingCustomerFiles" :read-only="readOnly" />
       <SolutionChapterForm
+        :key="detailSequence"
         v-model="form"
         v-model:pending-scripts="pendingScripts"
         :read-only="readOnly"
         :saving="saving"
+        @initialized="chapterInitialized"
         @save="save"
         @submit-review="submitReview"
       />
     </el-form>
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button @click="closeForm">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存草稿</el-button>
     </template>
   </Dialog>
@@ -234,7 +239,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as SolutionApi from '@/api/pms/engineering/solution'
@@ -293,6 +299,24 @@ const detailError = ref('')
 let detailSequence = 0
 const formRef = ref()
 const form = ref<SolutionVO>({ projectId: props.projectId ?? 0, name: '', reviewLevel: 0, status: 0 })
+const emit = defineEmits<{ 'dirty-change': [value: boolean] }>()
+const initializing = ref(true)
+const draftBaseline = ref('')
+const draftContent = () => JSON.stringify({ ...form.value, version: undefined })
+const isDirty = () => !!draftBaseline.value && (draftContent() !== draftBaseline.value || pendingCustomerFiles.value.length > 0 || pendingScripts.value.length > 0)
+const chapterInitialized = (id: unknown, projectId: unknown) => {
+  if (!initializing.value || String(id ?? '') !== String(form.value.id ?? '') || String(projectId ?? '') !== String(form.value.projectId ?? '')) return
+  draftBaseline.value = draftContent()
+  initializing.value = false
+}
+const requestLeave = async () => {
+  if (!props.projectId && !formVisible.value && !saving.value) return true
+  if (saving.value || (initializing.value && !detailError.value)) return false
+  if (!isDirty()) return true
+  try { await message.confirm('方案有未保存的修改，确定放弃并离开？'); return !saving.value } catch { return false }
+}
+const beforeClose = async (done: () => void) => { if (await requestLeave()) done() }
+const closeForm = async () => { if (await requestLeave()) formVisible.value = false }
 const editableDraft = (row: SolutionVO) => row.status === 0 && checkPermi(['pms:sol-solution:update'])
 const readOnly = computed(() => props.readonly || detailLoading.value || !!detailError.value || (form.value.id ? !editableDraft(form.value) : !checkPermi(['pms:sol-solution:create'])))
 const rules = {
@@ -336,8 +360,9 @@ watch(
 )
 
 const solutionLabel = (row: SolutionVO) => `${row.name}（${row.versionLabel || '未设版本'}）`
-const pickSolution = (id: number | string) => {
+const pickSolution = async (id: number | string) => {
   if (saving.value) return
+  if (String(id) !== String(form.value.id) && !await requestLeave()) return
   const row = rows.value.find(item => String(item.id) === String(id))
   if (row) openForm(row)
 }
@@ -395,8 +420,9 @@ const customerAttempts:DeliveryUploadAttempt[]=[]
 let savedCustomerDraft: string | undefined
 const createVisible = ref(false)
 const createChoice = reactive({ hasCustomerPlan: 'no', customerPlanUrl: '' })
-const openCreate = () => {
+const openCreate = async () => {
   if (props.readonly || saving.value) return
+  if (draftBaseline.value && !await requestLeave()) return
   createChoice.hasCustomerPlan = 'no'
   createChoice.customerPlanUrl = ''
   createCustomerFiles.value=[]
@@ -422,6 +448,8 @@ const confirmCreate = () => {
   })
 }
 const openForm = async (row?: Pick<SolutionVO, 'id'>) => {
+  initializing.value = true
+  draftBaseline.value = ''
   pendingCustomerFiles.value=[]
   pendingScripts.value=[]
   customerAttempts.splice(0)
@@ -519,6 +547,7 @@ const save = async () => {
   saving.value = true
   try {
     await persistDraftAndCustomerFiles()
+    draftBaseline.value = draftContent()
     message.success('保存成功')
     if (!props.projectId) formVisible.value = false
     await load()
@@ -571,9 +600,11 @@ const remove = async (row: SolutionVO) => {
     // 拦截器已弹后端错误提示；吞掉 rejection 防止逃逸到业务视图错误边界，工作区保持当前状态
   }
 }
+watch(() => isDirty(), value => emit('dirty-change', value), { flush: 'sync' })
+onBeforeRouteLeave(requestLeave)
 onMounted(load)
 // BusinessViewHost 的操作栏刷新必须回读正文和 version，而非仅刷新操作投影。
-defineExpose({ refresh: load })
+defineExpose({ refresh: async () => { if (await requestLeave()) await load() }, requestLeave, isDirty })
 </script>
 
 <style scoped>

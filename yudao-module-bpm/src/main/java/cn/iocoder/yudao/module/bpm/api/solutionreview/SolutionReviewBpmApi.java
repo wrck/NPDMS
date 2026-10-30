@@ -12,10 +12,14 @@ public interface SolutionReviewBpmApi {
     Definition definition(Long tenantId);
     Started start(Start command);
     Result result(Long tenantId, String instanceId);
-    /** Only the actor's current engineering-role todo grants this narrow, temporary source read. */
+    /** Current role todo or the actor's own completed decision grants only this process's frozen source read. */
     ReadAccess readAccess(ReadQuery query);
     record ReadQuery(Long tenantId, Long actorId, String businessKey) { }
-    record ReadAccess(String processInstanceId, String taskId, String nodeKey, String businessKey) { }
+    record ReadAccess(String processInstanceId, String taskId, String nodeKey, String businessKey, boolean historical) {
+        public ReadAccess(String processInstanceId, String taskId, String nodeKey, String businessKey) {
+            this(processInstanceId, taskId, nodeKey, businessKey, false);
+        }
+    }
 
     record Node(String key, String name, String responsibility) { }
     record Definition(String id, String key, List<Node> nodes) { }

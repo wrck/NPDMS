@@ -39,9 +39,10 @@ public class BpmServiceManagerAccess {
         boolean sharedSolution = solution && history.getHistoricIdentityLinksForProcessInstance(processInstanceId).stream()
                 .anyMatch(link -> link.getType() != null && link.getType().startsWith("solutionReview:role:"));
         if (sharedSolution) {
-            if (solutionRoles.read(new cn.iocoder.yudao.module.bpm.api.solutionreview.SolutionReviewBpmApi.ReadQuery(
-                    TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), process.getBusinessKey())) != null
-                    || ordinaryProjectView(process)) return;
+            var access = solutionRoles.read(new cn.iocoder.yudao.module.bpm.api.solutionreview.SolutionReviewBpmApi.ReadQuery(
+                    TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), process.getBusinessKey()));
+            if (access != null && Objects.equals(access.processInstanceId(), processInstanceId)
+                    && Objects.equals(access.businessKey(), process.getBusinessKey()) || ordinaryProjectView(process)) return;
             throw exception(FORBIDDEN);
         }
         if (!restricted()) return;

@@ -6,7 +6,7 @@ import {
 } from './index'
 import type { ProjectEquipmentProduct } from './projectEquipment'
 
-type ProjectOrderEquipmentProduct = Omit<ProjectEquipmentProduct, 'deviceCount'>
+export type ProjectOrderEquipmentProduct = Omit<ProjectEquipmentProduct, 'deviceCount'>
 interface ProjectOrderEquipmentQuery {
   projectId: number
   isCurrent?: () => boolean

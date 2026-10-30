@@ -29,7 +29,7 @@
 import { computed } from 'vue'
 import type { ProjectEquipmentProduct } from '@/api/pms/commerce/projectEquipment'
 import { equipmentRow, type EquipmentRow } from './solutionEquipment'
-const props = defineProps<{ products: ProjectEquipmentProduct[]; readOnly: boolean; section: 'deploy' | 'software' }>()
+const props = defineProps<{ products: Omit<ProjectEquipmentProduct, 'deviceCount'>[]; readOnly: boolean; section: 'deploy' | 'software' }>()
 const rows = defineModel<EquipmentRow[]>({ required: true })
 const columns = computed(() => [
   { field: 'deviceName', label: '设备名称', width: 170 },

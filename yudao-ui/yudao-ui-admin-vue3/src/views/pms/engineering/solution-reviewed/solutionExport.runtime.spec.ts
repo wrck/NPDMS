@@ -17,7 +17,7 @@ vi.mock('./SolutionPlanningImport.vue', () => ({ default: defineComponent(() => 
 vi.mock('./RequirementTopologyFiles.vue', () => ({ default: defineComponent(() => () => h('div')) }))
 vi.mock('./saveCustomerSolutionDocuments', () => ({ resolveCustomerSolutionDocument: vi.fn(), downloadCustomerSolutionDocument: vi.fn(), customerSolutionDocumentUrls: () => [], customerSolutionDocumentName: () => '' }))
 vi.mock('./saveSolutionScripts', () => ({ downloadSolutionScript: vi.fn() }))
-vi.mock('@/api/pms/commerce/projectEquipment', () => ({ loadProjectEquipmentList: async () => [] }))
+vi.mock('@/api/pms/commerce/projectOrderEquipment', () => ({ loadProjectOrderEquipmentList: async () => [] }))
 vi.mock('@/api/pms/project/unified-members', () => ({ getMemberPage: async () => ({ list: [], total: 0 }), logicalMemberRole: () => '' }))
 vi.mock('@/api/pms/customer/contacts', () => ({ getProjectPage: async () => ({ list: [] }) }))
 vi.mock('@/api/pms/engineering/stage-plan', () => ({ getStagePlanBatchPage: async () => ({ list: [] }) }))

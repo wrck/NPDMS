@@ -1,7 +1,7 @@
 import type { ProjectEquipmentProduct } from '@/api/pms/commerce/projectEquipment'
 
 export type EquipmentRow = Record<string, string>
-export const equipmentRow = (product?: ProjectEquipmentProduct): EquipmentRow => ({
+export const equipmentRow = (product?: Omit<ProjectEquipmentProduct, 'deviceCount'>): EquipmentRow => ({
   productCode: product?.productCode || '', deviceName: product?.productName || product?.productModel || '',
   quantity: product?.orderQty == null ? '' : String(product.orderQty), location: '', version: '', remark: ''
 })
