@@ -18,7 +18,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVers
 import cn.iocoder.yudao.module.pms.project.domain.projectmanual.ProjectRules;
 import cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
-import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidatePageReqDTO;
 import cn.iocoder.yudao.module.pms.project.service.projectauthorization.ProjectAuthorizationGuard;
 import cn.iocoder.yudao.module.pms.project.service.projectmember.ValidationInitialAssignmentPolicy;
@@ -49,7 +49,7 @@ public class ProjectServiceManagerQueryService {
     private final ProjectTreeScopeService treeScopeService;
     private final ProjectSiteApplicationService projectSiteService;
     private final DeptApi deptApi;
-    private final OrganizationScopeApi organizationScopeApi;
+    private final OrganizationUserSelectionApi organizationUserSelectionApi;
     @Resource
     private ValidationInitialAssignmentPolicy validationInitialAssignmentPolicy;
 
@@ -82,7 +82,7 @@ public class ProjectServiceManagerQueryService {
         systemRequest.setKeyword(request.getKeyword());
         systemRequest.setPageNo(request.getPageNo());
         systemRequest.setPageSize(request.getPageSize());
-        var page = organizationScopeApi.pageActiveUsers(systemRequest);
+        var page = organizationUserSelectionApi.page(systemRequest);
         return new PageResult<>(BeanUtils.toBean(page.getList(), ServiceManagerCandidateRespVO.class),
                 page.getTotal());
     }

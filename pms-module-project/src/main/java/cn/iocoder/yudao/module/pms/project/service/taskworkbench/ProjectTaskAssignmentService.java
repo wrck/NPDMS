@@ -37,6 +37,7 @@ import cn.iocoder.yudao.module.pms.project.service.taskworkbench.event.TaskAssig
 import cn.iocoder.yudao.module.system.api.company.CompanyApi;
 import cn.iocoder.yudao.module.system.api.dept.DeptApi;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.OrganizationUserCandidatePageReqDTO;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
@@ -78,6 +79,7 @@ public class ProjectTaskAssignmentService {
     private final CompanyApi companyApi;
     private final DeptApi deptApi;
     private final OrganizationScopeApi organizationScopeApi;
+    private final OrganizationUserSelectionApi organizationUserSelectionApi;
     private final AdminUserApi adminUserApi;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final OperationAuditApi operationAuditApi;
@@ -98,7 +100,7 @@ public class ProjectTaskAssignmentService {
         systemRequest.setKeyword(request.getKeyword());
         systemRequest.setPageNo(request.getPageNo());
         systemRequest.setPageSize(request.getPageSize());
-        var page = organizationScopeApi.pageActiveUsers(systemRequest);
+        var page = organizationUserSelectionApi.page(systemRequest);
         return new PageResult<>(BeanUtils.toBean(page.getList(), ProjectTaskAssigneeCandidateRespVO.class),
                 page.getTotal());
     }

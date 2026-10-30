@@ -20,6 +20,7 @@ import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.engineering.service.preparation.command.PatchPreparationItemCommand;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
+import cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.system.api.user.AdminUserApi;
 import org.junit.jupiter.api.Test;
@@ -59,6 +60,7 @@ class PreparationItemApplicationServiceTest {
     @Mock private ProjectOrganizationFactApi organizationFactApi;
     @Mock private AdminUserApi adminUserApi;
     @Mock private OrganizationScopeApi organizationScopeApi;
+    @Mock private OrganizationUserSelectionApi organizationUserSelectionApi;
     @Mock private FileArtifactApi fileArtifactApi;
     @Mock private OperationAuditApi operationAuditApi;
     @Mock private TransactionTemplate transactionTemplate;
@@ -155,12 +157,12 @@ class PreparationItemApplicationServiceTest {
         when(participantFactApi.inspectAuthorization(any())).thenReturn(manager());
         when(organizationFactApi.inspect(any()))
                 .thenReturn(new ProjectOrganizationFact(10L, 3L, 20L, 30L, "D30"));
-        when(organizationScopeApi.pageActiveUsers(any())).thenReturn(new PageResult<>(List.of(), 0L));
+        when(organizationUserSelectionApi.page(any())).thenReturn(new PageResult<>(List.of(), 0L));
 
         var page = service.getCandidates(1L, new PreparationCandidatePageReqVO(), actor(100L));
 
         assertEquals(0L, page.getTotal());
-        verify(organizationScopeApi).pageActiveUsers(any());
+        verify(organizationUserSelectionApi).page(any());
     }
 
     @Test

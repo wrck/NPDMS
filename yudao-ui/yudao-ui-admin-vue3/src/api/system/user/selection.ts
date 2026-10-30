@@ -38,7 +38,7 @@ export const systemUserSelection = {
       const matched = values.filter(
         (user) =>
           !keyword ||
-          [user.nickname, user.username, user.deptName].some((value) =>
+          [user.nickname, user.username, user.deptName, user.email].some((value) =>
             value?.toLowerCase().includes(keyword)
           )
       )

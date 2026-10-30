@@ -16,7 +16,7 @@
 
     <el-form :model="query" class="query-form" label-position="top">
       <el-form-item label="被授权用户">
-        <UserSelect v-model="query.subjectUserId" clearable />
+        <UserSelect v-model="query.subjectUserId" :scoped-source="userSource" clearable />
       </el-form-item>
       <el-form-item label="授权动作">
         <el-select v-model="query.actionCode" clearable placeholder="全部动作">
@@ -133,7 +133,7 @@
   <Dialog v-model="createVisible" title="新增项目授权" :width="dialogWidth" max-height="70vh">
     <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-position="top">
       <el-form-item label="被授权用户" prop="subjectUserId">
-        <UserSelect v-model="createForm.subjectUserId" :clearable="false" />
+        <UserSelect v-model="createForm.subjectUserId" :scoped-source="userSource" :clearable="false" />
       </el-form-item>
       <div class="form-grid">
         <el-form-item label="授权动作" prop="actionCode">
@@ -218,6 +218,7 @@
 
 <script setup lang="ts">
 import { systemUserSelection } from '@/api/system/user/selection'
+import type { ScopedUserSelectionSource } from '@/api/system/user/selection'
 import { generateUUID } from '@/utils'
 import { computed, reactive, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
@@ -239,7 +240,7 @@ import UserSelect from '@/views/system/user/components/UserSelect.vue'
 
 defineOptions({ name: 'ProjectAuthorizationPanel' })
 
-const props = defineProps<{ projectId: number }>()
+const props = defineProps<{ projectId: number; userSource?: ScopedUserSelectionSource }>()
 const message = useMessage()
 const mobile = useMediaQuery('(max-width: 767px)')
 const dialogWidth = computed(() => (mobile.value ? '96%' : '620px'))

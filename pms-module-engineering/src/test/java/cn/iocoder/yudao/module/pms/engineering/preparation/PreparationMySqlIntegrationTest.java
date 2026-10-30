@@ -543,6 +543,10 @@ class PreparationMySqlIntegrationTest {
             return api;
         }
 
+        @Bean cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi organizationUserSelectionApi() {
+            return mock(cn.iocoder.yudao.module.system.api.permission.OrganizationUserSelectionApi.class);
+        }
+
         @Bean OrganizationScopeApi organizationScopeApi() {
             OrganizationScopeApi api = mock(OrganizationScopeApi.class);
             when(api.hasScope(anyLong(), anyLong(), anyLong())).thenReturn(true);
