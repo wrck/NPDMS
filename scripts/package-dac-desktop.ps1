@@ -1,11 +1,12 @@
 param(
     [Parameter(Mandatory = $true)][string]$Manifest,
-    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.0.6',
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.1.4',
     [string]$DefaultServerUrl = 'http://10.210.0.11:59191',
     [string]$DefaultWebOrigin = 'http://10.210.0.11:19191',
     [string]$OutputDirectory,
     [string]$WixDirectory,
-    [string]$WinSwExecutable
+    [string]$WinSwExecutable,
+    [string]$VerifyRunningDesktopDirectory
 )
 
 . (Join-Path $PSScriptRoot 'worktree-toolchain.ps1')
@@ -37,7 +38,7 @@ try {
         if (!(Test-Path -LiteralPath (Join-Path $WixDirectory $desktopTool))) { throw "WiX tool missing: $desktopTool" }
     }
     $desktopCompiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
-    $desktopReferences = @('/r:System.Core.dll', '/r:System.Xml.Linq.dll', '/r:System.Security.dll', '/r:System.ServiceProcess.dll', '/r:System.Windows.Forms.dll', '/r:System.Drawing.dll')
+    $desktopReferences = @('/r:System.Core.dll', '/r:System.Xml.Linq.dll', '/r:System.Security.dll', '/r:System.ServiceProcess.dll', '/r:System.Windows.Forms.dll', '/r:System.Drawing.dll', '/r:System.Web.Extensions.dll')
     $desktopCommon = Join-Path $desktopSource 'ClientConfiguration.cs'
     foreach ($desktopBuild in @(
         @{ Name = 'NpdmsDac'; Source = 'Launcher.cs'; Target = 'winexe' },
@@ -45,15 +46,23 @@ try {
         @{ Name = 'ClientConfigurationTests'; Source = 'ClientConfigurationTests.cs'; Target = 'exe' }
     )) {
         $desktopDestination = if ($desktopBuild.Name -eq 'ClientConfigurationTests') { $desktopOutput } else { $desktopPayload }
-        & $desktopCompiler /nologo /optimize+ /platform:x64 "/target:$($desktopBuild.Target)" "/out:$(Join-Path $desktopDestination ($desktopBuild.Name + '.exe'))" @desktopReferences $desktopCommon (Join-Path $desktopSource 'BrowserAccessPolicy.cs') (Join-Path $desktopSource $desktopBuild.Source)
+        $desktopSharedSources = @($desktopCommon, (Join-Path $desktopSource 'BrowserAccessPolicy.cs'))
+        if ($desktopBuild.Name -eq 'ClientConfigurationTests') { $desktopSharedSources += (Join-Path $desktopSource 'PreviousInnoInstallation.cs') }
+        & $desktopCompiler /nologo /optimize+ /platform:x64 "/target:$($desktopBuild.Target)" "/out:$(Join-Path $desktopDestination ($desktopBuild.Name + '.exe'))" @desktopReferences @desktopSharedSources (Join-Path $desktopSource $desktopBuild.Source)
         if ($LASTEXITCODE -ne 0) { throw 'Native DAC helper compilation failed' }
     }
     & (Join-Path $desktopOutput 'ClientConfigurationTests.exe') (Join-Path $desktopOutput 'configuration-test-data')
     if ($LASTEXITCODE -ne 0) { throw 'Native client boundary tests failed' }
+    & $desktopCompiler /nologo /optimize+ /platform:x64 /target:exe /main:Npdms.Dac.Desktop.DesktopStatusLauncherTests "/out:$(Join-Path $desktopOutput 'DesktopStatusLauncherTests.exe')" @desktopReferences $desktopCommon (Join-Path $desktopSource 'BrowserAccessPolicy.cs') (Join-Path $desktopSource 'Launcher.cs') (Join-Path $desktopSource 'DesktopStatusLauncherTests.cs')
+    if ($LASTEXITCODE -ne 0) { throw 'Native status regression compilation failed' }
+    if ($VerifyRunningDesktopDirectory) {
+        & (Join-Path $desktopOutput 'DesktopStatusLauncherTests.exe') $VerifyRunningDesktopDirectory
+        if ($LASTEXITCODE -ne 0) { throw 'Read-only running-desktop regression failed; no service changed.' }
+    }
     $desktopDtf = Join-Path $WixDirectory 'Microsoft.Deployment.WindowsInstaller.dll'
     $desktopActions = Join-Path $desktopOutput 'InstallerActions.dll'
     $desktopActionsPackage = Join-Path $desktopOutput 'InstallerActions.CA.dll'
-    & $desktopCompiler /nologo /optimize+ /platform:x64 /target:library "/out:$desktopActions" @desktopReferences "/r:$desktopDtf" $desktopCommon (Join-Path $desktopSource 'InstallerActions.cs')
+    & $desktopCompiler /nologo /optimize+ /platform:x64 /target:library "/out:$desktopActions" @desktopReferences "/r:$desktopDtf" $desktopCommon (Join-Path $desktopSource 'PreviousInnoInstallation.cs') (Join-Path $desktopSource 'InstallerActions.cs')
     if ($LASTEXITCODE -ne 0) { throw 'Installer validation compilation failed' }
     & (Join-Path $WixDirectory 'sdk/MakeSfxCA.exe') $desktopActionsPackage (Join-Path $WixDirectory 'sdk/x64/sfxca.dll') $desktopActions (Join-Path $desktopSource 'CustomAction.config') $desktopDtf
     if ($LASTEXITCODE -ne 0) { throw 'Installer validation packaging failed' }

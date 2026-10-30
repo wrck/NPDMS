@@ -15,6 +15,10 @@ namespace Npdms.Dac.Desktop
         private static int Check(string[] args)
         {
             if (args.Length != 1) return 2;
+            CheckAutomaticRemoval(args[0]);
+            CheckServiceProgramPermissions(args[0]);
+            Require(ClientConfiguration.CandidatePorts(8289).SequenceEqual(new[] { 8289, 8280, 8281, 8282, 8283, 8284, 8285, 8286, 8287, 8288 }), "reuse previous port and exhaust every candidate once");
+            Require(ClientConfiguration.CandidatePorts(48182).SequenceEqual(Enumerable.Range(8280, 10)), "legacy port does not escape candidate range");
             var first = new ClientConfiguration("https://npdms.example.com:8443/", "https://web.example.com:9443");
             Require(first.ServerUrl == "https://npdms.example.com:8443", "port and normalization");
             Require(new ClientConfiguration("http://127.0.0.1:59191", "http://localhost:3000").WebOrigin == "http://localhost:3000", "loopback development");
@@ -28,6 +32,16 @@ namespace Npdms.Dac.Desktop
                 Require(rejected, "reject unsafe address");
             }
             Require(ClientConfiguration.IsStartUri("npdms-dac://start/"), "fixed startup action");
+            string connect = "npdms-dac://connect/" + new string('a', 32) + "?challenge=" + new string('b', 64) + "&tenant=1";
+            Require(ClientConfiguration.ParseConnectUri(connect).SequenceEqual(new[] { new string('a', 32), new string('b', 64), "1" }), "one-click challenge action");
+            foreach (string invalid in new[] { connect + "&url=http://evil", connect + "#fragment", connect.Replace("tenant=1", "tenant=0"),
+                connect.Replace("tenant=1", "tenant=-1"), connect.Replace("?challenge=", "?challenge=%22"), connect.Replace("connect/", "connect/../"),
+                connect.Replace("&tenant=1", "&tenant=1&tenant=2"), "cmd.exe", "npdms-dac://connect/" })
+            {
+                bool rejected = false;
+                try { ClientConfiguration.ParseConnectUri(invalid); } catch (ArgumentException) { rejected = true; }
+                Require(rejected, "reject unsafe connect action");
+            }
             foreach (string invalid in new[] { "npdms-dac://start/?url=https://evil.example", "npdms-dac://stop/", "npdms-dac://start/--run", "npdms-dac://start/#secret", "cmd.exe" })
                 Require(!ClientConfiguration.IsStartUri(invalid), "reject arbitrary protocol payload");
             var second = new ClientConfiguration("https://another.example.com:8443", null);
@@ -57,6 +71,79 @@ namespace Npdms.Dac.Desktop
             Array.Clear(key, 0, key.Length);
             Console.WriteLine("PASS: URL validation, protocol restrictions, environment isolation, DPAPI persistence and credential ACL");
             return 0;
+        }
+
+        private static void CheckServiceProgramPermissions(string root)
+        {
+            string program = Path.Combine(root, "program-acl-probe");
+            Directory.CreateDirectory(Path.Combine(program, "runtime", "bin"));
+            string host = Path.Combine(program, "NpdmsDacHost.exe");
+            string java = Path.Combine(program, "runtime", "bin", "java.exe");
+            File.WriteAllText(host, "readonly-program-probe"); File.WriteAllText(java, "readonly-runtime-probe");
+            string untouched = Path.Combine(root, "preserved-data-probe");
+            File.WriteAllText(untouched, "preserve-existing-data");
+            string dataAcl = File.GetAccessControl(untouched).GetSecurityDescriptorSddlForm(System.Security.AccessControl.AccessControlSections.Access);
+            ClientConfiguration.GrantServiceProgramAccess(program);
+            foreach (string file in new[] { host, java })
+            {
+                bool granted = false;
+                foreach (System.Security.AccessControl.FileSystemAccessRule rule in File.GetAccessControl(file).GetAccessRules(true, true, typeof(System.Security.Principal.SecurityIdentifier)))
+                {
+                    if (rule.IdentityReference.Value != "S-1-5-19" || rule.AccessControlType != System.Security.AccessControl.AccessControlType.Allow) continue;
+                    Require((rule.FileSystemRights & System.Security.AccessControl.FileSystemRights.WriteData) == 0, "LocalService cannot modify program files");
+                    granted |= (rule.FileSystemRights & System.Security.AccessControl.FileSystemRights.ReadAndExecute) == System.Security.AccessControl.FileSystemRights.ReadAndExecute;
+                }
+                Require(granted, "LocalService has explicit read/execute for host and bundled Java");
+            }
+            Require(File.ReadAllText(untouched) == "preserve-existing-data" && File.GetAccessControl(untouched).GetSecurityDescriptorSddlForm(System.Security.AccessControl.AccessControlSections.Access) == dataAcl,
+                "program permission change leaves sibling data and ACL unchanged");
+            Console.WriteLine("PASS: real isolated program ACL grants LocalService read/execute without write or data permission changes");
+        }
+
+        private static void CheckAutomaticRemoval(string root)
+        {
+            string directory = Path.GetFullPath(Path.Combine(root, "old-install"));
+            string executable = Path.Combine(directory, "unins000.exe");
+            Func<PreviousInnoInstallation.Registration> registration = delegate {
+                return new PreviousInnoInstallation.Registration { InstallDirectory = directory, ExpectedDirectory = directory,
+                    UninstallCommand = "\"" + executable + "\"", DisplayVersion = "1.0.6", TargetVersion = "1.1.0" };
+            };
+            var previous = PreviousInnoInstallation.Parse(registration());
+            Require(previous.Executable == executable, "registered old uninstaller is parsed without shell arguments");
+            for (int scenario = 0; scenario < 5; scenario++)
+            {
+                var invalid = registration();
+                if (scenario == 0) invalid.DisplayVersion = "9.0.0";
+                if (scenario == 1) invalid.DisplayVersion = "invalid";
+                if (scenario == 2) invalid.UninstallCommand += " /arbitrary-command";
+                if (scenario == 3) invalid.UninstallCommand = "\"" + Path.Combine(root, "unins000.exe") + "\"";
+                if (scenario == 4) invalid.InstallDirectory = root;
+                bool rejected = false;
+                try { PreviousInnoInstallation.Parse(invalid); } catch (Exception) { rejected = true; }
+                Require(rejected, "reject downgrade, unknown version and unrelated uninstall entry");
+            }
+            foreach (int result in new[] { 0, 1, 1603, 3010 })
+            {
+                int calls = 0;
+                bool accepted = true;
+                try { previous.Remove(new PreviousInnoInstallation.Removal {
+                    Run = delegate(System.Diagnostics.ProcessStartInfo start) {
+                        calls++; Require(start.FileName == executable && !start.UseShellExecute
+                            && start.Arguments == "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART", "fixed non-shell silent uninstall without reboot");
+                        return result;
+                    }, RegistrationExists = delegate { return false; }, ServiceExists = delegate { return false; }
+                }); } catch (InvalidOperationException) { accepted = false; }
+                Require(accepted == (result == 0) && calls == 1, "failed or reboot-required removal aborts without retry");
+            }
+            for (int residue = 0; residue < 2; residue++)
+            {
+                bool rejected = false;
+                try { previous.Remove(new PreviousInnoInstallation.Removal {
+                    Run = delegate { return 0; }, RegistrationExists = delegate { return residue == 0; }, ServiceExists = delegate { return residue == 1; }
+                }); } catch (InvalidOperationException) { rejected = true; }
+                Require(rejected, "successful process exit is insufficient while old registration or service remains");
+            }
+            Console.WriteLine("PASS: automatic uninstall version/path guards, exit failures, reboot and residual ownership protection; no real installer invoked");
         }
 
         private static void Require(bool condition, string name)

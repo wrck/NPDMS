@@ -17,6 +17,14 @@ namespace Npdms.Dac.Desktop
                 Console.CancelKeyPress += delegate(object sender, ConsoleCancelEventArgs e) { e.Cancel = true; };
                 var settings = ClientConfiguration.Load(ClientConfiguration.DataRoot);
                 key = ClientConfiguration.ReadMasterKey(ClientConfiguration.DataRoot);
+                string runtimeDirectory = ClientConfiguration.RuntimeDirectory(ClientConfiguration.DataRoot);
+                string runtimeFile = Path.Combine(runtimeDirectory, "endpoint.properties");
+                // The lock spans port retries and the complete child lifetime. Never open a second H2 instance.
+                using (var instanceLock = new FileStream(Path.Combine(runtimeDirectory, "service.lock"), FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+                {
+                int previous = ClientConfiguration.Port;
+                try { previous = Int32.Parse(ClientConfiguration.RuntimeInfo(ClientConfiguration.DataRoot)["port"]); }
+                catch (IOException) { }
                 string install = AppDomain.CurrentDomain.BaseDirectory;
                 var launch = new ProcessStartInfo(Path.Combine(install, "runtime", "bin", "java.exe"))
                 {
@@ -43,12 +51,20 @@ namespace Npdms.Dac.Desktop
                 launch.EnvironmentVariables["NPDMS_SERVER_URL"] = settings.ServerUrl;
                 launch.EnvironmentVariables["NPDMS_WEB_ORIGIN"] = settings.WebOrigin;
                 launch.EnvironmentVariables["DEVICE_OPS_CREDENTIAL_MASTER_KEY"] = Convert.ToBase64String(key);
+                string baseArguments = launch.Arguments;
+                foreach (int port in ClientConfiguration.CandidatePorts(previous))
+                {
+                launch.Arguments = baseArguments + " --server.port=" + port
+                    + " --device-ops.desktop.runtime-file=\"" + runtimeFile + "\"";
                 using (var process = Process.Start(launch))
                 {
-                    launch.EnvironmentVariables.Remove("DEVICE_OPS_CREDENTIAL_MASTER_KEY");
-                    Array.Clear(key, 0, key.Length);
                     process.WaitForExit();
-                    return process.ExitCode;
+                    if (process.ExitCode != 98) return process.ExitCode;
+                }
+                }
+                launch.EnvironmentVariables.Remove("DEVICE_OPS_CREDENTIAL_MASTER_KEY");
+                Console.Error.WriteLine("DAC candidate ports 8280-8289 are unavailable; existing processes were retained.");
+                return 98;
                 }
             }
             catch (Exception failure)

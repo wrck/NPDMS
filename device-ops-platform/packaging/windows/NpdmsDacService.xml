@@ -3,8 +3,11 @@
   <name>NPDMS DAC</name>
   <description>NPDMS 本机设备连接与采集服务</description>
   <executable>%BASE%\NpdmsDacHost.exe</executable>
+  <workingdirectory>%BASE%</workingdirectory>
   <startmode>Automatic</startmode>
   <delayedAutoStart>true</delayedAutoStart>
+  <serviceaccount><domain>NT AUTHORITY</domain><user>LocalService</user></serviceaccount>
+  <securityDescriptor>D:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCRP;;;BU)</securityDescriptor>
   <stoptimeout>60 sec</stoptimeout>
   <stopparentprocessfirst>false</stopparentprocessfirst>
   <onfailure action="restart" delay="15 sec" />
