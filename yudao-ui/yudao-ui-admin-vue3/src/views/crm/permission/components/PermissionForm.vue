@@ -8,14 +8,7 @@
       label-width="100px"
     >
       <el-form-item v-if="formType === 'create'" label="选择人员" prop="userId">
-        <el-select v-model="formData.userId">
-          <el-option
-            v-for="item in userOptions"
-            :key="item.id"
-            :label="item.nickname"
-            :value="item.id"
-          />
-        </el-select>
+        <UserSelect v-model="formData.userId" :clearable="false" />
       </el-form-item>
       <el-form-item label="权限级别" prop="level">
         <el-radio-group v-model="formData.level">
@@ -47,7 +40,7 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
-import * as UserApi from '@/api/system/user'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as PermissionApi from '@/api/crm/permission'
 import { BizTypeEnum, PermissionLevelEnum } from '@/api/crm/permission'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
@@ -61,7 +54,6 @@ const dialogVisible = ref(false) // 弹窗的是否展示
 const dialogTitle = ref('') // 弹窗的标题
 const formLoading = ref(false) // 表单的加载中：1）修改时的数据加载；2）提交的按钮禁用
 const formType = ref('') // 表单的类型：create - 新增；update - 修改
-const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 const formData = ref<PermissionApi.PermissionVO>({} as PermissionApi.PermissionVO)
 const formRules = reactive({
   userId: [{ required: true, message: '人员不能为空', trigger: 'blur' }],
@@ -132,6 +124,6 @@ const resetForm = (bizType: number, bizId: number) => {
 }
 onMounted(async () => {
   // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
+
 })
 </script>

@@ -162,6 +162,7 @@
   />
 </template>
 <script setup lang="ts">
+import { systemUserSelection } from '@/api/system/user/selection'
 import { PurchaseInApi, PurchaseInVO } from '@/api/erp/purchase/in'
 import PurchaseInItemForm from './components/PurchaseInItemForm.vue'
 import { AccountApi, AccountVO } from '@/api/erp/finance/account'
@@ -248,7 +249,7 @@ const open = async (type: string, id?: number) => {
   // 加载供应商列表
   supplierList.value = await SupplierApi.getSupplierSimpleList()
   // 加载用户列表
-  userList.value = await UserApi.getSimpleUserList()
+  userList.value = await systemUserSelection.active()
   // 加载账户列表
   accountList.value = await AccountApi.getAccountSimpleList()
   const defaultAccount = accountList.value.find((item) => item.defaultStatus)

@@ -15,18 +15,11 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="负责人" prop="ownerUserId">
-            <el-select
+            <UserSelect
               v-model="formData.ownerUserId"
               :disabled="formType !== 'create'"
               class="w-1/1"
-            >
-              <el-option
-                v-for="item in userOptions"
-                :key="item.id"
-                :label="item.nickname"
-                :value="item.id"
-              />
-            </el-select>
+             :clearable="false" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -177,9 +170,9 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as ContactApi from '@/api/crm/contact'
 import { DICT_TYPE, getBoolDictOptions, getIntDictOptions } from '@/utils/dict'
-import * as UserApi from '@/api/system/user'
 import * as CustomerApi from '@/api/crm/customer'
 import * as AreaApi from '@/api/system/area'
 import { defaultProps } from '@/utils/tree'
@@ -220,7 +213,6 @@ const formRules = reactive({
   ownerUserId: [{ required: true, message: '负责人不能为空', trigger: 'blur' }]
 })
 const formRef = ref() // 表单 Ref
-const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 const customerList = ref<CustomerApi.CustomerVO[]>([]) // 客户列表
 const contactList = ref<ContactApi.ContactVO[]>([]) // 联系人列表
 
@@ -270,7 +262,7 @@ const open = async (type: string, id?: number, customerId?: number, businessId?:
   // 获得地区列表
   areaList.value = await AreaApi.getAreaTree()
   // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
+
   // 默认新建时选中自己
   if (formType.value === 'create') {
     formData.value.ownerUserId = getCurrentUserId()

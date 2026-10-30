@@ -16,6 +16,7 @@ import errorCode from './errorCode'
 import { resetRouter } from '@/router'
 import { deleteUserCache } from '@/hooks/web/useCache'
 import { ApiEncrypt } from '@/utils/encrypt'
+import { applyOfficeReadonlyRequest } from '@/utils/officeProjectReadonly'
 
 const tenantEnable = import.meta.env.VITE_APP_TENANT_ENABLE ?? 'true'
 const { result_code, base_url, request_timeout } = config
@@ -49,6 +50,7 @@ const service: AxiosInstance = axios.create({
 // request拦截器
 service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    applyOfficeReadonlyRequest(config)
     // 是否需要设置 token；命中白名单的接口（如 /login）不带 token
     let isToken = (config!.headers || {}).isToken !== false
     if (isToken && whiteList.some((v) => config.url?.includes(v))) {

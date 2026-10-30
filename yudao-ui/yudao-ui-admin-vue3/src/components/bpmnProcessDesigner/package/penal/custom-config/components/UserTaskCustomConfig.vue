@@ -68,20 +68,13 @@
       prop="assignEmptyHandlerUserIds"
       span="24"
     >
-      <el-select
+      <UserSelect
         v-model="assignEmptyUserIds"
         clearable
         multiple
         style="width: 100%"
         @change="updateAssignEmptyUserIds"
-      >
-        <el-option
-          v-for="item in userOptions"
-          :key="item.id"
-          :label="item.nickname"
-          :value="item.id"
-        />
-      </el-select>
+      />
     </el-form-item>
 
     <el-divider content-position="left">审批人与提交人为同一人时</el-divider>
@@ -211,7 +204,7 @@ import {
   ApproveType,
   ButtonSetting
 } from '@/components/SimpleProcessDesignerV2/src/consts'
-import * as UserApi from '@/api/system/user'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { useFormFieldsPermission } from '@/components/SimpleProcessDesignerV2/src/node'
 import { BpmModelFormType } from '@/utils/constants'
 
@@ -540,11 +533,7 @@ const updatePermission = (type: string) => {
   })
 }
 
-const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
-onMounted(async () => {
-  // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
-})
+onMounted(async () => {})
 </script>
 
 <style lang="scss" scoped>

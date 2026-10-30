@@ -1,4 +1,5 @@
 import request from '@/config/axios'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { isEmpty } from '@/utils/is'
 import { ApiSelectProps } from '@/components/FormCreate/src/type'
 import { jsonParse } from '@/utils'
@@ -72,6 +73,7 @@ export const useApiSelect = (option: ApiSelectProps) => {
     setup(props, { emit }) {
       const attrs = useAttrs()
       const options = ref<any[]>([]) // 下拉数据
+      const userError = ref('')
       const loading = ref(false) // 是否正在从远程获取数据
       const queryParam = ref<any>() // 当前输入的值
 
@@ -114,27 +116,41 @@ export const useApiSelect = (option: ApiSelectProps) => {
           return
         }
 
-        switch (props.method) {
-          case 'GET':
-            let url: string = props.url
-            if (props.remote) {
-              if (queryParam.value != undefined) {
-                if (url.includes('?')) {
-                  url = `${url}&${props.remoteField}=${queryParam.value}`
-                } else {
-                  url = `${url}?${props.remoteField}=${queryParam.value}`
+        userError.value = ''
+        try {
+          switch (props.method) {
+            case 'GET':
+              let url: string = props.url
+              if (props.remote) {
+                if (queryParam.value != undefined) {
+                  if (url.includes('?')) {
+                    url = `${url}&${props.remoteField}=${queryParam.value}`
+                  } else {
+                    url = `${url}?${props.remoteField}=${queryParam.value}`
+                  }
                 }
               }
-            }
-            parseOptions(await request.get({ url: url }))
-            break
-          case 'POST':
-            const data: any = jsonParse(props.data)
-            if (props.remote) {
-              data[props.remoteField] = queryParam.value
-            }
-            parseOptions(await request.post({ url: props.url, data: data }))
-            break
+              parseOptions(
+                await (option.userSelection
+                  ? systemUserSelection.schemaRequest({ url, method: 'GET' })
+                  : request.get({ url: url }))
+              )
+              break
+            case 'POST':
+              const data: any = jsonParse(props.data)
+              if (props.remote) {
+                data[props.remoteField] = queryParam.value
+              }
+              parseOptions(
+                await (option.userSelection
+                  ? systemUserSelection.schemaRequest({ url: props.url, method: 'POST', data })
+                  : request.post({ url: props.url, data: data }))
+              )
+              break
+          }
+        } catch (error) {
+          if (!option.userSelection) throw error
+          userError.value = '用户候选加载失败，已填内容保留。'
         }
       }
 
@@ -228,7 +244,7 @@ export const useApiSelect = (option: ApiSelectProps) => {
       onMounted(async () => {
         await getOptions()
         // 设置默认当前用户（在数据加载完成后）
-        setDefaultCurrentUser()
+        if (!userError.value) setDefaultCurrentUser()
       })
 
       const buildSelect = () => {
@@ -264,7 +280,7 @@ export const useApiSelect = (option: ApiSelectProps) => {
         )
       }
       const buildCheckbox = () => {
-        if (isEmpty(options.value)) {
+        if (isEmpty(options.value) && !option.userSelection) {
           options.value = [
             { label: '选项1', value: '选项1' },
             { label: '选项2', value: '选项2' }
@@ -279,7 +295,7 @@ export const useApiSelect = (option: ApiSelectProps) => {
         )
       }
       const buildRadio = () => {
-        if (isEmpty(options.value)) {
+        if (isEmpty(options.value) && !option.userSelection) {
           options.value = [
             { label: '选项1', value: '选项1' },
             { label: '选项2', value: '选项2' }
@@ -297,6 +313,14 @@ export const useApiSelect = (option: ApiSelectProps) => {
       }
       return () => (
         <>
+          {userError.value && (
+            <p role="alert">
+              {userError.value}
+              <el-button link type="primary" onClick={getOptions}>
+                重新加载用户
+              </el-button>
+            </p>
+          )}
           {props.selectType === 'select'
             ? buildSelect()
             : props.selectType === 'radio'

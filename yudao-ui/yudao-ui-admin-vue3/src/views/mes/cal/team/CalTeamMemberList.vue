@@ -35,14 +35,7 @@
         v-loading="formLoading"
       >
         <el-form-item label="用户" prop="userId">
-          <el-select v-model="formData.userId" placeholder="请选择用户" filterable class="!w-1/1">
-            <el-option
-              v-for="user in userList"
-              :key="user.id"
-              :label="user.nickname"
-              :value="user.id"
-            />
-          </el-select>
+          <UserSelect v-model="formData.userId" placeholder="请选择用户" class="!w-1/1" :clearable="false" />
         </el-form-item>
         <el-form-item label="备注" prop="remark">
           <el-input v-model="formData.remark" type="textarea" placeholder="请输入备注" />
@@ -57,9 +50,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { CalTeamMemberApi, CalTeamMemberVO } from '@/api/mes/cal/team/member'
-import { getSimpleUserList } from '@/api/system/user'
-import type { UserVO } from '@/api/system/user'
 
 defineOptions({ name: 'CalTeamMemberList' })
 
@@ -100,7 +92,6 @@ const handleDelete = async (id: number) => {
 const dialogVisible = ref(false) // 弹窗的是否展示
 const formLoading = ref(false) // 表单的加载中
 const formRef = ref() // 表单 Ref
-const userList = ref<UserVO[]>([]) // 用户下拉列表
 const formData = ref({
   teamId: undefined as number | undefined,
   userId: undefined as number | undefined,
@@ -115,7 +106,7 @@ const openForm = async () => {
   dialogVisible.value = true
   formData.value = { teamId: props.teamId, userId: undefined, remark: undefined }
   formRef.value?.resetFields()
-  userList.value = await getSimpleUserList()
+
 }
 
 /** 提交表单 */

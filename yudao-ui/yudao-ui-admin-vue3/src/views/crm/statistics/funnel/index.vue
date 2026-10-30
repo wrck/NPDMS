@@ -66,20 +66,13 @@
         />
       </el-form-item>
       <el-form-item label="员工" prop="userId">
-        <el-select
+        <UserSelect
           v-model="queryParams.userId"
           class="!w-240px"
           clearable
           placeholder="员工"
           @change="handleQuery"
-        >
-          <el-option
-            v-for="(user, index) in userListByDeptId"
-            :key="index"
-            :label="user.nickname"
-            :value="user.id"
-          />
-        </el-select>
+         :dept-id="queryParams.deptId" :disabled="!queryParams.deptId" />
       </el-form-item>
       <el-form-item>
         <el-button @click="handleQuery">
@@ -114,8 +107,8 @@
 </template>
 
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as DeptApi from '@/api/system/dept'
-import * as UserApi from '@/api/system/user'
 import * as BusinessStatusApi from '@/api/crm/business/status'
 import { useUserStore } from '@/store/modules/user'
 import { beginOfDay, defaultShortcuts, endOfDay, formatDate } from '@/utils/formatTime'
@@ -141,15 +134,9 @@ const queryParams = reactive({
 
 const queryFormRef = ref() // 搜索的表单
 const deptList = ref<Tree[]>([]) // 部门树形结构
-const userList = ref<UserApi.UserVO[]>([]) // 全量用户清单
 const statusTypeList = ref<BusinessStatusApi.BusinessStatusTypeVO[]>([]) // 商机状态组
 
 /** 根据选择的部门筛选员工清单 */
-const userListByDeptId = computed(() =>
-  queryParams.deptId
-    ? userList.value.filter((u: UserApi.UserVO) => u.deptId === queryParams.deptId)
-    : []
-)
 
 const activeTab = ref('funnelRef') // 活跃标签
 const funnelRef = ref() // 销售漏斗
@@ -185,13 +172,12 @@ const resetQuery = () => {
 
 /** 初始化 */
 onMounted(async () => {
-  const [deptSimpleList, userSimpleList, businessStatusTypeList] = await Promise.all([
+  const [deptSimpleList, businessStatusTypeList] = await Promise.all([
     DeptApi.getSimpleDeptList(),
-    UserApi.getSimpleUserList(),
     BusinessStatusApi.getBusinessStatusTypeSimpleList()
   ])
   deptList.value = handleTree(deptSimpleList)
-  userList.value = handleTree(userSimpleList)
+
   statusTypeList.value = businessStatusTypeList
   queryParams.statusTypeId = statusTypeList.value[0]?.id
   handleQuery()

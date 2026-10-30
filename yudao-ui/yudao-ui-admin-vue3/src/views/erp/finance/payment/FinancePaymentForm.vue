@@ -45,20 +45,13 @@
         </el-col>
         <el-col :span="8">
           <el-form-item label="财务人员" prop="financeUserId">
-            <el-select
+            <UserSelect
               v-model="formData.financeUserId"
               clearable
-              filterable
+
               placeholder="请选择财务人员"
               class="!w-1/1"
-            >
-              <el-option
-                v-for="item in userList"
-                :key="item.id"
-                :label="item.nickname"
-                :value="item.id"
-              />
-            </el-select>
+             />
           </el-form-item>
         </el-col>
         <el-col :span="16">
@@ -145,6 +138,7 @@
   </Dialog>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import {
   FinancePaymentApi,
   FinancePaymentItemVO,
@@ -153,7 +147,6 @@ import {
 import FinancePaymentItemForm from './components/FinancePaymentItemForm.vue'
 import { SupplierApi, SupplierVO } from '@/api/erp/purchase/supplier'
 import { erpPriceInputFormatter } from '@/utils'
-import * as UserApi from '@/api/system/user'
 import { AccountApi, AccountVO } from '@/api/erp/finance/account'
 
 /** ERP 付款单表单 */
@@ -188,7 +181,6 @@ const disabled = computed(() => formType.value === 'detail')
 const formRef = ref() // 表单 Ref
 const supplierList = ref<SupplierVO[]>([]) // 供应商列表
 const accountList = ref<AccountVO[]>([]) // 账户列表
-const userList = ref<UserApi.UserVO[]>([]) // 用户列表
 
 /** 子表的表单 */
 const subTabsName = ref('item')
@@ -226,7 +218,7 @@ const open = async (type: string, id?: number) => {
   // 加载供应商列表
   supplierList.value = await SupplierApi.getSupplierSimpleList()
   // 加载用户列表
-  userList.value = await UserApi.getSimpleUserList()
+
   // 加载账户列表
   accountList.value = await AccountApi.getAccountSimpleList()
   const defaultAccount = accountList.value.find((item) => item.defaultStatus)

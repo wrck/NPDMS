@@ -71,13 +71,8 @@ import DictSelect from '@/components/FormCreate/src/components/DictSelect.vue'
 import DeptSelect from '@/components/FormCreate/src/components/DeptSelect.vue'
 import IframeComponent from '@/components/FormCreate/src/components/IframeComponent.vue'
 import AreaSelect from '@/components/FormCreate/src/components/AreaSelect.vue'
+import UserSelect from '@/components/SystemUserSelect/FormCreateUserSelect.vue'
 
-const UserSelect = useApiSelect({
-  name: 'UserSelect',
-  labelField: 'nickname',
-  valueField: 'id',
-  url: '/system/user/simple-list'
-})
 const ApiSelect = useApiSelect({
   name: 'ApiSelect'
 })

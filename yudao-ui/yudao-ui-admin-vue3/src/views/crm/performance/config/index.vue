@@ -72,21 +72,14 @@
         label="员工"
         prop="objectId"
       >
-        <el-select
+        <UserSelect
           v-model="queryParams.objectId"
           clearable
-          filterable
+
           class="!w-240px"
           placeholder="请选择员工"
           @change="handleQuery"
-        >
-          <el-option
-            v-for="user in userList"
-            :key="user.id"
-            :label="user.nickname"
-            :value="user.id"
-          />
-        </el-select>
+         />
       </el-form-item>
       <el-form-item>
         <el-button @click="handleQuery">
@@ -177,8 +170,8 @@
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as DeptApi from '@/api/system/dept'
-import * as UserApi from '@/api/system/user'
 import {
   PerformanceConfigObjectTypeEnum,
   PerformanceConfigApi,
@@ -226,7 +219,6 @@ const total = ref(0) // 列表总数
 const list = ref<CrmPerformanceConfigVO[]>([]) // 列表的数据
 const queryFormRef = ref() // 搜索的表单
 const deptList = ref<Tree[]>([]) // 部门树形结构
-const userList = ref<UserApi.UserVO[]>([]) // 全量用户清单
 const queryParams = reactive<any>({
   pageNo: 1,
   pageSize: 10,
@@ -299,7 +291,7 @@ const getObjectTypeLabel = (value: number) =>
 /** 初始化 */
 onMounted(async () => {
   deptList.value = handleTree(await DeptApi.getSimpleDeptList())
-  userList.value = await UserApi.getSimpleUserList()
+
   await getList()
 })
 </script>

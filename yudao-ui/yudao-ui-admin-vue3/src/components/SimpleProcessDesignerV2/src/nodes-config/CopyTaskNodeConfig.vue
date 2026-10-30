@@ -100,14 +100,13 @@
               prop="userIds"
               span="24"
             >
-              <el-select v-model="configForm.userIds" clearable multiple style="width: 100%">
-                <el-option
-                  v-for="item in userOptions"
-                  :key="item.id"
-                  :label="item.nickname"
-                  :value="item.id"
-                />
-              </el-select>
+              <UserSelect
+                v-model="configForm.userIds"
+                clearable
+                multiple
+                style="width: 100%"
+                :scoped-source="nodeUsers"
+              />
             </el-form-item>
             <el-form-item
               v-if="configForm.candidateStrategy === CandidateStrategy.USER_GROUP"
@@ -256,6 +255,8 @@
   </el-drawer>
 </template>
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import {
   SimpleFlowNode,
   CandidateStrategy,
@@ -337,6 +338,12 @@ const {
   parseCandidateParam
 } = useNodeForm(NodeType.COPY_TASK_NODE)
 const configForm = tempConfigForm as Ref<CopyTaskFormType>
+const nodeUsers = computed(() =>
+  systemUserSelection.fromCandidates(
+    `bpm-node:${currentNode.value?.id || ''}`,
+    userOptions.value || []
+  )
+)
 // 抄送人策略， 去掉发起人自选 和 发起人自己
 const copyUserStrategies = computed(() => {
   return CANDIDATE_STRATEGY.filter((item) => item.value !== CandidateStrategy.START_USER)

@@ -15,18 +15,11 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="负责人" prop="ownerUserId">
-            <el-select
+            <UserSelect
               v-model="formData.ownerUserId"
               :disabled="formType !== 'create'"
               class="w-1/1"
-            >
-              <el-option
-                v-for="item in userOptions"
-                :key="item.id"
-                :label="item.nickname"
-                :value="item.id"
-              />
-            </el-select>
+             :clearable="false" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -144,10 +137,10 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as ReceivablePlanApi from '@/api/crm/receivable/plan'
 import * as ReceivableApi from '@/api/crm/receivable'
 import { ReceivableVO } from '@/api/crm/receivable'
-import * as UserApi from '@/api/system/user'
 import * as CustomerApi from '@/api/crm/customer'
 import * as ContractApi from '@/api/crm/contract'
 import { getCurrentUserId } from '@/utils/auth'
@@ -155,7 +148,6 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 
 const { t } = useI18n() // 国际化
 const message = useMessage() // 消息弹窗
-const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 const dialogVisible = ref(false) // 弹窗的是否展示
 const dialogTitle = ref('') // 弹窗的标题
 const formLoading = ref(false) // 表单的加载中：1）修改时的数据加载；2）提交的按钮禁用
@@ -195,7 +187,7 @@ const open = async (
     }
   }
   // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
+
   // 获得客户列表
   customerList.value = await CustomerApi.getCustomerSimpleList()
   // 默认新建时选中自己

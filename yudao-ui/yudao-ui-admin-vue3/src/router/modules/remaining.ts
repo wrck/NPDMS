@@ -34,6 +34,12 @@ const { t } = useI18n()
  **/
 const remainingRouter: AppRouteRecordRaw[] = [
   {
+    path: '/pms/project/office-readonly', component: Layout, name: 'OfficeProjectReadonlyRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'OfficeProjectReadonly', component: () => import('@/views/pms/project/office-readonly/index.vue'),
+      meta: { hidden: true, canTo: true, noCache: true, title: '项目只读详情', followAuth: '/pms/project-management/projects', activeMenu: '/pms/project-management/projects' } }]
+  },
+  {
     path: '/pms/cutover/tasks', component: Layout, name: 'PmsCutoverTaskListEntryRoot',
     meta: { hidden: true },
     children: [{ path: '', name: 'PmsCutoverTaskListEntry', component: () => import('@/views/pms/cutover/tasks/index.vue'),
@@ -54,7 +60,7 @@ const remainingRouter: AppRouteRecordRaw[] = [
   {
     path: '/pms/inspection/tasks/:taskId', component: Layout, name: 'PmsInspectionTaskDetailRoot',
     meta: { hidden: true },
-    children: [{ path: '', name: 'PmsInspectionTaskDetail', component: () => import('@/views/pms/inspection/task-detail/index.vue'),
+    children: [{ path: '', name: 'PmsInspectionTaskDetail', component: () => import('@/views/pms/inspection/task-detail-entry.vue'),
       meta: { hidden: true, canTo: true, noCache: true, title: '巡检任务详情', activeMenu: '/pms/inspection/tasks' } }]
   },
   {

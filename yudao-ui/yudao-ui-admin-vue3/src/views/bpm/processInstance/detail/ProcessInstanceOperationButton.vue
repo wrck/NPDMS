@@ -217,20 +217,14 @@
           label-width="100px"
         >
           <el-form-item label="抄送人" prop="copyUserIds">
-            <el-select
+            <UserSelect
               v-model="copyForm.copyUserIds"
               clearable
               style="width: 100%"
               multiple
               placeholder="请选择抄送人"
-            >
-              <el-option
-                v-for="item in userOptions"
-                :key="item.id"
-                :label="item.nickname"
-                :value="item.id"
-              />
-            </el-select>
+              :scoped-source="operationUsers"
+            />
           </el-form-item>
           <el-form-item label="抄送意见" prop="copyReason">
             <el-input
@@ -275,14 +269,12 @@
           label-width="100px"
         >
           <el-form-item label="新审批人" prop="assigneeUserId">
-            <el-select v-model="transferForm.assigneeUserId" clearable style="width: 100%">
-              <el-option
-                v-for="item in userOptions"
-                :key="item.id"
-                :label="item.nickname"
-                :value="item.id"
-              />
-            </el-select>
+            <UserSelect
+              v-model="transferForm.assigneeUserId"
+              clearable
+              style="width: 100%"
+              :scoped-source="operationUsers"
+            />
           </el-form-item>
           <el-form-item label="审批意见" prop="reason">
             <el-input
@@ -327,14 +319,12 @@
           label-width="100px"
         >
           <el-form-item label="接收人" prop="delegateUserId">
-            <el-select v-model="delegateForm.delegateUserId" clearable style="width: 100%">
-              <el-option
-                v-for="item in userOptions"
-                :key="item.id"
-                :label="item.nickname"
-                :value="item.id"
-              />
-            </el-select>
+            <UserSelect
+              v-model="delegateForm.delegateUserId"
+              clearable
+              style="width: 100%"
+              :scoped-source="operationUsers"
+            />
           </el-form-item>
           <el-form-item label="审批意见" prop="reason">
             <el-input
@@ -379,14 +369,13 @@
           label-width="100px"
         >
           <el-form-item label="加签处理人" prop="addSignUserIds">
-            <el-select v-model="addSignForm.addSignUserIds" multiple clearable style="width: 100%">
-              <el-option
-                v-for="item in userOptions"
-                :key="item.id"
-                :label="item.nickname"
-                :value="item.id"
-              />
-            </el-select>
+            <UserSelect
+              v-model="addSignForm.addSignUserIds"
+              multiple
+              clearable
+              style="width: 100%"
+              :scoped-source="operationUsers"
+            />
           </el-form-item>
           <el-form-item label="审批意见" prop="reason">
             <el-input
@@ -520,7 +509,10 @@
       :width="420"
       trigger="click"
       v-if="
-        !serviceManagerApprovalOnly && checkPermi(['bpm:process-instance:cancel']) && userId === processInstance?.startUser?.id && !isEndProcessStatus(processInstance?.status)
+        !serviceManagerApprovalOnly &&
+        checkPermi(['bpm:process-instance:cancel']) &&
+        userId === processInstance?.startUser?.id &&
+        !isEndProcessStatus(processInstance?.status)
       "
     >
       <template #reference>
@@ -561,7 +553,8 @@
       @click="handleReCreate()"
       class="hover-bg-gray-100 rounded-xl p-6px"
       v-if="
-        !serviceManagerApprovalOnly && userId === processInstance?.startUser?.id &&
+        !serviceManagerApprovalOnly &&
+        userId === processInstance?.startUser?.id &&
         isEndProcessStatus(processInstance?.status) &&
         processDefinition?.formType === 10
       "
@@ -574,6 +567,8 @@
   <SignDialog ref="signRef" @success="handleSignFinish" />
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { getCurrentUserId } from '@/utils/auth'
 import { useUserStore } from '@/store/modules/user'
 import { checkPermi } from '@/utils/permission'
@@ -613,6 +608,12 @@ const props = defineProps<{
   writableFields: string[] // 流程表单可以编辑的字段
 }>()
 
+const operationUsers = computed(() =>
+  systemUserSelection.fromCandidates(
+    `bpm-operation:${props.processInstance?.id || ''}`,
+    props.userOptions
+  )
+)
 const formLoading = ref(false) // 表单加载中
 const popOverVisible = ref({
   approve: false,
@@ -1212,12 +1213,18 @@ const isEndProcessStatus = (status: number) => {
   return isEndStatus
 }
 
-const serviceManagerApprovalOnly = computed(() => useUserStore().getRoles.includes('SERVICE_MANAGER')
-  && !checkPermi(['bpm:task:manager-query']))
+const serviceManagerApprovalOnly = computed(
+  () =>
+    useUserStore().getRoles.includes('SERVICE_MANAGER') && !checkPermi(['bpm:task:manager-query'])
+)
 
 /** 是否显示按钮 */
 const isShowButton = (btnType: OperationButtonType): boolean => {
-  if (serviceManagerApprovalOnly.value && ![OperationButtonType.APPROVE, OperationButtonType.REJECT].includes(btnType)) return false
+  if (
+    serviceManagerApprovalOnly.value &&
+    ![OperationButtonType.APPROVE, OperationButtonType.REJECT].includes(btnType)
+  )
+    return false
   let isShow = true
   if (runningTask.value?.buttonsSetting && runningTask.value?.buttonsSetting[btnType]) {
     isShow = runningTask.value.buttonsSetting[btnType].enable

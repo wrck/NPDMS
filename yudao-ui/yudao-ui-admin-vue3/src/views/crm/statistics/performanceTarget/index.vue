@@ -46,20 +46,13 @@
         />
       </el-form-item>
       <el-form-item label="员工" prop="userId">
-        <el-select
+        <UserSelect
           v-model="queryParams.userId"
           class="!w-240px"
           clearable
           placeholder="员工"
           @change="handleQuery"
-        >
-          <el-option
-            v-for="user in userListByDeptId"
-            :key="user.id"
-            :label="user.nickname"
-            :value="user.id"
-          />
-        </el-select>
+         :dept-id="queryParams.deptId" :disabled="!queryParams.deptId" />
       </el-form-item>
       <el-form-item>
         <el-button @click="handleQuery">
@@ -111,9 +104,9 @@
 </template>
 
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { EChartsOption } from 'echarts'
 import * as DeptApi from '@/api/system/dept'
-import * as UserApi from '@/api/system/user'
 import {
   CrmStatisticsPerformanceTargetRespVO,
   StatisticsPerformanceTargetApi
@@ -142,14 +135,8 @@ const queryFormRef = ref() // 搜索的表单
 const loading = ref(false) // 加载中
 const list = ref<CrmStatisticsPerformanceTargetRespVO[]>([]) // 列表的数据
 const deptList = ref<Tree[]>([]) // 部门树形结构
-const userList = ref<UserApi.UserVO[]>([]) // 全量用户清单
 
 /** 根据选择的部门筛选员工清单 */
-const userListByDeptId = computed(() =>
-  queryParams.deptId
-    ? userList.value.filter((user: UserApi.UserVO) => user.deptId === queryParams.deptId)
-    : []
-)
 
 /** 柱状图配置：纵向 */
 const echartsOption = reactive<EChartsOption>({
@@ -298,7 +285,7 @@ const getSummaries = ({ columns, data }: { columns: any[]; data: any[] }) => {
 /** 初始化 */
 onMounted(async () => {
   deptList.value = handleTree(await DeptApi.getSimpleDeptList())
-  userList.value = await UserApi.getSimpleUserList()
+
   await loadData()
 })
 </script>

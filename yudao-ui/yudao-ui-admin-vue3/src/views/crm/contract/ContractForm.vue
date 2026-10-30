@@ -20,18 +20,11 @@
         </el-col>
         <el-col :span="8">
           <el-form-item label="负责人" prop="ownerUserId">
-            <el-select
+            <UserSelect
               v-model="formData.ownerUserId"
               :disabled="formType !== 'create'"
               class="w-1/1"
-            >
-              <el-option
-                v-for="item in userOptions"
-                :key="item.id"
-                :label="item.nickname"
-                :value="item.id"
-              />
-            </el-select>
+             :clearable="false" />
           </el-form-item>
         </el-col>
       </el-row>
@@ -109,14 +102,7 @@
       <el-row>
         <el-col :span="8">
           <el-form-item label="公司签约人" prop="signUserId">
-            <el-select v-model="formData.signUserId" class="w-1/1">
-              <el-option
-                v-for="item in userOptions"
-                :key="item.id"
-                :label="item.nickname"
-                :value="item.id!"
-              />
-            </el-select>
+            <UserSelect v-model="formData.signUserId" class="w-1/1" :clearable="false" />
           </el-form-item>
         </el-col>
         <el-col :span="8">
@@ -194,9 +180,9 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as CustomerApi from '@/api/crm/customer'
 import * as ContractApi from '@/api/crm/contract'
-import * as UserApi from '@/api/system/user'
 import * as ContactApi from '@/api/crm/contact'
 import * as BusinessApi from '@/api/crm/business'
 import { erpPriceMultiply, erpPriceInputFormatter } from '@/utils'
@@ -238,7 +224,6 @@ const formRules = reactive({
   ownerUserId: [{ required: true, message: '负责人不能为空', trigger: 'blur' }]
 })
 const formRef = ref() // 表单 Ref
-const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 const customerList = ref<CustomerApi.CustomerVO[]>([]) // 客户列表的数据
 const businessList = ref<BusinessApi.BusinessVO[]>([])
 const contactList = ref<ContactApi.ContactVO[]>([])
@@ -285,7 +270,7 @@ const open = async (type: string, id?: number) => {
   // 获得客户列表
   customerList.value = await CustomerApi.getCustomerSimpleList()
   // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
+
   // 默认新建时选中自己
   if (formType.value === 'create') {
     formData.value.ownerUserId = getCurrentUserId()

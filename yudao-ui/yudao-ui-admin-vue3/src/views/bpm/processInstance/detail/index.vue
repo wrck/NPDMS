@@ -143,6 +143,7 @@
   <PrintDialog ref="printRef" />
 </template>
 <script lang="ts" setup>
+import { systemUserSelection } from '@/api/system/user/selection'
 import { formatDate } from '@/utils/formatTime'
 import { approvalPeopleKey } from './approvalPeople'
 import { DICT_TYPE } from '@/utils/dict'
@@ -333,7 +334,7 @@ const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 onMounted(async () => {
   getDetail()
   // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
+  userOptions.value = await systemUserSelection.active()
 })
 </script>
 

@@ -1,5 +1,6 @@
 import type { App } from 'vue'
 import { useUserStore } from '@/store/modules/user'
+import { officeProjectReadContext } from '@/utils/officeProjectReadonly'
 
 const { t } = useI18n() // 国际化
 
@@ -9,7 +10,7 @@ export function hasPermi(app: App<Element>) {
     const { value } = binding
 
     if (value && value instanceof Array && value.length > 0) {
-      const hasPermissions = hasPermission(value)
+      const hasPermissions = hasPermission(value) && (!officeProjectReadContext() || value.some((key: string) => /:(query|view|read|get|list)$/.test(key)))
 
       if (!hasPermissions) {
         el.parentNode && el.parentNode.removeChild(el)

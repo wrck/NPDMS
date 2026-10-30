@@ -69,15 +69,7 @@
             <th scope="row">迪普工程师</th
             ><td
               ><el-form-item prop="engineerName"
-                ><PmsEntitySelect
-                  v-model="model.engineerName"
-                  :api="findEngineers"
-                  label-field="nickname"
-                  value-field="nickname"
-                  query-field="nickname"
-                  placeholder="默认当前用户，可修改"
-                  aria-label="迪普工程师"
-                  @change="onEngineerChange" /></el-form-item
+                ><UserSelect v-model="model.engineerName" :scoped-source="engineerSource" value-field="nickname" :current-label="model.engineerName" placeholder="默认当前用户，可修改" aria-label="迪普工程师" @change="(selected) => onEngineerChange(selected?.nickname || '', selected)" /></el-form-item
             ></td>
             <th scope="row">联系方式</th
             ><td
@@ -204,16 +196,17 @@ v-if="item.field === 'itemArrival' && model.itemArrival === '是' && model.arriv
 </template>
 
 <script setup lang="ts">
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { systemUserSelection } from '@/api/system/user/selection'
 import { arrivalServiceLabel } from './arrivalServiceLabel'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import type { CompletionCertificateVO } from '@/api/pms/acceptance/completion-certificate'
 import type { DynamicFormSelectionVO } from '@/api/pms/platform/dynamic-form'
 import { SignaturePad } from '@/components/FormCreate'
 
 // Picking an engineer uses the enabled-user directory, not the administration user page.
 const findEngineers = async (query: { nickname?: string }) => ({
-  list: (await UserApi.getSimpleUserList()).filter(user => !query.nickname || user.nickname?.includes(query.nickname))
+  list: (await systemUserSelection.active()).filter(user => !query.nickname || user.nickname?.includes(query.nickname))
 })
 
 const props = defineProps<{
@@ -231,6 +224,14 @@ const emit = defineEmits<{
   'remove-device': [index: number]
 }>()
 const model = props.form
+const engineerSource = computed(() => ({
+  key: `completion-engineer:${props.projectId || 'none'}:${model.id || 'new'}`,
+  search: async ({ keyword, pageNo, pageSize }: { keyword: string; pageNo: number; pageSize: number }) => {
+    const matches = await findEngineers({ nickname: keyword })
+    const start = (pageNo - 1) * pageSize
+    return { list: matches.list.slice(start, start + pageSize), total: matches.list.length }
+  }
+}))
 const vendorSignature = defineModel<string>('vendorSignature', { required: true })
 const formRef = ref()
 const rules = {

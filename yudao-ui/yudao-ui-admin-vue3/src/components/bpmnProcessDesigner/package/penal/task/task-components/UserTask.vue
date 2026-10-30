@@ -79,20 +79,13 @@
       prop="candidateParam"
       span="24"
     >
-      <el-select
+      <UserSelect
         v-model="userTaskForm.candidateParam"
         clearable
         multiple
         style="width: 100%"
         @change="updateElementTask"
-      >
-        <el-option
-          v-for="item in userOptions"
-          :key="item.id"
-          :label="item.nickname"
-          :value="item.id"
-        />
-      </el-select>
+      />
     </el-form-item>
     <el-form-item
       v-if="userTaskForm.candidateStrategy === CandidateStrategy.USER_GROUP"
@@ -221,7 +214,7 @@ import { defaultProps, handleTree } from '@/utils/tree'
 import * as RoleApi from '@/api/system/role'
 import * as DeptApi from '@/api/system/dept'
 import * as PostApi from '@/api/system/post'
-import * as UserApi from '@/api/system/user'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as UserGroupApi from '@/api/bpm/userGroup'
 import ProcessExpressionDialog from './ProcessExpressionDialog.vue'
 import { ProcessExpressionVO } from '@/api/bpm/processExpression'
@@ -250,7 +243,6 @@ const bpmnInstances = () => (window as any)?.bpmnInstances
 const roleOptions = ref<RoleApi.RoleVO[]>([]) // 角色列表
 const deptTreeOptions = ref() // 部门树
 const postOptions = ref<PostApi.PostVO[]>([]) // 岗位列表
-const userOptions = ref<UserApi.UserVO[]>([]) // 用户列表
 const userGroupOptions = ref<UserGroupApi.UserGroupVO[]>([]) // 用户组列表
 
 const { formFieldOptions } = useFormFieldsPermission(FieldPermissionType.READ)
@@ -462,8 +454,6 @@ onMounted(async () => {
   deptTreeOptions.value = handleTree(deptOptions, 'id')
   // 获得岗位列表
   postOptions.value = await PostApi.getSimplePostList()
-  // 获得用户列表
-  userOptions.value = await UserApi.getSimpleUserList()
   // 获得用户组列表
   userGroupOptions.value = await UserGroupApi.getUserGroupSimpleList()
 })
