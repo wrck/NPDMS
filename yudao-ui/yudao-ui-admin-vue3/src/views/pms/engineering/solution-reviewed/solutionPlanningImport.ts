@@ -39,6 +39,13 @@ export const parsePlanningImport = (section: PlanningSection, source: string): R
   }
   if (quoted) throw new Error('CSV引号未闭合，请检查文件。')
   if (cell || row.length || closed) pushRow()
+  return parsePlanningRows({ section, rows })
+}
+
+export const parsePlanningRows = ({ section, rows: sourceRows, rowNumbers }: {
+  section: PlanningSection; rows: string[][]; rowNumbers?: number[]
+}): Record<string, string>[] => {
+  const rows = [...sourceRows]
   const columns = planningColumns[section]
   const header = rows.shift()
   if (!header || header.length !== columns.length || columns.some(([, label], i) => header[i].trim() !== label)) {
@@ -46,7 +53,7 @@ export const parsePlanningImport = (section: PlanningSection, source: string): R
   }
   const result = rows.flatMap((values, index) => {
     if (values.every(value => !value.trim())) return []
-    if (values.length !== columns.length) throw new Error(`第${index + 2}行列数不正确，本次未导入任何行。`)
+    if (values.length !== columns.length) throw new Error(`第${rowNumbers?.[index + 1] ?? index + 2}行列数不正确，本次未导入任何行。`)
     return [Object.fromEntries(columns.map(([key], i) => [key, values[i]]))]
   })
   if (!result.length) throw new Error('文件没有可导入的数据行。')

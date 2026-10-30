@@ -1,16 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, nextTick, watch } from 'vue'
 
 // 工作台结构契约：项目内直接展开方案正文（无列表+弹窗），全局保留台账列表。
 // 章节表单/分级审核弹窗打桩，只断言 index 自身的结构层次与状态动作。
-const { getSolutionPage, getSolution, policyMock, getProject, submitSolution, createSolution, tieredOpen } = vi.hoisted(() => ({
+const { getSolutionPage, getSolution, policyMock, getProject, submitSolution, createSolution, tieredOpen, confirmLeave } = vi.hoisted(() => ({
   getSolutionPage: vi.fn(),
   getSolution: vi.fn(),
   policyMock: vi.fn(),
   getProject: vi.fn(),
   submitSolution: vi.fn(),
   createSolution: vi.fn(),
-  tieredOpen: vi.fn()
+  tieredOpen: vi.fn(),
+  confirmLeave: vi.fn(async () => true)
 }))
 
 vi.mock('@/api/pms/engineering/solution', () => ({
@@ -39,18 +40,23 @@ vi.mock('@/hooks/web/useMessage', () => ({
     success: vi.fn(),
     warning: vi.fn(),
     error: vi.fn(),
-    confirm: vi.fn(async () => true),
+    confirm: confirmLeave,
     delConfirm: vi.fn(async () => true)
   })
 }))
 vi.mock('./SolutionReviewChapterForm.vue', () => ({
   default: defineComponent({
     props: {
+      modelValue: { type: Object, required: true },
       readOnly: { type: Boolean, default: false },
       saving: { type: Boolean, default: false }
     },
-    emits: ['save', 'submit-review'],
+    emits: ['save', 'submit-review', 'initialized'],
     setup(props, { emit }) {
+      watch(() => [props.modelValue.id, props.modelValue.projectId], async () => {
+        await nextTick()
+        emit('initialized', props.modelValue.id, props.modelValue.projectId)
+      }, { immediate: true })
       return () =>
         h('div', { 'data-testid': 'chapter-form-stub' }, [
           `CHAPTER readOnly=${props.readOnly}`,
@@ -233,6 +239,47 @@ describe('实施方案页面结构', () => {
       expect(state.form.background).toBe('其他成员保存的正文')
       expect(state.form.id).toBe(11)
     } finally { mounted.app.unmount() }
+  })
+  it('only asks before leaving a changed draft and preserves it when the user cancels', async () => {
+    getSolutionPage.mockResolvedValue({ list: [draftRow()], total: 1 })
+    getSolution.mockResolvedValue(draftRow())
+    const mounted = mount(Workbench, { projectId: 123 }, {
+      PmsEntitySelect: passthrough, DictTag: passthrough, ElSelect: passthrough,
+      ElOption: passthrough, ElDescriptions: passthrough, ElDescriptionsItem: passthrough, Dialog: dialogShell
+    })
+    try {
+      const state = (mounted.vm as any).$.setupState
+      const exposed = (mounted.vm as any).$.exposed
+      await vi.waitFor(() => expect(state.initializing).toBe(false))
+      expect(await exposed.requestLeave()).toBe(true)
+      expect(confirmLeave).not.toHaveBeenCalled()
+      state.form.background = '未保存正文'
+      confirmLeave.mockRejectedValueOnce(new Error('cancel'))
+      expect(await exposed.requestLeave()).toBe(false)
+      expect(state.form.background).toBe('未保存正文')
+      expect(await exposed.requestLeave()).toBe(true)
+      expect(confirmLeave).toHaveBeenCalledTimes(2)
+    } finally { mounted.app.unmount() }
+  })
+  it('reinitializes the guard when opening another unsaved new draft', async () => {
+    getSolutionPage.mockResolvedValue({ list: [], total: 0 })
+    const mounted = mount(Workbench, { projectId: 123 }, {
+      PmsEntitySelect: passthrough, DictTag: passthrough, ElSelect: passthrough,
+      ElOption: passthrough, ElDescriptions: passthrough, ElDescriptionsItem: passthrough, Dialog: dialogShell
+    })
+    try {
+      const state = (mounted.vm as any).$.setupState
+      await vi.waitFor(() => expect(state.initializing).toBe(false))
+      await state.openForm()
+      await vi.waitFor(() => expect(state.initializing).toBe(false))
+      expect((mounted.vm as any).$.exposed.isDirty()).toBe(false)
+    } finally { mounted.app.unmount() }
+  })
+  it('allows leaving the global list when no draft dialog is open', async () => {
+    getSolutionPage.mockResolvedValue({ list: [], total: 0 })
+    const mounted = mount(Workbench, {}, { Dialog: dialogShell, ElTable: passthrough, ElTableColumn: tableColumn })
+    try { expect(await (mounted.vm as any).$.exposed.requestLeave()).toBe(true) }
+    finally { mounted.app.unmount() }
   })
   it('长项目ID保持精度，自动命名查询使用原始ID', async () => {
     const projectId = '2110018733130579973'

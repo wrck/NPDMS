@@ -289,4 +289,35 @@ class SolutionTieredReviewServiceTest {
         verify(bpm, never()).start(any());
         verify(reviews, never()).insert(any(SolutionReviewDO.class));
     }
+    @Test void completedReviewerReadsOnlyTheFrozenApprovedVersionWithoutProjectOrWriteAccess() {
+        when(solutions.selectById(42L)).thenReturn(solution);
+        service.start(command(0));
+        when(bpm.result(1L,"instance-1")).thenReturn(new SolutionReviewBpmApi.Result("instance-1","definition-1","SOL_REVIEW:1:42",
+                "APPROVE",List.of(new SolutionReviewBpmApi.Review("engineeringManagementReview",7L,"APPROVE","同意",LocalDateTime.now()))));
+        service.refresh(selection);
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        when(permissions.hasAnyPermissions(eq(7L), any(String[].class))).thenReturn(false);
+        when(bpm.readAccess(any())).thenReturn(new SolutionReviewBpmApi.ReadAccess("instance-1","done-task","engineeringManagementReview","SOL_REVIEW:1:42",true));
+        assertSame(solution, service.sourceForReview("SOL_REVIEW:1:42"));
+        assertThrows(RuntimeException.class, () -> service.read(selection));
+        assertThrows(RuntimeException.class, () -> service.revise(selection));
+        solution.setVersion(solution.getVersion()+1);
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:2:42"));
+    }
+    @Test void completedReviewerCannotReadAnEditedRejectedSourceOrMissingVersionEvidence() {
+        when(solutions.selectById(42L)).thenReturn(solution);
+        service.start(command(0));
+        when(bpm.result(1L,"instance-1")).thenReturn(new SolutionReviewBpmApi.Result("instance-1","definition-1","SOL_REVIEW:1:42",
+                "REJECT",List.of(new SolutionReviewBpmApi.Review("engineeringManagementReview",7L,"REJECT","补充材料",LocalDateTime.now()))));
+        service.refresh(selection);
+        when(scope.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(),Set.of()));
+        when(bpm.readAccess(any())).thenReturn(new SolutionReviewBpmApi.ReadAccess("instance-1","done-task","engineeringManagementReview","SOL_REVIEW:1:42",true));
+        assertSame(solution, service.sourceForReview("SOL_REVIEW:1:42"));
+        stored.setCompletedAt(null);
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+        stored.setCompletedAt(LocalDateTime.now());
+        solution.setVersion(solution.getVersion()+1);
+        assertThrows(RuntimeException.class, () -> service.sourceForReview("SOL_REVIEW:1:42"));
+    }
 }

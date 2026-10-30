@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi;
 import lombok.RequiredArgsConstructor;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
+import org.flowable.engine.HistoryService;
 import org.flowable.task.api.Task;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,7 @@ public class SolutionReviewRoleTasks {
     private final ExplicitPermissionApi permissions;
     private final RuntimeService runtime;
     private final TaskService tasks;
+    private final HistoryService history;
 
     RoleCandidateFactApi.RoleReference reference(Long tenant) {
         requireTenant(tenant);
@@ -76,6 +78,11 @@ public class SolutionReviewRoleTasks {
     }
 
     public SolutionReviewBpmApi.ReadAccess read(SolutionReviewBpmApi.ReadQuery query) {
+        var current = readCurrent(query);
+        return current != null ? current : readHistory(query);
+    }
+
+    private SolutionReviewBpmApi.ReadAccess readCurrent(SolutionReviewBpmApi.ReadQuery query) {
         requireTenant(query.tenantId());
         if (query.actorId() == null || !Objects.equals(query.actorId(), SecurityFrameworkUtils.getLoginUserId())
                 || query.businessKey() == null) return null;
@@ -88,6 +95,31 @@ public class SolutionReviewRoleTasks {
                     && currentRoleTask(task, query.tenantId(), group)
                     && qualify(new Qualification(new RoleCandidateFactApi.ActorQuery(query.tenantId(), query.actorId()), group), false) != null)
                 return new ReadAccess(instance.getId(), task.getId(), task.getTaskDefinitionKey(), instance.getBusinessKey());
+        }
+        return null;
+    }
+
+    /** Only a persisted personal decision grants history read; a role's candidate group never does. */
+    private SolutionReviewBpmApi.ReadAccess readHistory(SolutionReviewBpmApi.ReadQuery query) {
+        requireTenant(query.tenantId());
+        if (query.actorId() == null || !Objects.equals(query.actorId(), SecurityFrameworkUtils.getLoginUserId())
+                || query.businessKey() == null || !query.businessKey().startsWith("SOL_REVIEW:" + query.tenantId() + ":")) return null;
+        var instance = history.createHistoricProcessInstanceQuery().processInstanceTenantId(query.tenantId().toString())
+                .processDefinitionKey(DEFINITION_KEY).processInstanceBusinessKey(query.businessKey()).singleResult();
+        if (instance == null) return null;
+        var links = history.getHistoricIdentityLinksForProcessInstance(instance.getId());
+        if (links.stream().noneMatch(link -> link.getType() != null && link.getType().startsWith(ROLE_PREFIX))) return null;
+        var completed = history.createHistoricTaskInstanceQuery().processInstanceId(instance.getId())
+                .taskTenantId(query.tenantId().toString()).taskAssignee(query.actorId().toString())
+                .finished().includeTaskLocalVariables().list();
+        for (var task : completed) {
+            var decision = cn.iocoder.yudao.module.bpm.framework.flowable.core.util.FlowableUtils.getTaskStatus(task);
+            if (!Objects.equals(decision, cn.iocoder.yudao.module.bpm.enums.task.BpmTaskStatusEnum.APPROVE.getStatus())
+                    && !Objects.equals(decision, cn.iocoder.yudao.module.bpm.enums.task.BpmTaskStatusEnum.REJECT.getStatus())) continue;
+            boolean actual = links.stream().anyMatch(link -> query.actorId().toString().equals(link.getUserId())
+                    && ((DECIDER_PREFIX + task.getTaskDefinitionKey()).equals(link.getType())
+                        || (PREFIX + task.getTaskDefinitionKey()).equals(link.getType())));
+            if (actual) return new ReadAccess(instance.getId(), task.getId(), task.getTaskDefinitionKey(), instance.getBusinessKey(), true);
         }
         return null;
     }
@@ -115,8 +147,8 @@ public class SolutionReviewRoleTasks {
         var process = runtime.createProcessInstanceQuery().processInstanceId(task.getProcessInstanceId())
                 .processInstanceTenantId(query.tenantId().toString()).processDefinitionKey(DEFINITION_KEY).active().singleResult();
         if (process == null) return false;
-        var access = read(new ReadQuery(query.tenantId(), query.actorId(), process.getBusinessKey()));
-        return access != null && query.taskId().equals(access.taskId());
+        var access = readCurrent(new ReadQuery(query.tenantId(), query.actorId(), process.getBusinessKey()));
+        return access != null && !access.historical() && query.taskId().equals(access.taskId());
     }
     /** Called only by the normal approve/reject commands, inside their transaction. */
     public void claimForDecision(DecisionActor query) {

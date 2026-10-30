@@ -71,10 +71,22 @@ public class SolutionTieredReviewService {
             var access = bpm.readAccess(new SolutionReviewBpmApi.ReadQuery(TenantContextHolder.getRequiredTenantId(), actor, businessKey));
             if (access == null || !Objects.equals(access.businessKey(), businessKey)
                     || !Objects.equals(access.processInstanceId(), review.getProcessInstanceId())
-                    || !"RUNNING".equals(review.getStatus()) || !Integer.valueOf(2).equals(solution.getStatus())
-                    || !Objects.equals(solution.getVersion(), review.getSourceVersion())) throw exception(FORBIDDEN);
+                    || !readableReviewSource(solution, review, access)) throw exception(FORBIDDEN);
         }
         return solution;
+    }
+
+    private boolean readableReviewSource(SolutionDO solution, SolutionReviewDO review, SolutionReviewBpmApi.ReadAccess access) {
+        if ("RUNNING".equals(review.getStatus()))
+            return Integer.valueOf(2).equals(solution.getStatus()) && Objects.equals(solution.getVersion(), review.getSourceVersion());
+        if (!access.historical() || review.getCompletedAt() == null || review.getSourceVersion() == null) return false;
+        return switch (review.getStatus()) {
+            case "APPROVE" -> Integer.valueOf(3).equals(solution.getStatus()) && review.getApprovedVersion() != null
+                    && Objects.equals(solution.getVersion(), review.getApprovedVersion());
+            case "REJECT", "CANCEL" -> Integer.valueOf("REJECT".equals(review.getStatus()) ? 4 : 5).equals(solution.getStatus())
+                    && Objects.equals(solution.getVersion(), review.getSourceVersion() + 1);
+            default -> false;
+        };
     }
 
     public SolutionReviewDO read(Selection selection) {

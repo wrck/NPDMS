@@ -1,10 +1,15 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { JSDOM } from 'jsdom'
+import JSZip from 'jszip'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import PlanningImport from './SolutionPlanningImport.vue'
 import { planningTemplate } from './solutionPlanningImport'
+import { planningWorkbook } from './solutionPlanningWorkbook'
+import download from '@/utils/download'
 import { mount } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/utils/download', () => ({ default: { file: vi.fn() } }))
+beforeAll(() => { vi.stubGlobal('DOMParser', new JSDOM().window.DOMParser) })
 
 const render = () => {
   const readOnly = ref(false)
@@ -19,7 +24,33 @@ const render = () => {
   return { ...mounted, imported, readOnly, select, get state() { return state } }
 }
 
-describe('planning CSV import interaction', () => {
+describe('planning spreadsheet import interaction', () => {
+  it('downloads a genuine XLSX and imports the complete workbook batch', async () => {
+    const mounted = render()
+    try {
+      await mounted.state.downloadTemplate()
+      const [blob, name] = vi.mocked(download.file).mock.calls.at(-1)!
+      expect(name).toBe('接口互联规划导入模板.xlsx')
+      expect(blob.type).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      const zip = await JSZip.loadAsync(await blob.arrayBuffer())
+      const sheet = await zip.file('xl/worksheets/sheet1.xml')!.async('string')
+      zip.file('xl/worksheets/sheet1.xml', sheet.replace('</sheetData>', '<row r="2"><c r="A2" t="inlineStr"><is><t>001</t></is></c><c r="B2" t="inlineStr"><is><t>0/01</t></is></c></row></sheetData>'))
+      const bytes = await zip.generateAsync({ type: 'uint8array' })
+      mounted.state.input = { files: [{ name: '接口.xlsx', arrayBuffer: async () => bytes }], value: 'selected' }
+      await mounted.state.importFile()
+      expect(mounted.imported).toHaveBeenCalledWith([{ localDevice: '001', localPort: '0/01', peerPort: '', portType: '', cableModel: '', remark: '' }])
+      expect(mounted.state.input.value).toBe('')
+    } finally { mounted.app.unmount() }
+  })
+  it('rejects an XLSX for the other section without emitting any batch', async () => {
+    const mounted = render()
+    try {
+      mounted.state.input = { files: [{ name: 'IP.xlsx', arrayBuffer: () => planningWorkbook('ip') }], value: 'selected' }
+      await mounted.state.importFile()
+      expect(mounted.imported).not.toHaveBeenCalled()
+      expect(mounted.state.error).toContain('表头')
+    } finally { mounted.app.unmount() }
+  })
   it('emits the complete parsed batch and clears the selection for a repeat import', async () => {
     const mounted = render()
     try {
