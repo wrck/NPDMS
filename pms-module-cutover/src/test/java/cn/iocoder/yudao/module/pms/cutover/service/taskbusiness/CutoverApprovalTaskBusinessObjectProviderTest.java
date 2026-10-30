@@ -27,8 +27,9 @@ class CutoverApprovalTaskBusinessObjectProviderTest {
     final CutoverApprovalFactApi approvals=mock(CutoverApprovalFactApi.class);
     final ProjectScopeApi scopes=mock(ProjectScopeApi.class);
     final PermissionApi permissions=mock(PermissionApi.class);
+    final CutoverCompletionProvider completion=mock(CutoverCompletionProvider.class);
     final CutoverApprovalTaskBusinessObjectProvider provider=new CutoverApprovalTaskBusinessObjectProvider(
-            tasks,plans,approvals,scopes,permissions,mock(ProjectNodeExecutionApi.class));
+            tasks,plans,approvals,scopes,permissions,mock(ProjectNodeExecutionApi.class),completion);
     final Context context=new Context(1L,3L,9L,20L,"test");
     final CutoverTaskDO task=new CutoverTaskDO();
     final CutoverPlanRevisionDO plan=new CutoverPlanRevisionDO();
@@ -40,8 +41,23 @@ class CutoverApprovalTaskBusinessObjectProviderTest {
         task.setId(42L);task.setTenantId(1L);task.setProjectId(9L);task.setVersion(4L);task.setTaskName("割接");
         plan.setId(51L);plan.setTenantId(1L);plan.setCutoverTaskId(42L);plan.setVersion(2L);plan.setCurrentMarker(1);plan.setStatusCode("SUBMITTED");
         when(tasks.one(any())).thenReturn(task);when(plans.selectCurrent(any())).thenReturn(plan);when(plans.selectCurrentForUpdate(any())).thenReturn(plan);
+        closed(false, "closure:pending");
     }
     @AfterEach void clear(){TenantContextHolder.clear();SecurityContextHolder.clearContext();}
+    @Test void approvalAndArchiveRemainSeparateAndArchiveChangesFactVersion() {
+        observe(fact(ApprovalStatus.APPROVED,null,100L));
+        var pending=provider.inspect(context,"42");
+        assertTrue(pending.completionFacts().get("CUTOVER_APPROVED"));
+        assertFalse(pending.completionFacts().get("CUTOVER_COMPLETED"));
+        closed(true, "closure:archived:2");
+        var archived=provider.inspect(context,"42");
+        assertTrue(archived.completionFacts().get("CUTOVER_COMPLETED"));
+        assertNotEquals(pending.factVersion(),archived.factVersion());
+    }
+    private void closed(boolean completed,String version) {
+        when(completion.currentFact(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.BusinessObjectFact(
+                "42","割接",version,Set.of("QUERY"),java.util.Map.of("CUTOVER_COMPLETED",completed),java.util.List.of()));
+    }
     @Test void onlyCurrentFormalApprovalCountsWithoutRequiringP6Archive(){
         for(var status:ApprovalStatus.values()){
             observe(fact(status,null,100L));

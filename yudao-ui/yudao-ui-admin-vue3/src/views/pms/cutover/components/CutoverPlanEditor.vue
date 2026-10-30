@@ -5,8 +5,8 @@
       <el-form label-position="top"><el-form-item label="项目与割接概述"><el-input data-testid="plan-project-description" :model-value="modelValue.overview.projectDescription" :disabled="!editable" type="textarea" :rows="3" @update:model-value="updateOverview('projectDescription', $event)" /></el-form-item></el-form>
       <h4 class="cut-section-title">项目割接计划</h4>
       <el-table :data="modelValue.overview.scheduleTable" empty-text="暂无计划项">
-        <el-table-column label="日期" width="250"><template #default="{ row, $index }"><el-date-picker :model-value="row.plannedAt" :disabled="!editable" type="datetime" value-format="x" @update:model-value="updateSchedule($index, 'plannedAt', $event)" /></template></el-table-column>
-        <el-table-column label="工作内容" min-width="300"><template #default="{ row, $index }"><el-input :model-value="row.content" :disabled="!editable" @update:model-value="updateSchedule($index, 'content', $event)" /></template></el-table-column>
+        <el-table-column label="日期" width="250"><template #default="{ row, $index }"><el-date-picker :data-testid="`plan-schedule-${$index}-plannedAt`" :model-value="row.plannedAt" :disabled="!editable" type="datetime" value-format="x" @update:model-value="updateSchedule($index, 'plannedAt', $event)" /></template></el-table-column>
+        <el-table-column label="工作内容" min-width="300"><template #default="{ row, $index }"><el-input :data-testid="`plan-schedule-${$index}-content`" :model-value="row.content" :disabled="!editable" @update:model-value="updateSchedule($index, 'content', $event)" /></template></el-table-column>
         <el-table-column v-if="editable" label="操作" width="76"><template #default="{ $index }"><el-button link type="danger" @click="removeSchedule($index)">删除</el-button></template></el-table-column>
       </el-table>
       <el-button v-if="editable" class="table-add" @click="addSchedule"><Icon icon="ep:plus" />增加计划项</el-button>

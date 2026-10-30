@@ -35,10 +35,10 @@ vi.mock('@/components/PmsFileArtifact', () => ({
       expose({ isBusy: () => false, hasPendingFile: () => false })
       return () => h('button', {
         ...attrs,
-        onClick: () => emit('completed', {
+        onClick: async () => { const prepare = attrs.prepareUpload ?? attrs['prepare-upload']; if (prepare) await (prepare as () => Promise<void>)(); emit('completed', {
           artifactId: '9007199254740993', versionNo: 4,
           referenceKey: String(attrs.referenceKey ?? attrs['reference-key'])
-        })
+        }) }
       }, 'upload')
     }
   })
@@ -59,6 +59,21 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
     fileApi.getCurrentReference.mockResolvedValue(null)
     fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'a'.repeat(64) }] })
+  })
+
+  it('creates the closure automatically on the first attachment and retains entered fields', async () => {
+    api.getCutoverClosure.mockReset().mockResolvedValueOnce(view(['CREATE_CLOSURE']))
+      .mockResolvedValue(view(['SAVE_CLOSURE', 'SUBMIT_CLOSURE'], 1))
+    api.saveCutoverClosure.mockResolvedValue(view(['SAVE_CLOSURE'], 1))
+    const mounted = mount(CutoverClosurePanel, { taskId: '101', devices: [] }, controls)
+    try {
+      await flush()
+      await setValue(mounted.root, 'closure-precheck-normal', true)
+      await click(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST'); await flush()
+      expect(api.saveCutoverClosure).toHaveBeenCalledTimes(1)
+      expect(api.saveCutoverClosure.mock.calls[0][0].data.preCheckNormal).toBe(true)
+      expect(fileApi.getArtifact).toHaveBeenCalledWith('9007199254740993', expect.objectContaining({ objectId: '501' }))
+    } finally { mounted.app.unmount() }
   })
 
   it('creates a DRAFT with three result groups, rollback facts and both required PLT files', async () => {

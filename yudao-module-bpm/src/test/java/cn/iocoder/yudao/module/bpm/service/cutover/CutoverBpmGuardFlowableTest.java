@@ -52,7 +52,7 @@ class CutoverBpmGuardFlowableTest {
                 .processDefinitionKey(CutoverWorkflowApi.DEFINITION_KEY).processDefinitionTenantId("1").singleResult();
         var model = engine.getRepositoryService().getBpmnModel(definition.getId());
         CutoverWorkflowDefinitionPolicy.validate(model);
-        for (String node : List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE", "RND")) {
+        for (String node : List.of("SERVICE_MANAGER", "SECOND_LINE", "RND")) {
             var settings = cn.iocoder.yudao.module.bpm.framework.flowable.core.util.BpmnModelUtils.parseButtonsSetting(model, node);
             assertEquals(Set.of(1, 2, 3, 4, 5, 6, 7), settings.keySet());
             for (int businessAction : List.of(1, 2, 3, 4, 5, 6)) assertFalse(settings.get(businessAction).getEnable());
@@ -63,6 +63,8 @@ class CutoverBpmGuardFlowableTest {
     @Test void eachGradeKeepsEveryRequiredManualNode() {
         for (String grade : List.of("A", "B", "C", "D")) {
             String instance = start(grade);
+            assertEquals("SERVICE_MANAGER", task(instance).getTaskDefinitionKey());
+            assertEquals(0, engine.getHistoryService().createHistoricTaskInstanceQuery().processInstanceId(instance).taskDefinitionKey("INITIATOR").count());
             for (String expected : route(grade)) {
                 Task task = task(instance);
                 assertNotNull(task);
@@ -83,7 +85,27 @@ class CutoverBpmGuardFlowableTest {
         assertThrows(RuntimeException.class, () -> engine.getRuntimeService().deleteProcessInstance(instance, "绕过割接"));
         assertEquals(task.getId(), task(instance).getId());
         approve(instance, task(instance));
-        assertEquals("SERVICE_MANAGER", task(instance).getTaskDefinitionKey());
+        assertEquals("SECOND_LINE", task(instance).getTaskDefinitionKey());
+    }
+
+    @Test void unresolvedServiceManagerWaitsForControlledReassignmentAndCannotSelfComplete() {
+        var command = new CutoverWorkflowApi.Start(1L, 7L, 9L, 11L, IDS.incrementAndGet(), "D",
+                List.of(new CutoverWorkflowApi.Node("SERVICE_MANAGER", null)));
+        var variables = variables("D"); variables.put("cutoverUser_SERVICE_MANAGER", null);
+        String instance = guard.start(command, () -> engine.getRuntimeService().startProcessInstanceByKeyAndTenantId(
+                CutoverWorkflowApi.DEFINITION_KEY, command.approvalId().toString(), variables, "1").getId());
+        Task pending = task(instance);
+        assertEquals("SERVICE_MANAGER", pending.getTaskDefinitionKey()); assertNull(pending.getAssignee());
+        assertThrows(RuntimeException.class, () -> engine.getTaskService().complete(pending.getId()));
+        assertThrows(RuntimeException.class, () -> engine.getTaskService().setAssignee(pending.getId(), "7"));
+        assertNull(task(instance).getAssignee());
+        guard.mutate(new CutoverBpmGuard.Operation(instance, "SERVICE_MANAGER", 7L, "REASSIGN"), () -> {
+            engine.getRuntimeService().addUserIdentityLink(instance, "7", "cutoverCurrent:SERVICE_MANAGER");
+            engine.getRuntimeService().setVariable(instance, "cutoverUser_SERVICE_MANAGER", 7L);
+            engine.getTaskService().setAssignee(pending.getId(), "7");
+        });
+        approve(instance, task(instance));
+        assertNull(task(instance));
     }
 
     @Test void changedGradeOrAssigneeCannotAlterFrozenRoute() {
@@ -95,7 +117,7 @@ class CutoverBpmGuardFlowableTest {
         assertEquals(task.getId(), task(instance).getId());
         engine.getRuntimeService().setVariable(instance, "cutoverGrade", "A");
         approve(instance, task(instance));
-        assertEquals("SERVICE_MANAGER", task(instance).getTaskDefinitionKey());
+        assertEquals("SECOND_LINE", task(instance).getTaskDefinitionKey());
     }
 
     @Test void nativeStartNeedsValidatedCutoverCommand() {
@@ -149,9 +171,9 @@ class CutoverBpmGuardFlowableTest {
 
     private static List<String> route(String grade) {
         return switch (grade) {
-            case "A" -> List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE", "RND");
-            case "B" -> List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE");
-            default -> List.of("INITIATOR", "SERVICE_MANAGER");
+            case "A" -> List.of("SERVICE_MANAGER", "SECOND_LINE", "RND");
+            case "B" -> List.of("SERVICE_MANAGER", "SECOND_LINE");
+            default -> List.of("SERVICE_MANAGER");
         };
     }
 

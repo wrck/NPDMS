@@ -18,7 +18,7 @@ v-if="operation.receipt.value"
         <el-button v-if="operation.requiresReopen.value" @click="retry">处理未保存内容并重新进入</el-button>
         <el-button v-if="!hasActionBar" :loading="operation.checking.value" @click="operation.refresh()">刷新</el-button>
       </Teleport>
-      <el-table v-if="operation.observation.value?.actions.length" :data="operation.observation.value.actions" size="small" aria-label="操作权限与规则">
+      <el-table v-if="visibleActions.length" :data="visibleActions" size="small" aria-label="操作权限与规则">
         <el-table-column prop="label" label="业务操作" min-width="120" />
         <el-table-column label="业务权限" width="120"><template #default="{ row }">{{ row.ownerPermitted ? '允许' : active.resolvedContext.businessObjectId == null ? '选择对象后校验' : '未获授权' }}</template></el-table-column>
         <el-table-column label="项目执行" width="100"><template #default="{ row }">{{ row.executionPermitted ? '允许' : '不可办理' }}</template></el-table-column>
@@ -55,14 +55,13 @@ const capture = (): BusinessViewTarget => ({ registration: { ...props.registrati
   allowedActions: officeProjectReadContext() ? ['QUERY'] : [...(props.allowedActions || [])], readonly: !!officeProjectReadContext() || props.readonly })
 const active = shallowRef(capture())
 const operationReason = (row: { operationCode: string; reason?: string }) => {
-  if (row.reason === 'OWNER_OPERATION_FORBIDDEN' && active.value.resolvedContext.businessObjectId != null
-      && active.value.registration.ownerContext === 'CUT'
-      && ['CUT.CUTOVER_TASK.CREATE', 'CUT.CUTOVER_APPROVAL.CREATE'].includes(row.operationCode))
-    return '新建入口不适用于已关联任务；已有任务按下方业务权限办理。'
   return ({ OWNER_OPERATION_FORBIDDEN: '当前用户未获此操作授权', NODE_EXECUTION_FORBIDDEN: '当前节点不可再办理',
     OPERATION_PRECONDITION_NOT_MATCHED: '操作前置条件未满足', OPERATION_RUNTIME_NOT_INSTALLED: '操作服务暂不可用' })[row.reason || ''] || row.reason || '无'
 }
 const operation = useOperationHost(active, () => emit('changed'))
+const visibleActions = computed(() => (operation.observation.value?.actions || []).filter(row =>
+  !(active.value.registration.ownerContext === 'CUT' && active.value.resolvedContext.businessObjectId != null &&
+    ['CUT.CUTOVER_TASK.CREATE', 'CUT.CUTOVER_APPROVAL.CREATE'].includes(row.operationCode))))
 provide(operationClientKey, operation.client)
 provide(operationCheckKey, operation.waitForCheck)
 const activeKey = computed(() => editingTargetKey(active.value))

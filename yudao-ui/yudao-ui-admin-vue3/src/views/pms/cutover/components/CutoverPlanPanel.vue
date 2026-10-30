@@ -1,5 +1,5 @@
 <template>
-  <section v-loading="loading" class="cutover-plan-panel">
+  <section ref="planValidationRoot" v-loading="loading" class="cutover-plan-panel">
     <el-alert title="使用在线模板编制割接方案，或上传已有完整方案。提交后冻结本次方案及引用信息供审批。" type="info" :closable="false" show-icon />
     <template v-if="plan && plan.planRevisionId !== null && !creatingReplacement">
       <details open class="cut-card">
@@ -37,6 +37,7 @@
             type="datetime" value-format="x" placeholder="请选择计划割接时间" @update:model-value="updateScheduledTime" />
         </el-form-item>
       </el-form>
+      <el-alert v-if="contentValidationMessage" data-testid="plan-content-validation" :title="contentValidationMessage" type="warning" :closable="false" show-icon />
       <div v-if="planFileError" role="alert">
         <p>{{ planFileError }}</p>
         <el-button data-testid="retry-plan-upload-reference" :loading="planFileLoading" @click="readUploadedPlan">重新读取方案文件</el-button>
@@ -196,7 +197,7 @@ import {
   formatWireDateTime
 } from '../shared/cutoverTaskInteraction'
 import CutoverPlanEditor from './CutoverPlanEditor.vue'
-import { planSupportValidationMessage } from '../shared/cutoverPlanValidation'
+import { focusPlanSupportValidation, planContentValidation, planSupportValidationMessage } from '../shared/cutoverPlanValidation'
 import { initialOnlinePlan, type CutoverPlanDraftContent } from '../shared/cutoverPlanDraft'
 import { surveyPlanDescription, surveyPlanFile } from '../shared/cutoverPlanSurvey'
 
@@ -217,6 +218,9 @@ const planFileLoading = ref(false)
 const planFileError = ref('')
 const planEditor = ref<InstanceType<typeof CutoverPlanEditor>>()
 const supportValidationMessage = ref('')
+const contentValidationMessage = ref('')
+const planValidationRoot = ref<HTMLElement>()
+watch(draftContent, () => { contentValidationMessage.value = '' }, { deep: true })
 watch(draftContent, () => { supportValidationMessage.value = '' }, { deep: true })
 const downloaded = ref<DownloadCutoverPlanDraftResult | null>(null)
 const editorUploadPending = ref(false)
@@ -466,6 +470,15 @@ const create = async () => {
 const save = async () => {
   if (editorFileStatePending.value) { message.warning('文件状态正在读取，请稍后保存草稿。'); return false }
   if (plan.value?.planVersion === null || plan.value?.planVersion === undefined || !draftContent.value) return false
+  const invalid = planContentValidation(draftContent.value)
+  if (invalid) {
+    contentValidationMessage.value = invalid.message
+    message.warning(invalid.message)
+    await nextTick()
+    const field = planValidationRoot.value?.querySelector?.(`[data-testid="${invalid.fieldTestId}"]`)
+    if (field) focusPlanSupportValidation((field.querySelector('input,textarea') || field) as HTMLElement)
+    return false
+  }
   if (draftContent.value.editMode === 'FULL_FILE_UPLOAD'
     && (!draftContent.value.fileArtifactFact || !draftContent.value.ownershipConfirmed || planFileError.value)) {
     message.warning('请上传完整方案并确认有权使用该文件后再保存。'); return false

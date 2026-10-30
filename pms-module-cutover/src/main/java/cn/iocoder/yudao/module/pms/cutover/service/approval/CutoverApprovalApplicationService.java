@@ -384,6 +384,9 @@ public class CutoverApprovalApplicationService {
                 command.taskId(), command.planRevisionId())) != null) throw failure(STATE_CONFLICT, "审批实例已存在");
         long projectId = source.task().getProjectId();
         List<NodeDraft> route = resolveRoute(command, projectId, actorId);
+        long initiatorScopeVersion = route.getFirst().treeVersion();
+        // 提交本身记录发起人身份与范围；人工评审直接从服务经理开始。
+        route = route.subList(1, route.size());
         String hold = route.stream().map(NodeDraft::unresolvedReason).filter(Objects::nonNull).findFirst().orElse(null);
         long instanceId = IDS.nextId();
         LocalDateTime now = LocalDateTime.now(clock);
@@ -393,7 +396,7 @@ public class CutoverApprovalApplicationService {
         instance.setPlanRevisionNo(command.planRevisionNo()); instance.setAssessmentId(command.assessmentId());
         instance.setAssessmentVersion(command.assessmentVersion()); instance.setChecklistId(command.checklistId());
         instance.setChecklistVersion(command.checklistVersion()); instance.setGradeCode(command.grade());
-        instance.setInitiatorUserId(actorId); instance.setInitiatorProjectScopeVersion(route.getFirst().treeVersion());
+        instance.setInitiatorUserId(actorId); instance.setInitiatorProjectScopeVersion(initiatorScopeVersion);
         instance.setSourceSnapshotVersion(command.sourceSnapshotVersion());
         var frozenSource = CutoverApprovalStorage.applySource(instance, source.sourceSnapshot());
         freezeLeadTime(instance, source, command);

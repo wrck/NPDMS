@@ -51,7 +51,7 @@ public class CutoverWorkflowService implements CutoverWorkflowApi {
         if (active != null) {
             if (!tenant.toString().equals(active.getTenantId())) throw new SecurityException("割接审批模型租户不一致");
             String previous = active.getId();
-            if (CutoverWorkflowDefinitionPolicy.supportsRoles(repository.getBpmnModel(previous))) return definition(tenant);
+            if (CutoverWorkflowDefinitionPolicy.startsWithServiceManager(repository.getBpmnModel(previous))) return definition(tenant);
             var info = definitions.getProcessDefinitionInfo(previous);
             var existing = models.getModel(info.getModelId());
             if (existing == null || !tenant.toString().equals(existing.getTenantId()))
@@ -93,13 +93,12 @@ public class CutoverWorkflowService implements CutoverWorkflowApi {
     public String start(Start command) {
         identity(command.tenantId(), command.actorId());
         List<String> expected = switch (command.grade()) {
-            case "A" -> List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE", "RND");
-            case "B" -> List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE");
-            case "C", "D" -> List.of("INITIATOR", "SERVICE_MANAGER");
+            case "A" -> List.of("SERVICE_MANAGER", "SECOND_LINE", "RND");
+            case "B" -> List.of("SERVICE_MANAGER", "SECOND_LINE");
+            case "C", "D" -> List.of("SERVICE_MANAGER");
             default -> throw new IllegalArgumentException("割接等级无效");
         };
-        if (!expected.equals(command.nodes().stream().map(Node::code).toList())
-                || !Objects.equals(command.nodes().getFirst().userId(), command.actorId())) throw new IllegalArgumentException("割接审批路由未完整解析");
+        if (!expected.equals(command.nodes().stream().map(Node::code).toList())) throw new IllegalArgumentException("割接审批路由未完整解析");
         users.validateUserList(command.nodes().stream().map(Node::userId).filter(Objects::nonNull).distinct().toList());
         command.nodes().stream().map(Node::role).filter(Objects::nonNull)
                 .forEach(role -> roleAccess.requireRole(new CutoverRoleTaskAccess.RoleQuery(command.tenantId(), role)));
@@ -111,7 +110,7 @@ public class CutoverWorkflowService implements CutoverWorkflowApi {
                 .processDefinitionKey(DEFINITION_KEY).processInstanceBusinessKey(command.approvalId().toString()).count() > 0) throw new IllegalStateException("割接方案版本已发起审批");
         var variables = new HashMap<String, Object>();
         variables.put("cutoverGrade", command.grade());
-        List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE", "RND").forEach(code -> variables.put("cutoverUser_" + code, null));
+        List.of("SERVICE_MANAGER", "SECOND_LINE", "RND").forEach(code -> variables.put("cutoverUser_" + code, null));
         command.nodes().forEach(node -> {
             if (node.role() == null) variables.put("cutoverUser_" + node.code(), node.userId());
             else {

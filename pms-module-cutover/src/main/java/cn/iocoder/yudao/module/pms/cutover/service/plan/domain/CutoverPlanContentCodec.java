@@ -222,7 +222,12 @@ public final class CutoverPlanContentCodec {
             exact(node, SCHEDULE, "scheduleRow");
             int no = positiveInt(node, "sequenceNo"); require(numbers.add(no), "sequenceNo");
             ObjectNode row = JsonUtils.getObjectMapper().createObjectNode();
-            row.put("sequenceNo", no); putWireLong(row, "plannedAt", positiveLong(node, "plannedAt"));
+            long plannedAt;
+            try { plannedAt = positiveLong(node, "plannedAt"); }
+            catch (IllegalArgumentException failure) { throw new IllegalArgumentException("项目割接计划第" + no + "行的日期未填写或格式无效"); }
+            if (node.path("content").isTextual() && node.path("content").asText().isBlank())
+                throw new IllegalArgumentException("请填写项目割接计划第" + no + "行的工作内容");
+            row.put("sequenceNo", no); putWireLong(row, "plannedAt", plannedAt);
             row.put("content", text(node, "content", 1000)); rows.add(row);
         });
         rows.sort(Comparator.comparingInt(row -> row.path("sequenceNo").asInt()));
@@ -359,9 +364,24 @@ public final class CutoverPlanContentCodec {
             require(allowed.contains(section), "sectionCode");
             int no = positiveInt(node, "stepNo");
             require(unique.add(section + ':' + no), "step identity");
+            if (node.path("content").isTextual() && node.path("content").asText().isBlank())
+                throw new IllegalArgumentException("请填写" + sectionLabel(section) + "第" + no + "行的"
+                        + ("POST_CUTOVER_SUPPORT".equals(section) ? "时间" : "操作内容"));
             result.add(new PlanStep(section, no, text(node, "content", 4000), detailed ? details(node.get("details")) : null));
         });
         return result.stream().sorted(Comparator.comparingInt((PlanStep s) -> SECTION_ORDER.indexOf(s.sectionCode())).thenComparingInt(PlanStep::stepNo)).toList();
+    }
+
+    private static String sectionLabel(String code) {
+        return switch (code) {
+            case "PRE_OPERATION" -> "割接前操作清单";
+            case "OPERATION" -> "割接执行操作清单";
+            case "CLOSING_COLLECTION" -> "割接收尾收集清单";
+            case "POST_BUSINESS_TEST" -> "割接后业务测试表";
+            case "ROLLBACK" -> "回退方案操作步骤";
+            case "POST_CUTOVER_SUPPORT" -> "割接后保障";
+            default -> code;
+        };
     }
 
     /** 步骤正文与五个补充字段均来自当前方案修订的类型化行。 */
