@@ -62,6 +62,7 @@ const props = withDefaults(
       disabled?: boolean
       hideSubmit?: boolean
       autoSubmit?: boolean
+      prepareUpload?: () => Promise<void>
       ownerExecutionContext?: JsonObject
     }
   >(),
@@ -89,6 +90,7 @@ const attempt = ref<{
   initialized?: FileApi.FileUploadInitRespVO
 }>()
 let generation = 0
+let preparingUpload = false
 
 const businessKey = (): FileBusinessKey => ({
   ownerContext: props.ownerContext,
@@ -151,6 +153,22 @@ const submit = async () => {
   progress.value = 0
   stage.value = 'UPLOADING'
   const selectedGeneration = generation
+  try {
+    if (props.prepareUpload) {
+      preparingUpload = true
+      await props.prepareUpload()
+    }
+  } catch (error) {
+    if (generation === selectedGeneration) {
+      uploadFailed.value = true
+      busy.value = false
+      throw error
+    }
+    return
+  } finally {
+    preparingUpload = false
+  }
+  if (generation !== selectedGeneration) return
   const selectedIdentity = identity()
   const selectedKey = businessKey()
   attempt.value ||= {
@@ -211,7 +229,18 @@ const submit = async () => {
 }
 watch(
   identity,
-  () => {
+  (nextIdentity, previousIdentity) => {
+    // Preparing an unsaved Owner may assign its first ID; all other slot changes invalidate the upload.
+    if (preparingUpload) {
+      const next = JSON.parse(nextIdentity)
+      const previous = JSON.parse(previousIdentity)
+      const previousId = previous[0].objectId
+      const nextId = next[0].objectId
+      next[0].objectId = previousId
+      if ((previousId === 'null' || previousId === 'undefined' || previousId === '')
+          && /^[1-9][0-9]*$/.test(String(nextId))
+          && JSON.stringify(next) === previousIdentity) return
+    }
     removeFile()
     progress.value = 0
     stage.value = 'UPLOADING'

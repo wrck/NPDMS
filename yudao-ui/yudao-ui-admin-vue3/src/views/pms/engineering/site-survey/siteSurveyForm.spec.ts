@@ -30,6 +30,23 @@ describe('site survey entity field mapping', () => {
     expect(saved.conclusion).toBe('新结论')
     expect(saved.remark).toBe('')
   })
+  it('puts other-port input immediately after the port choices and adds 100G without mutating the frozen schema', () => {
+    const rules = [
+      { type: 'checkbox', field: 'extra_networkPortTypes', options: [{ label: '40G光口', value: '40GE_FIBER' }, { label: '其他', value: 'OTHER' }] },
+      { type: 'radio', field: 'extra_cabinetReady' },
+      { type: 'input', field: 'networkPort', title: '其他网口说明' }
+    ]
+    const frozen = JSON.stringify(rules)
+    const current = currentSurveyRules(rules)
+    expect(current[0].options.map(option => option.value)).toEqual(['40GE_FIBER', '100GE_FIBER', 'OTHER'])
+    const input = current[0].control.at(-1)
+    expect(input.rule[0]).toMatchObject({ field: 'networkPort', title: '其他网口说明' })
+    expect(input.handle(['OTHER'])).toBe(true)
+    expect(input.handle(['100GE_FIBER'])).toBe(false)
+    expect(input.handle(undefined)).toBe(false)
+    expect(current.filter(rule => rule.field === 'networkPort')).toEqual([])
+    expect(JSON.stringify(rules)).toBe(frozen)
+  })
   it('does not mistake the location picker empty skeleton for a structured location', () => {
     expect(
       hasStructuredSurveyLocation({

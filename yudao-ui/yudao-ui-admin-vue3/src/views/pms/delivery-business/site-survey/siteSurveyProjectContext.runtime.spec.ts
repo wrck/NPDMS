@@ -356,6 +356,38 @@ describe('SOL site-survey shared project and standalone context', () => {
     expect(message.confirm).not.toHaveBeenCalled()
     expect(api.saveSiteSurveyReceipt).not.toHaveBeenCalled()
   })
+  it('ignores asynchronous display initialization but still confirms actual draft changes', async () => {
+    const row = { ...record(), locationResolutionStatus: 'RESOLVED', siteId: 71, siteVersion: 2,
+      businessValues: {}, extensionValues: {} }
+    records.set('12', row)
+    const { state, exposed } = render({ projectId: 7 })
+    await state.openForm(row)
+    state.updateDynamicForm({ ...state.form, fieldCatalog: [{ code: 'ports', type: 'TEXT_LIST' }],
+      businessValues: { ports: [] }, extensionValues: { note: null },
+      locationMaintenance: { ...state.form.locationMaintenance, fallbackLocation: '站点显示路径', extraSiteLocations: [] } })
+    await flush()
+    expect(exposed.isDirty()).toBe(false)
+    expect(await exposed.confirmLeave()).toBe(true)
+    expect(message.confirm).not.toHaveBeenCalled()
+    state.form.businessValues.ports = ['100G']
+    expect(exposed.isDirty()).toBe(true)
+    message.confirm.mockRejectedValueOnce(new Error('cancel'))
+    expect(await exposed.confirmLeave()).toBe(false)
+    expect(state.form.businessValues.ports).toEqual(['100G'])
+    expect(message.confirm).toHaveBeenCalledOnce()
+  })
+  it('detects a changed site and newly appended location', async () => {
+    const row = { ...record(), locationResolutionStatus: 'RESOLVED', siteId: 71, siteVersion: 2 }
+    records.set('12', row)
+    const { state, exposed } = render({ projectId: 7 })
+    await state.openForm(row)
+    state.form.locationMaintenance.site = { id: 72, expectedVersion: 1 }
+    expect(exposed.isDirty()).toBe(true)
+    state.form.locationMaintenance.site = { id: 71, expectedVersion: 2 }
+    expect(exposed.isDirty()).toBe(false)
+    state.form.locationMaintenance.extraSiteLocations = [{ name: '新机房', locationType: 'ROOM' }]
+    expect(exposed.isDirty()).toBe(true)
+  })
   it('retains real date edits and their leave guard through later project metadata refreshes', async () => {
     const { state, exposed } = render({ projectId: 7 })
     await state.openForm(record())

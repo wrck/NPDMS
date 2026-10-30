@@ -36,6 +36,7 @@ export interface DeliverableSummaryItemVO {
   status?: number
   archivedTime?: Date
   fileUrl?: string
+  materialLocator?: { materialId: string | number; ownerModule: string; entityType: string; entityId: string | number; typeCode: string }
   sourceType?: string
   sourceId?: number
   remark?: string

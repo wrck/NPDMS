@@ -83,7 +83,7 @@
             @click="remove(row)"
             :disabled="!!row.outsourceRequestId"
             :title="row.outsourceRequestId ? '已关联转包申请，请先处理关联申请' : undefined"
-            v-hasPermi="['pms:sol-site-survey:delete']"
+            v-hasPermi="['pms:sol-site-survey:delete', 'pms:sol-site-survey:update']"
             >删除</el-button
           >
         </template>
@@ -542,8 +542,23 @@ const selectTemplate = async (template: DynamicFormApi.DynamicFormSelectionVO) =
   templateVisible.value = false
 }
 // Loading the project's concurrency basis is not an edit; changed dates and their save flag remain tracked.
-const surveyContent = (value: SiteSurveyVO) => JSON.stringify({ ...value, projectEndDateVersion: undefined,
-  projectEndDateChanged: value.projectEndDateChanged === true })
+const surveyContent = (value: SiteSurveyVO) => {
+  const nonEmptyValues = (values?: Record<string, unknown>) => Object.fromEntries(
+    Object.entries(values || {}).filter(([, item]) => item != null && !(Array.isArray(item) && item.length === 0))
+  )
+  const location = value.locationMaintenance
+  const locationContent = location && {
+    ...location,
+    // A selected site's display path is resolved asynchronously by the selector.
+    fallbackLocation: location.site?.id ? undefined : location.fallbackLocation,
+    extraSiteLocations: location.extraSiteLocations?.length ? location.extraSiteLocations : undefined
+  }
+  const ordered = (item: unknown): unknown => Array.isArray(item) ? item.map(ordered)
+    : item && typeof item === 'object' ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)).map(([key, entry]) => [key, ordered(entry)])) : item
+  return JSON.stringify(ordered({ ...value, fieldCatalog: undefined, projectEndDateVersion: undefined,
+    businessValues: nonEmptyValues(value.businessValues), extensionValues: nonEmptyValues(value.extensionValues),
+    locationMaintenance: locationContent, projectEndDateChanged: value.projectEndDateChanged === true }))
+}
 const isDirty = () => !!pendingIntent.value || formVisible.value && surveyContent(JSON.parse(openedValue.value)) !== surveyContent(form)
 watch(() => isDirty(), (value) => emit('dirty-change', value), { flush: 'sync' })
 const confirmLeave = async () => {

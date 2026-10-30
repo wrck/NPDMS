@@ -192,7 +192,8 @@ class ProjectMasterMigrationMySqlTest {
                 mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.class),
                 session.getMapper(cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreePathMapper.class),
                 session.getMapper(cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper.class),
-                mock(cn.iocoder.yudao.module.pms.platform.api.authorization.AuthorizationGrantApi.class),permission);
+                mock(cn.iocoder.yudao.module.pms.platform.api.authorization.AuthorizationGrantApi.class),permission,
+                mock(cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectOrganizationScopeService.class));
         var normal=mock(cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationServiceImpl.class,CALLS_REAL_METHODS);
         org.springframework.test.util.ReflectionTestUtils.setField(normal,"projectMasterMapper",session.getMapper(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.class));
         org.springframework.test.util.ReflectionTestUtils.setField(normal,"projectTreeVersionMapper",session.getMapper(cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper.class));

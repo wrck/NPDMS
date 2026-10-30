@@ -33,7 +33,10 @@ public class SiteSurveyEntityWriteAccess {
                      String operationCode, Long objectId) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         Long actorId = SecurityFrameworkUtils.getLoginUserId();
-        if (projectId == null || projectId <= 0 || actorId == null || !permissions.hasAnyPermissions(actorId, permission))
+        boolean authorized = actorId != null && ("pms:sol-site-survey:delete".equals(permission)
+                ? permissions.hasAnyPermissions(actorId, SiteSurveyBusinessApplicationService.permission("delete"))
+                : permissions.hasAnyPermissions(actorId, permission));
+        if (projectId == null || projectId <= 0 || !authorized)
             throw exception(FORBIDDEN);
         var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
                 .tenantId(tenantId)

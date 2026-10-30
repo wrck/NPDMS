@@ -27,6 +27,25 @@ const renderUpload = (extra = {}) => {
   return { ...view, control, select, state: (view.vm as any).$.setupState }
 }
 const artifact = (id: number) => ({ artifactId: id, name: `file-${id}`, reference: { ...key, versionNo: 1, referenceVersion: 1, status: 'ACTIVE' }, allowedActions: ['PREVIEW', 'DOWNLOAD'] })
+it.each([['null', true], ['31', false]])('prepares Owner %s without crossing existing identities', async (initial, allowed) => {
+  const owner = ref(initial)
+  const prepareUpload = vi.fn(async () => { owner.value = '9007199254740993'; await nextTick() })
+  const completed = vi.fn()
+  const view = mount(defineComponent({ setup: () => () => h(Uploader, {
+    ...key, objectId: owner.value, categoryCode: 'CUTOVER_CLOSURE', autoSubmit: true,
+    prepareUpload, onCompleted: completed
+  }) }), {}, { ElUpload: uploadControl, ElProgress: passthrough })
+  try {
+    const control = find(view.root, node => typeof node.props?.['on-change'] === 'function')!
+    ;(control.props!['on-change'] as Function)({ raw: new File(['data'], 'proof.txt'), status: 'ready' })
+    await flush()
+    expect(prepareUpload).toHaveBeenCalledOnce()
+    if (allowed) {
+      expect(api.initializeUpload).toHaveBeenCalledWith(expect.objectContaining({ objectId: owner.value }), expect.any(String))
+      expect(completed).toHaveBeenCalledOnce()
+    } else expect(api.initializeUpload).not.toHaveBeenCalled()
+  } finally { view.app.unmount() }
+})
 beforeEach(() => {
   vi.resetAllMocks()
   api.initializeUpload.mockResolvedValue({ artifactId: 101, sessionId: 201 })

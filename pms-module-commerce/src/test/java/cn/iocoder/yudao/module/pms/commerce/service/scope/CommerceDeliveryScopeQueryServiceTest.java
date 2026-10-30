@@ -133,7 +133,7 @@ class CommerceDeliveryScopeQueryServiceTest {
         duplicate.setProductModel(first.getProductModel());
         when(scopeMapper.selectPageByProjectScope(any())).thenReturn(List.of(first, duplicate, missing));
 
-        var result = service.page(1L, 7L, 84499L, null, false, 0, 20);
+        var result = service.page(new CommerceDeliveryScopeQueryService.PageQuery(1L, 7L, 84499L, null, false, 0, 20));
 
         assertEquals("QSFP28-LX2-SM1310-CWDM4", result.getList().getFirst().scope().getProductModel());
         assertEquals("产品名称", result.getList().getFirst().scope().getProductName());
@@ -149,7 +149,7 @@ class CommerceDeliveryScopeQueryServiceTest {
         when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(84499L));
         when(scopeMapper.selectCountByProjectScope(any())).thenReturn(1L);
         when(scopeMapper.selectPageByProjectScope(any())).thenThrow(new IllegalStateException("product source unavailable"));
-        assertThrows(IllegalStateException.class, () -> service.page(1L, 7L, 84499L, null, false, 0, 20));
+        assertThrows(IllegalStateException.class, () -> service.page(new CommerceDeliveryScopeQueryService.PageQuery(1L, 7L, 84499L, null, false, 0, 20)));
         verifyNoInteractions(detailMapper);
     }
 

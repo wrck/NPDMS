@@ -10,7 +10,7 @@ final class SiteSurveyEntityBusinessValues {
     private static final Map<String, Set<String>> CHOICES = Map.of(
             "powerTypes", Set.of("AC", "DC", "MULTIPLE"),
             "powerEnvironments", Set.of("CN", "EU", "OTHER"),
-            "networkPortTypes", Set.of("GE_COPPER", "GE_FIBER", "10GE_FIBER", "40GE_FIBER", "OTHER"));
+            "networkPortTypes", Set.of("GE_COPPER", "GE_FIBER", "10GE_FIBER", "40GE_FIBER", "100GE_FIBER", "OTHER"));
     static void validate(Map<String, Object> values, Long projectId) {
         Object endDate = values.get("requiredEndDate");
         if (endDate != null && !"".equals(endDate)) {

@@ -28,7 +28,10 @@ class EngineeringOperationPermissionMetadataTest {
             assertNotNull(authorization);
             var permission = provider.permissionCodes().get(descriptor.operationCode());
             assertNotNull(permission);
-            assertEquals("@ss.hasPermission('" + permission + "')", authorization.value(), descriptor.operationCode());
+            String expected = "SOL.SITE_SURVEY.DELETE".equals(descriptor.operationCode())
+                    ? "@ss.hasAnyPermissions('pms:sol-site-survey:delete','pms:sol-site-survey:update')"
+                    : "@ss.hasPermission('" + permission + "')";
+            assertEquals(expected, authorization.value(), descriptor.operationCode());
         }
     }
 }

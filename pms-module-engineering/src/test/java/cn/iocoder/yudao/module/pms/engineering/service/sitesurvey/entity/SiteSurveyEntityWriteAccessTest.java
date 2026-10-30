@@ -42,6 +42,14 @@ class SiteSurveyEntityWriteAccessTest {
         assertThrows(ServiceException.class, () -> access.lock(9L,"pms:sol-site-survey:create",null));
         verifyNoInteractions(executions);
     }
+    @Test void deleteAcceptsEditPermissionButStillRequiresProjectScope() {
+        when(permissions.hasAnyPermissions(8L, "pms:sol-site-survey:delete", "pms:sol-site-survey:update")).thenReturn(true);
+        access.lock(9L, "pms:sol-site-survey:delete", null, "SOL.SITE_SURVEY.DELETE", 11L);
+        verify(executions).lockForWrite(new ProjectBusinessExecutionApi.WriteRequest(9L, "SOL", "SITE_SURVEY", null,
+                "SOL.SITE_SURVEY.DELETE", 1, "11"));
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L, 1L, Set.of(), Set.of()));
+        assertThrows(ServiceException.class, () -> access.lock(9L, "pms:sol-site-survey:delete", null));
+    }
     @Test void unauthenticatedOrUnavailableExecutionDoesNotFallBackToOriginalWrite() {
         doThrow(new IllegalStateException("node unavailable")).when(executions).lockForWrite(any());
         assertThrows(IllegalStateException.class, () -> access.lock(9L,"pms:sol-site-survey:create",null));

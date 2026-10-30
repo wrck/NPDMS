@@ -79,6 +79,15 @@ class SiteSurveyPublicOperationPermissionTest {
         descriptor.operations().forEach(op -> assertThrows(BusinessContractException.class,
                 () -> guard.requireWritable(descriptor,actor,"operation:"+op.code())));
     }
+    @Test void editorsCanDeleteDraftsAndExistingDeleteGrantRemainsValid() {
+        grants.add("pms:sol-site-survey:update");
+        assertTrue(surveyPolicy.executable(actor, "delete", 1));
+        grants.clear();
+        grants.add("pms:sol-site-survey:delete");
+        assertTrue(surveyPolicy.executable(actor, "delete", 1));
+        grants.clear();
+        assertFalse(surveyPolicy.executable(actor, "delete", 1));
+    }
     @Test void eachOperationReflectsExactOwnerPermissionAndPublicRoutePermission() {
         grants.add("pms:sol-site-survey:create");
         assertDoesNotThrow(() -> guard.requireWritable(descriptor,actor,"operation:create"));
@@ -86,10 +95,11 @@ class SiteSurveyPublicOperationPermissionTest {
         grants.add("pms:sol-site-survey:update");
         for(String code:List.of("save","confirm","reject","archive"))
             assertDoesNotThrow(() -> guard.requireWritable(descriptor,actor,"operation:"+code));
-        assertThrows(BusinessContractException.class,()->guard.requireWritable(descriptor,actor,"operation:delete"));
+        assertDoesNotThrow(()->guard.requireWritable(descriptor,actor,"operation:delete"));
         grants.add("pms:sol-site-survey:delete");
         assertDoesNotThrow(() -> guard.requireWritable(descriptor,actor,"operation:delete"));
         grants.remove("pms:sol-site-survey:update");
+        assertDoesNotThrow(() -> guard.requireWritable(descriptor,actor,"operation:delete"));
         assertThrows(BusinessContractException.class,()->guard.requireWritable(descriptor,actor,"operation:confirm"));
         routeGranted=false;
         assertThrows(BusinessContractException.class,()->guard.requireWritable(descriptor,actor,"operation:create"));

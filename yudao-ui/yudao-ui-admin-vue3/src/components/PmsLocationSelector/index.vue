@@ -505,7 +505,7 @@ watch(
       selectedSiteId.value = value.site?.id
       selectedLocationId.value = value.siteLocation?.id
       if (selectedSiteId.value) {
-        if (!sites.value.length) await loadSites()
+        if (!sites.value.some(site => site.id === selectedSiteId.value)) await loadSites()
         await loadLocationTree(selectedSiteId.value)
       }
     } else if (value.address || value.site || value.siteLocation) mode.value = 'new'

@@ -215,7 +215,7 @@ class ProjectLegacyDetailCorrectionServiceTest {
         when(devices.getDevice(801L)).thenReturn(device(1L,100L,"SN1"));
         when(installations.importAddresses(any())).thenReturn(List.of(installationTarget(key,601L)));
     }
-    private static DeviceSummaryDTO device(Long tenant,Long project,String sn){return new DeviceSummaryDTO(801L,tenant,sn,null,null,null,null,null,null,null,project,0L,null,null,null,null,null,null,null,null,null);}
+    private static DeviceSummaryDTO device(Long tenant,Long project,String sn){return new DeviceSummaryDTO(801L,tenant,sn,null,null,null,null,null,null,null,project,0L,null,null,null,null,null,null,null,null,null,null,null,null);}
     private static Request request(){return new Request(10L,20L,CHECKSUM);}
     private static InstallationCandidateCorrectionRequest installationRequest(String...keys){return new InstallationCandidateCorrectionRequest(10L,20L,CHECKSUM,Arrays.asList(keys));}
     private static ExternalTargetMapping carrier(Long id){return new ExternalTargetMapping("COM","ShipmentPackage","com_shipment_package",id,"BUSINESS_ENTITY",0);}
