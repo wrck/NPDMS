@@ -184,6 +184,37 @@ public class ProjectTaskBusinessService {
         return result;
     }
 
+    public record ApprovedClosureQuery(
+            cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand approval,
+            Long taskId, String expectedFactVersion) { }
+
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public TaskBusinessLinkedFacts lockForApprovedClosure(ApprovedClosureQuery query) {
+        requireTransaction();
+        var approval = query.approval();
+        if (blank(query.expectedFactVersion()) || approval == null) throw failure("FACT_VERSION_REQUIRED");
+        var task = access.read(query.taskId(), approval.tenantId(), approval.expectedReviewerUserId());
+        if (!Objects.equals(task.getProjectId(), approval.projectId())) throw failure("OWNER_FACT_INVALID");
+        var ctx = new Context(approval.tenantId(), approval.expectedReviewerUserId(), approval.projectId(),
+                query.taskId(), approval.correlationId());
+        var locked = lock(ctx);
+        if (!"ACTIVE".equals(locked.project().getLifecycleStatus())) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        var binding = TaskBusinessBinding.parse(locked.contract());
+        var provider = registry.require(binding.ownerContext(), binding.objectType());
+        var rows = linkMapper.selectActiveForUpdate(query(ctx));
+        var before = inspectRows(ctx, locked.contract(), rows, provider, false);
+        if (!query.expectedFactVersion().equals(before.factVersion())) throw failure("FACT_VERSION_CONFLICT");
+        var result = inspectRows(ctx, locked.contract(), rows, row -> {
+            var fact = validateFact(provider.inspect(ctx, row.getObjectId()), row.getObjectId());
+            var revalidated = validateFact(provider.lockForApprovedClosure(
+                    new TaskBusinessObjectProvider.ClosureRevalidation(ctx, approval, row.getObjectId(), fact.factVersion())), row.getObjectId());
+            if (!fact.factVersion().equals(revalidated.factVersion())) throw failure("FACT_VERSION_CONFLICT");
+            return revalidated;
+        });
+        if (!query.expectedFactVersion().equals(result.factVersion())) throw failure("FACT_VERSION_CONFLICT");
+        return result;
+    }
+
     public record LinkCommand(Long taskId, String objectId, Integer expectedTaskVersion,
                               Integer expectedContractVersion, String idempotencyKey) {}
     public record UnlinkCommand(Long taskId, Long linkId, Integer expectedTaskVersion,
@@ -309,7 +340,7 @@ public class ProjectTaskBusinessService {
         return inspectRows(ctx, contract, rows, row -> {
             var fact = validateFact(provider.inspect(ctx, row.getObjectId()), row.getObjectId());
             if (lockOwner) {
-                var locked = validateFact(provider.lockLinkedFact(ctx, row.getObjectId(), fact.factVersion()), row.getObjectId());
+                var locked = validateFact(provider.lockAndRevalidate(ctx, row.getObjectId(), fact.factVersion()), row.getObjectId());
                 if (!fact.factVersion().equals(locked.factVersion())) throw failure("FACT_VERSION_CONFLICT");
                 return locked;
             }

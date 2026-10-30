@@ -17,7 +17,6 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuer
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.Context;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectNodeExecutionApi;
-import cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -161,32 +160,27 @@ class SatisfactionTaskBusinessObjectProviderReadTest {
     }
 
     @Test
-    void linkedClosureEvidenceUsesProjectVisibilityWithoutGrantingAssigneeCommands() {
-        var observed = provider.inspect(context, "10");
-        when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(9L, 1L, Set.of(9L), Set.of()));
-        when(tasks.selectByIdForUpdate(7L, 10L)).thenReturn(task);
-        when(results.selectByIdForUpdate(7L, 20L)).thenReturn(result);
-        when(source.lockAndInspect(any())).thenReturn(BusinessResultSource.Observation.available(
-                new BusinessResultSource.Result(7L, 9L, SatisfactionBusinessResultSource.TYPE, "10", "20", "1", "1",
-                        BusinessResultSource.Validity.CURRENT, java.time.LocalDateTime.now())));
-        var locked = provider.lockLinkedFact(context, "10", observed.factVersion());
-        assertEquals(observed.factVersion(), locked.factVersion());
+    void approvedClosureRevalidatesProjectResultWithoutAcquiringTheAssigneesQueue() {
+        var approval = new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand(
+                7L,9L,3L,1L,21L,"BPM_NORMAL_CLOSURE:process-1",101L,102L,11L,"S6",31L,"digest-1","process-1",0L);
+        when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(9L,1L,Set.of(9L),Set.of()));
+        when(tasks.selectByIdForUpdate(7L,10L)).thenReturn(task);
+        when(results.selectByIdForUpdate(7L,20L)).thenReturn(result);
+        when(source.lockAndInspect(any())).thenReturn(cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Observation.available(
+                new cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Result(7L,9L,
+                        SatisfactionBusinessResultSource.TYPE,"10","20","1","1",
+                        cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.Validity.CURRENT,java.time.LocalDateTime.now())));
+        org.springframework.test.util.ReflectionTestUtils.setField(provider,"closureApproval",
+                mock(cn.iocoder.yudao.module.pms.acceptance.service.normalclosure.NormalClosureApprovalRevalidation.class));
+        var before = provider.inspect(context,"10");
+        var locked = provider.lockForApprovedClosure(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.ClosureRevalidation(
+                context,approval,"10",before.factVersion()));
         assertTrue(locked.completionFacts().get(SatisfactionTaskBusinessObjectProvider.COMPLETE));
-        assertEquals(Set.of("QUERY"), locked.allowedActions());
-        assertEquals(21L, task.getAssignedToUserId());
-        assertThrows(IllegalStateException.class, () -> queries.get(7L, 11L, 10L));
-        assertThrows(IllegalStateException.class, () -> provider.lockAndRevalidate(context, "10", observed.factVersion()));
-    }
-
-    @Test
-    void linkedEvidenceRejectsRevokedScopeAndStaleVersions() {
-        when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(9L, 2L, Set.of(), Set.of()));
-        assertThrows(IllegalStateException.class, () -> provider.lockLinkedFact(context, "10", "stale"));
-        verify(tasks, never()).selectByIdForUpdate(any(), any());
-        when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(9L, 1L, Set.of(9L), Set.of()));
-        task.setResultId(null);
-        when(tasks.selectByIdForUpdate(7L, 10L)).thenReturn(task);
-        assertThrows(IllegalStateException.class, () -> provider.lockLinkedFact(context, "10", "stale"));
+        assertTrue(locked.allowedActions().isEmpty());
+        assertEquals(before.factVersion(),locked.factVersion());
+        assertEquals(21L,task.getAssignedToUserId());
+        assertThrows(IllegalStateException.class,()->queries.get(7L,11L,10L));
+        verify(tasks,never()).updateById(any(SatisfactionCollectionTaskDO.class));
     }
 
     private SatisfactionResultFileDO file(String role) {

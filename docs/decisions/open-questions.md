@@ -2,6 +2,16 @@
 
 用于记录 PRD 无法支持、互相冲突或必须由业务/架构负责人确认的问题。
 
+## Q-NORMAL-CLOSURE-SATISFACTION-REVALIDATION-20261025 — 结项回调与采集待办受派边界
+
+- Status: RESOLVED（2026-10-25需求方明确采用受控内部重验；实施及浏览器复验状态见F-PROJ-001，不代表已结项）
+- Area: 项目44637的正常闭环申请2114146990853451777；满意度结果已有签字、达标及归档事实，材料审核人不是采集待办受派人。
+- Evidence: 服务经理审核已完成；材料审核通过触发SatisfactionTaskBusinessObjectProvider.lockAndRevalidate中的queries.get，报SATISFACTION_TASK_NOT_FOUND并回滚。只读inspect已按项目可见范围提供结果，采集工作队列get及既有锁定命令测试明确只允许受派人。不能为完成验收直接删除这项限制。
+- Proposed decision: 保留采集待办查询/写入权限及通用锁定命令限制，仅为当前合格结项审批实例提供服务端内部重验，绑定租户、项目、冻结快照、关联对象及结果版本；验证原审批身份与项目结项上下文，不向审核人增加采集待办权限，不修改受派人或历史。
+- Decision: 需求方确认“采用受控内部重验，保留满意度采集待办的受派人限制，不增加权限、不改历史”。通过既有公开跨模块Provider契约新增内部结项专用入口，ACC核验原申请/快照及BPM双人工审批证据，PROJ保留关联锁与结果版本/完整摘要检查；原通用入口不放宽。契约归`docs/design/10-api-design.md`正常闭环节。
+- Evidence path: `.run/project-16200721122903N-20261025/59-closure-material-failure-rollback.json`；申请IN_REVIEW，工程材料任务END_TIME为空。
+
+
 ## Q-CUT-BPM-ACTION-EXTENSION-20261020 — 原生 BPM 操作栏与割接办理接入边界
 
 - Status: RESOLVED（2026-10-20需求方确认不得修改 BPM 模块功能，可以修改流程定义文件）

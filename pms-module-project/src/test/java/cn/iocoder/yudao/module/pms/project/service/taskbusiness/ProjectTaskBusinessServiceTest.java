@@ -62,7 +62,6 @@ class ProjectTaskBusinessServiceTest {
         when(provider.candidates(any())).thenReturn(List.of(fact("candidate", "v1")));
         when(provider.inspect(any(), anyString())).thenAnswer(i -> fact(i.getArgument(1), "v1"));
         when(provider.lockAndRevalidate(any(), anyString(), anyString())).thenAnswer(i -> fact(i.getArgument(1), i.getArgument(2)));
-        when(provider.lockLinkedFact(any(), anyString(), anyString())).thenAnswer(i -> fact(i.getArgument(1), i.getArgument(2)));
         when(links.insertLink(any())).thenReturn(1); when(links.unlinkIfMatch(any())).thenReturn(1);
         when(tasks.incrementTaskVersionIfMatch(any())).thenReturn(1);
         when(views.getRevision(any())).thenReturn(new BusinessViewRevision(40L, "SiteSurvey", "survey", 1L,
@@ -71,6 +70,27 @@ class ProjectTaskBusinessServiceTest {
                 1L, "PUBLISHED", Set.of("UPDATE")));
         executeOperations();
     }
+    @Test void approvedClosureLocksExactLinkedFactsAndRejectsChangedVersionsWithoutMutations() {
+        when(links.selectActive(any())).thenReturn(List.of(row(51L,"x")));
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(row(51L,"x")));
+        var before=service.inspectLinkedFactsSnapshot(10L,1L,5L,"BPM_NORMAL_CLOSURE:process-1");
+        var approval=new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand(
+                1L,20L,3L,1L,8L,"BPM_NORMAL_CLOSURE:process-1",101L,102L,5L,"S6",9L,"digest-1","process-1",0L);
+        when(provider.lockForApprovedClosure(any())).thenAnswer(i -> fact("x",i.<ClosureRevalidation>getArgument(0).expectedVersion()));
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        var locked=service.lockForApprovedClosure(new ApprovedClosureQuery(approval,10L,before.factVersion()));
+        assertEquals(before.factVersion(),locked.factVersion());
+        verify(provider).lockForApprovedClosure(new ClosureRevalidation(new Context(1L,5L,20L,10L,approval.correlationId()),approval,"x","v1"));
+        verify(provider,never()).lockAndRevalidate(any(),any(),any());
+        doReturn(fact("x","changed")).when(provider).lockForApprovedClosure(any());
+        assertThrows(RuntimeException.class,()->service.lockForApprovedClosure(new ApprovedClosureQuery(approval,10L,before.factVersion())));
+        assertThrows(RuntimeException.class,()->service.lockForApprovedClosure(new ApprovedClosureQuery(approval,10L,"stale-aggregate")));
+        project.setLifecycleStatus("NORMAL_CLOSED");
+        assertThrows(RuntimeException.class,()->service.lockForApprovedClosure(new ApprovedClosureQuery(approval,10L,before.factVersion())));
+        verify(links,never()).insertLink(any());verify(links,never()).unlinkIfMatch(any());
+        verify(tasks,never()).incrementTaskVersionIfMatch(any());
+    }
+
     @Test void permissionDeclarationDoesNotReplaceOwnerActionAuthorization() {
         contract.setPermissionSnapshot("{\"requiredActions\":[\"QUERY\",\"DELETE\"]}");
 
@@ -432,7 +452,7 @@ class ProjectTaskBusinessServiceTest {
                 () -> service.lockAndRevalidateLinkedFacts(10L, 1L, 5L, "c", expected));
 
         assertEquals("TASK_BUSINESS_FACT_VERSION_CONFLICT", error.getMessage());
-        verify(provider).lockLinkedFact(any(), eq("x"), eq("v2"));
+        verify(provider).lockAndRevalidate(any(), eq("x"), eq("v2"));
         verify(links, never()).insertLink(any());
         verify(tasks, never()).incrementTaskVersionIfMatch(any());
     }
@@ -441,7 +461,7 @@ class ProjectTaskBusinessServiceTest {
         when(links.selectActive(any())).thenReturn(List.of(row));
         when(links.selectActiveForUpdate(any())).thenReturn(List.of(row));
         String expected = service.inspectLinkedFactsSnapshot(10L, 1L, 5L, "c").factVersion();
-        when(provider.lockLinkedFact(any(), eq("x"), eq("v1"))).thenReturn(fact("x", "v2"));
+        when(provider.lockAndRevalidate(any(), eq("x"), eq("v1"))).thenReturn(fact("x", "v2"));
         TransactionSynchronizationManager.setActualTransactionActive(true);
         assertThrows(ServiceException.class,
                 () -> service.lockAndRevalidateLinkedFacts(10L, 1L, 5L, "c", expected));

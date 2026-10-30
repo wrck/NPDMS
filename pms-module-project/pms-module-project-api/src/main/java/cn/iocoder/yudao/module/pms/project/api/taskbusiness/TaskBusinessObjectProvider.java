@@ -57,12 +57,18 @@ public interface TaskBusinessObjectProvider {
      */
     BusinessObjectFact lockAndRevalidate(Context context, String objectId, String expectedVersion);
 
-    /** Lock an already linked result for read-only completion/closure evaluation, under inspect's
-     * project-view authorization. Retain tenant, project, actor, scope and version locks; never grant
-     * association or Owner commands. Existing providers keep their stricter command check by default. */
-    default BusinessObjectFact lockLinkedFact(Context context, String objectId, String expectedVersion) {
-        return lockAndRevalidate(context, objectId, expectedVersion);
+    /** Internal approved-closure revalidation only. No HTTP entry or new user action grants.
+     * Owners requiring a distinct work-queue boundary must verify the exact ACC/BPM application,
+     * snapshot, reviewer and frozen result version before reading the linked result under lock.
+     * Other Owners retain their existing authorization through the default implementation. */
+    default BusinessObjectFact lockForApprovedClosure(ClosureRevalidation query) {
+        return lockAndRevalidate(query.context(), query.objectId(), query.expectedVersion());
     }
+
+    record ClosureRevalidation(Context context,
+            cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand approval,
+            String objectId, String expectedVersion) { }
+
 
     /**
      * Unattended rule evaluation: no browser identity, body values or action grants.
