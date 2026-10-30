@@ -210,10 +210,10 @@ class StagePlanBatchServiceTest {
         var items = ArgumentCaptor.forClass(StagePlanItemDO.class);
         verify(itemMapper, atLeastOnce()).updateById(items.capture());
         var completed = items.getAllValues().stream().filter(item -> item.getId().equals(1L)).findFirst().orElseThrow();
-        assertEquals(start, completed.getPlanStart()); assertEquals(end, completed.getPlanEnd());
+        assertEquals(LocalDate.of(2026, 1, 1), completed.getPlanStart()); assertEquals(end, completed.getPlanEnd());
         var root = ArgumentCaptor.forClass(StagePlanBatchDO.class);
         verify(batchMapper).updateById(root.capture());
-        assertTrue(root.getValue().getTaskPlansJson().contains("2026-01-02"));
+        assertTrue(root.getValue().getTaskPlansJson().contains("2026-01-01"));
         assertTrue(root.getValue().getTaskPlansJson().contains("2026-01-03"));
         batch.setTaskPlansJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(List.of(
                 new ProjectStagePlanApi.TaskPlan(20L, null, "S1", "已完成安装", 1, start.minusDays(1), end.plusDays(1), null))));
@@ -239,7 +239,7 @@ class StagePlanBatchServiceTest {
         var inserted = ArgumentCaptor.forClass(StagePlanItemDO.class);
         verify(itemMapper, times(2)).insert(inserted.capture());
         var done = inserted.getAllValues().getFirst();
-        assertEquals(actualStart, done.getPlanStart()); assertEquals(actualEnd, done.getPlanEnd());
+        assertEquals(LocalDate.of(2026, 1, 1), done.getPlanStart()); assertEquals(actualEnd, done.getPlanEnd());
         verify(stagePlanApi, never()).applyPlanDates(any(), any(), any());
     }
 

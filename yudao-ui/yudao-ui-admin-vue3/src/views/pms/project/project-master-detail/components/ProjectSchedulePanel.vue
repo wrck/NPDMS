@@ -184,7 +184,7 @@
     <el-alert v-if="approverError" :title="approverError" type="error" :closable="false" />
     <el-form label-position="top"
       ><el-form-item label="服务经理审批人" required
-        ><UserSelect v-model="approverId" :scoped-source="approverSource" :disabled="approversLoading" :clearable="false" placeholder="选择本项目服务经理" style="width: 100%" /></el-form-item
+        ><UserSelect v-model="approverId" :scoped-source="approverSource" :current-label="approvers.find(person => String(person.userId) === String(approverId))?.memberName" :disabled="approversLoading" :clearable="false" placeholder="选择本项目服务经理" style="width: 100%" /></el-form-item
     >
       <el-form-item v-if="batch?.adjustmentReasonRequired" label="调整理由" required>
         <el-input v-model="adjustmentReason" type="textarea" :rows="3" placeholder="说明本次阶段和任务日期的调整理由" :disabled="acting" />

@@ -276,11 +276,12 @@ it('marks completed-date defaults for saving and keeps completed tasks out of st
   const app = render()
   try {
     await flush()
-    expect(app.state.batch.tasks[0]).toMatchObject({ planStart: '2026-09-28', planEnd: '2026-09-30' })
+    expect(app.state.batch.tasks[0]).toMatchObject({ planStart: '2026-10-01', planEnd: '2026-10-01' })
+    expect(app.state.batch.completedDates.tasks[0]).toMatchObject({ actualStart: '2026-09-28', actualEnd: '2026-09-30' })
     expect(app.state.dirty).toBe(true)
     app.state.batch.items[0].planStart = '2026-10-03'
     await flush()
-    expect(app.state.batch.tasks[0].planStart).toBe('2026-09-28')
+    expect(app.state.batch.tasks[0].planStart).toBe('2026-10-01')
     vi.mocked(PlanApi.updateStagePlanItems).mockImplementation(async request => {
       value.tasks = JSON.parse(JSON.stringify(request.tasks))
       const items = JSON.parse(JSON.stringify(request.items))
@@ -288,7 +289,7 @@ it('marks completed-date defaults for saving and keeps completed tasks out of st
       return structuredClone(value)
     })
     await app.state.save()
-    expect(PlanApi.updateStagePlanItems).toHaveBeenCalledWith(expect.objectContaining({ tasks: [expect.objectContaining({ planStart: '2026-09-28', planEnd: '2026-09-30' })] }))
+    expect(PlanApi.updateStagePlanItems).toHaveBeenCalledWith(expect.objectContaining({ tasks: [expect.objectContaining({ planStart: '2026-10-01', planEnd: '2026-10-01' })] }))
     expect(JSON.parse(JSON.stringify(app.state.batch))).toEqual(JSON.parse(app.state.saved))
     expect(app.state.dirty).toBe(false)
   } finally { app.app.unmount() }

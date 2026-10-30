@@ -202,6 +202,15 @@ public class ProjectTaskPlanCompletionService {
                 return new Result(waiting, waiting, Map.of("completion", waiting, "exit", waiting));
             }
             links = ownerFacts.links();
+            // 既有冻结计划把“割接上线”绑定为审批通过；原快照保留，实际完成仍需同一办理的P6闭环。
+            if ("DEPLOY_CUTOVER".equals(task.getCode()) && "CUT".equals(binding.getTargetContextCode())
+                    && "CUTOVER_APPROVAL".equals(binding.getTargetObjectType())
+                    && links.stream().noneMatch(link -> Boolean.TRUE.equals(link.completionFacts().get("CUTOVER_APPROVED"))
+                    && Boolean.TRUE.equals(link.completionFacts().get("CUTOVER_COMPLETED")))) {
+                var waiting = new RuleEvaluation(reference, RuleEvaluation.Outcome.NOT_MATCHED,
+                        "CUTOVER_CLOSURE_PENDING", List.of(), List.of(), List.of());
+                return new Result(waiting, waiting, Map.of("completion", waiting, "exit", waiting));
+            }
             evidence.put("aggregateFactVersion",ownerFacts.factVersion());
             evidence.put("ownerContext",binding.getTargetContextCode());
             evidence.put("objectType",binding.getTargetObjectType());

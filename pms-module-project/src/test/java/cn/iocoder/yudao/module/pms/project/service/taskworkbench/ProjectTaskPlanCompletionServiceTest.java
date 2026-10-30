@@ -360,6 +360,28 @@ class ProjectTaskPlanCompletionServiceTest {
         assertTrue(evaluate().matched()); assertTrue(JsonUtils.toJsonString(evaluate().evidence()).contains("owner-v2"));
     }
 
+    @Test void cutoverDeploymentNeedsApprovalAndArchiveFromTheSameHandlingAndPreservesFrozenPlan() {
+        binding.setWorkBindingTypeCode("BUSINESS_COMPONENT"); binding.setTargetContextCode("CUT");
+        binding.setTargetObjectType("CUTOVER_APPROVAL");
+        task.setCode("DEPLOY_CUTOVER"); snapshot.getTasks().getFirst().setCode("DEPLOY_CUTOVER");
+        String approvedRule="{\"predicate\":\"BUSINESS_FACT\",\"parameters\":{\"factCode\":\"CUTOVER_APPROVED\",\"quantifier\":\"ANY\"}}";
+        rule("done",approvedRule);
+        var frozenRule=snapshot.getRulePrograms().get("done");
+        var pending=new TaskBusinessLinkFact(71L,"42","割接", "approval-v2",Map.of("CUTOVER_APPROVED",true,"CUTOVER_COMPLETED",false),List.of(),Set.of());
+        when(business.lockAndRevalidateLinkedFacts(any(),any(),any(),any(),any())).thenReturn(new TaskBusinessLinkedFacts("a".repeat(64),List.of(pending)));
+        assertEquals("CUTOVER_CLOSURE_PENDING",evaluate().completion().reasonCode());
+        var archive=new TaskBusinessLinkFact(71L,"42","割接", "archive-v3",Map.of("CUTOVER_APPROVED",true,"CUTOVER_COMPLETED",true),List.of(),Set.of());
+        when(business.lockAndRevalidateLinkedFacts(any(),any(),any(),any(),any())).thenReturn(new TaskBusinessLinkedFacts("a".repeat(64),List.of(archive)));
+        assertTrue(evaluate().matched());
+        var otherArchive=new TaskBusinessLinkFact(72L,"43","其他割接", "archive-v1",Map.of("CUTOVER_APPROVED",false,"CUTOVER_COMPLETED",true),List.of(),Set.of());
+        when(business.lockAndRevalidateLinkedFacts(any(),any(),any(),any(),any())).thenReturn(new TaskBusinessLinkedFacts("a".repeat(64),List.of(pending,otherArchive)));
+        assertFalse(evaluate().matched());
+        task.setCode("OTHER_APPROVAL"); snapshot.getTasks().getFirst().setCode("OTHER_APPROVAL");
+        assertTrue(evaluate().matched());
+        assertEquals("obsolete-binding-rule-must-not-be-read",binding.getCompletionRuleSnapshot());
+        assertSame(frozenRule,snapshot.getRulePrograms().get("done"));
+    }
+
     @Test void successfullyReadEmptyOwnerGroupIsWaitingAndNeverCompletesEvenUnderAllOrNot() {
         binding.setWorkBindingTypeCode("BUSINESS_COMPONENT");
         var context = new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
