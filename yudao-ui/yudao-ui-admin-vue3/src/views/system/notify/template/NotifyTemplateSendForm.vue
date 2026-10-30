@@ -30,14 +30,7 @@
         <el-input v-model="formData.userId" style="width: 160px" />
       </el-form-item>
       <el-form-item v-show="formData.userType === 2" label="接收人" prop="userId">
-        <el-select v-model="formData.userId" placeholder="请选择接收人">
-          <el-option
-            v-for="item in userOption"
-            :key="item.id"
-            :label="item.nickname"
-            :value="item.id"
-          />
-        </el-select>
+        <UserSelect v-model="formData.userId" placeholder="请选择接收人" :clearable="false" />
       </el-form-item>
       <el-form-item
         v-for="param in formData.params"
@@ -58,7 +51,7 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
-import * as UserApi from '@/api/system/user'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import * as NotifyTemplateApi from '@/api/system/notify/template'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 
@@ -82,7 +75,6 @@ const formRules = reactive({
   templateParams: {}
 })
 const formRef = ref() // 表单 Ref
-const userOption = ref<UserApi.UserVO[]>([])
 
 const open = async (id: number) => {
   dialogVisible.value = true
@@ -107,7 +99,7 @@ const open = async (id: number) => {
     formLoading.value = false
   }
   // 加载用户列表
-  userOption.value = await UserApi.getSimpleUserList()
+
 }
 defineExpose({ open }) // 提供 open 方法，用于打开弹窗
 

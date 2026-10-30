@@ -107,6 +107,22 @@ class SolutionReviewBpmnFlowableTest {
         verifyNoInteractions(permissions);
     }
 
+    @Test void serviceManagerCanManuallyApproveTheirOwnOrdinarySubmission() {
+        var started = tx.execute(ignored -> service.start(new SolutionReviewBpmApi.Start(1L, 7L, 9L,
+                "SOL_REVIEW:1:" + UUID.randomUUID(), definitionId, 0)));
+        assertEquals(Map.of("serviceManagerReview", 7L), started.candidates());
+        var pending = currentTask(started.instanceId(), "serviceManagerReview");
+        assertEquals("7", pending.getAssignee());
+        assertEquals("RUNNING", service.result(1L, started.instanceId()).status());
+        approve(pending);
+        var completed = engine.getHistoryService().createHistoricTaskInstanceQuery().taskId(pending.getId()).singleResult();
+        assertEquals("7", completed.getAssignee());
+        assertNotNull(completed.getEndTime());
+        assertEquals(BpmTaskStatusEnum.APPROVE.getStatus(), engine.getHistoryService().createHistoricVariableInstanceQuery()
+                .taskId(pending.getId()).variableName(TASK_VARIABLE_STATUS).singleResult().getValue());
+        assertEquals(0, engine.getRuntimeService().createProcessInstanceQuery().processInstanceId(started.instanceId()).count());
+    }
+
     @Test void majorReviewWaitsForEngineeringManagementAfterServiceManager() {
         when(permissions.listUsersWithPermission(1L, SolutionReviewBpmApi.ENGINEERING_REVIEW_PERMISSION)).thenReturn(List.of(8L));
         when(permissions.lockAndCheck(1L, 8L, SolutionReviewBpmApi.ENGINEERING_REVIEW_PERMISSION)).thenReturn(true);

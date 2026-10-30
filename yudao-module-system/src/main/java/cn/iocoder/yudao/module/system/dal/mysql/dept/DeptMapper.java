@@ -39,4 +39,14 @@ public interface DeptMapper extends BaseMapperX<DeptDO> {
         return selectList(DeptDO::getLeaderUserId, id);
     }
 
+
+    default List<DeptDO> selectProjectMemberDepartments(
+            cn.iocoder.yudao.module.system.dal.mysql.dept.query.ProjectMemberDepartmentsQuery query) {
+        if (query == null || query.tenantId() == null || query.departmentIds() == null || query.departmentIds().isEmpty()) return List.of();
+        return selectList(new LambdaQueryWrapperX<DeptDO>()
+                .eq(DeptDO::getTenantId, query.tenantId())
+                .in(DeptDO::getId, query.departmentIds())
+                .likeIfPresent(DeptDO::getName, query.keyword())
+                .select(DeptDO::getId, DeptDO::getName));
+    }
 }

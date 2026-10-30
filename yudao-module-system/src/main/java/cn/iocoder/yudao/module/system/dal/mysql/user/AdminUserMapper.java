@@ -16,6 +16,11 @@ import java.util.List;
 
 @Mapper
 public interface AdminUserMapper extends BaseMapperX<AdminUserDO> {
+    long selectScopedActiveUserCount(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.system.dal.mysql.user.query.ScopedActiveUserPageQuery query);
+    java.util.List<AdminUserDO> selectScopedActiveUserPage(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.system.dal.mysql.user.query.ScopedActiveUserPageQuery query);
+
 
     long selectActiveSelectionCount(@Param("query") ActiveUserSelectionQuery query);
     List<AdminUserDO> selectActiveSelectionPage(@Param("query") ActiveUserSelectionQuery query);
@@ -61,4 +66,6 @@ public interface AdminUserMapper extends BaseMapperX<AdminUserDO> {
         return selectList(AdminUserDO::getDeptId, deptIds);
     }
 
+    java.util.Set<Long> selectScopedActiveUserDepartmentIds(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.system.dal.mysql.user.query.ScopedActiveUserDepartmentsQuery query);
 }

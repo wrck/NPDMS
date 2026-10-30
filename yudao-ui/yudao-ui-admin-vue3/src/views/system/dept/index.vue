@@ -125,6 +125,7 @@
   <DeptForm ref="formRef" @success="getList" />
 </template>
 <script lang="ts" setup>
+import { systemUserSelection } from '@/api/system/user/selection'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { dateFormatter } from '@/utils/formatTime'
 import { handleTree } from '@/utils/tree'
@@ -225,6 +226,6 @@ const handleDeleteBatch = async () => {
 onMounted(async () => {
   await getList()
   // 获取用户列表
-  userList.value = await UserApi.getSimpleUserList()
+  userList.value = await systemUserSelection.active()
 })
 </script>

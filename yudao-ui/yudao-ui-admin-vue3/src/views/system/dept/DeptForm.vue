@@ -28,14 +28,7 @@
         <el-input-number v-model="formData.sort" :min="0" controls-position="right" />
       </el-form-item>
       <el-form-item label="负责人" prop="leaderUserId">
-        <el-select v-model="formData.leaderUserId" clearable placeholder="请输入负责人">
-          <el-option
-            v-for="item in userList"
-            :key="item.id"
-            :label="item.nickname"
-            :value="item.id"
-          />
-        </el-select>
+        <UserSelect v-model="formData.leaderUserId" clearable placeholder="请输入负责人" />
       </el-form-item>
       <el-form-item label="联系电话" prop="phone">
         <el-input v-model="formData.phone" maxlength="11" placeholder="请输入联系电话" />
@@ -61,10 +54,10 @@
   </Dialog>
 </template>
 <script lang="ts" setup>
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { defaultProps, handleTree } from '@/utils/tree'
 import * as DeptApi from '@/api/system/dept'
-import * as UserApi from '@/api/system/user'
 import { CommonStatusEnum } from '@/utils/constants'
 import { FormRules } from 'element-plus'
 
@@ -100,7 +93,6 @@ const formRules = reactive<FormRules>({
 })
 const formRef = ref() // 表单 Ref
 const deptTree = ref() // 树形结构
-const userList = ref<UserApi.UserVO[]>([]) // 用户列表
 
 /** 打开弹窗 */
 const open = async (type: string, id?: number) => {
@@ -118,7 +110,7 @@ const open = async (type: string, id?: number) => {
     }
   }
   // 获得用户列表
-  userList.value = await UserApi.getSimpleUserList()
+
   // 获得部门树
   await getTree()
 }

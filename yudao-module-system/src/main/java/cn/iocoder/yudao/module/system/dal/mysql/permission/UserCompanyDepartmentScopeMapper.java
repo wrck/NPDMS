@@ -25,6 +25,12 @@ public interface UserCompanyDepartmentScopeMapper extends BaseMapperX<UserCompan
                 .orderByDesc(UserCompanyDepartmentScopeDO::getId));
     }
 
+    UserCompanyDepartmentScopeDO selectRoleScope(@Param("query")
+            cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query);
+
+    UserCompanyDepartmentScopeDO selectRoleScopeForUpdate(@Param("query")
+            cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query);
+
     int disableByVersion(@Param("scope") UserCompanyDepartmentScopeDO scope);
 
     default List<UserCompanyDepartmentScopeDO> selectActiveListByUserId(ActiveUserScopeListQuery query) {

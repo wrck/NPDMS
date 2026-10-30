@@ -53,6 +53,9 @@ public class BpmTaskController {
     @Resource
     private BpmServiceManagerAccess serviceManagerAccess;
 
+    @Resource
+    private cn.iocoder.yudao.module.bpm.service.task.BpmProjectSummaryService projectSummaryService;
+
 
     @Resource
     private BpmTaskService taskService;
@@ -84,7 +87,8 @@ public class BpmTaskController {
                 convertSet(processInstanceMap.values(), instance -> Long.valueOf(instance.getStartUserId())));
         Map<String, BpmProcessDefinitionInfoDO> processDefinitionInfoMap = processDefinitionService.getProcessDefinitionInfoMap(
                 convertSet(pageResult.getList(), Task::getProcessDefinitionId));
-        return success(BpmTaskConvert.INSTANCE.buildTodoTaskPage(pageResult, processInstanceMap, userMap, processDefinitionInfoMap));
+        return success(projectSummaryService.appendToAuthorizedPage(BpmTaskConvert.INSTANCE.buildTodoTaskPage(
+                pageResult, processInstanceMap, userMap, processDefinitionInfoMap)));
     }
 
     @GetMapping("done-page")
@@ -104,8 +108,8 @@ public class BpmTaskController {
         Map<String, BpmProcessDefinitionInfoDO> processDefinitionInfoMap = processDefinitionService.getProcessDefinitionInfoMap(
                 convertSet(pageResult.getList(), HistoricTaskInstance::getProcessDefinitionId));
         Map<String, List<Attachment>> taskAttachmentMap = getTaskAttachmentMap(pageResult.getList());
-        return success(BpmTaskConvert.INSTANCE.buildTaskPage(pageResult, processInstanceMap, userMap, null,
-                processDefinitionInfoMap, taskAttachmentMap));
+        return success(projectSummaryService.appendToAuthorizedPage(BpmTaskConvert.INSTANCE.buildTaskPage(
+                pageResult, processInstanceMap, userMap, null, processDefinitionInfoMap, taskAttachmentMap)));
     }
 
     @GetMapping("manager-page")
