@@ -89,6 +89,19 @@ class DeviceJoinedPageSqlTest {
         });
     }
 
+    @Test void projectFilterPreservesVisibleRowsAndEmptyProjectResults() throws Exception {
+        withDatabase(mapper -> {
+            var q = query(scope(ProjectViewReadScopeApi.Mode.SCOPED));
+            var expected = mapper.selectJoinedDevicePage(q).getList().stream()
+                    .filter(device -> java.util.Objects.equals(device.projectId(), 11L))
+                    .map(device -> device.deviceId()).collect(Collectors.toSet());
+            var filtered = mapper.selectJoinedDevicePage(q.toBuilder().projectId(11L).build());
+            assertEquals(expected, filtered.getList().stream().map(device -> device.deviceId()).collect(Collectors.toSet()));
+            assertEquals(expected.size(), filtered.getTotal());
+            assertEquals(0L, mapper.selectJoinedDevicePage(q.toBuilder().projectId(9999L).build()).getTotal());
+        });
+    }
+
     @Test void pageAndCountUseTheSameProjectContractAndPairedOrganizationAuthorization() throws Exception {
         withDatabase(mapper -> {
             var page = mapper.selectJoinedDevicePage(query(scope(ProjectViewReadScopeApi.Mode.SCOPED)));
