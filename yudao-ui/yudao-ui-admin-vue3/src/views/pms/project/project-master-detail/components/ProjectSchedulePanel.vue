@@ -168,18 +168,7 @@
           ? '尚未制定施工计划，创建后将带入项目实际阶段和任务。'
           : initialDurationHint(project) || '先录入项目工期，再倒排阶段并安排任务。'
       "
-    >
-      <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
-        <el-button
-          v-if="durationPlan"
-          v-hasPermi="['pms:imp-stage-plan:create']"
-          type="primary"
-          :disabled="acting"
-          @click="createDraft"
-          >制定施工计划</el-button
-        >
-      </Teleport>
-    </el-empty>
+    />
   </ContentWrap>
   <el-drawer
     v-model="durationVisible"
