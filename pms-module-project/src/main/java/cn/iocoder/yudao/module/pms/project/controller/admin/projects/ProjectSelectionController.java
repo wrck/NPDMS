@@ -29,7 +29,7 @@ public class ProjectSelectionController {
     private final ProjectSelectionQueryService queries;
 
     @jakarta.annotation.Resource
-    private cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi activeUserSelectionApi;
+    private cn.iocoder.yudao.module.system.api.user.ProjectMemberRoleSelectionApi projectMemberRoleSelectionApi;
 
     @GetMapping("/member-filter-options")
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
@@ -38,9 +38,14 @@ public class ProjectSelectionController {
             jakarta.servlet.http.HttpServletRequest request) {
         if (!java.util.Set.of("field", "keyword", "pageNo", "pageSize").containsAll(request.getParameterMap().keySet()))
             throw cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception(cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.BAD_REQUEST);
-        return success(activeUserSelectionApi.pageProjectMembers(
-                new cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.MemberFilterQuery(
-                        query.getPageNo(), query.getPageSize(), query.getKeyword(), query.getField())));
+        var roles = switch (query.getField()) {
+            case MANAGER -> cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES;
+            case SERVICE_MANAGER -> cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES;
+            case SALES -> cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SALES_CODES;
+        };
+        return success(projectMemberRoleSelectionApi.page(
+                new cn.iocoder.yudao.module.system.api.user.ProjectMemberRoleSelectionApi.Query(
+                        query.getPageNo(), query.getPageSize(), query.getKeyword(), roles)));
     }
 
 
