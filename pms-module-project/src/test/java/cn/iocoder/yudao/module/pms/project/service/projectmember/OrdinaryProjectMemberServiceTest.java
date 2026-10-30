@@ -72,7 +72,7 @@ class OrdinaryProjectMemberServiceTest {
 
     @Test void externalEndUserNeedsNoAccountAndNeverBecomesExecutionIdentity() {
         var external = new MemberValues(null, "END_USER", "", "", false, null,
-                ExternalPerson.builder().name("最终用户甲").companyName("客户单位").mobile("123").email("a@example.test")
+                ExternalPerson.builder().name("最终用户甲").companyName("客户单位").mobile("13800138000").email("a@example.test")
                         .department(" 客户建设部 ").title(" 主管 ").build());
         service.mutate(new Command(100L, 0L, Action.ADD, null, external, "加入", "external-add"), actor());
         var saved = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
@@ -84,7 +84,7 @@ class OrdinaryProjectMemberServiceTest {
         assertEquals("客户建设部", saved.getValue().getDepartmentName());
         assertEquals("主管", saved.getValue().getTitle());
         assertNull(saved.getValue().getDepartmentId());
-        assertEquals("123", saved.getValue().getExternalMobile());
+        assertEquals("13800138000", saved.getValue().getExternalMobile());
         verifyNoInteractions(users, projectManagers, serviceManagers);
         assertFalse(cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.TASK_EXECUTION_CODES.contains("END_USER"));
         assertFalse(cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES.contains("END_USER"));
@@ -113,17 +113,17 @@ class OrdinaryProjectMemberServiceTest {
 
     @Test void unchangedExternalDetailsDoNotWriteAndRemovalOnlyClosesHistory() {
         var previous = member("END_USER"); previous.setUserId(null); previous.setMemberName("姓名");
-        previous.setCompanyName("单位"); previous.setExternalMobile("123"); previous.setExternalEmail("a@example.test");
+        previous.setCompanyName("单位"); previous.setExternalMobile("13800138000"); previous.setExternalEmail("a@example.test");
         previous.setDepartmentName("部门"); previous.setTitle("职务");
         when(memberMapper.selectById(10L)).thenReturn(previous);
         var values = new MemberValues(null, "END_USER", "原职责", "原备注", false, null,
-                ExternalPerson.builder().name("姓名").companyName("单位").mobile("123").email("a@example.test")
+                ExternalPerson.builder().name("姓名").companyName("单位").mobile("13800138000").email("a@example.test")
                         .department(" 部门 ").title(" 职务 ").build());
         assertFalse(service.mutate(new Command(100L, 0L, Action.UPDATE, 10L, values, "", "external-same"), actor()).changed());
         verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
         verify(memberMapper, never()).updateById(any(ProjectMemberAssignmentDO.class));
         assertTrue(service.mutate(new Command(100L, 0L, Action.REMOVE, 10L, null, "退出", "external-remove"), actor()).changed());
-        assertEquals("姓名", previous.getMemberName()); assertEquals("123", previous.getExternalMobile());
+        assertEquals("姓名", previous.getMemberName()); assertEquals("13800138000", previous.getExternalMobile());
         assertEquals("部门", previous.getDepartmentName()); assertEquals("职务", previous.getTitle());
         verify(memberMapper, never()).deleteById(anyLong()); verifyNoInteractions(users);
     }
@@ -147,6 +147,11 @@ class OrdinaryProjectMemberServiceTest {
         for (var person : List.of(
                 ExternalPerson.builder().name("最终用户").mobile("任意内容").build(),
                 ExternalPerson.builder().name("最终用户").mobile("+()-").build(),
+                ExternalPerson.builder().name("最终用户").mobile("0".repeat(64)).build(),
+                ExternalPerson.builder().name("最终用户").mobile("121231").build(),
+                ExternalPerson.builder().name("最终用户").mobile("12800138000").build(),
+                ExternalPerson.builder().name("最终用户").email("000@1.1").build(),
+                ExternalPerson.builder().name("最终用户").email("a..b@example.com").build(),
                 ExternalPerson.builder().name("最终用户").email("invalid-email").build())) {
             var values = new MemberValues(null, "END_USER", null, null, false, null, person);
             assertThrows(ServiceException.class, () -> service.mutate(
@@ -412,6 +417,27 @@ class OrdinaryProjectMemberServiceTest {
         assertEquals(8L, captured.getValue().getCompanyId());
         assertEquals("新备注", captured.getValue().getRemark());
         verifyNoInteractions(projectManagers, serviceManagers);
+    }
+
+    @Test void replacingUnboundLegacyManagerClosesItsIntervalWithoutSendingNullUserToManagerCommand() {
+        when(permissions.hasAnyPermissions(7L, "pms:project:assign")).thenReturn(true);
+        var old = member("PROJECT_MANAGER"); old.setUserId(null);
+        when(memberMapper.selectById(10L)).thenReturn(old);
+        var fresh = member("PROJECT_MANAGER"); fresh.setId(77L);
+        when(memberMapper.selectById(77L)).thenReturn(fresh);
+        when(projectManagers.update(any(), any())).thenReturn(new ProjectManagerMemberResult(
+                100L, 1L, 40L, "ASSIGNED", true, List.of(new ProjectManagerMemberResult.Member(77L, 40L, "新经理", LocalDateTime.now()))));
+        var values = new MemberValues(40L, "PROJECT_MANAGER", "职责", "备注", true, null);
+        service.mutate(new Command(100L, 0L, Action.UPDATE, 10L, values, "接任", "legacy-replace"), actor());
+        var command = ArgumentCaptor.forClass(ProjectManagerMemberCommand.class);
+        verify(projectManagers).update(command.capture(), any());
+        assertTrue(command.getValue().removeUserIds().isEmpty());
+        assertEquals(Set.of(40L), command.getValue().addUserIds());
+        var writes = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
+        verify(memberMapper, atLeastOnce()).updateById(writes.capture());
+        assertTrue(writes.getAllValues().stream().anyMatch(row -> row.getId().equals(10L)
+                && row.getEffectiveTo() != null && "接任".equals(row.getEndReason())));
+        assertNull(old.getUserId()); assertNull(old.getEffectiveTo());
     }
 
     @Test void removedLegacyRoleOptionsCannotCreateNewAssignments() {

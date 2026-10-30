@@ -56,6 +56,8 @@ export interface MemberResult {
   changed: boolean
 }
 const base = '/api/v1/pms/projects'
+export const canAppointPrimaryProjectManager = (id: number) =>
+  request.get<boolean>({ url: `${base}/${id}/members/primary-appointment-permission` })
 export const getMemberPage = (id: number, params: PageParam & {
   state: 'CURRENT' | 'HISTORY'; role?: string; keyword?: string
 }) => request.get<{ list: MemberRecord[]; total: number }>({ url: `${base}/${id}/members`, params })

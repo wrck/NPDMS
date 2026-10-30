@@ -18,6 +18,7 @@ vi.mock('@/api/pms/project/unified-members', () => ({
     { value: 'PROJECT_MANAGER', label: '项目经理', permission: 'pms:project:assign' }
   ],
   logicalMemberRole: (role: string) => role,
+  canAppointPrimaryProjectManager: vi.fn().mockResolvedValue(true),
   getMemberPage: vi.fn().mockResolvedValue({ list: [], total: 0 })
 }))
 vi.mock('./OrdinaryMemberForm.vue', () => ({ default: { render: () => null } }))
@@ -46,9 +47,11 @@ it('queries the entry default role and restores all roles when switching to assi
 })
 
 it.each([
-  [false, false],
-  [true, true]
-])('requires a successor only when a bound project manager remains (%s)', async (anotherBoundManager, expected) => {
+  [false, false, true],
+  [true, true, true],
+  [true, false, false]
+])('requires a successor only when a bound project manager remains (%s)', async (anotherBoundManager, expected, appointmentAllowed) => {
+  vi.mocked(Members.canAppointPrimaryProjectManager).mockResolvedValue(appointmentAllowed)
   const primaryUserId = '2112914651683598351'
   const row = { id: '2113118246009847875', userId: primaryUserId, memberRole: 'PROJECT_MANAGER', status: 'ACTIVE' }
   vi.mocked(Members.getMemberPage).mockResolvedValue({ list: [row], total: 1 } as never)
@@ -81,13 +84,14 @@ it.each([
     ElSelect: passthrough, ElOption: passthrough, ElRadioGroup: passthrough,
     ElRadioButton: passthrough, ElInput: passthrough
   })
-  await nextTick(); await nextTick()
+  for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() }
   const nodes = () => {
     const found: TestNode[] = []
     const visit = (node: TestNode) => { found.push(node); node.children.forEach(visit) }
     visit(root); return found
   }
   const remove = nodes().find(node => node.type === 'button' && textOf(node) === '移出项目')!
+  expect(remove.props?.disabled).toBe(!appointmentAllowed)
   await (remove.props!.onClick as () => Promise<void>)()
   await nextTick()
   expect(nodes().some(node => node.props?.label === '接任主责项目经理')).toBe(expected)
@@ -125,7 +129,7 @@ it.each([
     ElSelect: passthrough, ElOption: passthrough, ElRadioGroup: passthrough,
     ElRadioButton: passthrough, ElInput: passthrough
   })
-  await nextTick(); await nextTick()
+  for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() }
   const labels: string[] = []
   const visit = (node: TestNode) => {
     if (node.props?.['data-testid'] === 'primary-label') labels.push(textOf(node))

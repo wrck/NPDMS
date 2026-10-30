@@ -27,6 +27,14 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMemberAssignmentDO> {
+    default boolean hasServiceManagerHistory(
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectServiceManagerHistoryQuery query) {
+        return selectCount(new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
+                .eq(ProjectMemberAssignmentDO::getTenantId, query.tenantId())
+                .eq(ProjectMemberAssignmentDO::getProjectId, query.projectId())
+                .in(ProjectMemberAssignmentDO::getMemberRole,
+                        cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES)) > 0;
+    }
     List<ProjectMemberAssignmentDO> selectCurrentDurationProjectManagersForUpdate(@Param("query")
             cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.DurationCurrentProjectManagerQuery query);
     default List<ProjectMemberAssignmentDO> selectDurationProjectManagers(

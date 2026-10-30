@@ -34,6 +34,12 @@ public class OrdinaryProjectMemberController {
     private final OrdinaryProjectMemberService members;
     private final cn.iocoder.yudao.module.system.api.user.AdminUserApi users;
 
+    @GetMapping("/{id}/members/primary-appointment-permission")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<Boolean> primaryAppointmentPermission(@PathVariable("id") @Positive Long id) {
+        return success(members.canAppointPrimaryProjectManager(id, actor()));
+    }
+
     @GetMapping("/{id}/members")
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<PageResult<ProjectMemberAssignmentRespVO>> page(@PathVariable("id") @Positive Long id,

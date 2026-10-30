@@ -73,6 +73,8 @@ public class ProjectMemberUpdateApplicationService {
     private ProjectMemberUpdateResult updateOnce(ProjectMemberUpdateCommand command,
             ProjectManagerMemberApplicationService.Actor actor, String digest) {
         long version = command.expectedVersion();
+        boolean initializing = projectAuthorization.isFirstManagerInitialization(
+                new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()), command.projectId());
         AssignServiceManagerResult serviceResult = null;
         var selection = command.serviceManager();
         // 子键只在外层首次执行回调内产生；外层同键重放不会再次进入此处。
@@ -85,7 +87,7 @@ public class ProjectMemberUpdateApplicationService {
         }
         var managerResult = projectManagers.updateAuthorized(new ProjectManagerMemberCommand(command.projectId(), version,
                 command.addUserIds(), command.removeUserIds(), command.primaryUserId(), command.reason(),
-                UUID.randomUUID().toString()), actor);
+                UUID.randomUUID().toString()), new ProjectManagerMemberApplicationService.AuthorizedUpdateContext(actor, initializing));
         var serviceProjection = serviceResult == null ? null : new ProjectMemberUpdateResult.ServiceManager(
                 serviceResult.assignmentId(), serviceResult.effectiveFrom(),
                 serviceResult.previousPrimaryManagerId(), serviceResult.currentPrimaryManagerId());

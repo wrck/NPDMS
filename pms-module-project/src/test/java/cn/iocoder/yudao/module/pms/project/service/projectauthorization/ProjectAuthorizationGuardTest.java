@@ -48,6 +48,42 @@ class ProjectAuthorizationGuardTest {
                 versionMapper, pathMapper, projectScopeApi);
     }
 
+    @Test void projectManagerCannotUseExternalServiceRoleToAppointPrimaryOrMaintainServiceManagers() {
+        var project = new ProjectMasterDO(); project.setId(2L); project.setTenantId(0L);
+        project.setCurrentStage("S2"); project.setAssignmentStatus("ASSIGNED");
+        when(projectMapper.selectById(2L)).thenReturn(project);
+        var manager = new ProjectMemberAssignmentDO(); manager.setTenantId(0L); manager.setProjectId(2L);
+        manager.setUserId(7L); manager.setMemberRole("PROJECT_MANAGER");
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(manager));
+        when(memberMapper.selectAuthorizedByUserForUpdate(any())).thenReturn(List.of(manager));
+        org.junit.jupiter.api.Assertions.assertFalse(guard.canAppointPrimaryProjectManager(actor(), 2L));
+        assertThrows(ServiceException.class, () -> guard.assertCanAppointPrimaryProjectManager(actor(), project));
+        assertThrows(ServiceException.class, () -> guard.assertCanMaintainServiceManagers(actor(), project));
+        org.mockito.Mockito.verifyNoInteractions(permissionApi, projectScopeApi);
+    }
+
+    @Test void effectiveConfirmedProjectServiceManagerCanAppointAndIsLockedForMutation() {
+        var project = new ProjectMasterDO(); project.setId(2L); project.setTenantId(0L); project.setCurrentStage("S3");
+        when(projectMapper.selectById(2L)).thenReturn(project);
+        var manager = new ProjectMemberAssignmentDO(); manager.setTenantId(0L); manager.setProjectId(2L);
+        manager.setUserId(7L); manager.setMemberRole("SERVICE_MANAGER");
+        when(memberMapper.selectAuthorizedByUser(any())).thenReturn(List.of(manager));
+        when(memberMapper.selectAuthorizedByUserForUpdate(any())).thenReturn(List.of(manager));
+        org.junit.jupiter.api.Assertions.assertTrue(guard.canAppointPrimaryProjectManager(actor(), 2L));
+        guard.assertCanAppointPrimaryProjectManager(actor(), project);
+        guard.assertCanMaintainServiceManagers(actor(), project);
+    }
+
+    @Test void emptyCurrentMembershipCannotReopenInitializationAfterServiceManagerHistory() {
+        var project = new ProjectMasterDO(); project.setId(2L); project.setTenantId(0L);
+        project.setCurrentStage("S0"); project.setAssignmentStatus("UNASSIGNED");
+        when(projectMapper.selectById(2L)).thenReturn(project);
+        org.junit.jupiter.api.Assertions.assertTrue(guard.canAppointPrimaryProjectManager(actor(), 2L));
+        when(memberMapper.hasServiceManagerHistory(any())).thenReturn(true);
+        org.junit.jupiter.api.Assertions.assertFalse(guard.canAppointPrimaryProjectManager(actor(), 2L));
+        assertThrows(ServiceException.class, () -> guard.assertCanMaintainServiceManagers(actor(), project));
+    }
+
     @Test
     void regionalServiceManagerMayMaintainGrantsOnlyInsideFullManageScope() {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
