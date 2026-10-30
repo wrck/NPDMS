@@ -52,7 +52,7 @@ class ProjectContactClosedWriteBoundaryTest {
     private final ProjectManagementQualificationApi management = new ProjectManagementQualificationApiImpl(
             new ProjectParticipantFactApiImpl(rows,members), mock(ProjectRegionalManagerFactApi.class), rows,
             mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService.class));
-    private final ProjectContactContextApiImpl api = new ProjectContactContextApiImpl(rows, members, scopes, ancestors, grants, customers, roles,management);
+    private final ProjectContactContextApiImpl api = new ProjectContactContextApiImpl(rows, members, scopes, ancestors, grants, customers, roles,mock(ProjectPartyMapper.class),management);
     private final CustomerContactMasterMapper masters = mock(CustomerContactMasterMapper.class);
     private final ProjectCustomerContactMapper contacts = mock(ProjectCustomerContactMapper.class);
     private final ContactHistoryMapper history = mock(ContactHistoryMapper.class);

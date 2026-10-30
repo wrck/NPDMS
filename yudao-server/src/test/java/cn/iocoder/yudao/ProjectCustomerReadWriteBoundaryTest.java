@@ -105,6 +105,7 @@ class ProjectCustomerReadWriteBoundaryTest {
         customerApi = spy(new CustomerQueryApiImpl(customers, directory, directoryScopes, permissions));
         legacy = new ProjectContactContextApiImpl(projects, members, scope, mock(ProjectAncestorQueryApi.class),
                 mock(AuthorizationGrantApi.class), customerApi, mock(ProjectTreeScopeService.class),
+                mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectPartyMapper.class),
                 new ProjectManagementQualificationApiImpl(new ProjectParticipantFactApiImpl(projects,members),
                     mock(ProjectRegionalManagerFactApi.class),projects,
                     mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectCurrentStageService.class)));
