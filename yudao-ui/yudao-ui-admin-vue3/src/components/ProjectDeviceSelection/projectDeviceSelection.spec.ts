@@ -15,7 +15,28 @@ const device = {
 const flush = async () => {
   for (let i = 0; i < 12; i++) await nextTick()
 }
-beforeEach(() => api.getProjectDevicePage.mockReset())
+beforeEach(() => { api.getProjectDevicePage.mockReset() })
+
+it('loads all devices in bounded batches when all exceeds one hundred rows', async () => {
+  const devices = Array.from({ length: 205 }, (_, index) => ({ ...device, deviceId: String(index + 1), serialNumber: `SN-${index + 1}` }))
+  api.getProjectDevicePage.mockImplementation((_project, query) => {
+    if (query.pageSize > 100) throw new Error('pageSize maximum 100')
+    return Promise.resolve({ list: devices.slice((query.pageNo - 1) * query.pageSize, query.pageNo * query.pageSize), total: devices.length })
+  })
+  const view = mount(Selector, { projectId: '101', modelValue: [] })
+  await (findByTestId(view.root, 'choose-project-devices')!.props!.onClick as Function)()
+  const pagination = findByTestId(view.root, 'project-device-pagination')!
+  ;(pagination.props!['onUpdate:limit'] as Function)(205)
+  await (pagination.props!.onPagination as Function)()
+  await flush()
+  expect(api.getProjectDevicePage.mock.calls.slice(1).map(([, query]) => query)).toEqual([
+    { keyword: '', pageNo: 1, pageSize: 100 },
+    { keyword: '', pageNo: 2, pageSize: 100 },
+    { keyword: '', pageNo: 3, pageSize: 100 }
+  ])
+  expect(findByTestId(view.root, 'add-project-device-205')).toBeTruthy()
+  view.app.unmount()
+})
 
 it('shares paged selection, deduplicates and removes selected devices', async () => {
   api.getProjectDevicePage.mockResolvedValue({ list: [device], total: 1 })

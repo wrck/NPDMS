@@ -102,6 +102,7 @@
         >
       </el-table>
       <Pagination
+        data-testid="project-device-pagination"
         v-model:page="query.pageNo"
         v-model:limit="query.pageSize"
         :total="total"
@@ -172,10 +173,21 @@ const loadDevices = async () => {
   loading.value = true
   pickerError.value = ''
   try {
-    const page = await getProjectDevicePage(project, { ...query })
-    if (request !== pageSequence || project !== String(props.projectId)) return
-    choices.value = page.list
-    total.value = Number(page.total)
+    // “全部”只改变本地显示数量；服务端仍逐页校验项目范围和每批上限。
+    const requestedSize = query.pageSize
+    const keyword = query.keyword
+    const batchSize = Math.min(requestedSize, 100)
+    const rows: ProjectDevice[] = []
+    let rowCount = 0
+    for (let pageNo = requestedSize > 100 ? 1 : query.pageNo; ; pageNo++) {
+      const page = await getProjectDevicePage(project, { keyword, pageNo, pageSize: batchSize })
+      if (request !== pageSequence || project !== String(props.projectId)) return
+      rows.push(...page.list)
+      rowCount = Number(page.total)
+      if (requestedSize <= 100 || !page.list.length || pageNo * batchSize >= rowCount) break
+    }
+    choices.value = [...new Map(rows.map(device => [String(device.deviceId), device])).values()]
+    total.value = rowCount
   } catch {
     if (request === pageSequence) {
       choices.value = []
