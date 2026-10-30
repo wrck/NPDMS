@@ -9,7 +9,8 @@
     <p v-if="loading" role="status">正在读取本轮门禁结果…</p>
     <el-alert v-else-if="error" :title="error" type="warning" :closable="false" show-icon />
     <template v-else-if="workbench">
-      <p class="hint">第 {{ workbench.executionRound }} 轮 · 当前规则结果；刷新不会推进阶段或发起审批。</p>
+      <el-alert v-if="historical" title="项目已结束，当前办理条件不再适用。以下为当前规则诊断，历史完成及审批记录保持原样。" type="info" :closable="false" show-icon />
+      <p v-else class="hint">第 {{ workbench.executionRound }} 轮 · 当前规则结果；刷新不会推进阶段或发起审批。</p>
       <p v-if="!workbench.gates.length" role="status">当前阶段无准入条件限制。</p>
 
       <!-- 准入/准出条件：与交付件清单同款分节行格式；每条引用的满足结果来自按下标对齐的规则条件诊断 -->
@@ -103,6 +104,7 @@ const props = withDefaults(defineProps<{
   projectId: number
   stageCode: string
   projectVersion?: number
+  historical?: boolean
   /** 面板标题：项目主档侧栏按完成条件口径展示，其余用法保持阶段门禁条件 */
   title?: string
   /** 项目实例视图：用于把引用编码解析为业务名称/交付件实例；缺省时回退展示编码 */
@@ -207,6 +209,7 @@ const openDeliverable = (id: number) => { void deliverableRef.value?.open(id) }
 const handleDeliverableChanged = async () => { await load(); emit('changed') }
 // 原因码中文名：仅覆盖各门禁事实提供者已登记的取值，未登记的原样展示
 const REASON_LABELS: Record<string, string> = {
+  PROJECT_NOT_ACTIVE: '项目已结束，当前办理条件不再适用',
   TASK_NOT_FOUND: '任务不存在',
   TASK_NOT_DONE: '任务未完成',
   MILESTONE_NOT_FOUND: '里程碑不存在',

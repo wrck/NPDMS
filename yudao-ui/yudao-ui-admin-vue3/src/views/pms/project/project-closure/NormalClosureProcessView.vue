@@ -10,13 +10,11 @@
     <template v-if="detail">
       <h3>正常闭环申请</h3>
       <el-descriptions :column="1" border>
-        <el-descriptions-item label="申请 ID">{{ detail.application.id }}</el-descriptions-item>
-        <el-descriptions-item label="项目 ID">{{ detail.projectId }}</el-descriptions-item>
         <el-descriptions-item label="真实闭环来源阶段">{{
           detail.application.fromStage
         }}</el-descriptions-item>
         <el-descriptions-item label="闭环类型">{{
-          detail.application.closureType
+          detail.application.closureType === 'NORMAL' ? '正常闭环' : detail.application.closureType
         }}</el-descriptions-item>
         <el-descriptions-item label="申请状态">{{
           statusLabel(detail.application.status)
@@ -31,11 +29,15 @@
           detail.application.reviewerUserId
         }}</el-descriptions-item>
         <el-descriptions-item label="提交时间">{{
-          detail.application.submittedAt
+          formatDate(detail.application.submittedAt)
         }}</el-descriptions-item>
         <el-descriptions-item label="决定时间">{{
-          detail.application.decidedAt || '尚无决定'
+          detail.application.decidedAt ? formatDate(detail.application.decidedAt) : '尚无决定'
         }}</el-descriptions-item>
+      </el-descriptions>
+<details class="technical-evidence"><summary>来源与流程标识</summary><el-descriptions :column="1" border>
+        <el-descriptions-item label="申请 ID">{{ detail.application.id }}</el-descriptions-item>
+        <el-descriptions-item label="项目 ID">{{ detail.projectId }}</el-descriptions-item>
         <el-descriptions-item label="实际流程实例 ID">{{
           detail.application.processInstanceId
         }}</el-descriptions-item>
@@ -48,7 +50,7 @@
         <el-descriptions-item label="业务 Key">{{
           detail.application.businessKey
         }}</el-descriptions-item>
-      </el-descriptions>
+      </el-descriptions></details>
       <h3>申请冻结的条件校验</h3>
       <el-descriptions v-if="detail.snapshot" :column="1" border>
         <el-descriptions-item label="快照 ID">{{ detail.snapshot.id }}</el-descriptions-item>
@@ -59,7 +61,7 @@
           detail.snapshot.checkedBy
         }}</el-descriptions-item>
         <el-descriptions-item label="校验时间">{{
-          detail.snapshot.checkedAt
+          formatDate(detail.snapshot.checkedAt)
         }}</el-descriptions-item>
       </el-descriptions>
       <el-table :data="checks" empty-text="暂无可展示的校验项" border>
@@ -70,26 +72,27 @@
         <el-table-column prop="reason" label="原因" min-width="180" />
         <el-table-column prop="subjectId" label="来源对象 ID" min-width="180" />
       </el-table>
-      <h3>实际流程与候选人冻结证据</h3>
-      <pre class="process-evidence">{{ detail.application.processEvidence || '暂无流程证据' }}</pre>
+      <details class="technical-evidence"><summary>查看实际流程与候选人冻结证据</summary>
+      <pre class="process-evidence">{{ detail.application.processEvidence || '暂无流程证据' }}</pre></details>
       <h3>历史审核记录</h3>
       <el-table
         :data="detail.reviews"
         empty-text="暂无已归档审核记录；当前待办请查看 BPM 流程记录"
         border
       >
-        <el-table-column prop="taskDefinitionKey" label="实际节点 Key" min-width="180" />
+        <el-table-column label="审批节点" min-width="180"><template #default="{ row }"><span :title="row.taskDefinitionKey">{{ ({ serviceManagerReview: '服务经理审核', materialReview: '材料审核' })[row.taskDefinitionKey] || row.taskDefinitionKey }}</span></template></el-table-column>
         <el-table-column prop="taskId" label="任务 ID" min-width="180" />
         <el-table-column prop="reviewerUserId" label="实际处理人 ID" min-width="160" />
-        <el-table-column prop="outcome" label="处理结果" width="120" />
+        <el-table-column label="处理结果" width="120"><template #default="{ row }">{{ ({ APPROVE: '同意', REJECT: '驳回' })[row.outcome] || row.outcome }}</template></el-table-column>
         <el-table-column prop="reason" label="审核意见" min-width="180" />
-        <el-table-column prop="reviewedAt" label="处理时间" min-width="180" />
+        <el-table-column label="处理时间" min-width="180"><template #default="{ row }">{{ formatDate(row.reviewedAt) }}</template></el-table-column>
       </el-table>
     </template>
   </ContentWrap>
 </template>
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
+import { formatDate } from '@/utils/formatTime'
 import {
   getNormalClosureApplication,
   type ApplicationDetail,

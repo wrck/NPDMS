@@ -393,6 +393,7 @@
                   :project-id="detail.id"
                   :stage-code="stageSelection?.stageCode || ''"
                   :project-version="detail.version"
+                  :historical="detail.lifecycleStatus !== 'ACTIVE'"
                   :instances="instances"
                   :task-deliverables="stageSelection?.kind === 'task' ? flowTaskDeliverables : undefined"
                   @changed="handleExternalWorkspaceChanged"
@@ -494,6 +495,7 @@
         </div>
         <div v-if="detail?.id && visitedTabs.has('closure')" v-show="activeTab === 'closure'" class="min-w-0" data-testid="project-pane-closure">
           <ProjectNormalClosurePanel
+            ref="normalClosureRef"
             :project-id="detail.id"
             @updated="loadAll"
           />
@@ -534,7 +536,7 @@
     </div>
   </div>
   <ProjectDeliverableDialog v-if="detail?.id" ref="deliverableRef" :project-id="detail.id" @changed="handleExternalWorkspaceChanged" />
-  <ProjectApprovalDrawer ref="approvalDrawerRef" />
+  <ProjectApprovalDrawer ref="approvalDrawerRef" @closed="handleExternalWorkspaceChanged" />
   <ProjectDeviceConfigLogDrawer v-if="detail?.id" ref="configLogDrawerRef" :project-id="detail.id" />
 </template>
 
@@ -616,6 +618,7 @@ const projectId = () => isBusinessViewId(route.query.projectId) ? legacyOwnerId(
 const router = useRouter()
 const routeProjectId = () => isBusinessViewId(route.query.projectId) ? legacyOwnerId(route.query.projectId) : undefined
 const approvalDrawerRef = ref<InstanceType<typeof ProjectApprovalDrawer>>()
+const normalClosureRef = ref<InstanceType<typeof ProjectNormalClosurePanel>>()
 provide(projectApprovalDetailKey, (id) => approvalDrawerRef.value?.open(id))
 
 const loading = ref(false)
@@ -892,6 +895,7 @@ const handleFlowChanged = async () => {
 const handleExternalWorkspaceChanged = async () => {
   await handleFlowChanged()
   await flowRef.value?.refreshSummary()
+  await normalClosureRef.value?.refresh()
 }
 
 // ============ 数据加载 ============

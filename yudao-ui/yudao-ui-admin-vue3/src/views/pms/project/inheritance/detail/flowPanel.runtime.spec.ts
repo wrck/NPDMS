@@ -67,6 +67,10 @@ vi.mock('@/views/pms/customer/contacts/index.vue', () => ({ default: defineCompo
   setup: (_, { emit }) => () => h('div', [h('button', { onClick: () => emit('changed') }, '保存联系人'),
     h('button', { onClick: () => emit('updated') }, '更新联系人')])
 }) }))
+vi.mock('../../project-master-detail/components/ProjectEndUsersWorkbench.vue', () => ({ default: defineComponent({
+  emits: ['changed'],
+  setup: (_, { emit }) => () => h('button', { onClick: () => emit('changed') }, '保存用户资料')
+}) }))
 vi.mock('../../project-master-detail/components/ProjectNormalClosurePanel.vue', () => ({ default: defineComponent({
   props: { projectId: [Number, String], readonly: Boolean },
   setup: (props) => () => h('div', `正常闭环办理:${props.projectId}:${props.readonly}`)
@@ -170,6 +174,25 @@ it('waits for the committed contact event and hides stale task actions while syn
   api.getTaskWorkbench.mockResolvedValue(contactWorkbench(2, 'DONE'))
   await vi.advanceTimersByTimeAsync(2000); await flush()
   expect(view.state().workbench.task.status).toBe('DONE')
+  expect(view.state().pageSyncing).toBe(false)
+  expect(view.changed).toHaveBeenCalledTimes(1)
+})
+
+it('silently refreshes user entry through an intermediate version until automatic completion', async () => {
+  vi.useFakeTimers()
+  const userWorkbench = (version = 1, status = 'IN_PROGRESS') => ({ ...contactWorkbench(version, status),
+    trustedTargetRef: '/pms/project-management/project-master-detail' })
+  api.getTaskWorkbench.mockResolvedValue(userWorkbench())
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  api.getTaskWorkbench.mockResolvedValue(userWorkbench(2))
+  await (findContactAction(view.root, '保存用户资料')!.props!.onClick as Function)(); await flush()
+  expect(view.state().pageSyncing).toBe(true)
+  expect(textOf(view.root)).not.toContain('正在同步任务状态')
+  expect(findTaskActions(view.root)).toBeUndefined()
+  expect(view.changed).not.toHaveBeenCalled()
+  api.getTaskWorkbench.mockResolvedValue(userWorkbench(3, 'DONE'))
+  await vi.advanceTimersByTimeAsync(2000); await flush()
+  expect(view.state().workbench.task).toMatchObject({ version: 3, status: 'DONE', progress: 100 })
   expect(view.state().pageSyncing).toBe(false)
   expect(view.changed).toHaveBeenCalledTimes(1)
 })

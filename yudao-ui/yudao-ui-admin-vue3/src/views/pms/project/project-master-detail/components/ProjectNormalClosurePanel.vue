@@ -166,6 +166,7 @@ const load = async () => {
 const refresh = () => {
   if (!busy.value && !disposed) return load()
 }
+defineExpose({ refresh })
 const check = async () => {
   if (!overview.value || !allowed('CHECK')) return
   const value = { ...overview.value },

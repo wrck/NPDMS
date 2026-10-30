@@ -4,7 +4,7 @@
       <header>
         <span class="service-label">现场培训 · 客户确认</span>
         <h1 id="training-title">{{ record?.status === 2 ? '感谢您的确认' : '请评价本次培训' }}</h1>
-        <p>感谢您参与本次现场培训。欢迎核对培训内容、填写评价并反馈意见，手写签字确认后将归档至项目交付件。</p>
+        <p>{{ record?.status === 2 ? '以下为已确认的培训内容、评价和签字，记录已归档，不可修改。' : '感谢您参与本次现场培训。请核对培训内容、填写评价并签字确认。' }}</p>
       </header>
       <el-skeleton v-if="loading" :rows="7" animated />
       <el-result
@@ -36,7 +36,7 @@
           :closable="false"
           :title="confirmedTitle"
         />
-        <div class="customer-confirmation-form">
+        <div class="customer-confirmation-form" :class="{ 'confirmed-record': record.status === 2 }">
           <form-create
             v-model="values"
             v-model:api="formApi"
@@ -254,5 +254,11 @@ footer .el-button {
   .record-summary {
     padding: 16px;
   }
+}
+.confirmed-record :deep(.el-input.is-disabled .el-input__inner),
+.confirmed-record :deep(.el-textarea.is-disabled .el-textarea__inner),
+.confirmed-record :deep(.el-radio.is-disabled.is-checked .el-radio__label) {
+  color: var(--el-text-color-primary);
+  -webkit-text-fill-color: var(--el-text-color-primary);
 }
 </style>
