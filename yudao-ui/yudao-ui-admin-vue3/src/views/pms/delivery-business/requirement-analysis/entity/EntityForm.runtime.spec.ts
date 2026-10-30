@@ -1,4 +1,4 @@
-import { defineComponent, h, nextTick, ref, reactive } from 'vue'
+import { defineComponent, h, nextTick, ref, reactive, shallowRef, watch } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as api from '@/api/pms/engineering/requirement-analysis/entity'
 import type { View } from '@/api/pms/engineering/requirement-analysis/entity'
@@ -31,6 +31,100 @@ beforeEach(() => {
   vi.stubGlobal('sessionStorage', { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key,value), removeItem: (key: string) => values.delete(key) })
 })
 describe('independent requirement entity form', () => {
+  const topologyDetail = (availabilityStatus = 'AVAILABLE', referenceStatus = 'ACTIVE'): View => {
+    const view = detail()
+    view.form!.formRulesJson = JSON.stringify([
+      ...JSON.parse(view.form!.formRulesJson), { type: 'PmsFileArtifact', field: 'NETWORK_TOPOLOGY__ATTACHMENTS' }
+    ])
+    view.attachments = [{ key: { purposeCode: 'FORM_FIELD_ATTACHMENT/NETWORK_TOPOLOGY__ATTACHMENTS' }, scopeVersion: '31',
+      activeFacts: [{ artifactId: '71', versionNo: 1, referenceKey: 'topology', availabilityStatus, referenceStatus } as any] }]
+    return view
+  }
+
+  it('validates a just-uploaded topology against authoritative facts without losing ordinary edits', async () => {
+    const current = topologyDetail(), stale = { ...current, attachments: [] }, form = ref<any>()
+    const reload = vi.fn(async () => current)
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: stale, reload, ref: form }) }), {}, { 'form-create': renderer })
+    try {
+      await nextTick()
+      await (findByTestId(mounted.root, 'edit')!.props!.onClick as Function)(); await nextTick()
+      expect(await form.value.validateCompletion()).toBe(true)
+      expect(reload).toHaveBeenCalledOnce()
+      expect(stale.attachments).toEqual([])
+      expect(form.value.isDirty()).toBe(true)
+      expect(api.save).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it.each(['missing', 'unavailable', 'detached'])('rejects stale topology evidence when the Owner now reports it %s', async (state) => {
+    const stale = topologyDetail(), form = ref<any>()
+    const current = state === 'missing' ? { ...stale, attachments: [] }
+      : topologyDetail(state === 'unavailable' ? 'UNAVAILABLE' : 'AVAILABLE', state === 'detached' ? 'DETACHED' : 'ACTIVE')
+    const reload = vi.fn(async () => current)
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: stale, reload, ref: form }) }), {}, { 'form-create': renderer })
+    try {
+      await nextTick()
+      expect(await form.value.validateCompletion()).toBe(false)
+      expect(reload).toHaveBeenCalledOnce()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('refuses completion when authoritative attachment refresh fails', async () => {
+    const form = ref<any>(), reload = vi.fn(async () => { throw new Error('Owner unavailable') })
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: topologyDetail(), reload, ref: form }) }), {}, { 'form-create': renderer })
+    try {
+      await nextTick()
+      expect(await form.value.validateCompletion()).toBe(false)
+      expect(reload).toHaveBeenCalledOnce()
+      expect(form.value.isSaving()).toBe(false)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('never consumes attachment facts from another selected revision', async () => {
+    const original = topologyDetail(), form = ref<any>()
+    const reload = vi.fn(async () => ({ ...original, revision: { ...original.revision,
+      ref: { ...original.revision.ref, revisionId: '99' } } }))
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: original, reload, ref: form }) }), {}, { 'form-create': renderer })
+    try {
+      await nextTick()
+      expect(await form.value.validateCompletion()).toBe(false)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('blocks repeated checks and host switching until authoritative attachment reads finish', async () => {
+    const current = topologyDetail(), form = ref<any>()
+    let finish!: (value: View) => void
+    const reload = vi.fn(() => new Promise<View>(resolve => { finish = resolve }))
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: current, reload, ref: form }) }), {}, { 'form-create': renderer })
+    try {
+      await nextTick()
+      const checking = form.value.validateCompletion()
+      expect(form.value.isSaving()).toBe(true)
+      expect(await form.value.validateCompletion()).toBe(false)
+      expect(reload).toHaveBeenCalledOnce()
+      finish(current)
+      expect(await checking).toBe(true)
+      expect(form.value.isSaving()).toBe(false)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('discards pending attachment checks when the selected revision changes', async () => {
+    const current = topologyDetail(), state = reactive({ detail: current }), form = ref<any>()
+    let finish!: (value: View) => void
+    const reload = () => new Promise<View>(resolve => { finish = resolve })
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: state.detail, reload, ref: form }) }), {}, { 'form-create': renderer })
+    try {
+      await nextTick()
+      const checking = form.value.validateCompletion()
+      state.detail = { ...current, revision: { ...current.revision, ref: { ...current.revision.ref, revisionId: '99' } } }
+      await nextTick()
+      finish(current)
+      expect(await checking).toBe(false)
+      expect(form.value.isSaving()).toBe(false)
+      expect(api.save).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
   it('reloads authoritative attachment facts when saving without ordinary field edits', async () => {
     const view = detail(), form = ref<any>()
     const reload = vi.fn(async () => view)
@@ -209,6 +303,148 @@ describe('independent requirement entity form', () => {
     expect(api.save).toHaveBeenCalledWith(view.revision, { values: { projectBackground: 'changed' }, expectedExtensionVersion: 3, extensionDefinitionRevisionId: '80', extensionValues: { count: 0, enabled: false } }, expect.any(String))
     expect(reload).toHaveBeenCalledOnce(); expect(form.value.isDirty()).toBe(false)
     mounted.app.unmount()
+  })
+  it.each(['parent', 'return-only', 'same-object'])('applies saved attachment rules once for %s reload', async mode => {
+    const selected = shallowRef(detail()), form = ref<any>(), ruleChanges = vi.fn()
+    const original = selected.value
+    const authoritative = { ...original, revision: { ...original.revision, version: 7 },
+      values: { projectBackground: 'changed', count: 0, enabled: false } }
+    let rendered: any
+    const capture = defineComponent({
+      props: { modelValue: Object, rule: Array }, emits: ['update:modelValue'],
+      setup(props, { emit }) {
+        rendered = props
+        watch(() => props.rule, ruleChanges)
+        return () => h('button', { 'data-testid': 'edit', onClick: () => emit('update:modelValue',
+          { ...props.modelValue, PROJECT_BACKGROUND: 'changed', count: 0, enabled: false }) })
+      }
+    })
+    vi.mocked(api.save).mockResolvedValue(original.revision)
+    const reload = vi.fn(async () => {
+      if (mode === 'parent') { selected.value = authoritative; await nextTick() }
+      if (mode === 'same-object') { Object.assign(original, authoritative); return original }
+      return authoritative
+    })
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm,
+      { detail: selected.value, reload, ref: form }) }), {}, { 'form-create': capture })
+    try {
+      await nextTick()
+      ;(findByTestId(mounted.root, 'edit')!.props!.onClick as () => void)()
+      await nextTick()
+      ruleChanges.mockClear()
+      expect(await form.value.save()).toBe(true)
+      await nextTick()
+      expect(ruleChanges).toHaveBeenCalledOnce()
+      expect(rendered.modelValue).toMatchObject({ PROJECT_BACKGROUND: 'changed', count: 0, enabled: false })
+      expect(form.value.isDirty()).toBe(false)
+      expect(sessionStorage.getItem('pms:requirement-entity:patch:31')).toBeNull()
+    } finally { mounted.app.unmount() }
+  })
+  it.each([true, false])('applies failed-save readback once and preserves uncommitted edits: %s', async committed => {
+    const selected = ref(detail()), form = ref<any>(), ruleChanges = vi.fn()
+    const original = selected.value
+    const authoritative = { ...original, revision: { ...original.revision, version: 7 },
+      values: committed ? { projectBackground: 'changed', count: 0, enabled: false } : original.values }
+    const capture = defineComponent({
+      props: { modelValue: Object, rule: Array }, emits: ['update:modelValue'],
+      setup(props, { emit }) {
+        watch(() => props.rule, ruleChanges)
+        return () => h('button', { 'data-testid': 'edit', onClick: () => emit('update:modelValue',
+          { ...props.modelValue, PROJECT_BACKGROUND: 'changed', count: 0, enabled: false }) })
+      }
+    })
+    vi.mocked(api.save).mockRejectedValue(new Error('response lost'))
+    const reload = vi.fn(async () => { selected.value = authoritative; await nextTick(); return authoritative })
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm,
+      { detail: selected.value, reload, ref: form }) }), {}, { 'form-create': capture })
+    try {
+      await nextTick()
+      ;(findByTestId(mounted.root, 'edit')!.props!.onClick as () => void)()
+      await nextTick()
+      ruleChanges.mockClear()
+      expect(await form.value.save()).toBe(committed)
+      await nextTick()
+      expect(ruleChanges).toHaveBeenCalledOnce()
+      expect(form.value.isDirty()).toBe(!committed)
+      expect(sessionStorage.getItem('pms:requirement-entity:patch:31') === null).toBe(committed)
+    } finally { mounted.app.unmount() }
+  })
+  it('retains edits and the command intent when both authoritative reads fail', async () => {
+    const view = detail(), form = ref<any>()
+    vi.mocked(api.save).mockResolvedValue(view.revision)
+    const reload = vi.fn(async () => { throw new Error('read unavailable') })
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm,
+      { detail: view, reload, ref: form }) }), {}, { 'form-create': renderer })
+    try {
+      await nextTick()
+      ;(findByTestId(mounted.root, 'edit')!.props!.onClick as () => void)()
+      await nextTick()
+      expect(await form.value.save()).toBe(false)
+      expect(reload).toHaveBeenCalledTimes(2)
+      expect(form.value.isDirty()).toBe(true)
+      expect(sessionStorage.getItem('pms:requirement-entity:patch:31')).not.toBeNull()
+      expect(sessionStorage.getItem('pms:fplt002:requirement-save:31')).not.toBeNull()
+    } finally { mounted.app.unmount() }
+  })
+  it.each(['revision', 'project'])('rejects readback when the selected %s changes during the render tick', async selection => {
+    const selected = ref(detail()), form = ref<any>(), saved = vi.fn()
+    const original = selected.value
+    const authoritative = { ...original, revision: { ...original.revision, version: 7 },
+      values: { projectBackground: 'changed', count: 0, enabled: false } }
+    const other = { ...detail(), projectId: selection === 'project' ? '8' : original.projectId,
+      revision: { ...original.revision, ref: { ...original.revision.ref,
+        revisionId: selection === 'revision' ? '99' : original.revision.ref.revisionId } } }
+    vi.mocked(api.save).mockResolvedValue(original.revision)
+    const reload = vi.fn(async () => {
+      void nextTick(() => { selected.value = other })
+      return authoritative
+    })
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm,
+      { detail: selected.value, reload, ref: form, onSaved: saved }) }), {}, { 'form-create': renderer })
+    try {
+      await nextTick()
+      ;(findByTestId(mounted.root, 'edit')!.props!.onClick as () => void)()
+      await nextTick()
+      expect(await form.value.save()).toBe(false)
+      expect(saved).not.toHaveBeenCalled()
+      expect(sessionStorage.getItem('pms:requirement-entity:patch:31')).not.toBeNull()
+    } finally { mounted.app.unmount() }
+  })
+  it('keeps the existing attachment rules while a post-save permission projection becomes read-only', async () => {
+    const selected = ref(detail()), permissions = ref(['PATCH_FORM']), form = ref<any>()
+    let rendered: any
+    const capture = defineComponent({
+      props: { modelValue: Object, rule: Array }, emits: ['update:modelValue'],
+      setup(props, { emit }) {
+        rendered = props
+        return () => h('button', { 'data-testid': 'edit', onClick: () => emit('update:modelValue',
+          { ...props.modelValue, PROJECT_BACKGROUND: 'changed', count: 0, enabled: false }) })
+      }
+    })
+    vi.mocked(api.save).mockResolvedValue(selected.value.revision)
+    const reload = vi.fn(async () => {
+      selected.value = { ...selected.value, revision: { ...selected.value.revision, version: 7 },
+        values: { projectBackground: 'changed', count: 0, enabled: false } }
+      return selected.value
+    })
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm,
+      { detail: selected.value, reload, allowedActions: permissions.value, ref: form }) }), {}, { 'form-create': capture })
+    try {
+      await nextTick()
+      ;(findByTestId(mounted.root, 'edit')!.props!.onClick as () => void)()
+      await nextTick()
+      expect(await form.value.save()).toBe(true)
+      await nextTick()
+      const rules = rendered.rule
+      permissions.value = []
+      await nextTick(); await nextTick()
+      expect(rendered.rule).toBe(rules)
+      expect(rendered.rule.find((rule: any) => rule.type === 'RequirementRevisionFiles').props.allowedActions).toEqual([])
+      expect(rendered.modelValue.PROJECT_BACKGROUND).toBe('changed')
+      expect(form.value.isDirty()).toBe(false)
+      expect(await form.value.save()).toBe(false)
+      expect(api.save).toHaveBeenCalledOnce()
+    } finally { mounted.app.unmount() }
   })
   it('reopens nested reactive extension rows without cloning a Vue proxy', async () => {
     const view = reactive(detail()), form = ref<any>()

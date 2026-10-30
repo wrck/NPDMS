@@ -24,8 +24,8 @@ class RequirementAnalysisManagerFactsTest {
     @Test void ordinaryOperatorsStillNeedTheirOwnManagerMembership() {
         var participants = mock(ProjectParticipantFactApi.class);
         var permissions = mock(PermissionApi.class);
-        when(participants.inspect(any())).thenThrow(new IllegalStateException("no membership"));
+        when(participants.inspectAuthorization(any())).thenThrow(new IllegalStateException("no membership"));
         assertThrows(IllegalStateException.class, () -> RequirementAnalysisManagerFacts.inspect(participants, permissions, 20L, 1L));
-        verify(participants).inspect(argThat((ProjectParticipantFactQuery query) -> query.subjectUserId().equals(1L)));
+        verify(participants).inspectAuthorization(argThat((ProjectParticipantFactQuery query) -> query.subjectUserId().equals(1L)));
     }
 }

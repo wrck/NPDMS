@@ -268,10 +268,12 @@ public class RequirementAnalysisDynamicFormCommandService {
         if (inspected == null) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }
-        ProjectParticipantFact participant = participantFactApi.lockAndRevalidate(
-                new ProjectParticipantFactRevalidationQuery(projectId, inspected.userId(), inspected.projectVersion(),
-                        ACTIVE, null,
-                        Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+        var revalidation = new ProjectParticipantFactRevalidationQuery(projectId, inspected.userId(), inspected.projectVersion(),
+                ACTIVE, null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER));
+        ProjectParticipantFact participant = permissionApi.hasAnyRoles(actor.actorId(),
+                cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())
+                ? participantFactApi.lockAndRevalidate(revalidation)
+                : participantFactApi.lockAndRevalidateAuthorization(revalidation);
         ProjectWorkBindingFact current;
         if (requested != null) {
             current = executionBinding.lockRequested(projectId, requested);

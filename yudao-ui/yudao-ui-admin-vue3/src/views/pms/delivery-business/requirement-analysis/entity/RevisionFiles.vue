@@ -30,13 +30,17 @@
           fact.referenceVersion ?? fact.fileFactVersion?.referenceVersion
         "
         category-code="DYNAMIC_FORM_ATTACHMENT"
-        accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+        :accept="acceptedFiles"
         @completed="handleCompleted"
       />
     </div>
+    <TopologyMultiUpload
+      v-if="canWrite && fieldKey === 'NETWORK_TOPOLOGY__ATTACHMENTS'"
+      :key="String(revisionId)" :revision-id="String(revisionId)" :disabled="!canWrite" :accept="acceptedFiles"
+      :owner-execution-context="ownerExecutionContext" @completed="handleCompleted" @busy="multiBusy = $event" />
     <PmsFileUploader
       ref="newUploader"
-      v-if="canWrite"
+      v-if="canWrite && fieldKey !== 'NETWORK_TOPOLOGY__ATTACHMENTS'"
         auto-submit
         hide-submit
       owner-context="SOL"
@@ -46,7 +50,7 @@
       :reference-key="uploadSlotKey"
       :owner-execution-context="ownerExecutionContext"
       category-code="DYNAMIC_FORM_ATTACHMENT"
-      accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+      :accept="acceptedFiles"
       @completed="handleCompleted"
     />
     <el-empty v-else-if="!current.length" description="暂无文件材料" :image-size="56" />
@@ -62,6 +66,7 @@ import {
 } from '@/components/PmsFileArtifact'
 import type { DynamicFormFileFactVO, JsonObject } from '@/api/pms/platform/dynamic-form'
 import type { FileArtifactVO } from '@/api/pms/platform/file'
+import TopologyMultiUpload from './TopologyMultiUpload.vue'
 
 defineOptions({ name: 'RequirementRevisionFiles' })
 
@@ -83,7 +88,8 @@ const emit = defineEmits<{
 }>()
 const versionUploaders = ref<InstanceType<typeof PmsFileUploader>[]>([])
 const newUploader = ref<InstanceType<typeof PmsFileUploader>>()
-const uploadBusy = computed(() => !!newUploader.value?.isBusy()
+const multiBusy = ref(false)
+const uploadBusy = computed(() => multiBusy.value || !!newUploader.value?.isBusy()
   || versionUploaders.value.some(uploader => uploader.isBusy()))
 watch(uploadBusy, busy => emit('upload-busy-change', busy), { flush: 'sync' })
 onBeforeUnmount(() => emit('upload-busy-change', false))
@@ -98,6 +104,8 @@ const toVisibleFiles = (facts: DynamicFormFileFactVO[]): VisibleFile[] =>
 const current = ref<VisibleFile[]>(toVisibleFiles(props.currentFacts))
 const uploadSlotKey = ref(generateUUID())
 const purposeCode = computed(() => `FORM_FIELD_ATTACHMENT/${props.fieldKey || ''}`)
+const acceptedFiles = computed(() => '.pdf,.png,.jpg,.jpeg,.txt,.doc,.docx,.xls,.xlsx,.ppt,.pptx'
+  + (props.fieldKey === 'NETWORK_TOPOLOGY__ATTACHMENTS' ? ',.vsd,.vsdx' : ''))
 const canWrite = computed(
   () => !!props.revisionId && !props.disabled && props.allowedActions.includes('PATCH_FORM')
 )

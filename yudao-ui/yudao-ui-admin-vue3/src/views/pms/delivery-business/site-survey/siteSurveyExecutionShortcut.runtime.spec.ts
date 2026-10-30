@@ -1,13 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { resolveSurveyExecution } from './siteSurveyExecutionShortcut'
+import { resolveSurveyExecution, refreshSurveyExecution } from './siteSurveyExecutionShortcut'
 import { outsourceShortcutRoute, outsourceDetailUrl } from './siteSurveyOutsource'
 import { getTaskBusinessContext } from '@/api/pms/project/task-business'
 import { getStageBusinessContext } from '@/api/pms/project/stage-business'
+import { OperationClient, routeSelection, selectionClient } from '@/components/BusinessView/operationClient'
 
 vi.mock('@/api/pms/project/task-business', () => ({ getTaskBusinessContext: vi.fn() }))
 vi.mock('@/api/pms/project/stage-business', () => ({ getStageBusinessContext: vi.fn() }))
-const task = { projectId: '9007199254740993', taskId: '9007199254740994', executionId: '9007199254740995', executionVersion: 3, writable: true } as any
-const stage = { projectId: task.projectId, stageId: '9007199254740996', executionId: '9007199254740997', executionVersion: 4, writable: true } as any
+const task = { projectId: '9007199254740993', taskId: '9007199254740994', executionId: '9007199254740995', executionVersion: 3,
+  executionContractId: '9007199254740998', contractVersion: 1, planVersionId: '9007199254740999', projectVersion: 6,
+  stageExecutionId: '9007199254740997', roundNo: 1, taskVersion: 1, writable: true } as any
+const stage = { projectId: task.projectId, stageId: '9007199254740996', executionId: '9007199254740997', executionVersion: 4,
+  executionContractId: '9007199254741000', contractVersion: 1, planVersionId: task.planVersionId, roundNo: 1, writable: true } as any
 const taskContext = () => ({ projectId: task.projectId, taskId: task.taskId, ownerContext: 'SOL', objectType: 'SITE_SURVEY',
   businessView: { status: 'PUBLISHED' }, executionAllowed: true, execution: { ...task } }) as any
 const stageContext = () => ({ projectId: stage.projectId, stageId: stage.stageId, stageCode: '工前/准备', readonly: false,
@@ -18,6 +22,28 @@ beforeEach(() => {
   vi.mocked(getStageBusinessContext).mockResolvedValue(stageContext())
 })
 describe('survey outsourcing keeps the same selected execution', () => {
+  it('refreshes mutable versions of the original task before a new intent', async () => {
+    const opened = { ...task, projectVersion: 5, executionVersion: 1 }
+    expect(await refreshSurveyExecution({ projectId: task.projectId, execution: { task: opened } })).toEqual({ task })
+    expect(opened.projectVersion).toBe(5)
+    expect(opened.executionVersion).toBe(1)
+  })
+  it.each(['executionId', 'planVersionId', 'executionContractId', 'contractVersion', 'stageExecutionId', 'roundNo'])('rejects a different %s instead of following a new identity', async field => {
+    const context = taskContext(); context.execution[field] = ['contractVersion', 'roundNo'].includes(field) ? 2 : '10'
+    vi.mocked(getTaskBusinessContext).mockResolvedValue(context)
+    await expect(refreshSurveyExecution({ projectId: task.projectId, execution: { task } })).rejects.toThrow()
+  })
+  it('refreshes a stage version while keeping its exact round', async () => {
+    expect(await refreshSurveyExecution({ projectId: stage.projectId, execution: { stage: { ...stage, executionVersion: 1 } }, stageCode: '工前/准备' })).toEqual({ stage })
+  })
+  it('preserves the controlled command client instead of downgrading it to a native selection', async () => {
+    const client = new OperationClient({ projectId: task.projectId, nodeKind: 'TASK', nodeId: task.taskId }, { task },
+      { inspect: vi.fn(), submit: vi.fn(), newKey: () => 'key' })
+    const execution = routeSelection({ task }, client)
+    expect(await refreshSurveyExecution({ projectId: task.projectId, execution })).toBe(execution)
+    expect(selectionClient(execution)).toBe(client)
+    expect(getTaskBusinessContext).not.toHaveBeenCalled()
+  })
   it('uses only precise identities in the URL and observes the current version of that task', async () => {
     const route = outsourceShortcutRoute('9007199254740998' as any, { task: { ...task, executionVersion: 1 } })
     expect(route.query).toEqual({ siteSurveyId: '9007199254740998', surveyTaskId: task.taskId, surveyExecutionId: task.executionId })

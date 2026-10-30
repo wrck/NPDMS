@@ -12,6 +12,10 @@ vi.mock('@/components/PmsFileArtifact', () => ({
     return () => h('button', { 'data-testid': 'toggle-upload', onClick: () => { busy.value = !busy.value } }, 'upload')
   } })
 }))
+vi.mock('./TopologyMultiUpload.vue', () => ({ default: defineComponent({ emits: ['busy'], setup(_, { emit }) {
+  let busy = false
+  return () => h('button', { 'data-testid': 'toggle-upload', onClick: () => { busy = !busy; emit('busy', busy) } }, 'upload multiple')
+} }) }))
 
 const insecureCrypto = () => {
   const getRandomValues = crypto.getRandomValues.bind(crypto)

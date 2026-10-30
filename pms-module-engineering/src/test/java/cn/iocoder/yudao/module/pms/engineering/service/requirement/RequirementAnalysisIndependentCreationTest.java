@@ -34,6 +34,7 @@ class RequirementAnalysisIndependentCreationTest {
     private final RequirementAnalysisMapper mapper = mock(RequirementAnalysisMapper.class);
     private final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     private final ProjectParticipantFactApi participants = mock(ProjectParticipantFactApi.class);
+    private final cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi qualifications = mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class);
     private final PermissionApi permissions = mock(PermissionApi.class);
     private final ProjectNodeExecutionApi nodes = mock(ProjectNodeExecutionApi.class);
     private final ProjectWorkBindingFactApi bindings = mock(ProjectWorkBindingFactApi.class);
@@ -50,13 +51,14 @@ class RequirementAnalysisIndependentCreationTest {
     private RequirementAnalysisEntityProvider provider;
 
     @BeforeEach void setUp() {
-        access = new RequirementAnalysisAccess(mapper, scopes, participants, permissions, bindings, executions);
+        access = new RequirementAnalysisAccess(mapper, scopes, participants, permissions, bindings, executions,
+                qualifications);
         provider = new RequirementAnalysisEntityProvider(mapper, access, extensions, forms, files, audit, events);
         when(extensions.read(any(), any())).thenReturn(new EntityExtensionApi.Values(null, Map.of(), 0));
         when(permissions.hasAnyPermissions(eq(19L), any(String[].class))).thenReturn(true);
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(80L, 2L, Set.of(80L), Set.of()));
         when(scopes.lockAndRevalidate(any())).thenReturn(new ProjectScopeResult(80L, 2L, Set.of(80L), Set.of()));
-        when(participants.inspect(any())).thenReturn(new ProjectParticipantFact(80L,19L,Set.of("PROJECT_MANAGER"), "PRIMARY", "ACTIVE", "S6",2L,2L));
+        when(qualifications.inspect(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Fact(new cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Query(7L,80L,19L),cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.Source.PROJECT_MEMBER,new ProjectParticipantFact(80L,19L,Set.of("PROJECT_MANAGER"), "PRIMARY", "ACTIVE", "S6",2L,2L),null));
         when(mapper.selectRevision(any())).thenAnswer(call -> rows.get(call.getArgument(0, RequirementRevisionQuery.class).revisionId()));
         when(mapper.lockRevision(any())).thenAnswer(call -> rows.get(call.getArgument(0, RequirementRevisionQuery.class).revisionId()));
         when(mapper.selectLatest(any())).thenAnswer(call -> rows.values().stream().findFirst().orElse(null));

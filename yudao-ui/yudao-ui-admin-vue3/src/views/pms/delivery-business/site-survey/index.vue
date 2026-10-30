@@ -152,19 +152,12 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="工勘人员" prop="surveyorUserId">
-            <el-select
+            <UserSelect
               v-model="form.surveyorUserId"
-              filterable
+
               clearable
               placeholder="请选择工勘人员"
-            >
-              <el-option
-                v-for="user in users"
-                :key="user.id"
-                :value="user.id"
-                :label="user.nickname"
-              />
-            </el-select>
+             />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -302,7 +295,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -317,13 +311,12 @@ import type { TaskExecutionContext } from '@/api/pms/project/task-business'
 import type { StageExecutionContext } from '@/api/pms/project/stage-business'
 import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import * as DynamicFormApi from '@/api/pms/platform/dynamic-form'
 import SiteSurveyDynamicForm from './SiteSurveyDynamicForm.vue'
 import SurveyMaterialExchangeDialog from './SurveyMaterialExchangeDialog.vue'
 import SurveyApplicationDialog from './SurveyApplicationDialog.vue'
 import { hasStructuredSurveyLocation } from './siteSurveyForm'
-import { resolveSurveyExecution } from './siteSurveyExecutionShortcut'
+import { resolveSurveyExecution, refreshSurveyExecution } from './siteSurveyExecutionShortcut'
 import { positiveShortcutId } from './siteSurveyOutsource'
 
 defineOptions({ name: 'PmsSiteSurveyEntity' })
@@ -363,6 +356,19 @@ const userStore = useUserStore()
 const route = useRoute()
 const loading = ref(false)
 const saving = ref(false)
+const executionReading = ref(false)
+const readExecutionForIntent = async (request: Parameters<typeof refreshSurveyExecution>[0]) => {
+  if (executionReading.value) throw new Error('正在读取工勘执行上下文，请稍候')
+  executionReading.value = true
+  const stage = request.execution?.stage
+  const routeCode = route.query.surveyStageCode
+  const stageCode = request.stageCode?.trim() ? request.stageCode
+    : stage && typeof routeCode === 'string' && routeCode.trim()
+      && sameId(route.query.surveyStageId, stage.stageId) && sameId(route.query.surveyExecutionId, stage.executionId)
+      ? routeCode : undefined
+  try { return await refreshSurveyExecution({ ...request, stageCode }) }
+  finally { executionReading.value = false }
+}
 const detailReadonly = ref(false)
 const pendingIntent = shallowRef<SurveyReceiptIntent>()
 const operationReceipt = shallowRef<BusinessOperationReceipt>()
@@ -372,7 +378,6 @@ const receiptReadError = ref('')
 const receiptReading = ref(false)
 const receiptReopenRequired = ref(false)
 const formReadonly = computed(() => !!pendingIntent.value || receiptReopenRequired.value || detailReadonly.value || !can(form.id ? 'UPDATE' : 'CREATE'))
-const users = ref<UserApi.UserVO[]>([])
 const dynamicFormRef = ref<InstanceType<typeof SiteSurveyDynamicForm>>()
 const templateVisible = ref(false)
 const templates = ref<DynamicFormApi.DynamicFormSelectionVO[]>([])
@@ -534,7 +539,10 @@ const selectTemplate = async (template: DynamicFormApi.DynamicFormSelectionVO) =
   form.fieldBindings = schema.fieldBindings
   templateVisible.value = false
 }
-const isDirty = () => !!pendingIntent.value || formVisible.value && openedValue.value !== JSON.stringify(form)
+// Loading the project's concurrency basis is not an edit; changed dates and their save flag remain tracked.
+const surveyContent = (value: SiteSurveyVO) => JSON.stringify({ ...value, projectEndDateVersion: undefined,
+  projectEndDateChanged: value.projectEndDateChanged === true })
+const isDirty = () => !!pendingIntent.value || formVisible.value && surveyContent(JSON.parse(openedValue.value)) !== surveyContent(form)
 watch(() => isDirty(), (value) => emit('dirty-change', value), { flush: 'sync' })
 const confirmLeave = async () => {
   if (saving.value || pendingIntent.value) return false
@@ -651,7 +659,7 @@ const reopenFromReceipt = async () => {
     Object.assign(form, row, { businessValues: row.businessValues ?? {}, fieldBindings: row.fieldBindings ?? {}, fieldCatalog: row.fieldCatalog ?? [] })
     form.locationMaintenance = toLocationMaintenance(row)
     openedExecution = intent.operation === 'save' ? intent.payload.execution : intent.execution
-    detailReadonly.value = row.status !== 0 || !can('UPDATE')
+    detailReadonly.value = row.status !== 0
     receiptReopenRequired.value = false
     receiptReadError.value = ''
     openedValue.value = JSON.stringify(form)
@@ -715,7 +723,7 @@ const executeIntent = async (intent: SurveyReceiptIntent, recovery = false) => {
 }
 const recoverOperation = () => pendingIntent.value ? executeIntent(pendingIntent.value, true) : Promise.resolve(false)
 const save = async () => {
-  if (formReadonly.value || saving.value || !inProject(form)) return false
+  if (formReadonly.value || saving.value || executionReading.value || !inProject(form)) return false
   const context = contextSequence
   try {
     await formRef.value.validate()
@@ -725,6 +733,11 @@ const save = async () => {
     return false
   }
   if (!current(context) || formReadonly.value || saving.value || !inProject(form)) return false
+  let execution: SiteSurveyApi.SiteSurveyExecutionSelection | undefined
+  try { execution = await readExecutionForIntent({ projectId: form.projectId, execution: openedExecution, stageCode: props.stageCode }) }
+  catch (error) { message.warning((error as Error).message); return false }
+  if (!current(context) || formReadonly.value || saving.value || !inProject(form)) return false
+  openedExecution = execution
   const payload = savePayload()
   if (!payload) return false
   return executeIntent(pinSurveySave(payload, newIdempotencyKey(), context))
@@ -746,7 +759,9 @@ const saveApplicationSurvey = async () => {
   if (!(await save())) throw new Error('工勘未保存成功，申请尚未创建')
   return { ...form }
 }
-const applicationExecution = async () => openedExecution || await resolveSurveyExecution(form.projectId, route.query)
+const applicationExecution = async () => openedExecution
+  ? readExecutionForIntent({ projectId: form.projectId, execution: openedExecution, stageCode: props.stageCode })
+  : resolveSurveyExecution(form.projectId, route.query)
 const applicationCreated = async (kind: string) => {
   applicationRevision.value++
   if (kind !== 'outsource') return
@@ -783,36 +798,49 @@ const saveExchangeSurvey = async () => {
   return { id: form.id!, projectId: form.projectId, name: form.name }
 }
 const remove = async (row: SiteSurveyVO) => {
-  const execution = executionSelection()
+  let execution = executionSelection()
   if (!can('DELETE') || !inProject(row) || saving.value || pendingIntent.value || receiptReopenRequired.value || row.status !== 0 && !row.outsourceRequestId) return
   const context = contextSequence
   if (row.outsourceRequestId) {
     message.warning('工勘已关联转包申请，请先处理关联申请，不能删除来源记录')
     return
   }
+  if (!execution) {
+    try { execution = await resolveSurveyExecution(row.projectId, route.query) }
+    catch (error) { message.warning((error as Error).message); return }
+    if (!current(context) || !can('DELETE') || !inProject(row) || saving.value || pendingIntent.value) return
+  }
   let intent: SurveyReceiptIntent
   try { intent = pinSurveyAction('delete', row, execution, newIdempotencyKey(), context) }
   catch (error) { message.warning((error as Error).message); return }
   try { await message.delConfirm() } catch { return }
   if (!current(context) || !can('DELETE') || !inProject(row) || saving.value || pendingIntent.value) return
-  await executeIntent(intent)
+  let refreshed: SiteSurveyApi.SiteSurveyExecutionSelection | undefined
+  try { refreshed = await readExecutionForIntent({ projectId: row.projectId, execution, stageCode: props.stageCode }) }
+  catch (error) { message.warning((error as Error).message); return }
+  if (!current(context) || !can('DELETE') || !inProject(row) || saving.value || pendingIntent.value) return
+  await executeIntent(Object.freeze({ ...intent, execution: refreshed }))
 }
 const handleAction = async (row: SiteSurveyVO, action: SurveyAction) => {
-  const execution = executionSelection()
+  let execution = executionSelection()
   if (!['confirm', 'reject', 'archive'].includes(action) || !can(action.toUpperCase()) || !inProject(row) || saving.value || pendingIntent.value || receiptReopenRequired.value || row.status !== (action === 'archive' ? 1 : 0)) return
   const context = contextSequence
+  if (!execution) {
+    try { execution = await resolveSurveyExecution(row.projectId, route.query) }
+    catch (error) { message.warning((error as Error).message); return }
+    if (!current(context) || !can(action.toUpperCase()) || !inProject(row) || saving.value || pendingIntent.value) return
+  }
   let intent: SurveyReceiptIntent
   try { intent = pinSurveyAction(action, row, execution, newIdempotencyKey(), context) }
   catch (error) { message.warning((error as Error).message); return }
   try { await message.confirm(`是否${intent.title}工勘【${row.name}】？`) } catch { return }
   if (!current(context) || !can(action.toUpperCase()) || !inProject(row) || saving.value || pendingIntent.value) return
-  await executeIntent(intent)
+  let refreshed: SiteSurveyApi.SiteSurveyExecutionSelection | undefined
+  try { refreshed = await readExecutionForIntent({ projectId: row.projectId, execution, stageCode: props.stageCode }) }
+  catch (error) { message.warning((error as Error).message); return }
+  if (!current(context) || !can(action.toUpperCase()) || !inProject(row) || saving.value || pendingIntent.value) return
+  await executeIntent(Object.freeze({ ...intent, execution: refreshed }))
 }
-onMounted(() => {
-  UserApi.getSimpleUserList()
-    .then((result) => (users.value = result))
-    .catch(() => message.warning('工勘人员列表加载失败'))
-})
 watch(contextKey, async () => {
   ++contextSequence
   ++listSequence

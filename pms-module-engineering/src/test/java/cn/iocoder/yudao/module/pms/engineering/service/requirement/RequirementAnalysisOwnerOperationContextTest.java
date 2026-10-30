@@ -278,14 +278,18 @@ class RequirementAnalysisOwnerOperationContextTest {
 
         Fixture(boolean stage, String action) {
             selection = selection(stage, 4L); binding = binding(stage, 4L);
-            ProjectBusinessExecutionApi guard = request -> {
+            ProjectBusinessExecutionApi guard = mock(ProjectBusinessExecutionApi.class);
+            doAnswer(invocation -> {
+                ProjectBusinessExecutionApi.WriteRequest request = invocation.getArgument(0);
                 assertNotNull(request.ownerProof(), "old four-argument call must not reappear");
                 assertTrue(request.ownerProof().matches(actor.tenantId(), actor.userId(), request));
                 assertEquals(selection, request.selection()); checked.add(request);
-            };
+                return null;
+            }).when(guard).lockForWrite(any());
             executions = new RequirementAnalysisExecutionAccess(nodes, bindings, guard);
             access = spy(new RequirementAnalysisAccess(mapper, mock(ProjectScopeApi.class), mock(ProjectParticipantFactApi.class),
-                    mock(PermissionApi.class), bindings, executions));
+                    mock(PermissionApi.class), bindings, executions,
+                    mock(cn.iocoder.yudao.module.pms.project.api.participant.ProjectManagementQualificationApi.class)));
             // Stub external project-authorization collaborators only, not the execution/target checks under test.
             doNothing().when(access).requireRead(anyLong(), any(), anyBoolean());
             doNothing().when(access).lockScope(anyLong(), any());

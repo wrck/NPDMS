@@ -148,19 +148,12 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="工勘人员" prop="surveyorUserId">
-            <el-select
+            <UserSelect
               v-model="form.surveyorUserId"
-              filterable
+
               clearable
               placeholder="请选择工勘人员"
-            >
-              <el-option
-                v-for="user in users"
-                :key="user.id"
-                :value="user.id"
-                :label="user.nickname"
-              />
-            </el-select>
+             />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -328,7 +321,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import UserSelect from '@/views/system/user/components/UserSelect.vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
 import { useUserStore } from '@/store/modules/user'
@@ -339,7 +333,6 @@ import type { TaskExecutionContext } from '@/api/pms/project/task-business'
 import type { StageExecutionContext } from '@/api/pms/project/stage-business'
 import type { LocationMaintainRequest } from '@/api/pms/asset/location'
 import * as ProjectApi from '@/api/pms/project/projects'
-import * as UserApi from '@/api/system/user'
 import * as DynamicFormApi from '@/api/pms/platform/dynamic-form'
 import SiteSurveyDynamicForm from './SiteSurveyDynamicForm.vue'
 import { hasStructuredSurveyLocation } from './siteSurveyForm'
@@ -392,7 +385,6 @@ const saving = ref(false)
 const detailReadonly = ref(false)
 const formReadonly = computed(() => detailReadonly.value || !can(form.id ? 'UPDATE' : 'CREATE'))
 const integratedOutsource = ref(false)
-const users = ref<UserApi.UserVO[]>([])
 const dynamicFormRef = ref<InstanceType<typeof SiteSurveyDynamicForm>>()
 const templateVisible = ref(false)
 const templates = ref<DynamicFormApi.DynamicFormSelectionVO[]>([])
@@ -749,11 +741,6 @@ const handleAction = async (row: SiteSurveyVO, action: 'confirm' | 'reject' | 'a
   emit('changed')
   await load()
 }
-onMounted(() => {
-  UserApi.getSimpleUserList()
-    .then((result) => (users.value = result))
-    .catch(() => message.warning('工勘人员列表加载失败'))
-})
 watch(contextKey, async () => {
   ++contextSequence
   ++listSequence

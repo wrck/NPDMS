@@ -98,6 +98,90 @@ class SiteSurveyTaskBusinessObjectProviderTest {
     }
 
     @Test
+    void batchReusesScopeWithinOneInspectionAndPreservesEveryOwnerFactAndAction() {
+        allowWrites();
+        when(mapper.selectTaskObject(any(SiteSurveyEntityTaskObjectQuery.class))).thenAnswer(call -> {
+            SiteSurveyEntityTaskObjectQuery query = call.getArgument(0);
+            var value = row(query.objectId() == 42L ? 0 : query.objectId() == 43L ? 1 : 3);
+            value.setId(query.objectId());
+            return value;
+        });
+        var ids = List.of("42", "43", "44");
+        var expectedActions = provider.inspectContext(context);
+        var expectedObjects = ids.stream().map(id -> provider.inspect(context, id)).toList();
+        clearInvocations(scope, permissions, mapper);
+        var actual = provider.inspectContextAndObjects(context, ids);
+        assertEquals(expectedActions, actual.allowedActions());
+        assertEquals(expectedObjects, actual.objects());
+        verify(scope).resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_VIEW));
+        verify(scope).resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE));
+        verifyNoMoreInteractions(scope);
+        verify(permissions).hasAnyPermissions(9L, "pms:sol-site-survey:query");
+        for (var id : List.of(42L, 43L, 44L)) verify(mapper).selectTaskObject(new SiteSurveyEntityTaskObjectQuery(3L, 100L, id));
+        verifyNoMoreInteractions(mapper);
+    }
+
+    @Test
+    void batchDoesNotReusePermissionsOrFactsOnTheNextInspectionOrLockedRevalidation() {
+        allowWrites();
+        var current = row(0);
+        when(mapper.selectTaskObject(objectQuery)).thenReturn(current);
+        assertTrue(provider.inspectContextAndObjects(context, List.of("42")).objects().getFirst().allowedActions().contains("UPDATE"));
+        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
+                .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(), Set.of()));
+        current.setVersion(8L); current.setStatus(3);
+        var restricted = provider.inspectContextAndObjects(context, List.of("42"));
+        assertEquals(Set.of("QUERY"), restricted.allowedActions());
+        assertEquals(Set.of("QUERY"), restricted.objects().getFirst().allowedActions());
+        assertEquals("SOL_SITE_SURVEY:v1:8:3", restricted.objects().getFirst().factVersion());
+        when(mapper.selectTaskObjectForUpdate(objectQuery)).thenReturn(current);
+        assertThrows(ServiceException.class, () -> provider.lockAndRevalidate(context, "42", "SOL_SITE_SURVEY:v1:7:0"));
+        assertEquals(Set.of("QUERY"), provider.lockAndRevalidate(context, "42", "SOL_SITE_SURVEY:v1:8:3").allowedActions());
+        verify(scope, times(4)).resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_VIEW));
+        verify(scope, times(4)).resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE));
+        verify(mapper, times(2)).selectTaskObjectForUpdate(objectQuery);
+        assertEquals(8, current.getVersion()); assertEquals(3, current.getStatus());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"MISSING", "ID", "TENANT", "PROJECT", "DELETED", "VERSION", "STATUS"})
+    void batchRetainsEveryObjectIdentityAndFactValidation(String invalid) {
+        var value = row(1);
+        switch (invalid) {
+            case "ID" -> value.setId(43L);
+            case "TENANT" -> value.setTenantId(4L);
+            case "PROJECT" -> value.setProjectId(101L);
+            case "DELETED" -> value.setDeleted(true);
+            case "VERSION" -> value.setVersion(null);
+            case "STATUS" -> value.setStatus(9);
+            default -> value = null;
+        }
+        when(mapper.selectTaskObject(objectQuery)).thenReturn(value);
+        assertThrows(ServiceException.class, () -> provider.inspectContextAndObjects(context, List.of("42")));
+        verify(mapper).selectTaskObject(objectQuery);
+        verifyNoMoreInteractions(mapper);
+    }
+
+    @Test
+    void batchRechecksViewRevocationAndScopeFailureBeforeReadingAnyObjects() {
+        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_VIEW)))
+                .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(), Set.of(100L)))
+                .thenThrow(new IllegalStateException("scope owner unavailable"));
+        assertThrows(ServiceException.class, () -> provider.inspectContextAndObjects(context, List.of("42")));
+        assertThrows(IllegalStateException.class, () -> provider.inspectContextAndObjects(context, List.of("42")));
+        assertThrows(ServiceException.class, () -> provider.inspectContextAndObjects(new Context(4L, 9L, 100L, 200L, "spoof"), List.of("42")));
+        assertThrows(ServiceException.class, () -> provider.inspectContextAndObjects(new Context(3L, 8L, 100L, 200L, "spoof"), List.of("42")));
+        verifyNoInteractions(mapper, permissions);
+    }
+
+    private void allowWrites() {
+        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
+                .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
+        for (String action : List.of("create", "update", "delete"))
+            when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:" + action)).thenReturn(true);
+    }
+
+    @Test
     void writesRequireManageAndFunctionalPermissionAndEntityState() {
         when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
                 .tenantId(3L)
@@ -142,6 +226,7 @@ class SiteSurveyTaskBusinessObjectProviderTest {
     @Test
     void noFunctionalQueryPermissionNeverReadsAnObject() {
         when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:query")).thenReturn(false);
+        assertThrows(ServiceException.class, () -> provider.inspectContextAndObjects(context, List.of("42")));
         assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
         assertThrows(ServiceException.class, () -> provider.candidates(context));
         assertThrows(ServiceException.class, () -> provider.lockAndRevalidate(context, "42", "unknownVersion"));

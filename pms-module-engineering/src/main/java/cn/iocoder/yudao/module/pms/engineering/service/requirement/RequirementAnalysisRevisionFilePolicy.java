@@ -75,17 +75,22 @@ public class RequirementAnalysisRevisionFilePolicy implements FileBusinessObject
         try { id = Long.valueOf(objectId); }
         catch (NumberFormatException invalid) { return FormAttachmentPolicy.fact(false, null, true); }
         var actor = new EntityActor(tenantId, userId, null);
+        String fieldKey = purpose.substring(FormAttachmentPolicy.PURPOSE_PREFIX.length());
+        boolean coreField = RequirementAnalysisFields.attachmentKeys().contains(fieldKey);
         var key = new ReadKey(tenantId, userId, id, action, execution);
         var inspected = reads != null && READS.contains(action) ? reads.get(key) : null;
         if (inspected == null) {
             var row = access.read(id, actor);
-            inspected = new Inspection(row, forms.getObject().layout(EntityDataRef.revision(row.revisionRef()), actor));
-            if (reads != null && READS.contains(action)) reads.put(key, inspected);
+            inspected = new Inspection(row, null, false);
         }
+        // Core slots belong to the Owner's fixed fields. Only additional file slots need the
+        // form schema; resolving it for every core lock repeats Owner reads and schema parsing.
+        if (!coreField && !inspected.layoutLoaded()) inspected = new Inspection(inspected.row(),
+                forms.getObject().layout(EntityDataRef.revision(inspected.row().revisionRef()), actor), true);
+        if (reads != null && READS.contains(action)) reads.put(key, inspected);
         var row = inspected.row();
         var layout = inspected.layout();
-        String fieldKey = purpose.substring(FormAttachmentPolicy.PURPOSE_PREFIX.length());
-        if (!RequirementAnalysisFields.attachmentKeys().contains(fieldKey)
+        if (!coreField
                 && (layout == null || layout.fields().stream().noneMatch(field -> field.controlledFile() && field.fieldKey().equals(fieldKey)))) {
             return FormAttachmentPolicy.fact(false, null, true);
         }
@@ -101,11 +106,18 @@ public class RequirementAnalysisRevisionFilePolicy implements FileBusinessObject
         boolean allowed = READS.contains(action) || !frozen && access.isManager(row.getProjectId(), actor);
         // The file binding belongs to an immutable revision identity. Body edits and effective-marker
         // changes must not invalidate existing references; current permission/state is rechecked above.
+        if ("NETWORK_TOPOLOGY__ATTACHMENTS".equals(fieldKey)) {
+            var media = new java.util.HashSet<>(FormAttachmentPolicy.MEDIA_TYPES);
+            media.add("application/vnd.visio");
+            media.add("application/vnd.ms-visio.drawing");
+            return new FileBusinessObjectPolicyFact(allowed, row.getId(), frozen ? "IMMUTABLE" : "MUTABLE", "MULTIPLE",
+                    Set.of(FormAttachmentPolicy.CATEGORY), Set.copyOf(media), FormAttachmentPolicy.MAX_SIZE, "INTERNAL");
+        }
         return FormAttachmentPolicy.fact(allowed, row.getId(), frozen);
     }
 
     private record ReadKey(Long tenantId, Long userId, Long revisionId, String action,
                            tools.jackson.databind.JsonNode execution) { }
     private record Inspection(cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO row,
-                              EntityFormApi.Layout layout) { }
+                              EntityFormApi.Layout layout, boolean layoutLoaded) { }
 }
