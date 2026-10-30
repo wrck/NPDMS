@@ -45,4 +45,16 @@ class FileEvidenceServiceTest {
         verify(artifacts, never()).selectForUpdate(any());
         TenantContextHolder.setTenantId(7L); version.setTenantId(8L); assertFalse(service.lockAndRevalidate(query).valid());
     }
+    @Test void exactReferenceMetadataUsesTheFrozenSlotRatherThanAnotherArtifactReference() {
+        reference.setId(91L); reference.setOwnerContext("ACC"); reference.setObjectType("PROJECT_DELIVERABLE");
+        reference.setObjectId("31"); reference.setPurposeCode("DOCUMENT"); reference.setReferenceKey("frozen-slot");
+        when(references.selectExact(new cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.ExactFileReferenceQuery(
+                7L,"ACC","PROJECT_DELIVERABLE","31","DOCUMENT","frozen-slot"))).thenReturn(reference);
+        when(references.selectIdentity(new FileReferenceMapper.IdentityQuery(7L,91L))).thenReturn(reference);
+        when(artifacts.selectOne(any())).thenReturn(artifact); when(versions.selectOne(any())).thenReturn(version);
+        var exact = service.inspectDocument(new FileEvidenceApi.ReferenceQuery(7L,"ACC","PROJECT_DELIVERABLE","31","DOCUMENT","frozen-slot"));
+        assertEquals(91L,exact.referenceId()); assertEquals("frozen-slot",exact.referenceKey());
+        assertNull(service.inspectDocument(new FileEvidenceApi.ReferenceQuery(7L,"ACC","PROJECT_DELIVERABLE","31","DOCUMENT","other-slot")));
+        verify(references,never()).selectByArtifactForUpdate(any());
+    }
 }

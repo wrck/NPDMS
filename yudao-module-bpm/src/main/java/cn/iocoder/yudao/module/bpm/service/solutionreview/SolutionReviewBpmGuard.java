@@ -34,12 +34,14 @@ public class SolutionReviewBpmGuard {
     private final ProjectParticipantFactApi participants;
     private final ExplicitPermissionApi permissions;
     private final AdminUserApi users;
-    private record Authorized(SolutionReviewBpmApi.Start command, Map<String, Long> candidates) { }
-    private final ThreadLocal<Authorized> authorized = new ThreadLocal<>();
+    private final SolutionReviewRoleTasks roleTasks;
+    record StartAuthorization(SolutionReviewBpmApi.Start command, Map<String, Long> candidates,
+                              Map<String, cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi.RoleReference> roles) { }
+    private final ThreadLocal<StartAuthorization> authorized = new ThreadLocal<>();
 
-    <T> T starting(SolutionReviewBpmApi.Start command, Map<String, Long> candidates, Supplier<T> action) {
+    <T> T starting(StartAuthorization value, Supplier<T> action) {
         if (authorized.get() != null) throw new IllegalStateException("Nested solution review");
-        authorized.set(new Authorized(command, Map.copyOf(candidates)));
+        authorized.set(new StartAuthorization(value.command(), Map.copyOf(value.candidates()), Map.copyOf(value.roles())));
         try { return action.get(); } finally { authorized.remove(); }
     }
 
@@ -51,8 +53,11 @@ public class SolutionReviewBpmGuard {
             throw new IllegalStateException("方案审核必须从已授权方案入口发起");
         runtime.addUserIdentityLink(execution.getProcessInstanceId(), frozen.command().actorId().toString(), PREFIX + "starter");
         runtime.addUserIdentityLink(execution.getProcessInstanceId(), frozen.command().projectId().toString(), PREFIX + "project");
+        runtime.addGroupIdentityLink(execution.getProcessInstanceId(), Integer.toString(frozen.command().reviewLevel()), PREFIX + "reviewLevel");
         frozen.candidates().forEach((key, user) -> runtime.addUserIdentityLink(
                 execution.getProcessInstanceId(), user.toString(), PREFIX + key));
+        frozen.roles().forEach((key, role) -> runtime.addGroupIdentityLink(execution.getProcessInstanceId(),
+                "ROLE:" + role.roleId(), SolutionReviewRoleTasks.ROLE_PREFIX + key));
     }
 
     void authorize(Long tenant, Long actor, Long project, String responsibility) {
@@ -89,6 +94,17 @@ public class SolutionReviewBpmGuard {
         Long tenant = Long.valueOf(task.getTenantId());
         requireTenant(tenant);
         var links = runtime.getIdentityLinksForProcessInstance(task.getProcessInstanceId());
+        var levels = links.stream().filter(link -> (PREFIX + "reviewLevel").equals(link.getType())).toList();
+        if (!levels.isEmpty() && (levels.size() != 1 || !Objects.equals(levels.getFirst().getGroupId(),
+                String.valueOf(task.getVariable("solutionReviewLevel")))))
+            throw new IllegalStateException("方案审核级别不得覆盖提交时的冻结判定");
+        if (links.stream().anyMatch(link -> (SolutionReviewRoleTasks.ROLE_PREFIX + task.getTaskDefinitionKey()).equals(link.getType()))) {
+            if ("complete".equals(task.getEventName()) && !Objects.equals(task.getVariableLocal(
+                    BpmnVariableConstants.TASK_VARIABLE_STATUS), BpmTaskStatusEnum.APPROVE.getStatus()))
+                throw new IllegalStateException("缺少真实 BPM 审批决定");
+            roleTasks.validate(task);
+            return;
+        }
         java.util.function.Function<String, Long> frozen = key -> {
             var found = links.stream().filter(link -> (PREFIX + key).equals(link.getType())).toList();
             if (found.size() != 1) throw new IllegalStateException("审批候选人或业务范围快照缺失");

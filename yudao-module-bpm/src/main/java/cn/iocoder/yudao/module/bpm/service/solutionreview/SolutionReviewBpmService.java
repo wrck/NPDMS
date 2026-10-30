@@ -30,6 +30,11 @@ public class SolutionReviewBpmService implements SolutionReviewBpmApi {
     private final BpmProcessDefinitionService definitions;
     private final ProjectApprovalProcessCreationApi creation;
     private final SolutionReviewBpmGuard guard;
+    private final SolutionReviewRoleTasks roleTasks;
+
+    /** Fresh committed reads also recheck revocations when SOL already holds an outer repeatable-read file transaction. */
+    @Override @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED, readOnly = true)
+    public ReadAccess readAccess(ReadQuery query) { return roleTasks.read(query); }
 
     @Override public Definition definition(Long tenant) {
         requireTenant(tenant);
@@ -96,13 +101,28 @@ public class SolutionReviewBpmService implements SolutionReviewBpmApi {
     public Started start(Start command) {
         requireTenant(command.tenantId());
         var definition = inspectDefinition(command.tenantId(), command.definitionId());
+        if (command.reviewLevel() == 1 && definition.nodes().stream()
+                .filter(node -> "ENGINEERING_MANAGEMENT".equals(node.responsibility()))
+                .noneMatch(node -> repository.getBpmnModel(command.definitionId()).getFlowElement(node.key())
+                        .getExtensionElements().containsKey("pmsReviewRole")))
+            throw new IllegalArgumentException("新的重大方案审批请选用工程管理部角色共享复审流程修订，不能使用历史个人复审定义");
         // 候选人由系统按节点职责解析：服务经理节点取本项目唯一有效服务经理，工程管理部节点取
         // major-review 显式授权的唯一持有人；提交人不指定审批人，也不排除申请人本人
         Map<String, Long> candidates = new LinkedHashMap<>();
+        Map<String, cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi.RoleReference> roleNodes = new LinkedHashMap<>();
         for (var node : definition.nodes()) {
             // 分支网关只在重大方案（审核级别 1）路由到工程管理部复审；普通路径该节点不执行，
             // 不解析、不冻结其候选人，授权未配置不得阻塞普通方案提交
             if ("ENGINEERING_MANAGEMENT".equals(node.responsibility()) && command.reviewLevel() != 1) continue;
+            var task = (UserTask) repository.getBpmnModel(command.definitionId()).getFlowElement(node.key());
+            if ("ENGINEERING_MANAGEMENT".equals(node.responsibility()) && task.getExtensionElements().containsKey("pmsReviewRole")) {
+                var configured = task.getExtensionElements().get("pmsReviewRole");
+                if (configured.size() != 1 || !ENGINEERING_REVIEW_ROLE.equals(configured.getFirst().getElementText())
+                        || !task.getCandidateGroups().equals(List.of("${solutionReviewEngineeringGroup}")))
+                    throw new IllegalArgumentException("工程管理部复审须引用本租户正式角色候选组");
+                roleNodes.put(node.key(), roleTasks.reference(command.tenantId()));
+                continue;
+            }
             Long candidate = "SERVICE_MANAGER".equals(node.responsibility())
                     ? guard.resolveServiceManager(command.tenantId(), command.projectId())
                     : guard.resolveEngineeringReviewer(command.tenantId());
@@ -116,8 +136,11 @@ public class SolutionReviewBpmService implements SolutionReviewBpmApi {
         variables.put("projectId", command.projectId());
         // 分支网关在服务经理审核后按提交时冻结的审核级别路由：重大走工程管理部复审，普通直接结束
         variables.put("solutionReviewLevel", command.reviewLevel());
-        variables.put("solutionReviewCandidates", Map.copyOf(candidates));
-        String id = guard.starting(command, candidates, () -> creation.create(new ProjectApprovalProcessCreationApi.Command(
+        var personal = new HashMap<>(candidates);
+        roleNodes.keySet().forEach(key -> personal.put(key, null));
+        variables.put("solutionReviewCandidates", personal);
+        if (!roleNodes.isEmpty()) variables.put("solutionReviewEngineeringGroup", "ROLE:" + roleNodes.values().iterator().next().roleId());
+        String id = guard.starting(new StartAuthorization(command, candidates, roleNodes), () -> creation.create(new ProjectApprovalProcessCreationApi.Command(
                 command.tenantId(), command.actorId(), definition.key(), definition.id(), command.businessKey(), variables, Map.of())));
         return new Started(id, definition.id(), Map.copyOf(candidates));
     }
@@ -140,12 +163,28 @@ public class SolutionReviewBpmService implements SolutionReviewBpmApi {
         String status = process.getEndTime() == null ? "RUNNING" : state == null ? "UNKNOWN" : state.name();
         if ("APPROVE".equals(status)) {
             var links = history.getHistoricIdentityLinksForProcessInstance(instanceId);
+            var levels = links.stream().filter(link -> (PREFIX + "reviewLevel").equals(link.getType())).toList();
+            boolean sharedRole = links.stream().anyMatch(link -> link.getType() != null && link.getType().startsWith(SolutionReviewRoleTasks.ROLE_PREFIX));
+            if ((!levels.isEmpty() || sharedRole) && (levels.size() != 1 || !Set.of("0", "1").contains(levels.getFirst().getGroupId())))
+                throw new IllegalStateException("方案冻结审核级别缺失或不完整");
             for (var node : definition.nodes()) {
                 // 分支网关未路由到的节点不产生审核记录；服务经理审核是所有路径的必经节点
                 boolean executed = history.createHistoricActivityInstanceQuery().processInstanceId(instanceId)
                         .activityId(node.key()).finished().count() > 0;
+                boolean requiredByFrozenLevel = levels.size() == 1 && ("SERVICE_MANAGER".equals(node.responsibility())
+                        || "1".equals(levels.getFirst().getGroupId()) && "ENGINEERING_MANAGEMENT".equals(node.responsibility()));
+                if (!executed && requiredByFrozenLevel) throw new IllegalStateException("方案未完成冻结审核级别要求的全部人工节点");
                 if (!executed) continue;
                 var candidates = links.stream().filter(link -> (PREFIX + node.key()).equals(link.getType())).toList();
+                var role = links.stream().filter(link -> (SolutionReviewRoleTasks.ROLE_PREFIX + node.key()).equals(link.getType())).toList();
+                if (!role.isEmpty()) {
+                    var decider = links.stream().filter(link -> (SolutionReviewRoleTasks.DECIDER_PREFIX + node.key()).equals(link.getType())).toList();
+                    if (role.size() != 1 || decider.size() != 1 || role.getFirst().getGroupId() == null
+                            || reviews.stream().noneMatch(review -> node.key().equals(review.nodeKey()) && "APPROVE".equals(review.decision())
+                            && review.userId() != null && review.userId().toString().equals(decider.getFirst().getUserId())))
+                        throw new IllegalStateException("方案未完成角色成员的真实人工复审");
+                    continue;
+                }
                 if (candidates.size() != 1 || reviews.stream().noneMatch(review -> node.key().equals(review.nodeKey())
                         && "APPROVE".equals(review.decision()) && review.userId() != null
                         && candidates.getFirst().getUserId().equals(review.userId().toString())))

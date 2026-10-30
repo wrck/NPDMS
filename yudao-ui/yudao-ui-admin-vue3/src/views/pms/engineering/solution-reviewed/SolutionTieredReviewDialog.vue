@@ -52,6 +52,8 @@ const visible = ref(false), loading = ref(false), saving = ref(false), error = r
 const solution = ref<SolutionVO>(), record = ref<ReviewApi.ReviewRecord | null>(null)
 const definition = ref<ReviewApi.ReviewDefinition>()
 const readiness = ref<ReviewApi.SubmissionReadiness>()
+let openSequence = 0
+let beforeSubmit: (() => Promise<SolutionVO>) | undefined
 const openApprovalDetail = useProjectApprovalDetail(), message = useMessage()
 const statusLabel = computed(() => ({ RUNNING: '审核中', APPROVE: '已通过', REJECT: '已驳回', CANCEL: '已撤回' })[record.value?.status || ''] || record.value?.status)
 const history = computed(() => record.value?.reviewsJson ? JSON.parse(record.value.reviewsJson) : [])
@@ -61,28 +63,41 @@ const reviewDecisionLabel = (decision: string) => ({ APPROVE: '通过', REJECT: 
 const routedNodes = computed(() => (definition.value?.nodes || []).filter(
   (node) => node.responsibility === 'SERVICE_MANAGER' || solution.value?.reviewLevel === 1,
 ))
-const open = async (row: SolutionVO) => {
-  visible.value = true; loading.value = true; error.value = ''; solution.value = row
+const open = async (row: SolutionVO, options?: { beforeSubmit: () => Promise<SolutionVO> }) => {
+  const sequence = ++openSequence
+  beforeSubmit = options?.beforeSubmit
+  visible.value = true; loading.value = true; error.value = ''; solution.value = { ...row }
   record.value = null; definition.value = undefined; readiness.value = undefined
   try {
-    record.value = await ReviewApi.read(row.projectId, row.id!)
+    const currentRecord = row.id ? await ReviewApi.read(row.projectId, row.id) : null
+    if (sequence !== openSequence || !visible.value) return
+    record.value = currentRecord
     if (record.value?.status === 'RUNNING') await openProcess()
-    else if (!record.value) [definition.value, readiness.value] = await Promise.all([
-      ReviewApi.definition(), ReviewApi.submissionReadiness(row.projectId)
-    ])
-  } catch (failure: any) { error.value = failure?.message || '方案审批信息加载失败，请关闭后重试' }
-  finally { loading.value = false }
+    else if (!record.value) {
+      const prepared = await Promise.all([ReviewApi.definition(), ReviewApi.submissionReadiness(row.projectId)])
+      if (sequence !== openSequence || !visible.value) return
+      ;[definition.value, readiness.value] = prepared
+    }
+  } catch (failure: any) {
+    if (sequence === openSequence) error.value = failure?.message || '方案审批信息加载失败，请关闭后重试'
+  } finally { if (sequence === openSequence) loading.value = false }
 }
 const submit = async () => {
-  if (props.readonly || !solution.value || !definition.value || loading.value || readiness.value?.allowed !== true) return
+  if (props.readonly || !visible.value || !solution.value || !definition.value || record.value || loading.value || saving.value || readiness.value?.allowed !== true) return
+  const sequence = openSequence, prepare = beforeSubmit, processDefinitionId = definition.value.id
   saving.value = true
   try {
-    record.value = await ReviewApi.start({ projectId: solution.value.projectId, solutionId: solution.value.id!,
-      expectedVersion: solution.value.version!, processDefinitionId: definition.value.id })
+    const current = prepare ? await prepare() : solution.value
+    if (sequence !== openSequence || !visible.value) return
+    solution.value = current
+    const started = await ReviewApi.start({ projectId: current.projectId, solutionId: current.id!,
+      expectedVersion: current.version!, processDefinitionId })
+    if (sequence !== openSequence) { emit('changed'); return }
+    record.value = started
     message.success('已提交审批'); emit('changed')
     if (checkPermi(['bpm:process-instance:query'])) await openProcess()
-  } catch {
-    // 拦截器已弹后端错误提示；此处吞掉 rejection，防止逃逸到业务视图错误边界导致整块工作区被替换
+  } catch (failure: any) {
+    message.error(failure?.message || '方案保存或提交失败，请修正后重试')
   } finally { saving.value = false }
 }
 const openProcess = () => {

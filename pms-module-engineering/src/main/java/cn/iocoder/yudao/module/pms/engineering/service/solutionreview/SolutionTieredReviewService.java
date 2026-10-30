@@ -58,10 +58,22 @@ public class SolutionTieredReviewService {
         var parts = businessKey.split(":");
         if (!Objects.equals(parts[1], TenantContextHolder.getRequiredTenantId().toString())) throw exception(FORBIDDEN);
         var solution = solutions.selectById(Long.valueOf(parts[2]));
-        if (solution == null) throw exception(FORBIDDEN);
-        authorize(solution.getProjectId(), false);
+        if (solution == null || Boolean.TRUE.equals(solution.getDeleted())
+                || !Objects.equals(solution.getTenantId(), TenantContextHolder.getRequiredTenantId())) throw exception(FORBIDDEN);
         var review = reviews.bySolution(new SolutionReviewQuery(TenantContextHolder.getRequiredTenantId(), solution.getProjectId(), solution.getId(), false));
         if (review == null || !Objects.equals(review.getBusinessKey(), businessKey)) throw exception(FORBIDDEN);
+        Long actor = SecurityFrameworkUtils.getLoginUserId();
+        if (actor == null) throw exception(FORBIDDEN);
+        var visible = permissions.hasAnyPermissions(actor, "pms:sol-solution:query")
+                ? scope.resolveCurrent(ProjectCurrentScopeQuery.builder().tenantId(TenantContextHolder.getRequiredTenantId())
+                    .subjectUserId(actor).anchorProjectId(solution.getProjectId()).actionCode(ProjectScopeApi.ACTION_VIEW).build()) : null;
+        if (visible == null || visible.fullProjectIds() == null || !visible.fullProjectIds().contains(solution.getProjectId())) {
+            var access = bpm.readAccess(new SolutionReviewBpmApi.ReadQuery(TenantContextHolder.getRequiredTenantId(), actor, businessKey));
+            if (access == null || !Objects.equals(access.businessKey(), businessKey)
+                    || !Objects.equals(access.processInstanceId(), review.getProcessInstanceId())
+                    || !"RUNNING".equals(review.getStatus()) || !Integer.valueOf(2).equals(solution.getStatus())
+                    || !Objects.equals(solution.getVersion(), review.getSourceVersion())) throw exception(FORBIDDEN);
+        }
         return solution;
     }
 

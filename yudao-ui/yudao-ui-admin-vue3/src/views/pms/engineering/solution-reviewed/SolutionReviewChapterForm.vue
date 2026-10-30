@@ -7,7 +7,7 @@
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="emit('save')">保存草稿</el-button>
       <el-button v-if="!readOnly && !customerDocUrl" @click="generateFromSources">生成方案（引用前序数据）</el-button>
       <!-- 原生按钮不继承 ElForm 的编辑禁用状态；下载仍经过服务端文件与Owner授权。 -->
-      <button v-if="!customerDocUrl" type="button" class="el-button" :disabled="solutionDownloadBusy || !form.id" :aria-busy="solutionDownloadBusy" @click="downloadSolution">
+      <button v-if="!customerDocUrl && !reviewContext" type="button" class="el-button" :disabled="solutionDownloadBusy || !form.id" :aria-busy="solutionDownloadBusy" @click="downloadSolution">
         <span>{{ solutionDownloadBusy ? '正在生成…' : '下载方案' }}</span>
       </button>
       <el-button v-if="!readOnly" type="warning" :loading="saving" @click="emit('submitReview')">提交审核</el-button>
@@ -15,7 +15,8 @@
 
     <!-- 客户方案文档：登记客户文档的版本正文即该文档，直接内嵌展示且不再渲染九章手工文本；
          文件端点以 attachment 下发，直接内嵌 src 会被浏览器拦为下载，故经取流转 Blob 预览 -->
-    <section v-if="customerDocUrl" class="customer-doc">
+    <p v-if="customerDocUrl && reviewContext">客户方案正文请从下方“本次审批附件”读取。</p>
+    <section v-if="customerDocUrl && !reviewContext" class="customer-doc">
       <div class="customer-doc-head">
         <span class="customer-doc-title">客户方案文档</span>
         <el-link v-for="(url,index) in customerDocUrls" :key="url" type="primary" @click="downloadCustomerSolutionDocument(url)">下载/查看{{ customerSolutionDocumentName(url)||`文件${customerDocUrls.length>1?` ${index+1}`:''}` }}</el-link>
@@ -124,7 +125,7 @@
     <section class="chapter">
       <div class="chapter-title">2. 现网现状分析</div>
       <el-form-item label="2.1 现网拓扑图" label-width="140px">
-        <RequirementTopologyFiles v-if="!topology.asIsUrl && requirementSource" :source="requirementSource" />
+        <RequirementTopologyFiles v-if="!reviewContext && !topology.asIsUrl && requirementSource" :source="requirementSource" />
         <UploadFile v-model="topology.asIsUrl" :disabled="readOnly" :file-type="topologyFileTypes" />
       </el-form-item>
       <el-form-item label="2.2 现网资源确认" label-width="140px">
@@ -143,7 +144,8 @@
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'no'" label-width="140px">
         <div v-if="stripHtml(reqTopology) || !requirementTopologyFiles(requirementSource).length" class="ref-body standalone">直接调用需求分析中的网络拓扑：{{ stripHtml(reqTopology) || '需求分析暂无网络拓扑' }}</div>
-        <RequirementTopologyFiles :source="requirementSource" />
+        <p v-if="reviewContext">引用需求的拓扑文件见下方“本次审批附件”。</p>
+        <RequirementTopologyFiles v-else :source="requirementSource" />
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'yes'" label="上传最新拓扑" label-width="140px">
         <UploadFile v-model="topology.toBeUrl" :disabled="readOnly" :file-type="topologyFileTypes" />
@@ -228,7 +230,7 @@
           </el-upload>
           <div class="form-tip">可手动录入，或上传 TXT、CFG、CONF、SH、LOG 文件解析后继续编辑；上传文件保留原件，非必填。</div>
           <div v-if="scriptFileName(item.key)" class="form-tip">{{ scriptFileName(item.key) }}</div>
-          <el-link v-if="storedScript(item.key) && !pendingScripts.some(pending => pending.section === item.key)" type="primary" @click="downloadScript(item.key)">下载原始脚本文件</el-link>
+          <el-link v-if="!reviewContext && storedScript(item.key) && !pendingScripts.some(pending => pending.section === item.key)" type="primary" @click="downloadScript(item.key)">下载原始脚本文件</el-link>
         </div>
       </el-form-item>
     </section>
@@ -353,7 +355,7 @@
     </section>
     </template>
   </div>
-  <DeliveryPanel v-if="form.id" owner-module="SOL" entity-type="solution" :entity-id="form.id" />
+  <DeliveryPanel v-if="form.id && !reviewContext" owner-module="SOL" entity-type="solution" :entity-id="form.id" />
 </template>
 
 <script setup lang="ts">
@@ -384,7 +386,7 @@ import { useBusinessActionBar } from '@/components/BusinessView/businessActionBa
 
 defineOptions({ name: 'SolutionChapterForm' })
 
-const props = defineProps<{ readOnly: boolean; saving?: boolean }>()
+const props = defineProps<{ readOnly: boolean; saving?: boolean; reviewContext?: boolean; reviewRequirement?: Record<string, unknown> }>()
 const emit = defineEmits<{ save: []; submitReview: [] }>()
 const form = defineModel<SolutionVO>({ required: true })
 const pendingScripts = defineModel<PendingScript[]>('pendingScripts', { default: () => [] })
@@ -671,7 +673,7 @@ watch(
     const seq = ++customerDocLoadSeq.value
     releaseCustomerDocBlob()
     customerDocPreviewSrc.value = ''
-    if (!url || !previewable) return
+    if (!url || !previewable || props.reviewContext) return
     const primary=customerDocUrls.value[0]
     const candidates = [primary]
     const pathIndex = primary.indexOf('/admin-api/')
@@ -735,6 +737,7 @@ const loadRequirement = async () => {
   latestRequirement.value = null
   requirementError.value = ''
   requirementLoading.value = false
+  if (props.reviewContext) { reqValues.value = props.reviewRequirement || {}; return }
   if (!projectId) return
   requirementLoading.value = true
   try {
@@ -755,7 +758,7 @@ const loadRequirement = async () => {
     if (requestId === requirementRequest) requirementLoading.value = false
   }
 }
-watch(() => [props.readOnly, form.value.projectId, form.value.id], () => { void loadRequirement() }, { immediate: true })
+watch(() => [props.readOnly, props.reviewContext, props.reviewRequirement, form.value.projectId, form.value.id], () => { void loadRequirement() }, { immediate: true })
 
 // 引用数据按项目加载；工作台自动选中时 projectId 晚于挂载到达，须响应式触发
 let referencesProjectId = 0
@@ -934,7 +937,7 @@ onBeforeUnmount(() => { solutionExportActive = false })
 const exportIdentity = () => JSON.stringify({ form: form.value, topology, tables, scripts, meta,
   requirementSource: requirementSource.value })
 const downloadSolution = async () => {
-  if (solutionDownloadBusy.value) return
+  if (props.reviewContext || solutionDownloadBusy.value) return
   solutionDownloadBusy.value = true
   solutionDownloadError.value = ''
   try {

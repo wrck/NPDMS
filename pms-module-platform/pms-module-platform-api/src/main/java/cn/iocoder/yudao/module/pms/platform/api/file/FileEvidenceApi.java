@@ -7,6 +7,10 @@ public interface FileEvidenceApi {
     default java.time.LocalDateTime referenceCreatedAt(ReferenceIdentity query) { return null; }
     /** Internal metadata only. Owner project identity must be independently resolved before use. */
     default Document inspectDocument(Long tenantId, Long referenceId) { return null; }
+    record ReferenceQuery(Long tenantId, String ownerContext, String objectType, String objectId,
+                          String purposeCode, String referenceKey) { }
+    /** Exact immutable slot identity; never choose another reference to the same artifact version. */
+    default Document inspectDocument(ReferenceQuery query) { return null; }
 
     /**
      * 按工件版本反查引用文档（引用≈工件版本 1:1）：业务事件只携带 artifactId+versionNo

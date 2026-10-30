@@ -15,6 +15,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class SolutionReviewController {
     private final SolutionTieredReviewService service;
     private final SolutionReviewBpmApi bpm;
+    private final cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewReadMaterials materials;
     @GetMapping("/submission-readiness") @PreAuthorize("@ss.hasPermission('pms:sol-solution:query')")
     public CommonResult<cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectTaskPrerequisiteApi.Readiness> submissionReadiness(@RequestParam Long projectId) {
         return success(service.submissionReadiness(projectId));
@@ -27,11 +28,26 @@ public class SolutionReviewController {
     public CommonResult<Object> invalid(IllegalArgumentException error) { return CommonResult.error(400,error.getMessage()); }
     @GetMapping("/definition") @PreAuthorize("@ss.hasPermission('pms:sol-solution:query')")
     public CommonResult<SolutionReviewBpmApi.Definition> definition() { return success(bpm.definition(TenantContextHolder.getRequiredTenantId())); }
-    @GetMapping("/source") @PreAuthorize("@ss.hasPermission('pms:sol-solution:query')")
+    @GetMapping("/source") @PreAuthorize("@ss.hasAnyPermissions('pms:sol-solution:query','pms:sol-solution:major-review')")
     @cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog(requestEnable = false, responseEnable = false)
     public CommonResult<cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionRespVO> source(@RequestParam String businessKey) {
         return success(cn.iocoder.yudao.framework.common.util.object.BeanUtils.toBean(service.sourceForReview(businessKey),
                 cn.iocoder.yudao.module.pms.engineering.controller.admin.solution.vo.SolutionRespVO.class));
+    }
+    @GetMapping("/materials") @PreAuthorize("@ss.hasAnyPermissions('pms:sol-solution:query','pms:sol-solution:major-review')")
+    @cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog(requestEnable = false, responseEnable = false)
+    public CommonResult<cn.iocoder.yudao.module.pms.engineering.service.solutionreview.SolutionReviewReadMaterials.Materials> materials(@RequestParam String businessKey) {
+        return success(materials.read(businessKey));
+    }
+    @GetMapping("/attachment") @PreAuthorize("@ss.hasAnyPermissions('pms:sol-solution:query','pms:sol-solution:major-review')")
+    @cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog(requestEnable = false, responseEnable = false)
+    public org.springframework.http.ResponseEntity<byte[]> attachment(@RequestParam String businessKey, @RequestParam Long referenceId) {
+        var content = materials.content(new cn.iocoder.yudao.module.pms.platform.api.file.OwnerScopedFileContentApi.Query("SOL_REVIEW", businessKey, referenceId));
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, org.springframework.http.ContentDisposition.attachment()
+                        .filename(content.name(), java.nio.charset.StandardCharsets.UTF_8).build().toString())
+                .contentType(org.springframework.http.MediaType.parseMediaType(content.mediaType() == null ? "application/octet-stream" : content.mediaType()))
+                .body(content.bytes());
     }
     @GetMapping @PreAuthorize("@ss.hasPermission('pms:sol-solution:query')")
     public CommonResult<SolutionReviewDO> read(@RequestParam Long projectId, @RequestParam Long solutionId) {
