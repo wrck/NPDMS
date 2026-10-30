@@ -1,0 +1,55 @@
+# Install in nginx conf.d (http context). TLS private keys supplied in RAM by secret agent.
+map $http_upgrade $npdms_connection { default upgrade; '' close; }
+log_format npdms_safe '$remote_addr $request_method $status $body_bytes_sent $request_time';
+server {
+    listen 443 ssl;
+    server_name @@internal_domain@@;
+    ssl_certificate /etc/sdp/tls/frontend.crt;
+    ssl_certificate_key /run/sdp-secrets/frontend.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    root /opt/sdp/frontend/current;
+    access_log /var/log/nginx/npdms-access.log npdms_safe;
+    # Default error logs can contain customer tokens in URIs; route diagnostics through redacted telemetry.
+    error_log /dev/null;
+    add_header Referrer-Policy no-referrer always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Cache-Control no-store always;
+    client_max_body_size 52m;
+    client_body_temp_path /run/sdp-nginx/body;
+    proxy_temp_path /run/sdp-nginx/proxy;
+    location ~ (^|/)\. { return 404; }
+    location ~ \.map$ { return 404; }
+    location /admin-api/ {
+        proxy_pass https://@@be_ip@@:443;
+        proxy_ssl_server_name on;
+        proxy_ssl_name @@backend_tls_name@@;
+        proxy_ssl_verify on;
+        proxy_ssl_trusted_certificate /etc/sdp/tls/backend-ca.crt;
+        proxy_set_header Host @@backend_tls_name@@;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 300s;
+    }
+    location = /infra/ws {
+        proxy_pass https://@@be_ip@@:443;
+        proxy_ssl_server_name on;
+        proxy_ssl_name @@backend_tls_name@@;
+        proxy_ssl_verify on;
+        proxy_ssl_trusted_certificate /etc/sdp/tls/backend-ca.crt;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $npdms_connection;
+        proxy_set_header Host @@backend_tls_name@@;
+        proxy_read_timeout 300s;
+    }
+    location /actuator { return 404; }
+    location /v3/api-docs { return 404; }
+    location /swagger { return 404; }
+    location /api/ { return 404; }
+    location /app-api/ { return 404; }
+    location /assets/ { try_files $uri =404; }
+    location / { try_files $uri $uri/ /index.html; }
+}

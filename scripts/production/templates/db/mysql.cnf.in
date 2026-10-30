@@ -1,0 +1,25 @@
+[mysqld]
+basedir=/opt/sdp/mysql
+datadir=/data/mysql
+tmpdir=/data/mysql-tmp
+bind-address=@@db_ip@@
+port=3306
+socket=/run/sdp-mysql/mysql.sock
+pid-file=/run/sdp-mysql/mysql.pid
+log-error=/var/log/sdp/mysql/error.log
+mysqlx=0
+auto-generate-certs=OFF
+sha256-password-auto-generate-rsa-keys=OFF
+caching-sha2-password-auto-generate-rsa-keys=OFF
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+server-id=10419
+log-bin=/data/mysql/mysql-bin
+binlog-format=ROW
+sync-binlog=1
+innodb-flush-log-at-trx-commit=1
+require-secure-transport=ON
+ssl-ca=/etc/sdp/mysql-tls/ca.pem
+ssl-cert=/etc/sdp/mysql-tls/server-cert.pem
+ssl-key=/run/sdp-secrets/mysql-server-key.pem
+# Binlog retention/capacity is set by DBA after backup shipping is verified.

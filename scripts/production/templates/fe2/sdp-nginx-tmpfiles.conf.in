@@ -1,0 +1,3 @@
+d /run/sdp-nginx 0750 www-data www-data -
+d /run/sdp-nginx/body 0750 www-data www-data -
+d /run/sdp-nginx/proxy 0750 www-data www-data -

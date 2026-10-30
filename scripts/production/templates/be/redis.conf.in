@@ -1,0 +1,9 @@
+bind 127.0.0.1
+protected-mode yes
+port 6379
+daemonize no
+supervised no
+dir /data/redis
+appendonly yes
+appendfsync everysec
+aclfile /run/sdp-secrets/redis.acl
