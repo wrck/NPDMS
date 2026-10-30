@@ -63,7 +63,7 @@ export const systemUserSelection = {
     query: { keyword: string; pageNo: number; pageSize: number }
   ) => source.search(query),
   scopedResolve: (source: ScopedUserSelectionSource, ids: SystemUserId[]) =>
-    source.resolve ? source.resolve(ids) : Promise.resolve([]),
+    ids.length && source.resolve ? source.resolve(ids) : Promise.resolve([]),
   // Business dropdown: enabled, sparse candidates under the original simple-list contract.
   active: () => UserApi.getSimpleUserList(),
   // Management search/resolve: existing system:user:query permission is still checked by SYSTEM.

@@ -16,11 +16,12 @@ class BusinessUserSelectionControllerTest {
     @Test void bindsBusinessSearchAndReturnsOnlySparseOptionsWithExactLongIdentifier() throws Exception {
         var selections = mock(BusinessUserSelectionApi.class);
         when(selections.page(any())).thenReturn(new PageResult<>(List.of(
-                new BusinessUserSelectionApi.Option(2115387679367467008L, "张三", 3L, "交付")), 2L));
+                new BusinessUserSelectionApi.Option(2115387679367467008L, "张三", "z00001", 3L, "交付")), 2L));
         var mvc = MockMvcBuilders.standaloneSetup(new BusinessUserSelectionController(selections)).build();
         mvc.perform(get("/api/v1/pms/user-selections").param("keyword", "zhangsan").param("pageNo", "2").param("pageSize", "1"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.total").value(2))
                 .andExpect(jsonPath("$.data.list[0].nickname").value("张三"))
+                .andExpect(jsonPath("$.data.list[0].username").value("z00001"))
                 .andExpect(jsonPath("$.data.list[0].id").value(2115387679367467008L))
                 .andExpect(jsonPath("$.data.list[0].email").doesNotExist())
                 .andExpect(jsonPath("$.data.list[0].mobile").doesNotExist());

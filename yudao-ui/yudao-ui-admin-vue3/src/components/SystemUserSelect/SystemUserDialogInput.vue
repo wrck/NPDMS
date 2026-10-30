@@ -64,6 +64,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatSystemUserLabel } from './userLabel'
 import {
   systemUserSelection,
   sameSystemUserId,
@@ -115,7 +116,7 @@ onBeforeUnmount(() => {
 })
 const selectedItems = ref<SystemUserSelectionUser[]>([]) // 当前选中的用户
 
-/** 输入框显示文本：展示用户昵称，保持简洁 */
+/** 输入框显示与下拉框一致，业务值仍保留用户 ID。 */
 const displayLabel = computed(() => {
   const ids = Array.isArray(props.modelValue)
     ? props.modelValue
@@ -125,7 +126,7 @@ const displayLabel = computed(() => {
   return ids
     .map((id) => {
       const user = selectedItems.value.find((item) => sameSystemUserId(id, item.id))
-      return user?.nickname || user?.username || `用户 ${id}`
+      return (user && formatSystemUserLabel(user)) || `用户 ${id}`
     })
     .join('、')
 })

@@ -1,26 +1,28 @@
 import { defineComponent, h, nextTick, reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { getSimpleUserList } from '@/api/system/user'
+import { searchPmsUserOptions } from '@/api/pms/platform/user-selection'
 import type { TemplateDesignerDocument } from '@/api/pms/project/project-templates'
 import TemplateClosurePolicyEditor from './TemplateClosurePolicyEditor.vue'
 import { cloneContent, emptyContent } from './editorModel'
 import { mount, textOf, type TestNode } from '../../platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/config/axios', () => ({ default: {} }))
+vi.mock('@/api/pms/platform/user-selection', () => ({ searchPmsUserOptions: vi.fn(), pmsUserSelectionSource: (key: string) => ({ key, search: searchPmsUserOptions, resolve: async () => [] }) }))
 vi.mock('@/api/system/user', () => ({ getSimpleUserList: vi.fn() }))
 const control = (name: string) => defineComponent({ inheritAttrs: false, setup(_, { attrs, slots }) { return () => h(name, attrs, slots.default?.()) } })
 const controls = { ElCheckbox: control('checkbox'), ElSelect: control('select'), ElOption: control('option') }
 const all = (node: TestNode, type: string): TestNode[] => [...(node.type === type ? [node] : []), ...node.children.flatMap((child) => all(child, type))]
 const change = async (node: TestNode, value: unknown) => { (node.props!['onUpdate:modelValue'] as Function)(value); await nextTick() }
 const setup = (content = reactive(emptyContent()), readonly = false) => ({ content, ...mount(TemplateClosurePolicyEditor, { content, readonly }, controls) })
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks(); vi.mocked(searchPmsUserOptions).mockResolvedValue({ list: [{ id: '9223372036854775807', nickname: '测试审核人' }, { id: 27, nickname: '材料审核候选' }, { id: '9007199254740993', nickname: '原审核人' }], total: 3 }) })
+const openUsers = async (root: TestNode) => { (all(root, 'select')[0].props!.onVisibleChange as Function)(true); for (let i = 0; i < 6; i++) { await Promise.resolve(); await nextTick() } }
 
 describe('Designer V2 minimal NORMAL closure policy', () => {
   it('keeps an unconfigured Designer without closure capability', () => {
     const { content, root } = setup()
     expect(content.closurePolicy).toBeUndefined()
     expect(textOf(root)).toContain('未启用不代表条件满足')
-    expect(getSimpleUserList).not.toHaveBeenCalled()
+    expect(searchPmsUserOptions).not.toHaveBeenCalled()
   })
 
   it('writes exactly the approved fixed rule into DesignerDocument', async () => {
@@ -38,6 +40,7 @@ describe('Designer V2 minimal NORMAL closure policy', () => {
   it('preserves decimal string reviewer IDs through Designer cloning', async () => {
     const { content, root } = setup()
     await change(all(root, 'checkbox')[0], true)
+    await openUsers(root)
     await change(all(root, 'select')[0], '9223372036854775807')
     const copy = cloneContent(content)
     expect(copy.closurePolicy?.reviewerUserId).toBe('9223372036854775807')
@@ -56,26 +59,28 @@ describe('Designer V2 minimal NORMAL closure policy', () => {
   })
 
   it('uses user identities only for selection and excludes disabled users', async () => {
-    vi.mocked(getSimpleUserList).mockResolvedValue([
-      { id: 27, nickname: '材料审核候选', status: 0 }, { id: 28, nickname: '停用人员', status: 1 }
-    ] as Awaited<ReturnType<typeof getSimpleUserList>>)
+    vi.mocked(searchPmsUserOptions).mockResolvedValue({ list: [{ id: 27, nickname: '材料审核候选' }], total: 1 })
     const { root, content } = setup()
     await change(all(root, 'checkbox')[0], true)
-    await (all(root, 'select')[0].props!.onVisibleChange as Function)(true)
-    await nextTick()
+    await openUsers(root)
     expect(all(root, 'option').map((option) => option.props!.value)).toEqual([27])
     expect(content.closurePolicy?.reviewerUserId).toBe('')
   })
 
   it('retains the selected reviewer when lookup fails', async () => {
-    vi.mocked(getSimpleUserList).mockRejectedValue(new Error('服务不可用'))
     const { root, content } = setup()
     await change(all(root, 'checkbox')[0], true)
+    await openUsers(root)
     await change(all(root, 'select')[0], '9007199254740993')
-    await (all(root, 'select')[0].props!.onVisibleChange as Function)(true)
-    await nextTick()
-    expect(content.closurePolicy?.reviewerUserId).toBe('9007199254740993')
-    expect(textOf(root)).toContain('已选用户保留')
+    vi.mocked(searchPmsUserOptions).mockRejectedValue(new Error('服务不可用'))
+    vi.useFakeTimers()
+    try {
+      ;(all(root, 'select')[0].props!['remote-method'] as Function)('其他')
+      await vi.advanceTimersByTimeAsync(350)
+      await nextTick()
+      expect(content.closurePolicy?.reviewerUserId).toBe('9007199254740993')
+      expect(textOf(root)).toContain('人员候选加载失败')
+    } finally { vi.useRealTimers() }
   })
 
   it('read-only Designer cannot be changed by emitted control events', async () => {

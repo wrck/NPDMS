@@ -18,5 +18,5 @@ public interface BusinessUserSelectionApi {
             userIds = userIds == null ? null : Set.copyOf(userIds);
         }
     }
-    record Option(Long id, String nickname, Long deptId, String deptName) { }
+    record Option(Long id, String nickname, String username, Long deptId, String deptName) { }
 }

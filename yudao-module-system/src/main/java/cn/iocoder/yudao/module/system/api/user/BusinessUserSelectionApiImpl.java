@@ -51,7 +51,7 @@ public class BusinessUserSelectionApiImpl implements BusinessUserSelectionApi {
         long offset = ((long) query.pageNo() - 1) * query.pageSize();
         var list = matches.stream().skip(offset).limit(query.pageSize()).map(user -> {
             DeptDO dept = user.getDeptId() == null ? null : deptMap.get(user.getDeptId());
-            return new Option(user.getId(), user.getNickname(), user.getDeptId(), dept == null ? null : dept.getName());
+            return new Option(user.getId(), user.getNickname(), user.getUsername(), user.getDeptId(), dept == null ? null : dept.getName());
         }).toList();
         return new PageResult<>(list, (long) matches.size());
     }

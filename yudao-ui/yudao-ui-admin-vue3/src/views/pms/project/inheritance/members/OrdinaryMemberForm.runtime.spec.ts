@@ -249,7 +249,7 @@ describe('unified ordinary member form', () => {
     ;(select.props!.onVisibleChange as (opened: boolean) => void)(true)
     ;(select.props!.onPopupScroll as (value: { scrollTop: number }) => void)({ scrollTop: 200 })
     await flush()
-    const retry = find(root, item => Boolean(item.props?.onClick) && textOf(item).includes('重试'))!
+    const retry = find(root, item => Boolean(item.props?.onClick) && textOf(item).includes('重新加载用户'))!
     await (retry.props!.onClick as () => Promise<void>)(); await flush()
     expect(vi.mocked(Members.getMemberCandidates).mock.calls.map(call => call[1].pageNo)).toEqual([1, 2, 2])
     app.unmount()
@@ -283,8 +283,8 @@ describe('unified ordinary member form', () => {
     await (select().props!['remote-method'] as (value: string) => Promise<void>)(''); await new Promise(resolve => setTimeout(resolve, 320)); await flush()
     finish({ list: [{ id: 40, username: 'old', nickname: '旧角色候选' }], total: 1 })
     await pending; await flush()
-    expect(find(root, item => item.props?.label === '销售人员（sales）')).toBeTruthy()
-    expect(find(root, item => item.props?.label === '旧角色候选（old）')).toBeUndefined()
+    expect(find(root, item => item.props?.label === 'sales-销售人员')).toBeTruthy()
+    expect(find(root, item => item.props?.label === 'old-旧角色候选')).toBeUndefined()
     app.unmount()
   })
 })

@@ -69,3 +69,39 @@ it('retains the display name after a failed directory request without adding sel
     page.app.unmount()
   }
 })
+
+it('keeps an unresolved selected ID hidden until its name loads, including read-only fields', async () => {
+  let finish: (items: any[]) => void = () => undefined
+  vi.mocked(systemUserSelection.active).mockReturnValueOnce(new Promise(resolve => { finish = resolve }))
+  const page = render({ currentLabel: '', disabled: true })
+  try {
+    expect(page.state.resolvingSelection).toBe(true)
+    finish([{ id: 9, nickname: '工程师', status: 0 }])
+    await Promise.resolve(); await nextTick()
+    expect(page.state.resolvingSelection).toBe(false)
+    expect(page.selectedOption().props?.label).toBe('工程师')
+    expect(page.update).not.toHaveBeenCalled()
+  } finally { page.app.unmount() }
+})
+
+it('uses the exact selected value type for the historical option while filtering', async () => {
+  vi.mocked(systemUserSelection.active).mockResolvedValueOnce([{ id: 9, nickname: '工程师', status: 0 }] as any)
+  const page = render({ currentLabel: '' })
+  try {
+    await Promise.resolve(); await nextTick()
+    page.state.handleFilter('其他'); await nextTick()
+    expect(page.selectedOption().props?.value).toBe(page.state.selectValue)
+    expect(page.selectedOption().props?.label).toBe('工程师')
+  } finally { page.app.unmount() }
+})
+
+it('uses account-name for both candidate and selected option', async () => {
+  vi.mocked(systemUserSelection.active).mockResolvedValueOnce([{ id: 9, nickname: '工程师', username: 'z009', status: 0 }] as any)
+  const page = render({ currentLabel: '' })
+  try {
+    await Promise.resolve(); await nextTick()
+    expect(page.selectedOption().props?.label).toBe('z009-工程师')
+    page.state.handleFilter('其他'); await nextTick()
+    expect(page.selectedOption().props?.label).toBe('z009-工程师')
+  } finally { page.app.unmount() }
+})

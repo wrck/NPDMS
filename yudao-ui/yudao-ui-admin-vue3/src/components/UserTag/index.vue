@@ -16,27 +16,28 @@ const props = defineProps({
 })
 
 // 模块级缓存：避免同一用户ID重复请求
-const userCache = new Map<number, string>()
+const userCache = new Map<string, string>()
 
 const displayName = ref<string>('')
 
-const loadUserName = async (id: number) => {
+const loadUserName = async (id: number | string) => {
   if (!id) {
     displayName.value = '-'
     return
   }
-  if (userCache.has(id)) {
-    displayName.value = userCache.get(id) || '-'
+  const key = String(id)
+  if (userCache.has(key)) {
+    displayName.value = userCache.get(key) || '-'
     return
   }
   try {
     const res = await UserApi.getSimpleUser(id)
     const name = res?.nickname || `用户#${id}`
-    userCache.set(id, name)
+    userCache.set(key, name)
     displayName.value = name
   } catch {
     const fallback = `用户#${id}`
-    userCache.set(id, fallback)
+    userCache.set(key, fallback)
     displayName.value = fallback
   }
 }
@@ -44,7 +45,7 @@ const loadUserName = async (id: number) => {
 watch(
   () => props.userId,
   (val) => {
-    if (val) loadUserName(Number(val))
+    if (val) loadUserName(val)
     else displayName.value = '-'
   },
   { immediate: true }

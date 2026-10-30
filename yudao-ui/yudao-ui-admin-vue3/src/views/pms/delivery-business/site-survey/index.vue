@@ -155,6 +155,7 @@
             <UserSelect
               v-model="form.surveyorUserId"
               :scoped-source="surveyorSource"
+              :disabled="formReadonly"
               clearable
               placeholder="请选择工勘人员"
              />
