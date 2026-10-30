@@ -97,6 +97,7 @@ const memberVisible = ref(false), removeVisible = ref(false)
 const selected = ref<Members.MemberRecord>(), rejoin = ref(false), dialogProject = ref<Projects.ProjectMasterVO>()
 const managers = ref<Managers.ProjectManagers>()
 const canAppointPrimary = ref(false)
+const canMaintainServiceManagers = ref(false)
 const removeReason = ref(''), removeError = ref(''), removing = ref(false)
 const replacementPrimaryUserId = ref<number>()
 const retainedManagers = computed(() => managers.value?.members.filter(member => member.userId != null
@@ -115,7 +116,7 @@ const removalSubmission = createSubmissionIdempotencyState()
 let sequence = 0
 const canMaintain = (row: Members.MemberRecord) => Members.memberRoleOptions.some(role =>
   role.value === Members.logicalMemberRole(row.memberRole) && checkPermi([role.permission]))
-  && (Members.logicalMemberRole(row.memberRole) !== memberRoles.SERVICE_MANAGER || canAppointPrimary.value)
+  && (Members.logicalMemberRole(row.memberRole) !== memberRoles.SERVICE_MANAGER || canMaintainServiceManagers.value)
 const canRemove = (row: Members.MemberRecord) => canMaintain(row)
   && (row.memberRole !== memberRoles.PROJECT_MANAGER || row.userId == null
     || String(row.userId) !== String(managers.value?.primaryUserId) || canAppointPrimary.value)
@@ -135,16 +136,18 @@ const load = async () => {
   loading.value = true
   error.value = ''
   try {
-    const [result, managerState, appointmentPermission] = await Promise.all([
+    const [result, managerState, appointmentPermission, maintenancePermission] = await Promise.all([
       Members.getMemberPage(projectId, { ...query, role: query.role || undefined, keyword: query.keyword || undefined }),
       Managers.getProjectManagers(projectId),
-      Members.canAppointPrimaryProjectManager(projectId).catch(() => false)
+      Members.canAppointPrimaryProjectManager(projectId).catch(() => false),
+      Members.canMaintainServiceManagers(projectId).catch(() => false)
     ])
     if (request !== sequence) return
     rows.value = result.list
     total.value = result.total
     managers.value = managerState
     canAppointPrimary.value = appointmentPermission
+    canMaintainServiceManagers.value = maintenancePermission
   } catch { if (request === sequence) error.value = '成员加载失败，当前数据可能未刷新。请重试后再操作。' }
   finally { if (request === sequence) loading.value = false }
 }

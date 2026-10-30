@@ -92,7 +92,7 @@ public class ProjectTreeScopeService {
                     office != null && rootNodes.contains(office) ? Set.of(office) : Set.of(), Set.of(), Set.of());
         }
         // 已先校验租户、项目和树版本；超管只扩展授权范围，不改变业务状态。
-        if (isTenantSuperAdmin(query.tenantId(), query.subjectUserId())) {
+        if (hasTenantProjectManagementScope(query.tenantId(), query.subjectUserId())) {
             return new ProjectTreeScope(rootId, query.expectedTreeVersion(), Set.copyOf(rootNodes),
                     Set.of(), Set.of());
         }
@@ -192,7 +192,7 @@ public class ProjectTreeScopeService {
             if (office == null) return Set.of();
             return resolveCurrent(new ProjectCurrentScopeQuery(tenantId, subjectUserId, office, actionCode)).fullProjectIds();
         }
-        if (isTenantSuperAdmin(tenantId, subjectUserId)) {
+        if (hasTenantProjectManagementScope(tenantId, subjectUserId)) {
             return Set.copyOf(projectMapper.selectTenantProjectIds(new TenantProjectScopeQuery(tenantId)));
         }
         List<ProjectScopeRootPathsQuery.TreeVersion> trees = discoverCurrentScopeTrees(
@@ -216,7 +216,7 @@ public class ProjectTreeScopeService {
                     ProjectViewReadScopeApi.Mode.SCOPED, LocalDateTime.now(), trees, List.of(), project);
         }
         var mode = ProjectViewReadScopeApi.Mode.TENANT_ADMIN;
-        if (isTenantSuperAdmin(query.tenantId(), query.subjectUserId())) {
+        if (hasTenantProjectManagementScope(query.tenantId(), query.subjectUserId())) {
             return new ProjectViewReadScopeApi.ReadScope(
                     query.tenantId(), query.subjectUserId(), mode, LocalDateTime.now(), List.of());
         }
@@ -295,7 +295,7 @@ public class ProjectTreeScopeService {
                         Collectors.mapping(ProjectTreePathDO::getDescendantProjectId, Collectors.toSet())));
         Set<Long> allNodes = nodesByRoot.values().stream().flatMap(Set::stream).collect(Collectors.toSet());
         if (allNodes.isEmpty()) return Set.of();
-        if (isTenantSuperAdmin(tenantId, subjectUserId)) return Set.copyOf(allNodes);
+        if (hasTenantProjectManagementScope(tenantId, subjectUserId)) return Set.copyOf(allNodes);
         // Discovery is not authorization: re-read current membership / creator facts for all trees together.
         LocalDateTime resolutionAt = LocalDateTime.now();
         String primaryGrantAction = ACTION_EDIT.equals(actionCode) ? ACTION_MANAGE : actionCode;
@@ -394,6 +394,14 @@ public class ProjectTreeScopeService {
     private boolean allows(String memberRole, String actionCode) {
         return ACTION_VIEW.equals(actionCode) || ACTION_EDIT.equals(actionCode)
                 || MANAGER_ROLES.contains(memberRole);
+    }
+
+    /** 项目范围仅扩展到当前租户；功能权限和对象状态由调用方继续校验。 */
+    private boolean hasTenantProjectManagementScope(Long tenantId, Long userId) {
+        return isTenantSuperAdmin(tenantId, userId)
+                || tenantId != null && userId != null && userId > 0
+                && Objects.equals(tenantId, TenantContextHolder.getTenantId())
+                && permissionApi.hasAnyRoles(userId, "engineeManager", "engineeManagerLeader", "projectAdmin");
     }
 
     /** 当前租户的角色身份；消费者仍须独立校验对象、范围及业务状态。 */

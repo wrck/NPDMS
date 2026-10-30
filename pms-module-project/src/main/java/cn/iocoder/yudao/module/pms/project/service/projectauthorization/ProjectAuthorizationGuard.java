@@ -86,6 +86,7 @@ public class ProjectAuthorizationGuard {
         requireActor(actor);
         var project = requireProject(actor.tenantId(), projectId);
         if (firstManagerInitialization(project)) return true;
+        if (isTenantProjectManager(actor) || isServiceManagerAdministrator(actor)) return hasManageScope(actor, projectId);
         return memberMapper.selectAuthorizedByUser(new ActiveProjectMemberQuery(
                 actor.tenantId(), actor.actorId(), LocalDateTime.now(), Set.of(projectId))).stream()
                 .anyMatch(member -> Objects.equals(member.getTenantId(), actor.tenantId())
@@ -97,7 +98,8 @@ public class ProjectAuthorizationGuard {
     public void assertCanAppointPrimaryProjectManager(Actor actor, ProjectMasterDO project) {
         requireActor(actor);
         if (project != null && Objects.equals(project.getTenantId(), actor.tenantId())
-                && firstManagerInitialization(project)) return;
+                && (firstManagerInitialization(project) || isTenantProjectManager(actor)
+                || isServiceManagerAdministrator(actor))) return;
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())
                 || memberMapper.selectAuthorizedByUserForUpdate(
                 new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberForUpdateQuery(
@@ -106,9 +108,37 @@ public class ProjectAuthorizationGuard {
             throw exception(PROJECT_AUTHORIZATION_FORBIDDEN);
     }
 
-    /** 首次仍须先通过调用方既有的功能授权与项目指派授权，不新增放行路径。 */
+    /** 管理员可维护服务经理，调用方仍须先校验功能权限和项目管理范围。 */
+    public boolean canMaintainServiceManagers(Actor actor, Long projectId) {
+        requireActor(actor);
+        ProjectMasterDO project = requireProject(actor.tenantId(), projectId);
+        if (canAppointPrimaryProjectManager(actor, project.getId())) return true;
+        if (!isServiceManagerAdministrator(actor)) return false;
+        return hasManageScope(actor, projectId);
+    }
+
     public void assertCanMaintainServiceManagers(Actor actor, ProjectMasterDO project) {
+        requireActor(actor);
+        if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId()))
+            throw exception(PROJECT_AUTHORIZATION_FORBIDDEN);
+        if (isServiceManagerAdministrator(actor)) return;
         assertCanAppointPrimaryProjectManager(actor, project);
+    }
+
+    private boolean hasManageScope(Actor actor, Long projectId) {
+        var scope = projectScopeApi.resolveCurrent(
+                cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery.builder()
+                        .tenantId(actor.tenantId()).subjectUserId(actor.actorId())
+                        .anchorProjectId(projectId).actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+        return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(projectId);
+    }
+
+    private boolean isTenantProjectManager(Actor actor) {
+        return permissionApi.hasAnyRoles(actor.actorId(), "engineeManager", "engineeManagerLeader", "projectAdmin");
+    }
+
+    private boolean isServiceManagerAdministrator(Actor actor) {
+        return permissionApi.hasAnyRoles(actor.actorId(), "super_admin", "admin");
     }
 
     public boolean isFirstManagerInitialization(Actor actor, Long projectId) {

@@ -15,10 +15,12 @@ vi.mock('@/api/pms/project/unified-members', () => ({
   MEMBER_ROLE: { PROJECT_MANAGER: 'PROJECT_MANAGER', SERVICE_MANAGER: 'SERVICE_MANAGER' },
   memberRoleOptions: [
     { value: 'END_USER', label: '最终用户', permission: 'pms:project-team:create' },
-    { value: 'PROJECT_MANAGER', label: '项目经理', permission: 'pms:project:assign' }
+    { value: 'PROJECT_MANAGER', label: '项目经理', permission: 'pms:project:assign' },
+    { value: 'SERVICE_MANAGER', label: '服务经理', permission: 'pms:project:assign' }
   ],
   logicalMemberRole: (role: string) => role,
   canAppointPrimaryProjectManager: vi.fn().mockResolvedValue(true),
+  canMaintainServiceManagers: vi.fn().mockResolvedValue(true),
   getMemberPage: vi.fn().mockResolvedValue({ list: [], total: 0 })
 }))
 vi.mock('./OrdinaryMemberForm.vue', () => ({ default: { render: () => null } }))
@@ -138,4 +140,22 @@ it.each([
   visit(root)
   expect(labels).toEqual(expected)
   app.unmount()
+})
+
+it('permits service-manager row maintenance independently of primary PM appointment', async () => {
+  vi.mocked(Members.canAppointPrimaryProjectManager).mockResolvedValueOnce(false)
+  vi.mocked(Members.canMaintainServiceManagers).mockResolvedValueOnce(true)
+  vi.mocked(Members.getMemberPage).mockResolvedValueOnce({ list: [], total: 0 } as never)
+  vi.mocked(Managers.getProjectManagers).mockResolvedValueOnce({ members: [] } as never)
+  const page = mount(ProjectMembersPanel, { project: { id: 191, lifecycleStatus: 'ACTIVE' } }, {
+    ElTable: passthrough, ElTableColumn: tableColumn, ElDialog: tableColumn,
+    ElSelect: passthrough, ElOption: passthrough, ElRadioGroup: passthrough,
+    ElRadioButton: passthrough, ElInput: passthrough
+  })
+  try {
+    for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() }
+    const state = (page.vm as any).$.setupState
+    expect(state.canAppointPrimary).toBe(false)
+    expect(state.canMaintain({ memberRole: 'SERVICE_MANAGER' })).toBe(true)
+  } finally { page.app.unmount() }
 })

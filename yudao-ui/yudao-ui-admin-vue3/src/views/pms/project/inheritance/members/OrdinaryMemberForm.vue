@@ -2,7 +2,7 @@
   <el-form label-position="top" @submit.prevent="submit">
     <el-form-item label="项目角色" required>
       <el-select v-model="memberRole" aria-label="项目角色" :disabled="!!member && !rejoin || saving" @change="clearCandidate">
-        <el-option v-for="role in availableRoles" :key="role.value" :value="role.value" :label="role.label" :disabled="role.value === memberRoles.SERVICE_MANAGER && !canAppointPrimary" />
+        <el-option v-for="role in availableRoles" :key="role.value" :value="role.value" :label="role.label" :disabled="role.value === memberRoles.SERVICE_MANAGER && !canMaintainServiceManagers" />
       </el-select>
     </el-form-item>
     <p>{{ roleHint }}</p>
@@ -72,9 +72,15 @@ const primary = ref(props.member?.memberRole === memberRoles.PROJECT_MANAGER
   ? sameSystemUserId(props.member.userId, props.primaryUserId)
   : !!props.member && props.member.assignmentType !== 'COLLABORATOR')
 const canAppointPrimary = ref(false)
+const canMaintainServiceManagers = ref(false)
 onMounted(async () => {
-  try { canAppointPrimary.value = await Members.canAppointPrimaryProjectManager(props.project.id!) }
-  catch { canAppointPrimary.value = false }
+  const id = props.project.id!
+  const [appointment, maintenance] = await Promise.all([
+    Members.canAppointPrimaryProjectManager(id).catch(() => false),
+    Members.canMaintainServiceManagers(id).catch(() => false)
+  ])
+  canAppointPrimary.value = appointment
+  canMaintainServiceManagers.value = maintenance
 })
 const candidateReady = computed(() => availableRoles.value.some(role => role.value === memberRole.value))
 const roleHint = computed(() => Members.memberRoleOptions.find(role => role.value === memberRole.value)?.hint)
@@ -123,8 +129,8 @@ onBeforeUnmount(() => sequence++)
 const submit = async () => {
   if (saving.value) return
   error.value = ''
-  if (memberRole.value === memberRoles.SERVICE_MANAGER && !canAppointPrimary.value) {
-    error.value = '服务经理成员只能由本项目有效服务经理维护；首次初始化沿用原指派授权。'; return
+  if (memberRole.value === memberRoles.SERVICE_MANAGER && !canMaintainServiceManagers.value) {
+    error.value = '服务经理成员只能由具备权限的项目管理角色、管理员或本项目有效服务经理维护。'; return
   }
   if (!candidateReady.value || (isExternal.value ? !externalName.value.trim() : !userId.value) || props.project.version == null) {
     error.value = isExternal.value ? '请选择项目角色并填写最终用户姓名' : '请选择项目角色和有效人员'; return
