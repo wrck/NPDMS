@@ -5,13 +5,19 @@ import type {
   StagePlanTaskVO
 } from '@/api/pms/engineering/stage-plan'
 
-/** 实际日期补齐空值、替换阶段系统建议默认；保留不同于建议的手工值及历史批次。 */
+/** 可编辑草稿的已完成节点按生效工期补计划；实际日期与审批/生效历史保持只读。 */
 export const fillCompletedPlanDates = (plan: StagePlanBatchVO) => {
-  if (![0, 3].includes(plan.status!) || !plan.completedDates) return false
+  if (![0, 3].includes(plan.status!) || !plan.completedDates || !plan.baselineStart || !plan.baselineEnd) return false
   let changed = false
   const fill = (target: { planStart?: string; planEnd?: string; suggestedStart?: string; suggestedEnd?: string }, actual?: { actualStart?: string | null; actualEnd?: string | null }) => {
-    if (actual?.actualStart && target.planStart !== actual.actualStart && (!target.planStart || target.planStart === target.suggestedStart)) { target.planStart = actual.actualStart; changed = true }
-    if (actual?.actualEnd && target.planEnd !== actual.actualEnd && (!target.planEnd || target.planEnd === target.suggestedEnd)) { target.planEnd = actual.actualEnd; changed = true }
+    if (!actual) return
+    const start = plan.baselineStart!
+    if (target.planStart !== start && (!target.planStart || target.planStart === target.suggestedStart
+      || target.planStart === actual.actualStart || target.planStart < start)) { target.planStart = start; changed = true }
+    if (actual.actualEnd && (!target.planEnd || target.planEnd === target.suggestedEnd || target.planEnd < start)) {
+      const end = actual.actualEnd < start ? start : actual.actualEnd > plan.baselineEnd! ? plan.baselineEnd! : actual.actualEnd
+      if (target.planEnd !== end) { target.planEnd = end; changed = true }
+    }
   }
   const stages = new Map(plan.completedDates.stages.map(node => [String(node.nodeId), node]))
   const tasks = new Map(plan.completedDates.tasks.map(node => [String(node.nodeId), node]))

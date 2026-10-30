@@ -13,15 +13,16 @@ import {
 } from './schedulePresentation'
 
 describe('施工计划展示与安排检查', () => {
-  it('已完成阶段任务按实际日期补空，不替换已有手工值或填充其他节点', () => {
-    const plan: any = { status: 0, items: [{ phaseId: 10, planStart: '2026-10-01' }, { phaseId: 11 }],
+  it('已完成阶段任务按生效工期开始补空，保留实际事实并跳过未完成节点', () => {
+    const plan: any = { status: 0, baselineStart: '2026-10-01', baselineEnd: '2026-10-31', items: [{ phaseId: 10, planStart: '2026-10-01' }, { phaseId: 11 }],
       tasks: [{ taskId: '9007199254740993' }, { taskId: 21 }], completedDates: {
         stages: [{ nodeId: 10, actualStart: '2026-10-07', actualEnd: '2026-10-17' }],
         tasks: [{ nodeId: '9007199254740993', actualStart: '2026-10-16', actualEnd: '2026-10-17' }]
       } }
     expect(fillCompletedPlanDates(plan)).toBe(true)
     expect(plan.items[0]).toMatchObject({ planStart: '2026-10-01', planEnd: '2026-10-17' })
-    expect(plan.tasks[0]).toMatchObject({ planStart: '2026-10-16', planEnd: '2026-10-17' })
+    expect(plan.tasks[0]).toMatchObject({ planStart: '2026-10-01', planEnd: '2026-10-17' })
+    expect(plan.completedDates.tasks[0].actualStart).toBe('2026-10-16')
     expect(plan.items[1].planEnd).toBeUndefined()
     expect(plan.tasks[1].planStart).toBeUndefined()
     expect(fillCompletedPlanDates(plan)).toBe(false)
@@ -32,16 +33,17 @@ describe('施工计划展示与安排检查', () => {
     expect(plan.items[0].planEnd).toBeUndefined()
   })
   it('已完成阶段的系统建议默认结束日期替换为实际结束日期', () => {
-    const plan: any = { status: 0, items: [{ phaseId: 10, planEnd: '2027-04-04', suggestedEnd: '2027-04-04' }], tasks: [],
+    const plan: any = { status: 0, baselineStart: '2026-10-01', baselineEnd: '2026-10-31', items: [{ phaseId: 10, planEnd: '2027-04-04', suggestedEnd: '2027-04-04' }], tasks: [],
       completedDates: { stages: [{ nodeId: 10, actualStart: '2026-10-17', actualEnd: '2026-10-17' }], tasks: [] } }
     expect(fillCompletedPlanDates(plan)).toBe(true)
-    expect(plan.items[0]).toMatchObject({ planStart: '2026-10-17', planEnd: '2026-10-17', suggestedEnd: '2027-04-04' })
+    expect(plan.items[0]).toMatchObject({ planStart: '2026-10-01', planEnd: '2026-10-17', suggestedEnd: '2027-04-04' })
   })
-  it('缺失的实际日期不采用当天、更新时间或另一端日期代填', () => {
-    const plan: any = { status: 3, items: [], tasks: [{ taskId: 20 }], completedDates: { stages: [], tasks: [{ nodeId: 20, actualStart: null, actualEnd: '2026-10-17' }] } }
+  it('缺失实际开始仍以生效工期开始生成计划，不伪造实际日期', () => {
+    const plan: any = { status: 3, baselineStart: '2026-10-30', baselineEnd: '2026-11-30', items: [], tasks: [{ taskId: 20 }], completedDates: { stages: [], tasks: [{ nodeId: 20, actualStart: null, actualEnd: '2026-10-17' }] } }
     expect(fillCompletedPlanDates(plan)).toBe(true)
-    expect(plan.tasks[0].planStart).toBeUndefined()
-    expect(plan.tasks[0].planEnd).toBe('2026-10-17')
+    expect(plan.tasks[0].planStart).toBe('2026-10-30')
+    expect(plan.tasks[0].planEnd).toBe('2026-10-30')
+    expect(plan.completedDates.tasks[0].actualStart).toBeNull()
   })
   it('保留晚于建议日期的安排风险提示', () => {
     expect(stageItemIssue({ planStart: '2026-10-16', planEnd: '2026-10-20', suggestedEnd: '2026-07-16' } as any)).toBe('晚于建议最迟完成时间')

@@ -78,7 +78,8 @@ class ProjectStagePlanApiImplTest {
     }
     @Test void acceptanceViolationIsCheckedAgainstTheStageSuggestion() {
         // 合同验收时间为行内约束：阶段建议结束不得晚于计划验收时间；无建议时交给提交后校验
-        last.setSuggestedEndTime(LocalDate.of(2026, 2, 11).atStartOfDay());
+        last.setAcceptanceTime(LocalDate.of(2026, 1, 8).atStartOfDay());
+        last.setSuggestedEndTime(LocalDate.of(2026, 1, 9).atStartOfDay());
         var violation = assertThrows(IllegalArgumentException.class, () -> api.calculateSchedule(1L,7L,start,end));
         assertTrue(violation.getMessage().contains("计划结束晚于计划验收时间"));
         last.setAcceptanceTime(null);
@@ -120,6 +121,15 @@ class ProjectStagePlanApiImplTest {
         var result = api.calculateSchedule(1L,7L,start,end);
         assertNull(result.stages().getFirst().planStartTime());
         assertEquals(LocalDate.of(2025, 12, 27), result.stages().getFirst().planEndTime());
+    }
+    @Test void staleInstanceSuggestionsOutsideCurrentDurationAreNotReused() {
+        first.setSuggestedStartTime(start.minusMonths(3).atStartOfDay());
+        first.setSuggestedEndTime(start.minusMonths(2).atStartOfDay());
+        var result = api.calculateSchedule(1L, 7L, start, end);
+        assertNull(result.stages().getFirst().planStartTime());
+        assertNull(result.stages().getFirst().planEndTime());
+        assertEquals(start.minusMonths(2).atStartOfDay(), first.getSuggestedEndTime());
+        verify(stages, never()).updateSchedule(any());
     }
     private cn.iocoder.yudao.module.pms.project.dal.dataobject.projectschedule.StageSuggestionRuleDO rule(
             String stageCode, String variant, String sourceType, String reference, int months, int days) {

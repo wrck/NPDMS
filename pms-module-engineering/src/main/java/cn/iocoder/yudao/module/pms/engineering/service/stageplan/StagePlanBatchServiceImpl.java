@@ -137,7 +137,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         var participatingCodes = stages.stream().map(ProjectStagePlanApi.StagePlanFact::code).collect(java.util.stream.Collectors.toSet());
         batch.setTaskPlansJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(stagePlanApi.listTaskPlans(tenantId, projectId).stream()
                 .filter(task -> participatingCodes.contains(task.stageCode()))
-                .map(task -> defaultCompletedTaskDates(task, completedTasks.get(task.taskId()))).toList()));
+                .map(task -> defaultCompletedTaskDates(task, completedTasks.get(task.taskId()), baseline)).toList()));
         batchMapper.insert(batch);
         int pathOrder = 0;
         for (ProjectStagePlanApi.StagePlanFact stage : stages) {
@@ -152,7 +152,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
             item.setSuggestedEnd(dates.planEndTime());
             item.setPlanStart(dates.planStartTime()); item.setPlanEnd(dates.planEndTime());
             var actual = completedStages.get(stage.stageId());
-            if (actual != null) { item.setPlanStart(actual.actualStart()); item.setPlanEnd(actual.actualEnd()); }
+            if (actual != null) { item.setPlanStart(baseline.getStartDate()); item.setPlanEnd(completedPlanEnd(actual.actualEnd(), baseline)); }
             itemMapper.insert(item);
         }
         return getBatch(batch.getId());
@@ -200,7 +200,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         for (var item : items) {
             var dates = byStage.get(item.getPhaseId()); item.setPlanStart(dates.planStartTime()); item.setPlanEnd(dates.planEndTime());
             var actual = completedStages.get(item.getPhaseId());
-            if (actual != null) { item.setPlanStart(actual.actualStart()); item.setPlanEnd(actual.actualEnd()); }
+            if (actual != null) { item.setPlanStart(baseline.getStartDate()); item.setPlanEnd(completedPlanEnd(actual.actualEnd(), baseline)); }
             item.setSuggestedStart(dates.planStartTime()); item.setSuggestedEnd(dates.planEndTime());
             item.setSort(pathOrder.get(item.getPhaseId()));
         }
@@ -225,7 +225,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
         var refreshedTasks = stagePlanApi.listTaskPlans(tenantId, batch.getProjectId()).stream().filter(task -> participating.contains(task.stageCode()))
                 .map(task -> { var prior = previousTasks.get(task.taskId()); return prior == null ? task : new ProjectStagePlanApi.TaskPlan(
                         task.taskId(), task.parentTaskId(), task.stageCode(), task.name(), task.version(), prior.planStart(), prior.planEnd(), task.acceptanceTime()); })
-                .map(task -> defaultCompletedTaskDates(task, completedTasks.get(task.taskId()))).toList();
+                .map(task -> defaultCompletedTaskDates(task, completedTasks.get(task.taskId()), baseline)).toList();
         batchUpdate.setTaskPlansJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(refreshedTasks));
         batchUpdate.setVersion(batch.getVersion());
         if (batchMapper.updateById(batchUpdate) != 1) throw exception(STAGE_PLAN_VERSION_NOT_MATCH);
@@ -416,11 +416,17 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
     }
 
     private static ProjectStagePlanApi.TaskPlan defaultCompletedTaskDates(ProjectStagePlanApi.TaskPlan task,
-                                                                          ProjectStagePlanApi.NodeActualDates actual) {
+            ProjectStagePlanApi.NodeActualDates actual, ConstructionPlanRevisionDO baseline) {
         if (actual == null) return task;
+        // 只预填本版草稿计划，实际完成日期继续由 completedDates 原样只读返回。
         return new ProjectStagePlanApi.TaskPlan(task.taskId(), task.parentTaskId(), task.stageCode(), task.name(),
-                task.version(), task.planStart() == null ? actual.actualStart() : task.planStart(),
-                task.planEnd() == null ? actual.actualEnd() : task.planEnd(), task.acceptanceTime());
+                task.version(), baseline.getStartDate(),
+                completedPlanEnd(task.planEnd() == null ? actual.actualEnd() : task.planEnd(), baseline), task.acceptanceTime());
+    }
+
+    private static LocalDate completedPlanEnd(LocalDate end, ConstructionPlanRevisionDO baseline) {
+        if (end == null || end.isBefore(baseline.getStartDate())) return baseline.getStartDate();
+        return end.isAfter(baseline.getEndDate()) ? baseline.getEndDate() : end;
     }
 
     private boolean requiresAdjustmentReason(Long projectId) {

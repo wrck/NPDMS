@@ -159,13 +159,19 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
             input.put("tasks", taskInputs); inputStages.add(input);
             var adviceEnd = adviceEnds.get(stage.getCode());
             if (adviceEnd == null) adviceEnd = stage.getSuggestedEndTime() == null ? null : stage.getSuggestedEndTime().toLocalDate();
-            // 验收日与规则/既有建议比对：有验收的节点不直接以验收日为结束，建议结束不得晚于计划验收时间
+            // 旧实例的建议不是本版工期重算结果；窗口外的旧建议不带入新草稿。
+            // 正式规则的提前期仍原样返回，冲突交由安排检查提示，不能裁剪成看似可行的日期。
+            if (!adviceEnds.containsKey(stage.getCode()) && adviceEnd != null
+                    && (adviceEnd.isBefore(start) || adviceEnd.isAfter(end))) adviceEnd = null;
+            // 验收日仍是正式约束；不能通过丢弃规则结果或裁剪日期来隐藏冲突。
             if (deadline != null && adviceEnd != null && adviceEnd.isAfter(deadline))
                 throw new IllegalArgumentException(stage.getCode() + " 计划结束晚于计划验收时间，请调整工期配置");
             planDates.add(new StagePlanDate(stage.getId(),
                     // 建议最迟完成早于建议起始时不预填开始日期：锚点改按工期结束日期倒排后，
                     // 历史建议起始可能与新建议倒挂，写 null 交给用户补填而不是产出倒挂区间
-                    stage.getSuggestedStartTime() == null || (adviceEnd != null && adviceEnd.isBefore(stage.getSuggestedStartTime().toLocalDate()))
+                    stage.getSuggestedStartTime() == null || stage.getSuggestedStartTime().toLocalDate().isBefore(start)
+                            || stage.getSuggestedStartTime().toLocalDate().isAfter(end)
+                            || (adviceEnd != null && adviceEnd.isBefore(stage.getSuggestedStartTime().toLocalDate()))
                             ? null : stage.getSuggestedStartTime().toLocalDate(), adviceEnd));
         }
         var inputs = new java.util.LinkedHashMap<String, Object>();
@@ -188,6 +194,7 @@ public class ProjectStagePlanApiImpl implements ProjectStagePlanApi {
         return new ScheduleCalculation(plan.getId(), start, end, planDates,
                 cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(inputs));
     }
+
 
     private static boolean conditional(TemplateExecutionSnapshot.TransitionContract edge) {
         return edge.getConditionRuleKey() != null && !edge.getConditionRuleKey().isBlank()
