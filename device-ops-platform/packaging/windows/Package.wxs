@@ -5,6 +5,10 @@
     <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 NPDMS DAC。" Schedule="afterInstallInitialize" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <Property Id="ARPNOMODIFY" Value="1" />
+    <Property Id="INNO_DAC_INSTALLED">
+      <RegistrySearch Id="InnoDacInstalled" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\NPDMS-DAC-Inno_is1" Name="DisplayVersion" Type="raw" Win64="yes" />
+    </Property>
+    <Condition Message="同时存在 MSI 和 Inno 安装记录，无法确认旧服务归属，请先修复安装状态。">NOT INNO_DAC_INSTALLED OR (NOT Installed AND NOT WIX_UPGRADE_DETECTED)</Condition>
     <Property Id="NPDMS_DEFAULT_SERVER_URL" Value="$(var.DefaultServerUrl)" />
     <Property Id="NPDMS_DEFAULT_WEB_ORIGIN" Value="$(var.DefaultWebOrigin)" />
     <Property Id="NPDMS_SERVER_URL" Secure="yes" Hidden="yes">
@@ -36,6 +40,7 @@
             <Component Id="LauncherComponent" Guid="1780117D-4CCB-40A7-98AA-31376A55E8EA" Win64="yes">
               <File Id="LauncherExecutable" Source="$(var.Payload)\NpdmsDac.exe" KeyPath="yes">
                 <Shortcut Id="SettingsShortcut" Directory="StartMenuDirectory" Name="DAC 设置" Advertise="yes" Arguments="--configure" WorkingDirectory="INSTALLFOLDER" />
+                <Shortcut Id="StatusShortcut" Directory="StartMenuDirectory" Name="DAC 本机状态" Advertise="yes" Arguments="--open-status" WorkingDirectory="INSTALLFOLDER" />
               </File>
               <RemoveFolder Id="RemoveMenuDirectory" Directory="StartMenuDirectory" On="uninstall" />
               <RegistryValue Root="HKLM" Key="Software\Classes\npdms-dac" Type="string" Value="URL:NPDMS DAC" />
@@ -60,6 +65,9 @@
     <Binary Id="DesktopInstallerActions" SourceFile="$(var.InstallerActions)" />
     <CustomAction Id="ValidateClientSettings" BinaryKey="DesktopInstallerActions" DllEntry="ValidateClientSettings" Execute="immediate" Return="check" />
     <CustomAction Id="ValidateClientSettingsForInstall" BinaryKey="DesktopInstallerActions" DllEntry="ValidateClientSettingsForInstall" Execute="immediate" Return="check" />
+    <CustomAction Id="PlanRemovePreviousInno" BinaryKey="DesktopInstallerActions" DllEntry="PlanRemovePreviousInno" Execute="immediate" Return="check" />
+    <CustomAction Id="RemovePreviousInno" BinaryKey="DesktopInstallerActions" DllEntry="RemovePreviousInno" Execute="deferred" Impersonate="no" Return="check" />
+    <SetProperty Id="REINSTALLMODE" Action="ForceFilesAfterInnoRemoval" Value="amus" After="AppSearch" Sequence="both">INNO_DAC_INSTALLED AND NOT Installed AND NOT REMOVE~="ALL"</SetProperty>
     <SetProperty Id="NPDMS_SERVER_URL" Action="SetDefaultServerUrl" Value="[NPDMS_DEFAULT_SERVER_URL]" After="AppSearch" Sequence="both">NOT NPDMS_SERVER_URL</SetProperty>
     <SetProperty Id="NPDMS_WEB_ORIGIN" Action="SetDefaultWebOrigin" Value="[NPDMS_DEFAULT_WEB_ORIGIN]" After="SetDefaultServerUrl" Sequence="both">NOT NPDMS_WEB_ORIGIN AND NPDMS_SERVER_URL = NPDMS_DEFAULT_SERVER_URL</SetProperty>
     <CustomAction Id="InitializeClient" FileKey="LauncherExecutable" ExeCommand="--initialize &quot;[NPDMS_SERVER_URL]&quot; &quot;[NPDMS_WEB_ORIGIN]&quot;" Execute="deferred" Impersonate="no" Return="check" />
@@ -67,6 +75,8 @@
     <CustomAction Id="RollbackBrowserPolicy" FileKey="LauncherExecutable" ExeCommand="--remove-browser-policy" Execute="rollback" Impersonate="no" Return="check" />
     <CustomAction Id="RemoveBrowserPolicy" FileKey="LauncherExecutable" ExeCommand="--remove-browser-policy" Execute="deferred" Impersonate="no" Return="check" />
     <InstallExecuteSequence>
+      <Custom Action="PlanRemovePreviousInno" After="InstallValidate">INNO_DAC_INSTALLED AND NOT Installed AND NOT REMOVE~="ALL"</Custom>
+      <Custom Action="RemovePreviousInno" After="RemoveExistingProducts">INNO_DAC_INSTALLED AND NOT Installed AND NOT REMOVE~="ALL"</Custom>
       <Custom Action="ValidateClientSettingsForInstall" Before="InstallInitialize">NOT REMOVE~="ALL"</Custom>
       <Custom Action="RollbackBrowserPolicy" Before="InitializeClient">NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT REMOVE~="ALL"</Custom>
       <Custom Action="InitializeClient" After="InstallFiles">NOT REMOVE~="ALL"</Custom>

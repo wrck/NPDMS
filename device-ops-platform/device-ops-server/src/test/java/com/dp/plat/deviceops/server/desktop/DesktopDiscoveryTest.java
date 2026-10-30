@@ -24,15 +24,23 @@ class DesktopDiscoveryTest {
         assertEquals("http://10.210.0.11:19191", intranet.webOrigin());
     }
 
-    @Test void statusReportsReadinessAndExplicitEnvironmentWithoutSecrets() {
+    @Test void statusReportsReadinessAndExplicitEnvironmentWithoutSecrets() throws Exception {
         var availability = mock(ApplicationAvailability.class);
-        var controller = new DesktopStatusController(new DesktopProperties("https://npdms.example:8443", "https://web.example"), availability);
+        var identity = mock(DesktopIdentity.class);
+        when(identity.instanceId()).thenReturn("instance-1");
+        when(identity.publicKey()).thenReturn("public-key");
+        when(identity.sign(anyString())).thenReturn(new byte[64]);
+        var controller = new DesktopStatusController(new DesktopProperties("https://npdms.example:8443", "https://web.example"), availability, identity);
+        var request = new MockHttpServletRequest(); request.setLocalPort(8289);
         when(availability.getReadinessState()).thenReturn(ReadinessState.REFUSING_TRAFFIC);
-        assertEquals("STARTING", controller.status().getBody().status());
+        assertEquals("STARTING", controller.status(null, request).getBody().status());
         when(availability.getReadinessState()).thenReturn(ReadinessState.ACCEPTING_TRAFFIC);
-        var response = controller.status();
+        var response = controller.status("a".repeat(64), request);
         assertEquals("no-store", response.getHeaders().getCacheControl());
-        assertEquals(new DesktopStatusController.Status("npdms-dac", 2, "READY", "https://npdms.example:8443", "https://web.example"), response.getBody());
+        assertEquals(3, response.getBody().protocolVersion());
+        assertEquals(8289, response.getBody().port());
+        verify(identity).sign("npdms-dac-discovery-v1\n" + "a".repeat(64) + "\n8289\ninstance-1\n3\nREADY\nhttps://npdms.example:8443\nhttps://web.example");
+        assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> controller.status("bad-nonce", request));
     }
 
     @Test void loopbackHostGuardRejectsRebindingAndNonLoopbackPeers() throws Exception {

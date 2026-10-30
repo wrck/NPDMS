@@ -54,7 +54,7 @@ public class DesktopDiscoverySecurity {
         // Generic/OIDC deployments keep their original chain; an installed desktop only accepts its environment-bound adapter.
         return http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(config -> config.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(config -> config.requestMatchers(org.springframework.http.HttpMethod.GET, "/desktop-status").permitAll()
+                .authorizeHttpRequests(config -> config.requestMatchers(org.springframework.http.HttpMethod.GET, "/desktop-status", "/desktop-pairing").permitAll()
                         .anyRequest().denyAll()).build();
     }
 

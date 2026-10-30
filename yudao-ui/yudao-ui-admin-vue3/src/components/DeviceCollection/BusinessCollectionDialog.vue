@@ -404,6 +404,8 @@ const executionLocation = ref<'desktop' | 'server'>('desktop')
 const localReady = ref(false)
 const localConnectionScopeReady = ref(false)
 const npdmsServerUrl = new URL(import.meta.env.VITE_BASE_URL || '/', window.location.origin).href.replace(/\/+$/, '')
+const requestLocalDac = <T,>(options: Omit<Parameters<typeof localDacRequest>[0], 'environment'>) =>
+  localDacRequest<T>({ ...options, environment: { serverUrl: npdmsServerUrl, webOrigin: window.location.origin } })
 const pendingDesktop = ref<Api.DesktopCommand>()
 const pendingDesktopExecution = ref<Api.Execution>()
 const locallyAccepted = new Set<string>()
@@ -458,7 +460,7 @@ const saveCurrentConnection = async () => {
     if (executionLocation.value === 'desktop') {
       const ticket = await Api.desktopAccess(props.entry, objectId.value, { operation: 'CONNECTION_SAVE',
         deviceId: connectionSaveForm.deviceId === 0 ? undefined : connectionSaveForm.deviceId, protocol: connectionSaveForm.protocol })
-      const result = await localDacRequest<{ saved: boolean; connection?: LocalSavedConnection }>({
+      const result = await requestLocalDac<{ saved: boolean; connection?: LocalSavedConnection }>({
         path: '/saved-connections', ticket, method: 'POST', timeout: 60000,
         body: { requestKey: connectionSaveForm.requestKey, displayName: connectionSaveForm.name,
           connection: { protocol: connectionSaveForm.protocol === 'SSH' ? 'SSH2' : 'TELNET',
@@ -561,7 +563,7 @@ const loadSemantic = async (executionId: Api.Id, attempts = 0) => {
   try {
     const execution = semanticExecution.value
     const data = execution?.dispatchMode === 'DESKTOP'
-      ? await localDacRequest<Api.SemanticResult[]>({
+      ? await requestLocalDac<Api.SemanticResult[]>({
           path: `/tasks/${execution.task.platformTaskId}/semantic-results`,
           ticket: await Api.desktopAccess(props.entry, objectId.value, { operation: 'TASK_READ', executionId })
         })
@@ -667,7 +669,7 @@ const loadConnections = async () => {
     if (executionLocation.value === 'desktop') {
       if (localReady.value) {
         const ticket = await Api.desktopAccess(props.entry, objectId.value, { operation: 'CONNECTIONS_READ', deviceId, protocol })
-        const local = await localDacRequest<{ items: LocalSavedConnection[]; scope?: { projectId: string; deviceId?: string; protocol: string } }>({ path: '/saved-connections', ticket })
+        const local = await requestLocalDac<{ items: LocalSavedConnection[]; scope?: { projectId: string; deviceId?: string; protocol: string } }>({ path: '/saved-connections', ticket })
         if (generation !== connectionGeneration) return
         localConnectionScopeReady.value = !!local.scope && String(local.scope.projectId) === String(source.value.projectId)
           && String(local.scope.deviceId ?? '') === String(deviceId ?? '')
@@ -990,7 +992,7 @@ const submit = async () => {
 }
 const executePreparedDesktop = async (prepared: { execution: Api.Execution; ticket: Api.DesktopTicket }) => {
   const temporary = prepared.execution.task.credentialMode === 'LOCAL_TEMPORARY'
-  const response = await localDacRequest<{ collectionId: string; existing: boolean }>({
+  const response = await requestLocalDac<{ collectionId: string; existing: boolean }>({
     path: `/tasks/${prepared.execution.task.platformTaskId}/executions`, ticket: prepared.ticket, method: 'POST',
     body: temporary ? { password: form.password } : {}
   })
@@ -1028,7 +1030,7 @@ const continueDesktop = async (row?: Api.Execution) => {
     message.warning(error instanceof LocalDacError ? `${error.message}；原任务已保留，不会创建新任务` : '服务端未能重新授权原任务，请查看具体错误提示；原任务已保留')
   } finally { busy.value = false }
 }
-const readLocalTask = async (row: Api.Execution) => localDacRequest<LocalCollection>({
+const readLocalTask = async (row: Api.Execution) => requestLocalDac<LocalCollection>({
   path: `/tasks/${row.task.platformTaskId}`,
   ticket: await Api.desktopAccess(props.entry, objectId.value, { operation: 'TASK_READ', executionId: row.id })
 })

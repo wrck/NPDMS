@@ -18,6 +18,18 @@ namespace Npdms.Dac.Desktop
                 // No install sequence, file copying, registry writes or service actions are run.
                 using (Session session = Installer.OpenPackage(args[0], false))
                 {
+                    int planSequence = ActionSequence(session, "PlanRemovePreviousInno");
+                    int removeSequence = ActionSequence(session, "RemovePreviousInno");
+                    Require(planSequence < ActionSequence(session, "InstallInitialize"), "old-installer validation precedes transaction");
+                    Require(removeSequence > ActionSequence(session, "InstallInitialize") && removeSequence < ActionSequence(session, "InstallFiles"), "old Inno removal is elevated and precedes new file writes");
+                    using (var removal = session.Database.OpenView("SELECT `Type` FROM `CustomAction` WHERE `Action` = 'RemovePreviousInno'"))
+                    {
+                        removal.Execute();
+                        using (var row = removal.Fetch()) Require(row != null && (row.GetInteger(1) & 1024) != 0
+                            && (row.GetInteger(1) & 2048) != 0 && (row.GetInteger(1) & 64) == 0, "removal is deferred, privileged and aborts on failure");
+                    }
+                    session.DoAction("ForceFilesAfterInnoRemoval");
+                    Require(session["REINSTALLMODE"] == "amus", "copy all payload files after old Inno removes version-identical runtime files");
                     using (var view = session.Database.OpenView("SELECT `Condition`, `Sequence` FROM `InstallUISequence` WHERE `Action` = 'OpenDesktopStatus'"))
                     {
                         view.Execute();
@@ -88,6 +100,16 @@ namespace Npdms.Dac.Desktop
                 return 1;
             }
             finally { Installer.SetInternalUI(previousUi); }
+        }
+
+        private static int ActionSequence(Session session, string action)
+        {
+            using (var view = session.Database.OpenView("SELECT `Sequence` FROM `InstallExecuteSequence` WHERE `Action` = ?"))
+            using (var parameter = new Record(1))
+            {
+                parameter[1] = action; view.Execute(parameter);
+                using (var row = view.Fetch()) { Require(row != null, "required installer action: " + action); return row.GetInteger(1); }
+            }
         }
 
         private static void Require(bool condition, string name)

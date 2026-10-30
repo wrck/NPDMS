@@ -48,6 +48,52 @@ const desktopExecution = { id: '41', actorId: '7', dispatchMode: 'DESKTOP', comm
 const localConnection = (id = 'local-connection-1') => ({ id, displayName: '设备连接', version: 0,
   connection: { protocol: 'SSH2', authenticationType: 'PASSWORD', executionMode: 'SHELL', host: '192.0.2.10', port: 2222, username: 'operator' } })
 
+const portEntries = ['center','configuration','joint-test','cutover-checklist','cutover-pre-check','cutover-execution','cutover-test','cutover-rollback','cutover-post-collection']
+it.each(portEntries)('%s retains scoped saved connections through reopen and consecutive dispatches', async entry => {
+  const m=render('desktop',{entry})
+  api.context.mockResolvedValue({entry,objectId:'30',projectId:'21',deviceId:'9007199254740993',version:3,canExecute:true,manualAllowed:true})
+  local.request.mockImplementation(async input => input.path === '/saved-connections'
+    ? {items:[localConnection()],scope:{projectId:'21',deviceId:'9007199254740993',protocol:'SSH2'}}
+    : {collectionId:'collection-1',existing:false})
+  api.prepareDesktop.mockResolvedValue({execution:{...desktopExecution,task:{...desktopExecution.task,credentialMode:'LOCAL_SAVED'}},ticket:{value:'ticket',tenantId:'1'}})
+  try {
+    await m.state.open('30');m.state.localReady=true;await flush()
+    expect(m.state.form.credentialId).toBe('local-connection-1')
+    expect(m.state.form.password).toBe('')
+    m.state.form.commands='show version'
+    await m.state.submit()
+    api.context.mockResolvedValue({...m.state.source,version:4})
+    await m.state.submit()
+    expect(api.prepareDesktop).toHaveBeenCalledTimes(2)
+    expect(api.prepareDesktop).toHaveBeenLastCalledWith(entry,'30',expect.objectContaining({expectedVersion:4}))
+    const dispatches=local.request.mock.calls.filter(([input])=>input.path.endsWith('/executions'))
+    expect(dispatches).toHaveLength(2)
+    expect(dispatches.every(([input])=>!('password' in input.body))).toBe(true)
+    await m.state.open('30');m.state.localReady=true;await flush()
+    expect(m.state.form.credentialId).toBe('local-connection-1')
+    expect(m.state.form.password).toBe('')
+    m.state.localReady=false
+    await m.state.submit()
+    expect(api.prepareDesktop).toHaveBeenCalledTimes(2)
+  } finally {m.app.unmount()}
+})
+
+it.each(portEntries)('%s saves through the shared local transport with frozen device scope', async entry => {
+  const m=render('desktop',{entry})
+  api.context.mockResolvedValue({entry,objectId:'30',projectId:'21',deviceId:'9007199254740993',version:1,canExecute:true,manualAllowed:true})
+  try {
+    await m.state.open('30');m.state.localReady=true;await flush()
+    Object.assign(m.state.form,{host:'192.0.2.10',port:22,username:'fixture',password:'test-only-password'})
+    await m.state.openConnectionSave();m.state.connectionSaveForm.name='port-switch-fixture'
+    local.request.mockResolvedValue({saved:true,connection:localConnection()})
+    await m.state.saveCurrentConnection()
+    expect(api.desktopAccess).toHaveBeenCalledWith(entry,'30',expect.objectContaining({operation:'CONNECTION_SAVE',deviceId:'9007199254740993',protocol:'SSH'}))
+    expect(local.request).toHaveBeenCalledWith(expect.objectContaining({path:'/saved-connections',method:'POST',body:expect.objectContaining({connection:expect.objectContaining({password:'test-only-password'})})}))
+    expect(api.saveConnection).not.toHaveBeenCalled()
+    expect(api.prepareDesktop).not.toHaveBeenCalled()
+  } finally {m.app.unmount()}
+})
+
 it.each(['server', 'desktop'])('%s refreshes the source version for a new dispatch after previous results changed it', async location => {
   const m = render(location)
   try {

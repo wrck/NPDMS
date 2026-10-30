@@ -31,6 +31,11 @@ import static org.junit.jupiter.api.Assertions.*;
 })
 @ActiveProfiles("desktop")
 class DesktopHttpSecurityTest {
+    @org.junit.jupiter.api.io.TempDir static java.nio.file.Path identityDirectory;
+    @org.springframework.test.context.DynamicPropertySource
+    static void isolatedIdentity(org.springframework.test.context.DynamicPropertyRegistry registry) {
+        registry.add("device-ops.desktop.identity-file", () -> identityDirectory.resolve("identity.properties").toString());
+    }
     @Autowired WebApplicationContext context;
     @Autowired @Qualifier("springSecurityFilterChain") Filter security;
     @MockitoBean DesktopServerClient server;
@@ -50,10 +55,17 @@ class DesktopHttpSecurityTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(header().string("Content-Security-Policy", org.hamcrest.Matchers.containsString("frame-ancestors 'none'")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("NPDMS DAC 本机状态")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("NPDMS DAC 本机状态")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("无需输入配对码")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("fetch('/desktop-pairing'"))));
         mvc.perform(get("/desktop-status").with(request -> { request.setServerName("attacker.example"); return request; }))
                 .andExpect(status().isForbidden());
         mvc.perform(post("/desktop-status")).andExpect(status().isForbidden());
+        mvc.perform(get("/desktop-pairing")).andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.matchesPattern("[A-F0-9]{32}")))
+                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+        mvc.perform(get("/desktop-pairing").header("Origin", "http://evil.example"))
+                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
         mvc.perform(get("/api/v1/desktop/saved-connections")).andExpect(status().isForbidden());
         mvc.perform(get("/")).andExpect(status().isForbidden());
         verify(server, never()).resolve(any());

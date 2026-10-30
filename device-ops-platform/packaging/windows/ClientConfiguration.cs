@@ -11,7 +11,8 @@ namespace Npdms.Dac.Desktop
     internal sealed class ClientConfiguration
     {
         internal const string ServiceName = "NpdmsDac";
-        internal const int Port = 48182;
+        internal const int Port = 8280;
+        internal const int LastPort = 8289;
         internal static readonly string DataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "NPDMS", "DAC");
         internal readonly string ServerUrl;
@@ -48,6 +49,15 @@ namespace Npdms.Dac.Desktop
             return String.Equals(value, "npdms-dac://start/", StringComparison.OrdinalIgnoreCase);
         }
 
+        internal static string[] ParseConnectUri(string value)
+        {
+            // No callback URL, command, credentials, fragment or additional arguments are accepted.
+            var match = System.Text.RegularExpressions.Regex.Match(value ?? "",
+                "\\Anpdms-dac://connect/([a-f0-9]{32})\\?challenge=([a-f0-9]{64})&tenant=([1-9][0-9]{0,17})\\z");
+            if (!match.Success) throw new ArgumentException("本机连接链接无效，请在 NPDMS 网页重新点击连接。");
+            return new[] { match.Groups[1].Value, match.Groups[2].Value, match.Groups[3].Value };
+        }
+
         internal string EnvironmentDirectory(string root)
         {
             using (var digest = SHA256.Create())
@@ -72,6 +82,7 @@ namespace Npdms.Dac.Desktop
             SecureDirectory(root, false);
             SecureDirectory(EnvironmentDirectory(root), true);
             SecureDirectory(Path.Combine(root, "logs"), true);
+            SecureRuntimeDirectory(root);
             var doc = new XDocument(new XElement("dac", new XElement("serverUrl", ServerUrl), new XElement("webOrigin", WebOrigin)));
             string target = Path.Combine(root, "client.xml");
             string pending = target + ".new";
@@ -101,6 +112,68 @@ namespace Npdms.Dac.Desktop
         internal static byte[] ReadMasterKey(string root)
         {
             return ProtectedData.Unprotect(File.ReadAllBytes(Path.Combine(root, "credentials.key.dpapi")), null, DataProtectionScope.LocalMachine);
+        }
+
+        internal static string RuntimeDirectory(string root) { return Path.Combine(root, "runtime"); }
+
+        internal static void SecureRuntimeDirectory(string root)
+        {
+            string path = RuntimeDirectory(root);
+            SecureDirectory(path, true);
+            var security = Directory.GetAccessControl(path);
+            security.AddAccessRule(new FileSystemAccessRule(Sid(WellKnownSidType.BuiltinUsersSid), FileSystemRights.ReadAndExecute,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+            Directory.SetAccessControl(path, security);
+        }
+
+        internal static void GrantServiceProgramAccess(string root)
+        {
+            // Program files only: do not broaden access to ProgramData credentials or task data.
+            GrantProgramDirectory(root);
+            foreach (string file in Directory.GetFiles(root))
+            {
+                if ((File.GetAttributes(file) & FileAttributes.ReparsePoint) != 0) throw new IOException("Unexpected program link");
+                var security = File.GetAccessControl(file);
+                security.AddAccessRule(new FileSystemAccessRule(Sid(WellKnownSidType.LocalServiceSid), FileSystemRights.ReadAndExecute, AccessControlType.Allow));
+                File.SetAccessControl(file, security);
+            }
+            foreach (string directory in Directory.GetDirectories(root)) GrantServiceProgramAccess(directory);
+        }
+
+        private static void GrantProgramDirectory(string directory)
+        {
+            if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0) throw new IOException("Unexpected program link");
+            var security = Directory.GetAccessControl(directory);
+            security.AddAccessRule(new FileSystemAccessRule(Sid(WellKnownSidType.LocalServiceSid), FileSystemRights.ReadAndExecute,
+                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+            Directory.SetAccessControl(directory, security);
+        }
+
+        internal static System.Collections.Generic.Dictionary<string, string> RuntimeInfo(string root)
+        {
+            var result = new System.Collections.Generic.Dictionary<string, string>();
+            foreach (string line in File.ReadAllLines(Path.Combine(RuntimeDirectory(root), "endpoint.properties")))
+            {
+                int separator = line.IndexOf('=');
+                if (separator > 0) result[line.Substring(0, separator)] = line.Substring(separator + 1);
+            }
+            int port;
+            if (!result.ContainsKey("port") || !Int32.TryParse(result["port"], out port) || port < Port || port > LastPort)
+                throw new InvalidDataException("Invalid DAC endpoint");
+            int pid;
+            if (!result.ContainsKey("pid") || !Int32.TryParse(result["pid"], out pid) || pid < 1
+                || !result.ContainsKey("publicKey") || !System.Text.RegularExpressions.Regex.IsMatch(result["publicKey"], "\\A[a-f0-9]{64}\\z")
+                || !result.ContainsKey("instanceId") || !System.Text.RegularExpressions.Regex.IsMatch(result["instanceId"], "\\A[a-f0-9-]{36}\\z"))
+                throw new InvalidDataException("Invalid DAC identity metadata");
+            return result;
+        }
+
+        internal static int[] CandidatePorts(int previous)
+        {
+            var ports = new System.Collections.Generic.List<int>();
+            if (previous >= Port && previous <= LastPort) ports.Add(previous);
+            for (int port = Port; port <= LastPort; port++) if (!ports.Contains(port)) ports.Add(port);
+            return ports.ToArray();
         }
 
         private static SecurityIdentifier Sid(WellKnownSidType type)

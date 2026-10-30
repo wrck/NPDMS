@@ -1480,7 +1480,7 @@ PLT既有内部`FileArtifactApi.attachExistingVersions`增加受支持目标`CUT
 
 ### 本机 DAC 服务发现（2026-10-21）
 
-仅 desktop 运行配置提供 `GET http://127.0.0.1:48182/api/v1/desktop/status`，响应 `product=npdms-dac`、`protocolVersion=2`、`status=READY|STARTING`、`serverUrl`、`webOrigin`，不返回账户、凭据或任务数据；响应禁止缓存。1.0.6起使用协议2，要求保存连接按授权设备/项目范围读取与使用；旧协议1客户端提示更新，不降级到未限定范围的连接操作。该只读发现端点不要求登录，CORS 只允许客户端配置的精确网页来源；服务只监听回环地址并拒绝非回环 Host，所有业务接口继续认证。网页在产品、协议和服务器环境匹配后才可使用本机业务接口，探测失败不能区分未安装、服务停止或浏览器权限拒绝，不能伪报安装状态。
+仅 desktop 运行配置提供回环发现端点。1.1.0 起候选地址为 `http://127.0.0.1:8280`～`:8289`，`GET /api/v1/desktop/status?nonce=<64位小写十六进制>` 使用协议 3，响应包括 `product=npdms-dac`、`status=READY|STARTING`、`serverUrl`、`webOrigin`、实际 `port`、`publicKey`、`instanceId` 和 `signature`；具体签名字节与首次配对契约见 F-INT-012 Feature Spec 的“本机客户端端口与配对增量”。首次身份确认由用户点击已安装启动器完成，经短时、绑定用户和租户的服务端连接握手中转签名证明，免输配对码；具体 connections API 见同一 Feature Spec。旧只读 `GET /desktop-pairing` 指纹端点保留且不开放 CORS，正常页面不再调用。网页仅存公钥，使用随机挑战验证已确认身份后才允许本机业务操作。1.0.x 的协议 2 / 48182 为旧客户端行为，新网页不降级发现或绕过配对。发现端点不返回账户、凭据或任务数据且禁止缓存；CORS 仍限制精确配置网页来源，Host 与远端地址仍须回环；所有业务接口继续认证并校验设备/项目范围。探测失败不能区分未安装、服务停止或浏览器权限拒绝，不能伪报安装状态。独立服务器 DAC 不适用客户端候选端口。
 
 desktop 的 `GET /desktop-status` 提供本机只读 HTML 状态页，无需登录，复用上述发现接口展示就绪状态和配置的环境地址；禁止缓存和被框架嵌入，沿用回环 Host 校验。只开放此页面的 GET，不开放其他通用页面或业务操作。交互式安装成功后等待页面可访问并用默认浏览器自动打开；静默安装不打开浏览器。
 

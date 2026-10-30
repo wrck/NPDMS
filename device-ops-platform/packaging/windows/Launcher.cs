@@ -14,39 +14,85 @@ namespace Npdms.Dac.Desktop
         {
             try
             {
+                if (args.Length == 1 && args[0] == "--validate-settings") return 2;
+                if (args.Length == 3 && args[0] == "--validate-settings")
+                {
+                    new ClientConfiguration(args[1], args[2]);
+                    return 0;
+                }
+                if (args.Length == 1 && (args[0] == "--service-stop" || args[0] == "--service-install" || args[0] == "--service-uninstall"))
+                {
+                    if (!new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator)) return 1;
+                    bool exists = false;
+                    foreach (var installed in ServiceController.GetServices())
+                        using (installed) { if (installed.ServiceName == ClientConfiguration.ServiceName) exists = true; }
+                    if (!exists && args[0] != "--service-install") return 0;
+                    if (args[0] == "--service-stop")
+                    {
+                        using (var service = new ServiceController(ClientConfiguration.ServiceName))
+                        {
+                            if (service.Status != ServiceControllerStatus.Stopped)
+                            {
+                                if (service.Status != ServiceControllerStatus.StopPending) service.Stop();
+                                service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(60));
+                            }
+                        }
+                        return 0;
+                    }
+                    var command = new ProcessStartInfo(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NpdmsDacService.exe"),
+                        args[0] == "--service-install" ? "install" : "uninstall") { UseShellExecute = false, CreateNoWindow = true };
+                    using (var process = Process.Start(command)) { process.WaitForExit(); return process.ExitCode; }
+                }
+                if (args.Length == 1 && args[0] == "--service-start") { StartService(); return 0; }
                 if (args.Length == 1 && args[0] == "--open-status")
                 {
-                    // Run in the installing user's UI session, never in the service or elevated execute sequence.
-                    var deadline = DateTime.UtcNow.AddSeconds(60);
-                    var address = "http://127.0.0.1:" + ClientConfiguration.Port + "/desktop-status";
-                    while (true)
-                    {
-                        try
-                        {
-                            var request = System.Net.WebRequest.CreateHttp(address);
-                            request.Proxy = null;
-                            request.Timeout = 1500;
-                            using (var response = request.GetResponse()) { }
-                            break;
-                        }
-                        catch (System.Net.WebException)
-                        {
-                            if (DateTime.UtcNow >= deadline)
-                                throw new InvalidOperationException("DAC did not become available.");
-                            System.Threading.Thread.Sleep(500);
-                        }
-                    }
+                    string address = VerifiedStatusAddress(AppDomain.CurrentDomain.BaseDirectory);
                     Process.Start(new ProcessStartInfo(address) { UseShellExecute = true });
                     return 0;
                 }
                 if (args.Length == 2 && args[0] == "--uri")
                 {
-                    if (!ClientConfiguration.IsStartUri(args[1])) return 2;
+                    if (!ClientConfiguration.IsStartUri(args[1]))
+                    {
+                        var connection = ClientConfiguration.ParseConnectUri(args[1]);
+                        var settings = ClientConfiguration.Load(ClientConfiguration.DataRoot);
+                        StartService();
+                        string proof = VerifiedStatusPayload(AppDomain.CurrentDomain.BaseDirectory, connection[1]);
+                        var serializer = new System.Web.Script.Serialization.JavaScriptSerializer();
+                        var status = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(proof);
+                        if ((string)status["serverUrl"] != settings.ServerUrl || (string)status["webOrigin"] != settings.WebOrigin)
+                            throw new ArgumentException("本机 DAC 环境与设置不一致，请检查设置后重新连接。");
+                        // The destination comes exclusively from the protected installation configuration.
+                        var request = System.Net.WebRequest.CreateHttp(settings.ServerUrl
+                            + "/api/v1/pms/integration/device-ops/desktop/connections/" + connection[0] + "/proof");
+                        request.Method = "POST";
+                        request.AllowAutoRedirect = false;
+                        request.Timeout = 10000;
+                        request.ReadWriteTimeout = 10000;
+                        request.ContentType = "application/json";
+                        request.Headers["tenant-id"] = connection[2];
+                        byte[] body = System.Text.Encoding.UTF8.GetBytes(serializer.Serialize(new { nonce = connection[1], status = status }));
+                        request.ContentLength = body.Length;
+                        using (var stream = request.GetRequestStream()) stream.Write(body, 0, body.Length);
+                        using (var response = (System.Net.HttpWebResponse)request.GetResponse())
+                        {
+                            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                                throw new ArgumentException("本机连接确认未完成，请回到 NPDMS 网页重新连接。");
+                            using (var reader = new System.IO.StreamReader(response.GetResponseStream()))
+                            {
+                                var result = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(reader.ReadToEnd());
+                                if (!result.ContainsKey("code") || Convert.ToInt32(result["code"]) != 0 || !result.ContainsKey("data") || !Object.Equals(result["data"], true))
+                                    throw new ArgumentException("本机连接确认未完成，请回到 NPDMS 网页重新连接。");
+                            }
+                        }
+                        return 0;
+                    }
                     StartService();
                     return 0;
                 }
                 if (args.Length == 3 && args[0] == "--initialize")
                 {
+                    ClientConfiguration.GrantServiceProgramAccess(AppDomain.CurrentDomain.BaseDirectory);
                     var configuration = System.IO.File.Exists(System.IO.Path.Combine(ClientConfiguration.DataRoot, "client.xml"))
                         ? ClientConfiguration.Load(ClientConfiguration.DataRoot) : new ClientConfiguration(args[1], args[2]);
                     configuration.Save(ClientConfiguration.DataRoot);
@@ -71,9 +117,83 @@ namespace Npdms.Dac.Desktop
             }
             catch (Exception failure)
             {
-                if (args.Length > 0 && (args[0] == "--initialize" || args[0] == "--remove-browser-policy")) return 1;
+                if (args.Length > 0 && (args[0] == "--initialize" || args[0] == "--remove-browser-policy" || args[0] == "--validate-settings" || args[0].StartsWith("--service-", StringComparison.Ordinal)))
+                {
+                    try {
+                        System.ComponentModel.Win32Exception native = null;
+                        for (Exception cause = failure; cause != null; cause = cause.InnerException)
+                            if (cause is System.ComponentModel.Win32Exception) { native = (System.ComponentModel.Win32Exception)cause; break; }
+                        System.IO.File.AppendAllText(System.IO.Path.Combine(ClientConfiguration.DataRoot, "logs", "installer-native.log"),
+                            DateTime.UtcNow.ToString("o") + " " + args[0] + " " + failure.GetType().Name
+                            + (native == null ? "" : " Win32=" + native.NativeErrorCode) + Environment.NewLine);
+                    } catch { }
+                    return 1;
+                }
                 MessageBox.Show(failure is ArgumentException ? failure.Message : "DAC 操作失败，请检查服务安装状态，或联系管理员。", "NPDMS DAC", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 1;
+            }
+        }
+
+        // Signed nonce and instance binding prove freshness without a privileged service-process handle.
+        internal static string VerifiedStatusAddress(string install)
+        {
+            byte[] challenge = new byte[32];
+            using (var random = System.Security.Cryptography.RandomNumberGenerator.Create()) random.GetBytes(challenge);
+            string nonce = BitConverter.ToString(challenge).Replace("-", "").ToLowerInvariant();
+            var status = new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<System.Collections.Generic.Dictionary<string, object>>(VerifiedStatusPayload(install, nonce));
+            return "http://127.0.0.1:" + status["port"] + "/desktop-status";
+        }
+
+        internal static string VerifiedStatusPayload(string install, string nonce)
+        {
+            if (!System.Text.RegularExpressions.Regex.IsMatch(nonce ?? "", "\\A[a-f0-9]{64}\\z")) throw new ArgumentException("本机连接挑战无效。");
+            // Run in the installing user's UI session, never in the service or elevated execute sequence.
+            var deadline = DateTime.UtcNow.AddSeconds(60);
+            while (true)
+            {
+                try
+                {
+                    var endpoint = ClientConfiguration.RuntimeInfo(ClientConfiguration.DataRoot);
+                    var request = System.Net.WebRequest.CreateHttp("http://127.0.0.1:" + endpoint["port"] + "/api/v1/desktop/status?nonce=" + nonce);
+                    request.Proxy = null;
+                    request.Timeout = 1500;
+                    using (var response = request.GetResponse())
+                    using (var reader = new System.IO.StreamReader(response.GetResponseStream()))
+                    {
+                        string payload = reader.ReadToEnd();
+                        var status = new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<System.Collections.Generic.Dictionary<string, object>>(payload);
+                        if ((string)status["product"] != "npdms-dac" || (string)status["publicKey"] != endpoint["publicKey"]
+                            || (string)status["instanceId"] != endpoint["instanceId"] || (string)status["status"] != "READY")
+                            throw new System.IO.IOException("DAC runtime metadata differs");
+                        var verify = new ProcessStartInfo(System.IO.Path.Combine(install, "runtime", "bin", "java.exe"),
+                            "-Dloader.main=com.dp.plat.deviceops.server.desktop.DesktopDiscoveryVerifier -cp \""
+                            + System.IO.Path.Combine(install, "app", "device-ops-server.jar")
+                            + "\" org.springframework.boot.loader.launch.PropertiesLauncher " + endpoint["publicKey"] + " " + nonce + " " + endpoint["port"])
+                            { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true };
+                        var inherited = new System.Collections.Generic.List<string>();
+                        foreach (System.Collections.DictionaryEntry entry in verify.EnvironmentVariables) inherited.Add((string)entry.Key);
+                        foreach (string name in inherited)
+                        {
+                            string upper = name.ToUpperInvariant();
+                            if (upper.StartsWith("LOADER_", StringComparison.Ordinal) || upper == "JAVA_TOOL_OPTIONS"
+                                || upper == "JDK_JAVA_OPTIONS" || upper == "_JAVA_OPTIONS" || upper == "CLASSPATH") verify.EnvironmentVariables.Remove(name);
+                        }
+                        using (var verifier = Process.Start(verify))
+                        {
+                            verifier.StandardInput.Write(payload); verifier.StandardInput.Close();
+                            if (!verifier.WaitForExit(10000)) { verifier.Kill(); throw new System.IO.IOException("DAC identity verification timed out"); }
+                            if (verifier.ExitCode != 0) throw new System.IO.IOException("DAC identity verification failed");
+                        }
+                        return payload;
+                    }
+                }
+                catch (Exception failure)
+                {
+                    if (!(failure is System.Net.WebException || failure is System.IO.IOException || failure is ArgumentException)) throw;
+                    if (DateTime.UtcNow >= deadline)
+                        throw new InvalidOperationException("DAC did not become available.");
+                    System.Threading.Thread.Sleep(500);
+                }
             }
         }
 
@@ -140,7 +260,11 @@ namespace Npdms.Dac.Desktop
             try
             {
                 using (var service = new ServiceController(ClientConfiguration.ServiceName))
-                    status.Text = "服务状态：" + service.Status + "  ·  本机端口：" + ClientConfiguration.Port;
+                {
+                    string port = "等待就绪（8280～8289）";
+                    try { port = ClientConfiguration.RuntimeInfo(ClientConfiguration.DataRoot)["port"]; } catch (System.IO.IOException) { }
+                    status.Text = "服务状态：" + service.Status + "  ·  本机端口：" + port;
+                }
             }
             catch (InvalidOperationException) { status.Text = "服务尚未安装，请先运行安装包。"; }
         }
