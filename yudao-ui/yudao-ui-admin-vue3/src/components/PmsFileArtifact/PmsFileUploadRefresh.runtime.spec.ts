@@ -29,10 +29,14 @@ const renderUpload = (extra = {}) => {
 const artifact = (id: number) => ({ artifactId: id, name: `file-${id}`, reference: { ...key, versionNo: 1, referenceVersion: 1, status: 'ACTIVE' }, allowedActions: ['PREVIEW', 'DOWNLOAD'] })
 it.each([['null', true], ['31', false]])('prepares Owner %s without crossing existing identities', async (initial, allowed) => {
   const owner = ref(initial)
-  const prepareUpload = vi.fn(async () => { owner.value = '9007199254740993'; await nextTick() })
+  const referenceKey = ref('draft-slot')
+  const prepareUpload = vi.fn(async () => {
+    referenceKey.value = 'created-slot'; await nextTick()
+    owner.value = '9007199254740993'; await nextTick()
+  })
   const completed = vi.fn()
   const view = mount(defineComponent({ setup: () => () => h(Uploader, {
-    ...key, objectId: owner.value, categoryCode: 'CUTOVER_CLOSURE', autoSubmit: true,
+    ...key, objectId: owner.value, referenceKey: referenceKey.value, categoryCode: 'CUTOVER_CLOSURE', autoSubmit: true,
     prepareUpload, onCompleted: completed
   }) }), {}, { ElUpload: uploadControl, ElProgress: passthrough })
   try {
@@ -41,7 +45,7 @@ it.each([['null', true], ['31', false]])('prepares Owner %s without crossing exi
     await flush()
     expect(prepareUpload).toHaveBeenCalledOnce()
     if (allowed) {
-      expect(api.initializeUpload).toHaveBeenCalledWith(expect.objectContaining({ objectId: owner.value }), expect.any(String))
+      expect(api.initializeUpload).toHaveBeenCalledWith(expect.objectContaining({ objectId: owner.value, referenceKey: 'created-slot' }), expect.any(String))
       expect(completed).toHaveBeenCalledOnce()
     } else expect(api.initializeUpload).not.toHaveBeenCalled()
   } finally { view.app.unmount() }

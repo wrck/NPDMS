@@ -90,7 +90,7 @@ const attempt = ref<{
   initialized?: FileApi.FileUploadInitRespVO
 }>()
 let generation = 0
-let preparingUpload = false
+let preparingIdentity: string | undefined
 
 const businessKey = (): FileBusinessKey => ({
   ownerContext: props.ownerContext,
@@ -155,7 +155,7 @@ const submit = async () => {
   const selectedGeneration = generation
   try {
     if (props.prepareUpload) {
-      preparingUpload = true
+      preparingIdentity = identity()
       await props.prepareUpload()
     }
   } catch (error) {
@@ -166,7 +166,7 @@ const submit = async () => {
     }
     return
   } finally {
-    preparingUpload = false
+    preparingIdentity = undefined
   }
   if (generation !== selectedGeneration) return
   const selectedIdentity = identity()
@@ -229,17 +229,16 @@ const submit = async () => {
 }
 watch(
   identity,
-  (nextIdentity, previousIdentity) => {
-    // Preparing an unsaved Owner may assign its first ID; all other slot changes invalidate the upload.
-    if (preparingUpload) {
+  (nextIdentity) => {
+    // Creating an Owner also assigns its reference key; retain the selected file across that preparation.
+    if (preparingIdentity) {
       const next = JSON.parse(nextIdentity)
-      const previous = JSON.parse(previousIdentity)
+      const previous = JSON.parse(preparingIdentity)
       const previousId = previous[0].objectId
-      const nextId = next[0].objectId
       next[0].objectId = previousId
+      next[0].referenceKey = previous[0].referenceKey
       if ((previousId === 'null' || previousId === 'undefined' || previousId === '')
-          && /^[1-9][0-9]*$/.test(String(nextId))
-          && JSON.stringify(next) === previousIdentity) return
+          && JSON.stringify(next) === preparingIdentity) return
     }
     removeFile()
     progress.value = 0
