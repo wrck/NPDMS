@@ -92,13 +92,14 @@ class CutoverApprovalStartServiceTest {
         assertEquals(StartOutcome.REPLAYED, replayed.outcome());
         assertEquals(started.fact().approvalInstanceId(), replayed.fact().approvalInstanceId());
         ArgumentCaptor<CutoverApprovalNodeDO> nodeCaptor = ArgumentCaptor.forClass(CutoverApprovalNodeDO.class);
-        verify(nodes, times(4)).insert(nodeCaptor.capture());
-        assertEquals(List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE", "RND"),
+        verify(nodes, times(3)).insert(nodeCaptor.capture());
+        assertEquals(List.of("SERVICE_MANAGER", "SECOND_LINE", "RND"),
                 nodeCaptor.getAllValues().stream().map(CutoverApprovalNodeDO::getNodeCode).toList());
         assertEquals("PENDING", nodeCaptor.getAllValues().getFirst().getStatusCode());
-        assertEquals(202L, nodeCaptor.getAllValues().getFirst().getCurrentApproverUserId());
-        assertEquals(301L, nodeCaptor.getAllValues().get(1).getCurrentApproverUserId());
-        assertEquals(301L, nodeCaptor.getAllValues().get(1).getOriginalApproverUserId());
+        assertEquals(301L, nodeCaptor.getAllValues().getFirst().getCurrentApproverUserId());
+        assertTrue(nodeCaptor.getAllValues().stream().noneMatch(node -> "INITIATOR".equals(node.getNodeCode())));
+        assertEquals(301L, nodeCaptor.getAllValues().getFirst().getCurrentApproverUserId());
+        assertEquals(301L, nodeCaptor.getAllValues().getFirst().getOriginalApproverUserId());
         ArgumentCaptor<CutoverApprovalInstanceDO> instanceCaptor =
                 ArgumentCaptor.forClass(CutoverApprovalInstanceDO.class);
         verify(instances).insert(instanceCaptor.capture());
@@ -194,10 +195,10 @@ class CutoverApprovalStartServiceTest {
         if (managerUnresolved) {
             verify(notifications, never()).insert(any(CutoverApprovalNotificationDO.class));
             var capturedNodes = ArgumentCaptor.forClass(CutoverApprovalNodeDO.class);
-            verify(nodes, times(2)).insert(capturedNodes.capture());
-            var managerNode = capturedNodes.getAllValues().get(1);
+            verify(nodes).insert(capturedNodes.capture());
+            var managerNode = capturedNodes.getAllValues().getFirst();
             assertEquals("SERVICE_MANAGER", managerNode.getNodeCode());
-            assertEquals("WAITING", managerNode.getStatusCode());
+            assertEquals("PENDING", managerNode.getStatusCode());
             assertNull(managerNode.getCurrentApproverUserId());
         }
     }

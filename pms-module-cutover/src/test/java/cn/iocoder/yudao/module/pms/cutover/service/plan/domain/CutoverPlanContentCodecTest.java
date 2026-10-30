@@ -14,6 +14,23 @@ class CutoverPlanContentCodecTest {
     private final CutoverPlanContentCodec codec = new CutoverPlanContentCodec();
 
     @Test
+    void incompleteRowsKeepExistingSaveRulesAndIdentifyTheirFieldInsteadOfInvalidContent() {
+        var body=(tools.jackson.databind.node.ObjectNode)JsonUtils.parseTree(standardJson());
+        var first=(tools.jackson.databind.node.ObjectNode)body.path("steps").get(0);
+        first.put("content", "");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> codec.decodeWritable(body,source("A")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("割接前操作清单第1行的操作内容");
+        first.put("sectionCode", "POST_CUTOVER_SUPPORT"); first.put("stepNo", 2);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> codec.decodeWritable(body,source("A")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("割接后保障第2行的时间");
+        var dated=(tools.jackson.databind.node.ObjectNode)JsonUtils.parseTree(standardJson());
+        var schedule=(tools.jackson.databind.node.ObjectNode)dated.path("overview").path("scheduleTable").get(0);
+        schedule.put("plannedAt", "2026-10-30 11:00");
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> codec.decodeWritable(dated,source("A")))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("项目割接计划第1行的日期");
+    }
+
+    @Test
     void keepsSelectedPersonReferenceWhenReopeningAndDerivingDraft() {
         var body=(tools.jackson.databind.node.ObjectNode)JsonUtils.parseTree(standardJson());
         var row=(tools.jackson.databind.node.ObjectNode)body.path("supportArrangements").get(0);

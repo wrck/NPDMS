@@ -8,7 +8,7 @@ final class CutoverWorkflowDefinitionPolicy {
     private CutoverWorkflowDefinitionPolicy() { }
     private record Edge(String from, String to, String condition) { }
     private static final Map<String, Edge> EDGES = Map.of(
-            "f0", new Edge("start", "INITIATOR", null), "f1", new Edge("INITIATOR", "SERVICE_MANAGER", null),
+            "f0", new Edge("start", "SERVICE_MANAGER", null),
             "f2", new Edge("SERVICE_MANAGER", "SECOND_LINE_REQUIRED", null),
             "f3", new Edge("SECOND_LINE_REQUIRED", "SECOND_LINE", "${cutoverGrade == 'A' || cutoverGrade == 'B'}"),
             "f4", new Edge("SECOND_LINE_REQUIRED", "end", "${cutoverGrade == 'C' || cutoverGrade == 'D'}"),
@@ -18,7 +18,7 @@ final class CutoverWorkflowDefinitionPolicy {
     static void validate(BpmnModel model) {
         if (model == null || model.getProcesses().size() != 1) throw invalid();
         var process = model.getMainProcess();
-        if (process.getFlowElements().size() != 17 || process.getExecutionListeners().size() != 1) throw invalid();
+        if (process.getFlowElements().size() != 15 || process.getExecutionListeners().size() != 1) throw invalid();
         if (!(process.getFlowElement("SECOND_LINE") instanceof UserTask secondLine)
                 || !(process.getFlowElement("RND") instanceof UserTask research)
                 || !secondLine.getExtensionElements().containsKey("cutoverRoleGroup")
@@ -32,7 +32,7 @@ final class CutoverWorkflowDefinitionPolicy {
             if (!(process.getFlowElement(entry.getKey()) instanceof SequenceFlow flow)
                     || !entry.getValue().equals(new Edge(flow.getSourceRef(), flow.getTargetRef(), blank(flow.getConditionExpression())))) throw invalid();
         }
-        for (String code : List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE", "RND")) {
+        for (String code : List.of("SERVICE_MANAGER", "SECOND_LINE", "RND")) {
             if (!(process.getFlowElement(code) instanceof UserTask node) || node.getLoopCharacteristics() != null
                     || blank(node.getSkipExpression()) != null || !Objects.equals(node.getAssignee(), "${cutoverUser_" + code + "}")) throw invalid();
             var role = node.getExtensionElements().get("cutoverRoleGroup");
@@ -62,6 +62,11 @@ final class CutoverWorkflowDefinitionPolicy {
                 model.getMainProcess().getFlowElement(code) instanceof UserTask node
                         && node.getCandidateUsers().isEmpty()
                         && node.getCandidateGroups().equals(List.of("${cutoverGroup_" + code + "}")));
+    }
+    static boolean startsWithServiceManager(BpmnModel model) {
+        return supportsRoles(model) && model.getMainProcess().getFlowElement("INITIATOR") == null
+                && model.getMainProcess().getFlowElement("f0") instanceof SequenceFlow first
+                && "start".equals(first.getSourceRef()) && "SERVICE_MANAGER".equals(first.getTargetRef());
     }
     private static String blank(String value) { return value == null || value.isBlank() ? null : value.trim(); }
     private static IllegalArgumentException invalid() { return new IllegalArgumentException("割接审批路由或人工评审策略与正式定义不一致"); }

@@ -161,7 +161,7 @@ class CutoverRolePoolFlowableTest {
     }
     private static String second(List<Long> supporters) {
         supporters.forEach(user -> member(user, 80L, "probSupporter")); member(10L, 90L, "probRD");
-        var nodes = List.of(new CutoverWorkflowApi.Node("INITIATOR", 7L), new CutoverWorkflowApi.Node("SERVICE_MANAGER", 7L),
+        var nodes = List.of(new CutoverWorkflowApi.Node("SERVICE_MANAGER", 7L),
                 new CutoverWorkflowApi.Node("SECOND_LINE", null, new CutoverWorkflowApi.RoleReference(80L, "probSupporter")),
                 new CutoverWorkflowApi.Node("RND", null, new CutoverWorkflowApi.RoleReference(90L, "probRD")));
         var command = new CutoverWorkflowApi.Start(1L, 7L, 9L, 11L, IDS.incrementAndGet(), "A", nodes);
@@ -176,7 +176,7 @@ class CutoverRolePoolFlowableTest {
         });
         String instance = guard.start(command, () -> engine.getRuntimeService().startProcessInstanceByKeyAndTenantId(
                 CutoverWorkflowApi.DEFINITION_KEY, command.approvalId().toString(), variables, "1").getId());
-        approve(instance, task(instance), 7L); approve(instance, task(instance), 7L); return instance;
+        approve(instance, task(instance), 7L); return instance;
     }
     private static Task task(String instance) {
         return engine.getTaskService().createTaskQuery().processInstanceId(instance).singleResult();

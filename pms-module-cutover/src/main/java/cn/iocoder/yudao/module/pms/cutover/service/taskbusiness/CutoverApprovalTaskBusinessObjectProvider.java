@@ -33,11 +33,13 @@ public class CutoverApprovalTaskBusinessObjectProvider implements TaskBusinessOb
     private final ProjectScopeApi scopes;
     private final PermissionApi permissions;
     private final ProjectNodeExecutionApi executions;
+    private final CutoverCompletionProvider completion;
 
     @Override public String ownerContext() { return "CUT"; }
     @Override public String objectType() { return "CUTOVER_APPROVAL"; }
-    @Override public Set<String> completionFactCodes() { return Set.of(FACT); }
-    @Override public Map<String, String> completionFactLabels() { return Map.of(FACT, "当前割接任务方案审批通过（不代表割接成功）"); }
+    @Override public Set<String> completionFactCodes() { return Set.of(FACT, CutoverCompletionProvider.FACT); }
+    @Override public Map<String, String> completionFactLabels() { return Map.of(FACT, "当前割接任务方案审批通过（不代表割接成功）",
+            CutoverCompletionProvider.FACT, "割接成功并完成P6归档"); }
     @Override public Set<String> inspectContext(Context context) {
         if (context == null || context.taskId() == null || context.taskId() <= 0 || context.actorId() == null) throw denied();
         scope(new CutoverCompletionQuery(context.tenantId(), context.projectId(), null, null, 1, false));
@@ -70,7 +72,7 @@ public class CutoverApprovalTaskBusinessObjectProvider implements TaskBusinessOb
         scope(new CutoverCompletionQuery(context.tenantId(), context.execution().projectId(), null, null, 1, true));
         var execution = executions.lockAndRevalidate(context.execution());
         var value = load(new CutoverCompletionQuery(context.tenantId(), execution.projectId(), parse(objectId), null, 1, true));
-        return new CompletionFact(objectId, value.version() + ":execution:" + execution.executionId(), value.approved(), Map.of(FACT, value.approved()));
+        return new CompletionFact(objectId, value.version() + ":execution:" + execution.executionId(), value.approved(), completionFacts(value));
     }
     @Override public List<AssociationCandidate> associationCandidates(AssociationContext context, String afterObjectId, int pageSize) {
         if (context == null || pageSize < 1 || pageSize > 100
@@ -84,7 +86,7 @@ public class CutoverApprovalTaskBusinessObjectProvider implements TaskBusinessOb
         }).toList();
     }
 
-    private record Current(Long id, String name, String version, boolean approved) { }
+    private record Current(Long id, String name, String version, boolean approved, boolean completed) { }
     @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
         if (context == null) throw denied();
         var query = new CutoverCompletionQuery(context.tenantId(), context.projectId(), parse(objectId), null, 1, false);
@@ -104,15 +106,17 @@ public class CutoverApprovalTaskBusinessObjectProvider implements TaskBusinessOb
             throw new IllegalArgumentException("CUTOVER_TASK_UNAVAILABLE");
         var planQuery = new CutoverPlanRevisionQuery(query.tenantId(), task.getId(), null);
         var plan = query.lock() ? plans.selectCurrentForUpdate(planQuery) : plans.selectCurrent(planQuery);
-        String version = "CUTOVER_APPROVAL:" + task.getId() + ":" + task.getVersion();
-        if (plan == null) return new Current(task.getId(), task.getTaskName(), version + ":NO_PLAN", false);
+        var closed = completion.currentFact(query);
+        boolean completed = Boolean.TRUE.equals(closed.completionFacts().get(CutoverCompletionProvider.FACT));
+        String version = "CUTOVER_APPROVAL:" + task.getId() + ":" + task.getVersion() + ":closure:" + closed.factVersion();
+        if (plan == null) return new Current(task.getId(), task.getTaskName(), version + ":NO_PLAN", false, completed);
         if (!Objects.equals(plan.getTenantId(), query.tenantId()) || !Objects.equals(plan.getCutoverTaskId(), task.getId())
                 || plan.getVersion() == null || Boolean.TRUE.equals(plan.getDeleted())) throw new IllegalArgumentException("CUTOVER_PLAN_SCOPE_INVALID");
         version += ":plan:" + plan.getId() + ":" + plan.getVersion() + ":" + plan.getStatusCode();
         if (!"SUBMITTED".equals(plan.getStatusCode()) || !Integer.valueOf(1).equals(plan.getCurrentMarker()))
-            return new Current(task.getId(), task.getTaskName(), version + ":PLAN_NOT_CURRENT_SUBMITTED", false);
+            return new Current(task.getId(), task.getTaskName(), version + ":PLAN_NOT_CURRENT_SUBMITTED", false, completed);
         var observation = approvals.inspect(new CutoverApprovalFactQuery(query.tenantId(), task.getId(), plan.getId()));
-        if (observation.status() == InspectStatus.NOT_FOUND) return new Current(task.getId(), task.getTaskName(), version + ":NO_APPROVAL", false);
+        if (observation.status() == InspectStatus.NOT_FOUND) return new Current(task.getId(), task.getTaskName(), version + ":NO_APPROVAL", false, completed);
         var fact = observation.fact();
         if (fact == null || !Objects.equals(fact.taskId(), task.getId()) || !Objects.equals(fact.planRevisionId(), plan.getId()))
             throw new IllegalArgumentException("CUTOVER_APPROVAL_SCOPE_INVALID");
@@ -125,10 +129,13 @@ public class CutoverApprovalTaskBusinessObjectProvider implements TaskBusinessOb
         }
         boolean approved = fact.status() == ApprovalStatus.APPROVED && fact.decisionAt() != null && fact.replacementApprovalInstanceId() == null;
         return new Current(task.getId(), task.getTaskName(), version + ":approval:" + fact.approvalInstanceId() + ":"
-                + fact.approvalVersion() + ":" + fact.status(), approved);
+                + fact.approvalVersion() + ":" + fact.status(), approved, completed);
     }
     private BusinessObjectFact fact(Current value) {
-        return new BusinessObjectFact(value.id().toString(), value.name(), value.version(), Set.of("QUERY"), Map.of(FACT, value.approved()), List.of());
+        return new BusinessObjectFact(value.id().toString(), value.name(), value.version(), Set.of("QUERY"), completionFacts(value), List.of());
+    }
+    private Map<String, Boolean> completionFacts(Current value) {
+        return Map.of(FACT, value.approved(), CutoverCompletionProvider.FACT, value.completed());
     }
     private void scope(CutoverCompletionQuery query) {
         if (query.tenantId() == null || !Objects.equals(query.tenantId(), TenantContextHolder.getTenantId())

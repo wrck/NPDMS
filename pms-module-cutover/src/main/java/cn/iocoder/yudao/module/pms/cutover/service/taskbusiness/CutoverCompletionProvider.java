@@ -142,6 +142,10 @@ public class CutoverCompletionProvider implements TaskBusinessObjectProvider, St
         return new Snapshot(id, row.getTaskName(), row.getVersion() + ":" +
                 (closure == null ? "-" : closure.getId() + ":" + closure.getVersion()), completed);
     }
+    BusinessObjectFact currentFact(CutoverCompletionQuery query) {
+        tenant(query.tenantId(), query.projectId());
+        return fact(load(query.tenantId(), query.projectId(), query.objectId(), query.lock()));
+    }
     private List<Snapshot> page(Long tenant, Long project, Long after, int size) {
         return mapper.page(new CutoverCompletionQuery(tenant, project, null, after, size, false)).stream()
                 .map(row -> load(tenant, project, row.getId(), false)).toList();

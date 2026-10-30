@@ -6,7 +6,7 @@
         <summary class="cut-card__header"><h3><Icon icon="ep:circle-check" />割接结果与闭环</h3><small>{{ closure.closureStatus === 'SUBMITTED' ? '已归档，只读' : '草稿，保存不推进流程' }}</small></summary>
         <div class="cut-card__body">
           <CutoverClosureForm
-ref="closureFormRef" v-model="content" :task-id="taskId" :closure-id="closure.closureId" :editable="canSave && !writing"
+ref="closureFormRef" v-model="content" :task-id="taskId" :closure-id="closure.closureId" :editable="canSave && !writing" :upload-available="canSave" :prepare-upload="prepareAttachmentUpload"
             @upload-pending="attachmentPending = $event" @attachment-completed="onAttachmentCompleted" @attachment-removed="onAttachmentRemoved" />
           <h4 class="cut-section-title">8. 割接结果<span class="cut-required"> *</span></h4>
           <p v-if="closure.closureStatus === 'SUBMITTED'" data-testid="closure-final-summary">{{ selectedResult === 'SUCCESS' ? '割接成功' : selectedResult === 'FAILED' ? '割接失败' : '未记录' }}</p>
@@ -118,8 +118,8 @@ const refresh = async () => {
     if (closure.value.closureStatus === 'SUBMITTED' && closure.value.content?.finalResult === 'SUCCESS') await loadProgress()
   } finally { loading.value = false }
 }
-const run = async <T,>(intent: string, call: (key: string) => Promise<T>) => {
-  if (closureFormRef.value?.hasPendingUploads()) {
+const run = async <T,>(intent: string, call: (key: string) => Promise<T>, mode: 'normal' | 'prepare' | 'submit' = 'normal') => {
+  if (mode !== 'prepare' && (mode === 'submit' ? closureFormRef.value?.hasPendingFileUploads() : closureFormRef.value?.hasPendingUploads())) {
     message.warning('请等待闭环附件上传和绑定完成后再保存或归档')
     return null
   }
@@ -161,6 +161,22 @@ const save = async () => {
   if (result) message.success('闭环草稿已保存')
   return result
 }
+let preparingAttachment: Promise<void> | undefined
+const prepareAttachmentUpload = async () => {
+  if (closure.value?.closureId != null) return
+  if (!preparingAttachment) {
+    preparingAttachment = (async () => {
+      if (!closure.value) throw new Error('闭环记录尚未加载')
+      const payload = JSON.parse(JSON.stringify(content.value)) as CutoverClosureContent
+      payload.finalResult = null
+      const result = await run(`save:${closure.value.closureVersion ?? 'new'}:${JSON.stringify(payload)}`, (key) =>
+        CutoverApi.saveCutoverClosure({ taskId: props.taskId, taskVersion: closure.value!.taskVersion, closureVersion: closure.value!.closureVersion, data: payload, idempotencyKey: key }), 'prepare')
+      if (!result || closure.value?.closureId == null) throw new Error('闭环记录创建失败，请重试上传')
+      await nextTick()
+    })().finally(() => { preparingAttachment = undefined })
+  }
+  await preparingAttachment
+}
 const refreshEvidence = async () => { closure.value = await CutoverApi.getCutoverClosure(props.taskId) }
 const linkManual = async (data: LinkCutoverClosureManualResultRequest) => {
   if (!closure.value) return
@@ -175,7 +191,7 @@ const submit = async (finalResult: 'SUCCESS' | 'FAILED') => {
   }
   if (!canSubmit.value) { message.warning('闭环草稿已保存，请补齐检查、执行、测试、回退及两项必需附件后再提交。'); return }
   const result = await run(`submit:${requireDraftVersion()}:${finalResult}`, (key) =>
-    CutoverApi.submitCutoverClosure({ taskId: props.taskId, taskVersion: closure.value!.taskVersion, closureVersion: requireDraftVersion(), finalResult: finalResult, idempotencyKey: key }))
+    CutoverApi.submitCutoverClosure({ taskId: props.taskId, taskVersion: closure.value!.taskVersion, closureVersion: requireDraftVersion(), finalResult: finalResult, idempotencyKey: key }), 'submit')
   if (result) message.success(finalResult === 'SUCCESS' ? '割接成功并已归档' : '割接失败并已归档')
 }
 const submitSelected = async () => { if (selectedResult.value) await submit(selectedResult.value) }

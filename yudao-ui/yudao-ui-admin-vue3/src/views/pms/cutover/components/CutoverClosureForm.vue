@@ -43,16 +43,17 @@ v-else
       <div v-for="(slot, index) in attachmentSlots" :key="slot.purposeCode" class="attachment-row">
         <h4 class="cut-section-title">{{ index < 2 ? (index + 5) + '. ' : '' }}{{ slot.label }}<span v-if="index < 2" class="cut-required"> *</span></h4>
         <PmsFileUploader
-ref="uploadRefs" v-if="editable && closureId !== null"
+ref="uploadRefs" v-if="uploadAvailable || editable" v-show="editable"
           accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
           :data-testid="'closure-file-' + slot.purposeCode" owner-context="CUT" object-type="CUTOVER_CLOSURE" :object-id="String(closureId)"
+          :prepare-upload="prepareUpload" auto-submit
           :purpose-code="slot.purposeCode" :reference-key="uploadKeys[slot.purposeCode]!"
           :artifact-id="currentReference(slot.purposeCode, uploadKeys[slot.purposeCode])?.artifactId"
           :expected-reference-version="currentReference(slot.purposeCode, uploadKeys[slot.purposeCode])?.referenceVersion"
           :disabled="referencesLoading || !!referenceErrors[identity(slot.purposeCode, uploadKeys[slot.purposeCode])]"
           category-code="CUTOVER_CLOSURE" @completed="completeUpload(slot.purposeCode, $event)" />
         <p v-if="slotHasReferenceError(slot.purposeCode)" class="cut-help" role="status">当前材料引用读取失败，请重试后更新该文件。<el-button link type="primary" :data-testid="'closure-reference-retry-' + slot.purposeCode" @click="readReferences">重试</el-button></p>
-        <p v-if="editable && closureId !== null" class="cut-help">支持PDF、Word、Excel及图片，单文件不超过50MB。可连续添加多份；取消关联后请保存，文件历史保留。</p>
+        <p v-if="editable" class="cut-help">支持PDF、Word、Excel及图片，单文件不超过50MB。选择后自动上传；可连续添加多份，取消关联后请保存。</p>
         <div v-for="file in attachments(slot.purposeCode)" :key="file.referenceKey" class="attachment-file">
           <PmsFileVersionReferenceList
 owner-context="CUT" object-type="CUTOVER_CLOSURE"
@@ -76,8 +77,7 @@ ref="uploadRefs" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
             </details>
           </template>
         </div>
-        <p v-if="closureId === null" class="cut-help">先保存闭环草稿，即可上传{{ slot.label }}。</p>
-        <p v-else-if="!editable && !attachments(slot.purposeCode).length" class="cut-help">未上传附件</p>
+        <p v-if="!editable && !attachments(slot.purposeCode).length" class="cut-help">未上传附件</p>
         <el-button
 v-if="editable && closureId !== null" :disabled="pendingUploads"
           link type="primary" :data-testid="'closure-restore-' + slot.purposeCode" @click="readAvailableAttachments(slot)">读取已上传附件</el-button>
@@ -111,7 +111,7 @@ import type { CutoverClosureContent, CutoverClosureFileFact, CutoverClosureFileP
 import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import PmsFileVersionReferenceList from '@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue'
 
-const props = defineProps<{ modelValue: CutoverClosureContent; taskId: WireLong; closureId: WireLong | null; editable: boolean }>()
+const props = defineProps<{ modelValue: CutoverClosureContent; taskId: WireLong; closureId: WireLong | null; editable: boolean; uploadAvailable?: boolean; prepareUpload?: () => Promise<void> }>()
 const emit = defineEmits<{
   'update:modelValue': [value: CutoverClosureContent]
   'attachment-completed': [fact: CutoverClosureFileFact]
@@ -128,10 +128,11 @@ const availableAttachments = ref<Partial<Record<CutoverClosureFilePurpose, Cutov
 let referenceSequence = 0
 let recoverySequence = 0
 const message = useMessage()
-const pendingUploads = computed(() => referencesLoading.value || completingUploads.value > 0 ||
+const fileUploadsPending = computed(() => completingUploads.value > 0 ||
   uploadRefs.value.some(uploader => uploader.isBusy() || uploader.hasPendingFile()))
+const pendingUploads = computed(() => referencesLoading.value || fileUploadsPending.value)
 watch(pendingUploads, pending => emit('upload-pending', pending), { immediate: true })
-defineExpose({ hasPendingUploads: () => pendingUploads.value })
+defineExpose({ hasPendingUploads: () => pendingUploads.value, hasPendingFileUploads: () => fileUploadsPending.value })
 
 type BooleanKey = 'preCheckNormal' | 'executionNormal' | 'testNormal' | 'rollbackOccurred' | 'rollbackSuccessful'
 type StringKey = 'preCheckDetail' | 'executionDetail' | 'testDetail' | 'rollbackReason' | 'legacyItems'

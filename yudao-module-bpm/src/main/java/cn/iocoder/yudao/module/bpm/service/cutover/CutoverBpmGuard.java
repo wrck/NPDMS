@@ -93,7 +93,9 @@ public class CutoverBpmGuard {
                     throw new IllegalStateException("割接角色待办不匹配已固定的领取人");
             }
 
-        } else if (candidates.size() != 1 || !Objects.equals(candidates.getFirst(), task.getAssignee())) {
+        } else if (!("SERVICE_MANAGER".equals(task.getTaskDefinitionKey()) && candidates.isEmpty()
+                && task.getAssignee() == null && task.getVariable("cutoverUser_SERVICE_MANAGER") == null)
+                && (candidates.size() != 1 || !Objects.equals(candidates.getFirst(), task.getAssignee()))) {
             throw new IllegalStateException("割接审批人不匹配业务冻结候选人");
         }
         if (List.of("complete", "delete", "assignment").contains(task.getEventName())) {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { StandardCutoverPlanContent, CutoverPlanSupportArrangement } from '@/api/pms/cutover'
-import { focusPlanSupportValidation, planSupportValidationMessage } from '../shared/cutoverPlanValidation'
+import { focusPlanSupportValidation, planContentValidation, planSupportValidationMessage } from '../shared/cutoverPlanValidation'
 
 const content = (supportArrangements: CutoverPlanSupportArrangement[]): StandardCutoverPlanContent => ({
   editMode: 'ONLINE_TEMPLATE_STANDARD', steps: [], riskMitigations: [], supportArrangements,
@@ -13,6 +13,24 @@ const completeRoles = (): CutoverPlanSupportArrangement[] =>
   }))
 
 describe('plan support rejection explanation', () => {
+  it('keeps empty draft collections valid and locates blank step content including support time', () => {
+    const draft=content([])
+    expect(planContentValidation(draft)).toBeNull()
+    draft.steps=[{sectionCode:'OPERATION',stepNo:2,content:''}]
+    expect(planContentValidation(draft)).toMatchObject({message:expect.stringContaining('割接执行操作清单第2行的操作内容'),fieldTestId:'plan-step-OPERATION-2-content'})
+    draft.steps=[{sectionCode:'POST_CUTOVER_SUPPORT',stepNo:1,content:''}]
+    expect(planContentValidation(draft)).toMatchObject({message:expect.stringContaining('割接后保障第1行的时间')})
+  })
+  it('locates missing or invalid plan dates without making the optional draft plan time required', () => {
+    const draft=content([])
+    draft.scheduledTime=null
+    draft.overview.scheduleTable=[{sequenceNo:1,plannedAt:0,content:'实施'}]
+    expect(planContentValidation(draft)).toMatchObject({message:expect.stringContaining('第1行的日期未填写或格式无效'),fieldTestId:'plan-schedule-0-plannedAt'})
+    draft.overview.scheduleTable[0].plannedAt='2026-10-30 11:00'
+    expect(planContentValidation(draft)?.fieldTestId).toBe('plan-schedule-0-plannedAt')
+    draft.overview.scheduleTable[0].plannedAt=1793338800000
+    expect(planContentValidation(draft)).toBeNull()
+  })
   it('expands enclosing cards before scrolling and focusing a rejected support section', () => {
     const outer = { open: false, parentElement: null }
     const inner = { open: false, parentElement: { closest: () => outer } }

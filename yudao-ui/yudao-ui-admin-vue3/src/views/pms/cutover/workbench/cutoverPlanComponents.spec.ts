@@ -83,6 +83,21 @@ describe('F-CUT-004 mounted plan workbench', () => {
     vi.stubGlobal('window', { open: vi.fn(() => accessTarget) })
   })
 
+  it('keeps incomplete step edits visible and identifies the exact row before saving', async () => {
+    const server=standardPlan(['SAVE_DRAFT'])
+    api.getCutoverPlan.mockResolvedValue(server)
+    const mounted=mount(CutoverPlanPanel,{taskId:'101',projectId:'401',taskVersion:7,manualGrade:'A'},controls)
+    await flush()
+    const operation=findByTestId(mounted.root,'plan-step-OPERATION-1-content')!
+    await (operation.props!['onUpdate:modelValue'] as Function)('')
+    await click(mounted.root,'save-plan'); await flush()
+    expect(api.saveCutoverPlanDraft).not.toHaveBeenCalled()
+    expect(findByTestId(mounted.root,'plan-content-validation')?.props?.title).toContain('割接执行操作清单第1行的操作内容')
+    expect(findByTestId(mounted.root,'plan-step-OPERATION-1-content')?.props?.['model-value']).toBe('')
+    expect(server.content?.editMode==='ONLINE_TEMPLATE_STANDARD' && server.content.steps[0].content).toBe('原操作')
+    mounted.app.unmount()
+  })
+
   it('retains a failed plan draft, retries the original command and permits discard without deleting saved attachments', async () => {
     const server = standardPlan(['SAVE_DRAFT'])
     const original = structuredClone(server)
