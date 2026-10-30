@@ -369,6 +369,23 @@ class ProjectTreeScopeServiceTest {
     }
 
     @Test
+    void authorizedProjectManagementRolesReceiveOnlyCurrentTenantProjectScope() {
+        stubRootProjection();
+        org.mockito.Mockito.doReturn(true).when(permissionApi).hasAnyRoles(9L, "engineeManager", "engineeManagerLeader", "projectAdmin");
+        org.mockito.Mockito.doReturn(false).when(permissionApi).hasAnyRoles(9L, "super_admin");
+        for (String action : List.of("PROJECT_VIEW", "PROJECT_EDIT", "PROJECT_MANAGE")) {
+            assertEquals(Set.of(1L, 2L, 3L, 4L), service.resolve(query(action)).fullProjectIds());
+        }
+        var tenantQuery = new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.TenantProjectScopeQuery(0L);
+        when(projectMapper.selectTenantProjectIds(tenantQuery)).thenReturn(List.of(1L, 2L));
+        assertEquals(Set.of(1L, 2L), service.resolveAllFullProjectIds(0L, 9L, "PROJECT_MANAGE"));
+        var readScope = service.prepareViewReadScope(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(0L, 9L, "PROJECT_VIEW"));
+        assertEquals(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.Mode.TENANT_ADMIN, readScope.mode());
+        assertThrows(ServiceException.class, () -> service.resolveAllFullProjectIds(1L, 9L, "PROJECT_MANAGE"));
+        verify(memberMapper, never()).selectAuthorizedByUser(any());
+    }
+
+    @Test
     void superAdminListsTenantProjectsWithoutCreatorOrMembershipRestriction() {
         when(permissionApi.hasAnyRoles(9L, "super_admin")).thenReturn(true);
         var tenantQuery = new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.TenantProjectScopeQuery(0L);

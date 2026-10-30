@@ -58,6 +58,14 @@ public class OrdinaryProjectMemberService {
                 new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()), projectId);
     }
 
+    public boolean canMaintainServiceManagers(Long projectId, Actor actor) {
+        validateActor(actor);
+        projects.getProject(projectId, accessActor(actor));
+        return permissions.hasAnyPermissions(actor.userId(), "pms:project:assign")
+                && authorization.canMaintainServiceManagers(
+                new ProjectAuthorizationGuard.Actor(actor.tenantId(), actor.userId()), projectId);
+    }
+
     public PageResult<ProjectMemberAssignmentDO> page(Long projectId, Filter filter, Actor actor) {
         validateActor(actor);
         if (filter == null || filter.pageNo() < 1 || filter.pageSize() < 1 || filter.pageSize() > 100

@@ -40,6 +40,12 @@ public class OrdinaryProjectMemberController {
         return success(members.canAppointPrimaryProjectManager(id, actor()));
     }
 
+    @GetMapping("/{id}/members/service-manager-maintenance-permission")
+    @PreAuthorize("@ss.hasPermission('pms:project:query')")
+    public CommonResult<Boolean> serviceManagerMaintenancePermission(@PathVariable("id") @Positive Long id) {
+        return success(members.canMaintainServiceManagers(id, actor()));
+    }
+
     @GetMapping("/{id}/members")
     @PreAuthorize("@ss.hasPermission('pms:project:query')")
     public CommonResult<PageResult<ProjectMemberAssignmentRespVO>> page(@PathVariable("id") @Positive Long id,

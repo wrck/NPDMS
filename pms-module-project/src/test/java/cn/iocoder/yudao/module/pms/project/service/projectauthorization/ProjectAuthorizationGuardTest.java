@@ -59,7 +59,42 @@ class ProjectAuthorizationGuardTest {
         org.junit.jupiter.api.Assertions.assertFalse(guard.canAppointPrimaryProjectManager(actor(), 2L));
         assertThrows(ServiceException.class, () -> guard.assertCanAppointPrimaryProjectManager(actor(), project));
         assertThrows(ServiceException.class, () -> guard.assertCanMaintainServiceManagers(actor(), project));
-        org.mockito.Mockito.verifyNoInteractions(permissionApi, projectScopeApi);
+        verify(permissionApi, org.mockito.Mockito.atLeastOnce()).hasAnyRoles(7L, "super_admin", "admin");
+        org.mockito.Mockito.verifyNoInteractions(projectScopeApi);
+    }
+
+    @Test void administratorsMayMaintainServiceManagersAndAppointPrimaryProjectManagersWithinScope() {
+        var project = new ProjectMasterDO(); project.setId(2L); project.setTenantId(0L);
+        project.setCurrentStage("S2"); project.setAssignmentStatus("ASSIGNED");
+        when(projectMapper.selectById(2L)).thenReturn(project);
+        org.mockito.Mockito.doReturn(true).when(permissionApi).hasAnyRoles(7L, "super_admin", "admin");
+        org.mockito.Mockito.doReturn(false).when(permissionApi).hasAnyRoles(7L, "engineeManager", "engineeManagerLeader", "projectAdmin");
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(1L, 5L, Set.of(2L), Set.of()));
+        org.junit.jupiter.api.Assertions.assertTrue(guard.canMaintainServiceManagers(actor(), 2L));
+        org.junit.jupiter.api.Assertions.assertTrue(guard.canAppointPrimaryProjectManager(actor(), 2L));
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(1L, 5L, Set.of(), Set.of()));
+        org.junit.jupiter.api.Assertions.assertFalse(guard.canMaintainServiceManagers(actor(), 2L));
+        guard.assertCanMaintainServiceManagers(actor(), project);
+        org.junit.jupiter.api.Assertions.assertFalse(guard.canAppointPrimaryProjectManager(actor(), 2L));
+        guard.assertCanAppointPrimaryProjectManager(actor(), project);
+        var foreign = new ProjectMasterDO(); foreign.setId(2L); foreign.setTenantId(1L);
+        assertThrows(ServiceException.class, () -> guard.assertCanMaintainServiceManagers(actor(), foreign));
+        assertThrows(ServiceException.class, () -> guard.assertCanAppointPrimaryProjectManager(actor(), foreign));
+    }
+
+    @Test void tenantProjectManagementRolesMayAppointPrimaryAndMaintainServiceManagers() {
+        var project = new ProjectMasterDO(); project.setId(2L); project.setTenantId(0L);
+        project.setCurrentStage("S2"); project.setAssignmentStatus("ASSIGNED");
+        when(projectMapper.selectById(2L)).thenReturn(project);
+        when(permissionApi.hasAnyRoles(7L, "engineeManager", "engineeManagerLeader", "projectAdmin")).thenReturn(true);
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(1L, 5L, Set.of(2L), Set.of()));
+        org.junit.jupiter.api.Assertions.assertTrue(guard.canAppointPrimaryProjectManager(actor(), 2L));
+        org.junit.jupiter.api.Assertions.assertTrue(guard.canMaintainServiceManagers(actor(), 2L));
+        guard.assertCanAppointPrimaryProjectManager(actor(), project);
+        guard.assertCanMaintainServiceManagers(actor(), project);
+        var foreign = new ProjectMasterDO(); foreign.setId(2L); foreign.setTenantId(1L);
+        assertThrows(ServiceException.class, () -> guard.assertCanAppointPrimaryProjectManager(actor(), foreign));
+        assertThrows(ServiceException.class, () -> guard.assertCanMaintainServiceManagers(actor(), foreign));
     }
 
     @Test void effectiveConfirmedProjectServiceManagerCanAppointAndIsLockedForMutation() {

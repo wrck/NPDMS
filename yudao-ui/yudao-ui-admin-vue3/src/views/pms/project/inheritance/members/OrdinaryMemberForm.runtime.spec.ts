@@ -6,7 +6,7 @@ import { mount, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/
 
 vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
 vi.mock('@/api/pms/project/unified-members', async importOriginal => ({
-  ...await importOriginal<typeof Members>(), getMemberCandidates: vi.fn(), saveMember: vi.fn(), canAppointPrimaryProjectManager: vi.fn(async () => true)
+  ...await importOriginal<typeof Members>(), getMemberCandidates: vi.fn(), saveMember: vi.fn(), canAppointPrimaryProjectManager: vi.fn(async () => true), canMaintainServiceManagers: vi.fn(async () => true)
 }))
 vi.mock('@/utils/permission', () => ({ checkPermi: vi.fn(() => true) }))
 vi.mock('@/api/pms/project/projects', () => ({ getProjectSites: vi.fn(async () => []) }))
@@ -53,6 +53,7 @@ describe('unified ordinary member form', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(Members.canAppointPrimaryProjectManager).mockResolvedValue(true)
+    vi.mocked(Members.canMaintainServiceManagers).mockResolvedValue(true)
     vi.mocked(Members.getMemberCandidates).mockReset().mockResolvedValue({ list: [{ id: 40, username: 'engineer', nickname: '普通人员' }], total: 1 })
     vi.mocked(Members.saveMember).mockResolvedValue({ projectId: 9, version: 4, assignmentId: 13, userId: 40, memberRole: 'TEAM_MEMBER', changed: true })
   })
@@ -111,6 +112,7 @@ describe('unified ordinary member form', () => {
   })
   it('cannot request primary appointment or maintain service managers when project role permission is denied', async () => {
     vi.mocked(Members.canAppointPrimaryProjectManager).mockResolvedValue(false)
+    vi.mocked(Members.canMaintainServiceManagers).mockResolvedValue(false)
     const { root, app } = setup({ defaultRole: 'PROJECT_MANAGER' })
     await flush()
     const checkbox = find(root, item => item.props?.['aria-label'] === '设为当前角色主责')!
@@ -124,6 +126,18 @@ describe('unified ordinary member form', () => {
     await set(root, '项目角色', 'SERVICE_MANAGER')
     await submit(root)
     expect(Members.saveMember).not.toHaveBeenCalled()
+    app.unmount()
+  })
+  it('allows service manager maintenance without granting primary project-manager appointment', async () => {
+    vi.mocked(Members.canAppointPrimaryProjectManager).mockResolvedValue(false)
+    vi.mocked(Members.canMaintainServiceManagers).mockResolvedValue(true)
+    const { root, app } = setup({ defaultRole: 'SERVICE_MANAGER' })
+    await flush()
+    await set(root, '人员', 40)
+    await set(root, '调整原因', '管理员维护')
+    await submit(root)
+    expect(Members.saveMember).toHaveBeenCalledWith(9, undefined,
+      expect.objectContaining({ userId: 40, memberRole: 'SERVICE_MANAGER' }), 3, expect.any(String))
     app.unmount()
   })
   it.each([
