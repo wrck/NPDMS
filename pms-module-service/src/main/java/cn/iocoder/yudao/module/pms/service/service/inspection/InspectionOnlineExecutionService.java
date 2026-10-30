@@ -206,8 +206,11 @@ public class InspectionOnlineExecutionService {
         } else {
             require(row.getCollectionResultVersion() != null && row.getCollectionFileVersionId() != null
                     && Objects.equals(row.getCollectionFileVersionId(), remote.task().fileVersionId()), "采集结果仍在绑定中，请稍后刷新");
-            if ("COLLECT".equals(row.getPurposeCode()) && row.getArtifactId() != null)
+            if ("COLLECT".equals(row.getPurposeCode()) && row.getArtifactId() != null) {
+                var attempt=attempts.selectById(row.getAttemptId());
+                if (attempt != null && "UMC".equals(attempt.getProviderCode())) return InspectionTaskService.summary(task);
                 return execution.refresh(new InspectionExecutionService.Refresh(command.context(), task.getId(), row.getId()));
+            }
             if ("PRECHECK".equals(row.getPurposeCode()) && !Set.of("SUCCESS", "SUCCEEDED").contains(row.getCollectionStatus()))
                 fail(row, "PRECHECK_FAILED", "设备连接预检未成功，请查看平台日志并重新预检");
             else {

@@ -4,6 +4,8 @@ import cn.hutool.core.util.IdUtil;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi;
+import cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery;
+import cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO;
 import cn.iocoder.yudao.module.pms.asset.api.producttype.inspection.InspectionAssetProductTypeApi;
 import cn.iocoder.yudao.module.pms.asset.api.producttype.dto.AuthorizedDeviceProductTypeQuery;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.*;
@@ -39,7 +41,7 @@ public class InspectionTaskService {
     private final InspectionRuleQueryService ruleQueries;
 
     @Builder
-    public record Create(InspectionRequestContext context, String taskName, Long projectId,
+    public record Create(InspectionRequestContext context, String taskName, String customerName, Long projectId,
                          List<Long> deviceIds, String background, LocalDateTime plannedAt, String mode) { }
     public record RuleChoice(Long deviceId, Long ruleRevisionId) { }
     @Builder
@@ -53,6 +55,22 @@ public class InspectionTaskService {
                          InspectionTaskStateMachine.Transition transition, String description) { }
     public record Save(InspectionRequestContext context, InspectionTaskDO task, String action, String previousStatus,
                        String description) { }
+    public record CollectionCommands(InspectionRequestContext context, InspectionTaskDO task, InspectionAttemptDO attempt) { }
+
+    /** Published platform revisions supply safe collection commands only; UMC owns the judgement. */
+    public void freezeCollectionCommands(CollectionCommands command) {
+        var task = command.task(); var attempt = command.attempt();
+        require("UMC".equals(attempt.getProviderCode()) && "ONLINE".equals(attempt.getMode())
+                && Objects.equals(task.getId(), attempt.getTaskId()) && Objects.equals(task.getTenantId(), command.context().tenantId()), "在线采集尝试归属无效");
+        var choices = selections.selectForTask(new InspectionTaskRows(task.getTenantId(), task.getId())).stream()
+                .map(row -> new RuleChoice(row.getDeviceId(), row.getRuleRevisionId())).toList();
+        validateChoices(new SelectionValidation(command.context(), task, choices, true));
+        for (var choice : choices) {
+            var frozen = new InspectionTaskRuleSnapshotDO(); frozen.setTenantId(task.getTenantId()); frozen.setVersion(1L);
+            frozen.setTaskId(task.getId()); frozen.setAttemptId(attempt.getId()); frozen.setDeviceId(choice.deviceId());
+            frozen.setRuleRevisionId(choice.ruleRevisionId()); snapshots.insert(frozen);
+        }
+    }
 
     @Transactional(rollbackFor = Exception.class)
     public InspectionViews.TaskSummary create(Create command) {
@@ -63,12 +81,19 @@ public class InspectionTaskService {
         require(command.deviceIds() != null && !command.deviceIds().isEmpty() && command.deviceIds().size() <= 100
                 && new HashSet<>(command.deviceIds()).size() == command.deviceIds().size(), "请选择1至100台不同设备");
         var project = access.project(new InspectionAccessService.ProjectAccess(context, command.projectId(), true));
-        require(project.customerId() != null && project.customerName() != null, "项目尚未关联客户资料");
+        String customerName = project.customerName() == null ? "" : project.customerName().trim();
+        if (customerName.isEmpty()) customerName = command.customerName() == null ? "" : command.customerName().trim();
+        require(customerName.length() <= 300, "客户名称不能超过300个字符");
         var selected = deviceSelection.validateSelection(command.projectId(), command.deviceIds());
         require(selected.size() == command.deviceIds().size(), "设备与项目不匹配");
         // validateSelection 已锁定设备；在同一事务中重验当前归属和发货事实。
+        var facts = deviceFacts.getVisibleDeviceSummaries(new DeviceSummaryBatchQuery(
+                context.tenantId(), context.actorId(), new HashSet<>(command.deviceIds()), command.projectId())).stream()
+                .collect(Collectors.toMap(DeviceSummaryDTO::deviceId, fact -> fact));
         for (var device : selected) {
-            var fact = deviceFacts.getDevice(device.equipmentId());
+            var fact = facts.get(device.equipmentId());
+            // 缺项仍在原位置调用单台API，保留其不存在/无权异常和首次失败顺序。
+            if (fact == null) fact = deviceFacts.getDevice(device.equipmentId());
             require(fact != null && Objects.equals(fact.tenantId(), context.tenantId())
                     && Objects.equals(fact.projectId(), command.projectId()), "设备不属于当前项目，请重新选择设备");
             require(fact.shipmentTime() != null, "设备尚无发货记录：" + device.sn());
@@ -81,7 +106,9 @@ public class InspectionTaskService {
         validateText(project.projectName(), 255, "项目名称");
         task.setTaskName(project.projectName() + "-巡检-" + task.getTaskCode());
         task.setProjectId(project.projectId()); task.setProjectCode(project.projectCode()); task.setProjectName(project.projectName());
-        task.setCustomerId(project.customerId()); task.setCustomerCode(project.customerCode()); task.setCustomerName(project.customerName());
+        // 0 是用户批准的未关联哨兵，仅供巡检快照；不能作为客户资产归档的客户身份。
+        task.setCustomerId(project.customerId() == null ? 0L : project.customerId());
+        task.setCustomerCode(project.customerCode()); task.setCustomerName(customerName);
         task.setOwnerUserId(context.actorId()); task.setBackground(command.background().trim());
         task.setPlannedAt(command.plannedAt()); task.setMode(command.mode()); task.setStatusCode("PREPARING");
         tasks.insert(task);

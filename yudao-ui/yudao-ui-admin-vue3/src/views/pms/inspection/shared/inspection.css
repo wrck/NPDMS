@@ -133,6 +133,49 @@
 .inspection-page .inspection-footer .el-button + .el-button {
   margin-left: 0;
 }
+.inspection-page .inspection-task-actions {
+  position: sticky;
+  z-index: 8;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 16px 20px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  border-top: 1px solid #f0f2f5;
+  background: #fff;
+  box-shadow: 0 -3px 12px rgb(0 0 0 / 3%);
+}
+.inspection-page .inspection-navigation-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: auto;
+}
+.inspection-page .inspection-stage-actions,
+.inspection-page .inspection-actions-embedded {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.inspection-page .inspection-stage-actions:empty {
+  display: none;
+}
+.inspection-page .inspection-task-actions .el-button + .el-button {
+  margin-left: 0;
+}
+.inspection-page .inspection-task-actions .el-button {
+  max-width: 100%;
+  min-height: 32px;
+  height: auto;
+  white-space: normal;
+}
 .inspection-page :is(button, a, input, textarea, select):focus-visible {
   outline: 2px solid var(--inspection-current);
   outline-offset: 3px;
@@ -140,6 +183,10 @@
 @media (max-width: 767px) {
   .inspection-page {
     padding: 0;
+  }
+  .inspection-page .inspection-task-actions {
+    padding: 12px 14px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
   .inspection-page .el-card__body {
     padding: 16px;

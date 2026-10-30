@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.service.service.inspection.log;
 
+import cn.iocoder.yudao.module.pms.service.service.inspection.umc.UmcLogDocument;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,7 +22,9 @@ public final class InspectionLogArchiveReader {
     private static final int MAX_ENTRIES = 1024;
     private static final Charset GB18030 = Charset.forName("GB18030");
 
-    public record Input(String fileName, byte[] content) { }
+    public record Input(String fileName, byte[] content, boolean umcSingleFile) {
+        public Input(String fileName, byte[] content) { this(fileName, content, false); }
+    }
     public record LogEntry(String fileName, String text) { }
 
     public List<LogEntry> read(Input input) {
@@ -29,7 +33,7 @@ public final class InspectionLogArchiveReader {
         if (input.content().length > MAX_BYTES) throw new IllegalArgumentException("上传文件超过 50MiB 大小限制");
         String fileName = safeName(input.fileName());
         if (extension(fileName).equals("zip")) return archive(new Input(fileName, input.content()));
-        requireLogExtension(fileName);
+        if (!input.umcSingleFile() || UmcLogDocument.sourceHostFromFileName(fileName) == null) requireLogExtension(fileName);
         return List.of(log(new Input(fileName, input.content())));
     }
 

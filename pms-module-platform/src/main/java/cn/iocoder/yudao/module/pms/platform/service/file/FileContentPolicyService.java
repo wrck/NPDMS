@@ -84,7 +84,14 @@ public class FileContentPolicyService {
         }
 
         String declaredMediaType = normalizeDeclaration(command.declaredMediaType());
-        String detectedMediaType = detectContent(content);
+        boolean checklistEvidence = policy.allowedCategoryCodes().contains("CUTOVER_CHECKLIST_MANUAL_EVIDENCE");
+        boolean opaqueLicense = checklistEvidence && "lic".equals(fileNameExtension(command.expectedFileName()))
+                && "application/octet-stream".equals(declaredMediaType)
+                && policy.allowedMediaTypes().contains("application/octet-stream");
+        if (checklistEvidence && "application/octet-stream".equals(declaredMediaType) && !opaqueLicense)
+            throw exception(FILE_MEDIA_TYPE_INVALID);
+        // LIC is an opaque attachment, not a document format to parse or identify by magic bytes.
+        String detectedMediaType = opaqueLicense ? "application/octet-stream" : detectContent(content);
         if ("application/json".equals(declaredMediaType)
                 && Set.of("text/plain", "application/json").contains(detectedMediaType)) {
             if (!isJsonDocument(content)) throw exception(FILE_MEDIA_TYPE_INVALID);
@@ -103,10 +110,16 @@ public class FileContentPolicyService {
         boolean safeText = supportsUnknownDeclaration(command.expectedFileName(), allowedMediaTypes)
                 && "text/plain".equals(detectedMediaType) && isUtf8Text(content);
         boolean plainTextName = "text/plain".equals(declaredMediaType) && "text/plain".equals(detectedMediaType)
-                && Set.of("log", "cfg", "conf", "sh").contains(fileNameExtension(command.expectedFileName()));
-        if (unknown ? !safeText : (!allowedMediaTypes.contains(declaredMediaType)
+                && (Set.of("log", "cfg", "conf", "sh").contains(fileNameExtension(command.expectedFileName()))
+                    || "lic".equals(fileNameExtension(command.expectedFileName()))
+                        && policy.allowedCategoryCodes().contains("CUTOVER_CHECKLIST_MANUAL_EVIDENCE") && isUtf8Text(content));
+        // UMC emits Word 2003 XML using .doc. Only an explicitly allowed inspection-report policy accepts this alias.
+        boolean wordMlDoc = "application/vnd.ms-wordml".equals(declaredMediaType)
+                && declaredMediaType.equals(detectedMediaType) && "doc".equals(fileNameExtension(command.expectedFileName()))
+                && policy.allowedCategoryCodes().contains("INSPECTION_REPORT");
+        if (unknown && !opaqueLicense ? !safeText : (!allowedMediaTypes.contains(declaredMediaType)
                 || !matchesDetectedMediaType(declaredMediaType, detectedMediaType)
-                || (!declaredMediaType.equals(nameMediaType) && !plainTextName && !("text/plain".equals(declaredMediaType) && safeText)))) {
+                || (!declaredMediaType.equals(nameMediaType) && !plainTextName && !opaqueLicense && !wordMlDoc && !("text/plain".equals(declaredMediaType) && safeText)))) {
             throw exception(FILE_MEDIA_TYPE_INVALID);
         }
 
@@ -120,12 +133,12 @@ public class FileContentPolicyService {
 
         if (!scanEnabled) {
             return new ValidatedFileContent(content, content.length, sha256, detectedMediaType,
-                    extension(detectedMediaType), "SKIPPED", null, null);
+                    opaqueLicense ? "lic" : wordMlDoc ? "doc" : extension(detectedMediaType), "SKIPPED", null, null);
         }
         FileSecurityScanResult scan = scan(content, command.expectedFileName(), declaredMediaType,
                 detectedMediaType, sha256);
         return new ValidatedFileContent(content, content.length, sha256, detectedMediaType,
-                extension(detectedMediaType), scan.resultCode(), scan.providerCode(), scan.providerVersion());
+                opaqueLicense ? "lic" : wordMlDoc ? "doc" : extension(detectedMediaType), scan.resultCode(), scan.providerCode(), scan.providerVersion());
     }
 
     private static boolean matchesDetectedMediaType(String declaredMediaType, String detectedMediaType) {

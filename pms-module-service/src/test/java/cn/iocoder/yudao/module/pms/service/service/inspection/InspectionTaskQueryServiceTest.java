@@ -1,12 +1,14 @@
 package cn.iocoder.yudao.module.pms.service.service.inspection;
 
 import cn.iocoder.yudao.framework.security.core.LoginUser;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionTaskDO;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionAnnotationDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.*;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.InspectionStateCount;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.ServiceIssueSummary;
@@ -73,6 +75,58 @@ class InspectionTaskQueryServiceTest {
     @Mock private FileArtifactApi files;
     @Mock private PermissionApi permissions;
     @InjectMocks private InspectionTaskQueryService service;
+
+    @Test
+    void detailBatchesOnlyReferencedHistoricalPeopleAndProjectsTheirNamesWithoutRewritingRows() {
+        var stored = task(31L, "ANNOTATION_PENDING");
+        when(access.task(any())).thenReturn(stored);
+        var historical = new InspectionAnnotationDO(); historical.setId(71L); historical.setTaskId(31L);
+        historical.setTenantId(TENANT_ID); historical.setReportId(50L); historical.setResultId(61L);
+        historical.setKind("TRACK"); historical.setResponsibleUserId(41L); historical.setAnnotatedBy(42L);
+        when(annotations.selectForTask(any())).thenReturn(List.of(historical));
+        var responsible = new AdminUserRespDTO(); responsible.setId(41L); responsible.setNickname("原责任工程师"); responsible.setStatus(1);
+        var annotator = new AdminUserRespDTO(); annotator.setId(42L); annotator.setNickname("历史标注工程师"); annotator.setStatus(1);
+        annotator.setMobile("not-for-history-display"); annotator.setEmail("not-for-history-display");
+        when(users.getUserMap(anySet())).thenReturn(Map.of(41L, responsible, 42L, annotator));
+
+        var view = service.detail(new InspectionTaskQueryService.Detail(CONTEXT, 31L));
+        var json = JsonUtils.parseTree(JsonUtils.toJsonString(view.getAnnotations().getFirst()));
+
+        assertEquals("原责任工程师", json.path("responsibleName").asText());
+        assertEquals("历史标注工程师", json.path("annotatedByName").asText());
+        assertFalse(json.has("mobile")); assertFalse(json.has("email"));
+        assertEquals(41L, view.getAnnotations().getFirst().getResponsibleUserId());
+        assertEquals(42L, view.getAnnotations().getFirst().getAnnotatedBy());
+        verify(users).getUserMap(Set.of(OWNER_ID, 41L, 42L));
+        verifyNoMoreInteractions(users);
+        verify(annotations).selectForTask(new cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.InspectionTaskRows(TENANT_ID, 31L));
+        verifyNoMoreInteractions(annotations);
+        assertEquals(41L, historical.getResponsibleUserId());
+        assertEquals(42L, historical.getAnnotatedBy());
+    }
+
+    @Test
+    void deniedTaskDetailNeverQueriesAnnotationUsers() {
+        doThrow(new InspectionException(InspectionException.Reason.FORBIDDEN, "无项目权限")).when(access).task(any());
+        assertThrows(InspectionException.class, () -> service.detail(new InspectionTaskQueryService.Detail(CONTEXT, 31L)));
+        verifyNoInteractions(annotations, users);
+    }
+
+    @Test
+    void missingHistoricalUsersLeaveOriginalIdsWithoutInventingNames() {
+        when(access.task(any())).thenReturn(task(31L, "ANNOTATION_PENDING"));
+        var historical = new InspectionAnnotationDO(); historical.setId(71L); historical.setTaskId(31L);
+        historical.setTenantId(TENANT_ID); historical.setResponsibleUserId(41L); historical.setAnnotatedBy(42L);
+        when(annotations.selectForTask(any())).thenReturn(List.of(historical));
+        when(users.getUserMap(anySet())).thenReturn(Map.of());
+        var view = service.detail(new InspectionTaskQueryService.Detail(CONTEXT, 31L));
+        assertNull(view.getAnnotations().getFirst().getResponsibleName());
+        assertNull(view.getAnnotations().getFirst().getAnnotatedByName());
+        assertEquals(41L, view.getAnnotations().getFirst().getResponsibleUserId());
+        assertEquals(42L, view.getAnnotations().getFirst().getAnnotatedBy());
+        verify(users).getUserMap(Set.of(OWNER_ID, 41L, 42L));
+        verifyNoMoreInteractions(users);
+    }
 
     @Test
     void deviceOptionsUseAuthorizedProjectShipments() {

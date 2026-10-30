@@ -18,6 +18,7 @@ import static cn.iocoder.yudao.module.pms.service.service.inspection.InspectionE
 @Service
 @RequiredArgsConstructor
 public class InspectionAnnotationService {
+    private final cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcFormalResults umcFacts;
     private final InspectionAccessService access;
     private final InspectionTaskService tasks;
     private final InspectionClosureFacts closure;
@@ -69,7 +70,9 @@ public class InspectionAnnotationService {
                 issue = new ServiceIssueDO(); issue.setTenantId(task.getTenantId()); issue.setVersion(1L); issue.setTaskId(task.getId());
                 issue.setReportId(command.reportId()); issue.setResultId(command.resultId()); issue.setAnnotationId(annotation.getId());
                 issue.setResponsibleUserId(command.responsibleUserId()); issue.setDueAt(command.dueAt());
-                issue.setDescription(command.reason()); issue.setSeverityCode(rules.detail(result.getRuleRevisionId()).getSeverityCode());
+                issue.setDescription(command.reason()); issue.setSeverityCode("UMC".equals(result.getSourceCode())
+                        ? cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcFormalResults.severity(umcFacts.rule(result))
+                        : rules.detail(result.getRuleRevisionId()).getSeverityCode());
                 issue.setStatusCode("PENDING"); issues.insert(issue);
             } else if (!"CLOSED".equals(issue.getStatusCode())) {
                 boolean reassigned = !Objects.equals(issue.getResponsibleUserId(), command.responsibleUserId()) || !Objects.equals(issue.getDueAt(), command.dueAt());

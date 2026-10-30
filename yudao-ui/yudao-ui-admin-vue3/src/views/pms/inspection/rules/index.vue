@@ -456,7 +456,7 @@
               :title="
                 validation.errors.length
                   ? `存在 ${validation.errors.length} 项发布校验问题`
-                  : '预检未发现字段问题，发布仍以服务端校验为准'
+                  : '预检未发现字段问题'
               "
               :closable="false"
             />
@@ -466,7 +466,7 @@
                   <el-descriptions :column="1" class="validation-details">
                     <el-descriptions-item label="字段路径">{{ row.location }}</el-descriptions-item>
                     <el-descriptions-item label="问题代码">{{ row.code }}</el-descriptions-item>
-                    <el-descriptions-item label="服务端说明">{{
+                    <el-descriptions-item label="校验说明">{{
                       row.message || row.code
                     }}</el-descriptions-item>
                   </el-descriptions>
@@ -484,7 +484,7 @@
               >
             </el-table>
             <template v-if="hasCandidates">
-              <p class="help-text">服务端返回以下权威名称候选。应用后需保存草稿，再次预检。</p>
+              <p class="help-text">可使用以下名称候选修正配置。应用后请保存草稿并重新预检。</p>
               <ul class="candidate-list">
                 <li v-for="item in validation.dictionaryNameCandidates" :key="item.field"
                   >{{ validationFieldLabel(item.field) }}：{{ item.value }} →

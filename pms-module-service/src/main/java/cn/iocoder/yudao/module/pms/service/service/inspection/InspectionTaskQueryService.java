@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class InspectionTaskQueryService {
+    private final cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcFormalResults umcFacts;
+    private final cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcBundle umcBundles;
     private final InspectionAccessService access;
     private final InspectionTaskMapper tasks;
     private final InspectionTaskDeviceMapper devices;
@@ -103,25 +105,48 @@ public class InspectionTaskQueryService {
         var view = BeanUtils.toBean(task, InspectionViews.TaskDetail.class);
         view.setOwner(Objects.equals(task.getOwnerUserId(), request.context().actorId()));
         view.setManager(access.manager(new InspectionAccessService.ProjectAccess(request.context(), task.getProjectId(), false)));
+        view.setCanArchive(access.canArchive(new InspectionAccessService.ProjectAccess(request.context(), task.getProjectId(), false)));
         view.setDevices(devices.selectForTask(query).stream().map(row -> BeanUtils.toBean(row, InspectionViews.DeviceView.class)).toList());
         view.setSelections(selections.selectForTask(query).stream().map(row -> BeanUtils.toBean(row, InspectionViews.SelectionView.class)).toList());
         view.setAttempts(attempts.selectForTask(query).stream().map(row -> BeanUtils.toBean(row, InspectionViews.AttemptView.class)).toList());
-        view.setExecutions(executions.selectForTask(query).stream().map(row -> BeanUtils.toBean(row, InspectionViews.ExecutionView.class)).toList());
+        var executionRows = executions.selectForTask(query);
+        view.setExecutions(executionRows.stream().map(row -> BeanUtils.toBean(row, InspectionViews.ExecutionView.class)).toList());
+        view.setUmcResults(cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcReportResults.executionResults(
+                new cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcReportResults.ExecutionResults(
+                        task.getTenantId(), task.getId(), executionRows, reports.selectUmcExecutionResults(query))));
         view.setCollectionReceipts(collectionReceipts.selectForTask(query).stream().map(row -> BeanUtils.toBean(row, InspectionViews.CollectionReceiptView.class)).toList());
         Map<Long, InspectionRuleQueryService.RuleView> ruleCache = new HashMap<>();
         view.setResults(results.selectForTask(query).stream().map(row -> {
             var result = BeanUtils.toBean(row, InspectionViews.ResultView.class);
+            if ("UMC".equals(row.getSourceCode())) {
+                var external = umcFacts.rule(row); result.setSourceCode("UMC"); result.setReportId(row.getSourceReportId()); result.setExternalRule(external);
+                result.setRuleName(external.name()); result.setCategoryName(external.type());
+                result.setSeverityCode(cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcFormalResults.severity(external));
+                result.setSeverityName(cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcFormalResults.severityName(external));
+                result.setOutputSummary(external.output()); result.setDetailMessage(java.util.stream.Stream.of(external.error(), external.info(), external.suggest())
+                        .filter(Objects::nonNull).filter(s -> !s.isBlank()).collect(java.util.stream.Collectors.joining("；"))); return result;
+            }
             var rule = ruleCache.computeIfAbsent(row.getRuleRevisionId(), rules::detail);
             result.setRuleName(rule.getRuleNameSnapshot()); result.setCategoryCode(rule.getCategoryCode());
             result.setCategoryName(rule.getCategoryNameSnapshot()); result.setSeverityCode(rule.getSeverityCode());
             result.setSeverityName(rule.getSeverityNameSnapshot()); return result;
         }).toList());
         var files = reportFiles.selectForTask(query); var reportInputs = reportResults.selectForTask(query);
-        view.setReports(reports.selectForTask(query).stream().map(row -> {
+        view.setReports(reports.selectForTask(query).stream().map(metadata -> {
+            var row = cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcBundle.matches(metadata)
+                    ? reports.selectContent(new cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.InspectionReportContentQuery(
+                            task.getTenantId(), task.getId(), metadata.getId())) : metadata;
             var report = BeanUtils.toBean(row, InspectionViews.ReportView.class);
-            report.setFiles(files.stream().filter(f -> f.getReportId().equals(row.getId()))
+            if ("UMC".equals(row.getSourceCode())) report.setFailureMessage(
+                    cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcReportResults.currentFailure(row));
+            var selectedFiles = cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcBundle.matches(row)
+                    ? umcBundles.files(new cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcBundle.Query(row))
+                    : files.stream().filter(f -> f.getReportId().equals(row.getId())).toList();
+            report.setFiles(selectedFiles.stream()
                     .map(f -> BeanUtils.toBean(f, InspectionViews.ReportFileView.class)).toList());
             report.setResultIds(reportInputs.stream().filter(r -> r.getReportId().equals(row.getId())).map(InspectionReportResultDO::getResultId).toList());
+            if (cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcBundle.matches(row))
+                report.setComponentReportIds(cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcBundle.snapshot(row).reportIds());
             return report;
         }).toList());
         view.setAnnotations(annotations.selectForTask(query).stream().map(row -> BeanUtils.toBean(row, InspectionViews.AnnotationView.class)).toList());
@@ -137,6 +162,9 @@ public class InspectionTaskQueryService {
     private void enrichPeople(InspectionViews.TaskDetail view) {
         Set<Long> userIds = new HashSet<>();
         userIds.add(view.getOwnerUserId());
+        view.getAnnotations().forEach(row -> {
+            userIds.add(row.getResponsibleUserId()); userIds.add(row.getAnnotatedBy());
+        });
         view.getIssues().forEach(row -> userIds.add(row.getResponsibleUserId()));
         view.getRemediations().forEach(row -> userIds.add(row.getActorId()));
         view.getEvents().forEach(row -> userIds.add(row.getActorId()));
@@ -145,6 +173,12 @@ public class InspectionTaskQueryService {
         var people = users.getUserMap(userIds);
         var owner = people.get(view.getOwnerUserId());
         if (owner != null) view.setOwnerName(owner.getNickname());
+        view.getAnnotations().forEach(row -> {
+            var responsible = people.get(row.getResponsibleUserId());
+            if (responsible != null) row.setResponsibleName(responsible.getNickname());
+            var annotator = people.get(row.getAnnotatedBy());
+            if (annotator != null) row.setAnnotatedByName(annotator.getNickname());
+        });
         view.getIssues().forEach(row -> {
             var person = people.get(row.getResponsibleUserId());
             if (person != null) row.setResponsibleName(person.getNickname());

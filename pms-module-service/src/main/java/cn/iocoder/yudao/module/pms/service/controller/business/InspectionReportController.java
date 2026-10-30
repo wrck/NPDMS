@@ -2,6 +2,8 @@ package cn.iocoder.yudao.module.pms.service.controller.business;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.pms.service.service.inspection.*;
+import cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcTransactions;
+import cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,22 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class InspectionReportController {
     private final InspectionReportService reports;
     private final InspectionCommandExecutor commands;
+    private final InspectionUmcTransactions externalResults;
+    private final InspectionUmcService umc;
+    public record RetryExternal(@NotNull Long taskId) { }
+
+    @GetMapping("/{reportId}/result")
+    @PreAuthorize("@ss.hasPermission('pms:inspection-task:query')")
+    public CommonResult<InspectionUmcTransactions.View> result(@PathVariable Long reportId, @RequestParam Long taskId) {
+        return success(externalResults.detail(new InspectionUmcTransactions.ReportAccess(InspectionRequestContext.current(), taskId, reportId)));
+    }
+
+    @PostMapping("/{reportId}/actions/retry-external")
+    @PreAuthorize("@ss.hasPermission('pms:inspection-report:generate') and @ss.hasPermission('pms:inspection-task:execute')")
+    public CommonResult<InspectionUmcTransactions.View> retryExternal(@PathVariable Long reportId, @RequestHeader HttpHeaders headers,
+                                                                    @Valid @RequestBody RetryExternal request) {
+        return success(umc.run(new InspectionUmcTransactions.ReportAccess(InspectionRequestContext.write(headers), request.taskId(), reportId)));
+    }
     public record Generate(@NotNull Long taskId, @Size(max = 2000) String explanation) { }
     public record Manual(@NotNull Long taskId, @NotBlank @Size(max = 2000) String explanation,
                          @NotEmpty @Size(max = 4) List<InspectionReportService.ManualFile> files) { }

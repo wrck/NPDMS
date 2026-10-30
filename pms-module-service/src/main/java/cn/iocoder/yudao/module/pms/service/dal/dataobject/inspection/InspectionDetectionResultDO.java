@@ -15,6 +15,9 @@ public class InspectionDetectionResultDO extends BaseBusinessEntity {
     private Long ruleSnapshotId;
     private Long deviceId;
     private Long ruleRevisionId;
+    private String sourceCode;
+    private Long sourceReportId;
+    private String externalRuleId;
     private String outcome;
     private java.math.BigDecimal measuredValue;
     private String measuredUnit;

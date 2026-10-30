@@ -40,6 +40,27 @@ class InspectionArchiveServiceTest {
     @Mock FileEvidenceApi fileEvidence;
     @InjectMocks InspectionArchiveService service;
 
+    @Test void unassociatedCustomerCannotRequestCustomerAssetArchiveEvenWithManualName() {
+        var task = closedTask(); task.setCustomerId(0L); task.setCustomerCode(null); task.setCustomerName("手填客户");
+        task.setArchiveRequestedAt(null); task.setArchiveRequestedBy(null);
+        when(access.task(any())).thenReturn(task);
+        lenient().when(closure.current(any())).thenReturn(new InspectionClosureFacts.Facts(true, true, 0));
+        assertEquals("巡检任务未关联客户档案，不能归档到客户资产库；手填客户名称不代表客户档案关联",
+                assertThrows(InspectionException.class, () -> service.request(command())).getMessage());
+        assertNull(task.getArchiveRequestedAt());
+        verifyNoInteractions(closure, customerHistory, tasks);
+    }
+
+    @Test void unassociatedCustomerCannotReachCustomerDomainOrChangeArchivedState() {
+        var task = closedTask(); task.setCustomerId(0L); task.setCustomerCode("EXTERNAL-CODE"); task.setCustomerName("手填客户");
+        when(access.task(any())).thenReturn(task);
+        lenient().when(closure.current(any())).thenReturn(new InspectionClosureFacts.Facts(true, true, 0));
+        assertEquals("巡检任务未关联客户档案，不能归档到客户资产库；手填客户名称不代表客户档案关联",
+                assertThrows(InspectionException.class, () -> service.archive(command())).getMessage());
+        assertNull(task.getCustomerArchiveId()); assertNull(task.getArchivedAt()); assertEquals("CLOSED", task.getStatusCode());
+        verifyNoInteractions(closure, customerHistory, tasks);
+    }
+
     @Test void failedCustomerRegistrationCannotMarkTheTaskArchived() {
         var task = closedTask(); when(access.task(any())).thenReturn(task);
         when(closure.current(any())).thenReturn(new InspectionClosureFacts.Facts(true, true, 0));

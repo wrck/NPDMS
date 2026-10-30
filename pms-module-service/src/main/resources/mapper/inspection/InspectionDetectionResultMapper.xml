@@ -6,7 +6,7 @@
         INNER JOIN (
             SELECT rule_snapshot_id, MAX(id) AS latest_id
             FROM srv_inspection_detection_result
-            WHERE tenant_id = #{query.tenantId} AND attempt_id = #{query.attemptId} AND deleted = b'0'
+            WHERE tenant_id = #{query.tenantId} AND attempt_id = #{query.attemptId} AND source_code='PLATFORM' AND deleted = b'0'
             GROUP BY rule_snapshot_id
         ) latest ON latest.latest_id = r.id
         WHERE r.tenant_id = #{query.tenantId} AND r.attempt_id = #{query.attemptId} AND r.deleted = b'0'

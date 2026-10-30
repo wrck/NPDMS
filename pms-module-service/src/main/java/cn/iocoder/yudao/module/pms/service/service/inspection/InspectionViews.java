@@ -10,6 +10,10 @@ import java.util.List;
 public final class InspectionViews {
     private InspectionViews() { }
 
+    public record UmcExecutionResultView(Long reportId, Long attemptId, Long executionId, Long deviceId,
+                                         String statusCode, String failureMessage,
+                                         cn.iocoder.yudao.module.pms.integration.api.umc.UmcInspectionApi.Device result) { }
+
     public record AttachmentView(Long artifactId, Integer versionNo, String referenceKey, String name,
                                  Long sizeBytes, String availabilityStatus) { }
 
@@ -65,6 +69,7 @@ public final class InspectionViews {
         private Long id;
         private Integer attemptNo;
         private String mode;
+        private String providerCode;
         private String statusCode;
         private String reason;
         private Long startedBy;
@@ -123,6 +128,9 @@ public final class InspectionViews {
         private Long executionId;
         private Long deviceId;
         private Long ruleRevisionId;
+        private String sourceCode;
+        private Long reportId;
+        private cn.iocoder.yudao.module.pms.integration.api.umc.UmcInspectionApi.Rule externalRule;
         private String ruleName;
         private String categoryCode;
         private String categoryName;
@@ -161,6 +169,7 @@ public final class InspectionViews {
         private Long generatedBy;
         private List<ReportFileView> files;
         private List<Long> resultIds;
+        private List<Long> componentReportIds;
     }
 
     @Data
@@ -173,8 +182,10 @@ public final class InspectionViews {
         private String reason;
         private String changeReason;
         private Long responsibleUserId;
+        private String responsibleName;
         private LocalDateTime dueAt;
         private Long annotatedBy;
+        private String annotatedByName;
         private LocalDateTime annotatedAt;
     }
 
@@ -267,6 +278,7 @@ public final class InspectionViews {
         private List<ExecutionView> executions;
         private List<CollectionReceiptView> collectionReceipts;
         private List<ResultView> results;
+        private List<UmcExecutionResultView> umcResults;
         private List<ReportView> reports;
         private List<AnnotationView> annotations;
         private List<IssueView> issues;
@@ -275,6 +287,7 @@ public final class InspectionViews {
         private List<EventView> events;
         private List<RuleFeedbackView> ruleFeedback;
         private boolean manager;
+        private boolean canArchive;
         private boolean owner;
     }
 }

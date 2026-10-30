@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.customer.api.inspection.CustomerInspectionHis
 import cn.iocoder.yudao.module.pms.customer.api.inspection.CustomerInspectionHistoryApi.Kind;
 import cn.iocoder.yudao.module.pms.customer.api.inspection.CustomerInspectionHistoryApi.SourceReference;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
+import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionTaskDO;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.*;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.InspectionTaskRows;
 import cn.iocoder.yudao.module.pms.service.domain.inspection.InspectionTaskStateMachine;
@@ -38,6 +39,7 @@ public class InspectionArchiveService {
         var task = access.task(new InspectionAccessService.TaskAccess(command.context(), command.taskId(),
                 "pms:inspection-task:request-archive", true, false));
         require(Objects.equals(task.getOwnerUserId(), command.context().actorId()), "归档申请由本任务负责工程师提交");
+        requireCustomer(task);
         InspectionTaskService.validateText(command.description(), 2000, "归档申请说明");
         var facts = closure.current(new InspectionClosureFacts.Query(command.context(), task));
         validateEvidence(new InspectionTaskRows(task.getTenantId(), task.getId()));
@@ -51,6 +53,7 @@ public class InspectionArchiveService {
     public InspectionViews.TaskSummary archive(Command command) {
         var task = access.task(new InspectionAccessService.TaskAccess(command.context(), command.taskId(),
                 "pms:inspection-task:archive", true, true));
+        requireCustomer(task);
         InspectionTaskService.validateText(command.description(), 2000, "归档说明");
         var facts = closure.current(new InspectionClosureFacts.Query(command.context(), task));
         var rows = new InspectionTaskRows(task.getTenantId(), task.getId());
@@ -68,6 +71,12 @@ public class InspectionArchiveService {
         tasks.transition(new InspectionTaskService.Change(command.context(), task,
                 facts.transition(task, InspectionTaskStateMachine.Action.ARCHIVE), command.description()));
         return InspectionTaskService.summary(task);
+    }
+
+    private void requireCustomer(InspectionTaskDO task) {
+        require(task.getCustomerId() != null && task.getCustomerId() > 0
+                && task.getCustomerCode() != null && !task.getCustomerCode().isBlank(),
+                "巡检任务未关联客户档案，不能归档到客户资产库；手填客户名称不代表客户档案关联");
     }
 
     private void validateEvidence(InspectionTaskRows rows) {

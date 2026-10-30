@@ -18,7 +18,7 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 public class ServiceIssueController {
     private final ServiceIssueService issues;
     private final InspectionCommandExecutor commands;
-    public record Process(@NotBlank @Size(max = 8000) String content, @Size(max = 20) List<InspectionFiles.Reference> evidence) { }
+    public record Process(@Size(max = 8000) String content, @Size(max = 20) List<InspectionFiles.Reference> evidence) { }
     public record Closure(@NotBlank @Size(max = 8000) String description) { }
     private record Input(Long version, Object body) { }
     private record Write(InspectionRequestContext context, Long issueId, String action, Object input,

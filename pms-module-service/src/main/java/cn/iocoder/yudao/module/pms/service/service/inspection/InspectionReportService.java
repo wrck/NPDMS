@@ -22,6 +22,7 @@ import static cn.iocoder.yudao.module.pms.service.service.inspection.InspectionE
 @Service
 @RequiredArgsConstructor
 public class InspectionReportService {
+    private final cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcBundle umcBundles;
     private final InspectionAccessService access;
     private final InspectionTaskService tasks;
     private final InspectionReportRevisionMapper reports;
@@ -101,6 +102,11 @@ public class InspectionReportService {
         var report = reports.selectById(gate.reportId());
         if (report == null || !Objects.equals(report.getTenantId(), gate.task().getTenantId())
                 || !Objects.equals(report.getTaskId(), gate.task().getId()) || !"AVAILABLE".equals(report.getStatusCode())) return false;
+        if (cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcBundle.matches(report)) {
+            var content = reports.selectContent(new cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.InspectionReportContentQuery(
+                    report.getTenantId(), report.getTaskId(), report.getId()));
+            return content != null && umcBundles.available(new cn.iocoder.yudao.module.pms.service.service.inspection.umc.InspectionUmcBundle.Query(content));
+        }
         var rows = reportFiles.selectForTask(new InspectionTaskRows(report.getTenantId(), report.getTaskId())).stream()
                 .filter(row -> Objects.equals(row.getReportId(), report.getId())).toList();
         if (rows.isEmpty()) return false;
@@ -156,6 +162,7 @@ public class InspectionReportService {
         require(task.getCurrentAttemptId() != null, "尚无完成的执行尝试");
         var attempt = attempts.selectById(task.getCurrentAttemptId());
         require(attempt != null && "COMPLETED".equals(attempt.getStatusCode()), "执行尝试未完成");
+        require(!"UMC".equals(attempt.getProviderCode()), "UMC正式尝试应采用已归档的全设备UMC报告");
         var current = results.selectCurrent(new InspectionAttemptRows(task.getTenantId(), task.getCurrentAttemptId()));
         long count = snapshots.selectForTask(new InspectionTaskRows(task.getTenantId(), task.getId())).stream()
                 .filter(row -> Objects.equals(row.getAttemptId(), task.getCurrentAttemptId())).count();

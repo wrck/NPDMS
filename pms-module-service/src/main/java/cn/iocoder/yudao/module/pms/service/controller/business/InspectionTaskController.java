@@ -26,7 +26,7 @@ public class InspectionTaskController {
     private final InspectionTaskQueryService queries;
     private final InspectionCommandExecutor executor;
 
-    public record Create(String taskName, @NotNull Long projectId,
+    public record Create(String taskName, @Size(max = 300) String customerName, @NotNull Long projectId,
                          @NotEmpty @Size(max = 100) List<Long> deviceIds, @NotBlank @Size(max = 8000) String background,
                          LocalDateTime plannedAt, @NotBlank String mode) { }
     public record Preparation(@NotBlank @Size(max = 282) String taskName, @NotBlank @Size(max = 8000) String background,
@@ -78,7 +78,7 @@ public class InspectionTaskController {
     public CommonResult<InspectionViews.TaskSummary> create(@RequestHeader HttpHeaders headers, @Valid @RequestBody Create input) {
         var context = InspectionRequestContext.write(headers);
         return execute(new Write(context, null, "TASK_CREATE", input, () -> tasks.create(InspectionTaskService.Create.builder()
-                .context(context).taskName(input.taskName()).projectId(input.projectId()).deviceIds(input.deviceIds())
+                .context(context).taskName(input.taskName()).customerName(input.customerName()).projectId(input.projectId()).deviceIds(input.deviceIds())
                 .background(input.background()).plannedAt(input.plannedAt()).mode(input.mode()).build())));
     }
 

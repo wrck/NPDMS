@@ -182,14 +182,16 @@
         <div class="online-section">
           <div class="section-heading"
             ><h3 class="inspection-section-title">连接预检结果</h3>
-            <el-button
-              v-if="!pending"
-              type="primary"
-              :disabled="!canPrecheck || hasUnfinishedExecution"
-              :loading="busy"
-              @click="startReserve('PRECHECK')"
-              >连接预检</el-button
-            >
+            <Teleport :to="actionsTarget || 'body'" :disabled="!actionsTarget">
+              <el-button
+                v-if="!pending"
+                type="primary"
+                :disabled="!canPrecheck || hasUnfinishedExecution"
+                :loading="busy"
+                @click="startReserve('PRECHECK')"
+                >连接预检</el-button
+              >
+            </Teleport>
           </div>
           <el-form-item label="已通过的连接预检"
             ><el-select
@@ -225,44 +227,50 @@
           <p class="help-text">使用已通过的预检记录，执行当前设备的整批巡检命令。</p>
           <div v-if="pending && sameOrigin" class="recovery-panel">
             <p class="help-text">{{ pendingLabel }}。上下文已固定，继续办理使用原请求身份。</p>
-            <el-button
-              type="primary"
-              :disabled="
-                disabled ||
-                busy ||
-                !canExecute ||
-                !fresh ||
-                (pending.kind === 'dispatch' &&
-                  !pending.lookup &&
-                  needsTemporaryPassword &&
-                  !password)
-              "
-              :loading="busy"
-              @click="retryPending"
-              >{{
-                pending.kind === 'dispatch'
-                  ? pending.lookup
-                    ? '重试原查询请求'
-                    : '继续原下发请求'
-                  : '重试原请求'
-              }}</el-button
-            >
-            <el-button
-              v-if="pending.kind === 'dispatch'"
-              :disabled="disabled || busy || !canExecute || !fresh"
-              @click="queryOriginal"
-              >查询原平台请求</el-button
-            >
+            <Teleport :to="actionsTarget || 'body'" :disabled="!actionsTarget">
+              <div :class="{ 'inspection-actions-embedded': !!actionsTarget }">
+                <el-button
+                  type="primary"
+                  :disabled="
+                    disabled ||
+                    busy ||
+                    !canExecute ||
+                    !fresh ||
+                    (pending.kind === 'dispatch' &&
+                      !pending.lookup &&
+                      needsTemporaryPassword &&
+                      !password)
+                  "
+                  :loading="busy"
+                  @click="retryPending"
+                  >{{
+                    pending.kind === 'dispatch'
+                      ? pending.lookup
+                        ? '重试原查询请求'
+                        : '继续原下发请求'
+                      : '重试原请求'
+                  }}</el-button
+                >
+                <el-button
+                  v-if="pending.kind === 'dispatch'"
+                  :disabled="disabled || busy || !canExecute || !fresh"
+                  @click="queryOriginal"
+                  >查询原平台请求</el-button
+                >
+              </div>
+            </Teleport>
           </div>
-          <div v-else-if="!pending" class="section-actions"
-            ><el-button
-              type="primary"
-              :disabled="!canCollect || hasUnfinishedExecution || !selectedPrecheck"
-              :loading="busy"
-              @click="startReserve('COLLECT')"
-              >开始巡检</el-button
-            ></div
-          >
+          <Teleport v-else-if="!pending" :to="actionsTarget || 'body'" :disabled="!actionsTarget">
+            <div :class="actionsTarget ? 'inspection-actions-embedded' : 'section-actions'"
+              ><el-button
+                type="primary"
+                :disabled="!canCollect || hasUnfinishedExecution || !selectedPrecheck"
+                :loading="busy"
+                @click="startReserve('COLLECT')"
+                >开始巡检</el-button
+              ></div
+            >
+          </Teleport>
           <p v-if="hasUnfinishedExecution && !pending" class="help-text"
             >该设备已有未结束的执行记录，请先恢复、刷新或取消原记录。</p
           >
@@ -506,10 +514,12 @@ import { inspectionFailure } from '../shared/interaction'
 
 defineOptions({ name: 'InspectionOnlinePanel' })
 const props = defineProps<{
+  umcMode?: boolean
   task: TaskDetail
   disabled: boolean
   commands: CommandView[]
   selectedDeviceId: WireLong | string
+  actionsTarget?: HTMLElement
 }>()
 const emit = defineEmits<{
   deviceChange: [deviceId: WireLong]
@@ -705,7 +715,8 @@ const statuses: Record<string, string> = {
   PARTIAL: '部分失败',
   FAILED: '失败'
 }
-const statusLabel = (status: string) => statuses[status] || status
+const statusLabel = (status: string) =>
+  props.umcMode && status === 'COLLECTED' ? '采集完成，待UMC判定' : statuses[status] || status
 const statusType = (status: string): TagProps['type'] =>
   ['PASSED', 'COMPLETE'].includes(status)
     ? 'success'

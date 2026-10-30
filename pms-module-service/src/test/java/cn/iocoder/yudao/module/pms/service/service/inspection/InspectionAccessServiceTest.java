@@ -50,6 +50,7 @@ class InspectionAccessServiceTest {
             .projectCode("P20").projectName("巡检项目").build();
     private ProjectScopeResult currentScope;
     private List<Long> managerUserIds;
+    private Set<Long> manageableProjects = Set.of(PROJECT_ID);
 
     @BeforeEach
     void setUpCurrentScope() {
@@ -147,6 +148,22 @@ class InspectionAccessServiceTest {
     }
 
     @Test
+    void serviceManagerInheritsProjectManagerReadWithoutBypassingCommandOwnerOrScope() {
+        when(permissions.hasAnyPermissions(ACTOR_ID,QUERY_PERMISSION)).thenReturn(true);
+        when(permissions.hasAnyRoles(ACTOR_ID,cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.SERVICE_CODES.toArray(String[]::new))).thenReturn(true);
+        var facts=new ProjectBusinessContextApi.AccessScope(Set.of(PROJECT_ID),Set.of());
+        doReturn(facts).when(projects).currentActorScope(any());
+        assertEquals(Set.of(PROJECT_ID),service.queryScope(context).serviceManagedProjectIds());
+        var row=task();row.setOwnerUserId(99L);when(tasks.selectById(TASK_ID)).thenReturn(row);
+        assertSame(row,service.task(new InspectionAccessService.TaskAccess(context,TASK_ID,QUERY_PERMISSION,false,false)));
+        assertThrows(InspectionException.class,()->service.task(new InspectionAccessService.TaskAccess(context,TASK_ID,QUERY_PERMISSION,true,false)));
+        assertThrows(InspectionException.class,()->service.task(new InspectionAccessService.TaskAccess(context,TASK_ID,QUERY_PERMISSION,false,true)));
+        currentScope=new ProjectScopeResult(19L,TREE_VERSION,Set.of(),Set.of(PROJECT_ID));
+        assertThrows(InspectionException.class,()->service.task(new InspectionAccessService.TaskAccess(context,TASK_ID,QUERY_PERMISSION,false,false)));
+        verify(tasks,never()).selectForUpdate(any());
+    }
+
+    @Test
     void projectManagerCanReadAnAuthorizedProjectTaskWithoutReceivingCommands() {
         when(permissions.hasAnyPermissions(ACTOR_ID, QUERY_PERMISSION)).thenReturn(true);
         when(permissions.hasAnyRoles(ACTOR_ID,"PROJECT_MANAGER")).thenReturn(true);
@@ -210,6 +227,29 @@ class InspectionAccessServiceTest {
         assertSame(current, service.task(managerOnly));
     }
 
+    @Test void systemAdministratorCanArchiveWithoutBecomingAServiceManager() {
+        when(permissions.hasAnyPermissions(ACTOR_ID, ARCHIVE_PERMISSION)).thenReturn(true);
+        when(permissions.hasAnyRoles(ACTOR_ID, "super_admin")).thenReturn(true);
+        var row=task(); row.setOwnerUserId(99L);
+        when(tasks.selectById(TASK_ID)).thenReturn(row); when(tasks.selectForUpdate(TASK_ROWS)).thenReturn(row);
+        assertFalse(service.manager(projectAccess(false)));
+        assertSame(row,service.task(new InspectionAccessService.TaskAccess(context,TASK_ID,ARCHIVE_PERMISSION,true,true)));
+        assertTrue(service.canArchive(projectAccess(false)));
+        when(permissions.hasAnyPermissions(ACTOR_ID,QUERY_PERMISSION)).thenReturn(true);
+        assertSame(row,service.task(new InspectionAccessService.TaskAccess(context,TASK_ID,QUERY_PERMISSION,false,false)));
+        manageableProjects=Set.of();
+        assertFalse(service.canArchive(projectAccess(false)));
+        assertThrows(InspectionException.class,()->service.task(new InspectionAccessService.TaskAccess(context,TASK_ID,ARCHIVE_PERMISSION,true,true)));
+    }
+    @Test void revokedAdministratorRoleWhileWaitingForTaskLockCannotArchive() {
+        when(permissions.hasAnyPermissions(ACTOR_ID,ARCHIVE_PERMISSION)).thenReturn(true);
+        when(permissions.hasAnyRoles(ACTOR_ID,"super_admin")).thenReturn(true,false);
+        var row=task(); row.setOwnerUserId(99L);
+        when(tasks.selectById(TASK_ID)).thenReturn(row); when(tasks.selectForUpdate(TASK_ROWS)).thenReturn(row);
+        assertThrows(InspectionException.class,()->service.task(new InspectionAccessService.TaskAccess(context,TASK_ID,ARCHIVE_PERMISSION,true,true)));
+        verify(tasks).selectForUpdate(TASK_ROWS);
+    }
+
     @Test
     void fullProjectScopeCannotReplaceTheRequiredTaskPermission() {
         var failure = assertThrows(InspectionException.class, () -> service.task(
@@ -221,6 +261,11 @@ class InspectionAccessServiceTest {
 
     private Object answerScope(InvocationOnMock call) throws Throwable {
         if ("resolveCurrent".equals(call.getMethod().getName())) {
+            ProjectCurrentScopeQuery query=call.getArgument(0);
+            if (ProjectScopeApi.ACTION_MANAGE.equals(query.actionCode())) {
+                assertEquals(new ProjectCurrentScopeQuery(TENANT_ID,ACTOR_ID,PROJECT_ID,ProjectScopeApi.ACTION_MANAGE),query);
+                return new ProjectScopeResult(19L,TREE_VERSION,manageableProjects,Set.of());
+            }
             assertEquals(currentScopeQuery(), call.getArgument(0), "Resolve the authenticated actor's anchored VIEW scope");
             return currentScope;
         }
