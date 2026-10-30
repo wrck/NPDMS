@@ -107,4 +107,19 @@ class DeviceProductFilterSqlTest {
         assertTrue(devices.selectProjectDeviceIdsByProductFilter(new ProjectDeviceProductQuery(1L, 10L, List.of())).isEmpty());
         assertTrue(devices.selectProjectDeviceIdsByProductFilter(new ProjectDeviceProductQuery(2L, 10L, List.of(group("{\"productCodeIn\":[\"CODE\"]}")))).isEmpty());
     }
+    @Test void opticalModuleDefaultUsesAuthoritativeTypeAndNeverExemptsNullOrMissingMetadata() throws Exception {
+        try (var sql = session.getConnection().createStatement()) {
+            sql.execute("INSERT INTO ast_product_official_info VALUES "
+                    + "(20,1,'OPTICAL','M','光模块','C','光模块','CRM','ACTIVE',0),"
+                    + "(21,1,'02010257','M','名称含光模块','C','外购件','CRM','ACTIVE',0),"
+                    + "(22,1,'02011299','M','光模块','C','FW','CRM','ACTIVE',0),"
+                    + "(23,1,'UNKNOWN-TYPE','M','光模块','C',NULL,'CRM','ACTIVE',0)");
+            sql.execute("INSERT INTO ast_device VALUES (20,1,10,'OPTICAL',0),(21,1,10,'02010257',0),"
+                    + "(22,1,10,'02011299',0),(23,1,10,'UNKNOWN-TYPE',0),(24,1,10,'NO-MASTER',0)");
+        }
+        var filter="{\"productTypeNotIn\":[\"光模块\"]}";
+        assertEquals(List.of(20L), exempt(filter));
+        assertTrue(matching(filter).containsAll(Set.of(21L,22L)));
+        assertTrue(Collections.disjoint(matching(filter), Set.of(20L,23L,24L)));
+    }
 }
