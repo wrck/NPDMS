@@ -13,8 +13,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class DeviceVisibilitySqlTest {
     @Test void independentContractAndProjectGrantsUseSameSqlForListAndDetail() throws Exception {
         Configuration configuration = new Configuration();
-        try (var xml = getClass().getResourceAsStream("/mapper/device/DeviceQueryMapper.xml")) {
-            new XMLMapperBuilder(xml, configuration, "device", configuration.getSqlFragments()).parse();
+        for (String resource : java.util.List.of("DeviceCurrentModelMapper", "DeviceQueryMapper")) {
+            try (var xml = getClass().getResourceAsStream("/mapper/device/" + resource + ".xml")) {
+                new XMLMapperBuilder(xml, configuration, resource, configuration.getSqlFragments()).parse();
+            }
         }
         try (Connection connection = DriverManager.getConnection("jdbc:h2:mem:device_visibility;MODE=MySQL;DB_CLOSE_DELAY=-1")) {
             try (Statement sql = connection.createStatement()) {

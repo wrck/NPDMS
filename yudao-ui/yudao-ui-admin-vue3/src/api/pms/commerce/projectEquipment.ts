@@ -33,7 +33,7 @@ const loadPages = async <T>(
   }
 }
 
-/** 保留原清单的完整产品集合；设备数量与可追溯的订单数量分别汇总。 */
+/** 保留完工证明等既有消费者的完整设备产品集合；项目详情使用 projectOrderEquipment。 */
 export const loadProjectEquipmentList = async (
   projectId: number,
   isCurrent: () => boolean = () => true
@@ -106,13 +106,15 @@ export const loadProjectEquipmentList = async (
   const list: ProjectEquipmentProduct[] = [...grouped.values()].map(({ orderNos, orderLineIds, ...row }) => {
     const matched = [...orderLineIds].map((id) => lines.get(id))
     const complete = matched.length > 0 && matched.every((line) => line?.productCode?.trim() === row.productCode)
+    // 发货数量只取关联订单行；源值缺失保留未知，不从设备数或设备发货记录推算。
+    const deliveredQtyKnown = complete && matched.every((line) => line?.deliveredQty != null)
     return {
       ...row,
       orderNo: orderNos.size ? [...orderNos].join('、') : undefined,
       orderQty: complete ? matched.reduce((sum, line) => sum + Number(line!.orderQty), 0) : undefined,
-      deliveredQty: complete ? matched.reduce((sum, line) => sum + Number(line!.deliveredQty), 0) : undefined,
+      deliveredQty: deliveredQtyKnown ? matched.reduce((sum, line) => sum + Number(line!.deliveredQty), 0) : undefined,
       openQty: complete ? matched.reduce((sum, line) => sum + Number(line!.openQty), 0) : undefined
     }
   })
-  return { list, scopes }
+  return { list, scopes, devices }
 }

@@ -36,10 +36,11 @@ public class ProjectDeviceSelectionService implements ProjectDeviceSelectionApi 
         query.setPageNo(request.getPageNo());
         query.setPageSize(request.getPageSize());
         query.setSn(request.getSn());
+        query.setKeyword(request.getKeyword());
         query.setName(request.getName());
         query.setProductModel(request.getProductModel());
         query.setContractNo(request.getContractNo());
-        return mapper.selectSelectionPage(query);
+        return mapper.selectCandidatePage(query);
     }
 
     @Override

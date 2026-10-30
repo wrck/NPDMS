@@ -26,7 +26,7 @@ class DevicePageLargeProjectScopeSqlTest {
         var configuration = new Configuration();
         for (var resource : List.of("mapper/authorization/ProjectViewGrantReadSql.xml",
                 "mapper/projectscope/ProjectViewReadScopeSql.xml", "mapper/contract/ContractDeviceReadScopeSql.xml",
-                "mapper/device/DeviceQueryMapper.xml", "mapper/device/DeviceJoinedPageMapper.xml")) {
+                "mapper/device/DeviceCurrentModelMapper.xml", "mapper/device/DeviceQueryMapper.xml", "mapper/device/DeviceJoinedPageMapper.xml")) {
             try (var xml = getClass().getClassLoader().getResourceAsStream(resource)) {
                 assertNotNull(xml, resource);
                 new XMLMapperBuilder(xml, configuration, resource, configuration.getSqlFragments()).parse();
@@ -38,14 +38,19 @@ class DevicePageLargeProjectScopeSqlTest {
         var query = VisibleDevicePageQuery.builder().tenantId(1L).projectId(44637L).pageNo(1).pageSize(100)
                 .organizationGrants(List.of()).readScope(new DevicePageReadScope(scope, null)).build();
         var statement = configuration.getMappedStatement(DeviceMapper.class.getName() + ".selectJoinedDevicePageRows");
+        var batchStatement = configuration.getMappedStatement(DeviceMapper.class.getName() + ".selectJoinedDeviceIds");
+        var batchQuery = new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDeviceIdsQuery(
+                1L, java.util.Set.of(11L, 12L), null, List.of(), new DevicePageReadScope(scope, null));
         try (var executor = Executors.newSingleThreadExecutor(task ->
                 new Thread(null, task, "device-project-scope", 512 * 1024))) {
             executor.submit(() -> {
                 for (int size : List.of(100, 20)) {
-                    var sql = statement.getBoundSql(Map.of("query", query.toBuilder().pageSize(size).build())).getSql();
-                    var parsed = JsqlParserGlobal.parse(sql);
-                    var cached = JsqlParserGlobal.parse(sql);
-                    assertNotSame(parsed, cached, "Each tenant interception must receive an independent statement");
+                    for (var sql : List.of(statement.getBoundSql(Map.of("query", query.toBuilder().pageSize(size).build())).getSql(),
+                            batchStatement.getBoundSql(Map.of("query", batchQuery)).getSql())) {
+                        var parsed = JsqlParserGlobal.parse(sql);
+                        var cached = JsqlParserGlobal.parse(sql);
+                        assertNotSame(parsed, cached, "Each tenant interception must receive an independent statement");
+                    }
                 }
                 return null;
             }).get(60, TimeUnit.SECONDS);

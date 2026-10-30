@@ -102,8 +102,10 @@ class DeviceVisibilityCandidateSqlTest {
 
     private Configuration configuration() throws Exception {
         var config = new Configuration();
-        try (var xml = getClass().getResourceAsStream("/mapper/device/DeviceQueryMapper.xml")) {
-            new XMLMapperBuilder(xml, config, "device", config.getSqlFragments()).parse();
+        for (String resource : java.util.List.of("DeviceCurrentModelMapper", "DeviceQueryMapper")) {
+            try (var xml = getClass().getResourceAsStream("/mapper/device/" + resource + ".xml")) {
+                new XMLMapperBuilder(xml, config, resource, config.getSqlFragments()).parse();
+            }
         }
         return config;
     }

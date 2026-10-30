@@ -8,10 +8,14 @@ import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceVisibility
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
+import java.util.Objects;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.AST_EQUIPMENT_NOT_EXISTS;
@@ -25,6 +29,23 @@ public class DeviceAccessScopeService {
     private final ContractDeviceVisibilityApi contractVisibilityApi;
     private final cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi organizationScopeApi;
     private final ProjectViewReadScopeApi projectViewReadScopeApi;
+
+    public boolean hasFullProjectView(ProjectCurrentScopeQuery query) {
+        var actor = SecurityFrameworkUtils.getLoginUser();
+        Long tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null && actor != null) tenantId = actor.getTenantId();
+        if (query == null || actor == null || tenantId == null
+                || !Objects.equals(tenantId, query.tenantId()) || !Objects.equals(tenantId, actor.getTenantId())
+                || !Objects.equals(actor.getId(), query.subjectUserId())
+                || query.anchorProjectId() == null || query.anchorProjectId() <= 0
+                || !ProjectScopeApi.ACTION_VIEW.equals(query.actionCode())) return false;
+        try {
+            var scope = projectScopeApi.resolveCurrent(query);
+            return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(query.anchorProjectId());
+        } catch (RuntimeException exception) {
+            return false; // Owner失败只关闭此快路，设备原三路授权仍独立执行。
+        }
+    }
 
     public DevicePageReadScope pageReadScope(
             ProjectAllScopeQuery query) {

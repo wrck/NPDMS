@@ -19,6 +19,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLine
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.UserCompanyDepartmentScopeRespDTO;
 import lombok.RequiredArgsConstructor;
@@ -221,11 +222,19 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
                 currentProjectIds(tenantId, subjectUserId));
     }
 
+    /** 项目清单导出复用订单行目录的公司/合同项目读取范围，分配关系本身不扩大订单行权限。 */
+    public AccessScope orderLineReadScope(OrderLineReadScopeQuery query) {
+        return currentAccessScope(query.tenantId(), query.subjectUserId(), "project-equipment-export");
+    }
+
+    public record OrderLineReadScopeQuery(Long tenantId, Long subjectUserId) { }
+
     @Resource
     private cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper projectCommerceMapper;
 
     public ProjectCommerceDetail getProjectCommerceDetail(Long tenantId, Long userId, Long projectId) {
-        if (!currentProjectIds(tenantId, userId).contains(projectId)) throw inaccessible();
+        var scopeQuery = new ProjectCurrentScopeQuery(tenantId, userId, projectId, ProjectScopeApi.ACTION_VIEW);
+        if (!canReadProject(scopeQuery)) throw inaccessible();
         var query = new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery(tenantId, projectId);
         return new ProjectCommerceDetail(projectCommerceMapper.selectContracts(query),
                 projectCommerceMapper.selectOrders(query), projectCommerceMapper.selectExecutionOrders(query),
@@ -252,6 +261,19 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
         public ProjectCommerceDetail(List<ContractDO> contracts, List<SalesOrderDO> orders,
             List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders) {
             this(contracts,orders,executionOrders,List.of());
+        }
+    }
+
+    private boolean canReadProject(ProjectCurrentScopeQuery query) {
+        try {
+            var scope = projectScopeApi.resolveCurrent(query);
+            return scope != null && scope.fullProjectIds() != null
+                    && scope.fullProjectIds().contains(query.anchorProjectId());
+        } catch (ServiceException unavailableAnchor) {
+            // Preserve the original check for historical admin projects without an active tree.
+            return currentProjectIds(query.tenantId(), query.subjectUserId()).contains(query.anchorProjectId());
+        } catch (RuntimeException unavailableOwner) {
+            return false;
         }
     }
 
@@ -366,7 +388,7 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
                                  List<ProjectContractRelationDO> projectRelations) {
     }
 
-    private record AccessScope(List<String> companyCodes, List<Long> projectIds) {
+    public record AccessScope(List<String> companyCodes, List<Long> projectIds) {
         boolean empty() {
             return companyCodes.isEmpty() && projectIds.isEmpty();
         }

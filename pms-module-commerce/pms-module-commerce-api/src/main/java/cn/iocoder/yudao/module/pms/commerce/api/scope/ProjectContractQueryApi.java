@@ -8,4 +8,8 @@ public interface ProjectContractQueryApi {
 
     /** Read-only shipment/renewal display, including explicitly retained historical project relations. Not an authorization grant. */
     Set<String> getWarrantyShipmentContractNumbers(Long projectId);
+    /** 当前租户有效关联中合同号逐字精确命中的项目候选；不授予项目读取或办理权限。 */
+    Set<Long> findProjectIdsByExactContractNo(ExactContractQuery query);
+
+    record ExactContractQuery(String contractNo) { }
 }

@@ -26,6 +26,8 @@ class DeviceControllerContractTest {
         assertEndpoint("getDevicePage", "/page", "pms:device:query");
         assertEndpoint("getDevice", "/{id}", "pms:device:query");
         assertEndpoint("getDeviceArchive", "/{id}/archive", "pms:device:query");
+        assertPostEndpoint("getCurrentSummaries", "/current-summaries", "pms:device:query");
+        assertRequestFields("DeviceSummaryBatchReqVO", "deviceIds", "projectId");
     }
 
     @Test

@@ -19,6 +19,19 @@ import java.util.List;
 @Mapper
 public interface DeviceMapper extends BaseMapperX<DeviceDO> {
     DeviceDO selectLogDeviceForUpdate(@Param("query") cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceLogDeviceLockQuery query);
+    default List<DeviceDO> selectCurrentProjectDevicesByIds(
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.CurrentProjectDeviceIdsQuery query) {
+        if (query.tenantId() == null || query.projectId() == null || query.deviceIds() == null || query.deviceIds().isEmpty())
+            return List.of();
+        return selectList(new LambdaQueryWrapperX<DeviceDO>()
+                .eq(DeviceDO::getTenantId, query.tenantId()).eq(DeviceDO::getProjectId, query.projectId())
+                .in(DeviceDO::getId, query.deviceIds()).orderByAsc(DeviceDO::getId));
+    }
+    List<DeviceDO> selectJoinedDeviceIds(@Param("query")
+            cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDeviceIdsQuery query);
+
+    List<Long> selectProjectDeviceIdsByProductFilter(
+            @Param("query") cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceProductQuery query);
 
     default List<DeviceDO> selectCurrentProjectDevices(
             cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationQuery query) {

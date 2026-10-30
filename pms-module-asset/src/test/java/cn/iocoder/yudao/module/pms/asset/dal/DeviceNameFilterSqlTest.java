@@ -11,8 +11,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class DeviceNameFilterSqlTest {
     @Test void namesRemainAnIntersectionWithTenantVisibilityAndLogicalDeletion() throws Exception {
         var config = new Configuration();
-        try (var xml = getClass().getResourceAsStream("/mapper/device/DeviceQueryMapper.xml")) {
-            new XMLMapperBuilder(xml, config, "device", config.getSqlFragments()).parse();
+        for (String resource : List.of("DeviceCurrentModelMapper", "DeviceQueryMapper")) {
+            try (var xml = getClass().getResourceAsStream("/mapper/device/" + resource + ".xml")) {
+                new XMLMapperBuilder(xml, config, resource, config.getSqlFragments()).parse();
+            }
         }
         try (var connection = DriverManager.getConnection("jdbc:h2:mem:device_names;MODE=MySQL")) {
             var sql = connection.createStatement();

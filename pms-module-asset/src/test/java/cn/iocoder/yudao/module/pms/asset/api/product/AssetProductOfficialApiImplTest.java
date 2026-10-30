@@ -24,6 +24,31 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AssetProductOfficialApiImplTest {
 
+    @org.junit.jupiter.api.AfterEach
+    void clearTenant() { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+
+    @Test
+    void displayLookupRejectsForeignTenantAndDoesNotExpandEmptyCodes() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
+        var api=new AssetProductOfficialApiImpl(productOfficialMapper);
+        org.junit.jupiter.api.Assertions.assertThrows(SecurityException.class,
+                ()->api.getProductDisplaySnapshots(new ProductDisplayQuery(2L,java.util.Set.of("02010005"))));
+        assertTrue(api.getProductDisplaySnapshots(new ProductDisplayQuery(1L,java.util.Set.of())).isEmpty());
+        org.mockito.Mockito.verifyNoInteractions(productOfficialMapper);
+    }
+
+    @Test
+    void displayLookupKeepsDirectoryOrderAndExactCodesWithoutChangingActiveSnapshotContract() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
+        var newest=new AssetProductOfficialDO();newest.setId(12L);newest.setProductCode("02010005");newest.setProductModel("NEW");
+        var older=new AssetProductOfficialDO();older.setId(11L);older.setProductCode("02010005");older.setProductModel("OLD");
+        var partial=new AssetProductOfficialDO();partial.setId(13L);partial.setProductCode("02010005-X");
+        var query=new ProductDisplayQuery(1L,java.util.Set.of("02010005"));
+        when(productOfficialMapper.selectDisplayByCodes(query)).thenReturn(List.of(newest,older,partial));
+        var result=new AssetProductOfficialApiImpl(productOfficialMapper).getProductDisplaySnapshots(query);
+        assertEquals(List.of(12L,11L),result.stream().map(ProductOfficialSnapshot::id).toList());
+    }
+
     @Mock
     private AssetProductOfficialMapper productOfficialMapper;
 

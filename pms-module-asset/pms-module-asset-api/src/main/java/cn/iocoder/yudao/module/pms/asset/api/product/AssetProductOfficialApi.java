@@ -11,4 +11,8 @@ public interface AssetProductOfficialApi {
      * 空入参返回空结果。
      */
     List<ProductOfficialSnapshot> getActiveProductSnapshots(Collection<Long> productIds);
+
+    /** 当前产品清单的展示副本（包含目录停用展示项），精确编码、ID倒序；空编码集合返回空。 */
+    List<ProductOfficialSnapshot> getProductDisplaySnapshots(ProductDisplayQuery query);
+
 }

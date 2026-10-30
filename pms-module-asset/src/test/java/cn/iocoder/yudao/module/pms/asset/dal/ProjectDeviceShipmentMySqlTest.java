@@ -27,11 +27,15 @@ class ProjectDeviceShipmentMySqlTest {
         try(var sql=connection.createStatement()) {
             sql.execute("CREATE TEMPORARY TABLE ast_device (id BIGINT PRIMARY KEY, tenant_id BIGINT, project_id BIGINT, sn VARCHAR(50), shipment_time DATETIME, deleted BIT)");
             sql.execute("INSERT INTO ast_device VALUES (1,1,10,'shipped','2026-10-01',b'0'),(2,1,10,'unshipped',NULL,b'0'),(3,1,20,'unshipped-only',NULL,b'0'),(4,1,30,NULL,'2026-10-01',b'0'),(5,1,30,'   ','2026-10-01',b'0'),(6,1,40,'deleted','2026-10-01',b'1'),(7,2,20,'foreign','2026-10-01',b'0'),(8,1,99,'outside','2026-10-01',b'0'),(9,1,NULL,'unassigned','2026-10-01',b'0'),(10,1,10,'another-shipped','2026-10-02',b'0')");
-            sql.execute("ALTER TABLE ast_device ADD product_code VARCHAR(50), ADD product_model VARCHAR(50)");
+            sql.execute("ALTER TABLE ast_device ADD product_code VARCHAR(50), ADD product_model VARCHAR(50), ADD conp_version VARCHAR(64)");
+            sql.execute("CREATE TEMPORARY TABLE ast_product_official_info(id BIGINT,tenant_id BIGINT,product_code VARCHAR(50),product_model VARCHAR(50),source_system VARCHAR(20),status VARCHAR(20),deleted BIT)");
             sql.execute("UPDATE ast_device SET product_code=CONCAT('CODE-',id), product_model=CONCAT('MODEL-',id)");
         }
         Configuration config=new Configuration(new Environment("shipment",new JdbcTransactionFactory(),new SingleConnectionDataSource(connection,true)));
         config.setMapUnderscoreToCamelCase(true);
+        try(var xml=getClass().getResourceAsStream("/mapper/device/DeviceCurrentModelMapper.xml")) {
+            new XMLMapperBuilder(xml,config,"current-model",config.getSqlFragments()).parse();
+        }
         try(var xml=getClass().getResourceAsStream("/mapper/device/ProjectDeviceShipmentMapper.xml")) {
             new XMLMapperBuilder(xml,config,"shipment",config.getSqlFragments()).parse();
         }

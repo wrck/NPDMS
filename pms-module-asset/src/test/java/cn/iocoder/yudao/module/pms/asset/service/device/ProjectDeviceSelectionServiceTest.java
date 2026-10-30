@@ -33,10 +33,10 @@ class ProjectDeviceSelectionServiceTest {
         var request = new DeviceArchivePageReqVO();
         request.setSelectionProjectId(10L); request.setSn("SN"); request.setName("交换机");
         request.setProductModel("X"); request.setContractNo("CON"); request.setPageNo(3); request.setPageSize(20);
-        when(mapper.selectSelectionPage(any())).thenReturn(PageResult.empty());
+        when(mapper.selectCandidatePage(any())).thenReturn(PageResult.empty());
         service.getPage(request);
         var capture = ArgumentCaptor.forClass(ProjectDeviceSelectionQuery.class);
-        verify(mapper).selectSelectionPage(capture.capture());
+        verify(mapper).selectCandidatePage(capture.capture());
         var query = capture.getValue();
         assertEquals(1L, query.getTenantId()); assertEquals(10L, query.getProjectId());
         assertEquals(Set.of("CONTRACT-10"), query.getContractNumbers());
@@ -49,6 +49,44 @@ class ProjectDeviceSelectionServiceTest {
         when(context.getContractNumbers(99L)).thenThrow(new IllegalArgumentException("forbidden"));
         assertThrows(IllegalArgumentException.class, () -> service.validateSelection(99L, List.of(1L)));
         verifyNoInteractions(mapper);
+    }
+
+    @Test void keywordUsesCurrentModelXmlWithTheSameAuthoritativeScopeAndPagination() {
+        var request = new DeviceArchivePageReqVO();
+        request.setSelectionProjectId(10L); request.setKeyword("MODEL");
+        request.setPageNo(2); request.setPageSize(20);
+        when(mapper.selectCandidatePage(any())).thenReturn(PageResult.empty());
+        service.getPage(request);
+        var capture = ArgumentCaptor.forClass(ProjectDeviceSelectionQuery.class);
+        verify(mapper).selectCandidatePage(capture.capture());
+        var query = capture.getValue();
+        assertEquals("MODEL", query.getKeyword()); assertNull(query.getSn());
+        assertEquals(1L, query.getTenantId()); assertEquals(10L, query.getProjectId());
+        assertEquals(Set.of("CONTRACT-10"), query.getContractNumbers());
+        assertEquals(2, query.getPageNo()); assertEquals(20, query.getPageSize());
+        verify(mapper, never()).selectSelectionPage(any());
+    }
+
+    @Test void keywordRequiresAProjectSelectionContext() {
+        var request = new DeviceArchivePageReqVO(); request.setKeyword("MODEL");
+        assertFalse(request.isKeywordSelectionScoped());
+        request.setSelectionProjectId(10L);
+        assertTrue(request.isKeywordSelectionScoped());
+    }
+
+    @Test void initialEmptySearchUsesTheIndexedCandidateUnionInsteadOfTheMillionRowWrapper() {
+        var request = new DeviceArchivePageReqVO(); request.setSelectionProjectId(10L);
+        request.setPageNo(1); request.setPageSize(50);
+        when(mapper.selectCandidatePage(any())).thenReturn(new PageResult<>(List.of(device(1L)), 232L));
+        var result = service.getPage(request);
+        var capture = ArgumentCaptor.forClass(ProjectDeviceSelectionQuery.class);
+        verify(mapper).selectCandidatePage(capture.capture());
+        assertEquals(232L, result.getTotal());
+        assertNull(capture.getValue().getKeyword());
+        assertEquals(Set.of("CONTRACT-10"), capture.getValue().getContractNumbers());
+        assertEquals(1L, capture.getValue().getTenantId()); assertEquals(10L, capture.getValue().getProjectId());
+        assertEquals(50, capture.getValue().getPageSize());
+        verify(mapper, never()).selectSelectionPage(any());
     }
 
     @Test void inspectionCandidatesPreserveOwnerScopeAndPageInTheIndexedQuery() {

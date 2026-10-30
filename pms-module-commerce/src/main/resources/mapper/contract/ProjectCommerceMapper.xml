@@ -10,6 +10,39 @@
               WHERE f.tenant_id=c.tenant_id AND f.deleted=FALSE AND f.contract_no=c.contract_no
                 AND f.contract_type IN ('0','11'))
     </select>
+    <sql id="exactContract">
+        c.tenant_id = #{query.tenantId} AND c.deleted = 0
+        AND c.contract_no = #{query.exactContractNo}
+        AND CAST(c.contract_no AS BINARY) = CAST(#{query.exactContractNo} AS BINARY)
+    </sql>
+    <select id="selectProjectIdsByExactContractNo" resultType="java.lang.Long">
+        SELECT r.project_id FROM com_contract c
+        JOIN com_project_contract_relation r ON r.tenant_id = c.tenant_id AND r.contract_id = c.id
+          AND r.deleted = 0 AND r.status = 'ACTIVE'
+          AND (r.effective_from IS NULL OR r.effective_from &lt;= CURRENT_TIMESTAMP)
+          AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP)
+        WHERE <include refid="exactContract"/>
+        UNION
+        SELECT s.project_id FROM com_contract c
+        JOIN com_sales_order o ON o.tenant_id = c.tenant_id AND o.deleted = 0
+          AND o.contract_no = c.contract_no AND o.company_code = c.company_code
+          AND CAST(o.contract_no AS BINARY) = CAST(c.contract_no AS BINARY)
+          AND CAST(o.company_code AS BINARY) = CAST(c.company_code AS BINARY)
+        JOIN com_sales_order_line l ON l.tenant_id = o.tenant_id AND l.order_id = o.id AND l.deleted = 0
+        JOIN com_delivery_scope s ON s.tenant_id = l.tenant_id AND s.order_line_id = l.id
+          AND s.deleted = 0 AND s.scope_status = 'ACTIVE' AND s.effective_to IS NULL
+        WHERE <include refid="exactContract"/>
+        UNION
+        SELECT s.project_id FROM com_contract c
+        JOIN com_order_contract_relation oc ON oc.tenant_id = c.tenant_id AND oc.contract_id = c.id
+          AND oc.deleted = 0 AND oc.effective_from &lt;= CURRENT_TIMESTAMP
+          AND (oc.effective_to IS NULL OR oc.effective_to &gt; CURRENT_TIMESTAMP)
+        JOIN com_sales_order o ON o.tenant_id = oc.tenant_id AND o.id = oc.order_id AND o.deleted = 0
+        JOIN com_sales_order_line l ON l.tenant_id = o.tenant_id AND l.order_id = o.id AND l.deleted = 0
+        JOIN com_delivery_scope s ON s.tenant_id = l.tenant_id AND s.order_line_id = l.id
+          AND s.deleted = 0 AND s.scope_status = 'ACTIVE' AND s.effective_to IS NULL
+        WHERE <include refid="exactContract"/>
+    </select>
     <select id="selectContracts" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO">
         SELECT c.* FROM com_contract c
         JOIN (

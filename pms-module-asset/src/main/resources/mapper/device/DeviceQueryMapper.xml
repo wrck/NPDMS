@@ -219,7 +219,7 @@
                    d.name,
                    d.status,
                    d.product_code,
-                   d.product_model,
+                   <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductModel"/> AS product_model,
                    d.product_name,
                    d.shipment_time,
                    d.package_no,

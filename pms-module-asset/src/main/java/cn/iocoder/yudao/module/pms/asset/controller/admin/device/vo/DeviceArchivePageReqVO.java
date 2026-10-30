@@ -17,6 +17,14 @@ public class DeviceArchivePageReqVO extends PageParam {
     @jakarta.validation.constraints.Positive
     private Long selectionProjectId;
 
+    @Schema(description = "业务选择器序列号或当前产品型号，包含匹配；仅selectionProjectId场景")
+    private String keyword;
+
+    @jakarta.validation.constraints.AssertTrue(message = "keyword仅可用于项目设备选择")
+    public boolean isKeywordSelectionScoped() {
+        return keyword == null || keyword.isBlank() || selectionProjectId != null;
+    }
+
     @Schema(description = "产品型号，模糊匹配")
     private String productModel;
 

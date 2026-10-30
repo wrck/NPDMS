@@ -23,13 +23,13 @@ describe('project equipment order fields and device quantities', () => {
     }).mockResolvedValueOnce({ total: 101, list: [{ id: 101, orderLineId: lineB,
       orderNo: 'SO-A', lineNo: '2', productCode: 'B', allocatedQuantity: 2, details: [] }] })
     commerceApi.getSalesOrderLinePage.mockResolvedValueOnce({ total: 101, list: [
-      { id: lineA, productCode: 'A', orderQty: 10, deliveredQty: 4, openQty: 6 },
+      { id: lineA, productCode: 'A', orderQty: 10, deliveredQty: 3, openQty: 7 },
       ...Array.from({ length: 99 }, (_, index) => ({ id: `OTHER-${index}`, productCode: 'OTHER', deliveredQty: 99, openQty: 99 }))
-    ] }).mockResolvedValueOnce({ total: 101, list: [{ id: lineB, productCode: 'B', orderQty: 2, deliveredQty: 2, openQty: 0 }] })
+    ] }).mockResolvedValueOnce({ total: 101, list: [{ id: lineB, productCode: 'B', orderQty: 2, deliveredQty: 0, openQty: 2 }] })
     const result = await loadProjectEquipmentList(198)
     expect(result?.list).toEqual([
-      { productCode: 'A', productName: '设备A', productModel: 'MODEL-A', deviceCount: 4, orderNo: 'SO-A', projectQty: 100, orderQty: 10, deliveredQty: 4, openQty: 6 },
-      { productCode: 'B', productName: '设备B', productModel: 'MODEL-B', deviceCount: 2, orderNo: 'SO-A', projectQty: 2, orderQty: 2, deliveredQty: 2, openQty: 0 },
+      { productCode: 'A', productName: '设备A', productModel: 'MODEL-A', deviceCount: 4, orderNo: 'SO-A', projectQty: 100, orderQty: 10, deliveredQty: 3, openQty: 7 },
+      { productCode: 'B', productName: '设备B', productModel: 'MODEL-B', deviceCount: 2, orderNo: 'SO-A', projectQty: 2, orderQty: 2, deliveredQty: 0, openQty: 2 },
       { productCode: 'C', productName: '设备C', productModel: 'MODEL-C', deviceCount: 1, orderNo: undefined, orderQty: undefined, deliveredQty: undefined, openQty: undefined }
     ])
     expect(commerceApi.getDeliveryScopePage).toHaveBeenLastCalledWith({ projectId: 198, pageNo: 2, pageSize: 100, includeHistory: false })
@@ -48,5 +48,16 @@ describe('project equipment order fields and device quantities', () => {
     expect(result?.list[0]).toMatchObject({ deviceCount: 4, projectQty: 4, orderNo: 'SO-A' })
     expect(result?.list[0].deliveredQty).toBeUndefined()
     expect(result?.list[0].openQty).toBeUndefined()
+  })
+  it.each([null, undefined])('keeps missing order-line shipment quantity %s unknown even when devices exist', async (deliveredQty) => {
+    commerceApi.getDeliveryScopePage.mockResolvedValue({ total: 1, list: [{
+      id: 1, orderLineId: 'LINE-A', orderNo: 'SO-A', productCode: 'A', allocatedQuantity: 4, details: []
+    }] })
+    commerceApi.getSalesOrderLinePage.mockResolvedValue({ total: 1, list: [{
+      id: 'LINE-A', productCode: 'A', orderQty: 4, deliveredQty, openQty: 4
+    }] })
+    const result = await loadProjectEquipmentList(198)
+    expect(result?.list[0]).toMatchObject({ deviceCount: 4, orderQty: 4 })
+    expect(result?.list[0].deliveredQty).toBeUndefined()
   })
 })

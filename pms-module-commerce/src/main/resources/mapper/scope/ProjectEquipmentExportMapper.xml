@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.ProjectEquipmentExportMapper">
+    <select id="selectBatch" resultType="cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.ProjectEquipmentExportSource">
+        SELECT s.id AS scope_id, s.order_line_id, s.product_code, s.product_desc, s.order_no,
+               s.allocated_qty AS allocated_quantity, l.id AS matched_line_id,
+               l.product_code AS line_product_code, l.delivered_qty AS delivered_quantity, l.open_qty AS open_quantity
+        FROM com_delivery_scope s
+        LEFT JOIN com_sales_order_line l ON l.tenant_id=s.tenant_id AND l.id=s.order_line_id AND l.deleted=0
+          AND (
+            <if test="query.companyCodes != null and !query.companyCodes.isEmpty()">
+              CAST(l.company_code AS BINARY) IN
+              <foreach collection="query.companyCodes" item="code" open="(" separator="," close=")">CAST(#{code} AS BINARY)</foreach> OR
+            </if>
+            <if test="query.orderLineProjectIds != null and !query.orderLineProjectIds.isEmpty()">
+              EXISTS (SELECT 1 FROM com_order_contract_relation ocr
+                JOIN com_project_contract_relation pcr ON pcr.tenant_id=ocr.tenant_id AND pcr.contract_id=ocr.contract_id
+                  AND pcr.deleted=0 AND pcr.status='ACTIVE' AND pcr.effective_to IS NULL
+                WHERE ocr.tenant_id=l.tenant_id AND ocr.order_id=l.order_id AND ocr.deleted=0
+                  AND pcr.project_id IN
+                  <foreach collection="query.orderLineProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>) OR
+            </if>
+            1=0
+          )
+        WHERE s.tenant_id=#{query.tenantId} AND s.project_id=#{query.projectId}
+          AND s.scope_status='ACTIVE' AND s.effective_to IS NULL AND s.deleted=0
+        <if test="query.afterId != null">AND s.id&gt;#{query.afterId}</if>
+        ORDER BY s.id LIMIT #{query.limit}
+    </select>
+</mapper>

@@ -24,7 +24,7 @@ class DeviceApiContractTest {
                 "shipmentTime", "packageNo", "contractNo", "shipmentRecordId",
                 "projectId", "projectAssignmentVersion", "customerId", "customerAssignmentVersion",
                 "warrantyStartDate", "warrantyEndDate", "warrantyStatus",
-                "conpVersion", "conpType", "conpSeries", "conpMark"), fields);
+                "conpVersion", "conpType", "conpSeries", "conpMark", "name", "locationSnapshot"), fields);
         assertTrue(Arrays.stream(DeviceQueryApi.class.getMethods())
                 .flatMap(method -> Arrays.stream(method.getParameterTypes()))
                 .noneMatch(type -> type.getSimpleName().endsWith("DO")));

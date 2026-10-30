@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.commerce.api.scope;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectCommerceMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ExactContractProjectQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.Set;
@@ -18,6 +19,14 @@ public class ProjectContractQueryApiImpl implements ProjectContractQueryApi {
         if (projectId == null || projectId <= 0) throw new IllegalArgumentException("项目编号无效");
         return Set.copyOf(mapper.selectWarrantyShipmentContractNumbers(new ProjectCommerceQuery(
                 TenantContextHolder.getRequiredTenantId(), projectId)));
+    }
+
+    @Override
+    public Set<Long> findProjectIdsByExactContractNo(ExactContractQuery query) {
+        if (query == null || query.contractNo() == null || query.contractNo().isBlank()
+                || query.contractNo().length() > 512) throw new IllegalArgumentException("合同号无效");
+        return Set.copyOf(mapper.selectProjectIdsByExactContractNo(new ExactContractProjectQuery(
+                TenantContextHolder.getRequiredTenantId(), query.contractNo())));
     }
 
     @Override

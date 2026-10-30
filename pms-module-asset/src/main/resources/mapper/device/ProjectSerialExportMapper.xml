@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.ProjectSerialExportMapper">
+    <select id="selectBatch" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.projection.ProjectSerialExportRow">
+        WITH device_batch AS (
+            SELECT d.id AS device_id, d.sn, d.product_code, d.product_name, d.location_snapshot,
+                   d.conp_type, d.conp_version, d.warranty_start_date, d.warranty_end_date,
+                   nv.boot_version, nv.cpld_version
+            FROM ast_device d
+            LEFT JOIN ast_device_network_version nv ON nv.tenant_id=d.tenant_id AND nv.device_sn=d.sn
+              AND nv.deleted=0 AND nv.source_system='DEVICE_LOG'
+              AND (nv.sync_status IS NULL OR nv.sync_status&lt;&gt;'NOT_AVAILABLE')
+            WHERE d.tenant_id=#{query.tenantId} AND d.project_id=#{query.projectId} AND d.deleted=0
+            <if test="query.sn != null and query.sn != ''">AND d.sn=#{query.sn}</if>
+            <if test="query.name != null and query.name != ''">AND d.name LIKE CONCAT('%',#{query.name},'%')</if>
+            <if test="query.productCode != null and query.productCode != ''">AND d.product_code=#{query.productCode}</if>
+            <if test="query.beforeId != null">AND d.id&lt;#{query.beforeId}</if>
+            ORDER BY d.id DESC LIMIT #{query.limit}
+        ), renewal_counts AS (
+            SELECT wr.device_sn, COUNT(*) AS extended_count
+            FROM ast_device_warranty_record wr
+            JOIN (SELECT DISTINCT sn FROM device_batch) b ON b.sn=wr.device_sn
+            WHERE wr.tenant_id=#{query.tenantId} AND wr.deleted=0 AND wr.extended=1
+            GROUP BY wr.device_sn
+        )
+        SELECT b.*, COALESCE(r.extended_count,0) AS extended_count
+        FROM device_batch b LEFT JOIN renewal_counts r ON r.device_sn=b.sn
+        ORDER BY b.device_id DESC
+    </select>
+</mapper>

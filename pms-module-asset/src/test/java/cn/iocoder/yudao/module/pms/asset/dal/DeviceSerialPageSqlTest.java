@@ -9,7 +9,12 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 class DeviceSerialPageSqlTest {
     @Test void returnsDeviceLogVersionsAndFullRenewalCountWithoutOtherTenantOrDeletedFacts() throws Exception {
-        var config=new Configuration();try(var xml=getClass().getResourceAsStream("/mapper/device/DeviceQueryMapper.xml")){new XMLMapperBuilder(xml,config,"device",config.getSqlFragments()).parse();}
+        var config=new Configuration();
+        for (String resource : List.of("DeviceCurrentModelMapper", "DeviceQueryMapper")) {
+            try (var xml = getClass().getResourceAsStream("/mapper/device/" + resource + ".xml")) {
+                new XMLMapperBuilder(xml, config, resource, config.getSqlFragments()).parse();
+            }
+        }
         try(var connection=DriverManager.getConnection("jdbc:h2:mem:serial_page;MODE=MySQL")){
             var fields=new ArrayList<String>();
             for(var field:DeviceListProjection.class.getRecordComponents()){
@@ -20,6 +25,7 @@ class DeviceSerialPageSqlTest {
             var sql=connection.createStatement();
             sql.execute("CREATE TABLE ast_device("+String.join(",",fields)+",tenant_id BIGINT,deleted BOOLEAN)");
             sql.execute("CREATE TABLE ast_device_project_relationship(tenant_id BIGINT,device_sn VARCHAR(100),project_id BIGINT,effective_from TIMESTAMP,effective_to TIMESTAMP,deleted BOOLEAN)");
+            sql.execute("CREATE TABLE ast_product_official_info(tenant_id BIGINT,product_code VARCHAR(64),product_model VARCHAR(64),deleted BOOLEAN,UNIQUE(tenant_id,product_code))");
             sql.execute("CREATE TABLE ast_device_network_version(tenant_id BIGINT,device_sn VARCHAR(100),source_system VARCHAR(20),sync_status VARCHAR(20),boot_version VARCHAR(20),cpld_version VARCHAR(20),deleted BOOLEAN)");
             sql.execute("CREATE TABLE ast_device_warranty_record(tenant_id BIGINT,device_sn VARCHAR(100),extended BOOLEAN,deleted BOOLEAN)");
             sql.execute("INSERT INTO ast_device(id,sn,project_id,tenant_id,deleted) VALUES(1,'SN1',10,1,false),(2,'SN2',10,1,false)");
