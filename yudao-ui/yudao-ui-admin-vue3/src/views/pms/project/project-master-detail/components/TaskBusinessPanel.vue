@@ -1,5 +1,5 @@
 <template>
-  <section class="task-business" aria-label="任务业务办理">
+  <section class="task-business" aria-label="任务业务办理" :inert="requirementAnalysis && loading" :aria-busy="loading">
     <el-alert v-if="error" :title="error" type="error" :closable="false" show-icon />
     <template v-if="context">
       <el-alert
@@ -38,7 +38,7 @@
         :closable="false"
       />
       <!-- 来源交付件等业务视图首判定完成（内容挂载或明确报错）后再出现，避免先于内容渲染又被推走的跳变 -->
-      <section v-if="artifacts.length && hostSettled" class="artifact-sources" aria-label="来源交付件">
+      <section v-if="artifacts.length && hostSettled && !requirementAnalysis" class="artifact-sources" aria-label="来源交付件">
         <h4>来源交付件</h4>
         <p>以下引用来自关联业务的有效版本，文件下载和归档仍由原业务权限控制。</p>
         <ul
@@ -111,7 +111,7 @@ const sameTask = (a: BusinessViewId | undefined, b: BusinessViewId) => String(a)
 const currentTask = (epoch: number, taskId: BusinessViewId) =>
   !disposed && epoch === generation && sameTask(taskId, props.taskId)
 const viewReadonly = computed(() =>
-  Boolean(props.completed || props.readonly || loading.value || error.value || context.value?.recoverableError ||
+  Boolean(props.completed || props.readonly || (loading.value && !requirementAnalysis.value) || error.value || context.value?.recoverableError ||
     context.value?.executionAllowed === false ||
     !sameTask(context.value?.taskId, props.taskId))
 )
@@ -144,6 +144,10 @@ const ownerActions = computed(() => {
   ])]
 })
 const artifacts = computed(() => context.value?.links.flatMap((row) => row.artifacts) || [])
+const requirementAnalysis = computed(() => context.value?.ownerContext === 'SOL'
+  && context.value?.objectType === 'REQUIREMENT_ANALYSIS')
+// Keep the authorized editor mounted during a read; block both its body and teleported actions.
+const interactionBlocked = computed(() => requirementAnalysis.value && loading.value)
 const snapshotTarget = () => ({
   context: context.value, project: project.value, registration: registration.value,
   objectId: selectedObject.value, reportCandidates: reportCandidates.value
@@ -326,7 +330,7 @@ onBeforeUnmount(() => {
   ++sequence
   ++generation
 })
-defineExpose({ requestLeave, isDirty: () => dirty.value, refresh, loading })
+defineExpose({ requestLeave, isDirty: () => dirty.value, refresh, loading, interactionBlocked })
 </script>
 <style scoped>
 .task-business {

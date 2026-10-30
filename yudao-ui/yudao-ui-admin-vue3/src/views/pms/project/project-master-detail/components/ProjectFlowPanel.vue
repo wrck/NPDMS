@@ -265,7 +265,7 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
          BUSINESS_ACTION_BAR_TARGET teleport 收口到这里；状态操作区（右）：任务=状态推进与资料编辑，
          阶段=按冻结门禁推进（仅所选阶段即项目当前阶段且出口门禁全满足时出现） -->
     <div v-if="selection && showActionBar" class="flow-action-bar">
-      <div v-if="businessBarVisible" ref="businessBarTarget" class="flow-bar-business">
+      <div v-if="businessBarVisible" ref="businessBarTarget" class="flow-bar-business" :inert="selection.kind === 'task' && businessRef?.interactionBlocked">
         <template v-if="selection.kind === 'stage'">
           <el-button :disabled="stageBusinessRef?.isBusy()" @click="refreshBusiness">刷新</el-button>
         </template>

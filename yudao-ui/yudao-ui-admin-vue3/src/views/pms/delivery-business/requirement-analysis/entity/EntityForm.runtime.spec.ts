@@ -31,6 +31,27 @@ beforeEach(() => {
   vi.stubGlobal('sessionStorage', { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key,value), removeItem: (key: string) => values.delete(key) })
 })
 describe('independent requirement entity form', () => {
+  it('reloads authoritative attachment facts when saving without ordinary field edits', async () => {
+    const view = detail(), form = ref<any>()
+    const reload = vi.fn(async () => view)
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: view, reload, ref: form }) }), {}, { 'form-create': renderer })
+    try {
+      await nextTick()
+      expect(await form.value.save()).toBe(true)
+      expect(reload).toHaveBeenCalledOnce()
+      expect(api.save).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+  it('does not report an unchanged form saved when authoritative reload fails', async () => {
+    const form = ref<any>()
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: detail(), reload: async () => { throw new Error('unavailable') }, ref: form }) }), {}, { 'form-create': renderer })
+    try {
+      await nextTick()
+      expect(await form.value.save()).toBe(false)
+      expect(form.value.isSaving()).toBe(false)
+      expect(api.save).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
   it('blocks save and completion guards until every attachment field finishes uploading', async () => {
     const view = detail(), form = ref<any>()
     const rules = JSON.parse(view.form!.formRulesJson)

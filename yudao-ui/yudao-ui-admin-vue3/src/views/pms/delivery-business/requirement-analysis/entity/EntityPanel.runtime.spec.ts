@@ -1,4 +1,4 @@
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, ref } from 'vue'
 import { beforeEach, expect, it, vi } from 'vitest'
 import Panel from './EntityPanel.vue'
 import * as api from '@/api/pms/engineering/requirement-analysis/entity'
@@ -107,4 +107,19 @@ it.each([false, true])('keeps its refresh only outside the unified workspace (em
   const mounted = render(); await flush()
   expect(Boolean(findButton(mounted.root, '刷新'))).toBe(!embedded)
   mounted.app.unmount()
+})
+
+it('exposes an authoritative Owner refresh to the unified workspace', async () => {
+  businessBar.embedded = true
+  const panel = ref<any>()
+  const changed = vi.fn()
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: view(), currentEffective: null, allowedActions: [] })
+  const mounted = mount(defineComponent({ setup: () => () => h(Panel, { project: { id: 7 }, ref: panel, onChanged: changed }) }), {}, { ElSkeleton: passthrough })
+  try {
+    await flush()
+    expect(panel.value.refresh).toBeTypeOf('function')
+    await panel.value.refresh(); await flush()
+    expect(api.workspace).toHaveBeenCalledTimes(2)
+    expect(changed).not.toHaveBeenCalled()
+  } finally { mounted.app.unmount() }
 })

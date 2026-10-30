@@ -188,8 +188,19 @@ const save = async () => {
   if (!editable.value || saving.value || entityId !== props.detail.revision.ref.revisionId || !props.reload) return false
   const patch = { values: cloneValues(allEdits.value) }
   if (!Object.keys(patch.values).length) {
-    message.info('普通字段没有变化')
-    return true
+    // Attachments are committed independently; still read their authoritative facts.
+    saving.value = true
+    try {
+      const authoritative = await props.reload()
+      if (entityId !== props.detail.revision.ref.revisionId || authoritative.revision.ref.revisionId !== entityId) return false
+      message.success('需求分析已重新加载，正文及附件状态已更新')
+      return true
+    } catch {
+      message.warning('需求分析回读失败，尚未确认最新正文及附件状态，请重试。')
+      return false
+    } finally {
+      saving.value = false
+    }
   }
   sessionStorage.setItem(cacheKey, JSON.stringify({ encoding: 'ENTITY_FIELDS', values: patch.values }))
   let payload: ReturnType<typeof businessPatch> & { execution?: typeof execution }
