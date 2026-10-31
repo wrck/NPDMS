@@ -262,6 +262,12 @@ class CommerceAuthorityCandidateMySqlTest {
                 }
 
                 @Override
+                public UserCompanyDepartmentScopeRespDTO lockSubjectRoleScope(
+                        cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
                 public boolean hasScope(Long userId, Long companyId, Long departmentId) {
                     throw new UnsupportedOperationException();
                 }

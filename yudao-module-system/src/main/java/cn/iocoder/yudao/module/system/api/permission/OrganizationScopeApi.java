@@ -18,6 +18,10 @@ public interface OrganizationScopeApi {
     UserCompanyDepartmentScopeRespDTO lockRoleScope(
             cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query);
 
+    /** Internal subject fact, not an actor permission grant. Caller must validate the business approval first. */
+    UserCompanyDepartmentScopeRespDTO lockSubjectRoleScope(
+            cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query);
+
 
     List<UserCompanyDepartmentScopeRespDTO> getActiveScopes(Long userId);
 

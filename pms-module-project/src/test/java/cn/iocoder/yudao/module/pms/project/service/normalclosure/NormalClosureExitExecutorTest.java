@@ -48,7 +48,7 @@ class NormalClosureExitExecutorTest {
         stage.setId(11L); stage.setVersion(4); stage.setProjectId(9L); stage.setTenantId(7L); stage.setStatus("ACTIVE");
         TenantContextHolder.setTenantId(7L);
         login(1L);
-        when(access.lock(eq(9L), eq(3L), eq(15L), any())).thenReturn(new NormalClosureAccess.Context(project, 15L));
+        when(access.lockApproved(any())).thenReturn(new NormalClosureAccess.Context(project, 15L));
         when(access.lockPrimaryServiceManagerUserIds(7L, 9L)).thenReturn(List.of(5L));
         when(checks.evaluateApproved(any())).thenReturn(evaluation());
         when(closureProjects.selectFrozenTemplateRevisionId(any())).thenReturn(51L);

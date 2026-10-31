@@ -117,8 +117,10 @@ public class NormalClosureApplicationService {
         // Read only identity first. Project locks always precede closure application locks.
         var identity = mapper.selectApplicationByProcess(new NormalClosureMapper.ProcessQuery(tenantId, processInstanceId));
         if (identity == null || !Objects.equals(applicationId, identity.getId())) throw failure("CLOSURE_APPLICATION_NOT_FOUND");
-        var context = contexts.lock(tenantId, identity.getProjectId(), identity.getProjectVersion(),
-                identity.getTreeVersion(), identity.getApplicantUserId());
+        var context = "APPROVE".equals(result.status())
+                ? contexts.lockApprovedApplicant(approvedExitCommand(identity))
+                : contexts.lock(tenantId, identity.getProjectId(), identity.getProjectVersion(),
+                        identity.getTreeVersion(), identity.getApplicantUserId());
         var query = new NormalClosureMapper.ApplicationQuery(tenantId, identity.getProjectId(), applicationId);
         var application = mapper.selectApplicationForUpdate(query);
         if (application == null) throw failure("CLOSURE_APPLICATION_NOT_FOUND");
@@ -154,6 +156,18 @@ public class NormalClosureApplicationService {
             Long expectedProjectVersion, Long expectedTreeVersion, Long treeVersion) {
         return checks.evaluateLocked(new ProjectClosureCheckApi.ClosureCheckCommand(actor.tenantId(), projectId,
                 expectedProjectVersion, treeVersion, actor.userId(), actor.correlationId()));
+    }
+
+    /** Read identity only here; PROJ locks the project before ACC revalidates all of these facts. */
+    private ProjectClosureExitApi.ClosureExitCommand approvedExitCommand(NormalClosureApplicationDO application) {
+        var original = mapper.selectSnapshot(new NormalClosureMapper.SnapshotQuery(application.getTenantId(),
+                application.getProjectId(), application.getSnapshotId()));
+        if (original == null) throw failure("CLOSURE_APPROVED_FACTS_STALE_CANCEL_AND_REAPPLY");
+        return new ProjectClosureExitApi.ClosureExitCommand(application.getTenantId(), application.getProjectId(),
+                application.getProjectVersion(), application.getTreeVersion(), application.getApplicantUserId(),
+                "BPM_NORMAL_CLOSURE:" + application.getProcessInstanceId(), application.getId(), application.getSnapshotId(),
+                application.getReviewerUserId(), application.getFromStage(), application.getServiceManagerUserId(),
+                original.getSourceDigest(), application.getProcessInstanceId(), application.getVersion());
     }
 
     private Long requireServiceManager(Long tenantId, Long projectId) {

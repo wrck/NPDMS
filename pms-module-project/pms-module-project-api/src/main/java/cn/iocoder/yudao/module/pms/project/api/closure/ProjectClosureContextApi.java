@@ -16,6 +16,9 @@ public interface ProjectClosureContextApi {
     ClosureContext lock(Long tenantId, Long projectId, Long expectedProjectVersion,
                         Long expectedTreeVersion, Long actorId);
 
+    /** Approved BPM callback only: authenticate reviewer, revalidate applicant without impersonation. */
+    ClosureContext lockApprovedApplicant(ProjectClosureExitApi.ClosureExitCommand command);
+
     /** 锁定项目当前主责服务经理集合（FOR UPDATE），供闭环申请的服务经理核验。 */
     List<Long> lockPrimaryServiceManagerUserIds(Long tenantId, Long projectId);
 

@@ -23,6 +23,8 @@ public class NormalClosureAccess implements cn.iocoder.yudao.module.pms.project.
     private final PermissionApi permissions;
     private final NormalClosurePolicyResolver policies;
     private final ProjectManagementQualificationApi managementAccess;
+    @jakarta.annotation.Resource
+    private org.springframework.beans.factory.ObjectProvider<NormalClosureApprovedAccess> approvedAccess;
     public record Actor(Long tenantId, Long userId, String correlationId) {}
     public record Context(ProjectMasterDO project, Long treeVersion) {}
 
@@ -102,6 +104,16 @@ public class NormalClosureAccess implements cn.iocoder.yudao.module.pms.project.
         return closureProjects.selectPrimaryServiceManagersForUpdate(
                         new cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper.ProjectQuery(tenantId, projectId))
                 .stream().map(cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO::getUserId).toList();
+    }
+
+    @Override
+    public ClosureContext lockApprovedApplicant(
+            cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand command) {
+        return toClosureContext(lockApproved(command));
+    }
+
+    public Context lockApproved(cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand command) {
+        return approvedAccess.getObject().lock(command);
     }
 
     private ClosureContext toClosureContext(Context context) {

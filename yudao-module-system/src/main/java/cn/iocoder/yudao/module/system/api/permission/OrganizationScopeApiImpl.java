@@ -71,11 +71,28 @@ public class OrganizationScopeApiImpl implements OrganizationScopeApi {
 
     private static void validateRoleScope(
             cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query) {
+        validateSubjectRoleScope(query);
+        if (!Objects.equals(query.userId(), cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId()))
+            throw exception(ORGANIZATION_SCOPE_INVALID_ARGUMENT);
+    }
+
+    @Override
+    @cn.iocoder.yudao.framework.datapermission.core.annotation.DataPermission(enable = false)
+    @org.springframework.transaction.annotation.Transactional(
+            propagation = org.springframework.transaction.annotation.Propagation.MANDATORY, rollbackFor = Exception.class)
+    public UserCompanyDepartmentScopeRespDTO lockSubjectRoleScope(
+            cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query) {
+        validateSubjectRoleScope(query);
+        return BeanUtils.toBean(scopeMapper.selectRoleScopeForUpdate(query), UserCompanyDepartmentScopeRespDTO.class);
+    }
+
+    private static void validateSubjectRoleScope(
+            cn.iocoder.yudao.module.system.api.permission.dto.OrganizationRoleScopeQuery query) {
         if (query == null || query.tenantId() == null
                 || !Objects.equals(query.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
                 || cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.isIgnore()
                 || query.userId() == null || query.userId() <= 0
-                || !Objects.equals(query.userId(), cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId())
+                || cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId() == null
                 || query.companyId() == null || query.companyId() <= 0
                 || query.departmentId() != null && query.departmentId() <= 0
                 || query.requiredRoleCodes().isEmpty()

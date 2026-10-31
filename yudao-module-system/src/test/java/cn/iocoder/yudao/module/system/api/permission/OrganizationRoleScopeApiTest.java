@@ -52,4 +52,21 @@ class OrganizationRoleScopeApiTest {
   assertThrows(ServiceException.class,()->proxy.inspectRoleScope(new OrganizationRoleScopeQuery(1L,9L,null,21L,Set.of("SERVICE_MANAGER"))));
   verifyNoInteractions(mapper);
  }
+ @Test void internalSubjectReadLocksApplicantWhileOrdinaryEndpointsRemainSelfOnly(){
+  var applicant=new OrganizationRoleScopeQuery(1L,10L,11L,21L,Set.of("SERVICE_MANAGER"));
+  when(mapper.selectRoleScopeForUpdate(applicant)).thenAnswer(i->{assertFalse(DataPermissionContextHolder.get().enable());return new UserCompanyDepartmentScopeDO();});
+  assertNotNull(proxy.lockSubjectRoleScope(applicant));
+  assertEquals(9L,SecurityFrameworkUtils.getLoginUserId());assertNull(DataPermissionContextHolder.get());
+  assertThrows(ServiceException.class,()->proxy.inspectRoleScope(applicant));
+  assertThrows(ServiceException.class,()->proxy.lockRoleScope(applicant));
+  verify(mapper).selectRoleScopeForUpdate(applicant);
+  verify(mapper,never()).selectRoleScope(any());
+ }
+ @Test void internalSubjectReadRejectsNoPrincipalIgnoredTenantAndForeignTenant(){
+  SecurityContextHolder.clearContext();assertThrows(ServiceException.class,()->proxy.lockSubjectRoleScope(query));
+  SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(9L).setTenantId(1L),new MockHttpServletRequest());
+  TenantContextHolder.setIgnore(true);assertThrows(ServiceException.class,()->proxy.lockSubjectRoleScope(query));
+  TenantContextHolder.setIgnore(false);TenantContextHolder.setTenantId(2L);assertThrows(ServiceException.class,()->proxy.lockSubjectRoleScope(query));
+  verifyNoInteractions(mapper);
+ }
 }

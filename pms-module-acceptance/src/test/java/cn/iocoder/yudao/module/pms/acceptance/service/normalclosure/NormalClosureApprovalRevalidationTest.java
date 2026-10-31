@@ -82,4 +82,61 @@ class NormalClosureApprovalRevalidationTest {
         assertThrows(RuntimeException.class,()->guard.require(query));
     }
     private void login(Long id){var login=new LoginUser();login.setId(id);login.setTenantId(7L);SecurityFrameworkUtils.setLoginUser(login,new MockHttpServletRequest());}
+
+    @Test void crossModuleApplicantProofRetainsOriginalReviewerAndRejectsApplicantSubstitution() {
+        var proof = new cn.iocoder.yudao.module.pms.acceptance.api.normalclosure.NormalClosureApprovalFactApi.Query(
+                7L,9L,101L,"process-1",21L,11L,3L,1L);
+        assertEquals("digest-1", guard.requireApprovedApplicant(proof).sourceDigest());
+        assertEquals(11L, SecurityFrameworkUtils.getLoginUserId());
+        login(21L);
+        assertThrows(RuntimeException.class, () -> guard.requireApprovedApplicant(proof));
+        login(11L); application.setApplicantUserId(99L);
+        assertThrows(RuntimeException.class, () -> guard.requireApprovedApplicant(proof));
+    }
+
+    @Test void crossModuleProofRejectsOtherProcessAndInvalidSnapshotOrBpmResult() {
+        var proof = new cn.iocoder.yudao.module.pms.acceptance.api.normalclosure.NormalClosureApprovalFactApi.Query(
+                7L,9L,101L,"process-1",21L,11L,3L,1L);
+        application.setProcessInstanceId("other");
+        assertThrows(RuntimeException.class, () -> guard.requireApprovedApplicant(proof));
+        application.setProcessInstanceId("process-1"); snapshot.setPassed(false);
+        assertThrows(RuntimeException.class, () -> guard.requireApprovedApplicant(proof));
+        snapshot.setPassed(true);
+        when(bpm.inspectResult(7L,"process-1")).thenReturn(new BpmNormalClosureApi.Result("process-1","definition-3",application.getBusinessKey(),"RUNNING",List.of()));
+        assertThrows(RuntimeException.class, () -> guard.requireApprovedApplicant(proof));
+    }
+
+    @Test void callbackUsesApprovedApplicantPathAndKeepsBothOriginalIdentitiesThroughExit() {
+        var contexts = mock(cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureContextApi.class);
+        var exits = mock(cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.class);
+        var commands = mock(cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.class);
+        var service = new NormalClosureApplicationService(contexts,
+                mock(cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureCheckApi.class), exits,mapper,commands,bpm,
+                mock(cn.iocoder.yudao.module.system.api.permission.ExplicitPermissionApi.class),
+                mock(cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.class));
+        when(mapper.selectApplicationByProcess(any())).thenReturn(application);
+        when(contexts.lockApprovedApplicant(command)).thenAnswer(call -> {
+            guard.requireApprovedApplicant(new cn.iocoder.yudao.module.pms.acceptance.api.normalclosure.NormalClosureApprovalFactApi.Query(
+                    7L,9L,101L,"process-1",21L,11L,3L,1L));
+            return new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureContextApi.ClosureContext(
+                    9L,7L,3L,"ACTIVE","S6",21L,9L,1L,"{}",1L,1L,1L,1);
+        });
+        when(commands.execute(any(),any(),any(),any(),any())).thenAnswer(call ->
+                new cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.ExecutionResult<>(
+                        cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.Decision.NEW,
+                        ((java.util.function.Supplier<?>)call.getArgument(3)).get()));
+        when(mapper.insertReview(any())).thenReturn(1);
+        when(mapper.decideApplicationIfMatch(any())).thenReturn(1);
+        service.onBpmResult(7L,"process-1");
+        verify(contexts).lockApprovedApplicant(command);
+        verify(contexts,never()).lock(any(),any(),any(),any(),any());
+        verify(exits).executeApprovedExit(command);
+        assertEquals(11L,SecurityFrameworkUtils.getLoginUserId());
+        clearInvocations(mapper,exits,commands);
+        login(21L);
+        assertThrows(RuntimeException.class,()->service.onBpmResult(7L,"process-1"));
+        verifyNoInteractions(exits,commands);
+        verify(mapper,never()).insertReview(any());
+        verify(mapper,never()).decideApplicationIfMatch(any());
+    }
 }

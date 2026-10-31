@@ -39,8 +39,7 @@ public class NormalClosureExitExecutor implements ProjectClosureExitApi {
         if (!Objects.equals(command.tenantId(), TenantContextHolder.getTenantId()) || factActorId == null
                 || !Objects.equals(factActorId, command.expectedReviewerUserId()))
             throw closureFailure("CLOSURE_REVIEWER_CONTEXT_REQUIRED");
-        var context = access.lock(command.projectId(), command.expectedProjectVersion(),
-                command.expectedTreeVersion(), new NormalClosureAccess.Actor(command.tenantId(), command.actorId(), command.correlationId()));
+        var context = access.lockApproved(command);
         var project = context.project();
         if (!Objects.equals(command.expectedFromStage(), project.getCurrentStage()))
             throw closureFailure("CLOSURE_SOURCE_STAGE_CHANGED");

@@ -160,12 +160,25 @@ public class BpmNormalClosureService implements BpmNormalClosureApi {
         }
         // A matching key alone must not admit a differently authored or auto-approving workflow.
         try (InputStream deployed = repositoryService.getResourceAsStream(definition.getDeploymentId(), definition.getResourceName())) {
-            if (!Arrays.equals(resourceBytes(), deployed.readAllBytes())) {
+            if (!sameDefinition(resourceBytes(), deployed.readAllBytes())) {
                 throw new IllegalStateException("NORMAL definition is not the approved packaged manual-review template");
             }
         } catch (IOException ex) {
             throw new IllegalStateException("Cannot verify NORMAL deployed resource", ex);
         }
+    }
+
+    static boolean sameDefinition(byte[] expected, byte[] actual) {
+        return Arrays.equals(normalizeLineEndings(expected), normalizeLineEndings(actual));
+    }
+
+    private static byte[] normalizeLineEndings(byte[] source) {
+        var normalized = new java.io.ByteArrayOutputStream(source.length);
+        for (int i = 0; i < source.length; i++) {
+            if (source[i] == '\r' && i + 1 < source.length && source[i + 1] == '\n') continue;
+            normalized.write(source[i]);
+        }
+        return normalized.toByteArray();
     }
 
     static byte[] resourceBytes() {

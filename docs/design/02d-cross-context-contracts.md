@@ -66,7 +66,9 @@
 | `ProjectParticipantFactApi` | PM-08、ACC-02 | Project | Acceptance | 项目参与人时态事实只读；ACC 满意度任务指派据此判定对象为当前参与人，不直接访问 PROJ 成员表。 |
 | `ProjectAcceptanceFactApi` | CLO-01 | Project | Acceptance | 项目终验已通过/已归档事实只读；PROJ 旧闭环链据此校验终验，不直接访问 ACC 验收表。 |
 | `ProjectDeliverableInitializationApplicationService` | PM-01、PM-03 | Acceptance | Project | ACC 交付件初始化同步契约（ADR-0032 限定例外）；PROJ 模板激活时调用，ACC 加入调用方同一事务。 |
-| `ProjectClosureContextApi` | CLO-01、CLO-02 | Project | Acceptance | 闭环项目上下文与锁（root 先锁→project，版本/树版本/PM 重验）及主责服务经理集合锁。 |
+| `ProjectClosureContextApi` | CLO-01、CLO-02 | Project | Acceptance | 闭环项目上下文与锁（root 先锁→project，版本/树版本/管理资格重验）及主责服务经理集合锁。`lockApprovedApplicant`仅用于审批通过回调：保持当前认证审核人，先通过ACC绑定申请与BPM证据，再按申请人重验管理范围及项目成员或区域服务经理资格；普通操作仍须本人校验。 |
+| `NormalClosureApprovalFactApi` | CLO-02 | Acceptance | Project | 事务内按租户、项目、申请、流程及双方身份锁定原申请，核对冻结候选、两项真实审批和通过快照，返回快照/版本/阶段/服务经理/摘要事实。当前认证人必须为原材料审核人，不授予申请人或审核人额外权限。锁顺序root→project→application；失败整体回滚。 |
+| `OrganizationScopeApi.lockSubjectRoleScope` | CLO-02 | SYSTEM | Project | 内部业务主体资格事实锁定读，复用既有当前有效账号/角色/同一公司部门授权行查询。调用方须先证明业务审批及目标主体；SYSTEM核对受信租户和当前认证人存在，不切换登录身份、不返回操作授权，不暴露HTTP入口。既有本人查询接口不放宽。 |
 | `ProjectClosureCheckApi` | CLO-01 | Project | Acceptance | 闭环就绪评估（阶段/门禁/任务/业务事实/子孙守卫）与只读运行图概览；结果为证据而非完成。 |
 | `ProjectClosureExitApi` | CLO-02 | Project | Acceptance | CLO 审批通过后 PROJ 唯一终态 Writer 原子执行：复检+终态阶段 DONE+NORMAL_CLOSED+ProjectExitRecord；两域同事务分别写各自对象。 |
 | `ProjectStagePlanApi` | PLN-01～PLN-04 | Project | SOL（engineering 工期倒排） | 阶段计划事实只读与计划起止日期受控写入（仅日期字段，不改状态与版本）。 |

@@ -64,6 +64,18 @@ import static org.mockito.Mockito.*;
  * No runtime/history/task/approval result is mocked; production createProcessDefinition performs registration.
  */
 class BpmNormalClosureFlowableTest {
+    @Test
+    void definitionComparisonAcceptsLineEndingsButRejectsWorkflowChanges() {
+        byte[] packaged = BpmNormalClosureService.resourceBytes();
+        String original = new String(packaged, java.nio.charset.StandardCharsets.UTF_8);
+        byte[] lf = original.replace("\r\n", "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] crlf = original.replace("\r\n", "\n").replace("\n", "\r\n")
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(BpmNormalClosureService.sameDefinition(packaged, lf));
+        assertTrue(BpmNormalClosureService.sameDefinition(packaged, crlf));
+        assertFalse(BpmNormalClosureService.sameDefinition(packaged,
+                original.replace("serviceManagerReview", "otherReview").getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    }
     private ProcessEngine engine;
     private GenericApplicationContext context;
     private TransactionTemplate tx;
@@ -148,7 +160,10 @@ class BpmNormalClosureFlowableTest {
         wire(tasks, "taskService", engine.getTaskService(), "historyService", engine.getHistoryService(),
                 "runtimeService", engine.getRuntimeService(), "managementService", engine.getManagementService(),
                 "processInstanceService", instances, "bpmProcessDefinitionService", definitions,
-                "modelService", models, "commentService", comments, "messageService", messages, "adminUserApi", users);
+                "modelService", models, "commentService", comments, "messageService", messages, "adminUserApi", users,
+                "solutionReviewRoleTasks", new cn.iocoder.yudao.module.bpm.service.solutionreview.SolutionReviewRoleTasks(
+                        mock(cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi.class), permissions,
+                        engine.getRuntimeService(), engine.getTaskService(), engine.getHistoryService()));
         ApplicationEventPublisher publisher = event -> {
             if (event instanceof BpmProcessInstanceStatusEvent statusEvent) {
                 bridge.onApplicationEvent(statusEvent);
