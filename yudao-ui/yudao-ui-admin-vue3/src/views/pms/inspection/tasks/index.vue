@@ -203,7 +203,7 @@
         </el-form-item>
         <el-form-item prop="deviceIds" class="device-selection-field" style="display: block">
           <ProjectDeviceSelection
-            :model-value="devices" :project-id="form.projectId"
+            :model-value="devices" :project-id="form.projectId" batch-select
             :disabled="submitting || !!pendingCreate" :project-loading="projectInformationLoading"
             :project-error="projectInformationError" empty-text="请添加本次巡检设备"
             @update:model-value="updateDevices" @busy="devicesLoading = $event" />
