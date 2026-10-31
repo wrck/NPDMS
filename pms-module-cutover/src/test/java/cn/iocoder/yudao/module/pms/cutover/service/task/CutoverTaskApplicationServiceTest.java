@@ -52,6 +52,21 @@ import static org.mockito.Mockito.when;
 class CutoverTaskApplicationServiceTest {
 
     @Test
+    void creationPreservesHistoricalProjectNameWithLeadingSpace() {
+        var fixture = fixture();
+        var projects = (CutoverProjectContextPort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service(), "projectContextPort");
+        var fact = CutoverProjectContextPort.ProjectContextFact.builder().tenantId(1L).projectId(100L)
+                .projectVersion(3).projectCode("PROJ-100").projectName(" 历史项目")
+                .customerId(200L).customerCode("CUS-200").customerName("示例客户")
+                .departmentId(300L).departmentCode("OFFICE-300").departmentName("一号办事处")
+                .projectScopeVersion(7L).majorProjectLevel("公司级").build();
+        when(projects.inspect(any())).thenReturn(fact);
+        when(projects.lockAndRevalidate(any())).thenReturn(fact);
+        fixture.service().create(createCommand("historical-project-name", " 历史项目"));
+        assertEquals(" 历史项目", fixture.task().get().getProjectName());
+    }
+
+    @Test
     void knownProjectDraftSaveDoesNotRediscoverProjectsFromSerials() {
         var fixture = fixture();
         var created = fixture.service().create(createCommand("known-project-source-read"));
@@ -651,6 +666,10 @@ class CutoverTaskApplicationServiceTest {
     }
 
     private static CreateCutoverTaskCommand createCommand(String key) {
+        return createCommand(key, "核心网割接项目");
+    }
+
+    private static CreateCutoverTaskCommand createCommand(String key, String projectName) {
         return new CreateCutoverTaskCommand(1L, 8L, key, "corr-" + key, "SELF_CREATED", 100L,
                 List.of("SN-400"), "CUTOVER-V1", null, "计划内设备割接", "配置变更", "普通双机",
                 LocalDateTime.of(2026, 9, 1, 1, 0), null, null, null,
@@ -660,7 +679,7 @@ class CutoverTaskApplicationServiceTest {
                                 .projectId(100L)
                                 .projectVersion(3)
                                 .projectCode("PROJ-100")
-                                .projectName("核心网割接项目")
+                                .projectName(projectName)
                                 .customerId(200L)
                                 .customerCode("CUS-200")
                                 .customerName("示例客户")

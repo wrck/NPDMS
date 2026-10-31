@@ -256,7 +256,6 @@ public class CutoverTaskApplicationService {
         row.setTaskNo("CUT-" + taskId);
         boolean generatedName = "SELF_CREATED".equals(command.intakeSourceType())
                 || "PROJECT_EVENT".equals(command.intakeSourceType()) && command.taskName() == null;
-        if (generatedName) requireText(locked.project().projectName(), "项目名称", 255);
         row.setTaskName(generatedName ? locked.project().projectName() + "-割接-" + row.getTaskNo() : command.taskName());
         row.setBackground(command.background());
         row.setCutoverType(command.cutoverType());
@@ -607,7 +606,8 @@ public class CutoverTaskApplicationService {
                         && fact.projectVersion() >= 0 && projectScopeVersion == fact.projectScopeVersion()
                         && positive(fact.departmentId())
                         && normalizedText(fact.projectCode(), 64)
-                        && normalizedText(fact.departmentCode(), 64) && normalizedText(fact.projectName(), 255)
+                        && normalizedText(fact.departmentCode(), 64) && fact.projectName() != null
+                        && !fact.projectName().isBlank() && fact.projectName().length() <= 255
                         && normalizedText(fact.departmentName(), 255),
                 PROJ_PROVIDER_UNAVAILABLE, "项目上下文事实不完整");
     }
