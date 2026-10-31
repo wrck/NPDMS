@@ -10,6 +10,13 @@ import java.util.List;
 
 @Mapper
 public interface InspectionTaskMapper extends BaseMapperX<InspectionTaskDO> {
+    default List<Long> selectWorkbenchProjectIds(InspectionWorkbenchProjectsQuery query) {
+        return selectList(new LambdaQueryWrapperX<InspectionTaskDO>()
+                .select(InspectionTaskDO::getProjectId)
+                .eq(InspectionTaskDO::getTenantId, query.tenantId())
+                .groupBy(InspectionTaskDO::getProjectId))
+                .stream().map(InspectionTaskDO::getProjectId).toList();
+    }
     InspectionTaskDO selectForUpdate(@Param("query") InspectionTaskRows query);
     List<InspectionTaskDO> selectPageList(@Param("query") InspectionTaskPageQuery query);
     long selectPageCount(@Param("query") InspectionTaskPageQuery query);

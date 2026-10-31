@@ -1,0 +1,115 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "割接交付":
+        - generic: 割接交付
+      - menuitem "巡检服务" [expanded]:
+        - generic: 巡检服务
+        - menu:
+          - menuitem "巡检工作台":
+            - generic: 巡检工作台
+          - menuitem "巡检任务":
+            - generic: 巡检任务
+  - menuitem "工作流程":
+    - generic: 工作流程
+- navigation "面包屑":
+  - link "项目交付":
+    - text: 项目交付
+  - text: /
+  - link "巡检服务":
+    - text: 巡检服务
+  - text: /
+  - link "巡检工作台":
+    - text: 巡检工作台
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button "王薇":
+  - generic: 王薇
+- button "首页":
+  - text: 首页
+- button "巡检工作台":
+  - text: 巡检工作台
+- button:
+- main:
+  - heading "巡检工作台" [level=1]
+  - button "任务列表":
+    - generic: 任务列表
+  - button "刷新":
+    - text: 刷新
+  - region "巡检任务状态统计":
+    - button "待办巡检任务：0，待准备、待预检，查看任务列表":
+      - strong: "0"
+      - generic: 待办巡检任务
+      - generic: 待准备、待预检
+    - button "已完成巡检：0，已闭环、已归档，查看任务列表":
+      - strong: "0"
+      - generic: 已完成巡检
+      - generic: 已闭环、已归档
+    - button "执行中：0，巡检执行、报告生成与标注，查看任务列表":
+      - strong: "0"
+      - generic: 执行中
+      - generic: 巡检执行、报告生成与标注
+    - button "待闭环：0，问题待办跟踪中，查看任务列表":
+      - strong: "0"
+      - generic: 待闭环
+      - generic: 问题待办跟踪中
+  - heading "巡检任务待办" [level=2]:
+    - text: 巡检任务待办
+  - button "查看全部":
+    - generic: 查看全部
+  - table:
+    - rowgroup:
+      - row "编号 任务名称 项目名称 任务负责人 客户 创建时间 当前状态 操作":
+        - columnheader "编号":
+          - generic: 编号
+        - columnheader "任务名称":
+          - generic: 任务名称
+        - columnheader "项目名称":
+          - generic: 项目名称
+        - columnheader "任务负责人":
+          - generic: 任务负责人
+        - columnheader "客户":
+          - generic: 客户
+        - columnheader "创建时间":
+          - generic: 创建时间
+        - columnheader "当前状态":
+          - generic: 当前状态
+        - columnheader "操作":
+          - generic: 操作
+  - table:
+    - rowgroup
+  - generic: 暂无待办巡检任务
+  - heading "自建巡检任务" [level=2]:
+    - text: 自建巡检任务
+  - table:
+    - rowgroup:
+      - row "编号 任务名称 项目名称 创建人 创建时间 当前状态 操作":
+        - columnheader "编号":
+          - generic: 编号
+        - columnheader "任务名称":
+          - generic: 任务名称
+        - columnheader "项目名称":
+          - generic: 项目名称
+        - columnheader "创建人":
+          - generic: 创建人
+        - columnheader "创建时间":
+          - generic: 创建时间
+        - columnheader "当前状态":
+          - generic: 当前状态
+        - columnheader "操作":
+          - generic: 操作
+  - table:
+    - rowgroup
+  - generic: 暂无本人创建的巡检任务
+- generic: Copyright ©2026 项目实施交付管理平台

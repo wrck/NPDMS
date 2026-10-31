@@ -13,6 +13,7 @@ import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.*;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.InspectionStateCount;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.ServiceIssueSummary;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.InspectionTaskPageQuery;
+import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.InspectionWorkbenchProjectsQuery;
 import cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.query.ServiceIssueWorkbenchQuery;
 import cn.iocoder.yudao.module.pms.service.service.inspectionrule.InspectionRuleQueryService;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
@@ -234,6 +235,8 @@ class InspectionTaskQueryServiceTest {
         when(permissions.hasAnyPermissions(ACTOR_ID, TASK_QUERY)).thenReturn(true);
         when(permissions.hasAnyPermissions(ACTOR_ID, ISSUE_QUERY)).thenReturn(true);
         stubQueryScope();
+        when(tasks.selectWorkbenchProjectIds(new InspectionWorkbenchProjectsQuery(TENANT_ID)))
+                .thenReturn(List.copyOf(VISIBLE));
         var counts = List.of(new InspectionStateCount("PREPARING", 9), new InspectionStateCount("ARCHIVED", 4));
         when(tasks.selectStateCounts(any(InspectionTaskPageQuery.class))).thenAnswer(call -> {
             InspectionTaskPageQuery query = call.getArgument(0);
@@ -272,6 +275,7 @@ class InspectionTaskQueryServiceTest {
         verify(access, never()).visibleProjects(any());
         verifyNoMoreInteractions(access);
         verify(tasks).selectStateCounts(any(InspectionTaskPageQuery.class));
+        verify(tasks).selectWorkbenchProjectIds(new InspectionWorkbenchProjectsQuery(TENANT_ID));
         verify(tasks, times(2)).selectPageList(any(InspectionTaskPageQuery.class));
         verifyNoMoreInteractions(tasks);
         verify(users, times(2)).getUserMap(Set.of(OWNER_ID, CREATOR_ID));
@@ -286,6 +290,8 @@ class InspectionTaskQueryServiceTest {
         when(permissions.hasAnyPermissions(ACTOR_ID, TASK_QUERY)).thenReturn(false);
         when(permissions.hasAnyPermissions(ACTOR_ID, ISSUE_QUERY)).thenReturn(true);
         when(access.visibleProjects(CONTEXT)).thenReturn(VISIBLE);
+        when(tasks.selectWorkbenchProjectIds(new InspectionWorkbenchProjectsQuery(TENANT_ID)))
+                .thenReturn(List.copyOf(VISIBLE));
         when(issues.selectWorkbench(new ServiceIssueWorkbenchQuery(TENANT_ID, ACTOR_ID, VISIBLE, 20)))
                 .thenReturn(List.of(issue()));
 
@@ -298,7 +304,9 @@ class InspectionTaskQueryServiceTest {
         assertEquals("XJ-31", result.myIssues().getFirst().getTaskCode());
         verify(access).visibleProjects(CONTEXT);
         verifyNoMoreInteractions(access);
-        verifyNoInteractions(tasks, projectContexts, users);
+        verify(tasks).selectWorkbenchProjectIds(new InspectionWorkbenchProjectsQuery(TENANT_ID));
+        verifyNoMoreInteractions(tasks);
+        verifyNoInteractions(projectContexts, users);
         verify(issues).selectWorkbench(new ServiceIssueWorkbenchQuery(TENANT_ID, ACTOR_ID, VISIBLE, 20));
         verifyNoPerProjectChecks();
     }
@@ -309,6 +317,85 @@ class InspectionTaskQueryServiceTest {
 
         assertEquals(InspectionException.Reason.FORBIDDEN, failure.getReason());
         verifyNoInteractions(access, tasks, issues, users, projectContexts);
+    }
+
+    @Test
+    void workbenchBoundsLargeAuthorizationScopesWithoutGrantingCandidateProjects() {
+        when(permissions.hasAnyPermissions(ACTOR_ID, TASK_QUERY)).thenReturn(true);
+        when(permissions.hasAnyPermissions(ACTOR_ID, ISSUE_QUERY)).thenReturn(true);
+        var largeScope = java.util.stream.LongStream.rangeClosed(1, 60000).boxed().collect(java.util.stream.Collectors.toSet());
+        when(access.queryScope(CONTEXT)).thenReturn(new ProjectBusinessContextApi.AccessScope(largeScope, largeScope));
+        when(tasks.selectWorkbenchProjectIds(new InspectionWorkbenchProjectsQuery(TENANT_ID)))
+                .thenReturn(List.of(101L, 102L, 90000L));
+        when(tasks.selectStateCounts(any())).thenAnswer(call -> {
+            InspectionTaskPageQuery query = call.getArgument(0);
+            assertEquals(Set.of(101L, 102L), query.getVisibleProjectIds());
+            assertEquals(Set.of(101L, 102L), query.getManagedProjectIds());
+            return List.of(new InspectionStateCount("PREPARING", 2));
+        });
+        when(tasks.selectPageList(any())).thenAnswer(call -> {
+            InspectionTaskPageQuery query = call.getArgument(0);
+            assertEquals(Set.of(101L, 102L), query.getVisibleProjectIds());
+            assertEquals(Set.of(101L, 102L), query.getManagedProjectIds());
+            return List.of();
+        });
+        when(issues.selectWorkbench(new ServiceIssueWorkbenchQuery(TENANT_ID, ACTOR_ID, Set.of(101L, 102L), 20)))
+                .thenReturn(List.of(issue()));
+
+        var result = service.workbench(CONTEXT);
+
+        assertEquals(2, result.taskCounts().getFirst().count());
+        assertEquals(61L, result.myIssues().getFirst().getId());
+        assertEquals(60000, largeScope.size(), "Narrowing must not mutate shared authorization facts");
+        verify(tasks, times(2)).selectPageList(any());
+        verify(access).queryScope(CONTEXT);
+        verifyNoPerProjectChecks();
+    }
+
+    @Test
+    void workbenchWithNoInspectionProjectsSkipsAllLargeScopeSql() {
+        when(permissions.hasAnyPermissions(ACTOR_ID, TASK_QUERY)).thenReturn(true);
+        stubQueryScope();
+        when(tasks.selectWorkbenchProjectIds(new InspectionWorkbenchProjectsQuery(TENANT_ID))).thenReturn(List.of());
+
+        var result = service.workbench(CONTEXT);
+
+        assertTrue(result.taskCounts().isEmpty());
+        assertTrue(result.pendingTasks().isEmpty());
+        assertTrue(result.createdTasks().isEmpty());
+        assertTrue(result.myIssues().isEmpty());
+        verify(tasks).selectWorkbenchProjectIds(new InspectionWorkbenchProjectsQuery(TENANT_ID));
+        verifyNoMoreInteractions(tasks);
+        verifyNoInteractions(issues, users);
+    }
+
+    @Test
+    void candidatesOutsideAuthorizationNeverReachWorkbenchQueries() {
+        when(permissions.hasAnyPermissions(ACTOR_ID, TASK_QUERY)).thenReturn(true);
+        when(permissions.hasAnyPermissions(ACTOR_ID, ISSUE_QUERY)).thenReturn(true);
+        stubQueryScope();
+        when(tasks.selectWorkbenchProjectIds(new InspectionWorkbenchProjectsQuery(TENANT_ID))).thenReturn(List.of(999L));
+
+        var result = service.workbench(CONTEXT);
+
+        assertTrue(result.taskCounts().isEmpty());
+        assertTrue(result.myIssues().isEmpty());
+        verify(tasks).selectWorkbenchProjectIds(new InspectionWorkbenchProjectsQuery(TENANT_ID));
+        verifyNoMoreInteractions(tasks);
+        verifyNoInteractions(issues, users);
+    }
+
+    @Test
+    void emptyAuthorizationCannotBeExpandedByCandidateProjects() {
+        when(permissions.hasAnyPermissions(ACTOR_ID, TASK_QUERY)).thenReturn(false);
+        when(permissions.hasAnyPermissions(ACTOR_ID, ISSUE_QUERY)).thenReturn(true);
+        when(access.visibleProjects(CONTEXT)).thenReturn(Set.of());
+        when(tasks.selectWorkbenchProjectIds(new InspectionWorkbenchProjectsQuery(TENANT_ID))).thenReturn(List.of(101L));
+
+        assertTrue(service.workbench(CONTEXT).myIssues().isEmpty());
+
+        verifyNoInteractions(issues, users);
+        verify(access, never()).queryScope(any());
     }
 
     @Test

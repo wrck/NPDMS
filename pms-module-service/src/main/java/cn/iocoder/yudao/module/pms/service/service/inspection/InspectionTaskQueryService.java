@@ -84,9 +84,15 @@ public class InspectionTaskQueryService {
         if (!taskQuery && !issueQuery) throw new InspectionException(InspectionException.Reason.FORBIDDEN, "没有巡检工作台查询权限");
         var scope = taskQuery ? access.queryScope(context) : null;
         var visible = taskQuery ? scope.visibleProjectIds() : access.visibleProjects(context);
+        // Bound SQL parameters by projects with inspection data, not the tenant's entire project catalog.
+        // Issue rows also join non-deleted inspection tasks, so the same intersection applies to both sections.
+        var workbenchProjects = tasks.selectWorkbenchProjectIds(new InspectionWorkbenchProjectsQuery(context.tenantId()));
+        visible = workbenchProjects.stream().filter(visible::contains).collect(Collectors.toSet());
+        if (visible.isEmpty()) return new InspectionViews.Workbench(List.of(), List.of(), List.of(), List.of());
         var query = new InspectionTaskPageQuery();
         query.setTenantId(context.tenantId()); query.setActorId(context.actorId()); query.setVisibleProjectIds(visible);
-        query.setManagedProjectIds(taskQuery ? scope.serviceManagedProjectIds() : Set.of());
+        query.setManagedProjectIds(taskQuery ? scope.serviceManagedProjectIds().stream()
+                .filter(visible::contains).collect(Collectors.toSet()) : Set.of());
         query.setPageNo(1); query.setPageSize(8);
         var counts = taskQuery ? tasks.selectStateCounts(query) : List.<cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.InspectionStateCount>of();
         query.setWorkbenchSection(InspectionTaskPageQuery.WorkbenchSection.PENDING);

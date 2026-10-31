@@ -1,0 +1,26 @@
+{
+  "identity": {
+    "db": "npdms",
+    "uuid": "1c105560-cd38-11f1-babc-923e05e6f067"
+  },
+  "results": [
+    {
+      "round": 1,
+      "candidateProjects": 9,
+      "elapsedMs": 1.009,
+      "exactDistinctMatch": true
+    },
+    {
+      "round": 2,
+      "candidateProjects": 9,
+      "elapsedMs": 1.129,
+      "exactDistinctMatch": true
+    },
+    {
+      "round": 3,
+      "candidateProjects": 9,
+      "elapsedMs": 1.085,
+      "exactDistinctMatch": true
+    }
+  ]
+}
