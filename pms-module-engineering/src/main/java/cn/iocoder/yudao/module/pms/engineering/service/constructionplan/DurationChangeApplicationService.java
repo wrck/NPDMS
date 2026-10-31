@@ -111,6 +111,8 @@ public class DurationChangeApplicationService {
     private final Environment environment;
     private final cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi projectEndDateApi;
     private final cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.engineering.dal.mysql.stageplan.StagePlanBatchMapper stagePlanBatches;
 
     public ConstructionPlanChangeRespVO createDraft(
             CreateDurationChangeCommand command, ConstructionPlanApplicationService.Actor actor) {
@@ -176,6 +178,12 @@ public class DurationChangeApplicationService {
                 applicant.projectId(), command.expectedProjectVersion(), actor);
 
         ConstructionPlanDO plan = lockPlan(command.planId(), actor.tenantId());
+        if (stagePlanBatches.selectPendingApprovalForUpdate(
+                new cn.iocoder.yudao.module.pms.engineering.dal.mysql.stageplan.query.StagePlanApprovalConflictQuery(
+                        actor.tenantId(), plan.getProjectId())) != null) {
+            throw exception(cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.STAGE_PLAN_DATE_INVALID,
+                    "施工计划审批中，请先完成施工计划审批后再发起工期变更");
+        }
         ConstructionPlanChangeDO change = changeMapper.selectForUpdate(new ConstructionPlanChangeLockQuery(
                 actor.tenantId(), plan.getId(), command.changeId()));
         if (change == null) throw exception(DURATION_CHANGE_NOT_EXISTS);

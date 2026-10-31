@@ -15,6 +15,8 @@ import java.util.List;
 @Mapper
 public interface StagePlanBatchMapper extends BaseMapperX<StagePlanBatchDO> {
 
+    Long selectPendingApprovalForUpdate(cn.iocoder.yudao.module.pms.engineering.dal.mysql.stageplan.query.StagePlanApprovalConflictQuery query);
+
     default PageResult<StagePlanBatchDO> selectPage(cn.iocoder.yudao.module.pms.engineering.dal.mysql.stageplan.query.StagePlanPageQuery reqVO) {
         if (reqVO.getVisibleProjectIds() == null || reqVO.getVisibleProjectIds().isEmpty()) return new PageResult<>(List.of(), 0L);
         return selectPage(reqVO, new LambdaQueryWrapperX<StagePlanBatchDO>()

@@ -351,7 +351,8 @@ class StagePlanBatchServiceTest {
     private void frozenInputs() {
         batch.setTenantId(1L); batch.setDurationRevisionId(11L); batch.setInputSnapshot("{}");
         ConstructionPlanDO plan = new ConstructionPlanDO(); plan.setId(10L); plan.setCurrentDurationRevisionId(11L);
-        plan.setVersion(4L); plan.setPendingChangeId(12L);
+        plan.setVersion(4L);
+        when(constructionPlanMapper.selectForUpdate(any())).thenReturn(plan);
         when(constructionPlanMapper.updateVersionIfMatch(any())).thenReturn(1);
         when(constructionPlanMapper.selectByProjectId(any(), any())).thenReturn(plan);
         ConstructionPlanRevisionDO baseline = new ConstructionPlanRevisionDO(); baseline.setId(11L);
@@ -526,6 +527,20 @@ class StagePlanBatchServiceTest {
     }
 
     @Test
+    void pendingDurationApprovalBlocksPlanSubmissionAndApprovalCallback() {
+        frozenInputs();
+        constructionPlanMapper.selectByProjectId(1L, 7L).setPendingChangeId(12L);
+        when(itemMapper.selectListByBatchId(100L)).thenReturn(nonOverlappingItems());
+        assertThrows(ServiceException.class, () -> service.submit(100L, 99L, null));
+        verify(processInstanceApi, never()).createProcessInstance(any(), any(BpmProcessInstanceCreateReqDTO.class));
+        batch.setStatus(StagePlanBatchDO.STATUS_PENDING_APPROVAL);
+        assertThrows(ServiceException.class, () -> service.handleBpmResult(
+                "PI-1", BpmProcessInstanceStatusEnum.APPROVE.getStatus(), null));
+        verify(stagePlanApi, never()).applyPlanDates(any(), any(), any());
+        verify(batchMapper, never()).updateById(any(StagePlanBatchDO.class));
+    }
+
+    @Test
     void bpmApproveAppliesPlanDatesAndEffectivates() {
         frozenInputs();
         batch.setStatus(StagePlanBatchDO.STATUS_PENDING_APPROVAL);
@@ -536,7 +551,7 @@ class StagePlanBatchServiceTest {
         verify(constructionPlanMapper).updateVersionIfMatch(planCaptor.capture());
         assertEquals(ConstructionPlanDO.RECALCULATED, planCaptor.getValue().planRecalculationStatusCode());
         assertEquals(11L, planCaptor.getValue().planRecalculationSourceRevisionId());
-        assertEquals(12L, planCaptor.getValue().pendingChangeId());
+        assertNull(planCaptor.getValue().pendingChangeId());
         assertEquals(4, planCaptor.getValue().expectedVersion());
 
         ArgumentCaptor<StagePlanBatchDO> batchCaptor = ArgumentCaptor.forClass(StagePlanBatchDO.class);

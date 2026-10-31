@@ -77,6 +77,7 @@ class DurationChangeSubmitServiceTest {
     @Mock TransactionTemplate transactionTemplate;
     @Mock cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi executionGuard;
 
+    @Mock cn.iocoder.yudao.module.pms.engineering.dal.mysql.stageplan.StagePlanBatchMapper stagePlanBatches;
     private DurationChangeApplicationService service;
     private PlatformCommandExecutionApi.SuccessFacts recordedSuccessFacts;
 
@@ -88,6 +89,8 @@ class DurationChangeSubmitServiceTest {
                 commandExecutionApi, operationAuditApi, fileArtifactApi, permissionApi, projectScopeApi,
                 durationOperatorApi, participantFactApi, dictDataApi, configApi, processInstanceApi, properties,
                 transactionTemplate, new MockEnvironment().withProperty("yudao.tenant.enable", "false"), org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi.class), executionGuard);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "stagePlanBatches", stagePlanBatches);
+        org.mockito.Mockito.lenient().when(stagePlanBatches.selectPendingApprovalForUpdate(any())).thenReturn(null);
         when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
             TransactionCallback<?> callback = invocation.getArgument(0);
             return callback.doInTransaction(org.mockito.Mockito.mock(TransactionStatus.class));
@@ -145,6 +148,18 @@ class DurationChangeSubmitServiceTest {
         org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"pendingChangeIdAfter\":801"));
         org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"reasonType\":\"INTERNAL_ADJUSTMENT\""));
         org.junit.jupiter.api.Assertions.assertTrue(audit.contains("\"reasonDetail\":\"reason\""));
+    }
+
+    @Test
+    @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
+    void pendingStagePlanApprovalPreventsDurationSubmission() {
+        stubCommandExecution();
+        stubAuthorizedFacts(10L);
+        stubRows(notRequiredReasonWithoutEvidence(), plan());
+        stubReasonConfiguration();
+        when(stagePlanBatches.selectPendingApprovalForUpdate(any())).thenReturn(44L);
+        assertThrows(ServiceException.class, () -> service.submit(command(), actor()));
+        verify(processInstanceApi, never()).createProcessInstance(any(), any());
     }
 
     @Test

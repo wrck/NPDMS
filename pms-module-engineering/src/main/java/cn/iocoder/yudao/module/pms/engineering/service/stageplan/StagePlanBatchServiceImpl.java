@@ -353,7 +353,7 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
                             item.getPhaseId(), item.getPlanStart(), item.getPlanEnd()))
                     .toList());
             stagePlanApi.applyTaskPlanDates(tenantId, batch.getProjectId(), readTasks(batch));
-            // 工期与施工计划共同完成重算；保留并行工期变更，CAS 失败回滚整次生效。
+            // 工期与施工计划共同完成重算；待审批工期已在生效前拦截，CAS 失败回滚整次生效。
             ConstructionPlanDO plan = constructionPlanMapper.selectByProjectId(tenantId, batch.getProjectId());
             if (plan == null || !Objects.equals(plan.getCurrentDurationRevisionId(), batch.getDurationRevisionId())) {
                 throw exception(STAGE_PLAN_VERSION_NOT_MATCH);
@@ -536,7 +536,13 @@ public class StagePlanBatchServiceImpl implements StagePlanBatchService {
     private void verifyInputs(StagePlanBatchDO batch) {
         if (batch.getInputSnapshot() == null) throw exception(STAGE_PLAN_DATE_INVALID, "旧计划缺少推算输入快照，请重新推算");
         Long tenantId = TenantContextHolder.getRequiredTenantId();
-        if (!Objects.equals(resolveBaselineRevisionId(tenantId, batch.getProjectId()), batch.getDurationRevisionId()))
+        var duration = constructionPlanMapper.selectByProjectId(tenantId, batch.getProjectId());
+        if (duration == null) throw exception(STAGE_PLAN_DATE_INVALID, "生效工期不存在");
+        duration = constructionPlanMapper.selectForUpdate(
+                new cn.iocoder.yudao.module.pms.engineering.dal.mysql.constructionplan.query.ConstructionPlanLockQuery(tenantId, duration.getId()));
+        if (duration == null || duration.getPendingChangeId() != null)
+            throw exception(STAGE_PLAN_DATE_INVALID, "存在待审批工期变更，请先完成工期审批后重新提交施工计划");
+        if (!Objects.equals(duration.getCurrentDurationRevisionId(), batch.getDurationRevisionId()))
             throw exception(STAGE_PLAN_DATE_INVALID, "生效工期已变化，请重新推算并审批");
         var baseline = loadBatchBaseline(batch);
         if (baseline == null) throw exception(STAGE_PLAN_DATE_INVALID, "计划工期版本缺失");
