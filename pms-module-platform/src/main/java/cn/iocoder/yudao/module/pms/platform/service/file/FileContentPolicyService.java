@@ -85,9 +85,7 @@ public class FileContentPolicyService {
 
         String declaredMediaType = normalizeDeclaration(command.declaredMediaType());
         boolean checklistEvidence = policy.allowedCategoryCodes().contains("CUTOVER_CHECKLIST_MANUAL_EVIDENCE");
-        boolean opaqueLicense = checklistEvidence && "lic".equals(fileNameExtension(command.expectedFileName()))
-                && "application/octet-stream".equals(declaredMediaType)
-                && policy.allowedMediaTypes().contains("application/octet-stream");
+        boolean opaqueLicense = allowsOpaqueLicense(command.expectedFileName(), declaredMediaType, policy);
         if (checklistEvidence && "application/octet-stream".equals(declaredMediaType) && !opaqueLicense)
             throw exception(FILE_MEDIA_TYPE_INVALID);
         // LIC is an opaque attachment, not a document format to parse or identify by magic bytes.
@@ -151,6 +149,12 @@ public class FileContentPolicyService {
         return value == null || value.isBlank() ? "application/octet-stream" : normalizeMediaType(value);
     }
     static boolean isUnknownDeclaration(String value) { return "application/octet-stream".equals(value); }
+    static boolean allowsOpaqueLicense(String fileName, String mediaType, FileBusinessObjectPolicyFact policy) {
+        return policy.allowedCategoryCodes().contains("CUTOVER_CHECKLIST_MANUAL_EVIDENCE")
+                && "lic".equals(fileNameExtension(fileName))
+                && "application/octet-stream".equals(mediaType)
+                && policy.allowedMediaTypes().contains("application/octet-stream");
+    }
     static boolean supportsUnknownDeclaration(String fileName, Set<String> allowedMediaTypes) {
         int dot=fileName==null?-1:fileName.lastIndexOf('.');
         return dot>=0 && Set.of("log","cfg","conf","txt").contains(fileName.substring(dot+1).toLowerCase(Locale.ROOT)) && allowedMediaTypes.contains("text/plain");

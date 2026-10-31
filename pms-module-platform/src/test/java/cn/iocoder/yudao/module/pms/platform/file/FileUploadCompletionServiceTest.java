@@ -156,6 +156,44 @@ class FileUploadCompletionServiceTest {
         verify(sessionMapper, org.mockito.Mockito.never()).completeIfValidating(any());
     }
 
+    @Test
+    void completesOpaqueLicenseWithRealContentValidation() {
+        byte[] bytes = new byte[] {0, 1, 2, (byte) 255, 0, 3};
+        var session = session(bytes.length);
+        session.setOwnerContext("CUT");
+        session.setObjectType("CUTOVER_CHECKLIST");
+        session.setFileName("backup.LIC");
+        session.setCategoryCode("CUTOVER_CHECKLIST_MANUAL_EVIDENCE");
+        session.setDeclaredMediaType("application/octet-stream");
+        var realReader = new BoundedMultipartReader();
+        service = new FileUploadApplicationService(sessionMapper, artifactMapper, versionMapper, referenceMapper,
+                policyRegistry, realReader, new FileContentPolicyService(realReader, java.util.List.of(), false),
+                storageReceiptApi, new FileEventFactory(), commandExecutionApi, operationAuditApi, Duration.ofMinutes(15));
+        when(sessionMapper.selectForUpdate(any())).thenReturn(session);
+        when(sessionMapper.beginValidationIfInitialized(any())).thenReturn(1);
+        when(policyRegistry.lockAndRevalidate(any())).thenReturn(new FileBusinessObjectPolicyFact(
+                true, 8L, "MUTABLE", "MULTIPLE", Set.of("CUTOVER_CHECKLIST_MANUAL_EVIDENCE"),
+                Set.of("application/octet-stream"), 1024L, "INTERNAL"));
+        when(storageReceiptApi.store(any())).thenReturn(new FileStorageReceipt(
+                "op-101", 501L, "backup.LIC", "application/octet-stream", bytes.length));
+        when(artifactMapper.insert(any())).thenReturn(1);
+        when(versionMapper.insert(any())).thenReturn(1);
+        when(referenceMapper.insert(any())).thenAnswer(call -> {
+            ((FileReferenceDO) call.getArgument(0)).setId(401L);
+            return 1;
+        });
+        when(artifactMapper.activateDraftIfMatch(any())).thenReturn(1);
+        when(sessionMapper.completeIfValidating(any())).thenReturn(1);
+        executeImmediately();
+        var completed = service.complete(new FileUploadCompleteCommand(0L, 7L, "idem-license-complete",
+                101L, 201L, new MockMultipartFile("file", "backup.LIC", "application/octet-stream", bytes), null));
+        assertEquals(401L, completed.referenceId());
+        assertEquals(cn.hutool.crypto.digest.DigestUtil.sha256Hex(bytes), completed.sha256());
+        var stored = ArgumentCaptor.forClass(cn.iocoder.yudao.module.infra.api.file.dto.FileStorageStoreCommand.class);
+        verify(storageReceiptApi).store(stored.capture());
+        org.junit.jupiter.api.Assertions.assertArrayEquals(bytes, stored.getValue().validatedContent());
+    }
+
     private void executeImmediately() {
         when(commandExecutionApi.execute(any(), anyString(), eq(FileUploadCompleted.class), any(), any()))
                 .thenAnswer(invocation -> {

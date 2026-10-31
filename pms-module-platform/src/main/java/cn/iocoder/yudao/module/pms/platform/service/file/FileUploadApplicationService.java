@@ -683,7 +683,8 @@ public class FileUploadApplicationService {
                                 FileBusinessObjectPolicyFact policy) {
         Set<String> allowedMedia = normalizedMediaTypes(policy.allowedMediaTypes());
         boolean mediaAllowed = FileContentPolicyService.isUnknownDeclaration(command.declaredMediaType())
-                ? FileContentPolicyService.supportsUnknownDeclaration(command.fileName(), allowedMedia)
+                ? FileContentPolicyService.allowsOpaqueLicense(command.fileName(), command.declaredMediaType(), policy)
+                    || FileContentPolicyService.supportsUnknownDeclaration(command.fileName(), allowedMedia)
                 : allowedMedia.contains(command.declaredMediaType());
         if (!policy.allowedCategoryCodes().contains(command.categoryCode()) || !mediaAllowed) {
             throw exception(FILE_SCOPE_FORBIDDEN);

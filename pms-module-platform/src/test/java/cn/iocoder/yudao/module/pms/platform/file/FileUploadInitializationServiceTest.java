@@ -121,6 +121,41 @@ class FileUploadInitializationServiceTest {
         org.junit.jupiter.api.Assertions.assertFalse(successFacts.get().detailSnapshot().contains("ownerExecutionContext"));
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"application/octet-stream"})
+    void initializesAuthorizedOpaqueLicense(String mediaType) {
+        when(policyRegistry.inspect(any())).thenReturn(new FileBusinessObjectPolicyFact(
+                true, 8L, "MUTABLE", "MULTIPLE", Set.of("CUTOVER_CHECKLIST_MANUAL_EVIDENCE"),
+                Set.of("application/octet-stream"), 1024L, "INTERNAL"));
+        when(sessionMapper.insert(any())).thenReturn(1);
+        executeImmediately();
+        var result = service.initialize(licenseCommand("backup.LIC", mediaType));
+        assertNotNull(result.sessionId());
+        var session = ArgumentCaptor.forClass(FileUploadSessionDO.class);
+        verify(sessionMapper).insert(session.capture());
+        assertEquals("application/octet-stream", session.getValue().getDeclaredMediaType());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "backup.bin,CUTOVER_CHECKLIST_MANUAL_EVIDENCE,application/octet-stream",
+            "backup.lic,CUTOVER_CHECKLIST_MANUAL_EVIDENCE,text/plain",
+            "backup.lic,OTHER_EVIDENCE,application/octet-stream"})
+    void opaqueLicenseRequiresSuffixCategoryAndAllowedMedia(String name, String category, String media) {
+        when(policyRegistry.inspect(any())).thenReturn(new FileBusinessObjectPolicyFact(
+                true, 8L, "MUTABLE", "MULTIPLE", Set.of(category), Set.of(media), 1024L, "INTERNAL"));
+        executeImmediately();
+        assertThrows(RuntimeException.class, () -> service.initialize(licenseCommand(name, "application/octet-stream")));
+        verify(sessionMapper, never()).insert(any());
+    }
+
+    private FileUploadInitializeCommand licenseCommand(String name, String mediaType) {
+        return new FileUploadInitializeCommand(0L, 7L, "idem-license", "CREATE_ARTIFACT", null, null,
+                "CUT", "CUTOVER_CHECKLIST", "1001", "CHECKLIST_MANUAL_EVIDENCE", "license-backup",
+                name, "CUTOVER_CHECKLIST_MANUAL_EVIDENCE", 128L, mediaType, null);
+    }
+
     @Test
     void rejectsDeclaredSizeAboveBusinessLimitWithoutSessionSideEffect() {
         when(policyRegistry.inspect(any())).thenReturn(policy("MUTABLE", 100L));
