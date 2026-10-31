@@ -109,7 +109,7 @@ async function connect(event: MouseEvent) {
     connecting.value = false
     if (prepared.value === connection) prepared.value = undefined
     void connection.cancel()
-    if (!lifetime.signal.aborted) timer = setTimeout(check, 15000)
+    if (!lifetime.signal.aborted && state.value !== 'ready') timer = setTimeout(check, 15000)
   }
 }
 
@@ -128,7 +128,8 @@ async function check() {
   emit('ready', result.state === 'ready')
   if (['connection-required', 'unavailable'].includes(result.state) && !connectionError.value) void prepare()
   else if (!['connection-required', 'unavailable'].includes(result.state)) cancelConnection()
-  if (result.state !== 'ready' && Date.now() < startupDeadline) {
+  if (result.state === 'ready') return
+  if (Date.now() < startupDeadline) {
     timer = setTimeout(check, 1500)
   } else {
     timer = setTimeout(check, 15000)

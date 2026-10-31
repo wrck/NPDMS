@@ -25,6 +25,8 @@ it('discovers the DAC from the approved HTTP page even outside a secure context'
     expect(textOf(m.root)).toContain('本机 DAC 已就绪')
     expect(textOf(m.root)).not.toContain('HTTPS')
     expect(textOf(m.root)).not.toContain('下载并安装 DAC')
+    await vi.advanceTimersByTimeAsync(60000)
+    expect(discovery.check).toHaveBeenCalledTimes(1)
   } finally { m.app.unmount() }
 })
 

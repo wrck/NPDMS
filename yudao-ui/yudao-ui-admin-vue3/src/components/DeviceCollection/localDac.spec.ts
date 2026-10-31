@@ -39,6 +39,17 @@ const challengeProof = async (nonce = 'a'.repeat(64)) => {
   const result = await request(`http://127.0.0.1:8280/api/v1/desktop/status?nonce=${nonce}`)
   return { nonce, status: await result.json() as import('./localDac').LocalDacStatus }
 }
+it('probes only the previously verified port and falls back when it moves', async () => {
+  await pair()
+  request.mockClear()
+  expect((await discoverLocalDac(environment)).state).toBe('ready')
+  expect(request.mock.calls.map(([url]) => new URL(url).port)).toEqual(['8280'])
+  delete states[8280]
+  states[8289] = {}
+  request.mockClear()
+  expect(await discoverLocalDac(environment)).toMatchObject({ state: 'ready', origin: 'http://127.0.0.1:8289' })
+  expect(request.mock.calls.some(([url]) => new URL(url).port === '8289')).toBe(true)
+})
 it('confirms a native-launch challenge and preserves only the public installation key', async () => {
   expect((await confirmLocalDac({...environment,...await challengeProof()})).state).toBe('ready')
   expect([...storage.values()]).toEqual([publicHex()])
@@ -108,7 +119,7 @@ it('bounds all unreachable probes',async()=>{
   await vi.advanceTimersByTimeAsync(8000)
   expect(await pending).toEqual({state:'unavailable'})
 })
-it('returns immediately on a verified candidate and aborts hanging probes',async()=>{
+it('uses the verified cached candidate without starting other probes',async()=>{
   await pair()
   vi.useFakeTimers()
   const signals:AbortSignal[]=[]
@@ -122,8 +133,7 @@ it('returns immediately on a verified candidate and aborts hanging probes',async
   await vi.advanceTimersByTimeAsync(0)
   expect(completed).toBe(true)
   expect(await pending).toMatchObject({state:'ready',origin:'http://127.0.0.1:8280'})
-  expect(signals).toHaveLength(9)
-  expect(signals.every(signal=>signal.aborted)).toBe(true)
+  expect(signals).toHaveLength(0)
 })
 it('keeps the first verified result when a second signed instance responds later',async()=>{
   await pair()

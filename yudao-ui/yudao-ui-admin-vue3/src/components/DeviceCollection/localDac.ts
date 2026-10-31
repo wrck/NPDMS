@@ -156,10 +156,13 @@ export async function discoverLocalDac(options: Environment & { signal?: AbortSi
   // Fixed, finite candidate set; probe messages never contain tickets, tokens, cookies or credentials.
   const key = pairingStorageKey(options)
   const previous = previousOrigins.get(key)
-  const origins = previous ? [previous, ...LOCAL_DAC_ORIGINS.filter(origin => origin !== previous)] : LOCAL_DAC_ORIGINS
+  const previousResult = previous ? await probe(previous, options) : undefined
+  if (previousResult && 'status' in previousResult) return previousResult
+  if (options.signal?.aborted) return { state: 'unavailable' }
+  const origins = previous ? LOCAL_DAC_ORIGINS.filter(origin => origin !== previous) : LOCAL_DAC_ORIGINS
   return new Promise(resolve => {
     const controller = new AbortController()
-    const results: LocalDacDiscovery[] = []
+    const results: LocalDacDiscovery[] = previousResult ? [previousResult] : []
     let remaining = origins.length
     let settled = false
     const finish = (result: LocalDacDiscovery) => {
