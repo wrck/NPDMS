@@ -15,6 +15,7 @@ export interface ClosureSnapshot {
   checkedAt: string
   checkedBy: BusinessViewId
   sourceDigest: string
+  evidence?: string
 }
 export interface ClosureApplication {
   id: BusinessViewId

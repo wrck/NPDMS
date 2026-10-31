@@ -115,11 +115,13 @@ public class InstallationTaskBusinessObjectProvider implements TaskBusinessObjec
     private Current read(BusinessResultSource.Query query) {
         var scope = new Scope(query.tenantId(), query.projectId());
         scope(scope);
-        var observation = results.lockAndInspect(query);
+        var completion = results.lockProjectCompletion(query);
+        var observation = completion.linkedResult();
         if (observation.status() == BusinessResultSource.Status.UNAVAILABLE) throw new IllegalStateException("INSTALLATION_RESULT_UNAVAILABLE");
         if (observation.result() == null)
             return new Current(query.objectId(), false, "INSTALLATION:" + query.objectId() + ":" + observation.status() + ":" + observation.reason());
-        return value(scope, observation);
+        var linked = value(scope, observation);
+        return new Current(linked.objectId(), completion.currentMember(), linked.version());
     }
 
     private Current value(Scope query, BusinessResultSource.Observation observed) {

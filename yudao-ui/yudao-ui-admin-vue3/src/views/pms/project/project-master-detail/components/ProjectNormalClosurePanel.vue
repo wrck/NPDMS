@@ -32,6 +32,12 @@
           ><span>{{ checkLabel(item.reason || item.code) }}</span></li
         ></ul
       >
+      <ul v-if="failedSnapshotChecks.length" class="closure-checks" aria-label="最近闭环校验失败原因">
+        <li v-for="item in failedSnapshotChecks" :key="`${item.code}:${item.subjectId ?? ''}`">
+          <el-tag type="danger">未通过</el-tag>
+          <span>{{ checkLabel(item.reason || item.code) }}<template v-if="item.subjectId">（任务或对象 ID：{{ item.subjectId }}）</template></span>
+        </li>
+      </ul>
       <div v-if="overview.latestApplication" class="closure-application">
         <strong>最近闭环申请：{{ applicationLabel(overview.latestApplication.status) }}</strong>
         <p>提交时间：{{ formatDate(overview.latestApplication.submittedAt) }}</p>
@@ -53,14 +59,14 @@
 </template>
 <script setup lang="ts">
 import { generateUUID } from '@/utils'
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useRoute } from 'vue-router'
 import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { useMessage } from '@/hooks/web/useMessage'
 import { formatDate } from '@/utils/formatTime'
 import * as ClosureApi from '@/api/pms/acceptance/normal-closure'
-import type { ClosureOverview } from '@/api/pms/acceptance/normal-closure'
+import type { ClosureCheck, ClosureOverview } from '@/api/pms/acceptance/normal-closure'
 import type { BusinessViewId } from '@/api/pms/platform/business-view/ids'
 const props = defineProps<{ projectId: BusinessViewId; readonly?: boolean }>()
 const emit = defineEmits<{ updated: [] }>()
@@ -73,6 +79,15 @@ const overview = ref<ClosureOverview>(),
   busy = ref(false),
   error = ref('')
 const needsRefresh = ref(false)
+const failedSnapshotChecks = computed<ClosureCheck[]>(() => {
+  const snapshot = overview.value?.latestSnapshot
+  if (!snapshot || snapshot.passed || !snapshot.evidence) return []
+  try {
+    const checks: unknown = JSON.parse(snapshot.evidence)
+    return Array.isArray(checks) ? checks.filter((item): item is ClosureCheck =>
+      item != null && typeof item === 'object' && item.passed === false && typeof item.code === 'string') : []
+  } catch { return [] }
+})
 let generation = 0,
   operation = 0,
   disposed = false
@@ -127,7 +142,7 @@ const checkLabel = (code: string) => ({
   STAGE_COMPLETION: '当前阶段完成条件已满足', TASKS_NOT_DONE: '仍有未完成任务',
   ALL_TASKS_DONE: '实际任务均已完成', NEW_CHECK_REQUIRED: '请重新校验并生成闭环快照',
   CHECK_SNAPSHOT: '闭环快照可供提交重验', OWNER_FACTS_REVALIDATED_ON_SUBMIT: '提交时将重新核验业务结果',
-  DESCENDANTS_CLOSED: '全部后代项目满足闭环条件', TASK_BUSINESS_FACTS: '任务关联业务结果已核验'
+  DESCENDANTS_CLOSED: '全部后代项目满足闭环条件', TASK_BUSINESS_FACTS: '任务关联业务结果未通过核验，请检查阶段任务的当前业务事实'
 }[code] || code)
 const lifecycleLabel = (status: string) =>
   ({

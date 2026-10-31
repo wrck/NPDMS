@@ -40,6 +40,15 @@ public class InstallationBusinessResultSource implements BusinessResultChangeSou
     @Override @Transactional(propagation = Propagation.MANDATORY)
     public Observation lockAndInspect(Query query) { return read(query); }
 
+    /** The linked record must still participate in the current, complete project aggregate.
+     * Its result identity/validity is preserved even when another device supplies the latest record. */
+    public record ProjectCompletionObservation(Observation linkedResult, boolean currentMember) { }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public ProjectCompletionObservation lockProjectCompletion(Query query) {
+        return readProjectCompletion(new ReadContext(query, null));
+    }
+
     private record LockedProjectData(
             List<cn.iocoder.yudao.module.pms.asset.api.device.dto.ProjectDeviceInstallationFact> inventory,
             List<InstallationDO> records) { }
@@ -48,13 +57,17 @@ public class InstallationBusinessResultSource implements BusinessResultChangeSou
     private Observation read(Query query) { return read(new ReadContext(query, null)); }
 
     private Observation read(ReadContext context) {
+        return readProjectCompletion(context).linkedResult();
+    }
+
+    private ProjectCompletionObservation readProjectCompletion(ReadContext context) {
         var query = context.query();
         scope(query.tenantId(), query.projectId(), query.type());
         Long id = BusinessResultSource.nativeId(query.objectId() == null ? query.resultId() : query.objectId());
         if (id == null || query.resultId() != null && !Objects.equals(id, BusinessResultSource.nativeId(query.resultId())))
             throw new IllegalArgumentException("RESULT_IDENTITY_MISMATCH");
         var row = installations.selectById(id);
-        if (row == null) return Observation.absent(Status.NOT_FORMED, "INSTALLATION_RESULT_NOT_FORMED");
+        if (row == null) return incomplete("INSTALLATION_RESULT_NOT_FORMED");
         if (!Objects.equals(row.getTenantId(), query.tenantId()) || !Objects.equals(row.getProjectId(), query.projectId()))
             throw new IllegalArgumentException("RESULT_OWNER_SCOPE_MISMATCH");
         var inventory = context.locked() == null
@@ -66,7 +79,7 @@ public class InstallationBusinessResultSource implements BusinessResultChangeSou
                 : context.locked().records();
         Map<Long, InstallationDO> current = new HashMap<>();
         for (var record : records) if (record.getEquipmentId() != null && Integer.valueOf(2).equals(record.getStatus())) current.putIfAbsent(record.getEquipmentId(), record);
-        if (inventory.isEmpty()) return Observation.absent(Status.NOT_FORMED, "PROJECT_DEVICE_INSTALLATION_ADDRESS_MISSING");
+        if (inventory.isEmpty()) return incomplete("PROJECT_DEVICE_INSTALLATION_ADDRESS_MISSING");
         List<InstallationDO> completed = new ArrayList<>();
         for (var device : inventory) {
             var record = current.get(device.deviceId());
@@ -74,21 +87,27 @@ public class InstallationBusinessResultSource implements BusinessResultChangeSou
                     || record.getEffectiveTo() != null || record.getInstallLocation() == null || record.getInstallLocation().isBlank()
                     || record.getVersion() == null) {
                 if (decision.exemptDeviceIds().contains(device.deviceId())) continue;
-                return Observation.absent(Status.NOT_FORMED, "PROJECT_DEVICE_INSTALLATION_ADDRESS_MISSING");
+                return incomplete("PROJECT_DEVICE_INSTALLATION_ADDRESS_MISSING");
             }
             completed.add(record);
         }
-        if (completed.isEmpty()) return Observation.absent(Status.NOT_FORMED, "INSTALLATION_RESULT_NOT_FORMED");
+        if (completed.isEmpty()) return incomplete("INSTALLATION_RESULT_NOT_FORMED");
         completed.sort(Comparator.comparing(InstallationDO::getId));
         var latest = completed.getLast();
         if (!Integer.valueOf(2).equals(row.getStatus()) || row.getEffectiveFrom() == null)
-            return Observation.absent(Status.NOT_FORMED, "INSTALLATION_RESULT_NOT_FORMED");
+            return incomplete("INSTALLATION_RESULT_NOT_FORMED");
         String version = cn.hutool.crypto.digest.DigestUtil.sha256Hex(completed.stream()
                 .map(record -> record.getEquipmentId() + ":" + record.getId() + ":" + record.getVersion())
                 .collect(java.util.stream.Collectors.joining("|")));
         if (!decision.version().isEmpty()) version = cn.hutool.crypto.digest.DigestUtil.sha256Hex(version + ":" + decision.version());
-        return Observation.available(new Result(query.tenantId(), query.projectId(), TYPE, id.toString(), id.toString(),
+        var linkedResult = Observation.available(new Result(query.tenantId(), query.projectId(), TYPE, id.toString(), id.toString(),
                 null, version, Objects.equals(latest.getId(), id) ? Validity.CURRENT : Validity.NOT_CURRENT, row.getEffectiveFrom()));
+        return new ProjectCompletionObservation(linkedResult,
+                completed.stream().anyMatch(record -> Objects.equals(record.getId(), id)));
+    }
+
+    private ProjectCompletionObservation incomplete(String reason) {
+        return new ProjectCompletionObservation(Observation.absent(Status.NOT_FORMED, reason), false);
     }
     @Override @Transactional
     public InventoryPage inventory(InventoryQuery query) {

@@ -171,6 +171,16 @@ beforeEach(() => {
 afterEach(() => apps.splice(0).forEach((app) => app.unmount()))
 
 describe('CLO-01 / CLO-02 ProjectNormalClosurePanel runtime', () => {
+  it('shows the failed task from the latest closure snapshot', async () => {
+    vi.mocked(ClosureApi.getNormalClosure).mockResolvedValue(overview({
+      latestSnapshot: snapshot({ passed: false, evidence: JSON.stringify([{ code: 'TASK_BUSINESS_FACTS', passed: false, reason: 'TASK_BUSINESS_FACTS', subjectId: '2114157659904450567' }]) }),
+      allowedActions: ['CHECK']
+    }))
+    const page = await setup()
+    expect(textOf(page.root)).toContain('任务关联业务结果未通过核验')
+    expect(textOf(page.root)).toContain('2114157659904450567')
+    expect(button(page.root, '提交闭环审批')).toBeUndefined()
+  })
   it('fails closed without frozen policy even if actions and a passing snapshot are returned', async () => {
     vi.mocked(ClosureApi.getNormalClosure).mockResolvedValue(overview({ policyAvailable: false }))
     const page = await setup()

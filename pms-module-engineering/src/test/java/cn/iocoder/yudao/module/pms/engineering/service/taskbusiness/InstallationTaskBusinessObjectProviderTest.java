@@ -100,4 +100,43 @@ class InstallationTaskBusinessObjectProviderTest {
         assertFalse(provider.inspect(this.context,"31").completionFacts().get("PROJECT_INSTALLATION_COMPLETED"));
         assertTrue(provider.associationCandidates(context,"32",100).isEmpty());
     }
+
+    @Test void anotherDevicesNewRecordDoesNotInvalidateTheStillEffectiveLinkedInstallation() {
+        String originalVersion = provider.inspect(context, "31").factVersion();
+        var next = new InstallationDO();
+        next.setId(32L); next.setTenantId(1L); next.setProjectId(9L); next.setEquipmentId(8L);
+        next.setVersion(1L); next.setStatus(2); next.setInstallLocation("第二机房");
+        next.setEffectiveFrom(LocalDateTime.now());
+        when(records.selectById(32L)).thenReturn(next);
+        when(records.selectProjectAddressRecordsForUpdate(any())).thenReturn(List.of(next, record));
+        when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(
+                new ProjectDeviceInstallationFact(7L, "A", null), new ProjectDeviceInstallationFact(8L, "B", null)));
+
+        var fact = provider.inspect(context, "31");
+        assertEquals("31", fact.objectId());
+        assertTrue(fact.completionFacts().get(InstallationTaskBusinessObjectProvider.FACT));
+        assertNotEquals(originalVersion, fact.factVersion());
+        assertTrue(fact.factVersion().endsWith(":NOT_CURRENT"));
+        assertThrows(IllegalArgumentException.class, () -> provider.lockAndRevalidate(context, "31", originalVersion));
+        assertTrue(provider.lockAndRevalidate(context, "31", fact.factVersion())
+                .completionFacts().get(InstallationTaskBusinessObjectProvider.FACT));
+
+        // A newer but incomplete installation must never qualify just because the linked row is complete.
+        next.setInstallLocation(" ");
+        assertFalse(provider.inspect(context, "31").completionFacts().get(InstallationTaskBusinessObjectProvider.FACT));
+        assertThrows(IllegalArgumentException.class, () -> provider.lockAndRevalidate(context, "31", fact.factVersion()));
+        verify(records, never()).updateById(any(InstallationDO.class));
+    }
+
+    @Test void expiredLinkedInstallationCannotBorrowAnotherDevicesCompleteResult() {
+        var next = new InstallationDO();
+        next.setId(32L); next.setTenantId(1L); next.setProjectId(9L); next.setEquipmentId(8L);
+        next.setVersion(1L); next.setStatus(2); next.setInstallLocation("机房");
+        next.setEffectiveFrom(LocalDateTime.now());
+        record.setEffectiveTo(LocalDateTime.now());
+        when(records.selectById(32L)).thenReturn(next);
+        when(records.selectProjectAddressRecordsForUpdate(any())).thenReturn(List.of(next));
+        when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(new ProjectDeviceInstallationFact(8L, "B", null)));
+        assertFalse(provider.inspect(context, "31").completionFacts().get(InstallationTaskBusinessObjectProvider.FACT));
+    }
 }
