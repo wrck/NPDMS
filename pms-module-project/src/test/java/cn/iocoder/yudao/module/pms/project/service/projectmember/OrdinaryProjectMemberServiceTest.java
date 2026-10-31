@@ -316,6 +316,30 @@ class OrdinaryProjectMemberServiceTest {
         verify(memberMapper, never()).deleteById(anyLong());
     }
 
+    @Test void unlinkedManagerRemovalDoesNotPermitHistoricalEditsOrFutureIntervals() {
+        when(permissions.hasAnyPermissions(7L, "pms:project:assign")).thenReturn(true);
+        var previous = member("PROJECT_MANAGER");
+        previous.setUserId(null); previous.setAuthorizationConfirmed(false);
+        when(memberMapper.selectById(10L)).thenReturn(previous);
+        assertThrows(ServiceException.class, () -> service.mutate(
+                command(Action.UPDATE, 10L, "PROJECT_MANAGER", "变更", "", 0), actor()));
+        previous.setEffectiveFrom(LocalDateTime.now().plusDays(1));
+        assertThrows(ServiceException.class, () -> service.mutate(
+                command(Action.REMOVE, 10L, null, null, null, 0), actor()));
+        verify(memberMapper, never()).updateById(any(ProjectMemberAssignmentDO.class));
+        verifyNoInteractions(projectManagers);
+    }
+
+    @Test void unconfirmedLinkedManagerCannotUseUnlinkedRemovalException() {
+        when(permissions.hasAnyPermissions(7L, "pms:project:assign")).thenReturn(true);
+        var previous = member("PROJECT_MANAGER"); previous.setAuthorizationConfirmed(false);
+        when(memberMapper.selectById(10L)).thenReturn(previous);
+        assertThrows(ServiceException.class, () -> service.mutate(
+                command(Action.REMOVE, 10L, null, null, null, 0), actor()));
+        verify(memberMapper, never()).updateById(any(ProjectMemberAssignmentDO.class));
+        verifyNoInteractions(projectManagers);
+    }
+
     @Test void historicalEditAndCrossProjectAssignmentAreRejected() {
         var previous = member("TEAM_MEMBER"); previous.setEffectiveTo(LocalDateTime.now().minusHours(1));
         when(memberMapper.selectById(10L)).thenReturn(previous);

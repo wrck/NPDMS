@@ -149,7 +149,10 @@ public class OrdinaryProjectMemberService {
             if (!ORDINARY_ROLES.contains(previousRole) && !managerRole(previousRole)) throw exception(PROJECT_MEMBER_ROLE_INVALID);
             if (command.action() == Action.UPDATE && !previousRole.equals(command.member().memberRole()))
                 throw invalid("角色变更请移出原角色后重新添加");
-            if (!current(previous, now)) {
+            boolean removingUnlinkedManager = command.action() == Action.REMOVE
+                    && PROJECT_MANAGER.equals(previousRole) && previous.getUserId() == null
+                    && effective(previous, now);
+            if (!current(previous, now) && !removingUnlinkedManager) {
                 if (command.action() == Action.REMOVE && previous.getEffectiveTo() != null)
                     return result(project, previous, false);
                 throw invalid("历史成员不可修改，请重新加入有效人员");
@@ -475,7 +478,10 @@ public class OrdinaryProjectMemberService {
     }
     private static boolean current(ProjectMemberAssignmentDO member, LocalDateTime now) {
         return (END_USER.equals(member.getMemberRole()) || Boolean.TRUE.equals(member.getAuthorizationConfirmed()))
-                && "ACTIVE".equals(member.getStatus())
+                && effective(member, now);
+    }
+    private static boolean effective(ProjectMemberAssignmentDO member, LocalDateTime now) {
+        return "ACTIVE".equals(member.getStatus())
                 && (member.getEffectiveFrom() == null || !member.getEffectiveFrom().isAfter(now))
                 && (member.getEffectiveTo() == null || member.getEffectiveTo().isAfter(now));
     }
