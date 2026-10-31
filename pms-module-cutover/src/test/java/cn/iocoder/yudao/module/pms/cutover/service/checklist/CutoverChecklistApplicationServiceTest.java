@@ -509,13 +509,13 @@ class CutoverChecklistApplicationServiceTest {
 
     @Test
     void matchingUsesLockedProjectLevelAndRejectsUnmappedValuesBeforeWriting() {
-        for (String level : List.of("无", "办事处级", "未映射历史值")) {
+        for (String level : List.of("无", "办事处级", "办事处级重大项目", "市场部级重大项目", "公司级重大项目", "未映射历史值")) {
             var fixture = fixture();
             var configurationService = (CutoverChecklistConfigurationQueryService)
                     org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "configurationService");
             var original = configurationService.resolveFrozen(null);
             var dictionaries = (tools.jackson.databind.node.ObjectNode) cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(original.dictionarySnapshot());
-            dictionaries.set("majorProjectLevel", cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("[{\"value\":\"无\",\"label\":\"无\"},{\"value\":\"办事处级\",\"label\":\"办事处级\"}]"));
+            dictionaries.set("majorProjectLevel", cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("[{\"value\":\"无\",\"label\":\"无\"},{\"value\":\"办事处级\",\"label\":\"办事处级\"},{\"value\":\"市场级\",\"label\":\"市场级\"},{\"value\":\"公司级\",\"label\":\"公司级\"}]"));
             var dimensions = (tools.jackson.databind.node.ArrayNode) cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(original.dimensionDefinitionSnapshot());
             dimensions.add(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{\"code\":\"PROJECT_MAJOR_LEVEL\",\"enabled\":true,\"valueSource\":\"DICT:majorProjectLevel\"}"));
             when(configurationService.resolveFrozen(any())).thenReturn(new CutoverFrozenConfiguration(original.revisionId(), original.configurationCode(),
@@ -535,7 +535,8 @@ class CutoverChecklistApplicationServiceTest {
                 var generated = generate(fixture);
                 var write = org.mockito.ArgumentCaptor.forClass(CutoverChecklistMetadataStore.Write.class);
                 verify(metadata).replace(write.capture());
-                assertEquals(List.of(level), write.getValue().dimensions().get("PROJECT_MAJOR_LEVEL"));
+                String mapped = switch (level) { case "办事处级重大项目" -> "办事处级"; case "市场部级重大项目" -> "市场级"; case "公司级重大项目" -> "公司级"; default -> level; };
+                assertEquals(List.of(mapped), write.getValue().dimensions().get("PROJECT_MAJOR_LEVEL"));
                 assertEquals(12L, write.getValue().checklist().getMatchingProjectVersion());
                 verify(owner).lockAndRevalidate(fact);
                 var changed = cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort.ProjectContextFact.builder()

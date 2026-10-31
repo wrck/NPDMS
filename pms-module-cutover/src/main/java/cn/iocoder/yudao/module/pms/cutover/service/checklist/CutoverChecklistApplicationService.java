@@ -1043,8 +1043,15 @@ public class CutoverChecklistApplicationService {
         if (!majorLevels.isEmpty()) {
             var locked = lockProjectForMatching(task);
             String level = locked.majorProjectLevel();
+            if (level != null && majorLevels.stream().noneMatch(option -> option.value().equals(locked.majorProjectLevel()))) level = switch (level) {
+                case "办事处级重大项目" -> "办事处级";
+                case "市场部级重大项目" -> "市场级";
+                case "公司级重大项目" -> "公司级";
+                default -> level;
+            };
             if (present(level)) {
-                require(majorLevels.stream().anyMatch(option -> option.value().equals(level)),
+                String mappedLevel = level;
+                require(majorLevels.stream().anyMatch(option -> option.value().equals(mappedLevel)),
                         FROZEN_CONFIGURATION_INVALID, "项目重大项目级别未在冻结配置字典中定义，请先核对项目主数据来源映射");
                 dimensions.put("PROJECT_MAJOR_LEVEL", List.of(level));
             }
