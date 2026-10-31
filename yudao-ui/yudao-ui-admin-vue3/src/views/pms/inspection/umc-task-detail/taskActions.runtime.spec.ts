@@ -25,6 +25,7 @@ const confirmLeave = vi.hoisted(() => vi.fn())
 const askReason = vi.hoisted(() => vi.fn())
 const umcApi = vi.hoisted(() => ({ action: vi.fn() }))
 const permissions = vi.hoisted(() => ({ execute: true }))
+const routeQuery = vi.hoisted(() => ({} as Record<string, string>))
 const people = vi.hoisted(() => ({ search: vi.fn(), resolve: vi.fn() }))
 vi.mock('@/api/pms/platform/user-selection', () => ({
   pmsUserSelectionSource: (key: string) => ({ key, search: people.search, resolve: people.resolve })
@@ -53,7 +54,7 @@ vi.mock('@/hooks/web/useMessage', () => ({
 }))
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => false }))
 vi.mock('vue-router', () => ({
-  useRoute: () => ({ params: { taskId: '10' }, query: {} }),
+  useRoute: () => ({ params: { taskId: '10' }, query: routeQuery }),
   useRouter: () => ({ push: vi.fn() }),
   onBeforeRouteLeave: vi.fn(),
   onBeforeRouteUpdate: vi.fn()
@@ -223,6 +224,7 @@ const render = async (component = Detail, productRow?: { productTypeName?: strin
   }
 }
 beforeEach(() => {
+  Object.keys(routeQuery).forEach((key) => delete routeQuery[key])
   vi.clearAllMocks()
   api.getTask.mockReset()
   api.taskAction.mockReset()
@@ -240,6 +242,31 @@ afterEach(() => {
   apps.splice(0).forEach((app) => app.unmount())
   vi.unstubAllGlobals()
 })
+
+it.each([['UMC', Detail], ['platform', PlatformDetail]] as const)(
+  '%s existing issue links open tracking without automatically opening the drawer',
+  async (_name, component) => {
+    routeQuery.issueId = '5'
+    api.getTask.mockResolvedValue({ ...task(), statusCode: 'TRACKING' })
+    const view = await render(component)
+    expect(view.state.activeStep).toBe('issues')
+    expect(view.state.selectedIssueId).toBe('')
+    expect(api.taskAction).not.toHaveBeenCalled()
+  }
+)
+
+it.each([['UMC', Detail], ['platform', PlatformDetail]] as const)(
+  '%s tracking entry opens the issue list without selecting an individual issue or changing task status',
+  async (_name, component) => {
+    routeQuery.step = 'issues'
+    api.getTask.mockResolvedValue({ ...task(), statusCode: 'ANNOTATION_PENDING' })
+    const view = await render(component)
+    expect(view.state.activeStep).toBe('issues')
+    expect(view.state.selectedIssueId).toBe('')
+    expect(view.state.task.statusCode).toBe('ANNOTATION_PENDING')
+    expect(api.taskAction).not.toHaveBeenCalled()
+  }
+)
 
 it('searches UMC assignees by email using sparse authorized options without issuing assignment writes', async () => {
   const view = await render()

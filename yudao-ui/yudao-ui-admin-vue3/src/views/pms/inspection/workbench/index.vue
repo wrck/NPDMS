@@ -57,7 +57,7 @@
         <span class="summary-description">{{ group.description }}</span>
       </button>
     </section>
-    <template v-if="canQuery">
+    <template v-if="canReadWorkbench">
       <section v-for="section in taskSections" :key="section.key" class="inspection-card">
         <header class="inspection-card__header">
           <h2><Icon :icon="section.icon" />{{ section.title }}</h2>
@@ -68,7 +68,7 @@
             ><Icon icon="ep:plus" />新增巡检任务</el-button
           >
           <el-button
-            v-else-if="section.key === 'pending'"
+            v-else-if="section.key === 'pending' && canQuery"
             link
             type="primary"
             @click="openTaskList()"
@@ -78,7 +78,7 @@
         <el-table
           v-loading="loading"
           :data="section.rows"
-          :row-key="(task: TaskSummary) => String(task.id)"
+          :row-key="(task: WorkbenchTaskRow) => String(task.id)"
           :empty-text="emptyText(section.empty)"
         >
           <el-table-column prop="taskCode" label="编号" min-width="180" />
@@ -109,83 +109,24 @@
           >
           <el-table-column label="当前状态" min-width="120"
             ><template #default="{ row }"
-              ><el-tag :type="taskStatusType(row.statusCode)" size="small">{{
-                taskStatusLabel(row.statusCode)
+              ><el-tag :type="taskStatusType(row.statusCode || '')" size="small">{{
+                row.statusCode ? taskStatusLabel(row.statusCode) : '问题待处理'
               }}</el-tag></template
             ></el-table-column
           >
-          <el-table-column label="操作" width="90" :fixed="smallScreen ? false : 'right'"
+          <el-table-column label="操作" width="120" :fixed="smallScreen ? false : 'right'"
             ><template #default="{ row }"
               ><el-button
                 :type="section.key === 'pending' ? 'primary' : 'default'"
                 size="small"
-                @click="openTask(row.id)"
-                >{{ actionLabel(row.statusCode) }}</el-button
+                @click="openTaskRow(row)"
+                >{{ row.issueId ? '办理' : actionLabel(row.statusCode || '') }}</el-button
               ></template
             ></el-table-column
           >
         </el-table>
       </section>
     </template>
-    <section v-if="canReadIssues" class="inspection-card issue-section">
-      <el-collapse>
-        <el-collapse-item name="issues">
-          <template #title
-            ><span class="issue-heading"
-              ><Icon icon="ep:list" />本人问题待办<span class="issue-count"
-                >{{ data ? data.myIssues.length : '—' }} 项</span
-              ></span
-            ></template
-          >
-          <el-table
-            v-loading="loading"
-            :data="data?.myIssues || []"
-            :row-key="(issue: IssueSummary) => String(issue.id)"
-            :empty-text="emptyText('暂无本人负责的巡检问题待办')"
-          >
-            <el-table-column prop="taskCode" label="任务编号" min-width="180" />
-            <el-table-column
-              prop="taskName"
-              label="任务名称"
-              min-width="180"
-              show-overflow-tooltip
-            />
-            <el-table-column
-              prop="description"
-              label="问题描述"
-              min-width="240"
-              show-overflow-tooltip
-            />
-            <el-table-column label="严重级别" width="100"
-              ><template #default="{ row }">{{
-                severityLabel(row.severityCode)
-              }}</template></el-table-column
-            >
-            <el-table-column label="问题状态" width="120"
-              ><template #default="{ row }"
-                ><el-tag
-                  size="small"
-                  :type="row.statusCode === 'CLOSURE_PENDING' ? 'warning' : 'primary'"
-                  >{{ issueStatusLabel(row.statusCode) }}</el-tag
-                ></template
-              ></el-table-column
-            >
-            <el-table-column label="计划完成时间" min-width="165"
-              ><template #default="{ row }">{{
-                row.dueAt ? formatDate(row.dueAt) : '未设置'
-              }}</template></el-table-column
-            >
-            <el-table-column label="操作" width="90" :fixed="smallScreen ? false : 'right'"
-              ><template #default="{ row }"
-                ><el-button link type="primary" @click="openIssue(row)">{{
-                  row.statusCode === 'CLOSED' ? '查看' : '办理'
-                }}</el-button></template
-              ></el-table-column
-            >
-          </el-table>
-        </el-collapse-item>
-      </el-collapse>
-    </section>
   </main>
 </template>
 
@@ -195,15 +136,14 @@ import { useRouter } from 'vue-router'
 import { useMediaQuery } from '@vueuse/core'
 import type { TagProps } from 'element-plus'
 import * as InspectionApi from '@/api/pms/inspection/tasks'
-import type { TaskSummary, WireLong } from '@/api/pms/inspection/tasks'
+import { workbenchTaskRows } from './taskRows'
+import type { WorkbenchTaskRow } from './taskRows'
 import { checkPermi } from '@/utils/permission'
 import { formatDate } from '@/utils/formatTime'
-import { getStrDictOptions } from '@/utils/dict'
 import '../shared/inspection.css'
 
 defineOptions({ name: 'PmsInspectionWorkbench' })
 type WorkbenchData = Awaited<ReturnType<typeof InspectionApi.getTaskWorkbench>>
-type IssueSummary = WorkbenchData['myIssues'][number]
 const router = useRouter()
 const smallScreen = useMediaQuery('(max-width: 767px)')
 const canQuery = computed(() => checkPermi(['pms:inspection-task:query']))
@@ -242,22 +182,31 @@ const countGroups = [
     filter: 'TRACKING'
   }
 ]
-const taskSections = computed(() => [
-  {
-    key: 'pending',
-    title: '巡检任务待办',
-    icon: 'ep:tickets',
-    rows: data.value?.pendingTasks || [],
-    empty: '暂无待办巡检任务'
-  },
-  {
-    key: 'created',
-    title: '自建巡检任务',
-    icon: 'ep:edit-pen',
-    rows: data.value?.createdTasks || [],
-    empty: '暂无本人创建的巡检任务'
-  }
-])
+const taskRows = computed(() =>
+  workbenchTaskRows({
+    data: data.value,
+    canQuery: canQuery.value,
+    canReadIssues: canReadIssues.value
+  })
+)
+const taskSections = computed(() =>
+  [
+    {
+      key: 'pending',
+      title: '巡检任务待办',
+      icon: 'ep:tickets',
+      rows: taskRows.value.pending,
+      empty: '暂无待办巡检任务'
+    },
+    {
+      key: 'created',
+      title: '自建巡检任务',
+      icon: 'ep:edit-pen',
+      rows: taskRows.value.created,
+      empty: '暂无其他自建巡检任务'
+    }
+  ].filter((section) => section.key === 'pending' || canQuery.value)
+)
 const actionLabel = (status: string) =>
   ['CLOSED', 'ARCHIVED', 'CANCELLED'].includes(status)
     ? '查看'
@@ -280,34 +229,25 @@ const taskStatuses: Record<string, string> = {
   ARCHIVED: '已归档',
   CANCELLED: '已取消'
 }
-const issueStatuses: Record<string, string> = {
-  PENDING: '待处理',
-  PROCESSING: '处理中',
-  CLOSURE_PENDING: '待确认闭环',
-  CLOSED: '已闭环'
-}
 const taskStatusLabel = (code: string) => taskStatuses[code] || code
-const issueStatusLabel = (code: string) => issueStatuses[code] || code
 const taskStatusType = (code: string): TagProps['type'] => {
   if (code === 'CLOSED' || code === 'ARCHIVED') return 'success'
   if (code === 'CANCELLED') return 'info'
   if (code === 'TRACKING' || code === 'ANNOTATION_PENDING') return 'warning'
   return 'primary'
 }
-const severities = computed(() => getStrDictOptions('pms_inspection_rule_severity'))
-const severityLabel = (code: string) =>
-  severities.value.find((item) => item.value === code)?.label || code || '未提供'
 const emptyText = (loadedText: string) =>
   error.value ? '加载失败，请重新加载' : data.value ? loadedText : '正在加载'
 const openTaskList = (statusCode?: string) =>
   router.push({ path: '/pms/inspection/tasks', query: statusCode ? { statusCode } : {} })
 const openCreate = () => router.push({ path: '/pms/inspection/tasks', query: { create: '1' } })
-const openTask = (id: WireLong) =>
-  router.push(`/pms/inspection/tasks/${encodeURIComponent(String(id))}`)
-const openIssue = (issue: IssueSummary) =>
+const openTaskRow = (task: WorkbenchTaskRow) =>
   router.push({
-    path: `/pms/inspection/tasks/${encodeURIComponent(String(issue.taskId))}`,
-    query: { issueId: String(issue.id) }
+    path: `/pms/inspection/tasks/${encodeURIComponent(String(task.id))}`,
+    query: {
+      ...(task.statusCode === 'TRACKING' || task.issueId != null ? { step: 'issues' } : {}),
+      ...(task.issueId != null ? { issueId: String(task.issueId) } : {})
+    }
   })
 
 const loadWorkbench = async () => {
@@ -433,8 +373,7 @@ onBeforeUnmount(() => {
   padding: 14px 20px;
   border-bottom: 1px solid #f0f2f5;
 }
-.inspection-card__header h2,
-.issue-heading {
+.inspection-card__header h2 {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -442,27 +381,6 @@ onBeforeUnmount(() => {
   font-size: 15px;
   font-weight: 600;
   color: #1a2332;
-}
-.issue-count {
-  margin-left: 8px;
-  font-size: 12px;
-  color: #888;
-  font-weight: 400;
-}
-.issue-section :deep(.el-collapse) {
-  border: 0;
-}
-.issue-section :deep(.el-collapse-item__header) {
-  height: auto;
-  min-height: 50px;
-  padding: 0 20px;
-  border-bottom-color: #f0f2f5;
-}
-.issue-section :deep(.el-collapse-item__wrap) {
-  border: 0;
-}
-.issue-section :deep(.el-collapse-item__content) {
-  padding-bottom: 0;
 }
 :deep(.el-table) {
   --el-table-header-bg-color: #fafbfc;

@@ -1,8 +1,8 @@
 <template>
   <section aria-label="待办清单跟踪信息" class="tracking-panel">
     <el-empty v-if="!task.issues.length" description="当前没有跟踪事项" :image-size="64" />
-    <article v-for="row in task.issues" :key="String(row.id)" class="tracking-item">
-      <header>
+    <details v-for="row in task.issues" :key="String(row.id)" class="tracking-item" open>
+      <summary class="tracking-heading">
         <h3>{{
           trackedResult(row)
             ? trackedResult(row)?.ruleName || '未提供巡检项目名称'
@@ -11,75 +11,85 @@
         <el-tag :type="row.statusCode === 'CLOSED' ? 'success' : 'warning'">{{
           statusLabel(row.statusCode)
         }}</el-tag>
-      </header>
-      <template v-if="trackedResult(row)">
-        <p class="tracking-description"
-          ><strong>判定说明：</strong>{{ trackedResult(row)?.detailMessage || '未提供判定说明' }}</p
-        >
-        <p class="help-text">巡检设备：{{ trackedDevice(row) }}</p>
-      </template>
-      <p v-else class="help-text">未找到此待办关联的唯一巡检判定结果，无法显示项目和判定说明。</p>
-      <p class="tracking-description"
-        ><strong>确认跟踪原因：</strong>{{ row.description || '未提供' }}</p
-      >
-      <p class="help-text"
-        >责任人：{{ row.responsibleName || row.responsibleUserId || '未提供' }} · 计划完成：{{
-          row.dueAt ? formatDate(row.dueAt) : '未提供'
-        }}</p
-      >
-      <el-form label-position="top" :disabled="disabled || !editable(row)">
-        <el-form-item label="是否闭环">
-          <el-radio-group v-model="draftFor(row).closed" :aria-label="`问题${row.id}是否闭环`">
-            <el-radio :value="true">已闭环</el-radio>
-            <el-radio :value="false">未闭环</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <el-form-item label="情况备注">
-          <el-input
-            v-model="draftFor(row).remark"
-            type="textarea"
-            :rows="3"
-            maxlength="8000"
-            show-word-limit
-            :aria-label="`问题${row.id}情况备注`"
-          />
-        </el-form-item>
-      </el-form>
-      <p v-if="editable(row)" class="help-text">
-        {{
-          row.statusCode === 'CLOSURE_PENDING'
-            ? '保存已闭环将确认闭环，保存未闭环将退回申请。'
-            : '未闭环时可选填情况备注；已闭环提交闭环申请，须有有效证据和闭环说明，并由有权限的人员确认。'
-        }}
-      </p>
-      <p v-else-if="row.statusCode === 'CLOSURE_PENDING'" class="help-text"
-        >闭环申请待确认，当前实际状态仍为未闭环。</p
-      >
-      <p v-if="draftFor(row).stale" class="help-text"
-        >本项已被更新，原输入已保留。请核对处理历史后放弃本项修改并读取最新信息。</p
-      >
-      <div class="tracking-actions">
-        <el-button v-if="draftFor(row).stale" :disabled="disabled" @click="reset(row)"
-          >放弃本项修改并读取最新</el-button
-        >
-        <el-button
-          v-if="editable(row)"
-          type="primary"
-          :disabled="disabled || !!draftFor(row).stale || !draftFor(row).remark.trim()"
-          @click="save(row)"
-          >{{
-            row.statusCode === 'CLOSURE_PENDING'
-              ? '保存确认结果'
-              : draftFor(row).closed
-                ? '提交闭环申请'
-                : '保存跟踪信息'
-          }}</el-button
-        >
-        <el-button v-if="canQuery" :disabled="disabled" @click="emit('open', row.id)"
-          >处理证据与历史</el-button
-        >
+      </summary>
+      <div class="tracking-body">
+        <div class="tracking-context">
+          <template v-if="trackedResult(row)">
+            <p class="tracking-description"
+              ><strong>判定说明：</strong
+              >{{ trackedResult(row)?.detailMessage || '未提供判定说明' }}</p
+            >
+          </template>
+          <p v-else class="help-text"
+            >未找到此待办关联的唯一巡检判定结果，无法显示项目和判定说明。</p
+          >
+          <p class="tracking-description"
+            ><strong>确认跟踪原因：</strong>{{ row.description || '未提供' }}</p
+          >
+          <dl class="tracking-meta">
+            <template v-if="trackedResult(row)">
+              <dt>巡检设备</dt><dd>{{ trackedDevice(row) }}</dd>
+            </template>
+            <dt>责任人</dt><dd>{{ row.responsibleName || row.responsibleUserId || '未提供' }}</dd>
+            <dt>计划完成</dt><dd>{{ row.dueAt ? formatDate(row.dueAt) : '未提供' }}</dd>
+          </dl>
+        </div>
+        <div class="tracking-feedback">
+          <el-form label-position="top" :disabled="disabled || !editable(row)">
+            <el-form-item label="是否闭环">
+              <el-radio-group v-model="draftFor(row).closed" :aria-label="`问题${row.id}是否闭环`">
+                <el-radio :value="true">已闭环</el-radio>
+                <el-radio :value="false">未闭环</el-radio>
+              </el-radio-group>
+            </el-form-item>
+            <el-form-item label="情况备注">
+              <el-input
+                v-model="draftFor(row).remark"
+                type="textarea"
+                :rows="3"
+                maxlength="8000"
+                show-word-limit
+                :aria-label="`问题${row.id}情况备注`"
+              />
+            </el-form-item>
+          </el-form>
+          <p v-if="editable(row)" class="help-text">
+            {{
+              row.statusCode === 'CLOSURE_PENDING'
+                ? '保存已闭环将确认闭环，保存未闭环将退回申请。'
+                : '未闭环时可选填情况备注；已闭环提交闭环申请，须有有效证据和闭环说明，并由有权限的人员确认。'
+            }}
+          </p>
+          <p v-else-if="row.statusCode === 'CLOSURE_PENDING'" class="help-text"
+            >闭环申请待确认，当前实际状态仍为未闭环。</p
+          >
+          <p v-if="draftFor(row).stale" class="help-text"
+            >本项已被更新，原输入已保留。请核对处理历史后放弃本项修改并读取最新信息。</p
+          >
+          <div class="tracking-actions">
+            <el-button v-if="draftFor(row).stale" :disabled="disabled" @click="reset(row)"
+              >放弃本项修改并读取最新</el-button
+            >
+            <el-button
+              v-if="editable(row)"
+              type="primary"
+              :disabled="disabled || !!draftFor(row).stale || !draftFor(row).remark.trim()"
+              @click="save(row)"
+              >{{
+                row.statusCode === 'CLOSURE_PENDING'
+                  ? '保存确认结果'
+                  : draftFor(row).closed
+                    ? '提交闭环申请'
+                    : '保存跟踪信息'
+              }}</el-button
+            >
+            <el-button v-if="canQuery" :disabled="disabled" @click="emit('open', row.id)"
+              >处理证据与历史</el-button
+            >
+          </div>
+        </div>
       </div>
-    </article>
+    </details>
   </section>
 </template>
 
@@ -228,25 +238,93 @@ onBeforeUnmount(() => emit('draftChanged', false))
 
 <style scoped>
 .tracking-panel {
+  --tracking-border: #f0f2f5;
+  --tracking-muted: #606266;
   display: grid;
   gap: 16px;
+  color: #333;
+  font-size: 13px;
 }
 
 .tracking-item {
-  padding: 16px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 6px;
+  min-width: 0;
+  border: 1px solid var(--tracking-border);
+  border-radius: 8px;
+  background: var(--el-bg-color);
 }
 
-.tracking-item header {
+.tracking-heading {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   gap: 12px;
+  min-height: 48px;
+  padding: 12px 20px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.tracking-item[open] > .tracking-heading {
+  border-bottom: 1px solid var(--tracking-border);
+}
+
+.tracking-heading::-webkit-details-marker {
+  display: none;
+}
+
+.tracking-heading::after {
+  content: '';
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--el-text-color-secondary);
+  border-bottom: 2px solid var(--el-text-color-secondary);
+  transform: rotate(-45deg);
+}
+
+.tracking-item[open] > .tracking-heading::after {
+  transform: rotate(45deg);
+}
+
+.tracking-heading:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+.tracking-heading .el-tag {
+  flex-shrink: 0;
+}
+
+.tracking-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+}
+
+.tracking-context,
+.tracking-feedback {
+  min-width: 0;
+  padding: 16px 20px;
+}
+
+.tracking-context {
+  background: #fafbfc;
+  border-right: 1px solid var(--tracking-border);
+}
+
+.tracking-body .help-text {
+  margin: 0 0 12px;
+  color: var(--tracking-muted);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.tracking-context > :first-child {
+  margin-top: 0;
 }
 
 .tracking-item h3 {
   margin: 0;
+  margin-right: auto;
   font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -254,9 +332,46 @@ onBeforeUnmount(() => emit('draftChanged', false))
 }
 
 .tracking-description {
+  margin: 0 0 16px;
   line-height: 1.6;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.tracking-description strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--tracking-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tracking-meta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--tracking-border);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.tracking-meta dt {
+  color: var(--tracking-muted);
+}
+
+.tracking-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.tracking-feedback :deep(.el-form-item) {
+  margin-bottom: 16px;
+}
+
+.tracking-feedback :deep(.el-form-item__label) {
+  color: var(--tracking-muted);
 }
 
 .tracking-actions {
@@ -267,5 +382,20 @@ onBeforeUnmount(() => emit('draftChanged', false))
 
 .tracking-actions :deep(.el-button + .el-button) {
   margin-left: 0;
+}
+
+@media (max-width: 767px) {
+  .tracking-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tracking-context {
+    border-right: 0;
+    border-bottom: 1px solid var(--tracking-border);
+  }
+  .tracking-heading,
+  .tracking-context,
+  .tracking-feedback {
+    padding: 12px;
+  }
 }
 </style>

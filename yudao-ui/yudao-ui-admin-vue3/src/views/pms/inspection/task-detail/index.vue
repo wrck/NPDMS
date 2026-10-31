@@ -593,7 +593,7 @@
     </template>
 
     <el-drawer
-      :model-value="!!selectedIssueId"
+      :model-value="!!selectedIssueId && !loading"
       title="问题处理"
       :size="smallScreen ? '100%' : 'min(960px, 92vw)'"
       :before-close="closeIssue"
@@ -1038,8 +1038,11 @@ const load = async (selectStep = false) => {
       fresh.value = true
       resetPreparation(value)
       clearDrafts()
-      if (selectStep)
-        activeStep.value = selectedIssueId.value ? 'issues' : stateStep(value.statusCode)
+      if (selectStep) {
+        activeStep.value =
+          selectedIssueId.value || route.query.step === 'issues' ? 'issues' : stateStep(value.statusCode)
+        selectedIssueId.value = ''
+      }
       void loadSelectable()
       void loadCommands()
     } else if (!selectedIssueId.value) loadError.value = '没有巡检任务查询权限。'
