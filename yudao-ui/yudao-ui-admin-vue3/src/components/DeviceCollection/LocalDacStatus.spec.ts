@@ -14,7 +14,7 @@ beforeEach(() => {
   discovery.prepare.mockResolvedValue({href:'npdms-dac://connect/test',expiresAt:Date.now()+90000,cancel:vi.fn().mockResolvedValue(undefined),finish:vi.fn()})
   vi.stubGlobal('window', Object.assign(new EventTarget(), { isSecureContext: false, location: { origin: environment.webOrigin } }))
 })
-afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers() })
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.useRealTimers() })
 
 it('discovers the DAC from the approved HTTP page even outside a secure context', async () => {
   discovery.check.mockResolvedValue({ state: 'ready' })
@@ -39,7 +39,7 @@ it('shows protocol startup on an HTTP page and discovers readiness while polling
     expect(textOf(m.root)).toContain('下载并安装 DAC')
     expect(textOf(m.root)).not.toContain('未安装 DAC')
     const link = findByTestId(m.root, 'dac-installer-download')
-    expect(link?.props?.href).toBe('/downloads/dac/NPDMS-DAC-1.1.4-x64.msi')
+    expect(link?.props?.href).toBe('/downloads/dac/NPDMS-DAC-1.1.5-x64.msi')
     await vi.advanceTimersByTimeAsync(1500)
     await flush()
     expect(textOf(m.root)).toContain('本机 DAC 已就绪')
@@ -55,7 +55,19 @@ it('offers an installer update for an incompatible DAC', async () => {
   try {
     await flush()
     expect(textOf(m.root)).toContain('下载更新 DAC')
-    expect(findByTestId(m.root, 'dac-installer-download')?.props?.href).toBe('/downloads/dac/NPDMS-DAC-1.1.4-x64.msi')
+    expect(findByTestId(m.root, 'dac-installer-download')?.props?.href).toBe('/downloads/dac/NPDMS-DAC-1.1.5-x64.msi')
+  } finally { m.app.unmount() }
+})
+
+it('uses the packaged immutable installer filename instead of a mutable cached URL', async () => {
+  vi.stubEnv('VITE_DAC_INSTALLER_FILENAME', 'NPDMS-DAC-1.1.5-x64-0123456789ab.msi')
+  discovery.check.mockResolvedValue({ state: 'incompatible' })
+  const m = mount(Status, { serverUrl: environment.serverUrl }, { ElTag: passthrough, ElButton: passthrough })
+  try {
+    await flush()
+    const link = findByTestId(m.root, 'dac-installer-download')
+    expect(link?.props?.href).toBe('/downloads/dac/NPDMS-DAC-1.1.5-x64-0123456789ab.msi')
+    expect(link?.props?.download).toBe('NPDMS-DAC-1.1.5-x64.msi')
   } finally { m.app.unmount() }
 })
 

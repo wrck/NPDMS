@@ -5,7 +5,7 @@
       v-if="state === 'unavailable' || state === 'incompatible' || state === 'connection-required'"
       :href="installerUrl"
       data-testid="dac-installer-download"
-      download="NPDMS-DAC-1.1.4-x64.msi"
+      download="NPDMS-DAC-1.1.5-x64.msi"
       class="local-dac-start"
     >{{ state === 'unavailable' ? '下载并安装 DAC' : '下载更新 DAC' }}</a>
     <el-button v-if="state !== 'ready'" link :loading="checking" @click="check">重新检测</el-button>
@@ -30,7 +30,8 @@ import { prepareLocalDacConnection } from './localDacConnection'
 import type { PreparedLocalConnection } from './localDacConnection'
 
 const props = defineProps<{ serverUrl: string }>()
-const installerUrl = `${import.meta.env.BASE_URL}downloads/dac/NPDMS-DAC-1.1.4-x64.msi`
+const installerFile = import.meta.env.VITE_DAC_INSTALLER_FILENAME || 'NPDMS-DAC-1.1.5-x64.msi'
+const installerUrl = `${import.meta.env.BASE_URL}downloads/dac/${installerFile}`
 const emit = defineEmits<{ ready: [ready: boolean] }>()
 const state = ref<LocalDacDiscovery['state'] | 'checking'>('checking')
 const checking = ref(false)

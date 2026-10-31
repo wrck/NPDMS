@@ -18,6 +18,16 @@ namespace Npdms.Dac.Desktop
                 // No install sequence, file copying, registry writes or service actions are run.
                 using (Session session = Installer.OpenPackage(args[0], false))
                 {
+                    Require(new Version(session["ProductVersion"]) > new Version("1.1.4"), "fixed installer has a higher product version than previously published 1.1.4 packages");
+                    using (var upgrade = session.Database.OpenView("SELECT `VersionMax`, `Attributes` FROM `Upgrade` WHERE `ActionProperty` = 'WIX_UPGRADE_DETECTED'"))
+                    {
+                        upgrade.Execute();
+                        using (var row = upgrade.Fetch())
+                        {
+                            Require(row != null && new Version(row.GetString(1)) > new Version("1.1.4")
+                                && (row.GetInteger(2) & 2) == 0, "native MSI upgrade range includes 1.1.4 and permits program replacement");
+                        }
+                    }
                     int planSequence = ActionSequence(session, "PlanRemovePreviousInno");
                     int removeSequence = ActionSequence(session, "RemovePreviousInno");
                     Require(planSequence < ActionSequence(session, "InstallInitialize"), "old-installer validation precedes transaction");
