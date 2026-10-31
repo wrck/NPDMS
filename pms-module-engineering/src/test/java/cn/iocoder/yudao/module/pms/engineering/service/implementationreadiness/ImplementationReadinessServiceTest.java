@@ -35,8 +35,9 @@ class ImplementationReadinessServiceTest {
     final DeliveryScopePort delivery = mock(DeliveryScopePort.class);
     final SolutionTieredReviewService reviews = mock(SolutionTieredReviewService.class);
     final ImplementationReadinessSnapshotStore store = mock(ImplementationReadinessSnapshotStore.class);
+    final cn.iocoder.yudao.module.pms.engineering.service.installation.InstallationAddressRequirementPolicy installationRequirements = mock(cn.iocoder.yudao.module.pms.engineering.service.installation.InstallationAddressRequirementPolicy.class);
     final ImplementationReadinessService service = new ImplementationReadinessService(snapshots, sources, projects, scopes,
-            devices, arrivals, delivery, reviews, store);
+            devices, arrivals, delivery, reviews, store, installationRequirements);
     final ImplementationReadinessQuery query = new ImplementationReadinessQuery(7L, 9L,
             List.of(new ImplementationReadinessQuery.ExpectedDevice(11L, "SN-11", 3L)));
     final ImplementationReadinessSnapshotDO row = new ImplementationReadinessSnapshotDO();
@@ -98,6 +99,8 @@ class ImplementationReadinessServiceTest {
 
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(7L);
+        when(installationRequirements.inspect(any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.engineering.service.installation.InstallationAddressRequirementPolicy.Decision(Set.of(), ""));
         SecurityFrameworkUtils.setLoginUser(new LoginUser().setId(13L).setTenantId(7L), new MockHttpServletRequest());
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(9L, 41L, Set.of(9L), Set.of()));
         when(projects.inspect(any())).thenReturn(ProjectBusinessContextApi.Context.builder()

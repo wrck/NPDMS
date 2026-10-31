@@ -279,12 +279,11 @@ const completeUpload = async (selection: Pick<FileSelection, 'versionNo' | 'refe
   const selectedItemId = String(props.item.itemId)
   const selectedStableItemKey = props.item.stableItemKey
   const selectedFileKey = fileKey(selection.referenceKey)
-  const [artifact, versions] = await Promise.all([
-    FileApi.getArtifact(selection.artifactId, selectedFileKey),
-    FileApi.getVersions(selection.artifactId, { ...selectedFileKey, pageSize: 20 })
-  ])
+  const artifact = await FileApi.getArtifact(selection.artifactId, selectedFileKey)
   if (String(props.item.itemId) !== selectedItemId) return false
   if (!artifact) throw new Error('文件引用已失效，请刷新后重试')
+  const versions = await FileApi.getVersions(selection.artifactId, { ...selectedFileKey, pageSize: 20 })
+  if (String(props.item.itemId) !== selectedItemId) return false
   const version = versions.items.find((entry) => entry.versionNo === selection.versionNo)
   if (!version) throw new Error('PLT 未返回刚完成的文件版本')
   manualReferenceGeneration++

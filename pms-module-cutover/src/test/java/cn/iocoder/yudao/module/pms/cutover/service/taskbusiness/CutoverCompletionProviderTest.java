@@ -36,7 +36,7 @@ class CutoverCompletionProviderTest {
 
         row.setId(42L); row.setTenantId(1L); row.setProjectId(9L); row.setVersion(3L); row.setTaskStatus("ARCHIVED"); row.setCurrentStage("P6");
         closure.setId(43L); closure.setTaskId(42L); closure.setTenantId(1L); closure.setProjectId(9L); closure.setVersion(1L);
-        closure.setStatusCode("ARCHIVED"); closure.setFinalResultCode("SUCCESS"); closure.setResultRef("closure:43:1");
+        closure.setStatusCode("SUBMITTED"); closure.setFinalResultCode("SUCCESS"); closure.setResultRef("closure:43:1");
         closure.setSubmittedAt(java.time.LocalDateTime.now()); closure.setArchivedAt(java.time.LocalDateTime.now());
         when(mapper.one(any())).thenReturn(row); when(closures.selectByTaskForUpdate(any())).thenReturn(closure);
         when(closures.selectByTask(any())).thenReturn(closure);
@@ -53,6 +53,7 @@ class CutoverCompletionProviderTest {
 
     @Test void failedOrForeignClosureAndUnarchivedTaskCannotCompleteCutover() {
         assertTrue(completed());
+        closure.setStatusCode("DRAFT"); assertFalse(completed()); closure.setStatusCode("SUBMITTED");
         closure.setFinalResultCode("FAILED"); assertFalse(completed());
         closure.setFinalResultCode("SUCCESS"); closure.setProjectId(10L); assertFalse(completed());
         closure.setProjectId(9L); row.setTaskStatus("IN_PROGRESS"); assertFalse(completed());

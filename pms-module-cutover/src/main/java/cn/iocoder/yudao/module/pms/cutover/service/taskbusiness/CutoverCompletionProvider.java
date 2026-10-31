@@ -136,7 +136,7 @@ public class CutoverCompletionProvider implements TaskBusinessObjectProvider, St
         boolean completed = "ARCHIVED".equals(row.getTaskStatus()) && "P6".equals(row.getCurrentStage())
                 && closure != null && Objects.equals(closure.getTenantId(), tenant)
                 && Objects.equals(closure.getProjectId(), project) && Objects.equals(closure.getTaskId(), id)
-                && "ARCHIVED".equals(closure.getStatusCode()) && "SUCCESS".equals(closure.getFinalResultCode())
+                && "SUBMITTED".equals(closure.getStatusCode()) && "SUCCESS".equals(closure.getFinalResultCode())
                 && closure.getSubmittedAt() != null && closure.getArchivedAt() != null
                 && closure.getResultRef() != null && !closure.getResultRef().isBlank();
         return new Snapshot(id, row.getTaskName(), row.getVersion() + ":" +

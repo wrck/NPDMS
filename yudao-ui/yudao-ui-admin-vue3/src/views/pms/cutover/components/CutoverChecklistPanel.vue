@@ -768,6 +768,11 @@ const submit = async () => {
 }
 
 watch(() => props.detail.task.id, () => { draftWrites.reset(); submitBarrier.reset(); void load() }, { immediate: true })
+watch(() => [canSave.value, JSON.stringify(props.detail.devices)], () => {
+  if (loading.value || !checklist.value || readonly.value || !canSave.value) return
+  fillDeviceAnswers()
+  deviceListRequest = loadDeviceList(loadSequence)
+})
 onBeforeUnmount(() => { loadSequence++ })
 </script>
 

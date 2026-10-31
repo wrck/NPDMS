@@ -37,6 +37,7 @@ public class ImplementationReadinessService implements ImplementationReadinessAp
     private final DeliveryScopePort delivery;
     private final SolutionTieredReviewService reviews;
     private final ImplementationReadinessSnapshotStore snapshotStore;
+    private final cn.iocoder.yudao.module.pms.engineering.service.installation.InstallationAddressRequirementPolicy installationRequirements;
 
     @Override @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public CutoverApprovalReadinessResult lockAndRevalidateForApproval(
@@ -199,10 +200,13 @@ public class ImplementationReadinessService implements ImplementationReadinessAp
         var tested = !applicable.contains(SourceCode.EXE_04) ? List.<ImplementationReadinessRules.Record>of()
                 : sources.jointTests(owner).stream().map(row -> new ImplementationReadinessRules.Record(
                 row.getId(), row.getVersion(), row.getEquipmentId(), Integer.valueOf(2).equals(row.getStatus()))).toList();
+        var installationPolicy = applicable.contains(SourceCode.EXE_02)
+                ? installationRequirements.inspect(new ProjectDeviceInstallationQuery(query.tenantId(), query.projectId())) : null;
         return new ImplementationReadinessContextFact(read.scopeVersion(), selected,
                 new ApprovedPlanFact(plan.getId(), plan.getVersion()), List.of(
                 applicable.contains(SourceCode.EXE_01) ? arrival(query, all, lock) : notApplicable(SourceCode.EXE_01),
-                applicable.contains(SourceCode.EXE_02) ? ImplementationReadinessRules.milestone(SourceCode.EXE_02, installed, all) : notApplicable(SourceCode.EXE_02),
+                applicable.contains(SourceCode.EXE_02) ? ImplementationReadinessRules.installation(installed, all,
+                        new ImplementationReadinessRules.InstallationScope(query.projectId(), installationPolicy.exemptDeviceIds(), installationPolicy.version())) : notApplicable(SourceCode.EXE_02),
                 applicable.contains(SourceCode.EXE_03) ? ImplementationReadinessRules.milestone(SourceCode.EXE_03, configured, all) : notApplicable(SourceCode.EXE_03),
                 applicable.contains(SourceCode.EXE_04) ? ImplementationReadinessRules.milestone(SourceCode.EXE_04, tested, all) : notApplicable(SourceCode.EXE_04)),
                 planApplicability);

@@ -7,6 +7,23 @@ import java.util.*;
 public final class ImplementationReadinessRules {
     private ImplementationReadinessRules() { }
     public record Record(Long id, Long version, Long deviceId, boolean completed) { }
+    public record InstallationScope(Long projectId, Set<Long> exemptDeviceIds, String policyVersion) { }
+
+    public static SourceFact installation(List<Record> records, List<DeviceFact> devices, InstallationScope scope) {
+        var required = devices.stream().filter(device -> !scope.exemptDeviceIds().contains(device.deviceId())).toList();
+        var fact = milestone(SourceCode.EXE_02, records, required.isEmpty() ? devices : required);
+        if (fact.sourceObjectIds().isEmpty()) return fact;
+        var marks = new ArrayList<>(fact.watermarkEntries());
+        // The full digest is encoded in two axes: snapshots remain relational and policy changes make them stale.
+        var digest = cn.hutool.crypto.digest.DigestUtil.sha256Hex(scope.policyVersion()).toUpperCase(Locale.ROOT);
+        marks.add(new WatermarkEntry("INSTALL_POLICY_" + digest.substring(0, 32), scope.projectId(), 0L));
+        marks.add(new WatermarkEntry("INSTALL_POLICY_" + digest.substring(32), scope.projectId(), 0L));
+        for (var device : devices) {
+            if (scope.exemptDeviceIds().contains(device.deviceId()))
+                marks.add(new WatermarkEntry("DEVICE_ASSIGNMENT", device.deviceId(), device.projectAssignmentVersion()));
+        }
+        return new SourceFact(fact.sourceCode(), fact.completionStatus(), fact.factVersion(), fact.sourceObjectIds(), marks, fact.reopened());
+    }
 
     public static SourceFact milestone(SourceCode code, List<Record> records, List<DeviceFact> currentDevices) {
         if (currentDevices.isEmpty()) throw new IllegalArgumentException("EXE_DEVICE_SCOPE_EMPTY");

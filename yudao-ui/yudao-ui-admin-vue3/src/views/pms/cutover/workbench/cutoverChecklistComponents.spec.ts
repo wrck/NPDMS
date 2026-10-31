@@ -216,6 +216,26 @@ describe('F-CUT-003 mounted checklist field', () => {
     } finally { page.app.unmount() }
   })
 
+  it('seeds fixed device rows when save permission arrives after checklist loading', async () => {
+    const current = checklistView(null)
+    current.items[0] = { ...current.items[0], stableItemKey: 'SURVEY_DEVICE_LOCATION_PLAN', interfaceFormatCode: 'TABLE',
+      interfaceSchemaSnapshot: '{"columns":[{"code":"serialNumber","label":"设备序列号"},{"code":"deviceName","label":"设备名称"}]}' }
+    checklistApi.getCutoverChecklist.mockReset().mockResolvedValue(current)
+    checklistApi.getCutoverExternalState.mockResolvedValue(null)
+    const detail = ref({ ...taskDetail, allowedActions: ['REQUEST_COLLECTION'] } as CutoverTaskDetail)
+    const page = mount(defineComponent({ setup: () => () => h(CutoverChecklistPanel, { detail: detail.value }) }), {}, controls)
+    try {
+      await flush()
+      expect(getCurrentDeviceSummaries).not.toHaveBeenCalled()
+      detail.value = { ...taskDetail }
+      await vi.waitFor(() => expect(getCurrentDeviceSummaries).toHaveBeenCalledWith([taskDetail.devices[0].deviceId], taskDetail.task.projectId))
+      const values: unknown[] = []
+      const collect = (node: any) => { if (node.props?.['aria-label'] === '设备序列号') values.push(node.props['model-value']); for (const child of node.children || []) collect(child) }
+      collect(page.root)
+      expect(values).toContain('SN-001')
+    } finally { page.app.unmount() }
+  })
+
   it('does not fetch mutable device-list facts for a readonly checklist or without device query permission', async () => {
     const current = checklistView(null)
     current.items[0] = { ...current.items[0], stableItemKey: 'SURVEY_DEVICE_LOCATION_PLAN', interfaceFormatCode: 'TABLE',
