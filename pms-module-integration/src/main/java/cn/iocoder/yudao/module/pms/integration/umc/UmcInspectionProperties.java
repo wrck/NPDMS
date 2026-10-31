@@ -11,10 +11,18 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "pms.integration.umc")
 public class UmcInspectionProperties {
+    private String provider = "java";
     private String baseUrl;
     private String username;
     private String password;
     private String nodeExecutable = "node";
     private String certificateSha256;
     private int timeoutSeconds = 180;
+
+    public void setProvider(String provider) {
+        if (!"java".equals(provider) && !"node".equals(provider)) {
+            throw new IllegalArgumentException("UMC provider must be java or node");
+        }
+        this.provider = provider;
+    }
 }

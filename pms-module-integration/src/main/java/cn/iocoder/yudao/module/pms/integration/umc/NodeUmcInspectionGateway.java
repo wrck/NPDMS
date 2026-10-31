@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /** Independent protocol provider. Business authorization, durable operation/checkpoint storage and
  * PLT registration remain with the caller. One configured UMC account is serialized in this JVM. */
 @Component
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(prefix = "pms.integration.umc", name = "provider", havingValue = "node")
 public class NodeUmcInspectionGateway implements UmcInspectionApi {
     private static final long MAX_BYTES = 52_428_800L;
     private final UmcInspectionProperties properties;
