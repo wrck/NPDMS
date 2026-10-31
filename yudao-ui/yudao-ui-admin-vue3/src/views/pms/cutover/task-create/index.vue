@@ -25,7 +25,7 @@
     </ProjectInformationCard>
     <el-form-item prop="deviceIds" class="create-device-field">
     <ProjectDeviceSelection
-      v-model="selectedDevices" :project-id="selectedProjectId" :disabled="locked"
+      v-model="selectedDevices" :project-id="selectedProjectId" :disabled="locked" batch-select
       :project-loading="projectLoading" :project-error="projectError" empty-text="请添加本次割接设备">
       <template #serial-query>
         <el-input

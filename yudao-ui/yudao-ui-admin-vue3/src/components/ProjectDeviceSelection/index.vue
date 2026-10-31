@@ -67,6 +67,7 @@
       width="min(960px, 94vw)"
       append-to-body
       align-center
+      :class="{ 'project-device-picker': batchSelect }"
     >
       <div class="device-toolbar">
         <el-input
@@ -78,12 +79,17 @@
         <el-button :loading="loading" @click="search">查询</el-button>
       </div>
       <el-alert v-if="pickerError" :title="pickerError" type="error" :closable="false" />
+      <div :class="{ 'project-device-picker__table': batchSelect }">
       <el-table
         v-loading="loading"
+        ref="pickerTable"
         :data="choices"
+        :height="batchSelect ? '100%' : undefined"
         row-key="deviceId"
         empty-text="当前项目没有匹配的已发货设备"
+        @selection-change="batchSelection = $event"
       >
+        <el-table-column v-if="batchSelect" type="selection" width="55" :selectable="canSelect" />
         <el-table-column prop="serialNumber" label="序列号" min-width="210" />
         <el-table-column prop="productCode" label="产品编码" min-width="150" />
         <el-table-column prop="productModel" label="产品型号" min-width="180" />
@@ -101,15 +107,17 @@
           </template></el-table-column
         >
       </el-table>
+      </div>
       <Pagination
         data-testid="project-device-pagination"
+        :class="{ 'project-device-picker__pagination': batchSelect }"
         v-model:page="query.pageNo"
         v-model:limit="query.pageSize"
         :total="total"
         @pagination="loadDevices"
       />
       <template #footer
-        ><el-button type="primary" @click="pickerVisible = false">完成</el-button></template
+        ><el-button v-if="batchSelect" :disabled="disabled || !batchSelection.length" data-testid="batch-add-project-devices" @click="addBatch">添加选中设备（{{ batchSelection.length }}）</el-button><el-button type="primary" @click="pickerVisible = false">完成</el-button></template
       >
     </el-dialog>
   </section>
@@ -131,6 +139,7 @@ const props = withDefaults(
     projectLoading?: boolean
     projectError?: string
     emptyText?: string
+    batchSelect?: boolean
   }>(),
   { emptyText: '请添加本次任务设备' }
 )
@@ -145,14 +154,22 @@ const pickerVisible = ref(false)
 const loading = ref(false)
 const pickerError = ref('')
 const choices = ref<ProjectDevice[]>([])
+const batchSelection = ref<ProjectDevice[]>([])
+const pickerTable = ref<{ clearSelection: () => void }>()
 const total = ref(0)
 const query = reactive({ keyword: '', pageNo: 1, pageSize: 20 })
 let projectSequence = 0
 let pageSequence = 0
 const busy = computed(() => resolving.value || loading.value)
 watch(busy, (value) => emit('busy', value), { immediate: true })
-const isSelected = (id: ProjectSelectionId) =>
-  props.modelValue.some((device) => String(device.deviceId) === String(id))
+const selectedIds = computed(() => new Set(props.modelValue.map((device) => String(device.deviceId))))
+const isSelected = (id: ProjectSelectionId) => selectedIds.value.has(String(id))
+const canSelect = (device: ProjectDevice) => !props.disabled && !isSelected(device.deviceId)
+const addBatch = () => {
+  addDevices(batchSelection.value.filter(canSelect))
+  pickerTable.value?.clearSelection()
+  batchSelection.value = []
+}
 const addDevices = (devices: ProjectDevice[]) => {
   if (props.disabled) return
   const selected = new Map(props.modelValue.map((device) => [String(device.deviceId), device]))
@@ -171,6 +188,7 @@ const loadDevices = async () => {
   const project = String(props.projectId)
   const request = ++pageSequence
   loading.value = true
+  batchSelection.value = []
   pickerError.value = ''
   try {
     // “全部”只改变本地显示数量；服务端仍逐页校验项目范围和每批上限。
@@ -259,6 +277,7 @@ watch(
     serialError.value = ''
     pickerError.value = ''
     choices.value = []
+    batchSelection.value = []
     total.value = 0
   }
 )
@@ -313,5 +332,34 @@ onBeforeUnmount(() => {
   .device-toolbar {
     flex-wrap: wrap;
   }
+}
+</style>
+
+<style>
+.project-device-picker {
+  height: 96vh;
+  display: flex;
+  flex-direction: column;
+}
+.project-device-picker > .el-dialog__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.project-device-picker__table {
+  flex: 1;
+  min-height: 0;
+}
+.project-device-picker__table .el-table__body tr {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 40px;
+}
+.project-device-picker__pagination {
+  align-self: flex-end;
+  flex-shrink: 0;
+}
+.project-device-picker > .el-dialog__footer {
+  flex-shrink: 0;
 }
 </style>
