@@ -171,6 +171,19 @@ beforeEach(() => {
 afterEach(() => apps.splice(0).forEach((app) => app.unmount()))
 
 describe('CLO-01 / CLO-02 ProjectNormalClosurePanel runtime', () => {
+  it('stops cached-page requests and commands on another route, then refreshes when returning', async () => {
+    const page = await setup()
+    const submit = handler(page.root, '提交闭环审批')
+    controls.route.fullPath = '/inspection/tasks'
+    await tick()
+    await submit()
+    expect(ClosureApi.getNormalClosure).toHaveBeenCalledTimes(1)
+    expect(ClosureApi.submitNormalClosure).not.toHaveBeenCalled()
+    controls.route.fullPath = `/projects/${PROJECT}`
+    await tick()
+    expect(ClosureApi.getNormalClosure).toHaveBeenCalledTimes(2)
+    expect(button(page.root, '提交闭环审批')).toBeDefined()
+  })
   it('shows the failed task from the latest closure snapshot', async () => {
     vi.mocked(ClosureApi.getNormalClosure).mockResolvedValue(overview({
       latestSnapshot: snapshot({ passed: false, evidence: JSON.stringify([{ code: 'TASK_BUSINESS_FACTS', passed: false, reason: 'TASK_BUSINESS_FACTS', subjectId: '2114157659904450567' }]) }),
@@ -502,7 +515,7 @@ describe('CLO-01 / CLO-02 ProjectNormalClosurePanel runtime', () => {
       await tick()
       expect(page.updated).not.toHaveBeenCalled()
       expect(ClosureApi.getNormalClosure).toHaveBeenCalledTimes(
-        change === 'unmount' ? 1 : change === 'route' ? 2 : 3
+        change === 'refresh-project' ? 3 : 1
       )
     }
   )

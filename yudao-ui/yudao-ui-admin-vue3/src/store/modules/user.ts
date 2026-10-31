@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { getAccessToken, removeToken } from '@/utils/auth'
 import { CACHE_KEY, useCache, deleteUserCache } from '@/hooks/web/useCache'
 import { getInfo, loginOut } from '@/api/login'
+import { useTagsViewStoreWithOut } from './tagsView'
 
 const { wsCache } = useCache()
 
@@ -62,6 +63,9 @@ export const useUserStore = defineStore('admin-user', {
           userInfo = await getInfo()
         } catch (error) {}
       }
+      if (!this.isSetUser || String(this.user.id) !== String(userInfo.user.id)) {
+        useTagsViewStoreWithOut().$reset()
+      }
       this.permissions = new Set(userInfo.permissions || []) // 兜底为 []
       this.roles = userInfo.roles
       this.user = userInfo.user
@@ -90,6 +94,7 @@ export const useUserStore = defineStore('admin-user', {
       this.resetState()
     },
     resetState() {
+      useTagsViewStoreWithOut().$reset()
       this.permissions = new Set<string>()
       this.roles = []
       this.isSetUser = false

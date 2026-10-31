@@ -40,7 +40,7 @@ it('puts cached panel visibility on native hosts, independent of component root 
   const taskPanel = children.find(node => node.tag === 'ProjectTaskPanel')
   expect(taskPanel.props.find((prop: any) => prop.name === 'on' && prop.arg?.content === 'updated').exp.content).toBe('loadAll')
   expect(children.some(node => node.tag === 'ProjectNormalClosurePanel')).toBe(true)
-  expect(children.some(node => node.tag === 'ProjectClosureGuardPanel')).toBe(true)
+  expect(children.some(node => node.tag === 'ProjectClosureGuardPanel')).toBe(false)
 })
 
 it('hides a multi-root business panel without remounting or losing its local state', async () => {

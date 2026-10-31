@@ -1,11 +1,13 @@
 <script lang="ts" setup>
 import { useTagsViewStore } from '@/store/modules/tagsView'
 import { useAppStore } from '@/store/modules/app'
+import { useUserStore } from '@/store/modules/user'
 import { Footer } from '@/layout/components/Footer'
 
 defineOptions({ name: 'AppView' })
 
 const appStore = useAppStore()
+const userStore = useUserStore()
 
 const footer = computed(() => appStore.getFooter)
 
@@ -39,7 +41,7 @@ provide('reload', reload)
   >
     <router-view v-if="routerAlive">
       <template #default="{ Component, route }">
-        <keep-alive :include="getCaches">
+        <keep-alive :key="userStore.getUser.id" :include="getCaches">
           <component :is="Component" :key="route.fullPath" />
         </keep-alive>
       </template>

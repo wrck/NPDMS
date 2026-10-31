@@ -74,6 +74,8 @@ const openApprovalDetail = useProjectApprovalDetail(),
   route = useRoute(),
   message = useMessage(),
   mobile = useMediaQuery('(max-width: 767px)')
+// AppView caches each full path separately; other pages must not reload this project's panel.
+const ownerPath = route.fullPath
 const overview = ref<ClosureOverview>(),
   loading = ref(false),
   busy = ref(false),
@@ -101,6 +103,7 @@ const eligible = (action: string) => {
   const value = overview.value
   if (
     disposed ||
+    route.fullPath !== ownerPath ||
     props.readonly ||
     loading.value ||
     needsRefresh.value ||
@@ -155,6 +158,7 @@ const applicationLabel = (status: string) =>
   ({ IN_REVIEW: '审批中', APPROVED: '已批准', REJECTED: '已驳回', CANCELLED: '已取消' })[status] ||
   status
 const load = async () => {
+  if (disposed || route.fullPath !== ownerPath) return false
   const epoch = ++generation,
     id = props.projectId,
     path = route.fullPath
@@ -252,8 +256,10 @@ const openProcess = () => {
 watch(
   () => [props.projectId, route.fullPath],
   () => {
+    ++generation
     ++operation
     busy.value = false
+    loading.value = false
     overview.value = undefined
     needsRefresh.value = true
     void load()

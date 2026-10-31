@@ -534,11 +534,6 @@
             :project-id="detail.id"
             @updated="loadAll"
           />
-          <ProjectClosureGuardPanel
-            :project-id="detail.id"
-            :project-name="detail.projectName"
-            :tree-version="treeVersion"
-          />
         </div>
         <div v-if="detail?.id && visitedTabs.has('authorization')" v-show="activeTab === 'authorization'" class="min-w-0" data-testid="project-pane-authorization">
           <ProjectAuthorizationPanel
@@ -611,7 +606,6 @@ import type { ProjectMasterVO, ProjectInstancesVO } from '@/api/pms/project/proj
 const ProjectSplitWizard = defineAsyncComponent(() => import('./components/ProjectSplitPanel.vue'))
 const ProjectTreePanel = defineAsyncComponent(() => import('@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'))
 const ProjectProgressPanel = defineAsyncComponent(() => import('./components/ProjectProgressSummaryPanel.vue'))
-const ProjectClosureGuardPanel = defineAsyncComponent(() => import('./components/ProjectClosureGuardPanel.vue'))
 const ProjectNormalClosurePanel = defineAsyncComponent(() => import('./components/ProjectNormalClosurePanel.vue'))
 const ProjectAuthorizationPanel = defineAsyncComponent(() => import('./components/ProjectAuthorizationPanel.vue'))
 const ProjectGovernancePanel = defineAsyncComponent(() => import('./components/ProjectGovernancePanel.vue'))
