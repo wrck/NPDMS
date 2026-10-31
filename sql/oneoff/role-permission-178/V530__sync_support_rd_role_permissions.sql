@@ -9,7 +9,7 @@ CREATE TEMPORARY TABLE tmp_support_rd_expected (
  role_code VARCHAR(100) NOT NULL, menu_id BIGINT NOT NULL, menu_name VARCHAR(255) NOT NULL,
  permission VARCHAR(255) NOT NULL, menu_type INT NOT NULL, parent_id BIGINT NOT NULL,
  menu_path VARCHAR(255), component VARCHAR(255), PRIMARY KEY (role_code,menu_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 INSERT INTO tmp_support_rd_expected VALUES
   ('probRD', 1185, '工作流程', '', 1, 0, '/bpm', NULL),
   ('probRD', 1200, '审批中心', '', 2, 1185, 'task', NULL),
