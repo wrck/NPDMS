@@ -1,428 +1,58 @@
 <template>
-  <div>
-    <el-card shadow="never">
-      <el-skeleton :loading="loading" animated>
-        <el-row :gutter="16" justify="space-between">
-          <el-col :xl="12" :lg="12" :md="12" :sm="24" :xs="24">
-            <div class="flex items-center">
-              <el-avatar :src="avatar" :size="70" class="mr-16px">
-                <img src="@/assets/imgs/avatar.jpg" alt="" />
-              </el-avatar>
-              <div>
-                <div class="text-20px">
-                  {{ t('workplace.welcome') }} {{ username }} {{ t('workplace.happyDay') }}
-                </div>
-                <div class="mt-10px text-14px text-gray-500">
-                  {{ t('workplace.toady') }}，欢迎使用 NPMS 项目实施交付管理平台
-                </div>
-              </div>
-            </div>
-          </el-col>
-          <el-col :xl="12" :lg="12" :md="12" :sm="24" :xs="24">
-            <div class="h-70px flex items-center justify-end lt-sm:mt-10px">
-              <div class="px-8px text-right">
-                <div class="mb-16px text-14px text-gray-400">项目总数</div>
-                <CountTo
-                  class="text-20px"
-                  :start-val="0"
-                  :end-val="totalSate.project"
-                  :duration="2600"
-                />
-              </div>
-              <el-divider direction="vertical" />
-              <div class="px-8px text-right">
-                <div class="mb-16px text-14px text-gray-400">待办任务</div>
-                <CountTo
-                  class="text-20px"
-                  :start-val="0"
-                  :end-val="totalSate.todo"
-                  :duration="2600"
-                />
-              </div>
-              <el-divider direction="vertical" border-style="dashed" />
-              <div class="px-8px text-right">
-                <div class="mb-16px text-14px text-gray-400">本月访问</div>
-                <CountTo
-                  class="text-20px"
-                  :start-val="0"
-                  :end-val="totalSate.access"
-                  :duration="2600"
-                />
-              </div>
-            </div>
-          </el-col>
-        </el-row>
-      </el-skeleton>
-    </el-card>
-  </div>
-
-  <el-row class="mt-8px" :gutter="8" justify="space-between">
-    <el-col :xl="16" :lg="16" :md="24" :sm="24" :xs="24" class="mb-8px">
-      <el-card shadow="never">
-        <template #header>
-          <div class="h-3 flex justify-between">
-            <span>项目动态</span>
-          </div>
-        </template>
-        <el-skeleton :loading="loading" animated>
-          <el-row :gutter="8" class="gap-y-8px">
-            <el-col
-              v-for="(item, index) in projects"
-              :key="`card-${index}`"
-              :xl="8"
-              :lg="8"
-              :md="8"
-              :sm="24"
-              :xs="24"
-              class="!flex"
-            >
-              <el-card
-                shadow="hover"
-                class="flex-1 cursor-pointer"
-                body-class="flex h-full flex-col"
-                @click="handleProjectClick(item.path)"
-              >
-                <div class="flex items-center">
-                  <Icon
-                    :icon="item.icon"
-                    :size="25"
-                    class="mr-8px flex-none"
-                    :style="{ color: item.color }"
-                  />
-                  <span class="min-w-0 line-clamp-2 text-16px" :title="item.name">{{
-                    item.name
-                  }}</span>
-                </div>
-                <div
-                  class="mt-12px break-all line-clamp-2 text-12px text-gray-400"
-                  :title="item.personal"
-                >
-                  {{ item.personal }}
-                </div>
-                <div
-                  class="mt-auto flex items-center justify-between gap-8px pt-12px text-12px text-gray-400"
-                >
-                  <span class="min-w-0 truncate" :title="item.status">{{ item.status }}</span>
-                  <span class="shrink-0 whitespace-nowrap">
-                    {{ formatTime(item.time, 'yyyy-MM-dd') }}
-                  </span>
-                </div>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-skeleton>
-      </el-card>
-
-      <el-card shadow="never" class="mt-8px">
-        <el-skeleton :loading="loading" animated>
-          <el-row :gutter="20" justify="space-between">
-            <el-col :xl="10" :lg="10" :md="24" :sm="24" :xs="24">
-              <el-card shadow="hover" class="mb-8px">
-                <el-skeleton :loading="loading" animated>
-                  <Echart :options="pieOptionsData" :height="280" />
-                </el-skeleton>
-              </el-card>
-            </el-col>
-            <el-col :xl="14" :lg="14" :md="24" :sm="24" :xs="24">
-              <el-card shadow="hover" class="mb-8px">
-                <el-skeleton :loading="loading" animated>
-                  <Echart :options="barOptionsData" :height="280" />
-                </el-skeleton>
-              </el-card>
-            </el-col>
-          </el-row>
-        </el-skeleton>
-      </el-card>
-    </el-col>
-    <el-col :xl="8" :lg="8" :md="24" :sm="24" :xs="24" class="mb-8px">
-      <el-card shadow="never">
-        <template #header>
-          <div class="h-3 flex justify-between">
-            <span>快捷入口</span>
-          </div>
-        </template>
-        <el-skeleton :loading="loading" animated>
-          <el-row>
-            <el-col v-for="item in shortcut" :key="`team-${item.name}`" :span="8" class="mb-8px">
-              <div class="flex items-center">
-                <Icon :icon="item.icon" class="mr-8px" :style="{ color: item.color }" />
-                <el-link type="default" :underline="false" @click="handleShortcutClick(item.url)">
-                  {{ item.name }}
-                </el-link>
-              </div>
-            </el-col>
-          </el-row>
-        </el-skeleton>
-      </el-card>
-      <el-card shadow="never" class="mt-8px">
-        <template #header>
-          <div class="h-3 flex justify-between">
-            <span>系统公告</span>
-          </div>
-        </template>
-        <el-skeleton :loading="loading" animated>
-          <div v-for="(item, index) in notice" :key="`dynamics-${index}`">
-            <div class="flex items-center">
-              <el-avatar :src="avatar" :size="35" class="mr-16px">
-                <img src="@/assets/imgs/avatar.jpg" alt="" />
-              </el-avatar>
-              <div>
-                <div class="text-14px">
-                  {{ item.type }} : {{ item.title }}
-                </div>
-                <div class="mt-16px text-12px text-gray-400">
-                  {{ formatTime(item.date, 'yyyy-MM-dd') }}
-                </div>
-              </div>
-            </div>
-            <el-divider />
-          </div>
-        </el-skeleton>
-      </el-card>
-    </el-col>
-  </el-row>
+  <main class="delivery-home">
+    <header class="welcome">
+      <div><p class="welcome-kicker">项目交付工作台</p><h1>{{ username }}，你好</h1><p>从待办和项目开始，继续推进交付工作。</p></div>
+      <button v-if="canTodo" class="welcome-action" type="button" @click="router.push('/bpm/task/todo')">查看我的待办 <Icon icon="ep:right" /></button>
+    </header>
+    <div class="workspace">
+      <section v-if="canTodo" class="panel tasks" aria-labelledby="tasks-title">
+        <div class="panel-heading"><div><h2 id="tasks-title">我的待办</h2><p>需要你办理的流程任务</p></div><el-button link type="primary" @click="router.push('/bpm/task/todo')">查看全部</el-button></div>
+        <el-skeleton v-if="todoLoading" :rows="4" animated />
+        <p v-else-if="todoError" class="empty">待办加载失败，请稍后重试。 <el-button link type="primary" @click="loadTodos">重试</el-button></p>
+        <p v-else-if="!todos.length" class="empty">暂无待办任务</p>
+        <ul v-else class="rows"><li v-for="task in todos" :key="task.id"><div><strong>{{ task.processInstance?.name || task.name || '待办任务' }}</strong><span>{{ task.name || '流程任务' }}</span></div><span>{{ task.processInstance?.startUser?.nickname || '—' }}</span></li></ul>
+      </section>
+      <section v-if="canProject" class="panel projects" aria-labelledby="projects-title">
+        <div class="panel-heading"><div><h2 id="projects-title">项目列表</h2><p>查看当前账号可访问的项目</p></div><el-button link type="primary" @click="router.push('/pms/project-management/projects')">查看全部</el-button></div>
+        <el-skeleton v-if="projectLoading" :rows="4" animated />
+        <p v-else-if="projectError" class="empty">项目加载失败，请稍后重试。 <el-button link type="primary" @click="loadProjects">重试</el-button></p>
+        <p v-else-if="!projects.length" class="empty">暂无可访问的项目</p>
+        <ul v-else class="rows"><li v-for="project in projects" :key="project.id"><button class="project-link" type="button" @click="openProject(project.id)"><strong>{{ project.projectName || '未命名项目' }}</strong><span>{{ project.projectCode || '—' }}</span></button><span>{{ project.customerName || '—' }}</span></li></ul>
+      </section>
+      <aside class="panel shortcuts"><div class="panel-heading"><div><h2>常用功能</h2><p>进入已有业务工作台</p></div></div><nav aria-label="常用功能"><button v-for="item in visibleShortcuts" :key="item.path" type="button" @click="router.push(item.path)"><Icon :icon="item.icon" :size="20" /><span><strong>{{ item.name }}</strong><small>{{ item.description }}</small></span><Icon icon="ep:arrow-right" /></button><p v-if="!visibleShortcuts.length" class="empty">暂无可访问的快捷入口</p></nav></aside>
+    </div>
+  </main>
 </template>
-<script lang="ts" setup>
-import { set } from 'lodash-es'
-import { EChartsOption } from 'echarts'
-import { formatTime } from '@/utils'
-
-import { useUserStore } from '@/store/modules/user'
-import type { WorkplaceTotal, Project, Notice, Shortcut } from './types'
-import { pieOptions, barOptions } from './echarts-data'
+<script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/store/modules/user'
+import { checkPermi } from '@/utils/permission'
+import { getTaskTodoPage } from '@/api/bpm/task'
+import { getProjectPage, type ProjectMasterVO } from '@/api/pms/project/projects'
 
 defineOptions({ name: 'Index' })
-
-const { t } = useI18n()
 const router = useRouter()
 const userStore = useUserStore()
-const loading = ref(true)
-const avatar = userStore.getUser.avatar
-const username = userStore.getUser.nickname
-const pieOptionsData = reactive<EChartsOption>(pieOptions) as EChartsOption
-// 获取统计数
-let totalSate = reactive<WorkplaceTotal>({
-  project: 0,
-  access: 0,
-  todo: 0
-})
-
-const getCount = async () => {
-  const data = {
-    project: 40,
-    access: 2340,
-    todo: 10
-  }
-  totalSate = Object.assign(totalSate, data)
-}
-
-// 获取项目动态
-let projects = reactive<Project[]>([])
-const getProject = async () => {
-  const data = [
-    {
-      name: '项目组合管理',
-      icon: 'simple-icons:springboot',
-      personal: '项目组合与项目父子树独立建模',
-      status: '进行中',
-      time: new Date('2026-07-01'),
-      color: '#6DB33F',
-      path: '/pms/project-management/governance/portfolio'
-    },
-    {
-      name: '项目主数据',
-      icon: 'ep:folder-opened',
-      personal: '项目分类、重大项、经理指派',
-      status: '进行中',
-      time: new Date('2026-07-10'),
-      color: '#409EFF',
-      path: '/pms/project-management/projects'
-    },
-    {
-      name: '任务 WBS',
-      icon: 'ep:tickets',
-      personal: '选择项目后查看任务与工作分解结构',
-      status: '规划中',
-      time: new Date('2026-07-15'),
-      color: '#ff4d4f',
-      path: '/pms/project-management/projects'
-    },
-    {
-      name: '单机风险',
-      icon: 'ep:warning',
-      personal: '风险识别、确认、CRM 同步与关闭',
-      status: '进行中',
-      time: new Date('2026-07-20'),
-      color: '#1890ff',
-      path: '/pms/engineering/safeguard/imp-risk'
-    },
-    {
-      name: '技术公告',
-      icon: 'ep:bell',
-      personal: '公告发布、停产停维预检查',
-      status: '进行中',
-      time: new Date('2026-07-25'),
-      color: '#e18525',
-      path: '/pms/engineering/safeguard/kno-announcement'
-    },
-    {
-      name: '授权管理',
-      icon: 'ep:document-checked',
-      personal: '授权提交、审批、回执与终止',
-      status: '进行中',
-      time: new Date('2026-07-30'),
-      color: '#2979ff',
-      path: '/pms/engineering/safeguard/plt-authorization'
-    }
-  ]
-  projects = Object.assign(projects, data)
-}
-
-// 获取通知公告
-let notice = reactive<Notice[]>([])
-const getNotice = async () => {
-  const data = [
-    {
-      title: 'NPMS V1 版本已通过验收，38 个 PMS 页面加载正常',
-      type: '版本发布',
-      keys: ['V1'],
-      date: new Date('2026-07-30')
-    },
-    {
-      title: 'V2 工程交付阶段功能开发进行中',
-      type: '研发进展',
-      keys: ['V2', '工程'],
-      date: new Date('2026-07-30')
-    },
-    {
-      title: '后端 58080、前端 18081 端口已固化',
-      type: '环境配置',
-      keys: ['端口'],
-      date: new Date('2026-07-30')
-    },
-    {
-      title: 'Docker 仅承载基础设施，前后端在宿主机运行',
-      type: '部署规范',
-      keys: ['Docker'],
-      date: new Date('2026-07-30')
-    }
-  ]
-  notice = Object.assign(notice, data)
-}
-
-// 获取快捷入口
-let shortcut = reactive<Shortcut[]>([])
-
-const getShortcut = async () => {
-  const data = [
-    {
-      name: '首页',
-      icon: 'ion:home-outline',
-      url: '/',
-      color: '#1fdaca'
-    },
-    {
-      name: '项目主数据',
-      icon: 'ep:folder-opened',
-      url: '/pms/project-management/project',
-      color: '#ff6b6b'
-    },
-    {
-      name: '单机风险',
-      icon: 'ep:warning',
-      url: '/pms/engineering/safeguard/imp-risk',
-      color: '#7c3aed'
-    },
-    {
-      name: '技术公告',
-      icon: 'ep:bell',
-      url: '/pms/engineering/safeguard/kno-announcement',
-      color: '#3fb27f'
-    },
-    {
-      name: '授权管理',
-      icon: 'ep:document-checked',
-      url: '/pms/engineering/safeguard/plt-authorization',
-      color: '#4daf1bc9'
-    },
-    {
-      name: '公告预检查',
-      icon: 'ep:document',
-      url: '/pms/engineering/safeguard/kno-announcement-check',
-      color: '#1a73e8'
-    }
-  ]
-  shortcut = Object.assign(shortcut, data)
-}
-
-// 用户来源
-const getUserAccessSource = async () => {
-  const data = [
-    { value: 335, name: 'analysis.directAccess' },
-    { value: 310, name: 'analysis.mailMarketing' },
-    { value: 234, name: 'analysis.allianceAdvertising' },
-    { value: 135, name: 'analysis.videoAdvertising' },
-    { value: 1548, name: 'analysis.searchEngines' }
-  ]
-  set(
-    pieOptionsData,
-    'legend.data',
-    data.map((v) => t(v.name))
-  )
-  pieOptionsData!.series![0].data = data.map((v) => {
-    return {
-      name: t(v.name),
-      value: v.value
-    }
-  })
-}
-const barOptionsData = reactive<EChartsOption>(barOptions) as EChartsOption
-
-// 周活跃量
-const getWeeklyUserActivity = async () => {
-  const data = [
-    { value: 13253, name: 'analysis.monday' },
-    { value: 34235, name: 'analysis.tuesday' },
-    { value: 26321, name: 'analysis.wednesday' },
-    { value: 12340, name: 'analysis.thursday' },
-    { value: 24643, name: 'analysis.friday' },
-    { value: 1322, name: 'analysis.saturday' },
-    { value: 1324, name: 'analysis.sunday' }
-  ]
-  set(
-    barOptionsData,
-    'xAxis.data',
-    data.map((v) => t(v.name))
-  )
-  set(barOptionsData, 'series', [
-    {
-      name: t('analysis.activeQuantity'),
-      data: data.map((v) => v.value),
-      type: 'bar'
-    }
-  ])
-}
-
-const getAllApi = async () => {
-  await Promise.all([
-    getCount(),
-    getProject(),
-    getNotice(),
-    getShortcut(),
-    getUserAccessSource(),
-    getWeeklyUserActivity()
-  ])
-  loading.value = false
-}
-
-const handleProjectClick = (path: string) => {
-  router.push(path)
-}
-
-const handleShortcutClick = (url: string) => {
-  router.push(url)
-}
-
-getAllApi()
+const username = computed(() => userStore.getUser.nickname || '用户')
+const canTodo = computed(() => checkPermi(['bpm:task:query']))
+const canProject = computed(() => checkPermi(['pms:project:query']))
+const shortcuts = [
+  { name: '项目列表', description: '查看项目及阶段任务', path: '/pms/project-management/projects', permission: 'pms:project:query', icon: 'ep:folder-opened' },
+  { name: '我的待办', description: '办理流程任务', path: '/bpm/task/todo', permission: 'bpm:task:query', icon: 'ep:document-checked' },
+  { name: '割接任务', description: '查看和办理割接', path: '/pms/cutover/tasks', permission: 'pms:cutover-task:query', icon: 'ep:connection' },
+  { name: '巡检任务', description: '查看巡检任务', path: '/pms/inspection/tasks', permission: 'pms:inspection-task:query', icon: 'ep:search' }
+]
+const visibleShortcuts = computed(() => shortcuts.filter(item => checkPermi([item.permission]) && router.getRoutes().some(route => route.path === item.path)))
+const todos = ref<Array<{ id: string; name?: string; processInstance?: { name?: string; startUser?: { nickname?: string } } }>>([])
+const projects = ref<ProjectMasterVO[]>([])
+const todoLoading = ref(false), projectLoading = ref(false), todoError = ref(false), projectError = ref(false)
+const loadTodos = async () => { todoLoading.value = true; todoError.value = false; try { const data = await getTaskTodoPage({ pageNo: 1, pageSize: 5 }); todos.value = data?.list || [] } catch { todoError.value = true } finally { todoLoading.value = false } }
+const loadProjects = async () => { projectLoading.value = true; projectError.value = false; try { const data = await getProjectPage({ pageNo: 1, pageSize: 5 }); projects.value = data?.list || [] } catch { projectError.value = true } finally { projectLoading.value = false } }
+const openProject = (id?: number) => { if (id) router.push({ path: '/pms/project-management/project-master-detail', query: { projectId: id } }) }
+onMounted(() => { if (canTodo.value) void loadTodos(); if (canProject.value) void loadProjects() })
 </script>
+<style scoped>
+.delivery-home{--ink:#17324d;--muted:var(--el-text-color-secondary);--line:var(--el-border-color-lighter);--accent:var(--el-color-primary);max-width:1520px;margin:auto;color:var(--ink)}
+.welcome{display:flex;justify-content:space-between;align-items:end;gap:24px;padding:28px 32px;background:#e9f3fb;border-left:5px solid var(--accent);border-radius:5px;color:#17324d}.welcome-kicker{color:#356a94;font-size:13px;font-weight:600}.welcome h1{font-size:27px;line-height:1.3;margin:7px 0}.welcome p:last-child{color:#526b80}.panel-heading p{color:var(--muted);margin:5px 0 0;font-size:13px}.welcome-action{border:0;border-radius:4px;background:var(--accent);color:white;padding:11px 16px;cursor:pointer;white-space:nowrap}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 280px;gap:16px;margin-top:16px;align-items:start}.panel{background:var(--el-bg-color-overlay,#fff);border:1px solid var(--line);border-radius:5px;padding:22px;min-width:0}.panel-heading{display:flex;justify-content:space-between;gap:12px;align-items:start;margin-bottom:20px}.panel h2{font-size:17px;margin:0;color:var(--el-text-color-primary)}.rows{list-style:none;margin:0;padding:0}.rows li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 0;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}.rows strong,.rows span{display:block}.rows strong{font-size:14px;color:var(--el-text-color-primary);font-weight:600}.rows div span,.project-link span{margin-top:6px}.project-link{border:0;background:none;padding:0;text-align:left;cursor:pointer}.project-link:hover strong{color:var(--accent)}.shortcuts nav{display:grid}.shortcuts nav button{display:flex;align-items:center;gap:12px;padding:14px 0;text-align:left;border:0;border-top:1px solid var(--line);background:none;color:var(--accent);cursor:pointer}.shortcuts nav button>span{flex:1}.shortcuts strong,.shortcuts small{display:block}.shortcuts strong{font-size:14px;color:var(--el-text-color-primary)}.shortcuts small{margin-top:4px;color:var(--muted)}.empty{color:var(--muted);font-size:14px;padding:24px 0}button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}@media(max-width:1200px){.workspace{grid-template-columns:repeat(2,minmax(0,1fr))}.shortcuts{grid-column:1/-1}.shortcuts nav{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px}}@media(max-width:700px){.welcome{align-items:start;flex-direction:column;padding:22px}.workspace{grid-template-columns:1fr}.shortcuts{grid-column:auto}.shortcuts nav{grid-template-columns:1fr}}
+</style>
