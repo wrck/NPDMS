@@ -741,7 +741,6 @@ const projectProductKinds = [
 // 配置Log 自全流程业务基本信息组迁入（1.1.1.1，从属 1.1.1 序列号详情；原组成员与项目概览重复已移除）
 const overviewSteps: { key: string; label: string; icon: string; pending?: boolean; permission?: string[] }[] = [
   { key: 'base', label: '基本信息', icon: 'ep:document' },
-  { key: 'customer', label: '客户信息', icon: 'ep:office-building' },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
   { key: 'product-lists', label: '产品清单', icon: 'ep:collection', permission: ['pms:project:query', 'pms:device:query'] },

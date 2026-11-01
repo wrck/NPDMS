@@ -379,9 +379,6 @@ v-model="query.customerCode" :api="getCustomerPage"
               详情
             </el-button>
             <el-button
-link type="primary" v-hasPermi="['pms:project:update']"
-              @click="customerCorrectionRef?.open(row)">更正客户</el-button>
-            <el-button
               link
               type="success"
               @click="goMembers(row)"
@@ -1087,8 +1084,6 @@ v-if="officeTotal > 0" v-model:current-page="officePage" :page-size="10" :total=
       </template>
     </Dialog>
 
-    <!-- ============ 更正客户弹窗（与 inheritance 列表共用组件） ============ -->
-    <CustomerCorrectionDialog ref="customerCorrectionRef" @updated="load" />
   </div>
 </template>
 
@@ -1102,7 +1097,7 @@ import { useCreationTemplateMatch } from "@/views/pms/project/projects/useCreati
  *
  * 列表（四维/状态/名称过滤）→ 创建向导（基本信息 → 实时模板匹配 → 确认提交）
  * → 详情抽屉（基本信息/生命周期实例五要素/成员区间）→ 编辑（BR-7 可编辑属性）
- * / 更正客户 / 项目成员（列表样式与按钮对齐 inheritance 项目列表）。
+ * / 项目成员。
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
@@ -1126,7 +1121,6 @@ import * as DeptApi from '@/api/system/dept'
 import type { DeptVO } from '@/api/system/dept'
 import { createSubmissionIdempotencyState } from './submissionIdempotency'
 import ProjectStatusTag from './ProjectStatusTag.vue'
-import CustomerCorrectionDialog from '../inheritance/projects/CustomerCorrectionDialog.vue'
 import { getSelectableCustomers, type SelectedCustomer } from '../inheritance/projects/customerSelection'
 import { getCustomerPage } from '@/api/pms/customer'
 import ProjectOverdueTags from './ProjectOverdueTags.vue'
@@ -1661,8 +1655,6 @@ const goMembers = (row: ProjectMasterVO) => {
     query: { projectId: row.id, tab: 'members' }
   })
 }
-
-const customerCorrectionRef = ref<InstanceType<typeof CustomerCorrectionDialog>>()
 
 const openDetail = async (row: ProjectMasterVO) => {
   detailTab.value = 'base'

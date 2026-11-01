@@ -25,7 +25,6 @@ vi.mock('@/api/pms/customer', () => ({ getCustomerPage: vi.fn() }))
 vi.mock('@/api/pms/commerce', () => ({ getContractCreationSource: vi.fn() }))
 vi.mock('../inheritance/projects/customerSelection', () => ({ getSelectableCustomers: vi.fn() }))
 vi.mock('./contractSelection', () => ({ getSelectableContracts: vi.fn() }))
-vi.mock('../inheritance/projects/CustomerCorrectionDialog.vue', () => ({ default: { render: () => null } }))
 vi.mock('../project-templates/TemplateMatchDiagnostics.vue', () => ({ default: { render: () => null } }))
 
 const apps: Array<{ unmount: () => void }> = []
