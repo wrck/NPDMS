@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.unmock('@/config/axios/service')
 const messages = vi.hoisted(() => ({ error: vi.fn() }))
-vi.mock('element-plus', () => ({ ElMessage: messages, ElMessageBox: {}, ElNotification: {} }))
+const notifications = vi.hoisted(() => ({ error: vi.fn() }))
+vi.mock('element-plus', () => ({ ElMessage: messages, ElMessageBox: {}, ElNotification: notifications }))
 vi.mock('@/utils/auth', () => ({
   getAccessToken: vi.fn(), getRefreshToken: vi.fn(), getTenantId: vi.fn(),
   getVisitTenantId: vi.fn(), removeToken: vi.fn(), setToken: vi.fn()
@@ -24,6 +25,7 @@ const translations: Record<string, string> = {
 describe('HTTP 错误信息展示', () => {
   beforeEach(() => {
     messages.error.mockClear()
+    notifications.error.mockClear()
     vi.stubGlobal('useI18n', () => ({ t: (key: string) => translations[key] || key }))
     vi.spyOn(console, 'log').mockImplementation(() => {})
   })
@@ -58,6 +60,19 @@ describe('HTTP 错误信息展示', () => {
   it('尊重由页面自行呈现错误的静默请求', async () => {
     await rejectResponse({ msg: '方案内容尚未完整' }, true)
     expect(messages.error).not.toHaveBeenCalled()
+  })
+
+  it('仅静默指定业务错误，服务器故障仍提示', async () => {
+    const options = { silentBusinessErrorCodes: [403] }
+    const respond = (code: number) => service.get('/public-test', {
+      ...options,
+      adapter: async config => ({ data: { code, msg: 'failed' }, status: 200, statusText: 'OK', headers: new AxiosHeaders(), config, request: {} })
+    })
+    await expect(respond(403)).rejects.toBeDefined()
+    expect(messages.error).not.toHaveBeenCalled()
+    expect(notifications.error).not.toHaveBeenCalled()
+    await expect(respond(500)).rejects.toBeDefined()
+    expect(messages.error).toHaveBeenCalledOnce()
   })
 
   it('将 HTTP 200 中明确的业务拒绝保留为响应错误，不误判为结果未知', async () => {

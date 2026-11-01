@@ -44,7 +44,14 @@ public class SatisfactionQuestionnairePublicController {
     @PermitAll
     public CommonResult<SatisfactionAccessGrantService.PublicQuestionnaire> inspect(
             @PathVariable("token") String token) {
-        return withTenant(() -> success(grantService.inspect(TenantContextHolder.getRequiredTenantId(), token)));
+        try {
+            return withTenant(() -> success(grantService.inspect(TenantContextHolder.getRequiredTenantId(), token)));
+        } catch (IllegalStateException ex) {
+            if ("SATISFACTION_GRANT_UNAVAILABLE".equals(ex.getMessage())) {
+                return CommonResult.error(403, "链接已过期、已失效或无权访问。");
+            }
+            throw ex;
+        }
     }
 
     @PostMapping("/{token}/responses")

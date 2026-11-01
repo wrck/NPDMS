@@ -214,7 +214,7 @@ service.interceptors.response.use(
         // hard coding：忽略这个提示，直接登出
         console.log(msg)
         return handleAuthorized()
-      } else if (!(config as any).silentError) {
+      } else if (!(config as any).silentError && !(config as any).silentBusinessErrorCodes?.includes(code)) {
         ElNotification.error({ title: msg })
       }
       // 割接需要区分明确业务拒绝与断网后的未知结果，保留实际响应及恢复指令。

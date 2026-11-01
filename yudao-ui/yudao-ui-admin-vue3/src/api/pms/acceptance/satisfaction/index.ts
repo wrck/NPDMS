@@ -187,6 +187,7 @@ export const inspectPublicQuestionnaire = (token: string, tenantId: string | num
   request.get<PublicQuestionnaire>({
     url: `/api/v1/pms/satisfaction-questionnaires/${encodeURIComponent(token)}`,
     baseURL: customerConfirmationBaseUrl(),
+    silentBusinessErrorCodes: [403],
     headers: { ...tenantHeaders(tenantId), isToken: false }
   })
 
