@@ -1,0 +1,23 @@
+19:24:07.215 [main] INFO org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration -- Found 2 Engine Configurators in total:
+19:24:07.218 [main] INFO org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration -- class org.flowable.eventregistry.impl.configurator.EventRegistryEngineConfigurator (priority:100000)
+19:24:07.218 [main] INFO org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration -- class org.flowable.idm.engine.configurator.IdmEngineConfigurator (priority:150000)
+19:24:07.218 [main] INFO org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration -- Executing beforeInit() of class org.flowable.eventregistry.impl.configurator.EventRegistryEngineConfigurator (priority:100000)
+19:24:07.242 [main] INFO org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration -- Executing beforeInit() of class org.flowable.idm.engine.configurator.IdmEngineConfigurator (priority:150000)
+19:24:07.392 [main] INFO org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration -- Configuring Datasource with following properties (omitted password for security)
+19:24:07.392 [main] INFO org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration -- datasource driver : com.mysql.cj.jdbc.Driver
+19:24:07.392 [main] INFO org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration -- datasource url : jdbc:mysql://127.0.0.1:24306/npdms_prod_178_init_verify_r2_20261101?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
+19:24:07.392 [main] INFO org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration -- datasource user name : root
+19:24:08.577 [main] INFO org.flowable.common.engine.impl.async.DefaultAsyncTaskExecutor -- Creating thread pool queue of size 100
+19:24:08.578 [main] INFO org.flowable.common.engine.impl.async.DefaultAsyncTaskExecutor -- Creating thread factory with naming pattern flowable-async-task-invoker-thread-%d
+19:24:08.579 [main] INFO org.flowable.common.engine.impl.async.DefaultAsyncTaskExecutor -- Creating executor service with corePoolSize 8, maxPoolSize 8 and keepAliveTime 5000
+19:24:08.579 [main] INFO org.flowable.common.engine.impl.async.DefaultAsyncTaskExecutor -- Using rejectedExecutionHandler java.util.concurrent.ThreadPoolExecutor$CallerRunsPolicy@78116659
+19:24:08.580 [main] INFO org.flowable.common.engine.impl.async.DefaultAsyncTaskExecutor -- Creating thread pool queue of size 2048
+19:24:08.580 [main] INFO org.flowable.common.engine.impl.async.DefaultAsyncTaskExecutor -- Creating thread factory with naming pattern flowable-async-job-executor-thread-%d
+19:24:08.580 [main] INFO org.flowable.common.engine.impl.async.DefaultAsyncTaskExecutor -- Creating executor service with corePoolSize 8, maxPoolSize 8 and keepAliveTime 5000
+19:24:08.581 [main] INFO org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration -- Executing configure() of class org.flowable.eventregistry.impl.configurator.EventRegistryEngineConfigurator (priority:100000)
+19:24:08.600 [main] INFO org.flowable.eventregistry.impl.EventRegistryEngineImpl -- EventRegistryEngine default created
+19:24:08.600 [main] INFO org.flowable.engine.impl.cfg.StandaloneProcessEngineConfiguration -- Executing configure() of class org.flowable.idm.engine.configurator.IdmEngineConfigurator (priority:150000)
+19:24:08.607 [main] INFO org.flowable.idm.engine.impl.IdmEngineImpl -- IdmEngine default created
+19:24:08.716 [main] INFO org.flowable.engine.impl.ProcessEngineImpl -- ProcessEngine default created
+19:24:08.748 [main] INFO org.flowable.engine.impl.cmd.ValidateV5EntitiesCmd -- Total of v5 deployments found: 0
+PRODUCTION_ENGINE_PROBE_OK: schema-update=false, definitions=11, all BPMN models readable

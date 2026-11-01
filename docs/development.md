@@ -53,6 +53,34 @@ Spring AI 自动配置、WebSocket、API 加密和 JustAuth 的影响边界未�
 
 ## 首次启动
 
+### 已排除退役对象的空库初始化入口
+
+正式初始化以 [178 来源的 B530 发布包](../sql/releases/production-178-v530-r2/README.md)
+为准：结构与选定正式配置直接来自 178 最终快照，不再从 B498 或历史 SQL 回放推导。
+已有库仍沿用原迁移链。`compose.baseline.yaml` 仅用于本地空库演练，正式服务器
+使用 `scripts/production/operate.sh` 的原生 Flyway 入口。
+
+先执行以下纯文件操作，不连接数据库：
+
+```powershell
+python -B scripts/prepare_baseline_migrations.py
+python -B scripts/prepare_baseline_migrations.py --check
+```
+
+产物在 `.run/baseline-migrations`，`manifest.json` 记录来源 SHA-256 和排除依据。
+生成器核对冻结 B530 摘要、重复版本、已退役对象重新创建及输出目录混入其他文件；
+原 SQL 按字节复制，只追加 V530 之后的迁移，不重新执行来源历史。
+每次增加正式迁移后重新生成并检查。本地验证目标连接使用
+`NPDMS_RELEASE_JDBC_URL`、`NPDMS_RELEASE_DB_USER`、`NPDMS_RELEASE_DB_PASSWORD`，
+不提供默认目标或凭据。经目标库执行授权后才可使用
+`docker compose -f compose.baseline.yaml run --rm migrate migrate`。
+
+此入口仅供新空库及由此入口初始化的数据库后续升级。已有数据库继续各自原迁移链；
+不得把 `compose.fresh.yaml` 的旧 fresh 链切换到此入口，不执行 `repair` 或改历史记录。
+管理员执行新包的 `bootstrap-admin.sql`；文件存储与外部连接使用目标环境的实际配置，
+不得复制 178 凭据。新包已有正式模板及其流程定义，不使用旧包的草稿发布说明或数量校验。
+结构、配置及初始化验证见新包说明；正式环境的人员授权和浏览器业务验收仍须单独完成。
+
 ### 1. 启动基础设施（Docker）
 
 ```powershell

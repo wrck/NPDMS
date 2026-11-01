@@ -1,0 +1,23 @@
+{
+  "schema": "npdms_prod_178_review_20261101",
+  "source178Touched": false,
+  "before": [
+    {
+      "id": 1,
+      "status": 1,
+      "uninitialized": 1,
+      "password_length": 20
+    }
+  ],
+  "missingHashRejected": true,
+  "after": [
+    {
+      "id": 1,
+      "status": 0,
+      "uninitialized": 0,
+      "password_length": 60
+    }
+  ],
+  "repeatBootstrapRejected": true,
+  "syntheticCredential": "Random test secret existed only in process memory; only hash stored in this new local database. Not a production credential."
+}
