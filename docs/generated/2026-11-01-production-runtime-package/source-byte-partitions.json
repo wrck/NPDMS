@@ -1,0 +1,460 @@
+{
+  "sourceReadOnly": 1,
+  "table": "fb_shipment_barcode",
+  "fields": [
+    "pack_id",
+    "barcode",
+    "uuid"
+  ],
+  "bounds": {
+    "lo": 1,
+    "hi": 4987061,
+    "n": 4305590
+  },
+  "chunks": [
+    {
+      "after": 0,
+      "through": 100001,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 100001,
+      "through": 200002,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 200002,
+      "through": 300003,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 300003,
+      "through": 400004,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 400004,
+      "through": 500005,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 500005,
+      "through": 600006,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 600006,
+      "through": 700007,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 700007,
+      "through": 800008,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 800008,
+      "through": 900009,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 900009,
+      "through": 1000010,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 1000010,
+      "through": 1100011,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 1100011,
+      "through": 1200012,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 1200012,
+      "through": 1300013,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 1300013,
+      "through": 1400014,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 1400014,
+      "through": 1500015,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 1500015,
+      "through": 1600016,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 1600016,
+      "through": 1700017,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 1700017,
+      "through": 1800018,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 1800018,
+      "through": 1900019,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 1900019,
+      "through": 2000020,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 2000020,
+      "through": 2100021,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 2100021,
+      "through": 2200022,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 2200022,
+      "through": 2300023,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 2300023,
+      "through": 2400024,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 2400024,
+      "through": 2500025,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 2500025,
+      "through": 2600026,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 2600026,
+      "through": 2700027,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 2700027,
+      "through": 2800028,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 2800028,
+      "through": 2900029,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 2900029,
+      "through": 3000030,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 3000030,
+      "through": 3100031,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 3100031,
+      "through": 3200032,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 3200032,
+      "through": 3300033,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 3300033,
+      "through": 3400034,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 3400034,
+      "through": 3500035,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 3500035,
+      "through": 3600036,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 3600036,
+      "through": 3705782,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 3705782,
+      "through": 3818666,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 3818666,
+      "through": 3981216,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 3981216,
+      "through": 4230230,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 4230230,
+      "through": 4471488,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 4471488,
+      "through": 4724883,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 4724883,
+      "through": 4976048,
+      "result": {
+        "n": 100001,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    },
+    {
+      "after": 4976048,
+      "through": 4987061,
+      "result": {
+        "n": 5547,
+        "pack_id": "0",
+        "barcode": "0",
+        "uuid": "0"
+      }
+    }
+  ],
+  "writes": 0,
+  "ddl": 0,
+  "allByteValuesPreserved": true,
+  "singleReadOnlyTransaction": true
+}

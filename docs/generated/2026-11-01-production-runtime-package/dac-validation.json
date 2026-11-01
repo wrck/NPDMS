@@ -1,0 +1,233 @@
+{
+  "source": "docs/generated/2026-11-01-production-migration-rehearsal/attempt-202857/result.json",
+  "sourceSha256": "286b469ec6f9c268fdc6e4147fffbc3b4001c980e71276391efa2fe4baebcc37",
+  "mysql": {
+    "version": "8.4.13",
+    "log_bin": 1,
+    "trust_function_creators": 0,
+    "require_secure_transport": 1,
+    "binlog_format": "ROW"
+  },
+  "flyway_runtime": {
+    "archive": "E:\\AICoding\\Projects\\NPDMS\\.run\\ssh-install-session-20261030\\packages\\flyway-commandline-11.10.5-linux-x64.tar.gz",
+    "sha256": "305e1f47816168cb6f99bca1b3c9eb81d8ebb0a96f7d077ac8d55e4489a33e2a",
+    "driver": "com.mysql.cj.jdbc.Driver",
+    "connector_version": "9.7.0",
+    "connector_sha256": "0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44",
+    "prerequisite": "Add explicit MySQL driver; default MariaDB 2.7.11 did not apply MySQL VERIFY_IDENTITY options in prior isolated attempt."
+  },
+  "case": {
+    "tables": 24,
+    "columns": 277,
+    "triggers": 0,
+    "foreign_keys": 20,
+    "foreign_key_violations": [],
+    "seed_rows": 0,
+    "nonempty_tables": {},
+    "history": [
+      {
+        "installed_rank": 1,
+        "version": "1",
+        "description": "create device ops baseline",
+        "type": "SQL",
+        "script": "V1__create_device_ops_baseline.sql",
+        "checksum": 1927113423,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:22"
+        },
+        "execution_time": 656,
+        "success": 1
+      },
+      {
+        "installed_rank": 2,
+        "version": "13",
+        "description": "create parser registry",
+        "type": "SQL",
+        "script": "V13__create_parser_registry.sql",
+        "checksum": 867053383,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:22"
+        },
+        "execution_time": 113,
+        "success": 1
+      },
+      {
+        "installed_rank": 3,
+        "version": "14",
+        "description": "create parser tasks",
+        "type": "SQL",
+        "script": "V14__create_parser_tasks.sql",
+        "checksum": -1776884044,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:23"
+        },
+        "execution_time": 206,
+        "success": 1
+      },
+      {
+        "installed_rank": 4,
+        "version": "15",
+        "description": "create parser worker capabilities",
+        "type": "SQL",
+        "script": "V15__create_parser_worker_capabilities.sql",
+        "checksum": -1787918789,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:23"
+        },
+        "execution_time": 95,
+        "success": 1
+      },
+      {
+        "installed_rank": 5,
+        "version": "16",
+        "description": "link collection parser tasks",
+        "type": "SQL",
+        "script": "V16__link_collection_parser_tasks.sql",
+        "checksum": 191958773,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:23"
+        },
+        "execution_time": 39,
+        "success": 1
+      },
+      {
+        "installed_rank": 6,
+        "version": "17",
+        "description": "record parser submission identity",
+        "type": "SQL",
+        "script": "V17__record_parser_submission_identity.sql",
+        "checksum": -1663092630,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:23"
+        },
+        "execution_time": 326,
+        "success": 1
+      },
+      {
+        "installed_rank": 7,
+        "version": "18",
+        "description": "record collection submission fingerprint",
+        "type": "SQL",
+        "script": "V18__record_collection_submission_fingerprint.sql",
+        "checksum": 407698930,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:23"
+        },
+        "execution_time": 76,
+        "success": 1
+      },
+      {
+        "installed_rank": 8,
+        "version": "19",
+        "description": "add management collection projection",
+        "type": "SQL",
+        "script": "V19__add_management_collection_projection.sql",
+        "checksum": 1553845556,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:23"
+        },
+        "execution_time": 167,
+        "success": 1
+      },
+      {
+        "installed_rank": 9,
+        "version": "20",
+        "description": "add collection submission snapshot",
+        "type": "SQL",
+        "script": "V20__add_collection_submission_snapshot.sql",
+        "checksum": -1914201026,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:23"
+        },
+        "execution_time": 89,
+        "success": 1
+      },
+      {
+        "installed_rank": 10,
+        "version": "22",
+        "description": "link parse task to business request",
+        "type": "SQL",
+        "script": "V22__link_parse_task_to_business_request.sql",
+        "checksum": -960948114,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:24"
+        },
+        "execution_time": 229,
+        "success": 1
+      },
+      {
+        "installed_rank": 11,
+        "version": "24",
+        "description": "collection submission cancellation",
+        "type": "SQL",
+        "script": "V24__collection_submission_cancellation.sql",
+        "checksum": 1298141948,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:24"
+        },
+        "execution_time": 37,
+        "success": 1
+      },
+      {
+        "installed_rank": 12,
+        "version": "25",
+        "description": "desktop task capabilities",
+        "type": "SQL",
+        "script": "V25__desktop_task_capabilities.sql",
+        "checksum": -1288103375,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:24"
+        },
+        "execution_time": 38,
+        "success": 1
+      },
+      {
+        "installed_rank": 13,
+        "version": "26",
+        "description": "desktop connection scope",
+        "type": "SQL",
+        "script": "V26__desktop_connection_scope.sql",
+        "checksum": -1979204921,
+        "installed_by": "mig_dac",
+        "installed_on": {
+          "$date": "2026-11-01 12:31:24"
+        },
+        "execution_time": 73,
+        "success": 1
+      }
+    ],
+    "repeat_history_unchanged": true,
+    "initial_validate_reports_pending": true
+  },
+  "sameFrozenSqlManifest": {
+    "release_id": "R20261101_DAC_385e10f9e",
+    "role": "dac-migrations",
+    "files": {
+      "V13__create_parser_registry.sql": "6b8e3c30c00f84fbdd7575a4833ba3f2614286c43d8786dd4e095d3e639e3a62",
+      "V14__create_parser_tasks.sql": "c447cc36a898919257f6438cd2012050023ba3ebb7ad6963f65878bef534b656",
+      "V15__create_parser_worker_capabilities.sql": "424ff8f22735056a757e148098f50e879b88bf727f34f0dd66981ae0a1501545",
+      "V16__link_collection_parser_tasks.sql": "e535143e40f11f999e395e3ade1855708faae82acb678e7ac946052222f66fce",
+      "V17__record_parser_submission_identity.sql": "b6dcb03671463bf5ee19f0d2be82da259ed47942900e18e81551f9029a801d30",
+      "V18__record_collection_submission_fingerprint.sql": "95c0126b4f778f28ff2e85134b71a5687c0dafe5f199b32ad9dcf8a7a624d367",
+      "V19__add_management_collection_projection.sql": "71aaf43f18e2daf324254f983530a7dd1a47100d9990daa9d0017245e40fc390",
+      "V1__create_device_ops_baseline.sql": "1dfea50578e10fecca15c0782741690d030763966e9690cde409352610caf4b2",
+      "V20__add_collection_submission_snapshot.sql": "4613205906e3dc36d40b8df65976ce43fa47f5e3d632bb0be683339d9554a923",
+      "V22__link_parse_task_to_business_request.sql": "9086dcc52014998191b753e86faed8e06d9daae627877ec764b77fd85f864aa1",
+      "V24__collection_submission_cancellation.sql": "e12ebd15b47cdb85f8dd2124d58e41d2dba199efd3c9ca22a9f46b6c3bcb9f14",
+      "V25__desktop_task_capabilities.sql": "bf298242beeeea69bc8c04c482e0d8147d9aaf4700ee43a77d7c922c189117eb",
+      "V26__desktop_connection_scope.sql": "f9eb4fae2bdc6aabd3a277467401a27a3b3699da06d0baadcd82b77b2c1506c3"
+    }
+  }
+}

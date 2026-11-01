@@ -1,0 +1,48 @@
+{
+  "source_commit": "77bc691cbc5ad1e58bb51252f2a31dd5047fd6d6",
+  "project": "npdms-rehearsal-20261101-202759",
+  "production_touched": false,
+  "cases": {},
+  "limits": [
+    "Local Compose infrastructure; not Ubuntu native installation/systemd/IP guard validation.",
+    "No application startup or real browser acceptance.",
+    "Elevated trigger-creation privilege, if necessary, applies only to this isolated instance."
+  ],
+  "formal_source_gate": {
+    "expected": "cd4b480a9f41a6a94a239bd8ced5c3cec21ab0de9cb5d927fca262375034a0e1",
+    "working_tree": "a23d5124f76a1cbfad9e13cc95712951b0c7baecd2ba7cdcfaf118bd559d29b0",
+    "passed": false,
+    "verified_origin": "E:\\AICoding\\Projects\\NPDMS\\sql\\releases\\production-178-v530-r2\\migrations\\B530__production_178_initialization.sql",
+    "difference": "line endings only; rehearse exact manifest-matching origin, repository left unchanged"
+  },
+  "flyway_runtime": {
+    "archive": "E:\\AICoding\\Projects\\NPDMS\\.run\\ssh-install-session-20261030\\packages\\flyway-commandline-11.10.5-linux-x64.tar.gz",
+    "sha256": "305e1f47816168cb6f99bca1b3c9eb81d8ebb0a96f7d077ac8d55e4489a33e2a",
+    "driver": "com.mysql.cj.jdbc.Driver",
+    "connector_version": "9.7.0",
+    "connector_sha256": "0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44",
+    "prerequisite": "Add explicit MySQL driver; default MariaDB 2.7.11 did not apply MySQL VERIFY_IDENTITY options in prior isolated attempt."
+  },
+  "mysql": {
+    "version": "8.4.13",
+    "log_bin": 1,
+    "trust_function_creators": 0,
+    "require_secure_transport": 1,
+    "binlog_format": "ROW"
+  },
+  "admin_tls": [
+    {
+      "Variable_name": "Ssl_cipher",
+      "Value": "TLS_AES_256_GCM_SHA384"
+    }
+  ],
+  "published_copy_hashes_match": true,
+  "wrong_tls_hostname_rejected": true,
+  "database_scoped_trigger_probe": {
+    "exit": 1,
+    "super_required": true
+  },
+  "isolated_temporary_privilege": "SUPER for fresh/formal migrators only; binlog settings unchanged",
+  "completed": false,
+  "failure": "fresh validate unexpected exit 1: A more recent version of Flyway is available. Find out more about Flyway 13.12.0 at https://rd.gt/3rXiSlV\n\nFlyway OSS Edition 11.10.5 by Redgate\n\nSee release notes here: https://rd.gt/416ObMi\nDatabase: jdbc:mysql://mysql:3306/drill_fresh?sslMode=VERIFY_IDENTITY&trustCertificateKeyStoreUrl=file:/secrets/trust.p12&trustCertificateKeyStorePassword=******** (MySQL 8.4)\nWARNING: Flyway upgrade recommended: MySQL 8.4 is newer than this version of Flyway and support has not been tested. The latest supported version of MySQL is 8.1.\nSchema history table `drill_fresh`.`flyway_schema_history` does not exist yet\n Container npdms-rehearsal-20261101-202759-flyway-run-7b1ef11c730d Creating \n Container npdms-rehearsal-20261101-202759-flyway-run-7b1ef11c730d Created \nERROR: Validate failed: Migrations have failed validation\nDetected resolved migration not applied to database: 530.\nTo fix this error, either run migrate, or set -ignoreMigrationPatterns='*:pending'.\nNeed more flexibility with validation rules? Learn more: https://rd.gt/3AbJUZE\n\n"
+}

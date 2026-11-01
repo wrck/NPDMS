@@ -1,0 +1,129 @@
+{
+  "sourceReadOnly": 1,
+  "checks": [
+    {
+      "table": "fb_shipment_barcode",
+      "column": "pack_id",
+      "results": {
+        "source": 157596,
+        "target": 157596,
+        "joint": 157596
+      },
+      "queries": {
+        "source": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `pack_id`) n FROM `fb_shipment_barcode`",
+        "target": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT CONVERT(`pack_id` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `fb_shipment_barcode`",
+        "joint": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `pack_id`,CONVERT(`pack_id` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `fb_shipment_barcode`"
+      },
+      "equivalencePreserved": true,
+      "completedAtUtc": "2026-11-01T13:25:51.608249+00:00"
+    },
+    {
+      "table": "fb_shipment_barcode",
+      "column": "item",
+      "results": {
+        "source": 8814,
+        "target": 8814,
+        "joint": 8814
+      },
+      "queries": {
+        "source": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `item`) n FROM `fb_shipment_barcode`",
+        "target": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT CONVERT(`item` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `fb_shipment_barcode`",
+        "joint": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `item`,CONVERT(`item` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `fb_shipment_barcode`"
+      },
+      "equivalencePreserved": true,
+      "completedAtUtc": "2026-11-01T13:26:03.741784+00:00"
+    },
+    {
+      "table": "fb_shipment_barcode",
+      "column": "barcode",
+      "results": {
+        "source": 3506715,
+        "target": 3506715,
+        "joint": 3506715
+      },
+      "queries": {
+        "source": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `barcode`) n FROM `fb_shipment_barcode`",
+        "target": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT CONVERT(`barcode` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `fb_shipment_barcode`",
+        "joint": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `barcode`,CONVERT(`barcode` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `fb_shipment_barcode`"
+      },
+      "equivalencePreserved": true,
+      "completedAtUtc": "2026-11-01T13:26:41.463587+00:00"
+    },
+    {
+      "table": "fb_shipment_barcode",
+      "column": "orderNumber",
+      "results": {
+        "source": 76513,
+        "target": 76513,
+        "joint": 76513
+      },
+      "queries": {
+        "source": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `orderNumber`) n FROM `fb_shipment_barcode`",
+        "target": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT CONVERT(`orderNumber` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `fb_shipment_barcode`",
+        "joint": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `orderNumber`,CONVERT(`orderNumber` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `fb_shipment_barcode`"
+      },
+      "equivalencePreserved": true,
+      "completedAtUtc": "2026-11-01T13:26:52.253391+00:00"
+    },
+    {
+      "table": "fb_shipment_barcode",
+      "column": "uuid",
+      "results": {
+        "source": 4305590,
+        "target": 4305590,
+        "joint": 4305590
+      },
+      "queries": {
+        "source": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `uuid`) n FROM `fb_shipment_barcode`",
+        "target": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT CONVERT(`uuid` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `fb_shipment_barcode`",
+        "joint": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `uuid`,CONVERT(`uuid` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `fb_shipment_barcode`"
+      },
+      "equivalencePreserved": true,
+      "completedAtUtc": "2026-11-01T13:27:14.033547+00:00"
+    },
+    {
+      "table": "pm_project_shipment",
+      "column": "barcode",
+      "results": {
+        "source": 1094991,
+        "target": 1094991,
+        "joint": 1094991
+      },
+      "queries": {
+        "source": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `barcode`) n FROM `pm_project_shipment`",
+        "target": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT CONVERT(`barcode` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `pm_project_shipment`",
+        "joint": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `barcode`,CONVERT(`barcode` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `pm_project_shipment`"
+      },
+      "equivalencePreserved": true,
+      "completedAtUtc": "2026-11-01T13:27:23.031522+00:00"
+    },
+    {
+      "table": "pm_project_soft_version",
+      "column": "barCode",
+      "results": {
+        "source": 749199,
+        "target": 749199,
+        "joint": 749199
+      },
+      "queries": {
+        "source": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `barCode`) n FROM `pm_project_soft_version`",
+        "target": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT CONVERT(`barCode` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `pm_project_soft_version`",
+        "joint": "SELECT /*+ MAX_EXECUTION_TIME(30000) */ COUNT(DISTINCT `barCode`,CONVERT(`barCode` USING utf8mb4) COLLATE utf8mb4_unicode_ci) n FROM `pm_project_soft_version`"
+      },
+      "equivalencePreserved": true,
+      "completedAtUtc": "2026-11-01T13:27:35.391865+00:00"
+    }
+  ],
+  "writes": 0,
+  "ddl": 0,
+  "method": "Remaining seven columns; independent aggregates with 30000ms per statement; source READ ONLY; no database settings or data writes",
+  "identity": [
+    {
+      "db": "dpspms",
+      "server": "spms.hz.prd.dptech.com",
+      "version": "5.7.25-log",
+      "isolation_level": "REPEATABLE-READ"
+    }
+  ],
+  "startedAtUtc": "2026-11-01T13:25:37.414016+00:00"
+}

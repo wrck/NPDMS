@@ -1,0 +1,13 @@
+diff --git a/pms-module-project/src/main/resources/mapper/projectclosure/ProjectClosureMapper.xml b/pms-module-project/src/main/resources/mapper/projectclosure/ProjectClosureMapper.xml
+index 3fef4c276b632086c439d0c78b5e9b37d2f10b10..84faa54145ba0590cb6df2fb37aaf6e2ece5cb13 100644
+--- a/pms-module-project/src/main/resources/mapper/projectclosure/ProjectClosureMapper.xml
++++ b/pms-module-project/src/main/resources/mapper/projectclosure/ProjectClosureMapper.xml
+@@ -6,7 +6,7 @@
+     <select id="selectListForClosureGuard"
+             resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectclosure.ProjectClosureDO">
+         SELECT *
+-        FROM pms_acc_project_closure
++        FROM acc_project_closure_record
+         WHERE tenant_id = #{query.tenantId}
+           AND deleted = 0
+           AND project_id IN

@@ -1,0 +1,60 @@
+{
+  "capturedAtUtc": "2026-11-01T13:49:44.337181+00:00",
+  "identity": {
+    "db": "npdms",
+    "server": "d2bab1a48a9b",
+    "version": "8.4.11",
+    "read_only": 1
+  },
+  "tableCountIncludingFlyway": 520,
+  "queriedTables": [
+    "ast_device_warranty_change_record",
+    "ast_device_warranty_fact_project",
+    "ast_device_warranty_registration",
+    "ast_device_warranty_service_record",
+    "int_sync_project_scope_member",
+    "int_sync_project_scope_publication",
+    "proj_legacy_detail_record",
+    "proj_legacy_detail_snapshot"
+  ],
+  "presentTables": [],
+  "latestHistory": [
+    {
+      "version": "530",
+      "description": "sync support rd role permissions",
+      "script": "V530__sync_support_rd_role_permissions.sql",
+      "installed_on": "2026-10-31 21:54:08",
+      "success": 1
+    },
+    {
+      "version": "529",
+      "description": "restore user employee extension columns",
+      "script": "V529__restore_user_employee_extension_columns.sql",
+      "installed_on": "2026-10-31 08:48:03",
+      "success": 1
+    },
+    {
+      "version": "528",
+      "description": "installation address optical module default",
+      "script": "V528__installation_address_optical_module_default.sql",
+      "installed_on": "2026-10-31 08:48:03",
+      "success": 1
+    },
+    {
+      "version": "527",
+      "description": "inspection report input service validation",
+      "script": "V527__inspection_report_input_service_validation.sql",
+      "installed_on": "2026-10-31 08:48:03",
+      "success": 1
+    },
+    {
+      "version": "526",
+      "description": "solution engineering role review permissions",
+      "script": "V526__solution_engineering_role_review_permissions.sql",
+      "installed_on": "2026-10-31 08:48:03",
+      "success": 1
+    }
+  ],
+  "writes": 0,
+  "ddl": 0
+}

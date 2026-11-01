@@ -1,0 +1,53 @@
+{
+  "status": "CHARACTER_POLICY_APPROVED_EMPTY_DATABASE_VALIDATED_NOT_DEPLOYED",
+  "sourceTables": 44,
+  "sourceCharacterColumns": 365,
+  "byteConversionCheckedColumns": 365,
+  "byteDifferences": 0,
+  "equivalenceSameColumns": 321,
+  "equivalenceChangedColumns": 37,
+  "equivalenceUnprovenColumns": 7,
+  "sourceWrites": 0,
+  "productionOperations": 0,
+  "newBaseline": "B531",
+  "tables": 518,
+  "characterColumns": 4105,
+  "changedCharacterColumns": 1407,
+  "changedTableDefaults": 184,
+  "seedRows": 6026,
+  "triggers": 240,
+  "explicitSeedValuesIdentical": true,
+  "executionGeneratedTimeFields": {
+    "system_tenant": [
+      "create_time",
+      "update_time"
+    ],
+    "system_users": [
+      "create_time",
+      "update_time"
+    ]
+  },
+  "otherSchemaPropertiesPreserved": {
+    "tables": true,
+    "columns": true,
+    "indexes": true,
+    "constraints": true,
+    "foreign_keys": true,
+    "checks": true,
+    "triggers": true
+  },
+  "reportAttempt": "attempt-211423",
+  "generatorTests": {
+    "run": 4,
+    "passed": 4
+  },
+  "limitations": [
+    "No DPPMS business import or sync executed",
+    "No application/browser business acceptance",
+    "No claim of source/target cross-database consistent snapshot",
+    "Equality partition checks do not prove identical ordering",
+    "Inherited 178 package code/schema gaps remain",
+    "7 complete equality checks remain unproven after bounded single-expression recheck"
+  ],
+  "comparisonSemanticsAcceptedByUser": true
+}

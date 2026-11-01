@@ -1,0 +1,42 @@
+{
+  "sourceCommit": "77bc691cbc5ad1e58bb51252f2a31dd5047fd6d6",
+  "sourceFiles": {
+    "sql/migrations/V399__requirement_revision_active_identity_uniqueness.sql": "18514f1ce3de170b88d375973a660dad3c54be2dec3f73ab5d8bfb4b4b574d54",
+    "sql/migrations/V411__project_legacy_detail_evidence.sql": "645946bffa84352de0f520fcc6472a488789661e1fea90480128ec34fbdf999f",
+    "sql/migrations/V412__dppms_native_detail_field_completion.sql": "634932324a3ed373e7f08f8aff6f78275dddccffac4326c255471d6aa932d622",
+    "sql/migrations/V414__dppms_native_source_business_records.sql": "0642305628a63ca89c45c4840e76c4bc43fce7a8139ecb598a3e4b6d5122e4f3",
+    "sql/migrations/V435__migration_global_source_identity_index.sql": "4cdeedc12434787f3dbf320561d0fa97ed93298a571d29d91b1869b355e2acad",
+    "sql/migrations/V436__approved_final_customer_project_contacts.sql": "5f009831001988bea169a94134166d40538feff20c409960b75abe63a4eb262a",
+    "sql/migrations/V438__preserve_project_contract_auditor_comments.sql": "46b033c55dd3bca4d186b8439a337338049e7b5344588327de2e33c8771275dc",
+    "sql/migrations/V482__sync_published_project_scope.sql": "de72a0648182332fd30c0cef081c0c7ae842728db4d75cdd45282834518cfeb8"
+  },
+  "parentMigration": {
+    "file": "B531__production_178_unicode_initialization.sql",
+    "sha256": "a9a145e3677615fa5cbb2149fed172de957c5eb605139e499d60cb1b860d0e30"
+  },
+  "deltaMigration": {
+    "file": "V531_1__complete_approved_source_structure.sql",
+    "sha256": "bf2e2f363d02482bc22392e06cddc7ada9e6431676d9c859abaddbd8515275d3"
+  },
+  "newTables": [
+    "ast_device_warranty_change_record",
+    "ast_device_warranty_fact_project",
+    "ast_device_warranty_registration",
+    "ast_device_warranty_service_record",
+    "int_sync_project_scope_member",
+    "int_sync_project_scope_publication",
+    "proj_legacy_detail_record",
+    "proj_legacy_detail_snapshot"
+  ],
+  "newColumnsInExistingTables": 39,
+  "nullableColumnChanges": 4,
+  "replacementUniqueIndexes": 3,
+  "additionalLookupIndexes": 1,
+  "additionalChecks": 2,
+  "seedChanges": 0,
+  "businessDataImported": false,
+  "asciiChecksumNormalization": "utf8mb4_bin; exact comparison preserved",
+  "excludedRetiredTable": "sol_engineering_briefing_retired",
+  "preserved178Exception": "Do not reintroduce chk_proj_member_dates over preserved legacy source dates",
+  "scope": "New empty database only; no production execution authorization"
+}

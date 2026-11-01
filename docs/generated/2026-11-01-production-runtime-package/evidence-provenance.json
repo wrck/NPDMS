@@ -1,0 +1,42 @@
+{
+  "source-value-comparison.json": {
+    "source": "docs/generated/2026-11-01-production-unicode-comparison/source-value-comparison.json",
+    "sha256": "3394ea2550645bcd580cccec3eb352a60e3b4b6fe3fc8e2da9889ad14940efce"
+  },
+  "source-byte-recheck.json": {
+    "source": "docs/generated/2026-11-01-production-unicode-comparison/source-byte-recheck.json",
+    "sha256": "5ad0abb64037edfa72251052f3f03e291e5f65f542bb84701d651afba0c658d2"
+  },
+  "source-byte-partitions.json": {
+    "source": "docs/generated/2026-11-01-production-unicode-comparison/source-byte-partitions.json",
+    "sha256": "49fc8e5a1867731370fa94740890c364e3b6ad6541c34990f9dde2591816e9b3"
+  },
+  "source-equivalence-recheck.json": {
+    "source": "docs/generated/2026-11-01-production-unicode-comparison/source-equivalence-recheck.json",
+    "sha256": "e6e61831a6ff259b7558f06790a35e39467d31a6f5345aa909d5e17a0152956b"
+  },
+  "comparison-differences.md": {
+    "source": "docs/generated/2026-11-01-production-unicode-comparison/comparison-differences.md",
+    "sha256": "7800120646af40edae734f83a7c9620a00082442ccfa0a356e2626c42d673e25"
+  },
+  "remaining-seven-completed.json": {
+    "source": "docs/generated/2026-11-01-production-complete-migration/remaining-seven-completed.json",
+    "sha256": "d51afec840232af4731b093291b35ac2a89f723f51303c17db28792c189eb3a6"
+  },
+  "current-178-schema-comparison.json": {
+    "source": "docs/generated/2026-11-01-production-complete-migration/current-178-schema-comparison.json",
+    "sha256": "8aca9aa3150fbd9c536db82b2fe8360e1c54c64946df778f862ce21d7f9907fc"
+  },
+  "current-178-table-presence.json": {
+    "source": "docs/generated/2026-11-01-production-complete-migration/current-178-table-presence.json",
+    "sha256": "5ab25aaf65c0c4233e91e4544068d2e02180347a3dc237664c7c4e7ab9f45be9"
+  },
+  "main-migration-validation.json": {
+    "source": "docs/generated/2026-11-01-production-unicode-comparison/attempt-211423/result.json",
+    "sha256": "433ea50e268774dc48a7a83cffc16fd4b2d0cba8e5f7fcbda6912bd2d5eca1c2"
+  },
+  "expected-runtime-schema.json": {
+    "source": "docs/generated/2026-11-01-production-unicode-comparison/attempt-211423/fresh-schema.json",
+    "sha256": "e1f62b47d63f14181d7d764198bb25446b095b3344d4c975885cea679750e856"
+  }
+}

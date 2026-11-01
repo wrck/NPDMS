@@ -1,0 +1,59 @@
+{
+  "allExpectedMetadataMatched": {
+    "tables": true,
+    "columns": true,
+    "indexes": true,
+    "constraints": true,
+    "foreign_keys": true,
+    "checks": true,
+    "triggers": true
+  },
+  "existing518TableSeedValuesPreserved": true,
+  "newEightTablesEmpty": true,
+  "allCharacterSetsUtf8mb4": true,
+  "probes": {
+    "closureMapper": {
+      "beforeFailsMissingTable": true,
+      "actualXmlSqlPassed": true,
+      "tenantProjectDeletedFiltersAndOrdering": true,
+      "sourceSha256": "2f56295c636be5788984b3b5d9964bb37af1214ff80e905b21417ef39d442ba8"
+    },
+    "activeRevisionUniqueness": {
+      "deletedHistoryNumberPreserved": true,
+      "threeActiveDuplicateCasesRejected": true
+    },
+    "contactConstraints": {
+      "twoValidAffiliations": true,
+      "invalidAffiliationPrimaryAndIntervalRejected": true
+    }
+  },
+  "rawLegacyAuditFindings": [
+    {
+      "check": "mapped_table_missing",
+      "table": "ast_device_software_observation",
+      "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/version/DeviceSoftwareObservationDO.java"
+    },
+    {
+      "check": "mapped_columns_missing",
+      "table": "com_contract_receivable",
+      "columns": [
+        "source_collected_money_ratio",
+        "source_created_at",
+        "source_created_by",
+        "source_data_source",
+        "source_revision_hash",
+        "source_row_id",
+        "source_updated_at",
+        "source_updated_by"
+      ],
+      "source": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/history/ContractReceivableDO.java"
+    },
+    {
+      "check": "mapped_table_missing",
+      "table": "com_project_contract_history",
+      "source": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/history/ProjectContractHistoryDO.java"
+    }
+  ],
+  "newIntegrityFindings": [],
+  "fixturesRolledBack": true
+}

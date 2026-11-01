@@ -15,3 +15,9 @@ specs/001-project-delivery-platform/appendices/project-order-physical-schema.mys
 *.png binary
 *.pdf binary
 *.zip binary
+
+# Frozen migration checksums include original line endings.
+sql/releases/production-178-v531-unicode/migrations/*.sql -text diff
+sql/releases/production-178-v531-unicode/*.sql -text diff
+sql/releases/production-178-v531-1-complete/** -text diff
+sql/releases/production-178-runtime-20261101/** -text diff

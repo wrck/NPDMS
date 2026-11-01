@@ -1,0 +1,182 @@
+{
+  "integrityPassed": false,
+  "productionReady": false,
+  "errors": [
+    {
+      "check": "mapped_columns_missing",
+      "table": "ast_device_network_version_event",
+      "columns": [
+        "custom_info"
+      ],
+      "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/version/DeviceNetworkVersionEventDO.java"
+    },
+    {
+      "check": "mapped_table_missing",
+      "table": "ast_device_software_observation",
+      "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/version/DeviceSoftwareObservationDO.java"
+    },
+    {
+      "check": "mapped_table_missing",
+      "table": "ast_device_warranty_change_record",
+      "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/warranty/DeviceWarrantyChangeRecordDO.java"
+    },
+    {
+      "check": "mapped_table_missing",
+      "table": "ast_device_warranty_fact_project",
+      "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/warranty/DeviceWarrantyFactProjectDO.java"
+    },
+    {
+      "check": "mapped_columns_missing",
+      "table": "ast_device_warranty_record",
+      "columns": [
+        "agent_name",
+        "combined_device_sn",
+        "contract_type",
+        "contract_type_name",
+        "customer_name",
+        "final_customer_name",
+        "grade_name",
+        "market_code",
+        "market_name",
+        "office_code",
+        "office_name",
+        "original_remaining_days_at_source",
+        "original_warranty_end_time",
+        "original_warranty_start_time",
+        "product_code",
+        "product_description",
+        "product_name",
+        "project_name",
+        "remaining_days_at_source",
+        "secondary_item",
+        "secondary_product_description",
+        "secondary_product_name",
+        "secondary_sn",
+        "shipment_time",
+        "source_shipment_key",
+        "source_sync_time",
+        "source_warranty_end_time",
+        "source_warranty_start_time",
+        "system_code",
+        "system_name",
+        "warranty_flag"
+      ],
+      "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/warranty/DeviceWarrantyRecordDO.java"
+    },
+    {
+      "check": "mapped_table_missing",
+      "table": "ast_device_warranty_registration",
+      "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/warranty/DeviceWarrantyRegistrationDO.java"
+    },
+    {
+      "check": "mapped_table_missing",
+      "table": "ast_device_warranty_service_record",
+      "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/warranty/DeviceWarrantyServiceRecordDO.java"
+    },
+    {
+      "check": "mapped_columns_missing",
+      "table": "com_contract_receivable",
+      "columns": [
+        "source_collected_money_ratio",
+        "source_created_at",
+        "source_created_by",
+        "source_data_source",
+        "source_revision_hash",
+        "source_row_id",
+        "source_updated_at",
+        "source_updated_by"
+      ],
+      "source": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/history/ContractReceivableDO.java"
+    },
+    {
+      "check": "mapped_table_missing",
+      "table": "com_project_contract_history",
+      "source": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/history/ProjectContractHistoryDO.java"
+    },
+    {
+      "check": "mapped_columns_missing",
+      "table": "cus_project_customer_contact_relation",
+      "columns": [
+        "contact_code",
+        "effective_from",
+        "effective_to",
+        "project_party_id",
+        "registration_source"
+      ],
+      "source": "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/contact/ProjectCustomerContactDO.java"
+    }
+  ],
+  "pending": [
+    "administrator_bootstrap",
+    "file_storage_configuration",
+    "production_inspection_rules_synthetic_rule_excluded",
+    "production_organization_and_authorized_people",
+    "external_connections_and_channels",
+    "real_browser_business_acceptance"
+  ],
+  "mappedEntitiesChecked": 421,
+  "tables": 518,
+  "syncTargetsChecked": 15,
+  "engineTables": 45,
+  "triggers": 240,
+  "foreignKeysChecked": 285,
+  "nonemptyTableCounts": {
+    "ACT_GE_BYTEARRAY": 23,
+    "ACT_GE_PROPERTY": 7,
+    "ACT_ID_PROPERTY": 1,
+    "ACT_RE_DEPLOYMENT": 11,
+    "ACT_RE_MODEL": 7,
+    "ACT_RE_PROCDEF": 11,
+    "acc_satisfaction_questionnaire_template": 1,
+    "acc_satisfaction_questionnaire_template_revision": 1,
+    "bpm_category": 2,
+    "bpm_form": 1,
+    "bpm_process_definition_info": 11,
+    "cut_checklist_binding_condition": 726,
+    "cut_checklist_field_definition": 407,
+    "cut_checklist_field_option": 10,
+    "cut_configuration_dictionary_value": 27,
+    "cut_configuration_dimension": 5,
+    "cut_configuration_plan_section": 6,
+    "cut_configuration_plan_section_scope": 80,
+    "cut_cutover_checklist_binding_rule_revision": 133,
+    "cut_cutover_checklist_item_definition_revision": 133,
+    "cut_cutover_configuration_revision": 1,
+    "imp_eng_doc_template": 6,
+    "imp_eng_doc_template_version": 6,
+    "infra_config": 13,
+    "infra_job": 22,
+    "plt_business_view_revision": 17,
+    "plt_delivery_type": 21,
+    "plt_dynamic_form_template": 12,
+    "plt_dynamic_form_template_revision": 27,
+    "plt_entity_extension_definition": 1,
+    "plt_form_template": 8,
+    "proj_project_template": 5,
+    "proj_project_template_revision": 10,
+    "proj_stage_suggestion_rule": 4,
+    "proj_task_state_machine_revision": 1,
+    "proj_task_state_transition": 8,
+    "system_company": 4,
+    "system_dept": 206,
+    "system_dict_data": 2052,
+    "system_dict_type": 406,
+    "system_menu": 720,
+    "system_notify_template": 3,
+    "system_oauth2_client": 1,
+    "system_role": 33,
+    "system_role_menu": 833,
+    "system_tenant": 1,
+    "system_user_role": 1,
+    "system_users": 1
+  },
+  "migrationHistory": [
+    {
+      "version": "530",
+      "type": "SQL_BASELINE",
+      "script": "B530__production_178_initialization.sql",
+      "success": 1
+    }
+  ],
+  "scope": "Fresh initialization only; direct DO fields, actual FK/logical references, seed isolation and setup prerequisites. No service or browser acceptance."
+}

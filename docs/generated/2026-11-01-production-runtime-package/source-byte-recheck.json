@@ -1,0 +1,118 @@
+{
+  "sourceIdentity": [
+    {
+      "db": "dpspms",
+      "read_only": 1
+    }
+  ],
+  "checks": [
+    {
+      "table": "fb_shipment_barcode",
+      "column": "pack_id",
+      "sql": "SELECT /*+ MAX_EXECUTION_TIME(5000) */ COUNT(*) rows_scanned,COUNT(`pack_id`) nonnull_values,SUM(NOT(HEX(`pack_id`) <=> HEX(CONVERT(`pack_id` USING utf8mb4)))) changed_bytes FROM `fb_shipment_barcode`",
+      "errorCode": 3024
+    },
+    {
+      "table": "fb_shipment_barcode",
+      "column": "item",
+      "sql": "SELECT /*+ MAX_EXECUTION_TIME(5000) */ COUNT(*) rows_scanned,COUNT(`item`) nonnull_values,SUM(NOT(HEX(`item`) <=> HEX(CONVERT(`item` USING utf8mb4)))) changed_bytes FROM `fb_shipment_barcode`",
+      "result": {
+        "rows_scanned": 4305590,
+        "nonnull_values": 4305590,
+        "changed_bytes": "0"
+      },
+      "byteValuesPreserved": true
+    },
+    {
+      "table": "fb_shipment_barcode",
+      "column": "barcode",
+      "sql": "SELECT /*+ MAX_EXECUTION_TIME(5000) */ COUNT(*) rows_scanned,COUNT(`barcode`) nonnull_values,SUM(NOT(HEX(`barcode`) <=> HEX(CONVERT(`barcode` USING utf8mb4)))) changed_bytes FROM `fb_shipment_barcode`",
+      "errorCode": 3024
+    },
+    {
+      "table": "fb_shipment_barcode",
+      "column": "rma_no",
+      "sql": "SELECT /*+ MAX_EXECUTION_TIME(5000) */ COUNT(*) rows_scanned,COUNT(`rma_no`) nonnull_values,SUM(NOT(HEX(`rma_no`) <=> HEX(CONVERT(`rma_no` USING utf8mb4)))) changed_bytes FROM `fb_shipment_barcode`",
+      "result": {
+        "rows_scanned": 4305590,
+        "nonnull_values": 1472530,
+        "changed_bytes": "0"
+      },
+      "byteValuesPreserved": true
+    },
+    {
+      "table": "fb_shipment_barcode",
+      "column": "orderNumber",
+      "sql": "SELECT /*+ MAX_EXECUTION_TIME(5000) */ COUNT(*) rows_scanned,COUNT(`orderNumber`) nonnull_values,SUM(NOT(HEX(`orderNumber`) <=> HEX(CONVERT(`orderNumber` USING utf8mb4)))) changed_bytes FROM `fb_shipment_barcode`",
+      "result": {
+        "rows_scanned": 4305590,
+        "nonnull_values": 3441390,
+        "changed_bytes": "0"
+      },
+      "byteValuesPreserved": true
+    },
+    {
+      "table": "fb_shipment_barcode",
+      "column": "uuid",
+      "sql": "SELECT /*+ MAX_EXECUTION_TIME(5000) */ COUNT(*) rows_scanned,COUNT(`uuid`) nonnull_values,SUM(NOT(HEX(`uuid`) <=> HEX(CONVERT(`uuid` USING utf8mb4)))) changed_bytes FROM `fb_shipment_barcode`",
+      "errorCode": 3024
+    },
+    {
+      "table": "pm_project_shipment",
+      "column": "barcode",
+      "sql": "SELECT /*+ MAX_EXECUTION_TIME(5000) */ COUNT(*) rows_scanned,COUNT(`barcode`) nonnull_values,SUM(NOT(HEX(`barcode`) <=> HEX(CONVERT(`barcode` USING utf8mb4)))) changed_bytes FROM `pm_project_shipment`",
+      "result": {
+        "rows_scanned": 1112594,
+        "nonnull_values": 1112594,
+        "changed_bytes": "0"
+      },
+      "byteValuesPreserved": true
+    },
+    {
+      "table": "pm_project_shipment",
+      "column": "itemName",
+      "sql": "SELECT /*+ MAX_EXECUTION_TIME(5000) */ COUNT(*) rows_scanned,COUNT(`itemName`) nonnull_values,SUM(NOT(HEX(`itemName`) <=> HEX(CONVERT(`itemName` USING utf8mb4)))) changed_bytes FROM `pm_project_shipment`",
+      "result": {
+        "rows_scanned": 1112594,
+        "nonnull_values": 1112117,
+        "changed_bytes": "0"
+      },
+      "byteValuesPreserved": true
+    },
+    {
+      "table": "pm_project_shipment",
+      "column": "contractNo",
+      "sql": "SELECT /*+ MAX_EXECUTION_TIME(5000) */ COUNT(*) rows_scanned,COUNT(`contractNo`) nonnull_values,SUM(NOT(HEX(`contractNo`) <=> HEX(CONVERT(`contractNo` USING utf8mb4)))) changed_bytes FROM `pm_project_shipment`",
+      "result": {
+        "rows_scanned": 1112594,
+        "nonnull_values": 1112594,
+        "changed_bytes": "0"
+      },
+      "byteValuesPreserved": true
+    },
+    {
+      "table": "pm_project_shipment",
+      "column": "installAddress",
+      "sql": "SELECT /*+ MAX_EXECUTION_TIME(5000) */ COUNT(*) rows_scanned,COUNT(`installAddress`) nonnull_values,SUM(NOT(HEX(`installAddress`) <=> HEX(CONVERT(`installAddress` USING utf8mb4)))) changed_bytes FROM `pm_project_shipment`",
+      "result": {
+        "rows_scanned": 1112594,
+        "nonnull_values": 1088451,
+        "changed_bytes": "0"
+      },
+      "byteValuesPreserved": true
+    },
+    {
+      "table": "pm_project_soft_version",
+      "column": "barCode",
+      "sql": "SELECT /*+ MAX_EXECUTION_TIME(5000) */ COUNT(*) rows_scanned,COUNT(`barCode`) nonnull_values,SUM(NOT(HEX(`barCode`) <=> HEX(CONVERT(`barCode` USING utf8mb4)))) changed_bytes FROM `pm_project_soft_version`",
+      "result": {
+        "rows_scanned": 1609033,
+        "nonnull_values": 1609033,
+        "changed_bytes": "0"
+      },
+      "byteValuesPreserved": true
+    }
+  ],
+  "writes": 0,
+  "ddl": 0
+}

@@ -1,0 +1,413 @@
+{
+  "fresh": {
+    "logical_violations": [
+      {
+        "check": "menu_parent",
+        "count": 4
+      }
+    ],
+    "templates": [
+      {
+        "id": 996610195020084,
+        "code": "FCV4_SOURCE_3D5C63BD453D",
+        "name": "工程类－直签 · 计划 v4 隔离验收副本",
+        "status": "DRAFT"
+      }
+    ],
+    "revisions": [
+      {
+        "id": 996610195020085,
+        "template_id": 996610195020084,
+        "revision_no": 0,
+        "status": "DRAFT",
+        "process_definition_key": null,
+        "process_definition_version": null
+      }
+    ],
+    "document_templates": [],
+    "process_definitions": [],
+    "companies": [],
+    "questionnaires": [
+      {
+        "id": 992610100005,
+        "template_code": "COMPLETION_SATISFACTION_STANDARD"
+      }
+    ],
+    "cutover_revisions": [
+      {
+        "id": 996610195020086,
+        "status_code": "DRAFT"
+      },
+      {
+        "id": 970000000000150001,
+        "status_code": "PUBLISHED"
+      },
+      {
+        "id": 970000000000442001,
+        "status_code": "PUBLISHED"
+      }
+    ],
+    "template_reference_gaps": [],
+    "stage_codes_by_revision": {}
+  },
+  "formal": {
+    "logical_violations": [],
+    "templates": [
+      {
+        "id": 996610195020085,
+        "code": "TPL-CFG20261014-GENERAL-DIRECT",
+        "name": "普通类－直签",
+        "status": "ACTIVE"
+      },
+      {
+        "id": 996610195020086,
+        "code": "TPL-CFG20261014-ENGINEERING-DIRECT",
+        "name": "工程类－直签",
+        "status": "ACTIVE"
+      },
+      {
+        "id": 996610195020087,
+        "code": "TPL-CFG20261014-GENERAL-CHANNEL",
+        "name": "普通类－非直签",
+        "status": "ACTIVE"
+      },
+      {
+        "id": 996610195020088,
+        "code": "TPL-CFG20261014-ENGINEERING-CHANNEL",
+        "name": "工程类－非直签",
+        "status": "ACTIVE"
+      },
+      {
+        "id": 996610195020089,
+        "code": "TPL-CFG20261014-CHANNEL-SUPERVISION",
+        "name": "非直签－原厂督导",
+        "status": "ACTIVE"
+      }
+    ],
+    "revisions": [
+      {
+        "id": 996610195020091,
+        "template_id": 996610195020085,
+        "revision_no": 1,
+        "status": "PUBLISHED",
+        "process_definition_key": null,
+        "process_definition_version": null
+      },
+      {
+        "id": 996610195020092,
+        "template_id": 996610195020086,
+        "revision_no": 1,
+        "status": "PUBLISHED",
+        "process_definition_key": null,
+        "process_definition_version": null
+      },
+      {
+        "id": 996610195020093,
+        "template_id": 996610195020087,
+        "revision_no": 1,
+        "status": "PUBLISHED",
+        "process_definition_key": null,
+        "process_definition_version": null
+      },
+      {
+        "id": 996610195020094,
+        "template_id": 996610195020088,
+        "revision_no": 1,
+        "status": "PUBLISHED",
+        "process_definition_key": null,
+        "process_definition_version": null
+      },
+      {
+        "id": 996610195020095,
+        "template_id": 996610195020089,
+        "revision_no": 1,
+        "status": "PUBLISHED",
+        "process_definition_key": null,
+        "process_definition_version": null
+      },
+      {
+        "id": 996610195020096,
+        "template_id": 996610195020085,
+        "revision_no": 2,
+        "status": "PUBLISHED",
+        "process_definition_key": null,
+        "process_definition_version": null
+      },
+      {
+        "id": 996610195020097,
+        "template_id": 996610195020086,
+        "revision_no": 2,
+        "status": "PUBLISHED",
+        "process_definition_key": null,
+        "process_definition_version": null
+      },
+      {
+        "id": 996610195020098,
+        "template_id": 996610195020087,
+        "revision_no": 2,
+        "status": "PUBLISHED",
+        "process_definition_key": null,
+        "process_definition_version": null
+      },
+      {
+        "id": 996610195020099,
+        "template_id": 996610195020088,
+        "revision_no": 2,
+        "status": "PUBLISHED",
+        "process_definition_key": null,
+        "process_definition_version": null
+      },
+      {
+        "id": 996610195020100,
+        "template_id": 996610195020089,
+        "revision_no": 2,
+        "status": "PUBLISHED",
+        "process_definition_key": null,
+        "process_definition_version": null
+      }
+    ],
+    "document_templates": [
+      {
+        "id": 1,
+        "code": "DT-REQ-BASE-001",
+        "name": "需求分析基础模板",
+        "current_version_id": 1,
+        "status": 1
+      },
+      {
+        "id": 2,
+        "code": "DT-REQ-DATA-001",
+        "name": "数据网新建项目需求分析模板",
+        "current_version_id": 2,
+        "status": 1
+      },
+      {
+        "id": 3,
+        "code": "DT-REQ-SEC-001",
+        "name": "安全项目需求分析模板",
+        "current_version_id": 3,
+        "status": 1
+      },
+      {
+        "id": 4,
+        "code": "DT-SOL-BASE-001",
+        "name": "实施方案基础模板",
+        "current_version_id": 4,
+        "status": 1
+      },
+      {
+        "id": 5,
+        "code": "DT-SOL-DATA-001",
+        "name": "数据网实施方案模板",
+        "current_version_id": 5,
+        "status": 1
+      },
+      {
+        "id": 6,
+        "code": "DT-SOL-SEC-001",
+        "name": "安全项目实施方案模板",
+        "current_version_id": 6,
+        "status": 1
+      }
+    ],
+    "process_definitions": [
+      {
+        "ID_": "15cae427-d008-11f1-b922-00ff0b78abd7",
+        "KEY_": "PMS_MINIMAL_NORMAL_CLOSURE",
+        "VERSION_": 3,
+        "NAME_": "项目正常闭环双人工审核"
+      },
+      {
+        "ID_": "421e9eaa-d3aa-11f1-83af-00ff0b78abd7",
+        "KEY_": "PMS_DELIVERY_SOLUTION_REVIEW",
+        "VERSION_": 2,
+        "NAME_": "实施方案服务经理初审与工程管理部复审"
+      },
+      {
+        "ID_": "817b31b7-cfc4-11f1-925a-00ff0b78abd7",
+        "KEY_": "PMS_MINIMAL_NORMAL_CLOSURE",
+        "VERSION_": 2,
+        "NAME_": "项目正常闭环双人工审核"
+      },
+      {
+        "ID_": "97608f83-cf10-11f1-9ef5-00ff0b78abd7",
+        "KEY_": "PMS_MINIMAL_NORMAL_CLOSURE",
+        "VERSION_": 1,
+        "NAME_": "项目正常闭环双人工审核"
+      },
+      {
+        "ID_": "PMS_CUTOVER_APPROVAL:1:a38572e4-cf6e-11f1-8500-00ff0b78abd7",
+        "KEY_": "PMS_CUTOVER_APPROVAL",
+        "VERSION_": 1,
+        "NAME_": "割接分级评审"
+      },
+      {
+        "ID_": "PMS_CUTOVER_APPROVAL:2:7a29afda-d45f-11f1-abd7-00ff0b78abd7",
+        "KEY_": "PMS_CUTOVER_APPROVAL",
+        "VERSION_": 2,
+        "NAME_": "割接分级评审"
+      },
+      {
+        "ID_": "a4e26ad9-cf6e-11f1-8500-00ff0b78abd7",
+        "KEY_": "PMS_DELIVERY_CUTOVER_APPROVAL",
+        "VERSION_": 1,
+        "NAME_": "交付割接审批"
+      },
+      {
+        "ID_": "a58588af-cf6e-11f1-8500-00ff0b78abd7",
+        "KEY_": "PMS_DELIVERY_SOLUTION_REVIEW",
+        "VERSION_": 1,
+        "NAME_": "实施方案服务经理初审与工程管理部复审"
+      },
+      {
+        "ID_": "pms-cutover-done-approval:1:a691c895-cf6e-11f1-8500-00ff0b78abd7",
+        "KEY_": "pms-cutover-done-approval",
+        "VERSION_": 1,
+        "NAME_": "割接完成审批"
+      },
+      {
+        "ID_": "pms-sol-duration-change:1:a70f841a-cf6e-11f1-8500-00ff0b78abd7",
+        "KEY_": "pms-sol-duration-change",
+        "VERSION_": 1,
+        "NAME_": "项目工期变更审批"
+      },
+      {
+        "ID_": "pms-sol-stage-plan:1:a784db2f-cf6e-11f1-8500-00ff0b78abd7",
+        "KEY_": "pms-sol-stage-plan",
+        "VERSION_": 1,
+        "NAME_": "阶段施工计划审批"
+      }
+    ],
+    "companies": [
+      {
+        "id": 2112881214645960705,
+        "code": "001",
+        "name": "杭州迪普科技股份有限公司",
+        "status": 0
+      },
+      {
+        "id": 2112881214645960706,
+        "code": "003",
+        "name": "杭州迪普科技股份有限公司南京分公司",
+        "status": 0
+      },
+      {
+        "id": 2112881214645960707,
+        "code": "002",
+        "name": "杭州迪普信息技术有限公司",
+        "status": 0
+      },
+      {
+        "id": 2113578382599356417,
+        "code": "004",
+        "name": "迪普科技（香港）有限公司",
+        "status": 0
+      }
+    ],
+    "questionnaires": [
+      {
+        "id": 992610100005,
+        "template_code": "COMPLETION_SATISFACTION_STANDARD"
+      }
+    ],
+    "cutover_revisions": [
+      {
+        "id": 996610195020086,
+        "status_code": "PUBLISHED"
+      }
+    ],
+    "template_reference_gaps": [],
+    "stage_codes_by_revision": {
+      "996610195020091": [
+        "S0",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "996610195020092": [
+        "S0",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "996610195020093": [
+        "S0",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "996610195020094": [
+        "S0",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "996610195020095": [
+        "S0",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "996610195020096": [
+        "S0",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "996610195020097": [
+        "S0",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "996610195020098": [
+        "S0",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "996610195020099": [
+        "S0",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "996610195020100": [
+        "S0",
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ]
+    }
+  }
+}

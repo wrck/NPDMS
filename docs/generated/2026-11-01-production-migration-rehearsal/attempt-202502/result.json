@@ -1,0 +1,20 @@
+{
+  "source_commit": "77bc691cbc5ad1e58bb51252f2a31dd5047fd6d6",
+  "project": "npdms-rehearsal-20261101-202502",
+  "production_touched": false,
+  "cases": {},
+  "limits": [
+    "Local Compose infrastructure; not Ubuntu native installation/systemd/IP guard validation.",
+    "No application startup or real browser acceptance.",
+    "Elevated trigger-creation privilege, if necessary, applies only to this isolated instance."
+  ],
+  "formal_source_gate": {
+    "expected": "cd4b480a9f41a6a94a239bd8ced5c3cec21ab0de9cb5d927fca262375034a0e1",
+    "working_tree": "a23d5124f76a1cbfad9e13cc95712951b0c7baecd2ba7cdcfaf118bd559d29b0",
+    "passed": false,
+    "verified_origin": "E:\\AICoding\\Projects\\NPDMS\\sql\\releases\\production-178-v530-r2\\migrations\\B530__production_178_initialization.sql",
+    "difference": "line endings only; rehearse exact manifest-matching origin, repository left unchanged"
+  },
+  "completed": false,
+  "failure": "(2026, \"SSL is required but the server doesn't support it\")"
+}

@@ -1,0 +1,9 @@
+{
+  "baseCommit": "77bc691cbc5ad1e58bb51252f2a31dd5047fd6d6",
+  "path": "pms-module-project/src/main/resources/mapper/projectclosure/ProjectClosureMapper.xml",
+  "baseGitBlobSha256": "c419084fcd85d5b40043c339875fd8437290acabf456160721c778d66b286281",
+  "updatedFileSha256": "2f56295c636be5788984b3b5d9964bb37af1214ff80e905b21417ef39d442ba8",
+  "patchSha256": "d3e8a7f8a121da31331426d9e976fbab4fc65d02686033ae0c1d8f109b06340f",
+  "purpose": "Use acc_project_closure_record, as required by V255 and ProjectClosureDO; preserve tenant/project/deleted filtering and ordering",
+  "applicationBuildOrDeploymentPerformed": false
+}

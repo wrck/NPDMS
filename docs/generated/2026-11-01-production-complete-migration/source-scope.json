@@ -1,0 +1,13 @@
+{
+  "sourceCommit": "77bc691cbc5ad1e58bb51252f2a31dd5047fd6d6",
+  "sourceCompletion": "sql/releases/production-178-v531-1-complete/structure-lineage.json",
+  "sourcePatch": "sql/releases/production-178-v531-1-complete/source-fixes/manifest.json",
+  "sourceWrites": 0,
+  "primarySourceDDL": 0,
+  "currentSourceMapperTablesMissingAfterFix": [
+    "ast_device_software_observation",
+    "com_project_contract_history"
+  ],
+  "legacyScopeExplanation": "Both are retired/historical one-time import paths; no tables recreated. Detailed reviewed exclusions retained from the prior dual-package report.",
+  "untouchedConcurrentChanges": "Uncommitted login/customer link/training/acceptance changes and V532 are not part of the locked source package."
+}

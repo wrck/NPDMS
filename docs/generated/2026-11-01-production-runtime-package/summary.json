@@ -1,0 +1,31 @@
+{
+  "status": "COMPLETE_178_RUNTIME_SCHEMA_MIGRATION_PACKAGE_NOT_DEPLOYED",
+  "authority": "178 current runtime database, per explicit user correction",
+  "sourceBaseTables": 520,
+  "excludedTables": [
+    "flyway_schema_history",
+    "sol_engineering_briefing_retired"
+  ],
+  "mainTables": 518,
+  "mainColumns": 9458,
+  "characterColumns": 4105,
+  "mainTriggers": 240,
+  "foreignKeys": 285,
+  "seedRows": 6026,
+  "sourceOnlyTablesAdded": 0,
+  "sourceOnlyColumnsAdded": 0,
+  "sourceOnlyIndexesOrChecksAdded": 0,
+  "dacVersion": "26",
+  "dacTables": 24,
+  "dacMigrationFiles": 13,
+  "sourceCharacterColumnsChecked": 365,
+  "sourceByteDifferences": 0,
+  "sourceEqualitySame": 328,
+  "sourceEqualityChanged": 37,
+  "sourceEqualityUnproven": 0,
+  "mainMigrationSha256": "a9a145e3677615fa5cbb2149fed172de957c5eb605139e499d60cb1b860d0e30",
+  "sourceDatabaseWrites": 0,
+  "sourceDatabaseDDL": 0,
+  "productionDeployment": false,
+  "prior526TableCandidate": "Withdrawn by user runtime-schema decision; evidence retained, not included in final package"
+}

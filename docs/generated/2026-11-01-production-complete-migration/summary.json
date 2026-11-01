@@ -1,0 +1,54 @@
+{
+  "status": "WITHDRAWN_BY_USER_178_RUNTIME_SCHEMA_AUTHORITY",
+  "sourceCommit": "77bc691cbc5ad1e58bb51252f2a31dd5047fd6d6",
+  "mainVersion": "531.1",
+  "mainTables": 526,
+  "mainColumns": 9615,
+  "characterColumns": 4187,
+  "mainTriggers": 240,
+  "foreignKeys": 285,
+  "seedRows": 6026,
+  "seedValuesPreserved": true,
+  "newTables": 8,
+  "newColumnsInExistingTables": 39,
+  "newTableColumns": 118,
+  "nullableColumnChanges": 4,
+  "replacementUniqueIndexes": 3,
+  "additionalLookupIndex": 1,
+  "additionalChecks": 2,
+  "dacVersion": "26",
+  "dacTables": 24,
+  "dacMigrationFiles": 13,
+  "sourceCharacterColumnsChecked": 365,
+  "sourceByteDifferences": 0,
+  "sourceEqualitySame": 328,
+  "sourceEqualityChangedAcceptedPolicy": 37,
+  "sourceEqualityUnproven": 0,
+  "sourceDatabaseWrites": 0,
+  "sourceDatabaseDDL": 0,
+  "deploymentPerformed": false,
+  "applicationBuildPerformed": false,
+  "generatorTestsPassed": 4,
+  "databaseProbes": {
+    "closureMapper": {
+      "beforeFailsMissingTable": true,
+      "actualXmlSqlPassed": true,
+      "tenantProjectDeletedFiltersAndOrdering": true,
+      "sourceSha256": "2f56295c636be5788984b3b5d9964bb37af1214ff80e905b21417ef39d442ba8"
+    },
+    "activeRevisionUniqueness": {
+      "deletedHistoryNumberPreserved": true,
+      "threeActiveDuplicateCasesRejected": true
+    },
+    "contactConstraints": {
+      "twoValidAffiliations": true,
+      "invalidAffiliationPrimaryAndIntervalRejected": true
+    }
+  },
+  "knownLegacyAuditFindingCount": 3,
+  "newIntegrityFindings": [],
+  "finalReportAttempt": "attempt-214323",
+  "initialMainAndDacMigrationAttempt": "attempt-213716",
+  "priorEvidence": "../2026-11-01-production-unicode-comparison/README.md",
+  "supersededBy": "sql/releases/production-178-runtime-20261101"
+}

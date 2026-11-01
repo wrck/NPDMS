@@ -1,0 +1,19 @@
+{
+  "release_id": "R20261101_DAC_385e10f9e",
+  "role": "dac-migrations",
+  "files": {
+    "V13__create_parser_registry.sql": "6b8e3c30c00f84fbdd7575a4833ba3f2614286c43d8786dd4e095d3e639e3a62",
+    "V14__create_parser_tasks.sql": "c447cc36a898919257f6438cd2012050023ba3ebb7ad6963f65878bef534b656",
+    "V15__create_parser_worker_capabilities.sql": "424ff8f22735056a757e148098f50e879b88bf727f34f0dd66981ae0a1501545",
+    "V16__link_collection_parser_tasks.sql": "e535143e40f11f999e395e3ade1855708faae82acb678e7ac946052222f66fce",
+    "V17__record_parser_submission_identity.sql": "b6dcb03671463bf5ee19f0d2be82da259ed47942900e18e81551f9029a801d30",
+    "V18__record_collection_submission_fingerprint.sql": "95c0126b4f778f28ff2e85134b71a5687c0dafe5f199b32ad9dcf8a7a624d367",
+    "V19__add_management_collection_projection.sql": "71aaf43f18e2daf324254f983530a7dd1a47100d9990daa9d0017245e40fc390",
+    "V1__create_device_ops_baseline.sql": "1dfea50578e10fecca15c0782741690d030763966e9690cde409352610caf4b2",
+    "V20__add_collection_submission_snapshot.sql": "4613205906e3dc36d40b8df65976ce43fa47f5e3d632bb0be683339d9554a923",
+    "V22__link_parse_task_to_business_request.sql": "9086dcc52014998191b753e86faed8e06d9daae627877ec764b77fd85f864aa1",
+    "V24__collection_submission_cancellation.sql": "e12ebd15b47cdb85f8dd2124d58e41d2dba199efd3c9ca22a9f46b6c3bcb9f14",
+    "V25__desktop_task_capabilities.sql": "bf298242beeeea69bc8c04c482e0d8147d9aaf4700ee43a77d7c922c189117eb",
+    "V26__desktop_connection_scope.sql": "f9eb4fae2bdc6aabd3a277467401a27a3b3699da06d0baadcd82b77b2c1506c3"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "release_id": "Production178CompleteV531_1",
+  "role": "migrations",
+  "files": {
+    "B531__production_178_unicode_initialization.sql": "a9a145e3677615fa5cbb2149fed172de957c5eb605139e499d60cb1b860d0e30",
+    "V531_1__complete_approved_source_structure.sql": "bf2e2f363d02482bc22392e06cddc7ada9e6431676d9c859abaddbd8515275d3"
+  }
+}

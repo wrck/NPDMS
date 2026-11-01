@@ -1,0 +1,679 @@
+{
+  "fresh_only_tables": [
+    "ast_device_warranty_change_record",
+    "ast_device_warranty_fact_project",
+    "ast_device_warranty_registration",
+    "ast_device_warranty_service_record",
+    "int_sync_project_scope_member",
+    "int_sync_project_scope_publication",
+    "proj_legacy_detail_record",
+    "proj_legacy_detail_snapshot",
+    "sol_engineering_briefing_retired"
+  ],
+  "formal_only_tables": [],
+  "fresh_added_columns_in_common_tables": [
+    {
+      "table": "ast_device_network_version_event",
+      "column": "custom_info"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "agent_name"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "combined_device_sn"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "contract_type"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "contract_type_name"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "customer_name"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "final_customer_name"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "grade_name"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "market_code"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "market_name"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "office_code"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "office_name"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "original_remaining_days_at_source"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "original_warranty_end_time"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "original_warranty_start_time"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "product_code"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "product_description"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "product_name"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "project_name"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "remaining_days_at_source"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "secondary_item"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "secondary_product_description"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "secondary_product_name"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "secondary_sn"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "shipment_time"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "source_shipment_key"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "source_sync_time"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "source_warranty_end_time"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "source_warranty_start_time"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "system_code"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "system_name"
+    },
+    {
+      "table": "ast_device_warranty_record",
+      "column": "warranty_flag"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "contact_code"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "effective_from"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "effective_to"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "project_party_id"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "registration_source"
+    },
+    {
+      "table": "sol_requirement_analysis_revision",
+      "column": "active_draft_marker"
+    },
+    {
+      "table": "sol_requirement_analysis_revision",
+      "column": "active_revision_no"
+    }
+  ],
+  "fresh_removed_columns_in_common_tables": [],
+  "formal_only_permissions": [],
+  "fresh_only_permissions": [
+    {
+      "role": "common",
+      "permission": "bpm:oa-leave:create"
+    },
+    {
+      "role": "common",
+      "permission": "bpm:oa-leave:query"
+    }
+  ],
+  "common_column_noncharset_differences": [
+    {
+      "table": "com_project_contract_relation",
+      "column": "creator",
+      "changes": {
+        "IS_NULLABLE": {
+          "fresh": "YES",
+          "formal": "NO"
+        }
+      }
+    },
+    {
+      "table": "com_project_contract_relation",
+      "column": "updater",
+      "changes": {
+        "IS_NULLABLE": {
+          "fresh": "YES",
+          "formal": "NO"
+        }
+      }
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "customer_contact_id",
+      "changes": {
+        "IS_NULLABLE": {
+          "fresh": "YES",
+          "formal": "NO"
+        }
+      }
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "customer_id",
+      "changes": {
+        "IS_NULLABLE": {
+          "fresh": "YES",
+          "formal": "NO"
+        }
+      }
+    }
+  ],
+  "row_count_differences": [
+    {
+      "table": "ACT_GE_BYTEARRAY",
+      "fresh": 0,
+      "formal": 23
+    },
+    {
+      "table": "ACT_GE_PROPERTY",
+      "fresh": 5,
+      "formal": 7
+    },
+    {
+      "table": "ACT_RE_DEPLOYMENT",
+      "fresh": 0,
+      "formal": 11
+    },
+    {
+      "table": "ACT_RE_MODEL",
+      "fresh": 0,
+      "formal": 7
+    },
+    {
+      "table": "ACT_RE_PROCDEF",
+      "fresh": 0,
+      "formal": 11
+    },
+    {
+      "table": "bpm_category",
+      "fresh": 1,
+      "formal": 2
+    },
+    {
+      "table": "bpm_form",
+      "fresh": 0,
+      "formal": 1
+    },
+    {
+      "table": "bpm_process_definition_info",
+      "fresh": 0,
+      "formal": 11
+    },
+    {
+      "table": "cut_checklist_binding_condition",
+      "fresh": 1446,
+      "formal": 726
+    },
+    {
+      "table": "cut_checklist_field_definition",
+      "fresh": 914,
+      "formal": 407
+    },
+    {
+      "table": "cut_checklist_field_option",
+      "fresh": 20,
+      "formal": 10
+    },
+    {
+      "table": "cut_configuration_dictionary_value",
+      "fresh": 50,
+      "formal": 27
+    },
+    {
+      "table": "cut_configuration_dimension",
+      "fresh": 13,
+      "formal": 5
+    },
+    {
+      "table": "cut_configuration_plan_section",
+      "fresh": 13,
+      "formal": 6
+    },
+    {
+      "table": "cut_configuration_plan_section_scope",
+      "fresh": 164,
+      "formal": 80
+    },
+    {
+      "table": "cut_cutover_checklist_binding_rule_revision",
+      "fresh": 268,
+      "formal": 133
+    },
+    {
+      "table": "cut_cutover_checklist_item_definition_revision",
+      "fresh": 269,
+      "formal": 133
+    },
+    {
+      "table": "cut_cutover_configuration_revision",
+      "fresh": 3,
+      "formal": 1
+    },
+    {
+      "table": "imp_eng_doc_template",
+      "fresh": 0,
+      "formal": 6
+    },
+    {
+      "table": "imp_eng_doc_template_version",
+      "fresh": 0,
+      "formal": 6
+    },
+    {
+      "table": "plt_business_view_revision",
+      "fresh": 15,
+      "formal": 17
+    },
+    {
+      "table": "plt_dynamic_form_template_revision",
+      "fresh": 26,
+      "formal": 27
+    },
+    {
+      "table": "plt_form_template",
+      "fresh": 0,
+      "formal": 8
+    },
+    {
+      "table": "proj_project_template",
+      "fresh": 1,
+      "formal": 5
+    },
+    {
+      "table": "proj_project_template_revision",
+      "fresh": 1,
+      "formal": 10
+    },
+    {
+      "table": "proj_task_state_machine_revision",
+      "fresh": 2,
+      "formal": 1
+    },
+    {
+      "table": "proj_task_state_transition",
+      "fresh": 16,
+      "formal": 8
+    },
+    {
+      "table": "system_company",
+      "fresh": 0,
+      "formal": 4
+    },
+    {
+      "table": "system_dept",
+      "fresh": 0,
+      "formal": 206
+    },
+    {
+      "table": "system_dict_data",
+      "fresh": 2055,
+      "formal": 2052
+    },
+    {
+      "table": "system_dict_type",
+      "fresh": 407,
+      "formal": 406
+    },
+    {
+      "table": "system_menu",
+      "fresh": 744,
+      "formal": 720
+    },
+    {
+      "table": "system_role_menu",
+      "fresh": 825,
+      "formal": 833
+    }
+  ],
+  "common_table_index_changes": [
+    {
+      "table": "plt_migration_source_record",
+      "index": "idx_plt_migration_global_source_identity",
+      "fresh": [
+        {
+          "TABLE_NAME": "plt_migration_source_record",
+          "INDEX_NAME": "idx_plt_migration_global_source_identity",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "plt_migration_source_record",
+          "INDEX_NAME": "idx_plt_migration_global_source_identity",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "plt_migration_source_record",
+          "INDEX_NAME": "idx_plt_migration_global_source_identity",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_table",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "plt_migration_source_record",
+          "INDEX_NAME": "idx_plt_migration_global_source_identity",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "source_record_key",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "plt_migration_source_record",
+          "INDEX_NAME": "idx_plt_migration_global_source_identity",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        }
+      ],
+      "formal": null
+    },
+    {
+      "table": "sol_requirement_analysis_revision",
+      "index": "uk_ra_draft",
+      "fresh": [
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_draft",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_draft",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_draft",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "active_draft_marker",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        }
+      ],
+      "formal": [
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_draft",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_draft",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_draft",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "draft_marker",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        }
+      ]
+    },
+    {
+      "table": "sol_requirement_analysis_revision",
+      "index": "uk_ra_project_revision",
+      "fresh": [
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_project_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_project_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_project_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "active_revision_no",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        }
+      ],
+      "formal": [
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_project_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_project_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_project_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "revision_no",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        }
+      ]
+    },
+    {
+      "table": "sol_requirement_analysis_revision",
+      "index": "uk_ra_revision",
+      "fresh": [
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "entity_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "active_revision_no",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        }
+      ],
+      "formal": [
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "entity_id",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        },
+        {
+          "TABLE_NAME": "sol_requirement_analysis_revision",
+          "INDEX_NAME": "uk_ra_revision",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "revision_no",
+          "SUB_PART": null,
+          "INDEX_TYPE": "BTREE",
+          "IS_VISIBLE": "YES",
+          "EXPRESSION": null
+        }
+      ]
+    }
+  ]
+}

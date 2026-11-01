@@ -1,0 +1,7 @@
+{
+  "release_id": "Production178Unicode_211423",
+  "role": "migrations",
+  "files": {
+    "B531__production_178_unicode_initialization.sql": "a9a145e3677615fa5cbb2149fed172de957c5eb605139e499d60cb1b860d0e30"
+  }
+}

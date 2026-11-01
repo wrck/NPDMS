@@ -1,0 +1,39 @@
+{
+  "source_commit": "77bc691cbc5ad1e58bb51252f2a31dd5047fd6d6",
+  "project": "npdms-rehearsal-20261101-202612",
+  "production_touched": false,
+  "cases": {},
+  "limits": [
+    "Local Compose infrastructure; not Ubuntu native installation/systemd/IP guard validation.",
+    "No application startup or real browser acceptance.",
+    "Elevated trigger-creation privilege, if necessary, applies only to this isolated instance."
+  ],
+  "formal_source_gate": {
+    "expected": "cd4b480a9f41a6a94a239bd8ced5c3cec21ab0de9cb5d927fca262375034a0e1",
+    "working_tree": "a23d5124f76a1cbfad9e13cc95712951b0c7baecd2ba7cdcfaf118bd559d29b0",
+    "passed": false,
+    "verified_origin": "E:\\AICoding\\Projects\\NPDMS\\sql\\releases\\production-178-v530-r2\\migrations\\B530__production_178_initialization.sql",
+    "difference": "line endings only; rehearse exact manifest-matching origin, repository left unchanged"
+  },
+  "mysql": {
+    "version": "8.4.13",
+    "log_bin": 1,
+    "trust_function_creators": 0,
+    "require_secure_transport": 1,
+    "binlog_format": "ROW"
+  },
+  "admin_tls": [
+    {
+      "Variable_name": "Ssl_cipher",
+      "Value": "TLS_AES_256_GCM_SHA384"
+    }
+  ],
+  "published_copy_hashes_match": true,
+  "wrong_tls_hostname_rejected": true,
+  "database_scoped_trigger_probe": {
+    "exit": 1,
+    "super_required": false
+  },
+  "completed": false,
+  "failure": "A more recent version of Flyway is available. Find out more about Flyway 13.12.0 at https://rd.gt/3rXiSlV\n\nFlyway OSS Edition 11.10.5 by Redgate\n\nSee release notes here: https://rd.gt/416ObMi\n Container npdms-rehearsal-20261101-202612-flyway-run-537aed5c154f Creating \n Container npdms-rehearsal-20261101-202612-flyway-run-537aed5c154f Created \nERROR: Unable to obtain connection from database (jdbc:mysql://mysql:3306/drill_probe?sslMode=VERIFY_IDENTITY&trustCertificateKeyStoreUrl=file:/secrets/trust.p12&trustCertificateKeyStorePassword=********) for user 'mig_probe': Could not connect to address=(host=mysql)(port=3306)(type=master) : RSA public key is not available client side (option serverRsaPublicKeyFile not set)\n-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\nSQL State  : S1009\nError Code : 0\nMessage    : Could not connect to address=(host=mysql)(port=3306)(type=master) : RSA public key is not available client side (option serverRsaPublicKeyFile not set)\n\r\nCaused by: java.sql.SQLTransientConnectionException: Could not connect to address=(host=mysql)(port=3306)(type=master) : RSA public key is not available client side (option serverRsaPublicKeyFile not set)\r\nCaused by: java.sql.SQLException: RSA public key is not available client side (option serverRsaPublicKeyFile not set)\n\n"
+}

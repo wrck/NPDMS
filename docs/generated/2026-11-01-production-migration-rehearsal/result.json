@@ -1,0 +1,13 @@
+{
+  "source_commit": "77bc691cbc5ad1e58bb51252f2a31dd5047fd6d6",
+  "project": "npdms-rehearsal-20261101-202355",
+  "production_touched": false,
+  "cases": {},
+  "limits": [
+    "Local Compose infrastructure; not Ubuntu native installation/systemd/IP guard validation.",
+    "No application startup or real browser acceptance.",
+    "Elevated trigger-creation privilege, if necessary, applies only to this isolated instance."
+  ],
+  "completed": false,
+  "failure": ""
+}

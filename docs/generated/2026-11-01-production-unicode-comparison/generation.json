@@ -1,0 +1,10 @@
+{
+  "policySource": "E:\\AICoding\\Projects\\NPDMS\\docs\\generated\\2026-11-01-legacy-sync-comparison\\full-database-revised-ci-plan.json",
+  "policySourceSha256": "895529096b963260fdb944f74e288f161fa7ecdda8465548934c3d4ab6dc9a78",
+  "generator": "scripts/production/build_collation_initialization.py",
+  "newRelease": "sql/releases/production-178-v531-unicode",
+  "nonCreateTableSqlBytesIdentical": true,
+  "sourceBaseline": "production-178-v530-r2",
+  "sourceMigrationSha256": "cd4b480a9f41a6a94a239bd8ced5c3cec21ab0de9cb5d927fca262375034a0e1",
+  "newMigrationSha256": "a9a145e3677615fa5cbb2149fed172de957c5eb605139e499d60cb1b860d0e30"
+}

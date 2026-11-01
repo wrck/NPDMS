@@ -1,0 +1,6312 @@
+{
+  "source_commit": "77bc691cbc5ad1e58bb51252f2a31dd5047fd6d6",
+  "project": "npdms-rehearsal-20261101-202857",
+  "production_touched": false,
+  "cases": {
+    "fresh": {
+      "tables": 527,
+      "columns": 9644,
+      "triggers": 240,
+      "foreign_keys": 285,
+      "foreign_key_violations": [],
+      "seed_rows": 7374,
+      "nonempty_tables": {
+        "ACT_GE_PROPERTY": 5,
+        "ACT_ID_PROPERTY": 1,
+        "acc_satisfaction_questionnaire_template": 1,
+        "acc_satisfaction_questionnaire_template_revision": 1,
+        "bpm_category": 1,
+        "cut_checklist_binding_condition": 1446,
+        "cut_checklist_field_definition": 914,
+        "cut_checklist_field_option": 20,
+        "cut_configuration_dictionary_value": 50,
+        "cut_configuration_dimension": 13,
+        "cut_configuration_plan_section": 13,
+        "cut_configuration_plan_section_scope": 164,
+        "cut_cutover_checklist_binding_rule_revision": 268,
+        "cut_cutover_checklist_item_definition_revision": 269,
+        "cut_cutover_configuration_revision": 3,
+        "infra_config": 13,
+        "infra_job": 22,
+        "plt_business_view_revision": 15,
+        "plt_delivery_type": 21,
+        "plt_dynamic_form_template": 12,
+        "plt_dynamic_form_template_revision": 26,
+        "plt_entity_extension_definition": 1,
+        "proj_project_template": 1,
+        "proj_project_template_revision": 1,
+        "proj_stage_suggestion_rule": 4,
+        "proj_task_state_machine_revision": 2,
+        "proj_task_state_transition": 16,
+        "system_dict_data": 2055,
+        "system_dict_type": 407,
+        "system_menu": 744,
+        "system_notify_template": 3,
+        "system_oauth2_client": 1,
+        "system_role": 33,
+        "system_role_menu": 825,
+        "system_tenant": 1,
+        "system_user_role": 1,
+        "system_users": 1
+      },
+      "current_code_schema_gaps": [
+        {
+          "table": "ast_device_software_observation",
+          "columns": [
+            "bar_code",
+            "boot",
+            "boot_bak",
+            "boot_change",
+            "conp",
+            "conp_bak",
+            "conp_change",
+            "conp_mark",
+            "conp_series",
+            "conp_type",
+            "contract_no",
+            "cpld",
+            "cpld_bak",
+            "cpld_change",
+            "custom_info",
+            "datastate",
+            "execute_time",
+            "id",
+            "item_code",
+            "log_id",
+            "pcb",
+            "pcb_bak",
+            "pcb_change",
+            "project_id",
+            "source_checksum",
+            "source_created_at",
+            "source_created_by",
+            "source_id",
+            "source_key",
+            "source_project_id",
+            "source_project_key",
+            "source_read_at",
+            "source_system",
+            "source_updated_at",
+            "source_updated_by",
+            "source_version"
+          ],
+          "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/version/DeviceSoftwareObservationDO.java"
+        },
+        {
+          "table": "com_contract_receivable",
+          "columns": [
+            "source_collected_money_ratio",
+            "source_created_at",
+            "source_created_by",
+            "source_data_source",
+            "source_revision_hash",
+            "source_row_id",
+            "source_updated_at",
+            "source_updated_by"
+          ],
+          "source": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/history/ContractReceivableDO.java"
+        },
+        {
+          "table": "com_project_contract_history",
+          "columns": [
+            "contract_id",
+            "contract_no",
+            "id",
+            "project_group_code",
+            "project_id",
+            "source_created_at",
+            "source_created_by",
+            "source_project_group_id",
+            "source_project_key",
+            "source_record_key",
+            "source_revision_hash",
+            "source_row_id",
+            "source_system",
+            "source_updated_at",
+            "source_updated_by"
+          ],
+          "source": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/history/ProjectContractHistoryDO.java"
+        }
+      ],
+      "sync_schema_gaps": [],
+      "production_seed_policy": "Upstream example menu in production seeds",
+      "sample_menus": [
+        {
+          "id": 5,
+          "name": "OA 示例",
+          "component": null,
+          "permission": ""
+        },
+        {
+          "id": 1070,
+          "name": "代码生成案例",
+          "component": "infra/testDemo/index",
+          "permission": ""
+        },
+        {
+          "id": 1118,
+          "name": "请假查询",
+          "component": "bpm/oa/leave/index",
+          "permission": ""
+        },
+        {
+          "id": 1119,
+          "name": "请假申请查询",
+          "component": "",
+          "permission": "bpm:oa-leave:query"
+        },
+        {
+          "id": 1120,
+          "name": "请假申请创建",
+          "component": "",
+          "permission": "bpm:oa-leave:create"
+        },
+        {
+          "id": 2472,
+          "name": "主子表（内嵌）",
+          "component": "infra/demo/demo03/inner/index",
+          "permission": ""
+        },
+        {
+          "id": 2478,
+          "name": "单表（增删改查）",
+          "component": "infra/demo/demo01/index",
+          "permission": ""
+        },
+        {
+          "id": 2479,
+          "name": "示例联系人查询",
+          "component": "",
+          "permission": "infra:demo01-contact:query"
+        },
+        {
+          "id": 2480,
+          "name": "示例联系人创建",
+          "component": "",
+          "permission": "infra:demo01-contact:create"
+        },
+        {
+          "id": 2481,
+          "name": "示例联系人更新",
+          "component": "",
+          "permission": "infra:demo01-contact:update"
+        },
+        {
+          "id": 2482,
+          "name": "示例联系人删除",
+          "component": "",
+          "permission": "infra:demo01-contact:delete"
+        },
+        {
+          "id": 2483,
+          "name": "示例联系人导出",
+          "component": "",
+          "permission": "infra:demo01-contact:export"
+        },
+        {
+          "id": 2484,
+          "name": "树表（增删改查）",
+          "component": "infra/demo/demo02/index",
+          "permission": ""
+        },
+        {
+          "id": 2485,
+          "name": "示例分类查询",
+          "component": "",
+          "permission": "infra:demo02-category:query"
+        },
+        {
+          "id": 2486,
+          "name": "示例分类创建",
+          "component": "",
+          "permission": "infra:demo02-category:create"
+        },
+        {
+          "id": 2487,
+          "name": "示例分类更新",
+          "component": "",
+          "permission": "infra:demo02-category:update"
+        },
+        {
+          "id": 2488,
+          "name": "示例分类删除",
+          "component": "",
+          "permission": "infra:demo02-category:delete"
+        },
+        {
+          "id": 2489,
+          "name": "示例分类导出",
+          "component": "",
+          "permission": "infra:demo02-category:export"
+        },
+        {
+          "id": 2490,
+          "name": "主子表（标准）",
+          "component": "infra/demo/demo03/normal/index",
+          "permission": ""
+        },
+        {
+          "id": 2491,
+          "name": "学生查询",
+          "component": "",
+          "permission": "infra:demo03-student:query"
+        },
+        {
+          "id": 2492,
+          "name": "学生创建",
+          "component": "",
+          "permission": "infra:demo03-student:create"
+        },
+        {
+          "id": 2493,
+          "name": "学生更新",
+          "component": "",
+          "permission": "infra:demo03-student:update"
+        },
+        {
+          "id": 2494,
+          "name": "学生删除",
+          "component": "",
+          "permission": "infra:demo03-student:delete"
+        },
+        {
+          "id": 2495,
+          "name": "学生导出",
+          "component": "",
+          "permission": "infra:demo03-student:export"
+        },
+        {
+          "id": 2497,
+          "name": "主子表（ERP）",
+          "component": "infra/demo/demo03/erp/index",
+          "permission": ""
+        }
+      ],
+      "sample_questionnaires": [],
+      "published_templates": [
+        {
+          "id": 996610195020085,
+          "status": "DRAFT"
+        }
+      ],
+      "collations": [
+        {
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_bin",
+          "columns_count": 511
+        },
+        {
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci",
+          "columns_count": 3655
+        },
+        {
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_0900_bin",
+          "columns_count": 39
+        }
+      ],
+      "role_permissions": [
+        {
+          "code": "admin",
+          "permission": "pms:imp-stage-plan:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:category:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:category:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:category:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:category:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:form:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:form:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:form:export"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:form:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:form:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:clean"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:deploy"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:oa-leave:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:oa-leave:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-definition:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-expression:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-expression:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-expression:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-expression:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance-cc:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance:cancel"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance:cancel-by-admin"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance:manager-query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-listener:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-listener:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-listener:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-listener:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task-assign-rule:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task-assign-rule:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task-assign-rule:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task:manager-query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:user-group:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:user-group:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:user-group:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:user-group:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-access-log:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-access-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-error-log:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-error-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-error-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-error-log:update-status"
+        },
+        {
+          "code": "common",
+          "permission": "infra:build:list"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:create"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:download"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:preview"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:config:create"
+        },
+        {
+          "code": "common",
+          "permission": "infra:config:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:config:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:config:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:config:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:data-source-config:create"
+        },
+        {
+          "code": "common",
+          "permission": "infra:data-source-config:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:data-source-config:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:data-source-config:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:data-source-config:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file-config:create"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file-config:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file-config:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file-config:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file-config:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:create"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:trigger"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:redis:get-key-list"
+        },
+        {
+          "code": "common",
+          "permission": "infra:redis:get-monitor-info"
+        },
+        {
+          "code": "common",
+          "permission": "infra:swagger:list"
+        },
+        {
+          "code": "common",
+          "permission": "system:dept:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:dept:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:dept:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:dept:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:dict:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:dict:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:dict:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:dict:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:dict:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:login-log:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:login-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:menu:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:menu:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:notice:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:notice:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:notice:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:notice:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-client:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-client:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-client:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-client:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-token:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-token:page"
+        },
+        {
+          "code": "common",
+          "permission": "system:operate-log:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:operate-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:permission:assign-role-data-scope"
+        },
+        {
+          "code": "common",
+          "permission": "system:permission:assign-role-menu"
+        },
+        {
+          "code": "common",
+          "permission": "system:permission:assign-user-role"
+        },
+        {
+          "code": "common",
+          "permission": "system:post:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:post:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:post:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:post:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:post:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:role:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:role:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:role:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:role:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:role:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-channel:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-channel:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-channel:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-channel:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-log:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:send-sms"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant-package:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant-package:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant-package:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant-package:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:import"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:list"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:update-password"
+        },
+        {
+          "code": "CUT_RND_APPROVER",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "CUT_RND_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_RND_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_RND_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_RND_APPROVER",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "CUT_SECOND_LINE_APPROVER",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "CUT_SECOND_LINE_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_SECOND_LINE_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_SECOND_LINE_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_SECOND_LINE_APPROVER",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "engineeManager",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "engineeManager",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "engineeManager",
+          "permission": "bpm:task:update"
+        },
+        {
+          "code": "engineeManager",
+          "permission": "pms:imp-stage-plan:query"
+        },
+        {
+          "code": "engineeManager",
+          "permission": "pms:sol-solution:major-review"
+        },
+        {
+          "code": "engineeManagerLeader",
+          "permission": "pms:imp-stage-plan:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "bpm:task:update"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:delivery:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:sol-solution:major-review"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:sol-solution:query"
+        },
+        {
+          "code": "probRD",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "probRD",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "probRD",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "probRD",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "probRD",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "probRD",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "probRD",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:query-closure"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-archive-document:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-archive-document:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-archive-document:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-archive-document:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-completion-certificate:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-completion-certificate:delete"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-completion-certificate:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-completion-certificate:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-completion-certificate:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-project-closure:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-project-closure:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-project-closure:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-project-closure:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:report:complete"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:report:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:report:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:report:write"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:collect"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:export"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:manage"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:confirm"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:edit-own-draft"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:resolve-difference"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:business-model:operate"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:commerce:contract:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:commerce:scope:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:construction-plan:duration-manage"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:construction-plan:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer-contact:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer-contact:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:download-plan"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:manage-spare"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query-closure"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query-plan"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:save-assessment"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:save-checklist"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:save-closure"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:save-plan"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:submit-assessment"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:submit-checklist"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:submit-closure"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:submit-plan"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:delivery:operate"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:delivery:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device-configuration-log:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device-log-archive:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device-log-archive:import"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device-log-archive:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device-version:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:archive"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:archive"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:upload"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:upload"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-arrival:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-arrival:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-arrival:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-configuration:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-configuration:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-configuration:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-configuration:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-deliverable:archive"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-deliverable:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-deliverable:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-deliverable:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-deliverable:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-doc-template:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-doc-template:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-installation:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-installation:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-installation:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-joint-test:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-joint-test:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-joint-test:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-material-exch:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-material-exch:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-material-exch:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-material-exch:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-stage-plan:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-stage-plan:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-stage-plan:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-stage-plan:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-training:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-training:delete"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-training:issue"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-training:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-training:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:preparation-survey:fill"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:preparation-survey:manage"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:preparation-survey:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-device:export"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-phase:gate"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-phase:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-plan:manage"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-plan:rework"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-risk:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-task:assign"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-task:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-task:execute"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-task:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-team:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-team:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:progress-policy:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:progress-policy:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:requirement-analysis:manage"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:requirement-analysis:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:service-issue:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-briefing:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-briefing:generate"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-briefing:publish"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-briefing:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-briefing:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-site-survey:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-site-survey:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-site-survey:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-solution:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-solution:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-solution:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "bpm:task:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-archive-document:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-archive-document:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-archive-document:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-archive-document:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-archive-document:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:delete"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-project-closure:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-project-closure:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-project-closure:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-project-closure:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-project-closure:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:report:complete"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:report:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:report:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:report:write"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:collect"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:export"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:confirm"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:edit-own-draft"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:resolve-difference"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:business-model:operate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:commerce:contract:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:commerce:scope:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:construction-plan:duration-approve"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:construction-plan:duration-manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:construction-plan:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer-contact:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer-contact:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:delete"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:restore"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:download-plan"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:manage-spare"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query-closure"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query-plan"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:save-assessment"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:save-checklist"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:save-closure"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:save-plan"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:submit-assessment"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:submit-checklist"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:submit-closure"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:submit-plan"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:delivery:operate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:delivery:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device-configuration-log:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device-log-archive:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device-log-archive:import"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device-log-archive:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device-version:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:archive"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:archive"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:upload"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:upload"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-arrival:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-arrival:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-arrival:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-configuration:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-configuration:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-configuration:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-configuration:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-deliverable:archive"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-deliverable:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-deliverable:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-deliverable:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-deliverable:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-doc-template:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-doc-template:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-installation:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-installation:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-installation:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-joint-test:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-joint-test:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-joint-test:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-material-exch:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-material-exch:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-material-exch:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-material-exch:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-stage-plan:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-stage-plan:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-stage-plan:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-stage-plan:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-training:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-training:delete"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-training:issue"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-training:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-training:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-report:generate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-rule:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-rule:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-rule:select"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:annotate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:archive"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:assign"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:cancel"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:execute"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:prepare"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:request-archive"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:preparation-survey:fill"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:preparation-survey:manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:preparation-survey:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:preparation-survey:waiver-approve"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-device:export"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-phase:gate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-phase:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-plan:manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-plan:rework"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-risk:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-task:assign"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-task:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-task:execute"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-task:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-team:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-team:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:assign"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:authorization:manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:authorization:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:authorization:revoke"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:progress-policy:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:progress-policy:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:requirement-analysis:manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:requirement-analysis:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:service-issue:confirm"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:service-issue:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:service-issue:remediate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:generate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:publish"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-site-survey:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-site-survey:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-site-survey:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-solution:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-solution:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-solution:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-solution:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-acceptance:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-acceptance:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-acceptance:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-acceptance:submit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-acceptance:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:submit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:submit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:submit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:submit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:business-model:operate"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:business-model:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:customer-contact:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:customer-contact:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:customer-contact:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-plan:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-plan:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-plan:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-plan:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-risk:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-risk:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-risk:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-risk:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-task:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-task:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-task:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-task:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:delivery:operate"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:delivery:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device-version:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:status-change"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-arrival:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-arrival:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-arrival:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-arrival:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-configuration:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-configuration:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-configuration:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-configuration:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-deliverable:archive"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-deliverable:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-deliverable:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-deliverable:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-deliverable:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-installation:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-installation:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-installation:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-installation:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-issue:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-issue:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-issue:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-issue:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-issue:verify"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-joint-test:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-joint-test:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-joint-test:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-joint-test:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:phase-template:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:portfolio:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:portfolio:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:portfolio:publish"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:portfolio:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:portfolio:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-panoramic:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-phase:gate"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-phase:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-phase:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-risk:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-task:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-task:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-task:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-team:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-team:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project:sync"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:service-level:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:service-level:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:service-level:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:service-level:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-requirement:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-requirement:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-requirement:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-requirement:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-resource:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-resource:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-resource:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-resource:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-site-survey:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-site-survey:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-site-survey:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-site-survey:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-solution:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-solution:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-solution:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-solution:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-solution:update"
+        }
+      ],
+      "immutable_delete_rejected": true,
+      "frozen_schema_matches": {
+        "tables": true,
+        "columns": true,
+        "indexes": true,
+        "constraints": true,
+        "foreign_keys": true,
+        "checks": true,
+        "triggers": true
+      },
+      "frozen_seed_counts_match": true,
+      "history": [
+        {
+          "installed_rank": 1,
+          "version": "530",
+          "description": "178 final and locked source",
+          "type": "SQL_BASELINE",
+          "script": "B530__178_final_and_locked_source.sql",
+          "checksum": 724034590,
+          "installed_by": "mig_fresh",
+          "installed_on": {
+            "$date": "2026-11-01 12:30:03"
+          },
+          "execution_time": 30952,
+          "success": 1
+        }
+      ],
+      "repeat_history_unchanged": true,
+      "initial_validate_reports_pending": true,
+      "nonempty_rejected_and_preserved": true,
+      "tamper_rejected_before_flyway": true
+    },
+    "formal": {
+      "tables": 518,
+      "columns": 9458,
+      "triggers": 240,
+      "foreign_keys": 285,
+      "foreign_key_violations": [],
+      "seed_rows": 6026,
+      "nonempty_tables": {
+        "ACT_GE_BYTEARRAY": 23,
+        "ACT_GE_PROPERTY": 7,
+        "ACT_ID_PROPERTY": 1,
+        "ACT_RE_DEPLOYMENT": 11,
+        "ACT_RE_MODEL": 7,
+        "ACT_RE_PROCDEF": 11,
+        "acc_satisfaction_questionnaire_template": 1,
+        "acc_satisfaction_questionnaire_template_revision": 1,
+        "bpm_category": 2,
+        "bpm_form": 1,
+        "bpm_process_definition_info": 11,
+        "cut_checklist_binding_condition": 726,
+        "cut_checklist_field_definition": 407,
+        "cut_checklist_field_option": 10,
+        "cut_configuration_dictionary_value": 27,
+        "cut_configuration_dimension": 5,
+        "cut_configuration_plan_section": 6,
+        "cut_configuration_plan_section_scope": 80,
+        "cut_cutover_checklist_binding_rule_revision": 133,
+        "cut_cutover_checklist_item_definition_revision": 133,
+        "cut_cutover_configuration_revision": 1,
+        "imp_eng_doc_template": 6,
+        "imp_eng_doc_template_version": 6,
+        "infra_config": 13,
+        "infra_job": 22,
+        "plt_business_view_revision": 17,
+        "plt_delivery_type": 21,
+        "plt_dynamic_form_template": 12,
+        "plt_dynamic_form_template_revision": 27,
+        "plt_entity_extension_definition": 1,
+        "plt_form_template": 8,
+        "proj_project_template": 5,
+        "proj_project_template_revision": 10,
+        "proj_stage_suggestion_rule": 4,
+        "proj_task_state_machine_revision": 1,
+        "proj_task_state_transition": 8,
+        "system_company": 4,
+        "system_dept": 206,
+        "system_dict_data": 2052,
+        "system_dict_type": 406,
+        "system_menu": 720,
+        "system_notify_template": 3,
+        "system_oauth2_client": 1,
+        "system_role": 33,
+        "system_role_menu": 833,
+        "system_tenant": 1,
+        "system_user_role": 1,
+        "system_users": 1
+      },
+      "current_code_schema_gaps": [
+        {
+          "table": "ast_device_network_version_event",
+          "columns": [
+            "custom_info"
+          ],
+          "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/version/DeviceNetworkVersionEventDO.java"
+        },
+        {
+          "table": "ast_device_software_observation",
+          "columns": [
+            "bar_code",
+            "boot",
+            "boot_bak",
+            "boot_change",
+            "conp",
+            "conp_bak",
+            "conp_change",
+            "conp_mark",
+            "conp_series",
+            "conp_type",
+            "contract_no",
+            "cpld",
+            "cpld_bak",
+            "cpld_change",
+            "custom_info",
+            "datastate",
+            "execute_time",
+            "id",
+            "item_code",
+            "log_id",
+            "pcb",
+            "pcb_bak",
+            "pcb_change",
+            "project_id",
+            "source_checksum",
+            "source_created_at",
+            "source_created_by",
+            "source_id",
+            "source_key",
+            "source_project_id",
+            "source_project_key",
+            "source_read_at",
+            "source_system",
+            "source_updated_at",
+            "source_updated_by",
+            "source_version"
+          ],
+          "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/version/DeviceSoftwareObservationDO.java"
+        },
+        {
+          "table": "ast_device_warranty_change_record",
+          "columns": [
+            "device_sn",
+            "id",
+            "source_checksum",
+            "source_id",
+            "source_key",
+            "source_read_at",
+            "source_system",
+            "source_table",
+            "source_updated_at",
+            "source_username",
+            "source_version",
+            "update_type",
+            "warranty_end_time",
+            "warranty_start_time",
+            "warranty_times"
+          ],
+          "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/warranty/DeviceWarrantyChangeRecordDO.java"
+        },
+        {
+          "table": "ast_device_warranty_fact_project",
+          "columns": [
+            "fact_id",
+            "fact_type",
+            "id",
+            "project_id",
+            "source_project_key"
+          ],
+          "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/warranty/DeviceWarrantyFactProjectDO.java"
+        },
+        {
+          "table": "ast_device_warranty_record",
+          "columns": [
+            "agent_name",
+            "combined_device_sn",
+            "contract_type",
+            "contract_type_name",
+            "customer_name",
+            "final_customer_name",
+            "grade_name",
+            "market_code",
+            "market_name",
+            "office_code",
+            "office_name",
+            "original_remaining_days_at_source",
+            "original_warranty_end_time",
+            "original_warranty_start_time",
+            "product_code",
+            "product_description",
+            "product_name",
+            "project_name",
+            "remaining_days_at_source",
+            "secondary_item",
+            "secondary_product_description",
+            "secondary_product_name",
+            "secondary_sn",
+            "shipment_time",
+            "source_shipment_key",
+            "source_sync_time",
+            "source_warranty_end_time",
+            "source_warranty_start_time",
+            "system_code",
+            "system_name",
+            "warranty_flag"
+          ],
+          "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/warranty/DeviceWarrantyRecordDO.java"
+        },
+        {
+          "table": "ast_device_warranty_registration",
+          "columns": [
+            "contract_no",
+            "contract_sync_id",
+            "contract_type",
+            "customer_name",
+            "device_sn",
+            "id",
+            "item_code",
+            "item_name",
+            "office_code",
+            "package_sync_id",
+            "source_checksum",
+            "source_id",
+            "source_key",
+            "source_project_name",
+            "source_read_at",
+            "source_system",
+            "source_table",
+            "source_version",
+            "warranty_end_time",
+            "warranty_level",
+            "warranty_limit",
+            "warranty_start_time"
+          ],
+          "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/warranty/DeviceWarrantyRegistrationDO.java"
+        },
+        {
+          "table": "ast_device_warranty_service_record",
+          "columns": [
+            "begin_date",
+            "device_sn",
+            "end_date",
+            "extension_flag",
+            "grade",
+            "id",
+            "remark",
+            "renewal_contract_no",
+            "source_checksum",
+            "source_id",
+            "source_key",
+            "source_read_at",
+            "source_state",
+            "source_system",
+            "source_table",
+            "source_version",
+            "warranty_flag"
+          ],
+          "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/dataobject/warranty/DeviceWarrantyServiceRecordDO.java"
+        },
+        {
+          "table": "com_contract_receivable",
+          "columns": [
+            "source_collected_money_ratio",
+            "source_created_at",
+            "source_created_by",
+            "source_data_source",
+            "source_revision_hash",
+            "source_row_id",
+            "source_updated_at",
+            "source_updated_by"
+          ],
+          "source": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/history/ContractReceivableDO.java"
+        },
+        {
+          "table": "com_project_contract_history",
+          "columns": [
+            "contract_id",
+            "contract_no",
+            "id",
+            "project_group_code",
+            "project_id",
+            "source_created_at",
+            "source_created_by",
+            "source_project_group_id",
+            "source_project_key",
+            "source_record_key",
+            "source_revision_hash",
+            "source_row_id",
+            "source_system",
+            "source_updated_at",
+            "source_updated_by"
+          ],
+          "source": "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/dataobject/contract/history/ProjectContractHistoryDO.java"
+        },
+        {
+          "table": "cus_project_customer_contact_relation",
+          "columns": [
+            "contact_code",
+            "effective_from",
+            "effective_to",
+            "project_party_id",
+            "registration_source"
+          ],
+          "source": "pms-module-customer/src/main/java/cn/iocoder/yudao/module/pms/customer/dal/dataobject/contact/ProjectCustomerContactDO.java"
+        }
+      ],
+      "sync_schema_gaps": [],
+      "production_seed_policy": "passed",
+      "sample_menus": [],
+      "sample_questionnaires": [],
+      "published_templates": [
+        {
+          "id": 996610195020091,
+          "status": "PUBLISHED"
+        },
+        {
+          "id": 996610195020092,
+          "status": "PUBLISHED"
+        },
+        {
+          "id": 996610195020093,
+          "status": "PUBLISHED"
+        },
+        {
+          "id": 996610195020094,
+          "status": "PUBLISHED"
+        },
+        {
+          "id": 996610195020095,
+          "status": "PUBLISHED"
+        },
+        {
+          "id": 996610195020096,
+          "status": "PUBLISHED"
+        },
+        {
+          "id": 996610195020097,
+          "status": "PUBLISHED"
+        },
+        {
+          "id": 996610195020098,
+          "status": "PUBLISHED"
+        },
+        {
+          "id": 996610195020099,
+          "status": "PUBLISHED"
+        },
+        {
+          "id": 996610195020100,
+          "status": "PUBLISHED"
+        }
+      ],
+      "collations": [
+        {
+          "CHARACTER_SET_NAME": "utf8mb3",
+          "COLLATION_NAME": "utf8mb3_bin",
+          "columns_count": 451
+        },
+        {
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_unicode_ci",
+          "columns_count": 2624
+        },
+        {
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_0900_ai_ci",
+          "columns_count": 948
+        },
+        {
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_bin",
+          "columns_count": 48
+        },
+        {
+          "CHARACTER_SET_NAME": "utf8mb4",
+          "COLLATION_NAME": "utf8mb4_0900_bin",
+          "columns_count": 39
+        }
+      ],
+      "role_permissions": [
+        {
+          "code": "admin",
+          "permission": "pms:imp-stage-plan:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:category:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:category:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:category:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:category:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:form:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:form:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:form:export"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:form:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:form:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:clean"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:deploy"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:model:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-definition:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-expression:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-expression:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-expression:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-expression:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance-cc:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance:cancel"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance:cancel-by-admin"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance:manager-query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-listener:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-listener:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-listener:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:process-listener:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task-assign-rule:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task-assign-rule:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task-assign-rule:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task:manager-query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:task:update"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:user-group:create"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:user-group:delete"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:user-group:query"
+        },
+        {
+          "code": "common",
+          "permission": "bpm:user-group:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-access-log:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-access-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-error-log:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-error-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-error-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:api-error-log:update-status"
+        },
+        {
+          "code": "common",
+          "permission": "infra:build:list"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:create"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:download"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:preview"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:codegen:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:config:create"
+        },
+        {
+          "code": "common",
+          "permission": "infra:config:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:config:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:config:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:config:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:data-source-config:create"
+        },
+        {
+          "code": "common",
+          "permission": "infra:data-source-config:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:data-source-config:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:data-source-config:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:data-source-config:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file-config:create"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file-config:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file-config:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file-config:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file-config:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:file:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:create"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:delete"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:export"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:query"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:trigger"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:job:update"
+        },
+        {
+          "code": "common",
+          "permission": "infra:redis:get-key-list"
+        },
+        {
+          "code": "common",
+          "permission": "infra:redis:get-monitor-info"
+        },
+        {
+          "code": "common",
+          "permission": "infra:swagger:list"
+        },
+        {
+          "code": "common",
+          "permission": "system:dept:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:dept:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:dept:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:dept:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:dict:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:dict:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:dict:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:dict:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:dict:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:login-log:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:login-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:menu:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:menu:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:notice:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:notice:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:notice:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:notice:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-client:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-client:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-client:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-client:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-token:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:oauth2-token:page"
+        },
+        {
+          "code": "common",
+          "permission": "system:operate-log:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:operate-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:permission:assign-role-data-scope"
+        },
+        {
+          "code": "common",
+          "permission": "system:permission:assign-role-menu"
+        },
+        {
+          "code": "common",
+          "permission": "system:permission:assign-user-role"
+        },
+        {
+          "code": "common",
+          "permission": "system:post:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:post:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:post:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:post:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:post:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:role:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:role:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:role:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:role:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:role:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-channel:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-channel:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-channel:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-channel:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-log:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-log:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:send-sms"
+        },
+        {
+          "code": "common",
+          "permission": "system:sms-template:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant-package:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant-package:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant-package:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant-package:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:tenant:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:create"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:delete"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:export"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:import"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:list"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:query"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:update"
+        },
+        {
+          "code": "common",
+          "permission": "system:user:update-password"
+        },
+        {
+          "code": "CUT_RND_APPROVER",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "CUT_RND_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_RND_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_RND_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_RND_APPROVER",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "CUT_SECOND_LINE_APPROVER",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "CUT_SECOND_LINE_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_SECOND_LINE_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_SECOND_LINE_APPROVER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "CUT_SECOND_LINE_APPROVER",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "engineeManager",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "engineeManager",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "engineeManager",
+          "permission": "bpm:task:update"
+        },
+        {
+          "code": "engineeManager",
+          "permission": "pms:imp-stage-plan:query"
+        },
+        {
+          "code": "engineeManager",
+          "permission": "pms:sol-solution:major-review"
+        },
+        {
+          "code": "engineeManagerLeader",
+          "permission": "pms:imp-stage-plan:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "bpm:task:update"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:delivery:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:sol-solution:major-review"
+        },
+        {
+          "code": "ENGINEERING_MANAGEMENT_REVIEW",
+          "permission": "pms:sol-solution:query"
+        },
+        {
+          "code": "probRD",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "probRD",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "probRD",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "probRD",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "probRD",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "probRD",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "probRD",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:cutover-task:query-closure"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "probSupporter",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-archive-document:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-archive-document:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-archive-document:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-archive-document:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-completion-certificate:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-completion-certificate:delete"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-completion-certificate:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-completion-certificate:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-completion-certificate:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-project-closure:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-project-closure:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-project-closure:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acc-project-closure:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:report:complete"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:report:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:report:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:report:write"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:collect"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:export"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:manage"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:acceptance:satisfaction:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:confirm"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:edit-own-draft"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:arrival-acceptance:resolve-difference"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:business-model:operate"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:commerce:contract:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:commerce:scope:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:construction-plan:duration-manage"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:construction-plan:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer-contact:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer-contact:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:customer:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:download-plan"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:manage-spare"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query-closure"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:query-plan"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:save-assessment"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:save-checklist"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:save-closure"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:save-plan"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:submit-assessment"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:submit-checklist"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:submit-closure"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:cutover-task:submit-plan"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:delivery:operate"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:delivery:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device-configuration-log:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device-log-archive:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device-log-archive:import"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device-log-archive:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device-version:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:archive"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:archive"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:upload"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:file:upload"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-arrival:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-arrival:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-arrival:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-configuration:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-configuration:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-configuration:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-configuration:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-deliverable:archive"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-deliverable:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-deliverable:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-deliverable:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-deliverable:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-doc-template:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-doc-template:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-installation:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-installation:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-installation:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-joint-test:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-joint-test:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-joint-test:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-material-exch:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-material-exch:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-material-exch:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-material-exch:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-stage-plan:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-stage-plan:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-stage-plan:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-stage-plan:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-training:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-training:delete"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-training:issue"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-training:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:imp-training:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:preparation-survey:fill"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:preparation-survey:manage"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:preparation-survey:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-device:export"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-phase:gate"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-phase:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-plan:manage"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-plan:rework"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-risk:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-task:assign"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-task:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-task:execute"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-task:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-task:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-team:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project-team:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:progress-policy:submit"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:progress-policy:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:project:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:requirement-analysis:manage"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:requirement-analysis:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:service-issue:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-briefing:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-briefing:generate"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-briefing:publish"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-briefing:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-briefing:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-site-survey:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-site-survey:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-site-survey:update"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-solution:create"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-solution:query"
+        },
+        {
+          "code": "PROJECT_MANAGER",
+          "permission": "pms:sol-solution:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "bpm:process-instance:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "bpm:task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "bpm:task:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-archive-document:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-archive-document:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-archive-document:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-archive-document:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-archive-document:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:delete"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-completion-certificate:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-deliverable-checklist:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-project-closure:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-project-closure:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-project-closure:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-project-closure:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acc-project-closure:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:report:complete"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:report:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:report:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:report:write"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:collect"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:export"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:acceptance:satisfaction:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:confirm"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:edit-own-draft"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:arrival-acceptance:resolve-difference"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:business-model:operate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:commerce:contract:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:commerce:scope:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:construction-plan:duration-approve"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:construction-plan:duration-manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:construction-plan:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer-contact:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer-contact:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:delete"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:restore"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:customer:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:approve"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:download-plan"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:manage-spare"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query-approval"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query-closure"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:query-plan"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:save-assessment"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:save-checklist"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:save-closure"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:save-plan"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:submit-assessment"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:submit-checklist"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:submit-closure"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:cutover-task:submit-plan"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:delivery:operate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:delivery:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device-configuration-log:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device-log-archive:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device-log-archive:import"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device-log-archive:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device-version:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:archive"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:archive"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:download"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:preview"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:upload"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:file:upload"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-arrival:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-arrival:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-arrival:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-configuration:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-configuration:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-configuration:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-configuration:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-deliverable:archive"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-deliverable:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-deliverable:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-deliverable:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-deliverable:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-doc-template:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-doc-template:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-installation:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-installation:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-installation:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-joint-test:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-joint-test:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-joint-test:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-material-exch:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-material-exch:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-material-exch:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-material-exch:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-stage-plan:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-stage-plan:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-stage-plan:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-stage-plan:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-training:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-training:delete"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-training:issue"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-training:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:imp-training:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-report:generate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-rule:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-rule:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-rule:select"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:annotate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:archive"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:assign"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:cancel"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:execute"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:prepare"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:inspection-task:request-archive"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:preparation-survey:fill"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:preparation-survey:manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:preparation-survey:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:preparation-survey:waiver-approve"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-device:export"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-phase:gate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-phase:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-plan:manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-plan:rework"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-risk:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-task:assign"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-task:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-task:execute"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-task:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-task:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-team:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project-team:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:assign"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:authorization:manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:authorization:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:authorization:revoke"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:progress-policy:submit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:progress-policy:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:project:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:requirement-analysis:manage"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:requirement-analysis:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:service-issue:confirm"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:service-issue:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:service-issue:remediate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:generate"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:publish"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-briefing:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-site-survey:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-site-survey:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-site-survey:update"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-solution:audit"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-solution:create"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-solution:query"
+        },
+        {
+          "code": "SERVICE_MANAGER",
+          "permission": "pms:sol-solution:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-acceptance:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-acceptance:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-acceptance:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-acceptance:submit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-acceptance:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:submit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-archive-document:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:submit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-completion-certificate:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:submit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-deliverable-checklist:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:submit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:acc-project-closure:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:business-model:operate"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:business-model:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:customer-contact:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:customer-contact:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:customer-contact:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:customer-contact:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-plan:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-plan:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-plan:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-plan:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-risk:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-risk:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-risk:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-risk:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-task:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-task:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-task:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:cut-task:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:delivery:operate"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:delivery:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device-version:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:status-change"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:device:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-arrival:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-arrival:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-arrival:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-arrival:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-configuration:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-configuration:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-configuration:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-configuration:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-deliverable:archive"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-deliverable:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-deliverable:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-deliverable:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-deliverable:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-installation:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-installation:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-installation:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-installation:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-issue:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-issue:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-issue:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-issue:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-issue:verify"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-joint-test:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-joint-test:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-joint-test:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:imp-joint-test:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:phase-template:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:portfolio:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:portfolio:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:portfolio:publish"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:portfolio:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:portfolio:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-panoramic:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-phase:gate"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-phase:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-phase:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-risk:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-risk:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-task:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-task:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-task:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-team:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project-team:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:project:sync"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:service-level:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:service-level:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:service-level:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:service-level:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-requirement:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-requirement:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-requirement:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-requirement:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-resource:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-resource:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-resource:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-resource:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-site-survey:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-site-survey:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-site-survey:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-site-survey:update"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-solution:audit"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-solution:create"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-solution:delete"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-solution:query"
+        },
+        {
+          "code": "super_admin",
+          "permission": "pms:sol-solution:update"
+        }
+      ],
+      "immutable_delete_rejected": true,
+      "history": [
+        {
+          "installed_rank": 1,
+          "version": "530",
+          "description": "production 178 initialization",
+          "type": "SQL_BASELINE",
+          "script": "B530__production_178_initialization.sql",
+          "checksum": -41537416,
+          "installed_by": "mig_formal",
+          "installed_on": {
+            "$date": "2026-11-01 12:30:57"
+          },
+          "execution_time": 29893,
+          "success": 1
+        }
+      ],
+      "repeat_history_unchanged": true,
+      "initial_validate_reports_pending": true,
+      "nonempty_rejected_and_preserved": true,
+      "tamper_rejected_before_flyway": true
+    },
+    "dac": {
+      "tables": 24,
+      "columns": 277,
+      "triggers": 0,
+      "foreign_keys": 20,
+      "foreign_key_violations": [],
+      "seed_rows": 0,
+      "nonempty_tables": {},
+      "history": [
+        {
+          "installed_rank": 1,
+          "version": "1",
+          "description": "create device ops baseline",
+          "type": "SQL",
+          "script": "V1__create_device_ops_baseline.sql",
+          "checksum": 1927113423,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:22"
+          },
+          "execution_time": 656,
+          "success": 1
+        },
+        {
+          "installed_rank": 2,
+          "version": "13",
+          "description": "create parser registry",
+          "type": "SQL",
+          "script": "V13__create_parser_registry.sql",
+          "checksum": 867053383,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:22"
+          },
+          "execution_time": 113,
+          "success": 1
+        },
+        {
+          "installed_rank": 3,
+          "version": "14",
+          "description": "create parser tasks",
+          "type": "SQL",
+          "script": "V14__create_parser_tasks.sql",
+          "checksum": -1776884044,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:23"
+          },
+          "execution_time": 206,
+          "success": 1
+        },
+        {
+          "installed_rank": 4,
+          "version": "15",
+          "description": "create parser worker capabilities",
+          "type": "SQL",
+          "script": "V15__create_parser_worker_capabilities.sql",
+          "checksum": -1787918789,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:23"
+          },
+          "execution_time": 95,
+          "success": 1
+        },
+        {
+          "installed_rank": 5,
+          "version": "16",
+          "description": "link collection parser tasks",
+          "type": "SQL",
+          "script": "V16__link_collection_parser_tasks.sql",
+          "checksum": 191958773,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:23"
+          },
+          "execution_time": 39,
+          "success": 1
+        },
+        {
+          "installed_rank": 6,
+          "version": "17",
+          "description": "record parser submission identity",
+          "type": "SQL",
+          "script": "V17__record_parser_submission_identity.sql",
+          "checksum": -1663092630,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:23"
+          },
+          "execution_time": 326,
+          "success": 1
+        },
+        {
+          "installed_rank": 7,
+          "version": "18",
+          "description": "record collection submission fingerprint",
+          "type": "SQL",
+          "script": "V18__record_collection_submission_fingerprint.sql",
+          "checksum": 407698930,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:23"
+          },
+          "execution_time": 76,
+          "success": 1
+        },
+        {
+          "installed_rank": 8,
+          "version": "19",
+          "description": "add management collection projection",
+          "type": "SQL",
+          "script": "V19__add_management_collection_projection.sql",
+          "checksum": 1553845556,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:23"
+          },
+          "execution_time": 167,
+          "success": 1
+        },
+        {
+          "installed_rank": 9,
+          "version": "20",
+          "description": "add collection submission snapshot",
+          "type": "SQL",
+          "script": "V20__add_collection_submission_snapshot.sql",
+          "checksum": -1914201026,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:23"
+          },
+          "execution_time": 89,
+          "success": 1
+        },
+        {
+          "installed_rank": 10,
+          "version": "22",
+          "description": "link parse task to business request",
+          "type": "SQL",
+          "script": "V22__link_parse_task_to_business_request.sql",
+          "checksum": -960948114,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:24"
+          },
+          "execution_time": 229,
+          "success": 1
+        },
+        {
+          "installed_rank": 11,
+          "version": "24",
+          "description": "collection submission cancellation",
+          "type": "SQL",
+          "script": "V24__collection_submission_cancellation.sql",
+          "checksum": 1298141948,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:24"
+          },
+          "execution_time": 37,
+          "success": 1
+        },
+        {
+          "installed_rank": 12,
+          "version": "25",
+          "description": "desktop task capabilities",
+          "type": "SQL",
+          "script": "V25__desktop_task_capabilities.sql",
+          "checksum": -1288103375,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:24"
+          },
+          "execution_time": 38,
+          "success": 1
+        },
+        {
+          "installed_rank": 13,
+          "version": "26",
+          "description": "desktop connection scope",
+          "type": "SQL",
+          "script": "V26__desktop_connection_scope.sql",
+          "checksum": -1979204921,
+          "installed_by": "mig_dac",
+          "installed_on": {
+            "$date": "2026-11-01 12:31:24"
+          },
+          "execution_time": 73,
+          "success": 1
+        }
+      ],
+      "repeat_history_unchanged": true,
+      "initial_validate_reports_pending": true
+    }
+  },
+  "limits": [
+    "Local Compose infrastructure; not Ubuntu native installation/systemd/IP guard validation.",
+    "No application startup or real browser acceptance.",
+    "Elevated trigger-creation privilege, if necessary, applies only to this isolated instance."
+  ],
+  "formal_source_gate": {
+    "expected": "cd4b480a9f41a6a94a239bd8ced5c3cec21ab0de9cb5d927fca262375034a0e1",
+    "working_tree": "a23d5124f76a1cbfad9e13cc95712951b0c7baecd2ba7cdcfaf118bd559d29b0",
+    "passed": false,
+    "verified_origin": "E:\\AICoding\\Projects\\NPDMS\\sql\\releases\\production-178-v530-r2\\migrations\\B530__production_178_initialization.sql",
+    "difference": "line endings only; rehearse exact manifest-matching origin, repository left unchanged"
+  },
+  "flyway_runtime": {
+    "archive": "E:\\AICoding\\Projects\\NPDMS\\.run\\ssh-install-session-20261030\\packages\\flyway-commandline-11.10.5-linux-x64.tar.gz",
+    "sha256": "305e1f47816168cb6f99bca1b3c9eb81d8ebb0a96f7d077ac8d55e4489a33e2a",
+    "driver": "com.mysql.cj.jdbc.Driver",
+    "connector_version": "9.7.0",
+    "connector_sha256": "0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44",
+    "prerequisite": "Add explicit MySQL driver; default MariaDB 2.7.11 did not apply MySQL VERIFY_IDENTITY options in prior isolated attempt."
+  },
+  "mysql": {
+    "version": "8.4.13",
+    "log_bin": 1,
+    "trust_function_creators": 0,
+    "require_secure_transport": 1,
+    "binlog_format": "ROW"
+  },
+  "admin_tls": [
+    {
+      "Variable_name": "Ssl_cipher",
+      "Value": "TLS_AES_256_GCM_SHA384"
+    }
+  ],
+  "published_copy_hashes_match": true,
+  "wrong_tls_hostname_rejected": true,
+  "database_scoped_trigger_probe": {
+    "exit": 1,
+    "super_required": true
+  },
+  "isolated_temporary_privilege": "SUPER for fresh/formal migrators only; binlog settings unchanged",
+  "temporary_privilege_revoked": true,
+  "completed": true
+}
