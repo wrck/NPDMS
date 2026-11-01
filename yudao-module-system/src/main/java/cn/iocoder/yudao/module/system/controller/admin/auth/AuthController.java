@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.system.controller.admin.auth;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
+import cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.datapermission.core.annotation.DataPermission;
 import cn.iocoder.yudao.framework.security.config.SecurityProperties;
@@ -14,6 +15,7 @@ import cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
 import cn.iocoder.yudao.module.system.enums.logger.LoginLogTypeEnum;
 import cn.iocoder.yudao.module.system.service.auth.AdminAuthService;
+import cn.iocoder.yudao.module.system.service.auth.EmailPasswordResetService;
 import cn.iocoder.yudao.module.system.service.permission.MenuService;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import cn.iocoder.yudao.module.system.service.permission.RoleService;
@@ -47,6 +49,8 @@ public class AuthController {
 
     @Resource
     private AdminAuthService authService;
+    @Resource
+    private EmailPasswordResetService emailPasswordResetService;
     @Resource
     private AdminUserService userService;
     @Resource
@@ -141,9 +145,28 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     @PermitAll
+    @ApiAccessLog(requestEnable = false)
     @Operation(summary = "重置密码")
     public CommonResult<Boolean> resetPassword(@RequestBody @Valid AuthResetPasswordReqVO reqVO) {
-        authService.resetPassword(reqVO);
+        return CommonResult.error(403, "请使用邮箱验证码重置密码");
+    }
+
+    @PostMapping("/email-reset-code")
+    @PermitAll
+    @ApiAccessLog(requestEnable = false)
+    @Operation(summary = "发送密码重置邮箱验证码")
+    public CommonResult<Boolean> sendEmailResetCode(@RequestBody @Valid AuthEmailResetCodeReqVO reqVO) {
+        authService.sendEmailResetCode(reqVO);
+        return success(true);
+    }
+
+    @PostMapping("/email-reset-password")
+    @PermitAll
+    @ApiAccessLog(requestEnable = false)
+    @DataPermission(enable = false)
+    @Operation(summary = "使用邮箱验证码重置密码")
+    public CommonResult<Boolean> emailResetPassword(@RequestBody @Valid AuthEmailResetPasswordReqVO reqVO) {
+        emailPasswordResetService.reset(reqVO);
         return success(true);
     }
 

@@ -14,6 +14,8 @@ import jakarta.validation.Valid;
  */
 public interface AdminAuthService {
 
+    void sendEmailResetCode(AuthEmailResetCodeReqVO reqVO);
+
     /**
      * 验证账号 + 密码。如果通过，则返回用户
      *

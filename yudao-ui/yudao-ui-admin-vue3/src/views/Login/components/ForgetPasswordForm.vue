@@ -27,13 +27,13 @@
           />
         </el-form-item>
       </el-col>
-      <!-- 手机号 -->
+      <!-- 账号 -->
       <el-col :span="24" class="px-10px">
-        <el-form-item prop="mobile">
+        <el-form-item prop="username">
           <el-input
-            v-model="resetPasswordData.mobile"
-            :placeholder="t('login.mobileNumberPlaceholder')"
-            :prefix-icon="iconCellphone"
+            v-model="resetPasswordData.username"
+            :placeholder="'请输入账号'"
+            :prefix-icon="iconAvatar"
           />
         </el-form-item>
       </el-col>
@@ -43,7 +43,7 @@
         :captchaType="captchaType"
         :imgSize="{ width: '400px', height: '200px' }"
         mode="pop"
-        @success="getSmsCode"
+        @success="getEmailCode"
       />
       <!-- 验证码 -->
       <el-col :span="24" class="px-10px">
@@ -62,7 +62,7 @@
                     style="cursor: pointer"
                     @click="getCode"
                   >
-                    {{ t('login.getSmsCode') }}
+                    {{ '获取邮箱验证码' }}
                   </span>
                   <span v-if="mobileCodeTimer > 0" class="getMobileCode" style="cursor: pointer">
                     {{ mobileCodeTimer }}秒后可重新获取
@@ -118,7 +118,7 @@ import type { RouteLocationNormalizedLoaded } from 'vue-router'
 
 import { useIcon } from '@/hooks/web/useIcon'
 
-import { sendSmsCode, smsResetPassword } from '@/api/login'
+import { sendEmailResetCode, emailResetPassword } from '@/api/login'
 import LoginFormTitle from './LoginFormTitle.vue'
 import { LoginStateEnum, useFormValid, useLoginState } from './useLogin'
 import { ElLoading } from 'element-plus'
@@ -133,7 +133,7 @@ const { currentRoute } = useRouter()
 const formSmsResetPassword = ref()
 const loginLoading = ref(false)
 const iconHouse = useIcon({ icon: 'ep:house' })
-const iconCellphone = useIcon({ icon: 'ep:cellphone' })
+const iconAvatar = useIcon({ icon: 'ep:user' })
 const iconCircleCheck = useIcon({ icon: 'ep:circle-check' })
 const { validForm } = useFormValid(formSmsResetPassword)
 const { handleBackLogin, getLoginState, setLoginState } = useLoginState()
@@ -152,13 +152,12 @@ const validatePass2 = (_rule, value) => {
 
 const rules = {
   tenantName: [{ required: true, min: 2, max: 20, trigger: 'blur', message: '长度为4到16位' }],
-  mobile: [{ required: true, min: 11, max: 11, trigger: 'blur', message: '手机号长度为11位' }],
+  username: [{ required: true, trigger: 'blur', message: '请输入账号' }],
   password: [
     {
       required: true,
       min: 4,
       max: 16,
-      validator: validatePass2,
       trigger: 'blur',
       message: '密码长度为4到16位'
     }
@@ -174,39 +173,34 @@ const resetPasswordData = reactive({
   username: '',
   password: '',
   check_password: '',
-  mobile: '',
   code: ''
 })
 
-const smsVO = reactive({
-  tenantName: '',
-  mobile: '',
-  captchaVerification: '',
-  scene: 23
-})
 const mobileCodeTimer = ref(0)
 const redirect = ref<string>('')
 
 // 获取验证码
 const getCode = async () => {
+  if (!resetPasswordData.username.trim()) {
+    message.warning('请输入账号')
+    return
+  }
   // 情况一，未开启：则直接发送验证码
-  if (resetPasswordData.captchaEnable === 'false') {
-    await getSmsCode({})
-  } else {
+  if (resetPasswordData.captchaEnable === 'true') {
     // 情况二，已开启：则展示验证码；只有完成验证码的情况，才进行发送验证码
     // 弹出验证码
     verify.value.show()
+  } else {
+    await getEmailCode({})
   }
 }
 
-const getSmsCode = async (params) => {
+const getEmailCode = async (params) => {
   if (resetPasswordData.tenantEnable === 'true') {
     await getTenantId()
   }
-  smsVO.captchaVerification = params.captchaVerification
-  smsVO.mobile = resetPasswordData.mobile
-  await sendSmsCode(smsVO).then(async () => {
-    message.success(t('login.SmsSendMsg'))
+  await sendEmailResetCode({ username: resetPasswordData.username, captchaVerification: params.captchaVerification }).then(async () => {
+    message.success('如账号已绑定邮箱，验证码将发送至该邮箱')
     // 设置倒计时
     mobileCodeTimer.value = 60
     let msgTimer = setInterval(() => {
@@ -250,7 +244,7 @@ const resetPassword = async () => {
   if (!data) return
   await getTenantId()
   loginLoading.value = true
-  await smsResetPassword(resetPasswordData)
+  await emailResetPassword({ username: resetPasswordData.username, code: resetPasswordData.code, password: resetPasswordData.password })
     .then(async () => {
       message.success(t('login.resetPasswordSuccess'))
       setLoginState(LoginStateEnum.LOGIN)

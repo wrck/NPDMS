@@ -69,6 +69,18 @@ public class AdminAuthServiceImpl implements AdminAuthService {
     private CaptchaService captchaService;
     @Resource
     private SmsCodeApi smsCodeApi;
+    @Resource
+    private EmailPasswordResetService emailPasswordResetService;
+
+    @Override
+    @DataPermission(enable = false)
+    public void sendEmailResetCode(AuthEmailResetCodeReqVO reqVO) {
+        ResponseModel response = doValidateCaptcha(reqVO);
+        if (!response.isSuccess()) {
+            throw exception(AUTH_REGISTER_CAPTCHA_CODE_ERROR, response.getRepMsg());
+        }
+        emailPasswordResetService.send(reqVO.getUsername());
+    }
 
     /**
      * 验证码的开关，默认为 true

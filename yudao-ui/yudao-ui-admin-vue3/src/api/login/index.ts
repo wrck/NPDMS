@@ -89,3 +89,9 @@ export const reqCheck = (data: any) => {
 export const smsResetPassword = (data: any) => {
   return request.post({ url: '/system/auth/reset-password', data })
 }
+
+export const sendEmailResetCode = (data: { username: string; captchaVerification?: string }) =>
+  request.post({ url: '/system/auth/email-reset-code', data })
+
+export const emailResetPassword = (data: { username: string; code: string; password: string }) =>
+  request.post({ url: '/system/auth/email-reset-password', data })
