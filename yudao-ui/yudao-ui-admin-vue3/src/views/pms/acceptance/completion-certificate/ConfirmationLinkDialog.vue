@@ -6,7 +6,6 @@
       <p>客户核对两份表单后一次签字统一提交</p>
       <a v-if="qrImage" :href="qrImage" download="完工及满意度确认二维码.png">保存二维码</a>
     </div>
-    <el-form label-position="top"><el-form-item label="客户可访问的系统地址"><el-input v-model="baseUrl" /></el-form-item></el-form>
     <el-descriptions :column="1" border>
       <el-descriptions-item label="确认链接"><el-link v-if="url" :href="url" target="_blank">{{ url }}</el-link><span v-else>请输入有效HTTP(S)地址</span></el-descriptions-item>
       <el-descriptions-item label="有效期">{{ formatDate(result?.tokenExpiresAt) }}</el-descriptions-item>
@@ -18,17 +17,18 @@
 import type { CompletionIssueVO } from '@/api/pms/acceptance/completion-certificate'
 import { Qrcode } from '@/components/Qrcode'
 import { getTenantId } from '@/utils/auth'
+import { buildCustomerPublicUrl } from '@/api/pms/customerPublicBase'
 import { formatDate } from '@/utils/formatTime'
 const emit = defineEmits<{ closed: [] }>()
 const onClosed = () => { result.value = undefined; emit('closed') }
 const visible = ref(false), result = ref<CompletionIssueVO>(), qrImage = ref('')
-const baseUrl = ref(import.meta.env.VITE_CUSTOMER_CONFIRM_BASE_URL || window.location.origin)
+const baseUrl = ref('')
 const message = useMessage()
 const url = computed(() => {
   if (!result.value) return ''
-  try { const base = new URL(baseUrl.value); if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password) return ''; return `${base.origin}${result.value.signPath}?tenantId=${getTenantId() ?? 0}` } catch { return '' }
+  try { return buildCustomerPublicUrl(baseUrl.value, result.value.signPath, getTenantId() ?? 0) } catch { return '' }
 })
-const open = (issued: CompletionIssueVO) => { result.value = issued; qrImage.value = ''; visible.value = true }
+const open = (issued: CompletionIssueVO, configuredBase: string) => { result.value = issued; baseUrl.value = configuredBase; qrImage.value = ''; visible.value = true }
 const close = () => { visible.value = false; result.value = undefined; qrImage.value = '' }
 const copy = async () => { await navigator.clipboard.writeText(url.value); message.success('链接已复制') }
 defineExpose({ open, close })

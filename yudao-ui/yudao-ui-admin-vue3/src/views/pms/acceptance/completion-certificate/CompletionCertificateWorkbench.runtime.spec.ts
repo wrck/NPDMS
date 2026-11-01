@@ -30,11 +30,14 @@ const message = vi.hoisted(() => ({
   confirm: vi.fn(),
   delConfirm: vi.fn(),
   success: vi.fn(),
-  warning: vi.fn()
+  warning: vi.fn(),
+  error: vi.fn()
 }))
 const editor = vi.hoisted(() => ({ validate: vi.fn() }))
 const print = vi.hoisted(() => ({ open: vi.fn(), close: vi.fn(), exporting: false }))
 const guards = vi.hoisted(() => ({ leave: [] as Array<() => boolean> }))
+const publicBase = vi.hoisted(() => ({ getCustomerPublicBase: vi.fn(async () => 'https://customer.example') }))
+vi.mock('@/api/pms/customerPublicBase', () => publicBase)
 vi.mock('@/api/pms/acceptance/completion-certificate', () => api)
 vi.mock('@/api/pms/project/projects', () => projectApi)
 vi.mock('@/api/pms/asset/device', () => deviceApi)
@@ -281,6 +284,14 @@ describe('completion workbench save and context protection', () => {
     expect(page.changed).toHaveBeenCalledOnce()
     page.state().onIssueLinkClosed()
     expect(page.changed).toHaveBeenCalledOnce()
+  })
+  it('does not replace the issued link when the customer address is missing', async () => {
+    publicBase.getCustomerPublicBase.mockRejectedValueOnce(new Error('请配置客户地址'))
+    const page = renderPage()
+    await flush()
+    await page.state().handleAction({ row: draft(), action: 'issueConfirmation', actionText: '发起调查' })
+    expect(api.issueConfirmation).not.toHaveBeenCalled()
+    expect(message.error).toHaveBeenCalledWith('请配置客户地址')
   })
   it('does not issue a linked survey when the project becomes readonly during confirmation', async () => {
     const confirm = deferred<void>()

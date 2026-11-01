@@ -202,6 +202,7 @@
 
 <script setup lang="ts">
 import ConfirmationLinkDialog from './ConfirmationLinkDialog.vue'
+import { getCustomerPublicBase } from '@/api/pms/customerPublicBase'
 import ConfirmationRecordActions, { type ConfirmationRecordAction, type ConfirmationRecordPrint } from './ConfirmationRecordActions.vue'
 import QuestionnaireTable from '../satisfaction/QuestionnaireTable.vue'
 import TemplatePanel from '../satisfaction/TemplatePanel.vue'
@@ -642,10 +643,16 @@ const handleAction = async ({ row, action, actionText }: ConfirmationRecordActio
   pendingActions.add(row.id!)
   try {
     if (action === 'issueConfirmation') {
+      let configuredBase: string
+      try { configuredBase = await getCustomerPublicBase() } catch (error) {
+        message.error(error instanceof Error ? error.message : '客户外部访问地址读取失败')
+        return
+      }
+      if (current !== context || props.readonly) return
       const issued = await CompletionCertificateApi.issueConfirmation(row.id!)
       if (current !== context || props.readonly) return
       issueLinkContext = current
-      issueDialog.value?.open(issued)
+      issueDialog.value?.open(issued, configuredBase)
     } else await CompletionCertificateApi[action](row.id!)
     if (current !== context || props.readonly) return
     message.success(`${actionText}成功`)

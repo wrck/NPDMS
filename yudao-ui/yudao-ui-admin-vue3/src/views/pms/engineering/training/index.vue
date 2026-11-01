@@ -211,12 +211,6 @@
       <p>客户扫码后可直接填写评价并手写签字</p>
       <a v-if="qrImage" :href="qrImage" download="培训确认二维码.png">保存二维码</a>
     </div>
-    <el-form label-position="top" class="mt-12px">
-      <el-form-item label="客户可访问的系统地址">
-        <el-input v-model="publicBaseUrl" placeholder="例如 https://pms.example.com" />
-        <span class="template-hint">使用手机可访问的域名或局域网地址；localhost 和 127.0.0.1 无法从另一台手机访问。</span>
-      </el-form-item>
-    </el-form>
     <el-descriptions :column="1" border class="mt-12px">
       <el-descriptions-item label="确认链接">
         <el-link type="primary" :href="publicUrl" target="_blank">{{ publicUrl }}</el-link>
@@ -301,6 +295,7 @@ import * as ContactApi from '@/api/pms/customer/contacts'
 import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import { getTenantId } from '@/utils/auth'
+import { buildCustomerPublicUrl, getCustomerPublicBase } from '@/api/pms/customerPublicBase'
 import { useUserStore } from '@/store/modules/user'
 import { Qrcode } from '@/components/Qrcode'
 import * as DynamicFormApi from '@/api/pms/platform/dynamic-form'
@@ -545,14 +540,10 @@ const save = async () => {
 const issueVisible = ref(false)
 const issueResult = ref<TrainingApi.TrainingIssueVO>()
 const qrImage = ref('')
-const publicBaseUrl = ref(import.meta.env.VITE_CUSTOMER_CONFIRM_BASE_URL || window.location.origin)
+const publicBaseUrl = ref('')
 const publicUrl = computed(() => {
-  if (!issueResult.value) return ''
-  try {
-    const base = new URL(publicBaseUrl.value)
-    if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password) return ''
-    return `${base.origin}${issueResult.value.signPath}?tenantId=${getTenantId() ?? 0}`
-  } catch { return '' }
+  if (!issueResult.value || !publicBaseUrl.value) return ''
+  try { return buildCustomerPublicUrl(publicBaseUrl.value, issueResult.value.signPath, getTenantId() ?? 0) } catch { return '' }
 })
 const issue = async (row: TrainingVO) => {
   await message.confirm(
@@ -560,6 +551,10 @@ const issue = async (row: TrainingVO) => {
       ? '重新外发将生成新链接，原链接立即失效，确认继续？'
       : '将生成客户确认链接与培训记录表文件，确认外发？'
   )
+  try { publicBaseUrl.value = await getCustomerPublicBase() } catch (error) {
+    message.error(error instanceof Error ? error.message : '客户外部访问地址读取失败')
+    return
+  }
   issueResult.value = await TrainingApi.issueTraining(row.id!)
   issueVisible.value = true
   await load()
