@@ -1,0 +1,72 @@
+{
+  "mysql_version": "8.4.10",
+  "source_commit": "385e10f9ee310f82896a5dce5251e47aeaa17902",
+  "cases": {
+    "npdms_baseline": {
+      "schema": "release_np_20261101",
+      "files": {
+        "B498__npdms_formal_test_baseline.sql": "f311592676139e67d5c0ad3d23433413d096a2c0d11e875ebc7334753c2af4bc",
+        "V499__retire_legacy_project_application_entries.sql": "672d299b9a483b1c78eb4c8208f8c50cc98a3b52ea1d83e1b445e74add4024a7",
+        "V500__complete_project_risk_status_dictionary.sql": "1ce61094bd8f270c788bb5c35985fdb9a50e010ba6034dec24e4f72465c19143",
+        "V501__cutover_manual_customer_service_level.sql": "9aaa1b2ffeea7db8bb9a5ebd01ba666e25564076864ce82d0c081fed4742fb39",
+        "V502__restore_verified_base_configuration.sql": "7198e8d32c94b8fd1e8a71cf148c7382cfb3fb1b4bf753f3a602fc8d258638ca",
+        "V503__retire_backward_and_legacy_governance_entries.sql": "58775db8cd6b32f398053ebc57f8ba6053db5e625f55fcc192e0abbdeecd3759",
+        "V504__satisfaction_entity_business_view.sql": "d54c8c64fd201636c643ddf073ebcdab03ae2a8a4c156a9e44fc8a1d4b2fe49f",
+        "V505__project_restart_delivery_history.sql": "40bc8b96152ea007ea46a514c1bdf9a31f90706d1f1f826be927354e52ee161c",
+        "V506__cutover_support_person_selection.sql": "ff15f11ac870fd3e12c3990c730fcda0d54b79c90fee5a427b68613718462f13",
+        "V507__cutover_approval_fixed_assignees.sql": "12ef3cf60ad01e8aeefb917e547ec8db448b226e515eef4791289546600ae2a9",
+        "V508__project_manager_solution_process_read.sql": "adda92ae3bc50edf0b193c8c94617a08f2367b44a8f8fd9691da885014c65e4f",
+        "V509__solution_delivery_operation_permission_mapping.sql": "dcc558ad815e5b6ffdfb6e22c3f27ecc05114378e1381b4899e38cbdef170425",
+        "V510__cutover_initiator_approval_permission.sql": "eb5368c4dfe9375f35c76c05d5afba65de4f26ec73fac38de0f137e7bb726796",
+        "V511__dac_desktop_transport.sql": "3b9a4477b162a68b9d814fe632ee2a56eac02c497adc8b811bda870144901734",
+        "V512__five_v2_acceptance_shipments.sql": "307e2b0333171021a9538ab078940a8fde3763ef85c76f0af69d9d38e558cf41",
+        "V513__project_manager_draft_record_delete.sql": "067e42d994bf20dd5be0a90703bf3484f67fb57d1ca3db06596f83bb6f7b9d6a",
+        "V514__completion_manual_arrival_date.sql": "320cd0418e5f883f123e0cdb3e68e92b913dfad25999adae652f51b4eff08295",
+        "V515__user_organization_scope_maintenance.sql": "547cf1c43fc8ea912cff3999c7e9ee2603b344098350019290232f4a1a61f909",
+        "V516__stage_plan_management_menu_roles.sql": "a7f97c788934baf0d68570580833b444a6c36736bb74c0c4481d8a5fc7f73c6b",
+        "V517__restore_default_task_state_machine.sql": "f06e0879f4a3781554dda4e8bbd36b6ed2670e3fef69166417adfc3dd857eadb",
+        "V518__publish_default_cutover_workbench_view.sql": "d6c9aaa37eeb7e696f9620715b31fcb5ca510fe0ea321796a9ee01ad4082fbc9",
+        "V519__restore_delivery_material_command_version.sql": "e74a547e9cfe5f36d941a0daafd14692da254e27d2a481f6d7cb265d407d05d8",
+        "V520__inspection_report_umc_result_fields.sql": "a90882ce201994679f2f551722048b34cdec9a3a90977e25b47aa84d51d1836e",
+        "V521__installation_address_product_filters.sql": "218294d7bdf6a347573fc8f42fbf650ea7369657e389f06fae80a0eb89753cc5",
+        "V522__inspection_umc_formal_result_references.sql": "c997e635688a132e3717008795177b6621d9173f190b3d2d35a4b3eaf5c9c300",
+        "V523__solution_engineering_role_review_permissions.sql": "f2d5de13c19ef8bcc2ad3c565786ed81f9b03b4e9e85fdc2e5622a9b822bb95f",
+        "V524__inspection_report_input_service_validation.sql": "7e19c69202022caa8360288e49482775041c511d5c93857d5bec0b2fab20c591",
+        "V526__installation_address_optical_module_default.sql": "abb212abc7f8d4d9a1bbfa45a06aaa15b15f2a116918b71e0db4bcced37d6fe6",
+        "V527__service_manager_project_manager_permission_superset.sql": "a560ed5d02061f452fbbf10a795b9b40b74e5a152e4cb37d360b4a8f93dabd49",
+        "V528__project_device_export_permission.sql": "2e6dfb6c657e40fb1723b7ac8ef1f8b80eb25f2cd04fdf018c625b2ffff7c641",
+        "V529__site_survey_other_network_port_presentation.sql": "e99ec21ea7dc1d693d321cb0aad0ae228afd6d85405d80b4cf258f2c16b285d6"
+      },
+      "commands": {
+        "migrate": 0,
+        "validate": 0,
+        "info": 0
+      },
+      "table_count": "462"
+    },
+    "dac": {
+      "schema": "release_dac_20261101",
+      "files": {
+        "V13__create_parser_registry.sql": "6b8e3c30c00f84fbdd7575a4833ba3f2614286c43d8786dd4e095d3e639e3a62",
+        "V14__create_parser_tasks.sql": "c447cc36a898919257f6438cd2012050023ba3ebb7ad6963f65878bef534b656",
+        "V15__create_parser_worker_capabilities.sql": "424ff8f22735056a757e148098f50e879b88bf727f34f0dd66981ae0a1501545",
+        "V16__link_collection_parser_tasks.sql": "e535143e40f11f999e395e3ade1855708faae82acb678e7ac946052222f66fce",
+        "V17__record_parser_submission_identity.sql": "b6dcb03671463bf5ee19f0d2be82da259ed47942900e18e81551f9029a801d30",
+        "V18__record_collection_submission_fingerprint.sql": "95c0126b4f778f28ff2e85134b71a5687c0dafe5f199b32ad9dcf8a7a624d367",
+        "V19__add_management_collection_projection.sql": "71aaf43f18e2daf324254f983530a7dd1a47100d9990daa9d0017245e40fc390",
+        "V1__create_device_ops_baseline.sql": "1dfea50578e10fecca15c0782741690d030763966e9690cde409352610caf4b2",
+        "V20__add_collection_submission_snapshot.sql": "4613205906e3dc36d40b8df65976ce43fa47f5e3d632bb0be683339d9554a923",
+        "V22__link_parse_task_to_business_request.sql": "9086dcc52014998191b753e86faed8e06d9daae627877ec764b77fd85f864aa1",
+        "V24__collection_submission_cancellation.sql": "e12ebd15b47cdb85f8dd2124d58e41d2dba199efd3c9ca22a9f46b6c3bcb9f14",
+        "V25__desktop_task_capabilities.sql": "bf298242beeeea69bc8c04c482e0d8147d9aaf4700ee43a77d7c922c189117eb",
+        "V26__desktop_connection_scope.sql": "f9eb4fae2bdc6aabd3a277467401a27a3b3699da06d0baadcd82b77b2c1506c3"
+      },
+      "commands": {
+        "migrate": 0,
+        "validate": 0,
+        "info": 0
+      },
+      "table_count": "25"
+    }
+  }
+}

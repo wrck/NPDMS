@@ -1,0 +1,42 @@
+{
+  "policy": "178 final metadata + explicit locked-source additions + unified charset/collation",
+  "summary": {
+    "tables": {
+      "expected": 527,
+      "actual": 527,
+      "matches": true
+    },
+    "columns": {
+      "expected": 9644,
+      "actual": 9644,
+      "matches": true
+    },
+    "indexes": {
+      "expected": 4295,
+      "actual": 4295,
+      "matches": true
+    },
+    "constraints": {
+      "expected": 1907,
+      "actual": 1907,
+      "matches": true
+    },
+    "foreign_keys": {
+      "expected": 547,
+      "actual": 547,
+      "matches": true
+    },
+    "checks": {
+      "expected": 461,
+      "actual": 461,
+      "matches": true
+    },
+    "triggers": {
+      "expected": 240,
+      "actual": 240,
+      "matches": true
+    }
+  },
+  "unexpected_differences": [],
+  "passed": true
+}

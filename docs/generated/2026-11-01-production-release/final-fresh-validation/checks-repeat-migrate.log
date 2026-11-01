@@ -1,0 +1,13 @@
+WARNING: Storing migrations in 'sql' is not recommended and default scanning of this location may be deprecated in a future release
+A more recent version of Flyway is available. Find out more about Flyway 13.12.0 at https://rd.gt/3rXiSlV
+
+Flyway OSS Edition 11.10.5 by Redgate
+
+See release notes here: https://rd.gt/416ObMi
+Database: jdbc:mysql://127.0.0.1:3306/release_final_04?useSSL=false&allowPublicKeyRetrieval=true (MySQL 8.4)
+WARNING: Flyway upgrade recommended: MySQL 8.4 is newer than this version of Flyway and support has not been tested. The latest supported version of MySQL is 8.1.
+Successfully validated 1 migration (execution time 00:00.274s)
+Current version of schema `release_final_04`: 530
+Schema `release_final_04` is up to date. No migration necessary.
+ Container sdp-final-checks-flyway-run-f5319e02a000 Creating 
+ Container sdp-final-checks-flyway-run-f5319e02a000 Created 

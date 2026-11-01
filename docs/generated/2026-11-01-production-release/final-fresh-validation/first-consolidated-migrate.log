@@ -1,0 +1,23 @@
+WARNING: Storing migrations in 'sql' is not recommended and default scanning of this location may be deprecated in a future release
+A more recent version of Flyway is available. Find out more about Flyway 13.12.0 at https://rd.gt/3rXiSlV
+
+Flyway OSS Edition 11.10.5 by Redgate
+
+See release notes here: https://rd.gt/416ObMi
+Database: jdbc:mysql://127.0.0.1:3306/release_final_04?useSSL=false&allowPublicKeyRetrieval=true (MySQL 8.4)
+WARNING: Flyway upgrade recommended: MySQL 8.4 is newer than this version of Flyway and support has not been tested. The latest supported version of MySQL is 8.1.
+Schema history table `release_final_04`.`flyway_schema_history` does not exist yet
+Successfully validated 1 migration (execution time 00:00.251s)
+Creating Schema History table `release_final_04`.`flyway_schema_history` ...
+Current version of schema `release_final_04`: << Empty Schema >>
+Migrating schema `release_final_04` to version "530 - 178 final and locked source"
+WARNING: DB: Integer display width is deprecated and will be removed in a future release. (SQL State:  - Error Code: 1681)
+WARNING: DB: Integer display width is deprecated and will be removed in a future release. (SQL State:  - Error Code: 1681)
+WARNING: DB: Integer display width is deprecated and will be removed in a future release. (SQL State:  - Error Code: 1681)
+WARNING: DB: Integer display width is deprecated and will be removed in a future release. (SQL State:  - Error Code: 1681)
+WARNING: DB: Integer display width is deprecated and will be removed in a future release. (SQL State:  - Error Code: 1681)
+WARNING: DB: Integer display width is deprecated and will be removed in a future release. (SQL State:  - Error Code: 1681)
+WARNING: DB: Integer display width is deprecated and will be removed in a future release. (SQL State:  - Error Code: 1681)
+Successfully applied 1 migration to schema `release_final_04`, now at version v530 (execution time 00:27.786s)
+ Container sdp-fresh-20261101-flyway-run-cbf0c6336473 Creating 
+ Container sdp-fresh-20261101-flyway-run-cbf0c6336473 Created 

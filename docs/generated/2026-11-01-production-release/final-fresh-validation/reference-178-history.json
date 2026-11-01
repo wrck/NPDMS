@@ -1,0 +1,332 @@
+[
+  {
+    "installed_rank": 1,
+    "version": "498",
+    "description": "npdms formal test baseline",
+    "type": "SQL_BASELINE",
+    "script": "B498__npdms_formal_test_baseline.sql",
+    "checksum": 379751422,
+    "installed_on": "2026-10-21 18:16:16",
+    "success": 1
+  },
+  {
+    "installed_rank": 2,
+    "version": "499",
+    "description": "retire legacy project application entries",
+    "type": "SQL",
+    "script": "V499__retire_legacy_project_application_entries.sql",
+    "checksum": -2046166499,
+    "installed_on": "2026-10-21 18:16:16",
+    "success": 1
+  },
+  {
+    "installed_rank": 3,
+    "version": "500",
+    "description": "complete project risk status dictionary",
+    "type": "SQL",
+    "script": "V500__complete_project_risk_status_dictionary.sql",
+    "checksum": 704031185,
+    "installed_on": "2026-10-21 18:16:16",
+    "success": 1
+  },
+  {
+    "installed_rank": 4,
+    "version": "501",
+    "description": "cutover manual customer service level",
+    "type": "SQL",
+    "script": "V501__cutover_manual_customer_service_level.sql",
+    "checksum": -1581602768,
+    "installed_on": "2026-10-21 18:16:16",
+    "success": 1
+  },
+  {
+    "installed_rank": 5,
+    "version": "502",
+    "description": "restore verified base configuration",
+    "type": "SQL",
+    "script": "V502__restore_verified_base_configuration.sql",
+    "checksum": -693202956,
+    "installed_on": "2026-10-21 18:16:19",
+    "success": 1
+  },
+  {
+    "installed_rank": 6,
+    "version": "503",
+    "description": "retire backward and legacy governance entries",
+    "type": "SQL",
+    "script": "V503__retire_backward_and_legacy_governance_entries.sql",
+    "checksum": 486007860,
+    "installed_on": "2026-10-21 18:16:19",
+    "success": 1
+  },
+  {
+    "installed_rank": 7,
+    "version": "504",
+    "description": "satisfaction entity business view",
+    "type": "SQL",
+    "script": "V504__satisfaction_entity_business_view.sql",
+    "checksum": -1884536687,
+    "installed_on": "2026-10-21 18:16:19",
+    "success": 1
+  },
+  {
+    "installed_rank": 8,
+    "version": "505",
+    "description": "project restart delivery history",
+    "type": "SQL",
+    "script": "V505__project_restart_delivery_history.sql",
+    "checksum": 591634992,
+    "installed_on": "2026-10-21 18:16:19",
+    "success": 1
+  },
+  {
+    "installed_rank": 9,
+    "version": "506",
+    "description": "cutover support person selection",
+    "type": "SQL",
+    "script": "V506__cutover_support_person_selection.sql",
+    "checksum": 2089897356,
+    "installed_on": "2026-10-21 18:16:20",
+    "success": 1
+  },
+  {
+    "installed_rank": 10,
+    "version": "507",
+    "description": "cutover approval fixed assignees",
+    "type": "SQL",
+    "script": "V507__cutover_approval_fixed_assignees.sql",
+    "checksum": 237532016,
+    "installed_on": "2026-10-21 18:16:20",
+    "success": 1
+  },
+  {
+    "installed_rank": 11,
+    "version": "508",
+    "description": "project manager solution process read",
+    "type": "SQL",
+    "script": "V508__project_manager_solution_process_read.sql",
+    "checksum": -236356983,
+    "installed_on": "2026-10-23 11:52:53",
+    "success": 1
+  },
+  {
+    "installed_rank": 12,
+    "version": "509",
+    "description": "solution delivery operation permission mapping",
+    "type": "SQL",
+    "script": "V509__solution_delivery_operation_permission_mapping.sql",
+    "checksum": -1974369293,
+    "installed_on": "2026-10-23 11:52:53",
+    "success": 1
+  },
+  {
+    "installed_rank": 13,
+    "version": "510",
+    "description": "cutover initiator approval permission",
+    "type": "SQL",
+    "script": "V510__cutover_initiator_approval_permission.sql",
+    "checksum": 891447789,
+    "installed_on": "2026-10-23 11:52:53",
+    "success": 1
+  },
+  {
+    "installed_rank": 14,
+    "version": "511",
+    "description": "dac desktop transport",
+    "type": "SQL",
+    "script": "V511__dac_desktop_transport.sql",
+    "checksum": -85508253,
+    "installed_on": "2026-10-23 11:52:53",
+    "success": 1
+  },
+  {
+    "installed_rank": 15,
+    "version": "512",
+    "description": "five v2 acceptance shipments",
+    "type": "SQL",
+    "script": "V512__five_v2_acceptance_shipments.sql",
+    "checksum": -1528112620,
+    "installed_on": "2026-10-23 11:52:53",
+    "success": 1
+  },
+  {
+    "installed_rank": 16,
+    "version": "513",
+    "description": "project manager draft record delete",
+    "type": "SQL",
+    "script": "V513__project_manager_draft_record_delete.sql",
+    "checksum": -2121706450,
+    "installed_on": "2026-10-23 11:52:53",
+    "success": 1
+  },
+  {
+    "installed_rank": 17,
+    "version": "514",
+    "description": "completion manual arrival date",
+    "type": "SQL",
+    "script": "V514__completion_manual_arrival_date.sql",
+    "checksum": 1675474056,
+    "installed_on": "2026-10-23 11:52:53",
+    "success": 1
+  },
+  {
+    "installed_rank": 18,
+    "version": "517",
+    "description": "restore default task state machine",
+    "type": "SQL",
+    "script": "V517__restore_default_task_state_machine.sql",
+    "checksum": 1875611173,
+    "installed_on": "2026-10-24 11:34:35",
+    "success": 1
+  },
+  {
+    "installed_rank": 19,
+    "version": "518",
+    "description": "publish default cutover workbench view",
+    "type": "SQL",
+    "script": "V518__publish_default_cutover_workbench_view.sql",
+    "checksum": -227901555,
+    "installed_on": "2026-10-24 11:34:35",
+    "success": 1
+  },
+  {
+    "installed_rank": 20,
+    "version": "519",
+    "description": "restore delivery material command version",
+    "type": "SQL",
+    "script": "V519__restore_delivery_material_command_version.sql",
+    "checksum": -1610536252,
+    "installed_on": "2026-10-24 13:12:15",
+    "success": 1
+  },
+  {
+    "installed_rank": 21,
+    "version": "515",
+    "description": "user organization scope maintenance",
+    "type": "SQL",
+    "script": "V515__user_organization_scope_maintenance.sql",
+    "checksum": -2143750408,
+    "installed_on": "2026-10-25 04:36:45",
+    "success": 1
+  },
+  {
+    "installed_rank": 22,
+    "version": "516",
+    "description": "stage plan management menu roles",
+    "type": "SQL",
+    "script": "V516__stage_plan_management_menu_roles.sql",
+    "checksum": -2064355135,
+    "installed_on": "2026-10-25 04:36:45",
+    "success": 1
+  },
+  {
+    "installed_rank": 23,
+    "version": "520",
+    "description": "service manager project manager permission superset",
+    "type": "SQL",
+    "script": "V520__service_manager_project_manager_permission_superset.sql",
+    "checksum": 14710180,
+    "installed_on": "2026-10-31 08:03:51",
+    "success": 1
+  },
+  {
+    "installed_rank": 24,
+    "version": "521",
+    "description": "project device export permission",
+    "type": "SQL",
+    "script": "V521__project_device_export_permission.sql",
+    "checksum": 623719227,
+    "installed_on": "2026-10-31 08:03:51",
+    "success": 1
+  },
+  {
+    "installed_rank": 25,
+    "version": "522",
+    "description": "site survey other network port presentation",
+    "type": "SQL",
+    "script": "V522__site_survey_other_network_port_presentation.sql",
+    "checksum": 1456549197,
+    "installed_on": "2026-10-31 08:03:51",
+    "success": 1
+  },
+  {
+    "installed_rank": 26,
+    "version": "523",
+    "description": "inspection report umc result fields",
+    "type": "SQL",
+    "script": "V523__inspection_report_umc_result_fields.sql",
+    "checksum": -131703379,
+    "installed_on": "2026-10-31 08:03:52",
+    "success": 1
+  },
+  {
+    "installed_rank": 27,
+    "version": "524",
+    "description": "installation address product filters",
+    "type": "SQL",
+    "script": "V524__installation_address_product_filters.sql",
+    "checksum": -1725555516,
+    "installed_on": "2026-10-31 08:03:52",
+    "success": 1
+  },
+  {
+    "installed_rank": 28,
+    "version": "525",
+    "description": "inspection umc formal result references",
+    "type": "SQL",
+    "script": "V525__inspection_umc_formal_result_references.sql",
+    "checksum": 2120533233,
+    "installed_on": "2026-10-31 08:48:03",
+    "success": 1
+  },
+  {
+    "installed_rank": 29,
+    "version": "526",
+    "description": "solution engineering role review permissions",
+    "type": "SQL",
+    "script": "V526__solution_engineering_role_review_permissions.sql",
+    "checksum": 874726934,
+    "installed_on": "2026-10-31 08:48:03",
+    "success": 1
+  },
+  {
+    "installed_rank": 30,
+    "version": "527",
+    "description": "inspection report input service validation",
+    "type": "SQL",
+    "script": "V527__inspection_report_input_service_validation.sql",
+    "checksum": 1995134426,
+    "installed_on": "2026-10-31 08:48:03",
+    "success": 1
+  },
+  {
+    "installed_rank": 31,
+    "version": "528",
+    "description": "installation address optical module default",
+    "type": "SQL",
+    "script": "V528__installation_address_optical_module_default.sql",
+    "checksum": 252124209,
+    "installed_on": "2026-10-31 08:48:03",
+    "success": 1
+  },
+  {
+    "installed_rank": 32,
+    "version": "529",
+    "description": "restore user employee extension columns",
+    "type": "SQL",
+    "script": "V529__restore_user_employee_extension_columns.sql",
+    "checksum": -853193055,
+    "installed_on": "2026-10-31 08:48:03",
+    "success": 1
+  },
+  {
+    "installed_rank": 33,
+    "version": "530",
+    "description": "sync support rd role permissions",
+    "type": "SQL",
+    "script": "V530__sync_support_rd_role_permissions.sql",
+    "checksum": -1840932704,
+    "installed_on": "2026-10-31 21:54:08",
+    "success": 1
+  }
+]

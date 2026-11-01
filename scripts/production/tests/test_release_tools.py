@@ -98,6 +98,15 @@ class ReleaseSafetyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             release.verify(self.target, 'frontend')
 
+    def test_fresh_baseline_release_and_checksum_drift(self):
+        baseline = 'B530__fresh_database.sql'
+        (self.source / baseline).write_text('CREATE TABLE sample(id INT);', encoding='utf-8')
+        release.pack(self.source, self.target, 'migrations', 'Fresh530')
+        self.assertEqual(release.verify(self.target, 'migrations')['release_id'], 'Fresh530')
+        (self.target / baseline).write_text('CREATE TABLE different(id INT);', encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, 'hash or file inventory mismatch'):
+            release.verify(self.target, 'migrations')
+
     def test_added_nested_manifest_rejected(self):
         self.freeze()
         (self.target / 'assets').mkdir()

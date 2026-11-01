@@ -1,0 +1,7 @@
+{
+  "release_id": "R20261101_178_385e10f9e",
+  "role": "migrations",
+  "files": {
+    "B530__178_final_and_locked_source.sql": "f03e74e73223ab32725e4fb9730311c98af4411bc45840ed31f6b722e901e63b"
+  }
+}

@@ -1,0 +1,14 @@
+WARNING: Storing migrations in 'sql' is not recommended and default scanning of this location may be deprecated in a future release
+A more recent version of Flyway is available. Find out more about Flyway 13.12.0 at https://rd.gt/3rXiSlV
+
+Flyway OSS Edition 11.10.5 by Redgate
+
+See release notes here: https://rd.gt/416ObMi
+Database: jdbc:mysql://127.0.0.1:3306/release_nonempty_guard_20261101?useSSL=false&allowPublicKeyRetrieval=true (MySQL 8.4)
+WARNING: Flyway upgrade recommended: MySQL 8.4 is newer than this version of Flyway and support has not been tested. The latest supported version of MySQL is 8.1.
+Schema history table `release_nonempty_guard_20261101`.`flyway_schema_history` does not exist yet
+Successfully validated 1 migration (execution time 00:00.284s)
+ Container sdp-final-checks-flyway-run-3994bbce304a Creating 
+ Container sdp-final-checks-flyway-run-3994bbce304a Created 
+ERROR: Found non-empty schema(s) `release_nonempty_guard_20261101` but no schema history table. Use baseline() or set baselineOnMigrate to true to initialize the schema history table.
+

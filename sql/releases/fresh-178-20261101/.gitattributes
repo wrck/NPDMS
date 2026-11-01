@@ -1,0 +1,2 @@
+# Frozen release manifests hash physical SQL bytes; preserve original line endings.
+*.sql -text diff

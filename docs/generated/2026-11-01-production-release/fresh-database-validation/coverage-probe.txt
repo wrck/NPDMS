@@ -1,0 +1,2 @@
+active_revision_no	0
+proj_legacy_detail_source	0

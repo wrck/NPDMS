@@ -1,0 +1,21 @@
+Rendered 15 non-secret files to C:\Users\user\AppData\Local\Temp\tmp9e_ubc92\config
+Rendered 15 non-secret files to C:\Users\user\AppData\Local\Temp\tmp3g7o4nul\config
+........E...........
+======================================================================
+ERROR: test_fresh_baseline_release_and_checksum_drift (test_release_tools.ReleaseSafetyTests.test_fresh_baseline_release_and_checksum_drift)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "M:\AICoding\CodexData\worktrees\853c\NPDMS\scripts\production\tests\test_release_tools.py", line 104, in test_fresh_baseline_release_and_checksum_drift
+    release.pack(self.source, self.target, 'migrations', 'Fresh530')
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "M:\AICoding\CodexData\worktrees\853c\NPDMS\scripts\production\release.py", line 50, in pack
+    verify(target, role)
+    ~~~~~~^^^^^^^^^^^^^^
+  File "M:\AICoding\CodexData\worktrees\853c\NPDMS\scripts\production\release.py", line 34, in verify
+    raise ValueError('No Flyway migrations')
+ValueError: No Flyway migrations
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.164s
+
+FAILED (errors=1)

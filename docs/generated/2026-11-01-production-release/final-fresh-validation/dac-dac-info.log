@@ -1,0 +1,30 @@
+WARNING: Storing migrations in 'sql' is not recommended and default scanning of this location may be deprecated in a future release
+A more recent version of Flyway is available. Find out more about Flyway 13.12.0 at https://rd.gt/3rXiSlV
+
+Flyway OSS Edition 11.10.5 by Redgate
+
+See release notes here: https://rd.gt/416ObMi
+Database: jdbc:mysql://127.0.0.1:3306/release_dac_final_20261101?useSSL=false&allowPublicKeyRetrieval=true (MySQL 8.4)
+WARNING: Flyway upgrade recommended: MySQL 8.4 is newer than this version of Flyway and support has not been tested. The latest supported version of MySQL is 8.1.
+Schema version: 26
+
++-----------+---------+------------------------------------------+------+---------------------+---------+----------+
+| Category  | Version | Description                              | Type | Installed On        | State   | Undoable |
++-----------+---------+------------------------------------------+------+---------------------+---------+----------+
+| Versioned | 1       | create device ops baseline               | SQL  | 2026-11-01 08:53:24 | Success | No       |
+| Versioned | 13      | create parser registry                   | SQL  | 2026-11-01 08:53:24 | Success | No       |
+| Versioned | 14      | create parser tasks                      | SQL  | 2026-11-01 08:53:24 | Success | No       |
+| Versioned | 15      | create parser worker capabilities        | SQL  | 2026-11-01 08:53:24 | Success | No       |
+| Versioned | 16      | link collection parser tasks             | SQL  | 2026-11-01 08:53:24 | Success | No       |
+| Versioned | 17      | record parser submission identity        | SQL  | 2026-11-01 08:53:25 | Success | No       |
+| Versioned | 18      | record collection submission fingerprint | SQL  | 2026-11-01 08:53:25 | Success | No       |
+| Versioned | 19      | add management collection projection     | SQL  | 2026-11-01 08:53:25 | Success | No       |
+| Versioned | 20      | add collection submission snapshot       | SQL  | 2026-11-01 08:53:25 | Success | No       |
+| Versioned | 22      | link parse task to business request      | SQL  | 2026-11-01 08:53:25 | Success | No       |
+| Versioned | 24      | collection submission cancellation       | SQL  | 2026-11-01 08:53:25 | Success | No       |
+| Versioned | 25      | desktop task capabilities                | SQL  | 2026-11-01 08:53:25 | Success | No       |
+| Versioned | 26      | desktop connection scope                 | SQL  | 2026-11-01 08:53:25 | Success | No       |
++-----------+---------+------------------------------------------+------+---------------------+---------+----------+
+
+ Container sdp-fresh-20261101-flyway-run-b12dbd410ac6 Creating 
+ Container sdp-fresh-20261101-flyway-run-b12dbd410ac6 Created 

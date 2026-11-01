@@ -1,0 +1,480 @@
+[
+  {
+    "reference_version": "498",
+    "reference_script": "B498__npdms_formal_test_baseline.sql",
+    "reference_checksum": 379751422,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\releases\\test-v498\\migrations\\B498__npdms_formal_test_baseline.sql",
+        "checksum": 379751422,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "499",
+    "reference_script": "V499__retire_legacy_project_application_entries.sql",
+    "reference_checksum": -2046166499,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V499__retire_legacy_project_application_entries.sql",
+        "checksum": -2046166499,
+        "matches_178": true
+      },
+      {
+        "path": "sql\\releases\\test-v498\\migrations\\V499__retire_legacy_project_application_entries.sql",
+        "checksum": -2046166499,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "500",
+    "reference_script": "V500__complete_project_risk_status_dictionary.sql",
+    "reference_checksum": 704031185,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V500__complete_project_risk_status_dictionary.sql",
+        "checksum": 704031185,
+        "matches_178": true
+      },
+      {
+        "path": "sql\\releases\\test-v498\\migrations\\V500__complete_project_risk_status_dictionary.sql",
+        "checksum": 704031185,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "501",
+    "reference_script": "V501__cutover_manual_customer_service_level.sql",
+    "reference_checksum": -1581602768,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V501__cutover_manual_customer_service_level.sql",
+        "checksum": -1581602768,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "502",
+    "reference_script": "V502__restore_verified_base_configuration.sql",
+    "reference_checksum": -693202956,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V502__restore_verified_base_configuration.sql",
+        "checksum": -693202956,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "503",
+    "reference_script": "V503__retire_backward_and_legacy_governance_entries.sql",
+    "reference_checksum": 486007860,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V503__retire_backward_and_legacy_governance_entries.sql",
+        "checksum": 486007860,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "504",
+    "reference_script": "V504__satisfaction_entity_business_view.sql",
+    "reference_checksum": -1884536687,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V504__satisfaction_entity_business_view.sql",
+        "checksum": -1884536687,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "505",
+    "reference_script": "V505__project_restart_delivery_history.sql",
+    "reference_checksum": 591634992,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V505__project_restart_delivery_history.sql",
+        "checksum": 591634992,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "506",
+    "reference_script": "V506__cutover_support_person_selection.sql",
+    "reference_checksum": 2089897356,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V506__cutover_support_person_selection.sql",
+        "checksum": 2089897356,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "507",
+    "reference_script": "V507__cutover_approval_fixed_assignees.sql",
+    "reference_checksum": 237532016,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V507__cutover_approval_fixed_assignees.sql",
+        "checksum": 237532016,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "508",
+    "reference_script": "V508__project_manager_solution_process_read.sql",
+    "reference_checksum": -236356983,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V508__project_manager_solution_process_read.sql",
+        "checksum": -236356983,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "509",
+    "reference_script": "V509__solution_delivery_operation_permission_mapping.sql",
+    "reference_checksum": -1974369293,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V509__solution_delivery_operation_permission_mapping.sql",
+        "checksum": -1974369293,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "510",
+    "reference_script": "V510__cutover_initiator_approval_permission.sql",
+    "reference_checksum": 891447789,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V510__cutover_initiator_approval_permission.sql",
+        "checksum": 891447789,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "511",
+    "reference_script": "V511__dac_desktop_transport.sql",
+    "reference_checksum": -85508253,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V511__dac_desktop_transport.sql",
+        "checksum": -85508253,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "512",
+    "reference_script": "V512__five_v2_acceptance_shipments.sql",
+    "reference_checksum": -1528112620,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V512__five_v2_acceptance_shipments.sql",
+        "checksum": -1528112620,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "513",
+    "reference_script": "V513__project_manager_draft_record_delete.sql",
+    "reference_checksum": -2121706450,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V513__project_manager_draft_record_delete.sql",
+        "checksum": -2121706450,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "514",
+    "reference_script": "V514__completion_manual_arrival_date.sql",
+    "reference_checksum": 1675474056,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V514__completion_manual_arrival_date.sql",
+        "checksum": 1675474056,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "517",
+    "reference_script": "V517__restore_default_task_state_machine.sql",
+    "reference_checksum": 1875611173,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V517__restore_default_task_state_machine.sql",
+        "checksum": 1875611173,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "518",
+    "reference_script": "V518__publish_default_cutover_workbench_view.sql",
+    "reference_checksum": -227901555,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V518__publish_default_cutover_workbench_view.sql",
+        "checksum": -227901555,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "519",
+    "reference_script": "V519__restore_delivery_material_command_version.sql",
+    "reference_checksum": -1610536252,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V519__restore_delivery_material_command_version.sql",
+        "checksum": -1610536252,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "515",
+    "reference_script": "V515__user_organization_scope_maintenance.sql",
+    "reference_checksum": -2143750408,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V515__user_organization_scope_maintenance.sql",
+        "checksum": -2143750408,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "516",
+    "reference_script": "V516__stage_plan_management_menu_roles.sql",
+    "reference_checksum": -2064355135,
+    "source_match": "same_filename",
+    "same_description_candidates": [],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V516__stage_plan_management_menu_roles.sql",
+        "checksum": -2064355135,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "520",
+    "reference_script": "V520__service_manager_project_manager_permission_superset.sql",
+    "reference_checksum": 14710180,
+    "source_match": "not_found",
+    "same_description_candidates": [
+      "sql\\migrations\\V527__service_manager_project_manager_permission_superset.sql"
+    ],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V527__service_manager_project_manager_permission_superset.sql",
+        "checksum": 14710180,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "521",
+    "reference_script": "V521__project_device_export_permission.sql",
+    "reference_checksum": 623719227,
+    "source_match": "not_found",
+    "same_description_candidates": [
+      "sql\\migrations\\V528__project_device_export_permission.sql"
+    ],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V528__project_device_export_permission.sql",
+        "checksum": 623719227,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "522",
+    "reference_script": "V522__site_survey_other_network_port_presentation.sql",
+    "reference_checksum": 1456549197,
+    "source_match": "not_found",
+    "same_description_candidates": [
+      "sql\\migrations\\V529__site_survey_other_network_port_presentation.sql"
+    ],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V529__site_survey_other_network_port_presentation.sql",
+        "checksum": 1456549197,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "523",
+    "reference_script": "V523__inspection_report_umc_result_fields.sql",
+    "reference_checksum": -131703379,
+    "source_match": "not_found",
+    "same_description_candidates": [
+      "sql\\migrations\\V520__inspection_report_umc_result_fields.sql"
+    ],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V520__inspection_report_umc_result_fields.sql",
+        "checksum": -131703379,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "524",
+    "reference_script": "V524__installation_address_product_filters.sql",
+    "reference_checksum": -1725555516,
+    "source_match": "not_found",
+    "same_description_candidates": [
+      "sql\\migrations\\V521__installation_address_product_filters.sql"
+    ],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V521__installation_address_product_filters.sql",
+        "checksum": -1725555516,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "525",
+    "reference_script": "V525__inspection_umc_formal_result_references.sql",
+    "reference_checksum": 2120533233,
+    "source_match": "not_found",
+    "same_description_candidates": [
+      "sql\\migrations\\V522__inspection_umc_formal_result_references.sql"
+    ],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V522__inspection_umc_formal_result_references.sql",
+        "checksum": 1534571380,
+        "matches_178": false
+      }
+    ]
+  },
+  {
+    "reference_version": "526",
+    "reference_script": "V526__solution_engineering_role_review_permissions.sql",
+    "reference_checksum": 874726934,
+    "source_match": "not_found",
+    "same_description_candidates": [
+      "sql\\migrations\\V523__solution_engineering_role_review_permissions.sql"
+    ],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V523__solution_engineering_role_review_permissions.sql",
+        "checksum": 874726934,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "527",
+    "reference_script": "V527__inspection_report_input_service_validation.sql",
+    "reference_checksum": 1995134426,
+    "source_match": "not_found",
+    "same_description_candidates": [
+      "sql\\migrations\\V524__inspection_report_input_service_validation.sql"
+    ],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V524__inspection_report_input_service_validation.sql",
+        "checksum": 1995134426,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "528",
+    "reference_script": "V528__installation_address_optical_module_default.sql",
+    "reference_checksum": 252124209,
+    "source_match": "not_found",
+    "same_description_candidates": [
+      "sql\\migrations\\V526__installation_address_optical_module_default.sql"
+    ],
+    "checksums": [
+      {
+        "path": "sql\\migrations\\V526__installation_address_optical_module_default.sql",
+        "checksum": 252124209,
+        "matches_178": true
+      }
+    ]
+  },
+  {
+    "reference_version": "529",
+    "reference_script": "V529__restore_user_employee_extension_columns.sql",
+    "reference_checksum": -853193055,
+    "source_match": "not_found",
+    "same_description_candidates": [],
+    "checksums": []
+  },
+  {
+    "reference_version": "530",
+    "reference_script": "V530__sync_support_rd_role_permissions.sql",
+    "reference_checksum": -1840932704,
+    "source_match": "not_found",
+    "same_description_candidates": [],
+    "checksums": []
+  }
+]

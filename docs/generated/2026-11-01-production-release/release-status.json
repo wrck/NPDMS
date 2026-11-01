@@ -1,0 +1,94 @@
+{
+  "branch": "codex/local-performance-20261025",
+  "commit": "385e10f9ee310f82896a5dce5251e47aeaa17902",
+  "release_id": "R20261101_385e10f9e",
+  "migration_authorized": true,
+  "status": "FRESH_DATABASE_VALIDATED; application release remains blocked by prior code checks and missing production configuration",
+  "production_mutations": false,
+  "duplicate_versions": {
+    "V399": [
+      "V399__delivery_material_fulfillment.sql",
+      "V399__requirement_revision_active_identity_uniqueness.sql"
+    ],
+    "V419": [
+      "V419__approved_user_employee_no_and_custom_info.sql",
+      "V419__hide_project_task_navigation.sql"
+    ],
+    "V420": [
+      "V420__approved_dppms_project_type.sql",
+      "V420__current_installation_address_projection.sql"
+    ],
+    "V421": [
+      "V421__approved_dppms_delivery_scope_attributes.sql",
+      "V421__reuse_current_installation_snapshot.sql"
+    ],
+    "V461": [
+      "V461__cutover_native_document_sources.sql",
+      "V461__preserve_project_party_nullable_audit.sql"
+    ],
+    "V474": [
+      "V474__cutover_structured_storage_schema.sql",
+      "V474__sync_hot_path_business_key_indexes.sql"
+    ],
+    "V481": [
+      "V481__project_external_end_user.sql",
+      "V481__sync_decided_configuration_contracts.sql"
+    ],
+    "V482": [
+      "V482__project_task_requirement.sql",
+      "V482__sync_published_project_scope.sql"
+    ],
+    "V483": [
+      "V483__implementation_readiness_plan_applicability.sql",
+      "V483__independent_base_sync_metadata.sql"
+    ],
+    "V484": [
+      "V484__base_sync_aliases_and_full_shipment_limit.sql",
+      "V484__external_end_user_authorization_boundary.sql"
+    ]
+  },
+  "build_status": "FAILED: PlatformMigrationEvidenceContractTest and FileContractAndMapperTest",
+  "frontend_checks": "FAILED: TS2322 completion-certificate/index.vue:426; TS6133 four unused imports in two test files; lint not started",
+  "migration_validation_log": ".run/build/production-20261101-migration-validation.log",
+  "baseline_missing_source_migrations": [
+    "V398__delivery_material_version.sql",
+    "V399__requirement_revision_active_identity_uniqueness.sql",
+    "V411__project_legacy_detail_evidence.sql",
+    "V412__dppms_native_detail_field_completion.sql",
+    "V413__dppms_original_order_date_and_carrier.sql",
+    "V414__dppms_native_source_business_records.sql",
+    "V415__dppms_installation_source_history_metadata.sql",
+    "V417__dppms_native_original_business_text.sql",
+    "V418__remove_unused_dppms_duplicate_business_fields.sql",
+    "V419__approved_user_employee_no_and_custom_info.sql",
+    "V420__approved_dppms_project_type.sql",
+    "V421__approved_dppms_delivery_scope_attributes.sql",
+    "V433__approved_device_license_record.sql",
+    "V434__approved_project_member_history_fields.sql",
+    "V435__migration_global_source_identity_index.sql",
+    "V436__approved_final_customer_project_contacts.sql",
+    "V437__approved_project_contract_historical_auditors.sql",
+    "V438__preserve_project_contract_auditor_comments.sql",
+    "V439__approved_dppms_project_implementation_dictionary.sql",
+    "V461__preserve_project_party_nullable_audit.sql",
+    "V473__approved_device_warranty_renewal_record.sql",
+    "V474__sync_hot_path_business_key_indexes.sql",
+    "V481__sync_decided_configuration_contracts.sql",
+    "V482__sync_published_project_scope.sql",
+    "V483__independent_base_sync_metadata.sql",
+    "V484__base_sync_aliases_and_full_shipment_limit.sql"
+  ],
+  "pending_inputs": [
+    "SSH password prompt",
+    "Production OIDC, scanning and secrets integration configuration"
+  ],
+  "fresh_database_validation": {
+    "passed": true,
+    "mysql_version": "8.4.13",
+    "basis": "178 final + locked-source additions + unified charset",
+    "main_release": "sql/releases/fresh-178-20261101/migrations",
+    "dac_release": "sql/releases/fresh-178-20261101/dac-migrations",
+    "unexpected_schema_differences": 0,
+    "production_mutations": false
+  }
+}
