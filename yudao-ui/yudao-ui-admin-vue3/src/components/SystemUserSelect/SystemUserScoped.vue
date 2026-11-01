@@ -365,7 +365,8 @@ onBeforeUnmount(() => {
 }
 
 .system-user-scoped p {
-  margin: 6px 0;
+  margin: 6px 0 0;
+  line-height: 1.5;
   color: var(--el-color-danger);
 }
 
