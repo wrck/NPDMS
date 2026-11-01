@@ -48,3 +48,26 @@
 ## 结论边界
 
 当前测试运行包下，已使用反馈账号验证新建保存成功，无法复现原报错；不能据此声称已查明或修复原报错根因。若原问题来自其他地址、其他运行包或其他操作，需要对应环境/请求证据再判断；不应通过扩大账号权限或删除服务身份校验解决。
+
+## 2026-11-01再次反馈与请求取证
+
+用户再次反馈新建／保存巡检时出现同名错误，说明使用admin提单。本轮未重启、未部署、未调整服务身份或账号权限，未由代理代建测试任务。
+
+- 当前19086实际提供的Axios配置仍指向59286；监听进程分别为47968、67208，后端与此前UMC验证记录的PID相同。
+- 59286的脱敏configprops显示INSPECTION主体及两个allowedActions，输入来源仍为运行包application-local.yaml第262、264、265行。未读取Secret或解除脱敏；这不等于直接验证Registry内部实例。
+- 在当前页面开启请求取证后，捕获用户实际保存请求`POST http://127.0.0.1:59286/api/v1/pms/inspection-tasks`，HTTP200且原始响应code=0。返回任务37、编号`INS-2116587257076875264`、项目44063、ownerUserId=1、状态PREPARING；随后浏览器请求该任务详情。该业务写入由用户操作触发。
+- 先前失败响应不在可读取的事件缓冲中；当前日志未检索到1015005001或错误原文。日志未记录不能证明没有发生。
+- 已向用户追问最初失败的时间及是否同账号、同项目、同设备。本次成功不得作为修复结论，根因仍未闭合。
+
+### 部署包差异确认
+
+用户随后明确：错误发生于178部署后，并提供部署聊天01a18ecc-06d9-7793-95de-503a60a2bdd6。该聊天最新交付物为`E:/AICoding/Artifacts/NPDMS/20261101/npdms-172.17.90.178-latest-5ced258-20261101.tar.gz`。
+
+直接只读检查上述归档及其中的npdms-release.tar.gz、backend/yudao-server.jar：
+
+- deploy-npdms.sh第352行使用`--spring.profiles.active=docker,dac`，并加载deployment/application.defaults.properties及外部application.properties。
+- 包内deployment/application.defaults.properties没有asset-product-type服务身份登记。
+- 后端JAR内application.yaml、application-docker.yaml、application-dac.yaml均没有trusted-service-principals；只有application-local.yaml登记INSPECTION主体970477601及两个读取动作。
+- 既有AssetProductTypePrincipalBindingTest仅加载application-local.yaml，不能覆盖部署包使用的配置组合。
+
+因此确认存在部署产物配置遗漏：默认docker,dac启动路径不提供巡检读取所需服务主体，除非目标外部application.properties另有登记，否则Registry会拒绝并返回1015005001。该缺口与用户报告的178部署后报错相符；未直接读取178主机最终外部配置，故保留这一运行实例证据边界。本地59286的成功不验证178部署行为。尚未修改发布包、运行配置或权限，未重启、迁移、部署。后续修复应在部署配置来源补全既定只读主体并覆盖实际部署profile绑定测试，不能关闭守卫或扩大用户权限。

@@ -83,10 +83,13 @@ class InspectionAssetProductTypeLocalConfigurationTest {
     }
 
     private static Map<String, Object> localProductTypeProperties() throws IOException {
-        var localYaml = locateRepositoryRoot().resolve("yudao-server/src/main/resources/application-local.yaml");
-        assertTrue(Files.isRegularFile(localYaml), "必须读取当前仓库的实际 application-local.yaml");
         var values = new LinkedHashMap<String, Object>();
-        var sources = new YamlPropertySourceLoader().load("repository-application-local", new FileSystemResource(localYaml));
+        var sources = new java.util.ArrayList<org.springframework.core.env.PropertySource<?>>();
+        for (String file : new String[] {"application.yaml", "application-local.yaml"}) {
+            var path = locateRepositoryRoot().resolve("yudao-server/src/main/resources").resolve(file);
+            assertTrue(Files.isRegularFile(path), "必须读取当前仓库的实际基础及 local 配置");
+            sources.addAll(new YamlPropertySourceLoader().load(file, new FileSystemResource(path)));
+        }
         for (var source : sources) {
             assertInstanceOf(EnumerablePropertySource.class, source);
             var enumerable = (EnumerablePropertySource<?>) source;

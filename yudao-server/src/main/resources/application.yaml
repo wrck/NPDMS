@@ -371,6 +371,14 @@ yudao:
       type: redis # 消息总线的类型
 
 pms:
+  asset-product-type:
+    trusted-service-principals:
+      INSPECTION:
+        # 模块间只读技术主体；不代表登录用户，不授予受控导入权限。
+        principal-id: 970477601
+        allowed-actions:
+          - PRODUCT_TYPE_READ_CODES
+          - DEVICE_PRODUCT_TYPE_READ
   sol:
     duration-change:
       process-definition-key: ${PMS_SOL_DURATION_CHANGE_PROCESS_KEY:pms-sol-duration-change}
