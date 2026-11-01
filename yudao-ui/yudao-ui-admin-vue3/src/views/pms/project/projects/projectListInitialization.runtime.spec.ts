@@ -97,18 +97,16 @@ it('keeps list usable when statistics fail and preserves list filters on search'
   }))
 })
 
-it('loads sites and preserves their versions when an authorized creator opens the wizard', async () => {
+it('opens the creation wizard without loading implementation sites', async () => {
   grants.add('pms:project:create')
   grants.add('pms:asset-location:query')
   const state = await render()
   expect(LocationApi.getSitePage).not.toHaveBeenCalled()
   await state.openWizard()
-  expect(LocationApi.getSitePage).toHaveBeenCalledTimes(1)
+  expect(LocationApi.getSitePage).not.toHaveBeenCalled()
   expect(state.wizardVisible).toBe(true)
-  expect(state.availableSites).toEqual([{ id: 13, version: 2 }])
-  const row = { siteId: 13, siteVersion: undefined as number | undefined }
-  state.syncSiteVersion(row)
-  expect(row.siteVersion).toBe(2)
+  expect(state.createForm).not.toHaveProperty('sites')
+  expect(state.createForm).not.toHaveProperty('implementationLocation')
 })
 
 it('does not request sites for a creator without site query permission', async () => {
@@ -116,7 +114,7 @@ it('does not request sites for a creator without site query permission', async (
   const state = await render()
   await state.openWizard()
   expect(state.wizardVisible).toBe(true)
-  expect(state.availableSites).toEqual([])
+  expect(state.createForm).not.toHaveProperty('sites')
   expect(LocationApi.getSitePage).not.toHaveBeenCalled()
 })
 

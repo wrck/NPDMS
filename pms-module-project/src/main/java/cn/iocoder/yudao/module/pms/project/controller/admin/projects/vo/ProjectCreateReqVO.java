@@ -61,7 +61,7 @@ public class ProjectCreateReqVO {
     @Positive(message = "一级服务经理用户无效")
     private Long serviceManagerUserId;
 
-    @Schema(description = "实施站点；为空时必须填写兼容实施地点")
+    @Schema(description = "实施站点")
     @Valid
     private List<ProjectSiteReqVO> sites;
 
@@ -96,10 +96,4 @@ public class ProjectCreateReqVO {
         return parentId != null || candidateWatermark != null && !candidateWatermark.isBlank();
     }
 
-    @AssertTrue(message = "实施站点与兼容实施地点不能同时为空")
-    @Schema(hidden = true)
-    public boolean isLocationScopeValid() {
-        return sites != null && !sites.isEmpty()
-                || implementationLocation != null && !implementationLocation.isBlank();
-    }
 }

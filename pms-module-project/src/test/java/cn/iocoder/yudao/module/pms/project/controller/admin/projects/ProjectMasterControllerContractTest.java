@@ -72,8 +72,8 @@ class ProjectMasterControllerContractTest {
         assertNotNull(ProjectCreateReqVO.class.getDeclaredField("orderOfficeCompanyId"));
         assertNotNull(ProjectCreateReqVO.class.getDeclaredField("orderOfficeDepartmentId"));
         assertNotNull(ProjectCreateReqVO.class.getDeclaredField("sites"));
-        assertNotNull(ProjectCreateReqVO.class.getDeclaredMethod("isLocationScopeValid")
-                .getAnnotation(AssertTrue.class));
+        org.junit.jupiter.api.Assertions.assertThrows(NoSuchMethodException.class,
+                () -> ProjectCreateReqVO.class.getDeclaredMethod("isLocationScopeValid"));
         assertThrowsNoField(ProjectCreateReqVO.class, "orderOfficeCompanyCode");
         assertThrowsNoField(ProjectCreateReqVO.class, "orderOfficeDepartmentCode");
         assertNotNull(ProjectAssignManagerReqVO.class.getDeclaredField("managerId"));

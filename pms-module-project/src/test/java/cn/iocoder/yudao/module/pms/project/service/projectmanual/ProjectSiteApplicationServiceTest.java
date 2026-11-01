@@ -33,7 +33,8 @@ class ProjectSiteApplicationServiceTest {
     @Test
     void fallbackOnlyIsUnresolved() {
         assertEquals("UNRESOLVED", service.validateLocationScope(List.of(), "上海市浦东新区"));
-        assertThrows(ServiceException.class, () -> service.validateLocationScope(List.of(), " "));
+        assertEquals("UNRESOLVED", service.validateLocationScope(List.of(), " "));
+        assertEquals("UNRESOLVED", service.validateLocationScope(null, null));
     }
 
     @Test

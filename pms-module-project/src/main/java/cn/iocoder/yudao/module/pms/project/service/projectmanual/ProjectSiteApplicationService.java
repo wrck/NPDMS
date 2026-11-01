@@ -33,9 +33,6 @@ public class ProjectSiteApplicationService {
 
     public String validateLocationScope(List<ProjectSiteCommand> sites, String fallbackLocation) {
         if (sites == null || sites.isEmpty()) {
-            if (fallbackLocation == null || fallbackLocation.isBlank()) {
-                throw exception(PROJECT_LOCATION_SCOPE_INVALID, "未选择站点时必须填写实施地点");
-            }
             return LOCATION_UNRESOLVED;
         }
         Set<Long> siteIds = new HashSet<>();

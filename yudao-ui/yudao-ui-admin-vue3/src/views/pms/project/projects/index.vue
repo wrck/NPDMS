@@ -546,57 +546,6 @@ v-model="createForm.contractNo" :api="getSelectableContracts"
               </el-form-item>
             </el-col>
           </el-row>
-          <el-divider content-position="left">订单实施范围</el-divider>
-          <el-form-item label="地点录入方式">
-            <el-radio-group v-model="createForm.locationMode">
-              <el-radio-button value="sites">选择已维护站点</el-radio-button>
-              <el-radio-button value="fallback">站点未维护</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-          <template v-if="createForm.locationMode === 'sites'">
-            <div v-for="(siteRow, index) in createForm.sites" :key="index" class="site-row">
-              <el-select
-                v-model="siteRow.siteId"
-                filterable
-                class="site-select"
-                placeholder="选择实施站点"
-                @change="syncSiteVersion(siteRow)"
-              >
-                <el-option
-                  v-for="item in availableSites"
-                  :key="item.id"
-                  :label="`${item.code} ${item.name}`"
-                  :value="item.id ?? 0"
-                />
-              </el-select>
-              <el-radio v-model="primarySiteIndex" :value="index">主站点</el-radio>
-              <el-button
-                link
-                type="danger"
-                :disabled="createForm.sites.length === 1"
-                @click="removeSiteRow(index)"
-                >移除</el-button
-              >
-            </div>
-            <el-button type="primary" plain @click="addSiteRow"
-              ><Icon icon="ep:plus" />增加站点</el-button
-            >
-          </template>
-          <el-form-item v-else label="兼容实施地点" prop="implementationLocation">
-            <el-input
-              v-model="createForm.implementationLocation"
-              placeholder="站点未维护时填写现场可识别地点"
-            />
-          </el-form-item>
-          <el-alert
-            v-if="createForm.locationMode === 'fallback'"
-            type="warning"
-            :closable="false"
-            show-icon
-            class="mb-16px"
-          >
-            项目将标记为 UNRESOLVED，可在工勘或安装环节补充结构化地点。
-          </el-alert>
           <el-divider content-position="left">项目分类三维（模板匹配依据）</el-divider>
           <el-row :gutter="16">
             <el-col :xs="24" :sm="8">
@@ -757,16 +706,6 @@ v-model="createForm.contractNo" :api="getSelectableContracts"
             {{ dimLabel(createForm.implementationMode, DICT_TYPE.PMS_IMPLEMENTATION_METHOD) }}
           </el-descriptions-item>
           <el-descriptions-item label="重大项目级别">不适用</el-descriptions-item>
-          <el-descriptions-item label="地点状态">
-            {{ createForm.locationMode === 'sites' ? 'RESOLVED' : 'UNRESOLVED' }}
-          </el-descriptions-item>
-          <el-descriptions-item label="实施范围">
-            {{
-              createForm.locationMode === 'sites'
-                ? `${createForm.sites.length} 个站点`
-                : createForm.implementationLocation
-            }}
-          </el-descriptions-item>
           <el-descriptions-item label="选用模板">
             <span v-if="selectedTemplate">
               {{ selectedTemplate.name }}（revision #{{ selectedTemplate.templateRevisionId }} v{{
@@ -784,7 +723,7 @@ v-model="createForm.contractNo" :api="getSelectableContracts"
         </el-descriptions>
         <el-alert type="info" :closable="false" show-icon>
           提交将单事务完成：编码分配（PJT+年份+流水）→
-          模板实例化（阶段/任务/里程碑/交付件/门禁冻结）→ 实施站点绑定；失败整体回滚。
+          模板实例化（阶段/任务/里程碑/交付件/门禁冻结）；失败整体回滚。
         </el-alert>
       </div>
 
@@ -1177,7 +1116,6 @@ import type {
   ProjectMasterVO,
   ProjectInstancesVO,
   ProjectMemberAssignmentVO,
-  ProjectSiteReqVO,
   TemplateCandidateVO
 } from '@/api/pms/project/projects'
 import { getProjectTemplateRevision } from '@/api/pms/project/project-templates'
@@ -1186,8 +1124,6 @@ import * as CompanyApi from '@/api/system/company'
 import type { CompanyVO } from '@/api/system/company'
 import * as DeptApi from '@/api/system/dept'
 import type { DeptVO } from '@/api/system/dept'
-import * as LocationApi from '@/api/pms/asset/location'
-import type { SiteVO } from '@/api/pms/asset/location'
 import { createSubmissionIdempotencyState } from './submissionIdempotency'
 import ProjectStatusTag from './ProjectStatusTag.vue'
 import CustomerCorrectionDialog from '../inheritance/projects/CustomerCorrectionDialog.vue'
@@ -1443,11 +1379,9 @@ const createIdempotency = createSubmissionIdempotencyState()
 const createErrorMessage = ref('')
 const companies = ref<CompanyVO[]>([])
 const departments = ref<DeptVO[]>([])
-const availableSites = ref<SiteVO[]>([])
 /** 合同链取值预览（合同→订单→执行单，CRM权威建议值） */
 const creationSource = ref<ContractCreationSourceRespVO | null>(null)
 const creationSourceLoading = ref(false)
-const primarySiteIndex = ref(0)
 
 const createForm = reactive({
   projectName: '',
@@ -1457,12 +1391,6 @@ const createForm = reactive({
   contractId: undefined as number | undefined,
   orderOfficeCompanyId: undefined as number | undefined,
   orderOfficeDepartmentId: undefined as number | undefined,
-  locationMode: 'sites' as 'sites' | 'fallback',
-  sites: [{ siteId: undefined, siteVersion: undefined }] as Array<{
-    siteId?: number
-    siteVersion?: number
-  }>,
-  implementationLocation: '',
   signingMethod: '',
   projectCategory: '',
   implementationMode: '',
@@ -1539,17 +1467,6 @@ const createRules = {
   ]
 }
 
-const syncSiteVersion = (row: { siteId?: number; siteVersion?: number }) => {
-  row.siteVersion = availableSites.value.find((site) => site.id === row.siteId)?.version
-}
-
-const addSiteRow = () => createForm.sites.push({ siteId: undefined, siteVersion: undefined })
-
-const removeSiteRow = (index: number) => {
-  createForm.sites.splice(index, 1)
-  if (primarySiteIndex.value >= createForm.sites.length) primarySiteIndex.value = 0
-}
-
 const loadOrganizations = async () => {
   const [companyList, deptList] = await Promise.all([
     CompanyApi.getSimpleCompanyList(),
@@ -1570,43 +1487,22 @@ const openWizard = async () => {
     contractId: undefined,
     orderOfficeCompanyId: undefined,
     orderOfficeDepartmentId: undefined,
-    locationMode: 'sites',
-    sites: [{ siteId: undefined, siteVersion: undefined }],
-    implementationLocation: '',
     signingMethod: '',
     projectCategory: '',
     implementationMode: '',
     creationReason: ''
   })
   creationSource.value = null
-  primarySiteIndex.value = 0
   selectedTemplateRevisionId.value = undefined
   matchResult.value = null
   createErrorMessage.value = ''
   createIdempotency.reset()
-  availableSites.value = []
   wizardVisible.value = true
-  if (hasPermission(['pms:asset-location:query'])) {
-    const sitePage = await LocationApi.getSitePage({ pageNo: 1, pageSize: 100 })
-    availableSites.value = sitePage.list || []
-  }
+
 }
 
 const wizardNext0 = async () => {
   await wizardFormRef.value?.validate()
-  if (createForm.locationMode === 'sites') {
-    if (createForm.sites.some((item) => !item.siteId || item.siteVersion === undefined)) {
-      message.error('请完整选择实施站点')
-      return
-    }
-    if (new Set(createForm.sites.map((item) => item.siteId)).size !== createForm.sites.length) {
-      message.error('实施站点不能重复')
-      return
-    }
-  } else if (!createForm.implementationLocation.trim()) {
-    message.error('站点未维护时必须填写兼容实施地点')
-    return
-  }
   await runMatch()
   wizardStep.value = 1
 }
@@ -1617,7 +1513,6 @@ const { matchLoading, matchResult, selectedTemplateRevisionId, runMatch } = useC
   customerCode: createForm.customerCode || undefined,
   orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
   orderOfficeDepartmentId: createForm.orderOfficeDepartmentId!,
-  implementationLocation: createForm.locationMode === 'fallback' ? createForm.implementationLocation : undefined,
   signingMethod: createForm.signingMethod,
   projectCategory: createForm.projectCategory,
   implementationMode: createForm.implementationMode
@@ -1679,14 +1574,6 @@ const stageGates = (code: string) =>
 
 // ============ 提交创建（步骤③） ============
 const submitCreate = async () => {
-  const sites: ProjectSiteReqVO[] | undefined =
-    createForm.locationMode === 'sites'
-      ? createForm.sites.map((item, index) => ({
-          siteId: item.siteId!,
-          siteVersion: item.siteVersion!,
-          primarySite: index === primarySiteIndex.value
-        }))
-      : undefined
   const payload: ProjectsApi.ProjectCreateReqVO = {
     projectName: createForm.projectName,
     customerCode: createForm.customerCode || undefined,
@@ -1695,9 +1582,6 @@ const submitCreate = async () => {
     contractId: createForm.contractId,
     orderOfficeCompanyId: createForm.orderOfficeCompanyId!,
     orderOfficeDepartmentId: createForm.orderOfficeDepartmentId!,
-    sites,
-    implementationLocation:
-      createForm.locationMode === 'fallback' ? createForm.implementationLocation : undefined,
     signingMethod: createForm.signingMethod,
     projectCategory: createForm.projectCategory,
     implementationMode: createForm.implementationMode,
