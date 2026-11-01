@@ -1,0 +1,26 @@
+ Container npdms-flyway-fresh-verification-migrate-run-046760dda42c Creating 
+ Container npdms-flyway-fresh-verification-migrate-run-046760dda42c Created 
+{
+  "timestamp" : "2026-11-01T11:52:48.50928655",
+  "operation" : "migrate",
+  "exception" : null,
+  "licenseFailed" : false,
+  "initialSchemaVersion" : null,
+  "targetSchemaVersion" : "530",
+  "schemaName" : "",
+  "migrations" : [ {
+    "category" : "Baseline",
+    "version" : "530",
+    "description" : "production 178 initialization",
+    "type" : "SQL_BASELINE",
+    "filepath" : "/flyway/sql/B530__production_178_initialization.sql",
+    "executionTime" : 21967
+  } ],
+  "migrationsExecuted" : 1,
+  "success" : true,
+  "flywayVersion" : "11.10.5",
+  "database" : "npdms_prod_178_review_20261101",
+  "warnings" : [ ],
+  "databaseType" : "MySQL",
+  "totalMigrationTime" : 21967
+}

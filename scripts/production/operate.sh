@@ -79,9 +79,14 @@ case "$action" in
     [[ $(findmnt -no FSTYPE /run) == tmpfs ]] || die '/run must be memory-backed'
     python3 "$here/release.py" verify "$migration_kind" "/opt/sdp/$migration_kind/current" >/dev/null
     [[ -r $migration_config ]] || die 'Native Flyway credential configuration missing'
+    migration_options=(-cleanDisabled=true -baselineOnMigrate=false -validateOnMigrate=true -validateMigrationNaming=true)
+    if [[ $migration_kind == migrations ]]; then
+      # Frozen forms/BPMN contain literal ${...}, not deployment placeholders.
+      migration_options+=(-placeholderReplacement=false)
+    fi
     /opt/sdp/flyway/flyway "-configFiles=$migration_config" \
       "-locations=filesystem:/opt/sdp/$migration_kind/current" \
-      -cleanDisabled=true -baselineOnMigrate=false -validateMigrationNaming=true "$command"
+      "${migration_options[@]}" "$command"
     ;;
   publish)
     kind=${3:-}; source=${4:-}

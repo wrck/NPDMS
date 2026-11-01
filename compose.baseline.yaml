@@ -1,0 +1,11 @@
+# LOCAL verification only, for the reviewed 178/B530 empty-database lineage.
+# Production uses scripts/production/operate.sh and native Flyway, without Docker.
+# Prepare/check with scripts/prepare_baseline_migrations.py before use.
+name: npdms-baseline
+services:
+  migrate:
+    extends:
+      file: sql/releases/production-178-v530-r2/compose.yaml
+      service: migrate
+    volumes:
+      - ./.run/baseline-migrations:/flyway/sql:ro

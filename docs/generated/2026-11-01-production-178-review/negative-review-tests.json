@@ -1,0 +1,9 @@
+{
+  "schema": "npdms_prod_178_review_20261101",
+  "results": {
+    "plaintextPasswordRejected": true,
+    "changedIdentityRejected": true,
+    "unexpectedRuntimeDataRejected": true
+  },
+  "restoredAndRechecked": true
+}

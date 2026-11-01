@@ -1,0 +1,75 @@
+{
+  "source": "172.17.90.178:13306/npdms",
+  "sourceReadOnly": true,
+  "sourceCapturedAt": "2026-11-01T11:51:37.700605+00:00",
+  "sourceTables": 520,
+  "sourceColumns": 9497,
+  "sourceHistoryRows": 33,
+  "tableSetUnchanged": true,
+  "ddlChanges": [],
+  "triggersUnchanged": true,
+  "historyUnchanged": true,
+  "routines": [],
+  "sourceEvents": 0,
+  "configurationChanges": {
+    "system_company": {
+      "before": 0,
+      "after": 4
+    },
+    "system_dept": {
+      "before": 0,
+      "after": 206
+    },
+    "system_dict_data": {
+      "before": 2055,
+      "after": 2052
+    },
+    "system_dict_type": {
+      "before": 407,
+      "after": 406
+    },
+    "system_menu": {
+      "before": 745,
+      "after": 720
+    },
+    "system_role_menu": {
+      "before": 838,
+      "after": 833
+    }
+  },
+  "rejectedOriginalSnapshot": "Upstream example menu in production seeds",
+  "finalSqlReproducesExactly": true,
+  "sourceExcludedEvidence": {
+    "smsTemplates": {
+      "count": 10,
+      "channel": "DEBUG_DING_TALK",
+      "reason": "Debug transport; not production configuration"
+    },
+    "productTypes": {
+      "count": 1,
+      "code": "QA-UMC-ACCEPTANCE",
+      "source": "INSPECTION_MOCK_ACCEPTANCE",
+      "reason": "Explicit nonproduction synthetic acceptance"
+    },
+    "ast_product_official_info": {
+      "count": 35888,
+      "reason": "CRM synchronized product business master; not initialization configuration"
+    },
+    "cut_checklist_input_dimension": {
+      "count": 231,
+      "reason": "Per-checklist instance data, FK points to cut_cutover_checklist"
+    },
+    "proj_business_result_channel": {
+      "count": 330,
+      "reason": "Per-project runtime sequence; not global channel configuration"
+    }
+  },
+  "checks": {
+    "pythonTestsPassed": 32,
+    "localMigrate": true,
+    "localValidate": true,
+    "repeatMigrateExecuted": 0,
+    "productionDeployed": false,
+    "sourceModified": false
+  }
+}

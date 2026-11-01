@@ -30,7 +30,9 @@ def verify(root, role):
     required = {'backend': 'yudao-server.jar', 'frontend': 'index.html', 'dac': 'device-ops-server.jar'}
     if role in required and required[role] not in files:
         raise ValueError('Required entry point missing')
-    if role in ('migrations', 'dac-migrations') and not any(n.startswith('V') and n.endswith('.sql') for n in files):
+    prefixes = 'BV' if role == 'migrations' else 'V'
+    if role in ('migrations', 'dac-migrations') and not any(
+            re.fullmatch(r'[' + prefixes + r']\d+(?:[._]\d+)*__[^/]+\.sql', n) for n in files):
         raise ValueError('No Flyway migrations')
     return manifest
 

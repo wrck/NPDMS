@@ -151,6 +151,14 @@ class ReleaseSafetyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.freeze()
 
+    def test_platform_baseline_only_release_is_supported(self):
+        source = self.root / 'baseline'
+        source.mkdir()
+        (source / 'B530__production.sql').write_text('SELECT 1;', encoding='utf8')
+        release.pack(source, self.root / 'platform-sql', 'migrations', 'R1')
+        with self.assertRaises(ValueError):
+            release.pack(source, self.root / 'dac-baseline', 'dac-migrations', 'R1')
+
 
 class RenderSafetyTests(unittest.TestCase):
     def setUp(self):

@@ -1,0 +1,19 @@
+ Container npdms-flyway-fresh-verification-migrate-run-7ae74c23c6e7 Creating 
+ Container npdms-flyway-fresh-verification-migrate-run-7ae74c23c6e7 Created 
+{
+  "timestamp" : "2026-11-01T11:53:17.265210805",
+  "operation" : "migrate",
+  "exception" : null,
+  "licenseFailed" : false,
+  "initialSchemaVersion" : "530",
+  "targetSchemaVersion" : null,
+  "schemaName" : "",
+  "migrations" : [ ],
+  "migrationsExecuted" : 0,
+  "success" : true,
+  "flywayVersion" : "11.10.5",
+  "database" : "npdms_prod_178_review_20261101",
+  "warnings" : [ ],
+  "databaseType" : "MySQL",
+  "totalMigrationTime" : 0
+}

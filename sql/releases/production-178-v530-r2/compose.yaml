@@ -1,0 +1,19 @@
+# Local rehearsal only. Formal servers use the native release tools.
+name: npdms-production-init-verification
+services:
+  migrate:
+    image: flyway/flyway:11.10.5-alpine
+    restart: "no"
+    environment:
+      FLYWAY_URL: ${NPDMS_RELEASE_JDBC_URL:?Explicit target JDBC URL required}
+      FLYWAY_USER: ${NPDMS_RELEASE_DB_USER:?Migration user required}
+      FLYWAY_PASSWORD: ${NPDMS_RELEASE_DB_PASSWORD:?Migration password required}
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+      FLYWAY_CLEAN_DISABLED: "true"
+      FLYWAY_BASELINE_ON_MIGRATE: "false"
+      FLYWAY_VALIDATE_ON_MIGRATE: "true"
+      FLYWAY_VALIDATE_MIGRATION_NAMING: "true"
+      FLYWAY_PLACEHOLDER_REPLACEMENT: "false"
+    command: ["migrate"]
+    volumes:
+      - ./migrations:/flyway/sql:ro
