@@ -1,22 +1,22 @@
 # NPDMS 正式环境四机部署操作手册
 
-适用：2026-10-30 用户给定的 Ubuntu 24.04.4 四机拓扑。本文是部署操作资产，不更改 PRD、授权、状态机或历史数据。配套入口：[scripts/production](../../../scripts/production/README.md)。状态：四机密码SSH接入已恢复，基础原生软件安装及环境检查已完成；尚未初始化数据库、执行迁移、发布应用或启动业务服务，也未完成生产验收；不能作为上线放行证明。
+适用：2026-10-30 用户给定的 Ubuntu 24.04.4 四机拓扑。本文是部署操作资产，不更改 PRD、授权、状态机或历史数据。配套入口：[scripts/production](../../../scripts/production/README.md)。状态：四机基础软件安装、MySQL 空库初始化及基础服务启动已完成；BE→DB 的 TLS 连接校验未完成。未执行业务迁移、发布应用或完成生产验收，不能作为上线放行证明。
 
 本版为第四版：沿用第三版的宿主机原生安装方式，并统一持久数据目录为`/data`。用户明确要求正式服务器禁用Docker；此要求替代本手册前两版的容器承载方式，仓库根`compose.yaml`仅保留既有本地开发用途，本次不修改。
 
 ### 初始化实施状态（2026-10-30）
 
-用户已授权使用本机交互密码登录、禁用本次连接的主机校验，并在本机下载合适安装包后通过SFTP上传安装。四机均已成功以root连接，公钥认证和SSH agent未使用；密码只用于进程内认证，本次未将密码写入脚本、命令参数、日志或凭据文件，也未修改全局SSH配置。首次Nginx离线包通过临时命令通道传输；用户明确SFTP要求后的BE/DB制品均通过SFTP上传。
+用户已授权使用本机交互密码登录、禁用本次连接的主机校验，并在本机下载合适安装包后通过SFTP上传安装。四机均已成功以root连接，公钥认证和SSH agent未使用；SSH 登录密码不写入本机脚本、命令参数或日志，也未修改全局SSH配置。后续首次安装密码按用户明确要求记录在目标机第6.1节规定的 root 专用目录。首次Nginx离线包通过临时命令通道传输；用户明确SFTP要求后的BE/DB制品均通过SFTP上传。
 
 | 主机 | 已安装组件 | 本次验证 |
 |---|---|---|
-| FE1 / FE2 | Nginx `1.24.0-2ubuntu7.19` | 包校验、`nginx -t`通过；服务`inactive`、开机自启`disabled` |
-| BE | Temurin JDK `25.0.1+8`、Redis `7.4.12`、Flyway OSS `11.10.5` | 原生入口与版本检查通过；Redis动态库依赖完整 |
+| FE1 / FE2 | Nginx `1.24.0-2ubuntu7.19` | 包校验、`nginx -t`通过；HTTPS 基础入口已启动，返回404；开机自启`disabled` |
+| BE | Temurin JDK `25.0.1+8`、Redis `7.4.12`、Flyway OSS `11.10.5` | 原生入口与版本检查通过；Redis已启动，认证PING返回PONG，未认证请求拒绝 |
 | BE | LibreOffice `24.2.7.2`、Noto CJK中文字体 | 76个依赖包安装，无已有软件升级/删除；`sdp`账号临时中文HTML转PDF成功 |
-| BE | MinIO `LOCAL.2025-10-15T17-29-55Z` | 官方发布标签源码、本机Go `1.26.10`交叉构建Linux amd64；版本与帮助入口通过，尚未启动S3服务 |
-| DB | MySQL Community `8.4.13`（官方Ubuntu24.04二进制） | `mysqld/mysql/mysqldump`版本、资源路径及安装文件校验通过；`/data/mysql`仍为空 |
+| BE | MinIO `LOCAL.2025-10-15T17-29-55Z` | 官方发布标签源码、本机Go `1.26.10`交叉构建Linux amd64；S3服务已启动，认证ListBuckets成功，未认证请求拒绝；未创建业务桶 |
+| DB | MySQL Community `8.4.13`（官方Ubuntu24.04二进制） | `mysqld/mysql/mysqldump`版本、资源路径及安装文件校验通过；实例已初始化，root密码已轮换；`npdms`、`device_ops`两库已创建，业务表数量为0 |
 
-安装入口为`/opt/sdp/jdk`、`redis`、`flyway`、`minio`、`mysql`，均指向本次独立版本目录。BE/DB复用已有服务账号和`/data`目录；独立XFS挂载、目录归属和权限已核验，没有格式化、迁移已有数据或递归改权。Nginx和LibreOffice安装时临时禁止包管理器启动服务，临时`policy-rc.d`已清除；BE最终监听仍为原有SSH、DNS和监控端口。
+安装入口为`/opt/sdp/jdk`、`redis`、`flyway`、`minio`、`mysql`，均指向本次独立版本目录。BE/DB复用已有服务账号和`/data`目录；独立XFS挂载、目录归属和权限已核验，没有格式化、迁移已有数据或递归改权。Nginx和LibreOffice安装时临时禁止包管理器启动服务，临时`policy-rc.d`已清除；启动后的Redis仅监听127.0.0.1:6379，MinIO监听回环9000/9001；DB监听172.17.74.19:3306，FE分别监听自身IP的443。
 
 服务器不能访问外网，采用本机下载、校验、上传的离线流程。JDK/Flyway使用官方GitHub发布摘要，Redis使用官方Ubuntu24.04软件源摘要，MySQL官方APT索引通过Oracle GPG签名验证后逐包核对SHA256；Ubuntu依赖与现有APT索引摘要核对。MinIO固定源码提交`9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a`，保留AGPLv3许可证、构建信息和新制品SHA256；标记`LOCAL`以区别于上游预编译发行包。
 
@@ -24,7 +24,11 @@ MySQL通用glibc2.28包曾因缺少`libaio.so.1`无法运行，已改用官方Ub
 
 执行回执、最终版本、包清单及验证输出：[初始化记录](../../generated/2026-10-30-production-initialization/initialization-20261030.json)。该记录不含密码；本机下载、构建和SFTP过程文件位于被忽略的`.run/ssh-install-session-20261030/`。历史`.run/production-preflight-20261030.json`及`production-scaffold*-result-20261030.json`保留，后者记录了此前账号/目录准备，不能再把这部分写成“尚未执行”。前序严格主机校验和公钥认证失败已由本次用户指定的密码连接方式解决，不再作为当前阻塞。
 
-下一步依第2节落实域名、证书、秘密注入及应用制品，并按第7节分别执行服务配置、空库初始化、迁移和发布。本次未生成业务数据、未执行Flyway迁移、未发布后端/前端/DAC，也未进行生产浏览器验收；软件安装完成不等于业务上线。
+基础服务启动及空库回执见[基础服务记录](../../generated/2026-10-30-production-initialization/foundation-services-20261030.json)。已沿用部署专用CA签发FE/DB的IP证书，MySQL启用`require_secure_transport`，`secure_file_priv`显式限定为`/data/mysql-tmp`。root当前密码与Redis/MinIO密码已在目标机对应`/opt/sdp/config/credentials/`目录记录，目录0700、文件0600；密码值不写入本记录。
+
+BE→DB的TLS身份校验**未完成**：MySQL在TLS握手前返回`Host '172.17.73.104' is not allowed to connect`。当前仅有系统账号和`root@localhost`，没有BE应用账号；正确IP与错误IP两次OpenSSL检查均未进入TLS握手，不能作为证书通过或拒绝证据。用户随后明确选择“先保持空库，仅完成记录”，因此不新增账号或授权，后续配置专用账号后另行验证。
+
+MySQL、Redis、MinIO及两台Nginx均为active/running，开机自启仍disabled；未演练重启或秘密恢复，不宣称具备自动恢复能力。Redis的`vm.overcommit_memory=1`已设置。未执行业务迁移、未发布后端/前端/DAC、未创建业务数据或进行生产浏览器验收。后续迁移、发布及重启按各自授权执行。
 
 ### 数据目录约束（按用户调整后的清单）
 
@@ -373,4 +377,4 @@ bash /opt/sdp/tools/backup-db.sh --approved age1实际备份公钥 /data/backups
 
 工程依据：[docs/README](../../README.md)、[部署设计](../../design/18-deployment-design.md)、[生产环境实例化ADR](../../decisions/0018-deployment-time-environment-and-kms-selection.md)、当前应用配置及两类公开Controller/前端API。软件语义核对：[Nginx proxy模块](https://nginx.org/en/docs/http/ngx_http_proxy_module.html)、[MySQL原生二进制安装](https://dev.mysql.com/doc/refman/8.4/en/binary-installation.html)、[Redis源码构建](https://redis.io/docs/latest/operate/oss_and_stack/install/archive/install-redis/install-redis-from-source/)、[systemd凭据](https://www.freedesktop.org/software/systemd/man/latest/systemd.exec.html)。原生二进制需要适配目标OS/CPU/动态库；当前MinIO官方Linux文档指向AIStor产品线，须对实际选用版本、许可证和二进制来源单独审核，不能自动切换产品或假定旧下载地址仍适用。
 
-部署材料的本地验证结果见配套README；本次目标机软件安装和环境验证见本文初始化记录。未修改业务代码、未执行迁移、未提交/推送，未启动业务服务。真实服务启动、网络/TLS/秘密恢复、空库/升级迁移和业务浏览器验收仍需后续实施。
+部署材料的本地验证结果见配套README；2026-10-30目标机软件安装和环境验证见本文初始化记录，该记录不是当前服务状态的实时检查。该次实施未修改业务代码、未执行迁移或启动业务服务。基础服务启动与空库初始化已完成；BE→DB TLS、秘密恢复、升级迁移和业务浏览器验收仍需后续实施。本文后续归档提交不代表执行了新的服务器操作。
