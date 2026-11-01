@@ -3,7 +3,6 @@ package cn.iocoder.yudao.module.system.controller.admin.auth;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.enums.CommonStatusEnum;
-import cn.iocoder.yudao.framework.common.enums.UserTypeEnum;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.datapermission.core.annotation.DataPermission;
 import cn.iocoder.yudao.framework.security.config.SecurityProperties;
@@ -18,7 +17,6 @@ import cn.iocoder.yudao.module.system.service.auth.AdminAuthService;
 import cn.iocoder.yudao.module.system.service.permission.MenuService;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import cn.iocoder.yudao.module.system.service.permission.RoleService;
-import cn.iocoder.yudao.module.system.service.social.SocialClientService;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -57,8 +55,6 @@ public class AuthController {
     private MenuService menuService;
     @Resource
     private PermissionService permissionService;
-    @Resource
-    private SocialClientService socialClientService;
 
     @Resource
     private SecurityProperties securityProperties;
@@ -121,7 +117,7 @@ public class AuthController {
     @PermitAll
     @Operation(summary = "注册用户")
     public CommonResult<AuthLoginRespVO> register(@RequestBody @Valid AuthRegisterReqVO registerReqVO) {
-        return success(authService.register(registerReqVO));
+        return CommonResult.error(403, "当前仅支持账号密码登录");
     }
 
     // ========== 短信登录相关 ==========
@@ -132,7 +128,7 @@ public class AuthController {
     // 可按需开启限流：https://github.com/YunaiV/ruoyi-vue-pro/issues/851
     // @RateLimiter(time = 60, count = 6, keyResolver = ExpressionRateLimiterKeyResolver.class, keyArg = "#reqVO.mobile")
     public CommonResult<AuthLoginRespVO> smsLogin(@RequestBody @Valid AuthSmsLoginReqVO reqVO) {
-        return success(authService.smsLogin(reqVO));
+        return CommonResult.error(403, "当前仅支持账号密码登录");
     }
 
     @PostMapping("/send-sms-code")
@@ -162,15 +158,14 @@ public class AuthController {
     })
     public CommonResult<String> socialLogin(@RequestParam("type") Integer type,
                                             @RequestParam("redirectUri") String redirectUri) {
-        return success(socialClientService.getAuthorizeUrl(
-                type, UserTypeEnum.ADMIN.getValue(), redirectUri));
+        return CommonResult.error(403, "当前仅支持账号密码登录");
     }
 
     @PostMapping("/social-login")
     @PermitAll
     @Operation(summary = "社交快捷登录，使用 code 授权码", description = "适合未登录的用户，但是社交账号已绑定用户")
     public CommonResult<AuthLoginRespVO> socialQuickLogin(@RequestBody @Valid AuthSocialLoginReqVO reqVO) {
-        return success(authService.socialLogin(reqVO));
+        return CommonResult.error(403, "当前仅支持账号密码登录");
     }
 
 }
