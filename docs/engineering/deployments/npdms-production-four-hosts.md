@@ -4,6 +4,8 @@
 
 本版为第四版：沿用第三版的宿主机原生安装方式，并统一持久数据目录为`/data`。用户明确要求正式服务器禁用Docker；此要求替代本手册前两版的容器承载方式，仓库根`compose.yaml`仅保留既有本地开发用途，本次不修改。
 
+2026-11-01 16:00的本地只读状态记录仅检查systemd、监听、挂载和磁盘；没有SQL或认证业务探针，不替代TLS、应用和业务验收。回执保留在本地，本次仅提交操作文档，未刷新服务器状态，也未执行部署。
+
 ### 初始化实施状态（2026-10-30）
 
 用户已授权使用本机交互密码登录、禁用本次连接的主机校验，并在本机下载合适安装包后通过SFTP上传安装。四机均已成功以root连接，公钥认证和SSH agent未使用；SSH 登录密码不写入本机脚本、命令参数或日志，也未修改全局SSH配置。后续首次安装密码按用户明确要求记录在目标机第6.1节规定的 root 专用目录。首次Nginx离线包通过临时命令通道传输；用户明确SFTP要求后的BE/DB制品均通过SFTP上传。
@@ -22,9 +24,9 @@
 
 MySQL通用glibc2.28包曾因缺少`libaio.so.1`无法运行，已改用官方Ubuntu24.04包并保留其`lib/mysql/private`、`lib/mysql/plugin`及`share/mysql-8.4`布局；没有伪造系统动态库链接。当前`/opt/sdp/mysql`指向`mysql-8.4.13-noble`，原通用包目录保留但未激活。LibreOffice转换成功，但仍有`javaldx`提示：未安装/验证LibreOffice Java桥接功能；该结果只证明Writer/Web转PDF的环境检查，不代表全部Office或业务文件验收通过。
 
-执行回执、最终版本、包清单及验证输出：[初始化记录](../../generated/2026-10-30-production-initialization/initialization-20261030.json)。该记录不含密码；本机下载、构建和SFTP过程文件位于被忽略的`.run/ssh-install-session-20261030/`。历史`.run/production-preflight-20261030.json`及`production-scaffold*-result-20261030.json`保留，后者记录了此前账号/目录准备，不能再把这部分写成“尚未执行”。前序严格主机校验和公钥认证失败已由本次用户指定的密码连接方式解决，不再作为当前阻塞。
+执行回执、最终版本、包清单及验证输出：本地初始化回执`docs/generated/2026-10-30-production-initialization/initialization-20261030.json`（本次不提交）。该记录不含密码；本机下载、构建和SFTP过程文件位于被忽略的`.run/ssh-install-session-20261030/`。历史`.run/production-preflight-20261030.json`及`production-scaffold*-result-20261030.json`保留，后者记录了此前账号/目录准备，不能再把这部分写成“尚未执行”。前序严格主机校验和公钥认证失败已由本次用户指定的密码连接方式解决，不再作为当前阻塞。
 
-基础服务启动及空库回执见[基础服务记录](../../generated/2026-10-30-production-initialization/foundation-services-20261030.json)。已沿用部署专用CA签发FE/DB的IP证书，MySQL启用`require_secure_transport`，`secure_file_priv`显式限定为`/data/mysql-tmp`。root当前密码与Redis/MinIO密码已在目标机对应`/opt/sdp/config/credentials/`目录记录，目录0700、文件0600；密码值不写入本记录。
+基础服务启动及空库回执见本地基础服务回执`docs/generated/2026-10-30-production-initialization/foundation-services-20261030.json`（本次不提交）。已沿用部署专用CA签发FE/DB的IP证书，MySQL启用`require_secure_transport`，`secure_file_priv`显式限定为`/data/mysql-tmp`。root当前密码与Redis/MinIO密码已在目标机对应`/opt/sdp/config/credentials/`目录记录，目录0700、文件0600；密码值不写入本记录。
 
 BE→DB的TLS身份校验**未完成**：MySQL在TLS握手前返回`Host '172.17.73.104' is not allowed to connect`。当前仅有系统账号和`root@localhost`，没有BE应用账号；正确IP与错误IP两次OpenSSL检查均未进入TLS握手，不能作为证书通过或拒绝证据。用户随后明确选择“先保持空库，仅完成记录”，因此不新增账号或授权，后续配置专用账号后另行验证。
 
@@ -254,6 +256,16 @@ MinIO仍使用systemd加密凭据运行；将同一实际管理员密码记录�
 
 配置凭据目录须纳入独立加密备份和运维访问审计；不能只备份`/data`后丢失密码恢复资料，也不能把`/opt/sdp/config/`整体打进公开交付包。本次只提供工具，不生成或保存实际服务器密码到本工作区。若记录失败，立即保留现场并修复目录/权限问题；尤其MySQL已初始化时禁止重复初始化来重新获取密码。
 
+### 已部署环境操作注意事项
+
+- 本文前述安装、服务与空库结论对应记录日期，不代表操作当日的实时状态。继续部署前先核对当前激活版本、进程、数据库表及Flyway历史，再选择首次部署或升级路径。
+- 已安装的MySQL、Redis、MinIO、Nginx沿用现有实例和数据目录；不得重复初始化MySQL、清空`/data`、重新生成服务密码或覆盖现有证书来重做安装步骤。已有业务库不得执行B530空库初始化包。
+- 原生部署保持程序、配置和数据路径约定；正式服务器不启动Docker/Compose。制品先校验清单与摘要，再发布到新的版本目录；不要直接覆盖当前激活产物。
+- 在BE专用数据库账号配置及TLS身份验证完成前，不以基础服务active或端口连通作为应用可部署的依据；不要将root账号用作应用连接，也不要跳过证书验证。
+- 当前记录未证明开机自启、秘密恢复和备份恢复可用。不得未经批准重启服务器或服务以试验恢复；每次迁移、应用激活及重启均按对应窗口授权执行。
+- 升级前保留数据库与文件的一致备份，核对可恢复性和回退边界。已产生新业务写入时不能直接恢复旧备份；应用回切也不能假定可以撤销数据库迁移。
+- 后端与DAC分别管理，前端两机核对同一批准版本。发布后分别验证认证、数据范围、文件访问和真实浏览器业务；HTTP成功、通知送达或进程启动不代表业务完成。
+
 ## 7. 初始化、迁移与发布顺序
 
 1. 确认上线输入、准入策略、秘密代理、容量及恢复方案。首次安装不能指向已有未知数据盘；已有库必须先对账及备份，不能清目录、删除数据或自动baseline。
@@ -272,7 +284,11 @@ bash /opt/sdp/tools/operate.sh be migrate-info
 bash /opt/sdp/tools/operate.sh be migrate-validate
 ```
 
-新库从审核过的V1平台初始化链开始，覆盖所需Flowable表及功能种子；先完成同构隔离空库演练，再执行生产。升级库核验现有Flyway历史和checksum，不导入测试库快照、不重放V1覆盖表、不执行`repair/clean/baseline`掩盖漂移。历史V331已迁出主链等差异须按原裁决逐项解释；本模板不照搬本地`*:missing`宽泛豁免。失败立即保留现场，按迁移具体失败决定前向修复，不自动重试未知副作用SQL。
+新的空业务库使用已复审的[178来源B530初始化包](../../../sql/releases/production-178-v530-r2/README.md)，不再回放V1或从B498推导。当前冻结迁移制品标识为`INIT178V530R2`，执行上述`activate migrations`时须使用实际制品标识，不能照抄示例`R20261030_01`。本包包含518张表、240个触发器和6,026条选定配置；不复制测试业务、测试人员或源环境凭据。[本地隔离验证](../../generated/2026-11-01-production-178-review/README.md)已通过，但没有在正式环境执行。
+
+生产执行前按包内说明核验目标空库、来源清单、SHA256及数据库大小写/字符集设置；原生Flyway必须保持`cleanDisabled=true`、`baselineOnMigrate=false`、`validateOnMigrate=true`、`validateMigrationNaming=true`和`placeholderReplacement=false`，后者保护BPMN/表单中的业务表达式。通过`migrate`执行B530，不用`baseline`替代；包内Compose仅供本地演练。迁移后核对结构、种子摘要和引用，使用`bootstrap-admin.sql`经安全通道初始化管理员，并补齐目标存储、外部连接、人员授权及业务验收。正式巡检规则仍受`Q-PROD-INS-RULE-20261101`阻塞。
+
+升级库继续原有迁移链，核验Flyway历史和checksum，不得切换到本B530覆盖已有库；正式执行后基线不可重生成，后续仅追加大于V530的迁移。不执行`repair/clean/baseline`掩盖漂移，不照搬本地`*:missing`宽泛豁免。失败立即保留现场，按具体失败决定前向修复，不自动重试未知副作用SQL。
 
 5. 迁移和种子核验完成后，在BE发布后端：
 
