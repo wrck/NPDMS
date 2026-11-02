@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
-  <Product Id="*" Name="NPDMS DAC" Language="2052" Codepage="65001" Version="$(var.Version)" Manufacturer="NPDMS" UpgradeCode="5066BB68-507D-4CBB-85E8-769C0BE81E10">
+  <Product Id="*" Name="SDP DAC" Language="2052" Codepage="65001" Version="$(var.Version)" Manufacturer="SDP" UpgradeCode="5066BB68-507D-4CBB-85E8-769C0BE81E10">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
-    <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 NPDMS DAC。" Schedule="afterInstallInitialize" />
+    <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 SDP DAC。" Schedule="afterInstallInitialize" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <Property Id="ARPNOMODIFY" Value="1" />
     <Property Id="INNO_DAC_INSTALLED">
@@ -31,7 +31,7 @@
               <File Id="ServiceExecutable" Source="$(var.Payload)\NpdmsDacService.exe" KeyPath="yes" />
               <File Id="ServiceXml" Source="$(var.Payload)\NpdmsDacService.xml" />
               <util:EventSource Name="NpdmsDac" Log="Application" EventMessageFile="[WindowsFolder]Microsoft.NET\Framework64\v4.0.30319\EventLogMessages.dll" SupportsErrors="yes" SupportsWarnings="yes" SupportsInformationals="yes" />
-              <ServiceInstall Id="InstallDacService" Name="NpdmsDac" DisplayName="NPDMS DAC" Description="NPDMS 本机设备连接与采集服务" Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT AUTHORITY\LocalService" Vital="yes">
+              <ServiceInstall Id="InstallDacService" Name="NpdmsDac" DisplayName="SDP DAC" Description="SDP 本机设备连接与采集服务" Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT AUTHORITY\LocalService" Vital="yes">
                 <util:PermissionEx User="[WIX_ACCOUNT_USERS]" ServiceStart="yes" ServiceQueryStatus="yes" ServiceQueryConfig="yes" />
                 <util:ServiceConfig FirstFailureActionType="restart" SecondFailureActionType="restart" ThirdFailureActionType="restart" RestartServiceDelayInSeconds="15" ResetPeriodInDays="1" />
               </ServiceInstall>
@@ -43,7 +43,7 @@
                 <Shortcut Id="StatusShortcut" Directory="StartMenuDirectory" Name="DAC 本机状态" Advertise="yes" Arguments="--open-status" WorkingDirectory="INSTALLFOLDER" />
               </File>
               <RemoveFolder Id="RemoveMenuDirectory" Directory="StartMenuDirectory" On="uninstall" />
-              <RegistryValue Root="HKLM" Key="Software\Classes\npdms-dac" Type="string" Value="URL:NPDMS DAC" />
+              <RegistryValue Root="HKLM" Key="Software\Classes\npdms-dac" Type="string" Value="URL:SDP DAC" />
               <RegistryValue Root="HKLM" Key="Software\Classes\npdms-dac" Name="URL Protocol" Type="string" Value="" />
               <RegistryValue Root="HKLM" Key="Software\Classes\npdms-dac\shell\open\command" Type="string" Value="&quot;[#LauncherExecutable]&quot; --uri &quot;%1&quot;" />
               <RegistryValue Root="HKLM" Key="Software\NPDMS\DAC" Name="ServerUrl" Type="string" Value="[NPDMS_SERVER_URL]" />
@@ -56,7 +56,7 @@
         <Directory Id="StartMenuDirectory" Name="NPDMS" />
       </Directory>
     </Directory>
-    <Feature Id="Complete" Title="NPDMS DAC" Level="1">
+    <Feature Id="Complete" Title="SDP DAC" Level="1">
       <ComponentRef Id="ServiceComponent" />
       <ComponentRef Id="LauncherComponent" />
       <ComponentGroupRef Id="RuntimePayload" />
@@ -94,12 +94,12 @@
       <DialogRef Id="ProgressDlg" />
       <DialogRef Id="PrepareDlg" />
       <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999">1</Publish>
-      <Dialog Id="ClientSettingsDlg" Width="370" Height="270" Title="NPDMS DAC 安装">
-        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="24" Text="{\WixUI_Font_Title}设置 NPDMS 环境" />
+      <Dialog Id="ClientSettingsDlg" Width="370" Height="270" Title="SDP DAC 安装">
+        <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="24" Text="{\WixUI_Font_Title}设置 SDP 环境" />
         <Control Id="Description" Type="Text" X="20" Y="45" Width="330" Height="28" Text="安装自带 Java 的本机 DAC 服务，安装后自动启动。" />
-        <Control Id="ServerLabel" Type="Text" X="20" Y="85" Width="330" Height="18" Text="NPDMS 后端 API 地址（HTTP/HTTPS，包含端口）" />
+        <Control Id="ServerLabel" Type="Text" X="20" Y="85" Width="330" Height="18" Text="SDP 后端 API 地址（HTTP/HTTPS，包含端口）" />
         <Control Id="Server" Type="Edit" X="20" Y="105" Width="330" Height="18" Property="NPDMS_SERVER_URL" />
-        <Control Id="OriginLabel" Type="Text" X="20" Y="139" Width="330" Height="18" Text="浏览器访问 NPDMS 的地址（不含路径；相同时可留空）" />
+        <Control Id="OriginLabel" Type="Text" X="20" Y="139" Width="330" Height="18" Text="浏览器访问 SDP 的地址（不含路径；相同时可留空）" />
         <Control Id="Origin" Type="Edit" X="20" Y="159" Width="330" Height="18" Property="NPDMS_WEB_ORIGIN" />
         <Control Id="Example" Type="Text" X="20" Y="190" Width="330" Height="40" Text="HTTP 网页会为所填网页地址配置 Chrome/Edge 本地网络访问权限。安装后刷新网页；修改环境或卸载时清理本客户端添加的旧授权。" />
         <Control Id="Install" Type="PushButton" X="205" Y="240" Width="70" Height="20" Default="yes" Text="安装">
@@ -113,7 +113,7 @@
           <Publish Event="EndDialog" Value="Exit">1</Publish>
         </Control>
       </Dialog>
-      <Dialog Id="ClientSettingsErrorDlg" Width="340" Height="140" Title="请检查 NPDMS 地址">
+      <Dialog Id="ClientSettingsErrorDlg" Width="340" Height="140" Title="请检查 SDP 地址">
         <Control Id="Message" Type="Text" X="20" Y="20" Width="300" Height="75" Text="[NPDMS_CONFIG_ERROR]" />
         <Control Id="OK" Type="PushButton" X="135" Y="110" Width="70" Height="20" Default="yes" Cancel="yes" Text="返回修改">
           <Publish Event="EndDialog" Value="Return">1</Publish>

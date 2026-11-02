@@ -1,5 +1,6 @@
 // 引入unocss css
 import '@/plugins/unocss'
+import { APP_TITLE } from '@/config/app'
 
 // 导入全局的svg图标
 import '@/plugins/svgIcon'
@@ -87,4 +88,4 @@ const setupAll = async () => {
 
 setupAll()
 
-Logger.prettyPrimary(`欢迎使用`, import.meta.env.VITE_APP_TITLE)
+Logger.prettyPrimary(`欢迎使用`, APP_TITLE)

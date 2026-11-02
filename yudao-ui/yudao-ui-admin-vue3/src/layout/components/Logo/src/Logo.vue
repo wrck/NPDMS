@@ -72,7 +72,7 @@ watch(
       to="/"
     >
       <img
-        class="h-[calc(var(--logo-height)-10px)] w-[calc(var(--logo-height)-10px)]"
+        class="h-[calc(var(--logo-height)-10px)] w-[calc(var(--logo-height)-10px)] object-contain"
         src="@/assets/imgs/logo.jpg"
       />
       <div

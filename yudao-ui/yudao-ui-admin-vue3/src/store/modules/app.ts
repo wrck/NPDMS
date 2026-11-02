@@ -1,4 +1,5 @@
 import { CACHE_KEY, useCache } from '@/hooks/web/useCache'
+import { APP_TITLE } from '@/config/app'
 import { ElementPlusSize } from '@/types/elementPlus'
 import { LayoutType } from '@/types/layout'
 import { ThemeTypes } from '@/types/theme'
@@ -48,7 +49,7 @@ export const useAppStore = defineStore('app', {
       userInfo: 'userInfo', // 登录信息存储字段-建议每个项目换一个字段，避免与其他项目冲突
       sizeMap: ['default', 'large', 'small'],
       mobile: false, // 是否是移动端
-      title: import.meta.env.VITE_APP_TITLE, // 标题
+      title: APP_TITLE,
       pageLoading: false, // 路由跳转loading
 
       breadcrumb: true, // 面包屑

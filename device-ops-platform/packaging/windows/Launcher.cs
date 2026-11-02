@@ -77,12 +77,12 @@ namespace Npdms.Dac.Desktop
                         using (var response = (System.Net.HttpWebResponse)request.GetResponse())
                         {
                             if (response.StatusCode != System.Net.HttpStatusCode.OK)
-                                throw new ArgumentException("本机连接确认未完成，请回到 NPDMS 网页重新连接。");
+                                throw new ArgumentException("本机连接确认未完成，请回到 SDP 网页重新连接。");
                             using (var reader = new System.IO.StreamReader(response.GetResponseStream()))
                             {
                                 var result = serializer.Deserialize<System.Collections.Generic.Dictionary<string, object>>(reader.ReadToEnd());
                                 if (!result.ContainsKey("code") || Convert.ToInt32(result["code"]) != 0 || !result.ContainsKey("data") || !Object.Equals(result["data"], true))
-                                    throw new ArgumentException("本机连接确认未完成，请回到 NPDMS 网页重新连接。");
+                                    throw new ArgumentException("本机连接确认未完成，请回到 SDP 网页重新连接。");
                             }
                         }
                         return 0;
@@ -129,7 +129,7 @@ namespace Npdms.Dac.Desktop
                     } catch { }
                     return 1;
                 }
-                MessageBox.Show(failure is ArgumentException ? failure.Message : "DAC 操作失败，请检查服务安装状态，或联系管理员。", "NPDMS DAC", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(failure is ArgumentException ? failure.Message : "DAC 操作失败，请检查服务安装状态，或联系管理员。", "SDP DAC", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return 1;
             }
         }
@@ -215,16 +215,16 @@ namespace Npdms.Dac.Desktop
 
         internal SettingsForm()
         {
-            Text = "NPDMS DAC 设置";
+            Text = "SDP DAC 设置";
             ClientSize = new Size(570, 320);
             Font = new Font("Microsoft YaHei UI", 10);
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            AddLabel("NPDMS 服务地址（含端口）", 20, 20);
+            AddLabel("SDP 服务地址（含端口）", 20, 20);
             server.SetBounds(20, 50, 530, 30);
             Controls.Add(server);
-            AddLabel("NPDMS 网页来源（含端口）", 20, 95);
+            AddLabel("SDP 网页来源（含端口）", 20, 95);
             origin.SetBounds(20, 125, 530, 30);
             Controls.Add(origin);
             AddLabel("支持 HTTP/HTTPS；HTTP 网页将配置 Chrome/Edge 本地访问权限。", 20, 165);

@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NPDMS DAC 本机状态</title>
+<title>SDP DAC 本机状态</title>
 <style>
 body{margin:0;background:#f3f6fa;color:#172b4d;font:16px/1.7 "Microsoft YaHei",sans-serif}
 main{max-width:640px;margin:10vh auto;padding:32px;background:white;border-radius:12px;box-shadow:0 8px 32px #172b4d12}
@@ -10,11 +10,11 @@ h1{font-size:26px;margin:0 0 20px}#state{font-size:20px;color:#236fa1}dt{color:#
 @media(max-width:720px){main{margin:24px 16px;padding:24px}}
 </style>
 <main>
-  <h1>NPDMS DAC 本机状态</h1>
+  <h1>SDP DAC 本机状态</h1>
   <div id="state" role="status" aria-live="polite">正在检测本机 DAC…</div>
-  <dl><dt>本机地址</dt><dd id="local"></dd><dt>NPDMS 服务地址</dt><dd id="server">等待检测</dd><dt>NPDMS 网页地址</dt><dd id="origin">等待检测</dd></dl>
-  <p>设备命令下发和日志查看请在 NPDMS 网页中操作。环境配置可通过开始菜单“DAC 设置”修改。</p>
-  <p>首次使用请在 NPDMS 网页点击“连接本机 DAC”，允许打开已安装的客户端，无需输入配对码。确认后可自动检测端口。</p>
+  <dl><dt>本机地址</dt><dd id="local"></dd><dt>SDP 服务地址</dt><dd id="server">等待检测</dd><dt>SDP 网页地址</dt><dd id="origin">等待检测</dd></dl>
+  <p>设备命令下发和日志查看请在 SDP 网页中操作。环境配置可通过开始菜单“DAC 设置”修改。</p>
+  <p>首次使用请在 SDP 网页点击“连接本机 DAC”，允许打开已安装的客户端，无需输入配对码。确认后可自动检测端口。</p>
   <button id="retry" type="button">重新检测</button>
 </main>
 <script>

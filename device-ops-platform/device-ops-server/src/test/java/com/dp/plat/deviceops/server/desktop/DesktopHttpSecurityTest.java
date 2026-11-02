@@ -55,7 +55,7 @@ class DesktopHttpSecurityTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(header().string("Content-Security-Policy", org.hamcrest.Matchers.containsString("frame-ancestors 'none'")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("NPDMS DAC 本机状态")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("SDP DAC 本机状态")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("无需输入配对码")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("fetch('/desktop-pairing'"))));
         mvc.perform(get("/desktop-status").with(request -> { request.setServerName("attacker.example"); return request; }))

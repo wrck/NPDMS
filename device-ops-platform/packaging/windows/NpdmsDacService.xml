@@ -1,7 +1,7 @@
 <service>
   <id>NpdmsDac</id>
-  <name>NPDMS DAC</name>
-  <description>NPDMS 本机设备连接与采集服务</description>
+  <name>SDP DAC</name>
+  <description>SDP 本机设备连接与采集服务</description>
   <executable>%BASE%\NpdmsDacHost.exe</executable>
   <workingdirectory>%BASE%</workingdirectory>
   <startmode>Automatic</startmode>

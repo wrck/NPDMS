@@ -26,7 +26,7 @@ namespace Npdms.Dac.Desktop
 
         internal static string ValidateUrl(string value, bool originOnly)
         {
-            string field = originOnly ? "NPDMS 网页地址" : "NPDMS 后端地址";
+            string field = originOnly ? "SDP 网页地址" : "SDP 后端地址";
             if (String.IsNullOrWhiteSpace(value))
                 throw new ArgumentException(field + "不能为空。");
             if (value.IndexOf("://", StringComparison.Ordinal) < 0)
@@ -54,7 +54,7 @@ namespace Npdms.Dac.Desktop
             // No callback URL, command, credentials, fragment or additional arguments are accepted.
             var match = System.Text.RegularExpressions.Regex.Match(value ?? "",
                 "\\Anpdms-dac://connect/([a-f0-9]{32})\\?challenge=([a-f0-9]{64})&tenant=([1-9][0-9]{0,17})\\z");
-            if (!match.Success) throw new ArgumentException("本机连接链接无效，请在 NPDMS 网页重新点击连接。");
+            if (!match.Success) throw new ArgumentException("本机连接链接无效，请在 SDP 网页重新点击连接。");
             return new[] { match.Groups[1].Value, match.Groups[2].Value, match.Groups[3].Value };
         }
 

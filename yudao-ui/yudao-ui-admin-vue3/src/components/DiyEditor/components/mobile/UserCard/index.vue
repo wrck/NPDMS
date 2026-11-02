@@ -5,7 +5,7 @@
         <el-avatar :size="60">
           <Icon icon="ep:avatar" :size="60" />
         </el-avatar>
-        <span class="text-18px font-bold">NPMS</span>
+        <span class="text-18px font-bold">{{ APP_SHORT_NAME }}</span>
       </div>
       <Icon icon="tdesign:qrcode" :size="20" />
     </div>
@@ -18,6 +18,7 @@
   </div>
 </template>
 <script setup lang="ts">
+import { APP_SHORT_NAME } from '@/config/app'
 import { UserCardProperty } from './config'
 
 /** 用户卡片 */

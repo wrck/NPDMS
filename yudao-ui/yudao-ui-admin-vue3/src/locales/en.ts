@@ -121,7 +121,7 @@ export default {
   },
   login: {
     welcome: 'Welcome to the system',
-    message: 'Backstage management system',
+    message: 'Project delivery and service management',
     tenantname: 'TenantName',
     username: 'Username',
     password: 'Password',
