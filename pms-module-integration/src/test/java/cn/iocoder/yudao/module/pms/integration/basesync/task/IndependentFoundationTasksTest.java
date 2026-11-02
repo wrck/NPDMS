@@ -99,6 +99,62 @@ class IndependentFoundationTasksTest {
         assertEquals("not-authorized",jdbc.queryForObject("SELECT creator FROM system_dict_data",String.class));
         verifyNoInteractions(references);
     }
+    P08DictionarySyncTask initializedLevels(){
+        var task=dictionaries();types.getFirst().setDataTypeCode("majorProjectLevel");items.clear();
+        var labels=List.of("办事处级","市场级","公司级");
+        for(int i=0;i<labels.size();i++)items.add(new P08DictionarySyncTask.DictionarySource().setRawId(471L+i)
+                .setDataTypeCode("majorProjectLevel").setBasicDataId(labels.get(i)).setBasicDataName(labels.get(i))
+                .setCreateTime(time).setUpdateTime(time).setRawCreator("author"));
+        run(task,false);
+        for(var item:items){
+            var row=item.getTarget();row.setValue(item.getBasicDataId()+"重大项目");row.setUpdater("formal-admin");row.setUpdateTime(time.plusDays(1));
+            jdbc.update("UPDATE system_dict_data SET `value`=?,updater=?,update_time=? WHERE id=?",row.getValue(),row.getUpdater(),row.getUpdateTime(),row.getId());
+            jdbc.update("UPDATE independent_binding SET fingerprint=? WHERE domain='DICTIONARY_ITEM' AND source_key=?",P08DictionarySyncTask.fingerprint(item,row),item.sourceKey());
+        }
+        return task;
+    }
+    @Test void approvedInitializedLevelsPreserveValuesAndAuditWhileOtherItemsStillImport(){
+        var task=initializedLevels();var before=jdbc.queryForList("SELECT * FROM system_dict_data ORDER BY id");
+        assertEquals(new SyncCounts(4,0,0,4,0),run(task,false));
+        assertEquals(before,jdbc.queryForList("SELECT * FROM system_dict_data ORDER BY id"));
+        items.add(new P08DictionarySyncTask.DictionarySource().setRawId(543L).setDataTypeCode("majorProjectLevel")
+                .setBasicDataId("new-level").setBasicDataName("新增项").setCreateTime(time).setUpdateTime(time).setRawCreator("author"));
+        assertEquals(new SyncCounts(5,1,0,4,0),run(task,false));
+        assertEquals(before,jdbc.queryForList("SELECT * FROM system_dict_data WHERE `value`<>'new-level' ORDER BY id"));
+    }
+    @Test void initializedLevelReferenceStillRejectsUnboundTargetSourceChangesAndTargetTampering(){
+        var task=initializedLevels();var item=items.getFirst();
+        item.setBasicDataAttri1("changed-source");assertThrows(IllegalStateException.class,()->run(task,false));item.setBasicDataAttri1(null);
+        item.setRawId(471L+(1L<<32));
+        jdbc.update("UPDATE independent_binding SET source_key=?,fingerprint=? WHERE domain='DICTIONARY_ITEM' AND source_key='471'",item.sourceKey(),P08DictionarySyncTask.fingerprint(item,item.getTarget()));
+        assertThrows(IllegalStateException.class,()->run(task,false));
+        String unapprovedKey=item.sourceKey();item.setRawId(471L);
+        jdbc.update("UPDATE independent_binding SET source_key='471',fingerprint=? WHERE domain='DICTIONARY_ITEM' AND source_key=?",P08DictionarySyncTask.fingerprint(item,item.getTarget()),unapprovedKey);
+        jdbc.update("UPDATE system_dict_data SET remark='changed-target' WHERE id=?",item.getTarget().getId());
+        assertThrows(IllegalStateException.class,()->run(task,false));
+        jdbc.update("UPDATE system_dict_data SET remark=NULL WHERE id=?",item.getTarget().getId());
+        jdbc.update("DELETE FROM independent_binding WHERE domain='DICTIONARY_ITEM' AND source_key='471'");
+        assertThrows(IllegalStateException.class,()->run(task,false));
+        assertEquals(3,jdbc.queryForObject("SELECT COUNT(*) FROM system_dict_data",Integer.class));
+    }
+    @Test void newlyDefinedTypeCanReferenceItsBoundGeneratedTypeWithoutRewritingIt(){
+        var task=dictionaries();types.clear();run(task,false);
+        var original=jdbc.queryForList("SELECT * FROM system_dict_type");
+        var generated=new P08DictionarySyncTask.DictionarySource().setRawId(2L).setDataTypeCode("CODE")
+                .setDataTypeName("CODE").setDefinitionMissing(true).setDictionaryType(true);
+        var row=target.getMapper(P08DictionarySyncTask.TargetMapper.class).selectTypes(
+                new P08DictionarySyncTask.TargetMapper.DefinitionsQuery(List.of("CODE"),List.of(),List.of(),true)).getFirst();
+        assertEquals(P08DictionarySyncTask.fingerprint(generated,row),jdbc.queryForObject("SELECT fingerprint FROM independent_binding WHERE source_key='missing:2'",String.class));
+        var definition=new P08DictionarySyncTask.DictionarySource().setRawId(33L).setDataTypeCode("CODE")
+                .setDataTypeName("来源补齐的名称").setDictionaryType(true).setCreateTime(time).setUpdateTime(time).setRawCreator("author");
+        types.add(definition);
+        assertThrows(IllegalStateException.class,()->run(task,false));
+        jdbc.update("INSERT INTO independent_binding VALUES('DICTIONARY_TYPE','33',?,?)",row.getId(),P08DictionarySyncTask.fingerprint(definition,row));
+        assertEquals(new SyncCounts(2,0,0,2,0),run(task,false));assertEquals(original,jdbc.queryForList("SELECT * FROM system_dict_type"));
+        jdbc.update("UPDATE independent_binding SET fingerprint='changed' WHERE source_key='missing:2'");
+        assertThrows(IllegalStateException.class,()->run(task,false));
+        assertEquals(original,jdbc.queryForList("SELECT * FROM system_dict_type"));
+    }
     @Test void dictionarySecondStepConflictRollsBackTheNewType(){
         var task=dictionaries();items.getFirst().setRawCreator("not-authorized");
         jdbc.update("INSERT INTO system_dict_data(id,label,`value`,dict_type,status,deleted) VALUES(999,'formal label','VALUE','CODE',0,FALSE)");

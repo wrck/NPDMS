@@ -39,7 +39,14 @@ public class P08DictionarySyncTask extends AbstractSyncTask<P08DictionarySyncTas
     @Override protected void syncDataInsertBefore(SyncBatch<DictionarySource,Parameters> batch){
         var context=batch.context();boolean types="DictionaryType".equals(context.dataName());
         var domain=types?"DICTIONARY_TYPE":"DICTIONARY_ITEM";
-        var bindings=context.identities().findByKeys(new SyncIdentityStore.Query(domain,batch.rows().stream().map(DictionarySource::sourceKey).toList()));
+        var priorMissingTypes=new HashMap<String,Long>();
+        if(types)for(var item:context.parameters().items())priorMissingTypes.merge(lower(item.getDataTypeCode()),item.getRawId(),Math::min);
+        var lookupKeys=new ArrayList<>(batch.rows().stream().map(DictionarySource::sourceKey).toList());
+        if(types)for(var source:batch.rows()){
+            var first=priorMissingTypes.get(lower(source.getDataTypeCode()));
+            if(first!=null && !source.isDefinitionMissing())lookupKeys.add("missing:"+first);
+        }
+        var bindings=context.identities().findByKeys(new SyncIdentityStore.Query(domain,lookupKeys));
         var codes=batch.rows().stream().map(DictionarySource::getDataTypeCode).distinct().toList();
         var names=types?batch.rows().stream().map(DictionarySource::getDataTypeName).toList():List.<String>of();
         var ids=bindings.values().stream().map(SyncIdentityStore.Identity::targetId).toList();
@@ -65,11 +72,34 @@ public class P08DictionarySyncTask extends AbstractSyncTask<P08DictionarySyncTas
             }
             if(source.getDataTypeCode()==null || source.getDataTypeCode().isBlank())fail("原字典类型编码缺失");
             if(types && (source.getDataTypeName()==null || source.getDataTypeName().isBlank()))fail("原字典类型名称缺失");
+            DictionaryTarget old=binding==null?null:targetsById.get(binding.targetId());
+            if(types && !source.isDefinitionMissing() && old!=null && source.getDataTypeCode().equals(old.getType())
+                    && old.getType().equals(old.getName()) && !old.getName().equals(source.getDataTypeName())){
+                var first=priorMissingTypes.get(lower(source.getDataTypeCode()));
+                var prior=first==null?null:bindings.get("missing:"+first);
+                var generated=new DictionarySource().setRawId(first).setDataTypeCode(source.getDataTypeCode())
+                        .setDataTypeName(source.getDataTypeCode()).setDefinitionMissing(true).setDictionaryType(true);
+                if(prior==null || prior.targetId()!=old.getId() || Boolean.TRUE.equals(old.getDeleted())
+                        || !Objects.equals(prior.fingerprint(),fingerprint(generated,old))
+                        || !Objects.equals(binding.fingerprint(),fingerprint(source,old)))fail("既有占位字典类型来源链或指纹已变化");
+                source.setTarget(old);context.runState().warning("P08_INITIALIZED_TYPE_PRESERVED:"+source.getRawId());continue;
+            }
+            String initializedValue=types?null:initializedLevelValue(source);
+            var initialized=initializedValue==null?List.<DictionaryTarget>of():targets.stream()
+                    .filter(row->"majorProjectLevel".equals(row.getDictType()) && initializedValue.equals(row.getValue())).toList();
+            if(!initialized.isEmpty()){
+                // 2026-11-02: these three initialized definitions are authoritative references, not source replacements.
+                if(binding==null || old==null || initialized.size()!=1 || initialized.getFirst()!=old
+                        || Boolean.TRUE.equals(old.getDeleted()) || !Objects.equals(source.getBasicDataName(),old.getLabel())
+                        || !Objects.equals(binding.fingerprint(),fingerprint(source,old)))fail("已批准初始化字典引用或来源指纹已变化");
+                source.setTarget(old);
+                context.runState().warning("P08_INITIALIZED_DEFINITION_PRESERVED:"+source.getRawId());
+                continue;
+            }
             var matches=targets.stream().filter(row->types
                     ?source.getDataTypeCode().equalsIgnoreCase(row.getType()) || source.getDataTypeName().equalsIgnoreCase(row.getName())
                     :source.getDataTypeCode().equalsIgnoreCase(row.getDictType()) && Objects.equals(lower(source.getBasicDataId()),lower(row.getValue())))
                     .toList();
-            DictionaryTarget old=binding==null?null:targetsById.get(binding.targetId());
             if(binding==null && !matches.isEmpty() || binding!=null && (old==null || matches.size()!=1 || matches.getFirst()!=old
                     || Boolean.TRUE.equals(old.getDeleted()) || !Objects.equals(binding.fingerprint(),fingerprint(source,old))))fail("既有字典或原始来源已变化；禁止接管或覆盖");
             var row=new DictionaryTarget();row.setId(old==null?(context.preview()?null:IdWorker.getId()):old.getId());row.setDeleted(false);
@@ -97,6 +127,11 @@ public class P08DictionarySyncTask extends AbstractSyncTask<P08DictionarySyncTas
             if(old!=null && !targetValues(old).equals(targetValues(row)))fail("不可变字典定义或审计字段变化");
             source.setTarget(row);source.setSyncAction(old==null?SyncWriteAction.INSERT:SyncWriteAction.UNCHANGED);
         }
+    }
+    private static String initializedLevelValue(DictionarySource source){
+        if(!"majorProjectLevel".equals(source.getDataTypeCode()))return null;
+        long id=source.getRawId();String level=id==471?"办事处级":id==472?"市场级":id==473?"公司级":null;
+        return level!=null && level.equals(source.getBasicDataId()) && level.equals(source.getBasicDataName())?level+"重大项目":null;
     }
     private static void audit(DictionarySource source,DictionaryTarget row,LocalDateTime fallback){
         row.setCreator(!source.isDictionaryType() && source.getRawId()==542 && "system".equals(source.getRawCreator())?"system":source.getResolvedCreator());
