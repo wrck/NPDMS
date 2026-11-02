@@ -213,6 +213,8 @@ public class ProjectManualCreationApplicationService {
                             command.idempotencyKey()));
             // 首阶段准入可能已推进项目版本，必须使用当前持久化版本初始化合同下全部订单行。
             ProjectMasterDO current = projectMasterMapper.selectByIdForUpdate(project.getId());
+            project.setVersion(current.getVersion());
+            project.setContractNo(current.getContractNo());
             contractScopeApi.initialize(new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectContractScopeApi.ScopeContext(
                     actor.tenantId(), project.getId(), actor.actorId(), current.getVersion(), 1L, 0L,
                     command.idempotencyKey()));

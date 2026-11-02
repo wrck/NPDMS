@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ContractIdL
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectContractIdentityLockQuery;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.commerce.ProjectContractProjectionApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
@@ -31,6 +32,7 @@ public class ContractRelationCommandService {
     private final ContractMapper contractMapper;
     private final ProjectContractRelationMapper relationMapper;
     private final OperationAuditApi operationAuditApi;
+    private final ProjectContractProjectionApi projectContractProjectionApi;
 
     @Transactional(rollbackFor = Exception.class)
     public ContractRelationResult relate(ContractRelationCommand command) {
@@ -74,6 +76,8 @@ public class ContractRelationCommandService {
         relation.setStatus("ACTIVE");
         relation.setVersion(0);
         relationMapper.insert(relation);
+        projectContractProjectionApi.refresh(new ProjectContractProjectionApi.ProjectContractProjectionRefresh(
+                command.tenantId(), command.projectId()));
         List<Map<String, Object>> authorizationSnapshot = matches.stream()
                 .map(scope -> Map.<String, Object>of("scopeId", scope.getId(), "version", scope.getVersion()))
                 .toList();

@@ -26,6 +26,9 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
+    List<cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.projection.ProjectContractProjectionRow>
+        selectContractProjectionPage(@Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectContractProjectionPageQuery query);
+    int updateContractProjectionIfMatch(@Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectContractProjectionUpdate query);
     default PageResult<ProjectMasterDO> selectOfficeProjectPage(
             cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.OfficeProjectSearchQuery query) {
         if (query.getOrganizations() == null || query.getOrganizations().isEmpty()) return PageResult.empty();

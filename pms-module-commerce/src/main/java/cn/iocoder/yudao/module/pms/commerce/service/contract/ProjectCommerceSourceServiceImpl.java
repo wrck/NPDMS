@@ -19,6 +19,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.ContractCreationOrderQuery;
 import cn.iocoder.yudao.module.pms.commerce.enums.ErrorCodeConstants;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
+import cn.iocoder.yudao.module.pms.project.api.commerce.ProjectContractProjectionApi;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.UserCompanyDepartmentScopeRespDTO;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +50,7 @@ public class ProjectCommerceSourceServiceImpl implements ProjectCommerceSourceAp
     private final CrmExecutionOrderMapper executionOrderMapper;
     private final OperationAuditApi operationAuditApi;
     private final ContractAccessService accessService;
+    private final ProjectContractProjectionApi projectContractProjectionApi;
 
     @Override
     @Transactional(rollbackFor = Exception.class, propagation = Propagation.MANDATORY)
@@ -87,6 +89,8 @@ public class ProjectCommerceSourceServiceImpl implements ProjectCommerceSourceAp
             relation.setStatus("ACTIVE");
             relation.setVersion(0);
             relationMapper.insert(relation);
+            projectContractProjectionApi.refresh(new ProjectContractProjectionApi.ProjectContractProjectionRefresh(
+                    command.tenantId(), command.projectId()));
         }
         bindExecutionOrders(command, contract);
         List<Map<String, Object>> authorizationSnapshot = matches.stream()
