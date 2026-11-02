@@ -22,16 +22,19 @@ class SoftwareVersionRecordEntityProviderTest {
     final EntityActor actor=new EntityActor(1L,7L,"read");
     DeviceSoftwareVersionRecordDO row;
     @BeforeEach void setup() {
-        TenantContextHolder.setTenantId(1L);row=new DeviceSoftwareVersionRecordDO();row.setId(55L);row.setTenantId(1L);row.setProjectId(10L);row.setDataSource("DPPMS");
+        TenantContextHolder.setTenantId(1L);row=new DeviceSoftwareVersionRecordDO();row.setId(55L);row.setTenantId(1L);row.setDeviceId(8L);row.setProjectId(10L);row.setDataSource("DPPMS");
         when(records.selectById(55L)).thenReturn(row);when(records.selectForUpdate(any())).thenReturn(row);
-        when(permissions.hasAnyPermissions(eq(7L),any(String[].class))).thenReturn(true);when(access.visibleProjectIds(1L,7L)).thenReturn(Set.of(10L));
+        when(permissions.hasAnyPermissions(eq(7L),any(String[].class))).thenReturn(true);
     }
     @AfterEach void clear() {TenantContextHolder.clear();}
     @Test void genericWriteCannotEditEvenWithIntegrationPermissions() {
         assertThrows(IllegalArgumentException.class,()->provider.lockForWrite(target,actor,0L));verify(records,never()).selectForUpdate(any());
     }
-    @Test void currentDeviceVisibilityCannotLeakFormerProjectHistory() {
-        when(access.visibleProjectIds(1L,7L)).thenReturn(Set.of(11L));assertThrows(IllegalArgumentException.class,()->provider.requireReadable(target,actor));
+    @Test void historyUsesCurrentDeviceVisibilityAndRejectsUnauthorizedDevices() {
+        var query=new DeviceAccessScopeService.ReadAccess(1L,7L,8L);
+        provider.requireReadable(target,actor);verify(access).assertReadable(query);
+        doThrow(new IllegalArgumentException("device not visible")).when(access).assertReadable(query);
+        assertThrows(IllegalArgumentException.class,()->provider.requireReadable(target,actor));
     }
     @Test void observerForeignTenantAndRevisionCannotReadHistory() {
         assertThrows(IllegalArgumentException.class,()->provider.requireReadable(target,new EntityActor(1L,0L,EntityActor.SYSTEM_OBSERVER)));

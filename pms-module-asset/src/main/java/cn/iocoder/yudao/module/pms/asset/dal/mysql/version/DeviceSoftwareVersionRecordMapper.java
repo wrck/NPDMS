@@ -12,8 +12,6 @@ import cn.iocoder.yudao.module.pms.asset.dal.mysql.version.query.DeviceSoftwareR
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.util.List;
-
 @Mapper
 public interface DeviceSoftwareVersionRecordMapper extends BaseMapperX<DeviceSoftwareVersionRecordDO> {
     DeviceSoftwareVersionRecordDO selectForUpdate(@Param("query") DeviceSoftwareVersionRecordLockQuery query);
@@ -28,16 +26,12 @@ public interface DeviceSoftwareVersionRecordMapper extends BaseMapperX<DeviceSof
     }
 
     default PageResult<DeviceSoftwareVersionRecordDO> selectHistoryPage(DeviceSoftwareVersionHistoryPageQuery query) {
-        if (query.visibleProjectIds() == null || query.visibleProjectIds().isEmpty()) {
-            return new PageResult<>(List.of(), 0L);
-        }
         PageParam page = new PageParam();
         page.setPageNo(query.pageNo());
         page.setPageSize(query.pageSize());
         return selectPage(page, new LambdaQueryWrapperX<DeviceSoftwareVersionRecordDO>()
                 .eq(DeviceSoftwareVersionRecordDO::getTenantId, query.tenantId())
                 .eq(DeviceSoftwareVersionRecordDO::getDeviceId, query.deviceId())
-                .in(DeviceSoftwareVersionRecordDO::getProjectId, query.visibleProjectIds())
                 .orderByDesc(DeviceSoftwareVersionRecordDO::getRecordedAt)
                 .orderByDesc(DeviceSoftwareVersionRecordDO::getId));
     }

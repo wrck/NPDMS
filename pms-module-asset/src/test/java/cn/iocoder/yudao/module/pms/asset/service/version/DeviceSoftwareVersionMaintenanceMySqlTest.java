@@ -266,11 +266,22 @@ class DeviceSoftwareVersionMaintenanceMySqlTest {
         assertThrows(RuntimeException.class,()->service.register(1L,7L,8L,10L,3,"request",new SoftwareVersionValues("OTHER",null,null,null,null,null,null,null,null,null)));
         assertEquals(2,((Number)scalar("SELECT COUNT(*) FROM ast_device_software_version_record")).intValue());assertEquals("NEW",scalar("SELECT conp_version FROM ast_device_network_version WHERE id=3"));
     }
-    @Test void currentAndRecordLocksAreTenantBoundAndEmptyPermissionsNeverReturnHistory() {
+    @Test void currentAndRecordLocksAndDeviceHistoryAreTenantBound() throws Exception {
         assertNull(writes.selectCurrentForUpdate(2L,"SN"));assertNull(writes.selectDeviceForUpdate(new SoftwareVersionDeviceLockQuery(2L,8L)));
         var receipt=service.register(1L,7L,8L,10L,2,"request",next);
         assertNull(records.selectForUpdate(new DeviceSoftwareVersionRecordLockQuery(2L,receipt.recordId())));
-        assertTrue(records.selectHistoryPage(new DeviceSoftwareVersionHistoryPageQuery(1L,8L,Set.of(),1,20)).getList().isEmpty());
+        try (var statement=db.createStatement()) {
+            statement.executeUpdate("UPDATE ast_device_software_version_record SET project_id=20 WHERE id="+receipt.recordId());
+            statement.executeUpdate("INSERT INTO ast_device_software_version_record "
+                    + "(id,tenant_id,device_id,project_id,data_source,create_time,update_time) VALUES "
+                    + "(1000,2,8,20,'DPPMS','2024-01-01','2024-01-01'),"
+                    + "(1001,1,9,20,'DPPMS','2024-01-01','2024-01-01')");
+        }
+        var history=records.selectHistoryPage(new DeviceSoftwareVersionHistoryPageQuery(1L,8L,1,20)).getList();
+        assertEquals(2, history.size());
+        assertEquals(Set.of(10L,20L), history.stream().map(row->row.getProjectId()).collect(java.util.stream.Collectors.toSet()));
+        assertEquals(List.of(1000L), records.selectHistoryPage(new DeviceSoftwareVersionHistoryPageQuery(2L,8L,1,20)).getList().stream().map(row->row.getId()).toList());
+        assertEquals(List.of(1001L), records.selectHistoryPage(new DeviceSoftwareVersionHistoryPageQuery(1L,9L,1,20)).getList().stream().map(row->row.getId()).toList());
     }
     @Test void duplicateNativeRequestOrParsedFactIsRejectedAndLegacyNullKeysAllowDistinctRows() throws Exception {
         try(var statement=db.createStatement()) {

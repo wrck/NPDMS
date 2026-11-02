@@ -65,9 +65,9 @@ public class SoftwareVersionRecordEntityProvider implements EntityFieldProvider 
         if (!permissions.hasAnyPermissions(actor.userId(), initializing ? new String[]{"pms:integration:execute"}
                 : new String[]{"pms:device:query"})) throw new IllegalArgumentException("Software history is not readable");
         var row = records.selectById(target.entity().entityId());
-        if (row == null || !Objects.equals(row.getTenantId(), actor.tenantId()) || Boolean.TRUE.equals(row.getDeleted())
-                || !initializing && !access.visibleProjectIds(actor.tenantId(), actor.userId()).contains(row.getProjectId()))
+        if (row == null || !Objects.equals(row.getTenantId(), actor.tenantId()) || Boolean.TRUE.equals(row.getDeleted()))
             throw new IllegalArgumentException("Software history is not readable");
+        if (!initializing) access.assertReadable(new DeviceAccessScopeService.ReadAccess(actor.tenantId(), actor.userId(), row.getDeviceId()));
         return row;
     }
 }

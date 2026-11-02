@@ -115,15 +115,14 @@ public class DeviceSoftwareVersionMaintenanceService {
         requireContext(tenant, actor);
         if (pageNo < 1 || pageSize < 1 || pageSize > 100) throw exception(AST_SOFTWARE_VERSION_INVALID);
         access.assertReadable(new DeviceAccessScopeService.ReadAccess(tenant, actor, deviceId));
-        Set<Long> visible = access.visibleProjectIds(tenant, actor);
-        var page = records.selectHistoryPage(new DeviceSoftwareVersionHistoryPageQuery(tenant, deviceId, visible, pageNo, pageSize));
+        var page = records.selectHistoryPage(new DeviceSoftwareVersionHistoryPageQuery(tenant, deviceId, pageNo, pageSize));
         List<History> rows = new ArrayList<>();
         for (var row : page.getList()) {
             SoftwareVersionValues previous = null;
             if (row.getPreviousRecordId() != null) {
                 var before = records.selectById(row.getPreviousRecordId());
-                if (before != null && Objects.equals(before.getTenantId(), tenant) && Objects.equals(before.getDeviceId(), deviceId)
-                        && visible.contains(before.getProjectId())) previous = SoftwareVersionValues.of(before);
+                if (before != null && Objects.equals(before.getTenantId(), tenant) && Objects.equals(before.getDeviceId(), deviceId))
+                    previous = SoftwareVersionValues.of(before);
             }
             Map<String, Object> attributes = Map.of();
             if ("DPPMS".equals(row.getDataSource())) {
