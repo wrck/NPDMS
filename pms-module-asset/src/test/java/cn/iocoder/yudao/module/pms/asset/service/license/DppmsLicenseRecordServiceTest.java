@@ -125,4 +125,13 @@ class DppmsLicenseRecordServiceTest {
         verify(projects,never()).validate(any());
         assertThrows(IllegalArgumentException.class,()->service.apply(command));
     }
+    @Test void plaintextListReportsSavedWithoutExposingContent(){
+        var row=new DeviceLicenseRecordDO().setId(9L).setLicenseCode("synthetic-license").setLicenseCodePresent(true);
+        when(mapper.page(any())).thenReturn(new cn.iocoder.yudao.framework.common.pojo.PageResult<>(List.of(row),1L));
+        var page=service.page(new Query(1L,7L,100L,List.of(9L),1,20,null));
+        assertEquals("已保存",page.getList().getFirst().values().get("licenseCodeState"));
+        assertFalse(JsonUtils.toJsonString(page).contains("synthetic-license"));
+        assertFalse(JsonUtils.toJsonString(row).contains("synthetic-license"));
+        assertFalse(row.toString().contains("synthetic-license"));
+    }
 }

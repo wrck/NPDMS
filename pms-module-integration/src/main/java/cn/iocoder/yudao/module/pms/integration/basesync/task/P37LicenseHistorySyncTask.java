@@ -21,7 +21,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JsonToken;
 
-/** Whole-table initial license history, with one-row approval verification and authenticated encryption. */
+/** Whole-table license history: approved plaintext capture, with existing encrypted history preserved. */
 @Component
 public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistorySyncTask.LicenseSource,P37LicenseHistorySyncTask.Parameters> {
     private final TargetMapper licenses;private final SecretKeySpec key;private final String keyId;private final Path approvedFacts;
@@ -43,7 +43,6 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
     @Override public String taskName(){return "整表许可历史";}
     @Override public List<String> supportedStages(){return List.of("DeviceReference");}
     @Override public void work(SyncContext<Parameters> context){
-        if(key==null)throw new IllegalStateException("LICENSE_MASTER_KEY_UNAVAILABLE");
         if(approvedFacts==null || !Files.isRegularFile(approvedFacts))throw new IllegalStateException("P37已批准非秘密来源清单未配置");
         if(context.runState().stages().contains("DeviceReference")){
             syncData(context.forData("DeviceReference",false,true));
@@ -62,7 +61,8 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
                 try{
                     if(row.getSourceId()==null || !Objects.equals(approved.next(),fact(row)))throw new IllegalStateException("P37来源身份或七项批准原值已变化");
                     if(!"DeviceReference".equals(context.dataName())){
-                        row.setEnvelope(encrypt(new Capture(context.tenantId(),row.getSourceId().toString(),row.getLicenseCode()==null?null:row.getLicenseCode().toCharArray())));
+                        row.setCapturedLicenseCode(row.getLicenseCode());
+                        row.setCodeFingerprint(plainFingerprint(new PlainContent(context.tenantId(),row.getSourceId().toString(),row.getLicenseCode())));
                         if(row.getLicenseCode().isEmpty())context.runState().warning("P37_LICENSE_CODE_EMPTY:sourceId="+row.getSourceId());
                     }
                 }finally{row.setLicenseCode(null);}
@@ -82,18 +82,21 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
             checkTextLength(source.getSpecModel(),256);checkTextLength(source.getContract(),32);checkTextLength(source.getContractType(),16);
             var binding=bindings.get(source.getSourceId().toString());var old=binding==null?null:byId.get(binding.targetId());
             if(binding!=null){
+                if(old!=null && old.getLicenseCodeCiphertext()!=null)
+                    source.setCodeFingerprint(legacyCodeMac(new Capture(context.tenantId(),source.getSourceId().toString(),source.getCapturedLicenseCode()==null?null:source.getCapturedLicenseCode().toCharArray())));
                 if(old==null || old.getTenantId()!=context.tenantId() || Boolean.TRUE.equals(old.getDeleted())
                         || !Objects.equals(binding.fingerprint(),fingerprint(source,old))
-                        || !source.getEnvelope().codeMac().equals(verifyStored(old.getLicenseCodeCiphertext(),context.tenantId(),source.getSourceId().toString()))
+                        || !Objects.equals(source.getCodeFingerprint(),storedFingerprint(new StoredContent(old,source.getSourceId().toString())))
                         || !sourceValues(source).equals(business(old)))throw new IllegalStateException("P37不可变许可历史或来源绑定已变化");
-                source.setTarget(old);source.setSyncAction(SyncWriteAction.UNCHANGED);continue;
+                source.setCapturedLicenseCode(null);source.setTarget(old);source.setSyncAction(SyncWriteAction.UNCHANGED);continue;
             }
             var row=new LicenseTarget();row.setId(context.preview()?null:IdWorker.getId());row.setTenantId(context.tenantId());
             row.setDeviceSn(source.getSn());row.setProductModel(source.getSpecModel());row.setContractNo(source.getContract());
             row.setContractType(source.getContractType());row.setProductCode(source.getItem());row.setLicenseStatus(source.getStatus());
             // Nullable business IDs are intentionally deferred. Original SN/contract fields carry the complete history.
             context.parameters().devicePending++;context.parameters().contractPending++;
-            row.setLicenseCodeCiphertext(JsonUtils.toJsonString(new Sealed("AES-256-GCM",source.getEnvelope())));
+            plainFingerprint(new PlainContent(context.tenantId(),source.getSourceId().toString(),source.getCapturedLicenseCode()));
+            row.setLicenseCode(source.getCapturedLicenseCode());source.setCapturedLicenseCode(null);
             row.setCreator(Long.toString(context.actorId()));row.setUpdater(row.getCreator());row.setCreateTime(context.startedAt());row.setUpdateTime(context.startedAt());row.setDeleted(false);
             source.setTarget(row);source.setSyncAction(SyncWriteAction.INSERT);
         }
@@ -110,8 +113,7 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
         for(var source:batch.rows()){
             var binding=bindings.get(source.getSourceId().toString());var old=binding==null?null:byId.get(binding.targetId());
             if(old==null||old.getTenantId()!=context.tenantId()||Boolean.TRUE.equals(old.getDeleted())||!sourceValues(source).equals(business(old)))throw new IllegalStateException("P37不可变许可历史或来源绑定已变化");
-            String mac=verifyStored(old.getLicenseCodeCiphertext(),context.tenantId(),source.getSourceId().toString());
-            source.setEnvelope(new Envelope(source.getSourceId().toString(),null,keyId,mac));
+            source.setCodeFingerprint(storedFingerprint(new StoredContent(old,source.getSourceId().toString())));
             if(!Objects.equals(binding.fingerprint(),fingerprint(source,old)))throw new IllegalStateException("P37不可变许可历史或来源绑定已变化");
             source.setTarget(old);source.setSyncAction(SyncWriteAction.UNCHANGED);
             if(old.getDeviceId()!=null)continue;
@@ -140,8 +142,38 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
     static Approved fact(LicenseSource row){return new Approved(Objects.toString(row.getSourceId(),null),row.getSn(),row.getSpecModel(),row.getContract(),row.getContractType(),row.getItem(),row.getStatus());}
     static List<Object> sourceValues(LicenseSource row){return Arrays.asList(row.getSn(),row.getSpecModel(),row.getContract(),row.getContractType(),row.getItem(),row.getStatus());}
     static List<Object> business(LicenseTarget row){return Arrays.asList(row.getDeviceSn(),row.getProductModel(),row.getContractNo(),row.getContractType(),row.getProductCode(),row.getLicenseStatus());}
-    static String fingerprint(LicenseSource source,LicenseTarget row){return SyncFingerprint.of(Arrays.asList(source.getSourceId(),source.getEnvelope().codeMac(),row.getId(),row.getTenantId(),row.getDeviceId(),row.getContractId(),row.getDeviceSn(),row.getContractNo(),row.getContractType(),row.getProductCode(),row.getProductModel(),row.getLicenseStatus(),row.getCreator(),row.getUpdater(),row.getCreateTime(),row.getUpdateTime(),row.getDeleted(),row.getLicenseCodeCiphertext()));}
+    static String fingerprint(LicenseSource source,LicenseTarget row){
+        var fields=new ArrayList<Object>(Arrays.asList(source.getSourceId(),source.getCodeFingerprint()==null?source.getEnvelope().codeMac():source.getCodeFingerprint(),row.getId(),row.getTenantId(),row.getDeviceId(),row.getContractId(),row.getDeviceSn(),row.getContractNo(),row.getContractType(),row.getProductCode(),row.getProductModel(),row.getLicenseStatus(),row.getCreator(),row.getUpdater(),row.getCreateTime(),row.getUpdateTime(),row.getDeleted(),row.getLicenseCodeCiphertext()));
+        if(row.getLicenseCode()!=null)fields.add(row.getLicenseCode());
+        return SyncFingerprint.of(fields);
+    }
+    record PlainContent(long tenant,String sourceKey,String code){}
+    record StoredContent(LicenseTarget row,String sourceKey){}
+    static String plainFingerprint(PlainContent content){
+        long tenant=content.tenant();String sourceKey=content.sourceKey(),code=content.code();
+        if(tenant<=0 || sourceKey==null || !sourceKey.matches("[1-9][0-9]*") || code==null || code.codePointCount(0,code.length())>256)
+            throw new IllegalArgumentException("P37_LICENSE_SOURCE_INVALID");
+        return SyncFingerprint.of(Arrays.asList("P37-PLAIN",tenant,sourceKey,code));
+    }
+    String storedFingerprint(StoredContent content){
+        var row=content.row();var sourceKey=content.sourceKey();
+        if((row.getLicenseCode()==null)==(row.getLicenseCodeCiphertext()==null))throw new IllegalStateException("P37_LICENSE_STORAGE_INVALID");
+        return row.getLicenseCode()==null?verifyStored(row.getLicenseCodeCiphertext(),row.getTenantId(),sourceKey):plainFingerprint(new PlainContent(row.getTenantId(),sourceKey,row.getLicenseCode()));
+    }
+    private String legacyCodeMac(Capture input){
+        byte[] bytes=null;
+        try{
+            if(key==null)throw new IllegalStateException("LICENSE_MASTER_KEY_UNAVAILABLE");
+            if(input.code()==null)throw new IllegalArgumentException("P37_LICENSE_SOURCE_INVALID");
+            bytes=new String(input.code()).getBytes(StandardCharsets.UTF_8);
+            var mac=Mac.getInstance("HmacSHA256");mac.init(key);mac.update(aad(input.tenantId(),input.sourceKey()));mac.update((byte)0);
+            return HexFormat.of().formatHex(mac.doFinal(bytes));
+        }catch(GeneralSecurityException failure){throw new IllegalStateException("P37_LICENSE_STORED_AUTHENTICATION_FAILED");}
+        finally{if(input.code()!=null)Arrays.fill(input.code(),'\0');if(bytes!=null)Arrays.fill(bytes,(byte)0);}
+    }
     static final class ApprovalCursor implements AutoCloseable {
+        // 2026-11-02 approved snapshot: 0cdb2c615c034b99de7b4bdae1f3d561fe9c35f9cdcfe4fb282ed5035773fad3.
+        private static final long APPROVED_FACT_COUNT=493037;
         final tools.jackson.databind.json.JsonMapper mapper=tools.jackson.databind.json.JsonMapper.builder().disable(tools.jackson.databind.DeserializationFeature.FAIL_ON_TRAILING_TOKENS).build();
         final tools.jackson.core.JsonParser parser;long count,previous;
         ApprovalCursor(Path path)throws IOException{
@@ -154,9 +186,9 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
             if(node.size()!=7 || !node.propertyNames().equals(Set.of("id","sn","specModel","contract","contractType","item","status")))
                 throw new IllegalStateException("P37批准清单字段无效");
             var fact=mapper.treeToValue(node,Approved.class);long id=Long.parseLong(fact.id());
-            if(id<=previous || ++count>475468)throw new IllegalStateException("P37批准清单身份或容量无效");previous=id;return fact;
+            if(id<=previous || ++count>APPROVED_FACT_COUNT)throw new IllegalStateException("P37批准清单身份或容量无效");previous=id;return fact;
         }
-        void finish(){if(count!=475468 || parser.nextToken()!=JsonToken.END_ARRAY || parser.nextToken()!=null)throw new IllegalStateException("P37必须完整读取475468条批准来源");}
+        void finish(){if(count!=APPROVED_FACT_COUNT || parser.nextToken()!=JsonToken.END_ARRAY || parser.nextToken()!=null)throw new IllegalStateException("P37必须完整读取"+APPROVED_FACT_COUNT+"条批准来源");}
         @Override public void close(){parser.close();}
     }
     record Capture(long tenantId,String sourceKey,char[] code){}
@@ -202,6 +234,8 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
         private String item;
         private String status;
         @JsonIgnore private String licenseCode;
+        @JsonIgnore private String capturedLicenseCode;
+        @JsonIgnore private String codeFingerprint;
         @JsonIgnore private Envelope envelope;
         @JsonIgnore private LicenseTarget target;
         @JsonIgnore private String previousFingerprint;
@@ -225,6 +259,7 @@ public class P37LicenseHistorySyncTask extends AbstractSyncTask<P37LicenseHistor
         private LocalDateTime updateTime;
         private Boolean deleted;
         @JsonIgnore private String licenseCodeCiphertext;
+        @JsonIgnore private String licenseCode;
     }
     public interface SourceMapper {void selectLicenseHistory(SourceQuery<Parameters> query,ResultHandler<? super LicenseSource> handler);void selectDeviceReference(SourceQuery<Parameters> query,ResultHandler<? super LicenseSource> handler);}
     @Mapper public interface TargetMapper {

@@ -25,7 +25,8 @@ class LicenseDeviceReferenceMySqlTest extends RemainingTaskMySqlSupport {
     P37LicenseHistorySyncTask task;
 
     @BeforeEach void licenseFixture() throws Exception {
-        jdbc.execute("CREATE TEMPORARY TABLE ast_device_license_record(id BIGINT PRIMARY KEY,tenant_id BIGINT NOT NULL,device_id BIGINT,contract_id BIGINT,device_sn VARCHAR(255),contract_no VARCHAR(32),contract_type VARCHAR(16),product_code VARCHAR(255),product_model VARCHAR(256),license_status VARCHAR(255),creator VARCHAR(64),updater VARCHAR(64),create_time DATETIME,update_time DATETIME,deleted BOOLEAN,license_code_ciphertext TEXT)");
+        jdbc.execute("CREATE TEMPORARY TABLE ast_device_license_record(id BIGINT PRIMARY KEY,tenant_id BIGINT NOT NULL,device_id BIGINT,contract_id BIGINT,device_sn VARCHAR(255),contract_no VARCHAR(32),contract_type VARCHAR(16),product_code VARCHAR(255),product_model VARCHAR(256),license_status VARCHAR(255),creator VARCHAR(64),updater VARCHAR(64),create_time DATETIME,update_time DATETIME,deleted BOOLEAN,license_code_ciphertext TEXT NOT NULL)");
+        jdbc.execute(java.nio.file.Files.readString(Path.of(System.getProperty("npdms.test.root"),"sql/migrations/V533__license_history_plaintext_capture.sql")));
         for(var resource:List.of("mapper/basesync/P37TargetMapper.xml","base-sync-source/P37SourceMapper.xml"))
             try(var input=new ClassPathResource(resource).getInputStream()){
                 new XMLMapperBuilder(input,session.getConfiguration(),resource,session.getConfiguration().getSqlFragments()).parse();
@@ -112,5 +113,24 @@ class LicenseDeviceReferenceMySqlTest extends RemainingTaskMySqlSupport {
         var rows=new ArrayList<P37LicenseHistorySyncTask.LicenseSource>();
         session.getMapper(P37LicenseHistorySyncTask.SourceMapper.class).selectDeviceReference(new AbstractSyncTask.SourceQuery<>(10,1,true,new P37LicenseHistorySyncTask.Parameters()),result->rows.add(result.getResultObject()));
         assertEquals(1,rows.size());assertNull(rows.getFirst().getLicenseCode());assertEquals("SN-1",rows.getFirst().getSn());
+    }
+    @Test void plaintextWithoutKeyPersistsReplaysAndLinksWithoutChangingContent(){
+        task=spy(new P37LicenseHistorySyncTask(mapper,"","TEST",directory.resolve("approval.json.gz").toString()));
+        var row=new P37LicenseHistorySyncTask.LicenseSource().setSourceId(1L).setSn("SN-1").setCapturedLicenseCode("许可🙂")
+                .setCodeFingerprint(P37LicenseHistorySyncTask.plainFingerprint(new P37LicenseHistorySyncTask.PlainContent(1,"1","许可🙂")));
+        emitRows(List.of(row));
+        assertEquals(1,transaction.execute(status->task.execute(context(false))).inserted());
+        long id=row.getTarget().getId();
+        assertEquals("许可🙂",jdbc.queryForObject("SELECT license_code FROM ast_device_license_record WHERE id=?",String.class,id));
+        assertNull(jdbc.queryForObject("SELECT license_code_ciphertext FROM ast_device_license_record WHERE id=?",String.class,id));
+        row.setCapturedLicenseCode("许可🙂");
+        assertEquals(1,transaction.execute(status->task.execute(context(false))).unchanged());
+        assertEquals(1,execute(false).updated());
+        assertEquals("许可🙂",jdbc.queryForObject("SELECT license_code FROM ast_device_license_record WHERE id=?",String.class,id));
+        assertEquals(11L,jdbc.queryForObject("SELECT device_id FROM ast_device_license_record WHERE id=?",Long.class,id));
+        var mixed=assertThrows(org.springframework.jdbc.UncategorizedSQLException.class,()->jdbc.update("UPDATE ast_device_license_record SET license_code_ciphertext='cipher' WHERE id=?",id));
+        assertEquals(3819,mixed.getSQLException().getErrorCode());
+        var missing=assertThrows(org.springframework.jdbc.UncategorizedSQLException.class,()->jdbc.update("UPDATE ast_device_license_record SET license_code=NULL WHERE id=?",id));
+        assertEquals(3819,missing.getSQLException().getErrorCode());
     }
 }

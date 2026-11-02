@@ -22,4 +22,6 @@ public class DeviceLicenseRecordDO extends TenantBaseDO {
     private String productModel;
     private String licenseStatus;
     @JsonIgnore @ToString.Exclude private String licenseCodeCiphertext;
+    @JsonIgnore @ToString.Exclude private String licenseCode;
+    @JsonIgnore @com.baomidou.mybatisplus.annotation.TableField(exist=false) private Boolean licenseCodePresent;
 }

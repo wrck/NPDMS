@@ -190,7 +190,7 @@ public class DppmsLicenseRecordService implements DppmsLicenseRecordApi {
             var values=new LinkedHashMap<String,Object>();
             values.put("deviceId",row.getDeviceId());values.put("deviceSn",row.getDeviceSn());values.put("contractId",row.getContractId());
             values.put("contractNo",row.getContractNo());values.put("contractType",row.getContractType());values.put("productCode",row.getProductCode());
-            values.put("productModel",row.getProductModel());values.put("licenseStatus",row.getLicenseStatus());values.put("licenseCodeState","已加密保存");
+            values.put("productModel",row.getProductModel());values.put("licenseStatus",row.getLicenseStatus());values.put("licenseCodeState",Boolean.TRUE.equals(row.getLicenseCodePresent())?"已保存":"已加密保存");
             values.put("creator",row.getCreator());values.put("createTime",row.getCreateTime());values.put("updater",row.getUpdater());values.put("updateTime",row.getUpdateTime());
             return new Row(row.getId(),values);
         }).toList(),page.getTotal());

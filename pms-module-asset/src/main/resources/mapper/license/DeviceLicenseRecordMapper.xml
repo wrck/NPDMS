@@ -13,7 +13,7 @@
     </sql>
     <select id="selectVisiblePage" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.license.DeviceLicenseRecordDO">
         SELECT id,tenant_id,device_id,device_sn,contract_id,contract_no,contract_type,product_code,product_model,
-            license_status,creator,create_time,updater,update_time,deleted
+            license_status,creator,create_time,updater,update_time,deleted,(license_code IS NOT NULL) AS license_code_present
         FROM ast_device_license_record WHERE <include refid="visible"/>
         ORDER BY id LIMIT #{query.limit} OFFSET #{query.offset}
     </select>

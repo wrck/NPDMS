@@ -37,15 +37,17 @@ class LicenseBaseSyncTest {
     }
     @Test void initialLicenseHistoryPreservesBusinessKeysWithoutOptionalIdLookup(){
         var mapper=mock(P37LicenseHistorySyncTask.TargetMapper.class);
-        var task=new P37LicenseHistorySyncTask(mapper,Base64.getEncoder().encodeToString(new byte[32]),"TEST",directory.toString());
+        var task=new P37LicenseHistorySyncTask(mapper,"","TEST",directory.toString());
         var row=new P37LicenseHistorySyncTask.LicenseSource().setSourceId(7L).setSn("original-sn").setContract("original-contract")
-                .setEnvelope(task.encrypt(new P37LicenseHistorySyncTask.Capture(1,"7","synthetic".toCharArray())));
+                .setCapturedLicenseCode("synthetic").setCodeFingerprint(P37LicenseHistorySyncTask.plainFingerprint(new P37LicenseHistorySyncTask.PlainContent(1,"7","synthetic")));
         var identities=mock(SyncIdentityStore.class);when(identities.findByKeys(any())).thenReturn(Map.of());
         var runtime=new SyncContext<Void>(1,2,3,true,500,1000000,LocalDateTime.now(),mock(SyncSource.class),identities,mock(SyncReferences.class),"LicenseHistory",mock(SqlSession.class),false,true);
         var context=runtime.forParameters(task.createParameters(runtime));
         task.syncDataInsertBefore(new SyncBatch<>(context,List.of(row)));
         assertNull(row.getTarget().getDeviceId());assertNull(row.getTarget().getContractId());
         assertEquals("original-sn",row.getTarget().getDeviceSn());assertEquals("original-contract",row.getTarget().getContractNo());
+        assertEquals("synthetic",row.getTarget().getLicenseCode());assertNull(row.getTarget().getLicenseCodeCiphertext());
+        assertNull(row.getCapturedLicenseCode());assertFalse(JsonUtils.toJsonString(row.getTarget()).contains("synthetic"));
         assertEquals(1,context.parameters().devicePending);assertEquals(1,context.parameters().contractPending);
         verifyNoInteractions(mapper);
     }
@@ -60,7 +62,7 @@ class LicenseBaseSyncTest {
         doAnswer(call->{ResultHandler<P37LicenseHistorySyncTask.LicenseSource> handler=call.getArgument(2);var result=mock(ResultContext.class);when(result.getResultObject()).thenReturn(row);handler.handleResult(result);return null;}).when(nativeSession).select(anyString(),any(),any(ResultHandler.class));
         var runtime=new SyncContext<Void>(1,2,3,true,500,1000000,LocalDateTime.now(),source,mock(SyncIdentityStore.class),mock(SyncReferences.class),"LicenseHistory",mock(SqlSession.class),false,true);
         var context=runtime.forParameters(task.createParameters(runtime));int[] called={0};
-        assertThrows(IllegalStateException.class,()->task.syncDataQueryByRowHandler(context,result->{assertNull(result.getResultObject().getLicenseCode());assertNotNull(result.getResultObject().getEnvelope());called[0]++;}));
+        assertThrows(IllegalStateException.class,()->task.syncDataQueryByRowHandler(context,result->{assertNull(result.getResultObject().getLicenseCode());assertEquals("",result.getResultObject().getCapturedLicenseCode());assertNotNull(result.getResultObject().getCodeFingerprint());assertNull(result.getResultObject().getEnvelope());called[0]++;}));
         assertEquals(1,called[0]);assertNull(row.getLicenseCode());assertEquals(List.of("P37_LICENSE_CODE_EMPTY:sourceId=472122"),context.runState().warnings());verify(opened).close();
     }
     @Test void approvalRejectsExtraFieldsDuplicatesAndOutOfOrderIdentity()throws Exception{
@@ -68,6 +70,27 @@ class LicenseBaseSyncTest {
         try(var cursor=new P37LicenseHistorySyncTask.ApprovalCursor(path)){assertEquals("2",cursor.next().id());assertThrows(IllegalStateException.class,cursor::next);}
         var extra=approval("[{\"id\":\"1\",\"sn\":null,\"specModel\":null,\"contract\":null,\"contractType\":null,\"item\":null,\"status\":null,\"unapproved\":true}]");
         try(var cursor=new P37LicenseHistorySyncTask.ApprovalCursor(extra)){assertThrows(IllegalStateException.class,cursor::next);}
+    }
+    @Test void currentApprovedScopeRequiresAll493037RowsAndRejectsExtraSourceRows()throws Exception{
+        var path=directory.resolve("current-scope.json.gz");
+        try(var writer=new java.io.BufferedWriter(new java.io.OutputStreamWriter(new GZIPOutputStream(Files.newOutputStream(path)),StandardCharsets.UTF_8))){
+            writer.write("[");
+            for(int id=1;id<=493037;id++){
+                if(id>1)writer.write(",");
+                writer.write("{\"id\":\""+id+"\",\"sn\":null,\"specModel\":null,\"contract\":null,\"contractType\":null,\"item\":null,\"status\":null}");
+            }
+            writer.write("]");
+        }
+        try(var cursor=new P37LicenseHistorySyncTask.ApprovalCursor(path)){
+            for(int id=1;id<=493037;id++)assertEquals(Integer.toString(id),cursor.next().id());
+            assertDoesNotThrow(cursor::finish);
+        }
+        try(var cursor=new P37LicenseHistorySyncTask.ApprovalCursor(path)){
+            for(int id=1;id<=493036;id++)cursor.next();
+            assertThrows(IllegalStateException.class,cursor::finish);
+            assertEquals("493037",cursor.next().id());
+            assertThrows(IllegalStateException.class,cursor::next);
+        }
     }
     @Test void deviceReferenceStageStillChecksApprovedFactsWithoutReadingTheLicenseCode()throws Exception{
         var path=approval("[{\"id\":\"1\",\"sn\":\"SN-1\",\"specModel\":null,\"contract\":\"C-1\",\"contractType\":null,\"item\":\"ITEM\",\"status\":\"ACTIVE\"}]");
@@ -79,5 +102,32 @@ class LicenseBaseSyncTest {
         var context=runtime.forParameters(task.createParameters(runtime));int[] called={0};
         assertThrows(IllegalStateException.class,()->task.syncDataQueryByRowHandler(context,result->{assertNull(result.getResultObject().getLicenseCode());assertNull(result.getResultObject().getEnvelope());called[0]++;}));
         assertEquals(1,called[0]);verify(opened).close();
+    }
+    @Test void plaintextPreservesEmptyUnicodeAndRejectsNullOverlongOrMixedStorage(){
+        var task=new P37LicenseHistorySyncTask(mock(P37LicenseHistorySyncTask.TargetMapper.class),"","TEST",directory.toString());
+        var row=new P37LicenseHistorySyncTask.LicenseTarget().setTenantId(1L).setLicenseCode("");
+        String empty=task.storedFingerprint(new P37LicenseHistorySyncTask.StoredContent(row,"7"));
+        row.setLicenseCode("许可🙂");
+        assertNotEquals(empty,task.storedFingerprint(new P37LicenseHistorySyncTask.StoredContent(row,"7")));
+        assertNotEquals(P37LicenseHistorySyncTask.plainFingerprint(new P37LicenseHistorySyncTask.PlainContent(1,"7","许可🙂")),P37LicenseHistorySyncTask.plainFingerprint(new P37LicenseHistorySyncTask.PlainContent(2,"7","许可🙂")));
+        assertThrows(IllegalArgumentException.class,()->P37LicenseHistorySyncTask.plainFingerprint(new P37LicenseHistorySyncTask.PlainContent(1,"7",null)));
+        assertThrows(IllegalArgumentException.class,()->P37LicenseHistorySyncTask.plainFingerprint(new P37LicenseHistorySyncTask.PlainContent(1,"7","a".repeat(257))));
+        row.setLicenseCodeCiphertext("legacy");
+        assertThrows(IllegalStateException.class,()->task.storedFingerprint(new P37LicenseHistorySyncTask.StoredContent(row,"7")));
+    }
+    @Test void plaintextReplayKeepsHistoryAndRejectsChangedContent(){
+        var mapper=mock(P37LicenseHistorySyncTask.TargetMapper.class);var task=new P37LicenseHistorySyncTask(mapper,"","TEST",directory.toString());
+        var identities=mock(SyncIdentityStore.class);when(identities.findByKeys(any())).thenReturn(Map.of());
+        var runtime=new SyncContext<Void>(1,2,3,false,500,1000000,LocalDateTime.now(),mock(SyncSource.class),identities,mock(SyncReferences.class),"LicenseHistory",mock(SqlSession.class),false,true);
+        var context=runtime.forParameters(task.createParameters(runtime));
+        var source=new P37LicenseHistorySyncTask.LicenseSource().setSourceId(7L).setSn("SN-1").setCapturedLicenseCode("original")
+                .setCodeFingerprint(P37LicenseHistorySyncTask.plainFingerprint(new P37LicenseHistorySyncTask.PlainContent(1,"7","original")));
+        task.syncDataInsertBefore(new SyncBatch<>(context,List.of(source)));var old=source.getTarget();
+        String fingerprint=P37LicenseHistorySyncTask.fingerprint(source,old);
+        when(identities.findByKeys(any())).thenReturn(Map.of("7",new SyncIdentityStore.Identity("7",old.getId(),fingerprint)));
+        when(mapper.selectExisting(any())).thenReturn(List.of(old));source.setCapturedLicenseCode("original");
+        task.syncDataInsertBefore(new SyncBatch<>(context,List.of(source)));assertEquals(SyncWriteAction.UNCHANGED,source.getSyncAction());
+        old.setLicenseCode("tampered");source.setCapturedLicenseCode("original");
+        assertThrows(IllegalStateException.class,()->task.syncDataInsertBefore(new SyncBatch<>(context,List.of(source))));
     }
 }

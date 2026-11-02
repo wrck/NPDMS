@@ -27,6 +27,7 @@ class DeviceLicenseRecordMySqlTest {
         data=new SingleConnectionDataSource(db,true);
         String ddl=Files.readString(Path.of(System.getProperty("npdms.license.sourceRoot"),"SQL/migrations/V433__approved_device_license_record.sql"));
         try(var sql=db.createStatement()){sql.execute(ddl.replace("CREATE TABLE ast_device_license_record","CREATE TEMPORARY TABLE ast_device_license_record"));}
+        try(var sql=db.createStatement()){sql.execute("ALTER TABLE ast_device_license_record ADD COLUMN license_code VARCHAR(256) NULL");}
         var factory=new com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean();factory.setDataSource(data);
         var config=new com.baomidou.mybatisplus.core.MybatisConfiguration();config.setMapUnderscoreToCamelCase(true);factory.setConfiguration(config);
         var plugins=new com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor();
