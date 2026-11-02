@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.system.service.mail;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.system.controller.admin.mail.vo.account.MailAccountPageReqVO;
 import cn.iocoder.yudao.module.system.controller.admin.mail.vo.account.MailAccountSaveReqVO;
@@ -10,7 +11,6 @@ import cn.iocoder.yudao.module.system.dal.redis.RedisKeyConstants;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -35,11 +35,18 @@ public class MailAccountServiceImpl implements MailAccountService {
     private MailAccountMapper mailAccountMapper;
 
     @Resource
+    private MailCredentialCipher credentialCipher;
+
+    @Resource
     private MailTemplateService mailTemplateService;
 
     @Override
     public Long createMailAccount(MailAccountSaveReqVO createReqVO) {
         MailAccountDO account = BeanUtils.toBean(createReqVO, MailAccountDO.class);
+        if (account.getPassword() == null || account.getPassword().isBlank()) {
+            throw new ServiceException(400, "密码不能为空");
+        }
+        account.setPassword(encryptPassword(account.getPassword()));
         mailAccountMapper.insert(account);
         return account.getId();
     }
@@ -52,6 +59,11 @@ public class MailAccountServiceImpl implements MailAccountService {
 
         // 更新
         MailAccountDO updateObj = BeanUtils.toBean(updateReqVO, MailAccountDO.class);
+        if (updateObj.getPassword() == null || updateObj.getPassword().isBlank()) {
+            updateObj.setPassword(null);
+        } else {
+            updateObj.setPassword(encryptPassword(updateObj.getPassword()));
+        }
         mailAccountMapper.updateById(updateObj);
     }
 
@@ -96,9 +108,23 @@ public class MailAccountServiceImpl implements MailAccountService {
     }
 
     @Override
-    @Cacheable(value = RedisKeyConstants.MAIL_ACCOUNT, key = "#id", unless = "#result == null")
     public MailAccountDO getMailAccountFromCache(Long id) {
         return getMailAccount(id);
+    }
+
+    @Override
+    public MailAccountDO getMailAccountForSending(Long id) {
+        MailAccountDO stored = getMailAccount(id);
+        if (stored == null) return null;
+        MailAccountDO account = BeanUtils.toBean(stored, MailAccountDO.class);
+        account.setPassword(credentialCipher.decrypt(stored.getPassword()));
+        return account;
+    }
+
+    private String encryptPassword(String password) {
+        String encrypted = credentialCipher.encrypt(password);
+        if (encrypted.length() > 255) throw new ServiceException(400, "密码过长");
+        return encrypted;
     }
 
     @Override

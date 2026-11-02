@@ -61,6 +61,9 @@ public interface MailAccountService {
      */
     MailAccountDO getMailAccountFromCache(Long id);
 
+    /** Resolve credentials only for SMTP delivery; never cache the decrypted value. */
+    MailAccountDO getMailAccountForSending(Long id);
+
     /**
      * 获取邮箱账号分页信息
      *

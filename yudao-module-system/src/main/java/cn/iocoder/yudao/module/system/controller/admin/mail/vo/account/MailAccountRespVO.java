@@ -18,9 +18,6 @@ public class MailAccountRespVO {
     @Schema(description = "用户名", requiredMode = Schema.RequiredMode.REQUIRED, example = "yudao")
     private String username;
 
-    @Schema(description = "密码", requiredMode = Schema.RequiredMode.REQUIRED, example = "123456")
-    private String password;
-
     @Schema(description = "SMTP 服务器域名", requiredMode = Schema.RequiredMode.REQUIRED, example = "www.example.com")
     private String host;
 

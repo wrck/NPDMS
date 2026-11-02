@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.system.controller.admin.mail;
 
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
+import cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.system.controller.admin.mail.vo.account.MailAccountPageReqVO;
@@ -31,6 +32,7 @@ public class MailAccountController {
     private MailAccountService mailAccountService;
 
     @PostMapping("/create")
+    @ApiAccessLog(requestEnable = false)
     @Operation(summary = "创建邮箱账号")
     @PreAuthorize("@ss.hasPermission('system:mail-account:create')")
     public CommonResult<Long> createMailAccount(@Valid @RequestBody MailAccountSaveReqVO createReqVO) {
@@ -38,6 +40,7 @@ public class MailAccountController {
     }
 
     @PutMapping("/update")
+    @ApiAccessLog(requestEnable = false)
     @Operation(summary = "修改邮箱账号")
     @PreAuthorize("@ss.hasPermission('system:mail-account:update')")
     public CommonResult<Boolean> updateMailAccount(@Valid @RequestBody MailAccountSaveReqVO updateReqVO) {

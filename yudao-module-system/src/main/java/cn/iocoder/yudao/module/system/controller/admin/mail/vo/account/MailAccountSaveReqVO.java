@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.system.controller.admin.mail.vo.account;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.ToString;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;
@@ -23,7 +24,7 @@ public class MailAccountSaveReqVO {
     private String username;
 
     @Schema(description = "密码", requiredMode = Schema.RequiredMode.REQUIRED, example = "123456")
-    @NotNull(message = "密码必填")
+    @ToString.Exclude
     private String password;
 
     @Schema(description = "SMTP 服务器域名", requiredMode = Schema.RequiredMode.REQUIRED, example = "www.example.com")

@@ -4,6 +4,8 @@ import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.system.controller.admin.auth.vo.AuthEmailResetPasswordReqVO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
+import cn.iocoder.yudao.module.system.framework.sms.config.SmsCodeProperties;
+import cn.iocoder.yudao.module.system.service.mail.PasswordResetMailService;
 import cn.iocoder.yudao.module.system.service.user.AdminUserService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
+import java.time.Duration;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -63,5 +66,17 @@ class EmailPasswordResetServiceTest {
         when(users.getUserByUsername("alice")).thenReturn(new AdminUserDO().setId(7L).setStatus(1).setEmail("test@example.invalid"));
         assertThrows(ServiceException.class, () -> service.reset(request));
         verifyNoInteractions(redis);
+    }
+    @Test void mailFailureInvalidatesTheNewChallenge() {
+        var policy = new SmsCodeProperties();
+        policy.setSendFrequency(Duration.ofMinutes(1)); policy.setExpireTimes(Duration.ofMinutes(10));
+        policy.setSendMaximumQuantityPerDay(10);
+        var mail = mock(PasswordResetMailService.class);
+        ReflectionTestUtils.setField(service, "policy", policy); ReflectionTestUtils.setField(service, "mail", mail);
+        when(values.setIfAbsent(anyString(), eq("1"), any(Duration.class))).thenReturn(true);
+        when(values.increment(anyString())).thenReturn(1L);
+        doThrow(new IllegalStateException("failure")).when(mail).send(any());
+        assertThrows(ServiceException.class, () -> service.send("alice"));
+        verify(redis).delete("auth:email-reset:1:7:code");
     }
 }

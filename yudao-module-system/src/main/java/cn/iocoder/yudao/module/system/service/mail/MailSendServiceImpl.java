@@ -156,7 +156,7 @@ public class MailSendServiceImpl implements MailSendService {
     @VisibleForTesting
     MailAccountDO validateMailAccount(Long accountId) {
         // 获得邮箱账号。考虑到效率，从缓存中获取
-        MailAccountDO account = mailAccountService.getMailAccountFromCache(accountId);
+        MailAccountDO account = mailAccountService.getMailAccountForSending(accountId);
         // 邮箱账号不存在
         if (account == null) {
             throw exception(MAIL_ACCOUNT_NOT_EXISTS);

@@ -90,7 +90,10 @@ const formRules = reactive({
     { type: 'email', message: '请输入正确的邮箱格式', trigger: ['blur', 'change'] }
   ],
   username: [{ required: true, message: '用户名不能为空', trigger: 'blur' }],
-  password: [{ required: true, message: '密码不能为空', trigger: 'blur' }],
+  password: [{ validator: (_rule, value, callback) => {
+    if (formType.value === 'create' && !value?.trim()) callback(new Error('密码不能为空'))
+    else callback()
+  }, trigger: 'blur' }],
   host: [{ required: true, message: 'SMTP 服务器域名不能为空', trigger: 'blur' }],
   port: [{ required: true, message: 'SMTP 服务器端口不能为空', trigger: 'blur' }],
   sslEnable: [{ required: true, message: '是否开启 SSL 不能为空', trigger: 'blur' }],

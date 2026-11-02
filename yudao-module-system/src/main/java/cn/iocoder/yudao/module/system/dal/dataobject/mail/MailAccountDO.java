@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 /**
  * 邮箱账号 DO
@@ -40,6 +41,7 @@ public class MailAccountDO extends BaseDO {
     /**
      * 密码
      */
+    @ToString.Exclude
     private String password;
     /**
      * SMTP 服务器域名
