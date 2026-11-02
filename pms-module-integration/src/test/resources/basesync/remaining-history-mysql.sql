@@ -175,6 +175,8 @@ CREATE TEMPORARY TABLE `proj_project_member_assignment` (
   `tenant_id` bigint NOT NULL DEFAULT '0' COMMENT '租户ID',
   `remark` varchar(500) DEFAULT NULL COMMENT '普通备注，非指派原因',
   `end_reason` varchar(500) DEFAULT NULL COMMENT '区间结束原因，保留原加入/调整原因',
+  `external_mobile` varchar(32) DEFAULT NULL,
+  `external_email` varchar(128) DEFAULT NULL,
   `member_code` varchar(45) DEFAULT NULL COMMENT '成员区间人员编码',
   `phone_number` varchar(20) DEFAULT NULL COMMENT '成员区间联系电话',
   `email` varchar(45) DEFAULT NULL COMMENT '成员区间邮箱',

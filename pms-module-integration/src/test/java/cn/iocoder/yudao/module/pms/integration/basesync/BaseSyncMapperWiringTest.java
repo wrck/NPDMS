@@ -40,6 +40,8 @@ class BaseSyncMapperWiringTest {
         @Bean cn.iocoder.yudao.module.pms.platform.api.entity.EntityExtensionApi extensions(){return mock(cn.iocoder.yudao.module.pms.platform.api.entity.EntityExtensionApi.class);}
         @Bean cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi permissions(){return mock(cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi.class);}
         @Bean cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi events(){return mock(cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi.class);}
+        @Bean cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi memberAccounts(){return mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class);}
+        @Bean cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi memberQualification(){return mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class);}
         @Bean BaseSyncPublishedProjects published(BaseSyncPublishedProjects.ReferenceMapper mapper){return new BaseSyncPublishedProjects(mapper);}
         @Bean cn.iocoder.yudao.module.pms.asset.api.migration.DppmsSoftwareHistoryExtensionApi legacySoftware(){return mock(cn.iocoder.yudao.module.pms.asset.api.migration.DppmsSoftwareHistoryExtensionApi.class);}
         @Bean cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi devices(){return mock(cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi.class);}

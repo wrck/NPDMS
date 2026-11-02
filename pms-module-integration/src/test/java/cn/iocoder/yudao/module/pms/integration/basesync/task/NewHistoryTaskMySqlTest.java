@@ -23,8 +23,8 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   when(projects.verifyPublished(any())).thenAnswer(call->{var query=call.<BaseSyncProjectReferences.PublishedQuery>getArgument(0);var result=new HashMap<String,BaseSyncProjectReferences.Identity>();for(var m:query.members())result.put(m.sourceKey(),new BaseSyncProjectReferences.Identity(m.sourceKey(),m.projectId(),1L,0L,m.projectCode(),m.projectType(),null,null,null,"ACTIVE",false));return result;});
  }
  static <T> void emit(List<T> rows,ResultHandler<T> handler){for(var row:rows){var result=new DefaultResultContext<T>();result.nextResultObject(row);handler.handleResult(result);}}
- @Test void unconfirmedMemberPreviewAndNativeInsertNeverResolveOrGrantUserIdentity(){
-  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+ @Test void unmatchedAccountRemainsUnconfirmedAndManualChangeIsProtected(){
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)));
   var source=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("30").setMemberCode("w123").setMemberName("historical").setCreateTime(at);
   doAnswer(call->{emit(List.of(source),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
   assertEquals(1,run(task,true).inserted());assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));
@@ -33,27 +33,27 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   jdbc.update("UPDATE proj_project_member_assignment SET member_name='changed'");assertThrows(IllegalArgumentException.class,()->run(task,true));
  }
  @Test void historicalFinalCustomerContactIsAnUnconfirmedMemberWithoutCustomerParty(){
-  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)));
   var member=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("10").setMemberCode("w123");
   var contact=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setMemberName("contact").setMemberCode("original-contact").setPhoneNum("12345").setEmail("contact@example.invalid").setFromFlag("1").setCreateTime(at);
   doAnswer(call->{emit(List.of(member,contact),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
   assertEquals(2,run(task,true).inserted());assertTrue(saved.isEmpty());
   assertEquals(2,run(task,false).inserted());
   assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));
-  assertEquals("contact",jdbc.queryForObject("SELECT member_name FROM proj_project_member_assignment WHERE member_role='60'",String.class));
-  assertEquals("12345",jdbc.queryForObject("SELECT phone_number FROM proj_project_member_assignment WHERE member_role='60'",String.class));
-  assertEquals("contact@example.invalid",jdbc.queryForObject("SELECT email FROM proj_project_member_assignment WHERE member_role='60'",String.class));
-  assertEquals("1",jdbc.queryForObject("SELECT registration_source FROM proj_project_member_assignment WHERE member_role='60'",String.class));
-  assertNull(jdbc.queryForObject("SELECT user_id FROM proj_project_member_assignment WHERE member_role='60'",Long.class));
-  assertFalse(jdbc.queryForObject("SELECT authorization_confirmed FROM proj_project_member_assignment WHERE member_role='60'",Boolean.class));
+  assertEquals("contact",jdbc.queryForObject("SELECT member_name FROM proj_project_member_assignment WHERE member_role='END_USER'",String.class));
+  assertEquals("12345",jdbc.queryForObject("SELECT phone_number FROM proj_project_member_assignment WHERE member_role='END_USER'",String.class));
+  assertEquals("contact@example.invalid",jdbc.queryForObject("SELECT email FROM proj_project_member_assignment WHERE member_role='END_USER'",String.class));
+  assertEquals("1",jdbc.queryForObject("SELECT registration_source FROM proj_project_member_assignment WHERE member_role='END_USER'",String.class));
+  assertNull(jdbc.queryForObject("SELECT user_id FROM proj_project_member_assignment WHERE member_role='END_USER'",Long.class));
+  assertFalse(jdbc.queryForObject("SELECT authorization_confirmed FROM proj_project_member_assignment WHERE member_role='END_USER'",Boolean.class));
   assertTrue(saved.containsKey("MEMBER_HISTORY:2"));assertFalse(saved.containsKey("CONTACT_HISTORY:2"));
   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM cus_project_customer_contact_relation",Integer.class));
   assertEquals(2,run(task,true).unchanged());
-  jdbc.update("UPDATE proj_project_member_assignment SET phone_number='changed' WHERE member_role='60'");
+  jdbc.update("UPDATE proj_project_member_assignment SET phone_number='changed' WHERE member_role='END_USER'");
   assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("EXISTING_MEMBER_PROTECTED"));
  }
  @Test void priorContactBindingCannotBeRewrittenAsMember(){
-  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)));
   var contact=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setMemberName("contact").setCreateTime(at);
   var original=new cn.iocoder.yudao.module.pms.integration.api.basesync.SyncIdentityStore.Identity("2",99L,"existing-contact-baseline");
   saved.put("CONTACT_HISTORY:2",original);
@@ -70,7 +70,7 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(2,mapper.selectMembers(new P31MemberContactSyncTask.TargetQuery(1,3,List.of(1000L),100,true)).size());
  }
  @Test void mixedBoundAndFreshBatchStillProtectsUnownedOriginalMember(){
-  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)));
   var existing=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("30").setMemberCode("owned");
   doAnswer(call->{emit(List.of(existing),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
   assertEquals(1,run(task,false).inserted());
@@ -94,69 +94,110 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(5,rows.size());assertEquals(at.minusDays(1),rows.get(0).getOriginalEffectiveTo());assertEquals(at,rows.get(0).getEffectiveTo());assertEquals(at,rows.get(1).getEffectiveTo());assertEquals(at.plusDays(1),rows.get(2).getEffectiveTo());assertNull(rows.get(3).getEffectiveTo());assertNull(rows.get(4).getEffectiveFrom());assertEquals(at.minusDays(1),rows.get(4).getEffectiveTo());
   var empty=new ArrayList<P31MemberContactSyncTask.Source>();mapper.selectMemberContact(new P31MemberContactSyncTask.ReadQuery(100,List.of()),r->empty.add(r.getResultObject()));assertTrue(empty.isEmpty());
   assertEquals(at.minusDays(1),jdbc.queryForObject("SELECT effectiveTo FROM pm_project_member WHERE id=1",LocalDateTime.class));
-  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)));
   doAnswer(call->{emit(rows,call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
   assertEquals(5,run(task,false).inserted());assertEquals(5,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment WHERE user_id IS NULL AND authorization_confirmed=0",Integer.class));
   assertEquals(at,jdbc.queryForObject("SELECT effective_to FROM proj_project_member_assignment WHERE id=?",LocalDateTime.class,rows.getFirst().getMember().getId()));
   assertEquals(5,run(task,true).unchanged());
  }
- @Test void existingFormalDateCheckStillRejectsRawIntervalAndRollsBackEarlierMember(){
-  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
-  var member=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("10").setMemberCode("w123");
-  var contact=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setMemberName("contact").setCreateTime(at).setEffectiveFrom(at).setEffectiveTo(at.minusDays(1));
-  doAnswer(call->{emit(List.of(member,contact),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
-  var failure=assertThrows(RuntimeException.class,()->run(task,false));
-  boolean nativeDateCheck=false;
-  for(Throwable cause=failure;cause!=null;cause=cause.getCause())if(cause instanceof java.sql.SQLException sql&&sql.getErrorCode()==3819&&sql.getMessage().contains("chk_proj_member_dates"))nativeDateCheck=true;
-  assertTrue(nativeDateCheck,"The existing database CHECK, rather than source-data validation, rejects the original interval");
-  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));
-  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM cus_project_customer_contact_relation",Integer.class));
+ @Test void nativeDateCheckAcceptsApprovedNormalizationWithoutChangingSource(){
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)));
+  var contact=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setCreateTime(at).setEffectiveFrom(at).setEffectiveTo(at).setOriginalEffectiveTo(at.minusDays(1));
+  doAnswer(call->{emit(List.of(contact),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
+  assertEquals(1,run(task,false).inserted());assertEquals(at,contact.getMember().getEffectiveTo());assertEquals(at.minusDays(1),contact.getOriginalEffectiveTo());
+  assertEquals(1,run(task,false).unchanged());
  }
- @Test void executionRetainsOriginalIntervalsAndReplaysWhenTargetAcceptsRawDates(){
+ @Test void previousRawHistoryReplaysWithoutBeingNormalized(){
   // This change affects only the connection-local TEMPORARY fixture, never a formal table.
   // The separate test above retains the actual formal CHECK and proves its remaining effect.
   jdbc.execute("ALTER TABLE proj_project_member_assignment DROP CHECK chk_proj_member_dates");
-  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)));
   var valid=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("10").setCreateTime(at).setEffectiveFrom(at);
-  var sameDay=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("30").setCreateTime(at).setEffectiveFrom(at).setEffectiveTo(at.minusMinutes(1));
-  var earlierDay=new P31MemberContactSyncTask.Source().setSourceId(3L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setCreateTime(at).setEffectiveFrom(at).setEffectiveTo(at.minusDays(1));
+  var sameDay=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("30").setCreateTime(at).setEffectiveFrom(at).setEffectiveTo(at).setOriginalEffectiveTo(at.minusMinutes(1));
+  var earlierDay=new P31MemberContactSyncTask.Source().setSourceId(3L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setCreateTime(at).setEffectiveFrom(at).setEffectiveTo(at).setOriginalEffectiveTo(at.minusDays(1));
   var rows=List.of(valid,sameDay,earlierDay);
   doAnswer(call->{emit(rows,call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
   var counts=run(task,false);assertEquals(3,counts.read());assertEquals(3,counts.inserted());
   for(var row:rows){
    assertEquals(row.getEffectiveFrom(),jdbc.queryForObject("SELECT effective_from FROM proj_project_member_assignment WHERE id=?",LocalDateTime.class,row.getMember().getId()));
-   assertEquals(row.getEffectiveTo(),jdbc.queryForObject("SELECT effective_to FROM proj_project_member_assignment WHERE id=?",LocalDateTime.class,row.getMember().getId()));
+   assertEquals(row.getEffectiveTo()!=null&&row.getEffectiveTo().isBefore(at)?at:row.getEffectiveTo(),jdbc.queryForObject("SELECT effective_to FROM proj_project_member_assignment WHERE id=?",LocalDateTime.class,row.getMember().getId()));
    assertFalse(row.getMember().getAuthorizationConfirmed());assertNull(row.getMember().getUserId());
    assertTrue(saved.containsKey("MEMBER_HISTORY:"+row.getSourceId()));
   }
-  for(var row:rows){row.setOriginalEffectiveTo(row.getEffectiveTo());if(row.getEffectiveTo()!=null&&row.getEffectiveFrom()!=null&&row.getEffectiveTo().isBefore(row.getEffectiveFrom()))row.setEffectiveTo(row.getEffectiveFrom());}
+  // Reconstruct the earlier approved raw-date history and its legacy binding in this temporary fixture.
+  for(var row:rows){row.getMember().setEffectiveTo(row.getOriginalEffectiveTo()==null?row.getEffectiveTo():row.getOriginalEffectiveTo());if("60".equals(row.getMemberRole()))row.getMember().setMemberRole("60");
+   jdbc.update("UPDATE proj_project_member_assignment SET effective_to=?,member_role=?,update_time=update_time WHERE id=?",row.getMember().getEffectiveTo(),row.getMember().getMemberRole(),row.getMember().getId());
+   saved.put("MEMBER_HISTORY:"+row.getSourceId(),new SyncIdentityStore.Identity(row.getSourceId().toString(),row.getMember().getId(),P31MemberContactSyncTask.legacyFingerprint(row.getMember())));
+  }
   var replay=run(task,false);assertEquals(3,replay.unchanged());assertEquals(0,replay.inserted());assertEquals(0,replay.updated());
   assertEquals(at.minusDays(1),jdbc.queryForObject("SELECT effective_to FROM proj_project_member_assignment WHERE id=?",LocalDateTime.class,earlierDay.getMember().getId()));
   earlierDay.setOriginalEffectiveTo(at.minusDays(2));assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("MEMBER_HISTORY_IMMUTABLE"));earlierDay.setOriginalEffectiveTo(at.minusDays(1));
   jdbc.update("UPDATE proj_project_member_assignment SET member_name='changed' WHERE id=?",earlierDay.getMember().getId());
   assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("EXISTING_MEMBER_PROTECTED"));
  }
- @Test void previewRetainsEveryOriginalIntervalWithoutSourceDataQualityControl(){
-  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+ @Test void previewNormalizesReversedIntervalsAndPreservesSourceValues(){
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)));
   var rows=new ArrayList<P31MemberContactSyncTask.Source>();
-  for(long id=1;id<=160;id++)rows.add(new P31MemberContactSyncTask.Source().setSourceId(id).setOriginalProjectId(1L).setProjectType("10").setMemberRole(id%3==0?"10":id%3==1?"30":"60").setEffectiveFrom(at).setEffectiveTo(at.minusDays(1)));
+  for(long id=1;id<=160;id++)rows.add(new P31MemberContactSyncTask.Source().setSourceId(id).setOriginalProjectId(1L).setProjectType("10").setMemberRole(id%3==0?"10":id%3==1?"30":"60").setEffectiveFrom(at).setEffectiveTo(at).setOriginalEffectiveTo(at.minusDays(1)));
   rows.add(new P31MemberContactSyncTask.Source().setSourceId(161L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setEffectiveFrom(at));
   doAnswer(call->{emit(rows,call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
   var context=context(true);assertEquals(161,transaction.execute(status->task.execute(context)).inserted());
   assertTrue(context.runState().warnings().stream().noneMatch(message->message.startsWith("P31_SOURCE_INTERVAL")));
   for(var row:rows.subList(0,160)){
-   assertEquals(at,row.getEffectiveFrom());assertEquals(at.minusDays(1),row.getEffectiveTo());
-   assertEquals(at,row.getMember().getEffectiveFrom());assertEquals(at.minusDays(1),row.getMember().getEffectiveTo());
+   assertEquals(at,row.getEffectiveFrom());assertEquals(at.minusDays(1),row.getOriginalEffectiveTo());
+   assertEquals(at,row.getMember().getEffectiveFrom());assertEquals(at,row.getMember().getEffectiveTo());
    assertFalse(row.getMember().getAuthorizationConfirmed());
   }
   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));assertTrue(saved.isEmpty());
  }
  @Test void previewIntervalExceptionDoesNotAllowLossOfAuditPrecision(){
-  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)));
   var source=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setCreateTime(at.plusNanos(1));
   doAnswer(call->{emit(List.of(source),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
   assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("SOURCE_INTERVAL_OR_AUDIT_PRECISION_INVALID"));
   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));assertTrue(saved.isEmpty());
+ }
+ @Test void internalAccountIsBoundAndQualifiedButContactWithSameCodeNeverGrants(){
+  var accounts=mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class);
+  var qualification=mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class);
+  when(accounts.getHistoricalMemberIdentities(eq(1L),any())).thenReturn(List.of(new cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.MemberIdentity(42L,"exact","EMP-42")));
+  when(qualification.page(any())).thenReturn(new cn.iocoder.yudao.framework.common.pojo.PageResult<>(List.of(new cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.User(42L,"exact","name",1L)),1L));
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,accounts,qualification));
+  var internal=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("10").setMemberCode("exact").setEffectiveFrom(at.minusDays(1)).setCreateTime(at.minusDays(2));
+  var contact=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setMemberCode("exact").setPhoneNum("123").setEmail("a@example.invalid");
+  doAnswer(call->{emit(List.of(internal,contact),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
+  assertEquals(2,run(task,false).inserted());
+  assertEquals(42L,jdbc.queryForObject("SELECT user_id FROM proj_project_member_assignment WHERE member_role='SALES_REPRESENTATIVE'",Long.class));
+  assertEquals("EMP-42",internal.getMember().getEmployeeNo());assertTrue(internal.getMember().getAuthorizationConfirmed());
+  assertNull(contact.getMember().getUserId());assertFalse(contact.getMember().getAuthorizationConfirmed());
+  assertEquals("123",jdbc.queryForObject("SELECT external_mobile FROM proj_project_member_assignment WHERE member_role='END_USER'",String.class));
+  assertEquals("a@example.invalid",jdbc.queryForObject("SELECT external_email FROM proj_project_member_assignment WHERE member_role='END_USER'",String.class));
+  assertEquals(2,run(task,false).unchanged());verify(qualification,times(1)).page(any());
+  jdbc.update("UPDATE proj_project_member_assignment SET external_mobile='manual' WHERE member_role='END_USER'");
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("EXISTING_MEMBER_PROTECTED"));
+ }
+ @Test void newBoundAccountOverlapAcrossBatchesRollsBackAndPreviewAlsoRejects(){
+  var accounts=mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class);
+  var qualification=mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class);
+  when(accounts.getHistoricalMemberIdentities(eq(1L),any())).thenReturn(List.of(new cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.MemberIdentity(42L,"exact","E")));
+  when(qualification.page(any())).thenReturn(new cn.iocoder.yudao.framework.common.pojo.PageResult<>(List.of(),0L));
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,accounts,qualification));
+  var a=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("10").setMemberCode("exact").setEffectiveFrom(at.minusDays(2));
+  var b=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("10").setMemberCode("exact").setEffectiveFrom(at.minusDays(1));
+  doAnswer(call->{emit(List.of(a,b),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("SOURCE_INTERVAL_OVERLAP"));
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("SOURCE_INTERVAL_OVERLAP"));
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));
+ }
+ @Test void nonExactAccountResponseAndMissingManageScopeFailClosed(){
+  var accounts=mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class);
+  when(accounts.getHistoricalMemberIdentities(eq(1L),any())).thenReturn(List.of(new cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.MemberIdentity(42L,"EXACT","E")));
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,accounts,mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)));
+  var a=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("10").setMemberCode("exact");
+  doAnswer(call->{emit(List.of(a),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("ACCOUNT_AMBIGUOUS"));
+  doThrow(new org.springframework.security.access.AccessDeniedException("scope")).when(projects).verifyPublished(any());
+  assertThrows(org.springframework.security.access.AccessDeniedException.class,()->run(task,false));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));
  }
  P33InstallationSyncTask installation(List<P33InstallationSyncTask.Source> rows,AssetLocationApi locations){
   jdbc.update("INSERT INTO ast_device(id,tenant_id,sn,status,version,source_system,source_key) VALUES(9,1,'SN-1','IN_STOCK',0,'DPPMS','SN-1')");
@@ -291,6 +332,6 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
  }
  @Test void absentPublicationBlocksEveryHistoryBeforeOpeningTheExternalSource(){
   when(publications.load(any())).thenThrow(new IllegalStateException("COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED"));var external=mock(SyncSource.class);var context=new SyncContext<Void>(1,2,3,true,10,100,at,external,identities,mock(SyncReferences.class),"Task",session,false,true);
-  assertThrows(IllegalStateException.class,()->new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects).execute(context));assertThrows(IllegalStateException.class,()->new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects).execute(context));verifyNoInteractions(external);
+  assertThrows(IllegalStateException.class,()->new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)).execute(context));assertThrows(IllegalStateException.class,()->new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects).execute(context));verifyNoInteractions(external);
  }
 }
