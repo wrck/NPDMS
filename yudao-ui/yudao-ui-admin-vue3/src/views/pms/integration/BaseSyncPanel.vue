@@ -85,6 +85,7 @@ const p15Stages = [
   { value: 'Contract', label: '合同基础数据' },
   { value: 'ContractOrganization', label: '合同组织关系' },
   { value: 'ShipmentContractOrganization', label: '发货合同组织关系' },
+  { value: 'PackageContractReference', label: '包裹合同引用补齐' },
   { value: 'OrderContractRelation', label: '订单—合同关系' },
   { value: 'ShipmentOrderLine', label: '发货—订单行关系' }
 ]

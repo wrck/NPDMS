@@ -26,7 +26,7 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
  }
  @Override public String taskCode(){return "BASE_P15";}
  @Override public String taskName(){return "合同及全量发货历史";}
- @Override public List<String> supportedStages(){return List.of("ShipmentContract","Package","ShipmentEvent","DeviceRelationship","Contract","ContractOrganization","ShipmentContractOrganization","OrderContractRelation","ShipmentOrderLine");}
+ @Override public List<String> supportedStages(){return List.of("ShipmentContract","Package","ShipmentEvent","DeviceRelationship","Contract","ContractOrganization","ShipmentContractOrganization","PackageContractReference","OrderContractRelation","ShipmentOrderLine");}
  @Override protected Parameters createParameters(SyncContext<?> c){
   var names=new HashMap<String,String>();var ambiguous=new HashSet<String>();
   for(var item:mapper.selectCarriers(new TenantQuery(c.tenantId()))){if(item.code==null || item.label==null || item.label.isBlank())continue;var old=names.putIfAbsent(item.code,item.label);if(old!=null && !old.equals(item.label))ambiguous.add(item.code);}
@@ -44,6 +44,8 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
   return new Parameters(Map.copyOf(names),c.connectionId(),Map.copyOf(directory),new LinkedHashMap<>());
  }
  @Override public void work(SyncContext<Parameters> c){
+  if((c.runState().includesStage("ShipmentEvent")||c.runState().includesStage("ShipmentOrderLine"))
+    &&mapper.hasLegacyShipmentIdentities(new PrerequisiteQuery(c.tenantId(),c.connectionId())))fail("SHIPMENT_UUID_IDENTITY_MIGRATION_REQUIRED");
   if((c.runState().includesStage("Package")||c.runState().includesStage("ShipmentEvent"))&&mapper.packageSourceColumnReady()!=1)fail("TARGET_COLUMN_MISSING:com_shipment_package.shipment_contract_source_key");
   if(c.runState().includesStage("ShipmentEvent"))try(var session=c.source().open(c.connectionId())){long count=session.mapper(SourceMapper.class).countShipmentEvents(new SourceQuery<>(1,c.tenantId(),true,c.parameters()));if(count>c.maxRows())fail("FULL_SHIPMENT_SOURCE_EXCEEDS_CONFIGURED_LIMIT:"+count+":"+c.maxRows());}
   if(!c.preview()){var prerequisite=mapper.latestP24Execution(new PrerequisiteQuery(c.tenantId(),c.connectionId()));if(prerequisite==null || !"COMPLETED".equals(prerequisite))fail("COMPLETE_FORMAL_BASE_P24_INPUT_REQUIRED");}
@@ -52,7 +54,7 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
    // Only fixed, reviewed stages are selectable; caller ordering never changes dependency order.
    for(String stage:supportedStages()){
     if(!c.runState().includesStage(stage))continue;
-    boolean local=stage.equals("ContractOrganization")||stage.equals("ShipmentContractOrganization")||stage.equals("OrderContractRelation");
+    boolean local=stage.equals("ContractOrganization")||stage.equals("ShipmentContractOrganization")||stage.equals("OrderContractRelation")||stage.equals("PackageContractReference");
     syncData(local?c.forLocalData(stage,false,true):c.forData(stage,false,!stage.equals("Contract")));
    }
    c.parameters().missing.forEach((key,count)->c.runState().warning("P15_"+key+":"+count));
@@ -100,7 +102,8 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
    var packages=new HashMap<String,ShipmentPackageReference>();for(var row:packageRows)if(row.sourceKey!=null&&packages.putIfAbsent(row.sourceKey,row)!=null)fail("PACKAGE_SOURCE_IDENTITY_AMBIGUOUS");
    var contracts=new HashMap<String,ShipmentContractReference>();for(var row:contractRows)if(row.sourceKey!=null&&contracts.putIfAbsent(row.sourceKey,row)!=null)fail("SHIPMENT_CONTRACT_SOURCE_IDENTITY_AMBIGUOUS");
    syncDataQueryBySql(session.sqlSession(),sourceQuery(c),(ResultHandler<Source>)result->{
-    var row=result.getResultObject().getTarget();var pack=packages.get(row.legacyPackageKey);var contract=pack==null?null:contracts.get(pack.contractSourceKey);
+    var event=result.getResultObject();if(event==null||event.key==null||event.key.isBlank())fail("SHIPMENT_UUID_MISSING");
+    var row=event.getTarget();var pack=packages.get(row.legacyPackageKey);var contract=pack==null?null:contracts.get(pack.contractSourceKey);
     row.shipmentTime=pack==null?null:pack.shipmentTime;row.contractNo=contract==null?null:contract.contractNo;handler.handleResult(result);
    });
   }
@@ -109,6 +112,7 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
   var c=b.context();String kind=c.dataName();
   if(kind.equals("OrderContractRelation")){completeOrderContractRelations(b);return;}
   if(kind.equals("ShipmentOrderLine")){completeShipmentOrderLines(b);return;}
+  if(kind.equals("PackageContractReference")){completePackageContractReferences(b);return;}
   if(kind.endsWith("Organization")){completeOrganizations(b);return;}
   if(kind.equals("Contract")&&b.rows().size()>c.batchSize()){org.slf4j.LoggerFactory.getLogger(P15DeliverySyncTask.class).info("P15_CONTRACT_IDENTITY_BATCHES:rows={},batchSize={}",b.rows().size(),c.batchSize());for(int i=0;i<b.rows().size();i+=c.batchSize())syncDataInsertBefore(new SyncBatch<>(c,b.rows().subList(i,Math.min(i+c.batchSize(),b.rows().size()))));return;}
   var keys=b.rows().stream().map(s->s.key).toList();
@@ -218,8 +222,40 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
  static String orderContractFingerprint(OrderContractRow row){
   return SyncFingerprint.of(Arrays.asList(row.id,row.tenantId,orderContractBusiness(row),row.creator,row.createTime,row.updater,row.updateTime,row.deleted));
  }
+ private void completePackageContractReferences(SyncBatch<Source,Parameters> batch){
+  var c=batch.context();var keys=batch.rows().stream().map(Source::getKey).toList();
+  var bindings=c.identities().findByKeys(new SyncIdentityStore.Query("PACKAGE",keys));
+  var current=new HashMap<String,Row>();
+  for(var row:mapper.selectPackages(new KeysQuery(c.tenantId(),keys,c.preview())))
+   if(current.putIfAbsent(row.sourceRecordKey,row)!=null)fail("FORMAL_IDENTITY_AMBIGUOUS");
+  var parentKeys=current.values().stream().map(Row::getShipmentContractSourceKey).filter(Objects::nonNull).distinct().toList();
+  var parentBindings=parentKeys.isEmpty()?Map.<String,SyncIdentityStore.Identity>of():c.identities().findByKeys(new SyncIdentityStore.Query("SHIPMENT_CONTRACT",parentKeys));
+  var parents=new HashMap<String,Row>();
+  if(!parentKeys.isEmpty())for(var row:mapper.selectShipmentContracts(new KeysQuery(c.tenantId(),parentKeys,c.preview())))
+   if(parents.putIfAbsent(row.sourceRecordKey,row)!=null)fail("FORMAL_IDENTITY_AMBIGUOUS");
+  for(var source:batch.rows()){
+   source.action=SyncWriteAction.UNCHANGED;var binding=bindings.get(source.key);var old=current.get(source.key);
+   if(binding==null)continue;
+   if(old==null||!Objects.equals(source.target.id,binding.targetId())||old.id!=binding.targetId()
+     ||Boolean.TRUE.equals(old.deleted)||!Objects.equals(old.tenantId,c.tenantId())
+     ||!binding.fingerprint().equals(fingerprint(new Validation("Package",old))))fail("EXISTING_FACT_PROTECTED");
+   source.target=old;var parent=parents.get(old.shipmentContractSourceKey);var parentBinding=old.shipmentContractSourceKey==null?null:parentBindings.get(old.shipmentContractSourceKey);
+   if(parent==null||parentBinding==null||Boolean.TRUE.equals(parent.deleted)){
+    c.parameters().missing.merge("PACKAGE_CONTRACT_REFERENCE_PENDING",1L,Long::sum);continue;
+   }
+   if(parent.id!=parentBinding.targetId()||!Objects.equals(parent.tenantId,c.tenantId())||!Objects.equals(parent.sourceSystem,old.sourceSystem)
+     ||!parentBinding.fingerprint().equals(fingerprint(new Validation("ShipmentContract",parent))))fail("EXISTING_FACT_PROTECTED");
+   if(old.shipmentContractRefId!=null){
+    if(!old.shipmentContractRefId.equals(parent.id))c.parameters().missing.merge("PACKAGE_CONTRACT_REFERENCE_DIFFERENT",1L,Long::sum);
+    continue;
+   }
+   var next=new Row();org.springframework.beans.BeanUtils.copyProperties(old,next);next.shipmentContractRefId=parent.id;
+   source.target=next;source.previous=binding.fingerprint();source.action=SyncWriteAction.UPDATE;
+  }
+ }
  private void completeShipmentOrderLines(SyncBatch<Source,Parameters> batch){
   var c=batch.context();var keys=batch.rows().stream().map(Source::getKey).toList();
+  if(keys.stream().anyMatch(key->key==null||key.isBlank()))fail("SHIPMENT_UUID_MISSING");
   var bindings=c.identities().findByKeys(new SyncIdentityStore.Query("SHIPMENT_EVENT",keys));
   var current=new HashMap<String,Row>();
   for(var row:mapper.selectEvents(new KeysQuery(c.tenantId(),keys,c.preview())))
@@ -251,7 +287,7 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
   long count=batch.context().parameters().missing.merge("SHIPMENT_ORDER_LINE_"+reason,1L,Long::sum);
   if(count<=20)org.slf4j.LoggerFactory.getLogger(P15DeliverySyncTask.class).warn("P15_SHIPMENT_ORDER_LINE_PENDING:tenantId={},sourceKey={},reason={}",batch.context().tenantId(),source.key,reason);
  }
- static String completionKind(String kind){return switch(kind){case "ContractOrganization"->"Contract";case "ShipmentContractOrganization"->"ShipmentContract";case "ShipmentOrderLine"->"ShipmentEvent";default->kind;};}
+ static String completionKind(String kind){return switch(kind){case "ContractOrganization"->"Contract";case "ShipmentContractOrganization"->"ShipmentContract";case "ShipmentOrderLine"->"ShipmentEvent";case "PackageContractReference"->"Package";default->kind;};}
  public record Validation(String kind,Row row){}
  static LocalDateTime relationshipTime(Source source){
   if(source.rawRelationshipCreatedAt==null)return null;
@@ -274,6 +310,10 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
  static void fail(String code){throw new IllegalArgumentException("P15_"+code);}
  @Override protected SyncCounts syncDataCount(SyncBatch<Source,Parameters> b){return SyncCounts.fromActions(b.rows(),Source::getAction);}
  @Override protected void syncDataInsert(SyncBatch<Source,Parameters> b){
+  if("PackageContractReference".equals(b.context().dataName())){
+   var changed=b.matching(s->s.action==SyncWriteAction.UPDATE);if(changed.rows().isEmpty()||b.context().preview())return;
+   if(mapper.updatePackageContractReference(changed)!=changed.rows().size())fail("PACKAGE_CONTRACT_REFERENCE_CHANGED");return;
+  }
   if("ShipmentOrderLine".equals(b.context().dataName())){
    var changed=b.matching(s->s.action==SyncWriteAction.UPDATE);if(changed.rows().isEmpty()||b.context().preview())return;
    if(mapper.updateShipmentOrderLine(changed)!=changed.rows().size())fail("SHIPMENT_ORDER_LINE_TARGET_CHANGED");return;
@@ -313,5 +353,5 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
  public record ContractIdentity(String companyCode,String contractNo){}
  public record ContractsQuery(long tenantId,List<ContractIdentity> keys,boolean preview){}
  public interface SourceMapper {void selectShipmentOrderLine(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);long countShipmentEvents(SourceQuery<Parameters> query);void selectShipmentContract(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectPackage(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectShipmentEvent(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectDeviceRelationship(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);List<ContractCustomer> selectContractCustomers(SourceQuery<Parameters> query);List<Row> selectContractShipmentFields(SourceQuery<Parameters> query);List<Row> selectContractReceivableFields(SourceQuery<Parameters> query);List<ShipmentPackageReference> selectShipmentPackageReferences(SourceQuery<Parameters> query);List<ShipmentContractReference> selectShipmentContractReferences(SourceQuery<Parameters> query);}
- @Mapper public interface TargetMapper {void selectOrderContractRelation(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);List<OrderContractRow> selectOrderContractRelations(@Param("query") OrderContractQuery query);int insertOrderContractRelation(SyncBatch<Source,Parameters> batch);List<ResolvedOrderLine> selectShipmentOrderLines(@Param("query") ShipmentOrderLineQuery query);int updateShipmentOrderLine(SyncBatch<Source,Parameters> batch);List<Carrier> selectCarriers(@Param("query") TenantQuery query);@com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true",dataPermission="true") int packageSourceColumnReady();String latestP24Execution(@Param("query") PrerequisiteQuery query);List<Row> selectContracts(@Param("query") ContractsQuery query);List<Row> selectShipmentContracts(@Param("query") KeysQuery query);List<Row> selectPackages(@Param("query") KeysQuery query);List<Row> selectEvents(@Param("query") KeysQuery query);List<Row> selectRelationships(@Param("query") KeysQuery query);void selectContract(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectContractOrganization(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectShipmentContractOrganization(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);int updateContractOrganization(SyncBatch<Source,Parameters> batch);int updateShipmentContractOrganization(SyncBatch<Source,Parameters> batch);int insertContract(SyncBatch<Source,Parameters> batch);int insertShipmentContract(SyncBatch<Source,Parameters> batch);int insertPackage(SyncBatch<Source,Parameters> batch);int insertShipmentEvent(SyncBatch<Source,Parameters> batch);int insertDeviceRelationship(SyncBatch<Source,Parameters> batch); int updateContract(RowParameter<Source,Parameters> row);int updateShipmentContract(RowParameter<Source,Parameters> row);int updatePackage(RowParameter<Source,Parameters> row);}
+ @Mapper public interface TargetMapper {void selectPackageContractReference(SourceQuery<Parameters> query,ResultHandler<Source> handler);int updatePackageContractReference(SyncBatch<Source,Parameters> batch);boolean hasLegacyShipmentIdentities(@Param("query") PrerequisiteQuery query);void selectOrderContractRelation(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);List<OrderContractRow> selectOrderContractRelations(@Param("query") OrderContractQuery query);int insertOrderContractRelation(SyncBatch<Source,Parameters> batch);List<ResolvedOrderLine> selectShipmentOrderLines(@Param("query") ShipmentOrderLineQuery query);int updateShipmentOrderLine(SyncBatch<Source,Parameters> batch);List<Carrier> selectCarriers(@Param("query") TenantQuery query);@com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true",dataPermission="true") int packageSourceColumnReady();String latestP24Execution(@Param("query") PrerequisiteQuery query);List<Row> selectContracts(@Param("query") ContractsQuery query);List<Row> selectShipmentContracts(@Param("query") KeysQuery query);List<Row> selectPackages(@Param("query") KeysQuery query);List<Row> selectEvents(@Param("query") KeysQuery query);List<Row> selectRelationships(@Param("query") KeysQuery query);void selectContract(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectContractOrganization(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectShipmentContractOrganization(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);int updateContractOrganization(SyncBatch<Source,Parameters> batch);int updateShipmentContractOrganization(SyncBatch<Source,Parameters> batch);int insertContract(SyncBatch<Source,Parameters> batch);int insertShipmentContract(SyncBatch<Source,Parameters> batch);int insertPackage(SyncBatch<Source,Parameters> batch);int insertShipmentEvent(SyncBatch<Source,Parameters> batch);int insertDeviceRelationship(SyncBatch<Source,Parameters> batch); int updateContract(RowParameter<Source,Parameters> row);int updateShipmentContract(RowParameter<Source,Parameters> row);int updatePackage(RowParameter<Source,Parameters> row);}
 }

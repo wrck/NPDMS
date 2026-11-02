@@ -121,13 +121,39 @@ class P15ContractInputMySqlTest extends RemainingTaskMySqlSupport {
   jdbc.execute("CREATE TEMPORARY TABLE fb_shipment(packlist_id VARCHAR(64),con_id VARCHAR(64),packdate DATETIME) DEFAULT CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci");
   jdbc.execute("CREATE TEMPORARY TABLE fb_shipment_barcode(id BIGINT,barcode VARCHAR(64),pack_id VARCHAR(64),rma_no VARCHAR(64),warrantyStartDate DATE,warrantyMonth BIGINT,rmaBarcode VARCHAR(64),updateTime DATETIME,orderNumber VARCHAR(64),lineNum BIGINT,item VARCHAR(64),barcode2 VARCHAR(64),item2 VARCHAR(64),com_barcode VARCHAR(64),isRMA INT,profitCenter VARCHAR(64),soleAgentSuffix VARCHAR(64),syncTime DATETIME,uuid VARCHAR(64)) DEFAULT CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci");
   jdbc.update("INSERT INTO fb_shipment VALUES('PK','A','2020-01-01'),('WITHOUT-CONTRACT','missing','2020-02-01')");
-  jdbc.update("INSERT INTO fb_shipment_barcode(id,barcode,pack_id) VALUES(1,'SN-1','PK'),(2,'SN-2','pk'),(3,'SN-3','WITHOUT-CONTRACT'),(4,'SN-4',NULL),(5,'SN-5','missing')");
+  jdbc.update("INSERT INTO fb_shipment_barcode(id,barcode,pack_id,uuid) VALUES(1,'SN-1','PK','shipment-uuid-1'),(2,'SN-2','pk','shipment-uuid-2'),(3,'SN-3','WITHOUT-CONTRACT','shipment-uuid-3'),(4,'SN-4',NULL,'shipment-uuid-4'),(5,'SN-5','missing','shipment-uuid-5')");
   var readMapper=spy(session.getMapper(P15DeliverySyncTask.SourceMapper.class));SyncSource readSource=id->new SyncSource.Session(){public org.apache.ibatis.session.SqlSession sqlSession(){return session;}public <M>M mapper(Class<M> type){return type.cast(readMapper);}public void close(){}};
   var context=new SyncContext<Void>(1,2,3,true,1,10000,at,readSource,identities,mock(SyncReferences.class),"BASE_P15",session,false,true).forParameters(new P15DeliverySyncTask.Parameters(Map.of(),3));
   var target=mock(P15DeliverySyncTask.TargetMapper.class);var task=new EventProbe(target);var rows=task.queryEvents(context);assertEquals(5,rows.size());var byKey=new HashMap<String,P15DeliverySyncTask.Row>();for(var row:rows)byKey.put(row.getKey(),row.getTarget());
-  assertEquals(java.time.LocalDateTime.of(2020,1,1,0,0),byKey.get("1").getShipmentTime());assertEquals("C",byKey.get("1").getContractNo());assertNull(byKey.get("2").getShipmentTime());assertNull(byKey.get("2").getContractNo());assertEquals(java.time.LocalDateTime.of(2020,2,1,0,0),byKey.get("3").getShipmentTime());assertNull(byKey.get("3").getContractNo());for(var key:List.of("4","5")){assertNull(byKey.get(key).getShipmentTime());assertNull(byKey.get(key).getContractNo());}
+  assertEquals(java.time.LocalDateTime.of(2020,1,1,0,0),byKey.get("shipment-uuid-1").getShipmentTime());assertEquals("C",byKey.get("shipment-uuid-1").getContractNo());assertNull(byKey.get("shipment-uuid-2").getShipmentTime());assertNull(byKey.get("shipment-uuid-2").getContractNo());assertEquals(java.time.LocalDateTime.of(2020,2,1,0,0),byKey.get("shipment-uuid-3").getShipmentTime());assertNull(byKey.get("shipment-uuid-3").getContractNo());for(var key:List.of("shipment-uuid-4","shipment-uuid-5")){assertNull(byKey.get(key).getShipmentTime());assertNull(byKey.get(key).getContractNo());}
   var lookups=mockingDetails(readMapper).getInvocations().stream().map(invocation->invocation.getMethod().getName()).toList();assertEquals(List.of("selectShipmentPackageReferences","selectShipmentContractReferences"),lookups);
   assertEquals(new SyncCounts(5,5,0,0,0),run(task,true));assertTrue(saved.isEmpty());
+  for(var row:rows){assertEquals(row.getKey(),row.getTarget().getSourceKey());assertEquals(row.getKey(),row.getTarget().getUuid());}
+  jdbc.update("UPDATE fb_shipment_barcode SET id=id+1000");
+  assertEquals(byKey.keySet(),task.queryEvents(context).stream().map(P15DeliverySyncTask.Source::getKey).collect(java.util.stream.Collectors.toSet()));
+  var lines=new ArrayList<P15DeliverySyncTask.Source>();
+  session.getMapper(P15DeliverySyncTask.SourceMapper.class).selectShipmentOrderLine(new AbstractSyncTask.SourceQuery<>(100,1,true,context.parameters()),result->lines.add(result.getResultObject()));
+  assertEquals(byKey.keySet(),lines.stream().map(P15DeliverySyncTask.Source::getKey).collect(java.util.stream.Collectors.toSet()));
+  for(String uuid:Arrays.asList(null,""," ")){
+   jdbc.update("UPDATE fb_shipment_barcode SET uuid=? WHERE id=1001",uuid);
+   assertTrue(assertThrows(IllegalArgumentException.class,()->task.queryEvents(context)).getMessage().contains("SHIPMENT_UUID_MISSING"));
+  }
+ }
+ @Test void legacyShipmentIdentityGuardRequiresExplicitMigrationAndKeepsTenantAndConnectionScope(){
+  jdbc.execute("CREATE TEMPORARY TABLE ast_device_shipment(id BIGINT PRIMARY KEY,tenant_id BIGINT,source_key VARCHAR(128),uuid VARCHAR(64))");
+  var query=new P15DeliverySyncTask.PrerequisiteQuery(1,3);
+  assertFalse(mapper.hasLegacyShipmentIdentities(query));
+  jdbc.update("INSERT INTO ast_device_shipment VALUES(100,1,'123','shipment-uuid-123')");
+  jdbc.update("INSERT INTO int_base_sync_binding(id,tenant_id,task_id,object_key,source_key,target_id,fingerprint,last_run_id) VALUES(99,1,10,'SHIPMENT_EVENT','123',100,?,1)","a".repeat(64));
+  assertTrue(mapper.hasLegacyShipmentIdentities(query));
+  assertFalse(mapper.hasLegacyShipmentIdentities(new P15DeliverySyncTask.PrerequisiteQuery(2,3)));
+  assertFalse(mapper.hasLegacyShipmentIdentities(new P15DeliverySyncTask.PrerequisiteQuery(1,4)));
+  jdbc.update("UPDATE ast_device_shipment SET source_key=uuid");
+  assertTrue(mapper.hasLegacyShipmentIdentities(query));
+  jdbc.update("UPDATE int_base_sync_binding SET source_key='shipment-uuid-123' WHERE id=99");
+  assertFalse(mapper.hasLegacyShipmentIdentities(query));
+  jdbc.update("DELETE FROM ast_device_shipment");
+  assertTrue(mapper.hasLegacyShipmentIdentities(query));
  }
  @Test void relationshipVarcharTimePreservesAllSupportedPrecisionAndRejectsLoss(){
   jdbc.execute("CREATE TEMPORARY TABLE fb_shipment_barcode_relation(id BIGINT,sn1 VARCHAR(100),sn2 VARCHAR(100),contract VARCHAR(64),createtime VARCHAR(50),updatetime VARCHAR(50),item1 VARCHAR(15),item2 VARCHAR(15))");

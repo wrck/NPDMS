@@ -14,21 +14,21 @@ class ShipmentOrderLinePostfillTest {
     final SyncIdentityStore identities=mock(SyncIdentityStore.class);
     final P15DeliverySyncTask task=new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class));
     final P15DeliverySyncTask.Row old=new P15DeliverySyncTask.Row().setId(10L).setTenantId(1L)
-            .setSourceSystem("DPPMS").setSourceKey("78897").setOrderNo("SO064298").setLineNo("10625024")
+            .setSourceSystem("DPPMS").setSourceKey("shipment-uuid-78897").setUuid("shipment-uuid-78897").setOrderNo("SO064298").setLineNo("10625024")
             .setProductCode("child-product").setDeleted(false).setVersion(4L).setUpdater("original")
             .setUpdateTime(LocalDateTime.of(2020,1,1,0,0));
 
     SyncBatch<P15DeliverySyncTask.Source,P15DeliverySyncTask.Parameters> batch(boolean preview) {
         when(mapper.selectEvents(any())).thenReturn(List.of(old));
-        when(identities.findByKeys(any())).thenReturn(Map.of("78897",new SyncIdentityStore.Identity("78897",10,
+        when(identities.findByKeys(any())).thenReturn(Map.of("shipment-uuid-78897",new SyncIdentityStore.Identity("shipment-uuid-78897",10,
                 P15DeliverySyncTask.fingerprint(new P15DeliverySyncTask.Validation("ShipmentEvent",old)))));
         when(mapper.selectShipmentOrderLines(any())).thenReturn(List.of(new P15DeliverySyncTask.ResolvedOrderLine()
-                .setShipmentKey("78897").setOrderLineId(99L)));
+                .setShipmentKey("shipment-uuid-78897").setOrderLineId(99L)));
         when(mapper.updateShipmentOrderLine(any())).thenReturn(1);
         var context=new SyncContext<Void>(1,2,3,preview,37,1000,LocalDateTime.of(2026,10,23,12,0),
                 mock(SyncSource.class),identities,mock(SyncReferences.class),"ShipmentOrderLine",mock(SqlSession.class),false,true)
                 .forParameters(new P15DeliverySyncTask.Parameters(Map.of(),3));
-        var source=new P15DeliverySyncTask.Source().setKey("78897").setRawOrderNo("SO064298").setRawLineNo("10625024")
+        var source=new P15DeliverySyncTask.Source().setKey("shipment-uuid-78897").setRawOrderNo("SO064298").setRawLineNo("10625024")
                 .setLineCandidateCount(1L).setLineSourceKey("p14-key").setLineSourceSystem("D365")
                 .setLineCompanyCode("001").setLineType("0").setFormalLineNo("1").setLineProductCode("parent-product");
         return new SyncBatch<>(context,new ArrayList<>(List.of(source)));
@@ -47,6 +47,14 @@ class ShipmentOrderLinePostfillTest {
         assertEquals(SyncWriteAction.UNCHANGED,replay.rows().getFirst().getAction());verify(mapper,times(1)).updateShipmentOrderLine(any());
     }
 
+    @Test void missingUuidCannotFallBackToTheOldNumericIdentity(){
+        for(String key:Arrays.asList(null,""," ")){
+            var batch=batch(false);batch.rows().getFirst().setKey(key);
+            assertTrue(assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(batch))
+                    .getMessage().contains("SHIPMENT_UUID_MISSING"));
+        }
+        verify(identities,never()).findByKeys(any());verify(mapper,never()).updateShipmentOrderLine(any());
+    }
     @Test void missingAndAmbiguousRawLinesRemainUnchangedWithoutCallingFormalResolver() {
         for(Long count:Arrays.asList(null,2L)){
             clearInvocations(mapper);var batch=batch(false);batch.rows().getFirst().setLineCandidateCount(count);

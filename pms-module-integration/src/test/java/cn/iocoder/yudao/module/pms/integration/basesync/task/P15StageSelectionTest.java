@@ -47,6 +47,16 @@ class P15StageSelectionTest {
         assertEquals(task.supportedStages(),executed);
         verify(sourceMapper).countShipmentEvents(any());
     }
+    @Test void legacyShipmentKeysStopOnlyIdentityDependentStagesBeforeReadingOrWriting(){
+        when(mapper.hasLegacyShipmentIdentities(any())).thenReturn(true);
+        for(var stage:List.of("ShipmentEvent","ShipmentOrderLine")){
+            assertTrue(assertThrows(IllegalArgumentException.class,()->task.execute(context(true,List.of(stage))))
+                    .getMessage().contains("SHIPMENT_UUID_IDENTITY_MIGRATION_REQUIRED"));
+        }
+        assertTrue(executed.isEmpty());verifyNoInteractions(source);
+        task.execute(context(true,List.of("ContractOrganization")));
+        assertEquals(List.of("ContractOrganization"),executed);
+    }
     @Test void invalidOrRepeatedStageIsRejectedBeforeAnyReads(){
         for(var stages:List.of(List.of("selectAnyTable"),List.of("OrderContractRelation","OrderContractRelation"))){
             assertThrows(IllegalArgumentException.class,()->task.execute(context(true,stages)));

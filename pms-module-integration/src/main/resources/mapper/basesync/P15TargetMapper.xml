@@ -97,6 +97,19 @@ GROUP BY s.tenant_id,s.contract_no) rr ON rr.tenant_id=#{tenantId} AND CAST(rr.c
 <select id="selectRelationships" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$Row">SELECT `id`,`source_device_sn`,`target_device_sn`,`relationship_type`,`contract_no`,`effective_from`,`effective_to`,`source_system`,`source_key`,`source_version`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`,`source_item`,`target_item` FROM ast_device_relationship WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS' <choose><when test="query.keys != null and !query.keys.isEmpty()">AND source_key IN <foreach collection="query.keys" item="key" open="(" close=")" separator=",">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview"> FOR UPDATE</if></select>
 <insert id="insertDeviceRelationship">INSERT INTO ast_device_relationship (`id`,`source_device_sn`,`target_device_sn`,`relationship_type`,`contract_no`,`effective_from`,`effective_to`,`source_system`,`source_key`,`source_version`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,tenant_id,`source_item`,`target_item`) VALUES <foreach collection="rows" item="row" separator=",">(#{row.target.id},#{row.target.sourceDeviceSn},#{row.target.targetDeviceSn},#{row.target.relationshipType},#{row.target.contractNo},#{row.target.effectiveFrom},#{row.target.effectiveTo},#{row.target.sourceSystem},#{row.target.sourceKey},#{row.target.sourceVersion},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted},#{row.target.tenantId},#{row.target.sourceItem},#{row.target.targetItem})</foreach></insert>
 <select id="selectCarriers" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$Carrier">SELECT value AS code,label FROM system_dict_data WHERE dict_type='01' AND deleted=FALSE AND status=0</select>
+<select id="hasLegacyShipmentIdentities" resultType="boolean">
+ SELECT EXISTS(
+  SELECT 1 FROM int_base_sync_task t
+  JOIN int_base_sync_binding b ON b.tenant_id=t.tenant_id AND b.task_id=t.id
+    AND b.object_key='SHIPMENT_EVENT' AND b.deleted=FALSE
+  LEFT JOIN ast_device_shipment s ON s.tenant_id=b.tenant_id AND s.id=b.target_id
+  WHERE t.tenant_id=#{query.tenantId} AND t.connection_id=#{query.connectionId}
+    AND t.task_code='BASE_P15' AND t.deleted=FALSE
+    AND (s.id IS NULL OR s.uuid IS NULL OR TRIM(s.uuid)=''
+      OR NOT(CAST(b.source_key AS BINARY)&lt;=&gt;CAST(s.uuid AS BINARY))
+      OR NOT(CAST(s.source_key AS BINARY)&lt;=&gt;CAST(s.uuid AS BINARY)))
+ )
+</select>
 <select id="packageSourceColumnReady" resultType="int">SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='com_shipment_package' AND column_name='shipment_contract_source_key' AND data_type='varchar' AND character_maximum_length>=64</select>
 <select id="latestP24Execution" resultType="string">SELECT r.status FROM int_base_sync_run r JOIN int_base_sync_task t ON t.tenant_id=r.tenant_id AND t.id=r.task_id AND t.deleted=FALSE WHERE r.tenant_id=#{query.tenantId} AND r.connection_id=#{query.connectionId} AND r.task_code='BASE_P24' AND r.preview=FALSE AND r.deleted=FALSE ORDER BY r.id DESC LIMIT 1</select>
 <!-- Completion reads are local. Binding verification before each batch supplies the exact write scope. -->
@@ -107,6 +120,23 @@ GROUP BY s.tenant_id,s.contract_no) rr ON rr.tenant_id=#{tenantId} AND CAST(rr.c
  <id property="key" column="raw_key"/>
  <association property="target" resultMap="OrganizationRow" notNullColumn="id"/>
 </resultMap>
+<select id="selectPackageContractReference" resultMap="OrganizationSource" resultOrdered="true">
+ SELECT p.*,p.source_record_key AS raw_key FROM com_shipment_package p
+ WHERE p.tenant_id=#{tenantId} AND p.deleted=FALSE AND p.source_system='DPPMS'
+ ORDER BY p.id LIMIT #{limit}
+</select>
+<update id="updatePackageContractReference">
+ UPDATE com_shipment_package p JOIN (
+  VALUES <foreach collection="rows" item="row" separator=",">ROW(#{row.target.id},#{row.target.shipmentContractRefId},#{row.target.shipmentContractSourceKey})</foreach>
+ ) incoming(id,parent_id,parent_key) ON incoming.id=p.id
+ JOIN com_shipment_contract_reference parent ON parent.id=incoming.parent_id AND parent.tenant_id=p.tenant_id
+  AND parent.source_system=p.source_system AND parent.deleted=FALSE
+  AND CAST(parent.source_record_key AS BINARY)=CAST(incoming.parent_key AS BINARY)
+ SET p.shipment_contract_ref_id=parent.id,p.update_time=p.update_time
+ WHERE p.tenant_id=#{context.tenantId} AND p.deleted=FALSE AND p.source_system='DPPMS'
+  AND p.shipment_contract_ref_id IS NULL
+  AND CAST(p.shipment_contract_source_key AS BINARY)=CAST(incoming.parent_key AS BINARY)
+</update>
 <select id="selectContractOrganization" resultMap="OrganizationSource" resultOrdered="true">
  SELECT c.*,c.master_source_record_key AS raw_key FROM com_contract c
  WHERE c.tenant_id=#{tenantId} AND c.deleted=FALSE AND c.master_source_system='DPPMS_ERP'
