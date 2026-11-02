@@ -1679,3 +1679,16 @@ TF-022入口整改补充：项目详情的阶段任务读取复用既有`Project
 当前摘要 `DeviceSummaryDTO` / 前端 `DeviceSummaryVO` 增加可空 `productDesc`，单设备详情的summary、授权批量current-summaries及项目摘要均传递同一当前描述；既有字段和Long序列化不变。DeviceTag和联调两页的只读型号/SN展示复用受原权限约束的 `GET /admin-api/pms/asset/devices/{id}` summary，不将展示值合并进业务保存对象。`archive-record`继续返回设备档案原始值，仅补充原始 `productDesc` 返回字段；档案编辑、写入、锁定、版本及历史读取仍使用原链路，不使用当前展示值回填。物料设备选择器“型号”仅展示范围的主档 `productModel`，缺失显示 `-`，不将productDesc当作型号；名称、描述及保存引用语义不变。
 
 物理前提已于2026-10-30按用户授权完成：目标178库五个产品编码列统一为 `utf8mb4_unicode_ci`，现17个product_code列字符集/排序集一致；五表完整行摘要、其他列、索引、外键、触发器和Flyway记录均未改变，交付范围分页与导出的生产XML原生关联已通过。执行及校验见[五列执行收据](../generated/2026-10-30-feedback-followup/product-code5-execution-result.json)和[原生关联收据](../generated/2026-10-30-feedback-followup/product-code5-post-native-joins-readonly.json)。此前1267是调整前历史证据，保留在原跟进记录，不再作为当前阻塞；既有缺主档记录保留空值，不清洗历史或通过SQL转换、程序反查、连接排序集规避。数据库/SQL验证不代替业务页面验收或部署证明。
+
+
+### 项目发货设备只读查询（2026-11-02批准）
+
+`GET /api/v1/pms/asset/project-shipments/page`，参数 `projectId`（必填）、`sn`（可选，最长100）、`pageNo`（默认1）、`pageSize`（默认20，上限100）。需要 `pms:device:query` 与项目完整查看范围；租户、用户来自服务端上下文。
+
+AST通过COM的 `ProjectContractQueryApi.getCurrentContractNumbers` 获取项目当前关联合同号，按合同精确查询本租户未删除发货事实。空合同返回空页。响应为分页发货记录，仅含记录ID、设备SN、产品编码、合同号、订单号、行号、发货时间、快递公司、快递单号、收件人、维保起始和月数；不返回来源原文、包裹号、当前设备地址或配置。相同SN的多次发货分别保留，不按SN覆盖历史。同一合同关联多个项目时，关联项目均可按此口径读取，不能据此取得设备归属或写权限。
+
+物流字段由COM的 `ProjectShipmentLogisticsApi.read(Query)` 提供：Query包含租户、用户、项目及当前页至多100个来源系统/包裹号/合同号精确引用；COM再次校验设备查询权限及项目完整查看范围，仅读取该项目当前有效合同关系下的未删除包裹。空引用返回空集合，歧义引用拒绝，缺配保持空值。响应只含精确引用和`carrierName`、`expressNo`、`receiverName`，AST不直接查询COM表。此接口服务已有发货显示，不授予归属或操作权限。
+
+项目序列号页新增默认“发货设备”只读页签；原归属设备页签、导出和配置Log继续使用原有授权及查询。发货列表计数单位为记录，区别于当前归属设备台数。本契约对应 `Q-PROJECT-SHIPMENT-DISPLAY-20261102`。
+
+2026-11-02追加界面裁决：不单独显示装箱单，不显示包裹号；显示快递公司、快递单号及收件人。“发货单号”已由需求方澄清为快递单号，不增加或推断其他单据号。

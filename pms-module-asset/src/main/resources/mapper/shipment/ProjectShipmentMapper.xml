@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.shipment.ProjectShipmentMapper">
+    <sql id="scope">
+        tenant_id=#{query.tenantId} AND deleted=FALSE
+        <choose>
+            <when test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
+                AND contract_no IN <foreach collection="query.contractNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
+                AND CAST(contract_no AS BINARY) IN <foreach collection="query.contractNumbers" item="number" open="(" separator="," close=")">CAST(#{number} AS BINARY)</foreach>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        <if test="query.sn != null and query.sn != ''">AND device_sn LIKE CONCAT('%',#{query.sn},'%')</if>
+    </sql>
+    <select id="count" resultType="long">SELECT COUNT(*) FROM ast_device_shipment WHERE <include refid="scope"/></select>
+    <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.shipment.DeviceShipmentDO">
+        SELECT id,tenant_id,source_system,device_sn,product_code,contract_no,order_no,line_no,shipment_time,package_no,warranty_start_date,warranty_months
+        FROM ast_device_shipment WHERE <include refid="scope"/>
+        ORDER BY shipment_time DESC,id DESC LIMIT #{query.limit} OFFSET #{query.offset}
+    </select>
+</mapper>

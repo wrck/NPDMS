@@ -6,14 +6,16 @@
   <ContentWrap :body-style="{ padding: '20px' }">
     <div class="panel-header">
       <span class="panel-title"><Icon icon="ep:cpu" /> 序列号详情</span>
-      <span class="serial-total num">共 {{ total }} 台</span>
+      <span v-if="activeSection === 'devices'" class="serial-total num">共 {{ total }} 台</span>
     </div>
     <el-tabs v-model="activeSection">
-      <el-tab-pane label="设备序列号" name="devices" />
+      <el-tab-pane label="发货设备" name="shipments" />
+      <el-tab-pane label="归属设备" name="devices" />
       <el-tab-pane label="续保记录" name="renewals" />
       <el-tab-pane label="设备许可" name="licenses" />
     </el-tabs>
-    <DeviceWarrantyRenewalTable v-if="activeSection === 'renewals'" :project-id="projectId" />
+    <ProjectShipmentPanel v-if="activeSection === 'shipments'" :project-id="projectId" :active="active" />
+    <DeviceWarrantyRenewalTable v-else-if="activeSection === 'renewals'" :project-id="projectId" />
     <ProjectAssociatedDataPanel v-else-if="activeSection === 'licenses'" :project-id="projectId" title="设备许可" :kinds="['licenses']" embedded />
     <template v-else>
     <el-form inline class="serial-filters" @submit.prevent="search">
@@ -115,6 +117,7 @@
 import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { onBeforeUnmount, ref, watch } from 'vue'
 import * as DeviceApi from '@/api/pms/asset/device'
+import ProjectShipmentPanel from './ProjectShipmentPanel.vue'
 import ProjectDeviceExportButton from './ProjectDeviceExportButton.vue'
 import DeviceWarrantyRenewalTable from '@/views/pms/asset/device/components/DeviceWarrantyRenewalTable.vue'
 import ProjectAssociatedDataPanel from './ProjectAssociatedDataPanel.vue'
@@ -125,7 +128,7 @@ const props = withDefaults(defineProps<{ projectId: number; active?: boolean }>(
 const emit = defineEmits<{ (e: 'open-config-log', deviceId: number, serialNumber: string): void }>()
 
 const NOT_INTEGRATED = '—'
-const activeSection = ref('devices')
+const activeSection = ref('shipments')
 
 interface SerialRow {
   deviceId: number
