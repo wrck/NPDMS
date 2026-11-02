@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ContractMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ProjectContractRelationMapper;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.commerce.ProjectContractProjectionApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
 import cn.iocoder.yudao.module.system.api.permission.dto.UserCompanyDepartmentScopeRespDTO;
@@ -33,12 +34,13 @@ class ContractRelationCommandServiceTest {
     @Mock private ContractMapper contractMapper;
     @Mock private ProjectContractRelationMapper relationMapper;
     @Mock private OperationAuditApi operationAuditApi;
+    @Mock private ProjectContractProjectionApi projectContractProjectionApi;
     private ContractRelationCommandService service;
 
     @BeforeEach
     void setUp() {
         service = new ContractRelationCommandService(
-                organizationScopeApi, projectScopeApi, contractMapper, relationMapper, operationAuditApi);
+                organizationScopeApi, projectScopeApi, contractMapper, relationMapper, operationAuditApi, projectContractProjectionApi);
     }
 
     @Test
@@ -59,6 +61,7 @@ class ContractRelationCommandServiceTest {
                 1L, 7L, 99L, 100L, "RELATED", "op-1", "业务依据"));
 
         assertFalse(result.replayed());
+        verify(projectContractProjectionApi).refresh(new ProjectContractProjectionApi.ProjectContractProjectionRefresh(1L, 100L));
         assertEquals(88L, result.relationId());
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Map<String, ?>> audit = ArgumentCaptor.forClass(Map.class);
@@ -80,6 +83,18 @@ class ContractRelationCommandServiceTest {
         assertEquals(403, denied.getCode());
 
         verifyNoInteractions(contractMapper, relationMapper, operationAuditApi);
+    }
+
+    @Test
+    void projectionFailureIsPropagatedBeforeSuccessAudit() {
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(ContractAccessServiceTest.scope(10L, "C01", 2)));
+        ContractDO contract = new ContractDO(); contract.setId(99L); contract.setCompanyCode("C01");
+        when(contractMapper.selectByIdForUpdate(any())).thenReturn(contract);
+        doThrow(new IllegalStateException("projection failed")).when(projectContractProjectionApi).refresh(any());
+        assertThrows(IllegalStateException.class, () -> service.relate(new ContractRelationCommand(
+                1L, 7L, 99L, 100L, "RELATED", "op-fail", "业务依据")));
+        verifyNoInteractions(operationAuditApi);
     }
 
     @Test
