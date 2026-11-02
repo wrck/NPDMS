@@ -312,7 +312,7 @@ yudao:
       topic: ${spring.application.name}-websocket # 消息发送的 Kafka Topic
       consumer-group: ${spring.application.name}-websocket-consumer # 消息发送的 Kafka Consumer Group
   swagger:
-    title: SDP 服务交付平台
+    title: 服务交付平台
     description: 服务交付平台接口文档
     version: ${yudao.info.version}
     url: ${yudao.web.admin-ui.url}

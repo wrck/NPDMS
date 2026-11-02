@@ -115,7 +115,7 @@ end;
 procedure InitializeWizard();
 var SavedServer, SavedOrigin: String;
 begin
-  Settings := CreateInputQueryPage(wpWelcome, 'NPDMS 环境', '配置后端地址与网页来源', '安装前将自动卸载旧版并短暂停止采集；保留配置、连接、凭据及任务历史。环境变更请在 DAC 设置中完成。');
+  Settings := CreateInputQueryPage(wpWelcome, 'SDP 环境', '配置后端地址与网页来源', '安装前将自动卸载旧版并短暂停止采集；保留配置、连接、凭据及任务历史。环境变更请在 DAC 设置中完成。');
   Settings.Add('NPDMS 后端地址（含协议、端口）', False);
   Settings.Add('NPDMS 网页来源（含协议、端口）', False);
   SavedServer := '{#DefaultServerUrl}'; SavedOrigin := '{#DefaultWebOrigin}';
