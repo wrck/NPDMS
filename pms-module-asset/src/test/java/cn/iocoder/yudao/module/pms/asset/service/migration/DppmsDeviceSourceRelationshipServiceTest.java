@@ -102,7 +102,7 @@ class DppmsDeviceSourceRelationshipServiceTest {
         when(devices.selectByTenantAndId(1L,90L)).thenReturn(device);
         when(mapper.countRelationships(any())).thenReturn(0L);
         service.pageRelationships(new Query(1L,7L,null,90L,null,2,20));
-        verify(scope).assertVisible(1L,7L,90L);
+        verify(scope).assertReadable(new cn.iocoder.yudao.module.pms.asset.service.security.DeviceAccessScopeService.ReadAccess(1L,7L,90L));
         verify(mapper).countRelationships(argThat(q->"MAIN".equals(q.deviceSn())&&q.offset()==20));
         assertThrows(IllegalArgumentException.class,()->service.pageRelationships(new Query(1L,7L,null,90L,"OTHER",1,20)));
         verifyNoInteractions(contracts);

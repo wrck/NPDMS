@@ -268,8 +268,8 @@ public class DeviceController {
     }
 
     private void assertDeviceVisible(Long deviceId) {
-        accessScopeService.assertVisible(
-                currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), deviceId);
+        accessScopeService.assertReadable(new DeviceAccessScopeService.ReadAccess(
+                currentTenantId(), SecurityFrameworkUtils.getLoginUserId(), deviceId));
     }
 
     private String requestDigest(Long id, Long expectedVersion, Object reqVO) {

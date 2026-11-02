@@ -31,13 +31,15 @@ public class DeviceQueryService {
             var matchingCustomers = query.customerName() == null || query.customerName().isBlank() ? null
                     : java.util.Objects.requireNonNull(customers.findCustomerIdsByName(new cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi.NameQuery(tenantId, query.customerName())));
             if (matchingProjects != null && matchingProjects.isEmpty() || matchingCustomers != null && matchingCustomers.isEmpty()) return PageResult.empty();
-            boolean fullProject = query.projectId() != null && accessScopeService.hasFullProjectView(
+            boolean tenantWideRead = accessScopeService.hasTenantWideRead(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(
+                    tenantId, SecurityFrameworkUtils.getLoginUserId(), cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW));
+            boolean fullProject = !tenantWideRead && query.projectId() != null && accessScopeService.hasFullProjectView(
                     new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(
                             tenantId, SecurityFrameworkUtils.getLoginUserId(), query.projectId(),
                             cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW));
-            var grants = fullProject ? java.util.List.<cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant>of()
+            var grants = fullProject || tenantWideRead ? java.util.List.<cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant>of()
                     : accessScopeService.organizationGrants(tenantId, SecurityFrameworkUtils.getLoginUserId());
-            var readScope = fullProject ? null : accessScopeService.pageReadScope(
+            var readScope = fullProject || tenantWideRead ? null : accessScopeService.pageReadScope(
                     new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(
                             tenantId, SecurityFrameworkUtils.getLoginUserId(),
                             cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW));
@@ -56,8 +58,9 @@ public class DeviceQueryService {
                     .matchingCustomerIds(matchingCustomers)
                     .visibleProjectIds(fullProject ? java.util.Set.of(query.projectId()) : null)
                     .readScope(readScope)
+                    .tenantWideRead(tenantWideRead)
                     .organizationGrants(grants).build();
-            return fullProject ? deviceMapper.selectVisibleDevicePage(scopedQuery)
+            return fullProject || tenantWideRead ? deviceMapper.selectVisibleDevicePage(scopedQuery)
                     : deviceMapper.selectJoinedDevicePage(scopedQuery);
         }
     }
@@ -99,12 +102,15 @@ public class DeviceQueryService {
 
     private java.util.List<DeviceDO> visibleDevices(
             cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery query) {
-        var grants = accessScopeService.organizationGrants(query.tenantId(), query.actorId());
-        var readScope = accessScopeService.pageReadScope(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(
-                query.tenantId(), query.actorId(), cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW));
+        var subject = new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery(
+                query.tenantId(), query.actorId(), cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_VIEW);
+        boolean tenantWideRead = accessScopeService.hasTenantWideRead(subject);
+        var grants = tenantWideRead ? java.util.List.<cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceOrganizationGrant>of()
+                : accessScopeService.organizationGrants(query.tenantId(), query.actorId());
+        var readScope = tenantWideRead ? null : accessScopeService.pageReadScope(subject);
         return deviceMapper.selectJoinedDeviceIds(
                 new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDeviceIdsQuery(
-                        query.tenantId(), query.deviceIds(), null, grants, readScope));
+                        query.tenantId(), query.deviceIds(), null, grants, readScope, tenantWideRead));
     }
 
     private void requireBatchActor(cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryBatchQuery query) {

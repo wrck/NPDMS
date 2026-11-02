@@ -297,7 +297,7 @@ class DeviceConfigurationLogDownloadServiceTest {
         when(evidence.lockAndRevalidate(any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Fact(true,"valid",0,0,0));
         when(nativeFiles.requestDownload("IMP","configuration",9007199254740993L,9007199254740995L)).thenReturn("https://native.example/authorized");
         when(contentClient.open("https://native.example/authorized")).thenReturn(new ByteArrayInputStream("config".getBytes()));
-        service.download(1L,7L,8L,"raw-token");verify(accessScopeService).assertVisible(1L,7L,8L);
+        service.download(1L,7L,8L,"raw-token");verify(accessScopeService).assertReadable(new DeviceAccessScopeService.ReadAccess(1L,7L,8L));
         verify(nativeFiles).requestDownload("IMP","configuration",9007199254740993L,9007199254740995L);
         verify(fileApi,never()).presignGetUrl(any(),any());
     }

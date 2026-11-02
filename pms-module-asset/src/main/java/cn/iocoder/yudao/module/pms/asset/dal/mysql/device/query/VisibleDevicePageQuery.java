@@ -21,7 +21,8 @@ public record VisibleDevicePageQuery(
         String departmentName,
         Set<Long> matchingProjectIds,
         Set<Long> matchingCustomerIds,
-        DevicePageReadScope readScope) {
+        DevicePageReadScope readScope,
+        boolean tenantWideRead) {
 
     public long offset() {
         return (long) (pageNo - 1) * pageSize;

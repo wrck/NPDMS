@@ -68,7 +68,7 @@ public class DeviceSoftwareVersionMaintenanceService {
 
     public Current current(Long tenant, Long actor, Long deviceId) {
         requireContext(tenant, actor);
-        access.assertVisible(tenant, actor, deviceId);
+        access.assertReadable(new DeviceAccessScopeService.ReadAccess(tenant, actor, deviceId));
         var device = devices.selectByTenantAndId(tenant, deviceId);
         if (device == null) throw exception(AST_EQUIPMENT_NOT_EXISTS);
         var row = currents.selectByTenantAndSn(tenant, device.getSn());
@@ -114,7 +114,7 @@ public class DeviceSoftwareVersionMaintenanceService {
     public PageResult<History> history(Long tenant, Long actor, Long deviceId, int pageNo, int pageSize) {
         requireContext(tenant, actor);
         if (pageNo < 1 || pageSize < 1 || pageSize > 100) throw exception(AST_SOFTWARE_VERSION_INVALID);
-        access.assertVisible(tenant, actor, deviceId);
+        access.assertReadable(new DeviceAccessScopeService.ReadAccess(tenant, actor, deviceId));
         Set<Long> visible = access.visibleProjectIds(tenant, actor);
         var page = records.selectHistoryPage(new DeviceSoftwareVersionHistoryPageQuery(tenant, deviceId, visible, pageNo, pageSize));
         List<History> rows = new ArrayList<>();

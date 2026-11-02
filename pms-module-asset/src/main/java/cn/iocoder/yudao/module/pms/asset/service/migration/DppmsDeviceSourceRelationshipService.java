@@ -145,7 +145,7 @@ public class DppmsDeviceSourceRelationshipService implements DppmsDeviceSourceRe
         String sn=query.deviceSn();
         Set<String> numbers=Set.of();
         if (query.deviceId()!=null) {
-            scope.assertVisible(query.tenantId(),query.actorId(),query.deviceId());
+            scope.assertReadable(new DeviceAccessScopeService.ReadAccess(query.tenantId(),query.actorId(),query.deviceId()));
             var device=devices.selectByTenantAndId(query.tenantId(),query.deviceId());
             if (device==null || !Objects.equals(device.getTenantId(),query.tenantId())
                     || Boolean.TRUE.equals(device.getDeleted()) || device.getSn()==null

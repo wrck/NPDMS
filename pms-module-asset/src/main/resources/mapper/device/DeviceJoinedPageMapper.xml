@@ -30,6 +30,7 @@
     </sql>
 
     <select id="selectJoinedDeviceIds" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        <if test="!query.tenantWideRead">
         WITH
         <include refid="cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeSql.commonTables"/>,
         device_filter_contract_keys AS (
@@ -56,12 +57,13 @@
               AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP(3))
             <include refid="requestedDeviceIds"/>
         )
+        </if>
         SELECT <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentDeviceColumns"/>
         FROM ast_device d
         <include refid="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceCurrentModelMapper.currentProductJoin"/>
         WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
         <include refid="requestedDeviceIds"/>
-        <include refid="joinedDeviceVisibility"/>
+        <if test="!query.tenantWideRead"><include refid="joinedDeviceVisibility"/></if>
         ORDER BY d.id
     </select>
 

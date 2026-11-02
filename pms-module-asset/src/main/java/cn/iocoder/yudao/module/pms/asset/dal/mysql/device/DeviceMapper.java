@@ -126,6 +126,7 @@ public interface DeviceMapper extends BaseMapperX<DeviceDO> {
             @Param("query") VisibleDevicePageQuery query);
 
     static PageResult<DeviceListProjection> emptyWhenInvisible(VisibleDevicePageQuery query) {
+        if (query.tenantWideRead()) return null;
         if ((query.visibleProjectIds() == null || query.visibleProjectIds().isEmpty())
                 && (query.visibleContractNumbers() == null || query.visibleContractNumbers().isEmpty())
                 && (query.organizationGrants() == null || query.organizationGrants().isEmpty())) {

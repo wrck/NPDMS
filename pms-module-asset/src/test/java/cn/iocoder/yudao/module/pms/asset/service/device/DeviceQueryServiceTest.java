@@ -182,7 +182,7 @@ class DeviceQueryServiceTest {
         var current = new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(1L, 7L, 10L, "PROJECT_VIEW");
         lenient().when(projectScope.resolveCurrent(current)).thenReturn(
                 new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(10L, 4L, Set.of(10L), Set.of()));
-        var realAccess = new DeviceAccessScopeService(projectScope, deviceMapper, contracts, organizations, projectReadScope);
+        var realAccess = new DeviceAccessScopeService(projectScope, deviceMapper, contracts, organizations, projectReadScope, org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class));
         var currentService = new DeviceQueryService(deviceMapper, realAccess, projects, customers);
         var request = VisibleDevicePageQuery.builder().projectId(10L).sn("SN-8").productCode("PC-1")
                 .name("防火墙").status("IN_USE").customerId(20L).departmentName(" 杭州 ")
@@ -222,7 +222,7 @@ class DeviceQueryServiceTest {
         var readScope = readScope();
         when(projectReadScope.prepare(new ProjectAllScopeQuery(1L, 7L, "PROJECT_VIEW"))).thenReturn(readScope.projectScope());
         when(contracts.prepareReadScope(new ContractDeviceVisibilityApi.ReadScopeQuery(1L, 7L))).thenReturn(readScope.contractScope());
-        var realAccess = new DeviceAccessScopeService(projectScope, deviceMapper, contracts, organizations, projectReadScope);
+        var realAccess = new DeviceAccessScopeService(projectScope, deviceMapper, contracts, organizations, projectReadScope, org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class));
         var currentService = new DeviceQueryService(deviceMapper, realAccess, projects, customers);
         var expected = new PageResult<DeviceListProjection>(List.of(), 1L);
         when(deviceMapper.selectJoinedDevicePage(any())).thenReturn(expected);
@@ -241,6 +241,34 @@ class DeviceQueryServiceTest {
         var page = service.getPage(VisibleDevicePageQuery.builder().tenantId(2L).projectId(10L).pageNo(1).pageSize(10).build());
         assertEquals(0L, page.getTotal());
         verifyNoInteractions(accessScopeService, deviceMapper);
+    }
+
+    @Test void superAdministratorPageRetainsFiltersWithoutRequiringOrganizationOrProjectScope() {
+        when(accessScopeService.hasTenantWideRead(new ProjectAllScopeQuery(1L, 7L, "PROJECT_VIEW"))).thenReturn(true);
+        when(deviceMapper.selectVisibleDevicePage(any())).thenReturn(PageResult.empty());
+        service.getPage(VisibleDevicePageQuery.builder().sn("SN-8").projectId(10L).pageNo(2).pageSize(10).build());
+        verify(deviceMapper).selectVisibleDevicePage(argThat(q -> q.tenantWideRead() && q.tenantId().equals(1L)
+                && "SN-8".equals(q.sn()) && q.projectId().equals(10L) && q.pageNo()==2 && q.pageSize()==10));
+        verify(accessScopeService, never()).organizationGrants(any(), any());
+        verify(accessScopeService, never()).pageReadScope(any());
+        verify(accessScopeService, never()).hasFullProjectView(any());
+    }
+
+    @Test void clientSuppliedTenantWideFlagCannotGrantOrdinaryUserVisibility() {
+        when(deviceMapper.selectJoinedDevicePage(any())).thenReturn(PageResult.empty());
+        service.getPage(VisibleDevicePageQuery.builder().tenantWideRead(true).pageNo(1).pageSize(10).build());
+        verify(deviceMapper).selectJoinedDevicePage(argThat(q -> !q.tenantWideRead()));
+        verify(deviceMapper, never()).selectVisibleDevicePage(any());
+    }
+
+    @Test void superAdministratorDetailUsesTenantAndExactIdsWithoutOwnerScopeExpansion() {
+        when(accessScopeService.hasTenantWideRead(any())).thenReturn(true);
+        when(deviceMapper.selectJoinedDeviceIds(any())).thenReturn(List.of(device(8L)));
+        assertEquals(8L, service.getDevice(8L).getId());
+        verify(deviceMapper).selectJoinedDeviceIds(argThat(q -> q.tenantWideRead() && q.tenantId().equals(1L)
+                && q.deviceIds().equals(Set.of(8L))));
+        verify(accessScopeService, never()).organizationGrants(any(), any());
+        verify(accessScopeService, never()).pageReadScope(any());
     }
 
     @Test

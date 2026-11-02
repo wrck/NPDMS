@@ -29,6 +29,41 @@ public class DeviceAccessScopeService {
     private final ContractDeviceVisibilityApi contractVisibilityApi;
     private final cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi organizationScopeApi;
     private final ProjectViewReadScopeApi projectViewReadScopeApi;
+    private final cn.iocoder.yudao.module.system.api.permission.PermissionApi permissionApi;
+
+    /** The approved exception is read-only and bound to the authenticated tenant and actor. */
+    public boolean hasTenantWideRead(ProjectAllScopeQuery query) {
+        return isCurrentReadSubject(query) && permissionApi.hasAnyRoles(query.subjectUserId(),
+                cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode());
+    }
+
+    private boolean isCurrentReadSubject(ProjectAllScopeQuery query) {
+        var actor = SecurityFrameworkUtils.getLoginUser();
+        Long tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null && actor != null) tenantId = actor.getTenantId();
+        if (query == null || actor == null || tenantId == null
+                || !Objects.equals(tenantId, query.tenantId()) || !Objects.equals(tenantId, actor.getTenantId())
+                || !Objects.equals(actor.getId(), query.subjectUserId())
+                || !ProjectScopeApi.ACTION_VIEW.equals(query.actionCode())) return false;
+        return true;
+    }
+
+    public record ReadAccess(Long tenantId, Long userId, Long deviceId) {}
+
+    public void assertReadable(ReadAccess query) {
+        if (query == null || query.deviceId() == null || query.deviceId() <= 0) {
+            throw exception(AST_EQUIPMENT_NOT_EXISTS);
+        }
+        var subject = new ProjectAllScopeQuery(query.tenantId(), query.userId(), ProjectScopeApi.ACTION_VIEW);
+        if (!isCurrentReadSubject(subject)) throw exception(AST_EQUIPMENT_NOT_EXISTS);
+        if (hasTenantWideRead(subject)) {
+            if (deviceMapper.selectByTenantAndId(query.tenantId(), query.deviceId()) == null) {
+                throw exception(AST_EQUIPMENT_NOT_EXISTS);
+            }
+            return;
+        }
+        assertVisible(query.tenantId(), query.userId(), query.deviceId());
+    }
 
     public boolean hasFullProjectView(ProjectCurrentScopeQuery query) {
         var actor = SecurityFrameworkUtils.getLoginUser();

@@ -175,13 +175,21 @@ public class DeviceArchiveServiceImpl implements DeviceArchiveService {
 
     @Override
     public DeviceDO getDeviceArchiveRecord(Long id) {
-        return validateDeviceExists(id);
+        return requireReadableDevice(id);
     }
 
     @Override
     public List<DeviceVersionDO> getDeviceVersionList(Long deviceId) {
-        validateDeviceExists(deviceId);
+        requireReadableDevice(deviceId);
         return deviceVersionMapper.selectListByDeviceId(deviceId);
+    }
+
+    private DeviceDO requireReadableDevice(Long id) {
+        accessScopeService.assertReadable(new DeviceAccessScopeService.ReadAccess(
+                TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), id));
+        DeviceDO entity = deviceMapper.selectByTenantAndId(TenantContextHolder.getRequiredTenantId(), id);
+        if (entity == null) throw exception(AST_EQUIPMENT_NOT_EXISTS);
+        return entity;
     }
 
     private DeviceDO validateDeviceExists(Long id) {

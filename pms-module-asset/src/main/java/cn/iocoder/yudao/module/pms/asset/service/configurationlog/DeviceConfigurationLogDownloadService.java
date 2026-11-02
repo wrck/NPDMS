@@ -90,7 +90,7 @@ public class DeviceConfigurationLogDownloadService {
     public DeviceConfigurationDownloadGrant issueGrant(Long tenantId, Long userId, Long deviceId, Long logId) {
         assertTenant(tenantId);
         assertDownloadPermission(userId);
-        accessScopeService.assertVisible(tenantId, userId, deviceId);
+        accessScopeService.assertReadable(new DeviceAccessScopeService.ReadAccess(tenantId, userId, deviceId));
         DeviceDO device = requireDevice(tenantId, deviceId);
         DeviceConfigLogDO log = requireLog(tenantId, deviceId, logId);
         requireFile(log);
@@ -120,7 +120,7 @@ public class DeviceConfigurationLogDownloadService {
             throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID);
         }
         assertDownloadPermission(userId);
-        accessScopeService.assertVisible(tenantId, userId, deviceId);
+        accessScopeService.assertReadable(new DeviceAccessScopeService.ReadAccess(tenantId, userId, deviceId));
         DeviceDO device = requireDevice(tenantId, deviceId);
         if (!device.getSn().equals(grant.getDeviceSn())) {
             throw exception(AST_DEVICE_CONFIGURATION_LOG_DOWNLOAD_INVALID);

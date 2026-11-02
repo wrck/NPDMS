@@ -32,7 +32,7 @@ class DefaultDevicePagePerformanceTest {
     final ProjectScopeApi projects = mock(ProjectScopeApi.class);
     final ContractDeviceVisibilityApi contracts = mock(ContractDeviceVisibilityApi.class);
     final OrganizationScopeApi organizations = mock(OrganizationScopeApi.class);
-    final DeviceAccessScopeService access = new DeviceAccessScopeService(projects, devices, contracts, organizations, viewScopes);
+    final DeviceAccessScopeService access = new DeviceAccessScopeService(projects, devices, contracts, organizations, viewScopes, org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class));
 
     @BeforeEach void login() {
         TenantContextHolder.setTenantId(1L);

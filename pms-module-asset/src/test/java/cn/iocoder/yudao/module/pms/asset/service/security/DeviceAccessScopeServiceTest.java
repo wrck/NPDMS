@@ -31,7 +31,7 @@ class DeviceAccessScopeServiceTest {
     @Test
     void fullProjectProbeRequiresCurrentTenantActorViewAndActualFullScope() {
         var service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations,
-                mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class));
+                mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class), org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class));
         var request = new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(1L, 7L, 10L, "PROJECT_VIEW");
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
         cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(
@@ -64,7 +64,7 @@ class DeviceAccessScopeServiceTest {
 
     @Test
     void organizationGrantAloneAllowsDeviceLookup() {
-        var service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations, mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class));
+        var service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations, mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class), org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class));
         var grant = new cn.iocoder.yudao.module.system.api.permission.dto.UserCompanyDepartmentScopeRespDTO();
         grant.setId(1L); grant.setVersion(1); grant.setCompanyId(20L);
         when(organizations.getActiveScopes(7L)).thenReturn(java.util.List.of(grant));
@@ -78,7 +78,7 @@ class DeviceAccessScopeServiceTest {
 
     @Test
     void contractOnlyScopeIsPassedToSharedVisibilityQuery() {
-        var service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations, mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class));
+        var service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations, mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class), org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class));
         when(deviceMapper.selectContractCandidates(org.mockito.ArgumentMatchers.any())).thenReturn(Set.of("C-1"));
         when(contracts.getVisibleContractNumbers(1L, 7L, Set.of("C-1"))).thenReturn(Set.of("C-1"));
         var query = new DeviceVisibilityQuery(1L, 8L, Set.of(), Set.of("C-1"), java.util.List.of());
@@ -89,7 +89,7 @@ class DeviceAccessScopeServiceTest {
 
     @Test
     void contractOwnerFailureCannotGrantVisibility() {
-        var service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations, mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class));
+        var service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations, mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class), org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class));
         when(deviceMapper.selectContractCandidates(org.mockito.ArgumentMatchers.any())).thenReturn(Set.of("C-1"));
         when(contracts.getVisibleContractNumbers(1L, 7L, Set.of("C-1"))).thenThrow(new IllegalStateException("unavailable"));
         assertThrows(ServiceException.class, () -> service.assertVisible(1L, 7L, 8L));
@@ -98,7 +98,7 @@ class DeviceAccessScopeServiceTest {
 
     @Test
     void shouldUseProjectOwnerScopeForDeviceVisibility() {
-        DeviceAccessScopeService service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations, mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class));
+        DeviceAccessScopeService service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations, mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class), org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class));
         ProjectAllScopeQuery scopeQuery = new ProjectAllScopeQuery(1L, 7L, ProjectScopeApi.ACTION_VIEW);
         when(projectScopeApi.resolveAllCurrent(scopeQuery)).thenReturn(Set.of(10L, 11L));
         DeviceVisibilityQuery visibilityQuery = new DeviceVisibilityQuery(1L, 8L, Set.of(10L, 11L), Set.of(), java.util.List.of());
@@ -111,7 +111,7 @@ class DeviceAccessScopeServiceTest {
 
     @Test
     void shouldRejectBeforeDeviceQueryWhenProjectScopeIsEmpty() {
-        DeviceAccessScopeService service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations, mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class));
+        DeviceAccessScopeService service = new DeviceAccessScopeService(projectScopeApi, deviceMapper, contracts, organizations, mock(cn.iocoder.yudao.module.pms.project.api.scope.ProjectViewReadScopeApi.class), org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class));
         when(projectScopeApi.resolveAllCurrent(
                 new ProjectAllScopeQuery(1L, 7L, ProjectScopeApi.ACTION_VIEW))).thenReturn(Set.of());
 

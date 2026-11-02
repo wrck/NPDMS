@@ -167,12 +167,12 @@ class DeviceJoinedPageSqlTest {
                     query(new ProjectViewReadScopeApi.ReadScope(2L, 7L, ProjectViewReadScopeApi.Mode.TENANT_ADMIN, AT, List.of())))) {
                 var expected = ids(mapper, original).stream().filter(requested::contains).collect(Collectors.toSet());
                 var batch = new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDeviceIdsQuery(
-                        1L, requested, null, original.organizationGrants(), original.readScope());
+                        1L, requested, null, original.organizationGrants(), original.readScope(), false);
                 assertTrue(batch.hasDeviceFilters());
                 assertEquals(expected, mapper.selectJoinedDeviceIds(batch).stream().map(row -> row.getId()).collect(Collectors.toSet()));
             }
             var empty = new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDeviceIdsQuery(
-                    1L, Set.of(), null, List.of(), new DevicePageReadScope(scope(ProjectViewReadScopeApi.Mode.TENANT_ADMIN), null));
+                    1L, Set.of(), null, List.of(), new DevicePageReadScope(scope(ProjectViewReadScopeApi.Mode.TENANT_ADMIN), null), false);
             assertTrue(mapper.selectJoinedDeviceIds(empty).isEmpty());
         });
     }
@@ -184,7 +184,7 @@ class DeviceJoinedPageSqlTest {
         }, mapper -> {
             var query = new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDeviceIdsQuery(
                     1L, Set.of(51L), null, List.of(),
-                    new DevicePageReadScope(scope(ProjectViewReadScopeApi.Mode.TENANT_ADMIN), null));
+                    new DevicePageReadScope(scope(ProjectViewReadScopeApi.Mode.TENANT_ADMIN), null), false);
             var rows = mapper.selectJoinedDeviceIds(query);
             assertEquals(1, rows.size());
             assertEquals("SOURCE-MASTER", rows.getFirst().getProductModel());
@@ -301,6 +301,25 @@ class DeviceJoinedPageSqlTest {
     @Test void anEmptyCurrentTreeScopeCannotBecomeAllProjects() throws Exception {
         withDatabase(mapper -> assertEquals(Set.of(3L, 8L, 16L), ids(mapper, query(
                 new ProjectViewReadScopeApi.ReadScope(1L, 7L, ProjectViewReadScopeApi.Mode.SCOPED, AT, List.of())))));
+    }
+
+    @Test void tenantWidePageAndExactIdsIncludeUnassignedButKeepTenantDeletionAndEmptyFilters() throws Exception {
+        withDatabase(mapper -> {
+            var query = VisibleDevicePageQuery.builder().tenantId(1L).tenantWideRead(true).pageNo(1).pageSize(100).build();
+            var page = mapper.selectVisibleDevicePage(query);
+            assertEquals(16L, page.getTotal());
+            assertEquals(16, page.getList().size());
+            assertTrue(page.getList().stream().anyMatch(d -> d.deviceId()==4L));
+            assertFalse(page.getList().stream().anyMatch(d -> d.deviceId()==12L || d.deviceId()==13L));
+            assertEquals(1L, mapper.selectVisibleDevicePage(query.toBuilder().sn("HIDDEN").build()).getTotal());
+            assertEquals(0L, mapper.selectVisibleDevicePage(query.toBuilder().matchingProjectIds(Set.of()).build()).getTotal());
+            assertEquals(0L, mapper.selectVisibleDevicePage(query.toBuilder().tenantWideRead(false).build()).getTotal());
+            var ids = new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDeviceIdsQuery(
+                    1L, Set.of(4L, 12L, 13L), null, List.of(), null, true);
+            assertEquals(List.of(4L), mapper.selectJoinedDeviceIds(ids).stream().map(d -> d.getId()).toList());
+            assertTrue(mapper.selectJoinedDeviceIds(new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDeviceIdsQuery(
+                    1L, Set.of(), null, List.of(), null, true)).isEmpty());
+        });
     }
 
     static Set<Long> ids(DeviceMapper mapper, VisibleDevicePageQuery query) {

@@ -23,7 +23,7 @@ public class DeviceSourceHistoryController {
     public CommonResult<PageResult<DppmsAssetSourceHistoryApi.ObservationRecord>> observations(
             @PathVariable Long id,@RequestParam(defaultValue="1") int pageNo,@RequestParam(defaultValue="20") int pageSize) {
         Long tenant=TenantContextHolder.getRequiredTenantId(), actor=SecurityFrameworkUtils.getLoginUserId();
-        scope.assertVisible(tenant,actor,id);
+        scope.assertReadable(new DeviceAccessScopeService.ReadAccess(tenant,actor,id));
         if (pageNo<1||pageSize<1||pageSize>100) throw new IllegalArgumentException("来源版本分页参数无效");
         var device=devices.getDevice(id);
         if (device==null||device.projectId()==null) return success(new PageResult<>(List.of(),0L));
@@ -35,7 +35,7 @@ public class DeviceSourceHistoryController {
     public CommonResult<PageResult<DppmsAssetSourceHistoryApi.FactoryRecord>> factories(
             @PathVariable Long id,@RequestParam(defaultValue="1") int pageNo,@RequestParam(defaultValue="20") int pageSize) {
         Long tenant=TenantContextHolder.getRequiredTenantId(), actor=SecurityFrameworkUtils.getLoginUserId();
-        scope.assertVisible(tenant,actor,id);
+        scope.assertReadable(new DeviceAccessScopeService.ReadAccess(tenant,actor,id));
         if (pageNo<1||pageSize<1||pageSize>100) throw new IllegalArgumentException("来源版本分页参数无效");
         var device=devices.getDevice(id);
         if (device==null||device.projectId()==null) return success(new PageResult<>(List.of(),0L));

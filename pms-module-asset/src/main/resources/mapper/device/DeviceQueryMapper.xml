@@ -60,6 +60,13 @@
         <include refid="deviceListNameFilters"/>
     </sql>
 
+    <!-- Only server-built page queries can carry the tenant-wide read decision. -->
+    <sql id="devicePageVisibility">
+        <if test="!query.tenantWideRead">
+            <include refid="deviceVisibility"/>
+        </if>
+    </sql>
+
     <sql id="deviceListNameFilters">
         <if test="query.matchingProjectIds != null">
             <choose><when test="!query.matchingProjectIds.isEmpty()">
@@ -275,7 +282,7 @@
               AND nv.device_sn = d.sn AND nv.deleted = b'0' AND nv.source_system = 'DEVICE_LOG'
               AND (nv.sync_status IS NULL OR nv.sync_status &lt;&gt; 'NOT_AVAILABLE')
             WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
-            <include refid="deviceVisibility"/>
+            <include refid="devicePageVisibility"/>
             <include refid="deviceSearchFilters"/>
             <include refid="deviceListNameFilters"/>
             ORDER BY d.id DESC
@@ -303,7 +310,7 @@
         FROM ast_device d
         <!-- 计数允许优化器选择更窄的合同/项目索引，不强制扫描组织覆盖索引。 -->
         WHERE d.tenant_id = #{query.tenantId} AND d.deleted = b'0'
-        <include refid="deviceVisibility"/>
+        <include refid="devicePageVisibility"/>
         <include refid="deviceSearchFilters"/>
         <include refid="deviceListNameFilters"/>
     </select>

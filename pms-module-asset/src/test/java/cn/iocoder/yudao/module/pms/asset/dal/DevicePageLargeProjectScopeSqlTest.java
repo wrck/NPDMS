@@ -40,7 +40,7 @@ class DevicePageLargeProjectScopeSqlTest {
         var statement = configuration.getMappedStatement(DeviceMapper.class.getName() + ".selectJoinedDevicePageRows");
         var batchStatement = configuration.getMappedStatement(DeviceMapper.class.getName() + ".selectJoinedDeviceIds");
         var batchQuery = new cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.VisibleDeviceIdsQuery(
-                1L, java.util.Set.of(11L, 12L), null, List.of(), new DevicePageReadScope(scope, null));
+                1L, java.util.Set.of(11L, 12L), null, List.of(), new DevicePageReadScope(scope, null), false);
         try (var executor = Executors.newSingleThreadExecutor(task ->
                 new Thread(null, task, "device-project-scope", 512 * 1024))) {
             executor.submit(() -> {

@@ -49,7 +49,8 @@ class DeviceListAuthorizationReuseTest {
         TenantContextHolder.setTenantId(1L);
         ReflectionTestUtils.setField(organizationApi, "scopeMapper", organizations);
         var commerce = new ContractAccessService(organizationApi, projectApi, contracts, null, null, null, null, null);
-        var access = new DeviceAccessScopeService(projectApi, devices, commerce, organizationApi, projectApi);
+        var access = new DeviceAccessScopeService(projectApi, devices, commerce, organizationApi, projectApi,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class));
         service = new DeviceQueryService(devices, access, null, null);
         var organization = new UserCompanyDepartmentScopeDO();
         organization.setId(1L); organization.setVersion(1); organization.setCompanyId(11L);

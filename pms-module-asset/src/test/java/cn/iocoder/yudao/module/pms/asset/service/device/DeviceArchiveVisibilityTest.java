@@ -49,10 +49,22 @@ class DeviceArchiveVisibilityTest {
     }
     @Test void invisibleRecordAndHistoryDoNotReadData() {
         doThrow(new IllegalStateException("inaccessible")).when(scope).assertVisible(1L, 7L, 99L);
+        doThrow(new IllegalStateException("inaccessible")).when(scope).assertReadable(new DeviceAccessScopeService.ReadAccess(1L, 7L, 99L));
         assertThrows(IllegalStateException.class, () -> service.getDeviceArchiveRecord(99L));
         assertThrows(IllegalStateException.class, () -> service.getDeviceVersionList(99L));
         assertThrows(IllegalStateException.class, () -> service.deleteDevice(99L));
         verifyNoInteractions(devices, versions);
+    }
+    @Test void readableArchiveDoesNotGrantMutationScope() {
+        var row = new cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO();
+        row.setId(9L); row.setTenantId(1L);
+        when(devices.selectByTenantAndId(1L, 9L)).thenReturn(row);
+        doThrow(new IllegalStateException("write denied")).when(scope).assertVisible(1L, 7L, 9L);
+        assertSame(row, service.getDeviceArchiveRecord(9L));
+        service.getDeviceVersionList(9L);
+        verify(versions).selectListByDeviceId(9L);
+        assertThrows(IllegalStateException.class, () -> service.deleteDevice(9L));
+        verify(devices, never()).deleteById(anyLong());
     }
     @Test void emptyScopeReturnsNoRowsWithoutRunningSql() {
         var mapper = mock(DeviceMapper.class, CALLS_REAL_METHODS);
@@ -88,7 +100,7 @@ class DeviceArchiveVisibilityTest {
         assertSame(raw, result);
         assertNull(response.getProductModel()); assertNull(response.getProductName());
         assertEquals("STORED-DESCRIPTION", json.path("productDesc").asText());
-        verify(scope).assertVisible(1L, 7L, 9L);
+        verify(scope).assertReadable(new DeviceAccessScopeService.ReadAccess(1L, 7L, 9L));
         verifyNoInteractions(versions);
         verify(devices, never()).updateById(any(cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO.class));
     }

@@ -43,7 +43,7 @@ public class DeviceWarrantyRenewalQueryService {
             numbers = contracts.getWarrantyShipmentContractNumbers(query.projectId());
             if (numbers.isEmpty()) return new PageResult<>(List.of(), 0L);
         } else {
-            deviceScope.assertVisible(query.tenantId(), query.userId(), query.deviceId());
+            deviceScope.assertReadable(new DeviceAccessScopeService.ReadAccess(query.tenantId(), query.userId(), query.deviceId()));
             var device = devices.selectByTenantAndId(query.tenantId(), query.deviceId());
             if (device == null) throw new AccessDeniedException("设备不可见");
             deviceSn = device.getSn();
