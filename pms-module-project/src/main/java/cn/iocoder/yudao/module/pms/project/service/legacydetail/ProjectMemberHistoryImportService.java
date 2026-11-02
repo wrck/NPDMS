@@ -241,7 +241,7 @@ public class ProjectMemberHistoryImportService {
         return Objects.equals(left,right);
     }
     private static void requireProject(ProjectMasterDO project,ProjectAccessActor actor) {
-        if(project==null || !Objects.equals(project.getTenantId(),actor.tenantId()) || !Set.of("ACTIVE","NORMAL_CLOSED","EXCEPTION_CLOSED").contains(project.getLifecycleStatus()))fail("PROJECT_INACCESSIBLE");
+        if(project==null || !Objects.equals(project.getTenantId(),actor.tenantId()) || !Set.of("ACTIVE","NORMAL_CLOSED","NO_TRACKING_CLOSED","EXCEPTION_CLOSED").contains(project.getLifecycleStatus()))fail("PROJECT_INACCESSIBLE");
     }
     private static void fail(String reason) {throw new IllegalArgumentException("DPPMS_MEMBER_"+reason);}
 }

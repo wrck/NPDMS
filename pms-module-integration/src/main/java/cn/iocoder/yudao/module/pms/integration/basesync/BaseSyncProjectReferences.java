@@ -25,7 +25,7 @@ public class BaseSyncProjectReferences {
   var rows=mapper.selectCurrentProjects(new ProjectIdsQuery(q.tenantId(),q.canonicalKeys().stream().map(Long::valueOf).toList(),q.preview()));
   Set<Long> currentTreeIds=q.manageScope()==null||rows.isEmpty()?Set.of():Set.copyOf(mapper.selectCurrentTreeProjectIds(new ProjectIdsQuery(q.tenantId(),rows.stream().map(Identity::id).toList(),q.preview())));
   for(var row:rows){
-   if(!q.canonicalKeys().contains(row.sourceKey()) || row.tenantId()!=q.tenantId() || Boolean.TRUE.equals(row.deleted()) || !Set.of("10","afss","afxx").contains(row.projectType()) || !Set.of("ACTIVE","NORMAL_CLOSED","EXCEPTION_CLOSED").contains(Objects.toString(row.lifecycleStatus(),"")))throw new IllegalArgumentException("PROJECT_FORMAL_IDENTITY_INVALID");
+   if(!q.canonicalKeys().contains(row.sourceKey()) || row.tenantId()!=q.tenantId() || Boolean.TRUE.equals(row.deleted()) || !Set.of("10","afss","afxx").contains(row.projectType()) || !Set.of("ACTIVE","NORMAL_CLOSED","NO_TRACKING_CLOSED","EXCEPTION_CLOSED").contains(Objects.toString(row.lifecycleStatus(),"")))throw new IllegalArgumentException("PROJECT_FORMAL_IDENTITY_INVALID");
    var old=result.putIfAbsent(row.sourceKey(),row);if(old!=null && !old.equals(row))throw new IllegalArgumentException("PROJECT_FORMAL_IDENTITY_AMBIGUOUS");
    if(q.manageScope()!=null){
     if(!currentTreeIds.contains(row.id())||!q.manageScope().projectIds.contains(row.id()))throw new org.springframework.security.access.AccessDeniedException("PROJECT_MANAGE_SCOPE_MISSING:"+row.id());
@@ -62,7 +62,7 @@ public class BaseSyncProjectReferences {
   var ids=q.members().stream().map(BaseSyncPublishedProjects.Member::projectId).distinct().toList();
   var rows=mapper.selectCurrentProjects(new ProjectIdsQuery(q.tenantId(),ids,q.preview()));
   Set<Long> currentTreeIds=q.manageScope()==null||rows.isEmpty()?Set.of():Set.copyOf(mapper.selectCurrentTreeProjectIds(new ProjectIdsQuery(q.tenantId(),rows.stream().map(Identity::id).toList(),q.preview())));
-  for(var row:rows){if(row.tenantId()!=q.tenantId()||Boolean.TRUE.equals(row.deleted())||!Set.of("ACTIVE","NORMAL_CLOSED","EXCEPTION_CLOSED").contains(Objects.toString(row.lifecycleStatus(),""))||byId.putIfAbsent(row.id(),row)!=null)throw new IllegalStateException("PUBLISHED_PROJECT_CURRENT_IDENTITY_INVALID");
+  for(var row:rows){if(row.tenantId()!=q.tenantId()||Boolean.TRUE.equals(row.deleted())||!Set.of("ACTIVE","NORMAL_CLOSED","NO_TRACKING_CLOSED","EXCEPTION_CLOSED").contains(Objects.toString(row.lifecycleStatus(),""))||byId.putIfAbsent(row.id(),row)!=null)throw new IllegalStateException("PUBLISHED_PROJECT_CURRENT_IDENTITY_INVALID");
    if(q.manageScope()!=null){
     if(!currentTreeIds.contains(row.id())||!q.manageScope().projectIds.contains(row.id()))throw new org.springframework.security.access.AccessDeniedException("PROJECT_MANAGE_SCOPE_MISSING:"+row.id());
    }else{

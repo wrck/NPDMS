@@ -40,7 +40,7 @@ final class DirectMemberHistoryPersistence {
         access.getProjectForManage(q.projectId(),new DirectProjectAccess.Actor(q.tenantId(),q.actorId()));
         var project=projects.selectIdentityForUpdate(new DirectProjectMapper.IdentityQuery(q.tenantId(),q.projectId()));
         if(project==null || !Objects.equals(project.getTenantId(),q.tenantId()) || Boolean.TRUE.equals(project.getDeleted())
-                || !Set.of("ACTIVE","NORMAL_CLOSED","EXCEPTION_CLOSED").contains(project.getLifecycleStatus()) || !"10".equals(project.getProjectType()))fail("PROJECT_INACCESSIBLE");
+                || !Set.of("ACTIVE","NORMAL_CLOSED","NO_TRACKING_CLOSED","EXCEPTION_CLOSED").contains(project.getLifecycleStatus()) || !"10".equals(project.getProjectType()))fail("PROJECT_INACCESSIBLE");
         var names=new LinkedHashSet<String>();var keys=new HashSet<String>();
         for(var e:q.entries()) {
             if(entryInvalid(e))fail("SOURCE_INVALID");

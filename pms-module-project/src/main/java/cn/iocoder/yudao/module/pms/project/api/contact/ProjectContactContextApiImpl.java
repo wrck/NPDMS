@@ -129,7 +129,7 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
         if (write.expectedProjectVersion() == null || !Objects.equals(project.getVersion(), write.expectedProjectVersion())) throw exception(PROJECT_VERSION_CONFLICT);
         var result = historical ? context(new ContextQuery(query, project, scope.treeVersion(), true))
                 : ordinaryContext(new ContextQuery(query, project, scope.treeVersion(), true));
-        if (historical ? !result.canViewHistory() || !Set.of("ACTIVE","NORMAL_CLOSED","EXCEPTION_CLOSED").contains(result.lifecycleStatus()) : !result.canManage())
+        if (historical ? !result.canViewHistory() || !Set.of("ACTIVE","NORMAL_CLOSED","NO_TRACKING_CLOSED","EXCEPTION_CLOSED").contains(result.lifecycleStatus()) : !result.canManage())
             throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         return result;
     }

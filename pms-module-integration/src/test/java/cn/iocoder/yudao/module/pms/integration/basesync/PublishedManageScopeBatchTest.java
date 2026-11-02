@@ -44,6 +44,15 @@ class PublishedManageScopeBatchTest {
   var scope=context(Set.of());
   assertThrows(AccessDeniedException.class,()->references.verifyPublished(new BaseSyncProjectReferences.PublishedQuery(1,2,List.of(member(10)),false,scope)));
  }
+ @Test void noTrackingHistorySupportsBothReferencePathsButStillRequiresManageScope(){
+  doReturn(List.of(new BaseSyncProjectReferences.Identity("10",10L,1L,0L,"P-10","10",null,null,null,"NO_TRACKING_CLOSED",false))).when(mapper).selectCurrentProjects(any());
+  var allowed=context(Set.of(10L));
+  assertEquals("NO_TRACKING_CLOSED",references.resolve(new BaseSyncProjectReferences.Query(1,2,3,List.of("10"),false,allowed)).get("10").lifecycleStatus());
+  assertEquals("NO_TRACKING_CLOSED",references.verifyPublished(new BaseSyncProjectReferences.PublishedQuery(1,2,List.of(member(10)),false,allowed)).get("10").lifecycleStatus());
+  var denied=context(Set.of());
+  assertThrows(AccessDeniedException.class,()->references.resolve(new BaseSyncProjectReferences.Query(1,2,3,List.of("10"),false,denied)));
+  assertThrows(AccessDeniedException.class,()->references.verifyPublished(new BaseSyncProjectReferences.PublishedQuery(1,2,List.of(member(10)),false,denied)));
+ }
  @Test void runContextCannotCrossTenantOrActor(){
   var scope=context(Set.of(10L));
   assertThrows(AccessDeniedException.class,()->references.verifyPublished(new BaseSyncProjectReferences.PublishedQuery(2,2,List.of(member(10)),false,scope)));

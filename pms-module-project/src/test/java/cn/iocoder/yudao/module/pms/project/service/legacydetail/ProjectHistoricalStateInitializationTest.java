@@ -12,8 +12,8 @@ class ProjectHistoricalStateInitializationTest {
     @Test void normalClosureUsesOriginalTimeAndAdjudicatedTerminalStage() {
         assertEquals(new State("NORMAL_CLOSED", "S6", CLOSE), resolve("100", CLOSE, ACTIVE, false));
     }
-    @Test void exceptionClosurePreservesStageAndOriginalCloseTime() {
-        assertEquals(new State("EXCEPTION_CLOSED", "S4", CLOSE), resolve("20", CLOSE, ACTIVE, false));
+    @Test void noTrackingClosurePreservesStageAndOriginalCloseTime() {
+        assertEquals(new State("NO_TRACKING_CLOSED", "S4", CLOSE), resolve("20", CLOSE, ACTIVE, false));
     }
     @Test void assignmentStatesDoNotPretendToAdvanceLifecycle() {
         assertEquals(ACTIVE, resolve("31", null, ACTIVE, false));
@@ -27,13 +27,17 @@ class ProjectHistoricalStateInitializationTest {
     }
     @Test void missingHistoricalClosureTimeRemainsUnknownAndReplayStillProtectsIt() {
         var normal=new State("NORMAL_CLOSED", "S6", null);
-        var exception=new State("EXCEPTION_CLOSED", "S4", null);
+        var noTracking=new State("NO_TRACKING_CLOSED", "S4", null);
         assertEquals(normal,resolve("100", null, ACTIVE, false));
-        assertEquals(exception,resolve("20", null, ACTIVE, false));
+        assertEquals(noTracking,resolve("20", null, ACTIVE, false));
         assertEquals(normal,resolve("100", null, normal, true));
-        assertEquals(exception,resolve("20", null, exception, true));
+        assertEquals(noTracking,resolve("20", null, noTracking, true));
         assertThrows(IllegalArgumentException.class, () -> resolve("100", CLOSE, normal, true));
-        assertThrows(IllegalArgumentException.class, () -> resolve("20", CLOSE, exception, true));
+        assertThrows(IllegalArgumentException.class, () -> resolve("20", CLOSE, noTracking, true));
+    }
+    @Test void correctedMappingCannotRewritePreviouslyInitializedExceptionHistory() {
+        assertThrows(IllegalArgumentException.class, () -> resolve("20", CLOSE,
+                new State("EXCEPTION_CLOSED", "S4", CLOSE), true));
     }
     @Test void otherSourceStatesRequireAdjudication() {
         assertThrows(IllegalArgumentException.class, () -> resolve("40", CLOSE, ACTIVE, false));

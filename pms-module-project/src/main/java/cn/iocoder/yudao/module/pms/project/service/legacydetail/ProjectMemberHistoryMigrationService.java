@@ -40,7 +40,7 @@ public class ProjectMemberHistoryMigrationService {
         var loaded = sources.loadCorrectionSource(projectId, request, actor);
         var project = projects.selectById(projectId);
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())) fail("PROJECT_INACCESSIBLE");
-        if (!Set.of("ACTIVE", "NORMAL_CLOSED", "EXCEPTION_CLOSED").contains(project.getLifecycleStatus()))
+        if (!Set.of("ACTIVE", "NORMAL_CLOSED", "NO_TRACKING_CLOSED", "EXCEPTION_CLOSED").contains(project.getLifecycleStatus()))
             fail("PROJECT_LIFECYCLE_NOT_APPROVED");
         var values = verifiedSourceValues(loaded);
         var names = new LinkedHashSet<String>();

@@ -32,7 +32,7 @@ public final class ProjectHistoricalStateInitialization {
             // Adjudicated whole-table exception: a missing original date stays unknown.
             // This migration policy does not change the normal business closure command.
             case "100" -> new State("NORMAL_CLOSED", "S6", sourceClosedAt);
-            case "20" -> new State("EXCEPTION_CLOSED", current.currentStage(), sourceClosedAt);
+            case "20" -> new State("NO_TRACKING_CLOSED", current.currentStage(), sourceClosedAt);
             case "30" -> new State("ACTIVE", "S0", null);
             // These source states describe personnel assignment, not a lifecycle transition.
             case "31", "32" -> {

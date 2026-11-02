@@ -43,6 +43,20 @@ class OriginalIdentityPolicyTest {
         assertTrue(assertThrows(IllegalArgumentException.class,()->task(mapper).syncDataInsertBefore(new SyncBatch<>(context(),List.of(source()))))
                 .getMessage().contains("PROJECT_ID_ALREADY_OWNED"));
     }
+    @Test void noTrackingMasterUsesItsOwnTerminalStateWithoutInventingClosureTime() {
+        var mapper=mock(P16ProjectSyncTask.TargetMapper.class);
+        for(var closedAt:Arrays.asList(null,LocalDateTime.of(2024,12,23,9,46,31))){
+            var row=source().setProjectState("20").setColumn008("原始不予跟踪原因").setProjectCloseTime(closedAt);
+            task(mapper).syncDataInsertBefore(new SyncBatch<>(context(),List.of(row)));
+            assertEquals("NO_TRACKING_CLOSED",row.getTarget().getLifecycleStatus());
+            assertEquals("NO_TRACKING_CLOSED",row.getTarget().getStatus());
+            assertEquals("S0",row.getTarget().getCurrentStage());
+            assertEquals(closedAt,row.getTarget().getClosedAt());
+            assertEquals("原始不予跟踪原因",row.getTarget().getNotTrackReason());
+        }
+        assertThrows(IllegalArgumentException.class,()->P16ProjectSyncTask.historicalState(
+                new P16ProjectSyncTask.Historical("afss","20",null)));
+    }
     @Test void previewUsesOriginalProjectIdAndExecutionStillRequiresActualParent() {
         var mapper=mock(BaseSyncProjectReferences.ReferenceMapper.class);var scope=mock(ProjectScopeApi.class);
         var references=new BaseSyncProjectReferences(mapper,scope);
