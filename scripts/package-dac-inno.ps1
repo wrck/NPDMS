@@ -22,7 +22,7 @@ try {
     $innoOutput = (Resolve-Path -LiteralPath $OutputDirectory).Path
     & $Compiler "/DPayload=$innoPayload" "/DVersion=$($innoResult.version)" "/DOutputDirectory=$innoOutput" "/DDefaultServerUrl=$($innoResult.defaultServerUrl)" "/DDefaultWebOrigin=$($innoResult.defaultWebOrigin)" (Join-Path $taskWorkspace 'device-ops-platform/packaging/windows/Package.iss') *> (Join-Path $innoOutput 'compiler.log')
     if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath (Join-Path $innoOutput 'compiler.log') -Tail 25; throw 'Inno compilation failed.' }
-    $innoInstaller = Join-Path $innoOutput "NPDMS-DAC-$($innoResult.version)-x64-inno.exe"
+    $innoInstaller = Join-Path $innoOutput "SDP-DAC-$($innoResult.version)-x64-inno.exe"
     [ordered]@{ version=$innoResult.version; installer=$innoInstaller; bytes=(Get-Item -LiteralPath $innoInstaller).Length
         sha256=(Get-FileHash -LiteralPath $innoInstaller -Algorithm SHA256).Hash.ToLowerInvariant()
         sharedPayload=$innoPayload; sourceManifest=$innoResult.sourceManifest; installedOrStarted=$false

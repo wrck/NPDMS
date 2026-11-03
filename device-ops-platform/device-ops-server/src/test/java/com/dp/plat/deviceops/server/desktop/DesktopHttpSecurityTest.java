@@ -74,7 +74,7 @@ class DesktopHttpSecurityTest {
     @Test void exactOriginCanDiscoverAndPreflightWhileOtherSitesAndGenericRoutesAreDenied() throws Exception {
         mvc.perform(get("/api/v1/desktop/status").header("Origin", "http://10.210.0.11:19191"))
                 .andExpect(status().isOk()).andExpect(header().string("Access-Control-Allow-Origin", "http://10.210.0.11:19191"))
-                .andExpect(jsonPath("$.product").value("npdms-dac"));
+                .andExpect(jsonPath("$.product").value("sdp-dac"));
         mvc.perform(options("/api/v1/desktop/tasks/task-1/executions").header("Origin", "http://10.210.0.11:19191")
                 .header("Access-Control-Request-Method", "POST")
                 .header("Access-Control-Request-Private-Network", "true")

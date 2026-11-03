@@ -28,7 +28,7 @@ async function refresh() {
     const response = await fetch('/api/v1/desktop/status', {cache: 'no-store', signal: AbortSignal.timeout(5000)});
     if (!response.ok) throw new Error('status');
     const status = await response.json();
-    if (status.product !== 'npdms-dac') throw new Error('product');
+    if (status.product !== 'sdp-dac') throw new Error('product');
     state.textContent = status.status === 'READY' ? '本机 DAC 已就绪' : '本机 DAC 正在启动…';
     document.getElementById('server').textContent = status.serverUrl;
     document.getElementById('origin').textContent = status.webOrigin;

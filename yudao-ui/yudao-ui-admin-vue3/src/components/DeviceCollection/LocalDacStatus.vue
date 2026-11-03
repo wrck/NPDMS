@@ -4,10 +4,11 @@
     <a
       v-if="state === 'unavailable' || state === 'incompatible' || state === 'connection-required'"
       :href="installerUrl"
+      @click.prevent="downloadInstaller"
+      :aria-disabled="downloading"
       data-testid="dac-installer-download"
-      download="NPDMS-DAC-1.1.5-x64.msi"
       class="local-dac-start"
-    >{{ state === 'unavailable' ? '下载并安装 DAC' : '下载更新 DAC' }}</a>
+    >{{ downloading ? '正在生成安装包…' : state === 'unavailable' ? '下载并安装 DAC' : '下载更新 DAC' }}</a>
     <el-button v-if="state !== 'ready'" link :loading="checking" @click="check">重新检测</el-button>
     <div v-if="state === 'connection-required' || state === 'unavailable' || connecting" class="local-dac-pairing">
       <a v-if="prepared && !connecting" :href="prepared.href" class="local-dac-start" data-testid="dac-connect" @click="connect">连接本机 DAC</a>
@@ -24,14 +25,44 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import { discoverLocalDac } from './localDac'
 import type { LocalDacDiscovery } from './localDac'
 import { prepareLocalDacConnection } from './localDacConnection'
 import type { PreparedLocalConnection } from './localDacConnection'
 
 const props = defineProps<{ serverUrl: string }>()
-const installerFile = import.meta.env.VITE_DAC_INSTALLER_FILENAME || 'NPDMS-DAC-1.1.5-x64.msi'
+const installerFile = import.meta.env.VITE_DAC_INSTALLER_FILENAME || 'SDP-DAC-1.1.8-x64.msi'
 const installerUrl = `${import.meta.env.BASE_URL}downloads/dac/${installerFile}`
+const downloading = ref(false)
+async function downloadInstaller() {
+  if (downloading.value) return
+  downloading.value = true
+  try {
+    const server = new URL(props.serverUrl)
+    if (!['http:', 'https:'].includes(server.protocol) || server.username || server.password || server.search || server.hash) throw new Error('服务器地址无效')
+    const response = await fetch(installerUrl)
+    if (!response.ok) throw new Error('安装包下载失败')
+    const installer = new Uint8Array(await response.arrayBuffer())
+    if (![0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1].every((byte, index) => installer[index] === byte)) throw new Error('下载内容不是 MSI 安装包')
+    const { default: JSZip } = await import('jszip')
+    const zip = new JSZip()
+    const version = installerFile.match(/-(\d+\.\d+\.\d+)-x64(?:-[a-f0-9]+)?\.msi$/)?.[1]
+    if (!version) throw new Error('安装包版本信息缺失')
+    const packageName = `SDP-DAC-${version}-x64`
+    zip.file(`${packageName}.msi`, installer)
+    zip.file('dac-environment.ini', `[Environment]\r\nServerUrl=${server.href.replace(/\/$/, '')}\r\nWebOrigin=${window.location.origin}\r\n`)
+    zip.file('安装说明.txt', `产品：SDP DAC\r\n版本：${version}\r\n平台：Windows x64\r\n请先解压全部文件，再运行 ${packageName}.msi。安装器将读取同目录的 dac-environment.ini，自动填入当前服务器地址。请在安装界面核对环境。`)
+    const url = URL.createObjectURL(await zip.generateAsync({ type: 'blob' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${packageName}.zip`
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 60000)
+  } catch {
+    ElMessage.error('DAC 安装包生成失败，请检查服务器地址和安装包是否已发布')
+  } finally { downloading.value = false }
+}
 const emit = defineEmits<{ ready: [ready: boolean] }>()
 const state = ref<LocalDacDiscovery['state'] | 'checking'>('checking')
 const checking = ref(false)

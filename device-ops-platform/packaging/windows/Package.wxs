@@ -2,19 +2,24 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
   <Product Id="*" Name="SDP DAC" Language="2052" Codepage="65001" Version="$(var.Version)" Manufacturer="SDP" UpgradeCode="5066BB68-507D-4CBB-85E8-769C0BE81E10">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
-    <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 SDP DAC。" Schedule="afterInstallInitialize" />
+    <MajorUpgrade DowngradeErrorMessage="已安装更新版本的 SDP DAC。" Schedule="afterInstallExecute" />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <Property Id="ARPNOMODIFY" Value="1" />
+    <!-- DAC owns its service shutdown. RM cannot stop LocalService child processes as the UI user. -->
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
+    <Property Id="REBOOT" Value="ReallySuppress" />
+    <Property Id="RestoreClientSettings" Hidden="yes" />
+    <Property Id="DOWNLOAD_ENVIRONMENT_LOADED" Secure="yes" />
     <Property Id="INNO_DAC_INSTALLED">
       <RegistrySearch Id="InnoDacInstalled" Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\NPDMS-DAC-Inno_is1" Name="DisplayVersion" Type="raw" Win64="yes" />
     </Property>
     <Condition Message="同时存在 MSI 和 Inno 安装记录，无法确认旧服务归属，请先修复安装状态。">NOT INNO_DAC_INSTALLED OR (NOT Installed AND NOT WIX_UPGRADE_DETECTED)</Condition>
-    <Property Id="NPDMS_DEFAULT_SERVER_URL" Value="$(var.DefaultServerUrl)" />
-    <Property Id="NPDMS_DEFAULT_WEB_ORIGIN" Value="$(var.DefaultWebOrigin)" />
-    <Property Id="NPDMS_SERVER_URL" Secure="yes" Hidden="yes">
+    <Property Id="DEFAULT_SERVER_URL" Value="$(var.DefaultServerUrl)" />
+    <Property Id="DEFAULT_WEB_ORIGIN" Value="$(var.DefaultWebOrigin)" />
+    <Property Id="SERVER_URL" Secure="yes" Hidden="yes">
       <RegistrySearch Id="SavedServer" Root="HKLM" Key="Software\NPDMS\DAC" Name="ServerUrl" Type="raw" Win64="yes" />
     </Property>
-    <Property Id="NPDMS_WEB_ORIGIN" Secure="yes" Hidden="yes">
+    <Property Id="WEB_ORIGIN" Secure="yes" Hidden="yes">
       <RegistrySearch Id="SavedOrigin" Root="HKLM" Key="Software\NPDMS\DAC" Name="WebOrigin" Type="raw" Win64="yes" />
     </Property>
     <PropertyRef Id="WIX_ACCOUNT_USERS" />
@@ -25,11 +30,11 @@
     <Condition Message="需要 .NET Framework 4.6.1 或更新版本。">Installed OR DOTNET_RELEASE &gt;= "#394254"</Condition>
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
-        <Directory Id="CompanyDirectory" Name="NPDMS">
+        <Directory Id="CompanyDirectory" Name="SDP">
           <Directory Id="INSTALLFOLDER" Name="DAC">
-            <Component Id="ServiceComponent" Guid="FA934874-55EB-42F4-B355-964E22A1F4D3" Win64="yes">
-              <File Id="ServiceExecutable" Source="$(var.Payload)\NpdmsDacService.exe" KeyPath="yes" />
-              <File Id="ServiceXml" Source="$(var.Payload)\NpdmsDacService.xml" />
+            <Component Id="ServiceComponent" Guid="43E943B3-8153-407B-B785-EC8826C2D56B" Win64="yes">
+              <File Id="ServiceExecutable" Source="$(var.Payload)\SdpDacService.exe" KeyPath="yes" />
+              <File Id="ServiceXml" Source="$(var.Payload)\SdpDacService.xml" />
               <util:EventSource Name="NpdmsDac" Log="Application" EventMessageFile="[WindowsFolder]Microsoft.NET\Framework64\v4.0.30319\EventLogMessages.dll" SupportsErrors="yes" SupportsWarnings="yes" SupportsInformationals="yes" />
               <ServiceInstall Id="InstallDacService" Name="NpdmsDac" DisplayName="SDP DAC" Description="SDP 本机设备连接与采集服务" Type="ownProcess" Start="auto" ErrorControl="normal" Account="NT AUTHORITY\LocalService" Vital="yes">
                 <util:PermissionEx User="[WIX_ACCOUNT_USERS]" ServiceStart="yes" ServiceQueryStatus="yes" ServiceQueryConfig="yes" />
@@ -37,23 +42,23 @@
               </ServiceInstall>
               <ServiceControl Id="ControlDacService" Name="NpdmsDac" Start="install" Stop="both" Remove="uninstall" Wait="yes" />
             </Component>
-            <Component Id="LauncherComponent" Guid="1780117D-4CCB-40A7-98AA-31376A55E8EA" Win64="yes">
-              <File Id="LauncherExecutable" Source="$(var.Payload)\NpdmsDac.exe" KeyPath="yes">
+            <Component Id="LauncherComponent" Guid="3B293B12-7462-4CC3-84EF-99DDCF6F365A" Win64="yes">
+              <File Id="LauncherExecutable" Source="$(var.Payload)\SdpDac.exe" KeyPath="yes">
                 <Shortcut Id="SettingsShortcut" Directory="StartMenuDirectory" Name="DAC 设置" Advertise="yes" Arguments="--configure" WorkingDirectory="INSTALLFOLDER" />
                 <Shortcut Id="StatusShortcut" Directory="StartMenuDirectory" Name="DAC 本机状态" Advertise="yes" Arguments="--open-status" WorkingDirectory="INSTALLFOLDER" />
               </File>
               <RemoveFolder Id="RemoveMenuDirectory" Directory="StartMenuDirectory" On="uninstall" />
-              <RegistryValue Root="HKLM" Key="Software\Classes\npdms-dac" Type="string" Value="URL:SDP DAC" />
-              <RegistryValue Root="HKLM" Key="Software\Classes\npdms-dac" Name="URL Protocol" Type="string" Value="" />
-              <RegistryValue Root="HKLM" Key="Software\Classes\npdms-dac\shell\open\command" Type="string" Value="&quot;[#LauncherExecutable]&quot; --uri &quot;%1&quot;" />
-              <RegistryValue Root="HKLM" Key="Software\NPDMS\DAC" Name="ServerUrl" Type="string" Value="[NPDMS_SERVER_URL]" />
-              <RegistryValue Root="HKLM" Key="Software\NPDMS\DAC" Name="WebOrigin" Type="string" Value="[NPDMS_WEB_ORIGIN]" />
+              <RegistryValue Root="HKLM" Key="Software\Classes\sdp-dac" Type="string" Value="URL:SDP DAC" />
+              <RegistryValue Root="HKLM" Key="Software\Classes\sdp-dac" Name="URL Protocol" Type="string" Value="" />
+              <RegistryValue Root="HKLM" Key="Software\Classes\sdp-dac\shell\open\command" Type="string" Value="&quot;[#LauncherExecutable]&quot; --uri &quot;%1&quot;" />
+              <RegistryValue Root="HKLM" Key="Software\NPDMS\DAC" Name="ServerUrl" Type="string" Value="[SERVER_URL]" />
+              <RegistryValue Root="HKLM" Key="Software\NPDMS\DAC" Name="WebOrigin" Type="string" Value="[WEB_ORIGIN]" />
             </Component>
           </Directory>
         </Directory>
       </Directory>
       <Directory Id="ProgramMenuFolder">
-        <Directory Id="StartMenuDirectory" Name="NPDMS" />
+        <Directory Id="StartMenuDirectory" Name="SDP" />
       </Directory>
     </Directory>
     <Feature Id="Complete" Title="SDP DAC" Level="1">
@@ -63,22 +68,34 @@
     </Feature>
     <!-- The native helper validates URLs and writes no plaintext secrets. No shell is involved. -->
     <Binary Id="DesktopInstallerActions" SourceFile="$(var.InstallerActions)" />
+    <CustomAction Id="LoadDownloadEnvironment" BinaryKey="DesktopInstallerActions" DllEntry="LoadDownloadEnvironment" Execute="immediate" Return="check" />
+    <CustomAction Id="SetInstallOutcome" BinaryKey="DesktopInstallerActions" DllEntry="SetInstallOutcome" Execute="immediate" Return="check" />
+    <CustomAction Id="PlanClientUpgrade" BinaryKey="DesktopInstallerActions" DllEntry="PlanClientUpgrade" Execute="immediate" Return="check" />
+    <CustomAction Id="StopPreviousDac" BinaryKey="DesktopInstallerActions" DllEntry="StopPreviousDac" Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="RestorePreviousDac" BinaryKey="DesktopInstallerActions" DllEntry="RestorePreviousDac" Execute="rollback" Impersonate="no" Return="check" />
+    <CustomAction Id="RestoreClientSettings" BinaryKey="DesktopInstallerActions" DllEntry="RestoreClientSettings" Execute="rollback" Impersonate="no" Return="check" HideTarget="yes" />
     <CustomAction Id="ValidateClientSettings" BinaryKey="DesktopInstallerActions" DllEntry="ValidateClientSettings" Execute="immediate" Return="check" />
     <CustomAction Id="ValidateClientSettingsForInstall" BinaryKey="DesktopInstallerActions" DllEntry="ValidateClientSettingsForInstall" Execute="immediate" Return="check" />
     <CustomAction Id="PlanRemovePreviousInno" BinaryKey="DesktopInstallerActions" DllEntry="PlanRemovePreviousInno" Execute="immediate" Return="check" />
     <CustomAction Id="RemovePreviousInno" BinaryKey="DesktopInstallerActions" DllEntry="RemovePreviousInno" Execute="deferred" Impersonate="no" Return="check" />
     <SetProperty Id="REINSTALLMODE" Action="ForceFilesAfterInnoRemoval" Value="amus" After="AppSearch" Sequence="both">INNO_DAC_INSTALLED AND NOT Installed AND NOT REMOVE~="ALL"</SetProperty>
-    <SetProperty Id="NPDMS_SERVER_URL" Action="SetDefaultServerUrl" Value="[NPDMS_DEFAULT_SERVER_URL]" After="AppSearch" Sequence="both">NOT NPDMS_SERVER_URL</SetProperty>
-    <SetProperty Id="NPDMS_WEB_ORIGIN" Action="SetDefaultWebOrigin" Value="[NPDMS_DEFAULT_WEB_ORIGIN]" After="SetDefaultServerUrl" Sequence="both">NOT NPDMS_WEB_ORIGIN AND NPDMS_SERVER_URL = NPDMS_DEFAULT_SERVER_URL</SetProperty>
-    <CustomAction Id="InitializeClient" FileKey="LauncherExecutable" ExeCommand="--initialize &quot;[NPDMS_SERVER_URL]&quot; &quot;[NPDMS_WEB_ORIGIN]&quot;" Execute="deferred" Impersonate="no" Return="check" />
+    <SetProperty Id="SERVER_URL" Action="SetDefaultServerUrl" Value="[DEFAULT_SERVER_URL]" After="AppSearch" Sequence="both">NOT SERVER_URL</SetProperty>
+    <SetProperty Id="WEB_ORIGIN" Action="SetDefaultWebOrigin" Value="[DEFAULT_WEB_ORIGIN]" After="SetDefaultServerUrl" Sequence="both">NOT WEB_ORIGIN AND SERVER_URL = DEFAULT_SERVER_URL</SetProperty>
+    <CustomAction Id="InitializeClient" FileKey="LauncherExecutable" ExeCommand="--initialize &quot;[SERVER_URL]&quot; &quot;[WEB_ORIGIN]&quot;" Execute="deferred" Impersonate="no" Return="check" />
     <CustomAction Id="OpenDesktopStatus" FileKey="LauncherExecutable" ExeCommand="--open-status" Execute="immediate" Return="asyncNoWait" />
-    <CustomAction Id="RollbackBrowserPolicy" FileKey="LauncherExecutable" ExeCommand="--remove-browser-policy" Execute="rollback" Impersonate="no" Return="check" />
     <CustomAction Id="RemoveBrowserPolicy" FileKey="LauncherExecutable" ExeCommand="--remove-browser-policy" Execute="deferred" Impersonate="no" Return="check" />
     <InstallExecuteSequence>
+      <Custom Action="PlanClientUpgrade" Before="InstallInitialize">NOT REMOVE~="ALL"</Custom>
+      <Custom Action="RestorePreviousDac" After="InstallInitialize">WIX_UPGRADE_DETECTED AND DAC_SERVICE_WAS_RUNNING = "1"</Custom>
+      <Custom Action="StopPreviousDac" After="RestorePreviousDac">WIX_UPGRADE_DETECTED AND DAC_SERVICE_WAS_RUNNING = "1"</Custom>
+      <!-- Flush the transactional stop before the old MSI performs its own files-in-use check.
+           InstallFinalize executes the remaining install script after old-product removal. -->
+      <InstallExecute After="StopPreviousDac" />
+      <Custom Action="LoadDownloadEnvironment" After="SetDefaultWebOrigin">NOT Installed AND NOT REMOVE~="ALL" AND NOT DOWNLOAD_ENVIRONMENT_LOADED</Custom>
       <Custom Action="PlanRemovePreviousInno" After="InstallValidate">INNO_DAC_INSTALLED AND NOT Installed AND NOT REMOVE~="ALL"</Custom>
       <Custom Action="RemovePreviousInno" After="RemoveExistingProducts">INNO_DAC_INSTALLED AND NOT Installed AND NOT REMOVE~="ALL"</Custom>
-      <Custom Action="ValidateClientSettingsForInstall" Before="InstallInitialize">NOT REMOVE~="ALL"</Custom>
-      <Custom Action="RollbackBrowserPolicy" Before="InitializeClient">NOT Installed AND NOT WIX_UPGRADE_DETECTED AND NOT REMOVE~="ALL"</Custom>
+      <Custom Action="ValidateClientSettingsForInstall" Before="PlanClientUpgrade">NOT REMOVE~="ALL"</Custom>
+      <Custom Action="RestoreClientSettings" Before="InitializeClient">NOT REMOVE~="ALL"</Custom>
       <Custom Action="InitializeClient" After="InstallFiles">NOT REMOVE~="ALL"</Custom>
       <Custom Action="RemoveBrowserPolicy" Before="RemoveFiles">REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
     </InstallExecuteSequence>
@@ -96,31 +113,33 @@
       <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999">1</Publish>
       <Dialog Id="ClientSettingsDlg" Width="370" Height="270" Title="SDP DAC 安装">
         <Control Id="Title" Type="Text" X="20" Y="15" Width="330" Height="24" Text="{\WixUI_Font_Title}设置 SDP 环境" />
-        <Control Id="Description" Type="Text" X="20" Y="45" Width="330" Height="28" Text="安装自带 Java 的本机 DAC 服务，安装后自动启动。" />
+        <Control Id="Description" Type="Text" X="20" Y="45" Width="330" Height="28" Text="点击一次安装即可。升级会自动停止并启动本机 DAC 服务，通常无需重启电脑；请先结束正在执行的采集。" />
         <Control Id="ServerLabel" Type="Text" X="20" Y="85" Width="330" Height="18" Text="SDP 后端 API 地址（HTTP/HTTPS，包含端口）" />
-        <Control Id="Server" Type="Edit" X="20" Y="105" Width="330" Height="18" Property="NPDMS_SERVER_URL" />
+        <Control Id="Server" Type="Edit" X="20" Y="105" Width="330" Height="18" Property="SERVER_URL" />
         <Control Id="OriginLabel" Type="Text" X="20" Y="139" Width="330" Height="18" Text="浏览器访问 SDP 的地址（不含路径；相同时可留空）" />
-        <Control Id="Origin" Type="Edit" X="20" Y="159" Width="330" Height="18" Property="NPDMS_WEB_ORIGIN" />
-        <Control Id="Example" Type="Text" X="20" Y="190" Width="330" Height="40" Text="HTTP 网页会为所填网页地址配置 Chrome/Edge 本地网络访问权限。安装后刷新网页；修改环境或卸载时清理本客户端添加的旧授权。" />
+        <Control Id="Origin" Type="Edit" X="20" Y="159" Width="330" Height="18" Property="WEB_ORIGIN" />
+        <Control Id="Example" Type="Text" X="20" Y="190" Width="330" Height="40" Text="安装后使用上方确认的环境地址，旧环境的数据仍保留。HTTP 网页仅配置所填来源的本机访问权限；安装完成后刷新网页。" />
         <Control Id="Install" Type="PushButton" X="205" Y="240" Width="70" Height="20" Default="yes" Text="安装">
           <Publish Event="DoAction" Value="ValidateClientSettings" Order="1">1</Publish>
-          <Publish Event="SpawnDialog" Value="ClientSettingsErrorDlg" Order="2">NOT NPDMS_CONFIG_VALID</Publish>
-          <Publish Event="EndDialog" Value="Return" Order="3">NPDMS_CONFIG_VALID = "1"</Publish>
-          <Condition Action="disable">NOT NPDMS_SERVER_URL</Condition>
-          <Condition Action="enable">NPDMS_SERVER_URL</Condition>
+          <Publish Event="SpawnDialog" Value="ClientSettingsErrorDlg" Order="2">NOT CONFIG_VALID</Publish>
+          <Publish Event="EndDialog" Value="Return" Order="3">CONFIG_VALID = "1"</Publish>
+          <Condition Action="disable">NOT SERVER_URL</Condition>
+          <Condition Action="enable">SERVER_URL</Condition>
         </Control>
         <Control Id="Cancel" Type="PushButton" X="285" Y="240" Width="65" Height="20" Cancel="yes" Text="取消">
           <Publish Event="EndDialog" Value="Exit">1</Publish>
         </Control>
       </Dialog>
       <Dialog Id="ClientSettingsErrorDlg" Width="340" Height="140" Title="请检查 SDP 地址">
-        <Control Id="Message" Type="Text" X="20" Y="20" Width="300" Height="75" Text="[NPDMS_CONFIG_ERROR]" />
+        <Control Id="Message" Type="Text" X="20" Y="20" Width="300" Height="75" Text="[CONFIG_ERROR]" />
         <Control Id="OK" Type="PushButton" X="135" Y="110" Width="70" Height="20" Default="yes" Cancel="yes" Text="返回修改">
           <Publish Event="EndDialog" Value="Return">1</Publish>
         </Control>
       </Dialog>
       <InstallUISequence>
-        <Custom Action="OpenDesktopStatus" After="ExecuteAction">UILevel &gt;= 3 AND NOT REMOVE~="ALL"</Custom>
+        <Custom Action="LoadDownloadEnvironment" After="SetDefaultWebOrigin">NOT Installed AND NOT REMOVE~="ALL" AND NOT DOWNLOAD_ENVIRONMENT_LOADED</Custom>
+        <Custom Action="SetInstallOutcome" After="ExecuteAction">UILevel &gt;= 3 AND NOT REMOVE~="ALL"</Custom>
+        <Custom Action="OpenDesktopStatus" After="SetInstallOutcome">UILevel &gt;= 3 AND NOT REMOVE~="ALL" AND NOT DAC_REBOOT_REQUIRED</Custom>
         <Show Dialog="ClientSettingsDlg" Before="ProgressDlg">NOT Installed</Show>
         <Show Dialog="FatalError" OnExit="error" />
         <Show Dialog="UserExit" OnExit="cancel" />

@@ -1,7 +1,7 @@
 import { ed25519 } from '@noble/curves/ed25519'
 
 export const LOCAL_DAC_ORIGINS = Array.from({ length: 10 }, (_, index) => `http://127.0.0.1:${8280 + index}`)
-export const LOCAL_DAC_START_URI = 'npdms-dac://start/'
+export const LOCAL_DAC_START_URI = 'sdp-dac://start/'
 
 export class LocalDacError extends Error {
   constructor(readonly outcomeUnknown: boolean, readonly status?: number, reason?: string) {
@@ -72,7 +72,7 @@ export interface LocalCollection {
 }
 
 export interface LocalDacStatus {
-  product: 'npdms-dac'
+  product: 'sdp-dac'
   protocolVersion: 3
   status: 'READY' | 'STARTING'
   serverUrl: string
@@ -99,14 +99,14 @@ function trustedKey(environment: Environment): string | null {
 export async function confirmLocalDac(options: Environment & { nonce: string; status: LocalDacStatus; signal?: AbortSignal }): Promise<LocalDacDiscovery> {
   const data = options.status
   if (options.signal?.aborted) throw new Error('本机连接已取消')
-  if (!/^[a-f0-9]{64}$/.test(options.nonce) || !data || data.product !== 'npdms-dac' || data.protocolVersion !== 3
+  if (!/^[a-f0-9]{64}$/.test(options.nonce) || !data || data.product !== 'sdp-dac' || data.protocolVersion !== 3
     || data.status !== 'READY' || !Number.isInteger(data.port) || data.port < 8280 || data.port > 8289
     || !/^[a-f0-9]{64}$/.test(data.publicKey) || !/^[a-f0-9-]{36}$/.test(data.instanceId)
     || data.serverUrl !== normalize(options.serverUrl) || data.webOrigin !== normalize(options.webOrigin)) {
     throw new Error('本机连接确认与当前环境不匹配，请重新连接')
   }
   try {
-    const message = `npdms-dac-discovery-v1\n${options.nonce}\n${data.port}\n${data.instanceId}\n3\n${data.status}\n${data.serverUrl}\n${data.webOrigin}`
+    const message = `sdp-dac-discovery-v1\n${options.nonce}\n${data.port}\n${data.instanceId}\n3\n${data.status}\n${data.serverUrl}\n${data.webOrigin}`
     const signature = Uint8Array.from(atob(data.signature), char => char.charCodeAt(0))
     if (!ed25519.verify(signature, new TextEncoder().encode(message), hexBytes(data.publicKey), { zip215: false })) throw new Error()
   } catch { throw new Error('本机连接身份校验失败，请检查安装后重新连接') }
@@ -130,14 +130,14 @@ async function probe(origin: string, options: Environment & { signal?: AbortSign
     })
     if (!response.ok) return { state: 'unavailable' }
     const data = await response.json() as LocalDacStatus
-    if (data?.product !== 'npdms-dac' || data?.protocolVersion !== 3 || !['READY', 'STARTING'].includes(data?.status)
+    if (data?.product !== 'sdp-dac' || data?.protocolVersion !== 3 || !['READY', 'STARTING'].includes(data?.status)
       || typeof data.serverUrl !== 'string' || typeof data.webOrigin !== 'string'
       || !/^[a-f0-9]{64}$/.test(data.publicKey) || !/^[a-f0-9-]{36}$/.test(data.instanceId)
       || data.port !== Number(new URL(origin).port) || typeof data.signature !== 'string') return { state: 'incompatible' }
     if (normalize(data.serverUrl) !== normalize(options.serverUrl) || normalize(data.webOrigin) !== normalize(options.webOrigin)) {
       return { state: 'wrong-environment' }
     }
-    const message = `npdms-dac-discovery-v1\n${nonce}\n${data.port}\n${data.instanceId}\n3\n${data.status}\n${data.serverUrl}\n${data.webOrigin}`
+    const message = `sdp-dac-discovery-v1\n${nonce}\n${data.port}\n${data.instanceId}\n3\n${data.status}\n${data.serverUrl}\n${data.webOrigin}`
     const signature = Uint8Array.from(atob(data.signature), char => char.charCodeAt(0))
     if (!ed25519.verify(signature, new TextEncoder().encode(message), hexBytes(data.publicKey), { zip215: false })) {
       return { state: 'identity-mismatch' }

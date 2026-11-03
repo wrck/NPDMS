@@ -37,8 +37,8 @@ class DacDesktopConnectServiceTest {
         String pub = HexFormat.of().formatHex(Arrays.copyOfRange(encoded, encoded.length - 32, encoded.length));
         String instance = "01234567-1234-1234-1234-012345678901";
         var signature = Signature.getInstance("Ed25519"); signature.initSign(keys.getPrivate());
-        signature.update(("npdms-dac-discovery-v1\n"+nonce+"\n"+port+"\n"+instance+"\n3\nREADY\n"+server+"\n"+ORIGIN).getBytes(StandardCharsets.UTF_8));
-        return new DacDesktopConnectService.Proof(nonce, new DacDesktopConnectService.Status("npdms-dac", 3, "READY",
+        signature.update(("sdp-dac-discovery-v1\n"+nonce+"\n"+port+"\n"+instance+"\n3\nREADY\n"+server+"\n"+ORIGIN).getBytes(StandardCharsets.UTF_8));
+        return new DacDesktopConnectService.Proof(nonce, new DacDesktopConnectService.Status("sdp-dac", 3, "READY",
                 server, ORIGIN, port, pub, instance, Base64.getEncoder().encodeToString(signature.sign())));
     }
     @Test void confirmsOnlySignedChallengeAndDoesNotStoreNonceOrPrivateKey() throws Exception {
@@ -60,6 +60,26 @@ class DacDesktopConnectServiceTest {
         assertThrows(ResponseStatusException.class, () -> service.poll(ID, 11L));
         assertThrows(ResponseStatusException.class, () -> service.accept(ID, proof(NONCE, SERVER, 8280)));
         assertEquals(1, records.size());
+    }
+    @Test void rejectsWrongProductDespiteOtherwiseValidDiscoverySignature() throws Exception {
+        service.begin(beginInput(), 11L);
+        var s = proof(NONCE, SERVER, 8280).status();
+        var wrongProduct = new DacDesktopConnectService.Status("other-dac", s.protocolVersion(), s.status(),
+                s.serverUrl(), s.webOrigin(), s.port(), s.publicKey(), s.instanceId(), s.signature());
+        assertThrows(ResponseStatusException.class, () -> service.accept(ID, new DacDesktopConnectService.Proof(NONCE, wrongProduct)));
+        assertEquals("pending", service.poll(ID, 11L).state());
+    }
+    @Test void rejectsLegacySignatureDomainDespiteCurrentProductName() throws Exception {
+        service.begin(beginInput(), 11L);
+        var s = proof(NONCE, SERVER, 8280).status();
+        var signature = Signature.getInstance("Ed25519");
+        signature.initSign(keys.getPrivate());
+        signature.update(("npdms-dac-discovery-v1\n" + NONCE + "\n" + s.port() + "\n" + s.instanceId()
+                + "\n3\nREADY\n" + SERVER + "\n" + ORIGIN).getBytes(StandardCharsets.UTF_8));
+        var legacySignature = new DacDesktopConnectService.Status(s.product(), s.protocolVersion(), s.status(),
+                s.serverUrl(), s.webOrigin(), s.port(), s.publicKey(), s.instanceId(), Base64.getEncoder().encodeToString(signature.sign()));
+        assertThrows(ResponseStatusException.class, () -> service.accept(ID, new DacDesktopConnectService.Proof(NONCE, legacySignature)));
+        assertEquals("pending", service.poll(ID, 11L).state());
     }
     @Test void rejectsWrongNonceEnvironmentAndPortEvenWhenValidlySigned() throws Exception {
         service.begin(beginInput(), 11L);

@@ -39,7 +39,7 @@ class DesktopDiscoveryTest {
         assertEquals("no-store", response.getHeaders().getCacheControl());
         assertEquals(3, response.getBody().protocolVersion());
         assertEquals(8289, response.getBody().port());
-        verify(identity).sign("npdms-dac-discovery-v1\n" + "a".repeat(64) + "\n8289\ninstance-1\n3\nREADY\nhttps://npdms.example:8443\nhttps://web.example");
+        verify(identity).sign("sdp-dac-discovery-v1\n" + "a".repeat(64) + "\n8289\ninstance-1\n3\nREADY\nhttps://npdms.example:8443\nhttps://web.example");
         assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> controller.status("bad-nonce", request));
     }
 

@@ -101,7 +101,7 @@ public class DacDesktopConnectService {
         try {
             String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(proof.nonce().getBytes(StandardCharsets.UTF_8)));
             var s = proof.status();
-            if (!hash.equals(expected.nonceHash()) || s == null || !"npdms-dac".equals(s.product())
+            if (!hash.equals(expected.nonceHash()) || s == null || !"sdp-dac".equals(s.product())
                     || s.protocolVersion() != 3 || !"READY".equals(s.status()) || s.port() < 8280 || s.port() > 8289
                     || !expected.serverUrl().equals(s.serverUrl()) || !expected.webOrigin().equals(s.webOrigin())
                     || !hex(s.publicKey(), 64) || s.instanceId() == null
@@ -111,7 +111,7 @@ public class DacDesktopConnectService {
             var key = KeyFactory.getInstance("Ed25519").generatePublic(new X509EncodedKeySpec(raw));
             var verifier = Signature.getInstance("Ed25519");
             verifier.initVerify(key);
-            String message = "npdms-dac-discovery-v1\n" + proof.nonce() + "\n" + s.port() + "\n" + s.instanceId()
+            String message = "sdp-dac-discovery-v1\n" + proof.nonce() + "\n" + s.port() + "\n" + s.instanceId()
                     + "\n3\nREADY\n" + s.serverUrl() + "\n" + s.webOrigin();
             verifier.update(message.getBytes(StandardCharsets.UTF_8));
             return verifier.verify(Base64.getDecoder().decode(s.signature()));

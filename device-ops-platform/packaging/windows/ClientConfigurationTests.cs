@@ -17,6 +17,10 @@ namespace Npdms.Dac.Desktop
             if (args.Length != 1) return 2;
             CheckAutomaticRemoval(args[0]);
             CheckServiceProgramPermissions(args[0]);
+            Require(ClientConfiguration.IsOwnedServiceExecutable(Path.Combine(ClientConfiguration.InstallDirectory, "SdpDacService.exe"))
+                && ClientConfiguration.IsOwnedServiceExecutable(Path.Combine(ClientConfiguration.LegacyInstallDirectory, "NpdmsDacService.exe")), "upgrade recognizes only the SDP installation and its legacy NPDMS predecessor");
+            Require(!ClientConfiguration.IsOwnedServiceExecutable(Path.Combine(args[0], "SdpDacService.exe"))
+                && !ClientConfiguration.IsOwnedServiceExecutable(Path.Combine(ClientConfiguration.InstallDirectory, "NpdmsDacService.exe")), "renaming does not grant ownership of arbitrary service paths");
             Require(ClientConfiguration.CandidatePorts(8289).SequenceEqual(new[] { 8289, 8280, 8281, 8282, 8283, 8284, 8285, 8286, 8287, 8288 }), "reuse previous port and exhaust every candidate once");
             Require(ClientConfiguration.CandidatePorts(48182).SequenceEqual(Enumerable.Range(8280, 10)), "legacy port does not escape candidate range");
             var first = new ClientConfiguration("https://npdms.example.com:8443/", "https://web.example.com:9443");
@@ -31,18 +35,18 @@ namespace Npdms.Dac.Desktop
                 try { new ClientConfiguration(invalid, null); } catch (ArgumentException) { rejected = true; }
                 Require(rejected, "reject unsafe address");
             }
-            Require(ClientConfiguration.IsStartUri("npdms-dac://start/"), "fixed startup action");
-            string connect = "npdms-dac://connect/" + new string('a', 32) + "?challenge=" + new string('b', 64) + "&tenant=1";
+            Require(ClientConfiguration.IsStartUri("sdp-dac://start/"), "fixed startup action");
+            string connect = "sdp-dac://connect/" + new string('a', 32) + "?challenge=" + new string('b', 64) + "&tenant=1";
             Require(ClientConfiguration.ParseConnectUri(connect).SequenceEqual(new[] { new string('a', 32), new string('b', 64), "1" }), "one-click challenge action");
             foreach (string invalid in new[] { connect + "&url=http://evil", connect + "#fragment", connect.Replace("tenant=1", "tenant=0"),
                 connect.Replace("tenant=1", "tenant=-1"), connect.Replace("?challenge=", "?challenge=%22"), connect.Replace("connect/", "connect/../"),
-                connect.Replace("&tenant=1", "&tenant=1&tenant=2"), "cmd.exe", "npdms-dac://connect/" })
+                connect.Replace("&tenant=1", "&tenant=1&tenant=2"), "cmd.exe", "sdp-dac://connect/" })
             {
                 bool rejected = false;
                 try { ClientConfiguration.ParseConnectUri(invalid); } catch (ArgumentException) { rejected = true; }
                 Require(rejected, "reject unsafe connect action");
             }
-            foreach (string invalid in new[] { "npdms-dac://start/?url=https://evil.example", "npdms-dac://stop/", "npdms-dac://start/--run", "npdms-dac://start/#secret", "cmd.exe" })
+            foreach (string invalid in new[] { "sdp-dac://start/?url=https://evil.example", "sdp-dac://stop/", "sdp-dac://start/--run", "sdp-dac://start/#secret", "cmd.exe" })
                 Require(!ClientConfiguration.IsStartUri(invalid), "reject arbitrary protocol payload");
             var second = new ClientConfiguration("https://another.example.com:8443", null);
             Require(first.EnvironmentDirectory(args[0]) != second.EnvironmentDirectory(args[0]), "isolate server environments");
@@ -66,6 +70,16 @@ namespace Npdms.Dac.Desktop
             first.Save(args[0]);
             Require(key.SequenceEqual(ClientConfiguration.ReadMasterKey(args[0])), "configuration update preserves credential key");
             Require(ClientConfiguration.Load(args[0]).WebOrigin == first.WebOrigin, "configuration round trip");
+            string historical = Path.Combine(first.EnvironmentDirectory(args[0]), "history-preservation-probe.bin");
+            File.WriteAllBytes(historical, new byte[] { 3, 1, 4, 1, 5 });
+            second.Save(args[0]);
+            Require(ClientConfiguration.Load(args[0]).ServerUrl == second.ServerUrl
+                && ClientConfiguration.Load(args[0]).WebOrigin == second.WebOrigin, "upgrade applies the newly confirmed environment");
+            Require(File.ReadAllBytes(historical).SequenceEqual(new byte[] { 3, 1, 4, 1, 5 })
+                && File.ReadAllBytes(Path.Combine(args[0], "credentials.key.dpapi")).SequenceEqual(encrypted), "environment change preserves old history and encrypted master key");
+            first.Save(args[0]);
+            Require(ClientConfiguration.Load(args[0]).ServerUrl == first.ServerUrl
+                && File.ReadAllBytes(historical).SequenceEqual(new byte[] { 3, 1, 4, 1, 5 }), "rollback restores the prior environment without rewriting history");
             string acl = File.GetAccessControl(Path.Combine(args[0], "credentials.key.dpapi")).GetSecurityDescriptorSddlForm(System.Security.AccessControl.AccessControlSections.Access);
             Require(!acl.Contains(";;;BU)") && acl.Contains(";;;LS)"), "credential key is restricted to service and administrators");
             Array.Clear(key, 0, key.Length);
@@ -77,7 +91,7 @@ namespace Npdms.Dac.Desktop
         {
             string program = Path.Combine(root, "program-acl-probe");
             Directory.CreateDirectory(Path.Combine(program, "runtime", "bin"));
-            string host = Path.Combine(program, "NpdmsDacHost.exe");
+            string host = Path.Combine(program, "SdpDacHost.exe");
             string java = Path.Combine(program, "runtime", "bin", "java.exe");
             File.WriteAllText(host, "readonly-program-probe"); File.WriteAllText(java, "readonly-runtime-probe");
             string untouched = Path.Combine(root, "preserved-data-probe");
@@ -105,7 +119,7 @@ namespace Npdms.Dac.Desktop
             string directory = Path.GetFullPath(Path.Combine(root, "old-install"));
             string executable = Path.Combine(directory, "unins000.exe");
             Func<PreviousInnoInstallation.Registration> registration = delegate {
-                return new PreviousInnoInstallation.Registration { InstallDirectory = directory, ExpectedDirectory = directory,
+                return new PreviousInnoInstallation.Registration { InstallDirectory = directory, ExpectedDirectories = new[] { directory },
                     UninstallCommand = "\"" + executable + "\"", DisplayVersion = "1.0.6", TargetVersion = "1.1.0" };
             };
             var previous = PreviousInnoInstallation.Parse(registration());

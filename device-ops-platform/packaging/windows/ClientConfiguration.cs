@@ -11,12 +11,22 @@ namespace Npdms.Dac.Desktop
     internal sealed class ClientConfiguration
     {
         internal const string ServiceName = "NpdmsDac";
+        internal static readonly string InstallDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "SDP", "DAC");
+        internal static readonly string LegacyInstallDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "NPDMS", "DAC");
         internal const int Port = 8280;
         internal const int LastPort = 8289;
         internal static readonly string DataRoot = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "NPDMS", "DAC");
         internal readonly string ServerUrl;
         internal readonly string WebOrigin;
+
+        internal static bool IsOwnedServiceExecutable(string executable)
+        {
+            return String.Equals(executable, Path.Combine(InstallDirectory, "SdpDacService.exe"), StringComparison.OrdinalIgnoreCase)
+                || String.Equals(executable, Path.Combine(LegacyInstallDirectory, "NpdmsDacService.exe"), StringComparison.OrdinalIgnoreCase);
+        }
 
         internal ClientConfiguration(string serverUrl, string webOrigin)
         {
@@ -46,14 +56,14 @@ namespace Npdms.Dac.Desktop
         internal static bool IsStartUri(string value)
         {
             // Exact action only: no server changes, credentials, commands or arbitrary executable paths.
-            return String.Equals(value, "npdms-dac://start/", StringComparison.OrdinalIgnoreCase);
+            return String.Equals(value, "sdp-dac://start/", StringComparison.OrdinalIgnoreCase);
         }
 
         internal static string[] ParseConnectUri(string value)
         {
             // No callback URL, command, credentials, fragment or additional arguments are accepted.
             var match = System.Text.RegularExpressions.Regex.Match(value ?? "",
-                "\\Anpdms-dac://connect/([a-f0-9]{32})\\?challenge=([a-f0-9]{64})&tenant=([1-9][0-9]{0,17})\\z");
+                "\\Asdp-dac://connect/([a-f0-9]{32})\\?challenge=([a-f0-9]{64})&tenant=([1-9][0-9]{0,17})\\z");
             if (!match.Success) throw new ArgumentException("本机连接链接无效，请在 SDP 网页重新点击连接。");
             return new[] { match.Groups[1].Value, match.Groups[2].Value, match.Groups[3].Value };
         }

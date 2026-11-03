@@ -33,7 +33,7 @@ export async function prepareLocalDacConnection(environment: { serverUrl: string
   }
   const expiresAt = before + created.expiresInSeconds * 1000
   return {
-    href: `npdms-dac://connect/${id}?challenge=${nonce}&tenant=${created.tenantId}`, expiresAt, cancel,
+    href: `sdp-dac://connect/${id}?challenge=${nonce}&tenant=${created.tenantId}`, expiresAt, cancel,
     async finish(waitSignal) {
       while (!cancelled && !waitSignal.aborted && Date.now() < expiresAt) {
         let result: { state: string; status?: LocalDacStatus }

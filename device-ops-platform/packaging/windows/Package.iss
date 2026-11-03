@@ -13,21 +13,23 @@
 #endif
 [Setup]
 AppId=NPDMS-DAC-Inno
-AppName=NPDMS DAC
+AppName=SDP DAC
 AppVersion={#Version}
-AppPublisher=NPDMS
-DefaultDirName={autopf}\NPDMS\DAC
+AppPublisher=SDP
+DefaultDirName={autopf}\SDP\DAC
+UsePreviousAppDir=no
+UsePreviousGroup=no
 DisableDirPage=yes
-DefaultGroupName=NPDMS
+DefaultGroupName=SDP
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir={#OutputDirectory}
-OutputBaseFilename=NPDMS-DAC-{#Version}-x64-inno
+OutputBaseFilename=SDP-DAC-{#Version}-x64-inno
 Compression=lzma2
 SolidCompression=yes
-UninstallDisplayIcon={app}\NpdmsDac.exe
+UninstallDisplayIcon={app}\SdpDac.exe
 CloseApplications=no
 RestartApplications=no
 SetupLogging=yes
@@ -37,23 +39,23 @@ WizardStyle=modern
 Name: "chinesesimp"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
 
 [Files]
-Source: "{#Payload}\*"; DestDir: "{app}"; Excludes: "NpdmsDac.exe"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "{#Payload}\NpdmsDac.exe"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: InitializeService
-Source: "{#Payload}\NpdmsDac.exe"; Flags: dontcopy
+Source: "{#Payload}\*"; DestDir: "{app}"; Excludes: "SdpDac.exe"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#Payload}\SdpDac.exe"; DestDir: "{app}"; Flags: ignoreversion; AfterInstall: InitializeService
+Source: "{#Payload}\SdpDac.exe"; Flags: dontcopy
 
 [Icons]
-Name: "{group}\DAC 设置"; Filename: "{app}\NpdmsDac.exe"; Parameters: "--configure"; WorkingDir: "{app}"
-Name: "{group}\DAC 本机状态"; Filename: "{app}\NpdmsDac.exe"; Parameters: "--open-status"; WorkingDir: "{app}"
+Name: "{group}\DAC 设置"; Filename: "{app}\SdpDac.exe"; Parameters: "--configure"; WorkingDir: "{app}"
+Name: "{group}\DAC 本机状态"; Filename: "{app}\SdpDac.exe"; Parameters: "--open-status"; WorkingDir: "{app}"
 
 [Registry]
-Root: HKLM; Subkey: "Software\Classes\npdms-dac"; ValueType: string; ValueData: "URL:NPDMS DAC"; Flags: uninsdeletekey
-Root: HKLM; Subkey: "Software\Classes\npdms-dac"; ValueName: "URL Protocol"; ValueType: string; ValueData: ""
-Root: HKLM; Subkey: "Software\Classes\npdms-dac\shell\open\command"; ValueType: string; ValueData: """{app}\NpdmsDac.exe"" --uri ""%1"""
+Root: HKLM; Subkey: "Software\Classes\sdp-dac"; ValueType: string; ValueData: "URL:SDP DAC"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "Software\Classes\sdp-dac"; ValueName: "URL Protocol"; ValueType: string; ValueData: ""
+Root: HKLM; Subkey: "Software\Classes\sdp-dac\shell\open\command"; ValueType: string; ValueData: """{app}\SdpDac.exe"" --uri ""%1"""
 Root: HKLM; Subkey: "Software\NPDMS\DAC"; ValueName: "ServerUrl"; ValueType: string; ValueData: "{code:GetServerUrl}"
 Root: HKLM; Subkey: "Software\NPDMS\DAC"; ValueName: "WebOrigin"; ValueType: string; ValueData: "{code:GetWebOrigin}"
 
 [Run]
-Filename: "{app}\NpdmsDac.exe"; Parameters: "--open-status"; Flags: nowait runasoriginaluser skipifsilent; Check: IsServiceReady
+Filename: "{app}\SdpDac.exe"; Parameters: "--open-status"; Flags: nowait runasoriginaluser skipifsilent; Check: IsServiceReady
 
 ; ProgramData is intentionally absent from Files/UninstallDelete. Uninstall preserves configuration, credentials and all history.
 [Code]
@@ -106,7 +108,7 @@ begin
   if RegQueryStringValue(HKLM64, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\NPDMS-DAC-Inno_is1', 'DisplayVersion', InstalledVersion) then
     if not StrToVersion(InstalledVersion, OldVersion) or not StrToVersion('{#Version}', NewVersion) then exit
     else if ComparePackedVersion(OldVersion, NewVersion) > 0 then begin
-      SuppressibleMsgBox('已安装更新版本的 NPDMS DAC，不能降级覆盖。', mbError, MB_OK, IDOK);
+      SuppressibleMsgBox('已安装更新版本的 SDP DAC，不能降级覆盖。', mbError, MB_OK, IDOK);
       exit;
     end;
   Result := True;
@@ -116,8 +118,8 @@ procedure InitializeWizard();
 var SavedServer, SavedOrigin: String;
 begin
   Settings := CreateInputQueryPage(wpWelcome, 'SDP 环境', '配置后端地址与网页来源', '安装前将自动卸载旧版并短暂停止采集；保留配置、连接、凭据及任务历史。环境变更请在 DAC 设置中完成。');
-  Settings.Add('NPDMS 后端地址（含协议、端口）', False);
-  Settings.Add('NPDMS 网页来源（含协议、端口）', False);
+  Settings.Add('SDP 后端地址（含协议、端口）', False);
+  Settings.Add('SDP 网页来源（含协议、端口）', False);
   SavedServer := '{#DefaultServerUrl}'; SavedOrigin := '{#DefaultWebOrigin}';
   RegQueryStringValue(HKLM64, 'Software\NPDMS\DAC', 'ServerUrl', SavedServer);
   RegQueryStringValue(HKLM64, 'Software\NPDMS\DAC', 'WebOrigin', SavedOrigin);
@@ -140,9 +142,9 @@ var Code, ClosingQuote: Integer; OldCommand, OldDirectory, OldExecutable, Probe,
     VersionLength: Cardinal;
 begin
   Result := '';
-  ExtractTemporaryFile('NpdmsDac.exe');
-  if not RunHelper(ExpandConstant('{tmp}\NpdmsDac.exe'), '--validate-settings "' + Settings.Values[0] + '" "' + Settings.Values[1] + '"') then begin
-    Result := 'NPDMS 地址无效，请填写完整 HTTP/HTTPS 地址；网页来源不能包含路径。'; exit;
+  ExtractTemporaryFile('SdpDac.exe');
+  if not RunHelper(ExpandConstant('{tmp}\SdpDac.exe'), '--validate-settings "' + Settings.Values[0] + '" "' + Settings.Values[1] + '"') then begin
+    Result := 'SDP 地址无效，请填写完整 HTTP/HTTPS 地址；网页来源不能包含路径。'; exit;
   end;
   InnoPresent := RegKeyExists(HKLM64, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\NPDMS-DAC-Inno_is1');
   if PreviousMsi <> '' then begin
@@ -194,7 +196,8 @@ begin
     if ClosingQuote = 0 then begin Result := '旧版卸载入口无效。'; exit; end;
     OldExecutable := Copy(OldCommand, 2, ClosingQuote - 1);
     if (Trim(Copy(OldCommand, ClosingQuote + 2, Length(OldCommand))) <> '')
-      or (CompareText(RemoveBackslashUnlessRoot(OldDirectory), RemoveBackslashUnlessRoot(ExpandConstant('{app}'))) <> 0)
+      or ((CompareText(RemoveBackslashUnlessRoot(OldDirectory), ExpandConstant('{autopf}\SDP\DAC')) <> 0)
+          and (CompareText(RemoveBackslashUnlessRoot(OldDirectory), ExpandConstant('{autopf}\NPDMS\DAC')) <> 0))
       or (CompareText(ExtractFileDir(OldExecutable), RemoveBackslashUnlessRoot(OldDirectory)) <> 0)
       or (Length(ExtractFileName(OldExecutable)) <> 12)
       or (CompareText(Copy(ExtractFileName(OldExecutable), 1, 5), 'unins') <> 0)
@@ -220,11 +223,11 @@ end;
 
 procedure InitializeService();
 begin
-  if not RunHelper(ExpandConstant('{app}\NpdmsDac.exe'), '--initialize "' + Settings.Values[0] + '" "' + Settings.Values[1] + '"') then
+  if not RunHelper(ExpandConstant('{app}\SdpDac.exe'), '--initialize "' + Settings.Values[0] + '" "' + Settings.Values[1] + '"') then
     RaiseException('配置初始化失败，请检查安装日志。');
-  if not RunHelper(ExpandConstant('{app}\NpdmsDac.exe'), '--service-install') then RaiseException('DAC 服务注册失败。');
+  if not RunHelper(ExpandConstant('{app}\SdpDac.exe'), '--service-install') then RaiseException('DAC 服务注册失败。');
   ServiceCreated := True;
-  if not RunHelper(ExpandConstant('{app}\NpdmsDac.exe'), '--service-start') then RaiseException('DAC 服务未能启动，请检查本机日志。');
+  if not RunHelper(ExpandConstant('{app}\SdpDac.exe'), '--service-start') then RaiseException('DAC 服务未能启动，请检查本机日志。');
   ServiceReady := True;
 end;
 
@@ -234,9 +237,9 @@ begin Result := ServiceReady; end;
 procedure DeinitializeSetup();
 begin
   if ServiceCreated and not ServiceReady then begin
-    RunHelper(ExpandConstant('{app}\NpdmsDac.exe'), '--service-stop');
-    RunHelper(ExpandConstant('{app}\NpdmsDac.exe'), '--service-uninstall');
-    RunHelper(ExpandConstant('{app}\NpdmsDac.exe'), '--remove-browser-policy');
+    RunHelper(ExpandConstant('{app}\SdpDac.exe'), '--service-stop');
+    RunHelper(ExpandConstant('{app}\SdpDac.exe'), '--service-uninstall');
+    RunHelper(ExpandConstant('{app}\SdpDac.exe'), '--remove-browser-policy');
   end;
 end;
 
@@ -244,8 +247,8 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var Removed: Boolean;
 begin
   if CurUninstallStep <> usUninstall then exit;
-  Removed := RunHelper(ExpandConstant('{app}\NpdmsDac.exe'), '--service-stop');
-  if Removed then Removed := RunHelper(ExpandConstant('{app}\NpdmsDac.exe'), '--service-uninstall');
-  if Removed then Removed := RunHelper(ExpandConstant('{app}\NpdmsDac.exe'), '--remove-browser-policy');
+  Removed := RunHelper(ExpandConstant('{app}\SdpDac.exe'), '--service-stop');
+  if Removed then Removed := RunHelper(ExpandConstant('{app}\SdpDac.exe'), '--service-uninstall');
+  if Removed then Removed := RunHelper(ExpandConstant('{app}\SdpDac.exe'), '--remove-browser-policy');
   if not Removed then RaiseException('DAC 服务或浏览器策略清理失败，卸载未继续。请检查服务与管理员权限。');
 end;

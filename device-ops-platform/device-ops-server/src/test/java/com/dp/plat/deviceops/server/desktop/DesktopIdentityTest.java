@@ -25,7 +25,7 @@ class DesktopIdentityTest {
         assertNotEquals(first.instanceId(), second.instanceId());
         assertArrayEquals(identityBytes, Files.readAllBytes(file));
         assertEquals("existing-connections-and-tasks", Files.readString(database));
-        String message = "npdms-dac-discovery-v1\nnonce\n8289\n" + second.instanceId();
+        String message = "sdp-dac-discovery-v1\nnonce\n8289\n" + second.instanceId();
         byte[] spki = HexFormat.of().parseHex("302a300506032b6570032100" + first.publicKey());
         var verifier = Signature.getInstance("Ed25519");
         verifier.initVerify(KeyFactory.getInstance("Ed25519").generatePublic(new X509EncodedKeySpec(spki)));

@@ -39,7 +39,7 @@ namespace Npdms.Dac.Desktop
                         }
                         return 0;
                     }
-                    var command = new ProcessStartInfo(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "NpdmsDacService.exe"),
+                    var command = new ProcessStartInfo(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "SdpDacService.exe"),
                         args[0] == "--service-install" ? "install" : "uninstall") { UseShellExecute = false, CreateNoWindow = true };
                     using (var process = Process.Start(command)) { process.WaitForExit(); return process.ExitCode; }
                 }
@@ -93,8 +93,7 @@ namespace Npdms.Dac.Desktop
                 if (args.Length == 3 && args[0] == "--initialize")
                 {
                     ClientConfiguration.GrantServiceProgramAccess(AppDomain.CurrentDomain.BaseDirectory);
-                    var configuration = System.IO.File.Exists(System.IO.Path.Combine(ClientConfiguration.DataRoot, "client.xml"))
-                        ? ClientConfiguration.Load(ClientConfiguration.DataRoot) : new ClientConfiguration(args[1], args[2]);
+                    var configuration = new ClientConfiguration(args[1], args[2]);
                     configuration.Save(ClientConfiguration.DataRoot);
                     BrowserAccessPolicy.Apply(configuration);
                     return 0;
@@ -162,7 +161,7 @@ namespace Npdms.Dac.Desktop
                     {
                         string payload = reader.ReadToEnd();
                         var status = new System.Web.Script.Serialization.JavaScriptSerializer().Deserialize<System.Collections.Generic.Dictionary<string, object>>(payload);
-                        if ((string)status["product"] != "npdms-dac" || (string)status["publicKey"] != endpoint["publicKey"]
+                        if ((string)status["product"] != "sdp-dac" || (string)status["publicKey"] != endpoint["publicKey"]
                             || (string)status["instanceId"] != endpoint["instanceId"] || (string)status["status"] != "READY")
                             throw new System.IO.IOException("DAC runtime metadata differs");
                         var verify = new ProcessStartInfo(System.IO.Path.Combine(install, "runtime", "bin", "java.exe"),

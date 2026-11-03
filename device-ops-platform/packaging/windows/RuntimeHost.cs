@@ -43,13 +43,13 @@ namespace Npdms.Dac.Desktop
                 foreach (string name in inherited)
                 {
                     string upper = name.ToUpperInvariant();
-                    if (upper.StartsWith("SPRING_") || upper.StartsWith("DEVICE_OPS_") || upper.StartsWith("NPDMS_")
+                    if (upper.StartsWith("SPRING_") || upper.StartsWith("DEVICE_OPS_") || upper.StartsWith("DAC_")
                         || upper.StartsWith("OIDC_") || upper.StartsWith("MANAGEMENT_") || upper.StartsWith("LOGGING_")
-                        || upper == "SERVER_PORT" || upper == "SERVER_ADDRESS" || upper == "JAVA_TOOL_OPTIONS"
+                        || upper == "SERVER_URL" || upper == "WEB_ORIGIN" || upper == "SERVER_PORT" || upper == "SERVER_ADDRESS" || upper == "JAVA_TOOL_OPTIONS"
                         || upper == "JDK_JAVA_OPTIONS" || upper == "_JAVA_OPTIONS") launch.EnvironmentVariables.Remove(name);
                 }
-                launch.EnvironmentVariables["NPDMS_SERVER_URL"] = settings.ServerUrl;
-                launch.EnvironmentVariables["NPDMS_WEB_ORIGIN"] = settings.WebOrigin;
+                launch.EnvironmentVariables["SERVER_URL"] = settings.ServerUrl;
+                launch.EnvironmentVariables["WEB_ORIGIN"] = settings.WebOrigin;
                 launch.EnvironmentVariables["DEVICE_OPS_CREDENTIAL_MASTER_KEY"] = Convert.ToBase64String(key);
                 string baseArguments = launch.Arguments;
                 foreach (int port in ClientConfiguration.CandidatePorts(previous))

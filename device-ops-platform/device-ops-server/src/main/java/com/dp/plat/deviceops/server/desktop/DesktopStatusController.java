@@ -35,9 +35,9 @@ public class DesktopStatusController {
         String state = availability.getReadinessState() == ReadinessState.ACCEPTING_TRAFFIC ? "READY" : "STARTING";
         int port = request.getLocalPort();
         String signature = nonce == null ? null : java.util.Base64.getEncoder().encodeToString(identity.sign(
-                "npdms-dac-discovery-v1\n" + nonce + "\n" + port + "\n" + identity.instanceId()
+                "sdp-dac-discovery-v1\n" + nonce + "\n" + port + "\n" + identity.instanceId()
                 + "\n3\n" + state + "\n" + properties.serverUrl() + "\n" + properties.webOrigin()));
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new Status("npdms-dac", 3,
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new Status("sdp-dac", 3,
                 state, properties.serverUrl(), properties.webOrigin(), port, identity.publicKey(), identity.instanceId(), signature));
     }
 

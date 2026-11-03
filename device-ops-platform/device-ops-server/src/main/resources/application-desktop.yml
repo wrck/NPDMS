@@ -13,8 +13,8 @@ device-ops:
   telnet:
     enabled: true
   desktop:
-    server-url: ${NPDMS_SERVER_URL}
-    web-origin: ${NPDMS_WEB_ORIGIN}
+    server-url: ${SERVER_URL}
+    web-origin: ${WEB_ORIGIN}
 
 # The desktop installer supplies a DPAPI-protected local key through the host process.
 # Authentication is never replaced by the unrestricted local debugging profile.

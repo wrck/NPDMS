@@ -15,7 +15,8 @@ namespace Npdms.Dac.Desktop
 
         internal sealed class Registration
         {
-            internal string InstallDirectory, UninstallCommand, DisplayVersion, ExpectedDirectory, TargetVersion;
+            internal string InstallDirectory, UninstallCommand, DisplayVersion, TargetVersion;
+            internal string[] ExpectedDirectories;
         }
 
         internal static PreviousInnoInstallation Parse(Registration registration)
@@ -25,8 +26,8 @@ namespace Npdms.Dac.Desktop
                 || !System.Version.TryParse(registration.TargetVersion, out targetVersion) || oldVersion > targetVersion)
                 throw new InvalidOperationException("已安装版本无法确认或高于新版本，不能自动卸载。");
             string directory = Path.GetFullPath(registration.InstallDirectory).TrimEnd(Path.DirectorySeparatorChar);
-            string expected = Path.GetFullPath(registration.ExpectedDirectory).TrimEnd(Path.DirectorySeparatorChar);
-            if (!String.Equals(directory, expected, StringComparison.OrdinalIgnoreCase))
+            if (!Array.Exists(registration.ExpectedDirectories, expected => String.Equals(directory,
+                Path.GetFullPath(expected).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException("旧版安装目录不符合预期，不能自动卸载。");
             var command = Regex.Match(registration.UninstallCommand ?? "", "\\A\"([^\"]+)\"\\s*\\z");
             if (!command.Success) throw new InvalidOperationException("旧版卸载入口无效。");
@@ -47,7 +48,7 @@ namespace Npdms.Dac.Desktop
                     InstallDirectory = key.GetValue("InstallLocation") as string,
                     UninstallCommand = key.GetValue("UninstallString") as string,
                     DisplayVersion = key.GetValue("DisplayVersion") as string,
-                    ExpectedDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "NPDMS", "DAC"),
+                    ExpectedDirectories = new[] { ClientConfiguration.InstallDirectory, ClientConfiguration.LegacyInstallDirectory },
                     TargetVersion = targetVersion
                 });
             }

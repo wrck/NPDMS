@@ -15,9 +15,9 @@ const request = vi.fn(async (address: string, _init?: RequestInit) => {
   if (url.pathname !== '/api/v1/desktop/status') return { ok:true, json:async()=>({collectionId:'collection-1'}) }
   const port = Number(url.port)
   if (!states[port]) throw new Error('refused')
-  const data = {product:'npdms-dac',protocolVersion:3,status:'READY',...environment,port,
+  const data = {product:'sdp-dac',protocolVersion:3,status:'READY',...environment,port,
     instanceId:'11111111-1111-4111-8111-111111111111',publicKey:publicHex(keys[port]),...states[port]}
-  const message = `npdms-dac-discovery-v1\n${replay ?? url.searchParams.get('nonce')}\n${data.port}\n${data.instanceId}\n3\n${data.status}\n${data.serverUrl}\n${data.webOrigin}`
+  const message = `sdp-dac-discovery-v1\n${replay ?? url.searchParams.get('nonce')}\n${data.port}\n${data.instanceId}\n3\n${data.status}\n${data.serverUrl}\n${data.webOrigin}`
   const signature = btoa(String.fromCharCode(...ed25519.sign(new TextEncoder().encode(message), keys[port] ?? privateKey)))
   return {ok:true,json:async()=>({...data,signature})}
 })

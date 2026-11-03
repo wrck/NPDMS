@@ -1,6 +1,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$Manifest,
-    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.1.5',
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.1.8',
     [string]$DefaultServerUrl = 'http://10.210.0.11:59191',
     [string]$DefaultWebOrigin = 'http://10.210.0.11:19191',
     [string]$OutputDirectory,
@@ -41,8 +41,8 @@ try {
     $desktopReferences = @('/r:System.Core.dll', '/r:System.Xml.Linq.dll', '/r:System.Security.dll', '/r:System.ServiceProcess.dll', '/r:System.Windows.Forms.dll', '/r:System.Drawing.dll', '/r:System.Web.Extensions.dll')
     $desktopCommon = Join-Path $desktopSource 'ClientConfiguration.cs'
     foreach ($desktopBuild in @(
-        @{ Name = 'NpdmsDac'; Source = 'Launcher.cs'; Target = 'winexe' },
-        @{ Name = 'NpdmsDacHost'; Source = 'RuntimeHost.cs'; Target = 'exe' },
+        @{ Name = 'SdpDac'; Source = 'Launcher.cs'; Target = 'winexe' },
+        @{ Name = 'SdpDacHost'; Source = 'RuntimeHost.cs'; Target = 'exe' },
         @{ Name = 'ClientConfigurationTests'; Source = 'ClientConfigurationTests.cs'; Target = 'exe' }
     )) {
         $desktopDestination = if ($desktopBuild.Name -eq 'ClientConfigurationTests') { $desktopOutput } else { $desktopPayload }
@@ -59,16 +59,28 @@ try {
         & (Join-Path $desktopOutput 'DesktopStatusLauncherTests.exe') $VerifyRunningDesktopDirectory
         if ($LASTEXITCODE -ne 0) { throw 'Read-only running-desktop regression failed; no service changed.' }
     }
-    $desktopDtf = Join-Path $WixDirectory 'Microsoft.Deployment.WindowsInstaller.dll'
+    # WiX 3.14.1 SFXCA fails in impersonated execute actions (upstream issue 8687).
+    # Use the fixed DTF host without downgrading security or changing machine temp ACLs.
+    foreach ($desktopDependency in @(
+        @{ Name = 'wixtoolset.dtf.customaction'; Hash = '0E0A762DB83E9DEA9AADB1C0EC3CB80A8757CEF1EFCA6D579682ABC2FA7D779A' },
+        @{ Name = 'wixtoolset.dtf.windowsinstaller'; Hash = '9AFBC9C8F0DD5BCB82F50055B5FEFF036E8BF28BD7F3FA8BD6442347B610CCA9' }
+    )) {
+        $desktopDependencyArchive = Join-Path $desktopTools ($desktopDependency.Name + '.zip')
+        Invoke-WebRequest "https://api.nuget.org/v3-flatcontainer/$($desktopDependency.Name)/5.0.2/$($desktopDependency.Name).5.0.2.nupkg" -OutFile $desktopDependencyArchive
+        if ((Get-FileHash -LiteralPath $desktopDependencyArchive -Algorithm SHA256).Hash -ne $desktopDependency.Hash) { throw 'Pinned DTF package checksum differs.' }
+        Expand-Archive -LiteralPath $desktopDependencyArchive -DestinationPath (Join-Path $desktopTools $desktopDependency.Name)
+    }
+    $desktopDtf = Join-Path $desktopTools 'wixtoolset.dtf.windowsinstaller/lib/net20/WixToolset.Dtf.WindowsInstaller.dll'
+    $desktopDtfTools = Join-Path $desktopTools 'wixtoolset.dtf.customaction/tools'
     $desktopActions = Join-Path $desktopOutput 'InstallerActions.dll'
     $desktopActionsPackage = Join-Path $desktopOutput 'InstallerActions.CA.dll'
-    & $desktopCompiler /nologo /optimize+ /platform:x64 /target:library "/out:$desktopActions" @desktopReferences "/r:$desktopDtf" $desktopCommon (Join-Path $desktopSource 'PreviousInnoInstallation.cs') (Join-Path $desktopSource 'InstallerActions.cs')
+    & $desktopCompiler /nologo /optimize+ /platform:x64 /target:library "/out:$desktopActions" @desktopReferences "/r:$desktopDtf" $desktopCommon (Join-Path $desktopSource 'BrowserAccessPolicy.cs') (Join-Path $desktopSource 'PreviousInnoInstallation.cs') (Join-Path $desktopSource 'InstallerActions.cs')
     if ($LASTEXITCODE -ne 0) { throw 'Installer validation compilation failed' }
-    & (Join-Path $WixDirectory 'sdk/MakeSfxCA.exe') $desktopActionsPackage (Join-Path $WixDirectory 'sdk/x64/sfxca.dll') $desktopActions (Join-Path $desktopSource 'CustomAction.config') $desktopDtf
+    & (Join-Path $desktopDtfTools 'WixToolset.Dtf.MakeSfxCA.exe') $desktopActionsPackage (Join-Path $desktopDtfTools 'x64/SfxCA.dll') $desktopActions (Join-Path $desktopSource 'CustomAction.config') $desktopDtf
     if ($LASTEXITCODE -ne 0) { throw 'Installer validation packaging failed' }
     Copy-Item -LiteralPath $desktopArtifact -Destination (Join-Path $desktopPayload 'app/device-ops-server.jar')
-    Copy-Item -LiteralPath $WinSwExecutable -Destination (Join-Path $desktopPayload 'NpdmsDacService.exe')
-    Copy-Item -LiteralPath (Join-Path $desktopSource 'NpdmsDacService.xml') -Destination $desktopPayload
+    Copy-Item -LiteralPath $WinSwExecutable -Destination (Join-Path $desktopPayload 'SdpDacService.exe')
+    Copy-Item -LiteralPath (Join-Path $desktopSource 'SdpDacService.xml') -Destination $desktopPayload
     Invoke-WebRequest 'https://raw.githubusercontent.com/winsw/winsw/v2.12.0/LICENSE.txt' -OutFile (Join-Path $desktopPayload 'WinSW-LICENSE.txt')
     Copy-Item -LiteralPath (Join-Path $desktopSource 'README.md') -Destination (Join-Path $desktopPayload 'README.md')
     Copy-Item -LiteralPath (Join-Path $taskWorkspace 'device-ops-platform/parser-releases/device-command-output-1.4.0') -Destination (Join-Path $desktopPayload 'parser-release') -Recurse
@@ -84,7 +96,7 @@ try {
     $desktopNs = New-Object Xml.XmlNamespaceManager($desktopXml.NameTable)
     $desktopNs.AddNamespace('w', 'http://schemas.microsoft.com/wix/2006/wi')
     foreach ($desktopFile in @($desktopXml.SelectNodes('//w:Component/w:File', $desktopNs))) {
-        if ([IO.Path]::GetFileName($desktopFile.Source) -in @('NpdmsDacService.exe', 'NpdmsDacService.xml', 'NpdmsDac.exe')) {
+        if ([IO.Path]::GetFileName($desktopFile.Source) -in @('SdpDacService.exe', 'SdpDacService.xml', 'SdpDac.exe')) {
             $desktopComponent = $desktopFile.ParentNode
             $desktopReference = $desktopXml.SelectSingleNode("//w:ComponentRef[@Id='$($desktopComponent.Id)']", $desktopNs)
             if ($desktopReference) { [void]$desktopReference.ParentNode.RemoveChild($desktopReference) }
@@ -94,7 +106,7 @@ try {
     $desktopXml.Save($desktopHarvest)
     & (Join-Path $WixDirectory 'candle.exe') -nologo -arch x64 -ext WixUtilExtension -ext WixUIExtension "-dPayload=$desktopPayload" "-dVersion=$Version" "-dInstallerActions=$desktopActionsPackage" "-dDefaultServerUrl=$DefaultServerUrl" "-dDefaultWebOrigin=$DefaultWebOrigin" -out ($desktopOutput + '\') (Join-Path $desktopSource 'Package.wxs') $desktopHarvest
     if ($LASTEXITCODE -ne 0) { throw 'Installer source compilation failed' }
-    $desktopMsi = Join-Path $desktopOutput "NPDMS-DAC-$Version-x64.msi"
+    $desktopMsi = Join-Path $desktopOutput "SDP-DAC-$Version-x64.msi"
     & (Join-Path $WixDirectory 'light.exe') -nologo -ext WixUtilExtension -ext WixUIExtension -cultures:zh-cn -out $desktopMsi (Join-Path $desktopOutput 'Package.wixobj') (Join-Path $desktopOutput 'payload.wixobj') *> (Join-Path $desktopOutput 'logs/installer-link.log')
     if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath (Join-Path $desktopOutput 'logs/installer-link.log') -Tail 30; throw 'Installer linking or validation failed' }
     Copy-Item -LiteralPath $desktopDtf -Destination $desktopOutput
@@ -108,7 +120,7 @@ try {
     [xml]$desktopInstalledXml = Get-Content -LiteralPath (Join-Path $desktopOutput 'verified-installer.wxs') -Raw
     $desktopInstalledNs = New-Object Xml.XmlNamespaceManager($desktopInstalledXml.NameTable)
     $desktopInstalledNs.AddNamespace('w', 'http://schemas.microsoft.com/wix/2006/wi')
-    [xml]$desktopAuthoredXml = Get-Content -LiteralPath (Join-Path $desktopSource 'Package.wxs') -Raw
+    [xml]$desktopAuthoredXml = Get-Content -LiteralPath (Join-Path $desktopSource 'Package.wxs') -Raw -Encoding UTF8
     $desktopAuthoredNs = New-Object Xml.XmlNamespaceManager($desktopAuthoredXml.NameTable)
     $desktopAuthoredNs.AddNamespace('w', 'http://schemas.microsoft.com/wix/2006/wi')
     $desktopPackagedFiles = @($desktopXml.SelectNodes('//w:File', $desktopNs)) + @($desktopAuthoredXml.SelectNodes('//w:File', $desktopAuthoredNs))
@@ -130,6 +142,7 @@ try {
         parserRelease = 'device-command-output-1.4.0'
         extractedFilesVerified = $desktopPackagedFiles.Count
         installerConfigurationValidation = 'passed-real-msi-session'
+        customActionHost = 'WixToolset.Dtf 5.0.2'
         defaultServerUrl = $DefaultServerUrl; defaultWebOrigin = $DefaultWebOrigin
     } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $desktopOutput 'package-result.json') -Encoding utf8
     Get-Content -LiteralPath (Join-Path $desktopOutput 'package-result.json')
