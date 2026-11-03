@@ -17,6 +17,7 @@ import java.util.List;
 public interface AssetLocationApi {
 
     List<SiteRespDTO> getCustomerSites(cn.iocoder.yudao.module.pms.asset.api.location.dto.CustomerSiteQuery query);
+    List<SiteRespDTO> getEnabledSites(cn.iocoder.yudao.module.pms.asset.api.location.dto.EnabledSitesQuery query);
 
     LocationReferenceDTO maintain(LocationMaintenanceCommand command);
 

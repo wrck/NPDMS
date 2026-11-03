@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.InstallationMapper">
+    <select id="selectCurrentProjectSiteIds" resultType="java.lang.Long">
+        SELECT DISTINCT site_id FROM imp_eng_installation
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
+          AND status = 2 AND effective_from IS NOT NULL AND effective_from &lt;= CURRENT_TIMESTAMP AND effective_to IS NULL
+          AND site_id IS NOT NULL AND deleted = 0
+        ORDER BY site_id
+    </select>
     <select id="selectCurrentRecordForUpdate" resultType="cn.iocoder.yudao.module.pms.engineering.dal.dataobject.installation.InstallationDO">
         SELECT * FROM imp_eng_installation
         WHERE tenant_id=#{query.tenantId} AND equipment_id=#{query.equipmentId}

@@ -31,6 +31,15 @@ import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.*;
 public class AssetLocationApiImpl implements AssetLocationApi {
 
     @Override
+    public List<SiteRespDTO> getEnabledSites(EnabledSitesQuery query) {
+        if (query == null || !Objects.equals(query.tenantId(),
+                cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId())) {
+            throw exception(AST_LOCATION_REFERENCE_INVALID);
+        }
+        return siteMapper.selectEnabledSites(query).stream().map(this::toSiteResp).toList();
+    }
+
+    @Override
     public void effectEquipmentLocationIfAbsent(EquipmentLocationEffectiveCommand command) {
         deviceLocationEffectiveService.effectIfAbsentOrThrow(command);
     }

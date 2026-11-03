@@ -92,6 +92,7 @@
               :project-id="props.projectId"
               project-customer-sites-only
               project-scoped
+              installation-project-sites
             />
           </el-form-item>
         </el-col>

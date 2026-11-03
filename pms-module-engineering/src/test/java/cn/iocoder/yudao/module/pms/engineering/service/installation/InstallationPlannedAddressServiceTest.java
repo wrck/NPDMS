@@ -47,7 +47,8 @@ class InstallationPlannedAddressServiceTest {
         var result = service.read(20L);
         assertEquals(89L, result.solutionId());
         assertEquals(List.of(new InstallationPlannedAddressService.Address("A", "机房一"),
-                new InstallationPlannedAddressService.Address("A", "机房二")), result.addresses());
+                new InstallationPlannedAddressService.Address("A", "机房二"),
+                new InstallationPlannedAddressService.Address("", "不得按名称匹配")), result.addresses());
         assertEquals(original, approved.getTopology());
         verify(sources).approvedSolutions(argThat(query -> query.tenantId().equals(1L) && query.projectId().equals(20L) && !query.lock()));
         verify(reviews).approved(unapproved, false);

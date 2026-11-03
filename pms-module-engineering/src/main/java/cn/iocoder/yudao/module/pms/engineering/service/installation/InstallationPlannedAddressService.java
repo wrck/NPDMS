@@ -46,7 +46,7 @@ public class InstallationPlannedAddressService {
             for (var row : topology.path("deploy")) {
                 String code = row.path("productCode").asText().trim();
                 String location = row.path("location").asText().trim();
-                if (!code.isEmpty() && !location.isEmpty()) addresses.add(new Address(code, location));
+                if (!location.isEmpty()) addresses.add(new Address(code, location));
             }
             return new Plan(plan.getId(), plan.getVersion(), plan.getName(), List.copyOf(addresses));
         } catch (RuntimeException invalid) {

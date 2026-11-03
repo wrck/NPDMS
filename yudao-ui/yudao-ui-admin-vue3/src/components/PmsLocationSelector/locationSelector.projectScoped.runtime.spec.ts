@@ -5,6 +5,7 @@ import { mount, passthrough } from '@/views/pms/platform/dynamic-form/components
 import * as Api from '@/api/pms/asset/location'
 import * as Customers from '@/api/pms/customer'
 import * as Projects from '@/api/pms/project/projects'
+import * as Installation from '@/api/pms/engineering/installation'
 
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getStrDictOptions: () => [] }))
 vi.mock('@/api/pms/asset/location', () => ({
@@ -13,12 +14,13 @@ vi.mock('@/api/pms/asset/location', () => ({
 }))
 vi.mock('@/api/pms/customer', () => ({ getCustomerByCode: vi.fn() }))
 vi.mock('@/api/pms/project/projects', () => ({ getProject: vi.fn() }))
+vi.mock('@/api/pms/engineering/installation', () => ({ getInstallationProjectSites: vi.fn() }))
 const flush = async () => { for (let i=0;i<15;i++) await nextTick() }
 const result = () => ({customerId:200,customerName:'项目客户',sites:[{id:21,customerId:200,addressId:11,name:'客户站点',version:2}],
   addresses:[{id:11,fullAddress:'现场地址',version:3}],customerAddresses:[{id:11,fullAddress:'现场地址',version:3}],siteLocations:[]})
 beforeEach(() => { vi.resetAllMocks(); vi.mocked(Api.getProjectCustomerLocations).mockResolvedValue(result()) })
-const render = (modelValue: any = undefined, projectId: string | undefined = '992203060198', capturedErrors?: unknown[]) => {
-  const props = reactive({projectId,projectScoped:true,modelValue,'onUpdate:modelValue':vi.fn()})
+const render = (modelValue: any = undefined, projectId: string | undefined = '992203060198', capturedErrors?: unknown[], installationProjectSites = false) => {
+  const props = reactive({projectId,projectScoped:true,installationProjectSites,modelValue,'onUpdate:modelValue':vi.fn()})
   const selector = ref<any>()
   const mounted = mount(defineComponent({setup:()=>{
     if (capturedErrors) onErrorCaptured(error => { capturedErrors.push(error); return false })
@@ -27,6 +29,20 @@ const render = (modelValue: any = undefined, projectId: string | undefined = '99
     Object.fromEntries(['ElRadioGroup','ElRadioButton','ElSelect','ElOption','ElTreeSelect','ElDivider','PmsDivisionInput','ElInput','ElCol','ElRow','ElAlert'].map(name=>[name,passthrough])))
   return {...mounted,props,get state(){return selector.value.$.setupState}}
 }
+it('allows an enabled current installation site without broadening global reads', async () => {
+  vi.mocked(Installation.getInstallationProjectSites).mockResolvedValue({
+    sites: [{ id: 98, name: '历史站点', addressId: 18, status: 0 }],
+    addresses: [{ id: 18, fullAddress: '历史地址' }], siteLocations: []
+  })
+  const m = render({ site: { id: 98 }, fallbackLocation: '历史地址 / 历史站点' }, '20', undefined, true)
+  try {
+    await flush()
+    expect(m.state.sites.map((site: any) => site.id)).toEqual([21, 98])
+    expect(m.state.getValidationError()).toBe('')
+    expect(Installation.getInstallationProjectSites).toHaveBeenCalledWith('20', 98)
+    noGlobalReads()
+  } finally { m.app.unmount() }
+})
 const noGlobalReads = () => {
   expect(Api.getSitePage).not.toHaveBeenCalled();expect(Api.getAddressPage).not.toHaveBeenCalled()
   expect(Api.getAddress).not.toHaveBeenCalled();expect(Api.getSiteLocationTree).not.toHaveBeenCalled()
@@ -47,6 +63,17 @@ it('reopens saved address and site versions without replacing reference inputs',
   try{await flush();expect(m.state.draft.address).toEqual({id:11,expectedVersion:3})
     expect(m.state.draft.site).toEqual({id:21,expectedVersion:2});noGlobalReads()
   }finally{m.app.unmount()}
+})
+it('shows the saved location text for an out-of-scope site while keeping it invalid', async () => {
+  const m = render({ projectId: '992203060198', site: { id: 98, expectedVersion: 2 }, fallbackLocation: '河北省廊坊市 / 原站点' })
+  try {
+    await flush()
+    expect(m.state.unavailableSiteLabel).toBe('河北省廊坊市 / 原站点')
+    expect(m.state.getValidationError()).toContain('原站点不在当前项目可选范围')
+    expect(m.state.sites.map((site: any) => site.id)).toEqual([21])
+    expect(m.state.draft.site).toEqual({ id: 98, expectedVersion: 2 })
+    noGlobalReads()
+  } finally { m.app.unmount() }
 })
 it('keeps a saved survey location mounted when reopening its site tree is forbidden', async () => {
   const saved = { projectId: '992203060198', address: { id: 11, expectedVersion: 3 },

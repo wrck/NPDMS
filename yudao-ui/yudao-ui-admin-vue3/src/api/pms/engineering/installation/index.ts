@@ -1,5 +1,10 @@
 import request from '@/config/axios'
 import type { LocationMaintainRequest } from '@/api/pms/asset/location'
+import type { AddressVO, SiteLocationVO, SiteVO } from '@/api/pms/asset/location'
+
+export const getInstallationProjectSites = (projectId: number | string, siteId?: number): Promise<{
+  sites: SiteVO[]; addresses: AddressVO[]; siteLocations: SiteLocationVO[]
+}> => request.get({ url: `/api/v1/pms/implementation/projects/${projectId}/installation-sites`, params: { siteId } })
 
 export interface InstallationVO {
   id?: number

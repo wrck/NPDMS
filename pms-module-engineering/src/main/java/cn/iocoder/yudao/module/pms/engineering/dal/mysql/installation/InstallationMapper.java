@@ -13,6 +13,9 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface InstallationMapper extends ProjectScopedCodeMapper<InstallationDO> {
 
+    java.util.List<Long> selectCurrentProjectSiteIds(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.InstallationProjectSitesQuery query);
+
     int carryHistoricalRecord(@org.apache.ibatis.annotations.Param("query")
             cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.InstallationHistoricalCarryUpdate query);
     InstallationDO selectCurrentRecordForUpdate(@org.apache.ibatis.annotations.Param("query")

@@ -28,6 +28,15 @@ import static org.mockito.Mockito.*;
 class AssetLocationApiImplTest {
 
     @Test
+    void enabledSitesRejectCrossTenantBeforeQuery() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
+        try {
+            assertThrows(ServiceException.class, () -> api.getEnabledSites(new EnabledSitesQuery(2L, List.of(98L))));
+            verifyNoInteractions(siteMapper);
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
+    @Test
     void customerSitesRejectMissingIdentityAndCrossTenantBeforeQuery() {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
         try {

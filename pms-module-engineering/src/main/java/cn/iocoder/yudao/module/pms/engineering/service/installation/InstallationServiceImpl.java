@@ -50,6 +50,8 @@ public class InstallationServiceImpl implements InstallationService {
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
     @Resource
+    private InstallationProjectSitesService projectSites;
+    @Resource
     private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents completionEvents;
 
     @Override
@@ -94,6 +96,10 @@ public class InstallationServiceImpl implements InstallationService {
             throw exception(cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.UNAUTHORIZED);
         }
         deviceSelectionApi.validateSelection(request.getProjectId(), request.getEquipmentIds());
+        if (request.getLocationMaintenance() != null && request.getLocationMaintenance().site() != null
+                && request.getLocationMaintenance().site().id() != null) {
+            projectSites.validateExistingSite(request.getProjectId(), request.getLocationMaintenance());
+        }
         LocalDateTime savedAt = LocalDateTime.now();
         List<Long> ids = new ArrayList<>();
         LocationMaintenanceCommand sharedLocation = request.getLocationMaintenance();

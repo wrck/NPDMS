@@ -430,9 +430,11 @@ COM合同不可见或项目关联无管理范围时保持拒绝和零写入，�
 | RES | RES-01、SUB-01～SUB-05、INT-07 | `/suppliers`、`/subcontract-requests`、`/payment-gates` | 备件业务由外部系统承接；财务结果只回写引用 |
 | KNO | INT-04 | `/technical-notices`、`/technical-notices/{id}/references` | V2 仅 ITR 同步查询与业务引用；无本地 publish/disable API |
 
+安装工作台通过 `GET /api/v1/pms/implementation/projects/{projectId}/installation-sites` 获取本租户本项目当前有效安装记录引用的启用站点，要求安装新增功能权限和项目 EDIT FULL 范围。可选 siteId 必须属于该集合才返回位置树；保存批量安装时再次校验引用站点属于该集合或原项目客户启用站点集合。该接口不授予全局地点读取或其他项目访问权限。
+
 工勘项目地点选择使用`GET /api/v1/pms/projects/{projectId}/customer-overview/locations`，要求`pms:project:query + pms:customer:query`。CUS复用PROJ当前VIEW及关联客户检查，只接受项目ID，不接受客户端customerId；返回关联客户ID/名称、该客户启用站点及所引用地址、客户当前ADDRESS引用。可选siteId必须属于上述站点集合，才经AST公开契约读取任意深度位置树。租户/操作者来自登录上下文；无关联客户返回空集合，越项目/跨租户/他客站点拒绝，不回退全局查询。AST按受信tenantId/customerId提供只读启用站点列表，保留AST全局管理API权限不变；此查询不授予地点管理权限，原工勘保存和地址/站点写入规则不变。
 
-TF-018只读客户编码解析：`CustomerQueryApi.getProjectCustomer(ProjectQuery)`仅供客户概览和地点GET，Query包含`tenantId/actorUserId/projectId`，不能指定客户ID或编码。CUS绑定当前登录主体、登录租户及当前租户，要求客户查询功能权限，从PROJ公开范围API取得当前FULL项目VIEW和树版本，再由`ProjectBusinessContextApi.inspect`按同一主体、项目及树版本回源唯一客户绑定；优先既有内部客户ID，只有ID缺失才按绑定编码同租户唯一查询。结果带项目ID与可空客户摘要；未关联返回空客户，来源失败、绑定客户缺失/删除或跨租户拒绝，停用客户的既有引用仍可读。该方法不回填项目，不是联系人或客户写入授权；原`ProjectContactContextApi.inspect/lockForWrite/associateCustomer`和全局`getCustomerByCode/lockCustomerByCode`完全保留，所有写/新关系路径继续使用原客户目录范围、锁和状态校验。
+TF-018只读客户编码解析：`CustomerQueryApi.getProjectCustomer(ProjectQuery)`仅供客户概览、地点GET及安装批量保存的项目客户站点范围重验，Query包含`tenantId/actorUserId/projectId`，不能指定客户ID或编码。CUS绑定当前登录主体、登录租户及当前租户，要求客户查询功能权限，从PROJ公开范围API取得当前FULL项目VIEW和树版本，再由`ProjectBusinessContextApi.inspect`按同一主体、项目及树版本回源唯一客户绑定；优先既有内部客户ID，只有ID缺失才按绑定编码同租户唯一查询。结果带项目ID与可空客户摘要；未关联返回空客户，来源失败、绑定客户缺失/删除或跨租户拒绝，停用客户的既有引用仍可读。该方法不回填项目，不是联系人或客户写入授权；原`ProjectContactContextApi.inspect/lockForWrite/associateCustomer`和全局`getCustomerByCode/lockCustomerByCode`完全保留，所有写/新关系路径继续使用原客户目录范围、锁和状态校验。
 
 TF-018项目主联系人预加载：项目联系人`GET /context`、列表及列表脱敏使用独立只读上下文；旧上下文正常返回时保留全部既有能力，仅其稳定`PROJECT_CUSTOMER_UNAVAILABLE(1014001003)`失败可再通过上述项目绑定只读API重验。PROJ既有`ProjectBusinessContextApi.Context`增加从同一ProjectMaster行原样读取的`lifecycleStatus`展示字段，CUS只读结果随之带项目版本和生命周期；不据此新增状态准入或写权限。重验成功后只返回`canManage=false/canViewHistory=false`，仅可读本项目启用且未删除的联系记录，且无明文字段资格，即使另有敏感查看功能权限也须脱敏。其他范围、租户、绑定与来源失败继续拒绝。`sources/history`与所有联系人、客户及关联写命令保持原授权，不把项目只读客户身份转换成目录、新关系、维护或恢复资格。
 

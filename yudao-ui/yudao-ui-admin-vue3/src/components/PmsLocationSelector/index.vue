@@ -17,6 +17,12 @@
         @change="selectSite"
       >
         <el-option
+          v-if="unavailableSiteLabel"
+          :label="unavailableSiteLabel"
+          :value="selectedSiteId"
+          disabled
+        />
+        <el-option
           v-for="site in sites"
           :key="site.id"
           :label="siteLabel(site)"
@@ -144,6 +150,7 @@ import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import * as LocationApi from '@/api/pms/asset/location'
 import * as ProjectApi from '@/api/pms/project/projects'
 import * as CustomerApi from '@/api/pms/customer'
+import { getInstallationProjectSites } from '@/api/pms/engineering/installation'
 import type {
   AddressVO,
   LocationMaintainRequest,
@@ -156,6 +163,7 @@ const props = defineProps<{
   projectId?: number | string
   projectCustomerSitesOnly?: boolean
   projectScoped?: boolean
+  installationProjectSites?: boolean
 }>()
 const emit = defineEmits<{ (e: 'update:modelValue', value: LocationMaintainRequest): void }>()
 
@@ -182,10 +190,16 @@ const siteDraft = computed(() => draft.site!)
 const siteLocationDraft = computed(() => draft.siteLocation!)
 const mode = ref<'existing' | 'new' | 'fallback'>('existing')
 const sites = ref<SiteVO[]>([])
+const customerSiteIds = ref<number[]>([])
 const addresses = ref<AddressVO[]>([])
 const locationTree = ref<SiteLocationVO[]>([])
 const selectedSiteId = ref<number>()
 const selectedLocationId = ref<number>()
+// 快照只用于回显不可选的历史引用，不能加入可选择范围或解除保存校验。
+const unavailableSiteLabel = computed(() => {
+  if (!props.projectScoped || !selectedSiteId.value || sites.value.some(site => site.id === selectedSiteId.value)) return ''
+  return draft.fallbackLocation?.trim() || `原站点（编号 ${selectedSiteId.value}）`
+})
 const extraDraft = reactive<{ name: string; locationType: string }>({ name: '', locationType: '' })
 
 const locationTypeLabel = (value?: string) =>
@@ -348,6 +362,7 @@ const loadCustomerContext = async (projectId?: number | string) => {
   customerId.value = undefined
   if (props.projectCustomerSitesOnly || props.projectScoped) sites.value = []
   if (props.projectScoped) addresses.value = []
+  customerSiteIds.value = []
   contextError.value = ''
   customerName.value = ''
   customerAddresses.value = []
@@ -357,12 +372,17 @@ const loadCustomerContext = async (projectId?: number | string) => {
   if (!projectId) return
   try {
     if (props.projectScoped) {
-      const context = await LocationApi.getProjectCustomerLocations(projectId)
+      const [context, installation] = await Promise.all([
+        LocationApi.getProjectCustomerLocations(projectId),
+        props.installationProjectSites ? getInstallationProjectSites(projectId) : Promise.resolve(undefined)
+      ])
       if (current !== customerSequence) return
       customerId.value = context.customerId
       customerName.value = context.customerName ?? ''
-      sites.value = context.sites
-      addresses.value = context.addresses
+      customerSiteIds.value = context.sites.flatMap(site => site.id == null ? [] : [site.id])
+      sites.value = [...context.sites, ...(installation?.sites || []).filter(site => !customerSiteIds.value.includes(site.id!))]
+      addresses.value = [...context.addresses, ...(installation?.addresses || []).filter(address =>
+        !context.addresses.some(existing => existing.id === address.id))]
       customerAddresses.value = context.customerAddresses
       stampSiteCustomer()
       return
@@ -403,7 +423,9 @@ const loadLocationTree = async (siteId?: number) => {
   locationLoading.value = true
   try {
     const locations = props.projectScoped && projectId
-      ? (await LocationApi.getProjectCustomerLocations(projectId, siteId)).siteLocations
+      ? props.installationProjectSites && !customerSiteIds.value.includes(siteId)
+        ? (await getInstallationProjectSites(projectId, siteId)).siteLocations
+        : (await LocationApi.getProjectCustomerLocations(projectId, siteId)).siteLocations
       : await LocationApi.getSiteLocationTree(siteId)
     if (current === locationSequence) locationTree.value = handleTree(locations, 'id', 'parentId')
   } catch {

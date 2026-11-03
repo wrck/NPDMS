@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "output": "flyway:     enabled: false True\nliquibase:     enabled: false True\nddl-auto: none True\n",
+  "stderr": ""
+}
