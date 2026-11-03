@@ -88,6 +88,27 @@ it('uses server exemptions for counts and labels while retaining optional addres
     expect(m.state.targetDevices).toHaveLength(1)
   } finally { m.app.unmount() }
 })
+it('defaults to required devices and clears selection when the address requirement changes', async () => {
+  vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', syncStatus: 'FRESH' }, { deviceId: 12, sn: 'SN12', syncStatus: 'FRESH' }], total: 2 })
+  vi.mocked(InstallationApi.getProjectInstallationAddressCompletion).mockResolvedValue({ totalDevices: 2, addressedDevices: 1, requiredDevices: 1, exemptedDevices: 1, exemptDeviceIds: ['12'], completed: true })
+  const m = render()
+  try {
+    await flush()
+    expect(m.state.visibleDevices.map((d: any) => d.deviceId)).toEqual([11])
+    m.state.selectedDevices = [{ deviceId: 11, sn: 'SN11' }]
+    m.state.devicePageNo = 2
+    m.state.addressRequirement = 'exempt'
+    await flush()
+    expect(m.state.visibleDevices.map((d: any) => d.deviceId)).toEqual([12])
+    expect(m.state.selectedDevices).toEqual([])
+    expect(m.state.devicePageNo).toBe(1)
+    expect(m.state.deviceTableRef.clearSelection).toHaveBeenCalled()
+    m.state.addressRequirement = 'all'
+    await flush()
+    expect(m.state.visibleDevices.map((d: any) => d.deviceId)).toEqual([11, 12])
+    expect(m.state.completionText).toContain('1/1 台，免填 1 台')
+  } finally { m.app.unmount() }
+})
 it('submits one batch request and preserves the whole selection on failure', async () => {
   const m = render()
   try {
@@ -174,6 +195,35 @@ it('shows device-scoped installation history and keeps every historical record r
     expect(m.state.readOnly).toBe(true)
     await m.state.save()
     expect(InstallationApi.updateInstallation).not.toHaveBeenCalled()
+  } finally { m.app.unmount() }
+})
+
+it('filters by current completed installation and combines the address requirement', async () => {
+  const m = render()
+  try {
+    await flush()
+    m.state.devices = [{ deviceId: 11, sn: 'SN11' }, { deviceId: 12, sn: 'SN12' }, { deviceId: 13, sn: 'SN13' }, { deviceId: 14, sn: 'SN14' }]
+    m.state.rows = [
+      { equipmentId: 11, status: 2, effectiveFrom: '2026-10-01' },
+      { equipmentId: 12, status: 2, effectiveFrom: '2026-10-01', effectiveTo: '2026-10-02' },
+      { equipmentId: 13, status: 1, effectiveFrom: '2026-10-01' },
+      { equipmentId: 14, status: 2, effectiveFrom: '2999-01-01' }
+    ]
+    m.state.addressCompletion = { exemptDeviceIds: [13] }
+    m.state.addressRequirement = 'all'
+    expect(m.state.installationStatus).toBe('all')
+    expect(m.state.visibleDevices.map(d => d.deviceId)).toEqual([11, 12, 13, 14])
+    m.state.devicePageNo = 3
+    m.state.selectedDevices = [m.state.devices[0]]
+    m.state.installationStatus = 'installed'
+    await flush()
+    expect(m.state.visibleDevices.map(d => d.deviceId)).toEqual([11])
+    expect(m.state.devicePageNo).toBe(1)
+    expect(m.state.selectedDevices).toEqual([])
+    m.state.installationStatus = 'uninstalled'
+    expect(m.state.visibleDevices.map(d => d.deviceId)).toEqual([12, 13, 14])
+    m.state.addressRequirement = 'required'
+    expect(m.state.visibleDevices.map(d => d.deviceId)).toEqual([12, 14])
   } finally { m.app.unmount() }
 })
 

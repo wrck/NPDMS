@@ -6,19 +6,32 @@
       <el-form-item label="序列号"><el-input v-model="sn" clearable placeholder="查询设备序列号" /></el-form-item>
       <el-form-item label="产品编码"><el-input v-model="productCode" clearable placeholder="查询产品编码" /></el-form-item>
       <el-form-item label="产品型号"><el-input v-model="productModel" clearable placeholder="查询产品型号" /></el-form-item>
+      <el-form-item label="地址要求">
+        <el-select v-model="addressRequirement" class="!w-120px">
+          <el-option label="必填" value="required" />
+          <el-option label="免填" value="exempt" />
+          <el-option label="全部" value="all" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="安装状态">
+        <el-select v-model="installationStatus" class="!w-120px">
+          <el-option label="全部" value="all" />
+          <el-option label="已安装" value="installed" />
+          <el-option label="未安装" value="uninstalled" />
+        </el-select>
+      </el-form-item>
       <el-form-item><el-button :loading="loading" @click="load">刷新</el-button></el-form-item>
       <el-form-item v-if="!readonly">
         <el-button type="primary" :disabled="loading || !selectedDevices.length" @click="openDevices(selectedDevices)" v-hasPermi="['pms:imp-installation:create']">批量维护安装地址（{{ selectedDevices.length }}）</el-button>
       </el-form-item>
     </el-form>
-    <el-table v-loading="loading" ref="deviceTableRef" :data="pagedDevices" row-key="deviceId" @selection-change="selectedDevices = $event" empty-text="本项目暂无设备序列号">
+    <el-table v-loading="loading" ref="deviceTableRef" :data="pagedDevices" row-key="deviceId" @selection-change="selectedDevices = $event" :empty-text="devices.length ? '没有符合筛选条件的设备' : '本项目暂无设备序列号'">
       <el-table-column v-if="!readonly" type="selection" width="50" :reserve-selection="true" />
       <el-table-column prop="sn" label="设备序列号" min-width="170" />
       <el-table-column prop="productCode" label="产品编码" min-width="140" />
       <el-table-column prop="productModel" label="产品型号" min-width="140" />
       <el-table-column prop="productName" label="产品名称" min-width="160" />
       <el-table-column label="安装地址" min-width="200"><template #default="{ row }">{{ deviceAddress(row) || (addressExempt(row) ? '免填' : '未填写') }}</template></el-table-column>
-      <el-table-column label="地址要求" width="100"><template #default="{ row }">{{ addressExempt(row) ? '免填' : '必填' }}</template></el-table-column>
       <el-table-column label="操作" width="230"><template #default="{ row }">
         <el-button v-if="!readonly" link type="primary" @click="openDevices([row])" v-hasPermi="['pms:imp-installation:create']">维护安装地址</el-button>
         <el-button link type="primary" @click="openHistory(row)" v-hasPermi="['pms:imp-installation:query']">安装历史</el-button>
@@ -138,6 +151,8 @@ const targetDeviceSummary = computed(() => {
 const sn = ref('')
 const productCode = ref('')
 const productModel = ref('')
+const addressRequirement = ref<'required' | 'exempt' | 'all'>('required')
+const installationStatus = ref<'all' | 'installed' | 'uninstalled'>('all')
 const deviceTableRef = ref<{ clearSelection: () => void }>()
 const devicePageNo = ref(1), devicePageSize = ref(20)
 const historyVisible = ref(false)
@@ -156,14 +171,22 @@ const exemptDeviceIds = computed(() => new Set((addressCompletion.value?.exemptD
 const addressExempt = (device: DeviceApi.DeviceListVO) => exemptDeviceIds.value.has(String(device.deviceId))
 const errorText = ref('')
 const visibleDevices = computed(() => devices.value.filter(d =>
+  (addressRequirement.value === 'all' || addressExempt(d) === (addressRequirement.value === 'exempt')) &&
+  (installationStatus.value === 'all' || !!currentInstallation(d) === (installationStatus.value === 'installed')) &&
   d.sn.includes(sn.value.trim()) &&
   (!productCode.value.trim() || (d.productCode ?? '').includes(productCode.value.trim())) &&
   (!productModel.value.trim() || (d.productModel ?? '').includes(productModel.value.trim()))
 ))
 const pagedDevices = computed(() => visibleDevices.value.slice((devicePageNo.value - 1) * devicePageSize.value, devicePageNo.value * devicePageSize.value))
 watch([sn, productCode, productModel], () => { devicePageNo.value = 1 })
+watch([addressRequirement, installationStatus], () => {
+  devicePageNo.value = 1
+  selectedDevices.value = []
+  deviceTableRef.value?.clearSelection()
+})
 const currentInstallation = (device: DeviceApi.DeviceListVO) => rows.value.find(row =>
-  String(row.equipmentId) === String(device.deviceId) && row.status === 2 && !!row.effectiveFrom && !row.effectiveTo
+  String(row.equipmentId) === String(device.deviceId) && row.status === 2 && !!row.effectiveFrom &&
+  new Date(row.effectiveFrom).getTime() <= Date.now() && !row.effectiveTo
 )
 const deviceAddress = (device: DeviceApi.DeviceListVO) => {
   const latest = currentInstallation(device)
