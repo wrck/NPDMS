@@ -58,9 +58,11 @@ class ProjectLegacyShipmentSourceIntegrityTest {
         var commerce=mock(DppmsCommerceDetailImportApi.class);
         when(commerce.importDetails(any())).thenReturn(List.of(NativeEntityMigrationRow.mapped("shipment-packages","PACK",
             new ExternalTargetMapping("COM","ShipmentPackage","com_shipment_package",703L,"PACKAGE",0))));
+        var associated=mock(ProjectAssociatedDataService.class);
+        when(associated.importRecords(any(),anyMap(),any())).thenReturn(new ProjectAssociatedDataService.ImportResult(List.of(),Map.of()));
         fixtureService=new ProjectLegacyEntityMigrationService(mock(ProjectManualCreationService.class),mapper,new LegacyDetailCatalog(),
             mock(ProjectPartyMapper.class),mock(DppmsCommerceEntityResolveApi.class),assets,mock(DppmsAssetSourceHistoryApi.class),
-            mock(DppmsWarrantySourceRecordsApi.class),installation,evidence,commands,mock(ProjectAssociatedDataService.class),commerce, mock(cn.iocoder.yudao.module.pms.engineering.api.installation.DppmsInstallationSourceQueryApi.class),
+            mock(DppmsWarrantySourceRecordsApi.class),installation,evidence,commands,associated,commerce, mock(cn.iocoder.yudao.module.pms.engineering.api.installation.DppmsInstallationSourceQueryApi.class),
             mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi.class),
             mock(cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi.class),new ProjectFactoryRecordImportService(evidence));
     }

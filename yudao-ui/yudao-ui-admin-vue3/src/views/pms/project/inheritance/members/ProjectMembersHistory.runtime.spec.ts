@@ -1,13 +1,15 @@
 vi.mock('@/config/axios', () => ({ default: { get: vi.fn(), post: vi.fn(), put: vi.fn() } }))
-import { defineComponent, h, inject, provide, nextTick, reactive } from 'vue'
+import { defineComponent, h, inject, provide } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Members from '@/api/pms/project/unified-members'
 import * as Managers from '@/api/pms/project/members'
 import ProjectMembersPanel from './ProjectMembersPanel.vue'
-import { mount, textOf, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, textOf, passthrough } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/api/pms/project/unified-members', async original => ({
-  ...await original<typeof Members>(), getMemberPage: vi.fn()
+  ...await original<typeof Members>(), getMemberPage: vi.fn(),
+  canAppointPrimaryProjectManager: vi.fn().mockResolvedValue(false),
+  canMaintainServiceManagers: vi.fn().mockResolvedValue(false)
 }))
 vi.mock('@/api/pms/project/members', () => ({ getProjectManagers: vi.fn() }))
 vi.mock('@/utils/permission', () => ({ checkPermi: vi.fn(() => true) }))

@@ -25,6 +25,10 @@ class ProjectManagerCandidateServiceTest {
 
     @Test void candidatesUseProjectCompanyAndFixedRoleAfterAuthorization() {
         var project = new ProjectMasterDO(); project.setCompanyId(21L);
+        var mapper = mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.class);
+        when(mapper.selectById(9L)).thenReturn(project);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "projectMapper", mapper);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "validationInitialAssignmentPolicy", mock(ValidationInitialAssignmentPolicy.class));
         when(projects.getProjectForManage(9L, actor)).thenReturn(project);
         when(organization.pageCompanyRoleUsers(any())).thenReturn(PageResult.empty());
         service.page(9L, "张", 2, 20, actor);

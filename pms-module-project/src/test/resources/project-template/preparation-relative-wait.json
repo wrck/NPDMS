@@ -33,7 +33,7 @@
   ],
   "stages": [
     {
-      "nodeKey": "stage:prep", "code": "PREP_WORK", "name": "工前准备",
+      "nodeKey": "stage:prep", "code": "PREP_WORK", "lifecycleStage": "S1", "name": "工前准备",
       "sortOrder": 10, "start": true, "terminal": true,
       "completionRuleKey": "prep.complete",
       "permission": {"policySnapshot": {"requiredActions": ["QUERY"]}}

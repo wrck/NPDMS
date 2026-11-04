@@ -150,7 +150,7 @@ class FileContractAndMapperTest {
                         "selectActiveSets", "selectSetForUpdate"));
         assertMapperMethods(FileUploadSessionMapper.class,
                 Set.of("insert", "selectForUpdate", "selectArtifactBindingForUpdate",
-                        "selectBusinessGrantSlotsForUpdate",
+                        "selectBusinessGrantSlotsForUpdate", "selectCompletedVersionNames",
                         "beginValidationIfInitialized", "bindStorageReceiptIfInitialized",
                         "completeIfValidating", "terminateIfRetryable"));
         assertMapperMethods(FileAccessGrantMapper.class, Set.of("insert"));

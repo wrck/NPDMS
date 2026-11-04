@@ -165,6 +165,7 @@ class ContractAccessServiceTest {
         verify(mapper).selectContracts(new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery(1L, 10L));
         verify(mapper).selectOrders(any());
         verify(mapper).selectExecutionOrders(any());
+        verify(mapper).selectReceivables(new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery(1L, 10L));
         verifyNoMoreInteractions(mapper);
     }
 

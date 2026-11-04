@@ -12,11 +12,11 @@ class ProjectTaskMapperContractTest {
     @Test
     void governanceQueryMustKeepTenantDeletionCandidateAndStableOrderPredicates() throws Exception {
         String xml = Files.readString(Path.of(
-                "src/main/resources/mapper/projecttask/ProjectTaskMapper.xml"));
+                "src/main/resources/mapper/taskworkbench/ProjectTaskRuntimeMapper.xml"));
 
         assertTrue(xml.contains("tenant_id = #{query.tenantId}"));
         assertTrue(xml.contains("deleted = b'0'"));
         assertTrue(xml.contains("collection=\"query.projectIds\""));
-        assertTrue(xml.contains("ORDER BY project_id, id"));
+        assertTrue(xml.contains("ORDER BY task.project_id, task.id"));
     }
 }

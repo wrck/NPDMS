@@ -25,7 +25,7 @@ class ProjectCreationMatchControllerTest {
         var controller = new ProjectMasterController();
         ReflectionTestUtils.setField(controller, "projectManualCreationApplicationService", service);
         var result = result();
-        when(service.previewMatching(any(), eq(10L), eq(20L), any())).thenReturn(result);
+        when(service.previewMatching(any(), eq(10L), eq(20L), any(), isNull(), isNull(), isNull())).thenReturn(result);
         var response = controller.matchTemplates(request()).getData();
         assertEquals("MATCHED", response.getOutcome());
         assertEquals("watermark", response.getCandidateWatermark());
@@ -33,22 +33,22 @@ class ProjectCreationMatchControllerTest {
         assertEquals("工前准备适用规则", response.getCandidates().getFirst().getRuleName());
         verify(service).previewMatching(argThat(draft -> "现场工勘".equals(draft.getProjectName())
                 && "C-001".equals(draft.getCustomerCode()) && draft.getParentId() == null), eq(10L), eq(20L),
-                argThat(actor -> actor.tenantId().equals(7L)));
+                argThat(actor -> actor.tenantId().equals(7L)), isNull(), isNull(), isNull());
     }
     @Test void selectedCustomerEntryUsesOwnerResolvingPreviewNotLegacyPreview() {
         TenantContextHolder.setTenantId(7L);
         var service = mock(ProjectManualCreationApplicationService.class);
-        when(service.previewWithSelectedCustomer(any(), eq(10L), eq(20L), any())).thenReturn(result());
+        when(service.previewWithSelectedCustomer(any(), eq(10L), eq(20L), any(), isNull(), isNull(), isNull())).thenReturn(result());
         var response = new SelectedCustomerProjectController(service).matchTemplates(request()).getData();
         assertEquals("watermark", response.getCandidateWatermark());
         assertEquals(22L, response.getCandidates().getFirst().getTemplateRevisionId());
-        verify(service, never()).previewMatching(any(), any(), any(), any());
+        verify(service, never()).previewMatching(any(), any(), any(), any(), any(), any(), any());
     }
     @Test void previewFailuresCannotExposeInputsThroughGlobalUnexpectedErrorLogging() throws Exception {
         TenantContextHolder.setTenantId(7L);
         var service = mock(ProjectManualCreationApplicationService.class);
-        when(service.previewMatching(any(), any(), any(), any())).thenThrow(new IllegalStateException("private-customer-input"));
-        when(service.previewWithSelectedCustomer(any(), any(), any(), any())).thenThrow(new IllegalStateException("private-customer-input"));
+        when(service.previewMatching(any(), any(), any(), any(), any(), any(), any())).thenThrow(new IllegalStateException("private-customer-input"));
+        when(service.previewWithSelectedCustomer(any(), any(), any(), any(), any(), any(), any())).thenThrow(new IllegalStateException("private-customer-input"));
         var legacy = new ProjectMasterController();
         ReflectionTestUtils.setField(legacy, "projectManualCreationApplicationService", service);
         var current = new SelectedCustomerProjectController(service);
@@ -58,7 +58,7 @@ class ProjectCreationMatchControllerTest {
         assertNull(failure.getCause());
         assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class, () -> current.matchTemplates(request()));
         var denied = new cn.iocoder.yudao.framework.common.exception.ServiceException(cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN);
-        doThrow(denied).when(service).previewMatching(any(), any(), any(), any());
+        doThrow(denied).when(service).previewMatching(any(), any(), any(), any(), any(), any(), any());
         assertSame(denied, assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class, () -> legacy.matchTemplates(request())));
         var templates = mock(ProjectTemplateService.class);
         when(templates.matchPreview(any())).thenThrow(new IllegalStateException("private-facts"));

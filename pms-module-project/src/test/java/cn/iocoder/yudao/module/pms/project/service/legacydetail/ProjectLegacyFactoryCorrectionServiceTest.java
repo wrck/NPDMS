@@ -185,7 +185,7 @@ class ProjectLegacyFactoryCorrectionServiceTest {
         assertTrue(command.shipments().isEmpty()); assertTrue(command.software().isEmpty()); assertTrue(command.warranties().isEmpty());
         assertEquals(List.of(new DppmsAssetEntityImportApi.FactoryVersion("F1","SN1"," CONP-RAW ","BOOT-RAW",null,null)),
                 command.factoryVersions());
-        assertEquals(List.of("sourceId","snapshotId","checksum"),Arrays.stream(Request.class.getRecordComponents()).map(java.lang.reflect.RecordComponent::getName).toList());
+        assertEquals(List.of("sourceId","snapshotId","checksum","softwareHistoryDefinitionId"),Arrays.stream(Request.class.getRecordComponents()).map(java.lang.reflect.RecordComponent::getName).toList());
         assertEquals("PROJ:DPPMS:FACTORY_CORRECTION",scopes.getFirst().scopeCode());
         assertEquals("DPPMS-FACTORY-CORRECTION:10:20:V1",scopes.getFirst().key());
         assertEquals("PROJ_DPPMS_FACTORY_CORRECT",audits.getFirst().operationCode());

@@ -310,8 +310,8 @@ describe('completion workbench save and context protection', () => {
       deviceType: `原清单产品${index + 1}`, deviceModel: `MODEL-${index + 1}`, quantity
     }))
     const devices = products.flatMap((product, index) => Array.from({ length: product.quantity }, (_, serial) => ({
-      sn: `SN-${index}-${serial}`, productCode: ` CODE-${index + 1} `,
-      productName: ` ${product.deviceType} `, productModel: ` ${product.deviceModel} `
+      sn: `SN-${index}-${serial}`, productCode: `CODE-${index + 1}`,
+      productName: ` ${product.deviceType} `, productModel: product.deviceModel
     })))
     deviceApi.getDevicePage.mockResolvedValueOnce({ total: 40, list: devices })
     commerceApi.getDeliveryScopePage.mockResolvedValueOnce({ total: 2, list: [
@@ -343,7 +343,7 @@ describe('completion workbench save and context protection', () => {
     expect(page.state().form.engineerContact).toBe('')
     expect(page.state().formError).toBe(false)
   })
-  it('loads later device pages and groups the full equipment list without replacing names or models', async () => {
+  it('loads later device pages and preserves distinct raw product codes and source models', async () => {
     deviceApi.getDevicePage.mockResolvedValueOnce({ total: 102,
       list: Array.from({ length: 100 }, (_, index) => ({ sn: `SN-${index}`, productCode: ' A ', productModel: ' MODEL-A ', productName: '原清单设备A' }))
     }).mockResolvedValueOnce({ total: 102, list: [
@@ -354,19 +354,22 @@ describe('completion workbench save and context protection', () => {
     await flush()
     await page.state().openForm()
     expect(page.state().deviceRows).toEqual([
-      { deviceType: '原清单设备A', deviceModel: 'MODEL-A', quantity: 101 },
+      { deviceType: '原清单设备A', deviceModel: ' MODEL-A ', quantity: 100 },
+      { deviceType: '原清单设备A', deviceModel: 'MODEL-A', quantity: 1 },
       { deviceType: '原清单设备B', deviceModel: 'MODEL-B', quantity: 1 }
     ])
     expect(deviceApi.getDevicePage).toHaveBeenLastCalledWith({ projectId: 41, pageNo: 2, pageSize: 100 })
   })
-  it('retains original equipment products and device quantities when order scopes are unavailable', async () => {
+  it('blocks saving an incomplete equipment list when order scope access fails', async () => {
     deviceApi.getDevicePage.mockResolvedValueOnce({ total: 1, list: [{ sn: 'SN-1', productCode: 'A', productName: '原清单设备', productModel: 'MODEL-A' }] })
     commerceApi.getDeliveryScopePage.mockRejectedValueOnce(new Error('订单范围不可读'))
     const page = renderPage()
     await flush()
     await page.state().openForm()
-    expect(page.state().deviceRows).toEqual([{ deviceType: '原清单设备', deviceModel: 'MODEL-A', quantity: 1 }])
-    expect(page.state().formError).toBe(false)
+    expect(page.state().deviceRows).toEqual([])
+    expect(page.state().formError).toBe(true)
+    await page.state().save()
+    expect(api.saveConfirmation).not.toHaveBeenCalled()
   })
   it('keeps an empty equipment source empty without inventing a default quantity', async () => {
     const page = renderPage()

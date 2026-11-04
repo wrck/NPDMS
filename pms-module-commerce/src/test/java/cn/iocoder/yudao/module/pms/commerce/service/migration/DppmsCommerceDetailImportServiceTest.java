@@ -403,12 +403,15 @@ class DppmsCommerceDetailImportServiceTest {
         }
         try(var db=java.sql.DriverManager.getConnection("jdbc:h2:mem:payment_plan_contract_scope;MODE=MySQL")) {
             try(var sql=db.createStatement()) {
-                sql.execute("CREATE TABLE com_contract(id BIGINT,tenant_id BIGINT,deleted INT)");
+                sql.execute("CREATE TABLE com_contract(id BIGINT,tenant_id BIGINT,deleted INT,contract_no VARCHAR(128))");
                 sql.execute("CREATE TABLE com_project_contract_relation(contract_id BIGINT,tenant_id BIGINT,project_id BIGINT,deleted INT,status VARCHAR(20),effective_from TIMESTAMP,effective_to TIMESTAMP)");
-                sql.execute("CREATE TABLE com_contract_collection_plan(id BIGINT,tenant_id BIGINT,contract_id BIGINT,deleted INT,effective_from TIMESTAMP,effective_to TIMESTAMP)");
-                sql.execute("INSERT INTO com_contract VALUES(20,1,0),(21,2,0),(22,1,1)");
-                sql.execute("INSERT INTO com_contract_collection_plan VALUES(401,1,20,0,TIMESTAMP '2020-01-01 00:00:00',TIMESTAMP '2020-02-01 00:00:00'),(402,2,21,0,NULL,NULL),(403,1,22,0,NULL,NULL),(404,1,20,1,NULL,NULL)");
+                sql.execute("CREATE TABLE com_contract_collection_plan(id BIGINT,tenant_id BIGINT,contract_id BIGINT,deleted INT,effective_from TIMESTAMP,effective_to TIMESTAMP,contract_no VARCHAR(128))");
+                sql.execute("INSERT INTO com_contract VALUES(20,1,0,'PLAN-20'),(21,2,0,'PLAN-21'),(22,1,1,'PLAN-22')");
+                sql.execute("INSERT INTO com_contract_collection_plan(id,tenant_id,contract_id,deleted,effective_from,effective_to) VALUES(401,1,20,0,TIMESTAMP '2020-01-01 00:00:00',TIMESTAMP '2020-02-01 00:00:00'),(402,2,21,0,NULL,NULL),(403,1,22,0,NULL,NULL),(404,1,20,1,NULL,NULL)");
                 sql.execute("INSERT INTO com_project_contract_relation VALUES(20,1,100,0,'ACTIVE',NULL,NULL),(20,1,200,0,'ACTIVE',NULL,NULL),(20,1,200,0,'ACTIVE',NULL,NULL),(20,1,201,0,'INACTIVE',NULL,NULL),(20,1,202,0,'ACTIVE',NULL,TIMESTAMP '2020-01-01 00:00:00'),(20,1,203,0,'ACTIVE',TIMESTAMP '2099-01-01 00:00:00',NULL),(20,1,204,1,'ACTIVE',NULL,NULL),(20,2,205,0,'ACTIVE',NULL,NULL),(22,1,206,0,'ACTIVE',NULL,NULL),(21,2,207,0,'ACTIVE',NULL,NULL)");
+            }
+            try(var sql=db.createStatement()) {
+                sql.execute("UPDATE com_contract_collection_plan SET contract_no='PLAN-' || contract_id");
             }
             for(Long projectId:Arrays.asList(100L,200L,201L,202L,203L,204L,205L,206L,207L,999L,null)) {
                 var query=new DppmsCommerceDetailMapper.PageQuery(1L,projectId,0,20);
@@ -426,7 +429,7 @@ class DppmsCommerceDetailImportServiceTest {
                                     String method,DppmsCommerceDetailMapper.PageQuery query) throws Exception {
         var parameters=Map.of("query",query);
         var bound=configuration.getMappedStatement(DppmsCommerceDetailMapper.class.getName()+"."+method).getBoundSql(parameters);
-        try(var sql=db.prepareStatement(bound.getSql())) {
+        try(var sql=db.prepareStatement(bound.getSql().replace(" AS BINARY)", " AS VARBINARY)"))) {
             int index=1;
             for(var mapping:bound.getParameterMappings())
                 sql.setObject(index++,configuration.newMetaObject(parameters).getValue(mapping.getProperty()));

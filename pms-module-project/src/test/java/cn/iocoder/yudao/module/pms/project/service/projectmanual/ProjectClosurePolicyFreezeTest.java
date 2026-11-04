@@ -50,6 +50,10 @@ class ProjectClosurePolicyFreezeTest {
         ReflectionTestUtils.setField(service, "gateInstanceMapper", mock(ProjectGateInstanceMapper.class));
         ReflectionTestUtils.setField(service, "taskTreePathMapper", mock(cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskTreePathMapper.class));
         ReflectionTestUtils.setField(service, "deliverableInitializationApplicationService", deliverables);
+        ReflectionTestUtils.setField(service, "planInitializationService",
+                mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanInitializationService.class));
+        ReflectionTestUtils.setField(service, "stageAdmissionService",
+                mock(cn.iocoder.yudao.module.pms.project.service.runtimegraph.ProjectStageAdmissionService.class));
         var allocator = mock(ProjectCodeAllocator.class);
         when(allocator.allocateRootCode()).thenReturn("PJT2026000001");
         ReflectionTestUtils.setField(service, "projectCodeAllocator", allocator);
@@ -61,7 +65,9 @@ class ProjectClosurePolicyFreezeTest {
         var revision = new ProjectTemplateRevisionDO(); revision.setId(1002L); revision.setTemplateId(9L); revision.setRevisionNo(2); revision.setStatus("PUBLISHED");
         when(templates.getProjectTemplate(9L)).thenReturn(template);
         when(templates.getRevisionById(1002L)).thenReturn(revision);
-        when(templates.getRevisionContent(9L, 2)).thenReturn(content);
+        var snapshot = mock(cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.class);
+        when(snapshot.toRuntimeContent()).thenReturn(content);
+        when(templates.getExecutionSnapshot(9L, 2)).thenReturn(snapshot);
         var stage = new TemplateDefinitionContent.StageDef(); stage.setStageCode("S0"); stage.setStart(true);
         content.setStages(List.of(stage));
         doAnswer(call -> { call.<ProjectMasterDO>getArgument(0).setId(100L); return 1; }).when(projects).insert(any(ProjectMasterDO.class));
@@ -81,7 +87,8 @@ class ProjectClosurePolicyFreezeTest {
         assertEquals(100L, created.getRootId());
         assertEquals("S0", created.getCurrentStage());
         assertEquals("ACTIVE", created.getLifecycleStatus());
-        verify(templates).getRevisionContent(9L, 2);
+        verify(templates).getExecutionSnapshot(9L, 2);
+        verify(templates, never()).getRevisionContent(anyLong(), anyInt());
         verify(templates, never()).getDraftContent(anyLong());
     }
 

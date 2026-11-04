@@ -75,8 +75,19 @@ class ProjectTemplateCandidateWatermarkTest {
         assertEquals(9002L, changed.getMatched().getTemplateRevisionId());
     }
 
-    @Test void fullFactsChangeWatermarkEvenWithSameOutcomeButOrderDoesNot() {
-        when(templateMapper.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE)).thenReturn(List.of());
+    @Test void observedFactsChangeWatermarkEvenWithSameOutcomeButOrderDoesNot() {
+        var template = new ProjectTemplateDO(); template.setId(9L); template.setCode("TPL-09");
+        template.setStatus(TemplateRules.STATUS_ACTIVE); template.setMatchPriority(10);
+        when(templateMapper.selectListByStatusOrderByPriority(TemplateRules.STATUS_ACTIVE)).thenReturn(List.of(template));
+        when(revisionMapper.selectPublishedListByTemplateId(9L)).thenReturn(List.of(revision(9001L, 1)));
+        var evaluator = org.mockito.Mockito.mock(ProjectTemplateMatchRuleEvaluator.class);
+        org.mockito.Mockito.when(evaluator.evaluate(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenAnswer(call -> {
+            Map<String, RuleFact> input = call.getArgument(3);
+            input.get("project.projectName"); input.get("project.isChild"); input.get("project.customerCode");
+            return new cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation("test", cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.MATCHED, null, List.of(), List.of(), List.of());
+        });
+        ReflectionTestUtils.setField(service, "matchRuleEvaluator", evaluator);
         var facts = new LinkedHashMap<String, RuleFact>();
         facts.put("project.projectName", RuleFact.known("现场工勘"));
         facts.put("project.isChild", RuleFact.known(true));

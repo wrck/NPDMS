@@ -23,13 +23,13 @@ class ExactContractProjectSqlTest {
             sql.execute("CREATE TABLE com_project_contract_relation(tenant_id BIGINT,contract_id BIGINT,project_id BIGINT,deleted INT,status VARCHAR(20),effective_from TIMESTAMP,effective_to TIMESTAMP)");
             sql.execute("CREATE TABLE com_sales_order(id BIGINT,tenant_id BIGINT,contract_no VARCHAR(128),company_code VARCHAR(40),deleted INT)");
             sql.execute("CREATE TABLE com_sales_order_line(id BIGINT,tenant_id BIGINT,order_id BIGINT,deleted INT)");
-            sql.execute("CREATE TABLE com_delivery_scope(tenant_id BIGINT,order_line_id BIGINT,project_id BIGINT,deleted INT,scope_status VARCHAR(20),effective_to TIMESTAMP)");
+            sql.execute("CREATE TABLE com_delivery_scope(tenant_id BIGINT,order_line_id BIGINT,project_id BIGINT,deleted INT,scope_status VARCHAR(20),effective_to TIMESTAMP,allocation_confirmed INT DEFAULT 1)");
             sql.execute("CREATE TABLE com_order_contract_relation(tenant_id BIGINT,order_id BIGINT,contract_id BIGINT,deleted INT,effective_from TIMESTAMP,effective_to TIMESTAMP)");
             sql.execute("INSERT INTO com_contract VALUES(1,1,'Exact%_','A',0),(2,2,'Exact%_','A',0),(3,1,'Deleted','A',1)");
             sql.execute("INSERT INTO com_project_contract_relation VALUES(1,1,10,0,'ACTIVE',NULL,NULL),(2,2,40,0,'ACTIVE',NULL,NULL),(1,3,41,0,'ACTIVE',NULL,NULL)");
             sql.execute("INSERT INTO com_sales_order VALUES(20,1,'Exact%_','A',0),(30,1,'Other','B',0),(50,1,'Exact%_','B',0)");
             sql.execute("INSERT INTO com_sales_order_line VALUES(20,1,20,0),(30,1,30,0),(50,1,50,0)");
-            sql.execute("INSERT INTO com_delivery_scope VALUES(1,20,20,0,'ACTIVE',NULL),(1,30,30,0,'ACTIVE',NULL),(1,50,50,0,'ACTIVE',NULL)");
+            sql.execute("INSERT INTO com_delivery_scope(tenant_id,order_line_id,project_id,deleted,scope_status,effective_to) VALUES(1,20,20,0,'ACTIVE',NULL),(1,30,30,0,'ACTIVE',NULL),(1,50,50,0,'ACTIVE',NULL)");
             sql.execute("INSERT INTO com_order_contract_relation VALUES(1,30,1,0,'2020-01-01',NULL)");
             var query=new ExactContractProjectQuery(1L,"Exact%_");
             assertEquals(Set.of(10L,20L,30L),values(db,config,"selectProjectIdsByExactContractNo",query));

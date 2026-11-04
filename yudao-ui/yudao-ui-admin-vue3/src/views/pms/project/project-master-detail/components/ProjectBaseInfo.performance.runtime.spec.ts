@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import Panel from './ProjectBaseInfo.vue'
-import { mount, passthrough, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const api = vi.hoisted(() => ({ get: vi.fn(), getMemberPage: vi.fn(), relations: vi.fn(), checkRole: vi.fn(() => true) }))
 vi.mock('@/api/pms/commerce', () => ({ getProjectContractRelations: api.relations }))

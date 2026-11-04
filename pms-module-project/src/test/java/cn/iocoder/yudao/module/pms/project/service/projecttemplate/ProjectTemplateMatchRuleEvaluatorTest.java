@@ -78,11 +78,13 @@ class ProjectTemplateMatchRuleEvaluatorTest {
         }
     }
 
-    @Test void rejectsRuntimeOnlyFieldsEvenWhenCallerProvidesThem() {
+    @Test void rejectsRuntimeOnlyFieldsAtInputBoundaryButEvaluatesAlreadyFrozenFacts() {
         var snapshot = snapshot(field("project.lifecycleStatus", "TEXT", "=", "\"NORMAL_CLOSED\""));
         var result = matching.evaluate(7L, 10L, snapshot, Map.of("project.lifecycleStatus", RuleFact.known("NORMAL_CLOSED")));
-        assertEquals(RuleEvaluation.Outcome.UNKNOWN, result.outcome());
-        assertEquals("MATCH_FIELD_NOT_AVAILABLE_AT_CREATION", result.conditions().getFirst().reasonCode());
+        assertTrue(result.matched());
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class, () ->
+                new cn.iocoder.yudao.module.pms.project.service.rule.ProjectRuleFields(key -> null)
+                        .suppliedCreationFacts(Map.of("project.lifecycleStatus", JsonUtils.parseTree("\"NORMAL_CLOSED\""))));
     }
 
     @Test void knownEmptyValueIsNotConfusedWithMissingEvidence() {

@@ -18,14 +18,14 @@ class PlatformMigrationEvidenceContractTest {
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 8, 30, 20, 0);
 
     @Test
-    void exposesEightWriteActionsAndOneCursorQuery() {
+    void exposesMigrationActionsBatchVariantsAndReadOnlyQueries() {
         Set<String> methods = Arrays.stream(PlatformMigrationEvidenceApi.class.getDeclaredMethods())
                 .map(Method::getName)
                 .collect(Collectors.toSet());
 
-        assertEquals(Set.of("createImportBatch", "appendSourceRecord", "markStagedReady",
+        assertEquals(Set.of("preview", "previewBatch", "createImportBatch", "appendSourceRecord", "appendSourceRecords", "markStagedReady",
                 "claimStagedBatch", "pageSourceRecords", "appendExternalMapping",
-                "appendMigrationIssue", "completeReconciliation", "closeMigrationIssue"), methods);
+                "appendExternalMappings", "appendMigrationIssue", "completeReconciliation", "closeMigrationIssue"), methods);
     }
 
     @Test

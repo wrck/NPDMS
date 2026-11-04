@@ -52,7 +52,7 @@ class ProjectExecutionNodePersistenceTest {
                 + "responsible_role VARCHAR(64),responsible_user_id BIGINT,definition_revision_id BIGINT,graph_version BIGINT,start_node BOOLEAN,terminal_node BOOLEAN)");
         jdbc.execute("CREATE TABLE proj_project_task (" + common + ",task_code VARCHAR(64),stage_code VARCHAR(64),parent_task_code VARCHAR(64),"
                 + "parent_task_id BIGINT,root_task_id BIGINT,tree_depth INT,business_level_code VARCHAR(64),milestone_id BIGINT,progress DECIMAL(8,2),"
-                + "state_machine_revision_id BIGINT,priority INT,estimated_hours DECIMAL(10,2),satisfaction_timing VARCHAR(64),"
+                + "state_machine_revision_id BIGINT,priority INT,estimated_hours DECIMAL(10,2),required_task BOOLEAN,satisfaction_timing VARCHAR(64),"
                 + "acc_satisfaction_template_id BIGINT,template_revision_id BIGINT,template_version INT,satisfaction_rule_version VARCHAR(64),"
                 + "satisfaction_threshold DECIMAL(8,2),description VARCHAR(500),description_format VARCHAR(64))");
         // Execute the actual additive migration; seeded historical rows must remain empty for new fields.

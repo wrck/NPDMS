@@ -54,7 +54,8 @@ class ConfirmedProjectMemberScopeTest {
   assertTrue(scopes.prepareViewReadScope(new ProjectAllScopeQuery(1L,9L,"PROJECT_VIEW")).trees().isEmpty());
  }
  @Test void ordinaryMemberFactsRetainUnconfirmedRowsWithoutGrantingPermissions(){
-  assertEquals(Set.of(2L,3L),members.selectActiveByUser(new ActiveProjectMemberQuery(1L,9L,LocalDateTime.now())).stream().map(ProjectMemberAssignmentDO::getProjectId).collect(java.util.stream.Collectors.toSet()));
+  assertEquals(1,members.selectParticipantFacts(new ProjectParticipantFactLookupQuery(1L,2L,9L,Set.of("PROJECT_MANAGER"),LocalDateTime.now())).size());
+  assertEquals(Set.of(3L),members.selectActiveByUser(new ActiveProjectMemberQuery(1L,9L,LocalDateTime.now())).stream().map(ProjectMemberAssignmentDO::getProjectId).collect(java.util.stream.Collectors.toSet()));
  }
 
  @Test void scopedAuthorizationLoadsOnlyRequestedProjectsWithTheSameIdentityAndIntervalRules() throws Exception {
@@ -76,7 +77,7 @@ class ConfirmedProjectMemberScopeTest {
   var selected=Set.of(3L,101L,102L,103L,104L,105L,106L,107L,108L);
   var query=new ActiveProjectMemberQuery(1L,9L,at,selected);
   assertEquals(List.of(3L,101L,102L,105L),members.selectAuthorizedByUser(query).stream().map(ProjectMemberAssignmentDO::getProjectId).toList());
-  assertEquals(List.of(3L,101L,102L,105L,108L),members.selectActiveByUser(query).stream().map(ProjectMemberAssignmentDO::getProjectId).toList());
+  assertEquals(List.of(3L,101L,102L,105L),members.selectActiveByUser(query).stream().map(ProjectMemberAssignmentDO::getProjectId).toList());
   assertTrue(members.selectAuthorizedByUser(new ActiveProjectMemberQuery(1L,9L,at)).stream().anyMatch(row->row.getProjectId()==999L));
  }
 
@@ -106,7 +107,8 @@ class ConfirmedProjectMemberScopeTest {
  @Test void authorizedLockExcludesUnconfirmedButFactLockStillRetainsItsRow(){
   var at=LocalDateTime.now();var unconfirmed=new ActiveProjectMemberForUpdateQuery(1L,2L,9L,at);
   assertTrue(members.selectAuthorizedByUserForUpdate(unconfirmed).isEmpty());
-  assertEquals(1,members.selectActiveByUserForUpdate(unconfirmed).size());
+  assertTrue(members.selectActiveByUserForUpdate(unconfirmed).isEmpty());
+  assertEquals(1,members.selectParticipantFactsForUpdate(new ProjectParticipantFactLockQuery(1L,2L,9L,Set.of("PROJECT_MANAGER"))).size());
   assertEquals(1,members.selectAuthorizedByUserForUpdate(new ActiveProjectMemberForUpdateQuery(1L,3L,9L,at)).size());
   assertTrue(members.selectAuthorizedByUserForUpdate(new ActiveProjectMemberForUpdateQuery(1L,6L,9L,at)).isEmpty());
  }
