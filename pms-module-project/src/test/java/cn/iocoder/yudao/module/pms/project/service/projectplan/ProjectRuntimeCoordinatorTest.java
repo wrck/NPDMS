@@ -11,6 +11,28 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class ProjectRuntimeCoordinatorTest {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"NORMAL_CLOSED", "NO_TRACKING_CLOSED", "EXCEPTION_CLOSED"})
+    void closedProjectConsumesStaleWakeupWithoutChangingFrozenHistory(String status) {
+        TenantContextHolder.setTenantId(7L);
+        try {
+            project.setLifecycleStatus(status);
+            var admission = mock(ProjectStageAdmissionService.class);
+            var completion = mock(ProjectStageCompletionService.class);
+            var closure = mock(ProjectRuleClosureService.class);
+            var tasks = mock(ProjectBusinessTaskCompletionService.class);
+            var gates = mock(ProjectGateRuleService.class);
+            var graph = mock(ProjectRuntimeGraphMapper.class);
+            var associations = mock(cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessAssociationService.class);
+            var coordinator = new ProjectRuntimeCoordinator(admission, completion, closure, tasks, gates, graph, associations, projects);
+            assertFalse(coordinator.reevaluate(9L, 1L, "stale-event").unknown());
+            assertEquals(status, project.getLifecycleStatus());
+            verifyNoInteractions(admission, completion, closure, tasks, gates, graph, associations);
+            project.setTenantId(8L);
+            assertTrue(coordinator.reevaluate(9L, 1L, "other-tenant").unknown());
+            verifyNoInteractions(admission, completion, closure, tasks, gates, graph, associations);
+        } finally { TenantContextHolder.clear(); }
+    }
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper projects =
             mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.class);
     private final cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO project =

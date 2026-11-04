@@ -38,7 +38,8 @@ public class ProjectRuntimeCoordinator {
             var project = projectId == null ? null : projects.selectById(projectId);
             if (project == null || !TenantContextHolder.getRequiredTenantId().equals(project.getTenantId()))
                 return new Result(true, activated, completed);
-            if ("NORMAL_CLOSED".equals(project.getLifecycleStatus()) || "EXCEPTION_CLOSED".equals(project.getLifecycleStatus()))
+            if ("NORMAL_CLOSED".equals(project.getLifecycleStatus()) || "NO_TRACKING_CLOSED".equals(project.getLifecycleStatus())
+                    || "EXCEPTION_CLOSED".equals(project.getLifecycleStatus()))
                 return new Result(false, activated, completed);
             if (!"ACTIVE".equals(project.getLifecycleStatus())) return new Result(true, activated, completed);
             stageActivated = 0;
