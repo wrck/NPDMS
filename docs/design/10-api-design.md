@@ -1616,6 +1616,8 @@ COM ContractDeviceVisibilityApi.ReadScope在设备专用只读上下文携带同
 
 2026-10-28需求方批准TF-040按旧分组过滤逻辑实现，并进一步要求公共复用、数据库执行、信任主档及使用当前字段命名。AST公开`ProductFilterGroup`：`productCode/productModel/productDesc/productCategory/productType`各有Like/In/NotIn，子组为`alternativeGroups`；不保留旧item字段或拼写别名。SQL公共片段`pms.asset.ProductFilters`以`product`为主档别名，可由资产域其他Owner查询直接include，全部值使用参数绑定，不做Java产品匹配或聚合/强制转换防御。
 
+2026-11-03：AST公共产品筛选扩展 `productDescNotLike`，顶层组内AND、alternativeGroups子组内OR，使用绑定参数及数据库原生NULL/LIKE语义。安装地址使用现有配置组合该字段与产品类型条件；不在服务代码固化关键词。
+
 `DeviceQueryApi.findProjectDeviceIdsByProductFilter(ProjectDeviceProductQuery)`为已获项目授权的跨模块调用方提供独立可用查询。Query包含当前`tenantId/projectId/productFilters/matchMode`；`MATCHING`返回条件为真的项目设备ID，`NOT_MATCHING`返回为假的ID，SQL未知值不进入任一结果。默认构造使用MATCHING；空条件返回空，跨租户/缺失项目/缺失模式拒绝；按设备ID升序。产品主档只按租户、产品编码及逻辑删除直接关联，不默认限制外部系统来源或产品状态，不增加按产品分组、MAX、COUNT、CAST或Java二次筛选。来源只用于追溯，状态也不自动成为业务准入条件；仅当某个业务明确需要时，通过对应Query可选参数表达来源/状态筛选，不在公共实现中写死。当前无此筛选需求，不增设未使用的参数。原设备锁定、展示、换货快照API不变。
 
 IMP安装地址仅作为消费者读取参数`pms.installation.address.product.filters`的`productFilters`并用NOT_MATCHING取得免填ID；不把安装地址语义放入AST通用条件或SQL。`InstallationAddressCompletionApi.Fact`及GET `installation-address-completion`增加`requiredDevices/exemptedDevices/exemptDeviceIds`，`addressedDevices`为必填范围中已有地址数，`totalDevices`仍为全部设备数；完成条件为项目非空且必填全部有地址。原未配置行为不变，服务端每次重新读取参数核对，前端不得提交豁免标记替代判定。

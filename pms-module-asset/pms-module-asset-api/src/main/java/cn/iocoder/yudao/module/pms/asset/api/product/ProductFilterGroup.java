@@ -13,6 +13,7 @@ public class ProductFilterGroup {
     private List<String> productModelIn;
     private List<String> productModelNotIn;
     private String productDescLike;
+    private String productDescNotLike;
     private List<String> productDescIn;
     private List<String> productDescNotIn;
     private String productCategoryLike;

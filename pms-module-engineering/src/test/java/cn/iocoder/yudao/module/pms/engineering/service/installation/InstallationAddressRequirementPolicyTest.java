@@ -92,4 +92,16 @@ class InstallationAddressRequirementPolicyTest {
         verify(configs).getConfigValueByKey(InstallationAddressRequirementPolicy.CONFIG_KEY);
         verifyNoInteractions(devices);
     }
+
+    @Test
+    void combinedDescriptionExemptionIsReadFromConfiguration() {
+        when(configs.getConfigValueByKey(InstallationAddressRequirementPolicy.CONFIG_KEY)).thenReturn(
+                "{\"productFilters\":[{\"productTypeNotIn\":[\"光模块\"],\"productDescNotLike\":\"%光模块%\"}]}");
+        when(devices.findProjectDeviceIdsByProductFilter(any())).thenReturn(List.of(10L, 11L));
+        assertEquals(Set.of(10L, 11L), policy.inspect(query()).exemptDeviceIds());
+        var captured = ArgumentCaptor.forClass(ProjectDeviceProductQuery.class);
+        verify(devices).findProjectDeviceIdsByProductFilter(captured.capture());
+        assertEquals("%光模块%", captured.getValue().productFilters().getFirst().getProductDescNotLike());
+        assertEquals(List.of("光模块"), captured.getValue().productFilters().getFirst().getProductTypeNotIn());
+    }
 }

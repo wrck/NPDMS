@@ -29,6 +29,9 @@
             <if test="group.productDescLike != null">
                 AND product.product_desc LIKE #{group.productDescLike}
             </if>
+            <if test="group.productDescNotLike != null">
+                AND product.product_desc NOT LIKE #{group.productDescNotLike}
+            </if>
             <if test="group.productDescIn != null">
                 AND product.product_desc IN
                 <foreach collection="group.productDescIn" item="value" open="(" separator="," close=")">#{value}</foreach>
@@ -92,6 +95,9 @@
             </if>
             <if test="alternative.productDescLike != null">
                 OR product.product_desc LIKE #{alternative.productDescLike}
+            </if>
+            <if test="alternative.productDescNotLike != null">
+                OR product.product_desc NOT LIKE #{alternative.productDescNotLike}
             </if>
             <if test="alternative.productDescIn != null">
                 OR product.product_desc IN

@@ -35,9 +35,10 @@ record InstallationAddressFilterConfig(List<ProductFilterGroup> productFilters) 
                 for (var child : value) validate(child, true);
                 continue;
             }
-            String operation = key.endsWith("NotIn") ? "NotIn" : key.endsWith("Like") ? "Like" : key.endsWith("In") ? "In" : "";
+            String operation = key.endsWith("NotLike") ? "NotLike" : key.endsWith("NotIn") ? "NotIn" : key.endsWith("Like") ? "Like" : key.endsWith("In") ? "In" : "";
             if (operation.isEmpty() || !FIELDS.contains(key.substring(0, key.length() - operation.length()))) throw invalid();
-            if (operation.equals("Like")) text(value);
+            if (operation.equals("NotLike") && !key.equals("productDescNotLike")) throw invalid();
+            if (operation.equals("Like") || operation.equals("NotLike")) text(value);
             else {
                 if (!value.isArray() || value.isEmpty()) throw invalid();
                 for (var item : value) text(item);

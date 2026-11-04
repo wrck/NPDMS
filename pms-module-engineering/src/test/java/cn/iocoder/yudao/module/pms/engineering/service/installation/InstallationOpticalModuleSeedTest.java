@@ -26,6 +26,23 @@ class InstallationOpticalModuleSeedTest {
         }
     }
 
+    @Test void descriptionUpgradeIsIdempotentAndPreservesCustomizedSettings() throws Exception {
+        String upgraded = "{\"productFilters\":[{\"productTypeNotIn\":[\"光模块\"],\"productDescNotLike\":\"%光模块%\"}]}";
+        try (var connection = database()) {
+            migrate(connection);
+            script(connection, "V535__installation_address_optical_description_default.sql");
+            script(connection, "V535__installation_address_optical_description_default.sql");
+            assertConfig(connection, upgraded, "seed_20261103_optical_description");
+        }
+        try (var connection = database(); var insert = connection.prepareStatement(
+                "INSERT INTO infra_config(id,config_key,value,creator,updater,deleted) VALUES (1,?,?,?,?,0)")) {
+            insert.setString(1, KEY); insert.setString(2, VALUE);
+            insert.setString(3, "seed_feedback20261030_optical"); insert.setString(4, "actual_user"); insert.executeUpdate();
+            script(connection, "V535__installation_address_optical_description_default.sql");
+            assertConfig(connection, VALUE, "actual_user");
+        }
+    }
+
     @Test void upgradesOnlyUntouchedOriginalEmptySeedAndPreservesEveryUserConfiguration() throws Exception {
         try (var connection = database()) {
             script(connection, "V521__installation_address_product_filters.sql");

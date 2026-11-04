@@ -121,5 +121,10 @@ class DeviceProductFilterSqlTest {
         assertEquals(List.of(20L), exempt(filter));
         assertTrue(matching(filter).containsAll(Set.of(21L,22L)));
         assertTrue(Collections.disjoint(matching(filter), Set.of(20L,23L,24L)));
+        assertEquals(List.of(20L, 21L, 22L, 23L), matching("{\"productDescLike\":\"%光模块%\"}"));
+        var combined = "{\"productTypeNotIn\":[\"光模块\"],\"productDescNotLike\":\"%光模块%\"}";
+        assertEquals(List.of(20L, 21L, 22L, 23L), exempt(combined));
+        assertFalse(exempt(combined).contains(24L));
+        assertTrue(matching("{\"alternativeGroups\":[{\"productDescNotLike\":\"%光模块%\"}]} ").contains(1L));
     }
 }

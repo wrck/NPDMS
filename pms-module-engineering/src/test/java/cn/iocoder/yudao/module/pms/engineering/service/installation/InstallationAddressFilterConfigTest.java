@@ -31,7 +31,7 @@ class InstallationAddressFilterConfigTest {
                 {"productFilters":[{
                   "productCodeLike":"CODE%","productCodeIn":["CODE1"],"productCodeNotIn":["CODE2"],
                   "productModelLike":"MODEL%","productModelIn":["MODEL1"],"productModelNotIn":["MODEL2"],
-                  "productDescLike":"DESC%","productDescIn":["DESC1"],"productDescNotIn":["DESC2"],
+                  "productDescLike":"DESC%","productDescNotLike":"%EXEMPT%","productDescIn":["DESC1"],"productDescNotIn":["DESC2"],
                   "productCategoryLike":"CATEGORY%","productCategoryIn":["CATEGORY1"],"productCategoryNotIn":["CATEGORY2"],
                   "productTypeLike":"TYPE%","productTypeIn":["TYPE1"],"productTypeNotIn":["TYPE2"],
                   "alternativeGroups":[{"productCodeLike":"ALT%","productDescIn":["ALT-DESC"],"productTypeNotIn":["ALT-TYPE"]}]
@@ -47,6 +47,7 @@ class InstallationAddressFilterConfigTest {
         assertEquals(List.of("MODEL1"), group.getProductModelIn());
         assertEquals(List.of("MODEL2"), group.getProductModelNotIn());
         assertEquals("DESC%", group.getProductDescLike());
+        assertEquals("%EXEMPT%", group.getProductDescNotLike());
         assertEquals(List.of("DESC1"), group.getProductDescIn());
         assertEquals(List.of("DESC2"), group.getProductDescNotIn());
         assertEquals("CATEGORY%", group.getProductCategoryLike());
@@ -70,6 +71,7 @@ class InstallationAddressFilterConfigTest {
             "{\"productFilters\":null}", "{\"productFilters\":[{}]}",
             "{\"productFilters\":[{\"productCodeNotIn2\":[\"X\"]}]}", "{\"productFilters\":[{\"productCodeIn\":[]}]}",
             "{\"productFilters\":[{\"productTypeIn\":[null]}]}", "{\"productFilters\":[{\"productCodeLike\":\"\"}]}",
+            "{\"productFilters\":[{\"productDescNotLike\":\"\"}]}", "{\"productFilters\":[{\"productCodeNotLike\":\"X%\"}]}",
             "{\"productFilters\":[],\"productCodeNotIn\":[\"X\"]}",
             "{\"productFilters\":[{\"alternativeGroups\":[{\"alternativeGroups\":[{\"productCodeIn\":[\"X\"]}]}]}]}",
             "{\"itemFilters\":[{\"itemCodeLike\":\"CODE%\"}]}",
