@@ -23,34 +23,34 @@
 </template>
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import * as api from '@/api/pms/platform/businessmodel/delivery'
-const props = defineProps<{ projectId: string | number; deliverableType?: string; businessType?: string; businessEntityKey?: string | number; readonly?: boolean; api?: Pick<typeof api, 'listDeliveries' | 'editDelivery' | 'deleteDelivery' | 'downloadDelivery'> }>()
+import * as deliveryApi from '@/api/pms/platform/businessmodel/delivery'
+const props = defineProps<{ projectId: string | number; deliverableType?: string; businessType?: string; businessEntityKey?: string | number; readonly?: boolean; api?: Pick<typeof deliveryApi, 'listDeliveries' | 'editDelivery' | 'deleteDelivery' | 'downloadDelivery'> }>()
 const emit = defineEmits<{ changed: [] }>()
-const rows = ref<api.DeliveryRecord[]>([]), titles = ref<Record<string, string>>({}), loading = ref(false), error = ref(''), pageNo = ref(1)
+const rows = ref<deliveryApi.DeliveryRecord[]>([]), titles = ref<Record<string, string>>({}), loading = ref(false), error = ref(''), pageNo = ref(1)
 let generation = 0
 const load = async () => {
   const active = ++generation; loading.value = true; error.value = ''; rows.value = []
   try {
-    const result = await (props.api || api).listDeliveries({ projectId: props.projectId, deliverableType: props.deliverableType,
+    const result = await (props.api || deliveryApi).listDeliveries({ projectId: props.projectId, deliverableType: props.deliverableType,
       businessType: props.businessType, businessEntityKey: props.businessEntityKey, pageNo: pageNo.value, pageSize: 20 })
     if (active === generation) { rows.value = result.list; titles.value = Object.fromEntries(result.list.map(row => [row.id, row.title])) }
   } catch (failure: any) { if (active === generation) error.value = failure?.message || '交付件读取失败' }
   finally { if (active === generation) loading.value = false }
 }
-const download = async (row: api.DeliveryRecord) => {
-  try { const ticket = await (props.api || api).downloadDelivery(row); window.open(ticket.shortLivedUrl, '_blank', 'noopener') }
+const download = async (row: deliveryApi.DeliveryRecord) => {
+  try { const ticket = await (props.api || deliveryApi).downloadDelivery(row); window.open(ticket.shortLivedUrl, '_blank', 'noopener') }
   catch (failure: any) { error.value = failure?.message || '文件读取失败' }
 }
-const edit = async (row: api.DeliveryRecord) => {
+const edit = async (row: deliveryApi.DeliveryRecord) => {
   if (props.readonly || loading.value) return
   loading.value = true; error.value = ''
-  try { await (props.api || api).editDelivery(row, titles.value[row.id]); await load(); emit('changed') }
+  try { await (props.api || deliveryApi).editDelivery(row, titles.value[row.id]); await load(); emit('changed') }
   catch (failure: any) { error.value = failure?.message || '保存失败'; loading.value = false }
 }
-const remove = async (row: api.DeliveryRecord) => {
+const remove = async (row: deliveryApi.DeliveryRecord) => {
   if (props.readonly || loading.value) return
   loading.value = true; error.value = ''
-  try { await (props.api || api).deleteDelivery(row); await load(); emit('changed') }
+  try { await (props.api || deliveryApi).deleteDelivery(row); await load(); emit('changed') }
   catch (failure: any) { error.value = failure?.message || '删除失败'; loading.value = false }
 }
 watch(() => [props.api, props.projectId, props.deliverableType, props.businessType, props.businessEntityKey], () => { pageNo.value = 1; load() }, { immediate: true })

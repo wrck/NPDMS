@@ -423,7 +423,7 @@ const resolveProject = async (request: number, projectId?: number) => {
     const equipment = await loadProjectEquipmentList(projectId, () => isCurrentForm(request, projectId))
     if (!equipment) return
     if (!form.contractNo) {
-      const contractNos = new Set(equipment.scopes.map((scope) => scope.contractNo).filter(Boolean))
+      const contractNos = new Set(equipment.scopes.map((scope) => scope.contractNo).filter((contractNo): contractNo is string => Boolean(contractNo)))
       if (contractNos.size === 1) form.contractNo = [...contractNos][0]
     }
     if (!form.id && !deviceRows.value.length) fillDevicesFromProject(equipment.list)

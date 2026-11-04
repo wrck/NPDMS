@@ -2,13 +2,13 @@
   <el-dialog v-model="visible" title="上传配置日志" width="min(640px, 95vw)" :close-on-click-modal="!uploading" :show-close="!uploading">
     <el-form label-width="90px">
       <el-form-item v-if="!props.projectId" label="项目">
-        <PmsEntitySelect v-model="projectId" :api="ProjectApi.getProjectPage" label-field="projectName"
+        <PmsEntitySelect v-model="selectedProjectId" :api="ProjectApi.getProjectPage" label-field="projectName"
           value-field="id" query-field="projectName" :disabled="uploading" placeholder="请选择项目" />
       </el-form-item>
       <el-form-item label="配置日志">
-        <el-upload :show-file-list="false" accept=".txt,.log,.cfg,.conf" :disabled="!projectId || uploading"
+        <el-upload :show-file-list="false" accept=".txt,.log,.cfg,.conf" :disabled="!selectedProjectId || uploading"
           :http-request="upload" :before-upload="checkFile">
-          <el-button type="primary" :disabled="!projectId" :loading="uploading">选择并上传日志</el-button>
+          <el-button type="primary" :disabled="!selectedProjectId" :loading="uploading">选择并上传日志</el-button>
         </el-upload>
       </el-form-item>
     </el-form>
@@ -31,12 +31,12 @@ const emit = defineEmits<{ (e: 'saved'): void }>()
 const message = useMessage()
 const visible = ref(false)
 const uploading = ref(false)
-const projectId = ref<number>()
+const selectedProjectId = ref<number>()
 // A retry of the same selected file keeps its key; a different file is a new import.
 let selectedFile: File | undefined
 let operationId = ''
 const open = () => {
-  projectId.value = props.projectId
+  selectedProjectId.value = props.projectId
   selectedFile = undefined
   operationId = ''
   visible.value = true
@@ -53,14 +53,14 @@ const checkFile = (file: File) => {
   return true
 }
 const upload = async (options: UploadRequestOptions) => {
-  if (!projectId.value || uploading.value) return
+  if (!selectedProjectId.value || uploading.value) return
   if (selectedFile !== options.file) {
     selectedFile = options.file
     operationId = generateUUID()
   }
   uploading.value = true
   try {
-    const result = await importConfigurationLog(projectId.value, operationId, options.file)
+    const result = await importConfigurationLog(selectedProjectId.value, operationId, options.file)
     message.success(`已形成${result.configurationIds.length}条配置记录`)
     emit('saved')
     visible.value = false
