@@ -1,0 +1,54 @@
+{
+  "task": "继续未完成同步；发货来源键改uuid；用户要求所有内容一起发布",
+  "published": "SDP20261102_ALL_UUID",
+  "backendSha256": "d32d03633a95870dd270a38171211c31691f70f8087da6b707dcf7a996f5de6d",
+  "backendPid": 53718,
+  "dacPidUnchanged": 17159,
+  "frontendBothPublished": true,
+  "frontendIndexHash": "4a75036fa1af814316ac35b38da0b7bb9d0d1e999a9e000647f557f70522ff5b",
+  "testCount": 29,
+  "testStatus": "passed",
+  "runtimeSession": 20493,
+  "runner": "run-p15-stages-332.py",
+  "current": "ShipmentEvent preview passed4305590; formal execution started09:50:25",
+  "stagesAlreadyCommitted": {
+    "ShipmentContract": 123311,
+    "Package": 159930
+  },
+  "cancelledOldKeyRun": 2117062948922802177,
+  "oldRunRecovered": "result-320-uuid-run-recovery.json",
+  "next": [
+    "P30 preview execute",
+    "P33 preview execute",
+    "P18 reference preview execute",
+    "P37 DeviceReference preview execute",
+    "readback counts/bindings/warnings",
+    "update docs/generated/2026-11-02-production-base-sync and deployment report"
+  ],
+  "helpers": {
+    "remote": "remote.py for be/db; remote-all-323.py includes fe2",
+    "db": "make-db-request.py name sqlfile",
+    "api": "make-api-request.py name preview|execute BASE_Pxx",
+    "progress": "check-runtime-303.py",
+    "finalReadbackSql": "completion-readback-303.sql"
+  },
+  "browser": "Browser skill read and selectedChrome3 via getForUrl; nameSession done; newtab native pipeclosed thenBrowsernotavailable3; page acceptance not performed",
+  "uuidFacts": "4305590 allnonempty/trimstable23..55; actualsource id primarybigint auto, uuidnullablevarchar64 unique; mappingbothP15source steps useuuid; numericid onlysort; legacyguardprevents replay ofexistingnumericbindings",
+  "sourceChanges": [
+    "P15DeliverySyncTask.java",
+    "P15SourceMapper.xml",
+    "P15TargetMapper.xml",
+    "P15ContractInputMySqlTest.java",
+    "P15StageSelectionTest.java",
+    "ShipmentOrderLinePostfillTest.java",
+    "docs/coding/independent-base-sync.md",
+    "frontend iconify.generated.json regenerated requiredbuild"
+  ],
+  "fullBuildFrozen": "uuid-build/releases/a59003e9-544e-4cef-b15e-f76519397bce",
+  "unusedSelectiveRelease": "uuid-release and uuid-composed-frozen were prepared but superseded by user allpublish; NOT deployed",
+  "memoryCitation": "MEMORY.md:3023-3024 rollout01a0a024-398e-7893-888b-9387898374fd",
+  "permission": "dynamic8GiB/1GiB approved and applied; allpublishexplicit; no further restarts needed; sourcewrites/schema migrations not performed this turn",
+  "recordedAt": "2026-11-02T09:53:23.345672+08:00",
+  "evidenceDirectory": "F:\\codex-base-sync-route-20261102",
+  "formalCompletionClaimed": false
+}

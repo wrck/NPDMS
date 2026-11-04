@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "output": "Previous: /opt/sdp/backend/releases/SDP20261103_PROJECT_STATUS_MULTI\nCurrent: /opt/sdp/backend/releases/SDP20261104_INSTALLATION_FILTER\nactive\nProcess check only. Run authenticated dependency and business acceptance before declaring success.\n{\"status\":\"UP\"}\nCONFIG_AND_CREDENTIALS_UNCHANGED\nMainPID=166621\nNRestarts=0\nId=sdp.service\nActiveState=active\n\nMainPID=112439\nNRestarts=0\nId=sdp-dac.service\nActiveState=active\n\n",
+  "stderr": ""
+}

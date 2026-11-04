@@ -1,0 +1,13 @@
+{
+  "onlineSha256": "fb1ecf254753b452e42c7ac98a928750b950bb170e5e69bdecd689e7ef6dce71",
+  "candidateSha256": "54fb7da26597c1ff8c919523c2e63131774ad0b196c72f5fd14f4208cdb65018",
+  "changedEntries": [
+    "BOOT-INF/classes/application-desktop.yml",
+    "BOOT-INF/classes/application-npdms.yml",
+    "BOOT-INF/classes/com/dp/plat/deviceops/server/desktop/DesktopDiscoveryVerifier.class",
+    "BOOT-INF/classes/com/dp/plat/deviceops/server/desktop/DesktopStatusController.class",
+    "BOOT-INF/classes/desktop/status.html"
+  ],
+  "remoteEntryCount": 1939,
+  "candidateEntryCount": 1939
+}

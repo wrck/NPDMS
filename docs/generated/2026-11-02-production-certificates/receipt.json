@@ -1,0 +1,34 @@
+{
+  "browserBusinessAcceptancePerformed": false,
+  "results": [
+    {
+      "domain": "sdp.dptech.com",
+      "certificate": "/etc/sdp/tls/public-cert-20261102.crt",
+      "httpRedirect": 308,
+      "https": 200,
+      "tlsVerification": true,
+      "nginxMasterUnchanged": true,
+      "backup": "/opt/sdp/config/public-cert-20261102"
+    },
+    {
+      "domain": "sdp-customer.dptech.com",
+      "certificate": "/etc/sdp/tls/public-cert-20261102.crt",
+      "httpRedirect": 308,
+      "https": 200,
+      "tlsVerification": true,
+      "nginxMasterUnchanged": true,
+      "backup": "/opt/sdp/config/public-cert-20261102"
+    }
+  ],
+  "backendOrDacRestarted": false,
+  "backendCertificateChanged": false,
+  "recordedAt": "2026-11-02T15:53:43+08:00",
+  "certificateSha256": "BC87DC1179EBE0C36D8DFA240A540F0F7E08EC082D64F05A4CFB40AEAC107627",
+  "clientVerification": {
+    "redirectRetainsPathAndQuery": true,
+    "systemTrust": true,
+    "directFrontendIPs": true,
+    "httpsStatus": 200
+  },
+  "passwordResetMailVerified": false
+}

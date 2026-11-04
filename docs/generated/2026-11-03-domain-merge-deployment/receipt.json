@@ -1,0 +1,52 @@
+{
+  "releaseId": "SDP20261103_CONTRACT_PROJECTION",
+  "mergeCommit": "dc6a9ccf8c320ec8966c0e3f238636fcfc7a7f8a",
+  "sourceCommit": "9a757268b6c36b9a1c6dd2eccdae85f456ef2a69",
+  "approval": "批准迁移并继续部署",
+  "databaseVersion": "534",
+  "migration": "V534__project_contract_projection.sql",
+  "migrationValidated": true,
+  "backup": {
+    "tables": [
+      "proj_project",
+      "infra_job",
+      "flyway_schema_history"
+    ],
+    "scope": "all rows; schema and data; triggers unchanged and excluded",
+    "file": "/data/backups/contract-projection-20261103/before.sql.gz.enc",
+    "bytes": 9827440,
+    "plainBytes": 72348232,
+    "plainSha256": "c808cdb39aa0997f194de9267a3cbf45c9a5398ddf82d8bcaa3b78a550d601df",
+    "decryptAndDecompressVerified": true,
+    "elapsedSeconds": 1.4,
+    "capturedAt": "2026-11-03T00:54:17+0800",
+    "sha256": "32f8eb097c3ed09666c82668a3734bc060d56efee35401361372d220fb175266"
+  },
+  "contractRows": 81321,
+  "contractValuesSha256BeforeAndAfter": "720bd1c136de9794a7cd5be0f3acbab037e4c3870f008bf2414c6be38fbc4aef",
+  "contractColumnType": "mediumtext",
+  "collation": "utf8mb4_unicode_ci",
+  "backendPid": 106906,
+  "backendAutomaticRestarts": 0,
+  "readiness": "UP",
+  "dacPidUnchanged": 17159,
+  "jobId": 993009532001,
+  "jobCron": "0 0 2 * * ?",
+  "jobRegistered": true,
+  "quartzAutoConfigurationExcluded": true,
+  "automaticJobExecutionEnabled": false,
+  "manualFullSyncTriggered": false,
+  "browserReadOnlyChecks": [
+    "job row visible",
+    "project list count 81321"
+  ],
+  "businessWriteAcceptancePerformed": false,
+  "evidenceRequestNumbers": [
+    170,
+    172,
+    173,
+    175,
+    176,
+    177
+  ]
+}

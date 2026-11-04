@@ -1,5 +1,39 @@
 # NPDMS 正式环境四机部署操作手册
 
+## 2026-11-02 正式部署当前配置
+
+- 2026-11-04，前端两机激活 `SDP20261104_INSTALL_STATUS`，增加安装状态筛选并移除列表地址要求列；后端、DAC 和数据库未操作。见[部署回执](../../generated/2026-11-04-install-status-deployment/report.md)。
+
+- 2026-11-04，后端和两台前端激活 `SDP20261104_INSTALLATION_SITES`；增加本项目有效安装站点复用及方案地址选择，未执行数据库迁移。测试和正式页面核验范围见[部署回执](../../generated/2026-11-04-installation-sites-deployment/report.md)。
+
+- 2026-11-04，部署硬件安装筛选及产品描述可配置过滤，后端和两台前端当前版本 `SDP20261104_INSTALLATION_FILTER`；正式参数保留原类型条件并追加描述条件。真实页面核验免填36台、必填4台；本次未执行迁移。此前待发布的项目列表办事处选项一并发布。详见[部署回执](../../generated/2026-11-04-installation-filter-deployment/report.md)。
+
+需求方明确以本正式部署配置及服务器实时环境为准，分支旧状态记录不代表当前配置。以下本次确认值优先于后文历史安装记录和示例值：
+
+- 系统名称：`SDP`；中文名称：`服务交付平台`。
+- 2026-11-03 03:04，服务修复最终后端为`SDP20261103_SERVICE_REPAIR_BACKEND_R2`（PID114421），独立DAC为`SDP20261103_SERVICE_REPAIR_DAC`（PID112439），两者自动重启0。显式使用Quartz内存存储并恢复全部可用任务的既定启停状态，两项原漏恢复任务已有真实成功执行日志；UMC生效凭据已补齐，BE/DB每日加密备份已启用但尚无异机复制。更正下方历史判断：合同任务已于02:00实际成功，旧Quartz排除类名未阻止Boot4.1调度启动。现存默认文件配置为id=1、bucket=sdp。详见[服务修复及测试环境对照](../../generated/2026-11-03-production-service-repair/report.md)。
+- 2026-11-03，按需求方“部署”补发名称变更前端`SDP20261103_BRANDING`至两台FE，正式构建标题为“服务交付平台”；Nginx平滑reload及浏览器标题、左上名称、项目列表只读核验通过，旧前端版本保留。后端/DAC和数据库未操作。见[前端回执](../../generated/2026-11-03-domain-merge-deployment/frontend-branding-receipt.json)。
+- 2026-11-03，按需求方“批准迁移并继续部署”完成V534及后端`SDP20261103_CONTRACT_PROJECTION`激活；后端PID106906、readiness为UP、自动重启0，DAC保持PID17159。合同号扩列为MEDIUMTEXT并保留排序规则，81,321行合同号摘要不变；每日02:00任务已登记，但既有Quartz自动配置仍被排除，自动执行尚未生效。未手动全量同步。见[合并及部署回执](../../generated/2026-11-03-domain-merge-deployment/report.md)。
+- 2026-11-02 23:37，按需求方批准完成MinIO新上传路径修复，活动后端版本`SDP20261102_STORAGE_PATH`。默认文件配置为`id=2 / bucket=sdp`，旧`id=1 / bucket=npdms`保留；桶名由`minio_bucket`统一配置。切换时漏检现网`NPDMS_SERVER_IP`与适配器`SERVER_IP`的命名差异，引发5次自动重试，补映射后恢复；最终readiness为UP，DAC未重启。实际浏览器上传、下载内容摘要一致，详见[存储路径修复回执](../../generated/2026-11-02-production-storage-path/report.md)。
+- 员工入口：`https://sdp.dptech.com`，FE1 `172.20.19.2`。
+- 客户入口：`https://sdp-customer.dptech.com`，FE2 `172.20.20.2`；此前临时提供的 `sdp-cust.dptech.com` 已被更正，不使用。
+- BE `172.17.73.104`，后端 HTTPS 443、独立 DAC HTTPS 8443；DB `172.17.74.19:3306`，独立 `npdms` 与 `device_ops`；服务器实际为 Ubuntu 24.04.4，原生部署，不运行 Docker。
+- 本次空库主迁移采用已裁决的 [178运行结构B531包](../../../sql/releases/production-178-runtime-20261101/README.md)，518张业务表；独立DAC迁移至V26。后文B530是此前候选记录，不能覆盖本项。
+- 需求方批准记录前端存量样式格式问题后继续部署，并明确后续跳过自动化测试。编译、制品冻结、服务启动与连接核对仍执行；跳过项不得记作通过。
+- 本次部署已获明确授权；真实完成情况以部署回执为准，不以历史文档的“未部署”或编译成功判断服务已上线。
+- 初次部署HTTPS沿用既有部署CA；需求方明确由运维统一分发CA信任。不得关闭证书/主机名校验，也不擅自将CA加入操作者本机信任。CA证书SHA-256指纹：`27:8A:99:B8:40:97:B4:4E:AE:06:BB:8C:40:E9:08:56:BB:D7:7D:47:EE:3B:2E:D4:D4:92:79:5C:62:08:0C:E1`；后端内部链路继续使用该CA。
+- 需求方曾提供根目录`_.dptech.com`公共证书并要求“暂不配置”，当时未切换。2026-11-02 15:53按后续明确授权，使用两台FE的`/opt/sdp/ssl/_.dptech.com.cer`及匹配私钥，完成GlobalSign `*.dptech.com`证书切换（有效期至2027-04-04，SHA-256 `BC:87:DC:11:79:EB:E0:C3:6D:8D:FA:24:0A:54:0F:0F:7E:08:EC:08:2D:64:F0:5A:4C:FB:40:AE:AC:10:76:27`）。活动证书为`/etc/sdp/tls/public-cert-20261102.crt`，私钥由systemd主机加密凭据在启动时恢复至`/run/sdp-nginx-tls/public-cert-20261102.key`；本次仅平滑重载Nginx，未重启BE或DAC。两个正式域名的80端口固定308跳转至各自HTTPS域名，保留路径和查询参数。原配置保留于各FE的`/opt/sdp/config/public-cert-20261102/`。服务器及操作者本机直连检查均通过证书校验，HTTP跳转和HTTPS资源200通过；不代表业务验收或忘记密码邮件已恢复。BE中的JKS未启用：通配域名证书不覆盖当前内部IP身份，不能直接替换。见[证书及跳转回执](../../generated/2026-11-02-production-certificates/receipt.json)。
+- 2026-11-02 16:06，按需求方批准修复正式“忘记密码”邮件TLS信任配置并仅重启后端一次。后端通过`/etc/systemd/system/sdp.service.d/mail-trust.conf`改用`/etc/sdp/tls/java-truststore-mail-candidate-20261102.p12`，保留部署CA并加入GlobalSign Root CA R3；原信任库保留，DAC配置不变。候选文件初始读取权限不一致导致启动暂时等待数据库，随后修正为与原文件一致的`0644 root:root`，同一JVM恢复，未再次重启。后端PID由73107变为80347，readiness为UP，自动重启计数0；DAC PID始终17159。16:06:31账号`w02611`验证码邮件记录3为SUCCESS，旧失败记录1、2保留；页面显示发送提示，未提交密码重置；随后需求方于2026-11-02明确确认“已收到验证码，邮件发送正常了”，验证码发送及实际收件验收通过，本次邮件故障闭环。见[邮件修复回执](../../generated/2026-11-02-production-mail-repair/receipt.json)。
+- 2026-11-02本次执行：正式版本`SDP20261102_cb21b3015`已在两台FE及BE后端/DAC激活；主库B531和独立DAC至V26迁移、迁移后校验完成。初始化核对518/24张业务表、240个主库触发器及59类表6,026条配置数量一致。主库迁移账号临时SUPER已撤销，`log_bin_trust_function_creators`仍为0。
+- 后端443与DAC8443 readiness均返回`UP`；两域名入口TLS身份校验及HTTP200通过，页面标题为“SDP 服务交付平台”；FE1同源API代理可达。该结果仅为部署和连接核对，不等于浏览器业务验收。
+- 正式管理员`admin`已按初始化脚本启用；真实初始密码在BE的`/opt/sdp/config/credentials/backend/admin-production-20261102.json`（root、0600），不写入文档。后端/DAC/MinIO凭据保持systemd加密及运行时注入；Nginx、MySQL、Redis已补充启动时恢复所需秘密的配置。
+- 两台Nginx及后端、DAC、MySQL、Redis、MinIO均已配置开机启动；未重启服务器或演练断电恢复。部署前空库定义、账号、原配置及恢复依赖已加密备份到DB与BE的`/data/backups/production-20261102/pre-migration.tar.gz.cms`，并完成BE内存解密摘要核对；不是完整灾难恢复演练或持续异机备份方案。
+- 本次回执：[2026-11-02正式部署](../../generated/2026-11-02-production-deployment/receipt.json)。后文2026-10-30/11-01的未部署、空库、disabled状态仅描述对应历史时点。
+- 2026-11-02 01:27，需求方明确批准并完成SPMS、CRM正式数据源及同步连接配置，连接管理的两次测试均显示“连接正常”。SPMS沿用178的`spms.dptech.com:3306/dpspms`及`useSSL=false`，即明文传输；CRM使用`172.17.74.18:1433/crm_MSCRM`，`encrypt=true;trustServerCertificate=true`，即加密传输但不验证服务器证书。两项均为需求方明确要求的当前配置，不代表证书校验已经完成。密码通过现有数据源服务加密保存，不写本文。
+- 2026-11-02 01:44，按需求方明确要求，通过正式Flyway应用 [V531.2基础同步任务迁移](../../../sql/releases/production-base-sync-20261102/V531_2__register_formal_base_sync_tasks.sql)：对照178去重后登记SPMS 23项、CRM 2项，参数逐项一致；运行和绑定记录仍为0，未执行同步。迁移后主库版本531.2，原B531保留且validate通过；V532仍保留未来发布顺序。迁移前五张配置及历史表备份加密后分别存于DB、BE的`/data/backups/production-20261102/pre-base-sync-configuration.sql.cms`并核对摘要；未重启服务。[执行回执](../../generated/2026-11-02-production-base-sync/receipt.json)。
+- 2026-11-02 04:06，按需求方单独批准，在活动同步事务全部提交后激活`SDP20261102_DICT`并重启正式后端一次；readiness为`UP`，DAC进程17159保持。P08正式读取617、新增5、保留612，重放预览全部未变；三个重大项目级别保留正式初始化值。P38模板初始化已完成7072个项目，74249个因模板未启用保持未变。04:10另经需求方明确批准，为`npdms_app@172.17.73.104`补充仅`npdms.*`的`CREATE TEMPORARY TABLES`权限，供P22数量分配临时表使用；未增加永久建表、改表或删表权限。授权前旧空闲连接已重建，活动P15事务连接保留，未再次重启服务。执行结果见[基础同步续执行回执](../../generated/2026-11-02-production-base-sync/continuation-report.md)。
+- 为修复数据源密码加密密钥长度无效，按需求方批准仅重启正式后端一次；停机后确认数据源密文、设备凭据及相关Redis令牌均为空，切换为新的主机加密凭据；旧加密凭据保留。当前覆盖文件为`/etc/systemd/system/sdp.service.d/datasource-credential.conf`，不可擅自切回旧密钥，否则已创建的数据源密文将无法解密。DAC及基础服务未重启。[本次连接回执](../../generated/2026-11-02-production-connections/receipt.json)。
+
 适用：2026-10-30 用户给定的 Ubuntu 24.04.4 四机拓扑。本文是部署操作资产，不更改 PRD、授权、状态机或历史数据。配套入口：[scripts/production](../../../scripts/production/README.md)。状态：四机基础软件安装、MySQL 空库初始化及基础服务启动已完成；BE→DB 的 TLS 连接校验未完成。未执行业务迁移、发布应用或完成生产验收，不能作为上线放行证明。
 
 本版为第四版：沿用第三版的宿主机原生安装方式，并统一持久数据目录为`/data`。用户明确要求正式服务器禁用Docker；此要求替代本手册前两版的容器承载方式，仓库根`compose.yaml`仅保留既有本地开发用途，本次不修改。
@@ -88,8 +122,8 @@ flowchart LR
 - 每台机器是否全新、已有服务/监听端口/挂载盘、资源容量、运维责任人、变更窗口、允许的来源网段。四机部署并不等于 HA；现有 [ADR-0004](../../decisions/0004-phase3-production-assurance-directions.md) 的托管数据 HA 方向与单节点承载的差异待裁决，不能宣称已有主备。
 - 已批准 releaseId、后端冻结清单、前端版本、迁移目录和目标版本、配置版本、空库/升级库验证、恢复证据。现有测试库或历史首次安装包不能直接作为新正式库内容。
 - KMS/Secrets Manager、启动前内存秘密注入及重启恢复方式、轮换和审计。SSH 使用用户给定的 root 身份进行初始化，但密码只在 SSH 交互提示中输入；不写入手册、命令行、环境模板、Git或制品。常态运维使用个人审计账号和 sudo，Java 以 `sdp` 用户运行。
-- MinIO 应用接入：当前 `S3FileClientConfig.accessSecret` 经 `FileConfigDO.FileClientConfigTypeHandler.toJson()` 写入配置 JSON，未找到秘密引用解析。**BLOCKED_BY_SPEC**：在批准并实现受控密钥引用方案前，不向文件配置页面/SQL写入生产 AK/SK；MinIO进程就绪不等于文件业务可用。问题登记见 [open-questions](../../decisions/open-questions.md#q-prod-four-hosts-20261030--四机生产部署待决项)。
-- DAC已由用户明确部署在BE，使用HTTPS 8443；还需落实OIDC、设备网络、UMC、ClamAV扫描、Office转换、外部系统和Telemetry实际地址及授权。服务端DAC与Windows桌面DAC分别管理，不能以其中一个替代另一个的验收。
+- MinIO 应用接入：当前 `S3FileClientConfig.accessSecret` 经 `FileConfigDO.FileClientConfigTypeHandler.toJson()` 写入配置 JSON，未找到秘密引用解析。2026-11-01需求方批准复用测试包的`ServerMinioDeploymentConfiguration`：数据库只保存`credential:minio_app_user`与`credential:minio_app_password`引用，适配器在运行时从systemd凭据解析，保留已有存储配置校验；四机版端点为BE本机`http://127.0.0.1:9000`。禁止向页面/SQL写入生产AK/SK；适配器构建和真实文件读写通过前仍不能宣称文件业务可用。问题登记见 [open-questions](../../decisions/open-questions.md#q-prod-four-hosts-20261030--四机生产部署待决项)。
+- DAC已由用户明确部署在BE，使用HTTPS 8443；2026-11-01已批准沿用测试包RSA服务JWT及systemd加密凭据；文件扫描服务不启用。设备网络、UMC、Office转换、外部系统和Telemetry按实际启用范围落实地址及授权。服务端DAC与Windows桌面DAC分别管理，不能以其中一个替代另一个的验收。
 
 以上输入不阻止准备文档/脚本，但未关闭的适用问题阻止正式发布。不得以占位参数或技术探针成功代替审批及业务验收。
 
@@ -181,6 +215,8 @@ DB将`db/mysql.cnf`安装至`/etc/sdp/mysql.cnf`、`db/sdp-mysql.service`安装�
 
 FE1/FE2各自将`fe1/npdms.conf`或`fe2/npdms.conf`安装至`/etc/nginx/conf.d/npdms.conf`；FE2另外将`customer-proxy.conf`安装至`/etc/sdp/customer-proxy.conf`。将对应`sdp-nginx-tmpfiles.conf`安装到`/etc/tmpfiles.d/sdp-nginx.conf`并执行`systemd-tmpfiles --create /etc/tmpfiles.d/sdp-nginx.conf`，确认实际worker用户为模板中的`www-data`且`/run`为tmpfs。先审查已有default_server和其他站点，确认没有旁路代理/重复域名。证书公钥位于`/etc/sdp/tls/frontend.crt`，BE CA位于`backend-ca.crt`；私钥由秘密代理提供到`/run/sdp-secrets/frontend.key`。此时`nginx -t`仅验证配置，不代表站点已可用。
 
+FE1基础同步任务的对外地址为`/api/v1/pms/integration/base-sync/`。该Controller不在平台`controller.admin`包下，后端也使用此原路径；Nginx按FE1模板限定此前缀原样转发，不追加`/admin-api/`，其他`/api/`路径仍默认拒绝。基础同步页面的`tasks`和`registrations`读取成功须通过真实浏览器确认，发布验收不执行`preview`或`execute`。
+
 ### 5.1 原生软件安装（无容器）
 
 安装脚本`install-native.py`只解包校验过的二进制发行包，拒绝错误SHA256、目录穿越、逃逸链接和已有安装路径，不初始化数据库、不创建服务、不启动进程。软件落在`/opt/sdp/software/组件-版本`，建立`/opt/sdp/组件`软链接。升级时不会覆盖旧版本或自动切换，应另行评审维护窗口、兼容性及回退。
@@ -216,7 +252,7 @@ Flyway在BE直接运行，不是常驻服务。`operate.sh`调用`/opt/sdp/flywa
 
 ## 6. 秘密、证书与启动恢复
 
-所有模板均不含真实Secret。`/run/sdp-secrets`必须为内存路径，由批准的Secrets Agent在服务启动前注入，设置最小可读权限；运行时秘密注入仍按本节实施；首次安装密码按用户最新要求另存第6.1节的root专用配置文件，不用普通 `.env` 或发布包承载。不要开启shell xtrace、打印秘密、把明文导出到工单或命令历史。停机/重启后`/run`内容会丢失，必须验证秘密代理重新取回并按序启动原生服务；systemd的Restart策略本身不能解决秘密恢复。
+所有模板均不含真实Secret。`/run/sdp-secrets`必须为内存路径，由受控systemd加密凭据恢复流程在服务启动前注入，设置最小可读权限；运行时秘密注入仍按本节实施；首次安装密码按用户最新要求另存第6.1节的root专用配置文件，不用普通 `.env` 或发布包承载。不要开启shell xtrace、打印秘密、把明文导出到工单或命令历史。停机/重启后`/run`内容会丢失，必须验证秘密代理重新取回并按序启动原生服务；systemd的Restart策略本身不能解决秘密恢复。
 
 | 消费者 | 内存或加密输入 |
 |---|---|
@@ -227,9 +263,9 @@ Flyway在BE直接运行，不是常驻服务。`operate.sh`调用`/opt/sdp/flywa
 | BE Flyway | `/run/sdp-secrets/flyway.conf`：迁移专用身份、TLS JDBC URL、目标库；不要将密码作为CLI参数 |
 | BE Java | `/etc/credstore.encrypted/sdp-backend`、`sdp-tls`，使用systemd加密凭据，解密后仅服务可读 |
 
-运维可由批准的秘密管理器输出直接管道送入`systemd-creds encrypt --name=application-secrets.properties - /etc/credstore.encrypted/sdp-backend`，PKCS12以`--name=backend.p12`同样处理。密码交接文件仅允许按第6.1节保存；私钥/PKCS12等仍直接加密输入，不另存持久明文。密文恢复依赖目标机解密机制，必须做重启/灾难恢复演练；无秘密管理器时不得宣称此流程已实现。
+运维可由批准的秘密管理器输出直接管道送入`systemd-creds encrypt --name=application-secrets.properties - /etc/credstore.encrypted/sdp-backend`，PKCS12以`--name=backend.p12`同样处理。密码交接文件仅允许按第6.1节保存；私钥/PKCS12等仍直接加密输入，不另存持久明文。密文恢复依赖目标机解密机制，必须做重启/灾难恢复演练；2026-11-01需求方批准采用测试环境已有的本机systemd加密凭据方式，不以外部秘密管理服务作为本轮前置条件；仍须分别验证加密加载与重启恢复，不宣称已完成灾备。
 
-Java秘密属性流至少提供模板引用的`NPDMS_DB_USER`、`NPDMS_DB_PASSWORD`、`NPDMS_REDIS_PASSWORD`、`NPDMS_MYBATIS_ENCRYPTOR_PASSWORD`、`NPDMS_TLS_KEYSTORE_PASSWORD`、`NPDMS_API_ENCRYPT_REQUEST_KEY`、`NPDMS_API_ENCRYPT_RESPONSE_KEY`，以及批准的文件扫描和DAC鉴权参数。属性值按Java properties格式正确转义，不能简单拼接不受控文本。保留原数据加密密钥版本，禁止升级时生成新密钥导致旧数据不可读。
+Java秘密属性流至少提供模板引用的`NPDMS_DB_USER`、`NPDMS_DB_PASSWORD`、`NPDMS_REDIS_PASSWORD`、`NPDMS_MYBATIS_ENCRYPTOR_PASSWORD`、`NPDMS_TLS_KEYSTORE_PASSWORD`、`NPDMS_API_ENCRYPT_REQUEST_KEY`、`NPDMS_API_ENCRYPT_RESPONSE_KEY`，以及批准的DAC签名参数、`minio_app_user/minio_app_password`；文件扫描本轮明确关闭。属性值按Java properties格式正确转义，不能简单拼接不受控文本。保留原数据加密密钥版本，禁止升级时生成新密钥导致旧数据不可读。
 
 JDBC信任企业CA：将公钥CA导入本机JDK受控truststore，或由正式配置指定独立truststore；验证`VERIFY_IDENTITY`成功且错误证书失败。DB应用账号与迁移账号分离，应用账号无CREATE/ALTER/DROP等DDL权限；迁移账号按审核SQL需要配置触发器/函数权限，不把root作为应用账号，不为通过迁移全局放宽生产规则。
 
@@ -346,9 +382,9 @@ bash /opt/sdp/tools/operate.sh be activate dac R20261030_02 --approved
 curl --fail --cacert /etc/sdp/tls/backend-ca.crt https://后端证书DNS:8443/actuator/health/readiness
 ```
 
-DAC秘密属性通过systemd加密凭据`/etc/credstore.encrypted/sdp-dac`（凭据名`application-secrets.properties`）注入：`DEVICE_OPS_DB_USER/PASSWORD`、`DEVICE_OPS_CREDENTIAL_MASTER_KEY`、`DEVICE_OPS_TLS_KEYSTORE_PASSWORD`、`NPDMS_DAC_REQUEST_SIGNING_KEY`、`NPDMS_DAC_CALLBACK_SIGNING_KEY`和真实`OIDC_ISSUER_URI/OIDC_JWK_SET_URI/OIDC_AUTHORITY`。PKCS12使用`/etc/credstore.encrypted/sdp-dac-tls`（凭据名`dac.p12`），按第6节直接从秘密管理器加密输入，不能保存明文。请求和回调签名密钥分别与后端对应值一致；稳定AES-256-GCM凭据主密钥Base64解码必须为32字节，备份恢复不可丢失/随意轮换。
+DAC秘密属性通过systemd加密凭据`/etc/credstore.encrypted/sdp-dac`（凭据名`application-secrets.properties`）注入：`DEVICE_OPS_DB_USER/PASSWORD`、`DEVICE_OPS_CREDENTIAL_MASTER_KEY`、`DEVICE_OPS_TLS_KEYSTORE_PASSWORD`、`NPDMS_DAC_REQUEST_SIGNING_KEY`、`NPDMS_DAC_CALLBACK_SIGNING_KEY`；无需外部`OIDC_ISSUER_URI/OIDC_JWK_SET_URI/OIDC_AUTHORITY`。PKCS12使用`/etc/credstore.encrypted/sdp-dac-tls`（凭据名`dac.p12`），按第6节直接从秘密管理器加密输入，不能保存明文。请求和回调签名密钥分别与后端对应值一致；稳定AES-256-GCM凭据主密钥Base64解码必须为32字节，备份恢复不可丢失/随意轮换。
 
-后端`NPDMS_DEVICE_OPS_BEARER_TOKEN`必须是OIDC签发且具备当前DAC所需scope、namespace、project授权的有效令牌，安排到期前受控轮换；不能使用`local`调试认证替代生产认证。独立`/run/sdp-secrets/dac-flyway.conf`只指向`device_ops`及专用迁移身份，TLS连接要求同NPDMS数据库；两个迁移配置不得互换。备份额外对`device_ops`执行第9节加密备份，并保留DAC加密主密钥/配置、任务与回调水位。
+2026-11-01需求方批准沿用测试包的服务认证：后端部署适配器使用RSA-3072私钥签发5分钟RS256 JWT，3分钟后自动续签；DAC适配器校验签名、`urn:npdms:server-dac`签发者、`device-ops`受众及有效期，继续执行现有scope、namespace、project授权。仅用于后端到DAC的既有技术主体，不替代用户登录、不启用`local`调试认证。私钥通过`/etc/credstore.encrypted/sdp-dac-service-private-key`以`dac_service_private_key`名加载，仅公钥发布至`/etc/sdp/tls/dac-service-public.pem`；已有密钥必须复用，不能自动覆盖。HTTPS端点必须与批准配置完全一致；两侧通过`/etc/sdp/tls/java-truststore.p12`信任已核验CA，不关闭证书校验。独立`/run/sdp-secrets/dac-flyway.conf`只指向`device_ops`及专用迁移身份，TLS连接要求同NPDMS数据库；两个迁移配置不得互换。备份额外对`device_ops`执行第9节加密备份，并保留DAC加密主密钥/配置、任务与回调水位。
 
 独立启停使用`bash /opt/sdp/tools/operate.sh be service dac start --approved`，操作可替换为`stop`或`restart`，仅在相应操作明确批准后执行；不同时操作`sdp`。后端单独操作将`dac`替换为`backend`。回退用`operate.sh be activate dac 旧releaseId --approved`，前提是旧DAC与当前schema兼容，不回滚数据库。DAC只部署一个实例，不宣称具备多节点故障切换；解析器发布/能力注册和设备可达网络须按实际业务补齐。验收须覆盖有效签名请求、错误签名/过期令牌拒绝、HTTPS证书拒绝、采集/解析、回调业务入账、重复回调幂等及独立重启后的恢复；readiness成功不是采集完成。
 

@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-02",
+  "status": "DEPLOYED_AND_VERIFIED_WITHOUT_SYNC",
+  "host": "172.17.73.104",
+  "unit": "sdp.service",
+  "releaseId": "SDP20261102_NO_TRACKING",
+  "previousRelease": "SDP20261102_cb21b3015",
+  "runtimePid": 22954,
+  "runtimeClasspath": "/opt/sdp/backend/releases/SDP20261102_NO_TRACKING/yudao-server.jar",
+  "artifactSha256": "405baaf89f9a6664c336f1c905dbe27251f26bed3367aa5e4f04d2b5d3b11059",
+  "readiness": "UP",
+  "automaticRestarts": 0,
+  "mappingVerification": {
+    "method": "Reflectively invoke mapping functions from the exact deployed JAR using PropertiesLauncher, without a Spring context or database connection",
+    "sourceProjectType": "10",
+    "sourceProjectState": "20",
+    "expectedLifecycleStatus": "NO_TRACKING_CLOSED",
+    "verifiedPaths": ["BASE_P16", "DirectProjectHistoricalState", "ProjectHistoricalStateInitialization"],
+    "historicalStageAndCloseTimePreserved": true,
+    "p16MissingCloseTimeRemainsNull": true,
+    "evidence": "F:/codex-base-sync-route-20261102/result-117-be-verify.json",
+    "scope": "Deployed mapping-code verification only; no actual synchronization or persisted project transformation performed"
+  },
+  "browserVerification": {
+    "url": "https://sdp.dptech.com/data-integration/workspace?tab=base-sync",
+    "taskRows": 25,
+    "loadingError": false,
+    "evidence": "F:/codex-base-sync-route-20261102/browser-after-backend-restart.txt"
+  },
+  "flywayEnabled": false,
+  "syncPreviewExecuted": false,
+  "syncExecuted": false,
+  "businessDataRepairExecuted": false,
+  "dacRestarted": false,
+  "automatedTestSuite": "Skipped per prior user instruction; explicit deployment mapping verification performed",
+  "activationEvidence": "F:/codex-base-sync-route-20261102/result-115-be-activate.json",
+  "readinessEvidence": "F:/codex-base-sync-route-20261102/result-119-be-ready.json",
+  "runtimeEvidence": "F:/codex-base-sync-route-20261102/result-120-be-runtime.json"
+}

@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-02",
+  "frontendGateway": {
+    "status": "PUBLISHED_AND_BROWSER_VERIFIED",
+    "host": "172.20.19.2",
+    "publicPath": "/api/v1/pms/integration/base-sync/",
+    "upstreamPath": "/api/v1/pms/integration/base-sync/",
+    "configSha256": "2ffb2477a1dfa21473caed5534b0d53876a945263d812bd5992c9daf6dff995a",
+    "backup": "/opt/sdp/config/base-sync-route-20261102/sdp.conf.before",
+    "browserTaskRows": 25,
+    "browserEvidence": "F:\\codex-base-sync-route-20261102\\browser-task-list.txt",
+    "anonymousTasksAndRegistrations": "application code 401; no task data",
+    "otherApiPaths": "404",
+    "frontendJavascriptRebuilt": false,
+    "backendRestarted": false
+  },
+  "projectStateMapping": {
+    "status": "BUILT_NOT_DEPLOYED",
+    "sourceProjectType": "10",
+    "sourceProjectState": "20",
+    "targetLifecycleStatus": "NO_TRACKING_CLOSED",
+    "targetStatusLabel": "不予跟踪闭环",
+    "paths": [
+      "BASE_P16",
+      "DirectProjectHistoricalState",
+      "ProjectHistoricalStateInitialization"
+    ],
+    "historicalReferenceChecks": "recognize NO_TRACKING_CLOSED with tenant, manage-scope and immutable-history protections preserved",
+    "buildManifest": "F:\\codex-base-sync-route-20261102\\build\\releases\\1a619534-e78d-4e6a-a2a9-0b361d606195\\manifest.json",
+    "releaseManifest": "F:\\codex-base-sync-route-20261102\\release\\backend\\release.json",
+    "build": "SUCCESS",
+    "automatedTests": "SKIPPED per user instruction",
+    "source": "06fb3499adea17ca5740cd57eee220bd40abc9e0408b759c0e7b3a8d38d91ace",
+    "artifactSha256": "405baaf89f9a6664c336f1c905dbe27251f26bed3367aa5e4f04d2b5d3b11059"
+  },
+  "syncPreviewExecuted": false,
+  "syncExecuted": false,
+  "databaseChanged": false
+}

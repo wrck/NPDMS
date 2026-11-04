@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "output": "Previous: /opt/sdp/frontend/releases/SDP20261103_PROJECT_STATUS_MULTI\nCurrent: /opt/sdp/frontend/releases/SDP20261104_INSTALLATION_FILTER\na45560d3246ae34c6a8a88f6b7687d7bbf16756079534a9ad910aec6dfa97171  /opt/sdp/frontend/current/index.html\nactive\n",
+  "stderr": "nginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful\nnginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful\n"
+}

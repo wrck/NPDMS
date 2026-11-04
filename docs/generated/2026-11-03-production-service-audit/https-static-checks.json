@@ -1,0 +1,948 @@
+[
+  {
+    "host": "sdp.dptech.com",
+    "dns": [
+      "172.20.19.2"
+    ],
+    "tls": {
+      "protocol": "TLSv1.3",
+      "expires": "Apr  4 01:56:10 2027 GMT",
+      "issuer": [
+        [
+          [
+            "countryName",
+            "BE"
+          ]
+        ],
+        [
+          [
+            "organizationName",
+            "GlobalSign nv-sa"
+          ]
+        ],
+        [
+          [
+            "commonName",
+            "GlobalSign RSA OV SSL CA 2018"
+          ]
+        ]
+      ],
+      "san": [
+        [
+          "DNS",
+          "*.dptech.com"
+        ],
+        [
+          "DNS",
+          "dptech.com"
+        ]
+      ]
+    },
+    "entryStatus": 200,
+    "staticResources": [
+      {
+        "path": "/assets/Editor-DNM3yCFq.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/Icon-DNxeEwv7.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/IconSelect-CRXcD-WB.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/IconSelect-DqI-4smy.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/ImageViewer-x18b7WSq.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/UploadFile-DDfzs4Lx.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/UploadFile-DVAfgXMR.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/UploadImg-DqpM_Kt8.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/UploadImg-IBDVnLvV.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/UploadImgs-BO2Fw1D4.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/UploadImgs-DPFqxUn6.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/__vite-browser-external-BTYuaygK.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/_baseEach-C1zfvl69.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/_baseFor-CNqcXraa.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/_isIterateeCall-Bd1V_ECz.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/_plugin-vue_export-helper-BDNMzG2s.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/app-BGJxgpQ-.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/auth-w_TCw5xg.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/axios-D-F5uY97.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/color-Bni5o3g3.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-6XeI7MxV.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-7GpJdXPw.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-8YzyOmcK.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-B0CTkWI-.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-B0pQhKGi.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-B5oeWKZw2.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-B7gvwdWB.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-BEU4L3zp.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-BJZg-YZW.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-BZ_amwP22.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-BmCYKxSB.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-C2FJSLtY.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-CPQZ-olG.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-CWXJZYdY.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-C_5fjRmq.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-CggfgPco2.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-CsEHoJzP.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-DDI3vp-I2.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-DJFxnum_.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-Dk4oJr5v.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-Dq8WDDkr.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-LypIOwyV.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-nb2fFRdO.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-r_0bjjw3.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/defaults-zTVj1j3s.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/dist-CBDd8IWg.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/dist-lqE7A_hp.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/el-aside-DHph6e7B.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/el-aside-nZKvRkTl.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/file-D5hfKIlT.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/file-DSN3cLDI.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/form-create-BaAaNLDM.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/form-create-D7rTQjCT.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/form-designer-DYjsyz1D.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/index-CIokBRpK.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/index-DqQthkmk.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/is-BCSfzVfJ.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/login-C3t4CfZB.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/map-DExGM_wJ.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/merge-CYP9M-Fk.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/pinia-CuYzDvIm.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/preload-helper-Czpn1I53.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/propTypes-Dn7DJnW5.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/rolldown-runtime-DAXXjFlN.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/selection-a_68JngA.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/store-Chw4MW-N.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/style-CsiCno9o.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/style.css_vue_type_style_index_0_src_true_lang-CJbWwWom.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/throttle-BMuukrPr.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/use-ordered-children-LBBLjgCY.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/use-wheel-BB_ciBvM.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useApi-DtucMc-S-CNfc9ZoM.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useCache-C25PGFK7.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useDesign-CC5BNAN2.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useDesign-x1XGuNl0.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/useI18n-DnXI9Y8p.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useMessage-C9vm72aN.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useUpload-C2VC10iG.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/user-B23yba_5.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/user-CVRVfYYB.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/userLabel-lMNhD6l-.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/utils-CV8O9bCo.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/utils-DVFrd3NY.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 200,
+        "contentType": "image/x-icon"
+      },
+      {
+        "path": "/logo-color.png",
+        "status": 200,
+        "contentType": "image/png"
+      },
+      {
+        "path": "/theme-init.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      }
+    ]
+  },
+  {
+    "host": "sdp-customer.dptech.com",
+    "dns": [
+      "172.20.20.2"
+    ],
+    "tls": {
+      "protocol": "TLSv1.3",
+      "expires": "Apr  4 01:56:10 2027 GMT",
+      "issuer": [
+        [
+          [
+            "countryName",
+            "BE"
+          ]
+        ],
+        [
+          [
+            "organizationName",
+            "GlobalSign nv-sa"
+          ]
+        ],
+        [
+          [
+            "commonName",
+            "GlobalSign RSA OV SSL CA 2018"
+          ]
+        ]
+      ],
+      "san": [
+        [
+          "DNS",
+          "*.dptech.com"
+        ],
+        [
+          "DNS",
+          "dptech.com"
+        ]
+      ]
+    },
+    "entryStatus": 200,
+    "staticResources": [
+      {
+        "path": "/assets/Editor-DNM3yCFq.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/Icon-DNxeEwv7.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/IconSelect-CRXcD-WB.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/IconSelect-DqI-4smy.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/ImageViewer-x18b7WSq.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/UploadFile-DDfzs4Lx.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/UploadFile-DVAfgXMR.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/UploadImg-DqpM_Kt8.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/UploadImg-IBDVnLvV.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/UploadImgs-BO2Fw1D4.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/UploadImgs-DPFqxUn6.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/__vite-browser-external-BTYuaygK.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/_baseEach-C1zfvl69.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/_baseFor-CNqcXraa.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/_isIterateeCall-Bd1V_ECz.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/_plugin-vue_export-helper-BDNMzG2s.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/app-BGJxgpQ-.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/auth-w_TCw5xg.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/axios-D-F5uY97.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/color-Bni5o3g3.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-6XeI7MxV.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-7GpJdXPw.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-8YzyOmcK.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-B0CTkWI-.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-B0pQhKGi.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-B5oeWKZw2.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-B7gvwdWB.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-BEU4L3zp.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-BJZg-YZW.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-BZ_amwP22.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-BmCYKxSB.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-C2FJSLtY.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-CPQZ-olG.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-CWXJZYdY.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-C_5fjRmq.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-CggfgPco2.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-CsEHoJzP.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-DDI3vp-I2.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-DJFxnum_.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-Dk4oJr5v.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-Dq8WDDkr.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/css-LypIOwyV.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-nb2fFRdO.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/css-r_0bjjw3.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/defaults-zTVj1j3s.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/dist-CBDd8IWg.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/dist-lqE7A_hp.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/el-aside-DHph6e7B.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/el-aside-nZKvRkTl.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/file-D5hfKIlT.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/file-DSN3cLDI.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/form-create-BaAaNLDM.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/form-create-D7rTQjCT.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/form-designer-DYjsyz1D.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/index-CIokBRpK.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/index-DqQthkmk.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/is-BCSfzVfJ.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/login-C3t4CfZB.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/map-DExGM_wJ.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/merge-CYP9M-Fk.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/pinia-CuYzDvIm.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/preload-helper-Czpn1I53.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/propTypes-Dn7DJnW5.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/rolldown-runtime-DAXXjFlN.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/selection-a_68JngA.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/store-Chw4MW-N.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/style-CsiCno9o.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/style.css_vue_type_style_index_0_src_true_lang-CJbWwWom.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/throttle-BMuukrPr.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/use-ordered-children-LBBLjgCY.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/use-wheel-BB_ciBvM.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useApi-DtucMc-S-CNfc9ZoM.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useCache-C25PGFK7.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useDesign-CC5BNAN2.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useDesign-x1XGuNl0.css",
+        "status": 200,
+        "contentType": "text/css"
+      },
+      {
+        "path": "/assets/useI18n-DnXI9Y8p.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useMessage-C9vm72aN.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/useUpload-C2VC10iG.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/user-B23yba_5.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/user-CVRVfYYB.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/userLabel-lMNhD6l-.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/utils-CV8O9bCo.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/assets/utils-DVFrd3NY.js",
+        "status": 200,
+        "contentType": "application/javascript"
+      },
+      {
+        "path": "/favicon.ico",
+        "status": 200,
+        "contentType": "image/x-icon"
+      },
+      {
+        "path": "/logo-color.png",
+        "status": 404,
+        "contentType": "text/html"
+      },
+      {
+        "path": "/theme-init.js",
+        "status": 404,
+        "contentType": "text/html"
+      }
+    ]
+  }
+]

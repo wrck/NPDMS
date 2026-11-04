@@ -1,0 +1,13 @@
+{
+  "backendPid": "7112",
+  "backendPort": 58191,
+  "frontendPort": 19191,
+  "readiness": "UP",
+  "database": "172.17.90.178:13306/npdms",
+  "databaseConnectionObserved": true,
+  "redisConnectionObserved": true,
+  "manifest": "6fac8b42-b534-459a-a6a2-c287118c0b18",
+  "profiles": "local,dac",
+  "browserNonAdmin": "PENDING_VALID_LOGIN",
+  "productionDeployment": "NOT_STARTED"
+}

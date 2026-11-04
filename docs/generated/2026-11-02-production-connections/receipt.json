@@ -1,0 +1,50 @@
+{
+  "recordedAt": "2026-11-02T01:28:48.386916+08:00",
+  "scope": "User-authorized production SPMS and CRM data source plus integration connection; no sync tasks or runs",
+  "spms": {
+    "dataSourceId": "2",
+    "connectionId": "2116945336515674114",
+    "tenantId": "1",
+    "host": "spms.dptech.com",
+    "port": 3306,
+    "database": "dpspms",
+    "user": "sdp",
+    "transport": "useSSL=false; inherited from 178 at user request",
+    "connectionTest": "passed"
+  },
+  "crm": {
+    "dataSourceId": "1",
+    "connectionId": "2116945394187354113",
+    "tenantId": "1",
+    "host": "172.17.74.18",
+    "port": 1433,
+    "database": "crm_MSCRM",
+    "user": "pms",
+    "transport": "encrypt=true; trustServerCertificate=true; user explicitly requested no certificate verification",
+    "connectionTest": "passed"
+  },
+  "credentialRepair": {
+    "cause": "Existing NPDMS_MYBATIS_ENCRYPTOR_PASSWORD length unsupported by AES EncryptTypeHandler",
+    "deviceCredentialRowsBeforeChange": 0,
+    "dataSourceRowsBeforeChange": 0,
+    "redisCredentialTokenKeysBeforeChange": 0,
+    "checkedAgainWhileBackendStopped": true,
+    "oldEncryptedCredentialPreserved": true,
+    "newCredential": "/etc/credstore.encrypted/sdp-backend-datasource-20261102",
+    "override": "/etc/systemd/system/sdp.service.d/datasource-credential.conf",
+    "approvedBackendRestartCount": 1,
+    "dacRestarted": false
+  },
+  "validation": {
+    "productionUiBothConnections": "连接正常",
+    "backendReadiness": "UP",
+    "dacReadiness": "UP",
+    "baseTasks": 0,
+    "genericTasks": 0,
+    "baseRuns": 0,
+    "genericRuns": 0,
+    "browserScreenshot": "C:\\Users\\user\\.codex\\visualizations\\2026\\11\\01\\01a19798-5390-7161-8fda-deece599eb49\\production-20261102\\production-connections.png"
+  },
+  "passwordsRecordedInReceipt": false,
+  "businessSynchronizationExecuted": false
+}

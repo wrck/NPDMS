@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "output": "2026-11-04T00:33:52+08:00\n/opt/sdp/backend/releases/SDP20261103_PROJECT_STATUS_MULTI\nMainPID=160758\nNRestarts=0\nActiveState=active\nba00f481e5eded5d422c49817c451f5bef548e651f8a3a31283cdbae35063a93  /opt/sdp/backend/current/yudao-server.jar\nactive\n",
+  "stderr": ""
+}

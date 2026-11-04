@@ -1,0 +1,38 @@
+{
+  "releaseId": "SDP20261103_BRANDING",
+  "archiveSha256": "1400b2af96c7d35639aae20772dbf211299ddd4bc739d5dcd3590ee77eb94d1d",
+  "archiveBytes": 283156432,
+  "title": "服务交付平台",
+  "indexSha256": "422de2da3f15c8df34213e53d1ce052c106e0527a88c781da9e5301738b62bae",
+  "files": 2828,
+  "previousRelease": "SDP20261102_LOGISTICS",
+  "hosts": [
+    "172.20.19.2",
+    "172.20.20.2"
+  ],
+  "activated": true,
+  "buildSourceStable": true,
+  "nginxConfigValidated": true,
+  "browserTitles": [
+    "服务交付平台 - 项目列表",
+    "服务交付平台 - 我的站内信"
+  ],
+  "browserProjectCount": 81321,
+  "backendRestarted": false,
+  "dacRestarted": false,
+  "migrationsExecuted": false,
+  "tests": "not rerun; production build and live readonly browser checks performed",
+  "customerEntry": "whitelisted training-records path served new title; root404 retained",
+  "evidenceRequests": [
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189
+  ]
+}

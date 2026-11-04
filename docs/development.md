@@ -1,5 +1,7 @@
 # 本地开发运行说明
 
+系统名称为服务交付平台（SDP）。当前配置使用业务变量名，例如 `DB_NAME`、`DB_USER`、`DB_PASSWORD`、`MYSQL_PORT`、`REDIS_PASSWORD`、`DEVICE_OPS_BASE_URL` 和 `DAC_CALLBACK_URL`；旧前缀变量不作为兼容入口。物理数据库名称保持原值，历史部署记录仅用于追溯。
+
 ## 架构边界
 
 Docker Compose 默认仅承载基础设施服务（MySQL、Redis、Flyway 迁移）；

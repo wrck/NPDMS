@@ -1,0 +1,472 @@
+- link "服务交付平台":
+  - /url: /
+  - generic: 服务交付平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理" [expanded]:
+        - generic: 项目管理
+        - menu:
+          - menuitem "项目列表":
+            - generic: 项目列表
+          - menuitem "计划进度":
+            - generic: 计划进度
+          - menuitem "项目风险":
+            - generic: 项目风险
+          - menuitem "组合与治理":
+            - generic: 组合与治理
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "项目模板管理":
+        - generic: 项目模板管理
+      - menuitem "交付件汇总":
+        - generic: 交付件汇总
+      - menuitem "现场培训":
+        - generic: 现场培训
+      - menuitem "阶段施工计划":
+        - generic: 阶段施工计划
+      - menuitem "施工计划建议规则":
+        - generic: 施工计划建议规则
+      - menuitem "设备连接与采集":
+        - generic: 设备连接与采集
+  - menuitem "割接交付":
+    - generic: 割接交付
+  - menuitem "巡检服务":
+    - generic: 巡检服务
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑":
+  - link "项目交付":
+    - text: 项目交付
+  - text: /
+  - link "项目管理":
+    - text: 项目管理
+  - text: /
+  - link "项目列表":
+    - text: 项目列表
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button "系统管理员":
+  - generic: 系统管理员
+- button "首页":
+  - text: 首页
+- button "项目列表":
+  - text: 项目列表
+- button:
+- generic: "81321"
+- generic: 项目总数
+- generic: "0"
+- generic: 超期项目
+- generic: "5928"
+- generic: S0 待开始
+- generic: "1135"
+- generic: S1 工前准备
+- generic: "0"
+- generic: S2 施工计划
+- generic: "9"
+- generic: S3 实施方案
+- generic: "0"
+- generic: S4 实施部署
+- generic: "0"
+- generic: S5 验收交维
+- generic: "0"
+- generic: S6 闭环处理中
+- generic: "21123"
+- generic: 正常闭环
+- generic: "53126"
+- generic: 不予跟踪闭环
+- generic: "0"
+- generic: 异常闭环
+- generic: 项目编码
+- textbox "项目编码":
+  - /placeholder: PJT2026000001
+- generic: 项目名称
+- textbox "项目名称"
+- generic: 客户
+- combobox "客户"
+- generic: 按客户名称选择
+- generic: 超期项目
+- combobox "超期项目"
+- generic: 全部
+- generic: 发货状态
+- combobox "发货状态"
+- generic: 全部
+- generic: 状态
+- combobox "状态"
+- generic: 全部
+- generic: 项目经理
+- combobox "项目经理"
+- generic: 全部
+- generic: 创建时间
+- combobox "创建时间"
+- generic: "-"
+- combobox "结束"
+- button "查询":
+  - text: 查询
+- button "重置":
+  - text: 重置
+- button "办事处精确查询":
+  - generic: 办事处精确查询
+- button "更多筛选":
+  - text: 更多筛选
+- button "创建项目":
+  - text: 创建项目
+- text: 项目列表
+- generic: 共 81321 条
+- button "刷新":
+  - text: 刷新
+- table:
+  - rowgroup:
+    - row "项目编码 项目名称 客户名称 签约方式 项目类别 实施方式 重大项目级别 状态 超期情况 模板绑定 负责人 创建时间 操作":
+      - columnheader "项目编码":
+        - generic: 项目编码
+      - columnheader "项目名称":
+        - generic: 项目名称
+      - columnheader "客户名称":
+        - generic: 客户名称
+      - columnheader "签约方式":
+        - generic: 签约方式
+      - columnheader "项目类别":
+        - generic: 项目类别
+      - columnheader "实施方式":
+        - generic: 实施方式
+      - columnheader "重大项目级别":
+        - generic: 重大项目级别
+      - columnheader "状态":
+        - generic: 状态
+      - columnheader "超期情况":
+        - generic: 超期情况
+      - columnheader "模板绑定":
+        - generic: 模板绑定
+      - columnheader "负责人":
+        - generic: 负责人
+      - columnheader "创建时间":
+        - generic: 创建时间
+      - columnheader "操作":
+        - generic: 操作
+- table:
+  - rowgroup:
+    - row "16202326083101N-0 安庆电信云平台防火墙设备维保 - 非直签 普通类 代理商自服 不予跟踪闭环 — - - 2026-10-31 03:25:07 详情 项目成员":
+      - cell "16202326083101N-0":
+        - generic: 16202326083101N-0
+      - cell "安庆电信云平台防火墙设备维保":
+        - generic: 安庆电信云平台防火墙设备维保
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "代理商自服":
+        - generic: 代理商自服
+      - cell
+      - cell "不予跟踪闭环":
+        - generic: 不予跟踪闭环
+      - cell "—":
+        - generic: —
+      - cell "-":
+        - generic: "-"
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-31 03:25:07":
+        - generic: 2026-10-31 03:25:07
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - row "16202026102001N-0 上海电子政务NW数据中心二期SM项目 - 非直签 普通类 代理商自服 不予跟踪闭环 — - - 2026-10-31 03:25:07 详情 项目成员":
+      - cell "16202026102001N-0":
+        - generic: 16202026102001N-0
+      - cell "上海电子政务NW数据中心二期SM项目":
+        - generic: 上海电子政务NW数据中心二期SM项目
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "代理商自服":
+        - generic: 代理商自服
+      - cell
+      - cell "不予跟踪闭环":
+        - generic: 不予跟踪闭环
+      - cell "—":
+        - generic: —
+      - cell "-":
+        - generic: "-"
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-31 03:25:07":
+        - generic: 2026-10-31 03:25:07
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - row "16202526081004N-0 广东省交通集团交通基础设施数字化转型升级-防火墙 - 非直签 普通类 代理商自服 不予跟踪闭环 — - - 2026-10-31 03:25:07 详情 项目成员":
+      - cell "16202526081004N-0":
+        - generic: 16202526081004N-0
+      - cell "广东省交通集团交通基础设施数字化转型升级-防火墙":
+        - generic: 广东省交通集团交通基础设施数字化转型升级-防火墙
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "代理商自服":
+        - generic: 代理商自服
+      - cell
+      - cell "不予跟踪闭环":
+        - generic: 不予跟踪闭环
+      - cell "—":
+        - generic: —
+      - cell "-":
+        - generic: "-"
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-31 03:25:07":
+        - generic: 2026-10-31 03:25:07
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - row "16201624111801N-0 四川矿产机电技师学院2025年新校区改造项目 - 非直签 普通类 代理商自服 不予跟踪闭环 — - - 2026-10-31 03:25:06 详情 项目成员":
+      - cell "16201624111801N-0":
+        - generic: 16201624111801N-0
+      - cell "四川矿产机电技师学院2025年新校区改造项目":
+        - generic: 四川矿产机电技师学院2025年新校区改造项目
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "代理商自服":
+        - generic: 代理商自服
+      - cell
+      - cell "不予跟踪闭环":
+        - generic: 不予跟踪闭环
+      - cell "—":
+        - generic: —
+      - cell "-":
+        - generic: "-"
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-31 03:25:06":
+        - generic: 2026-10-31 03:25:06
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - row "16202525112701N-0 CSG2025DD1防火墙集采-广东电网湛江供电局110kV 雷高变电站二次设备综合改 造 - 直签 普通类 代理商自服 不予跟踪闭环 — - - 2026-10-31 03:25:06 详情 项目成员":
+      - cell "16202525112701N-0":
+        - generic: 16202525112701N-0
+      - cell "CSG2025DD1防火墙集采-广东电网湛江供电局110kV 雷高变电站二次设备综合改 造":
+        - generic: CSG2025DD1防火墙集采-广东电网湛江供电局110kV 雷高变电站二次设备综合改 造
+      - cell "-":
+        - generic: "-"
+      - cell "直签":
+        - generic: 直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "代理商自服":
+        - generic: 代理商自服
+      - cell
+      - cell "不予跟踪闭环":
+        - generic: 不予跟踪闭环
+      - cell "—":
+        - generic: —
+      - cell "-":
+        - generic: "-"
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-31 03:25:06":
+        - generic: 2026-10-31 03:25:06
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - row "16202524070201N-0 2023GD/OS2防火墙集采-广东电网阳江 220 千伏春城Ⅱ输变电工程 - 直签 普通类 代理商自服 不予跟踪闭环 — - - 2026-10-31 03:25:06 详情 项目成员":
+      - cell "16202524070201N-0":
+        - generic: 16202524070201N-0
+      - cell "2023GD/OS2防火墙集采-广东电网阳江 220 千伏春城Ⅱ输变电工程":
+        - generic: 2023GD/OS2防火墙集采-广东电网阳江 220 千伏春城Ⅱ输变电工程
+      - cell "-":
+        - generic: "-"
+      - cell "直签":
+        - generic: 直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "代理商自服":
+        - generic: 代理商自服
+      - cell
+      - cell "不予跟踪闭环":
+        - generic: 不予跟踪闭环
+      - cell "—":
+        - generic: —
+      - cell "-":
+        - generic: "-"
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-31 03:25:06":
+        - generic: 2026-10-31 03:25:06
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - row "16202225040704N-0 杭州客运段新大楼项目 - 非直签 普通类 代理商自服 不予跟踪闭环 — - - 2026-10-31 03:25:06 详情 项目成员":
+      - cell "16202225040704N-0":
+        - generic: 16202225040704N-0
+      - cell "杭州客运段新大楼项目":
+        - generic: 杭州客运段新大楼项目
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "代理商自服":
+        - generic: 代理商自服
+      - cell
+      - cell "不予跟踪闭环":
+        - generic: 不予跟踪闭环
+      - cell "—":
+        - generic: —
+      - cell "-":
+        - generic: "-"
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-31 03:25:06":
+        - generic: 2026-10-31 03:25:06
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - row "16706026090304N-0 通号-2025京雄商高速铁路(河南段)工程-DZ-网络安全 - 非直签 普通类 代理商自服 不予跟踪闭环 — - - 2026-10-31 03:25:06 详情 项目成员":
+      - cell "16706026090304N-0":
+        - generic: 16706026090304N-0
+      - cell "通号-2025京雄商高速铁路(河南段)工程-DZ-网络安全":
+        - generic: 通号-2025京雄商高速铁路(河南段)工程-DZ-网络安全
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "代理商自服":
+        - generic: 代理商自服
+      - cell
+      - cell "不予跟踪闭环":
+        - generic: 不予跟踪闭环
+      - cell "—":
+        - generic: —
+      - cell "-":
+        - generic: "-"
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-31 03:25:06":
+        - generic: 2026-10-31 03:25:06
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - row "16706026101402N-0 通号-贵阳南上下驼峰场网络安全-DZ-网络安全 - 非直签 普通类 代理商自服 不予跟踪闭环 — - - 2026-10-31 03:25:06 详情 项目成员":
+      - cell "16706026101402N-0":
+        - generic: 16706026101402N-0
+      - cell "通号-贵阳南上下驼峰场网络安全-DZ-网络安全":
+        - generic: 通号-贵阳南上下驼峰场网络安全-DZ-网络安全
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "代理商自服":
+        - generic: 代理商自服
+      - cell
+      - cell "不予跟踪闭环":
+        - generic: 不予跟踪闭环
+      - cell "—":
+        - generic: —
+      - cell "-":
+        - generic: "-"
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-31 03:25:06":
+        - generic: 2026-10-31 03:25:06
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - row "16706026072205N-0 通号-贵阳电务段川黔线首发5站网络安全设备-DZ-网络安全 - 非直签 普通类 代理商自服 不予跟踪闭环 — - - 2026-10-31 03:25:05 详情 项目成员":
+      - cell "16706026072205N-0":
+        - generic: 16706026072205N-0
+      - cell "通号-贵阳电务段川黔线首发5站网络安全设备-DZ-网络安全":
+        - generic: 通号-贵阳电务段川黔线首发5站网络安全设备-DZ-网络安全
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "代理商自服":
+        - generic: 代理商自服
+      - cell
+      - cell "不予跟踪闭环":
+        - generic: 不予跟踪闭环
+      - cell "—":
+        - generic: —
+      - cell "-":
+        - generic: "-"
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-31 03:25:05":
+        - generic: 2026-10-31 03:25:05
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+- combobox
+- generic: 10条/页
+- generic: 共 81321 条
+- button "上一页" [disabled]:
+- list:
+  - listitem "第 1 页": "1"
+  - listitem "第 2 页": "2"
+  - listitem "第 3 页": "3"
+  - listitem "第 4 页": "4"
+  - listitem "第 5 页": "5"
+  - listitem "第 6 页": "6"
+  - listitem "向后 5 页":
+  - listitem "第 8133 页": "8133"
+- button "下一页":
+- generic: 前往
+- spinbutton "页": "1"
+- generic: 页
+- generic: Copyright ©2026 服务交付平台

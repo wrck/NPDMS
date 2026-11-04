@@ -1,0 +1,138 @@
+{
+  "recordedAt": "2026-11-02T00:46:28.857843+08:00",
+  "status": "DEPLOYED_RUNNING_BUSINESS_ACCEPTANCE_NOT_PERFORMED",
+  "releaseId": "SDP20261102_cb21b3015",
+  "systemName": "SDP",
+  "displayName": "服务交付平台",
+  "sourceWorkspace": "M:\\AICoding\\CodexData\\worktrees\\853c\\NPDMS",
+  "sourceCommit": "cb21b30150170c7d892597c7f0520513bc057bfa",
+  "sourceContainsUncommittedChanges": true,
+  "authority": "Current formal four-host deployment configuration, explicit user corrections and live server state",
+  "hosts": {
+    "fe1": "172.20.19.2",
+    "fe2": "172.20.20.2",
+    "backend": "172.17.73.104",
+    "database": "172.17.74.19"
+  },
+  "urls": {
+    "internal": "https://sdp.dptech.com",
+    "customer": "https://sdp-customer.dptech.com"
+  },
+  "runtime": {
+    "backend": {
+      "port": 443,
+      "pid": 17114,
+      "readiness": "UP",
+      "automaticRestarts": 0
+    },
+    "dac": {
+      "port": 8443,
+      "pid": 17159,
+      "readiness": "UP",
+      "automaticRestarts": 0
+    },
+    "frontendEntryHttpStatus": 200,
+    "frontendTitle": "SDP 服务交付平台",
+    "internalProxyHttpStatus": 200,
+    "internalProxyApiCode": 0
+  },
+  "migrations": {
+    "npdms": {
+      "version": "531",
+      "migration": "B531__production_178_unicode_initialization.sql",
+      "businessTables": 518,
+      "triggers": 240,
+      "configurationTablesChecked": 59,
+      "configurationRowsChecked": 6026,
+      "countsMatched": true,
+      "validatePassed": true
+    },
+    "device_ops": {
+      "version": "26",
+      "businessTables": 24,
+      "appliedMigrations": 13,
+      "validatePassed": true
+    },
+    "temporarySuperRevoked": true,
+    "logBinTrustFunctionCreators": 0,
+    "repairCleanOrManualHistoryEdits": false
+  },
+  "security": {
+    "applicationAccounts": [
+      "npdms_app",
+      "dac_app"
+    ],
+    "applicationDdlPrivileges": false,
+    "tlsIdentityVerification": true,
+    "backendDacCredentials": "systemd host-encrypted credentials",
+    "storage": "private npdms bucket and bucket-scoped sdp-backend identity; database holds credential references",
+    "administrator": "admin",
+    "administratorCredentialPathOnBE": "/opt/sdp/config/credentials/backend/admin-production-20261102.json",
+    "administratorCredentialPermissions": "root:root 0600",
+    "administratorLoginTestPerformed": false
+  },
+  "certificates": {
+    "activeFrontendIssuer": "Existing SDP Deployment Root CA 2026",
+    "trustDistribution": "User explicitly chose operations-managed distribution; not installed into local trust stores",
+    "caSha256Fingerprint": "27:8A:99:B8:40:97:B4:4E:AE:06:BB:8C:40:E9:08:56:BB:D7:7D:47:EE:3B:2E:D4:D4:92:79:5C:62:08:0C:E1",
+    "publicCaArtifact": "C:\\Users\\user\\.codex\\visualizations\\2026\\11\\01\\01a19798-5390-7161-8fda-deece599eb49\\production-20261102\\SDP-Deployment-Root-CA.crt",
+    "globalsignWildcardCandidate": {
+      "source": "_.dptech.com",
+      "subject": "*.dptech.com",
+      "expires": "2027-04-04",
+      "activated": false,
+      "decision": "User explicitly deferred configuration; certificate file has no private key"
+    }
+  },
+  "startup": {
+    "enabled": [
+      "FE1 nginx",
+      "FE2 nginx",
+      "sdp",
+      "sdp-dac",
+      "sdp-mysql",
+      "sdp-redis",
+      "sdp-minio"
+    ],
+    "encryptedSecretRestorationConfigured": true,
+    "machineRebootPerformed": false,
+    "rebootRecoveryDrillPerformed": false,
+    "existingInfrastructureNotRestarted": true,
+    "redisExistingProcessSince": "2026-10-30T22:23:05+08:00",
+    "minioExistingProcessSince": "2026-10-30T22:18:18+08:00"
+  },
+  "backup": {
+    "pathOnDBAndBE": "/data/backups/production-20261102/pre-migration.tar.gz.cms",
+    "encryptedSha256": "a6ca5975d5cd2254fe843e38bb71b726b5f884f5e44447f935dda33081fe1c64",
+    "scope": "Pre-migration empty database definitions, accounts, existing configuration, credentials and recovery dependencies",
+    "offHostCopyAndInMemoryDecryptionChecked": true,
+    "fullDisasterRecoveryDrill": false
+  },
+  "verificationScope": {
+    "finalMavenFlag": "-Dmaven.test.skip=true",
+    "laterAutomatedTestsSkippedByUser": true,
+    "frontendTypecheckBeforeSkip": "passed",
+    "frontendEslintBeforeSkip": "0 errors, 170 warnings",
+    "frontendStyleErrorsAcceptedByUser": 3182,
+    "backendEarlierTestErrors": "Two ProjectClosurePolicyFreezeTest fixture null dependencies; fixture adjusted, then user requested skipping tests; no subsequent test pass claimed",
+    "browserBusinessAcceptancePerformed": false,
+    "businessWorkflowTestsPerformed": false,
+    "deploymentIntegrityAndStartupChecksPerformed": true
+  },
+  "remainingOperationalWork": [
+    "Distribute existing deployment CA trust to users",
+    "Business acceptance and actual authorized personnel configuration",
+    "Formal inspection rules and external integrations require their authoritative production inputs",
+    "Full reboot/recovery rehearsal and ongoing off-host backup operations not performed"
+  ],
+  "evidenceDirectory": "C:\\Users\\user\\.codex\\visualizations\\2026\\11\\01\\01a19798-5390-7161-8fda-deece599eb49\\production-20261102",
+  "backendBuildManifest": "C:\\Users\\user\\.codex\\visualizations\\2026\\11\\01\\01a19798-5390-7161-8fda-deece599eb49\\production-20261102-build\\releases\\4d0df17b-b5cd-4db9-bb77-3f436e6ea48f\\manifest.json",
+  "dacBuildManifest": "C:\\Users\\user\\.codex\\visualizations\\2026\\11\\01\\01a19798-5390-7161-8fda-deece599eb49\\production-20261102-build\\releases\\c3f8fadf-799f-4177-86e3-275a7a5c6de9\\manifest.json",
+  "configurationReceipts": {
+    "be": "MainPID=10912\nNRestarts=45\nExecMainStartTimestamp=Fri 2026-10-30 22:23:05 CST\nId=sdp-redis.service\nActiveEnterTimestamp=Fri 2026-10-30 22:23:05 CST\n\nMainPID=10741\nNRestarts=17\nExecMainStartTimestamp=Fri 2026-10-30 22:18:18 CST\nId=sdp-minio.service\nActiveEnterTimestamp=Fri 2026-10-30 22:18:18 CST\n420713e1a3b0fc86bcbf65746a2e33d1cb1efaff02bab6e07bc8ba009019f0cc  /etc/sdp/backend/application-prod.yaml\n6b1f2d0516e985e60b9b7a98b232a29d399a57d99ee1940040062b5edeee2757  /etc/sdp/dac/application-dac-prod.yaml\n991a47823db21200b7ba222111a3109c6e729255766c7637c362942b356bcf93  /etc/systemd/system/sdp.service\n288067602b4ebb1b81f79fb5ee57f9ba2078d474c6b317f0a06b4596fe153112  /etc/systemd/system/sdp-dac.service\n",
+    "fe1": "MainPID=12960\nId=nginx.service\nActiveState=active\nActiveEnterTimestamp=Mon 2026-11-02 00:37:21 CST\n7fa356e8311d90f70dd525be54b48910d2d5ff376035ca87f833eef3bde030f4  /etc/nginx/conf.d/sdp.conf\n3ed018fbedf59814e2516722ef5040a8f1b8e3ec605349696259daea802030be  /etc/sdp/tls/frontend-production-20261102.crt\n546cf2ebdee566d6057961e4bcd2f4274ee087f0667a6ac9607c31d03b8b0051  /etc/systemd/system/nginx.service.d/production-credentials.conf\n",
+    "fe2": "MainPID=11344\nId=nginx.service\nActiveState=active\nActiveEnterTimestamp=Mon 2026-11-02 00:37:21 CST\n6026b41ada19eefe2454f9be9f8d263bffeee531edc7652258f6b8ebeb11abbe  /etc/nginx/conf.d/sdp.conf\n7281cb38101a207e7f4c50813cd1244d38d9a6170f13ec9648636c2426519830  /etc/sdp/tls/frontend-production-20261102.crt\n546cf2ebdee566d6057961e4bcd2f4274ee087f0667a6ac9607c31d03b8b0051  /etc/systemd/system/nginx.service.d/production-credentials.conf\n"
+  },
+  "localRuntime59191Or48182Changed": false,
+  "gitCommitOrPushPerformed": false
+}

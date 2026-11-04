@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "output": "VERIFIED SDP20261104_INSTALLATION_FILTER\nStaged /opt/sdp/backend/releases/SDP20261104_INSTALLATION_FILTER; activate separately after configuration/schema checks.\n",
+  "stderr": ""
+}

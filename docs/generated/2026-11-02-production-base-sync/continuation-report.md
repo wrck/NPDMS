@@ -1,0 +1,78 @@
+# 正式基础同步续执行回执（2026-11-02）
+
+当前25项任务中22项具有正式COMPLETED回执。下表为当前状态，不代表全部同步完成；未提交任务的0计数不是最终结果。
+
+许可已按批准快照完成493,037条正式新增，目标与来源绑定一一对应；重放预览全部未变。V533及许可版本已部署，就绪检查UP，DAC未重启。设备/合同引用仍待后续关联；原始空许可码1条按既定规则保留。
+
+订单来源由用户自行修复。我方因来源账号无UPDATE权限而完整回滚，未修改来源业务数据。当前空订单号为0；SO079848按来源最终订单头类型1及明细类型1/0原样承接，缺失同类型关联不阻断整批。
+
+P08已部署并完成正式同步：读取617、新增5、保留612；重放预览617项全部未变。611条既有字典实体的全部原字段回读校验通过；613条绑定含占位类型与新来源定义的双重引用。三个重大项目级别保留正式初始化值。
+
+| 任务 | 最新正式Run | 状态 | 读取 | 新增 | 更新 | 未变 |
+|---|---|---|---:|---:|---:|---:|
+| BASE_P01 | 2116958559071596546 | COMPLETED | 210 | 0 | 0 | 210 |
+| BASE_P04 | 2116961597509300226 | COMPLETED | 12860 | 12807 | 0 | 53 |
+| BASE_P08 | 2116985359696871425 | COMPLETED | 617 | 5 | 0 | 612 |
+| BASE_P10 | 2116960631259099137 | COMPLETED | 69356 | 69356 | 0 | 0 |
+| BASE_P11 | 2116959128079265793 | COMPLETED | 10392 | 10387 | 5 | 0 |
+| BASE_P12 | 2116959298758078466 | COMPLETED | 35860 | 25501 | 0 | 10359 |
+| BASE_P13 | 2116962019355619329 | COMPLETED | 101986 | 83172 | 0 | 18814 |
+| BASE_P14 | 2116979852848300033 | COMPLETED | 575027 | 481822 | 93205 | 0 |
+| BASE_P15 | 2116985378533490690 | READING | 0 | 0 | 0 | 0 |
+| BASE_P16 | 2116962589411864578 | COMPLETED | 162655 | 81321 | 0 | 81334 |
+| BASE_P18 | 2116974051618418689 | COMPLETED | 84573 | 84278 | 0 | 295 |
+| BASE_P19 | 2116965758539886593 | COMPLETED | 189424 | 189424 | 0 | 0 |
+| BASE_P20 | 2116967896456327169 | COMPLETED | 7818 | 7818 | 0 | 0 |
+| BASE_P21 | 2116967962701164546 | COMPLETED | 2183 | 2183 | 0 | 0 |
+| BASE_P22 | 2116986904870076417 | COMPLETED | 352459 | 349483 | 0 | 0 |
+| BASE_P23 | 2116967967302316034 | COMPLETED | 36301 | 36301 | 0 | 0 |
+| BASE_P24 | 2116962393974075393 | COMPLETED | 83717 | 83710 | 0 | 7 |
+| BASE_P25 | 2116968022570659842 | COMPLETED | 468955 | 468955 | 0 | 0 |
+| BASE_P30 | 未执行 | 未执行 | 未执行 | 未执行 | 未执行 | 未执行 |
+| BASE_P31 | 2116968727461195777 | COMPLETED | 394044 | 394044 | 0 | 0 |
+| BASE_P33 | 未执行 | 未执行 | 未执行 | 未执行 | 未执行 | 未执行 |
+| BASE_P34 | 2116969277003100162 | COMPLETED | 165834 | 165834 | 0 | 0 |
+| BASE_P35 | 2116969559648858114 | COMPLETED | 1625392 | 1625392 | 0 | 0 |
+| BASE_P37 | 2116976376885968897 | COMPLETED | 493037 | 493037 | 0 | 0 |
+| BASE_P38 | 2116976989858332673 | COMPLETED | 81321 | 0 | 7072 | 74249 |
+
+## 已完成任务的限制与告警
+
+- BASE_P01：`P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001`。
+- BASE_P04：`P04_ORIGINAL_READ:3383;EXCLUDED_ACCOUNTS:26;ORPHAN_PROFILES:3`。
+- BASE_P08：`P08_INITIALIZED_TYPE_PRESERVED:33;P08_INITIALIZED_TYPE_PRESERVED:34;P08_INITIALIZED_DEFINITION_PRESERVED:471;P08_INITIALIZED_DEFINITION_PRESERVED:472;P08_INITIALIZED_DEFINITION_PRESERVED:473`。
+- BASE_P13：`P13_OUTSIDE_REVIEWED_PROJECT_SCOPE:2665`。
+- BASE_P14：`P14_ORDER_REFERENCE_PENDING:1580`。
+- BASE_P18：`P18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_PENDING:84278;P18_BRIDGE_CONTRACT_GROUP_MISSING:3525;P18_BRIDGE_CONTRACT_MEMBERS_MISSING:1;P18_BRIDGE_CONTRACT_MEMBER_PROJECT_MISSING:800`。
+- BASE_P19：`P19_EXTENSION_ATTRIBUTES_DEFERRED:shipment_status,shipment_status_updated_at,execution_status,execution_status_updated_at`。
+- BASE_P22：`P22_ZERO_QUANTITY_PENDING:2976;P22_DEPARTMENT_SOURCE_MISSING_PENDING:14309;P22_ORDER_LINE_POSTFILL_UNRESOLVED:147;P22_ALLOCATION_CONFIRMED:348650;P22_ALLOCATION_DUPLICATE:234;P22_ALLOCATION_EXCESS:452;P22_ALLOCATION_PENDING:147`。
+- BASE_P35：`P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change`。
+- BASE_P37：`P37_LICENSE_CODE_EMPTY:sourceId=489053;P37_DEVICE_ASSOCIATION_PENDING:493037;P37_CONTRACT_ASSOCIATION_PENDING:493037`。
+- BASE_P38：`PROJECT_TEMPLATE_NOT_ACTIVE:74249`。
+
+## 后续执行
+
+P38已正式完成：81321个项目中7072个完成模板初始化，74249个因项目生命周期非ACTIVE保持未变（此前误写为“模板未启用”，按[后续全面核查](decided-obligations-audit.md)纠正）。P15已通过预览并启动正式执行，未提交前不计完成。P22初次正式执行因应用账号缺少临时表权限失败并回滚。用户批准仅npdms库CREATE TEMPORARY TABLES授权后，重建旧空闲连接并完成重试，未再次重启服务。正式新增349483条，范围、明细和绑定数量一致；348650条确认数量占用，重复234、超量452、订单待关联147条保持未确认。另有零数量2976条按规则未写入、来源无部门14309条保留待补。
+
+## 证据边界
+
+- 许可相关23项测试、字典相关12项测试均通过；许可全量构建及服务器制品校验通过。
+- 已验证后台业务同步回执和数据库数量；未执行浏览器业务验收，不以UP替代业务完成。
+- 逐次操作回执保存在`F:/codex-base-sync-route-20261102/result-*.json`；本报告不保存许可内容或凭据。
+- 结构化当前记录：[continuation-receipt.json](continuation-receipt.json)。
+
+## P15异常与待确认操作
+
+2026-11-02约05:58，P15在ShipmentOrderLine阶段进入MySQL整批回滚；此前阶段计数不是已提交成果。当前运行表仍显示READING，须以数据库ROLLING BACK事实解释，不能认定完成。约06:04待撤销修改计数7,738,590，最终错误尚未返回。未启动P30/P33，未重试P15。
+
+实测MySQL8.4.13缓冲池128MiB、redo100MiB，主机内存约94GiB且大部分可用，数据盘余量954GiB；回滚前约43,817,178行锁和约100MiB锁结构，日志有redo空间等待。已准备仅动态缓冲池8GiB、redo1GiB、不重启、不改表结构的操作，等待用户批准；尚未执行。最终根因待原事务返回错误后确认，不将配置观察等同最终报错。诊断回执result-278至284及286；request-285为待批准操作。
+
+用户追加部署安排：全部同步完成并回读确认后，再获取最新代码、核对修改范围、构建验证并部署修改内容。同步过程中不提前切换运行版本；当前数据库容量调整仍待单独确认。
+
+## 09时后续：UUID来源键与全量发布
+
+已取消并回滚旧数字键发货阶段，按用户要求调整uuid来源键并发布全部内容。新版本已重新预览并开始执行。详见[后续发布与续跑回执](uuid-source-key-and-publication.md)，上述06时记录保留为当时证据。
+
+## 续跑完成（2026-11-02）
+
+本次后续同步已完成，25个任务最新正式运行均为COMPLETED、活动占用为0。完成数量和保留缺项见[续跑完成报告](sync-completion.md)。本文此前进行中记录保留为当时证据。

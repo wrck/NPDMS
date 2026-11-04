@@ -1,0 +1,39 @@
+{
+  "checks": [
+    {
+      "params": {},
+      "count": 150,
+      "code": 0
+    },
+    {
+      "params": {
+        "codePrefixes": "16*"
+      },
+      "count": 61,
+      "code": 0
+    },
+    {
+      "params": {
+        "codePrefixes": "31*"
+      },
+      "count": 50,
+      "code": 0
+    },
+    {
+      "params": {
+        "codePrefixes": "16*,31*"
+      },
+      "count": 111,
+      "code": 0
+    },
+    {
+      "params": {
+        "codePrefixes": "NO_SUCH_DEPARTMENT_PREFIX*"
+      },
+      "count": 0,
+      "code": 0
+    }
+  ],
+  "unauthenticatedRejected": true,
+  "invalidPrefixRejected": true
+}

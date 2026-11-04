@@ -1,0 +1,48 @@
+{
+  "retainedPrivateCa": true,
+  "passwordChanged": false,
+  "browserObservation": "Reset form displayed account w02611, resend cooldown and generic send notification; no password reset submitted",
+  "date": "2026-11-02",
+  "restart": {
+    "before": {
+      "backend": "73107",
+      "dac": "17159",
+      "automaticRestarts": "0"
+    },
+    "after": {
+      "backend": "80347",
+      "dac": "17159",
+      "active": "active",
+      "automaticRestarts": "0"
+    },
+    "restartCommandsIssued": 1
+  },
+  "mail": {
+    "logId": 3,
+    "inboxReceiptConfirmed": true,
+    "acceptance": {
+      "date": "2026-11-02",
+      "confirmedBy": "user",
+      "confirmation": "已收到验证码，邮件发送正常了。",
+      "result": "PASSED",
+      "scope": "正式环境忘记密码验证码发送及实际收件",
+      "issueClosed": true
+    },
+    "statusMeaning": "SUCCESS",
+    "sendStatus": 10,
+    "account": "w02611",
+    "sentAt": "2026-11-02T16:06:31+08:00"
+  },
+  "oldFailureLogIds": [
+    1,
+    2
+  ],
+  "truststoreMode": "0644 root:root; certificates only",
+  "activeTruststore": "/etc/sdp/tls/java-truststore-mail-candidate-20261102.p12",
+  "addedCaSha256": "CBB522D7B7F127AD6A0113865BDF1CD4102E7D0759AF635A7CF4720DC963C53B",
+  "rootCause": "Production JVM custom truststore lacked GlobalSign Root CA R3 required by SMTP STARTTLS",
+  "readiness": "UP",
+  "activeDropIn": "/etc/systemd/system/sdp.service.d/mail-trust.conf",
+  "codeChanged": false,
+  "startupCorrection": "Candidate truststore initially unreadable by sdp; ownership and mode aligned with original truststore; same JVM recovered without second restart"
+}

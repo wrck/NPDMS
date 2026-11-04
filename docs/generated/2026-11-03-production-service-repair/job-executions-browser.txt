@@ -1,0 +1,309 @@
+- link "服务交付平台":
+  - /url: /
+  - generic: 服务交付平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施" [expanded]:
+    - generic: 基础设施
+    - menu:
+      - menuitem "代码生成":
+        - generic: 代码生成
+      - menuitem "数据源配置":
+        - generic: 数据源配置
+      - menuitem "表单构建":
+        - generic: 表单构建
+      - menuitem "API 接口":
+        - generic: API 接口
+      - menuitem "API 日志":
+        - generic: API 日志
+      - menuitem "WebSocket":
+        - generic: WebSocket
+      - menuitem "文件管理":
+        - generic: 文件管理
+      - menuitem "定时任务":
+        - generic: 定时任务
+      - menuitem "配置管理":
+        - generic: 配置管理
+      - menuitem "监控中心":
+        - generic: 监控中心
+  - menuitem "项目交付":
+    - generic: 项目交付
+  - menuitem "割接交付":
+    - generic: 割接交付
+  - menuitem "巡检服务":
+    - generic: 巡检服务
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button "系统管理员":
+  - generic: 系统管理员
+- button "首页":
+  - text: 首页
+- button "错误日志":
+  - text: 错误日志
+- button "访问日志":
+  - text: 访问日志
+- button "定时任务":
+  - text: 定时任务
+- button "调度日志":
+  - text: 调度日志
+- button:
+- generic: 处理器的名字
+- textbox "处理器的名字":
+  - /placeholder: 请输入处理器的名字
+- generic: 开始执行时间
+- combobox "开始执行时间"
+- generic: 结束执行时间
+- combobox "结束执行时间"
+- generic: 任务状态
+- combobox "任务状态"
+- generic: 请选择任务状态
+- button "搜索":
+  - text: 搜索
+- button "重置":
+  - text: 重置
+- button "导出":
+  - text: 导出
+- table:
+  - rowgroup:
+    - row "日志编号 任务编号 处理器的名字 处理器的参数 第几次执行 执行时间 执行时长 任务状态 操作":
+      - columnheader "日志编号":
+        - generic: 日志编号
+      - columnheader "任务编号":
+        - generic: 任务编号
+      - columnheader "处理器的名字":
+        - generic: 处理器的名字
+      - columnheader "处理器的参数":
+        - generic: 处理器的参数
+      - columnheader "第几次执行":
+        - generic: 第几次执行
+      - columnheader "执行时间":
+        - generic: 执行时间
+      - columnheader "执行时长":
+        - generic: 执行时长
+      - columnheader "任务状态":
+        - generic: 任务状态
+      - columnheader "操作":
+        - generic: 操作
+- table:
+  - rowgroup:
+    - row "34769 992005900001 satisfactionTaskOutboxDeliveryJob 1 2026-11-03 03:04:30 ~ 2026-11-03 03:04:31 500 毫秒 成功 详细":
+      - cell "34769":
+        - generic: "34769"
+      - cell "992005900001":
+        - generic: "992005900001"
+      - cell "satisfactionTaskOutboxDeliveryJob":
+        - generic: satisfactionTaskOutboxDeliveryJob
+      - cell
+      - cell "1":
+        - generic: "1"
+      - cell "2026-11-03 03:04:30 ~ 2026-11-03 03:04:31":
+        - generic: 2026-11-03 03:04:30 ~ 2026-11-03 03:04:31
+      - cell "500 毫秒":
+        - generic: 500 毫秒
+      - cell "成功":
+        - generic: 成功
+      - cell "详细":
+        - button "详细":
+          - generic: 详细
+    - row "34768 992005900002 satisfactionResultOutboxDeliveryJob 1 2026-11-03 03:04:30 ~ 2026-11-03 03:04:31 565 毫秒 成功 详细":
+      - cell "34768":
+        - generic: "34768"
+      - cell "992005900002":
+        - generic: "992005900002"
+      - cell "satisfactionResultOutboxDeliveryJob":
+        - generic: satisfactionResultOutboxDeliveryJob
+      - cell
+      - cell "1":
+        - generic: "1"
+      - cell "2026-11-03 03:04:30 ~ 2026-11-03 03:04:31":
+        - generic: 2026-11-03 03:04:30 ~ 2026-11-03 03:04:31
+      - cell "565 毫秒":
+        - generic: 565 毫秒
+      - cell "成功":
+        - generic: 成功
+      - cell "详细":
+        - button "详细":
+          - generic: 详细
+    - row "34767 992005900003 satisfactionResultArchiveCompensationJob 1 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30 315 毫秒 成功 详细":
+      - cell "34767":
+        - generic: "34767"
+      - cell "992005900003":
+        - generic: "992005900003"
+      - cell "satisfactionResultArchiveCompensationJob":
+        - generic: satisfactionResultArchiveCompensationJob
+      - cell
+      - cell "1":
+        - generic: "1"
+      - cell "2026-11-03 03:04:30 ~ 2026-11-03 03:04:30":
+        - generic: 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30
+      - cell "315 毫秒":
+        - generic: 315 毫秒
+      - cell "成功":
+        - generic: 成功
+      - cell "详细":
+        - button "详细":
+          - generic: 详细
+    - row "34766 970445201 cutoverResultDeliveryJob 1 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30 364 毫秒 成功 详细":
+      - cell "34766":
+        - generic: "34766"
+      - cell "970445201":
+        - generic: "970445201"
+      - cell "cutoverResultDeliveryJob":
+        - generic: cutoverResultDeliveryJob
+      - cell
+      - cell "1":
+        - generic: "1"
+      - cell "2026-11-03 03:04:30 ~ 2026-11-03 03:04:30":
+        - generic: 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30
+      - cell "364 毫秒":
+        - generic: 364 毫秒
+      - cell "成功":
+        - generic: 成功
+      - cell "详细":
+        - button "详细":
+          - generic: 详细
+    - row "34765 992004900001 acceptanceReportOutboxDeliveryJob 1 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30 366 毫秒 成功 详细":
+      - cell "34765":
+        - generic: "34765"
+      - cell "992004900001":
+        - generic: "992004900001"
+      - cell "acceptanceReportOutboxDeliveryJob":
+        - generic: acceptanceReportOutboxDeliveryJob
+      - cell
+      - cell "1":
+        - generic: "1"
+      - cell "2026-11-03 03:04:30 ~ 2026-11-03 03:04:30":
+        - generic: 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30
+      - cell "366 毫秒":
+        - generic: 366 毫秒
+      - cell "成功":
+        - generic: 成功
+      - cell "详细":
+        - button "详细":
+          - generic: 详细
+    - row "34764 41 projectServiceManagerNotificationJob 1 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30 363 毫秒 成功 详细":
+      - cell "34764":
+        - generic: "34764"
+      - cell "41":
+        - generic: "41"
+      - cell "projectServiceManagerNotificationJob":
+        - generic: projectServiceManagerNotificationJob
+      - cell
+      - cell "1":
+        - generic: "1"
+      - cell "2026-11-03 03:04:30 ~ 2026-11-03 03:04:30":
+        - generic: 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30
+      - cell "363 毫秒":
+        - generic: 363 毫秒
+      - cell "成功":
+        - generic: 成功
+      - cell "详细":
+        - button "详细":
+          - generic: 详细
+    - row "34763 993014239002 deviceOpsReconciliationJob 1 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30 364 毫秒 成功 详细":
+      - cell "34763":
+        - generic: "34763"
+      - cell "993014239002":
+        - generic: "993014239002"
+      - cell "deviceOpsReconciliationJob":
+        - generic: deviceOpsReconciliationJob
+      - cell
+      - cell "1":
+        - generic: "1"
+      - cell "2026-11-03 03:04:30 ~ 2026-11-03 03:04:30":
+        - generic: 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30
+      - cell "364 毫秒":
+        - generic: 364 毫秒
+      - cell "成功":
+        - generic: 成功
+      - cell "详细":
+        - button "详细":
+          - generic: 详细
+    - row "34762 993009230001 projectRuleOutboxDeliveryJob 1 2026-11-03 03:04:30 ~ 2026-11-03 03:04:31 730 毫秒 成功 详细":
+      - cell "34762":
+        - generic: "34762"
+      - cell "993009230001":
+        - generic: "993009230001"
+      - cell "projectRuleOutboxDeliveryJob":
+        - generic: projectRuleOutboxDeliveryJob
+      - cell
+      - cell "1":
+        - generic: "1"
+      - cell "2026-11-03 03:04:30 ~ 2026-11-03 03:04:31":
+        - generic: 2026-11-03 03:04:30 ~ 2026-11-03 03:04:31
+      - cell "730 毫秒":
+        - generic: 730 毫秒
+      - cell "成功":
+        - generic: 成功
+      - cell "详细":
+        - button "详细":
+          - generic: 详细
+    - row "34761 992201040002 deviceAssignedProjectionJob 1 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30 365 毫秒 成功 详细":
+      - cell "34761":
+        - generic: "34761"
+      - cell "992201040002":
+        - generic: "992201040002"
+      - cell "deviceAssignedProjectionJob":
+        - generic: deviceAssignedProjectionJob
+      - cell
+      - cell "1":
+        - generic: "1"
+      - cell "2026-11-03 03:04:30 ~ 2026-11-03 03:04:30":
+        - generic: 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30
+      - cell "365 毫秒":
+        - generic: 365 毫秒
+      - cell "成功":
+        - generic: 成功
+      - cell "详细":
+        - button "详细":
+          - generic: 详细
+    - row "34760 992004900002 acceptanceReportArchiveCompensationJob 1 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30 58 毫秒 成功 详细":
+      - cell "34760":
+        - generic: "34760"
+      - cell "992004900002":
+        - generic: "992004900002"
+      - cell "acceptanceReportArchiveCompensationJob":
+        - generic: acceptanceReportArchiveCompensationJob
+      - cell
+      - cell "1":
+        - generic: "1"
+      - cell "2026-11-03 03:04:30 ~ 2026-11-03 03:04:30":
+        - generic: 2026-11-03 03:04:30 ~ 2026-11-03 03:04:30
+      - cell "58 毫秒":
+        - generic: 58 毫秒
+      - cell "成功":
+        - generic: 成功
+      - cell "详细":
+        - button "详细":
+          - generic: 详细
+- combobox
+- generic: 10条/页
+- generic: 共 32826 条
+- button "上一页" [disabled]:
+- list:
+  - listitem "第 1 页": "1"
+  - listitem "第 2 页": "2"
+  - listitem "第 3 页": "3"
+  - listitem "第 4 页": "4"
+  - listitem "第 5 页": "5"
+  - listitem "第 6 页": "6"
+  - listitem "向后 5 页":
+  - listitem "第 3283 页": "3283"
+- button "下一页":
+- generic: 前往
+- spinbutton "页": "1"
+- generic: 页
+- generic: Copyright ©2026 服务交付平台

@@ -1,0 +1,146 @@
+- link "服务交付平台":
+  - /url: /
+  - generic: 服务交付平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施" [expanded]:
+    - generic: 基础设施
+    - menu:
+      - menuitem "代码生成":
+        - generic: 代码生成
+      - menuitem "数据源配置":
+        - generic: 数据源配置
+      - menuitem "表单构建":
+        - generic: 表单构建
+      - menuitem "API 接口":
+        - generic: API 接口
+      - menuitem "API 日志":
+        - generic: API 日志
+      - menuitem "WebSocket":
+        - generic: WebSocket
+      - menuitem "文件管理":
+        - generic: 文件管理
+      - menuitem "定时任务":
+        - generic: 定时任务
+      - menuitem "配置管理":
+        - generic: 配置管理
+      - menuitem "监控中心":
+        - generic: 监控中心
+  - menuitem "项目交付":
+    - generic: 项目交付
+  - menuitem "割接交付":
+    - generic: 割接交付
+  - menuitem "巡检服务":
+    - generic: 巡检服务
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑":
+  - link "基础设施":
+    - text: 基础设施
+  - text: /
+  - link "定时任务":
+    - text: 定时任务
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button "系统管理员":
+  - generic: 系统管理员
+- button "首页":
+  - text: 首页
+- button "错误日志":
+  - text: 错误日志
+- button "访问日志":
+  - text: 访问日志
+- button "定时任务":
+  - text: 定时任务
+- button:
+- generic: 任务名称
+- textbox "任务名称":
+  - /placeholder: 请输入任务名称
+- generic: 任务状态
+- combobox "任务状态"
+- generic: 请选择任务状态
+- generic: 处理器的名字
+- textbox "处理器的名字":
+  - /placeholder: 请输入处理器的名字
+  - text: deviceAssignedProjectionJob
+- button "搜索" [active]:
+  - text: 搜索
+- button "重置":
+  - text: 重置
+- button "新增":
+  - text: 新增
+- button "批量删除" [disabled]:
+  - text: 批量删除
+- button "导出":
+  - text: 导出
+- button "执行日志":
+  - text: 执行日志
+- button "同步任务":
+  - text: 同步任务
+- table:
+  - rowgroup:
+    - row "选择所有行 任务编号 任务名称 任务状态 处理器的名字 处理器的参数 CRON 表达式 操作":
+      - columnheader "选择所有行":
+        - generic "选择所有行":
+          - checkbox "选择所有行"
+      - columnheader "任务编号":
+        - generic: 任务编号
+      - columnheader "任务名称":
+        - generic: 任务名称
+      - columnheader "任务状态":
+        - generic: 任务状态
+      - columnheader "处理器的名字":
+        - generic: 处理器的名字
+      - columnheader "处理器的参数":
+        - generic: 处理器的参数
+      - columnheader "CRON 表达式":
+        - generic: CRON 表达式
+      - columnheader "操作":
+        - generic: 操作
+- table:
+  - rowgroup:
+    - row "选择当前行 992201040002 设备祖先投影重建 正常 deviceAssignedProjectionJob 0/30 * * * * ? 修改 暂停 删除 更多":
+      - cell "选择当前行":
+        - generic "选择当前行":
+          - checkbox "选择当前行"
+      - cell "992201040002":
+        - generic: "992201040002"
+      - cell "设备祖先投影重建":
+        - generic: 设备祖先投影重建
+      - cell "正常":
+        - generic: 正常
+      - cell "deviceAssignedProjectionJob":
+        - generic: deviceAssignedProjectionJob
+      - cell
+      - cell "0/30 * * * * ?":
+        - generic: 0/30 * * * * ?
+      - cell "修改 暂停 删除 更多":
+        - button "修改":
+          - generic: 修改
+        - button "暂停":
+          - generic: 暂停
+        - button "删除":
+          - generic: 删除
+        - button "更多":
+          - text: 更多
+- combobox
+- generic: 10条/页
+- generic: 共 1 条
+- button "上一页" [disabled]:
+- list:
+  - listitem "第 1 页": "1"
+- button "下一页" [disabled]:
+- generic: 前往
+- spinbutton "页": "1"
+- generic: 页
+- generic: Copyright ©2026 服务交付平台

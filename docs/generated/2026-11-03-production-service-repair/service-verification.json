@@ -1,0 +1,37 @@
+{
+  "result-536-final-services-fe1.json": {
+    "exit_code": 0,
+    "output": "  UNIT                  LOAD   ACTIVE SUB    DESCRIPTION\n● fwupd-refresh.service loaded failed failed Refresh fwupd metadata and update motd\n\nLegend: LOAD   → Reflects whether the unit definition was properly loaded.\n        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.\n        SUB    → The low-level unit activation state, values depend on unit type.\n\n1 loaded units listed.\nResult=success\nExecMainStatus=0\nactive\n",
+    "stderr": "nginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful\n"
+  },
+  "result-537-final-services-fe2.json": {
+    "exit_code": 0,
+    "output": "  UNIT                  LOAD   ACTIVE SUB    DESCRIPTION\n● fwupd-refresh.service loaded failed failed Refresh fwupd metadata and update motd\n\nLegend: LOAD   → Reflects whether the unit definition was properly loaded.\n        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.\n        SUB    → The low-level unit activation state, values depend on unit type.\n\n1 loaded units listed.\nResult=success\nExecMainStatus=0\nactive\n",
+    "stderr": "nginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful\n"
+  },
+  "result-538-final-services-be.json": {
+    "exit_code": 0,
+    "output": "  UNIT LOAD ACTIVE SUB DESCRIPTION\n\n0 loaded units listed.\nResult=success\nExecMainStatus=0\nactive\nactive\nactive\nactive\nactive\nenabled\nNEXT                            LEFT LAST PASSED UNIT             ACTIVATES\nTue 2026-11-03 04:31:20 CST 1h 26min -         - sdp-backup.timer sdp-backup.service\n\n1 timers listed.\nPass --all to see loaded but inactive timers, too.\n676685a80c6268b8facf56633e8b031ca6ee6a4ff2b410b18135cf19ea1f921c  /opt/sdp/backend/current/yudao-server.jar\n",
+    "stderr": ""
+  },
+  "result-541-fwupd-reset-fe1.json": {
+    "exit_code": 0,
+    "output": "  UNIT LOAD ACTIVE SUB DESCRIPTION\n\n0 loaded units listed.\ndisabled\n",
+    "stderr": ""
+  },
+  "result-542-fwupd-reset-fe2.json": {
+    "exit_code": 0,
+    "output": "  UNIT LOAD ACTIVE SUB DESCRIPTION\n\n0 loaded units listed.\ndisabled\n",
+    "stderr": ""
+  },
+  "result-533-db-final-services.json": {
+    "output": "  UNIT                  LOAD   ACTIVE SUB    DESCRIPTION\n● fwupd-refresh.service loaded failed failed Refresh fwupd metadata and update motd\n\nLegend: LOAD   → Reflects whether the unit definition was properly loaded.\n        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.\n        SUB    → The low-level unit activation state, values depend on unit type.\n\n1 loaded units listed.\nResult=success\nId=sdp-mysql.service\nActiveState=active\n\nResult=success\nId=logrotate.service\nActiveState=inactive\nenabled\nNEXT                            LEFT LAST PASSED UNIT             ACTIVATES\nTue 2026-11-03 04:33:51 CST 1h 28min -         - sdp-backup.timer sdp-backup.service\n\n1 timers listed.\nPass --all to see loaded but inactive timers, too.\n",
+    "stderr": "",
+    "exit_code": 0
+  },
+  "result-534-db-fwupd-reset.json": {
+    "output": "disabled\n  UNIT LOAD ACTIVE SUB DESCRIPTION\n\n0 loaded units listed.\n",
+    "stderr": "",
+    "exit_code": 0
+  }
+}

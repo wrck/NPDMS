@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "output": "{\"status\":\"UP\"}\nMainPID=114421\nNRestarts=0\nActiveState=active\nSubState=running\n\n2026-11-03 03:04:10.194 [main] \u001b[34mINFO \u001b[0;39m \u001b[36mcn.iocoder.yudao.server.YudaoServerApplication:60\u001b[0;39m - Started YudaoServerApplication in 45.36 seconds (process running for 45.989)\n2026-11-03 03:04:10.429 [main] \u001b[34mINFO \u001b[0;39m \u001b[36mc.i.yudao.module.infra.service.job.JobServiceImpl:191\u001b[0;39m - [syncJobByHandlerName][id(41) handlerName(projectServiceManagerNotificationJob) status(1) 同步完成]\n2026-11-03 03:04:10.493 [main] \u001b[34mINFO \u001b[0;39m \u001b[36mc.i.yudao.module.infra.service.job.JobServiceImpl:191\u001b[0;39m - [syncJobByHandlerName][id(992201040002) handlerName(deviceAssignedProjectionJob) status(1) 同步完成]\n",
+  "stderr": ""
+}

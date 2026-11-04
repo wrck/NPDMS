@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "output": "{id=992210300526, config_key=pms.installation.address.product.filters, value={\"productFilters\":[{\"productTypeNotIn\":[\"光模块\"],\"productDescNotLike\":\"%光模块%\"}]}, creator=seed_feedback20261030_optical, updater=1, deleted=false}\n{installed_rank=4, version=534, script=V534__project_contract_projection.sql, success=true}\n{installed_rank=3, version=533, script=V533__license_history_plaintext_capture.sql, success=true}\n{installed_rank=2, version=531.2, script=V531_2__register_formal_base_sync_tasks.sql, success=true}\n",
+  "stderr": ""
+}

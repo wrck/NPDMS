@@ -1,0 +1,455 @@
+{
+  "recordedAt": "2026-11-02T11:53:04.918532+08:00",
+  "scope": "25 tasks; approved decisions and execution steps, not all-field source reconciliation or browser acceptance",
+  "excludedByUser": [
+    "P01 eight department director associations"
+  ],
+  "tasks": [
+    {
+      "task": "BASE_P01",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P01OrganizationSyncTask.java",
+          "sha256": "6168efde41feea9fde442fa7985c272055553e8d06cad65beae007a4c6a7abeb"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P01SourceMapper.xml",
+          "sha256": "20defac98ac361b46366ff69adc048d1561e8174ade0d943ac7fdcbece73b1d3"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml",
+          "sha256": "421068f53dde4cbeb0f5e77fe7d8fc8f4ff8238ef9fb4959fad16f42fc7521c7"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P04",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P04AccountSyncTask.java",
+          "sha256": "30aa797d4e7ae53ff7df96cdd58d7b038e033290b73c100eec611bdda062f75b"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+          "sha256": "5ff8e4476ccbb11ea485e4b2f1ca394f91d6b8c85f7e9eb817f17e574cbe528a"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+          "sha256": "08446285f39cc04a6b18d4930c2ae708aebfdd9c56248c0725ee45611e2317e2"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P08",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P08DictionarySyncTask.java",
+          "sha256": "cd7f225a2178c89f2caf805abef1e4e93e404f9867f2406725688504a91623cc"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P08SourceMapper.xml",
+          "sha256": "edac2e940d61e5a19b4bde7eef3f25c9978d3e35ab7240722a2a23aae3ac05f3"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P08TargetMapper.xml",
+          "sha256": "a201832beffa8ead63a13d53394d4e6c12818da222533404e1ff5c63aca9f32e"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P10",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P10CrmCustomerSyncTask.java",
+          "sha256": "69b0950f97db85cc8606ffec638bb4b17d1ebe12fbd13d5dc1b3bbcbdd507a75"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P10SourceMapper.xml",
+          "sha256": "a6f88b203f18cce4a2846b3474cc86804a7ddcbccdb9b34971516dbabaa81296"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml",
+          "sha256": "e9079aca990de5b4ceea890d0e06d9814168f65706bce04ef3815539ff07ca40"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P11",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P11CrmProductSyncTask.java",
+          "sha256": "7c234bed1415db2eee241e158ad7711b6c7d5bde8965511f561fcf50e98b20de"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P11SourceMapper.xml",
+          "sha256": "724e91dd452ab2a67e989ac5c6aaf158adcb9c4d3b347c1040e03b5a38fa0721"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml",
+          "sha256": "5d6b4fbdc4844a74ec6516de194244f4f7f565ee05822b821d2285c2730f6d2e"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P12",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P12SupplementProductSyncTask.java",
+          "sha256": "9b2fc2b365bd559d69f80b209727cc59453422177328f50fa3eecdc19b1e29b7"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P12SourceMapper.xml",
+          "sha256": "6071a3144e8ae426edd4ba3b28e19071c70edf453f52af9bf6f2ed369f19de27"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml",
+          "sha256": "84e0aca06291a8df96394503ed5d279637a69ab1e72e414e7a68404f720af3ac"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P13",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P13ExecutionOrderSyncTask.java",
+          "sha256": "f93ee49fe78f6ba193f3851bfc436a8b6a0b2940e8315106306277b87bd86ebc"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P13SourceMapper.xml",
+          "sha256": "bc5931c10093ba4032456a288b6957895bd2e6f91665228e1a4ce8648b080f09"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml",
+          "sha256": "ade4e5daa1dc74777035991247cce8a5c53067f70818e226c80573bb695148ea"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P14",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P14SalesOrderSyncTask.java",
+          "sha256": "9c6dac2116ab9c37caf88f0987bd1c06b5f94bda1db50a09d6409f0a60248e96"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P14SourceMapper.xml",
+          "sha256": "b377f2f1c2734dd731c1ffcecb72eb9272f964333a9b6fc5eb651b43fc096364"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P14TargetMapper.xml",
+          "sha256": "47423394acb1fed7de7902ad67f3ba1c6eeb57500c9da67067f6f197d6ee1cc5"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P15",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java",
+          "sha256": "a8d45d552eb8cce835932dc3673b7f92acc03d3e19bfd9fc0e3907d1518e03d8"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P15SourceMapper.xml",
+          "sha256": "3ffdf291bfb2fba71124747b55645d0b677e88b488ffd227eedc5e312209c136"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+          "sha256": "e962c6ac4bb9fa8f12fbf77ba05b0d818dc51895103e716221e9b187a1a81534"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P16",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P16ProjectSyncTask.java",
+          "sha256": "4a92b0119bc2cc083873fc2c05e8e3caba642bdccfa76ea229b2da3207d7fbdd"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P16SourceMapper.xml",
+          "sha256": "fc42500fb3d56aca06c8eb9caacc636b1bf12b429472f7f0f2dff593f19ceb03"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml",
+          "sha256": "4e86822c0ed8d3ad1be820d19d72303d5a717f0d0f2cba69ae0b01264edfe112"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P18",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P18ProjectContractSyncTask.java",
+          "sha256": "c6b0a40b64940df3616dab5841db94837f4457929e5bc7949c95ff05ee58fccf"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P18SourceMapper.xml",
+          "sha256": "6c54a5fc412555006487dcdce57008822ee177128f7b389215f0babaccf2fea1"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P18TargetMapper.xml",
+          "sha256": "1310ed6e2b688cc3deb332f95b6cdbe026659865ff4cce986ff37e0fe7fe4e88"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P19",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P19ProjectFactsSyncTask.java",
+          "sha256": "7af8336248a7e8df3b013322a4dd25004d5237475e7306fa17d7eb68af815ed2"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P19SourceMapper.xml",
+          "sha256": "6b71c566c28a22a16e5cb2cf43e0ff597336f283e30001ba55769cf702c47e95"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml",
+          "sha256": "2c89ef647dc87dd902bcf9ca7ace3e9594822a6dae103a2f4a885ab5907232f8"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P20",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P20RealProductSyncTask.java",
+          "sha256": "dd1a5ba3e17c0157038e39e7a4716947fe656b272466be3922774093baae01ca"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P20SourceMapper.xml",
+          "sha256": "74aec432fbad30d05c8871989288d74f12d90b817b0d99391fb8b1a1e1e589f7"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml",
+          "sha256": "7b06023f968093c895d55cd2d29470ac6abfa8f971ea6107a63ebc6535f2432b"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P21",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P21ProjectCacheSyncTask.java",
+          "sha256": "4a01ed65a3dcbeaa78f7045bd6e37f107705e0bdf28c818a255b8b2bc30c5ffd"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P21SourceMapper.xml",
+          "sha256": "d9bb30fd46dedec4bfde2446f0ad235744e68b2567548a4988d5865036e76ef7"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml",
+          "sha256": "fec3ab0de289483d80508e9c04150b1503556bacb6088fde418c82e727a002d1"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P22",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P22ProductScopeSyncTask.java",
+          "sha256": "bde5105bbb11da31fc37e90d5f48d23b2027e3a88aecfb06329035a79705e4e5"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P22SourceMapper.xml",
+          "sha256": "36264f70376f464f5b505f2d60e6c5faf902165bbdc6cd112e27f408effc5572"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P22TargetMapper.xml",
+          "sha256": "d2d7da0a5af404ed23edc8c2bfa25d0c8ceb03b5a33dae82930361f2f2a765bf"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P23",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P23CollectionPlanSyncTask.java",
+          "sha256": "0558277fb06f4fab9886029124c0e817873a4c00ebcaa2a265c1a146e27f1a44"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P23SourceMapper.xml",
+          "sha256": "b4601952226d9b0e1cf59e4c4a193a41cc04be2ea6f880ead4d670f0ddcfe5da"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml",
+          "sha256": "d92e553d2ed353178e9e65f7b63a0cd0ee84e42558377f09e69459f05210326d"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P24",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P24ReceivableSyncTask.java",
+          "sha256": "a5beb05fa298edb9b639e9cfa8ebcb069b8daa9e1acb356b938d19b12af92b09"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P24SourceMapper.xml",
+          "sha256": "da29dc50db80266a0d3381fe154a191cecd0ed7a601a7c81b1a29f341ca489db"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml",
+          "sha256": "a581f60b8c960413600a540bce92e0ce4663d4d05fe736939ff3e82556dc15ff"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P25",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P25WarrantySyncTask.java",
+          "sha256": "0b0a6ca54a86e115f5cc96585f3bf5acff34acc677fe4facb0191fb10e347292"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P25SourceMapper.xml",
+          "sha256": "2b56e87a28a8290f82362908bca5b2664a53e9ddae5e6cedb43857e63eb74dd8"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P25TargetMapper.xml",
+          "sha256": "202243d7974d183ec07735c86315d0026f58ce7490027e045ec1a17fb4547078"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P30",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P30DeviceBaseSyncTask.java",
+          "sha256": "30d39e5d212e3510e5fee9076924bbff95be0f498c196ff0fcdde0eef6052864"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml",
+          "sha256": "facc9651c53b7ccfb31b69710ff9994c32d68331cc6b5ed1daf26099ada5c040"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P31",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P31MemberContactSyncTask.java",
+          "sha256": "d536db27f0f297b59ef77ff5a5c2768f97abb9c909dde030ca268633173bac43"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P31SourceMapper.xml",
+          "sha256": "559abf21daf229c4a0c732e5d805dc941c9b81b0c007cb6de99e5ec32dc2e314"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml",
+          "sha256": "08b1ad36a5fb96915fc2f026a425550b9fa6aaac90d51827f66c46e9a9d0c21e"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P33",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P33InstallationSyncTask.java",
+          "sha256": "9cd6cebcb739daa1959314ac9c2642c50899a7220c7780b2656ebfe79b9a186e"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P33SourceMapper.xml",
+          "sha256": "5ff6cc9ce363b787d18a26f6efe7ad36d0a31432f05b35046b114f0bbc53df31"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml",
+          "sha256": "dbe7ffea4c997032176a46c9b61d2665737297724db13dd243e91ff75c8f8af1"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P34",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P34FactoryHistorySyncTask.java",
+          "sha256": "4aaf1920760a008a19d1d8435c30d2e693bd32167808cc2d0d6fc3f4ccda5ed9"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P34SourceMapper.xml",
+          "sha256": "c771e096ca218da47842a04e6b8a879b0272900c9da22f2307b9f67ca6068c00"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml",
+          "sha256": "ab6451930505d272916f6dc90bf7d09714ad176314179d70db91dcb941d8c70f"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P35",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P35SoftwareHistorySyncTask.java",
+          "sha256": "fe02e20c4cc93893cd9f4f3f404c4b817d6cabc4cf561651132ac1665b876566"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P35SourceMapper.xml",
+          "sha256": "5b51b8a6eb2784db7f93a4e28533dc2f5bac56190e91ef51144d437131822501"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P35TargetMapper.xml",
+          "sha256": "88fb61151a0fb26b1b72c29ee3493347d632bcac873acb3d1ec6d0f8833de3ae"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P37",
+      "codeFiles": [
+        {
+          "path": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P37LicenseHistorySyncTask.java",
+          "sha256": "a012c82ee8772e54e268c7d6d5326d66d819aec13d0c2ae122117f1fff48995b"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/base-sync-source/P37SourceMapper.xml",
+          "sha256": "e5e8dd3e664caf1df0f8db5e2dc6b8b70c32d869a6f8704f956f460729af8562"
+        },
+        {
+          "path": "pms-module-integration/src/main/resources/mapper/basesync/P37TargetMapper.xml",
+          "sha256": "6c877d81962a4abd7a019be48658655d4719e896723a46ccc63a72a1bfe00411"
+        }
+      ]
+    },
+    {
+      "task": "BASE_P38",
+      "codeFiles": [
+        {
+          "path": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectplan/MigratedProjectTemplateSyncTask.java",
+          "sha256": "ee3546ff5908fdb5a74b5297c66d908eceff96a7271e0632284fa550e2618d87"
+        },
+        {
+          "path": "pms-module-project/target/classes/mapper/projectplan/MigratedProjectTemplateSyncTaskMapper.xml",
+          "sha256": "f08c4ab3f0a713c573f81e0c248598c69cb36ccd63de1303a3631d9de0a72af3"
+        },
+        {
+          "path": "pms-module-project/src/main/resources/mapper/projectplan/MigratedProjectTemplateSyncTaskMapper.xml",
+          "sha256": "f08c4ab3f0a713c573f81e0c248598c69cb36ccd63de1303a3631d9de0a72af3"
+        }
+      ]
+    }
+  ],
+  "readOnlyEvidence": {
+    "373-full-decision-audit": {
+      "exit_code": 1,
+      "output": "section\ttask_code\tactive_run_id\trun_id\tstatus\tread_count\tinserted_count\tupdated_count\tunchanged_count\terror_message\nTASK\tBASE_P01\tNULL\t2116958559071596546\tCOMPLETED\t210\t0\t0\t210\tP01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001\nTASK\tBASE_P04\tNULL\t2116961597509300226\tCOMPLETED\t12860\t12807\t0\t53\tP04_ORIGINAL_READ:3383;EXCLUDED_ACCOUNTS:26;ORPHAN_PROFILES:3\nTASK\tBASE_P08\tNULL\t2116985359696871425\tCOMPLETED\t617\t5\t0\t612\tP08_INITIALIZED_TYPE_PRESERVED:33;P08_INITIALIZED_TYPE_PRESERVED:34;P08_INITIALIZED_DEFINITION_PRESERVED:471;P08_INITIALIZED_DEFINITION_PRESERVED:472;P08_INITIALIZED_DEFINITION_PRESERVED:473\nTASK\tBASE_P10\tNULL\t2116960631259099137\tCOMPLETED\t69356\t69356\t0\t0\tNULL\nTASK\tBASE_P11\tNULL\t2116959128079265793\tCOMPLETED\t10392\t10387\t5\t0\tNULL\nTASK\tBASE_P12\tNULL\t2116959298758078466\tCOMPLETED\t35860\t25501\t0\t10359\tNULL\nTASK\tBASE_P13\tNULL\t2116962019355619329\tCOMPLETED\t101986\t83172\t0\t18814\tP13_OUTSIDE_REVIEWED_PROJECT_SCOPE:2665\nTASK\tBASE_P14\tNULL\t2116979852848300033\tCOMPLETED\t575027\t481822\t93205\t0\tP14_ORDER_REFERENCE_PENDING:1580\nTASK\tBASE_P15\tNULL\t2117080208437669889\tCOMPLETED\t4305590\t0\t1812842\t2492748\tSTAGES:ShipmentOrderLine;P15_SHIPMENT_ORDER_LINE_SOURCE_LINE_MISSING:2492748\nTASK\tBASE_P16\tNULL\t2116962589411864578\tCOMPLETED\t162655\t81321\t0\t81334\tNULL\nTASK\tBASE_P18\tNULL\t2117079825157976066\tCOMPLETED\t84573\t0\t82387\t84573\tP18_COMPANY_SOURCE_PENDING:8;P18_CONTRACT_REFERENCE_FILLED:82387;P18_CONTRACT_REFERENCE_PENDING:1891;P18_BRIDGE_CONTRACT_GROUP_MISSING:3528;P18_BRIDGE_CONTRACT_MEMBERS_MISSING:1;P18_BRIDGE_CONTRACT_MEMBER_PROJECT_MISSING:800\nTASK\tBASE_P19\tNULL\t2116965758539886593\tCOMPLETED\t189424\t189424\t0\t0\tP19_EXTENSION_ATTRIBUTES_DEFERRED:shipment_status,shipment_status_updated_at,execution_status,execution_status_updated_at\nTASK\tBASE_P20\tNULL\t2116967896456327169\tCOMPLETED\t7818\t7818\t0\t0\tNULL\nTASK\tBASE_P21\tNULL\t2116967962701164546\tCOMPLETED\t2183\t2183\t0\t0\tNULL\nTASK\tBASE_P22\tNULL\t2116986904870076417\tCOMPLETED\t352459\t349483\t0\t0\tP22_ZERO_QUANTITY_PENDING:2976;P22_DEPARTMENT_SOURCE_MISSING_PENDING:14309;P22_ORDER_LINE_POSTFILL_UNRESOLVED:147;P22_ALLOCATION_CONFIRMED:348650;P22_ALLOCATION_DUPLICATE:234;P22_ALLOCATION_EXCESS:452;P22_ALLOCATION_PENDING:147\nTASK\tBASE_P23\tNULL\t2116967967302316034\tCOMPLETED\t36301\t36301\t0\t0\tNULL\nTASK\tBASE_P24\tNULL\t2116962393974075393\tCOMPLETED\t83717\t83710\t0\t7\tNULL\nTASK\tBASE_P25\tNULL\t2116968022570659842\tCOMPLETED\t468955\t468955\t0\t0\tNULL\nTASK\tBASE_P30\tNULL\t2117079782195720193\tCOMPLETED\t3506715\t3506715\t0\t0\tP30_DEVICE_ORGANIZATION_UNRESOLVED:RAW_CONTRACT_PRESERVED\nTASK\tBASE_P31\tNULL\t2116968727461195777\tCOMPLETED\t394044\t394044\t0\t0\tNULL\nTASK\tBASE_P33\tNULL\t2117085303032246273\tCOMPLETED\t1083157\t1083150\t0\t0\tP33_TRANSFER_DEFERRED:2;P33_FORMAL_DEVICE_PENDING:5;P33_LATEST_ORIGINAL_TIME_TIED:220;P33_BLANK_ADDRESS_FILTERED_AFTER_READ:28380\nTASK\tBASE_P34\tNULL\t2116969277003100162\tCOMPLETED\t165834\t165834\t0\t0\tNULL\nTASK\tBASE_P35\tNULL\t2116969559648858114\tCOMPLETED\t1625392\t1625392\t0\t0\tP35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change\nTASK\tBASE_P37\tNULL\t2117086798108684290\tCOMPLETED\t493037\t0\t436498\t56539\tSTAGES:DeviceReference;P37_DEVICE_REFERENCE_PENDING:56539\nTASK\tBASE_P38\tNULL\t2116976989858332673\tCOMPLETED\t81321\t0\t7072\t74249\tPROJECT_TEMPLATE_NOT_ACTIVE:74249\nsection\tmember_role\tn\tuser_bound\tconfirmed\texternal_mobile_present\texternal_email_present\treversed_intervals\nP31_OWNED\tSALES_REPRESENTATIVE\t91425\t0\t0\t0\t0\t0\nP31_OWNED\tSERVICE_MANAGER\t207346\t0\t0\t0\t0\t0\nP31_OWNED\tPROJECT_MANAGER\t67406\t0\t0\t0\t0\t0\nP31_OWNED\t60\t27867\t0\t0\t0\t0\t0\n\nERROR 1054 (42S22) at line 6: Unknown column 'template_id' in 'field list'\n\n",
+      "stderr": ""
+    },
+    "374-audit-followup": {
+      "exit_code": 0,
+      "output": "section\tlifecycle_status\tn\ttemplate_bound\nP38_PROJECTS\tNO_TRACKING_CLOSED\t53126\t0\nP38_PROJECTS\tNORMAL_CLOSED\t21123\t0\nP38_PROJECTS\tACTIVE\t7072\t7072\nsection\tn\tmissing_parent\tcarrier_code_present\tcarrier_name_present\nPACKAGE\t159930\t159930\t144372\t144372\nsection\tn\tphone_present\temail_present\nP31_CONTACT_FIELDS\t27867\t27866\t842\nsection\tid\tstatus\tread_count\tinserted_count\tupdated_count\tunchanged_count\terror_message\nP15_STAGES\t2116985378533490690\tFAILED\t0\t0\t0\t0\t同步读取或写入失败：RecoverableDataAccessException\nP15_STAGES\t2117061490387140610\tCOMPLETED\t123311\t123311\t0\t0\tSTAGES:ShipmentContract\nP15_STAGES\t2117061737163210753\tCOMPLETED\t159930\t159930\t0\t0\tSTAGES:Package\nP15_STAGES\t2117062948922802177\tFAILED\t0\t0\t0\t0\tSTAGES:ShipmentEvent;CANCELLED_FOR_APPROVED_UUID_SOURCE_KEY_CHANGE;RecoverableDataAccessException;FAILURE_RECEIPT_RECOVERED_AFTER_ROLLBACK\nP15_STAGES\t2117071816902045697\tCOMPLETED\t4305590\t4305590\t0\t0\tSTAGES:ShipmentEvent\nP15_STAGES\t2117077751234031617\tCOMPLETED\t68751\t68751\t0\t0\tSTAGES:DeviceRelationship\nP15_STAGES\t2117077841994575874\tCOMPLETED\t83403\t83403\t0\t0\tSTAGES:Contract\nP15_STAGES\t2117078016905441281\tCOMPLETED\t83403\t0\t83403\t0\tSTAGES:ContractOrganization\nP15_STAGES\t2117078168688914433\tCOMPLETED\t123311\t0\t94908\t28403\tSTAGES:ShipmentContractOrganization;P15_SHIPMENT_CONTRACT_UNRESOLVED:43475;P15_SHIPMENT_DEPARTMENT_UNRESOLVED:29997\nP15_STAGES\t2117078395495903233\tCOMPLETED\t93205\t93198\t0\t7\tSTAGES:OrderContractRelation;P15_ORDER_CONTRACT_CONTRACT_MISSING:7\nP15_STAGES\t2117080208437669889\tCOMPLETED\t4305590\t0\t1812842\t2492748\tSTAGES:ShipmentOrderLine;P15_SHIPMENT_ORDER_LINE_SOURCE_LINE_MISSING:2492748\n\n",
+      "stderr": ""
+    },
+    "375-reference-audit": {
+      "exit_code": 0,
+      "output": "section\tn\tconfirmed\tmissing_order\tmissing_department\nP22\t349483\t348650\t147\t14309\nsection\tn\tdevice_linked\tcontract_linked\nP37\t493037\t436498\t0\nsection\tn\tcompany_linked\tdepartment_linked\tproject_assigned\nP30\t3506715\t3329978\t3262867\t0\n\n",
+      "stderr": ""
+    },
+    "376-artifact-audit": {
+      "exit_code": 0,
+      "output": "{\"pid\": \"53718\", \"jars\": [\"-Dloader.path=/opt/sdp/backend/current/deployment-adapter.jar\", \"/opt/sdp/backend/current/yudao-server.jar\"]}\n{\"artifact\": \"/opt/sdp/backend/releases/SDP20261102_ALL_UUID/yudao-server.jar\", \"sha256\": \"d32d03633a95870dd270a38171211c31691f70f8087da6b707dcf7a996f5de6d\"}\n{\"class\": \"cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.class\", \"sha256\": \"2806474046287d61d6dac855a1711ff35999ad31ed69a2febdb1cc6dc584b3ec\", \"packageStage\": false, \"historicalAccountApi\": false, \"endUserMapping\": false}\n{\"class\": \"cn/iocoder/yudao/module/pms/integration/basesync/task/P31MemberContactSyncTask.class\", \"sha256\": \"8dcb816a0a17470fb0f377df13c20888cfbacfb9247a8d0ec039031cbee3d64b\", \"packageStage\": false, \"historicalAccountApi\": true, \"endUserMapping\": true}\n{\"class\": \"cn/iocoder/yudao/module/pms/project/service/projectplan/MigratedProjectTemplateSyncTask.class\", \"sha256\": \"7366e70919104daf26eb80f73cb29b16b7676a1aa5834d81235d016b4742b25c\", \"packageStage\": false, \"historicalAccountApi\": false, \"endUserMapping\": false}\n",
+      "stderr": ""
+    }
+  },
+  "businessWrites": false,
+  "deployment": false,
+  "testsRerun": false
+}

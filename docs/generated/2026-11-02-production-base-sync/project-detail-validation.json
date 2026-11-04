@@ -1,0 +1,18 @@
+{
+  "backendTests": [
+    "Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.881 s -- in cn.iocoder.yudao.module.pms.asset.service.device.ProjectShipmentQueryServiceTest",
+    "Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.582 s -- in cn.iocoder.yudao.module.pms.integration.basesync.task.P15StageSelectionTest",
+    "Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.843 s -- in cn.iocoder.yudao.module.pms.integration.basesync.task.PackageContractReferenceMySqlTest",
+    "Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.605 s -- in cn.iocoder.yudao.module.pms.integration.basesync.task.PackageContractReferenceTest",
+    "Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.929 s -- in cn.iocoder.yudao.module.pms.asset.service.device.ProjectShipmentMySqlTest"
+  ],
+  "frontendRuntimeTests": {
+    "passed": 3,
+    "failed": 0,
+    "suite": "ProjectShipmentPanel.runtime.spec.ts"
+  },
+  "eslint": "passed targeted changed files",
+  "realBrowserAcceptance": "not completed",
+  "productionDeployment": "not performed",
+  "productionPackageBackfill": "not performed"
+}

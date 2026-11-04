@@ -1,0 +1,630 @@
+- link "服务交付平台":
+  - /url: /
+  - generic: 服务交付平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付":
+    - generic: 项目交付
+  - menuitem "割接交付":
+    - generic: 割接交付
+  - menuitem "巡检服务":
+    - generic: 巡检服务
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "数据集成" [expanded]:
+    - generic: 数据集成
+    - menu:
+      - menuitem "迁移与同步":
+        - generic: 迁移与同步
+- navigation "面包屑":
+  - link "数据集成":
+    - text: 数据集成
+  - text: /
+  - link "迁移与同步":
+    - text: 迁移与同步
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button "系统管理员":
+  - generic: 系统管理员
+- button "首页":
+  - text: 首页
+- button "项目列表":
+  - text: 项目列表
+- button "迁移与同步":
+  - text: 迁移与同步
+- button:
+- region "数据迁移与同步":
+  - tablist:
+    - tab "连接管理"
+    - tab "迁移与同步任务"
+    - tab "基础同步任务" [selected]
+    - tab "运行记录"
+    - tab "来源映射"
+  - tabpanel "基础同步任务":
+    - button "刷新":
+      - generic: 刷新
+    - table:
+      - rowgroup:
+        - row "任务编码 任务名称 连接 ID 执行阶段 每批数量 读取上限 活动 Run 操作":
+          - columnheader "任务编码":
+            - generic: 任务编码
+          - columnheader "任务名称":
+            - generic: 任务名称
+          - columnheader "连接 ID":
+            - generic: 连接 ID
+          - columnheader "执行阶段":
+            - generic: 执行阶段
+          - columnheader "每批数量":
+            - generic: 每批数量
+          - columnheader "读取上限":
+            - generic: 读取上限
+          - columnheader "活动 Run":
+            - generic: 活动 Run
+          - columnheader "操作":
+            - generic: 操作
+    - table:
+      - rowgroup:
+        - row "BASE_P01 公司与部门独立目录 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P01":
+            - generic: BASE_P01
+          - cell "公司与部门独立目录":
+            - generic: 公司与部门独立目录
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "公司与部门独立目录每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P04 账号、历史任职、角色及公司部门范围 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P04":
+            - generic: BASE_P04
+          - cell "账号、历史任职、角色及公司部门范围":
+            - generic: 账号、历史任职、角色及公司部门范围
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "账号、历史任职、角色及公司部门范围每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P08 系统字典类型及字典项 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P08":
+            - generic: BASE_P08
+          - cell "系统字典类型及字典项":
+            - generic: 系统字典类型及字典项
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "系统字典类型及字典项每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P10 CRM客户主档 2116945394187354113 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P10":
+            - generic: BASE_P10
+          - cell "CRM客户主档":
+            - generic: CRM客户主档
+          - cell "2116945394187354113":
+            - generic: "2116945394187354113"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "CRM客户主档每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P11 CRM产品主档 2116945394187354113 完整流程 减少数值 增加数值 1 20000 — 预览 执行":
+          - cell "BASE_P11":
+            - generic: BASE_P11
+          - cell "CRM产品主档":
+            - generic: CRM产品主档
+          - cell "2116945394187354113":
+            - generic: "2116945394187354113"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 1":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "CRM产品主档每批数量": "1"
+          - cell "20000":
+            - generic: "20000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P12 DPPMS缺失产品补齐 2116945336515674114 完整流程 减少数值 增加数值 500 100000 — 预览 执行":
+          - cell "BASE_P12":
+            - generic: BASE_P12
+          - cell "DPPMS缺失产品补齐":
+            - generic: DPPMS缺失产品补齐
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "DPPMS缺失产品补齐每批数量": "500"
+          - cell "100000":
+            - generic: "100000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P13 项目执行单头 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P13":
+            - generic: BASE_P13
+          - cell "项目执行单头":
+            - generic: 项目执行单头
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "项目执行单头每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P14 ERP销售订单与订单行 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P14":
+            - generic: BASE_P14
+          - cell "ERP销售订单与订单行":
+            - generic: ERP销售订单与订单行
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "ERP销售订单与订单行每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P15 合同及全量发货历史 2116945336515674114 发货合同基础数据 关闭此标签 + 9 减少数值 增加数值 500 5000000 — 预览 执行":
+          - cell "BASE_P15":
+            - generic: BASE_P15
+          - cell "合同及全量发货历史":
+            - generic: 合同及全量发货历史
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "发货合同基础数据 关闭此标签 + 9":
+            - generic: 发货合同基础数据
+            - button "关闭此标签":
+            - generic: + 9
+            - combobox "P15执行阶段"
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "合同及全量发货历史每批数量": "500"
+          - cell "5000000":
+            - generic: "5000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P16 项目主档及独立来源身份 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P16":
+            - generic: BASE_P16
+          - cell "项目主档及独立来源身份":
+            - generic: 项目主档及独立来源身份
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "项目主档及独立来源身份每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P18 项目合同关系历史 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P18":
+            - generic: BASE_P18
+          - cell "项目合同关系历史":
+            - generic: 项目合同关系历史
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "项目合同关系历史每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P19 项目相关方及历史状态属性 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P19":
+            - generic: BASE_P19
+          - cell "项目相关方及历史状态属性":
+            - generic: 项目相关方及历史状态属性
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "项目相关方及历史状态属性每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P20 项目真实产品历史清单 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P20":
+            - generic: BASE_P20
+          - cell "项目真实产品历史清单":
+            - generic: 项目真实产品历史清单
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "项目真实产品历史清单每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P21 租赁与配置展示缓存 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P21":
+            - generic: BASE_P21
+          - cell "租赁与配置展示缓存":
+            - generic: 租赁与配置展示缓存
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "租赁与配置展示缓存每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P22 项目产品实施范围历史 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P22":
+            - generic: BASE_P22
+          - cell "项目产品实施范围历史":
+            - generic: 项目产品实施范围历史
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "项目产品实施范围历史每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P23 合同收款计划展示缓存 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P23":
+            - generic: BASE_P23
+          - cell "合同收款计划展示缓存":
+            - generic: 合同收款计划展示缓存
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "合同收款计划展示缓存每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P24 合同回款信息 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P24":
+            - generic: BASE_P24
+          - cell "合同回款信息":
+            - generic: 合同回款信息
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "合同回款信息每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P25 设备续保历史 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P25":
+            - generic: BASE_P25
+          - cell "设备续保历史":
+            - generic: 设备续保历史
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "设备续保历史每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P30 正式发货设备基础承接 2116945336515674114 完整流程 减少数值 增加数值 500 5000000 — 预览 执行":
+          - cell "BASE_P30":
+            - generic: BASE_P30
+          - cell "正式发货设备基础承接":
+            - generic: 正式发货设备基础承接
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "正式发货设备基础承接每批数量": "500"
+          - cell "5000000":
+            - generic: "5000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P31 项目成员及最终客户联系人历史 2116945336515674114 完整流程 减少数值 增加数值 1000 1000000 — 预览 执行":
+          - cell "BASE_P31":
+            - generic: BASE_P31
+          - cell "项目成员及最终客户联系人历史":
+            - generic: 项目成员及最终客户联系人历史
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 1000":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "项目成员及最终客户联系人历史每批数量": "1000"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P33 设备安装历史 2116945336515674114 完整流程 减少数值 增加数值 500 5000000 — 预览 执行":
+          - cell "BASE_P33":
+            - generic: BASE_P33
+          - cell "设备安装历史":
+            - generic: 设备安装历史
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "设备安装历史每批数量": "500"
+          - cell "5000000":
+            - generic: "5000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P34 出厂版本历史 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P34":
+            - generic: BASE_P34
+          - cell "出厂版本历史":
+            - generic: 出厂版本历史
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "出厂版本历史每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P35 软件批次及版本历史 2116945336515674114 完整流程 减少数值 增加数值 500 5000000 — 预览 执行":
+          - cell "BASE_P35":
+            - generic: BASE_P35
+          - cell "软件批次及版本历史":
+            - generic: 软件批次及版本历史
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "软件批次及版本历史每批数量": "500"
+          - cell "5000000":
+            - generic: "5000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P37 整表许可历史 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P37":
+            - generic: BASE_P37
+          - cell "整表许可历史":
+            - generic: 整表许可历史
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "整表许可历史每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+        - row "BASE_P38 迁移项目模板分配 2116945336515674114 完整流程 减少数值 增加数值 500 1000000 — 预览 执行":
+          - cell "BASE_P38":
+            - generic: BASE_P38
+          - cell "迁移项目模板分配":
+            - generic: 迁移项目模板分配
+          - cell "2116945336515674114":
+            - generic: "2116945336515674114"
+          - cell "完整流程":
+            - generic: 完整流程
+          - cell "减少数值 增加数值 500":
+            - button "减少数值":
+            - button "增加数值":
+            - spinbutton "迁移项目模板分配每批数量": "500"
+          - cell "1000000":
+            - generic: "1000000"
+          - cell "—":
+            - generic: —
+          - cell "预览 执行":
+            - button "预览":
+              - generic: 预览
+            - button "执行":
+              - generic: 执行
+- generic: Copyright ©2026 服务交付平台

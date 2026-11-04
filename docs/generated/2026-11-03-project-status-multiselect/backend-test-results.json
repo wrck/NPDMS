@@ -1,0 +1,106 @@
+{
+  "database": "172.17.90.178:13306/npdms",
+  "transactionalRollback": true,
+  "tests": [
+    {
+      "test": "overdueYesAndNoPartitionAllVisibleProjects",
+      "passed": false,
+      "errorType": "org.springframework.dao.DataIntegrityViolationException"
+    },
+    {
+      "test": "statisticsMatchPageTotalsAndRespectTenantDeletionAndEmptyScope",
+      "passed": false,
+      "errorType": "org.springframework.dao.DataIntegrityViolationException"
+    },
+    {
+      "test": "contractAndOwnershipFiltersMatch",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "agentServiceProviderKeywordMatchesCurrentPartyOnly",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "notOverdueFilterKeepsCustomerStageTenantAndPermissionIntersection",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "blankStatusKeepsActiveAndClosedRows",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "timeRangesUseLeftClosedRightOpen",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "overdueScopeExcludesDeletedClosedAndCancelledNodesAndEmptyPermissions",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "multipleStatusesUnionActiveStagesAndClosedLifecyclesWithinVisibleScope",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "closureStatusMatchesLifecycleWithoutStage",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "emptyPermissionSetReturnsEmptyPageWithoutQuery",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "customerFilterIsExactAndIntersectsNameAndVisibleScope",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "completionStopsBothFlagsAndPreservesCompletionSnapshotWhenPlansChange",
+      "passed": false,
+      "errorType": "org.springframework.dao.DataIntegrityViolationException"
+    },
+    {
+      "test": "failedStageTransactionRollsBackCompletionAndItsSnapshot",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "overdueDatesUseNodePlansAndDoNotCountDeadlineDay",
+      "passed": false,
+      "errorType": "org.springframework.dao.DataIntegrityViolationException"
+    },
+    {
+      "test": "stageStatusFiltersCurrentStageWithActiveLifecycle",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "overdueFactsSupportEmptyProjectsAndMixedSchemaCollations",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "emptyViewScopeReturnsZeroWithoutDatabaseQuery",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "scopeFailureDoesNotFallBackToTenantWideStatistics",
+      "passed": true,
+      "errorType": null
+    },
+    {
+      "test": "passesOnlyServerResolvedTenantAndViewScopeToAggregate",
+      "passed": true,
+      "errorType": null
+    }
+  ]
+}

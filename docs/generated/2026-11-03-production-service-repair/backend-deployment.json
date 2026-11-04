@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "output": "VERIFIED SDP20261103_SERVICE_REPAIR_BACKEND_R2\nStaged /opt/sdp/backend/releases/SDP20261103_SERVICE_REPAIR_BACKEND_R2; activate separately after configuration/schema checks.\nPrevious: /opt/sdp/backend/releases/SDP20261103_CONTRACT_PROJECTION\nCurrent: /opt/sdp/backend/releases/SDP20261103_SERVICE_REPAIR_BACKEND_R2\nactive\nProcess check only. Run authenticated dependency and business acceptance before declaring success.\n",
+  "stderr": ""
+}

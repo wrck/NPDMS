@@ -1,0 +1,39 @@
+{
+  "configId": 992210300526,
+  "before": {
+    "productFilters": [
+      {
+        "productTypeNotIn": [
+          "光模块",
+          "外购件"
+        ]
+      }
+    ]
+  },
+  "after": {
+    "productFilters": [
+      {
+        "productTypeNotIn": [
+          "光模块",
+          "外购件"
+        ],
+        "productDescNotLike": "%光模块%"
+      }
+    ]
+  },
+  "projectId": 84460,
+  "beforeCounts": {
+    "totalDevices": 40,
+    "requiredDevices": 8,
+    "exemptedDevices": 32,
+    "addressedDevices": 8,
+    "completed": true
+  },
+  "afterCounts": {
+    "totalDevices": 40,
+    "requiredDevices": 4,
+    "exemptedDevices": 36,
+    "addressedDevices": 4,
+    "completed": true
+  }
+}

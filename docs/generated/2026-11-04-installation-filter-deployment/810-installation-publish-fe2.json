@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "output": "VERIFIED SDP20261104_INSTALLATION_FILTER\nStaged /opt/sdp/frontend/releases/SDP20261104_INSTALLATION_FILTER; activate separately after configuration/schema checks.\n",
+  "stderr": "nginx: the configuration file /etc/nginx/nginx.conf syntax is ok\nnginx: configuration file /etc/nginx/nginx.conf test is successful\n"
+}

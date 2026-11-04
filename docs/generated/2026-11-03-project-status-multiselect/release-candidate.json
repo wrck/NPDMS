@@ -1,0 +1,15 @@
+{
+  "frontendRelease": "SDP20261103_PROJECT_STATUS_MULTI",
+  "frontendDirectory": "M:\\AICoding\\CodexData\\artifacts\\project-status-multiselect-20261103\\frontend-dist",
+  "frontendFiles": 2829,
+  "frontendIndexSha256": "dc0c5fd9355c147982485a218783c854806549da801f1b6a068dd9f9654181de",
+  "backendManifest": "M:\\AICoding\\CodexData\\artifacts\\project-status-multiselect-20261103\\backend-build\\releases\\5fd09a32-c49b-40a2-9760-a924b5af2a84\\manifest.json",
+  "backendSha256": "ba00f481e5eded5d422c49817c451f5bef548e651f8a3a31283cdbae35063a93",
+  "backendSource": "eceb94f6363a7d4882c95669a37b2b7c945778f6c3f5cc600fe20c974b912cde",
+  "deploymentPerformed": false,
+  "databaseMigrationsRequired": false,
+  "frontendTestsPassed": 7,
+  "backendTestsPassed": 16,
+  "backendExistingFixtureErrors": 4,
+  "browserBusinessAcceptance": "pending deployment"
+}

@@ -1,0 +1,496 @@
+- link "服务交付平台":
+  - /url: /
+  - generic: 服务交付平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理" [expanded]:
+        - generic: 项目管理
+        - menu:
+          - menuitem "项目列表":
+            - generic: 项目列表
+          - menuitem "计划进度":
+            - generic: 计划进度
+          - menuitem "项目风险":
+            - generic: 项目风险
+          - menuitem "组合与治理":
+            - generic: 组合与治理
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "项目模板管理":
+        - generic: 项目模板管理
+      - menuitem "交付件汇总":
+        - generic: 交付件汇总
+      - menuitem "现场培训":
+        - generic: 现场培训
+      - menuitem "阶段施工计划":
+        - generic: 阶段施工计划
+      - menuitem "施工计划建议规则":
+        - generic: 施工计划建议规则
+      - menuitem "设备连接与采集":
+        - generic: 设备连接与采集
+  - menuitem "割接交付":
+    - generic: 割接交付
+  - menuitem "巡检服务":
+    - generic: 巡检服务
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑":
+  - link "项目交付":
+    - text: 项目交付
+  - text: /
+  - link "项目管理":
+    - text: 项目管理
+  - text: /
+  - link "项目列表":
+    - text: 项目列表
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button "系统管理员":
+  - generic: 系统管理员
+- button "首页":
+  - text: 首页
+- button "项目列表":
+  - text: 项目列表
+- button:
+- generic: "81321"
+- generic: 项目总数
+- generic: "0"
+- generic: 超期项目
+- generic: "5928"
+- generic: S0 待开始
+- generic: "1135"
+- generic: S1 工前准备
+- generic: "0"
+- generic: S2 施工计划
+- generic: "9"
+- generic: S3 实施方案
+- generic: "0"
+- generic: S4 实施部署
+- generic: "0"
+- generic: S5 验收交维
+- generic: "0"
+- generic: S6 闭环处理中
+- generic: "21123"
+- generic: 正常闭环
+- generic: "53126"
+- generic: 不予跟踪闭环
+- generic: "0"
+- generic: 异常闭环
+- generic: 项目编码
+- textbox "项目编码":
+  - /placeholder: PJT2026000001
+- generic: 项目名称
+- textbox "项目名称"
+- generic: 客户
+- combobox "客户"
+- generic: 按客户名称选择
+- generic: 超期项目
+- combobox "超期项目"
+- generic: 全部
+- generic: 发货状态
+- combobox "发货状态"
+- generic: 全部
+- generic: 状态
+- generic: S0 待开始
+- button "关闭此标签":
+- generic: + 6
+- combobox "状态" [expanded] [active]
+- generic: 项目经理
+- combobox "项目经理"
+- generic: 全部
+- generic: 创建时间
+- combobox "创建时间"
+- generic: "-"
+- combobox "结束"
+- button "查询":
+  - text: 查询
+- button "重置":
+  - text: 重置
+- button "办事处精确查询":
+  - generic: 办事处精确查询
+- button "更多筛选":
+  - text: 更多筛选
+- button "创建项目":
+  - text: 创建项目
+- text: 项目列表
+- generic: 共 7072 条
+- button "刷新":
+  - text: 刷新
+- table:
+  - rowgroup:
+    - row "项目编码 项目名称 客户名称 签约方式 项目类别 实施方式 重大项目级别 状态 超期情况 模板绑定 负责人 创建时间 操作":
+      - columnheader "项目编码":
+        - generic: 项目编码
+      - columnheader "项目名称":
+        - generic: 项目名称
+      - columnheader "客户名称":
+        - generic: 客户名称
+      - columnheader "签约方式":
+        - generic: 签约方式
+      - columnheader "项目类别":
+        - generic: 项目类别
+      - columnheader "实施方式":
+        - generic: 实施方式
+      - columnheader "重大项目级别":
+        - generic: 重大项目级别
+      - columnheader "状态":
+        - generic: 状态
+      - columnheader "超期情况":
+        - generic: 超期情况
+      - columnheader "模板绑定":
+        - generic: 模板绑定
+      - columnheader "负责人":
+        - generic: 负责人
+      - columnheader "创建时间":
+        - generic: 创建时间
+      - columnheader "操作":
+        - generic: 操作
+- table:
+  - rowgroup:
+    - 'row "16314026012203N-0 北京局集团公司设备监造部视频会议系统招标采购 - 非直签 普通类 原厂直服 项目立项 — #996610195020087 v2 自动 s06674-史嘉玮 2026-10-29 14:14:22 详情 项目成员"':
+      - cell "16314026012203N-0":
+        - generic: 16314026012203N-0
+      - cell "北京局集团公司设备监造部视频会议系统招标采购":
+        - generic: 北京局集团公司设备监造部视频会议系统招标采购
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "原厂直服":
+        - generic: 原厂直服
+      - cell
+      - cell "项目立项":
+        - generic: 项目立项
+      - cell "—":
+        - generic: —
+      - cell "#996610195020087 v2 自动":
+        - text: "#996610195020087 v2"
+        - generic: 自动
+      - cell "s06674-史嘉玮":
+        - generic: s06674-史嘉玮
+      - cell "2026-10-29 14:14:22":
+        - generic: 2026-10-29 14:14:22
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - 'row "16201525062501N-1 府谷县公安局新大楼建设项目 - 非直签 普通类 原厂督导 待指派项目经理 — #996610195020089 v2 自动 - 2026-10-29 14:14:14 详情 项目成员"':
+      - cell "16201525062501N-1":
+        - generic: 16201525062501N-1
+      - cell "府谷县公安局新大楼建设项目":
+        - generic: 府谷县公安局新大楼建设项目
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "原厂督导":
+        - generic: 原厂督导
+      - cell
+      - cell "待指派项目经理":
+        - generic: 待指派项目经理
+      - cell "—":
+        - generic: —
+      - cell "#996610195020089 v2 自动":
+        - text: "#996610195020089 v2"
+        - generic: 自动
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-29 14:14:14":
+        - generic: 2026-10-29 14:14:14
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - 'row "16200126060302N-0 2026年北京银行消费金融安全建设项目 - 非直签 普通类 原厂直服 待指派项目经理 — #996610195020087 v2 自动 - 2026-10-29 14:14:05 详情 项目成员"':
+      - cell "16200126060302N-0":
+        - generic: 16200126060302N-0
+      - cell "2026年北京银行消费金融安全建设项目":
+        - generic: 2026年北京银行消费金融安全建设项目
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "原厂直服":
+        - generic: 原厂直服
+      - cell
+      - cell "待指派项目经理":
+        - generic: 待指派项目经理
+      - cell "—":
+        - generic: —
+      - cell "#996610195020087 v2 自动":
+        - text: "#996610195020087 v2"
+        - generic: 自动
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-29 14:14:05":
+        - generic: 2026-10-29 14:14:05
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - 'row "16200425022401N-0 唐山市中医医院新院区信息化提升 - 非直签 普通类 原厂直服 待指派项目经理 — #996610195020087 v2 自动 - 2026-10-29 14:13:51 详情 项目成员"':
+      - cell "16200425022401N-0":
+        - generic: 16200425022401N-0
+      - cell "唐山市中医医院新院区信息化提升":
+        - generic: 唐山市中医医院新院区信息化提升
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "原厂直服":
+        - generic: 原厂直服
+      - cell
+      - cell "待指派项目经理":
+        - generic: 待指派项目经理
+      - cell "—":
+        - generic: —
+      - cell "#996610195020087 v2 自动":
+        - text: "#996610195020087 v2"
+        - generic: 自动
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-29 14:13:51":
+        - generic: 2026-10-29 14:13:51
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - 'row "16200523021402N-0 内蒙移动IDC出口抗D能力建设项目 - 直签 普通类 原厂直服 待指派项目经理 — #996610195020085 v2 自动 - 2026-10-29 14:13:37 详情 项目成员"':
+      - cell "16200523021402N-0":
+        - generic: 16200523021402N-0
+      - cell "内蒙移动IDC出口抗D能力建设项目":
+        - generic: 内蒙移动IDC出口抗D能力建设项目
+      - cell "-":
+        - generic: "-"
+      - cell "直签":
+        - generic: 直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "原厂直服":
+        - generic: 原厂直服
+      - cell
+      - cell "待指派项目经理":
+        - generic: 待指派项目经理
+      - cell "—":
+        - generic: —
+      - cell "#996610195020085 v2 自动":
+        - text: "#996610195020085 v2"
+        - generic: 自动
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-29 14:13:37":
+        - generic: 2026-10-29 14:13:37
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - 'row "16323026101201N-0 2026农行中高端负载订单-北数8(1012334166) - 直签 普通类 原厂直服 项目立项 — #996610195020085 v2 自动 z06304-郑志恒 2026-10-29 14:13:10 详情 项目成员"':
+      - cell "16323026101201N-0":
+        - generic: 16323026101201N-0
+      - cell "2026农行中高端负载订单-北数8(1012334166)":
+        - generic: 2026农行中高端负载订单-北数8(1012334166)
+      - cell "-":
+        - generic: "-"
+      - cell "直签":
+        - generic: 直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "原厂直服":
+        - generic: 原厂直服
+      - cell
+      - cell "项目立项":
+        - generic: 项目立项
+      - cell "—":
+        - generic: —
+      - cell "#996610195020085 v2 自动":
+        - text: "#996610195020085 v2"
+        - generic: 自动
+      - cell "z06304-郑志恒":
+        - generic: z06304-郑志恒
+      - cell "2026-10-29 14:13:10":
+        - generic: 2026-10-29 14:13:10
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - 'row "16100026092403N-0 网络交换机 - 直签 普通类 原厂直服 待指派项目经理 — #996610195020085 v2 自动 - 2026-10-29 14:12:47 详情 项目成员"':
+      - cell "16100026092403N-0":
+        - generic: 16100026092403N-0
+      - cell "网络交换机":
+        - generic: 网络交换机
+      - cell "-":
+        - generic: "-"
+      - cell "直签":
+        - generic: 直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "原厂直服":
+        - generic: 原厂直服
+      - cell
+      - cell "待指派项目经理":
+        - generic: 待指派项目经理
+      - cell "—":
+        - generic: —
+      - cell "#996610195020085 v2 自动":
+        - text: "#996610195020085 v2"
+        - generic: 自动
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-29 14:12:47":
+        - generic: 2026-10-29 14:12:47
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - 'row "16323226101202N-0 兴业银行南京分行防火墙框架订单 - 直签 普通类 原厂直服 待指派项目经理 — #996610195020085 v2 自动 - 2026-10-29 14:11:53 详情 项目成员"':
+      - cell "16323226101202N-0":
+        - generic: 16323226101202N-0
+      - cell "兴业银行南京分行防火墙框架订单":
+        - generic: 兴业银行南京分行防火墙框架订单
+      - cell "-":
+        - generic: "-"
+      - cell "直签":
+        - generic: 直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "原厂直服":
+        - generic: 原厂直服
+      - cell
+      - cell "待指派项目经理":
+        - generic: 待指派项目经理
+      - cell "—":
+        - generic: —
+      - cell "#996610195020085 v2 自动":
+        - text: "#996610195020085 v2"
+        - generic: 自动
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-29 14:11:53":
+        - generic: 2026-10-29 14:11:53
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - 'row "16323226101201N-0 兴业资管信创防火墙框架内采购订单 - 直签 普通类 原厂直服 待指派项目经理 — #996610195020085 v2 自动 - 2026-10-29 14:11:37 详情 项目成员"':
+      - cell "16323226101201N-0":
+        - generic: 16323226101201N-0
+      - cell "兴业资管信创防火墙框架内采购订单":
+        - generic: 兴业资管信创防火墙框架内采购订单
+      - cell "-":
+        - generic: "-"
+      - cell "直签":
+        - generic: 直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "原厂直服":
+        - generic: 原厂直服
+      - cell
+      - cell "待指派项目经理":
+        - generic: 待指派项目经理
+      - cell "—":
+        - generic: —
+      - cell "#996610195020085 v2 自动":
+        - text: "#996610195020085 v2"
+        - generic: 自动
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-29 14:11:37":
+        - generic: 2026-10-29 14:11:37
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+    - 'row "16200426102101N-0 承德市-平泉县电子政务安全设备采购项目 - 非直签 普通类 原厂直服 待指派项目经理 — #996610195020087 v2 自动 - 2026-10-29 14:11:15 详情 项目成员"':
+      - cell "16200426102101N-0":
+        - generic: 16200426102101N-0
+      - cell "承德市-平泉县电子政务安全设备采购项目":
+        - generic: 承德市-平泉县电子政务安全设备采购项目
+      - cell "-":
+        - generic: "-"
+      - cell "非直签":
+        - generic: 非直签
+      - cell "普通类":
+        - generic: 普通类
+      - cell "原厂直服":
+        - generic: 原厂直服
+      - cell
+      - cell "待指派项目经理":
+        - generic: 待指派项目经理
+      - cell "—":
+        - generic: —
+      - cell "#996610195020087 v2 自动":
+        - text: "#996610195020087 v2"
+        - generic: 自动
+      - cell "-":
+        - generic: "-"
+      - cell "2026-10-29 14:11:15":
+        - generic: 2026-10-29 14:11:15
+      - cell "详情 项目成员":
+        - button "详情":
+          - generic: 详情
+        - button "项目成员":
+          - generic: 项目成员
+- combobox
+- generic: 10条/页
+- generic: 共 7072 条
+- button "上一页" [disabled]:
+- list:
+  - listitem "第 1 页": "1"
+  - listitem "第 2 页": "2"
+  - listitem "第 3 页": "3"
+  - listitem "第 4 页": "4"
+  - listitem "第 5 页": "5"
+  - listitem "第 6 页": "6"
+  - listitem "向后 5 页":
+  - listitem "第 708 页": "708"
+- button "下一页":
+- generic: 前往
+- spinbutton "页": "1"
+- generic: 页
+- generic: Copyright ©2026 服务交付平台
+- tooltip "S0 待开始 S1 工前准备 S2 施工计划 S3 实施方案 S4 实施部署 S5 验收交维 S6 闭环处理中":
+  - listbox:
+    - option "S0 待开始" [selected]
+    - option "S1 工前准备" [selected]
+    - option "S2 施工计划" [selected]
+    - option "S3 实施方案" [selected]
+    - option "S4 实施部署" [selected]
+    - option "S5 验收交维" [selected]
+    - option "S6 闭环处理中" [selected]
+    - option "正常闭环"
+    - option "不予跟踪闭环"
+    - option "异常闭环"

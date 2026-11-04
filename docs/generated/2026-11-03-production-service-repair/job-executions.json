@@ -1,0 +1,5 @@
+{
+  "output": "rules_queue 0\nstatus\tevents\tmax_retry\nDELIVERED\t32806\t2\nPENDING\t53026\t3\n\njob_results 0\nhandler_name\tstatus\tresult\tbegin_time\nprojectServiceManagerNotificationJob\t1\t{\"1\":\"服务经理通知投递成功 0 条，待重试 0 条\"}\t2026-11-03 03:05:30\nprojectRuleOutboxDeliveryJob\t1\t{\"1\":\"规则重评已处理 50，待重试 0\"}\t2026-11-03 03:05:30\ndeviceAssignedProjectionJob\t1\t{\"1\":\"设备祖先投影成功 0 条，待重试 0 条\"}\t2026-11-03 03:05:30\nprojectServiceManagerNotificationJob\t1\t{\"1\":\"服务经理通知投递成功 0 条，待重试 0 条\"}\t2026-11-03 03:05:00\nprojectRuleOutboxDeliveryJob\t1\t{\"1\":\"规则重评已处理 50，待重试 0\"}\t2026-11-03 03:05:00\ndeviceAssignedProjectionJob\t1\t{\"1\":\"设备祖先投影成功 0 条，待重试 0 条\"}\t2026-11-03 03:05:00\nprojectServiceManagerNotificationJob\t1\t{\"1\":\"服务经理通知投递成功 0 条，待重试 0 条\"}\t2026-11-03 03:04:30\nprojectRuleOutboxDeliveryJob\t1\t{\"1\":\"规则重评已处理 50，待重试 0\"}\t2026-11-03 03:04:30\ndeviceAssignedProjectionJob\t1\t{\"1\":\"设备祖先投影成功 0 条，待重试 0 条\"}\t2026-11-03 03:04:30\n\nMYSQL_ERRORS_TODAY []\n",
+  "stderr": "",
+  "exit_code": 0
+}

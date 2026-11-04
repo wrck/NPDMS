@@ -1,0 +1,286 @@
+{
+  "recordedAt": "2026-11-02T01:45:17.655015+08:00",
+  "status": "TASKS_REGISTERED_NOT_EXECUTED",
+  "authorization": "User explicitly requested forward Flyway migration and no sync execution",
+  "database": "172.17.74.19/npdms",
+  "tenantId": "1",
+  "flywayVersion": "531.2",
+  "flywayValidation": "passed",
+  "previousVersion": "531",
+  "nextVersionNotApplied": "532",
+  "migration": "M:\\AICoding\\CodexData\\worktrees\\853c\\NPDMS\\sql\\releases\\production-base-sync-20261102\\V531_2__register_formal_base_sync_tasks.sql",
+  "migrationSha256": "4a76c0143edbcb2a3bf26a651b30271aba5579a0d4625884e67cd3aa1fa67290",
+  "releaseId": "SDP_BASE_SYNC_20261102",
+  "tasks": [
+    {
+      "target": "spms",
+      "taskCode": "BASE_P01",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P01OrganizationSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P04",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P04AccountSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P08",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P08DictionarySyncTask.java"
+      ]
+    },
+    {
+      "target": "crm",
+      "taskCode": "BASE_P10",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "CRM",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P10CrmCustomerSyncTask.java"
+      ]
+    },
+    {
+      "target": "crm",
+      "taskCode": "BASE_P11",
+      "batchSize": 1,
+      "maxRows": 10000,
+      "sourceSystem": "CRM",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P11CrmProductSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P12",
+      "batchSize": 500,
+      "maxRows": 100000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P12SupplementProductSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P13",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P13ExecutionOrderSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P14",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P14SalesOrderSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P15",
+      "batchSize": 500,
+      "maxRows": 5000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P15DeliverySyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P16",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P16ProjectSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P18",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P18ProjectContractSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P19",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P19ProjectFactsSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P20",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P20RealProductSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P21",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P21ProjectCacheSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P22",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P22ProductScopeSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P23",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P23CollectionPlanSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P24",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P24ReceivableSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P25",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P25WarrantySyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P30",
+      "batchSize": 500,
+      "maxRows": 5000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P30DeviceBaseSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P31",
+      "batchSize": 1000,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P31MemberContactSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P33",
+      "batchSize": 500,
+      "maxRows": 5000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P33InstallationSyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P34",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P34FactoryHistorySyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P35",
+      "batchSize": 500,
+      "maxRows": 5000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P35SoftwareHistorySyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P37",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-integration\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\integration\\basesync\\task\\P37LicenseHistorySyncTask.java"
+      ]
+    },
+    {
+      "target": "spms",
+      "taskCode": "BASE_P38",
+      "batchSize": 500,
+      "maxRows": 1000000,
+      "sourceSystem": "DPPMS",
+      "providerCandidates": [
+        "pms-module-project\\src\\main\\java\\cn\\iocoder\\yudao\\module\\pms\\project\\service\\projectplan\\MigratedProjectTemplateSyncTask.java"
+      ]
+    }
+  ],
+  "source": "178 current read-only snapshot, 32 rows deduplicated to 25 task codes; duplicate source connections compared equal",
+  "counts": {
+    "spms": 23,
+    "crm": 2,
+    "total": 25,
+    "baseRuns": 0,
+    "baseBindings": 0,
+    "genericRuns": 0,
+    "activeRuns": 0
+  },
+  "parametersComparedTo178": true,
+  "beforeBackup": "/data/backups/production-20261102/pre-base-sync-configuration.sql.cms",
+  "encryptedBackupSha256": "a9cebb006814f82fdf0176a2b307c4f8f62f10daec472842cf40421b922b7c87",
+  "offHostBackupDecryptionDigestVerified": true,
+  "serverRestarted": false,
+  "backendReadiness": "UP",
+  "browserAcceptance": "not performed; existing base-sync frontend path issue remains",
+  "automatedTests": "skipped per user instruction",
+  "warning": "Flyway OSS reports MySQL 8.4 newer than its tested support; MySQL warns BINARY expr deprecated",
+  "evidence": "C:\\Users\\user\\.codex\\visualizations\\2026\\11\\01\\01a19798-5390-7161-8fda-deece599eb49\\production-20261102\\ssh\\result-107-db-after-task-migration.json"
+}

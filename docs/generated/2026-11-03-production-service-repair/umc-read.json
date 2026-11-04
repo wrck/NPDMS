@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "output": "{\"status\":\"UP\"}PROBE_LIBRARIES_EXTRACTED_FROM_DEPLOYED_JAR\nUMC_PINNED_TLS_LOGIN_AND_AUTHENTICATED_READ_PASSED; taskCreated=false\nUMC_LOGOUT_HTTP=200\n",
+  "stderr": ""
+}
