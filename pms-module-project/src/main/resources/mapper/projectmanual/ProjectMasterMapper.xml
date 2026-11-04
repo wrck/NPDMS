@@ -247,6 +247,22 @@
                   </if>
               </otherwise>
           </choose>
+          <if test="query.statuses != null">
+              <choose>
+                  <when test="!query.statuses.isEmpty()">
+                      AND
+                      <foreach collection="query.statuses" item="selectedStatus" open="(" separator=" OR " close=")">
+                          <choose>
+                              <when test="selectedStatus != null and selectedStatus.matches('S[0-6]')">
+                                  (p.lifecycle_status = 'ACTIVE' AND p.current_stage = #{selectedStatus})
+                              </when>
+                              <otherwise>p.lifecycle_status = #{selectedStatus}</otherwise>
+                          </choose>
+                      </foreach>
+                  </when>
+                  <otherwise>AND 1 = 0</otherwise>
+              </choose>
+          </if>
           <if test="query.signingMethod != null and query.signingMethod != ''">
               AND p.signing_method = #{query.signingMethod}
           </if>

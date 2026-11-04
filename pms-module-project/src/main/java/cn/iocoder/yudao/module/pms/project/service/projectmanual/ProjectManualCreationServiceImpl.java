@@ -453,6 +453,7 @@ public class ProjectManualCreationServiceImpl implements ProjectManualCreationSe
                 .customerCode(blankToNull(pageReqVO.getCustomerCode()))
                 .overdueOnly(pageReqVO.getOverdueOnly())
                 .status(pageReqVO.getStatus())
+                .statuses(pageReqVO.getStatuses())
                 .signingMethod(pageReqVO.getSigningMethod())
                 .projectCategory(pageReqVO.getProjectCategory())
                 .implementationMode(pageReqVO.getImplementationMode())

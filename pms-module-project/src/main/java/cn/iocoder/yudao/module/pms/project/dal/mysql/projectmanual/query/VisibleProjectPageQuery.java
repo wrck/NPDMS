@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.List;
 
 /**
  * 服务端已解析项目范围后的项目分页查询。
@@ -24,6 +25,7 @@ public class VisibleProjectPageQuery {
     private String customerCode;
     private Boolean overdueOnly;
     private String status;
+    private List<String> statuses;
     private String signingMethod;
     private String projectCategory;
     private String implementationMode;

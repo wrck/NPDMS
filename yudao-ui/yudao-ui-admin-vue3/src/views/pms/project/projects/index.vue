@@ -60,8 +60,8 @@ v-model="query.customerCode" :api="getCustomerPage"
             <el-option label="否" :value="false" />
           </el-select>
         </el-form-item>
-        <el-form-item label="状态" prop="status">
-          <el-select v-model="query.status" placeholder="全部" clearable class="!w-140px">
+        <el-form-item label="状态" prop="statuses">
+          <el-select v-model="query.statuses" placeholder="全部" multiple collapse-tags collapse-tags-tooltip clearable class="!w-260px" @change="handleSearch">
             <el-option
               v-for="dict in LIFECYCLE_STAGES"
               :key="dict.value"
@@ -1153,7 +1153,7 @@ const query = reactive({
   customerCode: undefined as string | undefined,
   overdueOnly: undefined as boolean | undefined,
   hasShippedDevices: undefined as boolean | undefined,
-  status: '',
+  statuses: ['S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6'],
   managerId: undefined as number | string | undefined,
   createTimeRange: null as string[] | null,
   signingMethod: '',
@@ -1231,8 +1231,9 @@ const LIFECYCLE_STAGES: { value: string; label: string; tone: string; icon: stri
 const stats = reactive<Record<string, number>>({ total: 0, overdue: 0 })
 for (const stage of LIFECYCLE_STAGES) stats[stage.value] = 0
 
-/** 当前选中的状态卡（'' = 全部） */
-const activeStatus = ref('')
+/** 多选组合不高亮单阶段卡；清空选择代表全部。 */
+const activeStatus = computed(() => query.statuses.length === 1 ? query.statuses[0] :
+  query.statuses.length === 0 ? '' : null)
 
 const statusCards = computed(() => [
   {
@@ -1282,11 +1283,9 @@ const loadStats = async () => {
 const toggleStatusFilter = (value: string) => {
   if (value === 'OVERDUE') {
     query.overdueOnly = query.overdueOnly === true ? undefined : true
-    activeStatus.value = query.overdueOnly ? 'OVERDUE' : ''
-    query.status = ''
+    query.statuses = []
   } else {
-    activeStatus.value = activeStatus.value === value ? '' : value
-    query.status = activeStatus.value
+    query.statuses = !value || activeStatus.value === value ? [] : [value]
     query.overdueOnly = undefined
   }
   handleSearch()
@@ -1294,7 +1293,6 @@ const toggleStatusFilter = (value: string) => {
 
 const handleOverdueFilterChange = () => {
   if (query.overdueOnly !== true && query.overdueOnly !== false) query.overdueOnly = undefined
-  activeStatus.value = query.overdueOnly ? 'OVERDUE' : query.status
   handleSearch()
 }
 
@@ -1314,6 +1312,7 @@ const load = async () => {
     } = query
     const params: ProjectsApi.ProjectPageParams = {
       ...filters,
+      statuses: filters.statuses.length ? [...filters.statuses] : undefined,
       ...rangeToParams(createTimeRange, 'createTime'),
       ...rangeToParams(closeTimeRange, 'closeTime'),
       ...rangeToParams(refreshTimeRange, 'refreshTime')
@@ -1337,7 +1336,7 @@ const handleReset = () => {
   query.customerCode = undefined
   query.overdueOnly = undefined
   query.hasShippedDevices = undefined
-  query.status = ''
+  query.statuses = ['S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6']
   query.managerId = undefined
   query.createTimeRange = null
   query.signingMethod = ''
@@ -1355,7 +1354,6 @@ const handleReset = () => {
   query.deviceProductModel = ''
   query.deviceWarrantyStatus = ''
   query.agentServiceProviderKeyword = ''
-  activeStatus.value = ''
   handleSearch()
 }
 

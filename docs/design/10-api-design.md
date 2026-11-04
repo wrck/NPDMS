@@ -1539,6 +1539,10 @@ DAC 的 desktop 业务路由通过 `X-NPDMS-DAC-Ticket` 向已配置 NPDMS 的 `
 
 列表响应增补可空 `projectName/customerName`，ID字段继续供已有消费者使用，设备管理界面不显示ID。AST只为已经授权的当前设备页批量读取名称，PROJ复用 `ProjectDeviceOrganizationApi.getOrganizations` 增补projectName，CUS复用 `CustomerQueryApi.getCustomers`，不逐设备读取详情、不直接联表跨模块。两Owner既有公开接口分别增加 `findProjectIdsByName(NameQuery)`、`findCustomerIdsByName(NameQuery)`，仅返回当前租户、未删除主档的筛选候选ID；候选不授予业务读取权限，AST仍重验原设备组织/项目/合同范围，空候选必须空结果，不得退化为忽略条件。名称缺失显示“-”，不显示ID或从其他关系臆造名称。详情与编辑、状态变更、关系历史及现有写权限保留，详情组件仅在用户打开时加载；设备创建API和其他调用方不因本页隐藏按钮而改变。
 
+### 项目列表状态多选（2026-11-03）
+
+经需求方确认，`GET /admin-api/pms/projects/page`新增可选`statuses`字符串数组，允许S0～S6及NORMAL_CLOSED、NO_TRACKING_CLOSED、EXCEPTION_CLOSED，最多10项。各项取并集：阶段项仍限定ACTIVE且current_stage匹配，闭环项按lifecycle_status匹配；不传不限制，显式空集合返回空结果。原`status`单值继续保留，两者同时提供时取交集。租户、PROJECT_VIEW范围、其他筛选及统计接口口径不变。项目列表状态控件支持多选，初次进入及重置默认S0～S6；清空选择或点击项目总数不发送statuses，显示全部可见项目；单状态卡快捷筛选仍保留。此前新增合计卡片的建议由本次多选方案替代。
+
 ### 本机DAC任务复核的显式发起人（2026-10-22）
 
 AST `ProjectDeviceSelectionApi.validateSelection(AuthorizedSelection{tenantId,actorId,projectId,deviceIds})` 供已校验任务的内部调用方复核设备，PROJ `ProjectDeviceSelectionContextApi.getContractNumbers(Authorization{tenantId,actorId,projectId})` 按显式主体重验当前项目范围和租户。原网页登录入口保持原校验。PLT采集中心从冻结任务的AuthorizationQuery传递发起人，不要求客户端提交网页登录Token，不设置模拟登录态，不弱化项目/设备/凭据/版本/票据校验。原任务继续使用原platformTaskId和本机幂等键；已接受的请求不能重复执行。前端本机失败提示区分授权、参数和网络未知结果，不输出请求或凭据。

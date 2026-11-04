@@ -7,6 +7,9 @@ import lombok.EqualsAndHashCode;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 
 import static cn.iocoder.yudao.framework.common.util.date.DateUtils.FORMAT_YEAR_MONTH_DAY_HOUR_MINUTE_SECOND;
 
@@ -37,6 +40,10 @@ public class ProjectPageReqVO extends PageParam {
 
     @Schema(description = "项目状态", example = "S0")
     private String status;
+
+    @Schema(description = "多选项目状态，项间取并集；不传不限制，空集合无结果，与status同时传入取交集")
+    @Size(max = 10)
+    private List<@Pattern(regexp = "S[0-6]|NORMAL_CLOSED|NO_TRACKING_CLOSED|EXCEPTION_CLOSED") String> statuses;
 
     @Schema(description = "签约方式", example = "DIRECT")
     private String signingMethod;

@@ -52,9 +52,10 @@ class ProjectManualMapperSelectPageMySqlTest {
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry registry) {
         Map<String, String> environment = System.getenv();
-        String database = environment.getOrDefault("NPDMS_DB_NAME", "npdms");
-        String port = environment.getOrDefault("NPDMS_MYSQL_PORT", "13306");
-        registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
+        String database = environment.getOrDefault("DB_NAME", "npdms");
+        String port = environment.getOrDefault("MYSQL_PORT", "13306");
+        String host = environment.getOrDefault("DB_HOST", "127.0.0.1");
+        registry.add("spring.datasource.url", () -> "jdbc:mysql://" + host + ":" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
         registry.add("spring.datasource.username", () -> required(environment, "DB_USER"));
         registry.add("spring.datasource.password", () -> required(environment, "DB_PASSWORD"));
@@ -150,6 +151,27 @@ class ProjectManualMapperSelectPageMySqlTest {
 
         assertTrue(ids.contains(normalClosed));
         assertFalse(ids.contains(activeS1));
+    }
+
+    @Test
+    void multipleStatusesUnionActiveStagesAndClosedLifecyclesWithinVisibleScope() {
+        long s1 = insertProject("S1", "ACTIVE", "MULTI-S1");
+        long s6 = insertProject("S6", "ACTIVE", "MULTI-S6");
+        long closed = insertProject("S1", "NORMAL_CLOSED", "MULTI-CLOSED");
+        long hidden = insertProject("S1", "ACTIVE", "MULTI-HIDDEN");
+        long deleted = insertProject("S1", "ACTIVE", "MULTI-DELETED");
+        jdbcTemplate.update("UPDATE proj_project SET deleted=b'1' WHERE id=?", deleted);
+        var visible = new HashSet<>(fixtureProjectIds);
+        visible.remove(hidden);
+        assertEquals(Set.of(s1, closed), new HashSet<>(selectPageIds(builder().visibleProjectIds(visible)
+                .statuses(List.of("S1", "NORMAL_CLOSED")).build())));
+        assertEquals(Set.of(s1, s6), new HashSet<>(selectPageIds(builder().visibleProjectIds(visible)
+                .statuses(List.of("S0", "S1", "S2", "S3", "S4", "S5", "S6")).build())));
+        assertTrue(selectPageIds(builder().tenantId(TENANT + 1).statuses(List.of("S1", "NORMAL_CLOSED")).build()).isEmpty());
+        assertTrue(selectPageIds(builder().visibleProjectIds(Set.of()).statuses(List.of("S1", "NORMAL_CLOSED")).build()).isEmpty());
+        assertTrue(selectPageIds(builder().statuses(List.of()).build()).isEmpty());
+        assertEquals(List.of(closed), selectPageIds(builder().visibleProjectIds(visible).status("NORMAL_CLOSED")
+                .statuses(List.of("S1", "NORMAL_CLOSED")).build()));
     }
 
     @Test

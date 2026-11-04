@@ -90,13 +90,44 @@ it('keeps list usable when statistics fail and preserves list filters on search'
   expect(state.rows).toEqual([{ id: 7, projectName: '可见项目' }])
   state.query.projectName = '测试'
   state.query.overdueOnly = false
-  state.query.status = 'S1'
+  state.query.statuses = ['S1', 'NORMAL_CLOSED']
   state.handleSearch()
   await flush()
   expect(ProjectsApi.getProjectStatistics).toHaveBeenCalledTimes(1)
   expect(ProjectsApi.getProjectPage).toHaveBeenLastCalledWith(expect.objectContaining({
-    projectName: '测试', overdueOnly: false, status: 'S1', pageNo: 1
+    projectName: '测试', overdueOnly: false, statuses: ['S1', 'NORMAL_CLOSED'], pageNo: 1
   }))
+})
+
+it('defaults to S0-S6 and keeps status cards, clear and reset consistent with multiselect', async () => {
+  const state = await render()
+  const defaults = ['S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6']
+  expect(ProjectsApi.getProjectPage).toHaveBeenLastCalledWith(expect.objectContaining({ statuses: defaults }))
+  expect(state.activeStatus).toBeNull()
+  state.query.projectName = '保留条件'
+  state.query.pageNo = 4
+  state.query.statuses = ['S2', 'EXCEPTION_CLOSED']
+  state.handleSearch()
+  await flush()
+  expect(ProjectsApi.getProjectPage).toHaveBeenLastCalledWith(expect.objectContaining({
+    statuses: ['S2', 'EXCEPTION_CLOSED'], projectName: '保留条件', pageNo: 1
+  }))
+  state.toggleStatusFilter('S4')
+  await flush()
+  expect(state.query.statuses).toEqual(['S4'])
+  expect(state.activeStatus).toBe('S4')
+  state.toggleStatusFilter('S4')
+  await flush()
+  expect(ProjectsApi.getProjectPage).toHaveBeenLastCalledWith(expect.objectContaining({ statuses: undefined }))
+  state.handleReset()
+  await flush()
+  expect(state.query.statuses).toEqual(defaults)
+  expect(state.query.projectName).toBe('')
+  state.toggleStatusFilter('')
+  await flush()
+  expect(state.query.statuses).toEqual([])
+  expect(state.activeStatus).toBe('')
+  expect(ProjectsApi.getProjectStatistics).toHaveBeenCalledTimes(1)
 })
 
 it('opens the creation wizard without loading implementation sites', async () => {

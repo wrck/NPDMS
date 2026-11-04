@@ -610,6 +610,7 @@ export type ProjectPageParams = PageParam & {
   overdueOnly?: boolean
   hasShippedDevices?: boolean
   status?: string
+  statuses?: string[]
   signingMethod?: string
   projectCategory?: string
   implementationMode?: string
