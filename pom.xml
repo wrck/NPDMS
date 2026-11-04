@@ -168,6 +168,11 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>worktree-build-output</id>
+            <activation><property><name>npdms.build.root</name></property></activation>
+            <build><directory>${npdms.build.root}/${project.artifactId}</directory></build>
+        </profile>
         <!-- Test classification is opt-in so existing upstream test names stay compatible. -->
         <profile>
             <id>pms-test-unit</id>

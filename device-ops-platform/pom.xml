@@ -59,6 +59,14 @@
         </pluginManagement>
     </build>
 
+    <profiles>
+        <profile>
+            <id>worktree-build-output</id>
+            <activation><property><name>npdms.build.root</name></property></activation>
+            <build><directory>${npdms.build.root}/${project.artifactId}</directory></build>
+        </profile>
+    </profiles>
+
     <modules>
         <module>device-ops-core</module>
         <module>device-ops-parser-semantic</module>

@@ -121,10 +121,14 @@ java -jar yudao-server/target/yudao-server.jar --server.port=58080
 
 源码一致性按构建目标的Maven工程分别检查：`backend`覆盖根POM声明的模块及共享框架，`dac`覆盖`device-ops-platform`声明的模块及其实际打入JAR的`device-ops-web/dist`。各模块POM、源码、资源、Maven配置及共享构建工具均纳入对应指纹；独立DAC工程、平台前端依赖清单的变更不阻止平台后端冻结，平台适配代码的变更仍阻止平台后端冻结。共享工具链、独占锁、冻结产物及已验证修复校验保持不变。
 
+临时构建可通过同一入口的`-BuildOutputRoot F:/CodexTaskArtifacts/npdms-production-853c-20261101/build`显式放到F盘。后端与DAC的编译、测试报告和JAR分别进入该目录的`backend/<artifactId>`、`dac/<artifactId>`，冻结清单进入`releases/<ID>`；源码仍从当前工作树读取，固定工具链、工作树Maven依赖仓库和独占锁保持生效。未指定参数时沿用原输出位置，不迁移或清理已有产物。生产构建仍执行完整测试；临时环境变量`TEMP/TMP`、前端独立构建副本、日志和打包暂存目录也应指向本次F盘目录。
+
 后端已退出时，修复包可通过构建入口显式传入`-AllowOfflineRuntime`冻结；仅当原PID已不存在且59191没有其他监听者时生成离线清单，仍执行全部已验证修复校验。该清单只用于已批准的`worktree-backend.ps1 -StartIfOffline -ApprovedRestart`启动；若已有新进程运行，必须重新核对运行基线，不能用离线清单覆盖。
 
 - 后端健康检查：<http://10.210.0.11:58080/actuator/health>
 - 后端接口文档：<http://10.210.0.11:58080/doc.html>
+
+2026-11-03本地验证：Windows保留端口段覆盖59191时，受控入口可显式传 `-Port 58191`，仍校验PID、冻结产物及 `local,dac`。首次启动允许在无PID文件且所选端口空闲时使用 `-StartIfOffline`。可用 `-EnvironmentFile <现有本地配置>` 引用原配置，支持 `NPDMS_REDIS_PASSWORD`、`NPDMS_MYBATIS_ENCRYPTOR_PASSWORD` 键，不复制明文凭据。入口按Boot4当前类名落实local原有禁用Quartz意图，并关闭模拟登录；测试库没有 `projectContractProjectionJob` 记录，本次不补数据，不把部门筛选验收作为定时同步验收。前端 `scripts/worktree-frontend.ps1 -BackendUrl http://127.0.0.1:58191` 对齐后端。禁迁移和Wall限制保持生效。
 
 ### 3. 启动前端（宿主机）
 

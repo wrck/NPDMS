@@ -1,8 +1,11 @@
 """Target source guards must reject relevant changes without coupling independent builds."""
 import importlib.util
+import hashlib
+import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 spec = importlib.util.spec_from_file_location('worktree_artifact', Path(__file__).parents[1] / 'worktree-artifact.py')
@@ -89,6 +92,28 @@ class SourceScopeTest(unittest.TestCase):
         self.write('pom.xml', '<project><modules><module>missing</module></modules></project>')
         with self.assertRaises(FileNotFoundError):
             self.source('backend')
+
+    def test_external_release_directory_preserves_workspace_and_source_identity(self):
+        with tempfile.TemporaryDirectory() as output:
+            jar = self.root / 'candidate.jar'
+            jar.write_bytes(b'isolated-dac-artifact')
+            revision = self.source('dac')
+            with patch.object(artifact.subprocess, 'run'):
+                artifact.freeze(self.root, 'dac', jar, revision, release_root=Path(output))
+            manifests = list(Path(output).glob('*/manifest.json'))
+            self.assertEqual(1, len(manifests))
+            manifest = json.loads(manifests[0].read_text())
+            self.assertEqual(self.root, Path(manifest['workspace']))
+            self.assertEqual(revision, manifest['source'])
+            self.assertEqual(hashlib.sha256(jar.read_bytes()).hexdigest(), manifest['sha256'])
+            self.assertEqual(jar.read_bytes(), (manifests[0].parent / manifest['artifact']).read_bytes())
+            self.assertFalse((self.root / '.run/build/releases').exists())
+
+    def test_relative_release_directory_is_rejected_before_verification(self):
+        with patch.object(artifact.subprocess, 'run') as verifier:
+            with self.assertRaises(ValueError):
+                artifact.freeze(self.root, 'dac', self.root / 'candidate.jar', 'revision', release_root=Path('relative'))
+            verifier.assert_not_called()
 
 
 if __name__ == '__main__':

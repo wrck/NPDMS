@@ -1,4 +1,4 @@
-param([switch]$ApprovedRestart)
+param([switch]$ApprovedRestart,[string]$BackendUrl='http://10.210.0.11:59191')
 
 $ErrorActionPreference = 'Stop'
 $taskWorkspace = Split-Path $PSScriptRoot -Parent
@@ -30,7 +30,7 @@ if ($taskProcess) {
 
 if (Test-TaskPort $taskPort) { throw 'Port 19191 is occupied by an untracked process.' }
 
-$env:VITE_BASE_URL = 'http://10.210.0.11:59191'
+$env:VITE_BASE_URL = $BackendUrl
 $env:VITE_API_URL = '/admin-api'
 $env:VITE_OPEN = 'false'
 $taskVite = Join-Path $taskFrontendRoot 'node_modules/vite/bin/vite.js'

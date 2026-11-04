@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Manifest,[switch]$ApprovedRestart,[switch]$ValidateOnly,[switch]$StartIfOffline)
+param([Parameter(Mandatory=$true)][string]$Manifest,[switch]$ApprovedRestart,[switch]$ValidateOnly,[switch]$StartIfOffline,[string]$EnvironmentFile='',[ValidateRange(1024,65535)][int]$Port=59191)
 . (Join-Path $PSScriptRoot 'worktree-toolchain.ps1')
 . (Join-Path $PSScriptRoot 'worktree-umc-profile.ps1')
 $taskLock=Enter-WorktreeBuildLock
@@ -8,20 +8,26 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Release verification failed; no service changed' }
     $taskArtifact = $taskResult[-1]
     $taskPidFile=Join-Path $taskWorkspace '.run/backend-domain-test.pid'
-    $taskPid=(Get-Content -LiteralPath $taskPidFile -Raw).Trim()
-    if ($taskPid -notmatch '^\d+$') { throw 'Invalid backend PID' }
-    $taskProcess=Get-CimInstance Win32_Process -Filter "ProcessId=$taskPid"
+    $taskProcess=$null
+    if (Test-Path -LiteralPath $taskPidFile) {
+        $taskPid=(Get-Content -LiteralPath $taskPidFile -Raw).Trim()
+        if ($taskPid -notmatch '^\d+$') { throw 'Invalid backend PID' }
+        $taskProcess=Get-CimInstance Win32_Process -Filter "ProcessId=$taskPid"
+    } elseif (!$StartIfOffline) { throw 'Backend PID file is absent; use -StartIfOffline after explicit approval.' }
     $taskRootPrefix=[IO.Path]::GetFullPath((Join-Path $taskWorkspace '.run'))+[IO.Path]::DirectorySeparatorChar
     $taskManifestData=Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
     $taskOffline = !$taskProcess
     if ($taskOffline) {
         if (!$StartIfOffline) { throw 'Backend is offline; use -StartIfOffline after explicit approval.' }
-        if (@(netstat -ano -p tcp | Select-String '^\s*TCP\s+.*:59191\s+.*LISTENING').Count -gt 0) { throw 'Port 59191 is occupied by an untracked process.' }
+        if (@(netstat -ano -p tcp | Select-String ("^\s*TCP\s+.*:"+$Port+"\s+.*LISTENING")).Count -gt 0) { throw "Port $Port is occupied by an untracked process." }
     } else {
-        if ($taskProcess.CommandLine -notmatch '--server.port=59191(?:\s|$)') { throw 'Backend listener identity changed' }
+        if ($taskProcess.CommandLine -notmatch ("--server.port="+$Port+"(?:\s|$)")) { throw 'Backend listener identity changed' }
         $taskMatch=[regex]::Match($taskProcess.CommandLine,'-jar\s+(?:"([^"]+)"|(\S+))')
         $taskCurrentJar=if ($taskMatch.Groups[1].Success) { $taskMatch.Groups[1].Value } else { $taskMatch.Groups[2].Value }
-        if (![IO.Path]::GetFullPath($taskCurrentJar).StartsWith($taskRootPrefix,[StringComparison]::OrdinalIgnoreCase)) { throw 'Running artifact is outside this worktree runtime' }
+        $taskReleaseRoot=(Get-Item -LiteralPath (Join-Path $taskWorkspace '.run/build/releases')).Target
+        $taskReleasePrefix=if ($taskReleaseRoot) { [IO.Path]::GetFullPath($taskReleaseRoot)+[IO.Path]::DirectorySeparatorChar } else { $taskRootPrefix }
+        $taskResolvedJar=[IO.Path]::GetFullPath($taskCurrentJar)
+        if (!$taskResolvedJar.StartsWith($taskRootPrefix,[StringComparison]::OrdinalIgnoreCase) -and !$taskResolvedJar.StartsWith($taskReleasePrefix,[StringComparison]::OrdinalIgnoreCase)) { throw 'Running artifact is outside this worktree runtime' }
         if ((Get-FileHash -LiteralPath $taskCurrentJar -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskManifestData.runningArtifactSha256) { throw 'Another deployment changed the running artifact after this release was frozen; prepare against the latest runtime.' }
         & $taskPython (Join-Path $taskWorkspace '.run/dac-host/verify-deployed-repairs.py') backend $taskCurrentJar
         if ($LASTEXITCODE -ne 0) { throw 'Running repairs changed; review before deployment' }
@@ -33,6 +39,22 @@ try {
     $taskDatabasePassword=[Text.Encoding]::UTF8.GetString([Security.Cryptography.ProtectedData]::Unprotect([Convert]::FromBase64String($taskDatabaseProfile.encryptedPassword),$null,[Security.Cryptography.DataProtectionScope]::CurrentUser))
     if ([string]::IsNullOrWhiteSpace($taskDatabaseProfile.username) -or [string]::IsNullOrWhiteSpace($taskDatabasePassword)) { throw 'Missing protected test database credentials; no service changed.' }
     $taskUmcConfiguration=Get-WorktreeUmcConfiguration -Path (Join-Path $taskWorkspace '.run/backend-umc.json')
+    $taskSettings=@{}
+    if (!$EnvironmentFile) { $EnvironmentFile=Join-Path $taskWorkspace '.env' }
+    foreach ($taskLine in Get-Content -LiteralPath $EnvironmentFile) {
+        if ($taskLine -match '^\s*([^#=]+)=(.*)$') { $taskSettings[$matches[1].Trim()]=$matches[2].Trim().Trim('"') }
+    }
+    foreach ($taskSettingName in @('REDIS_PASSWORD','MYBATIS_ENCRYPTOR_PASSWORD')) {
+        if (!$taskSettings[$taskSettingName]) { $taskSettings[$taskSettingName]=$taskSettings["NPDMS_$taskSettingName"] }
+        if (!$taskSettings[$taskSettingName]) { throw "Missing local setting: $taskSettingName; no service changed." }
+    }
+    # local 配置原本禁用 Quartz；Boot 4 将自动配置类迁入新的包名。
+    $taskLocalConfiguration=Get-Content -LiteralPath (Join-Path $taskWorkspace 'yudao-server/src/main/resources/application-local.yaml') -Raw -Encoding UTF8
+    $taskExcludeBlock=[regex]::Match($taskLocalConfiguration,'(?m)^    exclude:\r?\n(?:^      .*\r?\n)+').Value
+    $taskExcludes=@([regex]::Matches($taskExcludeBlock,'(?m)^      - ([^\s#]+)') | ForEach-Object {
+        $_.Groups[1].Value.Replace('org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration','org.springframework.boot.quartz.autoconfigure.QuartzAutoConfiguration')
+    })
+    if ($taskExcludes.Count -eq 0) { throw 'Local autoconfiguration exclusions unavailable; no service changed.' }
     if ($ValidateOnly) {
         Write-Output 'Frozen release, local,dac and protected test database configuration validated; no service changed. Automatic migrations and schema updates are disabled.'
         if ($taskUmcConfiguration) { Write-Output 'Protected UMC configuration validated; no secret values were printed and no service changed.' }
@@ -40,10 +62,6 @@ try {
     }
     if (!$ApprovedRestart) { throw 'Explicit per-deployment restart approval is required' }
     . (Join-Path $taskWorkspace '.run/dac-host/environment.ps1')
-    $taskSettings=@{}
-    foreach ($taskLine in Get-Content (Join-Path $taskWorkspace '.env')) {
-        if ($taskLine -match '^\s*([^#=]+)=(.*)$') { $taskSettings[$matches[1].Trim()]=$matches[2].Trim().Trim('"') }
-    }
     $taskDestination=Join-Path $taskWorkspace '.run/dac-route-server.jar'
     if ($taskOffline) {
         $taskDestination=$taskArtifact
@@ -82,17 +100,27 @@ try {
         'spring.datasource.dynamic.druid.wall.condition-and-alway-false-allow'=$true
         'spring.data.redis.host'='127.0.0.1';'spring.data.redis.port'=24379
         'spring.data.redis.database'=14
-        'spring.data.redis.password'=$taskSettings['NPDMS_REDIS_PASSWORD']
+        'spring.data.redis.password'=$taskSettings['REDIS_PASSWORD']
+        'yudao.security.mock-enable'=$false
     }
+    $taskApplicationSettings['spring.autoconfigure.exclude']=$taskExcludes
     if ($taskUmcConfiguration) {
         foreach ($taskUmcKey in $taskUmcConfiguration.Settings.Keys) { $taskApplicationSettings[$taskUmcKey]=$taskUmcConfiguration.Settings[$taskUmcKey] }
         if ($taskUmcConfiguration.ExtraCaCertificatePath) { $env:NODE_EXTRA_CA_CERTS=$taskUmcConfiguration.ExtraCaCertificatePath }
     }
     $env:SPRING_APPLICATION_JSON=($taskApplicationSettings | ConvertTo-Json -Compress)
-    $taskStarted=Start-Process -FilePath "$taskJavaHome/bin/java.exe" -ArgumentList @('-jar',$taskDestination,'--server.port=59191','--spring.profiles.active=local,dac') -WorkingDirectory $taskWorkspace -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $taskWorkspace '.run/logs/satisfaction-manual-backend.log') -RedirectStandardError (Join-Path $taskWorkspace '.run/logs/satisfaction-manual-backend.err.log')
+    $taskStarted=Start-Process -FilePath "$taskJavaHome/bin/java.exe" -ArgumentList @('-jar',$taskDestination,"--server.port=$Port",'--spring.profiles.active=local,dac') -WorkingDirectory $taskWorkspace -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $taskWorkspace '.run/logs/satisfaction-manual-backend.log') -RedirectStandardError (Join-Path $taskWorkspace '.run/logs/satisfaction-manual-backend.err.log')
     $taskStarted.Id | Set-Content -LiteralPath $taskPidFile
-    & $taskPython (Join-Path $taskWorkspace '.run/dac-host/check-ready.py') backend
-    if ($LASTEXITCODE -ne 0) { throw 'Backend readiness failed.' }
+    $taskReady=$false
+    for ($taskAttempt=0; $taskAttempt -lt 150; $taskAttempt++) {
+        if ($taskStarted.HasExited) { throw 'Backend exited before readiness; inspect backend logs.' }
+        try {
+            $taskHealth=Invoke-RestMethod -Uri "http://127.0.0.1:$Port/actuator/health/readiness" -TimeoutSec 2
+            if ($taskHealth.status -eq 'UP') { $taskReady=$true; break }
+        } catch { }
+        Start-Sleep -Seconds 1
+    }
+    if (!$taskReady) { throw 'Backend readiness failed.' }
     if ($taskOffline) { Write-Output "Backend started from frozen local,dac artifact; PID $($taskStarted.Id)." }
     else { Write-Output "Backend deployed with local,dac; PID $($taskStarted.Id)." }
 } finally {
