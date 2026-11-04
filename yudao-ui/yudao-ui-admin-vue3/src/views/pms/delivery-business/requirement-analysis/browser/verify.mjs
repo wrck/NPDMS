@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import config, { dependencies, uiRoot } from './config.mjs'
 
-const browserPackages = process.env.NPDMS_BROWSER_PACKAGES
+const browserPackages = process.env.BROWSER_PACKAGES
 const browserRequire = browserPackages
   ? createRequire(resolve(browserPackages, '../package.json'))
   : dependencies
@@ -24,7 +24,7 @@ try {
   const origin = `http://127.0.0.1:${server.httpServer.address().port}`
   browser = await chromium.launch({
     headless: true,
-    channel: process.env.NPDMS_BROWSER_CHANNEL || 'msedge'
+    channel: process.env.BROWSER_CHANNEL || 'msedge'
   })
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   page.setDefaultTimeout(10000)

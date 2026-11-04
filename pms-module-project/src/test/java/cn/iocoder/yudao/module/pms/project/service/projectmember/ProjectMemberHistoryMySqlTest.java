@@ -23,8 +23,8 @@ class ProjectMemberHistoryMySqlTest {
     cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectMemberHistoryMigrationMapper history;
     final LocalDateTime now=LocalDateTime.of(2026,10,11,12,0);
     @BeforeEach void setup() throws Exception {
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
-        db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
+        db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         String originalDdl;
         try(var sql=db.createStatement();var result=sql.executeQuery("SHOW CREATE TABLE proj_project_member_assignment")) {
             assertTrue(result.next());originalDdl=result.getString(2);

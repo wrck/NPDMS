@@ -30,20 +30,20 @@ spring:
       strict: true
       datasource:
         master:
-          name: ${NPDMS_DB_NAME}
-          url: jdbc:mysql://${NPDMS_DB_HOST}:${NPDMS_DB_PORT}/${NPDMS_DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true&nullCatalogMeansCurrent=true
-          username: ${NPDMS_DB_USER}
-          password: ${NPDMS_DB_PASSWORD}
+          name: ${DB_NAME}
+          url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true&nullCatalogMeansCurrent=true
+          username: ${DB_USER}
+          password: ${DB_PASSWORD}
   data:
     redis:
-      host: ${NPDMS_REDIS_HOST}
-      port: ${NPDMS_REDIS_PORT}
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
       database: 0
-      password: ${NPDMS_REDIS_PASSWORD}
+      password: ${REDIS_PASSWORD}
 
 mybatis-plus:
   encryptor:
-    password: ${NPDMS_MYBATIS_ENCRYPTOR_PASSWORD}
+    password: ${MYBATIS_ENCRYPTOR_PASSWORD}
 
 management:
   endpoints:

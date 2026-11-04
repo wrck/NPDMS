@@ -28,8 +28,8 @@ class ProjectTaskExecutionMapperAcceptanceTest {
     @Resource ProjectWorkBindingFactMapper bindings;
 
     @DynamicPropertySource static void database(DynamicPropertyRegistry registry) {
-        if (!"npdms_test".equals(System.getenv("NPDMS_DB_NAME"))
-                || !"23316".equals(System.getenv("NPDMS_MYSQL_PORT")))
+        if (!"npdms_test".equals(System.getenv("DB_NAME"))
+                || !"23316".equals(System.getenv("MYSQL_PORT")))
             throw new IllegalStateException("Acceptance requires the fixed isolated test database");
         ProjectWorkBindingFactMapperTest.mysqlProperties(registry);
     }

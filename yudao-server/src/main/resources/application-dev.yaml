@@ -165,16 +165,16 @@ logging:
 wx: # 参见 WxJava 文档
   mp:
     # 公众号配置(必填)
-    app-id: ${NPDMS_WX_MP_APP_ID:disabled}
-    secret: ${NPDMS_WX_MP_SECRET:disabled}
+    app-id: ${WX_MP_APP_ID:disabled}
+    secret: ${WX_MP_SECRET:disabled}
     # 存储配置，解决 AccessToken 的跨节点的共享
     config-storage:
       type: RedisTemplate # 采用 RedisTemplate 操作 Redis，会自动从 Spring 中获取
       key-prefix: wx # Redis Key 的前缀
       http-client-type: HttpComponents # 采用 HttpComponents（HttpClient 5）请求微信公众号平台
   miniapp: # 小程序配置（必填），参见 WxJava 文档
-    appid: ${NPDMS_WX_MINIAPP_APP_ID:disabled}
-    secret: ${NPDMS_WX_MINIAPP_SECRET:disabled}
+    appid: ${WX_MINIAPP_APP_ID:disabled}
+    secret: ${WX_MINIAPP_SECRET:disabled}
     config-storage:
       type: RedisTemplate # 采用 RedisTemplate 操作 Redis，会自动从 Spring 中获取
       key-prefix: wa # Redis Key 的前缀
@@ -189,19 +189,19 @@ yudao:
     refund-notify-url: http://your-domain.com/admin-api/pay/notify/refund # 支付渠道的【退款】回调地址
     transfer-notify-url: https://your-domain.com/admin-api/pay/notify/transfer # 支付渠道的【转账】回调地址
   demo: false # 开启演示模式
-  tencent-lbs-key: ${NPDMS_TENCENT_LBS_KEY:disabled} # QQ 地图的密钥
+  tencent-lbs-key: ${TENCENT_LBS_KEY:disabled} # QQ 地图的密钥
 
 justauth:
   enabled: true
   type:
     DINGTALK: # 钉钉
-      client-id: ${NPDMS_DINGTALK_CLIENT_ID:disabled}
-      client-secret: ${NPDMS_DINGTALK_CLIENT_SECRET:disabled}
+      client-id: ${DINGTALK_CLIENT_ID:disabled}
+      client-secret: ${DINGTALK_CLIENT_SECRET:disabled}
       ignore-check-redirect-uri: true
     WECHAT_ENTERPRISE: # 企业微信
-      client-id: ${NPDMS_WECHAT_ENTERPRISE_CLIENT_ID:disabled}
-      client-secret: ${NPDMS_WECHAT_ENTERPRISE_CLIENT_SECRET:disabled}
-      agent-id: ${NPDMS_WECHAT_ENTERPRISE_AGENT_ID:0}
+      client-id: ${WECHAT_ENTERPRISE_CLIENT_ID:disabled}
+      client-secret: ${WECHAT_ENTERPRISE_CLIENT_SECRET:disabled}
+      agent-id: ${WECHAT_ENTERPRISE_AGENT_ID:0}
       ignore-check-redirect-uri: true
     # noinspection SpringBootApplicationYaml
     WECHAT_MINI_PROGRAM: # 微信小程序

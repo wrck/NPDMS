@@ -39,10 +39,10 @@ class ProjectMasterMigrationMySqlTest {
     Long version;
     final Long id=992203060189L;
     @BeforeEach void setup() throws Exception {
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));
-        assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));
+        assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
         String url="jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai";
-        db=DriverManager.getConnection(url,System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+        db=DriverManager.getConnection(url,System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         try(var sql=db.createStatement()) {
             sql.execute("CREATE TEMPORARY TABLE approved_project_master_test LIKE proj_project");
             assertEquals(1,sql.executeUpdate("INSERT INTO approved_project_master_test SELECT * FROM proj_project WHERE id=992203060189 AND tenant_id=1 AND deleted=b'0'"));

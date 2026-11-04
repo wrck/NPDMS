@@ -401,7 +401,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
         } catch (EmptyResultDataAccessException ex) {
             throw new IllegalStateException(
                     "IT需要共享库npdms_domain_test存在租户1已发布V2模板（直签-工程类，含里程碑）；"
-                            + "请用 NPDMS_MYSQL_PORT=24306 NPDMS_DB_NAME=npdms_domain_test 运行", ex);
+                            + "请用 MYSQL_PORT=24306 DB_NAME=npdms_domain_test 运行", ex);
         }
         Long sourceTemplateId = jdbcTemplate.queryForObject(
                 "SELECT template_id FROM proj_project_template_revision WHERE id=?", Long.class, sourceRevisionId);
@@ -465,13 +465,13 @@ abstract class ProjectManualCreationMySqlTestSupport {
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry registry) {
         Map<String, String> environment = currentEnvironment();
-        String database = environment.getOrDefault("NPDMS_DB_NAME", "npdms");
-        String port = environment.getOrDefault("NPDMS_MYSQL_PORT", "13306");
+        String database = environment.getOrDefault("DB_NAME", "npdms");
+        String port = environment.getOrDefault("MYSQL_PORT", "13306");
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai"
                 + "&characterEncoding=UTF-8&nullCatalogMeansCurrent=true");
-        registry.add("spring.datasource.username", () -> required(environment, "NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> required(environment, "NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.username", () -> required(environment, "DB_USER"));
+        registry.add("spring.datasource.password", () -> required(environment, "DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");
@@ -661,7 +661,7 @@ abstract class ProjectManualCreationMySqlTestSupport {
     private static Map<String, String> currentEnvironment() {
         Map<String, String> values = new LinkedHashMap<>(System.getenv());
         // 命令行-D叠加（经surefire argLine注入fork JVM）：显式指定集成库时不依赖env传播链。
-        for (String key : List.of("NPDMS_MYSQL_PORT", "NPDMS_DB_NAME", "NPDMS_DB_USER", "NPDMS_DB_PASSWORD")) {
+        for (String key : List.of("MYSQL_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD")) {
             String override = System.getProperty(key);
             if (override != null && !override.isBlank()) {
                 values.put(key, override);

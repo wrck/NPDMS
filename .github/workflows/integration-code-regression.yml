@@ -92,10 +92,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
-      NPDMS_DB_NAME: npdms
-      NPDMS_DB_USER: root
-      NPDMS_DB_PASSWORD: pr7-isolated-ci-only
-      NPDMS_MYSQL_PORT: '13306'
+      DB_NAME: npdms
+      DB_USER: root
+      DB_PASSWORD: pr7-isolated-ci-only
+      MYSQL_PORT: '13306'
     steps:
       - uses: actions/checkout@v5
         with:
@@ -110,11 +110,11 @@ jobs:
         run: |
           set -euo pipefail
           docker run -d --name npdms-regression-mysql -p 13306:3306 \
-            -e MYSQL_ROOT_PASSWORD="${NPDMS_DB_PASSWORD}" -e MYSQL_DATABASE=npdms \
+            -e MYSQL_ROOT_PASSWORD="${DB_PASSWORD}" -e MYSQL_DATABASE=npdms \
             mysql:8.4 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
           ready=0
           for attempt in $(seq 1 90); do
-            if docker exec -e MYSQL_PWD="${NPDMS_DB_PASSWORD}" npdms-regression-mysql \
+            if docker exec -e MYSQL_PWD="${DB_PASSWORD}" npdms-regression-mysql \
               mysql -uroot -Nse 'SELECT 1' >/dev/null 2>&1; then
               ready=1
               break
@@ -126,7 +126,7 @@ jobs:
           test -s "${RUNNER_TEMP}/migration-paths.txt"
           while IFS= read -r migration; do
             echo "Executing ${migration}" | tee -a "${RUNNER_TEMP}/mysql-migrations.log"
-            docker exec -i -e MYSQL_PWD="${NPDMS_DB_PASSWORD}" npdms-regression-mysql \
+            docker exec -i -e MYSQL_PWD="${DB_PASSWORD}" npdms-regression-mysql \
               mysql -uroot --default-character-set=utf8mb4 npdms < "${migration}" \
               >> "${RUNNER_TEMP}/mysql-migrations.log" 2>&1
           done < "${RUNNER_TEMP}/migration-paths.txt"

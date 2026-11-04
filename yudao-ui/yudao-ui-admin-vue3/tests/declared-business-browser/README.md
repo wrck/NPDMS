@@ -14,10 +14,10 @@ Redis 仅绑定 `127.0.0.1:27464`、无持久卷。不得指向应用、共享�
 在 JDK 25、Maven、Node、pnpm 环境中安装锁定依赖，然后在 UI 根目录运行：
 
 ```bash
-NPDMS_DECLARED_EXCLUSIVE=true \
-NPDMS_MAVEN_SETTINGS=/path/to/maven-settings.xml \
-NPDMS_BROWSER_PACKAGES=/path/to/node_modules \
-NPDMS_BROWSER_EXECUTABLE=/usr/bin/chromium \
+DECLARED_EXCLUSIVE=true \
+MAVEN_SETTINGS=/path/to/maven-settings.xml \
+BROWSER_PACKAGES=/path/to/node_modules \
+BROWSER_EXECUTABLE=/usr/bin/chromium \
 node tests/declared-business-browser/verify.mjs
 ```
 

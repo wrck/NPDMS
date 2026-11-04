@@ -22,8 +22,8 @@ class DeviceLicenseRecordMySqlTest {
     Connection db;SingleConnectionDataSource data;TransactionTemplate tx;
     DeviceLicenseRecordMapper mapper;DppmsLicenseRecordService service;DppmsLicenseRecordServiceTest fixture;
     @BeforeEach void setup() throws Exception {
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
-        db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
+        db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         data=new SingleConnectionDataSource(db,true);
         String ddl=Files.readString(Path.of(System.getProperty("npdms.license.sourceRoot"),"SQL/migrations/V433__approved_device_license_record.sql"));
         try(var sql=db.createStatement()){sql.execute(ddl.replace("CREATE TABLE ast_device_license_record","CREATE TEMPORARY TABLE ast_device_license_record"));}

@@ -56,11 +56,11 @@ class CutoverTaskRevisionMySqlTest {
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
-        var env = System.getenv(); var database = Objects.requireNonNull(env.get("NPDMS_DB_NAME"));
+        var env = System.getenv(); var database = Objects.requireNonNull(env.get("DB_NAME"));
         if (!database.startsWith("npdms_cut_issues_")) throw new IllegalStateException("必须使用本次独立割接验证库");
-        registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + env.get("NPDMS_MYSQL_PORT") + "/" + database + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
-        registry.add("spring.datasource.username", () -> env.get("NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> env.get("NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + env.get("MYSQL_PORT") + "/" + database + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
+        registry.add("spring.datasource.username", () -> env.get("DB_USER"));
+        registry.add("spring.datasource.password", () -> env.get("DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");

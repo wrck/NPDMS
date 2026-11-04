@@ -46,7 +46,7 @@ class DeviceOrganizationScopeMySqlReadOnlyTest {
         }
         try (Connection db = DriverManager.getConnection(
                 "jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                settings.get("NPDMS_DB_USER"), settings.get("NPDMS_DB_PASSWORD"))) {
+                settings.get("DB_USER"), settings.get("DB_PASSWORD"))) {
             db.setReadOnly(true);
             db.setAutoCommit(false);
             List<ContractDeviceVisibilityApi.OrganizationGrant> grants = new ArrayList<>();

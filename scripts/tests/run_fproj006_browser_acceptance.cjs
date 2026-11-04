@@ -2,11 +2,11 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { chromium } = require('playwright')
 
-const baseUrl = process.env.NPDMS_BROWSER_BASE_URL || 'http://127.0.0.1:18082'
-const apiUpstream = process.env.NPDMS_BROWSER_API_UPSTREAM
-const projectId = Number(process.env.NPDMS_FPROJ006_PROJECT_ID || 992002000030)
-const username = process.env.NPDMS_BROWSER_USERNAME || 'admin'
-const password = process.env.NPDMS_BROWSER_PASSWORD || 'admin123'
+const baseUrl = process.env.BROWSER_BASE_URL || 'http://127.0.0.1:18082'
+const apiUpstream = process.env.BROWSER_API_UPSTREAM
+const projectId = Number(process.env.FPROJ006_PROJECT_ID || 992002000030)
+const username = process.env.BROWSER_USERNAME || 'admin'
+const password = process.env.BROWSER_PASSWORD || 'admin123'
 const outputDir = process.argv[2] || 'output/f-proj-006-v18/browser'
 
 fs.mkdirSync(outputDir, { recursive: true })

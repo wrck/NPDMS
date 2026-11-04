@@ -1,12 +1,12 @@
 # Independent host process; do not use the NPDMS database or Flyway schema.
 server:
-  port: ${NPDMS_DAC_PORT:48182}
+  port: ${DAC_PORT:48182}
 device-ops:
   npdms:
-    request-signing-key: ${NPDMS_DAC_REQUEST_SIGNING_KEY}
+    request-signing-key: ${DAC_REQUEST_SIGNING_KEY}
   callback:
     enabled: true
-    allowed-hosts: ${NPDMS_DAC_CALLBACK_HOSTS:10.210.0.11}
-    npdms-destination: ${NPDMS_DAC_CALLBACK_URL:http://10.210.0.11:58080/api/v1/pms/integration/device-ops/callbacks}
-    npdms-signing-key: ${NPDMS_DAC_CALLBACK_SIGNING_KEY}
-    npdms-namespace-prefix: ${NPDMS_DEVICE_OPS_NAMESPACE:npdms}-
+    allowed-hosts: ${DAC_CALLBACK_HOSTS:10.210.0.11}
+    npdms-destination: ${DAC_CALLBACK_URL:http://10.210.0.11:58080/api/v1/pms/integration/device-ops/callbacks}
+    npdms-signing-key: ${DAC_CALLBACK_SIGNING_KEY}
+    npdms-namespace-prefix: ${DEVICE_OPS_NAMESPACE:npdms}-

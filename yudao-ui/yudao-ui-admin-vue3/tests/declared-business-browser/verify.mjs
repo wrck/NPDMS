@@ -8,16 +8,16 @@ import { createServer } from 'vite'
 import { createServer as createPortReservation } from 'node:net'
 import config, { uiRoot } from './config.mjs'
 
-assert.equal(process.env.NPDMS_DECLARED_EXCLUSIVE, 'true', 'Create and verify the exclusive MySQL/Redis fixture first')
-const browserRequire = process.env.NPDMS_BROWSER_PACKAGES
-  ? createRequire(resolve(process.env.NPDMS_BROWSER_PACKAGES, '../package.json')) : createRequire(import.meta.url)
+assert.equal(process.env.DECLARED_EXCLUSIVE, 'true', 'Create and verify the exclusive MySQL/Redis fixture first')
+const browserRequire = process.env.BROWSER_PACKAGES
+  ? createRequire(resolve(process.env.BROWSER_PACKAGES, '../package.json')) : createRequire(import.meta.url)
 const { chromium } = browserRequire('playwright')
 const repoRoot = resolve(uiRoot, '../..')
 const output = resolve(repoRoot, '.run/cloud-20261006/browser')
 await mkdir(output, { recursive: true })
 await writeFile(resolve(output, 'result.json'), JSON.stringify({ passed: false, status: 'RUNNING', startedAt: new Date().toISOString() }) + '\n')
 const log = createWriteStream(resolve(output, 'backend.log'))
-const args = ['-B', ...(process.env.NPDMS_MAVEN_SETTINGS ? ['-s', process.env.NPDMS_MAVEN_SETTINGS] : []),
+const args = ['-B', ...(process.env.MAVEN_SETTINGS ? ['-s', process.env.MAVEN_SETTINGS] : []),
   '-pl', 'pms-module-platform', '-am', 'test',
   '-Dtest=DeclaredLoginRuntimePersistenceTest#browserRealLoginFormAndRefreshRecovery',
   '-Dnpdms.declared.exclusive=true', '-Dnpdms.declared.browserLogin=true', '-Dsurefire.failIfNoSpecifiedTests=false']
@@ -46,7 +46,7 @@ try {
   }
   await server.listen()
   const origin = `http://127.0.0.1:${server.httpServer.address().port}`
-  browser = await chromium.launch({ executablePath: process.env.NPDMS_BROWSER_EXECUTABLE || '/usr/bin/chromium', headless: true })
+  browser = await chromium.launch({ executablePath: process.env.BROWSER_EXECUTABLE || '/usr/bin/chromium', headless: true })
   page = await browser.newPage()
   page.setDefaultTimeout(20000)
   page.on('pageerror', error => errors.push(error.message))

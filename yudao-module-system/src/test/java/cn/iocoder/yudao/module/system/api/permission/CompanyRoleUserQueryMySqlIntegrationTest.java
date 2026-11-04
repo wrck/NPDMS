@@ -76,8 +76,8 @@ class CompanyRoleUserQueryMySqlIntegrationTest {
     @DynamicPropertySource
     static void databaseProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", () -> JDBC_URL);
-        registry.add("spring.datasource.username", () -> requiredEnvironment("NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> requiredEnvironment("NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.username", () -> requiredEnvironment("DB_USER"));
+        registry.add("spring.datasource.password", () -> requiredEnvironment("DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.datasource.druid.initial-size", () -> "1");
         registry.add("spring.datasource.druid.max-active", () -> "4");

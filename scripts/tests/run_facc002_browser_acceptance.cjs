@@ -3,9 +3,9 @@ const path = require('node:path')
 const os = require('node:os')
 const { execFileSync } = require('node:child_process')
 
-const endpoint = process.env.NPDMS_BROWSER_CDP_URL || 'http://127.0.0.1:9224'
-const appUrl = process.env.NPDMS_BROWSER_APP_URL || 'http://127.0.0.1:19340'
-const apiUrl = process.env.NPDMS_BROWSER_API_URL || 'http://127.0.0.1:59340/admin-api'
+const endpoint = process.env.BROWSER_CDP_URL || 'http://127.0.0.1:9224'
+const appUrl = process.env.BROWSER_APP_URL || 'http://127.0.0.1:19340'
+const apiUrl = process.env.BROWSER_API_URL || 'http://127.0.0.1:59340/admin-api'
 const password = process.env.FACC002_BROWSER_PASSWORD
 if (!password) throw new Error('必须通过FACC002_BROWSER_PASSWORD提供正式验收密码')
 

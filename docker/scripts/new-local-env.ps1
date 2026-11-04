@@ -21,14 +21,14 @@ function New-HexSecret {
 }
 
 $content = @(
-    "NPDMS_DB_NAME=npdms"
-    "NPDMS_DB_USER=npdms_app"
-    "NPDMS_DB_PASSWORD=$(New-HexSecret)"
-    "NPDMS_MYSQL_ROOT_PASSWORD=$(New-HexSecret)"
-    "NPDMS_REDIS_PASSWORD=$(New-HexSecret)"
-    "NPDMS_MYBATIS_ENCRYPTOR_PASSWORD=$(New-HexSecret)"
-    "NPDMS_MYSQL_PORT=13306"
-    "NPDMS_REDIS_PORT=16379"
+    "DB_NAME=npdms"
+    "DB_USER=npdms_app"
+    "DB_PASSWORD=$(New-HexSecret)"
+    "MYSQL_ROOT_PASSWORD=$(New-HexSecret)"
+    "REDIS_PASSWORD=$(New-HexSecret)"
+    "MYBATIS_ENCRYPTOR_PASSWORD=$(New-HexSecret)"
+    "MYSQL_PORT=13306"
+    "REDIS_PORT=16379"
     "# 前后端端口已在 compose.yaml 中固化为 58080/18081，禁止通过 .env 修改"
 )
 

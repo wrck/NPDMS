@@ -50,10 +50,10 @@ class DeviceLogArchiveMySqlTest {
     private Long extraDeviceId;
     private String serial;
     @DynamicPropertySource static void database(DynamicPropertyRegistry registry) {
-        if (!"npdms_test".equals(System.getenv("NPDMS_DB_NAME"))) throw new IllegalStateException("日志MySQL验证仅使用指定npdms_test库");
+        if (!"npdms_test".equals(System.getenv("DB_NAME"))) throw new IllegalStateException("日志MySQL验证仅使用指定npdms_test库");
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai");
-        registry.add("spring.datasource.username", () -> System.getenv("NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> System.getenv("NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.username", () -> System.getenv("DB_USER"));
+        registry.add("spring.datasource.password", () -> System.getenv("DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");

@@ -5,7 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 export const browserRoot = dirname(fileURLToPath(import.meta.url))
 export const uiRoot = resolve(browserRoot, '../../../../../..')
 // An existing installation may be read without modifying its lockfile or node_modules.
-export const dependencyRoot = process.env.NPDMS_UI_DEPENDENCIES || uiRoot
+export const dependencyRoot = process.env.UI_DEPENDENCIES || uiRoot
 export const dependencies = createRequire(resolve(dependencyRoot, 'package.json'))
 const vuePlugin = (await import(pathToFileURL(dependencies.resolve('@vitejs/plugin-vue')).href))
   .default

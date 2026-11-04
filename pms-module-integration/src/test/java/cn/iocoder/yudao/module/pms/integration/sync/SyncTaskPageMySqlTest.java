@@ -26,11 +26,11 @@ class SyncTaskPageMySqlTest {
     SyncTaskMapper mapper;
 
     @BeforeEach void setup() throws Exception {
-        assertEquals("24306", System.getenv("NPDMS_MYSQL_PORT"));
-        assertEquals("npdms_domain_test", System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306", System.getenv("MYSQL_PORT"));
+        assertEquals("npdms_domain_test", System.getenv("DB_NAME"));
         var source = new DriverManagerDataSource(
                 "jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"), System.getenv("NPDMS_DB_PASSWORD"));
+                System.getenv("DB_USER"), System.getenv("DB_PASSWORD"));
         var factory = new MybatisSqlSessionFactoryBean();
         factory.setDataSource(source);
         factory.setTransactionFactory(new org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory());

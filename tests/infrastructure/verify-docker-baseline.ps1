@@ -33,8 +33,8 @@ if ([string]::IsNullOrEmpty($compose)) {
 if ($compose -notmatch '(?m)^name:\s*npdms\s*$') {
     throw "Compose project name must be npdms."
 }
-if ($compose -notmatch [regex]::Escape('${NPDMS_DB_NAME:-npdms}')) {
-    throw "Compose default database must be npdms and use NPDMS_DB_NAME."
+if ($compose -notmatch [regex]::Escape('${DB_NAME:-npdms}')) {
+    throw "Compose default database must be npdms and use DB_NAME."
 }
 if ($compose -match '\$\{PMS_') {
     throw "Compose must not reference legacy PMS_* environment variables."
@@ -98,10 +98,10 @@ if ($applicationContent -notmatch "status-sync-to-wxa-enable:\s*false\b") {
 }
 
 $sensitiveNames = @(
-    "NPDMS_DB_PASSWORD",
-    "NPDMS_MYSQL_ROOT_PASSWORD",
-    "NPDMS_REDIS_PASSWORD",
-    "NPDMS_MYBATIS_ENCRYPTOR_PASSWORD"
+    "DB_PASSWORD",
+    "MYSQL_ROOT_PASSWORD",
+    "REDIS_PASSWORD",
+    "MYBATIS_ENCRYPTOR_PASSWORD"
 )
 $exampleLines = Get-Content -LiteralPath $envExample
 foreach ($name in $sensitiveNames) {

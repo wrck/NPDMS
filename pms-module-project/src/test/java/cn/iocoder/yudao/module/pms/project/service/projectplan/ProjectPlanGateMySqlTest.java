@@ -28,9 +28,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnabledIfSystemProperty(named="pms.gate.plan.mysql",matches="true")
 class ProjectPlanGateMySqlTest {
     @Test void referenceHistoryAndResultInvalidationCommitOrRollbackTogether() throws Exception {
-        assertEquals("npdms_test",System.getenv("NPDMS_DB_NAME")); assertEquals("23316",System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_test",System.getenv("DB_NAME")); assertEquals("23316",System.getenv("MYSQL_PORT"));
         try (var connection=DriverManager.getConnection("jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"))) {
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"))) {
             var database=new SingleConnectionDataSource(connection,true); var jdbc=new JdbcTemplate(database);
             jdbc.execute("CREATE TEMPORARY TABLE proj_project_gate (id BIGINT PRIMARY KEY,tenant_id BIGINT,project_id BIGINT,gate_code VARCHAR(64),name VARCHAR(128),stage_code VARCHAR(32),gate_type VARCHAR(16),description VARCHAR(500),validation_summary VARCHAR(1000),source_definition_id BIGINT,status VARCHAR(32),version INT,deleted BIT,updater VARCHAR(64),update_time DATETIME)");
             jdbc.execute("CREATE TEMPORARY TABLE proj_project_gate_reference (id BIGINT PRIMARY KEY,tenant_id BIGINT,gate_id BIGINT,ref_type VARCHAR(16),ref_code VARCHAR(64),ref_version VARCHAR(32),version INT,deleted BIT,updater VARCHAR(64),update_time DATETIME,UNIQUE KEY uk_proj_gate_ref(tenant_id,gate_id,ref_type,ref_code))");

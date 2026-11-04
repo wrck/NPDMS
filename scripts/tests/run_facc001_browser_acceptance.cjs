@@ -2,9 +2,9 @@ const fs = require('node:fs')
 const path = require('node:path')
 const { execFileSync } = require('node:child_process')
 
-const endpoint = process.env.NPDMS_BROWSER_CDP_URL || 'http://127.0.0.1:9224'
-const appUrl = process.env.NPDMS_BROWSER_APP_URL || 'http://localhost:19330'
-const apiUrl = process.env.NPDMS_BROWSER_API_URL || 'http://localhost:59330/admin-api'
+const endpoint = process.env.BROWSER_CDP_URL || 'http://127.0.0.1:9224'
+const appUrl = process.env.BROWSER_APP_URL || 'http://localhost:19330'
+const apiUrl = process.env.BROWSER_API_URL || 'http://localhost:59330/admin-api'
 const password = process.env.FACC001_BROWSER_PASSWORD
 if (!password) throw new Error('必须通过FACC001_BROWSER_PASSWORD提供正式验收密码')
 
@@ -31,8 +31,8 @@ const runArchiveRetryIntegration = () => {
     '-Dtest=Facc001ApplicationMySqlIntegrationTest', '-Dsurefire.failIfNoSpecifiedTests=false',
     '-DskipITs=false', 'test'], {
     cwd: path.resolve('.'), stdio: 'pipe', shell: true,
-    env: { ...process.env, NPDMS_DB_NAME: 'npdms_test', NPDMS_MYSQL_PORT: '23316',
-      NPDMS_DB_USER: 'root', NPDMS_DB_PASSWORD: passwordLine.slice('MYSQL_ROOT_PASSWORD='.length) }
+    env: { ...process.env, DB_NAME: 'npdms_test', MYSQL_PORT: '23316',
+      DB_USER: 'root', DB_PASSWORD: passwordLine.slice('MYSQL_ROOT_PASSWORD='.length) }
   })
   return true
 }

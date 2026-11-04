@@ -32,7 +32,7 @@ class RedisCredentialTokenStoreTest {
     void setUp() {
         org.springframework.data.redis.connection.RedisStandaloneConfiguration configuration =
                 new org.springframework.data.redis.connection.RedisStandaloneConfiguration("127.0.0.1", redisPort());
-        configuration.setPassword(repositoryValue("NPDMS_REDIS_PASSWORD"));
+        configuration.setPassword(repositoryValue("REDIS_PASSWORD"));
         LettuceConnectionFactory factory = new LettuceConnectionFactory(configuration);
         factory.afterPropertiesSet();
         redisTemplate = new StringRedisTemplate(factory);
@@ -90,7 +90,7 @@ class RedisCredentialTokenStoreTest {
     }
 
     private static int redisPort() {
-        String value = repositoryValue("NPDMS_REDIS_PORT");
+        String value = repositoryValue("REDIS_PORT");
         return value.isBlank() ? 16379 : Integer.parseInt(value);
     }
 

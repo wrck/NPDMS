@@ -25,7 +25,7 @@ node node_modules/vitest/vitest.mjs run --config src/views/pms/delivery-business
 node src/views/pms/delivery-business/duration/browser/verify.mjs
 ```
 
-沿用此前内容验证的 `NPDMS_UI_DEPENDENCIES`、`NPDMS_BROWSER_PACKAGES` 和可选 `NPDMS_BROWSER_CHANNEL`，只读复用现有安装；不修改别的工作树源码或依赖。输出在本工作树被忽略的 `.run/delivery-demo/duration-browser/`。浏览器和本地测试服务器在finally关闭。
+沿用此前内容验证的 `UI_DEPENDENCIES`、`BROWSER_PACKAGES` 和可选 `BROWSER_CHANNEL`，只读复用现有安装；不修改别的工作树源码或依赖。输出在本工作树被忽略的 `.run/delivery-demo/duration-browser/`。浏览器和本地测试服务器在finally关闭。
 
 24项检查通过：原8项路由/并发参数/当前草稿/历史/文件/BPM/旧入口保护检查保留，只有因安全读取改为局部current而变化的一处源码字符串断言随实现更新；新增16项真实组件方法测试覆盖默认项目输入、非法ID、两层旧响应、失败状态、只读写入与确认后重验、原首次工期载荷、校验期间切换、草稿保留、文件回执隔离等。
 

@@ -4,7 +4,7 @@ server:
   ssl:
     enabled: true
     key-store-type: PKCS12
-    key-store-password: ${NPDMS_TLS_KEYSTORE_PASSWORD}
+    key-store-password: ${TLS_KEYSTORE_PASSWORD}
   tomcat:
     accesslog:
       enabled: false
@@ -56,18 +56,18 @@ spring:
         master:
           name: @@db_name@@
           url: jdbc:mysql://@@db_tls_name@@:3306/@@db_name@@?sslMode=VERIFY_IDENTITY&allowPublicKeyRetrieval=false&serverTimezone=Asia/Shanghai&rewriteBatchedStatements=true&nullCatalogMeansCurrent=true
-          username: ${NPDMS_DB_USER}
-          password: ${NPDMS_DB_PASSWORD}
+          username: ${DB_USER}
+          password: ${DB_PASSWORD}
   data:
     redis:
       host: 127.0.0.1
       port: 6379
       database: 0
-      password: ${NPDMS_REDIS_PASSWORD}
+      password: ${REDIS_PASSWORD}
 
 mybatis-plus:
   encryptor:
-    password: ${NPDMS_MYBATIS_ENCRYPTOR_PASSWORD}
+    password: ${MYBATIS_ENCRYPTOR_PASSWORD}
 
 management:
   endpoints:
@@ -101,8 +101,8 @@ wx:
 
 yudao:
   api-encrypt:
-    request-key: ${NPDMS_API_ENCRYPT_REQUEST_KEY}
-    response-key: ${NPDMS_API_ENCRYPT_RESPONSE_KEY}
+    request-key: ${API_ENCRYPT_REQUEST_KEY}
+    response-key: ${API_ENCRYPT_RESPONSE_KEY}
   captcha:
     enable: true
   security:

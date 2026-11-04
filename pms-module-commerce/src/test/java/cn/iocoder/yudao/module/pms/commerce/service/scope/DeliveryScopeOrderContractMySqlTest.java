@@ -21,9 +21,9 @@ class DeliveryScopeOrderContractMySqlTest {
     private SqlSession session;
     private DeliveryScopeMapper mapper;
     @BeforeEach void fixtures() throws Exception {
-        assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));
-        connection=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+        assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));
+        connection=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         try(var sql=connection.createStatement()) {
             sql.execute("CREATE TEMPORARY TABLE com_delivery_scope(id BIGINT PRIMARY KEY, tenant_id BIGINT, order_line_id BIGINT, deleted BIT)");
             sql.execute("CREATE TEMPORARY TABLE com_sales_order_line(id BIGINT PRIMARY KEY, tenant_id BIGINT, order_id BIGINT, deleted BIT)");

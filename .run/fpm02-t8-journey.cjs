@@ -10,9 +10,9 @@ function assert(condition, message) {
 }
 
 (async () => {
-  const username = process.env.NPDMS_E2E_USERNAME;
-  const password = process.env.NPDMS_E2E_PASSWORD;
-  if (!username || !password) throw new Error('NPDMS_E2E_USERNAME/PASSWORD are required');
+  const username = process.env.E2E_USERNAME;
+  const password = process.env.E2E_PASSWORD;
+  if (!username || !password) throw new Error('E2E_USERNAME/PASSWORD are required');
 
   const evidenceDir = path.join(__dirname, 'fpm02-t8');
   fs.mkdirSync(evidenceDir, { recursive: true });

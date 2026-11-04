@@ -84,8 +84,8 @@ class ProjectManagerMemberMySqlTest {
     static void properties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:23316/npdms_test"
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
-        registry.add("spring.datasource.username", () -> required("NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> required("NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.username", () -> required("DB_USER"));
+        registry.add("spring.datasource.password", () -> required("DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.sql.init.mode", () -> "never");
         registry.add("yudao.info.base-package", () -> "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual");

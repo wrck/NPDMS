@@ -17,9 +17,9 @@ class ProjectContractRelationMigrationMySqlTest {
     Connection db;SqlSession session;ProjectContractRelationMigrationMapper mapper;
     final LocalDateTime old=LocalDateTime.parse("2022-12-01T10:05:40.123");
     @BeforeEach void setup() throws Exception {
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
         db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         String ddl;
         try(var statement=db.createStatement();var rows=statement.executeQuery("SHOW CREATE TABLE com_project_contract_relation")) {
             assertTrue(rows.next());ddl=rows.getString(2).replaceFirst("CREATE TABLE","CREATE TEMPORARY TABLE")
@@ -28,8 +28,8 @@ class ProjectContractRelationMigrationMySqlTest {
         // Session-local copy preserves columns/checks/indexes; MySQL temporary tables cannot own foreign keys.
         try(var statement=db.createStatement()) {
             statement.execute(ddl);
-            statement.execute(Files.readString(Path.of(System.getenv("NPDMS_CONTRACT_RELATION_DDL"))));
-            statement.execute(Files.readString(Path.of(System.getenv("NPDMS_CONTRACT_RELATION_COMMENT_DDL"))));
+            statement.execute(Files.readString(Path.of(System.getenv("CONTRACT_RELATION_DDL"))));
+            statement.execute(Files.readString(Path.of(System.getenv("CONTRACT_RELATION_COMMENT_DDL"))));
             statement.execute("CREATE TEMPORARY TABLE com_contract (id BIGINT PRIMARY KEY, tenant_id BIGINT, company_code VARCHAR(20), deleted BIT, contract_no VARCHAR(100), contract_name VARCHAR(100), company_name VARCHAR(100))");
             statement.execute("INSERT INTO com_contract VALUES (11,1,'001',0,'C1','合同一','公司一'),(12,1,'002',0,'C2','合同二','公司二'),(13,1,'001',1,'C3','合同三','公司一'),(14,2,'001',0,'C4','合同四','公司一')");
         }

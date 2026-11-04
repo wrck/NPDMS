@@ -21,10 +21,10 @@ import static org.mockito.Mockito.mock;
 @EnabledIfSystemProperty(named = "pms.stage.fixture.projectId", matches = "[1-9][0-9]*")
 class ProjectStageExecutionMapperAcceptanceTest {
     @Test void currentActiveAndEndedStageContextsKeepExactTenantPlanContractAndRoundIdentity() throws Exception {
-        assertEquals("npdms_test", System.getenv("NPDMS_DB_NAME"));
-        assertEquals("23316", System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_test", System.getenv("DB_NAME"));
+        assertEquals("23316", System.getenv("MYSQL_PORT"));
         var database = new DriverManagerDataSource("jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"), System.getenv("NPDMS_DB_PASSWORD"));
+                System.getenv("DB_USER"), System.getenv("DB_PASSWORD"));
         var configuration = new Configuration(new Environment("stage-context-acceptance", new JdbcTransactionFactory(), database));
         try (var xml = getClass().getClassLoader().getResourceAsStream("mapper/projectplan/ProjectNodeExecutionMapper.xml")) {
             assertNotNull(xml);

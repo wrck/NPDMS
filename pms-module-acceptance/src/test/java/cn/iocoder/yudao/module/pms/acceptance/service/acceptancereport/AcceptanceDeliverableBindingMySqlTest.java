@@ -24,9 +24,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnabledIfSystemProperty(named="pms.acceptance.binding.mysql",matches="true")
 class AcceptanceDeliverableBindingMySqlTest {
     @Test void migrationDoesNotInferHistoryAndOwnerQueriesReadTheFrozenInstance() throws Exception {
-        assertEquals("npdms_test",System.getenv("NPDMS_DB_NAME")); assertEquals("23316",System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_test",System.getenv("DB_NAME")); assertEquals("23316",System.getenv("MYSQL_PORT"));
         try (var connection=DriverManager.getConnection("jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"))) {
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"))) {
             var database=new SingleConnectionDataSource(connection,true); var jdbc=new JdbcTemplate(database);
             jdbc.execute("CREATE TEMPORARY TABLE acc_acceptance (id BIGINT PRIMARY KEY,tenant_id BIGINT,project_id BIGINT,project_task_id BIGINT,execution_contract_id BIGINT,acceptance_type VARCHAR(32),activity_status VARCHAR(32),current_report_version_id BIGINT,version INT,creator VARCHAR(64),updater VARCHAR(64),create_time DATETIME,update_time DATETIME,deleted BIT DEFAULT 0)");
             jdbc.execute("INSERT INTO acc_acceptance(id,tenant_id,project_id,acceptance_type,activity_status,version) VALUES (1,7,80,'PRELIMINARY','COMPLETED',3)");

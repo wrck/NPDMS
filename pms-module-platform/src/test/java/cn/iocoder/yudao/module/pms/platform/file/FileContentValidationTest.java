@@ -416,9 +416,9 @@ class FileContentValidationTest {
     }
 
     @Test
-    @EnabledIfEnvironmentVariable(named = "NPDMS_CLAMAV_IT", matches = "true")
+    @EnabledIfEnvironmentVariable(named = "CLAMAV_IT", matches = "true")
     void realClamAvRejectsEicar() {
-        int port = Integer.parseInt(System.getenv().getOrDefault("NPDMS_CLAMAV_PORT", "13310"));
+        int port = Integer.parseInt(System.getenv().getOrDefault("CLAMAV_PORT", "13310"));
         ClamAvFileSecurityScanProvider provider = new ClamAvFileSecurityScanProvider(
                 "127.0.0.1", port, 3000, 30000);
 

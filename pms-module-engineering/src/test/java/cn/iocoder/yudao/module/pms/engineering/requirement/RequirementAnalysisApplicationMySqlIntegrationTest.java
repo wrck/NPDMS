@@ -96,16 +96,16 @@ class RequirementAnalysisApplicationMySqlIntegrationTest {
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
         Map<String, String> env = System.getenv();
-        String database = required(env, "NPDMS_DB_NAME");
-        String port = required(env, "NPDMS_MYSQL_PORT");
+        String database = required(env, "DB_NAME");
+        String port = required(env, "MYSQL_PORT");
         if (!"npdms_test".equals(database) || !"23316".equals(port)) {
             throw new IllegalStateException("Entity acceptance requires the fixed test database");
         }
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai"
                 + "&characterEncoding=UTF-8&nullCatalogMeansCurrent=true");
-        registry.add("spring.datasource.username", () -> required(env, "NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> required(env, "NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.username", () -> required(env, "DB_USER"));
+        registry.add("spring.datasource.password", () -> required(env, "DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");

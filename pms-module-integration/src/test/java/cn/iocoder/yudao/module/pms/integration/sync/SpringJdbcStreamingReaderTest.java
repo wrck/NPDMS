@@ -82,14 +82,14 @@ class SpringJdbcStreamingReaderTest {
     @Test
     @org.junit.jupiter.api.condition.EnabledIfSystemProperty(named="npdms.dppms-commerce-mapper.mysql",matches="true")
     void explicitTaskTimeoutIsNotCutShortByTheSourceSocketDefault() throws Exception {
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));
-        assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));
+        assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
         String url="jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&socketTimeout=30";
         var api=new ExternalDataSourceApi() {
             public List<Info> list(){return List.of();}
             public Long save(Save command){throw new UnsupportedOperationException();}
             public Connection openReadOnly(Long id)throws SQLException {
-                var connection=DriverManager.getConnection(url,System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+                var connection=DriverManager.getConnection(url,System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
                 connection.setReadOnly(true);connection.setAutoCommit(false);
                 assertEquals(30,connection.getNetworkTimeout());return connection;
             }

@@ -3,16 +3,16 @@ const http = require('node:http')
 const path = require('node:path')
 const { chromium } = require('playwright')
 
-const baseUrl = process.env.NPDMS_BROWSER_BASE_URL || 'http://127.0.0.1:18081'
-const apiUrl = process.env.NPDMS_BROWSER_API_URL || 'http://localhost:58080/admin-api'
-const crossTenantApiUrl = process.env.NPDMS_CROSS_TENANT_API_URL
-const executablePath = process.env.NPDMS_BROWSER_EXECUTABLE || undefined
-const username = process.env.NPDMS_BROWSER_USERNAME || 'admin'
-const password = process.env.NPDMS_BROWSER_PASSWORD || 'admin123'
-const minioAccessKey = process.env.NPDMS_MINIO_ACCESS_KEY
-const minioAccessSecret = process.env.NPDMS_MINIO_ACCESS_SECRET
-const negativePassword = process.env.NPDMS_BROWSER_NEGATIVE_PASSWORD
-const expectedScan = process.env.NPDMS_EXPECTED_SCAN || 'SKIPPED'
+const baseUrl = process.env.BROWSER_BASE_URL || 'http://127.0.0.1:18081'
+const apiUrl = process.env.BROWSER_API_URL || 'http://localhost:58080/admin-api'
+const crossTenantApiUrl = process.env.CROSS_TENANT_API_URL
+const executablePath = process.env.BROWSER_EXECUTABLE || undefined
+const username = process.env.BROWSER_USERNAME || 'admin'
+const password = process.env.BROWSER_PASSWORD || 'admin123'
+const minioAccessKey = process.env.MINIO_ACCESS_KEY
+const minioAccessSecret = process.env.MINIO_ACCESS_SECRET
+const negativePassword = process.env.BROWSER_NEGATIVE_PASSWORD
+const expectedScan = process.env.EXPECTED_SCAN || 'SKIPPED'
 const outputDir = path.resolve(process.argv[2] || 'docs/engineering/evidence/f-plt-002')
 
 fs.mkdirSync(outputDir, { recursive: true })

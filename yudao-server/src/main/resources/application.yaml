@@ -86,7 +86,7 @@ mybatis-plus:
     banner: false # 关闭控制台的 Banner 打印
   type-aliases-package: ${yudao.info.base-package}.module.**.dal.dataobject
   encryptor:
-    password: ${NPDMS_MYBATIS_ENCRYPTOR_PASSWORD:disabled} # 加解密的秘钥
+    password: ${MYBATIS_ENCRYPTOR_PASSWORD:disabled} # 加解密的秘钥
 
 mybatis-plus-join:
   banner: false # 是否打印 mybatis plus join banner，默认true
@@ -296,8 +296,8 @@ yudao:
   api-encrypt:
     enable: true # 是否开启 API 加密
     algorithm: AES # 加密算法，支持 AES、RSA 等
-    request-key: ${NPDMS_API_ENCRYPT_REQUEST_KEY:disabled} # 请求加解密密钥
-    response-key: ${NPDMS_API_ENCRYPT_RESPONSE_KEY:disabled} # 响应加解密密钥
+    request-key: ${API_ENCRYPT_REQUEST_KEY:disabled} # 请求加解密密钥
+    response-key: ${API_ENCRYPT_RESPONSE_KEY:disabled} # 响应加解密密钥
   websocket:
     enable: true # websocket的开关
     path: /infra/ws # 路径

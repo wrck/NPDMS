@@ -115,9 +115,9 @@ class Cutover0807MatchingMySqlTest {
     }
 
     private static Connection connect() throws SQLException {
-        var env = System.getenv(); var database = Objects.requireNonNull(env.get("NPDMS_DB_NAME"));
+        var env = System.getenv(); var database = Objects.requireNonNull(env.get("DB_NAME"));
         if (!database.startsWith("npdms_cut_issues_")) throw new IllegalStateException("必须使用本次独立割接验证库");
-        return DriverManager.getConnection("jdbc:mysql://127.0.0.1:" + env.get("NPDMS_MYSQL_PORT") + "/" + database
-                + "?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8", env.get("NPDMS_DB_USER"), env.get("NPDMS_DB_PASSWORD"));
+        return DriverManager.getConnection("jdbc:mysql://127.0.0.1:" + env.get("MYSQL_PORT") + "/" + database
+                + "?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8", env.get("DB_USER"), env.get("DB_PASSWORD"));
     }
 }

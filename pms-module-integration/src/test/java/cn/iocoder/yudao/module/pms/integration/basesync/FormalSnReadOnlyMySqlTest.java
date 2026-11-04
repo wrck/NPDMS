@@ -19,10 +19,10 @@ class FormalSnReadOnlyMySqlTest {
  private Connection connection;private URLClassLoader loader;private Configuration configuration;
  private long deviceId;private String sn;
  @BeforeEach void connect()throws Exception{
-  assumeTrue("true".equals(System.getenv("NPDMS_BINDING_ROLLBACK_TEST")));
-  String url=System.getenv("NPDMS_TEST_MYSQL_URL");
+  assumeTrue("true".equals(System.getenv("BINDING_ROLLBACK_TEST")));
+  String url=System.getenv("TEST_MYSQL_URL");
   assertNotNull(url);assertTrue(url.startsWith("jdbc:mysql://172.17.90.178:13306/npdms?"));
-  var properties=new Properties();properties.setProperty("user",System.getenv("NPDMS_TEST_MYSQL_USERNAME"));properties.setProperty("password",System.getenv("NPDMS_TEST_MYSQL_PASSWORD"));
+  var properties=new Properties();properties.setProperty("user",System.getenv("TEST_MYSQL_USERNAME"));properties.setProperty("password",System.getenv("TEST_MYSQL_PASSWORD"));
   properties.setProperty("characterEncoding","UTF-8");properties.setProperty("connectionCollation","utf8mb4_unicode_ci");
   loader=new URLClassLoader(new java.net.URL[]{Path.of(System.getenv("BASE_PRODUCT_MYSQL_DRIVER_JAR")).toUri().toURL()},getClass().getClassLoader());
   var driver=(Driver)Class.forName("com.mysql.cj.jdbc.Driver",true,loader).getConstructor().newInstance();connection=driver.connect(url,properties);connection.setAutoCommit(false);

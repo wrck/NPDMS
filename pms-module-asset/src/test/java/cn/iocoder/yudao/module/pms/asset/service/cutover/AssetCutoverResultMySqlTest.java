@@ -41,12 +41,12 @@ class AssetCutoverResultMySqlTest {
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
-        if (!"npdms_cutover_verify_20261012_v2".equals(System.getenv("NPDMS_DB_NAME"))
-                || !"24306".equals(System.getenv("NPDMS_MYSQL_PORT")))
+        if (!"npdms_cutover_verify_20261012_v2".equals(System.getenv("DB_NAME"))
+                || !"24306".equals(System.getenv("MYSQL_PORT")))
             throw new IllegalStateException("Only dedicated CUT verification database on 24306 is permitted");
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:24306/npdms_cutover_verify_20261012_v2?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai");
-        registry.add("spring.datasource.username", () -> System.getenv("NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> System.getenv("NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.username", () -> System.getenv("DB_USER"));
+        registry.add("spring.datasource.password", () -> System.getenv("DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");

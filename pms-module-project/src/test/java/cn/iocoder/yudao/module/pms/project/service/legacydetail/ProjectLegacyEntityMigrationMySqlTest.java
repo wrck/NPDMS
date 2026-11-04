@@ -29,18 +29,18 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /** The transaction must roll back a native write when a later Owner fails. Only fresh synthetic rows are used. */
-@EnabledIfEnvironmentVariable(named="NPDMS_LEGACY_DETAIL_MYSQL",matches="true")
+@EnabledIfEnvironmentVariable(named="LEGACY_DETAIL_MYSQL",matches="true")
 class ProjectLegacyEntityMigrationMySqlTest {
     private static String fullPayload(String domain,Map<String,String> values) {
         var full=new LinkedHashMap<String,String>();new LegacyDetailCatalog().require(domain).fields().forEach(f->full.put(f.key(),null));
         full.putAll(values);return LegacyDetailNormalizer.sourcePayloadJson(full);
     }
     @Test void laterOwnerFailureRollsBackEarlierNativeEntityWrite() {
-        String url=System.getenv("NPDMS_LEGACY_DETAIL_MYSQL_URL");
+        String url=System.getenv("LEGACY_DETAIL_MYSQL_URL");
         assertTrue(url != null && url.startsWith("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?"));
-        var datasource=new DriverManagerDataSource(url,System.getenv("NPDMS_LEGACY_DETAIL_MYSQL_USER"),System.getenv("NPDMS_LEGACY_DETAIL_MYSQL_PASSWORD"));
+        var datasource=new DriverManagerDataSource(url,System.getenv("LEGACY_DETAIL_MYSQL_USER"),System.getenv("LEGACY_DETAIL_MYSQL_PASSWORD"));
         var jdbc=new JdbcTemplate(datasource);assertEquals("npdms_domain_test",jdbc.queryForObject("SELECT DATABASE()",String.class));
-        long fixtureProject=Long.parseLong(System.getenv("NPDMS_LEGACY_DETAIL_MYSQL_PROJECT_ID"));
+        long fixtureProject=Long.parseLong(System.getenv("LEGACY_DETAIL_MYSQL_PROJECT_ID"));
         assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project WHERE tenant_id=1 AND id=?",Integer.class,fixtureProject));
         String key="TEST-NATIVE-ROLLBACK-"+UUID.randomUUID();
         var mapper=mock(ProjectLegacyDetailMapper.class);var parties=mock(ProjectPartyMapper.class);

@@ -28,9 +28,9 @@ class DeviceShipmentReferenceMySqlTest {
     ShipmentReferenceCorrectionMapper mapper;DppmsShipmentReferenceCorrectionService service;
     final Command command=new Command(1L,7L,100L,List.of(new Reference("20",80L,70L,90L,"SN","ORDER","10625024")));
     @BeforeEach void setup() throws Exception {
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
         db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         source=new SingleConnectionDataSource(db,true);
         createTemporary("ast_device_shipment");createTemporary("ast_device");
         try(var sql=db.createStatement()) {

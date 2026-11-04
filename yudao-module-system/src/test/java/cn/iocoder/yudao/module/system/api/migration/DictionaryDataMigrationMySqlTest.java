@@ -13,9 +13,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class DictionaryDataMigrationMySqlTest {
     Connection db;SqlSession session;DictionaryDataMigrationMapper mapper;
     @BeforeEach void setup() throws Exception{
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
         db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         String ddl;try(var statement=db.createStatement();var rows=statement.executeQuery("SHOW CREATE TABLE system_dict_data")){
             assertTrue(rows.next());ddl=rows.getString(2).replaceFirst("CREATE TABLE","CREATE TEMPORARY TABLE");
         }

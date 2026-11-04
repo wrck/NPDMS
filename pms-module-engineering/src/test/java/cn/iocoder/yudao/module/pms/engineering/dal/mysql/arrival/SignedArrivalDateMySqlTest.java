@@ -19,7 +19,7 @@ class SignedArrivalDateMySqlTest {
     @Test void latestMeansArrivalDateAndExcludesUnsignedDeletedForeignTenantAndForeignProject() throws Exception {
         try(var connection=DriverManager.getConnection(
                 "jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"))){
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"))){
             try(var sql=connection.createStatement()){
                 sql.execute("CREATE TEMPORARY TABLE imp_eng_arrival(id BIGINT PRIMARY KEY,tenant_id BIGINT,project_id BIGINT,status INT,arrival_time DATETIME,deleted BIT DEFAULT b'0')");
                 sql.execute("INSERT INTO imp_eng_arrival VALUES (1,7,9,1,'2026-10-01 23:00:00',b'0'),(2,7,9,1,'2026-10-20 01:00:00',b'0'),"

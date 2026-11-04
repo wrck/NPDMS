@@ -7,13 +7,13 @@ NPDMS 网关基于 `codex/liteflow-remediation` 的 `c90daf62e` 增量扩展，�
 
 1. 在本目录执行 `build.ps1`，或分别构建 `device-ops-web` 和本目录 Maven reactor。
 2. DAC 启用 `npdms` profile；默认端口 `48182`。NPDMS 在原有 profile 集合中追加 `dac`。
-3. 两个宿主机进程通过受控环境注入相同的 `NPDMS_DAC_REQUEST_SIGNING_KEY`、
-   `NPDMS_DAC_CALLBACK_SIGNING_KEY`，分别用于任务执行授权和结果验签，均至少 32 个 UTF-8 字节。
+3. 两个宿主机进程通过受控环境注入相同的 `DAC_REQUEST_SIGNING_KEY`、
+   `DAC_CALLBACK_SIGNING_KEY`，分别用于任务执行授权和结果验签，均至少 32 个 UTF-8 字节。
    配置文件不保存密钥。
-4. `NPDMS_DEVICE_OPS_BASE_URL` 指向 DAC；`NPDMS_DAC_CALLBACK_URL` 指向 NPDMS
+4. `DEVICE_OPS_BASE_URL` 指向 DAC；`DAC_CALLBACK_URL` 指向 NPDMS
    `/api/v1/pms/integration/device-ops/callbacks`，默认开发后端为 `127.0.0.1:58080`。
-   DAC 的 `NPDMS_DAC_CALLBACK_HOSTS` 只允许登记的回调主机。非本机 HTTP 端点拒绝启用。
-5. DAC 保留原 OIDC 验证。NPDMS 使用专用服务身份的 `NPDMS_DEVICE_OPS_BEARER_TOKEN`；
+   DAC 的 `DAC_CALLBACK_HOSTS` 只允许登记的回调主机。非本机 HTTP 端点拒绝启用。
+5. DAC 保留原 OIDC 验证。NPDMS 使用专用服务身份的 `DEVICE_OPS_BEARER_TOKEN`；
    该身份需要 `device-ops:collections:read`、`device-ops:collections:execute`，以及对应项目和
    `npdms-<tenantId>` 命名空间范围。身份令牌由部署侧注入及更新，不使用用户/管理员会话。
 6. NPDMS 通过自己的 Flyway 流程应用 `V325__fint012_device_ops_gateway_dispatch.sql`。
@@ -87,7 +87,7 @@ CollectionSubmissionCoordinator、CollectionOutputStreamService 和原生页面 
 
 NPDMS 配置调试手工执行使用独立的整组命令总预算，配置项
 `pms.integration.device-ops.manual-execution-timeout-seconds`（环境变量
-`NPDMS_DAC_MANUAL_EXECUTION_TIMEOUT_SECONDS`，默认 600 秒）。这与 HTTP 读超时、SSE 连接时限分别配置；
+`DAC_MANUAL_EXECUTION_TIMEOUT_SECONDS`，默认 600 秒）。这与 HTTP 读超时、SSE 连接时限分别配置；
 其他消费者保留原命令时限规则，来源由 PLT 已保存任务提供，不由浏览器指定。
 
 NPDMS 到 DAC 的同步请求出现连接/响应超时时，先按同一 platformTaskId 重连查询一次。

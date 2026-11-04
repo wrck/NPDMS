@@ -1,35 +1,35 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const baseUrl = process.env.NPDMS_BROWSER_BASE_URL || "http://127.0.0.1:19081";
+const baseUrl = process.env.BROWSER_BASE_URL || "http://127.0.0.1:19081";
 const apiUrl =
-  process.env.NPDMS_BROWSER_API_URL || "http://localhost:59280/admin-api";
+  process.env.BROWSER_API_URL || "http://localhost:59280/admin-api";
 const crossTenantApiUrl =
-  process.env.NPDMS_CROSS_TENANT_API_URL || "http://127.0.0.1:59282/admin-api";
-const executablePath = process.env.NPDMS_BROWSER_EXECUTABLE || undefined;
-const managerUsername = process.env.NPDMS_BROWSER_USERNAME || "admin";
-const managerPassword = process.env.NPDMS_BROWSER_PASSWORD || "admin123";
+  process.env.CROSS_TENANT_API_URL || "http://127.0.0.1:59282/admin-api";
+const executablePath = process.env.BROWSER_EXECUTABLE || undefined;
+const managerUsername = process.env.BROWSER_USERNAME || "admin";
+const managerPassword = process.env.BROWSER_PASSWORD || "admin123";
 const managerTenantName =
-  process.env.NPDMS_BROWSER_TENANT_NAME || "NPMS默认租户";
-const managerTenantId = process.env.NPDMS_BROWSER_TENANT_ID || "1";
-const minioAccessKey = process.env.NPDMS_MINIO_ACCESS_KEY;
-const minioAccessSecret = process.env.NPDMS_MINIO_ACCESS_SECRET;
-const expectedScan = process.env.NPDMS_EXPECTED_SCAN || "SKIPPED";
+  process.env.BROWSER_TENANT_NAME || "NPMS默认租户";
+const managerTenantId = process.env.BROWSER_TENANT_ID || "1";
+const minioAccessKey = process.env.MINIO_ACCESS_KEY;
+const minioAccessSecret = process.env.MINIO_ACCESS_SECRET;
+const expectedScan = process.env.EXPECTED_SCAN || "SKIPPED";
 const negativePassword =
-  process.env.NPDMS_FSOL003_NEGATIVE_PASSWORD || "Fsol003!Browser1";
-const projectId = Number(process.env.NPDMS_FSOL003_PROJECT_ID || 992203060001);
+  process.env.FSOL003_NEGATIVE_PASSWORD || "Fsol003!Browser1";
+const projectId = Number(process.env.FSOL003_PROJECT_ID || 992203060001);
 let projectTemplateId;
 const compatibleTemplateId = Number(
-  process.env.NPDMS_FSOL003_DYNAMIC_TEMPLATE_ID || 992203010001,
+  process.env.FSOL003_DYNAMIC_TEMPLATE_ID || 992203010001,
 );
 const compatibleRevisionId = Number(
-  process.env.NPDMS_FSOL003_DYNAMIC_REVISION_ID || 992203020001,
+  process.env.FSOL003_DYNAMIC_REVISION_ID || 992203020001,
 );
 const incompatibleRevisionId = Number(
-  process.env.NPDMS_FSOL003_INCOMPATIBLE_REVISION_ID || 992203020002,
+  process.env.FSOL003_INCOMPATIBLE_REVISION_ID || 992203020002,
 );
 const incompatibleTemplateId = Number(
-  process.env.NPDMS_FSOL003_INCOMPATIBLE_TEMPLATE_ID || 992203010002,
+  process.env.FSOL003_INCOMPATIBLE_TEMPLATE_ID || 992203010002,
 );
 const outputDir = path.resolve(
   process.argv[2] || "docs/engineering/evidence/f-sol-003-dynamic-form",
@@ -39,10 +39,10 @@ const projectPath = `/pms/project-management/project-master-detail?projectId=${p
 fs.mkdirSync(outputDir, { recursive: true });
 
 const requiredInputs = {
-  NPDMS_FSOL003_PROJECT_ID: Number.isSafeInteger(projectId) && projectId > 0,
-  NPDMS_MINIO_ACCESS_KEY: Boolean(minioAccessKey),
-  NPDMS_MINIO_ACCESS_SECRET: Boolean(minioAccessSecret),
-  NPDMS_EXPECTED_SCAN: ["PASSED", "SKIPPED"].includes(expectedScan),
+  FSOL003_PROJECT_ID: Number.isSafeInteger(projectId) && projectId > 0,
+  MINIO_ACCESS_KEY: Boolean(minioAccessKey),
+  MINIO_ACCESS_SECRET: Boolean(minioAccessSecret),
+  EXPECTED_SCAN: ["PASSED", "SKIPPED"].includes(expectedScan),
 };
 const runSlug = expectedScan.toLowerCase();
 
@@ -54,11 +54,11 @@ const loadPlaywright = () => {
   try {
     return require("playwright");
   } catch (error) {
-    if (process.env.NPDMS_PLAYWRIGHT_MODULE) {
-      return require(path.resolve(process.env.NPDMS_PLAYWRIGHT_MODULE));
+    if (process.env.PLAYWRIGHT_MODULE) {
+      return require(path.resolve(process.env.PLAYWRIGHT_MODULE));
     }
     throw new Error(
-      `无法加载Playwright；请设置NODE_PATH为Codex工作区Node packages，或设置NPDMS_PLAYWRIGHT_MODULE为playwright模块目录。原错误：${error.message}`,
+      `无法加载Playwright；请设置NODE_PATH为Codex工作区Node packages，或设置PLAYWRIGHT_MODULE为playwright模块目录。原错误：${error.message}`,
     );
   }
 };

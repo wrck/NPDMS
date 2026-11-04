@@ -56,14 +56,14 @@ public class SiteSurveyImportMySqlIntegrationTest {
 
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
-        if (!"npdms_test".equals(System.getenv("NPDMS_DB_NAME"))
-                || !"23316".equals(System.getenv("NPDMS_MYSQL_PORT"))) {
+        if (!"npdms_test".equals(System.getenv("DB_NAME"))
+                || !"23316".equals(System.getenv("MYSQL_PORT"))) {
             throw new IllegalStateException("Survey migration requires isolated npdms_test:23316");
         }
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:23316/npdms_test"
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai");
-        registry.add("spring.datasource.username", () -> required("NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> required("NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.username", () -> required("DB_USER"));
+        registry.add("spring.datasource.password", () -> required("DB_PASSWORD"));
         registry.add("mybatis-plus.mapper-locations", () -> "classpath*:mapper/**/*.xml");
         registry.add("yudao.info.base-package", () -> "cn.iocoder.yudao.module.pms.engineering.dal.mysql.sitesurvey.entity");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");

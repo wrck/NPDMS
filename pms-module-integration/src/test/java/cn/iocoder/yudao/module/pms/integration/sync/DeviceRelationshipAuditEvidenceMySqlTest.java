@@ -11,16 +11,16 @@ import static org.junit.jupiter.api.Assertions.*;
 class DeviceRelationshipAuditEvidenceMySqlTest {
     Connection db;SqlSession session;DeviceRelationshipAuditEvidenceMapper mapper;
     @BeforeEach void setup() throws Exception {
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
         String url="jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai";
-        db=DriverManager.getConnection(url,System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+        db=DriverManager.getConnection(url,System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         var factory=new com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean();
-        factory.setDataSource(new org.springframework.jdbc.datasource.DriverManagerDataSource(url,System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD")));
+        factory.setDataSource(new org.springframework.jdbc.datasource.DriverManagerDataSource(url,System.getenv("DB_USER"),System.getenv("DB_PASSWORD")));
         factory.setTransactionFactory(new org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory());
         var config=new com.baomidou.mybatisplus.core.MybatisConfiguration();config.setMapUnderscoreToCamelCase(true);config.addMapper(SyncRunMapper.class);factory.setConfiguration(config);
         factory.setMapperLocations(new org.springframework.core.io.ClassPathResource("mapper/sync/DeviceRelationshipAuditEvidenceMapper.xml"));
         session=factory.getObject().openSession(db);mapper=session.getMapper(DeviceRelationshipAuditEvidenceMapper.class);
-        String approvedReceipt=System.getenv("NPDMS_DEVICE_RELATION_RECEIPT_PROOF");
+        String approvedReceipt=System.getenv("DEVICE_RELATION_RECEIPT_PROOF");
         if(approvedReceipt!=null) {
             db.setAutoCommit(false);
             var proof=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(

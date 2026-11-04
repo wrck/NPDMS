@@ -24,7 +24,7 @@ def database():
             key, value = line.split("=", 1)
             values[key.strip()] = value.strip().strip('"')
     return pymysql.connect(host="127.0.0.1", port=24306, database="npdms_domain_test",
-                           user=values["NPDMS_DB_USER"], password=values["NPDMS_DB_PASSWORD"], autocommit=True)
+                           user=values["DB_USER"], password=values["DB_PASSWORD"], autocommit=True)
 
 
 def main():

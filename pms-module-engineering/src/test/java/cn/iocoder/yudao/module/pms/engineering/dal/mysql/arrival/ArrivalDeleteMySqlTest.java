@@ -22,11 +22,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnabledIfSystemProperty(named = "arrival.mysql", matches = "true")
 class ArrivalDeleteMySqlTest {
     @Test void deleteRespectsConcurrentSigningVersionTenantAndLogicalDeletion() throws Exception {
-        assertEquals("npdms_test", System.getenv("NPDMS_DB_NAME"));
-        assertEquals("23316", System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_test", System.getenv("DB_NAME"));
+        assertEquals("23316", System.getenv("MYSQL_PORT"));
         try (var connection = DriverManager.getConnection(
                 "jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"), System.getenv("NPDMS_DB_PASSWORD"))) {
+                System.getenv("DB_USER"), System.getenv("DB_PASSWORD"))) {
             try (var sql = connection.createStatement()) {
                 sql.execute("CREATE TEMPORARY TABLE imp_eng_arrival (id BIGINT PRIMARY KEY, tenant_id BIGINT, "
                         + "status INT, version INT, deleted BIT DEFAULT b'0', updater VARCHAR(64), update_time DATETIME)");

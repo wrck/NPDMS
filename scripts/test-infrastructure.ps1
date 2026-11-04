@@ -9,9 +9,9 @@ $projectName = 'npdms-50eb-test'
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $composeArguments = @('compose', '--project-name', $projectName)
 $testEnvironment = @{
-    NPDMS_DB_NAME    = 'npdms_test'
-    NPDMS_MYSQL_PORT = '23316'
-    NPDMS_REDIS_PORT = '26379'
+    DB_NAME    = 'npdms_test'
+    MYSQL_PORT = '23316'
+    REDIS_PORT = '26379'
 }
 $savedEnvironment = @{}
 

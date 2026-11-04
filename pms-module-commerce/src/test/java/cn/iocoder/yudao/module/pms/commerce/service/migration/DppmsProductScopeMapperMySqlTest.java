@@ -20,9 +20,9 @@ class DppmsProductScopeMapperMySqlTest {
     Connection db;Configuration configuration;Long lineId;
     String prefix=DppmsProductScopeMapper.class.getName()+".";
     @BeforeEach void setup() throws Exception {
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
         db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));db.setAutoCommit(false);
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));db.setAutoCommit(false);
         configuration=new Configuration();String resource="mapper/migration/DppmsProductScopeMapper.xml";
         try(var input=getClass().getClassLoader().getResourceAsStream(resource)) {
             assertNotNull(input);new XMLMapperBuilder(input,configuration,resource,configuration.getSqlFragments()).parse();

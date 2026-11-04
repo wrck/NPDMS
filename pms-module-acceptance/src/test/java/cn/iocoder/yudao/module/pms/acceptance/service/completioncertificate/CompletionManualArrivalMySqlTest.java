@@ -22,7 +22,7 @@ class CompletionManualArrivalMySqlTest {
     @Test void nullableMigrationAndScopedDateUpdatesPreserveVersionStatusAndHistory() throws Exception {
         try(var connection=DriverManager.getConnection(
                 "jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"))){
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"))){
             try(var sql=connection.createStatement()){
                 sql.execute("CREATE TEMPORARY TABLE acc_completion_certificate(id BIGINT PRIMARY KEY,tenant_id BIGINT,version BIGINT,status INT,deleted BIT DEFAULT b'0')");
                 var migration=Files.readString(Path.of("../sql/migrations/V514__completion_manual_arrival_date.sql"));

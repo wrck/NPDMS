@@ -40,9 +40,9 @@ class DeviceSoftwareVersionMaintenanceMySqlTest {
     @BeforeEach void setup() throws Exception {
         var authenticated=new cn.iocoder.yudao.framework.security.core.LoginUser();authenticated.setId(7L);authenticated.setTenantId(1L);
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(authenticated,null));
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
         db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         source=new SingleConnectionDataSource(db,true);
         String sql=Files.readString(Path.of("../sql/migrations/V414__dppms_native_source_business_records.sql"));
         int begin=sql.indexOf("CREATE TABLE ast_device_software_version_record (");int end=sql.indexOf(';',begin);

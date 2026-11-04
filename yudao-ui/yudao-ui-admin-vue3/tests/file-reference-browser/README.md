@@ -1,6 +1,6 @@
 # 公共文件槽位浏览器验证
 
-运行 `node tests/file-reference-browser/verify.mjs`；如 Playwright 在独立工具目录，设置 `NPDMS_BROWSER_PACKAGES` 为其 node_modules 路径，可用 `NPDMS_BROWSER_EXECUTABLE` 指定 Chromium。
+运行 `node tests/file-reference-browser/verify.mjs`；如 Playwright 在独立工具目录，设置 `BROWSER_PACKAGES` 为其 node_modules 路径，可用 `BROWSER_EXECUTABLE` 指定 Chromium。
 
 使用真实共享 Vue 组件及文件 HTTP 客户端，Playwright 提供确定的文件响应；验证文件完成后消费者拒绝、整页刷新按完整稳定键恢复、字符串大 ID、新版本及已解绑状态。结果及截图保存在 `.run/cloud-20261006/file-reference-browser/`。
 

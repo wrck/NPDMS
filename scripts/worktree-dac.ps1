@@ -38,6 +38,6 @@ try {
     else { Write-Output "DAC started with immutable verified artifact; PID $($taskStarted.Id). Callback gateway PID $($taskGateway.Id)." }
 } finally {
     Remove-Item Env:SPRING_APPLICATION_JSON -ErrorAction SilentlyContinue
-    Remove-Item Env:NPDMS_DEVICE_OPS_BEARER_TOKEN -ErrorAction SilentlyContinue
+    Remove-Item Env:DEVICE_OPS_BEARER_TOKEN -ErrorAction SilentlyContinue
     $taskLock.Dispose()
 }

@@ -22,9 +22,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnabledIfSystemProperty(named="pms.plan.activation.fixture",matches="993109130054")
 class ProjectPlanActivationMySqlTest {
     @Test void productionSqlMovesTheVersionAtomicallyAndRollbackPreservesTheBrowserFixture() throws Exception {
-        assertEquals("npdms_test",System.getenv("NPDMS_DB_NAME"));
-        assertEquals("23316",System.getenv("NPDMS_MYSQL_PORT"));
-        String user = System.getenv("NPDMS_DB_USER"), password = System.getenv("NPDMS_DB_PASSWORD");
+        assertEquals("npdms_test",System.getenv("DB_NAME"));
+        assertEquals("23316",System.getenv("MYSQL_PORT"));
+        String user = System.getenv("DB_USER"), password = System.getenv("DB_PASSWORD");
         assertNotNull(user); assertNotNull(password);
         var database = new DriverManagerDataSource("jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true",user,password);
         var jdbc = new JdbcTemplate(database);

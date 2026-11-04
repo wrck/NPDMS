@@ -24,9 +24,9 @@ class ProjectLeaseProductOwnerMySqlTest {
     ProjectLeaseProductImportService owner;ProjectAccessActor actor=new ProjectAccessActor(1L,31L);
     List<ProjectLegacyRecordDO> originals=new ArrayList<>(),headers=new ArrayList<>();
     @BeforeEach void setup() throws Exception {
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
         String url="jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai";
-        db=DriverManager.getConnection(url,System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+        db=DriverManager.getConnection(url,System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         Path root=Path.of(System.getProperty("user.dir"));if(root.getFileName().toString().equals("pms-module-project"))root=root.getParent();
         String migration=Files.readString(root.resolve("sql/migrations/V412__dppms_native_detail_field_completion.sql"));
         int start=migration.indexOf("CREATE TABLE proj_project_lease_product");
@@ -34,7 +34,7 @@ class ProjectLeaseProductOwnerMySqlTest {
         try(var sql=db.createStatement()){sql.execute(ddl.replace("CREATE TABLE proj_project_lease_product","CREATE TEMPORARY TABLE proj_project_lease_product"));}
         db.setAutoCommit(false);
         var factory=new com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean();
-        factory.setDataSource(new org.springframework.jdbc.datasource.DriverManagerDataSource(url,System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD")));
+        factory.setDataSource(new org.springframework.jdbc.datasource.DriverManagerDataSource(url,System.getenv("DB_USER"),System.getenv("DB_PASSWORD")));
         factory.setTransactionFactory(new org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory());
         var config=new com.baomidou.mybatisplus.core.MybatisConfiguration();config.setMapUnderscoreToCamelCase(true);factory.setConfiguration(config);
         var plugins=new com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor();

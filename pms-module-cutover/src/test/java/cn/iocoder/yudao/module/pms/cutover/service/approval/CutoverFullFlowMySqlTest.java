@@ -149,15 +149,15 @@ class CutoverFullFlowMySqlTest {
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
         Map<String, String> env = System.getenv();
-        String database = required(env, "NPDMS_DB_NAME");
+        String database = required(env, "DB_NAME");
         if (!Set.of("npdms_cut_structured_20261014_r6", "npdms_cut_consolidation_20261014_r2").contains(database)) {
             throw new IllegalStateException("Requires the isolated CUT validation schema");
         }
-        String port = env.getOrDefault("NPDMS_MYSQL_PORT", "24306");
+        String port = env.getOrDefault("MYSQL_PORT", "24306");
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
-        registry.add("spring.datasource.username", () -> required(env, "NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> required(env, "NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.username", () -> required(env, "DB_USER"));
+        registry.add("spring.datasource.password", () -> required(env, "DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");

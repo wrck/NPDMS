@@ -26,7 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /** Opt-in real MySQL checks. All fixtures use a fresh synthetic source and are removed after each test. */
-@EnabledIfEnvironmentVariable(named = "NPDMS_LEGACY_DETAIL_MYSQL", matches = "true")
+@EnabledIfEnvironmentVariable(named = "LEGACY_DETAIL_MYSQL", matches = "true")
 class ProjectLegacyDetailMySqlTest {
     private static final long PROJECT = 900000000000000001L;
     private static final String CONTRACT = "SYNTHETIC-LEGACY-DETAIL";
@@ -39,11 +39,11 @@ class ProjectLegacyDetailMySqlTest {
 
     @BeforeEach
     void connect() throws Exception {
-        String url = System.getenv("NPDMS_LEGACY_DETAIL_MYSQL_URL");
+        String url = System.getenv("LEGACY_DETAIL_MYSQL_URL");
         assertTrue(url != null && url.startsWith("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?"),
                 "Only the explicitly designated local database is allowed");
-        datasource = new DriverManagerDataSource(url, System.getenv("NPDMS_LEGACY_DETAIL_MYSQL_USER"),
-                System.getenv("NPDMS_LEGACY_DETAIL_MYSQL_PASSWORD"));
+        datasource = new DriverManagerDataSource(url, System.getenv("LEGACY_DETAIL_MYSQL_USER"),
+                System.getenv("LEGACY_DETAIL_MYSQL_PASSWORD"));
         datasource.setDriverClassName("com.mysql.cj.jdbc.Driver");
         jdbc = new JdbcTemplate(datasource);
         assertEquals("npdms_domain_test", jdbc.queryForObject("SELECT DATABASE()", String.class));

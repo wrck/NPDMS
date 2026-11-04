@@ -41,9 +41,9 @@ class DevicePageProjectScopeMySqlTest {
                 """;
         new XMLMapperBuilder(new ByteArrayInputStream(mapper.getBytes(StandardCharsets.UTF_8)), configuration,
                 "DevicePageScopeProbe", configuration.getSqlFragments()).parse();
-        try (var db = DriverManager.getConnection("jdbc:mysql://127.0.0.1:" + System.getenv("NPDMS_MYSQL_PORT")
-                + "/" + System.getenv("NPDMS_DB_NAME") + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"), System.getenv("NPDMS_DB_PASSWORD"))) {
+        try (var db = DriverManager.getConnection("jdbc:mysql://127.0.0.1:" + System.getenv("MYSQL_PORT")
+                + "/" + System.getenv("DB_NAME") + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
+                System.getenv("DB_USER"), System.getenv("DB_PASSWORD"))) {
             try (var sql = db.createStatement()) {
                 // Connection-local shadow only; no writes to the existing business table.
                 sql.execute("CREATE TEMPORARY TABLE proj_project_tree_path(tenant_id BIGINT,root_project_id BIGINT,tree_version BIGINT,ancestor_project_id BIGINT,descendant_project_id BIGINT,deleted BIT)");

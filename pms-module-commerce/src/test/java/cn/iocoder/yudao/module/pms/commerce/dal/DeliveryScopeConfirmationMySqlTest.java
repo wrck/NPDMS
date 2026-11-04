@@ -17,14 +17,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class DeliveryScopeConfirmationMySqlTest {
     Connection db; Configuration config; org.apache.ibatis.session.SqlSession session;int temporaryQuery;
     @BeforeEach void setup() throws Exception {
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));
-        assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));
+        assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
         db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         var factory=new com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean();
         factory.setDataSource(new org.springframework.jdbc.datasource.DriverManagerDataSource(
                 "jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD")));
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD")));
         factory.setTransactionFactory(new org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory());
         var mybatisConfig=new com.baomidou.mybatisplus.core.MybatisConfiguration();mybatisConfig.setMapUnderscoreToCamelCase(true);
         factory.setConfiguration(mybatisConfig);

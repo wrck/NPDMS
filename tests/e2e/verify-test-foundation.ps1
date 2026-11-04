@@ -60,8 +60,8 @@ function Get-PomProfileInclude {
 }
 
 function Get-JvmHealthRunner {
-    # 优先使用 NPDMS_JAVA_HOME 环境变量；否则探测本地 JDK 25 安装。
-    $javaHome = $env:NPDMS_JAVA_HOME
+    # 优先使用 TEST_JAVA_HOME 环境变量；否则探测本地 JDK 25 安装。
+    $javaHome = $env:TEST_JAVA_HOME
     if ([string]::IsNullOrWhiteSpace($javaHome)) {
         $wildcardCandidates = Get-ChildItem 'C:\Program Files\Java' -Directory -ErrorAction SilentlyContinue |
             Where-Object { $_.Name -like 'jdk-25*' }
@@ -70,7 +70,7 @@ function Get-JvmHealthRunner {
             break
         }
     }
-    Assert-FoundationCondition (-not [string]::IsNullOrWhiteSpace($javaHome)) 'JDK 25 is required to run JVM health checks. Set NPDMS_JAVA_HOME or install JDK 25 under C:\Program Files\Java\.'
+    Assert-FoundationCondition (-not [string]::IsNullOrWhiteSpace($javaHome)) 'JDK 25 is required to run JVM health checks. Set TEST_JAVA_HOME or install JDK 25 under C:\Program Files\Java\.'
 
     $mvnCommand = Get-Command 'mvn' -ErrorAction SilentlyContinue
     Assert-FoundationCondition ($null -ne $mvnCommand) 'mvn is required to run JVM health checks locally.'

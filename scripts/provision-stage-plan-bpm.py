@@ -1,6 +1,6 @@
 """Register the stage-plan review form using normal BPM model APIs.
 
-Supply NPDMS_BPM_ADMIN_TOKEN through the environment (never a command argument).
+Supply BPM_ADMIN_TOKEN through the environment (never a command argument).
 Requires the existing model manager's create/update/deploy permissions. Existing
 instances and published definitions are preserved; deployment creates a version.
 """
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser.add_argument("--manager-id", required=True, type=int)
     parser.add_argument("--category", required=True)
     args = parser.parse_args()
-    token = os.environ["NPDMS_BPM_ADMIN_TOKEN"]
+    token = os.environ["BPM_ADMIN_TOKEN"]
 
     def api(method, path, body=None):
         request = urllib.request.Request(args.base_url.rstrip("/") + path,

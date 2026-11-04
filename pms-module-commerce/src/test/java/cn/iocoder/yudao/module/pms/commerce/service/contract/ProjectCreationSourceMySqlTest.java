@@ -37,11 +37,11 @@ class ProjectCreationSourceMySqlTest {
     private String contractNo;
 
     @BeforeAll void initialize() throws Exception {
-        assertEquals("npdms_domain_test", System.getenv("NPDMS_DB_NAME"), "Only the explicitly authorized test schema is allowed");
-        assertEquals("24306", System.getenv("NPDMS_MYSQL_PORT"), "Only the named local Compose endpoint is allowed");
+        assertEquals("npdms_domain_test", System.getenv("DB_NAME"), "Only the explicitly authorized test schema is allowed");
+        assertEquals("24306", System.getenv("MYSQL_PORT"), "Only the named local Compose endpoint is allowed");
         var dataSource=new UnpooledDataSource("com.mysql.cj.jdbc.Driver",
                 "jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                required("NPDMS_DB_USER"),required("NPDMS_DB_PASSWORD"));
+                required("DB_USER"),required("DB_PASSWORD"));
         var configuration=new Configuration(new Environment("creation-source-mysql",new JdbcTransactionFactory(),dataSource));
         configuration.setMapUnderscoreToCamelCase(true);
         for(String resource:List.of("mapper/contract/ContractMapper.xml","mapper/order/SalesOrderMapper.xml","mapper/executionorder/CrmExecutionOrderMapper.xml")) {

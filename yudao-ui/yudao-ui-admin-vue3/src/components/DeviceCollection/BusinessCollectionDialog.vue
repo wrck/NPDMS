@@ -19,7 +19,7 @@
         <el-radio value="server">服务器 DAC</el-radio>
       </el-radio-group>
     </div>
-    <LocalDacStatus v-if="visible && executionLocation === 'desktop'" :server-url="npdmsServerUrl" @ready="localReady = $event" />
+    <LocalDacStatus v-if="visible && executionLocation === 'desktop'" :server-url="serverUrl" @ready="localReady = $event" />
     <el-form
       v-if="canDispatch"
       ref="formRef"
@@ -403,9 +403,9 @@ const validBusinessId = (value: Api.Id | null | undefined) => typeof value === '
 const executionLocation = ref<'desktop' | 'server'>('desktop')
 const localReady = ref(false)
 const localConnectionScopeReady = ref(false)
-const npdmsServerUrl = new URL(import.meta.env.VITE_BASE_URL || '/', window.location.origin).href.replace(/\/+$/, '')
+const serverUrl = new URL(import.meta.env.VITE_BASE_URL || '/', window.location.origin).href.replace(/\/+$/, '')
 const requestLocalDac = <T,>(options: Omit<Parameters<typeof localDacRequest>[0], 'environment'>) =>
-  localDacRequest<T>({ ...options, environment: { serverUrl: npdmsServerUrl, webOrigin: window.location.origin } })
+  localDacRequest<T>({ ...options, environment: { serverUrl, webOrigin: window.location.origin } })
 const pendingDesktop = ref<Api.DesktopCommand>()
 const pendingDesktopExecution = ref<Api.Execution>()
 const locallyAccepted = new Set<string>()

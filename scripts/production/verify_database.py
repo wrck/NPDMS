@@ -1,6 +1,6 @@
 """Read-only initialization audit; exit 1 on integrity defects, 2 on setup pending.
 
-Requires PyMySQL. Credentials are supplied only in NPDMS_VERIFY_DB_PASSWORD.
+Requires PyMySQL. Credentials are supplied only in VERIFY_DB_PASSWORD.
 This checks database facts, not browser acceptance or process publication semantics.
 """
 import argparse
@@ -254,7 +254,7 @@ if __name__ == "__main__":
         parser.error("Remote verification requires --ssl-ca for certificate and hostname verification")
     tls = {"ssl_ca": str(args.ssl_ca), "ssl_verify_cert": True, "ssl_verify_identity": True} if args.ssl_ca else {}
     with pymysql.connect(host=args.host, port=args.port, database=args.schema, user=args.user,
-                         password=os.environ["NPDMS_VERIFY_DB_PASSWORD"], charset="utf8mb4",
+                         password=os.environ["VERIFY_DB_PASSWORD"], charset="utf8mb4",
                          cursorclass=pymysql.cursors.DictCursor, **tls) as conn:
         result = audit(conn, release=args.release, phase=args.phase)
     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf8")

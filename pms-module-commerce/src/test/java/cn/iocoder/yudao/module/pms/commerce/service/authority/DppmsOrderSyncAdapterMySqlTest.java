@@ -42,8 +42,8 @@ class DppmsOrderSyncAdapterMySqlTest {
     private final String number = "ADAPTER-TEST-" + UUID.randomUUID();
 
     @DynamicPropertySource static void properties(DynamicPropertyRegistry registry) {
-        assertEquals("npdms_test", System.getenv("NPDMS_DB_NAME"), "Only the approved local test DB is allowed");
-        assertEquals("23316", System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_test", System.getenv("DB_NAME"), "Only the approved local test DB is allowed");
+        assertEquals("23316", System.getenv("MYSQL_PORT"));
         CommerceAuthorityIngestMySqlTest.mysqlProperties(registry);
     }
     @BeforeEach void setup() { TenantContextHolder.setTenantId(tenant); }

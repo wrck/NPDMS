@@ -56,8 +56,8 @@ class ProjectManualMapperSelectPageMySqlTest {
         String port = environment.getOrDefault("NPDMS_MYSQL_PORT", "13306");
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
-        registry.add("spring.datasource.username", () -> required(environment, "NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> required(environment, "NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.username", () -> required(environment, "DB_USER"));
+        registry.add("spring.datasource.password", () -> required(environment, "DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");

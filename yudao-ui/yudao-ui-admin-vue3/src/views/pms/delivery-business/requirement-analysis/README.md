@@ -37,9 +37,9 @@ node node_modules/vitest/vitest.mjs run --config src/views/pms/delivery-business
 node src/views/pms/delivery-business/requirement-analysis/browser/verify.mjs
 ```
 
-无本地依赖时，可把 `NPDMS_UI_DEPENDENCIES` 设置为已有且版本匹配的前端根目录，并从该目录的 `node_modules/vitest/vitest.mjs` 运行测试。测试只读该依赖安装，不改其源码、lockfile 或依赖；Vite 缓存和截图写入本工作树被忽略的 `.run/delivery-demo/`。
+无本地依赖时，可把 `UI_DEPENDENCIES` 设置为已有且版本匹配的前端根目录，并从该目录的 `node_modules/vitest/vitest.mjs` 运行测试。测试只读该依赖安装，不改其源码、lockfile 或依赖；Vite 缓存和截图写入本工作树被忽略的 `.run/delivery-demo/`。
 
-浏览器脚本使用 Playwright Node 包；若它不在上述安装内，可将 `NPDMS_BROWSER_PACKAGES` 设置为含 `playwright` 的 `node_modules` 路径。本轮 Python 环境无 Playwright，故使用宿主已提供的 Node Playwright，不安装新依赖。默认启动独立、无头 Edge，可用 `NPDMS_BROWSER_CHANNEL` 指定已安装的浏览器通道。
+浏览器脚本使用 Playwright Node 包；若它不在上述安装内，可将 `BROWSER_PACKAGES` 设置为含 `playwright` 的 `node_modules` 路径。本轮 Python 环境无 Playwright，故使用宿主已提供的 Node Playwright，不安装新依赖。默认启动独立、无头 Edge，可用 `BROWSER_CHANNEL` 指定已安装的浏览器通道。
 
 脚本在随机本地端口启动仅用于本表单的 Vite 入口，结束时关闭自己的服务器和浏览器。浏览器拒绝非本源、业务 API 和非 GET 请求，无数据库、真实项目、认证或业务写入访问。
 

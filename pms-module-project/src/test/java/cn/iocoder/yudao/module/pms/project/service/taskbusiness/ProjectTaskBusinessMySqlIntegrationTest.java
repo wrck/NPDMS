@@ -106,14 +106,14 @@ class ProjectTaskBusinessMySqlIntegrationTest {
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry properties) {
         Map<String, String> env = System.getenv();
-        if (!DATABASE.equals(required(env, "NPDMS_DB_NAME")))
+        if (!DATABASE.equals(required(env, "DB_NAME")))
             throw new IllegalStateException("Only the dedicated template-core database is allowed");
-        String port = env.getOrDefault("NPDMS_DB_PORT", env.get("NPDMS_MYSQL_PORT"));
+        String port = env.getOrDefault("DB_PORT", env.get("MYSQL_PORT"));
         if (!"23316".equals(port)) throw new IllegalStateException("Only isolated MySQL port 23316 is allowed");
         properties.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + DATABASE
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
-        properties.add("spring.datasource.username", () -> required(env, "NPDMS_DB_USER"));
-        properties.add("spring.datasource.password", () -> required(env, "NPDMS_DB_PASSWORD"));
+        properties.add("spring.datasource.username", () -> required(env, "DB_USER"));
+        properties.add("spring.datasource.password", () -> required(env, "DB_PASSWORD"));
         properties.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         properties.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         properties.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");

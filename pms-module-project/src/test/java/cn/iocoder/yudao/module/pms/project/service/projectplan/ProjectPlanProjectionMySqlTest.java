@@ -27,9 +27,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnabledIfSystemProperty(named="pms.plan.projection.mysql",matches="true")
 class ProjectPlanProjectionMySqlTest {
     @Test void activeCodeMigrationAndProjectionSqlPreserveHistoryWorkAndTenantBoundaries() throws Exception {
-        assertEquals("npdms_test",System.getenv("NPDMS_DB_NAME")); assertEquals("23316",System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_test",System.getenv("DB_NAME")); assertEquals("23316",System.getenv("MYSQL_PORT"));
         try (var connection = DriverManager.getConnection("jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"))) {
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"))) {
             var database = new SingleConnectionDataSource(connection,true);
             var jdbc = new JdbcTemplate(database);
             String common = "id BIGINT PRIMARY KEY,tenant_id BIGINT NOT NULL,project_id BIGINT NOT NULL,deleted BIT NOT NULL DEFAULT 0,version INT DEFAULT 0,updater VARCHAR(64),update_time DATETIME(3)";

@@ -150,11 +150,11 @@ class InstallationLocationMySqlIntegrationTest {
 
     private static Connection openConnection() throws IOException, SQLException {
         Map<String, String> values = environment();
-        String port = values.getOrDefault("NPDMS_MYSQL_PORT", "13306");
-        String database = values.getOrDefault("NPDMS_DB_NAME", "npdms");
+        String port = values.getOrDefault("MYSQL_PORT", "13306");
+        String database = values.getOrDefault("DB_NAME", "npdms");
         return DriverManager.getConnection("jdbc:mysql://127.0.0.1:" + port + "/" + database
                         + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8",
-                required(values, "NPDMS_DB_USER"), required(values, "NPDMS_DB_PASSWORD"));
+                required(values, "DB_USER"), required(values, "DB_PASSWORD"));
     }
 
     private static Map<String, String> environment() throws IOException {

@@ -39,8 +39,8 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
   };
 
   await page.goto(baseUrl, { waitUntil: 'networkidle' });
-  await page.locator('input[placeholder="请输入用户名"]').first().fill(process.env.NPDMS_E2E_USERNAME);
-  await page.locator('input[placeholder="请输入密码"]').first().fill(process.env.NPDMS_E2E_PASSWORD);
+  await page.locator('input[placeholder="请输入用户名"]').first().fill(process.env.E2E_USERNAME);
+  await page.locator('input[placeholder="请输入密码"]').first().fill(process.env.E2E_PASSWORD);
   await page.getByRole('button', { name: '登录', exact: true }).click();
   await page.waitForURL((url) => !url.pathname.includes('/login'));
 

@@ -23,9 +23,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnabledIfSystemProperty(named="pms.milestone.plan.mysql",matches="true")
 class ProjectPlanMilestoneMySqlTest {
     @Test void definitionSwapPreservesAchievedResultsAndRollsBackWithPlanFailure() throws Exception {
-        assertEquals("npdms_test",System.getenv("NPDMS_DB_NAME")); assertEquals("23316",System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_test",System.getenv("DB_NAME")); assertEquals("23316",System.getenv("MYSQL_PORT"));
         try (var connection=DriverManager.getConnection("jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"))) {
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"))) {
             var database=new SingleConnectionDataSource(connection,true); var jdbc=new JdbcTemplate(database);
             jdbc.execute("CREATE TEMPORARY TABLE proj_project_milestone (id BIGINT PRIMARY KEY,tenant_id BIGINT,project_id BIGINT,milestone_code VARCHAR(64),name VARCHAR(128),stage_code VARCHAR(32),timing VARCHAR(64),criteria VARCHAR(500),source_definition_id BIGINT,status VARCHAR(32),version INT,deleted BIT,updater VARCHAR(64),update_time DATETIME,active_milestone_code VARCHAR(64) GENERATED ALWAYS AS (CASE WHEN deleted=0 THEN milestone_code ELSE NULL END) VIRTUAL,UNIQUE(tenant_id,project_id,active_milestone_code))");
             jdbc.execute("INSERT INTO proj_project_milestone(id,tenant_id,project_id,milestone_code,name,stage_code,source_definition_id,status,version,deleted) VALUES (1,7,80,'M1','achieved','PREP',501,'ACHIEVED',3,0),(2,7,80,'M2','pending','PREP',502,'PENDING',3,0),(3,8,80,'M1','foreign','PREP',503,'PENDING',3,0),(4,7,90,'M1','other project','PREP',504,'PENDING',3,0)");

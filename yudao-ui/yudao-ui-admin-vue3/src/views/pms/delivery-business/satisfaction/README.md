@@ -44,7 +44,7 @@ node node_modules/vitest/vitest.mjs run --config src/views/pms/delivery-business
 node src/views/pms/delivery-business/satisfaction/browser/verify.mjs
 ```
 
-当前工作树无完整依赖安装时，沿用PRE-04测试配置的 `NPDMS_UI_DEPENDENCIES`（已有前端根目录）和 `NPDMS_BROWSER_PACKAGES`（含Playwright的node_modules路径），只读复用安装，不修改另一个工作树的源码或依赖。默认无头Edge，随机本地端口；脚本finally关闭自己的浏览器和服务器。证据输出在本工作树被忽略的 `.run/delivery-demo/satisfaction-browser/`。
+当前工作树无完整依赖安装时，沿用PRE-04测试配置的 `UI_DEPENDENCIES`（已有前端根目录）和 `BROWSER_PACKAGES`（含Playwright的node_modules路径），只读复用安装，不修改另一个工作树的源码或依赖。默认无头Edge，随机本地端口；脚本finally关闭自己的浏览器和服务器。证据输出在本工作树被忽略的 `.run/delivery-demo/satisfaction-browser/`。
 
 测试加载真实Vue组件与现有方法；单元测试使用项目已有轻量渲染器，浏览器使用真实Element Plus。满意度API、文件API、消息提示、租户取值及二维码为明确测试夹具，拒绝未列入场景的业务动作；浏览器只允许本源静态GET资源，不访问生产、数据库或认证服务。ContentWrap仅作测试容器。
 

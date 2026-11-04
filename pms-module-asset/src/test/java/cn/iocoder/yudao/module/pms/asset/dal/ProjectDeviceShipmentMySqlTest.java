@@ -20,10 +20,10 @@ class ProjectDeviceShipmentMySqlTest {
     private SqlSession session;
     private ProjectDeviceShipmentMapper mapper;
     @BeforeEach void fixtures() throws Exception {
-        String database = System.getenv("NPDMS_DB_NAME");
+        String database = System.getenv("DB_NAME");
         assertTrue("npdms_domain_test".equals(database) || database != null && database.startsWith("npdms_cut_issues_"));
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));
-        connection=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/" + database + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));
+        connection=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/" + database + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         try(var sql=connection.createStatement()) {
             sql.execute("CREATE TEMPORARY TABLE ast_device (id BIGINT PRIMARY KEY, tenant_id BIGINT, project_id BIGINT, sn VARCHAR(50), shipment_time DATETIME, deleted BIT)");
             sql.execute("INSERT INTO ast_device VALUES (1,1,10,'shipped','2026-10-01',b'0'),(2,1,10,'unshipped',NULL,b'0'),(3,1,20,'unshipped-only',NULL,b'0'),(4,1,30,NULL,'2026-10-01',b'0'),(5,1,30,'   ','2026-10-01',b'0'),(6,1,40,'deleted','2026-10-01',b'1'),(7,2,20,'foreign','2026-10-01',b'0'),(8,1,99,'outside','2026-10-01',b'0'),(9,1,NULL,'unassigned','2026-10-01',b'0'),(10,1,10,'another-shipped','2026-10-02',b'0')");

@@ -11,14 +11,14 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnabledIfSystemProperty(named="skipITs", matches="false")
 class MysqlSyncPagingMySqlTest {
     MysqlSyncReader reader() {
-        assertEquals("npdms_test",System.getenv("NPDMS_DB_NAME"));
-        assertEquals("23316",System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_test",System.getenv("DB_NAME"));
+        assertEquals("23316",System.getenv("MYSQL_PORT"));
         return new MysqlSyncReader(new ExternalDataSourceApi() {
             public List<Info> list(){return List.of();}
             public Long save(Save command){throw new UnsupportedOperationException();}
             public Connection openReadOnly(Long id)throws SQLException {
                 var c=DriverManager.getConnection("jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                        System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+                        System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
                 c.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);c.setReadOnly(true);c.setAutoCommit(false);return c;
             }
         });
@@ -63,7 +63,7 @@ class MysqlSyncPagingMySqlTest {
         String suffix=UUID.randomUUID().toString().replace("-","");
         String head="test_dppms_head_"+suffix,line="test_dppms_line_"+suffix;
         try(var c=DriverManager.getConnection("jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&allowPublicKeyRetrieval=true",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));var sql=c.createStatement()) {
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));var sql=c.createStatement()) {
             try {
                 sql.execute("CREATE TABLE "+head+" (id BIGINT PRIMARY KEY,source VARCHAR(10),compCode VARCHAR(10),orderType VARCHAR(10),orderNumber VARCHAR(30),"
                         +"syncTime DATETIME,orderCreateTime DATETIME,customerRequireTime DATETIME,customerCode VARCHAR(30),customerName VARCHAR(30),"

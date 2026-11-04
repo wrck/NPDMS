@@ -1,13 +1,13 @@
 const { chromium } = require("playwright");
 const fs = require("fs");
 
-const baseUrl = process.env.NPDMS_E2E_BASE_URL || "http://localhost:18081";
-const username = process.env.NPDMS_E2E_USERNAME;
-const password = process.env.NPDMS_E2E_PASSWORD;
-const executablePath = process.env.NPDMS_CHROME_PATH;
+const baseUrl = process.env.E2E_BASE_URL || "http://localhost:18081";
+const username = process.env.E2E_USERNAME;
+const password = process.env.E2E_PASSWORD;
+const executablePath = process.env.CHROME_PATH;
 
 if (!username || !password || !executablePath) {
-  throw new Error("NPDMS_E2E_USERNAME, NPDMS_E2E_PASSWORD and NPDMS_CHROME_PATH are required");
+  throw new Error("E2E_USERNAME, E2E_PASSWORD and CHROME_PATH are required");
 }
 
 (async () => {

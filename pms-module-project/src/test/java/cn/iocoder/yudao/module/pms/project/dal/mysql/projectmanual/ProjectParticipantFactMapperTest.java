@@ -67,15 +67,15 @@ class ProjectParticipantFactMapperTest {
     @DynamicPropertySource
     static void mysqlProperties(DynamicPropertyRegistry registry) {
         Map<String, String> environment = System.getenv();
-        String database = required(environment, "NPDMS_DB_NAME");
-        String port = required(environment, "NPDMS_MYSQL_PORT");
+        String database = required(environment, "DB_NAME");
+        String port = required(environment, "MYSQL_PORT");
         if (!"npdms_test".equals(database) || !"23316".equals(port)) {
             throw new IllegalStateException("角色事实测试只允许固定测试库23316/npdms_test");
         }
         registry.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:" + port + "/" + database
                 + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
-        registry.add("spring.datasource.username", () -> required(environment, "NPDMS_DB_USER"));
-        registry.add("spring.datasource.password", () -> required(environment, "NPDMS_DB_PASSWORD"));
+        registry.add("spring.datasource.username", () -> required(environment, "DB_USER"));
+        registry.add("spring.datasource.password", () -> required(environment, "DB_PASSWORD"));
         registry.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         registry.add("spring.datasource.druid.web-stat-filter.enabled", () -> "false");
         registry.add("spring.datasource.druid.stat-view-servlet.enabled", () -> "false");

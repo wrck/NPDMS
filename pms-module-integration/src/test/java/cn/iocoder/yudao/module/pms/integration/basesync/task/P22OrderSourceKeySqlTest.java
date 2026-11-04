@@ -30,11 +30,11 @@ class P22OrderSourceKeySqlTest {
     private Configuration configuration;
 
     @BeforeEach void connect() throws Exception {
-        String url = System.getenv("NPDMS_TEST_MYSQL_URL");
-        String user = System.getenv("NPDMS_TEST_MYSQL_USERNAME");
-        String password = System.getenv("NPDMS_TEST_MYSQL_PASSWORD");
+        String url = System.getenv("TEST_MYSQL_URL");
+        String user = System.getenv("TEST_MYSQL_USERNAME");
+        String password = System.getenv("TEST_MYSQL_PASSWORD");
         assumeTrue(url != null && user != null && password != null,
-                "Requires NPDMS_TEST_MYSQL_URL/USERNAME/PASSWORD");
+                "Requires TEST_MYSQL_URL/USERNAME/PASSWORD");
         var properties = new Properties();
         properties.setProperty("user", user);
         properties.setProperty("password", password);

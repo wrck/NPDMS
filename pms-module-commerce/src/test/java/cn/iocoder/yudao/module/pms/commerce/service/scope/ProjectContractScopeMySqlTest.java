@@ -73,11 +73,11 @@ class ProjectContractScopeMySqlTest {
     private String prefix;
 
     @DynamicPropertySource static void database(DynamicPropertyRegistry properties) {
-        assertEquals("npdms_domain_test", System.getenv("NPDMS_DB_NAME"));
-        assertEquals("24306", System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_domain_test", System.getenv("DB_NAME"));
+        assertEquals("24306", System.getenv("MYSQL_PORT"));
         properties.add("spring.datasource.url", () -> "jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8");
-        properties.add("spring.datasource.username", () -> System.getenv("NPDMS_DB_USER"));
-        properties.add("spring.datasource.password", () -> System.getenv("NPDMS_DB_PASSWORD"));
+        properties.add("spring.datasource.username", () -> System.getenv("DB_USER"));
+        properties.add("spring.datasource.password", () -> System.getenv("DB_PASSWORD"));
         properties.add("spring.datasource.driver-class-name", () -> "com.mysql.cj.jdbc.Driver");
         properties.add("spring.datasource.druid.web-stat-filter.enabled", () -> false);
         properties.add("spring.datasource.druid.stat-view-servlet.enabled", () -> false);

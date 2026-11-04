@@ -93,12 +93,12 @@ docker compose ps
 脚本只在本地生成被 Git 忽略的 `.env`，并拒绝覆盖已有文件。
 `.env.example` 中的敏感项保持为空，不能直接用于启动。
 
-默认 `NPDMS_FILE_SECURITY_SCAN_ENABLED=false`，后端不装配ClamAV Provider，
+默认 `FILE_SECURITY_SCAN_ENABLED=false`，后端不装配ClamAV Provider，
 文件仍执行大小、摘要、扩展名、MIME、内容嗅探和策略校验，并以
 `scanStatus=SKIPPED`记录未执行病毒扫描。启用病毒扫描时同时启动ClamAV并设置：
 
 ```powershell
-$env:NPDMS_FILE_SECURITY_SCAN_ENABLED='true'
+$env:FILE_SECURITY_SCAN_ENABLED='true'
 docker compose --profile security-scan up -d clamav
 ```
 

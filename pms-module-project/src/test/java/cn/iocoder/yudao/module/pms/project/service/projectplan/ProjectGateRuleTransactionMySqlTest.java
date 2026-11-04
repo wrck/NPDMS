@@ -39,10 +39,10 @@ import static org.mockito.Mockito.*;
 @EnabledIfSystemProperty(named="pms.gate.plan.mysql",matches="true")
 class ProjectGateRuleTransactionMySqlTest {
     @Test void gateStatusAndAuditRollbackTogetherAndRetryDoesNotDuplicateThePass() throws Exception {
-        assertEquals("npdms_test",System.getenv("NPDMS_DB_NAME")); assertEquals("23316",System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_test",System.getenv("DB_NAME")); assertEquals("23316",System.getenv("MYSQL_PORT"));
         TenantContextHolder.setTenantId(7L);
         try (var connection = DriverManager.getConnection("jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true",
-                System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"))) {
+                System.getenv("DB_USER"),System.getenv("DB_PASSWORD"))) {
             var database = new SingleConnectionDataSource(connection,true); var jdbc = new JdbcTemplate(database);
             jdbc.execute("CREATE TEMPORARY TABLE proj_project_gate (id BIGINT PRIMARY KEY,tenant_id BIGINT,project_id BIGINT,gate_code VARCHAR(64),stage_code VARCHAR(32),gate_type VARCHAR(16),status VARCHAR(32),version INT,deleted BIT,updater VARCHAR(64),update_time DATETIME)");
             jdbc.execute("CREATE TEMPORARY TABLE gate_rule_test_audit (actor_id BIGINT NOT NULL,detail JSON)");

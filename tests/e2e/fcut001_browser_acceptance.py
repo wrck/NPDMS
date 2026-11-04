@@ -449,9 +449,9 @@ def main() -> int:
     parser.add_argument("--chromium", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    password = os.environ.get("NPDMS_ACCEPTANCE_PASSWORD")
+    password = os.environ.get("ACCEPTANCE_PASSWORD")
     if not password:
-        raise SystemExit("NPDMS_ACCEPTANCE_PASSWORD is required")
+        raise SystemExit("ACCEPTANCE_PASSWORD is required")
     api = Api(args.api_url, args.username, password)
     draft, source_published_id = complete_revision(api)
     result = browser_acceptance(

@@ -55,7 +55,7 @@ try {
         Wait-Process -Id $taskProcess.ProcessId -Timeout 30 -ErrorAction SilentlyContinue
         Copy-Item -LiteralPath $taskArtifact -Destination $taskDestination -Force
     }
-    $env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD=$taskSettings['NPDMS_MYBATIS_ENCRYPTOR_PASSWORD']
+    $env:MYBATIS_ENCRYPTOR_PASSWORD=$taskSettings['MYBATIS_ENCRYPTOR_PASSWORD']
     $taskApplicationSettings=@{
         'spring.datasource.dynamic.datasource.master.url'='jdbc:mysql://172.17.90.178:13306/npdms?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true'
         'spring.datasource.dynamic.datasource.master.username'=$taskDatabaseProfile.username
@@ -97,7 +97,7 @@ try {
     else { Write-Output "Backend deployed with local,dac; PID $($taskStarted.Id)." }
 } finally {
     Remove-Item Env:SPRING_APPLICATION_JSON -ErrorAction SilentlyContinue
-    Remove-Item Env:NPDMS_DEVICE_OPS_BEARER_TOKEN -ErrorAction SilentlyContinue
+    Remove-Item Env:DEVICE_OPS_BEARER_TOKEN -ErrorAction SilentlyContinue
     [Environment]::SetEnvironmentVariable('NODE_EXTRA_CA_CERTS',$taskPreviousNodeCa,'Process')
     $taskUmcConfiguration=$null
     $taskApplicationSettings=$null

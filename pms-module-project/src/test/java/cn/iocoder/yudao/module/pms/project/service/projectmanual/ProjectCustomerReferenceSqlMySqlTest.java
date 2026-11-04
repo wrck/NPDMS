@@ -18,11 +18,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnabledIfSystemProperty(named="skipITs", matches="false")
 class ProjectCustomerReferenceSqlMySqlTest {
     @Test void ignoresAutomaticEmptyInstancesButProtectsActualContentAndOtherTenants() throws Exception {
-        assertEquals("npdms_test", System.getenv("NPDMS_DB_NAME"));
-        assertEquals("23316", System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_test", System.getenv("DB_NAME"));
+        assertEquals("23316", System.getenv("MYSQL_PORT"));
         var ds = new UnpooledDataSource("com.mysql.cj.jdbc.Driver",
                 "jdbc:mysql://127.0.0.1:23316/npdms_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8",
-                System.getenv("NPDMS_DB_USER"), System.getenv("NPDMS_DB_PASSWORD"));
+                System.getenv("DB_USER"), System.getenv("DB_PASSWORD"));
         var configuration = new Configuration(new Environment("customer-correction-test", new JdbcTransactionFactory(), ds));
         configuration.setLocalCacheScope(org.apache.ibatis.session.LocalCacheScope.STATEMENT);
         for (String resource : java.util.List.of("mapper/customerreference/ProjectProjectCustomerReferenceMapper.xml",

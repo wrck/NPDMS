@@ -22,7 +22,7 @@ class ModuleClient:
         self.base = base.rstrip('/')
         self.headers = {'Content-Type': 'application/json', 'tenant-id': str(tenant)}
         result = self.request('/admin-api/system/auth/login', {
-            'username': username, 'password': os.environ['NPDMS_ADMIN_PASSWORD'],
+            'username': username, 'password': os.environ['ADMIN_PASSWORD'],
             'captchaVerification': '',
         })
         self.headers['Authorization'] = 'Bearer ' + result['accessToken']

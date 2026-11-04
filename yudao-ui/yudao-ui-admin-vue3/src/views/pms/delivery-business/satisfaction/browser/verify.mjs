@@ -5,8 +5,8 @@ import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import config, { browserRoot, dependencies, dependencyRoot, uiRoot } from './config.mjs'
 
-const browserRequire = process.env.NPDMS_BROWSER_PACKAGES
-  ? createRequire(resolve(process.env.NPDMS_BROWSER_PACKAGES, '../package.json'))
+const browserRequire = process.env.BROWSER_PACKAGES
+  ? createRequire(resolve(process.env.BROWSER_PACKAGES, '../package.json'))
   : dependencies
 const { chromium } = browserRequire('playwright')
 const { createServer } = await import(pathToFileURL(dependencies.resolve('vite')).href)
@@ -34,7 +34,7 @@ try {
   const origin = `http://127.0.0.1:${server.httpServer.address().port}`
   browser = await chromium.launch({
     headless: true,
-    channel: process.env.NPDMS_BROWSER_CHANNEL || 'msedge'
+    channel: process.env.BROWSER_CHANNEL || 'msedge'
   })
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
   page.setDefaultTimeout(10000)

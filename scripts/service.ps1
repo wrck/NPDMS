@@ -60,11 +60,11 @@ function Get-Env {
 }
 
 # 端口约定：默认与 compose.yaml / development.md 一致；分支可在 .env 覆盖
-# NPDMS_BACKEND_PORT / NPDMS_FRONTEND_PORT（该文件不入库，仅当前分支有效）。
+# BACKEND_PORT / FRONTEND_PORT（该文件不入库，仅当前分支有效）。
 if (Test-Path (Join-Path $root '.env')) {
   $branchEnv = Get-Env
-  if ($branchEnv['NPDMS_BACKEND_PORT'])  { $bkPort = [int]$branchEnv['NPDMS_BACKEND_PORT'] }
-  if ($branchEnv['NPDMS_FRONTEND_PORT']) { $frPort = [int]$branchEnv['NPDMS_FRONTEND_PORT'] }
+  if ($branchEnv['BACKEND_PORT'])  { $bkPort = [int]$branchEnv['BACKEND_PORT'] }
+  if ($branchEnv['FRONTEND_PORT']) { $frPort = [int]$branchEnv['FRONTEND_PORT'] }
 }
 
 # ---------- PID 读写与存活 ----------
@@ -112,8 +112,8 @@ function Stop-ByPidFile([string]$file, [string]$label) {
 
 # ---------- 基础设施就绪（compose 权威入口，缺则拉起并等待） ----------
 function Ensure-Infra {
-  $dbPort = [int]$(Get-Env)['NPDMS_MYSQL_PORT']
-  $rdPort = [int]$(Get-Env)['NPDMS_REDIS_PORT']
+  $dbPort = [int]$(Get-Env)['MYSQL_PORT']
+  $rdPort = [int]$(Get-Env)['REDIS_PORT']
   if (-not (Test-Port $dbPort) -or -not (Test-Port $rdPort)) {
     Write-Host '  [infra] MySQL/Redis 未就绪，调用 docker compose 拉起...'
     Push-Location $root
@@ -152,15 +152,15 @@ function Start-Backend {
   $env = Get-Env
   # Reuse the local DPAPI-protected datasource key when no explicit key was supplied.
   $syncKeyFile = Join-Path $root '.run/sync-encryptor-key.clixml'
-  if (-not $env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD -and (Test-Path -LiteralPath $syncKeyFile)) {
+  if (-not $env:MYBATIS_ENCRYPTOR_PASSWORD -and (Test-Path -LiteralPath $syncKeyFile)) {
     $syncKey = Import-Clixml -LiteralPath $syncKeyFile
-    $env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD = [System.Net.NetworkCredential]::new('', $syncKey).Password
-    if ([System.Text.Encoding]::UTF8.GetByteCount($env:NPDMS_MYBATIS_ENCRYPTOR_PASSWORD) -notin @(16, 24, 32)) {
+    $env:MYBATIS_ENCRYPTOR_PASSWORD = [System.Net.NetworkCredential]::new('', $syncKey).Password
+    if ([System.Text.Encoding]::UTF8.GetByteCount($env:MYBATIS_ENCRYPTOR_PASSWORD) -notin @(16, 24, 32)) {
       throw '本地数据源加密密钥长度无效，停止启动。'
     }
   }
   $java = Join-Path (Get-Java25) 'bin\java.exe'
-  $dsUrl = "jdbc:mysql://127.0.0.1:$($env['NPDMS_MYSQL_PORT'])/$($env['NPDMS_DB_NAME'])?" +
+  $dsUrl = "jdbc:mysql://127.0.0.1:$($env['MYSQL_PORT'])/$($env['DB_NAME'])?" +
     'useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true' +
     '&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true'
   $args = @(
@@ -168,11 +168,11 @@ function Start-Backend {
     "--server.port=$bkPort",
     '--spring.profiles.active=local',
     "--spring.datasource.dynamic.datasource.master.url=$dsUrl",
-    "--spring.datasource.dynamic.datasource.master.username=$($env['NPDMS_DB_USER'])",
-    "--spring.datasource.dynamic.datasource.master.password=$($env['NPDMS_DB_PASSWORD'])",
+    "--spring.datasource.dynamic.datasource.master.username=$($env['DB_USER'])",
+    "--spring.datasource.dynamic.datasource.master.password=$($env['DB_PASSWORD'])",
     '--spring.data.redis.host=127.0.0.1',
-    "--spring.data.redis.port=$($env['NPDMS_REDIS_PORT'])",
-    "--spring.data.redis.password=$($env['NPDMS_REDIS_PASSWORD'])"
+    "--spring.data.redis.port=$($env['REDIS_PORT'])",
+    "--spring.data.redis.password=$($env['REDIS_PASSWORD'])"
   )
   [System.IO.Directory]::CreateDirectory($logDir) | Out-Null
   $proc = Start-Process -FilePath $java -ArgumentList $args -RedirectStandardOutput $logBk `

@@ -11,8 +11,8 @@ import AutoImport from 'unplugin-auto-import/vite'
 const fixtureRoot = dirname(fileURLToPath(import.meta.url))
 const uiRoot = resolve(fixtureRoot, '../..')
 const output = resolve(uiRoot, '../../.run/cloud-20261006/file-reference-browser')
-const browserRequire = process.env.NPDMS_BROWSER_PACKAGES
-  ? createRequire(resolve(process.env.NPDMS_BROWSER_PACKAGES, '../package.json')) : createRequire(import.meta.url)
+const browserRequire = process.env.BROWSER_PACKAGES
+  ? createRequire(resolve(process.env.BROWSER_PACKAGES, '../package.json')) : createRequire(import.meta.url)
 const { chromium } = browserRequire('playwright')
 await mkdir(output, { recursive: true })
 await writeFile(resolve(output, 'result.json'), JSON.stringify({ passed: false, status: 'RUNNING' }) + '\n')
@@ -37,7 +37,7 @@ const reference = { ...key, artifactId: '9007199254740993', referenceId: '900719
 let exists = false
 try {
   await server.listen()
-  browser = await chromium.launch({ executablePath: process.env.NPDMS_BROWSER_EXECUTABLE || '/usr/bin/chromium', headless: true })
+  browser = await chromium.launch({ executablePath: process.env.BROWSER_EXECUTABLE || '/usr/bin/chromium', headless: true })
   page = await browser.newPage()
   page.setDefaultTimeout(15000)
   page.on('pageerror', error => errors.push(error.message))

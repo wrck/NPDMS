@@ -36,12 +36,12 @@ device-ops:
     auth-mode: oauth2
     oidc-authority: ${OIDC_AUTHORITY}
   npdms:
-    request-signing-key: ${NPDMS_DAC_REQUEST_SIGNING_KEY}
+    request-signing-key: ${DAC_REQUEST_SIGNING_KEY}
   callback:
     enabled: true
     allowed-hosts: ["@@backend_tls_name@@"]
     npdms-destination: https://@@backend_tls_name@@:443/api/v1/pms/integration/device-ops/callbacks
-    npdms-signing-key: ${NPDMS_DAC_CALLBACK_SIGNING_KEY}
+    npdms-signing-key: ${DAC_CALLBACK_SIGNING_KEY}
     npdms-namespace-prefix: npdms-
   telnet:
     enabled: false

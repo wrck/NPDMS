@@ -28,10 +28,10 @@ class ProjectEndUserCompletionMySqlTest {
     ProjectEndUserCompletionService service;
 
     @BeforeEach void setup() throws Exception {
-        assertEquals("24306", System.getenv("NPDMS_MYSQL_PORT"));
-        assertEquals("npdms_domain_test", System.getenv("NPDMS_DB_NAME"));
+        assertEquals("24306", System.getenv("MYSQL_PORT"));
+        assertEquals("npdms_domain_test", System.getenv("DB_NAME"));
         db = DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                System.getenv("NPDMS_DB_USER"), System.getenv("NPDMS_DB_PASSWORD"));
+                System.getenv("DB_USER"), System.getenv("DB_PASSWORD"));
         try (var sql = db.createStatement()) {
             sql.execute("CREATE TEMPORARY TABLE proj_project (id BIGINT PRIMARY KEY, tenant_id BIGINT, deleted BIT)");
             sql.execute("INSERT INTO proj_project VALUES (9,7,b'0')");

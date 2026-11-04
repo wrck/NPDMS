@@ -40,9 +40,9 @@ import static org.mockito.Mockito.*;
 @EnabledIfSystemProperty(named="skipITs",matches="false")
 class ConfigurationLogImportMySqlTest {
     @Test void realUniqueReferencesAndSecondDeviceFailureRollback() throws Exception {
-        assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));
-        try (var connection=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"))) {
+        assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));
+        try (var connection=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",System.getenv("DB_USER"),System.getenv("DB_PASSWORD"))) {
             try(var sql=connection.createStatement()) {
                 String definition;
                 try(var table=sql.executeQuery("SHOW CREATE TABLE imp_eng_configuration")) {

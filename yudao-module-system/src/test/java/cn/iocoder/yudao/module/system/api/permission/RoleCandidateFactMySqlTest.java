@@ -32,13 +32,13 @@ class RoleCandidateFactMySqlTest {
 
     @BeforeEach
     void openIsolatedConnection() throws Exception {
-        String schema = required("NPDMS_DB_NAME");
+        String schema = required("DB_NAME");
         assertTrue(schema.matches("npdms_cut_structured_[0-9]{8}_r[0-9]+"));
-        assertEquals("24306", required("NPDMS_MYSQL_PORT"));
+        assertEquals("24306", required("MYSQL_PORT"));
         var source = new UnpooledDataSource("com.mysql.cj.jdbc.Driver",
                 "jdbc:mysql://127.0.0.1:24306/" + schema
                         + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai",
-                required("NPDMS_DB_USER"), required("NPDMS_DB_PASSWORD"));
+                required("DB_USER"), required("DB_PASSWORD"));
         var configuration = new Configuration(new Environment("cut-role-isolated", new JdbcTransactionFactory(), source));
         String resource = "mapper/permission/RoleCandidateFactMapper.xml";
         try (var input = getClass().getClassLoader().getResourceAsStream(resource)) {

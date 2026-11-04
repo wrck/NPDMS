@@ -23,8 +23,8 @@ class DppmsOrderLineFieldCarryMapperMySqlTest {
     final long tenant=8_000_000_323L;
     Connection db;SqlSession session;DppmsOrderLineFieldCarryMapper mapper;DppmsOrderLineFieldCarryOwner owner;
     @BeforeEach void fixture() throws Exception {
-        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
-        db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&serverTimezone=Asia/Shanghai",System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+        assertEquals("24306",System.getenv("MYSQL_PORT"));assertEquals("npdms_domain_test",System.getenv("DB_NAME"));
+        db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&serverTimezone=Asia/Shanghai",System.getenv("DB_USER"),System.getenv("DB_PASSWORD"));
         try(var sql=db.createStatement()) {
             for(String table:List.of("com_sales_order","com_sales_order_line")) {
                 String ddl;try(var schema=sql.executeQuery("SHOW CREATE TABLE "+table)) {assertTrue(schema.next());ddl=schema.getString(2);}

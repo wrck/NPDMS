@@ -13,8 +13,8 @@ const vue = req('@vitejs/plugin-vue').default
 const autoImportModule = req('unplugin-auto-import/vite')
 const autoImport = autoImportModule.default || autoImportModule
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || path.join(os.tmpdir(), 'npdms-fplt002-playwright/node_modules/playwright'))
-const output = process.env.NPDMS_BROWSER_TEST_OUTPUT || path.join(root, 'docs/generated/2026-10-06-project-creation-migration/browser')
-const port = Number(process.env.NPDMS_BROWSER_TEST_PORT || 19081)
+const output = process.env.BROWSER_TEST_OUTPUT || path.join(root, 'docs/generated/2026-10-06-project-creation-migration/browser')
+const port = Number(process.env.BROWSER_TEST_PORT || 19081)
 assert.ok(Number.isInteger(port) && port > 0 && port < 65536, 'invalid browser test port')
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'npdms-creation-browser-'))
 const write = (name, value) => { const file = path.join(temp, name); fs.writeFileSync(file, value); return file }

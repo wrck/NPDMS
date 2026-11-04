@@ -348,8 +348,8 @@ def main():
             cursor.execute('START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY')
         session = requests.Session()
         if args.apply:
-            session.headers.update({'Authorization': 'Bearer ' + os.environ['NPDMS_ACCESS_TOKEN'],
-                                    'tenant-id': os.environ['NPDMS_TENANT_ID']})
+            session.headers.update({'Authorization': 'Bearer ' + os.environ['ACCESS_TOKEN'],
+                                    'tenant-id': os.environ['TENANT_ID']})
         for selection in manifest:
             bundle = DppmsDetailReader(source).collect(selection, args.batch_key, selection.get('expectedSnapshotChecksum'))
             result = synchronize(session, args.api_base, selection['projectId'], bundle) if args.apply else None
