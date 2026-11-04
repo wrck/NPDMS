@@ -24,11 +24,11 @@ spring:
     jdbc:
       initialize-schema: never
   quartz:
+    job-store-type: memory # JobStartupRegistrar restores persisted definitions, including paused jobs.
     jdbc:
       initialize-schema: never
   autoconfigure:
     exclude:
-      - org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration
       - org.springframework.ai.vectorstore.qdrant.autoconfigure.QdrantVectorStoreAutoConfiguration
       - org.springframework.ai.vectorstore.redis.autoconfigure.RedisVectorStoreAutoConfiguration
       - org.springframework.ai.vectorstore.milvus.autoconfigure.MilvusVectorStoreAutoConfiguration
