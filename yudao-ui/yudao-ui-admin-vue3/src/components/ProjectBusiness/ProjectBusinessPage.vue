@@ -14,7 +14,7 @@
         :fields="model?.fields" :presentation="presentation" lossless-numbers :disabled="busy || !saveOperation?.executable || readonly || current?.available === false" />
       <BusinessEntityForm v-if="current && extraFields.length" ref="extraForm" :writable-fields="extraFields" :initial-values="presentation?.extensions.fields"
         lossless-numbers :disabled="busy || !saveOperation?.executable || readonly" />
-      <slot name="business-fields" :current="current" :execute="runAction" :busy="busy" :actions="businessActions" />
+      <slot name="business-fields" :current="current" :execute="runAction" :busy="busy" :actions="businessActions"></slot>
       <div class="business-actions">
         <el-button type="primary" :loading="executing" :disabled="busy || readonly || !saveOperation?.executable || current?.available === false" @click="save">保存</el-button>
         <el-button v-if="current && deleteOperation" type="danger" :disabled="busy || readonly || !deleteOperation.executable" @click="remove">删除</el-button>
@@ -29,7 +29,7 @@
       </el-descriptions>
       <ProjectBusinessDeliveries v-if="current" ref="deliveries" :key="String(current.ref.entityId)" :api="api" :entity-id="current.ref.entityId"
         :readonly="readonly || !updateOperation?.executable" :deliverable-type="deliverableType" />
-      <slot name="details" :current="current" :api="api" />
+      <slot name="details" :current="current" :api="api"></slot>
     </template>
   </ContentWrap>
 </template>

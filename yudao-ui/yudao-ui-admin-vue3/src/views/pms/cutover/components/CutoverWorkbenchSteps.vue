@@ -7,7 +7,7 @@
           <span class="step-circle" aria-hidden="true">{{ step.state === 'COMPLETED' ? '✓' : index + 1 }}</span>
           <span class="step-label">{{ labels[step.stage] }}<small v-if="step.state === 'SKIPPED'">D级跳过</small></span>
         </button>
-        <span v-if="index < steps.length - 1" class="step-connector" aria-hidden="true" />
+        <span v-if="index < steps.length - 1" class="step-connector" aria-hidden="true"></span>
       </li>
     </ol>
   </nav>

@@ -25,7 +25,7 @@
             <span v-if="readonly && !hasFiles" class="auto-value">未上传</span>
             <template v-if="!readonly">
               <p v-if="uploadedCount" class="upload-count">本次已上传 {{ uploadedCount }} 个</p>
-              <slot name="uploader" />
+              <slot name="uploader"></slot>
             </template>
           </div>
         </el-form-item>
