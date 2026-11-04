@@ -44,6 +44,45 @@ class BaseSyncTenantSqlTest {
                 "collateutf8mb4_bin", "incoming.previous_fingerprint")) assertTrue(compact.contains(guard), guard);
     }
 
+    @Test void deviceProjectBatchesPreserveBoundParametersThroughTheProductionTenantParser() throws Exception {
+        var configuration = configuration(List.of("DeviceProjects"));
+        var at = java.time.LocalDateTime.of(2026,11,2,12,0);
+        var context = new cn.iocoder.yudao.module.pms.integration.api.basesync.SyncContext<Void>(
+                7,2,3,false,500,5000,at,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.api.basesync.SyncSource.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.api.basesync.SyncIdentityStore.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.api.basesync.SyncReferences.class),
+                "BASE_P30",org.mockito.Mockito.mock(org.apache.ibatis.session.SqlSession.class),false,true);
+        var devices=java.util.stream.LongStream.rangeClosed(1,500).mapToObj(id ->
+                new cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask.DeviceRow()
+                        .setId(id).setTenantId(7L).setSn("SN-"+id).setProjectAssignmentVersion(0L).setContractNo("C-"+id)).toList();
+        var changes=devices.stream().map(device -> new BaseSyncDeviceProjects.Change(device,
+                new BaseSyncDeviceProjects.Binding(device.getId(),device.getId(),device.getSn(),"a".repeat(64)),null,
+                new BaseSyncDeviceProjects.Decision(101L,"INSTALLATION:"+device.getId()),device.getId(),"event-"+device.getId(),"b".repeat(64))).toList();
+        var batch=new BaseSyncDeviceProjects.WriteBatch(context,changes);
+        var queries=new java.util.LinkedHashMap<String,Object>();
+        queries.put("selectFacts",Map.of("query",new BaseSyncDeviceProjects.BatchQuery(7,3,devices,at)));
+        queries.put("selectBaseBindings",Map.of("query",new BaseSyncDeviceProjects.BatchQuery(7,3,devices,at)));
+        queries.put("selectLatestRelationships",Map.of("query",new BaseSyncDeviceProjects.DeviceQuery(7,devices.stream().map(device->device.getId()).toList())));
+        for(var name:List.of("closeRelationships","insertRelationships","updateDevices","updateBindings"))queries.put(name,batch);
+        queries.put("insertEvents",new BaseSyncDeviceProjects.EventBatch(context,devices.stream().map(device ->
+                new BaseSyncDeviceProjects.AssignmentEvent(device.getId(),"event-"+device.getId(),device.getId(),"{}")).toList()));
+        queries.put("selectProjectionWatermarks",Map.of("query",new BaseSyncDeviceProjects.DeviceQuery(7,devices.stream().map(device->device.getId()).toList())));
+        queries.put("selectTreeFacts",Map.of("query",new BaseSyncDeviceProjects.ProjectQuery(7,List.of(101L))));
+        var projections=new BaseSyncDeviceProjects.ProjectionBatch(context,devices.stream().map(device ->
+                new BaseSyncDeviceProjects.Projection(device.getSn(),101,1,1,"event-"+device.getId())).toList());
+        queries.put("deleteAncestors",projections);queries.put("insertProjectionOperations",projections);
+        queries.put("insertAncestors",new BaseSyncDeviceProjects.AncestorBatch(context,devices.stream().map(device ->
+                new BaseSyncDeviceProjects.Ancestor(device.getSn(),101,100,1,1)).toList()));
+        for(var entry:queries.entrySet()) {
+            var statement=configuration.getMappedStatement(BaseSyncDeviceProjects.TargetMapper.class.getName()+"."+entry.getKey());
+            var bound=statement.getBoundSql(entry.getValue());
+            var rewritten=interceptor().parserMulti(bound.getSql(),null);
+            assertEquals(bound.getParameterMappings().size(),rewritten.chars().filter(c->c=='?').count(),entry.getKey());
+            assertNotNull(CCJSqlParserUtil.parse(rewritten),entry.getKey());
+        }
+    }
+
     private TenantLineInnerInterceptor interceptor() {
         TenantContextHolder.setTenantId(7L);
         return new TenantLineInnerInterceptor(new TenantDatabaseInterceptor(new TenantProperties()) {

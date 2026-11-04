@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects$SourceMapper">
+  <select id="selectLatestRaw" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects$Raw">
+    SELECT requested.device_id,s.id source_id,CAST(s.projectId AS CHAR) project_key,
+      CASE WHEN s.transferFlag='-1' AND s.chProjectId IS NULL AND s.chContractNo IS NULL
+        AND s.transferProjectId IS NULL AND s.transferContractNo IS NULL THEN 1 ELSE 0 END clear_transfer
+    FROM (
+      <choose><when test="devices != null and !devices.isEmpty()">
+        <foreach collection="devices" item="device" separator=" UNION ALL ">SELECT #{device.id} device_id,#{device.sn} sn</foreach>
+      </when><otherwise>SELECT 0 device_id,'' sn WHERE 1=0</otherwise></choose>
+    ) requested JOIN pm_project_shipment s ON s.id=(SELECT MAX(latest.id) FROM pm_project_shipment latest
+      WHERE latest.barcode=requested.sn COLLATE utf8mb4_unicode_ci)
+  </select>
+</mapper>

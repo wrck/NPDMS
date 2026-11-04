@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 class ShipmentOrderLinePostfillTest {
     final P15DeliverySyncTask.TargetMapper mapper=mock(P15DeliverySyncTask.TargetMapper.class);
     final SyncIdentityStore identities=mock(SyncIdentityStore.class);
-    final P15DeliverySyncTask task=new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class));
+    final P15DeliverySyncTask task=new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));
     final P15DeliverySyncTask.Row old=new P15DeliverySyncTask.Row().setId(10L).setTenantId(1L)
             .setSourceSystem("DPPMS").setSourceKey("shipment-uuid-78897").setUuid("shipment-uuid-78897").setOrderNo("SO064298").setLineNo("10625024")
             .setProductCode("child-product").setDeleted(false).setVersion(4L).setUpdater("original")

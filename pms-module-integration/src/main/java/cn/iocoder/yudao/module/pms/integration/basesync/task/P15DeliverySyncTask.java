@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.Source,P15DeliverySyncTask.Parameters> {
  private final TargetMapper mapper;
  private final ManagedOrganizationApi organizations;
+ private final cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects projectAssignments;
  public record OrganizationKey(String type,String code){}
  public record Parameters(Map<String,String> carriers,long connectionId,
          Map<OrganizationKey,ManagedOrganizationApi.Node> organizations,Map<String,Long> missing){
@@ -57,6 +58,7 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
     boolean local=stage.equals("ContractOrganization")||stage.equals("ShipmentContractOrganization")||stage.equals("OrderContractRelation")||stage.equals("PackageContractReference");
     syncData(local?c.forLocalData(stage,false,true):c.forData(stage,false,!stage.equals("Contract")));
    }
+   projectAssignments.refresh(c);
    c.parameters().missing.forEach((key,count)->c.runState().warning("P15_"+key+":"+count));
   }catch(StackOverflowError error){var frames=error.getStackTrace();org.slf4j.LoggerFactory.getLogger(P15DeliverySyncTask.class).error("P15_STACK_OVERFLOW_FRAMES:{}",Arrays.toString(Arrays.copyOf(frames,Math.min(32,frames.length))));throw error;}
  }

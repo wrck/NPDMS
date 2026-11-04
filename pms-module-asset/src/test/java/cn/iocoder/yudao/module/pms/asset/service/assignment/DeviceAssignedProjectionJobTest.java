@@ -72,6 +72,21 @@ class DeviceAssignedProjectionJobTest {
     }
 
     @Test
+    void shouldClearAncestorsAtTheNewAssignmentVersionWithoutLookingUpARemovedProject() {
+        var message = new PlatformOutboxMessageDTO("event-clear", "DeviceAssigned",
+                "{\"deviceId\":8,\"oldProjectId\":100,\"newProjectId\":null,"
+                        + "\"assignmentVersion\":3,\"effectiveAt\":\"2026-11-02T12:00:00\",\"operationId\":\"clear-8\"}",
+                0, 1L, LocalDateTime.of(2026, 11, 2, 12, 0));
+        when(outboxDeliveryApi.claimDue(any())).thenReturn(List.of(message));
+        when(deviceMapper.selectByTenantAndId(1L, 8L)).thenReturn(device());
+        assertEquals("设备祖先投影成功 1 条，待重试 0 条", job.execute(null));
+        verify(projectionService).rebuild(new RebuildDeviceAncestorProjectionCommand(
+                1L, "SN-8", 100L, List.of(), 0L, 3L, "event-clear", "clear-8"));
+        org.mockito.Mockito.verifyNoInteractions(ancestorQueryApi);
+        verify(outboxDeliveryApi).markDelivered("event-clear", 0);
+    }
+
+    @Test
     void shouldScheduleRetryWithoutMarkingDeliveredWhenProjectionFails() {
         LocalDateTime occurredAt = LocalDateTime.of(2026, 8, 27, 12, 0);
         PlatformOutboxMessageDTO message = new PlatformOutboxMessageDTO(

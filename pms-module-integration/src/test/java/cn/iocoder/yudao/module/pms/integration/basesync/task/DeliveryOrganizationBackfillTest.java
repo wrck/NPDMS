@@ -18,7 +18,7 @@ class DeliveryOrganizationBackfillTest {
         var sourceMapper=mock(P15DeliverySyncTask.SourceMapper.class);
         when(source.open(3)).thenReturn(session);when(session.mapper(P15DeliverySyncTask.SourceMapper.class)).thenReturn(sourceMapper);
         var steps=new ArrayList<String>();
-        var task=new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class)) {
+        var task=new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)) {
             @Override protected List<Source> syncData(SyncContext<Parameters> context) {
                 steps.add(context.dataName());return List.of();
             }
@@ -43,7 +43,7 @@ class DeliveryOrganizationBackfillTest {
                 identities,mock(SyncReferences.class),"DeviceBase",mock(SqlSession.class),false,true)
                 .forParameters(new P30DeviceBaseSyncTask.Parameters());
         var source=new P30DeviceBaseSyncTask.DeviceSource();source.setDeviceSn("SN");source.setTenantId(1L);source.setSourceSystem("DPPMS");
-        new P30DeviceBaseSyncTask(mapper,contracts).syncDataInsertBefore(new SyncBatch<>(context,new ArrayList<>(List.of(source))));
+        new P30DeviceBaseSyncTask(mapper,contracts,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)).syncDataInsertBefore(new SyncBatch<>(context,new ArrayList<>(List.of(source))));
         assertEquals(SyncWriteAction.UPDATE,source.getSyncAction());
         assertEquals(100L,source.getTarget().getCompanyId());assertEquals(200L,source.getTarget().getDepartmentId());
         assertNull(source.getTarget().getProjectId());assertEquals(P30DeviceBaseSyncTask.fingerprint(old),P30DeviceBaseSyncTask.fingerprint(source.getTarget()));
@@ -59,7 +59,7 @@ class DeliveryOrganizationBackfillTest {
         when(mapper.selectShipmentContracts(any())).thenReturn(List.of(old));when(mapper.updateShipmentContractOrganization(any())).thenReturn(1);
         var parameters=directory();var context=deliveryContext(identities,parameters,false).forLocalData("ShipmentContractOrganization",false,true);
         var source=new P15DeliverySyncTask.Source().setKey("source").setTarget(old).setResolvedContractId(99L).setResolvedCompanyCode("001");
-        var batch=new SyncBatch<>(context,new ArrayList<>(List.of(source)));var task=new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class));
+        var batch=new SyncBatch<>(context,new ArrayList<>(List.of(source)));var task=new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));
         task.syncDataInsertBefore(batch);assertEquals(SyncWriteAction.UPDATE,source.getAction());
         assertEquals("RAW-contract",source.getTarget().getContractNo());assertEquals("原客户",source.getTarget().getCustomerName());
         assertEquals(old.getUpdateTime(),source.getTarget().getUpdateTime());assertEquals("historical",source.getTarget().getUpdater());
@@ -81,7 +81,7 @@ class DeliveryOrganizationBackfillTest {
                 P15DeliverySyncTask.fingerprint(new P15DeliverySyncTask.Validation("ShipmentContract",old)))));
         when(mapper.selectShipmentContracts(any())).thenReturn(List.of(old));var parameters=directory();
         var source=new P15DeliverySyncTask.Source().setKey("source").setTarget(old);
-        new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class)).syncDataInsertBefore(new SyncBatch<>(
+        new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)).syncDataInsertBefore(new SyncBatch<>(
                 deliveryContext(identities,parameters,true).forLocalData("ShipmentContractOrganization",false,true),new ArrayList<>(List.of(source))));
         assertNull(source.getTarget().getCompanyCode());assertNull(source.getTarget().getContractId());
         assertEquals("missing",source.getTarget().getContractNo());assertEquals(200L,source.getTarget().getDepartmentId());
@@ -94,7 +94,7 @@ class DeliveryOrganizationBackfillTest {
         var old=new P15DeliverySyncTask.Row().setId(10L).setTenantId(1L).setSourceRecordKey("source").setDeleted(false);
         var row=new P15DeliverySyncTask.Source().setKey("source").setTarget(old);
         var batch=new SyncBatch<>(deliveryContext(identities,directory(),false).forLocalData("ShipmentContractOrganization",false,true),new ArrayList<>(List.of(row)));
-        var task=new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class));task.syncDataInsertBefore(batch);task.syncDataInsert(batch);
+        var task=new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));task.syncDataInsertBefore(batch);task.syncDataInsert(batch);
         assertEquals(SyncWriteAction.UNCHANGED,row.getAction());verifyNoInteractions(mapper);
         when(identities.findByKeys(any())).thenReturn(Map.of("source",new SyncIdentityStore.Identity("source",10,"different")));
         when(mapper.selectShipmentContracts(any())).thenReturn(List.of(old));
@@ -112,7 +112,7 @@ class DeliveryOrganizationBackfillTest {
             var source=new P30DeviceBaseSyncTask.DeviceSource();source.setDeviceSn("SN");source.setTenantId(1L);source.setSourceSystem("DPPMS");
             var context=new SyncContext<Void>(1,2,3,true,37,1000,LocalDateTime.of(2026,10,23,12,0),mock(SyncSource.class),identities,
                     mock(SyncReferences.class),"DeviceBase",mock(SqlSession.class),false,true).forParameters(new P30DeviceBaseSyncTask.Parameters());
-            new P30DeviceBaseSyncTask(mapper,contracts).syncDataInsertBefore(new SyncBatch<>(context,new ArrayList<>(List.of(source))));
+            new P30DeviceBaseSyncTask(mapper,contracts,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)).syncDataInsertBefore(new SyncBatch<>(context,new ArrayList<>(List.of(source))));
             assertEquals(SyncWriteAction.UNCHANGED,source.getSyncAction(),condition);assertNull(source.getTarget().getCompanyId());
             assertEquals(old.getProjectId(),source.getTarget().getProjectId());
             if(condition.equals("project")||condition.equals("unowned"))verifyNoInteractions(contracts);

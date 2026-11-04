@@ -203,7 +203,7 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   jdbc.update("INSERT INTO ast_device(id,tenant_id,sn,status,version,source_system,source_key) VALUES(9,1,'SN-1','IN_STOCK',0,'DPPMS','SN-1')");
   var mapper=mock(P33InstallationSyncTask.TargetMapper.class,org.mockito.AdditionalAnswers.delegatesTo(session.getMapper(P33InstallationSyncTask.TargetMapper.class)));
   doReturn(255).when(mapper).installLocationCapacity(); // Temporary fixture capacity; information_schema describes the permanent table.
-  var task=spy(new P33InstallationSyncTask(mapper,publications,projects));doReturn(new ArrayList<>(rows)).when(task).syncDataQuery(any());return task;
+  var task=spy(new P33InstallationSyncTask(mapper,publications,projects,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)));doReturn(new ArrayList<>(rows)).when(task).syncDataQuery(any());return task;
  }
  P33InstallationSyncTask.Source installationSource(long id,LocalDateTime created){return new P33InstallationSyncTask.Source().setSourceId(id).setOriginalProjectId(1L).setBarcode("SN-1").setTransferFlag("-1").setTransferPending(false).setInstallAddress("original address").setLocationSnapshot(JsonUtils.toJsonString(Map.of("fallbackLocation","original address"))).setCreateTime(created);}
  @Test void installationChoosesOriginalLatestTimeAndPreviewNeverCreatesAnAddress(){
@@ -277,7 +277,7 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(addresses,sourceRows.stream().map(P33InstallationSyncTask.Source::getInstallAddress).toList());
   assertEquals(List.of(1L,2L,3L,4L,5L,6L,7L,8L,9L),sourceRows.stream().map(P33InstallationSyncTask.Source::getSourceId).toList());
   var rows=new ArrayList<P33InstallationSyncTask.Source>();var locations=mock(AssetLocationApi.class);
-  var task=spy(new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects));
+  var task=spy(new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)));
   doAnswer(call->{rows.addAll(call.<SyncBatch<P33InstallationSyncTask.Source,P33InstallationSyncTask.Parameters>>getArgument(0).rows());return call.callRealMethod();}).when(task).syncDataInsertBefore(any());
   var context=context(true);assertEquals(new SyncCounts(2,0,0,0,0),transaction.execute(status->task.execute(context)));
   assertEquals(List.of(5L,6L),rows.stream().map(P33InstallationSyncTask.Source::getSourceId).toList());
@@ -291,7 +291,7 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   jdbc.update("INSERT INTO ast_device(id,tenant_id,sn,status,version,source_system,source_key) VALUES(9,1,'SN-1','IN_STOCK',0,'DPPMS','SN-1')");
   var mapper=mock(P33InstallationSyncTask.TargetMapper.class,org.mockito.AdditionalAnswers.delegatesTo(session.getMapper(P33InstallationSyncTask.TargetMapper.class)));doReturn(1024).when(mapper).installLocationCapacity();
   var location=mock(AssetLocationApi.class);var source=installationSource(1,at).setInstallAddress("原始机房\r\n".repeat(80)).setLocationSnapshot(JsonUtils.toJsonString(Map.of("fallbackLocation","原始机房\r\n".repeat(80))));
-  var task=spy(new P33InstallationSyncTask(mapper,publications,projects));doReturn(new ArrayList<>(List.of(source))).when(task).syncDataQuery(any());
+  var task=spy(new P33InstallationSyncTask(mapper,publications,projects,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)));doReturn(new ArrayList<>(List.of(source))).when(task).syncDataQuery(any());
   assertEquals(1,run(task,true).inserted());verifyNoInteractions(location);
   assertEquals(1,run(task,false).inserted());
   assertEquals(source.getInstallAddress(),jdbc.queryForObject("SELECT install_location FROM imp_eng_installation",String.class));
@@ -332,6 +332,6 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
  }
  @Test void absentPublicationBlocksEveryHistoryBeforeOpeningTheExternalSource(){
   when(publications.load(any())).thenThrow(new IllegalStateException("COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED"));var external=mock(SyncSource.class);var context=new SyncContext<Void>(1,2,3,true,10,100,at,external,identities,mock(SyncReferences.class),"Task",session,false,true);
-  assertThrows(IllegalStateException.class,()->new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)).execute(context));assertThrows(IllegalStateException.class,()->new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects).execute(context));verifyNoInteractions(external);
+  assertThrows(IllegalStateException.class,()->new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects,mock(cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.class),mock(cn.iocoder.yudao.module.system.api.user.ActiveUserSelectionApi.class)).execute(context));assertThrows(IllegalStateException.class,()->new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)).execute(context));verifyNoInteractions(external);
  }
 }

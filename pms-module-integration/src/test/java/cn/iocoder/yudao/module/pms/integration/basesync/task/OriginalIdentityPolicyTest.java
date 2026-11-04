@@ -73,7 +73,7 @@ class OriginalIdentityPolicyTest {
     }
     @Test void relationUsesExactSourceCompanyAndCarriesContractNumberBeforeReferencePostfill() {
         var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
-        var task=new P18ProjectContractSyncTask(mapper);
+        var task=new P18ProjectContractSyncTask(mapper,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));
         var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");source.setCanonical(source);
         var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());var batch=new SyncBatch<>(c,List.of(source));
         task.syncDataInsertBefore(batch);assertEquals("001",source.getCompanyCode());assertEquals("C",source.getTarget().getContractNo());assertNull(source.getTarget().getContractId());assertEquals(new SyncCounts(1,1,0,0,0),task.syncDataCount(batch));
@@ -82,7 +82,7 @@ class OriginalIdentityPolicyTest {
     }
     @Test void relationPreviewPlansRawBusinessKeysWithoutInventingContractIds() {
         var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
-        var task=new P18ProjectContractSyncTask(mapper);
+        var task=new P18ProjectContractSyncTask(mapper,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));
         var known=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");known.setCanonical(known);
         var missing=new P18ProjectContractSyncTask.Source().setContractSourceId(3L).setMemberId(4L).setOriginalProjectId(7L).setContractNo("OTHER");missing.setCanonical(missing);
         var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());var batch=new SyncBatch<>(c,List.of(known,missing));task.syncDataInsertBefore(batch);
@@ -93,26 +93,26 @@ class OriginalIdentityPolicyTest {
     }
     @Test void relationPreviewRejectsMissingTargetForExistingBusinessBinding() {
         var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
-        var task=new P18ProjectContractSyncTask(mapper);var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");source.setCanonical(source);
+        var task=new P18ProjectContractSyncTask(mapper,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");source.setCanonical(source);
         var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());
         when(c.identities().findByKeys(any())).thenAnswer(call->call.<SyncIdentityStore.Query>getArgument(0).object().equals("RELATION_BUSINESS")?Map.of(source.businessKey(),new SyncIdentityStore.Identity(source.businessKey(),99L,"baseline")):Map.of());
         assertEquals("P18_BOUND_RELATION_MISSING",assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage());verify(c.identities(),never()).saveAll(any());
     }
     @Test void relationCompany002NeedsNoActorCompanyGrantToPlanRawTarget() {
         var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
-        var task=new P18ProjectContractSyncTask(mapper);var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("02").setContractNo("C");source.setCanonical(source);
+        var task=new P18ProjectContractSyncTask(mapper,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("02").setContractNo("C");source.setCanonical(source);
         var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());var batch=new SyncBatch<>(c,List.of(source));task.syncDataInsertBefore(batch);
         assertEquals("002",source.getCompanyCode());assertEquals("C",source.getTarget().getContractNo());assertEquals(new SyncCounts(1,1,0,0,0),task.syncDataCount(batch));assertTrue(c.runState().warnings().stream().noneMatch(w->w.contains("AUTHORIZATION_PENDING")));
     }
     @Test void relationParametersNoLongerNeedOrganizationScopesButBusinessPermissionRemains() {
-        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var task=new P18ProjectContractSyncTask(mapper);var preview=context();
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var task=new P18ProjectContractSyncTask(mapper,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));var preview=context();
         assertNotNull(task.createParameters(preview));
         var actual=new SyncContext<Void>(preview.tenantId(),preview.actorId(),preview.connectionId(),false,preview.batchSize(),preview.maxRows(),preview.startedAt(),preview.source(),preview.identities(),preview.references(),preview.dataName(),preview.target(),false,true);
         assertNotNull(task.createParameters(actual));assertEquals(Set.of("pms:commerce:contract:relate"),task.requiredPermissions());verifyNoInteractions(mapper);
     }
     @Test void relationMixedCompanyPreviewKeepsEveryExactRawRelationKey() {
         var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
-        var task=new P18ProjectContractSyncTask(mapper);var rows=new ArrayList<P18ProjectContractSyncTask.Source>();
+        var task=new P18ProjectContractSyncTask(mapper,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));var rows=new ArrayList<P18ProjectContractSyncTask.Source>();
         for(int i=1;i<=3;i++){var row=new P18ProjectContractSyncTask.Source().setContractSourceId((long)i).setMemberId((long)i).setOriginalProjectId(7L).setOriginalCompanyCode(i==3?null:i==1?"01":"02").setContractNo("C"+i);row.setCanonical(row);rows.add(row);}
         var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());var batch=new SyncBatch<>(c,rows);task.syncDataInsertBefore(batch);
         var query=org.mockito.ArgumentCaptor.forClass(P18ProjectContractSyncTask.RelationsQuery.class);verify(mapper).selectRelations(query.capture());assertEquals(1,query.getValue().tenantId());
@@ -122,14 +122,14 @@ class OriginalIdentityPolicyTest {
     @Test void relationWithoutCompanyGrantStillProtectsExistingIndependentBindings() {
         for(var object:List.of("RELATION_BUSINESS","RELATION_ORIGINAL")){
             var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
-            var task=new P18ProjectContractSyncTask(mapper);var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");source.setCanonical(source);
+            var task=new P18ProjectContractSyncTask(mapper,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");source.setCanonical(source);
             var base=context();var c=new SyncContext<Void>(base.tenantId(),base.actorId(),base.connectionId(),false,base.batchSize(),base.maxRows(),base.startedAt(),base.source(),base.identities(),base.references(),base.dataName(),base.target(),false,true).forParameters(new P18ProjectContractSyncTask.Parameters());
             var key=object.equals("RELATION_BUSINESS")?source.businessKey():source.sourceKey();when(c.identities().findByKeys(any())).thenAnswer(call->call.<SyncIdentityStore.Query>getArgument(0).object().equals(object)?Map.of(key,new SyncIdentityStore.Identity(key,99L,"baseline")):Map.of());
             var expected=object.equals("RELATION_BUSINESS")?"P18_BOUND_RELATION_MISSING":"P18_ORIGINAL_RELATION_CHANGED";assertEquals(expected,assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage());verify(c.identities(),never()).saveAll(any());
         }
     }
     @Test void relationOriginalProjectIdentityIsStoredWithoutPerProjectOwnerLookup() {
-        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var task=new P18ProjectContractSyncTask(mapper);
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var task=new P18ProjectContractSyncTask(mapper,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));
         var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(701L).setOriginalCompanyCode(null).setOriginalProjectCode("RAW-UNRESOLVED").setContractNo("C");source.setCanonical(source);
         var c=context().forParameters(new P18ProjectContractSyncTask.Parameters());task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)));
         assertEquals(701L,source.getFormalProjectId());assertEquals(701L,source.getTarget().getProjectId());assertNull(source.getCompanyCode());assertEquals("C",source.getTarget().getContractNo());
@@ -137,7 +137,7 @@ class OriginalIdentityPolicyTest {
     }
     @Test void relationUnmappedSourceCompanyRemainsInvalidForPreviewAndExecution() {
         var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
-        var task=new P18ProjectContractSyncTask(mapper);var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("99").setContractNo("C");source.setCanonical(source);var base=context();
+        var task=new P18ProjectContractSyncTask(mapper,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("99").setContractNo("C");source.setCanonical(source);var base=context();
         for(boolean preview:List.of(true,false)){var c=new SyncContext<Void>(base.tenantId(),base.actorId(),base.connectionId(),preview,base.batchSize(),base.maxRows(),base.startedAt(),base.source(),base.identities(),base.references(),base.dataName(),base.target(),false,true).forParameters(new P18ProjectContractSyncTask.Parameters());assertTrue(assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage().contains("DPPMS_COMPANY_CODE_UNMAPPED"));}verifyNoInteractions(mapper);
     }
 }

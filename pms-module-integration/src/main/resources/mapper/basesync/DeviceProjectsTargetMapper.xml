@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects$TargetMapper">
+  <sql id="deviceColumns">d.id,d.tenant_id,d.version,d.shipment_record_id,d.project_assignment_version,d.customer_assignment_version,d.project_id,d.company_id,d.company_name,d.department_id,d.department_code,d.department_name,d.organization_source,d.organization_updated_at,d.sn,d.name,d.product_name,d.product_model,d.product_code,d.package_no,d.contract_no,d.status,d.source_system,d.source_key,d.source_version,d.sync_status,d.remark,d.creator,d.updater,d.shipment_time,d.synced_at,d.create_time,d.update_time,d.deleted</sql>
+  <select id="selectDevices" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$DeviceRow">
+    SELECT <include refid="deviceColumns"/> FROM ast_device d
+    WHERE d.tenant_id=#{query.tenantId} AND d.deleted=0 AND d.source_system='DPPMS' AND d.id &gt; #{query.afterId}
+    ORDER BY d.id LIMIT #{query.limit}<if test="!query.preview"> FOR UPDATE</if>
+  </select>
+  <sql id="deviceIds">
+    <choose><when test="query.deviceIds != null and !query.deviceIds.isEmpty()">
+      AND d.id IN <foreach collection="query.deviceIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+  </sql>
+  <select id="selectDevicesByIds" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$DeviceRow">
+    SELECT <include refid="deviceColumns"/> FROM ast_device d WHERE d.tenant_id=#{query.tenantId} AND d.deleted=0
+    <include refid="deviceIds"/>
+  </select>
+  <sql id="batchIds">
+    <choose><when test="query.devices != null and !query.devices.isEmpty()">
+      AND b.target_id IN <foreach collection="query.devices" item="device" open="(" close=")" separator=",">#{device.id}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+  </sql>
+  <select id="selectBaseBindings" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects$Binding">
+    SELECT b.target_id device_id,b.id,b.source_key,b.fingerprint FROM int_base_sync_binding b
+    JOIN int_base_sync_task t ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=0
+    WHERE b.tenant_id=#{query.tenantId} AND b.deleted=0 AND b.object_key='DEVICE_BASE'
+      AND t.task_code='BASE_P30' AND t.connection_id=#{query.connectionId}<include refid="batchIds"/>
+  </select>
+  <select id="selectLatestRelationships" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects$Relation">
+    SELECT d.id device_id,r.id,r.project_id,r.assignment_version,r.source_system,r.reason evidence,r.effective_from,r.effective_to
+    FROM ast_device d JOIN ast_device_project_relationship r ON r.tenant_id=d.tenant_id AND r.device_sn=d.sn
+    AND r.id=(SELECT latest.id FROM ast_device_project_relationship latest
+      WHERE latest.tenant_id=d.tenant_id AND latest.device_sn=d.sn AND latest.relationship_type='DIRECT' AND latest.deleted=0
+      ORDER BY latest.assignment_version DESC,(latest.effective_to IS NULL) DESC,latest.id DESC LIMIT 1)
+    WHERE d.tenant_id=#{query.tenantId} AND d.deleted=0 AND r.deleted=0 AND r.relationship_type='DIRECT'
+    <include refid="deviceIds"/>
+  </select>
+  <sql id="requests">
+    (<choose><when test="query.devices != null and !query.devices.isEmpty()">
+      VALUES <foreach collection="query.devices" item="device" separator=",">ROW(#{device.id},#{device.sn})</foreach>
+    </when><otherwise>SELECT 0 id,'' sn WHERE 1=0</otherwise></choose>) requested(device_id,sn)
+  </sql>
+  <sql id="activeContract">
+    FROM com_project_contract_relation r WHERE r.tenant_id=#{query.tenantId} AND r.deleted=0 AND r.status='ACTIVE'
+    AND r.contract_no=s.contract_no COLLATE utf8mb4_unicode_ci
+    AND (r.effective_from IS NULL OR r.effective_from &lt;= #{query.at}) AND (r.effective_to IS NULL OR r.effective_to &gt; #{query.at})
+  </sql>
+  <sql id="activeOrder">
+    FROM com_delivery_scope ds WHERE ds.tenant_id=#{query.tenantId} AND ds.deleted=0 AND ds.status='ENABLED' AND ds.scope_status='ACTIVE'
+    AND ds.order_line_id=s.order_line_id AND (ds.effective_from IS NULL OR ds.effective_from &lt;= #{query.at})
+    AND ds.effective_to IS NULL
+  </sql>
+  <select id="selectFacts" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects$Fact">
+    SELECT requested.device_id,i.id installation_id,i.project_id installation_project_id,s.source_system shipment_source,
+      (SELECT MIN(r.project_id) <include refid="activeContract"/>) contract_project_id,
+      (SELECT COUNT(DISTINCT r.project_id) <include refid="activeContract"/>) contract_count,
+      s.id shipment_id,
+      (SELECT MIN(ds.project_id) <include refid="activeOrder"/>) order_project_id,
+      (SELECT COUNT(DISTINCT ds.project_id) <include refid="activeOrder"/>) order_count
+    FROM <include refid="requests"/>
+    LEFT JOIN imp_eng_installation i ON i.tenant_id=#{query.tenantId}
+      AND i.id=(SELECT MAX(newest.id) FROM imp_eng_installation newest WHERE newest.tenant_id=#{query.tenantId}
+        AND newest.equipment_id=requested.device_id AND newest.deleted=0 AND newest.status=2)
+    LEFT JOIN ast_device_shipment s ON s.tenant_id=#{query.tenantId}
+      AND s.id=(SELECT latest.id FROM ast_device_shipment latest WHERE latest.tenant_id=#{query.tenantId}
+        AND latest.device_sn=requested.sn COLLATE utf8mb4_unicode_ci AND latest.deleted=0
+        ORDER BY latest.shipment_time DESC,latest.id DESC LIMIT 1)
+  </select>
+  <select id="selectAssignableProjects" resultType="java.lang.Long">
+    SELECT p.id FROM proj_project p WHERE p.tenant_id=#{query.tenantId} AND p.deleted=0
+      AND EXISTS (SELECT 1 FROM proj_project_tree_version tv WHERE tv.tenant_id=p.tenant_id
+        AND tv.root_project_id=p.root_id AND tv.deleted=0 AND tv.status='ACTIVE')
+      AND NOT EXISTS (SELECT 1 FROM proj_project child WHERE child.tenant_id=p.tenant_id AND child.parent_id=p.id AND child.deleted=0)
+    <choose><when test="query.projectIds != null and !query.projectIds.isEmpty()">
+      AND p.id IN <foreach collection="query.projectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+  </select>
+  <select id="selectAliases" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects$Alias">
+    SELECT b.source_key,b.target_id project_id FROM int_base_sync_binding b JOIN int_base_sync_task t
+      ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=0 AND t.task_code='BASE_P16' AND t.connection_id=#{query.connectionId}
+    WHERE b.tenant_id=#{query.tenantId} AND b.deleted=0 AND b.object_key='PROJECT_ALIAS'
+    <choose><when test="query.keys != null and !query.keys.isEmpty()">
+      AND b.source_key IN <foreach collection="query.keys" item="key" open="(" close=")" separator=",">#{key}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+  </select>
+  <update id="closeRelationships">
+    UPDATE ast_device_project_relationship r JOIN (
+      VALUES <foreach collection="changes" item="change" separator=",">ROW(#{change.device.sn},#{change.device.projectAssignmentVersion})</foreach>
+    ) incoming(sn,assignment_version) ON r.device_sn=incoming.sn COLLATE utf8mb4_unicode_ci
+    SET r.effective_to=#{context.startedAt},r.assignment_version=incoming.assignment_version+1,
+      r.version=r.version+1,r.updater=#{context.actorId},r.update_time=#{context.startedAt}
+    WHERE r.tenant_id=#{context.tenantId} AND r.deleted=0 AND r.relationship_type='DIRECT' AND r.source_system='BASE_SYNC'
+      AND r.effective_to IS NULL AND r.assignment_version=incoming.assignment_version AND r.effective_from &lt; #{context.startedAt}
+  </update>
+  <insert id="insertRelationships">
+    INSERT INTO ast_device_project_relationship(id,device_sn,project_id,relationship_type,effective_from,assignment_version,
+      reason,operation_id,source_system,source_key,source_version,version,creator,updater,create_time,update_time,deleted,tenant_id)
+    VALUES <foreach collection="changes" item="change" separator=",">
+      ( #{change.relationshipId},#{change.device.sn},#{change.decision.projectId},'DIRECT',#{context.startedAt},#{change.device.projectAssignmentVersion}+1,
+        #{change.decision.evidence},#{change.operationId},'BASE_SYNC',CONCAT(#{change.device.id},':',#{change.device.projectAssignmentVersion}+1),
+        CAST(#{change.device.projectAssignmentVersion}+1 AS CHAR),0,#{context.actorId},#{context.actorId},#{context.startedAt},#{context.startedAt},0,#{context.tenantId})
+    </foreach>
+  </insert>
+  <!-- Same project/contract organization rules as the existing AST projection, executed in this sync transaction. -->
+  <sql id="changedContracts">
+    AND contract_no IN <foreach collection="changes" item="change" open="(" close=")" separator=",">#{change.device.contractNo}</foreach>
+  </sql>
+  <sql id="contractOrganizations">
+    SELECT contract_no,MAX(company_id) company_id,MAX(company_name) company_name,
+      CASE WHEN COUNT(DISTINCT NULLIF(department_code,''))=1 THEN MAX(department_id) END department_id,
+      CASE WHEN COUNT(DISTINCT NULLIF(department_code,''))=1 THEN MAX(NULLIF(department_code,'')) END department_code,
+      CASE WHEN COUNT(DISTINCT NULLIF(department_code,''))=1 THEN MAX(NULLIF(department_name,'')) END department_name
+    FROM (
+      SELECT contract_no,company_id,company_code,company_name,NULL department_id,department_code,department_name
+      FROM com_contract WHERE tenant_id=#{context.tenantId} AND deleted=0 <include refid="changedContracts"/>
+      UNION ALL
+      SELECT contract_no,company_id,company_code,company_name,department_id,department_code,department_name
+      FROM com_shipment_contract_reference WHERE tenant_id=#{context.tenantId} AND deleted=0 <include refid="changedContracts"/>
+    ) ownership WHERE contract_no IS NOT NULL AND contract_no &lt;&gt; '' GROUP BY contract_no
+      HAVING COUNT(DISTINCT company_id)=1 AND COUNT(DISTINCT NULLIF(company_code,''))=1
+      AND SUM(CASE WHEN company_code IS NULL OR company_code='' THEN 1 ELSE 0 END)=0
+  </sql>
+  <update id="updateDevices">
+    UPDATE ast_device d JOIN (
+      VALUES <foreach collection="changes" item="change" separator=",">ROW(#{change.device.id},#{change.device.projectId},#{change.device.projectAssignmentVersion},#{change.decision.projectId})</foreach>
+    ) incoming(id,old_project_id,assignment_version,project_id) ON incoming.id=d.id
+    LEFT JOIN proj_project p ON p.tenant_id=#{context.tenantId} AND p.id=incoming.project_id AND p.deleted=0
+    LEFT JOIN (<include refid="contractOrganizations"/>) org ON CAST(org.contract_no AS BINARY)=CAST(d.contract_no AS BINARY)
+    SET d.project_id=incoming.project_id,d.project_assignment_version=incoming.assignment_version+1,
+      d.updater=#{context.actorId},d.update_time=#{context.startedAt},
+      d.company_id=CASE WHEN incoming.project_id IS NOT NULL THEN p.company_id ELSE org.company_id END,
+      d.company_name=CASE WHEN incoming.project_id IS NOT NULL THEN p.company_name ELSE org.company_name END,
+      d.department_id=CASE WHEN incoming.project_id IS NOT NULL THEN p.department_id ELSE org.department_id END,
+      d.department_code=CASE WHEN incoming.project_id IS NOT NULL THEN p.department_code ELSE org.department_code END,
+      d.department_name=CASE WHEN incoming.project_id IS NOT NULL THEN p.department_name ELSE org.department_name END,
+      d.organization_source=CASE WHEN incoming.project_id IS NOT NULL THEN 'PROJECT' WHEN org.contract_no IS NOT NULL THEN 'CONTRACT' ELSE 'UNRESOLVED' END,
+      d.organization_updated_at=#{context.startedAt}
+    WHERE d.tenant_id=#{context.tenantId} AND d.deleted=0 AND d.source_system='DPPMS'
+      AND d.project_assignment_version=incoming.assignment_version AND d.project_id &lt;=&gt; incoming.old_project_id
+  </update>
+  <update id="updateBindings">
+    UPDATE int_base_sync_binding b JOIN (
+      VALUES <foreach collection="changes" item="change" separator=",">ROW(#{change.binding.id},#{change.device.id},#{change.binding.fingerprint},#{change.nextFingerprint})</foreach>
+    ) incoming(id,device_id,previous_fingerprint,fingerprint) ON incoming.id=b.id AND incoming.device_id=b.target_id
+    SET b.fingerprint=incoming.fingerprint,b.updater=#{context.actorId}
+    WHERE b.tenant_id=#{context.tenantId} AND b.deleted=0 AND b.object_key='DEVICE_BASE'
+      AND b.fingerprint=incoming.previous_fingerprint COLLATE utf8mb4_unicode_ci
+  </update>
+  <!-- Projection and immutable operation receipt have succeeded in this same transaction. -->
+  <insert id="insertEvents">
+    INSERT INTO plt_outbox_event(id,tenant_id,event_id,event_type,aggregate_type,aggregate_key,payload,status,
+      occurred_at,next_retry_time,retry_count,creator,updater,create_time,update_time)
+    VALUES <foreach collection="events" item="event" separator=",">
+      (#{event.id},#{context.tenantId},#{event.eventId},'DeviceAssigned','Device',CAST(#{event.deviceId} AS CHAR),
+        #{event.payload},'DELIVERED',#{context.startedAt},NULL,0,#{context.actorId},#{context.actorId},#{context.startedAt},#{context.startedAt})
+    </foreach>
+  </insert>
+  <select id="selectProjectionWatermarks" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects$Watermark">
+    SELECT d.id device_id,MAX(o.assignment_version) assignment_version
+    FROM ast_device d JOIN ast_device_ancestor_projection_operation o ON o.tenant_id=d.tenant_id AND o.device_sn=d.sn AND o.deleted=0
+    WHERE d.tenant_id=#{query.tenantId} AND d.deleted=0 <include refid="deviceIds"/> GROUP BY d.id
+  </select>
+  <select id="selectTreeFacts" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects$TreeFact">
+    SELECT p.id project_id,tv.tree_version,path.ancestor_project_id
+    FROM proj_project p JOIN proj_project_tree_version tv ON tv.tenant_id=p.tenant_id
+      AND tv.root_project_id=COALESCE(p.root_id,p.id) AND tv.deleted=0 AND tv.status='ACTIVE'
+      AND tv.tree_version=(SELECT MAX(active.tree_version) FROM proj_project_tree_version active
+        WHERE active.tenant_id=p.tenant_id AND active.root_project_id=COALESCE(p.root_id,p.id) AND active.deleted=0 AND active.status='ACTIVE')
+    LEFT JOIN proj_project_tree_path path ON path.tenant_id=p.tenant_id AND path.deleted=0
+      AND path.root_project_id=tv.root_project_id AND path.tree_version=tv.tree_version AND path.descendant_project_id=p.id AND path.distance &gt; 0
+    WHERE p.tenant_id=#{query.tenantId} AND p.deleted=0
+    <choose><when test="query.projectIds != null and !query.projectIds.isEmpty()">
+      AND p.id IN <foreach collection="query.projectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+  </select>
+  <delete id="deleteAncestors">
+    DELETE FROM ast_device_project_ancestor WHERE tenant_id=#{context.tenantId}
+    <choose><when test="projections != null and !projections.isEmpty()">
+      AND device_sn IN <foreach collection="projections" item="projection" open="(" close=")" separator=",">#{projection.sn}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+  </delete>
+  <insert id="insertAncestors">
+    INSERT INTO ast_device_project_ancestor(device_sn,project_id,ancestor_project_id,tree_version,assignment_version,tenant_id)
+    VALUES <foreach collection="ancestors" item="ancestor" separator=",">
+      (#{ancestor.sn},#{ancestor.projectId},#{ancestor.ancestorProjectId},#{ancestor.treeVersion},#{ancestor.assignmentVersion},#{context.tenantId})
+    </foreach>
+  </insert>
+  <insert id="insertProjectionOperations">
+    INSERT INTO ast_device_ancestor_projection_operation(event_id,operation_id,device_sn,project_id,tree_version,assignment_version,tenant_id)
+    VALUES <foreach collection="projections" item="projection" separator=",">
+      (#{projection.eventId},#{projection.eventId},#{projection.sn},#{projection.projectId},#{projection.treeVersion},#{projection.assignmentVersion},#{context.tenantId})
+    </foreach>
+  </insert>
+</mapper>

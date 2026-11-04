@@ -29,7 +29,7 @@ class InstallationHistoryProtectionTest {
   var device=new P33InstallationSyncTask.Device().setId(9L).setSn("SN-1").setRequestedSn("SN-1");when(mapper.selectDevices(any())).thenReturn(List.of(device));
   identities=mock(SyncIdentityStore.class);when(identities.findByKeys(any())).thenReturn(Map.of());
   session=mock(SqlSession.class);
-  task=spy(new P33InstallationSyncTask(mapper,publications,projects));
+  task=spy(new P33InstallationSyncTask(mapper,publications,projects,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)));
   source=new P33InstallationSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setBarcode("SN-1").setTransferFlag("-1").setTransferPending(false).setInstallAddress("original address").setLocationSnapshot("{\"fallbackLocation\":\"original address\"}").setCreateTime(at).setSourceCreator("").setSourceUpdater("");
   doAnswer(call->new ArrayList<>(List.of(source))).when(task).syncDataQuery(any());
  }
@@ -100,7 +100,7 @@ class InstallationHistoryProtectionTest {
    for(var member:q.members())result.put(member.sourceKey(),new BaseSyncProjectReferences.Identity(member.sourceKey(),member.projectId(),1L,0L,member.projectCode(),"10",null,null,null,"ACTIVE",false));
    return result;
   });
-  task=spy(new P33InstallationSyncTask(mapper,publications,projects));doReturn(rows).when(task).syncDataQuery(any());
+  task=spy(new P33InstallationSyncTask(mapper,publications,projects,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)));doReturn(rows).when(task).syncDataQuery(any());
   assertEquals(2001,preview().inserted());
   verify(projects).currentManageScope(new BaseSyncProjectReferences.ManageScopeQuery(1,2));verify(projects,times(3)).verifyPublished(any());noWrites();
  }

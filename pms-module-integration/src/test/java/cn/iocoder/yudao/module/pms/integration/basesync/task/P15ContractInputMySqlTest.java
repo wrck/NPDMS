@@ -171,7 +171,7 @@ class P15ContractInputMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract",Integer.class));assertTrue(saved.isEmpty());
  }
  static final class ContractProbe extends P15DeliverySyncTask {
-  ContractProbe(TargetMapper mapper){super(mapper,mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class));}
+  ContractProbe(TargetMapper mapper){super(mapper,mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class),mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));}
   @Override protected String targetMapperNamespace(){return TargetMapper.class.getName();}
   List<Source> query(SyncContext<Parameters> context){return super.syncDataQuery(context.forData("Contract",false,false));}
   List<Source> queryLocal(SyncContext<Parameters> context){return super.syncDataQuery(context.forLocalData("Contract",false,false));}
@@ -179,13 +179,13 @@ class P15ContractInputMySqlTest extends RemainingTaskMySqlSupport {
   @Override public void work(SyncContext<Parameters> context){syncData(context.forData("Contract",false,false));}
  }
  static final class EventProbe extends P15DeliverySyncTask {
-  EventProbe(TargetMapper mapper){super(mapper,mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class));}
+  EventProbe(TargetMapper mapper){super(mapper,mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class),mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));}
   @Override protected String sourceMapperNamespace(){return SourceMapper.class.getName();}
   @Override public void work(SyncContext<Parameters> context){syncData(context.forData("ShipmentEvent",false,true));}
   List<Source> queryEvents(SyncContext<Parameters> context){var rows=new ArrayList<Source>();super.syncDataQueryByRowHandler(context.forData("ShipmentEvent",false,true),result->rows.add(result.getResultObject()));return rows;}
  }
  static final class RelationshipProbe extends P15DeliverySyncTask {
-  final List<Source> planned=new ArrayList<>();RelationshipProbe(TargetMapper mapper){super(mapper,mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class));}
+  final List<Source> planned=new ArrayList<>();RelationshipProbe(TargetMapper mapper){super(mapper,mock(cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.class),mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));}
   @Override protected String sourceMapperNamespace(){return SourceMapper.class.getName();}
   @Override public void work(SyncContext<Parameters> context){syncData(context.forData("DeviceRelationship",false,true));}
   @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> batch){super.syncDataInsertBefore(batch);planned.addAll(batch.rows());}

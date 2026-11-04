@@ -16,11 +16,12 @@ import org.springframework.stereotype.Component;
 public class P33InstallationSyncTask extends AbstractSyncTask<P33InstallationSyncTask.Source,P33InstallationSyncTask.Parameters> {
  private static final org.slf4j.Logger log=org.slf4j.LoggerFactory.getLogger(P33InstallationSyncTask.class);
  private final TargetMapper mapper;private final BaseSyncPublishedProjects publications;private final BaseSyncProjectReferences projects;
+ private final cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects projectAssignments;
  public static final class Parameters {private BaseSyncPublishedProjects.Snapshot publication;private BaseSyncProjectReferences.CurrentManageScope manageScope;private int installLocationCapacity;private long filteredBlankAddresses;}
  @Override protected Parameters createParameters(SyncContext<?> c){return new Parameters();}
  @Override public String taskCode(){return "BASE_P33";}
  @Override public String taskName(){return "设备安装历史";}
- @Override public void work(SyncContext<Parameters> c){if(c.preview())c.runState().warning("SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED");c.parameters().publication=publications.load(new BaseSyncPublishedProjects.Query(c.tenantId(),c.connectionId(),c.maxRows(),c.source(),c.preview()));c.parameters().manageScope=projects.currentManageScope(new BaseSyncProjectReferences.ManageScopeQuery(c.tenantId(),c.actorId()));syncData(c.forData("Installation",false,false));if(c.parameters().filteredBlankAddresses>0)c.runState().warning("P33_BLANK_ADDRESS_FILTERED_AFTER_READ:"+c.parameters().filteredBlankAddresses);}
+ @Override public void work(SyncContext<Parameters> c){if(c.preview())c.runState().warning("SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED");c.parameters().publication=publications.load(new BaseSyncPublishedProjects.Query(c.tenantId(),c.connectionId(),c.maxRows(),c.source(),c.preview()));c.parameters().manageScope=projects.currentManageScope(new BaseSyncProjectReferences.ManageScopeQuery(c.tenantId(),c.actorId()));syncData(c.forData("Installation",false,false));projectAssignments.refresh(c);if(c.parameters().filteredBlankAddresses>0)c.runState().warning("P33_BLANK_ADDRESS_FILTERED_AFTER_READ:"+c.parameters().filteredBlankAddresses);}
  @Override protected void syncDataBefore(SyncContext<Parameters> c){super.syncDataBefore(c);c.parameters().installLocationCapacity=mapper.installLocationCapacity();if(c.parameters().installLocationCapacity<1)fail("INSTALL_LOCATION_COLUMN_MISSING");}
  public record ReadQuery(int limit,List<String> projectKeys){}
  @Override protected List<Source> syncDataQuery(SyncContext<Parameters> c){

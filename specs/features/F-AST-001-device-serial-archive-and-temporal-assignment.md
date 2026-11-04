@@ -175,6 +175,7 @@ F-AST-001消费外部系统已写入Owner本地副本后的稳定事实，不承
 ### BR-FAST001-011 事件、审计与来源证据
 
 - 项目直接归属成功后，在同一事务写入不可变时态关系、主档当前投影、幂等完成点、审计和`DeviceAssigned` Outbox。事件冻结`deviceId/oldProjectId/newProjectId/assignmentVersion/effectiveAt`及统一事件元数据。
+- 2026-11-02已批准的独立同步归属收尾允许撤销失效的同步归属：`newProjectId=NULL`且`oldProjectId`非NULL表示清空当前归属，不代表创建空项目关系。消费者清空设备祖先投影并按新的指派版本记录水位；操作回执保留被移除项目ID，`treeVersion=0`表示此次清空不引用项目树。旧事件不能越过指派版本水位恢复过期归属，人工指派入口仍要求非空目标项目。同步来源选择及保护规则见`docs/coding/independent-base-sync.md`。
 - 事件消费者按`eventId`幂等；事件发送或祖先投影重建失败不回滚已经提交的归属真值，后台按同一`operationId`重试。
 - 外部主数据副本成功更新后可发布`MasterDataSynchronized`或Owner定义的稳定事件；F-AST-001不以消息受理替代本地副本成功提交。
 - 审计覆盖设备精确查询、来源字段变化摘要、同步状态变化、当前投影重建、归属前后值、冲突创建与处置、装配变更、配置Log下载授权和下载结果。日志不得记录配置正文、凭证明文、完整限时URL或敏感客户字段。

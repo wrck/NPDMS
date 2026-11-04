@@ -13,7 +13,7 @@ class OrderContractPostfillTest {
     final P15DeliverySyncTask.TargetMapper mapper=mock(P15DeliverySyncTask.TargetMapper.class);
     final SyncIdentityStore identities=mock(SyncIdentityStore.class);
     final SqlSession target=mock(SqlSession.class);
-    final P15DeliverySyncTask task=new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class));
+    final P15DeliverySyncTask task=new P15DeliverySyncTask(mapper,mock(ManagedOrganizationApi.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));
     final LocalDateTime originalDate=LocalDateTime.of(2023,2,24,11,19,34);
 
     SyncBatch<P15DeliverySyncTask.Source,P15DeliverySyncTask.Parameters> batch(boolean preview) {

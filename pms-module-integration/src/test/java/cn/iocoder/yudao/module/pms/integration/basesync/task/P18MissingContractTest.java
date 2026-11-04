@@ -30,7 +30,7 @@ class P18MissingContractTest {
  @BeforeEach void setup(){
   mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);
   identities=mock(SyncIdentityStore.class);session=mock(SqlSession.class);
-  task=spy(new P18ProjectContractSyncTask(mapper));
+  task=spy(new P18ProjectContractSyncTask(mapper,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)));
   doAnswer(call->sources).when(task).syncDataQuery(any());
   when(identities.findByKeys(any())).thenAnswer(call->{
    var query=call.<SyncIdentityStore.Query>getArgument(0);var result=new HashMap<String,SyncIdentityStore.Identity>();

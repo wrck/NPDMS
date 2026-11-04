@@ -14,7 +14,7 @@ class P15StageSelectionTest {
     final ManagedOrganizationApi organizations=mock(ManagedOrganizationApi.class);
     final SyncSource source=mock(SyncSource.class);
     final List<String> executed=new ArrayList<>();
-    final P15DeliverySyncTask task=new P15DeliverySyncTask(mapper,organizations){
+    final P15DeliverySyncTask task=new P15DeliverySyncTask(mapper,organizations,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)){
         @Override protected List<Source> syncData(SyncContext<Parameters> context){executed.add(context.dataName());return List.of();}
     };
     SyncContext<Void> context(boolean preview,List<String> stages){

@@ -10,17 +10,19 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.session.ResultHandler;
 import org.springframework.stereotype.Component;
 
-/** Device base initialization from formal shipment facts; no project/customer assignment or legacy task call. */
+/** Device base initialization and continuous project projection; no legacy task call. */
 @Component @RequiredArgsConstructor
 public class P30DeviceBaseSyncTask extends AbstractSyncTask<P30DeviceBaseSyncTask.DeviceSource,P30DeviceBaseSyncTask.Parameters> {
     private final TargetMapper devices;
     private final ContractDeviceVisibilityApi contracts;
+ private final cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects projectAssignments;
     public static final class Parameters {Map<String,List<Product>> products;}
     @Override protected Parameters createParameters(SyncContext<?> runtime){return new Parameters();}
     @Override public String taskCode(){return "BASE_P30";}
     @Override public String taskName(){return "正式发货设备基础承接";}
     @Override public void work(SyncContext<Parameters> context){
         syncData(context.forLocalData("DeviceBase",false,true));
+        projectAssignments.refresh(context);
         if(context.runState().counts().read()==0)context.runState().warning("P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0");
     }
     @Override protected void syncDataInsertBefore(SyncBatch<DeviceSource,Parameters> batch){
@@ -46,6 +48,8 @@ public class P30DeviceBaseSyncTask extends AbstractSyncTask<P30DeviceBaseSyncTas
             source.setIdentitySn(old==null?source.getDeviceSn():old.getSn());
         }
         var bindings=context.identities().findByKeys(new SyncIdentityStore.Query("DEVICE_BASE",batch.rows().stream().map(DeviceSource::getIdentitySn).toList()));
+        var manual = projectAssignments.manualDeviceIds(new cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.DeviceQuery(
+                context.tenantId(), existing.values().stream().map(DeviceRow::getId).toList()));
         for(var source:batch.rows()){
             if(source.getDeviceSn()==null || source.getDeviceSn().isBlank())throw new IllegalArgumentException("P30正式发货SN缺失");
             checkTextLength(source.getDeviceSn(),100);
@@ -56,6 +60,9 @@ public class P30DeviceBaseSyncTask extends AbstractSyncTask<P30DeviceBaseSyncTas
             var old=existing.get(source.getDeviceSn());var binding=bindings.get(source.getIdentitySn());
             source.setSyncAction(SyncWriteAction.UNCHANGED);
             if(old!=null){
+                if(manual.contains(old.getId()) && !Boolean.TRUE.equals(old.getDeleted()) && "DPPMS".equals(old.getSourceSystem())) {
+                    source.setTarget(old);source.setOwned(false);continue;
+                }
                 if(Boolean.TRUE.equals(old.getDeleted()) || !"DPPMS".equals(old.getSourceSystem())
                         || binding!=null && (binding.targetId()!=old.getId() || !Objects.equals(binding.fingerprint(),fingerprint(old))))
                     throw new IllegalStateException("P30设备正式来源或独立保护基线已变化");
@@ -110,7 +117,7 @@ public class P30DeviceBaseSyncTask extends AbstractSyncTask<P30DeviceBaseSyncTas
         batch.context().identities().saveAll(batch.rows().stream().filter(row->row.getSyncAction()==SyncWriteAction.INSERT)
                 .map(row->new SyncIdentityStore.Save("DEVICE_BASE",row.getIdentitySn(),row.getTarget().getId(),fingerprint(row.getTarget()),null)).toList());
     }
-    static String fingerprint(DeviceRow row){return SyncFingerprint.of(Arrays.asList(row.getId(),row.getTenantId(),row.getVersion(),row.getShipmentRecordId(),row.getProjectAssignmentVersion(),row.getCustomerAssignmentVersion(),row.getSn(),row.getName(),row.getProductName(),row.getProductModel(),row.getProductCode(),row.getPackageNo(),row.getContractNo(),row.getStatus(),row.getSourceSystem(),row.getSourceKey(),row.getSourceVersion(),row.getSyncStatus(),row.getRemark(),row.getCreator(),row.getUpdater(),row.getShipmentTime(),row.getSyncedAt(),row.getCreateTime(),row.getUpdateTime(),row.getDeleted()));}
+    public static String fingerprint(DeviceRow row){return SyncFingerprint.of(Arrays.asList(row.getId(),row.getTenantId(),row.getVersion(),row.getShipmentRecordId(),row.getProjectAssignmentVersion(),row.getCustomerAssignmentVersion(),row.getSn(),row.getName(),row.getProductName(),row.getProductModel(),row.getProductCode(),row.getPackageNo(),row.getContractNo(),row.getStatus(),row.getSourceSystem(),row.getSourceKey(),row.getSourceVersion(),row.getSyncStatus(),row.getRemark(),row.getCreator(),row.getUpdater(),row.getShipmentTime(),row.getSyncedAt(),row.getCreateTime(),row.getUpdateTime(),row.getDeleted()));}
     @lombok.Data @lombok.EqualsAndHashCode(callSuper=true)
     public static class DeviceSource extends Shipment {private String identitySn;private DeviceRow target;private SyncWriteAction syncAction;private boolean owned;}
     @lombok.Data public static class Shipment {private Long id;private Long tenantId;private String deviceSn;private String sourceSystem;private String sourceKey;private String contractNo;private String packageNo;private LocalDateTime shipmentTime;private String productCode;}

@@ -33,7 +33,7 @@ class P18RawAuditNamesMySqlTest extends RemainingTaskMySqlSupport {
   // The reviewed multi-source schema check is isolated from these raw audit-name cases.
   var target=spy(session.getMapper(P18ProjectContractSyncTask.TargetMapper.class));
   doReturn(0).when(target).oneSourcePerTargetIndex();
-  task=spy(new P18ProjectContractSyncTask(target));task.setMaxRetries(0);
+  task=spy(new P18ProjectContractSyncTask(target,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)));task.setMaxRetries(0);
  }
  void fixture(P18ProjectContractSyncTask.Source source){
   var id=source.getContractSourceId();

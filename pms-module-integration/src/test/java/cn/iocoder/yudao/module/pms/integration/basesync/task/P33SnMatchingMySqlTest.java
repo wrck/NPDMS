@@ -36,7 +36,7 @@ class P33SnMatchingMySqlTest extends RemainingTaskMySqlSupport {
    .setTransferFlag("-1").setTransferPending(false).setInstallAddress("original address").setLocationSnapshot(JsonUtils.toJsonString(Map.of("fallbackLocation","original address"))).setCreateTime(created);
  }
  private P33InstallationSyncTask task(List<P33InstallationSyncTask.Source> rows){
-  var task=spy(new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects));
+  var task=spy(new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects,org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class)));
   doReturn(new ArrayList<>(rows)).when(task).syncDataQuery(any());
   return task;
  }

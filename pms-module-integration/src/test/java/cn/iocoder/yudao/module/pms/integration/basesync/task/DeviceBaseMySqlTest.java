@@ -40,7 +40,7 @@ class DeviceBaseMySqlTest {
         var config=new Configuration();config.setMapUnderscoreToCamelCase(true);config.setEnvironment(new Environment("target",new SpringManagedTransactionFactory(),data));
         String resource="mapper/basesync/P30TargetMapper.xml";try(var input=new ClassPathResource(resource).getInputStream()){new XMLMapperBuilder(input,config,resource,config.getSqlFragments()).parse();}
         session=new SqlSessionTemplate(new SqlSessionFactoryBuilder().build(config));transaction=new TransactionTemplate(new DataSourceTransactionManager(data));
-        identities=mock(SyncIdentityStore.class);when(identities.findByKeys(any())).thenReturn(Map.of());task=new P30DeviceBaseSyncTask(session.getMapper(P30DeviceBaseSyncTask.TargetMapper.class),mock(cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.class));
+        identities=mock(SyncIdentityStore.class);when(identities.findByKeys(any())).thenReturn(Map.of());task=new P30DeviceBaseSyncTask(session.getMapper(P30DeviceBaseSyncTask.TargetMapper.class),mock(cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));
     }
     @AfterEach void close()throws Exception{try{if(connection!=null)connection.close();}finally{if(loader!=null)loader.close();}}
     static String column(String name){return name.replaceAll("([a-z])([A-Z])","$1_$2").toLowerCase(Locale.ROOT);}
@@ -106,7 +106,7 @@ class DeviceBaseMySqlTest {
     @Test void twoBatchesReadSmallProductCatalogueOnlyOncePerRun(){
         shipment(1,"A","DPPMS","2020-01-01");shipment(2,"B","DPPMS","2020-01-01");
         var mapper=mock(P30DeviceBaseSyncTask.TargetMapper.class,org.mockito.AdditionalAnswers.delegatesTo(session.getMapper(P30DeviceBaseSyncTask.TargetMapper.class)));
-        task=new P30DeviceBaseSyncTask(mapper,mock(cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.class));
+        task=new P30DeviceBaseSyncTask(mapper,mock(cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.class),org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects.class));
         assertEquals(new SyncCounts(2,2,0,0,0),run(true));
         verify(mapper,times(1)).selectProducts(any());
     }

@@ -74,6 +74,14 @@ public class DeviceAssignedProjectionJob implements JobHandler {
         if (device == null || device.getSn() == null || device.getSn().isBlank()) {
             throw new IllegalStateException("DEVICE_NOT_FOUND");
         }
+        if (payload.newProjectId() == null) {
+            // A cleared assignment has no project tree. Keep the removed project only in the
+            // operation receipt; the empty projection and assignment watermark reject stale events.
+            projectionService.rebuild(new RebuildDeviceAncestorProjectionCommand(
+                    tenantId, device.getSn(), payload.oldProjectId(), List.of(), 0L,
+                    payload.assignmentVersion(), message.eventId(), payload.operationId()));
+            return;
+        }
         ProjectAncestorResult ancestors = ancestorQueryApi.getAncestors(
                 new ProjectAncestorQuery(tenantId, payload.newProjectId(), null));
         projectionService.rebuild(new RebuildDeviceAncestorProjectionCommand(
@@ -82,7 +90,8 @@ public class DeviceAssignedProjectionJob implements JobHandler {
     }
 
     private static void validatePayload(DeviceAssignedPayload payload) {
-        if (payload == null || payload.deviceId() == null || payload.newProjectId() == null
+        if (payload == null || payload.deviceId() == null
+                || payload.newProjectId() == null && payload.oldProjectId() == null
                 || payload.assignmentVersion() == null || payload.effectiveAt() == null
                 || payload.operationId() == null || payload.operationId().isBlank()) {
             throw new IllegalArgumentException("设备归属事件冻结载荷不完整");

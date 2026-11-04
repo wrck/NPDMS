@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 @Component @RequiredArgsConstructor
 public class P18ProjectContractSyncTask extends AbstractSyncTask<P18ProjectContractSyncTask.Source,P18ProjectContractSyncTask.Parameters> {
  private final TargetMapper mapper;
+ private final cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDeviceProjects projectAssignments;
  public static final class Parameters {private long contractGroupMissing,contractMembersMissing,contractMemberProjectMissing;}
  @Override protected Parameters createParameters(SyncContext<?> c){return new Parameters();}
  @Override public String taskCode(){return "BASE_P18";}
@@ -19,6 +20,7 @@ public class P18ProjectContractSyncTask extends AbstractSyncTask<P18ProjectContr
  @Override public Set<String> requiredPermissions(){return Set.of("pms:commerce:contract:relate");}
  @Override public void work(SyncContext<Parameters> c){
   syncData(c.forData("ProjectContract",false,false));
+  projectAssignments.refresh(c);
   var p=c.parameters();
   if(p.contractGroupMissing>0)c.runState().warning("P18_BRIDGE_CONTRACT_GROUP_MISSING:"+p.contractGroupMissing);
   if(p.contractMembersMissing>0)c.runState().warning("P18_BRIDGE_CONTRACT_MEMBERS_MISSING:"+p.contractMembersMissing);

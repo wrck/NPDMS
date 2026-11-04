@@ -24,6 +24,7 @@ class BaseSyncMapperWiringTest {
     @ComponentScan("cn.iocoder.yudao.module.pms.integration.basesync.task")
     @MapperScan(basePackages="cn.iocoder.yudao.module.pms.integration.basesync",annotationClass=Mapper.class)
     static class Wiring {
+        @Bean BaseSyncDeviceProjects deviceProjects(){return mock(BaseSyncDeviceProjects.class);}
         @Bean DataSource dataSource() {
             return new DriverManagerDataSource("jdbc:h2:mem:base-wiring-"+UUID.randomUUID()+";MODE=MySQL","sa","");
         }
