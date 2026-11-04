@@ -18,7 +18,7 @@ vi.mock('@/api/pms/project/projects', () => ({ getProjectPage: vi.fn(), getProje
   createProjectMemberFilterSource: (role: string) => ({ key: `filter:${role}`, search: vi.fn(async () => ({ list: [], total: 0 })) }) }))
 vi.mock('@/api/pms/project/project-templates', () => ({ getProjectTemplateRevision: vi.fn() }))
 vi.mock('@/api/system/company', () => ({ getSimpleCompanyList: vi.fn() }))
-vi.mock('@/api/system/dept', () => ({ getSimpleDeptList: vi.fn() }))
+vi.mock('@/api/system/dept', () => ({ getSimpleDeptList: vi.fn(), getEnabledDepartmentOptions: vi.fn() }))
 vi.mock('@/api/system/user', () => ({ getSimpleUserList: vi.fn(async () => []) }))
 vi.mock('@/api/pms/asset/location', () => ({ getSitePage: vi.fn() }))
 vi.mock('@/api/pms/customer', () => ({ getCustomerPage: vi.fn() }))
@@ -47,6 +47,7 @@ beforeEach(() => {
     normalClosed: 3, noTrackingClosed: 2, exceptionClosed: 1 })
   vi.mocked(CompanyApi.getSimpleCompanyList).mockResolvedValue([{ id: 11, name: '公司' }] as any)
   vi.mocked(DeptApi.getSimpleDeptList).mockResolvedValue([{ id: 12, name: '办事处' }] as any)
+  vi.mocked(DeptApi.getEnabledDepartmentOptions).mockResolvedValue([{ id: 16, code: '1601', name: '办事处选项', parentId: 0 }])
   vi.mocked(LocationApi.getSitePage).mockResolvedValue({ list: [{ id: 13, version: 2 }] } as any)
 })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
@@ -60,6 +61,8 @@ it('loads scoped projects and organization filters without requesting the site a
   expect(state.rows).toEqual([{ id: 7, projectName: '可见项目' }])
   expect(state.companies).toEqual([{ id: 11, name: '公司' }])
   expect(state.departments).toEqual([{ id: 12, name: '办事处' }])
+  expect(DeptApi.getEnabledDepartmentOptions).toHaveBeenCalledWith({ codePrefixes: ['16*'] })
+  expect(state.officeOptions).toEqual([{ id: 16, code: '1601', name: '办事处选项', parentId: 0 }])
   expect(LocationApi.getSitePage).not.toHaveBeenCalled()
 })
 
@@ -122,4 +125,16 @@ it('keeps the creation wizard closed for a project query-only user', async () =>
   await state.openWizard()
   expect(state.wizardVisible).toBe(false)
   expect(LocationApi.getSitePage).not.toHaveBeenCalled()
+})
+
+// 非管理员部门列表为空，也不影响公共部门选项及项目筛选参数。
+it('loads office filter options independently of the system department scope', async () => {
+  vi.mocked(DeptApi.getSimpleDeptList).mockResolvedValue([])
+  const state = await render()
+  expect(state.departments).toEqual([])
+  expect(state.officeOptions.map((item: any) => item.code)).toEqual(['1601'])
+  state.query.departmentId = 16
+  state.handleSearch()
+  await flush()
+  expect(ProjectsApi.getProjectPage).toHaveBeenLastCalledWith(expect.objectContaining({ departmentId: 16 }))
 })

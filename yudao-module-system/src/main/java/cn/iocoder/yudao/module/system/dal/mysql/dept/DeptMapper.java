@@ -12,6 +12,19 @@ import java.util.List;
 @Mapper
 public interface DeptMapper extends BaseMapperX<DeptDO> {
 
+    default java.util.List<DeptDO> selectEnabledDepartmentOptions(
+            cn.iocoder.yudao.module.system.dal.mysql.dept.query.EnabledDepartmentOptionsQuery query) {
+        if (query == null || query.tenantId() == null) return java.util.List.of();
+        return selectList(new LambdaQueryWrapperX<DeptDO>()
+                .eq(DeptDO::getTenantId, query.tenantId())
+                .eq(DeptDO::getStatus, cn.iocoder.yudao.framework.common.enums.CommonStatusEnum.ENABLE.getStatus())
+                .and(query.codePrefixes() != null && !query.codePrefixes().isEmpty(),
+                        prefixes -> query.codePrefixes().forEach(prefix -> prefixes.or().likeRight(DeptDO::getCode,
+                        prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_"))))
+                .select(DeptDO::getId, DeptDO::getCode, DeptDO::getName, DeptDO::getParentId)
+                .orderByAsc(DeptDO::getCode, DeptDO::getId));
+    }
+
     default List<DeptDO> selectList(DeptListReqVO reqVO) {
         return selectList(new LambdaQueryWrapperX<DeptDO>()
                 .likeIfPresent(DeptDO::getCode, reqVO.getCode())

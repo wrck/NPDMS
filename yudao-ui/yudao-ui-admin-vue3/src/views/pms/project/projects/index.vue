@@ -178,7 +178,7 @@ v-model="query.customerCode" :api="getCustomerPage"
               class="!w-160px"
             >
               <el-option
-                v-for="item in departments"
+                v-for="item in officeOptions"
                 :key="item.id"
                 :label="`${item.code} ${item.name}`"
                 :value="item.id ?? 0"
@@ -1373,6 +1373,7 @@ const createIdempotency = createSubmissionIdempotencyState()
 const createErrorMessage = ref('')
 const companies = ref<CompanyVO[]>([])
 const departments = ref<DeptVO[]>([])
+const officeOptions = ref<DeptApi.DepartmentOption[]>([])
 /** 合同链取值预览（合同→订单→执行单，CRM权威建议值） */
 const creationSource = ref<ContractCreationSourceRespVO | null>(null)
 const creationSourceLoading = ref(false)
@@ -1459,6 +1460,10 @@ const createRules = {
   creationReason: [
     { required: true, whitespace: true, message: '手工创建原因不能为空（BR-2）', trigger: 'blur' }
   ]
+}
+
+const loadOfficeOptions = async () => {
+  officeOptions.value = await DeptApi.getEnabledDepartmentOptions({ codePrefixes: ['16*'] })
 }
 
 const loadOrganizations = async () => {
@@ -1746,6 +1751,7 @@ onMounted(() => {
   loadStats()
   load()
   loadOrganizations()
+  loadOfficeOptions()
 })
 </script>
 

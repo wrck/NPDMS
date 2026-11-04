@@ -54,3 +54,8 @@ export const deleteDept = async (id: number) => {
 export const deleteDeptList = async (ids: number[]) => {
   return await request.delete({ url: '/system/dept/delete-list', params: { ids: ids.join(',') } })
 }
+
+// 多个编码前缀取并集；每个前缀可带末尾 *，例如 ['16*', '31*']。
+export type DepartmentOption = Pick<DeptVO, 'id' | 'code' | 'name' | 'parentId'>
+export const getEnabledDepartmentOptions = (query: { codePrefixes?: string[] } = {}): Promise<DepartmentOption[]> =>
+  request.get({ url: '/api/v1/pms/department-options', params: { codePrefixes: query.codePrefixes?.join(',') } })

@@ -8,6 +8,8 @@
 
 ## 1. API 边界与版本
 
+2026-11-03部门选项裁决：组织模块提供 `GET /api/v1/pms/department-options?codePrefixes=16*,31*`，供多个业务页面复用。多个编码前缀取并集，每项可带一个末尾 `*`；禁止空前缀或中间通配符，未指定范围（缺失参数或空集合）返回全部启用部门，显式空前缀报错。已登录用户可读取当前租户所有命中前缀的启用部门，仅返回 `id/code/name/parentId`，按编码和ID稳定排序；不受用户系统部门数据范围过滤，仍保留租户和逻辑删除隔离。无租户上下文返回空列表，未登录拒绝。该字典不授予业务数据访问权限，各消费者仍执行原有权限与范围校验。项目列表办事处筛选传 `16*`，原部门接口及项目创建表单保持原行为。
+
 2026-10-27合同号来源裁决：`GET /api/v1/pms/projects/office-readonly-search`参数`projectName`、`contractNo`（至少一项完整精确值，两项均填取交集）、原分页参数；仅在当前启用经理的同一有效公司部门范围内查询。名称或合同号任选一项精确匹配；合同号可匹配PROJ主档登记号，或经COM公开Owner契约解析的商务当前有效关联合同号，两项均提供时名称与合同号AND。结果`visibility=OFFICE_READONLY`，不形成普通项目集合。默认`/pms/projects/page`、`statistics`与项目树取消项目经理默认办事处概况。
 
 商务合同关联公共Owner契约为`ProjectContractQueryApi.findProjectIdsByExactContractNo(ExactContractQuery)`：只返回当前租户、当前有效关联合同号对应的候选项目ID，合同号按完整字节值精确比较，并复用当前三条有效关系链。候选ID仅供PROJ筛选，不能授予权限；PROJ查询仍须按同一条有效公司部门范围行及精确项目条件取交集，并在每次读取时重新校验身份、租户、范围、名称/合同号原始条件和目标，任何Owner/范围不可用均失败关闭。COM商务DAL及业务表归COM所有，PROJ消费者不得跨域读取其表。
